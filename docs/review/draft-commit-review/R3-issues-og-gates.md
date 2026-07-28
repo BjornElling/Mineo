@@ -9,10 +9,9 @@ format/bounds/missing/warning-matrix; `min > max`
 **Evidens:** 6 målrettede testfiler/183 tests grønne; AST/property-read-analyser; runtime-falsifikation af
 EET-import og tooltips; uafhængig Sol/high-efterprøvning af R3-F01 og R3-F02  
 **Fund:** 4 (R3-F01, R3-F02, R3-F03, R3-F04)  
-**Hypoteser:** 1 (R3-H01)  
-**Handling:** R3-F01 og R3-F02 er godkendt til implementering 2026-07-28; øvrige fund er parkeret;
-ingen produktionsfiler ændret  
-**Næste skridt:** implementér R3-F01/F02 systemisk og kortlæg øvrige brede issue-reads
+**Hypoteser:** 0 åbne (R3-H01 bekræftet og lukket 2026-07-28)  
+**Handling:** R3-F01, R3-F02 og R3-F04 rettet 2026-07-28 (etape 4); R3-F03 parkeret til etape 7  
+**Næste skridt:** R3-F03 (min-max-tooltips) i etape 7
 
 ### R3-F01 — Midlertidig EET-import overblokeres sektionsvist
 
@@ -35,7 +34,23 @@ som importens beregning ikke bruger.
 **Forslag til løsning:** Erstat sektionsfilteret med en typed EET-importprojektion og dependency-tests.  
 **Kræver godkendelse:** Beregningslogik — brugeren vil i den konkrete situation få en import og tal,
 hvor programmet i dag blokerer. **Godkendt af brugeren 2026-07-28.**  
-**Status:** Godkendt til implementering
+**Status:** **Rettet 2026-07-28** (etape 4). `hasFieldIssueInSection` er erstattet af
+`hasBlockingDependencyIssueInSection`, som måler `IMPORT_DEPENDENCY_FIELD_IDS` — de felter, importens
+transitive call-graph faktisk læser. Sektionen er bevaret som argument, fordi de tre kilder giver hver sin
+brugerbesked, men afgørelsen træffes nu på det konkrete felt.
+
+**Kortlægningen korrigerede fundets egen antagelse:** `faellesAarsloen.aslAarsloen` ER load-bearing —
+`grundloen` ganges ind i hvert periodebeløb, og feltet giver selv `aarsloen-missing`/`aarsloen-zero`. Kun
+`ealAarsloen` er ren advarsel (`warn-asl-aarsloen-is-max`, severity `warning`). Sektionsgaten for
+`faellesAarsloen` var altså for BRED, ikke overflødig. Tilsvarende for `stamdata`: `skadedato` og
+`skadelidteFodselsdato` er reelle afhængigheder; brevhovedfelterne er det ikke.
+
+Dækning: `useMidlertidigtEetInsertSource.test.ts` (7 tests). Den test, der tidligere PINNEDE
+overblokeringen (`ealEetPct: 101` ⇒ blokeret import), hævder nu det modsatte, og to modretningstests
+(`aslAfgoerelser.eetPct`, `aslAarsloen`) sikrer, at gaten ikke er blevet tandløs. To completeness-tests måler
+dependency-listen mod produktionskataloget, så et omdøbt felt gør testen rød frem for lydløst at falde ud af
+gaten. Mutationsbevis: gøres gaten sektionsvis igen, fejler netop
+"blokerer IKKE importen ved et rødt felt, importberegningen ikke læser".
 
 ### R3-F02 — EO globaliserer feltissues uden faktisk dependency
 
@@ -62,7 +77,33 @@ runtime-regressionstest mangler.
 reelle dependencies.  
 **Kræver godkendelse:** Beregningslogik og synlig adfærd — brugeren vil kunne se totaler og hente dokumenter
 i en situation, som i dag blokerer. **Godkendt af brugeren 2026-07-28.**  
-**Status:** Godkendt til implementering
+**Status:** **Rettet 2026-07-28** (etape 4). Stamdatafelterne klassificeres nu efter, hvad EO's motorer og
+dokumentindhold faktisk læser (`isEoRelevantStamdataIssue`). Filteret sidder ÉT sted — i `eoSnapshot.ts`, hvor
+`stamdataFieldIssues` modtages — så grengaten (`resolveEoBlockedDependencies`) og de strukturelle invarianter
+(`buildStructuralFieldIssueInvariants`) ikke kan divergere. `skadestype` er tilføjet som periodegrænse ved
+siden af `skadedato`: den afgør gennem `buildTaftContext`, om erhvervssygdomsgrænsen er aktiv.
+
+**Fundets evidens var ufuldstændig på to punkter, som blev afklaret under rettelsen (begge uden at ændre
+konklusionen):**
+
+1. Der findes en ANDEN EO-læsning af fødselsdatoen end folkepensionswarningen:
+   `eoPeriodeBlockingContext.ts:71` lægger den på `TaftContext`. Den læses dog kun ét sted —
+   `eoRowTaftRows.ts:87` → netop folkepensionsadvarslen (`status: 'warning'`, hardcodet). Ingen
+   beløbs- eller dagberegning rører den, og ingen EO-generator printer den.
+2. Den globale invariantvej var på rettelsestidspunktet det ENESTE, der gjorde EO-dokumenterne fail-closed
+   på et rødt stamdatafelt: `documentStamdata` på EO's projektion var tildelt men aldrig læst (registreret
+   som INC-F04). En ren sletning af globaliseringen ville derfor have åbnet et reelt hul — derfor er
+   brevhovedfelterne (`journalnr`, `skadelidte`, `advokat`, `sagsbehandler`) klassificeret som EO-relevante:
+   de bærer ingen validator og kan kun blive røde ved format-afvist råtekst, men bliver de det, må
+   dokumentet ikke udgives med en tom brevhovedlinje.
+
+Dækning: `eoDependencyGroups.test.ts` (110 tests) med et completeness-led, der hævder, at HVERT
+stamdatafelt i produktionskataloget er eksplicit klassificeret som relevant eller ikke — så et nyt felt ikke
+lydløst defaulter til "blokerer ikke". `eoEngineGate.test.ts` (23 tests) hævder virkningen end-to-end gennem
+den ægte `computeEoSnapshot`, i begge retninger: rød fødselsdato ⇒ `data` bevaret og ingen gren blokeret;
+rød skadedato ⇒ begge periodegrene blokeret; rødt brevhoved ⇒ aggregat blokeret, men ingen motorgren.
+Mutationsbevis: fjernes filteret, fejler netop "en rød FØDSELSDATO blokerer intet" med
+`expected null not to be null`, mens alle modretningstests forbliver grønne.
 
 ### R3-F03 — Min-max-tooltips mangler inputnavne
 
@@ -101,7 +142,28 @@ dependency bliver en konvention frem for en typegrænse.
 **Forslag til løsning:** Split reader, issuepræsentation og consumerprojektion i snævre capabilities; tilføj
 et import-/typeværn.  
 **Kræver godkendelse:** Nej for capabilityændringen; adfærdsrettelserne er dækket af R3-F01/F02.  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-28** (etape 4). `fieldIssues` er FJERNET fra den offentlige `InputReader`, så
+grænsen primært er en TYPE og ikke et værn: et genindført sektionsfilter over readerens snapshot er nu en
+compilerfejl. Har en consumer et sagligt behov for en sektions strukturelle issues — rækkeceller maskeres til
+tomværdi og kan ikke ses gennem `read` alene — beder den om dem eksplicit med
+`readSectionFieldIssues(section)`, som navngiver sektionen i kildekoden og efterlader klassifikationen hos
+consumeren.
+
+`InputEvaluation.issues` bærer fortsat snapshottet, fordi dokumentlivscyklussen skal have tokenet. Den
+resterende vej (`evaluation.issues.all`) kan ikke lukkes med en type og dækkes derfor af AST-reglen
+`input/issue-snapshot-capability-boundary`. Reglen måler AST-medlemskæder, ikke tekst, så en
+historik-kommentar om `issues.all` ikke bærer den (jf. INC-F03). Dens `liveTarget` hviler på TRE
+forudsætninger — det brede `all`, den smalle erstatning og præsentationsundtagelsen — så den ikke kan stå
+halvt død; harnessets egen dødt-værn-kontrol afviste den første udgave, hvor `requiredPaths` var
+selvmodsigende.
+
+`ValidationReader`-factoryens moduleksport er bevaret bevidst: `deriveFieldIssueSet` og `inputReducer`s
+før/efter-procedure ligger i andre filer i inputkernen og har brug for den. Den er ikke en consumervej —
+`input/issue-snapshot-capability-boundary` og `domain/raw-section-access-boundary` holder den inden for
+`src/inputCore/`.
+
+Mutationsbevis: `reader.fieldIssues.all` i en ny fil giver TS2339; `evaluation.issues.all` genindført i
+`eetImportPort` gør AST-reglen rød med fil:linje:kolonne og den præcise besked.
 
 ## Efterprøvet uden fund
 
@@ -116,12 +178,25 @@ med 183 grønne tests.
 
 ## Hypotese
 
-- **R3-H01:** Andre sektionsvise læsninger af `evaluation.issues.all` kan overblokere, herunder
-fællesårsløn/stamdata i EET-importen og yderligere EO-projektioner. Af-/bekræftes consumer for consumer
-mod de konkrete reader-reads.
+- ~~**R3-H01**~~ — **bekræftet og lukket 2026-07-28 (etape 4).** En fuldstændig kortlægning fandt PRÆCIS fem
+brede filtre over issue-sættet i produktionen: `erstatningsopgoerelseReaderProjection.ts:552` og `:555`
+(consumerblokering, R3-F02), `eetImportPort.ts:42` og `:63` (consumerblokering, R3-F01) samt
+`inputDiagnosticsProjection.ts:50` (ren UI-diagnostik, ingen gate læser den). De fire blokerende er rettet;
+den femte er en navngivet, gate-fri devtools-læsning. Hypotesen kan ikke genopstå som en ukendt mængde, fordi
+den brede capability er fjernet fra readerens type og AST-reglen
+`input/issue-snapshot-capability-boundary` håndhæver den resterende vej.
+
+`eoInputIssues.ts` (`topLevelFieldIssue`, `selectBlockingLoenindkomstEntityIds`) blev vurderet særskilt: det
+modtager et ALLEREDE sektionsafgrænset sæt som parameter frem for at læse et bredt snapshot, og
+`selectBlockingLoenindkomstEntityIds` matcher på konkrete entity-collections. Det er derfor en registreret
+præsentationsundtagelse i AST-reglen, ikke en overblokering.
 
 ## Fasekonklusion
 
-Save-sondring, missing/tomhed, prioritet og ren afledning er efterprøvet. Exitkriterierne er ikke opfyldt:
-de to uafhængigt efterprøvede overblokeringer er godkendt, men endnu ikke implementeret, og den brede
-issue-capability skal kortlægges færdig.
+Save-sondring, missing/tomhed, prioritet og ren afledning er efterprøvet. **Opdateret 2026-07-28 (etape 4):**
+begge overblokeringer er rettet, den brede issue-capability er kortlagt færdig og fjernet fra readerens type,
+og R3-H01 er bekræftet og lukket. Fasens exitkriterier er dermed opfyldt for "ingen lydløs blokering og ingen
+overblokering" og for save-sondringen.
+
+Ét fund står tilbage: R3-F03 (min-max-tooltips uden inputnavne) hører til etape 7 sammen med de øvrige
+fokus-/navigations- og beskedfund. Fasen er derfor fortsat `Delvist gennemgået`.

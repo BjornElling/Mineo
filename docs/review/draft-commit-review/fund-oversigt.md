@@ -10,11 +10,11 @@ beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
-| R0–R8 (fasefund) | 36 | 33 | 3 | 0 |
-| GM (konvergensreview) | 15 | 13 | 1 (1 delvist) | 0 |
+| R0–R8 (fasefund) | 36 | 29 | 7 | 0 |
+| GM (konvergensreview) | 15 | 13 | 1 (2 delvist) | 0 |
 | UT (brugertest) | 6 | 3 | 2 | 1 |
-| INC (tilfældighedsfund) | 3 | 0 | 3 | 0 |
-| **I alt** | **60** | **49** | **9 (+1 delvist)** | **1** |
+| INC (tilfældighedsfund) | 4 | 0 | 4 | 0 |
+| **I alt** | **61** | **45** | **14 (+2 delvist)** | **1** |
 
 ## Bindende regel for tilfældighedsfund
 
@@ -47,7 +47,7 @@ en etape rettes og verificeres sammen.
 | **1** | UT-F04 | Blokerer en central EO-funktion med et render-crash. Rettet 2026-07-28. |
 | **2** | UT-F05, R2-F01 | Samme årsag som etape 1's fejlklasse: en fælles kommandokontrakt brydes af fem callsites og kaster en uncaught systemfejl. Samme fund fra to vinkler. Rettet 2026-07-28. |
 | **3** | R6-F01, GM-F11, R6-F02 | Trust-kritisk dokumentvej: et frisk token bindes til render-fangede settings (kan producere output fra en forældet kilde), og otte flader skjuler udfaldsbeskeden. Alle i dokumenthandle-laget. R6-F02 er GM-F11 fra reviewets egen vinkel og blev derfor rettet her frem for i sin oprindelige placering. Rettet 2026-07-28. |
-| **4** | GM-F01, GM-F02, GM-F06, R3-F02, R3-F04 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Bærer beslutning 1. |
+| **4** | R3-F04, R3-F02, R3-F01, GM-F06, R2-F02 · **udestår:** GM-F01, GM-F02 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Delvist lukket 2026-07-28 — se etapenoten nedenfor. |
 | **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. |
 | **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. |
 | **7** | UT-F02, UT-F06, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. |
@@ -75,12 +75,12 @@ etape kommer.
 | R1-F06 | Levende ledgers beskrives som midlertidige | Væsentlig | `consumerInventory.ts`, `ledgerTypes.ts` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f06--levende-ledgers-beskrives-som-midlertidige) |
 | R1-F07 | Error-kontrakten prioriterer en slettet source-dimension | Mindre | `error-contract.md:114,220` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f07--error-kontrakten-prioriterer-en-slettet-source-dimension) |
 | R2-F01 | Indsæt dags dato fejler på fem sider | Væsentlig | Fem side-callsites | 2 | **Rettet 2026-07-28** | [R2](R2-inputkerne-og-felteditor.md#r2-f01--indsæt-dags-dato-fejler-på-fem-sider) |
-| R2-F02 | Kontrakt og kode er uenige om skjulte canonical fejl | Væsentlig | `form-contract.md:207-208` | 4 | Åbent | [R2](R2-inputkerne-og-felteditor.md#r2-f02--kontrakt-og-kode-er-uenige-om-skjulte-canonical-fejl) |
+| R2-F02 | Kontrakt og kode er uenige om skjulte canonical fejl | Væsentlig | `form-contract.md:207-208` | 4 | **Rettet 2026-07-28** | [R2](R2-inputkerne-og-felteditor.md#r2-f02--kontrakt-og-kode-er-uenige-om-skjulte-canonical-fejl) |
 | R2-F03 | Obligatoriske statekæder er ufuldstændigt dækket | Væsentlig | `draft-commit-greenfield-design.md:812-823` | 10 | Åbent | [R2](R2-inputkerne-og-felteditor.md#r2-f03--obligatoriske-statekæder-er-ufuldstændigt-dækket) |
-| R3-F01 | Midlertidig EET-import overblokeres sektionsvist | Væsentlig | `eetImportPort.ts:39-54` | 4 | Åbent | [R3](R3-issues-og-gates.md#r3-f01--midlertidig-eet-import-overblokeres-sektionsvist) |
-| R3-F02 | EO globaliserer feltissues uden faktisk dependency | Væsentlig | `eoDependencyGroups.ts:227-230` | 4 | Åbent | [R3](R3-issues-og-gates.md#r3-f02--eo-globaliserer-feltissues-uden-faktisk-dependency) |
+| R3-F01 | Midlertidig EET-import overblokeres sektionsvist | Væsentlig | `eetImportPort.ts:39-54` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f01--midlertidig-eet-import-overblokeres-sektionsvist) |
+| R3-F02 | EO globaliserer feltissues uden faktisk dependency | Væsentlig | `eoDependencyGroups.ts:227-230` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f02--eo-globaliserer-feltissues-uden-faktisk-dependency) |
 | R3-F03 | Min-max-tooltips mangler inputnavne | Væsentlig | `dateRangeErrorMessages.ts:49-55` | 7 | Åbent | [R3](R3-issues-og-gates.md#r3-f03--min-max-tooltips-mangler-inputnavne) |
-| R3-F04 | Den offentlige reader eksponerer hele issue-snapshottet | Væsentlig | `inputReader.ts:130-135` | 4 | Åbent | [R3](R3-issues-og-gates.md#r3-f04--den-offentlige-reader-eksponerer-hele-issue-snapshottet) |
+| R3-F04 | Den offentlige reader eksponerer hele issue-snapshottet | Væsentlig | `inputReader.ts:130-135` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f04--den-offentlige-reader-eksponerer-hele-issue-snapshottet) |
 | R4-F01 | Load kan kassere en ny draft efter replacement | Væsentlig | `useFileSaveLoad.ts:198-206` | 8 | Åbent | [R4](R4-persistence-session-eo-undo-redo.md#r4-f01--load-kan-kassere-en-ny-draft-efter-replacement) |
 | R4-F02 | Slet alt accepterer ufuldstændig oprydning som succes | Væsentlig | `useFileSaveLoad.ts:473-505` | 8 | Åbent | [R4](R4-persistence-session-eo-undo-redo.md#r4-f02--slet-alt-accepterer-ufuldstændig-oprydning-som-succes) |
 | R5-F01 | Årsløn viser en deltotal fra en fejlende række | Væsentlig | `aarsloenProjection.ts:83-298` | 5 | Åbent (godkendt) | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f01--årsløn-viser-en-deltotal-fra-en-fejlende-række) |
@@ -113,7 +113,7 @@ Alle femten er godkendt til implementering. De fire produktbeslutninger, de hvil
 | GM-F03 | To specialtoggles omgår fælles fokusgenopretning | Væsentlig | `Aarsloen.tsx`, `OffentligeYdelserTab.tsx` | 7 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f03--to-specialtoggles-omgår-fælles-fokusgenopretning) |
 | GM-F04 | Årsløn beregner delresultat, mens dokumentet blokerer | Væsentlig | `aarsloenProjection.ts`, `Aarsloen.tsx` | 5 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f04--årsløn-beregner-delresultat-mens-dokumentet-blokerer) |
 | GM-F05 | Forsørgertab har en afkoblet parallel fieldUi-model | Væsentlig | `forsoergertabSnapshot.ts`, `Forsoergertab.tsx` | 5 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f05--forsørgertab-har-en-afkoblet-parallel-fieldui-model) |
-| GM-F06 | Persisted felter accepterer en separat rå fejltekst | Væsentlig | Fælles feltkomponenter og EO/EET-callsites | 4 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f06--persisted-felter-accepterer-en-separat-rå-fejltekst) |
+| GM-F06 | Persisted felter accepterer en separat rå fejltekst | Væsentlig | Fælles feltkomponenter og EO/EET-callsites | 4 | Delvist rettet (EET lukket; EO-satser følger GM-F01) | [GM](grill-me-konvergensreview.md#gm-f06--persisted-felter-accepterer-en-separat-rå-fejltekst) |
 | GM-F07 | Varige mén kalder motoren inde i projektionsindsamlingen | Væsentlig | `varigeMenReaderProjection.ts` | 5 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f07--varige-mén-kalder-motoren-inde-i-projektionsindsamlingen) |
 | GM-F08 | En død React-vej til Årslønsberegningen holdes levende af tests | Mindre | `useAarsloenBeregning.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f08--en-død-react-vej-til-årslønsberegningen-holdes-levende-af-tests) |
 | GM-F09 | Død sektionsvis persistence findes ved siden af aggregate-envelope | Væsentlig | `buildPersistedSection.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f09--død-sektionsvis-persistence-findes-ved-siden-af-aggregate-envelope) |
@@ -200,6 +200,7 @@ Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:t
 | INC-F01 | Nested løntabeller delte editorlokation på tværs af ansættelsesforhold | Væsentlig | UT-F04 | **Rettet 2026-07-28** |
 | INC-F02 | `INSERT_TODAY_DATE_EVENT` var en død sidekanal uden lytter | Mindre | UT-F05 | **Rettet 2026-07-28** |
 | INC-F03 | Mit eget nye AST-værn var tekstbaseret og kunne bæres af en kommentar | Væsentlig | R6-F02 | **Rettet 2026-07-28** |
+| INC-F04 | EO's `documentStamdata` var tildelt, men aldrig læst | Væsentlig | R3-F02 | **Rettet 2026-07-28** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
@@ -225,3 +226,59 @@ formål — men den er præcis "den fjerde kanal" fra review-planens standardang
 have gjort den til en reel skjult vej fra en åben draft til noget afsluttet. Slettet sammen med rettelsen af
 UT-F05, da den lå i samme fil og samme mekanisme. `insertTodayDate.test.ts` refererede ikke til eventet og er
 uændret grøn.
+
+**INC-F04.** EO's reader-projektion tildelte `documentStamdata: ProjectionResult<StamdataValues>` ved hver
+projektion, men INTET læste feltet — hverken en gate, en dokumentdefinition eller en komponent. Årsløn og EET
+har hver deres tilsvarende felt, og der læses de begge, hvilket var netop det, der gjorde EO's udgave svær at
+se som død: den lignede en dependency-erklæring. En fremtidig læser ville have troet, at EO-dokumenternes
+stamdataafhængighed var udtrykt her, mens den faktisk går gennem den ikke-blokerende `stamdataValues` plus
+snapshottets strukturelle stamdata-invarianter.
+
+Fundet er registreret frem for blot slettet, fordi det ændrede R3-F02's blast radius: den globale
+invariantvej var på rettelsestidspunktet det ENESTE, der gjorde EO-dokumenterne fail-closed på et rødt
+stamdatafelt. En ren fjernelse af globaliseringen ville derfor have åbnet et reelt hul — derfor er
+brevhovedfelterne klassificeret som EO-relevante i R3-F02's løsning. Feltet er slettet, ikke omdøbt, og
+begrundelsen står på stedet. At fjernelsen var komplet er bevist af lint: begge de tidligere imports blev
+ubrugte, altså havde feltet ingen anden læser.
+
+**R3-F04 + R3-F02 + R3-F01 + GM-F06 + R2-F02 — rettet 2026-07-28 (etape 4, delvist).**
+
+Etapen er konvergensreviewets anbefaling nr. 1. Dens anden halvdel — *consumerblokering skal følge konkrete
+reads* — er gennemført; første halvdel — *én strukturel repræsentation* — er delvist gennemført.
+
+*Rodårsagen (R3-F04):* den offentlige `InputReader` bar `fieldIssues: FieldIssueSnapshot`, en capability
+design §3.4 ikke giver den. Det var det, der gjorde BEGGE overblokeringer nedenfor udtrykkelige: enhver
+consumer kunne filtrere `issues.all` på sektionsnavn og blokere på felter, den aldrig læser. Grænsen er nu
+primært en TYPE — feltet er fjernet, så et genindført sektionsfilter er en compilerfejl (TS2339) — med
+`readSectionFieldIssues(section)` som den navngivne, reviewbare erstatning. AST-reglen
+`input/issue-snapshot-capability-boundary` dækker den vej, en type ikke kan lukke
+(`InputEvaluation.issues.all`, som dokumentlivscyklussen skal bevare for tokenet).
+
+*De to overblokeringer:* EO gjorde ethvert rødt stamdataissue autoritativt blokerende, så en bounds-fejl på
+skadelidtes fødselsdato fjernede totaler, canonical output og alle fire EO-dokumenter — skønt EO's eneste
+læsning af feltet er en ikke-blokerende folkepensionsadvarsel (R3-F02). EET-importen blokerede på ethvert
+rødt felt i tre hele sektioner (R3-F01). Begge gates måler nu de felter, motorerne og dokumentindholdet
+faktisk læser, og begge lister er målt mod produktionskataloget, så et omdøbt felt gør testen rød frem for
+lydløst at falde ud af gaten.
+
+Kortlægningen korrigerede undervejs to detaljer i fundenes egen evidens, uden at ændre konklusionerne: EET's
+`faellesAarsloen.aslAarsloen` ER load-bearing (kun `ealAarsloen` er ren advarsel), og der findes en anden
+EO-læsning af fødselsdatoen end den, R3-F02 nævnte — men også den ender i en `warning`. Begge korrektioner
+står i fundene.
+
+*Repræsentationen (GM-F06, delvist):* EET's kryds-række-fejl er nu strukturelle `FieldIssue`s med rigtige
+feltadresser i stedet for en parallel `${rowId}|${field}`-strengnøgle plus en fri fejltekst-prop. EO's
+satsfejl bruger fortsat `NumericTextField.externalError`; den halvdel konverteres sammen med GM-F01, fordi
+GM-F01 bærer beslutning 1's relevansmatrix — altså en ændring af REGLEN selv. At konvertere repræsentationen
+først ville betyde at flytte den kendt forkerte regel over i den nye form og derefter ændre den igen.
+
+*Kontrakten (R2-F02):* `form-contract.md` §7.5 sagde, at canonical skjulte værdier aldrig ryddes implicit,
+mens reduceren rydder feltet, når et styrende valg gør det irrelevant OG det havde en aktiv rød feltfejl.
+Runtime blev efterprøvet først; det var kontraktteksten, der var stale. Kun teksten er ændret.
+
+**Udestår i etape 4:** GM-F01 (én satsvurdering efter beslutning 1's relevansmatrix) og GM-F02 (automatiske
+satser i samme transaktion som det styrende valg). De hører sammen som én ændring af EO Lønindkomsts
+satsklynge og bærer den eneste egentlige produktregel-ændring i etapen, hvorfor de tages som et selvstændigt
+pas frem for at blive halvt gennemført her. GM-F06's EO-halvdel følger med dem.
+
+Fire gates + fuld suite grøn efter etapens fem lukkede fund: 498 filer / 6243 tests.

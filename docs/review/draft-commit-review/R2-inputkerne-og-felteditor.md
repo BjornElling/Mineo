@@ -10,8 +10,8 @@ styrende valg; placeholder-promotion; bred editor-capability
 direkte reducerreproduktion af R2-F01  
 **Fund:** 3 (R2-F01, R2-F02, R2-F03) — R2-F01 rettet 2026-07-28  
 **Hypoteser:** Ingen  
-**Handling:** R2-F01 rettet (etape 2); R2-F02 og R2-F03 parkeret til deres etaper (4 og 10)  
-**Næste skridt:** afgør kontraktdriften (R2-F02, etape 4) og etabler de manglende statekæder (R2-F03, etape 10)
+**Handling:** R2-F01 rettet (etape 2); R2-F02 rettet (etape 4); R2-F03 parkeret til etape 10  
+**Næste skridt:** etabler de manglende statekæder (R2-F03, etape 10)
 
 ### R2-F01 — Indsæt dags dato fejler på fem sider
 
@@ -56,7 +56,17 @@ irrelevant.
 **Forslag til løsning:** Opdatér form-kontrakten og dens coverage-test; ændr kun runtime efter særskilt
 UI/UX-godkendelse.  
 **Kræver godkendelse:** Nej ved ren kontraktsynkronisering.  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-28** (etape 4). Kontrakten er bragt i sync med den implementerede regel; ingen
+runtimeadfærd er ændret. `form-contract.md` §7.5 beskriver nu reduceren præcist: rydningen sker hvis og kun
+hvis feltet havde en AKTIV RØD feltfejl i før-snapshottet, og den gælder uanset om fejlen er rejected råtekst
+eller en canonical bounds-/rule-fejl — begge ville ellers efterlade en usynlig rød fejl, der blokerede
+`.eo`-save eller en afhængig beregning uden et synligt felt at rette den i. Et nyt §7.6 siger eksplicit, at et
+skjult canonical felt UDEN rød fejl altid bevares og vises igen med samme værdi, så afgrænsningen til netop
+overgangen `relevant → irrelevant` ikke kan læses som en generel rydning af skjulte værdier.
+
+Runtime blev efterprøvet før omskrivningen (`inputReducer.ts:318`: `if (activeFieldIssue(beforeIssues, key)
+=== undefined) continue;`), så det er kontraktteksten — ikke koden — der var stale, præcis som fundet
+vurderede. `contractCoverageMatrix.test.ts` er fortsat grøn.
 
 ### R2-F03 — Obligatoriske statekæder er ufuldstændigt dækket
 

@@ -250,6 +250,29 @@ repræsentationer.
 **Anbefalet retning:** Collection-/tværfeltregler må fortsat afledes samlet, men resultatet skal være
 strukturelle feltissues med samme adresse, prioritet og konsekvensvej som alle andre røde fejl.
 
+**Status: delvist rettet 2026-07-28 (etape 4) — EET-halvdelen lukket.**
+
+EET's kryds-række-fejl var båret af en parallel `Map<'${rowId}|${field}', string>` og vist gennem
+`externalErrorMessage` på cellen. Reglerne KAN ikke flyttes til descriptor-validatorerne — de er
+kryds-række-regler (dublet-afgørelser, virkningsdato mod tidligere kapitaliseringsdato, EET % mod summen af
+forudgående kap. %), og en descriptor-validator ser kun sin egen celles værdi. Afledningen sker derfor fortsat
+samlet i reader-projektionen, men RESULTATET er nu kanoniske `FieldIssue`s med rigtige feltadresser og
+`reason: 'rule'` (§1.6). `buildFieldIssueSet` sikrer højst ét aktivt issue pr. adresse (§1.8) — samme
+afgrænsning som den tidligere "første besked pr. celle".
+
+Cellernes prop er derfor `collectionRuleIssue?: FieldIssue` i stedet for `externalErrorMessage?: string` i
+`GridTextCell` og `GridChoiceCell`, og tabellen slår issuet op på den FÆRDIGT BUNDNE cellereference, editoren
+selv driver (`CellSpec.field`) — ikke på en ny lokal binding. Der findes nu kun én bindingsvej; kunne de to
+divergere, ville markeringen forsvinde lydløst fra cellen (jf. INC-F01, hvor netop en lokal binding gav
+forkerte ejer-id'er i nestede collections). Dækningen hævder eksplicit, at tabellens opslagsadresse er
+identisk med projektionens for hvert produceret issue, og mutationsbeviset er, at en binding til et andet
+række-id gør netop den sammenligning rød.
+
+**Udestående: EO-satshalvdelen.** `NumericTextField.externalError` bruges fortsat af EO's satsfejl
+(`AnsaettelsesforholdCard.tsx:514-580`). Den halvdel konverteres sammen med GM-F01, ikke isoleret: GM-F01
+bærer beslutning 1's relevansmatrix, altså en ændring af REGLEN selv. At konvertere repræsentationen først
+ville betyde at flytte den nuværende — kendt forkerte — regel over i den nye form og derefter ændre den igen.
+
 ### GM-F07 — Varige mén kalder motoren inde i projektionsindsamlingen
 
 **Alvor:** Væsentlig strukturel risiko  
@@ -432,6 +455,14 @@ oprindelige id:
 
 GM-F01/GM-F06 og R3-F04 peger samlet på samme systemiske oprydning: en feltfejl skal have én strukturel
 repræsentation, og consumerblokering skal følge konkrete reads.
+
+**Status 2026-07-28 (etape 4):** anbefalingens anden halvdel — *consumerblokering skal følge konkrete reads* —
+er gennemført. R3-F04 fjernede den brede issue-capability fra readerens type, og R3-F01/R3-F02 rettede de to
+overblokeringer, den havde muliggjort. R3-H01 er samtidig bekræftet og lukket: der fandtes præcis fem brede
+filtre, fire af dem blokerende, og alle fire er rettet.
+
+Første halvdel — *én strukturel repræsentation* — er delvist gennemført: EET's kryds-række-fejl er konverteret
+(GM-F06), mens EO's satsfejl afventer GM-F01, fordi selve reglen skal ændres i samme greb.
 
 ## Efterprøvede, begrundede forskelle
 
