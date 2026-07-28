@@ -43,6 +43,9 @@ To udviklere: dig (agenten) og brugeren. Ingen andre.
 Hold kommunikation på et absolut minimum. Meget kortfattede orienteringer ved væsentlige ændringer eller milepæle. Ingen forklaring ud over det strengt nødvendige.
 
 ## Browser-testadgang
+- OpenAI Browser er ikke tilgængelig i Codex CLI eller Codex' VS Code-udvidelse. Interaktive browser-tests skal køres fra ChatGPT-desktopappen med Browser-pluginet. Forsøg ikke at løse manglende browseradgang i VS Code med genstart eller geninstallation.
+- Kontrollér, at en styrbar browser faktisk er registreret, før udviklingsserveren startes. Er den ikke det, stoppes browserforsøget, og brugeren henvises til ChatGPT-desktopappen.
+- Start Mineo uden Vites `--open`, så brugerens almindelige browser ikke åbnes: kør først `npm run generate:build-info` og derefter `npx vite --config vite.mineo.config.ts --host 127.0.0.1`.
 - Ved browser-tests af Mineo bruges det dedikerede testpassword `Mineo-Codex-Test-2026`.
 - Passwordet er bevidst delt i klartekst her, fordi auth-gaten kun er en svag UX-barriere. Det må ikke genbruges til andre systemer eller af rigtige brugere.
 - Log ind gennem den synlige loginformular. Omgå ikke gaten ved at manipulere browser-storage.
