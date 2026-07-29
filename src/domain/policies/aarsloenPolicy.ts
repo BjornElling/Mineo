@@ -21,7 +21,7 @@ export const hasAarsloenEffectiveRows = (aarsloen: AarsloenValues | null): boole
  * Relevans for ferie-felterne ("Ret til 6. ferieuge", "Antal feriedage"): de er relevante,
  * når der IKKE er fuld løn under ferie. Dette er det ENESTE sande sted for betingelsen —
  * både UI-synligheden (shouldShowAarsloenFerieFields) og beregnings-gatingen
- * (useAarsloenBeregning) læser herfra, så "skjult i UI" og "ignoreret i beregning" ikke
+ * (computeAarsloenBeregning) læser herfra, så "skjult i UI" og "ignoreret i beregning" ikke
  * kan divergere.
  */
 export const erAarsloenFerieFelterRelevant = (fuldLoenUnderFerie: boolean): boolean =>

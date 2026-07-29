@@ -116,7 +116,35 @@ destrukturering, spread og relevante aliaser. Tilføj en violating fixture pr. s
 `SettledInput.sections`, ikke kun element access.  
 **Kræver godkendelse:** Nej — ændringen er en intern capability- og værnrettelse uden tilsigtet synlig eller
 beregningsmæssig forskel.  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 9)**
+
+**Rettelsen fulgte fundets egen prioritering: luk capabilityen FØRST, udvid derefter værnet.**
+
+*Capabilityen (den strukturelle halvdel).* `NewCaseSeed` gav domænet hele den tomme `SettledInput` og bad det
+returnere en ny — seeden MÅTTE derfor spread'e `empty.sections`. Signaturen er nu
+`() => Partial<SettledInput['sections']> | undefined`: seeden siger HVAD der seedes, og
+`initializeInputRuntime` ejer konstruktionen og frysningen. Grænsen er dermed lukket i TYPEN frem for ved en
+allowlist-post — en seed kan hverken fjerne en sektion, tilføje en ukendt nøgle eller røre `rejectedInputs`.
+
+*Værnet (alle fire syntaksformer).* `domain/raw-section-access-boundary` måler nu element access (den
+oprindelige), property access, reference/spread og destrukturering. Den nye `collectDestructuredProperties`
+i `astQueries.ts` er det, der manglede i harnesset.
+
+**To fund, udvidelsen selv afslørede:**
+
+1. `src/persistence/caseFileOperations.ts` er en LEGITIM rå ejer (`buildLoadReplaceCaseCandidate` +
+   `settledInputHasAnyData`) og er tilføjet `RAW_SECTION_SERIALIZERS`. Den var ejer i praksis, mens reglen kun
+   målte bracket-formen.
+2. Tre EO-inspektions-komponenter har en PROP, der hedder `sections` (`readonly InspektionSection[]` —
+   view-modeller uden relation til `SettledInput`). En navnebaseret regel ville have flaget dem og presset mod
+   en allowlist af uskyldige filer. Sondringen er derfor strukturel: kun en `VariableDeclaration` med et
+   initialiseringsudtryk udtrykker en LÆSNING; en parameter-binding modtager noget, kalderen har bygget — og
+   hvis dét kaldssted rakte i den rå form, flages det dér af member-access-benet.
+
+**Mutationsbevis mod den LEVENDE kilde (ikke kun fixtures):** genindføres de tre tidligere blinde former i
+`satserNewCaseSeed.ts`, bliver reglen rød på alle tre med fil:linje:kolonne. Dertil 4 nye seed-tests, der nu
+går gennem den ÆGTE bootstrap-vej og derfor beviser, at værdien LANDER i den hydrerede baseline — hvor den
+gamle test kun beviste, at seeden byggede et gyldigt objekt.
 
 ## Efterprøvet uden fund
 

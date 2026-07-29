@@ -2,10 +2,8 @@ import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import { SaveValidationError, saveToFile } from '../utils/fileSave';
 import { loadFromFile, loadFromFileHandle } from '../utils/fileLoad';
-import { deleteFileHandleFromIndexedDB } from '../utils/fileHandleStorage';
 import { resolveDefaultDirectoryHandle } from '../utils/fileHelpers';
 import { restoreFocusIfPossible } from '../utils/focusUtils';
-import { UI_STORAGE_KEYS } from '../config/storageManifest';
 import type {
   ApplicableLoadFileResult,
   LoadFileResult,
@@ -21,14 +19,15 @@ import { getUserMessage, isCalculationError } from '../utils/errorMessages';
 import { asError } from '../utils/typeGuards';
 import { EncryptionError } from '../utils/encryption';
 import type { AppSettings } from '../settings/appSettingsSchema';
-import { executePersistenceLoadApply, type PersistenceLoadApplyResult } from '../utils/persistenceLoadApply';
-import type { SaveSnapshot } from '../utils/fileSaveTypes';
 import {
-  removeOptionalSessionStorageValue,
-  writeOptionalSessionStorageValue,
-} from '../utils/safeSessionStorage';
+  applyAuthoritativeLoadSnapshot,
+  synchronizeLoadMetadata,
+  type PersistenceLoadApplyResult,
+} from '../utils/persistenceLoadApply';
+import type { SaveSnapshot } from '../utils/fileSaveTypes';
 import { focusFirstBlockingRejectedField } from '../inputCore/react/saveBlockedFocus';
 import type { CaseOperations } from '../inputCore/react/useCaseOperations';
+import type { ResetResidue } from '../persistence/caseResetOperations';
 import type { CriticalActionCoordinator } from '../inputCore/runtime/criticalActionCoordinator';
 import { logWarning } from '../utils/logger';
 
@@ -74,6 +73,21 @@ export type PwaLoadOutcome = 'busy' | 'cancelled' | 'preflight' | 'awaitingUser'
 
 type FileOperationKind = 'save' | 'manual-load' | 'pwa-load';
 
+/**
+ * Den injicerede filkilde til den fælles load-shell (GM-F13). Alt, hvad de to entrypoints deler, ligger i
+ * `runLoadShell`; dette er præcis det, der sagligt adskiller manuel filvælger fra PWA-launch.
+ */
+type LoadShellSource = Readonly<{
+  kind: Extract<FileOperationKind, 'manual-load' | 'pwa-load'>;
+  /** Manuel load er en brugergestus og skal oplyse "en filhandling er i gang"; PWA-launch sker uopfordret. */
+  showBusyWarning: boolean;
+  /** Præfiks i console-loggen ved uventede fejl, så de to kilder fortsat kan skelnes i en fejlrapport. */
+  errorLogLabel: string;
+  load: () => Promise<LoadFileResult>;
+  /** Bygges først ved succes, fordi PWA-fladens besked afhænger af antallet af ignorerede filer. */
+  successOverlay: () => OverlayData;
+}>;
+
 type UseFileSaveLoadArgs = {
   settings: AppSettings;
   navigate: NavigateFunction;
@@ -84,7 +98,6 @@ type UseFileSaveLoadArgs = {
   criticalActions: CriticalActionCoordinator;
   /** Markér den gemte revision som ny "unsaved changes"-baseline (§ unsaved-guard). Modtager save-tokenets inputrevision. */
   markSaved: (revision: number) => void;
-  allowExitWithoutWarning: () => void;
   showOverlay: (overlay: OverlayData) => void;
 };
 
@@ -155,6 +168,27 @@ const buildPreflightBugReportError = (result: PreflightFileResult): Error => {
   );
 };
 
+/**
+ * Beskeden ved en `Slet alt`, hvor sagsinputtet ER ryddet, men en tilknyttet oprydning ikke kunne verificeres
+ * (R4-F02). Den skal sige begge dele: hvad der bevisligt er slettet, og hvad der kan bestå — appen må ikke
+ * love "alt data slettet", når en rest kan hydrere ind i den næste sag.
+ */
+const buildResetResidueMessage = (residue: readonly ResetResidue[]): string => {
+  const hasFileHandle = residue.some((entry) => entry.kind === 'fileHandle');
+  const sessionKeyCount = residue.filter((entry) => entry.kind === 'sessionStorageKey').length;
+  const parts = [
+    hasFileHandle ? 'et tidligere filhåndtag til direkte Gem' : null,
+    sessionKeyCount > 0 ? `${sessionKeyCount} sagsnær(e) hjælpeværdi(er) i browserens midlertidige lager` : null,
+  ].filter((part): part is string => part !== null);
+
+  return [
+    'Alle indtastede oplysninger er slettet, men oprydningen kunne ikke gennemføres helt.',
+    '',
+    `Følgende kan bestå: ${parts.join(' og ')}.`,
+    'Luk browserfanen og åbn Mineo igen, hvis en tidligere sags oplysninger dukker op.',
+  ].join('\n');
+};
+
 /** Fanger det aktuelt fokuserede element FØR en kritisk handling (greenfield `prepare` bærer det ikke længere). */
 const captureActiveElement = (): HTMLElement | null =>
   document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -166,7 +200,6 @@ export const useFileSaveLoad = ({
   ops,
   criticalActions,
   markSaved,
-  allowExitWithoutWarning,
   showOverlay,
 }: UseFileSaveLoadArgs): UseFileSaveLoadResult => {
   const [loadFlow, setLoadFlow] = React.useState<LoadFlowState>({ phase: 'idle' });
@@ -197,13 +230,18 @@ export const useFileSaveLoad = ({
 
   // Load-apply routes gennem greenfield-replacement-grænsen: `ops.file.applyLoadedSnapshot` udsteder den ene
   // autoritative `replaceCase`-command, indpakket i coordinatorens `applyReplacement` (no-settle, draften
-  // kasseres først efter et succesfuldt apply, §1.4/§7). `executePersistenceLoadApply` ejer fortsat metadata-,
-  // filhåndtags- og PWA-synkroniseringen (§4.1).
+  // kasseres først efter et succesfuldt apply, §1.4/§7).
+  //
+  // De to faser er BEVIDST adskilt (R4-F01): kun den synkrone apply ligger inde i replacement-barrieren, hvor
+  // draft-discard hører til. Metadata-/filhåndtags-/PWA-synkroniseringen (§4.1) er asynkron og ejer ikke
+  // sagsinput; lå den inde i barrieren, kunne brugeren åbne og redigere et felt i den netop indlæste sag,
+  // mens dens awaits kørte — og den nye draft blev derefter kasseret.
   const applyLoadedSnapshot = React.useCallback(async (result: ApplicableLoadFileResult): Promise<PersistenceLoadApplyResult> => {
-    return criticalActions.applyReplacement(() => executePersistenceLoadApply({
+    await criticalActions.applyReplacement(() => applyAuthoritativeLoadSnapshot({
       result,
       applySnapshot: ops.file.applyLoadedSnapshot,
     }));
+    return synchronizeLoadMetadata(result);
   }, [criticalActions, ops.file]);
 
   const requestApplyLoadedSnapshot = React.useCallback(async (
@@ -312,8 +350,15 @@ export const useFileSaveLoad = ({
     showOverlay,
   ]);
 
-  const handleHent = React.useCallback(async () => {
-    if (!beginFileOperation('manual-load', true)) return;
+  /**
+   * Den ENE load-shell-procedure (GM-F13). Manuel filvælger og PWA-launch er to sagligt forskellige KILDER,
+   * ikke to loadflows: busy-start, `prepare('load')`, dialog-nulstilling, kildeindlæsning, preflight-forgrening,
+   * apply, fejlvisning og cleanup er den samme kæde og lå før i to kopier. Kun det, der faktisk adskiller de to
+   * — `LoadShellSource` — er en parameter; udfaldet returneres i PWA-fladens sprog, som den manuelle flade
+   * blot ignorerer.
+   */
+  const runLoadShell = React.useCallback(async (source: LoadShellSource): Promise<PwaLoadOutcome> => {
+    if (!beginFileOperation(source.kind, source.showBusyWarning)) return 'busy';
     let awaitsUserDecision = false;
     const focusBeforeAction = captureActiveElement();
 
@@ -327,62 +372,11 @@ export const useFileSaveLoad = ({
           message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
           type: 'warning',
         });
-        return;
-      }
-
-      setLoadFlow({ phase: 'idle' });
-      const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
-      const result: LoadFileResult = await loadFromFile(resolvedDirectory);
-
-      if (result.status === 'cancelled') {
-        focusBeforeAction?.focus();
-        return;
-      }
-
-      if (result.status === 'preflight') {
-        setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
-        awaitsUserDecision = true;
-        return;
-      }
-
-      awaitsUserDecision = (await requestApplyLoadedSnapshot(
-        result,
-        { message: 'Hentet', type: 'success' },
-        true,
-      )) === 'awaitingUser';
-    } catch (error) {
-      focusBeforeAction?.focus();
-      const resolved = resolveLoadError(error);
-      if (!resolved.expected) {
-        console.error('Hent fejlede:', error);
-      }
-      showOverlay({
-        message: resolved.message,
-        type: 'error',
-      });
-    } finally {
-      if (!awaitsUserDecision) finishFileOperation();
-    }
-  }, [beginFileOperation, criticalActions, finishFileOperation, requestApplyLoadedSnapshot, settings, showOverlay]);
-
-  const handleHentFromPwaRequest = React.useCallback(async (request: PwaFileOpenRequest): Promise<PwaLoadOutcome> => {
-    if (!beginFileOperation('pwa-load', false)) return 'busy';
-    let awaitsUserDecision = false;
-    const focusBeforeAction = captureActiveElement();
-
-    try {
-      const preparation = await criticalActions.prepare('load');
-      if (preparation.status === 'blocked') {
-        preparation.target?.focus();
-        showOverlay({
-          message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
-          type: 'warning',
-        });
         return 'error';
       }
 
       setLoadFlow({ phase: 'idle' });
-      const result: LoadFileResult = await loadFromFileHandle(request.fileHandle, { requestId: request.id });
+      const result: LoadFileResult = await source.load();
 
       if (result.status === 'cancelled') {
         focusBeforeAction?.focus();
@@ -395,21 +389,14 @@ export const useFileSaveLoad = ({
         return 'preflight';
       }
 
-      const ignoredSuffix = request.ignoredFileCount > 0
-        ? `\n\nBemærk: ${request.ignoredFileCount} yderligere fil(er) blev ignoreret.`
-        : '';
-      const outcome = await requestApplyLoadedSnapshot(
-        result,
-        { message: `Hentet${ignoredSuffix}`, type: request.ignoredFileCount > 0 ? 'warning' : 'success' },
-        true,
-      );
+      const outcome = await requestApplyLoadedSnapshot(result, source.successOverlay(), true);
       awaitsUserDecision = outcome === 'awaitingUser';
-      return outcome === 'awaitingUser' ? 'awaitingUser' : 'applied';
+      return outcome;
     } catch (error) {
       focusBeforeAction?.focus();
       const resolved = resolveLoadError(error);
       if (!resolved.expected) {
-        console.error('Hent (PWA) fejlede:', error);
+        console.error(`${source.errorLogLabel} fejlede:`, error);
       }
       showOverlay({
         message: resolved.message,
@@ -420,6 +407,34 @@ export const useFileSaveLoad = ({
       if (!awaitsUserDecision) finishFileOperation();
     }
   }, [beginFileOperation, criticalActions, finishFileOperation, requestApplyLoadedSnapshot, showOverlay]);
+
+  const handleHent = React.useCallback(async () => {
+    await runLoadShell({
+      kind: 'manual-load',
+      showBusyWarning: true,
+      errorLogLabel: 'Hent',
+      load: async () => loadFromFile(await resolveDefaultDirectoryHandle(settings)),
+      successOverlay: () => ({ message: 'Hentet', type: 'success' }),
+    });
+  }, [runLoadShell, settings]);
+
+  const handleHentFromPwaRequest = React.useCallback(async (request: PwaFileOpenRequest): Promise<PwaLoadOutcome> => {
+    return runLoadShell({
+      kind: 'pwa-load',
+      showBusyWarning: false,
+      errorLogLabel: 'Hent (PWA)',
+      load: () => loadFromFileHandle(request.fileHandle, { requestId: request.id }),
+      successOverlay: () => {
+        const ignoredSuffix = request.ignoredFileCount > 0
+          ? `\n\nBemærk: ${request.ignoredFileCount} yderligere fil(er) blev ignoreret.`
+          : '';
+        return {
+          message: `Hentet${ignoredSuffix}`,
+          type: request.ignoredFileCount > 0 ? 'warning' : 'success',
+        };
+      },
+    });
+  }, [runLoadShell]);
 
   const handleLoadDespiteIssues = React.useCallback(async () => {
     if (loadFlow.phase !== 'preflight') return;
@@ -483,17 +498,18 @@ export const useFileSaveLoad = ({
 
     try {
       // §7/§1.12: `Slet alt` gennem greenfield-replacement-grænsen (no-settle; draften kasseres først ved
-      // succes) — dette er også recovery-vejen ud af en `writesBlocked` current-session.
-      await ops.reset.clearAll();
-      removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
-      removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-      await deleteFileHandleFromIndexedDB();
-      writeOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay, JSON.stringify({
-        message: 'Alt data slettet',
-        type: 'info',
-      }));
-      allowExitWithoutWarning();
-      window.location.href = '/stamdata';
+      // succes) — dette er også recovery-vejen ud af en `writesBlocked` current-session. Porten ejer HELE
+      // transaktionen: input, sagsnær UI-sessionstate og filhåndtag (R4-F02), og rapporterer eventuelle rester.
+      const clearResult = await ops.reset.clearAll();
+
+      // GM-F12/beslutning 4: handlingen afsluttes INDE i appen, som fil-load — samme autoritative
+      // replacement-grænse skal ikke ende to forskellige steder. Den fulde `window.location`-genindlæsning er
+      // fjernet, og med den behovet for at bære beskeden gennem sessionStorage og for at undertrykke
+      // unsaved-guardens beforeunload-advarsel (den nulstiller selv sin baseline på `replacementGeneration`).
+      showOverlay(clearResult.status === 'cleared'
+        ? { message: 'Alt data slettet', type: 'info' }
+        : { message: buildResetResidueMessage(clearResult.residue), type: 'warning' });
+      navigate('/stamdata', { replace: true });
     } catch (error) {
       restoreFocusIfPossible(focusTargetBeforeDeleteAll);
       console.error('Slet alt fejlede:', error);
@@ -502,7 +518,7 @@ export const useFileSaveLoad = ({
         type: 'error',
       });
     }
-  }, [allowExitWithoutWarning, ops.reset, showOverlay]);
+  }, [navigate, ops.reset, showOverlay]);
 
   // De to dialog-states afledes read-only fra den ene tilstandsmaskine, så de aldrig kan være
   // sat samtidigt (den ugyldige kombination er urepræsenterbar).

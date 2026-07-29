@@ -3,6 +3,7 @@ import {
   UI_STORAGE_KEYS,
   isValidStorageKey,
   createActiveTabStorageKey,
+  getCaseScopedSessionStorageKeys,
   getCurrentInputEnvelopeStorageKey,
   setStorageNamespace,
   getStorageNamespace,
@@ -17,6 +18,47 @@ describe('UI_STORAGE_KEYS', () => {
   it('alle keys har mineo-prefix i default-namespace', () => {
     for (const key of Object.values(UI_STORAGE_KEYS)) {
       expect(key.startsWith('mineo_')).toBe(true);
+    }
+  });
+});
+
+/**
+ * Reset-policyen (R4-F02). At HVER nøgle er klassificeret håndhæves af compileren (`satisfies`); det, en test
+ * kan tilføje, er at klassifikationen faktisk deler mængden — begge sider er ikke-tomme, og en nøgle kan ikke
+ * være begge steder. En tom `caseScoped`-side ville gøre `Slet alt`s oprydning til en no-op, der ser grøn ud.
+ */
+describe('reset-policyen (getCaseScopedSessionStorageKeys)', () => {
+  it('deler manifestet i to ikke-tomme, disjunkte sider', () => {
+    const caseScoped = getCaseScopedSessionStorageKeys();
+    const allKeys = Object.values(UI_STORAGE_KEYS);
+    const deviceScoped = allKeys.filter((key) => !caseScoped.includes(key));
+
+    expect(caseScoped.length).toBeGreaterThan(0);
+    expect(deviceScoped.length).toBeGreaterThan(0);
+    expect(caseScoped.length + deviceScoped.length).toBe(allKeys.length);
+  });
+
+  it('rydder de sagsnære nøgler og bevarer de uafhængige UI-præferencer', () => {
+    const caseScoped = getCaseScopedSessionStorageKeys();
+
+    // Filnavns-metadata og de to sagsnære hjælpeflader beskriver PRÆCIS den sag, der slettes.
+    expect(caseScoped).toContain(UI_STORAGE_KEYS.lastSavedFilename);
+    expect(caseScoped).toContain(UI_STORAGE_KEYS.lastSavedFilenameBasis);
+    expect(caseScoped).toContain(UI_STORAGE_KEYS.eoOffentligeYdelserHelpers);
+    expect(caseScoped).toContain(UI_STORAGE_KEYS.loentrinFinderOverlay);
+    // Uafhængig UI-/devtools-tilstand beskriver ikke sagen og ryddes bevidst IKKE (contract §3.7).
+    expect(caseScoped).not.toContain(UI_STORAGE_KEYS.sideMenuExpanded);
+    expect(caseScoped).not.toContain(UI_STORAGE_KEYS.devtoolsLastSeenIssueId);
+  });
+
+  it('følger det aktive namespace', () => {
+    setStorageNamespace('minprocesrente');
+    try {
+      for (const key of getCaseScopedSessionStorageKeys()) {
+        expect(key.startsWith('minprocesrente_')).toBe(true);
+      }
+    } finally {
+      setStorageNamespace('mineo');
     }
   });
 });

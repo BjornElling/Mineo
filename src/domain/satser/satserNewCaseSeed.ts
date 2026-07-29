@@ -12,17 +12,18 @@ import { resolveSatserDefaultAargang } from '../policies/satserCalculations';
 
 /**
  * Seeder `satser.aargang` med default-året for en frisk sag. Er der intet gyldigt default-år, seedes intet.
- * Bygger en ren, ny sektions-map (empty.sections er dybt frosset); `initializeInputRuntime` validerer resultatet.
+ *
+ * Seeden siger kun HVILKEN sektionsværdi der ønskes; `initializeInputRuntime` ejer konstruktionen af aggregatet
+ * og re-validerer gennem kataloget. Den tidligere udgave modtog hele den tomme `SettledInput` og spread'ede
+ * `empty.sections` — altså rå sektionsadgang i domænelaget, som `domain/raw-section-access-boundary` forbyder
+ * (R5-F02). Grænsen er nu lukket i selve `NewCaseSeed`-signaturen frem for ved en allowlist-post.
  */
-export const seedSatserNewCase: NewCaseSeed = (empty) => {
+export const seedSatserNewCase: NewCaseSeed = () => {
   const defaultYear = resolveSatserDefaultAargang(
     CURRENT_YEAR,
     satserAngivAarYearBounds.minYear,
     satserAngivAarYearBounds.maxYear
   );
-  if (defaultYear === undefined) return empty;
-  return Object.freeze({
-    ...empty,
-    sections: Object.freeze({ ...empty.sections, satser: Object.freeze({ aargang: defaultYear }) }),
-  });
+  if (defaultYear === undefined) return undefined;
+  return { satser: { aargang: defaultYear } };
 };

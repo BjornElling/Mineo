@@ -4,20 +4,22 @@ Samlet register over alle fund i draft/commit-reviewet: fasefundene (R0–R8), d
 konvergensreview (GM-F01–GM-F15) og brugertestfundene (UT-F01–UT-F06). Én linje pr. fund, ingen prosa —
 beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
-**Sidst opdateret:** 2026-07-29
+**Sidst opdateret:** 2026-07-29 (etape 8 + 9 lukket)
 
 ## Status
 
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
-| R0–R8 (fasefund) | 36 | 25 | 11 | 0 |
-| GM (konvergensreview) | 15 | 4 | 11 | 0 |
+| R0–R8 (fasefund) | 36 | 20 | 16 | 0 |
+| GM (konvergensreview) | 15 | 1 | 14 | 0 |
 | UT (brugertest) | 6 | 0 | 5 | 1 |
-| INC (tilfældighedsfund) | 14 | 1 | 13 | 0 |
-| **I alt** | **71** | **30** | **40** | **1** |
+| INC (tilfældighedsfund) | 16 | 1 | 15 | 0 |
+| **I alt** | **73** | **22** | **50** | **1** |
 
 Etape 7 er lukket **på nær GM-F10**, som holdes åben sammen med INC-F14 (se noterne nedenfor): kortlægningen
 viste, at fundet er større end sin rapport, og at dens `fieldPath`-cellemål slet ikke er i brug i dag.
+
+Etape 8 og 9 er **lukket 2026-07-29**. Tilbage står etape 10–12 samt GM-F10.
 
 ## Bindende regel for tilfældighedsfund
 
@@ -54,8 +56,8 @@ en etape rettes og verificeres sammen.
 | **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. Lukket 2026-07-28 — se etapenoten nedenfor. |
 | **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. Lukket 2026-07-28 — se etapenoten nedenfor. |
 | **7** | UT-F02, UT-F06, R3-F03, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, min-max-tooltips mangler årsagsinput, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. Første pas (UT-F02 + UT-F06) lukket 2026-07-28; andet pas (R7-F03, R7-F02, GM-F03, R3-F03) lukket og verificeret 2026-07-29. **GM-F10 er den ENESTE udestående** — kortlægningen viste, at fundet er større end sin rapport, og at dens cellemål er ude af brug (INC-F14). Den flyttes til en egen behandling. Se `work-items/WI-015-etape7-fokusmaal-ejerskab.md`. |
-| **8** | R4-F01, R4-F02, GM-F12, GM-F13 | Persistence og hel-sags-handlinger: draft kasseres efter replacement, ufuldstændig oprydning accepteres som succes, `Slet alt` afsluttes anderledes end load. Bærer beslutning 4. |
-| **9** | GM-F08, GM-F09, R5-F02, R8-F07, R0-F02 | Døde veje og værn, der ikke kan fejle. Ligger efter etape 1–8, fordi rettelserne dér kan efterlade nye rester og gøre flere værn inerte. |
+| **8** | R4-F01, R4-F02, GM-F12, GM-F13 | Persistence og hel-sags-handlinger: draft kasseres efter replacement, ufuldstændig oprydning accepteres som succes, `Slet alt` afsluttes anderledes end load. Bærer beslutning 4. Lukket 2026-07-29 — se etapenoten nedenfor. |
+| **9** | GM-F08, GM-F09, R5-F02, R8-F07, R0-F02 | Døde veje og værn, der ikke kan fejle. Ligger efter etape 1–8, fordi rettelserne dér kan efterlade nye rester og gøre flere værn inerte. Lukket 2026-07-29 — se etapenoten nedenfor. |
 | **10** | R8-F01, R8-F03, R8-F02, R8-F04, R8-F05, R8-F06, R2-F03, R6-F04, R0-F03 | Testdækning og acceptmatrix: §10's kriterier og de obligatoriske statekæder får et levende register. Sidst, fordi dækningen skal måles mod den FÆRDIGE arkitektur, ikke mod en mellemtilstand. |
 | **11** | R1-F01, R1-F02, R1-F03, R1-F04, R1-F05, R1-F06, R1-F07, R6-F03, R8-F08 | Kontrakter, docs og sluttilstandssprog. Til sidst pr. review-planens R1b/R9: teksten skal beskrive systemet, som det er efter alle rettelser. |
 | **12** | R7-F01, R0-F01 | Vurderes til sidst: R7-F01 er en omlægning af otte fagsider og kan blive en work item frem for en reviewrettelse; R0-F01 er en runtime-/toolchain-beslutning uden kodeafhængighed. |
@@ -68,7 +70,7 @@ etape kommer.
 | Id | Kort titel | Alvor | Lokation | Etape | Status | Rapport |
 |---|---|---|---|---:|---|---|
 | R0-F01 | Baseline kørt på ikke-understøttet runtime | Væsentlig | `package.json:22-24` | 12 | Åbent | [R0](R0-baseline-og-vaern.md#r0-f01--baseline-kørt-på-ikke-understøttet-runtime) |
-| R0-F02 | Tekstprober kan holde døde værn levende | Væsentlig | `architecture/rules/storageRules.ts:27-42` | 9 | Åbent | [R0](R0-baseline-og-vaern.md#r0-f02--tekstprober-kan-holde-døde-værn-levende) |
+| R0-F02 | Tekstprober kan holde døde værn levende | Væsentlig | Harnessets liveness-lag (`architectureRules.test.ts`) + 14 prober | 9 | **Rettet 2026-07-29** | [R0](R0-baseline-og-vaern.md#r0-f02--tekstprober-kan-holde-døde-værn-levende) |
 | R0-F03 | Dokumentformatværnet dækker kun to ready-grene | Væsentlig | `acceptanceMatrix.test.ts:295-303` | 10 | Åbent (WI-014) | [R0](R0-baseline-og-vaern.md#r0-f03--dokumentformatværnet-dækker-kun-to-ready-grene) |
 | R1-F01 | Designdokumentets status er indbyrdes modstridende | Væsentlig | `draft-commit-greenfield-design.md` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f01--designdokumentets-status-er-indbyrdes-modstridende) |
 | R1-F02 | Arkitekturdocs beskriver afløste grænser som aktuelle | Væsentlig | `docs/architecture/` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f02--arkitekturdocs-beskriver-afløste-grænser-som-aktuelle) |
@@ -84,10 +86,10 @@ etape kommer.
 | R3-F02 | EO globaliserer feltissues uden faktisk dependency | Væsentlig | `eoDependencyGroups.ts:227-230` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f02--eo-globaliserer-feltissues-uden-faktisk-dependency) |
 | R3-F03 | Min-max-tooltips mangler inputnavne | Væsentlig | `dateRangeErrorMessages.ts` (`DateRangeBoundsOrigin`) | 7 | **Rettet 2026-07-29** | [R3](R3-issues-og-gates.md#r3-f03--min-max-tooltips-mangler-inputnavne) |
 | R3-F04 | Den offentlige reader eksponerer hele issue-snapshottet | Væsentlig | `inputReader.ts:130-135` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f04--den-offentlige-reader-eksponerer-hele-issue-snapshottet) |
-| R4-F01 | Load kan kassere en ny draft efter replacement | Væsentlig | `useFileSaveLoad.ts:198-206` | 8 | Åbent | [R4](R4-persistence-session-eo-undo-redo.md#r4-f01--load-kan-kassere-en-ny-draft-efter-replacement) |
-| R4-F02 | Slet alt accepterer ufuldstændig oprydning som succes | Væsentlig | `useFileSaveLoad.ts:473-505` | 8 | Åbent | [R4](R4-persistence-session-eo-undo-redo.md#r4-f02--slet-alt-accepterer-ufuldstændig-oprydning-som-succes) |
+| R4-F01 | Load kan kassere en ny draft efter replacement | Væsentlig | `criticalActionCoordinator.ts` (`discardReplacedDraft`), `persistenceLoadApply.ts` (delt i to faser) | 8 | **Rettet 2026-07-29** | [R4](R4-persistence-session-eo-undo-redo.md#r4-f01--load-kan-kassere-en-ny-draft-efter-replacement) |
+| R4-F02 | Slet alt accepterer ufuldstændig oprydning som succes | Væsentlig | `caseResetOperations.ts` (`ClearAllResult`), `storageManifest.ts` (`SESSION_RESET_POLICY`) | 8 | **Rettet 2026-07-29** | [R4](R4-persistence-session-eo-undo-redo.md#r4-f02--slet-alt-accepterer-ufuldstændig-oprydning-som-succes) |
 | R5-F01 | Årsløn viser en deltotal fra en fejlende række | Væsentlig | `aarsloenProjection.ts:83-298` | 5 | **Rettet 2026-07-28** | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f01--årsløn-viser-en-deltotal-fra-en-fejlende-række) |
-| R5-F02 | Raw-section-værnet overser property- og spread-adgang | Væsentlig | `inputBoundaryRules.ts:177-236` | 9 | Åbent | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f02--raw-section-værnet-overser-property--og-spread-adgang) |
+| R5-F02 | Raw-section-værnet overser property- og spread-adgang | Væsentlig | `NewCaseSeed`-signaturen + `domain/raw-section-access-boundary` (alle fire former) | 9 | **Rettet 2026-07-29** | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f02--raw-section-værnet-overser-property--og-spread-adgang) |
 | R6-F01 | Frisk token bindes til render-fangede settings | Kritisk | `mineoDocumentEnvironment.ts:44-50` | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f01--frisk-token-bindes-til-render-fangede-settings) |
 | R6-F02 | Otte outputs kasserer beskeden efter afbrudt download | Væsentlig | Otte dokument-callsites | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f02--otte-outputs-kasserer-brugerbeskeden-efter-en-afbrudt-download) |
 | R6-F03 | Dokumentformat er fortsat en lovlig gate-dependency | Væsentlig | `sourceSettings.ts:8-85` | 11 | Åbent | [R6](R6-dokumentoutput-og-generatorer.md#r6-f03--dokumentformat-er-fortsat-en-lovlig-gate-dependency) |
@@ -101,7 +103,7 @@ etape kommer.
 | R8-F04 | Transaktionsinvarianter testes ikke for hver command-type | Væsentlig | `inputReducer.ts:27-123` | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f04--transaktionsinvarianterne-testes-ikke-for-hver-command-type) |
 | R8-F05 | Warning-benet i issue-/gate-matricen er falsk dækket | Væsentlig | `documentGateMatrix.test.ts:232-251` | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f05--warning-benet-i-issue-gate-matricen-er-falsk-dækket) |
 | R8-F06 | Kritiske handlinger er ikke integrationstestet ens | Væsentlig | Kritiske handlings- og dokumenttests | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f06--kritiske-handlinger-er-ikke-integrationstestet-ens-for-form-og-grid) |
-| R8-F07 | EO-surface-værnet kan omgås med en kommentar | Væsentlig | `erstatningsopgoerelseSurfaceGuard.test.ts:20-100` | 9 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f07--eo-surface-værnet-kan-omgås-med-en-kommentar) |
+| R8-F07 | EO-surface-værnet kan omgås med en kommentar | Væsentlig | `input/eo-surface-on-greenfield-path` (afløser den slettede tekst-guard) | 9 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f07--eo-surface-værnet-kan-omgås-med-en-kommentar) |
 | R8-F08 | Aktive testnavne beskriver fortsat migrationen | Mindre | `src/__tests__/` | 11 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f08--aktive-testnavne-beskriver-fortsat-migrationen) |
 
 ## Konvergensfund (GM)
@@ -118,12 +120,12 @@ Alle femten er godkendt til implementering. De fire produktbeslutninger, de hvil
 | GM-F05 | Forsørgertab har en afkoblet parallel fieldUi-model | Væsentlig | `forsoergertabSnapshot.ts`, `Forsoergertab.tsx` | 5 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f05--forsørgertab-har-en-afkoblet-parallel-fieldui-model) |
 | GM-F06 | Persisted felter accepterer en separat rå fejltekst | Væsentlig | Fælles feltkomponenter og EO/EET-callsites | 4 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f06--persisted-felter-accepterer-en-separat-rå-fejltekst) |
 | GM-F07 | Varige mén kalder motoren inde i projektionsindsamlingen | Væsentlig | `varigeMenReaderProjection.ts`, `projection.ts` | 5 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f07--varige-mén-kalder-motoren-inde-i-projektionsindsamlingen) |
-| GM-F08 | En død React-vej til Årslønsberegningen holdes levende af tests | Mindre | `useAarsloenBeregning.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f08--en-død-react-vej-til-årslønsberegningen-holdes-levende-af-tests) |
-| GM-F09 | Død sektionsvis persistence findes ved siden af aggregate-envelope | Væsentlig | `buildPersistedSection.ts` | 9 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f09--død-sektionsvis-persistence-findes-ved-siden-af-aggregate-envelope) |
+| GM-F08 | En død React-vej til Årslønsberegningen holdes levende af tests | Mindre | `domain/aarsloen/aarsloenBeregning.ts` (flyttet; hooken slettet) | 9 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f08--en-død-react-vej-til-årslønsberegningen-holdes-levende-af-tests) |
+| GM-F09 | Død sektionsvis persistence findes ved siden af aggregate-envelope | Væsentlig | `buildPersistedSection.ts` + `utils/serialization.ts` (begge slettet) | 9 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f09--død-sektionsvis-persistence-findes-ved-siden-af-aggregate-envelope) |
 | GM-F10 | EO-fejllinks bruger en separat heuristisk feltidentitet | Væsentlig | `eoRowIssueCatalog.ts`, `scrollToEoRow.ts` | 7 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f10--eo-fejllinks-bruger-en-separat-heuristisk-feltidentitet) |
 | GM-F11 | Dokumentfejl vises på nogle sider, men forsvinder på andre | Væsentlig | Dokumentførende side-callsites | 3 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f11--dokumentfejl-vises-på-nogle-sider-men-forsvinder-på-andre) |
-| GM-F12 | Slet alt og load afslutter hel-sags-replacement forskelligt | Mindre til væsentlig | `useFileSaveLoad.ts` | 8 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f12--slet-alt-og-load-afslutter-hel-sags-replacement-forskelligt) |
-| GM-F13 | Manuel load og PWA-load kopierer samme shellflow | Mindre | `useFileSaveLoad.ts`, `fileLoad.ts` | 8 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f13--manuel-load-og-pwa-load-kopierer-samme-shellflow) |
+| GM-F12 | Slet alt og load afslutter hel-sags-replacement forskelligt | Mindre til væsentlig | `useFileSaveLoad.handleSletAlt` (reload fjernet, beslutning 4) | 8 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f12--slet-alt-og-load-afslutter-hel-sags-replacement-forskelligt) |
+| GM-F13 | Manuel load og PWA-load kopierer samme shellflow | Mindre | `useFileSaveLoad.runLoadShell` (`LoadShellSource`) | 8 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f13--manuel-load-og-pwa-load-kopierer-samme-shellflow) |
 | GM-F14 | Placeholder- og cellebindingsalgoritmen findes i fem udgaver | Væsentlig | Fem tabelimplementeringer | 6 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f14--placeholder--og-cellebindingsalgoritmen-findes-i-fem-udgaver) |
 | GM-F15 | Løntabel-reads og intervaloverlap har parallelle primitiver | Mindre | `closedDateRange.ts`, `standardLoenTableFieldSet.ts` | 6 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f15--løntabel-reads-og-intervaloverlap-har-parallelle-primitiver) |
 
@@ -214,6 +216,8 @@ Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:t
 | INC-F12 | EO-togglens simple ændring dispatchede helt UDEN history-origin | Væsentlig | R7-F02's integrationstest | **Rettet 2026-07-29** |
 | INC-F13 | `NON_NAVIGABLE_ROUTE` var et sentinel for en tilstand ingen kode er i | Mindre | R7-F03 | **Rettet 2026-07-29** |
 | INC-F14 | Alle kataloget's `fieldPath`-cellemål i EO-fejllinks er uopnåelige OG utestede | Væsentlig | GM-F10's kortlægning | Åbent (bæres af GM-F10) |
+| INC-F15 | EO's round-trip-test modellerede et serialiseringstrin, produktionen ikke udfører | Væsentlig | GM-F09 | **Rettet 2026-07-29** |
+| INC-F16 | `pendingOverlay` + `allowExitWithoutWarning` fandtes kun for at overleve en reload | Mindre | GM-F12 | **Rettet 2026-07-29** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
@@ -661,3 +665,125 @@ kolonne ud fra dansk fejltekst, og `focusFieldHint`, som fire row-buildere sætt
 Det ændrer GM-F10's blast radius i BEGGE retninger: der er ingen kolonnepræcision at regressere (adfærden
 findes ikke i dag), men til gengæld tre parallelle attribut-fallbacks, fire row-buildere og et helt
 konfigurationsmodul at rydde op i. Fundet holdes åbent og lukkes sammen med GM-F10.
+
+**R4-F01 + R4-F02 + GM-F12 + GM-F13 — rettet 2026-07-29 (etape 8).** Persistence og hel-sags-handlinger;
+bærer beslutning 4. Fire gates + `verify:ledgers` + fuld suite grøn: 502 filer / 6310 tests.
+
+**Etapens gennemgående mønster: alle fire fund var ejerskabsproblemer, ikke manglende checks.** Ingen af
+rettelserne tilføjer en kontrol; hver flytter en ansvarsgrænse, så den forkerte tilstand ikke kan opstå.
+
+*Replacement-barrieren rummer kun det autoritative (R4-F01).* `applyReplacement`/`applyDestructive` tager nu
+`() => T` frem for `() => T | Promise<T>`, så en asynkron apply inde i barrieren er en **compilerfejl**.
+Load-apply er delt i `applyAuthoritativeLoadSnapshot` (synkron, inde i barrieren) og `synchronizeLoadMetadata`
+(asynkron, efter). Dertil ejer discard sin identitet: `discardReplacedDraft` kasserer PRÆCIS den editor, der
+var registreret ved handlingens start, og kun hvis den stadig er den registrerede — et registry-opslag EFTER
+apply kunne finde en editor, brugeren havde åbnet i den nye sag. Rækkefølge-invarianten "metadata kører aldrig
+for en sag, der ikke blev indlæst" er dermed en konsekvens af opdelingen frem for af en intern try/catch.
+
+*Reset-policyen findes nu (R4-F02).* Det var den egentlige rod: persistence-kontraktens §3.8 henviste til "den
+særskilte reset-policy", som ingen steder var skrevet ned — så `Slet alt` gentog en håndskrevet liste på tre
+nøgler. `SESSION_RESET_POLICY` i manifestet klassificerer HVER nøgle som `caseScoped` eller `deviceScoped`,
+håndhævet af `satisfies`, så en ny nøgle ikke KAN undlade at vælge side. Klassifikationen fandt straks én
+nøgle mere, end fundet nævnte: `loentrinFinderOverlay` er også sagsnær (keyet på ansættelsesforhold-id).
+`CaseResetOperations.clearAll` ejer hele transaktionen og returnerer `cleared | cleared-with-residue` +
+`residue`, så kalderen ikke kan love "Alt data slettet" uden at have set resterne.
+
+**Én boolean-kontrakt var selv forkert:** `deleteFileHandleFromIndexedDB` returnerede `false`, når IndexedDB
+slet ikke findes — "ingen rest" rapporteret som "kunne ikke verificeres". Var den bevaret, ville den nye
+rest-rapportering have vist en rest, der ikke findes, i hvert miljø uden IndexedDB.
+
+*De to hel-sags-handlinger afsluttes ens (GM-F12, beslutning 4).* `window.location.href` er afløst af
+`navigate('/stamdata', { replace: true })`. Reloaden trak to mekanismer med sig, som kun fandtes for at
+overleve den (INC-F16). *Og de to load-kilder deler én shell (GM-F13):* `runLoadShell(source)` ejer kæden;
+`LoadShellSource` bærer præcis det, der sagligt adskiller manuel filvælger fra PWA-launch.
+
+**Værn:** `storage/case-reset-policy-single-owner` (kun porten må enumerere policyen) og
+`storage/no-full-page-reload-in-shell` (reloaden kan ikke genindføres i shell-/hook-/sidelaget). Begge
+mutationstestet mod den levende kilde med fil:linje:kolonne. Dækning: 4 nye porttests, 3 nye
+`handleSletAlt`-tests, 2 nye R4-F01-tests i `useFileSaveLoad`, 2 nye coordinator-tests, 2 nye PWA-shell-tests
+og 3 nye manifest-tests.
+
+**INC-F16.** Reloaden i `Slet alt` bar to mekanismer, hvis eneste formål var at overleve den:
+
+- `pendingOverlay`-sessionnøglen havde ÉN skriver (`Slet alt`) og ÉN læser (`MainLayout`s
+  post-reload-effekt). Beskeden kunne ikke vises direkte, fordi komponenten blev revet ned.
+- `allowExitWithoutWarning` fra `useUnsavedChangesGuard` fandtes UDELUKKENDE for at undertrykke
+  beforeunload-advarslen under netop den reload. Ingen anden kalder havde brug for den.
+
+Begge er slettet sammen med reloaden — nøglen ud af manifestet, effekten og `isOverlayType`-hjælperen ud af
+`MainLayout`, `allowExitWithoutWarning` ud af guarden og af `useFileSaveLoad`s args. Baseline nulstilles nu ad
+den almindelige vej gennem `authoritativeSnapshotEpoch` (`replacementGeneration`), som hel-sags-clear selv
+bumper — det var altid den rigtige mekanisme; reloaden krævede blot en anden.
+
+Fundet er registreret frem for blot slettet, fordi det viser, hvordan en implementeringsdetalje avler API:
+`allowExitWithoutWarning` var en GENERISK "tillad exit"-omgåelse på en guard, hvis hele formål er at advare.
+En fremtidig kalder kunne rimeligt have brugt den til noget helt andet, og guarden ville da have haft en
+dokumenteret bagdør, som ingen havde besluttet. En ny undtagelse skal begrundes af sin egen handling.
+
+**GM-F08 + GM-F09 + R5-F02 + R8-F07 + R0-F02 — rettet 2026-07-29 (etape 9).** Døde veje og værn, der ikke kan
+fejle. Fire gates + `verify:ledgers` + fuld suite grøn: 499 filer / 6295 tests (netto −3 filer: fire slettede
+moduler/tests mod én tilføjet regel-flade).
+
+**Etapens gennemgående mønster: hvert af de tre værnfund var samme fejlklasse i et nyt lag** — R0-F02 i
+liveness-laget, R8-F07 i et lokalt værn, R5-F02 i en evaluators syntaksdækning. Alle tre er nu lukket
+STRUKTURELT (en type eller en AST-query), ikke ved at tilføje endnu et mønster til en tekstsøgning.
+
+*De døde veje (GM-F08, GM-F09).* Årslønsberegningen er flyttet til `domain/aarsloen/aarsloenBeregning.ts` —
+hvor dens eneste consumer bor, så `src/domain` ikke længere importerer fra `src/hooks` — og hook-wrapperen er
+slettet. Testene kalder nu den rene funktion direkte, uden React-miljø. `buildPersistedSection.ts` er slettet,
+og dens fjernelse trak `utils/serialization.ts` med (nul produktionscallsites tilbage), hvilket afdækkede
+INC-F15.
+
+*Capabilityen før værnet (R5-F02).* Fundets egen prioritering blev fulgt: `NewCaseSeed` gav domænet hele den
+tomme `SettledInput`, så Satser-seeden MÅTTE spread'e `empty.sections`. Signaturen er nu
+`() => Partial<SettledInput['sections']> | undefined`, og kernen ejer konstruktionen — grænsen er lukket i
+TYPEN frem for ved en allowlist-post. Derefter blev `domain/raw-section-access-boundary` udvidet fra én til
+alle fire adgangsformer (element access, property access, reference/spread, destrukturering).
+
+**Udvidelsen fandt to ting, den oprindelige regel ikke kunne se:** `caseFileOperations.ts` er en LEGITIM rå
+ejer (den bygger load-kandidatens sektions-map og svarer på hel-sags-data-presence) og var altså ejer i
+praksis, mens reglen kun målte bracket-formen. Og tre EO-inspektions-komponenter har en PROP, der blot HEDDER
+`sections` — view-modeller uden relation til `SettledInput`. Sondringen er derfor strukturel og ikke
+navnebaseret: kun en `VariableDeclaration` med et initialiseringsudtryk udtrykker en LÆSNING. Havde reglen
+flaget dem, skulle tre uskyldige filer på allowlisten, og grænsen ville være udvandet præcis der, hvor den
+skal være skarp.
+
+*Det lokale værn er flyttet ind i harnesset (R8-F07).* `erstatningsopgoerelseSurfaceGuard.test.ts` er SLETTET,
+ikke lappet: begge dens ender var tekstbaserede, og en lappet udgave ville have bevaret sin egen filglob og
+sit eget liveness-gulv ved siden af harnessets. `input/eo-surface-on-greenfield-path` genkender fladen på
+JSX-attributter og VEJEN på en faktisk import eller et faktisk kald.
+
+*Liveness-laget er lukket systemisk (R0-F02).* Fundet er en svaghed i laget, ikke i fjorten prober, så
+rettelsen er en ny generisk kontrol: for HVER forudsætningsregel kommenteres en fil, der faktisk opfylder
+proben, ud linje for linje. Teksten er uændret ord for ord; hver AST-node er væk. En probe, der stadig svarer
+`true`, måler tekst — og testen navngiver reglen samt de AST-queries, den kan bruge i stedet. **Undtagelsen
+er selv maskinel frem for en liste:** en probe, der også er opfyldt af en TOM fil på samme sti, spørger kun
+"findes modulet?", og kommentar-mutationen kan pr. konstruktion ikke sige noget om den.
+
+**Kontrollen fandt mere end de fem prober, fundet navngav:** fjorten prober måtte konverteres, og
+`form/restore-target-attributes` viste sig tekstbaseret i BEGGE ender — dens `find` accepterede en manglende
+gennemføring, hvis blot filen NÆVNTE `restoreTargetAttributes` i en kommentar. Seks nye AST-primitiver kom
+til (`hasAnyIdentifier`, `hasTypeReference`, `hasImportFrom`, `hasJsxAttribute`, `hasDeclaredMember`,
+`hasMemberRead`) plus `collectDestructuredProperties` til R5-F02.
+
+**Alle tre nye/udvidede værn er mutationstestet mod den LEVENDE kilde** (jf. INC-F11's lærepunkt): de tre
+tidligere blinde sektionsformer i `satserNewCaseSeed.ts`, R8-F07's præcise kommentar-bypass i
+`EOInspektionRowsSection.tsx`, og `localStorage`-probens tekstform — hver gør sit værn rødt med
+fil:linje(:kolonne) og navngiver reglen.
+
+**INC-F15.** `eoHiddenFieldPersistence.test.ts`' round-trip hed
+`serializeFormValues → JSON → nullToUndefinedDeep → schema.parse` og hævdede i sin egen dokumentation at være
+"præcis samme serialiserings-/parse-kerne" som `.eo`-save/load og F5. Efterprøvningen viste, at produktionen
+IKKE udfører det første trin: `encodeEoFile`/current-session-envelopen `JSON.stringify`'er den schema-parsede
+sektion direkte, og `JSON.stringify` **dropper** `undefined`-nøgler frem for at nulle dem, som
+`serializeFormValues` gør.
+
+Testen var derfor lettere end virkeligheden i netop den retning, den skulle bevise: et skjult felt, hvis
+schema tolererer `null` men ikke fravær, ville bestå her og fejle i produktionen. Kæden er rettet til
+produktionens faktiske form, og trinnet fulgte med GM-F09's slettede `buildPersistedSection` — hvorefter
+`serializeFormValues` havde nul produktionscallsites og selv kunne slettes.
+
+Fundet er registreret frem for blot rettet, fordi det er en fjerde variant af R0-F02's fejlklasse, og den
+sværeste at se: her var hverken proben, allowlisten eller værnets mål forkert — det var testens MODEL af
+produktionen. En test, der modellerer en strengere pipeline end den, den skal bevise noget om, er grøn på
+egne præmisser og siger intet om koden.

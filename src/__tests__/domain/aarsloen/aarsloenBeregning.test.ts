@@ -1,39 +1,43 @@
-// @vitest-environment jsdom
-import { renderHook } from '@testing-library/react';
-import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
-import type { AarsloenValues } from '../../schemas/formSchemas';
-import { safeCompute } from '../../utils/safeComputation';
-import { beregnSHDageForDatoSet } from '../../domain/dates/shDageBeregning';
-import { beregnOmregnetAarsloen } from '../../domain/aarsloen/aarsloenCalculations';
-import { harTabelData } from '../../domain/aarsloen/aarsloenValidationPolicies';
-import { beregnMaanedPeriode } from '../../utils/periodeBeregning';
-import { toISODateString } from '../../types/branded';
+import { computeAarsloenBeregning } from '../../../domain/aarsloen/aarsloenBeregning';
+import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
+import type { AarsloenValues } from '../../../schemas/formSchemas';
+import { safeCompute } from '../../../utils/safeComputation';
+import { beregnSHDageForDatoSet } from '../../../domain/dates/shDageBeregning';
+import { beregnOmregnetAarsloen } from '../../../domain/aarsloen/aarsloenCalculations';
+import { harTabelData } from '../../../domain/aarsloen/aarsloenValidationPolicies';
+import { beregnMaanedPeriode } from '../../../utils/periodeBeregning';
+import { toISODateString } from '../../../types/branded';
 
-vi.mock('../../utils/safeComputation', () => ({
+// GM-F08: testene kaldte tidligere `useAarsloenBeregning` gennem `renderHook` — en React-adapter, INGEN
+// produktionskode brugte. De hævdede altså kontrolflowet gennem en død vej, mens den levende
+// (`aarsloenProjection.ts` → `computeAarsloenBeregning`) var utestet på netop disse grene. Adapteren er
+// slettet; invarianterne er bevaret ordret mod den aktive indgang og har ikke længere brug for et
+// React-miljø, en render eller `@testing-library`.
+
+vi.mock('../../../utils/safeComputation', () => ({
   safeCompute: vi.fn(),
 }));
 
-vi.mock('../../domain/aarsloen/standardLoenRowCalculations', () => ({
+vi.mock('../../../domain/aarsloen/standardLoenRowCalculations', () => ({
   calculateStandardLoenRowDerived: vi.fn(() => ({ samlet: 100 })),
   roundStandardLoenAmountToTwoDecimals: vi.fn((value: number) => value),
 }));
 
-vi.mock('../../utils/periodeBeregning', () => ({
+vi.mock('../../../utils/periodeBeregning', () => ({
   beregnMaanedPeriode: vi.fn(),
   beregnUgePeriode: vi.fn(),
   beregnDagPeriode: vi.fn(),
 }));
 
-vi.mock('../../domain/dates/shDageBeregning', () => ({
+vi.mock('../../../domain/dates/shDageBeregning', () => ({
   beregnSHDageForDatoSet: vi.fn(),
 }));
 
-vi.mock('../../domain/aarsloen/aarsloenCalculations', () => ({
+vi.mock('../../../domain/aarsloen/aarsloenCalculations', () => ({
   beregnOmregnetAarsloen: vi.fn(),
 }));
 
-vi.mock('../../domain/aarsloen/aarsloenValidationPolicies', () => ({
+vi.mock('../../../domain/aarsloen/aarsloenValidationPolicies', () => ({
   beregnFejlmeddelelser: vi.fn(() => []),
   harTabelData: vi.fn(),
   resolveAarsloenCanonicalRangeIssues: vi.fn(() => []),
@@ -76,7 +80,7 @@ const makeValues = (patch: Partial<AarsloenValues> = {}): AarsloenValues => ({
   ...patch,
 });
 
-describe('useAarsloenBeregning (wire-up/control-flow)', () => {
+describe('computeAarsloenBeregning (wire-up/control-flow)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedSafeCompute.mockImplementation((fn) => ({ success: true, value: fn() }));
@@ -106,60 +110,43 @@ describe('useAarsloenBeregning (wire-up/control-flow)', () => {
   });
 
   it('beregner ikke SH-dage når omregning er deaktiveret', () => {
-    const { result } = renderHook(() =>
-      useAarsloenBeregning({
-        values: makeValues(),
-        omregningAktiveret: false,
-      })
-    );
+    const result = computeAarsloenBeregning({ values: makeValues(), omregningAktiveret: false });
 
-    expect(result.current.shDageAntal).toBeNull();
+    expect(result.shDageAntal).toBeNull();
     expect(mockedBeregnSHDageForDatoSet).not.toHaveBeenCalled();
   });
 
   it('beregner ikke SH-dage ved ikke-relevant helligdagstype', () => {
-    const { result } = renderHook(() =>
-      useAarsloenBeregning({
-        values: makeValues({ loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG }),
-        omregningAktiveret: true,
-      })
-    );
+    const result = computeAarsloenBeregning({
+      values: makeValues({ loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG }),
+      omregningAktiveret: true,
+    });
 
-    expect(result.current.shDageAntal).toBeNull();
+    expect(result.shDageAntal).toBeNull();
     expect(mockedBeregnSHDageForDatoSet).not.toHaveBeenCalled();
   });
 
   it('returnerer metode=ingen når periodeData mangler', () => {
     mockedHarTabelData.mockReturnValue(false);
 
-    const { result } = renderHook(() =>
-      useAarsloenBeregning({
-        values: makeValues(),
-        omregningAktiveret: true,
-      })
-    );
+    const result = computeAarsloenBeregning({ values: makeValues(), omregningAktiveret: true });
 
-    expect(result.current.periodeData).toBeNull();
-    expect(result.current.beregningsData).toEqual({ metode: 'ingen', erEtAar: false });
+    expect(result.periodeData).toBeNull();
+    expect(result.beregningsData).toEqual({ metode: 'ingen', erEtAar: false });
   });
 
   it('sætter fatal fejl når SH-dagsberegning fejler', () => {
     mockedSafeCompute.mockImplementation((fn, context) => {
-      if (context === 'useAarsloenBeregning.shDageBeregning') {
+      if (context === 'aarsloenBeregning.shDageBeregning') {
         return { success: false, error: new Error('boom') };
       }
       return { success: true, value: fn() };
     });
 
-    const { result } = renderHook(() =>
-      useAarsloenBeregning({
-        values: makeValues(),
-        omregningAktiveret: true,
-      })
-    );
+    const result = computeAarsloenBeregning({ values: makeValues(), omregningAktiveret: true });
 
-    expect(result.current.shDageAntal).toBeNull();
-    expect(result.current.harFatalBeregningsFejl).toBe(true);
-    expect(result.current.beregningsFejl).toBe('Fejl ved beregning af SH-dage');
+    expect(result.shDageAntal).toBeNull();
+    expect(result.harFatalBeregningsFejl).toBe(true);
+    expect(result.beregningsFejl).toBe('Fejl ved beregning af SH-dage');
   });
 });

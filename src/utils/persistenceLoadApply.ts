@@ -39,22 +39,37 @@ export type PersistenceLoadApplyResult =
  */
 export type ApplyLoadedSnapshot = (snapshot: PersistedSectionsSnapshot) => void;
 
-export const executePersistenceLoadApply = async (args: {
+/**
+ * Den SYNKRONE, autoritative halvdel af et load-apply (R4-F01). Skal køre inde i
+ * `CriticalActionCoordinator.applyReplacement`, så replacement-transaktionen og draft-discard er atomiske.
+ * Kaster ved schema-/katalogafvisning, så apply-fejl aldrig efterlader en delvist erstattet sag —
+ * og fordi den kaster INDE i barrieren, bevares den åbne draft.
+ */
+export const applyAuthoritativeLoadSnapshot = (args: {
   result: ApplicableLoadFileResult;
   applySnapshot: ApplyLoadedSnapshot;
-}): Promise<PersistenceLoadApplyResult> => {
+}): void => {
   const { result, applySnapshot } = args;
+  // result.snapshot er pre-valideret af fileLoad-pipelinen; denne funktion ejer kun den atomiske apply.
   const fullSnapshot = buildAuthoritativeLoadSnapshot(result.snapshot);
 
   try {
-    // result.snapshot er pre-valideret af fileLoad-pipelinen. Denne funktion ejer kun
-    // atomisk apply af det autoritative snapshot og efterfølgende metadata-synkronisering.
     applySnapshot(fullSnapshot);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
     throw new Error(`Indlæsning mislykkedes. Ingen data blev anvendt.\n\n${message}`);
   }
+};
 
+/**
+ * Den ASYNKRONE metadata-halvdel: filnavn, filhåndtag og PWA-request-oprydning (§4.1). Kører EFTER
+ * replacement-barrieren er lukket, fordi den ikke ejer sagsinput og derfor ikke må holde draft-discard åben
+ * mens brugeren kan begynde at redigere den netop indlæste sag (R4-F01). En fejl her er ikke en apply-fejl:
+ * sagen ER indlæst, og brugeren får en advarsel om den manglende synkronisering.
+ */
+export const synchronizeLoadMetadata = async (
+  result: ApplicableLoadFileResult
+): Promise<PersistenceLoadApplyResult> => {
   try {
     persistLoadedFilenameMetadata({
       filename: result.filename,

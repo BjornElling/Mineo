@@ -17,14 +17,17 @@ import type { LoadFileResult, LoadPreflightWarning, SaveFileResult } from '../..
 //  - "åbent felt kan ikke committes" → en åben editor i `activeEditorRegistry`, hvis settle KASTER
 //    (fail-closed `blocked`, §1.4). Bemærk: åben editor blokerer KUN save/navigate — load er
 //    `replace`-policy og settler/blokeres ALDRIG (§1.4), så "hent"-testen hævder nu det modsatte.
-//  - `executePersistenceLoadApply` mockes, men KALDER den injicerede `applySnapshot`, så den ægte
-//    `replaceCase` kører og hæver `replacementGeneration` (coordinatorens apply-guard, §7).
+//  - Load-apply er efter R4-F01 delt i to mockede halvdele: den SYNKRONE
+//    `applyAuthoritativeLoadSnapshot` (kalder den injicerede `applySnapshot`, så den ægte `replaceCase` kører og
+//    hæver `replacementGeneration` — coordinatorens apply-guard, §7) og den asynkrone `synchronizeLoadMetadata`.
 
 const saveToFileMock = vi.fn<(...args: unknown[]) => Promise<SaveFileResult>>();
 const loadFromFileMock = vi.fn<(...args: unknown[]) => Promise<LoadFileResult>>();
 const loadFromFileHandleMock = vi.fn<(...args: unknown[]) => Promise<LoadFileResult>>();
-const executePersistenceLoadApplyMock =
-  vi.fn<(...args: [{ result: { snapshot?: unknown }; applySnapshot: (snapshot: unknown) => void }]) =>
+const applyAuthoritativeLoadSnapshotMock =
+  vi.fn<(...args: [{ result: { snapshot?: unknown }; applySnapshot: (snapshot: unknown) => void }]) => void>();
+const synchronizeLoadMetadataMock =
+  vi.fn<(...args: unknown[]) =>
     Promise<{ status: 'applied' } | { status: 'applied-with-metadata-error'; message: string }>>();
 
 vi.mock('../../utils/fileSave', () => ({
@@ -38,17 +41,21 @@ vi.mock('../../utils/fileLoad', () => ({
 }));
 
 vi.mock('../../utils/persistenceLoadApply', () => ({
-  executePersistenceLoadApply: (
+  applyAuthoritativeLoadSnapshot: (
     args: { result: { snapshot?: unknown }; applySnapshot: (snapshot: unknown) => void }
-  ) => executePersistenceLoadApplyMock(args),
+  ) => applyAuthoritativeLoadSnapshotMock(args),
+  synchronizeLoadMetadata: (...args: unknown[]) => synchronizeLoadMetadataMock(...args),
 }));
 
 vi.mock('../../utils/fileHelpers', () => ({
   resolveDefaultDirectoryHandle: vi.fn(async () => undefined),
 }));
 
+// `Slet alt`s filhåndtags-oprydning (R4-F02) skal kunne fejle i test: reset-porten LÆSER nu resultatet, og et
+// `false` skal vises som en rest frem for at forsvinde i "Alt data slettet".
+const deleteFileHandleFromIndexedDBMock = vi.fn<() => Promise<boolean>>();
 vi.mock('../../utils/fileHandleStorage', () => ({
-  deleteFileHandleFromIndexedDB: vi.fn(async () => undefined),
+  deleteFileHandleFromIndexedDB: () => deleteFileHandleFromIndexedDBMock(),
 }));
 
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
@@ -65,6 +72,8 @@ import { activeEditorRegistry, type ActiveEditor } from '../../inputCore/runtime
 import { reduceInputCommand, settleField } from '../../inputCore/inputReducer';
 import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
 import type { SettledInput } from '../../inputCore/settledInput';
+import { UI_STORAGE_KEYS } from '../../config/storageManifest';
+import { writeOptionalSessionStorageValue } from '../../utils/safeSessionStorage';
 
 type HookApi = ReturnType<typeof useFileSaveLoad>;
 
@@ -72,7 +81,6 @@ type HarnessHandles = {
   api: HookApi | null;
   markSaved: ReturnType<typeof vi.fn<(revision: number) => void>>;
   showOverlay: ReturnType<typeof vi.fn<(overlay: OverlayData) => void>>;
-  allowExitWithoutWarning: ReturnType<typeof vi.fn<() => void>>;
   navigate: ReturnType<typeof vi.fn<(to: string, opts?: unknown) => void>>;
 };
 
@@ -132,7 +140,6 @@ const renderHook = (
     api: null,
     markSaved: vi.fn<(revision: number) => void>(),
     showOverlay: vi.fn<(overlay: OverlayData) => void>(),
-    allowExitWithoutWarning: vi.fn<() => void>(),
     navigate: vi.fn<(to: string, opts?: unknown) => void>(),
   };
 
@@ -146,7 +153,6 @@ const renderHook = (
       ops,
       criticalActions,
       markSaved: handles.markSaved,
-      allowExitWithoutWarning: handles.allowExitWithoutWarning,
       showOverlay: handles.showOverlay,
     });
     return null;
@@ -178,12 +184,14 @@ const successfulLoad = (extra: { preflightWarning?: LoadPreflightWarning } = {})
 
 describe('useFileSaveLoad', () => {
   beforeEach(() => {
+    sessionStorage.clear();
     // Kald den ægte applySnapshot, så replaceCase kører og replacementGeneration hæves
     // (coordinatorens applyReplacement-guard, §7). Ellers ville et mocket no-op apply kaste.
-    executePersistenceLoadApplyMock.mockImplementation(async (args) => {
+    applyAuthoritativeLoadSnapshotMock.mockImplementation((args) => {
       args.applySnapshot(args.result.snapshot ?? {});
-      return { status: 'applied' };
     });
+    synchronizeLoadMetadataMock.mockResolvedValue({ status: 'applied' });
+    deleteFileHandleFromIndexedDBMock.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -324,7 +332,7 @@ describe('useFileSaveLoad', () => {
       });
 
       expect(loadFromFileMock).toHaveBeenCalledTimes(1);
-      expect(executePersistenceLoadApplyMock).toHaveBeenCalledTimes(1);
+      expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledTimes(1);
     });
 
     it('sætter pendingLoadResult og anvender IKKE data ved preflight-advarsel', async () => {
@@ -338,7 +346,7 @@ describe('useFileSaveLoad', () => {
       });
 
       expect(handles.api?.pendingLoadResult).not.toBeNull();
-      expect(executePersistenceLoadApplyMock).not.toHaveBeenCalled();
+      expect(applyAuthoritativeLoadSnapshotMock).not.toHaveBeenCalled();
     });
 
     it('går til overskriv-bekræftelse (ingen apply) når der allerede findes data', async () => {
@@ -350,7 +358,7 @@ describe('useFileSaveLoad', () => {
       });
 
       expect(handles.api?.pendingOverwriteApply).not.toBeNull();
-      expect(executePersistenceLoadApplyMock).not.toHaveBeenCalled();
+      expect(applyAuthoritativeLoadSnapshotMock).not.toHaveBeenCalled();
     });
 
     it('anvender data straks ved tom state uden preflight-advarsel', async () => {
@@ -361,7 +369,7 @@ describe('useFileSaveLoad', () => {
         await handles.api?.handleHent();
       });
 
-      expect(executePersistenceLoadApplyMock).toHaveBeenCalledTimes(1);
+      expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledTimes(1);
       expect(handles.showOverlay).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'success' })
       );
@@ -382,7 +390,7 @@ describe('useFileSaveLoad', () => {
         await handles.api?.handleConfirmOverwriteApply();
       });
 
-      expect(executePersistenceLoadApplyMock).toHaveBeenCalledTimes(1);
+      expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledTimes(1);
       expect(handles.navigate).toHaveBeenCalledWith('/stamdata', { replace: true });
       expect(handles.api?.pendingOverwriteApply).toBeNull();
     });
@@ -404,7 +412,7 @@ describe('useFileSaveLoad', () => {
         await handles.api?.handleLoadDespiteIssues();
       });
 
-      expect(executePersistenceLoadApplyMock).toHaveBeenCalledTimes(1);
+      expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledTimes(1);
       expect(handles.showOverlay).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'warning' })
       );
@@ -432,12 +440,12 @@ describe('useFileSaveLoad', () => {
       // Fase 2: preflight lukket, overskriv-bekræftelse åben — stadig kun én ad gangen, ingen apply endnu.
       expect(handles.api?.pendingLoadResult).toBeNull();
       expect(handles.api?.pendingOverwriteApply).not.toBeNull();
-      expect(executePersistenceLoadApplyMock).not.toHaveBeenCalled();
+      expect(applyAuthoritativeLoadSnapshotMock).not.toHaveBeenCalled();
 
       await act(async () => {
         await handles.api?.handleConfirmOverwriteApply();
       });
-      expect(executePersistenceLoadApplyMock).toHaveBeenCalledTimes(1);
+      expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledTimes(1);
       expect(handles.api?.pendingLoadResult).toBeNull();
       expect(handles.api?.pendingOverwriteApply).toBeNull();
     });
@@ -456,7 +464,181 @@ describe('useFileSaveLoad', () => {
       });
       expect(handles.api?.pendingOverwriteApply).toBeNull();
       expect(handles.api?.pendingLoadResult).toBeNull();
-      expect(executePersistenceLoadApplyMock).not.toHaveBeenCalled();
+      expect(applyAuthoritativeLoadSnapshotMock).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── Etape 8 ─────────────────────────────────────────────────────────────
+  describe('R4-F01 — den asynkrone metadatafase ligger uden for replacement-barrieren', () => {
+    it('gennemfører den autoritative apply FØR metadata-synkroniseringen afventes', async () => {
+      const handles = renderHook({ hasData: false });
+      loadFromFileMock.mockResolvedValue(successfulLoad());
+      let generationWhenMetadataRan: number | undefined;
+      let metadataResolve: (() => void) | undefined;
+      synchronizeLoadMetadataMock.mockImplementation(async () => {
+        generationWhenMetadataRan = slimInputStore.getState().replacementGeneration;
+        await new Promise<void>((resolve) => { metadataResolve = resolve; });
+        return { status: 'applied' };
+      });
+      const generationBefore = slimInputStore.getState().replacementGeneration;
+
+      let load: Promise<void> | undefined;
+      await act(async () => {
+        load = handles.api?.handleHent();
+        await Promise.resolve();
+      });
+
+      // Replacement ER gennemført, mens metadatafasen stadig venter: den holder ikke barrieren.
+      expect(generationWhenMetadataRan).toBeGreaterThan(generationBefore);
+
+      await act(async () => {
+        metadataResolve?.();
+        await load;
+      });
+      expect(handles.showOverlay).toHaveBeenCalledWith(expect.objectContaining({ type: 'success' }));
+    });
+
+    it('viser metadata-advarslen, når synkroniseringen fejler efter en gennemført apply', async () => {
+      const handles = renderHook({ hasData: false });
+      loadFromFileMock.mockResolvedValue(successfulLoad());
+      synchronizeLoadMetadataMock.mockResolvedValue({
+        status: 'applied-with-metadata-error',
+        message: 'Sagen blev indlæst, men filnavn kunne ikke synkroniseres.',
+      });
+
+      await act(async () => {
+        await handles.api?.handleHent();
+      });
+
+      expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledTimes(1);
+      expect(handles.showOverlay).toHaveBeenCalledWith({
+        message: 'Sagen blev indlæst, men filnavn kunne ikke synkroniseres.',
+        type: 'warning',
+      });
+    });
+  });
+
+  describe('handleSletAlt — hel-sags-clear (R4-F02, GM-F12)', () => {
+    let confirmSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      confirmSpy.mockRestore();
+    });
+
+    it('rydder de sagsnære sessionnøgler og afslutter INDE i appen uden genindlæsning', async () => {
+      // Alle fire sagsnære nøgler sættes, plus én bevidst device-scoped, som IKKE må ryddes.
+      writeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename, 'sag.eo');
+      writeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis, 'Testperson');
+      writeOptionalSessionStorageValue(UI_STORAGE_KEYS.eoOffentligeYdelserHelpers, '{"sygedagpengeFraDato":"2024-01-01"}');
+      writeOptionalSessionStorageValue(UI_STORAGE_KEYS.loentrinFinderOverlay, '{}');
+      writeOptionalSessionStorageValue(UI_STORAGE_KEYS.sideMenuExpanded, 'true');
+      const handles = renderHook({ hasData: true });
+
+      await act(async () => {
+        await handles.api?.handleSletAlt();
+      });
+
+      for (const key of [
+        UI_STORAGE_KEYS.lastSavedFilename,
+        UI_STORAGE_KEYS.lastSavedFilenameBasis,
+        UI_STORAGE_KEYS.eoOffentligeYdelserHelpers,
+        UI_STORAGE_KEYS.loentrinFinderOverlay,
+      ]) {
+        expect(sessionStorage.getItem(key)).toBeNull();
+      }
+      // Uafhængig UI-præference består bevidst (reset-policyens `deviceScoped`).
+      expect(sessionStorage.getItem(UI_STORAGE_KEYS.sideMenuExpanded)).toBe('true');
+      expect(deleteFileHandleFromIndexedDBMock).toHaveBeenCalledTimes(1);
+      // GM-F12: samme afslutning som load — navigation inde i appen, besked vist direkte.
+      expect(handles.navigate).toHaveBeenCalledWith('/stamdata', { replace: true });
+      expect(handles.showOverlay).toHaveBeenCalledWith({ message: 'Alt data slettet', type: 'info' });
+    });
+
+    it('rapporterer en rest frem for "Alt data slettet", når filhåndtaget ikke kan ryddes', async () => {
+      deleteFileHandleFromIndexedDBMock.mockResolvedValue(false);
+      const handles = renderHook({ hasData: true });
+
+      await act(async () => {
+        await handles.api?.handleSletAlt();
+      });
+
+      expect(handles.showOverlay).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'warning',
+        message: expect.stringContaining('filhåndtag'),
+      }));
+      expect(handles.showOverlay).not.toHaveBeenCalledWith({ message: 'Alt data slettet', type: 'info' });
+      // Inputtet er stadig ryddet: den autoritative del kan ikke rulles tilbage af en storagefejl.
+      expect(handles.navigate).toHaveBeenCalledWith('/stamdata', { replace: true });
+    });
+
+    it('gør intet, når brugeren afviser bekræftelsen', async () => {
+      confirmSpy.mockReturnValue(false);
+      const handles = renderHook({ hasData: true });
+      const generationBefore = slimInputStore.getState().replacementGeneration;
+
+      await act(async () => {
+        await handles.api?.handleSletAlt();
+      });
+
+      expect(slimInputStore.getState().replacementGeneration).toBe(generationBefore);
+      expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
+      expect(handles.navigate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GM-F13 — én load-shell med injiceret filkilde', () => {
+    it('kører PWA-load gennem samme kæde og bærer antallet af ignorerede filer i beskeden', async () => {
+      const handles = renderHook({ hasData: false });
+      loadFromFileHandleMock.mockResolvedValue(successfulLoad());
+
+      let outcome: string | undefined;
+      await act(async () => {
+        outcome = await handles.api?.handleHentFromPwaRequest({
+          id: 'req-1',
+          fileHandle: { name: 'sag.eo' } as FileSystemFileHandle,
+          fileName: 'sag.eo',
+          ignoredFileCount: 2,
+          createdAtEpochMs: 0,
+        });
+      });
+
+      expect(outcome).toBe('applied');
+      expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledTimes(1);
+      expect(handles.showOverlay).toHaveBeenCalledWith({
+        message: expect.stringContaining('2 yderligere fil(er)'),
+        type: 'warning',
+      });
+    });
+
+    it('rapporterer busy til PWA-fladen uden at vise en advarsel', async () => {
+      saveToFileMock.mockImplementation(() => new Promise(() => undefined));
+      const handles = renderHook({ hasData: true });
+
+      let firstSave: Promise<void> | undefined;
+      await act(async () => {
+        firstSave = handles.api?.handleGem();
+        await Promise.resolve();
+      });
+      void firstSave;
+
+      let outcome: string | undefined;
+      await act(async () => {
+        outcome = await handles.api?.handleHentFromPwaRequest({
+          id: 'req-2',
+          fileHandle: { name: 'sag.eo' } as FileSystemFileHandle,
+          fileName: 'sag.eo',
+          ignoredFileCount: 0,
+          createdAtEpochMs: 0,
+        });
+      });
+
+      expect(outcome).toBe('busy');
+      expect(loadFromFileHandleMock).not.toHaveBeenCalled();
+      expect(handles.showOverlay).not.toHaveBeenCalled();
     });
   });
 });

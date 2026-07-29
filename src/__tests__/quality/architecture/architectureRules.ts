@@ -1,7 +1,9 @@
 import type { ArchitectureRule } from './ruleKit';
 import {
+  caseResetPolicyOwnership,
   deletedLegacyInputArchitectureImport,
   localStorageBoundary,
+  noFullPageReloadInShell,
   sessionStorageBoundary,
   sessionStorageManifestKey,
 } from './rules/storageRules';
@@ -44,6 +46,7 @@ import {
 } from './rules/formRules';
 import {
   cellBindingSingleSource,
+  eoSurfaceOnGreenfieldPath,
   forbiddenLegacyIdentifier,
   inputWriteBoundary,
   derivedWritesNotFromEffects,
@@ -77,6 +80,8 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   localStorageBoundary,
   sessionStorageBoundary,
   sessionStorageManifestKey,
+  caseResetPolicyOwnership,
+  noFullPageReloadInShell,
   deletedLegacyInputArchitectureImport,
   // Domæne- og laggrænser
   failOpenDisplayLookupImport,
@@ -115,6 +120,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,
   cellBindingSingleSource,
+  eoSurfaceOnGreenfieldPath,
   programmaticFieldCommitUsesSettle,
   derivedWritesNotFromEffects,
   issueSnapshotCapabilityBoundary,

@@ -442,6 +442,14 @@ fortsat en React-hook, som ingen produktionskode kalder; kun dens implementering
 **Anbefalet retning:** Flyt den rene beregning og dens type til domænet, slet hook-wrapperen, og behold
 invarianttests mod den aktive entry.
 
+**Rettet 2026-07-29 (etape 9)** — nøjagtig som anbefalet. Modulet er flyttet til
+`src/domain/aarsloen/aarsloenBeregning.ts` (hvor dens eneste consumer bor, så `src/domain` ikke længere
+importerer fra `src/hooks`), `useAarsloenBeregning` er slettet, og de fire invarianttests kalder nu
+`computeAarsloenBeregning` direkte — uden `renderHook`, uden React-miljø, uden `@testing-library`. De hævdede
+før kontrolflowet gennem en vej, ingen bruger kunne nå, mens den levende var utestet på netop de grene.
+`safeCompute`-kontekststrengene er samtidig rettet fra `useAarsloenBeregning.*` til `aarsloenBeregning.*`, så
+en fejlrapport ikke navngiver et modul, der ikke findes.
+
 ### GM-F09 — Død sektionsvis persistence findes ved siden af aggregate-envelope
 
 **Alvor:** Væsentlig strukturel rest  
@@ -456,6 +464,15 @@ version/timestamp/data-repræsentation. Den har ingen produktionscallsites; kun 
 Den aktive runtime persisterer hele inputaggregatet i én envelope.
 
 **Anbefalet retning:** Slet helperen og dens implementeringstest, og ret den stale dokumentationsreference.
+
+**Rettet 2026-07-29 (etape 9).** `buildPersistedSection.ts` + test slettet;
+`inboundPersistedSection.ts` siger nu eksplicit, at der INTET outbound-modstykke findes, fordi sektionsvis
+persistering ikke længere er en skrivegrænse — og at current-session hydreres af `initializeInputRuntime.ts`
+(den samme kommentar bar også R4's stale `persistenceSessionHydration.ts`-reference).
+
+Sletningen trak `utils/serialization.ts` med: `serializeFormValues` havde efter helperens fjernelse nul
+produktionscallsites. Den blev holdt i live af to testfiler — og den ene, `eoHiddenFieldPersistence.test.ts`,
+modellerede med den en round-trip, produktionen IKKE udfører. Se INC-F15.
 
 ### GM-F10 — EO-fejllinks bruger en separat heuristisk feltidentitet
 
@@ -518,6 +535,21 @@ forklarer, hvorfor kun clear kræver reload.
 
 **Anbefalet retning:** Fjern reloaden som godkendt i beslutning 4, og afslut *Slet alt* inde i appen.
 
+**Rettet 2026-07-29 (etape 8).** `window.location.href = '/stamdata'` er afløst af
+`navigate('/stamdata', { replace: true })` — samme afslutning som fil-load. Reloaden trak TO mekanismer med
+sig, som kun fandtes for at overleve den:
+
+- `pendingOverlay`-sessionnøglen (én skriver: `Slet alt`; én læser: `MainLayout`s post-reload-effekt). Beskeden
+  vises nu direkte. Nøglen er fjernet fra manifestet, effekten og `isOverlayType`-hjælperen slettet.
+- `allowExitWithoutWarning` fra `useUnsavedChangesGuard` — den fandtes UDELUKKENDE for at undertrykke
+  beforeunload-advarslen under netop den reload. Baseline nulstilles nu ad den almindelige vej gennem
+  `authoritativeSnapshotEpoch` (`replacementGeneration`), som hel-sags-clear selv bumper.
+
+**Værn:** `storage/no-full-page-reload-in-shell` (AST, fraværsregel over `src/hooks`,
+`src/components/layout` og `src/components/pages`) forbyder, at reloaden genindføres. Mutationsbevist: tre
+genindførte `window.location.href` gør reglen rød med fil:linje:kolonne på hver. Auth-gaten er uden for
+scopet, fordi en afvist gate netop SKAL forlade appen helt.
+
 ### GM-F13 — Manuel load og PWA-load kopierer samme shellflow
 
 **Alvor:** Mindre  
@@ -531,6 +563,19 @@ preflightpipeline; kun UI-orkestreringen er duplikeret.
 
 **Anbefalet retning:** Én shellprocedure med en injiceret filkilde. Manuel filvælger og PWA-launch er
 fortsat to sagligt forskellige kilder, ikke to loadflows.
+
+**Rettet 2026-07-29 (etape 8)** — nøjagtig som anbefalet. `runLoadShell(source: LoadShellSource)` ejer hele
+den delte kæde: busy-start, `prepare('load')`, dialog-nulstilling, kildeindlæsning, preflight-forgrening,
+apply, fejlvisning og cleanup. `LoadShellSource` bærer PRÆCIS det, der sagligt adskiller de to —
+`kind`, `showBusyWarning` (manuel load er en brugergestus og skal oplyse "en filhandling er i gang"; et
+PWA-launch sker uopfordret), `errorLogLabel` (så de to kilder fortsat kan skelnes i en fejlrapport), `load()`
+og `successOverlay()` (bygges først ved succes, fordi PWA-beskeden afhænger af antallet af ignorerede filer).
+
+Udfaldet returneres i PWA-fladens sprog, som den manuelle flade ignorerer. Semantikken er bevaret ordret:
+`requestApplyLoadedSnapshot` returnerer allerede `'applied' | 'awaitingUser'`, så den gamle PWA-mapping
+(`awaitingUser` → `'awaitingUser'`, ellers `'applied'`) er en identitet. Dækket af 2 nye tests, som går
+gennem PWA-fladen (ignorerede filer i beskeden; busy uden advarsel) — den flade, kun én af de to gamle kopier
+havde.
 
 ### GM-F14 — Placeholder- og cellebindingsalgoritmen findes i fem udgaver
 

@@ -141,6 +141,57 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
     expect(dead).toEqual([]);
   });
 
+  // ---------------------------------------------------------------------------
+  // R0-F02: en liveness-probe må ikke kunne opfyldes af en KOMMENTAR
+  // ---------------------------------------------------------------------------
+  //
+  // Flere prober brugte `entry.text.includes(...)` eller et regex over hele filteksten. En kommentar kunne
+  // derfor opfylde liveness, selv om det levende AST-mål var slettet — og reglen ville fremstå load-bearing
+  // efter mekanismens faktiske fjernelse. Storage-reglens egen RENE fixture var netop en sådan kommentar:
+  // evaluatoren flagede den korrekt ikke, mens proben sagde "levende".
+  //
+  // Kontrollen er generisk og maskinel: for hver forudsætningsregel tages en fil, der FAKTISK opfylder
+  // proben, og hele dens indhold kommenteres ud. Kildeteksten er dermed uændret ord for ord, mens hver
+  // eneste AST-node er væk. En probe, der stadig svarer `true`, måler tekst — ikke mekanismen.
+  //
+  // Kommentering skjuler også `*/`-sekvenser, så en blok-kommentar i kilden ikke kan lukke vores egen: hver
+  // linje præfikses med `// `, hvilket er robust for enhver kilde uden line-continuations i strenge.
+  //
+  // STI-baserede prober er bevidst undtaget, og undtagelsen er selv maskinel frem for en liste: en probe, der
+  // også er opfyldt af en TOM fil på samme sti, spørger kun "findes modulet?". Det er et legitimt og
+  // AST-uafhængigt liveness-signal (`requiredPaths` + dødt-værn-detektoren beviser, at filen findes), og
+  // kommentar-mutationen kan pr. konstruktion ikke sige noget om den. Kun en probe, der er opfyldt af
+  // KOMMENTARER men IKKE af tomhed, læser filens indhold som tekst — og det er præcis fejlformen.
+  it('liveness: ingen forudsætningsprobe kan opfyldes af ren kommentartekst (R0-F02)', { timeout: 120000 }, () => {
+    const entries = getSourceGraph();
+    const textOnlyProbes: string[] = [];
+
+    for (const rule of ARCHITECTURE_RULES) {
+      if (rule.liveTarget.kind !== 'precondition') continue;
+      const { probe } = rule.liveTarget;
+      const match = entries.find((entry) => probe(entry));
+      if (match === undefined) continue; // dødt-værn-detektoren ovenfor rapporterer dette separat.
+
+      // Sti-baseret probe: indholdet er irrelevant, så kommentar-mutationen er ikke anvendelig.
+      if (probe(makeSyntheticEntry(match.relativePath, ''))) continue;
+
+      const commentedOut = makeSyntheticEntry(
+        match.relativePath,
+        match.text.split('\n').map((line) => `// ${line}`).join('\n')
+      );
+      if (probe(commentedOut)) {
+        textOnlyProbes.push(
+          `${rule.id}: proben er stadig opfyldt, når HELE ${match.relativePath} er kommenteret ud. `
+          + 'Den måler altså tekst frem for AST-noder, og en kommentar kan holde reglen kunstigt levende '
+          + '(R0-F02). Brug `hasIdentifier`/`hasAnyIdentifier`/`hasTypeReference`/`hasImportFrom`/'
+          + '`hasJsxAttribute`/`hasDeclaredMember`/`hasMemberRead` eller en anden AST-query.'
+        );
+      }
+    }
+
+    expect(textOnlyProbes).toEqual([]);
+  });
+
   // Fraværsregler: kontrollen er nu GENERISK og obligatorisk, og den kører i BEGGE retninger.
   //
   // Retning 1 (fravær): hvert forbudt navn skal være fraværende i grafen.

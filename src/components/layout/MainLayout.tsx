@@ -9,12 +9,7 @@ import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
-import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import type { PersistedSectionKey } from '../../config/persistenceRegistry';
-import {
-  readOptionalSessionStorageValue,
-  removeOptionalSessionStorageValue,
-} from '../../utils/safeSessionStorage';
 import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
@@ -42,10 +37,6 @@ import {
 interface MainLayoutProps {
   children?: React.ReactNode;
 }
-
-const isOverlayType = (value: unknown): value is OverlayData['type'] => {
-  return value === 'success' || value === 'error' || value === 'warning' || value === 'info';
-};
 
 const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   const diagnostics = useInputDiagnostics();
@@ -107,10 +98,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   });
 
   const activePage = location.pathname.substring(1) || 'stamdata';
-  const {
-    markSaved,
-    allowExitWithoutWarning,
-  } = useUnsavedChangesGuard({
+  const { markSaved } = useUnsavedChangesGuard({
     combinedSectionRevision: Number(revision),
     authoritativeSnapshotEpoch: replacementGeneration,
   });
@@ -165,7 +153,6 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     ops,
     criticalActions,
     markSaved,
-    allowExitWithoutWarning,
     showOverlay,
   });
 
@@ -189,35 +176,6 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     if (startup === null) return;
     if (startup.notice === null) return;
     setOverlay({ message: startup.notice.message, type: startup.notice.type });
-  }, []);
-
-  // Tjek for pending overlay efter reload
-  React.useEffect(() => {
-    const pendingOverlay = readOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay);
-    if (pendingOverlay) {
-      try {
-        const overlayData = JSON.parse(pendingOverlay);
-
-        if (
-          overlayData &&
-          typeof overlayData === 'object' &&
-          typeof overlayData.message === 'string' &&
-          isOverlayType((overlayData as { type?: unknown }).type)
-        ) {
-          setOverlay({
-            message: overlayData.message,
-            type: (overlayData as { type: OverlayData['type'] }).type,
-          });
-        } else {
-          console.error('Ugyldig pending overlay struktur:', overlayData);
-        }
-
-        removeOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay);
-      } catch (error) {
-        console.error('Kunne ikke parse pending overlay:', error);
-        removeOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay);
-      }
-    }
   }, []);
 
   // Global keyboard shortcut for gem. Undo/redo håndteres af useUndoRedoShortcuts.

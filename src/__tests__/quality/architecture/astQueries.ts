@@ -311,6 +311,38 @@ export const collectIdentifiers = (entry: SourceEntry): readonly IdentifierRef[]
   return refs;
 };
 
+export type DestructuredPropertyRef = Readonly<{
+  /** Den destrukturerede KILDE-property (`const { sections: s } = x` → `sections`). */
+  propertyName: string;
+  node: ts.BindingElement;
+  position: CodePosition;
+}>;
+
+/**
+ * Alle object-destrukturerede properties (`const { a, b: c } = x`, parametre, catch-bindinger).
+ *
+ * Nødvendig for enhver capability-regel, der handler om ADGANG til en værdi frem for om én syntaksform:
+ * `collectMemberAccess`/`collectElementAccess` ser ikke destrukturering, så en regel bygget kun på dem
+ * kan omgås med én linje (`const { sections } = input`). Det var præcis R5-F02's tredje hul.
+ *
+ * `propertyName` er kildens navn, ikke det lokale alias — en omdøbning må ikke kunne skjule adgangen.
+ */
+export const collectDestructuredProperties = (entry: SourceEntry): readonly DestructuredPropertyRef[] => {
+  const { ast } = entry;
+  const refs: DestructuredPropertyRef[] = [];
+
+  walk(ast, (node) => {
+    if (!ts.isBindingElement(node)) return;
+    if (!ts.isObjectBindingPattern(node.parent)) return;
+    // `propertyName` er sat ved alias (`{ sections: s }`); ellers ER navnet kilden.
+    const source = node.propertyName ?? node.name;
+    if (!ts.isIdentifier(source)) return;
+    refs.push({ propertyName: source.text, node, position: positionOf(ast, node) });
+  });
+
+  return refs;
+};
+
 /**
  * Bruges navnet som identifier i filen?
  *
@@ -320,6 +352,95 @@ export const collectIdentifiers = (entry: SourceEntry): readonly IdentifierRef[]
  */
 export const hasIdentifier = (entry: SourceEntry, name: string): boolean =>
   collectIdentifiers(entry).some((ref) => ref.text === name);
+
+/**
+ * Bruges MINDST ÉT af navnene som identifier i filen?
+ *
+ * `liveTarget`-probernes kanoniske signal (R0-F02). De brugte tidligere `entry.text.includes(...)` eller et
+ * regex over hele filteksten, og en KOMMENTAR kunne derfor opfylde liveness, selv om det levende AST-mål var
+ * slettet. Storage-reglens egen rene fixture (`// merge af settings fra localStorage`) demonstrerede det:
+ * evaluatoren flagede den ikke, men proben sagde "levende". Et værn kunne dermed fremstå load-bearing efter
+ * mekanismens faktiske sletning — samme fejlklasse som INC-F03, blot i liveness-laget frem for i evaluatoren.
+ *
+ * Da identifiers er AST-noder, kan hverken en kommentar eller en strengliteral opfylde signalet.
+ */
+export const hasAnyIdentifier = (entry: SourceEntry, names: readonly string[]): boolean => {
+  const wanted = new Set(names);
+  return collectIdentifiers(entry).some((ref) => wanted.has(ref.text));
+};
+
+/**
+ * Optræder typenavnet i en TYPE-position (annotation, type-argument, assertion, heritage)?
+ *
+ * Skilt fra `hasIdentifier`, fordi et typenavn ofte KUN findes i typepositioner — `MoneyOre` importeres som
+ * type og bruges i annotationer, aldrig som værdi. En tekstprobe ville derimod også ramme navnet i en
+ * kommentar, hvilket er R0-F02's fejlform.
+ */
+export const hasTypeReference = (entry: SourceEntry, name: string): boolean => {
+  const { ast } = entry;
+  let found = false;
+
+  walk(ast, (node) => {
+    if (found) return;
+    if (!ts.isTypeReferenceNode(node)) return;
+    const typeName = node.typeName;
+    const leaf = ts.isQualifiedName(typeName) ? typeName.right : typeName;
+    if (ts.isIdentifier(leaf) && leaf.text === name) found = true;
+  });
+
+  return found;
+};
+
+/**
+ * Importerer filen fra et modul, hvis specifier matcher mønstret?
+ *
+ * AST-modstykket til en `from ['"]…['"]`-regex over filteksten: en import er en node, så en kommentar eller
+ * en dokumentationsstreng, der citerer importlinjen, kan ikke opfylde signalet (R0-F02).
+ */
+export const hasImportFrom = (entry: SourceEntry, modulePattern: RegExp): boolean =>
+  collectImports(entry).some((ref) => modulePattern.test(ref.moduleSpecifier));
+
+/**
+ * Sættes JSX-attributten et sted i filen?
+ *
+ * AST-modstykket til en `\bonCommit=\{`-regex: en JSX-attribut er en node, så en kommentar, der viser
+ * prop-formen som eksempel, kan ikke opfylde signalet (R0-F02).
+ */
+export const hasJsxAttribute = (entry: SourceEntry, attributeName: string): boolean => {
+  const { ast } = entry;
+  let found = false;
+
+  walk(ast, (node) => {
+    if (found) return;
+    if (!ts.isJsxAttribute(node)) return;
+    if (ts.isIdentifier(node.name) && node.name.text === attributeName) found = true;
+  });
+
+  return found;
+};
+
+/**
+ * Erklærer filen en property/metode med dette navn i et interface, en type-literal eller en klasse?
+ *
+ * Bruges af liveness-prober, hvis mål er en TYPES medlem (fx `FieldIssueSet.all`): et regex over
+ * `all: readonly FieldIssue[]` ville også ramme kommentaren, der forklarer feltet (R0-F02).
+ */
+export const hasDeclaredMember = (entry: SourceEntry, memberName: string): boolean => {
+  const { ast } = entry;
+  let found = false;
+
+  walk(ast, (node) => {
+    if (found) return;
+    if (!ts.isPropertySignature(node) && !ts.isPropertyDeclaration(node) && !ts.isMethodSignature(node)) return;
+    if (ts.isIdentifier(node.name) && node.name.text === memberName) found = true;
+  });
+
+  return found;
+};
+
+/** Læses `<noget>.<property>` et sted i filen? AST-modstykket til en `\bissues\.all\b`-regex (R0-F02). */
+export const hasMemberRead = (entry: SourceEntry, propertyName: string): boolean =>
+  collectMemberAccess(entry).some((ref) => ref.node.name.text === propertyName);
 
 /**
  * Filens lokale type-aliaser som `alias → rod-typenavn`.

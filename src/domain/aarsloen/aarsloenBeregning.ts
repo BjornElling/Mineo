@@ -1,25 +1,23 @@
-import React from 'react';
-
-import { beregnOmregnetAarsloen } from '../domain/aarsloen/aarsloenCalculations';
-import { calculateStandardLoenRowDerived, roundStandardLoenAmountToTwoDecimals } from '../domain/aarsloen/standardLoenRowCalculations';
+import { beregnOmregnetAarsloen } from './aarsloenCalculations';
+import { calculateStandardLoenRowDerived, roundStandardLoenAmountToTwoDecimals } from './standardLoenRowCalculations';
 import {
   beregnFejlmeddelelser,
   harTabelData,
   resolveAarsloenCanonicalRangeIssues,
-} from '../domain/aarsloen/aarsloenValidationPolicies';
-import { erAarsloenFerieFelterRelevant } from '../domain/policies/aarsloenPolicy';
-import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
-import type { AarsloenValues } from '../schemas/formSchemas';
-import type { AarsloenBeregningResult } from '../types/calculation';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../types/loen';
-import { isErr, type Result } from '../types/result';
+} from './aarsloenValidationPolicies';
+import { erAarsloenFerieFelterRelevant } from '../policies/aarsloenPolicy';
+import { beregnSHDageForDatoSet } from '../dates/shDageBeregning';
+import type { AarsloenValues } from '../../schemas/formSchemas';
+import type { AarsloenBeregningResult } from '../../types/calculation';
+import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
+import { isErr, type Result } from '../../types/result';
 import {
   beregnDagPeriode,
   beregnMaanedPeriode,
   beregnUgePeriode,
   type PeriodeResult,
-} from '../utils/periodeBeregning';
-import { safeCompute } from '../utils/safeComputation';
+} from '../../utils/periodeBeregning';
+import { safeCompute } from '../../utils/safeComputation';
 
 export type AarsloenBeregningState = Readonly<{
   periodeData: PeriodeResult | null;
@@ -40,8 +38,15 @@ const valueOrNull = <T>(result: Result<T> | null): T | null =>
   result === null || isErr(result) ? null : result.value;
 
 /**
- * Ren, synkron årslønsberegning. Den bruges både af render og af downloadens friske preflight, så dokumentet
- * aldrig bygges på render-closures fra en ældre inputrevision.
+ * Ren, synkron årslønsberegning — årslønsdomænets ene beregningsindgang.
+ *
+ * Modulet lå tidligere i `src/hooks/useAarsloenBeregning.ts` og eksponerede desuden en `useAarsloenBeregning`-
+ * hook (GM-F08). Hook-wrapperen havde INGEN produktionscallsites: efter reader-projektionens indførelse
+ * kalder `aarsloenProjection.ts` den rene funktion, og memoiseringen ejes af projektionen. Kun hookens egne
+ * tests holdt den levende — de kørte altså en vej, ingen bruger kunne nå, og en fejl i den rene beregnings
+ * kontrolflow kunne derfor bevises "dækket" gennem en død adapter. Hook + fil-placering er væk, og
+ * beregningen bor nu ved sin domænegrænse, hvor dens eneste consumer også bor (`src/hooks` importeres ikke
+ * længere fra `src/domain`).
  */
 export const computeAarsloenBeregning = ({
   values,
@@ -70,7 +75,7 @@ export const computeAarsloenBeregning = ({
       if (loenperiode === LOENPERIODE.UGE) return beregnUgePeriode(tableData);
       if (loenperiode === LOENPERIODE.DAG) return beregnDagPeriode(tableData);
       return null;
-    }, 'useAarsloenBeregning.periodeBeregning');
+    }, 'aarsloenBeregning.periodeBeregning');
   }
   const periodeData = valueOrNull(periodeDataResult);
 
@@ -83,7 +88,7 @@ export const computeAarsloenBeregning = ({
     shDageAntalResult = safeCompute(() => {
       const datoSet = periodeData.datoSet;
       return datoSet === undefined || datoSet.size === 0 ? 0 : beregnSHDageForDatoSet(datoSet);
-    }, 'useAarsloenBeregning.shDageBeregning');
+    }, 'aarsloenBeregning.shDageBeregning');
   }
   const shDageAntal = valueOrNull(shDageAntalResult);
 
@@ -100,7 +105,7 @@ export const computeAarsloenBeregning = ({
           }, { mode: tillaegAngivesSom });
           return sum + roundStandardLoenAmountToTwoDecimals(derived.samlet);
         }, 0),
-        'useAarsloenBeregning.aarsloenBeregning'
+        'aarsloenBeregning.aarsloenBeregning'
       );
   const beregnetAarsloen = valueOrNull(beregnetAarsloenResult) ?? 0;
 
@@ -118,7 +123,7 @@ export const computeAarsloenBeregning = ({
         loenPaaHelligdage,
         beregnetAarsloen,
       });
-    }, 'useAarsloenBeregning.omregnetAarsloenBeregning');
+    }, 'aarsloenBeregning.omregnetAarsloenBeregning');
   }
   const beregningsData = valueOrNull(beregningsDataResult) ?? { metode: 'ingen' as const, erEtAar: false };
 
@@ -143,12 +148,3 @@ export const computeAarsloenBeregning = ({
     harFatalBeregningsFejl: beregningsFejl !== null,
   };
 };
-
-/** Render-adapteren memoiserer den samme rene beregning, som download-preflighten genkører. */
-export const useAarsloenBeregning = ({
-  values,
-  omregningAktiveret,
-}: AarsloenBeregningInput): AarsloenBeregningState => React.useMemo(
-  () => computeAarsloenBeregning({ values, omregningAktiveret }),
-  [omregningAktiveret, values]
-);

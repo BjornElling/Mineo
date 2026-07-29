@@ -20,7 +20,7 @@ import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import type { ProjectionResult } from '../../inputCore/projection';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import type { StamdataValues } from '../../schemas/formSchemas';
-import { computeAarsloenBeregning, type AarsloenBeregningState } from '../../hooks/useAarsloenBeregning';
+import { computeAarsloenBeregning, type AarsloenBeregningState } from './aarsloenBeregning';
 import { resolveAarsloenOmregningGate, type AarsloenOmregningGate } from './aarsloenValidationPolicies';
 import { type StandardLoenTableValidationResult } from './standardLoenTableValidation';
 import {
@@ -31,7 +31,7 @@ import { aarsloenStandardLoenFieldSet } from './aarsloenStandardLoenFieldSet';
 
 // Greenfield Årsløn-projektion (§3.4/§5.4, Fase 3 Årsløn-slice, Pass 1). En ALMINDELIG ren funktion over den
 // offentlige `InputReader`, der genopbygger et komplet, schema-formet `AarsloenValues`-objekt fra readeren, så de
-// EKSISTERENDE calc-hooks (`useAarsloenBeregning`, `useAarsloenDocumentGates`) kan køre UÆNDRET på det — nul
+// EKSISTERENDE beregningsindgange (`computeAarsloenBeregning`, `useAarsloenDocumentGates`) kan køre UÆNDRET på det — nul
 // talændring (§5.4 hårdt stop). Det er den sanktionerede fremflytning i §5.4: en migreret formular må ikke holde
 // sin beregnings-/dokumentconsumer i live på rå sektioner, så consumeren fødes her gennem readeren i stedet.
 //

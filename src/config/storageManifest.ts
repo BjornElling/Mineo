@@ -48,11 +48,42 @@ const UI_STORAGE_KEY_SUFFIXES = {
   loentrinFinderOverlay: 'ui_loentrinFinderOverlay',
   eoOffentligeYdelserHelpers: 'ui_eoOffentligeYdelserHelpers',
   devtoolsLastSeenIssueId: 'ui_devtools_lastSeenIssueId',
-  pendingOverlay: 'pendingOverlay',
   sideMenuExpanded: 'sideMenuExpanded',
 } as const;
 
 const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
+
+/**
+ * Reset-policyen (`persistence-contract.md` §3.8, R4-F02): hvilke manifest-ejede UI-nøgler `Slet alt` skal
+ * rydde. Klassifikationen bor HER, i manifestet, fordi den er en egenskab ved nøglen — ikke ved den use-case,
+ * der tilfældigvis kalder `Slet alt`. En ny nøgle tvinges til at vælge side af `SESSION_RESET_POLICY`, og
+ * `Slet alt` enumererer klassifikationen frem for at gentage en håndskrevet liste.
+ *
+ * `caseScoped`: sagsnær tilstand — brugerindtastede hjælpeværdier og filnavns-/filhåndtags-metadata, der hører
+ * til PRÆCIS den sag, der slettes. Overlever den ikke en bekræftet hel-sags-clear, kan den hydrere ind i den
+ * næste, tomme sag og påvirke den (fundets konkrete symptom).
+ *
+ * `deviceScoped`: uafhængig UI-præference eller devtools-tilstand, som ikke beskriver sagen. Ryddes bevidst
+ * IKKE — kontraktens §3.7 holder den uden for inputenvelopen, og en bruger, der sletter sin sag, har ikke
+ * bedt om at få sidemenuen foldet sammen.
+ */
+const SESSION_RESET_POLICY = {
+  lastSavedFilename: 'caseScoped',
+  lastSavedFilenameBasis: 'caseScoped',
+  loentrinFinderOverlay: 'caseScoped',
+  eoOffentligeYdelserHelpers: 'caseScoped',
+  devtoolsLastSeenIssueId: 'deviceScoped',
+  sideMenuExpanded: 'deviceScoped',
+} as const satisfies { readonly [K in keyof typeof UI_STORAGE_KEY_SUFFIXES]: 'caseScoped' | 'deviceScoped' };
+
+/**
+ * De sagsnære nøgler, `Slet alt` skal rydde — i deklarationsrækkefølge, resolveret mod det AKTUELLE namespace.
+ * Aktive-fane-nøglerne er bevidst udenfor: en fane er en navigationsposition, ikke sagsdata.
+ */
+export const getCaseScopedSessionStorageKeys = (): readonly ManifestStorageKey[] =>
+  (Object.keys(SESSION_RESET_POLICY) as (keyof typeof SESSION_RESET_POLICY)[])
+    .filter((name) => SESSION_RESET_POLICY[name] === 'caseScoped')
+    .map((name) => asManifestKey(ns(UI_STORAGE_KEY_SUFFIXES[name])));
 
 /**
  * Den ENESTE sessionStorage-nøgle for sagsinput (draft/commit-designet §2.1.6/§3.7): hele det

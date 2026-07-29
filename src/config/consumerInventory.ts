@@ -86,10 +86,15 @@ export const CONSUMER_CASE_FILE_PATHS = [
     symbol: 'loadFromFileHandle',
     consumers: ['src/hooks/useFileSaveLoad.ts'],
   },
+  // Load-apply er efter R4-F01 delt i to funktioner, men er fortsat ÉN sagsfil-vej. Inventaret peger på
+  // den AUTORITATIVE halvdel — den, der erstatter sagen inde i replacement-barrieren. Den asynkrone
+  // `synchronizeLoadMetadata` er ikke en sagsfil-vej men en efterfølgende metadata-synkronisering, og at
+  // give den en femte post ville sige, at der findes fem veje til sagsfilen. Dens eneste consumer er
+  // dækket af `useFileSaveLoad`s egne tests og af typegrænsen (den er ikke valgfri på load-stien).
   {
     id: 'load-apply',
     module: 'src/utils/persistenceLoadApply.ts',
-    symbol: 'executePersistenceLoadApply',
+    symbol: 'applyAuthoritativeLoadSnapshot',
     consumers: ['src/hooks/useFileSaveLoad.ts'],
   },
 ] as const satisfies readonly ConsumedInventoryEntry[];

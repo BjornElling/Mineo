@@ -9,7 +9,7 @@
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
 import { type PersistedSectionKey } from '../../../../config/persistenceRegistry';
-import { collectImports, resolveRelativeImport } from '../astQueries';
+import { collectImports, hasIdentifier, hasTypeReference, resolveRelativeImport } from '../astQueries';
 import { type SourceEntry } from '../sourceGraph';
 import {
   defineRule,
@@ -27,7 +27,8 @@ export const failOpenDisplayLookupImport = forbidImports({
     'Det fail-open getSatserForYear (lovbestemteRates) må kun importeres af display-/dokument-lag — aldrig en beregningssti.',
   liveTarget: {
     kind: 'precondition',
-    probe: (entry) => entry.text.includes('getSatserForYear'),
+    // R0-F02: AST-signal, ikke tekst — en kommentar, der nævner opslaget, må ikke holde reglen levende.
+    probe: (entry) => hasIdentifier(entry, 'getSatserForYear'),
     rationale: 'det fail-open opslag findes stadig og importeres af mindst én fil',
   },
   allow: [
@@ -57,7 +58,8 @@ export const aslAarsloensmaksimumRawSubscript = forbidElementAccess({
     'Rå aarsloenAslMax[år]-opslag skal gå gennem resolveAslAarsloensmaksimumForAar (gateway); kun datakilde + gateway må subscripte.',
   liveTarget: {
     kind: 'precondition',
-    probe: (entry) => entry.text.includes('aarsloenAslMax'),
+    // R0-F02: AST-signal, ikke tekst.
+    probe: (entry) => hasIdentifier(entry, 'aarsloenAslMax'),
     rationale: 'datatabellen `aarsloenAslMax` findes stadig og kan subscriptes',
   },
   // Kun datakilden tilbage: gateway'en (`aslAarsloensmaksimum.ts`) subscripter ikke længere selv — den går
@@ -147,7 +149,9 @@ export const moneyOreTypeAssertion = forbidTypeAssertions({
     'MoneyOre må ikke konstrueres med type-assertion; brug den validerede pengealgebra.',
   liveTarget: {
     kind: 'precondition',
-    probe: (entry) => entry.text.includes('MoneyOre'),
+    // R0-F02: MoneyOre findes kun i TYPE-positioner (den importeres som type), så typereferencen er
+    // signalet. En tekstprobe ville også ramme navnet i en kommentar.
+    probe: (entry) => hasTypeReference(entry, 'MoneyOre'),
     rationale: 'MoneyOre-typen findes stadig og kan asserteres til',
   },
   forbidden: (ref) => /(?:^|\.)MoneyOre$/.test(ref.typeText),

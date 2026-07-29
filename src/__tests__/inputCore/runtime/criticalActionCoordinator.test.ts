@@ -108,6 +108,38 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     expect(discard).not.toHaveBeenCalled();
   });
 
+  // R4-F01: discard skal ramme den draft, handlingen ERSTATTEDE. Et registry-opslag efter apply er ikke en
+  // stabil identitet — den editor, opslaget finder, kan være åbnet af brugeren i den NYE sag.
+  it('kasserer ikke en editor, der er registreret EFTER replacement (R4-F01)', async () => {
+    const discardBefore = vi.fn();
+    const discardAfter = vi.fn();
+    const before = makeEditor({ id: 'før', discard: discardBefore });
+    const unregisterBefore = registry.register(before.editor);
+
+    await coordinator.applyReplacement(() => {
+      __hydrateSlimInputStoreForTest(store, store.getState().input);
+      // Den erstattede editor unmountes, og brugeren åbner et felt i den netop indlæste sag.
+      unregisterBefore();
+      registry.register(makeEditor({ id: 'efter', discard: discardAfter }).editor);
+      return 'erstattet';
+    });
+
+    expect(discardBefore).not.toHaveBeenCalled();
+    expect(discardAfter).not.toHaveBeenCalled();
+  });
+
+  it('kasserer intet, når ingen editor var åben ved handlingens start (R4-F01)', async () => {
+    const discardAfter = vi.fn();
+
+    await coordinator.applyReplacement(() => {
+      __hydrateSlimInputStoreForTest(store, store.getState().input);
+      registry.register(makeEditor({ id: 'ny', discard: discardAfter }).editor);
+      return 'erstattet';
+    });
+
+    expect(discardAfter).not.toHaveBeenCalled();
+  });
+
   it('kasserer først draften efter en vellykket destruktiv inputtransaktion', async () => {
     const discard = vi.fn();
     const { editor, settleCount } = makeEditor({ discard });

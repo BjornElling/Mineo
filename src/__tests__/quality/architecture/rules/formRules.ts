@@ -9,7 +9,7 @@
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
 import ts from 'typescript';
-import { collectCalls } from '../astQueries';
+import { collectCalls, collectIdentifiers, hasAnyIdentifier, hasIdentifier, hasImportFrom } from '../astQueries';
 import { type SourceEntry } from '../sourceGraph';
 import {
   defineRule,
@@ -94,14 +94,19 @@ const COMMITTED_MEMBER = 'reader';
 /** Projektions-byggere: `buildXReaderProjection(evaluation.reader)` er også en committed kilde. */
 const READER_PROJECTION_BUILDER = /^build[A-Za-z]*(?:Reader)?Projection$/;
 
-/** Nævner filen overhovedet en committed kilde — evalueringen eller en reader-projektion? */
-const mentionsCommittedSource = (text: string): boolean =>
-  COMMITTED_MIRROR_MARKERS.some((marker) => text.includes(marker))
-  || /\bbuild[A-Za-z]*(?:Reader)?Projection\s*\(/.test(text);
+/**
+ * Bruger filen overhovedet en committed kilde — evalueringen eller en reader-projektion?
+ *
+ * AST-baseret (R0-F02): den tidligere udgave søgte i filteksten, så en kommentar, der forklarede
+ * committed-grænsen, kunne alene opfylde både `liveTarget` og denne forport til analysen.
+ */
+const usesCommittedSource = (entry: SourceEntry): boolean =>
+  hasAnyIdentifier(entry, COMMITTED_MIRROR_MARKERS)
+  || collectIdentifiers(entry).some((ref) => READER_PROJECTION_BUILDER.test(ref.text));
 
 const findCommittedMirrorViolations = (entry: SourceEntry): Finding[] => {
-  if (!entry.text.includes('useState')) return [];
-  if (!mentionsCommittedSource(entry.text)) return [];
+  if (!hasIdentifier(entry, 'useState')) return [];
+  if (!usesCommittedSource(entry)) return [];
 
   const sourceFile = entry.ast;
   const trackedSectionVars = new Set<string>();
@@ -233,7 +238,7 @@ export const persistenceCommittedMirror = defineRule({
     kind: 'precondition',
     probe: (entry) =>
       (entry.relativePath.startsWith('src/components/pages/') || entry.relativePath.startsWith('src/hooks/'))
-      && mentionsCommittedSource(entry.text),
+      && usesCommittedSource(entry),
     rationale:
       'mindst én page/hook læser committed state gennem greenfields læse-grænse — kilden, der kan '
       + 'spejles, findes altså stadig',
@@ -905,9 +910,19 @@ export const documentGeneratorCursorElementAccess = forbidElementAccess({
 // Scopet er HELE feltmappen (ikke et navnepræfiks): et nyt felt i mappen er dækket automatisk, og reglen kan
 // ikke stille blive inert af en omdøbning.
 const FIELDS_DIR = 'src/inputCore/react/fields';
-const RESTORE_ATTR_TOKEN = /\b(?:useRestoreTargetAttributes|restoreTargetAttributes)\b/;
+// R0-F02: navnene måles som IDENTIFIERS, ikke som tekst. Reglen var før et rent tekst-værn i BEGGE ender, så en
+// kommentar kunne både gøre den levende og — værre — få en manglende gennemføring til at se opfyldt ud:
+// forklarende prosa om `restoreTargetAttributes` var nok til at gøre en overtrædelse grøn.
+const RESTORE_ATTR_NAMES = ['useRestoreTargetAttributes', 'restoreTargetAttributes'];
 // De fokuserbare primitiver, en feltfamilie renderer direkte, når den ejer sit eget input-element.
-const FOCUSABLE_SURFACE_SIGNAL = /\b(?:useFormFieldSurface|useGridCellSurface|StyledToggleSwitch|StyledCheckbox|StyledRadioButton|StyledDropdown)\b/;
+const FOCUSABLE_SURFACE_NAMES = [
+  'useFormFieldSurface',
+  'useGridCellSurface',
+  'StyledToggleSwitch',
+  'StyledCheckbox',
+  'StyledRadioButton',
+  'StyledDropdown',
+];
 
 export const restoreTargetAttributesRule = defineRule({
   id: 'form/restore-target-attributes',
@@ -918,16 +933,17 @@ export const restoreTargetAttributesRule = defineRule({
     probe: (entry) =>
       entry.relativePath.startsWith(FIELDS_DIR + '/')
       && entry.relativePath.endsWith('.tsx')
-      && FOCUSABLE_SURFACE_SIGNAL.test(entry.text),
+      && hasAnyIdentifier(entry, FOCUSABLE_SURFACE_NAMES),
     rationale:
       'mindst én feltfamilie ejer stadig et fokuserbart element og skal derfor bære restore-target-attributterne',
   },
   appliesTo: (relativePath) =>
     relativePath.startsWith(`${FIELDS_DIR}/`) && relativePath.endsWith('.tsx'),
   find: (entry) => {
-    // Rent tekst-værn: selve tilstedeværelsen af attributterne er kontrakten (jf. guard-selvtest-princippet).
-    if (!FOCUSABLE_SURFACE_SIGNAL.test(entry.text)) return [];
-    if (RESTORE_ATTR_TOKEN.test(entry.text)) return [];
+    // Selve tilstedeværelsen af attributterne ER kontrakten (jf. guard-selvtest-princippet), men den måles
+    // som identifiers: en kommentar om `restoreTargetAttributes` må ikke kunne opfylde gennemføringen.
+    if (!hasAnyIdentifier(entry, FOCUSABLE_SURFACE_NAMES)) return [];
+    if (hasAnyIdentifier(entry, RESTORE_ATTR_NAMES)) return [];
     return [{
       position: { line: 1, column: 1 },
       message:
@@ -1076,7 +1092,7 @@ const POPUP_SEMANTICS_CONSUMERS = [
   'src/components/layout/Container.tsx',
   'src/components/tables/gridCore/tableKeyboardNavigation.ts',
 ] as const;
-const POPUP_SEMANTICS_IMPORT = /from\s+['"][^'"]*popupWidgetSemantics['"]/;
+const POPUP_SEMANTICS_IMPORT = /popupWidgetSemantics$/;
 /** Privat markør-attribut som popup-KLASSIFIKATION — den fejlform, fundet handlede om. */
 const PRIVATE_POPUP_MARKER = /data-mineo-[a-z-]*dropdown/;
 /**
@@ -1097,7 +1113,9 @@ export const popupSemanticsSingleSourceRule = defineRule({
     kind: 'precondition',
     probe: (entry) =>
       POPUP_SEMANTICS_CONSUMERS.includes(entry.relativePath as (typeof POPUP_SEMANTICS_CONSUMERS)[number])
-      && POPUP_SEMANTICS_IMPORT.test(entry.text),
+      // R0-F02: importen måles som en AST-node, ikke som tekst — en kommentar, der citerer importlinjen,
+      // må ikke kunne holde grænsen levende.
+      && hasImportFrom(entry, POPUP_SEMANTICS_IMPORT),
     rationale:
       'begge navigationsflader (Container + grid-navigationen) skal stadig aftage den delte popup-klassifikation; '
       + 'holder den ene op, er grænsen ikke længere levende',

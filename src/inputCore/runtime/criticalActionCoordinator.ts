@@ -82,17 +82,23 @@ export class CriticalActionCoordinator {
   /**
    * Udfører den autoritative replace/clear/reset-transaktion og kasserer først derefter en eventuel åben draft.
    * Ved annullering eller apply-fejl skal kalderen undlade dette kald eller kaste; begge dele bevarer draften.
+   *
+   * `apply` skal være SYNKRON (R4-F01). Draft-discard rammer præcis den editor, der var åben, da handlingen
+   * begyndte — jf. `discardReplacedDraft` — og en asynkron apply ville lade brugeren åbne en NY editor i den
+   * netop erstattede sag, hvis draft så blev kasseret bagefter. Metadata-/filhåndtags-synkronisering hører
+   * derfor uden for barrieren; den ejer ikke replacement-transaktionen.
    */
-  applyReplacement<T>(apply: () => T | Promise<T>): Promise<T> {
+  applyReplacement<T>(apply: () => T): Promise<T> {
     const replacement = this.preparationTail
       .catch(() => undefined)
-      .then(async () => {
+      .then(() => {
+        const editorBefore = this.registry.getEditing();
         const generationBefore = this.store.getState().replacementGeneration;
-        const result = await apply();
+        const result = apply();
         if (this.store.getState().replacementGeneration === generationBefore) {
           throw new Error('Replacement-handlingen afsluttede uden en autoritativ input-replacement.');
         }
-        this.registry.getEditing()?.discard();
+        this.discardReplacedDraft(editorBefore);
         return result;
       });
     this.preparationTail = replacement.catch(() => undefined);
@@ -103,14 +109,17 @@ export class CriticalActionCoordinator {
    * Udfører en bekræftet destruktiv deltransaktion uden først at settle editoren. Draften kasseres først efter
    * et succesfuldt apply; en exception bevarer både afsluttet input og editor. Bruges kun til sektionsafgrænset
    * "Slet alle indtastninger", hvor hel-sags-replacement-generationen ikke skal flyttes.
+   *
+   * Som `applyReplacement` skal `apply` være SYNKRON og discard rammer den editor, der var åben ved starten.
    */
-  applyDestructive<T>(apply: () => T | Promise<T>): Promise<T> {
+  applyDestructive<T>(apply: () => T): Promise<T> {
     const operation = this.preparationTail
       .catch(() => undefined)
-      .then(async () => {
+      .then(() => {
+        const editorBefore = this.registry.getEditing();
         const generationBefore = this.store.getState().replacementGeneration;
         const revisionBefore = this.store.getState().revision;
-        const result = await apply();
+        const result = apply();
         const stateAfter = this.store.getState();
         if (
           stateAfter.revision === revisionBefore
@@ -118,11 +127,23 @@ export class CriticalActionCoordinator {
         ) {
           throw new Error('Destruktiv apply afsluttede uden en autoritativ inputtransaktion');
         }
-        this.registry.getEditing()?.discard();
+        this.discardReplacedDraft(editorBefore);
         return result;
       });
     this.preparationTail = operation.catch(() => undefined);
     return operation;
+  }
+
+  /**
+   * Kasserer PRÆCIS den draft, handlingen erstattede (R4-F01). Et registry-opslag EFTER apply er ikke en stabil
+   * identitet: var der ingen editor åben, da handlingen begyndte, findes der ingen draft at kassere, og en editor,
+   * brugeren har åbnet imens, tilhører den NYE sag. `getEditing()` kaldes igen for at bekræfte, at editoren stadig
+   * er den registrerede og fortsat redigerer — er den unmountet eller udskiftet, er der intet at kassere.
+   */
+  private discardReplacedDraft(editorBefore: ActiveEditor | null): void {
+    if (editorBefore === null) return;
+    if (this.registry.getEditing() !== editorBefore) return;
+    editorBefore.discard();
   }
 
   private async prepareSerial(action: CriticalAction): Promise<CriticalActionPreparationResult> {

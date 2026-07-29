@@ -83,10 +83,33 @@ Regler:
 6. Skjult canonical sagsinput bevares, indtil brugeren eksplicit ændrer/sletter det eller en godkendt load/reset erstatter
    det.
 7. UI-sessionstate som aktive faner forbliver i egne manifest-ejede nøgler og er ikke del af inputenvelopen.
-8. `Slet alt` rydder inputenvelope og Mineo-ejet UI-sessionstate efter den særskilte reset-policy; fil-load erstatter kun
+8. `Slet alt` rydder inputenvelope og den SAGSNÆRE Mineo-ejede UI-sessionstate; fil-load erstatter kun
    sagsinput og ændrer ikke uafhængig UI-sessionstate.
 
 Storage keys ejes af `src/config/storageManifest.ts`. Rename/fjernelse kræver eksplicit migrations- eller rydningspolitik.
+
+### 3.8a Reset-policyen
+
+Reset-policyen er en egenskab ved NØGLEN, ikke ved den use-case der kalder `Slet alt`. Den bor derfor i
+manifestet (`SESSION_RESET_POLICY`), hvor hver UI-nøgle er klassificeret som præcis én af:
+
+- **`caseScoped`** — sagsnær tilstand: brugerindtastede hjælpeværdier og filnavns-/filhåndtags-metadata, der
+  hører til den sag, der slettes. `Slet alt` SKAL rydde dem; overlever de en bekræftet hel-sags-clear, kan de
+  hydrere ind i den næste, tomme sag og påvirke den.
+- **`deviceScoped`** — uafhængig UI-præference eller devtools-tilstand, som ikke beskriver sagen. `Slet alt`
+  rydder dem bevidst IKKE: §3.7 holder dem uden for inputenvelopen, og en bruger, der sletter sin sag, har
+  ikke bedt om at få sidemenuen foldet sammen. Aktive-fane-nøglerne hører her — en fane er en
+  navigationsposition, ikke sagsdata.
+
+Klassifikationen er udtømmende og compiler-håndhævet: en ny manifest-nøgle kan ikke undlade at vælge side.
+
+Hele reset-transaktionen (inputenvelope, sagsnær sessionstate, filhåndtag) ejes af `CaseResetOperations`, som
+er det ENESTE sted der enumererer policyen. Hver oprydningsgrænses resultat skal kontrolleres, og en
+oprydning, der ikke kunne verificeres, rapporteres som en REST i handlingens resultat. `Slet alt` må aldrig
+melde fuld succes, når en rest kan bestå.
+
+`Slet alt` afsluttes inde i appen, som fil-load: begge er autoritative hel-sags-replacements gennem samme
+grænse og må ikke ende to forskellige steder. En fuld sidegenindlæsning er ikke en lovlig afslutning.
 
 ## 4. Bootstrap og current-session-korruption
 

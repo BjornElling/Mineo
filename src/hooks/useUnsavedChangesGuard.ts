@@ -8,8 +8,13 @@ type UseUnsavedChangesGuardResult = {
   hasUnsavedChanges: boolean;
   combinedSectionRevisionRef: React.RefObject<number>;
   markSaved: (revision: number) => void;
-  allowExitWithoutWarning: () => void;
 };
+
+// `allowExitWithoutWarning` er FJERNET sammen med `Slet alt`s fulde sidegenindlæsning (GM-F12): den fandtes
+// udelukkende for at undertrykke beforeunload-advarslen under netop den reload. `Slet alt` afsluttes nu inde i
+// appen, og baseline nulstilles ad den almindelige vej gennem `authoritativeSnapshotEpoch`
+// (`replacementGeneration`), som hel-sags-clear bumper. En ny undtagelse fra advarslen skal begrundes af sin
+// egen handling, ikke af en generisk "tillad exit"-omgåelse, ingen anden kalder havde brug for.
 
 export const useUnsavedChangesGuard = ({
   combinedSectionRevision,
@@ -21,7 +26,6 @@ export const useUnsavedChangesGuard = ({
   }, [combinedSectionRevision]);
   const [savedRevisionBaseline, setSavedRevisionBaseline] = React.useState<number>(combinedSectionRevision);
   const hasUnsavedChanges = combinedSectionRevision > savedRevisionBaseline;
-  const allowExitWithoutUnsavedWarningRef = React.useRef<boolean>(false);
 
   React.useEffect(() => {
     // authoritativeSnapshotEpoch er det autoritative "alt er nu erstattet/hydreret"-signal.
@@ -33,9 +37,6 @@ export const useUnsavedChangesGuard = ({
     if (!hasUnsavedChanges) return;
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (allowExitWithoutUnsavedWarningRef.current) {
-        return;
-      }
       event.preventDefault();
       event.returnValue = '';
     };
@@ -50,14 +51,9 @@ export const useUnsavedChangesGuard = ({
     setSavedRevisionBaseline(revision);
   }, []);
 
-  const allowExitWithoutWarning = React.useCallback(() => {
-    allowExitWithoutUnsavedWarningRef.current = true;
-  }, []);
-
   return {
     hasUnsavedChanges,
     combinedSectionRevisionRef,
     markSaved,
-    allowExitWithoutWarning,
   };
 };

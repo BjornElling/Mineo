@@ -9,7 +9,7 @@
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
 import { isValidStorageKey } from '../../../../config/storageManifest';
-import { collectCalls, collectImports } from '../astQueries';
+import { collectCalls, collectImports, hasIdentifier } from '../astQueries';
 import { forbidCalls, forbidImports, forbidMemberAccess } from '../ruleKit';
 
 // --- Storage-globaler: al adgang skal gå gennem de kanoniske wrappere ---------
@@ -26,7 +26,10 @@ export const localStorageBoundary = forbidMemberAccess({
     'Direkte window.localStorage-adgang er kun tilladt i den kanoniske safeLocalStorage-wrapper.',
   liveTarget: {
     kind: 'precondition',
-    probe: (entry) => /\blocalStorage\b/.test(entry.text),
+    // R0-F02: AST-signal, ikke tekst. Reglens EGEN rene fixture er en kommentar, der blot NÆVNER
+    // localStorage — den opfyldte tekstproben, mens evaluatoren korrekt ikke flagede den. Proben kunne
+    // dermed erklære grænsen levende, efter mekanismen var slettet.
+    probe: (entry) => hasIdentifier(entry, 'localStorage'),
     rationale: 'mindst én fil rører localStorage — ellers har grænsen ingen trafik at regulere',
   },
   allow: ['src/utils/safeLocalStorage.ts'],
@@ -49,7 +52,8 @@ export const sessionStorageBoundary = forbidMemberAccess({
     'Direkte sessionStorage-adgang er kun tilladt i persistence-infrastrukturen og den kanoniske helper.',
   liveTarget: {
     kind: 'precondition',
-    probe: (entry) => /\bsessionStorage\b/.test(entry.text),
+    // R0-F02: AST-signal, ikke tekst (samme fejlform som localStorage-reglens fixture).
+    probe: (entry) => hasIdentifier(entry, 'sessionStorage'),
     rationale: 'mindst én fil rører sessionStorage — ellers har grænsen ingen trafik at regulere',
   },
   // Kun den kanoniske helper tilbage: de øvrige poster var stale efter greenfield-cutoveren (filerne er
@@ -130,9 +134,89 @@ export const sessionStorageManifestKey = forbidCalls({
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_sideMenuExpanded", v);' },
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem(dynamicKey, v);' },
     { relativePath: 'src/x.ts', code: 'writeSessionStorageValue("mineo_input_v2", v);' },
-    { relativePath: 'src/x.ts', code: 'writeOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay, v);' },
+    { relativePath: 'src/x.ts', code: 'writeOptionalSessionStorageValue(UI_STORAGE_KEYS.sideMenuExpanded, v);' },
     { relativePath: 'src/x.ts', code: 'sessionStorage.getItem("hvad-som-helst");' },
     { relativePath: 'src/x.ts', code: 'other.setItem("ikke-en-key", v);' },
+  ],
+});
+
+// --- Hel-sags-reset: ét ejerskab, én afslutning (R4-F02/GM-F12) --------------
+
+/**
+ * Reset-transaktionen ejes af `CaseResetOperations` (R4-F02).
+ *
+ * Fundet var netop, at oprydningen lå som løse kald i shell-use-casen, hvis boolean-resultater ingen
+ * læste. Reglen forbyder derfor, at nogen ANDEN end porten enumererer reset-policyen: en ny kalder af
+ * `getCaseScopedSessionStorageKeys` er en ny, parallel reset-vej, som pr. konstruktion ikke bærer
+ * `ClearAllResult`s rest-rapportering.
+ *
+ * Reglen er en forudsætningsregel, ikke en fraværsregel: den ÉNE lovlige kalder skal findes. Slettes
+ * porten, eller mister den sit kald, er reglen uden mål — og `requiredPaths` gør det til en fejl.
+ */
+export const caseResetPolicyOwnership = forbidCalls({
+  id: 'storage/case-reset-policy-single-owner',
+  description:
+    'Reset-policyen (getCaseScopedSessionStorageKeys) må kun enumereres af CaseResetOperations-porten, som ejer hele reset-transaktionen og dens rest-rapportering.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => collectCalls(entry).some((ref) => ref.calleeName === 'getCaseScopedSessionStorageKeys'),
+    rationale: 'reset-porten enumererer stadig reset-policyen — ellers rydder `Slet alt` intet',
+    requiredPaths: ['src/persistence/caseResetOperations.ts'],
+  },
+  allow: ['src/persistence/caseResetOperations.ts'],
+  forbidden: (ref) => ref.calleeName === 'getCaseScopedSessionStorageKeys',
+  message: () =>
+    'getCaseScopedSessionStorageKeys uden for CaseResetOperations — en parallel reset-vej rapporterer ikke rester (R4-F02).',
+  violatingFixtures: [
+    { relativePath: 'src/hooks/x.ts', code: 'for (const k of getCaseScopedSessionStorageKeys()) remove(k);' },
+    { relativePath: 'src/components/x.tsx', code: 'const keys = getCaseScopedSessionStorageKeys();' },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/x.ts', code: 'const keys = Object.values(UI_STORAGE_KEYS);' },
+    { relativePath: 'src/x.ts', code: '// reset-policyen ejes af CaseResetOperations' },
+  ],
+});
+
+/**
+ * `Slet alt` afsluttes INDE i appen (GM-F12, beslutning 4).
+ *
+ * Den fulde `window.location`-genindlæsning er fjernet: load og hel-sags-clear bruger samme
+ * autoritative replacement-grænse og skal ikke ende to forskellige steder. Reglen er en
+ * fraværsregel — nul hits ER målet — og dækker hele shell-/side-laget, fordi en genindført reload
+ * ville se ud som en uskyldig navigation, mens den i praksis kaster den kørende runtime væk (og med
+ * den history, unsaved-baseline og den åbne draft, replacement-grænsen netop har gjort konsistent).
+ *
+ * `authGate.ts` er den ene lovlige undtagelse: en afvist auth-gate SKAL forlade appen helt.
+ */
+const FULL_PAGE_RELOAD_ACCESS =
+  /^(?:window|globalThis)?\.?location(?:\.href|\.assign|\.replace|\.reload)$|^location\.(?:href|assign|replace|reload)$/;
+
+export const noFullPageReloadInShell = forbidMemberAccess({
+  id: 'storage/no-full-page-reload-in-shell',
+  description:
+    'Hel-sags-handlinger (Slet alt, load) afsluttes inde i appen: ingen window.location-genindlæsning i shell-, hook- eller sidelaget.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: ['src/hooks', 'src/components/layout', 'src/components/pages'],
+    rationale: 'shell-, hook- og sidelaget findes — det er dér en genindført reload ville komme ind',
+  },
+  appliesTo: (relativePath) =>
+    relativePath.startsWith('src/hooks/')
+    || relativePath.startsWith('src/components/layout/')
+    || relativePath.startsWith('src/components/pages/'),
+  forbidden: (ref) => FULL_PAGE_RELOAD_ACCESS.test(ref.chainText),
+  message: (ref) =>
+    `Fuld sidegenindlæsning (${ref.chainText}) i shell-/sidelaget — hel-sags-handlinger afsluttes inde i appen (GM-F12).`,
+  violatingFixtures: [
+    { relativePath: 'src/hooks/x.ts', code: 'window.location.href = "/stamdata";' },
+    { relativePath: 'src/components/layout/x.tsx', code: 'window.location.reload();' },
+    { relativePath: 'src/components/pages/x.tsx', code: 'location.assign("/stamdata");' },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/hooks/x.ts', code: 'navigate("/stamdata", { replace: true });' },
+    { relativePath: 'src/hooks/x.ts', code: 'const path = location.pathname;' },
+    // Uden for scopet: auth-gaten SKAL kunne forlade appen helt.
+    { relativePath: 'src/utils/authGate.ts', code: 'window.location.href = "/";' },
   ],
 });
 

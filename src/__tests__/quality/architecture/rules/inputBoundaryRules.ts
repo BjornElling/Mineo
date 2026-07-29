@@ -12,13 +12,18 @@ import ts from 'typescript';
 import {
   collectCallTypeArguments,
   collectCalls,
+  collectDestructuredProperties,
   collectElementAccess,
   collectIdentifiers,
   collectImports,
   collectLocalTypeAliases,
   collectMemberAccess,
   collectTypeAssertions,
+  hasAnyIdentifier,
+  hasDeclaredMember,
   hasIdentifier,
+  hasJsxAttribute,
+  hasMemberRead,
 } from '../astQueries';
 import { defineRule, forbidImports, type Finding } from '../ruleKit';
 
@@ -63,8 +68,9 @@ export const inputWriteBoundary = defineRule({
     + 'produktionsbrug af den isolerede testfabrik.',
   liveTarget: {
     kind: 'precondition',
+    // R0-F02: AST-signal, ikke tekst — skrivevejenes NAVNE skal findes som identifiers, ikke blot omtales.
     probe: (entry) => entry.relativePath === INPUT_STORE_OWNER
-      || /\b(?:registerSlimInputStoreInternals|hydrateInputStoreOnce|dispatchInput)\b/.test(entry.text),
+      || hasAnyIdentifier(entry, ['registerSlimInputStoreInternals', 'hydrateInputStoreOnce', 'dispatchInput']),
     rationale:
       'skrivegrænsens moduler (store-ejeren + de autoritative interne skriveveje) '
       + 'findes stadig — forsvinder de, er grænsen flyttet og reglen skal skrives om',
@@ -184,19 +190,50 @@ const RAW_SECTION_OWNERS = 'src/inputCore/';
  * serialisere HVER sektion til `.eo`-filen, og en maskeret reader-værdi ville skrive et andet
  * dokument end det, brugeren har indtastet. Den udtømmende enumeration ER dens opgave (§3.9).
  */
-const RAW_SECTION_SERIALIZERS: readonly string[] = ['src/persistence/eoSaveProjection.ts'];
+const RAW_SECTION_SERIALIZERS: readonly string[] = [
+  'src/persistence/eoSaveProjection.ts',
+  // Case-fil-porten er den anden legitime rå ejer: den bygger load-kandidatens sektions-map fra det
+  // schema-gyldige `.eo`-snapshot og svarer på hel-sags-data-presence. Begge er per definition udtømmende
+  // over sektionerne og kan ikke udtrykkes gennem readeren, som netop skjuler værdier bag røde issues.
+  // Den blev synlig, da R5-F02's udvidelse tilføjede property-/spread-formen; den var altså ejer i
+  // praksis, mens reglen kun målte bracket-formen.
+  'src/persistence/caseFileOperations.ts',
+];
+
+/**
+ * Destrukturering, der HENTER `sections` ud af et objekt — altså `const { sections } = input`, ikke en
+ * komponent-parameter, der tilfældigvis HEDDER `sections`.
+ *
+ * Sondringen er strukturel, ikke navnebaseret, og den er nødvendig: `sections` er også et almindeligt ord.
+ * EO-inspektionens komponenter tager en prop `sections: readonly InspektionSection[]` — view-modeller uden
+ * nogen relation til `SettledInput`. Ville reglen flage dem, skulle tre uskyldige filer på allowlisten, og
+ * grænsen ville blive udvandet præcis der, hvor den skal være skarp.
+ *
+ * Kun en `VariableDeclaration` med et INITIALISERINGSUDTRYK udtrykker en læsning: der ER et objekt, værdien
+ * hentes fra. En parameter- eller catch-binding modtager derimod noget, kalderen har bygget — og hvis det
+ * kaldssted rakte ind i den rå form, flages det DÉR af member-access-benet.
+ */
+const isSectionsReadFromObject = (node: ts.BindingElement): boolean => {
+  const pattern = node.parent;
+  if (!ts.isObjectBindingPattern(pattern)) return false;
+  const declaration = pattern.parent;
+  return ts.isVariableDeclaration(declaration) && declaration.initializer !== undefined;
+};
 
 export const rawSectionAccessBoundary = defineRule({
   id: 'domain/raw-section-access-boundary',
   description:
-    'Rå `…input.sections[...]`-opslag hører i `src/inputCore/` (readeren + den navngivne '
-    + 'diagnostikprojektion). Alle andre lag læser gennem `InputReader`/projektionen (§3.4), så en '
-    + 'værdi bag en rød feltfejl forbliver skjult og gates blokerer korrekt.',
+    'Rå adgang til `…input.sections` — i ENHVER form (subscript, property, reference/spread, '
+    + 'destrukturering) — hører i `src/inputCore/` (readeren + den navngivne diagnostikprojektion) og i '
+    + 'de to navngivne persistensporte. Alle andre lag læser gennem `InputReader`/projektionen (§3.4), '
+    + 'så en værdi bag en rød feltfejl forbliver skjult og gates blokerer korrekt.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => (entry.relativePath.startsWith(RAW_SECTION_OWNERS)
       || RAW_SECTION_SERIALIZERS.includes(entry.relativePath))
-      && /\.sections\b/.test(entry.text),
+      // R0-F02: AST-signal, ikke tekst — `.sections` skal LÆSES, ikke blot nævnes i en kommentar (og netop
+      // dette modul bærer nu flere kommentarer om den rå form, som en tekstprobe ville have accepteret).
+      && hasMemberRead(entry, 'sections'),
     rationale:
       'den rå sektionsform findes stadig i inputkernen — forsvinder `sections` fra `SettledInput`, '
       + 'er der ingen rå adgang at regulere, og reglen skal slettes',
@@ -209,19 +246,39 @@ export const rawSectionAccessBoundary = defineRule({
     ],
   },
   allow: [],
+  // R5-F02: reglen målte KUN `collectElementAccess`, altså bracket-formen `input.sections["satser"]`. En
+  // syntetisk kørsel viste, at `input.sections.satser` gav NUL fund, og at en reference til hele
+  // `input.sections` (fx et spread) heller ikke blev set. Grænsen handler om ADGANG TIL VÆRDIEN, ikke om
+  // hvilken syntaks der bruges, så alle fire former måles nu:
+  //   1. `x.sections[k]`         — element access (den oprindelige)
+  //   2. `x.sections.satser`     — property access
+  //   3. `x.sections` / `{...x.sections}` — bar reference og spread (samme member access-node)
+  //   4. `const { sections } = x` — destrukturering (en binding-pattern, ikke et adgangsudtryk)
   find: (entry) => {
     if (entry.relativePath.startsWith(RAW_SECTION_OWNERS)) return [];
     if (RAW_SECTION_SERIALIZERS.includes(entry.relativePath)) return [];
-    return collectElementAccess(entry)
+
+    const message =
+      'Rå sektionsadgang uden for inputCore — læs gennem `useInputEvaluation`/en domæneprojektion, '
+      + 'eller (til diagnostik) gennem `useInputDiagnostics` (§3.4).';
+
+    const elementAccess = collectElementAccess(entry)
       // `chainText` er hele udtrykket inkl. subscript; vi matcher på objektet FØR `[`, så både
       // `x.input.sections[k]` og `sections[k]` rammes, men `rows[i]` ikke gør.
       .filter((ref) => /(?:^|\.)sections$/.test(ref.chainText.split('[')[0]?.trim() ?? ''))
-      .map((ref) => ({
-        position: ref.position,
-        message:
-          'Rå sektionsadgang uden for inputCore — læs gennem `useInputEvaluation`/en domæneprojektion, '
-          + 'eller (til diagnostik) gennem `useInputDiagnostics` (§3.4).',
-      }));
+      .map((ref) => ({ position: ref.position, message }));
+
+    // Property-formen fanges på den YDERSTE `.sections`-node, så `x.sections.satser` rapporteres ét sted
+    // og ikke to (både `x.sections` og hele kæden ville ellers matche).
+    const memberAccess = collectMemberAccess(entry)
+      .filter((ref) => ref.node.name.text === 'sections')
+      .map((ref) => ({ position: ref.position, message }));
+
+    const destructured = collectDestructuredProperties(entry)
+      .filter((ref) => ref.propertyName === 'sections' && isSectionsReadFromObject(ref.node))
+      .map((ref) => ({ position: ref.position, message }));
+
+    return [...elementAccess, ...memberAccess, ...destructured];
   },
   violatingFixtures: [
     {
@@ -229,6 +286,10 @@ export const rawSectionAccessBoundary = defineRule({
       code: 'const s = runtime.getSettled().input.sections[pageKey];',
     },
     { relativePath: 'src/domain/x/y.ts', code: 'const v = snapshot.input.sections["satser"];' },
+    // De tre former, den oprindelige regel var blind for (R5-F02).
+    { relativePath: 'src/domain/x/y.ts', code: 'const v = snapshot.input.sections.satser;' },
+    { relativePath: 'src/domain/x/y.ts', code: 'const next = { ...empty.sections, satser: v };' },
+    { relativePath: 'src/domain/x/y.ts', code: 'const { sections } = snapshot.input;' },
   ],
   cleanFixtures: [
     // Inputkernen selv ejer den rå form.
@@ -236,10 +297,145 @@ export const rawSectionAccessBoundary = defineRule({
       relativePath: 'src/inputCore/react/inputDiagnosticsProjection.ts',
       code: 'const s = read.getSettled().input.sections[pageKey];',
     },
+    {
+      relativePath: 'src/inputCore/runtime/initializeInputRuntime.ts',
+      code: 'const sections = { ...empty.sections };',
+    },
     // Læsning gennem readeren/projektionen er hele pointen.
     { relativePath: 'src/domain/x/y.ts', code: 'const v = reader.read(field);' },
     // Et element-opslag på noget ANDET end `sections` er ikke reglens ærinde.
     { relativePath: 'src/domain/x/y.ts', code: 'const v = rows[index];' },
+    // En anden property, der blot HEDDER noget med sections, er ikke den rå form.
+    { relativePath: 'src/domain/x/y.ts', code: 'const v = doc.sectionsCount;' },
+    // Destrukturering af noget andet end `sections`.
+    { relativePath: 'src/domain/x/y.ts', code: 'const { issues } = snapshot;' },
+    // En komponent-PARAMETER, der tilfældigvis hedder `sections` (EO-inspektionens view-modeller): der er
+    // intet objekt, værdien hentes fra, så det er ikke en rå læsning.
+    {
+      relativePath: 'src/components/pages/x/Y.tsx',
+      code: 'const C = ({ sections }: { sections: readonly Row[] }) => sections.length;',
+    },
+  ],
+});
+
+// --- EO's inputflader ligger på greenfield-vejen (R8-F07) ---------------------
+
+/**
+ * Enhver EO-inputflade skal føre sit input gennem greenfields autoritative editorvej.
+ *
+ * Reglen afløser `erstatningsopgoerelseSurfaceGuard.test.ts`, som var en RÅ TEKST-guard i begge ender: den
+ * fandt inputflader med regex over kildeteksten og godkendte arkitekturvejen med `source.includes(...)`. En
+ * håndrullet inputflade kunne derfor passere alene ved at NÆVNE fx `useFieldEditor` i en kommentar — en
+ * in-memory probe med `// useFieldEditor` foran en `<Input field={x} onChange={…} />` blev accepteret
+ * (R8-F07). Det er samme fejlklasse som INC-F03 og R0-F02, men i et lokalt værn frem for i harnesset.
+ *
+ * Begge ender er nu AST:
+ *  - FLADEN genkendes på JSX-attributter (`field`/`location`/`onCommit`/`onDraftChange`), der er noder.
+ *  - VEJEN bevises af en faktisk IMPORT fra en greenfield-inputmodul-sti eller af et kald til en af
+ *    inputvejens hooks — ikke af at navnet forekommer i filteksten.
+ */
+const EO_SURFACE_ROOTS = [
+  'src/components/pages/Erstatningsopgoerelse.tsx',
+  'src/components/pages/erstatningsopgoerelse',
+];
+
+/** JSX-attributter, der gør en fil til en inputflade (og ikke ren visning/beregning). */
+const EO_INPUT_SURFACE_ATTRIBUTES = ['field', 'location', 'onCommit', 'onDraftChange'];
+
+/** Greenfields inputveje som IMPORT-stier — en import er en node, en kommentar er ikke. */
+const GREENFIELD_INPUT_MODULE = /(?:^|\/)(?:inputCore\/react(?:\/|$)|useCollectionTable|useCollectionRows)/;
+
+/** Greenfields inputveje som KALD — samme veje, hvis de nås via en re-eksport uden matchende sti. */
+const GREENFIELD_INPUT_HOOKS = [
+  'useFieldEditor',
+  'useFormFieldSurface',
+  'useGridCellSurface',
+  'useCollectionTable',
+  'useCollectionRows',
+];
+
+/**
+ * Den transiente familie er den ENE bevidste ikke-sagsdata-flade (overlays/dialoger), hvis værdier aldrig
+ * persisteres ([[project_transient_input_family]]). Den skal netop IKKE ligge på greenfield-inputvejen — at
+ * kræve det ville være at bede den om at skrive sagsdata. Undtagelsen gælder KUN en REN transient flade:
+ * bærer filen også et persisteret felt (`field={…}`), skal den på greenfield-vejen, så en overtrædelse ikke
+ * kan gemme sig bag ét transient input. Den anden retning håndhæves af
+ * `input/transient-cannot-write-case-data`.
+ */
+const TRANSIENT_INPUT_COMPONENTS = ['TransientAmountInput', 'TransientDateInput', 'TransientTextInput'];
+
+export const eoSurfaceOnGreenfieldPath = defineRule({
+  id: 'input/eo-surface-on-greenfield-path',
+  description:
+    'Enhver EO-inputflade (JSX med field/location/onCommit/onDraftChange) skal importere eller kalde '
+    + 'greenfields autoritative editorvej — bevist på AST-noder, ikke på tekst i filen.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      EO_SURFACE_ROOTS.some((root) => entry.relativePath === root || entry.relativePath.startsWith(`${root}/`))
+      && EO_INPUT_SURFACE_ATTRIBUTES.some((name) => hasJsxAttribute(entry, name)),
+    rationale:
+      'EO-siden har stadig inputflader at kontrollere — forsvinder de, er der ingen overflade at holde '
+      + 'på greenfield-vejen',
+    // Gulvet er ikke kosmetisk: den gamle guard havde samme krav, fordi en filflytning ellers ville gøre
+    // værnet trivielt grønt. Fem er antallet af flader, EO faktisk har.
+    minimumMatches: 5,
+  },
+  appliesTo: (relativePath) =>
+    EO_SURFACE_ROOTS.some((root) => relativePath === root || relativePath.startsWith(`${root}/`)),
+  find: (entry) => {
+    if (!EO_INPUT_SURFACE_ATTRIBUTES.some((name) => hasJsxAttribute(entry, name))) return [];
+
+    const onGreenfieldPath =
+      collectImports(entry).some((ref) => GREENFIELD_INPUT_MODULE.test(ref.moduleSpecifier))
+      || collectCalls(entry).some((ref) => GREENFIELD_INPUT_HOOKS.includes(ref.calleeName));
+    if (onGreenfieldPath) return [];
+
+    // Ren transient flade: intet persisteret `field`, kun transiente kontroller.
+    const isPurelyTransient =
+      !hasJsxAttribute(entry, 'field')
+      && hasAnyIdentifier(entry, TRANSIENT_INPUT_COMPONENTS);
+    if (isPurelyTransient) return [];
+
+    return [{
+      position: { line: 1, column: 1 },
+      message:
+        'EO-inputflade uden for greenfield-inputvejen: filen sætter field/location/onCommit/onDraftChange, '
+        + 'men importerer eller kalder ingen af inputCores editorveje (§3.5/§3.6).',
+    }];
+  },
+  violatingFixtures: [
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/X.tsx',
+      code: 'const C = () => <Input field={x} onChange={(e) => setLocal(e.target.value)} />;',
+    },
+    // R8-F07's konkrete bypass: kommentaren nævner greenfield-hooket, men INTET kalder eller importerer det.
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/Y.tsx',
+      code: '// useFieldEditor\nconst C = () => <Input field={x} onChange={(e) => setLocal(e.target.value)} />;',
+    },
+    // Et transient input kan ikke dække over et persisteret felt i samme fil.
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/Z.tsx',
+      code: 'const C = () => <><TransientDateInput /><Input field={x} onCommit={c} /></>;',
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/A.tsx',
+      code: "import { useFormFieldSurface } from '../../../inputCore/react/useFormFieldSurface';\n"
+        + 'const C = () => { const s = useFormFieldSurface(field, location); return <input field={x} {...s} />; };',
+    },
+    // Ren transient flade uden persisteret felt: bevidst undtagelse.
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/B.tsx',
+      code: 'const C = () => <TransientAmountInput onCommit={c} />;',
+    },
+    // Ren visning/beregning uden inputattributter.
+    {
+      relativePath: 'src/components/pages/erstatningsopgoerelse/C.tsx',
+      code: 'const C = ({ total }: { total: number }) => <span>{total}</span>;',
+    },
   ],
 });
 
@@ -713,7 +909,8 @@ export const cellBindingSingleSource = defineRule({
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === CELL_BINDING_OWNER
-      || (entry.relativePath.startsWith(`${TABLE_SURFACE_DIR}/`) && /\bbuildCellSpec\b/.test(entry.text)),
+      // R0-F02: AST-signal, ikke tekst.
+      || (entry.relativePath.startsWith(`${TABLE_SURFACE_DIR}/`) && hasIdentifier(entry, 'buildCellSpec')),
     rationale:
       'bindingsejeren OG mindst én tabelflade, der bygger celle-specs, findes stadig — forsvinder '
       + 'ejeren, er bindingen flyttet og reglen skal skrives om',
@@ -804,8 +1001,10 @@ export const programmaticFieldCommitUsesSettle = defineRule({
     + 'skal gennem `settleValue`, så den parses af feltets codec som en tastet værdi.',
   liveTarget: {
     kind: 'precondition',
+    // R0-F02: AST-signal, ikke tekst — `onCommit` skal SÆTTES som JSX-attribut, ikke blot vises i en
+    // kommentar som eksempel på prop-formen.
     probe: (entry) => entry.relativePath === TODAY_DATE_BUTTON
-      || /\bonCommit=\{/.test(entry.text),
+      || hasJsxAttribute(entry, 'onCommit'),
     rationale:
       'knappen med den programmatiske `onCommit` findes stadig, og mindst én side bruger den — forsvinder '
       + 'knappen, er den programmatiske commit-vej væk, og reglen skal skrives om',
@@ -920,17 +1119,20 @@ export const issueSnapshotCapabilityBoundary = defineRule({
     // genkender derfor hver fil på SIT eget mærke — ellers ville `requiredPaths` (som kræver, at hver
     // forudsat fil selv matcher proben) være selvmodsigende, og reglen kunne stå halvt død.
     probe: (entry) => {
+      // Alle tre signaler er AST-noder, ikke tekst (R0-F02): et `FieldIssueSet`-medlem, en erklæret
+      // funktion og en member-læsning kan hver især ikke opfyldes af en kommentar eller en streng.
+      //
       // 1) Den brede capability findes stadig. Forsvinder `all`, er der intet at regulere.
       if (entry.relativePath === 'src/inputCore/inputIssue.ts') {
-        return /\ball:\s*readonly FieldIssue\[\]/.test(entry.text);
+        return hasDeclaredMember(entry, 'all');
       }
       // 2) Den navngivne, smalle erstatning findes. Uden den ville reglen forbyde den brede vej uden at
       //    efterlade en lovlig vej — og den næste consumer ville omgå grænsen i stedet.
       if (entry.relativePath === 'src/inputCore/inputReader.ts') {
-        return /readSectionFieldIssues/.test(entry.text);
+        return hasIdentifier(entry, 'readSectionFieldIssues');
       }
       // 3) Præsentationsundtagelsen aftager stadig et helt sæt. Gør den ikke det, skal undtagelsen væk.
-      if (ISSUE_SET_CONSUMERS.includes(entry.relativePath)) return /issues\.all\b/.test(entry.text);
+      if (ISSUE_SET_CONSUMERS.includes(entry.relativePath)) return hasMemberRead(entry, 'all');
       return false;
     },
     rationale:
@@ -1052,9 +1254,10 @@ export const derivedWritesNotFromEffects = defineRule({
     + 'undo ikke kan lukke, fordi det styrende valg stadig er aktivt.',
   liveTarget: {
     kind: 'precondition',
+    // R0-F02: AST-signal, ikke tekst — begge navne skal bruges som identifiers.
     probe: (entry) => entry.relativePath === 'src/inputCore/fieldCatalog.ts'
-      ? /materializeDerivedWrites/.test(entry.text)
-      : /useEffect/.test(entry.text),
+      ? hasIdentifier(entry, 'materializeDerivedWrites')
+      : hasIdentifier(entry, 'useEffect'),
     rationale:
       'mekanismen `materializeDerivedWrites` findes stadig i kataloget, og der findes fortsat effects i '
       + 'komponentlaget — forsvinder mekanismen, er reglens alternativ væk, og reglen skal skrives om',

@@ -92,7 +92,38 @@ quality-kørsel var grøn, så harnesset opdager ikke denne falske liveness.
 **Anbefaling:** Omskriv strukturelle preconditions til AST-signaler eller eksakte levende paths plus AST-bevis.  
 **Forslag til løsning:** Brug artsrelevante AST-queries og tilføj en kommentar-only mutationstest.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 9)**
+
+**Rettelsen er systemisk, ikke en liste af rettede prober.** Fundet er en svaghed i liveness-LAGET, så det
+løses i harnesset: en ny generisk kontrol tager for HVER forudsætningsregel en fil, der faktisk opfylder
+proben, og kommenterer hele filen ud linje for linje. Kildeteksten er dermed uændret ord for ord, mens hver
+eneste AST-node er væk. En probe, der stadig svarer `true`, måler tekst — og testen navngiver reglen samt
+hvilke AST-queries den kan bruge i stedet.
+
+**Undtagelsen er selv maskinel frem for en liste:** en probe, der også er opfyldt af en TOM fil på samme sti,
+spørger kun "findes modulet?". Det er et legitimt, AST-uafhængigt signal (`requiredPaths` beviser filens
+eksistens), og kommentar-mutationen kan pr. konstruktion ikke sige noget om det. Kun en probe, der er opfyldt
+af KOMMENTARER men IKKE af tomhed, læser filens indhold som tekst.
+
+**De konverterede prober** (alle med begrundelsen på stedet): `storage/local-storage-boundary`,
+`storage/session-storage-boundary`, `satser/fail-open-display-lookup-import`,
+`satser/asl-aarsloensmaksimum-raw-subscript`, `money/money-ore-type-assertion`, `input/write-boundary`,
+`domain/raw-section-access-boundary`, `input/cell-binding-single-source`,
+`input/programmatic-commit-uses-settle`, `input/issue-snapshot-capability-boundary`,
+`input/derived-writes-materialize-in-reduction`, `form/persistence-committed-mirror`,
+`form/restore-target-attributes` og `form/popup-semantics-single-source`.
+
+**Nye AST-primitiver, konverteringen krævede** (i `astQueries.ts`): `hasAnyIdentifier`, `hasTypeReference`
+(et typenavn findes ofte KUN i typepositioner), `hasImportFrom`, `hasJsxAttribute`, `hasDeclaredMember` og
+`hasMemberRead`.
+
+**Et sidefund, konverteringen afdækkede:** `form/restore-target-attributes` var tekstbaseret i BEGGE ender —
+ikke kun i sin probe. Dens `find` accepterede en manglende gennemføring, hvis blot filen NÆVNTE
+`restoreTargetAttributes` i en kommentar. Begge ender måler nu identifiers.
+
+**Mutationsbevist:** sættes `localStorage`-probens signal tilbage til `/\blocalStorage\b/.test(entry.text)`,
+bliver den nye kontrol rød og navngiver præcis `storage/local-storage-boundary` samt filen
+(`src/utils/safeLocalStorage.ts`).
 
 ### R0-F03 — Dokumentformatværnet dækker kun to ready-grene
 

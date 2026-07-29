@@ -13,9 +13,8 @@ legacy- og rå store-bypass; statisk call-chain-analyse af load/replacement og `
 kontrolleret før rapportering  
 **Fund:** 2 (R4-F01, R4-F02)  
 **Hypoteser:** Ingen  
-**Handling:** Begge fund er parkeret til implementering; ingen produktionsfiler ændret  
-**Næste skridt:** luk de udestående end-to-end- og browsercheckpoints, og ret de to verificerede
-integritetsbrud
+**Handling:** Begge fund **rettet 2026-07-29 (etape 8)** — se den enkelte fundnote  
+**Næste skridt:** luk de udestående end-to-end- og browsercheckpoints (de to integritetsbrud er lukket)
 
 ### R4-F01 — Load kan kassere en ny draft efter replacement
 
@@ -47,7 +46,24 @@ editor atomisk. Kør derefter filnavns-, filhåndtags- og PWA-synkronisering ude
 Tilføj en regressionstest, som registrerer en ny editor, mens metadata-promise er pending.  
 **Kræver godkendelse:** Nej — rettelsen forhindrer utilsigtet datatab uden at ændre tilsigtet UI/UX eller
 beregningslogik.  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 8)**
+
+**Rettelsen.** Begge halvdele af anbefalingen er gennemført, og den ene er en TYPEÆNDRING frem for et ekstra
+check:
+
+1. *Fasen er flyttet ud af barrieren.* `executePersistenceLoadApply` er delt i
+   `applyAuthoritativeLoadSnapshot` (SYNKRON, den autoritative apply) og `synchronizeLoadMetadata` (asynkron,
+   filnavn/filhåndtag/PWA). `CriticalActionCoordinator.applyReplacement`/`applyDestructive` tager nu
+   `() => T` frem for `() => T | Promise<T>`, så en asynkron apply inde i barrieren er en **compilerfejl**.
+   Metadatafasen kan derfor ikke længere holde draft-discard åben, mens brugeren redigerer den indlæste sag.
+2. *Identiteten er fastholdt.* `discardReplacedDraft` kasserer PRÆCIS den editor, der var registreret, da
+   handlingen begyndte, og kun hvis den stadig er den registrerede. Var ingen editor åben, findes der ingen
+   draft at kassere; er en ny åbnet undervejs, tilhører den den nye sag.
+
+**Dækning:** 2 nye coordinator-tests (editor udskiftet under replacement; ingen editor ved start), 2 nye
+`useFileSaveLoad`-tests (replacement ER gennemført mens metadatafasen stadig venter; metadata-advarsel efter
+gennemført apply) og den omskrevne `persistenceLoadApply.test.ts`, hvor rækkefølge-invarianten "metadata kører
+aldrig for en sag, der ikke blev indlæst" nu er en konsekvens af opdelingen frem for af en intern try/catch.
 
 ### R4-F02 — `Slet alt` accepterer ufuldstændig oprydning som succes
 
@@ -81,7 +97,32 @@ historik, sagsnær UI-sessionstate og filhåndtag. Kontrollér alle storage-resu
 ubetinget fuld succes ved rester. Tilføj tests for `false`/fejl fra hver storagegrænse og for en ny sag efter
 reset.  
 **Kræver godkendelse:** Nej — rettelsen håndhæver den dokumenterede betydning af “Slet alt”.  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 8)**
+
+**Rettelsen.** Reset-policyen findes nu — den manglede helt, hvilket var den egentlige rod: kontraktens §3.8
+henviste til "den særskilte reset-policy", som ingen steder var skrevet ned, så `Slet alt` gentog en
+håndskrevet liste på tre nøgler.
+
+1. *Policyen bor i manifestet.* `SESSION_RESET_POLICY` klassificerer HVER manifest-nøgle som `caseScoped`
+   eller `deviceScoped`, håndhævet af `satisfies` — en ny nøgle **kan ikke** undlade at vælge side.
+   `getCaseScopedSessionStorageKeys()` er den ene enumeration. Klassifikationen afslørede, at fundet nævnte
+   én for få: `loentrinFinderOverlay` er også sagsnær (den er keyet på ansættelsesforhold-id).
+2. *Porten ejer transaktionen.* `CaseResetOperations.clearAll` rydder input, de sagsnære sessionnøgler OG
+   filhåndtaget, og returnerer `ClearAllResult` med `status: 'cleared' | 'cleared-with-residue'` +
+   `residue`. Kalderen kan derfor ikke rapportere fuld succes uden at have set resterne; `useFileSaveLoad`
+   viser en konkret advarsel i stedet for “Alt data slettet”.
+3. *Boolean-kontrakten var selv forkert.* `deleteFileHandleFromIndexedDB` returnerede `false`, når
+   IndexedDB slet ikke findes — altså "ingen rest" rapporteret som "kunne ikke verificeres". Nu `true`:
+   findes lageret ikke, kan der ikke ligge et håndtag.
+
+**Værn:** `storage/case-reset-policy-single-owner` (AST) forbyder, at nogen anden end porten enumererer
+policyen — en parallel reset-vej ville pr. konstruktion ikke bære rest-rapporteringen. Mutationsbevist:
+et kald i `useFileSaveLoad` gør reglen rød med fil:linje:kolonne.
+
+**Dækning:** 4 nye porttests (hver sagsnær nøgle ryddet / device-scopede bevaret; rest ved filhåndtag; rest
+pr. sessionnøgle ved utilgængeligt lager; en kastende grænse er en fejl, ikke en rest), 3 nye
+`handleSletAlt`-tests og 3 nye manifest-tests (policyen deler manifestet i to ikke-tomme, disjunkte sider og
+følger namespace).
 
 ## Efterprøvet uden fund
 
@@ -103,17 +144,27 @@ reset.
 
 - Samlet regressionstest af en gammel `.eo`, hvis canonical værdi nu ligger uden for aktive bounds:
   load → synlig feltissue → uændret resave → blokering af præcis de afhængige consumers.
-- Adversariel test af en ny editor/draft under den asynkrone metadatafase i load.
-- Test af fuldstændig reset af alle reset-relevante manifestnøgler og hvert storage-fejlresultat.
+- ~~Adversariel test af en ny editor/draft under den asynkrone metadatafase i load.~~ **Dækket 2026-07-29**
+  (R4-F01): `criticalActionCoordinator.test.ts` udskifter editoren INDE i replacement-callbacken, og
+  `useFileSaveLoad.test.tsx` holder metadatafasen pending og hævder, at replacement allerede ER gennemført.
+  Bemærk afgrænsningen: begge kører mod runtime, ikke i en browser — det er en logisk editorudskiftning, ikke
+  en reel brugerinteraktion under en ægte IndexedDB-await.
+- ~~Test af fuldstændig reset af alle reset-relevante manifestnøgler og hvert storage-fejlresultat.~~
+  **Dækket 2026-07-29** (R4-F02): `caseResetOperations.test.ts` itererer over
+  `getCaseScopedSessionStorageKeys()` (så en ny nøgle dækkes automatisk) og hævder både `false`-benet fra
+  filhåndtaget og et fejlende `removeItem` pr. nøgle. `storageManifest.test.ts` pinner, at klassifikationen
+  deler manifestet i to ikke-tomme, disjunkte sider.
 - Reel browsertest af File System Access-write/readback og fejl/rollback; de nuværende tests bruger mocks.
 - Mutationstest af arkitekturværn blev ikke udført under det read-only review.
 
 ## Tilfældighedsfund
 
-- `src/utils/inboundPersistedSection.ts:33-38` beskriver fortsat session-hydrering gennem den slettede
-  `persistenceSessionHydration.ts` og hævder en delt tolerant transform mellem `.eo` og current-session.
-  Current-session hydreres nu direkte og current-only gennem `initializeInputRuntime.ts`. Kommentaren er
-  forældet og bør rettes, så den ikke antyder en fjernet runtimevej.
+- ~~`src/utils/inboundPersistedSection.ts:33-38` beskriver fortsat session-hydrering gennem den slettede
+  `persistenceSessionHydration.ts` og hævder en delt tolerant transform mellem `.eo` og current-session.~~
+  **Rettet 2026-07-29 (etape 9).** Teksten nævner nu `initializeInputRuntime.ts` som den faktiske
+  current-session-kilde. Samme tekst henviste desuden til `buildPersistedSection` som "outbound-modstykket";
+  det modul er slettet med GM-F09, og kommentaren siger nu eksplicit, at der INTET outbound-modstykke findes,
+  fordi sektionsvis persistering ikke længere er en skrivegrænse.
 
 ## Evidens og kommandoer
 

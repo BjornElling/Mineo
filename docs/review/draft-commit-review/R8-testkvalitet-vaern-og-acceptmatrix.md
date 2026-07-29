@@ -246,7 +246,27 @@ autoritative surface.
 **Forslag til løsning:** Brug TypeScript-AST og kildegraf til at klassificere persisted input-props og følge
 imports/calls; tilføj kommentar-, string- og urelateret-import-fixtures.  
 **Kræver godkendelse:** Nej  
-**Status:** Under videre analyse
+**Status:** **Rettet 2026-07-29 (etape 9)**
+
+**Rettelsen fulgte anbefalingen: reglen er flyttet ind i arkitekturharnesset**, og den gamle tekst-guard
+(`erstatningsopgoerelseSurfaceGuard.test.ts`) er SLETTET, ikke lappet — begge dens ender var tekstbaserede, og
+en lappet udgave ville have bevaret sin egen filglob og sit eget liveness-gulv ved siden af harnessets.
+
+`input/eo-surface-on-greenfield-path` måler nu begge ender som AST:
+
+- **Fladen** genkendes på JSX-attributter (`field`/`location`/`onCommit`/`onDraftChange`) — noder, som en
+  kommentar ikke kan producere.
+- **Vejen** bevises af en faktisk `import` fra en greenfield-inputmodulsti ELLER et faktisk kald til en af
+  inputvejens hooks. En omtale i en kommentar eller en streng kan ikke længere godkende en fil.
+
+Den transiente undtagelse er bevaret uændret i sin logik (ren transient flade uden persisteret `field`), og
+liveness-gulvet på fem flader er flyttet med som `minimumMatches: 5`, så en filflytning fortsat ikke kan gøre
+værnet trivielt grønt.
+
+**Mutationsbevist mod den LEVENDE kilde med fundets EGET bypass:** indsættes en håndrullet
+`<input field={…} onDraftChange={…} />` i `EOInspektionRowsSection.tsx` med `// useFieldEditor` som eneste
+"greenfield-bevis", bliver reglen rød med fil:linje. Bypasset er desuden pinnet som en violating fixture, så
+det ikke kan genopstå.
 
 ### R8-F08 — Aktive testnavne beskriver fortsat migrationen
 

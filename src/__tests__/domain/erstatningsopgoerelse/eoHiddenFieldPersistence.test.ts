@@ -5,7 +5,6 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { neutralizeIrrelevantEoInputs } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { erstatningsopgoerelseSchema } from '../../../schemas/formSchemas';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { serializeFormValues } from '../../../utils/serialization';
 import { nullToUndefinedDeep } from '../../../utils/nullToUndefinedDeep';
 
 const iso = (value: string) => toISODateString(value);
@@ -17,13 +16,20 @@ const amount = (value: number): AmountValue => ({ kind: 'number', value });
  *  - Save/F5 persisterer RÅ committed input (ingen neutralisering) → skjulte værdier bevares.
  *  - Beregningen læser effectiveEoValues (neutraliseret) → skjulte værdier ignoreres.
  *
- * .eo-save/load og F5-sessionStorage deler præcis samme serialiserings-/parse-kerne:
- *   committed → serializeFormValues (undefined→null) → JSON → nullToUndefinedDeep → schema.parse.
+ * `.eo`-save/load og F5-sessionStorage deler præcis samme serialiserings-/parse-kerne:
+ *   canonical sektion → `JSON.stringify` (containeren/envelopen) → `JSON.parse`
+ *   → `nullToUndefinedDeep` (inbound-transformens første trin, §3.1a) → `schema.parse`.
  * Vi kører den kerne her som én round-trip og hævder, at hvert skjult felt overlever.
+ *
+ * Kæden bar tidligere et ekstra `serializeFormValues`-trin (undefined→null), som produktionen IKKE
+ * udfører: `encodeEoFile`/current-session-envelopen stringify'er den schema-parsede sektion direkte, og
+ * `JSON.stringify` DROPPER `undefined`-nøgler frem for at nulle dem. Den gamle udgave gjorde derfor
+ * round-trippen lettere end virkeligheden — et felt, hvis schema kun tolererer `null` men ikke fravær,
+ * ville bestå her og fejle i produktionen. Trinnet fulgte med GM-F09's slettede `buildPersistedSection`
+ * (se INC-F15).
  */
 const roundTripSaveLoad = (values: ErstatningsopgoerelseValues): ErstatningsopgoerelseValues => {
-  const serialized = serializeFormValues(values);
-  const throughFile = JSON.parse(JSON.stringify(serialized)) as unknown;
+  const throughFile = JSON.parse(JSON.stringify(values)) as unknown;
   const restored = nullToUndefinedDeep(throughFile);
   return erstatningsopgoerelseSchema.parse(restored);
 };
