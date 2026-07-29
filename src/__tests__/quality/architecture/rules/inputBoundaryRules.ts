@@ -106,7 +106,7 @@ export const inputWriteBoundary = defineRule({
           if (
             binding.startsWith('__')
             || (binding === 'slimInputStore'
-              && entry.relativePath !== 'src/inputCore/react/productionInputRuntime.tsx')
+              && entry.relativePath !== 'src/inputCore/react.tsx')
           ) {
             findings.push({
               position: ref.position,
@@ -121,7 +121,7 @@ export const inputWriteBoundary = defineRule({
           hydrateInputStoreOnce: ['src/inputCore/runtime/initializeInputRuntime.ts'],
           bumpInputSettingsRevision: [
             INPUT_STORE_OWNER,
-            'src/inputCore/react/productionInputRuntime.tsx',
+            'src/inputCore/react.tsx',
           ],
         };
         for (const binding of ref.namedBindings) {
@@ -769,7 +769,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
     // Hver sti skal desuden selv opfylde proben, altså faktisk NÆVNE et af navnene som identifier.
     requiredPaths: [
       SOURCE_SETTINGS_OWNER,
-      'src/inputCore/react/productionInputRuntime.tsx',
+      'src/inputCore/react.tsx',
       'src/domain/eoRowEvaluation/eoRowExecutionContext.ts',
       'src/document/runtime/react/useMineoDocumentEnvironment.ts',
     ],
@@ -1332,6 +1332,142 @@ export const derivedWritesNotFromEffects = defineRule({
     {
       relativePath: 'src/components/pages/X.tsx',
       code: '// Tidligere: `useEffect(() => edit.dispatch(t))` — nu en DerivedInputWrite.\nexport const x = 1;',
+    },
+  ],
+});
+
+// --- Fortegns-politik: feltets descriptor bestemmer, ikke komponenten (UT-F08) -------------------
+
+/** Modulet der ejer opslaget fra descriptor til fortegns-politik. */
+const SIGN_POLICY_OWNER = 'src/inputCore/react/fields/signPolicy.ts';
+
+/** Modulet der ejer tegnfiltrene. Her ER `allowNegative` en parameter og ikke en beslutning. */
+const KEY_FILTER_OWNER = 'src/components/inputs/inputKeyFilters.ts';
+
+/**
+ * De tegnfiltre, hvis `allowNegative` skal komme fra feltets descriptor. `filterFractionKeyDown` er
+ * bevidst UDE: brøkfamilien har ingen `signPolicy`, og dens fortegn er en egenskab ved brøk-formatet.
+ */
+const SIGN_SENSITIVE_KEY_FILTERS = new Set<string>([
+  'filterIntegerKeyDown',
+  'filterPercentKeyDown',
+  'filterAmountExpressionKeyDown',
+]);
+
+/**
+ * Er `allowNegative` sat til en LITERAL (`true`/`false`) i dette objekt-argument?
+ *
+ * En literal er netop den fejlform, fundet handlede om: komponenten svarer på feltets vegne. En variabel,
+ * en property-adgang eller et kald er tilladt — de kan bære politikken fra descriptoren.
+ */
+const hasLiteralAllowNegative = (argument: ts.Expression): ts.Node | undefined => {
+  if (!ts.isObjectLiteralExpression(argument)) return undefined;
+  for (const property of argument.properties) {
+    if (!ts.isPropertyAssignment(property)) continue;
+    const name = ts.isIdentifier(property.name) ? property.name.text : undefined;
+    if (name !== 'allowNegative') continue;
+    const value = property.initializer;
+    if (value.kind === ts.SyntaxKind.TrueKeyword || value.kind === ts.SyntaxKind.FalseKeyword) {
+      return property;
+    }
+  }
+  return undefined;
+};
+
+/**
+ * Et felts FORTEGNS-politik ejes af dens descriptor, ikke af den komponent der tegner den (UT-F08).
+ *
+ * **Fundet, reglen forhindrer i at vende tilbage.** `allowNegative` var erklæret på hvert numerisk codec i
+ * produktionskataloget — og honoreret af INGENTING. Hver feltkomponent hardkodede sit eget svar, og de var
+ * indbyrdes uenige for de SAMME descriptorer: `GridPercentCell` blokerede minus, `PercentField` tillod det.
+ * Brugeren kunne derfor taste et minustegn i et procentfelt, der ikke må være negativt.
+ *
+ * Typen kan ikke lukke resten: `allowNegative` er en almindelig `boolean` i filter-optionerne, så en literal
+ * `true` kompilerer fint. Reglen holder derfor callsitene på den fælles vej — `fieldAllowsNegative(field)` /
+ * `codecAllowsNegative(descriptor.codec)` — så en NY numerisk feltkomponent ikke kan vælge selv.
+ *
+ * Scopet er bevidst bredt (hele `src/`, ikke kun feltmapperne): drifterne stod netop i en sidekomponent
+ * (`MenberegningTab`) og en tabel (`BeregnetRenteTable`), ikke i den fælles feltfamilie.
+ */
+export const fieldSignPolicyFromDescriptor = defineRule({
+  id: 'input/sign-policy-from-descriptor',
+  description:
+    'Et tegnfilters `allowNegative` må ikke være en hardkodet literal i en komponent. Fortegns-politikken '
+    + 'erklæres på feltets codec og læses med `fieldAllowsNegative(field)` / `codecAllowsNegative(codec)` '
+    + '— ellers kan to flader af samme feltfamilie svare forskelligt for den samme descriptor (UT-F08).',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath === SIGN_POLICY_OWNER
+      || collectCalls(entry).some((ref) => SIGN_SENSITIVE_KEY_FILTERS.has(ref.calleeName)),
+    rationale:
+      'politik-opslaget OG mindst ét fortegns-følsomt tegnfilter-callsite findes stadig — forsvinder '
+      + 'opslaget, er politikken flyttet og reglen skal skrives om',
+    requiredPaths: [
+      SIGN_POLICY_OWNER,
+      'src/inputCore/react/fields/PercentField.tsx',
+      'src/inputCore/react/fields/gridCells.tsx',
+    ],
+  },
+  // Filter-ejeren undtages: dér ER `allowNegative` parameteren, og dens defaults hører i implementeringen.
+  appliesTo: (relativePath) =>
+    relativePath.startsWith('src/') && relativePath !== KEY_FILTER_OWNER,
+  allow: [],
+  find: (entry) => {
+    const findings: Finding[] = [];
+    for (const call of collectCalls(entry)) {
+      if (!SIGN_SENSITIVE_KEY_FILTERS.has(call.calleeName)) continue;
+      for (const argument of call.node.arguments) {
+        const offender = hasLiteralAllowNegative(argument);
+        if (offender === undefined) continue;
+        const { line, character } = entry.ast.getLineAndCharacterOfPosition(offender.getStart(entry.ast));
+        findings.push({
+          // 1-baseret som resten af manifestet, så fil:linje:kolonne kan klikkes.
+          position: { line: line + 1, column: character + 1 },
+          message:
+            `\`${call.calleeName}\` får en hardkodet \`allowNegative\`-literal. Fortegns-politikken ejes af `
+            + 'feltets codec — brug `fieldAllowsNegative(field)` eller `codecAllowsNegative(descriptor.codec)`, '
+            + 'så formular og grid ikke kan svare forskelligt for samme descriptor (UT-F08).',
+        });
+      }
+    }
+    return findings;
+  },
+  violatingFixtures: [
+    // Den konkrete fejl: brugerens symptom.
+    {
+      relativePath: 'src/inputCore/react/fields/X.tsx',
+      code: 'const f = (e) => filterPercentKeyDown(e, { allowNegative: true, allowDecimals: true });',
+    },
+    // Også en KORREKT literal er forbudt: den er en anden samtidig sandhed om feltets politik.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const f = (e) => filterIntegerKeyDown(e, { allowNegative: false });',
+    },
+    {
+      relativePath: 'src/components/tables/X.tsx',
+      code: 'const f = (e) => filterAmountExpressionKeyDown(e, { allowNegative: true, allowDecimals: true });',
+    },
+  ],
+  cleanFixtures: [
+    // Den ønskede vej: politikken læses af feltet.
+    {
+      relativePath: 'src/inputCore/react/fields/X.tsx',
+      code: 'const a = fieldAllowsNegative(field);\nconst f = (e) => filterPercentKeyDown(e, { allowNegative: a, allowDecimals: true });',
+    },
+    // Modulniveau-konstant udledt af descriptorens codec er samme vej.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const A = codecAllowsNegative(mengradField.codec);\nconst f = (e) => filterIntegerKeyDown(e, { allowNegative: A });',
+    },
+    // Brøkfilteret er ikke fortegns-følsomt i denne forstand (ingen `signPolicy` i familien).
+    {
+      relativePath: 'src/inputCore/react/fields/X.tsx',
+      code: 'const f = (e) => filterFractionKeyDown(e, { maxDigits: 4, allowNegative: false });',
+    },
+    // En kommentar, der blot NÆVNER literalen, er ikke en AST-node.
+    {
+      relativePath: 'src/inputCore/react/fields/X.tsx',
+      code: '// Tidligere: `filterPercentKeyDown(e, { allowNegative: true })`.\nexport const x = 1;',
     },
   ],
 });

@@ -210,6 +210,9 @@ export const createIntegerFieldCodec = (
   assertNumericBounds('IntegerFieldCodec', config, isSafeCanonicalInteger);
   return Object.freeze({
     family: 'integer',
+    // Fortegns-politikken er DATA (UT-F08), så feltkomponenternes tegnfilter kan læse den erklærede regel
+    // frem for at hardkode sin egen. Parse/settle nedenfor er fortsat fortegns-blind (§1.6).
+    signPolicy: config.allowNegative ? 'signed' : 'nonNegative',
     parseForSettle: (raw): FieldResolution<number | undefined> => {
       const edge = trimToNumericEdgesPreserveLeadingMinus(raw);
       const normalized = edge === '' && raw.trim() !== '' ? raw.trim() : edge;
@@ -221,7 +224,11 @@ export const createIntegerFieldCodec = (
     },
     format: (value) => value === undefined ? '' : String(value),
     formatForEdit: (value) => value === undefined ? '' : String(value),
-    acceptsInitialKey: (key) => /^\d$/.test(key) || key === '-',
+    // Minus åbner kun editoren på et felt, der FÅR være negativt (UT-F08).
+    acceptsInitialKey: (key) => /^\d$/.test(key) || (key === '-' && config.allowNegative),
+    // Paste beholder BEVIDST `allowNegative: true`: en INDSAT negativ værdi skal committes canonical og bære
+    // sit røde bounds-issue (§1.6), ikke få fortegnet stille fjernet. Tegnfilteret gælder tastning — det
+    // forhindrer indtastningen, mens paste aldrig må ændre data i tavshed.
     normalizePaste: (raw) => normalizeIntegerPaste(raw, {
       allowNegative: true,
     }),
@@ -239,11 +246,19 @@ export const createAmountFieldCodec = (options: Readonly<{
   assertNumericBounds('AmountFieldCodec', options, (value) => options.allowDecimals
     ? isSafeCanonicalDecimal(value, DEFAULT_AMOUNT_PRECISION)
     : isSafeCanonicalInteger(value));
+  // `allowDecimals` styrer BÅDE hvad der kan indtastes og hvordan værdien vises: et felt, der afviser
+  // decimaler, må heller ikke vise en decimalkomma-hale, den brugeren ikke kan skrive eller rette. Derfor
+  // udledes visnings-præcisionen af flaget frem for at være hardkodet til 2 (jf. procent-codec'en, der
+  // altid har tråret sit `allowDecimals` igennem til `format`). Med præcision 0 udelader `formatAsAmount`
+  // kommaet helt.
+  const displayPrecision = options.allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0;
   return Object.freeze({
     family: 'amount',
+    // Se `FieldSignPolicy` (UT-F08): den erklærede fortegnsregel er data, så tegnfilteret ikke gætter.
+    signPolicy: options.allowNegative ? 'signed' : 'nonNegative',
     parseForSettle: (raw): FieldResolution<AmountValue | undefined> => {
       const parsed = parseAmountInput(raw, {
-        precision: DEFAULT_AMOUNT_PRECISION,
+        precision: displayPrecision,
         // Fortegn er en canonical bounds-regel; parseren afviser kun format og sikker repræsentation.
         allowNegative: true,
         allowDecimals: options.allowDecimals,
@@ -255,14 +270,21 @@ export const createAmountFieldCodec = (options: Readonly<{
       if (!parsed.ok || (parsed.value === undefined && raw.trim() !== '')) return rejectedResolution('format');
       return validResolution(parsed.value);
     },
-    format: (value) => amountValueToDisplayString(value, DEFAULT_AMOUNT_PRECISION),
-    formatForEdit: (value) => amountValueToDraftString(value, DEFAULT_AMOUNT_PRECISION),
-    acceptsInitialKey: (key) => /^[0-9,()-]$/.test(key),
+    format: (value) => amountValueToDisplayString(value, displayPrecision),
+    formatForEdit: (value) => amountValueToDraftString(value, displayPrecision),
+    // Et komma må kun åbne editoren i et felt, der faktisk kan rumme decimaler — ellers ville
+    // tastetrykket starte en redigering, som tegnfilteret straks blokerer.
+    //
+    // `-` beholdes for BEGGE fortegns-politikker, i modsætning til heltal og procent (UT-F08): i et
+    // beløbsfelt er minus også SUBTRAKTION i et udtryk ("5000-200"), og et ikke-negativt felt må gerne
+    // regne sig ned til et lovligt resultat. Tegnfilteret blokerer netop kun det UNÆRE minus
+    // (`containsUnaryMinusToken`), og den skelnen kan et enkelt-tegns-opslag ikke gøre.
+    acceptsInitialKey: (key) => (options.allowDecimals ? /^[0-9,()-]$/ : /^[0-9()-]$/).test(key),
     normalizePaste: (raw) => normalizeAmountPaste(raw, {
       allowNegative: true,
       allowDecimals: options.allowDecimals,
       maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
-      maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
+      maxDecimalDigits: displayPrecision,
       maxRawLength: MAX_AMOUNT_RAW_LENGTH,
     }),
   });
@@ -282,6 +304,9 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
   };
   return Object.freeze({
     family: 'percent',
+    // Se `FieldSignPolicy` (UT-F08). ALLE procentfelter i produktionskataloget er `nonNegative`; politikken er
+    // alligevel udledt af konfigurationen frem for hardkodet, så et fremtidigt fortegnet procentfelt virker.
+    signPolicy: config.allowNegative ? 'signed' : 'nonNegative',
     parseForSettle: (raw): FieldResolution<number | undefined> => {
       // Kun format afvises (§1.6/§3.3): parse uden grænser. En schema-gyldig out-of-bounds-procent committes
       // canonical; min/max vurderes af en canonical feltvalidator, ikke som en rejection her.
@@ -291,7 +316,12 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
     },
     format: (value) => formatPercentDisplay(value, config.allowDecimals),
     formatForEdit: (value) => formatPercentDisplay(value, config.allowDecimals),
-    acceptsInitialKey: (key) => (config.allowDecimals ? /^[0-9,-]$/ : /^[0-9-]$/).test(key),
+    // Minus åbner kun editoren, hvis feltet FÅR være negativt (UT-F08). En procent har ingen udtryks-syntaks,
+    // så her er minus utvetydigt et fortegn — modsat beløbsfeltets subtraktion.
+    acceptsInitialKey: (key) => {
+      if (key === '-') return config.allowNegative;
+      return (config.allowDecimals ? /^[0-9,]$/ : /^[0-9]$/).test(key);
+    },
     normalizePaste: (raw) => normalizePercentPaste(raw, {
       allowNegative: true,
       allowDecimals: config.allowDecimals,
@@ -315,6 +345,10 @@ export const createStringBackedFieldCodec = <T extends string | number>(
   format: (value) => value ?? '',
   formatForEdit: (value) => value ?? '',
   acceptsInitialKey: sourceCodec.acceptsInitialKey,
+  // Fortegns-politikken ARVES fra det indre codec (UT-F08): adapteren ændrer kun canonical TOMHED til `''`,
+  // ikke hvad der er et lovligt fortegn. Uden viderestillingen ville månedscellen — et heltal 1..12 gennem
+  // denne adapter — miste sin ikke-negative politik og få minus tilbage i tegnfilteret.
+  ...(sourceCodec.signPolicy === undefined ? {} : { signPolicy: sourceCodec.signPolicy }),
   ...(sourceCodec.normalizePaste === undefined ? {} : { normalizePaste: sourceCodec.normalizePaste }),
 });
 

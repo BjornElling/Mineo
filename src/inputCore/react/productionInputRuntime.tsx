@@ -14,7 +14,6 @@ import { bumpInputSettingsRevision } from '../runtime/dispatchInput';
 import { seedSatserNewCase } from '../../domain/satser/satserNewCaseSeed';
 import {
   createInputRuntimeBinding,
-  InputRuntimeProvider,
   type InputRuntimeBinding,
 } from './inputRuntimeContext';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
@@ -196,20 +195,3 @@ export const useSettingsRevisionBridge = (settings: AppSettings): void => {
     bumpInputSettingsRevision(slimInputStore);
   }, [settings]);
 };
-
-export type ProductionInputRuntimeProviderProps = Readonly<{
-  binding: InputRuntimeBinding;
-  children: React.ReactNode;
-}>;
-
-/**
- * Tynd produktions-provider. Bindingen bygges/hydreres uden for React (før render) og gives ind, så en
- * remount aldrig re-hydrerer eller overskriver input (§3.10). Adskilt fra `InputRuntimeProvider`, så
- * test-wiring og produktions-wiring ikke deler mount-ansvar.
- */
-export const ProductionInputRuntimeProvider = ({
-  binding,
-  children,
-}: ProductionInputRuntimeProviderProps): React.ReactElement => (
-  <InputRuntimeProvider binding={binding}>{children}</InputRuntimeProvider>
-);

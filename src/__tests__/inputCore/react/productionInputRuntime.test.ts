@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { bootstrapProductionInputRuntime } from '../../../inputCore/react/productionInputRuntime';
+import { bootstrapProductionInputRuntime } from '../../../inputCore/react';
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 
 describe('bootstrapProductionInputRuntime', () => {

@@ -21,7 +21,11 @@ import {
   type MineoDocumentDefinition,
   type MineoDocumentGateSettings,
 } from '../../document/definition/mineoDocumentDefinition';
-import { toGateReasons } from '../../document/definition/documentOutcome';
+import {
+  blockedFromIssues,
+  blockedProjection,
+  toGateReasons,
+} from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { RenteOversigtRow } from '../../document/generators/renteberegning/renteOversigtDocument';
 import { renteberegningBeregningsdatoField, renteberegningKommentarerField } from '../../inputCore/catalog/renteberegningDescriptors';
@@ -79,30 +83,24 @@ const requireReadyAggregate = <TInput>(
   if (source.stamdata.status !== 'ready') {
     return {
       kind: 'blocked',
-      result: {
-        status: 'blocked',
-        reasons: [{
-          code: 'renteberegning:stamdata-blocked',
-          message: source.stamdata.status === 'blocked'
-            ? source.stamdata.issues[0]?.message ?? 'Stamdata indeholder fejl'
-            : 'Stamdata indeholder fejl',
-        }],
-      },
+      result: blockedFromIssues(
+        'renteberegning:stamdata-blocked',
+        source.stamdata.status === 'blocked' ? source.stamdata.issues : undefined,
+        'Stamdata indeholder fejl'
+      ),
     };
   }
   const aggregate = readAggregate(source);
   if (aggregate === null) {
     return {
       kind: 'blocked',
-      result: {
-        status: 'blocked',
-        reasons: [{
-          code: 'renteberegning:field-error',
-          message: source.projection.aggregateProjection.status === 'blocked'
-            ? source.projection.aggregateProjection.issues[0]?.message ?? 'Fejl i indtastning'
-            : 'Fejl i indtastning',
-        }],
-      },
+      result: blockedFromIssues(
+        'renteberegning:field-error',
+        source.projection.aggregateProjection.status === 'blocked'
+          ? source.projection.aggregateProjection.issues
+          : undefined,
+        'Fejl i indtastning'
+      ),
     };
   }
   return { kind: 'ok', stamdata: source.stamdata.value, aggregate };
@@ -168,10 +166,7 @@ export const renteOversigtDocumentDefinition: MineoDocumentDefinition<RenteOvers
       }
       // Gaten har netop afvist `undefined`; gentagelsen er typeindsnævring, ikke en selvstændig gate.
       if (source.beregningsdato === undefined) {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'renteberegning:missing-beregningsdato', message: 'Beregningsdato mangler' }],
-        };
+        return blockedProjection('renteberegning:missing-beregningsdato', 'Beregningsdato mangler');
       }
 
       const rows: RenteOversigtRow[] = Array.from(ready.aggregate.pdfContexts.values()).map((ctx) => ({
@@ -241,42 +236,28 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
     project: (context, request) => {
       const source = context.shared(readSharedRenteSource);
       if (source.stamdata.status !== 'ready') {
-        return {
-          status: 'blocked',
-          reasons: [{
-            code: 'renteberegning:stamdata-blocked',
-            message: source.stamdata.status === 'blocked'
-              ? source.stamdata.issues[0]?.message ?? 'Stamdata indeholder fejl'
-              : 'Stamdata indeholder fejl',
-          }],
-        };
+        return blockedFromIssues(
+          'renteberegning:stamdata-blocked',
+          source.stamdata.status === 'blocked' ? source.stamdata.issues : undefined,
+          'Stamdata indeholder fejl'
+        );
       }
 
       // Frisk opslag af den aktiverede række. Rækken kan være slettet eller ændret siden klikket.
       const rowProjection = source.projection.rowProjections.get(request.rowId);
       if (rowProjection === undefined) {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'rente:row-missing', message: 'Rentelinjen findes ikke længere' }],
-        };
+        return blockedProjection('rente:row-missing', 'Rentelinjen findes ikke længere');
       }
       if (rowProjection.status !== 'ready') {
-        return {
-          status: 'blocked',
-          reasons: [{
-            code: 'rente:row-blocked',
-            message: rowProjection.status === 'blocked'
-              ? rowProjection.issues[0]?.message ?? 'Rentelinjen er ugyldig'
-              : 'Rentelinjen er ugyldig',
-          }],
-        };
+        return blockedFromIssues(
+          'rente:row-blocked',
+          rowProjection.status === 'blocked' ? rowProjection.issues : undefined,
+          'Rentelinjen er ugyldig'
+        );
       }
       const pdfContext = rowProjection.value.pdfContext;
       if (pdfContext === null) {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'rente:row-no-result', message: 'Rentelinjen har ingen beregning' }],
-        };
+        return blockedProjection('rente:row-no-result', 'Rentelinjen har ingen beregning');
       }
 
       return {

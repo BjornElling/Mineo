@@ -63,9 +63,34 @@ export type FieldCodecFamily =
   | 'week'
   | 'fraction';
 
+/**
+ * Feltets FORTEGNS-politik, som den er erklæret på descriptoren (UT-F08).
+ *
+ * **Hvorfor den skal være DATA på codecet.** `allowNegative` blev erklæret på hvert numerisk codec i
+ * kataloget — og honoreret af INGENTING. Codecet parser bevidst med `allowNegative: true`, fordi et fortegn
+ * er en BOUNDS-regel og ikke et formatbrud (§1.6): en negativ værdi skal kunne committes canonical og bære et
+ * rødt bounds-issue frem for at blive afvist som råtekst. Konfigurationen var derfor kun en
+ * construction-time-sanity-check, mens hver enkelt feltkomponent hardkodede sit eget tegnfilter — og de var
+ * ikke enige: `GridPercentCell` blokerede minus, `PercentField` tillod det, og begge tjente descriptorer med
+ * `allowNegative: false`.
+ *
+ * Politikken hører derfor på codecet, hvor den ER erklæret, så tastaturfilteret og `acceptsInitialKey` kan
+ * læse den ENE sandhed frem for at gætte. Den ændrer IKKE §1.6: parse/settle er stadig fortegns-blind, og
+ * bounds-validatoren ejer stadig den røde fejl for en værdi, der NÅR frem (fx via en indlæst `.eo`-fil).
+ * Politikken styrer kun, hvad der kan TASTES.
+ */
+export type FieldSignPolicy = 'nonNegative' | 'signed';
+
 export type FieldCodec<T> = Readonly<{
   /** Codecets familie — den ene identitet, §7.1's dækningskrav opregnes over. */
   family: FieldCodecFamily;
+  /**
+   * Fortegns-politikken for de NUMERISKE familier (`integer`, `amount`, `percent` og deres string-backed
+   * adaptere). Udeladt for familier, hvor fortegn er meningsløst (tekst, valg, dato, uge, år, brøk).
+   *
+   * Se {@link FieldSignPolicy} for hvorfor den ligger her og ikke i komponenten.
+   */
+  signPolicy?: FieldSignPolicy;
   /** Parser rå editortekst ved settle. Semantisk tom tekst skal resolve `valid` til feltets tomværdi. */
   parseForSettle: (raw: string) => FieldResolution<T>;
   /** Visning af en canonical værdi i lukket tilstand. */

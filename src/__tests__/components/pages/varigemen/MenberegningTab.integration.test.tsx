@@ -18,10 +18,11 @@ import { getProductionInputCatalog } from '../../../../inputCore/catalog/product
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../../inputCore/react/productionInputRuntime';
+} from '../../../../inputCore/react';
 import type { StamdataValues } from '../../../../schemas/formSchemas/sections/stamdataSchemas';
 import type { VarigeMenValues } from '../../../../schemas/formSchemas';
 import { toISODateString } from '../../../../types/branded';
+import { DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE } from '../../../../document/layout/documentGateTypes';
 
 /**
  * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
@@ -138,5 +139,63 @@ describe('MenberegningTab — reader-projektion + download-gate', () => {
     expect(screen.getByTestId('varigemen-download')).toBeDisabled();
     await user.click(screen.getByTestId('varigemen-download'));
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * UT-F07: gate-årsagen står KUN i tooltippet, og teksten er den universelle.
+ *
+ * Brugertestens symptom var, at "Indtastning mangler" stod BÅDE som nedtonet tekst i værdikolonnen OG som
+ * tooltip på det inaktive download-ikon. Testene måler derfor to ting, som en visning kun kan opfylde
+ * samtidig ved at have præcis én kanal:
+ *
+ *  1. teksten findes ikke som synlig tekst i dokumentet, og
+ *  2. den findes som ikonets tilgængelige navn (MUI's `Tooltip` sætter `aria-label` på den disablede knap).
+ *
+ * Ben 1 alene ville være grønt, hvis årsagen forsvandt HELT — hvilket ville gøre blokeringen usynlig og
+ * bryde den modsatte invariant. Ben 2 alene ville være grønt i den fejltilstand, brugeren rapporterede.
+ * Sammen pinner de netop "ét sted, og det sted er tooltippet".
+ */
+describe('MenberegningTab — gate-årsagen vises kun i tooltippet (UT-F07)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    mockTriggerDocumentDownload.mockClear();
+  });
+
+  it('viser "Indtastning mangler" som tooltip og IKKE som tekst ved knappen', () => {
+    hydrate({ mengrad: 10, beregningsdato: undefined }, validStamdata);
+    renderTab();
+
+    const button = screen.getByTestId('varigemen-download');
+    expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
+    // Ingen synlig tekstknude med samme besked — det var dobbeltvisningen brugeren fandt.
+    expect(screen.queryByText(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE)).toBeNull();
+  });
+
+  /**
+   * En méngrad uden for 1..120 er en RØD feltfejl, ikke en manglende indtastning. Gaten svarer derfor
+   * "Fejl i indtastning" internt — men brugeren skal fortsat møde den ENE universelle tekst, fordi
+   * årsagen ikke navngiver noget, brugeren ikke allerede kan se på det røde felt.
+   *
+   * Casen er med, fordi den skelner den universelle tekst fra "gaten har kun én besked": de to
+   * blokeringer har FORSKELLIG intern `message` og samme brugertekst.
+   */
+  it('bruger den SAMME universelle tekst for en rød feltfejl som for en manglende værdi', async () => {
+    const user = userEvent.setup();
+    hydrate({ mengrad: 10, beregningsdato: toISODateString('2020-01-01') }, validStamdata);
+    renderTab();
+
+    const input = screen.getByPlaceholderText('0');
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}{Delete}121');
+    await user.tab();
+
+    await waitFor(() => {
+      const button = screen.getByTestId('varigemen-download');
+      expect(button).toBeDisabled();
+      expect(button).toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
+    });
+    expect(screen.queryByText(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE)).toBeNull();
   });
 });

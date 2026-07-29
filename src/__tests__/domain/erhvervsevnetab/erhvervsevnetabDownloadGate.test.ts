@@ -125,13 +125,13 @@ describe('evaluateEetFaneDownloadGate (ren sandhedstabel)', () => {
   it('blokerer med field-error ved en rød feltfejl', () => {
     const gate = evaluateEetFaneDownloadGate('efterEal', faneProjection([fieldIssue('field-eal-eet-pct')], null));
     expect(gate.canDownload).toBe(false);
-    expect(gate.reasons[0]).toEqual({ code: 'eet-efter-eal:field-error', message: 'Fejl i indtastning' });
+    expect(gate.reasons[0]).toEqual({ code: 'eet-efter-eal:field-error', message: 'Fejl i indtastning', kind: 'missing-input' });
   });
 
   it('blokerer med missing-fields, når fanen KUN er blokeret af manglende/afledte consumer-fejl', () => {
     const gate = evaluateEetFaneDownloadGate('efterEal', faneProjection([missingIssue('eet-pct-missing')], null));
     expect(gate.canDownload).toBe(false);
-    expect(gate.reasons[0]).toEqual({ code: 'eet-efter-eal:missing-fields', message: 'Indtastning mangler' });
+    expect(gate.reasons[0]).toEqual({ code: 'eet-efter-eal:missing-fields', message: 'Indtastning mangler', kind: 'missing-input' });
   });
 
   it('prioriterer en rød feltfejl over en manglende-felt-fejl', () => {
@@ -148,6 +148,7 @@ describe('evaluateEetFaneDownloadGate (ren sandhedstabel)', () => {
     expect(gate.reasons[0]).toEqual({
       code: 'eet-loebende-ydelser:no-result',
       message: 'Beregning kan ikke dannes',
+      kind: 'missing-input',
     });
   });
 
@@ -159,6 +160,7 @@ describe('evaluateEetFaneDownloadGate (ren sandhedstabel)', () => {
     expect(gate.reasons[0]).toEqual({
       code: 'eet-differencekrav:internal-error',
       message: 'Beregning kan ikke dannes',
+      kind: 'missing-input',
     });
   });
 });

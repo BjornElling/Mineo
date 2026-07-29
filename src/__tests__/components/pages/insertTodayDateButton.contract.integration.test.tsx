@@ -25,7 +25,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 import { slimInputStore, __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 import type { FieldRef, PersistedInputSections } from '../../../inputCore';
 import { forsoergertabBeregningsdatoField } from '../../../inputCore/catalog/forsoergertabDescriptors';

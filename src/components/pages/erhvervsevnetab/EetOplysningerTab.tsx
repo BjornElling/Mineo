@@ -2,8 +2,9 @@ import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import ContentBox from '../../layout/ContentBox';
+import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
-import AmountField from '../../../inputCore/react/fields/AmountField';
+import AmountField, { MILLION_AMOUNT_FIELD_WIDTH } from '../../../inputCore/react/fields/AmountField';
 import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
 import DateField from '../../../inputCore/react/fields/DateField';
 import PercentField from '../../../inputCore/react/fields/PercentField';
@@ -68,7 +69,10 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
 
         {visKoenFelt && (
           <Box className="row--label-right-hover">
-            <Typography className="row--text">Køn</Typography>
+            <Typography className="row--text">
+              Køn
+              <InfoTooltipIcon title={'For skader før 01-03-2015 beroede\nkapitalfaktorer på skadelidtes køn'} />
+            </Typography>
             <Box className="row--label-right-hover__content">
               <ChoiceField<Koen>
                 field={koenRef}
@@ -112,6 +116,8 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               field={aslAarsloenRef}
               location={LOCATIONS.aslAarsloen}
               name="aslAarsloen"
+              allowDecimals={false}
+              width={MILLION_AMOUNT_FIELD_WIDTH}
             />
           </Box>
         </Box>
@@ -133,6 +139,8 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               field={ealAarsloenRef}
               location={LOCATIONS.ealAarsloen}
               name="ealAarsloen"
+              allowDecimals={false}
+              width={MILLION_AMOUNT_FIELD_WIDTH}
             />
           </Box>
         </Box>

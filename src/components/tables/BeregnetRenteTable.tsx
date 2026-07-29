@@ -40,6 +40,7 @@ import {
 import GridTextCell from '../../inputCore/react/fields/GridTextCell';
 import GridChoiceCell from '../../inputCore/react/fields/GridChoiceCell';
 import { filterIntegerKeyDown } from '../inputs/inputKeyFilters';
+import { codecAllowsNegative } from '../../inputCore/react/fields/signPolicy';
 import {
   rentekravRowsCollectionRef,
   rentekravBelobField,
@@ -71,6 +72,15 @@ const ENHED_OPTIONS: readonly { value: TillaegstidEnhed; label: string }[] = [
 
 // Kolonneindeks (matcher grid-core-koordinaten `{ rowId, colIndex }`): belob=0, renterFra=1, tillaegstid=2, enhed=3.
 const COL = { belob: 0, renterFra: 1, tillaegstid: 2, enhed: 3 } as const;
+
+/**
+ * Tillægstidens fortegns-politik, læst af feltets EGET codec (UT-F08).
+ *
+ * Modulniveau, fordi politikken er en statisk egenskab ved descriptoren og ikke afhænger af rækken — så
+ * opslaget ikke gentages pr. celle-render. Cellen bruger `GridTextCell` direkte (den er 50 px bred og
+ * centreret) og får derfor ikke `GridIntegerCell`'s automatiske opslag.
+ */
+const TILLAEGSTID_ALLOWS_NEGATIVE = codecAllowsNegative(rentekravTillaegstidField.codec);
 
 export type BeregnetRenteTableProps = Readonly<{
   /** De committede rækker (læst reader-afledt af forælderen), i den afsluttede rækkefølge. */
@@ -153,7 +163,9 @@ const BeregnetRenteRow = React.memo(
                 <GridTextCell<number | undefined>
                   gridCell={gc(COL.tillaegstid)}
                   cell={buildCellSpec<number | undefined>(renderRow, rentekravTillaegstidField, COL.tillaegstid)}
-                  keyFilter={(e) => filterIntegerKeyDown(e, { allowNegative: true })}
+                  // Politikken læses af descriptoren (UT-F08); `tillaegstid` er 0..99 og altså ikke-negativ.
+                  // Callsitet hardkodede før `true` i strid med feltets egen erklæring.
+                  keyFilter={(e) => filterIntegerKeyDown(e, { allowNegative: TILLAEGSTID_ALLOWS_NEGATIVE })}
                   placeholder="0"
                   textAlign="center"
                   inputMode="numeric"

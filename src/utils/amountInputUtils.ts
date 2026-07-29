@@ -1,4 +1,9 @@
 export const DEFAULT_AMOUNT_PLACEHOLDER = '0,00';
+/**
+ * Placeholder for beløbsfelter, der ikke tillader decimaler. Et felt, hvor kommaet er blokeret, må ikke
+ * love en decimalhale i sin placeholder — vælg denne ud fra `allowDecimals`, ikke i hånden pr. kaldssted.
+ */
+export const INTEGER_AMOUNT_PLACEHOLDER = '0';
 export const DEFAULT_AMOUNT_PRECISION = 2;
 // Gælder hele det rå input — også flerleddede udtryk (fx "12345,67 + 89012,34 - …").
 // 64 var dimensioneret til ét enkelt beløb og afviste gyldige udtryk med ~6+ led

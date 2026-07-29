@@ -112,13 +112,14 @@ describe('dokumentgates er formatblinde (R6-F03, §10-kriterium 27)', () => {
 import type { DocumentProjectionResult } from './documentDefinition';
 import type { DocumentSourceContext } from './documentSourceContext';
 import type { MineoDocumentGateSettings } from './mineoDocumentDefinition';
+import { blockedProjection } from './documentOutcome';
 
 export const formatDependentGate = (
   context: DocumentSourceContext<MineoDocumentGateSettings>
 ): DocumentProjectionResult<string> =>
   context.settings.documentDownloadFormat === 'pdf'
     ? { status: 'ready', input: 'kun-pdf' }
-    : { status: 'blocked', reasons: [{ code: 'format', message: 'kun PDF' }] };
+    : blockedProjection('format', 'kun PDF');
 `);
 
     // TS2339 = "Property does not exist on type". Koden asserteres eksplicit, så en fremtidig
@@ -143,13 +144,14 @@ export const formatDependentGate = (
 import type { DocumentProjectionResult } from './documentDefinition';
 import type { DocumentSourceContext } from './documentSourceContext';
 import type { MineoDocumentGateSettings } from './mineoDocumentDefinition';
+import { blockedProjection } from './documentOutcome';
 
 export const formatBlindGate = (
   context: DocumentSourceContext<MineoDocumentGateSettings>
 ): DocumentProjectionResult<string> =>
   context.settings.allowReguleringMedUdloebMedMaaneder > 0
     ? { status: 'ready', input: 'ok' }
-    : { status: 'blocked', reasons: [{ code: 'regel', message: 'ingen udløbsmåneder' }] };
+    : blockedProjection('regel', 'ingen udløbsmåneder');
 `);
 
     expect(diagnostics.length, `kontrolproben fejlede:\n${diagnosticTexts(diagnostics)}`).toBe(0);

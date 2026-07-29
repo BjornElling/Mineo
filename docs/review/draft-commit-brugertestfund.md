@@ -4,7 +4,7 @@
 parallelt med reviewet i `draft-commit-greenfield-review-plan.md`.
 
 **Status:** I gang  
-**Senest opdateret:** 2026-07-28
+**Senest opdateret:** 2026-07-29
 
 ## Bindende arbejdsmetode
 
@@ -44,6 +44,8 @@ bærer den samlede tælling og rettelsesrækkefølgen.
 | UT-F04 | Tilføjelse af ansættelsesforhold udløser React-crash | Genskabt | Nested feltbinding i fælles tabel-/celleinfrastruktur | **Rettet 2026-07-28** |
 | UT-F05 | Dags-dato-knappen udløser `setImmediateField`-fejl | Fejlmekanisme genskabt | Fælles feltkommandokontrakt og fem knapintegrationer | **Rettet 2026-07-28** |
 | UT-F06 | Års-placeholder viser en valideringsgrænse | Genskabt | Placeholder-ejerskab i den fælles feltfamilie | **Rettet 2026-07-28** |
+| UT-F07 | Download-gate-årsagen vises både som tekst og tooltip | Genskabt | Gate-årsagens klassifikation + 9 dokumentdefinitioner | **Rettet 2026-07-29** |
+| UT-F08 | Minus kan tastes i et ikke-negativt procentfelt | Genskabt | Fortegns-politik i hele den numeriske feltfamilie | **Rettet 2026-07-29** |
 
 ## Afklaret uden fund
 
@@ -68,9 +70,9 @@ fund og medfører ingen anbefalet ændring.
 
 ## Indmeldte fund
 
-Alle fem indmeldte fund er lukket pr. 2026-07-28 (UT-F02 og UT-F06 i etape 7); UT-F01 blev afvist med evidens
-ovenfor. Hver enkelt bevarer sin fulde analyse, fordi analysen er evidensen for løsningens form — ikke kun for
-at fejlen fandtes.
+Alle indmeldte fund er lukket: UT-F02–UT-F06 pr. 2026-07-28 (UT-F02 og UT-F06 i etape 7), UT-F07 og UT-F08 pr.
+2026-07-29; UT-F01 blev afvist med evidens ovenfor. Hver enkelt bevarer sin fulde analyse, fordi analysen er
+evidensen for løsningens form — ikke kun for at fejlen fandtes.
 
 ### UT-F02 — Enter på dropdown i tabel udløser grid-navigation
 
@@ -864,3 +866,179 @@ commit, route-/faneskift før undo, og sorteret tabel — er IKKE tilføjet som 
 at de alle afhænger af rækkens IDENTITET og ikke af feltets codec eller af navigationen: identiteten er nu
 bevist bevaret af de fire flader ovenfor, og dropdown-casen dækker allerede en anden commit-art. Det er en
 afgrænsning af dækningen, ikke af rettelsen.
+
+### UT-F07 — Download-gate-årsagen vises både som tekst og som tooltip
+
+**Indmeldt symptom:** På Varigt mén vises ved en deaktiveret download-knap BÅDE et tooltip ved hover og en
+identisk tekst foran knappen — begge med »Indtastning mangler«. Der skal kun vises tooltip. Samme fejl går igen
+på Forsørgertab-siden, hvor »Der er ikke beregnet en PDF-klar EAL- eller ASL-del.« står både som tekst og
+tooltip. Tooltip-teksten skal desuden være væsentlig simplere: mangler der indtastninger, skal den universelt
+bare angive »Indtastning mangler«.
+
+**Genskabelse:** Genskabt ved kildelæsning og bekræftet af mutationstest gennem de ægte sider. Dobbeltvisningen
+stod ordret i to komponenter — `MenberegningTab.tsx:347-351` og `ForsoergertabBeregningSection.tsx:57-63` —
+hvor et `<Tooltip title={download.disabledReason}>` wrappede en `<Typography>` med PRÆCIS samme udtryk som
+barn. En repo-bred søgning bekræftede, at netop de to flader (og ingen andre) havde mønsteret.
+
+**Kerneårsag — to lag.**
+
+1. **Dobbeltvisningen.** De to flader rendererede årsagen i to kanaler. Det var samtidig et brud på den
+   kontrakt, der allerede fandtes: `page-component-contract.md` §11.1 placerer blokerings-årsagen i
+   TOOLTIPPET (`disabledReason`), og `error-contract.md` fastslår, at der ikke vises inline-valideringstekst.
+   Symptomet var altså ikke en manglende regel, men to flader der ikke fulgte den.
+2. **Den lange tekst.** Gate-årsagen havde kun `{code, message}`, hvor `message` var både den interne
+   forklaring OG brugerteksten. Beskederne beskrev derfor gatens egen tilstandsmaskine — »Der er ikke beregnet
+   en PDF-klar EAL- eller ASL-del.«, »Ingen gyldige rækker i tabel«, »Fatale beregningsfejl«, »Mangler
+   periode-data« — frem for hvad brugeren skal GØRE. Der fandtes ingen måde at skelne »brugeren mangler at
+   indtaste noget« fra »her er en konkret fejl, det er værd at citere« (EO-rækkemotorens
+   »Feriegodtgørelse er ikke udfyldt«). En forenkling kunne derfor kun laves med strengmatch pr. gate.
+
+**Strukturel vurdering:** Problemet er ejerskabet af den BRUGERRETTEDE tekst. Beskeden blev formuleret i
+domænelaget og forbrugt uændret af UI'et, uden at nogen af de to lag ejede oversættelsen fra tilstand til
+brugertekst. Derfor kunne hver flade vælge sin egen visning, og hver gate sin egen ordlyd.
+
+**Berørte flader:** Ud over de to indmeldte fandt typeændringen NI dokumentdefinitionsfiler, som byggede
+`{status:'blocked', reasons:[{code,message}]}` i hånden og dermed omgik gate-konstruktørerne helt:
+`varigeMen`, `satser`, `forsoergertab`, `eet`, `aarsloen`, `renteberegning`, `eo`, `regulering` og
+MinProcesrente-standalone. Det var en PARALLEL vej til samme datastruktur — den slags, der kan drifte uset.
+
+**Gennemført løsning:**
+
+1. **Årsagen bærer sin egen klassifikation.** `DocumentDownloadGateReason` har nu
+   `kind: 'missing-input' | 'specific'`. `resolveDocumentGateTooltip` er det ENE sted, klassen bliver tekst:
+   `missing-input` viser `DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE` (»Indtastning mangler«), `specific` citeres
+   ordret. `message` bevares ALTID som den interne forklaring, så koder, tests og logs stadig kan skelne to
+   blokeringer, der deler brugertekst. Klassifikationen er DATA frem for et strengmatch, netop fordi et match
+   ville drifte.
+2. **`blockDocumentDownload` defaulter til `missing-input`.** En gate skal aktivt vælge `specific`. De to
+   steder, der har en ægte felt-/rækkenavngiven besked, gør det: EO-gaten og EO-dokumentprojektionen. De
+   fire issue-baserede gates (aarsløn stamdata/range, satser, renteberegning, regulering) bruger
+   `blockedFromIssues`, som citerer issuet hvis det findes og ellers falder til den universelle tekst.
+3. **Den parallelle vej er lukket.** `blockedProjection` / `blockedProjectionWithSpecificReason` /
+   `blockedFromIssues` i `documentOutcome.ts` er nu den ene måde en projektion siger »blokeret«. Alle ni
+   filer er migreret; `reguleringDocumentDefinitions`' lokale `blocked()`-helper er slettet. Typen tvinger
+   klassifikationen frem — det var TYPEÆNDRINGEN, der fandt de ni filer, ikke en søgning.
+4. **Dobbeltvisningen er fjernet** på begge flader; årsagen står kun i tooltippet.
+5. **Forsørgertab bruger nu `download.errorMessage` frem for `visibleDocumentFailureMessage`.** Det er
+   nødvendigt og ikke kosmetik: preflighten gater EFTER commit-barrieren
+   (`documentLifecycle.ts:168-171`), så et klik på en ENABLED knap kan blokere, fordi settlet netop gjorde
+   værdien ugyldig. Tooltippet er ikke fremme efter et klik, og denne side har ingen shake-/fokus-feedback
+   (modsat Varigt mén). Filtreredes gate-blokeringen væk, ville netop det klik være lydløst — den MODSATTE
+   fejl af den indmeldte. Samtidig er fladens inline udfaldsrække erstattet af den kanoniske
+   `DocumentOutcomeMessage`, hvilket lukker den femte rækkeudgave, R6-F02 lod stå.
+
+**Dækning (mutationstestet, ikke kun grøn):** fire nye integrationstests gennem de ÆGTE sider —
+`MenberegningTab.integration.test.tsx` (2) og `Forsoergertab.integration.test.tsx` (2). Hver måler TO ting
+samtidig, fordi kun begge sammen udelukker begge fejlretninger: teksten findes IKKE som synlig tekstknude,
+OG den findes som ikonets tilgængelige navn. Ét ben alene ville være grønt, hvis årsagen forsvandt helt
+(usynlig blokering) eller hvis dobbeltvisningen bestod. Varigt mén dækker desuden BEGGE gate-udfald
+(manglende værdi og rød feltfejl) og beviser, at de deler brugertekst men har forskellig intern `message`.
+
+**Mutationsbevis:** genindføres dobbeltvisningen i `MenberegningTab`, fejler netop de 2 nye tests med
+brugerens symptom (`expected <p …> to be null`). Erstattes `resolveDocumentGateTooltip` med `reason.message`,
+fejler præcis den test, der hævder ÉN universel tekst for to forskellige blokeringer. Sættes Forsørgertabs
+kilde tilbage til `visibleDocumentFailureMessage`, fejler netop aktiverings-testen.
+
+**Konsekvens:** Ren visnings-/tekstfejl. Ingen beregningstal, gate-beslutninger eller persisterede data er
+påvirket — `canDownload` er uændret for hver enkelt gate.
+
+**Alvor:** Mindre (visning), men bredt: alle download-flader delte den lange beskedform.
+
+**Kræver godkendelse:** Nej. Brugeren har udtrykkeligt fastlagt både at kun tooltippet skal vises, og at
+teksten universelt skal være »Indtastning mangler«.
+
+**Status: Rettet 2026-07-29.**
+
+### UT-F08 — Minus kan tastes som første tegn i et ikke-negativt procentfelt
+
+**Indmeldt symptom:** I procentfelter, der ikke må være negative, kan der alligevel indtastes et minustegn som
+første indtastning. Det må ikke kunne ske. Brugeren lod det være åbent, om blokeringen sker via en »kan være
+negativ«-værdi på feltet eller udledes af grænseværdierne, og bad om den strukturelt bedste løsning.
+
+**Genskabelse:** Genskabt deterministisk gennem det ægte `PercentField` + produktions-runtime. Diagnosen viste,
+at `-5` blev committet CANONICAL i den autoritative store (`{"feriePct":-5}`) uden nogen rejection — altså ikke
+kun et kosmetisk problem i draften. En efterfølgende probe af codec-laget viste årsagen:
+
+```text
+percent.acceptsInitialKey('-') = true      (på et allowNegative:false codec)
+integer.acceptsInitialKey('-') = true      (på et allowNegative:false codec)
+amount.acceptsInitialKey('-')  = true
+```
+
+**Kerneårsag:** `allowNegative` var erklæret på HVERT numerisk codec i produktionskataloget — 30+ steder — og
+honoreret af INGENTING. Konfigurationen blev alene brugt til en construction-time-sanity-check
+(`assertNumericBounds`); den nåede aldrig frem til nogen adfærd. I stedet hardkodede hver feltkomponent sit
+eget svar, og de var indbyrdes UENIGE for de SAMME descriptorer:
+
+| Komponent | Hardkodet svar | Feltets faktiske erklæring |
+|---|---|---|
+| `PercentField` | `allowNegative: true` | alle procentfelter er `false` |
+| `GridPercentCell` | `allowNegative: false` | samme felter — modsat svar |
+| `IntegerField` | `allowNegative: true` | alle heltalsfelter er `false` |
+| `GridIntegerCell` | `allowNegative: true` | månedscellen er 1..12 |
+| `MenberegningTab` (méngrad) | `allowNegative: false` | lokal gentagelse af feltets egen regel |
+| `BeregnetRenteTable` (tillægstid) | `allowNegative: true` | feltet er 0..99 |
+
+Fundet er derfor ikke »en manglende `false` på ét callsite«, men at politikken slet ikke havde en vej fra det
+sted, den ER erklæret, til det sted, den skal virke. To flader af samme feltfamilie kunne svare forskelligt,
+uden at noget blev rødt.
+
+**Strukturel vurdering og valg af løsning:** Brugerens to muligheder blev vurderet. At udlede fortegnet af
+GRÆNSEVÆRDIERNE (`minValue >= 0`) blev forkastet: flere felter erklærer `allowNegative: false` UDEN `minValue`
+på codecet (grænsen ligger i en separat validator), så udledningen ville fail-open netop dér. Den erklærede
+politik er desuden det, der semantisk menes. Løsningen er derfor en EKSPLICIT politik — men gjort til DATA på
+codecet frem for en parameter, hver komponent skal huske.
+
+**Gennemført løsning:**
+
+1. `FieldCodec` bærer nu `signPolicy?: 'nonNegative' | 'signed'`, udledt af `allowNegative` i de tre numeriske
+   factories. `createStringBackedFieldCodec` VIDERESTILLER det indre codecs politik — uden det ville
+   månedscellen (et heltal gennem adapteren) miste sin politik og få minus tilbage.
+2. `acceptsInitialKey` honorerer nu politikken: minus åbner kun editoren på et felt, der må være negativt.
+   Det var den halvdel, der lukkede brugerens præcise symptom (minus som FØRSTE tegn).
+3. `src/inputCore/react/fields/signPolicy.ts` er det ene opslag fra descriptor til politik
+   (`fieldAllowsNegative` / `codecAllowsNegative`). Alle SEKS callsites i tabellen ovenfor læser den nu.
+4. **Bevidst afgrænsning — beløbsfelter.** `acceptsInitialKey` tillader fortsat `-` for BEGGE politikker i
+   beløbsfamilien: minus er også SUBTRAKTION i et udtryk (»5000-200«), og et ikke-negativt felt må gerne
+   regne sig ned til et lovligt resultat. Tegnfilteret blokerer netop kun det UNÆRE minus
+   (`containsUnaryMinusToken`), og den skelnen kan et enkelt-tegns-opslag ikke foretage.
+5. **Bevidst afgrænsning — §1.6 er urørt.** `parseForSettle` er fortsat fortegns-BLIND, og paste bevarer et
+   indsat minus. En negativ værdi, der NÅR frem — fx fra en indlæst `.eo`-fil — committes derfor stadig
+   canonical og bærer sit røde bounds-issue, frem for at få fortegnet stille fjernet eller blive afvist som
+   råtekst. Politikken styrer udelukkende, hvad der kan TASTES.
+
+**Dækning (mutationstestet):** `fieldSignPolicy.contract.test.tsx` — 13 tests i TRE lag, fordi en rettelse i
+kun ét lag ville efterlade fejlen i et andet: codec-laget (politik + `acceptsInitialKey` i begge retninger,
+adapter-arv, beløbs-undtagelsen, §1.6-afgrænsningen), katalog-laget (INGEN numerisk produktionsdescriptor
+mangler politik; alle procentfelter er ikke-negative; de fortegnede er UDELUKKENDE beløbsfelter — sidste ben
+er ankeret mod, at »alt er nonNegative« ville bestå trivielt) og surface-laget gennem de ægte komponenter.
+
+Surface-testene måler bevidst i en ÅBEN editor med caret på position 0. Det er afgørende: et minus efter et
+ciffer giver »1-«, som mønsteret afviser UANSET politikken, så en test der tastede minus dér ville være grøn
+med politikken slået fra. Netop den fælde faldt testens første udgave i, og det var en mutationstest af
+`PercentField`, der afslørede den. Samme mutationstest afslørede også, at testkatalogets `belobField` er
+`allowNegative: false` og derfor ikke kunne bære »fortegnet beløb«-casen; den bruger nu et ægte
+produktionsfelt (årslønstabellens beløbskolonne).
+
+**Værn:** AST-reglen `input/sign-policy-from-descriptor` forbyder en hardkodet `allowNegative`-literal i et
+fortegns-følsomt tegnfilter-kald i HELE `src/` (undtagen filter-ejeren selv, hvor det ER parameteren). Scopet
+er bredt med vilje: to af de seks drifter stod i en sidekomponent og en tabel, ikke i den fælles feltfamilie.
+Også en KORREKT literal er forbudt — den er en anden samtidig sandhed om feltets politik. Typen kan ikke lukke
+resten, da `allowNegative` er en almindelig `boolean` i filter-optionerne.
+
+**Mutationsbevis (fire mutationer, hver dræbt af netop den test der hævder mekanismen):** hardkodes
+`PercentField` tilbage til `true`, fejler surface-testen med brugerens symptom; lader `acceptsInitialKey`
+acceptere minus igen, fejler codec-testen; fjernes adapterens viderestilling, fejler adapter-testen; hardkodes
+`signPolicy` til `'signed'`, fejler 4 tests på tværs af alle tre lag. AST-reglen bliver rød med
+`input/sign-policy-from-descriptor` + fil:linje, når en komponent igen hardkoder literalen.
+
+**Konsekvens:** En ulovlig negativ værdi kunne indtastes og blev committet canonical. Den blev fanget af
+bounds-validatoren som en rød feltfejl og kunne derfor ikke fodre en motor (`error-contract.md` §1.1), så der
+er ikke observeret forkerte beregningstal. Fejlen var i indtastnings-værnet, ikke i beregningskæden.
+
+**Alvor:** Væsentlig — feltfamiliens erklærede regler var uden virkning på tværs af hele det numeriske input.
+
+**Kræver godkendelse:** Nej. Brugeren har udtrykkeligt fastlagt den ønskede adfærd og overlod valget af
+mekanisme til den strukturelt bedste løsning.
+
+**Status: Rettet 2026-07-29.**

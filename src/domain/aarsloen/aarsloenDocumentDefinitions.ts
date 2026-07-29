@@ -13,7 +13,7 @@ import {
   type MineoDocumentDefinition,
   type MineoDocumentGateSettings,
 } from '../../document/definition/mineoDocumentDefinition';
-import { toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjection, toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import type { AarsloenBeregningResult } from '../../types/calculation';
@@ -93,10 +93,7 @@ export const aarsloenDocumentDefinition: MineoDocumentDefinition<AarsloenDocumen
       // sikkerhedsnet, ikke en selvstændig gate.
       const { calculation, documentStamdata, values } = projection;
       if (calculation === null || documentStamdata.status !== 'ready') {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'aarsloen:no-result', message: 'Årslønsberegningen kan ikke dannes' }],
-        };
+        return blockedProjection('aarsloen:no-result', 'Årslønsberegningen kan ikke dannes');
       }
 
       return {
@@ -180,10 +177,7 @@ export const shDageDocumentDefinition: MineoDocumentDefinition<ShDageDocumentInp
       }
       const { calculation, documentStamdata } = projection;
       if (calculation?.periodeData == null || documentStamdata.status !== 'ready') {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'sh-dage:no-result', message: 'SH-dage kan ikke dannes' }],
-        };
+        return blockedProjection('sh-dage:no-result', 'SH-dage kan ikke dannes');
       }
 
       return {

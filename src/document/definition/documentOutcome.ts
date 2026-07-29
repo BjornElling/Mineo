@@ -16,7 +16,11 @@
  *   - `failed` med `kind: 'dev-server-unavailable'` — kun DEV; miljøproblem, ikke en programfejl.
  *   - `failed` med `kind: 'runtime'` — uventet. Den ENESTE klasse der hører til systemfejl-sinken.
  */
-import type { DocumentDownloadGateReason } from '../layout/documentGateTypes';
+import {
+  missingInputReason,
+  specificReason,
+  type DocumentDownloadGateReason,
+} from '../layout/documentGateTypes';
 import type { DocumentOutputId } from './documentOutputId';
 
 /**
@@ -54,8 +58,58 @@ export const isNonEmptyReasons = (
  */
 export const toGateReasons = (
   reasons: readonly DocumentDownloadGateReason[],
-  fallback: DocumentDownloadGateReason
-): DocumentGateReasons => (isNonEmptyReasons(reasons) ? reasons : [fallback]);
+  fallback: Readonly<{ code: string; message: string }>
+): DocumentGateReasons => (
+  isNonEmptyReasons(reasons) ? reasons : [missingInputReason(fallback.code, fallback.message)]
+);
+
+/**
+ * Den blokerede gren af et projektionsresultat. Den er UAFHÆNGIG af projektionens værditype, så samme
+ * værdi kan returneres, uanset hvilket `DocumentProjectionResult<T>` callsiten skal opfylde.
+ */
+export type BlockedProjection = Readonly<{ status: 'blocked'; reasons: DocumentGateReasons }>;
+
+/**
+ * Den ENE måde en projektion udtrykker "blokeret" med præcis én årsag (UT-F07).
+ *
+ * Projektionernes fail-closed sikkerhedsnet — "Beregning kan ikke dannes", "Fejl i indtastning",
+ * "Rentelinjen findes ikke længere" — beskrev alle en TILSTAND i gaten, ikke en handling brugeren kan
+ * udføre. De er derfor `missing-input`, så brugeren møder den universelle tekst. En projektion, der
+ * undtagelsesvist HAR en konkret, brugerrettet besked, bruger `blockedProjectionWithSpecificReason`.
+ *
+ * Helperen findes, fordi de ni definitionsfiler før byggede `{status:'blocked', reasons:[{code,message}]}`
+ * i hånden — en parallel vej, der omgik gate-konstruktørerne og derfor kunne glemme klassifikationen.
+ */
+export const blockedProjection = (
+  code: string,
+  message: string
+): BlockedProjection => ({ status: 'blocked', reasons: [missingInputReason(code, message)] });
+
+/** Som {@link blockedProjection}, men beskeden citeres ordret til brugeren. */
+export const blockedProjectionWithSpecificReason = (
+  code: string,
+  message: string
+): BlockedProjection => ({ status: 'blocked', reasons: [specificReason(code, message)] });
+
+/**
+ * Blokering ud fra en projektions ISSUE-liste — mønsteret "citér issuet, hvis der er et; ellers en generisk
+ * tilstandsbeskrivelse". Det stod før udskrevet fire steder (satser ×2, renteberegning ×2, aarsløn-gaten,
+ * rente-rækken) med hver sin `?? 'fallback'`-kæde.
+ *
+ * Skelnen er hele pointen (UT-F07): et issue navngiver det felt eller den grænse, brugeren skal rette, og
+ * citeres derfor ordret. Den generiske fallback ("Stamdata indeholder fejl") beskriver kun en tilstand og
+ * bliver den universelle "Indtastning mangler".
+ */
+export const blockedFromIssues = (
+  code: string,
+  issues: readonly Readonly<{ message: string }>[] | undefined,
+  genericFallback: string
+): BlockedProjection => {
+  const issueMessage = issues?.[0]?.message;
+  return issueMessage === undefined
+    ? blockedProjection(code, genericFallback)
+    : blockedProjectionWithSpecificReason(code, issueMessage);
+};
 
 /**
  * En forventelig afvisning. Ingen af disse er programfejl, og ingen af dem må nå

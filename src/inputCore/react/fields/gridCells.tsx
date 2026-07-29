@@ -16,6 +16,7 @@ import { DATE_FORMAT_PLACEHOLDER, WEEK_FORMAT_PLACEHOLDER, YEAR_FORMAT_PLACEHOLD
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import type { CellSpec } from '../useCellEditor';
 import GridTextCell from './GridTextCell';
+import { fieldAllowsNegative } from './signPolicy';
 
 // Grid-celle-familier (§2.5/§3.5): tynde skaller over `GridTextCell`. Hver vælger kun sit
 // tegnfilter + adornment + justering; parse/format/paste og commit-intervaller ejes af descriptorens codec +
@@ -52,9 +53,12 @@ const ExpressionIndicator = (): React.ReactElement => (
 export const GridAmountCell = (
   { gridCell, cell, placeholder = DEFAULT_AMOUNT_PLACEHOLDER, inputRef }: BaseCellProps<AmountValue | undefined>
 ): React.ReactElement => {
+  // Fortegns-politikken kommer fra cellens egen descriptor (UT-F08), ikke fra et hardkodet flag: løntabellens
+  // beløbskolonner ER fortegnede, mens fx et 0-og-op-beløb i en anden tabel ikke er — og cellen deler kode.
+  const allowNegative = fieldAllowsNegative(cell.field);
   const keyFilter = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, { allowNegative: true, allowDecimals: true }),
-    []
+    (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, { allowNegative, allowDecimals: true }),
+    [allowNegative]
   );
   return (
     <GridTextCell<AmountValue | undefined>
@@ -82,9 +86,13 @@ export const GridPercentCell = (
   { gridCell, cell, placeholder = '0', externalErrorMessage, inputRef, allowDecimals = false }:
     BaseCellProps<number | undefined> & Readonly<{ allowDecimals?: boolean }>
 ): React.ReactElement => {
+  // Politikken læses nu af descriptoren (UT-F08). Cellen svarede før hardkodet `false` — tilfældigvis RIGTIGT
+  // for alle nuværende procent-descriptorer, men uden nogen forbindelse til det, de erklærede. Netop derfor
+  // kunne formular-pendanten svare `true` på samme felter, uden at noget blev rødt.
+  const allowNegative = fieldAllowsNegative(cell.field);
   const keyFilter = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => filterPercentKeyDown(e, { allowNegative: false, allowDecimals }),
-    [allowDecimals]
+    (e: React.KeyboardEvent<HTMLInputElement>) => filterPercentKeyDown(e, { allowNegative, allowDecimals }),
+    [allowNegative, allowDecimals]
   );
   return (
     <GridTextCell<number | undefined>
@@ -107,10 +115,13 @@ export const GridPercentCell = (
 export const GridIntegerCell = <T extends string | number | undefined>(
   { gridCell, cell, placeholder, inputRef }: BaseCellProps<T>
 ): React.ReactElement => {
+  // Fortegns-politikken kommer fra descriptoren (UT-F08). Månedscellen er et string-backed heltal 1..12, så
+  // adapterens viderestilling af politikken er det, der gør minus umuligt at taste her.
+  const allowNegative = fieldAllowsNegative(cell.field);
   const keyFilter = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) =>
-      filterIntegerKeyDown(e, { allowNegative: true }),
-    []
+      filterIntegerKeyDown(e, { allowNegative }),
+    [allowNegative]
   );
   return (
     <GridTextCell<T>

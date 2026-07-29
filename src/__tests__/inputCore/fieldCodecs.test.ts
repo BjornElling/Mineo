@@ -87,4 +87,30 @@ describe('fieldCodecs', () => {
     expect(codec.parseForSettle('1.5/3')).toEqual({ status: 'rejected', reason: 'format' });
     expect(codec.parseForSettle('')).toEqual({ status: 'valid', value: undefined });
   });
+
+  /**
+   * Et beløbsfelt, der ikke tager imod et komma, må heller ikke VISE et. Før denne binding hardkodede
+   * amount-codec'en præcision 2 i både `format` og `formatForEdit`, så et heltalsfelt viste "450.000,00" —
+   * en decimalhale brugeren hverken kunne skrive eller rette. Testen holder de to sider af samme
+   * `allowDecimals`-flag sammen, og kontrasten til `allowDecimals: true` sikrer, at den måler netop
+   * flaget og ikke blot "formatterer uden komma altid".
+   */
+  it('binder beløbs-VISNING til allowDecimals, så et komma-frit felt heller ikke viser komma', () => {
+    const shared = { allowNegative: false, minValue: 1000, maxValue: 9999999 } as const;
+    const integerOnly = createAmountFieldCodec({ ...shared, allowDecimals: false });
+    const withDecimals = createAmountFieldCodec({ ...shared, allowDecimals: true });
+    const value = { kind: 'number', value: 450000 } as const;
+
+    expect(integerOnly.format(value)).toBe('450.000');
+    expect(integerOnly.formatForEdit(value)).toBe('450.000');
+    // Kontrasten: samme værdi, samme codec-familie — kun flaget adskiller dem.
+    expect(withDecimals.format(value)).toBe('450.000,00');
+    expect(withDecimals.formatForEdit(value)).toBe('450.000,00');
+
+    // Et komma må ikke åbne editoren i et felt, hvor tegnfilteret straks ville blokere det.
+    expect(integerOnly.acceptsInitialKey(',')).toBe(false);
+    expect(withDecimals.acceptsInitialKey(',')).toBe(true);
+    // Cifre åbner stadig editoren i begge — reglen rammer kommaet, ikke al indtastning.
+    expect(integerOnly.acceptsInitialKey('5')).toBe(true);
+  });
 });

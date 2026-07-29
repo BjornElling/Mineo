@@ -10,7 +10,7 @@ import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../../../../settings/appSe
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../../inputCore/react/productionInputRuntime';
+} from '../../../../inputCore/react';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
 import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 import { settleField } from '../../../../inputCore/inputReducer';

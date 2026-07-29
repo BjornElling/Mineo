@@ -4,7 +4,7 @@ import { renderHook } from '@testing-library/react';
 import {
   captureProductionEvaluationSource,
   useSettingsRevisionBridge,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../../settings/appSettingsSchema';
 import { SOURCE_SETTINGS_KEYS, projectSourceSettings } from '../../../settings/sourceSettings';

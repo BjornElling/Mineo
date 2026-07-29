@@ -50,6 +50,7 @@ import {
 import {
   cellBindingSingleSource,
   eoSurfaceOnAuthoritativeEditorPath,
+  fieldSignPolicyFromDescriptor,
   forbiddenLegacyIdentifier,
   inputWriteBoundary,
   derivedWritesNotFromEffects,
@@ -127,6 +128,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   inputWriteBoundary,
   cellBindingSingleSource,
   eoSurfaceOnAuthoritativeEditorPath,
+  fieldSignPolicyFromDescriptor,
   programmaticFieldCommitUsesSettle,
   derivedWritesNotFromEffects,
   issueSnapshotCapabilityBoundary,

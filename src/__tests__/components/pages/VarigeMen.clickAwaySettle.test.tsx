@@ -24,7 +24,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 import { slimInputStore, __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 
 const catalog = getProductionInputCatalog();

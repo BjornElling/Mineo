@@ -34,7 +34,8 @@ import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statisti
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
 import { defineDocumentAction, resolveDocumentDefinition } from '../../document/definition/documentAction';
 import type { DocumentBrevhovedType } from '../../document/layout/documentBrevhoved';
-import type { DocumentGateReasons } from '../../document/definition/documentOutcome';
+import type { DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
+import { blockedFromIssues, blockedProjection } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import {
   defineMineoDocument,
@@ -280,11 +281,6 @@ type ReguleringCommonInput = Readonly<{
   stamdata: StamdataValues;
 }>;
 
-const blocked = <TInput>(reasons: DocumentGateReasons): DocumentProjectionResult<TInput> => ({
-  status: 'blocked',
-  reasons,
-});
-
 /**
  * Den fælles gate for alle tre outputs, i den rækkefølge kontrakten kræver: dependencies først
  * (stamdata), så entitetens eksistens, så grundlagsvalget, så dækningsintervallet.
@@ -302,15 +298,16 @@ const projectReguleringCommon = <TInput>(
   | Readonly<{ kind: 'ok'; source: LoenudviklingSource; common: ReguleringCommonInput }> => {
   const shared = context.shared(readSharedReguleringSource);
 
+  // Alle blokeringer nedenfor betyder "der mangler en indtastning/et valg" og viser derfor den universelle
+  // tekst (UT-F07); kun stamdata-ISSUET navngiver et konkret felt og citeres ordret.
   if (shared.stamdata.status !== 'ready') {
     return {
       kind: 'blocked',
-      result: blocked([{
-        code: 'regulering:stamdata-blocked',
-        message: shared.stamdata.status === 'blocked'
-          ? shared.stamdata.issues[0]?.message ?? 'Stamdata indeholder fejl'
-          : 'Stamdata indeholder fejl',
-      }]),
+      result: blockedFromIssues(
+        'regulering:stamdata-blocked',
+        shared.stamdata.status === 'blocked' ? shared.stamdata.issues : undefined,
+        'Stamdata indeholder fejl'
+      ),
     };
   }
 
@@ -319,30 +316,24 @@ const projectReguleringCommon = <TInput>(
   if (source === null) {
     return {
       kind: 'blocked',
-      result: blocked([{
-        code: 'regulering:employment-missing',
-        message: 'Ansættelsesforholdet findes ikke længere',
-      }]),
+      result: blockedProjection('regulering:employment-missing', 'Ansættelsesforholdet findes ikke længere'),
     };
   }
 
   if (source.basis === undefined) {
     return {
       kind: 'blocked',
-      result: blocked([{
-        code: 'regulering:no-basis',
-        message: 'Der er ikke valgt et grundlag for lønudviklingen',
-      }]),
+      result: blockedProjection('regulering:no-basis', 'Der er ikke valgt et grundlag for lønudviklingen'),
     };
   }
 
   if (!isOffentligSelectionComplete(source)) {
     return {
       kind: 'blocked',
-      result: blocked([{
-        code: 'regulering:offentlig-loen-incomplete',
-        message: 'Løntrin og gruppe skal være udfyldt for den offentlige overenskomst',
-      }]),
+      result: blockedProjection(
+        'regulering:offentlig-loen-incomplete',
+        'Løntrin og gruppe skal være udfyldt for den offentlige overenskomst'
+      ),
     };
   }
 
@@ -350,10 +341,10 @@ const projectReguleringCommon = <TInput>(
   if (rawInterval === undefined || !rawInterval.fraDato || !rawInterval.tilDato) {
     return {
       kind: 'blocked',
-      result: blocked([{
-        code: 'regulering:no-interval',
-        message: 'Der findes ingen tilgængelige reguleringssatser for det valgte grundlag',
-      }]),
+      result: blockedProjection(
+        'regulering:no-interval',
+        'Der findes ingen tilgængelige reguleringssatser for det valgte grundlag'
+      ),
     };
   }
 
@@ -362,10 +353,10 @@ const projectReguleringCommon = <TInput>(
   if (!fraDato || !tilDato) {
     return {
       kind: 'blocked',
-      result: blocked([{
-        code: 'regulering:invalid-interval',
-        message: `Ugyldigt reguleringsinterval: ${rawInterval.fraDato} - ${rawInterval.tilDato}`,
-      }]),
+      result: blockedProjection(
+        'regulering:invalid-interval',
+        `Ugyldigt reguleringsinterval: ${rawInterval.fraDato} - ${rawInterval.tilDato}`
+      ),
     };
   }
 
@@ -402,10 +393,7 @@ export const reguleringDocumentDefinition: MineoDocumentDefinition<ReguleringDoc
       // andet grundlag, hører aktiveringen til et af de to andre outputs, og resolveren nedenfor
       // sender den derhen. Nås denne gren alligevel, blokeres der frem for at rende videre.
       if (source.basis !== 'Overenskomst' && source.basis !== 'Statistik') {
-        return blocked([{
-          code: 'regulering:wrong-basis',
-          message: 'Det valgte grundlag har ikke et reguleringssats-dokument',
-        }]);
+        return blockedProjection('regulering:wrong-basis', 'Det valgte grundlag har ikke et reguleringssats-dokument');
       }
 
       return {
@@ -464,7 +452,7 @@ export const krlDocumentDefinition: MineoDocumentDefinition<ReguleringSatstabelD
       const common = projectReguleringCommon<ReguleringSatstabelDocumentInput>(context, request);
       if (common.kind === 'blocked') return common.result;
       if (common.source.basis !== 'KRL satstabel') {
-        return blocked([{ code: 'krl:wrong-basis', message: 'Grundlaget er ikke en KRL-satstabel' }]);
+        return blockedProjection('krl:wrong-basis', 'Grundlaget er ikke en KRL-satstabel');
       }
       return { status: 'ready', input: common.common };
     },
@@ -485,7 +473,7 @@ export const klLoenaftalerDocumentDefinition: MineoDocumentDefinition<Regulering
       const common = projectReguleringCommon<ReguleringSatstabelDocumentInput>(context, request);
       if (common.kind === 'blocked') return common.result;
       if (common.source.basis !== 'KL-lønaftaler') {
-        return blocked([{ code: 'kl-loenaftaler:wrong-basis', message: 'Grundlaget er ikke KL-lønaftaler' }]);
+        return blockedProjection('kl-loenaftaler:wrong-basis', 'Grundlaget er ikke KL-lønaftaler');
       }
       return { status: 'ready', input: common.common };
     },
@@ -554,7 +542,12 @@ export const reguleringDocumentAction = defineDocumentAction<
   },
 });
 
-export const REGULERING_NO_OUTPUT_REASON = {
+/**
+ * "Der er ikke valgt et grundlag" er en manglende INDTASTNING, ikke en specifik fejl (UT-F07): brugeren ser
+ * derfor den universelle tekst, mens beskeden her bevares som den interne forklaring.
+ */
+export const REGULERING_NO_OUTPUT_REASON: DocumentDownloadGateReason = {
   code: 'regulering:no-output',
   message: 'Der er ikke valgt et grundlag med tilgængelige reguleringssatser',
-} as const;
+  kind: 'missing-input',
+};

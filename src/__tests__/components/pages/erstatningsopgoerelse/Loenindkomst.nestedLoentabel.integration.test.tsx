@@ -14,7 +14,7 @@ import { getProductionInputCatalog } from '../../../../inputCore/catalog/product
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../../inputCore/react/productionInputRuntime';
+} from '../../../../inputCore/react';
 import {
   __hydrateSlimInputStoreForTest,
   slimInputStore,

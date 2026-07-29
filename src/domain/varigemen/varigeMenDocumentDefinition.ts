@@ -12,7 +12,7 @@
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
-import { toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjection, toGateReasons } from '../../document/definition/documentOutcome';
 import { resolveStamdataDatoLabel } from '../policies/stamdataCalculations';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import type { VarigeMenBeregningResult } from './varigeMenCalculations';
@@ -52,18 +52,12 @@ export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocum
       // er typeindsnævring og fail-closed sikkerhedsnet, ikke en selvstændig gate.
       const beregningsResultat = projection.status === 'ready' ? projection.value.beregningsResultat : null;
       if (projection.status !== 'ready' || beregningsResultat === null) {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'varigemen:no-result', message: 'Beregning kan ikke dannes' }],
-        };
+        return blockedProjection('varigemen:no-result', 'Beregning kan ikke dannes');
       }
 
       const stamdata = projectStamdataForDocument(context.evaluation.reader, VARIGEMEN_DOCUMENT_CONSUMER_ID);
       if (stamdata.status !== 'ready') {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'varigemen:stamdata-blocked', message: 'Fejl i indtastning' }],
-        };
+        return blockedProjection('varigemen:stamdata-blocked', 'Fejl i indtastning');
       }
 
       const data = projection.value;

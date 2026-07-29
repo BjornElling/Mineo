@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import App from '../App';
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../settings/appSettingsStorage';
 import { DEFAULT_APP_SETTINGS } from '../settings/appSettingsSchema';
-import { bootstrapProductionInputRuntime } from '../inputCore/react/productionInputRuntime';
+import { bootstrapProductionInputRuntime } from '../inputCore/react';
 
 vi.mock('../components/layout/MainLayout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

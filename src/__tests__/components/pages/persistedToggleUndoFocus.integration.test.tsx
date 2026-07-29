@@ -11,7 +11,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 import { findRestoreTarget } from '../../../inputCore/react/historyRestoreTarget';
 import { lookupEditorLocation } from '../../../inputCore/react/editorLocationDestination';
 import { serializeFieldAddress } from '../../../inputCore/fieldAddress';

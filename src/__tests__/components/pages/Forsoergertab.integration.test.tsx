@@ -7,7 +7,7 @@ import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimI
 // download-gate (§1.5/§1.6/§3.9): et fuldt gyldigt input aktiverer download og når dokumentservicen med et frisk
 // stamdata-snapshot; en canonical tilkendt-periode uden for 1..10 blokerer med en synlig rød feltfejl; en byttet
 // stamdata-datoorden blokerer.
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Forsoergertab from '../../../components/pages/Forsoergertab';
@@ -18,10 +18,11 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import type { FaellesAarsloenValues, ForsoergertabValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
+import { DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE } from '../../../document/layout/documentGateTypes';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 
 /**
@@ -177,5 +178,78 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
     renderPage();
 
     expect(screen.queryByText(ASL_MAX_NOTICE)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * UT-F07: gate-årsagen står KUN i tooltippet — og en blokeret AKTIVERING er stadig synlig.
+ *
+ * Brugertestens symptom på denne side var den lange gate-interne besked "Der er ikke beregnet en PDF-klar
+ * EAL- eller ASL-del.", vist BÅDE som tekst og som tooltip. To ting skal derfor gælde samtidig:
+ *
+ *  1. den lange interne besked er væk fra brugerfladen (den lever videre som `message` til koder/tests),
+ *  2. tooltippet er den universelle tekst, og
+ *  3. et KLIK på den inaktive knap giver stadig en synlig forklaring.
+ *
+ * Punkt 3 er det ben, der gør fjernelsen sikker: denne side har ingen shake-/fokus-feedback, så uden
+ * `errorMessage` i udfaldsrækken ville et klik være helt lydløst — den modsatte fejl af den, brugeren fandt.
+ */
+describe('Forsoergertab — gate-årsagen vises kun i tooltippet (UT-F07)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    mockTriggerDocumentDownload.mockClear();
+  });
+
+  const GATE_INTERNAL_MESSAGE = 'Der er ikke beregnet en PDF-klar EAL- eller ASL-del.';
+
+  it('viser den universelle tekst som tooltip, og den lange interne besked står ingen steder', async () => {
+    // Tom sag: ingen PDF-klar EAL/ASL-del — netop den blokering, brugeren rapporterede.
+    hydrate({}, { aslAarsloen: undefined, ealAarsloen: undefined }, validStamdata);
+    renderPage();
+
+    const button = screen.getByTestId('forsoergertab-download');
+    await waitFor(() => expect(button).toBeDisabled());
+    expect(button).toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
+    // Hverken den universelle tekst eller den gamle lange besked må stå som synlig tekst ved knappen.
+    expect(screen.queryByText(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE)).toBeNull();
+    expect(screen.queryByText(GATE_INTERNAL_MESSAGE)).toBeNull();
+  });
+
+  /**
+   * Det ben, der gør fjernelsen af tekstlinjen sikker.
+   *
+   * En gate-blokering kan ramme en AKTIVERING og ikke kun den reaktive knap: `runDocumentPreflight` gater
+   * FØRST efter commit-barrieren (`documentLifecycle.ts:168-171`), så et klik på en ENABLED knap med en åben
+   * editor kan blokere, fordi settlet netop gjorde værdien ugyldig. Tooltippet hjælper ikke der — det er ikke
+   * fremme efter et klik — og denne side har ingen shake/fokus-feedback.
+   *
+   * Derfor skal udfaldsrækken vise beskeden. Testen skriver en ugyldig værdi i det åbne felt og klikker
+   * DIREKTE på den (stadig aktiverede) knap, så settlet og gaten sker i samme aktivering.
+   */
+  it('en blokering opdaget under aktiveringen vises i udfaldsrækken (ingen usynlig blokering)', async () => {
+    const user = userEvent.setup();
+    hydrate(validForsoergertab, validFaellesAarsloen, validStamdata);
+    renderPage();
+
+    const button = screen.getByTestId('forsoergertab-download');
+    await waitFor(() => expect(button).toBeEnabled());
+
+    // Gør værdien ugyldig UDEN at lukke editoren: knappen er stadig enabled på den gamle revision.
+    const input = document.querySelector('input[name="tilkendtForPeriodeAar"]') as HTMLInputElement;
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}{Delete}11');
+    expect(button).toBeEnabled();
+
+    // `user.click` ville blurre inputtet FØRST (som settler og disabler knappen), så aktiveringen aldrig
+    // nåede handleren. `pointerDown`+`click` direkte på knappen rammer den rækkefølge, brugeren oplever:
+    // aktiveringen starter, mens editoren stadig er åben, og preflighten settler selv (§1.4).
+    fireEvent.pointerDown(button);
+    fireEvent.click(button);
+
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
+    // Blokeringen SKAL være synlig et sted. Uden `errorMessage` i udfaldsrækken ville den være lydløs.
+    await waitFor(() => {
+      expect(screen.getByTestId('document-outcome-message')).toBeInTheDocument();
+    });
   });
 });

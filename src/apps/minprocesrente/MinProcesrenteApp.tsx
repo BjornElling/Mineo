@@ -7,7 +7,7 @@ import StandaloneErrorBoundary from './StandaloneErrorBoundary';
 import MinProcesrenteCalculatorPage from '../../components/pages/minprocesrente/MinProcesrenteCalculatorPage';
 import {
   ProductionInputRuntimeProvider,
-} from '../../inputCore/react/productionInputRuntime';
+} from '../../inputCore/react/productionInputRuntimeProvider';
 import type { InputRuntimeBinding } from '../../inputCore/react';
 
 const theme = buildTheme('light');

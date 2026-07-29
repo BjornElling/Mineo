@@ -19,7 +19,11 @@
  */
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import type { DocumentDefinition, DocumentProjectionResult } from '../../../document/definition/documentDefinition';
-import { toGateReasons } from '../../../document/definition/documentOutcome';
+import {
+  blockedFromIssues,
+  blockedProjection,
+  toGateReasons,
+} from '../../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../../document/definition/documentSourceContext';
 import { defineDocumentOutput } from '../../../document/definition/documentDefinition';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
@@ -81,15 +85,13 @@ const requireReadyAggregate = <TInput>(
   if (aggregate === null) {
     return {
       kind: 'blocked',
-      result: {
-        status: 'blocked',
-        reasons: [{
-          code: 'renteberegning:field-error',
-          message: source.projection.aggregateProjection.status === 'blocked'
-            ? source.projection.aggregateProjection.issues[0]?.message ?? 'Fejl i indtastning'
-            : 'Fejl i indtastning',
-        }],
-      },
+      result: blockedFromIssues(
+        'renteberegning:field-error',
+        source.projection.aggregateProjection.status === 'blocked'
+          ? source.projection.aggregateProjection.issues
+          : undefined,
+        'Fejl i indtastning'
+      ),
     };
   }
   return { kind: 'ok', aggregate };
@@ -138,22 +140,18 @@ export const standaloneRenteDocumentDefinition: StandaloneDocumentDefinition<
     // Frisk opslag af den aktiverede række; den kan være slettet eller ændret siden klikket.
     const rowProjection = source.projection.rowProjections.get(request.rowId);
     if (rowProjection === undefined) {
-      return { status: 'blocked', reasons: [{ code: 'rente:row-missing', message: 'Rentelinjen findes ikke længere' }] };
+      return blockedProjection('rente:row-missing', 'Rentelinjen findes ikke længere');
     }
     if (rowProjection.status !== 'ready') {
-      return {
-        status: 'blocked',
-        reasons: [{
-          code: 'rente:row-blocked',
-          message: rowProjection.status === 'blocked'
-            ? rowProjection.issues[0]?.message ?? 'Rentelinjen er ugyldig'
-            : 'Rentelinjen er ugyldig',
-        }],
-      };
+      return blockedFromIssues(
+        'rente:row-blocked',
+        rowProjection.status === 'blocked' ? rowProjection.issues : undefined,
+        'Rentelinjen er ugyldig'
+      );
     }
     const pdfContext = rowProjection.value.pdfContext;
     if (pdfContext === null) {
-      return { status: 'blocked', reasons: [{ code: 'rente:row-no-result', message: 'Rentelinjen har ingen beregning' }] };
+      return blockedProjection('rente:row-no-result', 'Rentelinjen har ingen beregning');
     }
 
     return {
@@ -258,10 +256,7 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
         latestReferenceRateDate: ctx.latestReferenceRateDate,
       }));
       if (rows.length === 0) {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'standalone-rente-alle:no-rows', message: 'Ingen rækker at downloade' }],
-        };
+        return blockedProjection('standalone-rente-alle:no-rows', 'Ingen rækker at downloade');
       }
 
       return { status: 'ready', input: { rows, kommentarer: source.kommentarer } };
@@ -364,10 +359,7 @@ export const standaloneRenteOversigtDocumentDefinition: StandaloneDocumentDefini
       }
       // Gaten har netop afvist `undefined`; gentagelsen er typeindsnævring, ikke en selvstændig gate.
       if (source.beregningsdato === undefined) {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'renteberegning:missing-beregningsdato', message: 'Beregningsdato mangler' }],
-        };
+        return blockedProjection('renteberegning:missing-beregningsdato', 'Beregningsdato mangler');
       }
 
       const rows: RenteOversigtRow[] = Array.from(ready.aggregate.pdfContexts.values()).map((ctx) => ({

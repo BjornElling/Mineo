@@ -254,6 +254,25 @@ Den rene form ejes af den semantiske **feltfamilie** (`src/utils/fieldFormatPlac
 callsite må kun override en placeholder, når feltets domæne har en reelt anden FORMATREPRÆSENTATION — fx
 månedens `mm` i en periodekolonne — aldrig for at vise bounds, validering eller status.
 
+### 8.2 Fortegns-politikken ejes af feltets codec
+
+Om et numerisk felt må være **negativt** er en egenskab ved feltet, ikke ved den komponent der tegner det.
+Politikken erklæres på codecet (`FieldCodec.signPolicy`, udledt af `allowNegative`) og læses af begge surfaces
+gennem `fieldAllowsNegative(field)` / `codecAllowsNegative(codec)`.
+
+En feltkomponent, en tabelcelle eller en side må **ikke** sende en hardkodet `allowNegative`-literal til et
+tegnfilter — heller ikke en korrekt en. En literal er en anden samtidig sandhed om feltet, og præcis den lod
+`PercentField` svare `true`, mens `GridPercentCell` svarede `false` for de SAMME descriptorer, så et minustegn
+kunne tastes i et felt, der ikke må være negativt (UT-F08). Håndhævet af
+`input/sign-policy-from-descriptor`.
+
+Politikken gælder **indtastning**, ikke repræsentation. §8's regel står uændret: `parseForSettle` er
+fortegns-blind, og paste bevarer et indsat minus, så en negativ værdi der NÅR frem — fx fra en tolerant
+`.eo`-load — committes canonical og bærer sit røde bounds-issue frem for at få fortegnet stille fjernet.
+
+Beløbsfelter er den ene bevidste nuance: `-` er også subtraktion i et udtryk (`5000-200`), så et ikke-negativt
+beløbsfelt tillader tegnet og blokerer kun det **unære** minus.
+
 ## 9. Dynamiske tabeller
 
 Rækkeinfrastrukturen ejer kun stabil rækkeidentitet, rækkefølge, add/delete/reorder og eventuelle tomme UI-rækkers

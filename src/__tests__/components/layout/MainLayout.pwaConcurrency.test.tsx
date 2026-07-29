@@ -9,7 +9,7 @@ import {
   ProductionInputRuntimeProvider,
   bootstrapProductionInputRuntime,
   createProductionInputRuntimeBinding,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import type { LoadFileResult } from '../../../types/fileOperations';

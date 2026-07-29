@@ -18,7 +18,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 
 /**
  * Fase 5: testen måler nu på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem

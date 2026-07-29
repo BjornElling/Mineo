@@ -9,7 +9,7 @@
  */
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
-import { toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjection, toGateReasons } from '../../document/definition/documentOutcome';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import { evaluateForsoergertabDownloadGate } from './forsoergertabDownloadGate';
 import { buildForsoergertabReaderProjection } from './forsoergertabReaderProjection';
@@ -42,10 +42,7 @@ export const forsoergertabDocumentDefinition: MineoDocumentDefinition<Forsoerger
 
       const stamdata = projectStamdataForDocument(context.evaluation.reader, FORSOERGERTAB_DOCUMENT_CONSUMER_ID);
       if (stamdata.status !== 'ready') {
-        return {
-          status: 'blocked',
-          reasons: [{ code: 'forsoergertab:stamdata-blocked', message: 'Fejl i indtastning' }],
-        };
+        return blockedProjection('forsoergertab:stamdata-blocked', 'Fejl i indtastning');
       }
 
       return {

@@ -8,6 +8,7 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import type { FieldIssue } from '../../inputIssue';
 import NumericTextField from './NumericTextField';
+import { fieldAllowsNegative } from './signPolicy';
 
 // Procent-felt (§2.4/§3.5): familie-skal over `NumericTextField` med procent-tegnfilteret,
 // den delte "%"-enheds-adornment (muted når tom) og legacy højrestillet tabular-nums-visning. Parse/format og
@@ -45,13 +46,17 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
     },
     ref
   ) => {
+    // Fortegns-politikken kommer fra descriptorens codec (UT-F08) — ikke fra et hardkodet flag her. Alle
+    // procent-descriptorer er ikke-negative, og komponenten svarede tidligere `true` i strid med dem, så et
+    // minus kunne tastes som første tegn.
+    const allowNegative = fieldAllowsNegative(field);
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) =>
         filterPercentKeyDown(e, {
-          allowNegative: true,
+          allowNegative,
           allowDecimals: true,
         }),
-      []
+      [allowNegative]
     );
 
     // Adornmentet mutes, når draften er tom (legacy-adfærd). Muted-flaget kommer fra `NumericTextField`s

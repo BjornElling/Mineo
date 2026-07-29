@@ -425,6 +425,25 @@ Er hele rækken (label + ikon) skjult sammen — fx fordi sektionen ikke er rele
 konsistent og tilladt. Undtagelse: tabelceller med en etableret "ingen værdi"-markør (fx
 `-` pr. række) beholder markøren frem for et nedtonet ikon.
 
+**Gate-årsagen har ÉN visningskanal: tooltippet (UT-F07).** Den samme årsag må ikke også stå
+som synlig tekst ved knappen. To sider gjorde det, og brugeren læste da den samme besked to
+gange. Reglen er tosidet, og begge halvdele skal holde:
+
+- Ingen flade må rendere `disabledReason` (eller en gate-`reason.message`) som en tekstknude.
+- En blokering må til gengæld aldrig være usynlig. Tooltippet dækker den REAKTIVE
+  disabled-tilstand; det dækker ikke en blokering, der opdages under en AKTIVERING, fordi
+  preflighten gater efter commit-barrieren og ingen hover er i gang efter et klik. En flade skal
+  derfor besvare det udfald med enten shake + fokus på det første blokerende felt, eller
+  `handle.errorMessage` i udfaldsrækken. Vælges shake/fokus, er `visibleDocumentFailureMessage`
+  den rigtige kilde til rækken; ellers `errorMessage` råt.
+
+**Teksten ejes af årsagen, ikke af fladen.** `DocumentDownloadGateReason.kind` afgør, hvad
+brugeren læser: `missing-input` viser den universelle `DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE`
+("Indtastning mangler"), mens `specific` citeres ordret og er reserveret til en konkret,
+felt-/rækkenavngiven fejl, brugeren kan handle på. `message` er altid den interne forklaring og
+må ikke antages at være brugertekst. En flade må ikke vælge tekst selv eller læse
+`blockedReasons[0].message` til visning — brug `handle.disabledReason`, som allerede er oversat.
+
 ### 11.2 Fælles komponenter før lokal speciallogik
 
 Hvis der allerede findes en fælles komponent eller hook for en gentagen UI-adfærd, skal den genbruges eller udvides før ny parallel implementering oprettes.

@@ -18,27 +18,37 @@
 import {
   allowDocumentDownload,
   blockDocumentDownload,
+  blockDocumentDownloadWithSpecificReason,
   type DocumentDownloadGateResult,
 } from '../../document/layout/documentGateTypes';
 import { resolveAarsloenCanonicalRangeIssues } from './aarsloenValidationPolicies';
 import type { AarsloenReaderProjection } from './aarsloenProjection';
 import { hasAtLeastOneValidRow } from './standardLoenRowCalculations';
 
-/** Fælles for begge gates: stamdata er en obligatorisk dokumentdependency. */
+/**
+ * Fælles for begge gates: stamdata er en obligatorisk dokumentdependency.
+ *
+ * Årsagen er `specific`, når den kommer fra et stamdata-ISSUE (UT-F07): issuet navngiver det felt, brugeren
+ * skal rette, og den besked er mere værd end den universelle tekst. Den generiske fallback er derimod
+ * `missing-input` — "Stamdata indeholder fejl" fortæller intet, brugeren kan handle på.
+ */
 const blockedByStamdata = (
   projection: AarsloenReaderProjection,
   code: string
 ): DocumentDownloadGateResult | null => {
   if (projection.documentStamdata.status === 'ready') return null;
-  return blockDocumentDownload({
-    code,
-    message: projection.documentStamdata.status === 'blocked'
-      ? projection.documentStamdata.issues[0]?.message ?? 'Stamdata indeholder fejl'
-      : 'Stamdata indeholder fejl',
-  });
+  const issueMessage = projection.documentStamdata.status === 'blocked'
+    ? projection.documentStamdata.issues[0]?.message
+    : undefined;
+  return issueMessage === undefined
+    ? blockDocumentDownload({ code, message: 'Stamdata indeholder fejl' })
+    : blockDocumentDownloadWithSpecificReason({ code, message: issueMessage });
 };
 
-/** Fælles for begge gates: et canonical range-issue blokerer. */
+/**
+ * Fælles for begge gates: et canonical range-issue blokerer. Issuets egen besked navngiver grænsen
+ * ("Procent skal være mellem 0 og 100"), så den citeres ordret (UT-F07).
+ */
 const blockedByCanonicalRange = (
   projection: AarsloenReaderProjection,
   code: string
@@ -46,7 +56,9 @@ const blockedByCanonicalRange = (
   const issue = resolveAarsloenCanonicalRangeIssues(projection.values, {
     omregningAktiveret: projection.omregningGate.effectiveEnabled,
   })[0];
-  return issue === undefined ? null : blockDocumentDownload({ code, message: issue.message });
+  return issue === undefined
+    ? null
+    : blockDocumentDownloadWithSpecificReason({ code, message: issue.message });
 };
 
 /** Årsløns-dokumentet. Rækkefølgen er identisk med `resolveAarsloenDocumentEligibility`. */

@@ -3,7 +3,7 @@ import { Box, MenuItem, Typography } from '@mui/material';
 import WarningAmber from '@mui/icons-material/WarningAmber';
 
 import ContentBox from '../../layout/ContentBox';
-import AmountField from '../../../inputCore/react/fields/AmountField';
+import AmountField, { MILLION_AMOUNT_FIELD_WIDTH } from '../../../inputCore/react/fields/AmountField';
 import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
 import DateField from '../../../inputCore/react/fields/DateField';
 import IntegerField from '../../../inputCore/react/fields/IntegerField';
@@ -83,8 +83,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
             location={locations.aslAarsloen}
             name="aslAarsloen"
             allowDecimals={false}
-            width={140}
-            placeholder="0"
+            width={MILLION_AMOUNT_FIELD_WIDTH}
           />
         </Box>
       </Box>
@@ -130,8 +129,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
             location={locations.ealAarsloen}
             name="ealAarsloen"
             allowDecimals={false}
-            width={140}
-            placeholder="0"
+            width={MILLION_AMOUNT_FIELD_WIDTH}
           />
         </Box>
       </Box>

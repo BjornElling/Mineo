@@ -8,7 +8,7 @@ import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../../inputCore/inputReader';

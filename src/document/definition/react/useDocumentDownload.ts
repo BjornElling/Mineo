@@ -20,6 +20,7 @@
 import React from 'react';
 import type { DocumentGateSnapshot, DocumentOutput } from '../documentCatalog';
 import type { DocumentGateReasons, DocumentOutcome } from '../documentOutcome';
+import { resolveDocumentGateTooltip } from '../../layout/documentGateTypes';
 import { createDocumentSourceContext, type DocumentSourceContext } from '../documentSourceContext';
 import type { InputEvaluation } from '../../../inputCore/inputReader';
 
@@ -49,7 +50,16 @@ export type DocumentDownloadHandle<TRequest> = Readonly<{
   canDownload: boolean;
   /** HELE årsagslisten ved blokering, så en konsument kan vise mere end den primære grund. */
   blockedReasons: DocumentGateReasons | null;
-  /** Den primære grund til knappens tooltip. */
+  /**
+   * Den BRUGERRETTEDE tekst til knappens tooltip ved blokering, ellers `undefined`.
+   *
+   * Teksten er allerede oversat gennem `resolveDocumentGateTooltip`, så en "mangler indtastning"-blokering
+   * viser den universelle tekst og kun en `specific` årsag citeres ordret (UT-F07). En flade må derfor
+   * hverken vælge tekst selv eller læse `blockedReasons[0].message` til visning.
+   *
+   * Den hører KUN i tooltippet. Samme tekst må ikke også stå som synlig tekst ved knappen — det var netop
+   * den dobbeltvisning, brugertesten fandt på Varigt mén og Forsørgertab.
+   */
   disabledReason: string | undefined;
   /** Udfaldet af den seneste aktivering, eller `null` før første klik / efter rydning. */
   lastOutcome: DocumentOutcome | null;
@@ -66,13 +76,17 @@ export type DocumentDownloadHandle<TRequest> = Readonly<{
 /**
  * Den besked, en sides fejlboks skal vise — eller `null`.
  *
- * Adskiller sig fra `handle.errorMessage` ved at udelade GATE-blokeringer. Flere sider viser
- * gate-årsagen ved siden af knappen (som tooltip eller nedtonet tekst) og svarer på en blokeret
- * aktivering med shake/fokus frem for en fejllinje; en boks ovenikøbet ville duplikere signalet.
- * Det er også adfærden fra før Fase 5, hvor en blokeret download eksplicit nulstillede beskeden.
+ * Adskiller sig fra `handle.errorMessage` ved at udelade GATE-blokeringer. Den er derfor KUN korrekt på en
+ * flade, der besvarer en blokeret aktivering med et andet SYNLIGT signal — shake + fokus på det første
+ * blokerende felt. Da svarer en fejllinje ovenikøbet kun det samme to gange.
  *
- * Sider UDEN en synlig gate-årsag ved knappen skal bruge `handle.errorMessage` direkte — ellers
- * ville blokeringen blive usynlig, hvilket bryder "ingen usynlig blokering"-invarianten.
+ * En flade uden det signal skal bruge `handle.errorMessage` direkte; ellers bliver en blokeret download
+ * lydløs, hvilket bryder "ingen usynlig blokering"-invarianten.
+ *
+ * **Bemærk (UT-F07):** tidligere begrundede flere flader deres valg med, at gate-årsagen stod som synlig
+ * TEKST ved knappen. Den dobbeltvisning er fjernet — årsagen hører nu kun i tooltippet — så tooltippet alene
+ * kan ikke længere bære en blokeret AKTIVERING (den sker efter et klik, hvor ingen hover er i gang).
+ * Kriteriet er derfor shake/fokus-feedbacken, ikke en tekstlinje.
  */
 export const visibleDocumentFailureMessage = <TRequest>(
   handle: DocumentDownloadHandle<TRequest>
@@ -121,7 +135,7 @@ export const useDocumentDownload = <TRequest, TGateSettings, TRenderSettings>(
     gateFor,
     canDownload: gate.canDownload,
     blockedReasons: gate.canDownload ? null : gate.reasons,
-    disabledReason: gate.canDownload ? undefined : gate.reasons[0].message,
+    disabledReason: gate.canDownload ? undefined : resolveDocumentGateTooltip(gate.reasons[0]),
     lastOutcome,
     errorMessage: lastOutcome === null ? null : output.resolveOutcomeMessage(lastOutcome, renderSettings),
     clearOutcome,

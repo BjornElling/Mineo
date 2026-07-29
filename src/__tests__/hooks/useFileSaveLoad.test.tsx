@@ -63,7 +63,7 @@ import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../inputCore/react/productionInputRuntime';
+} from '../../inputCore/react';
 import { useCaseOperations, useCriticalInputActions } from '../../inputCore/react';
 import { slimInputStore } from '../../inputCore/runtime/slimInputStore';
 import { dispatchInput } from '../../inputCore/runtime/dispatchInput';

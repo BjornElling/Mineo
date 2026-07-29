@@ -16,7 +16,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import { toISODateString } from '../../../types/branded';

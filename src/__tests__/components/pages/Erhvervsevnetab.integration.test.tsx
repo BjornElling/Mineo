@@ -11,7 +11,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../inputCore/react/productionInputRuntime';
+} from '../../../inputCore/react';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import type { ErhvervsevnetabValues, FaellesAarsloenValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';

@@ -19,7 +19,7 @@ import {
   type MineoDocumentDefinition,
   type MineoDocumentGateSettings,
 } from '../../document/definition/mineoDocumentDefinition';
-import { toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjection, toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { Koen } from '../../schemas/formSchemas/enumSchemas';
 import type { EetDifferencekravComputation } from './eetDifferencekravCalculation';
@@ -78,10 +78,7 @@ const projectEetFane = <TComputation, TInput>(
   const computation = readComputation(projection);
   const stamdata = projection.documentStamdata;
   if (computation === null || stamdata.status !== 'ready') {
-    return {
-      status: 'blocked',
-      reasons: [{ code: `eet-${fane}:no-result`, message: 'Beregning kan ikke dannes' }],
-    };
+    return blockedProjection(`eet-${fane}:no-result`, 'Beregning kan ikke dannes');
   }
 
   return { status: 'ready', input: toInput(projection, computation, stamdata.value) };

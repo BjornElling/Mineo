@@ -1,6 +1,6 @@
 import {
   allowDocumentDownload,
-  blockDocumentDownload,
+  blockDocumentDownloadWithSpecificReason,
   type DocumentDownloadGateResult,
 } from '../../../document/layout/documentGateTypes';
 import type { EoInvariant } from './eoSnapshotInvariants';
@@ -68,7 +68,11 @@ export const evaluateEoDocumentDownloadGate = (
   if (canDownload) {
     return allowDocumentDownload();
   }
-  return blockDocumentDownload({
+  // EO's årsag er den ENESTE, der citeres ordret til brugeren (UT-F07): den kommer fra rækkemotoren eller en
+  // snapshot-invariant og navngiver det konkrete felt/den konkrete række, der skal rettes — fx
+  // "Feriegodtgørelse er ikke udfyldt". Den slags besked er præcis det, brugeren har brug for, og må ikke
+  // erstattes af den universelle "Indtastning mangler".
+  return blockDocumentDownloadWithSpecificReason({
     code: 'erstatningsopgoerelse:pdf-blocked',
     message: resolveDisabledReason(input) ?? input.gateFallback,
   });

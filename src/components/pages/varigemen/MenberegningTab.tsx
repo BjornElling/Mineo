@@ -7,6 +7,7 @@ import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import InputUnitAdornment from '../../inputs/InputUnitAdornment';
 import ContentBox from '../../layout/ContentBox';
 import { filterIntegerKeyDown } from '../../inputs/inputKeyFilters';
+import { codecAllowsNegative } from '../../../inputCore/react/fields/signPolicy';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +41,8 @@ import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 // adfærd er uændrede (§5.4).
 
 const mengradRef = varigeMenMengradField.bind();
+/** Méngradens fortegns-politik fra dens eget codec (UT-F08) — statisk, så opslaget ikke gentages pr. render. */
+const MENGRAD_ALLOWS_NEGATIVE = codecAllowsNegative(varigeMenMengradField.codec);
 const beregningsdatoRef = varigeMenBeregningsdatoField.bind();
 const fodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
 const skadedatoRef = stamdataSkadedatoField.bind();
@@ -72,8 +75,11 @@ const MenberegningTab = React.memo(() => {
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
 
+  // Politikken læses af méngrad-feltets EGET codec (UT-F08) frem for at være hardkodet her. Svaret er det
+  // samme (méngrad er 1..120), men nu er det feltets erklæring og ikke en lokal gentagelse af den.
   const mengradKeyFilter = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => filterIntegerKeyDown(e, { allowNegative: false }),
+    (e: React.KeyboardEvent<HTMLInputElement>) =>
+      filterIntegerKeyDown(e, { allowNegative: MENGRAD_ALLOWS_NEGATIVE }),
     []
   );
 
@@ -342,20 +348,14 @@ const MenberegningTab = React.memo(() => {
         <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
           {!download.canDownload ? (
             // Download-ikonet vises altid sammen med sin tekstlinje — her nedtonet/inaktivt, fordi beregningen
-            // (og dermed download) er blokeret. Fejl-/mangel-teksten står i værdikolonnen, ikonet til højre.
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Tooltip title={download.disabledReason ?? ''} arrow>
-                <Typography className="row--text" color="text.disabled">
-                  {download.disabledReason ?? ''}
-                </Typography>
-              </Tooltip>
-              <DocumentDownloadButton
-                onClick={() => void handlePdfDownload()}
-                disabled
-                disabledReason={download.disabledReason}
-                dataTestId="varigemen-download"
-              />
-            </Box>
+            // (og dermed download) er blokeret. Årsagen står KUN i ikonets tooltip (UT-F07): den stod tidligere
+            // også som nedtonet tekst i værdikolonnen, så brugeren læste den samme besked to gange.
+            <DocumentDownloadButton
+              onClick={() => void handlePdfDownload()}
+              disabled
+              disabledReason={download.disabledReason}
+              dataTestId="varigemen-download"
+            />
           ) : beregningsResultat ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">

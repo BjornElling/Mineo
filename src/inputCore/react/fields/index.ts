@@ -19,7 +19,7 @@ export { default as PercentField } from './PercentField';
 export type { PercentFieldProps } from './PercentField';
 export { default as FractionField } from './FractionField';
 export type { FractionFieldProps } from './FractionField';
-export { default as AmountField } from './AmountField';
+export { default as AmountField, MILLION_AMOUNT_FIELD_WIDTH } from './AmountField';
 export type { AmountFieldProps } from './AmountField';
 export { default as WeekField } from './WeekField';
 export type { WeekFieldProps } from './WeekField';

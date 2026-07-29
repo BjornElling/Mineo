@@ -17,6 +17,7 @@ export {
   type SettledSnapshot,
 } from './inputRuntimeContext';
 export * from './productionInputRuntime';
+export * from './productionInputRuntimeProvider';
 export * from './useFieldEditor';
 export * from './useFormFieldSurface';
 export * from './useCollectionRows';

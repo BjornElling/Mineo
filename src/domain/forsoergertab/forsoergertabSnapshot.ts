@@ -12,7 +12,7 @@ import { SKAERING_2015_03_01 } from '../erhvervsevnetab/eetSkaeringsdatoer';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
-import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult, type DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
+import { allowDocumentDownload, missingInputReason, type DocumentDownloadGateResult, type DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
 import { resolveStamdataDateOrder } from '../stamdata/stamdataDateOrder';
 
 /**
@@ -185,10 +185,13 @@ const hasIssue = (
   return issues.some((issue) => ids.includes(issue.id));
 };
 
-const createDownloadBlockingReason = (code: string, message: string): DocumentDownloadGateReason => ({
-  code: `forsoergertab:${code}`,
-  message,
-});
+/**
+ * Begge forsørgertab-blokeringer er "brugeren mangler at indtaste noget" (UT-F07): enten er der ikke nok
+ * input til en PDF-klar del, eller et nødvendigt felt er rødt. Brugeren ser derfor den universelle tekst;
+ * `message` er den interne forklaring, som koder og tests skelner på.
+ */
+const createDownloadBlockingReason = (code: string, message: string): DocumentDownloadGateReason =>
+  missingInputReason(`forsoergertab:${code}`, message);
 
 export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput): ForsoergertabSnapshot => {
   const { values, faellesAarsloen, stamdata, fieldErrors } = input;
@@ -360,11 +363,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     if (reasons.length === 0) {
       return allowDocumentDownload();
     }
-    const [firstReason, ...additionalReasons] = reasons;
-    return {
-      ...blockDocumentDownload(firstReason),
-      reasons: [firstReason, ...additionalReasons],
-    };
+    return { canDownload: false, reasons };
   })();
 
   return {

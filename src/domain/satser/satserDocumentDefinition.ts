@@ -16,6 +16,10 @@
  * derfor af `project` fra det friske snapshot. Der er kun ét satser-output pr. sag.
  */
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
+import {
+  blockedProjection,
+  blockedProjectionWithSpecificReason,
+} from '../../document/definition/documentOutcome';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import { projectSatser, type SatserProjectionValue } from './satserProjection';
@@ -36,28 +40,23 @@ export const satserDocumentDefinition: MineoDocumentDefinition<SatserDocumentInp
     labels: { documentName: 'satser' },
     project: (context) => {
       const { reader } = context.evaluation;
+      // Findes et konkret issue, ER dens besked den brugerrettede årsag (den navngiver satsåret/feltet) og
+      // citeres ordret; de generiske fallbacks beskriver kun en tilstand og bliver den universelle
+      // "Indtastning mangler" (UT-F07).
       const projection = projectSatser(reader);
       if (projection.status !== 'ready') {
-        return {
-          status: 'blocked',
-          reasons: [{
-            code: 'satser:year-blocked',
-            message: projection.issues[0]?.message ?? 'Satsåret er ikke gyldigt',
-          }],
-        };
+        const issueMessage = projection.issues[0]?.message;
+        return issueMessage === undefined
+          ? blockedProjection('satser:year-blocked', 'Satsåret er ikke gyldigt')
+          : blockedProjectionWithSpecificReason('satser:year-blocked', issueMessage);
       }
 
       const stamdata = projectStamdataForDocument(reader, SATSER_DOCUMENT_CONSUMER_ID);
       if (stamdata.status !== 'ready') {
-        return {
-          status: 'blocked',
-          reasons: [{
-            code: 'satser:stamdata-blocked',
-            message: stamdata.status === 'blocked'
-              ? stamdata.issues[0]?.message ?? 'Stamdata indeholder fejl'
-              : 'Stamdata indeholder fejl',
-          }],
-        };
+        const issueMessage = stamdata.status === 'blocked' ? stamdata.issues[0]?.message : undefined;
+        return issueMessage === undefined
+          ? blockedProjection('satser:stamdata-blocked', 'Stamdata indeholder fejl')
+          : blockedProjectionWithSpecificReason('satser:stamdata-blocked', issueMessage);
       }
 
       return {

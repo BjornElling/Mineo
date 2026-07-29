@@ -30,7 +30,7 @@ import { defineDocumentOutput, type DocumentDefinition } from '../../document/de
 import { documentActionFromDefinition } from '../../document/definition/documentAction';
 import type { DocumentExecutionEnvironment } from '../../document/definition/documentExecutionEnvironment';
 import { executeDocumentDownload } from '../../document/definition/documentLifecycle';
-import type { DocumentFailure } from '../../document/definition/documentOutcome';
+import { blockedProjection, type DocumentFailure } from '../../document/definition/documentOutcome';
 import { triggerDocumentDownload } from '../../document/downloadArtifact';
 
 vi.mock('../../document/downloadArtifact', () => ({
@@ -136,7 +136,7 @@ const createHarness = (options: Readonly<{
       calls.project += 1;
       return projectResult === 'ready'
         ? { status: 'ready', input: { marker: 'godkendt' } }
-        : { status: 'blocked', reasons: [{ code: 'test:blocked', message: 'Blokeret af gaten' }] };
+        : blockedProjection('test:blocked', 'Blokeret af gaten');
     },
     loadRenderer: async () => {
       calls.loadRenderer += 1;

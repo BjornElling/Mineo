@@ -19,7 +19,10 @@ import {
   type MineoDocumentDefinition,
   type MineoDocumentGateSettings,
 } from '../../document/definition/mineoDocumentDefinition';
-import { toGateReasons } from '../../document/definition/documentOutcome';
+import {
+  blockedProjectionWithSpecificReason,
+  toGateReasons,
+} from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 
 import type { DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
@@ -132,10 +135,12 @@ const blockedFromGate = <T>(gate: DocumentDownloadGateResult): DocumentProjectio
   }),
 });
 
-const blockedFromProjection = <T>(code: string, message: string): DocumentProjectionResult<T> => ({
-  status: 'blocked',
-  reasons: [{ code, message }],
-});
+/**
+ * EO-projektionens egen blokering. Beskeden er `specific` (UT-F07): den kommer fra dokumentprojektionen og
+ * navngiver den konkrete række/det konkrete felt, der skal rettes — samme familie som `eoDocumentDownloadGate`s
+ * årsag, og lige så værd at citere ordret.
+ */
+const blockedFromProjection = blockedProjectionWithSpecificReason;
 
 /**
  * Den fælles indgang for de fire outputs: hent delt kilde, tjek dokumentets eget gate, og kør

@@ -13,7 +13,7 @@ import {
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
-} from '../../../../inputCore/react/productionInputRuntime';
+} from '../../../../inputCore/react';
 import { getProductionInputCatalog } from '../../../../inputCore/catalog/productionCatalog';
 import { slimInputStore } from '../../../../inputCore/runtime/slimInputStore';
 
