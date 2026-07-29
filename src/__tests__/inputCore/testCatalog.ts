@@ -5,12 +5,18 @@ import type { SatserValues } from '../../schemas/formSchemas/sections/satserSche
 import type { ISODateString } from '../../types/branded';
 import type { CollectionHistoryOrigin } from '../../inputCore/inputHistory';
 import type { EditorLocation } from '../../inputCore/editor/fieldEditorState';
+import { defineStructuralField } from '../../inputCore/structuralDescriptors';
+import { skadestypeEnum } from '../../schemas/formSchemas/enumSchemas';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import {
   createInputCatalog,
   defineField,
   createIntegerFieldCodec,
   createAmountFieldCodec,
   createDateFieldCodec,
+  createPercentFieldCodec,
+  createChoiceFieldCodec,
+  booleanFieldCodec,
   optionalTextFieldCodec,
   createRequiredChoiceFieldCodec,
   createCollectionRef,
@@ -175,10 +181,84 @@ export const enhedField: FieldDescriptor<TillaegstidEnhed> = defineField({
   writeCanonical: (sections, address, value) => updateRow(sections, findRowId(address), (row) => ({ ...row, enhed: value })),
 });
 
+/**
+ * `renterFra` — datofamiliens RÆKKE-repræsentant.
+ *
+ * Tilføjet i etape 10 (R8-F02): §7.1's fælles feltkontrakt skal køres mod BÅDE form- og grid-adapteren for
+ * hver codecfamilie, og `date` havde kun et formularfelt i testkataloget. Uden en celle-udgave kunne
+ * kontrakten ikke sammenligne de to adaptere for netop den familie.
+ */
+export const renterFraField: FieldDescriptor<ISODateString | undefined> = defineField({
+  id: 'renteberegning.rentekravRows.renterFra',
+  template: { section: 'renteberegning', path: [{ kind: 'entity', collection: 'rentekravRows' }], field: 'renterFra' },
+  codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
+  emptyValue: undefined,
+  isEmpty: isUndefined,
+  label: 'Renter fra',
+  controlKind: 'text',
+  readCanonical: (sections, address) => readRow(sections, findRowId(address))?.renterFra,
+  writeCanonical: (sections, address, value) =>
+    updateRow(sections, findRowId(address), (row) => ({ ...row, renterFra: value })),
+});
+
+// ── §7.1's øvrige codecfamilier ──────────────────────────────────────────────────────────────────────
+//
+// De tre nedenfor er tilføjet i etape 10 (R8-F02), så den FÆLLES feltkontrakt kan køres mod begge
+// adaptere for hver familie, produktionen har på begge surfaces. De bruger `defineStructuralField`, som
+// læser/skriver generisk på adressen, frem for håndskrevne read/write-par: sektionerne (`aarsloen`,
+// `stamdata`) er produktionens ægte Zod-schemas, så XOR-, eksistens- og relevansvalideringen fortsat
+// kører mod den rigtige kontrakt.
+
+const createEmptyAarsloenSection = (): unknown => ({ tableData: [] });
+const createEmptyStamdataSection = (): unknown => ({});
+
+/** Valgmængden læses fra produktionens enum, så testkataloget ikke kan drifte fra den. */
+const SKADESTYPE_VALUES = skadestypeEnum.options as readonly Skadestype[];
+
+/** `percent`-familien. */
+export const feriePctField: FieldDescriptor<number | undefined> = defineStructuralField<number | undefined>({
+  id: 'aarsloen.feriePct',
+  template: { section: 'aarsloen', path: [], field: 'feriePct' },
+  codec: createPercentFieldCodec({ allowNegative: false, allowDecimals: true }),
+  emptyValue: undefined,
+  isEmpty: isUndefined,
+  label: 'Ferieprocent',
+  controlKind: 'text',
+  createEmptySection: createEmptyAarsloenSection,
+});
+
+/** `boolean`-familien (toggle). */
+export const omregningField: FieldDescriptor<boolean> = defineStructuralField<boolean>({
+  id: 'aarsloen.omregningTilFuldtAar',
+  template: { section: 'aarsloen', path: [], field: 'omregningTilFuldtAar' },
+  codec: booleanFieldCodec,
+  emptyValue: false,
+  isEmpty: () => false,
+  label: 'Omregning til fuldt år',
+  controlKind: 'toggle',
+  createEmptySection: createEmptyAarsloenSection,
+});
+
+/** `selection`-familien (optional choice — tom tekst er canonical `undefined`). */
+export const skadestypeField: FieldDescriptor<Skadestype | undefined> = defineStructuralField<Skadestype | undefined>({
+  id: 'stamdata.skadestype',
+  template: { section: 'stamdata', path: [], field: 'skadestype' },
+  codec: createChoiceFieldCodec<Skadestype>(SKADESTYPE_VALUES),
+  emptyValue: undefined,
+  isEmpty: isUndefined,
+  label: 'Skadestype',
+  controlKind: 'choice',
+  createEmptySection: createEmptyStamdataSection,
+});
+
 export const createTestCatalog = (
   derivedWrites?: readonly DerivedInputWrite[]
 ) => createInputCatalog({
-  fields: catalogFields(aargangField, beregningsdatoField, kommentarerField, belobField, tillaegstidField, enhedField),
+  fields: catalogFields(
+    aargangField, beregningsdatoField, kommentarerField,
+    belobField, tillaegstidField, enhedField, renterFraField,
+    feriePctField, omregningField, skadestypeField
+  ),
   collections: catalogCollections(rentekravRowsCollection),
   ...(derivedWrites === undefined ? {} : { derivedWrites }),
 });

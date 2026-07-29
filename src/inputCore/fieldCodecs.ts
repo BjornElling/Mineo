@@ -84,6 +84,7 @@ const assertNumericBounds = (
 
 /** Formular- og tabeltekst bruger samme canonical trimning ved settle. Tekst kan aldrig afvises. */
 export const textFieldCodec: FieldCodec<string> = Object.freeze({
+  family: 'text',
   parseForSettle: (raw) => validResolution(trimWhitespaceEdges(raw)),
   format: (value) => value,
   formatForEdit: (value) => value,
@@ -95,6 +96,7 @@ export const createTextFieldCodec = (): FieldCodec<string> => textFieldCodec;
 
 /** Optional fritekst: canonical tomhed er `undefined`, ikke `''`. */
 export const optionalTextFieldCodec: FieldCodec<string | undefined> = Object.freeze({
+  family: 'optionalText',
   parseForSettle: (raw) => {
     const trimmed = trimWhitespaceEdges(raw);
     return validResolution(trimmed === '' ? undefined : trimmed);
@@ -125,6 +127,7 @@ export const createSelectionFieldCodec = <T extends string | number>(options: Re
     throw new Error('SelectionFieldCodec: valgmængden skal være ikke-tom og have entydige visningstekster');
   }
   return Object.freeze({
+    family: 'selection',
     parseForSettle: (raw): FieldResolution<T | undefined> => {
       const value = raw.trim();
       if (value === '') return validResolution(undefined);
@@ -153,6 +156,7 @@ export const createRequiredChoiceFieldCodec = <T extends string>(
     throw new Error('RequiredChoiceFieldCodec: tomværdien skal findes i valgmængden');
   }
   return Object.freeze({
+    family: 'requiredChoice',
     parseForSettle: (raw): FieldResolution<T> => {
       if (raw.trim() === '') return validResolution(emptyValue);
       const resolution = optional.parseForSettle(raw);
@@ -168,6 +172,7 @@ export const createRequiredChoiceFieldCodec = <T extends string>(
 
 /** Toggle/checkbox: immediate-commit-sti, boolean canonical. */
 export const createBooleanFieldCodec = (emptyValue = false): FieldCodec<boolean> => Object.freeze({
+  family: 'boolean',
   parseForSettle: (raw) => raw.trim() === ''
     ? validResolution(emptyValue)
     : raw === 'true'
@@ -184,6 +189,7 @@ export const booleanFieldCodec: FieldCodec<boolean> = createBooleanFieldCodec(fa
 
 export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: DateYearPolicy }>): FieldCodec<ISODateString | undefined> =>
   Object.freeze({
+    family: 'date',
     parseForSettle: (raw): FieldResolution<ISODateString | undefined> => {
       const parsed = parseDateDraftForCommit(raw, options);
       // Kun reelt tom tekst er canonical tomhed; anden ikke-parsebar tekst bevares som rejected format.
@@ -203,6 +209,7 @@ export const createIntegerFieldCodec = (
   assertBoolean('IntegerFieldCodec', 'allowNegative', config.allowNegative);
   assertNumericBounds('IntegerFieldCodec', config, isSafeCanonicalInteger);
   return Object.freeze({
+    family: 'integer',
     parseForSettle: (raw): FieldResolution<number | undefined> => {
       const edge = trimToNumericEdgesPreserveLeadingMinus(raw);
       const normalized = edge === '' && raw.trim() !== '' ? raw.trim() : edge;
@@ -233,6 +240,7 @@ export const createAmountFieldCodec = (options: Readonly<{
     ? isSafeCanonicalDecimal(value, DEFAULT_AMOUNT_PRECISION)
     : isSafeCanonicalInteger(value));
   return Object.freeze({
+    family: 'amount',
     parseForSettle: (raw): FieldResolution<AmountValue | undefined> => {
       const parsed = parseAmountInput(raw, {
         precision: DEFAULT_AMOUNT_PRECISION,
@@ -273,6 +281,7 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
     maxValue: undefined,
   };
   return Object.freeze({
+    family: 'percent',
     parseForSettle: (raw): FieldResolution<number | undefined> => {
       // Kun format afvises (§1.6/§3.3): parse uden grænser. En schema-gyldig out-of-bounds-procent committes
       // canonical; min/max vurderes af en canonical feltvalidator, ikke som en rejection her.
@@ -294,6 +303,7 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
 export const createStringBackedFieldCodec = <T extends string | number>(
   sourceCodec: FieldCodec<T | undefined>
 ): FieldCodec<string | undefined> => Object.freeze({
+  family: 'stringBacked',
   parseForSettle: (raw) => {
     const resolution = sourceCodec.parseForSettle(raw);
     if (resolution.status === 'rejected') {
@@ -318,6 +328,7 @@ export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<n
   // bærer et afledt bounds-issue fra en feltvalidator (§1.6). Kun ikke-parsebart format afvises her.
   const formatOnlyConfig: YearDraftParseConfig = { ...config, minYear: undefined, maxYear: undefined };
   return Object.freeze({
+    family: 'year',
     parseForSettle: (raw) => {
       const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
       return parsed.ok ? validResolution(parsed.value) : rejectedResolution('format');
@@ -341,6 +352,7 @@ export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<s
   // et velformet uge/år-par uden for årsintervallet committes canonical og bærer et afledt bounds-issue (§1.6).
   const formatOnlyConfig: WeekDraftParseConfig = { ...config, minYear: undefined, maxYear: undefined };
   return Object.freeze({
+    family: 'week',
     parseForSettle: (raw) => {
       const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
       return parsed.ok ? validResolution(parsed.value) : rejectedResolution('format');
@@ -359,6 +371,7 @@ export const createFractionFieldCodec = (config: FractionParseOptions): FieldCod
   assertOptionalBoolean('FractionFieldCodec', 'canonicalizeOnCommit', config.canonicalizeOnCommit);
   assertOptionalBoolean('FractionFieldCodec', 'requireIntegerFraction', config.requireIntegerFraction);
   return Object.freeze({
+    family: 'fraction',
     parseForSettle: (raw) => {
       const trimmed = trimToAlphanumericEdges(raw);
       if (trimmed === '') return validResolution(undefined);

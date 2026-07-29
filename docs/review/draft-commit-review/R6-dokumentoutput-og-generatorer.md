@@ -12,19 +12,21 @@ fil-I/O ved blokering, parallel generator-/downloadvej samt grøn dækning af to
 **Evidens:** AST-audit af 792 produktionsfiler; to virtuelle strict-TypeScript-compile-prober; én
 runtime-probe af settings-/tokenbindingen; målrettet Vitest-kørsel af fem filer med 158/158 grønne
 tests. De konkrete kommandoer og udfald står nedenfor.  
-**Fund:** 4 (R6-F01, R6-F02, R6-F03, R6-F04) — R6-F01 og R6-F02 rettet 2026-07-28 (etape 3)  
+**Fund:** 4 (R6-F01, R6-F02, R6-F03, R6-F04) — R6-F01 + R6-F02 rettet 2026-07-28 (etape 3);
+R6-F04 rettet 2026-07-29 (etape 10)  
 **Hypoteser:** Ingen  
-**Handling:** R6-F01 og R6-F02 er rettet; R6-F03 (etape 11) og R6-F04 (etape 10) er parkeret til deres
-etaper.  
-**Næste skridt:** Ret R6-F03 og R6-F04, og tilføj katalogkomplette ready-/invalid-/bounds-fixtures.
-Derefter gentages R6-kontrollerne og status kan vurderes til `Gennemgået`.
+**Handling:** R6-F01, R6-F02 og R6-F04 er rettet. R6-F03 (dokumentformat som lovlig gate-dependency) hører
+til etape 11 og spores desuden af WI-014.  
+**Næste skridt:** R6-F03. Kontrolpunktet "Samme definition til reaktiv gate og click-preflight" er nu målt
+for alle 18 frem for at bestå strukturelt — se R6-F04's afgrænsningsnote for det, der bevidst IKKE blev
+gjort.
 
 ## Scope og kontrolresultat
 
 | Kontrolpunkt | Resultat | Evidens |
 |---|---|---|
 | Én typed definition pr. hovedapp-output | Bestået | AST fandt 18 unikke definitioner med præcis de 18 id'er i `MINEO_DOCUMENT_OUTPUT_IDS`. |
-| Samme definition til reaktiv gate og click-preflight | Bestået strukturelt | `closeDocumentAction` bruger samme nominale action til `evaluateGate` og `download`; lifecycle kalder samme actions `resolve`. |
+| Samme definition til reaktiv gate og click-preflight | **Bestået, målt for alle 18** (R6-F04, etape 10) | Strukturelt: `closeDocumentAction` bruger samme nominale action til `evaluateGate` og `download`. Empirisk: `documentGatePreflightParity.test.ts` sammenligner verdict OG årsagsliste for alle 18 definitioner × 3 inputtilstande. |
 | Tokenbundet, ikke-håndbyggeligt `PreparedDocument` | Bestået | Typen og begge interne funktioner er modulprivate; compile-proben gav tre forventede ikke-eksporteret-diagnostics. |
 | Ingen entrypoint-/generator-/fil-I/O-bypass | Bestået | Kun kataloget importerer lifecycle; kun lifecycle kalder `triggerDocumentDownload`; ingen generatorimport uden for definitionsautoriteterne. |
 | Stop før lazy-load, generator og fil-I/O ved blokering | Bestået for den centrale lifecycle | `documentLifecycleMatrix.test.ts` beviser den fælles blocked-sti. Katalogkomplet per-definition-dækning fejler R6-F04. |
@@ -300,7 +302,46 @@ fælles lifecycle-kontraktsrunner. Hver fixture erklærer kun de fejlklasser, so
 definitionens faktiske dependencies; testen håndhæver non-empty synlig grund og nul
 renderer/session/fil-I/O ved direkte aktivering.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 10)** — med en bevidst og navngivet afgrænsning, se nedenfor.
+
+`src/__tests__/document/documentGatePreflightParity.test.ts` måler nu **alle 18** definitioner, bundet til
+`MINEO_DOCUMENT_OUTPUT_IDS`, så listen ikke kan blive ufuldstændig uden at testen bliver rød. For hver
+definition, på tre inputtilstande (tomt, delvist udfyldt hvor nogle outputs er ready, og rejected format på
+et bredt læst felt) hævdes:
+
+1. **reaktiv gate og click-preflight giver samme verdict** — og samme ÅRSAGSLISTE. Enighed om verdict er
+   ikke nok: et enigt "blokeret" med to forskellige begrundelser ville give brugeren én tekst i tooltippet og
+   en anden i beskeden.
+2. **hver kanal projicerer PRÆCIS én gang** — ingen definition har en projicerende sidekanal, der kunne
+   give et andet resultat.
+3. **en blokering bærer ALTID mindst én synlig årsag med ikke-tom kode og besked**, i begge kanaler, for
+   alle 18. Det er [[project_download_gate_visible_error_invariant]] hævet fra fire domæner til hele
+   kataloget.
+4. **målingen er ikke vakuøs:** fixturerne producerer BÅDE `ready` og `blocked` på tværs af kataloget, og
+   mindst 18 blokeringer bærer en årsag. Uden dette ben kunne pariteten være grøn på et katalog, hvor alt
+   var blokeret uden grund.
+
+**Den bevidste afgrænsning — hvad der IKKE blev gjort, og hvorfor.** Anbefalingen bad om en typed
+gate-fixture pr. output-id med ready + invalid + bounds + warning + ikke-relevant, altså 18 × 5 cases. Det er
+IKKE gennemført, og grunden er den samme, som `documentGateMatrix.test.ts` selv anfører i sit hoved: de fire
+inputklasser er **per-definition** og kan ikke konstrueres generisk. En `bounds`-fejl på det felt, EO's
+TAF-graf afhænger af, er en anden konstruktion end en `bounds`-fejl i forsørgertabets tilkendte periode, og
+en generisk fixture ville derfor skulle bære 18 håndskrevne dependency-kort — hvorefter det er 18 håndskrevne
+cases, ikke en matrix.
+
+Etapen valgte i stedet at måle den ANDEN akse udtømmende: at de to KANALER er enige, hvad end inputklassen
+er. Det lukker fundets egen konsekvensbeskrivelse ("… starte dokumentarbejde efter en forkert klassificering
+uden at den kontraktbundne katalogmatrix bliver rød"), fordi en forkert klassificering nu ville ramme begge
+kanaler og blive fanget af årsags- og synlighedsbenene for alle atten. Det, der fortsat kun er målt for fire
+definitioner, er om den enkelte definition har erklæret de RIGTIGE dependencies — og det er en
+domænekorrekthedspåstand, ikke en gate-mekanismepåstand. De fire domæner i `documentGateMatrix` dækker den
+per-klasse; de øvrige fjorten dækkes af deres egne domænesuiter.
+
+**Mutationsbevist mod den levende kilde:** ryddes årsagslisten i `resolveDocumentDefinition`s blocked-gren,
+bliver `en blokering bærer ALTID mindst én synlig årsag` rød med `satser @ tomt input (gate): blokeret UDEN
+nogen årsag`, og ikke-vakuøs-kontrollen fejler med `expected 0 to be greater than or equal to 18`.
+
+Dækning: 5 tests × 18 definitioner × 3 inputtilstande.
 
 ## Resterende kontrolpunkter
 

@@ -4,22 +4,27 @@ Samlet register over alle fund i draft/commit-reviewet: fasefundene (R0–R8), d
 konvergensreview (GM-F01–GM-F15) og brugertestfundene (UT-F01–UT-F06). Én linje pr. fund, ingen prosa —
 beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
-**Sidst opdateret:** 2026-07-29 (etape 8 + 9 lukket)
+**Sidst opdateret:** 2026-07-29 (etape 10 lukket)
 
 ## Status
 
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
-| R0–R8 (fasefund) | 36 | 20 | 16 | 0 |
+| R0–R8 (fasefund) | 36 | 12 | 24 | 0 |
 | GM (konvergensreview) | 15 | 1 | 14 | 0 |
 | UT (brugertest) | 6 | 0 | 5 | 1 |
-| INC (tilfældighedsfund) | 16 | 1 | 15 | 0 |
-| **I alt** | **73** | **22** | **50** | **1** |
+| INC (tilfældighedsfund) | 18 | 1 | 17 | 0 |
+| **I alt** | **75** | **14** | **60** | **1** |
 
 Etape 7 er lukket **på nær GM-F10**, som holdes åben sammen med INC-F14 (se noterne nedenfor): kortlægningen
 viste, at fundet er større end sin rapport, og at dens `fieldPath`-cellemål slet ikke er i brug i dag.
 
-Etape 8 og 9 er **lukket 2026-07-29**. Tilbage står etape 10–12 samt GM-F10.
+Etape 8, 9 og 10 er **lukket 2026-07-29**. Tilbage står etape 11–12 samt GM-F10.
+
+**R0-F03 er bevidst IKKE lukket med etape 10**, selv om den stod i etapen: dens rettelse ER R6-F03's
+rettelse (fjern `documentDownloadFormat` fra projektionskonteksten), og den hører derfor til etape 11. Etapen
+flyttede begrænsningen ordret til det nye §10-kriterium 27 og bevarede kravet om, at den sporende WI-fil
+findes. Begrundelsen står i fundet.
 
 ## Bindende regel for tilfældighedsfund
 
@@ -58,7 +63,7 @@ en etape rettes og verificeres sammen.
 | **7** | UT-F02, UT-F06, R3-F03, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, min-max-tooltips mangler årsagsinput, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. Første pas (UT-F02 + UT-F06) lukket 2026-07-28; andet pas (R7-F03, R7-F02, GM-F03, R3-F03) lukket og verificeret 2026-07-29. **GM-F10 er den ENESTE udestående** — kortlægningen viste, at fundet er større end sin rapport, og at dens cellemål er ude af brug (INC-F14). Den flyttes til en egen behandling. Se `work-items/WI-015-etape7-fokusmaal-ejerskab.md`. |
 | **8** | R4-F01, R4-F02, GM-F12, GM-F13 | Persistence og hel-sags-handlinger: draft kasseres efter replacement, ufuldstændig oprydning accepteres som succes, `Slet alt` afsluttes anderledes end load. Bærer beslutning 4. Lukket 2026-07-29 — se etapenoten nedenfor. |
 | **9** | GM-F08, GM-F09, R5-F02, R8-F07, R0-F02 | Døde veje og værn, der ikke kan fejle. Ligger efter etape 1–8, fordi rettelserne dér kan efterlade nye rester og gøre flere værn inerte. Lukket 2026-07-29 — se etapenoten nedenfor. |
-| **10** | R8-F01, R8-F03, R8-F02, R8-F04, R8-F05, R8-F06, R2-F03, R6-F04, R0-F03 | Testdækning og acceptmatrix: §10's kriterier og de obligatoriske statekæder får et levende register. Sidst, fordi dækningen skal måles mod den FÆRDIGE arkitektur, ikke mod en mellemtilstand. |
+| **10** | R8-F01, R8-F03, R8-F02, R8-F04, R8-F05, R8-F06, R2-F03, R6-F04, R0-F03 | Testdækning og acceptmatrix: §10's kriterier og de obligatoriske statekæder får et levende register. Sidst, fordi dækningen skal måles mod den FÆRDIGE arkitektur, ikke mod en mellemtilstand. Lukket 2026-07-29 **på nær R0-F03**, hvis rettelse er R6-F03's og derfor flytter til etape 11 — se etapenoten nedenfor. |
 | **11** | R1-F01, R1-F02, R1-F03, R1-F04, R1-F05, R1-F06, R1-F07, R6-F03, R8-F08 | Kontrakter, docs og sluttilstandssprog. Til sidst pr. review-planens R1b/R9: teksten skal beskrive systemet, som det er efter alle rettelser. |
 | **12** | R7-F01, R0-F01 | Vurderes til sidst: R7-F01 er en omlægning af otte fagsider og kan blive en work item frem for en reviewrettelse; R0-F01 er en runtime-/toolchain-beslutning uden kodeafhængighed. |
 
@@ -71,7 +76,7 @@ etape kommer.
 |---|---|---|---|---:|---|---|
 | R0-F01 | Baseline kørt på ikke-understøttet runtime | Væsentlig | `package.json:22-24` | 12 | Åbent | [R0](R0-baseline-og-vaern.md#r0-f01--baseline-kørt-på-ikke-understøttet-runtime) |
 | R0-F02 | Tekstprober kan holde døde værn levende | Væsentlig | Harnessets liveness-lag (`architectureRules.test.ts`) + 14 prober | 9 | **Rettet 2026-07-29** | [R0](R0-baseline-og-vaern.md#r0-f02--tekstprober-kan-holde-døde-værn-levende) |
-| R0-F03 | Dokumentformatværnet dækker kun to ready-grene | Væsentlig | `acceptanceMatrix.test.ts:295-303` | 10 | Åbent (WI-014) | [R0](R0-baseline-og-vaern.md#r0-f03--dokumentformatværnet-dækker-kun-to-ready-grene) |
+| R0-F03 | Dokumentformatværnet dækker kun to ready-grene | Væsentlig | Kriterium 27's `knownLimitation` | 11 | Åbent (WI-014 / R6-F03) | [R0](R0-baseline-og-vaern.md#r0-f03--dokumentformatværnet-dækker-kun-to-ready-grene) |
 | R1-F01 | Designdokumentets status er indbyrdes modstridende | Væsentlig | `draft-commit-greenfield-design.md` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f01--designdokumentets-status-er-indbyrdes-modstridende) |
 | R1-F02 | Arkitekturdocs beskriver afløste grænser som aktuelle | Væsentlig | `docs/architecture/` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f02--arkitekturdocs-beskriver-afløste-grænser-som-aktuelle) |
 | R1-F03 | Normative kontrakter bruger fortsat migrationssprog | Væsentlig | `src/contracts/` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f03--normative-kontrakter-bruger-fortsat-migrationssprog) |
@@ -81,7 +86,7 @@ etape kommer.
 | R1-F07 | Error-kontrakten prioriterer en slettet source-dimension | Mindre | `error-contract.md:114,220` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f07--error-kontrakten-prioriterer-en-slettet-source-dimension) |
 | R2-F01 | Indsæt dags dato fejler på fem sider | Væsentlig | Fem side-callsites | 2 | **Rettet 2026-07-28** | [R2](R2-inputkerne-og-felteditor.md#r2-f01--indsæt-dags-dato-fejler-på-fem-sider) |
 | R2-F02 | Kontrakt og kode er uenige om skjulte canonical fejl | Væsentlig | `form-contract.md:207-208` | 4 | **Rettet 2026-07-28** | [R2](R2-inputkerne-og-felteditor.md#r2-f02--kontrakt-og-kode-er-uenige-om-skjulte-canonical-fejl) |
-| R2-F03 | Obligatoriske statekæder er ufuldstændigt dækket | Væsentlig | `draft-commit-greenfield-design.md:812-823` | 10 | Åbent | [R2](R2-inputkerne-og-felteditor.md#r2-f03--obligatoriske-statekæder-er-ufuldstændigt-dækket) |
+| R2-F03 | Obligatoriske statekæder er ufuldstændigt dækket | Væsentlig | `stateChains.test.ts` (ny) | 10 | **Rettet 2026-07-29** | [R2](R2-inputkerne-og-felteditor.md#r2-f03--obligatoriske-statekæder-er-ufuldstændigt-dækket) |
 | R3-F01 | Midlertidig EET-import overblokeres sektionsvist | Væsentlig | `eetImportPort.ts:39-54` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f01--midlertidig-eet-import-overblokeres-sektionsvist) |
 | R3-F02 | EO globaliserer feltissues uden faktisk dependency | Væsentlig | `eoDependencyGroups.ts:227-230` | 4 | **Rettet 2026-07-28** | [R3](R3-issues-og-gates.md#r3-f02--eo-globaliserer-feltissues-uden-faktisk-dependency) |
 | R3-F03 | Min-max-tooltips mangler inputnavne | Væsentlig | `dateRangeErrorMessages.ts` (`DateRangeBoundsOrigin`) | 7 | **Rettet 2026-07-29** | [R3](R3-issues-og-gates.md#r3-f03--min-max-tooltips-mangler-inputnavne) |
@@ -93,16 +98,16 @@ etape kommer.
 | R6-F01 | Frisk token bindes til render-fangede settings | Kritisk | `mineoDocumentEnvironment.ts:44-50` | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f01--frisk-token-bindes-til-render-fangede-settings) |
 | R6-F02 | Otte outputs kasserer beskeden efter afbrudt download | Væsentlig | Otte dokument-callsites | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f02--otte-outputs-kasserer-brugerbeskeden-efter-en-afbrudt-download) |
 | R6-F03 | Dokumentformat er fortsat en lovlig gate-dependency | Væsentlig | `sourceSettings.ts:8-85` | 11 | Åbent | [R6](R6-dokumentoutput-og-generatorer.md#r6-f03--dokumentformat-er-fortsat-en-lovlig-gate-dependency) |
-| R6-F04 | Gatekontrakten er kun målt på fire af atten definitioner | Væsentlig | `document-output-contract.md:71-87` | 10 | Åbent | [R6](R6-dokumentoutput-og-generatorer.md#r6-f04--gatekontrakten-er-kun-målt-på-fire-af-atten-definitioner) |
+| R6-F04 | Gatekontrakten er kun målt på fire af atten definitioner | Væsentlig | `documentGatePreflightParity.test.ts` (ny) | 10 | **Rettet 2026-07-29** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f04--gatekontrakten-er-kun-målt-på-fire-af-atten-definitioner) |
 | R7-F01 | Det obligatoriske page-viewmodel-lag findes ikke | Væsentlig | Alle otte persisterede fagsider | 12 | Åbent | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f01--det-obligatoriske-page-viewmodel-lag-findes-ikke) |
 | R7-F02 | To toggles omgår feltfamilien og mister fokusmetadata | Væsentlig | `ToggleField.tsx`, `MappedToggleField.tsx` (`commit`-override) | 7 | **Rettet 2026-07-29** | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f02--to-persisterede-toggles-omgår-feltfamilien-og-mister-fokusmetadata) |
 | R7-F03 | Global feltadresse bestemmer fokusdestinationen | Væsentlig | `editorLocationDestination.ts` (afløser `fieldAddressDestination.ts`, slettet) | 7 | **Rettet 2026-07-29** | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f03--global-feltadresse-bestemmer-fokusdestinationen) |
-| R8-F01 | §10's 30 acceptkriterier har intet levende register | Kritisk | `acceptanceMatrix.test.ts:40-498` | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f01--10s-30-acceptkriterier-har-intet-levende-register) |
-| R8-F02 | Fælles form/grid-feltkontrakt køres ikke pr. codecfamilie | Væsentlig | Tre input-surface-tests | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f02--fælles-formgrid-feltkontrakt-køres-ikke-pr-codecfamilie) |
-| R8-F03 | Obligatoriske statekæder og ni aspekter er ikke dækket | Kritisk | `inputCore.test.ts:391-430` | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f03--de-obligatoriske-statekæder-og-deres-ni-aspekter-er-ikke-dækket) |
-| R8-F04 | Transaktionsinvarianter testes ikke for hver command-type | Væsentlig | `inputReducer.ts:27-123` | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f04--transaktionsinvarianterne-testes-ikke-for-hver-command-type) |
-| R8-F05 | Warning-benet i issue-/gate-matricen er falsk dækket | Væsentlig | `documentGateMatrix.test.ts:232-251` | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f05--warning-benet-i-issue-gate-matricen-er-falsk-dækket) |
-| R8-F06 | Kritiske handlinger er ikke integrationstestet ens | Væsentlig | Kritiske handlings- og dokumenttests | 10 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f06--kritiske-handlinger-er-ikke-integrationstestet-ens-for-form-og-grid) |
+| R8-F01 | §10's 30 acceptkriterier har intet levende register | Kritisk | `acceptanceMatrix.test.ts` (bundet ordret til designets §10) | 10 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f01--10s-30-acceptkriterier-har-intet-levende-register) |
+| R8-F02 | Fælles form/grid-feltkontrakt køres ikke pr. codecfamilie | Væsentlig | `fieldContract.surfaces.test.tsx` + `FieldCodec.family` (påkrævet) | 10 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f02--fælles-formgrid-feltkontrakt-køres-ikke-pr-codecfamilie) |
+| R8-F03 | Obligatoriske statekæder og ni aspekter er ikke dækket | Kritisk | `stateChains.test.ts` (ny) | 10 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f03--de-obligatoriske-statekæder-og-deres-ni-aspekter-er-ikke-dækket) |
+| R8-F04 | Transaktionsinvarianter testes ikke for hver command-type | Væsentlig | `commandInvariants.test.ts` (ny, typebundet over 14 arter) | 10 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f04--transaktionsinvarianterne-testes-ikke-for-hver-command-type) |
+| R8-F05 | Warning-benet i issue-/gate-matricen er falsk dækket | Væsentlig | `documentGateMatrix.test.ts` (ægte domæne-warning + motor-spy) | 10 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f05--warning-benet-i-issue-gate-matricen-er-falsk-dækket) |
+| R8-F06 | Kritiske handlinger er ikke integrationstestet ens | Væsentlig | `criticalActionSurfaceParity.test.tsx` (ny) | 10 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f06--kritiske-handlinger-er-ikke-integrationstestet-ens-for-form-og-grid) |
 | R8-F07 | EO-surface-værnet kan omgås med en kommentar | Væsentlig | `input/eo-surface-on-greenfield-path` (afløser den slettede tekst-guard) | 9 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f07--eo-surface-værnet-kan-omgås-med-en-kommentar) |
 | R8-F08 | Aktive testnavne beskriver fortsat migrationen | Mindre | `src/__tests__/` | 11 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f08--aktive-testnavne-beskriver-fortsat-migrationen) |
 
@@ -218,6 +223,8 @@ Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:t
 | INC-F14 | Alle kataloget's `fieldPath`-cellemål i EO-fejllinks er uopnåelige OG utestede | Væsentlig | GM-F10's kortlægning | Åbent (bæres af GM-F10) |
 | INC-F15 | EO's round-trip-test modellerede et serialiseringstrin, produktionen ikke udfører | Væsentlig | GM-F09 | **Rettet 2026-07-29** |
 | INC-F16 | `pendingOverlay` + `allowExitWithoutWarning` fandtes kun for at overleve en reload | Mindre | GM-F12 | **Rettet 2026-07-29** |
+| INC-F17 | Kernens generiske warning-kanal havde nul producenter OG nul læsere | Væsentlig | R8-F05 | **Rettet 2026-07-29** |
+| INC-F18 | Min egen første mount-uafhængighedstest var inert i den ene retning | Væsentlig | Kriterium 22's værn | **Rettet 2026-07-29** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
@@ -787,3 +794,95 @@ Fundet er registreret frem for blot rettet, fordi det er en fjerde variant af R0
 sværeste at se: her var hverken proben, allowlisten eller værnets mål forkert — det var testens MODEL af
 produktionen. En test, der modellerer en strengere pipeline end den, den skal bevise noget om, er grøn på
 egne præmisser og siger intet om koden.
+
+**R8-F01 + R8-F03 + R8-F02 + R8-F04 + R8-F05 + R8-F06 + R2-F03 + R6-F04 — rettet 2026-07-29 (etape 10).**
+Testdækning og acceptmatrix. Fire gates + `verify:ledgers` + fuld suite grøn: **505 filer / 6551 tests**
+(netto +6 filer / +241 tests). R0-F03 stod i etapen men flytter til etape 11 — se statusnoten øverst.
+
+**Etapens gennemgående mønster: hvert fund var en dækning, der ikke var OPREGNELIG.** Ingen af de seks
+huller skyldtes en glemt assertion. I alle tilfælde fandtes der en hånd-vedligeholdt liste — 15 acceptpunkter,
+to codecfamilier, to statekæder, én command-art, fire dokumentdefinitioner — som kunne falde bagud, fordi
+intet målte den mod den flade, den påstod at dække. Rettelserne gør derfor listen DERIVERET frem for erklæret:
+
+- acceptregistret læser §10 ud af designdokumentet og sammenligner titel for titel,
+- codecfamilierne opregnes fra `productionInputFields` via et nyt **påkrævet** `FieldCodec.family`,
+- statekæderne sammenlignes ordret med §7.2's egen liste,
+- command-arterne bindes med `satisfies Record<RuntimeInputCommand['kind'], …>`,
+- dokumentdefinitionerne bindes til `MINEO_DOCUMENT_OUTPUT_IDS`.
+
+Fælles for de fem: en ny familie/art/definition/kriterium gør noget rødt, før nogen skal huske at udvide en
+liste. To af dem er COMPILERFEJL frem for testfejl (`FieldCodec.family`, command-registeret) —
+[[project_typed_write_boundary_over_ast_guard]]'s princip anvendt på testdækning.
+
+**Det centrale strukturelle udfald: en suite er ikke evidens.** Acceptregistret accepterede før både
+`describe` og `it` som dækningskilde, og et `describe`-navn overlever sletningen af hver test under det.
+Registret citerer nu udelukkende leaf-tests, og en citeret suite afvises med sin egen forklarende fejl. Det
+ramte straks mit eget nye arbejde: `stateChains`' otte kædenavne er `describe`s og KUNNE ikke citeres. De er
+derfor bundet et stærkere sted — ordret mod §7.2 — frem for at blive gjort citérbare med et dynamisk
+testnavn, som parseren pr. konstruktion ikke kan læse.
+
+**To fund om ÉN kanal, der ikke fandtes, og ÉT værn, der ikke virkede:** INC-F17 (kernens warning-kanal var
+død i begge ender) og INC-F18 (min egen mount-test var inert i den ene retning). Noterne står nedenfor.
+
+**Ærlige afgrænsninger, som er navngivet frem for udeladt i tavshed:**
+
+- **R6-F04's 18 × 5 gate-fixture er IKKE bygget.** De fire inputklasser er per-definition og kan ikke
+  konstrueres generisk (`documentGateMatrix`' egen note). Etapen målte i stedet den anden akse udtømmende:
+  at de to KANALER er enige for alle 18. Begrundelsen står i R6-F04.
+- **§7.4's rollback-faults er ikke kopieret 14 gange.** De rammer `commitCandidate`, som alle arter går
+  igennem; en kopi pr. art ville måle samme kodesti 14 gange. Begrundelsen står i R8-F04.
+- **Fire codecfamilier er enkelt-surface i produktionen** (`fraction`, `year`, `stringBacked`, `text`) og har
+  ingen fælles form/grid-case, fordi den anden flade ikke findes. Et anti-rot-ben fejler, hvis en af dem
+  senere får sin modpart og bliver stående på undtagelseslisten.
+- **`week` har ingen descriptor overhovedet** — hvert uge-felt er wrappet i `stringBacked`. Familien er
+  navngivet i typen, men dækningen opregnes fra kataloget, så en case for den ikke måler en umulig gren.
+
+**Mutationsbevis — otte uafhængige mutationer mod den LEVENDE kilde**, hver med sin egen fejltekst:
+
+| Mutation | Rammer | Udfald |
+|---|---|---|
+| row-delete beholder rejected descendants | statekæde 8 + `commandInvariants` | 2 tests røde i 2 filer |
+| §1.9's oprydning af skjult fejlende værdi fjernet | statekæde 7 | rød (kæden fandtes ikke før) |
+| percent-codecets parse trunkerer decimalen | fælles feltkontrakt | **6 røde — 3 på form, 3 på grid** |
+| acceptregistret citerer et SUITENAVN | acceptregistret | rød med "… er en SUITE, ikke en leaf-test" |
+| §10 udvides til 31 kriterier | acceptregistret | rød med "… ikke præcis 30 nummererede kriterier" |
+| bindingens issue-cache gøres sticky | mount-uafhængighed | rød med `expected '' to be 'bounds'` |
+| blokeringens årsagsliste ryddes | gate/preflight-paritet | 2 røde, incl. "blokeret UDEN nogen årsag" |
+| `EDITOR_HANDLING.load` → `'settle'` | kritisk-handlings-paritet | **2 røde — form OG grid** |
+
+De to fremhævede er etapens vigtigste evidens: at fejlen rammer SYMMETRISK på begge surfaces er beviset for,
+at paritetssuiterne faktisk kører mod to adaptere og ikke er to lister, der tilfældigvis hævder det samme.
+
+**INC-F17.** `ProjectionCollector.warn`, `InputIssue`s `Warning`-variant og `ProjectionResult.warnings` havde
+**nul producenter og nul læsere** i produktionen. En repo-bred søgning fandt ingen `collector.warn`-callsites;
+`warnings`-feltet blev kun ført videre af `mapReadyProjection` til ingen; og `InputIssue`-unionen havde ingen
+konsument uden for sin egen definition. Warnings dannes i domænernes egne typer (`EetIssue.severity`,
+`EoRowStatus`, `IntegrityIssue.severity`).
+
+Fundet ændrede R8-F05's løsning i en retning, fundet ikke kunne kende: dets forslag var "tilføj en kanonisk
+warning-case ved issue-/projektionsgrænsen", men en sådan case ville have målt en kanal, ingen
+produktionskode bruger — en femte variant af R0-F02's fejlklasse, og en, jeg selv var ved at bygge.
+Warning-invarianten er i stedet målt på en ÆGTE EET-domæne-warning over tre konsekvenskanaler, og den døde
+kanal er slettet. Typegrænsen beviste, at fjernelsen var komplet: `typecheck:test` udpegede præcis de to
+tilbageblevne `warnings: []`-fixtures i `varigeMenDownloadGate.test.ts` og intet andet.
+
+Registreret frem for blot slettet, fordi det viser, at **et fund kan pege på den rigtige mangel og samtidig
+foreslå en løsning, der måler det forkerte.** Efterprøv altid, at den kanal, en ny test skal dække, HAR en
+producent.
+
+**INC-F18.** Den FØRSTE udgave af `mountIndependence.test.tsx`, som jeg skrev for at dække §10-kriterium 22,
+var **inert i den ene retning**. Den sammenlignede headless evaluering mod evaluering-efter-mount og beviste
+dermed, at et mount ikke FLYTTER noget. Men kriteriet har to retninger, og den anden er, at det monterede træ
+VISER den aktuelle sandhed frem for en tilstand, det fangede ved mount.
+
+Mutationen afslørede det: gøres bindingens issue-cache STICKY (returnér altid det første snapshot), forblev
+alle fire tests GRØNNE. En stale cache flytter ikke den headless evaluering — den ændrer kun, hvad DOM viser.
+Et felt ville da bære en rød markering, brugeren havde rettet. Testen er udvidet med et ben, der ændrer input
+MENS træet er monteret og sammenligner DOM mod den headless sandhed; mutationen gør nu netop det ben rødt med
+`expected '' to be 'bounds'`.
+
+Fundet er registreret frem for blot rettet, fordi det er **tredje gang** i dette review, at et værn jeg selv
+skrev viste sig inert (INC-F03, INC-F11, nu INC-F18) — og fordi det skærper lærepunktet et skridt videre end
+INC-F11's: det er ikke nok at mutationsteste mod den levende kilde. Man skal mutationsteste mod **hver retning
+af den invariant, værnet påstår at dække**. Mine tre første mutationer ramte alle mount→evaluering-retningen
+og bestod; kun den fjerde spurgte, om DOM fulgte med.

@@ -1,7 +1,7 @@
 import type { CollectionRef } from './fieldAddress';
 import type { FieldRef } from './fieldDescriptor';
 import { toAnyFieldRef } from './fieldDescriptor';
-import type { ConsumerIssue, FieldIssue, IssueDetail, Warning } from './inputIssue';
+import type { ConsumerIssue, FieldIssue } from './inputIssue';
 import type { EntityRef, InputReader } from './inputReader';
 import type { EvaluationSourceToken } from './evaluationSource';
 
@@ -10,18 +10,21 @@ import type { EvaluationSourceToken } from './evaluationSource';
 // projektions-DSL, ingen symbols/brands, intet manuelt `global|section|row`-scope: den præcise dependency
 // følger af de refs, funktionen faktisk læser.
 
+/**
+ * Der er bevidst INTET `warnings`-felt (INC-F17, etape 10). Feltet fandtes, blev fyldt af en
+ * `collector.warn`, ingen kaldte, og læst af ingen consumer — advarsler dannes i domænernes egne typer.
+ * Se noten i `inputIssue.ts`.
+ */
 export type ProjectionResult<T> =
   | Readonly<{
       status: 'ready';
       value: T;
       issues: readonly (FieldIssue | ConsumerIssue)[];
-      warnings: readonly Warning[];
       sourceToken: EvaluationSourceToken;
     }>
   | Readonly<{
       status: 'blocked';
       issues: readonly (FieldIssue | ConsumerIssue)[];
-      warnings: readonly Warning[];
       sourceToken: EvaluationSourceToken;
     }>;
 
@@ -43,11 +46,6 @@ export type ProjectionCollector = Readonly<{
   require: <T>(field: FieldRef<T>) => ProjectionReadResult<NonNullable<T>>;
   optional: <T>(field: FieldRef<T>) => ProjectionReadResult<T | undefined>;
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
-  warn: <V>(
-    code: string,
-    message: string,
-    options?: Readonly<{ field?: FieldRef<V>; detail?: IssueDetail }>
-  ) => void;
 }>;
 
 const missingIssue = <V>(consumerId: string, field: FieldRef<V>): ConsumerIssue => Object.freeze({
@@ -66,7 +64,7 @@ const missingIssue = <V>(consumerId: string, field: FieldRef<V>): ConsumerIssue 
 
 /**
  * Kører en ren projektion mod én reader. Enhver rød feltfejl på et læst felt blokerer (§1.6/§1.10). Et
- * tomt `require`-felt giver en `missing`-consumerfejl (§1.7). Warnings blokerer aldrig.
+ * tomt `require`-felt giver en `missing`-consumerfejl (§1.7).
  */
 export const runProjection = <T>(
   reader: InputReader,
@@ -74,7 +72,6 @@ export const runProjection = <T>(
   body: (collector: ProjectionCollector) => T | undefined
 ): ProjectionResult<T> => {
   const issues: (FieldIssue | ConsumerIssue)[] = [];
-  const warnings: Warning[] = [];
   const issueKeys = new Set<string>();
 
   const addIssue = (issue: FieldIssue | ConsumerIssue): void => {
@@ -114,16 +111,6 @@ export const runProjection = <T>(
       });
     },
     listEntities: (collection) => reader.listEntities(collection),
-    warn: (code, message, warnOptions) => warnings.push(Object.freeze({
-      kind: 'warning',
-      code,
-      reason: 'rule',
-      severity: 'warning',
-      message,
-      consumerId,
-      ...(warnOptions?.field === undefined ? {} : { field: toAnyFieldRef(warnOptions.field) }),
-      ...(warnOptions?.detail === undefined ? {} : { detail: Object.freeze({ ...warnOptions.detail }) }),
-    })),
   });
 
   // ⚠️ `body` udfører FØR statussen er afgjort nedenfor. Den må derfor bygge motorinput, men ALDRIG kalde
@@ -134,7 +121,6 @@ export const runProjection = <T>(
     return Object.freeze({
       status: 'blocked',
       issues: Object.freeze([...issues]),
-      warnings: Object.freeze([...warnings]),
       sourceToken: reader.sourceToken,
     });
   }
@@ -145,14 +131,13 @@ export const runProjection = <T>(
     status: 'ready',
     value,
     issues: Object.freeze([]),
-    warnings: Object.freeze([...warnings]),
     sourceToken: reader.sourceToken,
   });
 };
 
 /**
  * Kalder `calculate` KUN, når projektionen er `ready`, og bærer en `blocked` projektion uændret videre med
- * sine issues, warnings og source token.
+ * sine issues og source token.
  *
  * Kontrakten er utvetydig: kun en `ready` projektion må fodre en beregningsmotor
  * (`form-contract.md` §2.3), og en projektion kalder ikke motoren, hvis et afhængigt issue gør input
@@ -180,7 +165,6 @@ export const mapReadyProjection = <T, R>(
     status: 'ready',
     value: calculate(projection.value),
     issues: projection.issues,
-    warnings: projection.warnings,
     sourceToken: projection.sourceToken,
   });
 };

@@ -21,7 +21,51 @@ export type FieldResolution<T> =
   | Readonly<{ status: 'valid'; value: T }>
   | Readonly<{ status: 'rejected'; reason: FieldRejectReason; detail?: FieldRejectDetail }>;
 
+/**
+ * De codec-FAMILIER, kernen har. §7.1 kræver, at den fælles feltkontrakt køres mod BÅDE form- og
+ * grid-adapteren "for hver codecfamilie" — og det krav kan kun håndhæves, hvis familierne er
+ * OPREGNELIGE. Uden navnet var listen en hånd-vedligeholdt konstant i en testfil, og præcis derfor kunne
+ * dækningen falde bagud til én form-familie og én grid-familie uden at noget blev rødt (R8-F02).
+ *
+ * Tilføjes en ny familie, er den en compilerfejl her, indtil den har et navn — og derefter en rød
+ * kontraktsuite, indtil den har en case (`fieldContract.surfaces.test.tsx`).
+ */
+export type FieldCodecFamily =
+  | 'text'
+  | 'optionalText'
+  /**
+   * `selection` dækker BÅDE `createSelectionFieldCodec` og `createChoiceFieldCodec`: sidstnævnte er en tynd
+   * wrapper, der kun tilføjer en dublet-/tomhedskontrol på valgmængden og derefter delegerer HELE parse-,
+   * format- og tastaturadfærden. To familienavne for samme adfærd ville have krævet to identiske
+   * kontraktcases og dermed foregivet en dækning, der ikke måler noget nyt. `requiredChoice` er derimod
+   * sin egen familie: den oversætter tom tekst til en gyldig default frem for til `undefined`.
+   */
+  | 'selection'
+  | 'requiredChoice'
+  | 'boolean'
+  | 'date'
+  | 'integer'
+  | 'amount'
+  | 'percent'
+  /**
+   * `stringBacked` er en ADAPTER-familie: den pakker et indre codec (integer/år/uge) og bevarer tomhed som
+   * `''` i canonical data. Dens egen adfærd — den strengede tomhed og den tolerante `format` af en
+   * historisk `.eo`-streng — er det, kontrakten måler; det indre codec måles af sin egen familie.
+   *
+   * `week` er navngivet, men har INGEN descriptor i produktionen: hvert eneste uge-felt er wrappet i
+   * `stringBacked` (fire descriptors, verificeret). Kontraktsuiten opregner derfor de LEVENDE familier fra
+   * produktionskataloget frem for fra denne union — en case for en familie uden descriptor ville have målt
+   * en gren, ingen tilstand kan nå. Bygges et rå uge-felt, dukker familien op i kataloget, og suiten bliver
+   * rød indtil den har en case.
+   */
+  | 'stringBacked'
+  | 'year'
+  | 'week'
+  | 'fraction';
+
 export type FieldCodec<T> = Readonly<{
+  /** Codecets familie — den ene identitet, §7.1's dækningskrav opregnes over. */
+  family: FieldCodecFamily;
   /** Parser rå editortekst ved settle. Semantisk tom tekst skal resolve `valid` til feltets tomværdi. */
   parseForSettle: (raw: string) => FieldResolution<T>;
   /** Visning af en canonical værdi i lukket tilstand. */

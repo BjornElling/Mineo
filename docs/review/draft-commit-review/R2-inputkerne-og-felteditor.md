@@ -10,8 +10,8 @@ styrende valg; placeholder-promotion; bred editor-capability
 direkte reducerreproduktion af R2-F01  
 **Fund:** 3 (R2-F01, R2-F02, R2-F03) — R2-F01 rettet 2026-07-28  
 **Hypoteser:** Ingen  
-**Handling:** R2-F01 rettet (etape 2); R2-F02 rettet (etape 4); R2-F03 parkeret til etape 10  
-**Næste skridt:** etabler de manglende statekæder (R2-F03, etape 10)
+**Handling:** Alle tre rettet — R2-F01 (etape 2), R2-F02 (etape 4), R2-F03 (etape 10)  
+**Næste skridt:** Ingen. Statekæderne står i `stateChains.test.ts`; se R2-F03.
 
 ### R2-F01 — Indsæt dags dato fejler på fem sider
 
@@ -86,7 +86,17 @@ dokumentgate, revision og history.
 **Anbefaling:** Én tabeldrevet end-to-end statekædesuite mod rigtig runner/editor/evaluering.  
 **Forslag til løsning:** Hævd alle dimensioner ved hvert trin for samtlige §7.2-kæder.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 10)** — samme rettelse som R8-F03, som er samme fund fra
+testkvalitetsvinklen.
+
+`src/__tests__/inputCore/stateChains.test.ts` er den tabeldrevne suite, anbefalingen bad om: alle otte
+§7.2-kæder, ét samlet ni-aspekt-snapshot efter hvert trin, kørt mod runtime-reduceren og den ægte
+`undoInputHistory`/`redoInputHistory`. Kædelisten er bundet ordret til §7.2, og en kontrol hævder, at hvert
+af de ni aspekter varierer et sted i matricen — ellers ville et konstant aspekt se ud som dækning uden at
+være det.
+
+Den fulde løsningsbeskrivelse, de tre korrigerede forventninger og mutationsbeviset står under R8-F03 i
+[R8-testkvalitet-vaern-og-acceptmatrix](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f03--de-obligatoriske-statekæder-og-deres-ni-aspekter-er-ikke-dækket).
 
 ## Efterprøvet uden fund
 

@@ -24,6 +24,7 @@ import {
   createInputRevision,
   createSettingsRevision,
   reduceInputCommand,
+  setImmediateField,
   settleField,
   type FieldRef,
   type SettledInput,
@@ -44,6 +45,23 @@ import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefi
 import { varigeMenDocumentDefinition } from '../../domain/varigemen/varigeMenDocumentDefinition';
 import { forsoergertabDocumentDefinition } from '../../domain/forsoergertab/forsoergertabDocumentDefinition';
 import { renteOversigtDocumentDefinition } from '../../domain/renteberegning/renteberegningDocumentDefinitions';
+// Warning-benet (R8-F05): ÆGTE domæne-warnings + motor-spy. Se suitens egen note nederst.
+import { mapReadyProjection, runProjection } from '../../inputCore/projection';
+import { projectEoSave } from '../../persistence/eoSaveProjection';
+import { buildErhvervsevnetabReaderProjection } from '../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import { evaluateEetFaneDownloadGate } from '../../domain/erhvervsevnetab/erhvervsevnetabDownloadGate';
+import {
+  erhvervsevnetabBeregningsdatoField,
+  erhvervsevnetabKoenField,
+  aslAfgoerelseAfgoerelsesDatoField,
+  aslAfgoerelseAfgoerelseTypeField,
+  aslAfgoerelseEetPctField,
+  aslAfgoerelseVirkningsDatoField,
+  erhvervsevnetabAslAfgoerelserCollectionRef,
+} from '../../inputCore/catalog/erhvervsevnetabDescriptors';
+import { faellesAarsloenAslAarsloenField } from '../../inputCore/catalog/faellesAarsloenDescriptors';
+import { emptyAslAfgoerelseRowFields } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { insertRow } from '../../inputCore/inputReducer';
 
 const catalog = getProductionInputCatalog();
 
@@ -229,23 +247,119 @@ describe('gate-matrix: rente-oversigt', () => {
 // Warnings blokerer aldrig — på tværs af outputs
 // ---------------------------------------------------------------------------------------------
 
-describe('gate-matrix: warnings blokerer intet', () => {
+/** En reader over et afsluttet input; samme konstruktion som produktionens evaluering. */
+const readerFor = (input: SettledInput) => createInputEvaluation({
+  input,
+  catalog,
+  sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
+}).reader;
+
+const ASL_ROW_ID = 'eet_asl_warning_row';
+
+/**
+ * En komplet, gyldig EET-sag hvis ENESTE afvigelse er en ægte advarsel: et erhvervsevnetab på 10 %
+ * udløser `warn-asl-eet-under-15` i løbende-ydelser-beregningen. Ingen feltfejl, ingen manglende
+ * required-felter — netop derfor kan testen skelne "warning blokerer ikke" fra "der var intet at
+ * blokere på".
+ */
+const eetCaseWithUnderFifteenPercent = (): SettledInput => {
+  let input = withStamdata(empty());
+  input = dispatch(input, settle(faellesAarsloenAslAarsloenField.bind(), '480.000'));
+  input = dispatch(input, settle(erhvervsevnetabBeregningsdatoField.bind(), '19-03-2026'));
+  // Choice-felter committer immediate (§1.3); reduceren afviser `settleField` for dem.
+  input = dispatch(input, setImmediateField(erhvervsevnetabKoenField.bind(), 'Kvinde') as AnyInputCommand);
+  input = dispatch(input, insertRow(
+    erhvervsevnetabAslAfgoerelserCollectionRef,
+    { id: ASL_ROW_ID, ...emptyAslAfgoerelseRowFields }
+  ) as AnyInputCommand);
+  input = dispatch(input, settle(aslAfgoerelseAfgoerelsesDatoField.bind(ASL_ROW_ID), '01-02-2026'));
+  input = dispatch(input, settle(aslAfgoerelseVirkningsDatoField.bind(ASL_ROW_ID), '01-02-2026'));
+  input = dispatch(input, setImmediateField(
+    aslAfgoerelseAfgoerelseTypeField.bind(ASL_ROW_ID), 'Midlertidig'
+  ) as AnyInputCommand);
+  // Under 15 % → den ægte advarsel. Værdien er canonical og gyldig; grænsen er en advarsel, ikke bounds.
+  input = dispatch(input, settle(aslAfgoerelseEetPctField.bind(ASL_ROW_ID), '10'));
+  return input;
+};
+
+describe('gate-matrix: warnings blokerer intet (§7.3, §10-kriterium 13)', () => {
   /**
-   * Warning-klassen kan ikke fremprovokeres med et enkelt feltcommit på de simple outputs — den
-   * opstår i domænernes egne advarsler (fx TAF-dækning, reguleringsdækning). Invarianten
-   * håndhæves derfor dér, hvor advarslerne dannes, og verificeres her på det strukturelle niveau:
-   * gaten læser KUN `blocked`-tilstanden fra sin projektion, aldrig en advarselsliste.
+   * **Denne suite er omskrevet i etape 10 (R8-F05).** Den tidligere test hed "en gyldig sag med
+   * advarsler i en irrelevant sektion forbliver ready" og skabte INGEN warning: den committede en
+   * bounds-fejl på `varigeMenMengrad` — altså §7.3's IKKE-RELEVANT-dimension, som allerede er dækket
+   * af `klasse IKKE-RELEVANT`-benene ovenfor. Warning-benet var dermed falsk dækket: en regression,
+   * hvor warnings begyndte at blokere, kunne bestå den deklarerede matrix.
    *
-   * Konkret: en ready-projektion med advarsler giver `ready`. Hvis en definition begyndte at
-   * blokere på warnings, ville dens `project` skulle læse en advarselskilde — og det gør ingen af
-   * dem. Det er verificeret ved læsning og fastholdt af de per-domæne-gates' egne tests
-   * (fx `erstatningsopgoerelseDownloadGate`-suiten), som dækker advarsler direkte.
+   * **Hvor warnings faktisk findes.** Kortlægningen viste, at `ProjectionCollector.warn` og
+   * `InputIssue`s `Warning`-variant havde NUL producenter og NUL læsere i produktionen (INC-F17,
+   * slettet). Warnings dannes i domænernes egne typer — `EetIssue.severity`, `EoRowStatus`,
+   * `IntegrityIssue.severity` — og det er derfor DEM, invarianten skal måles på. En syntetisk
+   * `collector.warn`-fixture ville have målt en kanal, ingen produktionskode bruger, og dermed været
+   * en fjerde variant af R0-F02's fejlklasse.
+   *
+   * De to tests nedenfor dækker de tre konsekvenskanaler, en ægte warning kan nå: beregningen
+   * (bliver den udført?), dokumentgaten (blokerer den?) og `.eo` (kan sagen gemmes?). Den fjerde —
+   * UI'et — hører til feltets egen visning og ejes af feltkontrakten.
    */
-  it('en gyldig sag med advarsler i en irrelevant sektion forbliver ready', () => {
-    // Satser-dokumentet med et gyldigt år; varige mén-sektionen bærer en fejl (og dermed også de
-    // advarsler, dens projektion måtte danne). Ingen af delene må røre satser-gaten.
-    let input = dispatch(withStamdata(empty()), settle(satserAargangField.bind(), '2024'));
-    input = dispatch(input, settle(varigeMenMengradField.bind(), '121'));
-    expect(gateOf(satserDocumentDefinition, input).status).toBe('ready');
+  it('en ÆGTE domæne-warning blokerer hverken beregning, dokumentgate eller .eo', () => {
+    // EET under 15 % udløser den ægte advarsel `warn-asl-eet-under-15` i eetLoebendeYdelser-
+    // beregningen. Sagen er i øvrigt komplet og gyldig — advarslen er den ENESTE afvigelse.
+    const input = eetCaseWithUnderFifteenPercent();
+    const { snapshot } = buildErhvervsevnetabReaderProjection(readerFor(input));
+
+    const fane = snapshot.loebendeYdelser;
+    const warnings = fane.issues.filter((issue) => issue.severity === 'warning');
+    // Fixturens forudsætning: der ER en warning, og der er INGEN fejl. Uden begge ben måler resten
+    // af testen ingenting — præcis den tomhed, fundet påpegede.
+    expect(warnings.map((issue) => issue.id)).toContain('warn-asl-eet-under-15');
+    expect(fane.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
+
+    // (1) BEREGNINGEN blev udført på trods af advarslen.
+    expect(fane.hasBlockingErrors).toBe(false);
+    expect(fane.computation, 'en warning må ikke forhindre beregningen').not.toBeNull();
+
+    // (2) DOKUMENTGATEN tillader download.
+    expect(evaluateEetFaneDownloadGate('loebendeYdelser', fane).canDownload).toBe(true);
+
+    // (3) `.eo`-SAVE er ikke blokeret: warnings er ikke rejected råtekst (§1.6).
+    expect(projectEoSave(input, catalog).status).toBe('ready');
+  });
+
+  /**
+   * §7.3's sidste punkt som sin egen assertion: *beregningsmotor kaldes aldrig fra en blocked
+   * projektion.* Sweepet i R8-F05 fandt ingen eksplicit spy-assertion på netop den invariant —
+   * kun tests, der målte at RESULTATET var fraværende. Forskellen er load-bearing: en motor, der
+   * kaldes og hvis resultat kastes væk, ville bestå en resultat-assertion, men kunne kaste,
+   * mutere eller regne på et maskeret input.
+   */
+  it('en blocked projektion kalder ALDRIG beregningsmotoren', () => {
+    const engine = vi.fn((value: number) => value * 2);
+
+    // Blokeret: `require` på et tomt felt giver en missing-consumerfejl.
+    const blocked = mapReadyProjection(
+      runProjection(readerFor(empty()), 'test-aggregate', (collector) => {
+        const read = collector.require(satserAargangField.bind());
+        return read.status === 'usable' ? read.value : undefined;
+      }),
+      engine
+    );
+    expect(blocked.status).toBe('blocked');
+    expect(engine, 'motoren blev kaldt fra en blocked projektion').not.toHaveBeenCalled();
+
+    // Kontrol i modsat retning: ved ready KALDES motoren — ellers målte assertionen ovenfor blot,
+    // at helperen aldrig kalder noget.
+    const ready = mapReadyProjection(
+      runProjection(
+        readerFor(dispatch(empty(), settle(satserAargangField.bind(), '2024'))),
+        'test-aggregate',
+        (collector) => {
+          const read = collector.require(satserAargangField.bind());
+          return read.status === 'usable' ? read.value : undefined;
+        }
+      ),
+      engine
+    );
+    expect(ready.status).toBe('ready');
+    expect(engine).toHaveBeenCalledTimes(1);
   });
 });

@@ -43,19 +43,22 @@ export type ConsumerIssue = Readonly<{
   detail?: IssueDetail;
 }>;
 
-/** En warning. Vises, men blokerer aldrig beregning, dokument eller `.eo` (§1.7). */
-export type Warning = Readonly<{
-  kind: 'warning';
-  code: string;
-  reason: 'rule';
-  severity: 'warning';
-  message: string;
-  field?: AnyFieldRef;
-  consumerId?: string;
-  detail?: IssueDetail;
-}>;
-
-export type InputIssue = FieldIssue | ConsumerIssue | Warning;
+/**
+ * Kernen har INGEN warning-variant.
+ *
+ * §1.7's regel — *en warning blokerer aldrig beregning, dokument eller `.eo`* — er fortsat normativ, men
+ * den håndhæves DÉR, hvor advarsler faktisk dannes: i domænernes egne typer (`EetIssue.severity`,
+ * `EoRowStatus`, `IntegrityIssue.severity`). Kernen bar tidligere en generisk `Warning` plus en
+ * `ProjectionCollector.warn` og et `ProjectionResult.warnings`-felt. Kortlægningen i etape 10 (INC-F17)
+ * viste, at ingen af de tre havde en eneste producent eller læser i produktionen: warnings nåede aldrig
+ * kernen, og `warnings`-feltet blev kun ført videre af `mapReadyProjection` til ingen.
+ *
+ * En kanal, intet skriver til og intet læser fra, er ikke en capability men en gren, ingen tilstand kan
+ * nå — og den ville have inviteret næste læser til at tro, at kernen ejede advarselsmodellen. Den er
+ * derfor slettet frem for bevaret; genindføres et behov for advarsler i kernen, skal både producent og
+ * læser komme til i samme ændring.
+ */
+export type InputIssue = FieldIssue | ConsumerIssue;
 
 // Deterministisk prioritet (§1.8): den mest direkte feltfejl vinder, uafhængigt af validator-rækkefølge.
 const FIELD_REASON_PRIORITY: Readonly<Record<FieldIssueReason, number>> = {

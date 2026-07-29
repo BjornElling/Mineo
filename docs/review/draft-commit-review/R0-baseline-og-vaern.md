@@ -127,7 +127,7 @@ bliver den nye kontrol rød og navngiver præcis `storage/local-storage-boundary
 
 ### R0-F03 — Dokumentformatværnet dækker kun to ready-grene
 
-**Lokation:** `src/__tests__/quality/acceptanceMatrix.test.ts:295-303`; WI-014  
+**Lokation:** `src/__tests__/quality/acceptanceMatrix.test.ts` (kriterium 27's `knownLimitation`); WI-014  
 **Problem:** Acceptpunkt 14 sammenligner begge formater for alle 18 Mineo-outputs, men kun 2 projektioner
 når deres `ready`-gren. De øvrige 16 sammenlignes blocked-mod-blocked.  
 **Evidens:** Registrets egen `knownLimitation`, WI-filens eksistens og den grønne AST-bundne acceptmatrix.  
@@ -139,7 +139,24 @@ når deres `ready`-gren. De øvrige 16 sammenlignes blocked-mod-blocked.
 **Anbefaling:** Fjern dokumentformatet fra projektionens synlige settingskontekst.  
 **Forslag til løsning:** Gennemfør WI-014 og fjern derefter `knownLimitation`.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** Åbent (WI-014) — **bevidst IKKE lukket i etape 10.**
+
+Etapens omlægning af acceptregistret (R8-F01) flyttede begrænsningen fra det gamle punkt 14 til §10-kriterium
+27 og bevarede den ordret, inklusive kravet om at den sporende WI-fil FINDES. Registret hævder desuden, at
+kriterium 27 er den ENESTE post med en `knownLimitation`, så en ny begrænsning ikke kan snige sig ind, og
+denne ikke kan forsvinde uden at nogen har fjernet den bevidst.
+
+Fundet er derimod ikke løst, og det er en bevidst afgrænsning frem for en forglemmelse: anbefalingen er at
+gøre `documentDownloadFormat` til en TYPEFEJL i projektionskonteksten. Det er en produktionsændring i
+`DocumentSourceContext`/`SourceSettings` — altså R6-F03's rettelse — og den hører til etape 11 sammen med
+resten af R6-F03. En større fixture i stedet ville, som fundets egen overvejelse siger, være svagere end at
+fjerne capabilityen.
+
+**Én ting fra etapen forbedrer dog dækningen af den underliggende risiko:** `documentGatePreflightParity`
+(R6-F04) måler nu alle 18 definitioner på tre inputtilstande, hvoraf én gør flere outputs `ready`. En
+formatafhængighed i en ready-gren ville ikke blive fanget dér — pariteten kører samme format i begge kanaler
+— men de 18 definitioners årsags- og synlighedsben er nu målt i deres ready-gren, hvor de før kun var målt
+for fire.
 
 ## Fasekonklusion
 

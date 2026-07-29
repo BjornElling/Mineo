@@ -1,7 +1,7 @@
 # R8 — Testkvalitet, kvalitetsværn og acceptmatrix
 
-**Status:** Delvist gennemgået  
-**Dato:** 2026-07-28  
+**Status:** Alle otte fund rettet (R8-F07 i etape 9; R8-F01–F06 i etape 10; R8-F08 i etape 11)  
+**Dato:** 2026-07-28, opdateret 2026-07-29 (etape 10)  
 **Dækket:** `draft-commit-greenfield-design.md` §§7/10; `contract-topology.json`; form-, error-,
 critical-action-, persistence-, undo/redo- og document-output-kontrakterne; acceptmatrixen; inputCore-editor-,
 surface-, state-, runtime- og history-tests; issue-/dokumentgate-tests; kritiske handlings-tests;
@@ -16,9 +16,10 @@ accepteres af acceptmatrixen, EO-værnet accepterer kommentar-only markør, surf
 og én grid-codecfamilie; `git status` før/efter viste kun de allerede eksisterende untracked reviewdokumenter.  
 **Fund:** 8 (R8-F01, R8-F02, R8-F03, R8-F04, R8-F05, R8-F06, R8-F07, R8-F08)  
 **Hypoteser:** 1 (R8-H01)  
-**Handling:** Read-only review; ingen produktions-, test-, plan- eller oversigtsfiler ændret.  
-**Næste skridt:** Etabler en levende 30-punkts acceptbinding og gennemfør de manglende matricer og
-mutationer; auditér derefter de resterende quality guards og mocks.
+**Handling:** Reviewet var read-only. Rettelserne blev gennemført i etape 9 (R8-F07) og etape 10
+(R8-F01–F06); R8-F08 hører til etape 11's sluttilstandssprog.  
+**Næste skridt:** R8-F08 (testnavne) i etape 11. Resten er lukket — se hvert fund og
+"Resterende checkpoints" nedenfor.
 
 ## Kørte kommandoer og probes
 
@@ -86,7 +87,38 @@ leaf-test under suiten.
 **Forslag til løsning:** Definér et typed 1–30-register, parse suitehierarkiet, registrér leaf-test-id/navn og
 tilføj mutationstests for tom suite, arvet skip og slettet leaf-test.  
 **Kræver godkendelse:** Nej  
-**Status:** Under videre analyse
+**Status:** **Rettet 2026-07-29 (etape 10)**
+
+Anbefalingen er fulgt i sin helhed, og rettelsen gik ét skridt videre på det punkt, der gjorde fundet
+kritisk: registret er ikke bare udvidet til 30 punkter — det er **bundet ORDRET til designets §10**.
+`parseDesignCriteria()` læser de nummererede kriterier ud af
+`docs/architecture/draft-commit-greenfield-design.md` §10 og sammenligner titel for titel. Udvides §10 til
+31 kriterier, eller omformuleres ét af dem, bliver registret rødt med nummeret. Uden den binding ville
+registret have været en ny hånd-vedligeholdt liste med præcis den svaghed, fundet beskrev — blot 30 poster
+i stedet for 15.
+
+**Kortlægningen bekræftede fundets alvor og fandt mere:** fem af de 30 kriterier (**1, 8, 22, 28, 29**)
+havde ingen dækningskilde nogen steder i den gamle matrix. Kriterium 22 (mount-uafhængighed) fik derfor sin
+egen nye direkte måling (`mountIndependence.test.tsx`), fordi ingen eksisterende test sammenlignede udfaldet
+MED og UDEN et komponenttræ — arkitekturharnesset beviser kun, at ingen komponent SKRIVER.
+
+**Suite-hullet er lukket strukturelt.** Parseren skelner nu `it`/`test` fra `describe`/`suite`, og registret
+citerer udelukkende leaf-tests. Et citeret suitenavn afvises med en egen, sigende fejl ("… er en SUITE, ikke
+en leaf-test. Et suitenavn overlever sletningen af hver test under det …"). Det havde en direkte konsekvens
+for de nye matricer: `stateChains.test.ts`' otte kædenavne KUNNE ikke citeres som evidens, fordi de er
+`describe`s med et dynamisk indhold. De er derfor bundet et STÆRKERE sted — `NORMATIVE_CHAIN_NAMES`
+sammenlignes ordret med §7.2's liste — og begrundelsen står på stedet i begge filer.
+
+**Mutationsbevist mod den levende kilde, i tre uafhængige retninger:**
+
+1. Citeres et SUITENAVN (`'SettledInput XOR-invariant'`) i stedet for dets leaf-test, bliver registret rødt
+   med netop den forklarende besked — hullet, fundet fandt, kan ikke genopstå.
+2. Tilføjes et 31. kriterium til §10, fejler bindingen med
+   `"… §10 indeholder ikke præcis 30 nummererede kriterier"`.
+3. Parserens egne NOT-cases (tømt suite, arvet skip, kommentar, strengliteral, skippet dynamisk navn) er
+   pinnet i en syntetisk fixture, som dækker begge retninger.
+
+Dækning: 7 tests i `acceptanceMatrix.test.ts`.
 
 ### R8-F02 — Fælles form/grid-feltkontrakt køres ikke pr. codecfamilie
 
@@ -112,7 +144,52 @@ form og grid.
 **Forslag til løsning:** Definér repræsentative descriptor-fixtures pr. codecfamilie og genbrug samme
 invariantliste for begge adaptere; behold codec-unit-tests til ren parsing.  
 **Kræver godkendelse:** Nej  
-**Status:** Under videre analyse
+**Status:** **Rettet 2026-07-29 (etape 10)**
+
+**Rodårsagen var, at "hver codecfamilie" ikke var et OPREGNELIGT begreb.** Kravet i §7.1 kunne kun
+håndhæves mod en hånd-vedligeholdt liste i en testfil — og netop den slags liste er det, der stille falder
+bagud, indtil dækningen er én form-familie og én grid-familie. Rettelsen er derfor en TYPEÆNDRING i
+produktionen før den er en ny test: `FieldCodec.family: FieldCodecFamily` er nu et **påkrævet** felt
+(`src/inputCore/fieldCodec.ts`). En ny familie er en compilerfejl, indtil den har et navn, og derefter en rød
+kontraktsuite, indtil den har en case.
+
+`fieldContract.surfaces.test.tsx` kører ÉN invariantliste — samme funktion, ikke to lister der hævder det
+samme — mod `useFieldEditor` OG `useCellEditor` for hver familie. Det er muligt, fordi begge adaptere
+returnerer den SAMME `FieldEditorController<T>`; dét er §10-kriterium 6, og suiten måler det direkte med en
+`form og grid giver IDENTISK canonical, rejected og visning for samme råtekst`-sammenligning oven i de
+otte per-surface-invarianter.
+
+**Dækningen er DERIVERET fra produktionskataloget, ikke erklæret.** Suiten opregner de levende familier ud
+af `productionInputFields` og fejler med familiens navn, hvis en familie findes på BEGGE surfaces uden at
+have en case. Kortlægningen gav derved et præcist billede, den oprindelige analyse ikke havde:
+
+- **Otte familier har begge surfaces** og har nu en fælles case: integer, date, optionalText, amount,
+  requiredChoice, percent, boolean, selection.
+- **Fire er ENKELT-surface i produktionen** og er navngivet med begrundelse frem for udeladt i tavshed:
+  `fraction` + `year` (kun formular), `stringBacked` + `text` (kun rækkecelle). En fælles form/grid-kontrakt
+  for dem ville måle en flade, der ikke findes. Et anti-rot-ben fejler, hvis en af dem SENERE får sin anden
+  surface og bliver stående på listen.
+- **`week` har ingen descriptor i produktionen overhovedet** — hvert uge-felt er wrappet i `stringBacked`
+  (fire descriptors, verificeret). Familien er navngivet i typen, men suiten opregner de levende familier
+  fra kataloget netop derfor: en case for en familie uden descriptor ville have målt en gren, ingen tilstand
+  kan nå.
+- **`createChoiceFieldCodec` er IKKE en egen familie:** den er en tynd wrapper, der kun tilføjer en
+  dublet-/tomhedskontrol og derefter delegerer hele parse-, format- og tastaturadfærden til
+  `createSelectionFieldCodec`. To navne for samme adfærd ville have krævet to identiske cases og foregivet
+  en dækning, der ikke måler noget nyt. `requiredChoice` er derimod sin egen: den oversætter tom tekst til en
+  gyldig default frem for til `undefined`.
+
+Testkataloget er udvidet med fire descriptors (`renterFra`, `feriePct`, `omregningTilFuldtAar`,
+`skadestype`), så de familier, der manglede en modpart, kan måles på begge adressearter. De bruger
+`defineStructuralField` mod produktionens ægte Zod-sektionsschemas, så XOR-, eksistens- og
+relevansvalideringen fortsat kører mod den rigtige kontrakt.
+
+**Mutationsbevist mod den levende kilde:** trunkeres percent-codecets parse (`12,5` → `12`), fejler
+**seks** tests — tre på FORM-surfacen og tre på GRID-surfacen. At fejlen rammer symmetrisk er selve beviset
+for, at listen kører mod begge adaptere; en suite, der kun målte den ene, ville have givet tre.
+
+Dækning: 179 tests i `fieldContract.surfaces.test.tsx` (8 familier × 2 surfaces × 9-11 invarianter + 3
+dækningskontroller).
 
 ### R8-F03 — De obligatoriske statekæder og deres ni aspekter er ikke dækket
 
@@ -139,7 +216,44 @@ efter hvert trin.
 **Forslag til løsning:** Byg en fælles assertionshelper over runtime, reader/issues, save-projektion,
 dokumentdefinition, revision og history; brug den ved alle overgange og efter undo/redo.  
 **Kræver godkendelse:** Nej  
-**Status:** Under videre analyse
+**Status:** **Rettet 2026-07-29 (etape 10)**
+
+Anbefalingen er fulgt: `src/__tests__/inputCore/stateChains.test.ts` er en datadrevet matrix over alle otte
+§7.2-kæder, som tager ét SAMLET ni-aspekt-snapshot efter hvert trin og sammenligner med den FULDE forventede
+tilstand — ikke en delmængde. En delvis forventning ville lade et uhævdet aspekt drifte uset, og det var
+netop hullet.
+
+Kæderne kører mod runtime-reduceren og den ægte `undoInputHistory`/`redoInputHistory`, valideret af
+kataloget som produktionen gør. Kædelisten er bundet ordret til §7.2 i `NORMATIVE_CHAIN_NAMES`, så en kæde
+ikke kan falde ud af matricen uden at en kontrol bliver rød med dens navn.
+
+**Matricen skal selv kunne fejle på hvert aspekt.** En sidste kontrol hævder, at HVERT af de ni aspekter
+varierer et sted i matricens egne kæder: er et aspekt konstant på tværs af alle otte kæders alle trin, er
+det ikke evidens for noget, og matricen ville se ud som ni aspekter og reelt være ét.
+
+**Tre steder korrigerede kortlægningen en forventning, jeg havde skrevet forkert — og runtime havde ret:**
+
+1. **Et skjult men GYLDIGT felt er fortsat læsbart for consumers.** Readeren gater ikke på relevans, og det
+   er korrekt: relevans er den enkelte consumers ansvar
+   ([[project_field_visibility_single_source]]). En kerne, der skjulte værdien for ALLE consumers, ville
+   gøre det umuligt for en consumer med en anden relevansregel end feltets visningsregel at læse den — altså
+   §1.10's overblokering flyttet ind i kernen. Relevansen har præcis ÉN synlig konsekvens i kæderne:
+   feltISSUET forsvinder, fordi et usynligt felt ikke må bære en rød markering, brugeren ikke kan finde.
+2. **Et read på en SLETTET rækkes felt KASTER bevidst** (`ValidationReader: ukendt, slettet eller forkert
+   bundet feltreference`). Kæde 8 hævder derfor, at adressen er UTILGÆNGELIG efter delete og TILGÆNGELIG
+   igen efter undo — en stærkere påstand end "canonical er tom", og den er markeret eksplicit som
+   `DELETED_ADDRESS` frem for at blive skjult i en `undefined`.
+3. `reduceInputCommand` tager ingen `origin`; origin er dispatch-portens krav (§3.7) og måles i
+   `commandInvariants.test.ts`. Kæderne måler tilstandsovergangen.
+
+**Mutationsbevist mod den levende kilde, to uafhængige mutationer:**
+
+- Lader row-delete sine rejected descendants stå (`rejectedInputs: input.rejectedInputs`), bliver kæde 8 rød
+  — og samtidig `commandInvariants`' egen row-delete-invariant.
+- Fjernes oprydningen af en skjult FEJLENDE værdi (§1.9's `withCanonicalValue(…emptyValue)`), bliver kæde 7
+  rød. Netop den kæde fandtes slet ikke før.
+
+Dækning: 10 tests (8 kæder + kædelistens completeness + ikke-vakuøs-kontrollen).
 
 ### R8-F04 — Transaktionsinvarianterne testes ikke for hver command-type
 
@@ -166,7 +280,42 @@ no-op/afvisning samt relevante fault-injections.
 **Forslag til løsning:** Indfør et `satisfies Record<RuntimeInputCommand['kind'], CommandInvariantCase>`-register
 med eksplicit policy for row-delete og authoritative replacement.  
 **Kræver godkendelse:** Nej  
-**Status:** Under videre analyse
+**Status:** **Rettet 2026-07-29 (etape 10)**
+
+Forslaget er implementeret ordret: `src/__tests__/inputCore/runtime/commandInvariants.test.ts` bærer et
+`satisfies Record<RuntimeInputCommand['kind'], CommandCase>`-register over alle **14** arter (12
+mutationstyper + undo + redo). Tilføjes en trettende mutationsart til unionen, er det en **compilerfejl**
+her, indtil den har en case — samme mekanik som `STRUCTURAL_KIND_SET` bruger i produktionen, og valgt frem
+for en hånd-vedligeholdt liste netop fordi fundet handlede om en dækning, der stille faldt bagud.
+
+Hver case leverer en `mutate` (reel ændring), et `noop` og — hvor arten HAR en afviselig form — en `reject`.
+Alle tre ben kører de fulde §7.4-assertions: ét session-write, ét store-write, én monoton revision, højst ét
+history-trin, og ved afvisning: uændret store-REFERENCE, uændret revision, uændret history, nul writes.
+
+**Fire policyer er erklæret pr. case frem for udledt**, fordi de er beslutninger og ikke bivirkninger:
+
+- `clearsHistory` for `replaceCase`/`clearCase` (§3.7's hel-sags-replacement).
+- `historyNavigation: 'undo' | 'redo'` — RETNINGEN er erklæret, så et undo, der ved en fejl flyttede i
+  redo-retningen, bliver rødt frem for at bestå på totalen.
+- Arter uden semantisk no-op (`insertRow`, `settleFieldInNewRow`, `structuralTransaction`,
+  `replaceCase`, `clearCase`) bruger en ægte no-op-command til det ben, med begrundelsen på stedet.
+- Et gulv kræver, at mindst syv arter HAR et reject-ben, så en fremtidig "sæt `reject: null` overalt"-opblødning
+  bliver synlig.
+
+**Kortlægningen rettede én forventning:** sletning af en ALLEREDE slettet række er ikke en no-op men en
+AFVISNING (kataloget kaster). Det er den rigtige adfærd — en tavs no-op ville lade en consumer tro, at
+rækken var væk, fordi netop dens kommando fjernede den — så `deleteRow`'s gentagne delete bærer nu
+afvisnings-benet, ikke no-op-benet.
+
+**Bevidst udeladt:** storage-rollbackens tre fault-injections (kastende `setItem`, ikke-verificerbar
+rollback, kastende subscriber) er IKKE kopieret pr. command. De rammer `commitCandidate`, som alle 14 arter
+går igennem, og en kopi pr. art ville have målt samme kodesti 14 gange. De bor fortsat i
+`dispatchInput.test.ts`, og begrundelsen står i den nye fils hoved.
+
+**Mutationsbevist:** lader row-delete sine rejected descendants stå, bliver
+`row-delete efterlader hverken rejected descendants eller orphan-adresser` rød sammen med statekæde 8.
+
+Dækning: 40 tests (14 arter × 2 generiske ben + 12 reject-ben + registerets completeness + row-delete-invarianten).
 
 ### R8-F05 — Warning-benet i issue-/gate-matricen er falsk dækket
 
@@ -193,7 +342,34 @@ konkret leaf-test i acceptmatrixen.
 **Forslag til løsning:** Tilføj en kanonisk warning-case ved issue-/projektionsgrænsen og et motor-spy, som
 beviser nul kald ved blocked projektion.  
 **Kræver godkendelse:** Nej  
-**Status:** Under videre analyse
+**Status:** **Rettet 2026-07-29 (etape 10)**
+
+Fundet var rigtigt, og efterprøvningen forklarede HVORFOR den falske case var opstået: **den generiske
+warning-kanal havde ingen producent.** `ProjectionCollector.warn`, `InputIssue`s `Warning`-variant og
+`ProjectionResult.warnings` havde NUL callsites og NUL læsere i produktionen (INC-F17). En "kanonisk
+warning-case ved issue-/projektionsgrænsen", som forslaget bad om, ville derfor have målt en kanal, ingen
+produktionskode bruger — en fjerde variant af R0-F02's fejlklasse. Den kanal er i stedet **slettet**.
+
+Warnings dannes i domænernes egne typer (`EetIssue.severity`, `EoRowStatus`, `IntegrityIssue.severity`), og
+invarianten er derfor målt DÉR. Den nye case bygger en komplet, gyldig EET-sag, hvis ENESTE afvigelse er den
+ægte advarsel `warn-asl-eet-under-15` (et erhvervsevnetab på 10 %), og hævder alle tre konsekvenskanaler, en
+warning kan nå:
+
+1. **beregningen** blev udført (`hasBlockingErrors === false`, `computation !== null`),
+2. **dokumentgaten** tillader download (`evaluateEetFaneDownloadGate(...).canDownload === true`),
+3. **`.eo`-save** er ikke blokeret (`projectEoSave(...).status === 'ready'`).
+
+Fixturens forudsætninger hævdes eksplicit — der ER en warning, og der er INGEN fejl — så casen ikke kan blive
+grøn af tomhed på samme måde som den, den afløser.
+
+**Motor-spyet er tilføjet som sin egen assertion**, fordi sweepet havde ret i, at den manglede: en motor, der
+kaldes og hvis resultat kastes væk, ville bestå en resultat-assertion, men kunne kaste, mutere eller regne på
+et maskeret input. Testen `en blocked projektion kalder ALDRIG beregningsmotoren` bruger `vi.fn()` gennem
+`mapReadyProjection` og bærer en kontrol i modsat retning: ved `ready` KALDES motoren præcis én gang — ellers
+målte assertionen blot, at helperen aldrig kalder noget.
+
+Acceptregistrets kriterium 13 peger nu på begge nye tests plus EET-gatens egen
+`tillader download trods en warning`-leaf.
 
 ### R8-F06 — Kritiske handlinger er ikke integrationstestet ens for form og grid
 
@@ -222,7 +398,38 @@ form-editor og grid-editor.
 **Forslag til løsning:** Parametrisér save, download, navigate, load, reset, clear, undo og redo over to
 surface-harnesses; hævd draft, committed state, gates, I/O-kald og focus/discard efter succes, annullering og fejl.  
 **Kræver godkendelse:** Nej  
-**Status:** Under videre analyse
+**Status:** **Rettet 2026-07-29 (etape 10)**
+
+Anbefalingen er fulgt PRÆCIS som formuleret — inklusive dens første halvdel: *behold unit-testene.* De
+syntetiske coordinator-tests er urørte, fordi de beviser MEKANISMEN (serialisering, fail-closed,
+fault-injection) og kan injicere fejl, en ægte editor ikke kan fremprovokere. Den nye
+`criticalActionSurfaceParity.test.tsx` beviser INTEGRATIONEN, som en unit-test pr. konstruktion ikke kan
+bære.
+
+Editorne monteres gennem et RIGTIGT komponenttræ og en rigtig provider — ikke en `renderHook`-attrap uden
+DOM — og hver af §7.5's seks handlinger måles med den SAMME assertionsfunktion for form og grid:
+
+- **registrering:** den ÆGTE adapter dukker op i `ActiveEditorRegistry.getEditing()`, mens den er åben, og
+  afmelder ved settle. Det er kernen i fundet: de gamle tests brugte syntetiske `ActiveEditor`-objekter.
+- **save/download:** coordinatorens settle LANDER værdien i aggregaten (den syntetiske test kunne kun se, at
+  `settle()` blev kaldt), og tokenet hører til revisionen EFTER settle.
+- **navigate:** gennemføres OG gør fejlen synlig som rejected råtekst ved et fejlende settle — en blokeret
+  navigation ville fange brugeren på siden med sin egen tastefejl.
+- **undo/redo:** `noop` med åben editor, uden ny revision, og draften står stadig åben med sin tekst.
+- **load:** fejlende apply BEVARER draften og settler INTET; vellykket apply kasserer den. Det er `load`s hele
+  forskel fra save/navigate (§1.4).
+- **unmount:** ingen efterladt registrering — en sådan ville gøre enhver senere kritisk handling til en no-op.
+
+Dertil en direkte paritetssammenligning: de seks handlingers udfaldsstatus + draft-tilstand samles pr.
+surface og sammenlignes, med et gulv på seks handlinger og mindst to forskellige udfald, så listen ikke kan
+blive tom af tomhed.
+
+**Mutationsbevist mod den levende kilde:** ændres `EDITOR_HANDLING.load` fra `'replace'` til `'settle'`,
+fejler load-benet på **BEGGE** surfaces med `form: draften blev kasseret ved en FEJLENDE load` og
+`grid: draften blev kasseret ved en FEJLENDE load`. At fejlen rammer symmetrisk er beviset for, at
+pariteten er reel og ikke to lister, der tilfældigvis hævder det samme.
+
+Dækning: 15 tests (7 × 2 surfaces + paritetssammenligningen).
 
 ### R8-F07 — EO-surface-værnet kan omgås med en kommentar
 
@@ -329,16 +536,26 @@ typefejl; mutationstest derefter én repræsentativ ready-definition.
 
 ## Resterende checkpoints
 
-R8 kan ikke sættes til `Gennemgået`, før mindst følgende er efterprøvet:
+Status pr. 2026-07-29 (etape 10). Punkt 1-6 er de fund, etapen lukkede.
 
-1. En reel 30-punkts §10-matrix er bundet til aktive leaf-tests og mutationstestet på de dyreste invarianter.
-2. §7.1's fælles feltkontrakt er kørt mod både form og grid for alle levende codecfamilier.
-3. Alle otte §7.2-statekæder hævder alle ni aspekter ved hvert trin.
-4. §7.3-matricen har faktiske warning-, irrelevant-, række-, aggregat- og blocked-engine-cases på tværs af
-   UI, beregning, dokument og `.eo`.
-5. §7.4 er exhaustivt bundet til alle runtime-command-kinds med relevante rollback-faults.
-6. §7.5 er integrationstestet med virkelige form- og grid-editorer for alle kritiske handlinger.
-7. De resterende selvstændige quality guards er semantisk auditeret mod den aktuelle arkitektur; dette pas
-   dækkede arkitekturharnessen og de mest relevante input-/EO-guards, ikke hver quality-fil.
-8. Den bredere mock-audit uden for critical-action-/dokumentområdet er gennemført.
-9. R8-F09 er af- eller bekræftet ved en strukturel typegrænse og relevant mutation.
+1. ✅ **En reel 30-punkts §10-matrix er bundet til aktive leaf-tests og mutationstestet.** Bundet ORDRET til
+   designets §10, citerer kun leaf-tests, tre uafhængige mutationer (R8-F01).
+2. ✅ **§7.1's fælles feltkontrakt er kørt mod både form og grid for alle levende codecfamilier.** Otte
+   familier med begge surfaces har en fælles case; fire enkelt-surface-familier er navngivet med begrundelse;
+   dækningen er deriveret fra produktionskataloget (R8-F02).
+3. ✅ **Alle otte §7.2-statekæder hævder alle ni aspekter ved hvert trin** (R8-F03).
+4. ✅ **§7.3's warning-ben er en ÆGTE domæne-warning over tre konsekvenskanaler, og motor-spyet findes.**
+   De øvrige klasser (irrelevant, række, aggregat) var og er dækket i `documentGateMatrix` +
+   `inputCore.test.ts` (R8-F05).
+5. ✅ **§7.4 er exhaustivt bundet til alle runtime-command-kinds** via
+   `satisfies Record<RuntimeInputCommand['kind'], …>`. Rollback-faults måles fortsat centralt mod
+   `commitCandidate` frem for 14 gange — begrundelsen står under R8-F04.
+6. ✅ **§7.5 er integrationstestet med virkelige form- og grid-editorer for alle seks kritiske handlinger**
+   (R8-F06).
+7. ⏳ **De resterende selvstændige quality guards** er ikke alle semantisk auditeret. Dette pas + etape 9
+   dækkede arkitekturharnesset, liveness-laget og de mest relevante input-/EO-guards, ikke hver quality-fil.
+   Hører til etape 11-12's afsluttende gennemgang.
+8. ⏳ **Den bredere mock-audit uden for critical-action-/dokumentområdet** er ikke gennemført. Etape 10 fjernede
+   over-mockingen dér, hvor fundet påviste den (R8-F06); en repo-bred mock-audit er en selvstændig opgave.
+9. n/a — der findes intet R8-F09; punktet var en skrivefejl for hypotesen R8-H01, som fortsat spores af
+   WI-014 og står som acceptregistrets ENESTE kendte begrænsning (kriterium 27).

@@ -59,7 +59,7 @@ const readyProjection = (
     skadedato: toISODateString('2020-01-01'),
     beregningsResultat: result,
   };
-  return { status: 'ready', value, issues: [], warnings: [], sourceToken: TOKEN };
+  return { status: 'ready', value, issues: [], sourceToken: TOKEN };
 };
 
 const blockedProjection = (
@@ -67,7 +67,6 @@ const blockedProjection = (
 ): VarigeMenReaderProjection => ({
   status: 'blocked',
   issues,
-  warnings: [],
   sourceToken: TOKEN,
 });
 
