@@ -1,13 +1,15 @@
 # Mineo – Form-kontrakt
 
 **Version:** 1.0
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Senest verificeret mod kode:** 2026-07-16
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
-Denne kontrakt beskriver slutarkitekturen. Den eksisterende implementering migreres efter
-`docs/architecture/draft-commit-greenfield-design.md`; overgangs-API'er er ikke præcedens for nye løsninger.
+Denne kontrakt beskriver den gældende arkitektur. Der findes ingen parallel inputmodel, ingen
+overgangs-API'er og ingen kompatibilitetsflade ved siden af den — `docs/architecture/draft-commit-greenfield-design.md`
+er den informative baggrundsbeskrivelse af, hvordan modellen er indrettet og hvorfor, ikke en plan for noget,
+der udestår.
 
 ---
 

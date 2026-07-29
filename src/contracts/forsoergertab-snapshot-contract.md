@@ -1,6 +1,6 @@
 # Mineo - Forsørgertab snapshot-kontrakt
 
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
 **Senest verificeret mod kode:** 2026-07-16

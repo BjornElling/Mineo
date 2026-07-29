@@ -1,7 +1,7 @@
 import type { FieldAddress } from './fieldAddress';
 import type { SettledInput } from './settledInput';
 
-// Greenfield-kerne (§3.7): history snapshotter kun afsluttet input og strukturel fokus-origin. Runtime-
+// Inputkernen (§3.7): history snapshotter kun afsluttet input og strukturel fokus-origin. Runtime-
 // runneren validerer target, skriver sessionen og skaber den nye monotone revision i Fase 2.
 
 export const MAX_INPUT_HISTORY_STEPS = 50;

@@ -21,7 +21,7 @@ const deletableCollectionTables = tableFiles.filter(({ source }) => source.inclu
  * kilde-grafen, ikke kun for tabelfilerne. To værn om samme forbud betyder blot, at det ene kan rådne
  * ubemærket.
  */
-describe('greenfield rækkeejerskab', () => {
+describe('rækkeejerskab i collections', () => {
   it('alle sletbare collectiontabeller bruger inputCore-rowadapteren', () => {
     expect(deletableCollectionTables.length).toBeGreaterThanOrEqual(10);
     for (const { name, source } of deletableCollectionTables) {

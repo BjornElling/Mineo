@@ -90,7 +90,7 @@ export const getCaseScopedSessionStorageKeys = (): readonly ManifestStorageKey[]
  * afsluttede inputaggregat ligger i én envelope under denne nøgle.
  *
  * De tidligere per-sektion-nøgler (`mineo_stamdata`, `mineo_satser`, …) og `invalidDrafts`-
- * recovery-kanalen er SLETTET sammen med den parallelle legacy-inputklynge (greenfield trin 13,
+ * recovery-kanalen er SLETTET sammen med den parallelle legacy-inputklynge (2026-07-25,
  * 2026-07-25) og må ikke genindføres — sektionsopdelt persistering er ikke længere en
  * skrivegrænse, jf. `persistence-contract.md`. Sektions-BEGREBET lever videre som
  * `PERSISTED_SECTION_KEYS` i `persistenceRegistry.ts`, som er den ene kilde til hvilke sektioner
@@ -116,7 +116,7 @@ export const UI_STORAGE_KEYS = buildKeyMap(UI_STORAGE_KEY_SUFFIXES);
 export const createActiveTabStorageKey = (pageId: string): ManifestStorageKey =>
   asManifestKey(ns(`${ACTIVE_TAB_SUFFIX_PREFIX}${pageId}`));
 
-/** Current-only envelope-nøgle for greenfield-inputkernen (§2.1.6). Namespace-aware og dovent resolveret. */
+/** Current-only envelope-nøgle for inputkernen (§2.1.6). Namespace-aware og dovent resolveret. */
 export const getCurrentInputEnvelopeStorageKey = (): ManifestStorageKey =>
   asManifestKey(ns(CURRENT_INPUT_ENVELOPE_SUFFIX));
 

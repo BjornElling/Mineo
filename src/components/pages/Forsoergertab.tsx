@@ -35,8 +35,8 @@ import { stamdataSkadelidteFodselsdatoField } from '../../inputCore/catalog/stam
 import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../inputCore/react/useFieldEditor';
 
-// Greenfield-migreret Forsørgertab (§2.4 formularrækkefølge trin 6 / Fase 3 Forsørgertab-slice). Hele siden kører
-// nu på greenfield-inputCore: de fem forsoergertab-felter + de delte ASL/EAL-årsløn skriver/læser gennem den
+// Forsørgertab: Hele siden kører
+// nu på inputCore: de fem forsoergertab-felter + de delte ASL/EAL-årsløn skriver/læser gennem den
 // offentlige `InputReader` + den ene write-grænse (ingen `usePersistedForm`/`setFieldValue`); de tværsektionelle
 // stamdata-datoer læses gennem samme reader (ingen rå `usePersistedSectionSelector`/`useFormFieldErrors`). Den ENE
 // reader-afledte projektion (`buildForsoergertabReaderProjection`) driver både beregningsvisning og download-gaten;

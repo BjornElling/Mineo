@@ -1,6 +1,6 @@
 # Mineo - Årsløn domænekontrakt
 
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
 **Senest verificeret mod kode:** 2026-07-24

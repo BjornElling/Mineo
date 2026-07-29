@@ -139,7 +139,14 @@ når deres `ready`-gren. De øvrige 16 sammenlignes blocked-mod-blocked.
 **Anbefaling:** Fjern dokumentformatet fra projektionens synlige settingskontekst.  
 **Forslag til løsning:** Gennemfør WI-014 og fjern derefter `knownLimitation`.  
 **Kræver godkendelse:** Nej  
-**Status:** Åbent (WI-014) — **bevidst IKKE lukket i etape 10.**
+**Status:** **Rettet 2026-07-29 (etape 11)** sammen med R6-F03, hvis rettelse den ER. Historikken nedenfor
+forklarer, hvorfor fundet stod åbent gennem etape 10.
+
+**Lukningen:** `documentDownloadFormat` er ikke længere synligt i projektionskonteksten — gate- og
+render-settings er to disjunkte halvdele af kildesnapshottet, og en formatlæsning i en `project` er en
+compilerfejl (TS2339). Spørgsmålet "nåede fixturen ready-grenen?" er dermed ikke længere relevant: der findes
+ingen formatakse at variere. `knownLimitation` er fjernet fra kriterium 27, og registrets gulv hævder nu, at der
+er NUL kendte begrænsninger — så en ny note skal begrundes frem for at kunne glide ind. WI-014 er lukket.
 
 Etapens omlægning af acceptregistret (R8-F01) flyttede begrænsningen fra det gamle punkt 14 til §10-kriterium
 27 og bevarede den ordret, inklusive kravet om at den sporende WI-fil FINDES. Registret hævder desuden, at

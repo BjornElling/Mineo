@@ -89,7 +89,7 @@ const renderPage = () => render(
   </MemoryRouter>
 );
 
-describe('Forsoergertab greenfield — reader-projektion + download-gate', () => {
+describe('Forsoergertab — reader-projektion + download-gate', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();

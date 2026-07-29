@@ -6,7 +6,7 @@ import {
   useInternalSettledSnapshot,
 } from './inputRuntimeContext';
 
-// Greenfield-diagnostik (Fase 6, genåbnet): devtools-/bugrapport-fladen har et LEGITIMT behov for at se den
+// Input-diagnostik: devtools-/bugrapport-fladen har et LEGITIMT behov for at se den
 // rå persisterede sektionsform — det er hele pointen med en fejlrapport. Men behovet er en NAVNGIVET
 // projektion, ikke en generel undtagelse fra §3.4's læsegrænse.
 //

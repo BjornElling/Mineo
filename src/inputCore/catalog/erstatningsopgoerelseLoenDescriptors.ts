@@ -47,7 +47,7 @@ import {
 } from './boundsValidators';
 import { createEmptyErstatningsopgoerelseSection } from './erstatningsopgoerelseDescriptors';
 
-// Greenfield produkt-descriptors for EO's nested løntræ (§3.2): samlingen `loenindkomstAnsaettelsesforhold`
+// Produkt-descriptors for EO's nested løntræ (§3.2): samlingen `loenindkomstAnsaettelsesforhold`
 // med skalarfelter + overenskomstFilter + tre nested tabeller, samt det singulære property-objekt
 // `eoAngivetLoenLoenudvikling` med sin filter + to nested tabeller.
 

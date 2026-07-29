@@ -9,7 +9,7 @@ import { bootstrapProductionInputRuntime } from './inputCore/react';
 void bootstrapClientApp({
   renderApp: async () => {
     const { default: AuthGate } = await import('./auth/AuthGate');
-    // Hydrér greenfield-inputruntime FØR render (§3.10); ingen legacy-provider monteres.
+    // Hydrér input-runtime FØR render (§3.10); ingen legacy-provider monteres.
     // Kun bindingen bruges her: `MainLayout` henter selv `startup.notice` ved at gen-kalde den
     // IDEMPOTENTE bootstrap, og viser den som overlay ved mount.
     const { binding: inputRuntimeBinding } = bootstrapProductionInputRuntime();

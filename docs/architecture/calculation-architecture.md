@@ -1,6 +1,6 @@
 # Beregningsarkitektur
 
-**Status:** Informativ målarkitektur
+**Status:** Informativ. Beskriver den gældende arkitektur; bindende regler ligger i `src/contracts/`
 **Scope:** Alle beregningsdomæner i Mineo
 **Normative kilder:** især `form-contract.md`, `domain-boundary-contract.md`, `snapshot-contract.md`,
 `amount-contract.md`, `date-contract.md` og domænekontrakterne

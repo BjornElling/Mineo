@@ -6,7 +6,7 @@ import { parseCurrentEnvelope } from './currentSessionEnvelope';
 import type { SlimInputStore } from './slimInputStore';
 import { hydrateInputStoreOnce } from './dispatchInput';
 
-// Greenfield-runtime (§3.10): hydrér ÉN gang før React-render fra den ene current-only envelope. Ingen
+// Input-runtime (§3.10): hydrér ÉN gang før React-render fra den ene current-only envelope. Ingen
 // legacy-session-læsning, adresseoversættelse, dual-read eller kompatibilitetsdialog. Begge app-entrypoints
 // kalder denne før render mod den samme runtime; provider-remount hydrerer aldrig igen.
 

@@ -7,7 +7,7 @@ import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import type { FieldValidator } from '../fieldDescriptor';
 import { integerBoundsValidator } from './boundsValidators';
 
-// Greenfield produkt-descriptors for `varigemen`-sektionen (§3.2). To top-level skalarer, ingen samlinger.
+// Produkt-descriptors for `varigemen`-sektionen (§3.2). To top-level skalarer, ingen samlinger.
 
 const createEmptyVarigeMenSection = (): unknown => ({});
 

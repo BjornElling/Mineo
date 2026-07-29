@@ -67,7 +67,7 @@ const getDataRowCells = (rowIndex: number): HTMLElement[] => {
   return within(rows[rowIndex + 1]).getAllByRole('cell');
 };
 
-describe('Årsløn (greenfield) — migreret side + løntabel over grid-adapteren', () => {
+describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
@@ -259,7 +259,7 @@ describe('Årsløn — placeholders viser kun værdiens FORM (UT-F06)', () => {
     expect(periodPlaceholders()).toEqual(['mm', 'åååå']);
   });
 
-  it('ugetabellen viser den rene uge-/år-form, som migreringen havde fjernet', () => {
+  it('ugetabellen viser den rene uge-/år-form uden formatvejledning i grænsen', () => {
     // Ugecellerne mistede `uu/åååå` ved greenfield-cutoveren: `GridWeekCell` fik ingen semantisk default,
     // og tabellen udfyldte kun måned og år lokalt. Formen kommer nu fra familien.
     hydrateAarsloen({ loenperiode: 'uge', tableData: [] });

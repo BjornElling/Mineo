@@ -6,7 +6,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 
-// Greenfield radio-felt (§1.3/§3.6): radio-valg committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
+// Radio-felt (§1.3/§3.6): radio-valg committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options. Den viste værdi læses fra den afsluttede revision gennem
 // editor-controlleren; valget dispatcher `setImmediateField` (som kører den styrende-valg-oprydning atomisk, §3.6).
 // Værditypen er en streng-enum; en påkrævet radio (uden tomværdi) er default (`allowEmpty=false`).

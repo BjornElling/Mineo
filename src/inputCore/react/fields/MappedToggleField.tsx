@@ -9,7 +9,7 @@ import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import type { ToggleCommitOverride } from './ToggleField';
 
 /**
- * Greenfield-toggle for persisted enumfelter, hvor den synlige switch mapper mellem to canonical værdier
+ * Toggle for persisted enumfelter, hvor den synlige switch mapper mellem to canonical værdier
  * (i praksis EO-felternes `Ja`/`Nej`). Mappingen er rendering-adfærd; codec og commitvej ejes fortsat af feltet.
  */
 export type MappedToggleFieldProps<TValue> = Readonly<{

@@ -18,7 +18,7 @@ import { defineStructuralCollection, defineStructuralField, isUndefined } from '
 import type { FieldValidator } from '../fieldDescriptor';
 import { amountBoundsValidator, integerBoundsValidator } from './boundsValidators';
 
-// Greenfield produkt-descriptors for `renteberegning`-sektionen (§3.2): to skalarfelter og samlingen
+// Produkt-descriptors for `renteberegning`-sektionen (§3.2): to skalarfelter og samlingen
 // `rentekravRows` med dens rækkefelter. Den tomme sektion har en tom collection (schemaet kræver arrayet,
 // men tillader 0 rækker).
 

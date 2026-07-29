@@ -10,14 +10,14 @@ import { readClipboardText } from '../../utils/clipboardUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
 
-// Greenfield-React grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den
+// Grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den
 // bro-forbinder de TO redigerings-autoriteter, som en løntabel har:
 //
 //  1. `GridCoreController` (via StandardGridTable + `tableKeyboardNavigation`, capture-fase) ejer NAVIGATION og
 //     edit-ÅBNING: pile/Enter/Tab-celle-nav, to-trins-klik, printbar-tast→edit, Delete-ryd-i-celle og
 //     klik-udenfor-commit. Det er en bevidst bevaret surface-mekanik (§2.5 — grid-adapteren ejer navigation),
 //     som opererer på DOM + en per-celle `GridCellEditorHandle`.
-//  2. `useCellEditor` (den ENE greenfield-editor-motor) ejer DRAFT/COMMIT: åben draft, settle→command, cancel,
+//  2. `useCellEditor` (den ENE editor-motoren) ejer DRAFT/COMMIT: åben draft, settle→command, cancel,
 //     immediate-clear, rejected-visning og det tokenbundne feltissue (§3.5/§1.8).
 //
 // Broen: grid-core `openEditing(cell)` → editorens `open()`; editorens `settle()` → grid-core `closeEditing()`.
@@ -63,9 +63,9 @@ export type GridCellSurface<T> = Readonly<{
 }>;
 
 /**
- * Den delte greenfield grid-celle-surface. `gridCell` er cellens koordinat i grid-core; `cell` er celleeditor-
+ * Den delte grid-celle-surface. `gridCell` er cellens koordinat i grid-core; `cell` er celleeditor-
  * spec'et (eksisterende række eller placeholder, §1.11). Registrerer et `GridCellEditorHandle`, som grid-core-
- * navigationen driver, og oversætter grid-core edit-lifecycle ↔ greenfield-editor-lifecycle.
+ * navigationen driver, og oversætter grid-core edit-lifecycle ↔ editor-lifecyclen.
  */
 export const useGridCellSurface = <T, TEntity = unknown>(
   gridCell: GridCellCoord,
@@ -157,8 +157,8 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   }, []);
 
   // Bro-retning 2: registrér cellens `GridCellEditorHandle`. Navigationen (capture-fase) kalder disse; hver
-  // metode delegerer til den ENE greenfield-controller. `commitCurrent`/`clearAndCommit`/`cancelEdit` lukker
-  // grid-core-editingen bagefter, så grid-core-lifecyclen og greenfield-lifecyclen holder trit.
+  // metode delegerer til den ENE controlleren. `commitCurrent`/`clearAndCommit`/`cancelEdit` lukker
+  // grid-core-editingen bagefter, så grid-core-lifecyclen og editor-lifecyclen holder trit.
   const editorHandle = React.useMemo<GridCellEditorHandle>(() => ({
     getElement: () => inputElementRef.current,
     getIsLocked: () => latest.current.locked,
@@ -168,7 +168,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     },
     commitCurrent: () => {
       if (latest.current.locked) return true;
-      // Greenfield settle er altid "succesfuld" ud fra editorens synspunkt: gyldigt/tomt/rejected settle
+      // Et settle er altid "succesfuldt" ud fra editorens synspunkt: gyldigt/tomt/rejected settle
       // afslutter alle redigeringen (§1.3). En storagefejl holder editoren åben (motoren guarder), men den
       // returnerer ikke et fejlsignal her — grid-core-commit betragtes som gennemført, og en evt. fejl vises
       // via systemfejl-overfladen. Returnér true, så grid-core lukker editingen.

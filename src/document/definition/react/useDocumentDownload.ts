@@ -29,11 +29,11 @@ import type { InputEvaluation } from '../../../inputCore/inputReader';
  * fire. Konteksten er immutable og bundet til ét `EvaluationSourceToken`; dependency-listen er derfor
  * tilstrækkelig som identitet.
  */
-export const useDocumentSourceContext = <TSettings>(
+export const useDocumentSourceContext = <TGateSettings>(
   evaluation: InputEvaluation,
-  settings: TSettings
-): DocumentSourceContext<TSettings> =>
-  React.useMemo(() => createDocumentSourceContext(evaluation, settings), [evaluation, settings]);
+  gateSettings: TGateSettings
+): DocumentSourceContext<TGateSettings> =>
+  React.useMemo(() => createDocumentSourceContext(evaluation, gateSettings), [evaluation, gateSettings]);
 
 export type DocumentDownloadHandle<TRequest> = Readonly<{
   /**
@@ -81,14 +81,20 @@ export const visibleDocumentFailureMessage = <TRequest>(
     ? null
     : handle.errorMessage;
 
-export const useDocumentDownload = <TRequest, TSettings>(
-  output: DocumentOutput<TRequest, TSettings>,
-  context: DocumentSourceContext<TSettings>,
+export const useDocumentDownload = <TRequest, TGateSettings, TRenderSettings>(
+  output: DocumentOutput<TRequest, TGateSettings, TRenderSettings>,
+  context: DocumentSourceContext<TGateSettings>,
   /**
    * Requesten, den reaktive gate skal vurderes for. For outputs uden aktiveringsidentitet er den
    * `undefined as void`; for rækkebaserede outputs er det den række, knappen tegnes for.
    */
-  gateRequest: TRequest
+  gateRequest: TRequest,
+  /**
+   * Render-tidens format-/brevhoved-settings. Bevidst en SELVSTÆNDIG parameter og ikke et felt på
+   * `context`: udfaldsbeskeden navngiver formatet, mens gaten per norm ikke må se det (R6-F03).
+   * Havde de delt objekt, ville adskillelsen kun være en konvention.
+   */
+  renderSettings: TRenderSettings
 ): DocumentDownloadHandle<TRequest> => {
   const [lastOutcome, setLastOutcome] = React.useState<DocumentOutcome | null>(null);
 
@@ -117,7 +123,7 @@ export const useDocumentDownload = <TRequest, TSettings>(
     blockedReasons: gate.canDownload ? null : gate.reasons,
     disabledReason: gate.canDownload ? undefined : gate.reasons[0].message,
     lastOutcome,
-    errorMessage: lastOutcome === null ? null : output.resolveOutcomeMessage(lastOutcome, context.settings),
+    errorMessage: lastOutcome === null ? null : output.resolveOutcomeMessage(lastOutcome, renderSettings),
     clearOutcome,
     download,
   };

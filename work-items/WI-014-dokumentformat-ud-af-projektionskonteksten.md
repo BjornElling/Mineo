@@ -1,6 +1,8 @@
 # WI-014: Fjern dokumentformatet fra projektionskonteksten
 
-- **Status:** `kladde`
+- **Status:** `lukket 2026-07-29` — gennemført som en del af draft/commit-reviewets **etape 11**
+  (fundene R6-F03 + R0-F03), ikke som en selvstændig WI-kørsel. Se
+  `docs/review/draft-commit-review/fund-oversigt.md` → etape 11's note.
 - **Oprettet:** 2026-07-28
 - **Slice/scope:** dokumentlivscyklussens kildekontekst (`DocumentSourceContext`) og de 18
   hovedapp-dokumentdefinitioners `project`
@@ -66,29 +68,59 @@ aftale, ikke en grænse.** Jf. [[project_typed_write_boundary_over_ast_guard]].
 
 ## Acceptance criteria
 
-- [ ] Det er en typefejl at læse `documentDownloadFormat` i en definitions `project`.
-- [ ] Alle 18 hovedapp-outputs projicerer uændret (invariant 1), verificeret mod gate-matrixen.
-- [ ] `build:all`, fuld suite og de fire gates grønne; intet snapshot opdateret.
-- [ ] `documentGateFormatInvariance.test.ts` bevaret og dens rolle omskrevet til sikkerhedsnet.
-- [ ] Planens §A2a/Fase 7-afsnit opdateret med, at grænsen nu er strukturel.
+- [x] Det er en typefejl at læse `documentDownloadFormat` i en definitions `project`.
+- [x] Alle 18 hovedapp-outputs projicerer uændret (invariant 1), verificeret mod gate-matrixen.
+- [x] Fuld suite og de fire gates grønne; intet snapshot opdateret.
+- [x] `documentGateFormatInvariance.test.ts` bevaret — men **omskrevet frem for nedgraderet til
+      sikkerhedsnet**. Se afvigelsen nedenfor.
+- [x] Kontrakten opdateret med, at grænsen nu er strukturel (`document-output-contract.md` §A2.1,
+      `app-settings.md`).
 
 ## Godkendelsesgate
 
 - **Påkrævet:** nej (`godkendelse ikke påkrævet`). Ingen synlig UI/UX og ingen beregningsregler
   ændres; invariant 1-3 gør uændretheden til acceptance criteria.
 
+## Løsningen, som den blev gennemført
+
+Scopens spørgsmål 1 blev besvaret af kortlægningen: definitionerne læser i produktionen **præcis én**
+ting fra `settings` — `projectEoRowPolicy(context.settings)` i `eoDocumentDefinitions.ts`. Løsningen er
+derfor en projiceret delmængde og ikke en nominel indpakning:
+
+- `DocumentSourceSnapshot` bærer nu `gateSettings` + `renderSettings` som to disjunkte halvdele, og
+  `DocumentExecutionEnvironment`/`DocumentOutput` er generiske over begge.
+- `DocumentSourceContext` er generisk over GATE-halvdelen alene. Hovedappen binder
+  `MineoDocumentGateSettings = EoRowPolicy`; standalone binder `void` for begge.
+- `projectDocumentRenderSettings` er render-halvdelens eneste konstruktør, og
+  `DocumentRenderSettings` er gjort NOMINEL af samme grund som de to øvrige: uden mærket ville hele
+  `AppSettings` være strukturelt assignable.
+- `captureSource` projicerer begge halvdele fra ÉT `readSourceSettings()`-læs, så R6-F01's atomicitet
+  ikke svækkes af opdelingen.
+
+**Afvigelser fra planen — begge i skærpende retning:**
+
+1. **`documentGateFormatInvariance.test.ts` er omskrevet, ikke bevaret som sikkerhedsnet.** Planen
+   antog, at den gamle invarians-sammenligning kunne stå tilbage. Det kan den ikke: der findes ingen
+   formatakse at variere i en projektion længere, så en bevaret udgave ville måle en anden invariant
+   end sit eget navn. Filen hævder nu typegrænsen med en RIGTIG TypeScript-oversættelse af en virtuel
+   definition mod det ægte program (TS2339) plus en kontrolprøve, der skal kompilere rent — og med
+   dét er den stærkere end den fixture, den afløser.
+2. **Den løftede renderers `settings`-parameter er fjernet, og den døde `DocumentSettings`-DTO med den**
+   (INC-F19). Begge var åbne veje til format/brevhoved uden om gaten; ingen af dem havde en consumer.
+
 ## Verifikation
 
 - **Plan:** gate-matrixen + format-invariansen + `documentFileName` + docx/pdf-generatorsuiter efter
   ændringen; derefter fuld gate.
-- **Resultat:** <udfyldes>
+- **Resultat:** gennemført som etape 11. Se etapens note i
+  `docs/review/draft-commit-review/fund-oversigt.md` for gate- og suite-tal samt mutationsbeviserne.
 
-## Review-fund (udfyldes i review-fasen)
+## Review-fund
 
-| # | Fund og evidens | Alvor | Disposition | Status |
-|---|---|---|---|---|
-|   |   |   | rettet / afvist med evidens / ny WI-xxx | |
+Fundene ER reviewfundene R6-F03 + R0-F03; WI'en var deres sporing. Tilfældighedsfundet INC-F19 kom til
+under gennemførelsen og står i registeret.
 
 ## Resterende / risici
 
-<udfyldes ved afslutning>
+Ingen. Invariant 1–4 holdt: ingen gate skiftede udfald, intet golden-snapshot blev regenereret, og
+standalone (`void` på begge halvdele) var upåvirket ud over sin signatur.

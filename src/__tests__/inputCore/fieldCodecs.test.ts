@@ -13,7 +13,7 @@ import {
   textFieldCodec,
 } from '../../inputCore';
 
-describe('greenfield fieldCodecs', () => {
+describe('fieldCodecs', () => {
   it('canonicaliserer tomhed efter codecets værditype', () => {
     expect(textFieldCodec.parseForSettle('  ')).toEqual({ status: 'valid', value: '' });
     expect(optionalTextFieldCodec.parseForSettle('  ')).toEqual({ status: 'valid', value: undefined });

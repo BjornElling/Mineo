@@ -17,7 +17,7 @@ import type { ReguleringForloeb } from '../reguleringForloeb';
 // så en ændring i en eksisterende form rører dens modul frem for parallelle grene i
 // motor/coverage. Feature-fladen er låst: registeret er et statisk, exhaustivt register
 // over de eksisterende former, ikke et udvidelsespunkt (jf. AGENTS.md Konvergens og
-// greenfield-reviewets kandidat #23).
+// reviewkandidat #23).
 // =============================================================================
 
 export type LoenudviklingStrategi =

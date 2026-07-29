@@ -156,7 +156,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
     'aria-checked': checked,
     'data-mineo-undo-field-path': resolvedName,
     ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
-    // Greenfield-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
+    // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
     ...(restoreTargetAttributes ?? {}),
   };
 

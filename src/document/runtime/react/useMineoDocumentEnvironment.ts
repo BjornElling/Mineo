@@ -15,7 +15,8 @@ import { useDocumentInputAccess } from '../../../inputCore/react';
 import { readPublishedSourceSettings } from '../../../inputCore/react/productionInputRuntime';
 import type { DocumentBrevhovedType } from '../../layout/documentBrevhoved';
 import type { DocumentExecutionEnvironment } from '../../definition/documentExecutionEnvironment';
-import type { SourceSettings } from '../../../settings/sourceSettings';
+import type { MineoDocumentGateSettings } from '../../definition/mineoDocumentDefinition';
+import type { DocumentRenderSettings } from '../../../settings/sourceSettings';
 import { createMineoDocumentEnvironment } from '../mineoDocumentEnvironment';
 
 /**
@@ -30,7 +31,11 @@ import { createMineoDocumentEnvironment } from '../mineoDocumentEnvironment';
  * Fordelen er også referencestabilitet: miljøet afhænger nu kun af runtime-bindingen, så et settingsskift ikke
  * længere invaliderer hele gate-memoiseringen nedstrøms.
  */
-export const useMineoDocumentEnvironment = (): DocumentExecutionEnvironment<SourceSettings, DocumentBrevhovedType> => {
+export const useMineoDocumentEnvironment = (): DocumentExecutionEnvironment<
+  MineoDocumentGateSettings,
+  DocumentRenderSettings,
+  DocumentBrevhovedType
+> => {
   const runtime = useDocumentInputAccess();
   return React.useMemo(
     () => createMineoDocumentEnvironment(runtime, readPublishedSourceSettings),

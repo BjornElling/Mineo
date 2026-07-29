@@ -24,7 +24,7 @@ import { getSourceGraph } from './sourceGraph';
  */
 
 describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', () => {
-  it('forbudt-symbol-listen matcher Fase 6-listen uden staveglidning', () => {
+  it('forbudt-symbol-listen er den kanoniske liste, uden staveglidning', () => {
     expect(FORBIDDEN_LEGACY_IDENTIFIERS).toEqual([
       'executeLegacyInputTransaction',
       'useDraftLifecycle',

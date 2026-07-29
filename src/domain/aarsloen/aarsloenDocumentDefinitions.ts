@@ -8,10 +8,13 @@
  * og ensartet til at læse projektionen frem for et komponent-samlet snapshot (se modulets egen
  * forklaring). Reglerne er uændrede.
  */
-import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
+import {
+  defineMineoDocument,
+  type MineoDocumentDefinition,
+  type MineoDocumentGateSettings,
+} from '../../document/definition/mineoDocumentDefinition';
 import { toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
-import type { SourceSettings } from '../../settings/sourceSettings';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import type { AarsloenBeregningResult } from '../../types/calculation';
 import type { PeriodeResult } from '../../utils/periodeBeregning';
@@ -22,7 +25,7 @@ import { evaluateAarsloenDownloadGate, evaluateShDageDownloadGate } from './aars
 
 /** Builderen er selv memo-nøglen, så begge outputs deler ét slot pr. kildekontekst. */
 const readSharedAarsloenSource = (
-  context: DocumentSourceContext<SourceSettings>
+  context: DocumentSourceContext<MineoDocumentGateSettings>
 ): AarsloenReaderProjection => buildAarsloenReaderProjection(context.evaluation.reader);
 
 /**

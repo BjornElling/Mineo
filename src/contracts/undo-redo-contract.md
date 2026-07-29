@@ -1,6 +1,6 @@
 # Mineo – Undo/redo-kontrakt
 
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet
 `docs/architecture/undo-redo-architecture.md`.
@@ -111,8 +111,8 @@ og domænevalidatorer. Det fjerner mount-, reporter- og cleanup-afhængighed fra
 Mineo bevarer højst 50 undo- og 50 redo-trin. Grænserne er brugersemantik og må ikke ændres uden godkendelse, fordi en
 ændring kan fjerne forventede redo-muligheder.
 
-## 9. Migrationsregel
+## 9. Fraværsregel
 
 Separate section-/rejected-/field-error-snapshots, `captureValueCommit`, `captureCoalescing`, microtask-markører,
-form-wide resync-tokens og stringbaserede fokuspaths er overgangsmekanismer og skal fjernes. De må ikke udvides som ny
-history-arkitektur.
+form-wide resync-tokens og stringbaserede fokuspaths **findes ikke** i history-arkitekturen. De navngives her som et
+fraværsværn: ingen af dem må genindføres, og ingen ny mekanisme må bygges på deres form.

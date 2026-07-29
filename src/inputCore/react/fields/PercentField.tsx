@@ -9,7 +9,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import type { FieldIssue } from '../../inputIssue';
 import NumericTextField from './NumericTextField';
 
-// Greenfield procent-felt (§2.4/§3.5): familie-skal over `NumericTextField` med procent-tegnfilteret,
+// Procent-felt (§2.4/§3.5): familie-skal over `NumericTextField` med procent-tegnfilteret,
 // den delte "%"-enheds-adornment (muted når tom) og legacy højrestillet tabular-nums-visning. Parse/format og
 // commit-intervallet ejes af descriptorens procent-codec (§samlet input-enhed). Komponenten modtager KUN sin
 // `field`/`location` + rendering-props — ingen `minValue`/`maxValue`/`onCommit`/`onFieldError`/`enforceRange` (§2.4).

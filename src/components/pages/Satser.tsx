@@ -14,7 +14,7 @@ import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import { formatAsAmount, formatKr, formatPercent } from '../../utils/formatUtils';
 import type { RetsinfoLink } from '../../data/retsinfoLinks';
 
-// Greenfield-migreret (§2.4 formularrækkefølge trin 2 + Fase 3 Satser-slice). Erstatter den legacy
+// Erstatter den legacy
 // Den gamle persistence-/feltfejl-/projektionvej er erstattet med:
 //  - `YearField` (field = descriptor.bind(), location = stabilt locationId) — ingen value/onCommit/
 //    minYear/maxYear/onFieldError; satsårets min/maxYear-bounds er en canonical bounds-feltvalidator → rødt issue.

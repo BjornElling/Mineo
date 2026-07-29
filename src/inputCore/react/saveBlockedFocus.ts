@@ -6,7 +6,7 @@ import { focusElementWithoutScroll, waitForAnimationFrame } from '../../utils/fo
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import { lookupEditorLocation, type EditorLocationDestination } from './editorLocationDestination';
 
-// Greenfield save-blocking focus (§1.4/§3.2). `.eo`-save blokeres KUN af aktivt relevant rejected råinput (§3.9);
+// Save-blocking focus (§1.4/§3.2). `.eo`-save blokeres KUN af aktivt relevant rejected råinput (§3.9);
 // `CaseFileOperations.evaluateSave` returnerer de blokerende `SerializedFieldAddress`'er.
 //
 // Målet lokaliseres via den FULDE serialiserede feltadresse — samme identitet som undo/redo-restoren bruger

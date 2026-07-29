@@ -8,7 +8,7 @@ import type { InputSelectionSnapshot } from '../../utils/inputSelectionUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
 
-// Greenfield-React (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
+// React-laget (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
 // Den parrer `useFieldEditor`-controlleren (som ejer draft/settle/cancel/clear/commit + dispatch, §3.6) med
 // den rene DOM-glue, der IKKE hører til datamodellen: to-trins-aktivering, keydown-skelet, paste-splice,
 // caret-genetablering og blur-settle. Denne hook parser ALDRIG, persisterer ALDRIG og holder ingen fejlstate
@@ -38,7 +38,7 @@ export type FormFieldSurfaceConfig = Readonly<{
   keyFilter?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   /**
    * Spring `keyFilter` over, mens feltet har en aktiv rød feltfejl. Legacy gatede på `touched && invalid`;
-   * i greenfield er feltfejlen den afsluttede revisions issue (§1.8), ikke en draft-afledt fejl.
+   * feltfejlen er den afsluttede revisions issue (§1.8), ikke en draft-afledt fejl.
    */
   gateKeyFilterOnIssue?: boolean;
   /** Sæt caret efter en åben-editor-splice-paste (dato/beløb/brøk). */
@@ -63,7 +63,7 @@ export type FormFieldSurface<T> = Readonly<{
   readOnly: boolean;
   /**
    * DOM-attributter, det redigerbare `<input>` SKAL bære, så undo/redo-fokusrestoren kan lokalisere præcis denne
-   * editorlokation (§3.7). Feltkomponenten spreder dem på inputtet (via `htmlInputAttributes`). Alle greenfield-
+   * editorlokation (§3.7). Feltkomponenten spreder dem på inputtet (via `htmlInputAttributes`). Alle felt-
    * kommitterende feltfamilier skal videreføre dem — en arkitekturtest håndhæver det.
    */
   restoreTargetAttributes: RestoreTargetAttributes;
@@ -81,7 +81,7 @@ export type FormFieldSurface<T> = Readonly<{
 }>;
 
 /**
- * Den delte greenfield form-felt-surface. `focusTarget` gives til `useFieldEditor`, så en kritisk handling kan
+ * Den delte form-felt-surface. `focusTarget` gives til `useFieldEditor`, så en kritisk handling kan
  * fokusere feltet ved fail-closed. Alt DOM-arbejde her er ren UI-mekanik; datamodellen ejes af controlleren.
  */
 export const useFormFieldSurface = <T>(

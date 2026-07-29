@@ -273,7 +273,7 @@ describe('dispatchInput — undo/redo (§3.6/§7.2)', () => {
   });
 });
 
-describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/redo (§3.7, WI-003)', () => {
+describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/redo (§3.7)', () => {
   const originFor = <T>(field: FieldRef<T>) => ({
     kind: 'field' as const,
     field: field.address,

@@ -8,7 +8,7 @@ import { useFormFieldSurface } from '../useFormFieldSurface';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 
-// Greenfield numerisk tekst-felt (§2.4/§3.5): den delte TYNDE skal for alle single-`<input>` numeriske
+// Numerisk tekst-felt (§2.4/§3.5): den delte TYNDE skal for alle single-`<input>` numeriske
 // codec-familier (år, heltal, beløb, procent, brøk, uge). Præcis som `DateField`, men med et
 // familiespecifikt tegnfilter givet ind som prop i stedet for hardcodet. Parse/format/paste-normalisering
 // ejes af descriptorens codec; commit-intervaller og tværgående bounds er FELTVALIDATORER (Fase 3), ikke

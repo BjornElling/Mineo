@@ -21,7 +21,7 @@ import {
   type SettledInputCandidate,
 } from './settledInput';
 
-// Greenfield-kerne (§3.2): produktkataloget er ét almindeligt statisk readonly katalog, valideret ÉN gang
+// Inputkernen (§3.2): produktkataloget er ét almindeligt statisk readonly katalog, valideret ÉN gang
 // ved konstruktion og derefter immutabelt. Ingen seal-lifecycle, symbols, brands eller WeakSet.
 
 export type CollectionTemplateSegment =

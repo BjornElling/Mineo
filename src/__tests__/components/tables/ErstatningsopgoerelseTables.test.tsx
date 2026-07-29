@@ -48,7 +48,7 @@ const renderInRuntime = (child: React.ReactNode) => render(
 
 const dataRows = (): HTMLElement[] => screen.getAllByRole('row').filter((row) => row.hasAttribute('data-mineo-row-id'));
 
-describe('Greenfield-tabeller i Erstatningsopgørelse', () => {
+describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => {
   afterEach(cleanup);
 
   it('TAF-tabellen renderer committed rækkefølge og én trailing placeholder', () => {

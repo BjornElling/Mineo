@@ -10,7 +10,7 @@ import {
 import type { FieldCodec } from './fieldCodec';
 import type { PersistedInputSections } from './settledInput';
 
-// Greenfield-kerne (§3.2): hvert persisteret brugerfelt har ÉN immutable beskrivelse med kun de egenskaber,
+// Inputkernen (§3.2): hvert persisteret brugerfelt har ÉN immutable beskrivelse med kun de egenskaber,
 // der bruges nu. Kataloget er et almindeligt statisk readonly katalog, som valideres én gang — ingen
 // stateful klasse, runtime-registrering, seal-lifecycle, factory-brands eller WeakSet-autorisering.
 

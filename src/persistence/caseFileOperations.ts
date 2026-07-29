@@ -8,13 +8,13 @@ import type { SettledInput, SettledInputCandidate } from '../inputCore/settledIn
 import { countFilledFields } from '../utils/dataCollection';
 import { projectEoSave, type EoSaveProjection } from './eoSaveProjection';
 
-// Greenfield-runtime (§3.10): `CaseFileOperations`-porten ejer `.eo`-save (via `projectEoSave`) og
+// Input-runtime (§3.10): `CaseFileOperations`-porten ejer `.eo`-save (via `projectEoSave`) og
 // load-apply over reader-/replacement-grænserne. Den er materielt forskellig fra den legacy
 // `FormPersistenceContext`: den eksponerer HVERKEN rå sektioner, rejected maps, `fieldErrors` eller
 // notices. Den læser kun det afsluttede input gennem en injiceret kildeoptager og skriver kun gennem
 // den ene autoritative `replaceCase`-command. UI-flow (preflight-dialog, overwrite-gate, PWA-samtidighed,
 // fokusrestore) og selve fil-I/O'et (`saveToFile`/`loadFromFile`, codec, metadata) ejes fortsat af
-// shell-use-casen og de bevarede `utils/file*`-primitiver (§4.1); porten binder dem til greenfield-runtime.
+// shell-use-casen og de bevarede `utils/file*`-primitiver (§4.1); porten binder dem til input-runtime.
 
 /**
  * Den minimale runtime-grænse porten har brug for. Injiceres (ikke den fulde binding), så porten er
@@ -57,7 +57,7 @@ export const buildLoadReplaceCaseCandidate = (
 
 /**
  * Porten. En tynd, ren orkestrering oven på `CaseRuntimeAccess`: den kobler den bevarede fil-I/O til
- * greenfield-runtime uden at eksponere en ny altomfattende facade (§3.10).
+ * input-runtime uden at eksponere en ny altomfattende facade (§3.10).
  */
 export type CaseFileOperations = Readonly<{
   /**

@@ -3,7 +3,7 @@ import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { FieldRejectReason, FieldRejectDetail } from './fieldCodec';
 import { serializedFieldAddressSchema } from './fieldAddress';
 
-// Greenfield-kerne (§3.1): den autoritative inputtilstand bevarer de eksisterende Zod-validerede
+// Inputkernen (§3.1): den autoritative inputtilstand bevarer de eksisterende Zod-validerede
 // sektionsformer. `rejectedInputs` er IKKE en maske over en recovery-værdi — det er den rå del af et
 // aktuelt fejlende felt, hvis canonical slot samtidig er feltets tomværdi (XOR, håndhævet af kataloget).
 

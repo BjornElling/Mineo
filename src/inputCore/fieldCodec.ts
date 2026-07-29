@@ -1,4 +1,4 @@
-// Greenfield-kerne (§3.3): ét codec pr. inputfamilie på tværs af form og grid. Codecs er rene funktioner
+// Inputkernen (§3.3): ét codec pr. inputfamilie på tværs af form og grid. Codecs er rene funktioner
 // uden React, DOM eller storage. Den eneste ændring fra legacy er, at en afvist resolution bærer en
 // MASKINLÆSBAR årsag + detaljer, så UI aldrig reparser råteksten for at finde tooltipteksten (§1.8).
 

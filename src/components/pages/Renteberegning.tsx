@@ -16,9 +16,8 @@ import {
   useMineoDocumentSourceContext,
 } from '../../document/runtime/react/useMineoDocumentOutput';
 
-// Greenfield-migreret (§2.4 trin 4 / Fase 3 Renteberegning-slice, dokumentgrænsen lukket i Fase 5).
-// Siden læser stamdata + kommentarer gennem den offentlige `InputReader`, og dokument-download går
-// gennem de to typede definitioner: siden komponerer dem mod hovedappens miljø og videregiver de
+// Renteberegning (§2.4 trin 4): siden læser stamdata + kommentarer gennem den offentlige `InputReader`, og
+// dokument-download går gennem de to typede definitioner — siden komponerer dem mod hovedappens miljø og videregiver de
 // færdige handles til den delte fane, som også standalone MinProcesrente bruger.
 
 type TabKey = 'rates' | 'calculation';

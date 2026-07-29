@@ -25,7 +25,8 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import { eoAngivetLoenFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
 import { createDocumentSourceContext } from '../../../document/definition/documentSourceContext';
-import { __createTestSourceSettings, type SourceSettings } from '../../../settings/sourceSettings';
+import { __createTestEoRowPolicy } from '../../../settings/sourceSettings';
+import type { MineoDocumentGateSettings } from '../../../document/definition/mineoDocumentDefinition';
 import {
   klLoenaftalerDocumentDefinition,
   reguleringDocumentAction,
@@ -35,14 +36,9 @@ import {
 
 const catalog = getProductionInputCatalog();
 
-// Bygges gennem projektoren; `SourceSettings` er nominel (WI-009). Se `documentGateMatrix.test.ts`.
-const SETTINGS: SourceSettings = __createTestSourceSettings({
-  documentDownloadFormat: 'pdf',
-  brevhovedIndstillinger: {
-    satser: false, renteberegning: false, regulering: false, varigeMen: false,
-    aarsloensberegning: false, shDage: false, forsoergertab: false,
-    erstatningsopgoerelse: false, erhvervsevnetab: false,
-  },
+// Bygges gennem projektoren; gate-settings er nominel (WI-009). Format og brevhoved er
+// render-settings og findes ikke i projektionskonteksten (R6-F03). Se `documentGateMatrix.test.ts`.
+const GATE_SETTINGS: MineoDocumentGateSettings = __createTestEoRowPolicy({
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,
 });
@@ -72,7 +68,7 @@ const contextOf = (input: SettledInput) => {
     catalog,
     sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
   });
-  return createDocumentSourceContext(evaluation, SETTINGS);
+  return createDocumentSourceContext(evaluation, GATE_SETTINGS);
 };
 
 /**

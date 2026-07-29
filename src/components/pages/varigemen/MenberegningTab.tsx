@@ -32,8 +32,8 @@ import {
 import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 
-// Greenfield-migreret MenberegningTab (§2.4 formularrækkefølge trin 5 / Fase 3 Varige mén-slice). Hele fanen kører
-// nu på greenfield-inputCore: méngrad + beregningsdato skriver/læser gennem den offentlige `InputReader` + den ene
+// MenberegningTab: Hele fanen kører
+// nu på inputCore: méngrad + beregningsdato skriver/læser gennem den offentlige `InputReader` + den ene
 // write-grænse (ingen `usePersistedForm`/`setFieldValue`-prop); de tværsektionelle stamdata-datoer læses gennem
 // samme reader (ingen rå `usePersistedSectionSelector`). Den ENE reader-afledte projektion
 // (`buildVarigeMenReaderProjection`) driver både beregningsvisning og download-gaten. Beregningstal og synlig
@@ -86,7 +86,7 @@ const MenberegningTab = React.memo(() => {
   const beregningsResultat = projectionData?.beregningsResultat ?? null;
 
   // Display-tilstande læses direkte gennem readeren: en rød feltfejl skjuler værdien (`error`), et tomt felt
-  // giver en tom `usable`-værdi. Datoordenen (skadedato ≥ fødselsdato) er allerede en greenfield feltvalidator,
+  // giver en tom `usable`-værdi. Datoordenen (skadedato ≥ fødselsdato) er allerede en feltvalidator,
   // så en byttet orden viser sig her som en rød fejl på begge datoer.
   const fodselsdatoRead = evaluation.reader.read(fodselsdatoRef);
   const skadedatoRead = evaluation.reader.read(skadedatoRef);

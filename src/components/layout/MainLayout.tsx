@@ -29,7 +29,7 @@ import {
 /**
  * Hovedlayout for applikationen.
  *
- * Greenfield-shell (WI-002 trin 3, §3.10): shellen læser og skriver KUN gennem greenfield-runtime.
+ * Shellen (WI-002 trin 3, §3.10): shellen læser og skriver KUN gennem input-runtime.
  * `FormPersistenceContext`/`useFormPersistence`, legacy read-model-selectors og den legacy
  * `CriticalActionProvider` er fjernet. Case-operationer går gennem `useCaseOperations`-portene, den kritiske
  * handlingsbarriere gennem `useCriticalInputActions`, og undo/redo gennem `useUndoRedoShortcuts`.
@@ -52,7 +52,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   // `authoritativeSnapshotEpoch` (bumpes af load/reset/`Slet alt` gennem replacement-grænsen).
   const { revision, replacementGeneration } = useSettledSnapshot();
 
-  // Global undo/redo-tastatur (greenfield-history via coordinatoren; åben editor = stille no-op, §1.4). Efter en
+  // Global undo/redo-tastatur (inputkernens history via coordinatoren; åben editor = stille no-op, §1.4). Efter en
   // gennemført restore navigerer vi til origin-lokationens route/fane og re-fokuserer feltet, ændringen kom fra
   // (§3.7) — SAMME rækkefølge som legacy: (1) sæt aktiv fane, (2) navigér til route, (3) planlæg fokusrestore.
   // route/fane er eksplicit typed metadata på originen (aldrig udledt af locationId/field.section).

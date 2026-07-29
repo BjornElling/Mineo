@@ -1,6 +1,6 @@
 # Kritiske handlinger og inputbarriere
 
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Underordnet form-, persistence- og dokument-output-kontrakterne for deres dataregler.
 **Senest verificeret mod kode:** 2026-07-18
@@ -93,9 +93,8 @@ Deltager-registreringen sker ét sted: `useFieldEditor`, som både form-fladen (
 grid-fladen (`useGridCellSurface`) bygger på. Navnet er en implementering, ikke et normativt API-navn —
 kontrakten binder deltager-ROLLEN, ikke hooket.
 
-*(Historik: før greenfield-cutoveren hed de `useStyledFieldAdapter`, `useGridCoreController` og
-`useGridRowPersistenceCore`. Alle tre er slettet; de nævnes her, så en læser af ældre commits kan finde
-efterfølgeren.)*
+De tre navne `useStyledFieldAdapter`, `useGridCoreController` og `useGridRowPersistenceCore` er slettede
+forgængere og må ikke genindføres; de står her alene, så en læser af ældre commits kan finde efterfølgeren.
 
 ## 7. Reset, `Slet alt` og load — ingen settle
 
@@ -104,6 +103,7 @@ handlingen, og draften kasseres først ved en vellykket apply. Det er korrekt ne
 alle omstændigheder erstatter eller sletter det input, draften kunne være blevet til — commit-klargøring har derfor ingen
 databevarende funktion. Annullering (eller apply-fejl) bevarer både afsluttet input og åben draft og genskaber fokus.
 
-I målarkitekturen ejes reset/`Slet alt` af `CaseResetOperations`-porten (jf. greenfield-designets §3.10) og routes
-gennem den samme replacement-command som load. En eventuel fuld sidegenindlæsning er en implementeringsdetalje, ikke en
-undtagelse fra no-settle/kassér-kun-ved-succes-reglen.
+Reset/`Slet alt` ejes af `CaseResetOperations`-porten og routes gennem den samme replacement-command som load.
+Handlingen afsluttes med en almindelig navigation, ikke med en fuld sidegenindlæsning: en reload ville rive
+komponenttræet ned og dermed kræve sidekanaler for at overleve sig selv (den mekanik er fjernet, GM-F12/INC-F16).
+Baseline nulstilles ad den almindelige vej gennem `authoritativeSnapshotEpoch`, som hel-sags-clear selv bumper.

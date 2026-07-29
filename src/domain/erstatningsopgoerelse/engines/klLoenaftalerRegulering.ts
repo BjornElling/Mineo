@@ -7,7 +7,7 @@ import { parseDanishToIso } from '../helpers/eoSharedUtils';
 // bruger listen til at placere brudpunkter, og præsentationens reguleringsværdi-tabel viste den
 // samme serie ved at bygge den uafhængigt (parse + sort af klLoenaftalerRaekker). Ved at motoren
 // emitterer listen og præsentationen læser den, er den viste reguleringssats samme kilde som de
-// brudpunkter beløbet bygger på (jf. greenfield-reviewets kandidat #23).
+// brudpunkter beløbet bygger på (jf. reviewkandidat #23).
 //
 // BEMÆRK: KL-lønaftaler viser bevidst periode-satsen (ikke akkumuleret) og kæder den trinvist på
 // lønnen (reguleretLoenOre på segmentet er beregningssandheden for beløbet) — forløbet her er

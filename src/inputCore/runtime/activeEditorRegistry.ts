@@ -1,5 +1,5 @@
-// Greenfield-runtime (§2.2.1/§3.5): der findes højst ÉN aktiv persisted editor pr. app-runtime. Dette register
-// er den greenfield-erstatning for den legacy multi-deltager-`CriticalActionCoordinator`. Fordi der efter §3.5
+// Input-runtime (§2.2.1/§3.5): der findes højst ÉN aktiv persisted editor pr. app-runtime. Dette register
+// er erstatningen for den legacy multi-deltager-`CriticalActionCoordinator`. Fordi der efter §3.5
 // kun findes én felt-editor-state-machine ad gangen, holder registret kun den ene aktive editors settle-kald +
 // isEditing-probe samt fokusmål for fail-closed-feedback.
 //

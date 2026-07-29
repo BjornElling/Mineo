@@ -32,7 +32,7 @@ import {
 import type { EditorFocusTarget } from '../runtime/activeEditorRegistry';
 import { fieldAddressesEqual } from '../fieldAddress';
 
-// Greenfield-React (§2.3/§3.5): ÉN persisted felt-editor direkte over `FieldRef`, reader og runner. Adapteren
+// React-laget (§2.3/§3.5): ÉN persisted felt-editor direkte over `FieldRef`, reader og runner. Adapteren
 // ejer KUN rendering, aktivering, hit-area og navigation — den parser ikke, persisterer ikke, holder ingen
 // fejlstate og vælger ingen history-policy (§3.5). Alt det ligger i den rene state-machine + engine + runner.
 //

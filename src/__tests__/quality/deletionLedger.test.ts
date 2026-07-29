@@ -79,8 +79,8 @@ const REJECTED_PARALLEL_INPUT_MODEL: readonly string[] = [
 const exists = (relativePath: string): boolean =>
   fs.existsSync(path.resolve(process.cwd(), relativePath));
 
-describe('slettelisterne er tomme (Fase 7 afleveringsgate)', () => {
-  it('ingen fil eller mappe fra fase 2-5s slettelister findes fysisk', () => {
+describe('slettelisterne er tomme (fraværsgate)', () => {
+  it('ingen fil eller mappe fra slettelisterne findes fysisk', () => {
     const rester = DELETION_LEDGER
       .filter((entry) => exists(entry.path))
       .map((entry) => `${entry.path} (${entry.list})`);

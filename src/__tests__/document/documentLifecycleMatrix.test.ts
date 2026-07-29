@@ -104,10 +104,14 @@ const createHarness = (options: Readonly<{
     },
   } as unknown as CriticalActionCoordinator;
 
-  const environment: DocumentExecutionEnvironment<void, never> = Object.freeze({
+  const environment: DocumentExecutionEnvironment<void, void, never> = Object.freeze({
     captureSource: () => {
       if (captureThrows) throw new Error('capturefejl');
-      return { evaluation: evaluationAt(tokenAt(capturedRevision)), settings: undefined };
+      return {
+        evaluation: evaluationAt(tokenAt(capturedRevision)),
+        gateSettings: undefined,
+        renderSettings: undefined,
+      };
     },
     readCurrentSourceToken,
     criticalActions,

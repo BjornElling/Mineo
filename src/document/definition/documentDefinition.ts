@@ -75,7 +75,7 @@ export type DocumentLabels = Readonly<{
  *
  * Outputs uden flere entiteter bruger `TRequest = void`.
  */
-export type DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey extends string> = Readonly<{
+export type DocumentDefinition<TRequest, TInput, TGateSettings, TBrevhovedKey extends string> = Readonly<{
   id: DocumentOutputId;
   /**
    * Hvordan brevhoved afgøres. En policy frem for et bart nøglenavn, fordi "intet brevhoved" er en
@@ -88,13 +88,16 @@ export type DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey extend
    * (render-tidens evaluation) og af click-preflighten (frisk evaluation efter settle) med samme
    * `request`. Må ikke læse rå sektioner, DOM eller UI-state. Delt domænearbejde hentes gennem
    * `context.shared`, så flere outputs på samme domæne kun betaler for det én gang.
+   *
+   * `context.settings` er GATE-settings alene: det valgte outputformat og brevhovedet er ikke i
+   * typen (R6-F03), fordi formatet vælger writer og ikke dækning. Miljøet anvender dem efter ready.
    */
-  project: (context: DocumentSourceContext<TSettings>, request: TRequest) => DocumentProjectionResult<TInput>;
+  project: (context: DocumentSourceContext<TGateSettings>, request: TRequest) => DocumentProjectionResult<TInput>;
   /** Lazy-load af den tunge generator. Kernen kalder den FØRST efter gaten har sagt ready. */
   loadRenderer: () => Promise<DocumentRenderer<TInput>>;
 }>;
 
 /** Bevarer `TRequest`/`TInput`-inferensen og fryser definitionen. */
-export const defineDocumentOutput = <TRequest, TInput, TSettings, TBrevhovedKey extends string>(
-  definition: DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey>
-): DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey> => Object.freeze(definition);
+export const defineDocumentOutput = <TRequest, TInput, TGateSettings, TBrevhovedKey extends string>(
+  definition: DocumentDefinition<TRequest, TInput, TGateSettings, TBrevhovedKey>
+): DocumentDefinition<TRequest, TInput, TGateSettings, TBrevhovedKey> => Object.freeze(definition);

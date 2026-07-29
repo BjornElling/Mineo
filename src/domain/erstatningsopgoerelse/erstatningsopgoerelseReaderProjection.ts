@@ -148,7 +148,7 @@ import { buildTafRanges } from './helpers/indtaegtPerioder';
 import { buildMidlertidigtEetImportContext } from './helpers/midlertidigtEetTransientInjection';
 import type { EetImportSource } from '../erhvervsevnetab/eetImportPort';
 
-// Greenfield Erstatningsopgørelse-projektion (§3.4/§5.4/§1.10, Fase 2.4 trin 8 — den SIDSTE + STØRSTE slice). En
+// Erstatningsopgørelse-projektionen (§3.4/§5.4/§1.10). En
 // ALMINDELIG ren funktion over den offentlige `InputReader`, der erstatter `Erstatningsopgoerelse.tsx`'s revisions-
 // gatede `getPersistedSectionSnapshot`/`getFieldErrorsBySourceSnapshot`-effekt, som byggede `computeEoSnapshot`.
 //

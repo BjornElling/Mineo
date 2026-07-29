@@ -17,7 +17,7 @@ import type { GridCellCoord } from '../../../components/tables/gridCore/gridCore
 import type { CellSpec } from '../useCellEditor';
 import GridTextCell from './GridTextCell';
 
-// Greenfield grid-celle-familier (§2.5/§3.5): tynde skaller over `GridTextCell`. Hver vælger kun sit
+// Grid-celle-familier (§2.5/§3.5): tynde skaller over `GridTextCell`. Hver vælger kun sit
 // tegnfilter + adornment + justering; parse/format/paste og commit-intervaller ejes af descriptorens codec +
 // feltvalidatorer. De erstatter legacy `Table{Amount,Integer,Year,Week,Date}Input` for løntabellen.
 

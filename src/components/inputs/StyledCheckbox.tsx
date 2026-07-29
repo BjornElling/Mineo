@@ -85,7 +85,7 @@ const StyledCheckbox = ({
               onKeyDown: handleKeyDown,
               'aria-checked': checked,
               'data-mineo-undo-field-path': resolvedName,
-              // Greenfield-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
+              // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
               ...(restoreTargetAttributes ?? {}),
             } as React.InputHTMLAttributes<HTMLInputElement>,
           }}

@@ -29,7 +29,7 @@ import {
 } from '../../components/tables/standardLoenTableFieldSet';
 import { aarsloenStandardLoenFieldSet } from './aarsloenStandardLoenFieldSet';
 
-// Greenfield Årsløn-projektion (§3.4/§5.4, Fase 3 Årsløn-slice, Pass 1). En ALMINDELIG ren funktion over den
+// Årsløn-projektionen (§3.4/§5.4). En ALMINDELIG ren funktion over den
 // offentlige `InputReader`, der genopbygger et komplet, schema-formet `AarsloenValues`-objekt fra readeren, så de
 // EKSISTERENDE beregningsindgange (`computeAarsloenBeregning`, `useAarsloenDocumentGates`) kan køre UÆNDRET på det — nul
 // talændring (§5.4 hårdt stop). Det er den sanktionerede fremflytning i §5.4: en migreret formular må ikke holde
@@ -72,7 +72,7 @@ const readOrEmpty = <T>(reader: InputReader, field: FieldRef<T>, emptyValue: T):
 };
 
 /**
- * Rekonstruerer løntabellens rækker (ikke-blokerende) i den afsluttede rækkefølge. Bruges af den greenfield
+ * Rekonstruerer løntabellens rækker (ikke-blokerende) i den afsluttede rækkefølge. Bruges af den
  * StandardLoenTable til sortering, afledte kolonner og tomheds-vurdering — celleredigeringen går derimod
  * DIREKTE på cellens `FieldRef` via grid-adapteren (§1.10 pr-række-isolation).
  *

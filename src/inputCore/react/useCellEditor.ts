@@ -11,7 +11,7 @@ import {
 } from './useFieldEditor';
 import type { EditorFocusTarget } from '../runtime/activeEditorRegistry';
 
-// Greenfield-React (§2.5 trin 1 / §3.5): celleeditoren for en grid-celle. En celle er blot et persisteret felt
+// React-laget (§2.5 trin 1 / §3.5): celleeditoren for en grid-celle. En celle er blot et persisteret felt
 // bundet til sin rækkes entity-id — så en EKSISTERENDE-række-celle er 1:1 `useFieldEditor` uden nogen særregler
 // (samme motor, §7.1). Det eneste grid-specifikke er PLACEHOLDER-promotion (§1.11): en tom, endnu ikke oprettet
 // række, hvis første ikke-tomme settle atomisk skal oprette rækken via `settleFieldInNewRow`. Det udtrykkes som

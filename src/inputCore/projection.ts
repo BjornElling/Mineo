@@ -5,7 +5,7 @@ import type { ConsumerIssue, FieldIssue } from './inputIssue';
 import type { EntityRef, InputReader } from './inputReader';
 import type { EvaluationSourceToken } from './evaluationSource';
 
-// Greenfield-kerne (§3.4/§11): domæneprojektioner er ALMINDELIGE rene funktioner. De læser konkrete refs
+// Inputkernen (§3.4/§11): domæneprojektioner er ALMINDELIGE rene funktioner. De læser konkrete refs
 // gennem readeren, samler issues og returnerer et lille `ready | blocked`-resultat. Ingen generisk
 // projektions-DSL, ingen symbols/brands, intet manuelt `global|section|row`-scope: den præcise dependency
 // følger af de refs, funktionen faktisk læser.

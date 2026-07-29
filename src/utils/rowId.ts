@@ -9,7 +9,7 @@ export type WithId = { id: RowId };
  *
  * Bemærk at der IKKE længere findes en separat "deterministisk tom-række-id"-fabrik. Den fandtes, fordi
  * tomme rækker blev skabt inde i en React `setState`-updater, som StrictMode dobbelt-invokerer: et RNG-id
- * ville da divergere mellem de to kørsler og bryde id-følsomme persist-fingerprints. Greenfield persisterer
+ * ville da divergere mellem de to kørsler og bryde id-følsomme persist-fingerprints. Runtime persisterer
  * ikke tomme rækker, og placeholder-id'et dannes af `usePlaceholderSlotIds` i en memo bag en ref, hvor
  * fabrikken kun kaldes når et slot mangler et id, og resultatet gemmes. Determinismekravet gjaldt
  * mekanismen, ikke id'erne.

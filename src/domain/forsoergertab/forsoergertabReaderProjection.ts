@@ -21,7 +21,7 @@ import {
 } from '../../inputCore/catalog/stamdataDescriptors';
 import { computeForsoergertabSnapshot, type ForsoergertabSnapshot } from './forsoergertabSnapshot';
 
-// Greenfield Forsørgertab-projektion (§3.4/§5.4/§1.10, Fase 3 Forsørgertab-slice). En ALMINDELIG ren funktion over
+// Forsørgertab-projektionen (§3.4/§5.4/§1.10). En ALMINDELIG ren funktion over
 // den offentlige `InputReader`, der erstatter `Forsoergertab.tsx`'s rå `usePersistedForm`/
 // `usePersistedSectionSelector`-læsning + `useFormFieldErrors`-gating. Den er den ENE kanoniske projektion til
 // både sidevisning og download-gaten.

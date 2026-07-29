@@ -7,7 +7,7 @@ import {
   type EditorFocusTarget,
 } from './activeEditorRegistry';
 
-// Greenfield-runtime (§2.2/§1.4, critical-action-contract): den ENE barriere for handlinger, der aflæser,
+// Input-runtime (§2.2/§1.4, critical-action-contract): den ENE barriere for handlinger, der aflæser,
 // erstatter eller kan unmount'e autoritativ sagsinput. Den er materielt anderledes end den legacy
 // `CriticalActionCoordinator`: den rebasede §1.4-matrix har INGEN `block`-policy. Navigation settler begge
 // surfaces; save/download settler først og evaluerer derefter et FRISK `EvaluationSourceToken`; load/reset/

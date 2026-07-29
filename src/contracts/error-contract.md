@@ -1,6 +1,6 @@
 # Mineo – Error- og kontrolkontrakt
 
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Senest verificeret mod kode:** 2026-07-16
 
@@ -110,9 +110,22 @@ Kontroltype og label kommer fra feltdefinitionen. Et bart `<felt> mangler` er fo
 
 ## 4. Prioritet og visning
 
-Hvis flere issues rammer samme felt, vælger en central deterministisk resolver højst ét aktivt feltissue. Prioritet
-defineres eksplicit efter severity og reason/source med stabil `code` som tie-break; komponentrækkefølge eller seneste
-reporter må aldrig påvirke den.
+Hvis flere issues rammer samme felt, vælger en central deterministisk resolver højst ét aktivt feltissue.
+Prioriteten er `compareFieldIssues` (`src/inputCore/inputIssue.ts`) og har præcis tre led i denne rækkefølge:
+
+1. **`reason`** efter fast rangorden `format` → `bounds` → `rule` → `schema`. Den mest direkte feltfejl vinder:
+   kunne råteksten ikke parses, er en regel om den parsede værdi uden mening.
+2. **`code`** leksikografisk.
+3. **`message`** leksikografisk.
+
+Komponentrækkefølge eller seneste reporter må aldrig påvirke den.
+
+**Hverken `source` eller `severity` indgår.** Der findes ingen `source`-dimension — §11 forbyder source-registre —
+og `severity` er på et `FieldIssue`/`ConsumerIssue` den ENESTE literal `'error'`: et kerneissue er per definition
+blokerende, og advarsler dannes i domænernes egne typer (`EetIssue.severity`, `EoRowStatus`,
+`IntegrityIssue.severity`), ikke på feltet. Et felt, der kun kan have én værdi, kan ikke sortere noget. En
+prioritetsregel, der nævnte de to, ville beskrive dimensioner, modellen ikke har, og kunne læses som en
+invitation til at genindføre dem.
 
 Ugyldigt input vises med rød kant og tooltip ved hover. Ingen inline-valideringstekst vises under feltet. Range- og
 datotooltips skal vise konkrete grænser. Hvis `min > max`, forklarer tooltippen, at ingen gyldige værdier findes, viser

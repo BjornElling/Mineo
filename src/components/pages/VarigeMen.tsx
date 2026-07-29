@@ -5,8 +5,8 @@ import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import MenberegningTab from './varigemen/MenberegningTab';
 import SatserTab from './varigemen/SatserTab';
 
-// Greenfield-migreret (§2.4 formularrækkefølge trin 5 / Fase 3 Varige mén-slice). Siden ejer ingen input-state
-// længere: `MenberegningTab` læser/skriver selv gennem greenfield-inputCore. Ingen `usePersistedForm`- eller
+// Siden ejer ingen input-state
+// længere: `MenberegningTab` læser/skriver selv gennem inputCore. Ingen `usePersistedForm`- eller
 // `usePersistedSectionSelector`-legacy-sink.
 
 const TAB_KEYS = {

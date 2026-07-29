@@ -1,7 +1,7 @@
 import type { FieldRef } from '../fieldDescriptor';
 import type { RejectedInput } from '../settledInput';
 
-// Greenfield-kerne (§3.5, mineo-field-pattern Lag B): ÉN felt-editor-state-machine for både formular og
+// Inputkernen (§3.5, mineo-field-pattern Lag B): ÉN felt-editor-state-machine for både formular og
 // grid. Den er ren og framework-fri — ingen React, DOM, storage eller dispatch. Den ejer KUN den åbne editors
 // rå draft og lifecycle. Lukket visning er ikke state her; den afledes direkte af den afsluttede revision
 // (§3.5). Der findes ingen lukket draftkopi, touched-kopi, pending-prop-guard, fingerprint eller epoch-resync.

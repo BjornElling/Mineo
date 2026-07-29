@@ -1,6 +1,6 @@
 # Undo/redo-arkitektur
 
-**Status:** Informativ målarkitektur
+**Status:** Informativ. Beskriver den gældende arkitektur; bindende regler ligger i `src/contracts/`
 **Scope:** Global undo/redo for afsluttet sagsinput
 **Normative kilder:** `src/contracts/undo-redo-contract.md`, `persistence-contract.md`, `form-contract.md` og
 `mineo-field-pattern.md`
@@ -47,8 +47,7 @@ samme transaktion som inputtet.
 Et frame indeholder kun:
 
 - `PersistedInputState` med canonical sektioner og rejected inputs,
-- strukturel `FieldRef`-origin,
-- route/fane-oplysninger, der er nødvendige for fokusrestore.
+- en `HistoryOrigin` — en DISKRIMINERET union med både datamålet og navigationsdestinationen.
 
 Frame indeholder ikke revision, åbne drafts, issues, gates, beregninger, runtimefejl eller UI-settings. Den aktuelle
 runtime-revision er monoton og skabes på ny ved restore.
@@ -80,15 +79,35 @@ fra den nye revision efter succes.
 
 ## Fokus og feltidentitet
 
-Origin er den samme `FieldRef`, som commanden bruger. En tabelcelle identificeres strukturelt af collection, entity og
-felt — ikke af kolonneindeks eller en sammenkædet DOM-string.
+**Origin har to dele, og de ejes af hver sit lag.** Datamålet er commandens egen strukturelle `FieldAddress`; en
+tabelcelle identificeres af collection, entity og felt — ikke af kolonneindeks eller en sammenkædet DOM-string.
+Navigationsdestinationen er `editorLocationId` + `route` + `tabKey`, altså den EDITOR, ændringen kom fra:
 
-Fokusmetadata i DOM er en projektion af feltreferencens `focusTarget`. Route-/fane-rendering kan kræve en begrænset
-retry efter restore, men retryen finder et allerede kendt strukturelt mål; den gætter ikke origin fra
-`document.activeElement`.
+```ts
+type FieldHistoryOrigin      = { kind: 'field'; field: FieldAddress } & OriginDestination;
+type CollectionHistoryOrigin = { kind: 'collection'; collection: string } & RequiredOriginDestination;
+```
 
-Et persisted row-id ændres aldrig for at redde fokus. Eventuelle tidligere fokusmål bæres eksplicit som aliases uden at
-ændre dataidentitet, beregning eller persistence.
+Delingen er load-bearing og ikke kosmetisk. **Fokusmålet er IKKE en egenskab ved feltdefinitionen** (der findes
+ingen `focusTarget` på en `FieldRef`): samme datafelt kan redigeres på flere sider og i flere faner, så en global
+standard på descriptoren ville pege det forkerte sted. Editoren bærer i stedet sin egen destination i DOM
+(`buildRestoreTargetAttributes`), og `lookupEditorLocation` skelner MOUNTET fra SYNLIG, fordi EO's faner
+forbliver mountet efter første besøg.
+
+To ting er urepræsenterbare frem for bevogtede:
+
+- **En `tabKey` uden `route`** — unionen tillader ikke kombinationen, fordi restoren kun aktiverer fanen inde i
+  `route !== undefined`-grenen, så en fane uden route ville være lydløst inert.
+- **En strukturel rækkehandling uden destination** — `CollectionHistoryOrigin` KRÆVER route + fane i selve
+  kernetypen, ikke kun i surface-hooken. Uden en feltadresse er destinationen det eneste, restoren har at gå
+  efter, og en undo, der gendannede data og efterlod brugeren på en vilkårlig side, ville være ubrugelig.
+
+Route-/fane-rendering kan kræve en begrænset retry efter restore, men retryen finder et allerede kendt
+strukturelt mål; den gætter ikke origin fra `document.activeElement`.
+
+Et persisted row-id ændres aldrig for at redde fokus. En placeholders identitet BEVARES derimod, når rækken
+promoveres, så den genindtræder, hvis rækken fjernes igen (`placeholderSlots.ts`) — dataidentitet, beregning og
+persistence er upåvirkede.
 
 ## Dynamiske tabeller
 

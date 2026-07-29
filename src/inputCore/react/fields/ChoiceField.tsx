@@ -9,7 +9,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 
-// Greenfield choice-felt (§1.3/§3.6): dropdown committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
+// Choice-felt (§1.3/§3.6): dropdown committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options som children. Den viste værdi læses fra den afsluttede
 // revision gennem editor-controlleren; valget dispatcher `setImmediateField` (som kører den styrende-valg-
 // oprydning atomisk, §3.6). `StyledDropdown` ejer selv sin popover-interaktion og keyboard-navigation.

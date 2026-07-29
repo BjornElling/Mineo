@@ -50,8 +50,8 @@ import {
 import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
-// Greenfield-migreret BeregnetRenteTable (§2.5 trin 2, Renteberegning-slice). Rækkeinfrastruktur, celleværdier og
-// celleredigering går nu udelukkende gennem greenfield-inputCore, som StandardLoenTable:
+// BeregnetRenteTable: Rækkeinfrastruktur, celleværdier og
+// celleredigering går nu udelukkende gennem inputCore, som StandardLoenTable:
 //  - `useCollectionRows(rentekravRowsCollection)` ejer rækkernes id'er + insert/delete/reorder (§3.8) — ingen
 //    `useSliceRowDrafts`, draftkopi, fingerprint eller persistence-effect.
 //  - hver redigerbar celle er en `Grid*Cell`/`GridChoiceCell` over `useCellEditor`, bro-
@@ -266,7 +266,7 @@ const BeregnetRenteTable = React.memo(
     });
 
     // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
-    // Greenfield persisterer ikke tomme rækker. Legacy viste altid præcis én trailing tom række
+    // Tomme rækker persisteres ikke. Legacy viste altid præcis én trailing tom række
     // (ensureRowsWithTrailingEmpty); den trailing placeholder er nu den ene indtastningsklare række.
     //
     // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` (GM-F14) — tabellen havde tidligere sin egen

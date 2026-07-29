@@ -1,9 +1,10 @@
 # Arkitektur for dokument-output
 
-**Status:** Informativ målarkitektur
+**Status:** Informativ. Beskriver den gældende arkitektur; bindende regler ligger i `src/contracts/`
 **Normative kilder:** `src/contracts/document-output-contract.md`, `critical-action-contract.md` og
 `document-format-contract.md`
-**Implementeringsplan:** `docs/architecture/draft-commit-greenfield-design.md`
+**Baggrund:** `docs/architecture/draft-commit-greenfield-design.md` (informativ; forklarer hvorfor modellen
+ser sådan ud)
 
 ## Overblik
 
@@ -75,18 +76,34 @@ Pointer-blur når normalt at gøre knappen disabled før click, men korrektheden
 Tastatur/programmatisk aktivering og et allerede leveret click følger samme preflight. Ved et ugyldigt settle fokuseres
 feltet og den eksisterende danske advarsel vises kun som sidste sikkerhedsværn.
 
-Efter async lazy-load og umiddelbart før generatoren kontrollerer servicen revisionen igen. En stale preparation
-afvises eller genpreflights.
+**Friskheden kontrolleres ved HVER asynkron grænse** — ikke kun én gang efter lazy-load. `documentLifecycle.ts`
+sammenligner det optagne token mod miljøets autoritative `readCurrentSourceToken()` på fem punkter: ved
+afviklingens indgang, efter dev-server-preflighten, efter generator-modulets lazy-load, efter writer-modulets
+lazy-load og **efter selve renderingen, umiddelbart før fil-I/O**. Det sidste check er load-bearing: generatoren
+awaiter kanal-renderingen, så inputtet kan ændre sig undervejs, og downloaden er den irreversible handling
+(`critical-action-contract.md` §5). En stale kilde afvises som `stale-source` med den fase, den blev opdaget i.
+
+Entry-checket ligger bevidst UDEN FOR dev-server-grenen, så et miljø uden dev-server — fx standalone
+MinProcesrente — også verificeres mellem gate og modul-load.
 
 ## Domæne- og livscykluslag
 
 Domænelaget leverer ready input-/snapshotprojektioner. Det genberegner ikke i dokumentlaget.
 
-**Der findes ikke længere et servicelag.** Fase 5 slettede `documentService.ts` og lagde dets ansvar i
-`documentLifecycle.ts` — det ENE entrypoint, som `document/lifecycle-single-entrypoint` håndhæver.
+**Der findes intet servicelag.** `documentLifecycle.ts` er det ENE entrypoint, som
+`document/lifecycle-single-entrypoint` håndhæver; navnet `documentService.ts` findes ikke og må ikke genindføres.
 Livscyklussen ejer kun serialisering af flowet, lazy-load, render/download og runtimefejl. Den ejer ikke
 callbacks med skjult domænepolicy, dependencies eller gates; formatvalget kommer fra dokumentmiljøets
 `resolveFormat` (`document-format-contract.md` §3).
+
+**Settings er delt i to disjunkte halvdele, og gaten kan ikke se formatet.** Kildesnapshottet bærer
+`gateSettings` (i hovedappen EO-rækkepolitikken) og `renderSettings` (format + brevhoved-flag). Kun
+`gateSettings` er typen på den `DocumentSourceContext`, en definitions `project` modtager; `renderSettings`
+læses alene af miljøet, og først efter gaten har svaret `ready`. Reglen bag delingen — **formatet vælger
+writer, ikke dækning** — kan ikke bæres af et værn, fordi den reaktive gate og click-preflighten kalder samme
+`project` og derfor ville se den samme skæve gate i begge kanaler. Den er derfor en typegrænse: et forsøg på at
+læse `documentDownloadFormat` i en gate kompilerer ikke. Begge halvdele projiceres fra ét `captureSource`-læs,
+så de ikke kan stamme fra to revisioner. Normativt i `document-output-contract.md` §A2.1.
 
 Generatorerne under `src/document/generators/` ejer dokumentets semantiske struktur og danske tekst. De modtager
 godkendt input og defineres med `defineDocument(...)`.
@@ -114,9 +131,11 @@ maksimal højde. Generatoren beregner ikke dokumentbredde eller Y-position.
 ## Lifecycle
 
 `defineDocument(...)` resolver metadata og kanalneutrale options, komponerer indhold, fryser modellen og sender den til
-sessionen. Vandmærke og footer er eksplicitte blokke. Kun service-laget starter browserdownload.
+sessionen. Vandmærke og footer er eksplicitte blokke. Kun `documentLifecycle.ts` starter browserdownload
+(`triggerDocumentDownload`), og først efter det sidste friskhedscheck.
 
-Formatvalg ligger efter den fælles gate. Et dokument, som er blokeret, er blokeret for både PDF og Word.
+Formatvalg ligger efter den fælles gate. Et dokument, som er blokeret, er blokeret for både PDF og Word — og
+det kan ikke være anderledes, fordi gaten strukturelt ikke kan se formatet (se settings-afsnittet ovenfor).
 
 ## Verifikation
 

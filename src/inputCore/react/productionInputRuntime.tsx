@@ -24,7 +24,7 @@ import {
   type SourceSettings,
 } from '../../settings/sourceSettings';
 
-// Greenfield-produktions-wiring (§3.10, Fase 2.4/3-cutover): den ene binding, produktions-app'en monterer. Den
+// Produktions-wiringen (§3.10): den ene binding, produktions-app'en monterer. Den
 // hydrerer runtime FØR render (`initializeInputRuntime`) mod applikations-singletonerne og distribuerer den
 // færdige binding til React-træet gennem `InputRuntimeProvider`. Provideren hydrerer aldrig igen (§3.10);
 // en remount genbruger den samme runtime uden at overskrive input.

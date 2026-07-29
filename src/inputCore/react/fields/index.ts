@@ -1,4 +1,4 @@
-// Greenfield form-felt-skaller (§2.4/§3.5): tynde FieldRef-baserede komponenter over `useFormFieldSurface`/
+// Form-felt-skaller (§2.4/§3.5): tynde FieldRef-baserede komponenter over `useFormFieldSurface`/
 // `useFieldEditor`. De ejer kun rendering, hit-area og navigation; datamodellen ligger i codec + engine + runner.
 
 export { default as TextField } from './TextField';

@@ -68,7 +68,7 @@ const fieldTemplatePath = (template: (typeof productionFieldTemplates)[number]):
 const collectionTemplatePath = (template: (typeof productionCollectionTemplates)[number]): string =>
   joinTemplatePath(template.path as TemplatePath, template.collection);
 
-describe('greenfield feltledger (§6.1)', () => {
+describe('feltledgerens coverage-register (§6.1)', () => {
   it('top-level codec-annotationer matcher nøjagtig de top-level datafelter i de levende schemas', () => {
     for (const section of sections) {
       const derivedTopLevel = sortSet(deriveSectionDataFieldPaths(section).filter((path) => !path.includes('[]')));
@@ -141,7 +141,7 @@ describe('greenfield feltledger (§6.1)', () => {
   });
 });
 
-describe('greenfield collectionledger (§6.2)', () => {
+describe('collectionledgerens coverage-register (§6.2)', () => {
   it('dækker nøjagtig de collections, de levende schemas producerer', () => {
     for (const section of sections) {
       const derived = sortSet(deriveSectionCollectionPaths(section));
@@ -189,7 +189,7 @@ describe('greenfield collectionledger (§6.2)', () => {
   });
 });
 
-describe('greenfield consumerledger (§6.3)', () => {
+describe('consumerledgerens coverage-register (§6.3)', () => {
   it('afspejler nøjagtig det maskinlåste fase-0-inventar (8 beregninger / 4 sagsfiler / 18 dokumenter)', () => {
     const byType = (type: string) => INPUT_CONSUMER_LEDGER.filter((entry) => entry.type === type);
     expect(byType('beregning')).toHaveLength(EXPECTED_BEREGNING_COUNT);

@@ -53,7 +53,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   const [isPhoneLikeDevice] = React.useState(isStandalonePhoneLikeDevice);
   const isMobile = isViewportMobile || isPhoneLikeDevice;
   const mobileContentFontSize = '12px';
-  // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) mod den ene greenfield write-grænse.
+  // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) mod den ene den ene write-grænse.
   useUndoRedoShortcuts();
 
   // Dokument-download (Fase 5): de tre standalone-outputs komponeres her mod standalones eget

@@ -66,7 +66,7 @@ import { resolveDateRangeErrorMessage, derivedDateBounds } from '../../utils/dat
 import { evaluateForligAnsvarsgradRules } from '../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { evaluateForligsgrad } from '../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
-// Greenfield produkt-descriptors for `erstatningsopgoerelse`-sektionen (§3.2): top-level skalarer (incl. nested
+// Produkt-descriptors for `erstatningsopgoerelse`-sektionen (§3.2): top-level skalarer (incl. nested
 // bilagsvalgs-booleans) og de rene top-level samlinger med deres rækkefelter. Lønindkomstens/EO-angivet løns
 // nested træ ligger i `erstatningsopgoerelseLoenDescriptors.ts`.
 //

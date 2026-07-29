@@ -3,7 +3,7 @@ import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
 import type { InputReader } from '../../inputCore/inputReader';
 import { runProjection, type ProjectionResult } from '../../inputCore/projection';
 
-// Greenfield Satser-projektion (§3.4/§3.9, Fase 3-slice). En ALMINDELIG ren funktion over den offentlige
+// Satser-projektionen (§3.4/§3.9, Fase 3-slice). En ALMINDELIG ren funktion over den offentlige
 // `InputReader`: den kræver satsårets felt og udleder satserne. Ingen legacy `InputBlocker`/`sectionScope`/
 // `documentGateFromBlockers`-lag — dependency og blokering følger af det ene felt, funktionen faktisk læser.
 //

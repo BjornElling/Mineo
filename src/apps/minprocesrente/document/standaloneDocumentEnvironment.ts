@@ -8,8 +8,8 @@
  *
  * **Isolationen er en håndhævet grænse, ikke en stilart.** AST-reglen
  * `layer/minprocesrente-standalone-import-boundary` forbyder standalone-scopet at importere Mineos
- * `AppSettings`, `reportSystemIssue` m.fl. Derfor er `TSettings` her `void` frem for en dummy
- * settings-værdi: "standalone har ingen indstillinger" bliver en TYPE frem for et objekt med
+ * `AppSettings`, `reportSystemIssue` m.fl. Derfor er BEGGE settings-halvdele her `void` frem for en
+ * dummy settings-værdi: "standalone har ingen indstillinger" bliver en TYPE frem for et objekt med
  * ligegyldige felter, og `TBrevhovedKey` er `never`, så en brevhoved-nøgle ikke kan navngives.
  *
  * Før Fase 5 stod de tre standalone-outputs helt uden gate og uden commit-barriere
@@ -47,13 +47,18 @@ const reportStandaloneFailure = (failure: DocumentFailure, diagnostics: Document
   );
 };
 
-/** Standalones miljø. `TSettings = void`: appen har ingen indstillinger, der kan påvirke et dokument. */
+/**
+ * Standalones miljø. Begge settings-halvdele er `void`: appen har ingen indstillinger, der kan
+ * påvirke hverken en dokumentgate eller en rendering. Formatet er fast PDF og afgøres af
+ * `resolveFormat` uden at læse noget.
+ */
 export const createStandaloneDocumentEnvironment = (
   runtime: DocumentInputAccess
-): DocumentExecutionEnvironment<void, never> => Object.freeze({
+): DocumentExecutionEnvironment<void, void, never> => Object.freeze({
   captureSource: () => ({
     evaluation: runtime.captureEvaluationSource(),
-    settings: undefined,
+    gateSettings: undefined,
+    renderSettings: undefined,
   }),
   readCurrentSourceToken: runtime.readCurrentSourceToken,
   criticalActions: runtime.criticalActions,

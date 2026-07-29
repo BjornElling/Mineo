@@ -1,6 +1,6 @@
 # Mineo – Persistence-kontrakt
 
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
 **Senest verificeret mod kode:** 2026-07-16

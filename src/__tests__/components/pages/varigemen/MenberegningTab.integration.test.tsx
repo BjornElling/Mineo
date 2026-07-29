@@ -72,7 +72,7 @@ const renderTab = () => render(
   </MemoryRouter>
 );
 
-describe('MenberegningTab greenfield — reader-projektion + download-gate', () => {
+describe('MenberegningTab — reader-projektion + download-gate', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();

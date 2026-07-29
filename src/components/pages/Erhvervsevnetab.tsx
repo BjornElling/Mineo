@@ -24,7 +24,7 @@ import EetLoebendeYdelserTab from './erhvervsevnetab/EetLoebendeYdelserTab';
 import EetKapitaliseringTab from './erhvervsevnetab/EetKapitaliseringTab';
 import EetDifferencekravTab from './erhvervsevnetab/EetDifferencekravTab';
 
-// Greenfield-migreret Erhvervsevnetab (§2.4 trin 7). Siden ejer ingen sektionsstate eller error-bus:
+// Erhvervsevnetab: Siden ejer ingen sektionsstate eller error-bus:
 // én tokenbundet reader-projektion driver alle fem faner, deres resultater, rækkevisning og dokumentgates.
 
 const TAB_KEYS = ERHVERVSEVNETAB_TAB_KEYS;

@@ -12,7 +12,7 @@ import { catalogCollections, catalogFields } from '../fieldCatalog';
 import type { FieldDescriptor, FieldValidator } from '../fieldDescriptor';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 
-// Greenfield produkt-descriptors for `stamdata`-sektionen (§3.2). Alle felter er top-level skalarer; ingen
+// Produkt-descriptors for `stamdata`-sektionen (§3.2). Alle felter er top-level skalarer; ingen
 // samlinger. Den tomme sektion er `{}` (alle felter optional).
 
 const createEmptyStamdataSection = (): unknown => ({});

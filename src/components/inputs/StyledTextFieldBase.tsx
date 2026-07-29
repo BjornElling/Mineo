@@ -24,7 +24,7 @@ type AllowedInputAttributes = Pick<
   | 'tabIndex'
 > & {
   'data-testid'?: string;
-  /** Greenfield undo/redo-restore-mål (§3.7): serialiseret feltadresse + editorlokations-id. */
+  /** Undo/redo-restore-mål (§3.7): serialiseret feltadresse + editorlokations-id. */
   'data-mineo-field-address'?: string;
   'data-mineo-editor-location-id'?: string;
   'data-mineo-field-path'?: string;
@@ -214,7 +214,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     const mergedHtmlInputProps = {
       ...htmlInputAttributes,
       'aria-describedby': describedBy,
-      // Stabil felt-sti til save-gate-lokalisering af det blokerende felt. Greenfield-felter sætter
+      // Stabil felt-sti til save-gate-lokalisering af det blokerende felt. Feltfamiliens felter sætter
       // desuden restore-target-attributterne (feltadresse + editorlokation) via `htmlInputAttributes`.
       'data-mineo-field-path': htmlInputAttributes?.['data-mineo-field-path'] ?? name,
       onFocus: handleFocus,

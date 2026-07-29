@@ -40,7 +40,7 @@ const attrEquals = (attr: string, value: string): string => `[${attr}=${JSON.str
 /**
  * Lokationens erklærede destination, læst af elementet selv.
  *
- * `EditorLocation.route` er PÅKRÆVET, så en greenfield-surface sætter altid attributten. Guarden mod en
+ * `EditorLocation.route` er PÅKRÆVET, så en inputsurface sætter altid attributten. Guarden mod en
  * manglende/tom værdi er derfor ikke et "ikke navigerbar"-begreb — det er defensiv DOM-læsning: finder vi et
  * element, der bærer feltadressen UDEN en route (et fremmed element med samme attribut, eller en surface, der
  * ikke er gået gennem `buildRestoreTargetAttributes`), er "jeg ved det ikke" det sande svar. Vi behandler det

@@ -18,7 +18,7 @@ import {
 import type { ErstatningsopgoerelseReaderProjection } from './erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from './eoInputIssues';
 
-// Greenfield EO download-gate (§3.4/§3.9/§5.4, Fase 2.4 trin 8). En ren, React-fri gate der afledes af den ENE
+// EO download-gate (§3.4/§3.9/§5.4). En ren, React-fri gate der afledes af den ENE
 // reader-projektion (`buildErstatningsopgoerelseReaderProjection`) i stedet for `useEoBeregningViewModel`'s live
 // store-reads (`useFieldErrorsBySourceForSection`/`useBlockingFieldIdsBySuffixForSection`). Den ejer gate-
 // beslutningen for de FIRE EO-dokumenter (erstatningsopgørelse, TAF fordelt på år, TAF opreguleret, TAF-kravgraf).

@@ -38,8 +38,8 @@ import {
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
 
-// Greenfield-migreret Øvrige krav-tabel (§2.5 trin 9, EO-slice). Rækkeinfrastruktur, celleværdier og celle-
-// redigering går udelukkende gennem greenfield-inputCore, som BeregnetRenteTable/StandardLoenTable:
+// Øvrige krav-tabel: Rækkeinfrastruktur, celleværdier og celle-
+// redigering går udelukkende gennem inputCore, som BeregnetRenteTable/StandardLoenTable:
 //  - `useCollectionRows(eoOevrigeKravPerioderCollection)` ejer rækkernes id'er + insert/delete/reorder (§3.8) —
 //    ingen draftkopi, fingerprint, invalidDrafts-reconcile eller persistence-effect.
 //  - hver celle er en `Grid*Cell` over `useCellEditor`. Datoens dynamiske grænser er nu en descriptor-

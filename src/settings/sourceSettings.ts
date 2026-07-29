@@ -8,10 +8,41 @@ import { DEFAULT_APP_SETTINGS, type AppSettings } from './appSettingsSchema';
 import type { DocumentDownloadFormat } from '../document/documentFormat';
 import type { DocumentBrevhovedFlags } from '../document/layout/documentBrevhoved';
 
-export type DocumentRenderSettings = Readonly<{
+/**
+ * Dokumentrenderingens settingsafhængighed: hvilken writer der vælges, og om brevhovedet tegnes.
+ * Begge anvendes først EFTER en dokumentgate har sagt ready.
+ */
+type DocumentRenderSettingsPayload = Readonly<{
   documentDownloadFormat: DocumentDownloadFormat;
   brevhovedIndstillinger: DocumentBrevhovedFlags;
 }>;
+
+/**
+ * Nominelt mærke på render-settings. Samme begrundelse som `eoRowPolicyBrand` nedenfor: uden mærket
+ * ville hele `AppSettings` være strukturelt assignable, og `resolveFormat`/`resolveVisBrevhoved`
+ * kunne modtage det brede objekt og læse en nøgle uden for `SOURCE_SETTINGS_KEYS` — altså indføre en
+ * afhængighed, der ikke bumper settingsrevisionen og derfor ikke gør et optaget token stale.
+ *
+ * Runtime-symbol af samme grund som de to øvrige mærker: et `declare const`-brand ville kræve et
+ * `as` i projektoren, og castet omgår netop den completeness-kontrol, mærket skal give.
+ */
+const documentRenderSettingsBrand: unique symbol = Symbol('mineo.documentRenderSettings');
+
+/**
+ * De settings, der først anvendes EFTER en dokumentgate har sagt ready.
+ *
+ * **Ingen af de to må nå en gate (R6-F03).** Normen er, at formatet vælger writer og ikke dækning; en
+ * definition, der forgrenede sin `project` på formatet, kunne gøre samme sag `ready` som PDF og
+ * `blocked` som Word, uden at §A2a's paritet mellem reaktiv gate og click-preflight fangede det —
+ * begge kanaler ville se den samme skæve gate. Adskillelsen er derfor en TYPEGRÆNSE:
+ * `DocumentSourceContext` bærer `EoRowPolicy` (gate-halvdelen), mens denne type kun findes i miljøets
+ * `renderSettings`. Et forsøg på at læse formatet i en gate er en compilerfejl.
+ *
+ * Konstrueres KUN af `projectDocumentRenderSettings`.
+ */
+export type DocumentRenderSettings = DocumentRenderSettingsPayload & {
+  readonly [documentRenderSettingsBrand]: 'document-render-settings';
+};
 
 /** EO-rækkeevalueringens eneste settingsafhængighed. */
 type EoRowPolicyPayload = Readonly<{
@@ -65,7 +96,7 @@ const sourceSettingsBrand: unique symbol = Symbol('mineo.sourceSettings');
  * `SourceSettings`, fordi mærket ellers selv ville tælle som en udækket nøgle — og et check, der
  * skal have en undtagelse for sit eget mærke, kan lige så godt komme til at undtage en rigtig nøgle.
  */
-type SourceSettingsPayload = DocumentRenderSettings & EoRowPolicyPayload;
+type SourceSettingsPayload = DocumentRenderSettingsPayload & EoRowPolicyPayload;
 
 /**
  * Alt, der indgår i `EvaluationSourceToken`'ets settingsrevision. Den samme projektion bruges af
@@ -144,6 +175,25 @@ export const projectEoRowPolicy = (settings: SourceSettings): EoRowPolicy => Obj
 });
 
 /**
+ * Den ENESTE konstruktør for `DocumentRenderSettings`.
+ *
+ * Tager `SourceSettings` af samme grund som `projectEoRowPolicy`: render-settings er en DELMÆNGDE af
+ * det snapshot, der driver settingsrevisionen. Ved at udlede den herfra kan der ikke opstå en
+ * render-settings, hvis nøgler ikke også er med i fingerprintet — så et formatskifte fortsat bumper
+ * revisionen og gør et optaget `EvaluationSourceToken` stale.
+ *
+ * De to projektorer deler bevidst ÉN kilde og deler den i to disjunkte halvdele. Det er hele
+ * R6-F03's mekanisme: gaten og renderingen kan ikke længere komme til at se hinandens felter, fordi
+ * ingen af dem får hele snapshottet.
+ */
+export const projectDocumentRenderSettings = (settings: SourceSettings): DocumentRenderSettings =>
+  Object.freeze({
+    [documentRenderSettingsBrand]: 'document-render-settings' as const,
+    documentDownloadFormat: settings.documentDownloadFormat,
+    brevhovedIndstillinger: settings.brevhovedIndstillinger,
+  });
+
+/**
  * Rækkepolitikkens defaults, udledt af app-defaultene gennem de samme to projektorer. Erstatter
  * row-evalueringens tidligere `DEFAULT_APP_SETTINGS`-defaultparametre, som trak hele den brede type
  * ind i beregningslaget alene for at have en fallback.
@@ -170,3 +220,8 @@ export const __createTestSourceSettings = (
 export const __createTestEoRowPolicy = (
   override: Partial<EoRowPolicyPayload> = {}
 ): EoRowPolicy => projectEoRowPolicy(__createTestSourceSettings(override));
+
+/** Test-support: render-settings fra en delvis override. Samme begrundelse som ovenfor. */
+export const __createTestDocumentRenderSettings = (
+  override: Partial<DocumentRenderSettings> = {}
+): DocumentRenderSettings => projectDocumentRenderSettings(__createTestSourceSettings(override));

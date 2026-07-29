@@ -500,7 +500,29 @@ invariantnavne.
 **Forslag til løsning:** Tilføj eventuelt et snævert AST-værn mod migrationssprog i aktive testdeklarationer
 med en begrundet allowlist for fraværs- og schema-evolutionstests.  
 **Kræver godkendelse:** Nej  
-**Status:** Under videre analyse
+**Status:** **Rettet 2026-07-29 (etape 11)**
+
+**Udfaldet af klassifikationen.** En AST-sweep over ALLE aktive deklarationer (arvet skip respekteret) fandt 41,
+ikke 33 — det oprindelige tal var fra en snævrere mønsterliste. 26 blev omskrevet til invariantnavne. De øvrige 15
+er bevaret, og fordelingen er den vigtige del af konklusionen: **de er næsten alle `legacy`-navne, og de er
+sande.** `.eo`-filer og persisterede sessioner fra ældre programversioner ER legacy-formater, som load-stien
+tolererer med vilje, og fraværsværnene navngiver med vilje de slettede symboler.
+
+Derfor er `legacy` **ikke** et forbudt ord i det nye værn (`src/__tests__/quality/testNamingConvention.test.ts`).
+Forslaget om "en begrundet allowlist" ville i praksis være blevet længere end fundene — og et værn, hvis
+undtagelsesliste overstiger dens fund, måler ikke længere noget. De forbudte mønstre er i stedet de ord, der
+utvetydigt beskriver et AFSLUTTET forløb: `greenfield`, `fase <n>`, `WI-<n>`, `migration`/`migrering`/`migreret`.
+Tre navne står på en eksakt ALLOWED-liste, hvor migrationsordet ER emnet (MoneyOre-dataomlægningen,
+sektionsmigrationen) — med anti-rot i begge retninger: en undtagelse uden en levende deklaration er en fejl, og en
+undtagelse uden begrundelse er en fejl.
+
+Værnet er en TEST og ikke en AST-regel i arkitekturharnesset, fordi harnessets kilde-graf bevidst udelukker
+`src/__tests__/**`. Det bruger til gengæld harnessets princip: samme AST-parser som acceptregistret
+(`quality/testDeclarations.ts`, udskilt i denne etape frem for kopieret), så et linjefilter hverken kan blive
+narret af arvet `describe.skip` eller af et navn i en kommentar.
+
+Mutationsbevist i BEGGE retninger: et genindført `describe('greenfield fieldCodecs')` gør værnet rødt med
+fil:linje og det ramte mønster, mens PRÆCIS samme navn under `describe.skip` forbliver grønt.
 
 ## Hypoteser
 
@@ -525,7 +547,13 @@ fixturen stadig større.
 **Forslag til løsning:** Indsnævr projektionssettings, så læsning af `documentDownloadFormat` er en
 typefejl; mutationstest derefter én repræsentativ ready-definition.  
 **Kræver godkendelse:** Nej  
-**Status:** Hypotese — verificeret åben begrænsning, ikke talt som lukket fund
+**Status:** **Bortfaldet 2026-07-29 (etape 11)** — begrænsningen er lukket ved roden, ikke afkræftet.
+
+Hypotesen spurgte, om en formatafhængighed kunne skjule sig i en af de 16 udækkede ready-grene. Spørgsmålet er
+blevet umuligt at stille: `documentDownloadFormat` findes ikke længere i projektionskonteksten (R6-F03), så en
+`project`, der læser det, er en compilerfejl. Ready-dækningen i fixturen er dermed irrelevant frem for utilstrækkelig
+— præcis den løsning, hypotesens egen overvejelse pegede på. Hypotesen blev aldrig bekræftet som et konkret
+produktionsbrud, og den tælles ikke som et lukket fund.
 
 ## Tilfældighedsfund
 

@@ -1,7 +1,7 @@
 # Mineo – EO Snapshot-kontrakt
 
 **Version:** 1.0
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Domænekontrakt
 **Formål:** At fastlægge bindende regler for `computeEoSnapshot`, clampingmodel,
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
@@ -175,7 +175,7 @@ Kontrollaget må ikke lave nye fallback-enginekald for sektions-**afhængige** d
 tom/ikke-beregnet tilstand i stedet for semi-autoritative beløb eller dagtal.
 
 **Reguleringsforløbet er sektions-afhængigt og fail-closes derfor i validerings-fejl-stien**
-(brugerbeslutning, greenfield #23-review): det viste reguleringsforløb er efter #23 udelukkende
+(brugerbeslutning): det viste reguleringsforløb er udelukkende
 den kanoniske serie fra det autoritative `pdfModel` (ingen re-derivation), som netop ikke bygges,
 når autoritativ beregning er blokeret. EOInspektion viser derfor reguleringsafsnittet som
 placeholders (ingen indeks-/værditabeller), indtil valideringsfejlen er løst. Der må IKKE
@@ -229,8 +229,8 @@ med `taf_per_year_pdf`: kan TAF ikke fordeles på år, kan grafen heller ikke ge
 
 ### 3.3 Afhængighedsopdeling: hvilken gren blokerer en rød feltfejl?
 
-En rød reader-feltfejl blokerer **kun den beregningsgren, der faktisk læser feltet** (§1.10 i
-`docs/architecture/draft-commit-greenfield-design.md`). Grupperne ejes ét sted:
+En rød reader-feltfejl blokerer **kun den beregningsgren, der faktisk læser feltet** — dependency-præcis
+blokering pr. `form-contract.md` §2.3, som er den normative kilde. Grupperne ejes ét sted:
 `snapshot/eoDependencyGroups.ts` (`resolveEoBlockedDependencies`), og snapshottet bærer resultatet som
 `blockedDependencies` med grenene `svieSmerte`, `forlig`, `taf`, `oevrigeKrav` og aggregatnoden `aggregate`.
 

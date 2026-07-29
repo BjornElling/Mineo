@@ -3,7 +3,7 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { cloneAndDeepFreeze } from '../../utils/deepFreeze';
 import { settledInputBaseSchema, type SettledInput } from '../settledInput';
 
-// Greenfield-runtime (§2.1.6/§3.7): ÉN current-only session-envelope. Ingen `fieldAddressVersion`, sentinel-
+// Input-runtime (§2.1.6/§3.7): ÉN current-only session-envelope. Ingen `fieldAddressVersion`, sentinel-
 // adresser eller legacy-migrator. Envelopen bærer kun det, der skal bruges for at genkende og genindlæse den
 // aktuelle programversions afsluttede input. Katalog-afhængig XOR-/eksistens-validering ligger på `InputCatalog`
 // og køres af hydration/dispatch — envelopen validerer kun strukturen.

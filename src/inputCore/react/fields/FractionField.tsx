@@ -6,7 +6,7 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 
-// Greenfield brøk-felt (§2.4/§3.5): familie-skal over `NumericTextField` med brøk-tegnfilteret
+// Brøk-felt (§2.4/§3.5): familie-skal over `NumericTextField` med brøk-tegnfilteret
 // ("tæller/nævner"). Parse/format/normalisering ejes af descriptorens brøk-codec. Komponenten modtager kun sin
 // `field`/`location` + rendering-props + en valgfri ekstern tværfelt-fejl (forlig "begge udfyldt"). Erstatter
 // legacy `StyledFractionField` bundet til `usePersistedForm`.

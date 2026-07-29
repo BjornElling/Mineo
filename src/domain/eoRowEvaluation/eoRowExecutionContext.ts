@@ -35,11 +35,12 @@ export type EoRowEvaluationContext = {
    * validerings-severity for overenskomst-/reguleringsdækning og kan derfor flytte en EO-download
    * fra tilladt til blokeret.
    *
-   * Typen er `EoRowPolicy` og ikke `AppSettings` eller `DocumentSettings`: rækkeevaluering er
-   * BEREGNINGSLOGIK og skal hverken kende UI-indstillinger eller dokument-layoutlaget. (Feltet hed
-   * tidligere `appSettings` med typen `DocumentSettings`, hvilket trak dokument-layoutlaget ind i
-   * beregningen og samtidig gav builderne adgang til format- og brevhovedfelter, der er
-   * fuldstændig irrelevante for, om en række er gyldig.)
+   * Typen er `EoRowPolicy` og ikke `AppSettings`: rækkeevaluering er BEREGNINGSLOGIK og skal hverken
+   * kende UI-indstillinger eller dokument-layoutlaget. Feltet bar tidligere en bred dokument-DTO med
+   * format- og brevhovedfelter, som er fuldstændig irrelevante for, om en række er gyldig; den DTO
+   * findes ikke længere (INC-F19). `EoRowPolicy` er samtidig hovedappens GATE-settings for
+   * dokumentdefinitionerne (R6-F03), så beregningen og dokumentgaten deler præcis den samme,
+   * indsnævrede politik.
    *
    * `isLoenindkomstAnsaettelsesforholdEffectivelyEmpty` bruger fortsat hele `AppSettings`, men den
    * er DEV-inspektionens prædikat, ikke gatens.

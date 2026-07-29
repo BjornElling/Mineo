@@ -9,7 +9,7 @@ import {
 import type { DispatchInputResult } from '../runtime/dispatchInput';
 import type { CollectionHistoryOrigin } from '../inputHistory';
 
-// Greenfield-React (§2.5 trin 1 / §3.8): rækkeinfrastrukturen for en dynamisk collection. Den ejer KUN de
+// React-laget (§2.5 trin 1 / §3.8): rækkeinfrastrukturen for en dynamisk collection. Den ejer KUN de
 // stabile entity-id'er, rækkefølgen og add/delete/reorder — læst DIREKTE fra den afsluttede revision gennem
 // katalogets `listEntityIds`. Der findes ingen `draftRows`, `internalTableData`, fingerprint-kopi eller
 // effect-flush til persistence (§3.8): en celles værdi bor kun i inputaggregaten, aldrig i en konkurrerende

@@ -60,10 +60,14 @@ const preparedBrand = Symbol('PreparedDocument');
  * Et godkendt dokument. Nominal via `preparedBrand` og modulprivat: typen eksporteres ikke, og
  * brandet kan ikke produceres uden for dette modul. Et ugated input kan derfor ikke nå afvikleren.
  */
-type PreparedDocument<TSettings, TBrevhovedKey extends string> = Readonly<{
+type PreparedDocument<TRenderSettings, TBrevhovedKey extends string> = Readonly<{
   [preparedBrand]: true;
-  document: ResolvedDocumentAction<TSettings, TBrevhovedKey>;
-  settings: TSettings;
+  document: ResolvedDocumentAction<TBrevhovedKey>;
+  /**
+   * KUN render-halvdelen af det optagne snapshot. Gate-halvdelen er brugt op, når dokumentet er
+   * godkendt, og et godkendt dokument har ingen legitim grund til at kunne læse den igen (R6-F03).
+   */
+  renderSettings: TRenderSettings;
   sourceToken: EvaluationSourceToken;
 }>;
 
@@ -72,8 +76,8 @@ type PreparedDocument<TSettings, TBrevhovedKey extends string> = Readonly<{
  * Samlet i én funktion, så en ny `await`-fase ikke kræver håndkopieret fejllogik — det var netop
  * sådan post-render-checket blev glemt.
  */
-const requireCurrentSource = <TSettings, TBrevhovedKey extends string>(
-  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>,
+const requireCurrentSource = <TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
+  environment: DocumentExecutionEnvironment<TGateSettings, TRenderSettings, TBrevhovedKey>,
   sourceToken: EvaluationSourceToken,
   phase: DocumentLifecyclePhase
 ): DocumentOutcome | null =>
@@ -89,10 +93,10 @@ const requireCurrentSource = <TSettings, TBrevhovedKey extends string>(
  * `project` efter settle, så et klik på række 3 altid vurderes mod række 3's aktuelle tilstand — ikke
  * mod den tilstand, rækken havde da knappen blev tegnet.
  */
-export const executeDocumentDownload = async <TRequest, TSettings, TBrevhovedKey extends string>(
-  action: DocumentAction<TRequest, TSettings, TBrevhovedKey>,
+export const executeDocumentDownload = async <TRequest, TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
+  action: DocumentAction<TRequest, TGateSettings, TBrevhovedKey>,
   request: TRequest,
-  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>
+  environment: DocumentExecutionEnvironment<TGateSettings, TRenderSettings, TBrevhovedKey>
 ): Promise<DocumentOutcome> => {
   const phase = { current: 'settle' as DocumentLifecyclePhase };
   const diagnosticsFor = (outputId: DocumentDiagnostics['outputId'], phase: DocumentLifecyclePhase): DocumentDiagnostics => ({
@@ -117,14 +121,14 @@ export const executeDocumentDownload = async <TRequest, TSettings, TBrevhovedKey
 };
 
 /** Trin 1-4. Returnerer enten en afvisning eller det ene godkendte, brandede dokument. */
-const prepareDocument = async <TRequest, TSettings, TBrevhovedKey extends string>(
-  action: DocumentAction<TRequest, TSettings, TBrevhovedKey>,
+const prepareDocument = async <TRequest, TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
+  action: DocumentAction<TRequest, TGateSettings, TBrevhovedKey>,
   request: TRequest,
-  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>,
+  environment: DocumentExecutionEnvironment<TGateSettings, TRenderSettings, TBrevhovedKey>,
   phase: { current: DocumentLifecyclePhase }
 ): Promise<
   | Readonly<{ outcome: DocumentOutcome; prepared: null }>
-  | Readonly<{ outcome: null; prepared: PreparedDocument<TSettings, TBrevhovedKey> }>
+  | Readonly<{ outcome: null; prepared: PreparedDocument<TRenderSettings, TBrevhovedKey> }>
 > => {
   const reject = (outcome: DocumentOutcome) => ({ outcome, prepared: null }) as const;
 
@@ -159,8 +163,10 @@ const prepareDocument = async <TRequest, TSettings, TBrevhovedKey extends string
 
   // 4. Definitionens dependencies, projektion og invariants — samme funktion og samme request som
   //    den reaktive knap-gate, men på det friske snapshot.
+  //    Konteksten får KUN gate-halvdelen af snapshottet; format og brevhoved ligger i
+  //    `source.renderSettings` og anvendes først i afviklingen nedenfor (R6-F03).
   phase.current = 'gate';
-  const projected = action.resolve(createDocumentSourceContext(source.evaluation, source.settings), request);
+  const projected = action.resolve(createDocumentSourceContext(source.evaluation, source.gateSettings), request);
   if (projected.status === 'blocked') {
     return reject(documentRejected({ kind: 'gate-blocked', phase: 'gate', reasons: projected.reasons }));
   }
@@ -170,7 +176,7 @@ const prepareDocument = async <TRequest, TSettings, TBrevhovedKey extends string
     prepared: Object.freeze({
       [preparedBrand]: true as const,
       document: projected.document,
-      settings: source.settings,
+      renderSettings: source.renderSettings,
       sourceToken,
     }),
   };
@@ -183,12 +189,12 @@ const prepareDocument = async <TRequest, TSettings, TBrevhovedKey extends string
  *
  * Formatvalget sker bevidst EFTER gaten (planens arbejdstrin 8).
  */
-const runPreparedDocument = async <TSettings, TBrevhovedKey extends string>(
-  prepared: PreparedDocument<TSettings, TBrevhovedKey>,
-  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>,
+const runPreparedDocument = async <TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
+  prepared: PreparedDocument<TRenderSettings, TBrevhovedKey>,
+  environment: DocumentExecutionEnvironment<TGateSettings, TRenderSettings, TBrevhovedKey>,
   phase: { current: DocumentLifecyclePhase }
 ): Promise<DocumentOutcome> => {
-  const { document, settings, sourceToken } = prepared;
+  const { document, renderSettings, sourceToken } = prepared;
   const stale = (phase: DocumentLifecyclePhase) => requireCurrentSource(environment, sourceToken, phase);
 
   try {
@@ -217,7 +223,7 @@ const runPreparedDocument = async <TSettings, TBrevhovedKey extends string>(
 
     // ANDEN asynkrone grænse: writer-modulet for det valgte format.
     phase.current = 'writer-load';
-    const session = await environment.createSession(environment.resolveFormat(settings));
+    const session = await environment.createSession(environment.resolveFormat(renderSettings));
     const afterWriterLoad = stale('writer-load');
     if (afterWriterLoad) return afterWriterLoad;
 
@@ -226,8 +232,7 @@ const runPreparedDocument = async <TSettings, TBrevhovedKey extends string>(
     phase.current = 'render';
     const artifact = await render(
       session,
-      settings,
-      environment.resolveVisBrevhoved(settings, document.brevhoved)
+      environment.resolveVisBrevhoved(renderSettings, document.brevhoved)
     );
     const afterRender = stale('render');
     if (afterRender) return afterRender;

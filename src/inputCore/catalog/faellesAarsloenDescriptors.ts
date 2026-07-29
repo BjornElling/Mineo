@@ -11,7 +11,7 @@ import {
 } from '../../domain/aslEalAarsloen/aarsloenValidators';
 import { stamdataSkadedatoField } from './stamdataDescriptors';
 
-// Greenfield produkt-descriptors for `faellesAarsloen`-sektionen (ASL/EAL-årsløn, §3.2). Sektionen har ingen
+// Produkt-descriptors for `faellesAarsloen`-sektionen (ASL/EAL-årsløn, §3.2). Sektionen har ingen
 // egen route; den redigeres i flere domænekontekster (EET, Forsørgertab, EO). Beløbene er heltal med et hårdt
 // gulv på 1000 og loft på 9999999 — nu en afledt canonical bounds-feltvalidator (§1.6), ikke en codec-afvisning.
 // En værdi under gulvet committes canonical med et rødt bounds-issue og kan gemmes i `.eo`. Fortegn ikke tilladt.

@@ -36,7 +36,7 @@ const collectionTemplatePath = (template: CollectionTemplate): string => {
   return parent === '' ? template.collection : `${parent}.${template.collection}`;
 };
 
-describe('greenfield produkt-descriptor-katalog (§3.2, Fase 2.1)', () => {
+describe('produkt-descriptor-kataloget (§3.2)', () => {
   it('bygger og valideres uden fejl (statisk katalog, valideret én gang)', () => {
     expect(() => buildProductionInputCatalog()).not.toThrow();
   });

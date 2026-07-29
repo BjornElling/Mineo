@@ -1,7 +1,7 @@
 # Mineo – Side-komponent-kontrakt
 
 **Version:** 0.3
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
 **Senest verificeret mod kode:** 2026-07-16
 

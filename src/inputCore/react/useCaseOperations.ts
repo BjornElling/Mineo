@@ -10,7 +10,7 @@ import {
 import { clearCase, replaceCase } from '../inputReducer';
 import { useCaseRuntimeAccess } from './inputRuntimeContext';
 
-// Greenfield-React (§3.10): den tynde bro, der binder de framework-frie case-porte til produktions-runtime.
+// React-laget (§3.10): den tynde bro, der binder de framework-frie case-porte til produktions-runtime.
 // Shell-use-casen (`useFileSaveLoad`) forbruger portene HERFRA i stedet for den legacy `FormPersistenceContext`.
 // Broen eksponerer hverken rå sektioner eller skrivbare hel-sektionshooks — kun de to porte, hvis grænseflader
 // selv er rene (`CaseRuntimeAccess`/`CaseResetRuntimeAccess`). `replaceCase`/`clearCase` udstedes gennem

@@ -98,7 +98,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     loentrinFinder,
     alleLoenmodtagerOrg,
     alleArbejdsgiverOrg,
-    // Løntabel-forbrugere: midlertidigt ubrugte, mens EO-loenindkomst-slicen ikke er greenfield-migreret (§5.4).
+    // Løntabellens per-ansættelsesforhold-input: satsrækken og den afledte rækkeberegner slås op på `af.id`
+    // og gives til `StandardLoenTable` nedenfor.
     satserByAfId,
     derivedCalculatorByAfId,
     totalAnsaettelsesforhold,

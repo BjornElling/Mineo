@@ -61,7 +61,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed (R6-F01)
     const environment = createMineoDocumentEnvironment(runtime, () => published);
 
     // Første capture ser den værdi, der gælder nu.
-    expect(environment.captureSource().settings.documentDownloadFormat).toBe('pdf');
+    expect(environment.captureSource().renderSettings.documentDownloadFormat).toBe('pdf');
 
     // Brugeren skifter indstilling: settingsrevisionen hæves OG den publicerede værdi udskiftes — samme
     // layout-fase, som `useSettingsRevisionBridge` gør det.
@@ -70,7 +70,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed (R6-F01)
 
     const captured = environment.captureSource();
     // Kernen i fundet: capturen skal levere det NYE settingsobjekt, ikke det, miljøet blev bygget med.
-    expect(captured.settings.documentDownloadFormat).toBe('word');
+    expect(captured.renderSettings.documentDownloadFormat).toBe('word');
     // …og den skal være PARRET med det nye token, så friskhedschecket måler én samlet kilde.
     expect(captured.evaluation.issues.sourceToken.settingsRevision).toBe(2);
   });
@@ -87,7 +87,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed (R6-F01)
     published = wordSettings();
 
     // Formatet afgøres af capturens settings — ikke af en værdi fra miljøets konstruktion.
-    expect(environment.resolveFormat(environment.captureSource().settings)).toBe('word');
+    expect(environment.resolveFormat(environment.captureSource().renderSettings)).toBe('word');
   });
 
   it('brevhoved-opslaget følger samme capturede snapshot', () => {
@@ -103,14 +103,14 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed (R6-F01)
     const environment = createMineoDocumentEnvironment(runtime, () => published);
     const policy = { kind: 'settings-key', key: 'erstatningsopgoerelse' } as const;
 
-    expect(environment.resolveVisBrevhoved(environment.captureSource().settings, policy)).toBe(false);
+    expect(environment.resolveVisBrevhoved(environment.captureSource().renderSettings, policy)).toBe(false);
 
     published = projectSourceSettings({
       ...DEFAULT_APP_SETTINGS,
       brevhovedIndstillinger: { ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger, erstatningsopgoerelse: true },
     });
 
-    expect(environment.resolveVisBrevhoved(environment.captureSource().settings, policy)).toBe(true);
+    expect(environment.resolveVisBrevhoved(environment.captureSource().renderSettings, policy)).toBe(true);
   });
 
   it('EO-regeltogglen i det capturede snapshot er den aktuelle', () => {
@@ -126,7 +126,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed (R6-F01)
     const environment = createMineoDocumentEnvironment(runtime, () => published);
 
     expect(
-      environment.captureSource().settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden
+      environment.captureSource().gateSettings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden
     ).toBe(false);
 
     // En regelændring må ikke kunne overleves af et miljø, der blev bygget under den gamle regel.
@@ -136,7 +136,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed (R6-F01)
     });
 
     expect(
-      environment.captureSource().settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden
+      environment.captureSource().gateSettings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden
     ).toBe(true);
   });
 
@@ -164,5 +164,40 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed (R6-F01)
     published = wordSettings();
     environment.captureSource();
     expect(captureOrder).toEqual(['evaluation', 'settings', 'evaluation', 'settings']);
+  });
+
+  /**
+   * R6-F03's opdeling må ikke svække R6-F01's atomicitet.
+   *
+   * Snapshottet har nu TO settings-halvdele (`gateSettings` + `renderSettings`), og hver af dem
+   * projiceres af sin egen funktion. Var de projiceret fra to `readSourceSettings()`-kald, kunne de
+   * stamme fra hver sin revision — netop den divergens, R6-F01 lukkede for evaluering-mod-settings,
+   * men nu internt mellem gaten og renderingen. Da begge halvdele er nominelle, kan ingen assertion
+   * sammenligne dem direkte; det målbare er, at læsningen sker ÉN gang pr. capture.
+   */
+  it('projicerer BEGGE settings-halvdele fra ét enkelt læs, så gate og rendering ikke kan divergere', () => {
+    let reads = 0;
+    let published: SourceSettings = pdfSettings();
+    const runtime: DocumentInputAccess = Object.freeze({
+      captureEvaluationSource: () => evaluationWithSettingsRevision(1),
+      readCurrentSourceToken: () => tokenAt(1),
+      criticalActions: new CriticalActionCoordinator(__createSlimInputTestStore(), new ActiveEditorRegistry()),
+    });
+    const environment = createMineoDocumentEnvironment(runtime, () => {
+      reads += 1;
+      return published;
+    });
+
+    const captured = environment.captureSource();
+
+    expect(reads, 'begge halvdele skal komme fra samme læsning').toBe(1);
+    // Og halvdelene er faktisk begge udfyldt fra det ene læs — ikke den ene på bekostning af den anden.
+    expect(captured.renderSettings.documentDownloadFormat).toBe('pdf');
+    expect(captured.gateSettings.allowReguleringMedUdloebMedMaaneder)
+      .toBe(published.allowReguleringMedUdloebMedMaaneder);
+
+    published = wordSettings();
+    expect(environment.captureSource().renderSettings.documentDownloadFormat).toBe('word');
+    expect(reads, 'et nyt capture læser præcis én gang mere').toBe(2);
   });
 });

@@ -81,7 +81,7 @@ const renderPage = () => render(
   </MemoryRouter>
 );
 
-describe('Erhvervsevnetab greenfield — samlet surface og reader-projektion', () => {
+describe('Erhvervsevnetab — samlet surface og reader-projektion', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();

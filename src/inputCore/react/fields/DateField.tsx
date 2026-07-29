@@ -10,7 +10,7 @@ import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
-// Greenfield dato-felt (§2.4/§3.5): tynd skal over `useFormFieldSurface`. Format/parse/paste-normalisering
+// Dato-felt (§2.4/§3.5): tynd skal over `useFormFieldSurface`. Format/parse/paste-normalisering
 // ejes af descriptorens dato-codec; kronologiske min/max-bounds er FELTVALIDATORER på den canonical værdi
 // (§1.6, Fase 3), IKKE komponent-props. Komponenten viser derfor kun feltets aktive issue fra det tokenbundne
 // snapshot (§1.8) og modtager ingen `minDate`/`maxDate`/`onFieldError` mere.

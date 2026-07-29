@@ -50,7 +50,7 @@ export type LoenindkomstViewModelParams = Readonly<{
   stamdataValues: StamdataValues;
 }>;
 
-/** Greenfield EO-lønindkomst: reader-afledt visning og kun typed række-/feltcommands som write-grænse. */
+/** EO-lønindkomst: reader-afledt visning og kun typed række-/feltcommands som write-grænse. */
 export function useLoenindkomstViewModel({ eoValues, stamdataValues }: LoenindkomstViewModelParams) {
   const { settings } = useAppSettings();
   const edit = useInputEditPort();

@@ -39,7 +39,7 @@ import { stamdataSkadedatoField } from './stamdataDescriptors';
 import { opregulerMedAkkumuleretReguleringssats } from '../../domain/satser/opreguleringsmotorer';
 import { reguleringssats } from '../../data/lovbestemteRates';
 
-// Greenfield produkt-descriptors for `erhvervsevnetab`-sektionen (§3.2): skalarer (herunder differencekrav-
+// Produkt-descriptors for `erhvervsevnetab`-sektionen (§3.2): skalarer (herunder differencekrav-
 // booleans), det nested bilagsvalgsobjekt og samlingen `aslAfgoerelser` med dens rækkefelter.
 // Den tomme sektion er sektionens fulde canonical default; bilagsvalgsobjektet skal findes, for at en
 // nested boolean kan skrives.

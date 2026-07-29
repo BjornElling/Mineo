@@ -12,8 +12,8 @@ setDocumentBrand('minprocesrente.dk');
 
 void bootstrapClientApp({
   renderApp: () => {
-    // Greenfield-runtime: hydrér den ene input-runtime FØR render (§3.10). Standalone bruger nu samme
-    // greenfield-inputCore som hovedappen — ingen legacy FormPersistence-runtime.
+    // Input-runtime: hydrér den ene input-runtime FØR render (§3.10). Standalone bruger nu samme
+    // inputCore som hovedappen — ingen legacy FormPersistence-runtime.
     const { binding } = bootstrapProductionInputRuntime();
     return <MinProcesrenteApp inputRuntimeBinding={binding} />;
   },

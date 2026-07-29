@@ -16,7 +16,7 @@ import {
   stamdataSkadedatoField,
 } from './stamdataDescriptors';
 
-// Greenfield produkt-descriptors for `forsoergertab`-sektionen (§3.2). Kun top-level skalarer.
+// Produkt-descriptors for `forsoergertab`-sektionen (§3.2). Kun top-level skalarer.
 //
 // **Dato-bounds (§1.6, Fase 3 Forsørgertab-slice):** de dynamiske min/max-grænser, som legacy-siden håndhævede
 // via `StyledDateField`s `minDate`/`maxDate`-props + `onFieldError`, er nu canonical bounds-FELTVALIDATORER på

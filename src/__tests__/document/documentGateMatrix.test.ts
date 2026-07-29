@@ -40,7 +40,8 @@ import { varigeMenBeregningsdatoField, varigeMenMengradField } from '../../input
 import { renteberegningBeregningsdatoField } from '../../inputCore/catalog/renteberegningDescriptors';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { DocumentDefinition } from '../../document/definition/documentDefinition';
-import { __createTestSourceSettings, type SourceSettings } from '../../settings/sourceSettings';
+import { __createTestEoRowPolicy } from '../../settings/sourceSettings';
+import type { MineoDocumentGateSettings } from '../../document/definition/mineoDocumentDefinition';
 import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefinition';
 import { varigeMenDocumentDefinition } from '../../domain/varigemen/varigeMenDocumentDefinition';
 import { forsoergertabDocumentDefinition } from '../../domain/forsoergertab/forsoergertabDocumentDefinition';
@@ -65,17 +66,16 @@ import { insertRow } from '../../inputCore/inputReducer';
 
 const catalog = getProductionInputCatalog();
 
-// Bygges gennem projektoren, ikke som objektliteral: `SourceSettings` er nominel, så et snapshot
-// kan ikke længere fremstilles uden om `projectSourceSettings` (WI-009). Nøglesættet kommer fortsat
-// fra typen — override er `Partial<SourceSettingsPayload>` — så en ny brevhoved-flade fejler her
-// frem for at blive skjult bag et `as`.
-const SETTINGS: SourceSettings = __createTestSourceSettings({
-  documentDownloadFormat: 'pdf',
-  brevhovedIndstillinger: {
-    satser: false, renteberegning: false, regulering: false, varigeMen: false,
-    aarsloensberegning: false, shDage: false, forsoergertab: false,
-    erstatningsopgoerelse: false, erhvervsevnetab: false,
-  },
+// Bygges gennem projektoren, ikke som objektliteral: gate-settings er nominel, så et snapshot ikke
+// kan fremstilles uden om projektoren (WI-009). Nøglesættet kommer fortsat fra typen — override er
+// `Partial<EoRowPolicyPayload>` — så en ny gate-relevant regel fejler her frem for at blive skjult
+// bag et `as`.
+//
+// **Ingen brevhoved-flags og intet format (R6-F03):** de er render-settings og findes ikke længere i
+// projektionskonteksten. Suiten kan derfor slet ikke pinne et format, og den tidligere
+// `documentDownloadFormat: 'pdf'`-binding — som var netop det, format-invariansværnet blev skrevet
+// for at kompensere for — er væk, fordi der intet er at binde.
+const GATE_SETTINGS: MineoDocumentGateSettings = __createTestEoRowPolicy({
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,
 });
@@ -99,7 +99,7 @@ const settle = <T>(field: FieldRef<T>, raw: string): AnyInputCommand => settleFi
 
 /** Evaluerer en definitions gate mod et konkret afsluttet input. */
 const gateOf = <TInput>(
-  definition: DocumentDefinition<void, TInput, SourceSettings, string>,
+  definition: DocumentDefinition<void, TInput, MineoDocumentGateSettings, string>,
   input: SettledInput
 ) => {
   const evaluation = createInputEvaluation({
@@ -107,7 +107,7 @@ const gateOf = <TInput>(
     catalog,
     sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
   });
-  return definition.project(createDocumentSourceContext(evaluation, SETTINGS), undefined);
+  return definition.project(createDocumentSourceContext(evaluation, GATE_SETTINGS), undefined);
 };
 
 const expectBlocked = (

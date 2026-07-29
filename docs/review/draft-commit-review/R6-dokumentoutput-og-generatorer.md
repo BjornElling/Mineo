@@ -264,7 +264,7 @@ gate-relevante policy; format og brevhoved skal først anvendes efter ready-resu
 dertil, og behold format/brevhoved i det tokenbundne prepared render-snapshot uden at eksponere dem
 for `project`. Behold invarians-testen som regressionsnet, men gør compile-proben negativ.  
 **Kræver godkendelse:** Nej — den tilsigtede adfærd er allerede, at format aldrig ændrer gaten.  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 11)** — se etapenoten i `fund-oversigt.md`
 
 ### R6-F04 — Gatekontrakten er kun målt på fire af atten definitioner
 
@@ -369,3 +369,33 @@ R6 kan ikke afsluttes, før følgende er efterprøvet efter rettelserne:
 - `src/contracts/app-settings.md:33` siger, at evaluering, revisionsfingerprint og dokumentcapture
   garanteret læser samme værdi. R6-F01 falsificerer denne påstand for dokumentmiljøets nuværende
   capture, så kontraktteksten er også ude af sync med den faktiske mekanisme.
+
+**R6-F03 — rettet 2026-07-29 (etape 11). Lukker samtidig R0-F03 og R8-H01.**
+
+Kortlægningen besvarede scopens åbne spørgsmål: definitionerne læser i produktionen **præcis én** ting fra
+`settings` — `projectEoRowPolicy(context.settings)` i `eoDocumentDefinitions.ts`. Løsningen er derfor anbefalingens
+projicerede delmængde og ikke en nominel indpakning:
+
+- `DocumentSourceSnapshot` bærer `gateSettings` + `renderSettings` som to DISJUNKTE halvdele.
+  `DocumentExecutionEnvironment` og `DocumentOutput` er generiske over begge.
+- `DocumentSourceContext` er generisk over GATE-halvdelen alene. Hovedappen binder
+  `MineoDocumentGateSettings = EoRowPolicy`; standalone binder `void` for begge (invariant 4 holdt).
+- `projectDocumentRenderSettings` er render-halvdelens eneste konstruktør, og `DocumentRenderSettings` er gjort
+  NOMINEL af samme grund som de to øvrige: uden mærket var hele `AppSettings` strukturelt assignable.
+- **Begge halvdele projiceres fra ÉT `readSourceSettings()`-læs.** R6-F01's atomicitet må ikke svækkes af
+  opdelingen: to læs kunne stamme fra to revisioner, og fordi begge typer er nominelle, kan ingen assertion
+  sammenligne dem direkte. Det målbare er læse-ANTALLET, og det er nu pinnet.
+
+**Compile-proben er gjort negativ, som anbefalingen krævede — men invarians-testen er OMSKREVET frem for bevaret.**
+Det er en bevidst afvigelse fra forslaget. Den gamle 18×2-sammenligning KAN ikke længere skrives: der findes ingen
+formatakse at variere i en projektion, og en bevaret udgave ville måle en anden invariant end sit eget navn. Filen
+hævder nu typegrænsen med en RIGTIG `ts.createProgram`-oversættelse af en virtuel definition mod det ægte projekt
+og kræver `TS2339` — plus en **kontrolprøve**, der skal kompilere rent. Kontrolprøven er det, der gør
+TS2339-assertionen til evidens frem for tilfældighed: uden den kunne proben være rød af en forkert importsti.
+Dertil to bens, der pinner det, typen ikke selv siger: at gate-fladen KUN har rækkepolitikkens to nøgler (også som
+runtime-nøgler, så et cast ikke hjælper), og at formatet fortsat NÅR writer-valget — normens anden halvdel.
+
+**Fundet fandtes i tre lag, ikke ét (INC-F19).** Ud over gaten havde `ResolvedDocumentAction.loadRenderer` en
+`settings`-parameter, som dens eneste producent ignorerede, og `documentBrevhoved.ts` bar en `DocumentSettings`-DTO
++ `getVisBrevhoved` med nul produktionscallsites. Begge var åbne veje til format og brevhoved uden om gaten, og
+DTO'en var desuden struktur-supersæt-tilfredsstillet af hele `AppSettings`. Begge slettet.

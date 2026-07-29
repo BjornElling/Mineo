@@ -4,7 +4,7 @@ import { getCaseScopedSessionStorageKeys } from '../config/storageManifest';
 import { removeOptionalSessionStorageValue } from '../utils/safeSessionStorage';
 import { deleteFileHandleFromIndexedDB } from '../utils/fileHandleStorage';
 
-// Greenfield-runtime (§3.10/§1.4/§7): `CaseResetOperations`-porten ejer `Slet alt` (og fremtidig sektions-
+// Input-runtime (§3.10/§1.4/§7): `CaseResetOperations`-porten ejer `Slet alt` (og fremtidig sektions-
 // reset). Den routes gennem den samme replacement-grænse som load og gennem `CriticalActionCoordinator`, så
 // den åbne draft ALDRIG blokerer handlingen og først kasseres efter en vellykket apply. `clearCase` er tillige
 // den ENE command, `dispatchInput` tillader, når runtime er `writesBlocked` efter en korrupt current-session

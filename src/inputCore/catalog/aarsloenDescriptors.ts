@@ -47,7 +47,7 @@ import {
   yearStringBoundsValidator,
 } from './boundsValidators';
 
-// Greenfield produkt-descriptors for `aarsloen`-sektionen (§3.2). Måned/år bevarer schemaets historiske
+// Produkt-descriptors for `aarsloen`-sektionen (§3.2). Måned/år bevarer schemaets historiske
 // canonical strengrepræsentation via string-backed codec; ugefelterne er allerede canonical strenge.
 
 const createEmptyAarsloenSection = (): unknown => ({ tableData: [] });

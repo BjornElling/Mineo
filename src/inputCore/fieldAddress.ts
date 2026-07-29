@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PERSISTED_SECTION_KEYS } from '../config/persistenceRegistry';
 
-// Greenfield-kerne (§3.2): en feltadresse er REN struktur — sektion, properties, stabile entity-id'er og
+// Inputkernen (§3.2): en feltadresse er REN struktur — sektion, properties, stabile entity-id'er og
 // feltnavn. Den indeholder aldrig kolonneindeks, DOM-id, route eller formatteret string-key, og har
 // bevidst INGEN versions-envelope (§3.7: sessionen har ingen `fieldAddressVersion`-bro).
 

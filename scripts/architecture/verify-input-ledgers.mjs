@@ -1,7 +1,12 @@
 #!/usr/bin/env node
-// Fase-0-inventarvalidator (§6). Den kører de tests, der udleder felter/collections direkte fra de levende
+// Coverage-registrenes release-gate. Den kører de tests, der udleder felter/collections direkte fra de levende
 // Zod-schemas og sammenholder consumers med faktiske exports/callsites. Dermed kan en statisk JSON-kopi ikke
 // få validatoren til at rapportere falsk grønt ved schema- eller entrypointdrift.
+//
+// **Gaten er permanent, ikke et migrationstrin (R1-F06).** Den blev indført som backstop under draft/commit-
+// omlægningen og var beskrevet som noget, der skulle bortfalde bagefter. Den kører nu som del af
+// `verify:release`, fordi det, den måler, ikke var midlertidigt: schema-drift og uregistrerede entrypoints er
+// stående risici. Fjern den ikke som "fase 0-rest".
 
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';

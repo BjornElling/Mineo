@@ -5,18 +5,18 @@ import type { EditorLocation } from '../editor/fieldEditorState';
 import type { HistoryOrigin } from '../inputHistory';
 import { isRestoreTargetVisible, runHistoryTargetRestoreLoop } from './historyTargetRestoreLoop';
 
-// Greenfield undo/redo felt-fokus-restore (§3.7, WI-002 trin 3): efter en gennemført undo/redo re-targeteres fokus
+// Undo/redo felt-fokus-restore (§3.7): efter en gennemført undo/redo re-targeteres fokus
 // til det felt/celle, ændringen kom fra. Selve værdi-/draft-gendannelsen sker gennem den restored revision (§3.5) —
 // denne modul flytter KUN fokus (+ scroll + fokus-ring) via den DELTE `runHistoryTargetRestoreLoop`, så legacy- og
-// greenfield-restore ikke kan drifte fra hinanden.
+// undo/redo-restore ikke kan drifte fra hinanden.
 //
-// Til forskel fra legacy (der slog op via `data-mineo-undo-field-path`) lokaliserer greenfield målet PRÆCIST via
+// Til forskel fra legacy (der slog op via `data-mineo-undo-field-path`) lokaliseres målet PRÆCIST via
 // BÅDE feltadressen OG editorlokationen. Det er nødvendigt, fordi samme datafelt kan redigeres flere steder (§3.2):
 // fokus skal lande på den editor, der faktisk lavede ændringen — ikke en vilkårlig spejling af samme felt.
 
-/** DOM-attribut for et greenfield-felts serialiserede feltadresse. Sat af form-/grid-surface på det fokuserbare element. */
+/** DOM-attribut for et felts serialiserede feltadresse. Sat af form-/grid-surface på det fokuserbare element. */
 export const FIELD_ADDRESS_ATTR = 'data-mineo-field-address';
-/** DOM-attribut for greenfield-editorlokationens stabile id. Diskriminerer flere editorlokationer for samme felt. */
+/** DOM-attribut for editorlokationens stabile id. Diskriminerer flere editorlokationer for samme felt. */
 export const EDITOR_LOCATION_ATTR = 'data-mineo-editor-location-id';
 /** DOM-attribut for editorlokationens EGEN route (§3.2). Sættes altid; `route` er påkrævet på lokationen. */
 export const EDITOR_ROUTE_ATTR = 'data-mineo-editor-route';
@@ -24,7 +24,7 @@ export const EDITOR_ROUTE_ATTR = 'data-mineo-editor-route';
 export const EDITOR_TAB_ATTR = 'data-mineo-editor-tab';
 
 /**
- * De DOM-attributter, et greenfield-fokuserbart element skal bære, for at fokusnavigationen kan finde det:
+ * De DOM-attributter, et fokuserbart element skal bære, for at fokusnavigationen kan finde det:
  * serialiseret feltadresse + editorlokations-id + lokationens EGEN destination (route + fane). Bygges af
  * form-/grid-surfacen og spredes på det redigerbare `<input>`. Samlet ÉT sted, så surface og opslag ikke kan
  * drifte fra hinanden.
@@ -79,7 +79,7 @@ export const useRestoreTargetAttributes = (
 const attrEquals = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
 
 /**
- * Finder det synlige greenfield-fokusmål for en history-origin: elementet, der bærer BÅDE den serialiserede
+ * Finder det synlige fokusmålet for en history-origin: elementet, der bærer BÅDE den serialiserede
  * feltadresse OG editorlokations-id'et. Returnerer `null`, hvis intet synligt match findes (fx endnu ikke mountet
  * efter et faneskift — den delte retry-løkke prøver igen).
  *
@@ -97,7 +97,7 @@ export const findRestoreTarget = (origin: HistoryOrigin): HTMLElement | null => 
 };
 
 /**
- * Planlæg greenfield-fokusrestore for en gendannet undo/redo-origin. Genbruger den delte scroll-/fokus-/
+ * Planlæg fokusrestore for en gendannet undo/redo-origin. Genbruger den delte scroll-/fokus-/
  * afbrydelses-løkke. For en rækkehandling uden feltadresse springes fokus-restoren over (kun navigationen,
  * som shellen allerede har udført, er relevant) — løkken startes da ikke unødigt.
  */

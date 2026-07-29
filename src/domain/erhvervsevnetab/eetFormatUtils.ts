@@ -31,7 +31,7 @@ export const toFieldIssue = (
  * Ét sandt sted for hvilke EET-issue-ids der repræsenterer en RØD FELTFEJL (format/bounds/rule),
  * modsat en manglende-/afledt-consumer-fejl.
  *
- * En rød feltfejl (greenfield §1.6) er dem, hvor et konkret inputfelt enten (a) er skjult bag en
+ * En rød feltfejl (§1.6) er dem, hvor et konkret inputfelt enten (a) er skjult bag en
  * reader-feltfejl (format/bounds) og ført ind i snapshottet som et `field-*`-issue, eller (b) er en
  * felt-placeret domæneregel med samme røde markering (forlig-brøk/procent, dato-orden på stamdata,
  * eller en `*-invalid` værdi som en out-of-bounds procent readeren ikke selv kan fange). En intern

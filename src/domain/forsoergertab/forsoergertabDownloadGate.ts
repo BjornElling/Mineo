@@ -1,7 +1,7 @@
 /**
  * Ren download-gate-beslutning for Forsørgertab-siden.
  *
- * Greenfield (§3.4/§5.4/§1.10, Fase 3 Forsørgertab-slice): gaten afledes af den ENE reader-projektion
+ * Gaten (§3.4/§5.4/§1.10): gaten afledes af den ENE reader-projektion
  * (`buildForsoergertabReaderProjection`), som sidevisningen allerede afspejler. Snapshottets egen
  * `pdfGate` bærer den dependency-specifikke blokering (§1.10) UÆNDRET fra legacy: den blokerer på røde
  * feltfejl (via de reader-afledte `fieldErrors`, som projektionen fører ind i snapshottet) og på

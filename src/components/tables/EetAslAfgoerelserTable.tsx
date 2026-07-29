@@ -42,8 +42,8 @@ import {
 } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
 import type { ISODateString } from '../../types/branded';
 
-// Greenfield-migreret EetAslAfgoerelserTable (§2.5 trin 4, Erhvervsevnetab-slice). Rækkeinfrastruktur, celleværdier
-// og celleredigering går nu udelukkende gennem greenfield-inputCore — som StandardLoenTable/BeregnetRenteTable:
+// EetAslAfgoerelserTable: Rækkeinfrastruktur, celleværdier
+// og celleredigering går nu udelukkende gennem inputCore — som StandardLoenTable/BeregnetRenteTable:
 //  - `useCollectionRows(aslAfgoerelser)` ejer rækkernes id'er + insert/delete/reorder (§3.8) — ingen
 //    `useGridRowPersistenceCore`, `internalTableData`, `invalidDrafts`, fingerprint eller persistence-effect.
 //  - hver redigerbar celle er en `Grid*Cell` over `useCellEditor`, bro-forbundet til grid-core-
@@ -52,7 +52,7 @@ import type { ISODateString } from '../../types/branded';
 //    forælderens reader-afledte `ruleIssues` som STRUKTURELLE feltissues og slås op på cellens egen feltadresse.
 //  - de committede rækker (til sort + kryds-validering) er reader-afledte af forælderen, så tabellen og
 //    projektionen deler præcis samme sandhed. Der er ingen konkurrerende celle-værdikopi (§3.8).
-//  - trailing PLACEHOLDER-rækker (§1.11): greenfield persisterer ikke tomme rækker, så den viste tabel = de
+//  - trailing PLACEHOLDER-rækker (§1.11): tomme rækker persisteres ikke, så den viste tabel = de
 //    committede rækker + `max(1, EET_ASL_MIN_VISIBLE_ROWS − antal committede)` tomme indtastnings-rækker (bevarer
 //    legacy-looket med 2 synlige tomme rækker på en tom sag).
 
@@ -238,7 +238,7 @@ const EetAslAfgoerelserTable = React.memo(
     });
 
     // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
-    // Greenfield persisterer ikke tomme rækker. Legacy viste altid mindst EET_ASL_MIN_VISIBLE_ROWS (=2) rækker;
+    // Tomme rækker persisteres ikke. Legacy viste altid mindst EET_ASL_MIN_VISIBLE_ROWS (=2) rækker;
     // det bevares som `max(1, 2 − antal committede)` placeholder-rækker (altid ≥1 trailing indtastnings-række).
     //
     // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` (GM-F14) — tabellen havde tidligere sin egen

@@ -6,7 +6,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 import { WEEK_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
-// Greenfield uge-felt (§2.4/§3.5): familie-skal over `NumericTextField` med ugefamiliens tegnfilter
+// Uge-felt (§2.4/§3.5): familie-skal over `NumericTextField` med ugefamiliens tegnfilter
 // (`WW-YYYY`). Parse/format/paste og uge-/år-commit-intervallet ejes af descriptorens uge-codec; komponenten
 // modtager KUN sin `field`/`location` + rendering-props (§2.4). Værditypen er den string-backede uge-repræsentation.
 

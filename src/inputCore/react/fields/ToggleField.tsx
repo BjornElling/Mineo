@@ -7,7 +7,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 
-// Greenfield toggle-felt (§1.3/§3.6): en boolsk immediate-commit control. Klik/Enter/Space committer STRAKS via
+// Toggle-felt (§1.3/§3.6): en boolsk immediate-commit control. Klik/Enter/Space committer STRAKS via
 // `commitImmediate` — ingen draft/settle-fase. Modtager kun sin `field`/`location`; den viste checked-tilstand
 // læses fra den afsluttede revision gennem editor-controlleren. Handle-ref (`shake()`) forwardes uændret, så en
 // gate-afvisning (fx omregning) fortsat kan animere kontrollen.

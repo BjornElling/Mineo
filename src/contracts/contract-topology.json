@@ -45,6 +45,8 @@
       "src/contracts/amount-contract.md",
       "src/contracts/undo-redo-contract.md",
       "src/contracts/app-settings.md",
+      "src/contracts/snapshot-contract.md",
+      "src/contracts/auth-gate-contract.md",
       "src/contracts/app-shell-contract.md"
     ]
   },
@@ -67,6 +69,7 @@
     "docs/architecture/calculation-architecture.md",
     "docs/architecture/date-interval-performance-architecture.md",
     "docs/architecture/draft-commit-greenfield-design.md",
+    "docs/architecture/draft-commit-greenfield-journal.md",
     "docs/architecture/eo-row-evaluation-architecture.md",
     "docs/architecture/document-output-architecture.md",
     "docs/architecture/eo-clamping-pipeline-architecture.md",

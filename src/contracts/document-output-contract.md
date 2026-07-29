@@ -1,6 +1,6 @@
 # Dokument-output-kontrakt
 
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
 **Senest verificeret mod kode:** 2026-07-16
@@ -112,6 +112,24 @@ Livscyklussen ejer rækkefølgen, ikke domænepolitik eller gate — dem ejer de
 App-specifik runtimepolitik (kildeport, formatvalg, brevhoved-opslag, session, failure-sink) injiceres som et
 `DocumentExecutionEnvironment`, komponeret i hver apps composition root. Kernen kender hverken `AppSettings`,
 Word-formatet eller `reportSystemIssue`.
+
+**Kildesnapshottets settings er delt i to disjunkte halvdele, og delingen er NORMATIV.**
+`DocumentSourceSnapshot` bærer `gateSettings` og `renderSettings`:
+
+1. **`gateSettings`** er det ENESTE settings, en definitions `project` kan se, og er derfor typen på
+   `DocumentSourceContext`. I hovedappen er den EO-rækkepolitikken (`MineoDocumentGateSettings`).
+2. **`renderSettings`** er det valgte outputformat og brevhoved-flagene. Kun miljøet læser dem, og
+   først EFTER gaten har svaret `ready`.
+
+Reglen bag delingen: **formatet vælger writer, ikke dækning.** Et output SKAL have samme
+`ready`/`blocked` for PDF og Word for samme input. Kravet kan ikke opfyldes af et værn, fordi begge
+kanaler i §A2a's paritet ville se den samme skæve gate; det er derfor en TYPEGRÆNSE — en `project`, der
+læser `documentDownloadFormat`, kompilerer ikke. Begge halvdele projiceres fra ÉT `captureSource`-læs,
+så gate og rendering ikke kan stamme fra to revisioner (samme atomicitetskrav som §A2.1's friskhed).
+
+Alle tre settings-typer (`SourceSettings`, `EoRowPolicy`, `DocumentRenderSettings`) er NOMINELLE med
+deres projektor som eneste konstruktør, så hele `AppSettings` ikke kan flyde ind som struktur-supersæt
+og indføre en afhængighed, der ikke bumper settingsrevisionen.
 
 ## A3. Toggle-guards for betingede felter
 
@@ -540,7 +558,7 @@ Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filrefe
 - PDF-tabelrenderer: `src/pdf/infrastructure/pdfTableRenderer.ts` og `pdfDocumentTableRenderer.ts`.
 - Word-tabelrenderer: `createDocxTable` i `src/docx/infrastructure/docxWriter.ts`.
 - Word-vandmærke: `src/docx/infrastructure/docxWatermark.ts`.
-- Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). Servicelaget er slettet i Fase 5 — der findes ingen `documentService.ts`.
+- Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). Der findes intet servicelag og ingen `documentService.ts`; navnet står her som fraværsværn.
 - Layout-konstanter: `src/document/layout/pdfConfig.ts`.
 
 ## 3. Testkobling

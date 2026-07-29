@@ -10,7 +10,7 @@ Filen har følgende felter (alle stier er repo-relative):
 - `priorityOrder` — de fire lag i prioriteret rækkefølge: `domain-specific-contract` → `cross-cutting-contract` → `page-component-contract` → `architecture-document`.
 - `crossCuttingContracts` — de tværgående kontrakter (`src/contracts/*.md`).
 - `domainContracts` — de domænespecifikke kontrakter (`src/contracts/*.md`).
-- `subordinateContracts` — map fra en kontrakt (i praksis `page-component-contract.md`) til de tværgående kontrakter den er underordnet. Både nøgle og hver reference skal selv være klassificeret som cross-cutting eller domain.
+- `subordinateContracts` — map fra en kontrakt til de tværgående kontrakter den er underordnet. Der er præcis én nøgle: `page-component-contract.md`, og dens liste skal være **identisk** med `crossCuttingContracts` — hierarkiet i AGENTS.md gør page-kontrakten underordnet samtlige tværgående kontrakter, og en delmængde ville lade to autoritative beskrivelser give forskellig prioritet (R1-F04). Både nøgle og hver reference skal selv være klassificeret som cross-cutting eller domain. Begge invarianter håndhæves af `contractCoverageMatrix.test.ts`.
 - `contractAuthoring` — `templatePath` (`src/contracts/contract-template.md`) og `procedurePath` (denne fil).
 - `informativeArchitectureDocs` — de informative `docs/architecture/*.md`. De er **ikke** normative, medmindre en kontrakt eksplicit ophøjer et afsnit derfra.
 
@@ -21,7 +21,7 @@ Hver `src/contracts/*.md`-fil skal være klassificeret præcis ét af tre steder
 Ændringen skal ske i samme commit som:
 
 1. Kontraktfilen selv, baseret på `src/contracts/contract-template.md`.
-2. Opdatering af `src/contracts/contract-topology.json` (klassificér i det rette lag; opdatér `subordinateContracts`, hvis page-component-relationen ændres).
+2. Opdatering af `src/contracts/contract-topology.json` (klassificér i det rette lag). Er den nye kontrakt **tværgående**, skal den også tilføjes til `page-component-contract.md`s underordnelsesliste — de to lister skal være identiske, og testen bliver rød, hvis kun den ene opdateres.
 3. Opdatering af `src/__tests__/quality/contractCoverageMatrix.test.ts` — tilføj/fjern en `COVERAGE_MATRIX`-entry med mindst én koblet test-suite. Matrix og topologi skal stemme overens begge veje (håndhævet af testen).
 4. Relevante tests eller en eksplicit beslutningsnote, hvis kravet ikke kan testes direkte.
 
@@ -33,7 +33,8 @@ Hver `src/contracts/*.md`-fil skal være klassificeret præcis ét af tre steder
 - at alle stier i topologien (kontrakter, subordinate-referencer, skabelon, procedure og informative arkitektur-docs) eksisterer;
 - at **alle** `src/contracts/*.md`-filer er registreret i topologien (skabelonen tæller som registreret via `templatePath`);
 - at hver kontraktfil har et gyldigt `**Senest verificeret mod kode:** YYYY-MM-DD`-felt (skabelonen er undtaget, da den bruger en placeholder);
-- at topologi og `COVERAGE_MATRIX` er synkroniseret begge veje, og at hver subordinate-nøgle og -reference selv er klassificeret.
+- at topologi og `COVERAGE_MATRIX` er synkroniseret begge veje, og at hver subordinate-nøgle og -reference selv er klassificeret;
+- at `page-component-contract.md`s underordnelsesliste er **præcis** det tværgående sæt (hierarki-completeness, ikke kun fil-completeness — R1-F04), og at ingen anden kontrakt erklærer en underordnelsesliste.
 
 ## Senest verificeret mod kode-feltet
 

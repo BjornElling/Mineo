@@ -1,6 +1,6 @@
 # Mineo feltmønster
 
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdefinitioner, codecs, felt-editor og surface-adaptere.
 **Senest verificeret mod kode:** 2026-07-25
@@ -188,10 +188,10 @@ Eksempler er procentintervaller, tocifret årspolitik og sikkerhedsgrænser for 
 kalenderår; senere tocifrede år fortolkes som `19xx`. Grænsen skal flytte sig med kalenderåret og må ikke erstattes af
 et fast pivotår. Eksempel: `30` fortolkes som 1930 i 2024, men som 2030 fra og med 2025.
 
-## 10. Reference og migrationsværn
+## 10. Reference og fraværsværn
 
-Den normative reference er denne kontrakt sammen med `form-contract.md` og
-`docs/architecture/draft-commit-greenfield-design.md`.
+Den normative reference er denne kontrakt sammen med `form-contract.md`;
+`docs/architecture/draft-commit-greenfield-design.md` er den informative baggrundsbeskrivelse.
 
 `useDraftField`, `useTableInputCore`, `useRowDrafts`, `useCellInvalidDraftChannel`, `onFieldError`-kanaler,
 fingerprints og `rowId:colIndex` som identitet er slettet (2026-07-25). Feltidentitet er den strukturelle

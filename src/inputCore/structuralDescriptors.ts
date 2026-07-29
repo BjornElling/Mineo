@@ -14,7 +14,7 @@ import {
   type EntityIdPropertyResolver,
 } from './structuralAccessors';
 
-// Greenfield-kerne (§3.2): strukturelle descriptor-factories, der udleder canonical read/write MEKANISK fra
+// Inputkernen (§3.2): strukturelle descriptor-factories, der udleder canonical read/write MEKANISK fra
 // templaten via de generiske accessorer. Descriptoren ejer stadig sin egen id, codec, semantiske tomhed,
 // relevans og validatorer som én udelelig enhed — helperen fjerner kun den håndskrevne per-felt-navigation,
 // så de ~239 produktdescriptors ikke gentager identisk read/write-boilerplate (feedback: strukturel forenkling).

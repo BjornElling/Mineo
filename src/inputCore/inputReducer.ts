@@ -20,7 +20,7 @@ import {
 import { createValidationReader, deriveFieldIssueSet } from './inputReader';
 import { activeFieldIssue } from './inputIssue';
 
-// Greenfield-kerne (§3.6): alle autoritative ændringer bygges af ÉN ren, exhaustiv reducer. Storage, revision
+// Inputkernen (§3.6): alle autoritative ændringer bygges af ÉN ren, exhaustiv reducer. Storage, revision
 // og history ejes af runtime-runneren (Fase 2). Reduceren håndhæver XOR-invarianten (§1.5): et ugyldigt settle
 // rydder feltets canonical slot til tomværdien OG skriver den rå fejlende tekst atomisk.
 

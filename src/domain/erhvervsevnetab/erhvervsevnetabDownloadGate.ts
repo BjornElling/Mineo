@@ -1,7 +1,7 @@
 /**
  * Rene, per-fane download-gate-beslutninger for Erhvervsevnetab-siden.
  *
- * Greenfield (§3.4/§5.4/§1.10, Fase 3 Erhvervsevnetab-slice): gaten afledes af den ENE reader-projektion
+ * Gaten (§3.4/§5.4/§1.10): gaten afledes af den ENE reader-projektion
  * (`buildErhvervsevnetabReaderProjection`), som sidevisningen allerede afspejler. I modsætning til de øvrige
  * slices har EET FIRE uafhængige dokumenter (løbende ydelser, kapitalisering, EET efter EAL, differencekrav),
  * hver med sin egen dependency-specifikke blokering (§1.10). Snapshottets per-fane-projektion bærer allerede

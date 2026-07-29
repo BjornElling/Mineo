@@ -14,10 +14,14 @@
  */
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
-import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
+import {
+  defineMineoDocument,
+  type MineoDocumentDefinition,
+  type MineoDocumentGateSettings,
+} from '../../document/definition/mineoDocumentDefinition';
 import { toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
-import { projectEoRowPolicy, type SourceSettings } from '../../settings/sourceSettings';
+
 import type { DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
 import { buildMidlertidigtEetInsertSource } from '../erhvervsevnetab/eetImportPort';
 import type { SelectedElements } from '../../document/generators/eo/types';
@@ -75,16 +79,16 @@ type SharedEoSource = Readonly<{
  * Builderen er selv memo-nøglen, så alle fire definitioner rammer samme slot i samme kildekontekst,
  * og nøgle/resultattype ikke kan komme fra hinanden.
  */
-const readSharedEoSource = (context: DocumentSourceContext<SourceSettings>): SharedEoSource => {
+const readSharedEoSource = (context: DocumentSourceContext<MineoDocumentGateSettings>): SharedEoSource => {
   const projection = buildErstatningsopgoerelseReaderProjection(context.evaluation.reader, {
     midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(context.evaluation),
   });
   return {
+    // Gate-settings ER rækkepolitikken (R6-F03): konteksten bar før hele `SourceSettings`, og
+    // projektionen skulle derfor selv skære den ned. Nu leverer miljøet præcis den halvdel, gaten må
+    // se, og indsnævringen sker ét sted — i `captureSource` — frem for i hver definition.
     projection,
-    gates: evaluateErstatningsopgoerelseDownloadGates(
-      projection,
-      projectEoRowPolicy(context.settings)
-    ),
+    gates: evaluateErstatningsopgoerelseDownloadGates(projection, context.settings),
   };
 };
 
@@ -139,7 +143,7 @@ const blockedFromProjection = <T>(code: string, message: string): DocumentProjec
  * havde tilsammen.
  */
 const projectEoDocument = <TDocument, TInput>(
-  context: DocumentSourceContext<SourceSettings>,
+  context: DocumentSourceContext<MineoDocumentGateSettings>,
   gateKey: EoDocumentKey,
   toDocument: (projection: ErstatningsopgoerelseReaderProjection) =>
     | Readonly<{ kind: 'ok'; document: TDocument }>

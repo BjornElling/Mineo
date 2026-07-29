@@ -4,7 +4,7 @@ import * as React from 'react';
 // ikke hører i den autoritative inputtilstand (§3.1): et overlay/dialog-scratchfelt, hvis værdi kun lever i
 // komponentens egen state.
 //
-// Bevidst adskilt fra greenfield-feltvejen: her er ingen feltadresse, intet issue-snapshot, ingen
+// Bevidst adskilt fra den autoritative feltvej: her er ingen feltadresse, intet issue-snapshot, ingen
 // `rejectedInputs`, ingen history og ingen persistens. Til gengæld bevares den Mineo-velkendte
 // blur-/Enter-commit-mekanik, så et transient felt føles som et rigtigt felt.
 //

@@ -19,7 +19,7 @@ import {
 import { useDocumentInputAccess, useInputEvaluation } from '../../../inputCore/react';
 import { createStandaloneDocumentEnvironment } from './standaloneDocumentEnvironment';
 
-/** Render-tidens delte kildekontekst. `settings` er `undefined`: standalone har ingen indstillinger. */
+/** Render-tidens delte kildekontekst. Gate-settings er `undefined`: standalone har ingen indstillinger. */
 export const useStandaloneDocumentSourceContext = (): DocumentSourceContext<void> => {
   const evaluation = useInputEvaluation();
   return useDocumentSourceContext<void>(evaluation, undefined);
@@ -37,9 +37,11 @@ export const useStandaloneDocumentOutput = <TInput, TRequest>(
     () => createStandaloneDocumentEnvironment(runtime),
     [runtime]
   );
-  const output: DocumentOutput<TRequest, void> = React.useMemo(
+  const output: DocumentOutput<TRequest, void, void> = React.useMemo(
     () => closeDocumentDefinition(definition, environment),
     [definition, environment]
   );
-  return useDocumentDownload(output, context, gateRequest);
+  // Render-settings er `undefined` af samme grund som gate-settings: standalone har fast PDF og intet
+  // brevhoved, så der findes ingen værdi at levere.
+  return useDocumentDownload(output, context, gateRequest, undefined);
 };

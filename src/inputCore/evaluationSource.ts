@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Greenfield-kerne (§3.4): issue-snapshots, consumerprojektioner og PreparedDocument bindes til ét
+// Inputkernen (§3.4): issue-snapshots, consumerprojektioner og PreparedDocument bindes til ét
 // EvaluationSourceToken. Tokenet omfatter BÅDE inputrevision OG settingsrevision, så en ændring i
 // AppSettings gør et resultat stale på samme måde som en ændring i input.
 

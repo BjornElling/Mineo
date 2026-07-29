@@ -29,7 +29,7 @@ fase 7 afsluttet 2026-07-28.
 **Anbefaling:** Gør den normative slutarkitektur entydig og flyt historisk gennemførelsesjournal ud.  
 **Forslag til løsning:** Konsolidér status til én aktuel sektion og markér eller flyt historiske faseafsnit.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 11)** — se etapenoten i `fund-oversigt.md`
 
 ### R1-F02 — Arkitekturdocs beskriver afløste grænser som aktuelle
 
@@ -48,7 +48,7 @@ Undo-doc’en lægger fokusmetadata på `FieldRef`, mens current history-origin 
 **Anbefaling:** Omskriv dem mod current typer, ejerskab og async-grænser.  
 **Forslag til løsning:** Concern-for-concern diff mod kontrakt og kode, ikke lokale tekstpatches.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 11)** — se etapenoten i `fund-oversigt.md`
 
 ### R1-F03 — Normative kontrakter bruger fortsat migrationssprog
 
@@ -65,7 +65,7 @@ overgangs-API’er som del af den aktuelle norm.
 **Anbefaling:** Omskriv kontrakterne til sluttilstandssprog.  
 **Forslag til løsning:** Klassificér alle forekomster og tilføj eventuelt et præcist regressionsværn.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 11)** — se etapenoten i `fund-oversigt.md`
 
 ### R1-F04 — Topologien mangler to underordnelsesrelationer
 
@@ -82,7 +82,7 @@ relationsdiff viser de to manglende entries. Coverage-testen måler ikke denne s
 **Anbefaling:** Tilføj relationerne og en test mod den komplette tværgående liste.  
 **Forslag til løsning:** Afled underordnelseslisten fra `crossCuttingContracts` eller hævd lighed.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 11)** — se etapenoten i `fund-oversigt.md`
 
 ### R1-F05 — Kode og testnavne beskriver stadig en migration
 
@@ -101,7 +101,7 @@ testnavne samt `GREENFIELD_INPUT_PATHS` og `onGreenfieldPath`.
 **Anbefaling:** Omskriv efter funktion og invariant, ikke efter migrationsfase.  
 **Forslag til løsning:** Maskinel kortlægning efterfulgt af én klassificeret sweep.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 11)** — se etapenoten i `fund-oversigt.md`
 
 ### R1-F06 — Levende ledgers beskrives som midlertidige
 
@@ -118,7 +118,7 @@ levende release-gate og completeness-backstop.
 **Anbefaling:** Omdøb og dokumentér registrene efter deres current coverage-funktion.  
 **Forslag til løsning:** Fjern fase-/migrationssprog og bevar den maskinelle gate.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 11)** — se etapenoten i `fund-oversigt.md`
 
 ### R1-F07 — Error-kontrakten prioriterer en slettet source-dimension
 
@@ -134,7 +134,7 @@ prioriterer reason, code og message uden source.
 **Anbefaling:** Fjern `/source` fra §4 og beskriv den faktiske deterministiske prioritet.  
 **Forslag til løsning:** Ren kontraktrettelse.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29 (etape 11)** — se etapenoten i `fund-oversigt.md`
 
 ## Hypoteser
 
@@ -153,3 +153,34 @@ runtime-typen `DocumentLifecyclePhase`; auth-kontraktens fremtidige re-evaluerin
 
 Exitkriterierne er ikke opfyldt. Kontrakter, docs og kode peger ikke samme vej, og sluttilstandssproget er
 ikke gennemført. Fundene er dokumentations-/arkitekturarbejde og kræver ingen brugerbeslutning.
+
+## Fasekonklusion efter rettelsen (2026-07-29, etape 11)
+
+Alle syv fund er lukket. Exitkriterierne er nu opfyldt for det inventerede område: kontrakter, de tre navngivne
+arkitekturdocs, designdokumentet, ledger-registrene og de aktive test-/kodenavne peger samme vej og beskriver
+sluttilstanden.
+
+**Det centrale strukturelle udfald: teksten var tidsafhængig af KONSTRUKTION, ikke ved forsømmelse.** Ingen af de
+syv fund skyldtes en glemt sætning. I hvert tilfælde havde et dokument fået en struktur, der blandede norm,
+historik og status i samme tekst — og en sådan struktur kan ikke holdes sand, uanset hvor omhyggeligt den
+vedligeholdes. Designdokumentets hoved var en kronologisk journal, hvor hver ny statuslinje modsagde de
+foregående; `Status:`-feltet lovede "målarkitektur" om noget, der var nået; ledgerne beskrev deres egen livstid ud
+fra en fase, der var forbi. Rettelserne adskiller derfor lagene:
+
+- **Journalen er udskilt** (`draft-commit-greenfield-journal.md`). Designdokumentet har ét statusafsnit og en
+  læsevejledning, der pr. afsnit siger om det er norm, form eller historik. De fire historiske afsnit bærer hver
+  sin markør — inklusive advarslen om, at deres tal og modulstier er fra deres eget tidspunkt og ikke er ført frem.
+  Det er en vigtig del af rettelsen: en historisk faseteksts modulsti er en fælde, ikke en oplysning.
+- **§10 er urørt ord for ord**, fordi acceptregistret læser den maskinelt. Læsevejledningen navngiver bindingen.
+- **`Status:` er "Normativ og gældende"** i alle 17 kontrakter.
+- **Ledgerne er omklassificeret** til den permanente release-gate, de faktisk er — og noten siger eksplicit, hvad
+  en sletning ville koste: ikke en note, men completeness-KRAVET (R1-F06).
+- **To fund fik en maskinel binding frem for kun en tekstrettelse**, fordi en ren tekstrettelse kan drifte igen:
+  R1-F04's hierarki-completeness (LIGHED mellem underordnelseslisten og det tværgående sæt) og R1-F07's
+  kontrakt↔kode-binding (prioritetsrækkefølgen læses ud af kontrakten og asserteres mod `compareFieldIssues`).
+  Begge er mutationsbevist; R1-F04's mutation er værd at bemærke, fordi de fire EKSISTERENDE topologitests
+  forblev grønne — de målte fil-completeness, og det var netop fundet.
+
+**Restarbejde, som ikke er lukket og ikke er talt som lukket:** R1-H01 og R1-H02 forbliver hypoteser.
+`docs/domain/`-området er ikke inventeret, og en concern-for-concern-diff af hver kontrakt mod hver arkitekturdoc
+er ikke gennemført — etapen dækkede kontrakterne, de tre docs fundene navngav, og designdokumentet.

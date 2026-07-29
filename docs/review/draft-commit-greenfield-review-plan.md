@@ -219,46 +219,56 @@ designdokumentets statusafsnit.
 
 ### Fasestatus
 
+Tællingen nedenfor er en AFLEDT oversigt. **Den autoritative kilde er
+[fund-oversigt](draft-commit-review/fund-oversigt.md)**, hvis statustabel er afstemt mod dens egne fundtabeller.
+Er de to uenige, har fund-oversigten ret, og denne tabel skal rettes — ikke omvendt.
+
 | Fase | Emne | Status | Fund (åbne/i alt) | Rapport |
 |---|---|---|---:|---|
-| R0 | Baseline, kortlægning og værnenes troværdighed | Delvist gennemgået | 3/3 | [R0-baseline-og-vaern](draft-commit-review/R0-baseline-og-vaern.md) |
-| R1 | Kontrakter, dokumentation og sluttilstandssprog | Delvist gennemgået | 7/7 | [R1-kontrakter-og-sluttilstandssprog](draft-commit-review/R1-kontrakter-og-sluttilstandssprog.md) |
-| R2 | Inputkerne, felteditor og afsluttet input | Delvist gennemgået | 1/3 | [R2-inputkerne-og-felteditor](draft-commit-review/R2-inputkerne-og-felteditor.md) |
-| R3 | Feltvurdering, issue-model og gates | Delvist gennemgået | 1/4 | [R3-issues-og-gates](draft-commit-review/R3-issues-og-gates.md) |
-| R4 | Persistence, session, `.eo` og undo/redo | Delvist gennemgået | 2/2 | [R4-persistence-session-eo-undo-redo](draft-commit-review/R4-persistence-session-eo-undo-redo.md) |
-| R5 | Domæneprojektioner og beregningsflow | Delvist gennemgået | 1/2 | [R5-domaeneprojektioner-og-beregningsflow](draft-commit-review/R5-domaeneprojektioner-og-beregningsflow.md) |
-| R6 | Dokumentoutput og generatorer | Delvist gennemgået | 2/4 | [R6-dokumentoutput-og-generatorer](draft-commit-review/R6-dokumentoutput-og-generatorer.md) |
-| R7 | Pages, shell, porte og UI-struktur | Delvist gennemgået | 3/3 | [R7-pages-shell-porte-og-ui-struktur](draft-commit-review/R7-pages-shell-porte-og-ui-struktur.md) |
-| R8 | Testkvalitet, kvalitetsværn og acceptmatrix | Delvist gennemgået | 8/8 | [R8-testkvalitet-vaern-og-acceptmatrix](draft-commit-review/R8-testkvalitet-vaern-og-acceptmatrix.md) |
+| R0 | Baseline, kortlægning og værnenes troværdighed | Gennemgået | 1/3 | [R0-baseline-og-vaern](draft-commit-review/R0-baseline-og-vaern.md) |
+| R1 | Kontrakter, dokumentation og sluttilstandssprog | Gennemgået | 0/7 | [R1-kontrakter-og-sluttilstandssprog](draft-commit-review/R1-kontrakter-og-sluttilstandssprog.md) |
+| R2 | Inputkerne, felteditor og afsluttet input | Gennemgået | 0/3 | [R2-inputkerne-og-felteditor](draft-commit-review/R2-inputkerne-og-felteditor.md) |
+| R3 | Feltvurdering, issue-model og gates | Gennemgået | 0/4 | [R3-issues-og-gates](draft-commit-review/R3-issues-og-gates.md) |
+| R4 | Persistence, session, `.eo` og undo/redo | Gennemgået | 0/2 | [R4-persistence-session-eo-undo-redo](draft-commit-review/R4-persistence-session-eo-undo-redo.md) |
+| R5 | Domæneprojektioner og beregningsflow | Gennemgået | 0/2 | [R5-domaeneprojektioner-og-beregningsflow](draft-commit-review/R5-domaeneprojektioner-og-beregningsflow.md) |
+| R6 | Dokumentoutput og generatorer | Gennemgået | 0/4 | [R6-dokumentoutput-og-generatorer](draft-commit-review/R6-dokumentoutput-og-generatorer.md) |
+| R7 | Pages, shell, porte og UI-struktur | Gennemgået | 1/3 | [R7-pages-shell-porte-og-ui-struktur](draft-commit-review/R7-pages-shell-porte-og-ui-struktur.md) |
+| R8 | Testkvalitet, kvalitetsværn og acceptmatrix | Gennemgået | 0/8 | [R8-testkvalitet-vaern-og-acceptmatrix](draft-commit-review/R8-testkvalitet-vaern-og-acceptmatrix.md) |
 | R9 | Tværgående konvergens og slutkontrol | Ikke startet | 0/0 | — |
 
+De to åbne fasefund er **R0-F01** (baseline kørt på ikke-understøttet runtime — en toolchain-beslutning uden
+kodeafhængighed) og **R7-F01** (page-viewmodel-laget på otte fagsider). Begge ligger i etape 12 og er de eneste
+tilbage sammen med GM-F10 + INC-F14.
+
 **Supplerende konvergensreview:** Gennemgået — 15 fund (GM-F01–GM-F15) i
-[grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md), hvoraf 10 er rettet (GM-F01,
-GM-F02, GM-F04, GM-F05, GM-F06, GM-F07, GM-F11, GM-F14, GM-F15). Rapportens anbefaling nr. 1 er lukket i sin
-helhed. Rapporten supplerer fasegennemgangene og erstatter ikke R9's afsluttende exitkriterier.
+[grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md), hvoraf 14 er rettet. Kun
+**GM-F10** er åben; den er udskilt til `work-items/WI-015-etape7-fokusmaal-ejerskab.md`, fordi kortlægningen viste
+at fundet er større end sin rapport (INC-F14: dens `fieldPath`-cellemål er bevisligt uopnåelige OG utestede).
+Rapportens anbefaling nr. 1 er lukket i sin helhed. Rapporten supplerer fasegennemgangene og erstatter ikke R9's
+afsluttende exitkriterier.
 
 **Brugertestfund:** 6 fund (UT-F01–UT-F06) i
-[draft-commit-brugertestfund](draft-commit-brugertestfund.md) — 1 afvist med evidens, 3 rettet, 2 åbne.
+[draft-commit-brugertestfund](draft-commit-brugertestfund.md) — 1 afvist med evidens, 5 rettet, 0 åbne.
 
-**Fund i alt:** 64 — 35 åbne, 28 rettet (UT-F03, UT-F04, UT-F05, R2-F01, R2-F02, R3-F01, R3-F02, R3-F04,
-R5-F01, R6-F01, R6-F02, GM-F01, GM-F02, GM-F04, GM-F05, GM-F06, GM-F07, GM-F11, GM-F14, GM-F15, INC-F01 –
-INC-F07), 1 afvist (UT-F01). Etape 1–6 er lukket. Tælling og rettelsesrækkefølge vedligeholdes i
+**Fund i alt (pr. 2026-07-29, etape 11 lukket):** 76 — **4 åbne** (R0-F01, R7-F01, GM-F10, INC-F14), 71 rettet,
+1 afvist med evidens (UT-F01). Etape 1–11 er lukket på nær GM-F10; kun **etape 12** udestår. De nitten
+`INC-F<nn>` er tilfældighedsfund konstateret UNDER rettearbejdet — antallet er et signal i sig selv: hver etape
+har afdækket noget, der ikke stod i den oprindelige analyse. Tælling og rettelsesrækkefølge vedligeholdes i
 [fund-oversigt](draft-commit-review/fund-oversigt.md).
 
 **Tilfældighedsfund:** Fund konstateret undervejs i rettearbejdet skal enten rettes straks eller skrives ind
 som nyt fund — aldrig blot nævnes i chatten. Reglen er bindende og står i
 [fund-oversigt](draft-commit-review/fund-oversigt.md).
 
-**Åbne godkendelsespunkter:** 0 — anbefalingerne i
-[grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md) samt R5-F01 og R7-F03 er
-godkendt til implementering. Brugte godkendelser: R6-F02 (etape 3), R3-F01 + R3-F02 (etape 4, første pas),
-**beslutning 1** (etape 4, andet pas — GM-F01's relevansmatrix) samt **beslutning 2** (GM-F04/R5-F01) og
-**beslutning 3** (GM-F05) i etape 5 — alle rettet 2026-07-28. Udestående godkendelser, endnu ikke brugt:
-**beslutning 4** (etape 8) og R7-F03 (etape 7). Se
-`docs/review/draft-commit-review/fund-oversigt.md`
+**Åbne godkendelsespunkter:** 0 — og **alle fire produktbeslutninger er BRUGT**: beslutning 1 (GM-F01's
+relevansmatrix, etape 4), 2 (GM-F04/R5-F01) og 3 (GM-F05) i etape 5, og 4 (GM-F12's reload) i etape 8. Øvrige
+brugte godkendelser: R6-F02 (etape 3), R3-F01 + R3-F02 (etape 4), R7-F03 + de to UI/UX-punkter i etape 7. Er der
+brug for en femte beslutning, skal den forelægges brugeren som et konkret bruger-oplevet eksempel (design §12).
 
-**Åbne hypoteser:** 4 — se fase-rapporterne (R3-H01 blev bekræftet og lukket 2026-07-28 i etape 4: der fandtes
-præcis fem brede issue-læsninger, fire af dem blokerende, og alle fire er rettet)
+**Åbne hypoteser:** 3 — R1-H01 og R1-H02 (yderligere semantisk drift i docs; `docs/domain/` er ikke inventeret)
+samt R0's precondition-liveness-forbehold. Lukket undervejs: **R3-H01** (bekræftet og lukket i etape 4 — der
+fandtes præcis fem brede issue-læsninger, fire blokerende, alle rettet) og **R8-H01** (bortfaldet i etape 11:
+formatafhængigheden er blevet urepræsenterbar, så spørgsmålet kan ikke længere stilles).
 
 ## Sådan bruges dokumentet
 

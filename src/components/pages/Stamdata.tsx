@@ -19,7 +19,7 @@ import DateField from '../../inputCore/react/fields/DateField';
 import TextField from '../../inputCore/react/fields/TextField';
 import ContentBox from '../layout/ContentBox';
 
-// Greenfield-migreret (§2.4, formularrækkefølge trin 1 — FØRSTE callsite-cutover). Erstatter den legacy
+// Erstatter den legacy
 // `usePersistedForm`+`Styled*Field`+`useFormFieldErrorReporter`-vej med de tynde feltskaller i
 // `inputCore/react/fields/` (`TextField`, `DateField`, …).
 // Hvert felt modtager KUN sin konkrete `field` (descriptor.bind()) og `location` (stabilt locationId) — ingen

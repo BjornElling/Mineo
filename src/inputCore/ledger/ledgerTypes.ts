@@ -1,9 +1,15 @@
 import type { SectionKey } from '../fieldAddress';
 
-// Greenfield-kerne (§6): maskinlæsbare, midlertidige migrationsinventarer med én dataidentitet pr. felt,
-// collection og makro-consumer. De er coverage-backstops — ikke runtime-routere. De fastlåser
-// den eksisterende, låste feature-flade, indtil de enkelte entrypoints fuses ind i `src/inputCore`-
-// descriptorkataloget (Fase 2) og consumer-cutoveren (Fase 3–5), hvorefter de slettes.
+// Maskinlæsbare COVERAGE-REGISTRE med én dataidentitet pr. felt, collection og makro-consumer.
+//
+// **Levende og load-bearing (R1-F06).** Typerne beskrev sig selv som midlertidige migrationsinventarer, der
+// skulle slettes efter cutoveren. De er i stedet blevet en release-gate: `verify:ledgers` kører som del af
+// `verify:release`, og registrene er den opregnelige mængde, completeness-testene måler dækning imod.
+// Deres levende ansvar er SCHEMA-/CONSUMERDRIFT — at et nyt felt, en ny collection eller et nyt entrypoint
+// ikke kan glide ind uregistreret, og at et registreret symbol ikke kan forsvinde ubemærket.
+//
+// De er coverage-registre og ikke runtime-routere: de opregner, hvad der findes, og afgør intet om, hvad der
+// sker. Den grænse er fortsat bindende.
 
 /** Codec-familier på tværs af form og grid (§3.3). Én familie pr. inputtype. */
 export type CodecFamily =

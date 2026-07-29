@@ -198,8 +198,8 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
     };
   }, [controller, gridStateStore, tableKind]);
 
-  // Bemærk (greenfield-cutover): grid-core registrerer IKKE længere en legacy critical-action-deltager.
-  // Den åbne celleeditor barriereres nu gennem greenfield-runtimens `ActiveEditorRegistry` +
+  // Bemærk (cutover): grid-core registrerer IKKE længere en legacy critical-action-deltager.
+  // Den åbne celleeditor barriereres nu gennem input-runtimens `ActiveEditorRegistry` +
   // `CriticalActionCoordinator` (§3.5/§3.6), som `useGridCellSurface` melder cellen ind i. Den tidligere
   // registrering her var en no-op efter shell-cutoveren (ingen `CriticalActionProvider` i produktion).
 

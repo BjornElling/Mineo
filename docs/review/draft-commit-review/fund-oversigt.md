@@ -4,27 +4,27 @@ Samlet register over alle fund i draft/commit-reviewet: fasefundene (R0–R8), d
 konvergensreview (GM-F01–GM-F15) og brugertestfundene (UT-F01–UT-F06). Én linje pr. fund, ingen prosa —
 beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
-**Sidst opdateret:** 2026-07-29 (etape 10 lukket)
+**Sidst opdateret:** 2026-07-29 (etape 11 lukket)
 
 ## Status
 
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
-| R0–R8 (fasefund) | 36 | 12 | 24 | 0 |
+| R0–R8 (fasefund) | 36 | 2 | 34 | 0 |
 | GM (konvergensreview) | 15 | 1 | 14 | 0 |
 | UT (brugertest) | 6 | 0 | 5 | 1 |
-| INC (tilfældighedsfund) | 18 | 1 | 17 | 0 |
-| **I alt** | **75** | **14** | **60** | **1** |
+| INC (tilfældighedsfund) | 19 | 1 | 18 | 0 |
+| **I alt** | **76** | **4** | **71** | **1** |
 
 Etape 7 er lukket **på nær GM-F10**, som holdes åben sammen med INC-F14 (se noterne nedenfor): kortlægningen
 viste, at fundet er større end sin rapport, og at dens `fieldPath`-cellemål slet ikke er i brug i dag.
 
-Etape 8, 9 og 10 er **lukket 2026-07-29**. Tilbage står etape 11–12 samt GM-F10.
+Etape 8, 9, 10 og 11 er **lukket 2026-07-29**. **Tilbage står kun etape 12 (R7-F01, R0-F01) samt GM-F10 +
+INC-F14.**
 
-**R0-F03 er bevidst IKKE lukket med etape 10**, selv om den stod i etapen: dens rettelse ER R6-F03's
-rettelse (fjern `documentDownloadFormat` fra projektionskonteksten), og den hører derfor til etape 11. Etapen
-flyttede begrænsningen ordret til det nye §10-kriterium 27 og bevarede kravet om, at den sporende WI-fil
-findes. Begrundelsen står i fundet.
+**R0-F03 blev bevidst IKKE lukket med etape 10** — dens rettelse ER R6-F03's, og begge er lukket med etape 11.
+Etape 10 flyttede begrænsningen ordret til §10-kriterium 27; etape 11 fjernede den, fordi capabilityen bag den
+er væk. Registrets "der er ingen kendte begrænsninger"-påstand er nu et gulv, en ny note ikke kan glide forbi.
 
 ## Bindende regel for tilfældighedsfund
 
@@ -64,7 +64,7 @@ en etape rettes og verificeres sammen.
 | **8** | R4-F01, R4-F02, GM-F12, GM-F13 | Persistence og hel-sags-handlinger: draft kasseres efter replacement, ufuldstændig oprydning accepteres som succes, `Slet alt` afsluttes anderledes end load. Bærer beslutning 4. Lukket 2026-07-29 — se etapenoten nedenfor. |
 | **9** | GM-F08, GM-F09, R5-F02, R8-F07, R0-F02 | Døde veje og værn, der ikke kan fejle. Ligger efter etape 1–8, fordi rettelserne dér kan efterlade nye rester og gøre flere værn inerte. Lukket 2026-07-29 — se etapenoten nedenfor. |
 | **10** | R8-F01, R8-F03, R8-F02, R8-F04, R8-F05, R8-F06, R2-F03, R6-F04, R0-F03 | Testdækning og acceptmatrix: §10's kriterier og de obligatoriske statekæder får et levende register. Sidst, fordi dækningen skal måles mod den FÆRDIGE arkitektur, ikke mod en mellemtilstand. Lukket 2026-07-29 **på nær R0-F03**, hvis rettelse er R6-F03's og derfor flytter til etape 11 — se etapenoten nedenfor. |
-| **11** | R1-F01, R1-F02, R1-F03, R1-F04, R1-F05, R1-F06, R1-F07, R6-F03, R8-F08 | Kontrakter, docs og sluttilstandssprog. Til sidst pr. review-planens R1b/R9: teksten skal beskrive systemet, som det er efter alle rettelser. |
+| **11** | R6-F03, R0-F03, R1-F04, R1-F07, R1-F03, R1-F01, R1-F02, R1-F06, R1-F05, R8-F08 | Kontrakter, docs og sluttilstandssprog. Til sidst pr. review-planens R1b/R9: teksten skal beskrive systemet, som det er efter alle rettelser. Lukket 2026-07-29 — se etapenoten nedenfor. R0-F03 flyttede hertil fra etape 10, fordi dens rettelse ER R6-F03's. |
 | **12** | R7-F01, R0-F01 | Vurderes til sidst: R7-F01 er en omlægning af otte fagsider og kan blive en work item frem for en reviewrettelse; R0-F01 er en runtime-/toolchain-beslutning uden kodeafhængighed. |
 
 **Undtagelse fra rækkefølgen:** et nyt kritisk tilfældighedsfund rettes, når det konstateres — ikke når dets
@@ -76,14 +76,14 @@ etape kommer.
 |---|---|---|---|---:|---|---|
 | R0-F01 | Baseline kørt på ikke-understøttet runtime | Væsentlig | `package.json:22-24` | 12 | Åbent | [R0](R0-baseline-og-vaern.md#r0-f01--baseline-kørt-på-ikke-understøttet-runtime) |
 | R0-F02 | Tekstprober kan holde døde værn levende | Væsentlig | Harnessets liveness-lag (`architectureRules.test.ts`) + 14 prober | 9 | **Rettet 2026-07-29** | [R0](R0-baseline-og-vaern.md#r0-f02--tekstprober-kan-holde-døde-værn-levende) |
-| R0-F03 | Dokumentformatværnet dækker kun to ready-grene | Væsentlig | Kriterium 27's `knownLimitation` | 11 | Åbent (WI-014 / R6-F03) | [R0](R0-baseline-og-vaern.md#r0-f03--dokumentformatværnet-dækker-kun-to-ready-grene) |
-| R1-F01 | Designdokumentets status er indbyrdes modstridende | Væsentlig | `draft-commit-greenfield-design.md` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f01--designdokumentets-status-er-indbyrdes-modstridende) |
-| R1-F02 | Arkitekturdocs beskriver afløste grænser som aktuelle | Væsentlig | `docs/architecture/` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f02--arkitekturdocs-beskriver-afløste-grænser-som-aktuelle) |
-| R1-F03 | Normative kontrakter bruger fortsat migrationssprog | Væsentlig | `src/contracts/` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f03--normative-kontrakter-bruger-fortsat-migrationssprog) |
-| R1-F04 | Topologien mangler to underordnelsesrelationer | Væsentlig | `contract-topology.json:26-51` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f04--topologien-mangler-to-underordnelsesrelationer) |
-| R1-F05 | Kode og testnavne beskriver stadig en migration | Væsentlig | `src/` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f05--kode-og-testnavne-beskriver-stadig-en-migration) |
-| R1-F06 | Levende ledgers beskrives som midlertidige | Væsentlig | `consumerInventory.ts`, `ledgerTypes.ts` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f06--levende-ledgers-beskrives-som-midlertidige) |
-| R1-F07 | Error-kontrakten prioriterer en slettet source-dimension | Mindre | `error-contract.md:114,220` | 11 | Åbent | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f07--error-kontrakten-prioriterer-en-slettet-source-dimension) |
+| R0-F03 | Dokumentformatværnet dækker kun to ready-grene | Væsentlig | Kriterium 27 (`knownLimitation` FJERNET) | 11 | **Rettet 2026-07-29** | [R0](R0-baseline-og-vaern.md#r0-f03--dokumentformatværnet-dækker-kun-to-ready-grene) |
+| R1-F01 | Designdokumentets status er indbyrdes modstridende | Væsentlig | `draft-commit-greenfield-design.md` + ny `-journal.md` | 11 | **Rettet 2026-07-29** | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f01--designdokumentets-status-er-indbyrdes-modstridende) |
+| R1-F02 | Arkitekturdocs beskriver afløste grænser som aktuelle | Væsentlig | `eo-row-evaluation-`, `document-output-`, `undo-redo-architecture.md` | 11 | **Rettet 2026-07-29** | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f02--arkitekturdocs-beskriver-afløste-grænser-som-aktuelle) |
+| R1-F03 | Normative kontrakter bruger fortsat migrationssprog | Væsentlig | `src/contracts/` (17 status-headere + fem tekststeder) | 11 | **Rettet 2026-07-29** | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f03--normative-kontrakter-bruger-fortsat-migrationssprog) |
+| R1-F04 | Topologien mangler to underordnelsesrelationer | Væsentlig | `contract-topology.json` + hierarki-completeness-test | 11 | **Rettet 2026-07-29** | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f04--topologien-mangler-to-underordnelsesrelationer) |
+| R1-F05 | Kode og testnavne beskriver stadig en migration | Væsentlig | `src/` (0 `greenfield` tilbage i produktion) | 11 | **Rettet 2026-07-29** | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f05--kode-og-testnavne-beskriver-stadig-en-migration) |
+| R1-F06 | Levende ledgers beskrives som midlertidige | Væsentlig | `consumerInventory.ts`, `ledgerTypes.ts`, `verify-input-ledgers.mjs`, designets §6 | 11 | **Rettet 2026-07-29** | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f06--levende-ledgers-beskrives-som-midlertidige) |
+| R1-F07 | Error-kontrakten prioriterer en slettet source-dimension | Mindre | `error-contract.md` §4 + ny kontrakt↔kode-binding | 11 | **Rettet 2026-07-29** | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f07--error-kontrakten-prioriterer-en-slettet-source-dimension) |
 | R2-F01 | Indsæt dags dato fejler på fem sider | Væsentlig | Fem side-callsites | 2 | **Rettet 2026-07-28** | [R2](R2-inputkerne-og-felteditor.md#r2-f01--indsæt-dags-dato-fejler-på-fem-sider) |
 | R2-F02 | Kontrakt og kode er uenige om skjulte canonical fejl | Væsentlig | `form-contract.md:207-208` | 4 | **Rettet 2026-07-28** | [R2](R2-inputkerne-og-felteditor.md#r2-f02--kontrakt-og-kode-er-uenige-om-skjulte-canonical-fejl) |
 | R2-F03 | Obligatoriske statekæder er ufuldstændigt dækket | Væsentlig | `stateChains.test.ts` (ny) | 10 | **Rettet 2026-07-29** | [R2](R2-inputkerne-og-felteditor.md#r2-f03--obligatoriske-statekæder-er-ufuldstændigt-dækket) |
@@ -97,7 +97,7 @@ etape kommer.
 | R5-F02 | Raw-section-værnet overser property- og spread-adgang | Væsentlig | `NewCaseSeed`-signaturen + `domain/raw-section-access-boundary` (alle fire former) | 9 | **Rettet 2026-07-29** | [R5](R5-domaeneprojektioner-og-beregningsflow.md#r5-f02--raw-section-værnet-overser-property--og-spread-adgang) |
 | R6-F01 | Frisk token bindes til render-fangede settings | Kritisk | `mineoDocumentEnvironment.ts:44-50` | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f01--frisk-token-bindes-til-render-fangede-settings) |
 | R6-F02 | Otte outputs kasserer beskeden efter afbrudt download | Væsentlig | Otte dokument-callsites | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f02--otte-outputs-kasserer-brugerbeskeden-efter-en-afbrudt-download) |
-| R6-F03 | Dokumentformat er fortsat en lovlig gate-dependency | Væsentlig | `sourceSettings.ts:8-85` | 11 | Åbent | [R6](R6-dokumentoutput-og-generatorer.md#r6-f03--dokumentformat-er-fortsat-en-lovlig-gate-dependency) |
+| R6-F03 | Dokumentformat er fortsat en lovlig gate-dependency | Væsentlig | `DocumentSourceSnapshot` (to disjunkte settings-halvdele) | 11 | **Rettet 2026-07-29** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f03--dokumentformat-er-fortsat-en-lovlig-gate-dependency) |
 | R6-F04 | Gatekontrakten er kun målt på fire af atten definitioner | Væsentlig | `documentGatePreflightParity.test.ts` (ny) | 10 | **Rettet 2026-07-29** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f04--gatekontrakten-er-kun-målt-på-fire-af-atten-definitioner) |
 | R7-F01 | Det obligatoriske page-viewmodel-lag findes ikke | Væsentlig | Alle otte persisterede fagsider | 12 | Åbent | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f01--det-obligatoriske-page-viewmodel-lag-findes-ikke) |
 | R7-F02 | To toggles omgår feltfamilien og mister fokusmetadata | Væsentlig | `ToggleField.tsx`, `MappedToggleField.tsx` (`commit`-override) | 7 | **Rettet 2026-07-29** | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f02--to-persisterede-toggles-omgår-feltfamilien-og-mister-fokusmetadata) |
@@ -109,7 +109,7 @@ etape kommer.
 | R8-F05 | Warning-benet i issue-/gate-matricen er falsk dækket | Væsentlig | `documentGateMatrix.test.ts` (ægte domæne-warning + motor-spy) | 10 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f05--warning-benet-i-issue-gate-matricen-er-falsk-dækket) |
 | R8-F06 | Kritiske handlinger er ikke integrationstestet ens | Væsentlig | `criticalActionSurfaceParity.test.tsx` (ny) | 10 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f06--kritiske-handlinger-er-ikke-integrationstestet-ens-for-form-og-grid) |
 | R8-F07 | EO-surface-værnet kan omgås med en kommentar | Væsentlig | `input/eo-surface-on-greenfield-path` (afløser den slettede tekst-guard) | 9 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f07--eo-surface-værnet-kan-omgås-med-en-kommentar) |
-| R8-F08 | Aktive testnavne beskriver fortsat migrationen | Mindre | `src/__tests__/` | 11 | Åbent | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f08--aktive-testnavne-beskriver-fortsat-migrationen) |
+| R8-F08 | Aktive testnavne beskriver fortsat migrationen | Mindre | `testNamingConvention.test.ts` (nyt værn) + 26 omskrevne navne | 11 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f08--aktive-testnavne-beskriver-fortsat-migrationen) |
 
 ## Konvergensfund (GM)
 
@@ -225,6 +225,7 @@ Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:t
 | INC-F16 | `pendingOverlay` + `allowExitWithoutWarning` fandtes kun for at overleve en reload | Mindre | GM-F12 | **Rettet 2026-07-29** |
 | INC-F17 | Kernens generiske warning-kanal havde nul producenter OG nul læsere | Væsentlig | R8-F05 | **Rettet 2026-07-29** |
 | INC-F18 | Min egen første mount-uafhængighedstest var inert i den ene retning | Væsentlig | Kriterium 22's værn | **Rettet 2026-07-29** |
+| INC-F19 | To døde veje til format/brevhoved uden om gaten: rendererens `settings`-parameter og `DocumentSettings`-DTO'en | Væsentlig | R6-F03 | **Rettet 2026-07-29** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
@@ -886,3 +887,83 @@ skrev viste sig inert (INC-F03, INC-F11, nu INC-F18) — og fordi det skærper l
 INC-F11's: det er ikke nok at mutationsteste mod den levende kilde. Man skal mutationsteste mod **hver retning
 af den invariant, værnet påstår at dække**. Mine tre første mutationer ramte alle mount→evaluering-retningen
 og bestod; kun den fjerde spurgte, om DOM fulgte med.
+
+**R6-F03 + R0-F03 + R1-F01…R1-F07 + R1-F06 + R8-F08 — rettet 2026-07-29 (etape 11).** Kontrakter, docs og
+sluttilstandssprog, plus den ENE produktionsændring etapen bar. Fire gates + `verify:ledgers` + fuld suite grøn:
+**505 filer / 6522 tests** (netto +1 fil / −29 tests: én ny værn-fil og én ny delt parser-fil mod en slettet
+død testfil, og format-invariansens 36 fixture-cases erstattet af fire stærkere bens).
+
+**Etapens gennemgående mønster: teksten var ikke bare forældet — den var TIDSAFHÆNGIG af konstruktion.** Ingen af
+de syv R1-fund skyldtes en glemt opdatering af en enkelt sætning. I hvert tilfælde havde et dokument fået en
+STRUKTUR, der blandede norm, historik og status, så det ikke KUNNE holdes sandt: designdokumentets hoved var en
+kronologisk journal, hvor hver ny statuslinje modsagde de foregående; kontrakternes `Status:`-felt sagde
+"målarkitektur" om noget, der var nået; ledgerne beskrev deres egen livstid ud fra en fase, der var forbi.
+Rettelserne adskiller derfor lagene frem for at rette ordene:
+
+- **journalen er udskilt** til `draft-commit-greenfield-journal.md`, og designdokumentet har ÉT statusafsnit plus
+  en læsevejledning, der pr. afsnit siger om det er norm, form eller historik. De historiske afsnit (§2, §5, §8,
+  §9) bærer nu hver sin blockquote-markør, inklusive den vigtige advarsel om, at deres tal og modulstier er fra
+  deres eget tidspunkt og ikke er ført frem.
+- **`Status:` betyder nu "Normativ og gældende"** i alle 17 kontrakter frem for "Normativ målarkitektur".
+- **ledgerne er OMKLASSIFICERET** fra midlertidige migrationsinventarer til den permanente release-gate, de
+  faktisk er (`verify:ledgers` i `verify:release`). Begrundelsen står på alle fire steder, og noten siger
+  eksplicit hvad der går tabt ved en sletning: ikke en note, men completeness-KRAVET.
+
+**Den ene produktionsændring: formatet kan ikke længere nå en dokumentgate (R6-F03, lukker også R0-F03).**
+Kortlægningen viste, at definitionerne i produktionen læser præcis ÉN ting fra `settings` —
+`projectEoRowPolicy(context.settings)` i EO. Løsningen er derfor en delmængde, ikke en indpakning:
+`DocumentSourceSnapshot` bærer nu `gateSettings` + `renderSettings` som to DISJUNKTE halvdele,
+`DocumentSourceContext` er generisk over gate-halvdelen alene, og `projectDocumentRenderSettings` er
+render-halvdelens eneste konstruktør (nominel, som de to øvrige). Hovedappen binder
+`MineoDocumentGateSettings = EoRowPolicy`; standalone binder `void` for begge. **Begge halvdele projiceres fra ÉT
+`readSourceSettings()`-læs**, så R6-F01's atomicitet ikke svækkes af opdelingen — pinnet af en ny test, der
+tæller læsningerne.
+
+*Hvorfor det ikke kunne løses med et værn:* §A2a's paritet mellem reaktiv gate og click-preflight kalder SAMME
+`project`, så en formatafhængig gate ville se ens skæv ud i begge kanaler. Værnet ovenpå havde desuden et kendt
+hul — 34 af 36 fixture-projektioner var `blocked`, kun 2 nåede deres ready-gren. Nu er det en compilerfejl.
+
+**Format-invariansværnet er OMSKREVET, ikke bevaret som sikkerhedsnet** (afvigelse fra WI-014's plan). Den gamle
+invarians-sammenligning KAN ikke længere skrives: der findes ingen formatakse at variere i en projektion, og en
+bevaret udgave ville måle en anden invariant end sit eget navn. Filen hævder nu typegrænsen med en RIGTIG
+TypeScript-oversættelse af en virtuel definition mod det ægte program (`ts.createProgram` + in-memory
+`CompilerHost`) og kræver `TS2339` — plus en **kontrolprøve**, der skal kompilere rent. Kontrolprøven er det, der
+gør TS2339-assertionen til evidens: uden den kunne proben være rød af en forkert importsti.
+
+**INC-F19: to døde veje til format/brevhoved uden om gaten.** `ResolvedDocumentAction.loadRenderer` returnerede en
+funktion med en `settings`-parameter, som dens ENESTE producent ignorerede — en åben vej for en generator til at
+læse format og brevhoved-flags rå. Og `DocumentSettings` + `getVisBrevhoved` i `documentBrevhoved.ts` havde NUL
+produktionscallsites (opslaget bor i miljøet); DTO'en var desuden struktur-supersæt-tilfredsstillet af hele
+`AppSettings` — netop den tavse vej, `SourceSettings`' mærke blev indført for at lukke. Begge slettet, og
+`DocumentRenderSettings` er gjort NOMINEL af samme grund. Fundet er registreret frem for blot slettet, fordi det
+viser, at **R6-F03's fejlklasse fandtes i tre lag, ikke ét** — gaten, den løftede renderer og en glemt DTO.
+
+**Mutationsbevis — fem uafhængige mutationer mod den LEVENDE kilde:**
+
+| Mutation | Rammer | Udfald |
+|---|---|---|
+| `MineoDocumentGateSettings` udvides med `documentDownloadFormat` | format-invariansen | rød: proben kompilerer, `expected [] to include 2339`; de tre øvrige ben forbliver grønne |
+| `snapshot-contract.md` fjernes fra underordnelseslisten | topologiens hierarki-completeness | rød — og de FIRE eksisterende topologitests forbliver grønne, hvilket ER fundet |
+| kontraktens reason-rangorden byttes om | error-kontrakt↔kode-bindingen | rød med "compareFieldIssues rangerer reasons anderledes end kontrakten beskriver" |
+| `describe('greenfield fieldCodecs')` genindføres | testnavne-værnet | rød med fil:linje og det ramte mønster |
+| samme navn, men under `describe.skip` | testnavne-værnet | **grøn** — arvet skip respekteres, så værnet måler AKTIVE navne |
+
+De to sidste hører sammen: et navneværn, der ikke kan skelne en aktiv fra en skippet deklaration, ville flage
+historiske, deaktiverede tests og dermed presse mod en undtagelsesliste, der udvander reglen.
+
+**Parseren er DELT frem for kopieret.** Værnet bruger `quality/testDeclarations.ts` — samme AST-parser som
+acceptregistret, udskilt i denne etape. To kopier af den samme svære sondring (arvet skip, leaf vs. suite,
+dynamiske navne) er præcis den drift, begge værn findes for at fange.
+
+**Ærlige afgrænsninger:**
+
+- **`legacy` er IKKE et forbudt ord i testnavne-værnet.** Ordet har en levende, korrekt betydning: `.eo`-filer og
+  sessioner fra ældre programversioner ER legacy-formater, som load-stien tolererer med vilje, og fraværsværn
+  navngiver med vilje de slettede symboler. Et forbud ville have tvunget en omskrivning af sande navne — og et
+  værn, hvis undtagelsesliste bliver længere end dens fund, måler ikke længere noget. 15 af de 41 sweep-fund er
+  derfor bevaret uændret, og tre navne står på en begrundet ALLOWED-liste med anti-rot i begge retninger.
+- **R1-H01/R1-H02 er ikke efterprøvet udtømmende.** Hypotesen om yderligere semantisk drift i `docs/domain/` er
+  ikke inventeret; etapen dækkede kontrakterne, de tre navngivne arkitekturdocs og designdokumentet. Det står som
+  en åben hypotese i R1-rapporten, ikke som et lukket fund.
+- **§10's 30 acceptkriterier er urørt ord for ord.** De læses maskinelt af acceptregistret, så en sproglig
+  oprydning dér ville være en ændring af registrets kilde. Læsevejledningen navngiver bindingen i stedet.

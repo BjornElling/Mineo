@@ -11,7 +11,7 @@ import { stamdataCollections, stamdataFields } from './stamdataDescriptors';
 import { varigeMenCollections, varigeMenFields } from './varigeMenDescriptors';
 import { loenindkomstSatsDerivedWrite } from '../../domain/erstatningsopgoerelse/control/loenindkomstSatsDerivedWrite';
 
-// Greenfield produkt-descriptor-katalog (§3.2, Fase 2.1). Det ene statiske katalog over alle persisterede
+// Produkt-descriptor-kataloget (§3.2). Det ene statiske katalog over alle persisterede
 // brugerfelter — fusion af de tidligere ti binding-manifester til inputCore-descriptors. Hvert descriptor
 // ejer id, codec, semantisk tomhed, canonical read/write, label, kontroltype (relevans/validators tilføjes
 // pr. slice i fase 3). Kataloget valideres ÉN gang i `createInputCatalog`; ingen seal/brand/WeakSet.

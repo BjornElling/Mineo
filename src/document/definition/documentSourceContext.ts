@@ -22,6 +22,13 @@
  * preflighten. Nøglen er altså aldrig tokenet — to kontekster med samme token er stadig to
  * selvstændige, immutable snapshots, og cachen kan derfor aldrig udlevere et resultat, der hører til
  * et andet input eller andre settings.
+ *
+ * **`settings` er GATE-settings og intet andet (R6-F03).** Konteksten bar før hele hovedappens
+ * `SourceSettings`, som også indeholder `documentDownloadFormat`. Enhver definition kunne derfor
+ * lovligt forgrene sin gate på det valgte outputformat — en usynlig, formatafhængig blokering, som
+ * §A2a's krav om samme definition i begge kanaler ikke fanger, fordi begge kanaler ville se den
+ * samme skæve gate. Formatet og brevhovedet bor nu i miljøets `renderSettings` og læses først EFTER
+ * gaten; her er de ikke i typen, så et forsøg på at læse dem er en compilerfejl.
  */
 import type { InputEvaluation } from '../../inputCore/inputReader';
 
@@ -29,35 +36,36 @@ import type { InputEvaluation } from '../../inputCore/inputReader';
  * En delt, memoiserbar domæneprojektion. Fordi builderen selv er nøglen, er `T` bundet til den ene
  * funktion — der findes ingen vej til at læse samme slot som en anden type.
  */
-export type SharedProjectionBuilder<TSettings, T> = (context: DocumentSourceContext<TSettings>) => T;
+export type SharedProjectionBuilder<TGateSettings, T> = (context: DocumentSourceContext<TGateSettings>) => T;
 
-export type DocumentSourceContext<TSettings> = Readonly<{
+export type DocumentSourceContext<TGateSettings> = Readonly<{
   evaluation: InputEvaluation;
-  settings: TSettings;
+  /** Den gate-relevante politik. Format og brevhoved findes bevidst IKKE her (R6-F03). */
+  settings: TGateSettings;
   /**
    * Kør `builder` én gang pr. kontekst og genbrug resultatet. `builder` skal være en modul-lokal,
    * stabil reference (typisk en top-level `const`), ellers rammer to kald aldrig samme slot.
    */
-  shared: <T>(builder: SharedProjectionBuilder<TSettings, T>) => T;
+  shared: <T>(builder: SharedProjectionBuilder<TGateSettings, T>) => T;
 }>;
 
-export const createDocumentSourceContext = <TSettings>(
+export const createDocumentSourceContext = <TGateSettings>(
   evaluation: InputEvaluation,
-  settings: TSettings
-): DocumentSourceContext<TSettings> => {
-  const memo = new Map<SharedProjectionBuilder<TSettings, unknown>, unknown>();
+  settings: TGateSettings
+): DocumentSourceContext<TGateSettings> => {
+  const memo = new Map<SharedProjectionBuilder<TGateSettings, unknown>, unknown>();
 
-  const context: DocumentSourceContext<TSettings> = Object.freeze({
+  const context: DocumentSourceContext<TGateSettings> = Object.freeze({
     evaluation,
     settings,
-    shared: <T>(builder: SharedProjectionBuilder<TSettings, T>): T => {
-      const cached = memo.get(builder as SharedProjectionBuilder<TSettings, unknown>);
-      if (cached !== undefined || memo.has(builder as SharedProjectionBuilder<TSettings, unknown>)) {
+    shared: <T>(builder: SharedProjectionBuilder<TGateSettings, T>): T => {
+      const cached = memo.get(builder as SharedProjectionBuilder<TGateSettings, unknown>);
+      if (cached !== undefined || memo.has(builder as SharedProjectionBuilder<TGateSettings, unknown>)) {
         // Nøglen ER builderen, så det cachede resultat kan kun stamme fra netop denne `T`.
         return cached as T;
       }
       const value = builder(context);
-      memo.set(builder as SharedProjectionBuilder<TSettings, unknown>, value);
+      memo.set(builder as SharedProjectionBuilder<TGateSettings, unknown>, value);
       return value;
     },
   });

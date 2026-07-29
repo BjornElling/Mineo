@@ -36,8 +36,11 @@ import { defineDocumentAction, resolveDocumentDefinition } from '../../document/
 import type { DocumentBrevhovedType } from '../../document/layout/documentBrevhoved';
 import type { DocumentGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
-import type { SourceSettings } from '../../settings/sourceSettings';
-import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
+import {
+  defineMineoDocument,
+  type MineoDocumentDefinition,
+  type MineoDocumentGateSettings,
+} from '../../document/definition/mineoDocumentDefinition';
 import {
   eoAngivetLoenFields,
   eoEmploymentFields,
@@ -233,7 +236,7 @@ type SharedReguleringSource = Readonly<{
 
 /** Builderen er selv memo-nøglen, så de tre outputs deler ét slot pr. kildekontekst. */
 const readSharedReguleringSource = (
-  context: DocumentSourceContext<SourceSettings>
+  context: DocumentSourceContext<MineoDocumentGateSettings>
 ): SharedReguleringSource => ({
   reader: context.evaluation.reader,
   stamdata: projectStamdataForDocument(context.evaluation.reader, REGULERING_DOCUMENT_CONSUMER_ID),
@@ -292,7 +295,7 @@ const blocked = <TInput>(reasons: DocumentGateReasons): DocumentProjectionResult
  * tilstand og er derfor nu en `blocked`-årsag fra gaten.
  */
 const projectReguleringCommon = <TInput>(
-  context: DocumentSourceContext<SourceSettings>,
+  context: DocumentSourceContext<MineoDocumentGateSettings>,
   request: ReguleringDocumentRequest
 ):
   | Readonly<{ kind: 'blocked'; result: DocumentProjectionResult<TInput> }>
@@ -508,7 +511,7 @@ export const klLoenaftalerDocumentDefinition: MineoDocumentDefinition<Regulering
 export type ReguleringDocumentOutputId = 'regulering' | 'krl' | 'kl-loenaftaler';
 
 export const resolveReguleringDocumentOutputId = (
-  context: DocumentSourceContext<SourceSettings>,
+  context: DocumentSourceContext<MineoDocumentGateSettings>,
   request: ReguleringDocumentRequest
 ): ReguleringDocumentOutputId | null => {
   const source = readRequestedSource(context.shared(readSharedReguleringSource), request);
@@ -532,7 +535,7 @@ export const resolveReguleringDocumentOutputId = (
  */
 export const reguleringDocumentAction = defineDocumentAction<
   ReguleringDocumentRequest,
-  SourceSettings,
+  MineoDocumentGateSettings,
   DocumentBrevhovedType
 >({
   id: 'regulering',

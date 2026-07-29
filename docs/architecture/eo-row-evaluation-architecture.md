@@ -5,11 +5,12 @@
 
 Dette dokument er et arbejdsredskab for ændringer i EO-række-evaluering og EO-kontrol. Bindende fejl-/diagnostikregler ligger i `src/contracts/error-contract.md` og EO-regler i `src/contracts/eo-snapshot-contract.md`.
 
-> **Greenfield-retning 2026-07-14:** Filnavne og signaturer nedenfor beskriver fortsat den nuværende
-> implementeringsplacering, men input- og fejlgrænsen er erstattet som målarkitektur. Række-evalueringen skal modtage
-> én revisionskonsistent, ready snapshot-/kontrolprojektion med afledte issues. Rå canonical sektioner,
-> `fieldErrors`-stores og fallback til skjulte recovery-værdier er ikke fremtidige inputporte. Migrationen styres af
-> `draft-commit-greenfield-design.md`.
+> **Inputgrænsen er omlagt og gennemført (senest verificeret 2026-07-29).** Række-evalueringen modtager ÉN
+> revisionskonsistent, ready reader-projektion med afledte strukturelle issues (`FieldIssueSet`) —
+> `fieldErrors`-stores, rå canonical sektioner og fallback til skjulte recovery-værdier findes ikke, og de er
+> forbudte som inputporte. Settingsafhængigheden er indsnævret til `EoRowPolicy` (de to
+> regulerings-toggles), som samtidig er dokumentgatens gate-settings, så beregning og gate deler præcis
+> samme politik. Bindende regler: `src/contracts/eo-snapshot-contract.md` og `src/contracts/error-contract.md`.
 
 > **Lagfordeling — læs dette først.** Række-evaluerings-motoren (builder-registry + alle `buildEo…Rows` + aggregator + delte typer/helpers) ligger i den autoritative placering **`src/domain/eoRowEvaluation/`**, fordi den driver den trust-kritiske download-gate og derfor ikke må ligge i et nominelt "DEV"-lag. Dette er resultatet af arkitektur-kandidat B9 (2026-06-25), der flyttede motoren ud af det tidligere `src/domain/debug/`-lag og omdøbte symbolerne `eoDebug…`→`eoRow…` (fx `collectAllDebugRows`→`collectAllEoRows`, `DebugRowModel`→`EoRowModel`, `EO_DEBUG_BUILDERS`→`EO_ROW_BUILDERS`). I **`src/domain/eoInspektion/`** ligger det rene kontrollag (page-/regulerings-viewmodel, CSV, integritet, parity, sammentælling) — det importerer motoren, aldrig omvendt. Den sproglige oprydning (2026-07-02) omdøbte dette lag fra `debug` til `eoInspektion` og dets brugervendte faner til "EO-kontrol" og "Kontroltabel", fordi de er inspektions-/kontrolvisninger, ikke fejlsøgningsværktøjer. Generiske række-format-helpere i motoren bærer ikke længere et `Debug`-suffiks (fx `RowDay`, `RowCellValue`, `parseDanishToIso`); den private exception-isolerings-helper hedder `executeEoRowBuilderEntry`, og fallback-rækkens id er `eo.rowBuilder.<section>.exception`.
 
@@ -128,14 +129,26 @@ Der findes test for dette i `src/__tests__/domain/erstatningsopgoerelse/eoSnapsh
 ```ts
 type EoRowEvaluationContext = {
   stamdataValues: StamdataValues;
+  stamdataErrors: StamdataFieldIssues;          // = FieldIssueSet
   eoValues: ErstatningsopgoerelseValues;
-  issues: readonly EoInputIssue[];
-  revision: ReadyInputRevision;
-  appSettings: AppSettings;
+  eoErrors: ErstatningsopgoerelseFieldIssues;   // = FieldIssueSet
+  loenindkomstManuelReguleringInputErrors: LoenindkomstManuelReguleringInputErrors;
+  rowPolicy: EoRowPolicy;                       // IKKE AppSettings — se noten under tabellen
   canonicalOutput?: EoCanonicalOutput;
   pdfModel?: EoModel;
 };
 ```
+
+Tre ting er værd at bemærke ved signaturen, fordi de hver især er en lukket fejlklasse:
+
+1. **Fejlene er STRUKTURELLE `FieldIssueSet`s**, ikke en flad `issues`-liste og ikke et feltnavn→tekst-map.
+   Et map med kun top-level feltnavne var blindt for røde RÆKKECELLER, så motoren regnede på readerens
+   maskerede tomværdi (lukket med WI-004).
+2. **`rowPolicy: EoRowPolicy` og ikke `appSettings: AppSettings`.** Række-evaluering er beregningslogik og må
+   hverken kende UI-indstillinger eller dokument-layoutlaget. Typen er nominel med `projectEoRowPolicy` som
+   eneste konstruktør, så hele `AppSettings` ikke kan flyde ind som struktur-supersæt.
+3. **Ingen `revision` i konteksten.** Friskhed bæres af det `EvaluationSourceToken`, projektionen er bundet
+   til, ikke af et felt buildere kunne læse.
 
 Regel:
 - alle builder-entrypoints skal kunne drives af dette context-objekt alene

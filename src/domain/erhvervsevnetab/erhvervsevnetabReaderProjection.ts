@@ -58,7 +58,7 @@ import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjecti
 import type { ProjectionResult } from '../../inputCore/projection';
 import type { StamdataValues } from '../../schemas/formSchemas';
 
-// Greenfield Erhvervsevnetab-projektion (§3.4/§5.4/§1.10, Fase 3 Erhvervsevnetab-slice). En ALMINDELIG ren
+// Erhvervsevnetab-projektionen (§3.4/§5.4/§1.10). En ALMINDELIG ren
 // funktion over den offentlige `InputReader`, der erstatter `Erhvervsevnetab.tsx`'s rå `usePersistedForm`/
 // `usePersistedSectionSelector`/`useInvalidDraftForFieldSelector`-læsning + `useFormFieldErrors`-gating. Den er
 // den ENE kanoniske projektion til alle fem tabs (løbende ydelser, kapitalisering, EET efter EAL, differencekrav)
@@ -344,7 +344,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
       },
       dato: forligDato.value,
       datoErrorMessage: forligDato.errorMessage,
-      // Et ikke-committbart rå forligsdraft er i greenfield-modellen en rød reader-feltfejl (format-issue).
+      // Et ikke-committbart rå forligsdraft er i modellen en rød reader-feltfejl (format-issue).
       hasRejectedInput: forligProcent.errorMessage !== undefined || forligBroek.errorMessage !== undefined,
     },
   });

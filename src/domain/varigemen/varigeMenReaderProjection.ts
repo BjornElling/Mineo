@@ -14,15 +14,15 @@ import {
 import { computeVarigeMenEngine } from './varigeMenEngine';
 import type { VarigeMenBeregningResult } from './varigeMenCalculations';
 
-// Greenfield Varige mén-projektion (§3.4/§5.4, Fase 3 Varige mén-slice). En ALMINDELIG ren funktion over den
-// offentlige `InputReader`, der erstatter MenberegningTab's rå `usePersistedForm`/`usePersistedSectionSelector`-
+// Varige mén-projektionen (§3.4/§5.4). En ALMINDELIG ren funktion over den
+// offentlige `InputReader`. Den afløste `MenberegningTab`s rå `usePersistedForm`/`usePersistedSectionSelector`-
 // læsning + `useFormFieldErrors`-gating. Den er den ENE kanoniske projektion til både sidevisning og
 // dokumentgaten.
 //
 //  - Alle beregningsinputs (méngrad, beregningsdato, samt de tværsektionelle skadedato/fødselsdato fra stamdata)
 //    læses gennem readeren. En rød feltfejl (rejected format ELLER canonical bounds — méngrad 1..120,
 //    dato-orden/-range) skjules af readeren og bliver til en blokerende issue via `require`.
-//  - Datoordenen (skadedato ≥ fødselsdato) er allerede en greenfield feltvalidator på begge stamdata-datoer, så
+//  - Datoordenen (skadedato ≥ fødselsdato) er allerede en feltvalidator på begge stamdata-datoer, så
 //    en byttet orden giver en rød feltfejl på skadedato/fødselsdato → projektionen blokerer uden en separat
 //    `resolveStamdataDateOrder`-relation her.
 //  - `require` på méngrad/beregningsdato/skadedato/fødselsdato giver en `missing`-consumerfejl, når feltet er tomt

@@ -231,7 +231,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     });
 
     // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
-    // Greenfield persisterer ikke tomme rækker. Den viste tabel = de committede rækker + en trailing placeholder-
+    // Tomme rækker persisteres ikke. Den viste tabel = de committede rækker + en trailing placeholder-
     // række til næste indtastning + evt. flere placeholders op til MIN_VISIBLE_ROWS.
     //
     // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` (GM-F14): id'et er stabilt pr. slot, så en

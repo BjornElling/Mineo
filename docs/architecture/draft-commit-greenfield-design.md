@@ -1,116 +1,44 @@
-# Greenfield-design for draft, afsluttet input og projektion
+# Draft/commit-arkitekturen for input, afsluttet input og projektion
 
-**Status:** Krav og produktadfærd er genfastlagt 2026-07-16. Den tidligere faseinddeling er forkastet som
-migrationsgrundlag. Fase 0–4 har leveret nyttige karakteriseringstests, codecs, inventarer og tekniske erfaringer, men
-ingen af faserne betragtes længere som en færdig del af målarkitekturen. Implementeringen skal rebaseres efter §8.
+**Status:** **GENNEMFØRT.** Alle syv faser i §8 er leveret, verificeret og lukket (senest Fase 7,
+2026-07-28, WI-013). Arkitekturen beskrevet nedenfor ER den, produktionen kører på: der findes ingen
+parallel inputmodel, ingen legacy-inputvej og ingen kompatibilitetsflade tilbage at migrere fra. Det
+efterfølgende draft/commit-review (`docs/review/draft-commit-review/`) har rettet fundene i den
+færdige arkitektur; dets register er den aktuelle kilde til, hvad der eventuelt udestår.
 
-**Implementeringsstatus (rebase):** Fase 0 og 1 blev gennemført, reviewet og kvalitetssikret 2026-07-16. Den afgrænsede
-kravændring 2026-07-18 er indarbejdet: parsebare out-of-bounds-værdier committes canonical med afledte bounds-issues,
-mens `.eo`-save kun blokeres af aktivt rejected råinput. String-backed felter validerer desuden tolerant indlæste
-canonical strenge gennem deres codec, så schema-tolerance ikke kan føre ufortolkelige værdier til consumers.
-Fase 2 blev gennemført, verificeret og kritisk reviewet 2026-07-18. Mineo monterer kun greenfield-runtime, og alle
-persisted formular- og tabelsurfaces — inklusive hele Erstatningsopgørelse med nested ansættelsesforhold — bruger nu
-feltrefs, editorlokationer og den fælles collection-/grid-adapter. EO læses gennem
-`buildErstatningsopgoerelseReaderProjection`; den tværgående EET-import bygges fra samme tokenbundne `InputReader`, og
-dokumentklik genopbygger både EO- og EET-projektionen fra én frisk afsluttet revision. Det afsluttende review fjernede
-rå store-læsning i EET-importen, en stale EET-kilde ved dokumentpreflight, konkurrerende EO-rækkekopier og de afløste
-EO-viewmodels, tabeller, row-hooks og implementeringstests. En arkitekturvagt håndhæver nul legacy-editor-/tabelcallsites
-på EO-overfladen. Fase 2 er fortsat et internt kontrolpunkt: domæneprojektioner/validatorer færdiggøres i fase 3, og
-case-, shell- og persistence-ansvar flyttes i fase 4–5 før deployhandoff.
+**Type:** **Informativ.** Dokumentet forklarer hvordan modellen er indrettet og hvorfor. Det er IKKE
+normativt: de bindende regler bor i `src/contracts/` (primært `form-contract.md`,
+`persistence-contract.md`, `critical-action-contract.md`, `undo-redo-contract.md` og
+`document-output-contract.md`), og ved konflikt vinder kontrakten. Ét afsnit har dog en maskinel
+binding: **§10's 30 acceptkriterier læses ordret af `src/__tests__/quality/acceptanceMatrix.test.ts`**,
+så en omformulering eller en ændring i antallet gør registret rødt.
 
-De tidligere reviews rettede desuden replacement/no-op-matricen, synkron editorregistrering,
-dispatch-rollback i UI-laget, settings-only issue-abonnement, særskilt replacement-generation, schema-defaultede
-tomværdier og rå section-bypass i Stamdata/Satser. Det efterfølgende review af Årsløn-kontrolpunktet rettede faste
-og dynamiske datogrænser, periodeorden som feltissues, inputdrevet relevans, grid-editorens synkrone lifecycle,
-rejected-only-rækkesletning, byte-verificeret rollback, settingssnapshot og frisk dokumentpreflight. Katalogets
-paths/counts, row factories, collection-adaptere og aktive editorlokationer er komplette efter sidste callsite-cutover.
-Den systematiske domænedækning af relevans og validators blev gennemført i fase 3 (se Fase 3-status nedenfor).
+**Læsevejledning — hvad er hvad i dette dokument:**
 
-Reviewet 2026-07-18 samlede de nye slices om `InputReader` + `runProjection` og fjernede den parallelle
-`domain/inputIntegrity`-blockermodel. Det rettede desuden manglende feltgrænser i Renteberegning, Varige mén og
-Erhvervsevnetab, dependency-gating i differencekravet, ASL-rækkefejl fra readeren, fail-closed dokumentgates,
-multiline-Enter, rejected-only-rækkesletning, destruktiv reset uden forudgående settle og stale async downloads.
-Fase 4 er gennemført og verificeret 2026-07-24: `.eo`-save/load, session-/startupstatus og de kritiske
-sagsoperationer kører nu gennem de rene caseporte (`CaseFileOperations`/`CaseResetOperations`) på greenfield-runtime.
-Hovedshellens atomiske navigation-/undo-cutover blev gennemført i fase 4 (WI-002), og fuld lokationsbaseret
-fokusrestore fulgte i fase 4 (WI-003): route/fane bæres nu som eksplicit typed metadata på history-origin, og en
-gennemført undo/redo navigerer til origin-lokationens route+fane og re-fokuserer feltet, ændringen kom fra.
-Current-session-korruption håndteres fail-closed hele vejen (§1.12), og kun brugerens eksplicitte `Slet alt` kan
-rydde en bevaret korrupt kilde. **Trin 13 er gennemført 2026-07-25 efter et eksternt strukturelt review:** hele
-den parallelle legacy-inputarkitektur (`FormPersistenceContext*`, `inputRuntimeStore`/`formPersistenceStore`,
-den gamle runner, `criticalActions/`, `rowDrafts/`, `tableInput/`, `Styled*Field`-vejen m.fl.) er SLETTET, ikke
-udskudt. Den tidligere reachability-begrundelse holdt ikke: de resterende callsites var en DEV-only showcase-fane
-og tre transiente flader, som nu kører på en lille, eksplicit `transient`-inputfamilie uden for den autoritative
-inputtilstand. En AST-regel forbyder at genindføre nogen del af klyngen.
+| Afsnit | Karakter |
+|---|---|
+| §0–§1 | Konklusion og godkendt produktadfærd. Beskriver den gældende model. |
+| §2 | **Historik.** Det kritiske review, der begrundede omlægningen. |
+| §3–§4 | Arkitekturens form: kerne, grænser, og hvad der blev bevaret/omskrevet/slettet. |
+| §5–§6, §8–§9, §12 | **Historik.** Migrationsprincipper, de midlertidige inventarer, den detaljerede faseplan med per-fase-status, rollbackprincippet og arbejdsaftalen under cutoveren. Bevaret som journal, ikke som plan. |
+| §7 | Testmodellen. Gældende. |
+| §10 | Acceptkriterierne. **Maskinelt bundet** — se ovenfor. |
+| §11 | Ikke-mål. Gældende afgrænsning. |
 
-**Fase 0–4's restfund er lukket 2026-07-25 (WI-004) efter fire eksterne reviewrunder.** De trust-kritiske
-rettelser: (1) EO's dependency-gating læser nu det STRUKTURELLE `FieldIssueSnapshot` — ikke det afledte
-`eoErrors`-map, som kun kendte 11 top-level feltnavne og derfor var blind for røde RÆKKECELLER, så motorerne
-regnede på readerens maskerede tomværdier; (2) grenlisterne er udledt af hvad motorerne FAKTISK læser, inkl.
-klipningsgrænserne (EO-perioden, mén-/EET-/differencekravsdatoerne og `stamdata.skadedato` på tværs af
-sektionsgrænsen) — en maskeret grænse fjerner ellers klipningen lydløst og viser et uklampet forløb som gyldigt;
-(3) forliget er en egen gren, så en rød ansvarsgrad kun neutraliserer efter-forlig-resultatet og lader
-før-forlig-grundlaget bestå; (4) de gyldige, uafhængige grene bæres nu frem til Beregning-fanen gennem
-`readyBranches` — fanen ser ikke `inspektionSnapshot`, så brugerbeslutning 2 var ellers ikke opfyldt i praksis;
-(5) en strukturel rækkecommand kan ikke længere dispatches uden history-origin, håndhævet både i typen og af et
-runtime-værn før nogen mutation. Se `work-items/WI-004-fase34-restfund.md` og
-`docs/reviews/codex-fase34-restfund.md`.
+Den kronologiske gennemførelsesjournal — faseforløbet dag for dag, de eksterne reviewrunder og de work
+items, der lukkede dem — er udskilt til `draft-commit-greenfield-journal.md` (reviewfund R1-F01). Den
+stod tidligere i dette hoved og gjorde det umuligt at læse én aktuel status ud af dokumentet: flere
+statusudsagn fra forskellige tidspunkter beskrev nutiden samtidig.
 
-**Fase 0–4 er endeligt lukket 2026-07-25 (WI-007).** Den sidste rest var ikke funktionel, men strukturel:
-trin 13 slettede den parallelle legacy-inputklynges KONSUMENTER, men efterlod den infrastruktur, der alene
-eksisterede for at betjene dem — kaldeløse eksporter, en persisteret nøgle uden læser/skriver, og kommentarer,
-der beskrev den slettede model i nutid. Modulerne typecheckede, så intet værn fangede dem. Lukket ved at
-SLETTE frem for at omdøbe: hele den per-sektion-baserede sessionStorage-nøglefamilie (`getStorageKey`,
-`getKnownStorageKeys`, `isValidStorageKey`s legacy-grene, `mineo_invalidDrafts`, `mineo_input`) er væk —
-sagsinput ligger i ÉN envelope (`input_v2`). `persistenceRegistry` er nu den ENE KILDE til sektionsmængden:
-`PersistedSectionKey` udledes af den (og hedder ikke længere `StorageKey`, som sammenblandede sagssektion med
-browserlager-nøgle), listen er frosset, og `fileLoad`s to gennemløb læser nu samme kilde i stedet for hver sin.
-`cellInvalidDraftScopes` er
-reduceret til sit levende ansvar og hedder nu `cellFocusPaths` med den ene funktion, der har en kalder.
-Skrivegrænsen er gjort STRUKTUREL: `safeSessionStorage`s skrivefunktioner tager en `ManifestStorageKey`,
-som kun `storageManifest` kan producere, så en genindført legacy-nøgle afvises af COMPILEREN — også når
-den kommer ind som en variabel, hvor en AST-regel principielt er blind.
-`storage/session-storage-manifest-key` bevares som sekundær diagnostik og dækker nu begge skriveveje.
-Se `work-items/WI-007-fase04-exit.md`.
+**Én ting i §6 er ikke længere midlertidig.** Afsnittet indførte ledgerne i `src/inputCore/ledger/` som
+migrationsinventarer, der skulle slettes efter faserne. De blev i stedet en levende release-gate
+(`verify:ledgers`) og et completeness-backstop mod schema-/consumerdrift — se afsnittets egen note
+(reviewfund R1-F06).
 
-**Fase 3+4-restarbejdet er implementeret 2026-07-25 (WI-004).** De fund, der stod åbne efter
-`codex-fase34-followup.md`, er nu implementeret — inklusive de seks fund fra en yderligere ekstern review-runde
-(R1–R6, hvoraf to var kritiske). R1–R6's lukning blev efterfølgende bekræftet eksternt i WI-004's runde 3 og 4,
-hvor R1 og R4 viste sig IKKE lukket og blev rettet, og de afsluttende re-reviews (T1–T3, U1–U3) blev grønne.
-Det implementerede omfatter: den strukturelle dependency-gate før motorkald i
-Forsørgertab, EET og EO (F2), den komplette kanoniske feltadresse→destination-afbildning inkl. kontekst-delte
-felter (F4), og de dokumenterede dækningshuller (transient input, grid dropdown/to-trins-genindtræden,
-Renteberegnings projektionsmatrix, origin-fuldstændighed). To ægte fejl blev fundet undervejs af den nye dækning:
-`TransientDateInput` afviste ENHVER gyldig dato (bounds-helperen melder "ingen fejl" med en tom streng, ikke
-`undefined`), og destinationsafbildningen slog collection op før property, så `eoAngivetLoenLoenudvikling`s nestede
-tabeller routede til den forkerte fane. Konsekvensmatricen i `error-contract.md` §1.1 håndhæves nu også for
-`bounds`: en gembar værdi er ikke dermed beregnbar.
-
-Den tidligere
-Fase 0–4-implementering på `greenfield`-branchen (typed spor, sentinel-adresser, Satser-kernelprojektion m.m.) er
-forkastet som migrationsgrundlag og betragtes udelukkende som historiske karakteriseringstests/erfaringer. Den
-bindende migrationsplan er §8 (Fase 0–7). Fase 0 har rebaset kontrakterne og etableret de midlertidige, maskinverificerede
-inventarer i `src/inputCore/ledger/`. Fase 1 har genopbygget den framework-frie inputkerne i `src/inputCore/` med
-XOR-invariant, issue-model uden `blocksSave`, `ValidationReader`→`InputReader`, statisk katalog og
-`ready | blocked`-projektioner. Fase 3 er gennemført: alle otte consumerslices (Satser, Renteberegning, Stamdata,
-Årsløn, Varige mén, Forsørgertab, EET og EO) forbruger nu rene reader-projektioner, og de afløste
-component-reporter-hooks er slettet. Fase 4 (`.eo`/session/caseporte, shell-cutover OG trin 13's sletninger) er
-gennemført; kun Fase 5 (de 18 dokumentoutputs) udestår. Legacy-inputvejen findes ikke længere at reparere med.
-
-Fase 1–4-rækkefølgen i det parallelle redesign-review er historik for den oprindelige kandidatliste og er ikke en aktiv
-migrationsplan for inputområdet. Kun §8 nedenfor er bindende. Afsluttede, ikke-inputrelaterede resultater, herunder
-dokumentlayout og numeriske primitiver, bevares som selvstændige resultater.
-
-**Dato:** 2026-07-25
-
-**Type:** Informativ målarkitektur og bindende migrationsplan. Normative kontrakter opdateres som første
-implementeringsfase, før produktionskode ændres.
-
-**Scope:** Persisterede sagsinput i formularer og tabeller, feltfejl, beregningsprojektioner, dokument-output,
-`.eo`-save/load, `sessionStorage`, undo/redo og kritiske handlinger.
+**Scope:** Persisterede sagsinput i formularer og tabeller, feltfejl, beregningsprojektioner,
+dokument-output, `.eo`-save/load, `sessionStorage`, undo/redo og kritiske handlinger.
 
 ---
-
 ## 0. Konklusion
 
 Den hidtidige retning skal ikke færdiggøres trinvis. Den skal rebaseres.
@@ -327,6 +255,12 @@ anmoder om sletning eller erstatning—felt-rydning, række-sletning, reset, `Sl
   og senere overskrive kilden. Det er dataintegritet, ikke versionskompatibilitet.
 
 ## 2. Kritisk review af fase 0–4
+
+> **HISTORIK.** Dette afsnit beskriver tilstanden FØR omlægningen og er begrundelsen for den. Hvert
+> problem, det navngiver, er lukket. Afsnittets nutidsform ("skriver", "bliver liggende") refererer til
+> den dengang aktuelle kode og gælder ikke i dag; de nævnte moduler er slettet. Bevaret, fordi
+> begrundelsen for en arkitektur er nødvendig for at kunne vurdere den — ikke som en beskrivelse af
+> nuværende kode.
 
 ### 2.1 Den aktuelle stale-værdi er bevaret
 
@@ -709,6 +643,10 @@ overskrive input. Der findes efter Fase 4 kun ÉN runtime at initialisere: legac
 
 ## 5. Migrationsprincipper
 
+> **HISTORIK.** De principper, omlægningen blev gennemført efter. Cutoveren er afsluttet, så afsnittet
+> er ikke længere en instruks. Ét princip er dog gjort permanent og bor nu normativt i kontrakterne:
+> forbuddet mod flag, dual-read, fallback og compatibility-facader (§10-kriterium 29).
+
 ### 5.1 Én koordineret cutover
 
 Fase 1–5 i §8 udgør én samlet, ikke-deploybar implementeringstranche. Faseoverskrifterne er arbejdspakker og
@@ -756,10 +694,22 @@ Følgende er hårde stop:
 - behov for at slette gyldigt brugerinput automatisk,
 - behov for en raw-section-bypass for at få en consumer til at virke.
 
-## 6. Midlertidige migrationsinventarer
+## 6. Coverage-registrene (`src/inputCore/ledger/`)
 
-Før kodecutover oprettes små maskinlæsbare coverage-inventarer med én dataidentitet pr. felt, collection eller
-makro-consumer—ikke pr. schema-leaf og ikke pr. rendersted. De er migrationsbackstops og slettes i fase 6; de må ikke
+> **OMKLASSIFICERET 2026-07-29 (reviewfund R1-F06).** Afsnittet hed "Midlertidige migrationsinventarer" og
+> sagde, at registrene skulle slettes i fase 6. **Det skete ikke, og det skal ikke ske.** De er blevet en
+> permanent release-gate: `verify:ledgers` kører som del af `verify:release`, og registrene er den
+> opregnelige mængde, completeness-testene måler dækning imod — herunder "alle 18 dokumentoutputs" og
+> "alle 8 beregningsentries". Slettes de som "midlertidige", forsvinder completeness-KRAVET, ikke kun en note.
+>
+> Det levende ansvar er **schema-/consumerdrift**, ikke migrationsstatus: et nyt felt, en ny collection eller
+> et nyt entrypoint kan ikke glide ind uregistreret, og et registreret symbol kan ikke forsvinde ubemærket.
+> Afsnittets oprindelige tekst står nedenfor, fordi den forklarer registrenes FORM og de bevidste
+> afgrænsninger (én dataidentitet pr. felt, ikke pr. schema-leaf; ingen runtime-autoritet) — de gælder
+> uændret. Kun livstiden er en anden.
+
+Coverage-registrene har én dataidentitet pr. felt, collection eller
+makro-consumer—ikke pr. schema-leaf og ikke pr. rendersted. De er coverage-backstops og må ikke
 blive en parallel runtime-autoritet.
 
 Det tidligere krav om at duplikere alle editorlokationer, validators, missing-regler og output-invariants i fase 0
@@ -881,6 +831,15 @@ Integrationstests dækker form og grid ens for:
 - ingen lazy-load, generator eller fil-I/O ved blokering.
 
 ## 8. Detaljeret migrationsplan
+
+> **HISTORIK — planen er gennemført.** Alle syv faser er leveret, verificeret og lukket; hver fase bærer
+> sin egen `**Status:**`-linje med dato og work item. Afsnittet er bevaret som journal og som den
+> begrundede rækkefølge, arbejdet blev gjort i — ikke som en plan for noget, der udestår, og ikke som en
+> beskrivelse af, hvordan koden ser ud i dag. Hvor en fasetekst siger "skal", læs "blev".
+>
+> **Nøjagtige tal, fixture-navne og modulstier i faseteksterne er fra deres eget tidspunkt** og er ikke
+> ført frem. En modulsti nævnt her kan være flyttet eller slettet siden — de efterfølgende reviews har
+> ændret flere af dem. Slå den aktuelle form op i koden eller i den relevante kontrakt, ikke her.
 
 ### Fase 0 — Rebasér kontrakter og inventarer
 
@@ -1465,11 +1424,13 @@ navne. "Greenfield" står nu kun i prosa, hvor det er den korrekte historiske re
 
 ### Fase 5 — Alle dokumentoutputs
 
-**Status:** Påbegyndt 2026-07-25, kerne OMSKREVET 2026-07-26 efter eksternt review (WI-008).
-**16 af 21 dokumentdefinitioner står, og kernen er færdig.** **Ingen callsite er skiftet endnu** —
-produktionen kører fortsat på de gamle `download*Dokument`-funktioner, så træet har bevidst to
-parallelle veje indtil pass 7. Detaljeret status, næste skridt, designbeslutninger (B1–B5) og kendte
-fælder: `work-items/WI-008-fase5-dokumentoutputs.md`.
+**Status:** **Gennemført 2026-07-26 (WI-008).** Alle 21 definitioner står, alle callsites er skiftet, og
+de gamle `download*Dokument`-funktioner samt `documentService.ts` er slettet — der findes ikke to
+parallelle veje. Kernen blev omskrevet undervejs efter et eksternt review; se pass-tabellen nedenfor.
+Designbeslutninger (B1–B5) og kendte fælder: `work-items/WI-008-fase5-dokumentoutputs.md`.
+
+*(Denne statuslinje beskrev indtil 2026-07-29 fasen som påbegyndt med 16 af 21 definitioner og ingen
+skiftede callsites — en tilstand, der var overhalet tre dage senere. Rettet med reviewfund R1-F01.)*
 
 Den strukturelle rod, fasen retter: download-livscyklussen fandtes ikke som ét objekt. Den var
 spredt over React-handleren (commit-barriere, kildeoptagelse, token-lighed, gate),
@@ -1477,9 +1438,10 @@ spredt over React-handleren (commit-barriere, kildeoptagelse, token-lighed, gate
 fejlrouting) og et domæne-gate-modul — atten gange. Derfor manglede fem outputs mindst ét trin, og
 regulering/KRL/KL-lønaftaler havde end ikke en commit-barriere.
 
-Efter fasen er livscyklussen ét objekt: `DocumentDefinition<TRequest, TInput, TSettings,
+Efter fasen er livscyklussen ét objekt: `DocumentDefinition<TRequest, TInput, TGateSettings,
 TBrevhovedKey>` ejer dependencies, gate og generatorkald pr. output, og `documentLifecycle.ts` ejer
-rækkefølgen.
+rækkefølgen. (Settings-parameteren hed `TSettings` indtil 2026-07-29, hvor gate- og render-settings blev
+adskilt, så en gate ikke kan læse det valgte outputformat — reviewfund R6-F03.)
 
 **Vigtig rettelse (2026-07-26).** Dette afsnit hævdede tidligere, at "at omgå gaten er
 urepræsenterbart", fordi afvikleren kun tog en `PreparedDocument`, som kun preflighten kunne
@@ -1890,6 +1852,11 @@ rådner af en død post.
 
 ## 9. Rollback- og fejlprincip under migrationen
 
+> **HISTORIK.** Principperne gjaldt under cutoveren, som er afsluttet. **De tre sidste punkter er dog
+> ikke historik** — forbuddet mod flag/dual-read/fallback, den fail-closed håndtering af
+> current-format-sessionkorruption og `.eo` som eneste historiske brugerdata-kompatibilitet er permanente
+> og står normativt i `persistence-contract.md` og §10-kriterium 29.
+
 Der bygges ikke runtime-rollback til legacy.
 
 - Den seneste grønne version i git-historikken er eneste deploybare version, indtil fase 1–5 samlet er grøn; legacykode
@@ -1951,9 +1918,11 @@ Designet indfører ikke:
 Målet er den mindste auditerbare arkitektur, som gør den godkendte adfærd deterministisk og gør stale input,
 mount-afhængige fejl og parallelle write-/readveje urepræsenterbare.
 
-## 12. Arbejdsaftale under cutoveren (bindende, brugerbekræftet 2026-07-17)
+## 12. Arbejdsaftale (bindende, brugerbekræftet 2026-07-17)
 
-Denne aftale gælder ALLE resterende faser og passes i draft/commit-greenfield-cutoveren:
+> Aftalen blev indgået under cutoveren, men er **ikke** knyttet til den: den fastlægger ansvarsdelingen
+> mellem bruger og agent, og den gælder fortsat uændret for alt arbejde i Mineo. Den er også afspejlet i
+> `AGENTS.md`, som er den kanoniske kilde ved konflikt.
 
 1. **Jeg (agenten) træffer alle proces- og kodebeslutninger.** Fremgangsmåde, sekventering, pass-afgrænsning,
    modulopdeling, navngivning, teststrategi, sletterækkefølge og enhver rent teknisk afvejning er mit ansvar. Jeg

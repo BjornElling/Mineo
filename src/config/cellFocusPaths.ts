@@ -12,7 +12,7 @@
  * konkatenere til samme streng. De nuværende kilder (UUID-agtige af-id'er) er sikre.
  *
  * HISTORIK: modulet hed tidligere `cellInvalidDraftScopes` og understøttede celle-`invalidDrafts`-
- * persistering. Den model er SLETTET (greenfield trin 13, 2026-07-25) — afvist råtekst persisteres
+ * persistering. Den model er SLETTET (2026-07-25) — afvist råtekst persisteres
  * nu som `rejectedInputs` i den ene inputenvelope. Tilbage står alene fokus-adresseringen, som
  * modulet nu er navngivet efter. Den slettede model må ikke genindføres.
  */

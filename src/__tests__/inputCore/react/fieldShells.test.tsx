@@ -75,7 +75,7 @@ const renderField = (node: React.ReactNode) => {
 const canonical = <T,>(field: FieldRef<T>): T =>
   createValidationReader(store.getState().input, catalog).readCanonical(field);
 
-describe('Greenfield numeriske presets', () => {
+describe('numeriske feltpresets', () => {
   it('IntegerField viser committed heltalsværdi', () => {
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'));
     renderField(<IntegerField field={aargangField.bind()} location={testLocation('int-1')} name="aargang" />);
@@ -95,7 +95,7 @@ describe('Greenfield numeriske presets', () => {
   });
 });
 
-describe('Greenfield flerlinjet tekstfelt', () => {
+describe('flerlinjet tekstfelt', () => {
   it('behandler Enter som tekst og settler først ved blur', () => {
     renderField(
       <MultilineTextField
@@ -119,7 +119,7 @@ describe('Greenfield flerlinjet tekstfelt', () => {
   });
 });
 
-describe('Greenfield immediate-commit control (radio)', () => {
+describe('immediate-commit control (radio)', () => {
   it('RadioField committer det valgte som setImmediateField', () => {
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'dage' })), { origin: testRowOrigin() });
     renderField(
@@ -143,7 +143,7 @@ describe('Greenfield immediate-commit control (radio)', () => {
   });
 });
 
-describe('Greenfield grid-felt', () => {
+describe('grid-felt', () => {
   it('bevarer den røde feltmarkering, mens grid-cellen er åben', () => {
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
     dispatchInput(store, catalog, settleField(belobField.bind('r1'), 'ugyldig'));

@@ -1,4 +1,4 @@
-// Greenfield inputkerne (§3, Fase 1). Ren, framework-fri: ingen React, Zustand, DOM eller storage.
+// Inputkernen (§3). Ren, framework-fri: ingen React, Zustand, DOM eller storage.
 // Runtime-bindingen (Fase 2) og consumer-cutoveren (Fase 3–5) bygger ovenpå denne kerne.
 
 export * from './fieldAddress';

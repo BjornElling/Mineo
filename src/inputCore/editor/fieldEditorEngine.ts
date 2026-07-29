@@ -27,7 +27,7 @@ type EditorFieldCommand<T> =
 
 export type EditorDispatch<T> = Readonly<{ command: EditorFieldCommand<T>; origin: FieldHistoryOrigin }>;
 
-// Greenfield-editor-binding (§3.5/§3.6): rene, framework-frie hjælpere, der oversætter mellem den afsluttede
+// Editor-bindingen (§3.5/§3.6): rene, framework-frie hjælpere, der oversætter mellem den afsluttede
 // revision og editor-state-machinen. De rører ikke React, DOM eller storage — de læser et immutabelt
 // `SettledInput`-snapshot og udsteder de commands, runtime-bindingen sender til `dispatchInput`.
 

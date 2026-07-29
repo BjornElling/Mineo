@@ -2,7 +2,7 @@ import { serializeFieldAddress, type SerializedFieldAddress } from './fieldAddre
 import type { AnyFieldRef } from './fieldDescriptor';
 import type { EvaluationSourceToken } from './evaluationSource';
 
-// Greenfield-kerne (§3.4/§1.6): issue-modellen skelner mellem feltfejl, consumerfejl og warning. Der lagres
+// Inputkernen (§3.4/§1.6): issue-modellen skelner mellem feltfejl, consumerfejl og warning. Der lagres
 // INGEN `blocksSave`/`blocksProjection`-booleans. Konsekvensen udledes STRUKTURELT af kind + placering +
 // consumerens faktiske reads — ikke af et konfigurerbart flag. Save-blokering følger `rejectedInputs`, ikke
 // issuefarve (§1.6): kun rejected råtekst blokerer `.eo`; en canonical bounds/rule-feltfejl kan gemmes.

@@ -11,8 +11,8 @@ import type { CellSpec } from '../useCellEditor';
 import type { FieldIssue } from '../../inputIssue';
 import { useGridCellSurface, type GridCellKeyFilter } from '../useGridCellSurface';
 
-// Greenfield grid-celle-basis (§2.5/§3.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
-// `useGridCellSurface` (som bro-forbinder grid-core-navigation ↔ greenfield-editor-motor). Den er grid-pendanten
+// Grid-celle-basis (§2.5/§3.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
+// `useGridCellSurface` (som bro-forbinder grid-core-navigation ↔ editor-motoren). Den er grid-pendanten
 // til `NumericTextField`/`StyledTextFieldBase`, men med den kompakte tabel-InputBase-styling fra
 // `tableInputStyles`. Familie-skallerne (beløb/heltal/år/uge/dato) leverer kun deres tegnfilter + adornment +
 // justering; parse/format/paste og commit-intervaller ejes af descriptorens codec + feltvalidatorer (§2.4).

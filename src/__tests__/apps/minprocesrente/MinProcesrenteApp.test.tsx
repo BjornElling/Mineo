@@ -45,7 +45,7 @@ describe('MinProcesrenteApp', () => {
     window.matchMedia = originalMatchMedia;
   });
 
-  it('monterer standalone-beregneren på den greenfield input-runtime', () => {
+  it('monterer standalone-beregneren på sin egen input-runtime', () => {
     renderStandalone();
     expect(screen.getByRole('heading', { name: 'minProcesrente.dk' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Procesrente beregner' })).toBeInTheDocument();

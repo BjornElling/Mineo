@@ -43,14 +43,14 @@ export type DocumentGateSnapshot =
  * gaten for denne request" og "download denne request", og begge anvender definitionen på sig selv.
  * En katalogpost kan derfor hverken lække et ugated input ud eller modtage et fremmed input ind.
  */
-export type DocumentOutput<TRequest, TSettings> = Readonly<{
+export type DocumentOutput<TRequest, TGateSettings, TRenderSettings> = Readonly<{
   readonly [documentOutputBrand]: true;
   id: DocumentOutputId;
   /**
    * Den reaktive knap-gate. Kalder PRÆCIS samme `project` med samme `request` som
    * click-preflighten, så de to ikke kan drifte (§10 acceptkriterie 27).
    */
-  evaluateGate: (context: DocumentSourceContext<TSettings>, request: TRequest) => DocumentGateSnapshot;
+  evaluateGate: (context: DocumentSourceContext<TGateSettings>, request: TRequest) => DocumentGateSnapshot;
   download: (request: TRequest) => Promise<DocumentOutcome>;
   /**
    * Den brugerrettede besked for et udfald, eller `null` når der intet er at vise.
@@ -60,11 +60,12 @@ export type DocumentOutput<TRequest, TSettings> = Readonly<{
    * kombinere forkert. Før Fase 5 skrev hver side sin egen "Kunne ikke generere …"-tekst, og
    * servicelaget omskrev den bagefter med en global `/PDF/g`-substitution.
    *
-   * `settings` er kaldertidens settings (render-tidens kontekst). Formatet i beskeden er altså det,
-   * brugeren ville få NU — hvilket er det rigtige, fordi beskeden vises efter aktiveringen og
-   * beskriver, hvad der ville ske ved et nyt forsøg.
+   * `settings` er kaldertidens RENDER-settings (render-tidens kontekst). Formatet i beskeden er
+   * altså det, brugeren ville få NU — hvilket er det rigtige, fordi beskeden vises efter aktiveringen
+   * og beskriver, hvad der ville ske ved et nyt forsøg. Den er bevidst render-halvdelen og ikke
+   * gate-halvdelen: beskeden navngiver netop formatet (R6-F03).
    */
-  resolveOutcomeMessage: (outcome: DocumentOutcome, settings: TSettings) => string | null;
+  resolveOutcomeMessage: (outcome: DocumentOutcome, settings: TRenderSettings) => string | null;
 }>;
 
 /**
@@ -72,17 +73,17 @@ export type DocumentOutput<TRequest, TSettings> = Readonly<{
  * altid bærer det miljø, den hører til — en Mineo-definition kan ikke afvikles med standalones
  * runtimepolitik eller omvendt.
  */
-export const closeDocumentDefinition = <TRequest, TInput, TSettings, TBrevhovedKey extends string>(
-  definition: DocumentDefinition<TRequest, TInput, TSettings, TBrevhovedKey>,
-  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>
-): DocumentOutput<TRequest, TSettings> =>
+export const closeDocumentDefinition = <TRequest, TInput, TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
+  definition: DocumentDefinition<TRequest, TInput, TGateSettings, TBrevhovedKey>,
+  environment: DocumentExecutionEnvironment<TGateSettings, TRenderSettings, TBrevhovedKey>
+): DocumentOutput<TRequest, TGateSettings, TRenderSettings> =>
   closeDocumentAction(documentActionFromDefinition(definition), environment);
 
 /** Binder også en dynamisk, men stadig nominalt lukket, dokumentaktion til ét app-miljø. */
-export const closeDocumentAction = <TRequest, TSettings, TBrevhovedKey extends string>(
-  action: DocumentAction<TRequest, TSettings, TBrevhovedKey>,
-  environment: DocumentExecutionEnvironment<TSettings, TBrevhovedKey>
-): DocumentOutput<TRequest, TSettings> =>
+export const closeDocumentAction = <TRequest, TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
+  action: DocumentAction<TRequest, TGateSettings, TBrevhovedKey>,
+  environment: DocumentExecutionEnvironment<TGateSettings, TRenderSettings, TBrevhovedKey>
+): DocumentOutput<TRequest, TGateSettings, TRenderSettings> =>
   Object.freeze({
     [documentOutputBrand]: true as const,
     id: action.id,

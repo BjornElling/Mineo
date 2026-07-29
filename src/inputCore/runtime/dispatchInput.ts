@@ -97,7 +97,7 @@ export const __hydrateInputStoreForTest = (
   requireStoreInternals(store).hydrate(input, options);
 };
 
-// Greenfield-runtime (§3.6): den ENE autoritative write-grænse. Alle inputændringer — felt, række, system og
+// Input-runtime (§3.6): den ENE autoritative write-grænse. Alle inputændringer — felt, række, system og
 // history — går gennem `dispatchInput`. Den bygger kandidaten med den rene reducer/history, serialiserer den ene
 // current-only envelope, skriver med byte-verificeret read-back, opdaterer store + revision + history i ét
 // store-write og ruller BÅDE storage og store tilbage til før-snapshot ved enhver fejl. Der er ingen anden vej ind.

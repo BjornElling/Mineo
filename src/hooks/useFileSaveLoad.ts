@@ -31,15 +31,15 @@ import type { ResetResidue } from '../persistence/caseResetOperations';
 import type { CriticalActionCoordinator } from '../inputCore/runtime/criticalActionCoordinator';
 import { logWarning } from '../utils/logger';
 
-// Greenfield-shell-use-case (WI-002 trin 2, §1.4/§3.9/§3.10): save/load/`Slet alt` mod greenfield-runtime.
+// Shellen-use-case (WI-002 trin 2, §1.4/§3.9/§3.10): save/load/`Slet alt` mod input-runtime.
 // Det PUBLIC interface (`UseFileSaveLoadResult`) er bevaret uændret, så `MainLayout`/`usePwaLaunchQueue` og
 // dialogerne er urørte. Til forskel fra legacy:
 //  - `.eo`-save går gennem `ops.file.evaluateSave()` (rejected råinput blokerer; canonical bounds-fejl kan gemmes,
 //    §1.6), ikke gennem en field-error-store-scanning.
-//  - Load/`Slet alt` routes gennem greenfield-`CriticalActionCoordinator` + den ene replacement-command
+//  - Load/`Slet alt` routes gennem `CriticalActionCoordinator` + den ene replacement-command
 //    (`ops.file.applyLoadedSnapshot` / `ops.reset.clearAll`), aldrig gennem legacy `replaceAllPersistedData`.
 //  - Den rebasede §1.4-matrix har INGEN `block`-policy for load: `prepare('load')` settler ikke og blokerer
-//    aldrig. Fokus-før-handling fanges her i use-casen via `document.activeElement`, fordi greenfield `prepare`
+//    aldrig. Fokus-før-handling fanges her i use-casen via `document.activeElement`, fordi `prepare`
 //    ikke længere returnerer et `focusTargetBeforeAction`.
 
 export type OverlayData = {
@@ -92,9 +92,9 @@ type UseFileSaveLoadArgs = {
   settings: AppSettings;
   navigate: NavigateFunction;
   currentPathname: string;
-  /** Greenfield case-porte (`.eo`-save-evaluering, load-apply, `hasAnyData`, `Slet alt`). */
+  /** Case-portene (`.eo`-save-evaluering, load-apply, `hasAnyData`, `Slet alt`). */
   ops: CaseOperations;
-  /** Greenfield kritisk-handlings-barriere fra samme binding som portene (settle/replace/no-op, §1.4). */
+  /** Kritisk-handlings-barrieren fra samme binding som portene (settle/replace/no-op, §1.4). */
   criticalActions: CriticalActionCoordinator;
   /** Markér den gemte revision som ny "unsaved changes"-baseline (§ unsaved-guard). Modtager save-tokenets inputrevision. */
   markSaved: (revision: number) => void;
@@ -189,7 +189,7 @@ const buildResetResidueMessage = (residue: readonly ResetResidue[]): string => {
   ].join('\n');
 };
 
-/** Fanger det aktuelt fokuserede element FØR en kritisk handling (greenfield `prepare` bærer det ikke længere). */
+/** Fanger det aktuelt fokuserede element FØR en kritisk handling (`prepare` bærer det ikke længere). */
 const captureActiveElement = (): HTMLElement | null =>
   document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
@@ -228,7 +228,7 @@ export const useFileSaveLoad = ({
     [],
   );
 
-  // Load-apply routes gennem greenfield-replacement-grænsen: `ops.file.applyLoadedSnapshot` udsteder den ene
+  // Load-apply routes gennem replacement-grænsen: `ops.file.applyLoadedSnapshot` udsteder den ene
   // autoritative `replaceCase`-command, indpakket i coordinatorens `applyReplacement` (no-settle, draften
   // kasseres først efter et succesfuldt apply, §1.4/§7).
   //
@@ -497,7 +497,7 @@ export const useFileSaveLoad = ({
     }
 
     try {
-      // §7/§1.12: `Slet alt` gennem greenfield-replacement-grænsen (no-settle; draften kasseres først ved
+      // §7/§1.12: `Slet alt` gennem replacement-grænsen (no-settle; draften kasseres først ved
       // succes) — dette er også recovery-vejen ud af en `writesBlocked` current-session. Porten ejer HELE
       // transaktionen: input, sagsnær UI-sessionstate og filhåndtag (R4-F02), og rapporterer eventuelle rester.
       const clearResult = await ops.reset.clearAll();

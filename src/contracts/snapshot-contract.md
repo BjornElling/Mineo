@@ -1,6 +1,6 @@
 # Mineo – Snapshot-kontrakt
 
-**Status:** Normativ målarkitektur
+**Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Specialiseres af `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og
 `forsoergertab-snapshot-contract.md`.

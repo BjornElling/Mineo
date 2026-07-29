@@ -33,7 +33,7 @@ export type PersistenceLoadApplyResult =
   | { status: 'applied-with-metadata-error'; message: string };
 
 /**
- * Anvender ét autoritativt, pre-valideret sektionssnapshot atomisk. Greenfield-runtime binder dette til
+ * Anvender ét autoritativt, pre-valideret sektionssnapshot atomisk. Input-runtime binder dette til
  * `CaseFileOperations.applyLoadedSnapshot` (→ `replaceCase` gennem coordinatoren, §3.10). Kaster ved
  * schema-/katalogafvisning, så apply-fejl aldrig efterlader en delvist erstattet sag.
  */

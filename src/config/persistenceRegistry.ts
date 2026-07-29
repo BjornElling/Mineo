@@ -17,7 +17,7 @@ import {
  * sektionsmængde herfra — så de to veje aldrig kan drifte fra hinanden og tavst tabe en sektion.
  *
  * Sektionsmængden var tidligere også udtrykt som per-sektion-sessionStorage-nøgler i
- * `storageManifest.ts`. Den nøglefamilie er slettet (greenfield trin 13): sagsinput ligger i ÉN
+ * `storageManifest.ts`. Den nøglefamilie er slettet (2026-07-25): sagsinput ligger i ÉN
  * envelope, og sektionsopdelingen er alene en dataform, ikke en skrivegrænse.
  */
 export const persistenceSchemas = {

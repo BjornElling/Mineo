@@ -7,7 +7,7 @@ import { useFormFieldSurface } from '../useFormFieldSurface';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 
-// Greenfield flerlinjet tekst-felt (§2.4/§3.5): en TYND skal over `useFormFieldSurface` + `StyledTextAreaBase`.
+// Flerlinjet tekst-felt (§2.4/§3.5): en TYND skal over `useFormFieldSurface` + `StyledTextAreaBase`.
 // Grid-pendanten til `TextField`, men med en <textarea>. Modtager KUN sin `field`/`location`; al
 // datamodel-logik ligger i codec'et + editor-engine + runner. Erstatter legacy `StyledTextField multiline`.
 

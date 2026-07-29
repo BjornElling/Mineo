@@ -6,7 +6,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 
-// Greenfield checkbox-felt (§1.3/§3.6): en boolsk immediate-commit control (grid-pendanten er ikke relevant, da
+// Checkbox-felt (§1.3/§3.6): en boolsk immediate-commit control (grid-pendanten er ikke relevant, da
 // checkbokse kun bruges i formularer). Klik/Space committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` + label; den viste checked-tilstand læses fra den afsluttede revision gennem
 // editor-controlleren. Erstatter legacy `StyledCheckbox` bundet til `usePersistedForm`-setValues.

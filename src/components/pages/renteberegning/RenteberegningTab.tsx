@@ -28,8 +28,8 @@ import {
 } from '../../../inputCore/catalog/renteberegningDescriptors';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
 
-// Greenfield-migreret RenteberegningTab (§2.4 trin 4 / §2.5 / Fase 3 Renteberegning-slice). Hele fanen kører nu på
-// greenfield-inputCore: beregningsdato + kommentarer skriver/læser gennem den offentlige `InputReader` + den ene
+// RenteberegningTab: Hele fanen kører nu på
+// inputCore: beregningsdato + kommentarer skriver/læser gennem den offentlige `InputReader` + den ene
 // write-grænse (ingen `usePersistedForm`); rentekrav-tabellen ejer sine rækker via grid-adapteren; og den ENE
 // reader-afledte projektion (`buildRenteberegningReaderProjection`) driver både tabeloutput og alle download-gates.
 // Beregningstal og synlig adfærd er uændrede (§5.4).

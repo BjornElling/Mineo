@@ -40,7 +40,7 @@ type OriginArgs<TKind extends string> = TKind extends StructuralCommandKind
   ? [origin: HistoryOrigin]
   : [origin?: HistoryOrigin];
 
-// Greenfield-React (§3.5/§3.10): den ENE binding, React-adapterne læser fra. Til forskel fra den legacy
+// React-laget (§3.5/§3.10): den ENE binding, React-adapterne læser fra. Til forskel fra den legacy
 // `FormPersistenceContext` eksponerer den hverken rå sektioner, `invalidDrafts`, `fieldErrors` eller skrivbare
 // hel-sektionshooks. Den giver kun: (1) den aktuelle afsluttede revision (input + revisionsnummer), (2) det
 // tokenbundne feltissue-snapshot (§1.8 — komponenter rapporterer ALDRIG ind i det; de læser det), (3) én

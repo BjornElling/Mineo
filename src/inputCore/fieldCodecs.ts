@@ -44,7 +44,7 @@ import {
   rejectedResolution,
 } from './fieldCodec';
 
-// Greenfield-kerne (§3.3): ét codec pr. inputfamilie, bygget over de EKSISTERENDE godkendte parse-kerner i
+// Inputkernen (§3.3): ét codec pr. inputfamilie, bygget over de EKSISTERENDE godkendte parse-kerner i
 // `../utils/*`. Normaliserings-, infer-, præcisions- og paste-regler er UÆNDREDE (§11). Efter kravændringen
 // 2026-07-18 afviser et codec KUN ugyldigt format/schema-urepræsenterbarhed; en schema-gyldig værdi uden for
 // feltets aktive min/max committes canonical og bærer et afledt bounds-issue fra en feltvalidator (§1.6).

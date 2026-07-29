@@ -8,7 +8,7 @@ describe('MinProcesrenteApp full render', () => {
     sessionStorage.clear();
   });
 
-  it('renderer den faktiske standalone-beregner på den greenfield input-runtime uden Mineos AppSettingsProvider', () => {
+  it('renderer den faktiske standalone-beregner på sin egen input-runtime uden Mineos AppSettingsProvider', () => {
     const { binding } = bootstrapProductionInputRuntime();
     render(<MinProcesrenteApp inputRuntimeBinding={binding} />);
 

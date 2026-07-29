@@ -318,10 +318,10 @@ export const rawSectionAccessBoundary = defineRule({
   ],
 });
 
-// --- EO's inputflader ligger på greenfield-vejen (R8-F07) ---------------------
+// --- EO's inputflader ligger på den autoritative editorvej (R8-F07) -----------
 
 /**
- * Enhver EO-inputflade skal føre sit input gennem greenfields autoritative editorvej.
+ * Enhver EO-inputflade skal føre sit input gennem inputkernens autoritative editorvej.
  *
  * Reglen afløser `erstatningsopgoerelseSurfaceGuard.test.ts`, som var en RÅ TEKST-guard i begge ender: den
  * fandt inputflader med regex over kildeteksten og godkendte arkitekturvejen med `source.includes(...)`. En
@@ -331,7 +331,7 @@ export const rawSectionAccessBoundary = defineRule({
  *
  * Begge ender er nu AST:
  *  - FLADEN genkendes på JSX-attributter (`field`/`location`/`onCommit`/`onDraftChange`), der er noder.
- *  - VEJEN bevises af en faktisk IMPORT fra en greenfield-inputmodul-sti eller af et kald til en af
+ *  - VEJEN bevises af en faktisk IMPORT fra et autoritativt inputmodul eller af et kald til en af
  *    inputvejens hooks — ikke af at navnet forekommer i filteksten.
  */
 const EO_SURFACE_ROOTS = [
@@ -342,11 +342,11 @@ const EO_SURFACE_ROOTS = [
 /** JSX-attributter, der gør en fil til en inputflade (og ikke ren visning/beregning). */
 const EO_INPUT_SURFACE_ATTRIBUTES = ['field', 'location', 'onCommit', 'onDraftChange'];
 
-/** Greenfields inputveje som IMPORT-stier — en import er en node, en kommentar er ikke. */
-const GREENFIELD_INPUT_MODULE = /(?:^|\/)(?:inputCore\/react(?:\/|$)|useCollectionTable|useCollectionRows)/;
+/** Den autoritative inputvej som IMPORT-stier — en import er en node, en kommentar er ikke. */
+const AUTHORITATIVE_EDITOR_MODULE = /(?:^|\/)(?:inputCore\/react(?:\/|$)|useCollectionTable|useCollectionRows)/;
 
-/** Greenfields inputveje som KALD — samme veje, hvis de nås via en re-eksport uden matchende sti. */
-const GREENFIELD_INPUT_HOOKS = [
+/** Den autoritative inputvej som KALD — samme veje, hvis de nås via en re-eksport uden matchende sti. */
+const AUTHORITATIVE_EDITOR_HOOKS = [
   'useFieldEditor',
   'useFormFieldSurface',
   'useGridCellSurface',
@@ -356,19 +356,19 @@ const GREENFIELD_INPUT_HOOKS = [
 
 /**
  * Den transiente familie er den ENE bevidste ikke-sagsdata-flade (overlays/dialoger), hvis værdier aldrig
- * persisteres ([[project_transient_input_family]]). Den skal netop IKKE ligge på greenfield-inputvejen — at
+ * persisteres ([[project_transient_input_family]]). Den skal netop IKKE ligge på den autoritative editorvej — at
  * kræve det ville være at bede den om at skrive sagsdata. Undtagelsen gælder KUN en REN transient flade:
- * bærer filen også et persisteret felt (`field={…}`), skal den på greenfield-vejen, så en overtrædelse ikke
+ * bærer filen også et persisteret felt (`field={…}`), skal den på editorvejen, så en overtrædelse ikke
  * kan gemme sig bag ét transient input. Den anden retning håndhæves af
  * `input/transient-cannot-write-case-data`.
  */
 const TRANSIENT_INPUT_COMPONENTS = ['TransientAmountInput', 'TransientDateInput', 'TransientTextInput'];
 
-export const eoSurfaceOnGreenfieldPath = defineRule({
-  id: 'input/eo-surface-on-greenfield-path',
+export const eoSurfaceOnAuthoritativeEditorPath = defineRule({
+  id: 'input/eo-surface-on-authoritative-editor-path',
   description:
     'Enhver EO-inputflade (JSX med field/location/onCommit/onDraftChange) skal importere eller kalde '
-    + 'greenfields autoritative editorvej — bevist på AST-noder, ikke på tekst i filen.',
+    + 'inputkernens autoritative editorvej — bevist på AST-noder, ikke på tekst i filen.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
@@ -376,7 +376,7 @@ export const eoSurfaceOnGreenfieldPath = defineRule({
       && EO_INPUT_SURFACE_ATTRIBUTES.some((name) => hasJsxAttribute(entry, name)),
     rationale:
       'EO-siden har stadig inputflader at kontrollere — forsvinder de, er der ingen overflade at holde '
-      + 'på greenfield-vejen',
+      + 'på den autoritative editorvej',
     // Gulvet er ikke kosmetisk: den gamle guard havde samme krav, fordi en filflytning ellers ville gøre
     // værnet trivielt grønt. Fem er antallet af flader, EO faktisk har.
     minimumMatches: 5,
@@ -386,10 +386,10 @@ export const eoSurfaceOnGreenfieldPath = defineRule({
   find: (entry) => {
     if (!EO_INPUT_SURFACE_ATTRIBUTES.some((name) => hasJsxAttribute(entry, name))) return [];
 
-    const onGreenfieldPath =
-      collectImports(entry).some((ref) => GREENFIELD_INPUT_MODULE.test(ref.moduleSpecifier))
-      || collectCalls(entry).some((ref) => GREENFIELD_INPUT_HOOKS.includes(ref.calleeName));
-    if (onGreenfieldPath) return [];
+    const onAuthoritativeEditorPath =
+      collectImports(entry).some((ref) => AUTHORITATIVE_EDITOR_MODULE.test(ref.moduleSpecifier))
+      || collectCalls(entry).some((ref) => AUTHORITATIVE_EDITOR_HOOKS.includes(ref.calleeName));
+    if (onAuthoritativeEditorPath) return [];
 
     // Ren transient flade: intet persisteret `field`, kun transiente kontroller.
     const isPurelyTransient =
@@ -400,7 +400,7 @@ export const eoSurfaceOnGreenfieldPath = defineRule({
     return [{
       position: { line: 1, column: 1 },
       message:
-        'EO-inputflade uden for greenfield-inputvejen: filen sætter field/location/onCommit/onDraftChange, '
+        'EO-inputflade uden for den autoritative editorvej: filen sætter field/location/onCommit/onDraftChange, '
         + 'men importerer eller kalder ingen af inputCores editorveje (§3.5/§3.6).',
     }];
   },
@@ -409,7 +409,7 @@ export const eoSurfaceOnGreenfieldPath = defineRule({
       relativePath: 'src/components/pages/erstatningsopgoerelse/X.tsx',
       code: 'const C = () => <Input field={x} onChange={(e) => setLocal(e.target.value)} />;',
     },
-    // R8-F07's konkrete bypass: kommentaren nævner greenfield-hooket, men INTET kalder eller importerer det.
+    // R8-F07's konkrete bypass: kommentaren nævner editor-hooket, men INTET kalder eller importerer det.
     {
       relativePath: 'src/components/pages/erstatningsopgoerelse/Y.tsx',
       code: '// useFieldEditor\nconst C = () => <Input field={x} onChange={(e) => setLocal(e.target.value)} />;',
@@ -510,7 +510,7 @@ export const internalRuntimeCapabilityBoundary = defineRule({
  * `src/components/inputs/transient/` er den ENESTE bevidste ikke-sagsdata-flade: tre overlay-/dialog-
  * felter, hvis værdier aldrig persisteres ([[project_transient_input_family]]). Det var indtil nu kun
  * en aftale — intet hindrede en af dem i at importere skrivevejen og dermed genskabe præcis den
- * parallelle inputvej, greenfield-cutoveren slettede ("genindfør ALDRIG en Styled*Field-familie").
+ * parallelle inputvej, cutoveren slettede ("genindfør ALDRIG en Styled*Field-familie").
  *
  * Reglen forbyder dem enhver sagsinput-skrivevej: dispatch, storen, feltredigeringen og
  * descriptor-katalogerne (uden en descriptor findes der ingen feltadresse at skrive til).
@@ -651,7 +651,7 @@ export const forbiddenLegacyIdentifier = defineRule({
     .map((ref) => ({
       position: ref.position,
       message:
-        `Genindført legacy-symbol '${ref.text}' — mekanismen er slettet i greenfield-cutoveren. `
+        `Genindført legacy-symbol '${ref.text}' — mekanismen er slettet. `
         + 'Brug inputCore: reader/projektion til læsning, dispatch/useFieldEditor til skrivning.',
     })),
   violatingFixtures: [
@@ -674,7 +674,7 @@ export const forbiddenLegacyIdentifier = defineRule({
     },
     // Strengliterale (fx i et manifest eller en fejlbesked) er heller ikke identifiers.
     { relativePath: 'src/x.ts', code: 'const names = ["useRowDrafts", "invalidDrafts"];' },
-    // Levende greenfield-vokabular må ikke rammes: `fieldErrors` er det nuværende feltnavn i
+    // Levende vokabular må ikke rammes: `fieldErrors` er det nuværende feltnavn i
     // snapshot-/projektionskontrakterne. (`blocksSave` stod tidligere i denne fixture som "levende" —
     // det var netop fejlklassifikationen Fase 6's genåbning rettede; navnet er nu forbudt.)
     { relativePath: 'src/x.ts', code: 'const { fieldErrors } = snapshot;' },
@@ -688,12 +688,22 @@ export const forbiddenLegacyIdentifier = defineRule({
 /** Modulet der ejer de to nominelle settings-snapshots og deres projektorer. */
 const SOURCE_SETTINGS_OWNER = 'src/settings/sourceSettings.ts';
 
-/** De brandede settings-typer, kun projektorerne må stemple. */
-const BRANDED_SETTINGS_TYPE_NAMES = ['SourceSettings', 'EoRowPolicy'] as const;
+/**
+ * De brandede settings-typer, kun projektorerne må stemple.
+ *
+ * `DocumentRenderSettings` kom til med R6-F03: da gate- og render-halvdelen blev adskilt, blev
+ * render-halvdelen sin egen offentlige type, og uden et mærke var hele `AppSettings` strukturelt
+ * assignable til den — altså samme tavse hul, WI-009 lukkede for de to øvrige.
+ */
+const BRANDED_SETTINGS_TYPE_NAMES = ['SourceSettings', 'EoRowPolicy', 'DocumentRenderSettings'] as const;
 const BRANDED_SETTINGS_TYPES: ReadonlySet<string> = new Set(BRANDED_SETTINGS_TYPE_NAMES);
 
 /** Typernes eneste konstruktører. Deres fravær betyder, at grænsen er flyttet. */
-const PROJECTOR_NAMES = ['projectSourceSettings', 'projectEoRowPolicy'] as const;
+const PROJECTOR_NAMES = [
+  'projectSourceSettings',
+  'projectEoRowPolicy',
+  'projectDocumentRenderSettings',
+] as const;
 
 /**
  * Fabrikker der PARAMETRISERES med settings-typen frem for at producere en værdi af den.

@@ -399,4 +399,41 @@ describe('contract linkage matrix', () => {
       expect(topologyContracts.has(contractPath), `Mangler topologi-klassifikation for ${contractPath}`).toBe(true);
     }
   });
+
+  /**
+   * R1-F04: FIL-completeness er ikke HIERARKI-completeness.
+   *
+   * Testen ovenfor kontrollerede, at hver underordnelses-reference er en klassificeret kontraktfil.
+   * Den kunne ikke se den modsatte fejl — at en tværgående kontrakt MANGLER i listen. Netop det var
+   * tilfældet: `page-component-contract.md` er ifølge både AGENTS.md's kontrakthierarki og sin egen
+   * prioritetslinje underordnet SAMTLIGE tværgående kontrakter, men topologien udelod
+   * `snapshot-contract.md` og `auth-gate-contract.md`. To autoritative beskrivelser gav dermed
+   * forskellig kontraktprioritet, og den maskinlæsbare — den, en læser og et værktøj slår op i — var
+   * den ufuldstændige.
+   *
+   * Invarianten er derfor LIGHED og ikke inklusion: listen skal være hele det tværgående sæt, hverken
+   * mere eller mindre. Listen bevares som eksplicit data frem for at blive udledt i JSON'en (hvad et
+   * JSON-dokument ikke kan), så den fortsat er læsbar og reviewbar — men en glemt tilføjelse er nu en
+   * rød test frem for en tavs uenighed.
+   */
+  it('page-component-kontrakten er underordnet PRÆCIS alle tværgående kontrakter', () => {
+    const topology = getContractTopology();
+    const PAGE_CONTRACT = 'src/contracts/page-component-contract.md';
+
+    const declared = topology.subordinateContracts[PAGE_CONTRACT];
+    expect(declared, `${PAGE_CONTRACT} mangler en underordnelsesliste`).toBeDefined();
+
+    // Sorteret sammenligning: rækkefølgen i JSON'en er læsbarhed, ikke semantik.
+    expect(
+      [...(declared ?? [])].sort(),
+      'underordnelseslisten er ikke identisk med det tværgående sæt (AGENTS.md § Kontrakthierarki)'
+    ).toEqual([...topology.crossCuttingContracts].sort());
+  });
+
+  it('ingen anden kontrakt end page-component-kontrakten erklærer en underordnelsesliste', () => {
+    // Gulvet gør en ny nøgle synlig: hierarkiet i AGENTS.md har præcis én underordnet kontrakt, og en
+    // ny relation er en arkitekturbeslutning, der skal begrundes — ikke noget der kan glide ind.
+    expect(Object.keys(getContractTopology().subordinateContracts))
+      .toEqual(['src/contracts/page-component-contract.md']);
+  });
 });

@@ -34,8 +34,8 @@
  * sporbarhed.
  */
 import fs from 'node:fs';
-import ts from 'typescript';
 import path from 'node:path';
+import { leafTestNames, suiteNames } from './testDeclarations';
 
 type CoverageSource = Readonly<{
   /** Repo-relativ testfil. */
@@ -540,14 +540,10 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
   {
     criterion: 27,
     title: 'Alle 18 dokumentoutputs bruger samme definition til reaktiv gate og click-preflight.',
-    knownLimitation: {
-      description:
-        'Format-invariansen er målt for alle 18 hovedapp-outputs, men kun 2 af 18 projektioner nås i '
-        + 'deres READY-gren; de øvrige 16 sammenlignes blocked-mod-blocked. En formatafhængighed i en '
-        + 'ready-gren ville derfor ikke blive fanget. Rodårsagen er, at `documentDownloadFormat` '
-        + 'overhovedet er synligt i projektionskonteksten — værnet ligger oven på en åben capability.',
-      trackedIn: 'work-items/WI-014-dokumentformat-ud-af-projektionskonteksten.md',
-    },
+    // Kriteriets tidligere `knownLimitation` er FJERNET, fordi begrænsningen er lukket ved roden
+    // (R6-F03/R0-F03): formatet er ikke længere synligt i projektionskonteksten, så spørgsmålet
+    // "nåede fixturen ready-grenen?" er blevet irrelevant. En gate KAN ikke læse formatet — det er en
+    // compilerfejl, bevist af en rigtig oversættelse af en virtuel definition mod det ægte program.
     sources: [
       {
         file: 'src/__tests__/document/documentCatalogCompleteness.test.ts',
@@ -563,8 +559,16 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
         tests: ['reaktiv gate og click-preflight giver samme udfald for alle 18 outputs'],
       },
       {
+        // Formatblindheden er en TYPEGRÆNSE efter R6-F03 og måles med en rigtig oversættelse frem for
+        // med 18 fixture-sammenligninger. Kontrolprøven citeres med, fordi den er det, der gør
+        // TS2339-assertionen til evidens og ikke til tilfældighed.
         file: 'src/__tests__/document/documentGateFormatInvariance.test.ts',
-        tests: ['dækker alle 18 katalogiserede hovedapp-outputs', 'samme projektion for pdf og word'],
+        tests: [
+          'en gate, der læser downloadformatet, kan ikke kompilere',
+          'kontrolprøve: samme definition UDEN formatlæsning kompilerer rent',
+          'gate-settings bærer KUN rækkepolitikken — hverken format eller brevhoved',
+          'formatet når fortsat writer-valget gennem render-settings',
+        ],
       },
       {
         file: 'src/__tests__/document/documentLifecycleMatrix.test.ts',
@@ -718,109 +722,25 @@ describe('§10-acceptregister (målarkitekturens 30 kriterier)', () => {
         `kriterium ${entry.criterion}: begrænsningen henviser til ${limitation.trackedIn}, som ikke findes`
       ).toBe(true);
     }
-    // Kriterium 27's begrænsning er den ENESTE kendte. Lukkes den (WI-014), skal noten fjernes;
-    // opstår en ny, skal den skrives ind. Gulvet gør begge synlige.
-    expect(withLimitation.map((entry) => entry.criterion)).toEqual([27]);
+    // **Der er INGEN kendte begrænsninger tilbage.** Kriterium 27's var den sidste, og den blev
+    // lukket ved roden 2026-07-29 (R6-F03/R0-F03): formatet er fjernet fra projektionskonteksten, så
+    // hullet i dens dækning ikke længere findes at måle.
+    //
+    // Assertionen er bevidst BEVARET frem for slettet med noten. Feltet `knownLimitation` findes
+    // stadig i registrets kontrakt, og en tom liste er en påstand, der kan brydes: skrives en ny
+    // begrænsning ind, bliver netop denne linje rød, så tilføjelsen skal ses og begrundes frem for at
+    // kunne glide ind som en note. Var assertionen fjernet, ville registret være tilbage ved den
+    // falske fuldstændighed, hele filen er bygget for at udelukke.
+    expect(
+      withLimitation.map((entry) => entry.criterion),
+      'en ny kendt begrænsning skal begrundes her, ikke blot skrives ind'
+    ).toEqual([]);
   });
 });
 
-/**
- * Udtrækker AKTIVE testdeklarationer i en testfil — via TypeScripts AST — og skelner LEAF-tests
- * (`it`/`test`) fra suiter (`describe`/`suite`).
- *
- * **Hvorfor ikke `content.includes(navn)`**: en substring-søgning beviser kun, at teksten forekommer et
- * vilkårligt sted i filen — den kunne matche et importnavn eller en kommentar. Registret ville da
- * erklære et kriterium dækket af en test, der ikke findes.
- *
- * **Hvorfor ikke en regex over råteksten**: den var falsk-grøn på to måder, verificeret ved probe:
- *
- *   - `describe.skip('suite', () => { it('navn', …) })` — den INDLEJREDE `it` består sit eget
- *     linje-filter, selv om hele suiten er skippet. Skip arves ned gennem hierarkiet; et linjefilter
- *     kan per konstruktion ikke se det.
- *   - `// it('navn', …)` i en kommentar blev medtaget som en levende deklaration.
- *
- * **Hvorfor LEAF/SUITE-sondringen** (R8-F01): et `describe`-navn overlever, efter at hver `it` under det
- * er slettet. Et register, der accepterer suitenavne, kan derfor stå grønt uden en eneste udførende
- * assertion. Kun leaf-tests tælles som evidens, og en citeret suite afvises med en fejl, der siger det.
- *
- * `.skip`/`.todo`/`.failing`/`.skipIf` udelukkes (inkl. arvet fra en ancestor); `.each`/`.only`/
- * `.concurrent`/`.runIf` medtages, da de kører.
- */
-const LEAF_FNS = new Set(['it', 'test']);
-const SUITE_FNS = new Set(['describe', 'suite']);
-const TEST_FNS = new Set([...LEAF_FNS, ...SUITE_FNS]);
-const SKIPPING_MODIFIERS = new Set(['skip', 'todo', 'failing', 'skipIf']);
-
-type Declaration = Readonly<{ name: string; isLeaf: boolean }>;
-
-/** Bunden af en kaldekæde: `it.each(x)('n')` → `it`, plus de modifikatorer der blev brugt. */
-const unwrapCallee = (expression: ts.Expression): { root: string; modifiers: string[] } | null => {
-  const modifiers: string[] = [];
-  let current: ts.Expression = expression;
-  for (;;) {
-    if (ts.isIdentifier(current)) {
-      return TEST_FNS.has(current.text) ? { root: current.text, modifiers } : null;
-    }
-    if (ts.isPropertyAccessExpression(current)) {
-      modifiers.push(current.name.text);
-      current = current.expression;
-      continue;
-    }
-    // `it.each([...])(...)` / `it.skipIf(cond)(...)`: tag-kaldet er selv et CallExpression.
-    if (ts.isCallExpression(current)) {
-      current = current.expression;
-      continue;
-    }
-    return null;
-  }
-};
-
-const activeDeclarations = (content: string, fileName = 'test.tsx'): readonly Declaration[] => {
-  const source = ts.createSourceFile(
-    fileName, content, ts.ScriptTarget.Latest, /* setParentNodes */ true,
-    fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
-  );
-  const declarations: Declaration[] = [];
-
-  const visit = (node: ts.Node, insideSkipped: boolean): void => {
-    if (!ts.isCallExpression(node)) {
-      node.forEachChild((child) => visit(child, insideSkipped));
-      return;
-    }
-    const callee = unwrapCallee(node.expression);
-    if (callee === null) {
-      node.forEachChild((child) => visit(child, insideSkipped));
-      return;
-    }
-
-    const skipped = insideSkipped || callee.modifiers.some((m) => SKIPPING_MODIFIERS.has(m));
-    const isLeaf = LEAF_FNS.has(callee.root);
-    const [first] = node.arguments;
-    if (!skipped && first !== undefined) {
-      if (ts.isStringLiteralLike(first)) {
-        declarations.push({ name: first.text, isLeaf });
-      } else if (ts.isTemplateExpression(first)) {
-        // Et dynamisk navn (`${definition.id}: samme projektion …`) er stadig en aktiv deklaration.
-        // De STATISKE dele er det, registret kan citere; interpolationerne er per-case-værdier, som
-        // ingen registerpost kan kende på forhånd.
-        declarations.push({ name: first.head.text, isLeaf });
-        for (const span of first.templateSpans) declarations.push({ name: span.literal.text, isLeaf });
-      }
-    }
-    // Kroppen walkes med den ARVEDE skip-tilstand: en `it` inde i en `describe.skip` er ikke aktiv.
-    node.forEachChild((child) => visit(child, skipped));
-  };
-
-  visit(source, false);
-  return declarations;
-};
-
-const leafTestNames = (content: string, fileName?: string): readonly string[] =>
-  activeDeclarations(content, fileName).filter((entry) => entry.isLeaf).map((entry) => entry.name);
-
-const suiteNames = (content: string, fileName?: string): readonly string[] =>
-  activeDeclarations(content, fileName).filter((entry) => !entry.isLeaf).map((entry) => entry.name);
-
+// AST-parseren for aktive testdeklarationer bor i `./testDeclarations`, fordi `testNamingConvention.test.ts`
+// har brug for PRÆCIS samme sondringer (arvet skip, leaf vs. suite, dynamiske navne). En kopi pr. konsument
+// ville være to udgaver af den samme svære sondring.
 describe('§10-acceptregister — kilde-verifikation', () => {
   /**
    * Kernekontrollen. En ren fil-eksistens-check ville bestå, selv om netop den test, kriteriet hviler

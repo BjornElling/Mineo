@@ -8,7 +8,7 @@ import { createInputEvaluation, type InputEvaluation } from '../inputReader';
 import type { SettledInput } from '../settledInput';
 import type { SlimInputStore } from './slimInputStore';
 
-// Greenfield-runtime (§3.4): binder den framework-frie `captureStableSource` til den levende store. Issues,
+// Input-runtime (§3.4): binder den framework-frie `captureStableSource` til den levende store. Issues,
 // beregninger, `.eo` og dokumenter (Fase 3–5) optager et stabilt kildesnapshot HER, så et resultat bindes til
 // ét `EvaluationSourceToken` (input- OG settingsrevision) og genkendes som stale ved enhver async-grænse.
 

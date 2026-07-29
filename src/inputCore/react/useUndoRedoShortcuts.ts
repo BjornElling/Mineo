@@ -3,10 +3,10 @@ import { useInputHistoryAccess } from './inputRuntimeContext';
 import { useCriticalInputActions } from './useInputEvaluation';
 import type { HistoryOrigin } from '../inputHistory';
 
-// Greenfield global undo/redo-genvej (§1.4/§3.6): Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y mod den ene
+// Global undo/redo-genvej (§1.4/§3.6): Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y mod den ene
 // write-grænses history. Mens en editor er åben er genvejen et stille no-op (§1.4): coordinatorens `prepare`
 // returnerer `noop` for undo/redo med åben editor, og vi rører da ikke history. Erstatter legacy
-// `useUndoRedoShortcuts` for de greenfield-migrerede app-varianter (standalone MinProcesrente).
+// `useUndoRedoShortcuts` for de øvrige app-varianter (standalone MinProcesrente).
 //
 // Efter en GENNEMFØRT undo/redo returnerer `runtime.history.undo/redo` et `DispatchInputResult`, hvis
 // `.restoredOrigin` er sat, når det gendannede frame bar en origin (§3.7). Shellen leverer `onRestore`, der da

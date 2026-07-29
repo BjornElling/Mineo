@@ -50,8 +50,8 @@ import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../ty
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import type { LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas/enumSchemas';
 
-// Greenfield-migreret, Pass 2 (§2.4 formularrækkefølge trin 3 + §2.5 / Fase 3 Årsløn-slice). HELE siden kører nu
-// på greenfield-inputCore: Satser-blokken (Pass 1), løntabellen (StandardLoenTable over grid-adapteren) OG
+// Hele siden kører nu
+// på inputCore: Satser-blokken (Pass 1), løntabellen (StandardLoenTable over grid-adapteren) OG
 // beregningsprincip-blokken skriver/læser gennem den offentlige `InputReader` + den ene write-grænse — der er
 // ingen `usePersistedForm`-legacy-sink længere. Alle `values` til calc/render læses via `readAarsloenValues`, og
 // løntabellens valideringssummary er reader-afledt (`resolveStandardLoenTableValidation`), så omregning-gaten og
@@ -64,7 +64,7 @@ const shSoPctRef = aarsloenShSoPctField.bind();
 const storeBededagPctRef = aarsloenStoreBededagPctField.bind();
 const pensionPctRef = aarsloenPensionPctField.bind();
 const loenperiodeRef = aarsloenLoenperiodeField.bind();
-// Påkrævet valg (allowEmpty=false): descriptorens værditype er ikke-optionel, men Greenfield-choice-/radio-skallen
+// Påkrævet valg (allowEmpty=false): descriptorens værditype er ikke-optionel, men Choice-/radio-skallen
 // er typet på `TValue | undefined`. Værdien er altid defineret (tomværdi 'procent'/'maaned'); widening er sikker.
 const tillaegAngivesSomRef = aarsloenTillaegAngivesSomField.bind() as FieldRef<TillaegAngivesSom | undefined>;
 const loenPaaHelligdageRef = aarsloenLoenPaaHelligdageField.bind() as FieldRef<LoenPaaHelligdage | undefined>;
@@ -121,7 +121,7 @@ const Aarsloen = React.memo(() => {
     toggleRef,
   });
 
-  // Greenfield fatal-gate (§1.6/§3.9): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er en RØD
+  // Fatal-gate (§1.6/§3.9): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er en RØD
   // feltfejl. Projektionen kalder da IKKE motoren (`calculation === null`), så der findes intet resultat at vise —
   // en beregning på den skjulte tomværdi ville være misvisende.
   const calculation = readerProjection.calculation;

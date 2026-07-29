@@ -1,9 +1,19 @@
 /**
- * Maskinlæsbart migrationsinventar fra greenfield-planens fase 0.
+ * Maskinlæsbart COVERAGE-REGISTER over appens låste makro-entrypoints: beregningsentries, sagsfilstier og
+ * dokumentoutputs.
  *
- * Inventaret er ikke en runtime-router og må ikke blive en parallel autoritet for beregning eller dokumenter.
- * Det fastlåser kun den eksisterende, låste feature-flade, indtil de enkelte entrypoints erstattes af de typed
- * kataloger i fase 4–6. Coverage-testen verificerer symbolerne og holder dokumentoutputlisten udtømmende.
+ * **Registret er levende og load-bearing — det er ikke et migrationsinventar (R1-F06).** Det blev oprettet
+ * som et midlertidigt backstop under omlægningen og var beskrevet som noget, der skulle slettes bagefter. Det
+ * blev det ikke, og skal det ikke: `npm run verify:ledgers` er en del af `verify:release`, og registret er det
+ * ENESTE sted, hvor "alle 18 dokumentoutputs" og "alle 8 beregningsentries" findes som en opregnelig mængde.
+ * `documentGatePreflightParity`, `documentCatalogCompleteness` og acceptregistret måler dækning MOD den mængde.
+ * Slettes registret som "midlertidigt", forsvinder dermed completeness-kravet — ikke kun en note.
+ *
+ * Dets levende formål er drift-detektion: et nyt entrypoint, der ikke registreres, gør gaten rød, og et
+ * registreret symbol, der forsvinder, ligeså.
+ *
+ * Registret er ikke en runtime-router og må ikke blive en parallel autoritet for beregning eller dokumenter:
+ * det opregner, hvad der findes — det afgør ikke, hvad der sker.
  */
 export type InventoryEntry = Readonly<{
   id: string;

@@ -4,7 +4,7 @@ import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { yearBoundsValidator } from './boundsValidators';
 
-// Greenfield produkt-descriptors for `satser`-sektionen (§3.2). Kun det valgte satsår er sagsinput.
+// Produkt-descriptors for `satser`-sektionen (§3.2). Kun det valgte satsår er sagsinput.
 // Den tomme sektion er `{}` (aargang er optional i schemaet).
 
 const createEmptySatserSection = (): unknown => ({});

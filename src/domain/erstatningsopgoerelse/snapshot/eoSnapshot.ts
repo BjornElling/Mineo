@@ -395,7 +395,7 @@ export const computeEoSnapshot = (args: Readonly<{
     // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
     // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed kontrol-basis.
     //
-    // BEVIDST UDELADT (brugerbeslutning, greenfield #23-review): reguleringsforløbet vises IKKE i denne
+    // BEVIDST UDELADT (brugerbeslutning, reviewkandidat #23): reguleringsforløbet vises IKKE i denne
     // fejl-tilstand. Efter #23 er det viste reguleringsforløb udelukkende den kanoniske serie fra det
     // autoritative pdfModel (ingen re-derivation) — som netop ikke bygges her. Kontrolfanen fail-closer
     // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt

@@ -80,7 +80,7 @@ const renderRenteberegning = () => render(
   </MemoryRouter>
 );
 
-describe('Renteberegning greenfield — download-gate mod afsluttet input', () => {
+describe('Renteberegning — download-gate mod afsluttet input', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();

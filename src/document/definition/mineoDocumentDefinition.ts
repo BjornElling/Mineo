@@ -8,19 +8,30 @@
  *
  * Derfor dette alias: ÉT sted binder hovedappens definitioner deres settings- og brevhoved-kontrakt.
  *
- * Bemærk at `TSettings` er `SourceSettings` og ikke `AppSettings`: definitionerne læser kun
- * de source-relevante værdier (format, brevhoved-flags, EO-regelpolitik), og afhængighedspilen peger
- * fortsat UI → dokument.
+ * **Gate-settings er `EoRowPolicy` og ikke `SourceSettings` (R6-F03).** Definitionernes `project` har
+ * præcis ÉN settings-afhængighed i produktionen: EO's rækkepolitik (`eoDocumentDefinitions.ts`).
+ * Formatet og brevhoved-flagene bor i miljøets `renderSettings` og anvendes først EFTER gaten, fordi
+ * formatet vælger writer og ikke dækning. Var hele `SourceSettings` fortsat gate-halvdelen, kunne
+ * enhver definition lovligt gøre samme sag `ready` som PDF og `blocked` som Word — en skæv gate,
+ * §A2a's paritet mellem reaktiv gate og click-preflight IKKE fanger, fordi begge kanaler ville se
+ * samme skævhed. Nu er et sådant læs en compilerfejl frem for en regel, et værn skal overvåge.
  *
- * `AppSettings` opfylder IKKE længere kontrakten strukturelt (WI-009): `SourceSettings` er nominel, og
- * `projectSourceSettings` er dens eneste konstruktør. UI-laget skal derfor projicere eksplicit —
- * hovedappen gør det i `useMineoDocumentEnvironment`. Det er tilsigtet: så kan en dokumentdefinition
- * ikke læse en indstilling uden for `SOURCE_SETTINGS_KEYS` og dermed indføre en source-afhængighed,
- * der ikke gør et optaget `EvaluationSourceToken` stale.
+ * `AppSettings` opfylder ikke kontrakten strukturelt (WI-009): begge halvdele er nominelle, og deres
+ * projektorer er deres eneste konstruktører. UI-laget skal derfor projicere eksplicit — hovedappen gør
+ * det i `useMineoDocumentEnvironment`. Det er tilsigtet: så kan en dokumentdefinition ikke læse en
+ * indstilling uden for `SOURCE_SETTINGS_KEYS` og dermed indføre en source-afhængighed, der ikke gør et
+ * optaget `EvaluationSourceToken` stale.
  */
 import type { DocumentDefinition } from './documentDefinition';
 import type { DocumentBrevhovedType } from '../layout/documentBrevhoved';
-import type { SourceSettings } from '../../settings/sourceSettings';
+import type { EoRowPolicy } from '../../settings/sourceSettings';
+
+/**
+ * Hovedappens GATE-settings: alt, en definitions `project` må se. Aliasset findes, så de 18
+ * definitioner ikke hver især navngiver rækkepolitikken — og så en udvidelse af gate-fladen sker ét
+ * sted, hvor den kan begrundes.
+ */
+export type MineoDocumentGateSettings = EoRowPolicy;
 
 /**
  * En definition i hovedappen. `TRequest` er `void` for de outputs, der kun findes i én instans;
@@ -30,7 +41,7 @@ import type { SourceSettings } from '../../settings/sourceSettings';
 export type MineoDocumentDefinition<TInput, TRequest = void> = DocumentDefinition<
   TRequest,
   TInput,
-  SourceSettings,
+  MineoDocumentGateSettings,
   DocumentBrevhovedType
 >;
 

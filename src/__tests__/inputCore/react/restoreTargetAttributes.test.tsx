@@ -62,7 +62,7 @@ const expectRestoreAttrs = (element: Element, serializedAddress: string, locatio
   expect(element.getAttribute(EDITOR_LOC_ATTR)).toBe(locationId);
 };
 
-describe('Greenfield restore-target-attributter på det fokuserbare element (§3.7)', () => {
+describe('restore-target-attributter på det fokuserbare element (§3.7)', () => {
   it('form-tekstfelt (IntegerField)', () => {
     renderField(<IntegerField field={aargangField.bind()} location={testLocation('loc-int')} name="aargang" />);
     expectRestoreAttrs(screen.getByRole('textbox'), serializeFieldAddress(aargangField.bind().address), 'loc-int');

@@ -46,7 +46,7 @@ import {
 } from './rules/formRules';
 import {
   cellBindingSingleSource,
-  eoSurfaceOnGreenfieldPath,
+  eoSurfaceOnAuthoritativeEditorPath,
   forbiddenLegacyIdentifier,
   inputWriteBoundary,
   derivedWritesNotFromEffects,
@@ -120,7 +120,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,
   cellBindingSingleSource,
-  eoSurfaceOnGreenfieldPath,
+  eoSurfaceOnAuthoritativeEditorPath,
   programmaticFieldCommitUsesSettle,
   derivedWritesNotFromEffects,
   issueSnapshotCapabilityBoundary,

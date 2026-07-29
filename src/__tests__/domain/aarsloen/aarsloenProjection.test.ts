@@ -69,7 +69,7 @@ const insert = (row: StandardLoenTableRow): AnyInputCommand =>
 const reader = (input: SettledInput) =>
   createInputEvaluation({ input, catalog, sourceToken: token }).reader;
 
-describe('readAarsloenValues (greenfield reader-rekonstruktion)', () => {
+describe('readAarsloenValues (reader-rekonstruktion)', () => {
   it('tom sag → schema-defaults (loenperiode maaned, tillaeg procent, toggles), tom tableData', () => {
     const values = readAarsloenValues(reader(empty()));
     expect(values.loenperiode).toBe('maaned');
