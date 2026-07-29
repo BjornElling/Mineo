@@ -2,6 +2,23 @@
 
 Alle udviklingsregler, roller, mandat og constraints for Mineo er samlet i [AGENTS.md](AGENTS.md). Læs den fil — den er den autoritative kilde.
 
+## Kommunikationsstil (skærpelse af AGENTS.md §Kommunikation)
+
+AGENTS.md siger allerede "Hold kommunikation på et absolut minimum". Denne skærpelse står her, fordi jeg
+**ikke har fulgt den** — påtalt af brugeren 2026-07-29 med ordene "det er kun dig, der er problemet".
+
+- **Kortfattet, klar, præcis.** Ingen løbende overvejelser, ingen tankestrøm, ingen narration af hvad jeg er
+  ved at gøre eller hvorfor. Ingen genfortælling af det, et værktøjskald lige viste.
+- **Lejlighedsvise livstegn under langt arbejde** — én kort linje, så brugeren ved, at jeg ikke er gået i stå.
+  Et minimum. Ikke en statusrapport pr. delopgave.
+- **Udførligt er tilladt PRÆCIS to steder:** spørgsmål til brugeren, og den afsluttende status. Dem skal jeg
+  til gengæld formulere grundigt og gennemarbejdet.
+- Mellemliggende beslutninger, afvejninger og begrundelser hører i **koden, WI-filen eller reviewrapporten** —
+  ikke i chatten. Jeg ejer alle proces- og kodebeslutninger, så de skal ikke forelægges undervejs.
+
+Prøven før hver besked, der hverken er et spørgsmål eller en afsluttende status: *kan den skæres til én linje
+— eller helt væk?* Så gør det. Sig hvad der ER gjort, ikke hvad jeg overvejer.
+
 ## Nedluknings-protokol ("luk ned")
 
 Når brugeren skriver **"luk ned"** (typisk fordi statuslinjen har fyret en ntfy om at
