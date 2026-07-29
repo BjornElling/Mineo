@@ -303,9 +303,9 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
                 navigate('/stamdata');
                 // Land på det konkrete felt, hvis issuet peger på ét (parallelt til EO-rækkernes
                 // stamdata-sti). Den generiske schema-invalid har intet enkelt felt → kun navigation.
-                if (navigation.focusFieldPath) {
+                if (navigation.focusFieldAddress) {
                   scrollToEoRow('', {
-                    focusTarget: { kind: 'fieldPath', fieldPath: navigation.focusFieldPath },
+                    focusTarget: { kind: 'fieldAddress', address: navigation.focusFieldAddress },
                   });
                 }
                 break;

@@ -293,44 +293,25 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
       };
     },
     /**
-     * **Datoformat er en ÆGTE grænse her, ikke en detalje.** `generateRenteDocument` tager
-     * `dd-mm-åååå` og parser med `parseDanishDate`; sender man den canonical ISO-form, kaster den
-     * "Ugyldige datoer for renteberegning". Callsiten konverterede før Fase 5 alle TRE datoer med
-     * `isoToDanish`, og den konvertering skal med her — ellers fejler hver eneste enkeltrente-download.
-     *
-     * Den rigtige langsigtede rettelse er at gøre generatorens kontrakt til `ISODateString` (canonical
-     * ind, formatering i generatoren). Det ligger uden for Fase 5, som eksplicit bevarer
-     * generatorsignaturerne uændrede — se WI-011.
+     * Datoerne gives videre CANONICAL (§WI-011). Generatoren tog tidligere `dd-mm-åååå` som en utypet
+     * `string`, så callsiten måtte konvertere med `isoToDanish` og fail-close på et `undefined`, typen ikke
+     * kunne fange. Begge generatorer i domænet tager nu `ISODateString`, så formatuenigheden er
+     * urepræsenterbar frem for noget en konvertering pr. callsite skal huske.
      */
     loadRenderer: async () => {
-      const [{ generateRenteDocument }, { isoToDanish }] = await Promise.all([
-        import('../../document/generators/renteberegning/renteDocument'),
-        import('../../types/branded'),
-      ]);
+      const { generateRenteDocument } = await import('../../document/generators/renteberegning/renteDocument');
       return (session, input, ctx) => generateRenteDocument(
         session,
         input.beloeb,
-        toDanishOrThrow(isoToDanish(input.actualInterestDate), 'renterFra'),
-        toDanishOrThrow(isoToDanish(input.beregningsdato), 'beregningsdato'),
+        input.actualInterestDate,
+        input.beregningsdato,
         input.periods,
         {
           visBrevhoved: ctx.visBrevhoved,
           stamdata: input.stamdata,
           kommentarer: input.kommentarer,
-          latestReferenceRateDate: isoToDanish(input.latestReferenceRateDate ?? undefined) ?? null,
+          latestReferenceRateDate: input.latestReferenceRateDate ?? null,
         }
       );
     },
   });
-
-/**
- * En canonical ISO-dato, der ikke kan omsættes til dansk format, er et invariantbrud — projektionen
- * har netop godkendt den. Fail-closed med en navngiven årsag frem for at sende `undefined` videre og
- * få generatorens generiske "Ugyldige datoer".
- */
-const toDanishOrThrow = (value: string | undefined, felt: string): string => {
-  if (value === undefined) {
-    throw new Error(`Kunne ikke omsætte ${felt} til dansk datoformat i rentespecifikationen.`);
-  }
-  return value;
-};

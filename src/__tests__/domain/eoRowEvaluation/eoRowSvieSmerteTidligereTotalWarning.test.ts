@@ -111,7 +111,7 @@ describe('collectAllEoRows — tidligere svie-/smertebeløb', () => {
 
     expect(warning).toMatchObject({
       summaryText: 'Der er ikke angivet et svie-/smertebeløb for tidligere erstatningsopgørelser',
-      focusTarget: { kind: 'fieldPath', fieldPath: 'svieSmerteTidligereTotal' },
+      focusTarget: { kind: 'fieldAddress', address: eoSvieSmerteTidligereTotalField.bind().address },
       navigation: {
         kind: 'erstatningsopgoerelse-tab',
         tabId: 'eo_oplysninger',

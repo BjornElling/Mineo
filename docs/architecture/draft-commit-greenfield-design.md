@@ -1099,9 +1099,11 @@ Fysisk filsletning skete ikke, før filens sidste aktive ansvar var flyttet. **S
 familierne ovenfor blev slettet i Fase 4 trin 13 sammen med `FormPersistenceContext*`, `useFormPersistence`,
 `usePersistedForm` og de gamle persistence-selectors. Den tilhørende infrastruktur, der alene betjente dem, blev
 lukket i WI-007: per-sektion-sessionStorage-nøglerne (`mineo_stamdata`, …), `invalidDrafts`-nøglen og den legacy
-`input`-envelope er fjernet fra manifestet, og `cellInvalidDraftScopes` er reduceret til sit levende ansvar
-(fokusadressering) under navnet `cellFocusPaths`. En AST-regel afviser skrivning til de slettede nøgler ad
-begge skriveveje. Fase 6 verificerer, at ingen midlertidig fysisk rest består.
+`input`-envelope er fjernet fra manifestet, og `cellInvalidDraftScopes` blev reduceret til sit levende ansvar
+(fokusadressering) under navnet `cellFocusPaths` — som SIDEN er slettet helt med draft/commit-reviewets GM-F10,
+fordi dens celle-fokusmål var uopnåelige og EO-fejllinks nu bruger den kanoniske feltadresse. En AST-regel
+afviser skrivning til de slettede nøgler ad begge skriveveje. Fase 6 verificerer, at ingen midlertidig fysisk
+rest består.
 
 #### Exitkriterier
 

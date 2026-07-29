@@ -172,8 +172,8 @@ const byggResultat = (
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen manuelle segmenter');
   }
-  // 'Manuelt angivet' er endnu ikke R2-migreret (præsentationen re-deriverer via display-parsere);
-  // forloeb udelades, jf. R2-afgrænsningen.
+  // 'Manuelt angivet' emitterer bevidst INTET `forloeb`: præsentationen re-deriverer forløbet af de indtastede
+  // rækker via display-parserne, så et emitteret forløb ville være en anden kilde til samme visning.
   return { segmenter: segments };
 };
 

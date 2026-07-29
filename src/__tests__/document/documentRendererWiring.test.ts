@@ -6,16 +6,20 @@
  * (`triggerDocumentDownload`). Det er en STRAMMERE ende-til-ende-assertion, men en SVAGERE
  * wiring-assertion, og forskellen var ikke teoretisk: den slap en kritisk fejl igennem.
  *
- * Konkret fejl (review-fund 1): `generateRenteDocument` tager `dd-mm-åååå` og parser med
- * `parseDanishDate`, mens `generateRenteOversigtDocument` tager canonical `ISODateString`. To
- * generatorer i SAMME domæne med hver sit datoformat. Definitionerne sendte ISO til begge, så hver
- * eneste enkeltrente-download kastede "Ugyldige datoer for renteberegning" — i begge apps.
- * Integrationstesten fangede det ikke, fordi den kun aktiverer oversigts-outputtet, altså netop den
- * af de to, hvis kontrakt tilfældigvis passede.
+ * Konkret fejl (review-fund 1): `generateRenteDocument` tog `dd-mm-åååå` og parsede med
+ * `parseDanishDate`, mens `generateRenteOversigtDocument` tog canonical `ISODateString`. To generatorer i
+ * SAMME domæne med hver sit datoformat. Definitionerne sendte ISO til begge, så hver eneste
+ * enkeltrente-download kastede "Ugyldige datoer for renteberegning" — i begge apps. Integrationstesten
+ * fangede det ikke, fordi den kun aktiverer oversigts-outputtet, altså netop den af de to, hvis kontrakt
+ * tilfældigvis passede.
  *
- * Testen her kalder `loadRenderer()` og kører rendereren mod en fake session, så de faktiske
- * argumenter kan inspiceres. Den er bevidst formatFOKUSERET: den pinner de grænser, hvor to lag
- * bruger forskellige repræsentationer af samme værdi.
+ * **§WI-011 fjernede divergensen ved RODEN:** begge generatorer tager nu `ISODateString`, og konverteringen
+ * pr. callsite er væk. Testen pinner derfor ikke længere to forskellige formater — den pinner, at ALLE fire
+ * definitioner (Mineo + standalone × specifikation + oversigt) sender canonical ISO uændret. En genindført
+ * konvertering ville gøre en af dem rød.
+ *
+ * Testen kalder `loadRenderer()` og kører rendereren mod en fake session, så de faktiske argumenter kan
+ * inspiceres. Den er bevidst formatFOKUSERET: den pinner grænsen mellem definition og generator.
  */
 import type { DocumentGenerationSession } from '../../document/documentGenerationSession';
 import {
@@ -32,7 +36,7 @@ import {
 } from '../../apps/minprocesrente/document/standaloneRenteDocumentDefinitions';
 import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesrenteCalculator';
 import type { StamdataValues } from '../../schemas/formSchemas';
-import { toISODateString } from '../../types/branded';
+import { toISODateString, type ISODateString } from '../../types/branded';
 
 /** En session der returnerer en tom blob; vi måler på ARGUMENTERNE, ikke på output. */
 const fakeSession = (): DocumentGenerationSession =>
@@ -59,7 +63,7 @@ const stamdata: StamdataValues = {
 const DANISH_DATE = /^\d{2}-\d{2}-\d{4}$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-describe('renderer-wiring: rente-specifikationen kræver DANSK datoformat', () => {
+describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
   const input: RenteDocumentInput = {
     beloeb: 1000,
     actualInterestDate: toISODateString('2024-01-01'),
@@ -70,13 +74,13 @@ describe('renderer-wiring: rente-specifikationen kræver DANSK datoformat', () =
     stamdata,
   };
 
-  it('Mineo: definitionen konverterer ISO → dd-mm-åååå før generatoren kaldes', async () => {
+  it('Mineo: definitionen sender ISO uændret til generatoren', async () => {
     const render = await renteDocumentDefinition.loadRenderer();
-    // Kaster generatoren "Ugyldige datoer", er konverteringen droppet. Det var den faktiske fejl.
+    // Kaster generatoren "Ugyldige datoer", er der indsat en konvertering, der ikke længere hører til.
     await expect(render(fakeSession(), input, { visBrevhoved: false })).resolves.toBeDefined();
   });
 
-  it('standalone: samme konvertering — begge apps deler generatorens kontrakt', async () => {
+  it('standalone: samme ISO-kontrakt — begge apps deler generatorens kontrakt', async () => {
     const standaloneInput: StandaloneRenteDocumentInput = {
       beloeb: input.beloeb,
       actualInterestDate: input.actualInterestDate,
@@ -89,20 +93,31 @@ describe('renderer-wiring: rente-specifikationen kræver DANSK datoformat', () =
     await expect(render(fakeSession(), standaloneInput, { visBrevhoved: false })).resolves.toBeDefined();
   });
 
-  it('regression: den RÅ ISO-værdi ville få generatoren til at kaste', async () => {
-    // Beviser at testene ovenfor faktisk måler noget: uden konverteringen fejler kaldet.
-    // Generatoren validerer datoerne SYNKRONT, før den returnerer sit promise — derfor `toThrow`
-    // på selve kaldet og ikke `rejects`.
+  it('regression: en DANSK datostreng ville nu få generatoren til at kaste', async () => {
+    // Beviser at testene ovenfor faktisk måler noget. Assertionen er VENDT med §WI-011: før var ISO det
+    // ugyldige format for denne generator, nu er dansk det. Uden dette ben kunne begge kontrakter være
+    // grønne, og testen ville ikke sige noget om, hvilket format generatoren faktisk kræver.
+    //
+    // Generatoren validerer datoerne SYNKRONT, før den returnerer sit promise — derfor `toThrow` på selve
+    // kaldet og ikke `rejects`. Castet er nødvendigt, fordi typen nu udelukker den forkerte form.
     const { generateRenteDocument } = await import('../../document/generators/renteberegning/renteDocument');
-    expect(() => generateRenteDocument(fakeSession(), 1000, '2024-01-01', '2024-12-31', periods, {}))
-      .toThrow('Ugyldige datoer for renteberegning');
+    expect(() => generateRenteDocument(
+      fakeSession(),
+      1000,
+      '01-01-2024' as unknown as ISODateString,
+      '31-12-2024' as unknown as ISODateString,
+      periods,
+      {}
+    )).toThrow('Ugyldige datoer for renteberegning');
   });
 
-  it('de to formater er dokumenteret forskellige — pin dem, så en ensretning ikke sker lydløst', () => {
-    // Rente-specifikationen: dansk. Oversigten: ISO. Ændres den ene, skal denne test opdateres
-    // bevidst frem for at et output tavst begynder at få det forkerte format.
-    expect('01-01-2024').toMatch(DANISH_DATE);
+  it('BEGGE rente-outputs deler nu ét datoformat — pin det, så en divergens ikke genopstår', () => {
+    // Før §WI-011 pinnede denne test bevidst, at de to formater var FORSKELLIGE. Divergensen er fjernet
+    // ved roden (generatorens signatur), så testen pinner nu enigheden: begge definitioner bærer ISO, og
+    // ingen af dem må bære dansk format.
+    expect(input.actualInterestDate).toMatch(ISO_DATE);
     expect(input.beregningsdato).toMatch(ISO_DATE);
+    expect(input.actualInterestDate).not.toMatch(DANISH_DATE);
   });
 });
 

@@ -9,7 +9,7 @@
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
 import { type PersistedSectionKey } from '../../../../config/persistenceRegistry';
-import { collectImports, hasIdentifier, hasTypeReference, resolveRelativeImport } from '../astQueries';
+import { collectCalls, collectImports, hasIdentifier, hasTypeReference, resolveRelativeImport } from '../astQueries';
 import { type SourceEntry } from '../sourceGraph';
 import {
   defineRule,
@@ -244,6 +244,11 @@ export type PageBoundaryRule = Readonly<{
 export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
   { label: 'Årslønsberegning', root: 'src/components/pages/Aarsloen.tsx', allowedSections: ['aarsloen', 'stamdata'] },
   {
+    label: 'Årslønsberegning sektioner',
+    root: 'src/components/pages/aarsloen',
+    allowedSections: ['aarsloen', 'stamdata'],
+  },
+  {
     label: 'Erhvervsevnetab',
     root: 'src/components/pages/Erhvervsevnetab.tsx',
     allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata'],
@@ -269,17 +274,34 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     allowedSections: ['erstatningsopgoerelse', 'stamdata'],
   },
   { label: 'Forsørgertab', root: 'src/components/pages/Forsoergertab.tsx', allowedSections: ['forsoergertab', 'faellesAarsloen', 'stamdata'] },
+  {
+    // Forsørgertabs viewmodel + sektion-komponenter (R7-F01's VM-lag). Autorisationen er DEN SAMME som
+    // sidens: sektionslaget er sidens eget, og en anden liste her ville betyde, at ansvaret kunne flyttes
+    // over grænsen ved at flytte en fil ned i mappen.
+    label: 'Forsørgertab sektioner',
+    root: 'src/components/pages/forsoergertab',
+    allowedSections: ['forsoergertab', 'faellesAarsloen', 'stamdata'],
+  },
   { label: 'Renteberegning', root: 'src/components/pages/Renteberegning.tsx', allowedSections: ['renteberegning', 'stamdata'] },
   {
     // Delte renteberegning-faner (bruges af både hovedapp og standalone minProcesrente). RenteberegningTab
     // binder beregningsdato til den afsluttede inputrevision, så filen tilgår
     // `renteberegning`-sektionen.
+    // `stamdata` er med efter R7-F01: sidens viewmodel bor nu her og komponerer de to rente-dokument-
+    // definitioner, som læser brevhovedets stamdata. Autorisationen er dermed identisk med
+    // `Renteberegning.tsx`' egen — koblingen er den samme, kun filen er flyttet.
     label: 'Renteberegning-faner',
     root: 'src/components/pages/renteberegning',
-    allowedSections: ['renteberegning'],
+    allowedSections: ['renteberegning', 'stamdata'],
   },
   { label: 'Satser', root: 'src/components/pages/Satser.tsx', allowedSections: ['satser', 'stamdata'] },
+  {
+    label: 'Satser sektioner',
+    root: 'src/components/pages/satser',
+    allowedSections: ['satser', 'stamdata'],
+  },
   { label: 'Stamdata', root: 'src/components/pages/Stamdata.tsx', allowedSections: ['stamdata'] },
+  { label: 'Stamdata sektioner', root: 'src/components/pages/stamdata', allowedSections: ['stamdata'] },
   { label: 'Varige mén', root: 'src/components/pages/VarigeMen.tsx', allowedSections: ['stamdata', 'varigemen'] },
   { label: 'Varige mén tabs', root: 'src/components/pages/varigemen', allowedSections: ['stamdata', 'varigemen'] },
   {
@@ -288,6 +310,111 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     allowedSections: ['renteberegning'],
   },
 ];
+
+// --- Hvem må kalde en beregningsmotor (WI-005) --------------------------------
+
+/**
+ * ANSVARSGRÆNSE: en beregningsmotor kaldes KUN af sin egen reader-projektion.
+ *
+ * `§7.3`/GM-F07: motoren fodres kun fra en `ready`-projektion. Grænsen holdt i praksis — nul callsites uden for
+ * projektionerne — men den var UBEVOGTET: intet ville have fanget en side, en dokumentdefinition eller en
+ * komponent, der greb direkte efter motoren og dermed omgik gaten. Netop det er WI-005's ønskede slutbillede:
+ * værn, der håndhæver ANSVAR (hvem må kalde en motor) frem for de NAVNE, migrationen kom fra.
+ *
+ * Kortet er 1:1 og udtømmende pr. slice, så det ikke kan udvandes: hver motor har præcis ÉN lovlig kalder.
+ * En syvende slice, hvis motor får en anden kalder, skal registreres her — og en motor, hvis navn forsvinder,
+ * gør liveness-kontrollen rød frem for at efterlade reglen grøn af tomhed.
+ */
+const ENGINE_ENTRYPOINT_OWNERS: ReadonlyMap<string, string> = new Map([
+  ['computeEoSnapshot', 'src/domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection.ts'],
+  ['computeEetSnapshot', 'src/domain/erhvervsevnetab/erhvervsevnetabReaderProjection.ts'],
+  ['computeForsoergertabSnapshot', 'src/domain/forsoergertab/forsoergertabReaderProjection.ts'],
+  ['computeAarsloenBeregning', 'src/domain/aarsloen/aarsloenProjection.ts'],
+  ['computeVarigeMenEngine', 'src/domain/varigemen/varigeMenReaderProjection.ts'],
+  ['computeRentekravRow', 'src/domain/renteberegning/renteberegningReaderProjection.ts'],
+]);
+
+const ENGINE_ENTRYPOINT_NAMES: readonly string[] = [...ENGINE_ENTRYPOINT_OWNERS.keys()];
+
+/** Kalder filen en motor, den ikke ejer? Måles som KALD (ikke import), så en type-only reference er lovlig. */
+const collectForeignEngineCalls = (entry: SourceEntry): readonly Finding[] =>
+  collectCalls(entry)
+    .filter((ref) => {
+      const owner = ENGINE_ENTRYPOINT_OWNERS.get(ref.calleeName);
+      return owner !== undefined && owner !== entry.relativePath;
+    })
+    .map((ref) => ({
+      position: ref.position,
+      message:
+        `\`${ref.calleeName}(...)\` er en beregningsmotor, som kun må kaldes af sin egen reader-projektion `
+        + `(${ENGINE_ENTRYPOINT_OWNERS.get(ref.calleeName)}). Motoren fodres KUN fra en \`ready\`-projektion `
+        + '(§7.3/GM-F07); et direkte kald herfra omgår dependency-gaten, så et tal kan beregnes på input, der '
+        + 'ikke rækker til det. Læs projektionens resultat i stedet.',
+    }));
+
+export const engineCallOwnedByProjectionRule = defineRule({
+  id: 'domain/engine-call-owned-by-projection',
+  description:
+    'En beregningsmotor kaldes kun af sin egen reader-projektion (§7.3/GM-F07). Et direkte motorkald fra en '
+    + 'side, en dokumentdefinition eller en komponent omgår dependency-gaten (WI-005).',
+  liveTarget: {
+    kind: 'precondition',
+    // Målet er motorernes EJERE: hver projektion skal stadig kalde sin motor. Holder en projektion op med at
+    // gøre det, er slicens beregningsvej flyttet, og kortet skal følge med frem for at stå grønt.
+    probe: (entry) => {
+      const owned = ENGINE_ENTRYPOINT_NAMES.filter(
+        (name) => ENGINE_ENTRYPOINT_OWNERS.get(name) === entry.relativePath
+      );
+      if (owned.length === 0) return false;
+      const called = new Set(collectCalls(entry).map((ref) => ref.calleeName));
+      return owned.every((name) => called.has(name));
+    },
+    rationale:
+      'hver af de seks slice-motorer kaldes stadig af sin egen reader-projektion; forsvinder en af dem, skal '
+      + 'ENGINE_ENTRYPOINT_OWNERS følge den nye beregningsvej',
+    minimumMatches: 6,
+    requiredPaths: [...new Set(ENGINE_ENTRYPOINT_OWNERS.values())],
+  },
+  // Måles over HELE kildegrafen: fundet er "en fil, der ikke ejer motoren, kalder den", og den fil kan ligge
+  // hvor som helst. En scope-begrænsning til fx `src/components` ville efterlade dokumentlaget ubevogtet.
+  find: (entry) => collectForeignEngineCalls(entry),
+  allow: [],
+  violatingFixtures: [
+    // Den konkrete fejlform: en side, der griber direkte efter motoren og dermed omgår gaten.
+    {
+      relativePath: 'src/components/pages/Forsoergertab.tsx',
+      code: 'const snapshot = computeForsoergertabSnapshot({ values });',
+    },
+    // En dokumentdefinition ville have samme virkning — outputtet ville bære et ugatet tal.
+    {
+      relativePath: 'src/domain/forsoergertab/forsoergertabDocumentDefinition.ts',
+      code: 'const s = computeForsoergertabSnapshot(input);',
+    },
+    // En ANDEN projektion må heller ikke kalde en fremmed slices motor.
+    {
+      relativePath: 'src/domain/aarsloen/aarsloenProjection.ts',
+      code: 'const s = computeEoSnapshot(input);',
+    },
+  ],
+  cleanFixtures: [
+    // Ejeren selv kalder naturligvis sin egen motor.
+    {
+      relativePath: 'src/domain/forsoergertab/forsoergertabReaderProjection.ts',
+      code: 'const snapshot = computeForsoergertabSnapshot({ values });',
+    },
+    // En TYPE-reference er ikke et kald; snapshottypen deles bredt og skal blive ved at kunne det.
+    {
+      relativePath: 'src/components/pages/Forsoergertab.tsx',
+      code: "import type { ForsoergertabSnapshot } from '../../domain/forsoergertab/forsoergertabSnapshot';\n"
+        + 'const f = (s: ForsoergertabSnapshot) => s;',
+    },
+    // En KOMMENTAR, der nævner motoren, må ikke bære reglen (INC-F03's lærepunkt).
+    {
+      relativePath: 'src/components/pages/Forsoergertab.tsx',
+      code: '// Projektionen kalder computeForsoergertabSnapshot() uændret (§5.4).\nconst x = 1;',
+    },
+  ],
+});
 
 const boundaryRuleForPath = (relativePath: string): PageBoundaryRule | undefined =>
   PAGE_BOUNDARY_RULES.find(

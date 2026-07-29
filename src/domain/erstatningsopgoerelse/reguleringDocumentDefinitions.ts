@@ -103,8 +103,8 @@ const readOptional = <T>(reader: InputReader, ref: ReturnType<FieldDescriptor<T>
 /**
  * Sagsniveauets overenskomst-etiket. Bevidst FORSKELLIG fra ansættelsesforholdets: sagsniveauet
  * viser kun `meta.navn`, mens ansættelsesforholdet viser `navn (lønmodtager / arbejdsgiver)`.
- * Forskellen er eksisterende DOKUMENTINDHOLD og ligger uden for Fase 5's scope — den ensartes ikke
- * her, hvor formålet er at ensarte gaten og livscyklussen.
+ * Forskellen er eksisterende DOKUMENTINDHOLD. Den ensartes IKKE uden en brugerbeslutning: en ændring ville
+ * flytte synligt indhold i et udstedt dokument (§5.4's hårde stop). Gaten og livscyklussen er derimod fælles.
  */
 const resolveCaseOverenskomstLabel = (overenskomstId: string | undefined): string => {
   if (!overenskomstId) return '-';

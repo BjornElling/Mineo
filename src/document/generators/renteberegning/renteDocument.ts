@@ -18,7 +18,8 @@ import {
   type StandardDocumentMetadata,
 } from '../documentGeneratorSetup';
 import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
-import { formatDanishDate, parseDanishDate } from '../../../utils/dateUtils';
+import { formatDanishDate } from '../../../utils/dateUtils';
+import { parseISODate, type ISODateString } from '../../../types/branded';
 import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/documentOptions';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { resolveDocumentArtifactFileName, sanitizeFilenamePart } from '../../layout/documentFormatUtils';
@@ -32,7 +33,13 @@ import type { DocumentArtifact } from '../../downloadArtifact';
 type RenteDocumentOptions = DocumentCommonOptions & Readonly<{
   stamdata?: DocumentStamdata | null;
   kommentarer?: string;
-  latestReferenceRateDate?: string | null;
+  /**
+   * Canonical ISO (§WI-011). Var tidligere en utypet `string` i dansk format, hvilket gjorde generatoren
+   * uenig med sin egen søster (`generateRenteOversigtDocument`) om formatet — usynligt for typecheckeren og
+   * årsag til en kritisk fejl ved Fase 5's cutover. Formatering til dansk sker INDE i generatoren, hvor den
+   * hører til som præsentation.
+   */
+  latestReferenceRateDate?: ISODateString | null;
   metadata?: StandardDocumentMetadata;
 }>;
 
@@ -186,7 +193,7 @@ export const writeRenteDocumentContent = (
     writer,
     periods,
     endDate,
-    latestReferenceRateDate ? parseDanishDate(latestReferenceRateDate) : null
+    latestReferenceRateDate ? parseISODate(latestReferenceRateDate) ?? null : null
   );
   addCalculationPrinciples(writer, kommentarer);
 };
@@ -194,17 +201,20 @@ export const writeRenteDocumentContent = (
 /**
  * Generer og download PDF for procesrenteberegning
  *
+ * Datoerne er CANONICAL ISO (§WI-011) — samme kontrakt som `generateRenteOversigtDocument` og som resten af
+ * systemet. Dansk formatering er præsentation og sker inde i generatoren.
+ *
  * @param {number} amount - Hovedstol
- * @param {string} interestStartDate - Rentens startdato (dd-mm-åååå)
- * @param {string} calculationDate - Beregningens slutdato (dd-mm-åååå)
+ * @param {ISODateString} interestStartDate - Rentens startdato
+ * @param {ISODateString} calculationDate - Beregningens slutdato
  * @param {ReadonlyArray<ProcessInterestPeriod>} periods - Periode-output fra motoren
  * @param {RenteDocumentOptions} options - Valgfrie indstillinger
  */
 export const generateRenteDocument = (
   session: DocumentGenerationSession,
   amount: number,
-  interestStartDate: string,
-  calculationDate: string,
+  interestStartDate: ISODateString,
+  calculationDate: ISODateString,
   periods: ReadonlyArray<ProcessInterestPeriod>,
   options: RenteDocumentOptions = {}
 ): Promise<DocumentArtifact> => {
@@ -212,8 +222,8 @@ export const generateRenteDocument = (
     throw new Error('Ingen perioder fundet for renteberegning');
   }
 
-  const startDate = parseDanishDate(interestStartDate);
-  const endDate = parseDanishDate(calculationDate);
+  const startDate = parseISODate(interestStartDate);
+  const endDate = parseISODate(calculationDate);
 
   if (!startDate || !endDate) {
     throw new Error('Ugyldige datoer for renteberegning');

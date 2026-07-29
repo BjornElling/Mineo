@@ -93,18 +93,15 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
 
   const resolvedValue = value ?? emptyValue;
 
-  // Feltidentitets-attributter for den VALGTE radio: legacy `data-mineo-undo-field-path` (kun når `name`) plus
-  // feltadresse + editorlokation (§3.7). Kun den valgte radio bærer dem, så restoren fokuserer den
-  // faktiske valgte knap. Returnerer `undefined`, når der intet er at bære (så MUI-slotProps forbliver uberørt).
+  // Feltidentitets-attributter for den VALGTE radio: serialiseret feltadresse + editorlokation (§3.2/§3.7).
+  // Kun den valgte radio bærer dem, så restoren fokuserer den faktisk valgte knap. Returnerer `undefined`,
+  // når der intet er at bære (så MUI-slotProps forbliver uberørt).
   const selectedInputSlotProps = React.useMemo(() => {
-    const attrs: Record<string, string> = {
-      ...(name === undefined ? {} : { 'data-mineo-undo-field-path': name }),
-      ...(restoreTargetAttributes ?? {}),
-    };
+    const attrs: Record<string, string> = { ...(restoreTargetAttributes ?? {}) };
     return Object.keys(attrs).length === 0
       ? undefined
       : { input: attrs as React.InputHTMLAttributes<HTMLInputElement> };
-  }, [name, restoreTargetAttributes]);
+  }, [restoreTargetAttributes]);
   const showError = error && helperText.trim() !== '';
   const a11yErrorId = `${emptyValue}-error`;
 

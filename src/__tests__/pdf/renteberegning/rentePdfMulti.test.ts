@@ -2,7 +2,7 @@
 import { writeRenteDocumentContent, generateRenteDocument } from '../../../document/generators/renteberegning/renteDocument';
 import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';
 import type { ProcessInterestPeriod } from '../../../domain/renteberegning/procesrenteCalculator';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import { createDocumentGenerationSession } from '../../../document/documentGenerationSession';
 import { createDocumentComposer, renderDocumentModel } from '../../../document/model/documentModel';
 
@@ -53,13 +53,16 @@ describe('writeRenteDocumentContent', () => {
 describe('generateRenteDocument', () => {
   it('kaster når perioder mangler', () => {
     expect(() => {
-      generateRenteDocument(pdfSession, 1000, '01-01-2024', '31-01-2024', []);
+      generateRenteDocument(pdfSession, 1000, toISODateString('2024-01-01'), toISODateString('2024-01-31'), []);
     }).toThrow('Ingen perioder fundet for renteberegning');
   });
 
+  // Castet er BEVIDST: efter §WI-011 er parameteren `ISODateString`, så en ugyldig dato ikke KAN nå hertil ad
+  // en typet vej. Testen beviser, at generatorens defensive parse-guard stadig fyrer — den er defense-in-depth
+  // mod en `as`-omgåelse eller en fremtidig utypet kalder, og en fjernet guard skal gøre noget rødt.
   it('kaster ved ugyldige datoer', () => {
     expect(() => {
-      generateRenteDocument(pdfSession, 1000, 'ikke-en-dato', '31-01-2024', [makePeriod()]);
+      generateRenteDocument(pdfSession, 1000, 'ikke-en-dato' as ISODateString, toISODateString('2024-01-31'), [makePeriod()]);
     }).toThrow('Ugyldige datoer for renteberegning');
   });
 });

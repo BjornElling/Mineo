@@ -2,6 +2,7 @@
  * Typer for EO-række-evaluering og den nedstrøms EOInspektion-visning.
  */
 
+import type { FieldAddress } from '../../inputCore/fieldAddress';
 import type { ISODateString } from '../../types/branded';
 
 /**
@@ -107,8 +108,19 @@ export type DependencySpec =
   | Readonly<{ kind: 'id'; id: string }>
   | Readonly<{ kind: 'prefix'; prefix: string }>;
 
+/**
+ * Fokusmålet for et navigerbart EO-issue.
+ *
+ * Målet er en KANONISK feltadresse (§3.2) — den samme dataidentitet undo/redo (`findRestoreTarget`) og
+ * save-blokeringens fokus (`lookupEditorLocation`) bruger. Adressen bindes af issue-kataloget fra
+ * produktionens egne felt-descriptorer, så et omdøbt felt bliver en compilerfejl frem for et link, der
+ * lydløst falder tilbage til rækkeankeret.
+ *
+ * `rowId` er ikke et alternativt identitetssystem, men det GROVERE mål: en række uden et enkelt ansvarligt
+ * felt (fx et overlap mellem to rækker) forankres til rækkens `data-mineo-row-id`.
+ */
 export type EoIssueFocusTarget =
-  | Readonly<{ kind: 'fieldPath'; fieldPath: string }>
+  | Readonly<{ kind: 'fieldAddress'; address: FieldAddress }>
   | Readonly<{ kind: 'rowId'; rowId: string }>;
 
 /**

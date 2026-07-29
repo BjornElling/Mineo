@@ -44,8 +44,8 @@ type OriginArgs<TKind extends string> = TKind extends StructuralCommandKind
 // `FormPersistenceContext` eksponerer den hverken rå sektioner, `invalidDrafts`, `fieldErrors` eller skrivbare
 // hel-sektionshooks. Den giver kun: (1) den aktuelle afsluttede revision (input + revisionsnummer), (2) det
 // tokenbundne feltissue-snapshot (§1.8 — komponenter rapporterer ALDRIG ind i det; de læser det), (3) én
-// typed `dispatch`, og (4) editorregistret. Feltvalidatorerne (Fase 3) leverer issue-snapshottet; indtil da
-// injiceres et syntetisk snapshot i test (§2.3-verifikation).
+// typed `dispatch`, og (4) editorregistret. Feltvalidatorerne leverer issue-snapshottet i produktionen; test
+// kan injicere et syntetisk snapshot for at isolere en enkelt issue-tilstand.
 
 /** Det aktuelle afsluttede input bundet til sin revision. Adapteren afleder lukket visning HERFRA (§3.5). */
 export type SettledSnapshot = Readonly<{

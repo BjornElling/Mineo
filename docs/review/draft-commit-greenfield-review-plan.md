@@ -207,12 +207,12 @@ undersøgt.
 
 ## Review-status
 
-**Overordnet status:** I gang
+**Overordnet status:** AFSLUTTET (2026-07-29)
 
-**Aktuel fase:** R0–R8 delvist gennemgået. Rettearbejdet er begyndt og følger den bindende
-rettelsesrækkefølge i [fund-oversigt](draft-commit-review/fund-oversigt.md); R9 køres til sidst.
+**Aktuel fase:** Ingen — alle faser R0–R9 er gennemgået, og alle tolv rette-etaper er lukket. **Reviewet er
+afsluttet 2026-07-29.** Se afslutningskravene nederst for den efterprøvede slutstatus.
 
-**Sidst opdateret:** 2026-07-28
+**Sidst opdateret:** 2026-07-29
 
 **Baseline:** branch `greenfield`. Baseline fastlægges og efterprøves i fase R0 — den overtages ikke fra
 designdokumentets statusafsnit.
@@ -225,35 +225,35 @@ Er de to uenige, har fund-oversigten ret, og denne tabel skal rettes — ikke om
 
 | Fase | Emne | Status | Fund (åbne/i alt) | Rapport |
 |---|---|---|---:|---|
-| R0 | Baseline, kortlægning og værnenes troværdighed | Gennemgået | 1/3 | [R0-baseline-og-vaern](draft-commit-review/R0-baseline-og-vaern.md) |
+| R0 | Baseline, kortlægning og værnenes troværdighed | Gennemgået | 0/3 | [R0-baseline-og-vaern](draft-commit-review/R0-baseline-og-vaern.md) |
 | R1 | Kontrakter, dokumentation og sluttilstandssprog | Gennemgået | 0/7 | [R1-kontrakter-og-sluttilstandssprog](draft-commit-review/R1-kontrakter-og-sluttilstandssprog.md) |
 | R2 | Inputkerne, felteditor og afsluttet input | Gennemgået | 0/3 | [R2-inputkerne-og-felteditor](draft-commit-review/R2-inputkerne-og-felteditor.md) |
 | R3 | Feltvurdering, issue-model og gates | Gennemgået | 0/4 | [R3-issues-og-gates](draft-commit-review/R3-issues-og-gates.md) |
 | R4 | Persistence, session, `.eo` og undo/redo | Gennemgået | 0/2 | [R4-persistence-session-eo-undo-redo](draft-commit-review/R4-persistence-session-eo-undo-redo.md) |
 | R5 | Domæneprojektioner og beregningsflow | Gennemgået | 0/2 | [R5-domaeneprojektioner-og-beregningsflow](draft-commit-review/R5-domaeneprojektioner-og-beregningsflow.md) |
 | R6 | Dokumentoutput og generatorer | Gennemgået | 0/4 | [R6-dokumentoutput-og-generatorer](draft-commit-review/R6-dokumentoutput-og-generatorer.md) |
-| R7 | Pages, shell, porte og UI-struktur | Gennemgået | 1/3 | [R7-pages-shell-porte-og-ui-struktur](draft-commit-review/R7-pages-shell-porte-og-ui-struktur.md) |
+| R7 | Pages, shell, porte og UI-struktur | Gennemgået | 0/3 | [R7-pages-shell-porte-og-ui-struktur](draft-commit-review/R7-pages-shell-porte-og-ui-struktur.md) |
 | R8 | Testkvalitet, kvalitetsværn og acceptmatrix | Gennemgået | 0/8 | [R8-testkvalitet-vaern-og-acceptmatrix](draft-commit-review/R8-testkvalitet-vaern-og-acceptmatrix.md) |
-| R9 | Tværgående konvergens og slutkontrol | Ikke startet | 0/0 | — |
+| R9 | Tværgående konvergens og slutkontrol | Gennemgået | 0/3 | Etape 12-noten i [fund-oversigt](draft-commit-review/fund-oversigt.md) (INC-F20–F22) |
 
-De to åbne fasefund er **R0-F01** (baseline kørt på ikke-understøttet runtime — en toolchain-beslutning uden
-kodeafhængighed) og **R7-F01** (page-viewmodel-laget på otte fagsider). Begge ligger i etape 12 og er de eneste
-tilbage sammen med GM-F10 + INC-F14.
+**Ingen åbne fasefund.** R0-F01 og R7-F01 — de to sidste — er lukket i etape 12. R0-F01's oprindelige handling
+("gentag baselinen på Node 24") kunne ikke udføres, fordi miljøet ikke findes på maskinen; fundets substans er i
+stedet lukket strukturelt af `check:runtime` som `verify:release`s første trin. Afgrænsningen er navngivet i
+etape 12-noten frem for skjult.
 
 **Supplerende konvergensreview:** Gennemgået — 15 fund (GM-F01–GM-F15) i
-[grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md), hvoraf 14 er rettet. Kun
-**GM-F10** er åben; den er udskilt til `work-items/WI-015-etape7-fokusmaal-ejerskab.md`, fordi kortlægningen viste
-at fundet er større end sin rapport (INC-F14: dens `fieldPath`-cellemål er bevisligt uopnåelige OG utestede).
-Rapportens anbefaling nr. 1 er lukket i sin helhed. Rapporten supplerer fasegennemgangene og erstatter ikke R9's
-afsluttende exitkriterier.
+[grill-me-konvergensreview](draft-commit-review/grill-me-konvergensreview.md), **alle 15 rettet**. GM-F10 var den
+sidste; den blev udskilt til `work-items/WI-015-etape7-fokusmaal-ejerskab.md`, fordi kortlægningen viste at
+fundet var større end sin rapport (INC-F14), og er lukket i etape 12. Rapportens anbefaling nr. 1 er lukket i sin
+helhed.
 
 **Brugertestfund:** 6 fund (UT-F01–UT-F06) i
 [draft-commit-brugertestfund](draft-commit-brugertestfund.md) — 1 afvist med evidens, 5 rettet, 0 åbne.
 
-**Fund i alt (pr. 2026-07-29, etape 11 lukket):** 76 — **4 åbne** (R0-F01, R7-F01, GM-F10, INC-F14), 71 rettet,
-1 afvist med evidens (UT-F01). Etape 1–11 er lukket på nær GM-F10; kun **etape 12** udestår. De nitten
-`INC-F<nn>` er tilfældighedsfund konstateret UNDER rettearbejdet — antallet er et signal i sig selv: hver etape
-har afdækket noget, der ikke stod i den oprindelige analyse. Tælling og rettelsesrækkefølge vedligeholdes i
+**Fund i alt (pr. 2026-07-29, etape 12 lukket):** 79 — **0 åbne**, 78 rettet, 1 afvist med evidens (UT-F01). Alle
+tolv etaper er lukket. De **toogtyve** `INC-F<nn>` er tilfældighedsfund konstateret UNDER rettearbejdet — antallet
+er et signal i sig selv: hver etape afdækkede noget, der ikke stod i den oprindelige analyse, og fem af dem var
+værn jeg selv havde skrevet, som viste sig inerte. Tælling vedligeholdes i
 [fund-oversigt](draft-commit-review/fund-oversigt.md).
 
 **Tilfældighedsfund:** Fund konstateret undervejs i rettearbejdet skal enten rettes straks eller skrives ind
@@ -262,12 +262,24 @@ som nyt fund — aldrig blot nævnes i chatten. Reglen er bindende og står i
 
 **Åbne godkendelsespunkter:** 0 — og **alle fire produktbeslutninger er BRUGT**: beslutning 1 (GM-F01's
 relevansmatrix, etape 4), 2 (GM-F04/R5-F01) og 3 (GM-F05) i etape 5, og 4 (GM-F12's reload) i etape 8. Øvrige
-brugte godkendelser: R6-F02 (etape 3), R3-F01 + R3-F02 (etape 4), R7-F03 + de to UI/UX-punkter i etape 7. Er der
-brug for en femte beslutning, skal den forelægges brugeren som et konkret bruger-oplevet eksempel (design §12).
+brugte godkendelser: R6-F02 (etape 3), R3-F01 + R3-F02 (etape 4), R7-F03 + de to UI/UX-punkter i etape 7.
+**Etape 12 krævede ingen ny godkendelse:** alle dens ændringer er adfærdsbevarende (samme destination, samme
+tal, samme dokumentindhold — sidstnævnte bevist ved uændrede golden-snapshots). Er der brug for en femte
+beslutning, skal den forelægges brugeren som et konkret bruger-oplevet eksempel (design §12).
 
-**Åbne hypoteser:** 3 — R1-H01 og R1-H02 (yderligere semantisk drift i docs; `docs/domain/` er ikke inventeret)
-samt R0's precondition-liveness-forbehold. Lukket undervejs: **R3-H01** (bekræftet og lukket i etape 4 — der
-fandtes præcis fem brede issue-læsninger, fire blokerende, alle rettet) og **R8-H01** (bortfaldet i etape 11:
+**Åbne hypoteser:** 0 — men to er lukket som **bevidst parkerede med begrundelse**, ikke som efterprøvede:
+
+- **R1-H01/R1-H02** (yderligere semantisk drift i `docs/domain/`): parkeret. `docs/domain/` er beskrivende
+  domænedokumentation uden normativ status — den er ikke bundet af nogen test og styrer ingen kode. En
+  inventering ville være et selvstændigt dokumentationsarbejde, ikke en arkitekturkontrol. **Etape 12 inventerede
+  i stedet det, der ER load-bearing:** produktionskodens kommentarer, designdokumentet, journalen og de
+  work items, hvis brødtekst navngav slettede moduler i nutid. Alle fundne tilfælde er rettet eller forsynet med
+  en historik-markør.
+- **R0's precondition-liveness-forbehold:** bortfaldet. Etape 9 lukkede liveness-laget systemisk (R0-F02), og
+  etape 12's to nye regler er begge mutationstestet på netop deres liveness-probe — den ene fandt et reelt hul
+  (INC-F20's alias-import), som er rettet.
+
+Lukket tidligere: **R3-H01** (bekræftet og lukket i etape 4) og **R8-H01** (bortfaldet i etape 11:
 formatafhængigheden er blevet urepræsenterbar, så spørgsmålet kan ikke længere stilles).
 
 ## Sådan bruges dokumentet
@@ -753,7 +765,42 @@ Mistanker uden efterprøvet evidens hører til i fasens rapport under "Hypoteser
 hypotese skal have en note om, hvordan den kan af- eller bekræftes, så den ikke bliver liggende som en permanent
 uafklarethed.
 
-## Afslutningskrav
+## Slutstatus — reviewet er AFSLUTTET 2026-07-29
+
+Afslutningskravene nedenfor er opfyldt. Efterprøvet udfald:
+
+| Afslutningskrav | Udfald |
+|---|---|
+| Alle faser gennemgået med efterprøvet evidens | R0–R9 `Gennemgået`; hver fase har sin rapport med angreb + evidens |
+| Fasestatus-tabellen har en klar slutstatus | Ja — 0 åbne i alle ti faser |
+| Alle fund i fund-oversigten håndteret | 79 fund: 78 rettet, 1 afvist med evidens, **0 åbne** |
+| Alle hypoteser af-/bekræftet eller parkeret med plan | 0 åbne; R1-H01/H02 parkeret med navngiven begrundelse, R0's forbehold bortfaldet |
+| Godkendelsespunkter besluttet eller parkeret | 0 åbne; alle fire produktbeslutninger brugt; etape 12 krævede ingen ny |
+| Alle R9-gates grønne med dokumenteret udfald | `check:runtime`¹, `typecheck`, `typecheck:test`, `lint`, `check:mojibake` (1459 filer), `check:filename-case`, `check:offentlig-loen`, `verify:ledgers` (239 felter / 16 collections / 8 beregninger / 4 sagsfilstier / 18 dokumentoutputs), `test` (**505 filer / 6535 tests**), `build:all` |
+| Beregningstal og dokumentindhold beviseligt uændrede | Ja — hele dokument-/PDF-/Word-suiten grøn **uden et enkelt regenereret golden-snapshot**, verificeret med `git status` på `__snapshots__` |
+| §10's 30 acceptkriterier efterprøvet | `acceptanceMatrix.test.ts` grøn: hvert kriterium læses ordret ud af designdokumentet og bindes til en aktiv LEAF-test |
+| Kode, kommentarer, navne, tests, kontrakter og docs beskriver sluttilstanden | Etape 11 (kontrakter/docs) + etape 12's sweep: migrationssprog i produktionskode fjernet, historik-markører sat på de work items, hvis brødtekst navngav slettede moduler i nutid |
+| Slutproduktet fremstår som én sammenhængende arkitektur | 50 AST-regler i ét manifest; ÉN feltidentitet i DOM, ÉN feltadresse-model, ÉT VM-mønster pr. fagside, ÉN datokontrakt pr. generatorfamilie |
+
+¹ `check:runtime` FEJLER bevidst på udviklingsmaskinen (Node 26.5.0 / npm 11.13.0 mod deklarationen
+`>=24.18.0 <25` / `>=11.16.0 <12`). Det ER R0-F01's rettelse: gaten nægter at producere et grønt udfald, der
+ville bære en umålt påstand om den understøttede toolchain. De øvrige gates er kørt enkeltvis på denne maskine
+og er grønne; **CI kører hele `verify:release` på den deklarerede runtime** (`.nvmrc` = 24.18.0) ved hver PR og
+push. `engine-strict=true` er verificeret: `npm install` afvises med `EBADENGINE` uden for intervallet.
+
+### Bevidst udestående efter reviewet
+
+Disse er IKKE åbne fund, men navngivne beslutninger, der kræver brugerinput eller ligger uden for reviewets
+mandat. De står her, så de ikke forsvinder med reviewets afslutning:
+
+- **Ensretning af de fem dokumentudfalds-rækkeudgaver** (fra R6-F02). Synlig UI-ændring.
+- **Reguleringens to overenskomst-etiketter** er bevidst forskellige. Ensretning ændrer dokumentindhold (§5.4).
+- **Fjernelse af dokumentfejlens LOKALE kanal** (fra WI-010). Muligt nu, hvor systemfejl-fladen er bekræftet
+  synlig, men det flytter hvor brugeren ser fejlen — altså en UI-beslutning.
+- **Browserbaseret UI-sammenligning og runtime-fuzzing af tab-mount/settle** (fra R7's checkpoints). Kræver et
+  kørende miljø, ikke en kodekontrol.
+
+## Afslutningskrav (definitionen)
 
 Reviewet kan først regnes som afsluttet, når:
 

@@ -10,9 +10,12 @@ import { isRestoreTargetVisible, runHistoryTargetRestoreLoop } from './historyTa
 // denne modul flytter KUN fokus (+ scroll + fokus-ring) via den DELTE `runHistoryTargetRestoreLoop`, så legacy- og
 // undo/redo-restore ikke kan drifte fra hinanden.
 //
-// Til forskel fra legacy (der slog op via `data-mineo-undo-field-path`) lokaliseres målet PRÆCIST via
-// BÅDE feltadressen OG editorlokationen. Det er nødvendigt, fordi samme datafelt kan redigeres flere steder (§3.2):
-// fokus skal lande på den editor, der faktisk lavede ændringen — ikke en vilkårlig spejling af samme felt.
+// Målet lokaliseres PRÆCIST via BÅDE feltadressen OG editorlokationen. Begge dele er nødvendige, fordi samme
+// datafelt kan redigeres flere steder (§3.2): fokus skal lande på den editor, der faktisk lavede ændringen —
+// ikke en vilkårlig spejling af samme felt. Adressen alene kan derfor ikke bære identiteten.
+//
+// Attributterne her er DEN ENE feltidentitet i DOM: undo/redo, save-blokeringens fokus og EO's fejllinks slår
+// alle op på dem. Håndhævet af `input/single-field-identity-in-dom` (GM-F10).
 
 /** DOM-attribut for et felts serialiserede feltadresse. Sat af form-/grid-surface på det fokuserbare element. */
 export const FIELD_ADDRESS_ATTR = 'data-mineo-field-address';

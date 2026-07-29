@@ -1,10 +1,18 @@
 /**
- * Best-effort-scroll til konkret EO-række via `data-mineo-row-id`.
+ * Scroll + fokus til det input, et navigerbart EO-issue peger på.
  *
- * EoRowId-mønstre med row-id understøttes direkte, og nye rækker i de
- * samme mønstre virker uden ekstra konfiguration.
+ * Fokusmålet er en KANONISK feltadresse (§3.2) og slås op med `lookupEditorLocation` — præcis den
+ * mekanisme undo/redo (`findRestoreTarget`) og save-blokeringens fokus bruger. Der findes derfor kun ÉT
+ * identitetssystem for "hvilket felt skal brugeren se": adressen, som feltet selv bærer i DOM
+ * (`data-mineo-field-address`), sat af form-/grid-surfacen for hver editorlokation.
+ *
+ * Rækkeankeret (`data-mineo-row-id`) er ikke et alternativt identitetssystem, men det GROVERE mål: en
+ * rækkefejl uden ét ansvarligt felt (fx et overlap mellem to rækker) kan kun forankres til rækken. Det
+ * bruges også som fallback, hvis feltets editor ikke er synlig.
  */
 import { scrollWithRetry } from './scrollWithRetry';
+import { serializeFieldAddress } from '../inputCore/fieldAddress';
+import { lookupEditorLocation } from '../inputCore/react/editorLocationDestination';
 import type { EoIssueFocusTarget } from '../domain/eoRowEvaluation/eoRowTypes';
 
 const resolveAnchorIdFromRowId = (rowId: string): string | null => {
@@ -45,42 +53,23 @@ const findElementByMineoRowId = (rowId: string): HTMLElement | null => {
   return all.find((el) => el.getAttribute('data-mineo-row-id') === rowId) ?? null;
 };
 
-const isVisible = (element: HTMLElement): boolean => {
-  if (element.getClientRects().length === 0) return false;
-  const style = window.getComputedStyle(element);
-  return style.display !== 'none' && style.visibility !== 'hidden';
-};
-
-const findElementByAttribute = (name: string, value: string): HTMLElement | null => {
-  if (typeof document === 'undefined') return null;
-
-  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
-    const escaped = CSS.escape(value);
-    const bySelector = document.querySelector<HTMLElement>(`[${name}="${escaped}"]`);
-    if (bySelector && isVisible(bySelector)) return bySelector;
-  }
-
-  const all = Array.from(document.querySelectorAll<HTMLElement>(`[${name}]`));
-  return all.find((el) => el.getAttribute(name) === value && isVisible(el)) ?? null;
+/**
+ * Feltets SYNLIGE editor, hvis den findes.
+ *
+ * Kun `visible` er et brugbart scroll-/fokusmål: et mountet-men-skjult felt (fx på en besøgt, men
+ * ikke-aktiv EO-fane, som forbliver mountet med `display: none`) kan ikke ses, og en scroll dertil ville
+ * ramme ingenting. Retry-løkken kalder igen pr. frame, så en editor, der bliver synlig efter shellens
+ * fane-/route-skift, findes så snart den er der.
+ */
+const findVisibleFieldEditor = (address: EoIssueFocusTarget & { kind: 'fieldAddress' }): HTMLElement | null => {
+  const lookup = lookupEditorLocation(serializeFieldAddress(address.address));
+  return lookup.kind === 'visible' ? lookup.element : null;
 };
 
 const findElementByFocusTarget = (target: EoIssueFocusTarget | undefined): HTMLElement | null => {
-  if (!target) return null;
+  if (target === undefined) return null;
   if (target.kind === 'rowId') return findElementByMineoRowId(target.rowId);
-
-  const segments = target.fieldPath.split(':');
-  const gridCellKeyFallback = segments.length >= 3
-    ? segments.slice(-2).join(':')
-    : null;
-
-  // Almindelige tekst-/datofelter og tabelceller har `data-mineo-field-path`.
-  // Dropdowns/toggles/radiofelter har historisk kun `data-mineo-undo-field-path`,
-  // så den er en nødvendig fallback for at kunne ramme konkrete valgfelter.
-  return (
-    findElementByAttribute('data-mineo-field-path', target.fieldPath) ??
-    findElementByAttribute('data-mineo-undo-field-path', target.fieldPath) ??
-    (gridCellKeyFallback ? findElementByAttribute('data-mineo-undo-field-path', gridCellKeyFallback) : null)
-  );
+  return findVisibleFieldEditor(target);
 };
 
 export const scrollToEoRow = (

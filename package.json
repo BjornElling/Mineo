@@ -61,6 +61,7 @@
     "check:mojibake": "node scripts/check-mojibake.mjs",
     "verify:ledgers": "node scripts/architecture/verify-input-ledgers.mjs",
     "check:commit-msg": "node scripts/check-commit-msg.mjs",
+    "check:runtime": "node scripts/check-runtime-version.mjs",
     "lint": "eslint src --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --maxWorkers=100%",
@@ -70,7 +71,7 @@
     "import:loen": "node scripts/import-offentlig-loen.mjs",
     "check:offentlig-loen": "node scripts/import-offentlig-loen.mjs --check",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
-    "verify:release": "npm run typecheck && npm run typecheck:test && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run verify:ledgers && npm run test:coverage && npm run build:all",
+    "verify:release": "npm run check:runtime && npm run typecheck && npm run typecheck:test && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run verify:ledgers && npm run test:coverage && npm run build:all",
     "check": "npm run verify:release"
   },
   "overrides": {

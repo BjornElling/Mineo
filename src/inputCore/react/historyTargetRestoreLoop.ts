@@ -7,7 +7,7 @@ import { withRestoreFocusSuppressed } from './restoreFocusFlag';
 // imens flytter fokus til et andet brugbart felt — bor ÉT sted.
 //
 // Målopslaget selv ejes af `historyRestoreTarget` (feltadresse + editorlokation). Der findes ingen anden
-// restore-vej: den tidligere stringbaserede `data-mineo-undo-field-path`-adapter er slettet med legacy-runtime.
+// restore-vej og ingen anden feltidentitet i DOM; grænsen håndhæves af `input/single-field-identity-in-dom`.
 
 export const HISTORY_TARGET_RESTORE_MAX_ATTEMPTS = 15;
 

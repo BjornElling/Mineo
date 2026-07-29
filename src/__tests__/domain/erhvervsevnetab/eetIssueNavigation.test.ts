@@ -2,6 +2,10 @@ import {
   ERHVERVSEVNETAB_TAB_KEYS,
   resolveMidlertidigtEetIssueNavigation,
 } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
+import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+} from '../../../inputCore/catalog/stamdataDescriptors';
 
 describe('resolveMidlertidigtEetIssueNavigation', () => {
   it('peger EET-importfejl på indtastningsfanen for EET-oplysninger', () => {
@@ -18,7 +22,7 @@ describe('resolveMidlertidigtEetIssueNavigation', () => {
       kind: 'stamdata-page',
       pageName: 'Stamdata',
       sectionTitle: 'Stamdata',
-      focusFieldPath: 'skadedato',
+      focusFieldAddress: stamdataSkadedatoField.bind().address,
     });
   });
 
@@ -27,7 +31,7 @@ describe('resolveMidlertidigtEetIssueNavigation', () => {
       kind: 'stamdata-page',
       pageName: 'Stamdata',
       sectionTitle: 'Stamdata',
-      focusFieldPath: 'skadelidteFodselsdato',
+      focusFieldAddress: stamdataSkadelidteFodselsdatoField.bind().address,
     });
   });
 
@@ -36,7 +40,7 @@ describe('resolveMidlertidigtEetIssueNavigation', () => {
       kind: 'stamdata-page',
       pageName: 'Stamdata',
       sectionTitle: 'Stamdata',
-      focusFieldPath: undefined,
+      focusFieldAddress: undefined,
     });
   });
 });

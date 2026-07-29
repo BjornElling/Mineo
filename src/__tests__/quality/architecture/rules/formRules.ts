@@ -1572,3 +1572,323 @@ export const restoreAttributesCarryDestinationRule = defineRule({
     },
   ],
 });
+
+// --- Hver persisteret fagside har ét kanonisk viewmodel-indgangspunkt (R7-F01) ---
+
+/**
+ * `page-component-contract.md` §4.4: hver persisteret fagside (§2.1) skal have PRÆCIS ÉT kanonisk
+ * viewmodel-indgangspunkt, `useXxxViewModel`, og page-komponenten skal være reduceret til sektions-komposition.
+ *
+ * Reglen er KATEGORISK, ikke størrelses-gated: der er ingen LOC-tærskel. Det er netop derfor værnet ikke måler
+ * filstørrelse — en tærskel ville acceptere syv kontraktbrud, så længe filerne var små nok, og ville samtidig
+ * presse mod en kunstig opsplitning, når en side voksede. Værnet måler i stedet EKSISTENSEN af VM-indgangen.
+ *
+ * **Sidelisten er DERIVERET, ikke erklæret.** Den udledes af `APP_ROUTES` i `src/config/pageNavigation.ts` —
+ * det kanoniske sted for "hvilken route hører en side til" — så en ny §2.1-side gør værnet rødt, før nogen skal
+ * huske at udvide en liste. En hånd-vedligeholdt liste her ville være præcis den ikke-opregnelige dækning,
+ * etape 10 lukkede fem gange.
+ */
+const PAGE_NAVIGATION_MODULE = 'src/config/pageNavigation.ts';
+
+/** Page-komponentens filnavn pr. route-nøgle. Kun navnet afviger fra nøglen; mappen er fælles. */
+const PAGE_COMPONENT_FILE_BY_ROUTE_KEY: ReadonlyMap<string, string> = new Map([
+  ['stamdata', 'Stamdata.tsx'],
+  ['erstatningsopgoerelse', 'Erstatningsopgoerelse.tsx'],
+  ['erhvervsevnetab', 'Erhvervsevnetab.tsx'],
+  ['satser', 'Satser.tsx'],
+  ['renteberegning', 'Renteberegning.tsx'],
+  ['varigemen', 'VarigeMen.tsx'],
+  ['forsoergertab', 'Forsoergertab.tsx'],
+  ['aarsloen', 'Aarsloen.tsx'],
+]);
+
+/** Læs `APP_ROUTES`' nøgler ud af `pageNavigation.ts` som AST — ikke som tekst. */
+const collectAppRouteKeys = (entry: SourceEntry): readonly string[] => {
+  const keys: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isVariableDeclaration(node)
+      && ts.isIdentifier(node.name)
+      && node.name.text === 'APP_ROUTES'
+      && node.initializer !== undefined) {
+      const literal = ts.isAsExpression(node.initializer) ? node.initializer.expression : node.initializer;
+      if (ts.isObjectLiteralExpression(literal)) {
+        for (const property of literal.properties) {
+          if (ts.isPropertyAssignment(property) && ts.isIdentifier(property.name)) keys.push(property.name.text);
+        }
+      }
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return keys;
+};
+
+/** Kalder filen en `useXxxViewModel`-hook? Måles som et rigtigt KALD, så en kommentar ikke bærer reglen. */
+const callsPageViewModel = (entry: SourceEntry): boolean =>
+  collectCalls(entry).some((ref) => /^use[A-Z][A-Za-z]*ViewModel$/.test(ref.calleeName));
+
+export const persistedPageHasViewModelRule = defineRule({
+  id: 'input/persisted-page-has-viewmodel',
+  description:
+    'Hver persisteret fagside (§2.1) skal have præcis ét kanonisk `useXxxViewModel`-indgangspunkt, som ejer '
+    + 'sidens afledte state, handlers og gates (page-component-contract.md §4.4). Sidelisten udledes af '
+    + 'APP_ROUTES, så en ny fagside gør reglen rød frem for at falde uden for den (R7-F01).',
+  liveTarget: {
+    kind: 'precondition',
+    // Målet er den DERIVEREDE sidelistes kilde plus page-komponenterne selv. Findes `APP_ROUTES` ikke længere
+    // med nøgler, kan reglen ikke udlede noget, og den skal skrives om frem for at stå grøn af tomhed.
+    probe: (entry) => entry.relativePath === PAGE_NAVIGATION_MODULE && collectAppRouteKeys(entry).length > 0,
+    rationale:
+      'APP_ROUTES findes stadig og har nøgler at udlede §2.1-sidelisten af; forsvinder det, skal reglen følge '
+      + 'den nye kanoniske kilde',
+    requiredPaths: [PAGE_NAVIGATION_MODULE],
+  },
+  // Reglen evalueres ÉN gang, på navigation-modulet: den skal se HELE grafen for at kunne følge en side til sin
+  // VM, og en per-fil-evaluering ville ikke kunne udtrykke "denne side mangler en VM et andet sted".
+  appliesTo: (relativePath) => relativePath === PAGE_NAVIGATION_MODULE,
+  find: (entry, graph) => {
+    const routeKeys = collectAppRouteKeys(entry);
+    const byPath = new Map(graph.map((candidate) => [candidate.relativePath, candidate]));
+    const findings: Finding[] = [];
+
+    for (const routeKey of routeKeys) {
+      const fileName = PAGE_COMPONENT_FILE_BY_ROUTE_KEY.get(routeKey);
+      if (fileName === undefined) {
+        findings.push({
+          position: { line: 1, column: 1 },
+          message:
+            `APP_ROUTES har route-nøglen '${routeKey}', som værnet ikke kender en page-komponent for. En ny `
+            + '§2.1-side skal registreres i PAGE_COMPONENT_FILE_BY_ROUTE_KEY OG have en '
+            + '`useXxxViewModel`-indgang (page-component-contract.md §4.4).',
+        });
+        continue;
+      }
+
+      const pagePath = `src/components/pages/${fileName}`;
+      const page = byPath.get(pagePath);
+      if (page === undefined) {
+        findings.push({
+          position: { line: 1, column: 1 },
+          message: `Page-komponenten ${pagePath} findes ikke i kildegrafen; værnets sideliste er forældet.`,
+        });
+        continue;
+      }
+
+      // Siden opfylder kontrakten, hvis den selv KALDER sin VM. Deklarerer den den også, er den ikke reduceret
+      // til komposition — men det er §4.4's form, ikke dens minimumskrav, så vi måler kaldet.
+      if (!callsPageViewModel(page)) {
+        findings.push({
+          position: { line: 1, column: 1 },
+          message:
+            `${pagePath} kalder ingen \`useXxxViewModel\`. Hver §2.1-side skal have PRÆCIS ÉT kanonisk `
+            + 'viewmodel-indgangspunkt, der ejer sidens afledte state, handlers og gates, med page-komponenten '
+            + 'reduceret til sektions-komposition (page-component-contract.md §4.4). Reglen er kategorisk — '
+            + 'også når siden er lille; er VM\'en tynd, skal den bære §4.4\'s rationale-kommentar.',
+        });
+      }
+    }
+
+    return findings;
+  },
+  allow: [],
+  violatingFixtures: [
+    // Kernen: en route-nøgle uden en kendt page-komponent (en NY §2.1-side) må ikke passere ubemærket.
+    {
+      relativePath: PAGE_NAVIGATION_MODULE,
+      code: "export const APP_ROUTES = { nyfagside: '/nyfagside' } as const;",
+    },
+  ],
+  cleanFixtures: [
+    // En tom/ændret APP_ROUTES uden nøgler har intet at udlede; liveness-kontrollen fanger den i stedet, så
+    // `find` skal ikke også flage den (ellers ville reglen være rød to gange for samme årsag).
+    {
+      relativePath: PAGE_NAVIGATION_MODULE,
+      code: 'export const APP_ROUTES = {} as const;',
+    },
+  ],
+});
+
+// --- Ét felt-identitetssystem i DOM (GM-F10/INC-F14) --------------------------
+
+/**
+ * Den KANONISKE feltidentitet i DOM er den serialiserede feltadresse (`data-mineo-field-address`) plus
+ * editorlokations-id'et. Det er den identitet undo/redo (`findRestoreTarget`), save-blokeringens fokus og
+ * EO's fejllinks (`scrollToEoRow`) alle slår op på.
+ *
+ * Før GM-F10 fandtes to PARALLELLE, streng-baserede identiteter ved siden af: `data-mineo-field-path` og
+ * `data-mineo-undo-field-path`, hvis værdi var et bart feltNAVN — eller for EO's rækkemål en
+ * `tableId:rowScope:rowId:colIndex`-konvention. Det var ikke blot en dublet, men en BRUDT dublet:
+ * grid-cellerne satte slet ikke attributterne, så hvert celle-præcist EO-fejllink faldt lydløst tilbage til
+ * rækkeankeret, og ingen test kunne se det (INC-F14). Ved omlægningen havde BEGGE attributter i øvrigt nul
+ * læsere tilbage og kun producenter — den endelige evidens for at modellen var en rest.
+ *
+ * Reglen måler alle tre former, attributterne faktisk optrådte i: en JSX-attribut (`StyledTextAreaBase`), en
+ * quoted property i et slotProps-objekt eller en proptype (de fire immediate-commit-widgets) og en
+ * `[attr="…"]`-selector i opslaget (`scrollToEoRow`).
+ */
+const FORBIDDEN_FIELD_IDENTITY_ATTRS: readonly string[] = [
+  'data-mineo-field-path',
+  'data-mineo-undo-field-path',
+];
+
+/** Modulet der EJER den kanoniske identitet. Findes det ikke, er mekanismen flyttet og reglen forældet. */
+const CANONICAL_FIELD_IDENTITY_MODULE = 'src/inputCore/react/historyRestoreTarget.ts';
+
+/**
+ * Fladerne, hvor en streng-identitet kunne genopstå: hele felt-/celle-komponentlaget (producenterne) plus
+ * fokusnavigationens forbrugere. Bevidst IKKE hele `src/`: en absence-test eller et fund-dokument skal kunne
+ * navngive den slettede attribut, og et forbud i hele træet ville presse mod en undtagelsesliste, der
+ * udvander reglen.
+ */
+const FIELD_IDENTITY_SURFACES = (relativePath: string): boolean =>
+  relativePath.startsWith('src/components/inputs/')
+  || relativePath.startsWith('src/inputCore/react/')
+  || relativePath === 'src/utils/scrollToEoRow.ts'
+  || relativePath === 'src/domain/eoRowEvaluation/eoRowIssueCatalog.ts'
+  || relativePath === 'src/domain/erhvervsevnetab/eetIssueNavigation.ts';
+
+const propertyNameText = (name: ts.PropertyName): string | null => {
+  if (ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) return name.text;
+  if (ts.isIdentifier(name)) return name.text;
+  if (ts.isComputedPropertyName(name)) {
+    const { expression } = name;
+    if (ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) return expression.text;
+  }
+  return null;
+};
+
+const collectForbiddenFieldIdentityAttrs = (entry: SourceEntry): readonly Finding[] => {
+  const findings: Finding[] = [];
+
+  const report = (node: ts.Node, attr: string, form: string): void => {
+    const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+    findings.push({
+      position: { line: line + 1, column: character + 1 },
+      message:
+        `${form} bruger '${attr}' som feltidentitet i DOM. Feltidentiteten er den serialiserede feltadresse `
+        + '(data-mineo-field-address) plus editorlokations-id — ÉT system, som undo/redo, save-fokus og '
+        + 'EO-fejllinks deler (§3.2). En navne- eller kolonnestreng ved siden af er den parallelle model, '
+        + 'GM-F10 lukkede, og den var bevisligt uopnåelig for grid-celler (INC-F14).',
+    });
+  };
+
+  const visit = (node: ts.Node): void => {
+    // 1) JSX-attribut: <input data-mineo-field-path={name} />
+    if (ts.isJsxAttribute(node) && ts.isIdentifier(node.name)) {
+      const name = node.name.text;
+      if (FORBIDDEN_FIELD_IDENTITY_ATTRS.includes(name)) report(node, name, 'En JSX-attribut');
+    }
+
+    // 2) Objekt-property (slotProps/inputProps) og TYPE-medlem: 'data-mineo-undo-field-path': name
+    if (ts.isPropertyAssignment(node) || ts.isPropertySignature(node)) {
+      const text = propertyNameText(node.name);
+      if (text !== null && FORBIDDEN_FIELD_IDENTITY_ATTRS.includes(text)) {
+        report(node, text, ts.isPropertySignature(node) ? 'En type-erklæring' : 'En objekt-property');
+      }
+    }
+
+    // 3) Streng-literal i selector-position: '[data-mineo-field-path="…"]', også som template-del.
+    if (ts.isStringLiteral(node)
+      || ts.isNoSubstitutionTemplateLiteral(node)
+      || ts.isTemplateHead(node)
+      || ts.isTemplateMiddle(node)
+      || ts.isTemplateTail(node)) {
+      // En property-NØGLE er allerede rapporteret i (2); rapportér den ikke igen som selector.
+      const isPropertyKey = node.parent !== undefined
+        && (ts.isPropertyAssignment(node.parent) || ts.isPropertySignature(node.parent))
+        && node.parent.name === node;
+      const attr = FORBIDDEN_FIELD_IDENTITY_ATTRS.find((candidate) => node.text.includes(candidate));
+      if (attr !== undefined && !isPropertyKey) report(node, attr, 'En DOM-selector');
+    }
+
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+
+  return findings;
+};
+
+export const singleFieldIdentityInDomRule = defineRule({
+  id: 'input/single-field-identity-in-dom',
+  description:
+    'Der findes ÉN feltidentitet i DOM: den serialiserede feltadresse plus editorlokations-id. De afløste '
+    + 'navnestreng-attributter (data-mineo-field-path, data-mineo-undo-field-path) må ikke genindføres — de '
+    + 'var en parallel model, og for grid-celler var de bevisligt uopnåelige (GM-F10/INC-F14).',
+  liveTarget: {
+    kind: 'precondition',
+    // Målet er modulet, der ejer den kanoniske identitet, PLUS at EO's fejllink-opslag stadig bruger den.
+    // Holder én af dem op med at findes, er mekanismen flyttet, og reglen skal skrives om frem for at stå grøn.
+    //
+    // ⚠️ EO-halvdelen måler et faktisk KALD, ikke blot at navnet nævnes. En `hasIdentifier`-probe var for svag:
+    // et alias-import (`lookupEditorLocation as lookupMoved`) efterlader navnet i import-clausen, så proben
+    // forblev sand, selv om opslaget var flyttet. Mutationen mod den levende kilde afslørede det (INC-F20) —
+    // samme fejlklasse som INC-F11, hvor typens computed keys opfyldte et attribut-værn på egen hånd.
+    probe: (entry) => {
+      if (entry.relativePath === CANONICAL_FIELD_IDENTITY_MODULE) {
+        return hasIdentifier(entry, 'FIELD_ADDRESS_ATTR');
+      }
+      if (entry.relativePath === 'src/utils/scrollToEoRow.ts') {
+        return collectCalls(entry).some((call) => call.calleeName === 'lookupEditorLocation');
+      }
+      return false;
+    },
+    rationale:
+      'den kanoniske identitets-attribut findes stadig, og EO-fejllinket KALDER stadig lookupEditorLocation; '
+      + 'forsvinder en af de to, skal reglen følge mekanismen frem for at stå grøn',
+    minimumMatches: 2,
+    requiredPaths: [CANONICAL_FIELD_IDENTITY_MODULE, 'src/utils/scrollToEoRow.ts'],
+  },
+  appliesTo: FIELD_IDENTITY_SURFACES,
+  find: (entry) => collectForbiddenFieldIdentityAttrs(entry),
+  allow: [],
+  violatingFixtures: [
+    // Den præcise producentform, `StyledTextAreaBase` havde.
+    {
+      relativePath: 'src/components/inputs/StyledTextAreaBase.tsx',
+      code: 'const el = <input data-mineo-field-path={name} />;',
+    },
+    // De fire immediate-commit-widgets' form: en quoted property i slotProps.
+    {
+      relativePath: 'src/components/inputs/StyledToggleSwitch.tsx',
+      code: "const slot = { 'data-mineo-undo-field-path': resolvedName };",
+    },
+    // Typen, der gjorde propen lovlig, er lige så meget en genindførelse som producenten.
+    {
+      relativePath: 'src/components/inputs/StyledTextFieldBase.tsx',
+      code: "type Attrs = { 'data-mineo-field-path'?: string };",
+    },
+    // Forbrugersiden: et opslag på navnestrengen i EO-fejllinket.
+    {
+      relativePath: 'src/utils/scrollToEoRow.ts',
+      code: 'const el = document.querySelector("[data-mineo-undo-field-path=" + path + "]");',
+    },
+  ],
+  cleanFixtures: [
+    // Den godkendte model: spred de færdige restore-attributter.
+    {
+      relativePath: 'src/components/inputs/StyledToggleSwitch.tsx',
+      code: 'const slot = { ...(restoreTargetAttributes ?? {}) };',
+    },
+    // Den kanoniske attribut selv må naturligvis nævnes og bruges.
+    {
+      relativePath: 'src/inputCore/react/historyRestoreTarget.ts',
+      code: "export const FIELD_ADDRESS_ATTR = 'data-mineo-field-address';",
+    },
+    // EO-fejllinket slår op gennem editorlokationen på den kanoniske adresse.
+    {
+      relativePath: 'src/utils/scrollToEoRow.ts',
+      code: 'const lookup = lookupEditorLocation(serializeFieldAddress(target.address));',
+    },
+    // En KOMMENTAR, der forklarer den afløste model, må ikke bære reglen (INC-F03's lærepunkt).
+    {
+      relativePath: 'src/utils/scrollToEoRow.ts',
+      code: '// Den afløste model slog op via data-mineo-field-path og data-mineo-undo-field-path.\nconst x = 1;',
+    },
+    // Rækkeankeret er det GROVERE mål, ikke en parallel feltidentitet, og forbliver lovligt.
+    {
+      relativePath: 'src/utils/scrollToEoRow.ts',
+      code: 'const el = document.querySelector("[data-mineo-row-id=" + rowId + "]");',
+    },
+  ],
+});

@@ -1,6 +1,12 @@
 # WI-006: Ét kanonisk begreb i stedet for `invalidDraft`-navnene
 
 - **Status:** `afsluttet` (2026-07-25) — **gennemført som del af [[WI-007]]**, ikke som selvstændig WI.
+
+  **LÆS DETTE FØRST.** Brødteksten nedenfor er historik fra udførelsestidspunktet. Den siger, at modulet
+  "hedder nu `cellFocusPaths.ts`". Det er ikke længere sandt: modulet er SLETTET i sin helhed med
+  draft/commit-reviewets GM-F10 (dens celle-fokusmål var bevisligt uopnåelige, og EO-fejllinks bruger nu den
+  kanoniske feltadresse). Slå den aktuelle form op i koden, ikke her.
+
   Begrundelse: kortlægningen viste, at navnene delte rodårsag med den øvrige Fase-0–4-rest (trin 13
   efterlod infrastruktur uden konsumenter), og at 4 af 6 eksporter i `cellInvalidDraftScopes.ts` samt
   HELE `invalidDrafts`-storagenøglen var DØD kode. At omdøbe død kode ville have været forkert arbejde

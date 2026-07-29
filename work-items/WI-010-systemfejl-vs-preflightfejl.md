@@ -1,6 +1,7 @@
 # WI-010: §A5's skel mellem systemfejl og lokale preflight-fejl (rodårsag bag WI-008's C6)
 
-- **Status:** `ikke-startet`
+- **Status:** `afsluttet` 2026-07-29 — spørgsmålet er besvaret og kæden pinnet i draft/commit-reviewets
+  **etape 12**. Se "Svar" nederst.
 - **Oprettet:** 2026-07-26
 - **Kilde:** codex sol/high-review af Fase 5's første halvdel, fund C6. Udskilt fra WI-008, fordi
   roden kan ligge i den generelle fejlinfrastruktur, ikke i dokumentlaget.
@@ -44,3 +45,38 @@ videre. Men afklaringen skal ske, før den lokale kanal fjernes.
 - `work-items/WI-008-fase5-dokumentoutputs.md` — C6 og `documentOutcome.ts`/`documentMessages.ts`.
 - `src/contracts/document-output-contract.md` §A5.
 - `src/document/service/documentRuntimeFailure.ts` — hovedappens `reportFailure`-port.
+
+## Svar (2026-07-29)
+
+**Ja — den synlige centrale systemfejls-overflade FINDES, og en `runtime`-fejl lander på den.** Skellet i §A5 er
+altså reelt, ikke kun formelt. Kæden er efterprøvet led for led:
+
+`reportDocumentRuntimeFailure` → `reportSystemIssue` → `logError` → `console.error` → devtools-monitorens
+console-patch (`startDevtoolsMonitor`) → `subscribeDevtoolsIssues` → **`DevtoolsIssueNotice`** i `MainLayout`.
+
+Overfladen er brugervendt og **ikke gated bag en indstilling**: `MainLayout` renderer noticen, når monitoren har
+en uafvist hændelse. Den viser en dansk overskrift ("Teknisk fejl registreret"), en vejledning i almindeligt
+sprog og en rapportknap. Brugeren får altså både signalet og en handling.
+
+Svar på de tre delspørgsmål:
+
+1. **Findes overfladen, og er den brugervendt?** Ja, se ovenfor.
+2. **Er `runtime`-fejl fra dokument-download dækket EFTER at den lokale dobbeltrapportering fjernes?** Ja —
+   dækningen kommer fra systemfejl-sinken, ikke fra den lokale sidefejl. Den lokale kanal KAN derfor fjernes,
+   men det er en selvstændig UI-beslutning (den ville flytte, hvor brugeren ser fejlen) og er ikke gennemført
+   her. Invarianten "download blokeres aldrig uden synlig fejl" er urørt: den handler om `rejected`, som
+   bevidst IKKE går til systemfejl-fladen.
+3. **Skal `dev-server-unavailable` også rapporteres?** Uændret: den rapporteres med TTL-throttling og er ren
+   DEV-diagnostik. Ingen ændring — den er billig, og en fjernelse ville koste dev-diagnostik uden gevinst.
+
+**Kæden er nu PINNET** af `src/__tests__/document/documentRuntimeFailureVisibility.test.ts`, som måler gennem
+den ÆGTE monitor og den ÆGTE reporter (en mock ville bevise, at kaldet sker — ikke at signalet kommer frem).
+Mutationsbevist begge veje:
+
+| Mutation | Udfald |
+|---|---|
+| `runtime`-fejl rapporteres ikke | ben 1 rødt |
+| ALT rapporteres (også `rejected`/dev-server) | ben 2 rødt |
+
+Begrundelsen for at pinne frem for blot at konstatere: kæden er fem moduler lang, og hvert led kunne ændres,
+uden at nogen test bemærkede, at signalet var forsvundet.

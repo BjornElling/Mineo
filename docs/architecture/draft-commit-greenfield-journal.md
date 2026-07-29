@@ -81,8 +81,10 @@ SLETTE frem for at omdøbe: hele den per-sektion-baserede sessionStorage-nøglef
 sagsinput ligger i ÉN envelope (`input_v2`). `persistenceRegistry` er nu den ENE KILDE til sektionsmængden:
 `PersistedSectionKey` udledes af den (og hedder ikke længere `StorageKey`, som sammenblandede sagssektion med
 browserlager-nøgle), listen er frosset, og `fileLoad`s to gennemløb læser nu samme kilde i stedet for hver sin.
-`cellInvalidDraftScopes` er
-reduceret til sit levende ansvar og hedder nu `cellFocusPaths` med den ene funktion, der har en kalder.
+`cellInvalidDraftScopes` blev
+reduceret til sit levende ansvar og omdøbt til `cellFocusPaths` med den ene funktion, der havde en kalder.
+(Modulet er siden SLETTET med draft/commit-reviewets GM-F10: dens `tableId:rowId:colIndex`-fokusmål var
+bevisligt uopnåelige, og EO-fejllinks bruger nu den kanoniske feltadresse. Se fund-oversigtens etape 12.)
 Skrivegrænsen er gjort STRUKTUREL: `safeSessionStorage`s skrivefunktioner tager en `ManifestStorageKey`,
 som kun `storageManifest` kan producere, så en genindført legacy-nøgle afvises af COMPILEREN — også når
 den kommer ind som en variabel, hvor en AST-regel principielt er blind.

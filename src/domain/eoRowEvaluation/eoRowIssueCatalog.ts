@@ -1,4 +1,56 @@
-import { buildCellFocusFieldPath, CELL_TABLE_IDS } from '../../config/cellFocusPaths';
+import {
+  eoAngivetMaanedsloenOpreguleresFraDatoField,
+  eoBeregnesUdFraField,
+  eoDagsloenenUdgoerField,
+  eoDifferencekravDatoField,
+  eoEndeligEETAfgoerelseDatoField,
+  eoEndeligEETVirkningsdatoField,
+  eoEndeligtEETAfgorelseField,
+  eoFerieperiodeFraField,
+  eoFerieperiodeTilField,
+  eoForligAnsvarsgradProcentField,
+  eoForligDatoField,
+  eoFravaerPeriodeFraField,
+  eoFravaerPeriodeTilField,
+  eoMaanedsloenenUdgoerField,
+  eoMenAfgoerelseDatoField,
+  eoMidlertidigEETAfgoerelseDatoField,
+  eoMidlertidigEETVirkningsdatoField,
+  eoMidlertidigtEETAfgorelseField,
+  eoNummerField,
+  eoOevrigeFravaersdageField,
+  eoOevrigeKravBeloebField,
+  eoOevrigeKravDatoField,
+  eoOevrigeKravUdgiftTilField,
+  eoOpgørelseLavetDenField,
+  eoRevideretOpgoerelseField,
+  eoSvieSmerteAktuelPeriodeField,
+  eoSvieSmerteDelvisSygemeldingSatsField,
+  eoSvieSmerteHelbredsstatusField,
+  eoSvieSmertePeriodeFraField,
+  eoSvieSmertePeriodeTilField,
+  eoSvieSmertePeriodeTilstandField,
+  eoSvieSmerteSatserAarField,
+  eoSvieSmerteTidligereTotalField,
+  eoTafArbejdsstatusField,
+  eoTafBeregningsperiodeFraField,
+  eoTafPeriodeFraField,
+  eoTafPeriodeTilField,
+  eoTidligereModtagetTafField,
+  eoTidligereSsMaxField,
+  eoUspecificeredeFerieFridageField,
+  eoVarigeMenAfgorelseField,
+  eoVedroererPeriodeFraField,
+  eoVerserendeKlageEetField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import {
+  stamdataAdvokatField,
+  stamdataJournalnrField,
+  stamdataSkadedatoField,
+  stamdataSkadelidteField,
+  stamdataSkadestypeField,
+} from '../../inputCore/catalog/stamdataDescriptors';
+import type { AnyFieldRef, FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import type { DependencySpec, EoIssueFocusTarget, EoRowModel } from './eoRowTypes';
 
 type RowMatch =
@@ -75,70 +127,74 @@ const fallbackIssueText = (row: Pick<EoRowModel, 'label' | 'summaryDisplay'>, me
 const rowIdSuffix = (rowId: string, prefix: string): string | null =>
   rowId.startsWith(prefix) ? rowId.slice(prefix.length) : null;
 
-const tableFieldPath = (
-  tableId: string,
-  rowId: string,
-  colIndex: number,
-  rowScope = ''
-): EoIssueFocusTarget => ({
-  kind: 'fieldPath',
-  fieldPath: buildCellFocusFieldPath(tableId, rowScope, `${rowId}:${colIndex}`),
-});
+const target = (field: AnyFieldRef): EoIssueFocusTarget => ({ kind: 'fieldAddress', address: field.address });
 
-const inferDateColumn = (message: string): 0 | 1 => {
+const inferDateField = <T>(
+  message: string,
+  fraField: FieldDescriptor<T>,
+  tilField: FieldDescriptor<T>
+): FieldDescriptor<T> => {
   const lower = message.toLocaleLowerCase('da-DK');
-  if (lower.includes('til-dato') || lower.includes('til og med')) return 1;
-  return 0;
+  return lower.includes('til-dato') || lower.includes('til og med') ? tilField : fraField;
 };
 
 /**
- * Vælg fra-/til-kolonnen ud fra rækkens strukturelle felt-hint (sat af row-builderen fra
+ * Vælg fra-/til-feltet ud fra rækkens strukturelle felt-hint (sat af row-builderen fra
  * valideringsresultatet). Hintet er autoritativt, fordi det ved præcis hvilket input fejlen
- * vedrører — fx en fra-dato efter en cutoff, som en ren ordlyd-baseret gæt ville henføre til
- * til-cellen. Uden hint falder vi tilbage til ordlyd-heuristikken (`inferDateColumn`).
+ * vedrører — fx en fra-dato efter en cutoff, som et rent ordlyd-baseret gæt ville henføre til
+ * til-feltet. Uden hint falder vi tilbage til ordlyd-heuristikken.
  */
-const dateColumnFromHint = (hint: EoRowModel['focusFieldHint'], message: string): 0 | 1 =>
-  hint === 'fra' ? 0 : hint === 'til' ? 1 : inferDateColumn(message);
+const dateFieldFromHint = <T>(
+  hint: EoRowModel['focusFieldHint'],
+  message: string,
+  fraField: FieldDescriptor<T>,
+  tilField: FieldDescriptor<T>
+): FieldDescriptor<T> =>
+  hint === 'fra' ? fraField : hint === 'til' ? tilField : inferDateField(message, fraField, tilField);
 
-const normalField = (fieldPath: string): EoIssueFocusTarget => ({ kind: 'fieldPath', fieldPath });
-
+/**
+ * Rækkefelter: hver EO-rækkes fokusmål bindes af PRODUKTIONENS egen descriptor på rækkens id, så
+ * målet er den samme adresse cellen redigeres på (`bindCollectionCell`) og undo/redo genfinder
+ * (`findRestoreTarget`). Der findes derfor ingen kolonneindeks, intet tabel-id og ingen
+ * DOM-strengkonvention i fokusmålet.
+ */
 const exactFieldTargets: Readonly<Record<string, EoIssueFocusTarget>> = {
-  'stamdata.journalnr': normalField('journalnr'),
-  'stamdata.advokatSagsbehandler': normalField('advokat'),
-  'stamdata.skadelidte': normalField('skadelidte'),
-  'stamdata.skadestype': normalField('skadestype'),
-  'stamdata.skadedato': normalField('skadedato'),
-  'erstatningsopgoerelse.eoNummer': normalField('eoNummer'),
-  'erstatningsopgoerelse.revideretOpgoerelse': normalField('revideretOpgoerelse'),
-  'erstatningsopgoerelse.vedroererPeriode': normalField('vedroererPeriodeFra'),
-  'erstatningsopgoerelse.opgørelseLavetDen': normalField('opgørelseLavetDen'),
-  'erstatningsopgoerelse.helbredsstatus': normalField('svieSmerteHelbredsstatus'),
-  'erstatningsopgoerelse.arbejdsstatus': normalField('tafArbejdsstatus'),
-  'forlig.ansvarsgrad': normalField('forligAnsvarsgradProcent'),
-  'forlig.dato': normalField('forligDato'),
-  'aes.varigeMenAfgorelse': normalField('varigeMenAfgorelse'),
-  'aes.menAfgoerelseDato': normalField('menAfgoerelseDato'),
-  'aes.midlertidigtEETAfgorelse': normalField('midlertidigtEETAfgorelse'),
-  'aes.midlertidigEETAfgoerelseDato': normalField('midlertidigEETAfgoerelseDato'),
-  'aes.midlertidigEETVirkningsdato': normalField('midlertidigEETVirkningsdato'),
-  'aes.endeligtEETAfgorelse': normalField('endeligtEETAfgorelse'),
-  'aes.endeligEETAfgoerelseDato': normalField('endeligEETAfgoerelseDato'),
-  'aes.endeligEETVirkningsdato': normalField('endeligEETVirkningsdato'),
-  'aes.verserendeKlageEet': normalField('verserendeKlageEet'),
-  'aes.differencekravDato': normalField('differencekravDato'),
-  'sviesmerte.tidligereSsMax': normalField('tidligereSsMax'),
-  'sviesmerte.satserAar': normalField('svieSmerteSatserAar'),
-  'sviesmerte.delvisSygemeldingSats': normalField('svieSmerteDelvisSygemeldingSats'),
-  'sviesmerte.tidligereTotal': normalField('svieSmerteTidligereTotal'),
-  'sviesmerte.aktuelPeriode': normalField('svieSmerteAktuelPeriode'),
-  'taf.beregningsgrundlag.beregnesUdFra': normalField('beregnesUdFra'),
-  'taf.beregningsgrundlag.beregningsperiode': normalField('tafBeregningsperiodeFra'),
-  'taf.beregningsgrundlag.uspecificeredeFerieFridage': normalField('uspecificeredeFerieFridage'),
-  'taf.beregningsgrundlag.oevrigeFravaersdage': normalField('oevrigeFravaersdage'),
-  'taf.beregningsgrundlag.maanedsloen': normalField('maanedsloenenUdgoer'),
-  'taf.beregningsgrundlag.dagsloen': normalField('dagsloenenUdgoer'),
-  'taf.beregningsgrundlag.angivetLoenOpreguleresFraDato': normalField('angivetMaanedsloenOpreguleresFraDato'),
-  'taf.tidligereModtagetTaf': normalField('tidligereModtagetTaf'),
+  'stamdata.journalnr': target(stamdataJournalnrField.bind()),
+  'stamdata.advokatSagsbehandler': target(stamdataAdvokatField.bind()),
+  'stamdata.skadelidte': target(stamdataSkadelidteField.bind()),
+  'stamdata.skadestype': target(stamdataSkadestypeField.bind()),
+  'stamdata.skadedato': target(stamdataSkadedatoField.bind()),
+  'erstatningsopgoerelse.eoNummer': target(eoNummerField.bind()),
+  'erstatningsopgoerelse.revideretOpgoerelse': target(eoRevideretOpgoerelseField.bind()),
+  'erstatningsopgoerelse.vedroererPeriode': target(eoVedroererPeriodeFraField.bind()),
+  'erstatningsopgoerelse.opgørelseLavetDen': target(eoOpgørelseLavetDenField.bind()),
+  'erstatningsopgoerelse.helbredsstatus': target(eoSvieSmerteHelbredsstatusField.bind()),
+  'erstatningsopgoerelse.arbejdsstatus': target(eoTafArbejdsstatusField.bind()),
+  'forlig.ansvarsgrad': target(eoForligAnsvarsgradProcentField.bind()),
+  'forlig.dato': target(eoForligDatoField.bind()),
+  'aes.varigeMenAfgorelse': target(eoVarigeMenAfgorelseField.bind()),
+  'aes.menAfgoerelseDato': target(eoMenAfgoerelseDatoField.bind()),
+  'aes.midlertidigtEETAfgorelse': target(eoMidlertidigtEETAfgorelseField.bind()),
+  'aes.midlertidigEETAfgoerelseDato': target(eoMidlertidigEETAfgoerelseDatoField.bind()),
+  'aes.midlertidigEETVirkningsdato': target(eoMidlertidigEETVirkningsdatoField.bind()),
+  'aes.endeligtEETAfgorelse': target(eoEndeligtEETAfgorelseField.bind()),
+  'aes.endeligEETAfgoerelseDato': target(eoEndeligEETAfgoerelseDatoField.bind()),
+  'aes.endeligEETVirkningsdato': target(eoEndeligEETVirkningsdatoField.bind()),
+  'aes.verserendeKlageEet': target(eoVerserendeKlageEetField.bind()),
+  'aes.differencekravDato': target(eoDifferencekravDatoField.bind()),
+  'sviesmerte.tidligereSsMax': target(eoTidligereSsMaxField.bind()),
+  'sviesmerte.satserAar': target(eoSvieSmerteSatserAarField.bind()),
+  'sviesmerte.delvisSygemeldingSats': target(eoSvieSmerteDelvisSygemeldingSatsField.bind()),
+  'sviesmerte.tidligereTotal': target(eoSvieSmerteTidligereTotalField.bind()),
+  'sviesmerte.aktuelPeriode': target(eoSvieSmerteAktuelPeriodeField.bind()),
+  'taf.beregningsgrundlag.beregnesUdFra': target(eoBeregnesUdFraField.bind()),
+  'taf.beregningsgrundlag.beregningsperiode': target(eoTafBeregningsperiodeFraField.bind()),
+  'taf.beregningsgrundlag.uspecificeredeFerieFridage': target(eoUspecificeredeFerieFridageField.bind()),
+  'taf.beregningsgrundlag.oevrigeFravaersdage': target(eoOevrigeFravaersdageField.bind()),
+  'taf.beregningsgrundlag.maanedsloen': target(eoMaanedsloenenUdgoerField.bind()),
+  'taf.beregningsgrundlag.dagsloen': target(eoDagsloenenUdgoerField.bind()),
+  'taf.beregningsgrundlag.angivetLoenOpreguleresFraDato': target(eoAngivetMaanedsloenOpreguleresFraDatoField.bind()),
+  'taf.tidligereModtagetTaf': target(eoTidligereModtagetTafField.bind()),
 };
 
 const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget | undefined => {
@@ -146,32 +202,46 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
 
   const svieSmerteRowId = rowIdSuffix(row.id, 'sviesmerte.periode.');
   if (svieSmerteRowId) {
-    if (hint === 'tilstand') return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, 3);
-    if (hint === 'fra') return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, 0);
-    if (hint === 'til') return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, 1);
     const lower = message.toLocaleLowerCase('da-DK');
-    if (lower.includes('tilstand')) return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, 3);
-    return tableFieldPath(CELL_TABLE_IDS.eoSvieSmerte, svieSmerteRowId, inferDateColumn(message));
+    if (hint === 'tilstand' || (hint === undefined && lower.includes('tilstand'))) {
+      return target(eoSvieSmertePeriodeTilstandField.bind(svieSmerteRowId));
+    }
+    return target(dateFieldFromHint(
+      hint,
+      message,
+      eoSvieSmertePeriodeFraField,
+      eoSvieSmertePeriodeTilField
+    ).bind(svieSmerteRowId));
   }
 
   const tafRowId = rowIdSuffix(row.id, 'taf.periode.');
-  if (tafRowId) return tableFieldPath(CELL_TABLE_IDS.eoTafPeriode, tafRowId, dateColumnFromHint(hint, message));
+  if (tafRowId) {
+    return target(dateFieldFromHint(hint, message, eoTafPeriodeFraField, eoTafPeriodeTilField).bind(tafRowId));
+  }
 
   const tafFerieRowId = rowIdSuffix(row.id, 'taf.ferie.');
-  if (tafFerieRowId) return tableFieldPath(CELL_TABLE_IDS.eoFerieperiode, tafFerieRowId, dateColumnFromHint(hint, message));
+  if (tafFerieRowId) {
+    return target(dateFieldFromHint(hint, message, eoFerieperiodeFraField, eoFerieperiodeTilField).bind(tafFerieRowId));
+  }
 
+  // Beregningsgrundlagets ferierækker redigeres i `fravaerPerioder` (samme rækkeform, egen collection).
   const beregningsFerieRowId = rowIdSuffix(row.id, 'taf.beregningsgrundlag.ferie.');
   if (beregningsFerieRowId) {
-    return tableFieldPath(CELL_TABLE_IDS.eoBeregningsperiodeFerie, beregningsFerieRowId, dateColumnFromHint(hint, message));
+    return target(dateFieldFromHint(
+      hint,
+      message,
+      eoFravaerPeriodeFraField,
+      eoFravaerPeriodeTilField
+    ).bind(beregningsFerieRowId));
   }
 
   const oevrigeKravRowId = rowIdSuffix(row.id, 'oevrigekrav.');
   if (oevrigeKravRowId) {
     const lower = message.toLocaleLowerCase('da-DK');
-    // Beskrivelse tjekkes før beløb, så "Beskrivelse og beløb mangler" peger på beskrivelsescellen.
-    if (lower.includes('beskrivelse')) return tableFieldPath(CELL_TABLE_IDS.eoOevrigeKrav, oevrigeKravRowId, 1);
-    if (lower.includes('beløb')) return tableFieldPath(CELL_TABLE_IDS.eoOevrigeKrav, oevrigeKravRowId, 2);
-    return tableFieldPath(CELL_TABLE_IDS.eoOevrigeKrav, oevrigeKravRowId, 0);
+    // Beskrivelse tjekkes før beløb, så "Beskrivelse og beløb mangler" peger på beskrivelsesfeltet.
+    if (lower.includes('beskrivelse')) return target(eoOevrigeKravUdgiftTilField.bind(oevrigeKravRowId));
+    if (lower.includes('beløb')) return target(eoOevrigeKravBeloebField.bind(oevrigeKravRowId));
+    return target(eoOevrigeKravDatoField.bind(oevrigeKravRowId));
   }
 
   return exactFieldTargets[row.id];

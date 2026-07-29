@@ -4,23 +4,23 @@ Samlet register over alle fund i draft/commit-reviewet: fasefundene (R0–R8), d
 konvergensreview (GM-F01–GM-F15) og brugertestfundene (UT-F01–UT-F06). Én linje pr. fund, ingen prosa —
 beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
-**Sidst opdateret:** 2026-07-29 (etape 11 lukket)
+**Sidst opdateret:** 2026-07-29 (**etape 12 lukket — ALLE fund er håndteret**)
 
 ## Status
 
 | Kilde | Fund | Åbne | Rettet | Afvist |
 |---|---:|---:|---:|---:|
-| R0–R8 (fasefund) | 36 | 2 | 34 | 0 |
-| GM (konvergensreview) | 15 | 1 | 14 | 0 |
+| R0–R8 (fasefund) | 36 | 0 | 36 | 0 |
+| GM (konvergensreview) | 15 | 0 | 15 | 0 |
 | UT (brugertest) | 6 | 0 | 5 | 1 |
-| INC (tilfældighedsfund) | 19 | 1 | 18 | 0 |
-| **I alt** | **76** | **4** | **71** | **1** |
+| INC (tilfældighedsfund) | 22 | 0 | 22 | 0 |
+| **I alt** | **79** | **0** | **78** | **1** |
 
-Etape 7 er lukket **på nær GM-F10**, som holdes åben sammen med INC-F14 (se noterne nedenfor): kortlægningen
-viste, at fundet er større end sin rapport, og at dens `fieldPath`-cellemål slet ikke er i brug i dag.
+**ALLE TOLV ETAPER ER LUKKET.** Etape 12 (2026-07-29) lukkede de fire sidste fasefund/konvergensfund — R7-F01,
+R0-F01, GM-F10 og INC-F14 — plus de tre udestående work items (WI-005, WI-010, WI-011) og tre nye
+tilfældighedsfund (INC-F20, INC-F21, INC-F22). Se etapenoten nederst.
 
-Etape 8, 9, 10 og 11 er **lukket 2026-07-29**. **Tilbage står kun etape 12 (R7-F01, R0-F01) samt GM-F10 +
-INC-F14.**
+Det eneste afviste fund er **UT-F01**, afvist med EVIDENS — ikke efterladt uafklaret.
 
 **R0-F03 blev bevidst IKKE lukket med etape 10** — dens rettelse ER R6-F03's, og begge er lukket med etape 11.
 Etape 10 flyttede begrænsningen ordret til §10-kriterium 27; etape 11 fjernede den, fordi capabilityen bag den
@@ -60,12 +60,12 @@ en etape rettes og verificeres sammen.
 | **4** | R3-F04, R3-F02, R3-F01, GM-F06, R2-F02, GM-F01, GM-F02 | Én systemisk EO/EET-oprydning: feltfejl skal have ÉN strukturel repræsentation, og consumerblokering skal følge konkrete reads. Konvergensreviewets egen anbefaling nr. 1. Lukket 2026-07-28 i to pas — se etapenoterne nedenfor. |
 | **5** | GM-F04, R5-F01, GM-F05, GM-F07 | Beregningsflow og projektioner: delresultat fra fejlende række, parallel fieldUi-model, motorkald inde i indsamlingen. Bærer beslutning 2 og 3. Lukket 2026-07-28 — se etapenoten nedenfor. |
 | **6** | UT-F03, GM-F14, GM-F15 | Tabel- og placeholderkernen: promotion-undo mister fokus, fem kopier af placeholder-algoritmen, parallelle løntabel-/intervalprimitiver. Etape 1 lagde cellebindingen; her samles resten. Lukket 2026-07-28 — se etapenoten nedenfor. |
-| **7** | UT-F02, UT-F06, R3-F03, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, min-max-tooltips mangler årsagsinput, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. Første pas (UT-F02 + UT-F06) lukket 2026-07-28; andet pas (R7-F03, R7-F02, GM-F03, R3-F03) lukket og verificeret 2026-07-29. **GM-F10 er den ENESTE udestående** — kortlægningen viste, at fundet er større end sin rapport, og at dens cellemål er ude af brug (INC-F14). Den flyttes til en egen behandling. Se `work-items/WI-015-etape7-fokusmaal-ejerskab.md`. |
+| **7** | UT-F02, UT-F06, R3-F03, R7-F02, GM-F03, R7-F03, GM-F10 | Interaktion, fokus og navigation: dropdown-Enter kapres, placeholder viser en valideringsgrænse, min-max-tooltips mangler årsagsinput, toggles omgår feltfamilien, tre identitetssystemer for samme fokusmål. Første pas (UT-F02 + UT-F06) lukket 2026-07-28; andet pas (R7-F03, R7-F02, GM-F03, R3-F03) lukket og verificeret 2026-07-29. GM-F10 blev udskilt til egen behandling, fordi kortlægningen viste, at fundet var større end sin rapport, og at dens cellemål slet ikke var i brug (INC-F14); den er lukket i **etape 12**. Se `work-items/WI-015-etape7-fokusmaal-ejerskab.md`. |
 | **8** | R4-F01, R4-F02, GM-F12, GM-F13 | Persistence og hel-sags-handlinger: draft kasseres efter replacement, ufuldstændig oprydning accepteres som succes, `Slet alt` afsluttes anderledes end load. Bærer beslutning 4. Lukket 2026-07-29 — se etapenoten nedenfor. |
 | **9** | GM-F08, GM-F09, R5-F02, R8-F07, R0-F02 | Døde veje og værn, der ikke kan fejle. Ligger efter etape 1–8, fordi rettelserne dér kan efterlade nye rester og gøre flere værn inerte. Lukket 2026-07-29 — se etapenoten nedenfor. |
 | **10** | R8-F01, R8-F03, R8-F02, R8-F04, R8-F05, R8-F06, R2-F03, R6-F04, R0-F03 | Testdækning og acceptmatrix: §10's kriterier og de obligatoriske statekæder får et levende register. Sidst, fordi dækningen skal måles mod den FÆRDIGE arkitektur, ikke mod en mellemtilstand. Lukket 2026-07-29 **på nær R0-F03**, hvis rettelse er R6-F03's og derfor flytter til etape 11 — se etapenoten nedenfor. |
 | **11** | R6-F03, R0-F03, R1-F04, R1-F07, R1-F03, R1-F01, R1-F02, R1-F06, R1-F05, R8-F08 | Kontrakter, docs og sluttilstandssprog. Til sidst pr. review-planens R1b/R9: teksten skal beskrive systemet, som det er efter alle rettelser. Lukket 2026-07-29 — se etapenoten nedenfor. R0-F03 flyttede hertil fra etape 10, fordi dens rettelse ER R6-F03's. |
-| **12** | R7-F01, R0-F01 | Vurderes til sidst: R7-F01 er en omlægning af otte fagsider og kan blive en work item frem for en reviewrettelse; R0-F01 er en runtime-/toolchain-beslutning uden kodeafhængighed. |
+| **12** | R7-F01, R0-F01, GM-F10, INC-F14 + WI-005, WI-010, WI-011 | De sidste fund plus de tre udestående work items. Lukket 2026-07-29 — se etapenoten nederst. R7-F01 blev gennemført som reviewrettelse (ikke udskilt som WI): omlægningen er adfærdsbevarende og kunne verificeres af den eksisterende suite. |
 
 **Undtagelse fra rækkefølgen:** et nyt kritisk tilfældighedsfund rettes, når det konstateres — ikke når dets
 etape kommer.
@@ -74,7 +74,7 @@ etape kommer.
 
 | Id | Kort titel | Alvor | Lokation | Etape | Status | Rapport |
 |---|---|---|---|---:|---|---|
-| R0-F01 | Baseline kørt på ikke-understøttet runtime | Væsentlig | `package.json:22-24` | 12 | Åbent | [R0](R0-baseline-og-vaern.md#r0-f01--baseline-kørt-på-ikke-understøttet-runtime) |
+| R0-F01 | Baseline kørt på ikke-understøttet runtime | Væsentlig | `scripts/check-runtime-version.mjs` (nyt, første trin i `verify:release`) | 12 | **Rettet 2026-07-29** | [R0](R0-baseline-og-vaern.md#r0-f01--baseline-kørt-på-ikke-understøttet-runtime) |
 | R0-F02 | Tekstprober kan holde døde værn levende | Væsentlig | Harnessets liveness-lag (`architectureRules.test.ts`) + 14 prober | 9 | **Rettet 2026-07-29** | [R0](R0-baseline-og-vaern.md#r0-f02--tekstprober-kan-holde-døde-værn-levende) |
 | R0-F03 | Dokumentformatværnet dækker kun to ready-grene | Væsentlig | Kriterium 27 (`knownLimitation` FJERNET) | 11 | **Rettet 2026-07-29** | [R0](R0-baseline-og-vaern.md#r0-f03--dokumentformatværnet-dækker-kun-to-ready-grene) |
 | R1-F01 | Designdokumentets status er indbyrdes modstridende | Væsentlig | `draft-commit-greenfield-design.md` + ny `-journal.md` | 11 | **Rettet 2026-07-29** | [R1](R1-kontrakter-og-sluttilstandssprog.md#r1-f01--designdokumentets-status-er-indbyrdes-modstridende) |
@@ -99,7 +99,7 @@ etape kommer.
 | R6-F02 | Otte outputs kasserer beskeden efter afbrudt download | Væsentlig | Otte dokument-callsites | 3 | **Rettet 2026-07-28** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f02--otte-outputs-kasserer-brugerbeskeden-efter-en-afbrudt-download) |
 | R6-F03 | Dokumentformat er fortsat en lovlig gate-dependency | Væsentlig | `DocumentSourceSnapshot` (to disjunkte settings-halvdele) | 11 | **Rettet 2026-07-29** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f03--dokumentformat-er-fortsat-en-lovlig-gate-dependency) |
 | R6-F04 | Gatekontrakten er kun målt på fire af atten definitioner | Væsentlig | `documentGatePreflightParity.test.ts` (ny) | 10 | **Rettet 2026-07-29** | [R6](R6-dokumentoutput-og-generatorer.md#r6-f04--gatekontrakten-er-kun-målt-på-fire-af-atten-definitioner) |
-| R7-F01 | Det obligatoriske page-viewmodel-lag findes ikke | Væsentlig | Alle otte persisterede fagsider | 12 | Åbent | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f01--det-obligatoriske-page-viewmodel-lag-findes-ikke) |
+| R7-F01 | Det obligatoriske page-viewmodel-lag findes ikke | Væsentlig | Alle otte persisterede fagsider (`useXxxViewModel` + sektioner) | 12 | **Rettet 2026-07-29** | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f01--det-obligatoriske-page-viewmodel-lag-findes-ikke) |
 | R7-F02 | To toggles omgår feltfamilien og mister fokusmetadata | Væsentlig | `ToggleField.tsx`, `MappedToggleField.tsx` (`commit`-override) | 7 | **Rettet 2026-07-29** | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f02--to-persisterede-toggles-omgår-feltfamilien-og-mister-fokusmetadata) |
 | R7-F03 | Global feltadresse bestemmer fokusdestinationen | Væsentlig | `editorLocationDestination.ts` (afløser `fieldAddressDestination.ts`, slettet) | 7 | **Rettet 2026-07-29** | [R7](R7-pages-shell-porte-og-ui-struktur.md#r7-f03--global-feltadresse-bestemmer-fokusdestinationen) |
 | R8-F01 | §10's 30 acceptkriterier har intet levende register | Kritisk | `acceptanceMatrix.test.ts` (bundet ordret til designets §10) | 10 | **Rettet 2026-07-29** | [R8](R8-testkvalitet-vaern-og-acceptmatrix.md#r8-f01--10s-30-acceptkriterier-har-intet-levende-register) |
@@ -127,7 +127,7 @@ Alle femten er godkendt til implementering. De fire produktbeslutninger, de hvil
 | GM-F07 | Varige mén kalder motoren inde i projektionsindsamlingen | Væsentlig | `varigeMenReaderProjection.ts`, `projection.ts` | 5 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f07--varige-mén-kalder-motoren-inde-i-projektionsindsamlingen) |
 | GM-F08 | En død React-vej til Årslønsberegningen holdes levende af tests | Mindre | `domain/aarsloen/aarsloenBeregning.ts` (flyttet; hooken slettet) | 9 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f08--en-død-react-vej-til-årslønsberegningen-holdes-levende-af-tests) |
 | GM-F09 | Død sektionsvis persistence findes ved siden af aggregate-envelope | Væsentlig | `buildPersistedSection.ts` + `utils/serialization.ts` (begge slettet) | 9 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f09--død-sektionsvis-persistence-findes-ved-siden-af-aggregate-envelope) |
-| GM-F10 | EO-fejllinks bruger en separat heuristisk feltidentitet | Væsentlig | `eoRowIssueCatalog.ts`, `scrollToEoRow.ts` | 7 | Åbent (godkendt) | [GM](grill-me-konvergensreview.md#gm-f10--eo-fejllinks-bruger-en-separat-heuristisk-feltidentitet) |
+| GM-F10 | EO-fejllinks bruger en separat heuristisk feltidentitet | Væsentlig | `eoRowIssueCatalog.ts`, `scrollToEoRow.ts` (kanonisk `FieldAddress`) | 12 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f10--eo-fejllinks-bruger-en-separat-heuristisk-feltidentitet) |
 | GM-F11 | Dokumentfejl vises på nogle sider, men forsvinder på andre | Væsentlig | Dokumentførende side-callsites | 3 | **Rettet 2026-07-28** | [GM](grill-me-konvergensreview.md#gm-f11--dokumentfejl-vises-på-nogle-sider-men-forsvinder-på-andre) |
 | GM-F12 | Slet alt og load afslutter hel-sags-replacement forskelligt | Mindre til væsentlig | `useFileSaveLoad.handleSletAlt` (reload fjernet, beslutning 4) | 8 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f12--slet-alt-og-load-afslutter-hel-sags-replacement-forskelligt) |
 | GM-F13 | Manuel load og PWA-load kopierer samme shellflow | Mindre | `useFileSaveLoad.runLoadShell` (`LoadShellSource`) | 8 | **Rettet 2026-07-29** | [GM](grill-me-konvergensreview.md#gm-f13--manuel-load-og-pwa-load-kopierer-samme-shellflow) |
@@ -220,12 +220,15 @@ Fuld suite efter etapen: 498 filer / 6219 tests grøn; `typecheck`, `typecheck:t
 | INC-F11 | Mit eget nye attribut-værn var inert: TYPENS computed keys opfyldte det, mens builderen havde tabt dem | Væsentlig | R7-F03's værn | **Rettet 2026-07-29** |
 | INC-F12 | EO-togglens simple ændring dispatchede helt UDEN history-origin | Væsentlig | R7-F02's integrationstest | **Rettet 2026-07-29** |
 | INC-F13 | `NON_NAVIGABLE_ROUTE` var et sentinel for en tilstand ingen kode er i | Mindre | R7-F03 | **Rettet 2026-07-29** |
-| INC-F14 | Alle kataloget's `fieldPath`-cellemål i EO-fejllinks er uopnåelige OG utestede | Væsentlig | GM-F10's kortlægning | Åbent (bæres af GM-F10) |
+| INC-F14 | Alle kataloget's `fieldPath`-cellemål i EO-fejllinks er uopnåelige OG utestede | Væsentlig | GM-F10's kortlægning | **Rettet 2026-07-29** |
 | INC-F15 | EO's round-trip-test modellerede et serialiseringstrin, produktionen ikke udfører | Væsentlig | GM-F09 | **Rettet 2026-07-29** |
 | INC-F16 | `pendingOverlay` + `allowExitWithoutWarning` fandtes kun for at overleve en reload | Mindre | GM-F12 | **Rettet 2026-07-29** |
 | INC-F17 | Kernens generiske warning-kanal havde nul producenter OG nul læsere | Væsentlig | R8-F05 | **Rettet 2026-07-29** |
 | INC-F18 | Min egen første mount-uafhængighedstest var inert i den ene retning | Væsentlig | Kriterium 22's værn | **Rettet 2026-07-29** |
 | INC-F19 | To døde veje til format/brevhoved uden om gaten: rendererens `settings`-parameter og `DocumentSettings`-DTO'en | Væsentlig | R6-F03 | **Rettet 2026-07-29** |
+| INC-F20 | Mine egne nye hint-tests kunne ikke SKELNE hint fra ordlyd — og værnets liveness-probe overlevede et alias-import | Væsentlig | GM-F10 | **Rettet 2026-07-29** |
+| INC-F21 | `fieldIdentityGuard` scannede tolv widgetnavne med NUL forekomster — hele filen var grøn af tomhed | Væsentlig | GM-F10's oprydning | **Rettet 2026-07-29** |
+| INC-F22 | Standalones flerside-rente gik ISO → dansk → `Date` med et `?? ''`, der skjulte en manglende konvertering | Væsentlig | WI-011's typegrænse | **Rettet 2026-07-29** |
 
 **INC-F01.** Celle-lokationsid'et var `${section}.${collection}:${rowId}:${colIndex}` uden ejer-id. EO
 renderer én løntabel pr. ansættelsesforhold, så to kort med samme række-id delte editorlokation, og en
@@ -967,3 +970,92 @@ dynamiske navne) er præcis den drift, begge værn findes for at fange.
   en åben hypotese i R1-rapporten, ikke som et lukket fund.
 - **§10's 30 acceptkriterier er urørt ord for ord.** De læses maskinelt af acceptregistret, så en sproglig
   oprydning dér ville være en ændring af registrets kilde. Læsevejledningen navngiver bindingen i stedet.
+
+**R7-F01 + R0-F01 + GM-F10 + INC-F14 + WI-005 + WI-010 + WI-011 — lukket 2026-07-29 (etape 12).**
+Reviewets sidste etape. Fire gates + `verify:ledgers` + `check:mojibake` + `check:filename-case` +
+`check:offentlig-loen` + fuld suite grøn: **505 filer / 6535 tests.**
+
+**Etapens gennemgående mønster: hvert fund var en grænse, der HOLDT i praksis, men ikke var udtrykt.** Ingen af
+de fire skyldtes en forkert adfærd i produktionen. I alle fire tilfælde var reglen enten kun beskrevet i en
+kontrakt (R7-F01's VM-lag), kun sand ved et tilfælde (GM-F10's fokusmål faldt lydløst tilbage), kun gældende
+ved installation (R0-F01) eller kun overholdt af konvention (WI-005's motorgrænse). Rettelserne gør dem
+udtrykte — som en type, en deriveret liste eller en regel, der kan fejle.
+
+*Ét identitetssystem i DOM (GM-F10 + INC-F14).* `EoIssueFocusTarget` bærer nu en kanonisk `FieldAddress` frem
+for en `tableId:rowScope:rowId:colIndex`-streng, og `scrollToEoRow` slår op gennem `lookupEditorLocation` —
+samme mekanisme som undo/redo og save-fokus. **Kortlægningen var for mild:** ved omlægningen havde BEGGE de
+gamle attributter (`data-mineo-field-path`, `data-mineo-undo-field-path`) nul LÆSERE tilbage, kun producenter.
+Det er den endelige evidens for, at modellen var en rest. Seks `Styled*`-primitiver og `config/cellFocusPaths.ts`
+er slettet; `eetIssueNavigation`s `focusFieldPath` er ligeledes blevet en adresse. Fem nye
+`scrollToEoRow`-tests øver den gren, INC-F14 påviste var HELT utestet.
+
+*Page-viewmodel-laget (R7-F01).* Alle otte §2.1-sider har nu ét `useXxxViewModel`. Kontrakten er kategorisk, og
+værnet er derfor ikke størrelses-gated: **sidelisten UDLEDES af `APP_ROUTES`**, så en ny fagside gør reglen rød,
+før nogen skal huske en liste. Forsørgertab (652 linjer) og Årsløn (587) er blevet komposition; ordningen af
+Årsløns tre meddelelsesbokse tvang tre selvstændige komponenter frem for én, fordi deres placering på siden
+ikke er sammenhængende — en samlet komponent kunne ikke gengive den uden at flytte noget synligt.
+
+**Værnene fangede min egen refaktorering tre gange** — `domain/page-section-access-boundary` (fire nye
+sektionsmapper), `document/activation-shows-outcome` (aktiveringen flyttede væk fra sin visning) og
+consumer-ledgeren (fire flyttede beregningskaldere). Alle tre er ægte signaler, ikke støj: de målte, at ansvar
+havde flyttet sig. Forsørgertabs udfaldsbesked er derfor udledt i den sektion, der KLIKKER — ikke i modellen.
+
+*Runtime-gaten (R0-F01).* Fundets oprindelige ask — "gentag baselinen på de deklarerede versioner" — kunne
+IKKE udføres: der findes ingen Node 24 og ingen version manager på maskinen. Det er dokumenteret som en ærlig
+afgrænsning. Fundets SUBSTANS er derimod lukket strukturelt: `check:runtime` er `verify:release`s første trin,
+så en gate-kørsel på en anden runtime standser frem for at producere et grønt, der bærer en umålt påstand.
+Kontrollen læser `engines` fra ÉN kilde og **fail-closer på en operator, den ikke forstår**. Efterprøvet i
+begge retninger: rød på denne maskine (Node 26.5.0 / npm 11.13.0), og en kontrolprøve mod et interval, runtimen
+opfylder, er GRØN — uden den ville en altid-rød kontrol se ud som evidens. `engine-strict=true` er samtidig
+verificeret: `npm install` afvises med `EBADENGINE`, og CI pinner Node fra `.nvmrc`.
+
+*De tre work items.* WI-005: den fjerde ansvarsgrænse manglede — `domain/engine-call-owned-by-projection`
+binder de seks slice-motorer 1:1 til deres ejende projektion. WI-010: den synlige systemfejl-overflade FINDES
+(kæden er efterprøvet led for led og nu pinnet), så §A5's skel er reelt. WI-011: begge rente-generatorer tager
+nu `ISODateString`; **paritet er bevist ved at hele dokument-/PDF-/Word-suiten er grøn uden et enkelt
+regenereret golden-snapshot.**
+
+**Ærlige afgrænsninger, navngivet frem for udeladt i tavshed:**
+
+- **R0-F01's oprindelige handling er ikke udført.** Baselinen er ikke gentaget på Node 24; miljøet findes ikke.
+  Det er CI, der beviser den understøttede toolchain, og `check:runtime`, der forhindrer et vildledende grønt.
+- **`eo/reguleringDocument.ts` er urørt.** Den bruger den BRANDEDE `DanishDateString`, ikke en utypet `string`.
+  Formatet er dermed eksplicit i typen, og WI-011's fejlklasse findes ikke der.
+- **Forsørgertabs fejlrække er fortsat inline** frem for `DocumentOutcomeMessage`. Ensretningen af de fem
+  rækkeudgaver er en synlig UI-ændring, der fortsat udestår fra R6-F02 og ligger uden for en adfærdsbevarende
+  omlægning.
+- **Reguleringens to overenskomst-etiketter er fortsat forskellige.** Forskellen er dokumentINDHOLD; en
+  ensretning kræver en brugerbeslutning (§5.4).
+
+**INC-F20 (væsentlig).** Mine egne nye katalog-tests bestod en mutation, de burde have fanget: fjernes
+`focusFieldHint`s FORRANG over ordlyd-heuristikken, forblev alt grønt. Årsagen var, at hver hint-case havde en
+besked, hvis ordlyd pegede samme vej som hintet — der fandtes ingen case, hvor de var UENIGE. Fire cases er
+tilføjet (to hvor hintet vinder, to uden hint hvor ordlyden skal bruges), og begge retninger er nu
+mutationsbevist. Samme klasse ramte det nye værns liveness-probe: en `hasIdentifier`-probe forblev sand ved et
+alias-import (`lookupEditorLocation as lookupMoved`), fordi navnet stadig stod i import-clausen; den måler nu et
+faktisk KALD.
+
+Registreret frem for blot rettet, fordi det er **fjerde gang** i dette review, at et værn jeg selv skrev viste
+sig inert (INC-F03, INC-F11, INC-F18, nu INC-F20). Lærepunktet skærpes et skridt: det er ikke nok at
+mutationsteste mod den levende kilde (INC-F11) eller mod hver retning af invarianten (INC-F18) — **testdataene
+skal kunne SKELNE de to mekanismer.** To mekanismer, der er enige på alle prøvede inputs, er utestede.
+
+**INC-F21 (væsentlig).** `fieldIdentityGuard.test.ts` var det ENESTE værn om feltidentitet i sags-sider. Alle
+tolv widgetnavne, det scannede (`StyledDateField`, `StyledAmountField`, `StyledToggleSwitch` m.fl.), har **NUL
+forekomster** i `src/components/pages` — de forsvandt med greenfield-cutoverens feltfamilie. Filens
+`PAGES_DIR`-scope udelukker desuden `src/inputCore` helt. Dens "dækker alle tolv"-assertion og dens selv-test
+kørte derfor mod syntetiske strenge, mens den RIGTIGE scanning gik over et tomt sæt. Den navngav oven i købet
+en regel, der ikke findes (`form/greenfield-restore-target-attributes`).
+
+Filen er SLETTET frem for lappet: dens invariant bæres nu af `input/persisted-controls-use-field-family` (alle
+persisterede controls skal gennem den typede feltfamilie) plus det nye `input/single-field-identity-in-dom`.
+En lappet udgave ville have bevaret sit eget filglob og sit eget liveness-gulv ved siden af harnessets — samme
+begrundelse som R8-F07's sletning. Femte variant af R0-F02's fejlklasse: her var det hverken proben,
+allowlisten eller ét mål, men HELE værnets målmængde, der var forsvundet.
+
+**INC-F22 (væsentlig).** WI-011's typegrænse enumererede kalderne og fandt én mere, end work item'et kendte:
+standalones FLERSIDE-rente-output gik ISO → dansk streng → `Date`, altså to formatskift for at nå samme dato,
+med et `?? ''` der gjorde en manglende konvertering til "ugyldig dato" frem for til en typefejl. Parser nu ISO
+direkte. Registreret frem for blot rettet, fordi det viser, at **en typeændring er et kortlægningsværktøj**:
+compileren fandt det callsite, en manuel gennemgang af work item'ets to navngivne definitioner ville have
+oversprunget.

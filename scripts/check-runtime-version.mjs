@@ -1,0 +1,123 @@
+#!/usr/bin/env node
+/**
+ * Kontrollerer, at den KØRENDE Node/npm-version er den, projektet erklærer i `package.json` → `engines`.
+ *
+ * **Hvorfor der er brug for dette ud over `engine-strict`.** `.npmrc` har `engine-strict=true`, så `npm ci` og
+ * `npm install` fejler fail-closed med `EBADENGINE` på en forkert version — det er efterprøvet. Men den kontrol
+ * rammer kun INSTALLATIONEN. Kører man `npm run verify:release` på et træ, der allerede er installeret, udfører
+ * npm ingen engine-kontrol, og gaten bliver grøn på en runtime, projektet ikke understøtter. Et grønt gate-udfald
+ * ville da bære en påstand om den understøttede toolchain, som ingen har målt (R0-F01).
+ *
+ * Kontrollen er derfor `verify:release`s FØRSTE trin: enten er hele gaten kørt på den erklærede runtime, eller
+ * den er slet ikke kørt.
+ *
+ * Sandheden er ÉN kilde: `package.json` → `engines`. Scriptet dublerer ikke intervallerne, så en bump af
+ * `engines` (eller af `.nvmrc`) kan ikke efterlade kontrollen bagud.
+ *
+ * `--warn-only` findes bevidst IKKE. En advarsel ville gøre kontrollen til støj, man scroller forbi, og det er
+ * netop den tilstand, fundet beskriver.
+ */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+/** Læs `engines` fra den ENE kanoniske kilde. */
+const readEngines = () => {
+  const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'));
+  const engines = pkg.engines;
+  if (engines === undefined || typeof engines.node !== 'string' || typeof engines.npm !== 'string') {
+    throw new Error('package.json → engines mangler node/npm. Kontrollen kan ikke måle mod en tom erklæring.');
+  }
+  return engines;
+};
+
+/**
+ * `'1.2.3'` → `[1, 2, 3]`. Præ-release-suffikser afskæres; de er ikke i brug i projektets intervaller.
+ *
+ * Delvise versioner udfyldes med nul, så `<25` betyder `<25.0.0` — samme læsning som semver bruger for en
+ * øvre grænse. `engines` skriver netop den form (`>=24.18.0 <25`).
+ */
+const parseVersion = (raw) => {
+  const cleaned = raw.trim().replace(/^v/, '').split('-')[0];
+  const parts = cleaned.split('.').map((part) => Number.parseInt(part, 10));
+  if (parts.length === 0 || parts.length > 3 || parts.some((part) => !Number.isInteger(part))) {
+    throw new Error(`Kunne ikke læse versionen '${raw}'.`);
+  }
+  while (parts.length < 3) parts.push(0);
+  return parts;
+};
+
+const compareVersions = (left, right) => {
+  for (let index = 0; index < 3; index += 1) {
+    if (left[index] !== right[index]) return left[index] < right[index] ? -1 : 1;
+  }
+  return 0;
+};
+
+/**
+ * Evaluér et interval af formen `>=X.Y.Z <A.B.C` — præcis den form, projektets `engines` bruger.
+ *
+ * Bevidst ingen fuld semver-implementering og ingen ny afhængighed: en ukendt operator giver en HÅRD fejl frem
+ * for at blive ignoreret. Et udtryk kontrollen ikke forstår, må ikke kunne passere som opfyldt.
+ */
+const satisfiesRange = (version, range) => {
+  const comparators = range.trim().split(/\s+/);
+  for (const comparator of comparators) {
+    const match = /^(>=|>|<=|<|=)?(\d+(?:\.\d+){0,2})$/.exec(comparator);
+    if (match === null) {
+      throw new Error(
+        `Intervallet '${range}' bruger en operator, kontrollen ikke forstår ('${comparator}'). `
+        + 'Udvid check-runtime-version.mjs frem for at lade udtrykket passere ukontrolleret.'
+      );
+    }
+    const [, operator = '=', bound] = match;
+    const result = compareVersions(parseVersion(version), parseVersion(bound));
+    const ok = operator === '>=' ? result >= 0
+      : operator === '>' ? result > 0
+        : operator === '<=' ? result <= 0
+          : operator === '<' ? result < 0
+            : result === 0;
+    if (!ok) return false;
+  }
+  return true;
+};
+
+const engines = readEngines();
+
+const actual = {
+  node: process.versions.node,
+  // npm's version leveres af npm selv, når scriptet kaldes gennem `npm run`. Køres scriptet direkte med
+  // `node scripts/check-runtime-version.mjs`, findes variablen ikke — da kontrolleres kun Node, og npm
+  // rapporteres som ukontrolleret frem for som opfyldt.
+  npm: process.env.npm_config_user_agent?.match(/npm\/(\d+\.\d+\.\d+)/)?.[1],
+};
+
+const problems = [];
+
+if (!satisfiesRange(actual.node, engines.node)) {
+  problems.push(`Node: kræver ${engines.node}, kører ${actual.node}`);
+}
+
+if (actual.npm === undefined) {
+  console.warn(
+    'check:runtime — npm-versionen kunne ikke læses (scriptet blev ikke kaldt gennem npm). Kun Node er kontrolleret.'
+  );
+} else if (!satisfiesRange(actual.npm, engines.npm)) {
+  problems.push(`npm: kræver ${engines.npm}, kører ${actual.npm}`);
+}
+
+if (problems.length > 0) {
+  console.error('\nRuntime matcher ikke projektets erklærede toolchain:\n');
+  for (const problem of problems) console.error(`  - ${problem}`);
+  console.error(
+    '\nKør gaten på den erklærede runtime. Versionen står i .nvmrc (og i package.json → engines);'
+    + '\nen version manager kan skifte til den med `nvm use` / `fnm use`.'
+    + '\n\nEt grønt gate-udfald på en anden runtime ville bære en påstand om den understøttede'
+    + '\ntoolchain, som ingen har målt (R0-F01).\n'
+  );
+  process.exit(1);
+}
+
+console.log(`check:runtime — Node ${actual.node}${actual.npm ? ` / npm ${actual.npm}` : ''} matcher engines.`);

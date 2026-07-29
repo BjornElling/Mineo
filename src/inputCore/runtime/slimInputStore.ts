@@ -19,7 +19,7 @@ import {
 // `fieldErrors`, revisionsmaps, epochs, counters eller legacy-testfacader — hele det gamle `inputRuntimeStore`-
 // tilstandsrum udgår. Afledte issues, gates og åbne drafts hører ikke til her (§3.1).
 //
-// **Skrivegrænsen er STRUKTUREL, ikke bevogtet (Fase 6, genåbnet).** Zustands `StoreApi` forlader aldrig dette
+// **Skrivegrænsen er STRUKTUREL, ikke bevogtet.** Zustands `StoreApi` forlader aldrig dette
 // modul: `setState`/`replace` findes ikke på den eksporterede type. Et nyt modul, der importerer storen, kan
 // derfor slet ikke formulere et uvalideret write — hverken direkte, gennem et alias eller gennem en
 // type-assertion. Det er den forskel [[project_typed_write_boundary_over_ast_guard]] efterspørger: grænsen er

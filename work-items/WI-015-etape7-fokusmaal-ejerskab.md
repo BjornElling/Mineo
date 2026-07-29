@@ -1,6 +1,7 @@
 # WI-015: Etape 7 andet pas — hvem ejer et fokusmål
 
-- **Status:** `review` — fire af fem fund lukket og verificeret 2026-07-29; GM-F10 udskilt (se nedenfor)
+- **Status:** `afsluttet` 2026-07-29 — **alle fem fund lukket.** GM-F10 + INC-F14 blev udskilt til egen
+  behandling og er lukket i draft/commit-reviewets **etape 12** (se "GM-F10 — LUKKET" nedenfor).
 - **Oprettet:** 2026-07-28
 - **Slice/scope:** Draft/commit-reviewets etape 7, andet pas — fokusnavigationens ejerskab
 - **Kilde:** `docs/review/draft-commit-review/fund-oversigt.md` etape 7 (R7-F03, R7-F02, GM-F03, GM-F10) + R3-F03
@@ -15,7 +16,7 @@
 | R7-F02 | To toggles omgår feltfamilien og mister fokusmetadata | **Rettet + verificeret** |
 | GM-F03 | Samme to toggles, fra konvergensreviewets vinkel | **Rettet + verificeret** |
 | R3-F03 | Min-max-tooltips mangler inputnavne | **Rettet + verificeret** |
-| GM-F10 | EO-fejllinks bruger en separat heuristisk feltidentitet | **UDSKILT** → egen behandling |
+| GM-F10 | EO-fejllinks bruger en separat heuristisk feltidentitet | **Rettet + verificeret** (etape 12) |
 
 Tilfældighedsfund: INC-F11, INC-F12, INC-F13 (rettet), INC-F14 (åbent, bæres af GM-F10).
 
@@ -96,11 +97,30 @@ evidens R7-F02 manglede, og den der fandt INC-F12.
   Runtime havde ret; fixturet havde opfundet en løsere udgave af produktionen. Begge slettet.
 - **INC-F14 (åbent).** Se GM-F10 nedenfor.
 
-## GM-F10 — udskilt, med færdig kortlægning
+## GM-F10 — LUKKET 2026-07-29 (etape 12)
 
-Fundet er **større end sin rapport**, og kortlægningen bør ikke laves om:
+**Løsningen fulgte den anbefalede retning ordret: EO-rækkerne bærer nu en kanonisk `FieldAddress`.**
 
-`eoRowIssueCatalog`'s `kind: 'fieldPath'`-cellemål er **uopnåelige**, af to uafhængige grunde:
+`EoIssueFocusTarget` er ændret fra `{ kind: 'fieldPath'; fieldPath: string }` til
+`{ kind: 'fieldAddress'; address: FieldAddress }`, og issue-kataloget binder produktionens EGNE descriptorer
+(`eoTafPeriodeFraField.bind(rowId)` osv.) frem for at konstruere en `tableId:rowScope:rowId:colIndex`-streng.
+`scrollToEoRow` slår op gennem `lookupEditorLocation` — samme mekanisme som undo/redo og save-fokus — så der
+findes ÉT identitetssystem. `rowId`-varianten er bevaret som det GROVERE mål for en rækkefejl uden ét
+ansvarligt felt, og som fallback når feltets editor ikke er synlig.
+
+**Kortlægningen viste sig at være for mild.** Ved omlægningen havde BEGGE de gamle attributter
+(`data-mineo-field-path`, `data-mineo-undo-field-path`) nul LÆSERE tilbage — kun producenter. De er slettet fra
+alle seks `Styled*`-primitiver sammen med `src/config/cellFocusPaths.ts`. `eetIssueNavigation`s `focusFieldPath`
+er ligeledes blevet en `FieldAddress`. Håndhævet af den nye AST-regel
+`input/single-field-identity-in-dom` (mutationsbevist: genindført attribut → rød med fil:linje:kolonne; en
+kommentar, der nævner den, forbliver grøn; alias-import af `lookupEditorLocation` → INERT).
+
+Dækning: 5 nye `scrollToEoRow`-tests, der faktisk ØVER feltgrenen (INC-F14's kerne var, at ingen test nævnte
+`focusTarget`), plus 4 nye katalog-cases, der pinner hintets forrang over ordlyden — se INC-F20 nedenfor.
+
+Den oprindelige kortlægning står nedenfor som begrundelsen for retningen:
+
+`eoRowIssueCatalog`'s `kind: 'fieldPath'`-cellemål **var uopnåelige**, af to uafhængige grunde:
 
 1. `CELL_TABLE_IDS`/`buildCellFocusFieldPath` (`src/config/cellFocusPaths.ts`) har INGEN anden konsument end
    kataloget selv, og `data-mineo-field-path` sættes udelukkende som et bart `name`
@@ -125,10 +145,25 @@ attribut-søgninger. Descriptorerne findes allerede for alle de relevante række
 et rigtigt `FieldRef` kan bindes pr. række + hint. Bemærk `useEoBeregningViewModel.ts:307`, som kalder
 `scrollToEoRow('', …)` for EETs stamdata-links — den vej er live gennem `exactFieldTargets`.
 
-**Hvorfor udskilt:** fundet rører EO's rækkeevalueringskerne, som er trust-kritisk (den gater PDF, jf.
-`project_b9_eo_debug_split`), og dens rettelse er en selvstændig omlægning frem for en fortsættelse af
-fokusmål-ejerskabet. De fire øvrige fund er lukket og verificeret; at holde dem ucommitterede for at afvente
-en større omlægning ville være dårligere.
+**Hvorfor det blev udskilt (2026-07-29, historik):** fundet rører EO's rækkeevalueringskerne, som er
+trust-kritisk (den gater PDF, jf. `project_b9_eo_debug_split`), og dens rettelse var en selvstændig omlægning
+frem for en fortsættelse af fokusmål-ejerskabet. De fire øvrige fund blev lukket og verificeret først.
+
+### INC-F20 (nyt tilfældighedsfund, rettet) — mit eget hint-værn var inert
+
+De nye katalog-tests bestod en mutation, de burde have fanget: fjernes `focusFieldHint`s FORRANG, så kun
+ordlyd-heuristikken bruges, forblev alle tests grønne. Årsagen var, at hver hint-case havde en besked, hvis
+ordlyd pegede samme vej som hintet — der fandtes ingen case, hvor de var UENIGE. To sådanne cases er tilføjet
+(TAF-hint `'til'` på en besked uden "til-dato"; svie/smerte-hint `'tilstand'` på en besked uden "tilstand"),
+plus to modstykker uden hint, så en fjernet ordlyd-heuristik også bliver rød. Mutationsbevist begge veje.
+
+Fundet er registreret frem for blot rettet, fordi det er **fjerde gang** i dette review, at et værn jeg selv
+skrev viste sig inert (INC-F03, INC-F11, INC-F18, nu INC-F20). Lærepunktet skærpes: det er ikke nok at
+mutationsteste mod den levende kilde og mod hver retning af invarianten — man skal sikre, at testdataene
+faktisk kan SKELNE de to mekanismer. To mekanismer, der er enige på alle prøvede inputs, er utestede.
+
+Samme klasse ramte liveness-proben i `input/single-field-identity-in-dom`: en `hasIdentifier`-probe forblev
+sand ved et alias-import, fordi navnet stadig stod i import-clausen. Proben måler nu et faktisk KALD.
 
 ## Invarianter (må ikke brydes)
 
@@ -148,9 +183,9 @@ en større omlægning ville være dårligere.
 
 ## Resterende / risici
 
-- **GM-F10 + INC-F14** udestår; kortlægningen ovenfor er færdig.
-- **`data-mineo-field-path`/`-undo-field-path` lever endnu** i fire `Styled*`-primitiver, fordi GM-F10 stadig
-  aftager dem. De bør slettes som led i GM-F10 — men først når EO-vejen er omlagt.
+- **GM-F10 + INC-F14** er LUKKET (etape 12, se ovenfor).
+- **`data-mineo-field-path`/`-undo-field-path` er SLETTET** fra alle seks `Styled*`-primitiver sammen med
+  `cellFocusPaths.ts`; grænsen håndhæves nu af `input/single-field-identity-in-dom`.
 - **Ikke dækket af en test:** loopets fane-aktivering kalder `applyDestination` med
   `window.location.pathname` frem for den route-parameter, kaldet fik. Det er tilsigtet (routen kan have
   ændret sig undervejs), men er ikke pinnet.

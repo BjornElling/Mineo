@@ -2,6 +2,11 @@
 
 - **Status:** `afsluttet` (2026-07-25) — alle fund fra det interne review (I1–I8) og Codex sol/medium
   (X1–X5) er disponeret; fire gates + fuld suite grønne. **Fase 0–4 kan hermed erklæres endeligt lukket.**
+
+  **LÆS DETTE FØRST.** Brødteksten er historik fra udførelsestidspunktet. Dens D4-beslutning siger, at
+  `buildCellFocusFieldPath`/`CELL_TABLE_IDS` "stadig er kanoniske tabel-id'er" i modulet `cellFocusPaths.ts`.
+  Det er ikke længere sandt: hele modulet er SLETTET med draft/commit-reviewets GM-F10, fordi målene var
+  uopnåelige i DOM. Fokusmålet er nu den kanoniske feltadresse (`data-mineo-field-address`).
 - **Oprettet:** 2026-07-25
 - **Slice/scope:** Fase 0–4's exitkriterier: den efterladte legacy-infrastruktur (storage-nøgler,
   celle-scope-modulet), begrebsnavngivningen (WI-006) og designdokumentets statussandhed.

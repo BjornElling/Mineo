@@ -99,7 +99,7 @@ const byggResultat = (
       });
     // ASL bruger et per-år-opslag (resolveAslAarsloensmaksimumForAar), ikke en kvartals-
     // indeksserie — der er ingen periodeserie at emittere som forløb (forloeb udelades →
-    // præsentationen re-deriverer det direkte data-opslag uændret, jf. R2-afgrænsningen).
+    // præsentationen re-deriverer det direkte data-opslag uændret).
     return { segmenter: aslSegments };
   }
 

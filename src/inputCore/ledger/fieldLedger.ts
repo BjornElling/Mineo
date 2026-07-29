@@ -129,5 +129,5 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
   },
 };
 
-/** Baseline-count (§6, Fase 0 trin 13). Låst mod de levende schemas i completeness-testen — ingen placeholder. */
+/** Baseline-count (§6). Låst mod de levende schemas i completeness-testen — ingen placeholder. */
 export const EXPECTED_FIELD_REF_COUNT = 239;

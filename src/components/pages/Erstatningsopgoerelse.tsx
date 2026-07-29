@@ -2,92 +2,26 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import PageTabs from '../layout/PageTabs';
 import SideTab from '../layout/SideTab';
-import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
-import { useMidlertidigtEetInsertSource } from '../../hooks/useMidlertidigtEetInsertSource';
-import { useScrollToSectionWithRetry } from '../../hooks/useScrollToSectionWithRetry';
-import { useAppSettings } from '../../contexts/useAppSettings';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
 import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';
 import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EOInspektion from './erstatningsopgoerelse/EOInspektion';
 import EOKontrolTabel from './erstatningsopgoerelse/EOKontrolTabel';
-import { useInputEvaluation } from '../../inputCore/react';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
-import { buildErstatningsopgoerelseReaderProjection } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
-import { selectBlockingLoenindkomstEntityIds } from '../../domain/erstatningsopgoerelse/eoInputIssues';
+import { useErstatningsopgoerelseViewModel } from './erstatningsopgoerelse/useErstatningsopgoerelseViewModel';
 
 const TAB_KEYS = EO_TAB_KEYS;
 
-type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
-
 /**
- * Erstatningsopgørelse-komponent til samlet opgørelse af erstatningskrav
+ * Erstatningsopgørelse: samlet opgørelse af erstatningskrav.
+ *
+ * Siden er fane-komposition (`page-component-contract.md` §4.4): reader-projektionen, fanetilladelser, -besøg og
+ * navigation bor i `useErstatningsopgoerelseViewModel`; hver fane har sin egen under-viewmodel.
  */
 const Erstatningsopgoerelse = React.memo(() => {
-  const { settings } = useAppSettings();
-  const showInspektionTab = settings.showEOInspektionMenu;
-
-  const allowedTabs = React.useMemo(() => {
-    const tabs: TabKey[] = [
-      TAB_KEYS.EO_OPLYSNINGER,
-      TAB_KEYS.LOENINDKOMST,
-      TAB_KEYS.OFFENTLIGE_YDELSER,
-      TAB_KEYS.BEREGNING,
-    ];
-    if (showInspektionTab) tabs.push(TAB_KEYS.INSPEKTION, TAB_KEYS.KONTROLTABEL);
-    return tabs;
-  }, [showInspektionTab]);
-
-  const defaultTab = TAB_KEYS.EO_OPLYSNINGER;
-  const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({
-    pageId: 'erstatningsopgoerelse',
-    allowedTabs,
-    defaultTab,
-  });
-  const scrollToSectionWithRetry = useScrollToSectionWithRetry();
-  const [visitedTabs, setVisitedTabs] = React.useState<Record<TabKey, boolean>>({
-    [TAB_KEYS.EO_OPLYSNINGER]: true,
-  } as Record<TabKey, boolean>);
-
-  const mainTabValue =
-    activeTab === TAB_KEYS.EO_OPLYSNINGER ||
-    activeTab === TAB_KEYS.LOENINDKOMST ||
-    activeTab === TAB_KEYS.OFFENTLIGE_YDELSER ||
-    activeTab === TAB_KEYS.BEREGNING
-      ? activeTab
-      : false;
-
-  const midlertidigtEetInsertSource = useMidlertidigtEetInsertSource();
-  const evaluation = useInputEvaluation();
-  const projection = React.useMemo(
-    () => buildErstatningsopgoerelseReaderProjection(evaluation.reader, { midlertidigtEetInsertSource }),
-    [evaluation, midlertidigtEetInsertSource]
-  );
-  const { eoValues, stamdataValues, snapshot: eoSnapshot } = projection;
-  const manuelReguleringInputErrors = React.useMemo(
-    () => selectBlockingLoenindkomstEntityIds(projection.eoErrors),
-    [projection.eoErrors]
-  );
-
-  const handleNavigateToTabtArbejdsfortjeneste = React.useCallback(() => {
-    setActiveTab(TAB_KEYS.EO_OPLYSNINGER);
-    scrollToSectionWithRetry('taf');
-  }, [scrollToSectionWithRetry, setActiveTab]);
-
-  React.useEffect(() => {
-    // Hvis kontrolfanerne slås fra mens en af dem aktuelt er aktiv, falder vi deterministisk tilbage.
-    if (!isAllowedTab(activeTab)) {
-      setActiveTab(defaultTab);
-    }
-  }, [activeTab, defaultTab, isAllowedTab, setActiveTab]);
-  
-  React.useEffect(() => {
-    setVisitedTabs((prev) => {
-      if (prev[activeTab]) return prev;
-      return { ...prev, [activeTab]: true };
-    });
-  }, [activeTab]);
+  const vm = useErstatningsopgoerelseViewModel();
+  const { activeTab, setActiveTab, eoSnapshot } = vm;
 
   return (
     <Box>
@@ -95,21 +29,12 @@ const Erstatningsopgoerelse = React.memo(() => {
       <Typography className="page-title">Erstatningsopgørelse</Typography>
 
       {/* Fane-navigation */}
-      <PageTabs
-        items={[
-          { key: TAB_KEYS.EO_OPLYSNINGER, label: 'EO oplysninger' },
-          { key: TAB_KEYS.LOENINDKOMST, label: 'Lønindkomst' },
-          { key: TAB_KEYS.OFFENTLIGE_YDELSER, label: 'Offentlige ydelser' },
-          { key: TAB_KEYS.BEREGNING, label: 'Beregning' },
-        ]}
-        value={mainTabValue}
-        onChange={setActiveTab}
-      />
+      <PageTabs items={vm.tabItems} value={vm.mainTabValue} onChange={setActiveTab} />
 
       {/* Fane-indhold med kontrolfaner i højre side */}
       <Box sx={{ position: 'relative' }}>
         {/* Kontrolfaner (roteret 90° til højre, placeret ved højrekanten af ContentBox) */}
-        {showInspektionTab && (
+        {vm.showInspektionTab && (
           <>
             <SideTab
               label="EO-kontrol"
@@ -126,45 +51,38 @@ const Erstatningsopgoerelse = React.memo(() => {
           </>
         )}
 
-        {/* Indhold */}
-        {/*
-         * VIGTIGT (trust-kritisk UX):
-         * - EOOplysningerTab er altid mounted (bevarer draft-state + runtime field errors).
-         * - Øvrige faner mountes ved første besøg og forbliver derefter mounted for at bevare state, mens en tung initial render undgås.
-         */}
+        {/* Indhold. Mount-reglen (altid-mountet EO-oplysninger, øvrige fra første besøg) ejes af `isTabMounted`. */}
         <Box
           role="tabpanel"
           hidden={activeTab !== TAB_KEYS.EO_OPLYSNINGER}
           sx={{ display: activeTab === TAB_KEYS.EO_OPLYSNINGER ? 'block' : 'none' }}
         >
-          <EOOplysningerTab values={eoValues} stamdataValues={stamdataValues} />
+          <EOOplysningerTab values={vm.eoValues} stamdataValues={vm.stamdataValues} />
         </Box>
-        {(visitedTabs[TAB_KEYS.LOENINDKOMST] || activeTab === TAB_KEYS.LOENINDKOMST) && (
+        {vm.isTabMounted(TAB_KEYS.LOENINDKOMST) && (
           <Box
             role="tabpanel"
             hidden={activeTab !== TAB_KEYS.LOENINDKOMST}
             sx={{ display: activeTab === TAB_KEYS.LOENINDKOMST ? 'block' : 'none' }}
           >
             <LoenindkomstTab
-              eoValues={eoValues}
-              stamdataValues={stamdataValues}
-              onNavigateToTabtArbejdsfortjeneste={handleNavigateToTabtArbejdsfortjeneste}
+              eoValues={vm.eoValues}
+              stamdataValues={vm.stamdataValues}
+              onNavigateToTabtArbejdsfortjeneste={vm.handleNavigateToTabtArbejdsfortjeneste}
               sfggSixMonthWarningEmploymentIds={eoSnapshot.data?.sfggSixMonthWarningEmploymentIds ?? []}
             />
           </Box>
         )}
-        {(visitedTabs[TAB_KEYS.OFFENTLIGE_YDELSER] || activeTab === TAB_KEYS.OFFENTLIGE_YDELSER) && (
+        {vm.isTabMounted(TAB_KEYS.OFFENTLIGE_YDELSER) && (
           <Box
             role="tabpanel"
             hidden={activeTab !== TAB_KEYS.OFFENTLIGE_YDELSER}
             sx={{ display: activeTab === TAB_KEYS.OFFENTLIGE_YDELSER ? 'block' : 'none' }}
           >
-            <OffentligeYdelserTab
-              values={eoValues}
-            />
+            <OffentligeYdelserTab values={vm.eoValues} />
           </Box>
         )}
-        {(visitedTabs[TAB_KEYS.BEREGNING] || activeTab === TAB_KEYS.BEREGNING) && (
+        {vm.isTabMounted(TAB_KEYS.BEREGNING) && (
           <Box
             role="tabpanel"
             hidden={activeTab !== TAB_KEYS.BEREGNING}
@@ -174,11 +92,11 @@ const Erstatningsopgoerelse = React.memo(() => {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               isActive={activeTab === TAB_KEYS.BEREGNING}
-              projection={projection}
+              projection={vm.projection}
             />
           </Box>
         )}
-        {showInspektionTab && (visitedTabs[TAB_KEYS.INSPEKTION] || activeTab === TAB_KEYS.INSPEKTION) ? (
+        {vm.showInspektionTab && vm.isTabMounted(TAB_KEYS.INSPEKTION) ? (
           <Box
             role="tabpanel"
             hidden={activeTab !== TAB_KEYS.INSPEKTION}
@@ -186,11 +104,11 @@ const Erstatningsopgoerelse = React.memo(() => {
           >
             <EOInspektion
               eoSnapshot={activeTab === TAB_KEYS.INSPEKTION ? eoSnapshot : null}
-              manuelReguleringInputErrors={manuelReguleringInputErrors}
+              manuelReguleringInputErrors={vm.manuelReguleringInputErrors}
             />
           </Box>
         ) : null}
-        {showInspektionTab && (visitedTabs[TAB_KEYS.KONTROLTABEL] || activeTab === TAB_KEYS.KONTROLTABEL) ? (
+        {vm.showInspektionTab && vm.isTabMounted(TAB_KEYS.KONTROLTABEL) ? (
           <Box
             role="tabpanel"
             hidden={activeTab !== TAB_KEYS.KONTROLTABEL}

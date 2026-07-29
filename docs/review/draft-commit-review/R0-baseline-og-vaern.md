@@ -71,7 +71,27 @@ understøttede toolchain.
 **Anbefaling:** Gentag hele baselinen på de deklarerede versioner.  
 **Forslag til løsning:** Brug projektets godkendte Node 24/npm 11.16+-miljø og gem udfaldet i rapporten.  
 **Kræver godkendelse:** Nej  
-**Status:** Parkeret
+**Status:** **Rettet 2026-07-29** (etape 12)
+
+**Løsningen.** Fundets oprindelige anbefaling — gentag hele baselinen på Node 24/npm 11.16+ — kunne IKKE
+udføres: der findes hverken en installeret Node 24 eller en version manager på maskinen. Det står som en ærlig
+afgrænsning frem for som et udført skridt.
+
+Fundets SUBSTANS er derimod lukket strukturelt. Efterprøvningen viste, at grænsen faktisk ER håndhævet to
+steder, som fundet ikke havde målt: `.npmrc` har `engine-strict=true`, så `npm install`/`npm ci` afviser en
+forkert version med `EBADENGINE` (verificeret i en isoleret probe), og CI pinner Node fra `.nvmrc` (24.18.0) og
+kører hele `verify:release` ved hver PR og push. Hullet var derfor smallere end fundet beskrev: **kun
+SCRIPT-KØRSEL på et allerede installeret træ var ugated.** Netop dét var reviewkørslens situation.
+
+`scripts/check-runtime-version.mjs` er nu `verify:release`s FØRSTE trin: enten er hele gaten kørt på den
+erklærede runtime, eller den er slet ikke kørt. Kontrollen læser `engines` fra ÉN kilde (så en bump ikke kan
+efterlade den bagud) og **fail-closer på en operator, den ikke forstår** — et udtryk, kontrollen ikke kan
+evaluere, må ikke passere som opfyldt. Der findes bevidst ingen `--warn-only`: en advarsel ville blive støj, man
+scroller forbi, og det er præcis den tilstand, fundet beskriver.
+
+**Efterprøvet i BEGGE retninger** (en altid-rød kontrol ville ikke være evidens): rød på denne maskine med
+begge dimensioner navngivet (Node OG npm), grøn i en kontrolprøve mod et interval, runtimen opfylder, og hård
+fejl på et `^`-udtryk.
 
 ### R0-F02 — Tekstprober kan holde døde værn levende
 

@@ -112,7 +112,37 @@ tab-under-viewmodels, og tilføj et AST-værn der udleder §2.1-page-listen fra 
 manuel LOC-tærskel.
 **Kræver godkendelse:** nej — en adfærdsbevarende ansvarsflytning har ingen egentlig synlig UI/UX- eller
 beregningsvirkning; ingen implementering er udført.
-**Status:** parkeret
+**Status:** **Rettet 2026-07-29** (etape 12)
+
+**Løsningen fulgte fundets anbefaling: ét samlet valg for alle otte sider, håndhævet strukturelt.** Kontrakten
+blev BEVARET (ikke ændret), og mønsteret er gennemført ensartet: hver §2.1-side har nu ét `useXxxViewModel`, som
+ejer afledt state, handlers og gates, mens page-komponenten er reduceret til sektions-/fane-komposition.
+EO's tre eksisterende tab-niveau-VM'er er bevaret uændret — §4.4's enhed er per SIDE, og tab-VM'er er tilladte
+og ønskede subviews.
+
+De to største sider bar hovedparten af arbejdet: `Forsoergertab.tsx` (652 → 38 linjer) og `Aarsloen.tsx`
+(587 → 42) er blevet ren komposition over fem henholdsvis syv sektion-komponenter. Årsløns tre meddelelsesbokse
+måtte blive TRE selvstændige komponenter frem for én: deres placering på siden er ikke sammenhængende (kritisk
+fejl står øverst, advarsler og dokumentfejl mellem Beregningsprincipper og Beregning), og en samlet komponent
+kunne ikke gengive rækkefølgen uden at flytte noget synligt.
+
+**Værnet er DERIVERET, ikke erklæret** (fundets eget krav): `input/persisted-page-has-viewmodel` udleder
+§2.1-sidelisten af `APP_ROUTES` i `config/pageNavigation.ts` og måler EKSISTENSEN af VM-indgangen — ikke
+filstørrelse. En LOC-tærskel ville have accepteret syv kontraktbrud, så længe filerne var små nok, og samtidig
+presset mod en kunstig opsplitning, når en side voksede. Mutationsbevist tre gange mod den LEVENDE kilde: en
+inlinet VM gør reglen rød med sidens navn; en ny route-nøgle i `APP_ROUTES` gør den rød, FØR nogen skal huske en
+liste; og en KOMMENTAR, der nævner `useXxxViewModel`, holder den rød (den måler kald, ikke tekst).
+
+**Tre eksisterende værn fangede omlægningen** — og alle tre var ægte signaler, ikke støj:
+* `domain/page-section-access-boundary` flagede de fire nye sektionsmapper; hver har nu SAMME autorisation som
+  sin side, så ansvar ikke kan flyttes over grænsen ved at flytte en fil ned i mappen.
+* `document/activation-shows-outcome` flagede, at Forsørgertabs download-AKTIVERING var flyttet væk fra sin
+  udfaldsVISNING. Beskeden udledes nu i den sektion, der klikker.
+* Consumer-ledgeren flagede fire flyttede beregningskaldere; posterne peger nu på VM'erne, som Renteberegning og
+  Varige mén allerede gjorde med deres faner.
+
+Adfærd, tal og dokumentindhold er uændrede: fuld suite grøn (505 filer / 6535 tests) uden et enkelt regenereret
+golden-snapshot.
 
 ### R7-F02 — To persisterede toggles omgår feltfamilien og mister fokusmetadata
 

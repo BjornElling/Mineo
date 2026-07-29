@@ -168,9 +168,13 @@ export const documentActivationShowsOutcome = defineRule({
     rationale:
       'den kanoniske udfaldsvisning OG mindst én flade, der aktiverer en download, findes stadig — '
       + 'forsvinder visningen, er mønsteret flyttet og reglen skal skrives om',
+    // Ankrene er de flader, der faktisk AKTIVERER en download plus visningens ejer. Satser-ankeret peger på
+    // sektion-komponenten frem for `Satser.tsx`: efter R7-F01's VM-lag er siden ren komposition, og
+    // aktiveringen bor i sektionen. Et anker på en fil, der ikke længere aktiverer noget, ville gøre
+    // liveness-kontrollen rød af den forkerte grund.
     requiredPaths: [
       DOCUMENT_OUTCOME_VIEW_OWNER,
-      'src/components/pages/Satser.tsx',
+      'src/components/pages/satser/SatserAarstalSection.tsx',
       'src/components/pages/erhvervsevnetab/EetEfterEalTab.tsx',
     ],
   },

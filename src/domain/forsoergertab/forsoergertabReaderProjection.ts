@@ -35,11 +35,14 @@ import { computeForsoergertabSnapshot, type ForsoergertabSnapshot } from './fors
 //    delen og download, men bevarer EAL-panelet, præcis som legacy. Derfor gates hele snapshottet IKKE bag en
 //    global `blocked`-projektion — projektionen er altid `ready` og bærer snapshottet; det er snapshottets egen
 //    `pdfGate`/`canShow*`, der afgør konsekvenserne uden en parallel klassifikations-sidekanal.
-//  - ASL-årslønnens felt-placerede domæneregel (delelig med 1.000 / maks i skadesåret) blev i legacy rapporteret
-//    som en `source: 'rule'`-feltfejl af `useAslAarsloenRuleReporter`. Da `faellesAarsloen.aslAarsloen` er en DELT
-//    descriptor (EET/EO er endnu ikke migreret), holdes reglen slice-lokal her: den udledes af de reader-læste
-//    aslAarsloen + skadedato og føres ind i snapshottets `fieldErrors.faellesAarsloen.aslAarsloen`, hvor
-//    `canShowAsl`/`pdfGate` blokerer identisk med legacy.
+//  - ASL-årslønnens felt-placerede domæneregel (delelig med 1.000 / maks i skadesåret) holdes SLICE-LOKAL her.
+//    Grunden er permanent, ikke en mellemtilstand: `faellesAarsloen.aslAarsloen` er en DELT descriptor, som både
+//    denne slice og Erhvervsevnetab læser, og reglen afhænger af `skadedato` — altså af en kontekst, feltet selv
+//    ikke kender. En descriptor-validator ville derfor skulle gælde ens for begge slices eller kende deres
+//    kontekst; ingen af de to er rigtige. Reglen udledes i stedet af de reader-læste aslAarsloen + skadedato og
+//    føres ind i snapshottets `fieldErrors.faellesAarsloen.aslAarsloen`, hvor `canShowAsl`/`pdfGate` blokerer.
+//    Erhvervsevnetab-slicen bærer SAMME regel af samme grund; de to er bevidst parallelle, ikke duplikerede ved
+//    et uheld.
 
 const efterladteFodselsdatoRef: FieldRef<ISODateString | undefined> = forsoergertabEfterladteFodselsdatoField.bind();
 const beregningsdatoRef: FieldRef<ISODateString | undefined> = forsoergertabBeregningsdatoField.bind();

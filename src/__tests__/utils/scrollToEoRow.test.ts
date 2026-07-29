@@ -1,5 +1,15 @@
 // @vitest-environment jsdom
 import { scrollToEoRow } from '../../utils/scrollToEoRow';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import {
+  EDITOR_ROUTE_ATTR,
+  EDITOR_TAB_ATTR,
+  FIELD_ADDRESS_ATTR,
+} from '../../inputCore/react/historyRestoreTarget';
+import {
+  eoSvieSmertePeriodeTilField,
+  eoTafPeriodeFraField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 describe('scrollToEoRow', () => {
   const originalRaf = globalThis.requestAnimationFrame;
@@ -65,5 +75,87 @@ describe('scrollToEoRow', () => {
 
     expect(onFailure).toHaveBeenCalledTimes(1);
     expect(onFailure.mock.calls[0][0]).toContain('missing-row');
+  });
+
+  // ── Fokusmålet er en kanonisk feltadresse (GM-F10/INC-F14) ──────────────────────────────────────
+  //
+  // Før omlægningen var fokusmålet en `tableId:rowScope:rowId:colIndex`-streng, som INGEN produktionsflade
+  // satte i DOM. Opslaget faldt derfor altid igennem til rækkeankeret, og ingen test opdagede det, fordi
+  // ingen test overhovedet gav et `focusTarget`. Disse tests dækker netop den gren og hævder, at målet er
+  // det element, der bærer feltets serialiserede adresse — samme identitet undo/redo bruger.
+
+  /** Byg et fokuserbart element med præcis de attributter, form-/grid-surfacen sætter. */
+  const mountFieldEditor = (
+    address: ReturnType<typeof eoTafPeriodeFraField.bind>['address'],
+    options: { hidden?: boolean } = {}
+  ): HTMLInputElement => {
+    const input = document.createElement('input');
+    input.setAttribute(FIELD_ADDRESS_ATTR, serializeFieldAddress(address));
+    input.setAttribute(EDITOR_ROUTE_ATTR, '/erstatningsopgoerelse');
+    input.setAttribute(EDITOR_TAB_ATTR, 'eo_oplysninger');
+    if (options.hidden) input.setAttribute('hidden', '');
+    document.body.appendChild(input);
+    return input;
+  };
+
+  it('scroller til feltets egen editor, når fokusmålet er en feltadresse', () => {
+    const field = eoTafPeriodeFraField.bind('taf-1');
+    // Rækkeankeret findes OGSÅ, så testen beviser at feltet vinder over det grovere mål.
+    document.body.innerHTML = '<div data-mineo-row-id="taf-1"></div>';
+    const editor = mountFieldEditor(field.address);
+
+    scrollToEoRow('taf.periode.taf-1', { focusTarget: { kind: 'fieldAddress', address: field.address } });
+
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    expect(scrollIntoViewMock.mock.instances[0]).toBe(editor);
+  });
+
+  it('rammer den rigtige rækkes felt, når to rækker har samme felt', () => {
+    const first = eoTafPeriodeFraField.bind('taf-1');
+    const second = eoTafPeriodeFraField.bind('taf-2');
+    mountFieldEditor(first.address);
+    const secondEditor = mountFieldEditor(second.address);
+
+    scrollToEoRow('taf.periode.taf-2', { focusTarget: { kind: 'fieldAddress', address: second.address } });
+
+    expect(scrollIntoViewMock.mock.instances[0]).toBe(secondEditor);
+  });
+
+  it('skelner to felter i SAMME række, så kolonnen er præcis', () => {
+    const til = eoSvieSmertePeriodeTilField.bind('ss-1');
+    mountFieldEditor(eoTafPeriodeFraField.bind('ss-1').address);
+    const tilEditor = mountFieldEditor(til.address);
+
+    scrollToEoRow('sviesmerte.periode.ss-1', { focusTarget: { kind: 'fieldAddress', address: til.address } });
+
+    expect(scrollIntoViewMock.mock.instances[0]).toBe(tilEditor);
+  });
+
+  it('falder tilbage til rækkeankeret, når feltets editor ikke er synlig', () => {
+    const field = eoTafPeriodeFraField.bind('taf-1');
+    // Editoren er mountet men skjult (fx en besøgt, ikke-aktiv EO-fane). En scroll dertil ville ramme
+    // ingenting, så rækkeankeret er det rigtige mål, indtil fanen bliver synlig.
+    mountFieldEditor(field.address, { hidden: true });
+    const anchor = document.createElement('div');
+    anchor.setAttribute('data-mineo-row-id', 'taf-1');
+    document.body.appendChild(anchor);
+
+    scrollToEoRow('taf.periode.taf-1', { focusTarget: { kind: 'fieldAddress', address: field.address } });
+
+    expect(scrollIntoViewMock.mock.instances[0]).toBe(anchor);
+  });
+
+  it('rapporterer fejl, når hverken feltets editor eller rækkeankeret findes', () => {
+    const onFailure = vi.fn();
+    const field = eoTafPeriodeFraField.bind('taf-9');
+
+    scrollToEoRow('taf.periode.taf-9', {
+      focusTarget: { kind: 'fieldAddress', address: field.address },
+      maxRetries: 3,
+      onFailure,
+    });
+
+    expect(onFailure).toHaveBeenCalledTimes(1);
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 });

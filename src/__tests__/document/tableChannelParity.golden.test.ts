@@ -264,8 +264,8 @@ const buildForsoergertabParams = () => {
 
 const renteParams = {
   amount: 1000,
-  interestStartDate: '01-01-2024',
-  calculationDate: '30-06-2024',
+  interestStartDate: toISODateString('2024-01-01'),
+  calculationDate: toISODateString('2024-06-30'),
   periods: [
     {
       startDate: new Date(toISODateString('2024-01-01')),

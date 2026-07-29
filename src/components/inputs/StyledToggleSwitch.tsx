@@ -5,7 +5,6 @@ import type { StyledToggleSwitchHandle } from '../../types/handles';
 import { useShakeFlag } from '../../hooks/useShakeFlag';
 
 type ToggleInputSlotProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  'data-mineo-undo-field-path'?: string;
   'data-mineo-field-address'?: string;
   'data-mineo-editor-location-id'?: string;
 };
@@ -154,9 +153,8 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
     role: 'checkbox',
     onKeyDown: handleKeyDown,
     'aria-checked': checked,
-    'data-mineo-undo-field-path': resolvedName,
     ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
-    // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
+    // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.2/§3.7).
     ...(restoreTargetAttributes ?? {}),
   };
 

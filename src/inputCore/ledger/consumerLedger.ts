@@ -8,7 +8,8 @@ import {
 // eksisterende maskinlåste `consumerInventory.ts` (som allerede peger på faktiske exports/callsites og
 // er dækket af sin coverage-test) frem for at oprette en parallel autoritet. Her tilføjes consumer-klassen og
 // — for dokumenter — hvilken beregning outputtet projekterer fra. De rene projektioner, missing-regler,
-// output-invariants og prioriterede editorlokationer pr. navigerbart issue fuses ind i Fase 3–5.
+// output-invariants og prioriterede editorlokationer pr. navigerbart issue bor i dokumentdefinitionerne og i
+// issue-kataloget — ikke her. Registret opregner consumere; det ejer ikke deres regler.
 
 export type ConsumerType = 'beregning' | 'casefile' | 'document';
 

@@ -1,46 +1,23 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import PageTabs from '../layout/PageTabs';
-import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import MenberegningTab from './varigemen/MenberegningTab';
 import SatserTab from './varigemen/SatserTab';
+import { VARIGE_MEN_TAB_KEYS, useVarigeMenViewModel } from './varigemen/useVarigeMenViewModel';
 
-// Siden ejer ingen input-state
-// længere: `MenberegningTab` læser/skriver selv gennem inputCore. Ingen `usePersistedForm`- eller
-// `usePersistedSectionSelector`-legacy-sink.
-
-const TAB_KEYS = {
-  MENBEREGNING: 'menberegning',
-  SATSER: 'satser',
-} as const;
-
-type TabKey = (typeof TAB_KEYS)[keyof typeof TAB_KEYS];
+// Siden er ren fane-komposition (`page-component-contract.md` §4.4): faneorkestreringen bor i
+// `useVarigeMenViewModel`. Siden ejer ingen input-state — `MenberegningTab` læser/skriver selv gennem inputCore.
 
 const VarigeMen = React.memo(() => {
-  const { activeTab, setActiveTab } = usePersistedActiveTab<TabKey>({
-    pageId: 'varigemen',
-    allowedTabs: [TAB_KEYS.MENBEREGNING, TAB_KEYS.SATSER],
-    defaultTab: TAB_KEYS.MENBEREGNING,
-  });
+  const { activeTab, setActiveTab, tabItems } = useVarigeMenViewModel();
 
   return (
     <Box>
       <Typography className="page-title">Varige mén</Typography>
 
-      <PageTabs
-        items={[
-          { key: TAB_KEYS.MENBEREGNING, label: 'Ménberegning' },
-          { key: TAB_KEYS.SATSER, label: 'Satser' },
-        ]}
-        value={activeTab}
-        onChange={setActiveTab}
-      />
+      <PageTabs items={tabItems} value={activeTab} onChange={setActiveTab} />
 
-      {activeTab === TAB_KEYS.SATSER ? (
-        <SatserTab />
-      ) : (
-        <MenberegningTab />
-      )}
+      {activeTab === VARIGE_MEN_TAB_KEYS.SATSER ? <SatserTab /> : <MenberegningTab />}
     </Box>
   );
 });

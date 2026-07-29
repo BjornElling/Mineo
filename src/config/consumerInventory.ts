@@ -25,18 +25,24 @@ export type ConsumedInventoryEntry = InventoryEntry & Readonly<{
   consumers: readonly `src/${string}`[];
 }>;
 
+/**
+ * Consumeren er den fil, der FAKTISK kalder entrypointet — efter R7-F01 er det fagsidens ene kanoniske
+ * viewmodel (`page-component-contract.md` §4.4), ikke page-komponenten, som nu er ren sektions-komposition.
+ * Renteberegning og Varige mén pegede allerede på deres fane, fordi beregningen bor dér; formen er den samme.
+ * Et anker på page-filen ville være rødt af den forkerte grund og skjule, hvor kaldet er.
+ */
 export const CONSUMER_CALCULATION_ENTRYPOINTS = [
   {
     id: 'satser',
     module: 'src/domain/satser/satserProjection.ts',
     symbol: 'projectSatser',
-    consumers: ['src/components/pages/Satser.tsx'],
+    consumers: ['src/components/pages/satser/useSatserViewModel.ts'],
   },
   {
     id: 'aarsloen',
     module: 'src/domain/aarsloen/aarsloenProjection.ts',
     symbol: 'buildAarsloenReaderProjection',
-    consumers: ['src/components/pages/Aarsloen.tsx'],
+    consumers: ['src/components/pages/aarsloen/useAarsloenViewModel.ts'],
   },
   {
     id: 'renteberegning',
@@ -54,13 +60,13 @@ export const CONSUMER_CALCULATION_ENTRYPOINTS = [
     id: 'forsoergertab',
     module: 'src/domain/forsoergertab/forsoergertabReaderProjection.ts',
     symbol: 'buildForsoergertabReaderProjection',
-    consumers: ['src/components/pages/Forsoergertab.tsx'],
+    consumers: ['src/components/pages/forsoergertab/useForsoergertabViewModel.ts'],
   },
   {
     id: 'erstatningsopgoerelse',
     module: 'src/domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection.ts',
     symbol: 'buildErstatningsopgoerelseReaderProjection',
-    consumers: ['src/components/pages/Erstatningsopgoerelse.tsx'],
+    consumers: ['src/components/pages/erstatningsopgoerelse/useErstatningsopgoerelseViewModel.ts'],
   },
   {
     id: 'erhvervsevnetab',

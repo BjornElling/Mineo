@@ -495,6 +495,17 @@ identitetssystemer for samme mål, og EO-vejen kan drifte uden typefejl.
 
 **Anbefalet retning:** Lad EO-rækker bære det samme strukturelle fokusmål som det kanoniske field issue.
 
+**Status: RETTET 2026-07-29** (etape 12; se `work-items/WI-015-etape7-fokusmaal-ejerskab.md`). Anbefalingen er
+fulgt ordret: `EoIssueFocusTarget` bærer nu en kanonisk `FieldAddress`, bundet af produktionens egne descriptorer,
+og `scrollToEoRow` slår op gennem `lookupEditorLocation` — samme mekanisme som undo/redo og save-fokus. De tre
+vedligeholdte identitetssystemer er dermed ÉT.
+
+**Fundets forbehold — "ingen forkert destination blev reproduceret" — var for mildt.** Kortlægningen (INC-F14)
+viste, at de celle-præcise mål var UOPNÅELIGE: grid-cellerne satte slet ikke attributten, så hvert kolonnevalg
+faldt lydløst tilbage til rækkeankeret. Ved omlægningen havde begge de gamle attributter desuden nul LÆSERE
+tilbage — kun producenter. Attributterne og `config/cellFocusPaths.ts` er slettet; grænsen håndhæves nu af
+`input/single-field-identity-in-dom`.
+
 ### GM-F11 — Dokumentfejl vises på nogle sider, men forsvinder på andre
 
 **Alvor:** Væsentlig  

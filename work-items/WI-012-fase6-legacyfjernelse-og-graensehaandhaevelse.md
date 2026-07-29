@@ -3,6 +3,10 @@
 - **Status:** `gennemført` 2026-07-26 — **GENÅBNET og lukket igen 2026-07-26** efter eksternt review.
   Se §11 for genåbningens fund og udfald; §10 beskriver den FØRSTE lukning, hvis konklusioner §11 delvist
   omgør. Læs §11 først.
+
+  **Målinger og fil:linje-henvisninger i dette dokument er fra 2026-07-26** og er ikke ført frem. Flere af de
+  citerede filer er siden slettet (fx `cellFocusPaths.ts` med draft/commit-reviewets GM-F10). Tabellernes
+  VERDIKTER står ved magt; deres line numbers gør ikke. Slå den aktuelle form op i koden.
 - **Oprettet:** 2026-07-26
 - **Slice/scope:** greenfield-planens Fase 6
   (`docs/architecture/draft-commit-greenfield-design.md` linje 1583-1628)

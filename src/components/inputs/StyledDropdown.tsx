@@ -596,8 +596,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
           'aria-haspopup': 'listbox',
           'aria-expanded': open,
           'aria-controls': open ? listboxId : undefined,
-          'data-mineo-undo-field-path': name,
-          // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
+          // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.2/§3.7).
           ...(restoreTargetAttributes ?? {}),
           'aria-activedescendant':
             open && highlightedIndex >= 0 && isSelectableVisualIndex(highlightedIndex)

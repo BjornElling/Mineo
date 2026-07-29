@@ -169,43 +169,31 @@ export const standaloneRenteDocumentDefinition: StandaloneDocumentDefinition<
     };
   },
   /**
-   * Datoformat: `generateRenteDocument` tager `dd-mm-åååå` (den parser med `parseDanishDate`), ikke
-   * den canonical ISO-form. Alle tre datoer konverteres derfor her, præcis som callsiten gjorde før
-   * Fase 5. Se noten i Mineos tilsvarende definition + WI-011 for den langsigtede rettelse.
+   * Datoerne gives videre CANONICAL (§WI-011): begge rente-generatorer tager nu `ISODateString`, så
+   * konverteringen til dansk format — og dens fail-closed-guard — er faldet væk her.
    */
   loadRenderer: async () => {
-    const [{ generateRenteDocument }, { isoToDanish }] = await Promise.all([
-      import('../../../document/generators/renteberegning/renteDocument'),
-      import('../../../types/branded'),
-    ]);
+    const { generateRenteDocument } = await import('../../../document/generators/renteberegning/renteDocument');
     return (session, input) => generateRenteDocument(
       session,
       input.beloeb,
-      requireDanishDate(isoToDanish(input.actualInterestDate), 'renterFra'),
-      requireDanishDate(isoToDanish(input.beregningsdato), 'beregningsdato'),
+      input.actualInterestDate,
+      input.beregningsdato,
       input.periods,
       {
         visBrevhoved: false,
         stamdata: null,
         kommentarer: input.kommentarer,
-        latestReferenceRateDate: isoToDanish(input.latestReferenceRateDate ?? undefined) ?? null,
+        latestReferenceRateDate: input.latestReferenceRateDate ?? null,
         metadata: STANDALONE_DOCUMENT_METADATA,
       }
     );
   },
 });
 
-/**
- * En canonical ISO-dato, der ikke kan omsættes til dansk format, er et invariantbrud — projektionen
- * har netop godkendt den. Fail-closed med en navngiven årsag frem for generatorens generiske
- * "Ugyldige datoer".
- */
-const requireDanishDate = (value: string | undefined, felt: string): string => {
-  if (value === undefined) {
-    throw new Error(`Kunne ikke omsætte ${felt} til dansk datoformat i rentespecifikationen.`);
-  }
-  return value;
-};
+// `requireDanishDate` er slettet med §WI-011: den fail-closede på en ISO→dansk-konvertering, der ikke længere
+// findes. Generatoren tager canonical ISO, så formatuenigheden er urepræsenterbar frem for noget en guard pr.
+// callsite skal fange.
 
 /** Standalones dokument-metadata. Hovedappen sætter sine egne; standalone er minprocesrente.dk. */
 const STANDALONE_DOCUMENT_METADATA = {
@@ -284,13 +272,12 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
      * i definitionen, sammen med den tunge import — og ikke i kernen.
      */
     loadRenderer: async () => {
-      const [{ buildRenteDocumentBaseTitle, writeRenteDocumentContent }, { createDocumentComposer }, { resolveDocumentArtifactFileName }, { getDocumentCreatorBrand }, { parseDanishDate }, { isoToDanish }] =
+      const [{ buildRenteDocumentBaseTitle, writeRenteDocumentContent }, { createDocumentComposer }, { resolveDocumentArtifactFileName }, { getDocumentCreatorBrand }, { parseISODate }] =
         await Promise.all([
           import('../../../document/generators/renteberegning/renteDocument'),
           import('../../../document/model/documentModel'),
           import('../../../document/layout/documentFormatUtils'),
           import('../../../document/layout/documentLayoutHelpers'),
-          import('../../../utils/dateUtils'),
           import('../../../types/branded'),
         ]);
 
@@ -300,8 +287,11 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
         for (const [index, row] of input.rows.entries()) {
           if (index > 0) composer.addPage();
 
-          const startDate = parseDanishDate(isoToDanish(row.actualInterestDate) ?? '');
-          const endDate = parseDanishDate(isoToDanish(row.beregningsdato) ?? '');
+          // Canonical ISO parses DIREKTE (§WI-011). Vejen gik tidligere ISO → dansk streng → `Date`, altså
+          // to formatskift for at nå den samme dato — og et `?? ''`, der gjorde en manglende konvertering til
+          // en "ugyldig dato" frem for til en typefejl.
+          const startDate = parseISODate(row.actualInterestDate);
+          const endDate = parseISODate(row.beregningsdato);
           if (!startDate || !endDate) throw new Error('Ugyldige datoer for renteberegning');
           if (row.periods.length === 0) throw new Error('Ingen perioder fundet for renteberegning');
 
@@ -309,7 +299,7 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
             visBrevhoved: false,
             stamdata: null,
             kommentarer: input.kommentarer,
-            latestReferenceRateDate: isoToDanish(row.latestReferenceRateDate ?? undefined) ?? null,
+            latestReferenceRateDate: row.latestReferenceRateDate ?? null,
           });
         }
 
@@ -325,8 +315,8 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
         });
 
         const firstRow = input.rows[0];
-        const firstStart = parseDanishDate(isoToDanish(firstRow.actualInterestDate) ?? '');
-        const firstEnd = parseDanishDate(isoToDanish(firstRow.beregningsdato) ?? '');
+        const firstStart = parseISODate(firstRow.actualInterestDate);
+        const firstEnd = parseISODate(firstRow.beregningsdato);
         const baseTitle = firstStart && firstEnd
           ? buildRenteDocumentBaseTitle(firstRow.beloeb, firstStart, firstEnd)
           : 'Procesrente-specifikationer';

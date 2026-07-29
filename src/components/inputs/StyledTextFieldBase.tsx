@@ -27,7 +27,6 @@ type AllowedInputAttributes = Pick<
   /** Undo/redo-restore-mål (§3.7): serialiseret feltadresse + editorlokations-id. */
   'data-mineo-field-address'?: string;
   'data-mineo-editor-location-id'?: string;
-  'data-mineo-field-path'?: string;
 };
 
 export type StyledTextFieldBaseInputType = 'text' | 'search' | 'tel' | 'url' | 'email' | 'password';
@@ -214,9 +213,9 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     const mergedHtmlInputProps = {
       ...htmlInputAttributes,
       'aria-describedby': describedBy,
-      // Stabil felt-sti til save-gate-lokalisering af det blokerende felt. Feltfamiliens felter sætter
-      // desuden restore-target-attributterne (feltadresse + editorlokation) via `htmlInputAttributes`.
-      'data-mineo-field-path': htmlInputAttributes?.['data-mineo-field-path'] ?? name,
+      // Feltidentiteten i DOM er restore-target-attributterne (serialiseret feltadresse + editorlokation),
+      // som feltfamilien sender med gennem `htmlInputAttributes`. Basen udleder ingen egen identitet af
+      // `name`: én adressemodel, ikke en navnestreng ved siden af (§3.2).
       onFocus: handleFocus,
       onBlur: handleBlur,
       onKeyDown: handleKeyDown,

@@ -10,6 +10,7 @@ import {
 import {
   aslAarsloensmaksimumRawSubscript,
   crossDomainDescriptorPort,
+  engineCallOwnedByProjectionRule,
   failOpenDisplayLookupImport,
   inspektionLayerImport,
   moneyOreTypeAssertion,
@@ -32,6 +33,8 @@ import {
   persistenceCommittedMirror,
   focusDestinationOwnedByLocationRule,
   restoreAttributesCarryDestinationRule,
+  persistedPageHasViewModelRule,
+  singleFieldIdentityInDomRule,
   persistedControlsUseFieldFamilyRule,
   popupSemanticsSingleSourceRule,
   promiseTickBoundary,
@@ -99,6 +102,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   queueMicrotaskBoundary,
   promiseTickBoundary,
   criticalActionNoDomScanOrFrameWait,
+  engineCallOwnedByProjectionRule,
   eoFieldVisibilitySingleSource,
   reguleringCanonicalForloebBoundary,
   eetDifferencekravCompositionBoundary,
@@ -115,6 +119,8 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   rowCommandDestinationRule,
   focusDestinationOwnedByLocationRule,
   restoreAttributesCarryDestinationRule,
+  persistedPageHasViewModelRule,
+  singleFieldIdentityInDomRule,
   persistedControlsUseFieldFamilyRule,
   popupSemanticsSingleSourceRule,
   // Inputgrænser og legacy-fravær

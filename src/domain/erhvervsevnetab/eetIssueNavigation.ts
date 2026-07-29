@@ -1,3 +1,8 @@
+import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+} from '../../inputCore/catalog/stamdataDescriptors';
+import type { FieldAddress } from '../../inputCore/fieldAddress';
 import type { EetIssue } from './eetTypes';
 
 export const ERHVERVSEVNETAB_TAB_KEYS = {
@@ -21,17 +26,22 @@ export type EetIssueNavigationTarget =
       kind: 'stamdata-page';
       pageName: 'Stamdata';
       sectionTitle: 'Stamdata';
-      /** Konkret felt at scrolle til på Stamdata-siden, hvis issuet peger på ét bestemt felt. */
-      focusFieldPath?: string;
+      /**
+       * Konkret felt at føre brugeren til på Stamdata-siden, hvis issuet peger på ét bestemt felt.
+       * KANONISK feltadresse (§3.2) — samme identitet som EO-rækkernes fokusmål, undo/redo og
+       * save-blokeringens fokus bruger, så der ikke findes en parallel navnestreng-model.
+       */
+      focusFieldAddress?: FieldAddress;
     }>;
 
-// Issue-id → konkret Stamdata-feltnavn (data-mineo-field-path), så linket lander på det rette felt
-// og ikke kun siden. Den generiske schema-invalid har intet enkelt felt og udelades bevidst.
-const STAMDATA_FIELD_PATH_BY_ISSUE_ID: Readonly<Record<string, string>> = {
-  'skadedato-missing': 'skadedato',
-  'field-skadedato': 'skadedato',
-  'skadelidte-fodselsdato-missing': 'skadelidteFodselsdato',
-  'field-skadelidte-fodselsdato': 'skadelidteFodselsdato',
+// Issue-id → det konkrete Stamdata-felt, så linket lander på feltet og ikke kun siden. Adressen bindes af
+// produktionens egen descriptor, så et omdøbt felt bliver en compilerfejl frem for et link, der lydløst
+// falder tilbage til siden. Den generiske schema-invalid har intet enkelt felt og udelades bevidst.
+const STAMDATA_FIELD_ADDRESS_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
+  'skadedato-missing': stamdataSkadedatoField.bind().address,
+  'field-skadedato': stamdataSkadedatoField.bind().address,
+  'skadelidte-fodselsdato-missing': stamdataSkadelidteFodselsdatoField.bind().address,
+  'field-skadelidte-fodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
 };
 
 // Issue-id'er der hører til Stamdata-siden (ikke Erhvervsevnetab-fanerne). Sættet matches mod det
@@ -57,7 +67,7 @@ export const resolveMidlertidigtEetIssueNavigation = (
       kind: 'stamdata-page',
       pageName: 'Stamdata',
       sectionTitle: 'Stamdata',
-      focusFieldPath: STAMDATA_FIELD_PATH_BY_ISSUE_ID[issue.id],
+      focusFieldAddress: STAMDATA_FIELD_ADDRESS_BY_ISSUE_ID[issue.id],
     };
   }
 

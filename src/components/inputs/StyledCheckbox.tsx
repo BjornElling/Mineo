@@ -73,19 +73,17 @@ const StyledCheckbox = ({
           disabled={disabled}
           size={size}
           slotProps={{
-            // Felt-identitet for undo/redo-fokus-restore (jf. mineo-field-pattern.md): checkboxen er en
-            // immediate-commit widget (commit uden forudgående fokus), så `name` er eneste durable
-            // identitetskilde. historyTargetRestore lander fokus via `data-mineo-undo-field-path`.
-            // Symmetrisk med StyledToggleSwitch/StyledRadioButton. Transiente checkboxes uden eksplicit
-            // `name` (fx app-settings på Indstillinger, ikke undo-sporet) projicerer kun deres auto-id.
-            // Cast som StyledRadioButton: MUI's slotProps-type tillader ikke data-attributter direkte.
+            // Feltidentitet i DOM: serialiseret feltadresse + editorlokation (§3.2/§3.7), sat af
+            // feltfamilien og videreført her. Checkboxen er en immediate-commit widget, så restoren skal
+            // kunne finde den uden forudgående fokus — men identiteten er adressen, ikke `name`.
+            // Transiente checkboxes (fx app-settings på Indstillinger) har ingen feltadresse og deltager
+            // ikke i restoren. Cast som StyledRadioButton: MUI's slotProps-type tillader ikke
+            // data-attributter direkte.
             input: {
               id: resolvedId,
               name: resolvedName,
               onKeyDown: handleKeyDown,
               'aria-checked': checked,
-              'data-mineo-undo-field-path': resolvedName,
-              // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.7).
               ...(restoreTargetAttributes ?? {}),
             } as React.InputHTMLAttributes<HTMLInputElement>,
           }}

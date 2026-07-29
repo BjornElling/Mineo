@@ -74,13 +74,15 @@ import type { StamdataValues } from '../../schemas/formSchemas';
 //    EAL-fanen, mens de øvrige faner bevares. Derfor gates hele projektionen IKKE bag en global `blocked`-projektion —
 //    den er altid `ready` og bærer snapshottet; det er snapshottets egne per-fane-`issues`/`pdfGate`, der afgør
 //    konsekvenserne; fanernes egne issue-id'er er den eneste klassifikationskilde.
-//  - Tre felt-placerede DOMÆNEREGLER føres slice-lokalt ind i snapshottets `fieldErrors` (som legacy gjorde via
-//    error-bus-effekter), fordi de deler descriptor med endnu ikke migrerede sektioner:
-//      * ASL-årsløns-reglen (delelig 1.000 / maks i skadesår) → `fieldErrors.faellesAarsloen.aslAarsloen` (samme regel
-//        som Forsørgertab-slicen; `faellesAarsloen.aslAarsloen` er delt).
+//  - Tre felt-placerede DOMÆNEREGLER føres SLICE-LOKALT ind i snapshottets `fieldErrors`. Grunden er permanent:
+//    reglerne afhænger af en KONTEKST, feltet selv ikke kender (skadesår, de øvrige rækker), og de to første
+//    hænger på en DELT descriptor, som mere end én slice læser. En descriptor-validator måtte da gælde ens for
+//    alle læsere eller kende deres kontekst — ingen af de to er rigtige:
+//      * ASL-årsløns-reglen (delelig 1.000 / maks i skadesår) → `fieldErrors.faellesAarsloen.aslAarsloen`. Samme
+//        regel bæres af Forsørgertab-slicen af samme grund; `faellesAarsloen.aslAarsloen` er delt mellem dem.
 //      * ASL-afgørelsesrækkernes indbyrdes valideringsfejl (`collectEetAslAfgoerelseValidationIssues`) → snapshottet
-//        aftager KUN den FØRSTE via `fieldErrors.erhvervsevnetab.aslAfgoerelser` (bevidst afgrænsning, uændret fra
-//        legacy; øvrige row-fejl vises inline i tabellen ved den senere tab-cutover).
+//        aftager KUN den FØRSTE via `fieldErrors.erhvervsevnetab.aslAfgoerelser`. Afgrænsningen er bevidst: feltet
+//        viser én aktiv rød fejl (§1.8), og de øvrige rækkefejl vises inline i tabellen på deres egne celler.
 //      * Forligs-blokeringen ("begge udfyldt"/brøk > 1/ugyldigt rå draft) føres via `forlig`-argumentet uændret ind.
 //  - BEMÆRK afgrænsning: køn-reglen (køn påkrævet ved beregning/kapitalisering før 1. marts 2015) er i legacy en REN
 //    SAVE-GATE-fejl (rapporteret til error-bus, men IKKE aftaget af `computeEetSnapshot`). Den påvirker derfor ikke

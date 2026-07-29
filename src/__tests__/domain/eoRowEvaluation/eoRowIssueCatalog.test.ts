@@ -1,9 +1,12 @@
-import { CELL_TABLE_IDS, buildCellFocusFieldPath } from '../../../config/cellFocusPaths';
 import {
   resolveEoIssueFocusTarget,
   resolveEoIssueSummaryText,
 } from '../../../domain/eoRowEvaluation/eoRowIssueCatalog';
 import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
+import {
+  eoSvieSmertePeriodeTilstandField,
+  eoTafPeriodeFraField,
+} from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 const makeErrorRow = (patch: Partial<EoRowModel>): EoRowModel => ({
   id: 'row.id',
@@ -66,27 +69,27 @@ describe('eoRowIssueCatalog', () => {
     );
   });
 
-  it('peger TAF-periodefejl på den konkrete tabelcelle', () => {
+  it('peger TAF-periodefejl på fra-datofeltets kanoniske adresse i den konkrete række', () => {
     const row = makeErrorRow({
       id: 'taf.periode.taf-1',
       displayValue: 'Fejl (Dato skal være mellem 01-01-2024 og 31-12-2024)',
     });
 
     expect(resolveEoIssueFocusTarget(row)).toEqual({
-      kind: 'fieldPath',
-      fieldPath: buildCellFocusFieldPath(CELL_TABLE_IDS.eoTafPeriode, '', 'taf-1:0'),
+      kind: 'fieldAddress',
+      address: eoTafPeriodeFraField.bind('taf-1').address,
     });
   });
 
-  it('peger svie/smerte-tilstandsfejl på tilstandscellen', () => {
+  it('peger svie/smerte-tilstandsfejl på tilstandsfeltets kanoniske adresse', () => {
     const row = makeErrorRow({
       id: 'sviesmerte.periode.ss-1',
       displayValue: 'Fejl (Tilstand mangler)',
     });
 
     expect(resolveEoIssueFocusTarget(row)).toEqual({
-      kind: 'fieldPath',
-      fieldPath: buildCellFocusFieldPath(CELL_TABLE_IDS.eoSvieSmerte, '', 'ss-1:3'),
+      kind: 'fieldAddress',
+      address: eoSvieSmertePeriodeTilstandField.bind('ss-1').address,
     });
   });
 });

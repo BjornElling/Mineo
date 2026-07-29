@@ -1,5 +1,5 @@
 // Inputkernen (§3). Ren, framework-fri: ingen React, Zustand, DOM eller storage.
-// Runtime-bindingen (Fase 2) og consumer-cutoveren (Fase 3–5) bygger ovenpå denne kerne.
+// Runtime-bindingen (`inputCore/runtime`, `inputCore/react`) og domænets consumere bygger ovenpå denne kerne.
 
 export * from './fieldAddress';
 export * from './fieldCodec';
