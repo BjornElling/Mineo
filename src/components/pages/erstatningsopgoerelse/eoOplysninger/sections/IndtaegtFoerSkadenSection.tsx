@@ -145,7 +145,7 @@ export default function IndtaegtFoerSkadenSection() {
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    Regulering af offentlige ydelser i EO
+                    Offentlige ydelser i beregningsperioden reguleres
                     <InfoTooltipIcon title="Offentlige ydelser fremskrives efter statslig praksis med tilpasningsprocenten + 2 % per 1. januar" />
                   </Typography>
                   <Box className="row--label-right-hover__content">
