@@ -4,6 +4,7 @@ import StyledTextAreaBase from '../../../components/inputs/StyledTextAreaBase';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFormFieldSurface } from '../useFormFieldSurface';
+import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 
@@ -43,7 +44,8 @@ const MultilineTextField = React.forwardRef<HTMLDivElement, MultilineTextFieldPr
       [inputRef, surface.inputElementRef]
     );
 
-    const hasError = surface.issue !== undefined;
+    const issueText = resolveFieldIssueText(surface.issue);
+    const hasError = issueText.message !== undefined;
 
     // Surface-handlerne er typet på <input>, men bruger kun generiske event-props (`.key`,
     // `.currentTarget.value`, selection, `document.activeElement`), som <textarea> også har. Wrap dem, så vi
@@ -91,7 +93,8 @@ const MultilineTextField = React.forwardRef<HTMLDivElement, MultilineTextFieldPr
         disabled={disabled}
         rows={rows}
         error={hasError}
-        helperText={surface.issue?.message ?? ''}
+        helperText={issueText.message ?? ''}
+        {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
         htmlTextAreaAttributes={{ readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
         sx={mergeSx({
           '& .MuiInputBase-input': {

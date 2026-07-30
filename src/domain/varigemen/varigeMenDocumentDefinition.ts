@@ -12,7 +12,7 @@
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
-import { blockedProjection, toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjection, blockedProjectionForInvalidInput, toGateReasons } from '../../document/definition/documentOutcome';
 import { resolveStamdataDatoLabel } from '../policies/stamdataCalculations';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import type { VarigeMenBeregningResult } from './varigeMenCalculations';
@@ -57,7 +57,7 @@ export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocum
 
       const stamdata = projectStamdataForDocument(context.evaluation.reader, VARIGEMEN_DOCUMENT_CONSUMER_ID);
       if (stamdata.status !== 'ready') {
-        return blockedProjection('varigemen:stamdata-blocked', 'Fejl i indtastning');
+        return blockedProjectionForInvalidInput('varigemen:stamdata-blocked', 'Fejl i indtastning');
       }
 
       const data = projection.value;

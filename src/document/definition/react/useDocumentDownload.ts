@@ -20,7 +20,7 @@
 import React from 'react';
 import type { DocumentGateSnapshot, DocumentOutput } from '../documentCatalog';
 import type { DocumentGateReasons, DocumentOutcome } from '../documentOutcome';
-import { resolveDocumentGateTooltip } from '../../layout/documentGateTypes';
+import { resolveBlockedGateTooltip } from '../../layout/documentGateTypes';
 import { createDocumentSourceContext, type DocumentSourceContext } from '../documentSourceContext';
 import type { InputEvaluation } from '../../../inputCore/inputReader';
 
@@ -135,7 +135,7 @@ export const useDocumentDownload = <TRequest, TGateSettings, TRenderSettings>(
     gateFor,
     canDownload: gate.canDownload,
     blockedReasons: gate.canDownload ? null : gate.reasons,
-    disabledReason: gate.canDownload ? undefined : resolveDocumentGateTooltip(gate.reasons[0]),
+    disabledReason: gate.canDownload ? undefined : resolveBlockedGateTooltip(gate.reasons),
     lastOutcome,
     errorMessage: lastOutcome === null ? null : output.resolveOutcomeMessage(lastOutcome, renderSettings),
     clearOutcome,

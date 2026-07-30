@@ -99,7 +99,8 @@ const requireReadyAggregate = <TInput>(
         source.projection.aggregateProjection.status === 'blocked'
           ? source.projection.aggregateProjection.issues
           : undefined,
-        'Fejl i indtastning'
+        'Fejl i indtastning',
+        'invalid-input'
       ),
     };
   }

@@ -12,7 +12,7 @@ import { SKAERING_2015_03_01 } from '../erhvervsevnetab/eetSkaeringsdatoer';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
-import { allowDocumentDownload, missingInputReason, type DocumentDownloadGateResult, type DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
+import { allowDocumentDownload, invalidInputReason, missingInputReason, type DocumentDownloadGateResult, type DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
 import { resolveStamdataDateOrder } from '../stamdata/stamdataDateOrder';
 
 /**
@@ -186,12 +186,16 @@ const hasIssue = (
 };
 
 /**
- * Begge forsørgertab-blokeringer er "brugeren mangler at indtaste noget" (UT-F07): enten er der ikke nok
- * input til en PDF-klar del, eller et nødvendigt felt er rødt. Brugeren ser derfor den universelle tekst;
- * `message` er den interne forklaring, som koder og tests skelner på.
+ * Ingen af forsørgertab-blokeringerne citeres ordret (UT-F07) — begge beskeder er gate-interne. De skelnes til
+ * gengæld på KLASSE efter brugerkravet 2026-07-30: manglende input til en PDF-klar del er `missing-input`
+ * ("Indtastning mangler"), mens et rødt nødvendigt felt er `invalid-input` ("Fejl i indtastning"). `message`
+ * bevares som den interne forklaring, som koder og tests skelner på.
  */
-const createDownloadBlockingReason = (code: string, message: string): DocumentDownloadGateReason =>
+const createMissingInputBlockingReason = (code: string, message: string): DocumentDownloadGateReason =>
   missingInputReason(`forsoergertab:${code}`, message);
+
+const createInvalidInputBlockingReason = (code: string, message: string): DocumentDownloadGateReason =>
+  invalidInputReason(`forsoergertab:${code}`, message);
 
 export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput): ForsoergertabSnapshot => {
   const { values, faellesAarsloen, stamdata, fieldErrors } = input;
@@ -355,10 +359,10 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   const pdfGate = (() => {
     const reasons: DocumentDownloadGateReason[] = [];
     if (!canShowEal && !canShowAsl) {
-      reasons.push(createDownloadBlockingReason('no-pdf-projection', 'Der er ikke beregnet en PDF-klar EAL- eller ASL-del.'));
+      reasons.push(createMissingInputBlockingReason('no-pdf-projection', 'Der er ikke beregnet en PDF-klar EAL- eller ASL-del.'));
     }
     if (hasDownloadBlockingFieldError) {
-      reasons.push(createDownloadBlockingReason('blocking-input-error', 'Et eller flere nødvendige felter har blokerende fejl.'));
+      reasons.push(createInvalidInputBlockingReason('blocking-input-error', 'Et eller flere nødvendige felter har blokerende fejl.'));
     }
     if (reasons.length === 0) {
       return allowDocumentDownload();

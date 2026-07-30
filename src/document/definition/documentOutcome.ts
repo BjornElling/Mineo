@@ -17,6 +17,7 @@
  *   - `failed` med `kind: 'runtime'` — uventet. Den ENESTE klasse der hører til systemfejl-sinken.
  */
 import {
+  invalidInputReason,
   missingInputReason,
   specificReason,
   type DocumentDownloadGateReason,
@@ -72,10 +73,11 @@ export type BlockedProjection = Readonly<{ status: 'blocked'; reasons: DocumentG
 /**
  * Den ENE måde en projektion udtrykker "blokeret" med præcis én årsag (UT-F07).
  *
- * Projektionernes fail-closed sikkerhedsnet — "Beregning kan ikke dannes", "Fejl i indtastning",
- * "Rentelinjen findes ikke længere" — beskrev alle en TILSTAND i gaten, ikke en handling brugeren kan
- * udføre. De er derfor `missing-input`, så brugeren møder den universelle tekst. En projektion, der
- * undtagelsesvist HAR en konkret, brugerrettet besked, bruger `blockedProjectionWithSpecificReason`.
+ * Projektionernes fail-closed sikkerhedsnet — "Beregning kan ikke dannes", "Rentelinjen findes ikke længere"
+ * — beskriver en TILSTAND i gaten, ikke en handling brugeren kan udføre. De er derfor `missing-input`, så
+ * brugeren møder den universelle tekst. Er blokeringen derimod et RØDT FELT, er
+ * {@link blockedProjectionForInvalidInput} den rigtige; har projektionen undtagelsesvist en konkret,
+ * brugerrettet besked, er det `blockedProjectionWithSpecificReason`.
  *
  * Helperen findes, fordi de ni definitionsfiler før byggede `{status:'blocked', reasons:[{code,message}]}`
  * i hånden — en parallel vej, der omgik gate-konstruktørerne og derfor kunne glemme klassifikationen.
@@ -84,6 +86,15 @@ export const blockedProjection = (
   code: string,
   message: string
 ): BlockedProjection => ({ status: 'blocked', reasons: [missingInputReason(code, message)] });
+
+/**
+ * Som {@link blockedProjection}, men blokeringen skyldes en UGYLDIG indtastning (et rødt felt), så brugeren
+ * møder "Fejl i indtastning" frem for "Indtastning mangler" (brugerkrav 2026-07-30).
+ */
+export const blockedProjectionForInvalidInput = (
+  code: string,
+  message: string
+): BlockedProjection => ({ status: 'blocked', reasons: [invalidInputReason(code, message)] });
 
 /** Som {@link blockedProjection}, men beskeden citeres ordret til brugeren. */
 export const blockedProjectionWithSpecificReason = (
@@ -97,18 +108,24 @@ export const blockedProjectionWithSpecificReason = (
  * rente-rækken) med hver sin `?? 'fallback'`-kæde.
  *
  * Skelnen er hele pointen (UT-F07): et issue navngiver det felt eller den grænse, brugeren skal rette, og
- * citeres derfor ordret. Den generiske fallback ("Stamdata indeholder fejl") beskriver kun en tilstand og
- * bliver den universelle "Indtastning mangler".
+ * citeres derfor ordret.
+ *
+ * `fallbackKind` klassificerer den GENERISKE fallback, når der ikke er noget issue at citere: en fallback som
+ * "Stamdata indeholder fejl" er en manglende-indtastning (default), mens "Fejl i indtastning" netop betyder,
+ * at det indtastede er ugyldigt. Uden parameteren fik sidstnævnte tooltippet "Indtastning mangler", altså
+ * modsat sin egen ordlyd.
  */
 export const blockedFromIssues = (
   code: string,
   issues: readonly Readonly<{ message: string }>[] | undefined,
-  genericFallback: string
+  genericFallback: string,
+  fallbackKind: 'missing-input' | 'invalid-input' = 'missing-input'
 ): BlockedProjection => {
   const issueMessage = issues?.[0]?.message;
-  return issueMessage === undefined
-    ? blockedProjection(code, genericFallback)
-    : blockedProjectionWithSpecificReason(code, issueMessage);
+  if (issueMessage !== undefined) return blockedProjectionWithSpecificReason(code, issueMessage);
+  return fallbackKind === 'invalid-input'
+    ? blockedProjectionForInvalidInput(code, genericFallback)
+    : blockedProjection(code, genericFallback);
 };
 
 /**

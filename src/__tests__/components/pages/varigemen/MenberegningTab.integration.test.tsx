@@ -22,7 +22,10 @@ import {
 import type { StamdataValues } from '../../../../schemas/formSchemas/sections/stamdataSchemas';
 import type { VarigeMenValues } from '../../../../schemas/formSchemas';
 import { toISODateString } from '../../../../types/branded';
-import { DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE } from '../../../../document/layout/documentGateTypes';
+import {
+  DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE,
+  DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
+} from '../../../../document/layout/documentGateTypes';
 
 /**
  * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
@@ -174,14 +177,16 @@ describe('MenberegningTab — gate-årsagen vises kun i tooltippet (UT-F07)', ()
   });
 
   /**
-   * En méngrad uden for 1..120 er en RØD feltfejl, ikke en manglende indtastning. Gaten svarer derfor
-   * "Fejl i indtastning" internt — men brugeren skal fortsat møde den ENE universelle tekst, fordi
-   * årsagen ikke navngiver noget, brugeren ikke allerede kan se på det røde felt.
+   * En méngrad uden for 1..120 er en RØD feltfejl, ikke en manglende indtastning — og efter brugerkravet
+   * 2026-07-30 skal de to blokeringer sige noget FORSKELLIGT: "Fejl i indtastning" mod "Indtastning mangler".
+   * Tidligere kollapsede de til én universel tekst, så knappen svarede "Indtastning mangler" på et felt, der
+   * var udfyldt — bare forkert.
    *
-   * Casen er med, fordi den skelner den universelle tekst fra "gaten har kun én besked": de to
-   * blokeringer har FORSKELLIG intern `message` og samme brugertekst.
+   * Testen asserter begge retninger (den viser den nye tekst OG ikke den gamle), fordi en assertion på kun
+   * den nye ville være grøn, hvis begge tekster stod der. Ét-kanal-invarianten fra klassen ovenfor gælder
+   * uændret: teksten må stadig kun findes som tooltip, aldrig som synlig tekst.
    */
-  it('bruger den SAMME universelle tekst for en rød feltfejl som for en manglende værdi', async () => {
+  it('bruger "Fejl i indtastning" for en rød feltfejl — IKKE "Indtastning mangler"', async () => {
     const user = userEvent.setup();
     hydrate({ mengrad: 10, beregningsdato: toISODateString('2020-01-01') }, validStamdata);
     renderTab();
@@ -194,8 +199,10 @@ describe('MenberegningTab — gate-årsagen vises kun i tooltippet (UT-F07)', ()
     await waitFor(() => {
       const button = screen.getByTestId('varigemen-download');
       expect(button).toBeDisabled();
-      expect(button).toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
+      expect(button).toHaveAccessibleName(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
     });
-    expect(screen.queryByText(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE)).toBeNull();
+    const button = screen.getByTestId('varigemen-download');
+    expect(button).not.toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
+    expect(screen.queryByText(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE)).toBeNull();
   });
 });

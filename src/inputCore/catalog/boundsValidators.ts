@@ -4,6 +4,7 @@ import { buildPercentRangeErrorMessage } from '../../utils/percentDraftCore';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { FieldValidator } from '../fieldDescriptor';
 import type { FieldCodec } from '../fieldCodec';
+import { quoteFieldLabel } from '../inputIssue';
 
 // Kravændringen 2026-07-18 (§1.6): en schema-repræsenterbar værdi uden for feltets aktive min/max er IKKE
 // længere rejected råtekst — den committes canonical og bærer et afledt `bounds`-issue fra en feltvalidator.
@@ -34,7 +35,7 @@ export const canonicalStringCodecValidator = (
   return {
     reason: 'schema',
     code,
-    message: `Der er gemt en ugyldig værdi i feltet ${field.descriptor.label}`,
+    message: `Der er gemt en ugyldig værdi i feltet ${quoteFieldLabel(field.descriptor.label)}`,
   };
 };
 

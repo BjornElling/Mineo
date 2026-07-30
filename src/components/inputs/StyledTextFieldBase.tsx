@@ -66,6 +66,14 @@ export type StyledTextFieldBaseProps = {
   required?: boolean;
   error?: boolean;
   helperText?: string;
+  /**
+   * Tooltiptekst, når `helperText` er den FULDE besked, men hover-teksten skal være kortere (§4: den generiske
+   * "Fejl i indtastning" for `format`/`schema`). Udelades den, viser tooltippet `helperText` uændret.
+   *
+   * Kun tooltippet forkortes. Den visuelt skjulte a11y-tekst bliver ved med at være `helperText`, så en
+   * skærmlæserbruger får den fulde besked — den kan ikke "se feltet ved markøren", som forkortelsen bygger på.
+   */
+  tooltipText?: string;
   disabled?: boolean;
   disabledAppearance?: 'default' | 'locked';
 
@@ -110,6 +118,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       inputRef,
       error = false,
       helperText = '',
+      tooltipText,
       sx = {},
       disabled,
       disabledAppearance = 'default',
@@ -203,6 +212,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     );
 
     const showError = error && helperText.trim() !== '';
+    const resolvedTooltipText = tooltipText ?? helperText;
     const a11yErrorId = `${resolvedId}-error`;
 
     const describedByBase = htmlInputAttributes?.['aria-describedby'];
@@ -303,7 +313,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
 
     return (
       <Tooltip
-        title={showError ? helperText : ''}
+        title={showError ? resolvedTooltipText : ''}
         arrow
         placement="top"
         disableHoverListener={!showError}

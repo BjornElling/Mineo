@@ -103,10 +103,14 @@ De godkendte beskedskabeloner er:
 | `missing` | Tekst-/talfelt | `Feltet <navn> er ikke udfyldt` |
 | `missing` | Dropdown/valg | `<navn> er ikke valgt` |
 | `missing` | Toggle/radio | `<navn> er ikke angivet` |
-| `invalid` | Alle | `Der er udfyldt en ugyldig værdi i feltet <navn>` |
+| `invalid` | Alle | `Der er udfyldt en ugyldig værdi i feltet '<navn>'` |
+| `schema` | Alle | `Der er gemt en ugyldig værdi i feltet '<navn>'` |
 | `range`/`bounds` | Alle | Domænets konkrete intervaltekst med relevante grænser |
 
-Kontroltype og label kommer fra feltdefinitionen. Et bart `<felt> mangler` er forbudt.
+Kontroltype og label kommer fra feltdefinitionen. Et bart `<felt> mangler` er forbudt. Feltnavnet står i
+enkelte anførselstegn i de to skabeloner, der citerer det (`invalid`, `schema`): beskeden læses i "Fejl og
+advarsler" UDEN feltet foran sig, og labels indeholder selv punktummer og bindestreger
+("Hvis genopt. - tidl. kap.dato"), som ellers løber sammen med prosaen. `quoteFieldLabel` ejer formen.
 
 ## 4. Prioritet og visning
 
@@ -130,6 +134,22 @@ invitation til at genindføre dem.
 Ugyldigt input vises med rød kant og tooltip ved hover. Ingen inline-valideringstekst vises under feltet. Range- og
 datotooltips skal vise konkrete grænser. Hvis `min > max`, forklarer tooltippen, at ingen gyldige værdier findes, viser
 begge grænser og navngiver de brugervendte input, der skabte dem.
+
+**Tooltip vs. "Fejl og advarsler" (brugerkrav 2026-07-30).** De to flader viser IKKE nødvendigvis samme tekst.
+Boksen viser altid den fulde besked. Tooltippet afhænger af `reason`, og `resolveFieldIssueTooltip`
+(`src/inputCore/inputIssue.ts`) er det ENE sted, valget træffes:
+
+| `reason` | Tooltip |
+|---|---|
+| `format`, `schema` | den generiske `Fejl i indtastning` |
+| `bounds`, `rule` | den fulde besked, ordret |
+
+Begrundelsen er informationsværdi, ikke længde: `bounds`/`rule` fortæller HVAD der er galt ("skal være mellem 0
+og 100", "skal ligge efter skadedatoen"), og det er den eneste brugbare del i et tooltip. `format`/`schema`
+tilføjer derimod kun feltets eget navn, som allerede står ved markøren. Skallerne
+(`StyledTextFieldBase` m.fl.) modtager kun `error: boolean` + `helperText`/`tooltipText` og må derfor ALDRIG
+udlede klassen af beskedteksten. Den visuelt skjulte a11y-tekst er fortsat den FULDE besked — en
+skærmlæserbruger kan ikke se feltet, forkortelsen bygger på.
 
 Kontrolvisninger må gruppere alle relevante issues, men må ikke gætte fra beskedtekst. Links skal bruge issueets
 strukturelle fokusmål. Henvises til en anden side, er kun sidens navn klikbart.

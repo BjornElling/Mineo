@@ -10,6 +10,7 @@ import type { GridCellCoord } from '../../../components/tables/gridCore/gridCore
 import type { CellSpec } from '../useCellEditor';
 import type { FieldIssue } from '../../inputIssue';
 import { useGridCellSurface, type GridCellKeyFilter } from '../useGridCellSurface';
+import { resolveFieldIssueText } from '../fieldIssueText';
 
 // Grid-celle-basis (§2.5/§3.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
 // `useGridCellSurface` (som bro-forbinder grid-core-navigation ↔ editor-motoren). Den er grid-pendanten
@@ -74,9 +75,10 @@ const GridTextCellInner = <T, TEntity>(
 
   // Descriptorens eget issue har forrang; en ekstern kryds-række-fejl vises kun, når cellen ikke selv har et
   // format-/bounds-/rule-issue (§1.8: højst én aktiv rød fejl + én tooltip; den mest direkte vælges).
-  const resolvedErrorMessage = surface.issue?.message ?? collectionRuleIssue?.message;
-  const showError = resolvedErrorMessage !== undefined;
-  const errorMessage = resolvedErrorMessage ?? '';
+  const issueText = resolveFieldIssueText(surface.issue, collectionRuleIssue);
+  const showError = issueText.message !== undefined;
+  const errorMessage = issueText.message ?? '';
+  const tooltipMessage = issueText.tooltip ?? '';
 
   const isDraftEmpty = surface.displayText.trim() === '';
   const resolvedEndAdornment = typeof endAdornment === 'function'
@@ -99,7 +101,7 @@ const GridTextCellInner = <T, TEntity>(
 
   return (
     <Box sx={mergeSx({ position: 'relative', width: '100%', height: '100%' }, sx)}>
-      <Tooltip title={showError ? errorMessage : ''} arrow placement="top">
+      <Tooltip title={showError ? tooltipMessage : ''} arrow placement="top">
         <Box sx={{ width: '100%', height: '100%' }}>
           <InputBase
             inputRef={assignInputRef}

@@ -44,6 +44,8 @@ interface StyledRadioButtonProps {
   name?: string;
   error?: boolean;
   helperText?: string;
+  /** Kortere hover-tekst end den fulde besked. Se `StyledTextFieldBaseProps.tooltipText`. */
+  tooltipText?: string;
   /**
    * Undo/redo-fokusrestore-attributter (§3.7): sættes på den VALGTE radios input-slot, så fokus efter
    * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
@@ -85,6 +87,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
   name,
   error = false,
   helperText = '',
+  tooltipText,
   restoreTargetAttributes,
 }, ref) => {
   const autoId = React.useId();
@@ -103,6 +106,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
       : { input: attrs as React.InputHTMLAttributes<HTMLInputElement> };
   }, [restoreTargetAttributes]);
   const showError = error && helperText.trim() !== '';
+  const resolvedTooltipText = tooltipText ?? helperText;
   const a11yErrorId = `${emptyValue}-error`;
 
   if (import.meta.env.DEV) {
@@ -132,7 +136,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
         </FormLabel>
       )}
       <Tooltip
-        title={showError ? helperText : ''}
+        title={showError ? resolvedTooltipText : ''}
         arrow
         placement="top"
         disableHoverListener={!showError}

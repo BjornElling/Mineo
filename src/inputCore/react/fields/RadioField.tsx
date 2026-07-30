@@ -5,6 +5,7 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
+import { resolveFieldIssueText } from '../fieldIssueText';
 
 // Radio-felt (§1.3/§3.6): radio-valg committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options. Den viste værdi læses fra den afsluttede revision gennem
@@ -55,7 +56,8 @@ const RadioField = <TValue extends string>({
     [controller]
   );
 
-  const hasError = controller.issue !== undefined;
+  const issueText = resolveFieldIssueText(controller.issue);
+  const hasError = issueText.message !== undefined;
 
   return (
     <StyledRadioButton
@@ -69,7 +71,8 @@ const RadioField = <TValue extends string>({
       allowEmpty={allowEmpty}
       {...(emptyLabel === undefined ? {} : { emptyLabel })}
       error={hasError}
-      helperText={controller.issue?.message ?? ''}
+      helperText={issueText.message ?? ''}
+      {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
       restoreTargetAttributes={restoreTargetAttributes}
     />
   );

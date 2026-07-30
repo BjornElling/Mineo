@@ -12,9 +12,9 @@
  * Sandhedstabellen pr. fane (uændret fra `!hasBlockingErrors && computation` i tabsene):
  *
  *  - fanen blokeret af mindst ét RØDT feltfejl-issue (format/bounds/rule via readerens `fieldErrors`)
- *      → `field-error` ("Fejl i indtastning"),
+ *      → `field-error`, kind `invalid-input` ("Fejl i indtastning"),
  *  - fanen blokeret KUN af manglende/afledte consumer-fejl (`*-missing` m.fl.)
- *      → `missing-fields` ("Indtastning mangler"),
+ *      → `missing-fields`, kind `missing-input` ("Indtastning mangler"),
  *  - fanen `ready`, men uden beregningsresultat (`computation === null`)
  *      → `no-result` ("Beregning kan ikke dannes"),
  *  - ellers download tilladt.
@@ -29,6 +29,7 @@
 import {
   allowDocumentDownload,
   blockDocumentDownload,
+  blockDocumentDownloadForInvalidInput,
   type DocumentDownloadGateResult,
 } from '../../document/layout/documentGateTypes';
 import type { EetSnapshot } from './eetSnapshot';
@@ -66,7 +67,7 @@ export const evaluateEetFaneDownloadGate = (
       (issue) => issue.severity === 'error' && isEetFieldErrorIssueId(issue.id)
     );
     if (hasFieldError) {
-      return blockDocumentDownload({ code: `${codePrefix}:field-error`, message: 'Fejl i indtastning' });
+      return blockDocumentDownloadForInvalidInput({ code: `${codePrefix}:field-error`, message: 'Fejl i indtastning' });
     }
     return blockDocumentDownload({ code: `${codePrefix}:missing-fields`, message: 'Indtastning mangler' });
   }
@@ -89,7 +90,7 @@ export const evaluateErhvervsevnetabDownloadGates = (
 ): ErhvervsevnetabDownloadGates => {
   const { snapshot } = projection;
   if (projection.documentStamdata.status === 'blocked') {
-    const stamdataGate = blockDocumentDownload({ code: 'eet:stamdata-field-error', message: 'Fejl i indtastning' });
+    const stamdataGate = blockDocumentDownloadForInvalidInput({ code: 'eet:stamdata-field-error', message: 'Fejl i indtastning' });
     return {
       loebendeYdelser: stamdataGate,
       kapitalisering: stamdataGate,

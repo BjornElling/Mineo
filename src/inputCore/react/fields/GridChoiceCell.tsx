@@ -9,6 +9,7 @@ import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './gridCellStyles';
 import { useCellEditor, type CellSpec } from '../useCellEditor';
 import type { FieldIssue } from '../../inputIssue';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
+import { resolveFieldIssueText } from '../fieldIssueText';
 
 // Grid dropdown-celle (§2.5/§3.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
 // `ChoiceField` (form-dropdown) og den ene celle-valg-kontrol (fx rentekrav-enhed).
@@ -65,9 +66,10 @@ const GridChoiceCellInner = <
   const restoreTargetAttributes = useRestoreTargetAttributes(cell.field.address, cell.location);
 
   // Descriptorens eget issue har forrang; en ekstern kryds-række-fejl vises kun ellers (§1.8).
-  const resolvedErrorMessage = controller.issue?.message ?? collectionRuleIssue?.message;
-  const hasError = resolvedErrorMessage !== undefined;
-  const errorMessage = resolvedErrorMessage ?? '';
+  const issueText = resolveFieldIssueText(controller.issue, collectionRuleIssue);
+  const hasError = issueText.message !== undefined;
+  const errorMessage = issueText.message ?? '';
+  const tooltipProp = issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip };
 
   // En ikke-oprettet placeholder-række kan ikke "ryddes" (der er intet felt at rydde); et tom-valg dér er derfor
   // no-op. Et ikke-tomt valg promoverer rækken atomisk via `commitImmediate`'s placeholder-override (§1.11).
@@ -153,6 +155,7 @@ const GridChoiceCellInner = <
         onChange={handleChange}
         error={hasError}
         helperText={errorMessage}
+        {...tooltipProp}
         sx={looseDropdownSx}
       >
         {children}
@@ -173,6 +176,7 @@ const GridChoiceCellInner = <
       onChange={handleChange}
       error={hasError}
       helperText={errorMessage}
+      {...tooltipProp}
       sx={looseDropdownSx}
     >
       {children}

@@ -40,6 +40,8 @@ export type StyledTextAreaBaseProps = {
   required?: boolean;
   error?: boolean;
   helperText?: string;
+  /** Kortere hover-tekst end den fulde besked. Se `StyledTextFieldBaseProps.tooltipText`. */
+  tooltipText?: string;
   disabled?: boolean;
 
   rows?: number;
@@ -78,6 +80,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
       inputRef,
       error = false,
       helperText = '',
+      tooltipText,
       sx = {},
       disabled,
       autoFocus,
@@ -166,6 +169,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
     );
 
     const showError = error && helperText.trim() !== '';
+    const resolvedTooltipText = tooltipText ?? helperText;
     const a11yErrorId = `${resolvedId}-error`;
 
     const describedByBase = htmlTextAreaAttributes?.['aria-describedby'];
@@ -180,7 +184,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
 
     return (
       <Tooltip
-        title={showError ? helperText : ''}
+        title={showError ? resolvedTooltipText : ''}
         arrow
         placement="top"
         disableHoverListener={!showError}

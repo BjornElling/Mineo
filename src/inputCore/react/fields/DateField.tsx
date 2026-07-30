@@ -6,6 +6,7 @@ import { filterDateLikeKeyDown } from '../../../components/inputs/inputKeyFilter
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFormFieldSurface } from '../useFormFieldSurface';
+import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
@@ -51,7 +52,8 @@ const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
       [inputRef, surface.inputElementRef]
     );
 
-    const hasError = surface.issue !== undefined;
+    const issueText = resolveFieldIssueText(surface.issue);
+    const hasError = issueText.message !== undefined;
 
     return (
       <StyledTextFieldBase
@@ -70,7 +72,8 @@ const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
         width={width}
         disabled={disabled}
         error={hasError}
-        helperText={surface.issue?.message ?? ''}
+        helperText={issueText.message ?? ''}
+        {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
         htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_DRAFT_LENGTH, readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
         sx={mergeSx({
           '& .MuiInputBase-input': {

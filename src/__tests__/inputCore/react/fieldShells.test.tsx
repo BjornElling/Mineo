@@ -30,6 +30,7 @@ import {
   makeRow,
   testRowOrigin, testLocation } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
+import { FIELD_ISSUE_GENERIC_TOOLTIP } from '../../../inputCore/inputIssue';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';
 
@@ -175,6 +176,10 @@ describe('grid-felt', () => {
     );
 
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByText('Der er udfyldt en ugyldig værdi i feltet Beløb')).toBeInTheDocument();
+    // De TO tekster er forskellige for et `format`-issue (brugerkrav 2026-07-30): a11y-teksten er den fulde
+    // besked med citeret feltnavn, mens tooltippet er den generiske. Begge assertes, så en fremtidig ændring
+    // ikke kan lade den ene overtage den anden.
+    expect(screen.getByText("Der er udfyldt en ugyldig værdi i feltet 'Beløb'")).toBeInTheDocument();
+    expect(screen.getByLabelText(FIELD_ISSUE_GENERIC_TOOLTIP)).toBeInTheDocument();
   });
 });

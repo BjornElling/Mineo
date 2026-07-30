@@ -38,6 +38,8 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
   name?: string;
   error?: boolean;
   helperText?: string;
+  /** Kortere hover-tekst end den fulde besked. Se `StyledTextFieldBaseProps.tooltipText`. */
+  tooltipText?: string;
   /**
    * Valgfri styling-hooks for popover-listbox'en og dens options.
    *
@@ -140,6 +142,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     name,
     error = false,
     helperText = '',
+    tooltipText,
     getOptionLabel,
     allowEmpty = true,
     restoreTargetAttributes,
@@ -544,10 +547,11 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   }, iconSx);
 
   const showError = error && helperText.trim() !== '';
+  const resolvedTooltipText = tooltipText ?? helperText;
 
   return (
     <Tooltip
-      title={showError ? helperText : ''}
+      title={showError ? resolvedTooltipText : ''}
       arrow
       placement="top"
       disableHoverListener={!showError}

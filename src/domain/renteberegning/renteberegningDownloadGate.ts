@@ -12,7 +12,12 @@
  * så sandhedstabellen kan unit-testes direkte.
  */
 
-import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
+import {
+  allowDocumentDownload,
+  blockDocumentDownload,
+  blockDocumentDownloadForInvalidInput,
+  type DocumentDownloadGateResult,
+} from '../../document/layout/documentGateTypes';
 import type { ISODateString } from '../../types/branded';
 
 export type RenteDownloadGateInput = Readonly<{
@@ -36,10 +41,10 @@ export const evaluateDownloadAllGate = (input: RenteDownloadGateInput): Document
     return blockDocumentDownload({ code: 'renteberegning:no-valid-rows', message: 'Ingen gyldige rente-linjer' });
   }
   if (input.anyRowHasError) {
-    return blockDocumentDownload({ code: 'renteberegning:row-has-error', message: 'En rente-linje med indtastning er ugyldig' });
+    return blockDocumentDownloadForInvalidInput({ code: 'renteberegning:row-has-error', message: 'En rente-linje med indtastning er ugyldig' });
   }
   if (input.beregningsdatoHasError) {
-    return blockDocumentDownload({ code: 'renteberegning:beregningsdato-error', message: 'Beregningsdato er ugyldig' });
+    return blockDocumentDownloadForInvalidInput({ code: 'renteberegning:beregningsdato-error', message: 'Beregningsdato er ugyldig' });
   }
   return allowDocumentDownload();
 };
@@ -57,13 +62,13 @@ export const evaluateOversigtDownloadGate = (
     return blockDocumentDownload({ code: 'renteberegning:missing-beregningsdato', message: 'Beregningsdato mangler' });
   }
   if (input.beregningsdatoHasError) {
-    return blockDocumentDownload({ code: 'renteberegning:beregningsdato-error', message: 'Beregningsdato er ugyldig' });
+    return blockDocumentDownloadForInvalidInput({ code: 'renteberegning:beregningsdato-error', message: 'Beregningsdato er ugyldig' });
   }
   if (!input.hasValidPdfContexts) {
     return blockDocumentDownload({ code: 'renteberegning:no-valid-rows', message: 'Ingen gyldige rente-linjer' });
   }
   if (input.anyRowHasError) {
-    return blockDocumentDownload({ code: 'renteberegning:row-has-error', message: 'En rente-linje med indtastning er ugyldig' });
+    return blockDocumentDownloadForInvalidInput({ code: 'renteberegning:row-has-error', message: 'En rente-linje med indtastning er ugyldig' });
   }
   return allowDocumentDownload();
 };

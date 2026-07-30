@@ -8,6 +8,7 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
+import { resolveFieldIssueText } from '../fieldIssueText';
 
 // Choice-felt (§1.3/§3.6): dropdown committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options som children. Den viste værdi læses fra den afsluttede
@@ -79,7 +80,8 @@ const ChoiceField = <
     [controller, emptyUiValue]
   );
 
-  const hasError = controller.issue !== undefined;
+  const issueText = resolveFieldIssueText(controller.issue);
+  const hasError = issueText.message !== undefined;
 
   // `allowEmpty=false` kræver en defineret værdi; descriptorens tomværdi (fx 'dage') er den gyldige default.
   if (!allowEmpty || emptyUiValue !== undefined) {
@@ -97,7 +99,8 @@ const ChoiceField = <
         disabled={disabled}
         getOptionLabel={getOptionLabel}
         error={hasError}
-        helperText={controller.issue?.message ?? ''}
+        helperText={issueText.message ?? ''}
+        {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
         restoreTargetAttributes={restoreTargetAttributes}
         sx={sx}
         listboxSx={listboxSx}
@@ -120,7 +123,8 @@ const ChoiceField = <
       disabled={disabled}
       getOptionLabel={getOptionLabel}
       error={hasError}
-      helperText={controller.issue?.message ?? ''}
+      helperText={issueText.message ?? ''}
+      {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
       restoreTargetAttributes={restoreTargetAttributes}
       sx={sx}
       listboxSx={listboxSx}

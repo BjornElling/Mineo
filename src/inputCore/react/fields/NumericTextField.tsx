@@ -5,6 +5,7 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import type { FieldIssue } from '../../inputIssue';
 import { useFormFieldSurface } from '../useFormFieldSurface';
+import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 
@@ -97,8 +98,8 @@ const NumericTextFieldInner = <T,>(
   );
 
   // Descriptorens eget issue har forrang; en ekstern tværfelt-fejl vises kun ellers (§1.8).
-  const resolvedError = surface.issue?.message ?? crossFieldIssue?.message;
-  const hasError = resolvedError !== undefined;
+  const issueText = resolveFieldIssueText(surface.issue, crossFieldIssue);
+  const hasError = issueText.message !== undefined;
   const resolvedEndAdornment = typeof endAdornment === 'function'
     ? (endAdornment as (info: Readonly<{ isDraftEmpty: boolean; value: T | undefined }>) => React.ReactNode)(
         { isDraftEmpty: surface.displayText.trim() === '', value: surface.value }
@@ -122,7 +123,8 @@ const NumericTextFieldInner = <T,>(
       width={width}
       disabled={disabled}
       error={hasError}
-      helperText={resolvedError ?? ''}
+      helperText={issueText.message ?? ''}
+      {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
       {...(resolvedEndAdornment === undefined ? {} : { endAdornment: resolvedEndAdornment })}
       htmlInputAttributes={{
         inputMode,

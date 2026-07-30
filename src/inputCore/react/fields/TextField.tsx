@@ -4,6 +4,7 @@ import StyledTextFieldBase, { type StyledTextFieldBaseInputType } from '../../..
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFormFieldSurface } from '../useFormFieldSurface';
+import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 
@@ -40,7 +41,8 @@ const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
       [inputRef, surface.inputElementRef]
     );
 
-    const hasError = surface.issue !== undefined;
+    const issueText = resolveFieldIssueText(surface.issue);
+    const hasError = issueText.message !== undefined;
 
     return (
       <StyledTextFieldBase
@@ -61,7 +63,8 @@ const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
         width={width}
         disabled={disabled}
         error={hasError}
-        helperText={surface.issue?.message ?? ''}
+        helperText={issueText.message ?? ''}
+        {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
         htmlInputAttributes={{ readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
         sx={mergeSx({
           '& .MuiInputBase-input': {

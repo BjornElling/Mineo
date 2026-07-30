@@ -18,6 +18,7 @@
 import {
   allowDocumentDownload,
   blockDocumentDownload,
+  blockDocumentDownloadForInvalidInput,
   blockDocumentDownloadWithSpecificReason,
   type DocumentDownloadGateResult,
 } from '../../document/layout/documentGateTypes';
@@ -76,7 +77,8 @@ export const evaluateAarsloenDownloadGate = (
     return blockDocumentDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
   }
   if (tableValidation.errors.length > 0) {
-    return blockDocumentDownload({ code: 'aarsloen:table-validation-error', message: 'Valideringsfejl i tabel' });
+    // Rækkerne ER udfyldt, men indholdet er ugyldigt → "Fejl i indtastning", ikke "Indtastning mangler".
+    return blockDocumentDownloadForInvalidInput({ code: 'aarsloen:table-validation-error', message: 'Valideringsfejl i tabel' });
   }
   if (!hasAtLeastOneValidRow(values.tableData, values.loenperiode, {
     feriePct: values.feriePct,

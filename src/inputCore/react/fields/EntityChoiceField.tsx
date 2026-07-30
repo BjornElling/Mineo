@@ -7,6 +7,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useCellEditor, type CellSpec } from '../useCellEditor';
 import { collectionOwnerEntityIds } from '../cellSpecBuilder';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
+import { resolveFieldIssueText } from '../fieldIssueText';
 
 /**
  * Form-dropdown for et felt i en valgfri entity-række. Hvis rækken endnu ikke findes, opretter det første
@@ -43,6 +44,7 @@ export default function EntityChoiceField<TValue extends StyledDropdownValue, TE
   // Restore-mål via feltadresse + editorlokation (§3.7): samme bundne cellefeltadresse som editoren driver, så
   // fokus efter undo/redo lander på DENNE editorlokation.
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
+  const issueText = resolveFieldIssueText(controller.issue);
   return <StyledDropdown<TValue>
     name={name}
     value={controller.value}
@@ -56,8 +58,9 @@ export default function EntityChoiceField<TValue extends StyledDropdownValue, TE
     }}
     placeholder={placeholder}
     width={width}
-    error={controller.issue !== undefined}
-    helperText={controller.issue?.message ?? ''}
+    error={issueText.message !== undefined}
+    helperText={issueText.message ?? ''}
+    {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
     restoreTargetAttributes={restoreTargetAttributes}
     sx={sx}
   >{children}</StyledDropdown>;
