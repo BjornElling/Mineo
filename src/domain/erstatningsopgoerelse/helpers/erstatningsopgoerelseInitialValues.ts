@@ -9,7 +9,7 @@ import { resolveAppSettings } from '../../../settings/appSettingsParse';
 import {
   erstatningsopgoerelseSchema,
   eoAngivetLoenLoenudviklingSchema,
-  type LoenindkomstAnsaettelsesforhold,
+  type PersistedLoenindkomstAnsaettelsesforhold,
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
@@ -47,7 +47,7 @@ export const DEFAULT_ANCIENNITET_FIELDS = {
  */
 export const createDefaultLoenindkomstAnsaettelsesforhold = (
   settings?: AppSettings
-): LoenindkomstAnsaettelsesforhold => {
+): PersistedLoenindkomstAnsaettelsesforhold => {
   const safeSettings = resolveAppSettings(settings);
   return {
     id: generateAnsaettelsesforholdId(),
@@ -61,7 +61,8 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
     feriePct: undefined,
     fritvalgPct: undefined,
     shSoPct: undefined,
-    storeBededagPct: undefined,
+    // Ingen `storeBededagPct`: den er afledt af dato og "Løn på helligdage" og hører ikke i det
+    // persisterede ansættelsesforhold. Reader-projektionen udleder den før første consumer-read.
     pensionPct: undefined,
     tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
     loenperiode: safeSettings.defaultLoenIndtastesSom,

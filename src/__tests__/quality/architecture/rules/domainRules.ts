@@ -205,12 +205,22 @@ const DESCRIPTOR_CATALOG_SECTIONS: ReadonlyMap<string, PersistedSectionKey> = ne
  * Descriptor-katalogets mappe. Eksporteret, så `deletedLegacyAbsence.test.ts` kan bevise, at
  * `DESCRIPTOR_CATALOG_SECTIONS` dækker HVERT katalogmodul: et nyt domænekatalog, der ikke står i
  * kortet, ville ellers være usynligt for page-grænsen — reglen ville se en uovervåget kobling som
- * "ingen kobling" og være tavs, præcis den slags tomhed Fase 6 lukker.
+ * "ingen kobling" og være tavs, altså grøn af tomhed frem for grøn af bevis.
  */
 export const CATALOG_DIR = 'src/inputCore/catalog';
 
-/** De katalogmoduler der IKKE er et domæne (fælles infrastruktur) og derfor ingen sektion har. */
-export const NON_DOMAIN_CATALOG_MODULES: readonly string[] = ['boundsValidators', 'productionCatalog'];
+/**
+ * De katalogmoduler der IKKE er et domæne (fælles infrastruktur) og derfor ingen sektion har.
+ *
+ * `fieldLocationCatalog` hører her, fordi det netop går PÅ TVÆRS af samtlige sektioner: det knytter hvert
+ * produktionsdescriptor til sin route/fane. En post i sektionskortet ville påstå, at modulet tilhører ét
+ * domæne, og page-grænsen ville da måle det forkerte.
+ */
+export const NON_DOMAIN_CATALOG_MODULES: readonly string[] = [
+  'boundsValidators',
+  'productionCatalog',
+  'fieldLocationCatalog',
+];
 
 /** Til completeness-testen: hvilke katalogmoduler kortet kender. */
 export const DESCRIPTOR_CATALOG_MODULE_NAMES: readonly string[] = [...DESCRIPTOR_CATALOG_SECTIONS.keys()];

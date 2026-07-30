@@ -60,8 +60,12 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // Opdateret 2026-07-16: tre ubrugte schemafelter uden editor eller consumer er fjernet fra
 // erstatningsopgørelsen. PERSISTED_DATA_VERSION bumpet til 3.10 (reel persisted schema-ændring).
 // Opdateret 2026-07-30: den rent afledte Store Bededagssats er fjernet fra det aktuelle persisted
-// EO-schema og accepteres kun som et inbound legacy-slot, der strippes. PERSISTED_DATA_VERSION bumpet til 3.11.
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-e58e35db';
+// EO-schema; ældre `.eo` får slottet fjernet af sektionsmigratoren. PERSISTED_DATA_VERSION bumpet til 3.11.
+// Slottet blev først fjernet med en `.transform()` på ansættelsesschemaet. Det gav et FALSKT stabilt
+// fingerprint: `z.toJSONSchema` udsender en tom `items: {}` for et transformeret array, så hele det nestede
+// løntræ forsvandt ud af både fingerprintet og ledgerens felt-/collection-udledninger. Fjernelsen sker
+// derfor i migratoren, og fingerprintet dækker igen hvert persisteret felt.
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-1cc88eaa';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

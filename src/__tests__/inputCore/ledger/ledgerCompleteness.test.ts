@@ -68,6 +68,37 @@ const fieldTemplatePath = (template: (typeof productionFieldTemplates)[number]):
 const collectionTemplatePath = (template: (typeof productionCollectionTemplates)[number]): string =>
   joinTemplatePath(template.path as TemplatePath, template.collection);
 
+describe('de persisterede schemas er gennemsigtige for den maskinelle udledning', () => {
+  /**
+   * Hele ledger-coveragen, consumerinventaret OG schema-fingerprintet udledes gennem `z.toJSONSchema`.
+   * Den udledning kan BLINDES: sætter man en `.transform()`/`.pipe()` på et objekt- eller array-schema,
+   * udsender Zod et uigennemsigtigt output-schema — i praksis `items: {}` for et array — og hvert felt
+   * bag den grænse forsvinder lydløst ud af samtlige værn.
+   *
+   * Optællings-testene nedenfor kan IKKE fange det alene: de sammenligner to tal, og en blinding, der
+   * fulgtes af en tilsvarende nedjustering af baseline, ville stå grøn. Dette værn måler derfor
+   * gennemsigtigheden DIREKTE: hver collection, ledgeren kender, skal have synlige properties i det
+   * udledte JSON-schema.
+   */
+  it('udsender ingen tom collection-node — en transform må ikke skjule et nested felttræ', () => {
+    const opaque: string[] = [];
+    for (const section of sections) {
+      const { collections } = collectSectionSchemaPaths(section);
+      for (const collectionPath of collections) {
+        const childPaths = deriveSectionDataFieldPaths(section)
+          .filter((path) => path.startsWith(`${collectionPath}[].`));
+        if (childPaths.length === 0) opaque.push(`${section}.${collectionPath}`);
+      }
+    }
+    expect(opaque).toEqual([]);
+  });
+
+  it('kender mindst én collection pr. sektion, der har en — ellers måler værnet ingenting', () => {
+    // Selv-test mod grøn-af-tomhed: findes der slet ingen collections at måle, beviser testen ovenfor intet.
+    expect(countAllCollections()).toBeGreaterThan(0);
+  });
+});
+
 describe('feltledgerens coverage-register (§6.1)', () => {
   it('top-level codec-annotationer matcher nøjagtig de top-level datafelter i de levende schemas', () => {
     for (const section of sections) {
@@ -77,7 +108,9 @@ describe('feltledgerens coverage-register (§6.1)', () => {
     }
   });
 
-  it('låser baseline feltantal (239) mod de levende schemas uden placeholder', () => {
+  // Titlen udleder tallet af konstanten: en hardkodet prosa-optælling ville kunne stå tilbage som forældet,
+  // når baseline flyttes, og en læser ville da tro, at værnet målte et andet tal end det gør.
+  it(`låser baseline feltantal (${EXPECTED_FIELD_REF_COUNT}) mod de levende schemas uden placeholder`, () => {
     expect(countAllDataFields()).toBe(EXPECTED_FIELD_REF_COUNT);
   });
 
@@ -152,7 +185,7 @@ describe('collectionledgerens coverage-register (§6.2)', () => {
     }
   });
 
-  it('låser baseline collection-antal (16) og entydige id’er', () => {
+  it(`låser baseline collection-antal (${EXPECTED_COLLECTION_COUNT}) og entydige id’er`, () => {
     expect(countAllCollections()).toBe(EXPECTED_COLLECTION_COUNT);
     expect(INPUT_COLLECTION_LEDGER).toHaveLength(EXPECTED_COLLECTION_COUNT);
     expect(new Set(INPUT_COLLECTION_LEDGER.map((entry) => entry.id)).size).toBe(EXPECTED_COLLECTION_COUNT);

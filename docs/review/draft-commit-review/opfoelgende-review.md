@@ -290,6 +290,39 @@ De øvrige tidligere fund er gennemgået gennem deres rettelsesbeskrivelser, rel
 
 Det er ikke det samme som et formelt bevis for korrekthed i alle UI-forløb. Der er ikke udført interaktiv browsertest i denne opfølgning.
 
+## Slutstatus for rettelserne (2026-07-30)
+
+Alle otte modfund er håndteret, og hvert værn er mutationstestet — ikke blot set grønt.
+
+| ID | Håndtering | Bevis |
+|---|---|---|
+| OF-F01 | `SynchronousResult<T>` gør en `async` callback til `never` + runtime-thenable-værn | Compile-negativ probe: `applyReplacement(async () => …)` afvises, synkron callback kompilerer |
+| OF-F02 | Satserne udledes i `loenindkomstSatsProjection` og er FJERNET fra det persisterede schema | Persisteret model har intet slot; projektionen udleder 0,45 %; låst sats udelades ved save, fri sats bevares |
+| OF-F03 | Statisk `fieldLocationCatalog` (route + fane pr. adressetemplate) aktiverer fanen før DOM-opslaget | Katalogbygningen kræver en destination pr. descriptor |
+| OF-F04 | Compiler-komplet fixture-register for alle 18 outputs + fuld download-livscyklus | `Object.keys(FIXTURES)` låst mod `MINEO_DOCUMENT_OUTPUT_IDS` |
+| OF-F05 | Manuelle ID-lister og `readSectionFieldIssues` er væk; consumers læser sporede refs | Kun en snæver devtools-port tilbage; `createTrackedInputReader` er guard-anker |
+| OF-F06 | Værnet kræver PRÆCIS én page-viewmodel og forbyder orkestreringsporte i page-komponenten | Sidelisten deriveres af `APP_PAGE_DEFINITIONS` |
+| OF-F07 | Tekstværn over 858 produktionsfiler + alle kontrakt-`.md` | Mutation: en indsat `WI-042/Fase 3/pass 2`-kommentar gør værnet rødt |
+| OF-F08 | `verify-review-findings.mjs` udleder totaler af de faktiske rækker | Registret rapporterer nu 81 fund uden huller |
+
+### Rettelse fundet under dette eget-review
+
+`verify:ledgers` var **rød**, og fejlen blev indført af rettelsen selv. OF-F02 fjernede satsslottet med en
+`.transform()` på ansættelsesschemaet. Zod udsender da et uigennemsigtigt output-schema — konkret
+`items: {}` for ansættelses-arrayet — så `z.toJSONSchema` ikke længere kunne se det nestede løntræ:
+feltudledningen faldt fra 239 til 190 og collections fra 16 til 13. Det ramte samtidig
+schema-fingerprintet, der altså stod "stabilt" på et blindt schema.
+
+Stripningen er flyttet til sektionsmigratoren, som §3.1a udpeger som ejer. Det bevarer schemaet
+introspektivt OG er mere korrekt: et strippet ukendt felt rapporteres i preflight som tabt indtastning,
+mens en migration ikke gør det — og satsen genudledes, så den aldrig var tabt.
+
+Nyt værn: `ledgerCompleteness` måler nu gennemsigtigheden DIREKTE (ingen collection må udsende en tom
+node). Optællings-testene kunne ikke fange fejlen alene, fordi en blinding fulgt af en nedjusteret
+baseline ville stå grøn. Mutationstesten bekræfter, at det nye værn fejler isoleret og navngiver den
+blindede collection. Desuden lukket: `fieldLocationCatalog` manglede i katalogkortet, og
+`domainBoundaryIsolation` havde et forældet anker efter samme commits refaktorering.
+
 ## Verifikation
 
 Følgende tjek er kørt og bestået:
@@ -303,3 +336,17 @@ Følgende tjek er kørt og bestået:
 `npm run check:runtime` er kørt og afviste korrekt det aktuelle miljø, fordi reviewet blev udført med Node 26.5.0/npm 11.13.0, mens projektet kræver Node 24.18.x/npm 11.16.x. Den samlede release-gate er derfor ikke kørt på den understøttede runtime.
 
 Build er ikke kørt, fordi reviewet ikke ændrer kode, config, app-entry eller assets. Interaktiv browsertest er ikke kørt, fordi opgaven er et statisk opfølgningsreview, og fundene ovenfor kan dokumenteres uden UI-ændringer.
+
+### Efter rettelserne (2026-07-30)
+
+- `npm run typecheck` og `npm run typecheck:test` — rene
+- `npm run lint` — ren (exit 0)
+- `npm run test` — **511 testfiler / 6.527 tests bestået**
+- `npm run verify:ledgers` — 18 tests bestået (var rød før denne omgang)
+- `node scripts/architecture/verify-review-findings.mjs` — 81 fund, ingen huller
+- `npm run build:all` — bygger (kun de kendte, forudbestående chunk-/dynamic-import-advarsler)
+
+`npm run check:runtime` afviser fortsat miljøet af samme grund som ovenfor (Node 26.5.0 vs. krævet
+24.18.x), så den samlede release-gate er ikke kørt på den understøttede runtime. Ingen
+golden-snapshots er regenereret; den ene snapshot-ændring er `persistedInputSchemaPaths.json`, hvor
+præcis én linje — det afledte satsfelt — er fjernet. Interaktiv browsertest er ikke kørt.

@@ -307,12 +307,18 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
   storeBededagPct: decimalNumber,
 }).strict();
 
-const persistedLoenindkomstAnsaettelsesforholdSchema = z.object({
-  ...loenindkomstAnsaettelsesforholdShape,
-  // Tolerant inbound-only slot: ældre `.eo` kan indeholde den materialiserede sats. Transformen fjerner
-  // den uden ukendt-felt-advarsel; referencesatsen genudledes efter load.
-  storeBededagPct: decimalNumber,
-}).strict().transform(({ storeBededagPct: _legacyStoreBededagPct, ...input }) => input);
+/**
+ * Den persisterede ansættelsesform bærer IKKE den afledte Store Bededagssats.
+ *
+ * Slottet fjernes af sektionsmigratoren (`persistenceMigrations.ts`), IKKE af en `.transform()` på schemaet.
+ * En transform ville gøre schemaet uigennemsigtigt for `z.toJSONSchema`: Zod ville udsende en tom
+ * `items: {}` for ansættelses-arrayet, og hele det nestede løntræ ville forsvinde ud af de maskinelle
+ * felt-/collection-udledninger (ledger-coverage, consumerinventar og schema-fingerprint) — værn, der
+ * netop skal kunne SE hvert persisteret felt, ville da stå grønne af tomhed.
+ */
+const persistedLoenindkomstAnsaettelsesforholdSchema = z.object(
+  loenindkomstAnsaettelsesforholdShape
+).strict();
 
 export type LoenindkomstAnsaettelsesforhold = z.infer<typeof loenindkomstAnsaettelsesforholdSchema>;
 

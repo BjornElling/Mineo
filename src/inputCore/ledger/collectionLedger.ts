@@ -126,7 +126,9 @@ export const INPUT_COLLECTION_LEDGER: readonly CollectionLedgerEntry[] = [
       f('ansatPaaSkadestidspunktet', 'boolean', 'toggle'), f('ansaettelsesforholdOphoert', 'boolean', 'toggle'),
       f('harAnciennitetstillaegEfterSkadedatoen', 'boolean', 'toggle'), f('overenskomstId', 'choice', 'choice'),
       f('sidsteArbejdsdag', 'date'), f('anciennitetstillaegDato', 'date'), f('saerligFraDatoRegulering', 'date'),
-      f('fritvalgPct', 'percent'), f('shSoPct', 'percent'), f('storeBededagPct', 'percent'),
+      // Ingen `storeBededagPct`: satsen er afledt af dato og "Løn på helligdage" og persisteres ikke
+      // under ansættelsesforholdet (reader-projektionen udleder den). Årslønsektionen har fortsat sit eget.
+      f('fritvalgPct', 'percent'), f('shSoPct', 'percent'),
       f('pensionPct', 'percent'), f('feriePct', 'percent'),
       f('tillaegAngivesSom', 'choice', 'choice'), f('loenperiode', 'choice', 'choice'),
       f('fuldLoenUnderFerie', 'choice', 'toggle'), f('anciennitetstillaegSatsAngivesPer', 'choice', 'choice'),

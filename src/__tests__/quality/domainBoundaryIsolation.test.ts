@@ -54,10 +54,11 @@ describe('domainBoundaryIsolation', () => {
     const sources = SPECIAL_EO_IMPORT_PATHS.map((filePath) => fs.readFileSync(filePath, 'utf8'));
     const combined = sources.join('\n');
 
-    // Reader-stien skal findes ét af de to steder: hook'en holder `useInputEvaluation`, builderen
-    // holder projektionen. Begge markører skal fortsat være til stede i den samlede specialimport.
+    // Reader-stien skal findes ét af de to steder: hook'en holder `useInputEvaluation`, porten læser
+    // gennem en SPORET reader. Sporingen er pointen — importen må kun blokere på de refs, den faktisk
+    // læser, ikke på en hel sektions issue-pose. Begge markører skal være til stede i specialimporten.
     expect(combined).toContain('useInputEvaluation');
-    expect(combined).toContain('buildErhvervsevnetabReaderProjection');
+    expect(combined).toContain('createTrackedInputReader');
 
     // Forbuddene gælder pr. fil: ingen af dem må nå den rå store eller skrive en sektion.
     for (const source of sources) {

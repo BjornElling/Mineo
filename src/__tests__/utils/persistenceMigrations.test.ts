@@ -49,6 +49,67 @@ describe('migratePersistedSectionValue', () => {
     });
   });
 
+  // Den LEVENDE registrerede migration — ikke en fixture-registry. Slås entryen fra, bliver slottet i
+  // stedet et strippet ukendt felt, og preflight ville rapportere en genudledt sats som tabt indtastning.
+  describe('et afledt Store Bededag-slot i en ældre .eo tælles ikke som tabt indtastning', () => {
+    const employment = (extra: Record<string, unknown> = {}) => ({
+      id: 'af-1', pensionPct: 7.5, storeBededagPct: 0.45, ...extra,
+    });
+
+    it('fjerner slottet for hver kildeversion, der bar det', () => {
+      for (const sourceVersion of ['legacy-unversioned', '3.0', '3.5', '3.10']) {
+        const { value } = migratePersistedSectionValue(
+          'erstatningsopgoerelse',
+          { loenindkomstAnsaettelsesforhold: [employment()] },
+          sourceVersion
+        );
+        const rows = (value as { loenindkomstAnsaettelsesforhold: Record<string, unknown>[] })
+          .loenindkomstAnsaettelsesforhold;
+        expect(Object.hasOwn(rows[0] ?? {}, 'storeBededagPct'), sourceVersion).toBe(false);
+        // Brugerens egne satser må ikke røres af migrationen.
+        expect(rows[0]?.pensionPct, sourceVersion).toBe(7.5);
+      }
+    });
+
+    it('rører intet andet end slottet — også når sektionen har flere ansættelsesforhold', () => {
+      const { value } = migratePersistedSectionValue(
+        'erstatningsopgoerelse',
+        {
+          vedroererPeriodeFra: '2024-01-01',
+          loenindkomstAnsaettelsesforhold: [employment(), employment({ id: 'af-2', pensionPct: 3 })],
+        },
+        '3.10'
+      );
+
+      expect(value).toEqual({
+        vedroererPeriodeFra: '2024-01-01',
+        loenindkomstAnsaettelsesforhold: [
+          { id: 'af-1', pensionPct: 7.5 },
+          { id: 'af-2', pensionPct: 3 },
+        ],
+      });
+    });
+
+    it('er identity for en ukendt kildeversion (§3.1a: intet versions-gæt)', () => {
+      const section = { loenindkomstAnsaettelsesforhold: [employment()] };
+      const { value } = migratePersistedSectionValue('erstatningsopgoerelse', section, '2.9');
+      const rows = (value as { loenindkomstAnsaettelsesforhold: Record<string, unknown>[] })
+        .loenindkomstAnsaettelsesforhold;
+      // Slottet står stadig — det fjernes senere af strip-trinnet, som rapporterer det.
+      expect(Object.hasOwn(rows[0] ?? {}, 'storeBededagPct')).toBe(true);
+    });
+
+    it('tåler en sektion, hvor collectionen mangler eller har et forkert element', () => {
+      expect(migratePersistedSectionValue('erstatningsopgoerelse', {}, '3.10').value).toEqual({});
+      const { value } = migratePersistedSectionValue(
+        'erstatningsopgoerelse',
+        { loenindkomstAnsaettelsesforhold: ['ikke-et-objekt'] },
+        '3.10'
+      );
+      expect(value).toEqual({ loenindkomstAnsaettelsesforhold: ['ikke-et-objekt'] });
+    });
+  });
+
   it('anvender kun migratorer for den konkrete sektion og kildeversion', () => {
     const registry = {
       stamdata: {

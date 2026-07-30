@@ -81,8 +81,11 @@ describe('resolveAutoStoreBededagPct', () => {
 // ─── applyAutoSatsFields — Store Bededag ─────────────────────────────────────
 
 describe('applyAutoSatsFields — Store Bededag', () => {
+  // `storeBededagPct` er ikke et persisteret slot; helperen udleder den på RUNTIME-modellen. Fixturen
+  // tilføjer derfor slottet eksplicit, præcis som reader-projektionen gør før kaldet.
   const base = () => ({
     ...createDefaultLoenindkomstAnsaettelsesforhold(),
+    storeBededagPct: 0,
     harOverenskomst: true,
     overenskomstId: 'bygge-anlaeg',
     loenPaaHelligdage: 'Almindelig løn' as const,
@@ -127,6 +130,7 @@ describe('applyAutoSatsFields — Store Bededag', () => {
   it('opdaterer bededagssats korrekt ved cross-tab resync fra dato før til dato efter grænsen', () => {
     const beforeDateChange = applyAutoSatsFields({
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      storeBededagPct: 0,
       harOverenskomst: true,
       overenskomstId: 'bygge-anlaeg',
       loenPaaHelligdage: 'Almindelig løn' as const,
@@ -151,6 +155,7 @@ describe('applyAutoSatsFields — Store Bededag', () => {
     // storeBededagPct styres af loenPaaHelligdage + dato — ikke af harOverenskomst
     const autoSynced = applyAutoSatsFields({
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      storeBededagPct: 0,
       harOverenskomst: true,
       overenskomstId: 'bygge-anlaeg',
       loenPaaHelligdage: 'Almindelig løn' as const,
@@ -188,6 +193,7 @@ describe('applyAutoSatsFields — overenskomstsatser', () => {
   it('bevarer brugerens frie satser ved cross-tab resync på ulåst overenskomst', () => {
     const beforeDateChange = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      storeBededagPct: 0,
       harOverenskomst: true,
       overenskomstId: 'kl-overenskomst',
       loenPaaHelligdage: 'Almindelig løn' as const,
