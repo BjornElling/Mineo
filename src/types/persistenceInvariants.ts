@@ -16,7 +16,7 @@ type Assert<T extends true> = T;
  * `persistenceSchemas` (`eoFileSchema.ts`), og `PersistedSectionKey` gør nu det samme — så en sammenligning
  * af de to ville sammenligne den samme kilde med sig selv og aldrig kunne fejle. Tidligere var
  * `PersistedSectionKey` en håndskrevet nøglemapping i `storageManifest.ts` og udgjorde dermed selv den
- * uafhængige side; den mapping er slettet (WI-007), og literalen her har overtaget rollen.
+ * uafhængige side; den mapping er slettet, og literalen her har overtaget rollen.
  *
  * Tilføjes eller fjernes en sektion i `persistenceSchemas`, fejler compilen her, indtil listen
  * bevidst opdateres. Det er meningen: en sektion, der lydløst forsvinder, er datatab ved load.

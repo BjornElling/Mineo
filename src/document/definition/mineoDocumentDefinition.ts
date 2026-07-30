@@ -1,5 +1,5 @@
 /**
- * Hovedappens definition-alias (Fase 5, pass 0).
+ * Hovedappens definition-alias.
  *
  * `DocumentDefinition` er generisk over fire parametre, fordi kernen ikke må kende nogen apps
  * settings- eller brevhoved-type (standalone MinProcesrente har hverken `AppSettings` eller
@@ -8,7 +8,7 @@
  *
  * Derfor dette alias: ÉT sted binder hovedappens definitioner deres settings- og brevhoved-kontrakt.
  *
- * **Gate-settings er `EoRowPolicy` og ikke `SourceSettings` (R6-F03).** Definitionernes `project` har
+ * **Gate-settings er `EoRowPolicy` og ikke `SourceSettings`.** Definitionernes `project` har
  * præcis ÉN settings-afhængighed i produktionen: EO's rækkepolitik (`eoDocumentDefinitions.ts`).
  * Formatet og brevhoved-flagene bor i miljøets `renderSettings` og anvendes først EFTER gaten, fordi
  * formatet vælger writer og ikke dækning. Var hele `SourceSettings` fortsat gate-halvdelen, kunne
@@ -16,7 +16,7 @@
  * §A2a's paritet mellem reaktiv gate og click-preflight IKKE fanger, fordi begge kanaler ville se
  * samme skævhed. Nu er et sådant læs en compilerfejl frem for en regel, et værn skal overvåge.
  *
- * `AppSettings` opfylder ikke kontrakten strukturelt (WI-009): begge halvdele er nominelle, og deres
+ * `AppSettings` opfylder ikke kontrakten strukturelt: begge halvdele er nominelle, og deres
  * projektorer er deres eneste konstruktører. UI-laget skal derfor projicere eksplicit — hovedappen gør
  * det i `useMineoDocumentEnvironment`. Det er tilsigtet: så kan en dokumentdefinition ikke læse en
  * indstilling uden for `SOURCE_SETTINGS_KEYS` og dermed indføre en source-afhængighed, der ikke gør et

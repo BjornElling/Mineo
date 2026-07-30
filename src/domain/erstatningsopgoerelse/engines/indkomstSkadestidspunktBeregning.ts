@@ -1,4 +1,5 @@
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { StamdataValues } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from './tafCalculationInput';
 import { isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatAsAmount, formatPercent, isSingularCount } from '../../../utils/formatUtils';
@@ -37,7 +38,7 @@ const parsePctPoint = (value: string | number | undefined): number | undefined =
 };
 
 export const buildIndkomstSkadestidspunkt = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   stamdataValues: StamdataValues,
   tafBeregningsenhed: TafBeregningsenhed,
   options?: Readonly<{

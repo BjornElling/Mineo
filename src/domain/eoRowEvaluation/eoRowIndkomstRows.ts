@@ -479,7 +479,7 @@ export const buildEoIndkomstRows = (
         // for det tilfælde leveres af validatoren (`validateLoenudviklingDataCoverage` → "ASL-maks-sats
         // mangler for {år}", testet i regulering-4). Nettoresultatet er derfor fail-closed (download
         // blokeres med synlig fejl); rækkens 'ok' er en bevidst, sikker asymmetri, ikke tavs
-        // under-regulering. Jf. regulering-review-plan U11.
+        // under-regulering.
         return {
           displayValue: `(< ${overenskomstUdloebMaanederGraense} måneder)`,
           status: 'ok' as EoRowStatus,

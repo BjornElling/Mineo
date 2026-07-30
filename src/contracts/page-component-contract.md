@@ -425,7 +425,7 @@ Er hele rækken (label + ikon) skjult sammen — fx fordi sektionen ikke er rele
 konsistent og tilladt. Undtagelse: tabelceller med en etableret "ingen værdi"-markør (fx
 `-` pr. række) beholder markøren frem for et nedtonet ikon.
 
-**Gate-årsagen har ÉN visningskanal: tooltippet (UT-F07).** Den samme årsag må ikke også stå
+**Gate-årsagen har ÉN visningskanal: tooltippet.** Den samme årsag må ikke også stå
 som synlig tekst ved knappen. To sider gjorde det, og brugeren læste da den samme besked to
 gange. Reglen er tosidet, og begge halvdele skal holde:
 

@@ -5,8 +5,7 @@ import type { HistoryOrigin } from '../inputHistory';
 
 // Global undo/redo-genvej (§1.4/§3.6): Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y mod den ene
 // write-grænses history. Mens en editor er åben er genvejen et stille no-op (§1.4): coordinatorens `prepare`
-// returnerer `noop` for undo/redo med åben editor, og vi rører da ikke history. Erstatter legacy
-// `useUndoRedoShortcuts` for de øvrige app-varianter (standalone MinProcesrente).
+// returnerer `noop`, og history røres ikke.
 //
 // Efter en GENNEMFØRT undo/redo returnerer `runtime.history.undo/redo` et `DispatchInputResult`, hvis
 // `.restoredOrigin` er sat, når det gendannede frame bar en origin (§3.7). Shellen leverer `onRestore`, der da

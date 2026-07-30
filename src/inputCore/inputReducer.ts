@@ -21,7 +21,7 @@ import { createValidationReader, deriveFieldIssueSet } from './inputReader';
 import { activeFieldIssue } from './inputIssue';
 
 // Inputkernen (§3.6): alle autoritative ændringer bygges af ÉN ren, exhaustiv reducer. Storage, revision
-// og history ejes af runtime-runneren (Fase 2). Reduceren håndhæver XOR-invarianten (§1.5): et ugyldigt settle
+// og history ejes af runtime-runneren (inputkernen). Reduceren håndhæver XOR-invarianten (§1.5): et ugyldigt settle
 // rydder feltets canonical slot til tomværdien OG skriver den rå fejlende tekst atomisk.
 
 export type SettleFieldCommand<T> = Readonly<{ kind: 'settleField'; field: FieldRef<T>; raw: string }>;
@@ -52,7 +52,7 @@ export type SettleFieldInNewRowCommand<TEntity, TField> = Readonly<{
 export type InputTransactionStep = Readonly<{
   reduce: (input: SettledInput, catalog: InputCatalog) => SettledInput;
   /**
-   * Er trinnet en STRUKTUREL rækkeændring (§3.7, WI-004 runde 4, fund S4)?
+   * Er trinnet en STRUKTUREL rækkeændring?
    *
    * Trinnet pakker sin command ind i en closure, så dispatch-porten ellers ikke kan se, at transaktionen
    * indeholder fx en `deleteRow`. Uden klassifikationen kunne en strukturel transaktion sendes helt uden
@@ -133,7 +133,7 @@ export type InputMutationCommand<TField = unknown, TEntity = unknown> =
   | ReplaceCaseCommand
   | ClearCaseCommand;
 
-/** Commands, som form-/grid-surfaces må udstede; hel-sagsmutationer er kun systeminfrastruktur. */
+/** Commands, som formular-/gridflader må udstede; hel-sagsmutationer er kun systeminfrastruktur. */
 export type InputSurfaceCommand<TField = unknown, TEntity = unknown> = Exclude<
   InputMutationCommand<TField, TEntity>,
   ResetSectionCommand | ReplaceCaseCommand | ClearCaseCommand
@@ -168,12 +168,12 @@ export const inputTransactionStep = <TField, TEntity>(
   structural: isStructuralInputCommand(command),
 });
 /**
- * Bygger en transaktion af RENE FELTTRIN. Kaster, hvis et trin er strukturelt (§3.7, WI-004 runde 4, S4).
+ * Bygger en transaktion af RENE FELTTRIN. Kaster, hvis et trin er strukturelt.
  *
  * Adskillelsen i to konstruktører er bevidst: dispatch-porten skal kunne kræve en navigerbar destination for
  * en transaktion med rækkeændringer, og TYPEN skal kunne se forskellen. Ville `inputTransaction` derimod
  * returnere unionen af de to arter, ville en betinget origin-tuple opløses til unionen af begge arme, og
- * kravet ville forsvinde — præcis det hul fund S4 beskrev i overload-varianten.
+ * kravet ville forsvinde. De to konstruktører bevarer derfor kravet i typen.
  */
 export const inputTransaction = (
   steps: readonly InputTransactionStep[]
@@ -401,19 +401,7 @@ export const reduceInputCommand = <TField, TEntity>(
   command: InputMutationCommand<TField, TEntity>,
   catalog: InputCatalog
 ): InputReducerResult => {
-  // Trin 1: byg og validér brugerens egen ændring. Reglerne for afledte felter skal se en VALIDERET
-  // envelope — ellers ville de læse utypede rå værdier og kunne udlede en konsekvens af noget, kataloget
-  // ville have afvist.
-  const committed = catalog.validateSettledInput(buildCandidate(input, command, catalog));
-
-  // Trin 2: materialisér de afledte felter i SAMME kandidat og validér resultatet igen. Årsag og konsekvens
-  // hører dermed til samme revision og samme history-trin, og ingen afledt værdi kan blive en selvstændig
-  // autoritativ handling, brugeren skal fortryde for sig (§3.6, GM-F02). Den anden validering er ikke
-  // dobbeltarbejde: den er grænsen, der forhindrer en afledt regel i at smugle en ugyldig envelope ind.
-  const derived = catalog.materializeDerivedWrites(committed.sections);
-  const candidate: SettledInput = derived === committed.sections
-    ? committed
-    : catalog.validateSettledInput({ sections: derived, rejectedInputs: committed.rejectedInputs });
+  const candidate = catalog.validateSettledInput(buildCandidate(input, command, catalog));
 
   if (deepEqual(input, candidate)) return Object.freeze({ changed: false, input });
   return Object.freeze({ changed: true, input: candidate });

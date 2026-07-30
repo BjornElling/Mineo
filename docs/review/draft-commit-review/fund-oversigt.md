@@ -1,10 +1,10 @@
 # Fundoversigt
 
 Samlet register over alle fund i draft/commit-reviewet: fasefundene (R0–R8), det tværgående
-konvergensreview (GM-F01–GM-F15) og brugertestfundene (UT-F01–UT-F06). Én linje pr. fund, ingen prosa —
+konvergensreview (GM-F01–GM-F15) og brugertestfundene (UT-F01–UT-F08). Én linje pr. fund, ingen prosa —
 beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 
-**Sidst opdateret:** 2026-07-29 (**etape 12 lukket — ALLE fund er håndteret**)
+**Sidst opdateret:** 2026-07-30 (**etape 12 lukket — ALLE fund er håndteret**)
 
 ## Status
 
@@ -12,9 +12,9 @@ beskrivelse, evidens og løsningsretning står i rapporten, fundet henviser til.
 |---|---:|---:|---:|---:|
 | R0–R8 (fasefund) | 36 | 0 | 36 | 0 |
 | GM (konvergensreview) | 15 | 0 | 15 | 0 |
-| UT (brugertest) | 6 | 0 | 5 | 1 |
+| UT (brugertest) | 8 | 0 | 7 | 1 |
 | INC (tilfældighedsfund) | 22 | 0 | 22 | 0 |
-| **I alt** | **79** | **0** | **78** | **1** |
+| **I alt** | **81** | **0** | **80** | **1** |
 
 **ALLE TOLV ETAPER ER LUKKET.** Etape 12 (2026-07-29) lukkede de fire sidste fasefund/konvergensfund — R7-F01,
 R0-F01, GM-F10 og INC-F14 — plus de tre udestående work items (WI-005, WI-010, WI-011) og tre nye
@@ -152,6 +152,8 @@ Indmeldt af brugeren ved brugertest parallelt med reviewet. Beskrivelse, reprodu
 | UT-F04 | Tilføjelse af ansættelsesforhold crasher den nested løntabel | Kritisk | `useCellEditor.ts`, fem tabelflader | 1 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f04--tilføjelse-af-ansættelsesforhold-crasher-den-nested-løntabel) |
 | UT-F05 | Dags-dato-knappen sender en ulovlig immediate-kommando | Væsentlig | `useFieldEditor.commitImmediate`, fem side-callsites | 2 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f05--dags-dato-knappen-sender-en-ulovlig-immediate-kommando) |
 | UT-F06 | Års-placeholder viser en valideringsgrænse | Mindre | `fieldFormatPlaceholders.ts`, `StandardLoenTable.tsx` | 7 | **Rettet 2026-07-28** | [UT](../draft-commit-brugertestfund.md#ut-f06--års-placeholder-viser-en-valideringsgrænse) |
+| UT-F07 | Download-gate-årsagen vises både som tekst og tooltip | Mindre | Fælles dokumentknap og ni dokumentdefinitioner | — | **Rettet 2026-07-29** | [UT](../draft-commit-brugertestfund.md#ut-f07--download-gate-årsagen-vises-både-som-tekst-og-som-tooltip) |
+| UT-F08 | Minus kan tastes i et ikke-negativt procentfelt | Væsentlig | `FieldCodec.signPolicy` og den numeriske feltfamilie | — | **Rettet 2026-07-29** | [UT](../draft-commit-brugertestfund.md#ut-f08--minus-kan-tastes-som-første-tegn-i-et-ikke-negativt-procentfelt) |
 
 **UT-F04 — rettet 2026-07-28.** Løst ved roden, ikke lokalt: cellens dataidentitet konstrueres nu ét sted
 (`src/inputCore/react/cellSpecBuilder.ts`), som udleder ejer-id'erne af `collection.path` — samme sti som

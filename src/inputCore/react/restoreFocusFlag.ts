@@ -2,8 +2,7 @@
 //
 // Mens flaget er sat, må en felt-/celle-blur IKKE committe: blur'et skyldes fokus-flytningen, ikke en
 // brugerredigering, og draften kan endnu være forældet. Flaget bor i sit eget modul — ikke i restore-løkken —
-// så commit-stierne kan læse det uden at afhænge af DOM-/løkke-implementeringen (og uden at trække en
-// legacy-adapter med sig).
+// så commit-stierne kan læse det uden at afhænge af DOM-/løkke-implementeringen.
 
 let restoreFocusInProgress = false;
 

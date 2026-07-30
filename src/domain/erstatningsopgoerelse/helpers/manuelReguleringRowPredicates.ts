@@ -10,10 +10,8 @@ import type {
  * Motorens compute-drop (`manuelProcentsatsRegulering`/`buildLoenudviklingFromManual`), den
  * pre-compute-validator (`erstatningsopgoerelseValidator`) og row-evaluerings-gaten
  * (`eoRowIndkomstRows`) SKAL dele disse prædikater, så en "aktiv" men ufuldstændig række altid
- * gates blokerende samme sted som motoren stille dropper den — ellers opstår en tavs
- * under-regulering (jf. silent-path S5/S8 og regulering-review punkt 8/13). Tidligere lå tre
- * bogstaveligt ens kopier spredt, med den latente drift-risiko at én "aktiv"-definition kunne
- * ændres og bringe gate og motor ud af sync.
+ * gates blokerende samme sted som motoren stille dropper den — ellers opstår tavs
+ * underregulering. En fælles prædikatdefinition hindrer, at gate og motor driver fra hinanden.
  *
  * Note om dato-checket: committed `dato` er (via `tableIsoDateCellString`) altid enten en gyldig
  * ISO-streng eller `undefined` (tom/whitespace → `undefined`, ugyldigt ikke-tomt input fejler

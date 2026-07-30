@@ -210,7 +210,7 @@ export const createIntegerFieldCodec = (
   assertNumericBounds('IntegerFieldCodec', config, isSafeCanonicalInteger);
   return Object.freeze({
     family: 'integer',
-    // Fortegns-politikken er DATA (UT-F08), så feltkomponenternes tegnfilter kan læse den erklærede regel
+    // Fortegns-politikken er DATA, så feltkomponenternes tegnfilter kan læse den erklærede regel
     // frem for at hardkode sin egen. Parse/settle nedenfor er fortsat fortegns-blind (§1.6).
     signPolicy: config.allowNegative ? 'signed' : 'nonNegative',
     parseForSettle: (raw): FieldResolution<number | undefined> => {
@@ -224,7 +224,7 @@ export const createIntegerFieldCodec = (
     },
     format: (value) => value === undefined ? '' : String(value),
     formatForEdit: (value) => value === undefined ? '' : String(value),
-    // Minus åbner kun editoren på et felt, der FÅR være negativt (UT-F08).
+    // Minus åbner kun editoren på et felt, der FÅR være negativt.
     acceptsInitialKey: (key) => /^\d$/.test(key) || (key === '-' && config.allowNegative),
     // Paste beholder BEVIDST `allowNegative: true`: en INDSAT negativ værdi skal committes canonical og bære
     // sit røde bounds-issue (§1.6), ikke få fortegnet stille fjernet. Tegnfilteret gælder tastning — det
@@ -254,7 +254,7 @@ export const createAmountFieldCodec = (options: Readonly<{
   const displayPrecision = options.allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0;
   return Object.freeze({
     family: 'amount',
-    // Se `FieldSignPolicy` (UT-F08): den erklærede fortegnsregel er data, så tegnfilteret ikke gætter.
+    // Se `FieldSignPolicy`: den erklærede fortegnsregel er data, så tegnfilteret ikke gætter.
     signPolicy: options.allowNegative ? 'signed' : 'nonNegative',
     parseForSettle: (raw): FieldResolution<AmountValue | undefined> => {
       const parsed = parseAmountInput(raw, {
@@ -275,7 +275,7 @@ export const createAmountFieldCodec = (options: Readonly<{
     // Et komma må kun åbne editoren i et felt, der faktisk kan rumme decimaler — ellers ville
     // tastetrykket starte en redigering, som tegnfilteret straks blokerer.
     //
-    // `-` beholdes for BEGGE fortegns-politikker, i modsætning til heltal og procent (UT-F08): i et
+    // `-` beholdes for BEGGE fortegns-politikker, i modsætning til heltal og procent: i et
     // beløbsfelt er minus også SUBTRAKTION i et udtryk ("5000-200"), og et ikke-negativt felt må gerne
     // regne sig ned til et lovligt resultat. Tegnfilteret blokerer netop kun det UNÆRE minus
     // (`containsUnaryMinusToken`), og den skelnen kan et enkelt-tegns-opslag ikke gøre.
@@ -304,7 +304,7 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
   };
   return Object.freeze({
     family: 'percent',
-    // Se `FieldSignPolicy` (UT-F08). ALLE procentfelter i produktionskataloget er `nonNegative`; politikken er
+    // Se `FieldSignPolicy`. ALLE procentfelter i produktionskataloget er `nonNegative`; politikken er
     // alligevel udledt af konfigurationen frem for hardkodet, så et fremtidigt fortegnet procentfelt virker.
     signPolicy: config.allowNegative ? 'signed' : 'nonNegative',
     parseForSettle: (raw): FieldResolution<number | undefined> => {
@@ -316,7 +316,7 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
     },
     format: (value) => formatPercentDisplay(value, config.allowDecimals),
     formatForEdit: (value) => formatPercentDisplay(value, config.allowDecimals),
-    // Minus åbner kun editoren, hvis feltet FÅR være negativt (UT-F08). En procent har ingen udtryks-syntaks,
+    // Minus åbner kun editoren, hvis feltet FÅR være negativt. En procent har ingen udtryks-syntaks,
     // så her er minus utvetydigt et fortegn — modsat beløbsfeltets subtraktion.
     acceptsInitialKey: (key) => {
       if (key === '-') return config.allowNegative;
@@ -345,7 +345,7 @@ export const createStringBackedFieldCodec = <T extends string | number>(
   format: (value) => value ?? '',
   formatForEdit: (value) => value ?? '',
   acceptsInitialKey: sourceCodec.acceptsInitialKey,
-  // Fortegns-politikken ARVES fra det indre codec (UT-F08): adapteren ændrer kun canonical TOMHED til `''`,
+  // Fortegns-politikken ARVES fra det indre codec: adapteren ændrer kun canonical TOMHED til `''`,
   // ikke hvad der er et lovligt fortegn. Uden viderestillingen ville månedscellen — et heltal 1..12 gennem
   // denne adapter — miste sin ikke-negative politik og få minus tilbage i tegnfilteret.
   ...(sourceCodec.signPolicy === undefined ? {} : { signPolicy: sourceCodec.signPolicy }),

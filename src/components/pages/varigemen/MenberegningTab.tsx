@@ -43,7 +43,7 @@ import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 // adfærd er uændrede (§5.4).
 
 const mengradRef = varigeMenMengradField.bind();
-/** Méngradens fortegns-politik fra dens eget codec (UT-F08) — statisk, så opslaget ikke gentages pr. render. */
+/** Méngradens fortegns-politik fra dens eget codec — statisk, så opslaget ikke gentages pr. render. */
 const MENGRAD_ALLOWS_NEGATIVE = codecAllowsNegative(varigeMenMengradField.codec);
 const beregningsdatoRef = varigeMenBeregningsdatoField.bind();
 const fodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
@@ -77,7 +77,7 @@ const MenberegningTab = React.memo(() => {
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
 
-  // Politikken læses af méngrad-feltets EGET codec (UT-F08) frem for at være hardkodet her. Svaret er det
+  // Politikken læses af méngrad-feltets EGET codec frem for at være hardkodet her. Svaret er det
   // samme (méngrad er 1..120), men nu er det feltets erklæring og ikke en lokal gentagelse af den.
   const mengradKeyFilter = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) =>
@@ -108,7 +108,7 @@ const MenberegningTab = React.memo(() => {
   const skadedatoError = skadedatoRead.status === 'error' ? skadedatoRead.issue.message : undefined;
   const beregningsdatoError = beregningsdatoRead.status === 'error' ? beregningsdatoRead.issue.message : undefined;
 
-  // Alder og sats vises uafhængigt af méngrad (som legacy): alderen så snart begge datoer er gyldige, satsen så
+  // Alder og sats vises uafhængigt af méngrad: alderen så snart begge datoer er gyldige, satsen så
   // snart beregningsdatoen har en lovsats for sit år — også når méngrad mangler og projektionen derfor er blokeret.
   const alderVedSkade = React.useMemo(() => {
     if (fodselsdato === undefined || skadedato === undefined) return undefined;
@@ -343,7 +343,7 @@ const MenberegningTab = React.memo(() => {
         <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
           {!download.canDownload ? (
             // Download-ikonet vises altid sammen med sin tekstlinje — her nedtonet/inaktivt, fordi beregningen
-            // (og dermed download) er blokeret. Årsagen står KUN i ikonets tooltip (UT-F07): den stod tidligere
+            // (og dermed download) er blokeret. Årsagen står KUN i ikonets tooltip: den stod tidligere
             // også som nedtonet tekst i værdikolonnen, så brugeren læste den samme besked to gange.
             <DocumentDownloadButton
               onClick={() => void handlePdfDownload()}

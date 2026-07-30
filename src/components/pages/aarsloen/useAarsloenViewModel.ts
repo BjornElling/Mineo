@@ -120,7 +120,7 @@ export function useAarsloenViewModel() {
   // Omregning-toggle: den persisterede canonical værdi + den centrale gate. Toggle-visning og skjult indhold
   // reagerer på samme committed forudsætninger (gate). Togglen er et ALMINDELIGT persisteret felt gennem
   // `ToggleField` (§3.2/§3.7) — gaten leveres som dens `commit`-override, så en ugyldig aktivering afvises uden
-  // at feltbindingen eller undo/redo-fokusmetadataen falder væk (R7-F02).
+  // at feltbindingen eller undo/redo-fokusmetadataen falder væk.
   const toggleRef = React.useRef<StyledToggleSwitchHandle | null>(null);
 
   const {

@@ -62,7 +62,7 @@ const isComposing = (e: React.KeyboardEvent): boolean => {
  * slet-række-knappen ligger uden for celle-navigationen. Grid'et må derfor ikke føre to-trins-
  * redigeringsbogføring (arm/openEditing) for dem — det ville åbne en "editor" for en kontrol, der ikke
  * har nogen. Samme klassifikation som Enter-grenen, så en dropdown ikke behandles forskelligt
- * afhængigt af eventtype (UT-F02, punkt 5).
+ * afhængigt af eventtype.
  */
 const ownsItsOwnPointerInteraction = (target: HTMLElement): boolean => {
   if (isInClosedPopupWidget(target)) return true;

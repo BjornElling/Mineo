@@ -1,12 +1,8 @@
 import {
   buildMidlertidigtEetInsertSource,
-  EET_IMPORT_DEPENDENCY_FIELD_IDS,
 } from '../../domain/erhvervsevnetab/eetImportPort';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import {
-  getProductionInputCatalog,
-  productionInputFields,
-} from '../../inputCore/catalog/productionCatalog';
+import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../inputCore/inputReader';
 import {
   createEvaluationSourceToken,
@@ -75,7 +71,8 @@ describe('buildMidlertidigtEetInsertSource', () => {
     const source = buildMidlertidigtEetInsertSource(buildEvaluation());
 
     expect(source.revision).toBe('input-7-settings-3');
-    expect(source.eetValues.ealEetPct).toBe(25);
+    // Importkilden indeholder kun importmotorens typed read-set; EAL-procenten hører til en anden gren.
+    expect(source.eetValues.ealEetPct).toBeUndefined();
     expect(source.eetValues.aslAfgoerelser).toHaveLength(1);
     expect(source.issues).toBeUndefined();
   });
@@ -116,30 +113,4 @@ describe('buildMidlertidigtEetInsertSource', () => {
     expect(source.issues?.map((issue) => issue.id)).toContain('midlertidigt-eet-stamdata-date-order');
   });
 
-  // R3-F01: dependency-listen er kun troværdig, hvis den måles mod produktionskataloget. Var den en
-  // håndskrevet liste, ville et omdøbt felt lydløst falde ud af gaten — og importen ville da regne på en
-  // maskeret værdi. Samme completeness-mønster som EO's `eoDependencyGroups.test.ts`.
-  it('hvert dependency-id findes i produktionskataloget', () => {
-    const productionFieldIds = new Set(productionInputFields.map((field) => field.id));
-
-    expect(productionFieldIds.size).toBeGreaterThan(100);
-    expect(EET_IMPORT_DEPENDENCY_FIELD_IDS.length).toBeGreaterThan(5);
-    for (const id of EET_IMPORT_DEPENDENCY_FIELD_IDS) {
-      expect(productionFieldIds.has(id), `${id} findes ikke i produktionskataloget`).toBe(true);
-    }
-  });
-
-  it('ALLE felter i ASL-afgørelsesrækken er dependencies — en ny celle må ikke falde uden for', () => {
-    // Hele rækken fodrer periodiseringen og beløbene. Uden dette led kunne en senere tilføjet celle blive
-    // læst af beregningen uden at være i gaten.
-    const rowFieldIds = productionInputFields
-      .filter((field) => field.template.path.some((segment) =>
-        segment.kind === 'entity' && segment.collection === 'aslAfgoerelser'))
-      .map((field) => field.id);
-
-    expect(rowFieldIds.length).toBeGreaterThan(0);
-    for (const id of rowFieldIds) {
-      expect(EET_IMPORT_DEPENDENCY_FIELD_IDS).toContain(id);
-    }
-  });
 });

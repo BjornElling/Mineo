@@ -18,18 +18,15 @@ import {
 
 // Produkt-descriptors for `forsoergertab`-sektionen (§3.2). Kun top-level skalarer.
 //
-// **Dato-bounds (§1.6, Fase 3 Forsørgertab-slice):** de dynamiske min/max-grænser, som legacy-siden håndhævede
-// via `StyledDateField`s `minDate`/`maxDate`-props + `onFieldError`, er nu canonical bounds-FELTVALIDATORER på
+// **Datogrænser (§1.6):** de dynamiske min/max-grænser er canonical bounds-FELTVALIDATORER på
 // descriptoren. En schema-repræsenterbar dato uden for grænsen committes canonical (kan gemmes i `.eo`) og
-// bærer et rødt bounds-issue, som readeren skjuler for afhængige consumers. Grænserne er byte-identiske med
-// legacy (samme `dateRanges_forsoergertab` + `resolveDateRangeErrorMessage`), så den røde beskedtekst er
-// uændret. Krydsfeltafhængigheder læses via `view.readCanonical` (den raw canonical dependency, uafhængigt af
-// dependencyens eget issue — som legacy brugte den rå `values.virkningsdato`/`stamdata.skadedato` til at udlede
-// grænsen).
+// bærer et rødt bounds-issue, som readeren skjuler for afhængige consumers. Grænser og beskedtekst kommer
+// fra `dateRanges_forsoergertab` og `resolveDateRangeErrorMessage`. Krydsfeltafhængigheder læses via
+// `view.readCanonical`, fordi grænsen afledes af den canonical virkningsdato/skadedato.
 
 const createEmptyForsoergertabSection = (): unknown => ({});
 
-// Legacy-`skadedatoMin`: `coerceToISODateString(stamdata?.skadedato) ?? fallbackMin`.
+// Mangler skadedatoen, bruges den faste fallbackgrænse.
 const resolveSkadedatoMin = (skadedato: ISODateString | undefined): ISODateString =>
   skadedato ?? dateRanges_forsoergertab.virkningsdato.fallbackMin;
 
@@ -68,7 +65,6 @@ export const forsoergertabEfterladteFodselsdatoField = dateField('efterladteFods
 ]);
 
 // Beregningsdato: min = max(skadedatoMin, virkningsdato); max = forsørgertab-datadækning (dataCoverageMax).
-// Legacy: `minDate={snapshot.inputBounds.beregningsdatoMin}` / `maxDate=beregningsdato.max`.
 export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Beregningsdato', [
   (value, _field, view) => {
     if (value === undefined) return undefined;

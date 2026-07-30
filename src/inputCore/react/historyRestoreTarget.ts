@@ -7,15 +7,14 @@ import { isRestoreTargetVisible, runHistoryTargetRestoreLoop } from './historyTa
 
 // Undo/redo felt-fokus-restore (§3.7): efter en gennemført undo/redo re-targeteres fokus
 // til det felt/celle, ændringen kom fra. Selve værdi-/draft-gendannelsen sker gennem den restored revision (§3.5) —
-// denne modul flytter KUN fokus (+ scroll + fokus-ring) via den DELTE `runHistoryTargetRestoreLoop`, så legacy- og
-// undo/redo-restore ikke kan drifte fra hinanden.
+// dette modul flytter KUN fokus (+ scroll + fokus-ring) via den DELTE `runHistoryTargetRestoreLoop`.
 //
 // Målet lokaliseres PRÆCIST via BÅDE feltadressen OG editorlokationen. Begge dele er nødvendige, fordi samme
 // datafelt kan redigeres flere steder (§3.2): fokus skal lande på den editor, der faktisk lavede ændringen —
 // ikke en vilkårlig spejling af samme felt. Adressen alene kan derfor ikke bære identiteten.
 //
 // Attributterne her er DEN ENE feltidentitet i DOM: undo/redo, save-blokeringens fokus og EO's fejllinks slår
-// alle op på dem. Håndhævet af `input/single-field-identity-in-dom` (GM-F10).
+// alle op på dem. Håndhævet af `input/single-field-identity-in-dom`.
 
 /** DOM-attribut for et felts serialiserede feltadresse. Sat af form-/grid-surface på det fokuserbare element. */
 export const FIELD_ADDRESS_ATTR = 'data-mineo-field-address';
@@ -35,7 +34,7 @@ export const EDITOR_TAB_ATTR = 'data-mineo-editor-tab';
  * Destinationen står HER — på den konkrete editor — og ikke i et globalt feltadresse→fane-kort (§3.2). Feltets
  * dataadresse er dataidentitet og DOM-matchnøgle; hvor feltet REDIGERES, ved kun editorlokationen. Et felt kan
  * redigeres på flere sider (fx `faellesAarsloen`, forligsfelterne), og en global afbildning måtte da kompensere
- * med særregler for brugerens aktuelle route — netop den parallelle model, R7-F03 lukkede.
+ * med særregler for brugerens aktuelle route og dermed skabe en parallel destinationsmodel.
  */
 export type RestoreTargetAttributes = Readonly<{
   [FIELD_ADDRESS_ATTR]: string;

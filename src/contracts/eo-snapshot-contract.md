@@ -230,31 +230,27 @@ med `taf_per_year_pdf`: kan TAF ikke fordeles på år, kan grafen heller ikke ge
 ### 3.3 Afhængighedsopdeling: hvilken gren blokerer en rød feltfejl?
 
 En rød reader-feltfejl blokerer **kun den beregningsgren, der faktisk læser feltet** — dependency-præcis
-blokering pr. `form-contract.md` §2.3, som er den normative kilde. Grupperne ejes ét sted:
-`snapshot/eoDependencyGroups.ts` (`resolveEoBlockedDependencies`), og snapshottet bærer resultatet som
-`blockedDependencies` med grenene `svieSmerte`, `forlig`, `taf`, `oevrigeKrav` og aggregatnoden `aggregate`.
+blokering pr. `form-contract.md` §2.3, som er den normative kilde. Hver gren bygger sit input gennem en
+egen typed projektion med `createTrackedInputReader`. `blockedDependencies` afledes direkte af disse
+projektioners issue-sæt for `svieSmerte`, `forlig`, `taf`, `oevrigeKrav` og aggregatnoden `aggregate`.
 
-**Autoriteten er det STRUKTURELLE `FieldIssueSnapshot`** — `computeEoSnapshot`s `eoFieldIssues`, filtreret til
-EO-sektionen. Den må **ikke** være `eoErrors`-mappet: det er en præsentations-projektion med kun de 11
-top-level feltnavne plus `${afId}:loenindkomst`, så en rød RÆKKECELLE (svie/smerte-periode, TAF-periode,
-ferie-/fraværsdato, lønudviklingscelle) ville være usynlig for gaten, og motoren ville regne på readerens
-maskerede tomværdi. Matchningen sker på descriptor-id og på `address.path`'s collection-segment — aldrig på
-substring-fragmenter eller syntetiske `${rowId}:collection`-nøgler.
+Der findes ingen manuel liste over descriptor-id'er eller collection-navne. En collection-projektion
+enumererer de aktuelle rækker og læser hver relevant celle gennem dens bundne `FieldRef`. Dermed bliver en
+ny motorafhængighed først en blocker, når den samtidig indgår i motorinputprojektionen, og en fjernet læsning
+kan ikke blive stående som død blokeringsmetadata. `eoErrors` er fortsat kun en præsentationsprojektion og
+må ikke bruges som beregningsgate.
 
 Der er bevidst ingen `regulering`-gren: reguleringsforløbet har ingen egne felter, og en ugyldig manuel
 reguleringscelle bor i lønudviklingens rækkesamlinger og blokerer derfor TAF-grenen, som er den, der læser
 den. `oevrigeKrav` blokerer aggregatet, men ingen motorgren — cellerne evalueres i `EO_ROW_BUILDERS` med deres
-egen download-gate. En completeness-test itererer det faktiske produktionskatalog: hver klassificeret
-collection og hvert klassificeret felt-id skal findes i `productionInputFields`/`productionInputCollections`,
-og ALLE en klassificeret collections faktiske child-felter skal ramme en gren. Derfor er en senere tilføjet
-celle automatisk dækket, og en omdøbning gør testen rød i stedet for lydløst at gøre en gren til død kode.
+egen download-gate.
 
 **Forliget er en delvis S/S-afhængighed.** `computeSvieSmerteEngine` læser selv forligsgraden og skalerer
 dagssats, maksimum og total med faktoren. Forligsfelterne ligger derfor **ikke** i S/S-gruppen: en rød
 forligsprocent neutraliserer kun EFTER-forlig-felterne (`satserPerDagOre`, `satserMaxOre`, `forligFactor`,
 `totalOre`), mens før-forlig-grundlaget består — brugerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at
 før-forlig-resultater bevares. Motorens egen operationsrækkefølge er uændret; kun hvilke af dens beregnede
-felter der surfaces, ændres.
+felter der eksponeres, ændres.
 
 Reglen har to lige alvorlige fejlretninger:
 
@@ -269,7 +265,7 @@ de summerer eller sammenstiller flere grene. De bygges derfor kun, når INGEN gr
 ukendt led er ukendt, og et dokument med et manglende afsnit er ikke autoritativt. `data` er `null` i den
 situation, og det autoritative output har ingen halv-tilstand.
 
-**De gyldige grene surfaces gennem `readyBranches`, ikke kun `inspektionSnapshot`.** Snapshottet bærer på den
+**De gyldige grene eksponeres gennem `readyBranches`, ikke kun `inspektionSnapshot`.** Snapshottet bærer på den
 blokerede sti de grene, der stadig kunne beregnes sikkert (`svieSmerte`, `tafPerioder`; `undefined` =
 "blokeret af sin egen røde afhængighed"). `eoSnapshotToBeregningView` falder tilbage til dem, så
 Beregning-fanen fortsat viser den GYLDIGE TAF-periodisering, når et svie/smerte-felt er rødt — netop

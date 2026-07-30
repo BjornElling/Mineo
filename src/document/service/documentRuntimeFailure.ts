@@ -3,7 +3,7 @@
  * dynamic-import-fejl og routing af uventede fejl til den centrale systemfejl-overflade
  * (`document-output-contract.md` §A5).
  *
- * Udskilt fra `documentService.ts` i Fase 5, fordi den er MEKANIK og ikke domænepolitik: den samme
+ * Udskilt fra `documentService.ts` i dokumentdefinitionen, fordi den er MEKANIK og ikke domænepolitik: den samme
  * håndtering skal gælde alle 21 outputs.
  *
  * Modulet er hovedappens implementering af to porte på `DocumentExecutionEnvironment`

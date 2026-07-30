@@ -22,8 +22,8 @@ import { serializeFieldAddress } from '../fieldAddress';
 //
 // Broen: grid-core `openEditing(cell)` → editorens `open()`; editorens `settle()` → grid-core `closeEditing()`.
 // Cellen registrerer en `GridCellEditorHandle`, hvis metoder udelukkende delegerer til controlleren, så der
-// fortsat kun er ÉN write-grænse (§3.6) og ÉT sæt draft-state. Til forskel fra legacy `useTableInputCore` holder
-// dette lag INGEN draftkopi, invalidDrafts-kanal, fingerprint eller epoch-resync — alt det bor i motoren/readeren.
+// kun er ÉN write-grænse (§3.6) og ÉT sæt draft-state. Dette lag holder ingen parallel draftkopi,
+// fingerprint eller epoch-resync; det hører til i motoren/readeren.
 
 /** Familiespecifikt tegnfilter i åben editor (fx `filterIntegerKeyDown`); kaldes efter Enter/Escape/nav. */
 export type GridCellKeyFilter = (e: React.KeyboardEvent<HTMLInputElement>) => void;

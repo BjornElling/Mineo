@@ -116,7 +116,7 @@ export function useForsoergertabViewModel() {
      * Handlet gives ubearbejdet videre. UdfaldsBESKEDEN udledes i den sektion, der AKTIVERER downloaden —
      * ikke her: `document/activation-shows-outcome` måler pr. fil, at den flade, der klikker, også kan vise
      * udfaldet. Udledtes beskeden her, ville aktiveringen strukturelt være adskilt fra sin visning, og
-     * netop den adskillelse var R6-F02's fejl.
+     * ellers sammenblandes et forventeligt gate-afslag med en systemfejl.
      */
     download,
     skadelidteFodselsdato,

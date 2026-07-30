@@ -1,6 +1,6 @@
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
-// Intervalalgebraen er IKKE EO-specifik og bor derfor ét kanonisk sted (`utils/closedDateRange`, GM-F15).
+// Intervalalgebraen er IKKE EO-specifik og bor derfor ét kanonisk sted.
 // Modulet her ejer kun den EO-specifikke overlapsREGEL og dens brugerbesked. Der re-eksporteres bevidst
 // INTET: to importstier til samme primitiv ville være netop den parallelitet, fundet handler om.
 import {

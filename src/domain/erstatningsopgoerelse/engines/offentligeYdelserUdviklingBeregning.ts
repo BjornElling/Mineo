@@ -14,7 +14,7 @@ import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregni
 import type { LoenudviklingSegment, OffentligeYdelserUdviklingModel } from '../shared/eoTypes';
 import { clampMoneyOreToZero, fromKroner, sumMoneyOre } from '../../money/money';
 import { asCalculable } from '../shared/eoTypes';
-import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from './tafCalculationInput';
 import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
 
 // INVARIANT-NOTE: Alle throw new Error() i denne fil er defensive invarianter.
@@ -181,7 +181,7 @@ const buildSegmentsForBenefit = (params: Readonly<{
 };
 
 export const buildOffentligeYdelserUdviklingModel = (params: Readonly<{
-  values: ErstatningsopgoerelseValues;
+  values: TafCalculationValues;
   incomeForBeregningsperiode: IncomePeriodResult;
   divisor: number | null | undefined;
   tafBeregningsenhed: TafBeregningsenhed;

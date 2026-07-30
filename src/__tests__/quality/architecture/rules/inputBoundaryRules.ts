@@ -1100,8 +1100,8 @@ export const programmaticFieldCommitUsesSettle = defineRule({
  * `InputEvaluation.issues` fortsat bærer snapshottet (dokumentlivscyklussen skal have tokenet), og
  * `.all` derfra ville genåbne hullet UDEN en typefejl.
  *
- * Consumeren skal i stedet kalde `reader.readSectionFieldIssues(section)` — som navngiver sektionen i
- * kildekoden — og derefter selv klassificere sine faktiske afhængigheder.
+ * Consumeren skal i stedet læse konkrete `FieldRef`s. En projektion, der skal samle fejl fra mange reads,
+ * bruger `createTrackedInputReader`, som kun opsamler issues fra netop disse reads.
  */
 const ISSUE_SNAPSHOT_OWNERS = 'src/inputCore/';
 
@@ -1120,8 +1120,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
   id: 'input/issue-snapshot-capability-boundary',
   description:
     'Det brede feltissue-snapshot (`issues.all`) læses kun i inputkernen. Consumers uden for kernen '
-    + 'blokerer på konkrete reads — `reader.read(field)` eller det navngivne '
-    + '`reader.readSectionFieldIssues(section)` — så en gate ikke kan blokere bredere end sine '
+    + 'blokerer på konkrete reads — `reader.read(field)` eller `createTrackedInputReader` — så en gate ikke kan blokere bredere end sine '
     + 'faktiske dependencies (§1.10, §3.4, R3-F04).',
   liveTarget: {
     kind: 'precondition',
@@ -1139,7 +1138,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
       // 2) Den navngivne, smalle erstatning findes. Uden den ville reglen forbyde den brede vej uden at
       //    efterlade en lovlig vej — og den næste consumer ville omgå grænsen i stedet.
       if (entry.relativePath === 'src/inputCore/inputReader.ts') {
-        return hasIdentifier(entry, 'readSectionFieldIssues');
+        return hasIdentifier(entry, 'createTrackedInputReader');
       }
       // 3) Præsentationsundtagelsen aftager stadig et helt sæt. Gør den ikke det, skal undtagelsen væk.
       if (ISSUE_SET_CONSUMERS.includes(entry.relativePath)) return hasMemberRead(entry, 'all');
@@ -1147,7 +1146,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
     },
     rationale:
       'reglen forudsætter BÅDE det brede `all` på `FieldIssueSet`, den smalle '
-      + '`readSectionFieldIssues`-erstatning OG at præsentationsundtagelsen stadig aftager et helt sæt '
+      + '`createTrackedInputReader`-erstatning OG at præsentationsundtagelsen stadig aftager et helt sæt '
       + '— falder en af dem væk, skal reglen omskrives eller slettes',
     minimumMatches: 3,
     requiredPaths: [
@@ -1169,7 +1168,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
         position: ref.position,
         message:
           'Bred issue-adgang uden for inputCore — blokér på konkrete reads via `reader.read(field)`, '
-          + 'eller bed eksplicit om sektionen med `reader.readSectionFieldIssues(section)` (§1.10).',
+          + 'og saml flerfeltsissues med `createTrackedInputReader` (§1.10).',
       });
     }
     return findings;
@@ -1189,10 +1188,10 @@ export const issueSnapshotCapabilityBoundary = defineRule({
   cleanFixtures: [
     // Den ønskede vej: ét konkret felt.
     { relativePath: 'src/domain/x/y.ts', code: 'const r = reader.read(field);' },
-    // Den navngivne sektionsport er lovlig — den står i kildekoden og kan reviewes.
+    // En tracked projektion opsamler kun de konkrete refs, den selv læser.
     {
       relativePath: 'src/domain/x/y.ts',
-      code: 'const issues = reader.readSectionFieldIssues("stamdata");',
+      code: 'const tracked = createTrackedInputReader(reader); tracked.reader.read(field);',
     },
     // Inputkernen ejer selv den brede form.
     {
@@ -1222,8 +1221,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
  * EO's overenskomstbundne satser blev tidligere beregnet efter render og skrevet af en `useEffect` som en
  * NY autoritativ handling. Det gav to history-trin for én oplevet brugerhandling, og et undo af satsen
  * kunne straks blive skrevet tilbage af den samme effect, fordi det styrende valg stadig var aktivt.
- * Rettelsen er en `DerivedInputWrite` på produktkataloget, som reduceren materialiserer inde i SAMME
- * kandidat som årsagen.
+ * Løsningen er en ren domæneprojektion: afledte værdier materialiseres aldrig som input.
  *
  * Dette værn erstatter et tekstbaseret forbud, der var GRØNT AF TOMHED: dets fire mønstre
  * (`setValues(`, `setFormValues(`, `replaceFormValues(`, `onAnsaettelsesforholdChange(`) var alle
@@ -1256,23 +1254,17 @@ const isInsideUseEffect = (node: ts.Node): boolean => {
   return false;
 };
 
-export const derivedWritesNotFromEffects = defineRule({
-  id: 'input/derived-writes-materialize-in-reduction',
+export const derivedValuesNotWrittenFromEffects = defineRule({
+  id: 'input/derived-values-are-not-input-writes',
   description:
-    'Et afledt felt skrives af en `DerivedInputWrite` inde i reduktionen, ikke af en React-effect (§3.6). '
-    + 'En effect-skrivning bliver en selvstændig autoritativ handling med sit eget history-trin, som en '
-    + 'undo ikke kan lukke, fordi det styrende valg stadig er aktivt.',
+    'En afledt værdi bygges i en domæneprojektion og må ikke skrives som sagsinput fra en React-effect.',
   liveTarget: {
     kind: 'precondition',
-    // R0-F02: AST-signal, ikke tekst — begge navne skal bruges som identifiers.
-    probe: (entry) => entry.relativePath === 'src/inputCore/fieldCatalog.ts'
-      ? hasIdentifier(entry, 'materializeDerivedWrites')
-      : hasIdentifier(entry, 'useEffect'),
+    probe: (entry) => hasIdentifier(entry, 'useEffect'),
     rationale:
-      'mekanismen `materializeDerivedWrites` findes stadig i kataloget, og der findes fortsat effects i '
-      + 'komponentlaget — forsvinder mekanismen, er reglens alternativ væk, og reglen skal skrives om',
-    requiredPaths: ['src/inputCore/fieldCatalog.ts'],
-    minimumMatches: 2,
+      'React-effects findes fortsat i komponentlaget og må ikke bruges som skjult inputskrivevej',
+    requiredPaths: ['src/components/reports/ContentBoxReportDialog.tsx'],
+    minimumMatches: 1,
   },
   appliesTo: (relativePath) => (
     relativePath.startsWith('src/components/') || relativePath.startsWith('src/hooks/')
@@ -1287,8 +1279,8 @@ export const derivedWritesNotFromEffects = defineRule({
         position: call.position,
         message:
           `\`${call.calleeText}(...)\` skriver sagsinput fra en React-effect. Er værdien AFLEDT af andre `
-          + 'felter, skal den erklæres som en `DerivedInputWrite` på kataloget og materialiseres i samme '
-          + 'reduktion som årsagen (§3.6) — ellers får brugerens ene handling to history-trin.',
+          + 'felter, skal den udledes i consumerens typed domæneprojektion — ellers bliver afledt state '
+          + 'fejlagtigt til persisteret brugerinput og et selvstændigt history-trin.',
       });
     }
     return findings;
@@ -1331,7 +1323,7 @@ export const derivedWritesNotFromEffects = defineRule({
     // Historik-prosa i en kommentar er ingen AST-node (jf. INC-F03).
     {
       relativePath: 'src/components/pages/X.tsx',
-      code: '// Tidligere: `useEffect(() => edit.dispatch(t))` — nu en DerivedInputWrite.\nexport const x = 1;',
+      code: '// En tidligere effect-skrivning er nu en ren domæneprojektion.\nexport const x = 1;',
     },
   ],
 });

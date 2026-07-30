@@ -6,7 +6,7 @@
  * `src/contracts/schema-evolution.md`.
  */
 
-export const PERSISTED_DATA_VERSION = '3.10';
+export const PERSISTED_DATA_VERSION = '3.11';
 
 /**
  * Kildedataversion for `.eo`-filer fra før filformatet bar `persistedDataVersion`.

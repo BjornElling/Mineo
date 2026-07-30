@@ -136,6 +136,8 @@ property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter
 
 1. `.eo` indeholder alt schema-valideret brugerinput og kun canonical sagsinput.
 2. Rejected inputs, åbne drafts, UI-state, device-lokale defaults, issues, history og afledte værdier inkluderes ikke.
+   Felter, der kun er redigerbare uden en aktiv referencesats, gemmes kun som input i den redigerbare gren.
+   Er feltet låst, udelades slotværdien, og referencesatsen genudledes i EO's typed domæneprojektion efter load.
 3. Skjult canonical input gemmes, medmindre brugeren eksplicit har slettet det.
 4. Save må først læse input efter `prepare('save')=committed` fra den kritiske handlingsbarriere.
 5. Save-projektionen skal være `ready`: den kræver fravær af rejected input og et schema-gyldigt canonical snapshot,
@@ -214,6 +216,8 @@ destruktiv erstatning må ikke tilbydes.
 - En succesfuld hel-sags-erstatning rydder history; save påvirker ikke history.
 - En side-reset er en almindelig inputtransaktion og kan fortrydes, medmindre en mere specifik produktregel siger andet.
 - Hver succesfuld replacement skaber en ny runtime-revision; en gammel revision genbruges ikke.
+- Callbacken omkring selve replacement-/reset-transactionen er typehåndhævet synkron og runtime-afviser
+  `PromiseLike`-retur. Asynkron filmetadata og anden efterbehandling ligger uden for transaktionsgrænsen.
 
 ## 9. Schema- og versionsansvar
 

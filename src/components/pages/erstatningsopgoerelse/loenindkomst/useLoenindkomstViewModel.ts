@@ -71,7 +71,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   }), [employments, eoValues, stamdataValues.skadedato, stamdataValues.skadestype]);
 
   /**
-   * Satsvurderingens fund som STRUKTURELLE feltissues (GM-F01, GM-F06).
+   * Satsvurderingens fund som STRUKTURELLE feltissues.
    *
    * Reglen er en kryds-felt-regel — feriegodtgørelsens relevans afhænger af reguleringsformen og af, om der
    * er indtastet lønoplysninger — og kan derfor ikke bo i descriptorens egen validator, som kun ser sin egen
@@ -92,11 +92,8 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     })))
   ), [employments, eoValues.beregnesUdFra]);
 
-  // De overenskomst-/lovbundne satser skrives IKKE herfra. De er erklæret som en afledt skrivning på
-  // produktkataloget (`loenindkomstSatsDerivedWrite`) og materialiseres inde i samme reducerede kandidat som
-  // det styrende valg — samme revision, samme history-trin. En effect her ville gøre konsekvensen til en
-  // selvstændig autoritativ handling, brugeren skulle fortryde for sig, og som effecten straks kunne skrive
-  // tilbage igen, fordi det styrende valg stadig var aktivt (GM-F02).
+  // De overenskomst-/lovbundne satser skrives IKKE herfra. Reader-projektionen udleder dem før denne
+  // viewmodel, så de aldrig bliver persisteret brugerinput eller et selvstændigt history-trin.
 
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);

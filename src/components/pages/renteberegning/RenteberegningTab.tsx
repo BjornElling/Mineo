@@ -61,7 +61,7 @@ const KOMMENTARER_LOCATION = { locationId: 'renteberegning:kommentarer', route: 
  * dokumenthandles som props frem for at komponere dem selv: den ejende side kender sin app, fanen
  * gør ikke.
  *
- * Før Fase 5 modtog fanen i stedet tre `onDownload*`-callbacks og skrev SELV hele preflighten
+ * Tidligere modtog fanen i stedet tre `onDownload*`-callbacks og skrev SELV hele preflighten
  * (settle → capture → token-lighed → gate) — fire gange, én pr. handler plus de reaktive gates.
  * Alt det ligger nu i definitionerne.
  */

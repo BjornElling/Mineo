@@ -2,9 +2,8 @@ import type { SectionKey } from '../fieldAddress';
 
 // Maskinlæsbare COVERAGE-REGISTRE med én dataidentitet pr. felt, collection og makro-consumer.
 //
-// **Levende og load-bearing (R1-F06).** Typerne beskrev sig selv som midlertidige migrationsinventarer, der
-// skulle slettes efter cutoveren. De er i stedet blevet en release-gate: `verify:ledgers` kører som del af
-// `verify:release`, og registrene er den opregnelige mængde, completeness-testene måler dækning imod.
+// **Levende og load-bearing.** Registrene er en release-gate: `verify:ledgers` kører som del af
+// `verify:release`, og completeness-testene måler dækning imod deres opregnelige mængde.
 // Deres levende ansvar er SCHEMA-/CONSUMERDRIFT — at et nyt felt, en ny collection eller et nyt entrypoint
 // ikke kan glide ind uregistreret, og at et registreret symbol ikke kan forsvinde ubemærket.
 //

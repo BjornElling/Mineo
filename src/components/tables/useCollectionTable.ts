@@ -35,7 +35,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    * Mindste antal rækker, tabellen viser i alt (committede + tomme). Default 1 = altid præcis én trailing tom
    * række. Et højere tal er en ren VISNINGSregel og påvirker aldrig, hvad der persisteres — tomme rækker
    * gemmes ikke. Parameteren findes, fordi antalsreglen er den eneste saglige forskel mellem tabellerne; den
-   * begrunder ikke en egen kopi af identitets- og bindingsalgoritmen (GM-F14).
+   * begrunder ikke en egen kopi af identitets- og bindingsalgoritmen.
    */
   minimumVisibleRows?: number;
   /**
@@ -62,7 +62,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   const placeholderCount = Math.max(1, minimumVisibleRows - committedRows.length);
   // Den ENE placeholder-identitets-livscyklus (§1.11/§3.7): puljen BEVARER et promoveret id, så det kan
   // genindtræde, hvis rækken forsvinder ved et undo — ellers findes der intet element, fokusrestoren kan
-  // matche på, og fokus forlader lydløst tabellen (UT-F03).
+  // matche på, og fokus forlader lydløst tabellen.
   const placeholderIds = usePlaceholderSlotIds(committedIdSet, placeholderCount, createRowId);
 
   const renderRows = React.useMemo<readonly RenderRow[]>(() => [

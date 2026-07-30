@@ -9,7 +9,7 @@ import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
  * brugerfladen, og ét gatede beregning og dokumentdownload. Reglerne var faktisk forskellige — feltvejen
  * krævede feriegodtgørelse ved enhver reguleringsform, gatevejen kun ved `Overenskomst` og
  * `Manuelt angivet`. Et felt kunne derfor stå rødt, mens beregningen kørte videre uden at betragte værdien
- * som påkrævet (GM-F01). Dette modul er nu den ENE kilde, som både feltvisningen og gaten aftager; ét
+ * som påkrævet. Dette modul er nu den ENE kilde, som både feltvisningen og gaten aftager; ét
  * regelsæt kan ikke drifte fra sig selv.
  *
  * Feriegodtgørelsens relevans følger den godkendte relevansmatrix: den er kun påkrævet, når den valgte
@@ -20,11 +20,9 @@ import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
  * markeringen til og fra i samme øjeblik.
  *
  * AFGRÆNSNING mod de LÅSTE satser. Fritvalg, SH/SO, Store Bededagstillæg og arbejdsgiverpension vurderes
- * IKKE for afvigelse, og det er ikke en udeladelse: de er afledte felter
- * (`loenindkomstSatsDerivedWrite`), som materialiseres til overenskomstens/lovens sats inde i hver
- * reduktion. Efter commit KAN de ikke afvige — et forsøg på at skrive noget andet er en no-op. En
- * afvigelsesregel oven på det ville være en gren, ingen tilstand kan nå, og et værn, der ikke kan fejle, er
- * ikke beskyttelse (se `loenindkomstSatsDerivedWrite.test.ts` → "kan ikke efterlade en afvigelse").
+ * IKKE for afvigelse: domæneprojektionen erstatter deres eventuelle historiske inputslot med den
+ * aktuelle overenskomst-/lovsats, før UI, beregning og dokumenter læser modellen. En afvigelsesregel på
+ * det rå slot ville derfor validere en værdi, consumeren ikke bruger.
  * Feriegodtgørelsen er derimod brugerens eget felt og har derfor både et relevans- og et vejledningsben.
  */
 

@@ -36,7 +36,7 @@ const STABLE_SOURCE_RETRY_COUNT = 3;
  * identisk må data og token bruges sammen. Ved samtidig ændring forsøges igen; kan et stabilt snapshot
  * ikke opnås inden for retrygrænsen, stoppes operationen fail-closed som en transient systemfejl.
  *
- * Ren og framework-fri: kalderen leverer `readToken`/`readData`. Runtime-bindingen (Fase 2) leverer de
+ * Ren og framework-fri: kalderen leverer `readToken`/`readData`. Runtime-bindingen (inputkernen) leverer de
  * konkrete store-læsninger.
  */
 export const captureStableSource = <T>(

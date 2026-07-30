@@ -19,8 +19,8 @@ import GridTextCell from './GridTextCell';
 import { fieldAllowsNegative } from './signPolicy';
 
 // Grid-celle-familier (§2.5/§3.5): tynde skaller over `GridTextCell`. Hver vælger kun sit
-// tegnfilter + adornment + justering; parse/format/paste og commit-intervaller ejes af descriptorens codec +
-// feltvalidatorer. De erstatter legacy `Table{Amount,Integer,Year,Week,Date}Input` for løntabellen.
+// tegnfilter + adornment + justering; parse/format/paste og commit-intervaller ejes af descriptorens codec
+// og feltvalidatorer.
 
 type BaseCellProps<T> = Readonly<{
   gridCell: GridCellCoord;
@@ -31,7 +31,7 @@ type BaseCellProps<T> = Readonly<{
   inputRef?: React.Ref<HTMLInputElement>;
 }>;
 
-/** Det lille `fx`-mærke, der vises i et beløbsfelt, hvis den committede værdi er et udtryk (legacy-visuel). */
+/** Det lille `fx`-mærke, der vises i et beløbsfelt, hvis den committede værdi er et udtryk. */
 const ExpressionIndicator = (): React.ReactElement => (
   <span
     className="mineo-expression-indicator"
@@ -53,7 +53,7 @@ const ExpressionIndicator = (): React.ReactElement => (
 export const GridAmountCell = (
   { gridCell, cell, placeholder = DEFAULT_AMOUNT_PLACEHOLDER, inputRef }: BaseCellProps<AmountValue | undefined>
 ): React.ReactElement => {
-  // Fortegns-politikken kommer fra cellens egen descriptor (UT-F08), ikke fra et hardkodet flag: løntabellens
+  // Fortegns-politikken kommer fra cellens egen descriptor, ikke fra et hardkodet flag: løntabellens
   // beløbskolonner ER fortegnede, mens fx et 0-og-op-beløb i en anden tabel ikke er — og cellen deler kode.
   const allowNegative = fieldAllowsNegative(cell.field);
   const keyFilter = React.useCallback(
@@ -86,7 +86,7 @@ export const GridPercentCell = (
   { gridCell, cell, placeholder = '0', externalErrorMessage, inputRef, allowDecimals = false }:
     BaseCellProps<number | undefined> & Readonly<{ allowDecimals?: boolean }>
 ): React.ReactElement => {
-  // Politikken læses nu af descriptoren (UT-F08). Cellen svarede før hardkodet `false` — tilfældigvis RIGTIGT
+  // Politikken læses nu af descriptoren. Cellen svarede før hardkodet `false` — tilfældigvis RIGTIGT
   // for alle nuværende procent-descriptorer, men uden nogen forbindelse til det, de erklærede. Netop derfor
   // kunne formular-pendanten svare `true` på samme felter, uden at noget blev rødt.
   const allowNegative = fieldAllowsNegative(cell.field);
@@ -115,7 +115,7 @@ export const GridPercentCell = (
 export const GridIntegerCell = <T extends string | number | undefined>(
   { gridCell, cell, placeholder, inputRef }: BaseCellProps<T>
 ): React.ReactElement => {
-  // Fortegns-politikken kommer fra descriptoren (UT-F08). Månedscellen er et string-backed heltal 1..12, så
+  // Fortegns-politikken kommer fra descriptoren. Månedscellen er et string-backed heltal 1..12, så
   // adapterens viderestilling af politikken er det, der gør minus umuligt at taste her.
   const allowNegative = fieldAllowsNegative(cell.field);
   const keyFilter = React.useCallback(
@@ -136,7 +136,7 @@ export const GridIntegerCell = <T extends string | number | undefined>(
   );
 };
 
-/** År-celle (col1_maaned): formen `åååå` ejes af feltfamilien, ikke af tabellen (UT-F06). */
+/** År-celle (col1_maaned): formen `åååå` ejes af feltfamilien, ikke af tabellen. */
 export const GridYearCell = (
   { gridCell, cell, placeholder = YEAR_FORMAT_PLACEHOLDER, inputRef }: BaseCellProps<string | undefined>
 ): React.ReactElement => (

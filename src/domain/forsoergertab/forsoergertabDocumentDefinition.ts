@@ -1,11 +1,9 @@
 /**
- * Forsørgertab-dokumentdefinitionen (Fase 5; `document-output-contract.md` §A1.2/§A7.1).
+ * Forsørgertab-dokumentdefinitionen.
  *
  * Genbruger `buildForsoergertabReaderProjection` + `evaluateForsoergertabDownloadGate` uændret
- * (§5.4). Stamdata-projektionen er en dependency på outputtet, ikke en separat click-betingelse:
- * før Fase 5 stod `freshStamdata.status !== 'ready'` som en stille `return` i click-handleren,
- * hvor den reaktive gate slet ikke kendte den. Nu er den en del af `project`, så knappen også
- * er disabled, når stamdata blokerer.
+ * (§5.4). Stamdata-projektionen er en dependency i `project`, så samme blokering styrer både
+ * knappens tilstand og click-preflighten.
  */
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';

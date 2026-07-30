@@ -1,8 +1,8 @@
 /**
- * Hovedappens ene vej fra en side til et dokumentoutput (Fase 5, pass 7).
+ * Hovedappens ene vej fra en side til et dokumentoutput.
  *
  * En side kalder `useMineoDocumentOutput(definition, request)` og får både den reaktive knap-gate og
- * click-preflighten tilbage. Før Fase 5 skrev hver side selv den sekvens: settle → frisk capture →
+ * click-preflighten tilbage. Tidligere skrev hver side selv den sekvens: settle → frisk capture →
  * token-lighed → projektion → gate → servicekald, og ni sider havde hver sin kopi. Fem af kopierne
  * manglede mindst ét trin.
  *
@@ -51,7 +51,7 @@ export const useMineoDocumentSourceContext = (): DocumentSourceContext<MineoDocu
   const evaluation = useInputEvaluation();
   const { settings } = useAppSettings();
   // Samme indsnævring som miljøets `captureSource`, så render-tidens gate og click-preflighten ser
-  // PRÆCIS samme settings-form — her GATE-halvdelen alene (R6-F03). Memoiseret, fordi projektionen
+  // PRÆCIS samme settings-form — her GATE-halvdelen alene. Memoiseret, fordi projektionen
   // ellers ville give en ny reference ved hver render og dermed slå kildekontekstens delte
   // projektions-memo ihjel.
   const gateSettings = React.useMemo(
@@ -64,7 +64,7 @@ export const useMineoDocumentSourceContext = (): DocumentSourceContext<MineoDocu
 /**
  * Render-tidens format-/brevhoved-settings, som udfaldsbeskeden navngiver formatet med.
  *
- * Bevidst en SELVSTÆNDIG hook og ikke et felt på kildekonteksten (R6-F03): konteksten er det, en
+ * Bevidst en SELVSTÆNDIG hook og ikke et felt på kildekonteksten: konteksten er det, en
  * definitions `project` ser, og formatet må ikke kunne nå en gate. Værdien bruges derfor kun på
  * beskedsiden.
  */

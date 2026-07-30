@@ -315,7 +315,7 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
 };
 
 // Den reader-baserede projektion fører den første tabelblokerende ASL-rækkefejl ind som `field-asl-afgoerelser`.
-// De øvrige rækkeissues forbliver tilgængelige for den senere tabel-cutover, men beregning og dokumentgate er
+// De øvrige rækkeissues forbliver tilgængelige for den senere tabel-overgang, men beregning og dokumentgate er
 // allerede uafhængige af mounted reporters.
 export const computeEetSnapshot = (input: EetSnapshotInput): EetSnapshot => {
   const output = {

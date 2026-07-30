@@ -9,7 +9,7 @@ import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 // Checkbox-felt (§1.3/§3.6): en boolsk immediate-commit control (grid-pendanten er ikke relevant, da
 // checkbokse kun bruges i formularer). Klik/Space committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` + label; den viste checked-tilstand læses fra den afsluttede revision gennem
-// editor-controlleren. Erstatter legacy `StyledCheckbox` bundet til `usePersistedForm`-setValues.
+// editor-controlleren.
 
 export type CheckboxFieldProps = Readonly<{
   field: FieldRef<boolean>;

@@ -1583,37 +1583,42 @@ export const restoreAttributesCarryDestinationRule = defineRule({
  * filstørrelse — en tærskel ville acceptere syv kontraktbrud, så længe filerne var små nok, og ville samtidig
  * presse mod en kunstig opsplitning, når en side voksede. Værnet måler i stedet EKSISTENSEN af VM-indgangen.
  *
- * **Sidelisten er DERIVERET, ikke erklæret.** Den udledes af `APP_ROUTES` i `src/config/pageNavigation.ts` —
- * det kanoniske sted for "hvilken route hører en side til" — så en ny §2.1-side gør værnet rødt, før nogen skal
- * huske at udvide en liste. En hånd-vedligeholdt liste her ville være præcis den ikke-opregnelige dækning,
- * etape 10 lukkede fem gange.
+ * **Sidelisten er DERIVERET, ikke erklæret.** Den udledes af `APP_PAGE_DEFINITIONS` i
+ * `src/config/pageNavigation.ts`, hvor route og page-komponent står samlet. Værnet ejer derfor intet parallelt
+ * route→fil-map.
  */
 const PAGE_NAVIGATION_MODULE = 'src/config/pageNavigation.ts';
 
-/** Page-komponentens filnavn pr. route-nøgle. Kun navnet afviger fra nøglen; mappen er fælles. */
-const PAGE_COMPONENT_FILE_BY_ROUTE_KEY: ReadonlyMap<string, string> = new Map([
-  ['stamdata', 'Stamdata.tsx'],
-  ['erstatningsopgoerelse', 'Erstatningsopgoerelse.tsx'],
-  ['erhvervsevnetab', 'Erhvervsevnetab.tsx'],
-  ['satser', 'Satser.tsx'],
-  ['renteberegning', 'Renteberegning.tsx'],
-  ['varigemen', 'VarigeMen.tsx'],
-  ['forsoergertab', 'Forsoergertab.tsx'],
-  ['aarsloen', 'Aarsloen.tsx'],
-]);
+type PageDefinition = Readonly<{ routeKey: string; componentFile: string }>;
 
-/** Læs `APP_ROUTES`' nøgler ud af `pageNavigation.ts` som AST — ikke som tekst. */
-const collectAppRouteKeys = (entry: SourceEntry): readonly string[] => {
-  const keys: string[] = [];
+/** Læs page-definitionerne ud som AST — ikke som tekst. */
+const collectAppPageDefinitions = (entry: SourceEntry): readonly PageDefinition[] => {
+  const definitions: PageDefinition[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isVariableDeclaration(node)
       && ts.isIdentifier(node.name)
-      && node.name.text === 'APP_ROUTES'
+      && node.name.text === 'APP_PAGE_DEFINITIONS'
       && node.initializer !== undefined) {
       const literal = ts.isAsExpression(node.initializer) ? node.initializer.expression : node.initializer;
       if (ts.isObjectLiteralExpression(literal)) {
         for (const property of literal.properties) {
-          if (ts.isPropertyAssignment(property) && ts.isIdentifier(property.name)) keys.push(property.name.text);
+          if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
+          if (!ts.isObjectLiteralExpression(property.initializer)) continue;
+          const componentProperty = property.initializer.properties.find((candidate) =>
+            ts.isPropertyAssignment(candidate)
+            && ts.isIdentifier(candidate.name)
+            && candidate.name.text === 'componentFile'
+          );
+          if (
+            componentProperty !== undefined
+            && ts.isPropertyAssignment(componentProperty)
+            && ts.isStringLiteral(componentProperty.initializer)
+          ) {
+            definitions.push({
+              routeKey: property.name.text,
+              componentFile: componentProperty.initializer.text,
+            });
+          }
         }
       }
       return;
@@ -1621,12 +1626,49 @@ const collectAppRouteKeys = (entry: SourceEntry): readonly string[] => {
     ts.forEachChild(node, visit);
   };
   visit(entry.ast);
-  return keys;
+  return definitions;
 };
 
-/** Kalder filen en `useXxxViewModel`-hook? Måles som et rigtigt KALD, så en kommentar ikke bærer reglen. */
-const callsPageViewModel = (entry: SourceEntry): boolean =>
-  collectCalls(entry).some((ref) => /^use[A-Z][A-Za-z]*ViewModel$/.test(ref.calleeName));
+const PAGE_ORCHESTRATION_PORTS = new Set([
+  'useInputEvaluation',
+  'useInputEditPort',
+  'useInputReadPort',
+  'useDocumentInputAccess',
+  'useMineoDocumentOutput',
+  'useMineoDocumentOutputWithContext',
+  'useMineoDocumentSourceContext',
+  'useAppSettings',
+  'useDocumentDownloadAction',
+  'useDocumentGateState',
+  'usePersistedActiveTab',
+  'useFieldEditor',
+  'useCollectionRows',
+  'useCaseOperations',
+  'useOmregningToggle',
+  'useMidlertidigtEetInsertSource',
+  'useScrollToSectionWithRetry',
+  'useInputCommands',
+  'dispatchInput',
+]);
+
+const importedLocalName = (
+  entry: SourceEntry,
+  moduleSpecifier: string,
+  exportedName: string
+): string | null => {
+  for (const statement of entry.ast.statements) {
+    if (!ts.isImportDeclaration(statement)
+      || !ts.isStringLiteral(statement.moduleSpecifier)
+      || statement.moduleSpecifier.text !== moduleSpecifier) continue;
+    const bindings = statement.importClause?.namedBindings;
+    if (bindings === undefined || !ts.isNamedImports(bindings)) continue;
+    const binding = bindings.elements.find((element) =>
+      (element.propertyName ?? element.name).text === exportedName
+    );
+    if (binding !== undefined) return binding.name.text;
+  }
+  return null;
+};
 
 export const persistedPageHasViewModelRule = defineRule({
   id: 'input/persisted-page-has-viewmodel',
@@ -1638,7 +1680,8 @@ export const persistedPageHasViewModelRule = defineRule({
     kind: 'precondition',
     // Målet er den DERIVEREDE sidelistes kilde plus page-komponenterne selv. Findes `APP_ROUTES` ikke længere
     // med nøgler, kan reglen ikke udlede noget, og den skal skrives om frem for at stå grøn af tomhed.
-    probe: (entry) => entry.relativePath === PAGE_NAVIGATION_MODULE && collectAppRouteKeys(entry).length > 0,
+    probe: (entry) =>
+      entry.relativePath === PAGE_NAVIGATION_MODULE && collectAppPageDefinitions(entry).length > 0,
     rationale:
       'APP_ROUTES findes stadig og har nøgler at udlede §2.1-sidelisten af; forsvinder det, skal reglen følge '
       + 'den nye kanoniske kilde',
@@ -1648,24 +1691,12 @@ export const persistedPageHasViewModelRule = defineRule({
   // VM, og en per-fil-evaluering ville ikke kunne udtrykke "denne side mangler en VM et andet sted".
   appliesTo: (relativePath) => relativePath === PAGE_NAVIGATION_MODULE,
   find: (entry, graph) => {
-    const routeKeys = collectAppRouteKeys(entry);
+    const pageDefinitions = collectAppPageDefinitions(entry);
     const byPath = new Map(graph.map((candidate) => [candidate.relativePath, candidate]));
     const findings: Finding[] = [];
 
-    for (const routeKey of routeKeys) {
-      const fileName = PAGE_COMPONENT_FILE_BY_ROUTE_KEY.get(routeKey);
-      if (fileName === undefined) {
-        findings.push({
-          position: { line: 1, column: 1 },
-          message:
-            `APP_ROUTES har route-nøglen '${routeKey}', som værnet ikke kender en page-komponent for. En ny `
-            + '§2.1-side skal registreres i PAGE_COMPONENT_FILE_BY_ROUTE_KEY OG have en '
-            + '`useXxxViewModel`-indgang (page-component-contract.md §4.4).',
-        });
-        continue;
-      }
-
-      const pagePath = `src/components/pages/${fileName}`;
+    for (const definition of pageDefinitions) {
+      const pagePath = `src/components/pages/${definition.componentFile}`;
       const page = byPath.get(pagePath);
       if (page === undefined) {
         findings.push({
@@ -1675,16 +1706,32 @@ export const persistedPageHasViewModelRule = defineRule({
         continue;
       }
 
-      // Siden opfylder kontrakten, hvis den selv KALDER sin VM. Deklarerer den den også, er den ikke reduceret
-      // til komposition — men det er §4.4's form, ikke dens minimumskrav, så vi måler kaldet.
-      if (!callsPageViewModel(page)) {
+      const componentStem = definition.componentFile.replace(/\.tsx$/, '');
+      const expectedViewModel = `use${componentStem}ViewModel`;
+      const expectedModule = `./${definition.routeKey}/use${componentStem}ViewModel`;
+      const localViewModelName = importedLocalName(page, expectedModule, expectedViewModel);
+      const calls = collectCalls(page);
+      const pageViewModelCalls = calls.filter((ref) => /^use[A-Z][A-Za-z]*ViewModel$/.test(ref.calleeName));
+      const expectedCalls = localViewModelName === null
+        ? []
+        : calls.filter((ref) => ref.calleeName === localViewModelName);
+
+      if (localViewModelName === null || expectedCalls.length !== 1 || pageViewModelCalls.length !== 1) {
         findings.push({
           position: { line: 1, column: 1 },
           message:
-            `${pagePath} kalder ingen \`useXxxViewModel\`. Hver §2.1-side skal have PRÆCIS ÉT kanonisk `
-            + 'viewmodel-indgangspunkt, der ejer sidens afledte state, handlers og gates, med page-komponenten '
-            + 'reduceret til sektions-komposition (page-component-contract.md §4.4). Reglen er kategorisk — '
-            + 'også når siden er lille; er VM\'en tynd, skal den bære §4.4\'s rationale-kommentar.',
+            `${pagePath} skal importere og kalde præcis én ${expectedViewModel} fra ${expectedModule}; `
+            + `fandt ${pageViewModelCalls.length} page-viewmodel-kald. Konkurrerende eller tomme ekstra `
+            + 'viewmodels er ikke et kanonisk indgangspunkt (page-component-contract.md §4.4).',
+        });
+      }
+
+      for (const call of calls.filter((ref) => PAGE_ORCHESTRATION_PORTS.has(ref.calleeName))) {
+        findings.push({
+          position: call.position,
+          message:
+            `${pagePath} kalder orkestreringsporten ${call.calleeName} direkte. Reader-, dokument-, fane- og `
+            + 'inputorkestrering ejes af sidens kanoniske viewmodel (page-component-contract.md §4.4).',
         });
       }
     }
@@ -1693,10 +1740,12 @@ export const persistedPageHasViewModelRule = defineRule({
   },
   allow: [],
   violatingFixtures: [
-    // Kernen: en route-nøgle uden en kendt page-komponent (en NY §2.1-side) må ikke passere ubemærket.
+    // Kernen: en page-definition uden den erklærede komponent må ikke passere ubemærket.
     {
       relativePath: PAGE_NAVIGATION_MODULE,
-      code: "export const APP_ROUTES = { nyfagside: '/nyfagside' } as const;",
+      code:
+        "export const APP_PAGE_DEFINITIONS = { nyfagside: { route: '/nyfagside', "
+        + "componentFile: 'Nyfagside.tsx' } } as const;",
     },
   ],
   cleanFixtures: [
@@ -1704,7 +1753,7 @@ export const persistedPageHasViewModelRule = defineRule({
     // `find` skal ikke også flage den (ellers ville reglen være rød to gange for samme årsag).
     {
       relativePath: PAGE_NAVIGATION_MODULE,
-      code: 'export const APP_ROUTES = {} as const;',
+      code: 'export const APP_PAGE_DEFINITIONS = {} as const;',
     },
   ],
 });

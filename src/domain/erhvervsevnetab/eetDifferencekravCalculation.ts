@@ -463,7 +463,7 @@ const resolveLoebendeEetPct = (
   // 1. Latest afgørelsesdato, 2. Latest virkningsdato, 3. Endelig > Delvist endelig > rest
   // Invariant: senestEetPct antages at være >= alle tidligere afgørelsers EET-procenter.
   // Domænet tillader ikke reduktion i EET-procent, så sumKapPct fratrukket senestEetPct
-  // er altid >= 0 (clamped af Math.max). Hvis denne invariant brydes (f.eks. via en
+  // er altid >= 0 (clamped af Math.max). Hvis invarianten brydes (f.eks. via en
   // afgørelse der sætter EET lavere end en tidligere) returneres 0, ikke negativt.
   const latestAfgoerelsesdato = afgoerelser.reduce<ISODateString>(
     (latest, a) => (a.afgoerelsesdato > latest ? a.afgoerelsesdato : latest),

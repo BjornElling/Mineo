@@ -68,7 +68,7 @@ export const activeFieldIssueFor = <T>(
 
 // Felteditorens origin er ALTID en feltorigin — også for de to promoveringsveje (`settleFieldInNewRow` og
 // `insertRow` fra et immediate-commit-valg). En promovering er kontraktligt et FELT-settle (§3.8), og undo
-// skal derfor fokusere den celle, brugeren skrev i — ikke blot navigere til tabellen (WI-004 runde 4, S4).
+// skal derfor fokusere den celle, brugeren skrev i — ikke blot navigere til tabellen.
 export const buildFieldHistoryOrigin = <T>(
   location: EditorLocation,
   field: FieldRef<T>
@@ -77,7 +77,7 @@ export const buildFieldHistoryOrigin = <T>(
   field: field.address,
   editorLocationId: location.locationId,
   // Route/fane bæres videre som eksplicit navigation-metadata (§3.7), så undo/redo-restoren kan finde tilbage
-  // til den rette side/fane. Begge er PÅKRÆVEDE på `EditorLocation` (R7-F03), så destinationen er altid
+  // til den rette side/fane. Begge er PÅKRÆVEDE på `EditorLocation`, så destinationen er altid
   // komplet — den tidligere `route === undefined`-gren dækkede en tilstand, typen ikke længere tillader.
   route: location.route,
   tabKey: location.tabKey,
@@ -157,8 +157,8 @@ export const promoteRowImmediateCommitToCommand = <TEntity, TField>(
 /**
  * Delete/Backspace på et lukket, fokuseret felt (§1.3): rydder og committer straks til tomværdien. Guardet på
  * feltets aktuelle view, så et allerede tomt felt uden rejected råinput er `null` (ingen command) — ellers
- * ville et strukturelt tom-write (fx `null`-sektion → `{}`) give en overflødig undo-frame (§3.6, jf. legacy
- * Backspace-guarden). Rydningen sker kun, når der faktisk er en ikke-tom værdi eller en rejected råtekst.
+ * ville et strukturelt tom-write (fx `null`-sektion → `{}`) give en overflødig undo-frame (§3.6).
+ * Rydningen sker kun, når der faktisk er en ikke-tom værdi eller en rejected råtekst.
  */
 export const immediateClearCommand = <T>(
   field: FieldRef<T>,

@@ -1,7 +1,7 @@
 import type { NavigateFunction } from 'react-router-dom';
-import { deserializeFieldAddress, type SectionKey } from '../fieldAddress';
+import { deserializeFieldAddress, type FieldAddress } from '../fieldAddress';
 import { setActiveTabForPage } from '../../hooks/usePersistedActiveTab';
-import { getRouteForPageKey, routeToPageId } from '../../config/pageNavigation';
+import { routeToPageId } from '../../config/pageNavigation';
 import { focusElementWithoutScroll, waitForAnimationFrame } from '../../utils/focusUtils';
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import { lookupEditorLocation, type EditorLocationDestination } from './editorLocationDestination';
@@ -14,8 +14,8 @@ import { lookupEditorLocation, type EditorLocationDestination } from './editorLo
 // øvrige-krav-rækkeled) ville da miste sin entity-sti og kunne fokusere en vilkårlig anden celle med samme
 // feltnavn — eller falde tilbage til "første røde felt på siden". Der findes kun ÉN lokaliseringsvej.
 //
-// DESTINATIONEN kommer fra editorlokationen, ikke fra adressen (§3.2, R7-F03). Den mounted editor bærer sin egen
-// route + fane; findes ingen mounted editor, er sektionens side det eneste, vi VED — og vi gætter da ikke en fane.
+// En synlig/mounted editor er første autoritet for valg mellem spejlinger. Er ingen editor mountet, aktiverer
+// det statiske, typed templatelokationskatalog korrekt route/fane, før det konkrete DOM-element kan eksistere.
 
 /** Maks. antal animation-frames vi venter på, at målet mountes efter et side-/faneskift. */
 const MAX_MOUNT_WAIT_FRAMES = 30;
@@ -25,18 +25,6 @@ const focusAndScroll = (element: HTMLElement): void => {
   // Spring til den blokerende fejl: centrér altid, så brugeren ledes direkte til problemet.
   scrollTargetIntoView(element, { force: true });
 };
-
-/**
- * Sidste udvej, når INGEN editor for adressen er mountet (fx en fane, brugeren aldrig har besøgt, efter load af
- * en `.eo` med afvist råtekst). Sektionen ejer en side — det er et faktum, ikke en heuristik — og den route er
- * derfor sikker. FANEN udledes bevidst IKKE: kun editorlokationen ved, hvilken fane feltet redigeres på, og et
- * gæt ville være den globale afbildning, R7-F03 lukkede. Vi lander på siden; mounter feltet undervejs (fx fordi
- * det bor på sidens standardfane), fanger vent-på-mount-løkken det og fokuserer det.
- *
- * `faellesAarsloen` har bevidst ingen egen route (den vises under forsørgertab ELLER erhvervsevnetab). Uden en
- * mounted editor findes der intet at vælge ud fra, og vi navigerer da ikke.
- */
-const resolveSectionFallbackRoute = (section: SectionKey): string | null => getRouteForPageKey(section);
 
 const applyDestination = (
   destination: EditorLocationDestination,
@@ -54,13 +42,14 @@ const applyDestination = (
  *
  * Rækkefølge: (1) er en editor for feltet SYNLIG, bliver vi stående og fokuserer den — Gem hopper aldrig væk fra
  * en fejl brugeren kan se; (2) er en editor mountet men skjult, følger vi DENS erklærede route + fane; (3) er
- * ingen editor mountet, navigerer vi til sektionens side uden at gætte en fane. Kan målet ikke findes, flyttes
- * fokus ikke — gaten viser stadig fejlen.
+ * ingen editor mountet, bruger vi feltets statiske templatelokation til at mounte den rigtige fane. Kan målet
+ * ikke findes, flyttes fokus ikke — gaten viser stadig fejlen.
  */
 export const focusFirstBlockingRejectedField = async (
   rejectedAddresses: readonly string[],
   currentPathname: string,
-  navigate: NavigateFunction
+  navigate: NavigateFunction,
+  resolveStaticFieldLocation: (address: FieldAddress) => EditorLocationDestination | undefined
 ): Promise<void> => {
   const serialized = rejectedAddresses[0];
   if (serialized === undefined) return;
@@ -77,20 +66,14 @@ export const focusFirstBlockingRejectedField = async (
     return;
   }
 
-  // (2) Mountet men skjult → følg lokationens EGEN destination. (3) Ellers → sektionens side, ingen fane.
+  // (2) Mountet men skjult → følg lokationens EGEN destination. (3) Ellers → statisk template-destination.
   if (lookup.kind === 'mounted') {
     applyDestination(lookup.destination, currentPathname, navigate);
   } else {
-    const fallbackRoute = resolveSectionFallbackRoute(address.section);
-    if (fallbackRoute === null) return;
-    if (fallbackRoute !== currentPathname) navigate(fallbackRoute);
+    const staticDestination = resolveStaticFieldLocation(address);
+    if (staticDestination === undefined) return;
+    applyDestination(staticDestination, currentPathname, navigate);
   }
-
-  // Blev destinationen udledt af et fallback (3), kender vi endnu ikke feltets fane. Mounter editoren under
-  // navigationen (lazy tab-mount), bærer den nu sin erklærede fane, og vi kan aktivere den ÉN gang. Uden dette
-  // ville et felt på en ikke-besøgt, ikke-standard fane være uopnåeligt: fanen mountes først ved besøg, og først
-  // da findes den lokation, der ved hvilken fane det er.
-  let destinationApplied = lookup.kind === 'mounted';
 
   for (let attempt = 0; attempt < MAX_MOUNT_WAIT_FRAMES; attempt += 1) {
     await waitForAnimationFrame();
@@ -98,10 +81,6 @@ export const focusFirstBlockingRejectedField = async (
     if (next.kind === 'visible') {
       focusAndScroll(next.element);
       return;
-    }
-    if (next.kind === 'mounted' && !destinationApplied) {
-      destinationApplied = true;
-      applyDestination(next.destination, window.location.pathname, navigate);
     }
   }
 };

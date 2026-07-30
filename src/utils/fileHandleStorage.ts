@@ -156,8 +156,7 @@ export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandl
  * Sletter file handle fra IndexedDB
  *
  * `false` betyder "kunne ikke verificere sletningen" — ikke "der var intet at slette". Findes IndexedDB slet
- * ikke, kan der ikke ligge et håndtag, så det er en verificeret tom tilstand og returnerer `true` (R4-F02:
- * `Slet alt` læser resultatet og ville ellers rapportere en rest, der ikke findes).
+ * ikke, kan der ikke ligge et håndtag, så det er en verificeret tom tilstand og returnerer `true`.
  *
  * @returns {Promise<boolean>} True hvis håndtaget bevisligt ikke længere findes
  */

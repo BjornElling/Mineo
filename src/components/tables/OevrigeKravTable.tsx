@@ -125,9 +125,9 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
   });
 
   // ── Trailing placeholder-række (§1.11) ──────────────────────────────────────
-  // Den DELTE identitets-livscyklus (GM-F14). Tabellen havde en lokal kopi af den ENKELT-id-model, der
+  // Den DELTE identitets-livscyklus. Tabellen havde en lokal kopi af den ENKELT-id-model, der
   // overskrev sit eneste huskede placeholder-id ved en promotion — samme defekt som `useCollectionTable`s,
-  // altså en femte berørt tabel (UT-F03). Puljen bevarer id'et, så det kan genindtræde efter et undo.
+  // altså en femte berørt tabel. Puljen bevarer id'et, så det kan genindtræde efter et undo.
   const committedIdSet = React.useMemo(() => new Set(sortedCommittedRows.map((row) => row.id)), [sortedCommittedRows]);
   const placeholderIds = usePlaceholderSlotIds(committedIdSet, 1, createOevrigeKravRowId);
 

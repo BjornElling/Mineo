@@ -1,5 +1,5 @@
 /**
- * Hovedappens `DocumentExecutionEnvironment` (Fase 5, pass 0).
+ * Hovedappens `DocumentExecutionEnvironment`.
  *
  * Dette er Mineos composition root for dokument-download: her — og kun her — møder den
  * app-uafhængige livscyklus hovedappens konkrete politik: `AppSettings` som kildesettings, PDF/Word
@@ -47,12 +47,12 @@ const createSession = async (format: DocumentDownloadFormat): Promise<DocumentGe
  * konsument også havde hele `AppSettings` — og definitionerne lover kun at læse det source-relevante
  * snapshot. `projectSourceSettings` skærer capturens `AppSettings` ned til netop det.
  *
- * **De to halvdele er DISJUNKTE (R6-F03).** `gateSettings` er rækkepolitikken — det eneste settings,
+ * **De to halvdele er DISJUNKTE.** `gateSettings` er rækkepolitikken — det eneste settings,
  * en definitions `project` kan se — og `renderSettings` er format + brevhoved, som kun dette miljø
  * læser, og først efter gaten har sagt ready. Formatet vælger writer, ikke dækning; opdelingen gør
  * normen til en typegrænse frem for en regel, et værn skal overvåge.
  *
- * **`readSourceSettings` er en FUNKTION, ikke en værdi (R6-F01).** Begge halvdele af kildesnapshottet skal
+ * **`readSourceSettings` er en FUNKTION, ikke en værdi.** Begge halvdele af kildesnapshottet skal
  * optages på SAMME tidspunkt. Tog miljøet imod et færdigt `SourceSettings`-objekt, ville det uundgåeligt
  * være fanget ved React-render, mens `captureEvaluationSource()` læser friskt efter settle — og et nyere
  * settingsrevision-token kunne dermed parres med et ældre format-, brevhoved- eller EO-regelobjekt.
@@ -69,7 +69,7 @@ export const createMineoDocumentEnvironment = (
     // settings læses umiddelbart efter fra den værdi, der publiceres i samme layout-fase som revisionen.
     const evaluation = runtime.captureEvaluationSource();
     // ÉT læs, to projektioner. Læste de to halvdele hver sit `readSourceSettings()`, kunne de stamme
-    // fra to revisioner, og R6-F01's atomicitet ville være tabt.
+    // fra to revisioner, og den atomiske kildeoptagelse ville være tabt.
     const settings = readSourceSettings();
     return {
       evaluation,

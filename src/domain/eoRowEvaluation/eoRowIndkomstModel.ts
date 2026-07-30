@@ -181,7 +181,7 @@ const collectOffentligeYdelserCellErrorsByRow = (
 
 /**
  * Skadedatoen er IKKE længere en parameter: de datoafhængige satsafvigelser hørte til de LÅSTE satser, som
- * nu er afledte felter, reduceren materialiserer (GM-F01/GM-F02). En bevaret, ulæst parameter ville erklære
+ * nu er afledte felter, reduceren materialiserer. En bevaret, ulæst parameter ville erklære
  * en afhængighed, funktionen ikke har, og skjule for næste læser, hvad rækkerne faktisk afhænger af.
  */
 export const buildIndkomstSectionStatuses = (
@@ -195,7 +195,7 @@ export const buildIndkomstSectionStatuses = (
     const headerText = arbejdsstedNavn !== '' ? `${baseHeaderText} (${arbejdsstedNavn})` : baseHeaderText;
 
     // Satsvurderingen behøver ikke længere den anvendte reguleringsdato: de datoafhængige afvigelser hørte
-    // til de LÅSTE satser, som nu er afledte felter, reduceren materialiserer (GM-F01/GM-F02).
+    // til de LÅSTE satser, som nu er afledte felter, reduceren materialiserer.
     const satserError = resolveSatserErrorField(af, values.beregnesUdFra);
     const satserStatus: EoRowStatus = satserError ? 'error' : 'ok';
     const satserMessage = satserError ? satserError.message : 'Ok';

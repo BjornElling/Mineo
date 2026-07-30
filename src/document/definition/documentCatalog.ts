@@ -1,14 +1,9 @@
 /**
- * Katalog-FABRIKKEN (Fase 5; `document-output-contract.md` §A2a).
+ * Katalog-FABRIKKEN.
  *
- * Dette modul indeholder bevidst INGEN definitioner. Kataloget var oprindeligt en global `Map`, som
- * statisk importerede alle domæners definitioner i kernelaget — og dermed hvert domænes projektioner
- * og gates. Mineos sider er ellers route-lazy (`App.tsx`), så efter en cutover ville den første
- * dokumentførende route have trukket samtlige domæners projektionskode ind, og standalone
- * MinProcesrente ville have trukket hele hovedappens domænegraf. (Generatorerne var ikke problemet —
- * de lazy-loades fortsat via `loadRenderer` — men projektionslaget mistede sin routeopdeling.)
- *
- * Derfor: kontrakter og fabrik bor her, mens KOMPOSITIONEN sker i app-/route-rødder. Hver app bygger
+ * Dette modul indeholder bevidst INGEN definitioner. Kontrakter og fabrik bor her, mens
+ * KOMPOSITIONEN sker i app-/route-rødder, så et globalt katalog ikke trækker alle domæners
+ * projektionskode ind i enhver route og appvariant. Hver app bygger
  * sit eget runtime-katalog over sine egne outputs, og `documentOutputId.ts` er den fælles
  * completeness-kilde, som en test måler de to kataloger imod.
  *
@@ -57,13 +52,13 @@ export type DocumentOutput<TRequest, TGateSettings, TRenderSettings> = Readonly<
    *
    * Ligger på katalogposten frem for hos konsumenten, fordi beskeden kræver BÅDE definitionens
    * `labels` og miljøets formatpolitik — to ting, en side hverken bør kende eller kunne komme til at
-   * kombinere forkert. Før Fase 5 skrev hver side sin egen "Kunne ikke generere …"-tekst, og
+   * kombinere forkert. Tidligere skrev hver side sin egen "Kunne ikke generere …"-tekst, og
    * servicelaget omskrev den bagefter med en global `/PDF/g`-substitution.
    *
    * `settings` er kaldertidens RENDER-settings (render-tidens kontekst). Formatet i beskeden er
    * altså det, brugeren ville få NU — hvilket er det rigtige, fordi beskeden vises efter aktiveringen
    * og beskriver, hvad der ville ske ved et nyt forsøg. Den er bevidst render-halvdelen og ikke
-   * gate-halvdelen: beskeden navngiver netop formatet (R6-F03).
+   * gate-halvdelen: beskeden navngiver netop formatet.
    */
   resolveOutcomeMessage: (outcome: DocumentOutcome, settings: TRenderSettings) => string | null;
 }>;

@@ -23,7 +23,7 @@ import type { ActiveEditorRegistry } from '../runtime/activeEditorRegistry';
 import { CriticalActionCoordinator } from '../runtime/criticalActionCoordinator';
 
 /**
- * Origin-argumentet som en BETINGET tuple (§3.7, WI-004 runde 4, fund S4).
+ * Origin-argumentet som en BETINGET tuple.
  *
  * En strukturel rækkecommand kræver en origin — argumentet er obligatorisk. Alt andet beholder det valgfrie.
  * ARTEN er fri: en brugerudløst rækkehandling giver `CollectionHistoryOrigin`, mens en række-promovering via
@@ -31,7 +31,7 @@ import { CriticalActionCoordinator } from '../runtime/criticalActionCoordinator'
  *
  * To fælder er bevidst undgået:
  * - En OVERLOAD duer ikke: `InputSurfaceCommand` er en union, så TypeScript matcher `inputTransaction(...)`
- *   mod den permissive overload og lader origin falde bort — præcis hullet fund S4 beskrev.
+ *   mod den permissive overload og lader origin falde bort.
  * - At generificere over hele COMMANDEN duer heller ikke: `FieldRef<T>` er invariant, så en `TCommand extends
  *   InputSurfaceCommand<TField, TEntity>`-constraint bryder inferensen for felt-commands. Vi generificerer
  *   derfor kun over DISKRIMINATOREN, som er en ren strengunion.
@@ -40,9 +40,9 @@ type OriginArgs<TKind extends string> = TKind extends StructuralCommandKind
   ? [origin: HistoryOrigin]
   : [origin?: HistoryOrigin];
 
-// React-laget (§3.5/§3.10): den ENE binding, React-adapterne læser fra. Til forskel fra den legacy
-// `FormPersistenceContext` eksponerer den hverken rå sektioner, `invalidDrafts`, `fieldErrors` eller skrivbare
-// hel-sektionshooks. Den giver kun: (1) den aktuelle afsluttede revision (input + revisionsnummer), (2) det
+// React-laget (§3.5/§3.10): den ENE binding, React-adapterne læser fra. Den eksponerer hverken rå sektioner,
+// rejected-input-map, et skrivbart feltfejlsregister eller skrivbare hel-sektionshooks. Den giver kun:
+// (1) den aktuelle afsluttede revision (input + revisionsnummer), (2) det
 // tokenbundne feltissue-snapshot (§1.8 — komponenter rapporterer ALDRIG ind i det; de læser det), (3) én
 // typed `dispatch`, og (4) editorregistret. Feltvalidatorerne leverer issue-snapshottet i produktionen; test
 // kan injicere et syntetisk snapshot for at isolere en enkelt issue-tilstand.
@@ -93,8 +93,7 @@ export type InputEditPort = Readonly<{
    * Den ENE write-grænse (§3.6). Feltadapteren udsteder kun felt-scopede commands.
    *
    * En STRUKTUREL rækkecommand (insert/delete/reorder/settle-i-ny-række samt en strukturel transaktion)
-   * kræver en origin — ellers kunne undo/redo gendanne en række uden noget restore-anker (§3.7, WI-004 runde
-   * 4, fund S4). ARTEN er fri; se `OriginArgs`. `dispatchInput` håndhæver kravet også på runtime.
+   * kræver en origin — ellers kunne undo/redo gendanne en række uden noget restore-anker. ARTEN er fri; se `OriginArgs`. `dispatchInput` håndhæver kravet også på runtime.
    */
   dispatch: <TField, TEntity, TKind extends InputSurfaceCommand<TField, TEntity>['kind']>(
     command: InputSurfaceCommand<TField, TEntity> & { kind: TKind },
@@ -125,7 +124,7 @@ type InputSystemPort = Readonly<{
    * `replacementGeneration`) og tillader den som eneste command, når runtime er `writesBlocked` (clearCase, §1.12).
    */
   replaceCase: (command: ReplaceCaseCommand | ClearCaseCommand) => DispatchInputResult;
-  /** History er en separat port; editor-surfaces kan ikke forveksle restore med en feltkommando. */
+  /** History er en separat port; editorflader kan ikke forveksle restore med en feltkommando. */
   history: Readonly<{
     undo: () => DispatchInputResult;
     redo: () => DispatchInputResult;
@@ -251,7 +250,7 @@ export const useSectionReset = (): InputSystemPort['resetSection'] => useInterna
 /**
  * Bygger en binding oven på den levende slim-store (§3.10). `getSettled` er memoiseret pr. revision, så
  * `useSyncExternalStore` ser en stabil reference mellem revisioner (ellers ville getSnapshot-identitetstjekket
- * loope). Issue-snapshottet leveres af consumeren (Fase 3-validatorer); i test injiceres et syntetisk snapshot.
+ * loope). Issue-snapshottet leveres af consumeren (inputkernen-validatorer); i test injiceres et syntetisk snapshot.
  */
 export const createInputRuntimeBinding = (
   store: SlimInputStore,

@@ -1,16 +1,12 @@
 /**
- * De fire EET-dokumentdefinitioner (Fase 5; `document-output-contract.md` §A1.2/§A7.1).
+ * De fire EET-dokumentdefinitioner.
  *
  * De fire faner deler ÉN `buildErhvervsevnetabReaderProjection` og ÉT gate-sæt gennem
  * `context.shared`, men gates uafhængigt pr. fane (§1.10): en fejl i EAL-delen må ikke blokere
  * kapitaliserings-downloaden.
  *
- * **Ensartning i forhold til før Fase 5.** Tab-komponenterne kaldte `evaluateEetFaneDownloadGate`
- * direkte og tjekkede derefter `documentStamdata.status !== 'ready'` som en SELVSTÆNDIG betingelse
- * i click-handleren — mens den reaktive knap-gate kom fra `evaluateErhvervsevnetabDownloadGates`,
- * der har stamdata-blokeringen indbygget (`erhvervsevnetabDownloadGate.ts:88-98`). De to udtryk
- * gav samme resultat, men var to formler. Definitionen bruger nu KUN
- * `evaluateErhvervsevnetabDownloadGates`, så reaktiv gate og preflight er samme kode.
+ * Definitionerne bruger kun `evaluateErhvervsevnetabDownloadGates`, som inkluderer
+ * stamdataafhængigheden. Reaktiv gate og click-preflight evaluerer dermed samme formel.
  */
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../schemas/formSchemas';
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';

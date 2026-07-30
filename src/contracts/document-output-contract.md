@@ -204,7 +204,7 @@ genvej.
 2. De **to kanaler** er rene infrastruktur-implementeringer af `DocumentWriter` og ligger uden for kernen:
    - **PDF-kanalen** i `src/pdf/` (jsPDF): adapter, writer-fabrik, brevhoved-renderer, den direkte `TableSpec`-renderer (`pdfTableRenderer.ts` + `pdfDocumentTableRenderer.ts`) og render-helpers. Kanalen indeholder ingen download-service: også standalone MinProcesrentes tre outputs går gennem den fælles livscyklus.
    - **Word-kanalen** i `src/docx/` (writer + understøttende infrastruktur). Begge kanaler indeholder ingen domænegeneratorer: PDF og Word genbruger den samme `DocumentModel`, som generatorerne bygger gennem `DocumentComposer` (jf. afsnit B).
-3. Der findes **ikke** længere et selvstændigt EO-PDF-lag under `src/domain/erstatningsopgoerelse/pdf/`. Det tidligere lag var ikke reel renderingskode (ingen jsPDF), men EO-præsentations- og regulerings-logik, der byggede tabel-*data*. Den er konsolideret ind i domænelaget (review-planens punkt 10.5):
+3. EO-præsentations- og reguleringslogik, der bygger tabel-*data*, hører til i domænelaget og må ikke ligge i et selvstændigt PDF-lag:
    - Regulerings-/lønudviklings-tabeldata: `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`.
    - Pengeenhed og -algebra: `src/domain/money/money.ts`.
    - EO-model-typer: `src/domain/erstatningsopgoerelse/shared/eoTypes.ts`.

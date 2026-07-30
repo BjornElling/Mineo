@@ -1,19 +1,14 @@
 /**
- * De tre reguleringssats-outputs (Fase 5, pass 5; `document-output-contract.md` §A1.2/§A2/§A7.1).
+ * De tre reguleringssats-outputs.
  *
  * Knappen "Tilgængelige reguleringssatser" findes to steder — EO's Oplysninger-fane (sagsniveau, ét
  * `eoAngivetLoenLoenudvikling`-objekt) og hvert ansættelsesforhold på Lønindkomst-fanen — og den
  * dispatcher til TRE forskellige dokumenter afhængigt af `loenudviklingBeregningsgrundlag`:
  * `regulering` (Overenskomst/Statistik), `krl` (KRL satstabel) og `kl-loenaftaler` (KL-lønaftaler).
  *
- * **Hvad Fase 5 retter her.** Denne gruppe var den eneste af de seks, der manglede HELE
- * download-livscyklussen: ingen commit-barriere, ingen frisk kildeoptagelse, ingen token-lighed og
- * ingen friskheds-recheck. Et klik med en åben, ikke-settlet editor dannede dokumentet på de gamle
- * tal. Dertil var `canDownload` skrevet TO gange med ikke-identiske formler — sagsniveauet krævede
- * blot at `offentligLoenTrin`/`offentligLoenGruppe` var tal, mens ansættelsesforholdet brugte
- * `isOffentligLoenSelectionReady`, der også validerer løntrinnet gennem `toLoentrin` og
- * `offentligLoenType` gennem enum'en. To knapper med samme etiket kunne altså være enabled i
- * forskellige tilstande. Nu er der ÉN regel (den strengere), og den bor i `project`.
+ * Alle tre outputs bruger den fælles commit-, kilde- og friskhedslivscyklus. Downloadreglen bor ét
+ * sted i `project` og bruger `isOffentligLoenSelectionReady`, så sagsniveau og ansættelsesforhold
+ * validerer offentligt løntrin og løntype ens.
  *
  * **Hvorfor de tre outputs deler modul.** De deler aktiveringsidentitet, gate-regel og
  * kilde-læsning; kun `loenudviklingBeregningsgrundlag` afgør hvilket af de tre dokumenter der
@@ -172,9 +167,8 @@ const readEmploymentSource = (reader: InputReader, employmentId: string): Loenud
  * blokere et efterfølgende KL-dokument, som slet ikke bruger løntrinnet — en blokering på et
  * irrelevant felt. Kaldsstedet nedenfor må derfor aldrig gøre kaldet ubetinget igen.
  *
- * Inden for Overenskomst-grundlaget er dette den STRENGERE af de to formler, der fandtes før Fase 5
- * (ansættelsesforholdets `isOffentligLoenSelectionReady`), hvor sagsniveauet nøjedes med at se efter,
- * at de to felter var tal. **Brugergodkendt 2026-07-26.**
+ * Inden for Overenskomst-grundlaget kræves den strenge `isOffentligLoenSelectionReady`-regel:
+ * løntrinnet skal kunne normaliseres, og løntypen skal være en kendt enumværdi.
  *
  * Den reelle forskel er `offentligLoenType`-enumtjekket. `toLoentrin`-kaldet er derimod defensivt og
  * kan i praksis ikke afvise noget: descriptoren bounder allerede feltet til 1..55 med præcis samme
@@ -227,7 +221,7 @@ const resolveReguleringsDatoInterval = (
  * Alt de tre outputs deler: kilde, stamdata og de fælles gate-trin.
  *
  * `stamdata` er en obligatorisk dokumentdependency for alle tre (brevhovedet bygges af den), præcis
- * som for de øvrige 15 outputs. Før Fase 5 blev den sendt uvalideret ind i servicelaget som
+ * som for de øvrige 15 outputs. Tidligere blev den sendt uvalideret ind i servicelaget som
  * `unknown` og re-parset dér; den sti findes ikke længere.
  */
 type SharedReguleringSource = Readonly<{
@@ -299,7 +293,7 @@ const projectReguleringCommon = <TInput>(
   const shared = context.shared(readSharedReguleringSource);
 
   // Alle blokeringer nedenfor betyder "der mangler en indtastning/et valg" og viser derfor den universelle
-  // tekst (UT-F07); kun stamdata-ISSUET navngiver et konkret felt og citeres ordret.
+  // tekst; kun stamdata-ISSUET navngiver et konkret felt og citeres ordret.
   if (shared.stamdata.status !== 'ready') {
     return {
       kind: 'blocked',
@@ -543,7 +537,7 @@ export const reguleringDocumentAction = defineDocumentAction<
 });
 
 /**
- * "Der er ikke valgt et grundlag" er en manglende INDTASTNING, ikke en specifik fejl (UT-F07): brugeren ser
+ * "Der er ikke valgt et grundlag" er en manglende INDTASTNING, ikke en specifik fejl: brugeren ser
  * derfor den universelle tekst, mens beskeden her bevares som den interne forklaring.
  */
 export const REGULERING_NO_OUTPUT_REASON: DocumentDownloadGateReason = {

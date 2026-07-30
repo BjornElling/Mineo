@@ -28,7 +28,7 @@ import {
 // færdige binding til React-træet gennem `InputRuntimeProvider`. Provideren hydrerer aldrig igen (§3.10);
 // en remount genbruger den samme runtime uden at overskrive input.
 //
-// **Feltvalidering (Fase 3, slicevis):** `getIssues` optager nu et STABILT kildesnapshot (§3.4) og udleder det
+// **Feltvalidering (inputkernen, slicevis):** `getIssues` optager nu et STABILT kildesnapshot (§3.4) og udleder det
 // faktiske tokenbundne feltissue-snapshot via `captureStableInputEvaluation`. Rejected råtekst (format) og
 // canonical-validatorer på de migrerede sektioner giver derfor ægte røde feltfejl. Sektioner uden migrerede
 // validatorer bidrager ikke med issues endnu — Satser-årets min/maxYear-bounds er efter kravændringen 2026-07-18
@@ -39,7 +39,7 @@ import {
 /**
  * Den publicerede værdi er det PROJEKTEREDE snapshot, ikke hele `AppSettings`.
  *
- * Det er WI-009's kerne: evaluering, fingerprint og dokumentcapture skal drives af præcis den samme
+ * Evaluering, fingerprint og dokumentcapture skal drives af præcis den samme
  * værdi, ellers kan de drive fra hinanden. Tidligere var dette hele `AppSettings`, og fordi
  * `SourceSettings` var en ren strukturel type, kunne enhver evalueringsafhængig kodesti læse en
  * nøgle UDEN FOR sættet. En sådan læsning ville indføre en source-afhængighed, som IKKE bumper
@@ -110,7 +110,7 @@ export const createProductionInputRuntimeBinding = (): InputRuntimeBinding => {
 export const getProductionInputEvaluation = (): InputEvaluation => readProductionEvaluation();
 
 /**
- * Læser det AKTUELT publicerede source-settings-snapshot (R6-F01).
+ * Læser det AKTUELT publicerede source-settings-snapshot.
  *
  * Kritisk: dette er en FUNKTION, ikke en værdi. `publishedSettings` sættes i samme layout-fase som
  * settingsrevisionen hæves (`useSettingsRevisionBridge`), så en læsning på capture-tidspunktet er atomisk

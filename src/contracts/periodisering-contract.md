@@ -62,7 +62,7 @@ Wrappers må ikke genimplementere periodiseringsregler.
 
 `Hverdage` og `arbejdsdage` må ikke bruges som synonymer.
 
-`Hverdage` er basisbegrebet. Domænespecifikke regler kan gøre `arbejdsdage` lig `hverdage` for konkrete perioder, fx sygedagpenge før cutover.
+`Hverdage` er basisbegrebet. Domænespecifikke regler kan gøre `arbejdsdage` lig `hverdage` for konkrete perioder, fx sygedagpenge før overgang.
 
 ---
 
@@ -133,7 +133,7 @@ Sygedagpenge er en domænespecifik undtagelse med særregel:
 - Hvis ydelsesrækkens slutdato er før `2012-07-02`, medregnes SH-dage ved arbejdsdagsperiodisering.
 - Hvis ydelsesrækkens slutdato er `2012-07-02` eller senere, fratrækkes SH-dage.
 
-Perioder der krydser cutover opdeles ikke automatisk dag-for-dag af denne regel; klassifikationen følger ydelsesrækkens slutdato, medmindre en senere domæneregel eksplicit ændrer dette.
+Perioder der krydser overgang opdeles ikke automatisk dag-for-dag af denne regel; klassifikationen følger ydelsesrækkens slutdato, medmindre en senere domæneregel eksplicit ændrer dette.
 
 Denne regel skal håndhæves centralt samme sted for:
 

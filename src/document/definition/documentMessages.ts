@@ -1,16 +1,8 @@
 /**
- * Brugerrettede beskeder for dokument-udfald (Fase 5, pass 0).
+ * Brugerrettede beskeder for dokument-udfald.
  *
- * Erstatter to legacy-mekanismer:
- *
- * 1. `errorLabel`-prosastrenge ("Kunne ikke generere satser-PDF") kombineret med en global
- *    `/PDF/g`-substitution, der omskrev teksten til det aktive format. Substitutionen forudsatte, at
- *    ordet "PDF" i enhver fejltekst UDELUKKENDE var en formatreference — en forudsætning intet
- *    håndhævede. Nu erklærer outputtet sit NAVN, og beskeden formuleres her med formatet som
- *    eksplicit parameter.
- * 2. At en stale kilde under afviklingen fik den generiske generatorfejl-tekst, mens den samme
- *    tilstand i preflighten fik en korrekt transient besked. Her afgør TILSTANDEN beskeden; fasen er
- *    kun diagnostik.
+ * Outputtet erklærer sit NAVN, og beskeden formuleres her med formatet som eksplicit parameter.
+ * TILSTANDEN afgør beskeden; livscyklusfasen er kun diagnostik.
  */
 import { getDocumentFormatLabel } from '../documentFormat';
 import type { DocumentDownloadFormat } from '../documentFormat';

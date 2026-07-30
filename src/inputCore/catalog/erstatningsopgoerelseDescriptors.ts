@@ -272,7 +272,7 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
             minBoundKind: minRule.minBoundKind,
             minBoundReferenceISO: minRule.minBoundReferenceISO,
           },
-          // R3-F03's egen reproduktion: en Skadedato efter konfigurationens max gør intervallet umuligt.
+          // En Skadedato efter konfigurationens max gør intervallet umuligt.
           // Årsagen er Skadedato — og Skadestype, som afgør om erhvervssygdomsreglen (anmeldedato minus
           // 5 år) eller skadesdagen sætter min.
           bounds: derivedDateBounds('Skadedato og Skadestype'),
@@ -469,8 +469,8 @@ export const eoSvieSmertePeriodeTilstandField = defineStructuralField<Tilstand |
 
 // oevrigeKravPerioder
 export const eoOevrigeKravPerioderCollection = topLevelCollection<OevrigeKravRow>('oevrigeKravPerioder');
-// Datoens dynamiske grænser (min=skadedatoMinRule / max=i dag) er nu en canonical bounds-feltvalidator (§1.6),
-// byte-identisk med legacy `OevrigeKravSection`'s `minDate`/`maxDate`/`specialRangeErrors`. Krydslæser skadedato +
+// Datoens dynamiske grænser (min=skadedatoMinRule / max=i dag) er en canonical
+// bounds-feltvalidator (§1.6). Den krydslæser skadedato og
 // skadestype via `view.readCanonical` (ingen recursion — validators læser canonical, ikke issues).
 export const eoOevrigeKravDatoField: FieldDescriptor<ISODateString | undefined> = defineStructuralField<ISODateString | undefined>({
   id: 'eo.oevrigeKravPerioder.dato',
@@ -503,7 +503,7 @@ export const eoOevrigeKravDatoField: FieldDescriptor<ISODateString | undefined> 
           minBoundKind: minRule.minBoundKind,
           minBoundReferenceISO: minRule.minBoundReferenceISO,
         },
-        // Samme udledning som forligsdatoen: min kommer fra Skadedato + Skadestype (R3-F03).
+        // Samme udledning som forligsdatoen: min kommer fra Skadedato + Skadestype.
         bounds: derivedDateBounds('Skadedato og Skadestype'),
       }),
       detail: { minDate: minRule.minDate, maxDate },

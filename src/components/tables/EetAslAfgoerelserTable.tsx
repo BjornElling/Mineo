@@ -53,8 +53,8 @@ import type { ISODateString } from '../../types/branded';
 //  - de committede rækker (til sort + kryds-validering) er reader-afledte af forælderen, så tabellen og
 //    projektionen deler præcis samme sandhed. Der er ingen konkurrerende celle-værdikopi (§3.8).
 //  - trailing PLACEHOLDER-rækker (§1.11): tomme rækker persisteres ikke, så den viste tabel = de
-//    committede rækker + `max(1, EET_ASL_MIN_VISIBLE_ROWS − antal committede)` tomme indtastnings-rækker (bevarer
-//    legacy-looket med 2 synlige tomme rækker på en tom sag).
+//    committede rækker + `max(1, EET_ASL_MIN_VISIBLE_ROWS − antal committede)` tomme indtastningsrækker
+//    (to synlige tomme rækker på en tom sag).
 
 const AFGOERELSES_TYPE_OPTIONS: readonly { value: AfgoerelseType; label: string }[] = [
   { value: 'Midlertidig', label: 'Midlertidig' },
@@ -83,7 +83,7 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   /** De committede rækker (reader-afledt af forælderen), i afsluttet rækkefølge — til sort + kryds-validering. */
   committedRows: readonly AslAfgoerelseRow[];
   /**
-   * Kryds-række-domænereglerne som STRUKTURELLE feltissues (GM-F06), reader-afledt af forælderen. Cellen slår
+   * Kryds-række-domænereglerne som STRUKTURELLE feltissues, reader-afledt af forælderen. Cellen slår
    * sit eget issue op på sin FELTADRESSE — ikke på en parallel `${rowId}|${field}`-strengnøgle — så rød
    * markering, tooltip og fokusnavigation deler repræsentation med alle andre røde felter.
    */
@@ -108,9 +108,8 @@ const EetAslAfgoerelserRow = React.memo(
     const gc = (colIndex: number) => ({ rowId, colIndex });
 
     // Opslaget sker på den FÆRDIGT BUNDNE cellereference, editoren selv driver (`CellSpec.field`) — ikke på en
-    // ny lokal binding og ikke på en parallel `${rowId}|${field}`-strengnøgle (GM-F06). Dermed findes der kun
-    // ÉN bindingsvej: kunne de to divergere, ville fejlen forsvinde lydløst fra cellen (jf. INC-F01, hvor
-    // netop en lokal binding gav forkerte ejer-id'er i nestede collections).
+    // ny lokal binding og ikke på en parallel `${rowId}|${field}`-strengnøgle. Dermed findes der kun
+    // ÉN bindingsvej: kunne de to divergere, ville fejlen forsvinde lydløst fra cellen.
     const ruleIssueFor = <T,>(cell: CellSpec<T, AslAfgoerelseRow>) => {
       const issue = activeFieldIssue(ruleIssues, serializeFieldAddress(cell.field.address));
       return issue === undefined ? {} : { collectionRuleIssue: issue };
@@ -241,9 +240,9 @@ const EetAslAfgoerelserTable = React.memo(
     // Tomme rækker persisteres ikke. Legacy viste altid mindst EET_ASL_MIN_VISIBLE_ROWS (=2) rækker;
     // det bevares som `max(1, 2 − antal committede)` placeholder-rækker (altid ≥1 trailing indtastnings-række).
     //
-    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` (GM-F14) — tabellen havde tidligere sin egen
+    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` — tabellen havde tidligere sin egen
     // kopi. Ud over at fjerne duplikationen bevarer den delte pulje et promoveret id, så det kan genindtræde
-    // efter et undo; ellers mister fokusrestoren sit mål (UT-F03).
+    // efter et undo; ellers mister fokusrestoren sit mål.
     const committedIdSet = React.useMemo(
       () => new Set(sortedCommittedRows.map((row) => row.id)),
       [sortedCommittedRows]

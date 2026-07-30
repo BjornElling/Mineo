@@ -1,16 +1,12 @@
 /**
- * Satser-dokumentdefinitionen (Fase 5; `document-output-contract.md` §A1.2/§A7.1).
+ * Satser-dokumentdefinitionen.
  *
  * Genbruger `projectSatser` uændret (§5.4): "vist = beregnet" gælder fortsat, så et out-of-bounds
  * eller tomt satsår giver `blocked` — satserne skjules på siden, OG downloaden blokeres, fra samme
  * projektion.
  *
- * **Hvad Fase 5 retter for dette output.** Satser var gruppe B i kortlægningen: den havde
- * commit-barriere og friskheds-recheck, men manglede TOKEN-LIGHED mellem barrieren og det optagne
- * snapshot. Click-handleren i `Satser.tsx` optog kilden efter settle og genprojicerede, men
- * sammenlignede aldrig `preparation.token` med snapshottets token. Et års-skift i vinduet mellem
- * settle og optagelse kunne derfor danne satser for det FORRIGE år. Kernen lukker det hul for alle
- * outputs på én gang; det er den brugergodkendte adfærdsændring nr. 3.
+ * Barrierens token skal være identisk med det optagne snapshots token. Ellers kan et årsskift mellem
+ * settle og kildeoptagelse danne satser for en forældet revision.
  *
  * Bemærk at satsåret IKKE er en `TRequest`: det er en almindelig, committed indtastning og læses
  * derfor af `project` fra det friske snapshot. Der er kun ét satser-output pr. sag.
@@ -42,7 +38,7 @@ export const satserDocumentDefinition: MineoDocumentDefinition<SatserDocumentInp
       const { reader } = context.evaluation;
       // Findes et konkret issue, ER dens besked den brugerrettede årsag (den navngiver satsåret/feltet) og
       // citeres ordret; de generiske fallbacks beskriver kun en tilstand og bliver den universelle
-      // "Indtastning mangler" (UT-F07).
+      // "Indtastning mangler".
       const projection = projectSatser(reader);
       if (projection.status !== 'ready') {
         const issueMessage = projection.issues[0]?.message;

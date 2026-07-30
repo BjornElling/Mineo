@@ -17,7 +17,7 @@ Kontrakten gælder handlinger, der aflæser, erstatter eller kan unmount'e autor
 
 ## 2. Én coordinator
 
-Én `CriticalActionCoordinator` pr. app-runtime er den eneste barriere. Form- og grid-surfaces registrerer typede
+Én `CriticalActionCoordinator` pr. app-runtime er den eneste barriere. Formular- og gridflader registrerer typede
 deltagere med symmetrisk lifecycle.
 
 - Deltagere opdages aldrig gennem DOM-scanning.
@@ -105,5 +105,5 @@ databevarende funktion. Annullering (eller apply-fejl) bevarer både afsluttet i
 
 Reset/`Slet alt` ejes af `CaseResetOperations`-porten og routes gennem den samme replacement-command som load.
 Handlingen afsluttes med en almindelig navigation, ikke med en fuld sidegenindlæsning: en reload ville rive
-komponenttræet ned og dermed kræve sidekanaler for at overleve sig selv (den mekanik er fjernet, GM-F12/INC-F16).
+komponenttræet ned og dermed kræve sidekanaler for at overleve sig selv. Den mekanik findes ikke.
 Baseline nulstilles ad den almindelige vej gennem `authoritativeSnapshotEpoch`, som hel-sags-clear selv bumper.

@@ -8,7 +8,7 @@ import {
   loenudviklingStatistikModelEnum,
   offentligLoenTypeEnum,
   tillaegAngivesSomEnum,
-  type LoenindkomstAnsaettelsesforhold,
+  type PersistedLoenindkomstAnsaettelsesforhold,
   type LoenudviklingManuelProcentsatsRow,
   type LoenudviklingManuelRow,
   type StandardLoenTableRow,
@@ -63,7 +63,7 @@ type PathSegments = FieldAddressTemplate['path'];
 const employmentPath: PathSegments = [{ kind: 'entity', collection: EMPLOYMENTS }];
 const eoLoenPath: PathSegments = [{ kind: 'property', name: EO_LOEN_PROPERTY }];
 
-// Delte codecs (identiske config'er som legacy-bindingen).
+// Delte codecs for lønfelterne.
 const optionalTextCodec = createOptionalTextFieldCodec();
 const dateCodec = createDateFieldCodec({ twoDigitYearPolicy: 'infer' });
 const percentCodec = createPercentFieldCodec({ allowNegative: false, allowDecimals: true, minValue: 0, maxValue: 100 });
@@ -121,7 +121,8 @@ const reqChoiceField = <T extends string>(
   });
 
 // ── Samlingen loenindkomstAnsaettelsesforhold ──────────────────────────────────────
-export const eoLoenindkomstAnsaettelsesforholdCollection = defineStructuralCollection<LoenindkomstAnsaettelsesforhold>({
+export const eoLoenindkomstAnsaettelsesforholdCollection =
+defineStructuralCollection<PersistedLoenindkomstAnsaettelsesforhold>({
   id: 'eo.loenindkomstAnsaettelsesforhold',
   template: { section: S, path: [], collection: EMPLOYMENTS },
   createEmptySection: createEmptyErstatningsopgoerelseSection,
@@ -141,8 +142,8 @@ const empPercentBounds = (field: string): readonly FieldValidator<number | undef
 const empAmountBounds = (field: string): readonly FieldValidator<AmountValue | undefined>[] =>
   [amountBoundsValidator(`${EMP_ID}.${field}.bounds`, 0, undefined)];
 
-// Navngivne employment-descriptors (§2.4 trin 8: reader-projektion + grid-cutover binder dem direkte). Aggregat-
-// arrayet nedenfor er DERIVED fra dette record, så kataloget ikke kan drive fra de eksporterede refs.
+// Navngivne employment-descriptors, som readerprojektion og grid binder direkte. Aggregatarrayet
+// nedenfor afledes fra dette record, så kataloget ikke kan drive fra de eksporterede refs.
 export const eoEmploymentFields = {
   navnPaaArbejdssted: emp<string>('navnPaaArbejdssted', 'Navn på arbejdssted', 'text', optionalTextCodec),
   harOverenskomst: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harOverenskomst', label: 'Overenskomst', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
@@ -152,7 +153,6 @@ export const eoEmploymentFields = {
   sidsteArbejdsdag: emp<ISODateString>('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet', 'text', dateCodec),
   fritvalgPct: emp<number>('fritvalgPct', 'Fritvalg', 'text', percentCodec, empPercentBounds('fritvalgPct')),
   shSoPct: emp<number>('shSoPct', 'SH/SO-sats', 'text', percentCodec, empPercentBounds('shSoPct')),
-  storeBededagPct: emp<number>('storeBededagPct', 'Store Bededagstillæg', 'text', percentCodec, empPercentBounds('storeBededagPct')),
   pensionPct: emp<number>('pensionPct', 'Arbejdsgivers pensionsbidrag', 'text', percentCodec, empPercentBounds('pensionPct')),
   tillaegAngivesSom: reqChoiceField(EMP_ID, employmentPath, 'tillaegAngivesSom', 'Tillæg angives som', tillaegAngivesSomEnum.options, 'procent'),
   loenperiode: reqChoiceField(EMP_ID, employmentPath, 'loenperiode', 'Løn indtastes som', loenperiodeEnum.options, 'maaned'),
@@ -349,8 +349,8 @@ const eoLoenFilterFields = Object.values(eoAngivetLoenFilterFields);
 export const eoAngivetLoenManual = createManualBindings(EO_LOEN_ID, eoLoenPath);
 const eoLoenManual = eoAngivetLoenManual;
 
-// De navngivne descriptor-grupper eksporteres nu som records (§2.4 trin 8: reader-projektion + grid-cutover binder
-// dem direkte). Aggregat-arrayet er DERIVED fra `Object.values(...)` af de samme records, så kataloget ikke kan
+// De navngivne descriptorgrupper eksporteres som records, som readerprojektion og grid binder direkte.
+// Aggregatarrayet afledes fra `Object.values(...)` af de samme records, så kataloget ikke kan
 // drive fra de eksporterede refs. `Object.values` giver et union-typet array; `eraseFieldGroup` type-eraser det til
 // katalogets eksistentielle visning (samme erasure som `catalogFields`, men uden tuple-invarians på et union-array).
 const eraseFieldGroup = (fields: readonly FieldDescriptor<unknown>[]): readonly FieldDescriptor<unknown>[] => fields;

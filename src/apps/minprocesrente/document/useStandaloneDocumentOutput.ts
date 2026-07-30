@@ -1,5 +1,5 @@
 /**
- * Standalone MinProcesrentes vej fra siden til et dokumentoutput (Fase 5, pass 6).
+ * Standalone MinProcesrentes vej fra siden til et dokumentoutput.
  *
  * Spejler hovedappens `useMineoDocumentOutput`, men mod standalones eget miljø. De to hooks er
  * bevidst adskilte og ikke generaliseret til én: hovedappens version læser `AppSettings` gennem

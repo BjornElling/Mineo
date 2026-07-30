@@ -11,7 +11,7 @@ import type { EvaluationSourceToken } from './evaluationSource';
 // følger af de refs, funktionen faktisk læser.
 
 /**
- * Der er bevidst INTET `warnings`-felt (INC-F17, etape 10). Feltet fandtes, blev fyldt af en
+ * Der er bevidst INTET `warnings`-felt. Feltet fandtes, blev fyldt af en
  * `collector.warn`, ingen kaldte, og læst af ingen consumer — advarsler dannes i domænernes egne typer.
  * Se noten i `inputIssue.ts`.
  */
@@ -37,7 +37,7 @@ export type ProjectionCollector = Readonly<{
   /**
    * Læser et PÅKRÆVET felt. `usable` udelukker `undefined` i TYPEN, fordi `require` allerede har afvist
    * tomhed som en `missing`-consumerfejl — ellers skulle hver kaldssted gentage en undefined-guard, som
-   * kroppen kunne glemme at udvide, når et nyt read tilføjes (GM-F07).
+   * kroppen kunne glemme at udvide, når et nyt read tilføjes.
    *
    * Indsnævringen er kun sand for felter, hvis tomværdi ER `undefined`. Et felt med en ikke-undefined
    * tomværdi (fx en required-choice, hvis `isEmpty` altid er falsk) kan aldrig blive `unavailable` af

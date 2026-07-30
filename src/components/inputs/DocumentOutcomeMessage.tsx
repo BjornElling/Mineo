@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 
 /**
- * Den KANONISKE visning af et dokumentudfald i en contentbox (R6-F02/GM-F11).
+ * Den KANONISKE visning af et dokumentudfald i en contentbox.
  *
  * `DocumentDownloadHandle` leverer korrekt en brugerrettet besked for de udfald, brugeren selv kan gøre noget
  * ved — et stale-afbrud, fordi sagen ændrede sig mens dokumentet blev bygget, eller en utilgængelig

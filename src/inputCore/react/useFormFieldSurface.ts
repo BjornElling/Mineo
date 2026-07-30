@@ -11,9 +11,8 @@ import { serializeFieldAddress } from '../fieldAddress';
 // React-laget (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
 // Den parrer `useFieldEditor`-controlleren (som ejer draft/settle/cancel/clear/commit + dispatch, §3.6) med
 // den rene DOM-glue, der IKKE hører til datamodellen: to-trins-aktivering, keydown-skelet, paste-splice,
-// caret-genetablering og blur-settle. Denne hook parser ALDRIG, persisterer ALDRIG og holder ingen fejlstate
-// — al den logik ligger i codec'et + editor-engine + runner. Den erstatter legacy `useStyledFieldAdapter` +
-// `useTwoStageInputActivation`-parringen for formularfelter (§2.4).
+// caret-genetablering og blur-settle. Denne hook parser ALDRIG, persisterer ALDRIG og holder ingen fejlstate;
+// al den logik ligger i codec'et, editor-engine og runner (§2.4).
 //
 // Én sandhed for "redigeres nu": editorens `isOpen`. Der er INGEN konkurrerende to-trins-open-flag (§3.5 —
 // intet lukket draftkopi/epoch/resync). `readOnly = !isOpen` styrer det redigerbare element.
@@ -120,7 +119,7 @@ export const useFormFieldSurface = <T>(
   // felt åbner editoren (klik 1 fokuserer, klik 2 åbner). `singleStageClick` åbner ved første mousedown.
   const mouseDownWasFocusedRef = React.useRef(false);
   // Sand mens vi udfører vores egen programmatiske blur()+focus() for at etablere caret ved åbning; det blur
-  // må ikke settle feltet. Symmetrisk med legacy `shouldIgnoreBlur`.
+  // må ikke settle feltet.
   const ignoreBlurRef = React.useRef(false);
 
   // En stabil ref til det aktuelle {controller, config-callbacks}, så event-handlerne kan være stabile uden at
@@ -154,7 +153,7 @@ export const useFormFieldSurface = <T>(
     latest.current.controller.changeDraft(nextDraft);
   }, []);
 
-  // ⚠️ FJERN IKKE — caret-limbo-fixet (jf. legacy useTwoStageInputActivation). Ved editor-åbning på et
+  // ⚠️ FJERN IKKE — caret-limbo-fixet. Ved editor-åbning på et
   // ALLEREDE-fokuseret element etablerer visse browsere (specifikt <textarea>, men vi gør det ensartet)
   // ikke en redigerbar caret. Et programmatisk blur()+focus() tvinger caret'en frem. `ignoreBlurRef`
   // undertrykker det tilhørende blur, så feltet ikke fejlagtigt settler.

@@ -5,6 +5,7 @@ import {
   readStamdataValues,
 } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { projectLoenindkomstSatser } from '../../../domain/erstatningsopgoerelse/loenindkomstSatsProjection';
 import {
   selectBlockingLoenindkomstEntityIds,
   topLevelFieldIssue,
@@ -133,7 +134,10 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     const expected = computeEoSnapshot({
       revision: 'golden',
       stamdataValues: readStamdataValues(reader),
-      eoValues: readErstatningsopgoerelseValues(reader),
+      eoValues: projectLoenindkomstSatser(
+        readErstatningsopgoerelseValues(reader),
+        readStamdataValues(reader)
+      ),
       stamdataErrors: EMPTY_FIELD_ISSUE_SET,
       eoErrors: EMPTY_FIELD_ISSUE_SET,
     });

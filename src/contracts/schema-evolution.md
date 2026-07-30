@@ -222,7 +222,7 @@ Issue-kategorier (`LoadIssueKind` i `src/types/fileOperations.ts`):
 - `strippedUnknownField`: kendt sektion, felt findes ikke i current schema. **Surfaces i preflight** (gemt værdi kunne ikke indlæses → feltet sat til standardværdi).
 - `sectionDropped`: sektion kunne ikke parses og indlæses ikke. **Surfaces i preflight.**
 - `unknownSection`: sektionen kendes ikke i current registry. **Surfaces i preflight.**
-- `migratedField`: eksplicit migrator har flyttet eller omsat et felt. Data bevares → **surfaces ikke** (vellykket indlæsning, ikke et tab) og tæller ikke som fejl.
+- `migratedField`: eksplicit migrator har flyttet eller omsat et felt. Data bevares → **vises ikke** (vellykket indlæsning, ikke et tab) og tæller ikke som fejl.
 
 **Skel mellem tavs og rapporteret:**
 - Felter der *manglede* i filen og blev udfyldt via schema-default eller optional **rapporteres tavst** — det er harmløs forward-tolerance og må aldrig udløse advarsel (AGENTS.md save/load: "Nye schema-felter der mangler i en ældre fil må aldrig blokere load eller udløse advarsel").

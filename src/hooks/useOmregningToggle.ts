@@ -18,7 +18,7 @@ interface UseOmregningToggleReturn {
    * skriver gennem sin normale write-grænse. Bivirkningerne — shake og fejlcelle-guidning — hører til
    * afvisningen og sker derfor her.
    *
-   * Hooken skriver ikke selv. Det er hele pointen i R7-F02: gaten er en afslutningsPOLITIK, ikke en grund til at
+   * Hooken skriver ikke selv: gaten er en afslutningsPOLITIK, ikke en grund til at
    * forbinde et rå `StyledToggleSwitch` manuelt og derved miste `FieldRef`-bindingen og undo/redo-fokusmetadataen.
    */
   decideToggle: ToggleCommitOverride<boolean>;

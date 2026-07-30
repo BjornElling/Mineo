@@ -1,5 +1,5 @@
 /**
- * Det kanoniske ID-inventar for dokumentoutputs (Fase 5, pass 0).
+ * Det kanoniske ID-inventar for dokumentoutputs.
  *
  * Ligger i sit eget modul UDEN afhængigheder, fordi det er completeness-kilden: både Mineos og
  * standalone-appens runtime-kataloger måles mod dette sæt, og en test kræver præcis én definition

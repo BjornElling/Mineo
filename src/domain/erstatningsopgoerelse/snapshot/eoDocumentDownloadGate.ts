@@ -68,7 +68,7 @@ export const evaluateEoDocumentDownloadGate = (
   if (canDownload) {
     return allowDocumentDownload();
   }
-  // EO's årsag er den ENESTE, der citeres ordret til brugeren (UT-F07): den kommer fra rækkemotoren eller en
+  // EO's årsag er den ENESTE, der citeres ordret til brugeren: den kommer fra rækkemotoren eller en
   // snapshot-invariant og navngiver det konkrete felt/den konkrete række, der skal rettes — fx
   // "Feriegodtgørelse er ikke udfyldt". Den slags besked er præcis det, brugeren har brug for, og må ikke
   // erstattes af den universelle "Indtastning mangler".

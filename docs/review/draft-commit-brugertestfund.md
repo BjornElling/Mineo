@@ -3,7 +3,7 @@
 **Formål:** Dette dokument er det løbende arbejdsregister for symptomer, som brugeren opdager ved brugertest
 parallelt med reviewet i `draft-commit-greenfield-review-plan.md`.
 
-**Status:** I gang  
+**Status:** Afsluttet
 **Senest opdateret:** 2026-07-29
 
 ## Bindende arbejdsmetode

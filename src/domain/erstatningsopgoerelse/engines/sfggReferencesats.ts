@@ -1,8 +1,8 @@
 import type {
-  ErstatningsopgoerelseValues,
   LoenindkomstAnsaettelsesforhold,
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
 } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from './tafCalculationInput';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
@@ -68,7 +68,7 @@ export const isSfggNoEligibleDaysNotCalculable = (
 ): boolean => value.status === 'not_calculable' && (value.kind === 'no_calendar_days' || value.kind === 'no_workdays');
 
 export const resolveSfggReferenceperiodeDayCount = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   row: Pick<
     SygeferiegodtgoerelseAnsaettelsesforholdRow,
     'sfggReferenceperiodeFra' | 'sfggReferenceperiodeTil' | 'sfggReferenceperiodeFravaersdageUdenLoen'
@@ -116,14 +116,14 @@ export const resolveSfggReferenceperiodeDayCount = (
 };
 
 export const getFirstIndtastedeTafFraDato = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): ISODateString | undefined => {
   const dates = (values.tafPerioder ?? []).map((row) => row.fra).filter((value): value is ISODateString => value !== undefined);
   return dates.length === 0 ? undefined : dates.reduce((earliest, current) => current < earliest ? current : earliest);
 };
 
 export const resolveSfggReferenceperiodeMaxDate = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): ISODateString | undefined => getDayBeforeIso(getFirstIndtastedeTafFraDato(values));
 
 export type SfggReferenceLoenCalculator = Readonly<{
@@ -131,7 +131,7 @@ export type SfggReferenceLoenCalculator = Readonly<{
 }>;
 
 export const resolveSfggBaseRate = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   employment: LoenindkomstAnsaettelsesforhold,
   sfggRow: SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined,
   sfggSource: Readonly<{ kind: SfggSourceKind }>,

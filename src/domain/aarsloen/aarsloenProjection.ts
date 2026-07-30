@@ -36,14 +36,11 @@ import { aarsloenStandardLoenFieldSet } from './aarsloenStandardLoenFieldSet';
 // sin beregnings-/dokumentconsumer i live på rå sektioner, så consumeren fødes her gennem readeren i stedet.
 //
 // To komplementære reads (begge rene, ingen rå sektioner):
-//  - `readAarsloenValues(reader)`: rekonstruerer `AarsloenValues` UDEN at blokere. En rød feltfejl (rejected
-//    format/range) skjules af readeren, og cellen/feltet falder tilbage til sin tomværdi — præcis som legacy
-//    læste den tomme/maskerede canonical værdi. Dette er kildeobjektet til både felt-rendering og calc-input.
-//  - `resolveAarsloenFieldErrorGate(reader)`: samler de RØDE feltfejl på de felter, der i legacy var fatale
-//    beregningsinput (satsprocenter + antalFeriedage). En sats uden for 0–100 er nu en rød feltfejl frem for
-//    legacy's "Kritisk Fejl"-boks (§1.6: en rød feltfejl er en rød feltfejl — kun præsentationen ændres, ikke
-//    beregningstallet), og den skjulte værdi må ikke give et misvisende beregnet resultat. Tabelcelle-fejl er
-//    IKKE fatale (legacy isolerer pr. række, §1.10) og indgår derfor ikke i gaten.
+//  - `readAarsloenValues(reader)`: rekonstruerer `AarsloenValues` UDEN at blokere. En rød feltfejl skjules,
+//    og cellen/feltet falder tilbage til sin tomværdi. Dette er kildeobjektet til visning og beregning.
+//  - `resolveAarsloenFieldErrorGate(reader)`: samler RØDE feltfejl på de fatale beregningsinput
+//    (satsprocenter + antalFeriedage). Den skjulte værdi må ikke give et misvisende beregnet resultat.
+//    Tabelcellefejl isoleres pr. række (§1.10) og indgår derfor ikke i gaten.
 
 const scalarRefs = {
   feriePct: aarsloenFeriePctField.bind(),
@@ -76,7 +73,7 @@ const readOrEmpty = <T>(reader: InputReader, field: FieldRef<T>, emptyValue: T):
  * StandardLoenTable til sortering, afledte kolonner og tomheds-vurdering — celleredigeringen går derimod
  * DIREKTE på cellens `FieldRef` via grid-adapteren (§1.10 pr-række-isolation).
  *
- * Rekonstruktionen er den FÆLLES over feltsættet (GM-F15): modulet havde tidligere sin egen kopi, ordret
+ * Rekonstruktionen er den FÆLLES over feltsættet: modulet havde tidligere sin egen kopi, ordret
  * identisk med EO's bortset fra ejer-id'et i `bind`.
  */
 export const readAarsloenTableRows = (reader: InputReader): StandardLoenTableRow[] =>
@@ -116,12 +113,12 @@ const PERCENT_SCALAR_REFS: readonly FieldRef<number | undefined>[] = [
 ];
 
 /**
- * Samler de RØDE feltfejl på de felter, der i legacy var fatale beregningsinput (satsprocenter + antalFeriedage).
- * En ikke-tom liste svarer til legacy's `harFatalBeregningsFejl` for et out-of-range input og undertrykker et
- * misvisende beregnet resultat. Betingelserne spejler `resolveAarsloenCanonicalRangeIssues` PRÆCIST (§1.9: et
+ * Samler de RØDE feltfejl på de fatale beregningsinput (satsprocenter + antalFeriedage) og
+ * undertrykker et misvisende beregnet resultat. Betingelserne spejler
+ * `resolveAarsloenCanonicalRangeIssues` PRÆCIST (§1.9: et
  * skjult/irrelevant felt overblokerer ikke): satsprocenter tæller kun i procent-tilstand; antalFeriedage kun når
- * omregning er aktiv og der ikke er fuld løn under ferie. Tabelcelle-fejl indgår aldrig (legacy isolerer pr.
- * række, §1.10). `omregningAktiveret` er det samme effektive flag, som calc-hookene bruger.
+ * omregning er aktiv og der ikke er fuld løn under ferie. Tabelcellefejl isoleres pr. række (§1.10).
+ * `omregningAktiveret` er det samme effektive flag, som beregningshookene bruger.
  */
 export const resolveAarsloenFieldErrorGate = (
   reader: InputReader,
@@ -151,7 +148,7 @@ export const resolveAarsloenFieldErrorGate = (
 
 /**
  * Den ENE kilde til løntabellens valideringssummary. Cellernes røde issues indsamles af den FÆLLES afledning
- * over feltsættet (GM-F15) og køres gennem den rene tabelsummary — så tabellen, omregning-gaten og
+ * over feltsættet og køres gennem den rene tabelsummary — så tabellen, omregning-gaten og
  * dokumentgaten ikke kan se forskellige cellefejl.
  */
 export const resolveStandardLoenTableValidation = (
@@ -203,7 +200,7 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
   // Rækkeisolationen er stadig rigtig: en fejl i række 2 må ikke ødelægge række 2's naboer, og cellen skal
   // kunne rettes uden at resten forsvinder. Men isolationen gør ikke SUMMEN af række 1 og række 2
   // autoritativ, når række 2's værdi er ukendt. Readeren skjuler den røde celle bag sin tomværdi, så et
-  // beregnet tal ville stille udelade den — en deltotal fremstillet som "Beregnet årsløn" (R5-F01/GM-F04).
+  // beregnet tal ville stille udelade den — en deltotal fremstillet som "Beregnet årsløn".
   //
   // Kun `invalid` gater, ikke `partial_period`. Sondringen er bevidst: en ufuldstændig periode er en helt
   // almindelig mellemtilstand, mens brugeren skriver rækken færdig, og at skjule totalen der ville være en

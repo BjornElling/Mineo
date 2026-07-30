@@ -47,7 +47,9 @@ export const useInputDiagnostics = (): InputDiagnosticsProjection => {
     () => Object.freeze({
       readSection: (pageKey: PersistedSectionKey): unknown => input.sections[pageKey] ?? null,
       readSectionIssues: (pageKey: PersistedSectionKey): readonly FieldIssue[] =>
-        read.getEvaluation().reader.readSectionFieldIssues(pageKey),
+        Object.freeze(read.getEvaluation().issues.all.filter(
+          (issue) => issue.field.address.section === pageKey
+        )),
     }),
     [input, read]
   );

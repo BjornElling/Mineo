@@ -1,14 +1,11 @@
 /**
- * Renteberegningens to dokumentdefinitioner (Fase 5; `document-output-contract.md` §A1.2/§A7.1).
+ * Renteberegningens to dokumentdefinitioner.
  *
  * `rente-oversigt` er ét samlet dokument over alle rentekrav-rækker; `rente` er specifikationen for
  * ÉN række og er derfor det første output med en ægte aktiveringsidentitet (`TRequest = RenteRowRequest`).
  *
- * **Hvad Fase 5 ensarter her.** Før Fase 5 gentog `RenteberegningTab` sin gate-prelude fire steder:
- * to reaktive `useMemo`-gates og to click-handlere kontrollerede hver for sig
- * `stamdataProjection.status === 'blocked'` og `aggregateProjection.status === 'blocked'`, FØR de
- * kaldte den egentlige `evaluate*DownloadGate`. Preluden var altså en selvstændig gate, som
- * domænelaget ikke kendte — og de fire kopier kunne drifte. Nu ligger hele kæden i `project`.
+ * Hele dependency- og gatekæden ligger i `project`. Reaktiv knaptilstand og click-preflight må ikke
+ * have hver sin kopi af stamdata- og aggregatkontrollerne, fordi de da kan drive fra hinanden.
  *
  * Begge outputs deler ÉN `buildRenteberegningReaderProjection` gennem `context.shared`, så
  * række-projektionerne (som kalder rentemotoren pr. række) kun beregnes én gang pr. kildekontekst,
@@ -275,7 +272,7 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
       };
     },
     /**
-     * Datoerne gives videre CANONICAL (§WI-011). Generatoren tog tidligere `dd-mm-åååå` som en utypet
+     * Datoerne gives videre CANONICAL. Generatoren tog tidligere `dd-mm-åååå` som en utypet
      * `string`, så callsiten måtte konvertere med `isoToDanish` og fail-close på et `undefined`, typen ikke
      * kunne fange. Begge generatorer i domænet tager nu `ISODateString`, så formatuenigheden er
      * urepræsenterbar frem for noget en konvertering pr. callsite skal huske.

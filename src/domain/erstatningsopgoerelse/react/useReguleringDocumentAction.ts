@@ -1,9 +1,9 @@
 /**
- * `DocumentAction` for knappen "Tilgængelige reguleringssatser" (Fase 5, pass 5 — beslutning B4).
+ * `DocumentAction` for knappen "Tilgængelige reguleringssatser".
  *
  * Knappen findes to steder (EO's Oplysninger-fane på sagsniveau og hvert ansættelsesforhold på
  * Lønindkomst-fanen) og dispatcher til TRE forskellige outputs afhængigt af
- * `loenudviklingBeregningsgrundlag`. Den er derfor det ene sted i Fase 5, hvor selve OUTPUTVALGET
+ * `loenudviklingBeregningsgrundlag`. Den er derfor det ene sted i dokumentdefinitionen, hvor selve OUTPUTVALGET
  * — ikke bare inputtet — afhænger af en committed indtastning.
  *
  * Outputvalget ligger i en nominal `DocumentAction`: livscyklussen settler, capturer og vælger præcis
@@ -30,7 +30,7 @@ export type ReguleringDocumentAction = Readonly<{
   canDownload: boolean;
   disabledReason: string | undefined;
   /**
-   * Den brugerrettede besked for det seneste udfald (R6-F02/GM-F11). Begge callsites RENDERER den nu
+   * Den brugerrettede besked for det seneste udfald. Begge callsites RENDERER den nu
    * gennem `DocumentOutcomeMessage`; tidligere blev den udledt her og ignoreret af dem begge, så et
    * stale-afbrud eller en død DEV-server var lydløs på både Lønindkomst-kortet og Oplysninger-fanen.
    *

@@ -1,5 +1,5 @@
 /**
- * Hovedappens dokumentmiljø som en hook (Fase 5, pass 7).
+ * Hovedappens dokumentmiljø som en hook.
  *
  * Miljøet er per definition app-globalt (samme kildeport, samme formatpolitik, samme failure-sink),
  * men det skal bindes til den `CriticalActionCoordinator`, der hører til den monterede
@@ -20,7 +20,7 @@ import type { DocumentRenderSettings } from '../../../settings/sourceSettings';
 import { createMineoDocumentEnvironment } from '../mineoDocumentEnvironment';
 
 /**
- * Settings læses IKKE fra `useAppSettings` her (R6-F01).
+ * Settings læses IKKE fra `useAppSettings` her.
  *
  * Hooken bandt tidligere miljøet til et `projectSourceSettings(settings)`-memo fra sin egen render. Det gjorde
  * settingshalvdelen af kildesnapshottet render-fanget, mens inputhalvdelen blev optaget friskt efter settle:

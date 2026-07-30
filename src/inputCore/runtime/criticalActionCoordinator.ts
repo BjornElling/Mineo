@@ -7,20 +7,19 @@ import {
   type EditorFocusTarget,
 } from './activeEditorRegistry';
 
-// Input-runtime (§2.2/§1.4, critical-action-contract): den ENE barriere for handlinger, der aflæser,
-// erstatter eller kan unmount'e autoritativ sagsinput. Den er materielt anderledes end den legacy
-// `CriticalActionCoordinator`: den rebasede §1.4-matrix har INGEN `block`-policy. Navigation settler begge
-// surfaces; save/download settler først og evaluerer derefter et FRISK `EvaluationSourceToken`; load/reset/
-// `Slet alt` gennemføres UDEN settle (draften må aldrig blokere); undo/redo er et stille no-op.
+// Den ene barriere for handlinger, der aflæser, erstatter eller kan unmount'e autoritativt sagsinput
+// (`critical-action-contract.md` §2 og §6). Navigation settler åbne editorer; save/download settler først
+// og evaluerer derefter et FRISK `EvaluationSourceToken`; load/reset/`Slet alt` gennemføres UDEN settle,
+// fordi draften aldrig må blokere en replacement; undo/redo er et stille no-op med en åben editor.
 //
-// Coordinatoren ejer KUN editor-/transaktionsklargøring (contract §2/§6). Dokumentets dependencies, gate og
-// output-invariants ejes af dokumentdefinitionen (Fase 5); `.eo`-save-evalueringen ejes af caseporten (Fase 4).
+// Coordinatoren ejer KUN editor-/transaktionsklargøring. Dokumentets dependencies, gate og
+// output-invariants ejes af dokumentdefinitionen; `.eo`-save-evalueringen ejes af caseporten (inputkernen).
 // Her afsluttes kun editoren, og der leveres et frisk kildesnapshot til den efterfølgende use-case.
 
 /**
- * De kritiske handlinger, klassificeret efter den rebasede §1.4-matrix. `load` dækker manuel/PWA-indlæsning,
+ * De kritiske handlinger, klassificeret efter `critical-action-contract.md` §1.4. `load` dækker manuel/PWA-indlæsning,
  * reset OG `Slet alt`: de deler den samme no-settle-regel, fordi en gennemført handling under alle
- * omstændigheder erstatter eller sletter det input, draften kunne være blevet til (contract §7).
+ * omstændigheder erstatter eller sletter det input, draften kunne være blevet til (§7).
  */
 export type CriticalAction = 'save' | 'download' | 'navigate' | 'load' | 'undo' | 'redo';
 
@@ -43,8 +42,8 @@ const EDITOR_HANDLING: Readonly<Record<CriticalAction, EditorHandling>> = {
 
 /**
  * Resultatet af klargøringen. `committed` bærer et frisk `EvaluationSourceToken`, som save/download evaluerer
- * imod (contract §5): en godkendelse fra et tidligere token må ikke genbruges. `noop` er undo/redo med åben editor.
- * `blocked` opstår kun fail-closed ved en uventet fejl under settle (contract §2).
+ * imod (§5): en godkendelse fra et tidligere token må ikke genbruges. `noop` er undo/redo med åben editor.
+ * `blocked` opstår kun fail-closed ved en uventet fejl under settle (§2).
  */
 export type CriticalActionPreparationResult =
   | Readonly<{ status: 'committed'; token: EvaluationSourceToken }>
@@ -57,7 +56,18 @@ export type CriticalActionPreparationResult =
     }>;
 
 /**
- * Én barriere pr. app-runtime (contract §2). Samtidige klargøringer serialiseres, så den samme editor aldrig
+ * En kritisk mutation må afsluttes i samme stack frame. Den betingede type gør en callback med
+ * `PromiseLike`-retur til `never`, så `async` ikke kan snige sig ind gennem en generisk returtype.
+ */
+type SynchronousResult<T> = [Extract<T, PromiseLike<unknown>>] extends [never] ? T : never;
+
+const isPromiseLike = (value: unknown): value is PromiseLike<unknown> =>
+  (typeof value === 'object' && value !== null) || typeof value === 'function'
+    ? typeof Reflect.get(value, 'then') === 'function'
+    : false;
+
+/**
+ * Én barriere pr. app-runtime (§2). Samtidige klargøringer serialiseres, så den samme editor aldrig
  * finaliseres parallelt. Coordinatoren rører ikke DOM, parsing eller persistence; den kalder kun editorens
  * settle og læser et frisk token fra den levende store.
  */
@@ -83,18 +93,23 @@ export class CriticalActionCoordinator {
    * Udfører den autoritative replace/clear/reset-transaktion og kasserer først derefter en eventuel åben draft.
    * Ved annullering eller apply-fejl skal kalderen undlade dette kald eller kaste; begge dele bevarer draften.
    *
-   * `apply` skal være SYNKRON (R4-F01). Draft-discard rammer præcis den editor, der var åben, da handlingen
+   * `apply` skal være SYNKRON. Draft-discard rammer præcis den editor, der var åben, da handlingen
    * begyndte — jf. `discardReplacedDraft` — og en asynkron apply ville lade brugeren åbne en NY editor i den
    * netop erstattede sag, hvis draft så blev kasseret bagefter. Metadata-/filhåndtags-synkronisering hører
    * derfor uden for barrieren; den ejer ikke replacement-transaktionen.
    */
-  applyReplacement<T>(apply: () => T): Promise<T> {
+  applyReplacement<T>(apply: () => SynchronousResult<T>): Promise<T> {
     const replacement = this.preparationTail
       .catch(() => undefined)
       .then(() => {
         const editorBefore = this.registry.getEditing();
         const generationBefore = this.store.getState().replacementGeneration;
         const result = apply();
+        // Defense-in-depth mod JavaScript-kald og usikre casts. Typegrænsen ovenfor er den primære
+        // barriere; runtime-værnet sikrer, at en thenable aldrig kan optræde som en godkendt replacement.
+        if (isPromiseLike(result)) {
+          throw new Error('Replacement-handlingen skal være synkron.');
+        }
         if (this.store.getState().replacementGeneration === generationBefore) {
           throw new Error('Replacement-handlingen afsluttede uden en autoritativ input-replacement.');
         }
@@ -112,7 +127,7 @@ export class CriticalActionCoordinator {
    *
    * Som `applyReplacement` skal `apply` være SYNKRON og discard rammer den editor, der var åben ved starten.
    */
-  applyDestructive<T>(apply: () => T): Promise<T> {
+  applyDestructive<T>(apply: () => SynchronousResult<T>): Promise<T> {
     const operation = this.preparationTail
       .catch(() => undefined)
       .then(() => {
@@ -120,6 +135,9 @@ export class CriticalActionCoordinator {
         const generationBefore = this.store.getState().replacementGeneration;
         const revisionBefore = this.store.getState().revision;
         const result = apply();
+        if (isPromiseLike(result)) {
+          throw new Error('Den destruktive handling skal være synkron.');
+        }
         const stateAfter = this.store.getState();
         if (
           stateAfter.revision === revisionBefore
@@ -135,7 +153,7 @@ export class CriticalActionCoordinator {
   }
 
   /**
-   * Kasserer PRÆCIS den draft, handlingen erstattede (R4-F01). Et registry-opslag EFTER apply er ikke en stabil
+   * Kasserer PRÆCIS den draft, handlingen erstattede. Et registry-opslag EFTER apply er ikke en stabil
    * identitet: var der ingen editor åben, da handlingen begyndte, findes der ingen draft at kassere, og en editor,
    * brugeren har åbnet imens, tilhører den NYE sag. `getEditing()` kaldes igen for at bekræfte, at editoren stadig
    * er den registrerede og fortsat redigerer — er den unmountet eller udskiftet, er der intet at kassere.

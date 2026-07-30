@@ -49,6 +49,12 @@ export type CollectionDescriptor<TEntity> = Readonly<{
 type AnyFieldDescriptor = FieldDescriptor<unknown>;
 type AnyCollectionDescriptor = CollectionDescriptor<unknown>;
 
+export type StaticFieldLocationDestination = Readonly<{ route: string; tabKey: string | null }>;
+export type StaticFieldLocation = Readonly<{
+  field: AnyFieldDescriptor;
+  destination: StaticFieldLocationDestination;
+}>;
+
 /**
  * Samler heterogene, allerede typed descriptors til katalogets eksistentielle registry-visning. Castet er
  * sikkert, fordi hvert descriptor fortsat ejer codec/read/write/relevans som én udelelig enhed; kataloget
@@ -65,6 +71,14 @@ export const catalogCollections = <TEntities extends readonly unknown[]>(
   ...descriptors: { readonly [K in keyof TEntities]: CollectionDescriptor<TEntities[K]> }
 ): readonly AnyCollectionDescriptor[] => Object.freeze(
   descriptors.map((descriptor) => descriptor as unknown as AnyCollectionDescriptor)
+);
+
+/** Binder typed descriptors til statiske destinationer uden parallelle tekst-id'er. */
+export const catalogFieldLocations = (
+  destination: StaticFieldLocationDestination,
+  fields: readonly AnyFieldDescriptor[]
+): readonly StaticFieldLocation[] => Object.freeze(
+  fields.map((field) => Object.freeze({ field, destination: Object.freeze({ ...destination }) }))
 );
 
 // Descriptors er katalog-ejede, validerede closures; deres read-funktioner er rene. Et valideret SettledInput
@@ -116,37 +130,10 @@ const assertMetadataPart = (value: string, description: string): void => {
   }
 };
 
-/**
- * En AFLEDT SKRIVNING: felter, hvis kanoniske værdi er en funktion af andre afsluttede felter, og som
- * derfor ikke er brugerinput men en konsekvens af det.
- *
- * Reglen materialiseres INDE i den reducerede kandidat — samme sted som §3.6's før/efter-procedure for et
- * styrende valg — og ikke i en React-effect efter render. Det er hele pointen: en effect ville skrive
- * konsekvensen som en NY selvstændig autoritativ handling, og så ville brugerens ene oplevede handling
- * kræve to undo-trin, mens den samme effect straks kunne skrive konsekvensen tilbage igen, fordi det
- * styrende valg stadig var aktivt (GM-F02). Kørt her er konsekvensen del af samme revision, samme
- * history-trin og samme validerede envelope som årsagen.
- *
- * Funktionen skal være REN og IDEMPOTENT: kaldt på sit eget output må den ikke ændre noget. Reduceren
- * håndhæver idempotensen, så en regel, der svinger, opdages ved commit frem for at give en uendelig
- * skrivecyklus.
- */
-export type DerivedInputWrite = Readonly<{
-  /** Stabilt id — bruges i fejlbeskeder og af kvalitetsværn. */
-  id: string;
-  /**
-   * Den ENE sektion reglen må skrive i. Reglen må læse alle sektioner (den anvendte reguleringsdato afhænger
-   * fx af `stamdata.skadedato`), men skrivefladen er afgrænset og HÅNDHÆVET nedenfor: en regel, der ændrer en
-   * anden sektion, afvises ved commit. Ellers kunne en afledning i én slice lydløst flytte en anden slices
-   * brugerinput.
-   */
-  writesSection: SectionKey;
-  /** Returnerer sektionerne med de afledte felter materialiseret. Skal være ren og idempotent. */
-  materialize: (sections: PersistedInputSections) => PersistedInputSections;
-}>;
-
 export type InputCatalog = Readonly<{
   resolveField: (address: FieldAddress) => AnyFieldDescriptor | undefined;
+  resolveFieldLocation: (address: FieldAddress) => StaticFieldLocationDestination | undefined;
+  readonly fieldLocationCount: number;
   isKnownField: <T>(field: FieldRef<T>) => boolean;
   containsAddressEntities: (sections: PersistedInputSections, address: FieldAddress) => boolean;
   listEntityIds: (sections: PersistedInputSections, collection: CollectionRef) => readonly string[];
@@ -178,15 +165,12 @@ export type InputCatalog = Readonly<{
    * Materialiserer alle afledte skrivninger i kandidaten (§3.6). Kaldes af reduceren for HVER command, så
    * en afledt værdi aldrig kan blive et selvstændigt history-trin. Kaster, hvis en regel ikke er idempotent.
    */
-  materializeDerivedWrites: (sections: PersistedInputSections) => PersistedInputSections;
-  /** De erklærede afledte skrivninger — så et kvalitetsværn kan måle dem frem for at søge i tekst. */
-  derivedWrites: readonly DerivedInputWrite[];
 }>;
 
 export const createInputCatalog = (options: Readonly<{
   fields: readonly AnyFieldDescriptor[];
   collections: readonly AnyCollectionDescriptor[];
-  derivedWrites?: readonly DerivedInputWrite[];
+  fieldLocations?: readonly StaticFieldLocation[];
 }>): InputCatalog => {
   const fields = Object.freeze([...options.fields]);
   const collections = Object.freeze(options.collections.map((descriptor) => Object.freeze({
@@ -204,6 +188,23 @@ export const createInputCatalog = (options: Readonly<{
     if (fieldIds.has(descriptor.id)) throw new Error(`InputCatalog: dubleret felt-id (${descriptor.id})`);
     fieldsByTemplate.set(key, descriptor);
     fieldIds.add(descriptor.id);
+  }
+
+  const fieldLocationsByTemplate = new Map<string, StaticFieldLocationDestination>();
+  for (const location of options.fieldLocations ?? []) {
+    const key = fieldTemplateKey(location.field.template);
+    if (fieldsByTemplate.get(key) !== location.field) {
+      throw new Error(`InputCatalog: feltlokation peger på ukendt descriptor (${location.field.id})`);
+    }
+    if (fieldLocationsByTemplate.has(key)) {
+      throw new Error(`InputCatalog: dubleret feltlokation (${location.field.id})`);
+    }
+    fieldLocationsByTemplate.set(key, Object.freeze({ ...location.destination }));
+  }
+  if (options.fieldLocations !== undefined && fieldLocationsByTemplate.size !== fields.length) {
+    throw new Error(
+      `InputCatalog: feltlokationskataloget dækker ${fieldLocationsByTemplate.size} af ${fields.length} felter`
+    );
   }
 
   const collectionsByTemplate = new Map<string, AnyCollectionDescriptor>();
@@ -251,6 +252,8 @@ export const createInputCatalog = (options: Readonly<{
 
   const resolveField = (address: FieldAddress): AnyFieldDescriptor | undefined =>
     fieldsByTemplate.get(addressTemplateKey(address));
+  const resolveFieldLocation = (address: FieldAddress): StaticFieldLocationDestination | undefined =>
+    fieldLocationsByTemplate.get(addressTemplateKey(address));
 
   const getCollection = (collection: CollectionRef): AnyCollectionDescriptor | undefined =>
     collectionsByTemplate.get(collectionTemplateKeyFromRef(collection));
@@ -474,49 +477,10 @@ export const createInputCatalog = (options: Readonly<{
   const validateSettledInput = (candidate: SettledInputCandidate): SettledInput =>
     validateSettledInputCandidate(candidate, true);
 
-  const derivedWrites = Object.freeze([...(options.derivedWrites ?? [])]);
-  const derivedWriteIds = new Set<string>();
-  for (const rule of derivedWrites) {
-    if (derivedWriteIds.has(rule.id)) throw new Error(`InputCatalog: dubleret afledt skrivning (${rule.id})`);
-    derivedWriteIds.add(rule.id);
-  }
-
-  /**
-   * Anvender hver regel én gang og efterprøver DEREFTER, at ingen regel vil ændre mere.
-   *
-   * Efterprøvningen er ikke defensiv pynt: reglerne kører på HVER command, så en ikke-idempotent regel
-   * ville skrive noget nyt ved næste command uden nogen brugerhandling — præcis det selvstændige,
-   * uforudsigelige skriv, mekanismen findes for at afskaffe. Fejlen skal derfor ramme ved den command,
-   * der afslører den, ikke som en uforklarlig senere ændring.
-   */
-  const materializeDerivedWrites = (sections: PersistedInputSections): PersistedInputSections => {
-    let next = sections;
-    for (const rule of derivedWrites) {
-      const applied = rule.materialize(next);
-      // Skrivefladen håndhæves her, hvor både før og efter er synlige: enhver ANDEN sektion end reglens egen
-      // skal være uændret. En bred afledning ville ellers kunne flytte en anden slices brugerinput.
-      for (const key of Object.keys(applied) as Array<keyof PersistedInputSections>) {
-        if (key === rule.writesSection) continue;
-        if (!deepEqual(applied[key], next[key])) {
-          throw new Error(
-            `InputCatalog: den afledte skrivning ${rule.id} ændrede sektionen ${key} uden for sin skriveflade`
-          );
-        }
-      }
-      next = applied;
-    }
-    for (const rule of derivedWrites) {
-      if (!deepEqual(rule.materialize(next), next)) {
-        throw new Error(`InputCatalog: den afledte skrivning ${rule.id} er ikke idempotent`);
-      }
-    }
-    return next;
-  };
-
   return Object.freeze({
-    derivedWrites,
-    materializeDerivedWrites,
     resolveField,
+    resolveFieldLocation,
+    fieldLocationCount: fieldLocationsByTemplate.size,
     isKnownField,
     containsAddressEntities,
     listEntityIds,

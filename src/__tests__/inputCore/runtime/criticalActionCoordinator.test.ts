@@ -44,6 +44,22 @@ const makeEditor = (options?: Partial<ActiveEditor> & { throwOnSettle?: boolean 
 
 const SETTLE_ACTIONS: CriticalAction[] = ['save', 'download', 'navigate'];
 describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
+  it('afviser async apply ved typegrænsen', () => {
+    const typeBoundary = () => {
+      // @ts-expect-error En kritisk mutation må ikke fortsætte efter callbackens retur.
+      void coordinator.applyReplacement(async () => undefined);
+      // @ts-expect-error Den samme synkrone grænse gælder sektionsafgrænsede destruktive handlinger.
+      void coordinator.applyDestructive(async () => undefined);
+      const unionResult = (): void | Promise<void> => undefined;
+      // @ts-expect-error En union med en PromiseLike-arm er heller ikke synkron.
+      void coordinator.applyReplacement(unionResult);
+      const thenable = (): PromiseLike<void> => Promise.resolve();
+      // @ts-expect-error Vilkårlige thenables afvises på samme måde som native promises.
+      void coordinator.applyReplacement(thenable);
+    };
+    expect(typeBoundary).toBeTypeOf('function');
+  });
+
   it.each(SETTLE_ACTIONS)('settler den åbne editor for %s', async (action) => {
     const { editor, settleCount } = makeEditor();
     registry.register(editor);

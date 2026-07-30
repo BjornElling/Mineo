@@ -13,8 +13,7 @@ export type EoBeregningView = Readonly<{
 /**
  * Beregning-fanens projektion af snapshottet.
  *
- * `tafPerioder` falder tilbage til den UAFHÆNGIGE TAF-gren, når aggregatet er blokeret (§1.10, WI-004
- * runde 4, fund S1). Uden det fald-tilbage forsvandt en fuldstændig GYLDIG TAF-periodisering fra fanen,
+ * `tafPerioder` falder tilbage til den UAFHÆNGIGE TAF-gren, når aggregatet er blokeret. Uden det fald-tilbage forsvandt en fuldstændig GYLDIG TAF-periodisering fra fanen,
  * så snart et svie/smerte-felt var rødt: `data` er `null` på den blokerede sti, og fanen ser ikke
  * `inspektionSnapshot`. Brugerbeslutning 2 (2026-07-25) forbyder netop det.
  *

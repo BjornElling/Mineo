@@ -34,10 +34,8 @@ type RenteDocumentOptions = DocumentCommonOptions & Readonly<{
   stamdata?: DocumentStamdata | null;
   kommentarer?: string;
   /**
-   * Canonical ISO (§WI-011). Var tidligere en utypet `string` i dansk format, hvilket gjorde generatoren
-   * uenig med sin egen søster (`generateRenteOversigtDocument`) om formatet — usynligt for typecheckeren og
-   * årsag til en kritisk fejl ved Fase 5's cutover. Formatering til dansk sker INDE i generatoren, hvor den
-   * hører til som præsentation.
+   * Canonical ISO, så rente- og oversigtsgeneratoren har samme typed datoformat. Formatering til dansk
+   * sker INDE i generatoren, hvor den hører til som præsentation.
    */
   latestReferenceRateDate?: ISODateString | null;
   metadata?: StandardDocumentMetadata;
@@ -201,7 +199,7 @@ export const writeRenteDocumentContent = (
 /**
  * Generer og download PDF for procesrenteberegning
  *
- * Datoerne er CANONICAL ISO (§WI-011) — samme kontrakt som `generateRenteOversigtDocument` og som resten af
+ * Datoerne er CANONICAL ISO — samme kontrakt som `generateRenteOversigtDocument` og som resten af
  * systemet. Dansk formatering er præsentation og sker inde i generatoren.
  *
  * @param {number} amount - Hovedstol

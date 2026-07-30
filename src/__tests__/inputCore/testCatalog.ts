@@ -23,7 +23,6 @@ import {
   catalogFields,
   catalogCollections,
   type CollectionDescriptor,
-  type DerivedInputWrite,
   type FieldAddress,
   type FieldDescriptor,
   type PersistedInputSections,
@@ -251,16 +250,13 @@ export const skadestypeField: FieldDescriptor<Skadestype | undefined> = defineSt
   createEmptySection: createEmptyStamdataSection,
 });
 
-export const createTestCatalog = (
-  derivedWrites?: readonly DerivedInputWrite[]
-) => createInputCatalog({
+export const createTestCatalog = () => createInputCatalog({
   fields: catalogFields(
     aargangField, beregningsdatoField, kommentarerField,
     belobField, tillaegstidField, enhedField, renterFraField,
     feriePctField, omregningField, skadestypeField
   ),
   collections: catalogCollections(rentekravRowsCollection),
-  ...(derivedWrites === undefined ? {} : { derivedWrites }),
 });
 
 export const makeRow = (id: string, overrides: Partial<RentekravRow> = {}): RentekravRow => ({

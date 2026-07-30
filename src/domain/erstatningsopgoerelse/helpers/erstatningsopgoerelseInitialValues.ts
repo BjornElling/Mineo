@@ -6,7 +6,12 @@ import { ensureOevrigeKravRows } from '../tables/oevrigeKravTableModel';
 import { generateAnsaettelsesforholdId } from './eoRowInitialValues';
 import { resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
 import { resolveAppSettings } from '../../../settings/appSettingsParse';
-import { erstatningsopgoerelseSchema, eoAngivetLoenLoenudviklingSchema } from '../../../schemas/formSchemas';
+import {
+  erstatningsopgoerelseSchema,
+  eoAngivetLoenLoenudviklingSchema,
+  type LoenindkomstAnsaettelsesforhold,
+  type ErstatningsopgoerelseValues,
+} from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 
 const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): PersistedSectionMap['erstatningsopgoerelse']['eoAngivetLoenLoenudvikling'] => ({
@@ -42,7 +47,7 @@ export const DEFAULT_ANCIENNITET_FIELDS = {
  */
 export const createDefaultLoenindkomstAnsaettelsesforhold = (
   settings?: AppSettings
-): PersistedSectionMap['erstatningsopgoerelse']['loenindkomstAnsaettelsesforhold'][number] => {
+): LoenindkomstAnsaettelsesforhold => {
   const safeSettings = resolveAppSettings(settings);
   return {
     id: generateAnsaettelsesforholdId(),
@@ -197,6 +202,8 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
  *
  * VIGTIGT: Må kun anvendes ved oprettelse af NY sagsdata (ikke ved load/redigering).
  */
-export const createErstatningsopgoerelseInitialValues = (settings?: AppSettings): PersistedSectionMap['erstatningsopgoerelse'] => {
+export const createErstatningsopgoerelseInitialValues = (
+  settings?: AppSettings
+): ErstatningsopgoerelseValues => {
   return createNewEOInitialValuesFromSettings(settings);
 };

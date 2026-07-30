@@ -47,7 +47,7 @@ export type AmountFieldProps = Readonly<{
   sx?: SxProps<Theme>;
 }>;
 
-/** Det lille `fx`-mærke, der vises i et beløbsfelt, hvis den committede værdi er et udtryk (legacy-visuel). */
+/** Det lille `fx`-mærke, der vises i et beløbsfelt, hvis den committede værdi er et udtryk. */
 const ExpressionIndicator = (): React.ReactElement => (
   <span
     className="mineo-expression-indicator"
@@ -81,7 +81,7 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
     },
     ref
   ) => {
-    // Fortegns-politikken kommer fra descriptorens codec (UT-F08). For beløb rammer filteret KUN det unære
+    // Fortegns-politikken kommer fra descriptorens codec. For beløb rammer filteret KUN det unære
     // minus (`containsUnaryMinusToken`), så subtraktion i et udtryk — "5000-200" — forbliver lovlig også i et
     // ikke-negativt felt.
     const allowNegative = fieldAllowsNegative(field);

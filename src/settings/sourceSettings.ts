@@ -31,7 +31,7 @@ const documentRenderSettingsBrand: unique symbol = Symbol('mineo.documentRenderS
 /**
  * De settings, der først anvendes EFTER en dokumentgate har sagt ready.
  *
- * **Ingen af de to må nå en gate (R6-F03).** Normen er, at formatet vælger writer og ikke dækning; en
+ * **Ingen af de to må nå en gate.** Normen er, at formatet vælger writer og ikke dækning; en
  * definition, der forgrenede sin `project` på formatet, kunne gøre samme sag `ready` som PDF og
  * `blocked` som Word, uden at §A2a's paritet mellem reaktiv gate og click-preflight fangede det —
  * begge kanaler ville se den samme skæve gate. Adskillelsen er derfor en TYPEGRÆNSE:
@@ -78,7 +78,7 @@ export type EoRowPolicy = EoRowPolicyPayload & {
  * regel.
  *
  * Mærket gør `projectSourceSettings` den eneste vej til værdien, så den brede type ikke kan flyde
- * ind. Det er samme lære som Fase 6's skrivegrænse: kan capabilityen fjernes, så fjern den frem for
+ * ind. Det er samme lære som inputkernens skrivegrænse: kan capabilityen fjernes, så fjern den frem for
  * at bevogte den syntaktisk.
  *
  * **Symbolet er et RUNTIME-symbol, ikke `declare const`.** Et `declare const x: unique symbol`
@@ -86,8 +86,7 @@ export type EoRowPolicy = EoRowPolicyPayload & {
  * omgår netop den completeness-kontrol, mærket skal beskytte: tilføjes en ny payload-nøgle, som
  * projektoren glemmer at kopiere, skjuler castet fejlen, og fingerprintet læser `undefined`. Med et
  * ægte symbol kan projektoren sætte egenskaben, så objektet opfylder typen UDEN cast, og hver nøgle
- * typecheckes. (Samme fejlklasse som WI-008's B6, hvor et `declare const`-brand gav `ReferenceError`
- * i runtime, mens typechecken var grøn.)
+ * typecheckes.
  */
 const sourceSettingsBrand: unique symbol = Symbol('mineo.sourceSettings');
 
@@ -165,7 +164,7 @@ export const projectSourceSettings = (settings: AppSettings): SourceSettings => 
  *
  * Tager `SourceSettings` og ikke `AppSettings`: rækkepolitikken er en DELMÆNGDE af det snapshot, der
  * driver settingsrevisionen. Ved at udlede den herfra kan der ikke opstå en rækkepolitik, hvis
- * nøgler ikke også er med i fingerprintet — netop den divergens, WI-009 blev skrevet for at lukke.
+ * nøgler ikke også er med i fingerprintet, så rækkepolitik og settingsrevision ikke kan divergere.
  */
 export const projectEoRowPolicy = (settings: SourceSettings): EoRowPolicy => Object.freeze({
   [eoRowPolicyBrand]: 'eo-row-policy' as const,
@@ -183,7 +182,7 @@ export const projectEoRowPolicy = (settings: SourceSettings): EoRowPolicy => Obj
  * revisionen og gør et optaget `EvaluationSourceToken` stale.
  *
  * De to projektorer deler bevidst ÉN kilde og deler den i to disjunkte halvdele. Det er hele
- * R6-F03's mekanisme: gaten og renderingen kan ikke længere komme til at se hinandens felter, fordi
+ * Gaten og renderingen kan ikke komme til at se hinandens felter, fordi
  * ingen af dem får hele snapshottet.
  */
 export const projectDocumentRenderSettings = (settings: SourceSettings): DocumentRenderSettings =>
@@ -204,7 +203,7 @@ export const DEFAULT_EO_ROW_POLICY: EoRowPolicy =
 /**
  * Test-support: bygger et source-settings-snapshot fra en DELVIS override af de source-relevante
  * nøgler. Navnet bærer `__test`, så en søgning viser præcis hvilke steder der fremstiller et
- * snapshot uden om produktionsbroen — samme konvention som Fase 6's `__createSlimInputTestStore`.
+ * snapshot uden om produktionsbroen — samme konvention som inputkernens `__createSlimInputTestStore`.
  *
  * Overriden er typet `Partial<SourceSettingsPayload>` og ikke `Partial<AppSettings>`: en test må
  * gerne vælge en anden dokumentformat- eller reguleringspolitik, men ikke ad den vej indføre en

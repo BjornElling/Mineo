@@ -49,8 +49,8 @@ export type ConsumerIssue = Readonly<{
  * §1.7's regel — *en warning blokerer aldrig beregning, dokument eller `.eo`* — er fortsat normativ, men
  * den håndhæves DÉR, hvor advarsler faktisk dannes: i domænernes egne typer (`EetIssue.severity`,
  * `EoRowStatus`, `IntegrityIssue.severity`). Kernen bar tidligere en generisk `Warning` plus en
- * `ProjectionCollector.warn` og et `ProjectionResult.warnings`-felt. Kortlægningen i etape 10 (INC-F17)
- * viste, at ingen af de tre havde en eneste producent eller læser i produktionen: warnings nåede aldrig
+ * `ProjectionCollector.warn` og et `ProjectionResult.warnings`-felt. Ingen af de tre havde en
+ * producent eller læser i produktionen: warnings nåede aldrig
  * kernen, og `warnings`-feltet blev kun ført videre af `mapReadyProjection` til ingen.
  *
  * En kanal, intet skriver til og intet læser fra, er ikke en capability men en gren, ingen tilstand kan

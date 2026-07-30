@@ -275,14 +275,12 @@ describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden maste
     // Denne sag bar tidligere en satser-fejl: Store Bededagstillægget stod på et default-AF's nulværdi,
     // mens den anvendte reguleringsdato lå efter lovens ikrafttræden, og satsvurderingen kaldte det en
     // afvigelse. Fejlen var reel for netop DENNE fixture, som konstruerer værdierne direkte — men den kunne
-    // ikke opstå i produktionen: satsen er et AFLEDT felt (`loenindkomstSatsDerivedWrite`), som reduceren
-    // materialiserer i hver command, også ved `replaceCase` fra en indlæst `.eo`.
+    // ikke opstå i produktionen: reader-projektionen udleder satsen fra den aktuelle lovregel, før
+    // beregning og dokumenter læser modellen.
     //
     // Afvigelsesreglen for de låste satser er derfor fjernet frem for bevaret: den kunne kun rammes af en
     // tilstand, ingen vej ind i systemet kan producere, og et værn, hvis eneste udløser er en umulig
-    // tilstand, beskytter intet (GM-F01). Beviset for, at alle veje er dækket, står i
-    // `loenindkomstSatsDerivedWrite.test.ts` → "kan ikke efterlade en afvigelse" og "reparerer en indlæst
-    // sag".
+    // tilstand, beskytter intet. Projektionstesten beviser samtidig, at et historisk slot ignoreres.
     const c = CASES.find((entry) => entry.name === 'taf:gyldig')!;
     const { projectionKind, eoRowErrors } = probe(c.build());
     expect(projectionKind).toBe('ok');

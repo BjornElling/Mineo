@@ -1,5 +1,6 @@
 import { TODAY } from '../../../config/dateRanges';
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { StamdataValues } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from './tafCalculationInput';
 import { sortIsoDates } from '../../../utils/isoDateHelpers';
 import type { ISODateString } from '../../../types/branded';
 import { addMoneyOre, sumMoneyOre, zeroMoneyOre, type MoneyOre } from '../../money/money';
@@ -24,7 +25,7 @@ const EMPTY_RESULT: SygeferiegodtgoerelseResult = {
 };
 
 export const computeSygeferiegodtgoerelse = (args: Readonly<{
-  values: ErstatningsopgoerelseValues;
+  values: TafCalculationValues;
   stamdata: StamdataValues;
   tafRanges: readonly IsoRange[];
   loenudviklingPerAnsaettelse?: ReadonlyMap<string, PerEmploymentLoenudvikling>;

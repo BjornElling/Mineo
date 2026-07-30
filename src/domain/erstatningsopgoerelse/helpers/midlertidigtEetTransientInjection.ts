@@ -87,10 +87,12 @@ export const buildMidlertidigtEetSourceResult = (
  *
  * Når togglen er `'Nej'`, returneres EO-værdierne uændret.
  */
-export const buildEoValuesWithTransientMidlertidigtEet = (
-  eoValues: ErstatningsopgoerelseValues,
+export const buildEoValuesWithTransientMidlertidigtEet = <
+  T extends Pick<ErstatningsopgoerelseValues, 'midlertidigtEetFraEetSiden' | 'offentligeYdelserRows'>
+>(
+  eoValues: T,
   groups: readonly MidlertidigtEetAfgoerelseGroup[]
-): ErstatningsopgoerelseValues => {
+): T => {
   if (eoValues.midlertidigtEetFraEetSiden !== 'Ja') return eoValues;
   const baseRows = (eoValues.offentligeYdelserRows ?? []).filter(
     (row) => row.ydelsestype?.trim() !== 'midlertidigt_eet'

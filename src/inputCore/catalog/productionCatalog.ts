@@ -9,12 +9,12 @@ import { renteberegningCollections, renteberegningFields } from './renteberegnin
 import { satserCollections, satserFields } from './satserDescriptors';
 import { stamdataCollections, stamdataFields } from './stamdataDescriptors';
 import { varigeMenCollections, varigeMenFields } from './varigeMenDescriptors';
-import { loenindkomstSatsDerivedWrite } from '../../domain/erstatningsopgoerelse/control/loenindkomstSatsDerivedWrite';
+import { createProductionFieldLocations } from './fieldLocationCatalog';
 
 // Produkt-descriptor-kataloget (§3.2). Det ene statiske katalog over alle persisterede
 // brugerfelter — fusion af de tidligere ti binding-manifester til inputCore-descriptors. Hvert descriptor
 // ejer id, codec, semantisk tomhed, canonical read/write, label, kontroltype (relevans/validators tilføjes
-// pr. slice i fase 3). Kataloget valideres ÉN gang i `createInputCatalog`; ingen seal/brand/WeakSet.
+// pr. domæneområde). Kataloget valideres ÉN gang i `createInputCatalog`; ingen seal/brand/WeakSet.
 
 /** Alle produkt-felt-descriptors, flad. Eksponeret så completeness-testen kan reconcilere mod ledger/schemas. */
 export const productionInputFields = Object.freeze([
@@ -47,16 +47,12 @@ export const productionInputCollections = Object.freeze([
 /**
  * Alle erklærede afledte skrivninger (§3.6). Et afledt felt er ikke brugerinput men en konsekvens af det, og
  * det materialiseres derfor inde i samme reducerede kandidat som årsagen — ikke af en effect efter render,
- * som ville gøre konsekvensen til en selvstændig autoritativ handling med sit eget undo-trin (GM-F02).
+ * som ville gøre konsekvensen til en selvstændig autoritativ handling med sit eget undo-trin.
  */
-export const productionDerivedWrites = Object.freeze([
-  loenindkomstSatsDerivedWrite,
-]);
-
 export const buildProductionInputCatalog = (): InputCatalog => createInputCatalog({
   fields: productionInputFields,
   collections: productionInputCollections,
-  derivedWrites: productionDerivedWrites,
+  fieldLocations: createProductionFieldLocations(productionInputFields),
 });
 
 let productionCatalog: InputCatalog | null = null;

@@ -143,7 +143,7 @@ export const aarsloenRetTilSjetteFerieugeField = toggle('retTilSjetteFerieuge', 
 // rødt afledt issue uden for [0,99] (§1.6), i modsætning til et format/range-rejected råtekst-felt. Reglen er
 // KUN relevant, når omregning er valgt OG der ikke er fuld løn under ferie — udtrykt som en ren relevansregel
 // over de canonical toggle-felter (§3.1: relevans må aldrig afhænge af mounted state/settings). Et skjult/
-// irrelevant felt overblokerer ikke (§1.9). Spejler legacy `resolveAarsloenCanonicalRangeIssues`.
+// irrelevant felt overblokerer ikke (§1.9).
 export const aarsloenAntalFeriedageField = defineStructuralField<number | undefined>({
   id: 'aarsloen.antalFeriedage',
   template: { section: 'aarsloen', path: [], field: 'antalFeriedage' },

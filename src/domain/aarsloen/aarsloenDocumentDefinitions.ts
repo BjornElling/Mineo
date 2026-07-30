@@ -1,5 +1,5 @@
 /**
- * Årsløns to dokumentdefinitioner (Fase 5; `document-output-contract.md` §A1.2/§A7.1).
+ * Årsløns to dokumentdefinitioner.
  *
  * Begge deler ÉN `buildAarsloenReaderProjection` gennem `context.shared`, så årslønsmotoren kun kaldes
  * én gang pr. kildekontekst, selvom siden tegner to download-knapper.
@@ -29,9 +29,8 @@ const readSharedAarsloenSource = (
 ): AarsloenReaderProjection => buildAarsloenReaderProjection(context.evaluation.reader);
 
 /**
- * Årslønsdokumentets brevhoved-stamdata er BEVIDST indsnævret til tre felter — sådan var det også før
- * Fase 5 (`documentService.ts`' `downloadAarsloenDokument` byggede præcis dette objekt). Generatoren
- * skal ikke have hele `StamdataValues`.
+ * Årslønsdokumentets brevhoved-stamdata er BEVIDST indsnævret til tre felter. Generatoren skal ikke
+ * have hele `StamdataValues`.
  */
 type AarsloenDocumentStamdata = Readonly<{
   journalnr: string | undefined;

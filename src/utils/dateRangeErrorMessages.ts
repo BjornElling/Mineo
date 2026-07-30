@@ -40,7 +40,7 @@ export type DateRangeSpecialErrors = {
 const formatISOForTooltip = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
 
 /**
- * Hvor intervallets grænser kommer fra — og dermed om et UMULIGT interval (min > max) kan opstå (R3-F03).
+ * Hvor intervallets grænser kommer fra — og dermed om et UMULIGT interval (min > max) kan opstå.
  *
  * `'static'`: begge grænser er konstanter fra `dateRanges`-konfigurationen. `min > max` er da urepræsenterbart,
  * og der findes intet årsagsinput at nævne, fordi brugeren ikke har frembragt grænserne.
@@ -69,7 +69,7 @@ export const resolveDateRangeErrorMessage = (args: {
   /**
    * Grænsernes oprindelse. PÅKRÆVET: den afløste `noValidRangeInputs?: string` gjorde årsagen valgfri, og de
    * fleste descriptors udelod den derfor — brugeren fik at vide, at ingen dato var gyldig, men ikke hvilke
-   * inputs der skulle rettes (R3-F03).
+   * inputs der skulle rettes.
    */
   bounds: DateRangeBoundsOrigin;
 }): string => {

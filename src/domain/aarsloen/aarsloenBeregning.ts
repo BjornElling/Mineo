@@ -41,7 +41,7 @@ const valueOrNull = <T>(result: Result<T> | null): T | null =>
  * Ren, synkron årslønsberegning — årslønsdomænets ene beregningsindgang.
  *
  * Modulet lå tidligere i `src/hooks/useAarsloenBeregning.ts` og eksponerede desuden en `useAarsloenBeregning`-
- * hook (GM-F08). Hook-wrapperen havde INGEN produktionscallsites: efter reader-projektionens indførelse
+ * hook. Hook-wrapperen havde INGEN produktionscallsites: efter reader-projektionens indførelse
  * kalder `aarsloenProjection.ts` den rene funktion, og memoiseringen ejes af projektionen. Kun hookens egne
  * tests holdt den levende — de kørte altså en vej, ingen bruger kunne nå, og en fejl i den rene beregnings
  * kontrolflow kunne derfor bevises "dækket" gennem en død adapter. Hook + fil-placering er væk, og

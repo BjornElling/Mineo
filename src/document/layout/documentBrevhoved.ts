@@ -14,13 +14,9 @@
  * - Beslutningen om visBrevhoved tages af dokumentmiljøets `resolveVisBrevhoved`, som slår
  *   `DocumentBrevhovedPolicy` op i det tokenbundne `renderSettings` — altså EFTER gaten.
  *
- * **Fjernet 2026-07-29 (INC-F19, fundet under R6-F03):** `DocumentSettings` + `getVisBrevhoved` var
- * en smal DTO og en mapper med NUL produktionscallsites; opslaget bor i `mineoDocumentEnvironment`.
- * DTO'en var desuden struktur-supersæt-tilfredsstillet af hele `AppSettings` — altså den tavse vej,
- * `SourceSettings`' mærke blev indført for at lukke (WI-009). Se registerets INC-F19.
+ * Brevhovedopslaget bor i `mineoDocumentEnvironment`. Det tager mærkede render-settings, så hele
+ * `AppSettings` ikke strukturelt kan passere som en smallere dokumentindstilling.
  */
-
-
 /**
  * Kanonisk sæt af dokument-typer der kan have brevhoved.
  *
@@ -51,4 +47,3 @@ export type DocumentBrevhovedType = (typeof DOCUMENT_BREVHOVED_TYPES)[number];
 
 /** Brevhoved-flag pr. dokument-type. Struktur-uafhængig af AppSettings. */
 export type DocumentBrevhovedFlags = Readonly<Record<DocumentBrevhovedType, boolean>>;
-

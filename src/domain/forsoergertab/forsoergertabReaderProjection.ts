@@ -32,7 +32,7 @@ import { computeForsoergertabSnapshot, type ForsoergertabSnapshot } from './fors
 //    feltets røde besked føres ind i snapshottets `fieldErrors`.
 //  - `computeForsoergertabSnapshot` køres UÆNDRET (§5.4 hårdt stop) på de reader-læste værdier. Den har allerede
 //    den DEPENDENCY-SPECIFIKKE panel-/gate-logik (§1.10): en fejl på fx virkningsdato/ASL-årsløn blokerer ASL-
-//    delen og download, men bevarer EAL-panelet, præcis som legacy. Derfor gates hele snapshottet IKKE bag en
+//    delen og download, men bevarer EAL-panelet. Derfor gates hele snapshottet IKKE bag en
 //    global `blocked`-projektion — projektionen er altid `ready` og bærer snapshottet; det er snapshottets egen
 //    `pdfGate`/`canShow*`, der afgør konsekvenserne uden en parallel klassifikations-sidekanal.
 //  - ASL-årslønnens felt-placerede domæneregel (delelig med 1.000 / maks i skadesåret) holdes SLICE-LOKAL her.

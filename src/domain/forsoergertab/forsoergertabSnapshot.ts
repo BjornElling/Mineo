@@ -151,7 +151,7 @@ export type ForsoergertabSnapshot = Readonly<{
    * Dette er den ENESTE felttilstand, snapshottet eksponerer. Tidligere bar det ti `FieldUiState`s med
    * `hasError` + `helperText` ved siden af den fælles issue-model; kun kønsfeltet blev læst, og ingen
    * `helperText` nåede nogen komponent — felterne viser deres egne reader-issues (§1.8). De ni øvrige er
-   * derfor en INTERN afledning nu, brugt til gates, ikke en offentlig parallel felt-model (GM-F05).
+   * derfor en INTERN afledning nu, brugt til gates, ikke en offentlig parallel felt-model.
    */
   koenFieldHasError: boolean;
   /**
@@ -186,7 +186,7 @@ const hasIssue = (
 };
 
 /**
- * Ingen af forsørgertab-blokeringerne citeres ordret (UT-F07) — begge beskeder er gate-interne. De skelnes til
+ * Ingen af forsørgertab-blokeringerne citeres ordret — begge beskeder er gate-interne. De skelnes til
  * gengæld på KLASSE efter brugerkravet 2026-07-30: manglende input til en PDF-klar del er `missing-input`
  * ("Indtastning mangler"), mens et rødt nødvendigt felt er `invalid-input` ("Fejl i indtastning"). `message`
  * bevares som den interne forklaring, som koder og tests skelner på.
@@ -286,7 +286,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
    *
    * De samme afledninger bar tidligere også en `helperText` pr. felt, som ingen komponent læste — felterne
    * viser deres egne reader-issues (§1.8). Beskederne blev altså formateret ved hver beregning og kastet
-   * væk, mens de samtidig lignede en aktiv præsentationskanal ved siden af den fælles issue-model (GM-F05).
+   * væk, mens de samtidig lignede en aktiv præsentationskanal ved siden af den fælles issue-model.
    *
    * Den enkelte feltbesked er ikke tabt: `helperIssues` ovenfor er stadig kilden til `blocked`-siden af de
    * dependency-specifikke gates nedenfor, og ASL-maksimum-oplysningen — den ene besked, der ikke havde nogen

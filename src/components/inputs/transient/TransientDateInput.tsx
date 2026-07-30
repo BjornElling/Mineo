@@ -12,7 +12,7 @@ import {
 } from '../../../utils/dateRangeErrorMessages';
 import { useTransientDraft } from './useTransientDraft';
 // Transient input er IKKE sagsdata, men datoens FORM er den samme for brugeren — så formvejledningen
-// læses fra den ene kilde frem for at være en fjerde kopi af strengen (UT-F06).
+// læses fra den ene kilde frem for at være en fjerde kopi af strengen.
 import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
 // Transient datofelt (§3.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor datoen kun lever i
@@ -34,7 +34,7 @@ export type TransientDateInputProps = Readonly<{
   minDate?: ISODateString;
   maxDate?: ISODateString;
   /**
-   * Grænsernes oprindelse (R3-F03). Udledes en grænse af et ANDET felt — fx det andet felt i et fra/til-par —
+   * Grænsernes oprindelse. Udledes en grænse af et ANDET felt — fx det andet felt i et fra/til-par —
    * skal kalderen navngive årsagsinputtene med `derivedDateBounds(...)`, så en umulig kombination fortæller
    * brugeren HVAD der skal rettes. Udelades kun når begge grænser er konstanter (eller helt fraværende).
    */

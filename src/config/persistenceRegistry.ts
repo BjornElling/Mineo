@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   aarsloenSchema,
   faellesAarsloenSchema,
-  erstatningsopgoerelseSchema,
+  persistedErstatningsopgoerelseSchema,
   renteberegningSchema,
   satserSchema,
   stamdataSchema,
@@ -28,7 +28,7 @@ export const persistenceSchemas = {
   renteberegning: renteberegningSchema,
   varigemen: varigeMenSchema,
   forsoergertab: forsoergertabSchema,
-  erstatningsopgoerelse: erstatningsopgoerelseSchema,
+  erstatningsopgoerelse: persistedErstatningsopgoerelseSchema,
   erhvervsevnetab: erhvervsevnetabSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 

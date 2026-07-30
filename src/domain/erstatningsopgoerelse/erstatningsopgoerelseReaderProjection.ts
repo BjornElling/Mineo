@@ -1,13 +1,14 @@
-import type { InputReader } from '../../inputCore/inputReader';
+import { createTrackedInputReader, type InputReader } from '../../inputCore/inputReader';
 import type { FieldRef } from '../../inputCore/fieldDescriptor';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
-import { buildFieldIssueSet, type FieldIssueSet } from '../../inputCore/inputIssue';
+import { buildFieldIssueSet, type FieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
 import type {
   ErstatningsopgoerelseValues,
   EOAngivetLoenLoenudvikling,
   FerieperiodeRow,
-  LoenindkomstAnsaettelsesforhold,
+  PersistedErstatningsopgoerelseValues,
+  PersistedLoenindkomstAnsaettelsesforhold,
   LoenudviklingManuelProcentsatsRow,
   LoenudviklingManuelRow,
   OevrigeKravRow,
@@ -18,6 +19,7 @@ import type {
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
   TafPeriodeRow,
 } from '../../schemas/formSchemas';
+import { projectLoenindkomstSatser } from './loenindkomstSatsProjection';
 import {
   eoAfsluttesMedField,
   eoAngivetDagsloenBaseretPaaField,
@@ -147,6 +149,9 @@ import { computeEoSnapshot, type EoSnapshot } from './snapshot/eoSnapshot';
 import { buildTafRanges } from './helpers/indtaegtPerioder';
 import { buildMidlertidigtEetImportContext } from './helpers/midlertidigtEetTransientInjection';
 import type { EetImportSource } from '../erhvervsevnetab/eetImportPort';
+import type { EoDependencyProjection } from './snapshot/eoDependencyProjection';
+import type { SvieSmerteCalculationValues } from './engines/svieSmerteEngine';
+import type { TafCalculationValues } from './engines/tafCalculationInput';
 
 // Erstatningsopgørelse-projektionen (§3.4/§5.4/§1.10). En
 // ALMINDELIG ren funktion over den offentlige `InputReader`, der erstatter `Erstatningsopgoerelse.tsx`'s revisions-
@@ -158,8 +163,8 @@ import type { EetImportSource } from '../erhvervsevnetab/eetImportPort';
 // Vi følger derfor Satser-/EET-/Forsørgertab-doktrinen (§3.4/§5.4):
 //  - VALUE-REKONSTRUKTION: hvert felt læses gennem readeren og falder tilbage til sin canonical tomværdi, når
 //    readeren skjuler en rød feltfejl (rejected format/range) ELLER en null-sektion giver `undefined` for et felt,
-//    hvis tomværdi ikke er `undefined` (fx required-choice 'maaned'). Det er præcis, hvad legacy læste (den tomme/
-//    maskerede canonical værdi). `computeEoSnapshot` køres UÆNDRET på det (§5.4 hårdt stop mod talændring).
+//    hvis tomværdi ikke er `undefined` (fx required-choice 'maaned'). `computeEoSnapshot` køres UÆNDRET på
+//    den tomme/maskerede canonical værdi (§5.4 hårdt stop mod talændring).
 //  - FELTISSUES: inspektions- og downloadlaget modtager de samme kanoniske `FieldIssueSet`s, filtreret på
 //    EO- og stamdatasektion. Readerens reason og faktiske strukturelle adresse bæres uændret videre; der findes
 //    hverken en feltnøgle-map, et syntetisk rækkeaggregat, en source-klassifikation eller et gate-flag.
@@ -232,7 +237,10 @@ const rebuildStandardRow = (reader: InputReader, employmentId: string, rowId: st
 });
 
 /** Rekonstruerer én ansættelsesforholds-række med skalarer, overenskomstFilter og de tre nested tabeller. */
-const rebuildEmploymentRow = (reader: InputReader, employmentId: string): LoenindkomstAnsaettelsesforhold => {
+const rebuildEmploymentRow = (
+  reader: InputReader,
+  employmentId: string
+): PersistedLoenindkomstAnsaettelsesforhold => {
   const e = eoEmploymentFields;
   const standardRowIds = reader
     .listEntities(bindNestedCollectionRef('indtaegtsoplysningerTableData', employmentId))
@@ -254,7 +262,6 @@ const rebuildEmploymentRow = (reader: InputReader, employmentId: string): Loenin
     sidsteArbejdsdag: readOrEmpty(reader, e.sidsteArbejdsdag.bind(employmentId)),
     fritvalgPct: readOrEmpty(reader, e.fritvalgPct.bind(employmentId)),
     shSoPct: readOrEmpty(reader, e.shSoPct.bind(employmentId)),
-    storeBededagPct: readOrEmpty(reader, e.storeBededagPct.bind(employmentId)),
     pensionPct: readOrEmpty(reader, e.pensionPct.bind(employmentId)),
     tillaegAngivesSom: readOrEmpty(reader, e.tillaegAngivesSom.bind(employmentId)),
     loenperiode: readOrEmpty(reader, e.loenperiode.bind(employmentId)),
@@ -402,7 +409,9 @@ const listRowIds = (reader: InputReader, collection: CollectionRef): readonly st
   reader.listEntities(collection).map((entity) => entity.entityId);
 
 /** Rekonstruerer det komplette, schema-formede `ErstatningsopgoerelseValues` fra readeren (ikke-blokerende). */
-export const readErstatningsopgoerelseValues = (reader: InputReader): ErstatningsopgoerelseValues => {
+export const readErstatningsopgoerelseValues = (
+  reader: InputReader
+): PersistedErstatningsopgoerelseValues => {
   const employmentIds = listRowIds(reader, eoLoenindkomstAnsaettelsesforholdCollection.template as CollectionRef);
   return {
     eoNummer: readOrEmpty(reader, eoNummerField.bind()),
@@ -517,15 +526,155 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   /** Section-field-error-maps (top-level feltnavn + `${afId}:loenindkomst`-aggregat) til inspektion-echo + gate. */
   eoErrors: FieldIssueSet;
   stamdataErrors: FieldIssueSet;
-  // INC-F04: her lå `documentStamdata: ProjectionResult<StamdataValues>`. Feltet blev TILDELT ved hver
-  // projektion, men aldrig læst af nogen EO-gate, -definition eller -komponent (Årsløn og EET læser deres
-  // egne). Det lignede en dependency-erklæring uden at være det: en fremtidig læser ville have troet, at
-  // EO-dokumenternes stamdataafhængighed var udtrykt her. EO's dokumenter læser i stedet
-  // `stamdataValues` (ikke-blokerende reader-read), og blokeringen sker gennem snapshottets strukturelle
-  // stamdata-invarianter, som R3-F02 nu afgrænser til de felter, EO faktisk læser — inklusive brevhovedet.
+  // EO-dokumenterne læser `stamdataValues`, mens blokeringen sker gennem snapshottets strukturelle
+  // stamdata-invarianter. Projektionen må ikke bære en ekstra, ulæst `documentStamdata`-projektion,
+  // fordi den ville ligne en dependency-erklæring uden faktisk at gate outputtet.
   /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
+
+const mergeIssues = (...sets: readonly (readonly FieldIssue[])[]): readonly FieldIssue[] =>
+  Object.freeze([...new Set(sets.flat())]);
+
+/**
+ * Læser de konkrete refs, der bygger hver uafhængig beregningsgrens input. Collection-celler bindes til
+ * de aktuelle række-id'er; blockers kan derfor ikke drive fra motorens read-set via et tekst-ID-inventar.
+ */
+const buildEoDependencyProjection = (
+  reader: InputReader,
+  aggregateEoIssues: readonly FieldIssue[]
+): EoDependencyProjection => {
+  const forlig = createTrackedInputReader(reader);
+  const forligInput = {
+    forligAnsvarsgradProcent: readOrEmpty(forlig.reader, eoForligAnsvarsgradProcentField.bind()),
+    forligAnsvarsgradBroek: readOrEmpty(forlig.reader, eoForligAnsvarsgradBroekField.bind()),
+  };
+  readOrEmpty(forlig.reader, eoForligDatoField.bind());
+
+  const svieSmerte = createTrackedInputReader(reader);
+  const svieSmerteValues: SvieSmerteCalculationValues = {
+    kravPaaSvieSmerteGodtgoerelse: readOrEmpty(svieSmerte.reader, eoKravPaaSvieSmerteGodtgoerelseField.bind()),
+    tidligereSsMax: readOrEmpty(svieSmerte.reader, eoTidligereSsMaxField.bind()),
+    vedroererPeriodeFra: readOrEmpty(svieSmerte.reader, eoVedroererPeriodeFraField.bind()),
+    vedroererPeriodeTil: readOrEmpty(svieSmerte.reader, eoVedroererPeriodeTilField.bind()),
+    menAfgoerelseDato: readOrEmpty(svieSmerte.reader, eoMenAfgoerelseDatoField.bind()),
+    varigeMenAfgorelse: readOrEmpty(svieSmerte.reader, eoVarigeMenAfgorelseField.bind()),
+    verserendeKlageMen: readOrEmpty(svieSmerte.reader, eoVerserendeKlageMenField.bind()),
+    svieSmerteSatserAar: readOrEmpty(svieSmerte.reader, eoSvieSmerteSatserAarField.bind()),
+    svieSmerteDelvisSygemeldingSats: readOrEmpty(svieSmerte.reader, eoSvieSmerteDelvisSygemeldingSatsField.bind()),
+    svieSmerteTidligereTotal: readOrEmpty(svieSmerte.reader, eoSvieSmerteTidligereTotalField.bind()),
+    svieSmerteAktuelPeriode: readOrEmpty(svieSmerte.reader, eoSvieSmerteAktuelPeriodeField.bind()),
+    svieSmertePerioder: listRowIds(svieSmerte.reader, eoSvieSmertePerioderCollection.template as CollectionRef)
+      .map((rowId) => rebuildSvieSmerteRow(svieSmerte.reader, rowId)),
+    forligAnsvarsgradProcent: forligInput.forligAnsvarsgradProcent,
+    forligAnsvarsgradBroek: forligInput.forligAnsvarsgradBroek,
+  };
+  const svieSmerteStamdata = {
+    skadedato: readOrEmpty(svieSmerte.reader, stamdataSkadedatoField.bind()),
+    skadestype: readOrEmpty(svieSmerte.reader, stamdataSkadestypeField.bind()),
+  };
+
+  const taf = createTrackedInputReader(reader);
+  const tafValues: TafCalculationValues = {
+    eoNummer: readOrEmpty(taf.reader, eoNummerField.bind()),
+    opgørelseLavetDen: readOrEmpty(taf.reader, eoOpgørelseLavetDenField.bind()),
+    kravPaaTabtArbejdsfortjeneste: readOrEmpty(taf.reader, eoKravPaaTabtArbejdsfortjenesteField.bind()),
+    tidligereModtagetTaf: readOrEmpty(taf.reader, eoTidligereModtagetTafField.bind()),
+    uspecificeredeFerieFridage: readOrEmpty(taf.reader, eoUspecificeredeFerieFridageField.bind()),
+    oevrigtFravaerUdenLoen: readOrEmpty(taf.reader, eoOevrigtFravaerUdenLoenField.bind()),
+    oevrigeFravaersdage: readOrEmpty(taf.reader, eoOevrigeFravaersdageField.bind()),
+    oevrigeFravaersdageBeskrivelse: readOrEmpty(taf.reader, eoOevrigeFravaersdageBeskrivelseField.bind()),
+    maanedsloenenUdgoer: readOrEmpty(taf.reader, eoMaanedsloenenUdgoerField.bind()),
+    dagsloenenUdgoer: readOrEmpty(taf.reader, eoDagsloenenUdgoerField.bind()),
+    beregnesUdFra: readOrEmpty(taf.reader, eoBeregnesUdFraField.bind()),
+    tafBeregningsperiodeFra: readOrEmpty(taf.reader, eoTafBeregningsperiodeFraField.bind()),
+    tafBeregningsperiodeTil: readOrEmpty(taf.reader, eoTafBeregningsperiodeTilField.bind()),
+    vedroererPeriodeFra: readOrEmpty(taf.reader, eoVedroererPeriodeFraField.bind()),
+    vedroererPeriodeTil: readOrEmpty(taf.reader, eoVedroererPeriodeTilField.bind()),
+    differencekravDato: readOrEmpty(taf.reader, eoDifferencekravDatoField.bind()),
+    midlertidigtEETAfgorelse: readOrEmpty(taf.reader, eoMidlertidigtEETAfgorelseField.bind()),
+    midlertidigEETAfgoerelseDato: readOrEmpty(taf.reader, eoMidlertidigEETAfgoerelseDatoField.bind()),
+    midlertidigEETVirkningsdato: readOrEmpty(taf.reader, eoMidlertidigEETVirkningsdatoField.bind()),
+    endeligtEETAfgorelse: readOrEmpty(taf.reader, eoEndeligtEETAfgorelseField.bind()),
+    endeligEETAfgoerelseDato: readOrEmpty(taf.reader, eoEndeligEETAfgoerelseDatoField.bind()),
+    endeligEETVirkningsdato: readOrEmpty(taf.reader, eoEndeligEETVirkningsdatoField.bind()),
+    verserendeKlageEet: readOrEmpty(taf.reader, eoVerserendeKlageEetField.bind()),
+    regulerOffentligeYdelser: readOrEmpty(taf.reader, eoRegulerOffentligeYdelserField.bind()),
+    midlertidigtEetFraEetSiden: readOrEmpty(taf.reader, eoMidlertidigtEetFraEetSidenField.bind()),
+    angivetMaanedsloenBaseretPaa: readOrEmpty(taf.reader, eoAngivetMaanedsloenBaseretPaaField.bind()),
+    angivetMaanedsloenOpreguleresFraDato: readOrEmpty(
+      taf.reader,
+      eoAngivetMaanedsloenOpreguleresFraDatoField.bind()
+    ),
+    angivetDagsloenBaseretPaa: readOrEmpty(taf.reader, eoAngivetDagsloenBaseretPaaField.bind()),
+    angivetDagsloenOpreguleresFraDato: readOrEmpty(taf.reader, eoAngivetDagsloenOpreguleresFraDatoField.bind()),
+    tafPerioder: listRowIds(taf.reader, eoTafPerioderCollection.template as CollectionRef)
+      .map((rowId) => rebuildTafPeriodeRow(taf.reader, rowId)),
+    ferieperioder: listRowIds(taf.reader, eoFerieperioderCollection.template as CollectionRef)
+      .map((rowId) => rebuildFerieperiodeRow(taf.reader, eoFerieperiodeFraField, eoFerieperiodeTilField, rowId)),
+    fravaerPerioder: listRowIds(taf.reader, eoFravaerPerioderCollection.template as CollectionRef)
+      .map((rowId) => rebuildFerieperiodeRow(taf.reader, eoFravaerPeriodeFraField, eoFravaerPeriodeTilField, rowId)),
+    offentligeYdelserRows: listRowIds(taf.reader, eoOffentligeYdelserRowsCollection.template as CollectionRef)
+      .map((rowId) => rebuildOffentligeYdelserRow(taf.reader, rowId)),
+    sfggAnsaettelsesforhold: listRowIds(taf.reader, eoSfggAnsaettelsesforholdCollection.template as CollectionRef)
+      .map((rowId) => rebuildSfggRow(taf.reader, rowId)),
+    loenindkomstAnsaettelsesforhold: listRowIds(
+      taf.reader,
+      eoLoenindkomstAnsaettelsesforholdCollection.template as CollectionRef
+    ).map((rowId) => rebuildEmploymentRow(taf.reader, rowId)),
+    eoAngivetLoenLoenudvikling: rebuildAngivetLoenLoenudvikling(taf.reader),
+  };
+  const tafStamdata = {
+    skadedato: readOrEmpty(taf.reader, stamdataSkadedatoField.bind()),
+    skadestype: readOrEmpty(taf.reader, stamdataSkadestypeField.bind()),
+  };
+
+  const oevrigeKrav = createTrackedInputReader(reader);
+  const oevrigeKravInput = {
+    kravPaaOevrigeErstatningskrav: readOrEmpty(
+      oevrigeKrav.reader,
+      eoKravPaaOevrigeErstatningskravField.bind()
+    ),
+    oevrigeKravPerioder: listRowIds(
+      oevrigeKrav.reader,
+      eoOevrigeKravPerioderCollection.template as CollectionRef
+    ).map((rowId) => rebuildOevrigeKravRow(oevrigeKrav.reader, rowId)),
+  };
+
+  const documentStamdata = createTrackedInputReader(reader);
+  readOrEmpty(documentStamdata.reader, stamdataJournalnrField.bind());
+  readOrEmpty(documentStamdata.reader, stamdataSkadelidteField.bind());
+  readOrEmpty(documentStamdata.reader, stamdataAdvokatField.bind());
+  readOrEmpty(documentStamdata.reader, stamdataSagsbehandlerField.bind());
+  readOrEmpty(documentStamdata.reader, stamdataSkadedatoField.bind());
+  readOrEmpty(documentStamdata.reader, stamdataSkadestypeField.bind());
+
+  const svieSmerteIssues = svieSmerte.readIssues();
+  const forligIssues = forlig.readIssues();
+  const tafIssues = taf.readIssues();
+  const oevrigeKravIssues = oevrigeKrav.readIssues();
+  return Object.freeze({
+    svieSmerteInput: {
+      erstatningsopgoerelse: svieSmerteValues,
+      stamdata: svieSmerteStamdata,
+    },
+    forligInput,
+    tafInput: { values: tafValues, stamdata: tafStamdata },
+    oevrigeKravInput,
+    svieSmerteIssues,
+    forligIssues,
+    tafIssues,
+    oevrigeKravIssues,
+    aggregateIssues: mergeIssues(
+      aggregateEoIssues,
+      documentStamdata.readIssues(),
+      svieSmerteIssues,
+      forligIssues,
+      tafIssues,
+      oevrigeKravIssues
+    ),
+  });
+};
 
 /**
  * Bygger den kanoniske reader-afledte projektion for Erstatningsopgørelse. Rekonstruerer de fulde EO-/stamdata-
@@ -536,10 +685,16 @@ export const buildErstatningsopgoerelseReaderProjection = (
   reader: InputReader,
   options?: Readonly<{ revision?: string; midlertidigtEetInsertSource?: EetImportSource | null }>
 ): ErstatningsopgoerelseReaderProjection => {
-  const eoValues = readErstatningsopgoerelseValues(reader);
-  const stamdataValues = readStamdataValues(reader);
+  const eoProjection = createTrackedInputReader(reader);
+  const stamdataProjection = createTrackedInputReader(reader);
+  const stamdataValues = readStamdataValues(stamdataProjection.reader);
+  // Låste referencesatser er domæneafledning, ikke persisteret brugerinput.
+  const eoValues = projectLoenindkomstSatser(
+    readErstatningsopgoerelseValues(eoProjection.reader),
+    stamdataValues
+  );
 
-  // Transient midlertidigt-EET-injection: kun når togglen er 'Ja' (uændret fra legacy-siden).
+  // Transient midlertidigt-EET-injektion: kun når togglen er 'Ja'.
   const midlertidigtEetImportContext =
     eoValues.midlertidigtEetFraEetSiden === 'Ja' && options?.midlertidigtEetInsertSource
       ? buildMidlertidigtEetImportContext(
@@ -548,16 +703,14 @@ export const buildErstatningsopgoerelseReaderProjection = (
       )
       : undefined;
 
-  // Dependency-gatingens autoritet: de STRUKTURELLE røde feltissues i EO-sektionen (§1.10, WI-004 runde 4).
+  // Dependency-gatingens autoritet: de STRUKTURELLE røde feltissues i EO-sektionen.
   // `eoErrors` ovenfor er en PRÆSENTATIONS-projektion med kun 11 top-level feltnavne + løn-aggregatet; den kan
   // ikke se en rød rækkecelle, og en gate bygget på den lod motoren regne på readerens maskerede tomværdi.
-  const eoFieldIssues = reader.readSectionFieldIssues('erstatningsopgoerelse');
-  // Stamdata-issues indgår også: `skadedato` er en klipningsgrænse for BÅDE TAF-periodiseringen og
-  // svie/smerte-perioderne, så en rød skadedato må ikke give en uklampet gren (runde 4, re-review T2).
-  // KLASSIFICERES nedstrøms: `eoSnapshot` beholder kun de stamdatafelter, EO faktisk læser (R3-F02).
-  const stamdataFieldIssues = reader.readSectionFieldIssues('stamdata');
+  const eoFieldIssues = eoProjection.readIssues();
+  const stamdataFieldIssues = stamdataProjection.readIssues();
   const eoErrors = buildFieldIssueSet(eoFieldIssues);
   const stamdataErrors = buildFieldIssueSet(stamdataFieldIssues);
+  const dependencyProjection = buildEoDependencyProjection(reader, eoFieldIssues);
 
   const snapshot = computeEoSnapshot({
     revision: options?.revision ?? `input-${String(reader.sourceToken.inputRevision)}-settings-${String(reader.sourceToken.settingsRevision)}`,
@@ -565,8 +718,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     eoValues,
     stamdataErrors,
     eoErrors,
-    eoFieldIssues,
-    stamdataFieldIssues,
+    dependencyProjection,
     ...(midlertidigtEetImportContext === undefined ? {} : { midlertidigtEetImportContext }),
   });
 

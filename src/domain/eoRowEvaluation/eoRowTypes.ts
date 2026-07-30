@@ -155,7 +155,7 @@ export type EoRowModel = {
 /**
  * Række-dag – én dag i række-tidslinjen
  *
- * FASE 2 SCOPE:
+ * ANSVAR:
  * - Tidslinje-basis (dato, ugedag, weekend)
  * - Søgnehelligdage
  * - Arbejdsdag-klassifikation

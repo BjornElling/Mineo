@@ -3,6 +3,7 @@ import type { SerializedFieldAddress } from '../inputCore/fieldAddress';
 import type { InputCatalog } from '../inputCore/fieldCatalog';
 import type { SettledInput } from '../inputCore/settledInput';
 import { cloneAndDeepFreeze } from '../utils/deepFreeze';
+import { omitDerivedLoenindkomstSatser } from '../domain/erstatningsopgoerelse/loenindkomstSatsProjection';
 
 export type EoSaveProjection =
   | Readonly<{
@@ -32,8 +33,17 @@ export const projectEoSave = (
     });
   }
 
+  const sections = validated.sections.erstatningsopgoerelse === null
+    ? validated.sections
+    : {
+      ...validated.sections,
+      erstatningsopgoerelse: omitDerivedLoenindkomstSatser(
+        validated.sections.erstatningsopgoerelse,
+        { skadedato: validated.sections.stamdata?.skadedato }
+      ),
+    };
   const snapshot = cloneAndDeepFreeze(Object.fromEntries(PERSISTED_SECTION_KEYS.map((section) => {
-    const value = validated.sections[section];
+    const value = sections[section];
     return [section, value === null ? undefined : persistenceSchemas[section].parse(value)];
   }))) as PersistedSectionsSnapshot;
 

@@ -1,5 +1,5 @@
 /**
- * React-grænsen til et dokumentkatalog (Fase 5).
+ * React-grænsen til et dokumentkatalog.
  *
  * Hook'en er den ENESTE vej fra en side til et dokumentoutput, og den leverer begge sider af
  * kontraktens §A2 fra samme katalogpost:
@@ -9,7 +9,7 @@
  *   - `download(request)` — click-preflighten, som settler editoren og evaluerer et FRISKT snapshot.
  *
  * Fordi begge kalder samme definition med samme `request`, kan de ikke drifte fra hinanden (§10
- * acceptkriterie 27). Før Fase 5 var dette to selvstændige udtryk pr. side — og for
+ * acceptkriterie 27). Tidligere var dette to selvstændige udtryk pr. side — og for
  * regulering/KRL/KL-lønaftaler endda to forskellige formler i to komponenter.
  *
  * **Miljøet injiceres.** Hook'en hardkodede oprindeligt hovedappens kildeoptagelse og krævede
@@ -54,7 +54,7 @@ export type DocumentDownloadHandle<TRequest> = Readonly<{
    * Den BRUGERRETTEDE tekst til knappens tooltip ved blokering, ellers `undefined`.
    *
    * Teksten er allerede oversat gennem `resolveDocumentGateTooltip`, så en "mangler indtastning"-blokering
-   * viser den universelle tekst og kun en `specific` årsag citeres ordret (UT-F07). En flade må derfor
+   * viser den universelle tekst og kun en `specific` årsag citeres ordret. En flade må derfor
    * hverken vælge tekst selv eller læse `blockedReasons[0].message` til visning.
    *
    * Den hører KUN i tooltippet. Samme tekst må ikke også stå som synlig tekst ved knappen — det var netop
@@ -83,7 +83,7 @@ export type DocumentDownloadHandle<TRequest> = Readonly<{
  * En flade uden det signal skal bruge `handle.errorMessage` direkte; ellers bliver en blokeret download
  * lydløs, hvilket bryder "ingen usynlig blokering"-invarianten.
  *
- * **Bemærk (UT-F07):** tidligere begrundede flere flader deres valg med, at gate-årsagen stod som synlig
+ * **Bemærk:** tidligere begrundede flere flader deres valg med, at gate-årsagen stod som synlig
  * TEKST ved knappen. Den dobbeltvisning er fjernet — årsagen hører nu kun i tooltippet — så tooltippet alene
  * kan ikke længere bære en blokeret AKTIVERING (den sker efter et klik, hvor ingen hover er i gang).
  * Kriteriet er derfor shake/fokus-feedbacken, ikke en tekstlinje.
@@ -105,7 +105,7 @@ export const useDocumentDownload = <TRequest, TGateSettings, TRenderSettings>(
   gateRequest: TRequest,
   /**
    * Render-tidens format-/brevhoved-settings. Bevidst en SELVSTÆNDIG parameter og ikke et felt på
-   * `context`: udfaldsbeskeden navngiver formatet, mens gaten per norm ikke må se det (R6-F03).
+   * `context`: udfaldsbeskeden navngiver formatet, mens gaten per norm ikke må se det.
    * Havde de delt objekt, ville adskillelsen kun være en konvention.
    */
   renderSettings: TRenderSettings

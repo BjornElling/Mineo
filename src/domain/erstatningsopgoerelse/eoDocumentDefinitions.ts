@@ -1,7 +1,5 @@
 /**
- * De fire EO-dokumentdefinitioner (Fase 5; `document-output-contract.md` §A1.2/§A7.1: definitionen
- * ligger ved sin domænegrænse og er eneste ejer af inputdependencies, preflight og den godkendte
- * inputmodel).
+ * De fire EO-dokumentdefinitioner.
  *
  * Definitionerne GENBRUGER den eksisterende reader-projektion og gate uændret (§5.4): de flytter
  * kun ejerskabet af rækkefølgen fra `useEoBeregningViewModel` ind i kataloget. Bilag-selektionen,
@@ -87,7 +85,7 @@ const readSharedEoSource = (context: DocumentSourceContext<MineoDocumentGateSett
     midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(context.evaluation),
   });
   return {
-    // Gate-settings ER rækkepolitikken (R6-F03): konteksten bar før hele `SourceSettings`, og
+    // Gate-settings ER rækkepolitikken: konteksten bar før hele `SourceSettings`, og
     // projektionen skulle derfor selv skære den ned. Nu leverer miljøet præcis den halvdel, gaten må
     // se, og indsnævringen sker ét sted — i `captureSource` — frem for i hver definition.
     projection,
@@ -122,10 +120,9 @@ const resolveMidlertidigtEetGroups = (
     : [];
 
 /**
- * Fælles blokerings-oversættelse for de fire EO-outputs. `gate` dækker række-/invariant-niveauet,
- * og per-dokument-projektionen dækker snapshot-invariant-/fail_closed-niveauet. Begge lag bevares
- * fra før Fase 5 — de var to uafhængige fail-closed lag i view-model + servicegrænse, og de er
- * fortsat to lag her, blot samlet på ét sted.
+ * Fælles blokeringsoversættelse for de fire EO-outputs. `gate` dækker række-/invariantniveauet,
+ * mens per-dokument-projektionen dækker snapshot-invariant-/fail_closed-niveauet. Begge lag er
+ * nødvendige og samlet her.
  */
 const blockedFromGate = <T>(gate: DocumentDownloadGateResult): DocumentProjectionResult<T> => ({
   status: 'blocked',
@@ -136,7 +133,7 @@ const blockedFromGate = <T>(gate: DocumentDownloadGateResult): DocumentProjectio
 });
 
 /**
- * EO-projektionens egen blokering. Beskeden er `specific` (UT-F07): den kommer fra dokumentprojektionen og
+ * EO-projektionens egen blokering. Beskeden er `specific`: den kommer fra dokumentprojektionen og
  * navngiver den konkrete række/det konkrete felt, der skal rettes — samme familie som `eoDocumentDownloadGate`s
  * årsag, og lige så værd at citere ordret.
  */

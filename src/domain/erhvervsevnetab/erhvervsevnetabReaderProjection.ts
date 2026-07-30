@@ -84,9 +84,8 @@ import type { StamdataValues } from '../../schemas/formSchemas';
 //        aftager KUN den FØRSTE via `fieldErrors.erhvervsevnetab.aslAfgoerelser`. Afgrænsningen er bevidst: feltet
 //        viser én aktiv rød fejl (§1.8), og de øvrige rækkefejl vises inline i tabellen på deres egne celler.
 //      * Forligs-blokeringen ("begge udfyldt"/brøk > 1/ugyldigt rå draft) føres via `forlig`-argumentet uændret ind.
-//  - BEMÆRK afgrænsning: køn-reglen (køn påkrævet ved beregning/kapitalisering før 1. marts 2015) er i legacy en REN
-//    SAVE-GATE-fejl (rapporteret til error-bus, men IKKE aftaget af `computeEetSnapshot`). Den påvirker derfor ikke
-//    denne projektion og hører til tab-/save-gate-cutoveren, ikke beregningsprojektionen.
+//  - Køn-reglen (køn påkrævet ved beregning/kapitalisering før 1. marts 2015) er en ren save-gate-fejl.
+//    Den påvirker derfor ikke beregningsprojektionen.
 
 const beregningsdatoRef: FieldRef<ISODateString | undefined> = erhvervsevnetabBeregningsdatoField.bind();
 const koenRef: FieldRef<Koen | undefined> = erhvervsevnetabKoenField.bind();
@@ -126,7 +125,7 @@ const ASL_RULE_FIELD_DESCRIPTORS = {
 } as const satisfies Record<EetAslAfgoerelseValidationField, { bind: (rowId: string) => unknown }>;
 
 /**
- * Oversætter collection-reglernes udfald til kanoniske `FieldIssue`s (GM-F06).
+ * Oversætter collection-reglernes udfald til kanoniske `FieldIssue`s.
  *
  * Reglerne KAN ikke bo i descriptor-validatorerne: de er kryds-række-regler (dublet-afgørelser,
  * virkningsdato mod tidligere kapitaliseringsdato, EET % mod summen af forudgående kap. %), og en
@@ -158,7 +157,7 @@ export type ErhvervsevnetabReaderProjection = Readonly<{
   /** De committede ASL-afgørelsesrækker i afsluttet rækkefølge (reader-læst) — til tabellens sort. */
   aslAfgoerelserCommittedRows: readonly AslAfgoerelseRow[];
   /**
-   * ASL-afgørelsernes KRYDS-RÆKKE-domæneregler som STRUKTURELLE feltissues (GM-F06). Descriptorernes egne
+   * ASL-afgørelsernes KRYDS-RÆKKE-domæneregler som STRUKTURELLE feltissues. Descriptorernes egne
    * format-/bounds-/rule-issues kommer gennem readerens eget issue-snapshot; disse er de collection-afhængige
    * regler (dublet-datoer, identiske afgørelser, virkningsdato efter tidl.kap. m.fl.), som en
    * descriptor-validator ikke kan se, fordi den kun kender sin egen celle.
@@ -283,7 +282,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
     coerceToISODateString(skadelidteFodselsdato.value)
   );
   const aslAfgoerelserRuleMessage = aslAfgoerelserRuleIssues[0]?.message;
-  // GM-F06: kryds-række-reglerne bliver STRUKTURELLE feltissues med rigtige feltadresser i stedet for en
+  // Kryds-række-reglerne bliver STRUKTURELLE feltissues med rigtige feltadresser i stedet for en
   // parallel `${rowId}|${field}`-strengnøgle. Rød markering, tooltip, fokusnavigation og consumerblokering
   // læser derfor samme repræsentation som alle andre røde felter (§1.8) — og cellen behøver ingen fri
   // fejltekst-prop ved siden af sit eget issue.
@@ -321,8 +320,8 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
       advokat: '',
       sagsbehandler: '',
     },
-    // De røde feltfejl ejes nu af readeren og føres ind her, så snapshottets dependency-specifikke per-fane-issues
-    // blokerer PRÆCIS som legacy (§1.10). De tre felt-placerede domæneregler tilføjes på deres felter (en aktiv
+    // De røde feltfejl ejes af readeren og føres ind her, så snapshottets dependency-specifikke
+    // per-fane-issues blokerer præcist (§1.10). De tre feltplacerede domæneregler tilføjes på deres felter (en aktiv
     // reader-fejl har forrang, da den allerede skjuler værdien).
     fieldErrors: {
       stamdata: {

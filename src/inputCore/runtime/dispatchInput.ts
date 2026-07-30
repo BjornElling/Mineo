@@ -115,10 +115,10 @@ export type DispatchInputOptions = Readonly<{
 }>;
 
 /**
- * Options for en STRUKTUREL rækkecommand (§3.7, WI-004 runde 4, fund S4): origin er PÅKRÆVET.
+ * Options for en STRUKTUREL rækkecommand: origin er PÅKRÆVET.
  *
- * Skaden, fund S4 beskrev, var at origin kunne udelades HELT: history gemte `undefined`, og en undo kunne
- * gendanne en række uden noget sted at navigere til. Kravet er derfor "der SKAL være en origin" — ikke
+ * Uden kravet kan history gemme `undefined`, så undo gendanner en række uden et sted at navigere til.
+ * Kravet er derfor "der SKAL være en origin" — ikke
  * "originen skal være af arten `collection`".
  *
  * ⚠️ Originens ART beskriver handlingens restore-anker og er bevidst fri:
@@ -311,7 +311,7 @@ const commitCandidate = (
  * mindst ét sådant trin) kræver en origin, så undo/redo har et restore-anker. Den ENE generiske signatur med
  * betinget options-type håndhæver det på typeniveau — en permissiv overload ved siden af ville gøre origin
  * valgfri igen for samme command. `assertStructuralOrigin` håndhæver det også på runtime, så et cast eller et
- * utypet kald ikke kan omgå det (§3.7, WI-004 runde 4, fund S4).
+ * utypet kald ikke kan omgå det.
  */
 export function dispatchInput<
   TField,

@@ -1,5 +1,5 @@
 /**
- * Standalone MinProcesrentes `DocumentExecutionEnvironment` (Fase 5, pass 6).
+ * Standalone MinProcesrentes `DocumentExecutionEnvironment`.
  *
  * Standalone-appens composition root for dokument-download. Den er den anden af de to apps, kernen
  * betjener, og den findes netop for at bevise, at livscyklussen ikke har hovedappens runtimepolitik
@@ -12,7 +12,7 @@
  * dummy settings-værdi: "standalone har ingen indstillinger" bliver en TYPE frem for et objekt med
  * ligegyldige felter, og `TBrevhovedKey` er `never`, så en brevhoved-nøgle ikke kan navngives.
  *
- * Før Fase 5 stod de tre standalone-outputs helt uden gate og uden commit-barriere
+ * Tidligere stod de tre standalone-outputs helt uden gate og uden commit-barriere
  * (`standaloneRentePdfService.ts`): et klik med en åben editor kunne danne dokumentet på de gamle
  * tal. Kontraktens §A2a kræver udtrykkeligt, at også standalone er katalogiseret.
  */

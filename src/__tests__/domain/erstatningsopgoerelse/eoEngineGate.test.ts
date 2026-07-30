@@ -8,6 +8,7 @@ import { EMPTY_FIELD_ISSUE_SET, type FieldIssue, type FieldIssueSet } from '../.
 import type { FieldAddress } from '../../../inputCore/fieldAddress';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
+import type { EoDependencyProjection } from '../../../domain/erstatningsopgoerelse/snapshot/eoDependencyProjection';
 
 // INVARIANT (F2 — `form-contract.md` §2.3, `error-contract.md` §5): EO's beregningsmotorer må ikke kaldes,
 // når en rød reader-feltfejl gør deres EGET input uanvendeligt.
@@ -88,6 +89,40 @@ const redRowCell = (collection: string, field: string, entityId = 'r1'): FieldIs
     `eo.${collection}.${field}`
   );
 
+const dependencyProjectionFor = (
+  issues: readonly FieldIssue[],
+  branch?: 'svieSmerte' | 'forlig' | 'taf' | 'oevrigeKrav'
+): EoDependencyProjection => ({
+  svieSmerteIssues: branch === 'svieSmerte' ? issues : [],
+  forligIssues: branch === 'forlig' ? issues : [],
+  tafIssues: branch === 'taf' ? issues : [],
+  oevrigeKravIssues: branch === 'oevrigeKrav' ? issues : [],
+  aggregateIssues: issues,
+});
+
+const branchForTestIssue = (issue: FieldIssue): 'svieSmerte' | 'forlig' | 'taf' | undefined => {
+  const id = issue.field.descriptor.id;
+  const collection = issue.field.address.path.find((segment) => segment.kind === 'entity')?.collection;
+  if (id.includes('forligAnsvarsgrad')) return 'forlig';
+  if (collection === 'svieSmertePerioder'
+    || id.includes('svieSmerte')
+    || id.endsWith('kravPaaSvieSmerteGodtgoerelse')
+    || id.endsWith('tidligereSsMax')) return 'svieSmerte';
+  if (collection === 'tafPerioder'
+    || collection === 'loenudviklingManuelTableData'
+    || id.endsWith('tidligereModtagetTaf')
+    || id.endsWith('uspecificeredeFerieFridage')) return 'taf';
+  return undefined;
+};
+
+const dependencyProjectionForIssues = (issues: readonly FieldIssue[]): EoDependencyProjection => ({
+  svieSmerteIssues: issues.filter((issue) => branchForTestIssue(issue) === 'svieSmerte'),
+  forligIssues: issues.filter((issue) => branchForTestIssue(issue) === 'forlig'),
+  tafIssues: issues.filter((issue) => branchForTestIssue(issue) === 'taf'),
+  oevrigeKravIssues: [],
+  aggregateIssues: issues,
+});
+
 describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () => {
   let svieSmerteSpy: ReturnType<typeof vi.spyOn>;
   let tafNettoSpy: ReturnType<typeof vi.spyOn>;
@@ -107,7 +142,7 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
     stamdataValues: STAMDATA_INITIAL_VALUES,
     eoValues: createComputableEoValues(),
     eoErrors,
-    eoFieldIssues,
+    dependencyProjection: dependencyProjectionForIssues(eoFieldIssues),
   });
 
   it('BASELINE: bygger autoritative data og kalder motorerne, når intet er rødt', () => {
@@ -217,7 +252,7 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
     revision: 'r1',
     stamdataValues: STAMDATA_INITIAL_VALUES,
     eoValues: createComputableEoValues(),
-    eoFieldIssues,
+    dependencyProjection: dependencyProjectionForIssues(eoFieldIssues),
   });
 
   it('BASELINE: ingen gren er blokeret, når intet er rødt', () => {
@@ -311,7 +346,10 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
 
     const blocked = computeEoSnapshot({
       ...snapshotArgs,
-      eoFieldIssues: [redField('forligAnsvarsgradProcent', 'bounds')],
+      dependencyProjection: dependencyProjectionFor(
+        [redField('forligAnsvarsgradProcent', 'bounds')],
+        'forlig'
+      ),
     });
     const green = computeEoSnapshot(snapshotArgs);
 
@@ -392,7 +430,14 @@ describe('EO: stamdata blokerer efter faktisk afhængighed, ikke efter sektion (
     revision: 'r1',
     stamdataValues: STAMDATA_INITIAL_VALUES,
     eoValues: createComputableEoValues(),
-    stamdataFieldIssues,
+    dependencyProjection: {
+      svieSmerteIssues: stamdataFieldIssues.filter((issue) => issue.field.descriptor.id === 'stamdata.skadedato'),
+      forligIssues: [],
+      tafIssues: stamdataFieldIssues.filter((issue) => issue.field.descriptor.id === 'stamdata.skadedato'),
+      oevrigeKravIssues: [],
+      aggregateIssues: stamdataFieldIssues.filter((issue) =>
+        issue.field.descriptor.id !== 'stamdata.skadelidteFodselsdato'),
+    },
   });
 
   it('en rød FØDSELSDATO blokerer intet — EO læser den kun til en advarsel', () => {

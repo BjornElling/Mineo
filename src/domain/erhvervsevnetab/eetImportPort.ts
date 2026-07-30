@@ -4,9 +4,19 @@ import { isoDateString } from '../../schemas/formSchemas/baseSchemas';
 import type { ISODateString } from '../../types/branded';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
-import type { InputEvaluation } from '../../inputCore/inputReader';
+import { createTrackedInputReader, type InputEvaluation } from '../../inputCore/inputReader';
+import { erhvervsevnetabBeregningsdatoField } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
+import {
+  faellesAarsloenAslAarsloenField,
+  faellesAarsloenEalAarsloenField,
+} from '../../inputCore/catalog/faellesAarsloenDescriptors';
+import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+} from '../../inputCore/catalog/stamdataDescriptors';
 import { STAMDATA_DATE_ORDER_ERROR_MESSAGE } from '../stamdata/stamdataDateOrder';
-import { buildErhvervsevnetabReaderProjection } from './erhvervsevnetabReaderProjection';
+import { ERHVERVSEVNETAB_INITIAL_VALUES } from './erhvervsevnetabInitialValues';
+import { readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjection';
 import { eetIssueSchema, type EetIssue } from './eetTypes';
 import { isAslAfgoerelseRowEmpty } from './eetAslAfgoerelser';
 import {
@@ -37,7 +47,7 @@ export type EetImportSource = Readonly<{
 }>;
 
 /**
- * De felter, importberegningen FAKTISK læser (R3-F02/R3-F01).
+ * Importmotorens typed inputprojektion.
  *
  * Gaten var tidligere sektionsvis: ethvert rødt issue i `erhvervsevnetab`, `faellesAarsloen` eller `stamdata`
  * blokerede importen. Det var en overblokering — og overblokering er lige så forkert som falske tal (§1.10):
@@ -62,70 +72,54 @@ export type EetImportSource = Readonly<{
  *   denne vej (de hører til EET-siden selv / EET-efter-EAL).
  * - Stamdatas brevhovedfelter: importen sender dem som `''` og læser dem ikke.
  *
- * ⚠️ Udvid KUN, når importens beregning faktisk begynder at læse feltet. `eetImportPort.dependencies.test.ts`
- * hævder, at hvert id findes i produktionskataloget, så en omdøbning ikke lydløst gør gaten til død kode.
+ * Hvert issue-sæt kommer fra den reader, der samtidig bygger den tilhørende del af motorinputtet. Der findes
+ * derfor intet separat ID-inventar, som kan drive fra motorens konkrete reads.
  */
-const IMPORT_DEPENDENCY_FIELD_IDS: ReadonlySet<string> = new Set([
-  'erhvervsevnetab.beregningsdato',
-  'erhvervsevnetab.aslAfgoerelser.afgoerelsesDato',
-  'erhvervsevnetab.aslAfgoerelser.virkningsDato',
-  'erhvervsevnetab.aslAfgoerelser.eetPct',
-  'erhvervsevnetab.aslAfgoerelser.kapDato',
-  'erhvervsevnetab.aslAfgoerelser.kapPct',
-  'erhvervsevnetab.aslAfgoerelser.tidlKapDato',
-  'erhvervsevnetab.aslAfgoerelser.afgoerelseType',
-  'erhvervsevnetab.aslAfgoerelser.fsTilbageholdtEet',
-  'faellesAarsloen.aslAarsloen',
-  'stamdata.skadedato',
-  'stamdata.skadelidteFodselsdato',
-]);
-
-/** Importens dependency-id'er. Completeness-testen itererer produktionskataloget mod den. */
-export const EET_IMPORT_DEPENDENCY_FIELD_IDS: readonly string[] =
-  Object.freeze([...IMPORT_DEPENDENCY_FIELD_IDS]);
-
-/**
- * Har et felt, importen faktisk læser, en aktiv rød feltfejl i den angivne sektion?
- *
- * Sektionen bevares som argument, fordi de tre kilder giver hver sin brugerbesked ("Afgørelsen …",
- * "Årslønnen …", "Stamdata …") — men afgørelsen træffes nu på det konkrete felt, ikke på sektionen.
- */
-const hasBlockingDependencyIssueInSection = (
-  evaluation: InputEvaluation,
-  section: 'stamdata' | 'erhvervsevnetab' | 'faellesAarsloen'
-): boolean => evaluation.reader.readSectionFieldIssues(section)
-  .some((issue) => IMPORT_DEPENDENCY_FIELD_IDS.has(issue.field.descriptor.id));
-
 /** Bygger den eneste EO-læsning af EET-input fra et tokenbundet reader-snapshot. */
 export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): EetImportSource => {
-  const projection = buildErhvervsevnetabReaderProjection(evaluation.reader);
+  const eetProjection = createTrackedInputReader(evaluation.reader);
+  const aarsloenProjection = createTrackedInputReader(evaluation.reader);
+  const stamdataProjection = createTrackedInputReader(evaluation.reader);
+  const beregningsdatoRead = eetProjection.reader.read(erhvervsevnetabBeregningsdatoField.bind());
+  const aslAarsloenRead = aarsloenProjection.reader.read(faellesAarsloenAslAarsloenField.bind());
+  const ealAarsloenRead = evaluation.reader.read(faellesAarsloenEalAarsloenField.bind());
+  const skadedatoRead = stamdataProjection.reader.read(stamdataSkadedatoField.bind());
+  const fodselsdatoRead = stamdataProjection.reader.read(stamdataSkadelidteFodselsdatoField.bind());
+  const eetValues: ErhvervsevnetabComposedValues = {
+    ...ERHVERVSEVNETAB_INITIAL_VALUES,
+    beregningsdato: beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined,
+    aslAfgoerelser: readAslAfgoerelserCommittedRows(eetProjection.reader),
+    aslAarsloen: aslAarsloenRead.status === 'usable' ? aslAarsloenRead.value : undefined,
+    // EAL-årslønnen påvirker kun en warning og er derfor et ikke-blokerende read.
+    ealAarsloen: ealAarsloenRead.status === 'usable' ? ealAarsloenRead.value : undefined,
+    skadelidteFodselsdato: fodselsdatoRead.status === 'usable' ? fodselsdatoRead.value : undefined,
+  };
   const sourceIssues: EetIssue[] = [];
 
-  if (hasBlockingDependencyIssueInSection(evaluation, 'erhvervsevnetab')) {
+  if (eetProjection.readIssues().length > 0) {
     sourceIssues.push({
       id: 'midlertidigt-eet-source-schema-invalid',
       severity: 'error',
       message: 'Afgørelsen er ikke gyldigt udfyldt.',
     });
   }
-  if (hasBlockingDependencyIssueInSection(evaluation, 'faellesAarsloen')) {
+  if (aarsloenProjection.readIssues().length > 0) {
     sourceIssues.push({
       id: 'midlertidigt-eet-faelles-aarsloen-schema-invalid',
       severity: 'error',
       message: 'Årslønnen er ikke gyldigt udfyldt.',
     });
   }
-  const hasStamdataDateOrderIssue = evaluation.reader.readSectionFieldIssues('stamdata').some(
-    (issue) => issue.code === 'stamdata.skadedato.bounds'
-      && issue.message.toLocaleLowerCase('da').includes('fødselsdato')
-  );
+  const skadedatoIssue = skadedatoRead.status === 'error' ? skadedatoRead.issue : undefined;
+  const hasStamdataDateOrderIssue = skadedatoIssue?.code === 'stamdata.skadedato.bounds'
+    && skadedatoIssue.message.toLocaleLowerCase('da').includes('fødselsdato');
   if (hasStamdataDateOrderIssue) {
     sourceIssues.push({
       id: 'midlertidigt-eet-stamdata-date-order',
       severity: 'error',
       message: STAMDATA_DATE_ORDER_ERROR_MESSAGE,
     });
-  } else if (hasBlockingDependencyIssueInSection(evaluation, 'stamdata')) {
+  } else if (stamdataProjection.readIssues().length > 0) {
     sourceIssues.push({
       id: 'midlertidigt-eet-stamdata-schema-invalid',
       severity: 'error',
@@ -135,8 +129,8 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
 
   return Object.freeze({
     revision: `input-${String(evaluation.reader.sourceToken.inputRevision)}-settings-${String(evaluation.reader.sourceToken.settingsRevision)}`,
-    eetValues: projection.values,
-    skadedato: projection.skadedato,
+    eetValues,
+    skadedato: skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined,
     ...(sourceIssues.length === 0 ? {} : { issues: Object.freeze(sourceIssues) }),
   });
 };

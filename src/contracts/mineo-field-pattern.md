@@ -190,8 +190,7 @@ et fast pivotår. Eksempel: `30` fortolkes som 1930 i 2024, men som 2030 fra og 
 
 ## 10. Reference og fraværsværn
 
-Den normative reference er denne kontrakt sammen med `form-contract.md`;
-`docs/architecture/draft-commit-greenfield-design.md` er den informative baggrundsbeskrivelse.
+Den normative reference er denne kontrakt sammen med `form-contract.md`.
 
 `useDraftField`, `useTableInputCore`, `useRowDrafts`, `useCellInvalidDraftChannel`, `onFieldError`-kanaler,
 fingerprints og `rowId:colIndex` som identitet er slettet (2026-07-25). Feltidentitet er den strukturelle

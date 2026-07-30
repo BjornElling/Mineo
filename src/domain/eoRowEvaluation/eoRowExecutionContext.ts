@@ -38,8 +38,8 @@ export type EoRowEvaluationContext = {
    * Typen er `EoRowPolicy` og ikke `AppSettings`: rækkeevaluering er BEREGNINGSLOGIK og skal hverken
    * kende UI-indstillinger eller dokument-layoutlaget. Feltet bar tidligere en bred dokument-DTO med
    * format- og brevhovedfelter, som er fuldstændig irrelevante for, om en række er gyldig; den DTO
-   * findes ikke længere (INC-F19). `EoRowPolicy` er samtidig hovedappens GATE-settings for
-   * dokumentdefinitionerne (R6-F03), så beregningen og dokumentgaten deler præcis den samme,
+   * findes ikke længere. `EoRowPolicy` er samtidig hovedappens GATE-settings for
+   * dokumentdefinitionerne, så beregningen og dokumentgaten deler præcis den samme,
    * indsnævrede politik.
    *
    * `isLoenindkomstAnsaettelsesforholdEffectivelyEmpty` bruger fortsat hele `AppSettings`, men den

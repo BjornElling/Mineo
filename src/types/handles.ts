@@ -17,7 +17,7 @@ import type {
 // Bemærk: `OffentligeYdelserTableHandle` er slettet. Interfacet havde INGEN implementer og INGEN consumer —
 // tabellen eksponerer intet imperativt handle, og valideringen læses reader-afledt gennem
 // `offentligeYdelserTableValidation`. Et interface uden begge ender lignede en kontrakt, der bandt tabellen
-// (INC-F09). De to typer, det brugte, er fortsat i brug af netop den validering.
+//. De to typer, det brugte, er fortsat i brug af netop den validering.
 
 export interface StyledToggleSwitchHandle {
   shake: () => void;

@@ -10,7 +10,7 @@ import TextField from '../../../../inputCore/react/fields/TextField';
 import DateField from '../../../../inputCore/react/fields/DateField';
 import ChoiceField, { ChoiceDivider } from '../../../../inputCore/react/fields/ChoiceField';
 import AmountField from '../../../../inputCore/react/fields/AmountField';
-import PercentField from '../../../../inputCore/react/fields/PercentField';
+import PercentField, { DerivedPercentField } from '../../../../inputCore/react/fields/PercentField';
 import RadioField from '../../../../inputCore/react/fields/RadioField';
 import ToggleField from '../../../../inputCore/react/fields/ToggleField';
 import MappedToggleField from '../../../../inputCore/react/fields/MappedToggleField';
@@ -119,9 +119,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   } = useLoenindkomstVm();
 
   /**
-   * Reguleringssats-downloaden for NETOP dette ansættelsesforhold (Fase 5). Requesten er ren
+   * Reguleringssats-downloaden for NETOP dette ansættelsesforhold. Requesten er ren
    * identitet (`af.id`); alle værdier — grundlag, overenskomst, satsvalg, interval — genlæses friskt
-   * i definitionen efter commit-barrieren. Før Fase 5 læste kortet dem ved klik og sendte dem med,
+   * i definitionen efter commit-barrieren. Tidligere læste kortet dem ved klik og sendte dem med,
    * så en åben, ikke-settlet editor gav et dokument på de gamle tal.
    */
   const reguleringDocument = useReguleringDocumentAction(
@@ -141,7 +141,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   /**
    * Slår satsvurderingens kryds-felt-issue op på den SAMME bundne reference, feltet selv bruger. Ét
    * bindingssted: divergerede opslags-adressen fra feltets egen, ville markeringen forsvinde lydløst fra
-   * feltet (jf. INC-F01, hvor netop en lokal binding gav forkerte ejer-id'er).
+   * feltet.
    */
   const satsIssueFor = (descriptor: { bind: (...ids: readonly string[]) => FieldRef<number | undefined> }) =>
     satsIssues.get(serializeFieldAddress(field(descriptor).address));
@@ -566,12 +566,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '160px' }}>
                   Store Bededagstillæg:
                 </Typography>
-                <PercentField
-                  field={field(eoEmploymentFields.storeBededagPct)}
-                  location={location('storeBededagPct')}
+                <DerivedPercentField
+                  value={af.storeBededagPct}
                   name={`${af.id}:storeBededagPct`}
                   placeholder="0"
-                  disabled
                   sx={LOCKED_SATS_FIELD_SX}
                 />
               </Box>
@@ -882,7 +880,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         </Box>
         {/*
           Gate-årsagen findes her KUN i knappens tooltip, så beskeden vises rå — ellers ville en
-          blokeret aktivering være helt usynlig for brugeren (R6-F02/GM-F11).
+          blokeret aktivering være helt usynlig for brugeren.
         */}
         <DocumentOutcomeMessage message={reguleringDocument.errorMessage} />
         </>

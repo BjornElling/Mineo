@@ -4,16 +4,12 @@ import {
 } from '../../inputCore/catalog/stamdataDescriptors';
 import type { FieldAddress } from '../../inputCore/fieldAddress';
 import type { EetIssue } from './eetTypes';
+import {
+  ERHVERVSEVNETAB_TAB_KEYS,
+  type ErhvervsevnetabTabKey,
+} from '../../config/eetTabKeys';
 
-export const ERHVERVSEVNETAB_TAB_KEYS = {
-  EET_OPLYSNINGER: 'eet-oplysninger',
-  LOEBENDE_YDELSER: 'loebende-ydelser',
-  KAPITALISERING: 'kapitalisering',
-  EET_EAL: 'eet-eal',
-  DIFFERENCEKRAV: 'differencekrav',
-} as const;
-
-export type ErhvervsevnetabTabKey = (typeof ERHVERVSEVNETAB_TAB_KEYS)[keyof typeof ERHVERVSEVNETAB_TAB_KEYS];
+export { ERHVERVSEVNETAB_TAB_KEYS, type ErhvervsevnetabTabKey } from '../../config/eetTabKeys';
 
 export type EetIssueNavigationTarget =
   | Readonly<{

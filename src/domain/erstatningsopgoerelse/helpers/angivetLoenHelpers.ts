@@ -1,4 +1,5 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from '../engines/tafCalculationInput';
 import type { ISODateString } from '../../../types/branded';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE, TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 
@@ -19,7 +20,7 @@ export class LoenudviklingKildeError extends Error {
 export type LoenudviklingSource = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
 export const getAngivetLoenBaseretPaa = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): string | undefined => {
   if (values.beregnesUdFra === 'Angivet månedsløn') return values.angivetMaanedsloenBaseretPaa;
   if (values.beregnesUdFra === 'Angivet dagsløn') return values.angivetDagsloenBaseretPaa;
@@ -27,7 +28,7 @@ export const getAngivetLoenBaseretPaa = (
 };
 
 export const getAngivetLoenOpreguleresFraDato = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): ISODateString | undefined => {
   if (values.beregnesUdFra === 'Angivet månedsløn') return values.angivetMaanedsloenOpreguleresFraDato;
   if (values.beregnesUdFra === 'Angivet dagsløn') return values.angivetDagsloenOpreguleresFraDato;
@@ -35,7 +36,7 @@ export const getAngivetLoenOpreguleresFraDato = (
 };
 
 export const resolveLoenudviklingKilde = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): readonly LoenudviklingSource[] => {
   const assertNever = (value: never): never => {
     throw new LoenudviklingKildeError(
@@ -113,7 +114,7 @@ export const resolveLoenudviklingKilde = (
 };
 
 export const resolveAktivEllerFoersteLoenudviklingKilde = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): LoenudviklingSource | undefined => {
   const kilder = resolveLoenudviklingKilde(values);
   return kilder.find((kilde) =>

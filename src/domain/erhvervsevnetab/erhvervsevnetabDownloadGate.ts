@@ -4,10 +4,9 @@
  * Gaten (§3.4/§5.4/§1.10): gaten afledes af den ENE reader-projektion
  * (`buildErhvervsevnetabReaderProjection`), som sidevisningen allerede afspejler. I modsætning til de øvrige
  * slices har EET FIRE uafhængige dokumenter (løbende ydelser, kapitalisering, EET efter EAL, differencekrav),
- * hver med sin egen dependency-specifikke blokering (§1.10). Snapshottets per-fane-projektion bærer allerede
- * den blokering — `hasBlockingErrors`/`computation` er byte-identiske med legacy. Gaten oversætter blot den
- * per-fane-tilstand til ét `DocumentDownloadGateResult`, så en download-knap kan disables med en konkret
- * dansk grund frem for den nuværende "skjul boks + shake"-adfærd, som tab-cutoveren senere forbruger.
+ * hver med sin egen dependency-specifikke blokering (§1.10). Snapshottets per-fane-projektion bærer
+ * blokeringen. Gaten oversætter per-fane-tilstanden til ét `DocumentDownloadGateResult`, så en
+ * downloadknap kan deaktiveres med en konkret dansk grund.
  *
  * Sandhedstabellen pr. fane (uændret fra `!hasBlockingErrors && computation` i tabsene):
  *

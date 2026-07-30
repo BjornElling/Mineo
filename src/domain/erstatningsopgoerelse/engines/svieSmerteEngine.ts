@@ -56,9 +56,27 @@ export type SvieSmerteEngineOutput = Readonly<{
 }>;
 
 export type SvieSmerteEngineInputSnapshot = Readonly<{
-  erstatningsopgoerelse: DeepReadonly<ErstatningsopgoerelseValues>;
+  erstatningsopgoerelse: DeepReadonly<SvieSmerteCalculationValues>;
   stamdata?: DeepReadonly<Pick<StamdataValues, 'skadedato' | 'skadestype'>> | null;
 }>;
+
+export type SvieSmerteCalculationValues = Pick<
+  ErstatningsopgoerelseValues,
+  | 'kravPaaSvieSmerteGodtgoerelse'
+  | 'tidligereSsMax'
+  | 'svieSmertePerioder'
+  | 'vedroererPeriodeFra'
+  | 'vedroererPeriodeTil'
+  | 'menAfgoerelseDato'
+  | 'varigeMenAfgorelse'
+  | 'verserendeKlageMen'
+  | 'svieSmerteSatserAar'
+  | 'svieSmerteDelvisSygemeldingSats'
+  | 'svieSmerteTidligereTotal'
+  | 'svieSmerteAktuelPeriode'
+  | 'forligAnsvarsgradProcent'
+  | 'forligAnsvarsgradBroek'
+>;
 
 /**
  * Filtrerer svie/smerte-perioder til gyldige, komplete og ikke-overlappende rækker.
@@ -67,7 +85,7 @@ export type SvieSmerteEngineInputSnapshot = Readonly<{
  * via validator/invariants.
  */
 const filterValidSvieSmertePerioder = (
-  values: DeepReadonly<ErstatningsopgoerelseValues>,
+  values: DeepReadonly<SvieSmerteCalculationValues>,
 ): SvieSmertePeriodeRow[] | null => {
   const perioder = values.svieSmertePerioder ?? [];
   const nonEmpty = perioder.filter((row) => !isSvieSmerteRowEmpty(row));
@@ -93,7 +111,7 @@ const filterValidSvieSmertePerioder = (
  * Bruges når perioder er ugyldige/ufuldstændige/overlappende eller satser mangler.
  * Fejl rapporteres via validator/invariants — engineen kaster ikke.
  */
-const buildZeroOutput = (values: DeepReadonly<ErstatningsopgoerelseValues>): SvieSmerteEngineOutput => {
+const buildZeroOutput = (values: DeepReadonly<SvieSmerteCalculationValues>): SvieSmerteEngineOutput => {
   const parsedForlig = parseForligsgrad(values);
   const tidligereKroner = amountValueToNumber(values.svieSmerteTidligereTotal);
   const aktuelKroner = amountValueToNumber(values.svieSmerteAktuelPeriode);

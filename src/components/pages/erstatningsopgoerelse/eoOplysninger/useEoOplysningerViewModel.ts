@@ -70,7 +70,7 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     if (loenudviklingBasis === 'KL-lønaftaler') return getReguleringsDatoIntervalForKlLoenaftaler();
     return undefined;
   }, [eoLoenudvikling, loenudviklingBasis]);
-  // Reguleringssats-downloaden på SAGSNIVEAU (Fase 5). Resolveren ejer både knaptilstanden og
+  // Reguleringssats-downloaden på SAGSNIVEAU. Resolveren ejer både knaptilstanden og
   // valget mellem regulering/KRL/KL-lønaftaler, og den vælger først EFTER commit-barrieren — så et
   // grundlagsskifte i en åben editor ikke kan levere det forrige grundlags dokument.
   const reguleringDocument = useReguleringDocumentAction(CASE_REGULERING_REQUEST);

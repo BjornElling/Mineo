@@ -10,7 +10,7 @@ import { deleteFileHandleFromIndexedDB } from '../utils/fileHandleStorage';
 // den ENE command, `dispatchInput` tillader, når runtime er `writesBlocked` efter en korrupt current-session
 // (§1.12) — porten er derfor også recovery-vejen ud af en blokeret session.
 //
-// Porten ejer HELE reset-transaktionen (R4-F02): det autoritative input, den sagsnære UI-sessionstate og
+// Porten ejer HELE reset-transaktionen: det autoritative input, den sagsnære UI-sessionstate og
 // filhåndtaget. Tidligere lå de to sidste som løse kald i shell-use-casen, hvis boolean-resultater ingen læste,
 // så en fejlet oprydning blev rapporteret som "Alt data slettet". Rester rapporteres nu i resultatet, så
 // kalderen ikke KAN love fuld succes uden at have set dem.

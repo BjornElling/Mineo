@@ -1,4 +1,5 @@
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { StamdataValues } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from './tafCalculationInput';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
@@ -30,7 +31,7 @@ import type { FormKonsoliderContext, ReguleringResultat, ResolvedStrategi } from
 // =============================================================================
 
 export const resolveLoenudviklingRows = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): ReadonlyArray<LoenudviklingSource> => {
   return resolveLoenudviklingKilde(values);
 };
@@ -41,7 +42,7 @@ export const segmentAmountOre = (baseLoenKronerRounded: number, quantity: number
 };
 
 export const buildTafArbejdsdageSet = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   tafRanges: readonly IsoRange[]
 ): ReadonlySet<ISODateString> => {
   return buildTafArbejdsdageSetFromRows(values.tafPerioder ?? [], values.ferieperioder ?? [], {
@@ -70,7 +71,7 @@ type AnvendtReguleringsdatoInput = Readonly<{ saerligFraDatoRegulering?: string 
 // fælles, form-agnostiske værdier én gang og dispatcher til formens `konsolider`; de per-form
 // grene (uniformitet, konsolideret-konstruktion, segment-byggeri) bor i form-modulet (jf. R1).
 const resolveReguleringsStrategi = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   stamdataValues: StamdataValues,
   tafBeregningsenhed: TafBeregningsenhed,
   options: Readonly<{ tafRanges: readonly IsoRange[] }>
@@ -119,7 +120,7 @@ const resolveReguleringsStrategi = (
 };
 
 export const buildLoenudviklingModel = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   stamdataValues: StamdataValues,
   tafBeregningsenhed: TafBeregningsenhed,
   indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null,
@@ -396,7 +397,7 @@ export const buildLoenudviklingModel = (
 };
 
 const resolveAnvendtReguleringsdato = (
-  eoValues: ErstatningsopgoerelseValues,
+  eoValues: TafCalculationValues,
   af: AnvendtReguleringsdatoInput | undefined,
   skadedato: ISODateString | undefined
 ): ISODateString | undefined => resolveAnvendtReguleringsdatoShared({
@@ -408,7 +409,7 @@ const resolveAnvendtReguleringsdato = (
 });
 
 const resolveMaanedsloenBase = (
-  eoValues: ErstatningsopgoerelseValues,
+  eoValues: TafCalculationValues,
   indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null
 ): number | null => {
   if (eoValues.beregnesUdFra === 'Angivet månedsløn') {
@@ -422,7 +423,7 @@ const resolveMaanedsloenBase = (
 };
 
 const resolveDagsloenBase = (
-  eoValues: ErstatningsopgoerelseValues,
+  eoValues: TafCalculationValues,
   indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null
 ): number | null => {
   if (eoValues.beregnesUdFra === 'Angivet dagsløn') {

@@ -14,17 +14,28 @@
 
 import type { PersistedSectionKey } from './persistenceRegistry';
 
-/** Alle faste app-routes (uden for de persisterede domæne-sektioner). */
-export const APP_ROUTES = {
-  stamdata: '/stamdata',
-  erstatningsopgoerelse: '/erstatningsopgoerelse',
-  erhvervsevnetab: '/erhvervsevnetab',
-  satser: '/satser',
-  renteberegning: '/renteberegning',
-  varigemen: '/varigemen',
-  forsoergertab: '/forsoergertab',
-  aarsloen: '/aarsloen',
+/**
+ * Autoritativ page-definition. Komponentfilen står sammen med routen, så arkitekturværnet ikke vedligeholder
+ * et parallelt route→page-inventar, der kan drifte fra den faktiske navigation.
+ */
+export const APP_PAGE_DEFINITIONS = {
+  stamdata: { route: '/stamdata', componentFile: 'Stamdata.tsx' },
+  erstatningsopgoerelse: { route: '/erstatningsopgoerelse', componentFile: 'Erstatningsopgoerelse.tsx' },
+  erhvervsevnetab: { route: '/erhvervsevnetab', componentFile: 'Erhvervsevnetab.tsx' },
+  satser: { route: '/satser', componentFile: 'Satser.tsx' },
+  renteberegning: { route: '/renteberegning', componentFile: 'Renteberegning.tsx' },
+  varigemen: { route: '/varigemen', componentFile: 'VarigeMen.tsx' },
+  forsoergertab: { route: '/forsoergertab', componentFile: 'Forsoergertab.tsx' },
+  aarsloen: { route: '/aarsloen', componentFile: 'Aarsloen.tsx' },
 } as const;
+
+type RoutedPageKey = keyof typeof APP_PAGE_DEFINITIONS;
+
+/** Alle faste app-routes, afledt af den autoritative page-definition. */
+export const APP_ROUTES: Readonly<{ [K in RoutedPageKey]: (typeof APP_PAGE_DEFINITIONS)[K]['route'] }> =
+  Object.freeze(Object.fromEntries(
+    Object.entries(APP_PAGE_DEFINITIONS).map(([key, definition]) => [key, definition.route])
+  )) as { [K in RoutedPageKey]: (typeof APP_PAGE_DEFINITIONS)[K]['route'] };
 
 export type AppRoute = (typeof APP_ROUTES)[keyof typeof APP_ROUTES];
 

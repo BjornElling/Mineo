@@ -4,9 +4,8 @@ import type React from 'react';
  * Interaktions-primitiver for dropdownens tastatur-adfærd: typeahead-matchningsalgoritmen
  * (første-bogstav, dansk locale, cirkulær wrap) og de to tastatur-prædikater.
  *
- * `StyledDropdown` er efter cutoveren den ene dropdown-implementering — både form-
- * varianten (`ChoiceField`) og celle-varianten (`GridChoiceCell`) renderer den. Modulet blev udskilt,
- * da der var to implementeringer, og er bevaret som rene/stateless funktioner, så typeahead-reglen kan
+ * `StyledDropdown` er den ene dropdown-implementering — både formularvarianten (`ChoiceField`) og
+ * cellevarianten (`GridChoiceCell`) renderer den. Primitiverne er rene/stateless funktioner, så typeahead-reglen kan
  * testes uden at mounte kontrollen. Popup-KLASSIFIKATIONEN (er dette en popup, er den åben?) ligger i
  * `popupWidgetSemantics`, som Container og grid-navigationen deler.
  */

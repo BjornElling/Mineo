@@ -39,7 +39,7 @@ export type InboundPersistedSectionResult<K extends PersistedSectionKey> = Reado
  * Der findes INTET outbound-modstykke: sektionsvis persistering er ikke længere en skrivegrænse, så
  * save-vejen parser den canonical sektion og stringify'er hele aggregatet i én container/envelope. Den
  * tidligere `buildPersistedSection`-helper, som teksten her henviste til, havde nul produktionscallsites og
- * er slettet (GM-F09).
+ * er slettet.
  *
  * `sourceVersion` skal komme fra den konkrete envelope/container og må aldrig udledes af sektionsværdien.
  */

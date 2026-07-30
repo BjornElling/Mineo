@@ -1,9 +1,9 @@
 import type {
   StandardLoenTableRow,
-  ErstatningsopgoerelseValues,
   Loenperiode,
   OffentligeYdelserRow,
 } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from '../engines/tafCalculationInput';
 import type { ISODateString } from '../../../types/branded';
 import { coerceToISODateString, dateToISO, isISODateString, parseISODate } from '../../../types/branded';
 import { calculateStandardLoenProjectedAmounts } from '../../aarsloen/standardLoenRowCalculations';
@@ -145,7 +145,7 @@ const resolveYdelsestype = (raw: string): Readonly<{ key: string; label: string;
 };
 
 export const buildTafRanges = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   options?: Readonly<{ skadedatoISO?: ISODateString }>
 ): IsoRange[] => {
   // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
@@ -167,7 +167,7 @@ export const buildTafRanges = (
 };
 
 export const buildBeregningsperiodeRange = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): IsoRange | undefined => {
   if (!isISODateString(values.tafBeregningsperiodeFra) || !isISODateString(values.tafBeregningsperiodeTil)) {
     return undefined;
@@ -176,7 +176,7 @@ export const buildBeregningsperiodeRange = (
 };
 
 export const buildIncomeSourceRanges = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): IsoRange[] => {
   const ranges: IsoRange[] = [];
 
@@ -201,11 +201,11 @@ export const buildIncomeSourceRanges = (
 };
 
 export const buildIncomeInputRanges = (
-  values: ErstatningsopgoerelseValues
+  values: TafCalculationValues
 ): IsoRange[] => mergeIsoDateRanges(buildIncomeSourceRanges(values), { mergeAdjacent: true });
 
 const resolveIncomeBounds = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   ranges: readonly IsoRange[]
 ): Readonly<{ boundsFra: ISODateString; boundsTil: ISODateString } | null> => {
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
@@ -269,7 +269,7 @@ const isDateInRanges = (iso: ISODateString, ranges: readonly IsoRange[]): boolea
   ranges.some((range) => iso >= range.fra && iso <= range.til);
 
 export const buildIncomeCalculationContext = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   rawRanges: readonly IsoRange[]
 ): IncomeCalculationContext | null => {
   const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
@@ -301,7 +301,7 @@ export const buildIncomeCalculationContext = (
 };
 
 export const buildIncomeForRanges = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   rawRanges: readonly IsoRange[],
   context?: IncomeCalculationContext | null,
   skadedato?: ISODateString

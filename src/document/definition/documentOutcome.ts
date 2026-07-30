@@ -1,14 +1,7 @@
 /**
- * Dokument-download-livscyklussens ENE resultat-algebra (Fase 5, pass 0).
+ * Dokument-download-livscyklussens ENE resultat-algebra.
  *
- * Før pass 0 fandtes tre former i serie: servicelagets legacy `{success, error}`, kernens
- * `DocumentPreflightRejection` og entrypointets `DocumentDownloadOutcome`. Hver oversættelse tabte
- * information — mest alvorligt blev en STALE kilde under afviklingen oversat til præcis samme
- * generiske tekst som en ægte generatorfejl ("Kunne ikke generere …-PDF"), mens den samme tilstand
- * i preflighten korrekt gav en transient "prøv igen"-besked. To identiske tilstande, to forskellige
- * beskeder, afhængigt af hvilken async-fase de indtraf i.
- *
- * Her er der derfor ÉN union for hele livscyklussen, med `phase` bevaret som auditdata frem for som
+ * Der er ÉN union for hele livscyklussen, med `phase` bevaret som auditdata frem for som
  * beskedvalg. Reglen er: **tilstanden bestemmer beskeden; fasen bestemmer kun diagnostikken.**
  *
  * Taksonomien skelner tre ting, som §A5 kræver holdt adskilt:
@@ -71,7 +64,7 @@ export const toGateReasons = (
 export type BlockedProjection = Readonly<{ status: 'blocked'; reasons: DocumentGateReasons }>;
 
 /**
- * Den ENE måde en projektion udtrykker "blokeret" med præcis én årsag (UT-F07).
+ * Den ENE måde en projektion udtrykker "blokeret" med præcis én årsag.
  *
  * Projektionernes fail-closed sikkerhedsnet — "Beregning kan ikke dannes", "Rentelinjen findes ikke længere"
  * — beskriver en TILSTAND i gaten, ikke en handling brugeren kan udføre. De er derfor `missing-input`, så
@@ -107,7 +100,7 @@ export const blockedProjectionWithSpecificReason = (
  * tilstandsbeskrivelse". Det stod før udskrevet fire steder (satser ×2, renteberegning ×2, aarsløn-gaten,
  * rente-rækken) med hver sin `?? 'fallback'`-kæde.
  *
- * Skelnen er hele pointen (UT-F07): et issue navngiver det felt eller den grænse, brugeren skal rette, og
+ * Skelnen er hele pointen: et issue navngiver det felt eller den grænse, brugeren skal rette, og
  * citeres derfor ordret.
  *
  * `fallbackKind` klassificerer den GENERISKE fallback, når der ikke er noget issue at citere: en fallback som

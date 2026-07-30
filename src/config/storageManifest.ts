@@ -54,7 +54,7 @@ const UI_STORAGE_KEY_SUFFIXES = {
 const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
 
 /**
- * Reset-policyen (`persistence-contract.md` §3.8, R4-F02): hvilke manifest-ejede UI-nøgler `Slet alt` skal
+ * Reset-policyen: hvilke manifest-ejede UI-nøgler `Slet alt` skal
  * rydde. Klassifikationen bor HER, i manifestet, fordi den er en egenskab ved nøglen — ikke ved den use-case,
  * der tilfældigvis kalder `Slet alt`. En ny nøgle tvinges til at vælge side af `SESSION_RESET_POLICY`, og
  * `Slet alt` enumererer klassifikationen frem for at gentage en håndskrevet liste.
@@ -89,10 +89,8 @@ export const getCaseScopedSessionStorageKeys = (): readonly ManifestStorageKey[]
  * Den ENESTE sessionStorage-nøgle for sagsinput (draft/commit-designet §2.1.6/§3.7): hele det
  * afsluttede inputaggregat ligger i én envelope under denne nøgle.
  *
- * De tidligere per-sektion-nøgler (`mineo_stamdata`, `mineo_satser`, …) og `invalidDrafts`-
- * recovery-kanalen er SLETTET sammen med den parallelle legacy-inputklynge (2026-07-25,
- * 2026-07-25) og må ikke genindføres — sektionsopdelt persistering er ikke længere en
- * skrivegrænse, jf. `persistence-contract.md`. Sektions-BEGREBET lever videre som
+ * Sektionsopdelt sessionpersistering og en parallel recovery-kanal må ikke genindføres; hele det
+ * afsluttede aggregat har én skrivegrænse, jf. `persistence-contract.md`. Sektions-BEGREBET lever videre som
  * `PERSISTED_SECTION_KEYS` i `persistenceRegistry.ts`, som er den ene kilde til hvilke sektioner
  * en `.eo`-fil indeholder.
  */

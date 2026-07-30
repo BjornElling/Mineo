@@ -1,15 +1,16 @@
 import { FIELD_ADDRESS_ATTR, EDITOR_ROUTE_ATTR, EDITOR_TAB_ATTR } from './historyRestoreTarget';
 import { isRestoreTargetVisible } from './historyTargetRestoreLoop';
 
-// Fokusdestinationen ejes af EDITORLOKATIONEN, ikke af feltets dataadresse (§3.2).
+// En MOUNTED fokusdestination ejes af editorlokationen, ikke af feltets dataadresse (§3.2). Før første mount
+// lever den prioriterede route/fane i inputkatalogets statiske, descriptor-keyede feltlokationskatalog.
 //
-// Den afløste model (`fieldAddressDestination.ts`, R7-F03) afbildede en feltadresse til route + fane gennem fem
+// Den afløste model afbildede en feltadresse til route + fane gennem fem
 // globale kort, sektionsdefaults og særregler for brugerens aktuelle route. Kortene måtte kompensere, hver gang
 // et felt blev redigeret på mere end ét sted — `faellesAarsloen` uden egen route, de tre forligsfelter på både
 // EO-oplysninger og EETs Differencekrav, `eoBilagSelection` hvis felter HEDDER som andre faners felter. Hver
 // særregel var evidens for det samme: dataidentiteten kan ikke afgøre, hvor feltet redigeres.
 //
-// Her spørger vi i stedet den editor, der faktisk RENDERER feltet. En mounted editor bærer sin egen destination
+// Her spørger vi den editor, der faktisk RENDERER feltet. En mounted editor bærer sin egen destination
 // i DOM (`data-mineo-editor-route`/`-tab`, sat af form-/grid-surfacen fra `EditorLocation`), og den er sand pr.
 // konstruktion: attributten står på præcis det element, brugeren skal ende på. To spejlede editorer for samme
 // felt giver derfor to forskellige destinationer uden en eneste særregel.
@@ -56,8 +57,7 @@ const readDeclaredDestination = (element: HTMLElement): EditorLocationDestinatio
 /**
  * Find den editor, der viser feltet på `serializedAddress`, og hvad den siger om sin egen placering.
  *
- * En SYNLIG editor vinder altid: kan feltet rettes, hvor brugeren står, bliver brugeren dér (den godkendte
- * adfærd for R7-F03). Ellers bruges en mountet, men skjult editors egen destination. Er flere spejlede editorer
+ * En SYNLIG editor vinder altid: kan feltet rettes, hvor brugeren står, bliver brugeren dér. Ellers bruges en mountet, men skjult editors egen destination. Er flere spejlede editorer
  * mountet og skjulte, vælges den første i dokumentrækkefølge — vilkårligt, men entydigt, og enhver af dem er en
  * gyldig flade for feltet.
  */

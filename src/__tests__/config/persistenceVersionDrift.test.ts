@@ -59,6 +59,8 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // PERSISTED_DATA_VERSION bumpet til 3.9 (parse-semantikændringer; Zod-refinements ændrer ikke fingerprintet).
 // Opdateret 2026-07-16: tre ubrugte schemafelter uden editor eller consumer er fjernet fra
 // erstatningsopgørelsen. PERSISTED_DATA_VERSION bumpet til 3.10 (reel persisted schema-ændring).
+// Opdateret 2026-07-30: den rent afledte Store Bededagssats er fjernet fra det aktuelle persisted
+// EO-schema og accepteres kun som et inbound legacy-slot, der strippes. PERSISTED_DATA_VERSION bumpet til 3.11.
 const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-e58e35db';
 
 describe('persistenceVersionDrift', () => {

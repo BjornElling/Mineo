@@ -1,7 +1,7 @@
 /**
  * Download-gatens resultat og dens BRUGERRETTEDE årsagsklassifikation.
  *
- * **Hvorfor en `kind` og ikke kun en besked (UT-F07).** Gaten havde oprindeligt kun `{code, message}`, hvor
+ * **Hvorfor en `kind` og ikke kun en besked.** Gaten havde oprindeligt kun `{code, message}`, hvor
  * beskeden var både den interne forklaring OG den tekst, brugeren læste i tooltippet. Det gav to problemer på
  * samme tid:
  *

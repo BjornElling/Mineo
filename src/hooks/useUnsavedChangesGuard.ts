@@ -10,7 +10,7 @@ type UseUnsavedChangesGuardResult = {
   markSaved: (revision: number) => void;
 };
 
-// `allowExitWithoutWarning` er FJERNET sammen med `Slet alt`s fulde sidegenindlæsning (GM-F12): den fandtes
+// `allowExitWithoutWarning` er FJERNET sammen med `Slet alt`s fulde sidegenindlæsning: den fandtes
 // udelukkende for at undertrykke beforeunload-advarslen under netop den reload. `Slet alt` afsluttes nu inde i
 // appen, og baseline nulstilles ad den almindelige vej gennem `authoritativeSnapshotEpoch`
 // (`replacementGeneration`), som hel-sags-clear bumper. En ny undtagelse fra advarslen skal begrundes af sin

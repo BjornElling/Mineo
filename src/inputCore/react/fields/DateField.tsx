@@ -13,7 +13,7 @@ import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders'
 
 // Dato-felt (§2.4/§3.5): tynd skal over `useFormFieldSurface`. Format/parse/paste-normalisering
 // ejes af descriptorens dato-codec; kronologiske min/max-bounds er FELTVALIDATORER på den canonical værdi
-// (§1.6, Fase 3), IKKE komponent-props. Komponenten viser derfor kun feltets aktive issue fra det tokenbundne
+// (§1.6, inputkernen), IKKE komponent-props. Komponenten viser derfor kun feltets aktive issue fra det tokenbundne
 // snapshot (§1.8) og modtager ingen `minDate`/`maxDate`/`onFieldError` mere.
 
 const MAX_CANONICAL_DANISH_DATE_LENGTH = 10; // dd-mm-åååå

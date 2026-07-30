@@ -1,5 +1,5 @@
 /**
- * Årsløns to download-gates — rene funktioner over `AarsloenReaderProjection` (Fase 5).
+ * Årsløns to download-gates — rene funktioner over `AarsloenReaderProjection`.
  *
  * **Hvad der flyttede, og hvorfor.** Reglerne lå før i `src/hooks/useAarsloenDocumentGates.ts` og
  * opererede på et `AarsloenDocumentSnapshot`, som KOMPONENTEN samlede af ni felter (`values`,
@@ -29,7 +29,7 @@ import { hasAtLeastOneValidRow } from './standardLoenRowCalculations';
 /**
  * Fælles for begge gates: stamdata er en obligatorisk dokumentdependency.
  *
- * Årsagen er `specific`, når den kommer fra et stamdata-ISSUE (UT-F07): issuet navngiver det felt, brugeren
+ * Årsagen er `specific`, når den kommer fra et stamdata-ISSUE: issuet navngiver det felt, brugeren
  * skal rette, og den besked er mere værd end den universelle tekst. Den generiske fallback er derimod
  * `missing-input` — "Stamdata indeholder fejl" fortæller intet, brugeren kan handle på.
  */
@@ -48,7 +48,7 @@ const blockedByStamdata = (
 
 /**
  * Fælles for begge gates: et canonical range-issue blokerer. Issuets egen besked navngiver grænsen
- * ("Procent skal være mellem 0 og 100"), så den citeres ordret (UT-F07).
+ * ("Procent skal være mellem 0 og 100"), så den citeres ordret.
  */
 const blockedByCanonicalRange = (
   projection: AarsloenReaderProjection,
@@ -89,7 +89,7 @@ export const evaluateAarsloenDownloadGate = (
   }, values.tillaegAngivesSom)) {
     return blockDocumentDownload({ code: 'aarsloen:no-valid-rows', message: 'Ingen gyldige rækker i tabel' });
   }
-  // Feltgaten var rød, så motoren blev ikke kaldt (§3.9). Før Fase 5 svarede dette til
+  // Feltgaten var rød, så motoren blev ikke kaldt (§3.9). Tidligere svarede dette til
   // `harFatalBeregningsFejl` på et snapshot, hvor beregningen altid var forsøgt.
   if (calculation === null) {
     return blockDocumentDownload({ code: 'aarsloen:fatal-calculation-error', message: 'Fatale beregningsfejl' });

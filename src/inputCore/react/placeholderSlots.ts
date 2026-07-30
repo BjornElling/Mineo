@@ -12,7 +12,7 @@ import * as React from 'react';
  * fokusrestoren (`findRestoreTarget`) kræver et eksakt match på både feltadresse og editorlokation. Kunne
  * tabellen kun huske det SENESTE placeholder-id, ville den efter promoveringen have skiftet til et nyt id, og
  * der ville efter undo ikke længere findes noget element, restoren kan finde — fokus forsvinder lydløst ud af
- * tabellen (UT-F03).
+ * tabellen.
  *
  * Puljen løser det ved at være ORDNET og BEVARENDE: hvert slot husker sit id, også efter at id'et er blevet
  * committet. Forsvinder id'et igen fra de committede rækker (undo), genindtræder det som placeholder på sin

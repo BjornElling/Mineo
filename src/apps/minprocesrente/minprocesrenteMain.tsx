@@ -12,8 +12,7 @@ setDocumentBrand('minprocesrente.dk');
 
 void bootstrapClientApp({
   renderApp: () => {
-    // Input-runtime: hydrér den ene input-runtime FØR render (§3.10). Standalone bruger nu samme
-    // inputCore som hovedappen — ingen legacy FormPersistence-runtime.
+    // Hydrér den ene input-runtime FØR render (§3.10). Standalone og hovedappen bruger samme inputkerne.
     const { binding } = bootstrapProductionInputRuntime();
     return <MinProcesrenteApp inputRuntimeBinding={binding} />;
   },

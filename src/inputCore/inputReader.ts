@@ -1,4 +1,3 @@
-import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import { cloneAndDeepFreeze } from '../utils/deepFreeze';
 import {
   serializeFieldAddress,
@@ -131,24 +130,44 @@ export type ReadFieldResult<T> =
 /**
  * Den offentlige reader (design §3.4 pkt. 3).
  *
- * ⚠️ Der er BEVIDST ingen `fieldIssues: FieldIssueSnapshot` her (R3-F04). Et frit issue-snapshot på den
- * offentlige reader er den brede capability, der gjorde BÅDE R3-F01 og R3-F02 mulige: en consumer kunne
- * filtrere `issues.all` på sektionsnavn og blokere på felter, den aldrig læser — og præcis dependency blev
- * dermed en konvention frem for en grænse. `read(field)` er den normale vej: den skjuler værdien bag en rød
- * feltfejl og returnerer issuet for netop det felt, consumeren faktisk læser.
+ * ⚠️ Der er BEVIDST ingen `fieldIssues: FieldIssueSnapshot` her. Et frit issue-snapshot ville lade en
+ * consumer filtrere på sektionsnavn og blokere på felter, den aldrig læser. Afhængigheder ville dermed
+ * være en konvention frem for en grænse. `read(field)` skjuler værdien bag en rød feltfejl og returnerer
+ * issuet for netop det felt, consumeren faktisk læser.
  *
- * Har en consumer et sagligt behov for de STRUKTURELLE issues i en sektion — fordi rækkeceller maskeres til
- * tomværdi og derfor ikke kan ses gennem `read` alene — skal den bede om dem eksplicit gennem
- * `readSectionFieldIssues(section)`. Kaldet navngiver sektionen i kildekoden, så et review kan se
- * afhængigheden, og consumeren skal STADIG selv klassificere, hvilke af issuene den faktisk afhænger af
- * (jf. `eoDependencyGroups.isEoRelevantStamdataIssue` og `eetImportPort`s dependency-liste).
+ * En projektion, der skal samle fejl fra flere reads, bruger `createTrackedInputReader`. Dermed kommer
+ * issue-sættet fra de konkrete `FieldRef`s, projektionen faktisk læste, ikke fra en efterfølgende
+ * sektionsscan eller en manuel tekstliste.
  */
 export type InputReader = Readonly<{
   sourceToken: EvaluationSourceToken;
   read: <T>(field: FieldRef<T>) => ReadFieldResult<T>;
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
-  readSectionFieldIssues: (section: PersistedSectionKey) => readonly FieldIssue[];
 }>;
+
+export type TrackedInputReader = Readonly<{
+  reader: InputReader;
+  readIssues: () => readonly FieldIssue[];
+}>;
+
+/** Binder en issue-opsamler til præcis de feltreferencer, consumerens projektion læser. */
+export const createTrackedInputReader = (reader: InputReader): TrackedInputReader => {
+  const issues = new Map<string, FieldIssue>();
+  return Object.freeze({
+    reader: Object.freeze({
+      sourceToken: reader.sourceToken,
+      listEntities: reader.listEntities,
+      read: <T>(field: FieldRef<T>): ReadFieldResult<T> => {
+        const result = reader.read(field);
+        if (result.status === 'error') {
+          issues.set(serializeFieldAddress(field.address), result.issue);
+        }
+        return result;
+      },
+    }),
+    readIssues: () => Object.freeze([...issues.values()]),
+  });
+};
 
 const createInputReader = (options: Readonly<{
   input: SettledInput;
@@ -159,9 +178,6 @@ const createInputReader = (options: Readonly<{
 
   return Object.freeze({
     sourceToken: options.issues.sourceToken,
-    readSectionFieldIssues: (section) => Object.freeze(
-      options.issues.all.filter((issue) => issue.field.address.section === section)
-    ),
     read: <T>(field: FieldRef<T>): ReadFieldResult<T> => {
       const value = validation.readCanonical(field); // verificerer også kendt + eksisterende entity
       const issue = activeFieldIssue(options.issues, serializeFieldAddress(field.address));
@@ -185,11 +201,11 @@ export type InputEvaluation = Readonly<{
  * valgfri `deriveSettingsFieldIssues`-hook. Ingen produktionskaldssted leverede nogensinde hooken —
  * dens eneste eksercerer var en test af mekanismen selv — så `settings` blev udelukkende dybfrosset
  * og kastet væk. Den frie typeparameter var samtidig den sidste vej, ad hvilken hele `AppSettings`
- * kunne nå evalueringen, og dermed WI-009's åbne hul: en fremtidig settings-læsning her ville kunne
+ * kunne nå evalueringen. En fremtidig settings-læsning her ville derfor kunne
  * ændre et issue uden at indgå i `SOURCE_SETTINGS_KEYS` og altså uden at gøre et optaget
  * `EvaluationSourceToken` stale.
  *
- * Capabilityen er derfor FJERNET frem for bevogtet — samme afgørelse som Fase 6's skrivegrænse.
+ * Capabilityen er derfor FJERNET frem for bevogtet — samme afgørelse som inputkernens skrivegrænse.
  *
  * **Hvis der senere OPSTÅR behov for en settingsafhængig feltissue:** den kan ikke blot lægges i en
  * eksisterende validator. Descriptor-validatorer modtager i dag ikke `SourceSettings`, og

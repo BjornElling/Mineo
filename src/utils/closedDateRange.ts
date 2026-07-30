@@ -9,8 +9,8 @@ import type { ISODateString } from '../types/branded';
  *
  * Primitivet lå tidligere i fire udgaver: én eksporteret i `beregningsperiodeTafOverlap`, to lokale kopier i
  * TAF-motoren og dagsæt-modulet, og én inlinet ulighed på et callsite. Alle fire var enige — men en enkelt
- * fremtidig rettelse ét sted (fx en halvåben grænse) ville have gjort dem uenige uden at noget blev rødt
- * (GM-F15). Ét sted, alle bruger, gør uenigheden umulig.
+ * fremtidig rettelse ét sted (fx en halvåben grænse) ville have gjort dem uenige uden at noget blev rødt.
+ * Ét sted, alle bruger, gør uenigheden umulig.
  *
  * Modulet ligger i `utils/` og ikke i et domæne, fordi intervalalgebra ikke er EO-specifik.
  */

@@ -8,8 +8,7 @@ import NumericTextField from './NumericTextField';
 
 // Brøk-felt (§2.4/§3.5): familie-skal over `NumericTextField` med brøk-tegnfilteret
 // ("tæller/nævner"). Parse/format/normalisering ejes af descriptorens brøk-codec. Komponenten modtager kun sin
-// `field`/`location` + rendering-props + en valgfri ekstern tværfelt-fejl (forlig "begge udfyldt"). Erstatter
-// legacy `StyledFractionField` bundet til `usePersistedForm`.
+// `field`/`location`, rendering-props og en valgfri ekstern tværfeltfejl (forlig "begge udfyldt").
 
 export type FractionFieldProps = Readonly<{
   field: FieldRef<string | undefined>;

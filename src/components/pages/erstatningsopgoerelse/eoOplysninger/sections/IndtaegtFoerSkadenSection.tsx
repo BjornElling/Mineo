@@ -622,7 +622,7 @@ export default function IndtaegtFoerSkadenSection() {
                     <Box className="row--label-right-hover__content">
                       <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end', gap: 1 }}>
                         {/*
-                          Knaptilstand OG outputvalg kommer fra `reguleringDocument` (Fase 5). Den
+                          Knaptilstand og outputvalg kommer fra `reguleringDocument`. Den
                           side-lokale `canDownload`-IIFE og den `loenudviklingBasis`-switch, der før
                           valgte mellem tre servicekald ved KLIK — altså før commit-barrieren — er
                           erstattet af resolveren, som vælger efter settle på et frisk snapshot.
@@ -642,7 +642,7 @@ export default function IndtaegtFoerSkadenSection() {
                   </Box>
                   {/*
                     Gate-årsagen findes her KUN i knappens tooltip, så beskeden vises rå — ellers ville en
-                    blokeret aktivering være helt usynlig for brugeren (R6-F02/GM-F11).
+                    blokeret aktivering være helt usynlig for brugeren.
                   */}
                   <DocumentOutcomeMessage message={reguleringDocument.errorMessage} />
                   </>

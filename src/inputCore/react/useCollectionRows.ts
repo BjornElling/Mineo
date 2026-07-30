@@ -40,7 +40,7 @@ export type CollectionRowOrigin = Readonly<{
  * EKSPORTERET, fordi et par flader udsteder strukturelle rækketransaktioner direkte gennem
  * `runtime.dispatch` i stedet for gennem denne hook (sygedagpenge-indsættelsen, midlertidigt-EET-togglen og
  * sletningen af et ansættelsesforhold). De skal bygge origin PÅ SAMME MÅDE — ellers ville
- * `editorLocationId`-formen drifte mellem to steder (WI-004 runde 4, fund S4).
+ * `editorLocationId`-formen drifte mellem to steder.
  */
 export const buildRowHistoryOrigin = (
   collection: CollectionRef,

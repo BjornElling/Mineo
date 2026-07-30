@@ -194,7 +194,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const { settings } = useAppSettings();
   // Rækkeevalueringen gater EO-downloaden, så den må kun se de nøgler, der indgår i
   // settingsrevisionen. Projektionen er den ENESTE vej til `EoRowPolicy`; en bred `AppSettings` kan
-  // ikke længere sendes ind, hvilket er hele pointen i WI-009: en nøgle uden for sættet kunne ellers
+  // ikke sendes ind. En nøgle uden for sættet kunne ellers
   // ændre gatens udfald uden at gøre et optaget `EvaluationSourceToken` stale.
   const rowPolicy = React.useMemo(
     () => projectEoRowPolicy(projectSourceSettings(settings)),
@@ -330,7 +330,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const hasBlockingEoRowErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || eoRowAggregationErrorMessage !== null;
 
   /**
-   * De fire EO-dokumentoutputs (Fase 5). Hele preflighten — settle, frisk capture, token-lighed,
+   * De fire EO-dokumentoutputs. Hele preflighten — settle, frisk capture, token-lighed,
    * projektion, gate — ligger nu i definitionerne, som deler ÉN kildekontekst: `collectAllEoRows` og
    * gate-sættet køres derfor én gang pr. revision, ikke fire. Bilagsudvælgelsen og den valgfri
    * `midlertidigtEetGroups` er flyttet ind i definitionerne, hvor de hører til: de er dokumentets
@@ -369,7 +369,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const reportedSystemInvariantKeysRef = React.useRef<Set<string>>(new Set());
   /**
    * Den fælles fejlboks for de fire outputs. Gate-blokeringer vises IKKE her — knappens tooltip
-   * bærer allerede årsagen, og en blokeret download nulstillede også beskeden før Fase 5. Hvert
+   * bærer allerede årsagen. Hvert
    * output bidrager kun med sin egen ikke-gate-besked, så en gammel besked ikke overlever et nyt
    * klik på et andet output.
    */

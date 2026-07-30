@@ -416,7 +416,9 @@ export const buildTabtArbejdsfortjenesteModel = (
   };
 };
 
-export const buildOevrigeKravModel = (values: ErstatningsopgoerelseValues): OevrigeKravCanonicalInput => {
+export const buildOevrigeKravModel = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaOevrigeErstatningskrav' | 'oevrigeKravPerioder'>
+): OevrigeKravCanonicalInput => {
   const beregnes = values.kravPaaOevrigeErstatningskrav === 'Ja';
   const skjul = values.kravPaaOevrigeErstatningskrav === 'Skjul';
   if (!beregnes) {

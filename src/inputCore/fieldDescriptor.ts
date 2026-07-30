@@ -73,7 +73,7 @@ export type FieldDescriptorConfig<T> = Readonly<{
   id: string;
   template: FieldAddressTemplate;
   codec: FieldCodec<T>;
-  /** Canonical tomværdi/clear-operation — obligatorisk del af hvert felt (§3.1 pkt. 3, Fase 1 trin 2). */
+  /** Canonical tomværdi/clear-operation — obligatorisk del af hvert felt (§3.1 pkt. 3). */
   emptyValue: T;
   /** Semantisk tomhed er eksplicit; gyldige defaults som `false` eller `'dage'` må ikke gættes som missing. */
   isEmpty: (value: T) => boolean;

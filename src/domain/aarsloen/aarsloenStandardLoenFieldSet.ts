@@ -17,7 +17,7 @@ import type { StandardLoenTableFieldSet } from '../../components/tables/standard
 import { createEmptyStandardLoenRow } from './standardLoenRowInitialValues';
 
 // Løntabellens collection-ref bor HER hos feltsættet og ikke i projektionen. Ellers ville projektionen —
-// som nu selv aftager feltsættets fælles rekonstruktion (GM-F15) — og feltsættet importere hinanden.
+// som nu selv aftager feltsættets fælles rekonstruktion — og feltsættet importere hinanden.
 
 /** Årslønnens løntabel: en TOP-LEVEL collection (ingen ejer-entity i stien). */
 export const aarsloenTableDataCollectionRef: CollectionRef = createCollectionRef({

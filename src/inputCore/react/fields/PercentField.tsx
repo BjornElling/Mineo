@@ -9,9 +9,11 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import type { FieldIssue } from '../../inputIssue';
 import NumericTextField from './NumericTextField';
 import { fieldAllowsNegative } from './signPolicy';
+import StyledTextFieldBase from '../../../components/inputs/StyledTextFieldBase';
+import { formatPercentDisplay } from '../../../utils/percentDraftCore';
 
 // Procent-felt (§2.4/§3.5): familie-skal over `NumericTextField` med procent-tegnfilteret,
-// den delte "%"-enheds-adornment (muted når tom) og legacy højrestillet tabular-nums-visning. Parse/format og
+// den delte "%"-enheds-adornment (muted når tom) og højrestillet tabular-nums-visning. Parse/format og
 // commit-intervallet ejes af descriptorens procent-codec (§samlet input-enhed). Komponenten modtager KUN sin
 // `field`/`location` + rendering-props — ingen `minValue`/`maxValue`/`onCommit`/`onFieldError`/`enforceRange` (§2.4).
 
@@ -46,7 +48,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
     },
     ref
   ) => {
-    // Fortegns-politikken kommer fra descriptorens codec (UT-F08) — ikke fra et hardkodet flag her. Alle
+    // Fortegns-politikken kommer fra descriptorens codec — ikke fra et hardkodet flag her. Alle
     // procent-descriptorer er ikke-negative, og komponenten svarede tidligere `true` i strid med dem, så et
     // minus kunne tastes som første tegn.
     const allowNegative = fieldAllowsNegative(field);
@@ -59,7 +61,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
       [allowNegative]
     );
 
-    // Adornmentet mutes, når draften er tom (legacy-adfærd). Muted-flaget kommer fra `NumericTextField`s
+    // Adornmentet mutes, når draften er tom. Muted-flaget kommer fra `NumericTextField`s
     // ÉNE editor-controller via render-prop — vi opretter aldrig en anden surface/controller for samme felt.
     return (
       <NumericTextField
@@ -86,5 +88,28 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
 );
 
 PercentField.displayName = 'PercentField';
+
+/** Låst procentvisning for rent afledte værdier uden et persisteret `FieldRef`. */
+export const DerivedPercentField = React.forwardRef<HTMLDivElement, Readonly<{
+  value: number | undefined;
+  name?: string;
+  placeholder?: string;
+  sx?: SxProps<Theme>;
+}>>(({ value, name, placeholder = DEFAULT_PERCENT_PLACEHOLDER, sx }, ref) => (
+  <StyledTextFieldBase
+    ref={ref}
+    name={name}
+    draft={formatPercentDisplay(value, true)}
+    onDraftChange={() => undefined}
+    placeholder={placeholder}
+    disabled
+    disabledAppearance="locked"
+    endAdornment={<InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={value === undefined} />}
+    htmlInputAttributes={{ readOnly: true }}
+    width={100}
+    sx={sx}
+  />
+));
+DerivedPercentField.displayName = 'DerivedPercentField';
 
 export default PercentField;

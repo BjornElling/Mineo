@@ -56,7 +56,7 @@ const OFFENTLIGE_YDELSER_COLLECTION = eoOffentligeYdelserRowsCollection.template
 /**
  * Rækkelokationen for offentlige ydelser. Sygedagpenge-indsættelsen og midlertidigt-EET-togglen udsteder
  * strukturelle rækketransaktioner direkte gennem `edit.dispatch`, så de skal bygge origin på SAMME måde
- * som `useCollectionRows` gør for tabellens egne rækkehandlinger (§3.7, WI-004 runde 4, fund S4).
+ * som `useCollectionRows` gør for tabellens egne rækkehandlinger.
  */
 const OFFENTLIGE_YDELSER_ROW_ORIGIN: CollectionRowOrigin = {
   locationId: 'erstatningsopgoerelse.offentligeYdelserRows',
@@ -282,7 +282,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
           buildRowHistoryOrigin(OFFENTLIGE_YDELSER_COLLECTION, OFFENTLIGE_YDELSER_ROW_ORIGIN)
         );
       } else {
-        // GM-F03: den simple ændring manglede en origin helt, så et undo kunne ikke navigere eller refokusere
+        // Den simple ændring skal bære origin, så undo kan navigere og refokusere
         // togglen. Den er et FELT-commit — transaktionen rører kun felter — og bærer derfor togglens egen
         // feltorigin, præcis som feltadapterens normale `commitImmediate`-vej gør (§3.7).
         edit.dispatch(
@@ -308,7 +308,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
   }, [rows, edit]);
 
   /**
-   * Togglens afslutning som feltadapterens {@link ToggleCommitOverride} (§1.11, R7-F02).
+   * Togglens afslutning som feltadapterens {@link ToggleCommitOverride}.
    *
    * Udfaldet er ALTID `'handled'` eller `'reject'`, aldrig `'commit'`: hver gren rører mere end det ene felt —
    * bilag-checkboxen følger altid med, og en tilslåning kan desuden slette manuelle rækker. Adapteren må derfor
@@ -372,7 +372,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
               minDate={dateRanges_offentligeYdelser.fraDato.min}
               maxDate={sygedagpengeTilDato ?? dateRanges_offentligeYdelser.fraDato.fallbackMax}
               specialRangeErrors={{ fraTilRole: 'fra' }}
-              // Max kommer fra til-datoen; parret kan derfor gøre intervallet umuligt (R3-F03).
+              // Max kommer fra til-datoen; parret kan derfor gøre intervallet umuligt.
               bounds={derivedDateBounds('Fra-dato og til-dato i sygedagpenge-indsættelsen')}
             />
             <Typography className="row--text">-</Typography>

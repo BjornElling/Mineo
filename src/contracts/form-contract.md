@@ -7,9 +7,7 @@
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
 Denne kontrakt beskriver den gældende arkitektur. Der findes ingen parallel inputmodel, ingen
-overgangs-API'er og ingen kompatibilitetsflade ved siden af den — `docs/architecture/draft-commit-greenfield-design.md`
-er den informative baggrundsbeskrivelse af, hvordan modellen er indrettet og hvorfor, ikke en plan for noget,
-der udestår.
+overgangs-API'er og ingen kompatibilitetsflade ved siden af den.
 
 ---
 
@@ -247,7 +245,7 @@ En placeholder er **formvejledning og intet andet**. Den viser den forventede v�
 Grænser hører i feltets issue og tooltip (§8 ovenfor), manglende værdi i issue-/feedbackmekanikken. To
 konkurrerende beskrivelser af samme felt er netop det, der lod en årstalsafhængig tekst (`åååå (≤2026)`) leve i
 visningslaget uden at nogen kontrakt fejlede, og lod en `Indtastning mangler`-besked overtage formvejledningens
-kanal (UT-F06).
+kanal.
 
 Den rene form ejes af den semantiske **feltfamilie** (`src/utils/fieldFormatPlaceholders.ts` samt
 `DEFAULT_AMOUNT_PLACEHOLDER`/`DEFAULT_PERCENT_PLACEHOLDER`), ikke af den tabel eller side, feltet står på. En
@@ -257,13 +255,13 @@ månedens `mm` i en periodekolonne — aldrig for at vise bounds, validering ell
 ### 8.2 Fortegns-politikken ejes af feltets codec
 
 Om et numerisk felt må være **negativt** er en egenskab ved feltet, ikke ved den komponent der tegner det.
-Politikken erklæres på codecet (`FieldCodec.signPolicy`, udledt af `allowNegative`) og læses af begge surfaces
+Politikken erklæres på codecet (`FieldCodec.signPolicy`, udledt af `allowNegative`) og læses af begge flader
 gennem `fieldAllowsNegative(field)` / `codecAllowsNegative(codec)`.
 
 En feltkomponent, en tabelcelle eller en side må **ikke** sende en hardkodet `allowNegative`-literal til et
 tegnfilter — heller ikke en korrekt en. En literal er en anden samtidig sandhed om feltet, og præcis den lod
 `PercentField` svare `true`, mens `GridPercentCell` svarede `false` for de SAMME descriptorer, så et minustegn
-kunne tastes i et felt, der ikke må være negativt (UT-F08). Håndhævet af
+kunne tastes i et felt, der ikke må være negativt. Håndhævet af
 `input/sign-policy-from-descriptor`.
 
 Politikken gælder **indtastning**, ikke repræsentation. §8's regel står uændret: `parseForSettle` er
@@ -298,6 +296,11 @@ Issues afledes rent fra `InputReader`, feltmetadata, domænevalidatorer og relev
 
 Mounted komponenter rapporterer ikke afledelige fejl til en central store. Samme issue-model driver feltmarkering,
 tooltip, kontrolvisning, save-gate og dokument-gate med deres respektive policy.
+
+Ved blokeret `.eo`-save findes route og eventuel fane i det statiske, descriptor-keyede feltlokationskatalog,
+før en editor behøver at være mounted. Kataloget skal dække hvert produktionsdescriptor præcis én gang.
+DOM-registret vælger derefter en allerede synlig spejling eller fokuserer den konkrete editor efter mount; det
+må ikke være eneste kilde til den destination, som netop er nødvendig for at mounte en aldrig besøgt fane.
 
 Fejl- og beskedregler ejes af `error-contract.md`.
 

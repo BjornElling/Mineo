@@ -14,10 +14,9 @@ import {
   registerSlimInputStoreInternals,
 } from './dispatchInput';
 
-// Input-runtime (§3.7/§4.2): den ENE autoritative store rummer KUN afsluttet input, den monotone revision,
-// history, settingsrevisionen og nødvendig hydration-/systemstatus. Ingen afledte `sections`/`invalidDrafts`-views,
-// `fieldErrors`, revisionsmaps, epochs, counters eller legacy-testfacader — hele det gamle `inputRuntimeStore`-
-// tilstandsrum udgår. Afledte issues, gates og åbne drafts hører ikke til her (§3.1).
+// Den ENE autoritative store rummer KUN afsluttet input, den monotone revision, history,
+// settingsrevisionen og nødvendig hydration-/systemstatus (§3.7/§4.2). Afledte issues, gates og åbne
+// drafts hører ikke til her (§3.1).
 //
 // **Skrivegrænsen er STRUKTUREL, ikke bevogtet.** Zustands `StoreApi` forlader aldrig dette
 // modul: `setState`/`replace` findes ikke på den eksporterede type. Et nyt modul, der importerer storen, kan

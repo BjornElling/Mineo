@@ -69,7 +69,7 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
  * Samme kanoniske `FieldIssueSet` bærer både EO- og stamdataissues, inklusive nested rækkeceller.
  */
 /**
- * De STRUKTURELLE røde feltissues som blokerende invarianter (WI-004 runde 4, fund S3).
+ * De STRUKTURELLE røde feltissues som blokerende invarianter.
  *
  * Dette er EO-sektionens fuldstændige reader-fejl-vej. `buildReaderFieldIssueInvariants` over `eoErrors`
  * dækkede kun 11 top-level feltnavne, så en rød RÆKKECELLE (svie/smerte-periode, TAF-periode,

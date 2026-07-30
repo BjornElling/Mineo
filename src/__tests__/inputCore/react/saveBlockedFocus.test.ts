@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { focusFirstBlockingRejectedField } from '../../../inputCore/react/saveBlockedFocus';
+import { focusFirstBlockingRejectedField as focusFirstBlockingRejectedFieldImpl } from '../../../inputCore/react/saveBlockedFocus';
 import { lookupEditorLocation } from '../../../inputCore/react/editorLocationDestination';
 import {
   FIELD_ADDRESS_ATTR,
@@ -9,6 +9,10 @@ import {
 } from '../../../inputCore/react/historyRestoreTarget';
 import { serializeFieldAddress, type FieldAddress } from '../../../inputCore/fieldAddress';
 import { setActiveTabForPage } from '../../../hooks/usePersistedActiveTab';
+import {
+  getProductionInputCatalog,
+  productionInputFields,
+} from '../../../inputCore/catalog/productionCatalog';
 
 // Greenfield save-blocking focus (§1.6/§3.2/§3.9): målet lokaliseres via den FULDE serialiserede feltadresse —
 // samme identitet som undo/redo-restoren. Adressen reduceres ALDRIG til et feltnavn: to celler i forskellige
@@ -20,6 +24,17 @@ import { setActiveTabForPage } from '../../../hooks/usePersistedActiveTab';
 // brugeren står ved", som den globale model kun kunne ramme med særregler for `currentPathname`.
 
 vi.mock('../../../hooks/usePersistedActiveTab', () => ({ setActiveTabForPage: vi.fn() }));
+
+const focusFirstBlockingRejectedField = (
+  addresses: readonly string[],
+  pathname: string,
+  navigate: Parameters<typeof focusFirstBlockingRejectedFieldImpl>[2]
+) => focusFirstBlockingRejectedFieldImpl(
+  addresses,
+  pathname,
+  navigate,
+  getProductionInputCatalog().resolveFieldLocation
+);
 
 const stamdataSkadedato: FieldAddress = { section: 'stamdata', path: [], field: 'skadedato' };
 
@@ -197,7 +212,7 @@ describe('focusFirstBlockingRejectedField', () => {
     expect(setActiveTabForPage).not.toHaveBeenCalled();
   });
 
-  it('navigerer til sektionens side, når INGEN editor for feltet er monteret', async () => {
+  it('aktiverer den statiske fane, når INGEN editor for feltet er monteret', async () => {
     const navigate = vi.fn();
 
     await focusFirstBlockingRejectedField(
@@ -207,22 +222,105 @@ describe('focusFirstBlockingRejectedField', () => {
     );
 
     expect(navigate).toHaveBeenCalledWith('/erhvervsevnetab');
-    // Ingen fane gættes: kun editorlokationen ved, hvilken fane feltet redigeres på.
-    expect(setActiveTabForPage).not.toHaveBeenCalled();
+    expect(setActiveTabForPage).toHaveBeenCalledWith('erhvervsevnetab', 'eet-oplysninger');
   });
 
-  // `faellesAarsloen` har bevidst ingen egen route. Uden en mounted editor findes intet at vælge ud fra, og vi
-  // navigerer da ikke frem for at gætte en af de to mulige sider.
-  it('navigerer ikke for en delt sektion uden egen route, når intet er monteret', async () => {
+  it.each([
+    {
+      name: 'EOs Lønindkomst-fane',
+      address: {
+        section: 'erstatningsopgoerelse',
+        path: [{ kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold', entityId: 'ans-1' }],
+        field: 'navnPaaArbejdssted',
+      } satisfies FieldAddress,
+      route: '/erstatningsopgoerelse',
+      page: 'erstatningsopgoerelse',
+      tab: 'loenindkomst',
+    },
+    {
+      name: 'EOs Offentlige ydelser-fane',
+      address: {
+        section: 'erstatningsopgoerelse',
+        path: [{ kind: 'entity', collection: 'offentligeYdelserRows', entityId: 'ydelse-1' }],
+        field: 'ydelse',
+      } satisfies FieldAddress,
+      route: '/erstatningsopgoerelse',
+      page: 'erstatningsopgoerelse',
+      tab: 'offentlige_ydelser',
+    },
+    {
+      name: 'EOs Beregning-fane',
+      address: {
+        section: 'erstatningsopgoerelse',
+        path: [{ kind: 'property', name: 'eoBilagSelection' }],
+        field: 'midlertidigEet',
+      } satisfies FieldAddress,
+      route: '/erstatningsopgoerelse',
+      page: 'erstatningsopgoerelse',
+      tab: 'beregning',
+    },
+    {
+      name: 'EETs Løbende ydelser-fane',
+      address: {
+        section: 'erhvervsevnetab',
+        path: [{ kind: 'property', name: 'eetDifferencekravBilagSelection' }],
+        field: 'visUdvidetSpecifikation',
+      } satisfies FieldAddress,
+      route: '/erhvervsevnetab',
+      page: 'erhvervsevnetab',
+      tab: 'loebende-ydelser',
+    },
+    {
+      name: 'EETs Differencekrav-fane',
+      address: {
+        section: 'erhvervsevnetab',
+        path: [{ kind: 'property', name: 'eetDifferencekravBilagSelection' }],
+        field: 'kapitalisering',
+      } satisfies FieldAddress,
+      route: '/erhvervsevnetab',
+      page: 'erhvervsevnetab',
+      tab: 'differencekrav',
+    },
+  ])('kan mounte og fokusere rejected input på en aldrig besøgt $name', async ({
+    address,
+    route,
+    page,
+    tab,
+  }) => {
     const navigate = vi.fn();
+    let mountedTarget: HTMLInputElement | null = null;
+    vi.mocked(setActiveTabForPage).mockImplementation(() => {
+      mountedTarget = mountFieldAt(address, { route, tabKey: tab });
+    });
+
+    await focusFirstBlockingRejectedField([serializeFieldAddress(address)], '/stamdata', navigate as never);
+
+    expect(setActiveTabForPage).toHaveBeenCalledWith(page, tab);
+    expect(navigate).toHaveBeenCalledWith(route);
+    expect(mountedTarget).not.toBeNull();
+    expect(document.activeElement).toBe(mountedTarget);
+  });
+
+  it('sender den delte årsløn til den prioriterede EET-editor, når ingen spejling er mounted', async () => {
+    const navigate = vi.fn();
+    const address = { section: 'faellesAarsloen', path: [], field: 'aslAarsloen' } satisfies FieldAddress;
+    let mountedTarget: HTMLInputElement | null = null;
+    vi.mocked(setActiveTabForPage).mockImplementation(() => {
+      mountedTarget = mountFieldAt(address, {
+        route: '/erhvervsevnetab',
+        tabKey: 'eet-oplysninger',
+      });
+    });
 
     await focusFirstBlockingRejectedField(
-      [serializeFieldAddress({ section: 'faellesAarsloen', path: [], field: 'aslAarsloen' })],
+      [serializeFieldAddress(address)],
       '/stamdata',
       navigate as never
     );
 
-    expect(navigate).not.toHaveBeenCalled();
+    expect(setActiveTabForPage).toHaveBeenCalledWith('erhvervsevnetab', 'eet-oplysninger');
+    expect(navigate).toHaveBeenCalledWith('/erhvervsevnetab');
+    expect(document.activeElement).toBe(mountedTarget);
   });
 
   it('er et no-op uden navigation når der ingen rejected adresser er', async () => {
@@ -235,5 +333,18 @@ describe('focusFirstBlockingRejectedField', () => {
     const navigate = vi.fn();
     await focusFirstBlockingRejectedField(['ikke-en-adresse'], '/stamdata', navigate as never);
     expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe('statisk feltlokationskatalog', () => {
+  it('dækker hvert produktionsdescriptor præcis én gang', () => {
+    expect(getProductionInputCatalog().fieldLocationCount).toBe(productionInputFields.length);
+    for (const descriptor of productionInputFields) {
+      expect(getProductionInputCatalog().resolveFieldLocation(descriptor.bind(
+        ...descriptor.template.path
+          .filter((segment) => segment.kind === 'entity')
+          .map((_, index) => `entity-${index}`)
+      ).address), descriptor.id).not.toBeNull();
+    }
   });
 });

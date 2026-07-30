@@ -1,17 +1,9 @@
 /**
- * Én typed dokumentdefinition pr. katalogiseret output (Fase 5;
- * `document-output-contract.md` §A1.2/§A2/§A7.1).
+ * Én typed dokumentdefinition pr. katalogiseret output (`document-output-contract.md` §A1).
  *
- * Definitionen er den ENE ejer af et outputs inputdependencies, gate og output-invariants. Før
- * Fase 5 var den viden spredt over tre lag pr. output — React-handleren (commit-barriere,
- * kildeoptagelse, token-lighed, gate), `documentService.ts`' per-output funktion (lazy-load,
- * friskheds-recheck, formatvalg, generatorkald, fejlrouting) og et domæne-gate-modul — og hvert
- * output havde sin egen kopi af den spredning. Det gjorde det umuligt at håndhæve "alle outputs gør
- * dette", og fem af de atten outputs manglede i praksis mindst ét trin.
- *
- * Efter Fase 5 er livscyklussen ÉT objekt: definitionen leverer `project` (dependencies + gate) og
- * `loadRenderer` (generatorkald), og kernen ejer rækkefølgen. Reaktiv knap-gate og click-preflight
- * kalder derfor samme `project` og kan ikke drifte fra hinanden (§10 acceptkriterie 27).
+ * Definitionen ejer outputtets dependencies, gate og output-invarianter. Den leverer `project` og
+ * `loadRenderer`, mens kernen ejer afviklingsrækkefølgen. Reaktiv knap-gate og click-preflight kalder
+ * derfor samme projektion og kan ikke drive fra hinanden.
  */
 import type { DocumentArtifact } from '../downloadArtifact';
 import type { DocumentGenerationSession } from '../documentGenerationSession';
@@ -45,12 +37,8 @@ export type DocumentRenderer<TInput> = (
 /**
  * Fejltekst-metadata pr. output.
  *
- * Erstatter pass 0's arvede `errorLabel: string`, som var en PDF-formuleret prosasætning ("Kunne
- * ikke generere satser-PDF"), hvis format bagefter blev omskrevet med en global `/PDF/g`-regex.
- * Substitutionen var skrøbelig af konstruktion — den forudsatte, at ordet "PDF" i teksten
- * UDELUKKENDE optrådte som formatreference — og `document-format-contract.md` kræver kun formatet i
- * knapper, tooltips og aria-labels, ikke denne tekstomskrivning. Nu erklærer outputtet i stedet sit
- * navn, og laget formulerer beskeden.
+ * Outputtet erklærer et formatneutralt navn, og beskedlaget formulerer den færdige tekst. En færdig
+ * PDF-formulering ville kræve skrøbelig teksterstatning, når samme output skrives som Word.
  */
 export type DocumentLabels = Readonly<{
   /** Outputtets navn i brugerbeskeder, fx "erstatningsopgørelse" eller "KRL". Uden format-suffiks. */
@@ -64,8 +52,8 @@ export type DocumentLabels = Readonly<{
  * Fem outputs har brug for den: `rente` og `standalone-rente` aktiveres pr. renteberegningsrække,
  * og `regulering`/`krl`/`kl-loenaftaler` findes både for EO's overordnede løn og for hvert konkret
  * ansættelsesforhold. Uden en parameter i definitionen ville de fem være tvunget til at smugle
- * identiteten ind gennem en closure eller en definition-fabrik pr. klik — altså tilbage til de
- * per-callsite-kopier, Fase 5 fjerner.
+ * identiteten ind gennem en closure eller en definition-fabrik pr. klik. Det ville skabe en parallel
+ * aktiveringsvej uden for den fælles definition.
  *
  * **Invariant:** `TRequest` må kun bære STABIL IDENTITET (`rowId`, `{scope, entityId}`) — aldrig
  * præberegnet data. Grunden er, at requesten dannes ved klik, altså FØR commit-barrieren, mens
@@ -90,7 +78,7 @@ export type DocumentDefinition<TRequest, TInput, TGateSettings, TBrevhovedKey ex
    * `context.shared`, så flere outputs på samme domæne kun betaler for det én gang.
    *
    * `context.settings` er GATE-settings alene: det valgte outputformat og brevhovedet er ikke i
-   * typen (R6-F03), fordi formatet vælger writer og ikke dækning. Miljøet anvender dem efter ready.
+   * typen, fordi formatet vælger writer og ikke dækning. Miljøet anvender dem efter ready.
    */
   project: (context: DocumentSourceContext<TGateSettings>, request: TRequest) => DocumentProjectionResult<TInput>;
   /** Lazy-load af den tunge generator. Kernen kalder den FØRST efter gaten har sagt ready. */

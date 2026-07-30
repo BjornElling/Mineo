@@ -1,6 +1,6 @@
-// Inputkernen (§3.3): ét codec pr. inputfamilie på tværs af form og grid. Codecs er rene funktioner
-// uden React, DOM eller storage. Den eneste ændring fra legacy er, at en afvist resolution bærer en
-// MASKINLÆSBAR årsag + detaljer, så UI aldrig reparser råteksten for at finde tooltipteksten (§1.8).
+// Inputkernen (§3.3): ét codec pr. inputfamilie på tværs af formular og grid. Codecs er rene funktioner
+// uden React, DOM eller storage. En afvist resolution bærer en MASKINLÆSBAR årsag og detaljer, så UI
+// aldrig reparser råteksten for at finde tooltipteksten (§1.8).
 
 /**
  * Årsag til at et settle blev AFVIST (rejected råtekst, canonical slot ryddet til tomværdien). Efter
@@ -25,7 +25,7 @@ export type FieldResolution<T> =
  * De codec-FAMILIER, kernen har. §7.1 kræver, at den fælles feltkontrakt køres mod BÅDE form- og
  * grid-adapteren "for hver codecfamilie" — og det krav kan kun håndhæves, hvis familierne er
  * OPREGNELIGE. Uden navnet var listen en hånd-vedligeholdt konstant i en testfil, og præcis derfor kunne
- * dækningen falde bagud til én form-familie og én grid-familie uden at noget blev rødt (R8-F02).
+ * dækningen falde bagud til én form-familie og én grid-familie uden at noget blev rødt.
  *
  * Tilføjes en ny familie, er den en compilerfejl her, indtil den har et navn — og derefter en rød
  * kontraktsuite, indtil den har en case (`fieldContract.surfaces.test.tsx`).
@@ -64,7 +64,7 @@ export type FieldCodecFamily =
   | 'fraction';
 
 /**
- * Feltets FORTEGNS-politik, som den er erklæret på descriptoren (UT-F08).
+ * Feltets FORTEGNS-politik, som den er erklæret på descriptoren.
  *
  * **Hvorfor den skal være DATA på codecet.** `allowNegative` blev erklæret på hvert numerisk codec i
  * kataloget — og honoreret af INGENTING. Codecet parser bevidst med `allowNegative: true`, fordi et fortegn

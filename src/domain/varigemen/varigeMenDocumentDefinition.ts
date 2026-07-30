@@ -1,5 +1,5 @@
 /**
- * Varige mén-dokumentdefinitionen (Fase 5; `document-output-contract.md` §A1.2/§A7.1).
+ * Varige mén-dokumentdefinitionen.
  *
  * Genbruger `buildVarigeMenReaderProjection` + `evaluateVarigeMenDownloadGate` uændret (§5.4).
  * Stamdata-projektionen bliver — som for Forsørgertab — en dependency på outputtet frem for en

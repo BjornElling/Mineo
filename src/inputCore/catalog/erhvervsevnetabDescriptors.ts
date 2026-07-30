@@ -47,12 +47,9 @@ import { reguleringssats } from '../../data/lovbestemteRates';
 const createEmptyErhvervsevnetabSection = (): unknown =>
   structuredClone(ERHVERVSEVNETAB_INITIAL_VALUES as PersistedSectionMap['erhvervsevnetab']);
 
-// Beregningsdato-bounds (§1.6, Fase 3 Erhvervsevnetab-slice) — som Forsørgertab: den dynamiske min/faste max, som
-// legacy-siden håndhævede via `StyledDateField`s `minDate`/`maxDate` + `onFieldError`, er nu en canonical bounds-
-// FELTVALIDATOR. Legacy `skadedatoMin = coerceToISODateString(skadedato) ?? fallbackMin`; `maxDate = DATE_EET_MAX`;
-// special `eetDataMax`. Grænserne er byte-identiske med legacy (`dateRanges_erhvervsevnetab` + `resolveDateRange
-// ErrorMessage`), så beskedteksten er uændret. Skadedato krydslæses via `view.readCanonical` (den rå dependency,
-// uafhængigt af dens eget issue — som legacy brugte den rå `stamdata.skadedato`).
+// Beregningsdatoens dynamiske minimum og faste maksimum er en canonical bounds-FELTVALIDATOR (§1.6).
+// Grænser og beskedtekst kommer fra `dateRanges_erhvervsevnetab` og `resolveDateRangeErrorMessage`.
+// Skadedato krydslæses via `view.readCanonical`, fordi den canonical dato bestemmer minimumsgrænsen.
 export const erhvervsevnetabBeregningsdatoField = defineStructuralField<ISODateString | undefined>({
   id: 'erhvervsevnetab.beregningsdato',
   template: { section: 'erhvervsevnetab', path: [], field: 'beregningsdato' },
@@ -66,8 +63,7 @@ export const erhvervsevnetabBeregningsdatoField = defineStructuralField<ISODateS
     (value, _field, view) => {
       if (value === undefined) return undefined;
       const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
-      // Legacy `skadedatoMin = coerceToISODateString(skadedato) ?? fallbackMin` (INGEN max med fallbackMin — en
-      // skadedato før 2005 sænker min tilsvarende, som legacy).
+      // Brug IKKE max med fallbackMin: en skadedato før 2005 skal sænke minimumsgrænsen tilsvarende.
       const minDate = skadedato ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin;
       const maxDate = dateRanges_erhvervsevnetab.beregningsdato.max;
       if (value >= minDate && value <= maxDate) return undefined;
@@ -284,7 +280,7 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
         maxDate,
         special,
         // ALLE fire roller udleder min af Skadedato, og de to kapitaliseringsroller desuden af rækkens
-        // Afgørelsesdato. Før R3-F03 var årsagen kun sat for de to sidste — de øvrige gav derfor "ingen dato
+        // Afgørelsesdato. Tidligere var årsagen kun sat for de to sidste — de øvrige gav derfor "ingen dato
         // er gyldig" uden at nævne, at det var Skadedato, brugeren skulle rette.
         bounds: derivedDateBounds(
           role === 'kapDato' || role === 'tidlKapDato' ? 'Afgørelsesdato og Skadedato' : 'Skadedato'

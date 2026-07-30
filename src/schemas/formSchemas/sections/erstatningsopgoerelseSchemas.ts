@@ -273,7 +273,6 @@ const loenindkomstAnsaettelsesforholdBaseSchema = z.object({
   sidsteArbejdsdag: optionalIsoDateString,
   fritvalgPct: decimalNumber,
   shSoPct: decimalNumber,
-  storeBededagPct: decimalNumber,
   pensionPct: decimalNumber,
   // 'procent' = nuværende adfærd (default, passiv load-fallback for ældre .eo); 'beloeb' =
   // tillægsbeløb angives direkte i lønindkomst-tabellen, sats-blokken og 'Manuelt angivet'
@@ -291,18 +290,38 @@ const loenindkomstAnciennitetSchema = z.object({
   anciennitetstillaegSats: amountValue,
 }).strict();
 
-export const loenindkomstAnsaettelsesforholdSchema = z.object({
+const loenindkomstAnsaettelsesforholdShape = {
   // Feltejerskab: base ejer ansættelsesidentitet og løntabel, anciennitet ejer anciennitetsfelter,
   // og lønudvikling ejer satser/reguleringsvalg. Shape-spread må kun bruges her, hvor felterne er disjunkte.
   ...loenindkomstAnsaettelsesforholdBaseSchema.shape,
   ...loenindkomstAnciennitetSchema.shape,
   ...loenudviklingOgSatserSchema.shape,
+} as const;
+
+/**
+ * Runtime-domænemodellen indeholder den altid låste Store Bededagssats. Den persisterede model nedenfor
+ * gør ikke; værdien udledes af dato og "Løn på helligdage" før første consumer-read.
+ */
+export const loenindkomstAnsaettelsesforholdSchema = z.object({
+  ...loenindkomstAnsaettelsesforholdShape,
+  storeBededagPct: decimalNumber,
 }).strict();
+
+const persistedLoenindkomstAnsaettelsesforholdSchema = z.object({
+  ...loenindkomstAnsaettelsesforholdShape,
+  // Tolerant inbound-only slot: ældre `.eo` kan indeholde den materialiserede sats. Transformen fjerner
+  // den uden ukendt-felt-advarsel; referencesatsen genudledes efter load.
+  storeBededagPct: decimalNumber,
+}).strict().transform(({ storeBededagPct: _legacyStoreBededagPct, ...input }) => input);
 
 export type LoenindkomstAnsaettelsesforhold = z.infer<typeof loenindkomstAnsaettelsesforholdSchema>;
 
 const loenindkomstSchema = z.object({
   loenindkomstAnsaettelsesforhold: z.array(loenindkomstAnsaettelsesforholdSchema),
+}).strict();
+
+const persistedLoenindkomstSchema = z.object({
+  loenindkomstAnsaettelsesforhold: z.array(persistedLoenindkomstAnsaettelsesforholdSchema),
 }).strict();
 
 export const eoAngivetLoenLoenudviklingSchema = z.object({
@@ -334,3 +353,20 @@ export const erstatningsopgoerelseSchema = z.object({
 }).strict();
 
 export type ErstatningsopgoerelseValues = z.infer<typeof erstatningsopgoerelseSchema>;
+
+/** Den aktuelle `.eo`-/inputaggregate-form uden rent afledte satsfelter. */
+export const persistedErstatningsopgoerelseSchema = z.object({
+  ...erstatningsopgoerelseBaseSchema.shape,
+  ...aesAfgoerelserSchema.shape,
+  ...svieSmerteSchema.shape,
+  ...tafSchema.shape,
+  ...indtaegtFoerSkadenSchema.shape,
+  ...sygeferiegodtgoerelseSchema.shape,
+  ...persistedLoenindkomstSchema.shape,
+  ...eoAngivetLoenSchema.shape,
+  ...bilagsnumreSchema.shape,
+}).strict();
+
+export type PersistedErstatningsopgoerelseValues = z.infer<typeof persistedErstatningsopgoerelseSchema>;
+export type PersistedLoenindkomstAnsaettelsesforhold =
+  PersistedErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];

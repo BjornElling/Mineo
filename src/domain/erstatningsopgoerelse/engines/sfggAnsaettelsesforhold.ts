@@ -1,8 +1,8 @@
 import type {
-  ErstatningsopgoerelseValues,
   LoenindkomstAnsaettelsesforhold,
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
 } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from './tafCalculationInput';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { parseISODate, type ISODateString } from '../../../types/branded';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
@@ -67,7 +67,7 @@ const resolveSfggOphoerVerb = (
   ophoersdato <= opgoerelsesdato ? 'bortfaldt' : 'bortfalder'
 );
 const getSfggRowForEmployment = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   ansaettelsesforholdId: string
 ): SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined =>
   values.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
@@ -103,7 +103,7 @@ const resolveSfggAfterEmployerSickPayText = (args: Readonly<{
 };
 
 export type SfggAnsaettelsesforholdContext = Readonly<{
-  values: ErstatningsopgoerelseValues;
+  values: TafCalculationValues;
   employment: LoenindkomstAnsaettelsesforhold;
   tafRanges: readonly IsoRange[];
   opgoerelsesdato: ISODateString;

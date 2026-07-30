@@ -16,7 +16,7 @@ import type { RejectedInput } from '../settledInput';
  * feltet redigeres: samme datafelt kan have flere editorer (`faellesAarsloen` uden egen route, forligsfelterne
  * på to sider), og både undo/redo-restoren (§3.7) og save-blokeringens fokus (§1.4) navigerer efter dem. Var de
  * valgfri, ville en glemt destination gøre lokationen uopnåelig UDEN at nogen type eller test fejlede — og et
- * globalt feltadresse→fane-kort måtte kompensere, netop den parallelle model R7-F03 lukkede.
+ * globalt feltadresse→fane-kort måtte kompensere og skabe en parallel destinationsmodel.
  *
  * `tabKey: null` udtrykker eksplicit "siden har ingen faner". Der findes bevidst INGEN "ikke navigerbar"-værdi:
  * hver eneste produktionslokation har en rigtig route, og et sentinel for en tilstand, ingen kode er i, ville

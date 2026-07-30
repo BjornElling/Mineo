@@ -11,7 +11,7 @@ import { useForsoergertabVm } from './forsoergertabContext';
 /**
  * Beregningsdato og download af specifikationen.
  *
- * Gate-årsagen står KUN i download-ikonets tooltip (UT-F07). Den stod tidligere OGSÅ som nedtonet tekst ved
+ * Gate-årsagen står KUN i download-ikonets tooltip. Den stod tidligere OGSÅ som nedtonet tekst ved
  * siden af knappen, så brugeren læste den samme besked to gange.
  */
 const ForsoergertabBeregningSection = React.memo(() => {
@@ -22,7 +22,7 @@ const ForsoergertabBeregningSection = React.memo(() => {
    * Beskeden udledes HER — i den flade, der aktiverer downloaden — så aktivering og visning ikke kan
    * divergere (`document/activation-shows-outcome`).
    *
-   * Kilden er `download.errorMessage` RÅT og IKKE `visibleDocumentFailureMessage` (UT-F07): denne flade har
+   * Kilden er `download.errorMessage` RÅT og IKKE `visibleDocumentFailureMessage`: denne flade har
    * ingen shake-/fokus-feedback på et blokeret klik, og gate-årsagen står nu kun i tooltippet — som ikke er
    * fremme, når brugeren netop har klikket. En gate-blokering kan ramme selve AKTIVERINGEN, fordi preflighten
    * gater EFTER commit-barrieren: et klik med en åben editor kan blokere, fordi settlet gjorde værdien

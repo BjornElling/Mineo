@@ -1,4 +1,5 @@
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { StamdataValues } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from './tafCalculationInput';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import {
   buildBeregningsperiodeRange,
@@ -41,7 +42,7 @@ const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calc
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
 
 export const buildSfggLoenudviklingMap = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   loenudvikling: LoenudviklingModel | null
 ): ReadonlyMap<string, LoenudviklingModel['perAnsaettelse'][number]> | undefined => {
   if (!loenudvikling) return undefined;
@@ -71,7 +72,7 @@ export const buildSfggLoenudviklingMap = (
 };
 
 const buildTafIndtaegterModel = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   ranges: readonly IsoRange[],
   midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[]
 ): TafIndtaegterModel => {
@@ -113,7 +114,7 @@ const buildTafIndtaegterModel = (
 };
 
 const resolveOffentligeYdelserReguleringsBaseIso = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   stamdataValues: StamdataValues
 ): ISODateString | undefined => {
   if (values.beregnesUdFra !== 'Beregningsperiode') {
@@ -156,7 +157,7 @@ export type TafNettoBeregningResult = Readonly<{
 }>;
 
 export const computeTafNettoBeregning = (
-  values: ErstatningsopgoerelseValues,
+  values: TafCalculationValues,
   stamdataValues: StamdataValues,
   options: Readonly<{
     tafRanges: readonly IsoRange[];

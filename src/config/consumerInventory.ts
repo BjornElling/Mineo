@@ -2,7 +2,7 @@
  * Maskinlæsbart COVERAGE-REGISTER over appens låste makro-entrypoints: beregningsentries, sagsfilstier og
  * dokumentoutputs.
  *
- * **Registret er levende og load-bearing — det er ikke et migrationsinventar (R1-F06).** Det blev oprettet
+ * **Registret er levende og load-bearing — det er ikke et migrationsinventar.** Det blev oprettet
  * som et midlertidigt backstop under omlægningen og var beskrevet som noget, der skulle slettes bagefter. Det
  * blev det ikke, og skal det ikke: `npm run verify:ledgers` er en del af `verify:release`, og registret er det
  * ENESTE sted, hvor "alle 18 dokumentoutputs" og "alle 8 beregningsentries" findes som en opregnelig mængde.
@@ -26,7 +26,7 @@ export type ConsumedInventoryEntry = InventoryEntry & Readonly<{
 }>;
 
 /**
- * Consumeren er den fil, der FAKTISK kalder entrypointet — efter R7-F01 er det fagsidens ene kanoniske
+ * Consumeren er den fil, der FAKTISK kalder entrypointet — nu er det fagsidens ene kanoniske
  * viewmodel (`page-component-contract.md` §4.4), ikke page-komponenten, som nu er ren sektions-komposition.
  * Renteberegning og Varige mén pegede allerede på deres fane, fordi beregningen bor dér; formen er den samme.
  * Et anker på page-filen ville være rødt af den forkerte grund og skjule, hvor kaldet er.
@@ -102,7 +102,7 @@ export const CONSUMER_CASE_FILE_PATHS = [
     symbol: 'loadFromFileHandle',
     consumers: ['src/hooks/useFileSaveLoad.ts'],
   },
-  // Load-apply er efter R4-F01 delt i to funktioner, men er fortsat ÉN sagsfil-vej. Inventaret peger på
+  // Load-apply er nu delt i to funktioner, men er fortsat ÉN sagsfil-vej. Inventaret peger på
   // den AUTORITATIVE halvdel — den, der erstatter sagen inde i replacement-barrieren. Den asynkrone
   // `synchronizeLoadMetadata` er ikke en sagsfil-vej men en efterfølgende metadata-synkronisering, og at
   // give den en femte post ville sige, at der findes fem veje til sagsfilen. Dens eneste consumer er
@@ -116,9 +116,9 @@ export const CONSUMER_CASE_FILE_PATHS = [
 ] as const satisfies readonly ConsumedInventoryEntry[];
 
 /**
- * De 18 dokumentoutputs i hovedappen, med deres ejende DEFINITION (Fase 5).
+ * De 18 dokumentoutputs i hovedappen, med deres ejende DEFINITION.
  *
- * Før Fase 5 pegede hver post på en `download*Dokument`-funktion i `documentService.ts`. Det modul
+ * Tidligere pegede hver post på en `download*Dokument`-funktion i `documentService.ts`. Det modul
  * findes ikke længere: dokument-livscyklussen er ét objekt pr. output, og definitionen bor ved sin
  * domænegrænse (`document-output-contract.md` §A1.2/§A7.1). Symbolet her er derfor definitionen —
  * det ene sted, hvor outputtets dependencies, gate og generatorkald er samlet.

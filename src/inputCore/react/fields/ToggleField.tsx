@@ -21,7 +21,7 @@ import { useRestoreTargetAttributes } from '../historyRestoreTarget';
  * - `'handled'` — callsitet har selv afsluttet ændringen, typisk som én atomisk transaktion, der også rører
  *   andre felter eller rækker. Adapteren skriver da ikke oveni.
  *
- * Findes for de persisterede toggles, hvis afslutning IKKE er én ren feltskrivning. Før R7-F02 måtte netop de
+ * Findes for de persisterede toggles, hvis afslutning IKKE er én ren feltskrivning. Tidligere måtte netop de
  * callsites bruge det rå `StyledToggleSwitch` direkte og forbinde editoren manuelt — hvorved BÅDE den konkrete
  * `FieldRef` og undo/redo-fokusmetadataen faldt væk. Overriden flytter kun AFSLUTNINGEN; identitet, visning og
  * restore-attributter forbliver adapterens ansvar.

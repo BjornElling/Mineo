@@ -1,23 +1,15 @@
 /**
- * Dokument-download-livscyklussens ENE implementering (Fase 5;
- * `document-output-contract.md` §A2/§A2.1, `critical-action-contract.md` §5).
+ * Dokument-download-livscyklussens ENE implementering.
  *
- * Preflight og afvikling ligger i SAMME modul med vilje. De var oprindeligt to moduler med en
- * eksporteret `PreparedDocument` imellem, og påstanden var, at afviklingen "strukturelt ikke kan nås
- * med et ugated input, fordi `PreparedDocument` kun kan konstrueres af preflighten". Den påstand var
- * falsk: typen var et almindeligt eksporteret struktur-`Readonly<{…}>`, så enhver kalder med et
- * lovligt optaget token kunne håndbygge et og kalde afvikleren med et input, der aldrig havde været
- * gennem gaten — uden `as`, uden `unknown`, uden cast. Det compilerede rent.
- *
- * Derfor:
+ * Preflight og afvikling ligger i SAMME modul, så afviklingen ikke kan kaldes med håndbygget,
+ * ugated input:
  *   1. `PreparedDocument` er nominal (privat brand) OG modulprivat. Den eksporteres ikke.
  *   2. Afvikleren eksporteres ikke. Kun `executeDocumentDownload` — preflight+afvikling i ét — er
  *      offentlig, så der findes ingen indgang til afviklingen ved siden af gaten.
  *   3. Friskheden verificeres mod miljøets AUTORITATIVE `readCurrentSourceToken`, ikke mod en
  *      en friskheds-closure leveret sammen med inputtet.
  *
- * Rækkefølgen i preflighten er trust-kritisk og var før Fase 5 kopieret ind i hver callsite — med det
- * resultat, at fem outputs manglede mindst ét trin:
+ * Rækkefølgen i preflighten er trust-kritisk:
  *
  *   1. Commit-barriere: `criticalActions.prepare('download')` settler en eventuel åben editor.
  *   2. Frisk, stabil kildeoptagelse EFTER settle (aldrig render-tidens evaluation).
@@ -25,9 +17,8 @@
  *   4. Definitionens `project` med den friskt genopslåede request: dependencies, projektion, invariants.
  *
  * Og i afviklingen re-tjekkes friskheden ved HVER asynkron grænse — inklusive efter rendering,
- * umiddelbart før fil-I/O. Det sidste check manglede både her og i den gamle
- * `runSelectedDocumentFormat`, så et dokument, hvis input ændredes under selve renderingen, blev
- * leveret forældet. `critical-action-contract.md` §5 kræver recheck umiddelbart før den irreversible
+ * umiddelbart før fil-I/O. Uden det sidste check kan input ændres under selve renderingen, så et
+ * forældet dokument leveres. `critical-action-contract.md` §5 kræver recheck umiddelbart før den irreversible
  * handling, og browser-downloaden ER den irreversible handling.
  */
 import { sourceTokensEqual, type EvaluationSourceToken } from '../../inputCore/evaluationSource';
@@ -65,7 +56,7 @@ type PreparedDocument<TRenderSettings, TBrevhovedKey extends string> = Readonly<
   document: ResolvedDocumentAction<TBrevhovedKey>;
   /**
    * KUN render-halvdelen af det optagne snapshot. Gate-halvdelen er brugt op, når dokumentet er
-   * godkendt, og et godkendt dokument har ingen legitim grund til at kunne læse den igen (R6-F03).
+   * godkendt, og et godkendt dokument har ingen legitim grund til at kunne læse den igen.
    */
   renderSettings: TRenderSettings;
   sourceToken: EvaluationSourceToken;
@@ -164,7 +155,7 @@ const prepareDocument = async <TRequest, TGateSettings, TRenderSettings, TBrevho
   // 4. Definitionens dependencies, projektion og invariants — samme funktion og samme request som
   //    den reaktive knap-gate, men på det friske snapshot.
   //    Konteksten får KUN gate-halvdelen af snapshottet; format og brevhoved ligger i
-  //    `source.renderSettings` og anvendes først i afviklingen nedenfor (R6-F03).
+  //    `source.renderSettings` og anvendes først i afviklingen nedenfor.
   phase.current = 'gate';
   const projected = action.resolve(createDocumentSourceContext(source.evaluation, source.gateSettings), request);
   if (projected.status === 'blocked') {

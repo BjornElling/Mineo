@@ -32,7 +32,7 @@ const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse — bruges
 // Bemærk: intervallerne bærer IKKE en `placeholder`. Feltets formvejledning (`dd-mm-åååå`) ejes af
 // dato-feltfamilien (`fieldFormatPlaceholders.ts`), og grænserne her hører i feltets issue/tooltip.
 // De 33 `placeholder: 'dd-mm-åååå'`-felter, der tidligere stod her, blev læst af INGEN kode — kun af to
-// `toBeTruthy()`-tests — og gav indtryk af, at intervallet var placeholderens kilde (INC-F08/UT-F06).
+// `toBeTruthy()`-tests — og gav indtryk af, at intervallet var placeholderens kilde.
 
 /**
  * Statisk dato-range med kendte værdier

@@ -26,7 +26,7 @@ export type IntegerFieldProps = Readonly<{
 
 const IntegerField = React.forwardRef<HTMLDivElement, IntegerFieldProps>(
   ({ field, location, name, width = 130, placeholder, disabled, singleStageClick = false, inputRef, sx }, ref) => {
-    // Fortegns-politikken kommer fra descriptorens codec (UT-F08), ikke fra et hardkodet flag her.
+    // Fortegns-politikken kommer fra descriptorens codec, ikke fra et hardkodet flag her.
     const allowNegative = fieldAllowsNegative(field);
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) =>

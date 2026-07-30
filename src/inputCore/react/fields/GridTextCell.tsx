@@ -27,7 +27,7 @@ export type GridTextCellProps<T, TEntity = unknown> = Readonly<{
    * Et COLLECTION-afledt feltissue på cellen: en kryds-række-domæneregel (dublet-datoer, identiske
    * afgørelser), som en descriptor-validator ikke kan udtrykke, fordi den kun ser sin egen celles værdi.
    *
-   * Det er et rigtigt `FieldIssue` med feltadresse — ikke en fri fejltekst (GM-F06) — så rød markering,
+   * Det er et rigtigt `FieldIssue` med feltadresse — ikke en fri fejltekst — så rød markering,
    * tooltip, fokusnavigation og consumerblokering læser én og samme repræsentation. Descriptorens eget
    * issue (format/bounds/rule) har forrang (§1.8: den mest direkte fejl vises).
    */

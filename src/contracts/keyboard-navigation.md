@@ -119,7 +119,7 @@ først ved den normale settle-grænse.
    - Widget/menu ejer intern navigation
 4. **Editor åben**
    - For Mineos Styled*-tekstfelter betyder editor åben, at det fokuserede tekstinput er redigerbart (`readOnly=false`) og ikke er en ikke-tekstlig inputtype.
-   - Andre komponenter skal eksponere en tilsvarende auditérbar edit-state. Form- og grid-surfaces
+   - Andre komponenter skal eksponere en tilsvarende auditérbar edit-state. Formular- og gridflader
      registrerer denne state eksplicit hos `CriticalActionCoordinator`; kritiske handlinger må ikke
      genudlede den gennem DOM-scanning.
    - Container intercepter IKKE piletaster
@@ -158,9 +158,7 @@ Normativt krav:
   navigationsflader — Container OG grid-navigationen — aftager den.
 - En navigationsflade må **IKKE** klassificere popup-kontroller på et komponentnavn, en privat
   markør-attribut eller sin egen kopi af ARIA-opslaget. En sådan klassifikation kan blive inert, når
-  kontrollen udskiftes, uden at nogen type eller test fejler — det skete konkret (UT-F02: markøren
-  `data-mineo-table-dropdown` fra en slettet komponent blev aldrig sat af nogen kontrol, så alle fem
-  celle-dropdowns fik `Enter` kapret). Håndhævet af AST-reglen `input/popup-semantics-single-source`.
+  kontrollen udskiftes, uden at nogen type eller test fejler — det skete konkret. Håndhævet af AST-reglen `input/popup-semantics-single-source`.
 - Klassifikationen skal være **den samme på tværs af eventtyper**. En popup-kontrol må ikke behandles som
   popup i keydown-vejen og som en almindelig celle i pointer-/klik-/dobbeltklik-vejen; grid'et fører derfor
   heller ingen to-trins-redigeringsbogføring for den.

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 // Kun månedens FORM (`mm`) hentes her; de øvrige periodecellers form ejes af deres egen feltfamilie, og
-// årscellens tidligere `åååå (≤CURRENT_YEAR)` er væk — grænsen hører i feltets issue/tooltip (UT-F06).
+// årscellens tidligere `åååå (≤CURRENT_YEAR)` er væk — grænsen hører i feltets issue/tooltip.
 import { MONTH_FORMAT_PLACEHOLDER } from '../../utils/fieldFormatPlaceholders';
 import type { StandardLoenTableRow, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import { formatKr } from '../../utils/formatUtils';
@@ -88,7 +88,7 @@ export type StandardLoenTableProps = {
 
 const MIN_VISIBLE_ROWS = 2;
 
-// Kolonneindeks (matcher legacy) — grid-core-koordinaten `{ rowId, colIndex }`.
+// Kolonneindeks til grid-core-koordinaten `{ rowId, colIndex }`.
 const COL = {
   period0: 0,
   period1: 1,
@@ -234,9 +234,9 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     // Tomme rækker persisteres ikke. Den viste tabel = de committede rækker + en trailing placeholder-
     // række til næste indtastning + evt. flere placeholders op til MIN_VISIBLE_ROWS.
     //
-    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` (GM-F14): id'et er stabilt pr. slot, så en
+    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds`: id'et er stabilt pr. slot, så en
     // åben celleeditor ikke skifter identitet under redigering, OG et promoveret id bevares, så det kan
-    // genindtræde efter et undo — ellers mister fokusrestoren sit mål (UT-F03). Tabellen havde tidligere sin
+    // genindtræde efter et undo — ellers mister fokusrestoren sit mål. Tabellen havde tidligere sin
     // egen kopi af proceduren.
     const committedIdSet = React.useMemo(() => new Set(committedRows.map((row) => row.id)), [committedRows]);
     const placeholderCount = Math.max(1, MIN_VISIBLE_ROWS - committedRows.length);
@@ -275,7 +275,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     }, []);
 
     // "Indtastning mangler" bruger SAMME visuelle idiom som en fejlflash frem for at overtage
-    // placeholderens semantiske ansvar (UT-F06, brugergodkendt 2026-07-28): cellen scrolles ind og blinker
+    // placeholderens semantiske ansvar: cellen scrolles ind og blinker
     // rødt, mens placeholderen fortsat kun viser værdiens FORM (`mm`/`åååå`/`uu/åååå`/`dd-mm-åååå`).
     // Markeringen er ikke en feltfejl (§1.7) — den gør ikke feltet rødt og blokerer intet; den lokaliserer
     // blot cellen, og `missingCell`-effecten ovenfor rydder den, så snart værdien er indtastet.
@@ -406,7 +406,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
               <tr key={rowId} data-mineo-row-id={rowId} style={getStandardGridBodyRowStyle(rowIndex)}>
                 {/* Periode fra. `mm` på månedscellen er en ægte FORMAT-override: kolonnen viser måneden
                     alene, og heltalsfamilien kender ikke den form. Uge-, dato- og årscellerne arver
-                    deres families rene form og får derfor INGEN placeholder-prop her (UT-F06). */}
+                    deres families rene form og får derfor INGEN placeholder-prop her. */}
                 <td style={getCellStyle(rowId, COL.period0, { ...getStandardGridCellStyle({ align: 'center' }) })}>
                   {loenperiode === 'maaned' ? (
                     <GridIntegerCell
@@ -526,5 +526,4 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 StandardLoenTable.displayName = 'StandardLoenTable';
 
 export default StandardLoenTable;
-
 

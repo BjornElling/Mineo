@@ -6,8 +6,7 @@ import { parseCurrentEnvelope } from './currentSessionEnvelope';
 import type { SlimInputStore } from './slimInputStore';
 import { hydrateInputStoreOnce } from './dispatchInput';
 
-// Input-runtime (§3.10): hydrér ÉN gang før React-render fra den ene current-only envelope. Ingen
-// legacy-session-læsning, adresseoversættelse, dual-read eller kompatibilitetsdialog. Begge app-entrypoints
+// Hydrér ÉN gang før React-render fra den ene current-only envelope (§3.10). Begge app-entrypoints
 // kalder denne før render mod den samme runtime; provider-remount hydrerer aldrig igen.
 
 export type InputRuntimeStartupNotice = Readonly<{
@@ -25,7 +24,7 @@ export type InputRuntimeStartup = Readonly<{
  * er domæneneutral og anvender kun resultatet som den hydrerede baseline (ingen ekstra revision/history-frame).
  * Resultatet valideres gennem `catalog.validateSettledInput`, så en seed aldrig kan bryde envelope-invarianterne.
  *
- * Signaturen giver bevidst IKKE domænet den rå `SettledInput` (R5-F02). Den gjorde det før, og seeden måtte
+ * Signaturen giver bevidst IKKE domænet den rå `SettledInput`. Den gjorde det før, og seeden måtte
  * derfor spread'e `empty.sections` — altså udøve netop den rå-sektions-capability, `domain/raw-section-access-
  * boundary` erklærer, at kun `src/inputCore/` har. En seed skal kunne sige HVAD der seedes, ikke bygge
  * aggregatet: den returnerer en partial sektions-map, og kernen ejer konstruktionen og frysningen.

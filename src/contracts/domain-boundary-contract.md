@@ -186,6 +186,8 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 9. Manglende, schema-ugyldig eller runtime-fejlende import-context, mens togglen er aktiveret,
    skal give en eksplicit blokerende issue. Tilstanden må ikke maskeres som "ingen relevante
    EET-rækker".
+   Importens feltissues bindes til de konkrete top-level- og rækkerefs, importprojektionen læser; en bred
+   sektionsscan eller et parallelt inventar af tekst-id'er er ikke en gyldig dependency-grænse.
 10. Virtuelle rækker injiceres aldrig i inputaggregatet. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en — så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
 
 ---

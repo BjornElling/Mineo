@@ -47,7 +47,7 @@ export const collectionOwnerEntityIds = (collection: CollectionRef): readonly st
  * Udtrykket er eksporteret, fordi der er TO legitime aftagere: celle-spec-byggeren nedenfor (redigering) og
  * den fælles løntabel-reader-adapter (rekonstruktion + cellefejl). Begge skal binde IDENTISK — kunne de
  * divergere, ville en celle blive redigeret på én adresse og læst på en anden, og fejlen ville vise sig som
- * en lydløst tom celle (jf. INC-F01). Derfor er reglen ét udtryk og ikke en gentaget `bind(...)`-linje.
+ * en lydløst tom celle. Derfor er reglen ét udtryk og ikke en gentaget `bind(...)`-linje.
  */
 export const bindCollectionCell = <T>(
   collection: CollectionRef,

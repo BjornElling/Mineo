@@ -73,6 +73,8 @@ Issues persisteres hverken i `.eo`, `sessionStorage` eller history. De genaflede
 En projektion bærer sine relevante issues i både `ready`- og `blocked`-grenen. Blockers er en kontekstafhængig
 delmængde: samme feltfejl kan gøre én consumer uanvendelig, mens en uafhængig consumer forbliver `ready`.
 Beregningsblokering lagres derfor ikke som et flag på issueet, men følger af hvilke refs consumeren faktisk læser.
+En flerfeltsprojektion opsamler issues under sine konkrete `FieldRef`-reads. En offentlig sektionsvis issueport og
+efterfølgende tekstfiltrering er forbudt; dynamiske rækker enumereres som konkrete refs, før de læses.
 
 `.eo`-save-gaten er strukturel: **ethvert aktivt relevant rejected input blokerer `.eo` globalt**, mens et rødt issue på
 schema-gyldigt canonical input ikke blokerer save. `missing` og warnings blokerer heller aldrig `.eo`. Dokument-/

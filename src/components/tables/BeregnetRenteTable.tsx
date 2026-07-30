@@ -74,7 +74,7 @@ const ENHED_OPTIONS: readonly { value: TillaegstidEnhed; label: string }[] = [
 const COL = { belob: 0, renterFra: 1, tillaegstid: 2, enhed: 3 } as const;
 
 /**
- * Tillægstidens fortegns-politik, læst af feltets EGET codec (UT-F08).
+ * Tillægstidens fortegns-politik, læst af feltets EGET codec.
  *
  * Modulniveau, fordi politikken er en statisk egenskab ved descriptoren og ikke afhænger af rækken — så
  * opslaget ikke gentages pr. celle-render. Cellen bruger `GridTextCell` direkte (den er 50 px bred og
@@ -163,7 +163,7 @@ const BeregnetRenteRow = React.memo(
                 <GridTextCell<number | undefined>
                   gridCell={gc(COL.tillaegstid)}
                   cell={buildCellSpec<number | undefined>(renderRow, rentekravTillaegstidField, COL.tillaegstid)}
-                  // Politikken læses af descriptoren (UT-F08); `tillaegstid` er 0..99 og altså ikke-negativ.
+                  // Politikken læses af descriptoren; `tillaegstid` er 0..99 og altså ikke-negativ.
                   // Callsitet hardkodede før `true` i strid med feltets egen erklæring.
                   keyFilter={(e) => filterIntegerKeyDown(e, { allowNegative: TILLAEGSTID_ALLOWS_NEGATIVE })}
                   placeholder="0"
@@ -281,8 +281,8 @@ const BeregnetRenteTable = React.memo(
     // Tomme rækker persisteres ikke. Legacy viste altid præcis én trailing tom række
     // (ensureRowsWithTrailingEmpty); den trailing placeholder er nu den ene indtastningsklare række.
     //
-    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` (GM-F14) — tabellen havde tidligere sin egen
-    // kopi. Puljen bevarer et promoveret id, så det kan genindtræde efter et undo (UT-F03).
+    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` — tabellen havde tidligere sin egen
+    // kopi. Puljen bevarer et promoveret id, så det kan genindtræde efter et undo.
     const committedIdSet = React.useMemo(() => new Set(sortedCommittedRows.map((row) => row.id)), [sortedCommittedRows]);
     const placeholderIds = usePlaceholderSlotIds(committedIdSet, 1, createRentekravRowId);
 

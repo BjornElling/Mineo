@@ -21,7 +21,7 @@ import { resolveFieldIssueText } from '../fieldIssueText';
 //
 // Tastaturkontrakten er IKKE en egenskab ved denne komponent: både Container og grid-navigationen
 // klassificerer den som popup-kontrol ud fra `StyledDropdown`s ARIA-semantik gennem
-// `popupWidgetSemantics`, så Enter åbner menuen frem for at flytte cellefokus (UT-F02).
+// `popupWidgetSemantics`, så Enter åbner menuen frem for at flytte cellefokus.
 
 const TABLE_DROPDOWN_TEXT_PADDING_LEFT = '14px';
 
@@ -44,7 +44,7 @@ export type GridChoiceCellProps<
   placeholder?: string;
   /**
    * Collection-afledt feltissue (fx identiske afgørelser) med rigtig feltadresse — ikke en fri fejltekst
-   * (GM-F06). Descriptorens eget issue har forrang (§1.8).
+   * Descriptorens eget issue har forrang (§1.8).
    */
   collectionRuleIssue?: FieldIssue;
   sx?: SxProps<Theme>;

@@ -1,15 +1,11 @@
 /**
- * Standalone MinProcesrentes tre dokumentdefinitioner (Fase 5, pass 6;
- * `document-output-contract.md` §A2a).
+ * Standalone MinProcesrentes tre dokumentdefinitioner.
  *
  * De tre outputs er `standalone-rente` (én rentekrav-række), `standalone-rente-alle` (alle rækkers
  * specifikationer samlet i ÉT dokument — kun mobil) og `standalone-rente-oversigt` (oversigtstabellen).
  *
- * **Hvad Fase 5 retter her.** Standalone havde INGEN commit-barriere og ingen gate: `handleDownload*`
- * i `MinProcesrenteCalculatorPage` kaldte `standaloneRentePdfService.ts` direkte med rækkedata, som
- * `RenteberegningTab` allerede havde beregnet, og servicelaget nøjedes med en
- * friskheds-closure. Nu går alle tre gennem den samme livscyklus som hovedappens 18, med den
- * ENE forskel, at miljøet er standalones (fast PDF, intet brevhoved, lokal fejl-sink).
+ * Alle tre går gennem den fælles commit-, gate- og friskhedslivscyklus. Standalones miljø afviger
+ * kun ved at have fast PDF-format, intet brevhoved og en lokal fejlsink.
  *
  * **Hvorfor projektionen genlæses her og ikke genbruges fra hovedappens definitioner.** Mineos
  * `renteberegningDocumentDefinitions.ts` kræver `SourceSettings` og en `stamdata`-dependency,
@@ -168,7 +164,7 @@ export const standaloneRenteDocumentDefinition: StandaloneDocumentDefinition<
     };
   },
   /**
-   * Datoerne gives videre CANONICAL (§WI-011): begge rente-generatorer tager nu `ISODateString`, så
+   * Datoerne gives videre CANONICAL: begge rente-generatorer tager nu `ISODateString`, så
    * konverteringen til dansk format — og dens fail-closed-guard — er faldet væk her.
    */
   loadRenderer: async () => {
@@ -190,7 +186,7 @@ export const standaloneRenteDocumentDefinition: StandaloneDocumentDefinition<
   },
 });
 
-// `requireDanishDate` er slettet med §WI-011: den fail-closede på en ISO→dansk-konvertering, der ikke længere
+// En særskilt `requireDanishDate`-guard ville fail-close på en ISO→dansk-konvertering, der ikke
 // findes. Generatoren tager canonical ISO, så formatuenigheden er urepræsenterbar frem for noget en guard pr.
 // callsite skal fange.
 
@@ -283,7 +279,7 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
         for (const [index, row] of input.rows.entries()) {
           if (index > 0) composer.addPage();
 
-          // Canonical ISO parses DIREKTE (§WI-011). Vejen gik tidligere ISO → dansk streng → `Date`, altså
+          // Canonical ISO parses DIREKTE. Vejen gik tidligere ISO → dansk streng → `Date`, altså
           // to formatskift for at nå den samme dato — og et `?? ''`, der gjorde en manglende konvertering til
           // en "ugyldig dato" frem for til en typefejl.
           const startDate = parseISODate(row.actualInterestDate);

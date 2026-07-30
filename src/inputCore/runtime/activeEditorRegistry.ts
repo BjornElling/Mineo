@@ -1,10 +1,9 @@
-// Input-runtime (§2.2.1/§3.5): der findes højst ÉN aktiv persisted editor pr. app-runtime. Dette register
-// er erstatningen for den legacy multi-deltager-`CriticalActionCoordinator`. Fordi der efter §3.5
-// kun findes én felt-editor-state-machine ad gangen, holder registret kun den ene aktive editors settle-kald +
+// Der findes højst ÉN aktiv persisted editor pr. app-runtime (§2.2.1/§3.5). Registret holder den
+// aktive editors settle-kald,
 // isEditing-probe samt fokusmål for fail-closed-feedback.
 //
 // Registret ejer INGEN parsing, validering eller persistence (jf. critical-action-contract §2). Det er en ren
-// beholder: React-adapteren (Fase 2.3) registrerer den åbne editor med et settle-kald, der internt kører
+// beholder: React-adapteren (inputkernen) registrerer den åbne editor med et settle-kald, der internt kører
 // state-machinens `settleEditor` → `settleIntentToCommand` → `dispatchInput`. Coordinatoren kalder KUN settle;
 // den kender ikke felt, codec eller command.
 
@@ -52,5 +51,5 @@ export class ActiveEditorRegistry {
   }
 }
 
-/** Mineo-runtime-singleton. Standalone tilkobles først ved sin atomiske runtime-cutover. */
+/** Mineo-runtime-singleton. */
 export const activeEditorRegistry = new ActiveEditorRegistry();

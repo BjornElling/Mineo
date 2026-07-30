@@ -26,19 +26,18 @@ import {
 } from '../utils/persistenceLoadApply';
 import type { SaveSnapshot } from '../utils/fileSaveTypes';
 import { focusFirstBlockingRejectedField } from '../inputCore/react/saveBlockedFocus';
+import { getProductionInputCatalog } from '../inputCore/catalog/productionCatalog';
 import type { CaseOperations } from '../inputCore/react/useCaseOperations';
 import type { ResetResidue } from '../persistence/caseResetOperations';
 import type { CriticalActionCoordinator } from '../inputCore/runtime/criticalActionCoordinator';
 import { logWarning } from '../utils/logger';
 
-// Shellen-use-case (WI-002 trin 2, §1.4/§3.9/§3.10): save/load/`Slet alt` mod input-runtime.
-// Det PUBLIC interface (`UseFileSaveLoadResult`) er bevaret uændret, så `MainLayout`/`usePwaLaunchQueue` og
-// dialogerne er urørte. Til forskel fra legacy:
+// Shellens use-case for save/load/`Slet alt` mod input-runtime:
 //  - `.eo`-save går gennem `ops.file.evaluateSave()` (rejected råinput blokerer; canonical bounds-fejl kan gemmes,
 //    §1.6), ikke gennem en field-error-store-scanning.
-//  - Load/`Slet alt` routes gennem `CriticalActionCoordinator` + den ene replacement-command
-//    (`ops.file.applyLoadedSnapshot` / `ops.reset.clearAll`), aldrig gennem legacy `replaceAllPersistedData`.
-//  - Den rebasede §1.4-matrix har INGEN `block`-policy for load: `prepare('load')` settler ikke og blokerer
+//  - Load/`Slet alt` routes gennem `CriticalActionCoordinator` og den ene replacement-command
+//    (`ops.file.applyLoadedSnapshot` / `ops.reset.clearAll`).
+//  - §1.4 har INGEN `block`-policy for load: `prepare('load')` settler ikke og blokerer
 //    aldrig. Fokus-før-handling fanges her i use-casen via `document.activeElement`, fordi `prepare`
 //    ikke længere returnerer et `focusTargetBeforeAction`.
 
@@ -74,7 +73,7 @@ export type PwaLoadOutcome = 'busy' | 'cancelled' | 'preflight' | 'awaitingUser'
 type FileOperationKind = 'save' | 'manual-load' | 'pwa-load';
 
 /**
- * Den injicerede filkilde til den fælles load-shell (GM-F13). Alt, hvad de to entrypoints deler, ligger i
+ * Den injicerede filkilde til den fælles load-shell. Alt, hvad de to entrypoints deler, ligger i
  * `runLoadShell`; dette er præcis det, der sagligt adskiller manuel filvælger fra PWA-launch.
  */
 type LoadShellSource = Readonly<{
@@ -169,8 +168,8 @@ const buildPreflightBugReportError = (result: PreflightFileResult): Error => {
 };
 
 /**
- * Beskeden ved en `Slet alt`, hvor sagsinputtet ER ryddet, men en tilknyttet oprydning ikke kunne verificeres
- * (R4-F02). Den skal sige begge dele: hvad der bevisligt er slettet, og hvad der kan bestå — appen må ikke
+ * Beskeden ved en `Slet alt`, hvor sagsinputtet ER ryddet, men en tilknyttet oprydning ikke kunne verificeres.
+ * Den skal sige begge dele: hvad der bevisligt er slettet, og hvad der kan bestå — appen må ikke
  * love "alt data slettet", når en rest kan hydrere ind i den næste sag.
  */
 const buildResetResidueMessage = (residue: readonly ResetResidue[]): string => {
@@ -232,7 +231,7 @@ export const useFileSaveLoad = ({
   // autoritative `replaceCase`-command, indpakket i coordinatorens `applyReplacement` (no-settle, draften
   // kasseres først efter et succesfuldt apply, §1.4/§7).
   //
-  // De to faser er BEVIDST adskilt (R4-F01): kun den synkrone apply ligger inde i replacement-barrieren, hvor
+  // De to faser er BEVIDST adskilt: kun den synkrone apply ligger inde i replacement-barrieren, hvor
   // draft-discard hører til. Metadata-/filhåndtags-/PWA-synkroniseringen (§4.1) er asynkron og ejer ikke
   // sagsinput; lå den inde i barrieren, kunne brugeren åbne og redigere et felt i den netop indlæste sag,
   // mens dens awaits kørte — og den nye draft blev derefter kasseret.
@@ -284,7 +283,12 @@ export const useFileSaveLoad = ({
       // canonical bounds/rule-fejl og manglende felter tillader save (§1.6).
       const saveOutcome = ops.file.evaluateSave();
       if (saveOutcome.status === 'blocked') {
-        void focusFirstBlockingRejectedField(saveOutcome.rejectedAddresses, currentPathname, navigate);
+        void focusFirstBlockingRejectedField(
+          saveOutcome.rejectedAddresses,
+          currentPathname,
+          navigate,
+          getProductionInputCatalog().resolveFieldLocation
+        );
         showOverlay({
           message: 'Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.',
           type: 'warning',
@@ -351,7 +355,7 @@ export const useFileSaveLoad = ({
   ]);
 
   /**
-   * Den ENE load-shell-procedure (GM-F13). Manuel filvælger og PWA-launch er to sagligt forskellige KILDER,
+   * Den ENE load-shell-procedure. Manuel filvælger og PWA-launch er to sagligt forskellige KILDER,
    * ikke to loadflows: busy-start, `prepare('load')`, dialog-nulstilling, kildeindlæsning, preflight-forgrening,
    * apply, fejlvisning og cleanup er den samme kæde og lå før i to kopier. Kun det, der faktisk adskiller de to
    * — `LoadShellSource` — er en parameter; udfaldet returneres i PWA-fladens sprog, som den manuelle flade
@@ -499,10 +503,10 @@ export const useFileSaveLoad = ({
     try {
       // §7/§1.12: `Slet alt` gennem replacement-grænsen (no-settle; draften kasseres først ved
       // succes) — dette er også recovery-vejen ud af en `writesBlocked` current-session. Porten ejer HELE
-      // transaktionen: input, sagsnær UI-sessionstate og filhåndtag (R4-F02), og rapporterer eventuelle rester.
+      // transaktionen: input, sagsnær UI-sessionstate og filhåndtag, og rapporterer eventuelle rester.
       const clearResult = await ops.reset.clearAll();
 
-      // GM-F12/beslutning 4: handlingen afsluttes INDE i appen, som fil-load — samme autoritative
+      // Handlingen afsluttes INDE i appen, som fil-load — samme autoritative
       // replacement-grænse skal ikke ende to forskellige steder. Den fulde `window.location`-genindlæsning er
       // fjernet, og med den behovet for at bære beskeden gennem sessionStorage og for at undertrykke
       // unsaved-guardens beforeunload-advarsel (den nulstiller selv sin baseline på `replacementGeneration`).

@@ -40,7 +40,7 @@ export type PersistenceLoadApplyResult =
 export type ApplyLoadedSnapshot = (snapshot: PersistedSectionsSnapshot) => void;
 
 /**
- * Den SYNKRONE, autoritative halvdel af et load-apply (R4-F01). Skal køre inde i
+ * Den SYNKRONE, autoritative halvdel af et load-apply. Skal køre inde i
  * `CriticalActionCoordinator.applyReplacement`, så replacement-transaktionen og draft-discard er atomiske.
  * Kaster ved schema-/katalogafvisning, så apply-fejl aldrig efterlader en delvist erstattet sag —
  * og fordi den kaster INDE i barrieren, bevares den åbne draft.
@@ -64,7 +64,7 @@ export const applyAuthoritativeLoadSnapshot = (args: {
 /**
  * Den ASYNKRONE metadata-halvdel: filnavn, filhåndtag og PWA-request-oprydning (§4.1). Kører EFTER
  * replacement-barrieren er lukket, fordi den ikke ejer sagsinput og derfor ikke må holde draft-discard åben
- * mens brugeren kan begynde at redigere den netop indlæste sag (R4-F01). En fejl her er ikke en apply-fejl:
+ * mens brugeren kan begynde at redigere den netop indlæste sag. En fejl her er ikke en apply-fejl:
  * sagen ER indlæst, og brugeren får en advarsel om den manglende synkronisering.
  */
 export const synchronizeLoadMetadata = async (

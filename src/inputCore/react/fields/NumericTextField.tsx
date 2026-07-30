@@ -12,7 +12,7 @@ import { mergeSx } from '../../../utils/mergeSx';
 // Numerisk tekst-felt (§2.4/§3.5): den delte TYNDE skal for alle single-`<input>` numeriske
 // codec-familier (år, heltal, beløb, procent, brøk, uge). Præcis som `DateField`, men med et
 // familiespecifikt tegnfilter givet ind som prop i stedet for hardcodet. Parse/format/paste-normalisering
-// ejes af descriptorens codec; commit-intervaller og tværgående bounds er FELTVALIDATORER (Fase 3), ikke
+// ejes af descriptorens codec; commit-intervaller og tværgående bounds er FELTVALIDATORER (inputkernen), ikke
 // props. Komponenten modtager kun sin `field`/`location` + rendering-props (§2.4).
 
 export type NumericTextFieldProps<T> = Readonly<{
@@ -29,11 +29,11 @@ export type NumericTextFieldProps<T> = Readonly<{
   /** Draft-maks under indtastning (eftergivende over den kanoniske form). */
   maxDraftLength?: number;
   /**
-   * Tekstjustering i inputfeltet. `center` matcher år/heltal (legacy), `right` matcher beløb/procent (legacy
-   * tabular-nums, højrestillet). Default `center`.
+   * Tekstjustering i inputfeltet. `center` bruges til år/heltal, `right` til beløb/procent med
+   * tabular-nums. Default `center`.
    */
   textAlign?: 'center' | 'right';
-  /** Højrestil tabular-nums (matcher legacy beløbs-/procentfelter). Sættes automatisk ved `textAlign='right'`. */
+  /** Højrestil tabular-nums til beløbs-/procentfelter. Sættes automatisk ved `textAlign='right'`. */
   tabularNums?: boolean;
   /**
    * Enheds-adornment (kr./%) — den delte `InputUnitAdornment`. En funktion modtager draftens tomhed OG den
@@ -50,7 +50,7 @@ export type NumericTextFieldProps<T> = Readonly<{
    * egen celles værdi (fx feriegodtgørelsens relevans, der afhænger af den valgte reguleringsform).
    *
    * Bevidst et strukturelt `FieldIssue` og ikke en fri fejltekst: markering, tooltip, fokusnavigation og
-   * consumerblokering skal læse ÉN repræsentation af samme fejl (GM-F06). Descriptorens eget issue har
+   * consumerblokering skal læse ÉN repræsentation af samme fejl. Descriptorens eget issue har
    * forrang (§1.8), så dette vises kun, når feltet ikke selv har et format-/bounds-/rule-issue.
    */
   crossFieldIssue?: FieldIssue;

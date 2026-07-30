@@ -93,6 +93,9 @@ export {
   type EOAngivetLoenLoenudvikling,
   erstatningsopgoerelseSchema,
   type ErstatningsopgoerelseValues,
+  persistedErstatningsopgoerelseSchema,
+  type PersistedErstatningsopgoerelseValues,
+  type PersistedLoenindkomstAnsaettelsesforhold,
 } from './formSchemas/sections/erstatningsopgoerelseSchemas';
 export {
   aslAfgoerelseRowSchema,

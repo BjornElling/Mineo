@@ -2,7 +2,7 @@ import type { FieldCodec, FieldSignPolicy } from '../../fieldCodec';
 import type { FieldRef } from '../../fieldDescriptor';
 
 /**
- * Den ENE vej fra et felts descriptor til dens fortegns-politik (UT-F08).
+ * Den ENE vej fra et felts descriptor til dens fortegns-politik.
  *
  * **Fundet, denne modul lukker.** `allowNegative` var erklæret på hvert numerisk codec i produktionskataloget
  * — 30+ steder — og honoreret af INGENTING. Hver feltkomponent hardkodede i stedet sit eget svar:
@@ -18,7 +18,7 @@ import type { FieldRef } from '../../fieldDescriptor';
  * erklæret, til det sted, den skal virke. To flader af samme feltfamilie kunne derfor svare forskelligt uden
  * at noget blev rødt.
  *
- * Politikken læses nu HER, af begge surfaces, fra `field.descriptor.codec.signPolicy`. En ny numerisk
+ * Politikken læses HER af begge flader fra `field.descriptor.codec.signPolicy`. En ny numerisk
  * feltkomponent kan ikke længere vælge selv — og et nyt descriptor-felt får automatisk den rigtige adfærd på
  * både formular og grid.
  *

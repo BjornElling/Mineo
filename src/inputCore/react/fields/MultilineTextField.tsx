@@ -10,7 +10,7 @@ import { mergeSx } from '../../../utils/mergeSx';
 
 // Flerlinjet tekst-felt (§2.4/§3.5): en TYND skal over `useFormFieldSurface` + `StyledTextAreaBase`.
 // Grid-pendanten til `TextField`, men med en <textarea>. Modtager KUN sin `field`/`location`; al
-// datamodel-logik ligger i codec'et + editor-engine + runner. Erstatter legacy `StyledTextField multiline`.
+// datamodellogik ligger i codec'et, editor-engine og runner.
 
 export type MultilineTextFieldProps = Readonly<{
   field: FieldRef<string | undefined>;

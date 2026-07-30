@@ -15,7 +15,7 @@ import {
 //
 // Tidligere implementerede hvert domæne også `readRows` og `resolveValidation` — to næsten identiske
 // reader-adaptere (Årsløn + EO), hvis eneste forskel var, om cellen bindes med `(rowId)` eller
-// `(ejerId, rowId)` (GM-F15). Forskellen er unødvendig: ejer-id'erne står i collectionens egen sti, præcis
+// `(ejerId, rowId)`. Forskellen er unødvendig: ejer-id'erne står i collectionens egen sti, præcis
 // som `cellSpecBuilder` udleder dem. Begge afledninger er derfor nu generiske over feltsættet, og der findes
 // ÉT sted, hvor en løntabelrække rekonstrueres, og ÉT sted, hvor dens cellefejl samles.
 
@@ -43,7 +43,7 @@ export type StandardLoenTableFieldSet = Readonly<{
  *
  * At de to deler udtryk er ikke kosmetik: cellen skal LÆSES på præcis den adresse, den REDIGERES på.
  * Divergerede de, ville brugeren skrive i en celle, hvis værdi rekonstruktionen aldrig fandt — en lydløst
- * tom celle (jf. INC-F01). Det er også grunden til, at de to reader-adaptere kunne samles: en top-level
+ * tom celle. Det er også grunden til, at de to reader-adaptere kunne samles: en top-level
  * collection giver `[]` ejere → `bind(rowId)`, en nested giver `[ejerId]` → `bind(ejerId, rowId)`.
  */
 const bindCell = <T>(

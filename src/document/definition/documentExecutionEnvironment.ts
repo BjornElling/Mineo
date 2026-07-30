@@ -1,5 +1,5 @@
 /**
- * App-runtime bag dokument-livscyklussen (Fase 5, pass 0).
+ * App-runtime bag dokument-livscyklussen.
  *
  * **Hvorfor dette findes.** Kernen var oprindeligt skrevet som fællesmængden af de 18
  * `download*Dokument`-funktioner, og den arvede derfor deres forudsætninger som om de var
@@ -28,7 +28,7 @@ import type { DocumentDiagnostics, DocumentFailure } from './documentOutcome';
  * definitionerne i det pågældende domæne ved, hvilken form deres egen app leverer, og typerne bindes
  * derfor i miljøet (`DocumentExecutionEnvironment<TGateSettings, TRenderSettings>`) frem for i kernen.
  *
- * **Hvorfor TO halvdele (R6-F03).** Snapshottet bar før ét `settings`-objekt, som både gik ind i
+ * **Hvorfor TO halvdele.** Snapshottet bar før ét `settings`-objekt, som både gik ind i
  * definitionens `project` OG blev brugt til formatvalg og brevhoved efter gaten. Fordi hovedappens
  * objekt var hele `SourceSettings`, kunne enhver definition lovligt læse `documentDownloadFormat` i
  * sin gate — altså gøre samme sag `ready` som PDF og `blocked` som Word. Det ville ikke blive fanget
@@ -39,7 +39,7 @@ import type { DocumentDiagnostics, DocumentFailure } from './documentOutcome';
  * brevhoved, som kun miljøet læser EFTER gaten har sagt ready. En formatafhængighed i en gate er
  * dermed en compilerfejl (TS2339) frem for en regel, et værn skal overvåge.
  *
- * **Begge halvdele optages i samme kald.** Det er R6-F01's invariant: læses de to på hver sit
+ * **Begge halvdele optages i samme kald.** Det er en atomisk invariant: læses de to på hver sit
  * tidspunkt, kan et nyere settingsrevision-token parres med et ældre format-/regelobjekt, og intet
  * friskhedscheck kan fange det, fordi tokenet ser aktuelt ud.
  */
@@ -63,7 +63,7 @@ export type DocumentBrevhovedPolicy<TBrevhovedKey extends string> =
 /**
  * Appens runtime-politik.
  *
- * `readCurrentSourceToken` er trust-kritisk: den er den AUTORITATIVE friskhedskilde. Før pass 0
+ * `readCurrentSourceToken` er trust-kritisk: den er den AUTORITATIVE friskhedskilde. Før den aktuelle implementering
  * stolede afvikleren på en friskheds-closure, der blev leveret sammen med det godkendte
  * input — altså kunne den, der leverede inputtet, også levere sin egen definition af "frisk". Nu
  * læser afvikleren tokenet fra miljøet og sammenligner selv.

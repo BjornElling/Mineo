@@ -1,7 +1,7 @@
 /**
  * Format-placeholders pr. semantisk feltfamilie: ÉN kilde til "hvilken FORM har værdien?".
  *
- * Reglen er normativ (UT-F06, brugerens udtrykkelige krav): en placeholder beskriver **udelukkende værdiens
+ * Reglen er normativ: en placeholder beskriver **udelukkende værdiens
  * form** — `mm`, `åååå`, `uu/åååå`, `dd-mm-åååå`, `0,00`. Den må ALDRIG bære
  *
  * - en valideringsgrænse (`åååå (≤2026)` — den konkrete regression fundet lukkede),

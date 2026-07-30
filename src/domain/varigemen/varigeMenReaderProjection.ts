@@ -29,7 +29,7 @@ import type { VarigeMenBeregningResult } from './varigeMenCalculations';
 //    (§1.7) — vises i contentboxen, blokerer kun denne consumer, ingen rød feltmarkering.
 //  - `computeVarigeMenEngine` køres UÆNDRET på de reader-læste værdier → nul talændring (§5.4 hårdt stop). Et
 //    gyldigt input uden lovsats for beregningsåret giver `beregningsResultat: null` inden for en `ready`
-//    projektion (ingen rød fejl, ingen missing), præcis som legacy viste et tomt resultat.
+//    projektion (ingen rød fejl, ingen missing), så visningen bliver tom.
 
 const mengradRef: FieldRef<number | undefined> = varigeMenMengradField.bind();
 const beregningsdatoRef: FieldRef<ISODateString | undefined> = varigeMenBeregningsdatoField.bind();
@@ -39,7 +39,7 @@ const fodselsdatoRef: FieldRef<ISODateString | undefined> = stamdataSkadelidteFo
 /**
  * Motorens typede input. At det er en NAVNGIVEN type frem for fire lokale variabler er hele pointen: den
  * gør `ready`-overgangen til en typegrænse. Kan et fremtidigt read ikke leveres, findes typen ikke, og
- * motorkaldet kompilerer ikke — modsat en lokal `if`-guard, som skal huskes udvidet (GM-F07).
+ * motorkaldet kompilerer ikke — modsat en lokal `if`-guard, som skal huskes udvidet.
  */
 type VarigeMenEngineInput = Readonly<{
   mengrad: number;
@@ -67,7 +67,7 @@ export const buildVarigeMenReaderProjection = (reader: InputReader): VarigeMenRe
   // motoren KUN i ready-grenen. Motoren ligger BEVIDST uden for kroppen: kroppen udføres, FØR statussen er
   // afgjort, så et motorkald derinde ville køre også når projektionen ender blokeret (§3.9). Tidligere lå
   // kaldet inde i kroppen bag fire manuelle undefined-guards; de dækkede de fire aktuelle dependencies, men
-  // sikkerheden hvilede på, at et fremtidigt read også blev tilføjet til guarden (GM-F07).
+  // sikkerheden hvilede på, at et fremtidigt read også blev tilføjet til guarden.
   mapReadyProjection(
     runProjection(reader, VARIGE_MEN_DOCUMENT_CONSUMER_ID, (collector): VarigeMenEngineInput | undefined => {
       // require registrerer en rød feltfejl som blocker OG et tomt felt som `missing`. En `unavailable`-læsning

@@ -56,9 +56,9 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) mod den ene den ene write-grænse.
   useUndoRedoShortcuts();
 
-  // Dokument-download (Fase 5): de tre standalone-outputs komponeres her mod standalones eget
+  // Dokument-download: de tre standalone-outputs komponeres her mod standalones eget
   // miljø (fast PDF, intet brevhoved, lokal fejl-sink) og videregives som færdige handles til den
-  // delte fane. Før Fase 5 kaldte siden `standaloneRentePdfService` direkte, uden commit-barriere
+  // delte fane. Tidligere kaldte siden `standaloneRentePdfService` direkte, uden commit-barriere
   // og uden gate.
   const documentContext = useStandaloneDocumentSourceContext();
   // Rækkeknappernes reaktive gate kommer fra tabellens projektion, ikke fra dette handle; jf. noten
