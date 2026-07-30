@@ -3,10 +3,13 @@ import { Box, Button, CircularProgress, Tooltip, Typography } from '@mui/materia
 import { Download } from '@mui/icons-material';
 import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
 import { DOWNLOAD_DISABLED_TOOLTIP, getDocumentFormatLabel, type DocumentDownloadFormat } from '../../../document/documentFormat';
+import { PageMessageRow } from '../../layout/PageMessageBox';
+import type { PageMessage } from '../../layout/pageMessage';
 
 interface SpecifikationDownloadBoxProps {
   onDownloadAll: () => Promise<void>;
-  errorMessage: string | null;
+  /** `PageMessage`, ikke `string | null`: fejllinjen kan da ikke vises uden indhold. */
+  errorMessage: PageMessage;
   isLoading: boolean;
   disabled?: boolean;
   ContentBoxComponent: ContentBoxComponent;
@@ -26,14 +29,7 @@ const SpecifikationDownloadBox = React.memo(({
   return (
     <ContentBoxComponent className="content-box">
       <Typography className="section-header">Specifikationer</Typography>
-      {errorMessage && (
-        <Box className="row--label-right-hover">
-          <Typography className="row--text" sx={{ color: 'error.main' }}>
-            {errorMessage}
-          </Typography>
-          <Box className="row--label-right-hover__content" />
-        </Box>
-      )}
+      <PageMessageRow message={errorMessage} rightCellHasContentClass />
       <Box>
         <Tooltip title={disabled && !isLoading ? DOWNLOAD_DISABLED_TOOLTIP : ''}>
           <span>

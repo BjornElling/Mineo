@@ -6,6 +6,8 @@ import NumericTextField from '../../../inputCore/react/fields/NumericTextField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import InputUnitAdornment from '../../inputs/InputUnitAdornment';
 import ContentBox from '../../layout/ContentBox';
+import { PageMessageRow } from '../../layout/PageMessageBox';
+import { pageMessage } from '../../layout/pageMessage';
 import { filterIntegerKeyDown } from '../../inputs/inputKeyFilters';
 import { codecAllowsNegative } from '../../../inputCore/react/fields/signPolicy';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
@@ -161,7 +163,7 @@ const MenberegningTab = React.memo(() => {
   }, [download, focusFirstBlockingField, triggerDownloadShake]);
 
   // Gate-årsagen står allerede ved siden af knappen, og en blokering besvares her med shake + fokus.
-  const pdfErrorMessage = visibleDocumentFailureMessage(download);
+  const pdfErrorMessage = pageMessage(visibleDocumentFailureMessage(download));
 
   const formatSkadedato = (iso: string | undefined): string => {
     if (!iso) return 'Mangler (angiv i Stamdata)';
@@ -308,14 +310,7 @@ const MenberegningTab = React.memo(() => {
 
       <Typography className="row--subheading">Beregnet méngodtgørelse</Typography>
 
-      {pdfErrorMessage && (
-        <Box className="row--label-right-hover">
-          <Typography className="row--text" sx={{ color: 'error.main' }}>
-            {pdfErrorMessage}
-          </Typography>
-          <Box />
-        </Box>
-      )}
+      <PageMessageRow message={pdfErrorMessage} />
 
       {beregningsResultat && projectionData && (
         <Box className="row--label-right-hover">

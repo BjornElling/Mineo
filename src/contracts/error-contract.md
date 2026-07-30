@@ -154,6 +154,27 @@ skærmlæserbruger kan ikke se feltet, forkortelsen bygger på.
 Kontrolvisninger må gruppere alle relevante issues, men må ikke gætte fra beskedtekst. Links skal bruge issueets
 strukturelle fokusmål. Henvises til en anden side, er kun sidens navn klikbart.
 
+**En besked-boks findes kun MED indhold (normativ).** En fejl-/meddelelsesboks må aldrig være synlig uden en
+læsbar besked. En boks med overskrift og tom brødtekst er værre end ingen boks: den påstår en fejl, den ikke kan
+navngive, og brugeren har intet at handle på.
+
+Tilstedeværelse afgøres derfor af typen, ikke af truthiness. Boksens indhold er en `PageMessage`
+(`src/components/layout/pageMessage.ts`) — en diskrimineret union, hvor fravær er den eksplicitte variant
+`NO_MESSAGE`, og hvor `pageMessage()` normaliserer `null`/`undefined`/tom/whitespace til netop den. En
+tilstedeværende variant bærer altid ikke-tom, trimmet tekst.
+
+- Render KUN gennem `PageMessageBox` (selvstændig boks med overskrift) eller `PageMessageRow` (linje i en
+  eksisterende `ContentBox`). De ejer værnet — `hasPageMessage` — så en side ikke håndruller sit eget.
+- Et `??`-fallback på et besked-felt skal have besked-typen. Viewmodeller pinder deres besked-felter med
+  `withPageMessages<'…'>()`, så en forkert typet værdi bliver en compile-fejl frem for en tom boks.
+- Flere kilder til samme boks prioriteres med `firstPageMessage(...)`, ikke med `??`: `'' ?? b` giver `''`.
+
+Baggrund: Årsløns "Kritisk Fejl"-boks stod permanent og tom øverst på siden. Viewmodellen skrev `?? []` på et
+`string | null`-felt; et tomt array er truthy, så boksens håndrullede værn (`if (!beregningsFejl)`) slap
+igennem, og `{[]}` renderede lovligt til ingenting, fordi `string[]` er en gyldig `ReactNode`. Ingen af de tre
+lag — `??`, den inferede viewmodel-returtype eller truthiness-værnet — kunne se fejlen alene.
+Grænsen håndhæves af `ui/message-box-guarded-by-page-message` i AST-manifestet.
+
 ## 5. Konsekvens for save, beregning og dokumenter
 
 - En projektion kalder ikke beregningsmotoren, hvis et afhængigt issue gør input uanvendeligt.

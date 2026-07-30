@@ -106,7 +106,7 @@ export const inputWriteBoundary = defineRule({
           if (
             binding.startsWith('__')
             || (binding === 'slimInputStore'
-              && entry.relativePath !== 'src/inputCore/react.tsx')
+              && entry.relativePath !== 'src/inputCore/react/productionInputRuntime.tsx')
           ) {
             findings.push({
               position: ref.position,
@@ -121,7 +121,7 @@ export const inputWriteBoundary = defineRule({
           hydrateInputStoreOnce: ['src/inputCore/runtime/initializeInputRuntime.ts'],
           bumpInputSettingsRevision: [
             INPUT_STORE_OWNER,
-            'src/inputCore/react.tsx',
+            'src/inputCore/react/productionInputRuntime.tsx',
           ],
         };
         for (const binding of ref.namedBindings) {
@@ -769,7 +769,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
     // Hver sti skal desuden selv opfylde proben, altså faktisk NÆVNE et af navnene som identifier.
     requiredPaths: [
       SOURCE_SETTINGS_OWNER,
-      'src/inputCore/react.tsx',
+      'src/inputCore/react/productionInputRuntime.tsx',
       'src/domain/eoRowEvaluation/eoRowExecutionContext.ts',
       'src/document/runtime/react/useMineoDocumentEnvironment.ts',
     ],

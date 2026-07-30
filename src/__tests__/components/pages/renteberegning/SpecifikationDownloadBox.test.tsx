@@ -5,6 +5,7 @@ import SpecifikationDownloadBox from '../../../../components/pages/renteberegnin
 import { Box } from '@mui/material';
 import type { ContentBoxFrameProps } from '../../../../components/layout/ContentBoxFrame';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../../document/documentFormat';
+import { NO_MESSAGE, pageMessage } from '../../../../components/layout/pageMessage';
 
 const MockContentBox = ({ children, className }: ContentBoxFrameProps) => (
   <Box className={className}>{children}</Box>
@@ -15,7 +16,7 @@ describe('SpecifikationDownloadBox', () => {
     render(
       <SpecifikationDownloadBox
         onDownloadAll={vi.fn(async () => undefined)}
-        errorMessage={null}
+        errorMessage={NO_MESSAGE}
         isLoading={false}
         ContentBoxComponent={MockContentBox}
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
@@ -32,7 +33,7 @@ describe('SpecifikationDownloadBox', () => {
     render(
       <SpecifikationDownloadBox
         onDownloadAll={onDownloadAll}
-        errorMessage={null}
+        errorMessage={NO_MESSAGE}
         isLoading={false}
         ContentBoxComponent={MockContentBox}
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
@@ -48,7 +49,7 @@ describe('SpecifikationDownloadBox', () => {
     render(
       <SpecifikationDownloadBox
         onDownloadAll={vi.fn(async () => undefined)}
-        errorMessage="Kunne ikke generere PDF"
+        errorMessage={pageMessage('Kunne ikke generere PDF')}
         isLoading={false}
         ContentBoxComponent={MockContentBox}
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
@@ -62,7 +63,7 @@ describe('SpecifikationDownloadBox', () => {
     render(
       <SpecifikationDownloadBox
         onDownloadAll={vi.fn(async () => undefined)}
-        errorMessage={null}
+        errorMessage={NO_MESSAGE}
         isLoading={true}
         ContentBoxComponent={MockContentBox}
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
@@ -72,11 +73,29 @@ describe('SpecifikationDownloadBox', () => {
     expect(screen.getByRole('button', { name: /download som PDF/i })).toBeDisabled();
   });
 
+  it('tegner INGEN fejllinje for en tom/whitespace-besked', () => {
+    // `pageMessage('   ')` normaliserer til NO_MESSAGE, så boksen ikke kan få en fejllinje uden læsbart
+    // indhold. Det er den invariant, Årsløns tomme "Kritisk Fejl"-boks manglede.
+    const { container } = render(
+      <SpecifikationDownloadBox
+        onDownloadAll={vi.fn(async () => undefined)}
+        errorMessage={pageMessage('   ')}
+        isLoading={false}
+        ContentBoxComponent={MockContentBox}
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
+      />
+    );
+
+    // Overskriften står; fejlrækken gør ikke.
+    expect(screen.getByText('Specifikationer')).toBeInTheDocument();
+    expect(container.querySelector('.row--text')).toBeNull();
+  });
+
   it('viser fejlbesked selv om disabled=true', () => {
     render(
       <SpecifikationDownloadBox
         onDownloadAll={vi.fn(async () => undefined)}
-        errorMessage="Kunne ikke generere PDF"
+        errorMessage={pageMessage('Kunne ikke generere PDF')}
         isLoading={false}
         disabled={true}
         ContentBoxComponent={MockContentBox}

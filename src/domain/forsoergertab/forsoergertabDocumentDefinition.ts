@@ -9,7 +9,7 @@
  */
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
-import { blockedProjection, blockedProjectionForInvalidInput, toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjectionForInvalidInput, toGateReasons } from '../../document/definition/documentOutcome';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import { evaluateForsoergertabDownloadGate } from './forsoergertabDownloadGate';
 import { buildForsoergertabReaderProjection } from './forsoergertabReaderProjection';

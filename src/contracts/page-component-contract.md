@@ -437,6 +437,12 @@ gange. Reglen er tosidet, og begge halvdele skal holde:
   `handle.errorMessage` i udfaldsrækken. Vælges shake/fokus, er `visibleDocumentFailureMessage`
   den rigtige kilde til rækken; ellers `errorMessage` råt.
 
+Udfaldsrækken/-boksen bæres af en `PageMessage` og renderes af `PageMessageBox`/`PageMessageRow`, så den
+ikke kan blive synlig uden læsbart indhold. Viewmodellen pinder sine besked-felter med
+`withPageMessages<'…'>()` — nødvendigt, fordi sidens context-type er `ReturnType<typeof useXxxViewModel>`,
+altså inferensen selv, og en forkert typet besked derfor ikke har noget at afvige fra. Se
+`error-contract.md` §4 for invarianten og dens baggrund.
+
 **Teksten ejes af årsagen, ikke af fladen.** `DocumentDownloadGateReason.kind` afgør, hvad
 brugeren læser: `missing-input` viser den universelle `DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE`
 ("Indtastning mangler"), mens `specific` citeres ordret og er reserveret til en konkret,

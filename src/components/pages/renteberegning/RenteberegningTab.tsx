@@ -8,6 +8,8 @@ import MultilineTextField from '../../../inputCore/react/fields/MultilineTextFie
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
 import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
+import { PageMessageRow } from '../../layout/PageMessageBox';
+import { pageMessage } from '../../layout/pageMessage';
 import { isRentekravRowEmpty } from '../../../domain/renteberegning/rowEmpty';
 import type { DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 import {
@@ -212,14 +214,7 @@ const RenteberegningTab = React.memo(({
 
       <ContentBoxComponent className="content-box">
         <Typography className="section-header">Beregnet rente</Typography>
-        {renteDownload.errorMessage && (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text" sx={{ color: 'error.main' }}>
-              {renteDownload.errorMessage}
-            </Typography>
-            <Box className="row--label-right-hover__content" />
-          </Box>
-        )}
+        <PageMessageRow message={pageMessage(renteDownload.errorMessage)} rightCellHasContentClass />
         <Box sx={{ width: '100%', overflowX: { xs: 'hidden', sm: 'auto' }, overflowY: 'hidden' }}>
           <BeregnetRenteTable
             committedRows={committedRows}
@@ -236,14 +231,7 @@ const RenteberegningTab = React.memo(({
         </Box>
         {renderOversigtRow && (
           <>
-            {renteOversigtDownload?.errorMessage && (
-              <Box className="row--label-right-hover">
-                <Typography className="row--text" sx={{ color: 'error.main' }}>
-                  {renteOversigtDownload.errorMessage}
-                </Typography>
-                <Box className="row--label-right-hover__content" />
-              </Box>
-            )}
+            <PageMessageRow message={pageMessage(renteOversigtDownload?.errorMessage)} rightCellHasContentClass />
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download samlet oversigt</Typography>
               <Box className="row--label-right-hover__content">
@@ -291,7 +279,7 @@ const RenteberegningTab = React.memo(({
       {showDownloadAllBox && (
         <SpecifikationDownloadBox
           onDownloadAll={handleDownloadAll}
-          errorMessage={renteAlleDownload?.errorMessage ?? null}
+          errorMessage={pageMessage(renteAlleDownload?.errorMessage)}
           isLoading={downloadAllIsLoading}
           disabled={downloadAllDisabled}
           ContentBoxComponent={ContentBoxComponent}

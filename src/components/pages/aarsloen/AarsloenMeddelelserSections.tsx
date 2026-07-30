@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 
 import ContentBox from '../../layout/ContentBox';
+import { PageMessageBox } from '../../layout/PageMessageBox';
 import { useAarsloenVm } from './aarsloenContext';
 
 /**
@@ -10,20 +11,15 @@ import { useAarsloenVm } from './aarsloenContext';
  * De er BEVIDST tre selvstændige komponenter frem for én: rækkefølgen på siden er ikke sammenhængende. Den
  * kritiske fejl står ØVERST (før Satser), mens advarsler og dokument-fejl står mellem Beregningsprincipper og
  * Beregning. En samlet komponent kunne ikke gengive den placering uden at flytte noget synligt.
+ *
+ * De to fejlbokse ejer IKKE deres eget synlighedsværn — det ligger i `PageMessageBox`. Den kritiske boks stod
+ * tidligere permanent og tom øverst på siden, fordi den håndrullede værnet (`if (!beregningsFejl)`) på en værdi,
+ * hvor truthiness ikke betød "har indhold"; se `components/layout/pageMessage.ts`.
  */
 
 export const AarsloenKritiskFejlSection = React.memo(() => {
   const { beregningsFejl } = useAarsloenVm();
-  if (!beregningsFejl) return null;
-
-  return (
-    <ContentBox className="content-box">
-      <Typography className="section-header">Kritisk Fejl</Typography>
-      <Typography className="row--text" sx={{ color: 'error.main' }}>
-        {beregningsFejl}
-      </Typography>
-    </ContentBox>
-  );
+  return <PageMessageBox title="Kritisk Fejl" message={beregningsFejl} />;
 });
 
 AarsloenKritiskFejlSection.displayName = 'AarsloenKritiskFejlSection';
@@ -59,16 +55,7 @@ AarsloenAdvarslerSection.displayName = 'AarsloenAdvarslerSection';
 
 export const AarsloenDokumentFejlSection = React.memo(() => {
   const { downloadErrorMessage } = useAarsloenVm();
-  if (!downloadErrorMessage) return null;
-
-  return (
-    <ContentBox className="content-box">
-      <Typography className="section-header">Dokument-fejl</Typography>
-      <Typography className="row--text" sx={{ color: 'error.main' }}>
-        {downloadErrorMessage}
-      </Typography>
-    </ContentBox>
-  );
+  return <PageMessageBox title="Dokument-fejl" message={downloadErrorMessage} />;
 });
 
 AarsloenDokumentFejlSection.displayName = 'AarsloenDokumentFejlSection';

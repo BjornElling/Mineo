@@ -1892,3 +1892,147 @@ export const singleFieldIdentityInDomRule = defineRule({
     },
   ],
 });
+
+// --- Fejlbokse må ikke kunne vises uden indhold -------------------------------
+
+/**
+ * Modulet der ejer de kanoniske besked-bokse, og de to komponenter det udstiller.
+ */
+const PAGE_MESSAGE_VIEW_OWNER = 'src/components/layout/PageMessageBox.tsx';
+const PAGE_MESSAGE_COMPONENTS: readonly string[] = ['PageMessageBox', 'PageMessageRow'];
+
+/**
+ * Klasserne der KENDETEGNER en besked-/fejllinje i en ContentBox. Kombinationen er signaturen: en
+ * `row--text`-Typography, hvis farve er `error.main`, ER en fejllinje — uanset hvad variablen bagved hedder.
+ */
+const MESSAGE_ROW_CLASS = 'row--text';
+const ERROR_COLOR_TOKEN = 'error.main';
+
+/**
+ * Er noden en JSX-struktur, der tegner en RØD besked-linje?
+ *
+ * Måles på AST'et: en JSX-attribut `className="row--text"` i samme element-undertræ som strengen `error.main`.
+ * En kommentar, der blot nævner klasserne, kan derfor ikke bære — eller udløse — reglen.
+ */
+const containsRedMessageRow = (node: ts.Node): boolean => {
+  let hasMessageClass = false;
+  let hasErrorColor = false;
+
+  const visit = (current: ts.Node): void => {
+    if (ts.isStringLiteral(current) || ts.isNoSubstitutionTemplateLiteral(current)) {
+      if (current.text === MESSAGE_ROW_CLASS) hasMessageClass = true;
+    }
+    // `error.main` optræder som strengliteral i `sx={{ color: 'error.main' }}`.
+    if (ts.isStringLiteral(current) && current.text === ERROR_COLOR_TOKEN) hasErrorColor = true;
+    ts.forEachChild(current, visit);
+  };
+  visit(node);
+
+  return hasMessageClass && hasErrorColor;
+};
+
+/** Bruger filen en af de kanoniske besked-komponenter som RIGTIGT JSX-tag? */
+const usesPageMessageComponent = (entry: SourceEntry): boolean => {
+  let found = false;
+  const visit = (node: ts.Node): void => {
+    if (found) return;
+    if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))
+      && ts.isIdentifier(node.tagName)
+      && PAGE_MESSAGE_COMPONENTS.includes(node.tagName.text)) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return found;
+};
+
+export const messageBoxGuardedByPageMessageRule = defineRule({
+  id: 'ui/message-box-guarded-by-page-message',
+  description:
+    'En rød fejl-/beskedlinje på en fagside skal tegnes af `PageMessageBox`/`PageMessageRow` og dermed guardes '
+    + 'af `hasPageMessage`, ikke af en håndrullet truthiness-vurdering (`{x && …}` / `if (!x) return null`). '
+    + 'Årsløns "Kritisk Fejl"-boks stod permanent og TOM øverst på siden, fordi viewmodellen skrev `?? []` på '
+    + 'et `string | null`-felt: et tomt array er truthy, så det håndrullede værn slap igennem, og `{[]}` '
+    + 'renderede lovligt til ingenting. En boks med overskrift og intet indhold påstår en fejl, den ikke kan '
+    + 'navngive. `PageMessage` gør fraværet til en EKSPLICIT variant, så forvekslingen ikke kan gentages.',
+  liveTarget: {
+    kind: 'precondition',
+    // Målet er de kanoniske komponenters ejer PLUS mindst én side, der faktisk bruger dem. Forsvinder ejeren,
+    // er mønsteret flyttet, og reglen skal skrives om frem for at stå grøn af tomhed.
+    probe: (entry) => entry.relativePath === PAGE_MESSAGE_VIEW_OWNER || usesPageMessageComponent(entry),
+    rationale:
+      'de kanoniske besked-komponenter findes stadig OG bruges af mindst én fagside; forsvinder ejeren, '
+      + 'er den ene render-vej for fejlbokse holdt op med at eksistere',
+    requiredPaths: [
+      PAGE_MESSAGE_VIEW_OWNER,
+      'src/components/pages/aarsloen/AarsloenMeddelelserSections.tsx',
+    ],
+  },
+  appliesTo: (relativePath) => relativePath.startsWith('src/components/pages/'),
+  // Ingen undtagelser. EO's "Fejl og advarsler"-boks tegner sin download-fejllinje med en ikon-celle frem for
+  // `error.main` og falder derfor uden for reglens signatur — den skal IKKE stå her som allowlist-post, for
+  // anti-rot-kontrollen kræver at hver post faktisk stadig udløser reglen. Det var netop den kontrol, der
+  // afviste en først-antaget undtagelse her.
+  allow: [],
+  find: (entry) => {
+    const findings: Finding[] = [];
+    const positionOf = (node: ts.Node): Finding['position'] => {
+      const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+      return { line: line + 1, column: character + 1 };
+    };
+
+    const visit = (node: ts.Node): void => {
+      // Mønsteret: `{cond && <JSX …>}` hvor JSX'en tegner en rød besked-linje.
+      if (ts.isJsxExpression(node) && node.expression !== undefined
+        && ts.isBinaryExpression(node.expression)
+        && node.expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+        && containsRedMessageRow(node.expression.right)) {
+        findings.push({
+          position: positionOf(node),
+          message:
+            'En rød besked-linje tegnes bag en håndrullet `{… && …}`-vurdering. Brug '
+            + '`<PageMessageRow message={pageMessage(…)} />` (eller `PageMessageBox` for en boks med '
+            + 'overskrift), så tilstedeværelsen afgøres af `hasPageMessage` og ikke af truthiness. En '
+            + 'truthy-men-tom værdi (fx `[]` fra en forkert typet fallback) gav ellers en tom fejlboks.',
+        });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(entry.ast);
+
+    return findings;
+  },
+  violatingFixtures: [
+    // Den konkrete fejl: en håndrullet betinget rød besked-linje.
+    {
+      relativePath: 'src/components/pages/x/XTab.tsx',
+      code: 'const C = () => <>{err && (<Box className="row--label-right-hover">'
+        + '<Typography className="row--text" sx={{ color: "error.main" }}>{err}</Typography></Box>)}</>;',
+    },
+    // Samme fejl uden den ydre Box — klassen + farven ER signaturen.
+    {
+      relativePath: 'src/components/pages/y/YTab.tsx',
+      code: 'const C = () => <>{msg && <Typography className="row--text" sx={{ color: "error.main" }}>{msg}</Typography>}</>;',
+    },
+  ],
+  cleanFixtures: [
+    // Den ønskede vej.
+    {
+      relativePath: 'src/components/pages/x/XTab.tsx',
+      code: 'const C = () => <PageMessageRow message={pageMessage(err)} />;',
+    },
+    // En betinget NEUTRAL række (ingen error.main) er ikke en fejlboks og rammes ikke.
+    {
+      relativePath: 'src/components/pages/x/XTab.tsx',
+      code: 'const C = () => <>{show && <Typography className="row--text">Download samlet oversigt</Typography>}</>;',
+    },
+    // En KOMMENTAR, der nævner mønsteret, må ikke udløse reglen.
+    {
+      relativePath: 'src/components/pages/x/XTab.tsx',
+      code: '// Tidligere: {err && <Typography className="row--text" sx={{ color: "error.main" }}>…</Typography>}\n'
+        + 'const C = () => <PageMessageRow message={pageMessage(err)} />;',
+    },
+  ],
+});

@@ -38,6 +38,7 @@ import {
 } from '../../../domain/policies/aarsloenPolicy';
 import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../../types/handles';
 import type { LoenPaaHelligdage, TillaegAngivesSom } from '../../../schemas/formSchemas/enumSchemas';
+import { firstPageMessage, pageMessage, withPageMessages } from '../../layout/pageMessage';
 
 /**
  * Årslønsberegnings ene kanoniske viewmodel (`page-component-contract.md` §4.4).
@@ -142,7 +143,11 @@ export function useAarsloenViewModel() {
   // input ikke rækker til en metode. Ingen opdigtede tal.
   const beregningsData = calculation?.beregningsData ?? AARSLOEN_BEREGNING_INGEN;
   const fejlmeddelelser = calculation?.fejlmeddelelser ?? [];
-  const beregningsFejl = calculation?.beregningsFejl ?? [];
+  // Den kritiske beregningsfejl som `PageMessage`, ikke som rå streng: boksen må ikke kunne vises uden indhold.
+  // Her stod tidligere `?? []` på et `string | null`-felt — et tomt array er truthy, så "Kritisk Fejl"-boksen
+  // stod permanent øverst på siden UDEN tekst. `pageMessage()` normaliserer null/tom/whitespace til ÉN
+  // fraværs-variant, og `PageMessageBox` ejer værnet. Se `components/layout/pageMessage.ts` for fejlklassen.
+  const beregningsFejl = pageMessage(calculation?.beregningsFejl);
 
   // Dokument-download. Begge outputs deler ÉN kildekontekst, så årsløns-projektionen kun bygges én gang pr.
   // revision, uanset at siden tegner to knapper. Hele preflighten — settle, frisk capture, token-lighed, gate —
@@ -180,8 +185,10 @@ export function useAarsloenViewModel() {
 
   // De to outputs deler fejlboksen. Gate-blokeringer vises ikke her — knappernes tooltip bærer årsagen, og en
   // blokeret årsløn-download besvares med shake + celle-flash.
-  const downloadErrorMessage =
-    visibleDocumentFailureMessage(aarsloenDownload) ?? visibleDocumentFailureMessage(shDageDownload);
+  const downloadErrorMessage = firstPageMessage(
+    pageMessage(visibleDocumentFailureMessage(aarsloenDownload)),
+    pageMessage(visibleDocumentFailureMessage(shDageDownload))
+  );
 
   const canShowOmregning = omregningAktiveret && periodeData !== null;
   const visDownloadVedSammentaelling = !omregningAktiveret || beregningsData.erEtAar;
@@ -210,7 +217,7 @@ export function useAarsloenViewModel() {
     [values.feriePct, values.fritvalgPct, values.pensionPct, values.shSoPct, values.storeBededagPct]
   );
 
-  return {
+  return withPageMessages<'beregningsFejl' | 'downloadErrorMessage'>()({
     fields: FIELDS,
     locations: LOCATIONS,
     tableLocationNav: TABLE_LOCATION_NAV,
@@ -243,5 +250,11 @@ export function useAarsloenViewModel() {
     downloadErrorMessage,
     runAarsloenDownload,
     runShDageDownload,
-  };
+    // `withPageMessages` KONTROLLERER besked-felterne mod `PageMessage` gennem sin `TVm extends
+    // PageMessageFields<TKeys>`-constraint, mens `TVm` infereres, så alle øvrige felter beholder deres præcise
+    // type. Det er den grænse, den tomme "Kritisk Fejl"-boks manglede: uden den er sidens context-type
+    // inferensen selv, og en forkert typet besked har intet at afvige fra. Et efterstillet `satisfies
+    // PageMessageFields<…>` ville derimod indsnævre literalen til KUN besked-felterne, så `fields`/`locations`
+    // blev excess-property-fejl — constrainten er det rigtige sted for kontrollen.
+  });
 }

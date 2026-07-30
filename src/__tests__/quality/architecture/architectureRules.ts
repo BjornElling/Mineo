@@ -37,6 +37,7 @@ import {
   singleFieldIdentityInDomRule,
   persistedControlsUseFieldFamilyRule,
   popupSemanticsSingleSourceRule,
+  messageBoxGuardedByPageMessageRule,
   promiseTickBoundary,
   queueMicrotaskBoundary,
   reguleringCanonicalForloebBoundary,
@@ -124,6 +125,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   singleFieldIdentityInDomRule,
   persistedControlsUseFieldFamilyRule,
   popupSemanticsSingleSourceRule,
+  messageBoxGuardedByPageMessageRule,
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,
   cellBindingSingleSource,

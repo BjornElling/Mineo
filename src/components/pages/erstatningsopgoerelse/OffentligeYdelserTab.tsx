@@ -3,6 +3,8 @@ import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
+import { PageMessageRow } from '../../layout/PageMessageBox';
+import { pageMessage } from '../../layout/pageMessage';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
@@ -394,14 +396,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
             </InlineActionButton>
           </Box>
         </Box>
-        {sygedagpengeInsertError && (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text" sx={{ color: 'error.main' }}>
-              {sygedagpengeInsertError}
-            </Typography>
-            <Box className="row--label-right-hover__content" />
-          </Box>
-        )}
+        <PageMessageRow message={pageMessage(sygedagpengeInsertError)} rightCellHasContentClass />
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Midlertidigt EET indsættes fra Erhvervsevnetab-siden</Typography>
@@ -417,14 +412,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
             />
           </Box>
         </Box>
-        {midlertidigtEetToggleError && (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text" sx={{ color: 'error.main' }}>
-              {midlertidigtEetToggleError}
-            </Typography>
-            <Box className="row--label-right-hover__content" />
-          </Box>
-        )}
+        <PageMessageRow message={pageMessage(midlertidigtEetToggleError)} rightCellHasContentClass />
       </ContentBox>
 
       <ContentBox className="content-box">
