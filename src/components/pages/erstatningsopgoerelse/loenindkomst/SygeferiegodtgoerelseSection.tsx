@@ -103,7 +103,7 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap' }}>
               <Typography className="row--text">
-                Bemærk, at da skaden er før 01-01-2015, er det afgørende, at samtlige TAF-perioder siden skaden er indtastet på
+                Bemærk: Da skaden er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen med
               </Typography>
               <Typography className="row--text">&nbsp;</Typography>
               <Typography
@@ -120,7 +120,7 @@ const SygeferiegodtgoerelseSection = ({
                   font: 'inherit',
                 }}
               >
-                fanen med EO Oplysninger
+                EO Oplysninger
               </Typography>
               <Typography className="row--text">.</Typography>
             </Box>
