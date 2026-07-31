@@ -13,12 +13,13 @@ import { Box, Typography } from '@mui/material';
  * Komponenten er derfor svaret på begge halvdele: ét sted, der ejer rækkens opbygning, så en ny
  * dokumentførende flade ikke skal genopfinde den — og ikke kan nøjes med at aktivere downloaden.
  *
- * **Hvilken besked skal ind?** Se `visibleDocumentFailureMessage`. Viser fladen allerede gate-årsagen ved
- * knappen (som nedtonet tekst), skal den bruge `visibleDocumentFailureMessage(handle)`, så årsagen ikke står
- * to gange. Har fladen kun årsagen i knappens tooltip, skal den bruge `handle.errorMessage` direkte — ellers
- * ville en gate-blokering være usynlig. Komponenten tager den færdige besked og vælger ikke selv politik.
+ * **Hvilken besked skal ind?** Altid `handle.errorMessage` råt. Hook'en har allerede filtreret: en
+ * gate-blokering bærer ingen besked, fordi en deaktiveret knap ikke svarer med tekst — årsagen hører
+ * kun i knappens tooltip. Fladen skal derfor ikke lægge egen politik oven på feltet, og der findes
+ * ikke længere et valg mellem to kilder. Komponenten tager den færdige besked og vælger ikke selv politik.
  *
- * Uventede runtimefejl routes centralt (§A5) og har bevidst ingen lokal tekst i hovedappen.
+ * Uventede runtimefejl routes centralt (§A5) og har bevidst ingen lokal tekst i hovedappen. Tilbage står
+ * derfor i praksis kun et stale-afbrud og en død DEV-server.
  */
 export type DocumentOutcomeMessageProps = Readonly<{
   /** Den færdige besked, eller `null`/`undefined` når der intet er at vise. Komponenten renderer da intet. */

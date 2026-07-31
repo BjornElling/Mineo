@@ -21,7 +21,7 @@
  * navne og tre id'er i `CONSUMER_DOCUMENT_OUTPUTS`, og at skjule dem bag ét id ville bryde
  * katalogets "ét id = ét output"-invariant og dermed completeness-testen.
  */
-import { getOverenskomstMetaById, getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../data/overenskomstRates';
+import { getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId, resolveOverenskomstDisplay } from '../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../data/klLoenaftaler';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
 import { toLoentrin } from '../../data/offentligLoenTypes';
@@ -97,25 +97,19 @@ const readOptional = <T>(reader: InputReader, ref: ReturnType<FieldDescriptor<T>
 };
 
 /**
- * Sagsniveauets overenskomst-etiket. Bevidst FORSKELLIG fra ansættelsesforholdets: sagsniveauet
- * viser kun `meta.navn`, mens ansættelsesforholdet viser `navn (lønmodtager / arbejdsgiver)`.
- * Forskellen er eksisterende DOKUMENTINDHOLD. Den ensartes IKKE uden en brugerbeslutning: en ændring ville
- * flytte synligt indhold i et udstedt dokument (§5.4's hårde stop). Gaten og livscyklussen er derimod fælles.
+ * Sagsniveauets overenskomst-etiket.
+ *
+ * Viste tidligere KUN `meta.navn`, mens ansættelsesforholdet viste `navn (lønmodtager / arbejdsgiver)`.
+ * Forskellen var eksisterende dokumentindhold og afventede derfor en brugerbeslutning (§5.4's hårde stop).
+ * Beslutningen faldt 2026-07-31: navn OG parter, alle steder. De to etiketter er nu samme funktion —
+ * kun fallback-teksten for et manglende ID skiller dem.
  */
-const resolveCaseOverenskomstLabel = (overenskomstId: string | undefined): string => {
-  if (!overenskomstId) return '-';
-  return getOverenskomstMetaById(overenskomstId)?.navn ?? overenskomstId;
-};
+const resolveCaseOverenskomstLabel = (overenskomstId: string | undefined): string =>
+  resolveOverenskomstDisplay(overenskomstId);
 
 /** Ansættelsesforholdets overenskomst-etiket, ordret som `loenindkomstDerivations.resolveOverenskomstLabel`. */
-const resolveEmploymentOverenskomstLabel = (overenskomstId: string | undefined): string => {
-  if (!overenskomstId || overenskomstId.trim() === '') return 'Ingen valgt';
-  const meta = getOverenskomstMetaById(overenskomstId);
-  if (!meta) return overenskomstId;
-  const loenPart = meta.loenmodtagerOrg[0] || '';
-  const arbPart = meta.arbejdsgiverOrg[0] || '';
-  return `${meta.navn} (${loenPart} / ${arbPart})`;
-};
+const resolveEmploymentOverenskomstLabel = (overenskomstId: string | undefined): string =>
+  resolveOverenskomstDisplay(overenskomstId, 'Ingen valgt');
 
 const isReguleringBasis = (value: string | undefined): value is ReguleringBasis =>
   value === 'Overenskomst' || value === 'Statistik' || value === 'KRL satstabel' || value === 'KL-lønaftaler';

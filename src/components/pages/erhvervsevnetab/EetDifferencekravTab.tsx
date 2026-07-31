@@ -36,7 +36,7 @@ import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFo
 import { formatKr } from '../../../utils/formatUtils';
 import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
-import { visibleDocumentFailureMessage, type DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
+import { type DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 import {
   erhvervsevnetabBilagEetEfterEalField,
   erhvervsevnetabBilagKapitaliseringField,
@@ -431,7 +431,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
             Gate-blokeringer står allerede i `EetIssuesBox` ovenfor (og skjuler denne boks helt), så de
             vises ikke igen her. Tilbage er stale-afbrud og DEV-serverfejl, som ellers var lydløse.
           */}
-          <DocumentOutcomeMessage message={visibleDocumentFailureMessage(download)} />
+          <DocumentOutcomeMessage message={download.errorMessage} />
 
           <Box className="row--label-right-hover">
             <Typography className="row--text">Bilag, der indsættes</Typography>

@@ -34,10 +34,9 @@ export type ReguleringDocumentAction = Readonly<{
    * gennem `DocumentOutcomeMessage`; tidligere blev den udledt her og ignoreret af dem begge, så et
    * stale-afbrud eller en død DEV-server var lydløs på både Lønindkomst-kortet og Oplysninger-fanen.
    *
-   * Beskeden er `output.errorMessage` RÅT og ikke filtreret gennem `visibleDocumentFailureMessage`:
-   * ingen af de to callsites viser gate-årsagen som synlig tekst ved knappen — den findes kun i
-   * knappens tooltip — så et bortfiltreret gate-udfald ville netop give den usynlige blokering,
-   * filtreringen ellers findes for at undgå at duplikere.
+   * Beskeden er `output.errorMessage` råt — hook'en har allerede filtreret gate-blokeringer væk, fordi
+   * en deaktiveret knap ikke svarer med tekst. Det er derfor netop stale-afbruddet og DEV-serveren,
+   * der er tilbage at vise.
    */
   errorMessage: string | null;
   download: () => Promise<DocumentOutcome>;

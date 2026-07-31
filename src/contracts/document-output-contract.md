@@ -167,7 +167,13 @@ Et visningsvalg er et visningsønske, ikke en ret til at overstyre semantisk fra
 2. Brugeren må ikke mødes af en `BugReportButton` inline i sideflowet eller i en download-dialog.
 3. Fejlen routes via den centrale fejlrapportering jf. `error-contract.md`.
 
-Lokale fejlbeskeder må kun bruges til forventelige brugerrettelige gate-/preflight-tilstande eller DEV-specifik dev-server-nedetid. Uventede runtime-fejl under en godkendt download er systemfejl.
+Lokale fejlbeskeder må kun bruges til de forventelige udfald, brugeren ikke kunne forudse af knappens
+tilstand: et stale-afbrud og DEV-specifik dev-server-nedetid. Uventede runtime-fejl under en godkendt
+download er systemfejl.
+
+En GATE-blokering er udtrykkeligt IKKE en lokal fejlbesked. En deaktiveret download-knap svarer aldrig
+med tekst — årsagen har én kanal, knappens tooltip ved hover — og det gælder også, når blokeringen først
+opdages under aktiveringen. Se `page-component-contract.md` §11.1, som ejer reglen.
 
 ## A6. Domænespecifikke projektioner
 

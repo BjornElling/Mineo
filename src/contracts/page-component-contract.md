@@ -436,17 +436,25 @@ Er hele rækken (label + ikon) skjult sammen — fx fordi sektionen ikke er rele
 konsistent og tilladt. Undtagelse: tabelceller med en etableret "ingen værdi"-markør (fx
 `-` pr. række) beholder markøren frem for et nedtonet ikon.
 
-**Gate-årsagen har ÉN visningskanal: tooltippet.** Den samme årsag må ikke også stå
-som synlig tekst ved knappen. To sider gjorde det, og brugeren læste da den samme besked to
-gange. Reglen er tosidet, og begge halvdele skal holde:
+**Gate-årsagen har ÉN visningskanal: tooltippet — og kun ved hover.** En deaktiveret download-knap
+giver brugeren INGEN besked, hverken under knappen eller i rækken. Reglen er universel for hele
+programmet (brugerbeslutning 2026-07-31) og gælder uanset, hvornår blokeringen opdages:
 
 - Ingen flade må rendere `disabledReason` (eller en gate-`reason.message`) som en tekstknude.
-- En blokering må til gengæld aldrig være usynlig. Tooltippet dækker den REAKTIVE
-  disabled-tilstand; det dækker ikke en blokering, der opdages under en AKTIVERING, fordi
-  preflighten gater efter commit-barrieren og ingen hover er i gang efter et klik. En flade skal
-  derfor besvare det udfald med enten shake + fokus på det første blokerende felt, eller
-  `handle.errorMessage` i udfaldsrækken. Vælges shake/fokus, er `visibleDocumentFailureMessage`
-  den rigtige kilde til rækken; ellers `errorMessage` råt.
+- Et KLIK på en inaktiv knap besvares ikke med tekst. Det gælder også, når blokeringen først
+  opdages under AKTIVERINGEN — preflighten gater efter commit-barrieren, så et klik med en åben
+  editor kan blokere, fordi settlet gjorde værdien ugyldig. Knappen var synligt inaktiv, og
+  brugeren har haft tooltippet til rådighed; en besked oveni ville forklare det, brugeren allerede
+  kunne se. Udfaldet `gate-blocked` bærer derfor ingen besked
+  (`resolveDocumentOutcomeMessage` → `null`), og en flade skal rendere `handle.errorMessage` RÅT
+  uden at lægge egen politik oven på det.
+- Et visuelt svar er stadig tilladt og ønsket, hvor det findes: shake + fokus på det første
+  blokerende felt er ikke en besked, men en pegepind til det felt, brugeren skal rette.
+- Årsagerne bevares på udfaldet som auditdata (`rejection.reasons`) og som tooltip-kilde. Ingen
+  årsagsliste må være tom — men "synlig" betyder her tooltip og audit, ikke en tekstknude.
+
+Udfaldsrækken viser derfor kun de udfald, knappens tilstand IKKE kunne forudse: et stale-afbrud
+(sagen ændrede sig undervejs) og en utilgængelig DEV-server.
 
 Udfaldsrækken/-boksen bæres af en `PageMessage` og renderes af `PageMessageBox`/`PageMessageRow`, så den
 ikke kan blive synlig uden læsbart indhold. Viewmodellen pinder sine besked-felter med

@@ -36,7 +36,10 @@ describe('calculationDataCatalog', () => {
     expect(fingerprints).toEqual({
       folkepensionsalder: '455f0c29b4338e14b6223781de8273e95857a76602fa000a8eeb08a45087db5b',
       'forhoejet-pensionsalder-events': 'fbe93439bc6e0fb02378d11e8648712e81dc41d03eaabf35aa1bbb64a86f8e9e',
-      'indskudte-loentillaeg': '50dae54913bfc7d4dcdc2e551959f992860702d8b1130ebdc1527e72ba730155',
+      // Ændret 2026-07-31: `SAERLIGT_FERIETILLAEG_SATSTRAPPE` fjernet fra payload'et, fordi særligt
+      // ferietillæg er et rent fremtidigt udviklingsprojekt og ikke må indregnes nogen steder
+      // (brugerbeslutning; `indskudte-loentillaeg-contract.md` §6). Payload'et er nu Store Bededag alene.
+      'indskudte-loentillaeg': 'b253ea22c6f700fd78f0ac1f58fb931f5ec009bcbcf47bb049ca08505fb06acf',
       kapitaliseringsbekendtgoerelser: '9e5d18bdaf8b554717ce3ee22c73bc409bff2ac4c45fc28f840bb59e831d615b',
       kapitaliseringstabeller: 'c850fb5803f6bb7dc77e545c5d6fdd17ff6a87b5facdd9c7f34e4424ff29a7c9',
       'kl-loenaftaler': 'c75de1dc16462569b7fcfe4bab5860b4c978d50d0fdb68fe4d4580c66cda9780',

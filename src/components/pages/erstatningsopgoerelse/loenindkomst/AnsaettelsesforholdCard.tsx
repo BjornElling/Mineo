@@ -40,10 +40,12 @@ import {
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import {
+  formatOverenskomstMetaDisplay,
   getOverenskomstMetaById,
   getOverenskomstSfggPolicy,
   getReguleringsDatoIntervalForOverenskomst,
   isOffentligOverenskomstId,
+  resolveOverenskomstDisplay,
 } from '../../../../data/overenskomstRates';
 import {
   ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
@@ -400,24 +402,13 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 width={460}
                 placeholder="Vælg overenskomst..."
                 allowEmpty={true}
-                getOptionLabel={(id) => {
-                  const asString = typeof id === 'string' ? id : String(id);
-                  const meta = getOverenskomstMetaById(asString);
-                  if (!meta) return asString;
-                  const loenPart = meta.loenmodtagerOrg[0] || '';
-                  const arbPart = meta.arbejdsgiverOrg[0] || '';
-                  return `${meta.navn} (${loenPart} / ${arbPart})`;
-                }}
+                getOptionLabel={(id) => resolveOverenskomstDisplay(typeof id === 'string' ? id : String(id))}
               >
-                {getFilteredOverenskomsterForAnsaettelsesforhold(af).map((meta) => {
-                  const loenPart = meta.loenmodtagerOrg[0] || '';
-                  const arbPart = meta.arbejdsgiverOrg[0] || '';
-                  return (
-                    <MenuItem key={meta.id} value={meta.id}>
-                      {meta.navn} ({loenPart} / {arbPart})
-                    </MenuItem>
-                  );
-                })}
+                {getFilteredOverenskomsterForAnsaettelsesforhold(af).map((meta) => (
+                  <MenuItem key={meta.id} value={meta.id}>
+                    {formatOverenskomstMetaDisplay(meta)}
+                  </MenuItem>
+                ))}
               </ChoiceField>
             </Box>
           </Box>

@@ -29,7 +29,7 @@ import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import { APP_ROUTES } from '../../../config/pageNavigation';
-import { visibleDocumentFailureMessage, type DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
+import { type DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 import { erhvervsevnetabBilagVisUdvidetSpecifikationField } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
 
 type Props = Readonly<{
@@ -120,7 +120,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
               Gate-blokeringer står allerede i `EetIssuesBox` ovenfor (og skjuler denne boks helt), så de
               vises ikke igen her. Tilbage er stale-afbrud og DEV-serverfejl, som ellers var lydløse.
             */}
-            <DocumentOutcomeMessage message={visibleDocumentFailureMessage(download)} />
+            <DocumentOutcomeMessage message={download.errorMessage} />
           </ContentBox>
 
           {afgoerelser.map((afgoerelse) => {

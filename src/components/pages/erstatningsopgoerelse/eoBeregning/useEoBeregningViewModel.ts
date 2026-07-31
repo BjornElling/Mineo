@@ -18,7 +18,6 @@ import {
   tafKravGrafDocumentDefinition,
   tafOpreguleretPaaAarDocumentDefinition,
 } from '../../../../domain/erstatningsopgoerelse/eoDocumentDefinitions';
-import { visibleDocumentFailureMessage } from '../../../../document/definition/react/useDocumentDownload';
 import {
   useMineoDocumentOutputWithContext,
   useMineoDocumentSourceContext,
@@ -368,16 +367,15 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
   const reportedSystemInvariantKeysRef = React.useRef<Set<string>>(new Set());
   /**
-   * Den fælles fejlboks for de fire outputs. Gate-blokeringer vises IKKE her — knappens tooltip
-   * bærer allerede årsagen. Hvert
-   * output bidrager kun med sin egen ikke-gate-besked, så en gammel besked ikke overlever et nyt
-   * klik på et andet output.
+   * Den fælles fejlboks for de fire outputs. Gate-blokeringer bærer ingen besked — knappens tooltip
+   * ejer årsagen — så boksen viser kun et stale-afbrud eller en død DEV-server. Hvert output bidrager
+   * kun med sin egen besked, så en gammel besked ikke overlever et nyt klik på et andet output.
    */
   const pdfDownloadErrorMessage =
-    visibleDocumentFailureMessage(eoDownload)
-    ?? visibleDocumentFailureMessage(tafFordeltDownload)
-    ?? visibleDocumentFailureMessage(tafOpreguleretDownload)
-    ?? visibleDocumentFailureMessage(tafKravGrafDownload);
+    eoDownload.errorMessage
+    ?? tafFordeltDownload.errorMessage
+    ?? tafOpreguleretDownload.errorMessage
+    ?? tafKravGrafDownload.errorMessage;
 
   React.useEffect(() => {
     const revision = eoSnapshot?.revision ?? 'no-snapshot';

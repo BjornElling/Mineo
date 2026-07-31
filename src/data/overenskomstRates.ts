@@ -1541,11 +1541,44 @@ export const getOverenskomstMetaById = (id: string): OverenskomstMeta | undefine
   return overenskomstMetaById.get(ref.baseId);
 };
 
-export const resolveOverenskomstNameOnlyDisplay = (id: string | undefined): string => {
+/**
+ * Overenskomstens KANONISKE etiket: navn efterfulgt af de to overenskomstparter.
+ *
+ * Ét sandt sted for formlen `navn (lønmodtagerpart / arbejdsgiverpart)`. Den stod før udskrevet i hånden
+ * seks steder — to dropdowns (`getOptionLabel` + `MenuItem`) på hver af de to sider, viewmodellen og
+ * reguleringsdefinitionen — mens de to EO-PDF-sektioner og sagsniveauet i stedet viste NAVNET ALENE. Den
+ * uensartethed var synlig for brugeren: samme overenskomst hed to forskellige ting i dokumentet og på
+ * skærmen. Brugerbeslutning 2026-07-31: navn OG parter, alle steder.
+ *
+ * Kun den FØRSTE part pr. side vises, selv om begge lister kan have flere. Det er bevidst — etiketten skal
+ * være læsbar i en dropdown og på en dokumentlinje, ikke udtømmende.
+ *
+ * `fallback` er teksten for et tomt/manglende ID. De to eksisterende ordlyde bevares, fordi de betyder
+ * forskellige ting: `'-'` i et dokument, hvor feltet ikke er udfyldt, og `'Ingen valgt'` i en UI-flade,
+ * hvor brugeren aktivt skal vælge. Et UKENDT ID falder altid tilbage til ID'et selv, så en fejl i data
+ * viser sig frem for at blive skjult bag en pæn tom streg.
+ */
+export const resolveOverenskomstDisplay = (
+  id: string | undefined,
+  fallback: string = '-'
+): string => {
   const trimmed = id?.trim();
-  if (!trimmed) return '-';
+  if (!trimmed) return fallback;
   const meta = getOverenskomstMetaById(trimmed);
-  return meta?.navn ?? trimmed;
+  if (!meta) return trimmed;
+  return formatOverenskomstMetaDisplay(meta);
+};
+
+/**
+ * Som {@link resolveOverenskomstDisplay}, men for en metadata-post, kaldsstedet ALLEREDE har.
+ *
+ * Findes for dropdown-listerne, der itererer over `OverenskomstMeta` og derfor ville skulle slå deres egen
+ * post op igen via dens ID for at bruge den anden funktion.
+ */
+export const formatOverenskomstMetaDisplay = (meta: OverenskomstMeta): string => {
+  const loenPart = meta.loenmodtagerOrg[0] || '';
+  const arbPart = meta.arbejdsgiverOrg[0] || '';
+  return `${meta.navn} (${loenPart} / ${arbPart})`;
 };
 
 export const getGrundloenAngivetPerForOverenskomst = (

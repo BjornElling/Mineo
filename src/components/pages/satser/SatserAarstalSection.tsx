@@ -38,8 +38,8 @@ const SatserAarstalSection = React.memo((
     </Box>
 
     {/*
-      Gate-årsagen findes her KUN i knappens tooltip, så beskeden læses direkte fra `errorMessage`
-      (ikke gennem `visibleDocumentFailureMessage`) — ellers ville en gate-blokering være usynlig.
+      Gate-årsagen findes KUN i knappens tooltip og bærer derfor ingen besked her. Rækken viser
+      alene de udfald, knappens tilstand ikke kunne forudse: stale-afbrud og død DEV-server.
     */}
     <DocumentOutcomeMessage message={vm.download.errorMessage} />
   </ContentBox>

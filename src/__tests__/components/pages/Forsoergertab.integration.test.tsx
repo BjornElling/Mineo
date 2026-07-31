@@ -182,17 +182,18 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
 });
 
 /**
- * UT-F07: gate-årsagen står KUN i tooltippet — og en blokeret AKTIVERING er stadig synlig.
+ * UT-F07: gate-årsagen står KUN i tooltippet — også når blokeringen rammer selve aktiveringen.
  *
  * Brugertestens symptom på denne side var den lange gate-interne besked "Der er ikke beregnet en PDF-klar
- * EAL- eller ASL-del.", vist BÅDE som tekst og som tooltip. To ting skal derfor gælde samtidig:
+ * EAL- eller ASL-del.", vist BÅDE som tekst og som tooltip. Tre ting skal derfor gælde samtidig:
  *
  *  1. den lange interne besked er væk fra brugerfladen (den lever videre som `message` til koder/tests),
  *  2. tooltippet er den universelle tekst, og
- *  3. et KLIK på den inaktive knap giver stadig en synlig forklaring.
+ *  3. et KLIK på den inaktive knap giver INGEN besked — hverken under knappen eller i rækken.
  *
- * Punkt 3 er det ben, der gør fjernelsen sikker: denne side har ingen shake-/fokus-feedback, så uden
- * `errorMessage` i udfaldsrækken ville et klik være helt lydløst — den modsatte fejl af den, brugeren fandt.
+ * Punkt 3 er brugerbeslutningen 2026-07-31, gjort universel for hele programmet: en deaktiveret
+ * download-knap svarer aldrig med tekst. Knappen var synligt inaktiv, og brugeren har haft tooltippet;
+ * en besked oveni ville forklare det, brugeren allerede kunne se.
  */
 describe('Forsoergertab — gate-årsagen vises kun i tooltippet (UT-F07)', () => {
   beforeEach(() => {
@@ -216,17 +217,19 @@ describe('Forsoergertab — gate-årsagen vises kun i tooltippet (UT-F07)', () =
   });
 
   /**
-   * Det ben, der gør fjernelsen af tekstlinjen sikker.
+   * Den svære halvdel af reglen: en gate-blokering kan ramme en AKTIVERING og ikke kun den reaktive knap.
+   * `runDocumentPreflight` gater FØRST efter commit-barrieren (`documentLifecycle.ts:168-171`), så et klik
+   * på en ENABLED knap med en åben editor kan blokere, fordi settlet netop gjorde værdien ugyldig.
    *
-   * En gate-blokering kan ramme en AKTIVERING og ikke kun den reaktive knap: `runDocumentPreflight` gater
-   * FØRST efter commit-barrieren (`documentLifecycle.ts:168-171`), så et klik på en ENABLED knap med en åben
-   * editor kan blokere, fordi settlet netop gjorde værdien ugyldig. Tooltippet hjælper ikke der — det er ikke
-   * fremme efter et klik — og denne side har ingen shake/fokus-feedback.
-   *
-   * Derfor skal udfaldsrækken vise beskeden. Testen skriver en ugyldig værdi i det åbne felt og klikker
+   * Det er præcis den sti, der tidligere producerede en besked i udfaldsrækken. Under den universelle regel
+   * skal også DEN være tavs: `gate-blocked` bærer ingen brugerbesked, uanset hvornår den opdages. Testen er
+   * det eneste sted, der kan fremkalde stien — den skriver en ugyldig værdi i det åbne felt og klikker
    * DIREKTE på den (stadig aktiverede) knap, så settlet og gaten sker i samme aktivering.
+   *
+   * Bemærk hvad testen IKKE hævder: at brugeren står uden signal. Downloaden stoppes (ingen fil), knappen
+   * bliver disabled på den nye revision, og feltet bærer selv sin røde markering.
    */
-  it('en blokering opdaget under aktiveringen vises i udfaldsrækken (ingen usynlig blokering)', async () => {
+  it('en blokering opdaget under aktiveringen er tavs — ingen besked i udfaldsrækken', async () => {
     const user = userEvent.setup();
     hydrate(validForsoergertab, validFaellesAarsloen, validStamdata);
     renderPage();
@@ -246,10 +249,13 @@ describe('Forsoergertab — gate-årsagen vises kun i tooltippet (UT-F07)', () =
     fireEvent.pointerDown(button);
     fireEvent.click(button);
 
+    // Aktiveringen blev stoppet: ingen fil.
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
-    // Blokeringen SKAL være synlig et sted. Uden `errorMessage` i udfaldsrækken ville den være lydløs.
-    await waitFor(() => {
-      expect(screen.getByTestId('document-outcome-message')).toBeInTheDocument();
-    });
+    // ... og den blev stoppet TAVST. Knappen er nu disabled på den nye revision, hvilket beviser at
+    // gaten faktisk afviste — så assertionen nedenfor ikke kan være grøn, fordi intet skete.
+    await waitFor(() => expect(button).toBeDisabled());
+    expect(screen.queryByTestId('document-outcome-message')).toBeNull();
+    expect(screen.queryByText(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE)).toBeNull();
+    expect(screen.queryByText(GATE_INTERNAL_MESSAGE)).toBeNull();
   });
 });

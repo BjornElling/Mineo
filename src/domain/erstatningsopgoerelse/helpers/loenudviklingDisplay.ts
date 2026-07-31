@@ -1,5 +1,5 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { getOverenskomstMetaById } from '../../../data/overenskomstRates';
+import { resolveOverenskomstDisplay } from '../../../data/overenskomstRates';
 import { formatKRLSatstabelDisplay } from '../../../data/krlRates';
 
 export const resolveValgtReguleringDisplay = (
@@ -8,15 +8,7 @@ export const resolveValgtReguleringDisplay = (
   const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
   if (!grundlag) return '-';
   if (grundlag === 'Statistik') return ansaettelsesforhold.loenudviklingStatistikModel?.trim() || '-';
-  if (grundlag === 'Overenskomst') {
-    const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
-    if (!overenskomstId) return '-';
-    const meta = getOverenskomstMetaById(overenskomstId);
-    if (!meta) return overenskomstId;
-    const loenPart = meta.loenmodtagerOrg[0] || '';
-    const arbPart = meta.arbejdsgiverOrg[0] || '';
-    return `${meta.navn} (${loenPart} / ${arbPart})`;
-  }
+  if (grundlag === 'Overenskomst') return resolveOverenskomstDisplay(ansaettelsesforhold.overenskomstId);
   if (grundlag === 'Manuelt angivet') {
     const manuelNavn = ansaettelsesforhold.loenudviklingManuelNavn?.trim() ?? '';
     return manuelNavn !== '' ? `Manuelt angivet (${manuelNavn})` : 'Manuelt angivet';

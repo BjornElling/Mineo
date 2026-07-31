@@ -8,9 +8,9 @@ import { parseISODate } from '../../../types/branded';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import type { StandardLoenTableSatser } from '../../../types/table';
 import {
-  getOverenskomstMetaById,
   getOverenskomsterByOrg,
   isOffentligOverenskomstId,
+  resolveOverenskomstDisplay,
   type OverenskomstMeta,
 } from '../../../data/overenskomstRates';
 import { toLoentrin } from '../../../data/offentligLoenTypes';
@@ -241,14 +241,8 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
     return true;
   };
 
-  const resolveOverenskomstLabel = (overenskomstId: string | undefined): string => {
-    if (!overenskomstId || overenskomstId.trim() === '') return 'Ingen valgt';
-    const meta = getOverenskomstMetaById(overenskomstId);
-    if (!meta) return overenskomstId;
-    const loenPart = meta.loenmodtagerOrg[0] || '';
-    const arbPart = meta.arbejdsgiverOrg[0] || '';
-    return `${meta.navn} (${loenPart} / ${arbPart})`;
-  };
+  const resolveOverenskomstLabel = (overenskomstId: string | undefined): string =>
+    resolveOverenskomstDisplay(overenskomstId, 'Ingen valgt');
 
   const getFilteredOverenskomsterForAnsaettelsesforhold = (
     af: Ansaettelsesforhold

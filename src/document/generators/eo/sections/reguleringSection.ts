@@ -4,7 +4,6 @@ import {
   getGrundloenAngivetPerForOverenskomst,
   getOffentligOverenskomstTypeById,
   getOffentligTillaegsSatserForDato,
-  resolveOverenskomstNameOnlyDisplay,
   resolveOverenskomstRef,
 } from '../../../../data/overenskomstRates';
 import type { DocumentComposer } from '../../../model/documentModel';
@@ -478,11 +477,10 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       renderSubheader(underoverskrift, undefined, { addTopSpacing: visibleIndex > 0 });
     }
 
+    // Overenskomst-sporet havde tidligere sin EGEN navn-kun-visning her, så samme overenskomst hed
+    // `Industriens overenskomst` i dokumentet og `Industriens overenskomst (3F / DI)` i EO-inspektionen.
+    // `resolveValgtReguleringDisplay` bærer nu begge steder — navn OG parter (brugerbeslutning 2026-07-31).
     const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
-    const valgtReguleringForSection =
-      ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst'
-        ? resolveOverenskomstNameOnlyDisplay(ansaettelsesforhold.overenskomstId)
-        : valgtRegulering;
     const anvendtReguleringsdato = resolveAnvendtReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
     const skadedatoIso = parseOptionalIsoDate(stamdataValues.skadedato);
     const loenSkadedatoText = resolveLoenSkadedatoText({
@@ -507,7 +505,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       'Beregnes som',
       `${capitalizeFirstCharDa(loenSkadedatoText)} tillagt efterfølgende lønstigninger`
     );
-    writeLabelValueLine('Regulering', valgtReguleringForSection);
+    writeLabelValueLine('Regulering', valgtRegulering);
     const anciennitetValueDisplay = resolveAnciennitetValueDisplay(ansaettelsesforhold);
     let ekstraGrundloenDisplay: string | null = null;
 

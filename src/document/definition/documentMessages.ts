@@ -17,9 +17,17 @@ const DEV_SERVER_MESSAGE = 'Udviklingsserveren svarer ikke længere. Genstart `n
  *
  * `null` betyder bevidst "intet at vise":
  *  - `downloaded`: der er ingen fejl.
+ *  - `gate-blocked`: en deaktiveret download-knap svarer IKKE med tekst. Årsagen har ÉN kanal —
+ *    knappens tooltip ved hover. Det gælder også, når blokeringen først opdages under aktiveringen:
+ *    et klik på en knap, brugeren kan se er inaktiv, skal ikke fremkalde en besked hverken under
+ *    knappen eller i rækken (brugerbeslutning 2026-07-31). Årsagerne bevares på udfaldet som
+ *    auditdata, men de er ikke længere en visningskilde.
  *  - `settle-failed`: det blokerende felt bærer selv sin røde markering, og preflighten har
  *    fokuseret det. En ekstra besked ville duplikere signalet.
  *  - `runtime` i en app, der router systemfejl centralt (§A5) — se `showRuntimeFailureLocally`.
+ *
+ * Tilbage står derfor kun de to udfald, brugeren ikke kunne forudse af knappens tilstand:
+ * et stale-afbrud og en død DEV-server.
  */
 export const resolveDocumentOutcomeMessage = (
   outcome: DocumentOutcome,
@@ -39,7 +47,7 @@ export const resolveDocumentOutcomeMessage = (
     case 'rejected':
       switch (outcome.rejection.kind) {
         case 'gate-blocked':
-          return outcome.rejection.reasons[0].message;
+          return null;
         case 'stale-source':
           return STALE_SOURCE_MESSAGE;
         case 'settle-failed':

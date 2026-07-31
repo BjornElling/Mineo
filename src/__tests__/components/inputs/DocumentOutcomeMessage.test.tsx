@@ -6,10 +6,14 @@
 // stale-afbrud eller en død DEV-server var lydløs: brugeren klikkede på en aktiv knap, fik ingen fil og ingen
 // forklaring. Samtidig fandtes den samme fejlrække i fem forskellige udgaver på de flader, der huskede den.
 // Komponenten er det ene sted, rækken nu bygges.
+//
+// Den modsatte grænse er lige så vigtig og pinnes nedenfor: en GATE-blokering må ikke nå rækken. En
+// deaktiveret knap svarer aldrig med tekst — tooltippet ejer årsagen (brugerbeslutning 2026-07-31).
 import { render, screen } from '@testing-library/react';
 import DocumentOutcomeMessage from '../../../components/inputs/DocumentOutcomeMessage';
 import { resolveDocumentOutcomeMessage } from '../../../document/definition/documentMessages';
 import { documentRejected, documentFailed } from '../../../document/definition/documentOutcome';
+import { missingInputReason, specificReason } from '../../../document/layout/documentGateTypes';
 
 const labels = { documentName: 'testdokument' } as const;
 
@@ -56,6 +60,58 @@ describe('DocumentOutcomeMessage', () => {
     );
     render(<DocumentOutcomeMessage message={message} />);
     expect(screen.getByTestId('document-outcome-message')).toHaveTextContent('Udviklingsserveren svarer ikke');
+  });
+
+  /**
+   * Den universelle regel (brugerbeslutning 2026-07-31): en deaktiveret download-knap svarer ALDRIG med
+   * tekst. Gate-årsagen har én kanal — knappens tooltip ved hover.
+   *
+   * Værnet ligger på beskedlaget frem for på en enkelt flade, fordi det er dér, reglen er ét sted:
+   * returnerer `resolveDocumentOutcomeMessage` `null`, kan ingen af de tolv callsites vise noget, uanset
+   * hvordan de renderer. Testen dækker BEGGE årsagsklasser: den universelle `missing-input` og en
+   * `specific`, der ellers citeres ordret til tooltippet — netop den, der er farligst at slippe igennem.
+   */
+  it('en gate-blokering bærer INGEN besked — hverken universel eller ordret citeret årsag', () => {
+    const universel = resolveDocumentOutcomeMessage(
+      documentRejected({
+        kind: 'gate-blocked',
+        phase: 'gate',
+        reasons: [missingInputReason('test:mangler', 'Beregningsdato mangler')],
+      }),
+      labels,
+      'pdf',
+      false
+    );
+    expect(universel).toBeNull();
+
+    const ordret = resolveDocumentOutcomeMessage(
+      documentRejected({
+        kind: 'gate-blocked',
+        phase: 'gate',
+        reasons: [specificReason('test:konkret', 'Der er ikke beregnet en PDF-klar EAL- eller ASL-del.')],
+      }),
+      labels,
+      'pdf',
+      false
+    );
+    expect(ordret).toBeNull();
+
+    // Reglen er uafhængig af app-politikken for runtimefejl: også standalone (`true`) er gaten tavs.
+    const standalone = resolveDocumentOutcomeMessage(
+      documentRejected({
+        kind: 'gate-blocked',
+        phase: 'gate',
+        reasons: [specificReason('test:konkret', 'Rentelinjen findes ikke længere.')],
+      }),
+      labels,
+      'pdf',
+      true
+    );
+    expect(standalone).toBeNull();
+
+    // ... og en `null`-besked når ikke skærmen.
+    const { container } = render(<DocumentOutcomeMessage message={universel} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('markerer beskeden som fejl, så den er visuelt adskilt fra almindelig rækketekst', () => {

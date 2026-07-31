@@ -20,7 +20,6 @@ import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
 import { varigeMenDocumentDefinition } from '../../../domain/varigemen/varigeMenDocumentDefinition';
-import { visibleDocumentFailureMessage } from '../../../document/definition/react/useDocumentDownload';
 import { useMineoDocumentOutput } from '../../../document/runtime/react/useMineoDocumentOutput';
 import { buildVarigeMenReaderProjection } from '../../../domain/varigemen/varigeMenReaderProjection';
 import {
@@ -162,8 +161,8 @@ const MenberegningTab = React.memo(() => {
     }
   }, [download, focusFirstBlockingField, triggerDownloadShake]);
 
-  // Gate-årsagen står allerede ved siden af knappen, og en blokering besvares her med shake + fokus.
-  const pdfErrorMessage = pageMessage(visibleDocumentFailureMessage(download));
+  // Gate-årsagen hører kun i knappens tooltip; en blokering besvares her visuelt med shake + fokus.
+  const pdfErrorMessage = pageMessage(download.errorMessage);
 
   const formatSkadedato = (iso: string | undefined): string => {
     if (!iso) return 'Mangler (angiv i Stamdata)';

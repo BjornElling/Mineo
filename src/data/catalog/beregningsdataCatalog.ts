@@ -1,7 +1,7 @@
 import { toISODateString } from '../../types/branded';
 import { getDayAfterIso } from '../../utils/isoDateHelpers';
 import { folkepensionAlderPerioder } from '../folkepensionAlderRates';
-import { SAERLIGT_FERIETILLAEG_SATSTRAPPE, STORE_BEDEDAG_SATSTRAPPE } from '../indskudteLoentillaeg';
+import { STORE_BEDEDAG_SATSTRAPPE } from '../indskudteLoentillaeg';
 import { referenceRates, surchargeRates } from '../interestRates';
 import { kapitaliseringsbekendtgoerelser } from '../kapitalisering/kapitaliseringsbekendtgoerelser';
 import {
@@ -160,11 +160,11 @@ export const beregningsdataCatalog = defineCalculationDataCatalog([
   defineCalculationData({
     id: 'indskudte-loentillaeg',
     provenance: {
-      sources: ['Lovgrundlaget for Store Bededagstillæg og særligt ferietillæg'],
+      sources: ['Lovgrundlaget for Store Bededagstillæg'],
       maintenance: { method: 'manually_transcribed' },
     },
     coverage: { kind: 'source_defined', description: 'Dækningen følger hvert tillægs satstrappe.' },
-    payload: { STORE_BEDEDAG_SATSTRAPPE, SAERLIGT_FERIETILLAEG_SATSTRAPPE },
+    payload: { STORE_BEDEDAG_SATSTRAPPE },
     validate: (payload) => {
       for (const [label, steps] of Object.entries(payload)) {
         let previousDate = '';

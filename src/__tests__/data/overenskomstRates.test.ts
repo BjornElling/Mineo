@@ -1,7 +1,8 @@
 import {
   overenskomster,
   getOverenskomstMetaById,
-  resolveOverenskomstNameOnlyDisplay,
+  formatOverenskomstMetaDisplay,
+  resolveOverenskomstDisplay,
   getOverenskomsterByOrg,
   getAlleLoenmodtagerOrg,
   getAlleArbejdsgiverOrg,
@@ -400,29 +401,48 @@ describe('assertValidSfggPolicy (vacuous-pass-værn)', () => {
   });
 });
 
-// ─── resolveOverenskomstNameOnlyDisplay ──────────────────────────────────────
+// ─── resolveOverenskomstDisplay ───────────────────────────────────────────────
 
-describe('resolveOverenskomstNameOnlyDisplay', () => {
-  it('undefined → "-"', () => {
-    expect(resolveOverenskomstNameOnlyDisplay(undefined)).toBe('-');
+/**
+ * Den KANONISKE overenskomst-etiket: navn OG parter, ét sted.
+ *
+ * Formlen stod før udskrevet i hånden seks steder, mens de to EO-PDF-sektioner og sagsniveauet viste
+ * navnet ALENE — så samme overenskomst hed to forskellige ting i dokumentet og på skærmen.
+ * Brugerbeslutning 2026-07-31 ensartede dem; testen pinner den ene formel, alle nu deler.
+ */
+describe('resolveOverenskomstDisplay', () => {
+  it('undefined, tom streng og whitespace → default-fallback "-"', () => {
+    expect(resolveOverenskomstDisplay(undefined)).toBe('-');
+    expect(resolveOverenskomstDisplay('')).toBe('-');
+    expect(resolveOverenskomstDisplay('   ')).toBe('-');
   });
 
-  it('tom streng → "-"', () => {
-    expect(resolveOverenskomstNameOnlyDisplay('')).toBe('-');
+  it('respekterer en egen fallback-tekst — UI-fladerne bruger "Ingen valgt"', () => {
+    expect(resolveOverenskomstDisplay(undefined, 'Ingen valgt')).toBe('Ingen valgt');
+    expect(resolveOverenskomstDisplay('  ', 'Ingen valgt')).toBe('Ingen valgt');
   });
 
-  it('whitespace → "-"', () => {
-    expect(resolveOverenskomstNameOnlyDisplay('   ')).toBe('-');
+  it('kendt ID → navn OG begge parter (ikke navnet alene)', () => {
+    expect(resolveOverenskomstDisplay('bygge-anlaeg')).toBe('Bygge-/anlægsoverenskomsten (3F / Dansk Industri)');
   });
 
-  it('kendt ID → returnerer navn', () => {
-    const result = resolveOverenskomstNameOnlyDisplay('bygge-anlaeg');
-    expect(result).toBe('Bygge-/anlægsoverenskomsten');
+  it('viser kun den FØRSTE part pr. side, selv når kilden har flere', () => {
+    // `bygge-anlaeg` har to arbejdsgiverparter (Dansk Industri, Dansk Byggeri). Etiketten skal være
+    // læsbar i en dropdown og på en dokumentlinje, ikke udtømmende — så kun den første vises.
+    const meta = getOverenskomstMetaById('bygge-anlaeg');
+    expect(meta?.arbejdsgiverOrg.length).toBeGreaterThan(1);
+    expect(resolveOverenskomstDisplay('bygge-anlaeg')).not.toContain('Dansk Byggeri');
   });
 
-  it('ukendt ID → returnerer ID selv (trim)', () => {
-    const result = resolveOverenskomstNameOnlyDisplay('noget-ukendt');
-    expect(result).toBe('noget-ukendt');
+  it('ukendt ID → returnerer ID selv, så en datafejl viser sig frem for at blive skjult', () => {
+    expect(resolveOverenskomstDisplay('noget-ukendt')).toBe('noget-ukendt');
+  });
+
+  it('formatOverenskomstMetaDisplay giver samme streng som ID-opslaget', () => {
+    // De to indgange må ikke kunne drifte: dropdown-listerne bruger meta-formen, alt andet ID-formen.
+    const meta = getOverenskomstMetaById('bygge-anlaeg');
+    expect(meta).toBeDefined();
+    expect(formatOverenskomstMetaDisplay(meta!)).toBe(resolveOverenskomstDisplay('bygge-anlaeg'));
   });
 });
 

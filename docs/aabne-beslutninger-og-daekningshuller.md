@@ -15,36 +15,14 @@ Alt andet hører i en kontrakt, i koden eller i en test.
 
 ## 1. Afventer brugerens beslutning
 
-Fælles for disse: de ændrer noget, brugeren ser eller får ud af programmet, og må derfor ikke afgøres af en
-agent (jf. `AGENTS.md` § Mandat og godkendelsesgrænser).
+**Ingen åbne punkter.** De fire, der stod her, blev alle afgjort 2026-07-31:
 
-### 1.1 Dokumentudfaldets rækkeudgaver er ikke ensrettet
-
-Beskeden efter en afbrudt eller blokeret download vises i dag i fem forskellige rækkeudgaver på tværs af
-siderne. Forsørgertabs fejlrække er fx fortsat inline frem for `DocumentOutcomeMessage`.
-
-En ensretning ville give samme udseende og placering overalt, men den ændrer, hvor på siden brugeren møder
-beskeden. Det er en synlig UI-ændring.
-
-### 1.2 Reguleringens to overenskomst-etiketter er bevidst forskellige
-
-De to etiketter i reguleringsvisningen bruger forskellig ordlyd. Forskellen er dokumentINDHOLD — en ensretning
-ændrer altså teksten i et produceret dokument og kræver derfor en beslutning om, hvilken ordlyd der er den
-rigtige.
-
-### 1.3 Dokumentfejlens lokale kanal kan fjernes
-
-Systemfejl-fladen er efterprøvet led for led og er bekræftet synlig, så `document-output-contract.md` §A5's
-skel mellem uventede systemfejl og forventelige preflight-fejl holder i praksis. Dermed er den lokale
-fejlkanal teknisk overflødig.
-
-At fjerne den flytter imidlertid det sted, brugeren ser fejlen. Det er en UI-beslutning, ikke en oprydning.
-
-### 1.4 Særligt ferietillæg er data uden beregningskobling
-
-Satstrappen findes i `src/data/indskudteLoentillaeg.ts`, men ingen beregningssti læser den. At koble den ind
-ændrer de tal, programmet producerer. Se `src/contracts/indskudte-loentillaeg-contract.md` §6, som ejer
-punktet med begrundelse og re-evalueringstrigger.
+| Forhold | Afgørelse | Ejes nu af |
+|---|---|---|
+| Dokumentudfaldets rækkeudgaver | En deaktiveret download-knap giver INGEN besked ved klik — kun tooltip ved hover. Universelt for hele programmet. | `page-component-contract.md` §11.1 |
+| Dokumentfejlens lokale kanal | Samme afgørelse: `gate-blocked` er tavs. De øvrige udfald (stale-afbrud, død DEV-server) vises fortsat lokalt. | `page-component-contract.md` §11.1, `document-output-contract.md` §A5 |
+| Reguleringens to overenskomst-etiketter | Ensartet: navn OG overenskomstparter alle steder, via `resolveOverenskomstDisplay`. | `src/data/overenskomstRates.ts` |
+| Særligt ferietillæg | Må ikke indregnes nogen steder — rent fremtidigt udviklingsprojekt. Satsdataene er slettet. | `indskudte-loentillaeg-contract.md` §6 |
 
 ---
 
@@ -72,11 +50,17 @@ Ved fokus-restore kalder loopets fane-aktivering `applyDestination` med `window.
 den route-parameter, kaldet fik. Det er **tilsigtet** — routen kan have ændret sig undervejs — men adfærden er
 ikke pinnet af en test. En fremtidig refaktorering kan derfor "rette" den i god tro.
 
-### 2.4 Tre fjernede mekanismer har intet fraværsværn
+### 2.4 Fem fjernede mekanismer har intet fraværsværn
 
 `cellFocusPaths`, `useCellInvalidDraftChannel` og `onFieldError` findes ikke længere i koden, men de står ikke
 på nogen forbudsliste. Intet maskinelt tjek forhindrer, at de genopstår under samme navn.
 `src/contracts/mineo-field-pattern.md` §10 er indtil videre eneste spærring.
+
+Det samme gælder `visibleDocumentFailureMessage` og `resolveOverenskomstNameOnlyDisplay`, slettet 2026-07-31
+med brugerbeslutningerne om tavse download-gates og den ensartede overenskomst-etiket. Begge udtrykte netop
+den adfærd, beslutningerne afskaffede, så en genopstået kopi ville genindføre forskellen. Positive værn
+findes (`DocumentOutcomeMessage.test.tsx` pinner at `gate-blocked` → `null`; `overenskomstRates.test.ts`
+pinner at etiketten bærer parterne), men intet forbyder navnene som sådan.
 
 ### 2.5 Registry må ikke eager-importeres — uden værn
 

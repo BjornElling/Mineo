@@ -10,16 +10,13 @@ import { toISODateString } from '../types/branded';
  *
  * Bindende regler ejes af `src/contracts/indskudte-loentillaeg-contract.md`.
  *
- * AKTUELT DÆKKEDE TILLÆG:
+ * DER FINDES PRÆCIS ÉT INDSKUDT TILLÆG:
  * - **Store Bededagstillæg** (afskaffelsen af Store Bededag): 0,45 procentpoint fra 1-1-2024.
  *
- * FORBEREDT, MEN ENDNU IKKE IMPLEMENTERET I BEREGNINGEN:
- * - **Særligt ferietillæg**: historisk 0,96 % → forhøjet til 1,48 % pr. 1-5-2024.
- *   Trappen er modelleret nedenfor, men er endnu ikke koblet ind i lønudviklings-/
- *   pakkeberegningen. Når den implementeres, sker det via samme "indskudt tillæg fra en
- *   virkningsdato"-mønster som Store Bededag (jf. kontrakten §4).
- *
- * Disse to er — jf. kontrakten — de eneste tillæg, der indskydes udefra. Antag ikke flere.
+ * Antag ikke flere. **Særligt ferietillæg** er IKKE et tillæg i dette program: det er et rent
+ * fremtidigt udviklingsprojekt, og der må ikke indregnes særligt ferietillæg nogen steder.
+ * Dets satstrappe blev fjernet herfra 2026-07-31, fordi data, der kun venter på at blive koblet
+ * ind, læses som en forudsætning om, at tillægget skal bruges. Se kontraktens §6.
  */
 
 const iso = (date: string): ISODateString => toISODateString(date);
@@ -57,34 +54,6 @@ export const STORE_BEDEDAG_PCT = 0.45;
 /** Store Bededagstillægget som satstrappe (ét trin). */
 export const STORE_BEDEDAG_SATSTRAPPE: readonly IndskudtLoentillaegSatstrin[] = [
   { fraOgMed: STORE_BEDEDAG_START, procentpoint: STORE_BEDEDAG_PCT },
-];
-
-// ============================================================================
-// SÆRLIGT FERIETILLÆG (forberedt — ikke koblet ind i beregningen endnu)
-// ============================================================================
-
-/**
- * Virkningsdato for forhøjelsen af det særlige ferietillæg (0,96 % → 1,48 %).
- * Gælder fra og med 1. maj 2024.
- */
-export const SAERLIGT_FERIETILLAEG_FORHOEJELSE_START: ISODateString = iso('2024-05-01');
-
-/** Det særlige ferietillæg før forhøjelsen (0,96 procentpoint). */
-export const SAERLIGT_FERIETILLAEG_PCT_FOER = 0.96;
-
-/** Det særlige ferietillæg efter forhøjelsen pr. 1-5-2024 (1,48 procentpoint). */
-export const SAERLIGT_FERIETILLAEG_PCT_EFTER = 1.48;
-
-/**
- * Det særlige ferietillæg som satstrappe.
- *
- * BEMÆRK: Det tidligste trin har `fraOgMed` = systemets nedre datogrænse (1-1-2005), fordi
- * 0,96 %-satsen var gældende før forhøjelsen og dækker hele perioden frem til 1-5-2024.
- * Datagrænsen holdes bevidst i sync med `DATE_2005_01_01` i `dateRanges.ts`.
- */
-export const SAERLIGT_FERIETILLAEG_SATSTRAPPE: readonly IndskudtLoentillaegSatstrin[] = [
-  { fraOgMed: iso('2005-01-01'), procentpoint: SAERLIGT_FERIETILLAEG_PCT_FOER },
-  { fraOgMed: SAERLIGT_FERIETILLAEG_FORHOEJELSE_START, procentpoint: SAERLIGT_FERIETILLAEG_PCT_EFTER },
 ];
 
 // ============================================================================

@@ -38,7 +38,7 @@ import FerieperiodeTable from '../../../../tables/FerieperiodeTable';
 import LoenudviklingManuelTable from '../../../../tables/LoenudviklingManuelTable';
 import LoenudviklingManuelProcentsatsTable from '../../../../tables/LoenudviklingManuelProcentsatsTable';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
-import { getOverenskomstMetaById } from '../../../../../data/overenskomstRates';
+import { formatOverenskomstMetaDisplay, resolveOverenskomstDisplay } from '../../../../../data/overenskomstRates';
 import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../../../data/statistiskeRates';
 import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../../schemas/formSchemas';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
@@ -424,24 +424,13 @@ export default function IndtaegtFoerSkadenSection() {
                           width={460}
                           placeholder="Vælg overenskomst..."
                           allowEmpty={true}
-                          getOptionLabel={(id) => {
-                            const asString = typeof id === 'string' ? id : String(id);
-                            const meta = getOverenskomstMetaById(asString);
-                            if (!meta) return asString;
-                            const loenPart = meta.loenmodtagerOrg[0] || '';
-                            const arbPart = meta.arbejdsgiverOrg[0] || '';
-                            return `${meta.navn} (${loenPart} / ${arbPart})`;
-                          }}
+                          getOptionLabel={(id) => resolveOverenskomstDisplay(typeof id === 'string' ? id : String(id))}
                         >
-                          {filteredOverenskomster.map((meta) => {
-                            const loenPart = meta.loenmodtagerOrg[0] || '';
-                            const arbPart = meta.arbejdsgiverOrg[0] || '';
-                            return (
-                              <MenuItem key={meta.id} value={meta.id}>
-                                {meta.navn} ({loenPart} / {arbPart})
-                              </MenuItem>
-                            );
-                          })}
+                          {filteredOverenskomster.map((meta) => (
+                            <MenuItem key={meta.id} value={meta.id}>
+                              {formatOverenskomstMetaDisplay(meta)}
+                            </MenuItem>
+                          ))}
                         </ChoiceField>
                       </Box>
                     </Box>

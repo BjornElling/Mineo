@@ -22,12 +22,11 @@ const ForsoergertabBeregningSection = React.memo(() => {
    * Beskeden udledes HER — i den flade, der aktiverer downloaden — så aktivering og visning ikke kan
    * divergere (`document/activation-shows-outcome`).
    *
-   * Kilden er `download.errorMessage` RÅT og IKKE `visibleDocumentFailureMessage`: denne flade har
-   * ingen shake-/fokus-feedback på et blokeret klik, og gate-årsagen står nu kun i tooltippet — som ikke er
-   * fremme, når brugeren netop har klikket. En gate-blokering kan ramme selve AKTIVERINGEN, fordi preflighten
-   * gater EFTER commit-barrieren: et klik med en åben editor kan blokere, fordi settlet gjorde værdien
-   * ugyldig. Filtrerede vi den væk, ville netop det klik være lydløst — i strid med "ingen usynlig
-   * blokering"-invarianten.
+   * Kilden er `download.errorMessage` råt. En gate-blokering bærer ingen besked, og det gælder også, når
+   * blokeringen først opdages under AKTIVERINGEN (preflighten gater efter commit-barrieren, så et klik med
+   * en åben editor kan blokere, fordi settlet gjorde værdien ugyldig). Knappen var synligt inaktiv, og
+   * tooltippet ejer årsagen; et klik på den skal ikke fremkalde tekst. Rækken her viser derfor kun et
+   * stale-afbrud eller en død DEV-server.
    */
   const failureMessage = download.errorMessage;
 

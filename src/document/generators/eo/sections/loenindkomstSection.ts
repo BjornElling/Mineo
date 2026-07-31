@@ -3,7 +3,7 @@ import { amountValueToDisplayString } from '../../../../utils/expressionAmount';
 import { getStandardLoenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
-import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskomstRates';
+import { resolveOverenskomstDisplay } from '../../../../data/overenskomstRates';
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
@@ -181,7 +181,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       renderSubheader(arbejdsstedNavn, undefined, { addTopSpacing: shouldAddTopSpacing });
       const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
       if (overenskomstId && ansaettelsesforhold.harOverenskomst) {
-        writeLabelValueLine('Overenskomst', resolveOverenskomstNameOnlyDisplay(overenskomstId));
+        writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(overenskomstId));
         writer.addSectionSpacer();
       }
       // Beløb-tilstand: de skjulte top-satsfelter er ikke dokumentkilde; relevante satser står i

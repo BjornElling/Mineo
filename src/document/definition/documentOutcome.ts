@@ -33,8 +33,8 @@ export type DocumentLifecyclePhase =
 
 /**
  * Mindst én årsag. En blokering uden årsag er et invariantbrud: kontrakten kræver, at en blokeret
- * download ALTID har en synlig, auditerbar grund (jf. "ingen usynlig blokering"-invarianten), og en
- * tom liste ville gøre både tooltip og afvisningsbesked tomme.
+ * download ALTID har en auditerbar grund, og en tom liste ville gøre knappens tooltip tomt — den ENE
+ * kanal, årsagen har til brugeren (`page-component-contract.md` §11.1).
  */
 export type DocumentGateReasons = readonly [DocumentDownloadGateReason, ...DocumentDownloadGateReason[]];
 
@@ -46,9 +46,9 @@ export const isNonEmptyReasons = (
  * Oversætter en gate-årsagsliste af ubestemt længde til den non-empty form, `blocked` kræver.
  *
  * De eksisterende `evaluate*DownloadGate`-funktioner returnerer `readonly Reason[]`, og en blokering
- * med tom liste ville derfor kunne slippe igennem som en USYNLIG blokering — knappen disabled uden
- * nogen grund at vise. Det bryder "ingen usynlig blokering"-invarianten. `fallback` er derfor
- * påkrævet og fungerer som fail-visible sikkerhedsnet: hellere en generisk grund end ingen.
+ * med tom liste ville derfor kunne slippe igennem som en knap, der er disabled uden nogen grund i
+ * tooltippet — og uden noget at auditere. `fallback` er derfor påkrævet og fungerer som sikkerhedsnet:
+ * hellere en generisk grund end ingen.
  */
 export const toGateReasons = (
   reasons: readonly DocumentDownloadGateReason[],
@@ -125,8 +125,9 @@ export const blockedFromIssues = (
  * En forventelig afvisning. Ingen af disse er programfejl, og ingen af dem må nå
  * systemfejl-overfladen.
  *
- * - `gate-blocked` er brugerrettelig og bærer definitionens egne årsager — HELE listen, så en
- *   konsument kan vise mere end den første.
+ * - `gate-blocked` er brugerrettelig og bærer definitionens egne årsager — HELE listen — som AUDITDATA.
+ *   Den producerer bevidst ingen brugerbesked: knappen var synligt inaktiv, og tooltippet ejer årsagen
+ *   (`page-component-contract.md` §11.1).
  * - `stale-source` er transient og har samme betydning i ALLE faser (deraf `phase` som data).
  * - `settle-failed` betyder, at den åbne editor ikke kunne finaliseres; feltet bærer selv den røde
  *   markering, og `focusTarget` peger på det.

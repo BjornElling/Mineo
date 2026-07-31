@@ -57,43 +57,24 @@ export type DocumentDownloadHandle<TRequest> = Readonly<{
    * viser den universelle tekst og kun en `specific` årsag citeres ordret. En flade må derfor
    * hverken vælge tekst selv eller læse `blockedReasons[0].message` til visning.
    *
-   * Den hører KUN i tooltippet. Samme tekst må ikke også stå som synlig tekst ved knappen — det var netop
-   * den dobbeltvisning, brugertesten fandt på Varigt mén og Forsørgertab.
+   * Den hører KUN i tooltippet, og tooltippet er gate-årsagens ENESTE kanal til brugeren. Samme tekst må
+   * hverken stå som synlig tekst ved knappen eller dukke op i udfaldsrækken efter et klik.
    */
   disabledReason: string | undefined;
   /** Udfaldet af den seneste aktivering, eller `null` før første klik / efter rydning. */
   lastOutcome: DocumentOutcome | null;
   /**
-   * Den brugerrettede besked for det seneste udfald, eller `null` når der intet er at vise
-   * (succes, eller et blokeret felt der selv bærer sin røde markering). Siden viser den; den
-   * formulerer den ikke.
+   * Den brugerrettede besked for det seneste udfald, eller `null` når der intet er at vise.
+   * Siden viser den; den formulerer den ikke.
+   *
+   * `null` dækker succes, en gate-blokering (tooltippet ejer årsagen — se `resolveDocumentOutcomeMessage`)
+   * og et blokeret felt, der selv bærer sin røde markering. Feltet er derfor allerede filtreret: en flade
+   * skal rendere det RÅT og må ikke lægge egen politik oven på det.
    */
   errorMessage: string | null;
   clearOutcome: () => void;
   download: (request: TRequest) => Promise<DocumentOutcome>;
 }>;
-
-/**
- * Den besked, en sides fejlboks skal vise — eller `null`.
- *
- * Adskiller sig fra `handle.errorMessage` ved at udelade GATE-blokeringer. Den er derfor KUN korrekt på en
- * flade, der besvarer en blokeret aktivering med et andet SYNLIGT signal — shake + fokus på det første
- * blokerende felt. Da svarer en fejllinje ovenikøbet kun det samme to gange.
- *
- * En flade uden det signal skal bruge `handle.errorMessage` direkte; ellers bliver en blokeret download
- * lydløs, hvilket bryder "ingen usynlig blokering"-invarianten.
- *
- * **Bemærk:** tidligere begrundede flere flader deres valg med, at gate-årsagen stod som synlig
- * TEKST ved knappen. Den dobbeltvisning er fjernet — årsagen hører nu kun i tooltippet — så tooltippet alene
- * kan ikke længere bære en blokeret AKTIVERING (den sker efter et klik, hvor ingen hover er i gang).
- * Kriteriet er derfor shake/fokus-feedbacken, ikke en tekstlinje.
- */
-export const visibleDocumentFailureMessage = <TRequest>(
-  handle: DocumentDownloadHandle<TRequest>
-): string | null =>
-  handle.lastOutcome?.status === 'rejected' && handle.lastOutcome.rejection.kind === 'gate-blocked'
-    ? null
-    : handle.errorMessage;
 
 export const useDocumentDownload = <TRequest, TGateSettings, TRenderSettings>(
   output: DocumentOutput<TRequest, TGateSettings, TRenderSettings>,

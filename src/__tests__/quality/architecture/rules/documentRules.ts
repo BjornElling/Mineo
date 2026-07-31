@@ -108,8 +108,10 @@ export const pdfDownloadCommittedState = defineRule({
  * callsiten renderede den. Otte flader gjorde det ikke: brugeren klikkede på en aktiv knap, fik ingen fil
  * og ingen forklaring. Reguleringshooket udledte endda beskeden, som BEGGE dens callsites ignorerede.
  *
- * Gate-tooltipen dækker ikke hullet: den forklarer den reaktive disabled-tilstand, ikke et afbrud EFTER et
- * klik, og de forventelige udfald routes bevidst ikke til den centrale systemfejlflade (§A5).
+ * Reglen måler netop DE udfald: et stale-afbrud og en død DEV-server. En GATE-blokering hører ikke til
+ * dem — den bærer ingen besked, fordi knappen var synligt inaktiv og tooltippet ejer årsagen
+ * (brugerbeslutning 2026-07-31). De forventelige udfald routes bevidst ikke til den centrale
+ * systemfejlflade (§A5), så uden en visning her ville de være lydløse.
  *
  * Reglen er en LOKAL strukturel kontrol pr. fil: aktiverer filen en download (`.download(...)` på et
  * handle), skal den samme fil også nævne en udfaldsvisning. Filer, der kun VIDEREGIVER et handle som
@@ -124,7 +126,6 @@ export const pdfDownloadCommittedState = defineRule({
  */
 const DOCUMENT_OUTCOME_VIEWS: readonly string[] = [
   'DocumentOutcomeMessage',
-  'visibleDocumentFailureMessage',
   'errorMessage',
 ];
 
@@ -140,7 +141,7 @@ const rendersDocumentOutcome = (entry: SourceEntry): boolean => {
       found = true;
       return;
     }
-    // `visibleDocumentFailureMessage(...)` / `handle.errorMessage` som identifier eller property.
+    // `handle.errorMessage` som identifier eller property.
     if (ts.isIdentifier(node) && DOCUMENT_OUTCOME_VIEWS.includes(node.text)) {
       found = true;
       return;
@@ -159,8 +160,8 @@ export const documentActivationShowsOutcome = defineRule({
   description:
     'En flade, der aktiverer en dokument-download, skal også vise dens udfald (R6-F02/GM-F11). Ellers kan '
     + 'et stale-afbrud eller en utilgængelig DEV-server give brugeren en aktiv knap, ingen fil og ingen '
-    + 'forklaring. Brug `DocumentOutcomeMessage` med `visibleDocumentFailureMessage(handle)` — eller '
-    + '`handle.errorMessage`, hvis gate-årsagen ikke står synligt ved knappen.',
+    + 'forklaring. Brug `DocumentOutcomeMessage` med `handle.errorMessage` råt — hook\'en har allerede '
+    + 'filtreret gate-blokeringer væk, som bevidst er tavse.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === DOCUMENT_OUTCOME_VIEW_OWNER
@@ -212,18 +213,12 @@ export const documentActivationShowsOutcome = defineRule({
     // efterlod dens forklarende kommentar, forblev grøn.
     {
       relativePath: 'src/components/pages/Z.tsx',
-      code: '// Beskeden læses direkte fra `errorMessage` via `visibleDocumentFailureMessage`.\n'
+      code: '// Beskeden læses direkte fra `errorMessage` i udfaldsrækken.\n'
         + 'const C = () => <Button onClick={() => void download.download(undefined)} />;',
     },
   ],
   cleanFixtures: [
-    // Den ønskede vej: aktivering + kanonisk visning.
-    {
-      relativePath: 'src/components/pages/X.tsx',
-      code: 'const C = () => <><Button onClick={() => void d.download(undefined)} />'
-        + '<DocumentOutcomeMessage message={visibleDocumentFailureMessage(d)} /></>;',
-    },
-    // Rå `errorMessage`-visning er den korrekte form, når gate-årsagen kun står i knappens tooltip.
+    // Den ønskede — og nu eneste — vej: aktivering + kanonisk visning af `errorMessage` råt.
     {
       relativePath: 'src/components/pages/X.tsx',
       code: 'const C = () => <><Button onClick={() => void d.download(undefined)} />'

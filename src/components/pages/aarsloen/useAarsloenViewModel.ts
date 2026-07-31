@@ -7,7 +7,6 @@ import {
   aarsloenDocumentDefinition,
   shDageDocumentDefinition,
 } from '../../../domain/aarsloen/aarsloenDocumentDefinitions';
-import { visibleDocumentFailureMessage } from '../../../document/definition/react/useDocumentDownload';
 import {
   useMineoDocumentOutputWithContext,
   useMineoDocumentSourceContext,
@@ -183,11 +182,12 @@ export function useAarsloenViewModel() {
     await shDageDownload.download(undefined);
   }, [shDageDownload]);
 
-  // De to outputs deler fejlboksen. Gate-blokeringer vises ikke her — knappernes tooltip bærer årsagen, og en
-  // blokeret årsløn-download besvares med shake + celle-flash.
+  // De to outputs deler fejlboksen. Gate-blokeringer bærer ingen besked (knappernes tooltip ejer årsagen),
+  // så boksen viser kun et stale-afbrud eller en død DEV-server. En blokeret årsløn-download besvares
+  // visuelt med shake + celle-flash.
   const downloadErrorMessage = firstPageMessage(
-    pageMessage(visibleDocumentFailureMessage(aarsloenDownload)),
-    pageMessage(visibleDocumentFailureMessage(shDageDownload))
+    pageMessage(aarsloenDownload.errorMessage),
+    pageMessage(shDageDownload.errorMessage)
   );
 
   const canShowOmregning = omregningAktiveret && periodeData !== null;
