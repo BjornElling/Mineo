@@ -7,6 +7,7 @@ import {
   getOverenskomstSfggPolicy,
 } from '../../../data/overenskomstRates';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
+import { harAktivOverenskomst, resolveAktivOverenskomst } from '../helpers/aktivOverenskomst';
 
 /**
  * SFGG-kildemodulet: ét sted der definerer, hvad hver af de fem SFGG-beregningskilder "er".
@@ -77,11 +78,7 @@ export const hasSfggSelectedOverenskomst = (
   sfggRow: Pick<SygeferiegodtgoerelseAnsaettelsesforholdRow, 'sfggBeregningskilde'> | undefined,
   employment: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId'>
 ): boolean =>
-  Boolean(
-    sfggRow?.sfggBeregningskilde === 'Overenskomst'
-    && employment.harOverenskomst
-    && employment.overenskomstId?.trim()
-  );
+  sfggRow?.sfggBeregningskilde === 'Overenskomst' && harAktivOverenskomst(employment);
 
 /**
  * Normaliserer den valgte `sfggBeregningskilde`-literal til en kanonisk `SfggSourceKind`.
@@ -100,10 +97,11 @@ export const resolveSfggSource = (
   if (selected === 'Ingen') return { kind: 'ingen', label: 'Ingen' };
   if (selected === 'Manuelt angivet') return { kind: 'manuel', label: 'Manuelt angivet' };
   if (selected === 'Ferieloven') return { kind: 'ferielov', label: 'Ferieloven' };
-  if (!employment.harOverenskomst || !employment.overenskomstId || getOffentligOverenskomstTypeById(employment.overenskomstId)) {
+  const aktiv = resolveAktivOverenskomst(employment);
+  if (!aktiv.aktiv || getOffentligOverenskomstTypeById(aktiv.overenskomstId)) {
     return { kind: 'overenskomst_ferielov', label: 'Overenskomst (ferielov)' };
   }
-  const policy = getOverenskomstSfggPolicy(employment.overenskomstId);
+  const policy = getOverenskomstSfggPolicy(aktiv.overenskomstId);
   return policy?.model === 'direkte_sats'
     ? { kind: 'overenskomst_direkte', label: 'Overenskomst' }
     : { kind: 'overenskomst_ferielov', label: 'Overenskomst (ferielov)' };

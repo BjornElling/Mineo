@@ -7,6 +7,7 @@ import { getOverenskomstMetaById, getOverenskomstSfggPolicy, isOffentligOverensk
 import { isSfggNoEligibleDaysNotCalculable } from '../erstatningsopgoerelse/engines/sfggReferencesats';
 import { findSfggSixMonthWarningEmploymentIds } from '../erstatningsopgoerelse/engines/sfggWarnings';
 import { hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sfggKilde';
+import { harAktivOverenskomst } from '../erstatningsopgoerelse/helpers/aktivOverenskomst';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_TABLE_TOTAL_LABEL, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
@@ -51,7 +52,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
     // Når harOverenskomst=false, behandler både beregning og kontrollaget bevidst valget "Overenskomst"
     // som et ferielov-spor uden policy-opslag. Et hængende eller frit tekst-ID skal derfor ikke
     // udløse "ukendt overenskomst-ID" i det spor.
-    const hasActivePrivateOverenskomst = employment.harOverenskomst && !!employment.overenskomstId && !hasKnownPublicOverenskomst;
+    const hasActivePrivateOverenskomst = harAktivOverenskomst(employment) && !hasKnownPublicOverenskomst;
     const overenskomstPolicy = employment.overenskomstId
       ? getOverenskomstSfggPolicy(employment.overenskomstId)
       : undefined;

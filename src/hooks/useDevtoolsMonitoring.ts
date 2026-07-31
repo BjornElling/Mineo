@@ -80,6 +80,18 @@ export const useDevtoolsMonitoring = ({
     setDevtoolsNoticeVisible(true);
   }, [clearPendingDevtoolsNoticeTimer]);
 
+  /**
+   * ENESTE vej fra en devtools-issue til notifikations-state — altid udskudt, aldrig synkron.
+   *
+   * En issue kan opstå MENS en anden komponent renderer: `computeEoSnapshot` fail-closer under
+   * `Erstatningsopgoerelse`s render og kalder `reportSystemIssue`, som via den patchede
+   * `console.error` ender her. Et synkront setState ville da skrive MainLayoutContents state midt i
+   * en fremmed render ("Cannot update a component while rendering a different component").
+   * Notifikationen er ren UI-feedback uden ordensgaranti, så udskydelsen koster intet.
+   *
+   * Timeren coalescer også en byge af issues til ét flush, og `flushPendingDevtoolsNotice` ejer
+   * dismissal-filteret — derfor må kaldere IKKE forfiltrere eller skrive state selv.
+   */
   const queuePendingDevtoolsNotice = React.useCallback((snapshot: DevtoolsIssueSnapshot) => {
     pendingDevtoolsSnapshotRef.current = snapshot;
     if (pendingDevtoolsNoticeTimerRef.current !== null) {
@@ -98,20 +110,8 @@ export const useDevtoolsMonitoring = ({
     );
 
     const stop = startDevtoolsMonitor();
-    const unsubscribe = subscribeDevtoolsIssues((snapshot, issue) => {
-      const now = Date.now();
-      if (now < suppressDevtoolsNoticeUntilRef.current) {
-        queuePendingDevtoolsNotice(snapshot);
-        return;
-      }
-      pendingDevtoolsSnapshotRef.current = null;
-      clearPendingDevtoolsNoticeTimer();
-      const dismissedId = dismissedDevtoolsIssueIdRef.current;
-      if (dismissedId !== null && issue.id <= dismissedId) {
-        return;
-      }
-      setDevtoolsSnapshot(snapshot);
-      setDevtoolsNoticeVisible(true);
+    const unsubscribe = subscribeDevtoolsIssues((snapshot) => {
+      queuePendingDevtoolsNotice(snapshot);
     });
 
     const initial = getDevtoolsIssueSnapshot();

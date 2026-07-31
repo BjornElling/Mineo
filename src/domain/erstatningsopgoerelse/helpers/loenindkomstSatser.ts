@@ -19,6 +19,7 @@ import type { StandardLoenRateSegment, StandardLoenSatserInput } from '../../aar
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { round2 } from '../../../utils/roundingShortcuts';
 import { generateLoenudviklingRowId, initialLoenudviklingManuelRow } from './eoRowInitialValues';
+import { harAktivOverenskomst, resolveAktivOverenskomst } from './aktivOverenskomst';
 
 export type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
 
@@ -131,9 +132,10 @@ const resolveOverenskomstSatsBindingsForAnvendtReguleringsdato = (
   af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
   anvendtReguleringsdato: ISODateString | undefined
 ): OverenskomstSatsBindings => {
-  if (!af.harOverenskomst) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
-  const overenskomstId = af.overenskomstId?.trim();
-  if (!overenskomstId || !anvendtReguleringsdato) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
+  // Aktiv-prædikatet ejes af `resolveAktivOverenskomst` (§ét sandt sted) — ikke stavet i hånden her.
+  const aktiv = resolveAktivOverenskomst(af);
+  if (!aktiv.aktiv || !anvendtReguleringsdato) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
+  const overenskomstId = aktiv.overenskomstId;
   const dato = isoToDanish(anvendtReguleringsdato);
   if (!dato) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
 
@@ -260,7 +262,7 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
     });
   }
 
-  if (!af.harOverenskomst || !af.overenskomstId?.trim()) {
+  if (!harAktivOverenskomst(af)) {
     return [{ fra, til, satser: baseSatser }];
   }
 

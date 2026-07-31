@@ -49,7 +49,13 @@ import {
   resolveTafConstraintBounds,
 } from '../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/engines/tafCalculations';
-import { getOverenskomstSfggPolicy } from '../data/overenskomstRates';
+import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
+import {
+  parseOffentligLoenSelection,
+  type OffentligLoenSelectionFailure,
+} from '../domain/erstatningsopgoerelse/helpers/offentligLoenSelection';
+import { harAktivOverenskomst, harModstridendeOverenskomstValg } from '../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
+import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 import { isoToDanish } from '../types/branded';
 import { DATE_ORDER_ERROR_MESSAGE } from '../utils/dateOrderValidation';
@@ -128,6 +134,32 @@ const nonNegativeAmountError = (path: string, value: AmountValue | undefined): V
   return { path, message: NON_NEGATIVE_AMOUNT_ERROR_MESSAGE, severity: 'error' };
 };
 
+const LOENTRIN_RANGE_ERROR_MESSAGE = 'Løntrin skal være mellem 1 og 55';
+const LOENGRUPPE_RANGE_ERROR_MESSAGE = 'Løngruppe skal være mellem 0 og 4';
+
+/**
+ * Feltplacering + besked for hver måde, en offentlig løn-indplacering kan være ufuldstændig på.
+ *
+ * Nøglerne er `OffentligLoenSelectionFailure` — motorens EGEN udfaldstype. Tilføjes en ny årsag
+ * dér, fejler dette record typecheck, indtil den også har en synlig validatorfejl. Det er værnet
+ * mod at motoren igen kan kaste på et input, validatoren fandt gyldigt (`trin-mangler` var netop
+ * sådan et hul: intervallet blev tjekket, men ikke tilstedeværelsen).
+ *
+ * De to `-ugyldig`-årsager deler beskeds-konstant med `validateLoenudviklingCanonicalRanges`, som
+ * allerede dækker interval-overtrædelser på de samme feltstier. De står her udelukkende for at
+ * holde nøgle-udtømmeligheden — derfor konstanter frem for gentagne strengliteraler, så de to
+ * producenter ikke kan drive fra hinanden i ordlyd.
+ */
+const OFFENTLIG_LOEN_SELECTION_VALIDATION_ISSUE: Readonly<
+  Record<OffentligLoenSelectionFailure, Readonly<{ field: string; message: string }>>
+> = {
+  'loentype-mangler': { field: 'offentligLoenType', message: 'Ansættelse skal vælges' },
+  'trin-mangler': { field: 'offentligLoenTrin', message: 'Løntrin skal udfyldes' },
+  'trin-ugyldig': { field: 'offentligLoenTrin', message: LOENTRIN_RANGE_ERROR_MESSAGE },
+  'gruppe-mangler': { field: 'offentligLoenGruppe', message: 'Gruppe skal udfyldes' },
+  'gruppe-ugyldig': { field: 'offentligLoenGruppe', message: LOENGRUPPE_RANGE_ERROR_MESSAGE },
+};
+
 const validateLoenudviklingCanonicalRanges = (
   loenudvikling: ErstatningsopgoerelseValues['eoAngivetLoenLoenudvikling'],
   prefix: string
@@ -170,7 +202,7 @@ const validateLoenudviklingCanonicalRanges = (
   ) {
     errors.push({
       path: `${prefix}.offentligLoenTrin`,
-      message: 'Løntrin skal være mellem 1 og 55',
+      message: LOENTRIN_RANGE_ERROR_MESSAGE,
       severity: 'error',
     });
   }
@@ -180,7 +212,7 @@ const validateLoenudviklingCanonicalRanges = (
   ) {
     errors.push({
       path: `${prefix}.offentligLoenGruppe`,
-      message: 'Løngruppe skal være mellem 0 og 4',
+      message: LOENGRUPPE_RANGE_ERROR_MESSAGE,
       severity: 'error',
     });
   }
@@ -633,7 +665,9 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
       });
     }
 
-    if (row.sfggBeregningskilde === 'Overenskomst' && (!employment?.harOverenskomst || !employment.overenskomstId)) {
+    // Aktiv-prædikatet er ét sted (`harAktivOverenskomst`) — ikke stavet i hånden her, hvor en
+    // manglende `.trim()` ellers ville lade et blankt id tælle som en valgt overenskomst.
+    if (row.sfggBeregningskilde === 'Overenskomst' && !(employment && harAktivOverenskomst(employment))) {
       errors.push({
         path: `${errorPathPrefix}.sfggBeregningskilde`,
         message: 'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst',
@@ -949,9 +983,37 @@ function validateLoenudviklingsKravForAktivKilde(
     }
     if (grundlag === 'Ingen') return;
 
+    // Enhver AKTIV reguleringsform regulerer en løn — uden indtastede lønoplysninger findes der
+    // intet at regulere, og motoren fail-closer ("mangler beregningsgrundlag"). Kravet hører til
+    // her, hvor brugeren kan se hvilket felt der mangler, i stedet for i en defensiv invariant.
+    // Gælder alle grundlag undtagen 'Ingen', som netop udtrykker "der reguleres ikke".
+    //
+    // Fejlen tilføjes UDEN at afbryde resten af rækkens kontroller: de øvrige regler (dæknings-
+    // interval, anciennitetsdato, satskrav) er uafhængige af, om lønnen er indtastet endnu, og et
+    // tidligt `return` ville skjule dem, indtil tabellen var udfyldt.
+    if (
+      values.beregnesUdFra === 'Beregningsperiode'
+      && !hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? [])
+    ) {
+      errors.push({
+        path: path('indtaegtsoplysningerTableData'),
+        message: 'Lønoplysninger skal udfyldes, når lønudviklingen reguleres',
+        severity: 'error',
+      });
+    }
+
     if (grundlag === 'Overenskomst') {
       if (!af.overenskomstId) {
         errors.push({ path: path('overenskomstId'), message: 'Overenskomst skal vælges', severity: 'error' });
+      } else if (harModstridendeOverenskomstValg(af)) {
+        // Id valgt, men togglen slået fra. Satsopslaget falder tilbage til ULÅST, så
+        // overenskomstens SH/SO- og pensionssatser IKKE udledes — tidligere skete det tavst,
+        // med et snapshot der meldte `ok` og regnede videre på ufuldstændige satser.
+        errors.push({
+          path: path('harOverenskomst'),
+          message: 'Overenskomst skal slås til, når lønudviklingen beregnes ud fra overenskomst',
+          severity: 'error',
+        });
       }
       const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
         beregnesUdFra: values.beregnesUdFra,
@@ -991,6 +1053,24 @@ function validateLoenudviklingsKravForAktivKilde(
       }
       if (!af.loenPaaHelligdage) {
         errors.push({ path: path('loenPaaHelligdage'), message: 'Løn på helligdage skal vælges', severity: 'error' });
+      }
+      // Offentlig overenskomst kræver en fuld løn-indplacering (løntype + løntrin + gruppe).
+      // Validatoren afgør det med SAMME parser som motoren (`parseOffentligLoenSelection`), så de to
+      // ikke kan divergere: hver `reason` motoren ville kaste på, er her en synlig feltfejl.
+      const offentligType = af.overenskomstId
+        ? getOffentligOverenskomstTypeById(af.overenskomstId)
+        : undefined;
+      if (offentligType) {
+        const selection = parseOffentligLoenSelection({
+          offentligType,
+          offentligLoenType: af.offentligLoenType,
+          offentligLoenTrin: af.offentligLoenTrin,
+          offentligLoenGruppe: af.offentligLoenGruppe,
+        });
+        if (!selection.ok) {
+          const issue = OFFENTLIG_LOEN_SELECTION_VALIDATION_ISSUE[selection.reason];
+          errors.push({ path: path(issue.field), message: issue.message, severity: 'error' });
+        }
       }
     }
 

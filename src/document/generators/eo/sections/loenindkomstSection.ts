@@ -4,6 +4,7 @@ import { getStandardLoenErrorRowIdSet } from '../../../../domain/erstatningsopgo
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstDisplay } from '../../../../data/overenskomstRates';
+import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
@@ -179,9 +180,9 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
       const shouldAddTopSpacing = index > 0;
       renderSubheader(arbejdsstedNavn, undefined, { addTopSpacing: shouldAddTopSpacing });
-      const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
-      if (overenskomstId && ansaettelsesforhold.harOverenskomst) {
-        writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(overenskomstId));
+      const aktivOverenskomst = resolveAktivOverenskomst(ansaettelsesforhold);
+      if (aktivOverenskomst.aktiv) {
+        writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(aktivOverenskomst.overenskomstId));
         writer.addSectionSpacer();
       }
       // Beløb-tilstand: de skjulte top-satsfelter er ikke dokumentkilde; relevante satser står i

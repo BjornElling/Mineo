@@ -133,6 +133,10 @@ describe('MainLayout (devtools notice persistence)', () => {
     const firstIssue = buildIssue(1);
     await act(async () => {
       listener?.(buildSnapshot([firstIssue]), firstIssue);
+      // Notifikationen er bevidst udskudt (jf. useDevtoolsMonitoring): en issue kan opstå midt i
+      // en fremmed komponents render, og et synkront setState ville skrive MainLayoutContents
+      // state derfra. Med fake timers skal den udskudte flush derfor drives frem eksplicit.
+      await vi.advanceTimersByTimeAsync(0);
     });
 
     expect(screen.getByText('Teknisk advarsel registreret')).toBeInTheDocument();

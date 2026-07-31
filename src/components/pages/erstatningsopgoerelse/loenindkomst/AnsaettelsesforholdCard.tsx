@@ -53,7 +53,10 @@ import {
 } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
-import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
+import {
+  isOverenskomstSatsFieldLocked,
+  type OverenskomstSatsField,
+} from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sfggKilde';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
@@ -173,9 +176,35 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     saerligFraDatoRegulering: af.saerligFraDatoRegulering,
   });
   const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
-  const fritvalgLocked = isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'fritvalgPct');
-  const shSoLocked = isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'shSoPct');
-  const pensionLocked = isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'pensionPct');
+  /**
+   * Satsfelt der er BRUGERINPUT når det er frit, og AFLEDT når overenskomsten låser det.
+   *
+   * Den låste gren læser `af[satsField]` — altså reader-projektionen, som allerede har kørt
+   * `applyAutoSatsFields` og dermed bærer overenskomstens sats. Præcis samme vej som
+   * `storeBededagPct`, der hele tiden var koblet rigtigt.
+   *
+   * Fejlen dette lukker: kortet brugte låsningen KUN til `disabled` og lod `PercentField` hente
+   * værdien gennem sin `FieldRef`, dvs. fra input-readeren, hvor brugerens (tomme) input står.
+   * Feltet stod derfor blankt og låst, mens beregningen kørte på overenskomstens sats (SH/SO 7 %,
+   * pension 10,15 %) — to kilder til ét tal, hvor kun den forkerte var synlig. Et låst felt må
+   * aldrig bindes til readeren; det er projektionen der ejer værdien.
+   */
+  const renderSatsField = (satsField: OverenskomstSatsField) => {
+    const shared = {
+      name: `${af.id}:${satsField}`,
+      placeholder: '0',
+      sx: LOCKED_SATS_FIELD_SX,
+    } as const;
+    return isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, satsField)
+      ? <DerivedPercentField value={af[satsField]} {...shared} />
+      : (
+        <PercentField
+          field={field(eoEmploymentFields[satsField])}
+          location={location(satsField)}
+          {...shared}
+        />
+      );
+  };
   const erOffentligOverenskomst = Boolean(
     af.overenskomstId && isOffentligOverenskomstId(af.overenskomstId)
   );
@@ -519,27 +548,13 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
-                <PercentField
-                  field={field(eoEmploymentFields.fritvalgPct)}
-                  location={location('fritvalgPct')}
-                  name={`${af.id}:fritvalgPct`}
-                  placeholder="0"
-                  disabled={fritvalgLocked}
-                  sx={LOCKED_SATS_FIELD_SX}
-                />
+                {renderSatsField('fritvalgPct')}
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography className="row--text" sx={{ minWidth: '140px' }}>
                   SH/SO-sats:
                 </Typography>
-                <PercentField
-                  field={field(eoEmploymentFields.shSoPct)}
-                  location={location('shSoPct')}
-                  name={`${af.id}:shSoPct`}
-                  placeholder="0"
-                  disabled={shSoLocked}
-                  sx={LOCKED_SATS_FIELD_SX}
-                />
+                {renderSatsField('shSoPct')}
               </Box>
             </Box>
           </Box>
@@ -568,14 +583,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 <Typography className="row--text" sx={{ minWidth: '190px' }}>
                   Arbejdsgivers pensionsbidrag:
                 </Typography>
-                <PercentField
-                  field={field(eoEmploymentFields.pensionPct)}
-                  location={location('pensionPct')}
-                  name={`${af.id}:pensionPct`}
-                  placeholder="0"
-                  disabled={pensionLocked}
-                  sx={LOCKED_SATS_FIELD_SX}
-                />
+                {renderSatsField('pensionPct')}
               </Box>
             </Box>
           </Box>

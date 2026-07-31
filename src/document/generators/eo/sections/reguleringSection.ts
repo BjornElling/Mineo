@@ -13,6 +13,7 @@ import {
   resolveLoenudviklingKilde,
 } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
 import {
   formatAmount2,
   formatAmountWithoutTrailingDecimals,
@@ -223,8 +224,9 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
   bededagStiger = resolveIncreaseFromTable(['store bededag', 'store bededagstillæg', 'st. bededagstillæg']);
 
   if (!fritvalgStiger && !shSoStiger && !pensionStiger) {
-    const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
-    if (overenskomstId && ansaettelsesforhold.harOverenskomst) {
+    const aktivOverenskomst = resolveAktivOverenskomst(ansaettelsesforhold);
+    if (aktivOverenskomst.aktiv) {
+      const overenskomstId = aktivOverenskomst.overenskomstId;
       const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
       if (offentligType) {
         const start = getOffentligTillaegsSatserForDato(overenskomstId, startDato, applyAlmindeligLoenPaaShDageRegel);
@@ -294,9 +296,11 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
   ): string | null => {
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag !== 'Overenskomst') return null;
-    if (!ansaettelsesforhold.harOverenskomst) return null;
     if (!ansaettelsesforhold.harAnciennitetstillaegEfterSkadedatoen) return null;
-    if (!ansaettelsesforhold.overenskomstId) return null;
+    // Samme aktiv-prædikat som resten af filen (§ét sandt sted). Den tidligere håndstavede udgave
+    // manglede `.trim()` og var dermed uenig med sin egen nabo om et blankt overenskomst-id.
+    const aktivOverenskomst = resolveAktivOverenskomst(ansaettelsesforhold);
+    if (!aktivOverenskomst.aktiv) return null;
 
     const satsValue = ansaettelsesforhold.anciennitetstillaegSats?.value;
     if (typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
@@ -307,7 +311,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     const datoDisplay = isoToDanish(dato) ?? dato;
 
     const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(
-      ansaettelsesforhold.overenskomstId,
+      aktivOverenskomst.overenskomstId,
       tafBeregnesSom
     );
     if (!grundloenAngivetPer) return 'Indtastning mangler';
