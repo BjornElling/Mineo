@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; underordnet domænespecifik beregningslogik og sideordnet med `amount-contract.md` og `date-contract.md`.
-**Senest verificeret mod kode:** 2026-07-12
+**Senest verificeret mod kode:** 2026-07-31
 
 ## 1. Scope
 

@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet
 `docs/architecture/undo-redo-architecture.md`.
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 
 ## 1. Scope
 
@@ -103,7 +103,7 @@ siger andet. Save ændrer ikke history.
 
 ## 7. Afledt state
 
-Issues og runtimefejl gemmes ikke i history. Når input gendannes, udledes de på ny fra `InputReader`, feltdefinitioner
+Issues og runtimefejl gemmes ikke i history. Når input gendannes, udledes de på ny fra `InputReader`, feltdescriptors
 og domænevalidatorer. Det fjerner mount-, reporter- og cleanup-afhængighed fra restore-flowet.
 
 ## 8. Memory-bound
@@ -116,3 +116,6 @@ Mineo bevarer højst 50 undo- og 50 redo-trin. Grænserne er brugersemantik og m
 Separate section-/rejected-/field-error-snapshots, `captureValueCommit`, `captureCoalescing`, microtask-markører,
 form-wide resync-tokens og stringbaserede fokuspaths **findes ikke** i history-arkitekturen. De navngives her som et
 fraværsværn: ingen af dem må genindføres, og ingen ny mekanisme må bygges på deres form.
+
+Fraværet er maskinelt efterprøvet: `deletionLedger.test.ts` beviser det fysiske fravær og selvtester, at beviset
+ikke er vakuøst, mens `legacy/forbidden-identifier` spærrer navnene som identifiers.

@@ -113,7 +113,7 @@ Kun når `inspektionSnapshot` findes, returneres `kind: 'ready'`.
 Ved `ready` bruger viewet altid værdierne fra `inspektionSnapshot` som revisionskonsistent kontrolgrundlag:
 - `inspektionSnapshot.stamdataValues`
 - `inspektionSnapshot.eoValues`
-- `inspektionSnapshot.issues`
+- `inspektionSnapshot.fieldErrors`
 - `inspektionSnapshot.inspektionDays`
 
 Det er korrekt og vigtigt, fordi kontrollaget ikke må læse rå eller stale input direkte fra `snapshot.input`, hvis
@@ -250,8 +250,6 @@ Direkte motorkald i kontrollaget er kun forsvarligt når alle disse betingelser 
 
 ### Konkrete nuværende motorkald/faglige helpers i kontrollaget
 
-- `buildEoSygeferiegodtgoerelseRows`
-  - kalder `buildLoenudviklingModel(...)` og `computeSygeferiegodtgoerelse(...)`
 - `buildEoOevrigeKravRows`
   - bruger `buildIncomeForRanges(...)`
 - `buildEoTafBeregningsgrundlagRows`
@@ -286,32 +284,24 @@ Det er forkert, hvis en delmængde af disse overenskomster i virkeligheden bruge
 
 ---
 
-## 10. Eksempel på korrekt domænespecifik gating
+## 10. SFGG-builderen: læs det autoritative output frem for at kalde motoren
 
-`buildEoSygeferiegodtgoerelseRows` er i dag det tydeligste eksempel på korrekt, domænespecifik gating.
+`buildEoSygeferiegodtgoerelseRows` er det bedste eksempel på §7-reglen — den bedste gating er den, der slet
+ikke er nødvendig.
 
-Builderen skelner mellem:
-- om der overhovedet er aktiv SFGG-kilde
-- om den konkrete SFGG-kilde faktisk kræver lønudviklingsmodellen
+Builderen kalder **ikke** `buildLoenudviklingModel(...)` eller `computeSygeferiegodtgoerelse(...)`. Den tager
+`(values, stamdata, canonicalOutput?, pdfModel?)` og læser resultatet dér, hvor det allerede er beregnet:
+`pdfModel.tabtArbejdsfortjeneste.sygeferiegodtgoerelse`. De to motorer kaldes i dag kun ét sted —
+`src/domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts` — altså i den autoritative beregning, ikke i
+kontrollaget.
 
-Kernen er:
+Det er stærkere end en korrekt gating, fordi hele klassen af fejl forsvinder: en builder, der ikke kalder en
+motor, kan hverken kalde den på et ugyldigt grundlag, kalde den med andre forudsætninger end beregningen, eller
+komme til at producere et andet tal end det, dokumentet viser.
 
-```ts
-const hasActiveSfggSource = ...
-const requiresLoenudviklingModel = ...
-  if (row?.beregnesUdFra !== 'Overenskomst') return false;
-  if (!employment.overenskomstId || isOffentligOverenskomstId(employment.overenskomstId)) return false;
-  const sfggPolicy = getOverenskomstSfggPolicy(employment.overenskomstId);
-  if (sfggPolicy?.model === 'direkte_sats') return false;
-  return getReguleringsDatoIntervalForOverenskomst(employment.overenskomstId) !== undefined;
-```
-
-`buildLoenudviklingModel(...)` kaldes kun når begge gates er opfyldt.
-
-Arkitektonisk vurdering:
-- dette matcher dokumentets oprindelige hensigt
-- dette er et godt mønster at kopiere ved fremtidige motorkald i kontrollaget
-- der findes regressionstest, som specifikt beskytter mod at kalde lønudviklingsmodellen for direkte sats-sporet
+Mønstret at kopiere ved nye rækkebuildere er derfor: **find først ud af, om tallet allerede findes i
+`canonicalOutput`/`pdfModel`.** Kun hvis det beviseligt ikke gør, kommer §9's fire betingelser for et motorkald
+i kontrollaget i spil.
 
 ---
 
@@ -324,11 +314,17 @@ type EoRowModel = {
   displayValue: string;
   status: EoRowStatus;
   message?: string;
+  summaryText?: string;
   summaryDisplay?: 'default' | 'messageOnly';
   group?: EoRowGroup;
   dependsOn?: ReadonlyArray<DependencySpec>;
+  focusTarget?: EoIssueFocusTarget;
+  focusFieldHint?: EoIssueFieldHint;
 };
 ```
+
+`focusTarget` og `focusFieldHint` er rækkens fokus-kontrakt mod fejlboksen: de udpeger, hvor brugeren skal
+sendes hen for at rette rækkens fejl.
 
 ### Regler
 
@@ -434,17 +430,11 @@ En ny builder kræver typisk også vurdering af `SectionId`, navigation, viewmod
 
 ## 16. Udestående teknisk gæld
 
-### A. `buildReguleringIndexRows` deles mellem dokument og kontrol
-
-Se afsnit 8. Delingen er nu formaliseret: begge projektioner bruger samme motor-emitterede
-kildeserie og samme domæneprojektor, mens kontrollens indeksaritmetik forbliver et selvstændigt
-krydstjek. Punktet er derfor ikke længere udestående teknisk gæld.
-
-### B. Regex-baseret id-parsing i `eoInspektionPageViewModel.ts`
+### A. Regex-baseret id-parsing i `eoInspektionPageViewModel.ts`
 
 Se afsnit 11 og 13. En mere robust løsning ville være eksplicit metadata på `EoRowModel` (fx `employmentId?: string`). Udestår som forbedring.
 
-### C. `EOInspektionPageViewModel` eksponerer både rows og synlighedsflag
+### B. `EOInspektionPageViewModel` eksponerer både rows og synlighedsflag
 
 Viewmodellen returnerer i dag både:
 - sektionernes rækker

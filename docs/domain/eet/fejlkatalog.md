@@ -14,13 +14,13 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 |---|---|
 | **Fejl** | Rød ikon (`ErrorOutline`). Blokerer beregning og download på den pågældende fane. |
 | **Advarsel** | Orange ikon (`WarningAmber`). Blokerer ikke beregning. |
-| **Felt-fejl** | Produceret af Zod-validering, eksponeret via `useFormFieldErrors`. Vises både inline på fane 1 og i fejlboksen på beregningsfanerne. |
+| **Felt-fejl** | Afledt rent fra `InputReader`, feltdescriptors og domænevalidatorer (jf. `src/contracts/error-contract.md`). Vises både inline på fane 1 og i fejlboksen på beregningsfanerne. |
 | **Beregningsfejl** | Produceret af `computeXxx`-funktionen. Vises kun i fejlboksen. |
 
 ### Principper
 
 - Alle fejl har et navigationslink til det felt brugeren skal rette. Undtagelse: fejl der udelukkende skyldes manglende systemdata (satser mv.) brugeren ikke kan rette.
-- `alder-unresolved` undertrykkes hvis `fodselsdato-missing` eller `skadedato-missing` allerede er aktiv — den afledte fejl er redundant.
+- `alder-unresolved` undertrykkes hvis `skadelidte-fodselsdato-missing` eller `skadedato-missing` allerede er aktiv — den afledte fejl er redundant.
 - `warn-eal-aarsloen-empty-for-2024-07-01` undertrykkes ikke af `aarsloen-missing` — de to kan vises samtidigt.
 - `eet-pct-missing` undertrykkes på F5 hvis `asl-afgoerelser-empty` er aktiv.
 - På F5 filtreres `no-endelig-afgoerelser` og `warn-ingen-kap-input` altid fra.
@@ -39,7 +39,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Navigationslink | Stamdata → Skadelidte |
 | Betingelse | `skadedato` fra stamdata er ikke udfyldt |
 
-#### `fodselsdato-missing` — "Fødselsdato er ikke udfyldt."
+#### `skadelidte-fodselsdato-missing` — "Fødselsdato er ikke udfyldt."
 | Felt | Værdi |
 |---|---|
 | Type | Fejl |
@@ -53,7 +53,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F4, F5 |
 | Navigationslink | Stamdata → Skadelidte |
-| Betingelse | Afledt fejl: fødselsdato og skadedato begge udfyldt men alder kan alligevel ikke beregnes (datoparse-fejl). Undertrykkes hvis `fodselsdato-missing` eller `skadedato-missing` er aktiv. F2 og F3 bruger ikke alder og emitterer ikke denne fejl. |
+| Betingelse | Afledt fejl: fødselsdato og skadedato begge udfyldt men alder kan alligevel ikke beregnes (datoparse-fejl). Undertrykkes hvis `skadelidte-fodselsdato-missing` eller `skadedato-missing` er aktiv. F2 og F3 bruger ikke alder og emitterer ikke denne fejl. |
 
 ---
 
@@ -334,13 +334,13 @@ Produceres af fradrag 3-beregningen i `computeEetDifferencekravCalculation`. Pro
 
 ---
 
-### Felt-fejl (fra Zod-validering)
+### Felt-fejl (afledt fra inputprojektionen)
 
-Produceres af `useFormFieldErrors` og vises foruden inline ved feltet på fane 1.
+Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fane 1.
 
 | Issue-ID | Felt | Vises på | Navigationslink |
 |---|---|---|---|
-| `field-fodselsdato` | Fødselsdato | F2, F3, F4, F5 | Stamdata → Skadelidte |
+| `field-skadelidte-fodselsdato` | Fødselsdato | F2, F3, F4, F5 | Stamdata → Skadelidte |
 | `field-skadedato` | Skadedato | F2, F3, F4, F5 | Stamdata → Skadelidte |
 | `field-beregningsdato` | Beregningsdato | F2, F4, F5 | EET oplysninger → Grundlæggende oplysninger |
 | `field-aarsloen-asl` | ASL årsløn | F2, F3, F5 | EET oplysninger → Arbejdsskadesikringsloven |
@@ -461,12 +461,14 @@ Issues deduplikeres på `severity + message` via `dedupeIssuesBySeverityAndMessa
 ### `EetIssue`-typen
 
 ```typescript
-// src/domain/erhvervsevnetab/eetTypes.ts
-type EetIssue = Readonly<{
-  id: string;
-  severity: 'error' | 'warning';
-  message: string;
-}>
+// src/domain/erhvervsevnetab/eetTypes.ts — Zod-udledt, ikke håndskrevet
+export const eetIssueSchema = z.object({
+  id: z.string().min(1),
+  severity: z.enum(['error', 'warning']),
+  message: z.string().min(1),
+}).strict().readonly();
+
+export type EetIssue = z.infer<typeof eetIssueSchema>;
 ```
 
 ### Produktion af issues
@@ -475,11 +477,18 @@ Alle `toIssue()` og `toWarning()` helper-funktioner er defineret lokalt i de res
 
 ### Navigation
 
-Navigation fra fejl-linje til inputsektion styres centralt i `resolveIssueNavigation(issueId)`. Hver `id` skal mappe til `pageName`, `sectionName`, `route`, `sectionId`. Sektionsnavnene på "EET oplysninger" er præcist: `Stamdata`, `Arbejdsskadesikringsloven`, `Erstatningsansvarsloven`.
+Navigation fra fejl-linje til inputsektion styres centralt af `resolveMidlertidigtEetIssueNavigation(issue)` i
+`src/domain/erhvervsevnetab/eetIssueNavigation.ts`. Den returnerer en diskrimineret union med to varianter:
+
+- `kind: 'stamdata-page'` for de fem stamdata-issues (`STAMDATA_ISSUE_IDS`), med `pageName`, `sectionTitle`
+  og et `focusFieldAddress` — den kanoniske feltadresse, ikke en fri streng.
+- `kind: 'erhvervsevnetab-tab'` for alle øvrige, med `pageName`, `tabKey` og `tabName`.
+
+Sektionsnavnene på "EET oplysninger" er præcist: `Stamdata`, `Arbejdsskadesikringsloven`, `Erstatningsansvarsloven`.
 
 ### Tests
 
-`src/__tests__/domain/erhvervsevnetab/eetAslAfgoerelser.test.ts` (710 linjer) dækker felt-validering og row-niveau-validering.
+`src/__tests__/domain/erhvervsevnetab/eetAslAfgoerelser.test.ts` dækker felt-validering og row-niveau-validering.
 
 ---
 

@@ -4,7 +4,7 @@ Denne fil er det normative domænedokument for sygeferiegodtgørelse (`SFGG`) og
 
 Formålet er todelt:
 - at fastlægge og konsolidere den gældende forretningslogik, så implementationen kan holdes op imod et samlet facit
-- at beskrive, hvad der aktuelt er implementeret, og hvor der fortsat er fejl, mangler eller afvigelser
+- at beskrive, hvad der er implementeret, og om der er fejl, mangler eller afvigelser
 
 ---
 
@@ -476,9 +476,9 @@ Ved valg af `Ingen` skal EO-kontrol stadig vise én linje med den valgte værdi 
 
 ## Del 2: Implementeringsstatus
 
-Dette afsnit beskriver status på den faktiske implementation pr. `13. juli 2026`.
+Dette afsnit beskriver, hvordan SFGG faktisk er implementeret.
 
-Status er gennemgået mod den aktuelle kode i især:
+Implementationen ligger især i:
 - `src/schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts`
 - `src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx`
 - `src/validators/erstatningsopgoerelseValidator.ts`
@@ -610,54 +610,26 @@ Der findes tests for blandt andet:
 - kontrol-rækker
 - PDF-accept af valgt SFGG-bilag
 
-### Afvigelser fra den normative forretningslogik
+### Implementationsnoter
 
-#### 1. Referencesatsens dagoptælling ved månedsbaseret TAF afviger fra den tidligere dokumentation
+Der er ingen kendte afvigelser mellem Del 1 og koden. Følgende noter uddyber, hvor
+implementationen har detaljer, som Del 1 med vilje ikke fastlåser.
 
-Den aktuelle kode bruger kalenderdage, når SFGG følger referenceperiode og TAF beregnes som måneder.
-
-Eksempel:
-- referenceperiode `01-01-2024` til `31-01-2024`
-- `1` fraværsdag uden løn
-
-Aktuel kode:
-- divisor = `31 kalenderdage - 1 = 30`
-
-Tidligere dokumentation:
-- divisor = periodens hverdage minus fravær
-
-Denne dokumentation er nu opdateret til at afspejle den aktuelle beregningslogik.
-
-#### 2. PDF-forklaringstekster er funktionelle men ikke fastlåst til kanonisk ordlyd
+#### 1. PDF-forklaringstekster er funktionelle men ikke fastlåst til kanonisk ordlyd
 
 Der genereres forklaringslinjer for:
 - 4-månedersophør (med konkret ophørsdato)
 - ansættelsesophør (med konkret ophørsdato, og med verbum afpasset til om datoen er passeret)
 - bortfald under arbejdsgiverbetalt sygeløn
 
-Den normative del af dokumentet beskriver ikke længere en fastlåst ordlyd for disse tekster; formuleringerne er bevidst holdt fleksible.
+Den normative del af dokumentet beskriver ikke en fastlåst ordlyd for disse tekster (jf. §9.2);
+formuleringerne er bevidst holdt fleksible.
 
-#### 3. SFGG-tabellens `I alt`-række vises ikke altid
-
-Den aktuelle kode viser kun `I alt`-rækken, når der er mere end én datalinje i tabellen.
-
-Eksempel:
-- én sammenhængende SFGG-periode giver én datalinje
-- her vises ingen `I alt`-række i hverken EO-kontrol eller PDF
-
-Denne dokumentation er nu opdateret til at afspejle den aktuelle visningslogik.
-
-#### 4. Seksmånedersadvarsel
+#### 2. Seksmånedersadvarslen har én kilde
 
 Seksmånedersadvarslen beregnes af `findSfggSixMonthWarningEmploymentIds` og vises to steder fra samme
 kilde: inline på Lønindkomst-fanen under SFGG-feltet (via snapshottet) og som en advarselsrække i
 EO-kontrol. Begge læser den samme beregnede liste, så de ikke kan drive fra hinanden.
-
-#### 5. SFGG-bilaget er aktivt i UI
-
-Den tidligere dokumentation beskrev bilagsvalget som deaktiveret.
-Det passer ikke længere.
-Checkboxen for `Sygeferiegodtgørelse` er aktiv i den aktuelle UI.
 
 ---
 

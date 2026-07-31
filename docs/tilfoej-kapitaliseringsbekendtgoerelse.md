@@ -18,9 +18,9 @@ Anbefalet placering:
 
 Dette matcher implementeringsretningen i:
 
-- `docs/implementation/implementering-kapitaliseret-eet.md`
-- `docs/implementation/implementering-loebende-eet.md`
-- `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts`
+- `docs/domain/eet/kapitaliseret-eet.md`
+- `docs/domain/eet/loebende-eet.md`
+- `src/data/kapitalisering/kapitaliseringsbekendtgoerelser.ts`
 
 ## Bindende principper ved udtræk
 
@@ -65,7 +65,7 @@ Dette matcher implementeringsretningen i:
   - `9921/2019` dækker `2020-01-01` til `2020-12-30`.
   - `9870/2020` dækker kun `2020-12-31`.
 - For VEJ `9921/2019` og `9870/2020` udfyldes ikke ekstra EET-tabelvalg for ældre ordninger, forsørgertab-tabelvalg eller særfaktor ved `<2 år`, når disse ikke fremgår eksplicit af kilden.
-- For VEJ `9820/2023` og `9376/2024` kan filernes `gyldig`-intervaller overlappe i anden halvdel af 2024; deterministisk prioritering skal styres i `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts` med skæringsdato `2024-07-01`.
+- For VEJ `9820/2023` og `9376/2024` kan filernes `gyldig`-intervaller overlappe i anden halvdel af 2024; deterministisk prioritering skal styres i `src/data/kapitalisering/kapitaliseringsbekendtgoerelser.ts` med skæringsdato `2024-07-01`.
 - For VEJ `9741/2020`, `9864/2021`, `10141/2022` og `9820/2023` er tabelvalg bevidst begrænset til skadedatoer fra `2011-01-01`, når kilden kun angiver tabeller `A-H`.
 - `forsoergertabAfloesningsTabeller = {}` betyder, at kilden ikke indeholder afløsningstabeller for den bekendtgørelse/vejledning.
 - Hvis kilden kun angiver kønsopdelte afløsningstabeller, skal de bevares i `forsoergertabAfloesningsTabellerKoensopdelt` (ingen sammenfletning til kønsneutral tabel).
@@ -279,7 +279,7 @@ const FORSOERGERTAB_TABELVALG_DATA = [
 Når en ny fil er udtrukket:
 
 1. Læg filen i `src/data/kapitalisering/kapitaliseringsTabeller/`.
-2. Opdater `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts` med korrekt `id` og relevante `kapitaliseringsdatoFra`-poster.
+2. Opdater `src/data/kapitalisering/kapitaliseringsbekendtgoerelser.ts` med korrekt `id` og relevante `kapitaliseringsdatoFra`-poster.
 3. Verificer at den nye fil ikke indeholder folkepensionsalder/ophørsalder i sine EET-tabelvalg, og at `src/data/folkepensionAlderRates.ts` dækker opslagsperioden.
 4. Verificer at udløbsreglen for seneste post stadig er opfyldt.
 5. Kør `npm run typecheck`.
@@ -292,7 +292,7 @@ Brug denne arbejdsprompt internt når du får ny tekst:
 Opgave: Udtræk kapitaliseringsdata fra vedlagte tekst og lever en compile-klar TypeScript-fil i formatet `xxxx-yyyy.ts`.
 
 Krav:
-- Brug præcis den faste kodekontrakt fra `docs/arbejdsvarktoej-kapitaliseringsudtraek.md`.
+- Brug præcis den faste kodekontrakt fra `docs/tilfoej-kapitaliseringsbekendtgoerelse.md`.
 - Ingen antagelser ved tvivl; markér i stedet manglende/uklare felter.
 - Folkepensionsalder/ophørsalder skal håndteres via `src/data/folkepensionAlderRates.ts`; kapitaliseringstabelfilen må kun indeholde tabelvalg og faktortabeller.
 - Bevar numerisk præcision fra kilden.

@@ -126,29 +126,17 @@ EAL og ASL bruger **fundamentalt forskellige reguleringsmetoder**:
 
 De to må **aldrig** dele beregningssti eller helper.
 
-### Verificeret eksempel
+### Aldersreduktionen i praksis
 
-**Stamdata:** Skadedato 01-01-2023 (skadesår 2023), beregningsdato 01-10-2026 (beregningsår 2026), fødselsdato 08-01-1972, årsløn 700.000 kr., EET-% 70 %.
+Aldersreduktionsprocenten beregnes ét sted: `calculateAldersreduktionPct` i `eetEalCalculation.ts`,
+med alderen fra `calculateAgeInWholeYears` opgjort på **skadedatoen** (ikke beregningsdatoen).
+Formlen og dens eksempeltabel står under trin 3 ovenfor; det er den autoritative beskrivelse.
 
-```
-Reguleringsår: 2024, 2025, 2026
-reguleringsfaktor = (1 + sats[2024]/100) × (1 + sats[2025]/100) × (1 + sats[2026]/100)
-  = ... → reguleringsPctRounded4 ≈ 12,5... % (afhænger af konkrete satser)
-reguleret_årsløn = round500(700.000 × reguleringsfaktorRounded4) → 789.000 kr. (med de aktuelle satser)
-
-eet_beregnet = round0(789.000 × 10 × 0,70) = 5.523.000 kr.
-(forudsæt eet_maks > 5.523.000: eet_anvendt = 5.523.000 kr.)
-
-alder ved skade = floor((2023-01-01 − 1972-01-08)) = 50 hele år
-reduktion_pct = (50−29) + 0 = 21 %  → men ifølge verificeret eksempel i differencekrav: alder = 51, reduktion = 22 %
-  (afhænger af præcis skadsdato; 08-01-1972 → 01-01-2023 = 50 år, 360 dage → 50 hele år,
-   men ved skadedato 01-10-2026 som beregningsdato: kontroldatoen er skadedato)
-
-aldersreduktion_beløb = round0(5.523.000 × 0,22) = 1.215.060 kr.
-eal_krav = 5.523.000 − 1.215.060 = 4.307.940 kr.
-```
-
-*(Differencekravets verificerede eksempel bruger alder 51 og reduktion 22 % — det præcise resultat afhænger af de konkrete skadedato/fødselsdato-input og de gældende satser for de pågældende år.)*
+Denne fil rummer bevidst intet gennemregnet talekempel for hele fane 4-forløbet: resultatet afhænger
+af de konkrete reguleringssatser for skadesår→beregningsår og af det gældende `erhvervsevnetabMax`,
+og et hårdkodet eksempel ville rådne med satstabellerne. Se i stedet
+`src/__tests__/domain/erhvervsevnetab/eetEalCalculation.test.ts` for gennemregnede tilfælde,
+der holdes i sync med koden.
 
 ---
 
@@ -156,7 +144,7 @@ eal_krav = 5.523.000 − 1.215.060 = 4.307.940 kr.
 
 ### Primær fil
 
-`src/domain/erhvervsevnetab/eetEalCalculation.ts` (395 linjer)
+`src/domain/erhvervsevnetab/eetEalCalculation.ts`
 
 ### Indgangspunkt
 
@@ -168,22 +156,33 @@ computeEetEalCalculation(input: Input): EetEalCalculationResult
 
 ### Nøgletyper
 
+`EetEalComputation` er **Zod-udledt** (`z.infer`) af `eetEalComputationSchema` og bor i
+`src/domain/erhvervsevnetab/eetCanonicalOutput.ts` — ikke i `eetEalCalculation.ts`, som blot
+re-eksporterer typen. Skemaet er `.strict().readonly()`, og alle beløbsfelter bærer
+`moneyOreSchema` og dermed `Ore`-suffikset:
+
 ```typescript
 EetEalCalculationResult = { issues, computation: EetEalComputation | null }
 
 EetEalComputation = {
-  beregningsdato, skadedato, fodselsdato,
-  skadesaar, beregningsaar,
-  aarsloen, aarsloenSource: 'eal' | 'asl',
+  beregningsdato, skadedato, fodselsdato,   // isoDateString
+  skadesaar, beregningsaar,                 // integer
+  aarsloenOre: MoneyOre,
+  aarsloenSource: 'eal' | 'asl',
   reguleringsaar: readonly number[],
   reguleringsPctRounded4: number,
-  reguleretAarsloen: number,
-  eetPct, eetPctSource: 'eal' | 'asl',
-  kapitaliseringsfaktor: 10,      // altid 10, aldrig andet
-  eetBeregnet, eetMaks, eetAnvendt,
+  reguleretAarsloenOre: MoneyOre,
+  eetPct: number, eetPctSource: 'eal' | 'asl',
+  kapitaliseringsfaktor: 10,      // z.literal(10) — altid 10, aldrig andet
+  eetBeregnetOre: MoneyOre,
+  eetMaksOre: MoneyOre,
+  eetAnvendtOre: MoneyOre,
   eetReduceretTilMaks: boolean,
-  alderVedSkade, aldersreduktionPct, aldersreduktionBeloeb,
-  ealKrav
+  alderVedSkade: number,          // hele opnåede år på skadedatoen
+  alderVedSkadeCapped: number,    // min(alderVedSkade, 69) — capværdien bag reduktionsformlen
+  aldersreduktionPct: number,
+  aldersreduktionBeloebOre: MoneyOre,
+  ealKravOre: MoneyOre
 }
 
 EetEalResolvedEetPct = {
@@ -204,19 +203,25 @@ EetEalResolvedEetPct = {
 
 ### Afrunding
 
-`round500` er **kun** defineret lokalt i `eetEalCalculation.ts` (ikke i `eetRounding.ts`):
+`round0` og `round4` importeres fra `src/utils/roundingShortcuts.ts`. `round500` er **kun** defineret
+lokalt i `eetEalCalculation.ts`:
 ```typescript
 const round500 = (value: number): number =>
   roundByMethod(value / 500, 0, 'halfAwayFromZero') * 500;
 ```
+
+Afrundingerne er uændrede af øre-brandingen: `round500`, `round0` og `round4` anvendes fortsat på
+**kronebeløb**, og først derefter brandes resultatet til `MoneyOre` med `fromKroner`. Hvor et allerede
+brandet beløb skal indgå i en kroneafrunding, konverteres det tilbage med `toKroner` først — de
+lovbestemte grænser og afrundinger ligger dermed uændret i kroner.
 
 ### Afhængigheder
 
 | Import | Kilde |
 |---|---|
 | `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax` | `src/data/lovbestemteRates.ts` (injiceret som input, ikke importeret direkte i ts-filen) |
-| `parsePercentDraft`, `validatePercentDivisibleBy5FromDraft`, `validatePercentDivisibleBy5FromValue`, `ASL_IDENTICAL_AFGOERELSER_ID`, `hasIdenticalAfgoerelser` | `eetAslAfgoerelser.ts` |
-| `round0`, `round4` | `eetRounding.ts` |
+| `parseCommittedPercent`, `validatePercentDivisibleBy5`, `validatePercentDivisibleBy5FromValue`, `ASL_IDENTICAL_AFGOERELSER_ID`, `hasIdenticalAfgoerelser` | `eetAslAfgoerelser.ts` |
+| `round0`, `round4` | `src/utils/roundingShortcuts.ts` |
 | `roundByMethod` | `src/utils/rounding.ts` (direkte, til `round500`) |
 
 ### Fejl og advarsler (fane 4)
@@ -229,7 +234,7 @@ Se [fejlkatalog.md](./fejlkatalog.md) for komplet katalog. Fane 4 producerer:
 
 ### Tests
 
-`src/__tests__/domain/erhvervsevnetab/eetEalCalculation.test.ts` (326 linjer)
+`src/__tests__/domain/erhvervsevnetab/eetEalCalculation.test.ts`
 
 Dækker: kæde-regulering, aldersreduktionsformel, EET-% prioritering (EAL vs. ASL fallback), lofts-capping.
 

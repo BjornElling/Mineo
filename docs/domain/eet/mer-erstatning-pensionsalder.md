@@ -123,8 +123,9 @@ forkert.
 |---|---|
 | `src/data/kapitalisering/forhoejetPensionsalderEvents.ts` | Eksplicit datatabel over forhøjelser: forhøjelsesdato, opslagsdato for gammel/ny bekendtgørelse, alderslabels. |
 | `src/domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation.ts` | `computeMerErstatningPensionsalder()` — beregner mer-erstatningen pr. kapitalisering pr. forhøjelse. |
-| `src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts` | Kører fradrag 4 og trækker `samletMerErstatning` fra differencekravet. |
-| `src/pdf/domains/differencekrav/differencekravPdf.ts` | Hoved-side-fradragslinje og valgfrit bilag. |
+| `src/domain/erhvervsevnetab/eetCalculationGraph.ts` | `computeEetDifferencekravCalculation` — orkestrerer fradrag 4 og trækker `samletMerErstatning` fra differencekravet. |
+| `src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts` | `composeEetDifferencekravCalculation` — selve sammensætningen af differencekravet. |
+| `src/document/generators/differencekrav/differencekravDocument.ts` | Hoved-side-fradragslinje og valgfrit bilag. |
 | `src/components/pages/erhvervsevnetab/EetDifferencekravTab.tsx` | Specifikationssektion, bilagsvalg og detaljeret visningsboks. |
 
 ### Internt flow

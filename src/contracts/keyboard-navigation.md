@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 
 ---
 
@@ -101,7 +101,8 @@ først ved den normale settle-grænse.
 - Vertikal wrap: fra nederste række → øverste række, fra øverste række → nederste række
 
 **Række-definition:**
-- Primært via eksisterende række-containere (`row--*` / hover-row mønstre)
+- Primært via eksisterende række-containere. Selektoren har ét sted: `CONTAINER_ROW_SELECTOR` i
+  `src/components/tables/gridCore/tableFocusHelpers.ts`. En navigationsflade må ikke føre sin egen kopi.
 - Fallback: visuel række via elementernes Y-position
 
 **Undtagelser:**
@@ -118,10 +119,12 @@ først ved den normale settle-grænse.
    - Container intercepter IKKE piletaster
    - Widget/menu ejer intern navigation
 4. **Editor åben**
-   - For Mineos Styled*-tekstfelter betyder editor åben, at det fokuserede tekstinput er redigerbart (`readOnly=false`) og ikke er en ikke-tekstlig inputtype.
+   - For Mineos tekstbaserede felter betyder editor åben, at det fokuserede tekstinput er redigerbart (`readOnly=false`) og ikke er en ikke-tekstlig inputtype.
    - Andre komponenter skal eksponere en tilsvarende auditérbar edit-state. Formular- og gridflader
-     registrerer denne state eksplicit hos `CriticalActionCoordinator`; kritiske handlinger må ikke
-     genudlede den gennem DOM-scanning.
+     registrerer den åbne editor eksplicit hos `activeEditorRegistry`
+     (`src/inputCore/runtime/activeEditorRegistry.ts`), som `CriticalActionCoordinator` aftager; kritiske
+     handlinger må ikke genudlede state gennem DOM-scanning. Håndhævet af
+     `criticalAction/no-dom-scan-or-frame-wait`.
    - Container intercepter IKKE piletaster
    - Eksisterende caret/editor-adfærd bevares
 
@@ -153,9 +156,14 @@ Normativt krav:
 - En **LUKKET** popup-widget ejer selv sin aktiveringstast (`Enter`): den skal åbne menuen. Hverken Container
   eller en tabels grid-navigation må bruge `Enter` til at flytte fokus, når målet er en lukket popup-kontrol.
 - Klassifikationen "er dette en popup-kontrol, og er den åben?" har **ÉT sted**:
-  `src/components/inputs/popupWidgetSemantics.ts`, som måler kontrollens ARIA-semantik (`role="combobox"`,
-  `aria-haspopup`, `aria-expanded`, og `aria-controls` kun sammen med åben tilstand). Alle
-  navigationsflader — Container OG grid-navigationen — aftager den.
+  `src/components/inputs/popupWidgetSemantics.ts` med de fire eksporter `getPopupWidgetHost`,
+  `isPopupWidgetExpanded`, `isPopupWidget` og `isInClosedPopupWidget`. Modulet måler kontrollens
+  ARIA-semantik (`role="combobox"`, `aria-haspopup`, `aria-expanded`, og `aria-controls` kun sammen med
+  åben tilstand). Alle navigationsflader — Container OG grid-navigationen — aftager den.
+- For en widget, der bærer expanded-tilstanden på en søsker eller wrapper frem for på sig selv, afgøres
+  åbenhed af, om det `aria-controls`-udpegede element **faktisk er synligt** (`hidden`, `aria-hidden`,
+  `getClientRects()`, `display`/`visibility`). En sådan widget klassificeres altså som åben, selv om den
+  ikke selv har `aria-expanded`.
 - En navigationsflade må **IKKE** klassificere popup-kontroller på et komponentnavn, en privat
   markør-attribut eller sin egen kopi af ARIA-opslaget. En sådan klassifikation kan blive inert, når
   kontrollen udskiftes, uden at nogen type eller test fejler — det skete konkret. Håndhævet af AST-reglen `input/popup-semantics-single-source`.
@@ -190,7 +198,8 @@ const handleKeyDown = (e: React.KeyboardEvent) => {
 
 ## Overlay note: Løntrin-finder
 
-Løntrin-finder popup (anvendt i både `Lønindkomst` og `EO-oplysninger`) bruger en eksplicit, hardcoded tab-sekvens:
+Løntrin-finder popup (`src/components/pages/erstatningsopgoerelse/shared/LoentrinFinderOverlay.tsx`, anvendt i
+både `Lønindkomst` og `EO-oplysninger`) bruger en eksplicit, hardcoded tab-sekvens:
 
 `Ansættelse -> Beløb -> Dato -> Beregn`
 
@@ -243,21 +252,28 @@ Container keyboard-navigation testes på to niveauer:
 - Disabled-felter springes over i Tab-/Shift+Tab-rækkefølgen (Container.checklistGaps)
 - Container intercepter IKKE museklik; klik giver fokus til det klikkede felt (Container.checklistGaps)
 - Den rigtige `StyledDropdown` (readOnly combobox) indgår i Tab-rækkefølgen og åbner på Enter/første klik uden at Container kaprer (Container.checklistGaps)
-- `StyledDateField`/`StyledTextField` får fokus uden selection (Container.checklistGaps)
-- Escape gendanner editorens starttilstand for både tidligere gyldigt og tidligere rejected input
-- blur efter Escape committer ikke den annullerede draft
+- Dato- og tekstfelter får fokus uden selection (Container.checklistGaps)
+
+**Escape-adfærden (§Editor åben) dækkes ikke af Container-testene, men af felt-editoren:**
+`src/__tests__/inputCore/editor/fieldEditor.test.ts` og
+`src/__tests__/inputCore/react/useFieldEditor.test.tsx`
+
+- Escape gendanner editorens starttilstand for både tomt, tidligere gyldigt og tidligere rejected input
+- Escape lukker uden command, og et efterfølgende blur settler ikke den annullerede draft
 
 ### 2. Residual manuel/visuel kontrol
 
 De automatiske tests dækker al observerbar navigations-adfærd. Tilbage som ren visuel
 inspektion (kan ikke verificeres i JSDOM) står kun:
 
-- Finkornet visuel inspektion af "ingen blå markering" pr. felt-type ved Tab (StyledTextField,
-  StyledDropdown, StyledDateField, StyledPercentField, StyledIntegerField, StyledAmountField).
+- Finkornet visuel inspektion af "ingen blå markering" pr. felt-type ved Tab: felt-familien i
+  `src/inputCore/react/fields/` (`TextField`, `DateField`, `PercentField`, `IntegerField`, `AmountField`)
+  samt `StyledDropdown`.
 - Fokus-ring-æstetik (klar og tydelig) samt platform-/browser-specifik caret-placering.
 
-Dette udføres ad hoc ved ændringer i `Container.tsx` eller `Styled*`-komponenter; der findes
-ikke længere en separat checklist-fil (adfærden er migreret til de automatiske tests ovenfor).
+Dette udføres ad hoc ved ændringer i `Container.tsx`, i felt-familien eller i præsentationsskallerne
+(`StyledTextFieldBase`, `StyledTextAreaBase`). Al observerbar navigations-adfærd er dækket af de
+automatiske tests ovenfor; der findes ingen separat checklist-fil.
 
 ---
 
@@ -275,20 +291,20 @@ Følgende adfærd er **forbudt** og betragtes som fejl:
 
 ---
 
-## Fremtidig evolution
+## Selection-on-focus
 
-Container-styret keyboard traversal må aldrig skabe selection.
+Container-styret keyboard traversal må aldrig skabe selection. Skal en komponent alligevel have
+selection-on-focus, ejes interaktionen af komponenten selv — ikke af Container — og komponenten skal skelne
+mellem keyboard-fokus og pointer-fokus og dokumentere sin egen observerbare adfærd.
 
-Hvis der i fremtiden opstår behov for selection-on-focus i en komponent:
+---
 
-Designnoten er:
+## Feltidentitet i DOM
 
-- Selection-on-focus må ikke implementeres i Container.
-- Den relevante komponent skal selv eje interaktionen.
-- Komponenten skal skelne mellem keyboard-fokus og pointer-fokus.
-- Komponenten skal dokumentere sin egen observerbare adfærd.
-
-Den normative tværgående invariant er uændret: keyboard traversal må aldrig skabe selection.
+Feltidentitet i DOM har præcis ét attributnavn: `data-mineo-field-address`. Fokus- og restore-mål bæres af
+den sammen med editorlokationen; `data-mineo-field-path` og tilsvarende parallelle stinavne findes ikke og må
+ikke genindføres. Håndhævet af `input/single-field-identity-in-dom`,
+`input/restore-attributes-carry-destination` og `form/restore-target-attributes`.
 
 ---
 

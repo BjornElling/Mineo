@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Underordnet form-, persistence- og dokument-output-kontrakterne for deres dataregler.
-**Senest verificeret mod kode:** 2026-07-18
+**Senest verificeret mod kode:** 2026-07-31
 
 ## 1. Scope
 
@@ -93,8 +93,13 @@ Deltager-registreringen sker ét sted: `useFieldEditor`, som både form-fladen (
 grid-fladen (`useGridCellSurface`) bygger på. Navnet er en implementering, ikke et normativt API-navn —
 kontrakten binder deltager-ROLLEN, ikke hooket.
 
-De tre navne `useStyledFieldAdapter`, `useGridCoreController` og `useGridRowPersistenceCore` er slettede
-forgængere og må ikke genindføres; de står her alene, så en læser af ældre commits kan finde efterfølgeren.
+De to navne `useStyledFieldAdapter` og `useGridRowPersistenceCore` er slettede forgængere og må ikke
+genindføres; de står her alene, så en læser af ældre commits kan finde efterfølgeren.
+
+Forveksl ikke `useGridRowPersistenceCore` (slettet) med `useGridCoreController`
+(`src/components/tables/useGridCoreController.ts`), som er i aktiv brug: den er grid-fladens ene
+fokus-/edit-celle-autoritet og aftages af `StandardGridTable` og `StandardLooseTable`. Navnene ligner
+hinanden, men kun det første er en forgænger.
 
 ## 7. Reset, `Slet alt` og load — ingen settle
 

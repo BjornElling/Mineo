@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Gælder for:** Alle dokument-downloads i Mineo-hovedappen.
-**Senest verificeret mod kode:** 2026-07-11
+**Senest verificeret mod kode:** 2026-07-31
 
 Denne kontrakt fastlægger reglerne for valg mellem PDF- og Word-downloads. Den er
 **kanal-vælgeren** der ligger *over* `document-output-contract.md`: denne kontrakt bestemmer

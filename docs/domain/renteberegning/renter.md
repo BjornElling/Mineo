@@ -48,6 +48,7 @@ Tabel over referencesatser (seneste halvår først):
 
 | Periode fra | Referencesats |
 |---|---|
+| 01-07-2026 | 2,00 % |
 | 01-01-2026 | 1,75 % |
 | 01-07-2025 | 1,75 % |
 | 01-01-2025 | 2,75 % |
@@ -105,7 +106,7 @@ Opfyldes betingelserne ikke, returneres `calculatedInterest: null` for den påg�
 | Fil | Ansvar |
 |---|---|
 | `src/domain/renteberegning/renteberegningEngine.ts` | Autoritativ engine; `computeRenteberegning`, `computeRentekravRow` |
-| `src/domain/renteberegning/procesrenteCalculator.ts` | Renteberegningsmotor; `calculateProcessInterestWithRates` |
+| `src/domain/renteberegning/procesrenteCalculator.ts` | Renteberegningsmotor; `calculateProcessInterestWithRates` (samlet rentebeløb), `calculateProcessInterestBreakdownWithRates` (samme beregning, men returnerer hele periodeopdelingen bag beløbet), `findLatestReferenceRatePeriodEnd` (sidste dato referencesats-tabellen dækker — udgangen af det halvår den nyeste sats hører til) |
 | `src/domain/renteberegning/rentekravValidation.ts` | Domænefunktioner: `calculateInterestDate`, `validateInterestCalculation` |
 | `src/data/interestRates.ts` | Satser: `referenceRates`, `surchargeRates`, `MIN_INTEREST_DATE`, `MAX_INTEREST_YEAR` |
 | `src/domain/renteberegning/renteCalculationPrinciples.ts` | `RENTE_CALCULATION_PRINCIPLES` — de fire principper som array af strings |
@@ -133,8 +134,8 @@ computeRentekravRow(
 // Lavniveau-motor
 calculateProcessInterestWithRates(
   amount: number,
-  interestStartDate: DanishDateString,
-  calculationDate: DanishDateString,
+  interestStartDate: ISODateString,
+  calculationDate: ISODateString,
   referenceRatesInput: ReadonlyArray<RateEntry>,
   surchargeRatesInput: ReadonlyArray<RateEntry>
 ): number | null  // uafrundet
@@ -170,7 +171,7 @@ RentekravRowResult = Readonly<{
 }>
 
 RateEntry = {
-  effectiveDate: DanishDateString;
+  effectiveDate: ISODateString;
   ratePct: number;  // fx 2.75 = 2,75 %
 }
 ```
@@ -178,25 +179,25 @@ RateEntry = {
 ### Rentedato-beregning
 
 ```typescript
-calculateInterestDate(input: InterestDateInput): Result<DanishDateString, DateCalculationError>
+calculateInterestDate(input: InterestDateInput): Result<ISODateString, DateCalculationError>
 
 InterestDateInput = {
-  kravetDato: DanishDateString;
+  kravetDato: ISODateString;
   tillaegstid: number;
   enhed: 'dage' | 'uger' | 'maaneder';
 }
 ```
 
-`tillaegstid ≤ 0` → returner `kravetDato` direkte (enhed ignoreres). Månedstillæg bruger `Date.setUTCMonth()` — overflow håndteres af JS (31. januar + 1 måned = 28/29. februar).
+`tillaegstid ≤ 0` → returner `kravetDato` direkte (enhed ignoreres). Månedstillæg bruger den kanoniske `addMonths` fra `src/utils/dateUtils.ts`, som **clamper til sidste dag i mål-måneden**: 31. januar + 1 måned bliver 28/29. februar — ikke en rollover til marts. Det er ét sandt sted for "læg X måneder til en dato" i kodebasen; rå `setUTCMonth`-rollover bruges ikke. Dags- og ugetillæg lægges til med `setUTCDate` (uger = `tillaegstid × 7`).
 
 ### Validering af renteberegning
 
 ```typescript
 validateInterestCalculation(
-  kravetDato: DanishDateString | undefined,
+  kravetDato: ISODateString | undefined,
   beloeb: number | undefined,
-  rentedato: DanishDateString | undefined,
-  beregningsdato: DanishDateString | undefined
+  rentedato: ISODateString | undefined,
+  beregningsdato: ISODateString | undefined
 ): Result<ValidatedInterestInput, ValidationError>
 ```
 

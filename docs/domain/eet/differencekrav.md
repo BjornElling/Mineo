@@ -44,6 +44,8 @@ Fane 5 beregner ikke nye ASL- eller EAL-typer. Den trækker de øvrige faners re
 | **Kapitaliseret EET (fane 3)** | Kørsel af `computeEetKapitaliseringCalculation` |
 | **Løbende ydelser (fane 2)** | Kørsel af `computeEetLoebendeYdelser` med `beregningsdato = dagFørBeregningsdato` |
 
+Begge indgangspunkter i `eetLoebendeYdelserCalculation.ts` kalder den samme kerne (`computeEetLoebendeYdelserForContext`) og adskiller sig kun ved konteksten: fane 5 bruger `computeEetLoebendeYdelser` (kontekst `eet_page`), mens `computeEetLoebendeYdelserForEoImport` er Erstatningsopgørelsens importport (kontekst `eo_import` med en eksplicit `slutdato`). Importporten indgår ikke i differencekravets dataflow — den er en selvstændig aftager af den samme beregning, kaldt fra `eetImportPort.ts`.
+
 ### Fradrag 1 — Løbende ydelser
 
 Fradrag 1 beregnes med samme grundmodel som fane 2, men altid kun til og med dagen før beregningsdatoen.

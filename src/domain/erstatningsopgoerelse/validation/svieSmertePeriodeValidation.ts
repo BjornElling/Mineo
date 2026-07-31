@@ -10,8 +10,7 @@ import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMes
  * Ren (React-/kontrol-frit) blokerings-afgørelse for én svie/smerte-periode-række.
  *
  * Dette er den AUTORITATIVE kilde til, om en periode-række blokerer (komplethed,
- * dato-grænser, overlap, rækkefølge) og med hvilken besked — jf. B9
- * (`docs/review/b9-blokeringsvalidering-plan.md`). Tjekkene findes IKKE i
+ * dato-grænser, overlap, rækkefølge) og med hvilken besked. Tjekkene findes IKKE i
  * `erstatningsopgoerelseValidator` (kun rækkefølge + ménafgørelse-bound), så uden denne
  * udskillelse var de kun håndhævet inde i en builders display-formattering.
  *

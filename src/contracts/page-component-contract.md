@@ -3,7 +3,7 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -88,7 +88,7 @@ Aktuelle eksempler:
 - `OpenEo` — PWA-filindlæsningsfejl-flow (`src/components/system/`)
 - `UnsupportedDevicePage` — hard-stop ved uunderstøttet enhed (renderet af `apps/shared/bootstrapClientApp.tsx`)
 
-Disse komponenter bor **ikke** i `src/components/pages/`. `pages/`-mappen er reserveret til kategori 2.1–2.3. Hjælpe-/systemruter placeres i `src/components/system/` (route-monterede) eller renderes direkte fra app-shellen (`apps/shared/bootstrapClientApp.tsx`, hard-stop).
+Disse komponenter bor **ikke** i `src/components/pages/`. `pages/`-mappen er reserveret til kategori 2.1–2.3 samt standalone-appens egen side (`pages/minprocesrente/MinProcesrenteCalculatorPage.tsx`, jf. `app-shell-contract.md`). Hjælpe-/systemruter placeres i `src/components/system/` (route-monterede) eller renderes direkte fra app-shellen (`apps/shared/bootstrapClientApp.tsx`, hard-stop).
 
 ### 2.5 Auth-gate-renderede komponenter
 
@@ -184,9 +184,14 @@ Hjælpe-/systemruter (jf. 2.4) som `UnsupportedDevicePage` og `OpenEo` må afvig
 Hver **persisteret fagside (§2.1)** skal have præcis ét kanonisk viewmodel-indgangspunkt,
 der ejer sidens afledte state, handlers og gates:
 
-- kanonisk form: `useXxxViewModel(form)` + `XxxVmProvider`/`useXxxVm()`, med page-komponenten
-  reduceret til sektions-komposition. Selve beregningskernen (`compute*`-snapshot) bevares uændret;
+- kanonisk form: `useXxxViewModel()` + sektions-komposition, med page-komponenten reduceret til at
+  kalde VM'en og sætte sektionerne sammen. Selve beregningskernen (`compute*`-snapshot) bevares uændret;
   VM'en orkestrerer, den genberegner ikke.
+- **Hvordan VM'en når sektionerne, er et frit valg.** Er sektionstræet fladt, sendes `vm` som prop
+  (fx Satser, Varige mén, Renteberegning). Bliver prop-drillingen dyb, indkapsles den i et
+  `XxxVmProvider`/`useXxxVm()`-par i sidens `xxxContext.ts` (fx Stamdata, Årsløn, Forsørgertab samt
+  EO's `EOOplysningerTab` og `LoenindkomstTab`). Begge former opfylder reglen; det ene faste krav er,
+  at der kun findes ÉT viewmodel-indgangspunkt pr. side.
 
 Reglen er **kategorisk, ikke størrelses-gated.** Der er ikke en LOC-tærskel: enhver §2.1-side har
 en VM, uanset dens aktuelle størrelse. Det giver ét forudsigeligt svar på "hvor bor afledt state +
@@ -236,8 +241,9 @@ For persisted sagsdomæner skal initial values ligge i navngivne domænemoduler,
 Initial values registreres ved domænets inputdefinition og materialiseres gennem sektionens Zod-schema af
 inputinfrastrukturen. Page-laget må ikke skrive defaults ind ved mount eller resync.
 
-Inline initial values er kun acceptable, når der ikke findes et egentligt domænemodul endnu, eller når værdien er afledt af settings ved oprettelse af ny sag.
-Det er en overgang eller en bevidst undtagelse, ikke standardmålet.
+Inline initial values er kun acceptable, når værdien er afledt af settings ved oprettelse af ny sag. Alle otte
+persisterede fagsider har i dag et navngivet initial-values-modul, så en inline default er en bevidst undtagelse
+med begrundelse — aldrig standardmålet.
 
 ### 5.3 Read-only adgang til andre sektioner
 
@@ -320,6 +326,11 @@ Krav:
 
 Memoisering er et implementeringsvalg; den bindende regel er én revisionskonsistent projektion uden bypass.
 
+**Én projektion betyder ikke nødvendigvis ét `ProjectionResult`.** Forsørgertab, EET og EO gater bevidst pr.
+dependency-gruppe i stedet for at samle hele siden i én `ready | blocked`: en enkelt rød celle ville ellers
+neutralisere gyldige, uafhængige grene. Kravet om revisionskonsistens og fravær af bypass er det samme —
+grenene læser samme `InputReader`-revision. Se `domain-boundary-contract.md` og `src/inputCore/projection.ts`.
+
 ---
 
 ## 8. Fejlhåndtering på siden
@@ -373,8 +384,8 @@ Kontrakten er konsistens i brugeroplevelse og struktur, ikke pixel-identisk kopi
 Tabs på tværs af fagsider bør visuelt følge samme familieskab.
 Men stylingdetaljer må ikke bindes til én specifik fil som arkitektonisk sandhedskilde.
 
-Hvis tab-styling skal være fuldt ens, skal den flyttes til et fælles abstraktionspunkt.
-Indtil da er kontrakten:
+Skal tab-styling gøres fuldt ens, sker det ved at flytte den til ét fælles abstraktionspunkt — ikke ved at
+kopiere `sx`-objekter mellem filer. Kontrakten er:
 
 - samme visuelle principper
 - ingen vilkårlig divergens
@@ -443,10 +454,16 @@ ikke kan blive synlig uden læsbart indhold. Viewmodellen pinder sine besked-fel
 altså inferensen selv, og en forkert typet besked derfor ikke har noget at afvige fra. Se
 `error-contract.md` §4 for invarianten og dens baggrund.
 
-**Teksten ejes af årsagen, ikke af fladen.** `DocumentDownloadGateReason.kind` afgør, hvad
-brugeren læser: `missing-input` viser den universelle `DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE`
-("Indtastning mangler"), mens `specific` citeres ordret og er reserveret til en konkret,
-felt-/rækkenavngiven fejl, brugeren kan handle på. `message` er altid den interne forklaring og
+**Teksten ejes af årsagen, ikke af fladen.** `DocumentDownloadGateReason.kind` har tre værdier og afgør,
+hvad brugeren læser:
+
+| `kind` | Brugertekst |
+|---|---|
+| `missing-input` | den universelle `DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE` ("Indtastning mangler") |
+| `invalid-input` | den generiske tekst for ugyldigt indtastet input, konstrueret af `invalidInputReason` |
+| `specific` | citeres ordret; reserveret til en konkret, felt-/rækkenavngiven fejl, brugeren kan handle på |
+
+`message` er altid den interne forklaring og
 må ikke antages at være brugertekst. En flade må ikke vælge tekst selv eller læse
 `blockedReasons[0].message` til visning — brug `handle.disabledReason`, som allerede er oversat.
 

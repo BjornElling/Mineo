@@ -3,10 +3,10 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 
 Denne kontrakt samler de trust-kritiske regler for runtime-persistence, `.eo`, save/load og autoritative replacements.
-Per-sektion-storage og `invalidDrafts` er slettet (2026-07-25): der er én current-session-envelope og ét
+Der findes ingen per-sektion-storage og ingen `invalidDrafts`: sagsinput ligger i én current-session-envelope med ét
 `rejectedInputs`-map i det autoritative aggregat.
 
 ## 1. Scope og dataklasser
@@ -66,9 +66,11 @@ Aktiv sagsinput lagres under én namespace-aware Mineo-nøgle:
 type InputEnvelope = Readonly<{
   envelopeVersion: string;
   persistedDataVersion: string;
-  input: PersistedInputState;
+  input: SettledInput;
 }>;
 ```
+
+Nøglen opslås gennem `getCurrentInputEnvelopeStorageKey()`; suffikset er `input_v2`.
 
 Envelopen har **ét** current-only format. Der findes ingen `fieldAddressVersion`-bro, sentinel-adresser eller
 adresseoversættelse: feltadresser er altid det aktuelle kanoniske strukturelle format, valideret mod kataloget.
@@ -87,6 +89,12 @@ Regler:
    sagsinput og ændrer ikke uafhængig UI-sessionstate.
 
 Storage keys ejes af `src/config/storageManifest.ts`. Rename/fjernelse kræver eksplicit migrations- eller rydningspolitik.
+
+**Skrivegrænsen er typet, ikke kun bevogtet.** `safeSessionStorage`s skrivefunktioner tager en branded
+`ManifestStorageKey`, som kun manifestet selv kan producere. En nøgle uden for manifestet afvises derfor af
+COMPILEREN — også når den kommer ind som en variabel, hvor en AST-regel principielt er blind. Det er grunden
+til, at §10's forbud ikke kan omgås ad en indirekte vej. `storage/session-storage-manifest-key` bevares som
+sekundær diagnostik og dækker begge skriveveje.
 
 ### 3.8a Reset-policyen
 
@@ -233,7 +241,7 @@ versionssortering. En version uden sikker mapping går til den dokumenterede fai
 ændring af de strukturelle feltadresser er ikke en versioneret migration, men en current-session-korruption efter §4,
 fordi gamle interne sessioner aldrig migreres.
 
-Der beholdes ikke legacy-runtimekode alene for gamle interne modeller.
+Der findes ingen runtimekode, som alene eksisterer for at betjene gamle interne modeller.
 
 ## 10. Runtime-read-grænser
 
@@ -244,8 +252,12 @@ Kun inputinfrastrukturen må se aggregate-internals. Den eksponerer:
 - autoritative replace-porte til persistence-infrastruktur.
 
 Rå sektionsselectors, `FormPersistenceContext` som generel broker og offentlige `persistData`-/`commitInvalidDraft`-
-lignende API'er er forbudt i slutarkitekturen. Tværsektion-consumers modtager en navngiven typed projektion, ikke et
-vilkårligt aggregate-udsnit.
+lignende API'er er forbudt. Tværsektion-consumers modtager en navngiven typed projektion, ikke et vilkårligt
+aggregate-udsnit.
+
+Fraværet er håndhævet: `deletionLedger.test.ts` beviser det fysiske fravær (og selvtester, at beviset ikke er
+vakuøst), mens `input/deleted-legacy-architecture-import` og `legacy/forbidden-identifier` spærrer
+genindførelse. Den typede skrivegrænse i §3 lukker den indirekte vej.
 
 ## 11. Post-apply metadata
 

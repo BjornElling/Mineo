@@ -111,17 +111,17 @@ Dagen efter TAF-periodens slut beskrives med en arbejdsstatus-linje der inkluder
 
 | Fil | Ansvar |
 |---|---|
-| `src/domain/erstatningsopgoerelse/tafBeregningsenhed.ts` | Bestemmer beregningsenhed (Måneder/Arbejdsdage); eksporterer `computeTafBeregningsenhed`, `TAF_BEREGNES_SOM`, `TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR` |
+| `src/domain/erstatningsopgoerelse/helpers/tafBeregningsenhed.ts` | Bestemmer beregningsenhed (Måneder/Arbejdsdage); eksporterer `computeTafBeregningsenhed`, `TAF_BEREGNES_SOM`, `TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR` |
 | `src/domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts` | Central EO-periodiseringsmotor; fraværsjusteret optælling af måneder og arbejdsdage samt periodisering af løn og offentlige ydelser |
 | `src/domain/dates/maanedsbroek.ts` | Domæne-neutral månedsbrøk for inklusive ISO-datointervaller |
-| `src/domain/erstatningsopgoerelse/tafBeregningsEngine.ts` | Aggregeret TAF-engine; merger overlappende perioder; eksporterer `buildMergedTafGroups`, `computeTafArbejdsdageAggregation` |
-| `src/domain/erstatningsopgoerelse/tafNettoBeregning.ts` | Netto-TAF-beregning; orkestrerer lønudvikling, TAF-indtægter og tidligere modtaget TAF; eksporterer `computeTafNettoBeregning` |
-| `src/domain/erstatningsopgoerelse/tafPeriodConstraints.ts` | Grænser og clamping for TAF-perioder; `resolveTafConstraintBounds`, `resolveTafFejlgivendeBounds`, `resolveTafEoPeriodeBounds`, `clampTafRange` |
-| `src/domain/erstatningsopgoerelse/tafDaySets.ts` | Kanonisk datosæt-bygning: ferie, SH, løse feriedage; `buildTafArbejdsdageSetFromRows`, `buildShDageSet`, `buildFerieDageSet`, `buildFerieDageSetForPeriode` (range-baseret ferie+løse til kontrol-/sammentællingslaget), `placeLoseFeriedage` |
-| `src/domain/erstatningsopgoerelse/tafRowDerived.ts` | Per-række UI-afledninger (merger IKKE); `buildTafDerived` |
-| `src/domain/erstatningsopgoerelse/tafCalculations.ts` | Tynde wrapper-funktioner over `periodiseringsMotor` |
-| `src/domain/erstatningsopgoerelse/tafPerYearDerived.ts` | TAF fordelt på kalenderår til PDF-bilag |
-| `src/domain/erstatningsopgoerelse/tafArbejdsstatusConfig.ts` | Status-tekst per `Arbejdsstatus`; `buildTafArbejdsstatusLinje` |
+| `src/domain/erstatningsopgoerelse/engines/tafBeregningsEngine.ts` | Aggregeret TAF-engine; merger overlappende perioder; eksporterer `buildMergedTafGroups`, `computeTafArbejdsdageAggregation` |
+| `src/domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts` | Netto-TAF-beregning; orkestrerer lønudvikling, TAF-indtægter og tidligere modtaget TAF; eksporterer `computeTafNettoBeregning` |
+| `src/domain/erstatningsopgoerelse/validation/tafPeriodConstraints.ts` | Grænser og clamping for TAF-perioder; `resolveTafConstraintBounds`, `resolveTafFejlgivendeBounds`, `resolveTafEoPeriodeBounds`, `clampTafRange` |
+| `src/domain/erstatningsopgoerelse/engines/tafDaySets.ts` | Kanonisk datosæt-bygning: ferie, SH, løse feriedage; `buildTafArbejdsdageSetFromRows`, `buildShDageSet`, `buildFerieDageSet`, `buildFerieDageSetForPeriode` (range-baseret ferie+løse til kontrol-/sammentællingslaget), `placeLoseFeriedage` |
+| `src/domain/erstatningsopgoerelse/helpers/tafRowDerived.ts` | Per-række UI-afledninger (merger IKKE); `buildTafDerived` |
+| `src/domain/erstatningsopgoerelse/engines/tafCalculations.ts` | Tynde wrapper-funktioner over `periodiseringsMotor` |
+| `src/domain/erstatningsopgoerelse/engines/tafPerYearDerived.ts` | TAF fordelt på kalenderår til PDF-bilag |
+| `src/domain/erstatningsopgoerelse/tables/tafArbejdsstatusConfig.ts` | Status-tekst per `Arbejdsstatus`; `buildTafArbejdsstatusLinje` |
 
 ### Indgangspunkter
 
@@ -287,7 +287,7 @@ resolveTafConstraintBounds(values): TafConstraintBounds
 |---|---|
 | `beregnHelligdage` | `src/domain/dates/shDageBeregning.ts` |
 | `mergeIsoDateRanges` | `src/domain/erstatningsopgoerelse/engines/isoRangeAlgebra.ts` |
-| `buildIncomeForRanges`, `buildIncomeCalculationContext` | `src/domain/erstatningsopgoerelse/indtaegtPerioder.ts` |
+| `buildIncomeForRanges`, `buildIncomeCalculationContext` | `src/domain/erstatningsopgoerelse/helpers/indtaegtPerioder.ts` |
 | `buildIndkomstSkadestidspunkt` | `src/domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts` |
 | `buildLoenudviklingModel` | `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts` |
 | `roundByMethod` | `src/utils/rounding.ts` |

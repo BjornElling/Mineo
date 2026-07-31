@@ -4,7 +4,7 @@
 **Scope:** Global undo/redo for afsluttet sagsinput
 **Normative kilder:** `src/contracts/undo-redo-contract.md`, `persistence-contract.md`, `form-contract.md` og
 `mineo-field-pattern.md`
-**Implementeringsplan:** `docs/architecture/draft-commit-greenfield-design.md`
+**Baggrund (informativ):** `docs/architecture/input-architecture.md`
 
 ## Overblik
 
@@ -46,7 +46,7 @@ samme transaktion som inputtet.
 
 Et frame indeholder kun:
 
-- `PersistedInputState` med canonical sektioner og rejected inputs,
+- `SettledInput` med canonical sektioner og rejected inputs,
 - en `HistoryOrigin` — en DISKRIMINERET union med både datamålet og navigationsdestinationen.
 
 Frame indeholder ikke revision, åbne drafts, issues, gates, beregninger, runtimefejl eller UI-settings. Den aktuelle
@@ -119,24 +119,23 @@ History behøver ingen særskilt række-draftmodel:
 - undo gendanner begge dele fra inputframen,
 - hver celle resyncer fra den nye `InputReader`-revision gennem den fælles feltmotor.
 
-Der findes ingen orphan-reconcile eller form-wide row-draft-token i målarkitekturen.
+Der findes ingen orphan-reconcile eller form-wide row-draft-token.
 
 ## App-varianter
 
 Mineo og standalone MinProcesrente deler command-, history- og shortcut-kernen. Navigation er en port: Mineo leverer
 route-navigation, mens standalone leverer en no-op routeadapter og stadig gendanner input/fokus.
 
-## Migration fra nuværende model
+## Én model, ingen facade
 
-Den eksisterende `undoRedoStore`, separate section-/`invalidDrafts`-/`fieldErrors`-snapshots, epoch/resync-tokens,
-focus-tracker-fallback, `rowId:colIndex` og `captureCoalescing` er migrationskilder. De fjernes, når inputaggregate,
-strukturelle feltreferencer og fælles transaktionsrunner overtager i ét cut.
-
-Der må ikke etableres en permanent compatibility-facade mellem modellerne.
+Inputaggregatet, de strukturelle feltreferencer og den fælles transaktionsrunner er den ene model. Der findes
+ingen `undoRedoStore`, ingen separate section-/rejected-/fejlsnapshots, ingen epoch- eller resync-tokens, ingen
+focus-tracker-fallback, intet `rowId:colIndex` som identitet og ingen `captureCoalescing`. Der må heller ikke
+etableres en compatibility-facade, der genindfører nogen af dem.
 
 ## Testflade
 
-Målarkitekturen kræver tests for:
+Arkitekturen er dækket af tests for:
 
 - ét frame og én revision pr. reel command,
 - ingen frame ved no-op,

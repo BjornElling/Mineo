@@ -3,7 +3,7 @@
 **Status:** Informativ. Beskriver den gældende arkitektur; bindende regler ligger i `src/contracts/`
 **Normative kilder:** `src/contracts/document-output-contract.md`, `critical-action-contract.md` og
 `document-format-contract.md`
-**Baggrund:** `docs/architecture/draft-commit-greenfield-design.md` (informativ; forklarer hvorfor modellen
+**Baggrund:** `docs/architecture/input-architecture.md` (informativ; forklarer hvorfor modellen
 ser sådan ud)
 
 ## Overblik
@@ -70,16 +70,20 @@ Ved aktivering:
 3. der læses en ny `InputReader`,
 4. dokumentdefinitionen evalueres igen,
 5. blokering stopper før lazy-load, generator og fil-I/O,
-6. kun et revisionsbundet `PreparedDocument<T>` går videre.
+6. kun et revisionsbundet `PreparedDocument` går videre — modulprivat i `documentLifecycle.ts` og reelt
+   parametriseret som `PreparedDocument<TRenderSettings, TBrevhovedKey>`; `<T>` bruges her og i diagrammet
+   som kortform.
 
 Pointer-blur når normalt at gøre knappen disabled før click, men korrektheden afhænger ikke af eventrækkefølgen.
 Tastatur/programmatisk aktivering og et allerede leveret click følger samme preflight. Ved et ugyldigt settle fokuseres
 feltet og den eksisterende danske advarsel vises kun som sidste sikkerhedsværn.
 
-**Friskheden kontrolleres ved HVER asynkron grænse** — ikke kun én gang efter lazy-load. `documentLifecycle.ts`
-sammenligner det optagne token mod miljøets autoritative `readCurrentSourceToken()` på fem punkter: ved
-afviklingens indgang, efter dev-server-preflighten, efter generator-modulets lazy-load, efter writer-modulets
-lazy-load og **efter selve renderingen, umiddelbart før fil-I/O**. Det sidste check er load-bearing: generatoren
+**Friskheden kontrolleres ved HVER asynkron grænse** — ikke kun én gang efter lazy-load.
+`src/document/definition/documentLifecycle.ts` sammenligner det optagne token mod miljøets autoritative
+`readCurrentSourceToken()` på fem punkter: ved afviklingens indgang, efter dev-server-preflighten, efter
+generator-modulets lazy-load, efter writer-modulets lazy-load og **efter selve renderingen, umiddelbart før
+fil-I/O**. Dertil kommer et sjette, andetartet check i `prepareDocument`, hvor barrierens token sammenlignes
+med snapshottets (fase `capture`) — det lukker vinduet mellem settle og capture. Det sidste check er load-bearing: generatoren
 awaiter kanal-renderingen, så inputtet kan ændre sig undervejs, og downloaden er den irreversible handling
 (`critical-action-contract.md` §5). En stale kilde afvises som `stale-source` med den fase, den blev opdaget i.
 

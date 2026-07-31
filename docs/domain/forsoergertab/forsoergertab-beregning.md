@@ -1,6 +1,6 @@
 # Forsørgertab
 
-**Sidst opdateret:** 2026-03-20
+**Sidst opdateret:** 2026-07-31
 **Status:** Implementeret
 
 ## 1. Formål
@@ -76,7 +76,9 @@ EAL-kravet beregnes ved at genbruge EET efter EAL-logikken med disse faste regle
 - `ealAarsloen` prioriteres
 - `aslAarsloen` bruges som fallback, hvis `ealAarsloen` ikke findes
 
-Det anbefalede design er en selvstændig wrapperfunktion i `src/domain/forsoergertab/`, som kalder den eksisterende EAL-beregning med en fast override på 30 %.
+Beregningen er en selvstændig wrapperfunktion, `computeForsoergertabEalKrav` i
+`src/domain/forsoergertab/forsoergertabEalKrav.ts`, som kalder den fælles EAL-beregning
+(`computeEetEalCalculation`) med en fast override på 30 %.
 
 ### 4.2 Afrunding
 
@@ -274,7 +276,8 @@ Normative regler:
 - Systemet skal kunne slå korrekt op i `forsoergertabTabellerMaend` og `forsoergertabTabellerKvinder`.
 - Hvis den relevante bekendtgørelse ikke har den tabeltype, der kræves for situationen, er det en blokerende fejl.
 
-Dokumentet forudsætter derfor, at den samlede kapitaliseringsaggregator eksponerer:
+Den samlede kapitaliseringsaggregator (`src/data/kapitalisering/kapitaliseringsTabeller/index.ts`)
+eksponerer derfor pr. bekendtgørelse:
 
 - `forsoergertabTabelvalg`
 - `forsoergertabTabeller`
@@ -405,9 +408,9 @@ Derudover vises:
 - en contentbox for ASL-ydelser
 - en nederste contentbox for beregnet forsørgertab
 
-## 11. Implementeringsretning
+## 11. Domænesnit
 
-Det anbefalede domænesnit er:
+Beregningen er skåret op i disse moduler under `src/domain/forsoergertab/`:
 
 - `forsoergertabTypes.ts`
 - `forsoergertabEalKrav.ts`
@@ -420,6 +423,7 @@ Ansvar:
 
 - bygge syntetisk input til EAL-beregningen
 - tvinge EET-procent til 30
+- forhøje til minimumssatsen og eksponere `foersoergertabEalMinSats`/`foersoergertabForhoejtetTilMin` (§4.3)
 - returnere EAL-computation og issues
 
 ### `computeForsoergertabAslYdelser`
@@ -428,6 +432,7 @@ Ansvar:
 
 - validere ASL-input
 - beregne opreguleret årlig ydelse
+- beregne de løbende ydelsers rækker og samlede fradrag (§5a)
 - beregne restperiode
 - vælge bekendtgørelse og tabel
 - vælge korrekt kønsopdelt eller kønsneutral tabel
@@ -440,24 +445,42 @@ Ansvar:
 
 Ansvar:
 
-- kalde EAL- og ASL-delen
+- kalde EAL- og ASL-delen, hver kun når dens egen dependency-gruppe er ready (`ealBlocked`/`aslBlocked`)
 - aggregere issues
 - beregne nettokrav, når begge led er gyldige
 
-## 12. Testfokus
+## 12. Testdækning
 
-Minimumsdækning bør omfatte:
+Testfladen ligger i `src/__tests__/domain/forsoergertab/` fordelt på
+`forsoergertabCalculation.test.ts` (domæneberegningen), `forsoergertabSnapshot.test.ts`,
+`forsoergertabReaderProjection.test.ts`, `forsoergertabEngineGate.test.ts` og
+`forsoergertabDownloadGate.test.ts`.
 
-- `beregningsdato < virkningsdato` giver fejl på begge felter og blokerer download
+Følgende regler er dækket:
+
+- `beregningsdato < virkningsdato` giver det blokerende ordens-issue, og snapshottet blokerer
+  download og ASL-visningen, mens EAL-visningen bevares
 - beregningsdato før 2015-03-01 kræver køn
 - korrekt opslag i kønsafhængige tabeller før 2015-03-01
 - korrekt opslag i kønsneutral tabel fra og med 2015-03-01
 - når folkepensionsalderen er nået på beregningsdatoen, bliver ASL-kapitalbeløb `0 kr.`
-- eksakt aldersmatch kræves
-- manglende aldersrække giver fejl og ingen beregning
+- eksakt aldersmatch kræves, og manglende aldersrække giver fejl og ingen beregning
 - restperiode 0 måneder giver `aslKapitalbelob = 0`
 - interpolation for `0 år og X måneder`
 - interpolation for `X år og Y måneder`
-- ingen 12-delelig oprunding af den årlige ydelse
+- den opregulerede årlige ydelse (§5.2) beregnes med `round2` uden 12-delelig oprunding, mens de
+  løbende ydelsers årsbeløb (§5a.4) bruger `ceilNearest12`
 - kapitalbeløb afrundes opad til hele kroner
-- nettokrav bliver aldrig negativt
+- nettokrav bliver aldrig negativt (clamp til 0)
+
+Derudover er dækket: EAL-kravets forhøjelse til minimumssatsen (§4.3), de-regulering af løbende
+ydelser for år før skadeåret, afkortning af de løbende ydelser ved periodens naturlige slutdato,
+delvis første måned, samt de fail-closed inputgrænser (årsløn `0`/negativ/manglende, tilkendt
+periode uden for 1-10 og ikke-heltallig, manglende ASL-årslønsmaksimum for skades-, beregnings-
+eller et mellemliggende år).
+
+Ikke dækket af en dedikeret test:
+
+- at `beregningsdato < virkningsdato` markerer **begge** felter. Domænelaget rapporterer ét issue,
+  som snapshottet fordeler til både `beregningsdato` og `virkningsdato`; feltfordelingen i sig selv
+  er ikke asserteret.

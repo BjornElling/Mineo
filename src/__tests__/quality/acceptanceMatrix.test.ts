@@ -1,11 +1,11 @@
 /**
- * Acceptregistret for §10's 30 acceptkriterier — det maskinelt kontrollerede register.
+ * Acceptregistret for §5's 30 acceptkriterier — det maskinelt kontrollerede register.
  *
  * **Hvorfor dette register findes, og hvorfor det ikke er en manuel afkrydsning.**
  *
  * Planens Fase 7 beskrev en "manuel browsermatrix" over 15 punkter. Det afsnit blev skrevet FØR
  * fase 1-5 blev bygget, hvor inputtilstanden endnu var mount-afhængig og punkterne derfor kun KUNNE
- * observeres i en browser. Designet afskaffede netop den egenskab: §10-kriterium 22 kræver, at
+ * observeres i en browser. Designet afskaffede netop den egenskab: §5-kriterium 22 kræver, at
  * "issues, beregninger og gates ikke afhænger af component mount", og kriterium 7, at et lukket felt
  * ingen værdibærende lokal kopi har. En manuel matrix ville måle arkitekturen med det instrument,
  * arkitekturen blev bygget for at fjerne — og et engangs-"OK" fra en menneskelig gennemgang rådner ved
@@ -13,9 +13,9 @@
  *
  * **Registret måler MÅLARKITEKTUREN, ikke rejsen dertil** (R8-F01, etape 10). Indtil da registrerede
  * filen den historiske 15-punkts Fase 7-liste. Den liste var en mellemtilstands acceptflade: dens
- * punkter grupperede interaktionsforløb ("blur, Enter, klik væk og navigation"), mens §10's kriterier
+ * punkter grupperede interaktionsforløb ("blur, Enter, klik væk og navigation"), mens §5's kriterier
  * er de INVARIANTER, slutarkitekturen påstår at holde. Et register over den forkerte flade kan være
- * fuldstændigt grønt, mens et §10-kriterium slet ikke har en dækningskilde — hvilket det var: fem af
+ * fuldstændigt grønt, mens et §5-kriterium slet ikke har en dækningskilde — hvilket det var: fem af
  * de 30 kriterier (1, 8, 22, 28, 29) havde ingen post nogen steder.
  *
  * **Registret skal selv kunne fejle.** Fase 6's dødt-værn-detektor viste, at et værn, hvis mål er
@@ -50,9 +50,9 @@ type CoverageSource = Readonly<{
 }>;
 
 type AcceptanceCriterion = Readonly<{
-  /** Kriteriets nummer i designets §10 (1-30). */
+  /** Kriteriets nummer i designets §5 (1-30). */
   criterion: number;
-  /** Kriteriet ORDRET fra §10, så registret ikke kan drifte fra sin egen kilde. */
+  /** Kriteriet ORDRET fra §5, så registret ikke kan drifte fra sin egen kilde. */
   title: string;
   sources: readonly CoverageSource[];
   /**
@@ -68,8 +68,8 @@ type AcceptanceCriterion = Readonly<{
 }>;
 
 /**
- * §10's 30 kriterier. Titlerne er kopieret ORDRET fra
- * `docs/architecture/draft-commit-greenfield-design.md` §10 og efterprøves maskinelt nedenfor mod
+ * §5's 30 kriterier. Titlerne er kopieret ORDRET fra
+ * `docs/architecture/input-architecture.md` §5 og efterprøves maskinelt nedenfor mod
  * netop den fil, så registret ikke kan komme til at beskrive en anden liste end designets.
  */
 const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
@@ -629,19 +629,19 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
 const readFile = (relativePath: string): string =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), 'utf8');
 
-const DESIGN_DOC = 'docs/architecture/draft-commit-greenfield-design.md';
+const DESIGN_DOC = 'docs/architecture/input-architecture.md';
 
 /**
- * Læser §10's nummererede kriterier ud af designdokumentet.
+ * Læser §5's nummererede kriterier ud af arkitekturdokumentet.
  *
  * Registrets titler er ikke dekoration: de er den påstand, hvert kriterium dækker. Uden denne kobling
- * kunne §10 omformuleres eller udvides, mens registret uforstyrret blev ved med at måle en anden liste
+ * kunne §5 omformuleres eller udvides, mens registret uforstyrret blev ved med at måle en anden liste
  * — samme fejlklasse som det 15-punkts-register, R8-F01 afløste, blot et niveau højere.
  */
 const parseDesignCriteria = (): ReadonlyMap<number, string> => {
   const lines = readFile(DESIGN_DOC).split(/\r?\n/);
-  const start = lines.findIndex((line) => /^##\s+10\.\s/.test(line));
-  if (start < 0) throw new Error(`${DESIGN_DOC}: §10-overskriften findes ikke`);
+  const start = lines.findIndex((line) => /^##\s+5\.\s/.test(line));
+  if (start < 0) throw new Error(`${DESIGN_DOC}: §5-overskriften findes ikke`);
   const end = lines.findIndex((line, index) => index > start && /^##\s/.test(line));
   const body = lines.slice(start + 1, end < 0 ? lines.length : end);
 
@@ -666,28 +666,28 @@ const parseDesignCriteria = (): ReadonlyMap<number, string> => {
   return parsed;
 };
 
-describe('§10-acceptregister (målarkitekturens 30 kriterier)', () => {
+describe('§5-acceptregister (målarkitekturens 30 kriterier)', () => {
   it('dækker præcis kriterium 1-30 uden huller eller dubletter', () => {
     expect(ACCEPTANCE_CRITERIA.map((entry) => entry.criterion))
       .toEqual(Array.from({ length: 30 }, (_, index) => index + 1));
   });
 
   /**
-   * Registret er bundet til designets §10 ORDRET. Det er den kontrol, der gør registret til et register
-   * over MÅLARKITEKTUREN og ikke over sin egen liste: udvides §10 til 31 kriterier, eller omformuleres
+   * Registret er bundet til designets §5 ORDRET. Det er den kontrol, der gør registret til et register
+   * over MÅLARKITEKTUREN og ikke over sin egen liste: udvides §5 til 31 kriterier, eller omformuleres
    * et kriterium, bliver denne test rød med nummeret.
    */
-  it('hvert kriterium citerer designets §10 ordret — registret kan ikke drifte fra sin kilde', () => {
+  it('hvert kriterium citerer designets §5 ordret — registret kan ikke drifte fra sin kilde', () => {
     const design = parseDesignCriteria();
     expect(
       [...design.keys()].sort((left, right) => left - right),
-      `${DESIGN_DOC} §10 indeholder ikke præcis 30 nummererede kriterier`
+      `${DESIGN_DOC} §5 indeholder ikke præcis 30 nummererede kriterier`
     ).toEqual(Array.from({ length: 30 }, (_, index) => index + 1));
 
     for (const entry of ACCEPTANCE_CRITERIA) {
       expect(
         entry.title,
-        `kriterium ${entry.criterion}: registrets titel afviger fra ${DESIGN_DOC} §10`
+        `kriterium ${entry.criterion}: registrets titel afviger fra ${DESIGN_DOC} §5`
       ).toBe(design.get(entry.criterion));
     }
   });
@@ -741,7 +741,7 @@ describe('§10-acceptregister (målarkitekturens 30 kriterier)', () => {
 // AST-parseren for aktive testdeklarationer bor i `./testDeclarations`, fordi `testNamingConvention.test.ts`
 // har brug for PRÆCIS samme sondringer (arvet skip, leaf vs. suite, dynamiske navne). En kopi pr. konsument
 // ville være to udgaver af den samme svære sondring.
-describe('§10-acceptregister — kilde-verifikation', () => {
+describe('§5-acceptregister — kilde-verifikation', () => {
   /**
    * Kernekontrollen. En ren fil-eksistens-check ville bestå, selv om netop den test, kriteriet hviler
    * på, var slettet — filen kan sagtens overleve sin relevante `it(...)`. Derfor kontrolleres, at

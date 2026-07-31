@@ -5,7 +5,7 @@ description: Runtime-verificér en greenfield-slice-migrering i Mineo (draft/com
 
 # Verificér en migreret slice (greenfield draft/commit-cutover)
 
-Læs først statusafsnittet og §5.1 i `docs/architecture/draft-commit-greenfield-design.md`, og
+Læs først statusafsnittet og §5.1 i `docs/architecture/input-architecture.md`, og
 kontrollér den beskrevne mellemtilstand mod den aktuelle kode. Memory er kun orientering.
 
 **Aktuel kendt kontekst:** Under den ikke-deploybare cutover-tranche er **hovedappens shell bevidst brudt**:

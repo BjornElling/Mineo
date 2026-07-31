@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 
 ---
 
@@ -27,8 +27,8 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
 6. **Bevidst valideringsbeslutning:** En parsebar heltals-méngrad uden for 1..120 committes canonical og giver et
    afledt **rødt** range-issue. Værdien bevares canonical (den maskeres ikke), men den røde feltfejl blokerer efter den
    dependency-specifikke gate (`form-contract.md` §8): den må hverken nå beregningsmotoren eller passere PDF-gaten,
-   men den må gemmes i `.eo`. Persistence-schemaet validerer heltalssyntaks; feltdefinition, projektion og engine deler
-   domænegrænsen `VARIGE_MEN_MAX_MENGRAD`.
+   men den må gemmes i `.eo`. Persistence-schemaet validerer heltalssyntaks; feltdescriptor, projektion og engine deler
+   domænegrænsen `VARIGE_MEN_MAX_MENGRAD`, som ejes af `src/domain/varigemen/varigeMenPolicy.ts`.
 
 ---
 
@@ -37,7 +37,7 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
 Varige mén er **bevidst ikke** snapshot-first. Inputprojektionen og engine-modellen i §1 er slutarkitekturen, ikke et
 mellemtrin mod et snapshot.
 
-Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Engine-resultatet (`computeVarigeMenEngine`) beregnes ét sted (`MenberegningTab`), og PDF-stien **genbruger** det allerede beregnede `beregningsResultat` — den genberegner ikke. Domænet er en enkelt beregning uden tabber eller selvstændige delberegninger, et snapshot skulle samle. Et snapshot-lag ville her tilføje vægt uden at fjerne en risiko, hvilket strider mod konvergensreglen i `AGENTS.md`.
+Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Engine-resultatet (`computeVarigeMenEngine`) beregnes ét sted (`varigeMenReaderProjection`), og både `MenberegningTab` og PDF-stien **genbruger** det allerede beregnede `beregningsResultat` — de genberegner ikke. Domænet er en enkelt beregning uden tabber eller selvstændige delberegninger, et snapshot skulle samle. Et snapshot-lag ville her tilføje vægt uden at fjerne en risiko, hvilket strider mod konvergensreglen i `AGENTS.md`.
 
 Beslutningen er truffet endeligt og er ikke et udestående. Snapshot-first er forbeholdt de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §6`.
 

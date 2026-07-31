@@ -2,7 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -138,7 +138,10 @@ Når et nyt persisted felt tilføjes, skal man altid gennemgå følgende typer s
 
 3. **UI/page/tab (PÅKRÆVET hvis feltet vises eller kan redigeres)**
    - relevant page-komponent og eventuelle tabs/underkomponenter
-   - feltet skal registreres i feltkataloget med codec, label, kontroltype og strukturel adresse
+   - feltet skal registreres i feltkataloget med codec, label, kontroltype og strukturel adresse.
+     `npm run verify:ledgers` er det maskinelle tjek på, at katalog og collections dækker schemaet:
+     ledgerne i `src/inputCore/ledger/` udleder feltstier fra schemaet og fanger, at et nyt felt
+     mangler en descriptor
    - formular og tabel skal bruge den fælles editor-state machine og settle-semantik
    - tabeller/række-generatorer skal opdateres hvis feltet lever i en række
 
@@ -173,13 +176,16 @@ Brug denne tabel til at instantiere skabelonen ovenfor med de rigtige filer:
 |---|---|---|---|---|
 | `erstatningsopgoerelse` | `src/schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts` | `src/domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues.ts` | `src/components/pages/Erstatningsopgoerelse.tsx` | `src/components/pages/erstatningsopgoerelse/` |
 | `erhvervsevnetab` | `src/schemas/formSchemas/sections/erhvervsevnetabSchemas.ts` | `src/domain/erhvervsevnetab/erhvervsevnetabInitialValues.ts` | `src/components/pages/Erhvervsevnetab.tsx` | `src/components/pages/erhvervsevnetab/` |
-| `forsoergertab` | `src/schemas/formSchemas/sections/forsoergertabSchemas.ts` | `src/domain/forsoergertab/forsoergertabInitialValues.ts` | `src/components/pages/Forsoergertab.tsx` | page-filen er primær UI-entry |
+| `forsoergertab` | `src/schemas/formSchemas/sections/forsoergertabSchemas.ts` | `src/domain/forsoergertab/forsoergertabInitialValues.ts` | `src/components/pages/Forsoergertab.tsx` | `src/components/pages/forsoergertab/` |
 | `varigemen` | `src/schemas/formSchemas/sections/varigeMenSchemas.ts` | `src/domain/varigemen/varigeMenInitialValues.ts` | `src/components/pages/VarigeMen.tsx` | `src/components/pages/varigemen/` |
-| `stamdata` | `src/schemas/formSchemas/sections/stamdataSchemas.ts` | `src/domain/stamdata/stamdataInitialValues.ts` | `src/components/pages/Stamdata.tsx` | page-filen er primær UI-entry |
-| `aarsloen` | `src/schemas/formSchemas/sections/aarsloenSchemas.ts` | `src/domain/aarsloen/aarsloenInitialValues.ts` | `src/components/pages/Aarsloen.tsx` | `src/components/pages/aarsloen/` hvis relevant |
+| `stamdata` | `src/schemas/formSchemas/sections/stamdataSchemas.ts` | `src/domain/stamdata/stamdataInitialValues.ts` | `src/components/pages/Stamdata.tsx` | `src/components/pages/stamdata/` |
+| `aarsloen` | `src/schemas/formSchemas/sections/aarsloenSchemas.ts` | `src/domain/aarsloen/aarsloenInitialValues.ts` | `src/components/pages/Aarsloen.tsx` | `src/components/pages/aarsloen/` |
 | `faellesAarsloen` | `src/schemas/formSchemas/sections/faellesAarsloenSchemas.ts` | `src/domain/aslEalAarsloen/faellesAarsloenInitialValues.ts` | `src/components/pages/Erhvervsevnetab.tsx` / `src/components/pages/Forsoergertab.tsx` | respektive page-filer |
-| `satser` | `src/schemas/formSchemas/sections/satserSchemas.ts` | `src/domain/satser/satserInitialValues.ts` | `src/components/pages/Satser.tsx` | page-filen er primær UI-entry |
-| `renteberegning` | `src/schemas/formSchemas/sections/renteberegningSchemas.ts` | `src/domain/renteberegning/renteberegningInitialValues.ts` | `src/components/pages/Renteberegning.tsx` | `src/components/pages/renteberegning/` hvis relevant |
+| `satser` | `src/schemas/formSchemas/sections/satserSchemas.ts` | `src/domain/satser/satserInitialValues.ts` | `src/components/pages/Satser.tsx` | `src/components/pages/satser/` |
+| `renteberegning` | `src/schemas/formSchemas/sections/renteberegningSchemas.ts` | `src/domain/renteberegning/renteberegningInitialValues.ts` | `src/components/pages/Renteberegning.tsx` | `src/components/pages/renteberegning/` |
+
+Feltarbejde på en side sker gennem sidens `useXxxViewModel` og dens sektionskomponenter i undermappen — ikke
+inline i page-filen. `page-component-contract.md` §4.4 ejer den regel.
 
 `minProcesrente` er ikke en `.eo`-sagssektion, medmindre den registreres i `persistenceRegistry`.
 

@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -14,7 +14,7 @@ Et issue skal mindst kunne bære:
 - strukturel `FieldRef` eller et eksplicit output-/systemmål,
 - stabil maskinlæsbar `code`,
 - `reason`,
-- `severity: 'error' | 'warning'`,
+- `severity`, som på et kerneissue altid er literalen `'error'` (se §4),
 - deterministisk dansk besked,
 - eventuel domænedetalje.
 
@@ -50,6 +50,7 @@ Konsekvensen er deterministisk og følger af klassen — ikke af et flag:
 | Ugyldigt format | Ja | Ja | Ja | Nej |
 | Range/bounds-fejl på canonical værdi | Ja | Nej | Ja | Nej |
 | Feltplaceret domæneregel på canonical værdi | Ja | Nej | Ja | Nej |
+| Consumerplaceret domæneregel (`ConsumerIssue` med `reason: 'rule'`) | Nej | Nej | Ja | Nej |
 | Tomt felt / `missing` | Nej | Nej | Ja, hvis consumeren kræver feltet | Nej |
 | Warning | Nej | Nej | Nej | Nej |
 
@@ -81,8 +82,13 @@ schema-gyldigt canonical input ikke blokerer save. `missing` og warnings blokere
 beregningspolicy er dependency-specifik: et relevant `error` (feltfejl eller consumerfejl på et læst felt) blokerer den
 konkrete consumer; en warning blokerer aldrig.
 
-`fieldErrors`, `useFormFieldErrorReporter`, `onFieldError` og tabeltrackerne er slettet (2026-07-25). Der findes
-ingen anden sandhedskilde end den rene issueprojektion, og ingen af dem må genindføres.
+Der findes ingen central skrivbar feltfejl-bus: `src/types/fieldErrors`, `useFormFieldErrorReporter`,
+`onFieldError` og tabeltrackerne findes ikke, og ingen af dem må genindføres. Den rene issueprojektion er eneste
+sandhedskilde.
+
+Bemærk at **navnet** `fieldErrors` ikke er forbudt. Det lever videre som et almindeligt feltnavn i
+domænesnapshots (`EetSnapshot.fieldErrors`, `EoInspektionSnapshot.fieldErrors`), hvor det betegner en ren
+issueprojektion — ikke en skrivbar kanal. AST-værnet undtager derfor navnet bevidst.
 
 ## 3. Feltidentitet og beskeder
 
@@ -109,7 +115,10 @@ De godkendte beskedskabeloner er:
 | `schema` | Alle | `Der er gemt en ugyldig værdi i feltet '<navn>'` |
 | `range`/`bounds` | Alle | Domænets konkrete intervaltekst med relevante grænser |
 
-Kontroltype og label kommer fra feltdefinitionen. Et bart `<felt> mangler` er forbudt. Feltnavnet står i
+Skabelonerne for `schema` og `range`/`bounds` produceres af `src/inputCore/catalog/boundsValidators.ts`, som
+ejer de otte bounds-validatorer og er eneste producent af `reason: 'schema'`.
+
+Kontroltype og label kommer fra feltdescriptoren. Et bart `<felt> mangler` er forbudt. Feltnavnet står i
 enkelte anførselstegn i de to skabeloner, der citerer det (`invalid`, `schema`): beskeden læses i "Fejl og
 advarsler" UDEN feltet foran sig, og labels indeholder selv punktummer og bindestreger
 ("Hvis genopt. - tidl. kap.dato"), som ellers løber sammen med prosaen. `quoteFieldLabel` ejer formen.
@@ -143,8 +152,12 @@ Boksen viser altid den fulde besked. Tooltippet afhænger af `reason`, og `resol
 
 | `reason` | Tooltip |
 |---|---|
-| `format`, `schema` | den generiske `Fejl i indtastning` |
 | `bounds`, `rule` | den fulde besked, ordret |
+| alle øvrige (`format`, `schema`) | den generiske `FIELD_ISSUE_GENERIC_TOOLTIP` = `Fejl i indtastning` |
+
+Tabellen er en **allowlist**: `REASONS_WITH_SPECIFIC_TOOLTIP` rummer præcis `bounds` og `rule`, og enhver anden
+— også en fremtidig — `reason` falder i den generiske gren. Det er den sikre default: en ukendt årsag lækker
+ikke en uegnet tekst til tooltippet.
 
 Begrundelsen er informationsværdi, ikke længde: `bounds`/`rule` fortæller HVAD der er galt ("skal være mellem 0
 og 100", "skal ligge efter skadedatoen"), og det er den eneste brugbare del i et tooltip. `format`/`schema`
@@ -166,7 +179,8 @@ Tilstedeværelse afgøres derfor af typen, ikke af truthiness. Boksens indhold e
 tilstedeværende variant bærer altid ikke-tom, trimmet tekst.
 
 - Render KUN gennem `PageMessageBox` (selvstændig boks med overskrift) eller `PageMessageRow` (linje i en
-  eksisterende `ContentBox`). De ejer værnet — `hasPageMessage` — så en side ikke håndruller sit eget.
+  eksisterende `ContentBox`) — begge i `src/components/layout/PageMessageBox.tsx`. De ejer værnet —
+  `hasPageMessage` — så en side ikke håndruller sit eget.
 - Et `??`-fallback på et besked-felt skal have besked-typen. Viewmodeller pinder deres besked-felter med
   `withPageMessages<'…'>()`, så en forkert typet værdi bliver en compile-fejl frem for en tom boks.
 - Flere kilder til samme boks prioriteres med `firstPageMessage(...)`, ikke med `??`: `'' ?? b` giver `''`.
@@ -270,9 +284,9 @@ Systemlogs gemmer canonical instants som UTC ISO 8601 via `getTimestamp()`. Alt 
 udvikler, formateres i `Europe/Copenhagen` via de kanoniske dato-/tidshelpers. Dette omfatter fejlrapport, devtools-
 notice og rapport-/skærmprintfilnavne.
 
-## 11. Den slettede reporter-/store-model
+## 11. Ingen reporter-/store-model
 
-Reporter-/store-modellen er væk. Issues afledes rent fra `InputReader`, feltdescriptors og domænevalidatorer;
+Issues afledes rent fra `InputReader`, feltdescriptors og domænevalidatorer;
 der findes ingen skrivbar feltfejl-bus, ingen source-registre, ingen cleanup-effects, ingen syntetiske
 `invalid-draft`-entries og ingen mount-afhængige dokumentgates. Genindfør dem ikke.
 

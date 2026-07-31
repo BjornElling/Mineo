@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-07-26
+**Senest verificeret mod kode:** 2026-07-31
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -28,7 +28,7 @@ Konsekvens:
 ## Kontrakter (normative, ikke-forklarende)
 - **AppSettings må aldrig være skjult sagsdata.** Defaults til ny sagsdata må kun materialiseres ved oprettelse af ny sag eller ny brugerhandling, ikke under load for at gøre en gammel sag komplet.
 - **EO-data er altid fuldt udfyldt** (ingen implicitte defaults ved load/merge).
-- **Dokumentlaget læser aldrig AppSettingsContext/localStorage direkte**, og det kender ikke `AppSettings`-typen. Afhængighedspilen peger UI → dokument: `src/document/layout/documentBrevhoved.ts` erklærer brevhoved-typernes udtømmende sæt (`DocumentBrevhovedType`) og deres flagstruktur, og `appSettingsSchema.ts` typecheckes imod DET — ikke omvendt. Hovedappens binding sker i `src/document/runtime/mineoDocumentEnvironment.ts` gennem `projectSourceSettings`, som skærer `AppSettings` ned til `SourceSettings`, og derefter gennem `projectEoRowPolicy`/`projectDocumentRenderSettings`, som deler snapshottet i gate- og render-halvdelen.
+- **Dokumentlaget læser aldrig AppSettingsContext/localStorage direkte**, og det kender ikke `AppSettings`-typen. Afhængighedspilen peger UI → dokument: `src/document/layout/documentBrevhoved.ts` erklærer brevhoved-typernes udtømmende sæt (`DocumentBrevhovedType`) og deres flagstruktur, og `appSettingsSchema.ts` typecheckes imod DET — ikke omvendt. De tre projektorer `projectSourceSettings`, `projectEoRowPolicy` og `projectDocumentRenderSettings` bor samlet i `src/settings/sourceSettings.ts`, som er deres eneste kilde. Hovedappens binding anvender dem i `src/document/runtime/mineoDocumentEnvironment.ts`: `projectSourceSettings` skærer `AppSettings` ned til `SourceSettings`, hvorefter `projectEoRowPolicy`/`projectDocumentRenderSettings` deler snapshottet i gate- og render-halvdelen.
 - **Gate- og render-settings er DISJUNKTE, og adskillelsen er en typegrænse**. Et dokumentoutputs `project` ser KUN `gateSettings` (i hovedappen EO-rækkepolitikken); det valgte format og brevhoved-flagene ligger i `renderSettings` og anvendes først efter gaten. Reglen er, at **formatet vælger writer, ikke dækning**: samme sag skal have samme `ready`/`blocked` for PDF og Word. Kravet kan ikke bæres af et værn, fordi §A2a's paritet mellem reaktiv gate og click-preflight ville se den samme skæve gate i begge kanaler — derfor er en formatlæsning i en gate en compilerfejl. Begge halvdele projiceres fra ét `captureSource`-læs, så de ikke kan stamme fra to revisioner.
 - **`SourceSettings`, `EoRowPolicy` og `DocumentRenderSettings` er NOMINELLE, og deres projektorer er de eneste konstruktører**. Alt, der kan ændre en inputevaluering, en rækkegate eller et dokumentoutput, skal komme fra `projectSourceSettings(appSettings)` — rækkepolitikken fra `projectEoRowPolicy(sourceSettings)` og render-settings fra `projectDocumentRenderSettings(sourceSettings)`, så begge er dokumenterede DELMÆNGDER af det, der driver settingsrevisionen. Konsekvenser:
   - Evaluering, revisions-fingerprint og dokumentcapture læser garanteret samme værdi og kan ikke drive fra hinanden.

@@ -2,20 +2,19 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
-**Prioritet:** Supplement til `form-contract.md`; ejer feltdefinitioner, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-07-25
+**Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
+**Senest verificeret mod kode:** 2026-07-31
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
-implementerede arkitektur: migrationslaget (`useDraftField`, `useTableInputCore`, `useRowDrafts`,
-`FormPersistenceContext`, `invalidDrafts`/`fieldErrors` og hele `Styled*Field`-familien) blev SLETTET
-2026-07-25 og må ikke genindføres — se §10 og `form-contract.md` §12.
+implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den — se §10 og
+`form-contract.md` §12.
 
 ## 1. Begreber
 
 - **Åben draft:** rå tekst, der kun findes mens editoren er åben.
 - **Afsluttet input:** enten canonical typet værdi eller rejected rå tekst efter settle.
-- **Feltdefinition:** codec og stabil præsentationsmetadata for én feltart.
-- **Feltreference:** feltdefinition bundet til en strukturel adresse.
+- **Feltdescriptor:** codec og stabil præsentationsmetadata for én feltart.
+- **Feltreference:** feltdescriptor bundet til en strukturel adresse.
 - **Surface-adapter:** tynd integration til formular eller grid; den ejer ikke inputsemantik.
 
 ## 2. Lagdeling
@@ -49,23 +48,31 @@ Der findes ingen lukket draftkopi, touched-kopi af input, pending-prop-guard, fi
 autoritativ replacement kan ikke passere commit-barrieren, mens editoren er åben. Editorlaget kalder kun den fælles
 inputtransaktion og må ikke kende et konkret domæne eller have surface-specifik parsing.
 
-### Lag C — feltdefinition og codec
+### Lag C — feltdescriptor og codec
 
-Hver inputfamilie har ét `FieldCodec<T>`:
+Hver inputfamilie har ét `FieldCodec<T>` (`src/inputCore/fieldCodec.ts`):
 
 ```ts
 type FieldCodec<T> = Readonly<{
+  family: FieldCodecFamily;
   parseForSettle(raw: string): FieldResolution<T>;
   format(value: T): string;
   formatForEdit(value: T): string;
   acceptsInitialKey(key: string): boolean;
   normalizePaste?(raw: string): string;
+  signPolicy?: FieldSignPolicy;
 }>;
 ```
 
+`family` er obligatorisk og navngiver inputfamilien (`text`, `optionalText`, `selection`, `requiredChoice`,
+`boolean`, `date`, `integer`, `amount`, `percent`, `stringBacked`, `year`, `week`, `fraction`). `signPolicy`
+er fortegns-politikken; `form-contract.md` §8.2 ejer reglen om den.
+
 Krav:
 
-1. `parseForSettle` returnerer enten canonical værdi eller deterministisk ugyldighed.
+1. `parseForSettle` returnerer enten canonical værdi eller deterministisk ugyldighed. `FieldRejectReason` har
+   præcis én værdi, `'format'` — en anden afvisningsgrund er urepræsenterbar, og det er dét, der gør krav 7
+   og `form-contract.md` §8 sande i typesystemet frem for kun i prosa.
 2. Tom tekst mapper til feltets canonical tomme værdi.
 3. `format` er deterministisk og bruges kun for den lukkede visning af afsluttede gyldige værdier.
 4. `formatForEdit` er obligatorisk og gendanner den revisionsbundne edit-tekst uden at læse en parallel draft. For
@@ -95,33 +102,39 @@ Form- og grid-adaptere må kun tilføje:
 
 De må ikke parse, skrive persistence, eje history, oprette fingerprints eller holde parallelle draft-/invalid-stores.
 
-## 3. Feltdefinition, reference og adresse
+## 3. Feltdescriptor, reference og adresse
 
 ```ts
-type FieldDefinition<T> = Readonly<{
+// src/inputCore/fieldDescriptor.ts — udsnit; descriptoren bærer også id, template,
+// emptyValue, isEmpty, readCanonical, writeCanonical, relevance?, validators? og bind.
+type FieldDescriptor<T> = Readonly<{
   codec: FieldCodec<T>;
   label: string;
-  controlKind: 'text' | 'choice' | 'toggle';
+  controlKind: FieldControlKind; // 'text' | 'choice' | 'toggle'
 }>;
 
 type FieldRef<T> = Readonly<{
   address: FieldAddress;
-  definition: FieldDefinition<T>;
+  descriptor: FieldDescriptor<T>;
 }>;
 ```
+
+`AnyFieldRef` er den type-udviskede variant, som `FieldIssue.field` bærer.
 
 Regler:
 
 1. Samme `FieldRef` følger feltet gennem render, settle, issue, projektion, gate og history.
 2. Statiske felter kommer fra ét feltkatalog; dynamiske felter dannes af typed entity-/row-builders.
 3. Adressen beskriver data strukturelt og versioneres/migreres som persistenceformat.
-4. Label og kontroltype kommer fra definitionen, aldrig fra parsing af en key eller fri streng.
+4. Label og kontroltype kommer fra descriptoren, aldrig fra parsing af en key eller fri streng.
 5. Rækkeidentitet er datanøglen; kolonneindeks må ikke indgå i persistent feltidentitet.
 6. Transiente UI-hjælpefelter bruger samme codec/editor, men har ingen persisted `FieldRef` og deltager ikke i history.
 7. Felt- og collection-bindings registreres i ét forseglet `InputCatalog`; dynamiske refs skal både matche templaten
    og pege på entities, der findes i det konkrete input-snapshot.
 8. History-origin kombinerer `FieldRef` med den konkrete editors fokusmål. Fokusmålet er overflademetadata, ikke en del
-   af datafeltets definition; samme felt kan derfor have flere gyldige editorlokationer uden parallel dataidentitet.
+   af datafeltets descriptor; samme felt kan derfor have flere gyldige editorlokationer uden parallel dataidentitet.
+   `HistoryOrigin.field` er derfor valgfri — en strukturel rækkehandling har ikke ét felt — mens route og fane
+   altid følger med.
 
 ## 4. Settle-kontrakt
 
@@ -171,7 +184,7 @@ Et felt viser højst ét aktivt issue ad gangen efter den centrale, deterministi
 - Rækkeinfrastrukturen må ikke holde en ekstra værdibærende `draftRows`-kopi.
 - Første settle i en tom UI-række promoverer rækken atomisk, også ved rejected input.
 - Rækkesletning fjerner descendant-rejections i samme transaktion; efterfølgende reconcile-effects er forbudt.
-- Paste-normalisering og første-tast-filter ligger i det fælles codec, ikke i hver `Table*Input`.
+- Paste-normalisering og første-tast-filter ligger i det fælles codec, ikke i den enkelte celle-komponent.
 
 ## 8. Immediate-commit-kontroller
 
@@ -181,7 +194,7 @@ forveksles med et værdi-commit.
 
 ## 9. Skjulte domæneregler
 
-Ikke-indlysende defaults og constraints skal være eksplicitte i feltdefinitionen eller den relevante domænekontrakt.
+Ikke-indlysende defaults og constraints skal være eksplicitte i feltdescriptoren eller den relevante domænekontrakt.
 Eksempler er procentintervaller, tocifret årspolitik og sikkerhedsgrænser for cifferantal.
 
 `infer`-politikken for tocifrede år er en låst, løbende regel: `20xx` bruges til og med fem år efter det aktuelle
@@ -192,13 +205,21 @@ et fast pivotår. Eksempel: `30` fortolkes som 1930 i 2024, men som 2030 fra og 
 
 Den normative reference er denne kontrakt sammen med `form-contract.md`.
 
-`useDraftField`, `useTableInputCore`, `useRowDrafts`, `useCellInvalidDraftChannel`, `onFieldError`-kanaler,
-fingerprints og `rowId:colIndex` som identitet er slettet (2026-07-25). Feltidentitet er den strukturelle
-`FieldRef`/feltadresse; genindfør ingen af de gamle mekanismer.
+Feltidentitet er den strukturelle `FieldRef`/feltadresse. Der findes ingen parallel draft-kanal, ingen
+fingerprints og ingen `rowId:colIndex` som persistent identitet — genindfør dem ikke.
+
+Fraværet er kun delvist maskinelt håndhævet. `useDraftField`, `useTableInputCore` og `useRowDrafts` er dækket
+af `input/deleted-legacy-architecture-import` og `legacy/forbidden-identifier` (se `form-contract.md` §12).
+`useCellInvalidDraftChannel` og `onFieldError`-kanalerne er derimod fjernet **uden** et navngivet værn: intet
+maskinelt tjek forhindrer, at de genopstår under samme navn. Denne kontrakt er indtil videre eneste spærring.
+
+Lagdelingen i §Lag D er til gengæld håndhævet af `input/write-boundary`, `input/cell-binding-single-source`,
+`input/programmatic-commit-uses-settle`, `input/derived-values-are-not-input-writes` og
+`input/persisted-controls-use-field-family`.
 
 ## 11. Tjekliste
 
-- Én feltdefinition og ét codec pr. inputfamilie.
+- Én feltdescriptor og ét codec pr. inputfamilie.
 - Én felt-editor på tværs af formular og grid.
 - Én strukturel `FieldRef` gennem hele flowet.
 - Ingen parsing, validering eller afledt feedback under tastning.

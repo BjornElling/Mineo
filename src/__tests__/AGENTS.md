@@ -1,7 +1,3 @@
-Her er min reviderede og strammede version. Den er bevidst kortere, hårdere prioriteret og uden proces-snak. Kun regler, krav og arkitektoniske invarianter.
-
----
-
 # AGENTS.md — Testpolitik for Mineo
 
 Dette dokument er den autoritative teststandard for Mineo.
@@ -149,6 +145,46 @@ Eksempler:
 * Encoding-korruption
 
 Guard-tests må gerne læse kildefiler og fejle ved mønsterbrud.
+
+### 2.5.1 Ét harness, ikke én walker pr. regel
+
+Grænse-regler hører i regelmanifestet under `src/__tests__/quality/architecture/`, ikke i en ny håndskrevet
+scanner. En regel, der medbringer sit eget filglob, får også sit eget liveness-gulv ved siden af harnessets —
+og så er det harnessets dækning, der ikke længere gælder for den.
+
+### 2.5.2 Et værn skal kunne fejle — bevis det
+
+Et grønt værn er ikke evidens. Før du stoler på et, skal tre ting være vist:
+
+1. **Mønstret fanger en overtrædelse.** Mutér en fixture og se testen blive rød.
+2. **Målet findes stadig.** Et værn, der scanner et tomt sæt, er grønt af tomhed. Det er den hyppigste
+   fejlklasse: et værn overlever den kode, det bevogtede, og bliver inert uden at nogen opdager det. Mutér
+   derfor mod den **levende kilde**, ikke kun mod syntetiske strenge, og lad reglen bære et mål, harnesset kan
+   efterprøve stadig eksisterer.
+3. **Testdataene kan skelne mekanismerne.** To mekanismer, der er enige på alle prøvede inputs, er utestede.
+   Skal en forrang bevises (fx at et eksplicit hint slår en tekst-heuristik), så skal der findes en case, hvor
+   de peger hver sin vej — ellers består værnet en mutation, det burde fange.
+
+Et sidebemærk fra samme fejlklasse: en `hasIdentifier`-probe forbliver sand ved et alias-import
+(`import { x as y }`), fordi navnet stadig står i import-clausen. Mål et faktisk **kald**.
+
+### 2.5.3 Kan grænsen udtrykkes i typesystemet, så gør det
+
+En typegrænse slår en AST-regel, fordi den også lukker de indirekte veje. `safeSessionStorage`s branded
+`ManifestStorageKey` afviser en ikke-manifesteret nøgle i COMPILEREN — også når den kommer ind som en
+variabel, hvor en AST-regel principielt er blind.
+
+Brandede typer har dog et loft: `{} as Brand` kompilerer. En smal AST-regel skal derfor lukke
+assertion-hullet. Bedst er begge dele: typen som primær grænse, AST-reglen som sekundær diagnostik.
+
+Stærkest af alt er at fjerne kapabiliteten. Kan et felt tages ud af en context, så en gate strukturelt ikke
+KAN afhænge af det, er der ingen regel tilbage at overtræde.
+
+### 2.5.4 Værn mod ansvaret, ikke kun mod navnet
+
+En regel, der opremser historiske fil- og symbolnavne, værner mod *det, vi kom fra* — ikke mod *det ansvar, de
+havde*. En ny fil, der genopfinder samme parallelle model under et andet navn, passerer. Navnelister er
+nyttige, men de er et supplement til en ansvarsbaseret grænse, ikke en erstatning.
 
 ---
 

@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-07-24
+**Senest verificeret mod kode:** 2026-07-31
 
 ---
 
@@ -24,9 +24,10 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 Alle visninger er projektioner af snapshot:
 - `eoSnapshotToBeregningView`
 - `eoSnapshotToInspektionView`
-- `eoSnapshotToEoPdfDocument`
-- `eoSnapshotToTafPerYearPdfDocument`
-- `eoSnapshotToTafPerYearOpreguleretPdfDocument` (projektion for beregningsformen "TAF opreguleret til beregningsår"; forwarder både per-år-resultatet og det opregulerede resultat uden ny domæneberegning)
+- `eoSnapshotToEoDocument`
+- `eoSnapshotToTafPerYearDocument`
+- `eoSnapshotToTafPerYearOpreguleretDocument` (projektion for beregningsformen "TAF opreguleret til beregningsår"; forwarder både per-år-resultatet og det opregulerede resultat uden ny domæneberegning)
+- `eoSnapshotToTafKravGrafDocument` (jf. §3.2)
 
 For projektionsfelter, der fødes videre til kontrol/PDF uden ny domæneberegning, er feltsemantikken bindende.
 Dette gælder blandt andet `sygeferiegodtgoerelse.perAnsaettelsesforhold[].sfggVisningsperiode`, som normativt er
@@ -66,7 +67,7 @@ Stille clamping sker **kun** mod EO-periodens grænser:
 - Svie/smerte fra-dato `< vedroererPeriodeFra` → clampes til `vedroererPeriodeFra`
 - Svie/smerte til-dato `> vedroererPeriodeTil` → clampes til `vedroererPeriodeTil`
 
-Disse clampings giver **ingen fejlindikation** i felt, EOBeregningTab eller snapshot-invariants.
+Disse clampings giver **ingen fejlindikation** i felt, EOberegningTab eller snapshot-invariants.
 Snapshot og EOInspektion bruger de clampede værdier som effektivt beregningsinput uden at ændre de afsluttede
 canonical værdier.
 
@@ -78,13 +79,13 @@ afgrænsning for hvad der overhovedet er relevant for den konkrete erstatningsop
 At perioder stikker ud over denne grænse er et normalt og forventeligt editerings-artefakt
 uden diagnostisk betydning.
 
-### 2.2 Fejlgivende bounds (fejl i felt + EOBeregningTab + blokerer download)
+### 2.2 Fejlgivende bounds (fejl i felt + EOberegningTab + blokerer download)
 
 Følgende bounds-violations giver fejlindikation og blokerer download.
 Snapshot beregnes stadig på de clampede værdier — clamping sker altid, også for fejlgivende bounds.
 
 Mekanismen er: bounds-issues afledes fra den afsluttede inputprojektion, vises som rød kant + tooltip i
-TAFPeriodeTable/SvieSmerteTable og gengives på EOBeregningTab. De blokerer de dokumentdefinitioner, der afhænger af
+TAFPeriodeTable/SvieSmerteTable og gengives på EOberegningTab. De blokerer de dokumentdefinitioner, der afhænger af
 felterne, også når snapshot fortsat kan beregnes på clampede værdier.
 Adfærden er identisk for alle fejlgivende bounds uanset årsag (differencekrav, EET, mén).
 
@@ -110,10 +111,10 @@ Adfærden er identisk for alle fejlgivende bounds uanset årsag (differencekrav,
 - `< fra-dato i samme række`
 - `>= afgørelsesdato for varige mén` (når ménafgørelse ikke er påklaget)
 
-**Overlap:** Overlap mellem rækker (TAF og svie/smerte): fejl i felt + EOBeregningTab.
+**Overlap:** Overlap mellem rækker (TAF og svie/smerte): fejl i felt + EOberegningTab.
 
 **Manglende datoer:** Manglende fra- eller til-dato på ikke-tom række: fejl kun på
-EOBeregningTab (ikke i felt), blokerer download.
+EOberegningTab (ikke i felt), blokerer download.
 
 **Ferieperioder i EO-oplysninger:** Ferieperioder clampes ikke og begrænses ikke af andre
 indtastninger. De lægges ukritisk til grund som indtastet. Den eneste undtagelse er
@@ -199,7 +200,7 @@ Bruges til:
 
 **Bounds-violations (§2.2)** (differencekravDato, EET-virkningsdato, ménafgørelsesdato)
 håndteres ikke som snapshot-invariants. De eksponeres som afledte issues fra inputprojektionen og gengives på
-EOBeregningTab; relevante dokumentdefinitioner blokeres.
+EOberegningTab; relevante dokumentdefinitioner blokeres.
 Snapshot beregnes stadig på de clampede værdier og `data` er tilgængeligt.
 
 ### 3.2 `blocksOutputs`
@@ -336,7 +337,7 @@ ikke en systemfejl. EOInspektion viser de clampede værdier korrekt. Ingen `BugR
 vises i EOInspektion eller EOKontrolTabel.
 
 Validator og snapshot-invariants klassificerer manglende datoer som fejl — det sker
-i EOBeregningTab, ikke i EOInspektion-visningen.
+i EOberegningTab, ikke i EOInspektion-visningen.
 
 Hvis `inspektionSnapshot` er `null` (ved `fail_closed` før engines kørte), vises en passende
 tom-/fejltilstand uden at forsøge at rendere beregningsindhold.
@@ -458,7 +459,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 
 **Substitution af effektive rækker:**
 - Når togglen er `'Ja'`, bygges en effektiv `offentligeYdelserRows` ved at:
-  1. Filtrere eksisterende `midlertidigt_eet`-rækker væk fra den originale canonical inputprojektion (defensiv håndhævelse af invariant 6.1 i implementeringsplanen).
+  1. Filtrere eksisterende `midlertidigt_eet`-rækker væk fra den originale canonical inputprojektion — defensiv håndhævelse af §13's *Single source of truth*-invariant, så en importeret række aldrig kan optræde både canonical og virtuelt.
   2. Tilføje de virtuelle rækker, som den canonical EO-adapter bygger fra import-contextens grupper.
 - Engines, inspektions-snapshot, presentation-model og PDF-model bygges på den effektive værdi.
 - Snapshotets audit-projektion indeholder altid det oprindelige afsluttede canonical input (uden virtuelle rækker), så

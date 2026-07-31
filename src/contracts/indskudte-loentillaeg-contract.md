@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* — en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-07-12
+**Senest verificeret mod kode:** 2026-07-31
 
 ## 1. Scope
 
@@ -34,10 +34,12 @@ Autoritativ datafil: `src/data/indskudteLoentillaeg.ts`.
 - `src/data/indskudteLoentillaeg.ts` — satser, virkningsdatoer, satstrapper og `resolveIndskudtLoentillaegPct`.
 - `STORE_BEDEDAG_PCT`, `STORE_BEDEDAG_START` re-eksporteres ikke fra `regulatoryRates.ts`/`dateRanges.ts` længere; de bor her.
 
-## 4. Status og fremtidig retning
+## 4. Dækning
 
-- **Store Bededagstillæg er fuldt implementeret** i lønudviklings-/pakkeberegningen.
-- **Særligt ferietillæg er forberedt, men endnu ikke koblet ind i beregningen.** Satstrappen findes i datafilen, men ingen beregningssti læser den endnu. Når tillægget implementeres, sker det via samme "indskudt tillæg fra en virkningsdato"-mønster som Store Bededag (procentpoint indskudt i lønpakken, gated på de relevante domænebetingelser), og denne kontrakts §2/§3 udvides med den konkrete beregnings-/præsentationskobling. Implementeringen berører beregningslogik og forelægges derfor til godkendelse, jf. `AGENTS.md`.
+**Store Bededagstillæg** er indkoblet i lønudviklings-/pakkeberegningen efter §2's mønster.
+
+**Særligt ferietillæg er derimod data, ikke beregning.** Satstrappen `SAERLIGT_FERIETILLAEG_SATSTRAPPE` findes
+i datafilen og aftages kun af beregningsdata-kataloget som metadata; ingen beregningssti læser den. Se §6.
 
 ## 5. Testkobling
 
@@ -46,4 +48,9 @@ Autoritativ datafil: `src/data/indskudteLoentillaeg.ts`.
 
 ## 6. Kendte Undtagelser
 
-Ingen.
+**Særligt ferietillæg findes som satsdata uden beregningskobling.** Trappen ligger i datafilen, men indgår
+ikke i nogen lønpakke. Begrundelse: at indkoble den ændrer de tal, programmet producerer, og er derfor
+beregningslogik, der kræver forudgående godkendelse jf. `AGENTS.md`. Re-evalueringstrigger: en
+brugergodkendelse af, at tillægget skal indgå. Sker det, følges samme "indskudt tillæg fra en
+virkningsdato"-mønster som Store Bededag, og §2/§3 udvides med den konkrete beregnings- og
+præsentationskobling.

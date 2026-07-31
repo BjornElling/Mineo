@@ -1,7 +1,7 @@
 ---
 name: greenfield
-description: Gennemfør en Mineo-greenfield-work item — Claude planlægger og beslutter, Codex sol reviewer uafhængigt.
-argument-hint: "[scope eller WI-fil]"
+description: Gennemfør et Mineo-greenfield-scope — Claude planlægger og beslutter, Codex sol reviewer uafhængigt.
+argument-hint: "[scope eller arbejdsnotat]"
 disable-model-invocation: true
 model: opus
 effort: high
@@ -9,7 +9,7 @@ effort: high
 
 # Greenfield-arbejdsgang
 
-Gennemfør scopet eller genoptag work item'en i **$ARGUMENTS**.
+Gennemfør eller genoptag scopet i **$ARGUMENTS**.
 
 AGENTS.md og de bindende kontrakter har forrang. Claude Code er eneste skriver i working tree.
 Codex bruges read-only som **uafhængig reviewer** — ikke som kortlægger og ikke som
@@ -20,9 +20,9 @@ de implementeres ikke blindt.
 
 **Claude Code (opus, high) afgør alle processuelle og designmæssige beslutninger og står for al
 planlægning og kortlægning.** Opstår der et valg om struktur, arkitektur, navngivning, opdeling,
-rækkefølge, scope-afgrænsning eller proces (fx "én WI eller to?", "skal disse to gates
+rækkefølge, scope-afgrænsning eller proces (fx "ét scope eller to?", "skal disse to gates
 ensartes?", "hvilket af to mønstre vinder?"), træffes det her, ud fra ét kriterium: **hvad giver
-det bedste og mest velstrukturerede slutprodukt.** Beslutningen registreres kort i work item'en
+det bedste og mest velstrukturerede slutprodukt.** Beslutningen registreres kort i arbejdsnotatet
 sammen med den evidens (filreferencer, kontraktafsnit, tests) den hviler på, så den senere kan
 anfægtes af revieweren.
 
@@ -48,7 +48,7 @@ arbejdsgang — uden for den er der ingen fast arbejdsdeling mellem Claude Code 
 | Rolle | Model | Effort |
 |---|---|---|
 | Design-, proces- og arkitekturbeslutninger; al planlægning og kortlægning | Claude Code, Opus | high |
-| Implementering af den allerede besluttede WI | Claude Code, Opus | medium |
+| Implementering af det allerede besluttede scope | Claude Code, Opus | medium |
 | Uafhængigt slutreview — standard | Codex sol | medium |
 | Uafhængigt slutreview — klasse H, eller scope der har været forgæves forsøgt løst før | Codex sol | high |
 
@@ -61,14 +61,24 @@ arbejdsgang — uden for den er der ingen fast arbejdsdeling mellem Claude Code 
   Terra uden for arbejdsgangen, er reasoning-effort altid `high` — aldrig `low` eller `medium`.
 - Codex kortlægger ikke og beslutter ikke. Dens ene opgave er at anfægte det færdige arbejde.
 
-## 1. Preflight og work item
+## 1. Preflight og arbejdsnotat
 
-1. Læs den aktuelle status i `docs/architecture/draft-commit-greenfield-design.md`, relevant
-   cutover-plan og relevante kontrakter. Claude-memory er kun orientering og aldrig autoritet.
-2. Inspicér `git status` og `git diff`. Bevar eksisterende ændringer, og noter baseline i work
-   item'en. Hav kun én aktiv greenfield-work item ad gangen.
-3. Genoptag en eksisterende WI eller opret én fra `work-items/_TEMPLATE.md`. Udfyld scope,
-   invarianter, acceptance criteria, testplan og risikoklasse, før produktionskode ændres.
+1. Læs de relevante kontrakter i `src/contracts/` og det relevante arkitekturdokument i
+   `docs/architecture/`. Claude-memory er kun orientering og aldrig autoritet.
+2. Inspicér `git status` og `git diff`. Bevar eksisterende ændringer, og noter baseline i
+   arbejdsnotatet.
+3. Skriv et **arbejdsnotat** for scopet, før produktionskode ændres: scope, invarianter,
+   acceptance criteria, testplan og risikoklasse. Notatet er arbejdsgangens hukommelse — det er
+   dét, revieweren i §4 får forelagt, og dét, beslutninger registreres i.
+
+**Hvor notatet bor.** Er scopet lille nok til at blive gennemført i én session, holdes notatet i
+hovedtråden. Strækker arbejdet sig over flere sessioner, eller skal det kunne genoptages efter en
+godkendelsespause, skrives det til en midlertidig fil i `docs/` (fx `docs/arbejdsnotat-<slug>.md`),
+som **slettes, når arbejdet er afsluttet og committet**. Efterlad aldrig et afsluttet arbejdsnotat i
+repoet: en færdig opgaves plan er hverken dokumentation eller historik, og den vil senere blive læst
+som en beskrivelse af nutiden. Varig viden fra arbejdet hører i en kontrakt, i koden eller i en test.
+
+Hav kun ét aktivt greenfield-scope ad gangen.
 
 ### Kortlægning (Claude, high)
 
@@ -76,7 +86,7 @@ Kortlægningen sker her i hovedtråden, før implementering — den uddelegeres 
 Kortlæg eksisterende adfærd, invarianter, parallel logik der skal konsolideres eller bevidst
 holdes adskilt, samt de testbare acceptance criteria. Ved brede gennemgange fanes ud til
 subagents (jf. AGENTS.md §Reviews og subagents), så hovedtråden beholder konklusionerne og ikke
-fil-dumps. Skriv konklusionerne i work item'en med filreferencer — de er grundlaget, revieweren
+fil-dumps. Skriv konklusionerne i arbejdsnotatet med filreferencer — de er grundlaget, revieweren
 senere prøver at vælte.
 
 For klasse H er kortlægningen ikke valgfri: den skal eksplicit dække, hvilke tal, hvilken
@@ -91,8 +101,8 @@ persisteret form og hvilke gates der kan flytte sig, og hvorfor de ikke gør det
 | **H** | Beregning, schema/data-integritet, save/load/session, delt state/runtime, dokumentgate eller tværgående/tvetydig arkitektur | Sol, high |
 
 Uafhængigt af klasse hæves reviewet til **sol/high**, hvis scopet er usædvanligt sammensat, eller
-hvis det har været forsøgt løst forgæves før (tidligere WI rullet tilbage, gentaget review-fund i
-samme område, en rettelse der har genintroduceret et tidligere lukket problem). Noter i WI'en
+hvis det har været forsøgt løst forgæves før (tidligere forsøg rullet tilbage, gentaget review-fund i
+samme område, en rettelse der har genintroduceret et tidligere lukket problem). Noter i arbejdsnotatet
 hvorfor der er hævet.
 
 ## 2. Godkendelsesgate
@@ -105,20 +115,20 @@ Efter eksplicit godkendelse noteres beslutningen og status sættes `klar`. Rent 
 markeres `godkendelse ikke påkrævet` og sættes direkte `klar`.
 
 Skillens modeltilstand gælder kun den tur, hvor `/greenfield` påkaldes. Efter en pause til
-brugergodkendelse skal handoffen derfor bede brugeren genoptage med `/greenfield <WI-fil>`. En
+brugergodkendelse skal handoffen derfor bede brugeren genoptage med `/greenfield <arbejdsnotat eller scope>`. En
 almindelig bekræftelse må registreres, men implementeringen må først fortsætte, når skillen er
 påkaldt igen; ellers falder sessionen tilbage til sit standardvalg.
 
 ## 3. Implementering og gate
 
 Implementeringen kører på **Opus/medium**. Skillen påkaldes på high; når planlægningen efter §1 er
-skrevet i WI'en og der ikke er flere åbne designvalg, sænkes efforten til medium for selve
+skrevet i arbejdsnotatet og der ikke er flere åbne designvalg, sænkes efforten til medium for selve
 udførelsen. Er scopet så lille, at planlægning og udførelse er samme skridt, gennemføres det bare
 på high — skift ikke frem og tilbage for et par filer.
 
-Fordi arkitekturen allerede er afgjort, følger implementeringen WI'en. **Opstår der et reelt nyt
+Fordi arkitekturen allerede er afgjort, følger implementeringen arbejdsnotatet. **Opstår der et reelt nyt
 design- eller arkitekturvalg undervejs, standses den del** — der gættes ikke, og valget skubbes
-ikke til revieweren. Løft efforten til high, træf beslutningen efter §0, skriv den i WI'en, og
+ikke til revieweren. Løft efforten til high, træf beslutningen efter §0, skriv den i arbejdsnotatet, og
 genoptag udførelsen. Genbrug før ny kode, og konsolidér kun adfærd der faktisk skal være ens.
 
 Sæt status `under-implementering`. Kør de mindst omfattende relevante checks fra AGENTS.md
@@ -131,8 +141,8 @@ er kontrolleret mod den aktuelle plan og kode.
 Sæt status `review`, og kør review, når acceptance criteria og den første kvalitetsgate er grønne.
 
 Fordi design og implementering nu ligger samme sted, er Codex den eneste uafhængige instans i
-arbejdsgangen. Reviewet må derfor **ikke** begrænses til, om koden gør det WI'en siger — det skal
-også kunne anfægte selve beslutningen. Hver prompt forelægger WI'ens registrerede designvalg som
+arbejdsgangen. Reviewet må derfor **ikke** begrænses til, om koden gør det arbejdsnotatet siger — det skal
+også kunne anfægte selve beslutningen. Hver prompt forelægger arbejdsnotatets registrerede designvalg som
 noget, revieweren aktivt skal prøve at vælte.
 
 To krav gælder ethvert review i denne arbejdsgang og skal stå i prompten:
@@ -149,27 +159,29 @@ To krav gælder ethvert review i denne arbejdsgang og skal stå i prompten:
 
 Anbefalingerne er **input til beslutningen, ikke selve beslutningen**. §0 gælder uændret: valget
 træffes her, på high, mod kode og kontrakter. Vælges en anden løsning end den anbefalede, noteres
-det i WI'en med begrundelse — en anbefaling implementeres hverken blindt eller afvises tavst.
+det i arbejdsnotatet med begrundelse — en anbefaling implementeres hverken blindt eller afvises tavst.
 
-Ligger den identificerede rod **uden for WI'ens scope**, udvides arbejdet ikke stiltiende: der
-oprettes en ny WI, hvor rodårsagen og Codex' anbefaling skrives ned, og den aktuelle WI noterer,
-at dens rettelse er symptomatisk, og hvorfor det er forsvarligt indtil videre.
+Ligger den identificerede rod **uden for arbejdsnotatets scope**, udvides arbejdet ikke stiltiende: der
+udskilles rodårsagen som et selvstændigt scope med Codex' anbefaling skrevet ned, og det aktuelle
+arbejdsnotat noterer, at dets rettelse er symptomatisk, og hvorfor det er forsvarligt indtil videre.
+Er rodårsagen ikke løst ved handoff, hører den i `docs/aabne-beslutninger-og-daekningshuller.md` —
+ikke i et efterladt arbejdsnotat.
 
 ```powershell
 # L (kode) og M
 codex review --uncommitted -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="medium"' `
-  "Review <WI-fil> mod diff og berørte tests. Kontrollér korrekthed, invarianter, utilsigtet adfærdsændring, parallel logik og testhuller. WI'ens designvalg er truffet af den samme agent, der skrev koden: efterprøv dem selvstændigt, og sig til, hvis et valg er forkert eller en enklere struktur var mulig. For HVERT fund: (1) angiv om det er en isoleret fejl eller et symptom på et underliggende strukturelt problem — og navngiv i så fald årsagen; peger flere fund på samme rod, rapportér roden frem for symptomerne, men skriv også udtrykkeligt når et fund faktisk er lokalt; (2) anbefal hvordan det bedst løses, og begrund strukturelle anbefalinger i den samlede struktur, ikke kun i det sted fejlen viser sig. Returnér kun handlingskrævende fund med fil/linje og evidens."
+  "Review <arbejdsnotat eller scope> mod diff og berørte tests. Kontrollér korrekthed, invarianter, utilsigtet adfærdsændring, parallel logik og testhuller. arbejdsnotatets designvalg er truffet af den samme agent, der skrev koden: efterprøv dem selvstændigt, og sig til, hvis et valg er forkert eller en enklere struktur var mulig. For HVERT fund: (1) angiv om det er en isoleret fejl eller et symptom på et underliggende strukturelt problem — og navngiv i så fald årsagen; peger flere fund på samme rod, rapportér roden frem for symptomerne, men skriv også udtrykkeligt når et fund faktisk er lokalt; (2) anbefal hvordan det bedst løses, og begrund strukturelle anbefalinger i den samlede struktur, ikke kun i det sted fejlen viser sig. Returnér kun handlingskrævende fund med fil/linje og evidens."
 
 # H, eller scope der har været forsøgt løst forgæves før
 codex review --uncommitted -c 'model="gpt-5.6-sol"' -c 'model_reasoning_effort="high"' `
-  "Kritisk review af <WI-fil> mod diff og tests. Kontrollér især beregningstal, datatab, schema/runtime-integritet, stale revisions, atomisk save/load, fail-closed gates, kontrakter og manglende invarianttests. WI'ens designvalg er truffet af den samme agent, der skrev koden, og er ikke reviewet af andre: efterprøv dem fra bunden — er afgrænsningen rigtig, er den valgte struktur den rigtige, og er noget trust-kritisk overset, fordi planen ikke så efter det? For HVERT fund: (1) grav til roden — angiv om det er en isoleret fejl eller et symptom på et underliggende strukturelt problem, navngiv årsagen, og saml fund der deler rod under den ene årsag i stedet for at rapportere dem spredt; skriv også udtrykkeligt når et fund faktisk er lokalt, så vurderingen ikke skævvrides mod arkitekturkritik; (2) anbefal den bedste løsning og begrund den i den samlede struktur — vurdér for arkitektoniske og strukturelle fund, om den rigtige rettelse ligger et andet sted end der hvor fejlen viser sig, og sig til hvis roden ligger uden for WI'ens scope. Returnér kun handlingskrævende fund med fil/linje og evidens."
+  "Kritisk review af <arbejdsnotat eller scope> mod diff og tests. Kontrollér især beregningstal, datatab, schema/runtime-integritet, stale revisions, atomisk save/load, fail-closed gates, kontrakter og manglende invarianttests. arbejdsnotatets designvalg er truffet af den samme agent, der skrev koden, og er ikke reviewet af andre: efterprøv dem fra bunden — er afgrænsningen rigtig, er den valgte struktur den rigtige, og er noget trust-kritisk overset, fordi planen ikke så efter det? For HVERT fund: (1) grav til roden — angiv om det er en isoleret fejl eller et symptom på et underliggende strukturelt problem, navngiv årsagen, og saml fund der deler rod under den ene årsag i stedet for at rapportere dem spredt; skriv også udtrykkeligt når et fund faktisk er lokalt, så vurderingen ikke skævvrides mod arkitekturkritik; (2) anbefal den bedste løsning og begrund den i den samlede struktur — vurdér for arkitektoniske og strukturelle fund, om den rigtige rettelse ligger et andet sted end der hvor fejlen viser sig, og sig til hvis roden ligger uden for arbejdsnotatets scope. Returnér kun handlingskrævende fund med fil/linje og evidens."
 ```
 
 Hvis working tree indeholder andre ændringer, må et globalt `--uncommitted`-review ikke bruges
-ukritisk. Brug i stedet `codex exec ... -s read-only` med WI'ens præcise filer og afgrænsning,
-og bed Codex ignorere baseline-ændringer uden for WI'en.
+ukritisk. Brug i stedet `codex exec ... -s read-only` med arbejdsnotatets præcise filer og afgrænsning,
+og bed Codex ignorere baseline-ændringer uden for arbejdsnotatet.
 
-Registrér hvert fund som `bekræftet`, `afvist med evidens` eller `ny WI` — og for fund, hvor Codex
+Registrér hvert fund som `bekræftet`, `afvist med evidens` eller `udskilt til eget scope` — og for fund, hvor Codex
 har udpeget en rod eller anbefalet en løsning, tillige om roden accepteres, og om anbefalingen
 følges eller fraviges (med begrundelse). Rent kosmetiske fund
 retter Claude uden videre (§0); rejser et fund et design- eller procesvalg, afgøres det efter §0 —
@@ -185,4 +197,5 @@ og relevante gates er grønne.
 
 Sæt status `afsluttet`. Rapportér kort: ændrede filer, udførte og bevidst fravalgte checks,
 bekræftede/rettede fund, afviste fund med årsag, opfyldte acceptance criteria og resterende
-WI'er/risici. Commit kun efter brugerens udtrykkelige besked; push aldrig.
+scopes/risici. Slet et midlertidigt arbejdsnotat, når arbejdet er committet. Commit kun efter
+brugerens udtrykkelige besked; push aldrig.

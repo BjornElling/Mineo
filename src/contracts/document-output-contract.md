@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 
 ## 1. Scope
 
@@ -317,6 +317,7 @@ modelrenderer mapper derefter hver bloktype til den tilsvarende interne `Documen
 | Dokumenttitel | `document.writeTitle()` | Eneste gyldige titel-API |
 | Sektionsoverskrift | `document.writeSectionHeader()` | Bruges ved egentlige sektionsskift |
 | Fed underoverskrift | `document.writeBoldSubheader()` | Kanonisk basis-API; standard-followup er targetets observerbare keep-together garanti |
+| Fed underoverskrift kun hvis der følger indhold | `document.writeBoldSubheaderIfContent()` | Implementerer B4's regel: en underoverskrift må ikke stå alene uden efterfølgende indhold |
 | Fed underoverskrift + ét tekstafsnit | `document.writeBoldSubheaderWithWrappedText()` | Foretrækkes når underoverskrift og ét efterfølgende tekstafsnit skal holdes atomisk samlet |
 | Understreget underoverskrift | `document.writeUnderlinedSubheader()` | Kanonisk basis-API; standard-X er centralt renderer-ejet |
 | Brødtekst | `document.writeWrappedText()` | Standard for almindelig fritekst |
@@ -474,6 +475,14 @@ Hvis en generator oplever behov for gentagne lokale spacing-korrektioner, er det
 
 ## B8. Direkte jsPDF-brug
 
+**Læsevejledning til B5, B6, B8 og B10.** Disse afsnit taler om `advanceY(...)`, `setY(...)`, `doc.text(...)`,
+`setFont`/`setFontSize` og `MARGINS.left`. De primitiver findes i dag **kun** inde i PDF-kanalen
+(`src/pdf/infrastructure/pdfWriter.ts`) — de sidder hverken på `DocumentComposer` eller `DocumentWriter`, og
+AST-reglen `document/generator-cursor-access-boundary` spærrer generatorer fra dem. En generator kan derfor
+ikke længere bryde reglerne ad den vej. Afsnittene bevares som den normative beskrivelse af, hvad et
+cursor-/font-indgreb ville være, og gælder ubeskåret for kode inde i kanalen selv samt for enhver ny
+kanal-integration.
+
 Direkte skrivning via `doc.text(...)` eller lignende er kun acceptabel efter formålskategori:
 
 1. Den interne tabelrenderer og dens kanal-integration må bruge direkte jsPDF-adgang uden ekstra note.
@@ -536,10 +545,16 @@ For at fjerne eksisterende utilsigtede forskelle bør generatorerne gennemgås i
 18. `loenindkomstSection.ts`
 19. `offentligeYdelserSection.ts`
 20. `reguleringSection.ts`
+21. `klLoenaftalerDocument.ts`
+22. `tafKravGrafDocument.ts`
+23. `tafOpreguleretPaaAarDocument.ts`
+24. `tafBeregningsgrundlagSection.ts`
+25. `eoBilagSections.ts`
+26. `reguleringNotes.ts`
 
 Formålet med sekvensen er først at rydde de simple og mellemkomplekse generatorer og derefter de mere domænetunge dokumenter.
 
-En generator fjernes fra denne liste, når den har bestået fuld audit mod B10, og der findes relevante writer-/generator-tests for dens centrale spacing-, sidebrydnings- eller gate-invariants. Når første audit-runde er afsluttet, bør listen flyttes til et trackingdokument.
+En generator fjernes fra denne liste, når den har bestået fuld audit mod B10, og der findes relevante writer-/generator-tests for dens centrale spacing-, sidebrydnings- eller gate-invariants.
 
 Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filreferencer. Eventuel konsolidering af generator-/sektionsnavne skal ske som del af auditten, så dokumentation, runtime og tests ændres samlet.
 
@@ -556,9 +571,9 @@ Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filrefe
 - Word-typografier (navngivne styles): `src/docx/infrastructure/docxStyles.ts`.
 - Kanalneutral tabelmodel: `src/document/layout/tableSpec.ts`.
 - PDF-tabelrenderer: `src/pdf/infrastructure/pdfTableRenderer.ts` og `pdfDocumentTableRenderer.ts`.
-- Word-tabelrenderer: `createDocxTable` i `src/docx/infrastructure/docxWriter.ts`.
+- Word-tabelrenderer: den modulprivate `createDocxTable` i `src/docx/infrastructure/docxWriter.ts` (bevidst ikke eksporteret — kun writeren selv renderer tabeller).
 - Word-vandmærke: `src/docx/infrastructure/docxWatermark.ts`.
-- Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). Der findes intet servicelag og ingen `documentService.ts`; navnet står her som fraværsværn.
+- Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). Der findes ingen afviklende dokumentservice og ingen `documentService.ts` — navnet står her som fraværsværn. `src/document/service/` rummer alene runtime-fejlporte og ejer ikke afviklingen (§A7.1).
 - Layout-konstanter: `src/document/layout/pdfConfig.ts`.
 
 ## 3. Testkobling
@@ -566,12 +581,15 @@ Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filrefe
 Kontrakten er koblet i `contractCoverageMatrix.test.ts` til:
 
 - `src/__tests__/quality/architecture/architectureRules.test.ts` (download-committed-state-grænsen, AST-regel `pdf/download-committed-state`)
-- `src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts`
+- `src/__tests__/document/documentCatalogCompleteness.test.ts` (ét kanonisk katalog med præcis én definition pr. output, §A2a)
+- `src/__tests__/document/documentLifecycleMatrix.test.ts` (definitionsuafhængige livscyklus-cases)
+- `src/__tests__/document/documentGateMatrix.test.ts` (per-definition gate-cases, med `invalid` og `bounds` som SEPARATE klasser jf. §A2a)
+- `src/__tests__/components/pages/Satser.downloadGate.integration.test.tsx` (hele livscyklussen end-to-end gennem den rigtige side og den ægte runtime)
 - `src/__tests__/quality/pdfPseudoTableGuard.test.ts`
 - `src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts`
 - `src/__tests__/utils/pdf/pdfWriter.test.ts`
 - `src/__tests__/docx/docxWriter.test.ts` (Word-kanalens paritet mod det fælles writer-API)
-- `src/__tests__/quality/documentDateFormatGuard.test.ts` (datoformat-værnet, A7a)
+- `src/__tests__/quality/documentDateFormatGuard.test.ts` (datoformat-værnet, §A8)
 
 Word-kanalens indholds-paritet pr. generator er desuden dækket af `src/__tests__/docx/generators/*WordContent.test.ts` (én pr. dokument-generator, kørt gennem den rigtige generator via `wordContentHarness.ts`). Disse verificerer, at samme tekst og tal når `.docx`'en som PDF'en, og knyttes formatvalgsmæssigt til `document-format-contract.md`.
 
@@ -584,7 +602,7 @@ Denne kontrakt skal understøttes af:
 3. writer unit-tests for spacing- og sidebrydningsinvariants
 4. quality guards for kendte generator-anti-mønstre
 5. generator-/domænetests for trust-kritiske gates og output-specifikke blokeringer
-6. det kanal-neutrale dato-værn `guardDocumentDateText` (`src/document/layout/documentDateGuard.ts`), kaldt fra både tabel-rendereren og begge kanalers tekst-normalisering (A7a)
+6. det kanal-neutrale dato-værn `guardDocumentDateText` (`src/document/layout/documentDateGuard.ts`), kaldt fra både tabel-rendereren og begge kanalers tekst-normalisering (§A8)
 
 Tekstbaserede quality guards er sekundære sikkerhedsnet. De må ikke erstatte egentlige writer- og domænetests.
 
@@ -599,6 +617,6 @@ Hvis kode og kontrakt divergerer, er det en arkitekturfejl, ikke en stilforskel.
   `DocumentBlock` er eneste autoritet i begge kanaler.
 - `TableSpec` er ren semantisk data. Kolonnebredde, alignment, dæmpet tone, totalrække og kort
   totalstreg fortolkes direkte af begge kanalrenderere. Fysiske millimetermål er fælles
-  layoutintentioner, ikke PDF-only hints. EO-sektionernes store composer-/formatter-contexts
-  ejes fortsat af fase-3 #32.
+  layoutintentioner, ikke PDF-only hints. EO-sektionernes store composer-/formatter-contexts er fortsat
+  domænelokale og bevidst ikke sammenlagt: en sammenlægning ville kræve byte-identitetsbevis pr. output.
 - `satserDocument.ts` inkluderer bevidst ikke journalnr i filnavnet — satser er årsspecifikke og sagsagnostiske.

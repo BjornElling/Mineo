@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Prioritet:** Specialiseres af `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og
 `forsoergertab-snapshot-contract.md`.
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 
 ## 1. Formål
 

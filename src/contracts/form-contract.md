@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-16
+**Senest verificeret mod kode:** 2026-07-31
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
 Denne kontrakt beskriver den gældende arkitektur. Der findes ingen parallel inputmodel, ingen
@@ -74,13 +74,16 @@ En domæneprojektion bygges fra ét `EvaluationSourceToken`-bundet input-/settin
 Den autoritative runtime-tilstand består konceptuelt af:
 
 ```ts
-type PersistedInputState = Readonly<{
-  sections: FormPersistenceSections;
+// src/inputCore/settledInput.ts
+type SettledInput = Readonly<{
+  sections: PersistedInputSections;
   rejectedInputs: Readonly<Record<SerializedFieldAddress, RejectedInput>>;
 }>;
 
-type InputRuntimeState = Readonly<{
-  input: PersistedInputState;
+// src/inputCore/runtime/slimInputStore.ts — ud over de to felter nedenfor bærer
+// storen også history, settingsRevision, replacementGeneration og meta.
+type SlimInputStoreState = Readonly<{
+  input: SettledInput;
   revision: InputRevision;
 }>;
 ```
@@ -99,14 +102,19 @@ Regler:
    eller de relevante AppSettings har ændret sig siden optagelsen. AppSettings må påvirke validering, beregning og
    visning, men aldrig styre synlighed/relevans for et persisteret inputfelt.
 
-## 4. Feltdefinition og identitet
+## 4. Feltdescriptor og identitet
 
-Hvert persisteret felt har én typed `FieldRef<T>`, der forbinder:
+Hvert persisteret felt har én typed `FieldRef<T>` = `{ address, descriptor }`, hvor `FieldDescriptor<T>`
+(`src/inputCore/fieldDescriptor.ts`) forbinder:
 
 - en strukturel `FieldAddress`,
 - feltets codec,
 - brugervendt label,
-- kontroltype.
+- kontroltype,
+- feltets `validators` — kanalen der producerer bounds-/rule-issues (§8, `src/inputCore/catalog/boundsValidators.ts`),
+- feltets `relevance` — synligheds- og beregningsrelevans-prædikatet (§7 punkt 3).
+
+Den type-udviskede variant `AnyFieldRef` er den, `FieldIssue.field` bærer.
 
 Samme reference bruges ved render, settle, validering, projektion, history-origin og gate. Fokus-restore kombinerer
 datafeltets reference med den konkrete editors eksplicitte fokusmål, fordi samme felt kan redigeres på flere sider.
@@ -247,15 +255,18 @@ konkurrerende beskrivelser af samme felt er netop det, der lod en årstalsafhæn
 visningslaget uden at nogen kontrakt fejlede, og lod en `Indtastning mangler`-besked overtage formvejledningens
 kanal.
 
-Den rene form ejes af den semantiske **feltfamilie** (`src/utils/fieldFormatPlaceholders.ts` samt
-`DEFAULT_AMOUNT_PLACEHOLDER`/`DEFAULT_PERCENT_PLACEHOLDER`), ikke af den tabel eller side, feltet står på. En
+Den rene form ejes af den semantiske **feltfamilie**, ikke af den tabel eller side, feltet står på:
+`src/utils/fieldFormatPlaceholders.ts` (år, uge, dato, måned, dag), `src/utils/amountInputUtils.ts`
+(`DEFAULT_AMOUNT_PLACEHOLDER`, `INTEGER_AMOUNT_PLACEHOLDER`) og `src/utils/percentInputUtils.ts`
+(`DEFAULT_PERCENT_PLACEHOLDER`). En
 callsite må kun override en placeholder, når feltets domæne har en reelt anden FORMATREPRÆSENTATION — fx
 månedens `mm` i en periodekolonne — aldrig for at vise bounds, validering eller status.
 
 ### 8.2 Fortegns-politikken ejes af feltets codec
 
 Om et numerisk felt må være **negativt** er en egenskab ved feltet, ikke ved den komponent der tegner det.
-Politikken erklæres på codecet (`FieldCodec.signPolicy`, udledt af `allowNegative`) og læses af begge flader
+Politikken erklæres på codecet som `FieldCodec.signPolicy`, som codec-factory'erne udleder af deres
+`allowNegative`-konfiguration, og læses af begge flader
 gennem `fieldAllowsNegative(field)` / `codecAllowsNegative(codec)`.
 
 En feltkomponent, en tabelcelle eller en side må **ikke** sende en hardkodet `allowNegative`-literal til et
@@ -297,10 +308,12 @@ Issues afledes rent fra `InputReader`, feltmetadata, domænevalidatorer og relev
 Mounted komponenter rapporterer ikke afledelige fejl til en central store. Samme issue-model driver feltmarkering,
 tooltip, kontrolvisning, save-gate og dokument-gate med deres respektive policy.
 
-Ved blokeret `.eo`-save findes route og eventuel fane i det statiske, descriptor-keyede feltlokationskatalog,
-før en editor behøver at være mounted. Kataloget skal dække hvert produktionsdescriptor præcis én gang.
-DOM-registret vælger derefter en allerede synlig spejling eller fokuserer den konkrete editor efter mount; det
-må ikke være eneste kilde til den destination, som netop er nødvendig for at mounte en aldrig besøgt fane.
+Ved blokeret `.eo`-save findes route og eventuel fane i det statiske, descriptor-keyede feltlokationskatalog
+(`src/inputCore/catalog/fieldLocationCatalog.ts`), før en editor behøver at være mounted. Kataloget skal dække
+hvert produktionsdescriptor præcis én gang. DOM-registret vælger derefter en allerede synlig spejling eller
+fokuserer den konkrete editor efter mount; det må ikke være eneste kilde til den destination, som netop er
+nødvendig for at mounte en aldrig besøgt fane. Håndhævet af `input/focus-destination-owned-by-location` og
+`input/restore-attributes-carry-destination`.
 
 Fejl- og beskedregler ejes af `error-contract.md`.
 
@@ -316,16 +329,34 @@ Særligt for dokument-download:
 4. Ved et nyt relevant fejl-issue bliver knappen visuelt og funktionelt disabled.
 5. Generator, lazy-load og fil-I/O må aldrig starte ved blokering.
 
-## 12. Den slettede migrationsarkitektur
+## 12. Der findes kun én inputmodel
 
-Migrationslaget findes ikke længere. `useDraftField`, `useTableInputCore`, `useRowDrafts`, `useSliceRowDrafts`,
-`FormPersistenceContext`, `invalidDrafts`-/`fieldErrors`-API'erne, deres string-key-builders, `Styled*Field`-familien
-og Fase-3-gridbroen blev slettet 2026-07-25 sammen med resten af den parallelle inputklynge.
+Der findes ingen parallel inputklynge ved siden af den model, denne kontrakt beskriver — hverken som kopi, som
+"midlertidig" undtagelse eller under et nyt navn. To AST-regler håndhæver det, og de rammer hver sin flade:
 
-Ingen af dem må genindføres — hverken som kopi, som "midlertidig" undtagelse eller under et nyt navn. AST-reglen
-`input/deleted-legacy-architecture-import` håndhæver forbuddet uden allowlist.
+- **`input/deleted-legacy-architecture-import`** forbyder *importstier* til den fjernede klynge, uden allowlist.
+  Blandt dem: `FormPersistenceContext`, `usePersistedForm`, `useDraftField`, `useTableInputCore`, `useRowDrafts`,
+  `useSliceRowDrafts`, `useStyledFieldAdapter`, `inputRuntimeStore`, `formPersistenceStore` og de otte
+  `Styled<type>Field`-komponenter (`StyledTextField`, `StyledDateField`, `StyledAmountField`,
+  `StyledIntegerField`, `StyledPercentField`, `StyledFractionField`, `StyledWeekField`, `StyledYearField`).
+- **`legacy/forbidden-identifier`** forbyder *navne*, uanset hvor de importeres fra — herunder
+  `executeLegacyInputTransaction`, `useDraftLifecycle`, `legacyGridTransactionBridge`, `InputWriteAuthority`
+  og `claimInputWriteAuthority`.
 
-Den ENE dokumenterede undtagelse er `components/inputs/transient/`: tre flader (løntrin-finder-overlay,
-sygedagpenge-hjælperrække, rapport-dialog) redigerer ikke sagsdata og ligger bevidst uden for den autoritative
-inputtilstand. De har hverken feltadresse, issue-snapshot, history eller persistens, men genbruger de samme
-parse-kerner, tegnfiltre og bounds-beskeder som de persisterede felter.
+De persisterede felter tegnes i dag af felt-familien i `src/inputCore/react/fields/` (`TextField`, `DateField`,
+`AmountField`, `IntegerField`, `PercentField`, `ChoiceField` m.fl. samt grid-varianterne). De deler de bevarede
+præsentationsskaller `StyledTextFieldBase` og `StyledTextAreaBase`, og kontrollerne `StyledDropdown`,
+`StyledCheckbox`, `StyledRadioButton` og `StyledToggleSwitch` er fortsat i brug — `Styled*`-præfikset i sig selv
+er altså ikke forbudt, kun de otte felt-komponenter ovenfor.
+
+**`fieldErrors` er ikke et forbudt navn.** Den centrale skrivbare feltfejl-bus er væk (`src/types/fieldErrors`,
+`useFormFieldErrorReporter`, `onFieldError`, tabeltrackerne), men `fieldErrors` lever videre som et helt
+almindeligt feltnavn i domænesnapshots — fx `EetSnapshot.fieldErrors` og `EoInspektionSnapshot.fieldErrors`.
+AST-værnet undtager derfor navnet bevidst.
+
+Den ENE dokumenterede undtagelse fra den autoritative inputtilstand er `components/inputs/transient/`: tre flader
+(løntrin-finder-overlay, sygedagpenge-hjælperrække, rapport-dialog) bygget på `TransientTextInput`,
+`TransientAmountInput`, `TransientDateInput` og den delte `useTransientDraft`. De redigerer ikke sagsdata og har
+hverken feltadresse, issue-snapshot, history eller persistens, men genbruger de samme parse-kerner, tegnfiltre og
+bounds-beskeder som de persisterede felter. `input/transient-cannot-write-case-data` håndhæver, at de ikke kan
+skrive sagsdata.
