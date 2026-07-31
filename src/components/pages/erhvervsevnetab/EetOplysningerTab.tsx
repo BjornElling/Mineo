@@ -71,7 +71,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">
               Køn
-              <InfoTooltipIcon title={'For skader før 01-03-2015 beroede\nkapitalfaktorer på skadelidtes køn'} />
+              <InfoTooltipIcon title={'Før 01-03-2015 beroede\nkapitalfaktorer på skadelidtes køn'} />
             </Typography>
             <Box className="row--label-right-hover__content">
               <ChoiceField<Koen>
