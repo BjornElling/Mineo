@@ -5,7 +5,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 
 ## Nye fund
 
-Næste ID: **BF-020**. Kopiér denne blok pr. fund:
+Næste ID: **BF-025**. Kopiér denne blok pr. fund:
 
 ```md
 ## BF-020 — Kort titel
@@ -24,6 +24,54 @@ Næste ID: **BF-020**. Kopiér denne blok pr. fund:
 
 Udelad punkter, der ikke er relevante. Medtag gerne præcis synlig tekst og screenshot. Skriv altid, hvis fundet
 kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede fund til den korte log nedenfor.
+
+## BF-020 — Gør rød celleblinkning generelt tilgængelig
+
+- Type: Forbedring
+- Sted: Alle sider og inputfelter/celler
+- Det sker: På årslønberegning-siden findes der allerede funktionalitet, som kan få baggrunden i en celle til at blinke rødt.
+- Det bør ske: Funktionaliteten gøres generelt tilgængelig, så den kan bruges på relevante inputfelter og celler på alle sider.
+- Prioritet: Mellem
+- Status: Ny
+
+## BF-021 — Link til fejl blinkmarkerer det relevante inputfelt
+
+- Type: Forbedring
+- Sted: Contentbokse med fejl og advarsler samt andre interne links, der peger på manglende eller fejlbehæftede indtastninger
+- Sådan fremprovokeres det:
+  1. Åbn en contentboks med en fejl eller advarsel, eller et andet sted med et internt link til en indtastning.
+  2. Klik på linket.
+- Det sker: Der er ikke en generel funktionalitet, som fører brugeren til den relevante side og det inputfelt, der kræver opmærksomhed, med en tydelig visuel markering.
+- Det bør ske: Brugeren føres til den side, hvor den pågældende indtastning findes, og siden scrolles ned til inputfeltet. Baggrunden i det relevante inputfelt blinker derefter rødt, så brugeren tydeligt kan se, hvor indtastningen skal foretages eller rettes.
+- Prioritet: Mellem
+- Status: Ny
+
+## BF-022 — Flyt regulering af offentlige ydelser til korrekt fane
+
+- Type: Forbedring
+- Sted: EO oplysninger-fanen og Offentlige ydelser-fanen i erstatningsopgørelsen
+- Det sker: Valgmuligheden "Offentlige ydelser i beregningsperioden reguleres" findes på EO oplysninger-fanen.
+- Det bør ske: Valgmuligheden flyttes til Offentlige ydelser-fanen og placeres umiddelbart under "Midlertidigt EET indsættes fra Erhvervsevnetab-siden".
+- Prioritet: Mellem
+- Status: Ny
+
+## BF-023 — Sortér ydelsestyper alfabetisk i hver sin gruppe
+
+- Type: Forbedring
+- Sted: Offentlige ydelser-fanen, dropdown-menuen under "Ydelsestype"
+- Det sker: Valgmulighederne i dropdown-menuen er ikke nødvendigvis sorteret alfabetisk inden for grupperne over og under stregen.
+- Det bør ske: Valgmulighederne over stregen sorteres alfabetisk indbyrdes, og valgmulighederne under stregen sorteres alfabetisk indbyrdes. Stregen og opdelingen mellem de to grupper bevares; valgmulighederne må ikke blandes på tværs af stregen.
+- Prioritet: Mellem
+- Status: Ny
+
+## BF-024 — Begræns kapitaliseringstabeller til skader fra 1. januar 2005
+
+- Type: Forbedring
+- Sted: Kapitaliseringsbekendtgørelser, kapitaliseringstabeller, importværktøjer og tilhørende kontrakter/dokumentation
+- Det sker: Kapitaliseringsmaterialet og dokumentationen afgrænser ikke konsekvent kapitaliseringsfaktorerne til programmets understøttede sagsområde. Dokumentationen beskriver desuden princippet med afløsningsbeløb som et forsørgertabsforhold i stedet for som et fælles princip.
+- Det bør ske: Kapitaliseringsbekendtgørelserne gennemgås grundigt ved opslag i den tilhørende PDF-fil, så det dokumenteres, hvilke skader de enkelte tabeller vedrører. Kapitaliseringstabeller, der kun omhandler skader før 1. januar 2005, udgår. Kontrakter, anden dokumentation og de særlige hjælpeværktøjer til import af kapitaliseringsbekendtgørelser skal tydeligt fastslå, at der kun må indgå kapitaliseringsfaktorer for skader fra og med 1. januar 2005. Dette gælder både kapitalisering af erhvervsevnetab og omsætning af forsørgertab. Det skal samtidig præciseres, at afgrænsningen er et generelt princip for begge områder uden forskel. Det bør desuden fremgå som kommentarer i programfilerne ved de gengivne tabeller, hvilke skader tabellerne vedrører — programmet skal aldrig behandle skader før 1. januar 2005.
+- Prioritet: Høj
+- Status: Ny
 
 ## Afventer reproduktion
 
