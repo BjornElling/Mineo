@@ -9,7 +9,7 @@ export default defineConfig(
       emptyOutDir: true,
       rollupOptions: {
         input: {
-          index: path.resolve(__dirname, 'mineo.html'),
+          index: path.resolve(__dirname, 'index.html'),
         },
       },
     },

@@ -51,46 +51,4 @@ describe('MinProcesrenteApp', () => {
     expect(screen.getByRole('region', { name: 'Procesrente beregner' })).toBeInTheDocument();
   });
 
-  it('sætter mobilens browser-chrome til samme baggrund som siden på touch-enheder', () => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: query === '(pointer: coarse)',
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
-
-    const { unmount } = renderStandalone();
-
-    expect(document.documentElement.style.backgroundColor).toBe('rgb(248, 249, 250)');
-    expect(document.body.style.backgroundColor).toBe('rgb(248, 249, 250)');
-    expect(document.body.style.overflowX).toBe('hidden');
-    expect(document.body.style.overflowY).toBe('auto');
-    expect(document.body.style.width).toBe('100%');
-    expect(document.body.style.maxWidth).toBe('100%');
-    expect(document.getElementById('root')?.style.backgroundColor).toBe('rgb(248, 249, 250)');
-    expect(document.getElementById('root')?.style.overflowX).toBe('hidden');
-    expect(document.getElementById('root')?.style.overflowY).toBe('auto');
-    expect(document.getElementById('root')?.style.width).toBe('100%');
-    expect(document.getElementById('root')?.style.maxWidth).toBe('100%');
-    expect(document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content).toBe('#f8f9fa');
-
-    unmount();
-
-    expect(document.documentElement.style.backgroundColor).toBe('');
-    expect(document.body.style.backgroundColor).toBe('');
-    expect(document.body.style.overflowX).toBe('');
-    expect(document.body.style.overflowY).toBe('');
-    expect(document.body.style.width).toBe('');
-    expect(document.body.style.maxWidth).toBe('');
-    expect(document.getElementById('root')?.style.backgroundColor).toBe('');
-    expect(document.getElementById('root')?.style.overflowX).toBe('');
-    expect(document.getElementById('root')?.style.overflowY).toBe('');
-    expect(document.getElementById('root')?.style.width).toBe('');
-    expect(document.getElementById('root')?.style.maxWidth).toBe('');
-    expect(document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content).toBe('#e9ecef');
-  });
 });

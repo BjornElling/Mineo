@@ -189,14 +189,27 @@ const assertAldersraekker = (
 
 const assertFinite = (value: number, label: string): void => {
   if (!Number.isFinite(value)) throw new Error(`${label}: faktoren skal være et endeligt tal`);
+  if (value <= 0) throw new Error(`${label}: faktoren skal være positiv`);
 };
+
+// Inventory over verificeret eksisterende payloadfravær. Listen beskriver alene de
+// lokale kildefiler og tager ikke stilling til, om kildens juridiske indhold er korrekt.
+const TILLADETE_MANGLENDE_EET_TABELREFERENCER = new Set([
+  '1068/2003:A',
+  '1221/2010:L',
+  '1403/2011:J',
+  '1403/2011:K',
+  '1403/2011:L',
+]);
 
 /** Fail-closed validering af de 33 kilde-PDF'ers normaliserede runtime-payload. */
 export const assertKapitaliseringsTabelDataIntegritet = (
-  entries: Readonly<Record<string, KapitaliseringsTabelData>>
+  entries: Readonly<Record<string, KapitaliseringsTabelData>>,
+  expectedMissingTableReferences: ReadonlySet<string> = TILLADETE_MANGLENDE_EET_TABELREFERENCER,
 ): void => {
   if (Object.keys(entries).length === 0) throw new Error('Kapitaliseringstabeller: registret er tomt');
 
+  const missingTableReferences = new Set<string>();
   for (const [registeredId, entry] of Object.entries(entries)) {
     if (registeredId !== entry.kapitaliseringsId) {
       throw new Error(`Kapitaliseringstabel: registernøglen "${registeredId}" matcher ikke id "${entry.kapitaliseringsId}"`);
@@ -209,12 +222,14 @@ export const assertKapitaliseringsTabelDataIntegritet = (
     // tabellen (fx tabel A i 1068/2003). Beregningslaget bruger fraværet til at fail-close
     // med en domænefejl; katalogvalideringen må ikke udfylde eller afvise dette kildefaktum.
     for (const [tableName, rows] of Object.entries(entry.erhvervsevnetabTabeller)) {
+      if (rows.length === 0) throw new Error(`${registeredId}/${tableName}: faktortabellen er tom`);
       assertAldersraekker(rows, `${registeredId}/${tableName}`);
       rows.forEach((row) => {
         assertFinite(row.faktor, `${registeredId}/${tableName}/${row.alder}`);
       });
     }
     for (const [tableName, rows] of Object.entries(entry.erhvervsevnetabKoensopdelteTabeller)) {
+      if (rows.length === 0) throw new Error(`${registeredId}/${tableName}: faktortabellen er tom`);
       assertAldersraekker(rows, `${registeredId}/${tableName}`);
       rows.forEach((row) => {
         assertFinite(row.maendFaktor, `${registeredId}/${tableName}/${row.alder}/mænd`);
@@ -222,11 +237,32 @@ export const assertKapitaliseringsTabelDataIntegritet = (
       });
     }
 
+    const choiceKeys = new Set<string>();
+    for (const choice of entry.erhvervsevnetabTabelvalg) {
+      if (
+        choice.tabel.trim() === ''
+        || (choice.foedselsdatoTil !== null && choice.foedselsdatoFra > choice.foedselsdatoTil)
+      ) {
+        throw new Error(`${registeredId}: ugyldigt EET-tabelvalg ved ${choice.skadedatoFra}`);
+      }
+      const choiceKey = [choice.skadedatoFra, choice.foedselsdatoFra, choice.foedselsdatoTil].join(':');
+      if (choiceKeys.has(choiceKey)) {
+        throw new Error(`${registeredId}: duplikeret EET-tabelvalg ved ${choice.skadedatoFra}`);
+      }
+      choiceKeys.add(choiceKey);
+      if (
+        !(choice.tabel in entry.erhvervsevnetabTabeller)
+        && !(choice.tabel in entry.erhvervsevnetabKoensopdelteTabeller)
+      ) {
+        missingTableReferences.add(`${registeredId}:${choice.tabel}`);
+      }
+    }
     for (const [tableName, rows] of Object.entries({
       ...entry.forsoergertabTabeller,
       ...entry.forsoergertabTabellerMaend,
       ...entry.forsoergertabTabellerKvinder,
     })) {
+      if (rows.length === 0) throw new Error(`${registeredId}/${tableName}: faktortabellen er tom`);
       assertAldersraekker(rows, `${registeredId}/${tableName}`);
       rows.forEach((row) => {
         if (row.faktorerPraHeleAar.length === 0) {
@@ -237,8 +273,22 @@ export const assertKapitaliseringsTabelDataIntegritet = (
         );
       });
     }
-    entry.saerfaktorUnderToAarTilFpPerSkadesinterval.forEach((row) =>
-      assertFinite(row.faktor, `${registeredId}/særfaktor/${row.skadedatoFra}`)
+    const saerfaktorDatoer = new Set<string>();
+    entry.saerfaktorUnderToAarTilFpPerSkadesinterval.forEach((row) => {
+      if (saerfaktorDatoer.has(row.skadedatoFra)) {
+        throw new Error(`${registeredId}: duplikeret særfaktorinterval ${row.skadedatoFra}`);
+      }
+      saerfaktorDatoer.add(row.skadedatoFra);
+      assertFinite(row.faktor, `${registeredId}/særfaktor/${row.skadedatoFra}`);
+    });
+  }
+
+  const actual = [...missingTableReferences].sort();
+  const expected = [...expectedMissingTableReferences].sort();
+  if (actual.join('\n') !== expected.join('\n')) {
+    throw new Error(
+      'Kapitaliseringstabeller: inventory over manglende EET-tabelreferencer er ændret; '
+      + `forventet ${JSON.stringify(expected)}, faktisk ${JSON.stringify(actual)}`
     );
   }
 };

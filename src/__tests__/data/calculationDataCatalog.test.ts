@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
-import { beregningsdataCatalog } from '../../data/catalog/beregningsdataCatalog';
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  beregningsdataCatalog,
+  beregningsdataSourceFilesById,
+} from '../../data/catalog/beregningsdataCatalog';
 import { defineCalculationData, defineCalculationDataCatalog } from '../../data/catalog/calculationDataCatalog';
 import { kapitaliseringsTabelDataById } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { overenskomstBeregningsdata } from '../../data/overenskomstRates';
@@ -8,6 +13,38 @@ const fingerprint = (value: unknown): string =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
 describe('calculationDataCatalog', () => {
+  it('klassificerer hver autoritativ beregningsdatakilde præcis én gang', () => {
+    const dataRoot = path.resolve(__dirname, '../../data');
+    const infrastructureFiles = new Set([
+      'catalog/beregningsdataCatalog.ts',
+      'catalog/calculationDataCatalog.ts',
+      'offentligLoenLookup.ts',
+      'offentligLoenTypes.ts',
+      'rateSeriesIntegrity.ts',
+      'retsinfoLinks.ts',
+      'ydelsestyper.ts',
+    ]);
+    const listTsFiles = (directory: string): string[] => fs.readdirSync(directory, { withFileTypes: true })
+      .flatMap((entry) => {
+        const absolute = path.join(directory, entry.name);
+        return entry.isDirectory() ? listTsFiles(absolute) : [absolute];
+      })
+      .filter((file) => file.endsWith('.ts'));
+    const actualSources = listTsFiles(dataRoot)
+      .map((file) => path.relative(dataRoot, file).replaceAll('\\', '/'))
+      .filter((file) => !infrastructureFiles.has(file))
+      // De enkelte kapitaliseringstabeller ejes samlet af indexet; 1:1-filværnet ligger
+      // i kapitaliseringsbekendtgørelser.test.ts og fanger nye/udeladte tabelfiler.
+      .filter((file) => !/^kapitalisering\/kapitaliseringsTabeller\/(?!index\.ts$).+\.ts$/.test(file))
+      .sort();
+    const registeredSources = Object.values(beregningsdataSourceFilesById).flat().sort();
+
+    expect(new Set(registeredSources).size).toBe(registeredSources.length);
+    expect(actualSources).toEqual(registeredSources);
+    expect(Object.keys(beregningsdataSourceFilesById).sort())
+      .toEqual(beregningsdataCatalog.map(({ id }) => id).sort());
+  });
+
   it('fail-closer ved ugyldige metadata og duplikerede id\'er', () => {
     expect(() => defineCalculationData({
       id: '',

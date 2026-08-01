@@ -7,6 +7,7 @@ import MinProcesrenteApp from './MinProcesrenteApp';
 import { bootstrapClientApp } from '../shared/bootstrapClientApp';
 import { setDocumentBrand } from '../../document/documentBrand';
 import { bootstrapProductionInputRuntime } from '../../inputCore/react';
+import StandaloneErrorBoundary from './StandaloneErrorBoundary';
 
 setDocumentBrand('minprocesrente.dk');
 
@@ -14,8 +15,13 @@ void bootstrapClientApp({
   renderApp: () => {
     // Hydrér den ene input-runtime FØR render (§3.10). Standalone og hovedappen bruger samme inputkerne.
     const { binding } = bootstrapProductionInputRuntime();
-    return <MinProcesrenteApp inputRuntimeBinding={binding} />;
+    return (
+      <StandaloneErrorBoundary>
+        <MinProcesrenteApp inputRuntimeBinding={binding} />
+      </StandaloneErrorBoundary>
+    );
   },
+  loadAppStyles: () => import('./minprocesrente.css'),
   capturePwaInstallPrompt: false,
   enforceUnsupportedDeviceGate: false,
 });

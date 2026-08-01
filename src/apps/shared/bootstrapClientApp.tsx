@@ -1,13 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import UnsupportedDevicePage from '../../components/system/UnsupportedDevicePage';
-import { getPhysicalScreenWidth, isTouchLikeDevice } from '../../utils/clientDevice';
+import { isTouchLikeDeviceWithShortestSideAtMost } from '../../utils/clientDevice';
 import { suppressPwaInstallPrompt } from '../../utils/pwaInstallPrompt';
 
-const UNSUPPORTED_MAX_SCREEN_WIDTH_PX = 1366;
+const UNSUPPORTED_MAX_SHORTEST_SIDE_PX = 1366;
 
 export type ClientAppBootstrapOptions = Readonly<{
   renderApp: () => React.ReactNode | Promise<React.ReactNode>;
+  loadAppStyles: () => Promise<unknown>;
   setupPwaFileOpenHandling?: () => Promise<void>;
   setupPwaInstallPromptCapture?: () => void;
   beforeDesktopRender?: () => Promise<void>;
@@ -18,19 +19,16 @@ export type ClientAppBootstrapOptions = Readonly<{
 
 const isUnsupportedDevice = (): boolean => {
   if (typeof window === 'undefined') return false;
-  if (!isTouchLikeDevice()) return false;
-  const physicalScreenWidth = getPhysicalScreenWidth();
-  if (physicalScreenWidth === null) return true;
-  return physicalScreenWidth <= UNSUPPORTED_MAX_SCREEN_WIDTH_PX;
+  return isTouchLikeDeviceWithShortestSideAtMost(UNSUPPORTED_MAX_SHORTEST_SIDE_PX);
 };
 
-const loadDesktopStyles = async (): Promise<void> => {
+const loadSupportedDeviceStyles = async (loadAppStyles: () => Promise<unknown>): Promise<void> => {
   await Promise.all([
     import('@fontsource/montserrat/latin-400.css'),
     import('@fontsource/montserrat/latin-500.css'),
     import('@fontsource/montserrat/latin-600.css'),
     import('@fontsource/montserrat/latin-700.css'),
-    import('../../index.css'),
+    loadAppStyles(),
   ]);
 };
 
@@ -78,17 +76,29 @@ export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Pr
     return;
   }
 
-  const desktopStylesPromise = loadDesktopStyles();
+  try {
+    const supportedDeviceStylesPromise = loadSupportedDeviceStyles(options.loadAppStyles);
 
-  await options.setupPwaFileOpenHandling?.();
-  await options.beforeDesktopRender?.();
-  options.afterDesktopRenderSetup?.();
+    await options.setupPwaFileOpenHandling?.();
+    await options.beforeDesktopRender?.();
 
-  await desktopStylesPromise;
-  const app = await options.renderApp();
-  root.render(
-    <React.StrictMode>
-      {app}
-    </React.StrictMode>
-  );
+    await supportedDeviceStylesPromise;
+    const app = await options.renderApp();
+    root.render(
+      <React.StrictMode>
+        {app}
+      </React.StrictMode>
+    );
+    options.afterDesktopRenderSetup?.();
+  } catch (error) {
+    console.error('Appens opstart fejlede.', error);
+    root.render(
+      <React.StrictMode>
+        <main lang="da" style={{ padding: '32px', fontFamily: 'sans-serif' }}>
+          <h1>Programmet kunne ikke starte</h1>
+          <p>Genindlæs siden. Hvis problemet fortsætter, skal programmet åbnes igen senere.</p>
+        </main>
+      </React.StrictMode>
+    );
+  }
 };

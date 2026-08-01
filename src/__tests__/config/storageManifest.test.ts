@@ -51,14 +51,12 @@ describe('reset-policyen (getCaseScopedSessionStorageKeys)', () => {
     expect(caseScoped).not.toContain(UI_STORAGE_KEYS.devtoolsLastSeenIssueId);
   });
 
-  it('følger det aktive namespace', () => {
-    setStorageNamespace('minprocesrente');
-    try {
-      for (const key of getCaseScopedSessionStorageKeys()) {
+  it('følger det aktive namespace', async () => {
+    vi.resetModules();
+    await import('../../apps/minprocesrente/standaloneStorageNamespace');
+    const standaloneManifest = await import('../../config/storageManifest');
+    for (const key of standaloneManifest.getCaseScopedSessionStorageKeys()) {
         expect(key.startsWith('minprocesrente_')).toBe(true);
-      }
-    } finally {
-      setStorageNamespace('mineo');
     }
   });
 });
@@ -126,39 +124,39 @@ describe('createActiveTabStorageKey', () => {
 });
 
 describe('storage namespace isolation', () => {
-  afterEach(() => {
-    // Gendan default-namespace, så mutationen ikke lækker til andre tests.
-    setStorageNamespace('mineo');
-  });
-
   it('default-namespace er "mineo"', () => {
     expect(getStorageNamespace()).toBe('mineo');
   });
 
-  it('setStorageNamespace ændrer inputenvelope-, UI- og activeTab-keys', () => {
-    setStorageNamespace('minprocesrente');
-    expect(getCurrentInputEnvelopeStorageKey()).toBe('minprocesrente_input_v2');
-    expect(UI_STORAGE_KEYS.sideMenuExpanded).toBe('minprocesrente_sideMenuExpanded');
-    expect(createActiveTabStorageKey('aarsloen')).toBe('minprocesrente_ui_activeTab_aarsloen');
+  it('standalone-modulet låser inputenvelope-, UI- og activeTab-keys til sit namespace', async () => {
+    vi.resetModules();
+    await import('../../apps/minprocesrente/standaloneStorageNamespace');
+    const standaloneManifest = await import('../../config/storageManifest');
+
+    expect(standaloneManifest.getCurrentInputEnvelopeStorageKey()).toBe('minprocesrente_input_v2');
+    expect(standaloneManifest.UI_STORAGE_KEYS.sideMenuExpanded).toBe('minprocesrente_sideMenuExpanded');
+    expect(standaloneManifest.createActiveTabStorageKey('aarsloen')).toBe('minprocesrente_ui_activeTab_aarsloen');
   });
 
-  it('mineo og minprocesrente deler aldrig samme inputenvelope-key', () => {
+  it('afviser at skifte namespace efter initialisering', () => {
     setStorageNamespace('mineo');
-    const mineoKey = getCurrentInputEnvelopeStorageKey();
-    setStorageNamespace('minprocesrente');
-    expect(getCurrentInputEnvelopeStorageKey()).not.toBe(mineoKey);
+    expect(() => setStorageNamespace('minprocesrente')).toThrow(/allerede låst/);
   });
 
-  it('isValidStorageKey følger aktivt namespace', () => {
-    setStorageNamespace('minprocesrente');
-    expect(isValidStorageKey('minprocesrente_input_v2')).toBe(true);
+  it('isValidStorageKey følger standalone-namespacet', async () => {
+    vi.resetModules();
+    await import('../../apps/minprocesrente/standaloneStorageNamespace');
+    const standaloneManifest = await import('../../config/storageManifest');
+    expect(standaloneManifest.isValidStorageKey('minprocesrente_input_v2')).toBe(true);
     // Mineos key er ikke gyldig i standalone-namespace — netop pointen med isolationen.
-    expect(isValidStorageKey('mineo_input_v2')).toBe(false);
+    expect(standaloneManifest.isValidStorageKey('mineo_input_v2')).toBe(false);
   });
 
-  it('activeTab-præfikset er også namespace-isoleret', () => {
-    setStorageNamespace('minprocesrente');
-    expect(isValidStorageKey('minprocesrente_ui_activeTab_aarsloen')).toBe(true);
-    expect(isValidStorageKey('mineo_ui_activeTab_aarsloen')).toBe(false);
+  it('activeTab-præfikset er også namespace-isoleret', async () => {
+    vi.resetModules();
+    await import('../../apps/minprocesrente/standaloneStorageNamespace');
+    const standaloneManifest = await import('../../config/storageManifest');
+    expect(standaloneManifest.isValidStorageKey('minprocesrente_ui_activeTab_aarsloen')).toBe(true);
+    expect(standaloneManifest.isValidStorageKey('mineo_ui_activeTab_aarsloen')).toBe(false);
   });
 });

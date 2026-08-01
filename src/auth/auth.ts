@@ -3,7 +3,7 @@ import {
   AUTH_STORAGE_VALUE,
   SHARED_PASSWORD_HASHES,
 } from './authConfig';
-import { getSafeLocalStorage } from '../utils/safeLocalStorage';
+import { getPersistentLocalStorage } from '../utils/safeLocalStorage';
 
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -35,15 +35,31 @@ const hashPassword = async (password: string): Promise<string> => {
 };
 
 export const isAuthenticated = (): boolean => {
-  const storage = getSafeLocalStorage();
-  // localStorage-flagget er kun en svag UX-gate, ikke en sikkerhedsmekanisme.
-  return storage.getItem(AUTH_STORAGE_KEY) === AUTH_STORAGE_VALUE;
+  const storage = getPersistentLocalStorage();
+  if (!storage) return false;
+
+  try {
+    // localStorage-flagget er kun en svag UX-gate, ikke en sikkerhedsmekanisme.
+    return storage.getItem(AUTH_STORAGE_KEY) === AUTH_STORAGE_VALUE;
+  } catch {
+    // Et ulæseligt bekvemmelighedsflag må aldrig åbne gaten eller vælte renderingen.
+    return false;
+  }
 };
 
 export const setAuthenticated = (): void => {
-  const storage = getSafeLocalStorage();
+  const storage = getPersistentLocalStorage();
+  if (!storage) {
+    throw new Error('Kunne ikke gemme login-status i browseren.');
+  }
+
   try {
     storage.setItem(AUTH_STORAGE_KEY, AUTH_STORAGE_VALUE);
+    // Nogle storage-implementeringer kan ignorere en skrivning uden at kaste. Read-back gør
+    // loginets persistenskrav observerbart og holder gaten fail-closed også i det tilfælde.
+    if (storage.getItem(AUTH_STORAGE_KEY) !== AUTH_STORAGE_VALUE) {
+      throw new Error('Login-status blev ikke gemt.');
+    }
   } catch {
     throw new Error('Kunne ikke gemme login-status i browseren.');
   }

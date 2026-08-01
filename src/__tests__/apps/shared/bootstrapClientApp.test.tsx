@@ -56,6 +56,7 @@ describe('bootstrapClientApp', () => {
 
     await bootstrapClientApp({
       renderApp,
+      loadAppStyles: async () => undefined,
       capturePwaInstallPrompt: false,
     });
 
@@ -68,11 +69,42 @@ describe('bootstrapClientApp', () => {
 
     await bootstrapClientApp({
       renderApp,
+      loadAppStyles: async () => undefined,
       capturePwaInstallPrompt: false,
       enforceUnsupportedDeviceGate: false,
     });
 
     expect(renderApp).toHaveBeenCalledOnce();
     expect(rootRenderMock).toHaveBeenCalledOnce();
+  });
+
+  it('klassificerer touch-enheder stabilt ud fra kortsiden i landskab', async () => {
+    Object.defineProperty(window.screen, 'width', { configurable: true, value: 1440 });
+    Object.defineProperty(window.screen, 'height', { configurable: true, value: 900 });
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1440 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 });
+    const renderApp = vi.fn(() => <div>App</div>);
+
+    await bootstrapClientApp({
+      renderApp,
+      loadAppStyles: async () => undefined,
+      capturePwaInstallPrompt: false,
+    });
+
+    expect(renderApp).not.toHaveBeenCalled();
+  });
+
+  it('viser en deterministisk fallback når opstarten fejler', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    await bootstrapClientApp({
+      renderApp: () => <div>App</div>,
+      loadAppStyles: async () => Promise.reject(new Error('CSS-fejl')),
+      capturePwaInstallPrompt: false,
+      enforceUnsupportedDeviceGate: false,
+    });
+
+    expect(rootRenderMock).toHaveBeenCalledOnce();
+    expect(consoleError).toHaveBeenCalledWith('Appens opstart fejlede.', expect.any(Error));
   });
 });

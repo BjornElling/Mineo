@@ -90,7 +90,6 @@ type LoadShellSource = Readonly<{
 type UseFileSaveLoadArgs = {
   settings: AppSettings;
   navigate: NavigateFunction;
-  currentPathname: string;
   /** Case-portene (`.eo`-save-evaluering, load-apply, `hasAnyData`, `Slet alt`). */
   ops: CaseOperations;
   /** Kritisk-handlings-barrieren fra samme binding som portene (settle/replace/no-op, §1.4). */
@@ -195,7 +194,6 @@ const captureActiveElement = (): HTMLElement | null =>
 export const useFileSaveLoad = ({
   settings,
   navigate,
-  currentPathname,
   ops,
   criticalActions,
   markSaved,
@@ -285,7 +283,6 @@ export const useFileSaveLoad = ({
       if (saveOutcome.status === 'blocked') {
         void focusFirstBlockingRejectedField(
           saveOutcome.rejectedAddresses,
-          currentPathname,
           navigate,
           getProductionInputCatalog().resolveFieldLocation
         );
@@ -345,7 +342,6 @@ export const useFileSaveLoad = ({
   }, [
     beginFileOperation,
     criticalActions,
-    currentPathname,
     ops.file,
     finishFileOperation,
     markSaved,

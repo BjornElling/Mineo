@@ -583,6 +583,68 @@ export const reguleringssats: YearlyRate = {
   2005: 2.2,
 };
 
+type YearlyRateIntegrityEntry = Readonly<{
+  label: string;
+  rates: YearlyRate;
+  allowedMissingYears?: ReadonlySet<number>;
+}>;
+
+/**
+ * Fail-closed integritet for de lovbestemte talserier.
+ *
+ * Bounds-funktionerne afleder alene min/max fra årsnøgler. Derfor skal kilden selv
+ * bevise, at der ikke ligger et hul eller en ikke-finit værdi mellem endepunkterne;
+ * ellers ville UI'et annoncere et dækket år, som først fejler senere i beregningen.
+ */
+export const assertYearlyRateIntegrity = (
+  { label, rates, allowedMissingYears = new Set<number>() }: YearlyRateIntegrityEntry,
+): void => {
+  const bounds = getYearBoundsForYearlyRate(rates);
+  if (!bounds) {
+    throw new Error(`${label}: satsserien er tom`);
+  }
+
+  for (const year of allowedMissingYears) {
+    if (Number.isFinite(rates[year])) {
+      throw new Error(`${label}: allowlisten for manglende år ${year} er stale`);
+    }
+  }
+
+  assertNoInteriorYearGap({
+    minYear: bounds.minYear,
+    maxYear: bounds.maxYear,
+    isYearPresent: (year) => allowedMissingYears.has(year) || Number.isFinite(rates[year]),
+    label,
+  });
+};
+
+const LOVBESTEMTE_RATE_SERIES: readonly YearlyRateIntegrityEntry[] = [
+  { label: 'Sviegodtgørelse pr. dag', rates: svieSmertePrDag },
+  { label: 'Maksimal sviegodtgørelse', rates: svieSmerteMax },
+  { label: 'Maksimalt erhvervsevnetab efter EAL', rates: erhvervsevnetabEalMax },
+  { label: 'Minimum for forsørgertab efter EAL', rates: foersoergertabEalMin },
+  { label: 'Vejledende EET-udtalelse', rates: vejledendeUdtalelseEet },
+  { label: 'Godtgørelse pr. méngrad', rates: varigeMenPrGrad },
+  { label: 'ASL-årslønsmaksimum', rates: aarsloenAslMax },
+  { label: 'ASL-årslønsminimum', rates: aarsloenAslMin, allowedMissingYears: new Set([2024]) },
+  { label: 'ASL-årslønsminimum før 1. juli 2024', rates: aarsloenAslMinFoer20240701 },
+  { label: 'ASL-årslønsminimum fra 1. juli 2024', rates: aarsloenAslMinFra20240701 },
+  { label: 'Overgangsbeløb', rates: overgangsbeloeb },
+  { label: 'EET-reguleringsprocent', rates: reguleringsprocentErhvervsevnetab },
+  { label: 'EET-reguleringsprocent før 2024', rates: reguleringsprocentErhvervsevnetabFoer2024 },
+  { label: 'EET-reguleringsprocent fra 2024', rates: reguleringsprocentErhvervsevnetabFra2024 },
+  { label: 'Fri proces, enlig', rates: friProcesEnlig },
+  { label: 'Fri proces, samlevende', rates: friProcesSamlevende },
+  { label: 'Fri proces, barn', rates: friProcesBarn },
+  { label: 'Generel reguleringssats', rates: reguleringssats },
+];
+
+export const assertLovbestemteRatesIntegritet = (): void => {
+  LOVBESTEMTE_RATE_SERIES.forEach(assertYearlyRateIntegrity);
+};
+
+assertLovbestemteRatesIntegritet();
+
 // ===== REFERENCER =====
 
 const ealReferenceData: YearlyRetsinfoReferences = {

@@ -149,7 +149,6 @@ const renderHook = (
     handles.api = useFileSaveLoad({
       settings: DEFAULT_APP_SETTINGS,
       navigate: handles.navigate as unknown as Parameters<typeof useFileSaveLoad>[0]['navigate'],
-      currentPathname: '/stamdata',
       ops,
       criticalActions,
       markSaved: handles.markSaved,

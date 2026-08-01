@@ -1,14 +1,22 @@
 import { toISODateString } from '../../types/branded';
-import { getDayAfterIso } from '../../utils/isoDateHelpers';
+import { endOfYearIso, getDayAfterIso, getDayBeforeIso, isoYear } from '../../utils/isoDateHelpers';
 import { folkepensionAlderPerioder } from '../folkepensionAlderRates';
 import { STORE_BEDEDAG_SATSTRAPPE } from '../indskudteLoentillaeg';
 import { referenceRates, surchargeRates } from '../interestRates';
-import { kapitaliseringsbekendtgoerelser } from '../kapitalisering/kapitaliseringsbekendtgoerelser';
+import {
+  assertKapitaliseringsbekendtgoerelserIntegritet,
+  kapitaliseringsbekendtgoerelser,
+  type KapitaliseringsSkadedatoInterval,
+} from '../kapitalisering/kapitaliseringsbekendtgoerelser';
 import {
   assertKapitaliseringsTabelDataIntegritet,
   kapitaliseringsTabelDataById,
+  type KapitaliseringsTabelData,
 } from '../kapitalisering/kapitaliseringsTabeller';
-import { forhoejetPensionsalderEvents } from '../kapitalisering/forhoejetPensionsalderEvents';
+import {
+  assertForhoejetPensionsalderEventsIntegritet,
+  forhoejetPensionsalderEvents,
+} from '../kapitalisering/forhoejetPensionsalderEvents';
 import { klLoenSatser } from '../KL/klLoenSatser';
 import { assertKlLoenaftalerDataIntegritet, klLoenaftalerRaekker } from '../klLoenaftaler';
 import { krlSatstabeller } from '../krlRates';
@@ -51,6 +59,7 @@ import {
   varigeMenPrGrad,
   vejledendeUdtalelseEet,
   assertAarsloenAslMaxKontinuitet,
+  assertLovbestemteRatesIntegritet,
 } from '../lovbestemteRates';
 import { assertOffentligLoenDataIntegritet } from '../offentligLoenLookup';
 import {
@@ -101,6 +110,39 @@ const assertFolkepensionAlderPerioder = (periods: typeof folkepensionAlderPeriod
     }
     expectedPeriodStart = period.opslagsdatoTil === null ? null : getDayAfterIso(period.opslagsdatoTil);
     hasOpenEndedPeriod = period.opslagsdatoTil === null;
+  }
+};
+
+export const assertKapitaliseringsMappingIntegritet = (
+  intervals: readonly KapitaliseringsSkadedatoInterval[],
+  tablesById: Readonly<Record<string, KapitaliseringsTabelData>>,
+): void => {
+  assertKapitaliseringsbekendtgoerelserIntegritet(intervals);
+  for (const interval of intervals) {
+    const sorted = [...interval.kapitaliseringer].sort((a, b) =>
+      a.kapitaliseringsdatoFra.localeCompare(b.kapitaliseringsdatoFra)
+    );
+    for (let index = 0; index < sorted.length; index += 1) {
+      const current = sorted[index]!;
+      const table = tablesById[current.id];
+      if (!table) {
+        throw new Error(`Kapitaliseringsbekendtgørelser: mangler tabeldata for ${current.id}`);
+      }
+      const next = sorted[index + 1];
+      const derivedThrough = next
+        ? getDayBeforeIso(next.kapitaliseringsdatoFra)
+        : endOfYearIso(isoYear(current.kapitaliseringsdatoFra));
+      if (!derivedThrough) {
+        throw new Error(`Kapitaliseringsbekendtgørelser: ugyldig slutdato efter ${current.kapitaliseringsdatoFra}`);
+      }
+      if (current.kapitaliseringsdatoFra < table.gyldigFra || derivedThrough > table.gyldigTil) {
+        throw new Error(
+          `Kapitaliseringsbekendtgørelser: ${current.id} afledes som `
+          + `${current.kapitaliseringsdatoFra}–${derivedThrough}, men kilden gælder `
+          + `${table.gyldigFra}–${table.gyldigTil}`
+        );
+      }
+    }
   }
 };
 
@@ -155,7 +197,10 @@ export const beregningsdataCatalog = defineCalculationDataCatalog([
     },
     coverage: { kind: 'source_defined', description: 'Årsdækning varierer mellem de lovbestemte serier.' },
     payload: lovbestemtePayload,
-    validate: ({ aarsloenAslMax: indeks }) => assertAarsloenAslMaxKontinuitet(indeks),
+    validate: () => {
+      assertAarsloenAslMaxKontinuitet();
+      assertLovbestemteRatesIntegritet();
+    },
   }),
   defineCalculationData({
     id: 'indskudte-loentillaeg',
@@ -304,7 +349,7 @@ export const beregningsdataCatalog = defineCalculationDataCatalog([
     },
     coverage: { kind: 'source_defined', description: 'Intervallerne i oversigten er autoritativ dækning.' },
     payload: kapitaliseringsbekendtgoerelser,
-    validate: (payload) => assertNonEmpty(payload, 'Kapitaliseringsbekendtgørelser'),
+    validate: (payload) => assertKapitaliseringsMappingIntegritet(payload, kapitaliseringsTabelDataById),
   }),
   defineCalculationData({
     id: 'forhoejet-pensionsalder-events',
@@ -314,8 +359,29 @@ export const beregningsdataCatalog = defineCalculationDataCatalog([
     },
     coverage: { kind: 'source_defined', description: 'Én række pr. relevant lovændring.' },
     payload: forhoejetPensionsalderEvents,
-    validate: (payload) => assertNonEmpty(payload, 'Forhøjet pensionsalder-events'),
+    validate: assertForhoejetPensionsalderEventsIntegritet,
   }),
 ] as const);
 
 export type BeregningsdataCatalogId = (typeof beregningsdataCatalog)[number]['id'];
+
+/**
+ * Maskinlæsbar ejerfordeling for autoritative kildefiler. Inventoryet bruges af
+ * completeness-testen, så en ny top-level datakilde ikke kan omgå kataloget.
+ */
+export const beregningsdataSourceFilesById = {
+  'lovbestemte-satser': ['lovbestemteRates.ts'],
+  'indskudte-loentillaeg': ['indskudteLoentillaeg.ts'],
+  procesrenter: ['interestRates.ts'],
+  folkepensionsalder: ['folkepensionAlderRates.ts'],
+  overenskomster: ['overenskomstRates.ts'],
+  'statistiske-loenindeks': ['statistiskeRates.ts'],
+  'krl-satstabeller': ['krlRates.ts'],
+  'kl-loenaftaler': ['klLoenaftaler.ts'],
+  sygedagpenge: ['sygedagpengeRates.ts'],
+  'offentlig-loen-kl': ['KL/klLoenSatser.ts'],
+  'offentlig-loen-rltn': ['RLTN/rltnLoenSatser.ts'],
+  kapitaliseringstabeller: ['kapitalisering/kapitaliseringsTabeller/index.ts'],
+  kapitaliseringsbekendtgoerelser: ['kapitalisering/kapitaliseringsbekendtgoerelser.ts'],
+  'forhoejet-pensionsalder-events': ['kapitalisering/forhoejetPensionsalderEvents.ts'],
+} as const satisfies Record<BeregningsdataCatalogId, readonly string[]>;

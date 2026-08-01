@@ -1,20 +1,10 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
-const loadBootstrapScript = (): string => {
-  const html = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
-  const match = html.match(/<script>\s*([\s\S]*?)<\/script>/i);
-  if (!match?.[1]) {
-    throw new Error('Kunne ikke finde bootstrap-script i index.html');
-  }
-  return match[1];
-};
+import { APP_SETTINGS_LOCAL_STORAGE_KEY, createThemeBootstrapScript } from '../../settings/themeBootstrap';
 
 describe('index theme bootstrap script', () => {
   const originalMatchMedia = window.matchMedia;
   const originalLocalStorage = window.localStorage;
-  const bootstrapScript = loadBootstrapScript();
+  const bootstrapScript = createThemeBootstrapScript();
   let storageMap: Map<string, string>;
   let themeColorMeta: HTMLMetaElement;
 
@@ -67,7 +57,7 @@ describe('index theme bootstrap script', () => {
   });
 
   it('sætter dark theme på html når localStorage indeholder themeMode dark', () => {
-    window.localStorage.setItem('mineo_app_settings_v1', JSON.stringify({ themeMode: 'dark' }));
+    window.localStorage.setItem(APP_SETTINGS_LOCAL_STORAGE_KEY, JSON.stringify({ themeMode: 'dark' }));
 
     new Function(bootstrapScript)();
 
@@ -94,11 +84,54 @@ describe('index theme bootstrap script', () => {
   });
 
   it('sætter ikke dark attributten når persisted settings er light', () => {
-    window.localStorage.setItem('mineo_app_settings_v1', JSON.stringify({ themeMode: 'light' }));
+    window.localStorage.setItem(APP_SETTINGS_LOCAL_STORAGE_KEY, JSON.stringify({ themeMode: 'light' }));
 
     new Function(bootstrapScript)();
 
     expect(document.documentElement.dataset.mineoTheme).toBeUndefined();
     expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#e9ecef');
+  });
+
+  it.each([
+    ['ugyldig JSON', '{'],
+    ['ukendt themeMode', JSON.stringify({ themeMode: 'sepia' })],
+  ])('følger mørkt systemtema ved %s', (_label, storedValue) => {
+    window.localStorage.setItem(APP_SETTINGS_LOCAL_STORAGE_KEY, storedValue);
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-color-scheme: dark)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as typeof window.matchMedia;
+
+    new Function(bootstrapScript)();
+
+    expect(document.documentElement.dataset.mineoTheme).toBe('dark');
+    expect(themeColorMeta.content).toBe('#2b2b2b');
+  });
+
+  it('følger systemtema når localStorage ikke kan læses', () => {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: { getItem: () => { throw new Error('blokeret'); } },
+    });
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-color-scheme: dark)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as typeof window.matchMedia;
+
+    new Function(bootstrapScript)();
+
+    expect(document.documentElement.dataset.mineoTheme).toBe('dark');
   });
 });

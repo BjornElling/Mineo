@@ -28,13 +28,14 @@ const focusAndScroll = (element: HTMLElement): void => {
 
 const applyDestination = (
   destination: EditorLocationDestination,
-  currentPathname: string,
   navigate: NavigateFunction
 ): void => {
   if (destination.tabKey !== null) {
     setActiveTabForPage(routeToPageId(destination.route), destination.tabKey);
   }
-  if (destination.route !== currentPathname) navigate(destination.route);
+  // Fokusforløbet venter på mount mellem brugerhandlingen og navigationen. Routen kan derfor have ændret
+  // sig siden kaldet begyndte; et indfanget React-snapshot må ikke sende brugeren tilbage til en stale route.
+  if (destination.route !== window.location.pathname) navigate(destination.route);
 };
 
 /**
@@ -47,7 +48,6 @@ const applyDestination = (
  */
 export const focusFirstBlockingRejectedField = async (
   rejectedAddresses: readonly string[],
-  currentPathname: string,
   navigate: NavigateFunction,
   resolveStaticFieldLocation: (address: FieldAddress) => EditorLocationDestination | undefined
 ): Promise<void> => {
@@ -68,11 +68,11 @@ export const focusFirstBlockingRejectedField = async (
 
   // (2) Mountet men skjult → følg lokationens EGEN destination. (3) Ellers → statisk template-destination.
   if (lookup.kind === 'mounted') {
-    applyDestination(lookup.destination, currentPathname, navigate);
+    applyDestination(lookup.destination, navigate);
   } else {
     const staticDestination = resolveStaticFieldLocation(address);
     if (staticDestination === undefined) return;
-    applyDestination(staticDestination, currentPathname, navigate);
+    applyDestination(staticDestination, navigate);
   }
 
   for (let attempt = 0; attempt < MAX_MOUNT_WAIT_FRAMES; attempt += 1) {

@@ -20,6 +20,8 @@ const getReferencePrefix = (type: RetsinfoReference['type']): string => (type ==
 
 const validateLabelOverride = (
   type: RetsinfoReference['type'],
+  number: number,
+  year: number,
   label: string | undefined
 ): string | undefined => {
   if (!label) {
@@ -27,8 +29,9 @@ const validateLabelOverride = (
   }
 
   const prefix = getReferencePrefix(type);
-  if (!label.startsWith(`${prefix} `)) {
-    throw new Error(`CRITICAL: Retsinfo label override must start with "${prefix} "`);
+  const canonicalLabel = `${prefix} ${number}/${year}`;
+  if (label !== canonicalLabel) {
+    throw new Error(`Retsinfo: label override skal være "${canonicalLabel}"`);
   }
 
   return label;
@@ -39,12 +42,17 @@ const createReference = (
   number: number,
   year: number,
   label?: string
-): RetsinfoReference => ({
-  type,
-  number,
-  year,
-  label: validateLabelOverride(type, label),
-});
+): RetsinfoReference => {
+  if (!Number.isSafeInteger(number) || number <= 0 || !Number.isSafeInteger(year) || year <= 0) {
+    throw new Error('Retsinfo: dokumentnummer og år skal være positive heltal');
+  }
+  return {
+    type,
+    number,
+    year,
+    label: validateLabelOverride(type, number, year, label),
+  };
+};
 
 export const bkg = (number: number, year: number, label?: string): RetsinfoReference => (
   createReference('bkg', number, year, label)

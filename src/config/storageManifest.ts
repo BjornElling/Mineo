@@ -28,19 +28,33 @@ export type ManifestStorageKey = string & { readonly __manifestStorageKey: uniqu
 
 const asManifestKey = (key: string): ManifestStorageKey => key as ManifestStorageKey;
 
-let storageNamespace = 'mineo';
+export type StorageNamespace = 'mineo' | 'minprocesrente';
+
+let storageNamespace: StorageNamespace | null = null;
 
 /**
  * Sæt storage-namespace for hele app-varianten. Skal kaldes ÉN gang ved bootstrap,
  * før nogen sessionStorage-adgang. Idempotent for samme værdi.
  */
-export const setStorageNamespace = (namespace: string): void => {
+export const setStorageNamespace = (namespace: StorageNamespace): void => {
+  if (storageNamespace !== null && storageNamespace !== namespace) {
+    throw new Error(
+      `Storage-namespace er allerede låst til "${storageNamespace}" og kan ikke ændres til "${namespace}".`
+    );
+  }
   storageNamespace = namespace;
 };
 
-export const getStorageNamespace = (): string => storageNamespace;
+const resolveStorageNamespace = (): StorageNamespace => {
+  // Mineo er fail-safe default for isolerede domæne-/testkald, men begge produktionsentries
+  // låser deres variant eksplicit før App-grafen evalueres.
+  storageNamespace ??= 'mineo';
+  return storageNamespace;
+};
 
-const ns = (suffix: string): string => `${storageNamespace}_${suffix}`;
+export const getStorageNamespace = (): StorageNamespace => resolveStorageNamespace();
+
+const ns = (suffix: string): string => `${resolveStorageNamespace()}_${suffix}`;
 
 const UI_STORAGE_KEY_SUFFIXES = {
   lastSavedFilename: 'ui_lastSavedFilename',

@@ -17,6 +17,7 @@ import {
   ASL_MAX_AARSLOEN_2024,
   aarsloenAslMax,
   assertAarsloenAslMaxKontinuitet,
+  assertYearlyRateIntegrity,
 } from '../../data/lovbestemteRates';
 import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
 import type { YearlyRate } from '../../data/lovbestemteRates';
@@ -355,6 +356,32 @@ describe('assertAarsloenAslMaxKontinuitet (S6-hul-guard for ASL-regulering)', ()
     // 0 er en dårlig sats (fanges af resolveAslAarsloensmaksimumForAar → undefined),
     // men er IKKE et hul i serien. Kontinuitets-guarden må kun fange manglende år.
     expect(() => assertAarsloenAslMaxKontinuitet({ 2020: 1, 2021: 0, 2022: 3 })).not.toThrow();
+  });
+});
+
+describe('assertYearlyRateIntegrity', () => {
+  it('fail-closer ved tom serie, interiørt hul og ikke-finit værdi', () => {
+    expect(() => assertYearlyRateIntegrity({ label: 'Test', rates: {} })).toThrow('satsserien er tom');
+    expect(() => assertYearlyRateIntegrity({ label: 'Test', rates: { 2022: 1, 2024: 3 } }))
+      .toThrow('mangler år 2023');
+    expect(() => assertYearlyRateIntegrity({ label: 'Test', rates: { 2022: 1, 2023: Number.NaN, 2024: 3 } }))
+      .toThrow('mangler år 2023');
+  });
+
+  it('accepterer kun et hul, når året er eksplicit allowlistet', () => {
+    expect(() => assertYearlyRateIntegrity({
+      label: 'Test',
+      rates: { 2022: 1, 2024: 3 },
+      allowedMissingYears: new Set([2023]),
+    })).not.toThrow();
+  });
+
+  it('fail-closer når en allowlist er blevet stale', () => {
+    expect(() => assertYearlyRateIntegrity({
+      label: 'Test',
+      rates: { 2022: 1, 2023: 2, 2024: 3 },
+      allowedMissingYears: new Set([2023]),
+    })).toThrow('allowlisten for manglende år 2023 er stale');
   });
 });
 

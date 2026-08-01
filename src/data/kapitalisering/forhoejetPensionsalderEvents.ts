@@ -89,3 +89,27 @@ export const forhoejetPensionsalderEvents: readonly ForhoejetPensionsalderEvent[
     gammelAlderLabel: event.gammelAlderLabel,
     nyAlderLabel: event.nyAlderLabel,
   }));
+
+export const assertForhoejetPensionsalderEventsIntegritet = (
+  events: readonly ForhoejetPensionsalderEvent[],
+): void => {
+  if (events.length === 0) {
+    throw new Error('Forhøjet pensionsalder: eventlisten er tom');
+  }
+
+  let previousDate: ISODateString | null = null;
+  for (const event of events) {
+    if (previousDate !== null && event.forhoejelsesdato <= previousDate) {
+      throw new Error('Forhøjet pensionsalder: events skal være unikke og sorteret stigende');
+    }
+    if (event.opslagsdatoGammel >= event.opslagsdatoNy) {
+      throw new Error(`Forhøjet pensionsalder ${event.forhoejelsesdato}: gammel opslagsdato skal ligge før ny`);
+    }
+    if (event.gammelAlderLabel.trim() === '' || event.nyAlderLabel.trim() === '') {
+      throw new Error(`Forhøjet pensionsalder ${event.forhoejelsesdato}: alderslabels må ikke være tomme`);
+    }
+    previousDate = event.forhoejelsesdato;
+  }
+};
+
+assertForhoejetPensionsalderEventsIntegritet(forhoejetPensionsalderEvents);

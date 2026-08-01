@@ -176,4 +176,3 @@ export const forsoergertabTabellerKvinder = {
 } as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
 
 // Kilden indeholder ikke særskilte afløsningstabeller for forsørgertab.
-export const forsoergertabAfloesningsTabeller = {} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;

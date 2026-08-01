@@ -135,7 +135,7 @@ Kun inputinfrastrukturen må se aggregatets rå `sections` og rejected-input-map
 Normal drift er console-tavs. `console.error`: reelle fejl (datatab, brudte invarianter). `console.warn`: exceptionelle ikke-fatale tilstande. `console.debug`: normale signaler, kun DEV. `console.log`: undgå.
 
 ## Desktop-only gate
-- Appen blokeres på mobil/tablet. Den øverste capability-gate ligger i `src/apps/shared/bootstrapClientApp.tsx` og kaldes fra hver app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`).
+- Appen blokeres på mobil/tablet. Den øverste capability-gate ligger i `src/apps/shared/bootstrapClientApp.tsx`, bruger touch-capability og en orienteringsstabil kortsidegrænse og kaldes fra hver app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`).
 - Ikke-understøttede enheder renderer `src/components/system/UnsupportedDevicePage.tsx` som hård stop; den holdes isoleret fra forretningslogik/state/persistence.
 - Mobil/tablet-specifik styling må kun findes i `UnsupportedDevicePage.tsx`. Ingen global responsiv adfærd (`@media`) i delte/globale styles. (Undtagelse: standalone MinProcesrente er en bevidst mobil-tilladt variant med variant-lokal `@media`-styling i sine egne filer — jf. `app-shell-contract.md` §5.)
 

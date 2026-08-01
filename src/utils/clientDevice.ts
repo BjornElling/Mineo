@@ -14,11 +14,6 @@ export const isTouchLikeDevice = (): boolean => {
   return touchPoints > 0 && (coarsePointer || noHover);
 };
 
-export const getPhysicalScreenWidth = (): number | null => {
-  if (typeof window === 'undefined') return null;
-  return readPositiveFiniteNumber(window.screen?.width);
-};
-
 export const getPhysicalScreenShortestSide = (): number | null => {
   if (typeof window === 'undefined') return null;
   const width = readPositiveFiniteNumber(window.screen?.width);

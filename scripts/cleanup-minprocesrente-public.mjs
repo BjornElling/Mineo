@@ -8,7 +8,7 @@ if (!outDir) {
   throw new Error('Usage: node scripts/cleanup-minprocesrente-public.mjs <outDir>');
 }
 
-for (const relativePath of ['sw.js', 'manifest.json', 'icons']) {
+for (const relativePath of ['sw.js', 'manifest.json', 'icons', 'favicon-mineo.svg']) {
   rmSync(path.join(outDir, relativePath), { recursive: true, force: true });
 }
 

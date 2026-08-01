@@ -7,9 +7,6 @@
 /index.html
   Cache-Control: no-cache, no-store, must-revalidate
 
-/mineo.html
-  Cache-Control: no-cache, no-store, must-revalidate
-
 /open
   Cache-Control: no-cache, no-store, must-revalidate
 

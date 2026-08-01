@@ -62,6 +62,32 @@ describe('MinProcesrente standalone isolation', () => {
     expect(appImportIndex).toBeGreaterThan(namespaceImportIndex);
   });
 
+  it('låser også Mineos default-namespace via entryens første import', () => {
+    const entrypoint = readFileSync(path.join(repoRoot, 'src/main.tsx'), 'utf8');
+    expect(entrypoint.indexOf("import './apps/mineo/mineoStorageNamespace'"))
+      .toBeGreaterThanOrEqual(0);
+    expect(entrypoint.indexOf("import { bootstrapClientApp"))
+      .toBeGreaterThan(entrypoint.indexOf("import './apps/mineo/mineoStorageNamespace'"));
+  });
+
+  it('har variantens error boundary og styles ved entry-grænsen', () => {
+    const mineoEntry = readFileSync(path.join(repoRoot, 'src/main.tsx'), 'utf8');
+    const standaloneEntry = readFileSync(
+      path.join(repoRoot, 'src/apps/minprocesrente/minprocesrenteMain.tsx'),
+      'utf8'
+    );
+    const sharedShell = readFileSync(
+      path.join(repoRoot, 'src/apps/shared/bootstrapClientApp.tsx'),
+      'utf8'
+    );
+
+    expect(mineoEntry).toMatch(/<ErrorBoundary>[\s\S]*<AuthGate/);
+    expect(standaloneEntry).toMatch(/<StandaloneErrorBoundary>[\s\S]*<MinProcesrenteApp/);
+    expect(mineoEntry).toContain("loadAppStyles: () => import('./index.css')");
+    expect(standaloneEntry).toContain("loadAppStyles: () => import('./minprocesrente.css')");
+    expect(sharedShell).not.toContain("import('../../index.css')");
+  });
+
   it('læser ikke stamdata eller indstillinger som brugerdata og bruger kun renteberegning-sektionen', () => {
     const source = readStandaloneSource();
 

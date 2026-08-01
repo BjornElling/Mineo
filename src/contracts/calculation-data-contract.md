@@ -33,6 +33,15 @@ konstanter er ikke katalogdata.
 8. Det samlede registry er en verifikations-/governance-grænse og må ikke eager-importeres
    i app-entrypoints. Runtime-forbrugere importerer fortsat den relevante kilde eller dens
    specialiserede opslag, så MinProcesrente og andre app-varianter ikke får uvedkommende data i bundlet.
+9. Kapitaliseringsoversigtens afledte gyldighedsintervaller skal ligge inden for den valgte
+   kildetabels egne `gyldigFra`/`gyldigTil`; både skade- og kapitaliseringsdatoer skal være
+   unikke og sorteret stigende. EET-tabelvalg skal have gyldige, ikke-duplikerede intervaller.
+   Tabelvalg uden lokal faktor-payload må kun være
+   de poster, der findes i den golden-låste inventory; både nye mangler og en stale inventory
+   er integritetsfejl.
+10. Årsbaserede lovbestemte talserier skal være ikke-tomme, finite og uden interiøre årshuller.
+    Bevidste huller skal allowlistes ved den konkrete serie; aktuelt gælder det kun 2024 i
+    `aarsloenAslMin`, som er erstattet af de to datoopdelte 2024-serier.
 
 ## 3. Autoritative kilder
 
@@ -54,6 +63,7 @@ konstanter er ikke katalogdata.
 ## 5. Kendte undtagelser
 
 Enkelte ældre kapitaliseringskilder refererer til tabeller, som ikke findes i den lokale
-payload (fx tabel A i 1068/2003). Fraværet er bevaret, fordi EET-beregningen eksplicit
+payload. Den verificerede inventory er `1068/2003:A`, `1221/2010:L` samt
+`1403/2011:J`, `1403/2011:K` og `1403/2011:L`. Fraværet er bevaret, fordi EET-beregningen eksplicit
 fail-closer med en blokerende domænefejl. Undtagelsen revurderes kun, hvis den manglende
 originaltabel tilføjes efter særskilt godkendelse af beregningsdataene.

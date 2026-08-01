@@ -29,8 +29,17 @@ describe('retsinfoLinks', () => {
 
     it('afviser label-overrides uden korrekt præfiks', () => {
       expect(() => vejl(9376, 2024, '9376/2024')).toThrow(
-        'CRITICAL: Retsinfo label override must start with "Vejl. "'
+        'Retsinfo: label override skal være "Vejl. 9376/2024"'
       );
+    });
+
+    it('afviser labels der peger på et andet dokument end URL-dataene', () => {
+      expect(() => vejl(9376, 2024, 'Vejl. 9820/2023')).toThrow('Vejl. 9376/2024');
+    });
+
+    it('afviser ikke-positive og ikke-heltallige dokument-id\'er', () => {
+      expect(() => bkg(0, 2024)).toThrow('positive heltal');
+      expect(() => vejl(9376.5, 2024)).toThrow('positive heltal');
     });
   });
 

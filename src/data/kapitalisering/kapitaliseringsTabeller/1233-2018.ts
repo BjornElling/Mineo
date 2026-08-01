@@ -165,5 +165,3 @@ export const forsoergertabTabellerMaend = {
 
 export const forsoergertabTabellerKvinder = {
 } as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
-
-export const forsoergertabAfloesningsTabeller = {} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;

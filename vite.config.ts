@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 import fs from 'node:fs';
 import react from '@vitejs/plugin-react';
+import { createThemeBootstrapScript } from './src/settings/themeBootstrap';
 
 const BUILD_INFO_ENV_FILE = path.resolve(__dirname, '.env.build-info.local');
 
@@ -39,8 +40,22 @@ const generatedBuildInfoEnv = parseGeneratedBuildInfoEnv();
 const defineBuildEnv = (key: string): string =>
   JSON.stringify(generatedBuildInfoEnv[key] ?? '');
 
+const MINEO_THEME_BOOTSTRAP_MARKER = '<!-- MINEO_THEME_BOOTSTRAP -->';
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'mineo-theme-bootstrap',
+      transformIndexHtml(html) {
+        if (!html.includes(MINEO_THEME_BOOTSTRAP_MARKER)) return html;
+        return html.replace(
+          MINEO_THEME_BOOTSTRAP_MARKER,
+          `<script>${createThemeBootstrapScript()}</script>`
+        );
+      },
+    },
+  ],
   define: {
     'import.meta.env.VITE_APP_VERSION': defineBuildEnv('VITE_APP_VERSION'),
     'import.meta.env.VITE_APP_COMMIT_HASH': defineBuildEnv('VITE_APP_COMMIT_HASH'),
@@ -60,6 +75,7 @@ export default defineConfig({
   },
 
   build: {
+    manifest: true,
     chunkSizeWarningLimit: 750,
     rollupOptions: {
       output: {

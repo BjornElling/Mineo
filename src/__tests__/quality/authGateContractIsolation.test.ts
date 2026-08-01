@@ -26,7 +26,7 @@ describe('auth-gate contract isolation', () => {
 
   it('auth-laget persisterer eller logger ikke klartekst-adgangskoder', () => {
     const authDir = path.resolve(process.cwd(), 'src/auth');
-    for (const fileName of ['auth.ts', 'authConfig.ts', 'AuthGate.tsx']) {
+    for (const fileName of ['auth.ts', 'authConfig.ts', 'AuthGate.tsx', 'LoginPage.tsx']) {
       const source = fs.readFileSync(path.join(authDir, fileName), 'utf8');
       // Adgangskoden hashes og sammenlignes kun; den må aldrig skrives til storage eller console.
       expect(source).not.toMatch(/setItem\([^)]*password/i);

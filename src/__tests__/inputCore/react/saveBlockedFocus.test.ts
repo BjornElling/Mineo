@@ -21,17 +21,15 @@ import {
 // DESTINATIONEN ejes af editorlokationen (§3.2, R7-F03). Der findes ikke længere en global feltadresse→fane-
 // afbildning: den mounted editor bærer sin egen route + fane i DOM. Testene nedenfor er skrevet mod netop det
 // skift — særligt "hidden mounted editor vinder over sektionens side" og "et spejlet felt følger den editor,
-// brugeren står ved", som den globale model kun kunne ramme med særregler for `currentPathname`.
+// brugeren står ved", som den globale model kun kunne ramme med route-særregler.
 
 vi.mock('../../../hooks/usePersistedActiveTab', () => ({ setActiveTabForPage: vi.fn() }));
 
 const focusFirstBlockingRejectedField = (
   addresses: readonly string[],
-  pathname: string,
-  navigate: Parameters<typeof focusFirstBlockingRejectedFieldImpl>[2]
+  navigate: Parameters<typeof focusFirstBlockingRejectedFieldImpl>[1]
 ) => focusFirstBlockingRejectedFieldImpl(
   addresses,
-  pathname,
   navigate,
   getProductionInputCatalog().resolveFieldLocation
 );
@@ -126,7 +124,8 @@ describe('focusFirstBlockingRejectedField', () => {
 
   beforeEach(() => {
     document.body.innerHTML = '';
-    vi.mocked(setActiveTabForPage).mockClear();
+    window.history.replaceState(null, '', '/stamdata');
+    vi.mocked(setActiveTabForPage).mockReset();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
       value: vi.fn(),
@@ -149,7 +148,7 @@ describe('focusFirstBlockingRejectedField', () => {
     const target = mountFieldAt(stamdataSkadedato);
     const navigate = vi.fn();
 
-    await focusFirstBlockingRejectedField([serializeFieldAddress(stamdataSkadedato)], '/stamdata', navigate as never);
+    await focusFirstBlockingRejectedField([serializeFieldAddress(stamdataSkadedato)], navigate as never);
 
     expect(navigate).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(target);
@@ -164,7 +163,6 @@ describe('focusFirstBlockingRejectedField', () => {
 
     await focusFirstBlockingRejectedField(
       [serializeFieldAddress(oevrigeKravRow('row-2', 'belob'))],
-      '/erstatningsopgoerelse',
       navigate as never
     );
 
@@ -176,6 +174,7 @@ describe('focusFirstBlockingRejectedField', () => {
   // øvrige-krav-celle, hvis editor selv erklærer Beregning-fanen — den globale model havde nøglet dens
   // collection til EO-oplysninger og var derfor uenig med den flade, feltet faktisk står på.
   it('aktiverer den fane, DEN MOUNTEDE editor erklærer — ikke en fane udledt af adressen', async () => {
+    window.history.replaceState(null, '', '/erstatningsopgoerelse');
     mountFieldAt(oevrigeKravRow('row-9', 'belob'), {
       route: '/erstatningsopgoerelse',
       tabKey: 'beregning',
@@ -185,13 +184,35 @@ describe('focusFirstBlockingRejectedField', () => {
 
     await focusFirstBlockingRejectedField(
       [serializeFieldAddress(oevrigeKravRow('row-9', 'belob'))],
-      '/erstatningsopgoerelse',
       navigate as never
     );
 
     expect(setActiveTabForPage).toHaveBeenCalledWith('erstatningsopgoerelse', 'beregning');
     // Vi står allerede på routen; der navigeres ikke.
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('sammenligner destinationen med den aktuelle route efter det asynkrone mount-vent', async () => {
+    const target = mountFieldAt(oevrigeKravRow('row-current-route', 'belob'), {
+      route: '/erstatningsopgoerelse',
+      tabKey: 'beregning',
+      hidden: true,
+    });
+    vi.mocked(setActiveTabForPage).mockImplementation(() => {
+      target.parentElement?.removeAttribute('hidden');
+    });
+    const navigate = vi.fn();
+
+    const focusPromise = focusFirstBlockingRejectedField(
+      [serializeFieldAddress(oevrigeKravRow('row-current-route', 'belob'))],
+      navigate as never
+    );
+    // Simulér at routen skifter, mens fokusforløbet afventer næste frame.
+    window.history.replaceState(null, '', '/erstatningsopgoerelse');
+    await focusPromise;
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(target);
   });
 
   // Det kontekst-delte forligsfelt. Den globale model måtte kende feltnavnet OG brugerens route for at holde
@@ -203,7 +224,6 @@ describe('focusFirstBlockingRejectedField', () => {
 
     await focusFirstBlockingRejectedField(
       [serializeFieldAddress(forligDato)],
-      '/erhvervsevnetab',
       navigate as never
     );
 
@@ -217,7 +237,6 @@ describe('focusFirstBlockingRejectedField', () => {
 
     await focusFirstBlockingRejectedField(
       [serializeFieldAddress({ section: 'erhvervsevnetab', path: [], field: 'ealEetPct' })],
-      '/stamdata',
       navigate as never
     );
 
@@ -293,7 +312,7 @@ describe('focusFirstBlockingRejectedField', () => {
       mountedTarget = mountFieldAt(address, { route, tabKey: tab });
     });
 
-    await focusFirstBlockingRejectedField([serializeFieldAddress(address)], '/stamdata', navigate as never);
+    await focusFirstBlockingRejectedField([serializeFieldAddress(address)], navigate as never);
 
     expect(setActiveTabForPage).toHaveBeenCalledWith(page, tab);
     expect(navigate).toHaveBeenCalledWith(route);
@@ -314,7 +333,6 @@ describe('focusFirstBlockingRejectedField', () => {
 
     await focusFirstBlockingRejectedField(
       [serializeFieldAddress(address)],
-      '/stamdata',
       navigate as never
     );
 
@@ -325,13 +343,13 @@ describe('focusFirstBlockingRejectedField', () => {
 
   it('er et no-op uden navigation når der ingen rejected adresser er', async () => {
     const navigate = vi.fn();
-    await focusFirstBlockingRejectedField([], '/stamdata', navigate as never);
+    await focusFirstBlockingRejectedField([], navigate as never);
     expect(navigate).not.toHaveBeenCalled();
   });
 
   it('er fail-soft ved en ikke-kanonisk adresse (ingen navigation, ingen fokus-flytning)', async () => {
     const navigate = vi.fn();
-    await focusFirstBlockingRejectedField(['ikke-en-adresse'], '/stamdata', navigate as never);
+    await focusFirstBlockingRejectedField(['ikke-en-adresse'], navigate as never);
     expect(navigate).not.toHaveBeenCalled();
   });
 });

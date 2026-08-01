@@ -18,7 +18,6 @@ describe('PWA cache headers', () => {
     for (const path of [
       '/',
       '/index.html',
-      '/mineo.html',
       '/open',
       '/manifest.json',
       '/sw.js',

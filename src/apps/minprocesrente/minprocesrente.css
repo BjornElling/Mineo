@@ -1,11 +1,16 @@
-/* Mobil-scroll for MinProcesrente.
- *
- * index.css sætter body og #root til overflow:hidden, som er korrekt for Mineo-desktop
- * (al scroll sker i Container). På mobil fungerer dette ikke — browseren kan ikke scrolle
- * fingerscroll-gestikker på elementet inde i body, og pull-to-refresh virker ikke.
- *
- * Kun aktiv på touch-enheder (pointer:coarse). Desktop-visningen er upåvirket.
- */
+@import '../../styles/sharedApp.css';
+
+body {
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Standalone-varianten ejer alene mobilens normale sidescroll. */
 @media (pointer: coarse) {
   html,
   body {

@@ -1,4 +1,5 @@
 import { getSafeLocalStorage } from '../utils/safeLocalStorage';
+import { APP_SETTINGS_LOCAL_STORAGE_KEY } from './themeBootstrap';
 
 /**
  * Lagring af programindstillinger
@@ -7,7 +8,7 @@ import { getSafeLocalStorage } from '../utils/safeLocalStorage';
  * Best-effort persistence - fail-safe fallback til in-memory state.
  */
 
-export const LOCAL_STORAGE_KEY = 'mineo_app_settings_v1';
+export const LOCAL_STORAGE_KEY = APP_SETTINGS_LOCAL_STORAGE_KEY;
 
 const storage = getSafeLocalStorage();
 

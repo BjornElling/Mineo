@@ -57,10 +57,15 @@ describe('parseStoredSettings', () => {
     expect(result).toEqual(DEFAULT_APP_SETTINGS);
   });
 
-  it('settings med ukendt felt → strict schema afviser → falder tilbage til defaults', () => {
-    const invalid = { ...DEFAULT_APP_SETTINGS, overenskomstFilter: 999 };
-    const result = parseStoredSettings(invalid);
-    expect(result).toEqual(DEFAULT_APP_SETTINGS);
+  it('ignorerer et ukendt felt uden at nulstille kendte gyldige felter', () => {
+    const result = parseStoredSettings({
+      ...DEFAULT_APP_SETTINGS,
+      themeMode: 'dark',
+      overenskomstFilter: 999,
+    });
+
+    expect(result.themeMode).toBe('dark');
+    expect(result).not.toHaveProperty('overenskomstFilter');
   });
 
   it('returnerer ny kopi af defaults (ikke reference)', () => {
@@ -69,10 +74,36 @@ describe('parseStoredSettings', () => {
     expect(result1).not.toBe(result2);
   });
 
-  it('tolerant mod ekstra ukendte keys i input (merger med defaults)', () => {
-    const withExtra = { ...DEFAULT_APP_SETTINGS, gammelKey: 'gammel_vaerdi' };
-    // Parser skal ikke kaste ved ekstra keys – merger og validerer
-    expect(() => parseStoredSettings(withExtra)).not.toThrow();
+  it('bevarer gyldige dokumentsettings når et andet top-level felt er ugyldigt', () => {
+    const result = parseStoredSettings({
+      ...DEFAULT_APP_SETTINGS,
+      showContentBoxReportButton: 'ugyldig',
+      documentDownloadFormat: 'word',
+      brevhovedIndstillinger: {
+        ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger,
+        regulering: true,
+      },
+    });
+
+    expect(result.showContentBoxReportButton).toBe(DEFAULT_APP_SETTINGS.showContentBoxReportButton);
+    expect(result.documentDownloadFormat).toBe('word');
+    expect(result.brevhovedIndstillinger.regulering).toBe(true);
+  });
+
+  it('default-er kun det ugyldige nested felt og bevarer øvrige nested felter', () => {
+    const result = parseStoredSettings({
+      brevhovedIndstillinger: {
+        erstatningsopgoerelse: false,
+        regulering: 'ugyldig',
+        fremtidigtFelt: true,
+      },
+    });
+
+    expect(result.brevhovedIndstillinger.erstatningsopgoerelse).toBe(false);
+    expect(result.brevhovedIndstillinger.regulering).toBe(
+      DEFAULT_APP_SETTINGS.brevhovedIndstillinger.regulering,
+    );
+    expect(result.brevhovedIndstillinger).not.toHaveProperty('fremtidigtFelt');
   });
 
   it('determinisme – samme input giver samme output', () => {

@@ -481,33 +481,3 @@ export const forsoergertabTabeller =
 export const forsoergertabTabellerMaend = {} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
 
 export const forsoergertabTabellerKvinder = {} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
-
-export const forsoergertabAfloesningsTabeller = 
-{
-  Q: [
-    { alder: 55, faktor: 1.39 },
-    { alder: 56, faktor: 1.539 },
-    { alder: 57, faktor: 1.705 },
-    { alder: 58, faktor: 1.89 },
-    { alder: 59, faktor: 2.098 },
-    { alder: 60, faktor: 2.33 },
-    { alder: 61, faktor: 2.59 },
-    { alder: 62, faktor: 2.882 },
-    { alder: 63, faktor: 3.21 },
-    { alder: 64, faktor: 3.581 }
-  ],
-  R: [
-    { alder: 57, faktor: 0.68 },
-    { alder: 58, faktor: 0.754 },
-    { alder: 59, faktor: 0.837 },
-    { alder: 60, faktor: 0.929 },
-    { alder: 61, faktor: 1.033 },
-    { alder: 62, faktor: 1.149 },
-    { alder: 63, faktor: 1.28 },
-    { alder: 64, faktor: 1.428 },
-    { alder: 65, faktor: 1.595 },
-    { alder: 66, faktor: 1.785 }
-  ]
-} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
-
-export const forsoergertabAfloesningsTabellerKoensopdelt = {} as const satisfies Record<string, readonly AldersKoensopdeltFaktorRaekke[]>;

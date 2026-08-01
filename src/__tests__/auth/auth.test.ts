@@ -19,11 +19,11 @@ const createStorageMock = (): StorageMock => {
   };
 };
 
-let storageMock: StorageMock = createStorageMock();
+let persistentStorageMock: StorageMock | null = createStorageMock();
 const TEST_PASSWORD = 'test-password';
 
 vi.mock('../../utils/safeLocalStorage', () => ({
-  getSafeLocalStorage: () => storageMock,
+  getPersistentLocalStorage: () => persistentStorageMock,
 }));
 
 vi.mock('../../auth/authConfig', () => ({
@@ -47,29 +47,29 @@ const restoreCrypto = (() => {
 })();
 
 afterEach(() => {
-  storageMock = createStorageMock();
+  persistentStorageMock = createStorageMock();
   vi.resetModules();
   vi.resetAllMocks();
   restoreCrypto();
 });
 
 describe('auth', () => {
-  it('verifies shared password when input is correct', async () => {
+  it('godkender den delte adgangskode ved korrekt input', async () => {
     const { verifySharedPassword } = await import('../../auth/auth');
     await expect(verifySharedPassword(TEST_PASSWORD)).resolves.toBe(true);
   });
 
-  it('verifies shared password case-neutrally', async () => {
+  it('godkender den delte adgangskode case-neutralt', async () => {
     const { verifySharedPassword } = await import('../../auth/auth');
     await expect(verifySharedPassword('TEST-PASSWORD')).resolves.toBe(true);
   });
 
-  it('rejects shared password when input is incorrect', async () => {
+  it('afviser en forkert delt adgangskode', async () => {
     const { verifySharedPassword } = await import('../../auth/auth');
     await expect(verifySharedPassword('forkert')).resolves.toBe(false);
   });
 
-  it('persists and reads authenticated state', async () => {
+  it('persisterer og læser login-status', async () => {
     const { isAuthenticated, setAuthenticated } = await import('../../auth/auth');
     expect(isAuthenticated()).toBe(false);
 
@@ -77,8 +77,15 @@ describe('auth', () => {
     expect(isAuthenticated()).toBe(true);
   });
 
-  it('throws deterministic error when storage write fails', async () => {
-    storageMock = {
+  it('kaster en deterministisk fejl når vedvarende storage mangler', async () => {
+    persistentStorageMock = null;
+
+    const { setAuthenticated } = await import('../../auth/auth');
+    expect(() => setAuthenticated()).toThrow('Kunne ikke gemme login-status i browseren.');
+  });
+
+  it('kaster en deterministisk fejl når storage-skrivning fejler', async () => {
+    persistentStorageMock = {
       ...createStorageMock(),
       setItem: () => {
         throw new Error('storage unavailable');
@@ -89,7 +96,36 @@ describe('auth', () => {
     expect(() => setAuthenticated()).toThrow('Kunne ikke gemme login-status i browseren.');
   });
 
-  it('fails verification when crypto.subtle is unavailable', async () => {
+  it('kaster en deterministisk fejl når storage ignorerer skrivningen', async () => {
+    persistentStorageMock = {
+      ...createStorageMock(),
+      setItem: () => undefined,
+    };
+
+    const { setAuthenticated } = await import('../../auth/auth');
+    expect(() => setAuthenticated()).toThrow('Kunne ikke gemme login-status i browseren.');
+  });
+
+  it('nægter adgang uden at kaste når storage-læsning fejler', async () => {
+    persistentStorageMock = {
+      ...createStorageMock(),
+      getItem: () => {
+        throw new Error('storage unavailable');
+      },
+    };
+
+    const { isAuthenticated } = await import('../../auth/auth');
+    expect(isAuthenticated()).toBe(false);
+  });
+
+  it('nægter adgang når vedvarende storage mangler', async () => {
+    persistentStorageMock = null;
+
+    const { isAuthenticated } = await import('../../auth/auth');
+    expect(isAuthenticated()).toBe(false);
+  });
+
+  it('afviser verifikation når crypto.subtle ikke er tilgængelig', async () => {
     Object.defineProperty(globalThis, 'crypto', {
       configurable: true,
       value: {},

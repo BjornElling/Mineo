@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domæne-/sagsglobal kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `persistence-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ---
 
@@ -23,6 +23,11 @@ kanoniske opregulerings-motorer** i `src/domain/satser/opreguleringsmotorer.ts`
 indføres; alle domæner der opregulerer beløb skal kalde disse motorer.
 
 **Fail-closed for manglende satsdækning:** Begge motorer returnerer `manglendeAar` (de år hvor nødvendigt indeks/sats mangler). Er listen ikke-tom, er `faktor`/`deltaPct` **ikke** pålidelige, og kalderen skal fail-close (synligt issue frem for et tavst "ingen regulering"-resultat). Den akkumulerede reguleringssats kræver satsdækning for start-, slut- **og** alle mellemår, også når start-årets sats ikke multipliceres ind i selve faktoren — datadækningen er en selvstændig invariant.
+
+De lovbestemte årsserier valideres desuden ved modul-load: serien skal være ikke-tom, alle
+repræsenterede år skal have finite værdier, og intervallet mellem første og sidste år må ikke
+have skjulte huller. Den eneste aktuelle allowlistede undtagelse er `aarsloenAslMin[2024]`,
+fordi året er repræsenteret af de særskilte før/fra 1. juli-serier.
 
 ---
 

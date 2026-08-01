@@ -1,26 +1,6 @@
-/* Import Mineo styling - opdelt efter ansvar */
-@import './styles/typography.css';
-@import './styles/layout.css';
-
-/* Global reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Montserrat', sans-serif;
-  /* Fjern Android/Chromes tap-highlight: et halvtransparent blåt/gråt overlay som
-     browseren maler over hele det berørte element ved tap. Mineo signalerer fokus
-     via eksplicitte border-farver, så overlayet er aldrig en del af designet — det
-     gav bl.a. et blåt blink over dato-/textarea-felter på minprocesrente-mobil før
-     editoren åbnede. Globalt så princippet er ensartet på tværs af alle felter. */
-  -webkit-tap-highlight-color: transparent;
-}
+@import './styles/sharedApp.css';
 
 body {
-  margin: 0;
-  font-family: 'Montserrat', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
 }
 

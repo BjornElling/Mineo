@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  assertKapitaliseringsbekendtgoerelserIntegritet,
   kapitaliseringsbekendtgoerelser,
   eetKapitaliseringsDatoMaxFraBekendtgoerelser,
 } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
+import { assertKapitaliseringsMappingIntegritet } from '../../data/catalog/beregningsdataCatalog';
 import {
   assertKapitaliseringsTabelDataIntegritet,
   kapitaliseringsTabelDataById,
@@ -134,5 +136,142 @@ describe('kapitaliseringsbekendtgørelser', () => {
     };
     expect(() => assertKapitaliseringsTabelDataIntegritet({ [invalidFactor.kapitaliseringsId]: invalidFactor }))
       .toThrow('faktoren skal være et endeligt tal');
+  });
+
+  it('fail-closer ved duplikerede intervaldatoer', () => {
+    const duplicateDate = toISODateString('2024-01-01');
+    expect(() => assertKapitaliseringsbekendtgoerelserIntegritet([{
+      skadedatoFra: toISODateString('2011-01-01'),
+      kapitaliseringer: [
+        { kapitaliseringsdatoFra: duplicateDate, id: 'a' },
+        { kapitaliseringsdatoFra: duplicateDate, id: 'b' },
+      ],
+    }])).toThrow('duplikeret post');
+  });
+
+  it('fail-closer ved usorterede skade- og kapitaliseringsdatoer', () => {
+    expect(() => assertKapitaliseringsbekendtgoerelserIntegritet([
+      { skadedatoFra: toISODateString('2024-01-01'), kapitaliseringer: [
+        { kapitaliseringsdatoFra: toISODateString('2024-01-01'), id: 'a' },
+      ] },
+      { skadedatoFra: toISODateString('2023-01-01'), kapitaliseringer: [
+        { kapitaliseringsdatoFra: toISODateString('2023-01-01'), id: 'b' },
+      ] },
+    ])).toThrow('skadedatointervaller skal være sorteret stigende');
+
+    expect(() => assertKapitaliseringsbekendtgoerelserIntegritet([{
+      skadedatoFra: toISODateString('2024-01-01'),
+      kapitaliseringer: [
+        { kapitaliseringsdatoFra: toISODateString('2024-07-01'), id: 'a' },
+        { kapitaliseringsdatoFra: toISODateString('2024-01-01'), id: 'b' },
+      ],
+    }])).toThrow('datoer for 2024-01-01 skal være sorteret stigende');
+  });
+
+  it('fail-closer når resolverens afledte periode går ud over kildetabellens gyldighed', () => {
+    const valid = Object.values(kapitaliseringsTabelDataById)[0];
+    if (!valid) throw new Error('Testfixture mangler en kapitaliseringstabel');
+    const id = valid.kapitaliseringsId;
+    const table = {
+      ...valid,
+      gyldigFra: toISODateString('2024-01-01'),
+      gyldigTil: toISODateString('2024-12-31'),
+    };
+
+    expect(() => assertKapitaliseringsMappingIntegritet([{
+      skadedatoFra: toISODateString('2011-01-01'),
+      kapitaliseringer: [
+        { kapitaliseringsdatoFra: toISODateString('2024-01-01'), id },
+        { kapitaliseringsdatoFra: toISODateString('2026-01-01'), id },
+      ],
+    }], { [id]: table })).toThrow('men kilden gælder');
+  });
+
+  it('fail-closer ved negative faktorer og duplikerede særfaktorintervaller', () => {
+    const valid = Object.values(kapitaliseringsTabelDataById)[0];
+    if (!valid) throw new Error('Testfixture mangler en kapitaliseringstabel');
+    const negativeFactor: KapitaliseringsTabelData = {
+      ...valid,
+      erhvervsevnetabTabeller: { test: [{ alder: 20, faktor: -1 }] },
+    };
+    expect(() => assertKapitaliseringsTabelDataIntegritet({ [valid.kapitaliseringsId]: negativeFactor }))
+      .toThrow('faktoren skal være positiv');
+
+    const duplicateDate = toISODateString('2024-01-01');
+    const duplicateSpecial: KapitaliseringsTabelData = {
+      ...valid,
+      saerfaktorUnderToAarTilFpPerSkadesinterval: [
+        { skadedatoFra: duplicateDate, faktor: 1 },
+        { skadedatoFra: duplicateDate, faktor: 2 },
+      ],
+    };
+    expect(() => assertKapitaliseringsTabelDataIntegritet({ [valid.kapitaliseringsId]: duplicateSpecial }))
+      .toThrow('duplikeret særfaktorinterval');
+  });
+
+  it('fail-closer både ved nye tabelreferencemangler og ved en stale allowlist', () => {
+    const valid = Object.values(kapitaliseringsTabelDataById)[0];
+    if (!valid) throw new Error('Testfixture mangler en kapitaliseringstabel');
+    const missing: KapitaliseringsTabelData = {
+      ...valid,
+      erhvervsevnetabTabelvalg: [{
+        skadedatoFra: toISODateString('2011-01-01'),
+        foedselsdatoFra: toISODateString('1900-01-01'),
+        foedselsdatoTil: null,
+        tabel: 'MANGLER',
+      }],
+    };
+    expect(() => assertKapitaliseringsTabelDataIntegritet(
+      { [valid.kapitaliseringsId]: missing },
+      new Set(),
+    )).toThrow('faktisk');
+
+    expect(() => assertKapitaliseringsTabelDataIntegritet(
+      { [valid.kapitaliseringsId]: { ...valid, erhvervsevnetabTabelvalg: [] } },
+      new Set([`${valid.kapitaliseringsId}:MANGLER`]),
+    )).toThrow('inventory');
+  });
+
+  it('fail-closer ved omvendte eller duplikerede fødselsintervaller i EET-tabelvalg', () => {
+    const valid = Object.values(kapitaliseringsTabelDataById)[0];
+    if (!valid) throw new Error('Testfixture mangler en kapitaliseringstabel');
+    const skadedatoFra = toISODateString('2011-01-01');
+    const tableName = Object.keys({
+      ...valid.erhvervsevnetabTabeller,
+      ...valid.erhvervsevnetabKoensopdelteTabeller,
+    })[0];
+    if (!tableName) throw new Error('Testfixture mangler en EET-faktortabel');
+
+    expect(() => assertKapitaliseringsTabelDataIntegritet({
+      [valid.kapitaliseringsId]: {
+        ...valid,
+        erhvervsevnetabTabelvalg: [{
+          skadedatoFra,
+          foedselsdatoFra: toISODateString('2000-01-02'),
+          foedselsdatoTil: toISODateString('2000-01-01'),
+          tabel: tableName,
+        }],
+      },
+    }, new Set())).toThrow('ugyldigt EET-tabelvalg');
+
+    expect(() => assertKapitaliseringsTabelDataIntegritet({
+      [valid.kapitaliseringsId]: {
+        ...valid,
+        erhvervsevnetabTabelvalg: [
+          {
+            skadedatoFra,
+            foedselsdatoFra: toISODateString('1900-01-01'),
+            foedselsdatoTil: toISODateString('2000-01-01'),
+            tabel: tableName,
+          },
+          {
+            skadedatoFra,
+            foedselsdatoFra: toISODateString('1900-01-01'),
+            foedselsdatoTil: toISODateString('2000-01-01'),
+            tabel: tableName,
+          },
+        ],
+      },
+    }, new Set())).toThrow('duplikeret EET-tabelvalg');
   });
 });

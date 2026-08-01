@@ -572,6 +572,19 @@ Kontrakten er koblet i `contractCoverageMatrix.test.ts` til:
 
 Word-kanalens indholds-paritet pr. generator er desuden dækket af `src/__tests__/docx/generators/*WordContent.test.ts` (én pr. dokument-generator, kørt gennem den rigtige generator via `wordContentHarness.ts`). Disse verificerer, at samme tekst og tal når `.docx`'en som PDF'en, og knyttes formatvalgsmæssigt til `document-format-contract.md`.
 
+### 3.1 Residual visuel verifikation
+
+Automatiske tests ejer indhold, tal, blokrækkefølge, tabelgeometri, spacing- og sidebrydningsinvariants. De må ikke
+erstattes af platformafhængige pixel-goldens: PDF- og Word-rendering afhænger af fontmotor og den konkrete
+dokumentrenderer, og en ustabil billedsammenligning ville enten give støj eller kræve tolerancer, som skjuler
+reelle layoutfejl.
+
+Ved ændringer i writerne, fonts, layoutkonstanter, tabelrendering, sidebrydning, brevhoved, footer eller vandmærke
+skal de seneste repræsentative fler-sidede PDF- og Word-fixtures også kontrolleres visuelt i en rigtig renderer.
+Kontrollen omfatter mindst klippet/overlappende tekst, danske tegn, tabelbredder, sideskift, overskriftsbinding,
+sidehoved/-fod og læsbarhed. PDF renderes til sidebilleder før inspektion; Word åbnes i en kompatibel Word-renderer.
+Kravet er residualt og gælder kun ændringer med fysisk layout-risiko.
+
 ## 4. Enforcement
 
 Denne kontrakt skal understøttes af:

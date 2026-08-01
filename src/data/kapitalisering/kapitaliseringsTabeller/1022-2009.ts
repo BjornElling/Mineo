@@ -222,7 +222,3 @@ export const forsoergertabTabellerKvinder =
     { alder: 64, faktorerPraHeleAar: [0.58] }
   ]
 } as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
-
-export const forsoergertabAfloesningsTabeller = {} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
-
-export const forsoergertabAfloesningsTabellerKoensopdelt = {} as const satisfies Record<string, readonly AldersKoensopdeltFaktorRaekke[]>;

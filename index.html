@@ -2,38 +2,7 @@
 <html lang="da">
   <head>
     <meta charset="UTF-8" />
-    <script>
-      (function () {
-        var LIGHT_THEME_COLOR = '#e9ecef';
-        var DARK_THEME_COLOR = '#2b2b2b';
-        var applyThemeChrome = function (themeMode) {
-          var resolvedThemeMode = themeMode === 'dark' ? 'dark' : 'light';
-          if (resolvedThemeMode === 'dark') {
-            document.documentElement.dataset.mineoTheme = 'dark';
-          }
-
-          var meta = document.querySelector('meta[name="theme-color"]');
-          if (!meta) {
-            meta = document.createElement('meta');
-            meta.name = 'theme-color';
-            document.head.appendChild(meta);
-          }
-          meta.content = resolvedThemeMode === 'dark' ? DARK_THEME_COLOR : LIGHT_THEME_COLOR;
-        };
-
-        try {
-          var raw = localStorage.getItem('mineo_app_settings_v1');
-          if (!raw) {
-            var systemThemeMode =
-              window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            applyThemeChrome(systemThemeMode);
-            return;
-          }
-          var parsed = JSON.parse(raw);
-          applyThemeChrome(parsed && parsed.themeMode === 'dark' ? 'dark' : 'light');
-        } catch (e) {}
-      })();
-    </script>
+    <!-- MINEO_THEME_BOOTSTRAP -->
     <link rel="icon" type="image/svg+xml" href="/favicon-mineo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#e9ecef" />

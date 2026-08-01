@@ -332,7 +332,9 @@ Ved blokeret `.eo`-save findes route og eventuel fane i det statiske, descriptor
 hvert produktionsdescriptor præcis én gang. DOM-registret vælger derefter en allerede synlig spejling eller
 fokuserer den konkrete editor efter mount; det må ikke være eneste kilde til den destination, som netop er
 nødvendig for at mounte en aldrig besøgt fane. Håndhævet af `input/focus-destination-owned-by-location` og
-`input/restore-attributes-carry-destination`.
+`input/restore-attributes-carry-destination`. Fordi fokusforløbet er asynkront, sammenlignes destinationen med
+browserens aktuelle route på udførelsestidspunktet; et route-snapshot fra handlingens start må ikke udløse en
+stale navigation efter mount-ventet.
 
 Fejl- og beskedregler ejes af `error-contract.md`.
 
@@ -379,3 +381,17 @@ Den ENE dokumenterede undtagelse fra den autoritative inputtilstand er `componen
 hverken feltadresse, issue-snapshot, history eller persistens, men genbruger de samme parse-kerner, tegnfiltre og
 bounds-beskeder som de persisterede felter. `input/transient-cannot-write-case-data` håndhæver, at de ikke kan
 skrive sagsdata.
+
+## 13. Runtime-verifikation af mount og settle
+
+Den automatiske testflade skal bevise mount-uafhængighed deterministisk: mount, unmount og remount må hverken
+ændre afsluttet input, revisioner, issues, beregninger, save-gate eller dokumentgate. Fane-/sidenavigation skal
+desuden have integrationstests, som beviser, at en åben editor afsluttes gennem den samme blur-/settle-sti før
+unmount, både ved gyldigt og fejlende input.
+
+Browserens konkrete eventrækkefølge kan ikke fuldt simuleres i JSDOM. Ved ændringer i faneimplementering,
+editorregistrering, blur-håndtering eller `CriticalActionCoordinator` skal den automatiske suite derfor suppleres
+med en runtime-stresstest i en styrbar browser: gentagne skift mellem faner mens gyldige og ugyldige drafts
+åbnes, settler og remountes. Efter hver sekvens kontrolleres, at senest afsluttede canonical/rejected input er
+bevaret, og at ingen åben draft har påvirket beregning eller gates før settle. Dette er et residualt
+release-verifikationskrav, ikke en tilladelse til browserafhængig produktionslogik.

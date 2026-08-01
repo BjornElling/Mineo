@@ -147,7 +147,6 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   } = useFileSaveLoad({
     settings,
     navigate,
-    currentPathname: location.pathname,
     ops,
     criticalActions,
     markSaved,

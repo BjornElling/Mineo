@@ -3,11 +3,7 @@ import type { AppSettings } from '../settings/appSettingsSchema';
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../settings/appSettingsStorage';
 import { loadInitialSettings, mergeAppSettings } from '../settings/appSettingsParse';
 import { AppSettingsContext, type AppSettingsContextValue } from './AppSettingsContext.shared';
-
-const THEME_COLOR_BY_MODE = {
-  light: '#e9ecef',
-  dark: '#2b2b2b',
-} as const;
+import { THEME_COLOR_BY_MODE } from '../settings/themeBootstrap';
 
 /**
  * AppSettingsContext

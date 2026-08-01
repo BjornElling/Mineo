@@ -173,6 +173,57 @@ export const kapitaliseringsbekendtgoerelser: KapitaliseringsSkadedatoInterval[]
     })),
   }));
 
+/**
+ * Værn for den intervalstruktur, resolveren bruger til fail-closed opslag.
+ * Den kildeovergribende kontrol af de afledte perioder mod tabellernes egne
+ * gyldighedsdatoer ligger i beregningsdatakataloget.
+ */
+export const assertKapitaliseringsbekendtgoerelserIntegritet = (
+  intervals: readonly KapitaliseringsSkadedatoInterval[],
+): void => {
+  if (intervals.length === 0) {
+    throw new Error('Kapitaliseringsbekendtgørelser: oversigten er tom');
+  }
+
+  const skadeDatoer = new Set<string>();
+  let previousSkadedatoFra: ISODateString | null = null;
+  for (const interval of intervals) {
+    if (skadeDatoer.has(interval.skadedatoFra)) {
+      throw new Error(`Kapitaliseringsbekendtgørelser: duplikeret skadedato ${interval.skadedatoFra}`);
+    }
+    skadeDatoer.add(interval.skadedatoFra);
+    if (previousSkadedatoFra !== null && interval.skadedatoFra <= previousSkadedatoFra) {
+      throw new Error('Kapitaliseringsbekendtgørelser: skadedatointervaller skal være sorteret stigende');
+    }
+    previousSkadedatoFra = interval.skadedatoFra;
+    if (interval.kapitaliseringer.length === 0) {
+      throw new Error(`Kapitaliseringsbekendtgørelser: ${interval.skadedatoFra} mangler kapitaliseringer`);
+    }
+
+    const datoer = new Set<string>();
+    let previousKapitaliseringsdatoFra: ISODateString | null = null;
+    for (const current of interval.kapitaliseringer) {
+      if (current.id.trim() === '' || datoer.has(current.kapitaliseringsdatoFra)) {
+        throw new Error(
+          `Kapitaliseringsbekendtgørelser: ugyldig eller duplikeret post ved ${current.kapitaliseringsdatoFra}`
+        );
+      }
+      datoer.add(current.kapitaliseringsdatoFra);
+      if (
+        previousKapitaliseringsdatoFra !== null
+        && current.kapitaliseringsdatoFra <= previousKapitaliseringsdatoFra
+      ) {
+        throw new Error(
+          `Kapitaliseringsbekendtgørelser: datoer for ${interval.skadedatoFra} skal være sorteret stigende`
+        );
+      }
+      previousKapitaliseringsdatoFra = current.kapitaliseringsdatoFra;
+    }
+  }
+};
+
+assertKapitaliseringsbekendtgoerelserIntegritet(kapitaliseringsbekendtgoerelser);
+
 const resolveLatestKapitaliseringsdatoFraPerSkadesinterval = (
   interval: KapitaliseringsSkadedatoInterval
 ): ISODateString => {

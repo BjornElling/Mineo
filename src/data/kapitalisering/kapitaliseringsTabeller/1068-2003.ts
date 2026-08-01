@@ -222,35 +222,7 @@ export const forsoergertabTabellerKvinder =
   ]
 } as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
 
-export const forsoergertabAfloesningsTabeller = {} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
 
 // Undtagelse: Kilden angiver kun kønsopdelte afløsningstabeller.
 // Risiko: Data går tabt ved sammenfletning til kønsneutral struktur.
 // Revurder hvis en fælles canonical model for kønsopdelt afløsning indføres.
-export const forsoergertabAfloesningsTabellerKoensopdelt = 
-{
-  F: [
-    { alder: 55, maendFaktor: 1.363, kvinderFaktor: 1.417 },
-    { alder: 56, maendFaktor: 1.511, kvinderFaktor: 1.567 },
-    { alder: 57, maendFaktor: 1.677, kvinderFaktor: 1.734 },
-    { alder: 58, maendFaktor: 1.861, kvinderFaktor: 1.919 },
-    { alder: 59, maendFaktor: 2.069, kvinderFaktor: 2.127 },
-    { alder: 60, maendFaktor: 2.301, kvinderFaktor: 2.357 },
-    { alder: 61, maendFaktor: 2.564, kvinderFaktor: 2.616 },
-    { alder: 62, maendFaktor: 2.859, kvinderFaktor: 2.904 },
-    { alder: 63, maendFaktor: 3.193, kvinderFaktor: 3.228 },
-    { alder: 64, maendFaktor: 3.571, kvinderFaktor: 3.592 }
-  ],
-  G: [
-    { alder: 57, maendFaktor: 0.664, kvinderFaktor: 0.696 },
-    { alder: 58, maendFaktor: 0.738, kvinderFaktor: 0.771 },
-    { alder: 59, maendFaktor: 0.82, kvinderFaktor: 0.854 },
-    { alder: 60, maendFaktor: 0.912, kvinderFaktor: 0.947 },
-    { alder: 61, maendFaktor: 1.016, kvinderFaktor: 1.05 },
-    { alder: 62, maendFaktor: 1.133, kvinderFaktor: 1.166 },
-    { alder: 63, maendFaktor: 1.265, kvinderFaktor: 1.296 },
-    { alder: 64, maendFaktor: 1.415, kvinderFaktor: 1.442 },
-    { alder: 65, maendFaktor: 1.585, kvinderFaktor: 1.606 },
-    { alder: 66, maendFaktor: 1.778, kvinderFaktor: 1.791 }
-  ]
-} as const satisfies Record<string, readonly AldersKoensopdeltFaktorRaekke[]>;

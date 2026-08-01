@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { getSafeLocalStorage } from '../../utils/safeLocalStorage';
+import { getPersistentLocalStorage, getSafeLocalStorage } from '../../utils/safeLocalStorage';
 
 // ─── getSafeLocalStorage ──────────────────────────────────────────────────────
 // I testmiljøet (Node/Vitest) bruges in-memory storage fallback automatisk.
@@ -69,5 +69,25 @@ describe('getSafeLocalStorage', () => {
     const storage = getSafeLocalStorage();
     storage.setItem('', 'value_for_empty_key');
     expect(storage.getItem('')).toBe('value_for_empty_key');
+  });
+});
+
+describe('getPersistentLocalStorage', () => {
+  it('returnerer null når browserens localStorage-getter er blokeret', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get: () => {
+        throw new Error('storage unavailable');
+      },
+    });
+
+    try {
+      expect(getPersistentLocalStorage()).toBeNull();
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(window, 'localStorage', descriptor);
+      }
+    }
   });
 });

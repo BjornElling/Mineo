@@ -52,20 +52,42 @@ export const parseStoredSettings = (raw: unknown): AppSettings => {
   // `.strict()`-parsingen. Indstillingen har ingen brugeradfærd at bevare.
   delete migrated.showStamdataTestTab;
 
-  // Tolerant mod manglende keys (fremtidig schema-evolution).
-  // Vi håndhæver stadig korrekte typer via Zod.
-  const merged: unknown = {
-    ...createDefaultAppSettings(),
-    ...migrated,
-    brevhovedIndstillinger: isRecord(raw.brevhovedIndstillinger)
-      ? {
-        ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger,
-        ...raw.brevhovedIndstillinger,
-      }
-      : { ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger },
-  };
+  const defaults = createDefaultAppSettings();
+  const sanitized: Record<string, unknown> = { ...defaults };
 
-  return resolveAppSettings(merged);
+  // En enkelt fremmed eller korrupt nøgle må ikke nulstille de øvrige, gyldige indstillinger.
+  // Hvert kendt top-level felt valideres derfor mod sin egen Zod-schema-grænse, før hele det
+  // sanitiserede objekt slutvalideres samlet. Ukendte felter ignoreres fremad-tolerant.
+  for (const key of Object.keys(appSettingsSchema.shape) as (keyof AppSettings)[]) {
+    if (key === 'brevhovedIndstillinger' || !(key in migrated)) continue;
+    const parsedField = appSettingsSchema.shape[key].safeParse(migrated[key]);
+    if (parsedField.success) {
+      sanitized[key] = parsedField.data;
+    }
+  }
+
+  const sanitizedBrevhoved: Record<string, unknown> = {
+    ...defaults.brevhovedIndstillinger,
+  };
+  const rawBrevhoved = migrated.brevhovedIndstillinger;
+  if (isRecord(rawBrevhoved)) {
+    for (const key of Object.keys(appSettingsSchema.shape.brevhovedIndstillinger.shape) as (
+      keyof AppSettings['brevhovedIndstillinger']
+    )[]) {
+      if (!(key in rawBrevhoved)) continue;
+      const parsedField = appSettingsSchema.shape.brevhovedIndstillinger.shape[key].safeParse(
+        rawBrevhoved[key],
+      );
+      if (parsedField.success) {
+        sanitizedBrevhoved[key] = parsedField.data;
+      }
+    }
+  }
+  sanitized.brevhovedIndstillinger = sanitizedBrevhoved;
+
+  // Konstruktionen ovenfor er schema-drevet; denne parse fastholder AppSettings som den eneste
+  // runtime-type og fanger samtidig intern drift mellem defaults og schema.
+  return appSettingsSchema.parse(sanitized);
 };
 
 export const mergeAppSettings = (

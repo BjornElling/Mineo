@@ -56,7 +56,8 @@ Konsekvens:
   ikke få samme kontrolfarve som den korrekte felt-/tabeltypografi.
 
 ## Teknisk implementering
-- Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1` (`LOCAL_STORAGE_KEY` i `src/settings/appSettingsStorage.ts`)
+- Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1`. Nøglen og browser-chromens theme-farver ejes kanonisk af `src/settings/themeBootstrap.ts`; `appSettingsStorage.ts` og runtime-contexten importerer dem herfra.
+- Første paint bruger et synkront head-script genereret af `createThemeBootstrapScript`. Manglende, ugyldig eller ulæselig settings-storage følger systemtemaet præcis som runtime-parsingen; bootstrap må ikke vælge en særskilt light-fallback.
 - Skema og defaults: `src/settings/appSettingsSchema.ts`
 - Tolerant parsing/merge mod defaults: `src/settings/appSettingsParse.ts` (`parseStoredSettings`, `mergeAppSettings`, `loadInitialSettings`)
 - localStorage-I/O (fail-safe): `src/settings/appSettingsStorage.ts` (`readLocalStorage`/`writeLocalStorage`)
@@ -72,7 +73,7 @@ Konsekvens:
   revision læses atomisk og indgår sammen med inputrevisionen i `EvaluationSourceToken`; async-gates sammenligner altid
   hele tokenet.
 - **Fail-safe**: hvis `localStorage` er blokeret/fejler, må app’en stadig fungere (fallback til in-memory state).
-- **Schema-alignment**: settings skal valideres via Zod; invalid/ukendt data skal falde tilbage til defaults.
+- **Schema-alignment og tolerant feltredning**: settings skal valideres via Zod. En ikke-objektværdi falder tilbage til alle defaults. For et objekt valideres hvert kendt felt selvstændigt: et ugyldigt felt falder kun tilbage til sit eget default, ukendte felter ignoreres, og øvrige schema-gyldige felter bevares. Samme regel gælder pr. felt i nested settingsobjekter. Det samlede sanitiserede objekt slutvalideres altid mod `appSettingsSchema`, før det publiceres.
 - **Ingen netværk/telemetri**: settings må ikke forårsage data-overførsel ud af browseren.
 - **Versionering af localStorage-nøgle**: breaking settings-schema kræver ny nøgle (`_v2` osv.) eller eksplicit one-way migration. Non-breaking tilføjelser håndteres via merge-logikken uden nøgleskift.
 - `defaultDirectoryHandleId` er device-lokal og ikke portabel; den må aldrig betragtes som sagsdata eller sendes med `.eo`.

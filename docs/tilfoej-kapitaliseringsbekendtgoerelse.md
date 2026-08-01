@@ -54,6 +54,7 @@ Dette matcher implementeringsretningen i:
 
 - **Folkepensionsalder** — brug ikke `folkepensionsalderAar`, `ophoersalderAarLabel` eller tilsvarende felter i tabelfiler. Folkepensionsalder er tværdomæne og håndteres udelukkende via `src/data/folkepensionAlderRates.ts` (`getFolkepensionAlder`, `getFolkepensionsdato`, `getDagenFoerFolkepensionsdato`). Filen ligger bevidst i `src/data/` og ikke under `src/data/kapitalisering/` — den er ikke kapitaliseringsspecifik.
 - **Afledte aldersbegreber** — ophoersalder, pensionsdato og lign. må ikke udledes eller hardkodes i tabelfiler. Disse beregnes altid dynamisk via ovenstående centrale kilde.
+- **Afløsningstabeller for forsørgertab** — denne beregningstype indgår ikke i programmets låste featureomfang. Dataene bevares i original-PDF'en, men udtrækkes ikke som ubrugte TypeScript-exports.
 
 ## Kendte undtagelser der skal dokumenteres i filerne
 
@@ -67,8 +68,6 @@ Dette matcher implementeringsretningen i:
 - For VEJ `9921/2019` og `9870/2020` udfyldes ikke ekstra EET-tabelvalg for ældre ordninger, forsørgertab-tabelvalg eller særfaktor ved `<2 år`, når disse ikke fremgår eksplicit af kilden.
 - For VEJ `9820/2023` og `9376/2024` kan filernes `gyldig`-intervaller overlappe i anden halvdel af 2024; deterministisk prioritering skal styres i `src/data/kapitalisering/kapitaliseringsbekendtgoerelser.ts` med skæringsdato `2024-07-01`.
 - For VEJ `9741/2020`, `9864/2021`, `10141/2022` og `9820/2023` er tabelvalg bevidst begrænset til skadedatoer fra `2011-01-01`, når kilden kun angiver tabeller `A-H`.
-- `forsoergertabAfloesningsTabeller = {}` betyder, at kilden ikke indeholder afløsningstabeller for den bekendtgørelse/vejledning.
-- Hvis kilden kun angiver kønsopdelte afløsningstabeller, skal de bevares i `forsoergertabAfloesningsTabellerKoensopdelt` (ingen sammenfletning til kønsneutral tabel).
 - Hvis kilden kun har én EET-tabel med formuleringer som `tilkendt til det 65. år, men uden omsætningsmulighed efter 63. år` eller `uden omsætningsmulighed fra det 63. år`, skal ophørsalderen stadig udtrækkes, og tabelvalget udtrykkes i `erhvervsevnetabTabelvalg`. I disse kilder kan fødselsintervallet være bredt, fordi fødselsdato ikke er en reel del af opslagsnøglen i kilden.
 
 ## Udtræksflow (hver gang)
@@ -212,13 +211,6 @@ export const forsoergertabTabeller = {
   ],
 } as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
 
-export const forsoergertabAfloesningsTabeller = {
-  Æ: [
-    { alder: 55, faktor: 1.39 },
-    { alder: 56, faktor: 1.539 },
-  ],
-} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
-
 // Filer med kønsopdeling skal desuden eksportere:
 export const erhvervsevnetabKoensopdelteTabeller = {} as const satisfies Record<
   string,
@@ -231,10 +223,6 @@ export const forsoergertabTabellerMaend = {} as const satisfies Record<
 export const forsoergertabTabellerKvinder = {} as const satisfies Record<
   string,
   readonly ForsoergertabMatrixRaekke[]
->;
-export const forsoergertabAfloesningsTabellerKoensopdelt = {} as const satisfies Record<
-  string,
-  readonly AldersKoensopdeltFaktorRaekke[]
 >;
 ```
 
@@ -282,7 +270,8 @@ Når en ny fil er udtrukket:
 2. Opdater `src/data/kapitalisering/kapitaliseringsbekendtgoerelser.ts` med korrekt `id` og relevante `kapitaliseringsdatoFra`-poster.
 3. Verificer at den nye fil ikke indeholder folkepensionsalder/ophørsalder i sine EET-tabelvalg, og at `src/data/folkepensionAlderRates.ts` dækker opslagsperioden.
 4. Verificer at udløbsreglen for seneste post stadig er opfyldt.
-5. Kør `npm run typecheck`.
+5. Registrer og verificer kilden i `beregningsdataCatalog`, herunder tabelreference-inventory og golden-fingerprint.
+6. Kør relevante data-tests samt `npm run typecheck`.
 
 ## Promptskabelon til fremtidige udtræk
 
