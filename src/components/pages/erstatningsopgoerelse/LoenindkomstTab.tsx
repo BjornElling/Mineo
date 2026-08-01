@@ -9,6 +9,7 @@ import { useLoenindkomstViewModel } from './loenindkomst/useLoenindkomstViewMode
 import { LoenindkomstVmProvider, type LoenindkomstVm } from './loenindkomst/loenindkomstContext';
 import AnsaettelsesforholdCard from './loenindkomst/AnsaettelsesforholdCard';
 import LoentrinFinderOverlay from './shared/LoentrinFinderOverlay';
+import type { FieldIssueSet } from '../../../inputCore/inputIssue';
 
 type Props = {
   eoValues: ErstatningsopgoerelseValues;
@@ -17,6 +18,7 @@ type Props = {
   /** Id'er på ansættelsesforhold hvor SFGG løber >6 mdr. efter sidste indkomst.
    *  Beregnet i EO-snapshot (committed-state); tom liste når snapshot.data er null. */
   sfggSixMonthWarningEmploymentIds: readonly string[];
+  manualRegulationDateIssues: FieldIssueSet;
 };
 
 const LoenindkomstTab = React.memo(({
@@ -24,6 +26,7 @@ const LoenindkomstTab = React.memo(({
   stamdataValues,
   onNavigateToTabtArbejdsfortjeneste,
   sfggSixMonthWarningEmploymentIds,
+  manualRegulationDateIssues,
 }: Props) => {
   // View-model-laget ejer al afledt visningstilstand, lokal UI-state og handlers (jf. A1).
   // Siden er nu en tynd forbruger: den læser kun den flade model og beskriver layout.
@@ -53,6 +56,7 @@ const LoenindkomstTab = React.memo(({
     beregnesUdFra: eoValues.beregnesUdFra,
     tafBeregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
     sfggSixMonthWarningEmploymentIds,
+    manualRegulationDateIssues,
     onNavigateToTabtArbejdsfortjeneste,
   };
 

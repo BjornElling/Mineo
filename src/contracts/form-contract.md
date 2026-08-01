@@ -284,6 +284,18 @@ fortegns-blind, og paste bevarer et indsat minus, så en negativ værdi der NÅR
 Beløbsfelter er den ene bevidste nuance: `-` er også subtraktion i et udtryk (`5000-200`), så et ikke-negativt
 beløbsfelt tillader tegnet og blokerer kun det **unære** minus.
 
+### 8.3 Decimalpolitikken ejes af feltets codec
+
+Om et procentfelt accepterer dansk decimalkomma, erklæres på codecet som `FieldCodec.decimalPolicy`, afledt af
+`allowDecimals`. Formularfelt og grid-celle læser begge politikken gennem `fieldAllowsDecimals(field)`; de må
+ikke have egne defaults eller callsite-flags. Et decimalfelt skal tillade en åben draft som `12,` og først
+afgøre den afsluttede værdi ved blur/Enter gennem det fælles procentcodec.
+
+Grid-procentfelternes universelle hovedregel er to decimaler: placeholderen er `0,00`, højst to decimaler kan
+tastes, og afsluttede værdier vises med to decimaler. EET-sidens procentfelter er den eneste aktuelle undtagelse:
+de erklærer `integerOnly` i deres codecs, viser placeholderen `0` og blokerer decimalkomma. Undtagelsen skyldes
+EET-felternes særskilte heltals-/5 %-regel og må ikke implementeres som et lokalt komponentflag.
+
 ## 9. Dynamiske tabeller
 
 Rækkeinfrastrukturen ejer kun stabil rækkeidentitet, rækkefølge, add/delete/reorder og eventuelle tomme UI-rækkers

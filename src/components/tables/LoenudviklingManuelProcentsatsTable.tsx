@@ -16,6 +16,9 @@ import { formatPercentDisplay } from '../../utils/percentDraftCore';
 import { INPUT_UNIT_SUFFIX, appendInputUnitSuffix, withInputUnitPlaceholderSuffix } from '../../utils/inputUnit';
 import { TWO_DECIMAL_PERCENT_PLACEHOLDER } from '../../utils/percentInputUtils';
 import { isISODateString } from '../../types/branded';
+import { resolveManualRegulationBasisRowId } from '../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
+import { activeFieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
 
 const LOCKED_PERCENT_PLACEHOLDER = withInputUnitPlaceholderSuffix(TWO_DECIMAL_PERCENT_PLACEHOLDER, INPUT_UNIT_SUFFIX.percent);
 const createEmptyRow = (id: string): LoenudviklingManuelProcentsatsRow => ({ ...initialLoenudviklingManuelProcentsatsRow, id });
@@ -25,6 +28,7 @@ export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   bindings: ManualBindings;
   collection: CollectionRef;
   committedRows: readonly LoenudviklingManuelProcentsatsRow[];
+  ruleIssues: FieldIssueSet;
   baseDateDisplay: string;
   baseDateISO?: string;
   baseDateErrorMessage?: string;
@@ -39,7 +43,7 @@ export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>;
 
-export default function LoenudviklingManuelProcentsatsTable({ bindings, collection, committedRows, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix, locationNav }: LoenudviklingManuelProcentsatsTableProps) {
+export default function LoenudviklingManuelProcentsatsTable({ bindings, collection, committedRows, ruleIssues, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix, locationNav }: LoenudviklingManuelProcentsatsTableProps) {
   const baseRowId = committedRows[0]?.id;
   const table = useCollectionTable({ collection, committedRows, createRowId: generateLoenudviklingRowId, createEmptyRow, locationPrefix, locationNav });
   const entries = React.useMemo(() => buildManuelProcentsatsEntries({ anvendtReguleringsdato: isISODateString(baseDateISO) ? baseDateISO : undefined, rows: committedRows }), [baseDateISO, committedRows]);
@@ -54,6 +58,9 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
   const existing = baseRowId === undefined ? sort.sortedRows : [committedRows[0], ...sort.sortedRows.filter((row) => row.id !== baseRowId)].filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined);
   const renderById = new Map(table.renderRows.map((row) => [row.rowId, row]));
   const renderRows = [...existing.map((row) => renderById.get(row.id)).filter((row) => row !== undefined), table.renderRows.at(-1)!];
+  // Fail-closed for ældre/ufuldstændig state: en manglende canonical basisrække må aldrig gøre første dato
+  // redigerbar. Normale valg opretter basisrækken atomisk før tabellen vises.
+  const visibleBaseRowId = resolveManualRegulationBasisRowId(committedRows, renderRows);
   const headers = ['Dato', 'Procent', 'Indeks', 'Akkumuleret'] as const;
   const keys = ['dato', 'procent', 'indeks', 'akkumuleret'] as const;
   return <StandardGridTable tableWidth="1130px" useSmallFont={useSmallFont}>
@@ -61,11 +68,15 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
     <thead><tr>{headers.map((header, index) => <StandardGridHeaderCell key={header} onClick={() => sort.handleHeaderClick(keys[index]!)} sortRole={sort.getSortRole(keys[index]!)} sortDirection={sort.getSortDirection(keys[index]!)}>{header}</StandardGridHeaderCell>)}</tr></thead>
     <tbody>{renderRows.map((renderRow, index) => {
       const row = table.committedById.get(renderRow.rowId);
-      const isBase = renderRow.kind === 'existing' && renderRow.rowId === baseRowId;
-      const entry = entryById.get(renderRow.rowId);
+      const isBase = renderRow.rowId === visibleBaseRowId;
+      const entry = isBase ? entries[0] : entryById.get(renderRow.rowId);
       const gc = (colIndex: number) => ({ rowId: renderRow.rowId, colIndex });
+      const dateCell = table.buildCellSpec(renderRow, bindings.manualPercentFields.dato, 0);
+      const dateRuleIssue = isBase
+        ? undefined
+        : activeFieldIssue(ruleIssues, serializeFieldAddress(dateCell.field.address));
       return <tr key={renderRow.rowId} data-mineo-row-id={renderRow.rowId} style={getStandardGridBodyRowStyle(index)}>
-        <td style={getStandardGridCellStyle({ align: 'center' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(0)} displayValue={baseDateDisplay} align="center" errorMessage={baseDateErrorMessage} infoTooltipText={baseDateInfoTooltipText} /> : <GridDateCell gridCell={gc(0)} cell={table.buildCellSpec(renderRow, bindings.manualPercentFields.dato, 0)} />}</td>
+        <td style={getStandardGridCellStyle({ align: 'center' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(0)} displayValue={baseDateDisplay} align="center" errorMessage={baseDateErrorMessage} infoTooltipText={baseDateInfoTooltipText} /> : <GridDateCell gridCell={gc(0)} cell={dateCell} collectionRuleIssue={dateRuleIssue} />}</td>
         <td style={getStandardGridCellStyle({ align: 'right' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(1)} displayValue={appendInputUnitSuffix(formatPercentDisplay(0, true), INPUT_UNIT_SUFFIX.percent)} align="right" placeholder={LOCKED_PERCENT_PLACEHOLDER} /> : <GridPercentCell gridCell={gc(1)} cell={table.buildCellSpec(renderRow, bindings.manualPercentFields.procent, 1)} />}</td>
         <td style={getStandardGridCellStyle({ align: 'right' })}><GridReadOnlyLockedCell gridCell={gc(2)} displayValue={entry ? formatAsAmount(entry.indeks, 2) : ''} align="right" /></td>
         <td style={{ ...getStandardGridCellStyle({ align: 'right' }), position: 'relative', paddingRight: 28 }}><GridReadOnlyLockedCell gridCell={gc(3)} displayValue={entry ? `${entry.akkumuleretPct >= 0 ? '+ ' : '- '}${formatAsAmount(Math.abs(entry.akkumuleretPct), 2)} %` : ''} align="right" />{renderRow.kind === 'existing' && !isBase && row !== undefined && !isRowEmpty(row) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
@@ -73,4 +84,3 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
     })}</tbody>
   </StandardGridTable>;
 }
-

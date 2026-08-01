@@ -12,6 +12,7 @@ import { fieldAllowsNegative } from './signPolicy';
 import StyledTextFieldBase from '../../../components/inputs/StyledTextFieldBase';
 import { formatPercentDisplay } from '../../../utils/percentDraftCore';
 import type { FieldWarning } from '../../fieldWarning';
+import { fieldAllowsDecimals } from './decimalPolicy';
 
 // Procent-felt (§2.4/§3.5): familie-skal over `NumericTextField` med procent-tegnfilteret,
 // den delte "%"-enheds-adornment (muted når tom) og højrestillet tabular-nums-visning. Parse/format og
@@ -55,13 +56,14 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
     // procent-descriptorer er ikke-negative, og komponenten svarede tidligere `true` i strid med dem, så et
     // minus kunne tastes som første tegn.
     const allowNegative = fieldAllowsNegative(field);
+    const allowDecimals = fieldAllowsDecimals(field);
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) =>
         filterPercentKeyDown(e, {
           allowNegative,
-          allowDecimals: true,
+          allowDecimals,
         }),
-      [allowNegative]
+      [allowDecimals, allowNegative]
     );
 
     // Adornmentet mutes, når draften er tom. Muted-flaget kommer fra `NumericTextField`s
@@ -78,7 +80,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
         disabled={disabled}
         singleStageClick={singleStageClick}
         textAlign="right"
-        inputMode="decimal"
+        inputMode={allowDecimals ? 'decimal' : 'numeric'}
         endAdornment={({ isDraftEmpty }) => (
           <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={isDraftEmpty} />
         )}

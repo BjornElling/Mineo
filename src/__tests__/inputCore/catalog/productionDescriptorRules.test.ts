@@ -49,6 +49,7 @@ import { createEmptyRentekravCommittedRow } from '../../../domain/renteberegning
 import { createCollectionRef } from '../../../inputCore/fieldAddress';
 import { toISODateString } from '../../../types/branded';
 import { varigeMenBeregningsdatoField } from '../../../inputCore/catalog/varigeMenDescriptors';
+import { eoEmploymentManual } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 
 const catalog = getProductionInputCatalog();
 const token = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
@@ -164,6 +165,13 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
     expect(evaluation.reader.read(aslAfgoerelseAfgoerelsesDatoField.bind('r1')).status).toBe('error');
     expect(evaluation.reader.read(aslAfgoerelseEetPctField.bind('r1')).status).toBe('error');
     expect(evaluation.reader.read(erhvervsevnetabEalEetPctField.bind()).status).toBe('error');
+  });
+
+  it('erklærer to decimaler som grid-hovedregel og EET som eksplicit heltalsundtagelse', () => {
+    expect(eoEmploymentManual.manualFields.feriepenge.codec.decimalPolicy).toBe('decimal');
+    expect(eoEmploymentManual.manualPercentFields.procent.codec.decimalPolicy).toBe('decimal');
+    expect(aslAfgoerelseEetPctField.codec.decimalPolicy).toBe('integerOnly');
+    expect(erhvervsevnetabEalEetPctField.codec.decimalPolicy).toBe('integerOnly');
   });
 });
 

@@ -1539,6 +1539,35 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(hasError(makeManualProcentsats({ id: 'ok', dato: toISODateString('2025-01-01'), procent: 10 }), 'procentsatsrækker')).toBe(false);
   });
 
+  it.each(['Manuelt angivet', 'Manuel procentsats'] as const)(
+    'kræver dato strengt efter den låste basisdato for %s',
+    (basis) => {
+      const initial = createErstatningsopgoerelseInitialValues();
+      const values = makeValues({
+        beregnesUdFra: 'Angivet månedsløn',
+        maanedsloenenUdgoer: asAmount(30000),
+        angivetMaanedsloenOpreguleresFraDato: iso('2024-01-01'),
+        eoAngivetLoenLoenudvikling: {
+          ...initial.eoAngivetLoenLoenudvikling,
+          loenudviklingBeregningsgrundlag: basis,
+          loenudviklingManuelTableData: [
+            { id: 'base', dato: undefined, grundloen: asAmount(30000), feriepenge: 12.5, shSoSats: 0, fritvalg: 0, agPension: 0 },
+            { id: 'lig', dato: iso('2024-01-01'), grundloen: asAmount(31000), feriepenge: 12.5, shSoSats: 0, fritvalg: 0, agPension: 0 },
+          ],
+          loenudviklingManuelProcentsatsTableData: [
+            { id: 'base', dato: undefined, procent: 0 },
+            { id: 'lig', dato: iso('2024-01-01'), procent: 2.5 },
+          ],
+        },
+      });
+
+      expect(hasError(
+        values,
+        'Datoen skal være senere end datoen i den låste første række (01-01-2024)'
+      )).toBe(true);
+    }
+  );
+
   it('tillader særskilt startdato for regulering pr. ansættelsesforhold', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',

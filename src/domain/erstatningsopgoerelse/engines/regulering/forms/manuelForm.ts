@@ -110,11 +110,9 @@ const byggResultat = (
     .map((row) => {
       const startIso = row.dato;
       if (!startIso) return null;
-      // Rækker dateret før reguleringsdatoen indgår ikke i reguleringen (basisrækken
-      // repræsenterer allerede lønniveauet pr. reguleringsdatoen). De rapporteres som en
-      // ikke-blokerende advarsel i række-evalueringen (eoRowIndkomstRows). Rækker dateret
-      // præcis på reguleringsdatoen er tilladt og gælder fra reguleringsdatoen.
-      if (konsolideret.reguleringsdato && startIso < konsolideret.reguleringsdato) return null;
+      // Gaten gør disse rækker røde; motoren afviser dem også defensivt, så to reguleringer aldrig
+      // kan få samme eller omvendt kronologisk basisanker.
+      if (konsolideret.reguleringsdato && startIso <= konsolideret.reguleringsdato) return null;
       const components = {
         grundloen: amountValueToNumber(row.grundloen) ?? 0,
         feriePct: resolveFeriePctForFormula(row.feriepenge, konsolideret.feriePct),

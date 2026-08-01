@@ -420,9 +420,8 @@ const resolveManualRowsContext = (
       return startIso ? { startIso, row } : null;
     })
     .filter((entry): entry is ManualRowStart => Boolean(entry))
-    // Rækker dateret før reguleringsdatoen indgår ikke i reguleringen (spejler
-    // buildLoenudviklingFromManual i motoren) og må derfor heller ikke vises/bruges her.
-    .filter((entry) => !anvendtReguleringsdato || entry.startIso >= anvendtReguleringsdato)
+    // Spejler motorens fail-closed regel: brugerens rækker skal ligge strengt efter basisankeret.
+    .filter((entry) => !anvendtReguleringsdato || entry.startIso > anvendtReguleringsdato)
     .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
   return { baseRow, datedRowStarts };
 };

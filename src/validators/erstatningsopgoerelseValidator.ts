@@ -19,7 +19,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow,
 import type { AmountValue } from '../schemas/amountExpressionSchema';
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
-import { isISODateString, type ISODateString } from '../types/branded';
+import { isISODateString, isoToDanish, type ISODateString } from '../types/branded';
 import { aarsloenAslMax, getYearBoundsForYearlyRate, reguleringssats, svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
 import { resolveKildeReguleringsIntervalIso } from '../domain/erstatningsopgoerelse/helpers/reguleringKildeCoverage';
 import { amountValueToNumber } from '../utils/expressionAmount';
@@ -32,6 +32,7 @@ import {
   isManuelAngivetRowAktiv,
   isManuelAngivetRowDatoUdfyldt,
   isManuelProcentsatsRowAktiv,
+  isManualRegulationDateOnOrBeforeBasis,
 } from '../domain/erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveAnvendtReguleringsdatoReferenceText } from '../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
@@ -57,7 +58,6 @@ import {
 import { harAktivOverenskomst, harModstridendeOverenskomstValg } from '../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
-import { isoToDanish } from '../types/branded';
 import { DATE_ORDER_ERROR_MESSAGE } from '../utils/dateOrderValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import {
@@ -982,6 +982,18 @@ function validateLoenudviklingsKravForAktivKilde(
       return;
     }
     if (grundlag === 'Ingen') return;
+    const manualBasisdato = resolveAnvendtReguleringsdato({
+      beregnesUdFra: values.beregnesUdFra,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+      saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering)
+        ? af.saerligFraDatoRegulering
+        : undefined,
+      beregningsperiodeTil: values.tafBeregningsperiodeTil,
+      skadedato: options?.skadedatoISO,
+    });
+    const manualDateErrorMessage = manualBasisdato === undefined
+      ? undefined
+      : `Datoen skal være senere end datoen i den låste første række (${isoToDanish(manualBasisdato) ?? manualBasisdato})`;
 
     // Enhver AKTIV reguleringsform regulerer en løn — uden indtastede lønoplysninger findes der
     // intet at regulere, og motoren fail-closer ("mangler beregningsgrundlag"). Kravet hører til
@@ -1108,6 +1120,16 @@ function validateLoenudviklingsKravForAktivKilde(
       // reguleringen ville udeblive uden synlig fejl.
       const aktiveRowsEfterBasis = rows.slice(1).filter((row) => aktiveRows.includes(row));
 
+      rows.slice(1).forEach((row, rowIndex) => {
+        if (isManualRegulationDateOnOrBeforeBasis(row.dato, manualBasisdato)) {
+          errors.push({
+            path: path(`loenudviklingManuelTableData[${rowIndex + 1}].dato`),
+            message: manualDateErrorMessage ?? 'Datoen skal være senere end datoen i den låste første række',
+            severity: 'error',
+          });
+        }
+      });
+
       if (aktiveRows.length === 0) {
         errors.push({
           path: path('loenudviklingManuelTableData'),
@@ -1138,6 +1160,15 @@ function validateLoenudviklingsKravForAktivKilde(
     if (grundlag === 'Manuel procentsats') {
       const rows = (af.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
       const aktiveRows = rows.filter(isManuelProcentsatsRowAktiv);
+      rows.forEach((row, rowIndex) => {
+        if (isManualRegulationDateOnOrBeforeBasis(row.dato, manualBasisdato)) {
+          errors.push({
+            path: path(`loenudviklingManuelProcentsatsTableData[${rowIndex + 1}].dato`),
+            message: manualDateErrorMessage ?? 'Datoen skal være senere end datoen i den låste første række',
+            severity: 'error',
+          });
+        }
+      });
       if (aktiveRows.some((row) => row.dato === undefined)) {
         errors.push({
           path: path('loenudviklingManuelProcentsatsTableData'),

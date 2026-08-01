@@ -69,8 +69,14 @@ Systemet skal sikre, at følgende adfærd er konsistent:
 - Husk at gælde samme regel for begge reguleringstyper, samt for den variant hvor en dags-/månedssats anvendes uden beregningsperiode.
 
 ### Status
-Implementeret. Valget `Manuel procentsats` og oprettelsen af den låste 0 %-basisrække sker atomisk i samme
-undo-trin. Den samme kommando bruges både under Lønindkomst og ved angivet dags-/månedsløn på EO-oplysninger.
+Korrigeret og implementeret. Begge manuelle reguleringsformer opretter deres programstyrede basisrække
+atomisk sammen med valget. Første dato er altid read-only og afledes af `anvendtRegulering`; mangler datoen,
+vises en rød ramme med en konkret tooltip. Ved en ny beregning falder `anvendtRegulering` tilbage til
+skadedatoen, indtil en mere specifik beregningsperiodeslutdato eventuelt er udfyldt. Samme invariant gælder
+under Lønindkomst og ved angivet dags-/månedsløn på EO-oplysninger.
+Alle efterfølgende datoer skal nu være strengt senere end den låste dato i første række. En dato før eller lig
+basisdatoen markeres rødt med en konkret tooltip og blokerer de afhængige beregninger og dokumenter. Reglen er
+fælles for `Manuelt angivet` og `Manuel procentsats`; bevaret input i en inaktiv reguleringsform blokerer ikke.
 
 ### Prioritet
 Høj

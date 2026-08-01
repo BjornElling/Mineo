@@ -63,7 +63,8 @@ import { useLoenindkomstVm } from './loenindkomstContext';
 import { useReguleringDocumentAction } from '../../../../domain/erstatningsopgoerelse/react/useReguleringDocumentAction';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
-import { createManualPercentBasisCommitOverride } from '../../../../domain/erstatningsopgoerelse/manualPercentBasisCommit';
+import { createManualRegulationBasisCommitOverride } from '../../../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
+import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -101,6 +102,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     skadestype,
     satsIssues,
     manualBaseRowErrorsByAfId,
+    manualRegulationDateIssues,
     loentrinFinder,
     alleLoenmodtagerOrg,
     alleArbejdsgiverOrg,
@@ -143,6 +145,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     tabKey: EO_TAB_KEYS.LOENINDKOMST,
   });
   const standardLoenFieldSet = React.useMemo(() => createEoStandardLoenFieldSet(af.id), [af.id]);
+  const manualCollection = {
+    ...eoEmploymentManual.manualCollection.template,
+    path: [{ kind: 'entity' as const, collection: 'loenindkomstAnsaettelsesforhold', entityId: af.id }],
+  } as CollectionRef;
   const manualPercentCollection = {
     ...eoEmploymentManual.manualPercentCollection.template,
     path: [{ kind: 'entity' as const, collection: 'loenindkomstAnsaettelsesforhold', entityId: af.id }],
@@ -618,11 +624,13 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <ChoiceField
               field={field(eoEmploymentFields.loenudviklingBeregningsgrundlag)}
               location={location('loenudviklingBeregningsgrundlag')}
-              immediateCommitOverride={createManualPercentBasisCommitOverride({
+              immediateCommitOverride={createManualRegulationBasisCommitOverride({
                 field: field(eoEmploymentFields.loenudviklingBeregningsgrundlag),
                 location: location('loenudviklingBeregningsgrundlag'),
-                collection: manualPercentCollection,
-                hasBaseRow: af.loenudviklingManuelProcentsatsTableData.length > 0,
+                manualCollection,
+                manualPercentCollection,
+                hasManualBaseRow: af.loenudviklingManuelTableData.length > 0,
+                hasManualPercentBaseRow: af.loenudviklingManuelProcentsatsTableData.length > 0,
               })}
             name={`${af.id}:loenudviklingBeregningsgrundlag`}
             width={220}
@@ -780,14 +788,14 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             const baseDateTooltipText =
               loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
                 ? undefined
-                : resolveAnvendtReguleringsdatoReferenceText({
+                : capitalizeFirstCharDa(resolveAnvendtReguleringsdatoReferenceText({
                     anvendtReguleringsdato,
                     skadedato,
                     skadestype,
                     beregnesUdFra,
                     beregningsperiodeTil: tafBeregningsperiodeTil,
                     saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-                  });
+                  }));
             return (
               <>
                 <Box className="row--label-right-hover">
@@ -803,11 +811,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 </Box>
                 <LoenudviklingManuelTable
                   bindings={eoEmploymentManual}
-                  collection={{
-                    ...eoEmploymentManual.manualCollection.template,
-                    path: [{ kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold', entityId: af.id }],
-                  } as CollectionRef}
+                  collection={manualCollection}
                   committedRows={af.loenudviklingManuelTableData}
+                  ruleIssues={manualRegulationDateIssues}
                   locationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelTableData`}
                   baseDateDisplay={loenudviklingBaseDate.display}
                   baseDateISO={loenudviklingBaseDate.iso}
@@ -834,19 +840,20 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             const baseDateTooltipText =
               loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
                 ? undefined
-                : resolveAnvendtReguleringsdatoReferenceText({
+                : capitalizeFirstCharDa(resolveAnvendtReguleringsdatoReferenceText({
                     anvendtReguleringsdato,
                     skadedato,
                     skadestype,
                     beregnesUdFra,
                     beregningsperiodeTil: tafBeregningsperiodeTil,
                     saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-                  });
+                  }));
             return (
                 <LoenudviklingManuelProcentsatsTable
                   bindings={eoEmploymentManual}
                   collection={manualPercentCollection}
                   committedRows={af.loenudviklingManuelProcentsatsTableData}
+                  ruleIssues={manualRegulationDateIssues}
                   locationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelProcentsatsTableData`}
                   baseDateDisplay={loenudviklingBaseDate.display}
                   baseDateISO={loenudviklingBaseDate.iso}

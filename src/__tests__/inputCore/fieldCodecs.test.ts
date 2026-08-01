@@ -113,4 +113,14 @@ describe('fieldCodecs', () => {
     // Cifre åbner stadig editoren i begge — reglen rammer kommaet, ikke al indtastning.
     expect(integerOnly.acceptsInitialKey('5')).toBe(true);
   });
+
+  it('bærer procentfeltets decimalpolitik fra codec-konfigurationen', () => {
+    const withDecimals = createPercentFieldCodec({ allowNegative: false, allowDecimals: true });
+    const integerOnly = createPercentFieldCodec({ allowNegative: false, allowDecimals: false });
+
+    expect(withDecimals.decimalPolicy).toBe('decimal');
+    expect(withDecimals.acceptsInitialKey(',')).toBe(true);
+    expect(integerOnly.decimalPolicy).toBe('integerOnly');
+    expect(integerOnly.acceptsInitialKey(',')).toBe(false);
+  });
 });

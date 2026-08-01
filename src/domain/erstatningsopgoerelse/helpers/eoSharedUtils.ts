@@ -147,7 +147,9 @@ export const resolveAnvendtReguleringsdato = (params: {
   skadedato: ISODateString | undefined;
 }): ISODateString | undefined => {
   if (params.beregnesUdFra === 'Beregningsperiode') {
-    return params.saerligFraDatoRegulering ?? params.beregningsperiodeTil;
+    // En ny sag har endnu ingen beregningsperiode. Skadedatoen er stadig et gyldigt programdefineret
+    // basisanker og må derfor ikke forsvinde, blot fordi den senere, mere specifikke slutdato mangler.
+    return params.saerligFraDatoRegulering ?? params.beregningsperiodeTil ?? params.skadedato;
   }
   return params.angivetLoenMetodeOpreguleresFraDato ?? params.skadedato;
 };

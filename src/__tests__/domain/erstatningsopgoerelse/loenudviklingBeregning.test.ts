@@ -1022,7 +1022,7 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
     expect(deltaForSegment(values, '2023-01-01')).toBe(0);
   });
 
-  it('anvender en række dateret præcis på reguleringsdatoen fra dag ét', () => {
+  it('afviser defensivt en række dateret præcis på reguleringsdatoen', () => {
     const values = buildManualBeregningsperiode('beloeb', {
       loenPaaHelligdage: 'Ingen',
       rows: [
@@ -1030,8 +1030,7 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
         { id: 'paa-basis', dato: '2022-12-31', grundloen: 1000, feriepenge: 20 },
       ],
     });
-    // 1200/1100 − 1 = 9,09 % allerede fra TAF-periodens start.
-    expect(deltaForSegment(values, '2023-01-01')).toBe(9.09);
+    expect(deltaForSegment(values, '2023-01-01')).toBe(0);
   });
 
   it('inkluderer overenskomstens tillæg i Beløb-tilstand for overenskomst-regulering', () => {

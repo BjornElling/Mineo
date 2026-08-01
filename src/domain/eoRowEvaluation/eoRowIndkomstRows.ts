@@ -7,7 +7,6 @@ import { resolveKildeReguleringsIntervalIso } from '../erstatningsopgoerelse/hel
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
-import { resolveManuelProcentsatsRowsFoerBasis } from '../erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import {
   MANUEL_ANGIVET_SUPPLEMENT_FELTER,
   hasFinitePct,
@@ -396,34 +395,6 @@ export const buildEoIndkomstRows = (
         status: alleReguleringsvaerdierRow.status,
         dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
       });
-    }
-
-    // Rækker dateret før reguleringsdatoen ignoreres i reguleringen (basisrækken repræsenterer
-    // allerede niveauet pr. reguleringsdatoen, jf. buildManuelProcentsatsEntries og
-    // buildLoenudviklingFromManual). Ikke-blokerende advarsel, så brugeren kan se, at rækkerne
-    // ikke tæller med.
-    if (
-      anvendtReguleringsdato &&
-      (loenudviklingBasis === 'Manuelt angivet' || loenudviklingBasis === 'Manuel procentsats')
-    ) {
-      const rowsFoerBasis = loenudviklingBasis === 'Manuel procentsats'
-        ? resolveManuelProcentsatsRowsFoerBasis({
-          anvendtReguleringsdato,
-          rows: ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? [],
-        })
-        : (ansaettelsesforhold.loenudviklingManuelTableData ?? [])
-          .slice(1)
-          .filter((row) => isISODateString(row.dato) && row.dato < anvendtReguleringsdato);
-      if (rowsFoerBasis.length > 0) {
-        rows.push({
-          id: `${loenudviklingRowPrefix}.raekkerFoerReguleringsdato`,
-          label: 'Advarsel',
-          displayValue: `Advarsel (Der er ${rowsFoerBasis.length === 1 ? 'en reguleringsrække' : 'reguleringsrækker'} med dato før reguleringsdatoen (${isoToDanish(anvendtReguleringsdato)}). ${rowsFoerBasis.length === 1 ? 'Rækken' : 'Rækkerne'} indgår ikke i reguleringen.)`,
-          status: 'warning',
-          summaryDisplay: 'messageOnly',
-          dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
-        });
-      }
     }
 
     const showReguleringDetails =

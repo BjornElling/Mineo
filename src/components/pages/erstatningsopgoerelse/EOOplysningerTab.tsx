@@ -13,13 +13,22 @@ import IndtaegtFoerSkadenSection from './eoOplysninger/sections/IndtaegtFoerSkad
 import OevrigeKravSection from './eoOplysninger/sections/OevrigeKravSection';
 import SaerligeKommentarerSection from './eoOplysninger/sections/SaerligeKommentarerSection';
 import BilagsnumreSection from './eoOplysninger/sections/BilagsnumreSection';
+import type { FieldIssueSet } from '../../../inputCore/inputIssue';
 
-const EOOplysningerTab = React.memo(({ values, stamdataValues }: { values: ErstatningsopgoerelseValues; stamdataValues: StamdataValues }) => {
+const EOOplysningerTab = React.memo(({ values, stamdataValues, manualRegulationDateIssues }: {
+  values: ErstatningsopgoerelseValues;
+  stamdataValues: StamdataValues;
+  manualRegulationDateIssues: FieldIssueSet;
+}) => {
   // View-model-laget bygges her og deles med sektion-komponenterne via konteksten (jf. A1):
   // hver sektion forbruger `useEoOplysningerVm()` i stedet for at modtage props. Fanen er nu en
   // ren komposition af sektioner + den side-lokale løntrin-finder-overlay.
-  const vm = useEoOplysningerViewModel(values, stamdataValues);
-  const { loentrinFinder } = vm;
+  const baseVm = useEoOplysningerViewModel(values, stamdataValues);
+  const vm = React.useMemo(
+    () => ({ ...baseVm, manualRegulationDateIssues }),
+    [baseVm, manualRegulationDateIssues]
+  );
+  const { loentrinFinder } = baseVm;
 
   return (
     <EoOplysningerVmProvider value={vm}>

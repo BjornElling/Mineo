@@ -157,17 +157,13 @@ export const getRangeForManualRegulering = (
 
   rows.forEach((row) => {
     const iso = parseDanishToIso(row.dato);
-    if (iso) dates.push(iso);
+    if (iso && (!baseIso || iso > baseIso)) dates.push(iso);
   });
 
   if (dates.length === 0) return {};
 
-  // `min` er BEVIDST den tidligste dato blandt {reguleringsdato, alle rækkedatoer} — ikke selve
-  // reguleringsdatoen. En før-basis-række kan derfor trække `min` FØR reguleringsdatoen og gøre
-  // start/reguleringsvaerdi-checkene mere permissive. Det er sikkert for tavs under-regulering: manuel
-  // regulering har ingen ekstern satstabel-dækning at maskere, og før-basis-segmenter er legitimt
-  // zero-delta for ALLE former (basisrækken repræsenterer niveauet). At bruge reguleringsdatoen som
-  // `min` ville derfor ikke ændre noget tal.
+  // Rækker på eller før basisdatoen er allerede feltfejl og afvises af motorerne. Coverage-visningen
+  // filtrerer dem også defensivt, så ugyldigt input ikke kan udvide det viste reguleringsinterval.
   let min = dates[0];
   let max = dates[0];
   for (const iso of dates) {

@@ -583,11 +583,22 @@ af det aktive løn-felt (afhængigt af `beregnesUdFra`) ejes fortsat af indkomst
 EO bruger `resolveAnvendtReguleringsdato` som autoritativ dato for løn-/reguleringsbasis:
 
 - Ved `Beregningsperiode`: `saerligFraDatoRegulering` hvis udfyldt, ellers
-  `tafBeregningsperiodeTil`.
+  `tafBeregningsperiodeTil`, og ellers stamdatadatoen mens beregningsperioden endnu ikke er udfyldt.
 - Ved angivet månedsløn/dagsløn: den relevante angivne opreguleringsdato hvis udfyldt, ellers
   stamdatadatoen.
-- Valg af `Manuel procentsats` opretter atomisk en canonical basisrække sammen med valget. Første række er
-  altid låst til datoen ovenfor og 0 %, både under Lønindkomst og ved angivet dags-/månedsløn på EO-oplysninger.
+- Valg af `Manuelt angivet` eller `Manuel procentsats` opretter atomisk den valgte forms canonical basisrække
+  sammen med valget, både under Lønindkomst og ved angivet dags-/månedsløn på EO-oplysninger.
+- Første række er for begge former en programstyret basisrække. Datoen er altid read-only og viser datoen
+  ovenfor; ved `Manuel procentsats` er basisprocenten altid 0 %. En manglende basisdato vises som rød ramme
+  med en tooltip, der navngiver det faktisk manglende stamdatafelt.
+- Tabellen skal også ved ældre eller ufuldstændig state uden canonical basisrække behandle første synlige række
+  som programstyret og må aldrig degradere datocellen til en redigerbar placeholder.
+- Alle efterfølgende rækker i den aktive manuelle reguleringsform skal have en dato, der er strengt senere end
+  basisdatoen i den låste første række. En dato før eller lig basisdatoen er en rød feltplaceret regelfejl med
+  den konkrete basisdato i tooltippet og blokerer afhængig beregning og dokument-output. Reglen gælder ens for
+  `Manuelt angivet` og `Manuel procentsats`, både under Lønindkomst og ved angivet dags-/månedsløn.
+- Bevarede rækker i en inaktiv reguleringsform udløser ikke denne fejl. Beregnings- og præsentationsmotorerne
+  afviser desuden defensivt rækker på eller før basisdatoen, hvis en consumer kaldes uden om den normale gate.
 
 Al brugervendt tekst i felter, tooltips, kontrolvisning og dokument-output skal beskrive datoens
 faktiske kilde:

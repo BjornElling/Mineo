@@ -2,7 +2,6 @@ import type { LoenudviklingManuelProcentsatsRow } from '../../../schemas/formSch
 import {
   buildManuelProcentsatsEntries,
   findManuelProcentsatsEntryForDate,
-  resolveManuelProcentsatsRowsFoerBasis,
 } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { toISODateString } from '../../../types/branded';
 
@@ -43,14 +42,13 @@ describe('buildManuelProcentsatsEntries', () => {
     expect(findManuelProcentsatsEntryForDate(entries, iso('2025-06-01'))?.akkumuleretPct).toBeCloseTo(10, 10);
   });
 
-  it('medtager en række dateret præcis på reguleringsdatoen — gældende fra reguleringsdatoen', () => {
+  it('udelader også en række dateret præcis på reguleringsdatoen', () => {
     const entries = buildManuelProcentsatsEntries({
       anvendtReguleringsdato: iso('2024-01-01'),
       rows: [row('base', undefined, 0), row('paa-basis', '2024-01-01', 5)],
     });
-    expect(entries.map((entry) => entry.rowId)).toEqual(['base', 'paa-basis']);
-    // Opslag på selve reguleringsdatoen rammer brugerrækken (5 %), ikke basis-entryen.
-    expect(findManuelProcentsatsEntryForDate(entries, iso('2024-01-01'))?.akkumuleretPct).toBeCloseTo(5, 10);
+    expect(entries.map((entry) => entry.rowId)).toEqual(['base']);
+    expect(findManuelProcentsatsEntryForDate(entries, iso('2024-01-01'))?.akkumuleretPct).toBe(0);
   });
 
   it('filtrerer rækker uden gyldig dato eller procent fra (dækkes af validatorens blokerende krav)', () => {
@@ -59,17 +57,5 @@ describe('buildManuelProcentsatsEntries', () => {
       rows: [row('base', undefined, 0), row('uden-dato', undefined, 10), row('uden-procent', '2024-06-01', undefined)],
     });
     expect(entries.map((entry) => entry.rowId)).toEqual(['base']);
-  });
-});
-
-describe('resolveManuelProcentsatsRowsFoerBasis', () => {
-  it('returnerer netop rækkerne med dato før reguleringsdatoen (til advarselsrækken)', () => {
-    const foerBasis = row('foer-basis', '2023-06-01', 50);
-    const rows = [row('base', undefined, 0), foerBasis, row('paa-basis', '2024-01-01', 5), row('efter-basis', '2025-01-01', 10)];
-    expect(resolveManuelProcentsatsRowsFoerBasis({ anvendtReguleringsdato: iso('2024-01-01'), rows })).toEqual([foerBasis]);
-  });
-
-  it('returnerer tom liste uden reguleringsdato', () => {
-    expect(resolveManuelProcentsatsRowsFoerBasis({ anvendtReguleringsdato: undefined, rows: [row('r1', '2023-06-01', 50)] })).toEqual([]);
   });
 });

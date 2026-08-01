@@ -1525,7 +1525,7 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows.map((row) => row[0])).toEqual(['26-01-2024']);
   });
 
-  it('overskriver ikke en eksplicit manuel række på reguleringsdatoen med første manuelle række', () => {
+  it('afviser en manuel brugerrække på reguleringsdatoen og viser basisrækken', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
@@ -1560,14 +1560,14 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    // Fritvalg er undefined på alle rækker → kolonne vises ikke
+    // Rækken m2 er ugyldig på basisdatoen og må heller ikke påvirke den defensive præsentation.
     expect(table?.rows.find((row) => row[0] === '15-02-2024')).toEqual([
       '15-02-2024',
-      '200,00',
+      '100,00',
       '16,95 %',
-      '20,00 %',
+      '10,00 %',
       '0,45 %',
-      '20,00 %',
+      '10,00 %',
     ]);
   });
 

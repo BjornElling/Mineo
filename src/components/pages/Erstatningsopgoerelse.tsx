@@ -57,7 +57,11 @@ const Erstatningsopgoerelse = React.memo(() => {
           hidden={activeTab !== TAB_KEYS.EO_OPLYSNINGER}
           sx={{ display: activeTab === TAB_KEYS.EO_OPLYSNINGER ? 'block' : 'none' }}
         >
-          <EOOplysningerTab values={vm.eoValues} stamdataValues={vm.stamdataValues} />
+          <EOOplysningerTab
+            values={vm.eoValues}
+            stamdataValues={vm.stamdataValues}
+            manualRegulationDateIssues={vm.projection.manualRegulationDateIssues}
+          />
         </Box>
         {vm.isTabMounted(TAB_KEYS.LOENINDKOMST) && (
           <Box
@@ -70,6 +74,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               stamdataValues={vm.stamdataValues}
               onNavigateToTabtArbejdsfortjeneste={vm.handleNavigateToTabtArbejdsfortjeneste}
               sfggSixMonthWarningEmploymentIds={eoSnapshot.data?.sfggSixMonthWarningEmploymentIds ?? []}
+              manualRegulationDateIssues={vm.projection.manualRegulationDateIssues}
             />
           </Box>
         )}

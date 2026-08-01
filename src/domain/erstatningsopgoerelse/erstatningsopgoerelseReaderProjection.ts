@@ -152,6 +152,7 @@ import type { EetImportSource } from '../erhvervsevnetab/eetImportPort';
 import type { EoDependencyProjection } from './snapshot/eoDependencyProjection';
 import type { SvieSmerteCalculationValues } from './engines/svieSmerteEngine';
 import type { TafCalculationValues } from './engines/tafCalculationInput';
+import { collectManualRegulationDateIssues } from './manualRegulationDateIssues';
 
 // Erstatningsopgørelse-projektionen (§3.4/§5.4/§1.10). En
 // ALMINDELIG ren funktion over den offentlige `InputReader`, der erstatter `Erstatningsopgoerelse.tsx`'s revisions-
@@ -526,6 +527,8 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   /** Section-field-error-maps (top-level feltnavn + `${afId}:loenindkomst`-aggregat) til inspektion-echo + gate. */
   eoErrors: FieldIssueSet;
   stamdataErrors: FieldIssueSet;
+  /** Aktiv manuel reguleringsforms strenge datoregel, adresseret direkte til de berørte datoceller. */
+  manualRegulationDateIssues: FieldIssueSet;
   // EO-dokumenterne læser `stamdataValues`, mens blokeringen sker gennem snapshottets strukturelle
   // stamdata-invarianter. Projektionen må ikke bære en ekstra, ulæst `documentStamdata`-projektion,
   // fordi den ville ligne en dependency-erklæring uden faktisk at gate outputtet.
@@ -542,7 +545,8 @@ const mergeIssues = (...sets: readonly (readonly FieldIssue[])[]): readonly Fiel
  */
 const buildEoDependencyProjection = (
   reader: InputReader,
-  aggregateEoIssues: readonly FieldIssue[]
+  aggregateEoIssues: readonly FieldIssue[],
+  manualRegulationDateIssues: readonly FieldIssue[]
 ): EoDependencyProjection => {
   const forlig = createTrackedInputReader(reader);
   const forligInput = {
@@ -651,7 +655,9 @@ const buildEoDependencyProjection = (
 
   const svieSmerteIssues = svieSmerte.readIssues();
   const forligIssues = forlig.readIssues();
-  const tafIssues = taf.readIssues();
+  // Manuel regulering er TAF-input. Collection-reglen dannes efter readerens egne feltreads, men skal
+  // blokere præcis samme beregningsgren som en rød cellefejl fra descriptoren.
+  const tafIssues = mergeIssues(taf.readIssues(), manualRegulationDateIssues);
   const oevrigeKravIssues = oevrigeKrav.readIssues();
   return Object.freeze({
     svieSmerteInput: {
@@ -706,11 +712,16 @@ export const buildErstatningsopgoerelseReaderProjection = (
   // Dependency-gatingens autoritet: de STRUKTURELLE røde feltissues i EO-sektionen.
   // `eoErrors` ovenfor er en PRÆSENTATIONS-projektion med kun 11 top-level feltnavne + løn-aggregatet; den kan
   // ikke se en rød rækkecelle, og en gate bygget på den lod motoren regne på readerens maskerede tomværdi.
-  const eoFieldIssues = eoProjection.readIssues();
+  const manualRegulationDateIssueList = collectManualRegulationDateIssues(eoValues, stamdataValues);
+  const eoFieldIssues = mergeIssues(eoProjection.readIssues(), manualRegulationDateIssueList);
   const stamdataFieldIssues = stamdataProjection.readIssues();
   const eoErrors = buildFieldIssueSet(eoFieldIssues);
   const stamdataErrors = buildFieldIssueSet(stamdataFieldIssues);
-  const dependencyProjection = buildEoDependencyProjection(reader, eoFieldIssues);
+  const dependencyProjection = buildEoDependencyProjection(
+    reader,
+    eoFieldIssues,
+    manualRegulationDateIssueList
+  );
 
   const snapshot = computeEoSnapshot({
     revision: options?.revision ?? `input-${String(reader.sourceToken.inputRevision)}-settings-${String(reader.sourceToken.settingsRevision)}`,
@@ -728,6 +739,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     stamdataValues,
     eoErrors,
     stamdataErrors,
+    manualRegulationDateIssues: buildFieldIssueSet(manualRegulationDateIssueList),
     sourceToken: reader.sourceToken,
   };
 };

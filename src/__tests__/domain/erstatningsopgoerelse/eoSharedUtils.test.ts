@@ -135,6 +135,16 @@ describe('eoSharedUtils', () => {
   });
 
   describe('resolveAnvendtReguleringsdato', () => {
+    it('bruger skadedato når beregningsperiodens slutdato endnu mangler', () => {
+      expect(resolveAnvendtReguleringsdato({
+        beregnesUdFra: 'Beregningsperiode',
+        angivetLoenMetodeOpreguleresFraDato: undefined,
+        saerligFraDatoRegulering: undefined,
+        beregningsperiodeTil: undefined,
+        skadedato: iso('2024-03-14'),
+      })).toBe(iso('2024-03-14'));
+    });
+
     it('returnerer saerligFraDatoRegulering ved Beregningsperiode', () => {
       const result = resolveAnvendtReguleringsdato({
         beregnesUdFra: 'Beregningsperiode',

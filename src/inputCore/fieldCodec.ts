@@ -80,6 +80,7 @@ export type FieldCodecFamily =
  * Politikken styrer kun, hvad der kan TASTES.
  */
 export type FieldSignPolicy = 'nonNegative' | 'signed';
+export type FieldDecimalPolicy = 'integerOnly' | 'decimal';
 
 export type FieldCodec<T> = Readonly<{
   /** Codecets familie — den ene identitet, §7.1's dækningskrav opregnes over. */
@@ -91,6 +92,8 @@ export type FieldCodec<T> = Readonly<{
    * Se {@link FieldSignPolicy} for hvorfor den ligger her og ikke i komponenten.
    */
   signPolicy?: FieldSignPolicy;
+  /** Om et numerisk felt accepterer decimaladskiller under redigering. Procentflader skal læse denne politik. */
+  decimalPolicy?: FieldDecimalPolicy;
   /** Parser rå editortekst ved settle. Semantisk tom tekst skal resolve `valid` til feltets tomværdi. */
   parseForSettle: (raw: string) => FieldResolution<T>;
   /** Visning af en canonical værdi i lukket tilstand. */

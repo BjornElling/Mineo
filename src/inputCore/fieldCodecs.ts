@@ -307,6 +307,7 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
     // Se `FieldSignPolicy`. ALLE procentfelter i produktionskataloget er `nonNegative`; politikken er
     // alligevel udledt af konfigurationen frem for hardkodet, så et fremtidigt fortegnet procentfelt virker.
     signPolicy: config.allowNegative ? 'signed' : 'nonNegative',
+    decimalPolicy: config.allowDecimals ? 'decimal' : 'integerOnly',
     parseForSettle: (raw): FieldResolution<number | undefined> => {
       // Kun format afvises (§1.6/§3.3): parse uden grænser. En schema-gyldig out-of-bounds-procent committes
       // canonical; min/max vurderes af en canonical feltvalidator, ikke som en rejection her.

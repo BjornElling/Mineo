@@ -388,7 +388,7 @@ describe('buildEoIndkomstRows escape-hatch — flipper kun severity, ikke værdi
 /**
  * U6 — `alleVaerdier`-row-domæneforskel og dobbelt-signalering (review-punkt 13).
  */
-describe('buildEoIndkomstRows alleVaerdier — manuel-form-domæneforskel og før-basis-dobbeltsignalering (U6)', () => {
+describe('buildEoIndkomstRows alleVaerdier — manuel-form-domæneforskel (U6)', () => {
   const buildManualValues = (basis: 'Manuel procentsats' | 'Manuelt angivet') => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
@@ -416,7 +416,7 @@ describe('buildEoIndkomstRows alleVaerdier — manuel-form-domæneforskel og fø
     expect(angivetGate?.status).toBe('error');
   });
 
-  it('før-basis-række uden procent dobbelt-signalerer (alleVaerdier error + før-basis warning) — fail-closed, ikke under-regulering', () => {
+  it('ufuldstændig manuel række forbliver blokerende uden en parallel advarselsrække', () => {
     const values = buildManualValues('Manuel procentsats');
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingManuelProcentsatsTableData = [
@@ -430,6 +430,6 @@ describe('buildEoIndkomstRows alleVaerdier — manuel-form-domæneforskel og fø
     const foerBasis = rows.find((r) => r.id === `${prefix}.raekkerFoerReguleringsdato`);
 
     expect(gate?.status).toBe('error');
-    expect(foerBasis?.status).toBe('warning');
+    expect(foerBasis).toBeUndefined();
   });
 });

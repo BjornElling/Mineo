@@ -44,7 +44,7 @@ import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../../schemas/
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
-import { createManualPercentBasisCommitOverride } from '../../../../../domain/erstatningsopgoerelse/manualPercentBasisCommit';
+import { createManualRegulationBasisCommitOverride } from '../../../../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
 
 // route + tabKey er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 const eoOplyLocation = (locationId: string) => ({
@@ -83,6 +83,7 @@ export default function IndtaegtFoerSkadenSection() {
     showEoAnciennitetstillaegSection,
     eoAnciennitetSatsPerTekst,
     loentrinFinder,
+    manualRegulationDateIssues,
   } = useEoOplysningerVm();
 
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return null;
@@ -311,11 +312,13 @@ export default function IndtaegtFoerSkadenSection() {
                       <ChoiceField
                         field={eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind()}
                         location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag')}
-                        immediateCommitOverride={createManualPercentBasisCommitOverride({
+                        immediateCommitOverride={createManualRegulationBasisCommitOverride({
                           field: eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(),
                           location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag'),
-                          collection: eoAngivetLoenManual.manualPercentCollection.template as CollectionRef,
-                          hasBaseRow: eoLoenudvikling.loenudviklingManuelProcentsatsTableData.length > 0,
+                          manualCollection: eoAngivetLoenManual.manualCollection.template as CollectionRef,
+                          manualPercentCollection: eoAngivetLoenManual.manualPercentCollection.template as CollectionRef,
+                          hasManualBaseRow: eoLoenudvikling.loenudviklingManuelTableData.length > 0,
+                          hasManualPercentBaseRow: eoLoenudvikling.loenudviklingManuelProcentsatsTableData.length > 0,
                         })}
                       name="loenudviklingBeregningsgrundlag"
                       width={220}
@@ -583,6 +586,7 @@ export default function IndtaegtFoerSkadenSection() {
                       bindings={eoAngivetLoenManual}
                       collection={eoAngivetLoenManual.manualCollection.template as CollectionRef}
                       committedRows={eoLoenudvikling.loenudviklingManuelTableData}
+                      ruleIssues={manualRegulationDateIssues}
                       locationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData"
                       baseDateDisplay={loenudviklingBaseDateDisplay}
                       baseDateISO={loenudviklingBaseDateISO}
@@ -600,6 +604,7 @@ export default function IndtaegtFoerSkadenSection() {
                         bindings={eoAngivetLoenManual}
                         collection={eoAngivetLoenManual.manualPercentCollection.template as CollectionRef}
                         committedRows={eoLoenudvikling.loenudviklingManuelProcentsatsTableData}
+                        ruleIssues={manualRegulationDateIssues}
                         locationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData"
                         baseDateDisplay={loenudviklingBaseDateDisplay}
                         baseDateISO={loenudviklingBaseDateISO}

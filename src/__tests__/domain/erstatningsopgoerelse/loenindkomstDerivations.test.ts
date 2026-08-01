@@ -96,6 +96,21 @@ describe('deriveLoenindkomstVm', () => {
       const model = deriveLoenindkomstVm(input);
       expect(model.getAnvendtReguleringsdatoForAnsaettelsesforhold(af)).toBe(toISODateString('2024-12-31'));
     });
+
+    it('falder tilbage til skadedatoen, mens beregningsperiodens slutdato endnu mangler', () => {
+      const af = createDefaultLoenindkomstAnsaettelsesforhold();
+      const model = deriveLoenindkomstVm(buildInput([af], {
+        beregnesUdFra: 'Beregningsperiode',
+        tafBeregningsperiodeTil: undefined,
+      }));
+
+      expect(model.getAnvendtReguleringsdatoForAnsaettelsesforhold(af)).toBe(toISODateString('2024-06-01'));
+      expect(model.getLoenudviklingBaseDate(af)).toMatchObject({
+        iso: toISODateString('2024-06-01'),
+        display: '01-06-2024',
+        errorMessage: undefined,
+      });
+    });
   });
 
   describe('getLoenudviklingBaseDate', () => {
@@ -120,10 +135,13 @@ describe('deriveLoenindkomstVm', () => {
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         saerligFraDatoRegulering: undefined,
       };
-      const input = buildInput([af], {
-        beregnesUdFra: 'Beregningsperiode',
-        tafBeregningsperiodeTil: undefined,
-      });
+      const input = {
+        ...buildInput([af], {
+          beregnesUdFra: 'Beregningsperiode',
+          tafBeregningsperiodeTil: undefined,
+        }),
+        skadedato: undefined,
+      };
       const model = deriveLoenindkomstVm(input);
       const baseDate = model.getLoenudviklingBaseDate(af);
       expect(baseDate.iso).toBeUndefined();
@@ -141,6 +159,7 @@ describe('deriveLoenindkomstVm', () => {
           beregnesUdFra: 'Beregningsperiode',
           tafBeregningsperiodeTil: undefined,
         }),
+        skadedato: undefined,
         skadestype: 'Erhvervssygdom' as const,
       };
       const model = deriveLoenindkomstVm(input);
@@ -157,6 +176,7 @@ describe('deriveLoenindkomstVm', () => {
           beregnesUdFra: 'Beregningsperiode',
           tafBeregningsperiodeTil: undefined,
         }),
+        skadedato: undefined,
         skadestype: undefined,
       };
       const model = deriveLoenindkomstVm(input);

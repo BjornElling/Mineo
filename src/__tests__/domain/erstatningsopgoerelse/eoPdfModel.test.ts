@@ -1404,7 +1404,7 @@ describe('eoPdfModel', () => {
     expect(segments[1].til).toBe(toISODateString('2024-01-31'));
   });
 
-  it('ignorerer manuel startdato lig range.fra uden dubletsegment', () => {
+  it('danner ikke et dubletsegment for den manuelle basisdato', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
       maanedsloenenUdgoer: asAmountValue(28000),
@@ -1429,7 +1429,6 @@ describe('eoPdfModel', () => {
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
             { id: 'm1', dato: undefined, grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
-            { id: 'm2', dato: toISODateString('2024-01-01'), grundloen: asAmountValue(110), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
       ],
@@ -2392,7 +2391,7 @@ describe('eoPdfModel', () => {
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           saerligFraDatoRegulering: iso('2024-02-01'),
           feriePct: 12.5,
-          pensionPct: 8,
+          pensionPct: 10,
           indtaegtsoplysningerTableData: [
             {
               id: 'jan',
@@ -2422,8 +2421,7 @@ describe('eoPdfModel', () => {
             },
           ],
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: undefined, grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: 8 },
-            { id: 'm2', dato: toISODateString('2024-02-01'), grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: 10 },
+            { id: 'm1', dato: undefined, grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: 10 },
           ],
         },
       ],

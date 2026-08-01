@@ -218,6 +218,40 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(nestedIssue?.reason).toBe('bounds');
   });
 
+  it.each(['Manuelt angivet', 'Manuel procentsats'] as const)(
+    'fører dato lig basisdatoen til celle, lønaggregat og autoritativ gate for %s',
+    (basis) => {
+      const eo = buildValidEo();
+      const first = eo.loenindkomstAnsaettelsesforhold[0];
+      const invalidEmployment = {
+        ...first,
+        loenudviklingBeregningsgrundlag: basis,
+        loenudviklingManuelTableData: [
+          { id: 'base', dato: undefined, grundloen: asAmount(40_000), feriepenge: 12.5, shSoSats: 0, fritvalg: 0, agPension: 0 },
+          { id: 'lig', dato: eo.tafBeregningsperiodeTil, grundloen: asAmount(41_000), feriepenge: 12.5, shSoSats: 0, fritvalg: 0, agPension: 0 },
+        ],
+        loenudviklingManuelProcentsatsTableData: [
+          { id: 'base', dato: undefined, procent: 0 },
+          { id: 'lig', dato: eo.tafBeregningsperiodeTil, procent: 2.5 },
+        ],
+      };
+      const reader = buildReader({
+        ...eo,
+        loenindkomstAnsaettelsesforhold: [invalidEmployment],
+      }, validStamdata);
+
+      const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'manual-date' });
+
+      expect(projection.manualRegulationDateIssues.all).toHaveLength(1);
+      expect(projection.manualRegulationDateIssues.all[0]?.message).toBe(
+        'Datoen skal være senere end datoen i den låste første række (30-06-2022)'
+      );
+      expect(selectBlockingLoenindkomstEntityIds(projection.eoErrors)['af-1']).toBe(true);
+      expect(projection.snapshot.status).toBe('error');
+      expect(projection.snapshot.data).toBeNull();
+    }
+  );
+
   it('er tolerant over for en null EO-sektion (tom sag)', () => {
     const reader = buildReader(null, validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'empty' });

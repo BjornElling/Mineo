@@ -248,16 +248,10 @@ describe('regulering S3 — offentlig overenskomst før dækning er gated af en 
 /**
  * Manuelt angivet (review-punkt 7) — før-basis-rækker.
  *
- * Modsat S1/S2/S3 (hvor "ingen regulering" gates af en BLOKERENDE row-error) er den
- * manuelle forms før-basis-drop bevidst en IKKE-blokerende tilstand: basisrækken (index 0)
- * har låst dato = reguleringsdatoen og repræsenterer allerede lønniveauet dér, så en række
- * dateret FØR reguleringsdatoen er et tidligere niveau, der ikke deltager i den fremadrettede
- * regulering (indeks 100 forankres på reguleringsdatoen). Motoren dropper derfor rækken stille
- * (buildLoenudviklingFromManual:~1291) — men trust-invarianten kræver, at droppet (a) er
- * tal-neutralt og (b) vises synligt for brugeren. Denne test binder begge sider, så et
- * fremtidigt drop, der IKKE længere er tal-neutralt, eller en tabt warning-row fanges.
+ * Basisrækken repræsenterer niveauet på reguleringsdatoen. Rækker på eller før dette anker er
+ * feltplacerede fejl i reader-projektionen; motorens drop er defense-in-depth og skal være tal-neutralt.
  */
-describe('regulering (manuel) — før-basis-rækker droppes tal-neutralt MEN vises som synlig warning-row', () => {
+describe('regulering (manuel) — før-basis-rækker droppes tal-neutralt', () => {
   const REG = '2023-01-01';
 
   const buildManualValues = (medFoerBasisRaekke: boolean) => {
@@ -294,25 +288,6 @@ describe('regulering (manuel) — før-basis-rækker droppes tal-neutralt MEN vi
     expect(segmentsFor(buildManualValues(true))).toEqual(segmentsFor(buildManualValues(false)));
   });
 
-  it('række-modellen viser en ikke-blokerende warning-row for den droppede før-basis-række', () => {
-    const rowValues = {
-      ...createErstatningsopgoerelseInitialValues(),
-      loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
-    };
-    rowValues.beregnesUdFra = 'Beregningsperiode';
-    // anvendtReguleringsdato = saerligFraDatoRegulering ?? beregningsperiodeTil (Beregningsperiode-grenen).
-    rowValues.tafBeregningsperiodeTil = iso(REG);
-    rowValues.tafPerioder = [{ id: 'taf-man', fra: iso(REG), til: iso('2024-12-31'), loseFeriedage: undefined }];
-    const af = rowValues.loenindkomstAnsaettelsesforhold[0];
-    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
-    af.loenudviklingManuelTableData = [
-      { id: 'base', dato: iso(REG), grundloen: asAmount(1000), feriepenge: 0, shSoSats: 0, fritvalg: 0, agPension: 0 },
-      { id: 'foer', dato: iso('2022-06-01'), grundloen: asAmount(2000), feriepenge: 0, shSoSats: 0, fritvalg: 0, agPension: 0 },
-    ];
-    const rows = buildEoIndkomstRows(rowValues, iso(REG));
-    const warningRow = rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.raekkerFoerReguleringsdato`);
-    expect(warningRow?.status).toBe('warning');
-  });
 });
 
 /**
@@ -425,39 +400,6 @@ describe('regulering S5 — manuel procentsats: ufuldstændig pct-række droppes
     const rows = buildEoIndkomstRows(rowValues, iso(REG));
     const gateRow = rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.alleVaerdier`);
     expect(gateRow?.status).toBe('ok');
-  });
-});
-
-/**
- * Manuel procentsats — før-basis-rækker (parallel til manuel-angivet-blokken ovenfor / review-punkt 7).
- *
- * Rækker dateret FØR reguleringsdatoen ignoreres i akkumuleringen (basisindeks 100 forankres på
- * reguleringsdatoen; en tidligere dato er et niveau før basen). Motoren dropper dem stille
- * (`buildManuelProcentsatsEntries` + `resolveManuelProcentsatsRowsFoerBasis`), men trust-invarianten
- * kræver, at droppet vises synligt som en ikke-blokerende warning-row. Samme kode-sti som manuel
- * angivet (`eoRowIndkomstRows.ts:384-406`).
- */
-describe('regulering (manuel procentsats) — før-basis-rækker vises som synlig warning-row', () => {
-  const REG = '2023-01-01';
-
-  it('række-modellen viser en ikke-blokerende warning-row for en før-basis-procentsatsrække', () => {
-    const rowValues = {
-      ...createErstatningsopgoerelseInitialValues(),
-      loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
-    };
-    rowValues.beregnesUdFra = 'Beregningsperiode';
-    rowValues.tafBeregningsperiodeTil = iso(REG);
-    rowValues.tafPerioder = [{ id: 'taf-man-pct', fra: iso(REG), til: iso('2024-12-31'), loseFeriedage: undefined }];
-    const af = rowValues.loenindkomstAnsaettelsesforhold[0];
-    af.loenudviklingBeregningsgrundlag = 'Manuel procentsats';
-    af.loenudviklingManuelProcentsatsTableData = [
-      { id: 'base', dato: undefined, procent: 0 },
-      { id: 'foer', dato: iso('2022-06-01'), procent: 50 },
-      { id: 'efter', dato: iso('2024-01-01'), procent: 10 },
-    ];
-    const rows = buildEoIndkomstRows(rowValues, iso(REG));
-    const warningRow = rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.raekkerFoerReguleringsdato`);
-    expect(warningRow?.status).toBe('warning');
   });
 });
 

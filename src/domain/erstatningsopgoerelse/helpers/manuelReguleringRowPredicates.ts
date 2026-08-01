@@ -2,6 +2,15 @@ import type {
   LoenudviklingManuelProcentsatsRow,
   LoenudviklingManuelRow,
 } from '../../../schemas/formSchemas';
+import type { ISODateString } from '../../../types/branded';
+
+/** Alle brugeroprettede reguleringsrækker skal ligge strengt efter den programstyrede basisdato. */
+export const isManualRegulationDateOnOrBeforeBasis = (
+  dato: ISODateString | undefined,
+  anvendtReguleringsdato: ISODateString | undefined
+): boolean => dato !== undefined
+  && anvendtReguleringsdato !== undefined
+  && dato <= anvendtReguleringsdato;
 
 /**
  * Ét sandt sted for "aktiv række + begge-felter-krævet"-prædikaterne for de to manuelle

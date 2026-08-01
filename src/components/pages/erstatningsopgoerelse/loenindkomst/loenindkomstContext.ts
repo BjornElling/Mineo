@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import { useLoenindkomstViewModel } from './useLoenindkomstViewModel';
+import type { FieldIssueSet } from '../../../../inputCore/inputIssue';
 
 /**
  * Den flade view-model + de få side-niveau-værdier som Loenindkomst-fanen og dens
@@ -12,6 +13,7 @@ export type LoenindkomstVm = ReturnType<typeof useLoenindkomstViewModel> & Reado
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
   tafBeregningsperiodeTil: ErstatningsopgoerelseValues['tafBeregningsperiodeTil'];
   sfggSixMonthWarningEmploymentIds: readonly string[];
+  manualRegulationDateIssues: FieldIssueSet;
   onNavigateToTabtArbejdsfortjeneste: () => void;
 }>;
 
