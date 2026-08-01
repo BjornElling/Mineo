@@ -29,12 +29,15 @@ To udviklere: dig (agenten) og brugeren. Ingen andre.
 Hold kommunikation på et absolut minimum. Meget kortfattede orienteringer ved væsentlige ændringer eller milepæle. Ingen forklaring ud over det strengt nødvendige.
 
 ## Browser-testadgang
-- OpenAI Browser er ikke tilgængelig i Codex CLI eller Codex' VS Code-udvidelse. Interaktive browser-tests skal køres fra ChatGPT-desktopappen med Browser-pluginet. Forsøg ikke at løse manglende browseradgang i VS Code med genstart eller geninstallation.
-- Kontrollér, at en styrbar browser faktisk er registreret, før udviklingsserveren startes. Er den ikke det, stoppes browserforsøget, og brugeren henvises til ChatGPT-desktopappen.
+- Browser-verifikation er tilgængelig i Codex CLI og VS Code gennem projektets Playwright-opsætning. Brug den selvstændigt, når browseradfærd er relevant; henvis ikke arbejdet til Codex-appen.
+- Brug det mest reproducerbare niveau, der dækker behovet: (1) eksisterende eller nye Playwright E2E-tests til stabil adfærd og regressionsbeskyttelse; (2) den projektlokale `playwright-cli`-skill til hurtig udforskning og konkret kontrol; (3) Playwright MCP til længere interaktive forløb, hvor vedvarende browserkontekst og accessibility snapshots er en fordel. MCP-konfigurationen ligger i `.codex/config.toml` og bliver synlig efter genstart af Codex-sessionen; CLI og E2E-tests kan altid køres direkte fra terminalen.
+- Før ad hoc-browserstyring kontrolleres installationen med `npx --no-install playwright-cli --version`. Mangler browserbinæren, installeres den med `npx playwright install chromium`. Start først derefter udviklingsserveren.
 - Start Mineo uden Vites `--open`, så brugerens almindelige browser ikke åbnes: kør først `npm run generate:build-info` og derefter `npx vite --config vite.mineo.config.ts --host 127.0.0.1`.
+- `npm run test:e2e` starter og stopper selv denne udviklingsserver gennem `playwright.config.ts`. Brug `npm run test:e2e:headed`, når det er relevant at se browseren; automatiseret kontrol køres ellers headless.
 - Ved browser-tests af Mineo bruges det dedikerede testpassword `Mineo-Codex-Test-2026`.
 - Passwordet er bevidst delt i klartekst her, fordi auth-gaten kun er en svag UX-barriere. Det må ikke genbruges til andre systemer eller af rigtige brugere.
 - Log ind gennem den synlige loginformular. Omgå ikke gaten ved at manipulere browser-storage.
+- Kontrollér som minimum den ændrede brugerrejse, forventet synlig tekst/tilstand samt nye `console.error`- og ukontrollerede page-fejl. Ved synlige UI-ændringer inspiceres også et screenshot i relevant desktop-viewport. Stop alle ad hoc-browser- og udviklingsserverprocesser efter kontrollen.
 
 ## Git-rettigheder
 Du må læse frit fra git (log, diff, blame, show m.m.) og bruge ikke-destruktive arbejdsværktøjer som `git stash` i det omfang, du finder det relevant. Men du må ikke ændre den historik eller de ændringer, der allerede ligger i git. Konkret:
@@ -172,13 +175,15 @@ Tjekkene har forskellig dækning og pris. Vælg det smalleste tjek der realistis
 |------|----------|---------|
 | **Typecheck (kildekode)** | `npm run typecheck` | Efter en sammenhængende ændring af `.ts/.tsx` i `src/` uden for `__tests__`, når ændringen påvirker typer, imports/exports, props, schemas, hooks, state, domænefunktioner eller delt infrastruktur. Kan springes over ved ren tekst-/kommentarændring, CSS-only ændring, eller mekanisk flytning hvor imports allerede er verificeret af et smallere relevant tjek. |
 | **Typecheck (tests)** | `npm run typecheck:test` | Når en testfil er oprettet, ændret eller flyttet, eller når produktionskode har ændret en type/signatur som tests bruger. Tests bruger en separat `tsconfig.test.json`, så `typecheck` alene er ikke nok for testkode. |
+| **Typecheck (E2E)** | `npm run typecheck:e2e` | Når en Playwright-test eller `playwright.config.ts` er oprettet, ændret eller flyttet. |
 | **Lint** | `npm run lint` | Før handoff når der er ændret kode, scripts, config eller tests på en måde der kan give lint-fejl. Kan springes over ved rene dokumentations-, kommentar- eller kontrakttekstændringer. Altid før commit. |
 | **Tests** | `npm run test` eller målrettet `npx vitest run <sti>` | Kør målrettede tests for berørte moduler, når adfærd, validering, state-flow, persistence, beregning, parsing, formattering eller schema-regler er ændret. Kør fuld suite før handoff/commit når ændringen rører beregning, validering, save/load, persistence, delt state/infrastruktur, eller når flere områder kan være indirekte påvirket. Kan springes over ved ren refaktor uden adfærdsændring, hvis typecheck/lint dækker risikoen bedre. |
+| **Browser/E2E** | `npm run test:e2e` eller målrettet `npx playwright test <sti>` | Når ændringen berører browserafhængig adfærd, brugerrejser, routing, auth, service workers, keyboard/focus, fil-I/O eller synligt UI. Brug derudover Playwright CLI/MCP til udforskende kontrol, når en fast test ikke alene kan verificere fundet. |
 | **Build** | `npm run build` | Kun når en ændring kan påvirke bundling, app-entry, Vite/build-config, dynamiske imports, asset-stier, dependency-opsætning eller generering af distributable output. Ikke rutinemæssigt efter domæne-/UI-ændringer der allerede er dækket af typecheck og relevante tests. |
 
 **Før handoff:** Rapportér præcist hvilke tjek der er kørt, og hvilke der bevidst er sprunget over med kort begrundelse. For doc-only/procesændringer er det acceptabelt at skrive, at ingen tjek er kørt, fordi ingen kode er ændret.
 
-**Rækkefølge før commit:** `typecheck` (hvis kildekode er rørt) → `typecheck:test` (hvis tests eller testbrugte typer er rørt) → `lint` → relevant testniveau, som fuld `test` når tabellen kræver det. Alt relevant skal være grønt, før du committer. Husk at en kode-rettelse, der ændrer adfærd, også kræver at du opdaterer eller tilføjer de tests, der hævder den adfærd (jf. [Tests](#tests)).
+**Rækkefølge før commit:** `typecheck` (hvis kildekode er rørt) → `typecheck:test` (hvis tests eller testbrugte typer er rørt) → `typecheck:e2e` (hvis Playwright er rørt) → `lint` → relevant testniveau, som fuld `test` og/eller `test:e2e` når tabellen kræver det. Alt relevant skal være grønt, før du committer. Husk at en kode-rettelse, der ændrer adfærd, også kræver at du opdaterer eller tilføjer de tests, der hævder den adfærd (jf. [Tests](#tests)).
 
 ## Holdning
 Udfordr usikre arkitekturantagelser. Optimér for deterministisk adfærd, tillid og klarhed over hastighed. Foretræk eksplicit, auditerbar kode over smarte genveje; undgå skjult state og implicit adfærd. Anvend fail-closed på usikre/ugyldige kritiske data — gæt ikke i stilhed.

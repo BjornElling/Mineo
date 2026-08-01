@@ -1,7 +1,7 @@
 // vite.config.ts
 // Standard Vite-konfiguration for React
 
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import path from 'node:path';
 import fs from 'node:fs';
 import react from '@vitejs/plugin-react';
@@ -115,6 +115,9 @@ export default defineConfig({
   },
 
   test: {
+    // Playwright-specifikationer tilhører en separat browser-runner og må aldrig
+    // blive indlæst som Vitest-suiter under den almindelige test- eller coverage-gate.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
     environment: 'node',
     // Testfilerne er isolerede, men fork-poolen kopierer Vite/MUI-modultræet
     // til hvert worker-process. Thread-poolen bevarer samme isolation og

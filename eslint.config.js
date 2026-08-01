@@ -126,4 +126,11 @@ module.exports = [
       ],
     },
   },
+  // Playwright-specifikationer bruger eksplicit test-runnerens importerede API.
+  {
+    files: ['e2e/**/*.spec.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
 ];
