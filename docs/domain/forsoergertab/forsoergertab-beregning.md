@@ -284,6 +284,12 @@ eksponerer derfor pr. bekendtgørelse:
 - `forsoergertabTabellerMaend`
 - `forsoergertabTabellerKvinder`
 
+### 6.3 Afgrænsning mod legacy-afløsningsbeløb
+
+Kapitaliseringsvejledningerne kan desuden indeholde særskilte tabeller med »Værdi af afløsningsbeløb ved det fyldte 65./67. år«. De bruges efter de ældre arbejdsskadelove til at forhøje kapitalbeløbet for efterladte, som særskilt er berettiget til et afløsningsbeløb. De må ikke forveksles med de ovenstående restperiodetabeller.
+
+Mineo accepterer skader/anmeldelser fra 1. januar 2005. De ældre ordninger med afløsningsbeløb ligger derfor uden for den understøttede sagsflade. Forsørgertab-beregningen anvender alene restperiodetabellerne og tilføjer ikke et legacy-afløsningsbeløb.
+
 ## 7. Kapitalfaktor
 
 ### 7.1 Alder
