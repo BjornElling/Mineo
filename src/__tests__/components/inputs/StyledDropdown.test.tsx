@@ -188,6 +188,17 @@ describe('StyledDropdown', () => {
     errSpy.mockRestore();
   });
 
+  it('viser placeholder for en valgfri værdi som ikke findes blandt options', () => {
+    render(
+      <StyledDropdown<DemoValue> value={'ukendt' as DemoValue} placeholder="Vælg">
+        <MenuOption value="A">Alfa</MenuOption>
+        <MenuOption value="B">Beta</MenuOption>
+      </StyledDropdown>
+    );
+
+    expect(screen.getByRole('combobox')).toHaveValue('');
+  });
+
   it('kopierer den viste label ved copy-genvej', async () => {
     const user = userEvent.setup();
     render(<ControlledDropdown initialValue="B" />);

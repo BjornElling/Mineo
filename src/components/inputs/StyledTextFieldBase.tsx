@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { TextField, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
+import type { FieldWarning } from '../../inputCore/fieldWarning';
 import { mergeSx } from '../../utils/mergeSx';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
@@ -74,6 +75,11 @@ export type StyledTextFieldBaseProps = {
    * skærmlæserbruger får den fulde besked — den kan ikke "se feltet ved markøren", som forkortelsen bygger på.
    */
   tooltipText?: string;
+  /**
+   * Ikke-blokerende feltadvarsel. Den gule markering afledes udelukkende af en ikke-tom besked, så en gul
+   * ring uden tooltip/a11y-tekst ikke kan renderes. En aktiv rød fejl har altid forrang.
+   */
+  warning?: FieldWarning;
   disabled?: boolean;
   disabledAppearance?: 'default' | 'locked';
 
@@ -119,6 +125,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       error = false,
       helperText = '',
       tooltipText,
+      warning,
       sx = {},
       disabled,
       disabledAppearance = 'default',
@@ -212,12 +219,14 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     );
 
     const showError = error && helperText.trim() !== '';
+    const normalizedWarningText = warning?.message.trim() ?? '';
+    const showWarning = !showError && normalizedWarningText !== '';
     const resolvedTooltipText = tooltipText ?? helperText;
-    const a11yErrorId = `${resolvedId}-error`;
+    const a11yStatusId = `${resolvedId}-status`;
 
     const describedByBase = htmlInputAttributes?.['aria-describedby'];
-    const describedBy = showError
-      ? [describedByBase, a11yErrorId].filter((v): v is string => Boolean(v && v.trim() !== '')).join(' ')
+    const describedBy = showError || showWarning
+      ? [describedByBase, a11yStatusId].filter((v): v is string => Boolean(v && v.trim() !== '')).join(' ')
       : describedByBase;
 
     const mergedHtmlInputProps = {
@@ -313,12 +322,12 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
 
     return (
       <Tooltip
-        title={showError ? resolvedTooltipText : ''}
+        title={showError ? resolvedTooltipText : showWarning ? normalizedWarningText : ''}
         arrow
         placement="top"
-        disableHoverListener={!showError}
-        disableFocusListener={!showError}
-        disableTouchListener={!showError}
+        disableHoverListener={!showError && !showWarning}
+        disableFocusListener={!showError && !showWarning}
+        disableTouchListener={!showError && !showWarning}
       >
         <span style={{ display: 'inline-block', width: wrapperWidth, position: 'relative' }}>
           <TextField
@@ -417,6 +426,19 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
                   borderColor: 'var(--color-input-border-focus)',
                   borderWidth: '1px',
                 },
+                ...(showWarning ? {
+                  '&:not(.Mui-error) fieldset': {
+                    borderColor: 'var(--color-status-warning)',
+                    borderWidth: '1px',
+                  },
+                  '&:not(.Mui-error):hover fieldset': {
+                    borderColor: 'var(--color-status-warning)',
+                  },
+                  '&:not(.Mui-error).Mui-focused fieldset': {
+                    borderColor: 'var(--color-input-border-focus)',
+                    borderWidth: '1px',
+                  },
+                } : {}),
               },
               '& .MuiInputBase-input::placeholder': {
                 color: 'var(--mineo-color-placeholder)',
@@ -427,9 +449,9 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
               },
             }, sx)}
           />
-          {showError && (
-            <span id={a11yErrorId} style={visuallyHiddenStyle}>
-              {helperText}
+          {(showError || showWarning) && (
+            <span id={a11yStatusId} style={visuallyHiddenStyle}>
+              {showError ? helperText : normalizedWarningText}
             </span>
           )}
         </span>

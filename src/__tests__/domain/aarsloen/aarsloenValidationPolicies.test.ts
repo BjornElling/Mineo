@@ -206,12 +206,12 @@ describe('harTabelValideringsFejl', () => {
     expect(harTabelValideringsFejl([emptyRow('r1')], 'maaned')).toBe(false);
   });
 
-  it('komplet månedsrække → false', () => {
-    expect(harTabelValideringsFejl([maanedRow('r1', '6', '2024')], 'maaned')).toBe(false);
+  it('komplet månedsrække uden beløb → true', () => {
+    expect(harTabelValideringsFejl([maanedRow('r1', '6', '2024')], 'maaned')).toBe(true);
   });
 
-  it('komplet dagrække → false', () => {
-    expect(harTabelValideringsFejl([dagRow('r1', '2024-01-01', '2024-01-31')], 'dag')).toBe(false);
+  it('komplet dagrække uden beløb → true', () => {
+    expect(harTabelValideringsFejl([dagRow('r1', '2024-01-01', '2024-01-31')], 'dag')).toBe(true);
   });
 
   it('delvis månedsrække (kun startdato) → true (partial period error)', () => {

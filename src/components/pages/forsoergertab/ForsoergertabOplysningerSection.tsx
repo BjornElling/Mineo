@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
-import WarningAmber from '@mui/icons-material/WarningAmber';
 
 import ContentBox from '../../layout/ContentBox';
 import AmountField, { MILLION_AMOUNT_FIELD_WIDTH } from '../../../inputCore/react/fields/AmountField';
@@ -10,6 +9,7 @@ import IntegerField from '../../../inputCore/react/fields/IntegerField';
 import { isoToDanish } from '../../../types/branded';
 import { type Koen } from '../../../schemas/formSchemas';
 import { useForsoergertabVm } from './forsoergertabContext';
+import { createFieldWarning } from '../../../inputCore/fieldWarning';
 
 /**
  * Grundlæggende oplysninger: de tværsektionelle stamdata-datoer, køn og de to årslønsfelter.
@@ -45,6 +45,27 @@ const ForsoergertabOplysningerSection = React.memo(() => {
                     onClick={vm.goToStamdata}
                     sx={{ cursor: 'pointer' }}
                   >
+                    Stamdata
+                  </Typography>
+                  )
+                </>
+              )}
+            </Typography>
+          )}
+        </Box>
+      </Box>
+
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">Skadedato</Typography>
+        <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
+          {vm.skadedato && !vm.skadedatoError ? (
+            <Typography className="row--text">{isoToDanish(vm.skadedato)}</Typography>
+          ) : (
+            <Typography className="row--text" color="text.secondary">
+              {vm.skadedatoError ?? (
+                <>
+                  Mangler (angiv i&nbsp;{' '}
+                  <Typography component="span" className="icon-text-link" color="inherit" onClick={vm.goToStamdata} sx={{ cursor: 'pointer' }}>
                     Stamdata
                   </Typography>
                   )
@@ -122,7 +143,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
       <Typography className="row--subheading">EAL-ydelse</Typography>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Skadelidtes årsløn (efter EAL)</Typography>
+        <Typography className="row--text">Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)</Typography>
         <Box className="row--label-right-hover__content">
           <AmountField
             field={fields.ealAarsloen}
@@ -130,21 +151,11 @@ const ForsoergertabOplysningerSection = React.memo(() => {
             name="ealAarsloen"
             allowDecimals={false}
             width={MILLION_AMOUNT_FIELD_WIDTH}
+            warning={vm.ealAarsloenNotice === undefined ? undefined : createFieldWarning(vm.ealAarsloenNotice)}
           />
         </Box>
       </Box>
 
-      {/*
-        Oplysningen om, at den faktiske årsløn bør indtastes, når ASL-årslønnen er maksimum. Bevidst en ren
-        oplysning UDEN rød feltmarkering og UDEN blokering — den faktiske årsløn KAN legitimt være præcis
-        maksimum, og en blokering ville da forhindre en korrekt beregning.
-      */}
-      {vm.ealAarsloenNotice !== undefined && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-          <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />
-          <Typography className="row--text">{vm.ealAarsloenNotice}</Typography>
-        </Box>
-      )}
     </ContentBox>
   );
 });

@@ -14,6 +14,7 @@ import InputUnitAdornment from '../../../components/inputs/InputUnitAdornment';
 import { DEFAULT_AMOUNT_PLACEHOLDER } from '../../../utils/amountInputUtils';
 import { DATE_FORMAT_PLACEHOLDER, WEEK_FORMAT_PLACEHOLDER, YEAR_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
+import type { FieldWarning } from '../../fieldWarning';
 import type { CellSpec } from '../useCellEditor';
 import GridTextCell from './GridTextCell';
 import { fieldAllowsNegative } from './signPolicy';
@@ -28,6 +29,7 @@ type BaseCellProps<T> = Readonly<{
   placeholder?: string;
   /** Ekstern kryds-række-domænefejl (fx dublet-datoer); descriptorens eget issue har forrang. */
   externalErrorMessage?: string;
+  warning?: FieldWarning;
   inputRef?: React.Ref<HTMLInputElement>;
 }>;
 
@@ -83,7 +85,7 @@ export const GridAmountCell = (
  * divisible-by-5/ikke-0-reglerne er afledte feltvalidatorer på descriptoren (§1.6), ikke celle-config.
  */
 export const GridPercentCell = (
-  { gridCell, cell, placeholder = '0', externalErrorMessage, inputRef, allowDecimals = false }:
+  { gridCell, cell, placeholder = '0', externalErrorMessage, warning, inputRef, allowDecimals = false }:
     BaseCellProps<number | undefined> & Readonly<{ allowDecimals?: boolean }>
 ): React.ReactElement => {
   // Politikken læses nu af descriptoren. Cellen svarede før hardkodet `false` — tilfældigvis RIGTIGT
@@ -106,6 +108,7 @@ export const GridPercentCell = (
         <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={isDraftEmpty} />
       )}
       {...(externalErrorMessage === undefined ? {} : { externalErrorMessage })}
+      {...(warning === undefined ? {} : { warning })}
       {...(inputRef === undefined ? {} : { inputRef })}
     />
   );

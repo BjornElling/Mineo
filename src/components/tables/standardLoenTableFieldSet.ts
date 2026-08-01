@@ -149,10 +149,17 @@ export const resolveStandardLoenTableValidationFromReader = (
   fieldSet: StandardLoenTableFieldSet,
   reader: InputReader,
   loenperiode: Loenperiode,
-  tillaegAngivesSom: TillaegAngivesSom
+  tillaegAngivesSom: TillaegAngivesSom,
+  emptyCompletePeriodLevel: 'warning' | 'error' = 'warning'
 ): StandardLoenTableValidationResult => {
   const rowIds = rowIdsFor(fieldSet, reader);
   const rows = rowIds.map((rowId) => rebuildRow(reader, fieldSet, rowId));
   const cellErrorsByCellKey = collectCellErrorsByCellKey(reader, fieldSet, rowIds, loenperiode, tillaegAngivesSom);
-  return getStandardLoenTableValidation({ rows, loenperiode, cellErrorsByCellKey, tillaegAngivesSom });
+  return getStandardLoenTableValidation({
+    rows,
+    loenperiode,
+    cellErrorsByCellKey,
+    tillaegAngivesSom,
+    emptyCompletePeriodLevel,
+  });
 };

@@ -16,7 +16,7 @@ import {
   faellesAarsloenAslAarsloenField,
   faellesAarsloenEalAarsloenField,
 } from '../../../inputCore/catalog/faellesAarsloenDescriptors';
-import { stamdataSkadelidteFodselsdatoField } from '../../../inputCore/catalog/stamdataDescriptors';
+import { stamdataSkadedatoField, stamdataSkadelidteFodselsdatoField } from '../../../inputCore/catalog/stamdataDescriptors';
 import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
@@ -44,6 +44,7 @@ const tilkendtForPeriodeAarRef = forsoergertabTilkendtForPeriodeAarField.bind();
 const aslAarsloenRef = faellesAarsloenAslAarsloenField.bind();
 const ealAarsloenRef = faellesAarsloenEalAarsloenField.bind();
 const skadelidteFodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
+const skadedatoRef = stamdataSkadedatoField.bind();
 
 /**
  * route er eksplicit navigation-metadata (§3.7); Forsørgertab er en side uden faner (tabKey: null). De to
@@ -97,6 +98,9 @@ export function useForsoergertabViewModel() {
     skadelidteFodselsdatoRead.status === 'usable' ? skadelidteFodselsdatoRead.value : undefined;
   const skadelidteFodselsdatoError =
     skadelidteFodselsdatoRead.status === 'error' ? skadelidteFodselsdatoRead.issue.message : undefined;
+  const skadedatoRead = evaluation.reader.read(skadedatoRef);
+  const skadedato = skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined;
+  const skadedatoError = skadedatoRead.status === 'error' ? skadedatoRead.issue.message : undefined;
 
   const goToStamdata = React.useCallback(() => navigate('/stamdata'), [navigate]);
 
@@ -121,6 +125,8 @@ export function useForsoergertabViewModel() {
     download,
     skadelidteFodselsdato,
     skadelidteFodselsdatoError,
+    skadedato,
+    skadedatoError,
     goToStamdata,
     // Snapshot-afledt visning og panel-gates (§1.10).
     result: snapshot.calculation.result,

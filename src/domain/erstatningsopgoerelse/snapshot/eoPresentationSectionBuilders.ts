@@ -20,15 +20,10 @@ import { formatCountWithUnit } from '../../../utils/formatUtils';
 import { TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { roundByMethod } from '../../../utils/rounding';
+import { formatDanishList } from '../../../utils/danishListFormatting';
 
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
-
-const joinDanishList = (items: readonly string[]): string => {
-  if (items.length <= 1) return items[0] ?? '';
-  if (items.length === 2) return `${items[0]} og ${items[1]}`;
-  return `${items.slice(0, -1).join(', ')} og ${items[items.length - 1]}`;
-};
 
 const buildTafFerieFravaerLinje = (
   values: ErstatningsopgoerelseValues,
@@ -40,7 +35,7 @@ const buildTafFerieFravaerLinje = (
   const periodTexts = summary.ferieperioder.map((range) => `${formatDateShort(range.fra)} - ${formatDateShort(range.til)}`);
   const periodPart = periodTexts.length === 0
     ? null
-    : `ferie i ${periodTexts.length === 1 ? 'perioden' : 'perioderne'} ${joinDanishList(periodTexts)}`;
+    : `ferie i ${periodTexts.length === 1 ? 'perioden' : 'perioderne'} ${formatDanishList(periodTexts)}`;
   const loosePart = summary.loseFeriedage > 0
     ? `${formatCountWithUnit(summary.loseFeriedage, 'løs ferie-/feriefridag', 'løse ferie-/feriefridage')}`
     : null;

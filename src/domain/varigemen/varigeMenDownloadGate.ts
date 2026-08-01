@@ -18,7 +18,7 @@
 import {
   allowDocumentDownload,
   blockDocumentDownload,
-  blockDocumentDownloadForInvalidInput,
+  blockDocumentDownloadForFieldIssue,
   type DocumentDownloadGateResult,
 } from '../../document/layout/documentGateTypes';
 import type { VarigeMenReaderProjection } from './varigeMenReaderProjection';
@@ -29,9 +29,9 @@ export const evaluateVarigeMenDownloadGate = (
   if (projection.status === 'blocked') {
     // En rød feltfejl (kind 'field') har forrang over en manglende-felt-consumerfejl, præcis som den tidligere
     // rækkefølge `beregningsFejl` → `manglendeFelter`.
-    const hasFieldError = projection.issues.some((issue) => issue.kind === 'field');
-    if (hasFieldError) {
-      return blockDocumentDownloadForInvalidInput({ code: 'varigemen:field-error', message: 'Fejl i indtastning' });
+    const fieldIssue = projection.issues.find((issue) => issue.kind === 'field');
+    if (fieldIssue?.kind === 'field') {
+      return blockDocumentDownloadForFieldIssue(fieldIssue, 'varigemen:field-error');
     }
     return blockDocumentDownload({ code: 'varigemen:missing-fields', message: 'Indtastning mangler' });
   }

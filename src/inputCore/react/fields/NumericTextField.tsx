@@ -8,6 +8,7 @@ import { useFormFieldSurface } from '../useFormFieldSurface';
 import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
+import type { FieldWarning } from '../../fieldWarning';
 
 // Numerisk tekst-felt (§2.4/§3.5): den delte TYNDE skal for alle single-`<input>` numeriske
 // codec-familier (år, heltal, beløb, procent, brøk, uge). Præcis som `DateField`, men med et
@@ -54,6 +55,8 @@ export type NumericTextFieldProps<T> = Readonly<{
    * forrang (§1.8), så dette vises kun, når feltet ikke selv har et format-/bounds-/rule-issue.
    */
   crossFieldIssue?: FieldIssue;
+  /** Ikke-blokerende gul feltstatus; ignoreres automatisk, hvis feltet har en rød fejl. */
+  warning?: FieldWarning;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -74,6 +77,7 @@ const NumericTextFieldInner = <T,>(
     endAdornment,
     inputMode = 'numeric',
     crossFieldIssue,
+    warning,
     inputRef,
     sx,
   }: NumericTextFieldProps<T>,
@@ -125,6 +129,7 @@ const NumericTextFieldInner = <T,>(
       error={hasError}
       helperText={issueText.message ?? ''}
       {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
+      {...(warning === undefined ? {} : { warning })}
       {...(resolvedEndAdornment === undefined ? {} : { endAdornment: resolvedEndAdornment })}
       htmlInputAttributes={{
         inputMode,

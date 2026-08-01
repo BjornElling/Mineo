@@ -1,5 +1,6 @@
 import type { ErhvervsevnetabComposedValues, AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
+import { EET_UNDER_15_WARNING } from './eetFieldWarnings';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
 import type { YearlyRate } from '../../data/lovbestemteRates';
@@ -300,7 +301,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const blockingIssues = issues.some((issue) => issue.severity === 'error');
 
   if (values.ealEetPct !== undefined && values.ealEetPct !== 0 && values.ealEetPct < 15) {
-    issues.push(toWarning('warn-eal-eet-under-15', 'Der er angivet et EET efter EAL på mindre end 15 %'));
+    issues.push(toWarning('warn-eal-eet-under-15', EET_UNDER_15_WARNING));
   }
 
   if (
@@ -308,7 +309,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     eetPctResolution.resolved?.source === 'asl' &&
     eetPctResolution.resolved.value < 15
   ) {
-    issues.push(toWarning('warn-asl-eet-under-15', 'Der er angivet et EET på mindre end 15 %'));
+    issues.push(toWarning('warn-asl-eet-under-15', EET_UNDER_15_WARNING));
   }
 
   const ealAarsloenInput = amountValueToNumber(values.ealAarsloen);

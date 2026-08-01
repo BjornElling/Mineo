@@ -25,6 +25,7 @@ import {
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import type { DocumentLabelValueOptions } from '../../../model/documentModel';
+import { formatDanishList } from '../../../../utils/danishListFormatting';
 
 export type TafBeregningsgrundlagDeps = Readonly<{
   model: EoModel;
@@ -360,9 +361,7 @@ export const resolveTafForventetIndkomstIntroText = (deps: TafForventetIndkomstI
         : ' tillagt efterfølgende lønstigninger';
       return `${entry.ansaettelsesforholdNavn} ${datoFragment}${tillaeg}`;
     });
-    const sammensat = fragmenter.length === 1
-      ? fragmenter[0]
-      : `${fragmenter.slice(0, -1).join(', ')} og ${fragmenter[fragmenter.length - 1]}`;
+    const sammensat = formatDanishList(fragmenter);
     return `Beregnes som lønnen opgjort således: ${sammensat}.`;
   };
   const perAnsaettelseTekst = resolvePerAnsaettelseLoenTekst();

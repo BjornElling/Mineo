@@ -4,6 +4,7 @@ import {
   ensureRentekravRows,
   committedToRentekravDraftRows,
   rentekravDraftToCommittedRow,
+  shouldAppendRentekravPlaceholder,
 } from '../../../domain/renteberegning/rentekravTableModel';
 import { isRentekravRowEmpty } from '../../../domain/renteberegning/rowEmpty';
 import type { RentekravRow } from '../../../schemas/formSchemas';
@@ -70,6 +71,18 @@ describe('ensureRentekravRows', () => {
     };
     const rows = ensureRentekravRows([row]);
     expect(rows[0]!.enhed).toBe('dage');
+  });
+});
+
+describe('shouldAppendRentekravPlaceholder', () => {
+  it('genbruger en række med kun valgt enhed som trailing indtastningsrække', () => {
+    const row = { ...createEmptyRentekravCommittedRow('r1'), enhed: 'uger' as const };
+    expect(shouldAppendRentekravPlaceholder([row])).toBe(false);
+  });
+
+  it('tilføjer en placeholder når alle committed rækker indeholder egentligt renteinput', () => {
+    const row = { ...createEmptyRentekravCommittedRow('r1'), tillaegstid: 1 };
+    expect(shouldAppendRentekravPlaceholder([row])).toBe(true);
   });
 });
 

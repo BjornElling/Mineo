@@ -23,6 +23,7 @@ import { SKAERING_2015_03_01 } from '../../../domain/erhvervsevnetab/eetSkaering
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import { APP_ROUTES } from '../../../config/pageNavigation';
+import { resolveEetUnder15Warning } from '../../../domain/erhvervsevnetab/eetFieldWarnings';
 
 export type EetOplysningerTabProps = Readonly<{
   projection: ErhvervsevnetabReaderProjection;
@@ -153,6 +154,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               location={LOCATIONS.ealEetPct}
               name="ealEetPct"
               placeholder="0"
+              warning={resolveEetUnder15Warning(values.ealEetPct)}
             />
           </Box>
         </Box>

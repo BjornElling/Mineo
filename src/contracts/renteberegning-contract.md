@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ---
 
@@ -28,6 +28,8 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
    ugyldig celle automatisk sin per-række-download og aggregater, der inkluderer rækken, men ikke andre uafhængige
    per-række-dokumenter. Nulstillings-gaten udledes af samme afsluttede inputmodel, men er ikke en dokumentgate.
 5. Renderer-fejl må ikke være primær gate for ugyldigt brugerinput.
+6. En rentekravsrække med kun valgt tillægstidsenhed er semantisk tom og udgør selv tabellens ene trailing
+   indtastningsrække. Enhedsvalget må ikke i sig selv skabe en ekstra synlig række.
 
 ---
 

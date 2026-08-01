@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ---
 
@@ -47,6 +47,18 @@ Snapshot skal mindst deklarere:
 Forventelige brugerinputtilstande skal give afledte issues. Uventede runtimefejl må aldrig give gyldige totals eller dokumentprojektion.
 
 Runtimefejl skal routes efter `error-contract.md` og give dansk blokerende brugerbesked.
+
+Dokumentgaten følger disse regler:
+
+1. Er både ASL- og EAL-området uden ydelsesinput, blokeres som `missing-input`.
+2. Er ASL-området påbegyndt, kræves alle dets relevante felter, herunder betinget køn.
+3. En konkret felt-/domæneregel-fejl hvor som helst på siden blokerer hele dokumentet som ugyldigt input, også
+   hvis den anden ydelsesdel isoleret kan beregnes.
+4. Beregningsdato, skadedato og skadelidtes fødselsdato er fælles nødvendige input; tomhed er `missing-input`,
+   ikke `invalid-input`.
+
+Skadedato vises read-only med link til Stamdata. ASL-maksimum-oplysningen på EAL-årsløn vises som en
+ikke-blokerende `FieldWarning`, aldrig som inline-besked.
 
 ---
 

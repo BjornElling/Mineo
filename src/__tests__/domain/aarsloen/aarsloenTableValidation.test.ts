@@ -17,7 +17,11 @@ const row = (id: string, overrides: Partial<StandardLoenTableRow>): StandardLoen
 describe('getStandardLoenTableValidation', () => {
   it('flags missing period start when row has other data', () => {
     const rows = [row('r1', { col2: amount(100) })];
-    const result = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
+    const result = getStandardLoenTableValidation({
+      rows,
+      loenperiode: 'maaned',
+      emptyCompletePeriodLevel: 'error',
+    });
 
     expect(result.summary.hasErrors).toBe(true);
     expect(result.summary.firstErrorCell).toEqual({
@@ -29,7 +33,11 @@ describe('getStandardLoenTableValidation', () => {
 
   it('flags missing period end when start is filled', () => {
     const rows = [row('r1', { col0_maaned: '1', col2: amount(100) })];
-    const result = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
+    const result = getStandardLoenTableValidation({
+      rows,
+      loenperiode: 'maaned',
+      emptyCompletePeriodLevel: 'error',
+    });
 
     expect(result.summary.hasErrors).toBe(true);
     expect(result.summary.firstErrorCell).toEqual({
@@ -55,13 +63,18 @@ describe('getStandardLoenTableValidation', () => {
     });
   });
 
-  it('sets warning when only period is filled', () => {
+  it('sætter fejl på første beløbsfelt når kun perioden er udfyldt', () => {
     const rows = [row('r1', { col0_maaned: '1', col1_maaned: '2024' })];
-    const result = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
+    const result = getStandardLoenTableValidation({
+      rows,
+      loenperiode: 'maaned',
+      emptyCompletePeriodLevel: 'error',
+    });
 
-    expect(result.summary.hasErrors).toBe(false);
-    expect(result.summary.hasWarnings).toBe(true);
-    expect(result.summary.firstErrorCell).toBeUndefined();
+    expect(result.summary.hasErrors).toBe(true);
+    expect(result.summary.hasWarnings).toBe(false);
+    expect(result.summary.firstErrorCell).toEqual({ rowId: 'r1', colKey: 'col2', reason: 'missing' });
+    expect(result.errors).toContainEqual({ kind: 'cell', issue: 'missing_amount', rowId: 'r1', colKey: 'col2' });
   });
 
   it('does not set warning when amount column is explicitly set to 0', () => {
@@ -72,17 +85,21 @@ describe('getStandardLoenTableValidation', () => {
     expect(result.summary.hasWarnings).toBe(false);
   });
 
-  it('skips warnings and reports first error in later rows', () => {
+  it('rapporterer den første manglende værdi i tabelrækkefølgen', () => {
     const rows = [
       row('r1', { col0_maaned: '1', col1_maaned: '2024' }),
       row('r2', { col2: amount(200) }),
     ];
-    const result = getStandardLoenTableValidation({ rows, loenperiode: 'maaned' });
+    const result = getStandardLoenTableValidation({
+      rows,
+      loenperiode: 'maaned',
+      emptyCompletePeriodLevel: 'error',
+    });
 
     expect(result.summary.hasErrors).toBe(true);
     expect(result.summary.firstErrorCell).toEqual({
-      rowId: 'r2',
-      colKey: 'col0_maaned',
+      rowId: 'r1',
+      colKey: 'col2',
       reason: 'missing',
     });
   });

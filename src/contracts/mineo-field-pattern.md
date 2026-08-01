@@ -151,6 +151,10 @@ Regler:
 Mens editoren er åben, forbliver resten af UI'et på seneste afsluttede revision. Den åbne draft må ikke drive
 feltissues, beregning, resultatvisning eller download-gate.
 
+En afledt, ikke-blokerende `FieldWarning` må præsenteres på den afsluttede revision. Den fælles form-/gridskal
+viser gul ring og den bundne tooltipbesked; rød `FieldIssue` har forrang. Advarslen må ikke føres ind i editorens
+canonical/rejected state.
+
 ## 5. Keyboard-policy
 
 Standard for åbne teksteditorer:

@@ -331,8 +331,11 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const selectedLabel = React.useMemo((): string => {
     if (resolvedValue === undefined) return '';
     if (getOptionLabel) return getOptionLabel(resolvedValue);
+    // Et valgfrit felt kan kortvarigt eller efter tolerant load indeholde en værdi, som ikke længere findes
+    // blandt options. Det skal vises som placeholder og kunne ryddes — ikke vælte hele React-træet i DEV.
+    if (selectedVisualOption === null) return '';
 
-    const label = selectedVisualOption?.children;
+    const label = selectedVisualOption.children;
     if (typeof label === 'string' || typeof label === 'number') return String(label);
 
     if (import.meta.env.DEV) {

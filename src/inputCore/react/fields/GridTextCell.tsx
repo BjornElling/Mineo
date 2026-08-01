@@ -9,6 +9,7 @@ import { assignRef } from '../../../utils/refUtils';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import type { CellSpec } from '../useCellEditor';
 import type { FieldIssue } from '../../inputIssue';
+import type { FieldWarning } from '../../fieldWarning';
 import { useGridCellSurface, type GridCellKeyFilter } from '../useGridCellSurface';
 import { resolveFieldIssueText } from '../fieldIssueText';
 
@@ -32,6 +33,8 @@ export type GridTextCellProps<T, TEntity = unknown> = Readonly<{
    * issue (format/bounds/rule) har forrang (§1.8: den mest direkte fejl vises).
    */
   collectionRuleIssue?: FieldIssue;
+  /** Ikke-blokerende gul cellemarkering. En aktiv rød fejl har forrang. */
+  warning?: FieldWarning;
   placeholder?: string;
   textAlign?: 'center' | 'right' | 'left';
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
@@ -53,6 +56,7 @@ const GridTextCellInner = <T, TEntity>(
     cell,
     keyFilter,
     collectionRuleIssue,
+    warning,
     placeholder,
     textAlign = 'center',
     inputMode = 'text',
@@ -77,6 +81,8 @@ const GridTextCellInner = <T, TEntity>(
   // format-/bounds-/rule-issue (§1.8: højst én aktiv rød fejl + én tooltip; den mest direkte vælges).
   const issueText = resolveFieldIssueText(surface.issue, collectionRuleIssue);
   const showError = issueText.message !== undefined;
+  const normalizedWarningText = warning?.message.trim() ?? '';
+  const showWarning = !showError && normalizedWarningText !== '';
   const errorMessage = issueText.message ?? '';
   const tooltipMessage = issueText.tooltip ?? '';
 
@@ -101,7 +107,7 @@ const GridTextCellInner = <T, TEntity>(
 
   return (
     <Box sx={mergeSx({ position: 'relative', width: '100%', height: '100%' }, sx)}>
-      <Tooltip title={showError ? tooltipMessage : ''} arrow placement="top">
+      <Tooltip title={showError ? tooltipMessage : showWarning ? normalizedWarningText : ''} arrow placement="top">
         <Box sx={{ width: '100%', height: '100%' }}>
           <InputBase
             inputRef={assignInputRef}
@@ -122,7 +128,7 @@ const GridTextCellInner = <T, TEntity>(
               ...surface.restoreTargetAttributes,
             }}
             sx={{
-              ...getTableInputRootStyles({ showError, tableKind: gridApi.tableKind, locked: false }),
+              ...getTableInputRootStyles({ showError, showWarning, tableKind: gridApi.tableKind, locked: false }),
               cursor: surface.isEditing ? 'text' : 'pointer',
               ...(surface.isFocused ? { outline: 'none' } : {}),
               '& .MuiInputBase-input': {
@@ -135,6 +141,7 @@ const GridTextCellInner = <T, TEntity>(
             }}
           />
           {showError ? <span style={visuallyHiddenStyle}>{errorMessage}</span> : null}
+          {showWarning ? <span style={visuallyHiddenStyle}>{normalizedWarningText}</span> : null}
           {typeof overlay === 'function'
             ? (overlay as (info: Readonly<{ value: T | undefined }>) => React.ReactNode)({ value: surface.value })
             : overlay}

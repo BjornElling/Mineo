@@ -240,7 +240,9 @@ describe('Forsoergertab — gate-årsagen vises kun i tooltippet (UT-F07)', () =
     // Gør værdien ugyldig UDEN at lukke editoren: knappen er stadig enabled på den gamle revision.
     const input = document.querySelector('input[name="tilkendtForPeriodeAar"]') as HTMLInputElement;
     await user.click(input);
-    await user.keyboard('{Control>}a{/Control}{Delete}11');
+    // Erstat uden et særskilt Delete-keydown: clear er en immediate-commit-handling, mens denne tekst
+    // forbliver en åben draft indtil downloadaktiveringen kører commit-barrieren.
+    await user.keyboard('{Control>}a{/Control}11');
     expect(button).toBeEnabled();
 
     // `user.click` ville blurre inputtet FØRST (som settler og disabler knappen), så aktiveringen aldrig

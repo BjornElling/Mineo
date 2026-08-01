@@ -199,7 +199,7 @@ describe('MenberegningTab — gate-årsagen vises kun i tooltippet (UT-F07)', ()
     await waitFor(() => {
       const button = screen.getByTestId('varigemen-download');
       expect(button).toBeDisabled();
-      expect(button).toHaveAccessibleName(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
+      expect(button).toHaveAccessibleName('Værdi skal være mellem 1 og 120');
     });
     const button = screen.getByTestId('varigemen-download');
     expect(button).not.toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);

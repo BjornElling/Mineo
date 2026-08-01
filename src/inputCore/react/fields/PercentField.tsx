@@ -11,6 +11,7 @@ import NumericTextField from './NumericTextField';
 import { fieldAllowsNegative } from './signPolicy';
 import StyledTextFieldBase from '../../../components/inputs/StyledTextFieldBase';
 import { formatPercentDisplay } from '../../../utils/percentDraftCore';
+import type { FieldWarning } from '../../fieldWarning';
 
 // Procent-felt (§2.4/§3.5): familie-skal over `NumericTextField` med procent-tegnfilteret,
 // den delte "%"-enheds-adornment (muted når tom) og højrestillet tabular-nums-visning. Parse/format og
@@ -28,6 +29,7 @@ export type PercentFieldProps = Readonly<{
   singleStageClick?: boolean;
   /** Kryds-felt-domæneregel-issue; descriptorens eget issue har forrang (§1.8). */
   crossFieldIssue?: FieldIssue;
+  warning?: FieldWarning;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -43,6 +45,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
       disabled,
       singleStageClick = false,
       crossFieldIssue,
+      warning,
       inputRef,
       sx,
     },
@@ -80,6 +83,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
           <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={isDraftEmpty} />
         )}
         {...(crossFieldIssue === undefined ? {} : { crossFieldIssue })}
+        {...(warning === undefined ? {} : { warning })}
         inputRef={inputRef}
         sx={sx}
       />

@@ -345,24 +345,60 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     calculation.aslComputation !== null;
 
   const canShowResult = canShowEal && canShowAsl && calculation.result !== null;
+  const hasDescriptorFieldError = [
+    fieldErrors.forsoergertab.beregningsdato,
+    fieldErrors.forsoergertab.virkningsdato,
+    fieldErrors.forsoergertab.efterladteFodselsdato,
+    fieldErrors.forsoergertab.koen,
+    fieldErrors.forsoergertab.tilkendtForPeriodeAar,
+    fieldErrors.faellesAarsloen.aslAarsloen,
+    fieldErrors.faellesAarsloen.ealAarsloen,
+    fieldErrors.stamdata.skadedato,
+    fieldErrors.stamdata.skadelidteFodselsdato,
+  ].some((error) => Boolean(error?.message));
+  const hasDomainInputError = hasIssue(calculation.issues, [
+    'asl-aarsloen-zero',
+    'eal-aarsloen-zero',
+    'tilkendt-for-periode-invalid',
+    'beregningsdato-before-virkningsdato',
+  ]);
+  // Manglende motorafhængigheder er ikke "Fejl i indtastning". Kun konkrete røde field-/regelissues
+  // klassificeres som ugyldige; ellers ville fx en tom skadedato få det forkerte download-tooltip.
   const hasDownloadBlockingFieldError =
-    fieldUi.beregningsdato.hasError ||
-    fieldUi.beregningsdatoForEal.hasError ||
-    fieldUi.efterladteFodselsdato.hasError ||
-    fieldUi.virkningsdato.hasError ||
-    fieldUi.koen.hasError ||
-    fieldUi.tilkendtForPeriodeAar.hasError ||
-    fieldUi.aslAarsloen.hasError ||
-    hasBlockingEalAarsloenError ||
-    fieldUi.skadedato.hasError ||
-    fieldUi.skadelidteFodselsdato.hasError;
+    hasDescriptorFieldError || hasSharedDateOrderError || hasDomainInputError;
+  const hasAnyAslInput = Boolean(
+    faellesAarsloen.aslAarsloen ||
+    values.virkningsdato ||
+    values.tilkendtForPeriodeAar !== undefined ||
+    values.efterladteFodselsdato ||
+    values.koen
+  );
+  const hasAnyEalInput = Boolean(faellesAarsloen.ealAarsloen);
+  const hasCompleteAslInput = Boolean(
+    faellesAarsloen.aslAarsloen &&
+    values.virkningsdato &&
+    values.tilkendtForPeriodeAar !== undefined &&
+    values.efterladteFodselsdato &&
+    (!visKoenValg || values.koen)
+  );
+  const hasMissingCommonInput =
+    !values.beregningsdato || !stamdata?.skadedato || !stamdata?.skadelidteFodselsdato;
   const pdfGate = (() => {
     const reasons: DocumentDownloadGateReason[] = [];
-    if (!canShowEal && !canShowAsl) {
-      reasons.push(createMissingInputBlockingReason('no-pdf-projection', 'Der er ikke beregnet en PDF-klar EAL- eller ASL-del.'));
-    }
     if (hasDownloadBlockingFieldError) {
       reasons.push(createInvalidInputBlockingReason('blocking-input-error', 'Et eller flere nødvendige felter har blokerende fejl.'));
+    }
+    if (!hasAnyAslInput && !hasAnyEalInput) {
+      reasons.push(createMissingInputBlockingReason('no-benefit-input', 'Der er ikke indtastet oplysninger under ASL- eller EAL-ydelse.'));
+    }
+    if (hasAnyAslInput && !hasCompleteAslInput) {
+      reasons.push(createMissingInputBlockingReason('partial-asl-input', 'Alle felter under ASL-ydelse skal udfyldes, når ASL-ydelsen er påbegyndt.'));
+    }
+    if (hasMissingCommonInput) {
+      reasons.push(createMissingInputBlockingReason('missing-common-input', 'Beregningsdato og skadelidtes fødselsdato skal være udfyldt.'));
+    }
+    if (!canShowEal && !canShowAsl) {
+      reasons.push(createMissingInputBlockingReason('no-pdf-projection', 'Der er ikke beregnet en PDF-klar EAL- eller ASL-del.'));
     }
     if (reasons.length === 0) {
       return allowDocumentDownload();

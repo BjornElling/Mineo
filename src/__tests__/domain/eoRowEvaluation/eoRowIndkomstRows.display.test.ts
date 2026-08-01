@@ -147,4 +147,27 @@ describe('buildEoIndkomstRows display', () => {
     expect(warningRow?.status).toBe('warning');
     expect(warningRow?.displayValue).toContain('15-03-2024');
   });
+
+  it('viser en navigerbar advarsel når opsagt ansættelse mangler sidste arbejdsdag', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.ansaettelsesforholdOphoert = true;
+    af.sidsteArbejdsdag = undefined;
+
+    const rows = buildEoIndkomstRows(values, undefined, {});
+    const warningRow = rows.find((row) => row.id === `loenindkomst.${af.id}.sidsteArbejdsdagMangler`);
+
+    expect(warningRow).toMatchObject({
+      status: 'warning',
+      summaryDisplay: 'messageOnly',
+      summaryText: 'Det angives, at skadelidte er opsagt, men sidste arbejdsdag er ikke indtastet',
+      focusTarget: {
+        kind: 'fieldAddress',
+        address: expect.objectContaining({
+          field: 'sidsteArbejdsdag',
+          path: [expect.objectContaining({ entityId: af.id })],
+        }),
+      },
+    });
+  });
 });

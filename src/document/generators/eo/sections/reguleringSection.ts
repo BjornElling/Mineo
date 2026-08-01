@@ -24,6 +24,7 @@ import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../data/indskudteLoentillaeg';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
+import { formatDanishList } from '../../../../utils/danishListFormatting';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import {
@@ -127,10 +128,7 @@ const percentDeltaIsIncrease = (from: number | null | undefined, to: number | nu
 };
 
 const joinWithCommaAndOg = (parts: readonly string[]): string => {
-  if (parts.length === 0) return '';
-  if (parts.length === 1) return parts[0]!;
-  if (parts.length === 2) return `${parts[0]} og ${parts[1]}`;
-  return `${parts.slice(0, -1).join(', ')} og ${parts[parts.length - 1]}`;
+  return formatDanishList(parts);
 };
 
 const isPopulatedReguleringsCell = (value: string | undefined): boolean => {

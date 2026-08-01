@@ -345,7 +345,7 @@ describe('computeEetEalCalculation', () => {
       aarsloenAslMax,
     });
 
-    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('EET efter EAL på mindre end 15 %'))).toBe(true);
+    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message === 'Der kan ikke tilkendes erhvervsevnetab under 15 %')).toBe(true);
   });
 
   it('viser advarsel når ASL-fallback EET % er under 15', () => {
@@ -373,7 +373,7 @@ describe('computeEetEalCalculation', () => {
       aarsloenAslMax,
     });
 
-    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('Der er angivet et EET på mindre end 15 %'))).toBe(true);
+    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message === 'Der kan ikke tilkendes erhvervsevnetab under 15 %')).toBe(true);
   });
 
   it('viser advarsel når EAL-årsløn svarer til maks årsløn for skadesåret', () => {

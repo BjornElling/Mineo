@@ -3,6 +3,7 @@ import {
   DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
   blockDocumentDownload,
   blockDocumentDownloadForInvalidInput,
+  blockDocumentDownloadForFieldIssue,
   blockDocumentDownloadWithSpecificReason,
   invalidInputReason,
   missingInputReason,
@@ -12,6 +13,7 @@ import {
   specificReason,
   type DocumentDownloadGateReasonKind,
 } from '../../../document/layout/documentGateTypes';
+import { varigeMenMengradField } from '../../../inputCore/catalog/varigeMenDescriptors';
 
 // Brugerkravet 2026-07-30 tilføjede `invalid-input` som tredje klasse. Før den kollapsede "der mangler noget"
 // og "noget er forkert" til ÉN brugertekst, så en download-knap kunne svare "Indtastning mangler" på et felt,
@@ -31,6 +33,19 @@ describe('resolveDocumentGateTooltip — klasse → brugertekst', () => {
   it('citerer en specific årsag ordret', () => {
     const gate = blockDocumentDownloadWithSpecificReason({ code: 'x:s', message: 'Feriegodtgørelse er ikke udfyldt' });
     expect(resolveDocumentGateTooltip(gate.reasons[0]!)).toBe('Feriegodtgørelse er ikke udfyldt');
+  });
+
+  it('bruger kun generisk tekst for formatfejl og citerer bounds-fejl konkret', () => {
+    const field = varigeMenMengradField.bind();
+    const formatGate = blockDocumentDownloadForFieldIssue({
+      kind: 'field', severity: 'error', reason: 'format', code: 'x:format', field, message: 'Ugyldigt format',
+    }, 'x:format');
+    const boundsGate = blockDocumentDownloadForFieldIssue({
+      kind: 'field', severity: 'error', reason: 'bounds', code: 'x:bounds', field, message: 'Méngrad skal være mellem 1 og 120',
+    }, 'x:bounds');
+
+    expect(resolveBlockedGateTooltip(formatGate.reasons)).toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
+    expect(resolveBlockedGateTooltip(boundsGate.reasons)).toBe('Méngrad skal være mellem 1 og 120');
   });
 
   /**

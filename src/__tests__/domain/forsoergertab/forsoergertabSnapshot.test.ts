@@ -78,6 +78,69 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.pdfProjection.aslComputation).toEqual(snapshot.calculation.aslComputation);
   });
 
+  it('klassificerer tomme ASL- og EAL-sektioner som manglende input', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues({
+        efterladteFodselsdato: undefined,
+        virkningsdato: undefined,
+        koen: undefined,
+        tilkendtForPeriodeAar: undefined,
+      }),
+      faellesAarsloen: createFaellesAarsloen({ aslAarsloen: undefined, ealAarsloen: undefined }),
+      stamdata: createStamdata(),
+      fieldErrors: { forsoergertab: {}, faellesAarsloen: {}, stamdata: {} },
+    });
+
+    expect(snapshot.pdfGate.reasons).toContainEqual(expect.objectContaining({
+      code: 'forsoergertab:no-benefit-input', kind: 'missing-input',
+    }));
+    expect(snapshot.pdfGate.reasons.some((reason) => reason.kind === 'invalid-input')).toBe(false);
+  });
+
+  it('kræver alle ASL-felter når ASL-ydelsen er påbegyndt', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues({ virkningsdato: undefined }),
+      faellesAarsloen: createFaellesAarsloen({ ealAarsloen: undefined }),
+      stamdata: createStamdata(),
+      fieldErrors: { forsoergertab: {}, faellesAarsloen: {}, stamdata: {} },
+    });
+
+    expect(snapshot.pdfGate.reasons).toContainEqual(expect.objectContaining({
+      code: 'forsoergertab:partial-asl-input', kind: 'missing-input',
+    }));
+  });
+
+  it('blokerer hele PDFen ved feltfejl på den ellers ikke beregnede ydelsesdel', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues(),
+      faellesAarsloen: createFaellesAarsloen(),
+      stamdata: createStamdata(),
+      fieldErrors: {
+        forsoergertab: {},
+        faellesAarsloen: { ealAarsloen: { message: 'Ugyldigt EAL-beløb' } },
+        stamdata: {},
+      },
+    });
+
+    expect(snapshot.pdfGate.reasons).toContainEqual(expect.objectContaining({
+      code: 'forsoergertab:blocking-input-error', kind: 'invalid-input',
+    }));
+  });
+
+  it('klassificerer manglende fællesdatoer som manglende input og ikke som feltfejl', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues({ beregningsdato: undefined }),
+      faellesAarsloen: createFaellesAarsloen(),
+      stamdata: createStamdata({ skadelidteFodselsdato: undefined }),
+      fieldErrors: { forsoergertab: {}, faellesAarsloen: {}, stamdata: {} },
+    });
+
+    expect(snapshot.pdfGate.reasons).toContainEqual(expect.objectContaining({
+      code: 'forsoergertab:missing-common-input', kind: 'missing-input',
+    }));
+    expect(snapshot.pdfGate.reasons.some((reason) => reason.kind === 'invalid-input')).toBe(false);
+  });
+
   it('bevarer EAL-visning men blokerer ASL og download ved beregningsdato før virkningsdato', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues({

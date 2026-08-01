@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ---
 
@@ -69,6 +69,10 @@ fra snapshot-orchestreringen og rapporterer enhver blokering som issue.
 
 ASL-/EAL-rækkeissues afledes fra samme `InputReader` og rækkevalidatorer som snapshotinputtet. De lagres ikke i en
 field-error-bus og må ikke afhænge af, om rækkekomponenten er mounted.
+
+Canonical EET-procenter større end 0 og mindre end 15 giver en ikke-blokerende `FieldWarning` med teksten
+`Der kan ikke tilkendes erhvervsevnetab under 15 %`. Den vises på både ASL-rækker og EAL-feltet og ændrer ikke
+snapshotets blocking-status eller beregning.
 
 Kaldere må ikke antage, at snapshotets eget blocking-flag alene er komplet dokumentgate. Dokumentdefinitionen
 aggregerer snapshotissues, relevante rækkeissues og output-invariants ud fra sine strukturelle dependencies. Issues

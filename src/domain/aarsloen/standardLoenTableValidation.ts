@@ -15,7 +15,7 @@ export type StandardLoenTableValidationResult = Readonly<{
 }>;
 
 // Validation-scoped emptiness: en eksplicit 0 tæller som udfyldt input, så brugeren
-// ikke får advarsel om "manglende beløb", når 0 reelt er den indtastede værdi.
+// ikke får status om "manglende beløb", når 0 reelt er den indtastede værdi.
 export const isStandardLoenTableValueEffectivelyEmptyForValidation = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
   if (isAmountValueStrict(value)) {
@@ -118,11 +118,14 @@ export const getStandardLoenTableValidation = ({
   loenperiode,
   cellErrorsByCellKey = {},
   tillaegAngivesSom = 'procent',
+  emptyCompletePeriodLevel = 'warning',
 }: Readonly<{
   rows: readonly StandardLoenTableRow[];
   loenperiode: Loenperiode;
   cellErrorsByCellKey?: StandardLoenTableCellErrorMap;
   tillaegAngivesSom?: TillaegAngivesSom;
+  /** Årslønsberegning blokerer, mens EO bevarer sin særskilte ikke-blokerende warning-semantik. */
+  emptyCompletePeriodLevel?: 'warning' | 'error';
 }>): StandardLoenTableValidationResult => {
   const rowIssues: StandardLoenTableValidationSummary['rowIssues'] = [];
   const errors: TableError[] = [];
@@ -162,7 +165,15 @@ export const getStandardLoenTableValidation = ({
       }
     }
 
-    const rowHasError = hasInputError || hasMissingPeriodError;
+    const hasMissingAmountError =
+      emptyCompletePeriodLevel === 'error' && periodComplete && !otherFilled && !hasInputError;
+    if (hasMissingAmountError) {
+      // En komplet periode er en aktiv lønrække. Uden mindst ét beløb ville helårsomregningen ellers
+      // acceptere en tom indkomstperiode og fremstille et ufuldstændigt grundlag som beregningsklart.
+      errors.push({ kind: 'cell', issue: 'missing_amount', rowId: row.id, colKey: BASE_AMOUNT_KEYS[0] });
+    }
+
+    const rowHasError = hasInputError || hasMissingPeriodError || hasMissingAmountError;
     const rowHasWarning = !rowHasError && periodComplete && !otherFilled;
 
     if (rowHasError) {
@@ -179,6 +190,10 @@ export const getStandardLoenTableValidation = ({
             break;
           }
           if (colKey === periodEndKey && hasAnyFilled && !endFilled) {
+            firstErrorCell = { rowId: row.id, colKey, reason: 'missing' };
+            break;
+          }
+          if (colKey === BASE_AMOUNT_KEYS[0] && hasMissingAmountError) {
             firstErrorCell = { rowId: row.id, colKey, reason: 'missing' };
             break;
           }

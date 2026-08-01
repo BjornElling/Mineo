@@ -63,6 +63,7 @@ import { useLoenindkomstVm } from './loenindkomstContext';
 import { useReguleringDocumentAction } from '../../../../domain/erstatningsopgoerelse/react/useReguleringDocumentAction';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
+import { createManualPercentBasisCommitOverride } from '../../../../domain/erstatningsopgoerelse/manualPercentBasisCommit';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -142,6 +143,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     tabKey: EO_TAB_KEYS.LOENINDKOMST,
   });
   const standardLoenFieldSet = React.useMemo(() => createEoStandardLoenFieldSet(af.id), [af.id]);
+  const manualPercentCollection = {
+    ...eoEmploymentManual.manualPercentCollection.template,
+    path: [{ kind: 'entity' as const, collection: 'loenindkomstAnsaettelsesforhold', entityId: af.id }],
+  } as CollectionRef;
 
   /**
    * Slår satsvurderingens kryds-felt-issue op på den SAMME bundne reference, feltet selv bruger. Ét
@@ -610,9 +615,15 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
         <Box className="row--label-right-hover__content">
-          <ChoiceField
-            field={field(eoEmploymentFields.loenudviklingBeregningsgrundlag)}
-            location={location('loenudviklingBeregningsgrundlag')}
+            <ChoiceField
+              field={field(eoEmploymentFields.loenudviklingBeregningsgrundlag)}
+              location={location('loenudviklingBeregningsgrundlag')}
+              immediateCommitOverride={createManualPercentBasisCommitOverride({
+                field: field(eoEmploymentFields.loenudviklingBeregningsgrundlag),
+                location: location('loenudviklingBeregningsgrundlag'),
+                collection: manualPercentCollection,
+                hasBaseRow: af.loenudviklingManuelProcentsatsTableData.length > 0,
+              })}
             name={`${af.id}:loenudviklingBeregningsgrundlag`}
             width={220}
             allowEmpty={true}
@@ -834,10 +845,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             return (
                 <LoenudviklingManuelProcentsatsTable
                   bindings={eoEmploymentManual}
-                  collection={{
-                    ...eoEmploymentManual.manualPercentCollection.template,
-                    path: [{ kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold', entityId: af.id }],
-                  } as CollectionRef}
+                  collection={manualPercentCollection}
                   committedRows={af.loenudviklingManuelProcentsatsTableData}
                   locationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelProcentsatsTableData`}
                   baseDateDisplay={loenudviklingBaseDate.display}

@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ---
 
@@ -23,6 +23,10 @@
 4. Dokumentgaten skal være en typed dokumentdefinition med strukturelle dependencies og må ikke afhænge af rendererens
    interne fejl, lokale feltbooleans eller rå sektionslæsning.
 5. Et felts synlighed og dets neutralisering i beregningen udledes af **samme** relevans-prædikat (ét sandt sted) i `src/domain/policies/aarsloenPolicy.ts` — fx `erAarsloenFerieFelterRelevant`, der fodrer både `shouldShowAarsloenFerieFields` (UI) og den kanoniske beregning. Sidekomponenter må ikke gen-introducere inline synligheds-betingelser på felter, hvis relevans ejes af et prædikat. Jf. `form-contract.md` §7.
+6. En tabelrække med komplet periode og uden noget beløb er en blokerende `missing_amount`-fejl på første
+   beløbscelle. Rækken må ikke aktivere helårsomregning eller passere dokumentgaten.
+7. SH-dage-dokumentet sammenlægger overlappende/sammenhængende perioder og skriver `Periode`/`Perioder` efter
+   det sammenlagte antal. Flere perioder formateres med den fælles danske listehelper og `og` før sidste led.
 
 ---
 

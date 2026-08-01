@@ -35,6 +35,10 @@ export const ensureRentekravRows = (rows: RentekravRow[] | undefined): Rentekrav
   return ensureRowsWithTrailingEmpty(normalized, isRentekravRowEmpty, () => createEmptyRentekravCommittedRow(createRentekravRowId()));
 };
 
+/** En semantisk tom committed række er selv tabellens trailing indtastningsrække. */
+export const shouldAppendRentekravPlaceholder = (rows: readonly RentekravRow[]): boolean =>
+  !rows.some(isRentekravRowEmpty);
+
 export const committedToRentekravDraftRows = (rows: RentekravRow[]): RentekravDraftRow[] => {
   return rows.map((row) => ({
     id: row.id,

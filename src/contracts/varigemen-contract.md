@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ---
 
@@ -29,6 +29,10 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
    dependency-specifikke gate (`form-contract.md` §8): den må hverken nå beregningsmotoren eller passere PDF-gaten,
    men den må gemmes i `.eo`. Persistence-schemaet validerer heltalssyntaks; feltdescriptor, projektion og engine deler
    domænegrænsen `VARIGE_MEN_MAX_MENGRAD`, som ejes af `src/domain/varigemen/varigeMenPolicy.ts`.
+7. Beregningsdato skal ligge på eller efter skadedatoen. Grænsen er et canonical bounds-issue med konkret
+   tooltip og blokerer engine/dokument, men ikke `.eo`-save.
+8. Méngrad 5 giver den ikke-blokerende feltadvarsel `Der kan ikke tilkendes varige mén under 5 %`. Advarslen
+   ændrer ingen beregning eller gate.
 
 ---
 

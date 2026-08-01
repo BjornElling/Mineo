@@ -138,11 +138,15 @@ Komponentrækkefølge eller seneste reporter må aldrig påvirke den.
 **Hverken `source` eller `severity` indgår.** Der findes ingen `source`-dimension — §11 forbyder source-registre —
 og `severity` er på et `FieldIssue`/`ConsumerIssue` den ENESTE literal `'error'`: et kerneissue er per definition
 blokerende, og advarsler dannes i domænernes egne typer (`EetIssue.severity`, `EoRowStatus`,
-`IntegrityIssue.severity`), ikke på feltet. Et felt, der kun kan have én værdi, kan ikke sortere noget. En
+`IntegrityIssue.severity`). En feltbundet domæneadvarsel repræsenteres særskilt som `FieldWarning`
+(`src/inputCore/fieldWarning.ts`): den binder literal `warning` og en ikke-tom tooltipbesked sammen, men er
+ikke et `InputIssue` og påvirker ingen gate. Et felt, der kun kan have én fejl, kan ikke sortere noget. En
 prioritetsregel, der nævnte de to, ville beskrive dimensioner, modellen ikke har, og kunne læses som en
 invitation til at genindføre dem.
 
-Ugyldigt input vises med rød kant og tooltip ved hover. Ingen inline-valideringstekst vises under feltet. Range- og
+Ugyldigt input vises med rød kant og tooltip ved hover. En `FieldWarning` vises med gul kant og sin bundne
+tooltip; rød fejl har altid visuel forrang. En gul kant uden en ikke-tom tooltipbesked må ikke kunne renderes.
+Ingen inline-valideringstekst vises under feltet. Range- og
 datotooltips skal vise konkrete grænser. Hvis `min > max`, forklarer tooltippen, at ingen gyldige værdier findes, viser
 begge grænser og navngiver de brugervendte input, der skabte dem.
 
@@ -157,7 +161,8 @@ Boksen viser altid den fulde besked. Tooltippet afhænger af `reason`, og `resol
 
 Tabellen er en **allowlist**: `REASONS_WITH_SPECIFIC_TOOLTIP` rummer præcis `bounds` og `rule`, og enhver anden
 — også en fremtidig — `reason` falder i den generiske gren. Det er den sikre default: en ukendt årsag lækker
-ikke en uegnet tekst til tooltippet.
+ikke en uegnet tekst til tooltippet. Samme klassifikation gælder download-tooltip: `format`/`schema` må bruge
+`Fejl i indtastning`, mens `bounds`/`rule` skal bevare den konkrete besked.
 
 Begrundelsen er informationsværdi, ikke længde: `bounds`/`rule` fortæller HVAD der er galt ("skal være mellem 0
 og 100", "skal ligge efter skadedatoen"), og det er den eneste brugbare del i et tooltip. `format`/`schema`

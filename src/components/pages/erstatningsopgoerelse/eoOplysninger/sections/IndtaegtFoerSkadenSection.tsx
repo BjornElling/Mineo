@@ -44,6 +44,7 @@ import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../../schemas/
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
+import { createManualPercentBasisCommitOverride } from '../../../../../domain/erstatningsopgoerelse/manualPercentBasisCommit';
 
 // route + tabKey er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 const eoOplyLocation = (locationId: string) => ({
@@ -307,9 +308,15 @@ export default function IndtaegtFoerSkadenSection() {
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
                   <Box className="row--label-right-hover__content">
-                    <ChoiceField
-                      field={eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind()}
-                      location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag')}
+                      <ChoiceField
+                        field={eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind()}
+                        location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag')}
+                        immediateCommitOverride={createManualPercentBasisCommitOverride({
+                          field: eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(),
+                          location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag'),
+                          collection: eoAngivetLoenManual.manualPercentCollection.template as CollectionRef,
+                          hasBaseRow: eoLoenudvikling.loenudviklingManuelProcentsatsTableData.length > 0,
+                        })}
                       name="loenudviklingBeregningsgrundlag"
                       width={220}
                       allowEmpty={true}

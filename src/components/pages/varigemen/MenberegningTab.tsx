@@ -18,6 +18,7 @@ import { formatAsAmount } from '../../../utils/formatUtils';
 import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
+import { resolveVarigeMenWarning } from '../../../domain/varigemen/varigeMenPolicy';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
 import { varigeMenDocumentDefinition } from '../../../domain/varigemen/varigeMenDocumentDefinition';
 import { useMineoDocumentOutput } from '../../../document/runtime/react/useMineoDocumentOutput';
@@ -117,6 +118,7 @@ const MenberegningTab = React.memo(() => {
     return calculateUtcAgeInWholeYears(f, s);
   }, [fodselsdato, skadedato]);
   const beregningsdato = beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined;
+  const mengradWarning = resolveVarigeMenWarning(projectionData?.mengrad);
   const menSats = React.useMemo(
     () => resolveMenSatsForBeregningsdato(coerceToISODateString(beregningsdato) ?? undefined, varigeMenPrGrad),
     [beregningsdato]
@@ -263,6 +265,7 @@ const MenberegningTab = React.memo(() => {
             endAdornment={({ isDraftEmpty }) => (
               <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={isDraftEmpty} />
             )}
+            warning={mengradWarning}
             inputRef={mengradInputRef}
           />
         </Box>

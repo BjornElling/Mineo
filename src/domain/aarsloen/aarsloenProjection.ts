@@ -156,7 +156,13 @@ export const resolveStandardLoenTableValidation = (
   loenperiode: Loenperiode,
   tillaegAngivesSom: TillaegAngivesSom
 ): StandardLoenTableValidationResult =>
-  resolveStandardLoenTableValidationFromReader(aarsloenStandardLoenFieldSet, reader, loenperiode, tillaegAngivesSom);
+  resolveStandardLoenTableValidationFromReader(
+    aarsloenStandardLoenFieldSet,
+    reader,
+    loenperiode,
+    tillaegAngivesSom,
+    'error'
+  );
 
 /**
  * Årslønnens komplette, tokenbundne consumer-projektion. Den samler præcis de reader-afledninger, som side,

@@ -27,6 +27,7 @@ import { DEFAULT_EO_ROW_POLICY, type EoRowPolicy } from '../../settings/sourceSe
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
 import { formatStatusMessage, getRangeForManualRegulering, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 
 /**
  * Konsistens-advarsel: midlertidig EET-afgørelse angivet, men ingen midlertidige EET-ydelser
@@ -167,6 +168,22 @@ export const buildEoIndkomstRows = (
       status: section.tableStatus,
       summaryDisplay: 'messageOnly',
     });
+
+    if (employment?.ansaettelsesforholdOphoert === true && !sidsteArbejdsdag) {
+      const message = 'Det angives, at skadelidte er opsagt, men sidste arbejdsdag er ikke indtastet';
+      rows.push({
+        id: `loenindkomst.${section.id}.sidsteArbejdsdagMangler`,
+        label: 'Advarsel',
+        displayValue: `Advarsel (${message})`,
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+        summaryText: message,
+        focusTarget: {
+          kind: 'fieldAddress',
+          address: eoEmploymentFields.sidsteArbejdsdag.bind(section.id).address,
+        },
+      });
+    }
 
     if (harLoenEfterOphoer && sidsteArbejdsdag) {
       rows.push({

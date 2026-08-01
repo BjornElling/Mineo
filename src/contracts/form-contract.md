@@ -237,6 +237,8 @@ selv om det har et rødt range-/bounds-/rule-issue.
 - Rejected råtekst blokerer save og skrives aldrig til `.eo`.
 - Canonical range-/bounds-/rule-issues blokerer ikke save.
 - Tomhed/`missing` og warnings blokerer aldrig save.
+- Feltadvarsler bæres som `FieldWarning` med en ikke-tom besked. Formular- og tabelskaller viser dem ens som gul
+  ring + tooltip; en samtidig rød fejl har forrang. Advarslen er ikke engine-, dokument- eller save-input.
 
 Dokument-output følger samme uniforme regel for egne dependencies: ethvert dokumentrelevant issue med fejlseverity
 blokerer dokumentet, herunder range/bounds. Se `document-output-contract.md`.

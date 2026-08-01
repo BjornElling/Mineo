@@ -1,5 +1,6 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues, JaNej } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
+import { EET_UNDER_15_WARNING } from './eetFieldWarnings';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
@@ -237,7 +238,7 @@ const collectWarnings = (
   issues: EetIssue[]
 ): void => {
   if (afgoerelser.some((row) => row.eetPct < 15)) {
-    issues.push(toWarning('warn-asl-eet-under-15', 'Der er indtastet en afgørelse med under 15 % erhvervsevnetab'));
+    issues.push(toWarning('warn-asl-eet-under-15', EET_UNDER_15_WARNING));
   }
 
   const firstInvalidPctAfter2024 = skadedato >= SKAERING_2024_07_01

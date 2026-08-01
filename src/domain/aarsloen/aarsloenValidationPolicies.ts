@@ -71,7 +71,12 @@ export const harTabelValideringsFejl = (
     return false;
   }
 
-  return getStandardLoenTableValidation({ rows: tableData, loenperiode, tillaegAngivesSom }).summary.hasErrors;
+  return getStandardLoenTableValidation({
+    rows: tableData,
+    loenperiode,
+    tillaegAngivesSom,
+    emptyCompletePeriodLevel: 'error',
+  }).summary.hasErrors;
 };
 
 /**

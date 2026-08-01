@@ -41,6 +41,7 @@ import {
   erhvervsevnetabAslAfgoerelserCollectionRef,
 } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
 import type { ISODateString } from '../../types/branded';
+import { resolveEetUnder15Warning } from '../../domain/erhvervsevnetab/eetFieldWarnings';
 
 // EetAslAfgoerelserTable: Rækkeinfrastruktur, celleværdier
 // og celleredigering går nu udelukkende gennem inputCore — som StandardLoenTable/BeregnetRenteTable:
@@ -97,13 +98,14 @@ const createEmptyAslRow = (rowId: string): AslAfgoerelseRow => ({ ...emptyAslAfg
 
 type EetAslAfgoerelserRowProps = Readonly<{
   renderRow: RenderRow;
+  eetPct: number | undefined;
   onDeleteRow: (rowId: string) => void;
   ruleIssues: FieldIssueSet;
   buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, AslAfgoerelseRow>;
 }>;
 
 const EetAslAfgoerelserRow = React.memo(
-  ({ renderRow, onDeleteRow, ruleIssues, buildCellSpec }: EetAslAfgoerelserRowProps) => {
+  ({ renderRow, eetPct, onDeleteRow, ruleIssues, buildCellSpec }: EetAslAfgoerelserRowProps) => {
     const rowId = renderRow.rowId;
     const gc = (colIndex: number) => ({ rowId, colIndex });
 
@@ -146,6 +148,7 @@ const EetAslAfgoerelserRow = React.memo(
             gridCell={gc(COL.eetPct)}
             cell={eetPctCell}
             {...ruleIssueFor(eetPctCell)}
+            warning={resolveEetUnder15Warning(eetPct)}
           />
         </TableCell>
         <TableCell>
@@ -254,6 +257,10 @@ const EetAslAfgoerelserTable = React.memo(
       ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
       ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
     ], [sortedCommittedRows, placeholderIds]);
+    const committedById = React.useMemo(
+      () => new Map(sortedCommittedRows.map((row) => [row.id, row])),
+      [sortedCommittedRows]
+    );
 
     const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
     useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
@@ -320,6 +327,7 @@ const EetAslAfgoerelserTable = React.memo(
             <EetAslAfgoerelserRow
               key={renderRow.rowId}
               renderRow={renderRow}
+              eetPct={committedById.get(renderRow.rowId)?.eetPct}
               onDeleteRow={rows.remove}
               ruleIssues={ruleIssues}
               buildCellSpec={buildCellSpec}

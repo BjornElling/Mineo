@@ -5,6 +5,7 @@ import { detectOverlappingPeriods } from '../engines/periodOverlapDetection';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
+import { formatDanishList } from '../../../utils/danishListFormatting';
 
 /**
  * Ren (React-/kontrol-frit) blokerings-afgørelse for én svie/smerte-periode-række.
@@ -50,7 +51,7 @@ const joinManglerFelter = (parts: ReadonlyArray<string>): string => {
   if (parts.length <= 1) return parts[0] ?? '';
   const head = parts.slice(0, -1).map((p, i) => (i === 0 ? p : p.toLocaleLowerCase('da-DK')));
   const tail = parts[parts.length - 1].toLocaleLowerCase('da-DK');
-  return `${head.join(', ')} og ${tail}`;
+  return formatDanishList([...head, tail]);
 };
 
 const evaluateOne = (

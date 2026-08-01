@@ -9,6 +9,7 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 import { fieldAllowsNegative } from './signPolicy';
+import type { FieldWarning } from '../../fieldWarning';
 
 // Beløbs-felt (§2.4/§3.5, samlet input-enhed): familie-skal over `NumericTextField` med
 // beløbsudtryks-tegnfilteret, den delte "kr."-enheds-adornment (muted når tom) og et `fx`-udtryksmærke, når den
@@ -43,6 +44,7 @@ export type AmountFieldProps = Readonly<{
   /** Tillad decimaler under indtastning (default sandt). */
   allowDecimals?: boolean;
   singleStageClick?: boolean;
+  warning?: FieldWarning;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
@@ -76,6 +78,7 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
       disabled,
       allowDecimals = true,
       singleStageClick = false,
+      warning,
       inputRef,
       sx,
     },
@@ -106,6 +109,7 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
         placeholder={resolvedPlaceholder}
         disabled={disabled}
         singleStageClick={singleStageClick}
+        {...(warning === undefined ? {} : { warning })}
         textAlign="right"
         inputMode={allowDecimals ? 'decimal' : 'numeric'}
         maxDraftLength={MAX_AMOUNT_RAW_LENGTH}

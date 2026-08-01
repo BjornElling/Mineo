@@ -18,6 +18,7 @@ import type { DocumentDownloadFormat } from '../../documentFormat';
 import { mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 import type { DocumentArtifact } from '../../downloadArtifact';
+import { formatDanishList } from '../../../utils/danishListFormatting';
 
 type SHDageDocumentOptions = DocumentCommonOptions;
 type SHDagePeriod = { start: Date; end: Date };
@@ -93,22 +94,17 @@ const sammenlaegPerioder = (perioder: ReadonlyArray<SHDagePeriod>): SHDagePeriod
  * @param {Array} perioder - Array af {start: Date, end: Date}
  * @returns {string} Formateret periode-tekst
  */
-const formaterPeriodeOversigt = (perioder: ReadonlyArray<SHDagePeriod>): string => {
+export const buildSHDagePeriodDescription = (perioder: ReadonlyArray<SHDagePeriod>): string => {
   if (!perioder || perioder.length === 0) {
     return '';
   }
 
   const sammensatte = sammenlaegPerioder(perioder);
 
-  if (sammensatte.length === 1) {
-    const { start, end } = sammensatte[0];
-    return `${formatDanskDato(start)} - ${formatDanskDato(end)}`;
-  } else {
-    const periodeTekster = sammensatte.map(({ start, end }) =>
-      `${formatDanskDato(start)} - ${formatDanskDato(end)}`
-    );
-    return periodeTekster.join(', ');
-  }
+  const periodeTekster = sammensatte.map(({ start, end }) =>
+    `${formatDanskDato(start)} - ${formatDanskDato(end)}`
+  );
+  return `${sammensatte.length === 1 ? 'Periode' : 'Perioder'}: ${formatDanishList(periodeTekster)}`;
 };
 
 export const buildSHDageTableRows = (
@@ -198,8 +194,7 @@ export const generateSHDageDocument = (
  * Tilføj periode-beskrivelse
  */
 const addDescription = (writer: DocumentComposer, perioder: ReadonlyArray<SHDagePeriod>): void => {
-  const periodeTekst = formaterPeriodeOversigt(perioder);
-  writer.writeWrappedText(`Periode: ${periodeTekst}`);
+  writer.writeWrappedText(buildSHDagePeriodDescription(perioder));
   writer.addSectionSpacer();
 };
 

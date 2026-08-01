@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ---
 
@@ -586,6 +586,8 @@ EO bruger `resolveAnvendtReguleringsdato` som autoritativ dato for løn-/reguler
   `tafBeregningsperiodeTil`.
 - Ved angivet månedsløn/dagsløn: den relevante angivne opreguleringsdato hvis udfyldt, ellers
   stamdatadatoen.
+- Valg af `Manuel procentsats` opretter atomisk en canonical basisrække sammen med valget. Første række er
+  altid låst til datoen ovenfor og 0 %, både under Lønindkomst og ved angivet dags-/månedsløn på EO-oplysninger.
 
 Al brugervendt tekst i felter, tooltips, kontrolvisning og dokument-output skal beskrive datoens
 faktiske kilde:

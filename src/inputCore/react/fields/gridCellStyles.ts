@@ -7,6 +7,7 @@ export const TABLE_INPUT_PADDING_Y = '4px';
 
 type TableInputRootStyleOptions = Readonly<{
   showError: boolean;
+  showWarning?: boolean;
   tableKind: GridCoreTableKind | undefined;
   locked: boolean;
 }>;
@@ -29,6 +30,7 @@ export const getTableInputBorderAppearance = (tableKind: GridCoreTableKind | und
 
 export const getTableInputRootStyles = ({
   showError,
+  showWarning = false,
   tableKind,
   locked,
 }: TableInputRootStyleOptions) => {
@@ -50,11 +52,17 @@ export const getTableInputRootStyles = ({
     paddingRight: TABLE_INPUT_PADDING_X,
     borderRadius,
     border: '1px solid',
-    borderColor: showError ? 'var(--color-input-border-error)' : borderColor,
+    borderColor: showError
+      ? 'var(--color-input-border-error)'
+      : showWarning
+        ? 'var(--color-status-warning)'
+        : borderColor,
     backgroundColor: isLooseTable && !locked ? 'var(--color-input-bg)' : 'transparent',
     '&:hover': {
       borderColor: showError
         ? 'var(--color-input-border-error)'
+        : showWarning
+          ? 'var(--color-status-warning)'
         : isLooseTable && !locked
           ? 'var(--color-input-border-hover)'
           : borderColor,

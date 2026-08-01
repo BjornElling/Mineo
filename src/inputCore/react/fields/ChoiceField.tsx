@@ -6,7 +6,7 @@ import StyledDropdown, {
 } from '../../../components/inputs/StyledDropdown';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
-import { useFieldEditor } from '../useFieldEditor';
+import { useFieldEditor, type ImmediateCommitOverride } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
 
@@ -41,6 +41,8 @@ export type ChoiceFieldProps<
   optionSx?: SxProps<Theme>;
   iconSx?: SxProps<Theme>;
   containerSx?: SxProps<Theme>;
+  /** Domænespecifik atomisk immediate-commit, når valget samtidig skal ændre rækkestruktur. */
+  immediateCommitOverride?: ImmediateCommitOverride<TCanonical>;
 }>;
 
 const ChoiceField = <
@@ -62,8 +64,9 @@ const ChoiceField = <
   optionSx,
   iconSx,
   containerSx,
+  immediateCommitOverride,
 }: ChoiceFieldProps<TValue, TCanonical>): React.ReactElement => {
-  const controller = useFieldEditor(field, location);
+  const controller = useFieldEditor(field, location, undefined, undefined, immediateCommitOverride);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
 
   const handleChange = React.useCallback(

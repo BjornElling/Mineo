@@ -13,6 +13,34 @@ Hvert punkt skal som minimum indeholde:
 - Eventuelle tekniske noter
 - Prioritet / status
 
+## Aktuel status pr. 1. august 2026
+
+| Fund | Status | Primært berørte områder |
+|---|---|---|
+| BF-001 | Implementeret, automatiseret verificeret | EO-input, manuel procentsats, `eo-snapshot-contract.md` |
+| BF-002 | Implementeret, automatiseret verificeret | EO-række-evaluering og feltlink |
+| BF-003 | Implementeringsplan klar | Fælles input-enheder og tabelafledninger |
+| BF-004 | Implementeringsplan klar | Offentlige ydelser-typografi |
+| BF-005 | Afventer præcis reproduktion; fundet er fortsat aktuelt | Undo/redo og tabel-placeholderfokus |
+| BF-006 | Implementeret, automatiseret verificeret | Rentekravs-rækkemodel, `renteberegning-contract.md` |
+| BF-007 | Implementeret, automatiseret verificeret | `StyledDropdown` og offentlige ydelser |
+| BF-008 | Implementeringsplan klar | Licensmodalens scroll-container |
+| BF-009 | Implementeret, automatiseret verificeret | Årslønsvalidering, `aarsloen-contract.md` |
+| BF-010 | Implementeret, automatiseret verificeret | SH-dage-dokument og fælles dansk listeformattering |
+| BF-011 | Implementeret, automatiseret verificeret | Forsørgertab-projektion og Stamdata-link |
+| BF-012 | Implementeret, automatiseret verificeret | Varige mén-datobounds, `varigemen-contract.md` |
+| BF-013 | Fælles klassifikation rettet; afventer præcis reproduktion af eventuelt resterende sted | Feltissues og dokumentgates, `error-contract.md` |
+| BF-014 | Implementeringsplan klar | Fælles tooltip-præsentation |
+| BF-015 | Implementeret, automatiseret verificeret | Forsørgertab-gate og feltadvarsel |
+| BF-016 | Implementeret, automatiseret verificeret | `FieldWarning`, form-/gridskaller og kontrakter |
+| BF-017 | Implementeret, automatiseret verificeret | Varige mén-feltadvarsel |
+| BF-018 | Implementeringsplan klar | Renteberegningens tillægstidsfelt |
+| BF-019 | Implementeret, automatiseret verificeret | EET-feltadvarsler og `eet-snapshot-contract.md` |
+
+Interaktiv browserverifikation kunne ikke udføres, fordi ingen styrbar browser var registreret. De markerede
+implementeringer er derfor verificeret med typecheck og automatiserede tests; den afsluttende visuelle gennemgang
+skal køres fra ChatGPT-desktopappen.
+
 ## Punkt-ID: BF-001
 
 ### Kort titel
@@ -41,7 +69,8 @@ Systemet skal sikre, at følgende adfærd er konsistent:
 - Husk at gælde samme regel for begge reguleringstyper, samt for den variant hvor en dags-/månedssats anvendes uden beregningsperiode.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Implementeret. Valget `Manuel procentsats` og oprettelsen af den låste 0 %-basisrække sker atomisk i samme
+undo-trin. Den samme kommando bruges både under Lønindkomst og ved angivet dags-/månedsløn på EO-oplysninger.
 
 ### Prioritet
 Høj
@@ -89,7 +118,14 @@ Tekst og værdier i tabellerne skal få en ensartet og korrekt farveformatering:
 - `Store Bededagstillæg` bør verificeres både i celleformatteringen og i den generiske højrejustering for beløbskolonner.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Ikke implementeret; klassificeret som en enkel, tværgående præsentationsrettelse.
+
+### Implementeringsplan
+1. Kortlæg farvekilden i `InputUnitAdornment`, de låste reguleringsceller og Standardløntabellens afledte celler.
+2. Lad placeholder, enhedssuffiks og afledt værdi arve én semantisk farve fra den fælles felt-/cellestatus i
+   stedet for at farves hver for sig.
+3. Ret Store Bededagstillæg til samme højrejusterede numeriske layout som de øvrige satsfelter.
+4. Tilføj render-tests for placeholder, låst basisrække, afledte beløb og tekstfarveindstillinger.
 
 ### Prioritet
 Høj
@@ -124,7 +160,8 @@ Advarslen skal fremstå klart og brugervenlig, og linket skal føre brugeren til
 - Den samme advarsel skal være konsistent med den øvrige EO-warning-struktur, så den bliver vist og linket bliver håndteret gennem den eksisterende navigation-/issue-model.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Implementeret. Advarslen dannes i EO-række-evalueringen med den aftalte tekst og et strukturelt fokusmål til
+`Sidste dag i ansættelsesforholdet` på Lønindkomstfanen.
 
 ### Prioritet
 Høj
@@ -148,7 +185,13 @@ Det bør verificeres visuelt, om teksten i tabellen med offentlige ydelser fakti
 - Hvis forskellen skyldes tabelspecifik styling, bør den rettes i den konkrete tabelkomponent eller dens shared styling i stedet for via en lokal ad hoc-justering.
 
 ### Status
-Ikke løst / skal verificeres visuelt og eventuelt rettes.
+Ikke implementeret; klassificeret som en enkel typografirettelse, der kræver visuel efterprøvning.
+
+### Implementeringsplan
+1. Sammenlign den beregnede typografi i `OffentligeYdelserTab` og `OffentligeYdelserTable` med den fælles
+   `row--text`-/tabeltypografi.
+2. Fjern den lokale 1 px-afvigelse ved at genbruge den fælles token/klasse frem for et side-lokalt tal.
+3. Verificér visuelt ved normal zoom og med tekstfarveindstillinger slået til.
 
 ### Prioritet
 Mellem
@@ -172,7 +215,10 @@ Efter en undo, der sletter den seneste indtastning i en tabel, skal fokus flytte
 - Det bør verificeres, at fokusgenoprettelsen sker på den præcist relevante celle i stedet for blot at genindstille til en standardplacering.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Fortsat aktuelt og ikke afvist. Den eksisterende placeholder-/history-infrastruktur og dens integrationstests
+bevarer allerede feltadresse og række-id ved promotion → undo, så det konkrete svigt kan ikke lokaliseres sikkert
+uden den præcise tabel, celletype og undo-handling. Der skal følges op med en konkret reproduktion, før koden
+ændres, så en forkert fokusregel ikke indføres.
 
 ### Prioritet
 Høj
@@ -198,7 +244,8 @@ En ren ændring af dropdown-valget fra defaultværdi til en anden værdi må ikk
 - Når dette er rettet, bør den samme kontrakt anvendes konsekvent i renteberegningstabellen, så dropdown-værdier ikke kan udløse sideeffekter i form-/table-stateflowet.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Implementeret. En committed række med kun valgt enhed er fortsat semantisk tom og fungerer selv som tabellens ene
+trailing indtastningsrække; enhedsvalget skaber derfor ikke en ekstra synlig række.
 
 ### Prioritet
 Høj
@@ -228,7 +275,8 @@ Det skal verificeres, hvilken del af data-/state-modellen eller komponentarkitek
 - Fejlen bør vurderes som et arkitektonisk gennemstrømningsproblem snarere end som en komponentlokal bug.
 
 ### Status
-Ikke løst / skal undersøges grundigt og rettes ved roden.
+Implementeret i den fælles dropdown. En valgfri canonical værdi, som ikke matcher en aktuel option, vises tomt og
+kan ryddes til placeholder uden DEV-crash; kravet om eksplicit label gælder fortsat options, der faktisk findes.
 
 ### Prioritet
 Kritisk
@@ -254,7 +302,12 @@ Teksten skal i stedet ombryde automatisk inden for overlayets bredde, så den vi
 - Løsningen bør være konsekvent med den generelle overlay-/dialogpraksis i appen, så dette ikke bliver en one-off i licensvisningen.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Ikke implementeret; klassificeret som en enkel modal-layoutrettelse.
+
+### Implementeringsplan
+1. Flyt vertikal scrolling til licenstekstens indre content-container i `LicenseModal`.
+2. Hold modalramme, titel og lukknap faste, og giv kun tekstområdet den beregnede resterende højde.
+3. Tilføj en layouttest for, at scrollbarens scroll-ejer er tekstcontaineren, og verificér visuelt ved lav højde.
 
 ### Prioritet
 Mellem
@@ -306,7 +359,9 @@ Det vil sige, at indholdsspecifikke advarsler ikke længere skal vises inline, m
 - Sikringen skal være strukturel, så ikke blot enkelte felter, men hele felt- og issue-flows overholder dette mønster.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Implementeret. Dokumentgaten skelner nu mellem manglende input, delvis ASL-udfyldning og faktiske
+feltfejl. Beregningsdato, skadedato og skadelidtes fødselsdato behandles som nødvendige fælles input.
+ASL-maksimumadvarslen vises på årslønsfeltet med gul ring og tooltip, og EAL-labelen er rettet.
 
 ### Prioritet
 Kritisk
@@ -332,7 +387,8 @@ Hvis der er angivet dato/interval i de to første kolonner, skal det kræves, at
 - Den relevante konsekvens er en blokering af handlingsflowet ved "Omregning til fuldt år".
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Implementeret. En periode med både start- og slutdato, men uden beløb, får en målrettet fejl på beløbscellen
+og blokerer `Omregning til fuldt år` samt dokumentflowet.
 
 ### Prioritet
 Høj
@@ -367,7 +423,9 @@ Derudover skal den samme metode verificeres og bruges konsekvent andre steder i 
 - Hvis den ikke findes, bør den etableres som en fælles, genanvendelig metode i stedet for at løse det lokalt i SH-dokumentet.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Implementeret. SH-dokumentet sammenlægger først tilstødende/overlappende perioder, pluraliserer derefter
+`Periode`/`Perioder` og bruger en fælles dansk listeformatterer med `og` før sidste element. Den fælles
+formatterer er samtidig taget i brug på øvrige identificerede periodetekster.
 
 ### Prioritet
 Høj
@@ -401,7 +459,9 @@ Hvis `skadesdato` faktisk har betydning for forsørgertab, bør den fremgå af e
 - Under alle omstændigheder må tooltip-meddelelsen ikke betegne en egentlig indtastningsfejl, når den reelt skyldes manglende input eller en for bred blokering.
 
 ### Status
-Ikke løst / skal undersøges og rettes ved roden.
+Implementeret. Gaten klassificerer manglende forudsætninger som `Indtastning mangler` og reserverer
+`Fejl i indtastning` til faktiske feltfejl. Skadedato er en reel beregningsforudsætning og vises nu på siden med
+link til Stamdata; skadestype er ikke gjort til en afhængighed, fordi den ikke indgår i projektionen.
 
 ### Prioritet
 Kritisk
@@ -427,7 +487,8 @@ Det betyder, at en beregningsdato skal være `>=` skadesdatoen i den relevante s
 - Hvis den findes i en shared validator, skal den også bekræftes på andre sider, der bruger samme dato-model og samme beslægtede flow.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Implementeret. Varige mén-feltdefinitionen afleder beregningsdatoens minimum som den seneste af den statiske
+minimumsdato og skadedatoen. En tidligere dato giver derfor en konkret bounds-fejl med den aktuelle grænse.
 
 ### Prioritet
 Høj
@@ -456,7 +517,9 @@ Det betyder, at fejlkategorien skal være semantisk korrekt forskellig, så brug
 - Hvis mønsteret findes flere steder, bør den rettes generisk i shared validation- eller issue-classification-laget i stedet for lokalt på enkelte sider eller komponenter.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Rettet i den fælles klassifikation og i dokumentgaten: format-/schemafejl bruger den generiske meddelelse,
+mens bounds- og regelissues bevarer deres konkrete tekst. Fundet er fortsat aktuelt som opfølgningspunkt,
+indtil det præcise resterende felt eller flow er identificeret og reproduceret.
 
 ### Prioritet
 Høj
@@ -493,7 +556,14 @@ Ombrydning skal ske, så hvis midten af en sætning ligger midt i et ord, fremg�
 - Hvis denne adfærd allerede er implementeret i en shared komponent, skal den også anvendes på de steder, hvor tooltip-formatet i dag afviger.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Ikke implementeret; klassificeret som en enkel, tværgående tooltip-stylingrettelse.
+
+### Implementeringsplan
+1. Saml tooltipens tekstjustering, indholdsbaserede bredde og maksimale bredde i det fælles MUI-theme eller
+   den eksisterende fælles tooltip-wrapper.
+2. Fjern lokale faste bredder og manuelle linjeskift fra de konkrete tooltip-call-sites.
+3. Brug normal ordombrydning, så hele ord flyttes til næste linje ved den fælles maksimumsbredde.
+4. Tilføj render-tests for kort og lang tekst og gennemfør en visuel stikprøve af felt-, tabel- og knaptooltips.
 
 ### Prioritet
 Mellem
@@ -546,7 +616,9 @@ Det vil sige, at indholdsspecifikke advarsler ikke længere skal vises inline, m
 - Sikringen skal være strukturel, så ikke blot enkelte felter, men hele felt- og issue-flows overholder dette mønster.
 
 ### Status
-Ikke løst / skal rettes i programmet.
+Implementeret. Dokumentgaten skelner nu mellem manglende input, delvis ASL-udfyldning og faktiske
+feltfejl. Beregningsdato, skadedato og skadelidtes fødselsdato behandles som nødvendige fælles input.
+ASL-maksimumadvarslen vises på årslønsfeltet med gul ring og tooltip, og EAL-labelen er rettet.
 
 ### Prioritet
 Kritisk
@@ -582,7 +654,8 @@ Det skal være en generel, vedvarende løsning i shared field-/issue-architectur
 - Det nye mønster bør også anvendes til at konsolidere nuværende advarsels-/fejlflow i forsørgertab og andre lignende sider.
 
 ### Status
-Ikke løst / skal implementeres i strukturen og rettes i programmet.
+Implementeret i den fælles feltarkitektur. `FieldWarning` kan kun oprettes med en ikke-tom tooltiptekst,
+er aldrig blokerende og vises med gul ring i formular- og tabelinput. En samtidig feltfejl har altid prioritet.
 
 ### Prioritet
 Høj
@@ -614,7 +687,8 @@ Det skal være en del af det generelle mønster for gul ring + tooltip, så adva
 - Den samme struktur skal kunne genbruges på andre sider med lignende domæneadvarsler.
 
 ### Status
-Ikke løst / skal implementeres i feltstatus- og tooltip-modellen.
+Implementeret. En afsluttet méngrad på præcis 5 % giver gul ring og tooltipteksten
+`Der kan ikke tilkendes varige mén under 5 %`; advarslen ændrer ikke beregning eller dokumentgate.
 
 ### Prioritet
 Høj
@@ -643,7 +717,13 @@ Hvis brugeren forsøger at indtaste mere end to cifre, skal indtastningen enten:
 - Det skal verificeres, om den aktuelle input- og formatteringsflow allerede har et generisk maksimum for antallet af cifre, eller om renteberegning kræver en side-/felt-specifik begrænsning.
 
 ### Status
-Ikke løst / skal implementeres i input-/feltreglerne.
+Ikke implementeret; klassificeret som en enkel feltbegrænsning i den eksisterende inputmotor.
+
+### Implementeringsplan
+1. Angiv en maksimal draftlængde på to cifre for `Evt. tillægstid` gennem den eksisterende
+   `GridTextCell`-/feltdefinition frem for lokal tastaturfiltrering.
+2. Bevar den canonical heltalsvalidering og den eksisterende 0–99-grænse ved settle, paste og programmatisk input.
+3. Tilføj inputmotortests for normal indtastning, tredje ciffer, paste, blur og Enter.
 
 ### Prioritet
 Høj
@@ -686,7 +766,9 @@ Det skal være et generelt og konsistent mønster for advarsler på procentfelte
 - Den samme arkitektur bør kunne genbruges til andre grænseværdier og andre steder, hvor en advarsel i en fejl-/advarselsboks er knyttet til en konkret inputværdi.
 
 ### Status
-Ikke løst / skal implementeres i feltadvarselsmodellen.
+Implementeret. Alle afsluttede EET-procentfelter under ASL-tabellen og feltet
+`EET % (hvis afviger fra ASL)` får ved værdier over 0 og under 15 % den fælles gule advarsel med teksten
+`Der kan ikke tilkendes erhvervsevnetab under 15 %`. Beregningsadvarslen genbruger samme kanoniske tekst.
 
 ### Prioritet
 Høj

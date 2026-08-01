@@ -1,3 +1,5 @@
+import type { FieldIssue } from '../../inputCore/inputIssue';
+
 /**
  * Download-gatens resultat og dens BRUGERRETTEDE årsagsklassifikation.
  *
@@ -152,6 +154,15 @@ export const blockDocumentDownloadForInvalidInput = (
   canDownload: false,
   reasons: [{ ...reason, kind: 'invalid-input' }],
 });
+
+/** Kun format/schema bruger den generiske fejltekst; bounds/rule beholder den konkrete rettelsesbesked. */
+export const blockDocumentDownloadForFieldIssue = (
+  issue: FieldIssue,
+  code: string
+): DocumentDownloadGateResult =>
+  issue.reason === 'bounds' || issue.reason === 'rule'
+    ? blockDocumentDownloadWithSpecificReason({ code, message: issue.message })
+    : blockDocumentDownloadForInvalidInput({ code, message: issue.message });
 
 /**
  * Blokering med en konkret, brugerrettet årsag, der skal citeres ordret — fx EO-rækkemotorens navngivne

@@ -48,6 +48,7 @@ import { createEmptyAslAfgoerelseRow } from '../../../domain/erhvervsevnetab/eet
 import { createEmptyRentekravCommittedRow } from '../../../domain/renteberegning/rentekravTableModel';
 import { createCollectionRef } from '../../../inputCore/fieldAddress';
 import { toISODateString } from '../../../types/branded';
+import { varigeMenBeregningsdatoField } from '../../../inputCore/catalog/varigeMenDescriptors';
 
 const catalog = getProductionInputCatalog();
 const token = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
@@ -138,6 +139,16 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
     input = dispatch(input, settleField(rentekravTillaegstidField.bind('r1'), '100'));
     expect(evaluate(input).reader.read(rentekravRenterFraField.bind('r1')).status).toBe('error');
     expect(evaluate(input).reader.read(rentekravTillaegstidField.bind('r1')).status).toBe('error');
+  });
+
+  it('kræver at Varige mén-beregningsdatoen ligger på eller efter skadedatoen', () => {
+    let input = dispatch(empty(), resetSection('stamdata', { skadedato: toISODateString('2024-06-15') }));
+    input = dispatch(input, settleField(varigeMenBeregningsdatoField.bind(), '14-06-2024'));
+
+    expect(evaluate(input).reader.read(varigeMenBeregningsdatoField.bind())).toMatchObject({
+      status: 'error',
+      issue: { reason: 'bounds', detail: { minDate: '2024-06-15' } },
+    });
   });
 
   it('håndhæver EET-tabellens dato- og femprocentsregler i descriptorlaget', () => {

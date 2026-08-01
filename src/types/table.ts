@@ -30,7 +30,7 @@ export type OffentligeYdelserTableCellErrorMap = Readonly<Record<string, true>>;
 export type TableError =
   | {
       kind: 'cell';
-      issue: 'invalid' | 'partial_period';
+      issue: 'invalid' | 'partial_period' | 'missing_amount';
       rowId: string;
       colKey: StandardLoenTableColumnKey;
     }

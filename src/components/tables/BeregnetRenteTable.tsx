@@ -13,6 +13,7 @@ import type { RentekravRowResult } from '../../domain/renteberegning/renteberegn
 import {
   createEmptyRentekravCommittedRow,
   createRentekravRowId,
+  shouldAppendRentekravPlaceholder,
 } from '../../domain/renteberegning/rentekravTableModel';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import type { ProjectionResult } from '../../inputCore/projection';
@@ -106,6 +107,7 @@ type BeregnetRenteRowProps = Readonly<{
   onDownloadSpecifikation: (rowId: string) => Promise<void>;
   onDeleteRow: (rowId: string) => void;
   projection: ProjectionResult<RentekravRowResult> | undefined;
+  rowIsSemanticallyEmpty: boolean;
   isMobile: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
   resolveDownloadGate: (rowId: string) => Readonly<{ canDownload: boolean; disabledReason?: string }>;
@@ -119,6 +121,7 @@ const BeregnetRenteRow = React.memo(
     onDownloadSpecifikation,
     onDeleteRow,
     projection,
+    rowIsSemanticallyEmpty,
     isMobile,
     documentDownloadFormat,
     resolveDownloadGate,
@@ -231,7 +234,7 @@ const BeregnetRenteRow = React.memo(
                 </Typography>
               )}
             </Box>
-            {renderRow.kind === 'existing' && (
+            {renderRow.kind === 'existing' && !rowIsSemanticallyEmpty && (
               <RowDeleteButton onDelete={() => onDeleteRow(rowId)} />
             )}
           </TableCell>
@@ -285,11 +288,18 @@ const BeregnetRenteTable = React.memo(
     // kopi. Puljen bevarer et promoveret id, så det kan genindtræde efter et undo.
     const committedIdSet = React.useMemo(() => new Set(sortedCommittedRows.map((row) => row.id)), [sortedCommittedRows]);
     const placeholderIds = usePlaceholderSlotIds(committedIdSet, 1, createRentekravRowId);
+    const shouldAppendPlaceholder = shouldAppendRentekravPlaceholder(sortedCommittedRows);
 
     const renderRows: readonly RenderRow[] = React.useMemo(() => [
       ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
-      ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
-    ], [sortedCommittedRows, placeholderIds]);
+      // En række med kun valgt enhed er fortsat semantisk tom og fungerer selv som den ene trailing
+      // indtastningsrække. Placeholder-id'et holdes stadig varmt af hooken, så undo kan genskabe fokus.
+      ...(shouldAppendPlaceholder ? placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })) : []),
+    ], [shouldAppendPlaceholder, sortedCommittedRows, placeholderIds]);
+    const committedById = React.useMemo(
+      () => new Map(sortedCommittedRows.map((row) => [row.id, row])),
+      [sortedCommittedRows]
+    );
 
     const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
     useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
@@ -385,6 +395,7 @@ const BeregnetRenteTable = React.memo(
         </TableHead>
         <TableBody>
           {renderRows.map((renderRow, rowIndex) => {
+            const committedRow = committedById.get(renderRow.rowId);
             return (
               <BeregnetRenteRow
                 key={renderRow.rowId}
@@ -393,6 +404,7 @@ const BeregnetRenteTable = React.memo(
                 onDownloadSpecifikation={onDownloadSpecifikation}
                 onDeleteRow={rows.remove}
                 projection={rowProjections.get(renderRow.rowId)}
+                rowIsSemanticallyEmpty={committedRow === undefined || isRentekravRowEmpty(committedRow)}
                 isMobile={isMobile}
                 documentDownloadFormat={documentDownloadFormat}
                 resolveDownloadGate={resolveDownloadGate}

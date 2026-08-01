@@ -10,6 +10,7 @@ import type {
   SetImmediateFieldCommand,
   ClearFieldCommand,
   SettleFieldInNewRowCommand,
+  StructuralTransactionCommand,
 } from '../inputReducer';
 import type { CollectionRef } from '../fieldAddress';
 import type { FieldHistoryOrigin } from '../inputHistory';
@@ -25,7 +26,10 @@ type EditorFieldCommand<T> =
   | ClearFieldCommand<T>
   | SettleFieldInNewRowCommand<unknown, T>;
 
-export type EditorDispatch<T> = Readonly<{ command: EditorFieldCommand<T>; origin: FieldHistoryOrigin }>;
+export type EditorDispatch<T> = Readonly<{
+  command: EditorFieldCommand<T> | StructuralTransactionCommand;
+  origin: FieldHistoryOrigin;
+}>;
 
 // Editor-bindingen (§3.5/§3.6): rene, framework-frie hjælpere, der oversætter mellem den afsluttede
 // revision og editor-state-machinen. De rører ikke React, DOM eller storage — de læser et immutabelt
