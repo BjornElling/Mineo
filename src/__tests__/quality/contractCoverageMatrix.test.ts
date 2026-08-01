@@ -136,7 +136,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/document/documentGateMatrix.test.ts',
       // Hele livscyklussen end-to-end gennem den rigtige side og den ægte runtime.
       'src/__tests__/components/pages/Satser.downloadGate.integration.test.tsx',
-      'src/__tests__/quality/pdfPseudoTableGuard.test.ts',
+      'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts',
       'src/__tests__/utils/pdf/pdfWriter.test.ts',
       // Word-kanalens paritet mod det fælles writer-API (Afsnit B + §5):
@@ -237,7 +237,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/date-contract.md',
     requiredTestPaths: [
-      'src/__tests__/quality/dateContractGuard.test.ts',
+      'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/utils/utcDayMath.test.ts',
     ],
   },

@@ -48,7 +48,6 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
       writeBoldSubheaderWithWrappedText: vi.fn(),
       writer: {
         addSectionSpacer: vi.fn(),
-        addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
@@ -214,7 +213,6 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
       writeBoldSubheaderWithWrappedText: vi.fn(),
       writer: {
         addSectionSpacer: vi.fn(),
-        addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
@@ -433,7 +431,6 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
       formatAfgoerelsesdato: (date) => date,
       writer: {
         addSectionSpacer: vi.fn(),
-        addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
@@ -471,13 +468,12 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
       formatAfgoerelsesdato: () => '16. juli 2025',
       writer: {
         addSectionSpacer: vi.fn(),
-        addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
       },
     });
 
-    expect(renderSubheader).toHaveBeenCalledWith('Afgørelse 16. juli 2025 (60 %)', undefined, { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('Afgørelse 16. juli 2025 (60 %)', { addTopSpacing: false });
   });
 });

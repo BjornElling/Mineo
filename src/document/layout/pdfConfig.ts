@@ -64,7 +64,7 @@ export const PDF_FINAL_Y_FALLBACK_HEIGHT = 50;
 export const PDF_SECTION_HEADING_GAP = 3;
 
 // Bruges af autotable-baserede generatorer (satserPdf, aarsloenPdf, shDagePdf m.fl.)
-// og er standard-spacer i resolveDocumentSectionEndY. Writer-baserede generatorer bruger writer.addSpacer().
+// og er standard-spacer i resolveDocumentSectionEndY. Generatorer bruger den navngivne addSectionSpacer-blok.
 export const SECTION_SPACER = 10; // mm
 
 // Standard linjeafstand for brødtekst i alle PDF'er

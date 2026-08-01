@@ -608,6 +608,88 @@ export const pageSectionAccessBoundary = defineRule({
   ],
 });
 
+// --- Beregningsdatakataloget må ikke følge med i appens eager importgraf -----
+
+const APP_ENTRYPOINTS = new Set([
+  'src/main.tsx',
+  'src/apps/minprocesrente/minprocesrenteMain.tsx',
+]);
+const CALCULATION_DATA_CATALOG = 'src/data/catalog/beregningsdataCatalog.ts';
+
+const resolveSourceEntry = (
+  fromPath: string,
+  moduleSpecifier: string,
+  byPath: ReadonlyMap<string, SourceEntry>
+): SourceEntry | undefined => {
+  const resolved = resolveRelativeImport(fromPath, moduleSpecifier);
+  if (resolved === null) return undefined;
+  return [`${resolved}.ts`, `${resolved}.tsx`, `${resolved}/index.ts`, `${resolved}/index.tsx`]
+    .map((candidate) => byPath.get(candidate))
+    .find((candidate) => candidate !== undefined);
+};
+
+export const calculationDataCatalogLazyBoundary = defineRule({
+  id: 'data/calculation-catalog-not-eager-from-entrypoint',
+  description:
+    'Beregningsdatakataloget må ikke være transitivt reachable fra app-entrypoints og dermed eager-bundles.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => APP_ENTRYPOINTS.has(entry.relativePath)
+      || entry.relativePath === CALCULATION_DATA_CATALOG,
+    rationale: 'begge app-entrypoints og beregningsdatakataloget findes fortsat',
+    minimumMatches: 3,
+    requiredPaths: [...APP_ENTRYPOINTS, CALCULATION_DATA_CATALOG],
+  },
+  appliesTo: (relativePath) => APP_ENTRYPOINTS.has(relativePath),
+  find: (entry, graph) => {
+    const byPath = new Map(graph.map((candidate) => [candidate.relativePath, candidate]));
+    const directCatalogImport = collectImports(entry).find((ref) => {
+      const resolved = resolveRelativeImport(entry.relativePath, ref.moduleSpecifier);
+      return resolved !== null && `${resolved}.ts` === CALCULATION_DATA_CATALOG;
+    });
+    if (directCatalogImport !== undefined) {
+      return [{
+        position: directCatalogImport.position,
+        message: 'App-entrypointet importerer beregningsdatakataloget eager; indlæs kataloget eksplicit og lazy ved behov.',
+      }];
+    }
+    const seen = new Set([entry.relativePath]);
+    const queue: ReadonlyArray<Readonly<{ entry: SourceEntry; rootPosition: Finding['position'] }>> =
+      collectImports(entry).flatMap((ref) => {
+        const next = resolveSourceEntry(entry.relativePath, ref.moduleSpecifier, byPath);
+        return next === undefined ? [] : [{ entry: next, rootPosition: ref.position }];
+      });
+    const pending = [...queue];
+
+    while (pending.length > 0) {
+      const frame = pending.shift();
+      if (frame === undefined || seen.has(frame.entry.relativePath)) continue;
+      seen.add(frame.entry.relativePath);
+      if (frame.entry.relativePath === CALCULATION_DATA_CATALOG) {
+        return [{
+          position: frame.rootPosition,
+          message: 'App-entrypointets eager importgraf når beregningsdatakataloget; indlæs kataloget eksplicit og lazy ved behov.',
+        }];
+      }
+      for (const ref of collectImports(frame.entry)) {
+        const next = resolveSourceEntry(frame.entry.relativePath, ref.moduleSpecifier, byPath);
+        if (next !== undefined && !seen.has(next.relativePath)) {
+          pending.push({ entry: next, rootPosition: frame.rootPosition });
+        }
+      }
+    }
+    return [];
+  },
+  violatingFixtures: [{
+    relativePath: 'src/main.tsx',
+    code: "import './data/catalog/beregningsdataCatalog';",
+  }],
+  cleanFixtures: [{
+    relativePath: 'src/main.tsx',
+    code: "import { bootstrapClientApp } from './apps/shared/bootstrapClientApp';",
+  }],
+});
+
 export const crossDomainDescriptorPort = forbidImports({
   id: 'domain/cross-domain-descriptor-port',
   description:

@@ -129,9 +129,7 @@ describe('Renteberegning projektionsmatrix: rejected råinput blokerer', () => {
 describe('Renteberegning projektionsmatrix: motoren kaldes ikke i blocked', () => {
   it('kalder ALDRIG computeRentekravRow, når et rækkefelt er rejected', () => {
     // Kontraktkravet (`form-contract.md` §2.3 / `error-contract.md` §5): kun en ready projektion må fodre motoren.
-    // Bemærk at projektionen kalder motoren INDE i `runProjection`-kroppen; det er kun sikkert, fordi hver
-    // læsning short-circuiter til `undefined` FØR motorkaldet. Denne test er værnet om netop den rækkefølge:
-    // flyttes motorkaldet op før læsningerne, fejler den.
+    // Motoren kaldes efter `runProjection` gennem `mapReadyProjection`; blocked kan derfor ikke nå motoren.
     const spy = vi.spyOn(renteberegningEngine, 'computeRentekravRow');
     try {
       build([createRow('r1', { belob: undefined })], '2024-12-31', [REJECTED_BELOB('r1')]);
@@ -157,11 +155,29 @@ describe('Renteberegning projektionsmatrix: motoren kaldes ikke i blocked', () =
     }
   });
 
-  it('kalder motoren for de gyldige rækker, når intet er rejected', () => {
+  it('kalder motoren præcis én gang pr. gyldig række og genbruger resultatet i aggregatet', () => {
     const spy = vi.spyOn(renteberegningEngine, 'computeRentekravRow');
     try {
       build([createRow('r1'), createRow('r2')], '2024-12-31');
-      expect(spy).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledTimes(2);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('kalder kun motoren for den ready søskenderække, når aggregatet er blocked', () => {
+    const spy = vi.spyOn(renteberegningEngine, 'computeRentekravRow');
+    try {
+      const projection = build(
+        [createRow('r1', { belob: undefined }), createRow('r2')],
+        '2024-12-31',
+        [REJECTED_BELOB('r1')]
+      );
+
+      expect(projection.rowProjections.get('r1')?.status).toBe('blocked');
+      expect(projection.rowProjections.get('r2')?.status).toBe('ready');
+      expect(projection.aggregateProjection.status).toBe('blocked');
+      expect(spy).toHaveBeenCalledTimes(1);
     } finally {
       spy.mockRestore();
     }

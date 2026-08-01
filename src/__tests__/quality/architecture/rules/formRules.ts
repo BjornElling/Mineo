@@ -2085,3 +2085,110 @@ export const messageBoxGuardedByPageMessageRule = defineRule({
     },
   ],
 });
+
+// --- Collectiontabellernes række- og placeholder-ejerskab -------------------
+
+const TABLE_SCOPE = 'src/components/tables/';
+
+const jsxTagPositions = (entry: SourceEntry, tagName: string): readonly Finding[] => {
+  const findings: Finding[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node))
+      && ts.isIdentifier(node.tagName)
+      && node.tagName.text === tagName
+    ) {
+      const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.tagName.getStart(entry.ast));
+      findings.push({ position: { line: line + 1, column: character + 1 }, message: '' });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+const isTopLevelTable = (relativePath: string): boolean =>
+  relativePath.startsWith(TABLE_SCOPE)
+  && !relativePath.slice(TABLE_SCOPE.length).includes('/')
+  && relativePath.endsWith('Table.tsx');
+
+const DELETABLE_COLLECTION_TABLES = [
+  'BeregnetRenteTable.tsx',
+  'EetAslAfgoerelserTable.tsx',
+  'FerieperiodeTable.tsx',
+  'LoenudviklingManuelProcentsatsTable.tsx',
+  'LoenudviklingManuelTable.tsx',
+  'OevrigeKravTable.tsx',
+  'OffentligeYdelserTable.tsx',
+  'StandardLoenTable.tsx',
+  'SvieSmerteTable.tsx',
+  'TafPeriodeTable.tsx',
+].map((name) => `${TABLE_SCOPE}${name}`);
+
+export const deletableCollectionTableOwnershipRule = defineRule({
+  id: 'form/deletable-collection-table-ownership',
+  description:
+    'En tabel med RowDeleteButton skal eje rækkernes identitet og kommandoer gennem inputCore-adapteren.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => jsxTagPositions(entry, 'RowDeleteButton').length > 0,
+    rationale: 'alle ti sletbare collectiontabeller findes og renderer fortsat RowDeleteButton',
+    minimumMatches: DELETABLE_COLLECTION_TABLES.length,
+    requiredPaths: DELETABLE_COLLECTION_TABLES,
+  },
+  appliesTo: isTopLevelTable,
+  find: (entry) => {
+    const deleteButtons = jsxTagPositions(entry, 'RowDeleteButton');
+    if (deleteButtons.length === 0) return [];
+    const calls = new Set(collectCalls(entry).map((call) => call.calleeName));
+    if (calls.has('useCollectionTable') || calls.has('useCollectionRows')) return [];
+    return deleteButtons.map(({ position }) => ({
+      position,
+      message: 'Sletbar collectiontabel uden useCollectionTable/useCollectionRows — rækkeidentitet og undo/redo mangler én autoritativ ejer.',
+    }));
+  },
+  violatingFixtures: [{
+    relativePath: `${TABLE_SCOPE}XTable.tsx`,
+    code: 'const X = () => <RowDeleteButton onDelete={() => remove(localRow.id)} />;',
+  }],
+  cleanFixtures: [{
+    relativePath: `${TABLE_SCOPE}XTable.tsx`,
+    code: 'const rows = useCollectionRows(ref); const X = () => <RowDeleteButton onDelete={() => rows.remove(id)} />;',
+  }],
+});
+
+const PLACEHOLDER_TABLES = [
+  'BeregnetRenteTable.tsx',
+  'EetAslAfgoerelserTable.tsx',
+  'OevrigeKravTable.tsx',
+  'StandardLoenTable.tsx',
+].map((name) => `${TABLE_SCOPE}${name}`);
+const LOCAL_PLACEHOLDER_POOL_NAMES = new Set(['placeholderIdsRef', 'placeholderIdRef']);
+
+export const placeholderIdentityOwnershipRule = defineRule({
+  id: 'form/placeholder-identity-single-owner',
+  description:
+    'Placeholder-identitet ejes af usePlaceholderSlotIds; tabeller må ikke genindføre en lokal id-pulje.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => collectCalls(entry).some((call) => call.calleeName === 'usePlaceholderSlotIds'),
+    rationale: 'de fire placeholder-tabeller bruger fortsat den delte identitetslivscyklus',
+    minimumMatches: PLACEHOLDER_TABLES.length,
+    requiredPaths: PLACEHOLDER_TABLES,
+  },
+  appliesTo: isTopLevelTable,
+  find: (entry) => collectIdentifiers(entry)
+    .filter((identifier) => LOCAL_PLACEHOLDER_POOL_NAMES.has(identifier.text))
+    .map((identifier) => ({
+      position: identifier.position,
+      message: `Lokal placeholder-pulje (${identifier.text}) — brug usePlaceholderSlotIds som eneste ejer.`,
+    })),
+  violatingFixtures: [{
+    relativePath: `${TABLE_SCOPE}XTable.tsx`,
+    code: 'const placeholderIdsRef = React.useRef<string[]>([]);',
+  }],
+  cleanFixtures: [{
+    relativePath: `${TABLE_SCOPE}XTable.tsx`,
+    code: 'const placeholderIds = usePlaceholderSlotIds(committedIds, 1, createId);',
+  }],
+});

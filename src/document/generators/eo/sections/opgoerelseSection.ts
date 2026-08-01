@@ -22,8 +22,8 @@ type OpgorelseSectionContext = Readonly<{
   afsluttesMed: 'Bekræftet godkendt' | 'Underskrift-linje' | 'Ingen';
   NBSP: string;
   rightColumnWidth: number;
-  renderSectionHeader: (text: string, nextLineHeight?: number) => void;
-  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSectionHeader: (text: string) => void;
+  renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   renderSubheaderIfContent: DocumentComposer['writeBoldSubheaderIfContent'];
   renderSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
   safeAddWrappedText: (text: string) => void;
@@ -63,7 +63,6 @@ type OpgorelseSectionContext = Readonly<{
     DocumentComposer,
     | 'addSectionSpacer'
     | 'addPage'
-    | 'addSpacer'
     | 'keepWithNext'
     | 'writeUnderlinedSubheader'
     | 'writeNormalThenBoldLine'

@@ -112,7 +112,6 @@ describe('documentModel', () => {
       {
         kind: 'conditionalSubsection',
         text: 'Indhold',
-        nextLineHeight: undefined,
         addTopSpacing: undefined,
         blocks: [{ kind: 'wrappedText', text: 'En linje' }],
       },
@@ -143,7 +142,6 @@ describe('documentModel', () => {
           {
             kind: 'boldSubheader',
             text: 'Header',
-            nextLineHeight: undefined,
             addTopSpacing: undefined,
           },
         ],
@@ -188,9 +186,9 @@ describe('documentModel', () => {
     composer.writeWrappedTextContinued('Fortsat');
     composer.writeNormalThenBoldLine('Normal del', 'Fed del');
     composer.writeLeftRightText('Label', 'Værdi', { minRightColumnWidthText: '000' });
-    composer.writeSectionHeader('Sektion', 7);
+    composer.writeSectionHeader('Sektion');
     composer.writeTitle('Titel', { trailingSpacing: 3 });
-    composer.writeBoldSubheader('Underoverskrift', 8, { addTopSpacing: false });
+    composer.writeBoldSubheader('Underoverskrift', { addTopSpacing: false });
     composer.writeBoldSubheaderIfContent({
       text: 'Betinget',
       hasContent: true,
@@ -213,7 +211,6 @@ describe('documentModel', () => {
       estimateRowHeight: 6,
       headerHeight: 9,
     });
-    composer.addSpacer(4);
     composer.addSectionSpacer();
     composer.keepWithNext(11);
     composer.addPage();
@@ -247,7 +244,6 @@ describe('documentModel', () => {
       'writeBoldSubheaderWithWrappedText',
       'writeAtomicTableChunks',
       'writeUnderlinedSubheader',
-      'addSpacer',
       'addSectionSpacer',
       'addPage',
       'renderTable',

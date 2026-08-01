@@ -50,23 +50,6 @@ Ved fokus-restore kalder loopets fane-aktivering `applyDestination` med `window.
 den route-parameter, kaldet fik. Det er **tilsigtet** — routen kan have ændret sig undervejs — men adfærden er
 ikke pinnet af en test. En fremtidig refaktorering kan derfor "rette" den i god tro.
 
-### 2.4 Fem fjernede mekanismer har intet fraværsværn
-
-`cellFocusPaths`, `useCellInvalidDraftChannel` og `onFieldError` findes ikke længere i koden, men de står ikke
-på nogen forbudsliste. Intet maskinelt tjek forhindrer, at de genopstår under samme navn.
-`src/contracts/mineo-field-pattern.md` §10 er indtil videre eneste spærring.
-
-Det samme gælder `visibleDocumentFailureMessage` og `resolveOverenskomstNameOnlyDisplay`, slettet 2026-07-31
-med brugerbeslutningerne om tavse download-gates og den ensartede overenskomst-etiket. Begge udtrykte netop
-den adfærd, beslutningerne afskaffede, så en genopstået kopi ville genindføre forskellen. Positive værn
-findes (`DocumentOutcomeMessage.test.tsx` pinner at `gate-blocked` → `null`; `overenskomstRates.test.ts`
-pinner at etiketten bærer parterne), men intet forbyder navnene som sådan.
-
-### 2.5 Registry må ikke eager-importeres — uden værn
-
-`calculation-data-contract.md` §2.8 forbyder eager-import af beregningsdata-registret i app-entrypoints.
-Reglen holder de facto (kun katalogfilen selv importerer `beregningsdataCatalog`), men ingen test hævder den.
-
 ---
 
 ## 3. Områder der aldrig er gennemgået

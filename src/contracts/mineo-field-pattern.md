@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
 implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den — se §10 og
@@ -212,10 +212,10 @@ Den normative reference er denne kontrakt sammen med `form-contract.md`.
 Feltidentitet er den strukturelle `FieldRef`/feltadresse. Der findes ingen parallel draft-kanal, ingen
 fingerprints og ingen `rowId:colIndex` som persistent identitet — genindfør dem ikke.
 
-Fraværet er kun delvist maskinelt håndhævet. `useDraftField`, `useTableInputCore` og `useRowDrafts` er dækket
-af `input/deleted-legacy-architecture-import` og `legacy/forbidden-identifier` (se `form-contract.md` §12).
-`useCellInvalidDraftChannel` og `onFieldError`-kanalerne er derimod fjernet **uden** et navngivet værn: intet
-maskinelt tjek forhindrer, at de genopstår under samme navn. Denne kontrakt er indtil videre eneste spærring.
+De slettede modulstier og symboler — herunder `useDraftField`, `useTableInputCore`, `useRowDrafts`,
+`useCellInvalidDraftChannel` og `onFieldError` — er dækket af `input/deleted-legacy-architecture-import` og
+`legacy/forbidden-identifier` (se `form-contract.md` §12). Navneværnet supplerer de ansvarsbaserede grænser;
+det er ikke i sig selv inputarkitekturens bevis.
 
 Lagdelingen i §Lag D er til gengæld håndhævet af `input/write-boundary`, `input/cell-binding-single-source`,
 `input/programmatic-commit-uses-settle`, `input/derived-values-are-not-input-writes` og

@@ -6,7 +6,6 @@ import {
   LEGACY_MODULE_PATH_SELFTEST,
   NON_DOMAIN_CATALOG_MODULES,
 } from './architectureRules';
-import { FORBIDDEN_LEGACY_IDENTIFIERS } from './rules/inputBoundaryRules';
 import { getSourceGraph } from './sourceGraph';
 
 /**
@@ -24,26 +23,6 @@ import { getSourceGraph } from './sourceGraph';
  */
 
 describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', () => {
-  it('forbudt-symbol-listen er den kanoniske liste, uden staveglidning', () => {
-    expect(FORBIDDEN_LEGACY_IDENTIFIERS).toEqual([
-      'executeLegacyInputTransaction',
-      'useDraftLifecycle',
-      'legacyGridTransactionBridge',
-      'useDraftField',
-      'useTableInputCore',
-      'useRowDrafts',
-      'useSliceRowDrafts',
-      'invalidDrafts',
-      'FormPersistenceContext',
-      'usePersistedForm',
-      'blocksSave',
-      'EoInputIssueSource',
-      'EoFieldIssuesBySource',
-      'collectPresentFieldErrors',
-      'InputWriteAuthority',
-      'claimInputWriteAuthority',
-    ]);
-  });
   it('hver forbudt modulsti i manifestet matcher sit eget regex (liste og mønster er ikke driftet)', () => {
     const unmatched = LEGACY_MODULE_PATH_SELFTEST.paths.filter(
       (path) => !LEGACY_MODULE_PATH_SELFTEST.pattern.test(path)

@@ -17,9 +17,9 @@ type SHDageSectionContext = Readonly<{
   sfggReferenceperiodeRanges?: readonly IsoRange[];
   harSfggReferenceperiodeMedShFradrag?: boolean;
   startEoBilagPage: (titleText: string) => void;
-  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable'>;
 }>;
 
 const formatDateFromDateObjectLong = (date: Date): string => formatUtcDateLong(date);
@@ -109,7 +109,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   writer.addSectionSpacer();
 
   const renderPeriodeSection = (label: string, fra: ISODateString | undefined, til: ISODateString | undefined) => {
-    renderSubheader(label, undefined, { addTopSpacing: false });
+    renderSubheader(label, { addTopSpacing: false });
     if (!fra || !til || fra > til) {
       safeAddWrappedText('Ingen periode');
       return;
@@ -133,7 +133,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     writer.addSectionSpacer();
   }
 
-  renderSubheader('TAF-periode', undefined, { addTopSpacing: false });
+  renderSubheader('TAF-periode', { addTopSpacing: false });
   if (tafRanges.length === 0) {
     safeAddWrappedText('Ingen periode');
   } else {
@@ -149,7 +149,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   const sfggHelligdage = findHelligdageInRanges(mergedSfggReferenceperiodeRanges);
   const harSfggShDage = sfggHelligdage.some((row) => row.erSHDag);
   if (mergedSfggReferenceperiodeRanges.length > 0 && harSfggReferenceperiodeMedShFradrag && harSfggShDage) {
-    renderSubheader('SFGG-referenceperiode', undefined, { addTopSpacing: false });
+    renderSubheader('SFGG-referenceperiode', { addTopSpacing: false });
     formatRangesLong(mergedSfggReferenceperiodeRanges).forEach((line) => safeAddWrappedText(line));
     renderShDageTable(sfggHelligdage);
   }

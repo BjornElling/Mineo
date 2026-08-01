@@ -34,12 +34,11 @@ export type DocumentBlock =
       value: string;
       options?: DocumentLabelValueOptions;
     }>
-  | Readonly<{ kind: 'sectionHeader'; text: string; nextLineHeight?: number }>
+  | Readonly<{ kind: 'sectionHeader'; text: string }>
   | Readonly<{ kind: 'title'; text: string; trailingSpacing?: number }>
   | Readonly<{
       kind: 'boldSubheader';
       text: string;
-      nextLineHeight?: number;
       addTopSpacing?: boolean;
     }>
   | Readonly<{
@@ -51,11 +50,9 @@ export type DocumentBlock =
   | Readonly<{
       kind: 'conditionalSubsection';
       text: string;
-      nextLineHeight?: number;
       addTopSpacing?: boolean;
       blocks: readonly DocumentBlock[];
     }>
-  | Readonly<{ kind: 'spacer'; height: number }>
   | Readonly<{ kind: 'sectionSpacer' }>
   | Readonly<{ kind: 'keepWithNext'; minimumHeight: number }>
   | Readonly<{ kind: 'pageBreak' }>
@@ -104,20 +101,18 @@ export type DocumentComposer = {
     rightText: string,
     options?: DocumentLabelValueOptions,
   ) => void;
-  writeSectionHeader: (text: string, nextLineHeight?: number) => void;
+  writeSectionHeader: (text: string) => void;
   writeTitle: (
     text: string,
     options?: Readonly<{ trailingSpacing?: number }>,
   ) => void;
   writeBoldSubheader: (
     text: string,
-    nextLineHeight?: number,
     options?: Readonly<{ addTopSpacing?: boolean }>,
   ) => void;
   writeBoldSubheaderIfContent: (
     params: Readonly<{
       text: string;
-      nextLineHeight?: number;
       hasContent: boolean;
       renderContent: () => undefined;
       options?: Readonly<{ addTopSpacing?: boolean }>;
@@ -153,7 +148,6 @@ export type DocumentComposer = {
       verticalPadding?: number;
     }>,
   ) => void;
-  addSpacer: (height: number) => void;
   addSectionSpacer: () => void;
   keepWithNext: (minimumHeight: number) => void;
   addPage: () => void;
@@ -208,24 +202,21 @@ export const createDocumentComposer = (): Readonly<{
       append({ kind: 'normalThenBoldLine', normalPart, boldPart }),
     writeLeftRightText: (label, value, options) =>
       append({ kind: 'labelValue', label, value, options }),
-    writeSectionHeader: (text, nextLineHeight) =>
-      append({ kind: 'sectionHeader', text, nextLineHeight }),
+    writeSectionHeader: (text) => append({ kind: 'sectionHeader', text }),
     writeTitle: (text, options) =>
       append({
         kind: 'title',
         text,
         trailingSpacing: options?.trailingSpacing,
       }),
-    writeBoldSubheader: (text, nextLineHeight, options) =>
+    writeBoldSubheader: (text, options) =>
       append({
         kind: 'boldSubheader',
         text,
-        nextLineHeight,
         addTopSpacing: options?.addTopSpacing,
       }),
     writeBoldSubheaderIfContent: ({
       text,
-      nextLineHeight,
       hasContent,
       renderContent,
       options,
@@ -234,7 +225,6 @@ export const createDocumentComposer = (): Readonly<{
       append({
         kind: 'conditionalSubsection',
         text,
-        nextLineHeight,
         addTopSpacing: options?.addTopSpacing,
         blocks: capture(renderContent),
       });
@@ -284,7 +274,6 @@ export const createDocumentComposer = (): Readonly<{
         maxHeight: options.maxHeight,
         verticalPadding: options.verticalPadding ?? 4,
       }),
-    addSpacer: (height) => append({ kind: 'spacer', height }),
     addSectionSpacer: () => append({ kind: 'sectionSpacer' }),
     keepWithNext: (minimumHeight) =>
       append({ kind: 'keepWithNext', minimumHeight }),
@@ -319,7 +308,7 @@ const renderBlocks = (
         break;
       }
       case 'sectionHeader':
-        writer.writeSectionHeader(block.text, block.nextLineHeight);
+        writer.writeSectionHeader(block.text);
         break;
       case 'title':
         writer.writeTitle(
@@ -330,7 +319,7 @@ const renderBlocks = (
       case 'boldSubheader':
         writer.writeBoldSubheader(
           block.text,
-          block.nextLineHeight,
+          undefined,
           block.addTopSpacing === undefined ? undefined : { addTopSpacing: block.addTopSpacing }
         );
         break;
@@ -346,14 +335,10 @@ const renderBlocks = (
       case 'conditionalSubsection':
         writer.writeBoldSubheaderIfContent({
           text: block.text,
-          nextLineHeight: block.nextLineHeight,
           hasContent: block.blocks.length > 0,
           renderContent: () => renderBlocks(writer, block.blocks),
           options: block.addTopSpacing === undefined ? undefined : { addTopSpacing: block.addTopSpacing },
         });
-        break;
-      case 'spacer':
-        writer.addSpacer(block.height);
         break;
       case 'sectionSpacer':
         writer.addSectionSpacer();

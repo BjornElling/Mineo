@@ -85,4 +85,4 @@ Relevante testtyper:
 - edge cases ved årsskifte, månedsskifte, helligdage og tomme intervaller
 - property-lignende tests for range-merge/materialiser/resegmenter, når ranges erstatter dag-sets
 
-`src/__tests__/quality/dateContractGuard.test.ts` beskytter de mest mekaniske regressionsmønstre. Den er kun et sikkerhedsnet; den erstatter ikke review af om ny kode flytter dyrt arbejde ud af løkker.
+Dato-reglerne i `src/__tests__/quality/architecture/architectureRules.test.ts` beskytter de mest mekaniske regressionsmønstre. De er kun et sikkerhedsnet; de erstatter ikke review af, om ny kode flytter dyrt arbejde ud af løkker.

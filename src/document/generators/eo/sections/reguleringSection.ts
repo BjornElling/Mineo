@@ -78,7 +78,7 @@ type ReguleringSectionContext = Readonly<{
   // perAnsaettelse er tom. Samme global-fallback-princip som modelLoenudviklingGlobaleSegmenter.
   modelLoenudviklingGlobaltForloeb?: ReguleringForloeb;
   startEoBilagPage: (titleText: string) => void;
-  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
   writeLabelValueLine: (label: string, value: string) => void;
   resolveValgtReguleringDisplay: (ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]) => string;
@@ -476,7 +476,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${originalIndex + 1}`;
     const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;
     if (visUnderoverskrift) {
-      renderSubheader(underoverskrift, undefined, { addTopSpacing: visibleIndex > 0 });
+      renderSubheader(underoverskrift, { addTopSpacing: visibleIndex > 0 });
     }
 
     // Overenskomst-sporet havde tidligere sin EGEN navn-kun-visning her, så samme overenskomst hed

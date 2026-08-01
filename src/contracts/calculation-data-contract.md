@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; underordnet domænespecifik beregningslogik og sideordnet med `amount-contract.md` og `date-contract.md`.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ## 1. Scope
 
@@ -45,6 +45,8 @@ konstanter er ikke katalogdata.
 
 - `src/__tests__/data/calculationDataCatalog.test.ts` — metadata, completeness og
   golden-fingerprints for samtlige payloads.
+- `src/__tests__/quality/architecture/architectureRules.test.ts` — den transitive regel
+  `data/calculation-catalog-not-eager-from-entrypoint` holder registryet ude af begge app-entrypoints.
 - `src/__tests__/data/kapitaliseringsbekendtgoerelser.test.ts` — 1:1-forhold mellem
   kapitaliseringsregistry, gyldighed og lokale kilde-PDF'er.
 - Kilde-specifikke tests under `src/__tests__/data/` samt domænernes tal-golden-tests.

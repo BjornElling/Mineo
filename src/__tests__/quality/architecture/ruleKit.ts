@@ -161,6 +161,24 @@ type RuleConfig = Readonly<{
   cleanFixtures: readonly RuleFixture[];
 }>;
 
+export type TextPattern = Readonly<{
+  pattern: RegExp;
+  message: string;
+}>;
+
+type TextPatternRuleConfig = Readonly<{
+  id: string;
+  description: string;
+  liveTarget: LiveTarget;
+  patterns: readonly TextPattern[];
+  appliesTo?: (relativePath: string) => boolean;
+  allow?: readonly string[];
+  /** Fjerner bevidst ignoreret tekst, fx linjekommentarer, før mønstrene køres. */
+  normalizeText?: (text: string) => string;
+  violatingFixtures: readonly RuleFixture[];
+  cleanFixtures: readonly RuleFixture[];
+}>;
+
 /** Den generelle regel-konstruktør. De specialiserede factories nedenfor bygger på den. */
 export const defineRule = (config: RuleConfig): ArchitectureRule => {
   const allowList = config.allow ?? [];
@@ -193,6 +211,41 @@ export const defineRule = (config: RuleConfig): ArchitectureRule => {
     },
   };
 };
+
+/**
+ * Tekstbaseret regel under samme liveness-, fixture- og allowlist-harness som AST-reglerne.
+ * Bruges kun når selve kildeformen er kontrakten; semantiske kodegrænser skal fortsat bruge AST.
+ */
+export const forbidTextPatterns = (config: TextPatternRuleConfig): ArchitectureRule =>
+  defineRule({
+    id: config.id,
+    description: config.description,
+    liveTarget: config.liveTarget,
+    appliesTo: config.appliesTo,
+    allow: config.allow,
+    find: (entry) => {
+      const text = config.normalizeText?.(entry.text) ?? entry.text;
+      const findings: Finding[] = [];
+      for (const { pattern, message } of config.patterns) {
+        const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+        const matcher = new RegExp(pattern.source, flags);
+        let match: RegExpExecArray | null;
+        while ((match = matcher.exec(text)) !== null) {
+          const prefix = text.slice(0, match.index);
+          const line = prefix.split('\n').length;
+          const lastNewline = prefix.lastIndexOf('\n');
+          findings.push({
+            position: { line, column: match.index - lastNewline },
+            message,
+          });
+          if (match[0].length === 0) matcher.lastIndex += 1;
+        }
+      }
+      return findings;
+    },
+    violatingFixtures: config.violatingFixtures,
+    cleanFixtures: config.cleanFixtures,
+  });
 
 // ---------------------------------------------------------------------------
 // Specialiserede factories

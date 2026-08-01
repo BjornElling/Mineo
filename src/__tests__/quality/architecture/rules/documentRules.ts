@@ -298,3 +298,45 @@ export const minprocesrenteStandaloneImport = forbidImports({
     { relativePath: 'src/apps/minprocesrente/minprocesrenteMain.tsx', code: "import MinProcesrenteApp from './MinProcesrenteApp';" },
   ],
 });
+
+// --- Generatorer må ikke bruge headerløse tabeller som layoutgenvej ----------
+
+export const documentHeaderlessPseudoTableRule = defineRule({
+  id: 'document/no-headerless-pseudo-table',
+  description:
+    'Headerløse tabeller i generatorer er pseudo-tabeller; label/værdi- og formellinjer skal bruge composerens tekstblokke.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: ['src/document/generators'],
+    rationale: 'dokumentgeneratorerne er det levende scope, hvor en pseudo-tabel kan indføres',
+  },
+  appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
+  find: (entry) => {
+    const findings: ReturnType<typeof collectCalls>[number]['position'][] = [];
+    const visit = (node: ts.Node): void => {
+      if (
+        ts.isPropertyAssignment(node)
+        && ((ts.isIdentifier(node.name) && node.name.text === 'hasHeaderRow')
+          || (ts.isStringLiteralLike(node.name) && node.name.text === 'hasHeaderRow'))
+        && node.initializer.kind === ts.SyntaxKind.FalseKeyword
+      ) {
+        const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.name.getStart(entry.ast));
+        findings.push({ line: line + 1, column: character + 1 });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(entry.ast);
+    return findings.map((position) => ({
+      position,
+      message: 'Headerløs pseudo-tabel — brug writeLeftRightText eller en anden semantisk composer-blok.',
+    }));
+  },
+  violatingFixtures: [{
+    relativePath: 'src/document/generators/x.ts',
+    code: 'document.addTable({ columns, rows, hasHeaderRow: false });',
+  }],
+  cleanFixtures: [{
+    relativePath: 'src/document/generators/x.ts',
+    code: 'document.addTable({ columns, rows, hasHeaderRow: true });',
+  }],
+});

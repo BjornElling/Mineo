@@ -29,6 +29,16 @@ const filesInScope = walk(SRC_ROOT).filter((path) => {
 });
 
 describe('produktionssprog beskriver sluttilstanden', () => {
+  it('har et levende scope med både produktionskode og kontrakter', () => {
+    expect(filesInScope.length).toBeGreaterThan(500);
+    expect(filesInScope.some((file) => file.startsWith(CONTRACT_ROOT) && extname(file) === '.md')).toBe(true);
+  });
+
+  it('mønstrene kan skelne projekt-historik fra sluttilstandsprosa', () => {
+    expect(PROJECT_HISTORY_MARKERS.some((pattern) => pattern.test('Fase 7 flyttede modulet'))).toBe(true);
+    expect(PROJECT_HISTORY_MARKERS.some((pattern) => pattern.test('Modulet ejer den autoritative grænse'))).toBe(false);
+  });
+
   it('indeholder ikke implementeringsfaser, work-items eller overgangsmarkører', () => {
     const findings = filesInScope.flatMap((path) => readFileSync(path, 'utf8')
       .split(/\r?\n/)

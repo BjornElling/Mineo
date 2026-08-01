@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ## 1. Scope
 
@@ -337,9 +337,9 @@ Hvis underoverskrifter kræver conditional rendering eller atomisk sammenkædnin
 
 `standard-followup-height` er ikke én offentlig konstant. Det er writerens observerbare garanti for, at underoverskrift og første meningsbærende indholdsblok ikke adskilles af sideskift. De konkrete minimumshøjder ejes af writer-laget og dets tests.
 
-`writeBoldSubheader()` skal som udgangspunkt kaldes uden `nextLineHeight`-argument. Generatorer må kun sende eksplicit `nextLineHeight`, når den første efterfølgende indholdsblok reelt kræver en anden atomisk højde end writerens standard-followup-height.
-
-`writeSectionHeader()` skal som udgangspunkt kaldes uden `nextLineHeight`-argument. Generatorer må kun sende eksplicit `nextLineHeight`, når den første efterfølgende indholdsblok reelt kræver en anden atomisk højde end writerens standard-followup-height.
+Generatorer kan ikke angive en lokal followup-højde. Overskrifters keep-together-højde ejes af det interne
+writer-lag, som kender den konkrete kanal. Kræver en ny bloktype en anden højde, skal behovet udtrykkes som en
+navngiven blokintention i modellen frem for som et råt mål fra generatoren.
 
 `writeUnderlinedSubheader()` bruger altid rendererens centralt definerede standard-X-position.
 Generator-API'et modtager ikke en X-koordinat; en reel afvigelse kræver derfor en navngiven
@@ -423,7 +423,7 @@ Hvis indholdets semantik er uklar, skal generatoren vælge den eksisterende teks
 1. Afstand over fed og understreget underoverskrift styres centralt og skal være identisk.
 2. Afstand under fed og understreget underoverskrift styres centralt og skal være identisk.
 3. En generator må ikke lægge ekstra manuel topafstand eller bundafstand omkring en underoverskrift for at "få det til at se rigtigt ud".
-4. Hvis der allerede er opnået spacing via forudgående `addSpacer`, `advanceY` eller `setY(...)` efter sektion/tabel, skal underoverskriften stadig ende med den centrale standardafstand og ikke mere.
+4. Hvis der allerede er opnået spacing via den foregående kanoniske blokovergang, skal underoverskriften stadig ende med den centrale standardafstand og ikke mere.
 5. Hvis spacing eller sidebrydningsadfærd ændres for den ene underoverskriftstype, skal den anden automatisk følge med via samme centrale invariant.
 6. Hvis der opleves behov for lokal kompensation omkring én af underoverskriftstyperne, er det et arkitekturproblem i writer/helper-laget og skal løses centralt dér.
 7. Eventuelle options til at undertrykke topspacing må kun bruges, når underoverskriften bevidst skal stå direkte efter en sektionsoverskrift eller tilsvarende kanonisk header-kontekst.
@@ -433,16 +433,13 @@ Hvis indholdets semantik er uklar, skal generatoren vælge den eksisterende teks
 1. Brødtekst og venstre/højre-oplysningslinjer bruger writerens indbyggede line-height og trailing spacing.
 2. Generatorer må ikke kompensere for standard line-height med lokale negative `advanceY(...)`, medmindre det er en veldokumenteret teknisk undtagelse.
 3. Et tilbagevendende anti-mønster i venstre/højre-oplysningslinjer er lokal `value.split('\n')` efterfulgt af manuel Y-korrektion for at få fortsættelseslinjer til at "sidde rigtigt". Det skal betragtes som en afvigelse og erstattes af central writer-adfærd.
-4. Et tilbagevendende anti-mønster omkring underoverskrifter er kunstigt oppustet `nextLineHeight` for at simulere ekstra sektionsafstand eller holde større lokale blokke samlet. Det skal betragtes som en afvigelse og erstattes af central writer-adfærd eller reelle kanoniske overgange.
 
 ### B5.3 Mellem sektioner
 
-1. Mellemrum mellem sektioner styres af composerens header-blokke eller — hvor der er behov for eksplicit spacing — af `document.addSpacer()` med en veldefineret konstant.
-2. Lokale sektioner må ikke vælge egne frie sektionsafstande uden eksplicit begrundelse.
-3. `SECTION_SPACER` (10 mm) og `resolveDocumentSectionEndY()` er interne render-target-detaljer. Generatorer bruger `document.addSectionSpacer()` og må ikke importere disse mål/Y-helpers.
+1. Mellemrum mellem sektioner styres af composerens header-blokke eller af `document.addSectionSpacer()`.
+2. Generatorer kan ikke vælge en fri afstand; `DocumentComposer` eksponerer bevidst ingen `addSpacer(height)`.
+3. `SECTION_SPACER`, `PDF_BASE_LINE_HEIGHT_MM` og cursor-/Y-helpers er interne render-target-detaljer.
 4. Den kanoniske eksplicitte sektionsseparator i en generator er `document.addSectionSpacer()`.
-5. Generatorer må ikke sende `PDF_BASE_LINE_HEIGHT_MM` direkte til `document.addSpacer()` blot for at gentage den centrale sektionsstandard.
-6. Et tilbagevendende anti-mønster er `document.addSpacer(SECTION_SPACER)` umiddelbart efter grupper af `writeLeftRightText()`- eller `writeWrappedText()`-linjer. Det skal erstattes med `document.addSectionSpacer()`, medmindre en dokumenteret afvigelse reelt kræver en anden afstand.
 
 ### B5.4 Efter tabeller
 
@@ -450,28 +447,14 @@ Hvis indholdets semantik er uklar, skal generatoren vælge den eksisterende teks
 2. Modelrendereren videresender hele `TableSpec` til kanal-targetet; generatoren modtager ingen cursor og må ikke kompensere for tabelafslutningen.
 3. Generatoren må ikke lægge ad hoc ekstra topafstand ind foran næste underoverskrift.
 
-## B6. Manuel spacing: tilladt og forbudt
+## B6. Spacing-capability
 
-### Tilladt
+Generatorfladen tilbyder kun den navngivne `document.addSectionSpacer()`. Fri manuel spacing, rå
+cursorflytning og lokale followup-højder findes ikke på `DocumentComposer`. Tekniske layoutjusteringer til
+sidebrydning eller tabelgeometri ejes af modelrendereren og kanalens interne `DocumentWriter`.
 
-Manuel spacing via `document.addSpacer(...)` er kun tilladt når:
-
-1. der bevidst indsættes afstand mellem to indholdsblokke, som ikke allerede har en kanonisk overgang
-2. en tabel eller anden kompleks blok kræver en tydelig afslutning før næste sektion
-3. en teknisk layoutjustering er nødvendig for korrekt sidebrydning eller tabelgeometri
-
-### Forbudt
-
-Manuel spacing må ikke bruges til:
-
-1. at emulere lokale overskriftsregler
-2. at indføre ekstra afstand over `writeBoldSubheader()`
-3. at indføre ekstra afstand over `writeUnderlinedSubheader()`
-4. at kompensere for uklare eller inkonsistente lokale flow-forløb i stedet for at rette den centrale renderer-/composer-adfærd
-5. at bruge `SECTION_SPACER` (10 mm) som generel sektionsseparator — se B5.3
-6. at sende `PDF_BASE_LINE_HEIGHT_MM` direkte til `document.addSpacer()` som erstatning for den navngivne standard `document.addSectionSpacer()` — se B5.3 punkt 5
-
-Hvis en generator oplever behov for gentagne lokale spacing-korrektioner, er det et arkitekturproblem i composer-/renderer-laget og skal løses dér.
+Hvis en generator mangler en overgang, skal behovet løses som en central, semantisk blokintention. En rå
+højde må ikke genindføres som genvej.
 
 ## B7. Tabeller vs. ikke-tabeller
 
@@ -481,13 +464,9 @@ Hvis en generator oplever behov for gentagne lokale spacing-korrektioner, er det
 
 ## B8. Direkte jsPDF-brug
 
-**Læsevejledning til B5, B6, B8 og B10.** Disse afsnit taler om `advanceY(...)`, `setY(...)`, `doc.text(...)`,
-`setFont`/`setFontSize` og `MARGINS.left`. De primitiver findes i dag **kun** inde i PDF-kanalen
-(`src/pdf/infrastructure/pdfWriter.ts`) — de sidder hverken på `DocumentComposer` eller `DocumentWriter`, og
-AST-reglen `document/generator-cursor-access-boundary` spærrer generatorer fra dem. En generator kan derfor
-ikke længere bryde reglerne ad den vej. Afsnittene bevares som den normative beskrivelse af, hvad et
-cursor-/font-indgreb ville være, og gælder ubeskåret for kode inde i kanalen selv samt for enhver ny
-kanal-integration.
+Rå jsPDF-, cursor- og fontprimitiver findes kun inde i PDF-kanalen. De findes ikke på `DocumentComposer`, og
+AST-reglerne for generatorgrænsen spærrer imports og adgang ad sideveje. Reglerne nedenfor gælder derfor
+kanalimplementeringen; generatorer kan ikke repræsentere disse indgreb.
 
 Direkte skrivning via `doc.text(...)` eller lignende er kun acceptabel efter formålskategori:
 
@@ -517,15 +496,9 @@ Ved audit af en generator skal mindst følgende kontrolleres:
 4. at underoverskrifter uden efterfølgende meningsbærende indhold undertrykkes
 5. at tabeller afsluttes via kanonisk section-end-regel
 6. at headerløse pseudo-tabeller er erstattet med composer-baseret tekstlayout
-7. at lokale `setFont`/`setFontSize`-forløb ikke emulerer eksisterende teksttyper
-8. at line-height og sektionafstand alene kommer fra centrale konstanter — og at den rigtige konstant er valgt til konteksten (autotable vs. writer, jf. B5.3)
-9. at generatorer ikke bruger `document.addSpacer(SECTION_SPACER)` som tommelfingerregel efter blokke med `writeLeftRightText()` eller `writeWrappedText()`
-10. at generatorer bruger `document.addSectionSpacer()` i stedet for rå `document.addSpacer(PDF_BASE_LINE_HEIGHT_MM)`, når intentionen blot er standard-sektionsafstand, jf. B5.3 punkt 5
-11. at multiline højrekolonner i `writeLeftRightText()` ikke implementeres via lokal `split('\n')`, tom venstre kolonne og manuel `advanceY(...)`-korrektion
-12. at generatorer ikke laver lokal `setFont(...)` / `setFontSize(...)` omkring enkelte brødtekstblokke som advarsler eller noter, når en central writer-variant kan bære behovet
-13. at `nextLineHeight` til `writeBoldSubheader()` afspejler den første reelle efterfølgende indholdsblok og ikke bruges som skjult spacing- eller keep-together-mekanisme
-14. at generatorer udelader `nextLineHeight`, `PDF_BASE_LINE_HEIGHT_MM` og tilsvarende standardargumenter, medmindre værdien semantisk afviger fra rendererens default eller callsite dokumenterer en eksplicit layout-undtagelse efter B9; rå koordinater som `MARGINS.left` hører ikke til i generator-API'et
-15. at generatorer ikke importerer tabelrendererens Y-/cursor-helpers eller kompenserer lokalt for tabelstart/-afslutning
+7. at eksplicit sektionsafstand bruger `document.addSectionSpacer()`
+8. at multiline højrekolonner håndteres centralt og ikke via lokal `split('\n')`
+9. at generatoren ikke importerer kanal-, tabelrenderer-, font- eller cursorprimitiver
 
 ## B11. Anbefalet audit-sekvens
 
@@ -591,7 +564,7 @@ Kontrakten er koblet i `contractCoverageMatrix.test.ts` til:
 - `src/__tests__/document/documentLifecycleMatrix.test.ts` (definitionsuafhængige livscyklus-cases)
 - `src/__tests__/document/documentGateMatrix.test.ts` (per-definition gate-cases, med `invalid` og `bounds` som SEPARATE klasser jf. §A2a)
 - `src/__tests__/components/pages/Satser.downloadGate.integration.test.tsx` (hele livscyklussen end-to-end gennem den rigtige side og den ægte runtime)
-- `src/__tests__/quality/pdfPseudoTableGuard.test.ts`
+- `src/__tests__/quality/architecture/architectureRules.test.ts` (`document/no-headerless-pseudo-table` og generatorgrænserne)
 - `src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts`
 - `src/__tests__/utils/pdf/pdfWriter.test.ts`
 - `src/__tests__/docx/docxWriter.test.ts` (Word-kanalens paritet mod det fælles writer-API)

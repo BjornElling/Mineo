@@ -33,7 +33,7 @@ export type TafBeregningsgrundlagDeps = Readonly<{
   rightColumnWidth: number;
   rightMaxWidth: number;
   NBSP: string;
-  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
   safeAddLeftRightText: (
     leftText: string,

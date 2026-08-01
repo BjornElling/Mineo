@@ -21,7 +21,7 @@ type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues
 type OffentligeYdelserSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   startEoBilagPage: (titleText: string) => void;
-  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   shouldIncludeOffentligYdelseRowInEoBilag: (params: Readonly<{
     row: OffentligeYdelserRow;
     mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
@@ -31,13 +31,13 @@ type OffentligeYdelserSectionContext = Readonly<{
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
   writeBoldSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable' | 'writeUnderlinedSubheader'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeUnderlinedSubheader'>;
 }>;
 
 type RenderOffentligeYdelserRowsPageContext = Readonly<{
   rows: readonly OffentligeYdelserRow[];
   visYdelsestypeSubheader?: boolean;
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable' | 'writeUnderlinedSubheader'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeUnderlinedSubheader'>;
 }>;
 
 export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRowsPageContext): void => {
@@ -143,7 +143,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
         startEoBilagPage('Offentlige ydelser');
         writer.addSectionSpacer();
       }
-      renderSubheader(entry.group.label, undefined, { addTopSpacing: index > 0 });
+      renderSubheader(entry.group.label, { addTopSpacing: index > 0 });
     } else if (index === 0) {
       startEoBilagPage('Offentlige ydelser');
       writer.addSectionSpacer();
@@ -166,10 +166,10 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
 type MidlertidigtEetSectionContext = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
   startEoBilagPage: (titleText: string) => void;
-  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   formatAfgoerelsesdato: (date: ISODateString) => string | undefined;
   tafRanges: readonly IsoRange[];
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable'>;
 }>;
 
 export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
@@ -216,7 +216,7 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
 
     const datoText = formatAfgoerelsesdato(group.afgoerelsesdato) ?? group.afgoerelsesdato;
     const pctText = Number.isFinite(group.eetPct) ? ` (${formatPct(group.eetPct)})` : '';
-    renderSubheader(`Afgørelse ${datoText}${pctText}`, undefined, { addTopSpacing: bilagIndex > 1 });
+    renderSubheader(`Afgørelse ${datoText}${pctText}`, { addTopSpacing: bilagIndex > 1 });
 
     const specRows: RowSpec[] = [
       ydelserHeader,

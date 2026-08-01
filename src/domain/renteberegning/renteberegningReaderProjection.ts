@@ -122,11 +122,20 @@ export const buildRenteberegningReaderProjection = (args: Readonly<{
         return { rows: usableRows, beregningsdato: beregningsdato.value };
       }
     ),
-    ({ rows, beregningsdato }): RenteAggregateProjectionData => {
+    ({ rows }): RenteAggregateProjectionData => {
       const pdfContexts = new Map<string, NonNullable<RentekravRowResult['pdfContext']>>();
       let anyRowHasError = false;
       for (const row of rows) {
-        const result = computeRentekravRow(row, beregningsdato, referenceRates, surchargeRates);
+        const rowProjection = rowProjections.get(row.id);
+        // Aggregatet beholder sin egen dependency-gate ovenfor. Når den er ready, skal den tilsvarende
+        // rækkeprojektion være ready på præcis de samme felter; en afvigelse er en intern invariantfejl,
+        // som skal blokere dokumentet frem for at udløse en skjult anden beregningssti.
+        if (rowProjection?.status !== 'ready') {
+          console.error(`Renteaggregat mangler ready rækkeprojektion for ${row.id}.`);
+          anyRowHasError = true;
+          continue;
+        }
+        const result = rowProjection.value;
         if (isRentekravRowEmpty(row)) continue;
         if (result.pdfContext === null) anyRowHasError = true;
         else pdfContexts.set(row.id, result.pdfContext);

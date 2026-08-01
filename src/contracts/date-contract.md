@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Tværgående; supplerer `form-contract.md §8` (form/feltcodec ejer parsing/coercion frem til valideret instans, denne kontrakt ejer kalendermatematik derefter).
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ## Scope
 - Al logik der tæller kalenderdage eller udleder dag-baserede perioder.
@@ -62,7 +62,7 @@
 4. Dag-tællinger bruger `src/utils/utcDayMath.ts`.
 
 ## Håndhævelse
-De maskin-tjekbare forbud i denne kontrakt håndhæves automatisk af `src/__tests__/quality/dateContractGuard.test.ts`: ms-diff dag-optælling (`/ 86400000` m.fl.), materialisering kun for at tælle (`collect…/build…(...).length/.size`) og nye håndskrevne `while (current <= end) { … setUTCDate(getUTCDate()+1) }`-dag-løkker uden for `isoDateHelpers.ts`. Guarden har selv-test, der beviser, at hvert mønster faktisk fanger en syntetisk overtrædelse. Ændres en af disse regler, opdateres guarden i samme commit.
+De maskin-tjekbare forbud håndhæves af dato-reglerne i det fælles arkitekturharness (`date/no-millisecond-day-count`, `date/no-materialized-day-count` og `date/no-manual-day-loop`): ms-diff dag-optælling (`/ 86400000` m.fl.), materialisering kun for at tælle (`collect…/build…(...).length/.size`) og nye håndskrevne dag-løkker uden for `isoDateHelpers.ts`. Harnesset beviser både mønster, levende scope og allowlist-anti-rot.
 
 ## Review-tjekliste
 - Enhver ny dag-tælling bruger `utcDayMath`.

@@ -7,8 +7,8 @@
  * og den committed-only-regel skal håndhæves strukturelt — ikke som kommentar).
  *
  * Begge gates udledes UDELUKKENDE fra committed-afledt state (pdfContexts/
- * anyRowHasError beregnet fra committedRentekravById via computeRentekravRow,
- * plus committed beregningsdato). De er rene funktioner uden React/draft-state,
+ * anyRowHasError fra den ready reader-projektion plus committed beregningsdato).
+ * De er rene funktioner uden React/draft-state,
  * så sandhedstabellen kan unit-testes direkte.
  */
 

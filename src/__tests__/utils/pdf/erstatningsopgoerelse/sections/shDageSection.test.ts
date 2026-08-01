@@ -50,7 +50,6 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
       safeAddWrappedText,
       writer: {
         addSectionSpacer: vi.fn(),
-        addSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
@@ -168,7 +167,7 @@ describe('renderShDageSection – beregningsperiode for første opgørelse', () 
 
     renderShDageSection(ctxWithBeregningsperiode);
 
-    expect(renderSubheader).toHaveBeenCalledWith('Beregningsperiode', undefined, { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('Beregningsperiode', { addTopSpacing: false });
   });
 
   it('viser ikke Beregningsperiode-overskrift for anden opgørelse', () => {
@@ -182,7 +181,7 @@ describe('renderShDageSection – beregningsperiode for første opgørelse', () 
 
     renderShDageSection(ctx);
 
-    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', expect.anything(), expect.anything());
+    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', expect.anything());
   });
 });
 
@@ -200,7 +199,7 @@ describe('renderShDageSection – SFGG-referenceperiode', () => {
 
     renderShDageSection(ctxWithSfggRange);
 
-    expect(renderSubheader).toHaveBeenCalledWith('SFGG-referenceperiode', undefined, { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('SFGG-referenceperiode', { addTopSpacing: false });
     expect(safeAddWrappedText).toHaveBeenCalledWith('28. marts 2024 - 20. maj 2024');
     expect(autoTableMock).toHaveBeenCalled();
   });
@@ -217,6 +216,6 @@ describe('renderShDageSection – SFGG-referenceperiode', () => {
 
     renderShDageSection(ctxWithSfggRange);
 
-    expect(renderSubheader).not.toHaveBeenCalledWith('SFGG-referenceperiode', expect.anything(), expect.anything());
+    expect(renderSubheader).not.toHaveBeenCalledWith('SFGG-referenceperiode', expect.anything());
   });
 });

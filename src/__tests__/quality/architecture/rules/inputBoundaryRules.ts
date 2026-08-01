@@ -623,6 +623,14 @@ export const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
   'collectPresentFieldErrors',
   'InputWriteAuthority',
   'claimInputWriteAuthority',
+  'cellFocusPaths',
+  'useCellInvalidDraftChannel',
+  'onFieldError',
+  'visibleDocumentFailureMessage',
+  'resolveOverenskomstNameOnlyDisplay',
+  'normalizeGridRows',
+  'reconcileGridRowIdentityForRestore',
+  'undoAliasRowIdsByRowId',
 ];
 
 const FORBIDDEN_IDENTIFIER_SET = new Set(FORBIDDEN_LEGACY_IDENTIFIERS);

@@ -9,6 +9,7 @@ import {
 } from './rules/storageRules';
 import {
   aslAarsloensmaksimumRawSubscript,
+  calculationDataCatalogLazyBoundary,
   crossDomainDescriptorPort,
   engineCallOwnedByProjectionRule,
   failOpenDisplayLookupImport,
@@ -18,11 +19,13 @@ import {
 } from './rules/domainRules';
 import {
   documentActivationShowsOutcome,
+  documentHeaderlessPseudoTableRule,
   minprocesrenteStandaloneImport,
   pdfDownloadCommittedState,
 } from './rules/documentRules';
 import {
   criticalActionNoDomScanOrFrameWait,
+  deletableCollectionTableOwnershipRule,
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,
   documentGeneratorImportBoundary,
@@ -38,6 +41,7 @@ import {
   persistedControlsUseFieldFamilyRule,
   popupSemanticsSingleSourceRule,
   messageBoxGuardedByPageMessageRule,
+  placeholderIdentityOwnershipRule,
   promiseTickBoundary,
   queueMicrotaskBoundary,
   reguleringCanonicalForloebBoundary,
@@ -62,6 +66,8 @@ import {
   sourceSettingsProjectionBoundary,
   transientCannotWriteCaseData,
 } from './rules/inputBoundaryRules';
+import { DATE_RULES } from './rules/dateRules';
+import { NUMERIC_RULES } from './rules/numericRules';
 
 /**
  * Registry for de AST-baserede arkitekturgrænser (greenfield #48).
@@ -81,6 +87,9 @@ import {
  * AST'en lukker strukturelt.
  */
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
+  // Dato- og numeriske kildeinvarianter
+  ...DATE_RULES,
+  ...NUMERIC_RULES,
   // Storage og persistens
   localStorageBoundary,
   sessionStorageBoundary,
@@ -95,9 +104,11 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   moneyOreTypeAssertion,
   pageSectionAccessBoundary,
   crossDomainDescriptorPort,
+  calculationDataCatalogLazyBoundary,
   // Dokument og standalone
   pdfDownloadCommittedState,
   documentActivationShowsOutcome,
+  documentHeaderlessPseudoTableRule,
   minprocesrenteStandaloneImport,
   // Form, felt og critical action
   persistenceCommittedMirror,
@@ -126,6 +137,8 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   persistedControlsUseFieldFamilyRule,
   popupSemanticsSingleSourceRule,
   messageBoxGuardedByPageMessageRule,
+  deletableCollectionTableOwnershipRule,
+  placeholderIdentityOwnershipRule,
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,
   cellBindingSingleSource,

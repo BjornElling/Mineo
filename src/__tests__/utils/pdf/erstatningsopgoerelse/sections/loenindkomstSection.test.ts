@@ -103,7 +103,6 @@ const makeContext = (includeRangeFromDates: ReadonlySet<ReturnType<typeof toISOD
     eoBilagIndkomstYdelserRanges: [],
     writer: {
       addSectionSpacer: vi.fn(),
-      addSpacer: vi.fn(),
       addTable: vi.fn((spec: TableSpec) => {
         y = renderPdfTableSpec(doc as never, y, spec).endY;
       }),
@@ -197,9 +196,9 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
 
     renderLoenindkomstSection(ctx);
 
-    expect(renderSubheader).not.toHaveBeenCalledWith('TAF-periode', undefined, { addTopSpacing: false });
-    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', undefined, { addTopSpacing: false });
-    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', undefined, { addTopSpacing: false });
+    expect(renderSubheader).not.toHaveBeenCalledWith('TAF-periode', { addTopSpacing: false });
+    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', { addTopSpacing: false });
   });
 
   it('viser heller ikke TAF-/Beregningsperiode-underoverskrifter når begge periodegrupper har rækker', () => {
@@ -207,9 +206,9 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
 
     renderLoenindkomstSection(ctx);
 
-    expect(renderSubheader).not.toHaveBeenCalledWith('TAF-periode', undefined, { addTopSpacing: false });
-    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', undefined, { addTopSpacing: false });
-    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', undefined, { addTopSpacing: false });
+    expect(renderSubheader).not.toHaveBeenCalledWith('TAF-periode', { addTopSpacing: false });
+    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', { addTopSpacing: false });
     expect(renderSubheader.mock.calls.filter(([text]) => text === 'Kerteminde Kommune')).toHaveLength(1);
   });
 

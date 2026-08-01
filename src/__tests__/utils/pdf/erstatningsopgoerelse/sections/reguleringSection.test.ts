@@ -78,7 +78,6 @@ const makeContext = (
     resolveStatistikModelIdFromLabel: vi.fn(() => undefined),
     writer: {
       addSectionSpacer: vi.fn(),
-      addSpacer: vi.fn(),
       addTable: vi.fn((spec: TableSpec) => {
         y = renderPdfTableSpec(doc as never, y, spec).endY;
       }),
@@ -170,7 +169,7 @@ describe('renderReguleringSection – ansættelsesforhold uden regulering', () =
 
     expect(startEoBilagPage).toHaveBeenCalledWith('Regulering');
     expect(renderSubheader).toHaveBeenCalledTimes(1);
-    expect(renderSubheader).toHaveBeenCalledWith('Med regulering', undefined, { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('Med regulering', { addTopSpacing: false });
   });
 });
 
@@ -190,7 +189,7 @@ describe('renderReguleringSection – ansættelsesforhold med regulering', () =>
 
     renderReguleringSection(ctx);
 
-    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', undefined, { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', { addTopSpacing: false });
   });
 
   it('bruger fallback-navn "Ansættelsesforhold 1" når navnPaaArbejdssted er tomt', () => {
@@ -208,7 +207,7 @@ describe('renderReguleringSection – ansættelsesforhold med regulering', () =>
 
     renderReguleringSection(ctx);
 
-    expect(renderSubheader).toHaveBeenCalledWith('Ansættelsesforhold 1', undefined, { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('Ansættelsesforhold 1', { addTopSpacing: false });
   });
 
   it('skjuler kun underoverskrift for EO-angivet-løn id, ikke for navnet "EO-oplysninger" alene', () => {
@@ -226,7 +225,7 @@ describe('renderReguleringSection – ansættelsesforhold med regulering', () =>
 
     renderReguleringSection(ctx);
 
-    expect(renderSubheader).toHaveBeenCalledWith('EO-oplysninger', undefined, { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('EO-oplysninger', { addTopSpacing: false });
   });
 });
 

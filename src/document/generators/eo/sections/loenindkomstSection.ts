@@ -17,7 +17,7 @@ type LoenSectionContext = Readonly<{
   selectedElements: SelectedElements;
   eoValues: ErstatningsopgoerelseValues;
   startEoBilagPage: (titleText: string) => void;
-  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
   writeLabelValueLine: (label: string, value: string) => void;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
@@ -35,7 +35,7 @@ type LoenSectionContext = Readonly<{
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addSpacer' | 'addTable'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable'>;
 }>;
 
 export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
@@ -179,7 +179,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
       const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
       const shouldAddTopSpacing = index > 0;
-      renderSubheader(arbejdsstedNavn, undefined, { addTopSpacing: shouldAddTopSpacing });
+      renderSubheader(arbejdsstedNavn, { addTopSpacing: shouldAddTopSpacing });
       const aktivOverenskomst = resolveAktivOverenskomst(ansaettelsesforhold);
       if (aktivOverenskomst.aktiv) {
         writeLabelValueLine('Overenskomst', resolveOverenskomstDisplay(aktivOverenskomst.overenskomstId));
