@@ -157,5 +157,16 @@ describe('LicenseModal', () => {
         expect(preElement.textContent).toBeTruthy();
       }
     });
+
+    test('ombryder licensteksten og isolerer nødvendig lav-højde-scroll til tekstcontaineren', () => {
+      const onClose = vi.fn();
+      const { container } = renderLicenseModal({ open: true, onClose });
+
+      const scrollContainer = screen.getByTestId('license-scroll-container');
+      const preElement = container.querySelector('pre');
+
+      expect(scrollContainer).toHaveStyle({ overflowY: 'auto', overflowX: 'hidden' });
+      expect(preElement).toHaveStyle({ whiteSpace: 'pre-wrap', overflowWrap: 'break-word' });
+    });
   });
 });

@@ -16,4 +16,18 @@ describe('buildTheme', () => {
 
     expect(typography.allVariants?.color).toContain('rgba(255, 255, 255, 0.87)');
   });
+
+  it('giver alle tooltips indholdsbaseret bredde og naturlig venstrestillet ordombrydning', () => {
+    const theme = buildTheme('light');
+    const tooltip = theme.components?.MuiTooltip?.styleOverrides?.tooltip as Record<string, unknown>;
+
+    expect(tooltip).toMatchObject({
+      width: 'max-content',
+      maxWidth: '360px',
+      textAlign: 'left',
+      whiteSpace: 'normal',
+      overflowWrap: 'normal',
+      wordBreak: 'normal',
+    });
+  });
 });

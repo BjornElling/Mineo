@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 type InfoTooltipIconProps = Readonly<{
@@ -9,11 +9,7 @@ type InfoTooltipIconProps = Readonly<{
 const InfoTooltipIcon = React.memo(({ title }: InfoTooltipIconProps) => {
   return (
     <Tooltip
-      title={
-        <Box component="span" sx={{ whiteSpace: 'pre-line', textAlign: 'center', display: 'block' }}>
-          {title}
-        </Box>
-      }
+      title={title}
       arrow
       placement="top"
     >

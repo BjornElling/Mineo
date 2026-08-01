@@ -86,7 +86,7 @@ const SatserRateSections = React.memo(({ satser }: { satser: Satser }) => (
             label: (
               <>
                 Beløbsgrænse for fri proces (enlig/samlevende):
-                <InfoTooltipIcon title={'Personlig indkomst\n+ positiv kapitalindkomst'} />
+                <InfoTooltipIcon title="Personlig indkomst + positiv kapitalindkomst" />
               </>
             ),
             value: formatKronerPair(satser.diverse.friProcesEnlig, satser.diverse.friProcesSamlevende),

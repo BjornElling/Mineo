@@ -25,7 +25,7 @@ const InputUnitAdornment = ({ unitSuffix, muted }: InputUnitAdornmentProps) => (
     sx={{
       marginLeft: 0,
       pointerEvents: 'none',
-      color: muted ? 'var(--mineo-color-placeholder)' : 'inherit',
+      color: muted ? 'var(--mineo-color-input-unit-muted)' : 'inherit',
       font: 'inherit',
       '& span': { font: 'inherit' },
     }}

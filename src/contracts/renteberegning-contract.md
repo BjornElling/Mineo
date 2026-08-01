@@ -30,6 +30,9 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
 5. Renderer-fejl må ikke være primær gate for ugyldigt brugerinput.
 6. En rentekravsrække med kun valgt tillægstidsenhed er semantisk tom og udgør selv tabellens ene trailing
    indtastningsrække. Enhedsvalget må ikke i sig selv skabe en ekstra synlig række.
+7. `Evt. tillægstid` har den synlige heltalsform 0–99. Normal tastning accepterer højst to cifre. Paste og
+   programmatisk input må ikke trunkeres skjult; en trecifret heltalsdraft bliver canonical ved settle og får det
+   afledte 0–99-bounds-issue, som blokerer afhængige consumers. Samme bounds-regel er autoritativ ved load.
 
 ---
 

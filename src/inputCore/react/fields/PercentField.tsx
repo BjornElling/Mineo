@@ -13,6 +13,7 @@ import StyledTextFieldBase from '../../../components/inputs/StyledTextFieldBase'
 import { formatPercentDisplay } from '../../../utils/percentDraftCore';
 import type { FieldWarning } from '../../fieldWarning';
 import { fieldAllowsDecimals } from './decimalPolicy';
+import { mergeSx } from '../../../utils/mergeSx';
 
 // Procent-felt (§2.4/§3.5): familie-skal over `NumericTextField` med procent-tegnfilteret,
 // den delte "%"-enheds-adornment (muted når tom) og højrestillet tabular-nums-visning. Parse/format og
@@ -113,7 +114,12 @@ export const DerivedPercentField = React.forwardRef<HTMLDivElement, Readonly<{
     endAdornment={<InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={value === undefined} />}
     htmlInputAttributes={{ readOnly: true }}
     width={100}
-    sx={sx}
+    sx={mergeSx({
+      '& .MuiInputBase-input': {
+        textAlign: 'right',
+        fontVariantNumeric: 'tabular-nums',
+      },
+    }, sx)}
   />
 ));
 DerivedPercentField.displayName = 'DerivedPercentField';

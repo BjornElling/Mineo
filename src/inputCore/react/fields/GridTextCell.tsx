@@ -38,6 +38,8 @@ export type GridTextCellProps<T, TEntity = unknown> = Readonly<{
   placeholder?: string;
   textAlign?: 'center' | 'right' | 'left';
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  /** Maksimal rå draftlængde, når feltets synlige form har en fast længde. */
+  maxDraftLength?: number;
   /** Enheds-/udtryks-adornment. En funktion modtager draftens tomhed + den committede værdi. */
   endAdornment?:
     | React.ReactNode
@@ -60,6 +62,7 @@ const GridTextCellInner = <T, TEntity>(
     placeholder,
     textAlign = 'center',
     inputMode = 'text',
+    maxDraftLength,
     endAdornment,
     overlay,
     inputRef,
@@ -123,6 +126,7 @@ const GridTextCellInner = <T, TEntity>(
             placeholder={surface.isFocused && !surface.readOnly ? '' : placeholder}
             inputProps={{
               inputMode,
+              ...(maxDraftLength === undefined ? {} : { maxLength: maxDraftLength }),
               readOnly: surface.readOnly,
               'aria-invalid': showError,
               ...surface.restoreTargetAttributes,
@@ -137,6 +141,10 @@ const GridTextCellInner = <T, TEntity>(
                   cursor: surface.isEditing ? 'text' : 'pointer',
                   caretColor: surface.isEditing ? 'auto' : 'transparent',
                 }),
+                '&::placeholder': {
+                  color: 'var(--mineo-color-active-grid-placeholder)',
+                  opacity: 1,
+                },
               },
             }}
           />

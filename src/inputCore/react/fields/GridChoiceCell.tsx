@@ -121,8 +121,8 @@ const GridChoiceCellInner = <
     width: '100%',
     height: TABLE_INPUT_HEIGHT,
     boxSizing: 'border-box',
-    fontSize: '13px',
-    fontFamily: '"Montserrat", sans-serif',
+    fontSize: 'inherit',
+    fontFamily: 'inherit',
     color: 'inherit',
     fontFeatureSettings: '"tnum"',
     '& .MuiInputBase-input': {
@@ -130,6 +130,10 @@ const GridChoiceCellInner = <
       fontSize: 'inherit',
       lineHeight: 'inherit',
       color: 'inherit',
+      '&::placeholder': {
+        color: 'var(--mineo-color-active-grid-placeholder)',
+        opacity: 1,
+      },
       paddingTop: TABLE_INPUT_PADDING_Y,
       paddingBottom: TABLE_INPUT_PADDING_Y,
       paddingLeft: TABLE_DROPDOWN_TEXT_PADDING_LEFT,

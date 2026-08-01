@@ -11,6 +11,21 @@ import type { CSSProperties } from 'react';
 const tableFontFamily = "'Montserrat', sans-serif";
 const tableFontVariant = 'tabular-nums';
 
+const getTableTypographySignature = (useSmallFont: boolean) => ({
+  '--mineo-color-active-grid-text': useSmallFont
+    ? 'var(--mineo-color-grid-table-text-small)'
+    : 'var(--mineo-color-grid-table-text-regular)',
+  '--mineo-color-active-grid-header': useSmallFont
+    ? 'var(--mineo-color-grid-header-small)'
+    : 'var(--mineo-color-grid-header-regular)',
+  '--mineo-color-active-grid-placeholder': useSmallFont
+    ? 'var(--mineo-color-grid-placeholder-small)'
+    : 'var(--mineo-color-grid-placeholder-regular)',
+  '--mineo-color-active-grid-derived': useSmallFont
+    ? 'var(--mineo-color-grid-derived-small)'
+    : 'var(--mineo-color-grid-derived-regular)',
+});
+
 /**
  * MUI Table styling generator
  * Bruges til Material-UI Table komponenter
@@ -23,13 +38,16 @@ const tableFontVariant = 'tabular-nums';
  * <Table sx={getMuiTableStyles(true)}>...</Table>
  */
 export const getMuiTableStyles = (useSmallFont = false) => ({
+  ...getTableTypographySignature(useSmallFont),
   border: '1px solid var(--color-table-border)',
   borderRadius: '16px',
   overflow: 'clip',
   fontFamily: tableFontFamily,
   fontVariantNumeric: tableFontVariant,
   fontSize: useSmallFont ? 'var(--font-size-text-table)' : 'var(--font-size-text)',
-  color: 'var(--mineo-color-grid-table-text)',
+  fontWeight: 400,
+  lineHeight: 'normal',
+  color: 'var(--mineo-color-active-grid-text)',
   '& .MuiTableCell-root': {
     border: 'none',
     fontSize: 'inherit', // Arver fra table
@@ -40,6 +58,7 @@ export const getMuiTableStyles = (useSmallFont = false) => ({
   '& thead th': {
     backgroundColor: 'var(--color-table-header-bg)',
     fontWeight: 500,
+    color: 'var(--mineo-color-active-grid-header)',
     borderBottom: '1px solid var(--color-table-border) !important',
   },
   '& tbody tr:nth-of-type(odd)': {
@@ -62,6 +81,7 @@ export const getMuiTableStyles = (useSmallFont = false) => ({
  * <table style={getHtmlTableStyles(true)}>...</table>
  */
 export const getHtmlTableStyles = (useSmallFont = false): CSSProperties => ({
+  ...getTableTypographySignature(useSmallFont),
   border: '1px solid var(--color-table-border)',
   borderRadius: '16px',
   overflow: 'hidden',
@@ -69,7 +89,9 @@ export const getHtmlTableStyles = (useSmallFont = false): CSSProperties => ({
   fontFamily: tableFontFamily,
   fontVariantNumeric: tableFontVariant,
   fontSize: useSmallFont ? 'var(--font-size-text-table)' : 'var(--font-size-text)',
-  color: 'var(--mineo-color-grid-table-text)',
+  fontWeight: 400,
+  lineHeight: 'normal',
+  color: 'var(--mineo-color-active-grid-text)',
 });
 
 /**

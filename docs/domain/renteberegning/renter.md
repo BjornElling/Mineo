@@ -26,7 +26,7 @@ hvis tillægstid ≤ 0:  rentedato = kravetsdato
 hvis tillægstid > 0:  rentedato = kravetsdato + tillægstid (i valgt enhed)
 ```
 
-Tillægstiden kan angives i **dage**, **uger** eller **måneder**.
+Tillægstiden kan angives som et heltal fra **0 til 99** i **dage**, **uger** eller **måneder**.
 
 ### Satser
 

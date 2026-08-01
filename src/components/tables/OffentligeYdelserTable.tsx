@@ -80,14 +80,14 @@ const OffentligeYdelserTable = React.memo(({
 
   const headers = ['Fra dato', 'Til dato', 'Ydelse', 'Tillæg', 'Ydelsestype', 'Periodisering', 'Antal dage', 'Ydelse per dag'];
   const sortIds = ['fraDato', 'tilDato', 'ydelse', 'tillaeg', 'ydelsestype', 'periodisering', 'antalDage', 'ydelsePerDag'] as const;
-  return <StandardGridTable tableWidth="1130px">
+  return <StandardGridTable tableWidth="1130px" useSmallFont>
     <colgroup>{['120px', '120px', '130px', '130px', '200px', '160px', '110px', '160px'].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
     <thead><tr>{headers.map((header, index) => <StandardGridHeaderCell key={header} onClick={() => handleHeaderClick(sortIds[index])} sortRole={getSortRole(sortIds[index])} sortDirection={getSortDirection(sortIds[index])}>{header}</StandardGridHeaderCell>)}</tr></thead>
     <tbody>{renderOrder.map((row, rowIndex) => {
       const committed = table.committedById.get(row.rowId);
       const derived = committed === undefined ? undefined : derivedByRowId.get(committed.id);
       const gc = (colIndex: number) => ({ rowId: row.rowId, colIndex });
-      const derivedStyle = { ...getStandardGridCellStyle({ align: 'center' }), color: 'var(--mineo-color-grid-derived)' };
+      const derivedStyle = { ...getStandardGridCellStyle({ align: 'center' }), color: 'var(--mineo-color-active-grid-derived)' };
       return <tr key={row.rowId} data-mineo-row-id={row.rowId} style={getStandardGridBodyRowStyle(rowIndex)}>
         <td style={getStandardGridCellStyle({ align: 'center' })}><GridDateCell gridCell={gc(0)} cell={table.buildCellSpec(row, eoOffentligeYdelserFraDatoField, 0)} /></td>
         <td style={getStandardGridCellStyle({ align: 'center' })}><GridDateCell gridCell={gc(1)} cell={table.buildCellSpec(row, eoOffentligeYdelserTilDatoField, 1)} /></td>

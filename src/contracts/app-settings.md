@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -48,6 +48,12 @@ Konsekvens:
   Nye felter i nested objekter kræver eksplicit merge-logik i `src/settings/appSettingsParse.ts`.
   Nye nested objekter kræver også eksplicit merge-logik parallelt med `brevhovedIndstillinger`-mønsteret.
 - **Miljøafhængige defaults** er kun tilladt for rene visuelle UI-præferencer. De må ikke bruges til sags-, PDF- eller beregningsrelevante settings.
+- **Farvemarkering af font-styles er en DEV-kontrol, ikke en semantisk indholdsfarve.** En markørfarve skal
+  svare til én komplet, kanonisk typografisignatur. Tabelsignaturer skelner mindst mellem 13 px og 14 px og
+  omfatter fontfamilie, vægt, linjehøjde og tabular-nums. Placeholder- og afledte markører er tilsvarende
+  størrelsesbundne. Enhedssuffikser (`kr.`/`%`) er del af feltindholdets signatur og må ikke få
+  placeholderens markør alene, når feltet er tomt. Dermed kan en MUI-fallback eller en størrelsesafvigelse
+  ikke få samme kontrolfarve som den korrekte felt-/tabeltypografi.
 
 ## Teknisk implementering
 - Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1` (`LOCAL_STORAGE_KEY` i `src/settings/appSettingsStorage.ts`)

@@ -765,7 +765,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                 sx={optionSxMerged}
                 onMouseEnter={() => setHighlightedIndex(index)}
               >
-                {opt.kind === 'empty' ? <em style={{ color: 'var(--mineo-color-placeholder)' }}>{placeholder}</em> : opt.children}
+                {opt.kind === 'empty' ? <em style={{ color: 'var(--mineo-color-dropdown-option-placeholder)' }}>{placeholder}</em> : opt.children}
               </MenuItem>
             );
           })}

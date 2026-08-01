@@ -49,7 +49,7 @@ const ExpressionIndicator = (): React.ReactElement => (
       bottom: 2,
       fontSize: 8,
       fontWeight: 700,
-      color: 'var(--color-grid-expression-indicator)',
+      color: 'var(--mineo-color-expression-indicator)',
       pointerEvents: 'none',
     }}
   >

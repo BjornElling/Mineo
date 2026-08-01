@@ -3,7 +3,7 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -398,6 +398,13 @@ Brug refs og etablerede komponentkontrakter.
 
 Undtagelser kan accepteres i globale infrastrukturlag som fokusgenopretning. Commit-barrieren må
 ikke bruge DOM-scanning; den bruger registrerede deltagere efter `critical-action-contract.md`.
+
+### 10.4 Tooltip-præsentation
+
+Almindelige MUI-tooltips bruger den fælles theme-styling: venstrestillet tekst, indholdsbaseret bredde med én
+fælles maksimalbredde og naturlig ordombrydning ved hele ord. Callsites må ikke indføre faste tooltipbredder,
+centreret tekst eller manuelle linjeskift for at styre ombrydningen. Afvigelser kræver et reelt andet
+indholdsformat, ikke blot lokal tilpasning.
 
 ---
 

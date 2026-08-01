@@ -83,7 +83,7 @@ const LicenseModal = React.memo(({ open, onClose }: LicenseModalProps) => {
           zIndex: theme.zIndex.modal + 1,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          overflow: 'clip',
         }}
       >
         {/* Header */}
@@ -123,9 +123,12 @@ const LicenseModal = React.memo(({ open, onClose }: LicenseModalProps) => {
 
         {/* License-tekst */}
         <Box
+          data-testid="license-scroll-container"
           sx={{
             flex: 1,
-            overflow: 'auto',
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
             padding: '32px',
           }}
         >
@@ -137,8 +140,9 @@ const LicenseModal = React.memo(({ open, onClose }: LicenseModalProps) => {
               lineHeight: 1.6,
               color: 'text.primary',
               margin: 0,
-              whiteSpace: 'pre',
-              overflowX: 'auto',
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'break-word',
+              wordBreak: 'normal',
             }}
           >
             {licenseText}

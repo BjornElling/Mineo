@@ -479,7 +479,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     />
                   </td>
                 ) : (
-                  <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: calculated.col6 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit' }}>
+                  <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: 'var(--mineo-color-active-grid-derived)' }}>
                     {formatKr(calculated.col6, 2)}
                   </td>
                 )}
@@ -494,7 +494,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     />
                   </td>
                 ) : (
-                  <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: calculated.col7 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit' }}>
+                  <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: 'var(--mineo-color-active-grid-derived)' }}>
                     {formatKr(calculated.col7, 2)}
                   </td>
                 )}
@@ -506,7 +506,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     padding: '4px',
                     paddingRight: '28px',
                     position: 'relative',
-                    color: calculated.col8 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
+                    color: 'var(--mineo-color-active-grid-derived)',
                   }}
                 >
                   {formatKr(calculated.col8, 2)}
@@ -526,4 +526,3 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 StandardLoenTable.displayName = 'StandardLoenTable';
 
 export default StandardLoenTable;
-

@@ -122,6 +122,9 @@ export const rentekravRenterFraField = defineStructuralField<ISODateString | und
   validators: [renterFraBoundsValidator],
 });
 
+/** Den synlige heltalsform er 0–99; normal tastning begrænses derfor til to cifre. */
+export const RENTEKRAV_TILLAEGSTID_MAX_DRAFT_LENGTH = 2;
+
 export const rentekravTillaegstidField = defineStructuralField<number | undefined>({
   id: 'renteberegning.rentekravRows.tillaegstid',
   template: rowTemplate('tillaegstid'),

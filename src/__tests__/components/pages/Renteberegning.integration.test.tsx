@@ -6,7 +6,7 @@ import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimI
 // migrerede side + den ægte produktions-runtime og beviser den virkelige sti felt → settle → reader-projektion
 // → download-gate (§1.5/§1.6/§3.9): en afsluttet ugyldig beregningsdato blokerer downloads, og en gyldig
 // committed række når dokumentservicen.
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Renteberegning from '../../../components/pages/Renteberegning';
@@ -138,5 +138,62 @@ describe('Renteberegning — download-gate mod afsluttet input', () => {
     await user.click(rowButton);
     await user.click(oversigtButton);
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
+  });
+});
+
+describe('Renteberegning — Evt. tillægstid', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  const getTillaegstidInput = (): HTMLInputElement => {
+    const row = document.querySelector<HTMLElement>('tr[data-mineo-row-id="r1"]');
+    if (!row) throw new Error('Rentekravsrækken blev ikke renderet');
+    return within(row).getAllByRole('textbox')[2] as HTMLInputElement;
+  };
+
+  it('accepterer højst to cifre i den åbne draft', async () => {
+    const user = userEvent.setup();
+    hydrate([{ ...validRow('r1'), tillaegstid: undefined }], '2024-12-31');
+    renderRenteberegning();
+
+    const input = getTillaegstidInput();
+    expect(input).toHaveAttribute('maxlength', '2');
+
+    await user.dblClick(input);
+    await user.type(input, '123');
+    expect(input).toHaveValue('12');
+
+    await user.keyboard('{Enter}');
+    expect(input).toHaveValue('12');
+    expect(input).toHaveAttribute('aria-invalid', 'false');
+  });
+
+  it('fail-closer et programmatisk trecifret input gennem det eksisterende bounds-issue', () => {
+    hydrate([{ ...validRow('r1'), tillaegstid: undefined }], '2024-12-31');
+    renderRenteberegning();
+
+    const input = getTillaegstidInput();
+    fireEvent.doubleClick(input);
+    fireEvent.change(input, { target: { value: '123' } });
+    fireEvent.blur(input);
+
+    expect(input).toHaveValue('123');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('markerer et indsat trecifret tal ugyldigt ved settle', async () => {
+    const user = userEvent.setup();
+    hydrate([{ ...validRow('r1'), tillaegstid: undefined }], '2024-12-31');
+    renderRenteberegning();
+
+    const input = getTillaegstidInput();
+    await user.dblClick(input);
+    await user.paste('987');
+
+    expect(input).toHaveValue('987');
+    fireEvent.blur(input);
+    expect(input).toHaveValue('987');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
   });
 });

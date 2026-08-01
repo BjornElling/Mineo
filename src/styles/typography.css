@@ -44,14 +44,20 @@
 
     Markørlegende (ON):
       blå        section-header        rød          row--text
-      grøn       row--subheading       deeppink     MUI Typography / felttekst
-      lilla      grid-tabel-tekst      orange       placeholder
+      mørkerød   Mineo row--text       grøn         row--subheading
+      mørkegrøn  underlinet row-tekst  deeppink     MUI Typography
+      magenta    felttekst
+      lilla      grid-tabel-tekst 14 px    violet      grid-tabel-tekst 13 px
+      orange     felt-placeholder 14 px    dyborange   grid-placeholder 14 px
+      mørkorange grid-placeholder 13 px
       teal       deaktiveret felttekst brun         deaktiveret label
       goldenrod  afledt tabelværdi     cyan         sekundær tekst
   */
   --mineo-color-section-header: var(--color-text-primary);
   --mineo-color-row-text: var(--color-text-primary);
+  --mineo-color-row-text-mineo: var(--color-text-primary);
   --mineo-color-row-subheading: var(--color-text-primary);
+  --mineo-color-row-subheading-underlined: var(--color-text-primary);
 
   /* MUI Typography default (debug marker) */
   --mineo-color-mui-typography-default: var(--color-text-primary);
@@ -59,11 +65,32 @@
   /* Input text (shared marker for all field content) */
   --mineo-color-input-text: var(--mineo-color-mui-typography-default);
 
-  /* Grid table text (debug marker) */
-  --mineo-color-grid-table-text: var(--color-text-primary);
+  /*
+    Tabelsignaturer er opdelt efter den FAKTISKE skriftstørrelse. En fælles farve på tværs af
+    13/14 px ville skjule netop den typografidrift, kontrollen skal afsløre.
+  */
+  --mineo-color-grid-table-text-regular: var(--color-text-primary);
+  --mineo-color-grid-table-text-small: var(--color-text-primary);
+  --mineo-color-grid-header-regular: var(--color-text-primary);
+  --mineo-color-grid-header-small: var(--color-text-primary);
+  --mineo-color-grid-placeholder-regular: var(--color-input-placeholder);
+  --mineo-color-grid-placeholder-small: var(--color-input-placeholder);
+  --mineo-color-grid-derived-regular: var(--color-grid-derived-text);
+  --mineo-color-grid-derived-small: var(--color-grid-derived-text);
+
+  /* Aktiv tabelsignatur sættes af den fælles tabelskal; regular er fail-safe uden for en skal. */
+  --mineo-color-active-grid-text: var(--mineo-color-grid-table-text-regular);
+  --mineo-color-active-grid-header: var(--mineo-color-grid-header-regular);
+  --mineo-color-active-grid-placeholder: var(--mineo-color-grid-placeholder-regular);
+  --mineo-color-active-grid-derived: var(--mineo-color-grid-derived-regular);
 
   /* Placeholder-tekst (felter, adornments, dropdown-placeholder) */
   --mineo-color-placeholder: var(--color-input-placeholder);
+  --mineo-color-dropdown-option-placeholder: var(--color-input-placeholder);
+  --mineo-color-expression-indicator: var(--color-grid-expression-indicator);
+
+  /* Enheden er feltindhold, ikke placeholdertekst. Kun dens normale, tomme visning er dæmpet. */
+  --mineo-color-input-unit-muted: var(--color-input-placeholder);
 
   /* Deaktiveret/låst felttekst (samme markør for begge varianter) */
   --mineo-color-input-disabled: var(--color-input-disabled-text);
@@ -73,9 +100,6 @@
   --mineo-color-label-disabled: var(--color-text-disabled);
   --mineo-color-label-disabled-hover: var(--color-text-disabled-hover);
 
-  /* Afledte/nedtonede tabelværdier */
-  --mineo-color-grid-derived: var(--color-grid-derived-text);
-
   /* Sekundær brød-/hjælpetekst */
   --mineo-color-text-secondary: var(--color-text-secondary);
 }
@@ -83,16 +107,28 @@
 :root[data-mineo-font-style-colors='on'] {
   --mineo-color-section-header: blue;
   --mineo-color-row-text: red;
+  --mineo-color-row-text-mineo: #c62828;
   --mineo-color-row-subheading: green;
+  --mineo-color-row-subheading-underlined: #2e7d32;
   --mineo-color-mui-typography-default: #ff1493;
-  --mineo-color-input-text: var(--mineo-color-mui-typography-default);
-  --mineo-color-grid-table-text: #9370db; /* Medium Purple */
+  --mineo-color-input-text: #c2185b;
+  --mineo-color-grid-table-text-regular: #9370db; /* Medium Purple */
+  --mineo-color-grid-table-text-small: #7e57c2; /* Violet */
+  --mineo-color-grid-header-regular: #5e35b1; /* Mørk lilla: 14 px / 500 */
+  --mineo-color-grid-header-small: #512da8; /* Mørk violet: 13 px / 500 */
+  --mineo-color-grid-placeholder-regular: #ef6c00; /* Dyb orange */
+  --mineo-color-grid-placeholder-small: #e65100; /* Mørkorange */
+  --mineo-color-grid-derived-regular: #b8860b; /* Dark Goldenrod */
+  --mineo-color-grid-derived-small: #827717; /* Oliven */
   --mineo-color-placeholder: #ff8c00; /* Orange */
+  --mineo-color-dropdown-option-placeholder: #f57c00; /* Brændt orange: kursiv menu-placeholder */
+  --mineo-color-expression-indicator: #f9a825; /* Gul: 8 px fed fx-markør */
+  /* `currentColor` gør, at kr./% bærer præcis samme signatur som feltets øvrige indhold. */
+  --mineo-color-input-unit-muted: currentColor;
   --mineo-color-input-disabled: #00897b; /* Teal */
-  --mineo-color-input-disabled-locked: #00897b; /* Teal (samme norm) */
+  --mineo-color-input-disabled-locked: #00695c; /* Mørk teal */
   --mineo-color-label-disabled: #6d4c41; /* Brun */
-  --mineo-color-label-disabled-hover: #6d4c41; /* Brun (samme norm) */
-  --mineo-color-grid-derived: #b8860b; /* Dark Goldenrod */
+  --mineo-color-label-disabled-hover: #8d6e63; /* Lys brun */
   --mineo-color-text-secondary: #00acc1; /* Cyan */
 }
 
@@ -173,6 +209,7 @@
 /* Mineo-siden: lidt større linjeafstand for bedre læsbarhed af længere tekst */
 .mineo-page .MuiTypography-root.row--text {
   line-height: 1.6;
+  color: var(--mineo-color-row-text-mineo);
 }
 
 .MuiTypography-root.row--subheading {
@@ -186,7 +223,7 @@
 .MuiTypography-root.row--subheading-underlined {
   font-size: 15px;
   font-weight: var(--font-weight-regular);
-  color: var(--mineo-color-row-text);
+  color: var(--mineo-color-row-subheading-underlined);
   text-decoration-line: underline;
   text-underline-offset: 3px;
 }

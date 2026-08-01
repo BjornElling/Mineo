@@ -108,7 +108,7 @@ export const GridReadOnlyLockedCell = React.memo(
                 font: 'inherit',
                 fontSize: 'inherit',
                 lineHeight: 'inherit',
-                color: 'var(--mineo-color-grid-derived)',
+                color: 'var(--mineo-color-active-grid-derived)',
                 textAlign: align,
                 cursor: 'default',
                 caretColor: 'transparent',

@@ -48,6 +48,7 @@ import {
   rentekravRenterFraField,
   rentekravTillaegstidField,
   rentekravEnhedField,
+  RENTEKRAV_TILLAEGSTID_MAX_DRAFT_LENGTH,
 } from '../../inputCore/catalog/renteberegningDescriptors';
 import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
@@ -172,6 +173,7 @@ const BeregnetRenteRow = React.memo(
                   placeholder="0"
                   textAlign="center"
                   inputMode="numeric"
+                  maxDraftLength={RENTEKRAV_TILLAEGSTID_MAX_DRAFT_LENGTH}
                 />
               </Box>
             </Box>
@@ -201,18 +203,18 @@ const BeregnetRenteRow = React.memo(
         {!isMobile && (
           <TableCell align="center" sx={{ paddingTop: 0, paddingBottom: 0 }}>
             <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography className="row--text" sx={{ color: 'var(--mineo-color-grid-derived)', textAlign: 'center' }}>
+              <Box component="span" sx={{ color: 'var(--mineo-color-active-grid-derived)', textAlign: 'center' }}>
                 {actualInterestDateDanish || '-'}
-              </Typography>
+              </Box>
             </Box>
           </TableCell>
         )}
 
         <TableCell align="right" sx={{ paddingTop: 0, paddingBottom: 0, ...(isMobile && { paddingRight: '10px' }) }}>
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <Typography className="row--text" sx={{ color: 'var(--mineo-color-grid-derived)', textAlign: 'right' }}>
+            <Box component="span" sx={{ color: 'var(--mineo-color-active-grid-derived)', textAlign: 'right' }}>
               {calculatedInterest !== null ? formatKr(calculatedInterest, 2) : '-'}
-            </Typography>
+            </Box>
           </Box>
         </TableCell>
 
@@ -229,9 +231,9 @@ const BeregnetRenteRow = React.memo(
                   ariaLabel={`Download ${formatLabel}-specifikation for række ${rowIndex + 1}`}
                 />
               ) : (
-                <Typography className="row--text" sx={{ color: 'var(--mineo-color-grid-derived)' }}>
+                <Box component="span" sx={{ color: 'var(--mineo-color-active-grid-derived)' }}>
                   -
-                </Typography>
+                </Box>
               )}
             </Box>
             {renderRow.kind === 'existing' && !rowIsSemanticallyEmpty && (

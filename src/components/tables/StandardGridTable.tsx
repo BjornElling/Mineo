@@ -126,6 +126,7 @@ export const StandardGridHeaderCell = React.memo(({ children, onClick, sortRole 
         border: 'none',
         borderBottom: '1px solid var(--color-table-border)',
         fontWeight: 500,
+        color: 'var(--mineo-color-active-grid-header)',
         textAlign: 'center',
         cursor: onClick ? 'pointer' : 'default',
         whiteSpace: 'nowrap',

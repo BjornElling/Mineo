@@ -53,6 +53,18 @@ export const buildTheme = (mode: AppThemeMode): Theme =>
       },
     },
     components: {
+      MuiTooltip: {
+        styleOverrides: {
+          tooltip: {
+            width: 'max-content',
+            maxWidth: '360px',
+            textAlign: 'left',
+            whiteSpace: 'normal',
+            overflowWrap: 'normal',
+            wordBreak: 'normal',
+          },
+        },
+      },
       MuiTypography: {
         defaultProps: {
           color: 'text.primary',
