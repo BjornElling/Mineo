@@ -7,6 +7,13 @@ description: Udfør og genoptag en autonom, systematisk robustheds-audit af Mine
 
 Arbejd autonomt, reproducerbart og i små checkpointede batches. Målet er dækningsbevis for den definerede input- og interaktionsmodel, ikke en ubeviselig garanti om, at ingen fremtidig hændelse kan fejle.
 
+## Vedvarende arbejdssløjfe
+
+- Auditten er en vedvarende opgave. Fortsæt straks efter hvert checkpoint, fund, afsluttet arbejdsenhed og afsluttet auditpass.
+- Stop, pause eller aflever ikke arbejdet af eget initiativ. Det gælder også, når der ikke er kommet nye fund, eller når afslutningskriteriet nedenfor er opfyldt.
+- Når alle aktuelle rækker er dækket, begynd næste auditpass med en ny kildeafstemt scenariomatrix: prioritér resterende modelrisiko, kombinationer og gentagelser af tidligere ustabile eller højrisiko-scenarier.
+- Den eneste normale stopbetingelse er en udtrykkelig besked fra brugeren om at stoppe eller pause. Ved fortsat arbejde skal checkpointet altid skrives, før næste batch begynder.
+
 ## Ufravigelig afgrænsning
 
 - Find, isolér og registrér. Ret ikke produktionskode, tests, kontrakter, data eller konfiguration.
@@ -79,8 +86,10 @@ Opdatér dokumenterne umiddelbart efter hvert fund og efter hver lille matrixbat
 - nye/opdaterede fund-id'er;
 - sessionens commit, dirty-state, browser og tidspunkt.
 
-Før enhver pause eller handoff: stop ad hoc-server/browserprocesser, skriv checkpointet først, og rapportér kun antal nye crashfund, observationsfund, afsluttet arbejdsenhed og næste arbejdsenhed. Kør ingen kodekvalitetsgate, fordi skillen ikke ændrer kode.
+Hvis brugeren udtrykkeligt beder om pause eller stop: stop ad hoc-server/browserprocesser, skriv checkpointet først, og rapportér kun antal nye crashfund, observationsfund, afsluttet arbejdsenhed og næste arbejdsenhed. Kør ingen kodekvalitetsgate, fordi skillen ikke ændrer kode. Uden en sådan besked fortsættes arbejdet straks med næste batch.
 
 ## Afslutningskriterium
 
 Markér først auditten afsluttet, når inventaret er afstemt mod både UI og kildekode, ingen række er `Ikke startet`, `I gang` eller `Blokeret`, alle identificerede branches/skæringer og afhængighedskanter har evidens, alle fejl er reproduceret eller markeret ærligt som ustabile, og den afsluttende fulde navigation-/stateful smoke er kørt uden nye systemfejl. Beskriv resterende testmodelrisiko; skriv aldrig, at fravær af observerede fejl beviser fravær af fejl.
+
+At dette kriterium er opfyldt afslutter kun den aktuelle auditpass, ikke arbejdet. Skriv status og fortsæt med næste auditpass efter reglerne for vedvarende arbejdssløjfe, indtil brugeren specifikt stopper eller pauser.
