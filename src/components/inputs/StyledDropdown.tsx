@@ -109,6 +109,7 @@ export type StyledDropdownProps<TValue extends StyledDropdownValue> = StyledDrop
 
 type DropdownOptionChild<TValue extends StyledDropdownValue> = React.ReactElement<{
   value: TValue;
+  disabled?: boolean;
   children?: React.ReactNode;
 }>;
 
@@ -126,7 +127,7 @@ const isDividerNode = (child: React.ReactElement): boolean => {
 type DropdownVisualOption<TValue extends StyledDropdownValue> =
   | { kind: 'empty' }
   | { kind: 'divider'; key: React.Key }
-  | { kind: 'value'; value: TValue; key: React.Key; children: React.ReactNode };
+  | { kind: 'value'; value: TValue; key: React.Key; children: React.ReactNode; disabled: boolean };
 
 type CloseReason = 'select' | 'escapeKeyDown' | 'backdropClick' | 'tab' | 'blur';
 
@@ -165,6 +166,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const anchorRef = React.useRef<HTMLDivElement | null>(null);
   const inputElementRef = React.useRef<HTMLInputElement | null>(null);
   const listboxRef = React.useRef<HTMLDivElement | null>(null);
+  const closedTypeaheadRef = React.useRef<Readonly<{ key: string; visualIndex: number }> | null>(null);
 
   const autoId = React.useId();
   const resolvedId = id ?? autoId;
@@ -257,6 +259,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         value: optionChild.props.value,
         key: optionChild.key ?? index,
         children: optionChild.props.children,
+        disabled: optionChild.props.disabled === true,
       });
     });
 
@@ -267,7 +270,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     (index: number) => {
       const opt = visualOptions[index];
       if (!opt) return false;
-      return opt.kind !== 'divider';
+      return opt.kind === 'empty' || (opt.kind === 'value' && !opt.disabled);
     },
     [visualOptions]
   );
@@ -300,6 +303,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     return visualOptions.map((opt) => {
       if (opt.kind === 'empty') return '';
       if (opt.kind === 'divider') return '';
+      if (opt.disabled) return '';
       if (getOptionLabel) return getOptionLabel(opt.value);
       const label = opt.children;
       if (typeof label === 'string' || typeof label === 'number') return String(label);
@@ -319,7 +323,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     // Runtime-fallback (PROD): hvis allowEmpty=false og en værdi mangler blandt options,
     // hold keyboard-/navigation deterministisk ved at highlighte den første option.
     if (hasEmptyOption) return 0;
-    return visualOptions.findIndex((opt) => opt.kind === 'value');
+    return visualOptions.findIndex((opt) => opt.kind === 'value' && !opt.disabled);
   }, [hasEmptyOption, resolvedValue, visualOptions]);
 
   const selectedVisualOption = React.useMemo(() => {
@@ -346,6 +350,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
   const handleOpen = React.useCallback(() => {
     if (disabled || hasConfigError) return;
+    closedTypeaheadRef.current = null;
     // Sørg for at combobox-inputtet beholder fokus ved åbning; keyboard-navigation håndteres på inputtet.
     inputElementRef.current?.focus();
     setAnchorEl(anchorRef.current);
@@ -356,6 +361,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
   const handleClose = React.useCallback(
     (reason: CloseReason) => {
+      closedTypeaheadRef.current = null;
       if (!open) return;
       setOpen(false);
       setAnchorEl(null);
@@ -416,7 +422,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         const optionLabel = visualOptionLabels[index] ?? '';
         if (optionLabel !== label) continue;
         if (opt?.kind === 'empty') return undefined;
-        if (opt?.kind === 'value') return opt.value;
+        if (opt?.kind === 'value' && !opt.disabled) return opt.value;
       }
       return null;
     },
@@ -425,6 +431,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
   const handleInputBlur = React.useCallback(
     (e: React.FocusEvent<HTMLElement>) => {
+      closedTypeaheadRef.current = null;
       onBlur?.(e);
       if (!open) return;
 
@@ -448,9 +455,20 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       if (!isTypeaheadCharKey(event)) return false;
 
       const trimmedKey = event.key.trim();
-      const currentIndex = open ? (highlightedIndex >= 0 ? highlightedIndex : selectedIndex) : selectedIndex;
+      const normalizedKey = trimmedKey.toLocaleLowerCase('da-DK');
+      const closedTypeahead = closedTypeaheadRef.current;
+      // Første tast i en lukket sekvens starter altid fra menuens begyndelse. Kun en fortsat sekvens
+      // med samme bogstav tager udgangspunkt i det seneste typeahead-match — aldrig i feltets oprindelige valg.
+      const currentIndex = open
+        ? (highlightedIndex >= 0 ? highlightedIndex : selectedIndex)
+        : closedTypeahead?.key === normalizedKey
+          ? closedTypeahead.visualIndex
+          : -1;
       const nextIndex = findNextMatchIndex(trimmedKey, currentIndex);
-      if (nextIndex < 0) return false;
+      if (nextIndex < 0) {
+        if (!open) closedTypeaheadRef.current = null;
+        return false;
+      }
 
       event.preventDefault();
       event.stopPropagation();
@@ -470,6 +488,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
       const nextValue = getValueAtVisualIndex(nextIndex);
       handleSelect(nextValue);
+      closedTypeaheadRef.current = { key: normalizedKey, visualIndex: nextIndex };
       return true;
     },
     [
@@ -762,6 +781,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                 }}
                 onClick={() => handleSelect(v)}
                 selected={isSelected}
+                disabled={opt.kind === 'value' && opt.disabled}
                 sx={optionSxMerged}
                 onMouseEnter={() => setHighlightedIndex(index)}
               >

@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-01
 
 ---
 
@@ -88,6 +88,16 @@ editorens cancel håndteres før popupen eventuelt lukkes; én Escape-handling m
 Når et almindeligt formularfelt eller en tabelcelle har fokus, men editoren er lukket, rydder Delete/Backspace feltet
 og committer straks uden at åbne editoren. Når editoren er åben, redigerer tasterne kun den åbne draft og committer
 først ved den normale settle-grænse.
+
+### Dropdown-typeahead
+
+Når en lukket dropdown har fokus, vælger et enkelt skrivbart tegn straks den **første valgbare option**, hvis viste
+tekst begynder med tegnet. Første match afgøres udelukkende af optionernes synlige menurækkefølge — aldrig af
+alfabetisk sortering eller af dropdownens aktuelle valg. Gentagne tastetryk med samme bogstav cirkulerer videre
+mellem matchene i menurækkefølgen og wrapper til det første. Et andet tegn, blur eller åbning af menuen starter en ny
+sekvens. Dividers og deaktiverede options springes over.
+
+I en åben dropdown må gentagne matchende tegn fortsat cirkulere mellem match i den samme menurækkefølge.
 
 ---
 

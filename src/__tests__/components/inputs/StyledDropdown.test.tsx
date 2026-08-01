@@ -34,7 +34,7 @@ const ControlledDropdown = ({
   );
 };
 
-const MenuOption = <T extends string | number>({ children }: { value: T; children: React.ReactNode }) => <>{children}</>;
+const MenuOption = <T extends string | number>({ children }: { value: T; disabled?: boolean; children: React.ReactNode }) => <>{children}</>;
 
 describe('StyledDropdown', () => {
   it('lukker ikke på blur til element inde i listbox', async () => {
@@ -172,6 +172,59 @@ describe('StyledDropdown', () => {
 
     await user.keyboard('{Enter}');
     expect((input as HTMLInputElement).value).toBe('Beta');
+  });
+
+  it('lukket typeahead starter med første match og cirkulerer ved gentagelse', async () => {
+    const user = userEvent.setup();
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<'fleks' | 'ferie'>('ferie');
+      return (
+        <StyledDropdown value={value} allowEmpty={false} onChange={(event) => setValue(event.target.value)}>
+          <MenuOption value="fleks">Flekstilskud</MenuOption>
+          <MenuOption value="ferie">Feriepenge</MenuOption>
+        </StyledDropdown>
+      );
+    };
+    render(<Wrapper />);
+
+    const input = screen.getByRole('combobox');
+    input.focus();
+
+    await user.keyboard('f');
+    expect(input).toHaveValue('Flekstilskud');
+
+    await user.keyboard('f');
+    expect(input).toHaveValue('Feriepenge');
+
+    await user.keyboard('f');
+    expect(input).toHaveValue('Flekstilskud');
+
+    input.blur();
+    input.focus();
+    await user.keyboard('f');
+    expect(input).toHaveValue('Flekstilskud');
+
+    await user.keyboard('x');
+    await user.keyboard('f');
+    expect(input).toHaveValue('Flekstilskud');
+  });
+
+  it('fører disabled-optioner igennem til menuen og springer dem over ved typeahead', async () => {
+    const user = userEvent.setup();
+    render(
+      <StyledDropdown value="aktiv" allowEmpty={false}>
+        <MenuOption value="aktiv">Aktiv</MenuOption>
+        <MenuOption value="blokeret" disabled>Blokeret</MenuOption>
+      </StyledDropdown>
+    );
+
+    const input = screen.getByRole('combobox');
+    input.focus();
+    await user.keyboard('b');
+    expect(input).toHaveValue('Aktiv');
+
+    await user.click(input);
+    expect(screen.getByRole('option', { name: 'Blokeret' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('kaster i DEV når allowEmpty=false og value=undefined', () => {

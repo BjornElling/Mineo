@@ -5,7 +5,7 @@ import StyledDropdown, { type StyledDropdownChangeEvent, type StyledDropdownValu
 import { useGridCoreApi } from '../../../components/tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 import { gridCellKey } from '../../../components/tables/gridCore/gridCoreUtils';
-import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './gridCellStyles';
+import { getTableInputBorderAppearance, TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './gridCellStyles';
 import { useCellEditor, type CellSpec } from '../useCellEditor';
 import type { FieldIssue } from '../../inputIssue';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
@@ -17,7 +17,8 @@ import { resolveFieldIssueText } from '../fieldIssueText';
 // grid-core-navigationens `commitCurrent` er altid en no-op-success. Den viste værdi + røde issue læses fra den
 // afsluttede revision gennem controlleren; der er ingen konkurrerende celle-værdikopi (§3.8).
 //
-// Visuelt bruger den `StyledDropdown` i de MUI-baserede løse tabellers outlined stil.
+// Visuelt følger den samme kantregel som de øvrige grid-celler: almindelige grids har ingen særskilt
+// feltkontur, mens løse tabeller beholder formularens afrundede outlined stil.
 //
 // Tastaturkontrakten er IKKE en egenskab ved denne komponent: både Container og grid-navigationen
 // klassificerer den som popup-kontrol ud fra `StyledDropdown`s ARIA-semantik gennem
@@ -117,14 +118,23 @@ const GridChoiceCellInner = <
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorHandle, gridApi, resolvedGridCellKey]);
 
-  const looseDropdownSx: SxProps<Theme> = mergeSx({
+  const { isLooseTable, borderRadius, borderColor } = getTableInputBorderAppearance(gridApi.tableKind);
+  const gridDropdownSx: SxProps<Theme> = mergeSx({
     width: '100%',
     height: TABLE_INPUT_HEIGHT,
     boxSizing: 'border-box',
+    borderRadius,
+    backgroundColor: isLooseTable ? 'var(--color-input-bg)' : 'transparent',
     fontSize: 'inherit',
     fontFamily: 'inherit',
     color: 'inherit',
     fontFeatureSettings: '"tnum"',
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor,
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: isLooseTable ? 'var(--color-input-border-hover)' : borderColor,
+    },
     '& .MuiInputBase-input': {
       font: 'inherit',
       fontSize: 'inherit',
@@ -160,7 +170,7 @@ const GridChoiceCellInner = <
         error={hasError}
         helperText={errorMessage}
         {...tooltipProp}
-        sx={looseDropdownSx}
+        sx={gridDropdownSx}
       >
         {children}
       </StyledDropdown>
@@ -181,7 +191,7 @@ const GridChoiceCellInner = <
       error={hasError}
       helperText={errorMessage}
       {...tooltipProp}
-      sx={looseDropdownSx}
+      sx={gridDropdownSx}
     >
       {children}
     </StyledDropdown>

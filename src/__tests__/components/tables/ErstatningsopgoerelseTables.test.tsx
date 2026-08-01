@@ -111,6 +111,39 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     expect(within(dataRows()[0]!).getByText('31')).toBeInTheDocument();
   });
 
+  it('grupperer Feriepenge, Midlertidigt EET og Andet efter en divider i ydelsestype-menuen', () => {
+    const rows = [{
+      id: 'ydelse-1',
+      fraDato: undefined,
+      tilDato: undefined,
+      ydelse: undefined,
+      tillaeg: undefined,
+      ydelsestype: 'dagpenge',
+    }];
+    hydrate({ ...createErstatningsopgoerelseInitialValues(), offentligeYdelserRows: rows });
+
+    renderInRuntime(
+      <OffentligeYdelserTable
+        committedRows={rows}
+        derivedByRowId={new Map()}
+        disableMidlertidigtEetOption
+      />
+    );
+
+    fireEvent.click(within(dataRows()[0]!).getByRole('combobox'));
+    const listbox = screen.getByRole('listbox');
+    const divider = listbox.querySelector<HTMLElement>('[role="presentation"]');
+    expect(divider).not.toBeNull();
+    expect(divider?.previousElementSibling).toHaveTextContent('Uddannelseshjælp');
+    expect(divider?.nextElementSibling).toHaveTextContent('Feriepenge');
+
+    const labelsAfterDivider = Array.from(divider?.parentElement?.children ?? [])
+      .slice(Array.from(divider?.parentElement?.children ?? []).indexOf(divider!) + 1)
+      .map((option) => option.textContent);
+    expect(labelsAfterDivider).toEqual(['Feriepenge', 'Midlertidigt EET', 'Andet']);
+    expect(screen.getByRole('option', { name: 'Midlertidigt EET' })).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('blokkerer en tredje decimal i offentlige ydelsers beløbscelle', () => {
     const rows = [{
       id: 'ydelse-1',
