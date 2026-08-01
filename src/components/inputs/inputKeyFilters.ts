@@ -135,12 +135,13 @@ export const filterFractionKeyDown = (
  */
 export const filterAmountExpressionKeyDown = (
   e: KeyDownEvent,
-  options?: { allowNegative?: boolean; allowDecimals?: boolean }
+  options?: { allowNegative?: boolean; allowDecimals?: boolean; maxDecimalDigits?: number }
 ): void => {
   if (!shouldValidateCharInsertion(e)) return;
   const next = getNextValueFromInsertion(e.currentTarget, e.key);
   const allowNegative = options?.allowNegative === true;
   const allowDecimals = options?.allowDecimals !== false;
+  const maxDecimalDigits = options?.maxDecimalDigits;
   if (!allowNegative && containsUnaryMinusToken(next)) {
     block(e);
     return;
@@ -150,6 +151,18 @@ export const filterAmountExpressionKeyDown = (
     return;
   }
   if (e.key === ',' && wouldInsertAdjacentComma(e.currentTarget)) {
+    block(e);
+    return;
+  }
+  if (
+    allowDecimals
+    && typeof maxDecimalDigits === 'number'
+    && Number.isInteger(maxDecimalDigits)
+    && maxDecimalDigits >= 0
+    && new RegExp(`,\\d{${maxDecimalDigits + 1}}`).test(next)
+  ) {
+    // Beløbsudtryk kan have flere talled. Værnet kontrollerer derfor hvert decimalkomma i hele den
+    // kommende draft i stedet for kun tegnene omkring cursoren.
     block(e);
     return;
   }

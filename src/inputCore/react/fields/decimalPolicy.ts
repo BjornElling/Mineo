@@ -1,7 +1,7 @@
 import type { FieldCodec, FieldDecimalPolicy } from '../../fieldCodec';
 import type { FieldRef } from '../../fieldDescriptor';
 
-/** Procentfeltets decimalregel læses fra codecets construction-time-konfiguration på alle UI-flader. */
+/** Beløbs- og procentfeltets decimalregel læses fra codecets construction-time-konfiguration på alle UI-flader. */
 export const codecAllowsDecimals = <T>(codec: FieldCodec<T>): boolean =>
   codec.decimalPolicy === 'decimal';
 

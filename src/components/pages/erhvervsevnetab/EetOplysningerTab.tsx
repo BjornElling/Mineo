@@ -117,7 +117,6 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               field={aslAarsloenRef}
               location={LOCATIONS.aslAarsloen}
               name="aslAarsloen"
-              allowDecimals={false}
               width={MILLION_AMOUNT_FIELD_WIDTH}
             />
           </Box>
@@ -140,7 +139,6 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               field={ealAarsloenRef}
               location={LOCATIONS.ealAarsloen}
               name="ealAarsloen"
-              allowDecimals={false}
               width={MILLION_AMOUNT_FIELD_WIDTH}
             />
           </Box>

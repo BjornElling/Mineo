@@ -103,7 +103,6 @@ const ForsoergertabOplysningerSection = React.memo(() => {
             field={fields.aslAarsloen}
             location={locations.aslAarsloen}
             name="aslAarsloen"
-            allowDecimals={false}
             width={MILLION_AMOUNT_FIELD_WIDTH}
           />
         </Box>
@@ -149,7 +148,6 @@ const ForsoergertabOplysningerSection = React.memo(() => {
             field={fields.ealAarsloen}
             location={locations.ealAarsloen}
             name="ealAarsloen"
-            allowDecimals={false}
             width={MILLION_AMOUNT_FIELD_WIDTH}
             warning={vm.ealAarsloenNotice === undefined ? undefined : createFieldWarning(vm.ealAarsloenNotice)}
           />

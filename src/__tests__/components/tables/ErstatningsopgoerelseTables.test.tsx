@@ -111,6 +111,42 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     expect(within(dataRows()[0]!).getByText('31')).toBeInTheDocument();
   });
 
+  it('blokkerer en tredje decimal i offentlige ydelsers beløbscelle', () => {
+    const rows = [{
+      id: 'ydelse-1',
+      fraDato: toISODateString('2024-03-01'),
+      tilDato: toISODateString('2024-03-31'),
+      ydelse: undefined,
+      tillaeg: undefined,
+      ydelsestype: 'dagpenge',
+    }];
+    hydrate({ ...createErstatningsopgoerelseInitialValues(), offentligeYdelserRows: rows });
+
+    renderInRuntime(
+      <OffentligeYdelserTable
+        committedRows={rows}
+        derivedByRowId={new Map()}
+        disableMidlertidigtEetOption={false}
+      />
+    );
+
+    const amountInput = within(dataRows()[0]!).getAllByRole('textbox')[2] as HTMLInputElement;
+    fireEvent.keyDown(amountInput, { key: '1' });
+    fireEvent.change(amountInput, { target: { value: '1' } });
+    amountInput.setSelectionRange(1, 1);
+    fireEvent.keyDown(amountInput, { key: ',' });
+    fireEvent.change(amountInput, { target: { value: '1,' } });
+    amountInput.setSelectionRange(2, 2);
+    fireEvent.keyDown(amountInput, { key: '2' });
+    fireEvent.change(amountInput, { target: { value: '1,2' } });
+    amountInput.setSelectionRange(3, 3);
+    fireEvent.keyDown(amountInput, { key: '3' });
+    fireEvent.change(amountInput, { target: { value: '1,23' } });
+    amountInput.setSelectionRange(4, 4);
+
+    expect(fireEvent.keyDown(amountInput, { key: '4' }), 'tredje decimal skal blokeres').toBe(false);
+  });
+
   it.each([
     ['Manuelt angivet', 'loenudviklingManuelTableData'],
     ['Manuel procentsats', 'loenudviklingManuelProcentsatsTableData'],

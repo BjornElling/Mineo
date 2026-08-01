@@ -10,6 +10,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 import { fieldAllowsNegative } from './signPolicy';
 import type { FieldWarning } from '../../fieldWarning';
+import { fieldAllowsDecimals } from './decimalPolicy';
 
 // Beløbs-felt (§2.4/§3.5, samlet input-enhed): familie-skal over `NumericTextField` med
 // beløbsudtryks-tegnfilteret, den delte "kr."-enheds-adornment (muted når tom) og et `fx`-udtryksmærke, når den
@@ -41,8 +42,6 @@ export type AmountFieldProps = Readonly<{
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
-  /** Tillad decimaler under indtastning (default sandt). */
-  allowDecimals?: boolean;
   singleStageClick?: boolean;
   warning?: FieldWarning;
   inputRef?: React.Ref<HTMLInputElement>;
@@ -76,7 +75,6 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
       width = 120,
       placeholder,
       disabled,
-      allowDecimals = true,
       singleStageClick = false,
       warning,
       inputRef,
@@ -88,6 +86,7 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
     // minus (`containsUnaryMinusToken`), så subtraktion i et udtryk — "5000-200" — forbliver lovlig også i et
     // ikke-negativt felt.
     const allowNegative = fieldAllowsNegative(field);
+    const allowDecimals = fieldAllowsDecimals(field);
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, { allowNegative, allowDecimals }),
       [allowNegative, allowDecimals]

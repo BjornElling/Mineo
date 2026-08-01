@@ -286,15 +286,20 @@ beløbsfelt tillader tegnet og blokerer kun det **unære** minus.
 
 ### 8.3 Decimalpolitikken ejes af feltets codec
 
-Om et procentfelt accepterer dansk decimalkomma, erklæres på codecet som `FieldCodec.decimalPolicy`, afledt af
-`allowDecimals`. Formularfelt og grid-celle læser begge politikken gennem `fieldAllowsDecimals(field)`; de må
+Om et beløbs- eller procentfelt accepterer dansk decimalkomma, erklæres på codecet som
+`FieldCodec.decimalPolicy`, afledt af `allowDecimals`. Formularfelt og grid-celle læser begge politikken gennem `fieldAllowsDecimals(field)`; de må
 ikke have egne defaults eller callsite-flags. Et decimalfelt skal tillade en åben draft som `12,` og først
-afgøre den afsluttede værdi ved blur/Enter gennem det fælles procentcodec.
+afgøre den afsluttede værdi ved blur/Enter gennem det fælles feltcodec.
 
 Grid-procentfelternes universelle hovedregel er to decimaler: placeholderen er `0,00`, højst to decimaler kan
 tastes, og afsluttede værdier vises med to decimaler. EET-sidens procentfelter er den eneste aktuelle undtagelse:
 de erklærer `integerOnly` i deres codecs, viser placeholderen `0` og blokerer decimalkomma. Undtagelsen skyldes
 EET-felternes særskilte heltals-/5 %-regel og må ikke implementeres som et lokalt komponentflag.
+
+Grid-beløbsfelternes universelle hovedregel er ligeledes to decimaler: placeholderen er `0,00`, højst to
+decimaler kan tastes i hvert talled i et beløbsudtryk, og afsluttede værdier vises med to decimaler. Der er ingen
+aktuelle heltalsundtagelser blandt grid-beløbsfelterne. En eventuel undtagelse skal erklære `integerOnly` i sit
+beløbscodec; grid-cellen må ikke have et lokalt precision-flag.
 
 ## 9. Dynamiske tabeller
 

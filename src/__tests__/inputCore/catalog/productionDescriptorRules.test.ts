@@ -20,15 +20,20 @@ import {
   aarsloenTableCol0UgeField,
   aarsloenTableCol1DagField,
   aarsloenTableCol1UgeField,
+  aarsloenTableCol2Field,
 } from '../../../inputCore/catalog/aarsloenDescriptors';
 import {
   renteberegningBeregningsdatoField,
+  rentekravBelobField,
   rentekravRenterFraField,
   rentekravRowsCollectionRef,
   rentekravTillaegstidField,
 } from '../../../inputCore/catalog/renteberegningDescriptors';
 import {
   eoForligDatoField,
+  eoOffentligeYdelserTillaegField,
+  eoOffentligeYdelserYdelseField,
+  eoOevrigeKravBeloebField,
   eoOevrigeKravDatoField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import {
@@ -49,7 +54,10 @@ import { createEmptyRentekravCommittedRow } from '../../../domain/renteberegning
 import { createCollectionRef } from '../../../inputCore/fieldAddress';
 import { toISODateString } from '../../../types/branded';
 import { varigeMenBeregningsdatoField } from '../../../inputCore/catalog/varigeMenDescriptors';
-import { eoEmploymentManual } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import {
+  eoEmploymentManual,
+  eoStandardRowFields,
+} from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 
 const catalog = getProductionInputCatalog();
 const token = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
@@ -172,6 +180,21 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
     expect(eoEmploymentManual.manualPercentFields.procent.codec.decimalPolicy).toBe('decimal');
     expect(aslAfgoerelseEetPctField.codec.decimalPolicy).toBe('integerOnly');
     expect(erhvervsevnetabEalEetPctField.codec.decimalPolicy).toBe('integerOnly');
+  });
+
+  it('erklærer to decimaler for alle aktuelle grid-beløbskategorier', () => {
+    const gridAmountDescriptors = [
+      aarsloenTableCol2Field,
+      eoStandardRowFields.col2,
+      eoEmploymentManual.manualFields.grundloen,
+      rentekravBelobField,
+      eoOevrigeKravBeloebField,
+      eoOffentligeYdelserYdelseField,
+      eoOffentligeYdelserTillaegField,
+    ];
+
+    expect(gridAmountDescriptors.map((descriptor) => descriptor.codec.decimalPolicy))
+      .toEqual(gridAmountDescriptors.map(() => 'decimal'));
   });
 });
 

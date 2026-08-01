@@ -112,6 +112,8 @@ describe('fieldCodecs', () => {
     expect(withDecimals.acceptsInitialKey(',')).toBe(true);
     // Cifre åbner stadig editoren i begge — reglen rammer kommaet, ikke al indtastning.
     expect(integerOnly.acceptsInitialKey('5')).toBe(true);
+    expect(integerOnly.decimalPolicy).toBe('integerOnly');
+    expect(withDecimals.decimalPolicy).toBe('decimal');
   });
 
   it('bærer procentfeltets decimalpolitik fra codec-konfigurationen', () => {

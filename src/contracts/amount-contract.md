@@ -40,9 +40,13 @@ Regler:
 
 ## 3. Precision
 
-`AmountValue` er absolut bundet til 2 decimaler.
+`AmountValue` er absolut bundet til en canonical maksimumprecision på 2 decimaler.
 
-Felter med anden precision må ikke bruge `AmountValue`. De kræver:
+Et felt må erklære den snævrere edit-policy `integerOnly`, når domænet kun tillader heltal. Det er fortsat et
+`AmountValue` med 2-decimal canonical sikkerhedsgrænse, men UI, settle og visning accepterer kun heltals-subsettet.
+Det indfører hverken en anden afrundingsstrategi eller en ny canonical beløbstype.
+
+Felter med en anden positiv precision end 2 må ikke bruge `AmountValue`. De kræver:
 
 1. ny særskilt type eller schema-adapter,
 2. eksplicit kontraktændring,

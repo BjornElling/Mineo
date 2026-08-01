@@ -11,7 +11,11 @@ import {
 } from '../../../components/inputs/inputKeyFilters';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import InputUnitAdornment from '../../../components/inputs/InputUnitAdornment';
-import { DEFAULT_AMOUNT_PLACEHOLDER } from '../../../utils/amountInputUtils';
+import {
+  DEFAULT_AMOUNT_PLACEHOLDER,
+  DEFAULT_AMOUNT_PRECISION,
+  INTEGER_AMOUNT_PLACEHOLDER,
+} from '../../../utils/amountInputUtils';
 import {
   DEFAULT_PERCENT_PLACEHOLDER,
   TWO_DECIMAL_PERCENT_PLACEHOLDER,
@@ -59,23 +63,30 @@ const ExpressionIndicator = (): React.ReactElement => (
 
 /** Beløbscelle (col2–col5, fpFvShSoBeloeb, pensionBeloeb): "kr."-adornment + `fx`-udtryksmærke. */
 export const GridAmountCell = (
-  { gridCell, cell, placeholder = DEFAULT_AMOUNT_PLACEHOLDER, inputRef }: BaseCellProps<AmountValue | undefined>
+  { gridCell, cell, placeholder, inputRef }: BaseCellProps<AmountValue | undefined>
 ): React.ReactElement => {
   // Fortegns-politikken kommer fra cellens egen descriptor, ikke fra et hardkodet flag: løntabellens
   // beløbskolonner ER fortegnede, mens fx et 0-og-op-beløb i en anden tabel ikke er — og cellen deler kode.
   const allowNegative = fieldAllowsNegative(cell.field);
+  const allowDecimals = fieldAllowsDecimals(cell.field);
+  const resolvedPlaceholder = placeholder
+    ?? (allowDecimals ? DEFAULT_AMOUNT_PLACEHOLDER : INTEGER_AMOUNT_PLACEHOLDER);
   const keyFilter = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, { allowNegative, allowDecimals: true }),
-    [allowNegative]
+    (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, {
+      allowNegative,
+      allowDecimals,
+      maxDecimalDigits: allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0,
+    }),
+    [allowDecimals, allowNegative]
   );
   return (
     <GridTextCell<AmountValue | undefined>
       gridCell={gridCell}
       cell={cell}
       keyFilter={keyFilter}
-      placeholder={placeholder}
+      placeholder={resolvedPlaceholder}
       textAlign="right"
-      inputMode="decimal"
+      inputMode={allowDecimals ? 'decimal' : 'numeric'}
       endAdornment={({ isDraftEmpty }) => (
         <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.currency} muted={isDraftEmpty} />
       )}

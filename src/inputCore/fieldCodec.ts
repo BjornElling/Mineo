@@ -92,7 +92,7 @@ export type FieldCodec<T> = Readonly<{
    * Se {@link FieldSignPolicy} for hvorfor den ligger her og ikke i komponenten.
    */
   signPolicy?: FieldSignPolicy;
-  /** Om et numerisk felt accepterer decimaladskiller under redigering. Procentflader skal læse denne politik. */
+  /** Om et numerisk felt accepterer decimaladskiller under redigering. Beløbs- og procentflader læser denne politik. */
   decimalPolicy?: FieldDecimalPolicy;
   /** Parser rå editortekst ved settle. Semantisk tom tekst skal resolve `valid` til feltets tomværdi. */
   parseForSettle: (raw: string) => FieldResolution<T>;

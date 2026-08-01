@@ -256,6 +256,7 @@ export const createAmountFieldCodec = (options: Readonly<{
     family: 'amount',
     // Se `FieldSignPolicy`: den erklærede fortegnsregel er data, så tegnfilteret ikke gætter.
     signPolicy: options.allowNegative ? 'signed' : 'nonNegative',
+    decimalPolicy: options.allowDecimals ? 'decimal' : 'integerOnly',
     parseForSettle: (raw): FieldResolution<AmountValue | undefined> => {
       const parsed = parseAmountInput(raw, {
         precision: displayPrecision,
