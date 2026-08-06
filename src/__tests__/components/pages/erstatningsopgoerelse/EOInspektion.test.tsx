@@ -134,60 +134,70 @@ describe('EOInspektion', () => {
         ['loenindkomst', [
           {
             id: 'loenindkomst.af1.arbejdsstedNavn',
+            employmentId: 'af1',
             label: 'Navn på arbejdssted',
             displayValue: 'Tandlægerne Toft og Vedsted',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.loenoplysninger',
+            employmentId: 'af1',
             label: 'Alle lønoplysninger indtastet korrekt',
             displayValue: 'Ja',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.regulering.valgt',
+            employmentId: 'af1',
             label: 'Valgt regulering',
             displayValue: 'Ja',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.regulering.navn',
+            employmentId: 'af1',
             label: 'Navn på reguleringsform',
             displayValue: 'overenskomst Tandlægeforening/HK',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.regulering.alleVaerdier',
+            employmentId: 'af1',
             label: 'Alle reguleringsværdier udfyldt',
             displayValue: 'Ja',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.regulering.taf.reguleringsdato',
+            employmentId: 'af1',
             label: 'Reguleringsværdi på beregningsperiodens udløb (24-05-2023) for TAF',
             displayValue: 'Ja',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.regulering.taf.start',
+            employmentId: 'af1',
             label: 'Reguleringsværdi på start-dato for TAF',
             displayValue: 'Ja',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.regulering.taf.slut',
+            employmentId: 'af1',
             label: 'Reguleringsværdi på slut-dato for TAF',
             displayValue: 'Ja',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af2.arbejdsstedNavn',
+            employmentId: 'af2',
             label: 'Navn på arbejdssted',
             displayValue: 'Hennings Autoophug',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af2.regulering.navn',
+            employmentId: 'af2',
             label: 'Navn på reguleringsform',
             displayValue: 'ASL-årslønsmaksimum',
             status: 'ok',
@@ -290,12 +300,14 @@ describe('EOInspektion', () => {
         ['loenindkomst', [
           {
             id: 'loenindkomst.af1.arbejdsstedNavn',
+            employmentId: 'af1',
             label: 'Navn på arbejdssted',
             displayValue: '-',
             status: 'warning',
           },
           {
             id: 'loenindkomst.af1.regulering.navn',
+            employmentId: 'af1',
             label: 'Navn på reguleringsform',
             displayValue: 'ASL-årslønsmaksimum',
             status: 'ok',
@@ -365,12 +377,14 @@ describe('EOInspektion', () => {
         ['loenindkomst', [
           {
             id: 'loenindkomst.af1.arbejdsstedNavn',
+            employmentId: 'af1',
             label: 'Navn på arbejdssted',
             displayValue: '-',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.loenoplysninger',
+            employmentId: 'af1',
             label: 'Alle lønoplysninger indtastet korrekt',
             displayValue: 'Ja',
             status: 'ok',
@@ -812,12 +826,14 @@ describe('EOInspektion', () => {
         ['loenindkomst', [
           {
             id: 'loenindkomst.af1.arbejdsstedNavn',
+            employmentId: 'af1',
             label: 'Navn på arbejdssted',
             displayValue: 'Tandlægerne Toft og Vedsted',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.regulering.navn',
+            employmentId: 'af1',
             label: 'Navn på reguleringsform',
             displayValue: 'overenskomst Tandlægeforening/HK',
             status: 'ok',
@@ -910,12 +926,14 @@ describe('EOInspektion', () => {
         ['loenindkomst', [
           {
             id: 'loenindkomst.af1.regulering.navn',
+            employmentId: 'af1',
             label: 'Navn på reguleringsform',
             displayValue: 'KL-overenskomsten (Forhandlingsfællesskabet / KL)',
             status: 'ok',
           },
           {
             id: 'loenindkomst.af1.regulering.valgt',
+            employmentId: 'af1',
             label: 'Valgt regulering',
             displayValue: 'Ja',
             status: 'ok',
@@ -962,6 +980,7 @@ describe('EOInspektion', () => {
         ['loenindkomst', [
           {
             id: 'loenindkomst.af1.loenoplysninger',
+            employmentId: 'af1',
             label: 'Alle lønoplysninger indtastet korrekt',
             displayValue: 'Ja',
             status: 'ok',
@@ -970,13 +989,23 @@ describe('EOInspektion', () => {
         ['sygeferiegodtgoerelse', [
           {
             id: 'sfgg.beregningskilde.af1',
+            employmentId: 'af1',
             label: 'Sygeferiegodtgørelse beregnes ud fra',
             displayValue: 'Ferieloven',
             status: 'ok',
           },
           {
             id: 'sfgg.tabel.af1',
+            employmentId: 'af1',
             label: 'SFGG-beregning',
+            // Strukturen er kilden; `displayValue` er dens serialisering (jf. serializeEoRowTable).
+            table: {
+              columns: ['Fra-dato', 'Til-dato', 'Sats', 'Antal arbejdsdage', 'Samlet'],
+              rows: [
+                { cells: ['01-01-2024', '31-01-2024', '100,00', '22', '2.200,00'] },
+                { isTotal: true, cells: ['I alt', '', '', '', '2.200,00'] },
+              ],
+            },
             displayValue: [
               'Fra-dato | Til-dato | Sats | Antal arbejdsdage | Samlet',
               '01-01-2024 | 31-01-2024 | 100,00 | 22 | 2.200,00',
@@ -986,24 +1015,28 @@ describe('EOInspektion', () => {
           },
           {
             id: 'sfgg.eftertabel.feriepengeHvisIkkeSkade.af1',
+            employmentId: 'af1',
             label: 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)',
             displayValue: '4.576,50',
             status: 'ok',
           },
           {
             id: 'sfgg.eftertabel.feriepengeModtaget.af1',
+            employmentId: 'af1',
             label: 'Feriepenge modtaget i perioden (+ AG-pension) =',
             displayValue: '-2.788,44',
             status: 'ok',
           },
           {
             id: 'sfgg.eftertabel.alleredeBetalt.af1',
+            employmentId: 'af1',
             label: 'Allerede betalt sygeferiegodtgørelse i perioden',
             displayValue: '-1.234,56',
             status: 'ok',
           },
           {
             id: 'sfgg.eftertabel.beregnet.af1',
+            employmentId: 'af1',
             label: 'Beregnet sygeferiegodtgørelse',
             displayValue: '553,50',
             status: 'ok',

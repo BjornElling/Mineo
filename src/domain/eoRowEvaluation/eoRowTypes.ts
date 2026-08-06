@@ -131,10 +131,62 @@ export type EoIssueFocusTarget =
  */
 export type EoIssueFieldHint = 'fra' | 'til' | 'tilstand';
 
+/**
+ * Struktureret tabel på en række, når rækkens værdi ER en tabel.
+ *
+ * Findes fordi `displayValue` ellers måtte bære tabellen som en formatteret multiline-streng
+ * (`"…|…|…\n…"`), som forbrugeren skulle splitte på `\n` og `|` — en skjult
+ * serialiseringsaftale mellem builder og præsentation. Den aftale var dobbelt skjult, fordi
+ * kolonneantallet varierede med indholdet, og totalrækken kun kunne genkendes ved at
+ * strengmatche celleteksten «I alt».
+ *
+ * `displayValue` bevares uændret ved siden af: dokumentgeneratorerne bruger den formatterede
+ * form, og den er derfor ikke redundant. Men UI-forbrugere skal læse `table`.
+ */
+export type EoRowTable = Readonly<{
+  columns: readonly string[];
+  rows: readonly EoRowTableRow[];
+}>;
+
+export type EoRowTableRow = Readonly<{
+  cells: readonly string[];
+  /**
+   * Sand for en sammentællingsrække. Eksplicit flag frem for at genkende «I alt» i celle 0 —
+   * en etiketændring må ikke kunne ændre, hvad der er en totalrække.
+   */
+  isTotal?: boolean;
+}>;
+
+/**
+ * Serialiserer en {@link EoRowTable} til `displayValue`-formen: celler adskilt af `" | "`,
+ * rækker af `"\n"`.
+ *
+ * Formen er BEVIDST byte-identisk med den, builderne tidligere byggede i hånden, fordi
+ * dokumentgeneratorerne læser `displayValue` direkte. Ændr den ikke uden at opdatere
+ * dokument-goldens — strengen er et outputformat, ikke et internt mellemled.
+ */
+export const serializeEoRowTable = (table: EoRowTable): string =>
+  [
+    table.columns.join(' | '),
+    ...table.rows.map((row) => row.cells.join(' | ')),
+  ].join('\n');
+
 export type EoRowModel = {
   id: string;
   label: string;
   displayValue: string;
+  /** Sat når rækkens værdi er en tabel; se {@link EoRowTable}. */
+  table?: EoRowTable;
+  /**
+   * Ansættelsesforholdet rækken hører til, når den er per-ansættelsesforhold.
+   *
+   * Eksplicit felt, fordi forbrugerne ellers måtte udlede tilhørsforholdet ved at regex-parse
+   * `id` (`/^loenindkomst\.([^.]+)\./`, `/^sfgg\.[^.]+\.([^.]+)(?:\.|$)/` m.fl.) — altså
+   * gætte struktur ud af en id-navnekonvention, som builderne kunne ændre uden at nogen
+   * opdagede det. Builderen HAR id'et i hånden; den skal aflevere det frem for at kode det
+   * ind i en streng, forbrugeren pakker ud igen.
+   */
+  employmentId?: string;
   // Status er rækkens max-severity for UI (ikke issue-niveau).
   status: EoRowStatus;
   // Optional domænemeddelelse (uden "Fejl (...)" / "Advarsel (...)").

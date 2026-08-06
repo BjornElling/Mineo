@@ -148,6 +148,7 @@ export const buildEoIndkomstRows = (
 
     rows.push({
       id: `loenindkomst.${section.id}.arbejdsstedNavn`,
+      employmentId: section.id,
       label: 'Navn på arbejdssted',
       displayValue: section.arbejdsstedNavnDisplay,
       status: section.arbejdsstedNavnStatus,
@@ -155,6 +156,7 @@ export const buildEoIndkomstRows = (
 
     rows.push({
       id: `loenindkomst.${section.id}.satserSkadestidspunkt`,
+      employmentId: section.id,
       label: `Satser på ${skadeEllerAnmeldelsesdato.labelLower}`,
       displayValue: section.satserStatus === 'ok' ? 'Ja' : formatStatusMessage(section.satserStatus, section.satserMessage),
       status: section.satserStatus,
@@ -162,6 +164,7 @@ export const buildEoIndkomstRows = (
 
     rows.push({
       id: `loenindkomst.${section.id}.loenoplysninger`,
+      employmentId: section.id,
       label: 'Alle lønoplysninger indtastet korrekt',
       displayValue: section.tableStatus === 'ok' ? 'Ja' : formatStatusMessage(section.tableStatus, section.tableMessage),
       status: section.tableStatus,
@@ -172,6 +175,7 @@ export const buildEoIndkomstRows = (
       const message = 'Det angives, at skadelidte er opsagt, men sidste arbejdsdag er ikke indtastet';
       rows.push({
         id: `loenindkomst.${section.id}.sidsteArbejdsdagMangler`,
+        employmentId: section.id,
         label: 'Advarsel',
         displayValue: `Advarsel (${message})`,
         status: 'warning',
@@ -187,6 +191,7 @@ export const buildEoIndkomstRows = (
     if (harLoenEfterOphoer && sidsteArbejdsdag) {
       rows.push({
         id: `loenindkomst.${section.id}.loenEfterOphoer`,
+        employmentId: section.id,
         label: 'Advarsel',
         displayValue: `Advarsel (Der er angivet løn efter sidste arbejdsdag (${isoToDanish(sidsteArbejdsdag)}). Kontrollér om dette er korrekt.)`,
         status: 'warning',

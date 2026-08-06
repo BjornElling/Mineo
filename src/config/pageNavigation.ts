@@ -67,3 +67,37 @@ export const PAGE_DEFAULT_TAB = {
   renteberegning: 'calculation',
   varigemen: 'menberegning',
 } as const satisfies Partial<Record<PersistedSectionKey, string>>;
+
+/**
+ * De routes der IKKE svarer til en persisteret sagssektion.
+ *
+ * `APP_PAGE_DEFINITIONS` er bevidst nøglet på `PersistedSectionKey`, fordi den bærer
+ * sektion↔route-oversættelsen for undo/redo-destinationer og feltlokationer. Disse tre sider
+ * har ingen sagsdata og hører derfor ikke i det kort — men de ER stadig routes, og de skal
+ * ikke stå hardkodet i `App.tsx` ved siden af.
+ *
+ * - `/open`: PWA-filåbnings-landingen (ikke i sidemenuen).
+ * - `/indstillinger`: §2.2 systemside (device-lokale indstillinger, ikke sagsdata).
+ * - `/mineo`: §2.3 informationsside.
+ */
+export const APP_SYSTEM_PAGE_DEFINITIONS = {
+  openEo: { route: '/open', componentFile: 'OpenEo.tsx' },
+  indstillinger: { route: '/indstillinger', componentFile: 'Indstillinger.tsx' },
+  mineo: { route: '/mineo', componentFile: 'Mineo.tsx' },
+} as const;
+
+export type AppSystemPageKey = keyof typeof APP_SYSTEM_PAGE_DEFINITIONS;
+
+/**
+ * Samlet rute-inventar: sagssider + systemsider.
+ *
+ * `App.tsx` deriverer sine `<Route>`-elementer HERFRA i stedet for at gentage
+ * pathstrengene. Før stod de 8 sagssider listet både her og i `App.tsx` (med hardkodede
+ * strenge, uden at importere `APP_ROUTES`), mens de 3 systemsider kun fandtes i `App.tsx` —
+ * altså to lister med to forskellige nøglebegreber, som kunne drifte fra hinanden uden at
+ * nogen test bemærkede det.
+ */
+export const ALL_APP_PAGE_ROUTES: readonly string[] = Object.freeze([
+  ...Object.values(APP_PAGE_DEFINITIONS).map((definition) => definition.route),
+  ...Object.values(APP_SYSTEM_PAGE_DEFINITIONS).map((definition) => definition.route),
+]);

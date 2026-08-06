@@ -231,8 +231,13 @@ const EOInspektionEmploymentSections = React.memo<{
             const regulationTables = section.regulationSection?.tables ?? [];
             const sfggRows = section.sfggRows ?? [];
             const sfggTables = section.sfggTables ?? [];
-            const sfggFooterTables = sfggTables.filter((table) => table.id.startsWith('sfgg.aarsfordeling.'));
-            const sfggPrimaryTables = sfggTables.filter((table) => !table.id.startsWith('sfgg.aarsfordeling.'));
+            /*
+              Tidligere blev tabellerne delt i "primære" og "footer" efter præfikset
+              `sfgg.aarsfordeling.` — et id, INGEN row-builder producerer (en eksisterende test
+              hævder eksplicit `toBeUndefined()` for det). Footer-listen var derfor altid tom, og
+              dens ~24 linjers render-blok kunne aldrig nås. Opdelingen er fjernet; alle
+              SFGG-tabeller er nu simpelthen SFGG-tabeller.
+            */
             const sfggPostTableRows = sfggRows.filter((row) => isSfggPostTableRowId(row.id));
             const sfggPrimaryRows = sfggRows.filter((row) => !isSfggPostTableRowId(row.id));
 
@@ -320,7 +325,7 @@ const EOInspektionEmploymentSections = React.memo<{
                   <>
                     <UnderlinedHoverRow text="Sygeferiegodtgørelse" />
                     {sfggPrimaryRows.map(renderSfggRow)}
-                    {sfggPrimaryTables.map((table) => (
+                    {sfggTables.map((table) => (
                       <StandardDisplayTable
                         key={table.id}
                         useSmallFont
@@ -350,30 +355,6 @@ const EOInspektionEmploymentSections = React.memo<{
                       />
                     ))}
                     {sfggPostTableRows.map(renderSfggRow)}
-                    {sfggFooterTables.map((table) => (
-                      <StandardDisplayTable
-                        key={table.id}
-                        useSmallFont
-                        columns={table.columns.map((header, index) => ({
-                          header,
-                          align:
-                            index === 0
-                              ? 'left' as const
-                              : header === 'År'
-                                ? 'center' as const
-                                : 'right' as const,
-                          width: index === 0 ? '65%' : '17.5%',
-                          cellSx: index === 0 ? { textAlign: 'left' } : undefined,
-                        }))}
-                        rows={table.rows.map((row): StandardDisplayTableRow => ({
-                          key: row.id,
-                          cells: row.cells,
-                        }))}
-                        tableSx={{
-                          tableLayout: 'fixed',
-                        }}
-                      />
-                    ))}
                   </>
                 ) : null}
               </>

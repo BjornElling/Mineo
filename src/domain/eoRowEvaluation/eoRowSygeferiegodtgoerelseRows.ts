@@ -2,6 +2,7 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { formatAsAmount, formatCurrency, formatPercent } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
+import { serializeEoRowTable } from './eoRowTypes';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy, isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { isSfggNoEligibleDaysNotCalculable } from '../erstatningsopgoerelse/engines/sfggReferencesats';
@@ -38,6 +39,11 @@ export const buildEoSygeferiegodtgoerelseRows = (
 
   for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
     if (!shouldRequireSygeferiegodtgoerelseInput(values, employment)) continue;
+
+    // Alle rækker fra dette gennemløb hører til dette ansættelsesforhold. Grænsen huskes her
+    // og stemples i slutningen af løkken, så `employmentId` ikke skal gentages på ~30
+    // `rows.push`-kald (hvor et enkelt glemt felt ville give en lydløst uplaceret række).
+    const employmentRowsStart = rows.length;
 
     const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     const result = sfgg?.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
@@ -303,27 +309,50 @@ export const buildEoSygeferiegodtgoerelseRows = (
         ? 'Antal kalenderdage'
         : 'Antal arbejdsdage';
       const hasReguleringsindeks = result.segments.some((segment) => segment.reguleringsindeks !== null);
-      const lines = [
-        hasReguleringsindeks
-          ? `Fra-dato | Til-dato | Indeks | Feriepenge-sats | AG-pension | ${antalDageHeader} | ${SFGG_TABLE_TOTAL_LABEL}`
-          : `Fra-dato | Til-dato | Feriepenge-sats | AG-pension | ${antalDageHeader} | ${SFGG_TABLE_TOTAL_LABEL}`,
-        ...result.segments.map((segment) =>
-          hasReguleringsindeks
-            ? `${isoToDanish(segment.fra) ?? segment.fra} | ${isoToDanish(segment.til) ?? segment.til} | ${segment.reguleringsindeks === null ? '-' : formatAsAmount(segment.reguleringsindeks, 2)} | ${formatCurrency(segment.satsOre / 100)} | + ${formatPercent(segment.agPensionPct)} | ${String(segment.antalDage)} | ${formatCurrency(segment.feriepengekravOre / 100)}`
-            : `${isoToDanish(segment.fra) ?? segment.fra} | ${isoToDanish(segment.til) ?? segment.til} | ${formatCurrency(segment.satsOre / 100)} | + ${formatPercent(segment.agPensionPct)} | ${String(segment.antalDage)} | ${formatCurrency(segment.feriepengekravOre / 100)}`
-        ),
-        ...(
-          result.segments.length > 1
-            ? [hasReguleringsindeks
-              ? `I alt |  |  |  |  |  | ${formatCurrency(result.feriepengekravTotalOre / 100)}`
-              : `I alt |  |  |  |  | ${formatCurrency(result.feriepengekravTotalOre / 100)}`]
-            : []
-        ),
-      ];
+
+      /*
+        Tabellen bygges ÉN gang som struktureret data og serialiseres derefter til
+        `displayValue`. Tidligere blev kun strengen bygget, og viewmodellen splittede den op
+        igen på `\n` og `|` — med kolonneantallet udledt af indholdet og totalrækken genkendt
+        ved at strengmatche «I alt». Nu er strukturen kilden, og strengen er projektionen.
+      */
+      const columns = hasReguleringsindeks
+        ? ['Fra-dato', 'Til-dato', 'Indeks', 'Feriepenge-sats', 'AG-pension', antalDageHeader, SFGG_TABLE_TOTAL_LABEL]
+        : ['Fra-dato', 'Til-dato', 'Feriepenge-sats', 'AG-pension', antalDageHeader, SFGG_TABLE_TOTAL_LABEL];
+
+      const segmentRows = result.segments.map((segment) => ({
+        cells: [
+          isoToDanish(segment.fra) ?? segment.fra,
+          isoToDanish(segment.til) ?? segment.til,
+          ...(hasReguleringsindeks
+            ? [segment.reguleringsindeks === null ? '-' : formatAsAmount(segment.reguleringsindeks, 2)]
+            : []),
+          formatCurrency(segment.satsOre / 100),
+          `+ ${formatPercent(segment.agPensionPct)}`,
+          String(segment.antalDage),
+          formatCurrency(segment.feriepengekravOre / 100),
+        ],
+      }));
+
+      // Totalrækken vises kun, når der er mere end ét segment at summere.
+      const totalRows = result.segments.length > 1
+        ? [{
+            isTotal: true,
+            cells: [
+              'I alt',
+              ...Array.from({ length: columns.length - 2 }, () => ''),
+              formatCurrency(result.feriepengekravTotalOre / 100),
+            ],
+          }]
+        : [];
+
+      const table = { columns, rows: [...segmentRows, ...totalRows] };
+
       rows.push({
         id: `sfgg.tabel.${employment.id}`,
         label: 'SFGG-beregning',
-        displayValue: lines.join('\n'),
+        displayValue: serializeEoRowTable(table),
+        table,
         status: 'ok',
       });
 
@@ -384,6 +413,11 @@ export const buildEoSygeferiegodtgoerelseRows = (
         summaryDisplay: 'messageOnly',
         message: 'Der beregnes fortsat sygeferiegodtgørelse mere end 6 måneder efter sidste registrerede lønindkomst.',
       });
+    }
+
+    // Stempl tilhørsforholdet på alle rækker dette gennemløb tilføjede (jf. `employmentRowsStart`).
+    for (let index = employmentRowsStart; index < rows.length; index += 1) {
+      rows[index] = { ...rows[index]!, employmentId: employment.id };
     }
   }
 

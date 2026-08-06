@@ -1,8 +1,15 @@
 # Parallelt redesign-review — Mineo
 
 > **Status:** Aktivt arbejdsdokument for det igangværende greenfield-design på `greenfield`-branchen.
-> Den tidligere pause er afsluttet. Kandidaterne nedenfor er fortsat et arbejdsgrundlag, men den aktuelle status og
-> revurdering står i det afsluttende afsnit **Aktuel revurdering efter draft/commit-omlægningen**.
+>
+> **⇒ Start med afsnittet [START HER — arbejdsstatus](#start-her--arbejdsstatus-2026-08-06) i
+> bunden af filen.** Det angiver hvad der er gjort, hvad der mangler, i hvilken rækkefølge, og
+> hvilke af planens oprindelige skæringer der er modbevist og IKKE må implementeres som skrevet.
+>
+> Fase-tabellerne og `✅`-markeringerne nedenfor er **historik**: flere af dem beskriver slettede
+> mellemtrin, gamle storagekeys og gamle lifecycle-politikker. Brug dem som kontekst, ikke som
+> arbejdsplan. Den kodeverificerede statuskilde er afsnittet
+> **Kodeverificeret baseline (2026-08-06)**.
 
 > **Arkitekturstatus pr. 2026-08-01:** Den tidligere `docs/architecture/draft-commit-greenfield-design.md` er afsluttet
 > og fjernet. Den aktuelle inputarkitektur beskrives af `docs/architecture/input-architecture.md` og de normative
@@ -1235,7 +1242,308 @@ eller håndholdt koordinering. Det næste arbejde bør derfor fortsætte med dis
 konkrete rester og samtidig bevare inputkernen som fast arkitektonisk
 forudsætning.
 
+---
+
+## Kodeverificeret baseline (2026-08-06)
+
+Afsnittene ovenfor er skrevet ud fra læsning på deres eget tidspunkt. Dette afsnit er
+**verificeret mod den faktiske kode 2026-08-06** ved fire uafhængige gennemgange og er
+derfor den autoritative statuskilde for de åbne kandidater. Hvor en tidligere formulering
+er modbevist, står korrektionen her — den gamle tekst er ikke redigeret, men er ikke
+længere gyldig som arbejdsgrundlag.
+
+### Påstande der er modbevist og ikke må implementeres som beskrevet
+
+| Kandidat | Påstand i planen | Hvad koden faktisk viser |
+|---|---|---|
+| **#4** | Beløbs-paste er "en parallel løsning for samme concern" | Envejs-lagdeling, ikke parallel: `inputPasteNormalization.ts` **importerer** `normalizePastedAmount` fra `amountInputUtils.ts` og bygger felt-bounds ovenpå. Der er én paste-sti. Det reelle fund var mindre: `sanitizePastedAmount` var død produktionskode holdt i live af sine egne tests. |
+| **#14** | "Importér den kanoniske `sanitizeFilenamePart`; slet den lokale kopi" | De to funktioner løser **forskellige** concerns. Den kanoniske bevarer bevidst danske tegn/store bogstaver/mellemrum (brugervendt filnavn); den lokale er en ASCII-slug. En blind udskiftning ville have ændret filnavnsformatet. Se det faktisk løste problem nedenfor. |
+| **#21** | `Indstillinger.tsx` har "mange direkte settings-opdateringer" der kan blive et register | API'et `updateSetting` **findes ikke** (det heder `updateSettings`, plural partial patch). Og siden er ikke mekanisk gentagelse: 18 felter med 5 kontroltyper, 3 opdateringssemantikker, DEV-gating og async File-System-Access-handlers. Kun 8 af 18 er ensartede — et register ville kræve escape-hatches til de 10 øvrige. Det reelle fund er, at ~63 linjers label-metadata bor i komponenten. |
+| **#30** | Valideringsansvar "ligger fortsat i flere lag" og skal konsolideres | **Reelt afsluttet.** Lagene er dokumenteret komplementære (validation-filerne afgrænser sig eksplicit mod hinanden i kildekommentarer), konvergerer i én `EoInvariant`-valuta i `eoSnapshotInvariants.ts`, og ansvarsdelingen er kontraktfæstet i `error-contract.md` §2/§11. Ingen regel er håndhævet to steder. Den eneste redundans er tilsigtet fail-closed forsvar i dybden — med eget test-værn (`eoReguleringInvariantReachability.test.ts`). |
+| **#32** | `opgoerelseSection.ts` er en efterladt imperativ rest | Ikke en rest — **normen**. Alle 7 sektioner i `document/generators/eo/sections/` er `=> void` + ctx-objekt. `opgoerelseSection` er blot den største (825 l.). Kandidaten er dermed væsentligt større end beskrevet. |
+| **#46** | Buildet kræver "copy/delete/rewrite-scripts" for variant-output | Efterbehandlingen rammer **kun** MinProcesrente, og hovedparten er **deploy-artefakter**, ikke build-hygiejne: `_headers` (Cloudflare/Netlify-cachepolitik), `robots.txt`, `sitemap.xml` og `llms.txt` med hardkodede produktions-URL'er. Kun sletningen af `sw.js`/`manifest.json`/`icons` er build-hygiejne, og den skyldes at begge varianter deler én `public/`-mappe. |
+| **#1** | Spejl den eksisterende `loenindkomst/sections/`-dekomponering | Der findes **ingen** `loenindkomst/sections/`-mappe, og kun **én** `sections/`-mappe i hele `src/components/` (`eoOplysninger/sections/`). |
+| **#5/#44** | Mønstret er `useXxxViewModel(form)` | Ingen af de 11 VM'er tager en `form`. De tager values/projektioner. Context-varianten er heller ikke universel (5 af 11 har context; resten sender `vm` som prop) — og `page-component-contract.md` §4.4 l. 190 gør netop det til et **frit valg**. |
+
+**Vigtig fælles korrektion for alle view-kandidater (#1, #18, #21, #22, #44):** der findes
+**ingen LOC-tærskel og intet `sections/`-mappe-krav i nogen kontrakt.**
+`page-component-contract.md` §4.4 l. 196 siger eksplicit *"Reglen er kategorisk, ikke
+størrelses-gated. Der er ikke en LOC-tærskel"*, og §12–13 advarer mod tom ceremoni. En
+omlægning af disse filer skal derfor begrundes i **ansvarsspredning og konkret
+duplikering** — ikke i filstørrelse. Af de 20 største filer i `src/components/` er kun 2
+klar ansvarsspredning, 1 delvis og 3 grænsetilfælde; de øvrige 14 er store men fokuserede
+infrastruktur-primitiver.
+
+### Det største uidentificerede fund
+
+Planen har aldrig registreret den reelt største duplikering i UI-laget:
+**`AnsaettelsesforholdCard.tsx:617-903` og `IndtaegtFoerSkadenSection.tsx:305-652` er ~290
+linjers næsten ordret identisk "Lønudvikling"-flade** — samme grundlagsmenu, samme to
+filter-dropdowns med ~30 linjers inline `sx` hver, samme offentlig-løn-blok med
+løntrin-finder, samme statistik-/KRL-grene, samme manuelle tabeller, samme
+reguleringsinterval + downloadrække. Forskellen er alene feltbinding og location-prefix.
+
+Én delt Lønudvikling-komponent løser derfor substansen i **både #1 og #22 samtidigt** og er
+det højest forrentede enkeltindgreb i hele fase 4. Det bør være indgangen til de to
+kandidater — ikke en sections-opsplitning pr. fil.
+
+### Bekræftede kandidater, med den præcisering arbejdet skal bygge på
+
+- **#3 — IndexedDB:** bekræftet, og **værre end beskrevet**. `fileHandleStorage.ts` (735 l.)
+  har 10 hånd-wrappede IndexedDB-funktioner over 4 nøgle-concerns i ét delt store, plus
+  ~130 linjers urelateret permission-verifikation. `typeof indexedDB`-guarden er gentaget 9
+  steder med **inkonsistente returværdier** (`false`/`null`/`true`), og `getDirectoryDisplayInfo`
+  mangler den helt. Afgørende tilføjelse: `src/utils/logStorage.ts` er en **anden, uafhængig
+  IndexedDB-wrapper** med sin egen `openDatabase`-kopi — *dét* er den reelle parallelle
+  implementering. Testdækningen er 2 tests, som kun rammer de to funktioner der **ikke**
+  bruger IndexedDB. Sammenlign med `safeSessionStorage.ts` + `storageManifest.ts`, der er
+  det tilsvarende ordentligt abstraherede lag for session/localStorage.
+- **#20 — eoInspektion:** bekræftet. `parseSfggTable` (l. 121-146) splitter en formatteret
+  multiline-streng på `\n` og `|` og genkender totalrækken ved at **strengmatche `'I alt'`**.
+  Kolonneantallet er variabelt (betinget af `hasReguleringsindeks`), så aftalen er dobbelt
+  skjult. De strukturerede segmenter findes i produceren
+  (`eoRowSygeferiegodtgoerelseRows.ts:299-329`) men **ikke** i viewmodellen — `EoRowModel`
+  bærer kun `displayValue: string`, så kanalen skal udvides først. Det rigtige mønster
+  findes allerede i nabofilen: `CellValue<T>` med både `rawValue` og `displayValue`
+  (`eoInspektionRegulationViewModel.ts`). Dertil 4 regex-baserede row-id-parsere (l. 66-118)
+  med kildens egen NOTE om at de skal erstattes af struktureret metadata.
+- **#43 — app-shell:** bekræftet. Der er **tre** parallelle sidelister med tre forskellige
+  nøglebegreber: `APP_PAGE_DEFINITIONS` (pageKey, 8 sider), `App.tsx routes` (path, 11 sider,
+  hardkodede strenge — importerer **ikke** `APP_ROUTES`) og `SideMenu menuItems` (menu-id +
+  labels/ikoner). Kataloget er reelt kun kanonisk for undo/redo-destinationer. Dertil:
+  `createPageWrapper` wrapper **hver side** i sin egen `<MainLayout>`, så der ikke findes en
+  layout-route med `<Outlet/>`. Ingen test hævder at App.tsx-routes matcher kataloget.
+  **Rettelse (målt 2026-08-06):** den oprindelige observation om at shellen dermed
+  *remountes ved hver navigation* — inkl. `Container`s focus-cache — er **modbevist**. React
+  reconciler samme komponenttype på tværs af søskende-routes, så layoutet blev bevaret i begge
+  former. Kandidaten er reel, men rent strukturel. Bemærk også at `app-shell-contract.md`
+  **ikke** kræver én persistent shell; det er en arkitekturforbedring, ikke et kontraktbrud.
+- **#45 — GridSpec:** bekræftet at der ingen `GridSpec`/`EditableGridSpec` findes. Men en
+  fælles kolonnespec ville **ikke** være et rent løft: to shells med uforenelige
+  bredde-API'er (`StandardGridTable` via `<colgroup>` + `tableWidth`; `StandardLooseTable`
+  via `sx` på header-celler), kolonneindeks der ikke er 1:1 med visuelle kolonner
+  (`StandardLoenTable` mapper 3 feltnøgler til ét col-index), og ikke-uniforme cell-renderers.
+  **Det eneste reelt mekanisk duplikerede er sort-plumbingen** (`useTableSort` →
+  `handleHeaderClick`/`getSortRole`/`getSortDirection`, identisk i alle 10 tabeller) samt
+  `RowDeleteButton`-mønstret. Skær kandidaten efter det, ikke efter en fuld kolonnespec.
+- **#50 — TAF-graf:** bekræftet (800 l., 4 concerns). Det stærkeste argument er dog et
+  planen ikke nævner: `renderTafKravGrafChartPng` og **alle** `draw*`-funktioner (l. 395-786)
+  er **uden testdækning**, fordi jsdom ikke har et canvas-API — filen dokumenterer det selv
+  ved `__tafKravGrafChartTestables`. En scene-model flytter netop de 390 linjer ind i det
+  testbare. Bemærk også at der ikke findes nogen anden chart-renderer i repoet at rette sig
+  ind efter; denne definerer konventionen.
+- **#35 — carry-forward:** bekræftet, men foreningen er blokeret. Der er 3-4 reelle
+  carry-forward-implementeringer med hver sin strategi (binary search nyeste-først; linear
+  scan med parsing pr. iteration; forlæns scan med `0`-fallback; `.filter().reduce()`-max),
+  men datamodellerne afviger faktisk: `DanishDateString` (ikke leksikografisk sorterbar) vs.
+  `ISODateString`, forskellige feltnavne, modsat sorteringsretning, `undefined` vs. `0`.
+  Sygedagpenge (lukkede intervaller), lovbestemte satser (per-år-eksakt) og KL-lønaftaler
+  (eksakt-dato-Map) er **domænemæssigt andre modeller** og hører ikke ind under kandidaten.
+  En fælles dato-nøgle-abstraktion er derfor forudsætningen.
+- **#52 — kontrakter:** bekræftet, og løsningen findes allerede. `contract-template.md`
+  definerer præcis den ønskede adskillelse (§2 Normative Regler = invariant, §3 Autoritative
+  Kilder = implementeringskort, §4 Testkobling, §5 Kendte Undtagelser), men
+  `contract-topology-procedure.md` l. 41 gør de øvrige template-afsnit **anbefalede, ikke
+  håndhævede** — og 15 af 29 kontrakter afviger derfor. Værste blanding:
+  `document-output-contract.md` (614 l., 38 filreferencer i den normative brødtekst) og
+  `app-settings.md` (10 filrefs på 80 l. — filnavne og callsites står i det afsnit der
+  hedder "normative, ikke-forklarende"). Bedste forbilleder: `calculation-data-contract.md`,
+  `auth-gate-contract.md`. Fire kontrakter har 0 filreferencer og viser at det er muligt.
+- **#26 — Container:** bekræftet (584 l.; keyboard-navigation er ~320 l. = 55 %). Vigtig
+  præcisering: `keyboard-navigation.md` §Implementeringsfrihed (l. 228-237) **tillader
+  eksplicit** refaktoreringen, så længe adfærden bevares. Og grid'ets
+  `tableKeyboardNavigation.ts` er **ikke** duplikering — grænsen er kodet og bevidst
+  (`isInTableNavigation`, `markTableBoundaryExit`, delte selectors). Dækningen er stærk (29 +
+  ~15 cases i to testfiler, normativt nævnt i kontraktens §Testkrav), så omlægningen har et net.
+- **#18 — EET-differencekrav:** bekræftet (761 l.), men skær den om. De tre fil-lokale
+  underkomponenter (l. 87-391 = 305 l., 40 % af filen) er allerede rene, props-tagende
+  komponenter uden VM-kobling og kan flyttes mekanisk og risikofrit. Derimod er "delt
+  forlig-editor" kun ~35 linjers duplikering, og de to callsites er **kontraktkrævet**
+  forskellige på ref-niveau: EET går gennem porten `forligInputPort.ts`, fordi
+  `domain-boundary-contract.md` §10.4 forbyder EET at importere EO's descriptor-katalog —
+  håndhævet af et arkitekturværn. En naiv sammenlægning ville bryde værnet.
+
+### Gennemført i denne omgang
+
+- **#14 — ASCII-slug konsolideret (afløser kandidatens oprindelige formulering).** Der var
+  ikke én dupleret funktion, men **tre** parallelle ASCII-slug-varianter med hver sin
+  separator og hver sin fejl: `eoSnapshotToTafKravGrafDocument.ts:88` (`-`, med NFKD),
+  `ContentBoxReportDialog.tsx:29` (`-`, uden NFKD) og `safeComputation.ts:33` (`_`, uden
+  NFKD). Alle tre var forkerte for dansk, fordi `ø` **ingen** NFKD-dekomposition har og
+  derfor blev spist som separator: «Årsløn» blev `rsl-n` i skærmprint-filnavnet og `arslon`
+  i graf-serie-id'et, og «Ærø» blev `a-r-`. Ny kanonisk primitiv `src/utils/asciiSlug.ts`
+  translittererer eksplicit efter kodebasens egen konvention (`ø`→`oe`, `æ`→`ae`, `å`→`aa`
+  — verificeret mod 492+ filer med `aarsloen`/`opgoerelse`/`loenindkomst`, nul afvigelser),
+  med separator og fallback som parametre. Alle tre callsites er ruttet igennem den.
+  Den ikke-injektive egenskab er dokumenteret og fastholdt som et bevidst valg i test.
+  Dertil slettet død kode: `sanitizePastedAmount` (ingen produktions-callsites; dens
+  test-fixture-brug i `inputSelectionUtils.test.ts` er erstattet af en lokal normalisator,
+  så testen nu hævder sit eget emne). Ny test `asciiSlug.test.ts`; 42 tests grønne.
+  Bemærk som synlig følge: skærmprint-filnavnet ændres fra `Mineo-skærmprint-rsl-n-…` til
+  `Mineo-skærmprint-aarsloen-…`. Det er en genskabelse af tilsigtet adfærd (danske
+  bogstaver skulle aldrig være tabt), ikke en ny UX-beslutning.
+
+- **#1 + #22 — delt Lønudvikling-flade (det store fund ovenfor).** Ny
+  `pages/erstatningsopgoerelse/loenudvikling/LoenudviklingFields.tsx` (386 l.) +
+  `loenudviklingBinding.ts` (71 l.) ejer nu fladen for begge overflader.
+  `AnsaettelsesforholdCard.tsx` 1033 → 818 l. og `IndtaegtFoerSkadenSection.tsx` 705 → 532 l.
+  — ~500 linjers duplikering erstattet af ét sted.
+  Bindingen er en **typet record** (ét felt pr. logisk felt), ikke en `field(name)`-accessor:
+  felterne har reelt forskellige værditypér, og `FieldDescriptor<T>` er invariant i `T`, så en
+  fælles accessor ville kræve en usikker assertion. Overenskomst-rækken er en `overenskomstSlot`,
+  fordi de to overflader viser reelt forskellige ting (read-only etiket vs. fuld vælger).
+  Lukket undervejs, som direkte følge af sammenlægningen:
+  - **Manglende basisdato-tooltip på EO-oplysninger.** VM'en beregnede allerede
+    `loenudviklingBaseDateReferenceText`, men sektionen sendte den aldrig til de to manuelle
+    tabeller — så låst basisdato stod uforklaret dér, modsat Lønindkomst. Propen er nu
+    **påkrævet** (ikke optional), så en overflade ikke kan glemme den igen.
+  - **To utilsigtede divergenser** ensrettet: feltbredden på «Navn på reguleringsform» (350 vs.
+    300 → 350) og en let omskrevet kommentar om samme gate-regel.
+  - **To identiske IIFE'er** i `AnsaettelsesforholdCard` (l. 786-798 og 838-850) der genberegnede
+    `resolveAnvendtReguleringsdatoReferenceText` med præcis de argumenter, filen allerede havde
+    beregnet på l. 173.
+  - **Duplikeret filter-dropdown-styling** (~30 linjers inline `sx` skrevet ordret to gange lige
+    efter hinanden) samlet i tre modul-konstanter.
+  Fuld suite grøn (521 filer / 6642 tests), typecheck + lint grønne.
+
+- **#29 — dags dato læses nu på opslagstidspunktet.** `TODAY`/`CURRENT_YEAR` var
+  `const`-øjebliksbilleder taget ved modulets import. Det gav en reel brugerfejl: appen er
+  100 % client-side og kan stå åben over midnat (eller genoptages fra bfcache), og så blev
+  «Skadedato», «Opgørelse lavet den» m.fl. fortsat validéret mod **gårsdagens** maksimum —
+  brugeren kunne ikke indtaste dagens dato uden at genindlæse. Kodebasen havde desuden to
+  svar på "hvad er i dag", fordi `utils/dateInputValidation.ts` allerede læste året live.
+  Nu: `getToday()`/`getCurrentYear()` + gettere på de dato-afhængige felter i
+  `dateRanges_*`-objekterne, så alle callsites' syntaks er uændret.
+  To præciseringer værd at bevare:
+  - Årsgrænser i felt**validatorerne** tager nu en `YearBound = number | (() => number)`, fordi
+    validator-closures ellers indfanger året permanent. Codec-argumenterne beholder tal-formen,
+    da `createYearFieldCodec` bevidst *stripper* `minYear`/`maxYear` (de bruges kun til en
+    assertion) — bounds håndhæves af validatorerne.
+  - `SATSER_INITIAL_VALUES` er **bevidst** stadig et øjebliksbillede: det er et initialværdi-objekt
+    med krav om stabil referenceidentitet, og en live default kunne overskrive brugerens valgte
+    årgang midt i en session. `seedSatserNewCase` læser derimod live, så en ny sag efter et
+    årsskifte seedes med det nye år.
+  Fire nye tests i `dateRanges.test.ts` krydser midnat og årsskifte med `vi.setSystemTime`.
+  **Mutationstestet:** genindføres den frosne form, fejler præcis de fire nye tests og intet
+  andet. De gamle tests kunne kun se selv-konsistens og fangede derfor ikke fejlen.
+  Fuld suite grøn (521 filer / 6646 tests), typecheck (kilde+test) + lint grønne.
+
+- **#18 — EET-differencekrav dekomponeret efter den korrigerede skæring.** De to fil-lokale
+  bokse er flyttet til `erhvervsevnetab/differencekrav/` (`EetProformaKapitaliseringBox.tsx`
+  190 l., `EetMerErstatningPensionsalderBox.tsx` 167 l. — sidstnævnte bærer også
+  `EetMerErstatningEventRows`, som kun den bruger). `EetDifferencekravTab.tsx` 761 → 435 l.
+  Underkomponenterne var allerede rene og props-tagende, så det er en ren relokation.
+  Undervejs: `formatMaaneder` er flyttet til `domain/erhvervsevnetab/eetFormatUtils.ts`, hvor
+  `formatFaktor`/`formatPct` allerede bor — den var en fil-lokal formatter for et tværgående
+  concern, og både tabben og den udskilte boks har brug for den. To dublerede imports fra
+  `eetFormatUtils` i tabben er samtidig slået sammen.
+  Den "delte forlig-editor" er **bevidst ikke** lagt sammen: duplikeringen er ~35 linjer, og de
+  to callsites er kontraktkrævet forskellige på ref-niveau (`domain-boundary-contract.md` §10.4
+  + arkitekturværn). En naiv sammenlægning ville bryde værnet for en meget lille gevinst.
+  302 EET-tests grønne.
+
+- **#1 rest — SFGG-afledningen flyttet fra kortet til VM'en.** De 10 løse booleans/etiketter i
+  `AnsaettelsesforholdCard` er nu ét `getSfggPresentation(af)` i
+  `viewModel/loenindkomstDerivations.ts` — samme sted som de øvrige per-af-afledninger, hvis
+  kommentar allerede sagde at netop denne slags var flyttet dertil. Flagene er samlet i ÉN
+  funktion (ikke 10 selvstændige), fordi de er indbyrdes afhængige (kilde × overenskomst ×
+  satsmodel) og kun giver et konsistent billede afledt i én omgang.
+  Følgevirkning: `SygeferiegodtgoerelseSection` gik fra **10 props til 3**, og kortet importerer
+  ikke længere `getOverenskomstMetaById`, `getOverenskomstSfggPolicy` eller
+  `hasSfggSelectedOverenskomst` — dvs. viewet rører ikke længere overenskomst-datalaget direkte.
+  `AnsaettelsesforholdCard.tsx` er nu 781 l. (fra 1033). Fuld suite grøn (6646 tests).
+
+- **#3 — én IndexedDB-primitiv; begge wrappers samlet.** Ny `utils/indexedDbStore.ts` (177 l.)
+  ejer forbindelse, transaction-livscyklus og promisificering. `fileHandleStorage.ts` 735 → 177 l.
+  (kun de domænenavngivne operationer tilbage), nøglerne + deres typer i
+  `utils/file/fileHandleKvStore.ts` (126 l.), og permission-verifikationen — som slet ikke rørte
+  IndexedDB — i `utils/file/fileHandleVerification.ts` (185 l.).
+  `logStorage.ts` er migreret til samme primitiv og har ikke længere sin egen
+  `openDatabase`-kopi. **Der findes nu nul rå `indexedDB`-referencer uden for primitivet.**
+  De to *databaser* er bevidst holdt adskilte: `mineo_file_handles` er et keyed kv-store,
+  `MineoLogs` et append-only log-store med `autoIncrement`-keyPath og to cursor-læste indexes.
+  At presse dem sammen ville blande to datamodeller for at spare én DB-definition.
+  Reelle fejl lukket undervejs (ikke kun oprydning):
+  - **Inkonsistent utilgængelighedssvar.** `typeof indexedDB`-guarden var gentaget 9 steder med
+    returværdier `false`/`null`/`true` — og manglede helt i `getDirectoryDisplayInfo`.
+    Utilgængelighed er nu én eksplicit `unavailable`-tilstand, som hver kalder oversætter til
+    sin egen fail-safe værdi.
+  - **Forbindelseslæk.** Den gamle form lukkede kun i `transaction.oncomplete`, så en fejlende
+    transaction efterlod forbindelsen åben; `logStorage.ts` lukkede **aldrig**. Nu lukkes der i
+    `finally`.
+  - **Manuel flag-koordinering.** `saveDefaultDirectoryHandle`/`deleteDefaultDirectoryHandle`
+    koordinerede to requests med `handleDone`/`metaDone`-flag. Nu er begge nøgler én
+    transaction, hvis commit afventes — handle og metadata kan ikke længere komme ud af sync.
+  - **Cursor-sletning uden ventetid.** `logStorage`s cleanup satte kun `onsuccess`-handlere på
+    sine slette-cursors og stolede på, at de var færdige før `oncomplete`. Løkken afventes nu.
+  Ny test `indexedDbStore.test.ts` (8 tests) med en lokal IndexedDB-stub — bevidst uden ny
+  dependency (`fake-indexeddb`), fordi de hævdede invarianter er primitivets egne
+  (unavailable-tilstand, forbindelse lukkes altid, flere writes som én enhed, åbningsfejl),
+  ikke IndexedDB-specifikationens semantik. **Testen fangede en reel ordningsfejl i primitivet
+  før den nåede videre:** `oncomplete` kunne fyre, før `work`-promisen afviste, så en fejlet
+  skrivning blev rapporteret som `ok`. Transaktionsudfaldet oprettes nu som en selvstændig
+  promise FØR `work` afvikles. Læsninger venter bevidst ikke på commit (værdien er i hånden).
+  Fuld suite grøn (522 filer / 6654 tests) — inkl. den eksisterende `logStorage`-test, som gik
+  fra 15 s timeout til 161 ms.
+
+- **#20 — den skjulte serialiseringsaftale er lukket i begge ender.**
+  `EoRowModel` har nu et valgfrit `table: EoRowTable` (kolonner + rækker, med `isTotal` som
+  **eksplicit flag**), og `serializeEoRowTable` projicerer det til `displayValue`. Strukturen er
+  dermed kilden, og strengen er outputtet — modsat før, hvor strengen var den eneste kilde og
+  viewmodellen splittede den op igen på `\n` og `|`.
+  `parseSfggTable` → `projectSfggTable`: ingen parsing, intet udledt kolonneantal, og ingen
+  genkendelse af totalrækken ved at strengmatche celleteksten «I alt» (en etiketændring kunne
+  før ændre, hvad der var en totalrække). Betingelsen for "vis som tabel" er nu rækkens egen
+  `table`-struktur i stedet for et `sfgg.tabel.`/`sfgg.aarsfordeling.`-id-præfiks-gæt.
+  **Regex-row-id'erne er væk:** builderne sætter nu `employmentId` eksplicit — de HAVDE
+  allerede id'et i hånden — så `getLoenindkomstAnsaettelsesforholdId` og `getSfggEmploymentId`
+  er slettet. I SFGG-builderen stemples feltet på hele gennemløbets række-slice ét sted, så et
+  enkelt glemt felt blandt ~30 `rows.push`-kald ikke kan give en lydløst uplaceret række.
+  `getRegulationEmploymentId` er bevidst bevaret og begrundet i koden: dens kilde er en
+  *sektion* (uden rækkefelt at bære id'et i), ikke en række.
+  `displayValue` er bevist byte-identisk (dokumentgeneratorerne læser den; `serializeEoRowTable`
+  reproducerer også totalrækkens dobbelte mellemrum for både 6- og 7-kolonneformen).
+  Ny test `eoRowTable.test.ts` (5 tests). **Mutationstestet:** en ændret separator dræber tre af
+  dem — og blev IKKE fanget af `eoSectionTableParity.golden`, hvilket er præcis grunden til at
+  værnet hører på serialiseringen. 25 fixture-rækker i `EOInspektion.test.tsx` er opdateret med
+  `employmentId`, og SFGG-tabel-fixturet bærer nu den strukturerede form, så det tester den
+  faktiske vej. Fuld suite grøn (523 filer / 6659 tests).
+
+- **#43 — ét rute-inventar og ét layout-flow.** `pageNavigation.ts` har nu også
+  `APP_SYSTEM_PAGE_DEFINITIONS` (de tre routes der ikke er persisterede sagssektioner:
+  `/open`, `/indstillinger`, `/mineo`) plus `ALL_APP_PAGE_ROUTES`. `App.tsx` deriverer sine
+  `<Route>`-elementer HERFRA i stedet for at gentage pathstrengene, og en **import-tids-guard**
+  fejler hårdt, hvis loader-listen og kataloget driver fra hinanden. Tidligere stod de 8
+  sagssider i to lister (kataloget + hardkodede strenge i `App.tsx`, som ikke importerede
+  `APP_ROUTES`), og de 3 systemsider fandtes kun i `App.tsx`.
+  De 11 `createPageWrapper`-wrappere er erstattet af ÉN `<Route element={<AppShell />}>` med
+  `<Outlet/>`. Bemærk at `APP_PAGE_DEFINITIONS` bevidst forbliver nøglet på
+  `PersistedSectionKey` — det er dét, der gør den brugbar som sektion↔route-kilde for
+  undo/redo-destinationer og feltlokationer, og systemsiderne hører derfor i et separat kort.
+  Ny test `App.appShell.test.tsx` (4 tests).
+
+  **Vigtig korrektion af kandidatens præmis:** planen (og min egen første formulering) sagde,
+  at den gamle per-route-wrapper remountede shellen ved hver navigation og dermed smed
+  `Container`s focus-cache væk. **Det er ikke rigtigt.** Jeg målte mount-tællingen på begge
+  former isoleret: React reconciler samme komponenttype på tværs af søskende-routes, så
+  `MainLayout` blev bevaret i *begge* varianter (`mounts === 1` efter navigation i både
+  per-route- og layout-route-formen). Gevinsten ved #43 er derfor **strukturel** — ét
+  autoritativt rute-inventar og ét layout-sted frem for elleve — ikke en adfærdsrettelse.
+  Testen er skrevet som et VÆRN mod en fremtidig ændring der ville bryde egenskaben (fx et
+  `key` på shell-elementet), og den bærer et selvstændigt mutationsværn, der beviser at
+  mount-tællingen faktisk kan fange en per-route-identitet. Uden det ville tællingen være
+  grøn af tomhed.
+
 ### Tilfældighedsfund registreret under gennemgangen
+
+- **`sfgg.aarsfordeling.*` var død kode i tre steder — RETTET.** Ingen row-builder producerer
+  nogensinde et `sfgg.aarsfordeling.`-id; en eksisterende test hævder eksplicit
+  `toBeUndefined()` for det. Alligevel fandtes der en branch for præfikset i
+  `eoInspektionPageViewModel.ts` (fjernet som del af #20) og **to filtre** i
+  `EOInspektionEmploymentSections.tsx` (`sfggFooterTables`/`sfggPrimaryTables`), der delte
+  tabellerne op efter et præfiks, som aldrig optræder — så `sfggFooterTables` var altid tom, og
+  dens ~24 linjers `StandardDisplayTable`-render-blok kunne aldrig nås. Opdelingen og den døde
+  blok er fjernet; alle SFGG-tabeller renderes nu ad én vej.
 
 - `src/components/layout/SiblingSitesFooter.tsx` indeholder fortsat en
   breakpointstyret `@media`-regel i en delt komponent. Det afviger fra
@@ -1251,3 +1559,57 @@ forudsætning.
   ikke en produktionsfejl, men den aktuelle revurdering ovenfor skal fremover
   bruges som statuskilde, så planen ikke utilsigtet genintroducerer legacy-
   arkitekturen.
+
+---
+
+## START HER — arbejdsstatus 2026-08-06
+
+Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det FØR
+kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
+beskriver flere steder slettede mellemtrin.
+
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 524 testfiler / 6663 tests,
+`typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»
+er committet.
+
+### Rækkefølge for det udestående
+
+| # | Kandidat | Skæring der skal bruges (afviger fra planens oprindelige tekst) |
+|---|---|---|
+| **#50** | TAF-graf → scene-model | Stærkeste argument er IKKE "blandede ansvar", men at `renderTafKravGrafChartPng` + alle `draw*` (l. 395-786) er **helt utestede**, fordi jsdom mangler canvas. En scene-model flytter de ~390 linjer ind i det testbare. Der findes ingen anden chart-renderer at rette sig ind efter — denne definerer konventionen. |
+| **#32** | EO-sektioner → `Block[]` | **Alle 7** sektioner i `document/generators/eo/sections/` er `=> void` + 30-felts ctx-objekt, ikke kun `opgoerelseSection` (som blot er den største, 825 l.). Væsentligt større spor end planen antyder. Goldens findes: `eoSectionTableParity.golden`, `tableChannelParity.golden`. |
+| **#52** | Kontrakt-struktur | Løsningen findes allerede: `contract-template.md` (§2 Normative Regler = invariant, §3 Autoritative Kilder = implementeringskort). 15 af 29 kontrakter afviger, fordi `contract-topology-procedure.md` l. 41 gør afsnittene *anbefalede, ikke håndhævede*. Værste blanding: `document-output-contract.md` (38 filrefs i normativ brødtekst), `app-settings.md` (10 refs på 80 l.). Forbilleder: `calculation-data-contract.md`, `auth-gate-contract.md`. |
+| **#45** | Tabel-konsolidering | **Lav IKKE en fuld `GridSpec`.** To shells har uforenelige bredde-API'er, kolonneindeks er ikke 1:1 med visuelle kolonner (`StandardLoenTable` mapper 3 feltnøgler til ét col-index), og cell-renderers er ikke uniforme. Det eneste reelt mekanisk duplikerede er **sort-plumbingen** (`useTableSort` → `handleHeaderClick`/`getSortRole`/`getSortDirection`, identisk i alle 10 tabeller) samt `RowDeleteButton`-mønstret. Skær kandidaten efter det. |
+| **#21** | Indstillinger | **Lav IKKE et fuldt settings-register.** Kun 8 af 18 felter er ensartede; de øvrige har 5 kontroltyper, 3 opdateringssemantikker, DEV-gating og async File-System-Access-handlers, så et register ville kræve escape-hatches. Det reelle fund er, at ~63 linjers label-/option-metadata bor i komponenten og hører i `settings/`. |
+| **#26** | Container → headless hook | Bekræftet (584 l., keyboard-nav er ~320 = 55 %). `keyboard-navigation.md` §Implementeringsfrihed (l. 228-237) **tillader eksplicit** refaktoreringen. Grid'ets `tableKeyboardNavigation.ts` er IKKE duplikering — grænsen er kodet og bevidst (`isInTableNavigation`, `markTableBoundaryExit`, delte selectors). Stærkt testnet findes (29 + ~15 cases, normativt nævnt i kontraktens §Testkrav). |
+| **#35** | Carry-forward-opslag | Blokeret indtil der findes en fælles dato-nøgle-abstraktion: `DanishDateString` (ikke leksikografisk sorterbar) vs. `ISODateString`, forskellige feltnavne, modsat sorteringsretning, `undefined` vs. `0`-fallback. Sygedagpenge (lukkede intervaller), lovbestemte satser (per-år) og KL-lønaftaler (eksakt-dato-Map) er **andre datamodeller** og hører ikke under kandidaten. |
+
+### Afventer brugerens beslutning (UI/UX-mandatgrænsen)
+
+Aftalt med brugeren: alt godkendelsesfrit laves først, og de synlige UI/UX-valg forelægges
+**samlet**. Følgende er ikke rørt og venter på forelæggelse:
+
+1. **Breakpoint-styling mod desktop-only-kontrakten** — `SiblingSitesFooter.tsx` (`@media` i en
+   delt komponent) og `RenteberegningTab.tsx` (breakpointstyret `sx` i Mineos almindelige
+   brugerflow). Begge afviger fra reglen om, at mobil-/tabletstyling kun må findes i
+   `UnsupportedDevicePage.tsx`. At fjerne dem kan ændre synligt layout.
+2. **#46 — variant-build-output.** Efterbehandlingen er hovedsagelig **deploy-artefakter**, ikke
+   build-hygiejne: `_headers` (Cloudflare/Netlify-cachepolitik), `robots.txt`, `sitemap.xml` og
+   `llms.txt` med hardkodede produktions-URL'er. Kun sletningen af `sw.js`/`manifest.json`/
+   `icons` er build-hygiejne, og den skyldes at begge varianter deler én `public/`-mappe.
+   Spørgsmålet til brugeren er, om deploy-artefakterne SKAL blive scripts (de er host-specifikke),
+   eller om `public/` skal splittes pr. variant.
+
+### Arbejdsmåde der viste sig at betale sig
+
+- **Verificér planens påstande mod koden før implementering.** Syv af dem var forkerte eller
+  forældede (se «Påstande der er modbevist»). Fire parallelle Explore-agenter over hver sit
+  delsystem var den effektive form.
+- **Mutationstest hvert nyt værn.** To gange fangede det fejl i mit EGET arbejde: en
+  ordningsfejl i IndexedDB-primitivet (en fejlet skrivning blev rapporteret `ok`), og et
+  shell-værn der var grønt af tomhed. Et værn der ikke kan fejle, beviser intet.
+- **Mistro præmisser om React-adfærd.** #43's antagelse om at per-route-wrapping remountede
+  shellen var forkert; jeg målte begge former (`mounts === 1` i begge). Mål frem for at slutte.
+- **`npm run typecheck` fanger ikke `import type` brugt som værdi.** En manglende runtime-import
+  af `serializeEoRowTable` var grøn i typecheck og fejlede først i test. Kør målrettede tests
+  efter nye cross-modul-imports.

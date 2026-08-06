@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { RoutePathnameProvider } from './contexts/RoutePathnameProvider';
@@ -8,41 +8,62 @@ import ErrorBoundary from './components/errors/ErrorBoundary';
 import { useAppSettings } from './contexts/useAppSettings';
 import { buildTheme } from './config/appTheme';
 import {
+  ALL_APP_PAGE_ROUTES,
+  APP_ROUTES,
+  APP_SYSTEM_PAGE_DEFINITIONS,
+} from './config/pageNavigation';
+import {
   ProductionInputRuntimeProvider,
   useSettingsRevisionBridge,
   type InputRuntimeBinding,
 } from './inputCore/react';
 
 type PageComponent = React.ComponentType<Record<string, never>>;
-type AppRoute = { path: string; component: PageComponent };
 
+/**
+ * Route → lazy-loader. Nøglen er selve pathen, og den valideres mod rute-inventaret i
+ * `pageNavigation.ts` nedenfor — så en ny side ikke kan tilføjes her uden at være i
+ * kataloget (eller omvendt).
+ */
 const routeModuleLoaders = {
-  openEo: async () => import('./components/system/OpenEo'),
-  stamdata: async () => import('./components/pages/Stamdata'),
-  erstatningsopgoerelse: async () => import('./components/pages/Erstatningsopgoerelse'),
-  erhvervsevnetab: async () => import('./components/pages/Erhvervsevnetab'),
-  satser: async () => import('./components/pages/Satser'),
-  renteberegning: async () => import('./components/pages/Renteberegning'),
-  aarsloen: async () => import('./components/pages/Aarsloen'),
-  varigeMen: async () => import('./components/pages/VarigeMen'),
-  forsoergertab: async () => import('./components/pages/Forsoergertab'),
-  indstillinger: async () => import('./components/pages/Indstillinger'),
-  mineo: async () => import('./components/pages/Mineo'),
+  [APP_SYSTEM_PAGE_DEFINITIONS.openEo.route]: async () => import('./components/system/OpenEo'),
+  [APP_ROUTES.stamdata]: async () => import('./components/pages/Stamdata'),
+  [APP_ROUTES.erstatningsopgoerelse]: async () => import('./components/pages/Erstatningsopgoerelse'),
+  [APP_ROUTES.erhvervsevnetab]: async () => import('./components/pages/Erhvervsevnetab'),
+  [APP_ROUTES.satser]: async () => import('./components/pages/Satser'),
+  [APP_ROUTES.renteberegning]: async () => import('./components/pages/Renteberegning'),
+  [APP_ROUTES.aarsloen]: async () => import('./components/pages/Aarsloen'),
+  [APP_ROUTES.varigemen]: async () => import('./components/pages/VarigeMen'),
+  [APP_ROUTES.forsoergertab]: async () => import('./components/pages/Forsoergertab'),
+  [APP_SYSTEM_PAGE_DEFINITIONS.indstillinger.route]: async () => import('./components/pages/Indstillinger'),
+  [APP_SYSTEM_PAGE_DEFINITIONS.mineo.route]: async () => import('./components/pages/Mineo'),
 } satisfies Record<string, () => Promise<{ default: PageComponent }>>;
 
-const lazyRoute = (loader: () => Promise<{ default: PageComponent }>) => React.lazy(loader);
+/**
+ * Rute-inventaret er ÉT sted (`pageNavigation.ts`). Denne guard fejler ved modulets import,
+ * hvis de to lister driver fra hinanden — tidligere stod pathstrengene hardkodet her ved
+ * siden af kataloget, uden at nogen test sammenlignede dem.
+ */
+const assertRouteInventoryMatchesCatalog = (): void => {
+  const declared = new Set(Object.keys(routeModuleLoaders));
+  const missing = ALL_APP_PAGE_ROUTES.filter((route) => !declared.has(route));
+  const extra = [...declared].filter((route) => !ALL_APP_PAGE_ROUTES.includes(route));
+  if (missing.length > 0 || extra.length > 0) {
+    throw new Error(
+      `App-routes matcher ikke pageNavigation-kataloget. Mangler loader: [${missing.join(', ')}]. `
+      + `Ukendt route: [${extra.join(', ')}].`
+    );
+  }
+};
 
-const OpenEo = lazyRoute(routeModuleLoaders.openEo);
-const Stamdata = lazyRoute(routeModuleLoaders.stamdata);
-const Erstatningsopgoerelse = lazyRoute(routeModuleLoaders.erstatningsopgoerelse);
-const Erhvervsevnetab = lazyRoute(routeModuleLoaders.erhvervsevnetab);
-const Satser = lazyRoute(routeModuleLoaders.satser);
-const Renteberegning = lazyRoute(routeModuleLoaders.renteberegning);
-const Aarsloen = lazyRoute(routeModuleLoaders.aarsloen);
-const VarigeMen = lazyRoute(routeModuleLoaders.varigeMen);
-const Forsoergertab = lazyRoute(routeModuleLoaders.forsoergertab);
-const Indstillinger = lazyRoute(routeModuleLoaders.indstillinger);
-const Mineo = lazyRoute(routeModuleLoaders.mineo);
+assertRouteInventoryMatchesCatalog();
+
+/** Route → lazy page-komponent, afledt af det validerede inventar. */
+const lazyPageByRoute: Readonly<Record<string, PageComponent>> = Object.freeze(
+  Object.fromEntries(
+    Object.entries(routeModuleLoaders).map(([route, loader]) => [route, React.lazy(loader)])
+  )
+);
 
 const preloadRouteModules = () => {
   void Promise.allSettled(Object.values(routeModuleLoaders).map((loadRouteModule) => loadRouteModule()));
@@ -63,43 +84,30 @@ const scheduleRouteModulePreload = () => {
 };
 
 /**
- * Route-konfiguration til Mineo applikationen
+ * App-shellen som ÉN layout-route.
  *
- * Mapper stier til deres tilhørende page-komponenter
- */
-const routes: AppRoute[] = [
-  { path: '/open', component: OpenEo },
-  { path: '/stamdata', component: Stamdata },
-  { path: '/erstatningsopgoerelse', component: Erstatningsopgoerelse },
-  { path: '/erhvervsevnetab', component: Erhvervsevnetab },
-  { path: '/satser', component: Satser },
-  { path: '/renteberegning', component: Renteberegning },
-  { path: '/varigemen', component: VarigeMen },
-  { path: '/forsoergertab', component: Forsoergertab },
-  { path: '/aarsloen', component: Aarsloen },
-  { path: '/indstillinger', component: Indstillinger },
-  { path: '/mineo', component: Mineo },
-];
-
-/**
- * Generisk wrapper der lægger enhver page-komponent ind i MainLayout + ErrorBoundary
+ * Tidligere byggede `createPageWrapper` en selvstændig `MainLayout`-wrapper pr. route (11
+ * memoiserede wrapper-komponenter). Det er nu én `<Route element={<AppShell />}>` med
+ * `<Outlet/>`, så layoutet er beskrevet ét sted i stedet for at blive gentaget pr. side.
  *
- * @param {React.ComponentType} Component - Page-komponenten der skal wrappes
- * @returns {React.ComponentType} Wrapped komponent
+ * Præcisering, så en senere læser ikke tror der lå en remount-fejl: den gamle form
+ * remountede IKKE shellen ved navigation. React reconciler samme komponenttype på tværs af
+ * søskende-routes, så `MainLayout` (og dermed `Container`s focus-cache og MutationObserver)
+ * blev bevaret i begge former — verificeret med en mount-tælling på begge varianter.
+ * Gevinsten her er strukturel: ét autoritativt layout-/route-flow, ikke en adfærdsrettelse.
+ *
+ * `ErrorBoundary` og `Suspense` ligger inde i shellen, så en fejl eller en indlæsning i én
+ * side ikke river layoutet med sig.
  */
-const createPageWrapper = (Component: PageComponent): PageComponent => {
-  const WrappedPage: PageComponent = React.memo(() => (
-    <MainLayout>
-      <ErrorBoundary>
-        <React.Suspense fallback={null}>
-          <Component />
-        </React.Suspense>
-      </ErrorBoundary>
-    </MainLayout>
-  ));
-  WrappedPage.displayName = 'Page';
-  return WrappedPage;
-};
+const AppShell = () => (
+  <MainLayout>
+    <ErrorBoundary>
+      <React.Suspense fallback={null}>
+        <Outlet />
+      </React.Suspense>
+    </ErrorBoundary>
+  </MainLayout>
+);
 
 const RootRedirect = () => {
   const { settings } = useAppSettings();
@@ -123,14 +131,6 @@ const ThemedApp = ({
 
   React.useEffect(() => scheduleRouteModulePreload(), []);
 
-  // Memoisér page wrappers for at undgå at genoprette dem ved hver render
-  const pageWrappers = React.useMemo(() => {
-    return routes.map(({ path, component }) => ({
-      path,
-      element: createPageWrapper(component),
-    }));
-  }, []);
-
   return (
     <ThemeProvider theme={theme}>
       <BrowserRouter>
@@ -138,9 +138,13 @@ const ThemedApp = ({
           <ProductionInputRuntimeProvider binding={inputRuntimeBinding}>
             <Routes>
               <Route path="/" element={<RootRedirect />} />
-              {pageWrappers.map(({ path, element: PageWrapper }) => (
-                <Route key={path} path={path} element={<PageWrapper />} />
-              ))}
+              {/* Alle sider bor under den ÉNE shell-route, så layoutet ikke remountes. */}
+              <Route element={<AppShell />}>
+                {ALL_APP_PAGE_ROUTES.map((route) => {
+                  const Page = lazyPageByRoute[route]!;
+                  return <Route key={route} path={route} element={<Page />} />;
+                })}
+              </Route>
               <Route
                 path="*"
                 element={

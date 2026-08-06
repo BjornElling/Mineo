@@ -58,15 +58,9 @@ export type EOInspektionPageViewModel = Readonly<{
   bilagsnumreRows: readonly EoRowModel[];
 }>;
 
-// NOTE:
-// Disse helpers afleder struktur fra builder-id-konventioner.
-// Hvis builders senere får eksplicit metadata for section/employment-tilhørsforhold,
-// skal disse regex-baserede helpers erstattes af den strukturerede metadata-kilde.
-const getLoenindkomstAnsaettelsesforholdId = (rowId: string): string | null => {
-  const match = /^loenindkomst\.([^.]+)\./.exec(rowId);
-  return match?.[1] ?? null;
-};
-
+// Tilhørsforholdet læses nu fra rækkens EGET `employmentId`-felt (sat af builderen), ikke ved
+// at regex-parse id-navnekonventionen. Reguleringsrækker genkendes fortsat på id-segmentet
+// `.regulering.`, fordi det er en rækkeKATEGORI og ikke et tilhørsforhold — se noten nedenfor.
 const isLoenindkomstRegulationRow = (row: EoRowModel): boolean => row.id.includes('.regulering.');
 
 const buildLoenindkomstSections = (rows: readonly EoRowModel[]) => {
@@ -74,7 +68,7 @@ const buildLoenindkomstSections = (rows: readonly EoRowModel[]) => {
   const order: string[] = [];
 
   rows.forEach((row) => {
-    const ansaettelsesforholdId = getLoenindkomstAnsaettelsesforholdId(row.id);
+    const ansaettelsesforholdId = row.employmentId ?? null;
     if (!ansaettelsesforholdId) return;
     if (!grouped.has(ansaettelsesforholdId)) {
       grouped.set(ansaettelsesforholdId, []);
@@ -105,43 +99,41 @@ const buildLoenindkomstSections = (rows: readonly EoRowModel[]) => {
   });
 };
 
+/**
+ * Reguleringssektionens ansættelsesforhold-id.
+ *
+ * Denne er bevaret som id-parsing, fordi kilden er en `RegulationInspektionSection` (en
+ * SEKTION med et konstrueret `regulation.<id>`-navn) og ikke en `EoRowModel`. Sektionen har
+ * ikke et rækkefelt at bære id'et i, og præfikset er ét fast led — modsat de tidligere
+ * række-regexes, hvor id-formen varierede pr. rækketype. Får sektionsmodellen på et tidspunkt
+ * sit eget `employmentId`, hører denne helper også væk.
+ */
 const getRegulationEmploymentId = (section: RegulationInspektionSection): string | null => {
   const match = /^regulation\.(.+)$/.exec(section.id);
   return match?.[1] ?? null;
 };
 
-const getSfggEmploymentId = (rowId: string): string | null => {
-  const postTableMatch = /^sfgg\.eftertabel\.[^.]+\.([^.]+)$/.exec(rowId);
-  if (postTableMatch) return postTableMatch[1] ?? null;
-
-  const match = /^sfgg\.[^.]+\.([^.]+)(?:\.|$)/.exec(rowId);
-  return match?.[1] ?? null;
-};
-
-const parseSfggTable = (row: EoRowModel): EOInspektionDisplayTable | null => {
-  const lines = row.displayValue
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line !== '');
-  if (lines.length < 2) return null;
-
-  const columns = lines[0]?.split('|').map((cell) => cell.trim()).filter((cell) => cell !== '') ?? [];
-  if (columns.length === 0) return null;
-
-  const parsedRows = lines.slice(1).map((line, index) => ({
-    id: `${row.id}.row.${index + 1}`,
-    cells: line.split('|').map((cell) => cell.trim()),
-  }));
-  const hasMultipleDataRows = parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt').length > 1;
-  const tableRows = hasMultipleDataRows
-    ? parsedRows
-    : parsedRows.filter((tableRow) => tableRow.cells[0] !== 'I alt');
+/**
+ * Projicerer rækkens strukturerede tabel til visningsmodellen.
+ *
+ * Tidligere PARSEDE denne funktion rækkens formatterede `displayValue`: split på `\n` og `|`,
+ * kolonneantal udledt af indholdet, og totalrækken genkendt ved at strengmatche celleteksten
+ * «I alt». Det var en skjult serialiseringsaftale mellem row-builderen og præsentationen —
+ * builderen kunne ændre et mellemrum eller en etiket og lydløst ødelægge tabellen her.
+ * Nu bærer `EoRowModel.table` strukturen, og builderen serialiserer TIL `displayValue` i
+ * stedet for at være dens eneste kilde.
+ */
+const projectSfggTable = (row: EoRowModel): EOInspektionDisplayTable | null => {
+  if (!row.table || row.table.columns.length === 0) return null;
 
   return {
     id: row.id,
     title: row.label,
-    columns,
-    rows: tableRows,
+    columns: row.table.columns,
+    rows: row.table.rows.map((tableRow, index) => ({
+      id: `${row.id}.row.${index + 1}`,
+      cells: tableRow.cells,
+    })),
   };
 };
 
@@ -154,17 +146,19 @@ const buildSfggSections = (
   const order: string[] = [];
 
   rows.forEach((row) => {
-    const employmentId = getSfggEmploymentId(row.id);
+    const employmentId = row.employmentId ?? null;
     if (!employmentId) return;
     if (!grouped.has(employmentId)) {
       grouped.set(employmentId, []);
       groupedTables.set(employmentId, []);
       order.push(employmentId);
     }
-    if (row.id.startsWith('sfgg.tabel.') || row.id.startsWith('sfgg.aarsfordeling.')) {
-      const parsedTable = parseSfggTable(row);
-      if (parsedTable) {
-        groupedTables.get(employmentId)?.push(parsedTable);
+    // Rækker der BÆRER en tabel projiceres som tabel; øvrige rækker vises som label/værdi.
+    // Betingelsen er nu rækkens egen struktur — ikke et id-præfiks-gæt.
+    if (row.table) {
+      const projected = projectSfggTable(row);
+      if (projected) {
+        groupedTables.get(employmentId)?.push(projected);
         return;
       }
     }
@@ -215,10 +209,10 @@ export const buildEOInspektionPageViewModel = (
   );
 
   const loenindkomstRows = viserTabtArbejdsfortjeneste
-    ? (rowsBySection.get('loenindkomst') ?? []).filter((row) => {
-        const ansaettelsesforholdId = getLoenindkomstAnsaettelsesforholdId(row.id);
-        return ansaettelsesforholdId === null || visibleEmploymentIds.has(ansaettelsesforholdId);
-      })
+    ? (rowsBySection.get('loenindkomst') ?? []).filter((row) =>
+        // En række uden `employmentId` er ikke per-ansættelsesforhold og vises altid.
+        row.employmentId === undefined || visibleEmploymentIds.has(row.employmentId)
+      )
     : [];
 
   const loenindkomstSections = buildLoenindkomstSections(loenindkomstRows);
