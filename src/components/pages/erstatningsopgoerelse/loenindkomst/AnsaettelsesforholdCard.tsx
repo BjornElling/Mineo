@@ -1,22 +1,16 @@
-import { Box, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
+import { Box, MenuItem, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
-import DocumentDownloadButton from '../../../inputs/DocumentDownloadButton';
-import DocumentOutcomeMessage from '../../../inputs/DocumentOutcomeMessage';
 import TextField from '../../../../inputCore/react/fields/TextField';
 import DateField from '../../../../inputCore/react/fields/DateField';
-import ChoiceField, { ChoiceDivider } from '../../../../inputCore/react/fields/ChoiceField';
+import ChoiceField from '../../../../inputCore/react/fields/ChoiceField';
 import AmountField from '../../../../inputCore/react/fields/AmountField';
 import PercentField, { DerivedPercentField } from '../../../../inputCore/react/fields/PercentField';
 import RadioField from '../../../../inputCore/react/fields/RadioField';
 import ToggleField from '../../../../inputCore/react/fields/ToggleField';
 import MappedToggleField from '../../../../inputCore/react/fields/MappedToggleField';
-import IntegerField from '../../../../inputCore/react/fields/IntegerField';
-import LoenudviklingManuelTable from '../../../tables/LoenudviklingManuelTable';
-import LoenudviklingManuelProcentsatsTable from '../../../tables/LoenudviklingManuelProcentsatsTable';
 import StandardLoenTable from '../../../tables/StandardLoenTable';
 import {
   eoEmploymentFields,
@@ -28,11 +22,7 @@ import type { FieldRef } from '../../../../inputCore/fieldDescriptor';
 import { createEoStandardLoenFieldSet } from '../../../../domain/erstatningsopgoerelse/eoStandardLoenFieldSet';
 import FloatingActionButton from '../../../ui/FloatingActionButton';
 import ContentBox from '../../../layout/ContentBox';
-import {
-  krlSatstabelEnum,
-  offentligLoenTypeEnum,
-  type ErstatningsopgoerelseValues,
-} from '../../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import { LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
 import { resolveSatserHeading } from './resolveSatserHeading';
 import {
@@ -41,29 +31,23 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import {
   formatOverenskomstMetaDisplay,
-  getOverenskomstMetaById,
-  getOverenskomstSfggPolicy,
   getReguleringsDatoIntervalForOverenskomst,
   isOffentligOverenskomstId,
   resolveOverenskomstDisplay,
 } from '../../../../data/overenskomstRates';
-import {
-  ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
-  getReguleringsDatoIntervalForStatistikModel,
-} from '../../../../data/statistiskeRates';
+import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import {
   isOverenskomstSatsFieldLocked,
   type OverenskomstSatsField,
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
-import { hasSfggSelectedOverenskomst } from '../../../../domain/erstatningsopgoerelse/engines/sfggKilde';
+import LoenudviklingFields from '../loenudvikling/LoenudviklingFields';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
 import { useReguleringDocumentAction } from '../../../../domain/erstatningsopgoerelse/react/useReguleringDocumentAction';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
-import { createManualRegulationBasisCommitOverride } from '../../../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
@@ -120,8 +104,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     getLoenudviklingBaseDate,
     resolveOverenskomstLabel,
     getFilteredOverenskomsterForAnsaettelsesforhold,
-    showSygeferiegodtgoerelseSection: showSygeferiegodtgoerelseSectionFor,
-    getSfggRowForAf,
+    getSfggPresentation,
     handleMoveUp,
     handleMoveDown,
   } = useLoenindkomstVm();
@@ -162,6 +145,45 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const satsIssueFor = (descriptor: { bind: (...ids: readonly string[]) => FieldRef<number | undefined> }) =>
     satsIssues.get(serializeFieldAddress(field(descriptor).address));
   const feriePctIssue = satsIssueFor(eoEmploymentFields.feriePct);
+
+  /**
+   * Bindingen til den delte Lønudvikling-flade. Adresserne er bundet til NETOP dette
+   * ansættelsesforhold (`af.id`), så to kort aldrig kan komme til at dele feltidentitet.
+   */
+  const loenudviklingBinding = {
+    loenudviklingBeregningsgrundlag: {
+      field: field(eoEmploymentFields.loenudviklingBeregningsgrundlag),
+      location: location('loenudviklingBeregningsgrundlag'),
+    },
+    loenudviklingStatistikModel: {
+      field: field(eoEmploymentFields.loenudviklingStatistikModel),
+      location: location('loenudviklingStatistikModel'),
+    },
+    loenudviklingKRLSatstabel: {
+      field: field(eoEmploymentFields.loenudviklingKRLSatstabel),
+      location: location('loenudviklingKRLSatstabel'),
+    },
+    loenudviklingManuelNavn: {
+      field: field(eoEmploymentFields.loenudviklingManuelNavn),
+      location: location('loenudviklingManuelNavn'),
+    },
+    offentligLoenType: {
+      field: field(eoEmploymentFields.offentligLoenType),
+      location: location('offentligLoenType'),
+    },
+    offentligLoenTrin: {
+      field: field(eoEmploymentFields.offentligLoenTrin),
+      location: location('offentligLoenTrin'),
+    },
+    offentligLoenGruppe: {
+      field: field(eoEmploymentFields.offentligLoenGruppe),
+      location: location('offentligLoenGruppe'),
+    },
+    offentligLoenEkstraGrundloen: {
+      field: field(eoEmploymentFields.offentligLoenEkstraGrundloen),
+      location: location('offentligLoenEkstraGrundloen'),
+    },
+  };
 
   const showOverenskomst = af.harOverenskomst;
   const showMedlemOpsagt = af.ansatPaaSkadestidspunktet;
@@ -253,35 +275,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const headerText = af.navnPaaArbejdssted
     ? `${baseHeaderText} (${af.navnPaaArbejdssted})`
     : baseHeaderText;
-  const showSygeferiegodtgoerelseSection = showSygeferiegodtgoerelseSectionFor(af);
-  const sfggRow = getSfggRowForAf(af);
-  const sfggPolicy = af.overenskomstId
-    ? getOverenskomstSfggPolicy(af.overenskomstId)
-    : undefined;
-  const sfggOverenskomstMeta = af.overenskomstId
-    ? getOverenskomstMetaById(af.overenskomstId)
-    : undefined;
-  const hasSfggOverenskomst = hasSfggSelectedOverenskomst(sfggRow, af);
-  const sfggSelectedOverenskomstLabel = hasSfggOverenskomst
-    ? (sfggOverenskomstMeta?.navn ?? af.overenskomstId!.trim())
-    : 'Ingen overenskomst valgt';
-  const canShowSfggOverenskomstDetails =
-    sfggRow?.sfggBeregningskilde !== 'Overenskomst' || hasSfggOverenskomst;
-  const requiresReferenceperiode =
-    sfggRow?.sfggBeregningskilde === 'Ferieloven'
-    || (
-      sfggRow?.sfggBeregningskilde === 'Overenskomst'
-      && hasSfggOverenskomst
-      && sfggPolicy?.model !== 'direkte_sats'
-    );
-  const showSatsvalg =
-    sfggRow?.sfggBeregningskilde === 'Overenskomst'
-    && hasSfggOverenskomst
-    && sfggPolicy?.model === 'direkte_sats'
-    && sfggPolicy.direkteSatsErDifferentieret;
-  const showSharedSfggBefore2015 = Boolean(
-    skadedato && skadedato < '2015-01-01'
-  );
+  // Hele SFGG-visningsafledningen kommer fra VM'en; kortet afleder ikke selv domæneflag.
+  const sfgg = getSfggPresentation(af);
+  // Advarslen er en snapshot-observation (ikke en ren af-afledning), så den kommer stadig som prop.
   const showSfggSixMonthWarning = sfggSixMonthWarningEmploymentIds.includes(af.id);
 
   return (
@@ -615,291 +611,50 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       />
 
       {beregnesUdFra === 'Beregningsperiode' ? (
-        <>
-      <Typography className="row--subheading">Lønudvikling</Typography>
-
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
-        <Box className="row--label-right-hover__content">
-            <ChoiceField
-              field={field(eoEmploymentFields.loenudviklingBeregningsgrundlag)}
-              location={location('loenudviklingBeregningsgrundlag')}
-              immediateCommitOverride={createManualRegulationBasisCommitOverride({
-                field: field(eoEmploymentFields.loenudviklingBeregningsgrundlag),
-                location: location('loenudviklingBeregningsgrundlag'),
-                manualCollection,
-                manualPercentCollection,
-                hasManualBaseRow: af.loenudviklingManuelTableData.length > 0,
-                hasManualPercentBaseRow: af.loenudviklingManuelProcentsatsTableData.length > 0,
-              })}
-            name={`${af.id}:loenudviklingBeregningsgrundlag`}
-            width={220}
-            allowEmpty={true}
-            placeholder="Vælg..."
-          >
-            <MenuItem value="Overenskomst">Overenskomst</MenuItem>
-            <MenuItem value="Statistik">Statistik</MenuItem>
-            <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
-            <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
-            <ChoiceDivider />
-            <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
-            <MenuItem value="Manuel procentsats">Manuel procentsats</MenuItem>
-            <ChoiceDivider />
-            <MenuItem value="Ingen">Ingen</MenuItem>
-          </ChoiceField>
-        </Box>
-      </Box>
-
-      {loenudviklingBasis === 'Overenskomst' ? (
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Overenskomst</Typography>
-          <Box className="row--label-right-hover__content">
-            <Typography className="row--text">{resolveOverenskomstLabel(af.overenskomstId)}</Typography>
-          </Box>
-        </Box>
-      ) : null}
-
-      {loenudviklingBasis === 'Overenskomst' && erOffentligOverenskomst ? (
-        <>
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">Lønoplysninger</Typography>
-            <Box className="row--label-right-hover__content">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                <Typography className="row--text">Ansættelse</Typography>
-                <ChoiceField
-                  field={field(eoEmploymentFields.offentligLoenType)}
-                  location={location('offentligLoenType')}
-                  name={`${af.id}:offentligLoenType`}
-                  width={160}
-                  allowEmpty={false}
-                >
-                  {offentligLoenTypeEnum.options.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
-                </ChoiceField>
-                <Typography className="row--text">Løntrin</Typography>
-                <IntegerField
-                  field={field(eoEmploymentFields.offentligLoenTrin)}
-                  location={location('offentligLoenTrin')}
-                  name={`${af.id}:offentligLoenTrin`}
-                  width={80}
-                />
-                <Typography className="row--text">Gruppe</Typography>
-                <IntegerField
-                  field={field(eoEmploymentFields.offentligLoenGruppe)}
-                  location={location('offentligLoenGruppe')}
-                  name={`${af.id}:offentligLoenGruppe`}
-                  width={70}
-                />
-                <Tooltip title="Find løntrin" arrow>
-                  <IconButton
-                    onClick={() => openLoentrinFinder(af)}
-                    tabIndex={-1}
-                    aria-label="Find løntrin"
-                    sx={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '6px',
-                      transition: 'background-color 0.2s',
-                      '&:hover': {
-                        backgroundColor: 'var(--color-icon-action-hover)',
-                      },
-                      '&:active': {
-                        backgroundColor: 'var(--color-icon-action-active)',
-                      },
-                    }}
-                  >
-                    <SearchIcon
-                      sx={{
-                        fontSize: '24px',
-                        color: 'primary.main',
-                      }}
-                    />
-                  </IconButton>
-                </Tooltip>
+        <LoenudviklingFields
+          binding={loenudviklingBinding}
+          manualBindings={eoEmploymentManual}
+          manualCollection={manualCollection}
+          manualPercentCollection={manualPercentCollection}
+          manualRows={af.loenudviklingManuelTableData}
+          manualPercentRows={af.loenudviklingManuelProcentsatsTableData}
+          manualRuleIssues={manualRegulationDateIssues}
+          manualLocationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelTableData`}
+          manualPercentLocationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelProcentsatsTableData`}
+          // route + tabKey er eksplicit navigation-metadata (§3.7); tabellerne bor på Lønindkomstfanen.
+          locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
+          loenudviklingBasis={loenudviklingBasis}
+          erOffentligOverenskomst={erOffentligOverenskomst}
+          overenskomstSlot={
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Overenskomst</Typography>
+              <Box className="row--label-right-hover__content">
+                <Typography className="row--text">{resolveOverenskomstLabel(af.overenskomstId)}</Typography>
               </Box>
             </Box>
-          </Box>
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">Evt. forhøjet grundløn udover løntrin</Typography>
-            <Box className="row--label-right-hover__content">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <AmountField
-                  field={field(eoEmploymentFields.offentligLoenEkstraGrundloen)}
-                  location={location('offentligLoenEkstraGrundloen')}
-                  name={`${af.id}:offentligLoenEkstraGrundloen`}
-                  width={160}
-                />
-                <Typography className="row--text">{getOffentligLoenEkstraGrundloenSuffix(af.offentligLoenType)}</Typography>
-              </Box>
-            </Box>
-          </Box>
-        </>
-      ) : null}
-
-      {loenudviklingBasis === 'Statistik' ? (
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Statistisk beregningsmodel</Typography>
-          <Box className="row--label-right-hover__content">
-            <ChoiceField
-              field={field(eoEmploymentFields.loenudviklingStatistikModel)}
-              location={location('loenudviklingStatistikModel')}
-              name={`${af.id}:loenudviklingStatistikModel`}
-              width={270}
-              allowEmpty={true}
-              placeholder="Vælg..."
-            >
-              <MenuItem value={ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}>{ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}</MenuItem>
-              <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
-              <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
-            </ChoiceField>
-          </Box>
-        </Box>
-      ) : null}
-
-      {loenudviklingBasis === 'KRL satstabel' ? (
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Satstabel</Typography>
-          <Box className="row--label-right-hover__content">
-            <ChoiceField
-              field={field(eoEmploymentFields.loenudviklingKRLSatstabel)}
-              location={location('loenudviklingKRLSatstabel')}
-              name={`${af.id}:loenudviklingKRLSatstabel`}
-              width={270}
-              allowEmpty={true}
-              placeholder="Vælg..."
-            >
-              {krlSatstabelEnum.options.map((satstabel) => (
-                <MenuItem key={satstabel} value={satstabel}>
-                  {satstabel}
-                </MenuItem>
-              ))}
-            </ChoiceField>
-          </Box>
-        </Box>
-      ) : null}
-
-      {loenudviklingBasis === 'Manuelt angivet' ? (
-        <Box sx={{ mt: 1 }}>
-          {(() => {
-            const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
-            const baseDateTooltipText =
-              loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
-                ? undefined
-                : capitalizeFirstCharDa(resolveAnvendtReguleringsdatoReferenceText({
-                    anvendtReguleringsdato,
-                    skadedato,
-                    skadestype,
-                    beregnesUdFra,
-                    beregningsperiodeTil: tafBeregningsperiodeTil,
-                    saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-                  }));
-            return (
-              <>
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Navn på reguleringsform</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <TextField
-                      field={field(eoEmploymentFields.loenudviklingManuelNavn)}
-                      location={location('loenudviklingManuelNavn')}
-                      name={`${af.id}:loenudviklingManuelNavn`}
-                      width={350}
-                    />
-                  </Box>
-                </Box>
-                <LoenudviklingManuelTable
-                  bindings={eoEmploymentManual}
-                  collection={manualCollection}
-                  committedRows={af.loenudviklingManuelTableData}
-                  ruleIssues={manualRegulationDateIssues}
-                  locationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelTableData`}
-                  baseDateDisplay={loenudviklingBaseDate.display}
-                  baseDateISO={loenudviklingBaseDate.iso}
-                  baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
-                  baseDateInfoTooltipText={baseDateTooltipText}
-                  baseRowPercentErrors={manualBaseRowErrorsByAfId[af.id]}
-                  // Procent-tilstand spejler satsfelterne ovenfor. I Beløb-tilstand er de skjulte,
-                  // og brugeren indtaster basisrækkens tillægsprocenter direkte i tabellen.
-                  readOnlyBaseRowPercentFields={af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB}
-                  useSmallFont={true}
-                  // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor på Lønindkomstfanen.
-                  locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
-                />
-              </>
-            );
-          })()}
-        </Box>
-      ) : null}
-
-      {loenudviklingBasis === 'Manuel procentsats' ? (
-        <Box sx={{ mt: 1 }}>
-          {(() => {
-            const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
-            const baseDateTooltipText =
-              loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
-                ? undefined
-                : capitalizeFirstCharDa(resolveAnvendtReguleringsdatoReferenceText({
-                    anvendtReguleringsdato,
-                    skadedato,
-                    skadestype,
-                    beregnesUdFra,
-                    beregningsperiodeTil: tafBeregningsperiodeTil,
-                    saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-                  }));
-            return (
-                <LoenudviklingManuelProcentsatsTable
-                  bindings={eoEmploymentManual}
-                  collection={manualPercentCollection}
-                  committedRows={af.loenudviklingManuelProcentsatsTableData}
-                  ruleIssues={manualRegulationDateIssues}
-                  locationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelProcentsatsTableData`}
-                  baseDateDisplay={loenudviklingBaseDate.display}
-                  baseDateISO={loenudviklingBaseDate.iso}
-                  baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
-                  baseDateInfoTooltipText={baseDateTooltipText}
-                  useSmallFont={true}
-                  // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor på Lønindkomstfanen.
-                  locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
-                />
-            );
-          })()}
-        </Box>
-      ) : null}
-
-      {shouldShowReguleringsDatoInterval ? (
-        <>
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Tilgængelige reguleringssatser</Typography>
-          <Box className="row--label-right-hover__content">
-            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end', gap: 1 }}>
-              {/*
-                Knaptilstand OG outputvalg kommer fra `reguleringDocument`. Den side-lokale
-                `canDownload`-IIFE (som var skrevet med en ANDEN formel end sagsniveauets) og
-                `loenudviklingBasis`-switchen ved klik er erstattet af den fælles resolver.
-              */}
-              <Typography className="row--text" sx={{ textAlign: 'right' }}>
-                {reguleringsDatoInterval}
-              </Typography>
-              <Box>
-                <DocumentDownloadButton
-                  disabled={!reguleringDocument.canDownload}
-                  disabledReason={reguleringDocument.disabledReason}
-                  onClick={() => { void reguleringDocument.download(); }}
-                />
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-        {/*
-          Gate-årsagen findes her KUN i knappens tooltip, så beskeden vises rå — ellers ville en
-          blokeret aktivering være helt usynlig for brugeren.
-        */}
-        <DocumentOutcomeMessage message={reguleringDocument.errorMessage} />
-        </>
-      ) : null}
-        </>
+          }
+          offentligLoenEkstraGrundloenSuffix={getOffentligLoenEkstraGrundloenSuffix(af.offentligLoenType)}
+          onOpenLoentrinFinder={() => openLoentrinFinder(af)}
+          baseDateDisplay={loenudviklingBaseDate.display}
+          baseDateISO={loenudviklingBaseDate.iso}
+          baseDateErrorMessage={loenudviklingBaseDate.errorMessage}
+          baseDateInfoTooltipText={
+            loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
+              ? undefined
+              : capitalizeFirstCharDa(anvendtReguleringsdatoReferenceText)
+          }
+          manualNavnWidth={350}
+          shouldShowReguleringsDatoInterval={shouldShowReguleringsDatoInterval}
+          reguleringsDatoIntervalDisplay={reguleringsDatoInterval}
+          reguleringDocument={reguleringDocument}
+          hasManualBaseRow={af.loenudviklingManuelTableData.length > 0}
+          hasManualPercentBaseRow={af.loenudviklingManuelProcentsatsTableData.length > 0}
+          // Procent-tilstand spejler satsfelterne ovenfor. I Beløb-tilstand er de skjulte,
+          // og brugeren indtaster basisrækkens tillægsprocenter direkte i tabellen.
+          readOnlyBaseRowPercentFields={af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB}
+          baseRowPercentErrors={manualBaseRowErrorsByAfId[af.id]}
+          fieldNamePrefix={`${af.id}:`}
+        />
       ) : null}
 
       {showAnciennitetstillaegSection ? (
@@ -965,16 +720,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       ) : null}
 
       <SygeferiegodtgoerelseSection
-        show={showSygeferiegodtgoerelseSection}
         af={af}
-        sfggRow={sfggRow}
-        sfggPolicy={sfggPolicy}
-        showSharedSfggBefore2015={showSharedSfggBefore2015}
+        sfgg={sfgg}
         showSfggSixMonthWarning={showSfggSixMonthWarning}
-        sfggSelectedOverenskomstLabel={sfggSelectedOverenskomstLabel}
-        canShowSfggOverenskomstDetails={canShowSfggOverenskomstDetails}
-        requiresReferenceperiode={requiresReferenceperiode}
-        showSatsvalg={showSatsvalg}
         onNavigateToTabtArbejdsfortjeneste={onNavigateToTabtArbejdsfortjeneste}
       />
 

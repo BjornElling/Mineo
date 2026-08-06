@@ -13,6 +13,9 @@ export const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
 export const formatFaktor = (value: number): string => formatAsAmountTrimmed(value, 3);
 
+/** Kanonisk formatter for et månedsantal i EET (4 decimaler, trailing zeros trimmet). */
+export const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4);
+
 /**
  * Kanonisk EET-procentformatter (afrundet til 4 decimaler, trailing zeros trimmet, " %"-suffiks).
  * Ejes af domænelaget og deles af både UI-faner og dokument-generatorer — hold ikke lokale kopier.

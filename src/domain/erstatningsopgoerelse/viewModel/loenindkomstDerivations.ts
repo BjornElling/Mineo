@@ -9,6 +9,8 @@ import { formatDanishDate } from '../../../utils/dateUtils';
 import type { StandardLoenTableSatser } from '../../../types/table';
 import {
   getOverenskomsterByOrg,
+  getOverenskomstMetaById,
+  getOverenskomstSfggPolicy,
   isOffentligOverenskomstId,
   resolveOverenskomstDisplay,
   type OverenskomstMeta,
@@ -22,7 +24,7 @@ import {
   resolveSfggReferenceperiodeMaxDate,
   getFirstIndtastedeTafFraDato,
 } from '../engines/sfggReferencesats';
-import { resolveSfggSource } from '../engines/sfggKilde';
+import { hasSfggSelectedOverenskomst, resolveSfggSource } from '../engines/sfggKilde';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../helpers/sygeferiegodtgoerelseEligibility';
 import {
   validateLoenudviklingManualBaseRowSatser,
@@ -105,8 +107,31 @@ export type LoenindkomstFlatModel = Readonly<{
   // Eksponeres her, så kortet ikke længere behøver rå committed EO-state.
   showSygeferiegodtgoerelseSection: (af: Ansaettelsesforhold) => boolean;
   getSfggRowForAf: (af: Ansaettelsesforhold) => SfggRow | undefined;
+  /**
+   * Hele SFGG-sektionens synlighed og etiketter for ét ansættelsesforhold.
+   *
+   * Lå tidligere som 10 løse booleans/labels inde i `AnsaettelsesforholdCard` — altså
+   * domæneafledning i et view, og den ENESTE grund til at `SygeferiegodtgoerelseSection`
+   * skulle tage 10 props, mens resten af sektionsfamilien tager nul. Samlet her, fordi
+   * flagene er indbyrdes afhængige (kilde × overenskomst × satsmodel) og kun giver et
+   * konsistent billede, når de afledes i én omgang fra samme række og policy.
+   */
+  getSfggPresentation: (af: Ansaettelsesforhold) => SfggPresentation;
   firstTafFraDato: ISODateString | undefined;
   sfggReferenceperiodeMaxDate: ISODateString | undefined;
+}>;
+
+/** Den samlede SFGG-visningsafledning for ét ansættelsesforhold (jf. `getSfggPresentation`). */
+export type SfggPresentation = Readonly<{
+  show: boolean;
+  row: SfggRow | undefined;
+  policy: ReturnType<typeof getOverenskomstSfggPolicy> | undefined;
+  hasOverenskomst: boolean;
+  selectedOverenskomstLabel: string;
+  canShowOverenskomstDetails: boolean;
+  requiresReferenceperiode: boolean;
+  showSatsvalg: boolean;
+  showSharedSfggBefore2015: boolean;
 }>;
 
 /**
@@ -256,6 +281,37 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
   const getSfggRowForAf = (af: Ansaettelsesforhold): SfggRow | undefined =>
     eoValues.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === af.id);
 
+  const getSfggPresentation = (af: Ansaettelsesforhold): SfggPresentation => {
+    const row = getSfggRowForAf(af);
+    const policy = af.overenskomstId ? getOverenskomstSfggPolicy(af.overenskomstId) : undefined;
+    const overenskomstMeta = af.overenskomstId ? getOverenskomstMetaById(af.overenskomstId) : undefined;
+    const hasOverenskomst = hasSfggSelectedOverenskomst(row, af);
+
+    return {
+      show: showSygeferiegodtgoerelseSection(af),
+      row,
+      policy,
+      hasOverenskomst,
+      selectedOverenskomstLabel: hasOverenskomst
+        ? (overenskomstMeta?.navn ?? af.overenskomstId!.trim())
+        : 'Ingen overenskomst valgt',
+      canShowOverenskomstDetails: row?.sfggBeregningskilde !== 'Overenskomst' || hasOverenskomst,
+      requiresReferenceperiode:
+        row?.sfggBeregningskilde === 'Ferieloven'
+        || (
+          row?.sfggBeregningskilde === 'Overenskomst'
+          && hasOverenskomst
+          && policy?.model !== 'direkte_sats'
+        ),
+      showSatsvalg:
+        row?.sfggBeregningskilde === 'Overenskomst'
+        && hasOverenskomst
+        && policy?.model === 'direkte_sats'
+        && policy.direkteSatsErDifferentieret,
+      showSharedSfggBefore2015: Boolean(skadedato && skadedato < '2015-01-01'),
+    };
+  };
+
   const firstTafFraDato = getFirstIndtastedeTafFraDato(eoValues);
   const sfggReferenceperiodeMaxDate = resolveSfggReferenceperiodeMaxDate(eoValues);
 
@@ -271,6 +327,7 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
     getFilteredOverenskomsterForAnsaettelsesforhold,
     showSygeferiegodtgoerelseSection,
     getSfggRowForAf,
+    getSfggPresentation,
     firstTafFraDato,
     sfggReferenceperiodeMaxDate,
   };

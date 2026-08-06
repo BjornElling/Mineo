@@ -1,7 +1,4 @@
-import { Box, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import DocumentDownloadButton from '../../../../inputs/DocumentDownloadButton';
-import DocumentOutcomeMessage from '../../../../inputs/DocumentOutcomeMessage';
+import { Box, MenuItem, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
 import InfoTooltipIcon from '../../../../common/InfoTooltipIcon';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
@@ -33,18 +30,14 @@ import {
   eoAngivetLoenManual,
 } from '../../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import type { CollectionRef } from '../../../../../inputCore/fieldAddress';
-import { ChoiceDivider } from '../../../../../inputCore/react/fields/ChoiceField';
 import FerieperiodeTable from '../../../../tables/FerieperiodeTable';
-import LoenudviklingManuelTable from '../../../../tables/LoenudviklingManuelTable';
-import LoenudviklingManuelProcentsatsTable from '../../../../tables/LoenudviklingManuelProcentsatsTable';
+import LoenudviklingFields from '../../loenudvikling/LoenudviklingFields';
+import { capitalizeFirstCharDa } from '../../../../../utils/formatUtils';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { formatOverenskomstMetaDisplay, resolveOverenskomstDisplay } from '../../../../../data/overenskomstRates';
-import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../../../data/statistiskeRates';
-import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../../schemas/formSchemas';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
-import { createManualRegulationBasisCommitOverride } from '../../../../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
 
 // route + tabKey er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 const eoOplyLocation = (locationId: string) => ({
@@ -52,6 +45,38 @@ const eoOplyLocation = (locationId: string) => ({
   route: APP_ROUTES.erstatningsopgoerelse,
   tabKey: EO_TAB_KEYS.EO_OPLYSNINGER,
 });
+
+/**
+ * De to overenskomst-filterdropdowns er bevidst kompakte (24 px høje, 11 px tekst), fordi de
+ * står inline foran den brede overenskomstvælger. Stylingen var tidligere skrevet ordret to
+ * gange lige efter hinanden; her er den ét sted, så de to filtre ikke kan drive fra hinanden.
+ */
+const OVERENSKOMST_FILTER_SX = {
+  '& .MuiInputBase-root': {
+    height: '24px !important',
+    minHeight: '24px !important',
+    paddingRight: '20px !important',
+  },
+  '& .MuiInputBase-input': {
+    fontSize: '11px !important',
+    padding: '0 4px 0 8px !important',
+    lineHeight: '24px',
+  },
+  '& .MuiSvgIcon-root': {
+    fontSize: '12px !important',
+  },
+} as const;
+
+const OVERENSKOMST_FILTER_ICON_SX = {
+  fontSize: '16px',
+  right: 2,
+} as const;
+
+const OVERENSKOMST_FILTER_OPTION_SX = {
+  fontSize: '11px',
+  minHeight: '24px',
+  padding: '3px 8px',
+} as const;
 
 /**
  * Sektion 5: indtægt før stamdatadatoen (beregningsmetode, beregningsperiode/ferie/fravær eller
@@ -87,6 +112,45 @@ export default function IndtaegtFoerSkadenSection() {
   } = useEoOplysningerVm();
 
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return null;
+
+  /**
+   * Bindingen til den delte Lønudvikling-flade. «Angivet løn» har én forekomst pr. sag, så
+   * adresserne er statiske — modsat Lønindkomst, der binder pr. ansættelsesforhold.
+   */
+  const loenudviklingBinding = {
+    loenudviklingBeregningsgrundlag: {
+      field: eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(),
+      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag'),
+    },
+    loenudviklingStatistikModel: {
+      field: eoAngivetLoenFields.loenudviklingStatistikModel.bind(),
+      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel'),
+    },
+    loenudviklingKRLSatstabel: {
+      field: eoAngivetLoenFields.loenudviklingKRLSatstabel.bind(),
+      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel'),
+    },
+    loenudviklingManuelNavn: {
+      field: eoAngivetLoenFields.loenudviklingManuelNavn.bind(),
+      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelNavn'),
+    },
+    offentligLoenType: {
+      field: eoAngivetLoenFields.offentligLoenType.bind(),
+      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenType'),
+    },
+    offentligLoenTrin: {
+      field: eoAngivetLoenFields.offentligLoenTrin.bind(),
+      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenTrin'),
+    },
+    offentligLoenGruppe: {
+      field: eoAngivetLoenFields.offentligLoenGruppe.bind(),
+      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenGruppe'),
+    },
+    offentligLoenEkstraGrundloen: {
+      field: eoAngivetLoenFields.offentligLoenEkstraGrundloen.bind(),
+      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloen'),
+    },
+  };
 
   return (
         <ContentBox className="content-box" data-section-id="taf-beregningsgrundlag">
@@ -303,42 +367,21 @@ export default function IndtaegtFoerSkadenSection() {
             )}
 
             {visLoenudviklingFraEO && (
-              <>
-                <Typography className="row--subheading">Lønudvikling</Typography>
-
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
-                  <Box className="row--label-right-hover__content">
-                      <ChoiceField
-                        field={eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind()}
-                        location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag')}
-                        immediateCommitOverride={createManualRegulationBasisCommitOverride({
-                          field: eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(),
-                          location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag'),
-                          manualCollection: eoAngivetLoenManual.manualCollection.template as CollectionRef,
-                          manualPercentCollection: eoAngivetLoenManual.manualPercentCollection.template as CollectionRef,
-                          hasManualBaseRow: eoLoenudvikling.loenudviklingManuelTableData.length > 0,
-                          hasManualPercentBaseRow: eoLoenudvikling.loenudviklingManuelProcentsatsTableData.length > 0,
-                        })}
-                      name="loenudviklingBeregningsgrundlag"
-                      width={220}
-                      allowEmpty={true}
-                      placeholder="Vælg..."
-                    >
-                      <MenuItem value="Overenskomst">Overenskomst</MenuItem>
-                      <MenuItem value="Statistik">Statistik</MenuItem>
-                      <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
-                      <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
-                      <ChoiceDivider />
-                      <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
-                      <MenuItem value="Manuel procentsats">Manuel procentsats</MenuItem>
-                      <ChoiceDivider />
-                      <MenuItem value="Ingen">Ingen</MenuItem>
-                    </ChoiceField>
-                  </Box>
-                </Box>
-
-                {loenudviklingBasis === 'Overenskomst' ? (
+              <LoenudviklingFields
+                binding={loenudviklingBinding}
+                manualBindings={eoAngivetLoenManual}
+                manualCollection={eoAngivetLoenManual.manualCollection.template as CollectionRef}
+                manualPercentCollection={eoAngivetLoenManual.manualPercentCollection.template as CollectionRef}
+                manualRows={eoLoenudvikling.loenudviklingManuelTableData}
+                manualPercentRows={eoLoenudvikling.loenudviklingManuelProcentsatsTableData}
+                manualRuleIssues={manualRegulationDateIssues}
+                manualLocationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData"
+                manualPercentLocationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData"
+                // route + tabKey er eksplicit navigation-metadata (§3.7); her bor tabellerne på EO-oplysningerfanen.
+                locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
+                loenudviklingBasis={loenudviklingBasis}
+                erOffentligOverenskomst={erOffentligOverenskomst}
+                overenskomstSlot={
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Vælg overenskomst</Typography>
                     <Box className="row--label-right-hover__content">
@@ -352,30 +395,9 @@ export default function IndtaegtFoerSkadenSection() {
                           emptyUiValue="ALLE"
                           width={120}
                           allowEmpty={false}
-                          sx={{
-                            '& .MuiInputBase-root': {
-                              height: '24px !important',
-                              minHeight: '24px !important',
-                              paddingRight: '20px !important',
-                            },
-                            '& .MuiInputBase-input': {
-                              fontSize: '11px !important',
-                              padding: '0 4px 0 8px !important',
-                              lineHeight: '24px',
-                            },
-                            '& .MuiSvgIcon-root': {
-                              fontSize: '12px !important',
-                            },
-                          }}
-                          iconSx={{
-                            fontSize: '16px',
-                            right: 2,
-                          }}
-                          optionSx={{
-                            fontSize: '11px',
-                            minHeight: '24px',
-                            padding: '3px 8px',
-                          }}
+                          sx={OVERENSKOMST_FILTER_SX}
+                          iconSx={OVERENSKOMST_FILTER_ICON_SX}
+                          optionSx={OVERENSKOMST_FILTER_OPTION_SX}
                         >
                           <MenuItem value="ALLE">Alle</MenuItem>
                           {alleLoenmodtagerOrg.map((org) => (
@@ -394,30 +416,9 @@ export default function IndtaegtFoerSkadenSection() {
                           emptyUiValue="ALLE"
                           width={120}
                           allowEmpty={false}
-                          sx={{
-                            '& .MuiInputBase-root': {
-                              height: '24px !important',
-                              minHeight: '24px !important',
-                              paddingRight: '20px !important',
-                            },
-                            '& .MuiInputBase-input': {
-                              fontSize: '11px !important',
-                              padding: '0 4px 0 8px !important',
-                              lineHeight: '24px',
-                            },
-                            '& .MuiSvgIcon-root': {
-                              fontSize: '12px !important',
-                            },
-                          }}
-                          iconSx={{
-                            fontSize: '16px',
-                            right: 2,
-                          }}
-                          optionSx={{
-                            fontSize: '11px',
-                            minHeight: '24px',
-                            padding: '3px 8px',
-                          }}
+                          sx={OVERENSKOMST_FILTER_SX}
+                          iconSx={OVERENSKOMST_FILTER_ICON_SX}
+                          optionSx={OVERENSKOMST_FILTER_OPTION_SX}
                         >
                           <MenuItem value="ALLE">Alle</MenuItem>
                           {alleArbejdsgiverOrg.map((org) => (
@@ -445,210 +446,36 @@ export default function IndtaegtFoerSkadenSection() {
                       </Box>
                     </Box>
                   </Box>
-                ) : null}
-
-                {loenudviklingBasis === 'Overenskomst' && erOffentligOverenskomst ? (
-                  <>
-                    <Box className="row--label-right-hover">
-                      <Typography className="row--text">Lønoplysninger</Typography>
-                      <Box className="row--label-right-hover__content">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Typography className="row--text">Ansættelse</Typography>
-                          <ChoiceField
-                            field={eoAngivetLoenFields.offentligLoenType.bind()}
-                            location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenType')}
-                            name="offentligLoenType"
-                            width={160}
-                            allowEmpty={false}
-                          >
-                            {offentligLoenTypeEnum.options.map((option) => (
-                              <MenuItem key={option} value={option}>
-                                {option}
-                              </MenuItem>
-                            ))}
-                          </ChoiceField>
-                          <Typography className="row--text">Løntrin</Typography>
-                          <IntegerField
-                            field={eoAngivetLoenFields.offentligLoenTrin.bind()}
-                            location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenTrin')}
-                            name="offentligLoenTrin"
-                            width={80}
-                          />
-                          <Typography className="row--text">Gruppe</Typography>
-                          <IntegerField
-                            field={eoAngivetLoenFields.offentligLoenGruppe.bind()}
-                            location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenGruppe')}
-                            name="offentligLoenGruppe"
-                            width={70}
-                          />
-                          <Tooltip title="Find løntrin" arrow>
-                            <IconButton
-                              onClick={loentrinFinder.openLoentrinFinder}
-                              tabIndex={-1}
-                              aria-label="Find løntrin"
-                              sx={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '6px',
-                                transition: 'background-color 0.2s',
-                                '&:hover': {
-                                  backgroundColor: 'var(--color-icon-action-hover)',
-                                },
-                                '&:active': {
-                                  backgroundColor: 'var(--color-icon-action-active)',
-                                },
-                              }}
-                            >
-                              <SearchIcon
-                                sx={{
-                                  fontSize: '24px',
-                                  color: 'primary.main',
-                                }}
-                              />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </Box>
-                    </Box>
-                    <Box className="row--label-right-hover">
-                      <Typography className="row--text">Evt. forhøjet grundløn udover løntrin</Typography>
-                      <Box className="row--label-right-hover__content">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <AmountField
-                            field={eoAngivetLoenFields.offentligLoenEkstraGrundloen.bind()}
-                            location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloen')}
-                            name="offentligLoenEkstraGrundloen"
-                            width={160}
-                          />
-                          <Typography className="row--text">{offentligLoenEkstraGrundloenSuffix}</Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </>
-                ) : null}
-
-                {loenudviklingBasis === 'Statistik' ? (
-                  <Box className="row--label-right-hover">
-                    <Typography className="row--text">Statistisk beregningsmodel</Typography>
-                    <Box className="row--label-right-hover__content">
-                      <ChoiceField
-                        field={eoAngivetLoenFields.loenudviklingStatistikModel.bind()}
-                        location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel')}
-                        name="loenudviklingStatistikModel"
-                        width={270}
-                        allowEmpty={true}
-                        placeholder="Vælg..."
-                      >
-                        <MenuItem value={ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}>{ASL_AARSLOENSMAKSIMUM_MODEL_LABEL}</MenuItem>
-                        <MenuItem value="ILON12 (Danmarks Statistik)">ILON12 (Danmarks Statistik)</MenuItem>
-                        <MenuItem value="SBLON2 (Danmarks Statistik)">SBLON2 (Danmarks Statistik)</MenuItem>
-                      </ChoiceField>
-                    </Box>
-                  </Box>
-                ) : null}
-
-                {loenudviklingBasis === 'KRL satstabel' ? (
-                  <Box className="row--label-right-hover">
-                    <Typography className="row--text">Satstabel</Typography>
-                    <Box className="row--label-right-hover__content">
-                      <ChoiceField
-                        field={eoAngivetLoenFields.loenudviklingKRLSatstabel.bind()}
-                        location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel')}
-                        name="loenudviklingKRLSatstabel"
-                        width={270}
-                        allowEmpty={true}
-                        placeholder="Vælg..."
-                      >
-                        {krlSatstabelEnum.options.map((satstabel) => (
-                          <MenuItem key={satstabel} value={satstabel}>
-                            {satstabel}
-                          </MenuItem>
-                        ))}
-                      </ChoiceField>
-                    </Box>
-                  </Box>
-                ) : null}
-
-                {loenudviklingBasis === 'Manuelt angivet' ? (
-                  <Box sx={{ mt: 1 }}>
-                    <Box className="row--label-right-hover">
-                      <Typography className="row--text">Navn på reguleringsform</Typography>
-                      <Box className="row--label-right-hover__content">
-                        <TextField
-                          field={eoAngivetLoenFields.loenudviklingManuelNavn.bind()}
-                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelNavn')}
-                          name="loenudviklingManuelNavn"
-                          width={300}
-                        />
-                      </Box>
-                    </Box>
-                    <LoenudviklingManuelTable
-                      bindings={eoAngivetLoenManual}
-                      collection={eoAngivetLoenManual.manualCollection.template as CollectionRef}
-                      committedRows={eoLoenudvikling.loenudviklingManuelTableData}
-                      ruleIssues={manualRegulationDateIssues}
-                      locationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData"
-                      baseDateDisplay={loenudviklingBaseDateDisplay}
-                      baseDateISO={loenudviklingBaseDateISO}
-                      baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? loenudviklingBaseDateErrorMessage : undefined}
-                      useSmallFont={true}
-                      // route + tabKey er eksplicit navigation-metadata (§3.7); her bor tabellen på EO-oplysningerfanen.
-                      locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
-                    />
-                  </Box>
-                ) : null}
-
-                {loenudviklingBasis === 'Manuel procentsats' ? (
-                  <Box sx={{ mt: 1 }}>
-                      <LoenudviklingManuelProcentsatsTable
-                        bindings={eoAngivetLoenManual}
-                        collection={eoAngivetLoenManual.manualPercentCollection.template as CollectionRef}
-                        committedRows={eoLoenudvikling.loenudviklingManuelProcentsatsTableData}
-                        ruleIssues={manualRegulationDateIssues}
-                        locationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData"
-                        baseDateDisplay={loenudviklingBaseDateDisplay}
-                        baseDateISO={loenudviklingBaseDateISO}
-                        baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? loenudviklingBaseDateErrorMessage : undefined}
-                        useSmallFont={true}
-                        // route + tabKey er eksplicit navigation-metadata (§3.7); her bor tabellen på EO-oplysningerfanen.
-                        locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
-                      />
-                  </Box>
-                ) : null}
-
-                {shouldShowReguleringsDatoInterval ? (
-                  <>
-                  <Box className="row--label-right-hover">
-                    <Typography className="row--text">Tilgængelige reguleringssatser</Typography>
-                    <Box className="row--label-right-hover__content">
-                      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'flex-end', gap: 1 }}>
-                        {/*
-                          Knaptilstand og outputvalg kommer fra `reguleringDocument`. Den
-                          side-lokale `canDownload`-IIFE og den `loenudviklingBasis`-switch, der før
-                          valgte mellem tre servicekald ved KLIK — altså før commit-barrieren — er
-                          erstattet af resolveren, som vælger efter settle på et frisk snapshot.
-                        */}
-                        <Typography className="row--text" sx={{ textAlign: 'right' }}>
-                          {reguleringsDatoIntervalDisplay || '-'}
-                        </Typography>
-                        <Box>
-                          <DocumentDownloadButton
-                            disabled={!reguleringDocument.canDownload}
-                            disabledReason={reguleringDocument.disabledReason}
-                            onClick={() => { void reguleringDocument.download(); }}
-                          />
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Box>
-                  {/*
-                    Gate-årsagen findes her KUN i knappens tooltip, så beskeden vises rå — ellers ville en
-                    blokeret aktivering være helt usynlig for brugeren.
-                  */}
-                  <DocumentOutcomeMessage message={reguleringDocument.errorMessage} />
-                  </>
-                ) : null}
-              </>
+                }
+                offentligLoenEkstraGrundloenSuffix={offentligLoenEkstraGrundloenSuffix}
+                onOpenLoentrinFinder={loentrinFinder.openLoentrinFinder}
+                baseDateDisplay={loenudviklingBaseDateDisplay}
+                baseDateISO={loenudviklingBaseDateISO}
+                baseDateErrorMessage={loenudviklingBaseDateErrorMessage}
+                /*
+                  Forklaringen bag basisdatoen manglede tidligere på DENNE overflade, selv om VM'en
+                  allerede beregnede `loenudviklingBaseDateReferenceText`. Tabellen viste derfor
+                  låst basisdato uden at kunne forklare hvor datoen kom fra — modsat Lønindkomst.
+                */
+                baseDateInfoTooltipText={
+                  loenudviklingBaseDateDisplay === '' || loenudviklingBaseDateReferenceText === ''
+                    ? undefined
+                    : capitalizeFirstCharDa(loenudviklingBaseDateReferenceText)
+                }
+                manualNavnWidth={350}
+                shouldShowReguleringsDatoInterval={shouldShowReguleringsDatoInterval}
+                reguleringsDatoIntervalDisplay={reguleringsDatoIntervalDisplay}
+                reguleringDocument={reguleringDocument}
+                hasManualBaseRow={eoLoenudvikling.loenudviklingManuelTableData.length > 0}
+                hasManualPercentBaseRow={eoLoenudvikling.loenudviklingManuelProcentsatsTableData.length > 0}
+                /*
+                  «Angivet løn» har ingen satsfelter over tabellen, så basisrækkens procentfelter
+                  er altid brugerens egne — der er intet at spejle og intet at låse.
+                */
+                readOnlyBaseRowPercentFields={false}
+                baseRowPercentErrors={undefined}
+                fieldNamePrefix=""
+              />
             )}
 
             {showEoAnciennitetstillaegSection ? (

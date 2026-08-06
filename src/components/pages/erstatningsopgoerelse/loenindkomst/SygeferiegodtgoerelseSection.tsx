@@ -21,7 +21,7 @@ import {
 import type { CollectionRef } from '../../../../inputCore/fieldAddress';
 import InfoTooltipIcon from '../../../common/InfoTooltipIcon';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
-import type { OverenskomstSfggPolicy } from '../../../../data/overenskomstRates';
+import type { SfggPresentation } from '../../../../domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 
@@ -41,16 +41,17 @@ const createEmptySfggRow = (ansaettelsesforholdId: string): SfggRow => ({
 });
 
 type Props = Readonly<{
-  show: boolean;
   af: Ansaettelsesforhold;
-  sfggRow: SfggRow | undefined;
-  sfggPolicy: OverenskomstSfggPolicy | undefined;
-  showSharedSfggBefore2015: boolean;
+  /**
+   * Den samlede SFGG-visningsafledning fra VM'en. Tidligere kom de otte flag/etiketter
+   * herinde som otte selvstændige props, som kortet udregnede selv — dvs. domæneafledning
+   * i et view, og den eneste grund til at netop denne sektion tog 10 props, hvor resten af
+   * sektionsfamilien tager nul. Flagene er indbyrdes afhængige og hører derfor sammen som
+   * ét objekt: en delmængde kan ikke give et konsistent billede.
+   */
+  sfgg: SfggPresentation;
+  /** Snapshot-observation (ikke en ren af-afledning), derfor stadig en selvstændig prop. */
   showSfggSixMonthWarning: boolean;
-  sfggSelectedOverenskomstLabel: string;
-  canShowSfggOverenskomstDetails: boolean;
-  requiresReferenceperiode: boolean;
-  showSatsvalg: boolean;
   onNavigateToTabtArbejdsfortjeneste: () => void;
 }>;
 
@@ -61,19 +62,12 @@ type Props = Readonly<{
  * page-component-contract §6.3) og committer via den ene `updateSfggAnsaettelsesforhold`-callback.
  */
 const SygeferiegodtgoerelseSection = ({
-  show,
   af,
-  sfggRow,
-  sfggPolicy,
-  showSharedSfggBefore2015,
+  sfgg,
   showSfggSixMonthWarning,
-  sfggSelectedOverenskomstLabel,
-  canShowSfggOverenskomstDetails,
-  requiresReferenceperiode,
-  showSatsvalg,
   onNavigateToTabtArbejdsfortjeneste,
 }: Props) => {
-  if (!show) return null;
+  if (!sfgg.show) return null;
 
   // route + tabKey er eksplicit navigation-metadata (§3.7); SFGG-felterne bor på Lønindkomstfanen.
   const location = (name: string) => ({
@@ -98,7 +92,7 @@ const SygeferiegodtgoerelseSection = ({
         </Box>
       ) : null}
 
-      {showSharedSfggBefore2015 ? (
+      {sfgg.showSharedSfggBefore2015 ? (
         <Box className="row--label-right-hover">
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap' }}>
@@ -136,7 +130,7 @@ const SygeferiegodtgoerelseSection = ({
             collection={eoSfggAnsaettelsesforholdCollection.template as CollectionRef}
             entity={createEmptySfggRow(af.id)}
             entityId={af.id}
-            entityExists={sfggRow !== undefined}
+            entityExists={sfgg.row !== undefined}
             location={location('sfggBeregningskilde')}
             name={`${af.id}:sfggBeregningskilde`}
             width={200}
@@ -151,29 +145,29 @@ const SygeferiegodtgoerelseSection = ({
         </Box>
       </Box>
 
-      {sfggRow?.sfggBeregningskilde === 'Overenskomst' ? (
+      {sfgg.row?.sfggBeregningskilde === 'Overenskomst' ? (
         <Box className="row--label-right-hover">
           <Typography className="row--text">Overenskomst (angivet ovenfor)</Typography>
           <Box className="row--label-right-hover__content">
             <Typography className="row--text" sx={{ textAlign: 'right', maxWidth: '520px' }}>
-              {sfggSelectedOverenskomstLabel}
+              {sfgg.selectedOverenskomstLabel}
             </Typography>
           </Box>
         </Box>
       ) : null}
 
-      {sfggRow?.sfggBeregningskilde === 'Overenskomst' && canShowSfggOverenskomstDetails && sfggPolicy?.model !== 'direkte_sats' ? (
+      {sfgg.row?.sfggBeregningskilde === 'Overenskomst' && sfgg.canShowOverenskomstDetails && sfgg.policy?.model !== 'direkte_sats' ? (
         <Box className="row--label-right-hover">
           <Typography className="row--text">Overenskomstens referenceperiode</Typography>
           <Box className="row--label-right-hover__content">
             <Typography className="row--text" sx={{ textAlign: 'right', maxWidth: '520px' }}>
-              {`Følger ferieloven${sfggPolicy?.referenceperiodeLabel ? ` (${sfggPolicy.referenceperiodeLabel})` : ''}`}
+              {`Følger ferieloven${sfgg.policy?.referenceperiodeLabel ? ` (${sfgg.policy.referenceperiodeLabel})` : ''}`}
             </Typography>
           </Box>
         </Box>
       ) : null}
 
-      {canShowSfggOverenskomstDetails && showSatsvalg ? (
+      {sfgg.canShowOverenskomstDetails && sfgg.showSatsvalg ? (
         <Box className="row--label-right-hover">
           <Typography className="row--text">Angiv skadelidtes uddannelse og arbejdssted</Typography>
           <Box className="row--label-right-hover__content">
@@ -194,7 +188,7 @@ const SygeferiegodtgoerelseSection = ({
         </Box>
       ) : null}
 
-      {canShowSfggOverenskomstDetails && requiresReferenceperiode ? (
+      {sfgg.canShowOverenskomstDetails && sfgg.requiresReferenceperiode ? (
         <>
           <Box className="row--label-right-hover">
             <Typography className="row--text">Referenceperiode</Typography>
@@ -231,7 +225,7 @@ const SygeferiegodtgoerelseSection = ({
         </>
       ) : null}
 
-      {sfggRow?.sfggBeregningskilde === 'Overenskomst' && canShowSfggOverenskomstDetails && sfggPolicy?.model === 'direkte_sats' && !showSatsvalg ? (
+      {sfgg.row?.sfggBeregningskilde === 'Overenskomst' && sfgg.canShowOverenskomstDetails && sfgg.policy?.model === 'direkte_sats' && !sfgg.showSatsvalg ? (
         <Box className="row--label-right-hover">
           <Typography className="row--text">Referencesats</Typography>
           <Box className="row--label-right-hover__content">
@@ -240,7 +234,7 @@ const SygeferiegodtgoerelseSection = ({
         </Box>
       ) : null}
 
-      {sfggRow?.sfggBeregningskilde === 'Manuelt angivet' ? (
+      {sfgg.row?.sfggBeregningskilde === 'Manuelt angivet' ? (
         <>
           <Box className="row--label-right-hover">
             <Typography className="row--text">Dagssats for sygeferiegodtgørelse (mandag-fredag)</Typography>
@@ -281,7 +275,7 @@ const SygeferiegodtgoerelseSection = ({
         </>
       ) : null}
 
-      {sfggRow?.sfggBeregningskilde !== undefined && sfggRow.sfggBeregningskilde !== 'Ingen' && canShowSfggOverenskomstDetails ? (
+      {sfgg.row?.sfggBeregningskilde !== undefined && sfgg.row.sfggBeregningskilde !== 'Ingen' && sfgg.canShowOverenskomstDetails ? (
         <Box className="row--label-right-hover">
           <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode<InfoTooltipIcon title="Angiv kun faktisk SFGG. Feriegodtgørelse af sygeløn beregnes automatisk." /></Typography>
           <Box className="row--label-right-hover__content">
