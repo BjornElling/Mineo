@@ -1584,21 +1584,41 @@ er committet.
 | **#26** | Container → headless hook | Bekræftet (584 l., keyboard-nav er ~320 = 55 %). `keyboard-navigation.md` §Implementeringsfrihed (l. 228-237) **tillader eksplicit** refaktoreringen. Grid'ets `tableKeyboardNavigation.ts` er IKKE duplikering — grænsen er kodet og bevidst (`isInTableNavigation`, `markTableBoundaryExit`, delte selectors). Stærkt testnet findes (29 + ~15 cases, normativt nævnt i kontraktens §Testkrav). |
 | **#35** | Carry-forward-opslag | Blokeret indtil der findes en fælles dato-nøgle-abstraktion: `DanishDateString` (ikke leksikografisk sorterbar) vs. `ISODateString`, forskellige feltnavne, modsat sorteringsretning, `undefined` vs. `0`-fallback. Sygedagpenge (lukkede intervaller), lovbestemte satser (per-år) og KL-lønaftaler (eksakt-dato-Map) er **andre datamodeller** og hører ikke under kandidaten. |
 
-### Afventer brugerens beslutning (UI/UX-mandatgrænsen)
+### Brugerens beslutninger 2026-08-06 (bindende for resten af arbejdet)
 
-Aftalt med brugeren: alt godkendelsesfrit laves først, og de synlige UI/UX-valg forelægges
-**samlet**. Følgende er ikke rørt og venter på forelæggelse:
+De fire udestående mandatspørgsmål er forelagt samlet og besvaret. Beslutningerne herunder er
+**afgjorte** og må ikke genåbnes uden ny forelæggelse.
 
-1. **Breakpoint-styling mod desktop-only-kontrakten** — `SiblingSitesFooter.tsx` (`@media` i en
-   delt komponent) og `RenteberegningTab.tsx` (breakpointstyret `sx` i Mineos almindelige
-   brugerflow). Begge afviger fra reglen om, at mobil-/tabletstyling kun må findes i
-   `UnsupportedDevicePage.tsx`. At fjerne dem kan ændre synligt layout.
-2. **#46 — variant-build-output.** Efterbehandlingen er hovedsagelig **deploy-artefakter**, ikke
-   build-hygiejne: `_headers` (Cloudflare/Netlify-cachepolitik), `robots.txt`, `sitemap.xml` og
-   `llms.txt` med hardkodede produktions-URL'er. Kun sletningen af `sw.js`/`manifest.json`/
-   `icons` er build-hygiejne, og den skyldes at begge varianter deler én `public/`-mappe.
-   Spørgsmålet til brugeren er, om deploy-artefakterne SKAL blive scripts (de er host-specifikke),
-   eller om `public/` skal splittes pr. variant.
+1. **Breakpoint-styling: bevares som i dag.** Planens præmis var kun halvt rigtig, og
+   korrektionen er en del af beslutningen: `SiblingSitesFooter.tsx` og `RenteberegningTab.tsx`
+   er **delt** mellem Mineo (`/mineo`-siden hhv. `Renteberegning`) og den **standalone
+   minProcesrente-app** (`MinProcesrenteCalculatorPage`), som er den dokumenterede
+   mobil-undtagelse. Breakpointsene betjener minProcesrente-mobilbrugeren; på desktop tænder de
+   aldrig, så Mineo er upåvirket. Bemærk desuden at `RenteberegningTab`s mobiladfærd i øvrigt
+   kører på en **eksplicit `isMobile`-prop**, ikke på breakpoints — den ene reelle
+   breakpoint-regel er `overflowX: { xs: 'hidden', sm: 'auto' }` (l. 218).
+   **Beslutning:** behold begge; udvid `desktop-only`-undtagelsen til at dække delte komponenter
+   der også forbruges af standalone minProcesrente, og pin den dækkede filliste med et værn, så
+   undtagelsen ikke breder sig. En split i to varianter blev afvist, fordi den ville give to
+   kopier af samme flade uden nogen synlig gevinst.
+2. **#46 — variant-build-output: bevidst ikke gennemført.** Brugeren mærker hverken før eller
+   efter nogen forskel, og deploy-artefakterne (`_headers`, `robots.txt`, `sitemap.xml`,
+   `llms.txt` med hardkodede produktions-URL'er) er host-specifikke og virker i dag.
+   **Beslutning:** kandidaten lukkes som *bevidst ikke gennemført*; tiden bruges på #50 og #32.
+   Den kendte restrisiko dokumenteres, men afhjælpes ikke: da begge varianter deler én
+   `public/`-mappe og buildet efterbehandler ved at **slette**, kan en fejlende sletning i
+   princippet give minProcesrente et Mineo-`manifest.json`/`sw.js` eller gøre Mineo indekserbar.
+3. **#50 — TAF-graf: pixel-troskab med undtagelse for reelle tegnefejl.** Scene-modellen skal
+   reproducere den nuværende tegning, bevist med et golden-net på scene-modellen (koordinater,
+   farver, tekst), så en utilsigtet afvigelse fejler i test. **Undtagelse:** finder jeg egentlige
+   tegnefejl — afklippede akselabels, overlappende signaturforklaring, manglende enhed på et
+   beløb — retter jeg dem og **fremlægger hver enkelt ændring for brugeren bagefter**. Rene
+   smagsændringer (farvevalg, skriftstørrelse, omplacering) er IKKE omfattet og må ikke laves.
+4. **Tallene: intet beregnet tal må flytte sig.** Alle resterende kandidater (#50, #32, #52,
+   #45, #21, #26, #35) er struktur-, testdæknings- og dokumentationsspor. Åbnes en gammel sag
+   efter arbejdet, skal hvert beløb, hver procent og hver dokumentværdi stå identisk.
+   **Ved afvigelse: stop og forelæg** — et ændret tal skal aldrig vurderes som "nok rigtigere"
+   undervejs. Tal- og dokument-goldens holdes uændrede gennem hele resten af sporet.
 
 ### Arbejdsmåde der viste sig at betale sig
 
