@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import TransientTextInput from '../inputs/transient/TransientTextInput';
 import { getTodayCopenhagenISO } from '../../utils/dateUtils';
+import { asciiSlug } from '../../utils/asciiSlug';
 import {
   type ContentBoxIdentity,
   openBugReportEmail,
@@ -26,13 +27,6 @@ type ContentBoxReportDialogProps = {
   contentBoxRef: React.RefObject<HTMLDivElement | null>;
 };
 
-const sanitizeFilenamePart = (value: string): string => {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-};
-
 const buildScreenshotFilename = (identity: ContentBoxIdentity): string => {
   const parts = [
     identity.pageTitle,
@@ -40,7 +34,10 @@ const buildScreenshotFilename = (identity: ContentBoxIdentity): string => {
     identity.boxIndex ? `box-${identity.boxIndex}` : undefined,
   ]
     .filter((part): part is string => Boolean(part))
-    .map(sanitizeFilenamePart)
+    // Sidetitler er danske brugervendte tekster, så translitterationen i `asciiSlug`
+    // er nødvendig: den tidligere lokale kopi spiste `ø`/`æ`/`å` som separator, så
+    // «Årsløn» blev `rsl-n` i filnavnet.
+    .map((part) => asciiSlug(part))
     .filter(Boolean);
 
   const base = parts.length > 0 ? parts.join('_') : 'contentbox';

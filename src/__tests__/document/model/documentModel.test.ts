@@ -1,6 +1,6 @@
 import { createDocumentComposer, renderDocumentModel } from '../../../document/model/documentModel';
 import type { DocumentWriter } from '../../../document/writer';
-import { TODAY } from '../../../config/dateRanges';
+import { getToday } from '../../../config/dateRanges';
 
 type RecordedCall = Readonly<{ name: string; args: readonly unknown[] }>;
 
@@ -220,7 +220,7 @@ describe('documentModel', () => {
       hasHeaderRow: false,
     });
     composer.writeSignatureBlock('Dato', 'Signatur', 'Skadelidte', 13);
-    composer.writeBrevhoved({ journalnr: 'J-1', dagsDatoISO: TODAY });
+    composer.writeBrevhoved({ journalnr: 'J-1', dagsDatoISO: getToday() });
     composer.addUdkastWatermark();
     composer.addContentWidthImage('data:image/png;base64,AA==', {
       aspectRatio: 2,

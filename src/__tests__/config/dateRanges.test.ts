@@ -1,11 +1,12 @@
 import {
-  TODAY,
+  getToday,
   MIN_YEAR,
-  CURRENT_YEAR,
+  getCurrentYear,
   MIN_SVIESMERTE_YEAR,
   dateRanges_stamdata,
   dateRanges_erstatningsopgoerelse,
   dateRanges_offentligeYdelser,
+  dateRanges_aarsloen,
   dateRanges_varigemen,
   computeSkadedatoMinRule,
 } from '../../config/dateRanges';
@@ -17,30 +18,84 @@ const iso = (s: string) => toISODateString(s);
 // ─── Globale konstanter ───────────────────────────────────────────────────────
 
 describe('dateRanges – globale konstanter', () => {
-  it('TODAY er en gyldig ISO-dato (YYYY-MM-DD)', () => {
-    expect(TODAY).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  it('getToday() er en gyldig ISO-dato (YYYY-MM-DD)', () => {
+    expect(getToday()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   it('MIN_YEAR svarer til årstallet i systemets nedre datogrænse (2005-01-01)', () => {
     expect(MIN_YEAR).toBe(2005);
   });
 
-  it('CURRENT_YEAR svarer til det aktuelle år i TODAY', () => {
-    const currentYear = Number(TODAY.slice(0, 4));
-    expect(CURRENT_YEAR).toBe(currentYear);
+  it('getCurrentYear() svarer til det aktuelle år i getToday()', () => {
+    const currentYear = Number(getToday().slice(0, 4));
+    expect(getCurrentYear()).toBe(currentYear);
   });
 
-  it('MIN_YEAR ≤ CURRENT_YEAR', () => {
-    expect(MIN_YEAR).toBeLessThanOrEqual(CURRENT_YEAR);
+  it('MIN_YEAR ≤ getCurrentYear()', () => {
+    expect(MIN_YEAR).toBeLessThanOrEqual(getCurrentYear());
   });
 
   it('MIN_SVIESMERTE_YEAR er et positivt heltal ≥ MIN_YEAR', () => {
     expect(Number.isInteger(MIN_SVIESMERTE_YEAR)).toBe(true);
     expect(MIN_SVIESMERTE_YEAR).toBeGreaterThanOrEqual(MIN_YEAR);
   });
+});
 
-  it('MIN_SVIESMERTE_YEAR ≤ CURRENT_YEAR', () => {
-    expect(MIN_SVIESMERTE_YEAR).toBeLessThanOrEqual(CURRENT_YEAR);
+// ─── Dags dato læses på opslagstidspunktet (ikke ved modulets import) ─────────
+
+describe('dateRanges – dags dato er live, ikke et import-øjebliksbillede', () => {
+  // Disse tests er værnet mod at `getToday`/`getCurrentYear` bliver lavet til `const` igen.
+  // De ville ALLE fejle på den tidligere form, hvor værdien blev låst ved modulets import:
+  // en session der står åben over midnat validerede fortsat mod gårsdagens maksimum.
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('getToday() følger med over midnat', () => {
+    vi.setSystemTime(new Date(2026, 5, 15, 23, 59, 30));
+    expect(getToday()).toBe('2026-06-15');
+
+    vi.setSystemTime(new Date(2026, 5, 16, 0, 0, 30));
+    expect(getToday()).toBe('2026-06-16');
+  });
+
+  it('getCurrentYear() følger med over et årsskifte', () => {
+    vi.setSystemTime(new Date(2026, 11, 31, 23, 59, 30));
+    expect(getCurrentYear()).toBe(2026);
+
+    vi.setSystemTime(new Date(2027, 0, 1, 0, 0, 30));
+    expect(getCurrentYear()).toBe(2027);
+  });
+
+  it('«i dag»-afgrænsede maksima følger med over midnat', () => {
+    // Skadedato og «Opgørelse lavet den» har begge max = i dag. Var maksimum frosset,
+    // kunne brugeren ikke indtaste dagens dato efter midnat uden at genindlæse appen.
+    vi.setSystemTime(new Date(2026, 5, 15, 23, 59, 30));
+    expect(dateRanges_stamdata.skadedato.max).toBe('2026-06-15');
+    expect(dateRanges_erstatningsopgoerelse.opgoerelse.max).toBe('2026-06-15');
+
+    vi.setSystemTime(new Date(2026, 5, 16, 0, 0, 30));
+    expect(dateRanges_stamdata.skadedato.max).toBe('2026-06-16');
+    expect(dateRanges_erstatningsopgoerelse.opgoerelse.max).toBe('2026-06-16');
+  });
+
+  it('årsafledte maksima følger med over et årsskifte', () => {
+    // Årsløn-tabellens til-dato er 31-12 i AKTUELT år; EO-perioden går ét år frem.
+    vi.setSystemTime(new Date(2026, 11, 31, 12, 0, 0));
+    expect(dateRanges_aarsloen.tabelAarsloenTil.max).toBe('2026-12-31');
+    expect(dateRanges_erstatningsopgoerelse.periodeTil.max).toBe('2027-12-31');
+
+    vi.setSystemTime(new Date(2027, 0, 1, 12, 0, 0));
+    expect(dateRanges_aarsloen.tabelAarsloenTil.max).toBe('2027-12-31');
+    expect(dateRanges_erstatningsopgoerelse.periodeTil.max).toBe('2028-12-31');
+  });
+
+  it('MIN_SVIESMERTE_YEAR ≤ getCurrentYear()', () => {
+    expect(MIN_SVIESMERTE_YEAR).toBeLessThanOrEqual(getCurrentYear());
   });
 });
 
@@ -55,8 +110,8 @@ describe('dateRanges_stamdata', () => {
     expect(dateRanges_stamdata.skadedato.min).toBe(toISODateString('2005-01-01'));
   });
 
-  it('skadedato max er TODAY', () => {
-    expect(dateRanges_stamdata.skadedato.max).toBe(TODAY);
+  it('skadedato max er getToday()', () => {
+    expect(dateRanges_stamdata.skadedato.max).toBe(getToday());
   });
 
   // Bemærk: der er ingen placeholder-assertion længere. Intervallerne bar tidligere et
@@ -86,7 +141,7 @@ describe('dateRanges_erstatningsopgoerelse', () => {
     expect(dateRanges_erstatningsopgoerelse.opgoerelse.type).toBe('dynamic-min');
     expect(dateRanges_erstatningsopgoerelse.opgoerelse.min).toBe('DYNAMIC');
     expect(dateRanges_erstatningsopgoerelse.opgoerelse.fallbackMin).toBe(toISODateString('2005-01-01'));
-    expect(dateRanges_erstatningsopgoerelse.opgoerelse.max).toBe(TODAY);
+    expect(dateRanges_erstatningsopgoerelse.opgoerelse.max).toBe(getToday());
   });
 
   it('tabelFerieFra er unconstrained', () => {

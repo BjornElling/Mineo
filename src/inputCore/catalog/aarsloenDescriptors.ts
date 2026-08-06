@@ -6,7 +6,7 @@ import type {
 } from '../../schemas/formSchemas/enumSchemas';
 import type { StandardLoenTableRow } from '../../schemas/formSchemas/sections/aarsloenSchemas';
 import type { ISODateString } from '../../types/branded';
-import { CURRENT_YEAR, dateRanges_aarsloen, MIN_YEAR } from '../../config/dateRanges';
+import { getCurrentYear, dateRanges_aarsloen, MIN_YEAR } from '../../config/dateRanges';
 import { resolveDateRangeErrorMessage, derivedDateBounds } from '../../utils/dateRangeErrorMessages';
 import { parseWeekString } from '../../utils/dateUtils';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
@@ -307,21 +307,21 @@ export const aarsloenTableCol0MaanedField = rowString(
 );
 export const aarsloenTableCol1MaanedField = rowString(
   'col1_maaned', 'År',
-  createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR })),
+  createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear() })),
   periodIs('maaned'),
-  [yearStringBoundsValidator('aarsloen.tableData.col1_maaned.bounds', MIN_YEAR, CURRENT_YEAR)],
+  [yearStringBoundsValidator('aarsloen.tableData.col1_maaned.bounds', MIN_YEAR, getCurrentYear)],
 );
 export const aarsloenTableCol0UgeField = rowString(
   'col0_uge', 'Uge fra',
-  createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })),
+  createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })),
   periodIs('uge'),
-  [weekYearBoundsValidator('aarsloen.tableData.col0_uge.bounds', MIN_YEAR, CURRENT_YEAR), weekOrderValidator('fra')],
+  [weekYearBoundsValidator('aarsloen.tableData.col0_uge.bounds', MIN_YEAR, getCurrentYear), weekOrderValidator('fra')],
 );
 export const aarsloenTableCol1UgeField = rowString(
   'col1_uge', 'Uge til',
-  createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })),
+  createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })),
   periodIs('uge'),
-  [weekYearBoundsValidator('aarsloen.tableData.col1_uge.bounds', MIN_YEAR, CURRENT_YEAR), weekOrderValidator('til')],
+  [weekYearBoundsValidator('aarsloen.tableData.col1_uge.bounds', MIN_YEAR, getCurrentYear), weekOrderValidator('til')],
 );
 export const aarsloenTableCol2Field = rowAmount('col2', 'Løn');
 export const aarsloenTableCol3Field = rowAmount('col3', 'Løn (2)');

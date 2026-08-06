@@ -1,4 +1,4 @@
-import { TODAY } from '../../../config/dateRanges';
+import { getToday } from '../../../config/dateRanges';
 import { erstatningsopgoerelseSchema, stamdataSchema, type ErstatningsopgoerelseValues, type StamdataValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { erstatningsopgoerelseValidator } from '../../../validators/erstatningsopgoerelseValidator';
@@ -254,7 +254,7 @@ export const computeEoSnapshot = (args: Readonly<{
    */
   midlertidigtEetImportContext?: EetImportContext;
 }>): EoSnapshot => {
-  const dagsDatoISO = args.dagsDatoISO ?? TODAY;
+  const dagsDatoISO = args.dagsDatoISO ?? getToday();
   const stamdataErrors = args.stamdataErrors ?? EMPTY_STAMDATA_ERRORS;
   const eoErrors = args.eoErrors ?? EMPTY_EO_ERRORS;
   const dependencyProjection = args.dependencyProjection ?? EMPTY_EO_DEPENDENCY_PROJECTION;

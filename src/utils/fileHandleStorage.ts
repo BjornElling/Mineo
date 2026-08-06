@@ -1,54 +1,40 @@
-import { logWarning, logError } from './logger';
-import { isRecord, asError } from './typeGuards';
-
-// IndexedDB database navn og version
-// VIGTIGT: Ved fremtidige skemaændringer skal DB_VERSION øges og logik tilføjes
-// til onupgradeneeded-handleren nedenfor. Undlad aldrig at opdatere onupgradeneeded
-// ved versionsskift — det er den eneste migrationsvej for IndexedDB.
-const DB_NAME = 'mineo_file_handles';
-const DB_VERSION = 1;
-const STORE_NAME = 'handles';
-const HANDLE_KEY = 'current_file_handle';
-const DEFAULT_DIRECTORY_KEY = 'default_directory_handle';
-const PENDING_PWA_OPEN_REQUEST_KEY = 'pending_pwa_open_request';
+import { logWarning } from './logger';
+import { isRecord } from './typeGuards';
+import {
+  deleteFileHandleValues,
+  readFileHandleValue,
+  writeFileHandleValues,
+  type DirectoryHandleMeta,
+} from './file/fileHandleKvStore';
 
 /**
- * Åbner IndexedDB database for file handles
+ * De navngivne fil-handle-operationer, som resten af appen bruger.
  *
- * @returns {Promise<IDBDatabase>} Database connection
+ * Filen var tidligere 735 linjer med 10 funktioner, der hver åbnede IndexedDB, startede en
+ * transaction og hånd-wrappede ét `get`/`put`/`delete` i `new Promise` med gentagne
+ * `onsuccess`/`onerror`/`oncomplete`/`close`-handlere. Plumbingen bor nu i
+ * `indexedDbStore.ts`, nøglerne og deres typer i `file/fileHandleKvStore.ts`, og
+ * permission-verifikationen (som slet ikke rørte IndexedDB) i
+ * `file/fileHandleVerification.ts`. Tilbage står kun de domænenavngivne operationer og
+ * deres fail-safe-værdier.
+ *
+ * `typeof indexedDB`-guarden var tidligere gentaget 9 steder med INKONSISTENTE
+ * returværdier (`false`/`null`/`true`) og manglede helt i `getDirectoryDisplayInfo`.
+ * Utilgængelighed håndteres nu ét sted i primitivet; hver funktion nedenfor vælger
+ * eksplicit sin egen fail-safe værdi og begrunder den, hvor den ikke er oplagt.
  */
-const openDatabase = (): Promise<IDBDatabase> => {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onerror = () => {
-      logError('Kunne ikke åbne IndexedDB', {
-        context: 'openDatabase',
-        error: request.error ?? undefined,
-      });
-      reject(request.error);
-    };
-
-    request.onsuccess = () => {
-      resolve(request.result);
-    };
-
-    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-
-      // Opret object store hvis den ikke findes
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-  });
-};
+export type { DirectoryHandleMeta };
+export {
+  verifyDirectoryHandle,
+  verifyFileHandle,
+  verifyFileHandleDetailed,
+  type FileHandleVerificationResult,
+} from './file/fileHandleVerification';
 
 /**
- * Anmod om persistent storage permission
- * Dette forhindrer at browseren sletter vores file handle
- *
- * @returns {Promise<boolean>} True hvis persistent storage er granted
+ * Anmod om persistent storage permission.
+ * Dette forhindrer at browseren sletter vores file handle.
  */
 export const requestPersistentStorage = async (): Promise<boolean> => {
   try {
@@ -57,573 +43,104 @@ export const requestPersistentStorage = async (): Promise<boolean> => {
       return false;
     }
 
-    const isPersisted = await navigator.storage.persist();
-
-    return isPersisted;
+    return await navigator.storage.persist();
   } catch (error: unknown) {
     logWarning('Kunne ikke anmode om persistent storage', {
       context: 'requestPersistentStorage',
-      data: { errorMessage: error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : String(error) },
+      data: {
+        errorMessage: error instanceof Error
+          ? error.message
+          : isRecord(error) ? String(error.message ?? '') : String(error),
+      },
     });
     return false;
   }
 };
 
-/**
- * Gemmer file handle til IndexedDB
- *
- * @param {FileSystemFileHandle} fileHandle - File handle der skal gemmes
- * @returns {Promise<boolean>} True hvis gemt succesfuldt
- */
-export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle): Promise<boolean> => {
-  if (typeof indexedDB === 'undefined') {
-    return false;
-  }
-  try {
-
-    const db = await openDatabase();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.put(fileHandle, HANDLE_KEY);
-
-      request.onsuccess = () => {
-        resolve(true);
-      };
-
-      request.onerror = () => {
-        logError('Kunne ikke gemme file handle', {
-          context: 'saveFileHandleToIndexedDB',
-          error: request.error ?? undefined,
-        });
-        reject(request.error);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-
-  } catch (error: unknown) {
-    logError('Fejl ved gemning af file handle:', asError(error));
-    return false;
-  }
+/** Gemmer det aktive file handle. `false` = ikke gemt. */
+export const saveFileHandleToIndexedDB = async (
+  fileHandle: FileSystemFileHandle
+): Promise<boolean> => {
+  const result = await writeFileHandleValues(
+    { current_file_handle: fileHandle },
+    'saveFileHandleToIndexedDB'
+  );
+  return result.status === 'ok';
 };
 
-/**
- * Henter file handle fra IndexedDB
- *
- * @returns {Promise<FileSystemFileHandle|null>} File handle eller null
- */
-export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandle | null> => {
-  if (typeof indexedDB === 'undefined') {
-    return null;
-  }
-  try {
-
-    const db = await openDatabase();
-
-    return new Promise<FileSystemFileHandle | null>((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(HANDLE_KEY);
-
-      request.onsuccess = () => {
-        resolve((request.result as FileSystemFileHandle | undefined) ?? null);
-      };
-
-      request.onerror = () => {
-        logError('Kunne ikke hente file handle', {
-          context: 'loadFileHandleFromIndexedDB',
-          error: request.error ?? undefined,
-        });
-        reject(request.error);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-
-  } catch (error: unknown) {
-    logError('Fejl ved hentning af file handle:', asError(error));
-    return null;
-  }
-};
+/** Henter det gemte file handle, eller `null` hvis der ikke findes et brugbart. */
+export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandle | null> =>
+  readFileHandleValue('current_file_handle', 'loadFileHandleFromIndexedDB');
 
 /**
- * Sletter file handle fra IndexedDB
+ * Sletter det gemte file handle.
  *
- * `false` betyder "kunne ikke verificere sletningen" — ikke "der var intet at slette". Findes IndexedDB slet
- * ikke, kan der ikke ligge et håndtag, så det er en verificeret tom tilstand og returnerer `true`.
- *
- * @returns {Promise<boolean>} True hvis håndtaget bevisligt ikke længere findes
+ * `false` betyder "kunne ikke verificere sletningen" — ikke "der var intet at slette".
+ * Findes IndexedDB slet ikke, kan der ikke ligge et håndtag, så det er en verificeret tom
+ * tilstand og returnerer `true`.
  */
 export const deleteFileHandleFromIndexedDB = async (): Promise<boolean> => {
-  if (typeof indexedDB === 'undefined') {
-    return true;
-  }
-  try {
-
-    const db = await openDatabase();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.delete(HANDLE_KEY);
-
-      request.onsuccess = () => {
-        resolve(true);
-      };
-
-      request.onerror = () => {
-        logError('Kunne ikke slette file handle', {
-          context: 'deleteFileHandleFromIndexedDB',
-          error: request.error ?? undefined,
-        });
-        reject(request.error);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-
-  } catch (error: unknown) {
-    logError('Fejl ved sletning af file handle:', asError(error));
-    return false;
-  }
-};
-
-export type FileHandleVerificationResult = Readonly<
-  | { valid: true }
-  | {
-      valid: false;
-      reason:
-        | 'missing_handle'
-        | 'missing_permission_api'
-        | 'not_found'
-        | 'permission_denied'
-        | 'permission_api_failed'
-        | 'file_access_failed'
-        | 'validation_failed';
-      detail?: string;
-    }
->;
-
-/**
- * Validerer at et gemt file handle stadig er gyldigt og har adgang
- * Tjekker både permissions OG at filen stadig eksisterer
- *
- * @param {FileSystemFileHandle} handle - File handle der skal valideres
- * @returns {Promise<FileHandleVerificationResult>} Resultat med konkret årsag ved fejl
- */
-export const verifyFileHandleDetailed = async (
-  handle: FileSystemFileHandle | null | undefined,
-  options: Readonly<{ allowRequestPermission?: boolean }> = {}
-): Promise<FileHandleVerificationResult> => {
-  try {
-    if (!handle) {
-      return { valid: false, reason: 'missing_handle' };
-    }
-    type PermissionCapableHandle = FileSystemFileHandle & {
-      queryPermission: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
-      requestPermission?: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
-    };
-    const permissionHandle = handle as Partial<PermissionCapableHandle>;
-    if (typeof permissionHandle.queryPermission !== 'function') {
-      return { valid: false, reason: 'missing_permission_api' };
-    }
-
-    try {
-      let permission = await permissionHandle.queryPermission({ mode: 'readwrite' });
-
-      if (
-        permission !== 'granted' &&
-        options.allowRequestPermission === true &&
-        typeof permissionHandle.requestPermission === 'function'
-      ) {
-        permission = await permissionHandle.requestPermission({ mode: 'readwrite' });
-      }
-
-      if (permission !== 'granted') {
-        return {
-          valid: false,
-          reason: 'permission_denied',
-          detail: `permission=${permission}`,
-        };
-      }
-
-      // Når write-adgang er bekræftet, tjekker vi at filen stadig eksisterer.
-      await handle.getFile();
-
-      return { valid: true };
-
-    } catch (permError: unknown) {
-      const errName = permError instanceof Error ? permError.name : isRecord(permError) ? String(permError.name ?? '') : undefined;
-      const errMessage = permError instanceof Error ? permError.message : isRecord(permError) ? String(permError.message ?? '') : undefined;
-
-      if (errName === 'NotFoundError') {
-        logWarning('Fil blev ikke fundet - er sandsynligvis blevet slettet eller flyttet');
-        return { valid: false, reason: 'not_found', detail: errMessage };
-      }
-      if (errName === 'NotAllowedError') {
-        return { valid: false, reason: 'permission_denied', detail: errMessage };
-      }
-
-      logWarning('Permission API eller file handle-validering fejlede', {
-        context: 'verifyFileHandle.permissionCheck',
-        data: {
-          errorName: errName,
-          errorMessage: errMessage,
-        },
-      });
-      return {
-        valid: false,
-        reason: 'permission_api_failed',
-        detail: errMessage ?? errName,
-      };
-    }
-
-  } catch (error: unknown) {
-    logWarning('File handle validering fejlede', {
-      context: 'verifyFileHandle',
-      data: {
-        errorName: error instanceof Error ? error.name : isRecord(error) ? String(error.name ?? '') : undefined,
-        errorMessage: error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : undefined,
-      },
-    });
-    return {
-      valid: false,
-      reason: 'validation_failed',
-      detail: error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : String(error),
-    };
-  }
-};
-
-export const verifyFileHandle = async (handle: FileSystemFileHandle | null | undefined): Promise<boolean> => {
-  const result = await verifyFileHandleDetailed(handle);
-  return result.valid;
-};
-
-// ============================================================================
-// Directory Handle funktioner (til brugervalgt standardplacering)
-// ============================================================================
-
-// Nøgle til directory metadata (display-info cache)
-const DEFAULT_DIRECTORY_META_KEY = 'default_directory_meta';
-
-/**
- * Metadata struktur for directory handle
- */
-export interface DirectoryHandleMeta {
-  /** Unikt ID for denne directory-registrering */
-  id: string;
-  /** Mappenavn (fra handle.name) */
-  displayName: string;
-  /** Tidspunkt for registrering */
-  savedAt: number;
-  /** Kilde: 'user' = brugervalgt, 'fallback-desktop' = standard/fallback */
-  source: 'user' | 'fallback-desktop';
-}
-
-/**
- * Gemmer directory handle til IndexedDB og returnerer et unikt ID.
- *
- * VIGTIGT: ID'et genereres og returneres af denne funktion.
- * UI-laget skal bruge dette ID - IKKE generere sit eget.
- *
- * @param {FileSystemDirectoryHandle} directoryHandle - Directory handle der skal gemmes
- * @returns {Promise<string>} Unikt ID for dette directory handle
- * @throws {Error} Hvis gemning fejler
- */
-export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDirectoryHandle): Promise<string | null> => {
-  if (typeof indexedDB === 'undefined') {
-    return null;
-  }
-  try {
-
-    const db = await openDatabase();
-
-    // Generer opaque UUID - semantisk neutralt og fremtidssikret
-    const id = crypto.randomUUID();
-    const meta: DirectoryHandleMeta = {
-      id,
-      displayName: directoryHandle.name,
-      savedAt: Date.now(),
-      source: 'user', // Altid 'user' når bruger eksplicit vælger mappe
-    };
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-
-      // Gem både handle og metadata
-      const handleRequest = store.put(directoryHandle, DEFAULT_DIRECTORY_KEY);
-      const metaRequest = store.put(meta, DEFAULT_DIRECTORY_META_KEY);
-
-      let handleDone = false;
-      let metaDone = false;
-
-      const checkComplete = () => {
-        if (handleDone && metaDone) {
-          resolve(id);
-        }
-      };
-
-      handleRequest.onsuccess = () => {
-        handleDone = true;
-        checkComplete();
-      };
-
-      metaRequest.onsuccess = () => {
-        metaDone = true;
-        checkComplete();
-      };
-
-      handleRequest.onerror = () => {
-        logError('Kunne ikke gemme directory handle', {
-          context: 'saveDefaultDirectoryHandle',
-          error: handleRequest.error ?? undefined,
-        });
-        reject(handleRequest.error);
-      };
-
-      metaRequest.onerror = () => {
-        logError('Kunne ikke gemme directory metadata', {
-          context: 'saveDefaultDirectoryHandle',
-          error: metaRequest.error ?? undefined,
-        });
-        reject(metaRequest.error);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-
-  } catch (error: unknown) {
-    logError('Fejl ved gemning af directory handle:', asError(error));
-    return null;
-  }
+  const result = await deleteFileHandleValues(
+    ['current_file_handle'],
+    'deleteFileHandleFromIndexedDB'
+  );
+  return result.status === 'ok' || result.status === 'unavailable';
 };
 
 /**
- * Henter directory display-info fra IndexedDB UDEN at requestere permissions.
+ * Gemmer standardmappen og dens metadata og returnerer et unikt ID.
  *
- * VIGTIGT: Denne funktion er designet til UI-brug (fx Indstillinger.tsx).
- * Den foretager INGEN permission-requests og er derfor sikker at kalde
- * ved mount og re-render.
+ * VIGTIGT: ID'et genereres og returneres af denne funktion. UI-laget skal bruge dette ID —
+ * IKKE generere sit eget.
  *
- * DESIGN: Funktionen er en passiv observatør:
- * - Returnerer null hvis metadata ikke findes (ingen fallback)
- * - Logger IKKE warnings (UI skal ikke "reparere")
- * - Kalder ALDRIG resolveDefaultDirectoryHandle
- *
- * @returns {Promise<DirectoryHandleMeta | null>} Metadata eller null hvis ingen gemt
+ * Handle og metadata skrives i SAMME transaction, så de to nøgler ikke kan komme ud af sync
+ * (tidligere blev det koordineret med manuelle `handleDone`/`metaDone`-flag pr. request).
  */
-export const getDirectoryDisplayInfo = async (): Promise<DirectoryHandleMeta | null> => {
-  try {
-    const db = await openDatabase();
+export const saveDefaultDirectoryHandle = async (
+  directoryHandle: FileSystemDirectoryHandle
+): Promise<string | null> => {
+  // Opaque UUID — semantisk neutralt og fremtidssikret.
+  const id = crypto.randomUUID();
+  const meta: DirectoryHandleMeta = {
+    id,
+    displayName: directoryHandle.name,
+    savedAt: Date.now(),
+    source: 'user', // Altid 'user' når bruger eksplicit vælger mappe
+  };
 
-    return new Promise((resolve) => {
-      const transaction = db.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(DEFAULT_DIRECTORY_META_KEY);
-
-      request.onsuccess = () => {
-        const meta = request.result as DirectoryHandleMeta | undefined;
-        resolve(meta || null);
-      };
-
-      request.onerror = () => {
-        // Passiv observatør - ingen logging, bare returner null
-        resolve(null);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-
-  } catch {
-    // Passiv observatør - ingen logging, bare returner null
-    return null;
-  }
+  const result = await writeFileHandleValues(
+    { default_directory_handle: directoryHandle, default_directory_meta: meta },
+    'saveDefaultDirectoryHandle'
+  );
+  return result.status === 'ok' ? id : null;
 };
 
 /**
- * Henter directory handle fra IndexedDB
+ * Henter standardmappens display-info UDEN at requestere permissions.
  *
- * @returns {Promise<FileSystemDirectoryHandle|null>} Directory handle eller null
- */
-export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryHandle | null> => {
-  if (typeof indexedDB === 'undefined') {
-    return null;
-  }
-  try {
-
-    const db = await openDatabase();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(DEFAULT_DIRECTORY_KEY);
-
-      request.onsuccess = () => {
-        resolve(request.result || null);
-      };
-
-      request.onerror = () => {
-        logError('Kunne ikke hente directory handle', {
-          context: 'loadDefaultDirectoryHandle',
-          error: request.error ?? undefined,
-        });
-        reject(request.error);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-
-  } catch (error: unknown) {
-    logError('Fejl ved hentning af directory handle:', asError(error));
-    return null;
-  }
-};
-
-/**
- * Sletter directory handle og metadata fra IndexedDB
+ * VIGTIGT: Designet til UI-brug (fx `Indstillinger.tsx`). Den foretager INGEN
+ * permission-requests og er derfor sikker at kalde ved mount og re-render.
  *
- * @returns {Promise<boolean>} True hvis slettet succesfuldt
+ * DESIGN: passiv observatør — returnerer `null` hvis metadata ikke findes (ingen fallback),
+ * og kalder ALDRIG `resolveDefaultDirectoryHandle`.
  */
+export const getDirectoryDisplayInfo = async (): Promise<DirectoryHandleMeta | null> =>
+  readFileHandleValue('default_directory_meta', 'getDirectoryDisplayInfo', { silent: true });
+
+/** Henter standardmappens handle, eller `null`. */
+export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryHandle | null> =>
+  readFileHandleValue('default_directory_handle', 'loadDefaultDirectoryHandle');
+
+/** Sletter både standardmappens handle og dens metadata atomisk. */
 export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
-  if (typeof indexedDB === 'undefined') {
-    return false;
-  }
-  try {
-
-    const db = await openDatabase();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-
-      // Slet både handle og metadata
-      const handleRequest = store.delete(DEFAULT_DIRECTORY_KEY);
-      const metaRequest = store.delete(DEFAULT_DIRECTORY_META_KEY);
-
-      let handleDone = false;
-      let metaDone = false;
-
-      const checkComplete = () => {
-        if (handleDone && metaDone) {
-          resolve(true);
-        }
-      };
-
-      handleRequest.onsuccess = () => {
-        handleDone = true;
-        checkComplete();
-      };
-
-      metaRequest.onsuccess = () => {
-        metaDone = true;
-        checkComplete();
-      };
-
-      handleRequest.onerror = () => {
-        logError('Kunne ikke slette directory handle', {
-          context: 'deleteDefaultDirectoryHandle',
-          error: handleRequest.error ?? undefined,
-        });
-        reject(handleRequest.error);
-      };
-
-      metaRequest.onerror = () => {
-        logError('Kunne ikke slette directory metadata', {
-          context: 'deleteDefaultDirectoryHandle',
-          error: metaRequest.error ?? undefined,
-        });
-        reject(metaRequest.error);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-
-  } catch (error: unknown) {
-    logError('Fejl ved sletning af directory handle:', asError(error));
-    return false;
-  }
+  const result = await deleteFileHandleValues(
+    ['default_directory_handle', 'default_directory_meta'],
+    'deleteDefaultDirectoryHandle'
+  );
+  return result.status === 'ok';
 };
 
-/**
- * Verificerer at et directory handle stadig er gyldigt og har adgang
- * Tjekker permissions og at mappen stadig eksisterer
- *
- * @param {FileSystemDirectoryHandle} handle - Directory handle der skal valideres
- * @returns {Promise<boolean>} True hvis handle er gyldigt og mappen eksisterer
- */
-export const verifyDirectoryHandle = async (
-  handle: FileSystemDirectoryHandle,
-  options: Readonly<{ mode?: 'read' | 'readwrite'; allowRequestPermission?: boolean }> = {}
-): Promise<boolean> => {
-  try {
-    if (!handle || !handle.queryPermission) {
-      return false;
-    }
-
-    const mode = options.mode ?? 'read';
-    const requestPermission = typeof handle.requestPermission === 'function'
-      ? handle.requestPermission.bind(handle)
-      : null;
-
-    // Tjek om vi har den nødvendige adgang for at bruge handle som picker-startmappe.
-    // Hvis kaldet sker fra en direkte brugergestus-handler, må vi bede browseren om tilladelse
-    // i stedet for at falde tilbage til skrivebordet ved permission='prompt'.
-    try {
-      let permission = await handle.queryPermission({ mode });
-
-      if (
-        permission !== 'granted' &&
-        options.allowRequestPermission === true &&
-        requestPermission
-      ) {
-        permission = await requestPermission({ mode });
-      }
-
-      return permission === 'granted';
-
-    } catch (permError: unknown) {
-      // Permission kan fejle hvis mappen er slettet
-      const permErr = permError instanceof Error ? permError : isRecord(permError) ? permError : null;
-      logWarning('Directory permission tjek fejlede', {
-        context: 'verifyDirectoryHandle.permissionCheck',
-        data: {
-          errorName: permErr instanceof Error ? permErr.name : isRecord(permErr) ? String(permErr.name ?? '') : undefined,
-          errorMessage: permErr instanceof Error ? permErr.message : isRecord(permErr) ? String(permErr.message ?? '') : undefined,
-        },
-      });
-      return false;
-    }
-
-  } catch (error: unknown) {
-    logWarning('Directory handle validering fejlede', {
-      context: 'verifyDirectoryHandle',
-      data: {
-        errorName: error instanceof Error ? error.name : isRecord(error) ? String(error.name ?? '') : undefined,
-        errorMessage: error instanceof Error ? error.message : isRecord(error) ? String(error.message ?? '') : undefined,
-      },
-    });
-    return false;
-  }
-};
-
-type StoredPendingPwaOpenRequest = Readonly<{
+export type StoredPendingPwaOpenRequest = Readonly<{
   id: string;
   createdAtEpochMs: number;
   targetUrl?: string;
@@ -632,104 +149,29 @@ type StoredPendingPwaOpenRequest = Readonly<{
   ignoredFileCount: number;
 }>;
 
-export const savePendingPwaOpenRequestToIndexedDB = async (request: StoredPendingPwaOpenRequest): Promise<boolean> => {
-  if (typeof indexedDB === 'undefined') {
-    return false;
-  }
-  try {
-    const db = await openDatabase();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const idbRequest = store.put(request, PENDING_PWA_OPEN_REQUEST_KEY);
-
-      idbRequest.onsuccess = () => {
-        resolve(true);
-      };
-
-      idbRequest.onerror = () => {
-        logError('Kunne ikke gemme pending PWA-open request', {
-          context: 'savePendingPwaOpenRequestToIndexedDB',
-          error: idbRequest.error ?? undefined,
-        });
-        reject(idbRequest.error);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-  } catch (error: unknown) {
-    logError('Fejl ved gemning af pending PWA-open request:', asError(error));
-    return false;
-  }
+export const savePendingPwaOpenRequestToIndexedDB = async (
+  request: StoredPendingPwaOpenRequest
+): Promise<boolean> => {
+  const result = await writeFileHandleValues(
+    { pending_pwa_open_request: request },
+    'savePendingPwaOpenRequestToIndexedDB'
+  );
+  return result.status === 'ok';
 };
 
-export const loadPendingPwaOpenRequestFromIndexedDB = async (): Promise<StoredPendingPwaOpenRequest | null> => {
-  if (typeof indexedDB === 'undefined') {
-    return null;
-  }
-  try {
-    const db = await openDatabase();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const idbRequest = store.get(PENDING_PWA_OPEN_REQUEST_KEY);
-
-      idbRequest.onsuccess = () => {
-        resolve((idbRequest.result as StoredPendingPwaOpenRequest | undefined) ?? null);
-      };
-
-      idbRequest.onerror = () => {
-        logError('Kunne ikke hente pending PWA-open request', {
-          context: 'loadPendingPwaOpenRequestFromIndexedDB',
-          error: idbRequest.error ?? undefined,
-        });
-        reject(idbRequest.error);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-  } catch (error: unknown) {
-    logError('Fejl ved hentning af pending PWA-open request:', asError(error));
-    return null;
-  }
-};
+export const loadPendingPwaOpenRequestFromIndexedDB =
+  async (): Promise<StoredPendingPwaOpenRequest | null> => {
+    const stored = await readFileHandleValue(
+      'pending_pwa_open_request',
+      'loadPendingPwaOpenRequestFromIndexedDB'
+    );
+    return (stored as StoredPendingPwaOpenRequest | null) ?? null;
+  };
 
 export const deletePendingPwaOpenRequestFromIndexedDB = async (): Promise<boolean> => {
-  if (typeof indexedDB === 'undefined') {
-    return false;
-  }
-  try {
-    const db = await openDatabase();
-
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const idbRequest = store.delete(PENDING_PWA_OPEN_REQUEST_KEY);
-
-      idbRequest.onsuccess = () => {
-        resolve(true);
-      };
-
-      idbRequest.onerror = () => {
-        logError('Kunne ikke slette pending PWA-open request', {
-          context: 'deletePendingPwaOpenRequestFromIndexedDB',
-          error: idbRequest.error ?? undefined,
-        });
-        reject(idbRequest.error);
-      };
-
-      transaction.oncomplete = () => {
-        db.close();
-      };
-    });
-  } catch (error: unknown) {
-    logError('Fejl ved sletning af pending PWA-open request:', asError(error));
-    return false;
-  }
+  const result = await deleteFileHandleValues(
+    ['pending_pwa_open_request'],
+    'deletePendingPwaOpenRequestFromIndexedDB'
+  );
+  return result.status === 'ok';
 };

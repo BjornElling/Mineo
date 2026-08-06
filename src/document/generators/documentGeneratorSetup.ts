@@ -24,7 +24,7 @@ import type { DocumentGenerationSession } from '../documentGenerationSession';
 import type { DocumentDownloadFormat } from '../documentFormat';
 import { getDocumentCreatorBrand, type BrevhovedData } from '../layout/documentLayoutHelpers';
 import type { DocumentStamdata } from '../layout/documentOptions';
-import { TODAY } from '../../config/dateRanges';
+import { getToday } from '../../config/dateRanges';
 
 /** Standard-metadata for Mineo-hovedappen; titlen varierer pr. dokument. */
 const DOCUMENT_SUBJECT = 'Erstatningsberegning';
@@ -136,7 +136,7 @@ export const buildStamdataBrevhovedData = (
   journalnr: stamdata?.journalnr,
   advokat: stamdata?.advokat,
   sagsbehandler: stamdata?.sagsbehandler,
-  dagsDatoISO: TODAY,
+  dagsDatoISO: getToday(),
 });
 
 /** Et label/value-par der skrives som én venstre-højre-tekstlinje. */

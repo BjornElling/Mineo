@@ -22,6 +22,21 @@ const boundsDetail = (
 };
 
 /**
+ * En årsgrænse er enten et fast tal eller en funktion, der læser grænsen på
+ * valideringstidspunktet.
+ *
+ * Thunk-formen findes for de grænser der afhænger af DAGS DATO (typisk `getCurrentYear`).
+ * Blev sådan en grænse indfanget som et tal, når descriptor-kataloget bygges ved modulets
+ * import, ville en session der står åben over midnat — eller over et årsskifte — validere
+ * mod det GAMLE år, og brugeren kunne ikke indtaste det aktuelle årstal uden at genindlæse.
+ * Statiske grænser (fx `MIN_YEAR`) skal fortsat sendes som tal.
+ */
+export type YearBound = number | (() => number) | undefined;
+
+const resolveYearBound = (bound: YearBound): number | undefined =>
+  typeof bound === 'function' ? bound() : bound;
+
+/**
  * Defense-in-depth for string-backed legacy-schemafelter. Tolerant `.eo`-load kan levere en schema-gyldig streng,
  * som feltets codec ikke kan fortolke (fx "abc" som måned). Parsebare historiske former accepteres; kun en reel
  * codec-afvisning bliver et canonical schema-issue.
@@ -98,13 +113,15 @@ export const amountBoundsValidator = (
 /** Canonical bounds-validator for et årstalsfelt (tidligere codec-`range` via `getYearRangeErrorMessage`). */
 export const yearBoundsValidator = (
   code: string,
-  minYear: number | undefined,
-  maxYear: number | undefined
+  minYear: YearBound,
+  maxYear: YearBound
 ): FieldValidator<number | undefined> => (value) => {
   if (value === undefined) return undefined;
-  const message = getYearRangeErrorMessage(value, minYear, maxYear);
+  const min = resolveYearBound(minYear);
+  const max = resolveYearBound(maxYear);
+  const message = getYearRangeErrorMessage(value, min, max);
   if (message === '') return undefined;
-  return { reason: 'bounds', code, message, detail: boundsDetail(minYear, maxYear) };
+  return { reason: 'bounds', code, message, detail: boundsDetail(min, max) };
 };
 
 /**
@@ -113,15 +130,17 @@ export const yearBoundsValidator = (
  */
 export const yearStringBoundsValidator = (
   code: string,
-  minYear: number | undefined,
-  maxYear: number | undefined
+  minYear: YearBound,
+  maxYear: YearBound
 ): FieldValidator<string | undefined> => (value) => {
   if (value === undefined || value.trim() === '') return undefined;
   const year = Number.parseInt(value, 10);
   if (!Number.isFinite(year)) return undefined;
-  const message = getYearRangeErrorMessage(year, minYear, maxYear);
+  const min = resolveYearBound(minYear);
+  const max = resolveYearBound(maxYear);
+  const message = getYearRangeErrorMessage(year, min, max);
   if (message === '') return undefined;
-  return { reason: 'bounds', code, message, detail: boundsDetail(minYear, maxYear) };
+  return { reason: 'bounds', code, message, detail: boundsDetail(min, max) };
 };
 
 /**
@@ -130,15 +149,17 @@ export const yearStringBoundsValidator = (
  */
 export const weekYearBoundsValidator = (
   code: string,
-  minYear: number | undefined,
-  maxYear: number | undefined
+  minYear: YearBound,
+  maxYear: YearBound
 ): FieldValidator<string | undefined> => (value) => {
   if (value === undefined || value.trim() === '') return undefined;
   const yearPart = value.split('/')[1];
   if (yearPart === undefined) return undefined;
   const year = Number.parseInt(yearPart, 10);
   if (!Number.isFinite(year)) return undefined;
-  const message = getYearRangeErrorMessage(year, minYear, maxYear);
+  const min = resolveYearBound(minYear);
+  const max = resolveYearBound(maxYear);
+  const message = getYearRangeErrorMessage(year, min, max);
   if (message === '') return undefined;
-  return { reason: 'bounds', code, message, detail: boundsDetail(minYear, maxYear) };
+  return { reason: 'bounds', code, message, detail: boundsDetail(min, max) };
 };

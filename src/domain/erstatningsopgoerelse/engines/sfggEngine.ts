@@ -1,4 +1,4 @@
-import { TODAY } from '../../../config/dateRanges';
+import { getToday } from '../../../config/dateRanges';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import type { TafCalculationValues } from './tafCalculationInput';
 import { sortIsoDates } from '../../../utils/isoDateHelpers';
@@ -74,7 +74,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       values,
       employment,
       tafRanges,
-      opgoerelsesdato: values.opgørelseLavetDen ?? TODAY,
+      opgoerelsesdato: values.opgørelseLavetDen ?? getToday(),
       tafBeregningsenhed,
       firstExcludedDate,
       capReachedDate,

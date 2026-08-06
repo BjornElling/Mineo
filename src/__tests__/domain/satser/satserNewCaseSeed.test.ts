@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { CURRENT_YEAR } from '../../../config/dateRanges';
+import { getCurrentYear } from '../../../config/dateRanges';
 import { satserAngivAarYearBounds } from '../../../data/lovbestemteRates';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { initializeInputRuntime } from '../../../inputCore/runtime/initializeInputRuntime';
@@ -26,13 +26,13 @@ const hydrateFreshCase = () => {
 
 describe('seedSatserNewCase (§1.12)', () => {
   it('leverer default-satsåret som en sektionsværdi', () => {
-    const expected = resolveSatserDefaultAargang(CURRENT_YEAR, minYear, maxYear);
+    const expected = resolveSatserDefaultAargang(getCurrentYear(), minYear, maxYear);
     expect(seedSatserNewCase()).toEqual({ satser: { aargang: expected } });
   });
 
   it('lander i den hydrerede baseline og validerer gennem kataloget', () => {
     const { store, startup } = hydrateFreshCase();
-    const expected = resolveSatserDefaultAargang(CURRENT_YEAR, minYear, maxYear);
+    const expected = resolveSatserDefaultAargang(getCurrentYear(), minYear, maxYear);
 
     expect(startup.notice).toBeNull();
     expect(store.getState().input.sections.satser).toEqual({ aargang: expected });

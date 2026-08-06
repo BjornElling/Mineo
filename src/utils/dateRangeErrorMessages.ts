@@ -1,6 +1,6 @@
 import { isoToDanish } from '../types/branded';
 import type { ISODateString } from '../types/branded';
-import { TODAY } from '../config/dateRanges';
+import { getToday } from '../config/dateRanges';
 import { validateISODateRange } from './isoDateHelpers';
 import { DATE_ORDER_ERROR_MESSAGE } from './dateOrderValidation';
 
@@ -88,7 +88,7 @@ export const resolveDateRangeErrorMessage = (args: {
 
   // Bound-kind-beskeder skal have forrang over parrede Fra/Til-beskeder for at undgå misvisende output.
   // Eksempel: når den effektive min er "Skadedato", er den korrekte besked om Skadedato, ikke "Til < Fra".
-  if (maxDate && maxDate === TODAY && iso > maxDate) {
+  if (maxDate && maxDate === getToday() && iso > maxDate) {
     return `Datoen er efter dags dato (${formatISOForTooltip(maxDate)})`;
   }
 

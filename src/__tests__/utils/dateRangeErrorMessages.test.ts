@@ -1,5 +1,5 @@
 import { toISODateString } from '../../types/branded';
-import { TODAY } from '../../config/dateRanges';
+import { getToday } from '../../config/dateRanges';
 import {
   derivedDateBounds,
   resolveDateRangeErrorMessage,
@@ -46,12 +46,12 @@ describe('resolveDateRangeErrorMessage', () => {
     expect(message).toContain('01-08-2023');
   });
 
-  it('prioritizes dags dato message over fra/til message when maxDate=TODAY', () => {
-    // Use an obviously-future date so it must be after TODAY.
+  it('prioritizes dags dato message over fra/til message when maxDate=getToday()', () => {
+    // Use an obviously-future date so it must be after getToday().
     const message = resolveDateRangeErrorMessage({
       iso: iso('2100-01-01'),
       minDate: iso('2005-01-01'),
-      maxDate: TODAY,
+      maxDate: getToday(),
       special: { fraTilRole: 'fra' },
       bounds: STATIC_DATE_BOUNDS,
     });

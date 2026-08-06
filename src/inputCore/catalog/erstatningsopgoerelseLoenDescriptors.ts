@@ -1,4 +1,4 @@
-import { CURRENT_YEAR, MIN_YEAR } from '../../config/dateRanges';
+import { getCurrentYear, MIN_YEAR } from '../../config/dateRanges';
 import {
   anciennitetSatsPerEnum,
   krlSatstabelEnum,
@@ -223,9 +223,9 @@ export const eoStandardRowFields = {
   col0_maaned: stdString('col0_maaned', 'Måned', createStringBackedFieldCodec(integerCodec(1, 12, 2)), [
     integerStringBoundsValidator(`${STD_ID}.col0_maaned.bounds`, 1, 12),
   ]),
-  col1_maaned: stdString('col1_maaned', 'År', createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, CURRENT_YEAR)]),
-  col0_uge: stdString('col0_uge', 'Uge fra', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, CURRENT_YEAR)]),
-  col1_uge: stdString('col1_uge', 'Uge til', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: CURRENT_YEAR, maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, CURRENT_YEAR)]),
+  col1_maaned: stdString('col1_maaned', 'År', createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear() })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, getCurrentYear)]),
+  col0_uge: stdString('col0_uge', 'Uge fra', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, getCurrentYear)]),
+  col1_uge: stdString('col1_uge', 'Uge til', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, getCurrentYear)]),
   col0_dag: stdDate('col0_dag', 'Dato fra'),
   col1_dag: stdDate('col1_dag', 'Dato til'),
   col2: stdAmount('col2', 'Løn'),

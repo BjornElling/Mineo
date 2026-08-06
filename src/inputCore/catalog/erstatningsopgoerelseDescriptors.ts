@@ -23,7 +23,7 @@ import {
 } from '../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 import {
   computeSkadedatoMinRule,
-  CURRENT_YEAR,
+  getCurrentYear,
   dateRanges_erstatningsopgoerelse,
   MIN_SVIESMERTE_YEAR,
 } from '../../config/dateRanges';
@@ -347,17 +347,17 @@ export const eoSvieSmerteHelbredsstatusField = choiceField<Helbredsstatus>(
   'svieSmerteHelbredsstatus', 'Helbredsstatus', ['Sygemeldt', 'Delvist Sygemeldt', 'Raskmeldt'],
 );
 export const eoTidligereSsMaxField = requiredJaNejField('tidligereSsMax', 'Tidligere svie/smerte-max nået', 'Nej');
-// Årsfelt: tocifrede år infereres; MIN_SVIESMERTE_YEAR..CURRENT_YEAR er det afledte bounds-issue.
+// Årsfelt: tocifrede år infereres; MIN_SVIESMERTE_YEAR..getCurrentYear er det afledte bounds-issue.
 export const eoSvieSmerteSatserAarField = defineStructuralField<number | undefined>({
   id: 'eo.svieSmerteSatserAar',
   template: { section: S, path: [], field: 'svieSmerteSatserAar' },
-  codec: createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_SVIESMERTE_YEAR, maxYear: CURRENT_YEAR }),
+  codec: createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_SVIESMERTE_YEAR, maxYear: getCurrentYear() }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Svie/smerte satsår',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
-  validators: [yearBoundsValidator('eo.svieSmerteSatserAar.bounds', MIN_SVIESMERTE_YEAR, CURRENT_YEAR)],
+  validators: [yearBoundsValidator('eo.svieSmerteSatserAar.bounds', MIN_SVIESMERTE_YEAR, getCurrentYear)],
 });
 export const eoSvieSmerteDelvisSygemeldingSatsField = requiredChoiceField<SvieSmerteDelvisSygemeldingSats>(
   'svieSmerteDelvisSygemeldingSats', 'Sats ved delvis sygemelding', ['fuld', 'halv'], 'halv',

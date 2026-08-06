@@ -9,6 +9,7 @@ import {
   validateIsoRange,
 } from '../../../utils/isoDateHelpers';
 import { diffUtcDays } from '../../../utils/utcDayMath';
+import { asciiSlug } from '../../../utils/asciiSlug';
 import { roundByMethod } from '../../../utils/rounding';
 import { beregnArbejdsdageOgMaaneder } from '../engines/arbejdsdageMaaneder';
 import { buildDatoSetInclusive, buildFerieDageSet, isWeekdayUtc } from '../engines/tafDaySets';
@@ -86,12 +87,7 @@ const SERIES_COLORS = [
 ] as const;
 
 const seriesIdFromLabel = (label: string): string =>
-  label
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'indtaegtskilde';
+  asciiSlug(label, { fallback: 'indtaegtskilde' });
 
 const roundOre = (value: number): MoneyOre =>
   moneyOre(roundByMethod(value, 0, 'halfAwayFromZero'));

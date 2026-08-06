@@ -10,7 +10,7 @@ import {
   type DocumentWriterFactory,
 } from '../../../document/documentGenerationSession';
 import { setDocumentBrand, getDocumentCreatorBrand } from '../../../document/documentBrand';
-import { TODAY } from '../../../config/dateRanges';
+import { getToday } from '../../../config/dateRanges';
 import type { DocumentWriter } from '../../../document/writer';
 import { createDocumentComposer, renderDocumentModel } from '../../../document/model/documentModel';
 
@@ -159,7 +159,7 @@ describe('documentGeneratorSetup', () => {
         journalnr: 'J-42',
         advokat: 'Advokat A',
         sagsbehandler: 'Sagsbehandler S',
-        dagsDatoISO: TODAY,
+        dagsDatoISO: getToday(),
       });
     });
 
@@ -168,9 +168,9 @@ describe('documentGeneratorSetup', () => {
         journalnr: undefined,
         advokat: undefined,
         sagsbehandler: undefined,
-        dagsDatoISO: TODAY,
+        dagsDatoISO: getToday(),
       });
-      expect(buildStamdataBrevhovedData(undefined).dagsDatoISO).toBe(TODAY);
+      expect(buildStamdataBrevhovedData(undefined).dagsDatoISO).toBe(getToday());
     });
   });
 
@@ -179,7 +179,7 @@ describe('documentGeneratorSetup', () => {
       const generate = defineDocument<Readonly<{ id: string }>>({
         title: ({ id }) => `Dokument ${id}`,
         filename: ({ id }) => `${id}.pdf`,
-        brevhoved: () => ({ dagsDatoISO: TODAY }),
+        brevhoved: () => ({ dagsDatoISO: getToday() }),
         beforeBrevhoved: (writer) => {
           recorder.lifecycle.push('før-brevhoved');
           expect(writer).not.toBe(recorder.writer);

@@ -148,21 +148,6 @@ export const normalizeTrailingSeparator = (input: string): string => {
   return trimmed;
 };
 
-export const sanitizePastedAmount = (text: string): string => {
-  const normalizedMinus = normalizePasteMinus(text);
-  const allowed = normalizedMinus.match(/[0-9+\-*/x(), ]/gi) ?? [];
-  let sanitized = '';
-
-  for (const char of allowed) {
-    if (char === ',') {
-      if (sanitized.endsWith(',')) continue;
-    }
-    sanitized += char;
-  }
-
-  return sanitized.replace(/X/g, 'x');
-};
-
 export const normalizePastedAmount = (text: string): string => {
   const normalizedMoneyLike = normalizePlainMoneyLikePaste(text);
   if (normalizedMoneyLike !== null) {

@@ -2,7 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import { computeRowDateBounds } from '../helpers/rowDateBounds';
 import { validateISODateRange } from '../../../utils/isoDateHelpers';
 import { detectOverlappingPeriods } from '../engines/periodOverlapDetection';
-import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../../config/dateRanges';
+import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, getToday } from '../../../config/dateRanges';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 import {
   computeTafCombinedExtraMaxDate,
@@ -57,7 +57,7 @@ const evaluateOne = (
     rowTil: tilISO,
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
     fallbackMax: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax,
-    tilFallbackMax: TODAY,
+    tilFallbackMax: getToday(),
     tilExtraMaxDate: combinedExtraMaxDate,
     useTilExtraMaxDate: true,
   });

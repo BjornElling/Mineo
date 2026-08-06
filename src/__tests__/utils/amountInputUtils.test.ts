@@ -1,34 +1,13 @@
 import {
   normalizePastedAmount,
-  sanitizePastedAmount,
   containsAnyDigit,
   normalizeTrailingSeparator,
   normalizeZero,
 } from '../../utils/amountInputUtils';
 
-describe('sanitizePastedAmount', () => {
-  it('removes all non-allowed characters on paste', () => {
-    expect(sanitizePastedAmount('ab1c2,3d')).toBe('12,3');
-  });
-
-  it('normalizes unicode minus to ASCII minus on paste', () => {
-    expect(sanitizePastedAmount('−12,50')).toBe('-12,50');
-  });
-
-  it('bevarer tilladte operatorer (+, -, *, /, x, (, ))', () => {
-    expect(sanitizePastedAmount('1+2*3/4')).toBe('1+2*3/4');
-    expect(sanitizePastedAmount('2X3')).toBe('2x3');
-  });
-
-  it('fjerner punktum og kollapser kun kommaer der står direkte op ad hinanden', () => {
-    expect(sanitizePastedAmount('1.2,3,4')).toBe('12,3,4');
-    expect(sanitizePastedAmount('1,,2')).toBe('1,2');
-  });
-
-  it('tom streng → tom streng', () => {
-    expect(sanitizePastedAmount('')).toBe('');
-  });
-});
+// De tidligere `sanitizePastedAmount`-tests er fjernet sammen med funktionen:
+// den havde ingen produktions-callsites og var kun holdt i live af sine egne
+// tests. `normalizePastedAmount` nedenfor er den faktiske paste-indgang.
 
 describe('normalizePastedAmount', () => {
   it('normaliserer dansk valutaformat med kr til rent beløb', () => {

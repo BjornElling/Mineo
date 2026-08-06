@@ -91,26 +91,43 @@ interface UnconstrainedDateRange {
  * - Statiske ranges ikke har unødvendige fallbacks
  * - Ingen afgrænsning er eksplicit modelleret
  */
-export const TODAY: ISODateString = getTodayLocalISO();
+/**
+ * Dags dato, læst PÅ OPSLAGSTIDSPUNKTET — ikke ved modulets import.
+ *
+ * Dette var tidligere `export const TODAY = getTodayLocalISO()`, altså et øjebliksbillede
+ * taget første gang modulet blev importeret. Det gav to reelle fejl:
+ *
+ * 1. **Stale date i en lang session.** Appen er 100 % client-side og kan stå åben over
+ *    midnat (eller genoptages fra en sovende fane/bfcache). Så blev «Opgørelse lavet den»,
+ *    «Skadedato» m.fl. fortsat validéret mod GÅRSDAGENS maksimum, og brugeren kunne ikke
+ *    indtaste dagens dato uden en genindlæsning.
+ * 2. **Testdeterminisme.** `vi.setSystemTime()` havde ingen effekt, fordi konstanten var
+ *    låst ved import — modulet skulle rekonstrueres for at flytte "i dag".
+ *
+ * Bemærk at `utils/dateInputValidation.ts` allerede læste året på opslagstidspunktet, så
+ * kodebasen havde to forskellige svar på "hvad er i dag". Nu er der ét.
+ *
+ * Getteren bevarer alle callsites' syntaks (`TODAY`, `dateRanges_stamdata.skadedato.max`),
+ * så det er en ren semantik-rettelse uden kaldeflade-ændring. Bevar getter-formen: gør den
+ * ikke til en `const` igen "for at spare et kald" — så er fejlen tilbage.
+ */
+export const getToday = (): ISODateString => getTodayLocalISO();
 
 // ============================================================================
 // GLOBALE VÆRDIER
 // ============================================================================
 
-// Minimums-år — udledt af DATE_2005_01_01 (systemets nedre datogrænse)
+// Minimums-år — udledt af DATE_2005_01_01 (systemets nedre datogrænse). Statisk: afhænger
+// kun af satsdatasættets nedre grænse, ikke af dags dato.
 export const MIN_YEAR: number = isoYear(DATE_2005_01_01);
 
-// Aktuelt år (udledt af dags dato)
-export const CURRENT_YEAR: number = isoYear(TODAY);
+/** Aktuelt år, udledt af dags dato på opslagstidspunktet (jf. {@link getToday}). */
+export const getCurrentYear = (): number => isoYear(getToday());
 
-// 31. december i aktuelt år (udledt af dags dato)
-const DATE_CURRENT_YEAR_END = endOfYearIso(CURRENT_YEAR);
-
-// 31. december 1 år frem fra aktuelt år (udledt af dags dato)
-const DATE_PLUS_1_YEAR_END = endOfYearIso(CURRENT_YEAR + 1);
-
-// 31. december 5 år frem fra aktuelt år (udledt af dags dato)
-const DATE_PLUS_5_YEARS_END = endOfYearIso(CURRENT_YEAR + 5);
+// 31. december i aktuelt år / N år frem — alle udledt af dags dato, derfor gettere.
+const dateCurrentYearEnd = (): ISODateString => endOfYearIso(getCurrentYear());
+const datePlus1YearEnd = (): ISODateString => endOfYearIso(getCurrentYear() + 1);
+const datePlus5YearsEnd = (): ISODateString => endOfYearIso(getCurrentYear() + 5);
 
 // Seneste år med komplet EET-datadækning — sats-intersection capped af
 // kapitaliseringsbekendtgørelses-oversigtens seneste fælles gyldighedsår.
@@ -191,7 +208,7 @@ export const dateRanges_stamdata: DateRanges_Stamdata = {
   skadedato: {
     type: 'static',
     min: DATE_2005_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Fra 1. januar 2005 til i dag'
   },
 };
@@ -229,7 +246,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-max',
     min: DATE_2005_01_01,
     max: 'DYNAMIC', // Den laveste værdi af: values.vedroererPeriodeTil (hvis udfyldt) eller fallbackMax
-    fallbackMax: DATE_PLUS_1_YEAR_END,
+    get fallbackMax() { return datePlus1YearEnd(); },
     notes: 'Valideres mod både fast min-værdi (1-1-2005) OG dynamisk max-værdi (indtastet "til og med" dato)'
   },
 
@@ -238,7 +255,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: values.vedroererPeriodeFra (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: DATE_PLUS_1_YEAR_END,
+    get max() { return datePlus1YearEnd(); },
     notes: 'Valideres mod både dynamisk min-værdi (indtastet fra-dato) OG fast max-værdi (31-12 ét år frem)'
   },
 
@@ -247,7 +264,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Valideres mod dynamisk min-værdi (skadedato) OG fast max-værdi (i dag)'
   },
 
@@ -256,7 +273,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
@@ -265,7 +282,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
@@ -274,7 +291,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
@@ -283,7 +300,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: DATE_PLUS_1_YEAR_END,
+    get max() { return datePlus1YearEnd(); },
     notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (31-12 ét år frem)'
   },
 
@@ -292,7 +309,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
@@ -301,7 +318,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: DATE_PLUS_1_YEAR_END,
+    get max() { return datePlus1YearEnd(); },
     notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (31-12 ét år frem)'
   },
 
@@ -310,7 +327,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
@@ -320,7 +337,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: 'DYNAMIC', // Den laveste værdi af: tilhørende til-dato (hvis udfyldt) eller TODAY
-    fallbackMax: TODAY,
+    get fallbackMax() { return getToday(); },
     notes: 'Valideres mod både dynamisk min-værdi (skadedato) OG dynamisk max-værdi (til-dato eller i dag)'
   },
 
@@ -329,7 +346,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: tilhørende fra-dato (hvis udfyldt) eller skadedato eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Valideres mod både dynamisk min-værdi (fra-dato eller skadedato) OG fast max-værdi (i dag)'
   },
 
@@ -339,7 +356,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: 'DYNAMIC', // Den laveste værdi af: tilhørende til-dato i samme række (hvis udfyldt), vedroererPeriodeTil (hvis udfyldt) eller fallbackMax
-    fallbackMax: DATE_PLUS_1_YEAR_END,
+    get fallbackMax() { return datePlus1YearEnd(); },
     notes: 'Valideres mod både dynamisk min-værdi (skadedato) OG dynamisk max-værdi (til-dato i samme række eller vedroererPeriodeTil)'
   },
 
@@ -349,7 +366,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     min: 'DYNAMIC', // Den højeste værdi af: tilhørende fra-dato i samme række (hvis udfyldt), skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: 'DYNAMIC', // Den laveste værdi af: vedroererPeriodeTil (hvis udfyldt) eller fallbackMax
-    fallbackMax: DATE_PLUS_1_YEAR_END,
+    get fallbackMax() { return datePlus1YearEnd(); },
     notes: 'Valideres mod både dynamisk min-værdi (fra-dato i samme række eller skadedato) OG dynamisk max-værdi (vedroererPeriodeTil)'
   },
 
@@ -374,7 +391,7 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis skadestype ikke er erhvervssygdom og skadedato udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Valideres mod både dynamisk min-værdi (skadedato hvis ikke erhvervssygdom) OG fast max-værdi (i dag)'
   },
 };
@@ -423,7 +440,7 @@ export const dateRanges_forsoergertab: DateRanges_Forsoergertab = {
   efterladteFodselsdato: {
     type: 'static',
     min: DATE_1900_01_01,
-    max: TODAY,
+    get max() { return getToday(); },
     notes: 'Fra 1. januar 1900 til i dag.',
   },
   beregningsdato: {
@@ -460,7 +477,7 @@ export const dateRanges_aarsloen: DateRanges_Aarsloen = {
     type: 'dynamic-max',
     min: DATE_2005_01_01,
     max: 'DYNAMIC', // Den laveste værdi af: tilhørende til-dato-celle (hvis udfyldt) eller fallbackMax
-    fallbackMax: DATE_CURRENT_YEAR_END,
+    get fallbackMax() { return dateCurrentYearEnd(); },
     notes: 'Valideres mod både fast min-værdi (1-1-2005) OG dynamisk max-værdi (indtastet til-dato i samme række)'
   },
 
@@ -469,7 +486,7 @@ export const dateRanges_aarsloen: DateRanges_Aarsloen = {
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: tilhørende fra-dato-celle (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
-    max: DATE_CURRENT_YEAR_END,
+    get max() { return dateCurrentYearEnd(); },
     notes: 'Valideres mod både dynamisk min-værdi (indtastet fra-dato i samme række) OG fast max-værdi (31-12 i aktuelt år)'
   },
 };
@@ -490,7 +507,7 @@ export const dateRanges_renteberegning: DateRanges_Renteberegning = {
   renteTil: {
     type: 'static',
     min: MIN_INTEREST_DATE,
-    max: DATE_PLUS_5_YEARS_END,
+    get max() { return datePlus5YearsEnd(); },
     notes: 'Fra tidligste referencesats-dato til 31. december 5 år frem fra aktuelt år'
   },
 };
@@ -526,7 +543,7 @@ export const dateRanges_varigemen: DateRanges_VarigeMen = {
 export const dateRanges_skadelidteFodselsdato: StaticDateRange = {
   type: 'static',
   min: DATE_1900_01_01,
-  max: TODAY,
+  get max() { return getToday(); },
   notes: 'Fra 1. januar 1900 til i dag.',
 };
 

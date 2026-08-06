@@ -1,23 +1,49 @@
 /**
- * IndexedDB wrapper til persistent log storage
+ * Persistent log storage.
  *
- * Mineo er en browser-app, så vi kan ikke skrive til fil-systemet.
- * Bruger IndexedDB til at gemme logs lokalt i browseren.
+ * Mineo er en browser-app, så vi kan ikke skrive til fil-systemet. IndexedDB bruges til at
+ * gemme logs lokalt i browseren.
  *
  * Features:
  * - Max 1000 log entries (FIFO - ældste slettes først)
  * - Auto-cleanup: Slet entries ældre end 30 dage
  * - Kun errors/warnings gemmes (ikke debug/info)
+ *
+ * Forbindelse, transaction-livscyklus og promisificering ejes af den fælles
+ * `indexedDbStore`-primitiv. Filen havde tidligere sin EGEN `openDatabase`-kopi side om side
+ * med den i `fileHandleStorage.ts` — to parallelle IndexedDB-wrappers for samme plumbing.
+ * Den kopi lukkede desuden aldrig sine forbindelser.
+ *
+ * Databasen er bevidst adskilt fra fil-handle-storet: dette er et append-only log-store med
+ * `autoIncrement`-keyPath og to indexes, der læses med cursors — en anden datamodel end et
+ * keyed kv-store.
  */
 
-const DB_NAME = 'MineoLogs';
-const DB_VERSION = 1;
+import {
+  awaitRequest,
+  isIndexedDbAvailable,
+  runTransactionOr,
+  type IndexedDbSchema,
+} from './indexedDbStore';
+
 const STORE_NAME = 'errorLogs';
 const MAX_ENTRIES = 1000;
 const MAX_AGE_DAYS = 30;
 
-const hasIndexedDbSupport = (): boolean => {
-  return typeof indexedDB !== 'undefined' && typeof IDBKeyRange !== 'undefined';
+const SCHEMA: IndexedDbSchema = {
+  databaseName: 'MineoLogs',
+  version: 1,
+  upgrade: (db) => {
+    if (!db.objectStoreNames.contains(STORE_NAME)) {
+      const objectStore = db.createObjectStore(STORE_NAME, {
+        keyPath: 'id',
+        autoIncrement: true,
+      });
+      // Index på timestamp for hurtig sortering/cleanup.
+      objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+      objectStore.createIndex('level', 'level', { unique: false });
+    }
+  },
 };
 
 export interface LogEntry {
@@ -31,231 +57,157 @@ export interface LogEntry {
 }
 
 /**
- * Åbn IndexedDB forbindelse
- */
-function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (!hasIndexedDbSupport()) {
-      reject(new Error('IndexedDB er ikke tilgængelig i dette miljø'));
-      return;
-    }
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onerror = () => {
-      reject(new Error('IndexedDB kunne ikke åbnes'));
-    };
-
-    request.onsuccess = () => {
-      resolve(request.result);
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-
-      // Opret object store hvis den ikke eksisterer
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const objectStore = db.createObjectStore(STORE_NAME, {
-          keyPath: 'id',
-          autoIncrement: true,
-        });
-
-        // Opret index på timestamp for hurtig sortering/cleanup
-        objectStore.createIndex('timestamp', 'timestamp', { unique: false });
-        objectStore.createIndex('level', 'level', { unique: false });
-      }
-    };
-  });
-}
-
-/**
- * Gem log entry til IndexedDB
+ * Gem log entry.
+ *
+ * Fejler stille: en logging-fejl må aldrig kunne vælte appen. `runTransactionOr` logger
+ * selv den underliggende årsag.
  */
 export async function saveLogEntry(entry: Omit<LogEntry, 'id'>): Promise<void> {
-  if (!hasIndexedDbSupport()) {
-    return;
-  }
-  try {
-    const db = await openDatabase();
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
+  await runTransactionOr(
+    undefined,
+    SCHEMA,
+    [STORE_NAME],
+    'readwrite',
+    async (transaction) => {
+      await awaitRequest(transaction.objectStore(STORE_NAME).add(entry));
+    },
+    'saveLogEntry'
+  );
 
-    // Gem entry
-    store.add(entry);
-
-    // Vent på transaction completion
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-    });
-
-    // Cleanup (kør async uden at vente)
-    cleanupOldEntries().catch((err) => {
-      console.error('Log cleanup fejlede:', err);
-    });
-  } catch (error) {
-    console.error('Kunne ikke gemme log entry:', error);
-    // Fejl stille - vi vil ikke crashe appen pga. logging-fejl
-  }
+  // Cleanup kører uden at blokere skrivningen.
+  void cleanupOldEntries();
 }
 
 /**
- * Hent alle log entries (seneste først)
+ * Hent alle log entries (seneste først).
  *
- * Bemærk: denne funktion læser hele object store og sorterer i memory.
- * Brug `getRecentLogEntries()` hvis kun de seneste entries er nødvendige.
+ * Bemærk: læser hele object store og sorterer i memory. Brug `getRecentLogEntries()` hvis
+ * kun de seneste entries er nødvendige.
  */
 export async function getAllLogEntries(): Promise<LogEntry[]> {
-  if (!hasIndexedDbSupport()) {
-    return [];
-  }
-  try {
-    const db = await openDatabase();
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-
-    return new Promise((resolve, reject) => {
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const entries = request.result as LogEntry[];
-        // Sorter seneste først
-        entries.sort((a, b) => {
-          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-        });
-        resolve(entries);
-      };
-
-      request.onerror = () => {
-        reject(request.error);
-      };
-    });
-  } catch (error) {
-    console.error('Kunne ikke hente log entries:', error);
-    return [];
-  }
+  return runTransactionOr(
+    [],
+    SCHEMA,
+    [STORE_NAME],
+    'readonly',
+    async (transaction) => {
+      const entries = await awaitRequest<LogEntry[]>(
+        transaction.objectStore(STORE_NAME).getAll()
+      );
+      return [...entries].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+    },
+    'getAllLogEntries'
+  );
 }
 
-/**
- * Hent N seneste log entries
- */
+/** Hent N seneste log entries. */
 export async function getRecentLogEntries(count: number): Promise<LogEntry[]> {
-  if (!hasIndexedDbSupport() || count <= 0) {
+  if (count <= 0) {
     return [];
   }
-  try {
-    const db = await openDatabase();
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const timestampIndex = store.index('timestamp');
-
-    return await new Promise<LogEntry[]>((resolve, reject) => {
-      const entries: LogEntry[] = [];
-      const request = timestampIndex.openCursor(null, 'prev');
-
-      request.onsuccess = () => {
-        const cursor = request.result;
-        if (!cursor) {
-          resolve(entries);
-          return;
-        }
-        entries.push(cursor.value as LogEntry);
-        if (entries.length >= count) {
-          resolve(entries);
-          return;
-        }
-        cursor.continue();
-      };
-
-      request.onerror = () => {
-        reject(request.error);
-      };
-    });
-  } catch (error) {
-    console.error('Kunne ikke hente seneste log entries:', error);
-    return [];
-  }
+  return runTransactionOr(
+    [],
+    SCHEMA,
+    [STORE_NAME],
+    'readonly',
+    async (transaction) => {
+      const timestampIndex = transaction.objectStore(STORE_NAME).index('timestamp');
+      return await new Promise<LogEntry[]>((resolve, reject) => {
+        const entries: LogEntry[] = [];
+        const request = timestampIndex.openCursor(null, 'prev');
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (!cursor || entries.length >= count) {
+            resolve(entries);
+            return;
+          }
+          entries.push(cursor.value as LogEntry);
+          if (entries.length >= count) {
+            resolve(entries);
+            return;
+          }
+          cursor.continue();
+        };
+        request.onerror = () => reject(request.error ?? new Error('Cursor fejlede'));
+      });
+    },
+    'getRecentLogEntries'
+  );
 }
 
-/**
- * Slet alle log entries
- */
+/** Slet alle log entries. */
 export async function clearAllLogs(): Promise<void> {
-  if (!hasIndexedDbSupport()) {
-    return;
-  }
-  try {
-    const db = await openDatabase();
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-
-    store.clear();
-
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-    });
-  } catch (error) {
-    console.error('Kunne ikke slette logs:', error);
-  }
+  await runTransactionOr(
+    undefined,
+    SCHEMA,
+    [STORE_NAME],
+    'readwrite',
+    async (transaction) => {
+      await awaitRequest(transaction.objectStore(STORE_NAME).clear());
+    },
+    'clearAllLogs'
+  );
 }
 
 /**
- * Cleanup: Slet gamle entries og trim til MAX_ENTRIES
+ * Cleanup: slet entries ældre end MAX_AGE_DAYS og trim til MAX_ENTRIES.
+ *
+ * Begge trin kører i SAMME transaction, så log-storet ikke kan observeres halvt trimmet.
  */
 async function cleanupOldEntries(): Promise<void> {
-  if (!hasIndexedDbSupport()) {
+  if (!isIndexedDbAvailable()) {
     return;
   }
-  try {
-    const db = await openDatabase();
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const timestampIndex = store.index('timestamp');
+  await runTransactionOr(
+    undefined,
+    SCHEMA,
+    [STORE_NAME],
+    'readwrite',
+    async (transaction) => {
+      const store = transaction.objectStore(STORE_NAME);
+      const timestampIndex = store.index('timestamp');
 
-    // 1. Slet entries ældre end MAX_AGE_DAYS
-    const cutoffDate = new Date();
-    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - MAX_AGE_DAYS);
-    const cutoffTimestamp = cutoffDate.toISOString();
+      // 1. Slet entries ældre end MAX_AGE_DAYS.
+      const cutoffDate = new Date();
+      cutoffDate.setUTCDate(cutoffDate.getUTCDate() - MAX_AGE_DAYS);
+      const cutoffTimestamp = cutoffDate.toISOString();
+      await deleteViaCursor(timestampIndex.openCursor(IDBKeyRange.upperBound(cutoffTimestamp)));
 
-    const oldEntriesRequest = timestampIndex.openCursor(
-      IDBKeyRange.upperBound(cutoffTimestamp)
-    );
-
-    oldEntriesRequest.onsuccess = (event) => {
-      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-      if (cursor) {
-        cursor.delete();
-        cursor.continue();
+      // 2. Trim til MAX_ENTRIES (ældste først).
+      const count = await awaitRequest<number>(store.count());
+      const entriesToDelete = count - MAX_ENTRIES;
+      if (entriesToDelete > 0) {
+        await deleteViaCursor(timestampIndex.openCursor(), entriesToDelete);
       }
-    };
-
-    // 2. Trim til MAX_ENTRIES (slet ældste hvis > MAX_ENTRIES)
-    const countRequest = store.count();
-    countRequest.onsuccess = () => {
-      const count = countRequest.result;
-      if (count > MAX_ENTRIES) {
-        const entriesToDelete = count - MAX_ENTRIES;
-
-        // Hent ældste entries (sorteret på timestamp)
-        const cursorRequest = timestampIndex.openCursor();
-        let deleted = 0;
-
-        cursorRequest.onsuccess = (event) => {
-          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-          if (cursor && deleted < entriesToDelete) {
-            cursor.delete();
-            deleted++;
-            cursor.continue();
-          }
-        };
-      }
-    };
-
-    await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-    });
-  } catch (error) {
-    console.error('Log cleanup fejlede:', error);
-  }
+    },
+    'cleanupOldEntries'
+  );
 }
+
+/**
+ * Sletter rækker gennem en cursor, valgfrit begrænset til `limit` rækker.
+ *
+ * Cursor-løkken afventes eksplicit, så transactionen ikke auto-committer midt i sletningen —
+ * den tidligere form satte kun `onsuccess`-handlere og stolede på, at de var færdige før
+ * `oncomplete`.
+ */
+const deleteViaCursor = (
+  request: IDBRequest<IDBCursorWithValue | null>,
+  limit?: number
+): Promise<void> =>
+  new Promise<void>((resolve, reject) => {
+    let deleted = 0;
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor || (limit !== undefined && deleted >= limit)) {
+        resolve();
+        return;
+      }
+      cursor.delete();
+      deleted += 1;
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error ?? new Error('Cursor-sletning fejlede'));
+  });

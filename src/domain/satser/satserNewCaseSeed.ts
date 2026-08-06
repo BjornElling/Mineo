@@ -1,4 +1,4 @@
-import { CURRENT_YEAR } from '../../config/dateRanges';
+import { getCurrentYear } from '../../config/dateRanges';
 import { satserAngivAarYearBounds } from '../../data/lovbestemteRates';
 import type { NewCaseSeed } from '../../inputCore/runtime/initializeInputRuntime';
 import { resolveSatserDefaultAargang } from '../policies/satserCalculations';
@@ -19,7 +19,9 @@ import { resolveSatserDefaultAargang } from '../policies/satserCalculations';
  */
 export const seedSatserNewCase: NewCaseSeed = () => {
   const defaultYear = resolveSatserDefaultAargang(
-    CURRENT_YEAR,
+    // Læses når sagen faktisk bootstrappes, ikke ved modulets import: en session der står
+    // åben over et årsskifte skal seede det NYE år i den næste nye sag.
+    getCurrentYear(),
     satserAngivAarYearBounds.minYear,
     satserAngivAarYearBounds.maxYear
   );

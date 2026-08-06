@@ -27,16 +27,12 @@
 
 import { ok, err } from '../types/result';
 import type { Result } from '../types/result';
+import { asciiSlug } from './asciiSlug';
 import { reportSystemIssue } from './systemIssueReporter';
 import { asError } from './typeGuards';
 
-const toSafeComputeCodeSuffix = (context: string): string => {
-  return context
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '') || 'unknown';
-};
+const toSafeComputeCodeSuffix = (context: string): string =>
+  asciiSlug(context, { separator: '_', fallback: 'unknown' });
 
 /**
  * Wrap beregning i try-catch + automatisk logging
