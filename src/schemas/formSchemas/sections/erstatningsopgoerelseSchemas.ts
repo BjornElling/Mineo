@@ -237,11 +237,16 @@ const overenskomstFilterSchema = z.object({
   arbejdsgiver: optionalString,
 }).strict();
 
-// Fælles lønudviklingsfelter bruges i to persisted former:
-// ansættelsesforhold kræver `loenPaaHelligdage`, mens EO-angivet løn skal kunne loades uden feltet.
-const createLoenudviklingOgSatserSchema = <TLoenPaaHelligdage extends z.ZodTypeAny>(loenPaaHelligdage: TLoenPaaHelligdage) => z.object({
+// Fælles lønudviklingsfelter for de to persisted ejere (ansættelsesforhold og EO-angivet løn).
+//
+// ⚠️ `loenPaaHelligdage` var tidligere PARAMETRISERET, så EO-angivet løn kunne loades uden feltet, mens
+// ansættelsesforholdet krævede det. Den parametrisering var selve BF-025: den gjorde `undefined` — en værdi,
+// motoren erklærer umulig — til den tilstand en nyoprettet sag altid har. Load-tolerance og "må mangle" er
+// ikke det samme krav: en `.default()` giver ældre `.eo`-filer uden feltet en gyldig værdi OG holder typen
+// påkrævet, så den umulige tilstand ikke kan repræsenteres. Genindfør ikke `.optional()` her.
+const loenudviklingOgSatserShape = {
   feriePct: decimalNumber,
-  loenPaaHelligdage,
+  loenPaaHelligdage: loenPaaHelligdageEnum.default('Almindelig løn'),
   saerligFraDatoRegulering: optionalIsoDateString,
   loenudviklingBeregningsgrundlag: z.preprocess(normalizeEmptyToUndefined, loenudviklingBeregningsgrundlagEnum.optional()),
   loenudviklingStatistikModel: z.preprocess(normalizeEmptyToUndefined, loenudviklingStatistikModelEnum.optional()),
@@ -254,14 +259,10 @@ const createLoenudviklingOgSatserSchema = <TLoenPaaHelligdage extends z.ZodTypeA
   offentligLoenGruppe: wholeNumber,
   offentligLoenEkstraGrundloen: amountValue,
   overenskomstFilter: overenskomstFilterSchema.default({}),
-}).strict();
+} as const;
 
-export const loenudviklingOgSatserSchema = createLoenudviklingOgSatserSchema(loenPaaHelligdageEnum);
-export const eoLoenudviklingOgSatserSchema = createLoenudviklingOgSatserSchema(
-  z.preprocess(normalizeEmptyToUndefined, loenPaaHelligdageEnum.optional())
-);
+export const loenudviklingOgSatserSchema = z.object(loenudviklingOgSatserShape).strict();
 export type LoenudviklingOgSatser = z.infer<typeof loenudviklingOgSatserSchema>;
-export type EOLoenudviklingOgSatser = z.infer<typeof eoLoenudviklingOgSatserSchema>;
 
 const loenindkomstAnsaettelsesforholdBaseSchema = z.object({
   id: entityId('ID'),
@@ -295,7 +296,7 @@ const loenindkomstAnsaettelsesforholdShape = {
   // og lønudvikling ejer satser/reguleringsvalg. Shape-spread må kun bruges her, hvor felterne er disjunkte.
   ...loenindkomstAnsaettelsesforholdBaseSchema.shape,
   ...loenindkomstAnciennitetSchema.shape,
-  ...loenudviklingOgSatserSchema.shape,
+  ...loenudviklingOgSatserShape,
 } as const;
 
 /**
@@ -336,7 +337,7 @@ export const eoAngivetLoenLoenudviklingSchema = z.object({
   anciennitetstillaegDato: optionalIsoDateString,
   anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum.default('Måned'),
   anciennitetstillaegSats: amountValue,
-  ...eoLoenudviklingOgSatserSchema.shape,
+  ...loenudviklingOgSatserShape,
 }).strict();
 
 export type EOAngivetLoenLoenudvikling = z.infer<typeof eoAngivetLoenLoenudviklingSchema>;

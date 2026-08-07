@@ -5,7 +5,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 
 ## Nye fund
 
-Næste ID: **BF-025**. Kopiér denne blok pr. fund:
+Næste ID: **BF-027**. Kopiér denne blok pr. fund:
 
 ```md
 ## BF-020 — Kort titel
@@ -73,6 +73,23 @@ kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede
 - Prioritet: Høj
 - Status: Ny
 
+## BF-026 — Inline-bindestreg på linjen med en deaktiveret download-knap
+
+- Type: Fejl
+- Sted: Alle steder med en download-knap, der kan være deaktiveret (set bl.a. under "Tilgængelige reguleringssatser"
+  i "Indtægt før skadedatoen" på EO oplysninger-fanen)
+- Sådan fremprovokeres det:
+  1. Bring en side i en tilstand, hvor en download-knap er deaktiveret.
+  2. Se linjen, hvor knappen står.
+- Det sker: Der indsættes en inline-bindestreg (`-`) på linjen i stedet for knappen.
+- Det bør ske: Der skal hverken være inline-tekst eller bindestreg. Bindestregen stammer efter alt at dømme fra
+  den tidligere fjernelse af en inline-tekst, brugeren aldrig havde bedt om; erstatningen skulle have været
+  ingenting.
+- Eksempel/data: Under "Vælg overenskomst" vises overskriften "Tilgængelige reguleringssatser" efterfulgt af
+  en linje med kun `-`.
+- Prioritet: Mellem
+- Status: Ny
+
 ## Afventer reproduktion
 
 Ingen fund afventer reproduktion.
@@ -100,6 +117,68 @@ Ingen fund afventer reproduktion.
 | BF-017 | Méngrad på 5 % giver den aftalte gule feltadvarsel. |
 | BF-018 | Tillægstid accepterer højst to cifre ved tastning og markerer øvrigt input korrekt. |
 | BF-019 | EET-procenter under 15 % giver den aftalte gule feltadvarsel. |
+| BF-025 | Angivet måneds-/timeløn på en ny sag udløser ikke længere en systemfejl; "en ny sags default" har fået ét sandt sted, og tre værn dækker klassen. |
+
+### BF-025 — analyse og løsning
+
+**Fundet.** På en nyåbnet sag uden indtastninger gav valget "Angivet månedsløn" eller "Angivet timeløn" under
+"Beregnes ud fra" en runtime-fejl: `eo_snapshot:hidden_angivet_loen_state_invalid` — "EO-snapshot afvist pga.
+intern datainkonsistens i angivet løn". Fejlen ramte deterministisk ved allerførste valg.
+
+**Kernen.** Feltet `eoAngivetLoenLoenudvikling.loenPaaHelligdage` ("Løn på helligdage" for angivet løn) var
+erklæret tre steder med tre forskellige krav:
+
+- **Schemaet** gjorde det valgfrit — begrundet i, at ældre `.eo`-filer skulle kunne loades uden feltet. Det
+  fælles lønudviklings-schema var ligefrem gjort generisk netop for at kunne have to udgaver af dette ene felt.
+- **Inputdescriptoren** gjorde det til et valgfrit felt med tomværdien `undefined`, mens dets tvilling under et
+  ansættelsesforhold var et required-choice med tomværdien "Almindelig løn".
+- **Domænet** krævede en konkret sats: `resolveLoenudviklingKilde` kastede på alt andet, og `computeEoSnapshot`
+  havde en forudgående invariant, som fail-closede og rapporterede en systemfejl.
+
+Dertil kom, at feltet **ikke har nogen editor** noget sted i programmet. Værdien kunne altså aldrig blive andet
+end tomværdien, og tomværdien var netop den tilstand, motoren erklærede umulig. Enhver ny sag startede dermed
+inde i den forbudte tilstand, og valget af angivet løn var blot det, der fik motoren til at kigge efter.
+
+**Hvorfor ingen test så det.** Sektionerne er `null`, indtil brugeren rører sit første felt; først dér oprettes
+sektionen fra `createEmptyErstatningsopgoerelseSection` + schemaets defaults. Men suitens fixtures — herunder det
+eksisterende værn `eoReguleringInvariantReachability` mod præcis denne klasse af fejl — bygger på
+`createErstatningsopgoerelseInitialValues`, en fabrik ingen produktionssti kalder, og som netop udfylder feltet.
+Testene målte altså en rigere sag, end produktionen nogensinde er i.
+
+**Klassen bagved.** Tre mekanismer lod en domæne-umulig tilstand blive produktionens default, og hver af dem kan
+ramme andre felter:
+
+1. To rivaliserende konstruktioner af "en ny sektion" — den levende (schema-defaults) og den døde
+   (`create*InitialValues`) — hvor kun den døde bruges af tests.
+2. Samme logiske felt erklæret med forskellige krav i schema, descriptor og domænetype, uden noget der tvinger
+   dem til at være enige.
+3. Katalogfelter uden editor, hvis værdi derfor altid er tomværdien, mens en invariant kræver mere.
+
+**Løsningen.** Feltet er gjort required-with-default ("Almindelig løn") i både schema og descriptor — samme
+behandling årslønssektionen fik i persist-version 3.4. Load-tolerancen består (en ældre `.eo` uden feltet får
+defaulten), men `undefined` kan ikke længere repræsenteres. Både invarianten i `computeEoSnapshot`, motorens
+defensive kast og validatorreglen "Løn på helligdage skal vælges" er derfor fjernet: de vogtede en tilstand,
+typen nu udelukker. `PERSISTED_DATA_VERSION` er bumpet til 3.12.
+
+Derudover er klassen lukket med tre værn, beskrevet i `docs/architecture/input-architecture.md` §2.11:
+
+- `freshCaseChoiceSweep.test.ts` — fejer hvert statisk valg-/kontaktfelt gennem hver af sine valgmuligheder fra
+  præcis den tilstand, `initializeInputRuntime` giver en ny sag, og kører hele domænets læsesti. Ingen systemfejl
+  og ingen exception må forekomme. Fejningen er katalogdrevet, så nye felter og nye enum-værdier dækkes
+  automatisk. Valgmængden er gjort opregnelig ved at eksponere den på feltets codec (`FieldCodec.options`).
+  Værnet er efterprøvet ved at genindføre fejlen: det bliver rødt og navngiver både feltet og de to valg.
+- `freshSectionDefaults.test.ts` — kræver, at descriptorens tomværdi og den friske sektions faktiske værdi er
+  enige for hvert statisk felt i hver sektion, så et felt ikke kan have to defaults.
+- `newCaseFixtureParity.test.ts` — kræver, at den gamle new-case-fabrik kun afviger fra den levende sektion på
+  erklærede punkter, så en testfixture ikke igen kan være rigere end produktionens sag.
+
+**Åbne forhold, der ikke er rettet her.** Fejningen afdækkede, at AppSettings-afledte standardvalg ikke slår
+igennem på en ny sag: den levende sektion læser ikke AppSettings, så bl.a. "Indsæt udkast-stempel" og "Øvrige
+krav skjult ved ny sag" starter på schemaets default frem for brugerens valg. Afvigelserne er nu opregnet i
+`newCaseFixtureParity.test.ts`, så de er synlige og ikke kan vokse ubemærket, men selve tilkoblingen er en
+adfærdsændring, der bør besluttes for sig. Ligeledes har `eoAngivetLoenLoenudvikling`-feltene `loenPaaHelligdage`,
+`feriePct` og `saerligFraDatoRegulering` fortsat ingen editor; efter rettelsen er de harmløse, men de er
+uindtastelige felter i kataloget.
 
 Senest opdateret: 7. august 2026. De rettede fund er automatiseret verificeret. Visuel browserverifikation
 af BF-003, BF-004, BF-008 og BF-014 udestår, fordi ingen styrbar browser var registreret.
@@ -111,3 +190,4 @@ sidste undo i en række fjerner altid rækken; invarianten er nu pinnet af en te
 indtastninger efter en fuld undo/redo-rundtur. Symptomet var af brugeren beskrevet som betinget af den
 fejlagtige fokustilstand, rettelsen fjerner. Optræder det igen, er den mest lovende hypotese en spuriøs
 history-frame fra en blur-commit, når den fokuserede celle unmountes uden fokusrestore (jf. `restoreFocusFlag`).
+

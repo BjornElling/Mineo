@@ -9,6 +9,7 @@ import {
   getAngivetLoenOpreguleresFraDato,
   resolveLoenudviklingKilde,
 } from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { erstatningsopgoerelseSchema } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { toISODateString } from '../../../types/branded';
 
@@ -61,19 +62,17 @@ describe('resolveLoenudviklingKilde', () => {
     expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.INGEN);
   });
 
-  it('kaster LoenudviklingKildeError med korrekt code ved ugyldig loenPaaHelligdage', () => {
-    const values = createErstatningsopgoerelseInitialValues();
+  // BF-025: her lå et kast på `loenPaaHelligdage === undefined`. Testen var grøn, fordi fixturen SATTE
+  // feltet til undefined — mens produktionen nåede samme gren uden at nogen satte noget, netop fordi feltet
+  // var valgfrit og manglede en editor. Kontrakten er nu, at en tom, nyoprettet sag bærer en konkret sats
+  // gennem hele lønudviklings-kilden uden at kaste.
+  it('en tom, nyoprettet sag giver en lønudviklings-kilde med konkret sats — uden at kaste', () => {
+    const values = erstatningsopgoerelseSchema.parse({ loenindkomstAnsaettelsesforhold: [] });
     values.beregnesUdFra = 'Angivet dagsløn';
-    (values.eoAngivetLoenLoenudvikling as any).loenPaaHelligdage = undefined;
 
-    expect(() => resolveLoenudviklingKilde(values)).toThrow(LoenudviklingKildeError);
-    try {
-      resolveLoenudviklingKilde(values);
-    } catch (err) {
-      expect(err).toBeInstanceOf(LoenudviklingKildeError);
-      expect((err as LoenudviklingKildeError).code).toBe('invalid_loen_paa_helligdage');
-      expect((err as LoenudviklingKildeError).name).toBe('LoenudviklingKildeError');
-    }
+    const result = resolveLoenudviklingKilde(values);
+    expect(result).toHaveLength(1);
+    expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.ALMINDELIG);
   });
 
   it('kaster LoenudviklingKildeError med korrekt code ved ukendt beregnesUdFra', () => {

@@ -325,7 +325,11 @@ export const eoAngivetLoenFields = {
   anciennitetstillaegSatsAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
   anciennitetstillaegSats: eoLoen<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, eoLoenAmountBounds('anciennitetstillaegSats')),
   feriePct: eoLoen<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, [percentBoundsValidator(`${EO_LOEN_ID}.feriePct.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
-  loenPaaHelligdage: optField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', 'choice', createChoiceFieldCodec(loenPaaHelligdageEnum.options)),
+  // Samme required-choice-kontrakt som ansættelsesforholdets tvilling (`eoEmploymentFields.loenPaaHelligdage`).
+  // Feltet har ingen editor under angivet løn, så dets værdi ER tomværdien — og en tomværdi på `undefined`
+  // ville føde motoren en tilstand, den erklærer umulig (BF-025). Descriptorens tomværdi skal derfor være den
+  // samme konkrete sats, som schemaets `.default()` giver.
+  loenPaaHelligdage: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
   saerligFraDatoRegulering: eoLoen<ISODateString>('saerligFraDatoRegulering', 'Særlig fra-dato for regulering', 'text', dateCodec),
   loenudviklingBeregningsgrundlag: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
   loenudviklingStatistikModel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),

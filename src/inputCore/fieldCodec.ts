@@ -94,6 +94,17 @@ export type FieldCodec<T> = Readonly<{
   signPolicy?: FieldSignPolicy;
   /** Om et numerisk felt accepterer decimaladskiller under redigering. Beløbs- og procentflader læser denne politik. */
   decimalPolicy?: FieldDecimalPolicy;
+  /**
+   * VALGMÆNGDEN for de opregnelige familier (`selection`, `requiredChoice`, `boolean`) som CANONICAL værdier.
+   *
+   * Samme begrundelse som {@link FieldSignPolicy}: mængden ER erklæret inde i codecet, og uden den udadtil
+   * er den eneste maskinlæsbare opregning af "hvilke tilstande kan brugeren sætte dette felt i" umulig.
+   * Det var netop den manglende opregning, der lod BF-025 leve: ingen test kunne feje en tom sags
+   * dropdown-valg igennem, fordi ingen kunne SPØRGE et felt om dets valg.
+   *
+   * Udeladt for de frie familier (tekst, dato, tal …), hvor mængden ikke er endelig.
+   */
+  options?: readonly unknown[];
   /** Parser rå editortekst ved settle. Semantisk tom tekst skal resolve `valid` til feltets tomværdi. */
   parseForSettle: (raw: string) => FieldResolution<T>;
   /** Visning af en canonical værdi i lukket tilstand. */

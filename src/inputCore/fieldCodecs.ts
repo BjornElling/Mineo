@@ -128,6 +128,7 @@ export const createSelectionFieldCodec = <T extends string | number>(options: Re
   }
   return Object.freeze({
     family: 'selection',
+    options: Object.freeze([...options.values]),
     parseForSettle: (raw): FieldResolution<T | undefined> => {
       const value = raw.trim();
       if (value === '') return validResolution(undefined);
@@ -157,6 +158,7 @@ export const createRequiredChoiceFieldCodec = <T extends string>(
   }
   return Object.freeze({
     family: 'requiredChoice',
+    options: Object.freeze([...values]),
     parseForSettle: (raw): FieldResolution<T> => {
       if (raw.trim() === '') return validResolution(emptyValue);
       const resolution = optional.parseForSettle(raw);
@@ -173,6 +175,7 @@ export const createRequiredChoiceFieldCodec = <T extends string>(
 /** Toggle/checkbox: immediate-commit-sti, boolean canonical. */
 export const createBooleanFieldCodec = (emptyValue = false): FieldCodec<boolean> => Object.freeze({
   family: 'boolean',
+  options: Object.freeze([false, true]),
   parseForSettle: (raw) => raw.trim() === ''
     ? validResolution(emptyValue)
     : raw === 'true'

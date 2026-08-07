@@ -4,7 +4,7 @@ import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapsho
 import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import { erstatningsopgoerelseSchema, type ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 
 const { reportSystemIssueMock } = vi.hoisted(() => ({
@@ -104,37 +104,28 @@ describe('computeEoSnapshot', () => {
     }));
   });
 
-  it('returnerer fail_closed og logger systemfejl når skjult EO-lønfelt mangler ved angivet løn', () => {
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.beregnesUdFra = 'Angivet månedsløn';
-    eoValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = undefined;
+  // BF-025: det skjulte EO-lønfelt `loenPaaHelligdage` havde ingen editor og var valgfrit i schemaet, så
+  // enhver NY sag mødte en systemfejl i det øjeblik "Beregnes ud fra" blev sat til angivet løn. Feltet er nu
+  // required-with-default begge steder; her pinnes, at valget er tavst og bærer den konkrete sats videre.
+  it.each(['Angivet månedsløn', 'Angivet dagsløn'] as const)(
+    '%s på en tom, nyoprettet sag rapporterer ingen systemfejl',
+    (beregnesUdFra) => {
+      const eoValues = erstatningsopgoerelseSchema.parse({ loenindkomstAnsaettelsesforhold: [] });
+      eoValues.beregnesUdFra = beregnesUdFra;
 
-    const snapshot = computeEoSnapshot({
-      revision: 'eo-hidden-loen-state',
-      stamdataValues: STAMDATA_INITIAL_VALUES,
-      eoValues,
-    });
+      expect(eoValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage).toBe('Almindelig løn');
 
-    expect(snapshot.status).toBe('fail_closed');
-    expect(snapshot.failClosedReason).toBe('invariant_guard');
-    expect(snapshot.data).toBeNull();
-    expect(snapshot.invariants).toEqual([
-      expect.objectContaining({
-        id: 'invariant_guard:eo_angivet_loen_loen_paa_helligdage',
-        source: 'system',
-      }),
-    ]);
-    expect(reportSystemIssueMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        code: 'eo_snapshot:hidden_angivet_loen_state_invalid',
-        context: 'eoSnapshot.computeEoSnapshot',
-        revision: 'eo-hidden-loen-state',
-        diagnostics: expect.objectContaining({
-          beregnesUdFra: 'Angivet månedsløn',
-        }),
-      })
-    );
-  });
+      const snapshot = computeEoSnapshot({
+        revision: `eo-angivet-loen-${beregnesUdFra}`,
+        stamdataValues: STAMDATA_INITIAL_VALUES,
+        eoValues,
+      });
+
+      expect(reportSystemIssueMock).not.toHaveBeenCalled();
+      expect(snapshot.failClosedReason).not.toBe('invariant_guard');
+      expect(snapshot.failClosedReason).not.toBe('runtime_exception');
+    }
+  );
 
   it('returnerer fail_closed ved schema-guard fejl', () => {
     const snapshot = computeEoSnapshot({

@@ -196,15 +196,6 @@ const buildInspektionSnapshotForComputed = (args: Readonly<{
   });
 };
 
-const isAngivetLoenHiddenStateInvalid = (
-  values: ErstatningsopgoerelseValues
-): boolean => {
-  return (
-    (values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn') &&
-    values.eoAngivetLoenLoenudvikling.loenPaaHelligdage === undefined
-  );
-};
-
 /**
  * Neutraliserer S/S-outputtets EFTER-FORLIG-felter, når forligsgrenen er blokeret.
  *
@@ -339,39 +330,12 @@ export const computeEoSnapshot = (args: Readonly<{
   const projectedTafStamdata = dependencyProjection.tafInput?.stamdata ?? parsedStamdata.data;
   const projectedOevrigeKravValues = dependencyProjection.oevrigeKravInput ?? effectiveEoValues;
 
-  if (isAngivetLoenHiddenStateInvalid(parsedEo.data)) {
-    reportSystemIssue({
-      code: 'eo_snapshot:hidden_angivet_loen_state_invalid',
-      area: 'eo',
-      context: 'eoSnapshot.computeEoSnapshot',
-      userMessage: 'EO-snapshot afvist pga. intern datainkonsistens i angivet løn',
-      revision: args.revision,
-      diagnostics: {
-        revision: args.revision,
-        beregnesUdFra: parsedEo.data.beregnesUdFra,
-      },
-    });
-    return {
-      revision: args.revision,
-      status: 'fail_closed',
-      invariants: [{
-        id: 'invariant_guard:eo_angivet_loen_loen_paa_helligdage',
-        passed: false,
-        severity: 'error' as const,
-        source: 'system' as const,
-        message: 'EO-beregningen kan ikke gennemføres på grund af en intern datafejl i angivet løn. Genindlæs sagen eller vælg beregningsgrundlaget igen.',
-        blocksAuthoritativeComputation: true,
-        blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
-      }],
-      data: null,
-      inspektionSnapshot: null,
-      input: {
-        stamdata: parsedStamdata.data,
-        erstatningsopgoerelse: parsedEo.data,
-      },
-      failClosedReason: 'invariant_guard',
-    };
-  }
+  // Her stod tidligere en `invariant_guard` for `eoAngivetLoenLoenudvikling.loenPaaHelligdage === undefined`
+  // (systemfejl `eo_snapshot:hidden_angivet_loen_state_invalid`). Den er fjernet, fordi tilstanden ikke
+  // længere kan repræsenteres: feltet er required-with-default i BÅDE schemaet og descriptoren, så hverken
+  // en nyoprettet sektion, en ældre `.eo` eller readerens tomværdi kan give `undefined`. Se BF-025 —
+  // gaten var ikke et værn mod en umulig tilstand, men den eneste udgang fra den tilstand, en HELT NY sag
+  // altid startede i. Genindfør den ikke; genindfør i stedet ikke den valgfrihed, den vogtede over.
 
   const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data, {
     skadedatoISO: parsedStamdata.data.skadedato,

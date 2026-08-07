@@ -65,7 +65,13 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // fingerprint: `z.toJSONSchema` udsender en tom `items: {}` for et transformeret array, så hele det nestede
 // løntræ forsvandt ud af både fingerprintet og ledgerens felt-/collection-udledninger. Fjernelsen sker
 // derfor i migratoren, og fingerprintet dækker igen hvert persisteret felt.
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-1cc88eaa';
+// Opdateret 2026-08-07 (BF-025): `eoAngivetLoenLoenudvikling.loenPaaHelligdage` var valgfri, mens
+// ansættelsesforholdets tvilling var påkrævet — samme logiske felt med to forskellige kontrakter. Feltet er
+// nu required-with-default ('Almindelig løn') for BEGGE ejere, præcis som årslønssektionen fik det i 3.4.
+// Load-tolerancen består (ældre `.eo` uden feltet får defaulten), men `undefined` kan ikke længere
+// repræsenteres — og dermed heller ikke nå motorens fail-closed-sti.
+// PERSISTED_DATA_VERSION bumpet til 3.12 (reel persisted schema-/parse-semantikændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-c1dbceee';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

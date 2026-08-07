@@ -1,4 +1,5 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
+import { loenPaaHelligdageEnum } from '../../schemas/formSchemas/enumSchemas';
 import { toISODateString } from '../../types/branded';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';
@@ -785,18 +786,23 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
     expect(hasError(values, 'Overenskomst skal vælges')).toBe(true);
   });
 
-  it('fanger manglende loenPaaHelligdage ved angivet loen med overenskomstregulering', () => {
+  // BF-025: her stod en test af reglen "Løn på helligdage skal vælges". Den kunne kun blive grøn, fordi
+  // fixturen satte feltet til `undefined` — en tilstand schemaet nu ikke kan producere. Reglen er derfor
+  // fjernet sammen med testen; kontrakten er i stedet, at feltet ALTID bærer en konkret sats.
+  it('angivet løn med overenskomstregulering har altid en konkret sats for løn på helligdage', () => {
+    const angivetLoen = createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling;
+    expect(loenPaaHelligdageEnum.options).toContain(angivetLoen.loenPaaHelligdage);
+
     const values = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmount(1000),
       eoAngivetLoenLoenudvikling: {
-        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        ...angivetLoen,
         loenudviklingBeregningsgrundlag: 'Overenskomst',
         overenskomstId: 'some-overenskomst-id',
-        loenPaaHelligdage: undefined,
       },
     });
-    expect(hasError(values, 'helligdage')).toBe(true);
+    expect(hasError(values, 'helligdage')).toBe(false);
   });
 
   it('kræver feriegodtgørelse ved beregningsperiode når der er indtastede lønoplysninger', () => {

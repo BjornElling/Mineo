@@ -1,11 +1,11 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { TafCalculationValues } from '../engines/tafCalculationInput';
 import type { ISODateString } from '../../../types/branded';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE, TILLAEG_ANGIVES_SOM } from '../../../types/loen';
+import { LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 
 export const EO_ANGIVET_LOEN_ID = 'eo-angivet-loen';
 
-export type LoenudviklingKildeErrorCode = 'invalid_beregnes_udfra' | 'invalid_loen_paa_helligdage';
+export type LoenudviklingKildeErrorCode = 'invalid_beregnes_udfra';
 
 export class LoenudviklingKildeError extends Error {
   public readonly code: LoenudviklingKildeErrorCode;
@@ -59,17 +59,10 @@ export const resolveLoenudviklingKilde = (
   const anciennitetSatsAngivesPer = values.beregnesUdFra === 'Angivet dagsløn' ? 'Time' : 'Måned';
   // Lønudviklingsmotoren arbejder på månedlig regulering; angivet dagsløn er kun input-reference.
   const loenudviklingErOverenskomst = eo.loenudviklingBeregningsgrundlag === 'Overenskomst';
+  // `loenPaaHelligdage` er required-with-default i det persisterede schema OG i inputdescriptoren, så der
+  // findes ingen manglende/ugyldig værdi at kaste på. Det defensive kast, der stod her, var kun nåeligt,
+  // fordi feltet var valgfrit — og det var netop den vej, en nyoprettet sag altid tog (BF-025).
   const loenPaaHelligdage = eo.loenPaaHelligdage;
-  if (
-    loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.ALMINDELIG &&
-    loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.SH_UDBETALING &&
-    loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.INGEN
-  ) {
-    throw new LoenudviklingKildeError(
-      'invalid_loen_paa_helligdage',
-      'Løn på helligdage mangler eller er ugyldig for angivet løn.'
-    );
-  }
 
   return [{
     id: EO_ANGIVET_LOEN_ID,
@@ -92,7 +85,6 @@ export const resolveLoenudviklingKilde = (
     tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
     loenperiode: LOENPERIODE.MAANED,
     fuldLoenUnderFerie: 'Ja',
-    // Bevidst ingen fallback; ugyldige værdier skal kaste for at undgå stille propagering.
     loenPaaHelligdage,
     saerligFraDatoRegulering: eo.saerligFraDatoRegulering,
     indtaegtsoplysningerTableData: [],

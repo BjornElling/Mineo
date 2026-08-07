@@ -487,6 +487,32 @@ commands, history og storage-grænsen.
 Hver app-variant initialiserer sin ene aktive runtime før render; provider-remount må aldrig rehydrere eller
 overskrive input. Der findes efter Fase 4 kun ÉN runtime at initialisere: legacy-provideren er slettet.
 
+### 2.11 Én sandhed om "en ny, tom sektion"
+
+En sektion er `null`, indtil brugeren rører sit første felt på siden. Først dér materialiserer reduceren den fra
+`createEmpty<Sektion>Section` og sanerer den gennem det persisterede schema. **Den konstruktion er den ENESTE
+sandhed om en ny sag.** Alt andet, der ligner en new-case-fabrik, er enten afledt af den eller en testfixture,
+hvis afvigelser skal være erklæret.
+
+Tre regler følger, og alle tre er håndhævet:
+
+1. **Descriptorens tomværdi og den friske sektions værdi skal være enige.** `emptyValue` er både det, et
+   `clearField` skriver, og det, readerprojektionerne falder tilbage til. Er de to uenige, har feltet to
+   defaults, og hvilken domænet ser, afhænger af, om sektionen tilfældigvis er materialiseret endnu.
+   Håndhæves af `freshSectionDefaults.test.ts` for alle statiske felter i alle sektioner.
+2. **Ét brugervalg på en tom sag må aldrig udløse en systemfejl.** En systemfejl er en påstand om, at
+   programmet er i stykker — ikke en fejl, brugeren kan rette. `freshCaseChoiceSweep.test.ts` fejer hvert
+   statisk valg-/kontaktfelt gennem hver af sine valgmuligheder fra præcis den tilstand, `initializeInputRuntime`
+   giver en ny sag, og kører hele domænets læsesti på resultatet. Valgmængden hentes fra feltets eget codec
+   (`FieldCodec.options`), så nye felter og nye enum-værdier dækkes uden at nogen husker det.
+3. **En testfixture må ikke være rigere end produktionens sag.** `newCaseFixtureParity.test.ts` kræver, at de
+   ældre `create<Sektion>InitialValues`-fabrikker kun afviger fra den levende sektion på erklærede punkter.
+
+Baggrunden er BF-025: `eoAngivetLoenLoenudvikling.loenPaaHelligdage` var valgfri i schemaet, havde ingen editor
+og fik derfor aldrig en værdi — mens EO-motoren erklærede `undefined` umulig og fail-closede med en systemfejl.
+Fejlen ramte enhver ny sag ved første valg i "Beregnes ud fra", og ingen test kunne se den, fordi suitens fixture
+kom fra en fabrik, produktionen ikke bruger.
+
 ## 3. Coverage-registrene (`src/inputCore/ledger/`)
 
 Registrene er en **permanent release-gate**: `verify:ledgers` kører som del af `verify:release`, og registrene
