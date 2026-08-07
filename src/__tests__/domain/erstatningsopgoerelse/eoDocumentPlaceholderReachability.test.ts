@@ -18,6 +18,8 @@
  * lukkes efter reglen.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { evaluateErstatningsopgoerelseDownloadGates } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
 import { buildErstatningsopgoerelseReaderProjection } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
@@ -139,6 +141,133 @@ describe('nåbarhed: «Fejl (…)» i Beregningsgrundlag (kortlægningens A1)', 
     const message = gates.erstatningsopgoerelse.reasons[0]?.message ?? '';
 
     expect(message.toLowerCase()).not.toContain('månedsløn er ikke angivet');
+  });
+});
+
+describe('nåbarhed: «—» som Beregnet krav og som «I alt» (kortlægningens A4/A5)', () => {
+  /**
+   * `opgoerelseSection` har to grene, der skriver «—» i stedet for et beløb: den bolde
+   * «Beregnet krav ..... —» og «I alt ..... —» med sumstreg over. Begge udløses af, at en af
+   * totalerne har status !== 'ok'.
+   *
+   * Motoren dokumenterer selv, at det ikke kan ske (`tafNettoBeregning.ts:244-248`): alle tre
+   * totaler bygges med `asCalculable` eller kaster en fail-closed invariant. Grenene er derfor
+   * defensiv narrowing, ikke nåbare tilstande. Denne prøve holder producenterne fast på det —
+   * introducerer en fremtidig motor `not_calculable` uden at opdatere TAF-formlen, fejler den her
+   * frem for at udskrive en tankestreg som hovedtal i et tillidskritisk dokument.
+   */
+  const readSource = (relativePath: string): string =>
+    readFileSync(join(process.cwd(), 'src', relativePath), 'utf8');
+
+  it('ingen producent af de tre TAF-totaler kan returnere not_calculable', () => {
+    const producers = [
+      { file: 'domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts', field: 'loenudviklingTotal' },
+      { file: 'domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts', field: 'total' },
+    ];
+
+    for (const { file, field } of producers) {
+      const source = readSource(file);
+      // Enhver tildeling af feltet skal enten være `asCalculable(...)` eller en videreførsel af en
+      // anden models allerede-ok værdi. En `notCalculable`-tildeling ville gøre «—» nåbar.
+      const assignments = source.match(new RegExp(`${field}:\\s*notCalculable`, 'g')) ?? [];
+      expect(assignments).toHaveLength(0);
+    }
+  });
+
+  it('motoren fastholder eksplicit sin egen invariant om at totalerne altid er ok', () => {
+    // Invarianten er kun troværdig, så længe den står som en BEVIDST kontrakt i motoren. Bliver
+    // kommentaren og det defensive narrowing fjernet, forsvinder både begrundelsen for at «—»
+    // er unåbar OG det sidste forsvar, hvis en fremtidig motor bryder den.
+    const engine = readSource('domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts');
+    expect(engine).toContain('er altid asCalculable');
+    // Det defensive narrowing skal stadig findes — det er dét, der forhindrer, at en brudt
+    // invariant udskriver en tankestreg som hovedtal frem for at fejle.
+    expect(engine).toMatch(/indtaegterTotal\.status !== 'ok'/);
+  });
+});
+
+describe('nåbarhed: droppet øvrige-krav-række vs. totalen (kortlægningens A12)', () => {
+  /**
+   * `buildOevrigeKrav` springer en række over, hvis dato ELLER beskrivelse er tom — men
+   * `parsed.totalOre` summerer ALLE rækker. En droppet række efterlader derfor en «I alt», der
+   * ikke kan afstemmes med posterne ovenfor.
+   *
+   * Manglende BESKRIVELSE er en fejl og blokerer download. Manglende DATO er derimod kun en
+   * ADVARSEL (`eoRowOevrigeKravRows.ts:98-103`) — så den sag kan hentes. Denne prøve afgør, om
+   * beløbet dermed forsvinder fra listen men bliver i totalen.
+   */
+  const buildOevrigeKravCase = (dato: string | undefined): ErstatningsopgoerelseValues => {
+    const base = createErstatningsopgoerelseInitialValues();
+    return {
+      ...base,
+      kravPaaSvieSmerteGodtgoerelse: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
+      kravPaaOevrigeErstatningskrav: 'Ja',
+      vedroererPeriodeFra: toISODateString('2022-01-01'),
+      vedroererPeriodeTil: toISODateString('2022-12-31'),
+      loenindkomstAnsaettelsesforhold: [],
+      oevrigeKravPerioder: [
+        {
+          id: 'ok-1',
+          dato: dato ? toISODateString(dato) : undefined,
+          udgiftTil: 'Medicin',
+          beloeb: asAmount(1_250),
+        },
+      ],
+    } as unknown as ErstatningsopgoerelseValues;
+  };
+
+  it('BLOKERET: en række uden dato blokerer download, så den aldrig kan droppes i en dannet fil', () => {
+    const gates = gatesFor(buildOevrigeKravCase(undefined));
+    const withDate = gatesFor(buildOevrigeKravCase('2022-05-01'));
+
+    // MÅLT: rækkemotoren giver kun en ADVARSEL for den manglende dato…
+    expect(errorRowsFor(buildOevrigeKravCase(undefined)).join(' | ').toLowerCase())
+      .not.toContain('dato er ikke angivet');
+    // …men gaten blokerer alligevel, på sit eget niveau, med «Dato mangler». Rækken kan derfor
+    // aldrig droppes fra en DANNET fil, og totalen kan ikke komme i utakt med posterne.
+    expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
+    expect(gates.erstatningsopgoerelse.reasons[0]?.message).toBe('Dato mangler');
+    // Kontrast: datoen er dét, der gør forskellen — ellers ville prøven være grøn af tomhed.
+    expect(withDate.erstatningsopgoerelse.canDownload).toBe(true);
+  });
+});
+
+describe('nåbarhed: det slugende catch i regulerings-bilaget (kortlægningens A6)', () => {
+  /**
+   * `eoBilagSections` fanger ALT fra `buildOffentligeYdelserReguleringTableData` og skriver
+   * «…fordi en nødvendig reguleringssats mangler» — en gættet diagnose, der kasserer den
+   * faktiske fejl uden at rapportere den.
+   *
+   * Men den ENESTE tilstand, der reelt kan udløse den — en manglende reguleringssats — kaster
+   * allerede på BEREGNINGS-stien (`offentligeYdelserUdviklingBeregning.ts:47`), længe før
+   * bilaget renderes. Den fejl fail-closer hele snapshottet, blokerer alle fem outputs og
+   * rapporteres centralt. Dokumentet kan derfor ikke nå bilaget med den tilstand.
+   *
+   * Prøven fastholder netop dét: fail-closed-stien skal blive ved at blokere `eo_pdf` og
+   * rapportere som systemfejl. Gør den ikke det, bliver det slugende catch pludselig nåbart.
+   */
+  it('en manglende reguleringssats fail-closer snapshottet og blokerer alle EO-outputs', () => {
+    const snapshotSource = readFileSync(
+      join(process.cwd(), 'src', 'domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts'),
+      'utf8'
+    );
+
+    // Runtime-exception-stien skal blokere eo_pdf (og de øvrige), ikke kun rapportere.
+    expect(snapshotSource).toContain("failClosedReason: 'runtime_exception'");
+    expect(snapshotSource).toMatch(/blocksOutputs: \[[^\]]*'eo_pdf'[^\]]*\]/);
+    // …og den skal rapporteres centralt, så brugeren får popup'en og kan indsende fejlen.
+    expect(snapshotSource).toContain("code: 'eo_snapshot:runtime_exception'");
+  });
+
+  it('den manglende sats kaster på beregnings-stien, ikke først i bilag-rendereren', () => {
+    const engine = readFileSync(
+      join(process.cwd(), 'src', 'domain/erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning.ts'),
+      'utf8'
+    );
+    // Kastet på beregnings-stien er dét, der gør bilagets catch unåbart. Fjernes det til fordel
+    // for en stille fallback, ville bilaget begynde at udskrive sin gættede diagnose.
+    expect(engine).toMatch(/throw new Error\(`Offentlige ydelser kan ikke beregnes: reguleringssats mangler/);
   });
 });
 
