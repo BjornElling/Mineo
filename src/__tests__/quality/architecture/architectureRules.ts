@@ -68,6 +68,7 @@ import {
 } from './rules/inputBoundaryRules';
 import { DATE_RULES } from './rules/dateRules';
 import { NUMERIC_RULES } from './rules/numericRules';
+import { RESPONSIVE_STYLING_RULES } from './rules/responsiveStylingRules';
 
 /**
  * Registry for de AST-baserede arkitekturgrænser (greenfield #48).
@@ -110,6 +111,8 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   documentActivationShowsOutcome,
   documentHeaderlessPseudoTableRule,
   minprocesrenteStandaloneImport,
+  // Shell og desktop-only-grænse
+  ...RESPONSIVE_STYLING_RULES,
   // Form, felt og critical action
   persistenceCommittedMirror,
   queueMicrotaskBoundary,

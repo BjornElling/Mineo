@@ -61,6 +61,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/quality/pwaHeaders.test.ts` (HTML, SPA-ruter, manifest og service worker revalideres; hashed assets er immutable).
 - `src/__tests__/settings/indexThemeBootstrap.test.ts` (kanonisk theme-bootstrap og systemfallback ved manglende, ugyldig eller ulæselig settings-storage).
 - `scripts/verify-build-artifacts.mjs` (postbuild-værn for entries, manifest og variantfiler).
+- `src/__tests__/quality/architecture/rules/responsiveStylingRules.ts` (`shell/viewport-responsive-styling-allowlist`: pinner fillisten i §5.3, så desktop-only-undtagelsen ikke kan brede sig stiltiende).
 
 ## 5. Kendte Undtagelser
 
@@ -68,4 +69,19 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 2. **`enforceUnsupportedDeviceGate: false` for standalone.** Bevidst fravalg, fordi procesrenteberegneren skal kunne bruges på mobil/tablet (med egen mobil-scroll-håndtering). Re-evaluering hvis standalone en dag skal være desktop-only.
 
-3. **Standalone har variant-lokal `@media`-styling.** `AGENTS.md` ("Desktop-only gate") begrænser mobil/tablet-styling til `UnsupportedDevicePage.tsx`, fordi Mineo er desktop-only. Standalone MinProcesrente er en bevidst mobil-tilladt variant (jf. undtagelse 2) og har derfor `@media`-responsiv styling i sine **egne** filer: `src/components/pages/minprocesrente/MinProcesrenteCalculatorPage.tsx` (sx-lokal) og `src/apps/minprocesrente/minprocesrente.css` (kun importeret af standalone-buildet). Denne styling er variant-lokal — ikke delt/global — og rammer aldrig Mineos desktop-only-flade. Risiko: ingen for Mineo; reglen i `AGENTS.md` gælder fortsat for det desktop-only hovedbuild. Re-evaluering hvis standalone gøres desktop-only, eller hvis nogen mobil-styling flyttes til delte/globale styles.
+3. **Viewport-responsiv styling er tilladt i en pinnet filliste — inkl. to filer delt med Mineo.** `AGENTS.md` ("Desktop-only gate") begrænser mobil/tablet-styling, fordi Mineo er desktop-only. Standalone MinProcesrente er en bevidst mobil-tilladt variant (jf. undtagelse 2), og undtagelsen dækker derfor:
+
+   | Fil | Begrundelse |
+   |---|---|
+   | `src/apps/minprocesrente/minprocesrente.css` | Standalone-lokal; kun importeret af standalone-buildet. |
+   | `src/components/pages/minprocesrente/MinProcesrenteCalculatorPage.tsx` | Standalone-lokal (sx). |
+   | `src/components/layout/StandaloneCalculatorLayout.tsx` | Standalone-lokal; kun renderet af `MinProcesrenteApp`. |
+   | `src/components/layout/SiblingSitesFooter.tsx` | **Delt** (Mineos `/mineo`-side + standalone). Breakpointet betjener standalone-mobilbrugeren; på desktop tænder det aldrig. |
+   | `src/components/pages/renteberegning/RenteberegningTab.tsx` | **Delt** (`Renteberegning` + standalone). Den ene breakpointregel er `overflowX: { xs: 'hidden', sm: 'auto' }`; fanens øvrige mobiladfærd kører på en eksplicit `isMobile`-prop, ikke på breakpoints. |
+   | `src/components/ui/ScrollToTopButton.tsx` | Mineo-lokal, men bevidst: device-gaten kræver **touch-lighed**, så et smalt ikke-touch desktopvindue slipper igennem. Reglen flytter kun knappen tættere på hjørnet. |
+
+   Den tidligere formulering ("variant-lokal — ikke delt/global") var **ikke længere korrekt**: to af filerne er delt med Mineo. Præmissen er korrigeret frem for at splitte fladerne i to kopier, fordi breakpointsene aldrig tænder på Mineos desktop-flade.
+
+   **Input-modalitet er ikke omfattet.** `@media (pointer: coarse)` og `@media (hover: hover|none)` er affordances efter inputenhed — de rammer touch-capable desktops, som gaten bevidst slipper igennem — og er derfor tilladt overalt.
+
+   Fillisten er **håndhævet**, ikke kun beskrevet: `shell/viewport-responsive-styling-allowlist` i arkitektur-harnesset (`src/__tests__/quality/architecture/rules/responsiveStylingRules.ts`) gør en ny viewport-responsiv fil rød, og harnessets anti-rot-kontrol fjerner en post, der ikke længere udløser reglen. `.css`-filer ligger uden for kilde-grafen og er derfor kun auditeret her. Risiko: ingen for Mineo. Re-evaluering hvis standalone gøres desktop-only.

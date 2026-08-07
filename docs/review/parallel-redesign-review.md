@@ -2,7 +2,7 @@
 
 > **Status:** Aktivt arbejdsdokument for det igangværende greenfield-design på `greenfield`-branchen.
 >
-> **⇒ Start med afsnittet [START HER — arbejdsstatus](#start-her--arbejdsstatus-2026-08-06) i
+> **⇒ Start med afsnittet [START HER — arbejdsstatus](#start-her--arbejdsstatus-2026-08-07) i
 > bunden af filen.** Det angiver hvad der er gjort, hvad der mangler, i hvilken rækkefølge, og
 > hvilke af planens oprindelige skæringer der er modbevist og IKKE må implementeres som skrevet.
 >
@@ -1534,6 +1534,71 @@ kandidater — ikke en sections-opsplitning pr. fil.
   mount-tællingen faktisk kan fange en per-route-identitet. Uden det ville tællingen være
   grøn af tomhed.
 
+### Efterslæb lukket 2026-08-07 (revision af de allerede gennemførte kandidater)
+
+Efter opfordring til at rette *alle* tilbageværende fejl i den hidtidige implementering blev de
+seks gennemførte kandidater revideret mod koden. **Fire var leveret som beskrevet** (#14, #29, #3
+og #43's strukturelle kerne). Tre bar reelle efterslæb — hver af **samme fejlklasse som den
+kandidat, der skulle have lukket den**, hvilket er grunden til at de er værd at registrere:
+en kandidat kan se gennemført ud, fordi dens navngivne symptom er væk, mens mekanismen består.
+
+- **#20 — den skjulte serialiseringsaftale var IKKE lukket i begge ender.** Beskrivelsen
+  overdrev resultatet: én aftale overlevede. `sviesmerte.beregnetPeriode` byggede sin værdi med
+  `.join('\n')` i `eoRowSvieSmerteRows.ts`, og `useEoBeregningViewModel.ts` splittede den op igen
+  på `\n`. Den var **ikke** kosmetisk: linjeantallet driver synlig UI-forgrening
+  (`harSvieSmertePerioder`, og ental/flertal i etiketten «Svie/smerte-periode(r)»), så et skift
+  til fx `'; '` som separator ville lydløst kollapse listen til én linje og vende etiketten.
+  Lukket med `lines?: readonly string[]` på `EoRowModel` + `serializeEoRowLines` — samme design
+  som `table`/`serializeEoRowTable`: strukturen er kilden, strengen er outputtet. Builderens
+  tomme-udfald returnerer nu `[]` frem for `'-'`, så forbrugerens gamle `'-'`-filtrering ikke
+  længere er nødvendig for at ramme samme adfærd. Følgevirkning: «antal dage»-rækkens
+  «ingen perioder»-test aflæser nu `lines.length === 0` i stedet for sentinel-strengen `'-'`.
+  Builderens udfald er modelleret som en **union af to arter** (`{lines}` eller `{displayValue}`)
+  frem for ét objekt med valgfrie felter — ellers kan en ny gren glemme begge.
+  **To fejl i mit eget arbejde undervejs, begge fanget af test:** først ramte `lines`-grenen for
+  bredt, så en fejlbesked («Der er overlappende perioder») blev behandlet som en periodeliste;
+  derefter ramte den for smalt, så `!harPerioder` mistede sin `'-'`→`'Nej'`-omskrivning. Det
+  andet fandt kun den nye test — det var en reel, synlig regression, ingen eksisterende test så.
+
+- **#1/#22 — Anciennitetstillæg-blokken var ikke med.** ~50 linjers næsten identisk markup stod
+  fortsat begge steder, umiddelbart efter `LoenudviklingFields`. Den slap igennem, fordi den
+  ligger *uden for* selve Lønudvikling-fladen, men det er samme duplikering af samme grund. Ny
+  `AnciennitetstillaegFields.tsx` + `AnciennitetstillaegBinding`.
+  **Den bar en udokumenteret funktionsforskel**, som sammenlægningen tvang frem: Lønindkomst
+  lader brugeren VÆLGE satsens enhed (`anciennitetstillaegSatsAngivesPer`: Time/Måned), mens
+  EO-oplysninger UDLEDER den af `beregnesUdFra` og viser intet valg. Forskellen er hverken
+  besluttet eller beskrevet noget sted. Den er **bevaret nøjagtigt som den er** og gjort synlig
+  via en `satsEnhedSlot` (samme mønster som `overenskomstSlot`) — at ensarte den ville ændre
+  brugerfladen under dække af en refaktorering, og det er en UI/UX-sag for brugeren.
+  *Åbent spørgsmål til brugeren: skal EO-oplysninger også have enhedsvalget, eller er
+  udledningen den ønskede adfærd dér?*
+
+- **#43 — der var TRE rutelister, ikke to.** Beskrivelsen sagde «de 8 sagssider stod i to
+  lister». `SideMenu.tsx` bar en tredje: alle otte sagssider plus to systemsider som bare
+  strenge, og filen importerede slet ikke `pageNavigation`. Guarden i `App.tsx` sammenholder kun
+  *loader*-listen med kataloget, så en omdøbt route gav en **lydløst død menupost** — og der
+  fandtes nul tests for `SideMenu`. Lukket i to lag, fordi ét ikke rækker:
+  - **Typen** (`MenuPageKey` + `getRouteForMenuPageKey`) gør et forkert id til en compile-fejl,
+    og `/${pageId}`-interpolationen i `MainLayout` — selve mekanismen, der gjorde enhver streng
+    til en gyldig route — er erstattet af et opslag. Mutationsbevist: `'satserXX'` fejler i tsc.
+  - **Testen** (`SideMenu.routeInventory.test.tsx`, 4 tests) dækker typens loft: en *manglende*
+    post typechecker fint. Mutationsbevist: fjernes en menupost, fejler completeness-testen.
+
+  Samtidig er 10 hardkodede `navigate('/…')`-literaler i fem filer rutet gennem `APP_ROUTES` —
+  præcis de «hardkodede route-strenge i domæne-lokale navigation-objekter», som
+  `pageNavigation.ts:7` navngiver som grunden til at modulet findes. `MainLayout`s håndrullede
+  `substring(1) || 'stamdata'` er erstattet af `routeToPageId`, som filen allerede importerede.
+  `serviceWorkerBootstrap.ts` beholder bevidst sin `'/open'`-literal (bootstrap-sti uden
+  config-import).
+
+Dertil rettet: `asciiSlug.ts`s doc-kommentar sagde `ø`→`o`, mens tabellen 26 linjer længere nede
+korrekt gør `ø`→`oe` — netop den fejl, kandidaten handlede om.
+
+**Metodenote:** alle tre efterslæb blev fundet ved at revidere de FÆRDIGMELDTE kandidater mod
+koden, ikke ved at læse beskrivelserne. To af dem (#20, #43) var beskrevet med formuleringer
+(«lukket i begge ender», «stod i to lister»), der var stærkere end virkeligheden. En
+færdigmelding er en påstand, der skal verificeres som enhver anden.
+
 ### Tilfældighedsfund registreret under gennemgangen
 
 - **`sfgg.aarsfordeling.*` var død kode i tre steder — RETTET.** Ingen row-builder producerer
@@ -1545,15 +1610,20 @@ kandidater — ikke en sections-opsplitning pr. fil.
   dens ~24 linjers `StandardDisplayTable`-render-blok kunne aldrig nås. Opdelingen og den døde
   blok er fjernet; alle SFGG-tabeller renderes nu ad én vej.
 
-- `src/components/layout/SiblingSitesFooter.tsx` indeholder fortsat en
-  breakpointstyret `@media`-regel i en delt komponent. Det afviger fra
-  desktop-only-kontrakten, hvor mobil-/tabletstyling skal være isoleret til
-  `UnsupportedDevicePage.tsx` (med den dokumenterede standalone-
-  MinProcesrente-undtagelse).
-- `src/components/pages/renteberegning/RenteberegningTab.tsx` bruger fortsat
-  breakpointstyret `sx`-layout i Mineos almindelige brugerflow. Det bør
-  vurderes sammen med #46 og desktop-only-reglen, fordi det kan give en
-  skjult responsiv variant uden for den autoriserede unsupported-device-side.
+- ~~`SiblingSitesFooter.tsx` og `RenteberegningTab.tsx` bærer breakpointstyret styling i delte
+  komponenter.~~ **LUKKET 2026-08-07** efter brugerens beslutning 1. Præmissen var kun halvt
+  rigtig (begge er delt med standalone minProcesrente, og breakpointsene tænder aldrig på
+  desktop), men den underliggende svaghed var reel og bredere end de to filer: undtagelsen stod
+  kun som PROSA i `app-shell-contract.md` §5.3, og prosaen var allerede drevet fra koden — den
+  navngav to filer og kaldte stylingen «variant-lokal, ikke delt», mens fem TS/TSX-filer bar den,
+  heraf to delt med Mineo. §5.3 er nu en tabel med begrundelse pr. fil, og fillisten er
+  **håndhævet** af `shell/viewport-responsive-styling-allowlist` i arkitektur-harnesset.
+  Skæringen er per kategori: input-modalitet (`pointer: coarse`, `hover:`) er ikke responsivt
+  layout og er tilladt overalt. **Mutationstestet:** fjernes en allowlist-post, fejler præcis den
+  ene regel på den rigtige fil. To fund undervejs: `UnsupportedDevicePage.tsx` bruger slet ingen
+  breakpoints (flydende bredder), og `ScrollToTopButton.tsx`s `max-width: 640px` er reelt
+  nåbar — device-gaten kræver **touch-lighed**, så et smalt ikke-touch desktopvindue slipper
+  igennem — og er derfor auditeret ind frem for fjernet.
 - Flere af den gamle plans fase-/statuslinjer beskriver nu slettede filer,
   gamle storagekeys og gamle lifecycle-politikker. Det er dokumentdrift,
   ikke en produktionsfejl, men den aktuelle revurdering ovenfor skal fremover
@@ -1562,15 +1632,20 @@ kandidater — ikke en sections-opsplitning pr. fil.
 
 ---
 
-## START HER — arbejdsstatus 2026-08-06
+## START HER — arbejdsstatus 2026-08-07
 
 Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det FØR
 kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
 beskriver flere steder slettede mellemtrin.
 
-**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 524 testfiler / 6663 tests,
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 525 testfiler / 6676 tests,
 `typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»
-er committet.
+og «Efterslæb lukket 2026-08-07» er committet.
+
+**Seneste omgang (2026-08-07)** var en REVISION af de allerede gennemførte kandidater, ikke nyt
+arbejde på de syv udestående. Se «Efterslæb lukket 2026-08-07» for de tre reelle efterslæb
+(#20, #1/#22, #43) og den brugerbeslutning, revisionen efterlader åben (enhedsvalget på
+Anciennitetstillæg). De syv kandidater i tabellen nedenfor er **uændret udestående**.
 
 ### Rækkefølge for det udestående
 
@@ -1620,6 +1695,21 @@ De fire udestående mandatspørgsmål er forelagt samlet og besvaret. Beslutning
    **Ved afvigelse: stop og forelæg** — et ændret tal skal aldrig vurderes som "nok rigtigere"
    undervejs. Tal- og dokument-goldens holdes uændrede gennem hele resten af sporet.
 
+### Nyt UI/UX-spørgsmål der afventer brugeren (rejst 2026-08-07)
+
+**Satsens enhed på Anciennitetstillæg.** Sammenlægningen af den duplikerede blok afdækkede en
+funktionsforskel, ingen har besluttet:
+
+| Overflade | Adfærd i dag |
+|---|---|
+| Lønindkomst (pr. ansættelsesforhold) | Brugeren VÆLGER enheden i et Time/Måned-felt (`anciennitetstillaegSatsAngivesPer`). |
+| EO-oplysninger («angivet løn») | Enheden UDLEDES af `beregnesUdFra` (`'Angivet dagsløn'` → time, ellers måned). Intet valg vises. |
+
+Begge adfærd er bevaret uændret; forskellen er gjort synlig via `satsEnhedSlot` frem for skjult
+bag en betingelse. **Spørgsmålet er, om EO-oplysninger også skal have valget, eller om
+udledningen er den ønskede adfærd dér.** Det ændrer brugerfladen og er derfor ikke mit at afgøre.
+Ingen ændring foretages, før det er besvaret.
+
 ### Arbejdsmåde der viste sig at betale sig
 
 - **Verificér planens påstande mod koden før implementering.** Syv af dem var forkerte eller
@@ -1633,3 +1723,15 @@ De fire udestående mandatspørgsmål er forelagt samlet og besvaret. Beslutning
 - **`npm run typecheck` fanger ikke `import type` brugt som værdi.** En manglende runtime-import
   af `serializeEoRowTable` var grøn i typecheck og fejlede først i test. Kør målrettede tests
   efter nye cross-modul-imports.
+- **Revidér færdigmeldte kandidater mod koden — ikke mod deres egen beskrivelse.** Revisionen
+  2026-08-07 fandt tre reelle efterslæb i seks «gennemførte» kandidater, og to af dem var
+  beskrevet stærkere end virkeligheden («lukket i begge ender», «stod i to lister»). Fejlklassen
+  er den samme hver gang: kandidatens navngivne SYMPTOM er væk, mens MEKANISMEN består ét sted
+  til, som kandidatens skæring ikke kiggede på.
+- **Når en type og en test dækker hvert sit hul, så brug begge.** `MenuPageKey` fanger et forkert
+  id ved compile-tid, men en *manglende* menupost typechecker fint. Stop derfor ikke ved typen,
+  når dens loft er kendt — skriv testen, der dækker resten, og mutationsbevis dem hver for sig.
+- **En sammenlægning af to kopier afslører funktionsforskelle — de skal ikke ensartes undervejs.**
+  Anciennitetstillæg-blokken skjulte, at de to overflader afgør satsens enhed forskelligt. Det
+  rigtige træk var at bevare begge adfærd bag en slot og forelægge forskellen, ikke at vælge en
+  vinder i en refaktorering.
