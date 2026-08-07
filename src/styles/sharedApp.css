@@ -15,3 +15,40 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/*
+ * Den delte «peg på dette felt»-blinkmarkering (BF-020/BF-021).
+ *
+ * Animationen bor her — ikke i en enkelt tabels egen <style> — fordi markeringen skal kunne lægges på
+ * ethvert inputfelt og enhver celle i programmet. Klassen sættes/fjernes af `fieldAttentionBlink.ts`;
+ * løbetiden dér (FIELD_ATTENTION_BLINK_DURATION_MS) skal matche 0,5 s × 3 gennemløb herunder.
+ *
+ * `background-color` animeres på selve det fokuserbare element. Grid-celler har en gennemsigtig
+ * baggrund, så den gennemslår til rækken; formularfelter har typisk en hvid baggrund, som den blandes
+ * ind i. `!important` er nødvendigt, fordi MUI's egne baggrundsregler ellers vinder specificiteten.
+ */
+@keyframes mineoFieldAttentionBlink {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: color-mix(in srgb, var(--color-status-error) 20%, transparent);
+  }
+}
+
+.mineo-field-attention-blink,
+.mineo-field-attention-blink .MuiInputBase-root,
+.mineo-field-attention-blink .MuiOutlinedInput-root {
+  animation: mineoFieldAttentionBlink 0.5s ease-in-out 3 !important;
+}
+
+/* Respektér brugerens bevægelsespræference: markeringen bliver et roligt, statisk felt frem for et blink. */
+@media (prefers-reduced-motion: reduce) {
+  .mineo-field-attention-blink,
+  .mineo-field-attention-blink .MuiInputBase-root,
+  .mineo-field-attention-blink .MuiOutlinedInput-root {
+    animation: none !important;
+    background-color: color-mix(in srgb, var(--color-status-error) 20%, transparent) !important;
+  }
+}

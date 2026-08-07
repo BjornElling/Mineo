@@ -163,6 +163,24 @@ rejected input blokerer, mens Zod-valideret canonical input kan gemmes.
   findes, og navngiver de inputs, der skabte grænserne.
 - Fejl og warnings afledes fra afsluttet input. Mounted komponenter rapporterer dem ikke til en store.
 
+**Den delte «peg på dette felt»-blinkmarkering** (BF-020/BF-021). Programmet har tre veje, der fører brugeren hen
+til en indtastning, som kræver opmærksomhed: undo/redo-fokusrestoren, save-blokeringens fokus og de interne
+fejl-/advarselslinks. Alle tre lokaliserer målet gennem den ENE feltidentitet i DOM
+(`data-mineo-field-address`, §3.2), og alle tre afslutter med den samme visuelle markering:
+`blinkFieldAttention` i `src/inputCore/react/fieldAttentionBlink.ts`.
+
+- Markeringen er en **ren DOM-effekt** (en CSS-klasse sat på det fundne element), ikke React-state. Det er netop
+  dét valg, der gør den generelt tilgængelig: den kan lægges på ethvert element, en feltadresse peger på, uden at
+  feltkomponenten kender til den, holder state eller opter ind. Et nyt felt eller en ny tabel arver markeringen
+  alene ved at bære feltadressen, som surfacen allerede sætter.
+- Animationen bor ét sted (`sharedApp.css`). Den tidligere tabel-lokale `errorFlash` — privat for Årslønssidens
+  løntabel og nøglet på et cellekoordinat, ingen anden flade kunne tale — er væk.
+- Markeringen er **rent visuel**: den ændrer ingen værdi, sætter ingen feltfejl (§1.7) og blokerer intet. Den
+  siger «her», ikke «dette er forkert», og bruges derfor både til ægte fejl og til en manglende indtastning, der
+  endnu ikke er en fejl.
+- Har en fejl intet enkelt ansvarligt felt (fx et overlap mellem to rækker), markeres rækkeankeret — det grovere,
+  men stadig sande mål.
+
 ### 1.9 Skjulte og irrelevante felter
 
 Et input, som bliver skjult eller irrelevant ved et eksplicit styrende valg, behandles sådan i samme undo-trin som

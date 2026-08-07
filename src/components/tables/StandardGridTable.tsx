@@ -24,7 +24,6 @@ export type StandardGridTableProps = Readonly<{
    * - Beregnet til Table*Input-komponenter (draft onChange, commit onBlur)
    */
   children: React.ReactNode;
-  beforeTable?: React.ReactNode;
   tableWidth: CSSProperties['width'];
   tableLayout?: CSSProperties['tableLayout'];
   useSmallFont?: boolean;
@@ -41,7 +40,6 @@ export type StandardGridTableProps = Readonly<{
 export const StandardGridTable = React.memo(
   ({
     children,
-    beforeTable,
     tableWidth,
     tableLayout = 'fixed',
     useSmallFont = false,
@@ -56,7 +54,6 @@ export const StandardGridTable = React.memo(
 
     return (
       <Box sx={mergedContainerSx}>
-        {beforeTable}
         <GridCoreProvider value={contextValue}>
           <Box
             sx={{

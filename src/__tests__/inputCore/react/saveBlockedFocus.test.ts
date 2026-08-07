@@ -8,6 +8,7 @@ import {
   EDITOR_TAB_ATTR,
 } from '../../../inputCore/react/historyRestoreTarget';
 import { serializeFieldAddress, type FieldAddress } from '../../../inputCore/fieldAddress';
+import { FIELD_ATTENTION_BLINK_CLASS } from '../../../inputCore/react/fieldAttentionBlink';
 import { setActiveTabForPage } from '../../../hooks/usePersistedActiveTab';
 import {
   getProductionInputCatalog,
@@ -152,6 +153,17 @@ describe('focusFirstBlockingRejectedField', () => {
 
     expect(navigate).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(target);
+  });
+
+  it('blinkmarkerer det blokerende felt med den delte markering (BF-020)', async () => {
+    // Et blokeret Gem kan sende brugeren til en anden fane; uden markeringen skulle brugeren selv
+    // finde det røde felt blandt de øvrige på siden.
+    const target = mountFieldAt(stamdataSkadedato);
+    const navigate = vi.fn();
+
+    await focusFirstBlockingRejectedField([serializeFieldAddress(stamdataSkadedato)], navigate as never);
+
+    expect(target.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
   });
 
   // Kernen i adressebaseret targeting: to rækker deler feltnavnet `belob`. En navnebaseret søgning ville

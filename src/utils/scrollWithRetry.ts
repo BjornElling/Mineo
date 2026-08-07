@@ -8,7 +8,12 @@ export type ScrollWithRetryOptions = Readonly<{
    * da fra prefers-reduced-motion, så alle scroll-stier respekterer indstillingen ens.
    */
   behavior?: ScrollBehavior;
-  onSuccess?: () => void;
+  /**
+   * Kaldes med det element, loopet fandt. Elementet gives med, fordi kalderen ellers måtte gentage
+   * `findTarget`-opslaget for at kunne gøre noget ved målet (fx den delte blinkmarkering) — og et
+   * gentaget opslag kunne ramme et andet element end det, der lige blev scrollet til.
+   */
+  onSuccess?: (target: HTMLElement) => void;
   onFailure?: (reason: string) => void;
   failureMessage: string;
 }>;
@@ -47,7 +52,7 @@ export const scrollWithRetry = (options: ScrollWithRetryOptions): CancelScrollWi
 
     if (target) {
       scrollTargetIntoView(target, { behavior: options.behavior });
-      options.onSuccess?.();
+      options.onSuccess?.(target);
       return;
     }
 

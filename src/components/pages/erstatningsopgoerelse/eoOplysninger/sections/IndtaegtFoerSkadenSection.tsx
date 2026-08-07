@@ -1,6 +1,5 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
-import InfoTooltipIcon from '../../../../common/InfoTooltipIcon';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
 import ChoiceField from '../../../../../inputCore/react/fields/ChoiceField';
 import DateField from '../../../../../inputCore/react/fields/DateField';
@@ -19,7 +18,6 @@ import {
   eoOevrigeFravaersdageBeskrivelseField,
   eoOevrigeFravaersdageField,
   eoOevrigtFravaerUdenLoenField,
-  eoRegulerOffentligeYdelserField,
   eoTafBeregningsperiodeFraField,
   eoTafBeregningsperiodeTilField,
   eoUspecificeredeFerieFridageField,
@@ -210,21 +208,12 @@ export default function IndtaegtFoerSkadenSection() {
                   </Box>
                 </Box>
 
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">
-                    Offentlige ydelser i beregningsperioden reguleres
-                    <InfoTooltipIcon title="Offentlige ydelser fremskrives efter statslig praksis med tilpasningsprocenten + 2 % per 1. januar" />
-                  </Typography>
-                  <Box className="row--label-right-hover__content">
-                    <MappedToggleField
-                      field={eoRegulerOffentligeYdelserField.bind()}
-                      location={eoOplyLocation('erstatningsopgoerelse.regulerOffentligeYdelser')}
-                      checkedValue="Ja"
-                      uncheckedValue="Nej"
-                      name="regulerOffentligeYdelser"
-                    />
-                  </Box>
-                </Box>
+                {/*
+                  «Offentlige ydelser i beregningsperioden reguleres» stod tidligere her, men hører
+                  sagligt til de offentlige ydelser og bor nu på Offentlige ydelser-fanen (BF-022).
+                  Feltet selv er uændret — kun editorlokationen er flyttet, og dermed den fane
+                  fokusnavigationen fører brugeren til (§3.2).
+                */}
 
                 <Typography className="row--subheading">Ferie i beregningsperioden:</Typography>
                 <FerieperiodeTable

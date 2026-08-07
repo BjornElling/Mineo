@@ -5,6 +5,7 @@ import { routeToPageId } from '../../config/pageNavigation';
 import { focusElementWithoutScroll, waitForAnimationFrame } from '../../utils/focusUtils';
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import { lookupEditorLocation, type EditorLocationDestination } from './editorLocationDestination';
+import { blinkFieldAttention } from './fieldAttentionBlink';
 
 // Save-blocking focus (§1.4/§3.2). `.eo`-save blokeres KUN af aktivt relevant rejected råinput (§3.9);
 // `CaseFileOperations.evaluateSave` returnerer de blokerende `SerializedFieldAddress`'er.
@@ -24,6 +25,9 @@ const focusAndScroll = (element: HTMLElement): void => {
   focusElementWithoutScroll(element);
   // Spring til den blokerende fejl: centrér altid, så brugeren ledes direkte til problemet.
   scrollTargetIntoView(element, { force: true });
+  // Den DELTE blinkmarkering (BF-020/BF-021). Et blokeret Gem kan sende brugeren til en anden fane; uden
+  // markeringen skulle brugeren selv finde det røde felt blandt de andre på siden.
+  blinkFieldAttention(element);
 };
 
 const applyDestination = (

@@ -8,7 +8,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 Næste ID: **BF-028**. Kopiér denne blok pr. fund:
 
 ```md
-## BF-020 — Kort titel
+## BF-028 — Kort titel
 
 - Type: Fejl | Forbedring
 - Sted: Side, fane og felt/tabel/knap
@@ -25,45 +25,6 @@ Næste ID: **BF-028**. Kopiér denne blok pr. fund:
 Udelad punkter, der ikke er relevante. Medtag gerne præcis synlig tekst og screenshot. Skriv altid, hvis fundet
 kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede fund til den korte log nedenfor.
 
-## BF-020 — Gør rød celleblinkning generelt tilgængelig
-
-- Type: Forbedring
-- Sted: Alle sider og inputfelter/celler
-- Det sker: På årslønberegning-siden findes der allerede funktionalitet, som kan få baggrunden i en celle til at blinke rødt.
-- Det bør ske: Funktionaliteten gøres generelt tilgængelig, så den kan bruges på relevante inputfelter og celler på alle sider.
-- Prioritet: Mellem
-- Status: Ny
-
-## BF-021 — Link til fejl blinkmarkerer det relevante inputfelt
-
-- Type: Forbedring
-- Sted: Contentbokse med fejl og advarsler samt andre interne links, der peger på manglende eller fejlbehæftede indtastninger
-- Sådan fremprovokeres det:
-  1. Åbn en contentboks med en fejl eller advarsel, eller et andet sted med et internt link til en indtastning.
-  2. Klik på linket.
-- Det sker: Der er ikke en generel funktionalitet, som fører brugeren til den relevante side og det inputfelt, der kræver opmærksomhed, med en tydelig visuel markering.
-- Det bør ske: Brugeren føres til den side, hvor den pågældende indtastning findes, og siden scrolles ned til inputfeltet. Baggrunden i det relevante inputfelt blinker derefter rødt, så brugeren tydeligt kan se, hvor indtastningen skal foretages eller rettes.
-- Prioritet: Mellem
-- Status: Ny
-
-## BF-022 — Flyt regulering af offentlige ydelser til korrekt fane
-
-- Type: Forbedring
-- Sted: EO oplysninger-fanen og Offentlige ydelser-fanen i erstatningsopgørelsen
-- Det sker: Valgmuligheden "Offentlige ydelser i beregningsperioden reguleres" findes på EO oplysninger-fanen.
-- Det bør ske: Valgmuligheden flyttes til Offentlige ydelser-fanen og placeres umiddelbart under "Midlertidigt EET indsættes fra Erhvervsevnetab-siden".
-- Prioritet: Mellem
-- Status: Ny
-
-## BF-023 — Sortér ydelsestyper alfabetisk i hver sin gruppe
-
-- Type: Forbedring
-- Sted: Offentlige ydelser-fanen, dropdown-menuen under "Ydelsestype"
-- Det sker: Valgmulighederne i dropdown-menuen er ikke nødvendigvis sorteret alfabetisk inden for grupperne over og under stregen.
-- Det bør ske: Valgmulighederne over stregen sorteres alfabetisk indbyrdes, og valgmulighederne under stregen sorteres alfabetisk indbyrdes. Stregen og opdelingen mellem de to grupper bevares; valgmulighederne må ikke blandes på tværs af stregen.
-- Prioritet: Mellem
-- Status: Ny
-
 ## BF-024 — Begræns kapitaliseringstabeller til skader fra 1. januar 2005
 
 - Type: Forbedring
@@ -71,23 +32,6 @@ kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede
 - Det sker: Kapitaliseringsmaterialet og dokumentationen afgrænser ikke konsekvent kapitaliseringsfaktorerne til programmets understøttede sagsområde. Dokumentationen beskriver desuden princippet med afløsningsbeløb som et forsørgertabsforhold i stedet for som et fælles princip.
 - Det bør ske: Kapitaliseringsbekendtgørelserne gennemgås grundigt ved opslag i den tilhørende PDF-fil, så det dokumenteres, hvilke skader de enkelte tabeller vedrører. Kapitaliseringstabeller, der kun omhandler skader før 1. januar 2005, udgår. Kontrakter, anden dokumentation og de særlige hjælpeværktøjer til import af kapitaliseringsbekendtgørelser skal tydeligt fastslå, at der kun må indgå kapitaliseringsfaktorer for skader fra og med 1. januar 2005. Dette gælder både kapitalisering af erhvervsevnetab og omsætning af forsørgertab. Det skal samtidig præciseres, at afgrænsningen er et generelt princip for begge områder uden forskel. Det bør desuden fremgå som kommentarer i programfilerne ved de gengivne tabeller, hvilke skader tabellerne vedrører — programmet skal aldrig behandle skader før 1. januar 2005.
 - Prioritet: Høj
-- Status: Ny
-
-## BF-026 — Inline-bindestreg på linjen med en deaktiveret download-knap
-
-- Type: Fejl
-- Sted: Alle steder med en download-knap, der kan være deaktiveret (set bl.a. under "Tilgængelige reguleringssatser"
-  i "Indtægt før skadedatoen" på EO oplysninger-fanen)
-- Sådan fremprovokeres det:
-  1. Bring en side i en tilstand, hvor en download-knap er deaktiveret.
-  2. Se linjen, hvor knappen står.
-- Det sker: Der indsættes en inline-bindestreg (`-`) på linjen i stedet for knappen.
-- Det bør ske: Der skal hverken være inline-tekst eller bindestreg. Bindestregen stammer efter alt at dømme fra
-  den tidligere fjernelse af en inline-tekst, brugeren aldrig havde bedt om; erstatningen skulle have været
-  ingenting.
-- Eksempel/data: Under "Vælg overenskomst" vises overskriften "Tilgængelige reguleringssatser" efterfulgt af
-  en linje med kun `-`.
-- Prioritet: Mellem
 - Status: Ny
 
 ## Afventer reproduktion
@@ -117,8 +61,67 @@ Ingen fund afventer reproduktion.
 | BF-017 | Méngrad på 5 % giver den aftalte gule feltadvarsel. |
 | BF-018 | Tillægstid accepterer højst to cifre ved tastning og markerer øvrigt input korrekt. |
 | BF-019 | EET-procenter under 15 % giver den aftalte gule feltadvarsel. |
+| BF-020 | Den røde blinkmarkering er løftet ud af Årslønssidens løntabel til én delt mekanisme, enhver flade arver. |
+| BF-021 | Interne fejl-/advarselslinks fører nu til feltet OG blinkmarkerer det; samme markering bruges af et blokeret Gem. |
+| BF-022 | "Offentlige ydelser i beregningsperioden reguleres" er flyttet til Offentlige ydelser-fanen, under Midlertidigt EET-togglen. |
+| BF-023 | Ydelsestype-dropdownen sorteres alfabetisk inden for hver af de to grupper; rækkefølgen ejes af registeret. |
 | BF-025 | Angivet måneds-/timeløn på en ny sag udløser ikke længere en systemfejl; "en ny sags default" har fået ét sandt sted, og tre værn dækker klassen. |
+| BF-026 | Den bare bindestreg på linjen med "Tilgængelige reguleringssatser" er væk — et ukendt interval viser nu ingenting. |
 | BF-027 | Standardværdier fra Indstillinger slår nu igennem på en ny sag med det samme — ikke først når brugeren rører feltet. |
+
+### BF-020 og BF-021 — analyse og løsning
+
+**Fundet.** Årslønssidens løntabel kunne få en celle til at blinke rødt, men ingen anden flade kunne. Samtidig
+førte de interne fejl-/advarselslinks brugeren hen til feltet uden at markere det, så brugeren selv skulle finde
+det blandt de øvrige felter på siden — især efter et side- eller faneskift.
+
+**Kernen.** De to fund er det samme fund set fra hver sin side. Programmet havde allerede ÉN feltidentitet i DOM
+(`data-mineo-field-address`) og tre veje, der bruger den til at lokalisere et felt: undo/redo-fokusrestoren,
+save-blokeringens fokus og fejllinkene. Navigationen var altså løst; det var kun det visuelle svar, der manglede
+— og det ene sted, det fandtes, var indelukket. Blinket i løntabellen var React-state (`flashCell`) nøglet på et
+cellekoordinat (`rowId` + `colIdx`) med sin egen `@keyframes errorFlash` i en `<style>`-tag i tabellen. Hverken
+koordinatet eller animationen kunne bruges af en anden flade, og en formularfelt-flade har slet ikke et
+cellekoordinat.
+
+**Løsningen.** Markeringen er løftet ud til `src/inputCore/react/fieldAttentionBlink.ts` og gjort til en ren
+DOM-effekt frem for React-state. Det er dét valg, der gør den generelt tilgængelig: en CSS-klasse kan lægges på
+ethvert element, en feltadresse peger på, uden at feltkomponenten kender til markeringen, holder state eller
+opter ind. Et nyt felt eller en ny tabel arver blinket alene ved at bære feltadressen, som surfacen allerede
+sætter. Animationen bor nu ét sted (`sharedApp.css`) og respekterer `prefers-reduced-motion`.
+
+Alle tre fokusveje afslutter nu med samme markering: fejllinkene (`scrollToEoRow`) blinker det element, de
+scrollede til, og save-blokeringen blinker det felt, den fokuserede. `scrollWithRetry.onSuccess` giver det fundne
+element med, så kalderen ikke skal gentage opslaget og risikere at ramme et andet element end det, der blev
+scrollet til. Løntabellens private flash er væk; dens vedvarende «indtastning mangler»-markering bruger nu den
+delte klasse, men beholder sin egen semantik — den BLIVER stående, indtil cellen er udfyldt, hvor et blink er
+kortvarigt. `StandardGridTable.beforeTable`, som kun fandtes for at injicere de gamle keyframes, er fjernet.
+
+Markeringen er rent visuel: den ændrer ingen værdi, sætter ingen feltfejl og blokerer intet. Har en fejl intet
+enkelt ansvarligt felt (fx et overlap mellem to rækker), markeres rækkeankeret — det grovere, men stadig sande
+mål. Arkitekturen er beskrevet i `docs/architecture/input-architecture.md` §1.8.
+
+Værnet er efterprøvet ved at fjerne blinket fra linkstien: begge de nye integrationstests bliver da røde.
+
+### BF-022, BF-023 og BF-026 — kort
+
+**BF-022.** Togglen er flyttet til Offentlige ydelser-fanen under Midlertidigt EET-togglen. Feltet selv er
+uændret; det er editorlokationen, der er flyttet, og dermed den fane fokusnavigationen fører brugeren til.
+Synligheden var før en JSX-condition (`beregnesUdFra === 'Beregningsperiode'`) på den gamle fane. Den betingelse
+matcher præcis beregningsrelevansen — motoren danner kun reguleringsmodellen, når der findes en beregningsperiode
+— så den er bevaret og samtidig givet et navn i det delte relevans-modul
+(`erOffentligeYdelserReguleringRelevant`), så synlighed og calc-relevans har ét sandt sted. Et flyttet felt måtte
+ikke få en bredere synlighed end den, beregningen faktisk har.
+
+**BF-023.** Dropdownens to grupper og deres indbyrdes alfabetiske rækkefølge udledes nu i registeret
+(`primaereYdelsestypeKeys`/`supplerendeYdelsestypeKeys`) frem for at være en håndholdt liste i tabellen.
+Objektliteralens nøglerækkefølge kunne ikke bære reglen: den sorterer efter NØGLE (`su` før `uddannelseshjaelp`,
+`ressourceforloebsydelse` før `revalideringsydelse`), mens brugeren ser LABELS — 'SU' skal stå efter 'Ress.
+forløbsydelse' — og æ/ø/å falder forkert uden dansk kollation. Stregen og gruppernes indhold er uændret.
+Kontrakten er noteret i `src/contracts/periodisering-contract.md` §4.
+
+**BF-026.** Bindestregen var fallback-værdien (`|| '-'`), når reguleringsdato-intervallet er ukendt. Linjen viser
+nu ingenting i det tilfælde. De øvrige bindestreger i programmet står i datatabellers talkolonner som
+pladsholder for en tom celle og er en anden — og gyldig — brug.
 
 ### BF-025 — analyse og løsning
 
@@ -217,7 +220,10 @@ tilføjes uden enten at blive koblet på eller eksplicit erklæret som ikke-sags
 `docs/architecture/input-architecture.md` §2.11 og kontraktligt fastlagt i `src/contracts/app-settings.md`.
 
 Senest opdateret: 7. august 2026. De rettede fund er automatiseret verificeret. Visuel browserverifikation
-af BF-003, BF-004, BF-008 og BF-014 udestår, fordi ingen styrbar browser var registreret.
+af BF-003, BF-004, BF-008 og BF-014 udestår, fordi ingen styrbar browser var registreret. Samme forbehold
+gælder BF-020, BF-021, BF-022 og BF-026: mekanismerne er dækket af tests (blink-klassen sættes på det rigtige
+element, togglen står på den rigtige fane, bindestregen er væk), men selve det visuelle indtryk —
+blinkets farve og rytme på de forskellige felttyper — er ikke set i en browser.
 
 BF-005's andet symptom (rækken slettes ikke, når alle dens indtastninger fortrydes) er IKKE reproduceret
 selvstændigt. Det blev efterprøvet på tre måder — history-algebraen, en integrationstest med beløbscelle og en

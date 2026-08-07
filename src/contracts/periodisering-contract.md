@@ -124,6 +124,11 @@ Offentlige ydelser periodiseres efter den regel, der er deklareret på ydelsesty
 Den deklarerede `periodisering` er autoritativ.
 Callsites må ikke hardcode egne periodiseringsregler for en ydelsestype, medmindre kontrakten udtrykkeligt kræver en dokumenteret undtagelse.
 
+Samme modul ejer også ydelsestypernes **valgrækkefølge** i dropdownen (`primaereYdelsestypeKeys` og
+`supplerendeYdelsestypeKeys`): to grupper adskilt af en streg, hver sorteret alfabetisk efter den viste label
+med dansk kollation. Callsites må ikke opbygge deres egen liste eller gruppering — objektliteralens
+nøglerækkefølge er ikke visningsrækkefølgen, da nøgler og labels sorterer forskelligt.
+
 ---
 
 ## 5. Sygedagpenge

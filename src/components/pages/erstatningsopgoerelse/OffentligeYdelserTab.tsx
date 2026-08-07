@@ -7,6 +7,7 @@ import { PageMessageRow } from '../../layout/PageMessageBox';
 import { pageMessage } from '../../layout/pageMessage';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
+import { erOffentligeYdelserReguleringRelevant } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
 import TransientDateInput from '../../inputs/transient/TransientDateInput';
 import MappedToggleField from '../../../inputCore/react/fields/MappedToggleField';
@@ -14,6 +15,7 @@ import type { ToggleCommitDecision } from '../../../inputCore/react/fields/Toggl
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
 import { buildFieldHistoryOrigin } from '../../../inputCore/editor/fieldEditorEngine';
 import MultilineTextField from '../../../inputCore/react/fields/MultilineTextField';
+import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import InlineActionButton from '../../inputs/InlineActionButton';
 import {
   buildSygedagpengeRowsForRange,
@@ -39,6 +41,7 @@ import {
   eoMidlertidigtEetFraEetSidenField,
   eoOffentligeYdelserKommentarerField,
   eoOffentligeYdelserRowsCollection,
+  eoRegulerOffentligeYdelserField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import type { CollectionRef } from '../../../inputCore/fieldAddress';
 import {
@@ -68,6 +71,17 @@ const OFFENTLIGE_YDELSER_ROW_ORIGIN: CollectionRowOrigin = {
 const midlertidigtEetFieldRef = eoMidlertidigtEetFraEetSidenField.bind();
 const MIDLERTIDIGT_EET_LOCATION: EditorLocation = {
   locationId: 'erstatningsopgoerelse.midlertidigtEetFraEetSiden',
+  route: APP_ROUTES.erstatningsopgoerelse,
+  tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER,
+};
+
+/**
+ * Reguleringstogglens editorlokation (§3.2). Feltet blev flyttet hertil fra EO oplysninger-fanen
+ * (BF-022); `locationId` er uændret, fordi det navngiver FELTETS editorlokation og ikke fanen — men
+ * `tabKey` peger nu på Offentlige ydelser, så fokusnavigationen lander det rigtige sted.
+ */
+const REGULER_OFFENTLIGE_YDELSER_LOCATION: EditorLocation = {
+  locationId: 'erstatningsopgoerelse.regulerOffentligeYdelser',
   route: APP_ROUTES.erstatningsopgoerelse,
   tabKey: EO_TAB_KEYS.OFFENTLIGE_YDELSER,
 };
@@ -413,6 +427,32 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
           </Box>
         </Box>
         <PageMessageRow message={pageMessage(midlertidigtEetToggleError)} rightCellHasContentClass />
+
+        {/*
+          Reguleringen af offentlige ydelser hører til ydelserne selv og stod tidligere på EO
+          oplysninger-fanen (BF-022). Feltet er uændret; kun editorlokationen er flyttet hertil, så
+          fokusnavigationen fører brugeren til den fane, feltet faktisk redigeres på (§3.2).
+
+          Synligheden er PRÆCIS den samme betingelse som før flytningen — nu udtrykt gennem det delte
+          relevans-prædikat, så synlighed og beregningsrelevans har ét sandt sted.
+        */}
+        {erOffentligeYdelserReguleringRelevant(values) ? (
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">
+              Offentlige ydelser i beregningsperioden reguleres
+              <InfoTooltipIcon title="Offentlige ydelser fremskrives efter statslig praksis med tilpasningsprocenten + 2 % per 1. januar" />
+            </Typography>
+            <Box className="row--label-right-hover__content">
+              <MappedToggleField
+                field={eoRegulerOffentligeYdelserField.bind()}
+                location={REGULER_OFFENTLIGE_YDELSER_LOCATION}
+                checkedValue="Ja"
+                uncheckedValue="Nej"
+                name="regulerOffentligeYdelser"
+              />
+            </Box>
+          </Box>
+        ) : null}
       </ContentBox>
 
       <ContentBox className="content-box">

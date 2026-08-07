@@ -17,7 +17,7 @@ import {
 import type { CollectionRef } from '../../inputCore/fieldAddress';
 import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import { generateOffentligYdelseRowId, initialOffentligYdelseRow } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
-import { ydelsestyper, ydelsestypeKeys, type YdelsestypeKey } from '../../data/ydelsestyper';
+import { primaereYdelsestypeKeys, supplerendeYdelsestypeKeys, ydelsestyper } from '../../data/ydelsestyper';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
@@ -39,9 +39,8 @@ const isRowEmpty = (row: OffentligeYdelserRow): boolean =>
   row.fraDato === undefined && row.tilDato === undefined && row.ydelse === undefined
   && row.tillaeg === undefined && (row.ydelsestype === undefined || row.ydelsestype.trim() === '');
 
-const SUPPLEMENTARY_YDELSESTYPE_KEYS = ['feriepenge', 'midlertidigt_eet', 'andet'] as const satisfies readonly YdelsestypeKey[];
-const supplementaryYdelsestypeKeySet = new Set<YdelsestypeKey>(SUPPLEMENTARY_YDELSESTYPE_KEYS);
-const PRIMARY_YDELSESTYPE_KEYS = ydelsestypeKeys.filter((key) => !supplementaryYdelsestypeKeySet.has(key));
+// Grupperne OG deres indbyrdes alfabetiske rækkefølge ejes af ydelsestype-registeret (BF-023), så
+// dropdownen ikke bærer sin egen liste, der kunne drifte fra registerets.
 
 const OffentligeYdelserTable = React.memo(({
   committedRows,
@@ -94,9 +93,9 @@ const OffentligeYdelserTable = React.memo(({
         <td style={getStandardGridCellStyle({ align: 'center' })}><GridAmountCell gridCell={gc(2)} cell={table.buildCellSpec(row, eoOffentligeYdelserYdelseField, 2)} /></td>
         <td style={getStandardGridCellStyle({ align: 'center' })}><GridAmountCell gridCell={gc(3)} cell={table.buildCellSpec(row, eoOffentligeYdelserTillaegField, 3)} /></td>
         <td style={getStandardGridCellStyle({ align: 'center' })}><GridChoiceCell gridCell={gc(4)} cell={table.buildCellSpec(row, eoOffentligeYdelserYdelsestypeField, 4)} placeholder="Vælg...">
-          {PRIMARY_YDELSESTYPE_KEYS.map((key) => <MenuItem key={key} value={key}>{ydelsestyper[key].label}</MenuItem>)}
+          {primaereYdelsestypeKeys.map((key) => <MenuItem key={key} value={key}>{ydelsestyper[key].label}</MenuItem>)}
           <StyledDropdownDivider />
-          {SUPPLEMENTARY_YDELSESTYPE_KEYS.map((key) => <MenuItem key={key} value={key} disabled={key === 'midlertidigt_eet' && disableMidlertidigtEetOption}>{ydelsestyper[key].label}</MenuItem>)}
+          {supplerendeYdelsestypeKeys.map((key) => <MenuItem key={key} value={key} disabled={key === 'midlertidigt_eet' && disableMidlertidigtEetOption}>{ydelsestyper[key].label}</MenuItem>)}
         </GridChoiceCell></td>
         <td style={derivedStyle}>{derived?.periodiseringLabel ?? ''}</td>
         <td style={derivedStyle}>{derived?.antalDageDisplay ?? ''}</td>

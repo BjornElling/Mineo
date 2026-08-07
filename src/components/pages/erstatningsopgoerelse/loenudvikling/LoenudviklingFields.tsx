@@ -361,9 +361,16 @@ export default function LoenudviklingFields<
                   `loenudviklingBasis`-switchen ved KLIK — altså før commit-barrieren — er
                   erstattet af den fælles resolver, som vælger efter settle på et frisk snapshot.
                 */}
-                <Typography className="row--text" sx={{ textAlign: 'right' }}>
-                  {reguleringsDatoIntervalDisplay || '-'}
-                </Typography>
+                {/*
+                  Er intervallet ukendt, vises INTET — hverken tekst eller pladsholdertegn (BF-026).
+                  Bindestregen her var et levn fra en fjernet inline-tekst; erstatningen skulle have
+                  været ingenting, og et bart `-` på linjen ligner en værdi, der ikke findes.
+                */}
+                {reguleringsDatoIntervalDisplay ? (
+                  <Typography className="row--text" sx={{ textAlign: 'right' }}>
+                    {reguleringsDatoIntervalDisplay}
+                  </Typography>
+                ) : null}
                 <Box>
                   <DocumentDownloadButton
                     disabled={!reguleringDocument.canDownload}

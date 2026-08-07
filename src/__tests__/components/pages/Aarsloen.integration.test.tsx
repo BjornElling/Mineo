@@ -13,6 +13,7 @@ import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
+import { FIELD_ATTENTION_BLINK_CLASS } from '../../../inputCore/react/fieldAttentionBlink';
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
@@ -369,8 +370,9 @@ describe('Årsløn — placeholders viser kun værdiens FORM (UT-F06)', () => {
     await user.click(screen.getAllByRole('checkbox')[0]);
 
     await waitFor(() => {
-      // Markeringen er den delte errorFlash-animation på cellen — ikke en ny placeholdertekst.
-      expect(monthCell.style.animation).toContain('errorFlash');
+      // Markeringen er den DELTE blink-klasse på cellen (BF-020) — ikke en ny placeholdertekst og ikke
+      // længere en tabel-lokal animation.
+      expect(monthCell.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
     });
     expect((within(monthCell).getByRole('textbox') as HTMLInputElement).placeholder).toBe('mm');
     expect(screen.queryByPlaceholderText('Indtastning mangler')).toBeNull();

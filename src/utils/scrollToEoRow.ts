@@ -13,6 +13,7 @@
 import { scrollWithRetry } from './scrollWithRetry';
 import { serializeFieldAddress } from '../inputCore/fieldAddress';
 import { lookupEditorLocation } from '../inputCore/react/editorLocationDestination';
+import { blinkFieldAttention } from '../inputCore/react/fieldAttentionBlink';
 import type { EoIssueFocusTarget } from '../domain/eoRowEvaluation/eoRowTypes';
 
 const resolveAnchorIdFromRowId = (rowId: string): string | null => {
@@ -93,7 +94,13 @@ export const scrollToEoRow = (
     maxRetries,
     findTarget: () => findElementByFocusTarget(options.focusTarget) ?? (anchorId ? findElementByMineoRowId(anchorId) : null),
     // behavior udelades bevidst: scrollTargetIntoView afleder den fra prefers-reduced-motion.
-    onSuccess,
+    onSuccess: (target) => {
+      // Den delte blinkmarkering (BF-021): når linket har ført brugeren hen til indtastningen, peger
+      // markeringen på PRÆCIS det element, der blev scrollet til. Faldt vi tilbage til rækkeankeret,
+      // blinker rækken — det grovere, men stadig sande mål for en fejl uden ét ansvarligt felt.
+      blinkFieldAttention(target);
+      onSuccess?.();
+    },
     onFailure,
     failureMessage: `Could not find focus target or data-mineo-row-id="${anchorId ?? ''}" for rowId="${rowId}"`,
   });

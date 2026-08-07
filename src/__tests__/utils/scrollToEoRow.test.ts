@@ -10,6 +10,7 @@ import {
   eoSvieSmertePeriodeTilField,
   eoTafPeriodeFraField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { FIELD_ATTENTION_BLINK_CLASS } from '../../inputCore/react/fieldAttentionBlink';
 
 describe('scrollToEoRow', () => {
   const originalRaf = globalThis.requestAnimationFrame;
@@ -143,6 +144,28 @@ describe('scrollToEoRow', () => {
     scrollToEoRow('taf.periode.taf-1', { focusTarget: { kind: 'fieldAddress', address: field.address } });
 
     expect(scrollIntoViewMock.mock.instances[0]).toBe(anchor);
+  });
+
+  it('blinkmarkerer det felt, linket førte brugeren hen til (BF-021)', () => {
+    const field = eoTafPeriodeFraField.bind('taf-1');
+    const editor = mountFieldEditor(field.address);
+
+    scrollToEoRow('taf.periode.taf-1', { focusTarget: { kind: 'fieldAddress', address: field.address } });
+
+    // Markeringen er den DELTE mekanisme og lander på PRÆCIS det element, der blev scrollet til.
+    expect(editor.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
+  });
+
+  it('blinkmarkerer rækkeankeret, når fejlen ikke har ét ansvarligt felt', () => {
+    // En rækkefejl uden feltadresse (fx et overlap mellem to rækker) kan kun forankres til rækken;
+    // markeringen skal da pege på det grovere — men stadig sande — mål.
+    const anchor = document.createElement('div');
+    anchor.setAttribute('data-mineo-row-id', 'taf-1');
+    document.body.appendChild(anchor);
+
+    scrollToEoRow('taf.periode.taf-1');
+
+    expect(anchor.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
   });
 
   it('rapporterer fejl, når hverken feltets editor eller rækkeankeret findes', () => {

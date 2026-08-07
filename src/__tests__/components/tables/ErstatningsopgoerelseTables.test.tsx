@@ -111,7 +111,11 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     expect(within(dataRows()[0]!).getByText('31')).toBeInTheDocument();
   });
 
-  it('grupperer Feriepenge, Midlertidigt EET og Andet efter en divider i ydelsestype-menuen', () => {
+  it('grupperer de supplerende ydelsestyper efter en divider og sorterer hver gruppe alfabetisk', () => {
+    // BF-023: stregen og de to gruppers indhold er uændret; det NYE er, at hver gruppe er sorteret
+    // alfabetisk indbyrdes efter den viste label. Testen assertes derfor på selve reglen — sorteret
+    // efter dansk kollation — og ikke på en håndskrevet labelrækkefølge, som ville skulle rettes hver
+    // gang en ydelsestype tilføjes.
     const rows = [{
       id: 'ydelse-1',
       fraDato: undefined,
@@ -132,15 +136,30 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
 
     fireEvent.click(within(dataRows()[0]!).getByRole('combobox'));
     const listbox = screen.getByRole('listbox');
-    const divider = listbox.querySelector<HTMLElement>('[role="presentation"]');
-    expect(divider).not.toBeNull();
-    expect(divider?.previousElementSibling).toHaveTextContent('Uddannelseshjælp');
-    expect(divider?.nextElementSibling).toHaveTextContent('Feriepenge');
+    const children = Array.from(listbox.children);
+    const dividerIndex = children.findIndex((child) => child.getAttribute('role') === 'presentation');
+    expect(dividerIndex).toBeGreaterThan(0);
 
-    const labelsAfterDivider = Array.from(divider?.parentElement?.children ?? [])
-      .slice(Array.from(divider?.parentElement?.children ?? []).indexOf(divider!) + 1)
-      .map((option) => option.textContent);
-    expect(labelsAfterDivider).toEqual(['Feriepenge', 'Midlertidigt EET', 'Andet']);
+    // «Vælg...» er dropdownens tomvalg, ikke en ydelsestype, og indgår derfor ikke i sorteringsreglen.
+    const labelsBeforeDivider = children
+      .slice(0, dividerIndex)
+      .map((option) => option.textContent ?? '')
+      .filter((label) => label !== 'Vælg...');
+    const labelsAfterDivider = children.slice(dividerIndex + 1).map((option) => option.textContent ?? '');
+
+    // Gruppernes indhold: de supplerende posteringer står under stregen, resten over.
+    expect(labelsAfterDivider).toHaveLength(3);
+    expect(new Set(labelsAfterDivider)).toEqual(new Set(['Feriepenge', 'Midlertidigt EET', 'Andet']));
+    expect(labelsBeforeDivider).not.toHaveLength(0);
+    for (const supplerende of ['Feriepenge', 'Midlertidigt EET', 'Andet']) {
+      expect(labelsBeforeDivider).not.toContain(supplerende);
+    }
+
+    // Selve reglen: hver gruppe er alfabetisk sorteret indbyrdes.
+    const danishSorted = (labels: readonly string[]) => [...labels].sort((a, b) => a.localeCompare(b, 'da'));
+    expect(labelsBeforeDivider).toEqual(danishSorted(labelsBeforeDivider));
+    expect(labelsAfterDivider).toEqual(danishSorted(labelsAfterDivider));
+
     expect(screen.getByRole('option', { name: 'Midlertidigt EET' })).toHaveAttribute('aria-disabled', 'true');
   });
 

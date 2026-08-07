@@ -67,6 +67,21 @@ export const erOevrigeKravSektionAktiv = (values: ErstatningsopgoerelseValues): 
   values.kravPaaOevrigeErstatningskrav === 'Ja';
 
 /**
+ * «Offentlige ydelser i beregningsperioden reguleres» er relevant.
+ *
+ * Reguleringen indgår kun i et tal, når der faktisk findes en beregningsperiode at regulere over:
+ * motoren bygger reguleringsmodellen ud fra `incomeForBeregningsperiode`, som kun dannes, når TAF-
+ * sektionen er aktiv OG `beregnesUdFra === 'Beregningsperiode'`. Ved angivet måneds-/dagsløn er
+ * feltet uden virkning.
+ *
+ * Prædikatet fik sit eget navn her, da togglen flyttede fane (BF-022). Betingelsen stod tidligere
+ * kun som en JSX-condition på EO oplysninger-fanen, og et flyttet felt måtte ikke risikere at få en
+ * anden — bredere — synlighed end den, beregningen faktisk har.
+ */
+export const erOffentligeYdelserReguleringRelevant = (values: ErstatningsopgoerelseValues): boolean =>
+  erTabtArbejdsfortjenesteSektionAktiv(values) && values.beregnesUdFra === 'Beregningsperiode';
+
+/**
  * "Tidligere modtaget tabt arbejdsfortjeneste" er relevant. Fradraget anvendes kun, når
  * TAF-sektionen er aktiv, så feltet er irrelevant uden for sektionen.
  */
