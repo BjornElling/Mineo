@@ -1934,6 +1934,23 @@ spor sammen med `schema-evolution.md`s domænesti-tabel (~40 stier, som filen se
 sync med registry»), fordi begge kræver en beslutning om, hvor arbejdslister skal bo — ikke blot en
 flytning.
 
+**Værnet ramte sit eget commit — og det var pointen.** Det første commit rettede en reference i fire
+kontrakter uden at forny deres stempel, og `check:contract-verification` gjorde straks træet rødt. De
+fire blev derfor verificeret mod koden, og verifikationen fandt **fem semantiske fejl, som
+liveness-værnet per konstruktion ikke kan se**, fordi symbolnavnene findes:
+
+| Kontrakt | Påstod | Koden gør |
+|---|---|---|
+| `mineo-field-pattern.md` §3.8 | `HistoryOrigin.field` er valgfri | Diskrimineret union; `FieldHistoryOrigin.field` er PÅKRÆVET, `CollectionHistoryOrigin` har slet ikke feltet. Kildens kommentar siger, at optionaliteten lod et feltcommit sendes uden adresse |
+| `persistence-contract.md` §3.8a | Aktive-fane-nøglerne er `deviceScoped` | De står UDEN FOR klassifikationen som dynamisk nøglefamilie; compiler-håndhævelsen dækker kun de statiske nøgler |
+| `schema-evolution.md` §3.2 | `erstatningsopgoerelseSchema` er autoritativ ved parse | Load-stien bruger `persistedErstatningsopgoerelseSchema` |
+| `satser-contract.md` §1 | `resolveSatserDefaultAargang` fastlægger «alene» ny-sags-defaulten | To bevidst adskilte kaldere |
+| `persistence-contract.md` §3 | Versionsfelterne er `string` | `z.literal` — load-bearing for §4, da det er dét, der gør en anden dataversion til korruption |
+
+Det er den vigtigste afgrænsning at tage med: **liveness-værnet fanger navnedrift, ikke betydningsdrift.**
+Stempel-reglen er det, der tvinger den menneskelige verifikation, hvor betydningen bliver efterprøvet —
+og her fandt den fem fejl på fire kontrakter, ingen maskine kunne have set.
+
 **Metodenote fra denne omgang:** *en korrekt diagnose kan bære en forkert ordination.* #52 pegede rigtigt
 på, at kontrakterne kan drive fra koden, og foreslog derefter at fjerne netop det, der var korrekt, mens
 årsagen — at intet kontrollerede noget — ville have bestået uændret. Prøven, der afgjorde det, var at
