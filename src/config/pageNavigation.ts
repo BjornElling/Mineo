@@ -101,3 +101,31 @@ export const ALL_APP_PAGE_ROUTES: readonly string[] = Object.freeze([
   ...Object.values(APP_PAGE_DEFINITIONS).map((definition) => definition.route),
   ...Object.values(APP_SYSTEM_PAGE_DEFINITIONS).map((definition) => definition.route),
 ]);
+
+/**
+ * De sider sidemenuen kan navigere til — altså alle routes MINUS `/open`, som er PWA-
+ * filåbnings-landingen og bevidst ikke står i menuen.
+ *
+ * Findes fordi sidemenuen indtil nu bar sit EGET inventar: `SideMenu.tsx` hardkodede de otte
+ * sagssider og de to systemsider som bare strenge og importerede slet ikke dette modul. Det var
+ * dermed en TREDJE liste ved siden af kataloget og `App.tsx` — den ene `App.tsx`-guarden ikke
+ * kigger på — så en omdøbt route gav en lydløst død menupost i stedet for en fejl.
+ *
+ * Typen er værnet: menuens poster er nu nøglet på `MenuPageKey`, så en omdøbt eller slettet side
+ * bliver en COMPILE-fejl i menuen. Det slår en AST-regel her, fordi grænsen kan udtrykkes som en
+ * type — men bemærk dens loft: typen fanger drift i NØGLERNE, ikke at menuen faktisk viser alle
+ * sider. Completeness dækkes derfor af `SideMenu.test.tsx`.
+ */
+export type MenuPageKey = RoutedPageKey | Exclude<AppSystemPageKey, 'openEo'>;
+
+const MENU_PAGE_ROUTES: Readonly<Record<MenuPageKey, string>> = Object.freeze({
+  ...APP_ROUTES,
+  indstillinger: APP_SYSTEM_PAGE_DEFINITIONS.indstillinger.route,
+  mineo: APP_SYSTEM_PAGE_DEFINITIONS.mineo.route,
+});
+
+/**
+ * Route for en menuside. Erstatter `` `/${pageId}` ``-interpolationen i `MainLayout`, som var
+ * selve mekanismen bag driften: den gjorde ENHVER streng til en gyldig "route".
+ */
+export const getRouteForMenuPageKey = (pageKey: MenuPageKey): string => MENU_PAGE_ROUTES[pageKey];

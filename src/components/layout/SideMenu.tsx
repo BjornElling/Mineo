@@ -17,14 +17,19 @@ import {
   Info
 } from '@mui/icons-material';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
+import type { MenuPageKey } from '../../config/pageNavigation';
 import {
   readOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
 } from '../../utils/safeSessionStorage';
 
 // Type-definitioner
+//
+// `id` er nøglet på det kanoniske rute-inventar (`MenuPageKey`), ikke en fri streng. Menuen bar
+// tidligere sin egen liste af bare strenge uden at importere kataloget — en tredje route-liste,
+// hvor en omdøbt side gav en lydløst død menupost. Nu er samme drift en compile-fejl.
 type NavigationItem = {
-  id: string;
+  id: MenuPageKey;
   label: string;
   icon: React.ReactElement;
 };
@@ -49,8 +54,9 @@ const persistMenuState = (isExpanded: boolean): void => {
   writeOptionalSessionStorageValue(MENU_STATE_STORAGE_KEY, isExpanded ? 'true' : 'false');
 };
 
-// Hovednavigation (defineret udenfor komponenten for at undgå genskabelse)
-const navigationItems: NavigationItem[] = [
+// Hovednavigation (defineret udenfor komponenten for at undgå genskabelse).
+// Eksporteret, så completeness-testen måler DEN levende liste og ikke en kopi af den.
+export const navigationItems: NavigationItem[] = [
   { id: 'stamdata', label: 'Stamdata', icon: <Person /> },
   { id: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse', icon: <Payments /> },
   { id: 'erhvervsevnetab', label: 'Erhvervsevnetab', icon: <AssistWalker /> },
@@ -62,7 +68,7 @@ const navigationItems: NavigationItem[] = [
 ];
 
 // Utilities (med active state)
-const utilityItems: NavigationItem[] = [
+export const utilityItems: NavigationItem[] = [
   { id: 'indstillinger', label: 'Indstillinger', icon: <Settings /> },
   // Bevidst UX-valg: siden er internt navngivet `mineo`, men labelen i sidemenuen forbliver `Om`.
   { id: 'mineo', label: 'Om', icon: <Info /> }
@@ -80,7 +86,7 @@ const utilityItems: NavigationItem[] = [
  */
 interface SideMenuProps {
   activePage: string;
-  onPageChange: (pageId: string) => void | Promise<void>;
+  onPageChange: (pageId: MenuPageKey) => void | Promise<void>;
   onGem: () => void;
   onHent: () => void;
   onSletAlt: () => void;
@@ -107,7 +113,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
     });
   }, []);
 
-  const handleNavigation = React.useCallback((pageId: string) => {
+  const handleNavigation = React.useCallback((pageId: MenuPageKey) => {
     onPageChange(pageId);
   }, [onPageChange]);
 

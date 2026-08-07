@@ -102,7 +102,7 @@ export function useForsoergertabViewModel() {
   const skadedato = skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined;
   const skadedatoError = skadedatoRead.status === 'error' ? skadedatoRead.issue.message : undefined;
 
-  const goToStamdata = React.useCallback(() => navigate('/stamdata'), [navigate]);
+  const goToStamdata = React.useCallback(() => navigate(APP_ROUTES.stamdata), [navigate]);
 
   const settleBeregningsdato = React.useCallback(
     (today: Parameters<typeof beregningsdatoController.settleValue>[0]) => {

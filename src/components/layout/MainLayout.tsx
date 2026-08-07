@@ -14,7 +14,7 @@ import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
 import { setActiveTabForPage } from '../../hooks/usePersistedActiveTab';
-import { routeToPageId } from '../../config/pageNavigation';
+import { getRouteForMenuPageKey, routeToPageId, type MenuPageKey } from '../../config/pageNavigation';
 import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyRestoreTarget';
 import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
@@ -95,14 +95,20 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     location,
   });
 
-  const activePage = location.pathname.substring(1) || 'stamdata';
+  // Kanonisk omvendt opslag. Den håndrullede `substring(1) || 'stamdata'` duplikerede
+  // `routeToPageId` — inkl. dens startside-fallback — i en fil der allerede importerede den.
+  const activePage = routeToPageId(location.pathname);
   const { markSaved } = useUnsavedChangesGuard({
     combinedSectionRevision: Number(revision),
     authoritativeSnapshotEpoch: replacementGeneration,
   });
 
-  const handlePageChange = React.useCallback(async (pageId: string) => {
-    if (location.pathname === `/${pageId}`) {
+  const handlePageChange = React.useCallback(async (pageId: MenuPageKey) => {
+    // Routen slås OP i det kanoniske inventar. `/${pageId}`-interpolationen var mekanismen bag
+    // sidemenuens drift: den gjorde enhver streng til en gyldig route, så en omdøbt side gav en
+    // menupost der navigerede til ingenting.
+    const targetRoute = getRouteForMenuPageKey(pageId);
+    if (location.pathname === targetRoute) {
       return;
     }
 
@@ -120,7 +126,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         return;
       }
 
-      navigate(`/${pageId}`);
+      navigate(targetRoute);
     } catch (error) {
       console.warn('Sideskift blev afbrudt, fordi aktivt felt ikke kunne afsluttes.', error);
       setOverlay({

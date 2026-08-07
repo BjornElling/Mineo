@@ -115,7 +115,12 @@ const RootRedirect = () => {
   // Bevidst UX-valg:
   // - Normal åbning af app/PWA går via root-route og styres af Mineo-toggle'en.
   // - Filindlæsning er et separat flow i MainLayout og ender altid på Stamdata.
-  return <Navigate to={settings.defaultStartsideErStamdata ? '/stamdata' : '/mineo'} replace />;
+  return (
+    <Navigate
+      to={settings.defaultStartsideErStamdata ? APP_ROUTES.stamdata : APP_SYSTEM_PAGE_DEFINITIONS.mineo.route}
+      replace
+    />
+  );
 };
 
 const ThemedApp = ({

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
+import { APP_ROUTES } from '../config/pageNavigation';
 import { SaveValidationError, saveToFile } from '../utils/fileSave';
 import { loadFromFile, loadFromFileHandle } from '../utils/fileLoad';
 import { resolveDefaultDirectoryHandle } from '../utils/fileHelpers';
@@ -256,7 +257,7 @@ export const useFileSaveLoad = ({
       ? { message: applyResult.message, type: 'warning' }
       : overlayData);
     if (navigateToStamdataAfterApply) {
-      navigate('/stamdata', { replace: true });
+      navigate(APP_ROUTES.stamdata, { replace: true });
     }
     return 'applied';
   }, [applyLoadedSnapshot, navigate, ops.file, showOverlay]);
@@ -472,7 +473,7 @@ export const useFileSaveLoad = ({
         ? { message: applyResult.message, type: 'warning' }
         : pending.overlay);
       if (pending.navigateToStamdataAfterApply) {
-        navigate('/stamdata', { replace: true });
+        navigate(APP_ROUTES.stamdata, { replace: true });
       }
     } catch (error) {
       console.error('Overskriv og hent fejlede:', error);
@@ -509,7 +510,7 @@ export const useFileSaveLoad = ({
       showOverlay(clearResult.status === 'cleared'
         ? { message: 'Alt data slettet', type: 'info' }
         : { message: buildResetResidueMessage(clearResult.residue), type: 'warning' });
-      navigate('/stamdata', { replace: true });
+      navigate(APP_ROUTES.stamdata, { replace: true });
     } catch (error) {
       restoreFocusIfPossible(focusTargetBeforeDeleteAll);
       console.error('Slet alt fejlede:', error);

@@ -6,6 +6,7 @@ import {
   Mineo_PWA_FILE_OPEN_EVENT,
   type PwaFileOpenRequest,
 } from '../utils/pwaLaunchQueue';
+import { APP_SYSTEM_PAGE_DEFINITIONS } from '../config/pageNavigation';
 import { logWarning } from '../utils/logger';
 import { asError } from '../utils/typeGuards';
 
@@ -196,7 +197,7 @@ export const usePwaLaunchQueue = ({
   ]);
 
   React.useEffect(() => {
-    if (locationPathname !== '/open') return;
+    if (locationPathname !== APP_SYSTEM_PAGE_DEFINITIONS.openEo.route) return;
     if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
 
     const startedAt = Date.now();

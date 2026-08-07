@@ -132,7 +132,7 @@ const MenberegningTab = React.memo(() => {
   // stamdata-fejl fokuseres via navigation til Stamdata-siden.
   const focusFirstBlockingField = React.useCallback(() => {
     if (fodselsdatoError !== undefined || fodselsdato === undefined) {
-      navigate('/stamdata');
+      navigate(APP_ROUTES.stamdata);
       return;
     }
     if (skadedatoError !== undefined || skadedato === undefined) {
@@ -192,7 +192,7 @@ const MenberegningTab = React.memo(() => {
                 component="span"
                 className="icon-text-link"
                 color="inherit"
-                onClick={() => navigate('/stamdata')}
+                onClick={() => navigate(APP_ROUTES.stamdata)}
                 sx={{ cursor: 'pointer' }}
               >
                 Stamdata
@@ -216,7 +216,7 @@ const MenberegningTab = React.memo(() => {
                   component="span"
                   className="icon-text-link"
                   color="inherit"
-                  onClick={() => navigate('/stamdata')}
+                  onClick={() => navigate(APP_ROUTES.stamdata)}
                   sx={{ cursor: 'pointer' }}
                 >
                   Stamdata
