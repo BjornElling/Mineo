@@ -1,42 +1,48 @@
 import { moneyOre } from '../../domain/money/money';
-import { __tafKravGrafChartTestables } from '../../document/generators/tafFordelt/tafKravGrafChart';
+import {
+  buildSmoothCurveSegments,
+  __tafKravGrafSceneTestables,
+} from '../../document/generators/tafFordelt/tafKravGrafScene';
 import type { TafKravGrafDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
 import { toISODateString } from '../../types/branded';
 
 const {
   niceCeil,
   buildNiceMoneyTicks,
-  appendSmoothCurve,
   buildWindowLayout,
   buildXMapper,
   buildWindowSamples,
   buildDateTicks,
   canAppendTerminalDateLabel,
 } =
-  __tafKravGrafChartTestables;
+  __tafKravGrafSceneTestables;
 
-// Optager de tegnekommandoer appendSmoothCurve udsteder, så vi kan hævde kurvens
-// invarianter uden et rigtigt canvas (jsdom har intet 2D-API).
+// Kurve-invarianterne hævdes nu direkte på scene-modellens sti-led. Testen behøver
+// dermed intet canvas-stub — sti-leddene ER værdien, ikke en bivirkning af et kald.
 type DrawCommand =
   | { op: 'lineTo'; x: number; y: number }
   | { op: 'bezierCurveTo'; c1x: number; c1y: number; c2x: number; c2y: number; x: number; y: number };
 
-const recordCurve = (points: readonly { x: number; y: number }[]): DrawCommand[] => {
-  const commands: DrawCommand[] = [];
-  const ctx = {
-    lineTo: (x: number, y: number) => commands.push({ op: 'lineTo', x, y }),
-    bezierCurveTo: (c1x: number, c1y: number, c2x: number, c2y: number, x: number, y: number) =>
-      commands.push({ op: 'bezierCurveTo', c1x, c1y, c2x, c2y, x, y }),
-  } as unknown as CanvasRenderingContext2D;
-  appendSmoothCurve(ctx, points);
-  return commands;
-};
+const recordCurve = (points: readonly { x: number; y: number }[]): DrawCommand[] =>
+  buildSmoothCurveSegments(points).map((segment) =>
+    segment.kind === 'lineTo'
+      ? { op: 'lineTo' as const, x: segment.x, y: segment.y }
+      : {
+          op: 'bezierCurveTo' as const,
+          c1x: segment.c1x,
+          c1y: segment.c1y,
+          c2x: segment.c2x,
+          c2y: segment.c2y,
+          x: segment.x,
+          y: segment.y,
+        }
+  );
 
 // Rene tegne-/sampling-helpers fra TAF-kravgrafen. De er præsentationsgeometri (de tal
 // brugeren stoler på står i TAF-tabellerne med egne tests), men er rene og deterministiske,
 // så deres invarianter låses her — de var tidligere udækkede (udskudt fund fra 10.6).
 
-describe('tafKravGrafChart — niceCeil', () => {
+describe('tafKravGrafScene — niceCeil', () => {
   it('returnerer 0 for ikke-positive værdier', () => {
     expect(niceCeil(0)).toBe(0);
     expect(niceCeil(-5)).toBe(0);
@@ -66,7 +72,7 @@ describe('tafKravGrafChart — niceCeil', () => {
   });
 });
 
-describe('tafKravGrafChart — buildNiceMoneyTicks', () => {
+describe('tafKravGrafScene — buildNiceMoneyTicks', () => {
   it('starter på 0 og er strengt stigende med heltals-øre', () => {
     const ticks = buildNiceMoneyTicks(1_000_000); // 10.000 kr.
     expect(ticks[0]).toBe(0);
@@ -92,7 +98,7 @@ describe('tafKravGrafChart — buildNiceMoneyTicks', () => {
   });
 });
 
-describe('tafKravGrafChart — appendSmoothCurve', () => {
+describe('tafKravGrafScene — buildSmoothCurveSegments', () => {
   it('går gennem alle datapunkter (interpolerende — ekstremer bevares i fuld højde)', () => {
     const points = [
       { x: 0, y: 100 },
@@ -166,7 +172,7 @@ describe('tafKravGrafChart — appendSmoothCurve', () => {
   });
 });
 
-describe('tafKravGrafChart — buildWindowLayout', () => {
+describe('tafKravGrafScene — buildWindowLayout', () => {
   const win = (fra: string, til: string) => ({ fra: toISODateString(fra), til: toISODateString(til) });
 
   it('placerer et enkelt vindue med positiv bredde og venstre-margin', () => {
@@ -198,7 +204,7 @@ describe('tafKravGrafChart — buildWindowLayout', () => {
   });
 });
 
-describe('tafKravGrafChart — buildWindowSamples', () => {
+describe('tafKravGrafScene — buildWindowSamples', () => {
   const win = (fra: string, til: string) => ({ fra: toISODateString(fra), til: toISODateString(til) });
 
   it('lader ikke en kort lønperiode smitte visuelt frem til månedens midtpunkt', () => {
@@ -334,7 +340,7 @@ describe('tafKravGrafChart — buildWindowSamples', () => {
   });
 });
 
-describe('tafKravGrafChart — x-akse slutdato', () => {
+describe('tafKravGrafScene — x-akse slutdato', () => {
   const win = (fra: string, til: string) => ({ fra: toISODateString(fra), til: toISODateString(til) });
 
   it('medtager ikke slutdatoen blandt de automatisk genererede måned/år-labels', () => {

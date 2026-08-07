@@ -1,0 +1,1375 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`tafKravGrafScene — golden (pixel-troskab) > fastfryser hele scenen for det fulde dokument 1`] = `
+{
+  "background": "#FFFFFF",
+  "commands": [
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#1F2733",
+      "font": "700 46px Arial, sans-serif",
+      "kind": "text",
+      "text": "Visuel graf over indtægtsniveau",
+      "x": 196,
+      "y": 66,
+    },
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 30px Arial, sans-serif",
+      "kind": "text",
+      "text": "Beløb pr. måned",
+      "x": 196,
+      "y": 108,
+    },
+    {
+      "color": "#FAFBFC",
+      "height": 968,
+      "kind": "fillRoundRect",
+      "radius": 16,
+      "width": 2284,
+      "x": 196,
+      "y": 150,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 196,
+            "y": 1118,
+          },
+          {
+            "x": 2480,
+            "y": 1118,
+          },
+        ],
+        [
+          {
+            "x": 196,
+            "y": 924.4,
+          },
+          {
+            "x": 2480,
+            "y": 924.4,
+          },
+        ],
+        [
+          {
+            "x": 196,
+            "y": 730.8,
+          },
+          {
+            "x": 2480,
+            "y": 730.8,
+          },
+        ],
+        [
+          {
+            "x": 196,
+            "y": 537.2,
+          },
+          {
+            "x": 2480,
+            "y": 537.2,
+          },
+        ],
+        [
+          {
+            "x": 196,
+            "y": 343.6,
+          },
+          {
+            "x": 2480,
+            "y": 343.6,
+          },
+        ],
+        [
+          {
+            "x": 196,
+            "y": 150,
+          },
+          {
+            "x": 2480,
+            "y": 150,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#E4E8EE",
+        "width": 1.5,
+      },
+    },
+    {
+      "height": 968,
+      "kind": "clipRoundRect",
+      "radius": 16,
+      "width": 2284,
+      "x": 196,
+      "y": 150,
+    },
+    {
+      "color": "rgba(48, 99, 142, 0.07)",
+      "height": 968,
+      "kind": "fillRect",
+      "width": 652.373,
+      "x": 425.813,
+      "y": 150,
+    },
+    {
+      "kind": "strokeSubpaths",
+      "stroke": {
+        "color": "#30638E",
+        "dash": [
+          10,
+          8,
+        ],
+        "width": 2.5,
+      },
+      "subpaths": [
+        [
+          {
+            "x": 425.813,
+            "y": 150,
+          },
+          {
+            "x": 425.813,
+            "y": 1118,
+          },
+        ],
+        [
+          {
+            "x": 1078.187,
+            "y": 150,
+          },
+          {
+            "x": 1078.187,
+            "y": 1118,
+          },
+        ],
+      ],
+    },
+    {
+      "color": "rgba(90, 100, 115, 0.13)",
+      "height": 968,
+      "kind": "fillRect",
+      "width": 88.96,
+      "x": 1849.867,
+      "y": 150,
+    },
+    {
+      "kind": "strokeSubpaths",
+      "stroke": {
+        "color": "#5A6473",
+        "dash": [
+          8,
+          7,
+        ],
+        "width": 2,
+      },
+      "subpaths": [
+        [
+          {
+            "x": 1849.867,
+            "y": 150,
+          },
+          {
+            "x": 1849.867,
+            "y": 1118,
+          },
+        ],
+        [
+          {
+            "x": 1938.827,
+            "y": 150,
+          },
+          {
+            "x": 1938.827,
+            "y": 1118,
+          },
+        ],
+      ],
+    },
+    {
+      "color": "#2F6B9A",
+      "kind": "fillPath",
+      "segments": [
+        {
+          "c1x": 233.067,
+          "c1y": 537.2,
+          "c2x": 270.133,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 307.2,
+          "y": 537.2,
+        },
+        {
+          "c1x": 380.098,
+          "c1y": 537.2,
+          "c2x": 452.996,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 525.893,
+          "y": 537.2,
+        },
+        {
+          "c1x": 561.724,
+          "c1y": 537.2,
+          "c2x": 597.556,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 633.387,
+          "y": 537.2,
+        },
+        {
+          "kind": "lineTo",
+          "x": 633.387,
+          "y": 537.2,
+        },
+        {
+          "c1x": 670.453,
+          "c1y": 537.2,
+          "c2x": 707.52,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 744.587,
+          "y": 537.2,
+        },
+        {
+          "c1x": 819.956,
+          "c1y": 537.2,
+          "c2x": 895.324,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 970.693,
+          "y": 440.4,
+        },
+        {
+          "c1x": 971.929,
+          "c1y": 440.4,
+          "c2x": 973.164,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 974.4,
+          "y": 440.4,
+        },
+        {
+          "kind": "lineTo",
+          "x": 974.4,
+          "y": 440.4,
+        },
+        {
+          "c1x": 1048.533,
+          "c1y": 440.4,
+          "c2x": 1122.667,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 1196.8,
+          "y": 440.4,
+        },
+        {
+          "c1x": 1272.169,
+          "c1y": 440.4,
+          "c2x": 1347.538,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 1422.907,
+          "y": 440.4,
+        },
+        {
+          "c1x": 1458.738,
+          "c1y": 440.4,
+          "c2x": 1494.569,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 1530.4,
+          "y": 440.4,
+        },
+        {
+          "kind": "lineTo",
+          "x": 1530.4,
+          "y": 1118,
+        },
+        {
+          "kind": "lineTo",
+          "x": 196,
+          "y": 1118,
+        },
+      ],
+      "start": {
+        "x": 196,
+        "y": 537.2,
+      },
+    },
+    {
+      "color": "#4F8A5B",
+      "kind": "fillPath",
+      "segments": [
+        {
+          "c1x": 233.067,
+          "c1y": 537.2,
+          "c2x": 270.133,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 307.2,
+          "y": 537.2,
+        },
+        {
+          "c1x": 380.098,
+          "c1y": 537.2,
+          "c2x": 452.996,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 525.893,
+          "y": 537.2,
+        },
+        {
+          "c1x": 561.724,
+          "c1y": 537.2,
+          "c2x": 597.556,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 633.387,
+          "y": 537.2,
+        },
+        {
+          "kind": "lineTo",
+          "x": 633.387,
+          "y": 446.305,
+        },
+        {
+          "c1x": 670.453,
+          "c1y": 446.305,
+          "c2x": 707.52,
+          "c2y": 446.305,
+          "kind": "bezierTo",
+          "x": 744.587,
+          "y": 446.305,
+        },
+        {
+          "c1x": 819.956,
+          "c1y": 446.305,
+          "c2x": 895.324,
+          "c2y": 349.505,
+          "kind": "bezierTo",
+          "x": 970.693,
+          "y": 349.505,
+        },
+        {
+          "c1x": 971.929,
+          "c1y": 349.505,
+          "c2x": 973.164,
+          "c2y": 349.505,
+          "kind": "bezierTo",
+          "x": 974.4,
+          "y": 349.505,
+        },
+        {
+          "kind": "lineTo",
+          "x": 974.4,
+          "y": 440.4,
+        },
+        {
+          "c1x": 1048.533,
+          "c1y": 440.4,
+          "c2x": 1122.667,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 1196.8,
+          "y": 440.4,
+        },
+        {
+          "c1x": 1272.169,
+          "c1y": 440.4,
+          "c2x": 1347.538,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 1422.907,
+          "y": 440.4,
+        },
+        {
+          "c1x": 1458.738,
+          "c1y": 440.4,
+          "c2x": 1494.569,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 1530.4,
+          "y": 440.4,
+        },
+        {
+          "kind": "lineTo",
+          "x": 1530.4,
+          "y": 440.4,
+        },
+        {
+          "c1x": 1494.569,
+          "c1y": 440.4,
+          "c2x": 1458.738,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 1422.907,
+          "y": 440.4,
+        },
+        {
+          "c1x": 1347.538,
+          "c1y": 440.4,
+          "c2x": 1272.169,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 1196.8,
+          "y": 440.4,
+        },
+        {
+          "c1x": 1122.667,
+          "c1y": 440.4,
+          "c2x": 1048.533,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 974.4,
+          "y": 440.4,
+        },
+        {
+          "kind": "lineTo",
+          "x": 974.4,
+          "y": 440.4,
+        },
+        {
+          "c1x": 973.164,
+          "c1y": 440.4,
+          "c2x": 971.929,
+          "c2y": 440.4,
+          "kind": "bezierTo",
+          "x": 970.693,
+          "y": 440.4,
+        },
+        {
+          "c1x": 895.324,
+          "c1y": 440.4,
+          "c2x": 819.956,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 744.587,
+          "y": 537.2,
+        },
+        {
+          "c1x": 707.52,
+          "c1y": 537.2,
+          "c2x": 670.453,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 633.387,
+          "y": 537.2,
+        },
+        {
+          "kind": "lineTo",
+          "x": 633.387,
+          "y": 537.2,
+        },
+        {
+          "c1x": 597.556,
+          "c1y": 537.2,
+          "c2x": 561.724,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 525.893,
+          "y": 537.2,
+        },
+        {
+          "c1x": 452.996,
+          "c1y": 537.2,
+          "c2x": 380.098,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 307.2,
+          "y": 537.2,
+        },
+        {
+          "c1x": 270.133,
+          "c1y": 537.2,
+          "c2x": 233.067,
+          "c2y": 537.2,
+          "kind": "bezierTo",
+          "x": 196,
+          "y": 537.2,
+        },
+      ],
+      "start": {
+        "x": 196,
+        "y": 537.2,
+      },
+    },
+    {
+      "color": "#2F6B9A",
+      "kind": "fillPath",
+      "segments": [
+        {
+          "c1x": 1627.467,
+          "c1y": 382.32,
+          "c2x": 1664.533,
+          "c2y": 382.32,
+          "kind": "bezierTo",
+          "x": 1701.6,
+          "y": 382.32,
+        },
+        {
+          "c1x": 1775.733,
+          "c1y": 382.32,
+          "c2x": 1849.867,
+          "c2y": 382.32,
+          "kind": "bezierTo",
+          "x": 1924,
+          "y": 382.32,
+        },
+        {
+          "c1x": 1998.133,
+          "c1y": 382.32,
+          "c2x": 2072.267,
+          "c2y": 382.32,
+          "kind": "bezierTo",
+          "x": 2146.4,
+          "y": 382.32,
+        },
+        {
+          "c1x": 2221.769,
+          "c1y": 382.32,
+          "c2x": 2297.138,
+          "c2y": 382.32,
+          "kind": "bezierTo",
+          "x": 2372.507,
+          "y": 382.32,
+        },
+        {
+          "c1x": 2408.338,
+          "c1y": 382.32,
+          "c2x": 2444.169,
+          "c2y": 382.32,
+          "kind": "bezierTo",
+          "x": 2480,
+          "y": 382.32,
+        },
+        {
+          "kind": "lineTo",
+          "x": 2480,
+          "y": 1118,
+        },
+        {
+          "kind": "lineTo",
+          "x": 1590.4,
+          "y": 1118,
+        },
+      ],
+      "start": {
+        "x": 1590.4,
+        "y": 382.32,
+      },
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 1189.387,
+            "y": 150,
+          },
+          {
+            "x": 1189.387,
+            "y": 1118,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#9B2F2F",
+        "width": 3,
+      },
+    },
+    {
+      "color": "#9B2F2F",
+      "kind": "fillPolygon",
+      "points": [
+        {
+          "x": 1178.387,
+          "y": 148,
+        },
+        {
+          "x": 1200.387,
+          "y": 148,
+        },
+        {
+          "x": 1189.387,
+          "y": 164,
+        },
+      ],
+    },
+    {
+      "kind": "restore",
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 1542.4,
+            "y": 1131,
+          },
+          {
+            "x": 1560.4,
+            "y": 1105,
+          },
+        ],
+        [
+          {
+            "x": 1560.4,
+            "y": 1131,
+          },
+          {
+            "x": 1578.4,
+            "y": 1105,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 3,
+      },
+    },
+    {
+      "kind": "strokeSubpaths",
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2.5,
+      },
+      "subpaths": [
+        [
+          {
+            "x": 196,
+            "y": 150,
+          },
+          {
+            "x": 196,
+            "y": 1118,
+          },
+          {
+            "x": 2480,
+            "y": 1118,
+          },
+        ],
+      ],
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "0 kr.",
+      "x": 178,
+      "y": 1118,
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "10.000 kr.",
+      "x": 178,
+      "y": 924.4,
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "20.000 kr.",
+      "x": 178,
+      "y": 730.8,
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "30.000 kr.",
+      "x": 178,
+      "y": 537.2,
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "40.000 kr.",
+      "x": 178,
+      "y": 343.6,
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "50.000 kr.",
+      "x": 178,
+      "y": 150,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 196,
+            "y": 1118,
+          },
+          {
+            "x": 196,
+            "y": 1129,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2,
+      },
+    },
+    {
+      "align": "center",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "jan. 2023",
+      "x": 196,
+      "y": 1166,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 633.387,
+            "y": 1118,
+          },
+          {
+            "x": 633.387,
+            "y": 1129,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2,
+      },
+    },
+    {
+      "align": "center",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "mar. 2023",
+      "x": 633.387,
+      "y": 1166,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 1085.6,
+            "y": 1118,
+          },
+          {
+            "x": 1085.6,
+            "y": 1129,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2,
+      },
+    },
+    {
+      "align": "center",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "maj 2023",
+      "x": 1085.6,
+      "y": 1166,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 1590.4,
+            "y": 1118,
+          },
+          {
+            "x": 1590.4,
+            "y": 1129,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2,
+      },
+    },
+    {
+      "align": "center",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "jan. 2024",
+      "x": 1590.4,
+      "y": 1166,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 2035.2,
+            "y": 1118,
+          },
+          {
+            "x": 2035.2,
+            "y": 1129,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2,
+      },
+    },
+    {
+      "align": "center",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "mar. 2024",
+      "x": 2035.2,
+      "y": 1166,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 2480,
+            "y": 1118,
+          },
+          {
+            "x": 2480,
+            "y": 1129,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2,
+      },
+    },
+    {
+      "align": "center",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "30-04-2024",
+      "x": 2480,
+      "y": 1166,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 911,
+            "y": 1280,
+          },
+          {
+            "x": 911,
+            "y": 1306,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#9B2F2F",
+        "width": 3,
+      },
+    },
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#1F2733",
+      "font": "400 30px Arial, sans-serif",
+      "kind": "text",
+      "text": "Skadedato",
+      "x": 954,
+      "y": 1302,
+    },
+    {
+      "color": "rgba(48, 99, 142, 0.07)",
+      "height": 26,
+      "kind": "fillRect",
+      "width": 32,
+      "x": 1145,
+      "y": 1280,
+    },
+    {
+      "height": 26,
+      "kind": "strokeRect",
+      "stroke": {
+        "color": "#30638E",
+        "dash": [
+          6,
+          5,
+        ],
+        "width": 2,
+      },
+      "width": 32,
+      "x": 1145,
+      "y": 1280,
+    },
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#1F2733",
+      "font": "400 30px Arial, sans-serif",
+      "kind": "text",
+      "text": "Beregningsperiode",
+      "x": 1201,
+      "y": 1302,
+    },
+    {
+      "color": "rgba(90, 100, 115, 0.13)",
+      "height": 26,
+      "kind": "fillRect",
+      "width": 32,
+      "x": 1512,
+      "y": 1280,
+    },
+    {
+      "height": 26,
+      "kind": "strokeRect",
+      "stroke": {
+        "color": "#5A6473",
+        "dash": [
+          6,
+          5,
+        ],
+        "width": 2,
+      },
+      "width": 32,
+      "x": 1512,
+      "y": 1280,
+    },
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#1F2733",
+      "font": "400 30px Arial, sans-serif",
+      "kind": "text",
+      "text": "Ferie uden løn",
+      "x": 1568,
+      "y": 1302,
+    },
+    {
+      "color": "#2F6B9A",
+      "height": 26,
+      "kind": "fillRoundRect",
+      "radius": 6,
+      "width": 26,
+      "x": 1141.5,
+      "y": 1340,
+    },
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#1F2733",
+      "font": "400 30px Arial, sans-serif",
+      "kind": "text",
+      "text": "Løn",
+      "x": 1197.5,
+      "y": 1362,
+    },
+    {
+      "color": "#4F8A5B",
+      "height": 26,
+      "kind": "fillRoundRect",
+      "radius": 6,
+      "width": 26,
+      "x": 1298.5,
+      "y": 1340,
+    },
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#1F2733",
+      "font": "400 30px Arial, sans-serif",
+      "kind": "text",
+      "text": "Sygedagpenge",
+      "x": 1354.5,
+      "y": 1362,
+    },
+  ],
+  "height": 1420,
+  "width": 2570,
+}
+`;
+
+exports[`tafKravGrafScene — golden (pixel-troskab) > fastfryser hele scenen for det minimale dokument 1`] = `
+{
+  "background": "#FFFFFF",
+  "commands": [
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#1F2733",
+      "font": "700 46px Arial, sans-serif",
+      "kind": "text",
+      "text": "Visuel graf over indtægtsniveau",
+      "x": 196,
+      "y": 66,
+    },
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 30px Arial, sans-serif",
+      "kind": "text",
+      "text": "Beløb pr. arbejdsdag",
+      "x": 196,
+      "y": 108,
+    },
+    {
+      "color": "#FAFBFC",
+      "height": 968,
+      "kind": "fillRoundRect",
+      "radius": 16,
+      "width": 2284,
+      "x": 196,
+      "y": 150,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 196,
+            "y": 1118,
+          },
+          {
+            "x": 2480,
+            "y": 1118,
+          },
+        ],
+        [
+          {
+            "x": 196,
+            "y": 876,
+          },
+          {
+            "x": 2480,
+            "y": 876,
+          },
+        ],
+        [
+          {
+            "x": 196,
+            "y": 634,
+          },
+          {
+            "x": 2480,
+            "y": 634,
+          },
+        ],
+        [
+          {
+            "x": 196,
+            "y": 392,
+          },
+          {
+            "x": 2480,
+            "y": 392,
+          },
+        ],
+        [
+          {
+            "x": 196,
+            "y": 150,
+          },
+          {
+            "x": 2480,
+            "y": 150,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#E4E8EE",
+        "width": 1.5,
+      },
+    },
+    {
+      "height": 968,
+      "kind": "clipRoundRect",
+      "radius": 16,
+      "width": 2284,
+      "x": 196,
+      "y": 150,
+    },
+    {
+      "color": "#2F6B9A",
+      "kind": "fillPath",
+      "segments": [
+        {
+          "c1x": 322.889,
+          "c1y": 222.6,
+          "c2x": 449.778,
+          "c2y": 222.6,
+          "kind": "bezierTo",
+          "x": 576.667,
+          "y": 222.6,
+        },
+        {
+          "c1x": 830.444,
+          "c1y": 222.6,
+          "c2x": 1084.222,
+          "c2y": 222.6,
+          "kind": "bezierTo",
+          "x": 1338,
+          "y": 222.6,
+        },
+        {
+          "c1x": 1591.778,
+          "c1y": 222.6,
+          "c2x": 1845.556,
+          "c2y": 222.6,
+          "kind": "bezierTo",
+          "x": 2099.333,
+          "y": 222.6,
+        },
+        {
+          "c1x": 2226.222,
+          "c1y": 222.6,
+          "c2x": 2353.111,
+          "c2y": 222.6,
+          "kind": "bezierTo",
+          "x": 2480,
+          "y": 222.6,
+        },
+        {
+          "kind": "lineTo",
+          "x": 2480,
+          "y": 1118,
+        },
+        {
+          "kind": "lineTo",
+          "x": 196,
+          "y": 1118,
+        },
+      ],
+      "start": {
+        "x": 196,
+        "y": 222.6,
+      },
+    },
+    {
+      "kind": "restore",
+    },
+    {
+      "kind": "strokeSubpaths",
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2.5,
+      },
+      "subpaths": [
+        [
+          {
+            "x": 196,
+            "y": 150,
+          },
+          {
+            "x": 196,
+            "y": 1118,
+          },
+          {
+            "x": 2480,
+            "y": 1118,
+          },
+        ],
+      ],
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "0 kr.",
+      "x": 178,
+      "y": 1118,
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "500 kr.",
+      "x": 178,
+      "y": 876,
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "1.000 kr.",
+      "x": 178,
+      "y": 634,
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "1.500 kr.",
+      "x": 178,
+      "y": 392,
+    },
+    {
+      "align": "right",
+      "baseline": "middle",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "2.000 kr.",
+      "x": 178,
+      "y": 150,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 196,
+            "y": 1118,
+          },
+          {
+            "x": 196,
+            "y": 1129,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2,
+      },
+    },
+    {
+      "align": "center",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "jan. 2024",
+      "x": 196,
+      "y": 1166,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 1718.667,
+            "y": 1118,
+          },
+          {
+            "x": 1718.667,
+            "y": 1129,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2,
+      },
+    },
+    {
+      "align": "center",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "mar. 2024",
+      "x": 1718.667,
+      "y": 1166,
+    },
+    {
+      "kind": "strokeLines",
+      "lines": [
+        [
+          {
+            "x": 2480,
+            "y": 1118,
+          },
+          {
+            "x": 2480,
+            "y": 1129,
+          },
+        ],
+      ],
+      "stroke": {
+        "color": "#3A4250",
+        "width": 2,
+      },
+    },
+    {
+      "align": "center",
+      "baseline": "alphabetic",
+      "color": "#5A6473",
+      "font": "400 28px Arial, sans-serif",
+      "kind": "text",
+      "text": "31-03-2024",
+      "x": 2480,
+      "y": 1166,
+    },
+    {
+      "color": "#2F6B9A",
+      "height": 26,
+      "kind": "fillRoundRect",
+      "radius": 6,
+      "width": 26,
+      "x": 1287.5,
+      "y": 1328,
+    },
+    {
+      "align": "left",
+      "baseline": "alphabetic",
+      "color": "#1F2733",
+      "font": "400 30px Arial, sans-serif",
+      "kind": "text",
+      "text": "Løn",
+      "x": 1343.5,
+      "y": 1350,
+    },
+  ],
+  "height": 1420,
+  "width": 2570,
+}
+`;

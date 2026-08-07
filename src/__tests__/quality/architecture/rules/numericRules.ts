@@ -64,7 +64,7 @@ const MATH_ROUND_ALLOWLIST = new Set([
   // Graf-rendering: akse-skridt (nice-ceil magnitude), heltals-tickantal og
   // glidende-gennemsnits-radius — ren talgeometri, ikke finansielt output
   // (de viste beløbs-ticks afrundes via roundByMethod).
-  'document/generators/tafFordelt/tafKravGrafChart.ts',
+  'document/generators/tafFordelt/tafKravGrafScene.ts',
 ]);
 
 /**
