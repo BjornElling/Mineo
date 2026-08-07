@@ -32,6 +32,7 @@ import {
 import type { CollectionRef } from '../../../../../inputCore/fieldAddress';
 import FerieperiodeTable from '../../../../tables/FerieperiodeTable';
 import LoenudviklingFields from '../../loenudvikling/LoenudviklingFields';
+import AnciennitetstillaegFields from '../../loenudvikling/AnciennitetstillaegFields';
 import { capitalizeFirstCharDa } from '../../../../../utils/formatUtils';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { formatOverenskomstMetaDisplay, resolveOverenskomstDisplay } from '../../../../../data/overenskomstRates';
@@ -479,51 +480,33 @@ export default function IndtaegtFoerSkadenSection() {
             )}
 
             {showEoAnciennitetstillaegSection ? (
-              <>
-                <Typography className="row--subheading">Anciennitetstillæg</Typography>
-
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">
-                    {`Ville skadelidte have opnået anciennitetstillæg efter ${loenudviklingBaseDateReferenceText}`}
-                  </Typography>
-                  <Box className="row--label-right-hover__content">
-                    <MappedToggleField
-                      field={eoAngivetLoenFields.harAnciennitetstillaegEfterSkadedatoen.bind()}
-                      location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen')}
-                      checkedValue={true}
-                      uncheckedValue={false}
-                      name="harAnciennitetstillaegEfterSkadedatoen"
-                    />
-                  </Box>
-                </Box>
-
-                {eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen ? (
-                  <>
-                    <Box className="row--label-right-hover">
-                      <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
-                      <Box className="row--label-right-hover__content">
-                        <DateField
-                          field={eoAngivetLoenFields.anciennitetstillaegDato.bind()}
-                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegDato')}
-                          name="anciennitetstillaegDato"
-                        />
-                      </Box>
-                    </Box>
-
-                    <Box className="row--label-right-hover">
-                      <Typography className="row--text">{`Sats per ${eoAnciennitetSatsPerTekst}`}</Typography>
-                      <Box className="row--label-right-hover__content">
-                        <AmountField
-                          field={eoAngivetLoenFields.anciennitetstillaegSats.bind()}
-                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegSats')}
-                          name="anciennitetstillaegSats"
-                          width={160}
-                        />
-                      </Box>
-                    </Box>
-                  </>
-                ) : null}
-              </>
+              <AnciennitetstillaegFields
+                binding={{
+                  anciennitetstillaegDato: {
+                    field: eoAngivetLoenFields.anciennitetstillaegDato.bind(),
+                    location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegDato'),
+                  },
+                  anciennitetstillaegSats: {
+                    field: eoAngivetLoenFields.anciennitetstillaegSats.bind(),
+                    location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegSats'),
+                  },
+                }}
+                toggleSlot={
+                  <MappedToggleField
+                    field={eoAngivetLoenFields.harAnciennitetstillaegEfterSkadedatoen.bind()}
+                    location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen')}
+                    checkedValue={true}
+                    uncheckedValue={false}
+                    name="harAnciennitetstillaegEfterSkadedatoen"
+                  />
+                }
+                harAnciennitetstillaeg={Boolean(eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen)}
+                referenceText={loenudviklingBaseDateReferenceText}
+                satsPerTekst={eoAnciennitetSatsPerTekst}
+                // Denne overflade UDLEDER enheden af `beregnesUdFra` og viser derfor intet valg.
+                satsEnhedSlot={null}
+                fieldNamePrefix=""
+              />
             ) : null}
           </>
         )}

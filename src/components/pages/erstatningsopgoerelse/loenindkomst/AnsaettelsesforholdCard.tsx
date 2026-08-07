@@ -6,7 +6,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import TextField from '../../../../inputCore/react/fields/TextField';
 import DateField from '../../../../inputCore/react/fields/DateField';
 import ChoiceField from '../../../../inputCore/react/fields/ChoiceField';
-import AmountField from '../../../../inputCore/react/fields/AmountField';
 import PercentField, { DerivedPercentField } from '../../../../inputCore/react/fields/PercentField';
 import RadioField from '../../../../inputCore/react/fields/RadioField';
 import ToggleField from '../../../../inputCore/react/fields/ToggleField';
@@ -43,6 +42,7 @@ import {
   type OverenskomstSatsField,
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import LoenudviklingFields from '../loenudvikling/LoenudviklingFields';
+import AnciennitetstillaegFields from '../loenudvikling/AnciennitetstillaegFields';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
 import { useLoenindkomstVm } from './loenindkomstContext';
 import { useReguleringDocumentAction } from '../../../../domain/erstatningsopgoerelse/react/useReguleringDocumentAction';
@@ -658,65 +658,48 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       ) : null}
 
       {showAnciennitetstillaegSection ? (
-        <>
-          <Typography className="row--subheading">Anciennitetstillæg</Typography>
-
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">
-              {`Ville skadelidte have opnået anciennitetstillæg efter ${anvendtReguleringsdatoReferenceText}`}
-            </Typography>
-            <Box className="row--label-right-hover__content">
-              <ToggleField
-                field={field(eoEmploymentFields.harAnciennitetstillaegEfterSkadedatoen)}
-                location={location('harAnciennitetstillaegEfterSkadedatoen')}
-                name={`${af.id}:harAnciennitetstillaegEfterSkadedatoen`}
-              />
+        <AnciennitetstillaegFields
+          binding={{
+            anciennitetstillaegDato: {
+              field: field(eoEmploymentFields.anciennitetstillaegDato),
+              location: location('anciennitetstillaegDato'),
+            },
+            anciennitetstillaegSats: {
+              field: field(eoEmploymentFields.anciennitetstillaegSats),
+              location: location('anciennitetstillaegSats'),
+            },
+          }}
+          toggleSlot={
+            <ToggleField
+              field={field(eoEmploymentFields.harAnciennitetstillaegEfterSkadedatoen)}
+              location={location('harAnciennitetstillaegEfterSkadedatoen')}
+              name={`${af.id}:harAnciennitetstillaegEfterSkadedatoen`}
+            />
+          }
+          harAnciennitetstillaeg={Boolean(af.harAnciennitetstillaegEfterSkadedatoen)}
+          referenceText={anvendtReguleringsdatoReferenceText}
+          satsPerTekst={anciennitetSatsPerTekst}
+          // Kun Lønindkomst lader brugeren vælge enheden; EO-oplysninger udleder den. Se
+          // `AnciennitetstillaegFields`' doc — forskellen er bevaret, ikke ensrettet.
+          satsEnhedSlot={
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Satsen angives per</Typography>
+              <Box className="row--label-right-hover__content">
+                <ChoiceField
+                  field={field(eoEmploymentFields.anciennitetstillaegSatsAngivesPer)}
+                  location={location('anciennitetstillaegSatsAngivesPer')}
+                  name={`${af.id}:anciennitetstillaegSatsAngivesPer`}
+                  width={160}
+                  allowEmpty={false}
+                >
+                  <MenuItem value="Time">Time</MenuItem>
+                  <MenuItem value="Måned">Måned</MenuItem>
+                </ChoiceField>
+              </Box>
             </Box>
-          </Box>
-
-          {af.harAnciennitetstillaegEfterSkadedatoen ? (
-            <>
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
-                <Box className="row--label-right-hover__content">
-                  <DateField
-                    field={field(eoEmploymentFields.anciennitetstillaegDato)}
-                    location={location('anciennitetstillaegDato')}
-                    name={`${af.id}:anciennitetstillaegDato`}
-                  />
-                </Box>
-              </Box>
-
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">Satsen angives per</Typography>
-                <Box className="row--label-right-hover__content">
-                  <ChoiceField
-                    field={field(eoEmploymentFields.anciennitetstillaegSatsAngivesPer)}
-                    location={location('anciennitetstillaegSatsAngivesPer')}
-                    name={`${af.id}:anciennitetstillaegSatsAngivesPer`}
-                    width={160}
-                    allowEmpty={false}
-                  >
-                    <MenuItem value="Time">Time</MenuItem>
-                    <MenuItem value="Måned">Måned</MenuItem>
-                  </ChoiceField>
-                </Box>
-              </Box>
-
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">{`Sats per ${anciennitetSatsPerTekst}`}</Typography>
-                <Box className="row--label-right-hover__content">
-                  <AmountField
-                    field={field(eoEmploymentFields.anciennitetstillaegSats)}
-                    location={location('anciennitetstillaegSats')}
-                    name={`${af.id}:anciennitetstillaegSats`}
-                    width={160}
-                  />
-                </Box>
-              </Box>
-            </>
-          ) : null}
-        </>
+          }
+          fieldNamePrefix={`${af.id}:`}
+        />
       ) : null}
 
       <SygeferiegodtgoerelseSection
