@@ -20,8 +20,7 @@ import { generateOffentligYdelseRowId, initialOffentligYdelseRow } from '../../d
 import { ydelsestyper, ydelsestypeKeys, type YdelsestypeKey } from '../../data/ydelsestyper';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { useCollectionTable } from './useCollectionTable';
-import { useTableSort } from './useTableSort';
-import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
@@ -69,25 +68,21 @@ const OffentligeYdelserTable = React.memo(({
     { colId: 'antalDage', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.antalDageDisplay ?? '' },
     { colId: 'ydelsePerDag', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.ydelsePerDagDisplay ?? '' },
   ], [derivedByRowId]);
-  const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-    rows: committedRows,
+  const { renderRows: renderOrder, sortableHeader } = useSortedCollectionTable({
+    committedRows,
+    renderRows: table.renderRows,
     getRowId: (row) => row.id,
     isRowEmpty,
     columns,
-    onSortedRowsChange: (next) => table.reorderRows(next.map((row) => row.id)),
+    reorderRows: table.reorderRows,
+    saveOrderPath,
   });
-  const renderOrder = React.useMemo(() => {
-    const byId = new Map(table.renderRows.map((row) => [row.rowId, row]));
-    const placeholder = table.renderRows.find((row) => row.kind === 'placeholder');
-    return [...sortedRows.map((row) => byId.get(row.id)).filter((row) => row !== undefined), ...(placeholder ? [placeholder] : [])];
-  }, [sortedRows, table.renderRows]);
-  useRegisterTableSaveOrder(saveOrderPath, sortedRows.map((row) => row.id));
 
   const headers = ['Fra dato', 'Til dato', 'Ydelse', 'Tillæg', 'Ydelsestype', 'Periodisering', 'Antal dage', 'Ydelse per dag'];
   const sortIds = ['fraDato', 'tilDato', 'ydelse', 'tillaeg', 'ydelsestype', 'periodisering', 'antalDage', 'ydelsePerDag'] as const;
   return <StandardGridTable tableWidth="1130px" useSmallFont>
     <colgroup>{['120px', '120px', '130px', '130px', '200px', '160px', '110px', '160px'].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
-    <thead><tr>{headers.map((header, index) => <StandardGridHeaderCell key={header} onClick={() => handleHeaderClick(sortIds[index])} sortRole={getSortRole(sortIds[index])} sortDirection={getSortDirection(sortIds[index])}>{header}</StandardGridHeaderCell>)}</tr></thead>
+    <thead><tr>{headers.map((header, index) => <StandardGridHeaderCell key={header} {...sortableHeader(sortIds[index])}>{header}</StandardGridHeaderCell>)}</tr></thead>
     <tbody>{renderOrder.map((row, rowIndex) => {
       const committed = table.committedById.get(row.rowId);
       const derived = committed === undefined ? undefined : derivedByRowId.get(committed.id);

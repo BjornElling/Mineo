@@ -3,7 +3,7 @@ import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { GridReadOnlyLockedCell } from './GridReadOnlyLockedCell';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { useTableSort } from './useTableSort';
+import { bindSortableHeader, useTableSort } from './useTableSort';
 import { useCollectionTable } from './useCollectionTable';
 import {
   GridAmountCell,
@@ -122,7 +122,7 @@ export default function LoenudviklingManuelTable({
     <StandardGridTable tableWidth="1130px" useSmallFont={useSmallFont}>
       <colgroup>{[140, 140, 140, 140, 140, 150].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
       <thead><tr>{headers.map((header, index) => (
-        <StandardGridHeaderCell key={header} onClick={() => sort.handleHeaderClick(keys[index]!)} sortRole={sort.getSortRole(keys[index]!)} sortDirection={sort.getSortDirection(keys[index]!)}>{header}</StandardGridHeaderCell>
+        <StandardGridHeaderCell key={header} {...bindSortableHeader(sort, keys[index]!)}>{header}</StandardGridHeaderCell>
       ))}</tr></thead>
       <tbody>{orderedRows.map((renderRow, rowIndex) => {
         const row = table.committedById.get(renderRow.rowId);

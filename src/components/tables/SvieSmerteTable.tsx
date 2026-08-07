@@ -15,8 +15,7 @@ import type { SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { createEmptySvieCommittedRow, createSvieRowId } from '../../domain/erstatningsopgoerelse/tables/svieSmerteTableModel';
 import { isSvieSmerteRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { useCollectionTable } from './useCollectionTable';
-import { useTableSort } from './useTableSort';
-import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
@@ -48,30 +47,23 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath 
     { colId: 'antalDage', getSortValue: (row: SvieSmertePeriodeRow) => derivedById[row.id]?.antalDage ?? undefined },
     { colId: 'tilstand', getSortValue: (row: SvieSmertePeriodeRow) => row.tilstand },
   ], [derivedById]);
-  const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-    rows: committedRows,
+  const { renderRows, sortableHeader } = useSortedCollectionTable({
+    committedRows,
+    renderRows: table.renderRows,
     getRowId: (row) => row.id,
     isRowEmpty: isSvieSmerteRowEmpty,
     columns,
-    onSortedRowsChange: (next) => table.reorderRows(next.map((row) => row.id)),
+    reorderRows: table.reorderRows,
+    saveOrderPath,
   });
-  const renderRows = React.useMemo(() => {
-    const byId = new Map(table.renderRows.map((row) => [row.rowId, row]));
-    const placeholder = table.renderRows.find((row) => row.kind === 'placeholder');
-    return [
-      ...sortedRows.map((row) => byId.get(row.id)).filter((row) => row !== undefined),
-      ...(placeholder === undefined ? [] : [placeholder]),
-    ];
-  }, [sortedRows, table.renderRows]);
-  useRegisterTableSaveOrder(saveOrderPath, sortedRows.map((row) => row.id));
 
   return (
     <StandardLooseTable sx={{ width: '760px', tableLayout: 'fixed', mb: 3, '& .MuiTableCell-root': { textAlign: 'center', whiteSpace: 'nowrap' }, '& thead th': { textAlign: 'center' } }}>
       <TableHead><TableRow>
-        <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('fra')} sortRole={getSortRole('fra')} sortDirection={getSortDirection('fra')}>Fra o.m.</StandardLooseHeaderCell>
-        <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('til')} sortRole={getSortRole('til')} sortDirection={getSortDirection('til')}>Til o.m.</StandardLooseHeaderCell>
-        <StandardLooseHeaderCell sx={{ width: 100 }} onClick={() => handleHeaderClick('antalDage')} sortRole={getSortRole('antalDage')} sortDirection={getSortDirection('antalDage')}>Antal dage</StandardLooseHeaderCell>
-        <StandardLooseHeaderCell sx={{ width: 220 }} onClick={() => handleHeaderClick('tilstand')} sortRole={getSortRole('tilstand')} sortDirection={getSortDirection('tilstand')}>Tilstand</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('fra')}>Fra o.m.</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('til')}>Til o.m.</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 100 }} {...sortableHeader('antalDage')}>Antal dage</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 220 }} {...sortableHeader('tilstand')}>Tilstand</StandardLooseHeaderCell>
       </TableRow></TableHead>
       <TableBody>{renderRows.map((row) => {
         const committed = table.committedById.get(row.rowId);

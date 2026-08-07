@@ -70,6 +70,7 @@ import { DATE_RULES } from './rules/dateRules';
 import { NUMERIC_RULES } from './rules/numericRules';
 import { RESPONSIVE_STYLING_RULES } from './rules/responsiveStylingRules';
 import { FOCUS_NAVIGATION_RULES } from './rules/focusNavigationRules';
+import { TABLE_ORDER_RULES } from './rules/tableOrderRules';
 
 /**
  * Registry for de AST-baserede arkitekturgrænser (greenfield #48).
@@ -143,6 +144,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   popupSemanticsSingleSourceRule,
   messageBoxGuardedByPageMessageRule,
   deletableCollectionTableOwnershipRule,
+  ...TABLE_ORDER_RULES,
   placeholderIdentityOwnershipRule,
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,

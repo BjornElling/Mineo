@@ -3,7 +3,7 @@ import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { GridReadOnlyLockedCell } from './GridReadOnlyLockedCell';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { useTableSort } from './useTableSort';
+import { bindSortableHeader, useTableSort } from './useTableSort';
 import { useCollectionTable } from './useCollectionTable';
 import { GridDateCell, GridPercentCell } from '../../inputCore/react/fields/gridCells';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
@@ -65,7 +65,7 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
   const keys = ['dato', 'procent', 'indeks', 'akkumuleret'] as const;
   return <StandardGridTable tableWidth="1130px" useSmallFont={useSmallFont}>
     <colgroup>{[280, 280, 280, 290].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
-    <thead><tr>{headers.map((header, index) => <StandardGridHeaderCell key={header} onClick={() => sort.handleHeaderClick(keys[index]!)} sortRole={sort.getSortRole(keys[index]!)} sortDirection={sort.getSortDirection(keys[index]!)}>{header}</StandardGridHeaderCell>)}</tr></thead>
+    <thead><tr>{headers.map((header, index) => <StandardGridHeaderCell key={header} {...bindSortableHeader(sort, keys[index]!)}>{header}</StandardGridHeaderCell>)}</tr></thead>
     <tbody>{renderRows.map((renderRow, index) => {
       const row = table.committedById.get(renderRow.rowId);
       const isBase = renderRow.rowId === visibleBaseRowId;

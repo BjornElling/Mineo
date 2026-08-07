@@ -3,7 +3,7 @@ import { Box, MenuItem, TableBody, TableCell, TableHead, TableRow, Typography } 
 import DownloadIconButton from '../inputs/DownloadIconButton';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton } from './RowDeleteButton';
-import { useTableSort } from './useTableSort';
+import { useSortedCollectionTable } from './useSortedCollectionTable';
 import { formatKr } from '../../utils/formatUtils';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
 import type { ISODateString } from '../../types/branded';
@@ -18,7 +18,6 @@ import {
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import type { ProjectionResult } from '../../inputCore/projection';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import {
   DOWNLOAD_DISABLED_TOOLTIP,
@@ -270,16 +269,13 @@ const BeregnetRenteTable = React.memo(
       { colId: 'renterFra', getSortValue: (row: RentekravRow) => row.renterFra },
     ], []);
 
-    const handleSortedRowsChange = React.useCallback((sortedRows: RentekravRow[]) => {
-      rows.reorder(sortedRows.map((row) => row.id));
-    }, [rows]);
-
-    const { sortedRows: sortedCommittedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-      rows: committedRows,
+    const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
+      committedRows,
       getRowId: (row) => row.id,
       isRowEmpty: isRentekravRowEmpty,
       columns: sortColumns,
-      onSortedRowsChange: handleSortedRowsChange,
+      reorderRows: rows.reorder,
+      saveOrderPath,
     });
 
     // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
@@ -302,9 +298,6 @@ const BeregnetRenteTable = React.memo(
       () => new Map(sortedCommittedRows.map((row) => [row.id, row])),
       [sortedCommittedRows]
     );
-
-    const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
-    useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
 
     // Den fælles cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, og ejer-id'erne udledes af
     // collectionens egen sti. route + tabKey er eksplicit navigation-metadata (§3.7).
@@ -375,17 +368,13 @@ const BeregnetRenteTable = React.memo(
           <TableRow>
             <StandardLooseHeaderCell
               sx={{ width: isMobile ? '35%' : '176px' }}
-              onClick={() => handleHeaderClick('belob')}
-              sortRole={getSortRole('belob')}
-              sortDirection={getSortDirection('belob')}
+              {...sortableHeader('belob')}
             >
               Beløb
             </StandardLooseHeaderCell>
             <StandardLooseHeaderCell
               sx={{ width: isMobile ? '33%' : '163px' }}
-              onClick={() => handleHeaderClick('renterFra')}
-              sortRole={getSortRole('renterFra')}
-              sortDirection={getSortDirection('renterFra')}
+              {...sortableHeader('renterFra')}
             >
               Renter fra
             </StandardLooseHeaderCell>

@@ -16,12 +16,36 @@ export type TableSortColumn<TRow> = Readonly<{
   getSortValue: GridSortValueGetter<TRow>;
 }>;
 
+/** De sorterings-props en header-celle skal have. Se {@link bindSortableHeader}. */
+export type SortableHeaderProps = Readonly<{
+  onClick: () => void;
+  sortRole: GridSortRole;
+  sortDirection: GridSortDirection | undefined;
+}>;
+
 export type UseTableSortResult<TRow> = Readonly<{
   sortedRows: TRow[];
   getSortRole: (colId: string) => GridSortRole;
   getSortDirection: (colId: string) => GridSortDirection | undefined;
   handleHeaderClick: (colId: string) => void;
 }>;
+
+/**
+ * Binder en header-celles sorterings-props ud fra ÉT `colId`.
+ *
+ * Uden den skrives kolonne-id'et tre gange pr. header-celle (`onClick`, `sortRole`,
+ * `sortDirection`). To af de tre kan stave forkert, uden at noget fejler — kolonnen holder
+ * blot op med at vise sin sorteringspil, mens klikket stadig virker. Det er en fejl, hverken
+ * typecheck eller en render-test fanger, fordi alle tre argumenter er `string`.
+ */
+export const bindSortableHeader = <TRow>(
+  sort: UseTableSortResult<TRow>,
+  colId: string
+): SortableHeaderProps => ({
+  onClick: () => sort.handleHeaderClick(colId),
+  sortRole: sort.getSortRole(colId),
+  sortDirection: sort.getSortDirection(colId),
+});
 
 /**
  * Hook der tilføjer klik-sortering til enhver tabel (StandardGridTable eller StandardLooseTable).

@@ -15,8 +15,7 @@ import { createEmptyTafCommittedRow, createTafRowId } from '../../domain/erstatn
 import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { useCollectionTable } from './useCollectionTable';
-import { useTableSort } from './useTableSort';
-import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
@@ -52,30 +51,23 @@ const TafPeriodeTable = React.memo(({
     // route + tabKey er eksplicit navigation-metadata (§3.7); TAF-perioderne bor på EO-oplysningerfanen.
     locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });
-  const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-    rows: committedRows,
+  const { renderRows: renderOrder, sortableHeader } = useSortedCollectionTable({
+    committedRows,
+    renderRows: table.renderRows,
     getRowId: (row) => row.id,
     isRowEmpty: isTafRowEmpty,
     columns,
-    onSortedRowsChange: (next) => table.reorderRows(next.map((row) => row.id)),
+    reorderRows: table.reorderRows,
+    saveOrderPath,
   });
-  const renderOrder = React.useMemo(() => {
-    const existing = new Map(table.renderRows.map((row) => [row.rowId, row]));
-    const placeholder = table.renderRows.find((row) => row.kind === 'placeholder');
-    return [
-      ...sortedRows.map((row) => existing.get(row.id)).filter((row) => row !== undefined),
-      ...(placeholder === undefined ? [] : [placeholder]),
-    ];
-  }, [sortedRows, table.renderRows]);
-  useRegisterTableSaveOrder(saveOrderPath, sortedRows.map((row) => row.id));
 
   return (
     <StandardLooseTable sx={{ width: '720px', tableLayout: 'fixed', mb: 3, '& .MuiTableCell-root': { textAlign: 'center', whiteSpace: 'nowrap' }, '& thead th': { textAlign: 'center' } }}>
       <TableHead><TableRow>
-        <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('fra')} sortRole={getSortRole('fra')} sortDirection={getSortDirection('fra')}>Fra o.m.</StandardLooseHeaderCell>
-        <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('til')} sortRole={getSortRole('til')} sortDirection={getSortDirection('til')}>Til o.m.</StandardLooseHeaderCell>
-        <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('loseFeriedage')} sortRole={getSortRole('loseFeriedage')} sortDirection={getSortDirection('loseFeriedage')}>Løse feriedage</StandardLooseHeaderCell>
-        <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('beregnet')} sortRole={getSortRole('beregnet')} sortDirection={getSortDirection('beregnet')}>{derivedColumnHeader}</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('fra')}>Fra o.m.</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('til')}>Til o.m.</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('loseFeriedage')}>Løse feriedage</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('beregnet')}>{derivedColumnHeader}</StandardLooseHeaderCell>
       </TableRow></TableHead>
       <TableBody>{renderOrder.map((row) => {
         const committed = table.committedById.get(row.rowId);

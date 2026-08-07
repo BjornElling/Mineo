@@ -9,9 +9,8 @@ import {
   emptyAslAfgoerelseRowFields,
   isAslAfgoerelseRowPersistenceEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
-import { useTableSort } from './useTableSort';
+import { useSortedCollectionTable } from './useSortedCollectionTable';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
-import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
@@ -227,16 +226,13 @@ const EetAslAfgoerelserTable = React.memo(
       { colId: 'fsTilbageholdtEet', getSortValue: (row: AslAfgoerelseRow) => row.fsTilbageholdtEet },
     ], []);
 
-    const handleSortedRowsChange = React.useCallback((sortedRows: AslAfgoerelseRow[]) => {
-      rows.reorder(sortedRows.map((row) => row.id));
-    }, [rows]);
-
-    const { sortedRows: sortedCommittedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-      rows: committedRows,
+    const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
+      committedRows,
       getRowId: (row) => row.id,
       isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
       columns: sortColumns,
-      onSortedRowsChange: handleSortedRowsChange,
+      reorderRows: rows.reorder,
+      saveOrderPath,
     });
 
     // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
@@ -261,9 +257,6 @@ const EetAslAfgoerelserTable = React.memo(
       () => new Map(sortedCommittedRows.map((row) => [row.id, row])),
       [sortedCommittedRows]
     );
-
-    const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
-    useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
 
     // Den fælles cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, og ejer-id'erne udledes af
     // collectionens egen sti. route + tabKey er eksplicit navigation-metadata (§3.7).
@@ -304,18 +297,18 @@ const EetAslAfgoerelserTable = React.memo(
         </colgroup>
         <TableHead>
           <TableRow>
-            <StandardLooseHeaderCell onClick={() => handleHeaderClick('afgoerelsesDato')} sortRole={getSortRole('afgoerelsesDato')} sortDirection={getSortDirection('afgoerelsesDato')}>Afgørelsesdato</StandardLooseHeaderCell>
-            <StandardLooseHeaderCell onClick={() => handleHeaderClick('virkningsDato')} sortRole={getSortRole('virkningsDato')} sortDirection={getSortDirection('virkningsDato')}>Virkningsdato</StandardLooseHeaderCell>
-            <StandardLooseHeaderCell onClick={() => handleHeaderClick('eetPct')} sortRole={getSortRole('eetPct')} sortDirection={getSortDirection('eetPct')}>EET %</StandardLooseHeaderCell>
-            <StandardLooseHeaderCell onClick={() => handleHeaderClick('afgoerelseType')} sortRole={getSortRole('afgoerelseType')} sortDirection={getSortDirection('afgoerelseType')}>Afgørelsestype</StandardLooseHeaderCell>
-            <StandardLooseHeaderCell onClick={() => handleHeaderClick('kapDato')} sortRole={getSortRole('kapDato')} sortDirection={getSortDirection('kapDato')}>Kap.dato</StandardLooseHeaderCell>
-            <StandardLooseHeaderCell onClick={() => handleHeaderClick('kapPct')} sortRole={getSortRole('kapPct')} sortDirection={getSortDirection('kapPct')}>Kap. %</StandardLooseHeaderCell>
-            <StandardLooseHeaderCell onClick={() => handleHeaderClick('tidlKapDato')} sortRole={getSortRole('tidlKapDato')} sortDirection={getSortDirection('tidlKapDato')}>
+            <StandardLooseHeaderCell {...sortableHeader('afgoerelsesDato')}>Afgørelsesdato</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell {...sortableHeader('virkningsDato')}>Virkningsdato</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell {...sortableHeader('eetPct')}>EET %</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell {...sortableHeader('afgoerelseType')}>Afgørelsestype</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell {...sortableHeader('kapDato')}>Kap.dato</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell {...sortableHeader('kapPct')}>Kap. %</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell {...sortableHeader('tidlKapDato')}>
               Hvis genopt. -
               <br />
               tidl. kap.dato
             </StandardLooseHeaderCell>
-            <StandardLooseHeaderCell onClick={() => handleHeaderClick('fsTilbageholdtEet')} sortRole={getSortRole('fsTilbageholdtEet')} sortDirection={getSortDirection('fsTilbageholdtEet')}>
+            <StandardLooseHeaderCell {...sortableHeader('fsTilbageholdtEet')}>
               FS tilbage-
               <br />
               holdt EET

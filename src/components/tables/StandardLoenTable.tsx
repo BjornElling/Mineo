@@ -49,8 +49,7 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { useTableSort } from './useTableSort';
-import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 // Den delte StandardLoenTable. Tabellen renderes i to kontekster: Årsløn (top-level `aarsloen.tableData`) og EO's
@@ -218,16 +217,13 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       { colId: 'col-8', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col8 },
     ], [beloebMode, calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
 
-    const handleSortedRowsChange = React.useCallback((sortedRows: StandardLoenTableRow[]) => {
-      rows.reorder(sortedRows.map((row) => row.id));
-    }, [rows]);
-
-    const { sortedRows: sortedCommittedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-      rows: committedRows,
+    const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
+      committedRows,
       getRowId: (row) => row.id,
       isRowEmpty,
       columns: sortColumns,
-      onSortedRowsChange: handleSortedRowsChange,
+      reorderRows: rows.reorder,
+      saveOrderPath,
     });
 
     // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
@@ -249,9 +245,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     ], [sortedCommittedRows, placeholderIds]);
 
     // Save-order = de committede rækker i sorteret rækkefølge (placeholder-rækker persisteres ikke).
-    const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
-    useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
-
     // ── Flash-fejl (visuel peg-mekanisme, surface-lokal) ────────────────────────
     const [flashCell, setFlashCell] = React.useState<{ rowId: string; colIdx: number } | null>(null);
     const [missingCell, setMissingCell] = React.useState<{ rowId: string; colKey: StandardLoenTableColumnKey } | null>(null);
@@ -384,9 +377,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
               return (
                 <StandardGridHeaderCell
                   key={colId}
-                  onClick={() => handleHeaderClick(colId)}
-                  sortRole={getSortRole(colId)}
-                  sortDirection={getSortDirection(colId)}
+                  {...sortableHeader(colId)}
                 >
                   <span style={{ whiteSpace: 'pre-line' }}>{header}</span>
                 </StandardGridHeaderCell>

@@ -2,8 +2,7 @@ import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton } from './RowDeleteButton';
-import { useTableSort } from './useTableSort';
-import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
@@ -112,16 +111,13 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
     { colId: 'beloeb', getSortValue: (row: OevrigeKravRow) => amountValueToNumber(row.beloeb) },
   ], []);
 
-  const handleSortedRowsChange = React.useCallback((next: OevrigeKravRow[]) => {
-    rows.reorder(next.map((row) => row.id));
-  }, [rows]);
-
-  const { sortedRows: sortedCommittedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-    rows: committedRows,
+  const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
+    committedRows,
     getRowId: (row) => row.id,
     isRowEmpty: isOevrigeKravRowEmpty,
     columns: sortColumns,
-    onSortedRowsChange: handleSortedRowsChange,
+    reorderRows: rows.reorder,
+    saveOrderPath,
   });
 
   // ── Trailing placeholder-række (§1.11) ──────────────────────────────────────
@@ -140,9 +136,6 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
     () => new Map(sortedCommittedRows.map((row) => [row.id, row])),
     [sortedCommittedRows]
   );
-
-  const savedRowIds = React.useMemo(() => sortedCommittedRows.map((row) => row.id), [sortedCommittedRows]);
-  useRegisterTableSaveOrder(saveOrderPath, savedRowIds);
 
   // Den fælles cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, og ejer-id'erne udledes af
   // collectionens egen sti. route + tabKey er eksplicit navigation-metadata (§3.7).
@@ -169,9 +162,9 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
     >
       <TableHead>
         <TableRow>
-          <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => handleHeaderClick('dato')} sortRole={getSortRole('dato')} sortDirection={getSortDirection('dato')}>Dato</StandardLooseHeaderCell>
-          <StandardLooseHeaderCell sx={{ width: 500 }} onClick={() => handleHeaderClick('udgiftTil')} sortRole={getSortRole('udgiftTil')} sortDirection={getSortDirection('udgiftTil')}>Udgift til</StandardLooseHeaderCell>
-          <StandardLooseHeaderCell sx={{ width: 160 }} onClick={() => handleHeaderClick('beloeb')} sortRole={getSortRole('beloeb')} sortDirection={getSortDirection('beloeb')}>Beløb</StandardLooseHeaderCell>
+          <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('dato')}>Dato</StandardLooseHeaderCell>
+          <StandardLooseHeaderCell sx={{ width: 500 }} {...sortableHeader('udgiftTil')}>Udgift til</StandardLooseHeaderCell>
+          <StandardLooseHeaderCell sx={{ width: 160 }} {...sortableHeader('beloeb')}>Beløb</StandardLooseHeaderCell>
         </TableRow>
       </TableHead>
       <TableBody>

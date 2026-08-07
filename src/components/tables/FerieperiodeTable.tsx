@@ -16,9 +16,8 @@ import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import { createEmptyFerieCommittedRow, createFravaerRowId, createTafFerieRowId } from '../../domain/erstatningsopgoerelse/tables/ferieTableModel';
 import { isFerieRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { useCollectionTable } from './useCollectionTable';
-import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
-import { useTableSort } from './useTableSort';
+import { useSortedCollectionTable } from './useSortedCollectionTable';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 
@@ -57,22 +56,15 @@ const FerieperiodeTable = React.memo(({
     { colId: 'til', getSortValue: (row: FerieperiodeRow) => row.til },
     { colId: 'feriedage', getSortValue: (row: FerieperiodeRow) => feriedageById[row.id] ?? undefined },
   ], [feriedageById]);
-  const sort = useTableSort({
-    rows: committedRows,
+  const { renderRows, sortableHeader } = useSortedCollectionTable({
+    committedRows,
+    renderRows: table.renderRows,
     getRowId: (row) => row.id,
     isRowEmpty: isFerieRowEmpty,
     columns,
-    onSortedRowsChange: (next) => table.reorderRows(next.map((row) => row.id)),
+    reorderRows: table.reorderRows,
+    saveOrderPath,
   });
-  const renderRows = React.useMemo(() => {
-    const byId = new Map(table.renderRows.map((row) => [row.rowId, row]));
-    const placeholder = table.renderRows.find((row) => row.kind === 'placeholder');
-    return [
-      ...sort.sortedRows.map((row) => byId.get(row.id)).filter((row) => row !== undefined),
-      ...(placeholder === undefined ? [] : [placeholder]),
-    ];
-  }, [sort.sortedRows, table.renderRows]);
-  useRegisterTableSaveOrder(saveOrderPath, sort.sortedRows.map((row) => row.id));
 
   return (
     <StandardLooseTable sx={{
@@ -82,9 +74,9 @@ const FerieperiodeTable = React.memo(({
     }}>
       <TableHead>
         <TableRow>
-          <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => sort.handleHeaderClick('fra')} sortRole={sort.getSortRole('fra')} sortDirection={sort.getSortDirection('fra')}>Fra o.m.</StandardLooseHeaderCell>
-          <StandardLooseHeaderCell sx={{ width: 180 }} onClick={() => sort.handleHeaderClick('til')} sortRole={sort.getSortRole('til')} sortDirection={sort.getSortDirection('til')}>Til o.m.</StandardLooseHeaderCell>
-          <StandardLooseHeaderCell sx={{ width: 160 }} onClick={() => sort.handleHeaderClick('feriedage')} sortRole={sort.getSortRole('feriedage')} sortDirection={sort.getSortDirection('feriedage')}>Feriedage</StandardLooseHeaderCell>
+          <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('fra')}>Fra o.m.</StandardLooseHeaderCell>
+          <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('til')}>Til o.m.</StandardLooseHeaderCell>
+          <StandardLooseHeaderCell sx={{ width: 160 }} {...sortableHeader('feriedage')}>Feriedage</StandardLooseHeaderCell>
         </TableRow>
       </TableHead>
       <TableBody>
