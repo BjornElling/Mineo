@@ -144,7 +144,7 @@ const renderHook = (
   };
 
   const Harness = () => {
-    const ops = useCaseOperations();
+    const ops = useCaseOperations(DEFAULT_APP_SETTINGS);
     const criticalActions = useCriticalInputActions();
     handles.api = useFileSaveLoad({
       settings: DEFAULT_APP_SETTINGS,

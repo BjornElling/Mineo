@@ -5,7 +5,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 
 ## Nye fund
 
-Næste ID: **BF-027**. Kopiér denne blok pr. fund:
+Næste ID: **BF-028**. Kopiér denne blok pr. fund:
 
 ```md
 ## BF-020 — Kort titel
@@ -118,6 +118,7 @@ Ingen fund afventer reproduktion.
 | BF-018 | Tillægstid accepterer højst to cifre ved tastning og markerer øvrigt input korrekt. |
 | BF-019 | EET-procenter under 15 % giver den aftalte gule feltadvarsel. |
 | BF-025 | Angivet måneds-/timeløn på en ny sag udløser ikke længere en systemfejl; "en ny sags default" har fået ét sandt sted, og tre værn dækker klassen. |
+| BF-027 | Standardværdier fra Indstillinger slår nu igennem på en ny sag med det samme — ikke først når brugeren rører feltet. |
 
 ### BF-025 — analyse og løsning
 
@@ -172,13 +173,48 @@ Derudover er klassen lukket med tre værn, beskrevet i `docs/architecture/input-
 - `newCaseFixtureParity.test.ts` — kræver, at den gamle new-case-fabrik kun afviger fra den levende sektion på
   erklærede punkter, så en testfixture ikke igen kan være rigere end produktionens sag.
 
-**Åbne forhold, der ikke er rettet her.** Fejningen afdækkede, at AppSettings-afledte standardvalg ikke slår
-igennem på en ny sag: den levende sektion læser ikke AppSettings, så bl.a. "Indsæt udkast-stempel" og "Øvrige
-krav skjult ved ny sag" starter på schemaets default frem for brugerens valg. Afvigelserne er nu opregnet i
-`newCaseFixtureParity.test.ts`, så de er synlige og ikke kan vokse ubemærket, men selve tilkoblingen er en
-adfærdsændring, der bør besluttes for sig. Ligeledes har `eoAngivetLoenLoenudvikling`-feltene `loenPaaHelligdage`,
-`feriePct` og `saerligFraDatoRegulering` fortsat ingen editor; efter rettelsen er de harmløse, men de er
-uindtastelige felter i kataloget.
+**Åbne forhold, der ikke blev rettet her.** Fejningen afdækkede, at AppSettings-afledte standardvalg ikke slog
+igennem på en ny sag. Det er nu rettet som **BF-027** nedenfor. Tilbage står, at
+`eoAngivetLoenLoenudvikling`-feltene `loenPaaHelligdage`, `feriePct` og `saerligFraDatoRegulering` fortsat ingen
+editor har; efter rettelsen er de harmløse, men de er uindtastelige felter i kataloget.
+
+### BF-027 — analyse og løsning
+
+**Fundet.** Indstillinger → Standardværdier lovede værdier, en ny sag aldrig fik. Slog brugeren "Udkast-stempel
+på nye dokumenter" til, stod "Indsæt udkast-stempel" på EO oplysninger stadig på "Nej" i hver ny sag, og den
+hentede erstatningsopgørelse kom uden UDKAST-vandmærke. Ingen fejl, ingen advarsel — kun et program, der gjorde
+noget andet end det, indstillingen sagde. Samme mønster ramte "Bilagsnumre i erstatningsopgørelser",
+"Opgørelse afsluttes med", "Svie/smerte-sats ved delvis sygemelding" og — på Årsløn-siden — "Løn indtastes som".
+
+**Kernen.** Koblingen til AppSettings fandtes kun i `create<Sektion>InitialValues`-fabrikkerne, og dem kalder
+ingen produktionssti. Den levende sag blev født ét af to steder: bootstrap-hydrationen (som kun havde en seed
+for Satsers default-år) eller reducerens materialisering af en sektion, første gang brugeren rørte et felt på
+siden — og den kender kun schemaet. Indstillingerne nåede derfor aldrig ind i en sag. Rækkeniveauet virkede,
+fordi `createDefaultLoenindkomstAnsaettelsesforhold` faktisk kaldes, når brugeren tilføjer et ansættelsesforhold.
+
+**Klassen bagved.** Tre forhold hang sammen med det samme:
+
+1. **`Slet alt` gav et andet udgangspunkt end en frisk session.** Kommandoen ryddede til bar `null`, så selv
+   Satsers default-år — det ene, der faktisk virkede — forsvandt permanent efter et `Slet alt`.
+2. **Ny-sags-defaults havde ingen ejer.** Der var ét seed-hook, ét sæt fabrikker uden kaldere og ét schema, og
+   ingen af dem var udpeget som svaret på "hvad indeholder en ny sag?".
+3. **Overwrite-gaten forvekslede programmets standardværdier med brugerens data.** `hasAnyData` talte udfyldte
+   felter, så et nyåbnet program med et seedet satsår allerede advarede om at overskrive "dine data" ved `Hent`.
+
+**Løsningen.** "En ny sag" har fået ét sandt sted. `src/inputCore/newCaseSections.ts` ejer typen og
+sammenfletningen af ny-sags-seeds, `createNewCaseInput` bygger den færdige sag, og `src/domain/newCaseSeed.ts`
+komponerer domænets seeds pr. slice (satser, årsløn, erstatningsopgørelse). Samme konstruktion bruges nu tre
+steder — bootstrap, `Slet alt` (kommandoen bærer seeden) og overwrite-gatens baseline — så en sags udgangspunkt
+ikke længere afhænger af, hvordan den blev født. `composeNewCaseSeeds` kaster, hvis to slices vil eje samme
+sektion. Fabrikkerne er skrevet om til at bygge på præcis de samme defaults, så en testfixture ikke igen kan
+være en anden sag end brugerens. `hasAnyData` måler nu afvigelse fra en ny sag frem for "findes der en udfyldt
+værdi?" — en urørt sektion tæller aldrig som brugerdata.
+
+Klassen er lukket med et nyt værn, `newCaseSettingsDefaults.test.ts`, som måler VIRKNINGEN og ikke koblingen:
+for hver nøgle i `NEW_CASE_DEFAULT_SETTINGS_KEYS` skal en ændret værdi ændre enten den nye sags indhold eller en
+nytilføjet rækkes indhold. Listen er samtidig fuldstændighedstjekket, så en ny `default*`-indstilling ikke kan
+tilføjes uden enten at blive koblet på eller eksplicit erklæret som ikke-sagsdata. Arkitekturen er beskrevet i
+`docs/architecture/input-architecture.md` §2.11 og kontraktligt fastlagt i `src/contracts/app-settings.md`.
 
 Senest opdateret: 7. august 2026. De rettede fund er automatiseret verificeret. Visuel browserverifikation
 af BF-003, BF-004, BF-008 og BF-014 udestår, fordi ingen styrbar browser var registreret.

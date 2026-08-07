@@ -11,12 +11,13 @@ import {
   type InputRuntimeStartup,
 } from '../runtime/initializeInputRuntime';
 import { bumpInputSettingsRevision } from '../runtime/dispatchInput';
-import { seedSatserNewCase } from '../../domain/satser/satserNewCaseSeed';
+import { createProductionNewCaseSeed } from '../../domain/newCaseSeed';
 import {
   createInputRuntimeBinding,
   type InputRuntimeBinding,
 } from './inputRuntimeContext';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
+import { loadInitialSettings } from '../../settings/appSettingsParse';
 import {
   SOURCE_SETTINGS_KEYS,
   projectSourceSettings,
@@ -157,8 +158,12 @@ export const bootstrapProductionInputRuntime = (): Readonly<{
 }> => {
   if (bootstrappedProductionRuntime !== null) return bootstrappedProductionRuntime;
   const catalog = getProductionInputCatalog();
-  // En frisk sag seedes med Satsers default-år (§1.12, brugerbeslutning) — kun når der ikke findes en aktiv session.
-  const startup = initializeInputRuntime(slimInputStore, catalog, { seedNewCase: seedSatserNewCase });
+  // En frisk sag seedes med domænets ny-sags-defaults (§1.12) — kun når der ikke findes en aktiv session.
+  // Indstillingerne læses fra samme kilde, `AppSettingsProvider` selv monterer på; bootstrap sker før render,
+  // så der er endnu ingen context at læse fra, og de to kan ikke nå at være uenige.
+  const startup = initializeInputRuntime(slimInputStore, catalog, {
+    seedNewCase: createProductionNewCaseSeed(loadInitialSettings()),
+  });
   bootstrappedProductionRuntime = Object.freeze({
     binding: createProductionInputRuntimeBinding(),
     startup,

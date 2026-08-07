@@ -212,8 +212,11 @@ anmoder om sletning eller erstatning—felt-rydning, række-sletning, reset, `Sl
   bygges derfor ingen legacy-sessionreader, adresseoversættelse, dual-read eller kompatibilitetsdialog.
 - Korruption i den aktuelle sessionversion skal fortsat håndteres fail-closed. Den rå envelope bevares uændret,
   alle normale writes blokeres, og brugeren får den eksisterende eksplicitte danske systemfejl. Kun brugerens
-  eksplicitte `Slet alt` må fjerne den korrupte kilde og starte en tom sag. Bootstrap må aldrig stiltiende starte tomt
+  eksplicitte `Slet alt` må fjerne den korrupte kilde og starte en ny sag. Bootstrap må aldrig stiltiende starte tomt
   og senere overskrive kilden. Det er dataintegritet, ikke versionskompatibilitet.
+- En NY sag er ikke en tom sag: den bærer domænets og brugerens erklærede standardværdier (§2.11). Både
+  bootstrap af en frisk session og `Slet alt` giver samme udgangspunkt, og overwrite-gaten måler brugerdata
+  imod netop det udgangspunkt.
 
 ## 2. Arkitekturens form
 
@@ -473,9 +476,9 @@ bruges af reaktiv gate og click-preflight. Generatoren modtager kun et kilde-tok
   fil-I/O, codec, preflight-dialog, overwrite-gate eller PWA-samtidighed: de er UI-flow og bevarede
   fil-primitiver (§4.1), som shell-use-casen (`useFileSaveLoad`) orkestrerer. Porten er en runtime-adapter, ikke
   en ny altomfattende facade.
-- `CaseResetOperations` ejer `Slet alt` (hel-sags-clear) inklusive sikker kassation af åben draft ved succes og
-  recovery fra blokeret current-session. Sektionsreset går gennem bindingens `resetSection`-command, fordi den er
-  en sidelokal handling uden hel-sags-semantik.
+- `CaseResetOperations` ejer `Slet alt` (hel-sags-reset til en NY sag, §2.11) inklusive sikker kassation af åben
+  draft ved succes og recovery fra blokeret current-session. Sektionsreset går gennem bindingens
+  `resetSection`-command, fordi den er en sidelokal handling uden hel-sags-semantik.
 - den eksisterende centrale systemfejl-/noticeoverflade viser startupfejl og brugerrettede operationsfejl.
 
 Ingen af portene må både eksponere reads, raw writes, UI-notices og persistence. En port læser ALTID gennem
@@ -487,31 +490,52 @@ commands, history og storage-grænsen.
 Hver app-variant initialiserer sin ene aktive runtime før render; provider-remount må aldrig rehydrere eller
 overskrive input. Der findes efter Fase 4 kun ÉN runtime at initialisere: legacy-provideren er slettet.
 
-### 2.11 Én sandhed om "en ny, tom sektion"
+### 2.11 Én sandhed om "en ny sag"
 
-En sektion er `null`, indtil brugeren rører sit første felt på siden. Først dér materialiserer reduceren den fra
-`createEmpty<Sektion>Section` og sanerer den gennem det persisterede schema. **Den konstruktion er den ENESTE
-sandhed om en ny sag.** Alt andet, der ligner en new-case-fabrik, er enten afledt af den eller en testfixture,
-hvis afvigelser skal være erklæret.
+En sektion får sin første værdi ét af to steder, og begge er levende:
 
-Tre regler følger, og alle tre er håndhævet:
+1. **Ny-sags-seeden.** `src/inputCore/newCaseSections.ts` ejer typen og sammenfletningen; `createNewCaseInput`
+   bygger den færdige sag. Domænet leverer seeds pr. slice, og `src/domain/newCaseSeed.ts` komponerer dem.
+   Seeden er stedet for krav om "sådan starter en ny sag", som det persisterede schema ikke KAN udtrykke —
+   enten fordi værdien kommer fra brugerens programindstillinger, eller fordi schemaets egen default bevidst
+   tjener load-tolerance for ældre `.eo`-filer frem for en ny sag.
+2. **`createEmpty<Sektion>Section` + schemaets defaults**, som reduceren materialiserer, første gang brugeren
+   rører et felt på en side, hvis sektion ikke er seedet.
+
+**En ny sag er ikke en tom sag.** Den samme konstruktion bruges tre steder, og de tre SKAL svare ens:
+bootstrap-hydrationen (`initializeInputRuntime`, når der ikke findes en aktiv session), `Slet alt`
+(`clearCase` bærer seeden), og overwrite-gatens `hasAnyData`, som måler brugerdata imod netop den baseline —
+ikke imod tomhed. Ville de tre kunne svare forskelligt, ville sagens udgangspunkt afhænge af, hvordan den blev
+født, og et program uden en eneste indtastning ville advare brugeren om at overskrive "sine data".
+
+`composeNewCaseSeeds` kaster, hvis to slices vil eje samme sektion, så hver sektions ny-sags-værdi har præcis
+én ejer. Alt andet, der ligner en new-case-fabrik, er enten afledt heraf eller en testfixture, hvis afvigelser
+skal være erklæret.
+
+Fire regler følger, og alle fire er håndhævet:
 
 1. **Descriptorens tomværdi og den friske sektions værdi skal være enige.** `emptyValue` er både det, et
    `clearField` skriver, og det, readerprojektionerne falder tilbage til. Er de to uenige, har feltet to
    defaults, og hvilken domænet ser, afhænger af, om sektionen tilfældigvis er materialiseret endnu.
    Håndhæves af `freshSectionDefaults.test.ts` for alle statiske felter i alle sektioner.
-2. **Ét brugervalg på en tom sag må aldrig udløse en systemfejl.** En systemfejl er en påstand om, at
+2. **Ét brugervalg på en ny sag må aldrig udløse en systemfejl.** En systemfejl er en påstand om, at
    programmet er i stykker — ikke en fejl, brugeren kan rette. `freshCaseChoiceSweep.test.ts` fejer hvert
    statisk valg-/kontaktfelt gennem hver af sine valgmuligheder fra præcis den tilstand, `initializeInputRuntime`
    giver en ny sag, og kører hele domænets læsesti på resultatet. Valgmængden hentes fra feltets eget codec
    (`FieldCodec.options`), så nye felter og nye enum-værdier dækkes uden at nogen husker det.
 3. **En testfixture må ikke være rigere end produktionens sag.** `newCaseFixtureParity.test.ts` kræver, at de
-   ældre `create<Sektion>InitialValues`-fabrikker kun afviger fra den levende sektion på erklærede punkter.
+   ældre `create<Sektion>InitialValues`-fabrikker kun afviger fra den levende sag på erklærede punkter. Efter
+   at ny-sags-defaults har fået ét sandt sted, er den eneste erklærede afvigelse tabellernes pladsholderrækker.
+4. **En indstilling, der lover en standardværdi, skal ændre noget.** `newCaseSettingsDefaults.test.ts` måler
+   virkningen — ikke koblingen: for hver nøgle i `NEW_CASE_DEFAULT_SETTINGS_KEYS` skal en ændret værdi ændre
+   enten den nye sags indhold eller en nytilføjet rækkes indhold. Listen er samtidig fuldstændighedstjekket, så
+   en ny `default*`-indstilling ikke kan tilføjes uden enten at blive koblet på eller erklæret som ikke-sagsdata.
 
 Baggrunden er BF-025: `eoAngivetLoenLoenudvikling.loenPaaHelligdage` var valgfri i schemaet, havde ingen editor
 og fik derfor aldrig en værdi — mens EO-motoren erklærede `undefined` umulig og fail-closede med en systemfejl.
 Fejlen ramte enhver ny sag ved første valg i "Beregnes ud fra", og ingen test kunne se den, fordi suitens fixture
-kom fra en fabrik, produktionen ikke bruger.
+kom fra en fabrik, produktionen ikke bruger. Samme fabrik-uden-kaldere var årsagen til, at AppSettings' kategori
+"standardværdier til ny sagsdata" aldrig slog igennem på en ny sag: den var kun koblet i fabrikken.
 
 ## 3. Coverage-registrene (`src/inputCore/ledger/`)
 

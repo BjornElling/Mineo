@@ -1,7 +1,7 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../types/loen';
-import { resolveAppSettings } from '../../settings/appSettingsParse';
 import type { AppSettings } from '../../settings/appSettingsSchema';
+import { resolveAarsloenNewCaseDefaults } from './aarsloenNewCaseSeed';
 
 export const AARSLOEN_INITIAL_VALUES = {
   feriePct: undefined,
@@ -22,12 +22,12 @@ export const AARSLOEN_INITIAL_VALUES = {
 /**
  * Opretter initiale årsløn-værdier med settings-baserede standardværdier.
  *
+ * Fabrikken er en testfixture-bekvemmelighed; produktionens nye sag bygges af ny-sags-seeden gennem
+ * inputkernen. Begge læser derfor de SAMME settings-afledte defaults (§2.11).
+ *
  * VIGTIGT: Må kun anvendes ved oprettelse af NY sagsdata (ikke ved load/redigering).
  */
-export const createAarsloenInitialValues = (settings?: AppSettings): PersistedSectionMap['aarsloen'] => {
-  const safeSettings = resolveAppSettings(settings);
-  return {
-    ...AARSLOEN_INITIAL_VALUES,
-    loenperiode: safeSettings.defaultLoenIndtastesSom,
-  };
-};
+export const createAarsloenInitialValues = (settings?: AppSettings): PersistedSectionMap['aarsloen'] => ({
+  ...AARSLOEN_INITIAL_VALUES,
+  ...resolveAarsloenNewCaseDefaults(settings),
+});

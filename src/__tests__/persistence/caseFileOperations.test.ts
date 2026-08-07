@@ -6,6 +6,7 @@ import {
 import { insertRow, serializeFieldAddress, settleField } from '../../inputCore';
 import { dispatchInput, type RuntimeInputCommand, type SlimInputStore } from '../../inputCore/runtime';
 import { captureStableInput, readSourceToken } from '../../inputCore/runtime/evaluationSourceBinding';
+import { createNewCaseInput } from '../../inputCore/runtime/newCaseInput';
 import {
   buildLoadReplaceCaseCandidate,
   createCaseFileOperations,
@@ -28,6 +29,8 @@ const catalog = createTestCatalog();
 const buildRuntime = (store: SlimInputStore): CaseRuntimeAccess => Object.freeze({
   catalog,
   getSettledInput: () => store.getState().input,
+  // Testkataloget har ingen ny-sags-seed: en ny sag er her den tomme baseline.
+  getNewCaseInput: () => createNewCaseInput(catalog),
   captureSaveSource: () => {
     const { input, token } = captureStableInput(store);
     return { input, token };

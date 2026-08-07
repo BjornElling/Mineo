@@ -148,6 +148,32 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 };
 
 /**
+ * Kategori 2 i `src/contracts/app-settings.md`: de indstillinger, der er STANDARDVÆRDIER TIL NY SAGSDATA.
+ *
+ * Listen er ikke dokumentation — den er et værn. Hver nøgle her skal beviseligt ændre enten den nye sags
+ * indhold (ny-sags-seeden) eller den række, brugeren tilføjer (rækkefabrikkerne). En indstilling, der lover
+ * brugeren en standardværdi uden at ændre noget, er værre end ingen indstilling: den fejler tavst.
+ * `newCaseSettingsDefaults.test.ts` håndhæver både beviset og listens fuldstændighed.
+ *
+ * BEVIDST UDENFOR (de øvrige `default*`-nøgler): `defaultStartsideErStamdata` er en ren UI-præference om
+ * hvilken side der åbnes, og `defaultDirectoryHandleId` er en device-lokal filplacering. Ingen af dem er
+ * sagsdata.
+ */
+export const NEW_CASE_DEFAULT_SETTINGS_KEYS = [
+  'erstatningsopgoerelseAfsluttesMed',
+  'defaultLoenIndtastesSom',
+  'defaultFuldLoenUnderFerie',
+  'defaultLoenPaaHelligdage',
+  'defaultOverenskomstLoenmodtager',
+  'defaultOverenskomstArbejdsgiver',
+  'defaultSvieSmerteDelvisSygemeldingSats',
+  'defaultIndsaetUdkastStempel',
+  'defaultVisBilagsnumre',
+] as const satisfies readonly (keyof AppSettings)[];
+
+export type NewCaseDefaultSettingKey = (typeof NEW_CASE_DEFAULT_SETTINGS_KEYS)[number];
+
+/**
  * Overenskomst-filter type (domæne-værdi, ikke UI-værdi)
  *
  * I domænet bruger vi `undefined` for "alle" – ALDRIG strengen 'ALLE'.

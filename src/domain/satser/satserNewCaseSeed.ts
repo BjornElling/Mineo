@@ -1,6 +1,6 @@
 import { getCurrentYear } from '../../config/dateRanges';
 import { satserAngivAarYearBounds } from '../../data/lovbestemteRates';
-import type { NewCaseSeed } from '../../inputCore/runtime/initializeInputRuntime';
+import type { NewCaseSeed } from '../../inputCore/newCaseSections';
 import { resolveSatserDefaultAargang } from '../policies/satserCalculations';
 
 // Seed af en HELT NY sag (§1.12): Der findes intet ikke-persisteret skygge-input (§1.9), så

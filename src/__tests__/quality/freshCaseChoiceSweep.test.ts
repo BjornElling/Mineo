@@ -1,6 +1,6 @@
 import { getProductionInputCatalog, productionInputFields } from '../../inputCore/catalog/productionCatalog';
 import { reduceInputCommand, setImmediateField } from '../../inputCore/inputReducer';
-import { createEmptySettledInput, type SettledInput } from '../../inputCore/settledInput';
+import type { SettledInput } from '../../inputCore/settledInput';
 import { createInputEvaluation } from '../../inputCore/inputReader';
 import {
   createEvaluationSourceToken,
@@ -8,7 +8,9 @@ import {
   createSettingsRevision,
 } from '../../inputCore/evaluationSource';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
-import { seedSatserNewCase } from '../../domain/satser/satserNewCaseSeed';
+import { createProductionNewCaseSeed } from '../../domain/newCaseSeed';
+import { createNewCaseInput } from '../../inputCore/runtime/newCaseInput';
+import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
 import { buildAarsloenReaderProjection } from '../../domain/aarsloen/aarsloenProjection';
 import { buildVarigeMenReaderProjection } from '../../domain/varigemen/varigeMenReaderProjection';
 import { buildForsoergertabReaderProjection } from '../../domain/forsoergertab/forsoergertabReaderProjection';
@@ -51,15 +53,9 @@ type AnyDescriptor = FieldDescriptor<unknown>;
 
 const catalog = getProductionInputCatalog();
 
-/** Den tomme sag, præcis som `initializeInputRuntime` bygger den ved førstegangs-load (§1.12). */
-const createFreshCase = (): SettledInput => {
-  const empty = createEmptySettledInput();
-  const seeded = seedSatserNewCase() ?? {};
-  return catalog.validateSettledInput({
-    sections: { ...empty.sections, ...seeded },
-    rejectedInputs: {},
-  });
-};
+/** Den nye sag, præcis som `initializeInputRuntime` bygger den ved førstegangs-load (§1.12). */
+const createFreshCase = (): SettledInput =>
+  createNewCaseInput(catalog, createProductionNewCaseSeed(DEFAULT_APP_SETTINGS));
 
 const isStatic = (descriptor: AnyDescriptor): boolean =>
   descriptor.template.path.every((segment) => segment.kind === 'property');

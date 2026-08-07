@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-07
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -27,6 +27,12 @@ Konsekvens:
 
 ## Kontrakter (normative, ikke-forklarende)
 - **AppSettings må aldrig være skjult sagsdata.** Defaults til ny sagsdata må kun materialiseres ved oprettelse af ny sag eller ny brugerhandling, ikke under load for at gøre en gammel sag komplet.
+- **Defaults til ny sagsdata SKAL materialiseres ved oprettelsen — ikke først når brugeren rører feltet.** Kategori 2 har præcis to veje ind i en sag, og begge er eksplicitte:
+  - **Ny sag:** ny-sags-seeden (`src/domain/newCaseSeed.ts` → `src/inputCore/newCaseSections.ts`), som anvendes ved bootstrap af en frisk session OG ved `Slet alt`. Se `docs/architecture/input-architecture.md` §2.11.
+  - **Ny række:** rækkefabrikkerne, fx `createDefaultLoenindkomstAnsaettelsesforhold`.
+
+  En indstilling i kategori 2 skal stå i `NEW_CASE_DEFAULT_SETTINGS_KEYS` (`appSettingsSchema.ts`) og skal beviseligt ændre den ene eller den anden. `newCaseSettingsDefaults.test.ts` håndhæver både beviset og listens fuldstændighed. Baggrunden er en tavs fejlklasse: koblingen fandtes kun i `create<Sektion>InitialValues`-fabrikkerne, som ingen produktionssti kalder, så indstillingssiden lovede en standardværdi, sagen aldrig fik. En indstilling uden virkning er værre end ingen indstilling.
+- **En ny sag er ikke en tom sag.** Dermed må "har sagen brugerdata?" (overwrite-gaten ved `Hent`) ikke måles som "findes der en udfyldt værdi?", men som "afviger sagen fra en ny sag?". Ellers ville programmets egne standardværdier optræde som brugerens data.
 - **EO-data er altid fuldt udfyldt** (ingen implicitte defaults ved load/merge).
 - **Dokumentlaget læser aldrig AppSettingsContext/localStorage direkte**, og det kender ikke `AppSettings`-typen. Afhængighedspilen peger UI → dokument: `src/document/layout/documentBrevhoved.ts` erklærer brevhoved-typernes udtømmende sæt (`DocumentBrevhovedType`) og deres flagstruktur, og `appSettingsSchema.ts` typecheckes imod DET — ikke omvendt. De tre projektorer `projectSourceSettings`, `projectEoRowPolicy` og `projectDocumentRenderSettings` bor samlet i `src/settings/sourceSettings.ts`, som er deres eneste kilde. Hovedappens binding anvender dem i `src/document/runtime/mineoDocumentEnvironment.ts`: `projectSourceSettings` skærer `AppSettings` ned til `SourceSettings`, hvorefter `projectEoRowPolicy`/`projectDocumentRenderSettings` deler snapshottet i gate- og render-halvdelen.
 - **Gate- og render-settings er DISJUNKTE, og adskillelsen er en typegrænse**. Et dokumentoutputs `project` ser KUN `gateSettings` (i hovedappen EO-rækkepolitikken); det valgte format og brevhoved-flagene ligger i `renderSettings` og anvendes først efter gaten. Reglen er, at **formatet vælger writer, ikke dækning**: samme sag skal have samme `ready`/`blocked` for PDF og Word. Kravet kan ikke bæres af et værn, fordi §A2a's paritet mellem reaktiv gate og click-preflight ville se den samme skæve gate i begge kanaler — derfor er en formatlæsning i en gate en compilerfejl. Begge halvdele projiceres fra ét `captureSource`-læs, så de ikke kan stamme fra to revisioner.

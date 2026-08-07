@@ -9,8 +9,8 @@ import {
 } from './fieldAddress';
 import type { FieldRef } from './fieldDescriptor';
 import type { InputCatalog } from './fieldCatalog';
+import { buildNewCaseSections, type NewCaseSeed } from './newCaseSections';
 import {
-  createEmptyPersistedInputSections,
   type PersistedInputSections,
   type RejectedInput,
   type RejectedInputs,
@@ -118,7 +118,18 @@ export type ResetSectionCommand = {
   [K in SectionKey]: Readonly<{ kind: 'resetSection'; section: K; value: PersistedInputSections[K] }>;
 }[SectionKey];
 export type ReplaceCaseCommand = Readonly<{ kind: 'replaceCase'; input: SettledInputCandidate }>;
-export type ClearCaseCommand = Readonly<{ kind: 'clearCase' }>;
+/**
+ * `Slet alt`: kassér sagen og start forfra på en NY sag.
+ *
+ * Commanden bærer ny-sags-seeden frem for at rydde til bar `null`. "Slet alt" er brugerens måde at starte
+ * forfra på, og en ny sag er ikke det samme som en tom en: den bærer de standardværdier, brugerens
+ * programindstillinger og domænet erklærer for en ny sag (§1.12). Uden seeden ville de defaults, en
+ * nybootstrappet sag har, forsvinde permanent efter et `Slet alt` — samme sag, to forskellige udgangspunkter.
+ *
+ * Seeden er en funktion, ikke en færdig sagsværdi: commanden kan derfor ikke misbruges til at indsætte en
+ * vilkårlig sag uden om `replaceCase`, og reduceren forbliver domæneneutral.
+ */
+export type ClearCaseCommand = Readonly<{ kind: 'clearCase'; seed?: NewCaseSeed }>;
 
 export type InputMutationCommand<TField = unknown, TEntity = unknown> =
   | SettleFieldCommand<TField>
@@ -213,7 +224,8 @@ export const resetSection = <K extends SectionKey>(
   Object.freeze({ kind: 'resetSection', section, value }) as Extract<ResetSectionCommand, { section: K }>;
 export const replaceCase = (input: SettledInputCandidate): ReplaceCaseCommand =>
   Object.freeze({ kind: 'replaceCase', input });
-export const clearCase = (): ClearCaseCommand => Object.freeze({ kind: 'clearCase' });
+export const clearCase = (seed?: NewCaseSeed): ClearCaseCommand =>
+  Object.freeze({ kind: 'clearCase', ...(seed === undefined ? {} : { seed }) });
 
 // ── Kandidatbygning ────────────────────────────────────────────────────────────────────────────────
 
@@ -389,7 +401,7 @@ const buildCandidate = <TField, TEntity>(
     case 'replaceCase':
       return command.input;
     case 'clearCase':
-      return { sections: createEmptyPersistedInputSections(), rejectedInputs: {} };
+      return { sections: buildNewCaseSections(command.seed), rejectedInputs: {} };
   }
 };
 

@@ -40,10 +40,10 @@ interface MainLayoutProps {
 const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   const diagnostics = useInputDiagnostics();
   const criticalActions = useCriticalInputActions();
-  const ops = useCaseOperations();
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useAppSettings();
+  const ops = useCaseOperations(settings);
   const [overlay, setOverlay] = React.useState<OverlayData | null>(null);
 
   // Den aktuelle afsluttede revision og autoritative replacement-generation driver unsaved-guardens
