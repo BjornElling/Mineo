@@ -2,6 +2,7 @@ import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
+import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
@@ -15,15 +16,12 @@ import {
   createEmptyOevrigeKravCommittedRow,
   createOevrigeKravRowId,
 } from '../../domain/erstatningsopgoerelse/tables/oevrigeKravTableModel';
-import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
   collectionLocationPrefix,
-  useCollectionCellSpecBuilder,
   type CollectionRenderRow as RenderRow,
 } from '../../inputCore/react/cellSpecBuilder';
-import { usePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
 import {
   GridAmountCell,
   GridDateCell,
@@ -99,10 +97,13 @@ const OevrigeKravTableRow = React.memo(({ renderRow, committed, onDeleteRow, bui
 OevrigeKravTableRow.displayName = 'OevrigeKravTableRow';
 
 const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKravTableProps) => {
-  const rows = useCollectionRows<OevrigeKravRow>(collectionRef, {
-    locationId: 'erstatningsopgoerelse.oevrigeKravPerioder',
-    route: APP_ROUTES.erstatningsopgoerelse,
-    tabKey: EO_TAB_KEYS.EO_OPLYSNINGER,
+  const table = useCollectionTable<OevrigeKravRow>({
+    collection: collectionRef,
+    committedRows,
+    createRowId: createOevrigeKravRowId,
+    createEmptyRow: createEmptyOevrigeKravCommittedRow,
+    locationPrefix: collectionLocationPrefix(collectionRef),
+    locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });
 
   const sortColumns = React.useMemo(() => [
@@ -111,44 +112,17 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
     { colId: 'beloeb', getSortValue: (row: OevrigeKravRow) => amountValueToNumber(row.beloeb) },
   ], []);
 
-  const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
+  const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
     isRowEmpty: isOevrigeKravRowEmpty,
     columns: sortColumns,
-    reorderRows: rows.reorder,
+    reorderRows: table.reorderRows,
     saveOrderPath,
   });
 
-  // ── Trailing placeholder-række (§1.11) ──────────────────────────────────────
-  // Den DELTE identitets-livscyklus. Tabellen havde en lokal kopi af den ENKELT-id-model, der
-  // overskrev sit eneste huskede placeholder-id ved en promotion — samme defekt som `useCollectionTable`s,
-  // altså en femte berørt tabel. Puljen bevarer id'et, så det kan genindtræde efter et undo.
-  const committedIdSet = React.useMemo(() => new Set(sortedCommittedRows.map((row) => row.id)), [sortedCommittedRows]);
-  const placeholderIds = usePlaceholderSlotIds(committedIdSet, 1, createOevrigeKravRowId);
-
-  const renderRows: readonly RenderRow[] = React.useMemo(() => [
-    ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
-    ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
-  ], [sortedCommittedRows, placeholderIds]);
-
-  const committedById = React.useMemo(
-    () => new Map(sortedCommittedRows.map((row) => [row.id, row])),
-    [sortedCommittedRows]
-  );
-
-  // Den fælles cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, og ejer-id'erne udledes af
-  // collectionens egen sti. route + tabKey er eksplicit navigation-metadata (§3.7).
-  const buildCellSpec: <T>(
-    renderRow: RenderRow,
-    descriptor: FieldDescriptor<T>,
-    colIdx: number
-  ) => CellSpec<T, OevrigeKravRow> = useCollectionCellSpecBuilder<OevrigeKravRow>({
-    collection: collectionRef,
-    createEmptyRow: createEmptyOevrigeKravCommittedRow,
-    locationPrefix: collectionLocationPrefix(collectionRef),
-    locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
-  });
+  const renderRows = table.buildRenderRows(sortedRows);
+  const { committedById, buildCellSpec } = table;
 
   return (
     <StandardLooseTable
@@ -173,7 +147,7 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
             key={renderRow.rowId}
             renderRow={renderRow}
             committed={committedById.get(renderRow.rowId)}
-            onDeleteRow={rows.remove}
+            onDeleteRow={table.removeRow}
             buildCellSpec={buildCellSpec}
           />
         ))}

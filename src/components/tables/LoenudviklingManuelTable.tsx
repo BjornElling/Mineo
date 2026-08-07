@@ -103,15 +103,17 @@ export default function LoenudviklingManuelTable({
       table.reorderRows(anchored.map((row) => row.id));
     },
   });
+  // Basisrækken er programstyret og ankres først; resten følger sorteringen. Den orden er
+  // tabellens visningsorden, og render-modellen bygges af den ÉT sted (`buildRenderRows`) —
+  // ikke ved at permutere en færdigbygget model på plads bagefter.
   const orderedRows = React.useMemo(() => {
     const existing = baseRowId === undefined
       ? sort.sortedRows
       : [committedRows[0], ...sort.sortedRows.filter((row) => row.id !== baseRowId)].filter(
         (row): row is LoenudviklingManuelRow => row !== undefined
       );
-    const byId = new Map(table.renderRows.map((row) => [row.rowId, row]));
-    return [...existing.map((row) => byId.get(row.id)).filter((row) => row !== undefined), table.renderRows.at(-1)!];
-  }, [baseRowId, committedRows, sort.sortedRows, table.renderRows]);
+    return table.buildRenderRows(existing);
+  }, [baseRowId, committedRows, sort.sortedRows, table]);
   // Fail-closed for ældre/ufuldstændig state: selv uden en canonical basisrække er den første synlige række
   // programstyret. Datoen må aldrig falde tilbage til en redigerbar placeholder.
   const visibleBaseRowId = resolveManualRegulationBasisRowId(committedRows, orderedRows);

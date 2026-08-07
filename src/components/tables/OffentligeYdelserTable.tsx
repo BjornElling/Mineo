@@ -67,15 +67,15 @@ const OffentligeYdelserTable = React.memo(({
     { colId: 'antalDage', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.antalDageDisplay ?? '' },
     { colId: 'ydelsePerDag', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.ydelsePerDagDisplay ?? '' },
   ], [derivedByRowId]);
-  const { renderRows: renderOrder, sortableHeader } = useSortedCollectionTable({
+  const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
-    renderRows: table.renderRows,
     getRowId: (row) => row.id,
     isRowEmpty,
     columns,
     reorderRows: table.reorderRows,
     saveOrderPath,
   });
+  const renderOrder = table.buildRenderRows(sortedRows);
 
   const headers = ['Fra dato', 'Til dato', 'Ydelse', 'Tillæg', 'Ydelsestype', 'Periodisering', 'Antal dage', 'Ydelse per dag'];
   const sortIds = ['fraDato', 'tilDato', 'ydelse', 'tillaeg', 'ydelsestype', 'periodisering', 'antalDage', 'ydelsePerDag'] as const;

@@ -51,15 +51,15 @@ const TafPeriodeTable = React.memo(({
     // route + tabKey er eksplicit navigation-metadata (§3.7); TAF-perioderne bor på EO-oplysningerfanen.
     locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });
-  const { renderRows: renderOrder, sortableHeader } = useSortedCollectionTable({
+  const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
-    renderRows: table.renderRows,
     getRowId: (row) => row.id,
     isRowEmpty: isTafRowEmpty,
     columns,
     reorderRows: table.reorderRows,
     saveOrderPath,
   });
+  const renderOrder = table.buildRenderRows(sortedRows);
 
   return (
     <StandardLooseTable sx={{ width: '720px', tableLayout: 'fixed', mb: 3, '& .MuiTableCell-root': { textAlign: 'center', whiteSpace: 'nowrap' }, '& thead th': { textAlign: 'center' } }}>

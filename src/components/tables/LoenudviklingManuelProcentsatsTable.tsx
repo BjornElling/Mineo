@@ -55,9 +55,11 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
     { colId: 'akkumuleret', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => entryById.get(row.id)?.akkumuleretPct },
   ], [baseDateISO, baseRowId, entryById]);
   const sort = useTableSort({ rows: committedRows, getRowId: (row) => row.id, isRowEmpty: (row) => row.id === baseRowId ? false : isRowEmpty(row), columns, onSortedRowsChange: (next) => table.reorderRows((baseRowId === undefined ? next : [committedRows[0], ...next.filter((row) => row.id !== baseRowId)]).filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined).map((row) => row.id)) });
+  // Basisrækken er programstyret og ankres først; resten følger sorteringen. Den orden er
+  // tabellens visningsorden, og render-modellen bygges af den ÉT sted (`buildRenderRows`) —
+  // ikke ved at permutere en færdigbygget model på plads bagefter.
   const existing = baseRowId === undefined ? sort.sortedRows : [committedRows[0], ...sort.sortedRows.filter((row) => row.id !== baseRowId)].filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined);
-  const renderById = new Map(table.renderRows.map((row) => [row.rowId, row]));
-  const renderRows = [...existing.map((row) => renderById.get(row.id)).filter((row) => row !== undefined), table.renderRows.at(-1)!];
+  const renderRows = table.buildRenderRows(existing);
   // Fail-closed for ældre/ufuldstændig state: en manglende canonical basisrække må aldrig gøre første dato
   // redigerbar. Normale valg opretter basisrækken atomisk før tabellen vises.
   const visibleBaseRowId = resolveManualRegulationBasisRowId(committedRows, renderRows);

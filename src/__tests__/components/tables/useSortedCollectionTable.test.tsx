@@ -20,7 +20,6 @@ import type { TableSaveOrderPath } from '../../../utils/tableSaveOrderRegistry';
  */
 
 type Row = Readonly<{ id: string; navn: string; tal: number }>;
-type RenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
 
 const rows: readonly Row[] = [
   { id: 'b', navn: 'Bertha', tal: 2 },
@@ -36,12 +35,14 @@ const columns = [
 const getRowId = (row: Row) => row.id;
 const isRowEmpty = (row: Row) => row.navn === '' && row.tal === 0;
 
-/** Render-modellen i sin EGEN (usorterede) orden, med placeholderen i midten. */
-const modelRenderRows: readonly RenderRow[] = [
-  { rowId: 'b', kind: 'existing' },
+/**
+ * Render-modellen bygges af den SORTEREDE orden, ikke reconciles ind i den. Harnessen bruger
+ * derfor samme konstruktion som `useCollectionTable.buildRenderRows`: viste rækker først,
+ * placeholder sidst.
+ */
+const buildRenderRows = (displayRows: readonly Row[]): readonly Readonly<{ rowId: string; kind: string }>[] => [
+  ...displayRows.map((row) => ({ rowId: row.id, kind: 'existing' })),
   { rowId: 'placeholder-1', kind: 'placeholder' },
-  { rowId: 'a', kind: 'existing' },
-  { rowId: 'c', kind: 'existing' },
 ];
 
 // En RIGTIG registry-sti: registret validerer rodnøglen mod storage-manifestet, så en
@@ -61,21 +62,20 @@ const readRegisteredOrder = (): readonly string[] => {
 
 type HarnessProps = Readonly<{
   reorderRows: (ids: readonly string[]) => void;
-  withRenderRows?: boolean;
   saveOrderPath?: TableSaveOrderPath;
 }>;
 
-const Harness = ({ reorderRows, withRenderRows = true, saveOrderPath = SAVE_ORDER_PATH }: HarnessProps) => {
+const Harness = ({ reorderRows, saveOrderPath = SAVE_ORDER_PATH }: HarnessProps) => {
   const memoColumns = React.useMemo(() => columns, []);
-  const result = useSortedCollectionTable<Row, RenderRow>({
+  const result = useSortedCollectionTable<Row>({
     committedRows: rows,
-    renderRows: withRenderRows ? modelRenderRows : undefined,
     getRowId,
     isRowEmpty,
     columns: memoColumns,
     reorderRows,
     saveOrderPath,
   });
+  const renderRows = buildRenderRows(result.sortedRows);
 
   return (
     <div>
@@ -85,7 +85,7 @@ const Harness = ({ reorderRows, withRenderRows = true, saveOrderPath = SAVE_ORDE
       <span data-testid="sort-role">{result.sortableHeader('navn').sortRole}</span>
       <span data-testid="sort-direction">{String(result.sortableHeader('navn').sortDirection)}</span>
       <span data-testid="sorted-ids">{result.sortedRows.map(getRowId).join(',')}</span>
-      <span data-testid="render-ids">{result.renderRows.map((row) => row.rowId).join(',')}</span>
+      <span data-testid="render-ids">{renderRows.map((row) => row.rowId).join(',')}</span>
       <span data-testid="registered-ids">{result.sortedRowIds.join(',')}</span>
     </div>
   );
@@ -98,8 +98,7 @@ describe('useSortedCollectionTable', () => {
   it('render-rækkerne følger den sorterede orden, og placeholderen holdes i bunden', async () => {
     render(<Harness reorderRows={() => {}} />);
 
-    // Usorteret: modellens egen orden for de udfyldte rækker, placeholder sidst.
-    // Placeholderen stod i MIDTEN i modellen — den må ikke kunne sorteres ind mellem data.
+    // Usorteret: de committede rækkers egen orden, placeholder sidst.
     expect(screen.getByTestId('render-ids').textContent).toBe('b,a,c,placeholder-1');
 
     await act(async () => {
@@ -140,14 +139,28 @@ describe('useSortedCollectionTable', () => {
     expect(readRegisteredOrder()).toEqual(['a', 'b', 'c']);
   });
 
-  it('springer render-reconciliation over, når kalderen ikke har en separat render-model', () => {
-    // De tabeller, der bygger render-rækkerne direkte fra den sorterede orden, har intet at
-    // reconcile. Fraværet skal give en tom liste, ikke et forsøg på at slå op i undefined.
-    render(<Harness reorderRows={() => {}} withRenderRows={false} />);
+  it('leverer RÆKKEFØLGEN og bygger ikke selv render-rækker', () => {
+    // Hooken leverer `sortedRows`; render-modellen bygges ét sted af `useCollectionTable`.
+    // Beviser at hookens resultat ikke igen begynder at bære sin egen render-model — så ville
+    // der være to konstruktioner at holde i sync, hvilket er hele fejlklassen her.
+    let captured: Record<string, unknown> | undefined;
+    const Probe = () => {
+      const memoColumns = React.useMemo(() => columns, []);
+      captured = useSortedCollectionTable<Row>({
+        committedRows: rows,
+        getRowId,
+        isRowEmpty,
+        columns: memoColumns,
+        reorderRows: () => {},
+        saveOrderPath: SAVE_ORDER_PATH,
+      }) as unknown as Record<string, unknown>;
+      return null;
+    };
+    render(<Probe />);
 
-    expect(screen.getByTestId('render-ids').textContent).toBe('');
-    expect(screen.getByTestId('sorted-ids').textContent).toBe('b,a,c');
-    expect(screen.getByTestId('registered-ids').textContent).toBe('b,a,c');
+    expect(captured).toBeDefined();
+    expect(Object.keys(captured!)).not.toContain('renderRows');
+    expect((captured!.sortedRows as readonly Row[]).map(getRowId)).toEqual(['b', 'a', 'c']);
   });
 
   it('sortableHeader giver alle tre props fra ét colId', async () => {

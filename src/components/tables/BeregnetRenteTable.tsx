@@ -3,6 +3,7 @@ import { Box, MenuItem, TableBody, TableCell, TableHead, TableRow, Typography } 
 import DownloadIconButton from '../inputs/DownloadIconButton';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
+import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import { formatKr } from '../../utils/formatUtils';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
@@ -13,7 +14,6 @@ import type { RentekravRowResult } from '../../domain/renteberegning/renteberegn
 import {
   createEmptyRentekravCommittedRow,
   createRentekravRowId,
-  shouldAppendRentekravPlaceholder,
 } from '../../domain/renteberegning/rentekravTableModel';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import type { ProjectionResult } from '../../inputCore/projection';
@@ -24,15 +24,12 @@ import {
   getDocumentFormatLabel,
   type DocumentDownloadFormat,
 } from '../../document/documentFormat';
-import { useCollectionRows } from '../../inputCore/react';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
   collectionLocationPrefix,
-  useCollectionCellSpecBuilder,
   type CollectionRenderRow as RenderRow,
 } from '../../inputCore/react/cellSpecBuilder';
-import { usePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
-import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
   GridAmountCell,
   GridDateCell,
@@ -257,60 +254,35 @@ const BeregnetRenteTable = React.memo(
     documentDownloadFormat,
     resolveDownloadGate,
   }: BeregnetRenteTableProps) => {
-    const rows = useCollectionRows<RentekravRow>(rentekravRowsCollectionRef, {
-    locationId: 'renteberegning.rentekravRows',
-    route: APP_ROUTES.renteberegning,
-    tabKey: PAGE_DEFAULT_TAB.renteberegning,
-  });
-
+    // En række med kun valgt enhed er fortsat semantisk tom og fungerer selv som den ene trailing
+    // indtastningsrække; derfor `countsAsEmptyEntryRow`. Placeholder-id'et holdes stadig varmt af
+    // hooken, så undo kan genskabe fokus.
+    const table = useCollectionTable<RentekravRow>({
+      collection: rentekravRowsCollectionRef,
+      committedRows,
+      createRowId: createRentekravRowId,
+      createEmptyRow: createEmptyRentekravCommittedRow,
+      locationPrefix: collectionLocationPrefix(rentekravRowsCollectionRef),
+      locationNav: { route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning },
+      countsAsEmptyEntryRow: isRentekravRowEmpty,
+    });
 
     const sortColumns = React.useMemo(() => [
       { colId: 'belob', getSortValue: (row: RentekravRow) => amountValueToNumber(row.belob) },
       { colId: 'renterFra', getSortValue: (row: RentekravRow) => row.renterFra },
     ], []);
 
-    const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
+    const { sortedRows, sortableHeader } = useSortedCollectionTable({
       committedRows,
       getRowId: (row) => row.id,
       isRowEmpty: isRentekravRowEmpty,
       columns: sortColumns,
-      reorderRows: rows.reorder,
+      reorderRows: table.reorderRows,
       saveOrderPath,
     });
 
-    // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
-    // Tomme rækker persisteres ikke. Legacy viste altid præcis én trailing tom række
-    // (ensureRowsWithTrailingEmpty); den trailing placeholder er nu den ene indtastningsklare række.
-    //
-    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` — tabellen havde tidligere sin egen
-    // kopi. Puljen bevarer et promoveret id, så det kan genindtræde efter et undo.
-    const committedIdSet = React.useMemo(() => new Set(sortedCommittedRows.map((row) => row.id)), [sortedCommittedRows]);
-    const placeholderIds = usePlaceholderSlotIds(committedIdSet, 1, createRentekravRowId);
-    const shouldAppendPlaceholder = shouldAppendRentekravPlaceholder(sortedCommittedRows);
-
-    const renderRows: readonly RenderRow[] = React.useMemo(() => [
-      ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
-      // En række med kun valgt enhed er fortsat semantisk tom og fungerer selv som den ene trailing
-      // indtastningsrække. Placeholder-id'et holdes stadig varmt af hooken, så undo kan genskabe fokus.
-      ...(shouldAppendPlaceholder ? placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })) : []),
-    ], [shouldAppendPlaceholder, sortedCommittedRows, placeholderIds]);
-    const committedById = React.useMemo(
-      () => new Map(sortedCommittedRows.map((row) => [row.id, row])),
-      [sortedCommittedRows]
-    );
-
-    // Den fælles cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, og ejer-id'erne udledes af
-    // collectionens egen sti. route + tabKey er eksplicit navigation-metadata (§3.7).
-    const buildCellSpec: <T>(
-      renderRow: RenderRow,
-      descriptor: FieldDescriptor<T>,
-      colIdx: number
-    ) => CellSpec<T, RentekravRow> = useCollectionCellSpecBuilder<RentekravRow>({
-      collection: rentekravRowsCollectionRef,
-      createEmptyRow: createEmptyRentekravCommittedRow,
-      locationPrefix: collectionLocationPrefix(rentekravRowsCollectionRef),
-      locationNav: { route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning },
-    });
+    const renderRows = table.buildRenderRows(sortedRows);
+    const { committedById, buildCellSpec } = table;
 
     return (
       <StandardLooseTable
@@ -393,7 +365,7 @@ const BeregnetRenteTable = React.memo(
                 renderRow={renderRow}
                 rowIndex={rowIndex}
                 onDownloadSpecifikation={onDownloadSpecifikation}
-                onDeleteRow={rows.remove}
+                onDeleteRow={table.removeRow}
                 projection={rowProjections.get(renderRow.rowId)}
                 rowIsSemanticallyEmpty={committedRow === undefined || isRentekravRowEmpty(committedRow)}
                 isMobile={isMobile}

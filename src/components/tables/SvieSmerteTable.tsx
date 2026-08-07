@@ -47,15 +47,15 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath 
     { colId: 'antalDage', getSortValue: (row: SvieSmertePeriodeRow) => derivedById[row.id]?.antalDage ?? undefined },
     { colId: 'tilstand', getSortValue: (row: SvieSmertePeriodeRow) => row.tilstand },
   ], [derivedById]);
-  const { renderRows, sortableHeader } = useSortedCollectionTable({
+  const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
-    renderRows: table.renderRows,
     getRowId: (row) => row.id,
     isRowEmpty: isSvieSmerteRowEmpty,
     columns,
     reorderRows: table.reorderRows,
     saveOrderPath,
   });
+  const renderRows = table.buildRenderRows(sortedRows);
 
   return (
     <StandardLooseTable sx={{ width: '760px', tableLayout: 'fixed', mb: 3, '& .MuiTableCell-root': { textAlign: 'center', whiteSpace: 'nowrap' }, '& thead th': { textAlign: 'center' } }}>

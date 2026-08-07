@@ -95,6 +95,10 @@ History-origin er en strukturel `FieldRef` kombineret med den konkrete editors e
   samme identitet, hver gang den samme tilstand er aktuel. En flade må derfor ikke huske identiteten i en
   hukommelse, der kan glemme (eller genmønte) et id, history stadig kan pege på. Ejerskabet ligger i
   `usePlaceholderSlotIds`, hvis id-sekvens er append-only per konstruktion.
+  Tabellerne når den KUN gennem `useCollectionTable`, som udleder identiteten af MÆNGDEN af committede
+  id'er og kun tager den viste orden ind i `buildRenderRows`. Dermed kan en sortering ikke flytte den
+  tomme rækkes identitet. Håndhævet af `form/placeholder-identity-single-owner`, der både afviser en
+  lokal id-pulje og et direkte `usePlaceholderSlotIds`-kald fra en tabel.
 
 Fallback til det element, der tilfældigvis har DOM-fokus efter blur, er ikke en korrekt identitetskilde.
 

@@ -28,15 +28,8 @@ import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardL
 import type { StandardLoenTableFieldSet } from './standardLoenTableFieldSet';
 import { readStandardLoenTableRows } from './standardLoenTableFieldSet';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
-import { useInputEvaluation, useCollectionRows } from '../../inputCore/react';
-import type { CellSpec } from '../../inputCore/react/useCellEditor';
-import {
-  collectionLocationPrefix,
-  useCollectionCellSpecBuilder,
-  type CollectionRenderRow as RenderRow,
-} from '../../inputCore/react/cellSpecBuilder';
-import { usePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
-import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
+import { useInputEvaluation } from '../../inputCore/react';
+import { collectionLocationPrefix } from '../../inputCore/react/cellSpecBuilder';
 import {
   GridAmountCell,
   GridDateCell,
@@ -50,6 +43,7 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton, rowDeleteLaneStyle } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
+import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
@@ -106,13 +100,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     const beloebMode = tillaegAngivesSom === 'beloeb';
     const evaluation = useInputEvaluation();
     const collection: CollectionRef = fieldSet.collection;
-    // Tabellen bruges i flere kontekster (Årsløn + EO's nested løntabeller), så destinationen kommer fra
-    // kalderens `locationNav`; feltsættets id navngiver lokationen entydigt.
-    const rows = useCollectionRows<StandardLoenTableRow>(collection, {
-      locationId: `standardLoen:${collection.section}.${collection.collection}`,
-      route: locationNav.route,
-      tabKey: locationNav.tabKey,
-    });
 
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const cellRefsByCellKeyRef = React.useRef<Record<string, HTMLInputElement | null>>({});
@@ -129,10 +116,23 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       () => readStandardLoenTableRows(fieldSet, evaluation.reader),
       [evaluation, fieldSet]
     );
-    const committedById = React.useMemo(
-      () => new Map(committedRows.map((row) => [row.id, row])),
-      [committedRows]
-    );
+    // Tabellen bruges i flere kontekster (Årsløn + EO's nested løntabeller). Præfikset er derfor det
+    // kanoniske `collectionLocationPrefix`, som bærer ejer-id'erne med: EO renderer én løntabel pr.
+    // ansættelsesforhold, og det tidligere `standardLoen:${section}.${collection}` udelod dem, så to
+    // kort delte ÉN editorlokation for deres rækkehandlinger. Celle-bindingen brugte allerede den
+    // kanoniske form — de to var altså uenige om samme tabels lokation.
+    //
+    // Tomme rækker persisteres ikke; `minimumVisibleRows` er den rene VISNINGSregel (§1.11).
+    const table = useCollectionTable<StandardLoenTableRow>({
+      collection,
+      committedRows,
+      createRowId: React.useCallback(() => createRowId('row'), []),
+      createEmptyRow: fieldSet.createRow,
+      locationPrefix: collectionLocationPrefix(collection),
+      locationNav,
+      minimumVisibleRows: MIN_VISIBLE_ROWS,
+    });
+    const { committedById, buildCellSpec } = table;
 
     const isRowEmpty = React.useCallback(
       (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row, loenperiode, tillaegAngivesSom),
@@ -224,27 +224,11 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       getRowId: (row) => row.id,
       isRowEmpty,
       columns: sortColumns,
-      reorderRows: rows.reorder,
+      reorderRows: table.reorderRows,
       saveOrderPath,
     });
 
-    // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
-    // Tomme rækker persisteres ikke. Den viste tabel = de committede rækker + en trailing placeholder-
-    // række til næste indtastning + evt. flere placeholders op til MIN_VISIBLE_ROWS.
-    //
-    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds`: id'et er stabilt pr. slot, så en
-    // åben celleeditor ikke skifter identitet under redigering, OG et promoveret id bevares, så det kan
-    // genindtræde efter et undo — ellers mister fokusrestoren sit mål. Tabellen havde tidligere sin
-    // egen kopi af proceduren.
-    const committedIdSet = React.useMemo(() => new Set(committedRows.map((row) => row.id)), [committedRows]);
-    const placeholderCount = Math.max(1, MIN_VISIBLE_ROWS - committedRows.length);
-    const createPlaceholderRowId = React.useCallback(() => createRowId('row'), []);
-    const placeholderIds = usePlaceholderSlotIds(committedIdSet, placeholderCount, createPlaceholderRowId);
-
-    const renderRows: readonly RenderRow[] = React.useMemo(() => [
-      ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
-      ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
-    ], [sortedCommittedRows, placeholderIds]);
+    const renderRows = table.buildRenderRows(sortedCommittedRows);
 
     // Save-order = de committede rækker i sorteret rækkefølge (placeholder-rækker persisteres ikke).
     // ── Visuel peg-mekanisme ────────────────────────────────────────────────────
@@ -315,37 +299,21 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           blinkFieldAttention(el);
         },
         showNeedsPeriodHint: () => {
-          const firstRow = sortedCommittedRows[0] ?? { id: placeholderIds[0] };
-          if (!firstRow) return;
+          // Den FØRSTE viste række, uanset om den er committet eller en placeholder — altså render-
+          // modellens første række, ikke to separate opslag der kan blive uenige.
+          const firstRowId = renderRows[0]?.rowId;
+          if (firstRowId === undefined) return;
           const [periodStartKey] = getStandardLoenPeriodKeys(loenperiode);
           if (!isVisibleColKey(periodStartKey)) return;
-          setMissingCell({ rowId: firstRow.id, colKey: periodStartKey });
-          const el = cellRefsByCellKeyRef.current[`${firstRow.id}:${resolveColIdxFromKey(periodStartKey)}`];
+          setMissingCell({ rowId: firstRowId, colKey: periodStartKey });
+          const el = cellRefsByCellKeyRef.current[`${firstRowId}:${resolveColIdxFromKey(periodStartKey)}`];
           if (el) scrollTargetIntoView(el, { force: true });
         },
       }),
-      [isVisibleColKey, loenperiode, placeholderIds, resolveColIdxFromKey, sortedCommittedRows]
+      [isVisibleColKey, loenperiode, renderRows, resolveColIdxFromKey]
     );
 
     const headers = React.useMemo(() => getStandardLoenTableHeaderNodes(loenperiode), [loenperiode]);
-
-    // ── Celle-spec-bygger ──────────────────────────────────────────────────────
-    // Den FÆLLES cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, hvor ejer-id'erne udledes
-    // af collectionens egen sti. Tabellen deles mellem Årsløn (top-level `aarsloen.tableData`) og EO's løntabel
-    // NESTED under et ansættelsesforhold — og netop derfor må den ikke selv antage ét entity-led.
-    const buildCellSpec: <T>(
-      renderRow: RenderRow,
-      descriptor: FieldDescriptor<T>,
-      colIdx: number
-    ) => CellSpec<T, StandardLoenTableRow> = useCollectionCellSpecBuilder<StandardLoenTableRow>({
-      collection,
-      createEmptyRow: fieldSet.createRow,
-      // Præfikset skal skelne to instanser af SAMME collection-type: EO renderer én løntabel pr. ansættelses-
-      // forhold, så ejer-id'erne skal med — ellers ville to kort dele editorlokation, og en undo kunne fokusere
-      // den forkerte tabels celle (§3.7).
-      locationPrefix: collectionLocationPrefix(collection),
-      locationNav,
-    });
 
     return (
       <StandardGridTable
@@ -495,7 +463,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                 >
                   {formatKr(calculated.col8, 2)}
                   {renderRow.kind === 'existing' && (
-                    <RowDeleteButton onDelete={() => rows.remove(rowId)} />
+                    <RowDeleteButton onDelete={() => table.removeRow(rowId)} />
                   )}
                 </td>
               </tr>

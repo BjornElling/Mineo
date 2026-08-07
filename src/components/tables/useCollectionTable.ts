@@ -16,6 +16,25 @@ export type RenderRow = CollectionRenderRow;
  * placeholder; alle eksisterende række-id'er og celleværdier kommer fra inputaggregatet. Cellernes dataidentitet
  * bygges af den fælles `buildCollectionCellSpec` (§3.2), som selv udleder ejer-id'erne af collectionens sti — så
  * en nested tabel ikke kan binde med for få entity-led.
+ *
+ * Render-modellen har ÉN konstruktion: `buildRenderRows(displayRows)` — de viste rækker i den orden,
+ * de skal vises i, plus placeholderne sidst. Det var tidligere to konkurrerende konstruktioner, der
+ * gav samme resultat ad hver sin vej: hooken byggede modellen af den USORTEREDE `committedRows` og
+ * lod `useSortedCollectionTable` permutere den tilbage på plads bagefter, mens fire tabeller
+ * sorterede først og byggede modellen i hånden af resultatet. Prisen for den anden vej var, at hver
+ * af de fire ejede hele identitetskæden selv, med kun `usePlaceholderSlotIds` delt.
+ *
+ * Reconciliation-vejen bar desuden en defekt, som «byg af den viste orden» ikke kan have: den
+ * genfandt placeholderen med `.find(kind === 'placeholder')` og tog altså kun den FØRSTE. En tabel
+ * med `minimumVisibleRows > 1` ville tavst tabe sine øvrige tomme rækker. Det ramte ikke produktionen,
+ * fordi netop de to tabeller, der viser flere tomme rækker, var blandt dem der gik uden om hooken —
+ * altså præcis den «tre af fire rigtigt»-fejlmåde, hele rækkefølge-laget findes for at forhindre.
+ *
+ * `buildRenderRows` er en FUNKTION og ikke en `displayRows`-parameter, fordi rækkefølge-laget
+ * har brug for `reorderRows` fra denne hook, mens render-modellen har brug for rækkefølge-lagets
+ * `sortedRows`. Som parameter ville de to hooks skulle kaldes i en rækkefølge, ingen af dem kan
+ * opfylde; som funktion forsvinder afhængigheden, og kaldstedet får stadig kun ét sted at bygge
+ * modellen.
  */
 export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   collection,
@@ -25,6 +44,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   locationPrefix,
   locationNav,
   minimumVisibleRows = 1,
+  countsAsEmptyEntryRow,
 }: Readonly<{
   collection: CollectionRef;
   committedRows: readonly TRow[];
@@ -38,6 +58,20 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    * begrunder ikke en egen kopi af identitets- og bindingsalgoritmen.
    */
   minimumVisibleRows?: number;
+  /**
+   * Tæller en committet række allerede som tabellens tomme indtastningsrække?
+   *
+   * Standardsvaret er nej: en committet række er data, og tabellen får sin egen tomme række
+   * ovenpå. Rentekrav-tabellen er undtagelsen — dér er «kun enhed valgt» stadig semantisk tomt,
+   * og den række ER indtastningsrækken, så en placeholder oveni ville give to tomme rækker.
+   *
+   * Udtrykt som et prædikat på den committede MÆNGDE og ikke som et `boolean` fra kaldstedet,
+   * fordi det er samme slags visningsregel som `minimumVisibleRows`: den bestemmer HVOR MANGE
+   * tomme rækker der vises, ikke hvordan de bygges. Lå den ude ved kaldstedet, ville tabellen
+   * skulle bygge render-modellen selv for at anvende den — og dermed være tilbage ved sin egen
+   * kopi af identitetskæden.
+   */
+  countsAsEmptyEntryRow?: (row: TRow) => boolean;
   /**
    * Eksplicit navigation-metadata for cellernes editorlokationer (§3.7): route + fane for den side/fane, tabellen
    * bor på. Kalderen leverer den, fordi tabellen ikke kan udlede route af `locationPrefix`.
@@ -58,17 +92,35 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
     tabKey: locationNav.tabKey,
   });
   const committedIdSet = React.useMemo(() => new Set(committedRows.map((row) => row.id)), [committedRows]);
-  // Altid mindst én trailing tom række, og nok til at nå `minimumVisibleRows`.
-  const placeholderCount = Math.max(1, minimumVisibleRows - committedRows.length);
+  // Altid mindst én tom indtastningsrække, og nok til at nå `minimumVisibleRows`. Tæller en committet
+  // række allerede som den tomme indtastningsrække, er bunden 0 i stedet for 1 — ellers ville tabellen
+  // vise to tomme rækker.
+  const hasEmptyEntryRow = countsAsEmptyEntryRow !== undefined && committedRows.some(countsAsEmptyEntryRow);
+  const placeholderCount = Math.max(hasEmptyEntryRow ? 0 : 1, minimumVisibleRows - committedRows.length);
   // Den ENE placeholder-identitets-livscyklus (§1.11/§3.7): puljen BEVARER et promoveret id, så det kan
   // genindtræde, hvis rækken forsvinder ved et undo — ellers findes der intet element, fokusrestoren kan
   // matche på, og fokus forlader lydløst tabellen.
   const placeholderIds = usePlaceholderSlotIds(committedIdSet, placeholderCount, createRowId);
 
-  const renderRows = React.useMemo<readonly RenderRow[]>(() => [
-    ...committedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
-    ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
-  ], [committedRows, placeholderIds]);
+  /**
+   * Render-modellen for én visning: de viste rækker i den orden, de skal vises i, plus
+   * placeholderne SIDST. Placeholderne er «næste tomme række», ikke data, og må aldrig kunne
+   * sorteres ind mellem de udfyldte rækker.
+   *
+   * `displayRows` er som regel `sortedRows` fra `useSortedCollectionTable`, men enhver orden af de
+   * committede rækker er lovlig — fx de base-række-ankrede tabellers «basisrække først, resten
+   * sorteret». Det er bevidst RÆKKEFØLGEN alene: placeholder-identiteten udledes af MÆNGDEN af
+   * committede id'er ovenfor, aldrig af den viste orden. Ellers kunne en sortering flytte den
+   * tomme rækkes identitet, og en history-origin fra før sorteringen ville ikke længere kunne
+   * finde sit element (§1.11/§3.7).
+   */
+  const buildRenderRows = React.useCallback(
+    (displayRows: readonly TRow[] = committedRows): readonly RenderRow[] => [
+      ...displayRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
+      ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
+    ],
+    [committedRows, placeholderIds]
+  );
   const committedById = React.useMemo(
     () => new Map(committedRows.map((row) => [row.id, row])),
     [committedRows]
@@ -87,10 +139,10 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   });
 
   return React.useMemo(() => ({
-    renderRows,
+    buildRenderRows,
     committedById,
     buildCellSpec,
     removeRow: rows.remove,
     reorderRows: rows.reorder,
-  }), [buildCellSpec, committedById, renderRows, rows.remove, rows.reorder]);
+  }), [buildCellSpec, buildRenderRows, committedById, rows.remove, rows.reorder]);
 };

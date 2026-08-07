@@ -2268,38 +2268,73 @@ export const rowDeleteLaneCellRule = defineRule({
   ],
 });
 
+/**
+ * Tabellerne hvis render-model + placeholder-identitet ejes af `useCollectionTable`.
+ *
+ * Listen er ALLE de dynamiske samlingstabeller, ikke længere kun de fire, der før havde deres egen
+ * kopi: efter konsolideringen bygger ingen af dem selv render-modellen.
+ */
 const PLACEHOLDER_TABLES = [
   'BeregnetRenteTable.tsx',
   'EetAslAfgoerelserTable.tsx',
+  'FerieperiodeTable.tsx',
+  'LoenudviklingManuelProcentsatsTable.tsx',
+  'LoenudviklingManuelTable.tsx',
   'OevrigeKravTable.tsx',
+  'OffentligeYdelserTable.tsx',
   'StandardLoenTable.tsx',
+  'SvieSmerteTable.tsx',
+  'TafPeriodeTable.tsx',
 ].map((name) => `${TABLE_SCOPE}${name}`);
 const LOCAL_PLACEHOLDER_POOL_NAMES = new Set(['placeholderIdsRef', 'placeholderIdRef']);
 
 export const placeholderIdentityOwnershipRule = defineRule({
   id: 'form/placeholder-identity-single-owner',
   description:
-    'Placeholder-identitet ejes af usePlaceholderSlotIds; tabeller må ikke genindføre en lokal id-pulje.',
+    'Render-model og placeholder-identitet ejes af useCollectionTable; en tabel må hverken genindføre '
+    + 'en lokal id-pulje, kalde usePlaceholderSlotIds direkte eller bygge sine egne render-rækker.',
   liveTarget: {
     kind: 'precondition',
-    probe: (entry) => collectCalls(entry).some((call) => call.calleeName === 'usePlaceholderSlotIds'),
-    rationale: 'de fire placeholder-tabeller bruger fortsat den delte identitetslivscyklus',
+    probe: (entry) => collectCalls(entry).some((call) => call.calleeName === 'useCollectionTable'),
+    rationale: 'de dynamiske samlingstabeller får fortsat render-model og placeholder-identitet fra den fælles hook',
     minimumMatches: PLACEHOLDER_TABLES.length,
     requiredPaths: PLACEHOLDER_TABLES,
   },
   appliesTo: isTopLevelTable,
-  find: (entry) => collectIdentifiers(entry)
-    .filter((identifier) => LOCAL_PLACEHOLDER_POOL_NAMES.has(identifier.text))
-    .map((identifier) => ({
-      position: identifier.position,
-      message: `Lokal placeholder-pulje (${identifier.text}) — brug usePlaceholderSlotIds som eneste ejer.`,
-    })),
-  violatingFixtures: [{
-    relativePath: `${TABLE_SCOPE}XTable.tsx`,
-    code: 'const placeholderIdsRef = React.useRef<string[]>([]);',
-  }],
+  find: (entry) => {
+    const findings = collectIdentifiers(entry)
+      .filter((identifier) => LOCAL_PLACEHOLDER_POOL_NAMES.has(identifier.text))
+      .map((identifier) => ({
+        position: identifier.position,
+        message: `Lokal placeholder-pulje (${identifier.text}) — brug useCollectionTable som eneste ejer.`,
+      }));
+
+    // Kalder tabellen selv `usePlaceholderSlotIds`, ejer den halvdelen af identitetskæden igen — og
+    // så skal den også bygge render-modellen selv. Det var netop den vej, fire tabeller havde taget.
+    for (const call of collectCalls(entry)) {
+      if (call.calleeName !== 'usePlaceholderSlotIds') continue;
+      findings.push({
+        position: call.position,
+        message:
+          'Tabellen kalder usePlaceholderSlotIds direkte. Placeholder-identitet OG render-model hører '
+          + 'sammen; brug useCollectionTable, så de ikke kan komme ud af sync.',
+      });
+    }
+    return findings;
+  },
+  violatingFixtures: [
+    {
+      relativePath: `${TABLE_SCOPE}XTable.tsx`,
+      code: 'const placeholderIdsRef = React.useRef<string[]>([]);',
+    },
+    // Den halve ejerskabsform: delt id-pulje, men egen render-model.
+    {
+      relativePath: `${TABLE_SCOPE}XTable.tsx`,
+      code: 'const placeholderIds = usePlaceholderSlotIds(committedIds, 1, createId);',
+    },
+  ],
   cleanFixtures: [{
     relativePath: `${TABLE_SCOPE}XTable.tsx`,
-    code: 'const placeholderIds = usePlaceholderSlotIds(committedIds, 1, createId);',
+    code: 'const table = useCollectionTable({ collection, committedRows, createRowId, createEmptyRow, locationPrefix, locationNav });\nconst renderRows = table.buildRenderRows(sortedRows);',
   }],
 });

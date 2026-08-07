@@ -109,7 +109,7 @@ const TableHarness: React.FC<Readonly<{
         onKeyDownCapture={handleTableKeyDownCapture}
       >
         <tbody>
-          {table.renderRows.map((renderRow) => (
+          {table.buildRenderRows().map((renderRow) => (
             <tr key={renderRow.rowId} data-mineo-row-id={renderRow.rowId}>
               <td>
                 <GridAmountCell

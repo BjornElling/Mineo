@@ -1966,7 +1966,7 @@ Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det
 kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
 beskriver flere steder slettede mellemtrin.
 
-**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 537 testfiler / 6946 tests,
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 538 testfiler / 6954 tests,
 `typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»,
 «Efterslæb lukket 2026-08-07», «Gennemført 2026-08-07 (anden omgang: #50 og #32)»,
 «Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)» og
@@ -1986,7 +1986,8 @@ Anciennitetstillæg, se nedenfor); det blokerer intet.
 afsnitsnummereringer; `schema-evolution.md`s domænesti-tabel, som filen selv skriver «skal holdes i sync
 med registry»; ~~`RowDeleteButton`-mønstrets omgivende celle (10 steder, fire varianter)~~
 **✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08» nedenfor**;
-`renderRows`-reconciliationens fætter i de fire ikke-`useCollectionTable`-tabeller;
+~~`renderRows`-reconciliationens fætter i de fire ikke-`useCollectionTable`-tabeller~~
+**✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08 (anden post)» nedenfor**;
 `DanishDateString`-datalagets to private `danishDateToNumber`-kopier og `.filter().reduce()`-max-familien
 på seks interval-start-resolvere; Indstillingssidens fire `is…Option`-typeguards og
 `defaultDirectoryHandleId`s ~143 linjer.
@@ -2045,6 +2046,75 @@ med `expected 'static' to be 'relative'`, altså af den målte mekanisme og ikke
 Ingen synlig UI-ændring: kontrakten er byte-identisk med den, de ti celler allerede havde
 (`OffentligeYdelserTable`s `textAlign: 'right'` og `StandardLoenTable`s `padding`/farve er bevaret som
 basis). Fuldt træ grønt: 537 filer / 6946 tests (+6), `typecheck`, `typecheck:test`, `lint`.
+
+### Efterslæb lukket 2026-08-08 (anden post) — render-modellens to konstruktioner
+
+Anden post fra listen over «registreret som ikke gjort». Den var registreret som
+«`renderRows`-reconciliationens fætter i de fire ikke-`useCollectionTable`-tabeller», altså som fire
+kopier af en løkke. Skæringen var for snæver på to måder, og begge blev fundet ved at læse koden frem
+for beskrivelsen.
+
+**Det reelle fund:** der var **to konkurrerende konstruktioner af den samme render-model**, og de gav
+samme resultat ad hver sin vej. Seks tabeller byggede modellen af den USORTEREDE `committedRows` og lod
+`useSortedCollectionTable` permutere den tilbage på plads bagefter (`orderedRenderRows`); fire sorterede
+først og byggede modellen i hånden af resultatet. Modellen ER «viste rækker i vist orden + placeholders
+sidst» — så den første vej var en omvej, og `renderRows?`-parameteren på rækkefølge-hooken fandtes kun
+for at bære forskellen. Duplikationen var desuden ikke fire steder, men **seks**: de to
+`Loenudvikling*`-tabeller reconcilierede også i hånden (`renderById` + `.at(-1)!`), i en tredje variant.
+
+**Reconciliation-vejen bar en latent defekt, den nye ikke kan have.** Den genfandt placeholderen med
+`.find(kind === 'placeholder')` og tog altså kun den FØRSTE. En tabel med `minimumVisibleRows > 1` ville
+tavst tabe sine øvrige tomme rækker. Den ramte ikke produktionen — men kun fordi netop de to tabeller,
+der viser flere tomme rækker (`StandardLoenTable`, `EetAslAfgoerelserTable`), var blandt dem, der gik
+uden om hooken. Altså præcis den «tre af fire rigtigt»-fejlmåde, hele rækkefølge-laget findes for at
+forhindre.
+
+**Gjort:**
+
+- `useCollectionTable.buildRenderRows(displayRows)` er nu render-modellens ENE konstruktion.
+  `useSortedCollectionTable` bygger ingen render-rækker mere — den leverer `sortedRows`, kalderen giver
+  dem videre. `renderRows?`-parameteren, `orderedRenderRows`-reconciliationen og hookens
+  `TRenderRow`-typeparameter er væk.
+- `buildRenderRows` er en FUNKTION og ikke en `displayRows`-parameter, fordi rækkefølge-laget har brug
+  for `reorderRows` fra collection-hooken, mens render-modellen har brug for rækkefølge-lagets
+  `sortedRows`. Som parameter ville de to hooks skulle kaldes i en rækkefølge, ingen af dem kan opfylde.
+- Alle ti tabeller omlagt. De fire hand-rullede har ikke længere deres egen identitetskæde
+  (`useCollectionRows` + `committedIdSet` + `placeholderCount` + `usePlaceholderSlotIds` +
+  `useCollectionCellSpecBuilder`, ~28 linjer hver); de to `Loenudvikling*`-tabellers håndreconciliation
+  er erstattet af `buildRenderRows(existing)`, så deres «basisrække først, resten sorteret» blot er en
+  visningsorden som enhver anden.
+- De to reelle forskelle er udtrykt som hook-parametre frem for som escape-hatches ved kaldstedet:
+  `minimumVisibleRows` (fandtes) dækker `StandardLoenTable`/`EetAslAfgoerelserTable`, og det nye
+  `countsAsEmptyEntryRow` dækker rentekrav-reglen «en semantisk tom committet række ER selv
+  indtastningsrækken» (før `shouldAppendRentekravPlaceholder` ude i tabellen).
+- **Rettet undervejs:** `StandardLoenTable` brugte TO forskellige lokationspræfikser for samme tabel —
+  `standardLoen:${section}.${collection}` til rækkehandlinger og `collectionLocationPrefix(collection)`
+  til celle-bindingen. Det første udelader ejer-id'erne, så EO's løntabeller på to ansættelsesforhold
+  delte ÉN editorlokation for deres rækkehandlinger; en undo af en rækkehandling kunne dermed navigere
+  til det forkerte kort. Begge bruger nu den kanoniske form. History er in-memory, så ingen migrering.
+- Værnet `form/placeholder-identity-single-owner` er omskrevet mod det nuværende mål: dets probe var
+  pinnet til de fire tabellers direkte `usePlaceholderSlotIds`-kald og blev korrekt meldt INERT af
+  liveness-gaten. Det dækker nu alle ti tabeller, og det afviser desuden et direkte
+  `usePlaceholderSlotIds`-kald fra en tabel — den «halve ejerskabsform», hvor identiteten er delt, men
+  render-modellen egen.
+- Ny testfil `useCollectionTable.test.tsx` (8 tests): visningsorden, identitet-følger-mængden-ikke-orden,
+  alle placeholders op til `minimumVisibleRows`, og `countsAsEmptyEntryRow`s to retninger.
+  Rentekrav-reglen havde **ingen dækning på render-niveau** før — kun som ren funktion.
+
+**Bevist mod den GAMLE adfærd, ikke kun mod den nye kode.** Før første ændring blev begge konstruktioner
+kørt mod hinanden i en midlertidig paritets-harness over 2000 tilfældige tilstande; den bekræftede
+identitet og afdækkede `.find`-defekten som den ENESTE afvigelse. Harnessen er slettet igen — dens værdi
+var beviset, ikke koden.
+
+**Mutationsbevist i tre trin:** (1) en mutation af den LEVENDE kilde — `TafPeriodeTable` tilbage til den
+håndrullede model — gjorde harnessen rød på præcis den linje med præcis den regel-id; (2) neutralisering
+af `countsAsEmptyEntryRow` fældede præcis den ene test, der måler den regel — og afslørede først, at
+reglen slet ikke var dækket, så testen blev skrevet; (3) genindførelse af `.find`-defekten
+(`placeholderIds.slice(0, 1)`) og en ombytning af placeholder-rækkefølgen fældede hver sine tests, altså
+af den målte mekanisme og ikke af en konkurrerende.
+
+Ingen synlig UI-ændring og ingen tal berørt. Fuldt træ grønt: 538 filer / 6954 tests (+8), `typecheck`,
+`typecheck:test`, `lint`.
 
 ### Brugerens beslutninger 2026-08-06 (bindende for resten af arbejdet)
 

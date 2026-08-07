@@ -9,20 +9,18 @@ import {
   emptyAslAfgoerelseRowFields,
   isAslAfgoerelseRowPersistenceEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
-import { useCollectionRows } from '../../inputCore/react';
-import type { CellSpec } from '../../inputCore/react/useCellEditor';
-import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
 import { activeFieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
+import type { CellSpec } from '../../inputCore/react/useCellEditor';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
   collectionLocationPrefix,
-  useCollectionCellSpecBuilder,
   type CollectionRenderRow as RenderRow,
 } from '../../inputCore/react/cellSpecBuilder';
-import { usePlaceholderSlotIds } from '../../inputCore/react/placeholderSlots';
 import {
   GridDateCell,
   GridPercentCell,
@@ -209,11 +207,17 @@ EetAslAfgoerelserRow.displayName = 'EetAslAfgoerelserRow';
 
 const EetAslAfgoerelserTable = React.memo(
   ({ committedRows, ruleIssues, saveOrderPath }: EetAslAfgoerelserTableProps) => {
-    const rows = useCollectionRows<AslAfgoerelseRow>(erhvervsevnetabAslAfgoerelserCollectionRef, {
-    locationId: 'erhvervsevnetab.aslAfgoerelser',
-    route: APP_ROUTES.erhvervsevnetab,
-    tabKey: PAGE_DEFAULT_TAB.erhvervsevnetab,
-  });
+    // Tomme rækker persisteres ikke. Legacy viste altid mindst EET_ASL_MIN_VISIBLE_ROWS (=2) rækker;
+    // det udtrykkes som `minimumVisibleRows` og er en ren VISNINGSregel (§1.11).
+    const table = useCollectionTable<AslAfgoerelseRow>({
+      collection: erhvervsevnetabAslAfgoerelserCollectionRef,
+      committedRows,
+      createRowId: createAslAfgoerelseRowId,
+      createEmptyRow: createEmptyAslRow,
+      locationPrefix: collectionLocationPrefix(erhvervsevnetabAslAfgoerelserCollectionRef),
+      locationNav: { route: APP_ROUTES.erhvervsevnetab, tabKey: PAGE_DEFAULT_TAB.erhvervsevnetab },
+      minimumVisibleRows: EET_ASL_MIN_VISIBLE_ROWS,
+    });
 
     const sortColumns = React.useMemo(() => [
       { colId: 'afgoerelsesDato', getSortValue: (row: AslAfgoerelseRow) => row.afgoerelsesDato },
@@ -226,50 +230,17 @@ const EetAslAfgoerelserTable = React.memo(
       { colId: 'fsTilbageholdtEet', getSortValue: (row: AslAfgoerelseRow) => row.fsTilbageholdtEet },
     ], []);
 
-    const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
+    const { sortedRows, sortableHeader } = useSortedCollectionTable({
       committedRows,
       getRowId: (row) => row.id,
       isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
       columns: sortColumns,
-      reorderRows: rows.reorder,
+      reorderRows: table.reorderRows,
       saveOrderPath,
     });
 
-    // ── Placeholder-rækker (§1.11) ──────────────────────────────────────────────
-    // Tomme rækker persisteres ikke. Legacy viste altid mindst EET_ASL_MIN_VISIBLE_ROWS (=2) rækker;
-    // det bevares som `max(1, 2 − antal committede)` placeholder-rækker (altid ≥1 trailing indtastnings-række).
-    //
-    // Identitets-livscyklussen er den DELTE `usePlaceholderSlotIds` — tabellen havde tidligere sin egen
-    // kopi. Ud over at fjerne duplikationen bevarer den delte pulje et promoveret id, så det kan genindtræde
-    // efter et undo; ellers mister fokusrestoren sit mål.
-    const committedIdSet = React.useMemo(
-      () => new Set(sortedCommittedRows.map((row) => row.id)),
-      [sortedCommittedRows]
-    );
-    const placeholderCount = Math.max(1, EET_ASL_MIN_VISIBLE_ROWS - sortedCommittedRows.length);
-    const placeholderIds = usePlaceholderSlotIds(committedIdSet, placeholderCount, createAslAfgoerelseRowId);
-
-    const renderRows: readonly RenderRow[] = React.useMemo(() => [
-      ...sortedCommittedRows.map((row) => ({ rowId: row.id, kind: 'existing' as const })),
-      ...placeholderIds.map((rowId) => ({ rowId, kind: 'placeholder' as const })),
-    ], [sortedCommittedRows, placeholderIds]);
-    const committedById = React.useMemo(
-      () => new Map(sortedCommittedRows.map((row) => [row.id, row])),
-      [sortedCommittedRows]
-    );
-
-    // Den fælles cellebinding (§3.2): begge cellearter får en fuldt bundet `FieldRef`, og ejer-id'erne udledes af
-    // collectionens egen sti. route + tabKey er eksplicit navigation-metadata (§3.7).
-    const buildCellSpec: <T>(
-      renderRow: RenderRow,
-      descriptor: FieldDescriptor<T>,
-      colIdx: number
-    ) => CellSpec<T, AslAfgoerelseRow> = useCollectionCellSpecBuilder<AslAfgoerelseRow>({
-      collection: erhvervsevnetabAslAfgoerelserCollectionRef,
-      createEmptyRow: createEmptyAslRow,
-      locationPrefix: collectionLocationPrefix(erhvervsevnetabAslAfgoerelserCollectionRef),
-      locationNav: { route: APP_ROUTES.erhvervsevnetab, tabKey: PAGE_DEFAULT_TAB.erhvervsevnetab },
-    });
+    const renderRows = table.buildRenderRows(sortedRows);
+    const { committedById, buildCellSpec } = table;
 
     return (
       <StandardLooseTable
@@ -321,7 +292,7 @@ const EetAslAfgoerelserTable = React.memo(
               key={renderRow.rowId}
               renderRow={renderRow}
               eetPct={committedById.get(renderRow.rowId)?.eetPct}
-              onDeleteRow={rows.remove}
+              onDeleteRow={table.removeRow}
               ruleIssues={ruleIssues}
               buildCellSpec={buildCellSpec}
             />

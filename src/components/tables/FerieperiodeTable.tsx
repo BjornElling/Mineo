@@ -56,15 +56,15 @@ const FerieperiodeTable = React.memo(({
     { colId: 'til', getSortValue: (row: FerieperiodeRow) => row.til },
     { colId: 'feriedage', getSortValue: (row: FerieperiodeRow) => feriedageById[row.id] ?? undefined },
   ], [feriedageById]);
-  const { renderRows, sortableHeader } = useSortedCollectionTable({
+  const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
-    renderRows: table.renderRows,
     getRowId: (row) => row.id,
     isRowEmpty: isFerieRowEmpty,
     columns,
     reorderRows: table.reorderRows,
     saveOrderPath,
   });
+  const renderRows = table.buildRenderRows(sortedRows);
 
   return (
     <StandardLooseTable sx={{
