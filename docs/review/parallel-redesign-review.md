@@ -1632,27 +1632,88 @@ færdigmelding er en påstand, der skal verificeres som enhver anden.
 
 ---
 
+### Gennemført 2026-08-07 (anden omgang: #50 og #32)
+
+- **#50 — TAF-grafen har nu en scene-model, og tegningen er dækket af test.** Grafens
+  beslutninger — koordinater, farver, skrifter, tekster, rækkefølge — er flyttet til
+  `document/generators/tafFordelt/tafKravGrafScene.ts` som en ren værdi (en ordnet liste af
+  tegneprimitiver). `tafKravGrafCanvasRenderer.ts` oversætter dem 1:1 til canvas-kald og
+  træffer bevidst ingen beslutninger; `tafKravGrafChart.ts` er reduceret til at skaffe det
+  canvas, ingen af de to kan skaffe selv. Tekstmåling injiceres som en `MeasureText`-funktion —
+  det er den ene ting scenen ikke selv kan afgøre — så scenen forbliver ren og testbar.
+  De 390 tidligere utestede linjer er dermed inde i det testbare.
+  **Pixel-troskaben er bevist, ikke antaget** (brugerbeslutning 3): en midlertidig
+  parity-harness kørte den gamle monolit og den nye vej mod den samme optagende ctx-stub og
+  krævede *identiske* kaldsekvenser på to fixtures. Den fandt tre reelle afvigelser i mit eget
+  arbejde, hvor jeg havde slået separate stier sammen til én. Det er ikke kosmetik: en stiplet
+  streg fortsætter sit dash-mønster hen over delstier i samme sti, så en samlet sti ville have
+  forskudt stiplingen på alle linjer efter den første. Scenen skelner derfor nu eksplicit mellem
+  `strokeLines` (egen sti pr. stykke — gridlinjer, tick-mærker) og `strokeSubpaths` (én sti,
+  ubrudt stipling — periode-kanter, aksernes vinkel). Harnessen er mutationstestet
+  (`PLOT_TOP` 150→151 dræber begge cases) og derefter slettet.
+  Nyt varigt net: `tafKravGrafScene.golden.test.ts` (2 snapshots + 10 strukturelle invarianter,
+  bl.a. at clip/restore balancerer, at båndene ligger inde i clippet og signaturen uden for, og
+  at alle koordinater holder sig inden for lærredet). **Ingen tegnefejl fundet** — der er derfor
+  intet at forelægge under undtagelsen i beslutning 3. 34 tests grønne.
+
+- **#32 — kandidaten var skåret forkert; den reelle defekt var ctx-objektet.** Planen (og den
+  kodeverificerede baseline) sagde, at de 7 sektioner skulle flyttes fra imperativ rendering til
+  `Block[]`. **De producerer allerede blokke:** `writer` er en `DocumentComposer`, hvis eneste
+  output er `DocumentBlock[]`. `=> void` er akkumuleringsformen, ikke et manglende IR — der er
+  ingen imperativ rest at migrere.
+  Det faktiske problem var, hvad ctx bar: `opgoerelseSection` modtog **13 rene modulfunktioner**
+  (formattere, datohjælpere) plus **7 omdøbte aliaser af writer-metoder** — `renderSubheader`
+  *var* `writer.writeBoldSubheader`. Omdøbningslaget skjulte, at sektionen allerede skrev til
+  composeren. Funktionerne importeres nu direkte, og kun kalder-ejet tilstand sendes ind.
+  `NBSP` og de `Calculable`-bevidste beløbsrenderere lå duplikeret i to filer og bor nu ét sted
+  (`documentFormatUtils` hhv. den nye `generators/eo/eoMoneyText.ts`).
+  **Én skjult funktionsforskel afdækket og bevaret:** `renderMoneyWithKrOrError` opførte sig
+  forskelligt afhængigt af kalderen — EO-dokumentet viser «Fejl (…)», mens
+  TAF-opreguleret-dokumentet *kaster*, fordi lønnen dér er gated fail-closed i projektionen.
+  Forskellen lå usynligt i, at hver kalder sendte sin egen variant ind. En sammenlægning ville
+  have fjernet et fail-closed værn på et tillidskritisk dokument i det stille; den er i stedet
+  gjort til et eksplicit, dokumenteret ctx-felt.
+  **Bevidst urørt:** `loenindkomstSection` og `reguleringSection`. Deres injektion er
+  load-bearing som *testseam* — sektionstestene overstyrer afhængighederne per case ~20 steder
+  for at styre tabeldata og rækkefiltrering. At rive den ud ville svække et fungerende testnet
+  for en ren oprydningsgevinst. Registreret her frem for skjult.
+  Goldens byte-uændrede; ingen tal og ingen dokumentværdi flytter sig. Fuld suite grøn
+  (526 filer / 6688 tests), typecheck (kilde+test) og lint grønne.
+
+**Metodenote fra denne omgang:** begge kandidater var beskrevet forkert i planen — #50's
+argument var stærkere end skrevet (utestbarhed, ikke «blandede ansvar»), og #32's præmis var
+direkte modbevist af koden. Mønsteret fra 2026-08-07-revisionen gentog sig: *verificér
+kandidatens præmis mod koden, før du implementerer dens bogstav.* Og: en refaktorering, der
+samler to kopier, skal måles mod den gamle adfærd med et net der kan fejle — begge gange her
+afslørede nettet en forskel, jeg ellers ville have fjernet uden at opdage det.
+
+---
+
 ## START HER — arbejdsstatus 2026-08-07
 
 Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det FØR
 kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
 beskriver flere steder slettede mellemtrin.
 
-**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 525 testfiler / 6676 tests,
-`typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»
-og «Efterslæb lukket 2026-08-07» er committet.
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 526 testfiler / 6688 tests,
+`typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»,
+«Efterslæb lukket 2026-08-07» og «Gennemført 2026-08-07 (anden omgang: #50 og #32)» er committet.
 
-**Seneste omgang (2026-08-07)** var en REVISION af de allerede gennemførte kandidater, ikke nyt
-arbejde på de syv udestående. Se «Efterslæb lukket 2026-08-07» for de tre reelle efterslæb
-(#20, #1/#22, #43) og den brugerbeslutning, revisionen efterlader åben (enhedsvalget på
-Anciennitetstillæg). De syv kandidater i tabellen nedenfor er **uændret udestående**.
+**Seneste omgang (2026-08-07, anden del)** lukkede **#50** og **#32** — de to spor,
+brugerbeslutning 2 pegede på. #32 blev omskåret undervejs, fordi planens præmis viste sig
+modbevist af koden; se afsnittet for hvad den reelle defekt var, og hvilke to sektioner der
+bevidst er urørt.
+
+**Udestående er nu fem kandidater: #52, #45, #21, #26 og #35** (tabellen nedenfor). #35 er
+fortsat blokeret af den manglende dato-nøgle-abstraktion. Ét UI/UX-spørgsmål afventer stadig
+brugeren (enhedsvalget på Anciennitetstillæg, se nedenfor) — det blokerer ikke de øvrige spor.
 
 ### Rækkefølge for det udestående
 
 | # | Kandidat | Skæring der skal bruges (afviger fra planens oprindelige tekst) |
 |---|---|---|
-| **#50** | TAF-graf → scene-model | Stærkeste argument er IKKE "blandede ansvar", men at `renderTafKravGrafChartPng` + alle `draw*` (l. 395-786) er **helt utestede**, fordi jsdom mangler canvas. En scene-model flytter de ~390 linjer ind i det testbare. Der findes ingen anden chart-renderer at rette sig ind efter — denne definerer konventionen. |
-| **#32** | EO-sektioner → `Block[]` | **Alle 7** sektioner i `document/generators/eo/sections/` er `=> void` + 30-felts ctx-objekt, ikke kun `opgoerelseSection` (som blot er den største, 825 l.). Væsentligt større spor end planen antyder. Goldens findes: `eoSectionTableParity.golden`, `tableChannelParity.golden`. |
+| ~~**#50**~~ | ~~TAF-graf → scene-model~~ | **✅ GENNEMFØRT 2026-08-07** — se «Gennemført 2026-08-07 (anden omgang)». |
+| ~~**#32**~~ | ~~EO-sektioner → `Block[]`~~ | **✅ GENNEMFØRT 2026-08-07, men omskåret.** Planens præmis var modbevist: sektionerne producerer allerede `DocumentBlock[]` via composeren. Det reelle fund var ctx-objektets injicerede modulfunktioner. To sektioner er bevidst urørt (testseam). Se detaljerne. |
 | **#52** | Kontrakt-struktur | Løsningen findes allerede: `contract-template.md` (§2 Normative Regler = invariant, §3 Autoritative Kilder = implementeringskort). 15 af 29 kontrakter afviger, fordi `contract-topology-procedure.md` l. 41 gør afsnittene *anbefalede, ikke håndhævede*. Værste blanding: `document-output-contract.md` (38 filrefs i normativ brødtekst), `app-settings.md` (10 refs på 80 l.). Forbilleder: `calculation-data-contract.md`, `auth-gate-contract.md`. |
 | **#45** | Tabel-konsolidering | **Lav IKKE en fuld `GridSpec`.** To shells har uforenelige bredde-API'er, kolonneindeks er ikke 1:1 med visuelle kolonner (`StandardLoenTable` mapper 3 feltnøgler til ét col-index), og cell-renderers er ikke uniforme. Det eneste reelt mekanisk duplikerede er **sort-plumbingen** (`useTableSort` → `handleHeaderClick`/`getSortRole`/`getSortDirection`, identisk i alle 10 tabeller) samt `RowDeleteButton`-mønstret. Skær kandidaten efter det. |
 | **#21** | Indstillinger | **Lav IKKE et fuldt settings-register.** Kun 8 af 18 felter er ensartede; de øvrige har 5 kontroltyper, 3 opdateringssemantikker, DEV-gating og async File-System-Access-handlers, så et register ville kræve escape-hatches. Det reelle fund er, at ~63 linjers label-/option-metadata bor i komponenten og hører i `settings/`. |
@@ -1731,6 +1792,16 @@ Ingen ændring foretages, før det er besvaret.
 - **Når en type og en test dækker hvert sit hul, så brug begge.** `MenuPageKey` fanger et forkert
   id ved compile-tid, men en *manglende* menupost typechecker fint. Stop derfor ikke ved typen,
   når dens loft er kendt — skriv testen, der dækker resten, og mutationsbevis dem hver for sig.
+- **En refaktorering skal måles mod den GAMLE adfærd, ikke kun mod sin egen nye test.** Et golden-net
+  skrevet ud fra den nye kode låser kun fremtiden; det siger intet om, hvorvidt omlægningen bevarede
+  noget. Ved #50 kørte jeg derfor den gamle monolit og den nye vej mod den samme optagende stub og
+  krævede identiske kald. Det fangede tre afvigelser, en ren gennemlæsning ikke ville have set —
+  bl.a. at sammenslåede stier forskyder et stiplet mønster. Harnessen er midlertidig og slettes
+  bagefter; dens værdi er beviset, ikke koden.
+- **Verificér kandidatens PRÆMIS, ikke kun dens tal.** #32 var beskrevet som «sektionerne er
+  imperative og skal blive til `Block[]`». De producerede allerede blokke — hele skæringen var
+  forkert, og den rigtige defekt (injicerede modulfunktioner i ctx) stod ikke i planen. To
+  gennemgange havde gentaget præmissen uden at åbne `documentModel.ts`.
 - **En sammenlægning af to kopier afslører funktionsforskelle — de skal ikke ensartes undervejs.**
   Anciennitetstillæg-blokken skjulte, at de to overflader afgør satsens enhed forskelligt. Det
   rigtige træk var at bevare begge adfærd bag en slot og forelægge forskellen, ikke at vælge en
