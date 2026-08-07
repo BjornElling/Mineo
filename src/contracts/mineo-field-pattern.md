@@ -36,7 +36,7 @@ kan bindes til feltroden for at bevare to-trins-aktiveringen.
 ### Lag B — fælles felt-editor
 
 Én reducer/editor ejer for både formular og grid kun den åbne editors rå draft og lifecycle. Lukket visning er ikke
-lokal state, men afledes direkte af `SettledFieldState`:
+lokal state, men afledes direkte af `SettledFieldView`:
 
 - rejected rå tekst vises ordret,
 - canonical værdi vises med `codec.format`,

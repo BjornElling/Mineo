@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` for draft/settle-semantik; overordnet arkitekturdokumenter ved konflikt.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-07
 
 Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form- og beregningsdokumentation.
 

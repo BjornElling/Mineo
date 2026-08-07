@@ -63,7 +63,8 @@ udsteder typed commands; consumers får read-only `InputReader` eller godkendte 
 Aktiv sagsinput lagres under én namespace-aware Mineo-nøgle:
 
 ```ts
-type InputEnvelope = Readonly<{
+// src/inputCore/runtime/currentSessionEnvelope.ts — udledt af currentInputEnvelopeSchema.
+type CurrentInputEnvelope = Readonly<{
   envelopeVersion: string;
   persistedDataVersion: string;
   input: SettledInput;
@@ -229,7 +230,7 @@ destruktiv erstatning må ikke tilbydes.
 
 ## 9. Schema- og versionsansvar
 
-`FILE_FORMAT_VERSION`, `PERSISTED_DATA_VERSION` og `InputEnvelope.envelopeVersion` er forskellige:
+`FILE_FORMAT_VERSION`, `PERSISTED_DATA_VERSION` og `CurrentInputEnvelope.envelopeVersion` er forskellige:
 
 - filformatversion: container/indpakning,
 - persisted dataversion: canonical sektionsschemas og load-semantik,

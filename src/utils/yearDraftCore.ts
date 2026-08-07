@@ -1,4 +1,4 @@
-// Delt commit-parse-kerne for ÅRSTALS-inputs — brugt af BÅDE formularfeltet (`StyledYearField`) og
+// Delt commit-parse-kerne for ÅRSTALS-inputs — brugt af BÅDE formularfeltet (`YearField`) og
 // tabel-cellen (`yearAdapter`), samt af uge-kernen (`weekDraftCore`) til at fortolke årsdelen. Tidligere
 // var den identiske 2-/4-cifret-fortolkning og interval-besked kopieret i fire familier med divergerende
 // ordlyd ("Ugyldigt format" vs "Ugyldigt årstal"; "År skal være …" vs "Årstallet skal være …"). A2 samler

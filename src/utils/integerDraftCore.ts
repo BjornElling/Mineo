@@ -1,4 +1,4 @@
-// Delt commit-parse-kerne for HELTALS-inputs — brugt af BÅDE formularfeltet (`StyledIntegerField`)
+// Delt commit-parse-kerne for HELTALS-inputs — brugt af BÅDE formularfeltet (`IntegerField`)
 // og tabel-cellen (`integerAdapter`). Tidligere var den identiske format-validering kopieret i begge
 // familier med divergerende fejltekster ("Ugyldigt heltal" vs "Ugyldigt format"); A2 samler den her,
 // med ÉN ensartet ordlyd.

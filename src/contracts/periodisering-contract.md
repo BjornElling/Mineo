@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-07
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
@@ -36,13 +36,19 @@ Den kanoniske kilde til sandhed for EO-periodisering er:
 
 Følgende ansvar hører normativt hjemme dér:
 
-- periodisering af beløb på kalenderdage
-- periodisering af beløb på arbejdsdage
+- **dagSÆTTET** for lønperiodisering på både kalenderdage og arbejdsdage (`buildLoenArbejdsdageSet`,
+  `buildFallbackAllocationDaysForInterval`)
 - dagtælling for offentlige ydelser
 - EO's fraværsjusterede optælling og afrunding af måneder
 - optælling af arbejdsdage
 - SH-/ferie-/fraværsregler, når de indgår i periodiseringssemantikken
 - domænespecifikke undtagelser, fx sygedagpenge før `2012-07-02`
+
+**Selve overlaps-periodiseringen af lønBELØB hører derimod til den kanoniske forbruger
+`src/domain/erstatningsopgoerelse/helpers/indtaegtPerioder.ts`** (`buildAllocationDates`), som fordeler
+beløbet over det dagsæt, motoren leverer. Delingen er bevidst og står også i motorens egen normative
+kommentarblok: motoren ejer *hvilke dage der tælles*, forbrugeren ejer *hvordan beløbet fordeles på dem*.
+Begge er kanoniske inden for hver sin halvdel, og ingen af dem må reimplementeres andetsteds.
 
 Wrappers og adaptere er tilladt, når de kun:
 

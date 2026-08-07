@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-07
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -87,8 +87,10 @@ Der findes ingen central skrivbar feltfejl-bus: `src/types/fieldErrors`, `useFor
 sandhedskilde.
 
 Bemærk at **navnet** `fieldErrors` ikke er forbudt. Det lever videre som et almindeligt feltnavn i
-domænesnapshots (`EetSnapshot.fieldErrors`, `EoInspektionSnapshot.fieldErrors`), hvor det betegner en ren
-issueprojektion — ikke en skrivbar kanal. AST-værnet undtager derfor navnet bevidst.
+domænesnapshots (`EetSnapshot.fieldErrors`, `EOInspektionSnapshot.fieldErrors`), hvor det betegner en ren
+issueprojektion — ikke en skrivbar kanal. Navnet står derfor bevidst uden for `legacy/forbidden-identifier`s
+forbudsliste; der findes ingen allowlist-mekanik at undtage det fra, og forbuddet rammer de konkrete
+legacy-symboler (`useFormFieldErrorReporter`, `onFieldError`, `collectPresentFieldErrors`), ikke feltnavnet.
 
 ## 3. Feltidentitet og beskeder
 
@@ -116,7 +118,10 @@ De godkendte beskedskabeloner er:
 | `range`/`bounds` | Alle | Domænets konkrete intervaltekst med relevante grænser |
 
 Skabelonerne for `schema` og `range`/`bounds` produceres af `src/inputCore/catalog/boundsValidators.ts`, som
-ejer de otte bounds-validatorer og er eneste producent af `reason: 'schema'`.
+ejer de syv bounds-validatorer (`integerBoundsValidator`, `integerStringBoundsValidator`,
+`percentBoundsValidator`, `amountBoundsValidator`, `yearBoundsValidator`, `yearStringBoundsValidator`,
+`weekYearBoundsValidator`) og er eneste producent af `reason: 'schema'` — sidstnævnte gennem modulets
+ottende eksport, `canonicalStringCodecValidator`, som netop IKKE er en bounds-validator.
 
 Kontroltype og label kommer fra feltdescriptoren. Et bart `<felt> mangler` er forbudt. Feltnavnet står i
 enkelte anførselstegn i de to skabeloner, der citerer det (`invalid`, `schema`): beskeden læses i "Fejl og

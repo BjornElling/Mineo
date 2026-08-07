@@ -9,7 +9,7 @@
 
 ## 1. Scope
 
-`satser` er en sags-global persisted sektion og skrives kun fra siden `Satser`. Den persisterede sektion indeholder aktuelt udelukkende det valgte **satsår** (`aargang`, jf. `satserSchema.ts`); selve sats- og rentetabellerne er programdata og gemmes ikke.
+`satser` er en sags-global persisted sektion og skrives kun fra siden `Satser`. Den persisterede sektion indeholder aktuelt udelukkende det valgte **satsår** (`aargang`, jf. `src/schemas/formSchemas/sections/satserSchemas.ts`); selve sats- og rentetabellerne er programdata og gemmes ikke.
 
 Satser-domænet kan samtidig læse lovbestemte reference-data fra `src/data/lovbestemteRates`. Denne kontrakt adskiller derfor brugerens sagsspecifikke satsgrundlag (det valgte satsår) fra reference-data.
 Reference-dataenes katalogmetadata og integritetskrav følger desuden `calculation-data-contract.md`.

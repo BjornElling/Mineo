@@ -65,6 +65,7 @@
     "verify:ledgers": "node scripts/architecture/verify-input-ledgers.mjs",
     "check:commit-msg": "node scripts/check-commit-msg.mjs",
     "check:runtime": "node scripts/check-runtime-version.mjs",
+    "check:contract-verification": "node scripts/check-contract-verification.mjs",
     "lint": "eslint src e2e playwright.config.ts --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:e2e": "tsc -p tsconfig.e2e.json --noEmit",
@@ -77,7 +78,7 @@
     "import:loen": "node scripts/import-offentlig-loen.mjs",
     "check:offentlig-loen": "node scripts/import-offentlig-loen.mjs --check",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
-    "verify:release": "npm run check:runtime && npm run typecheck && npm run typecheck:test && npm run typecheck:e2e && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run verify:ledgers && npm run test:coverage && npm run test:e2e && npm run build:all",
+    "verify:release": "npm run check:runtime && npm run typecheck && npm run typecheck:test && npm run typecheck:e2e && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run check:contract-verification && npm run verify:ledgers && npm run test:coverage && npm run test:e2e && npm run build:all",
     "check": "npm run verify:release"
   },
   "overrides": {

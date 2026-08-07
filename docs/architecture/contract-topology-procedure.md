@@ -34,10 +34,22 @@ Hver `src/contracts/*.md`-fil skal være klassificeret præcis ét af tre steder
 - at **alle** `src/contracts/*.md`-filer er registreret i topologien (skabelonen tæller som registreret via `templatePath`);
 - at hver kontraktfil har et gyldigt `**Senest verificeret mod kode:** YYYY-MM-DD`-felt (skabelonen er undtaget, da den bruger en placeholder);
 - at topologi og `COVERAGE_MATRIX` er synkroniseret begge veje, og at hver subordinate-nøgle og -reference selv er klassificeret;
-- at `page-component-contract.md`s underordnelsesliste er **præcis** det tværgående sæt (hierarki-completeness, ikke kun fil-completeness — R1-F04), og at ingen anden kontrakt erklærer en underordnelsesliste.
+- at `page-component-contract.md`s underordnelsesliste er **præcis** det tværgående sæt (hierarki-completeness, ikke kun fil-completeness — R1-F04), og at ingen anden kontrakt erklærer en underordnelsesliste;
+- at hver test-suite, en kontrakt selv navngiver i sit `Testkobling`-afsnit, også står i `COVERAGE_MATRIX`. Fem kontrakter fører en sådan liste ved siden af matrixen, og de var faktisk uenige: `app-shell-contract.md` navngav tre suiter, matrixen ikke kendte, `auth-gate-contract.md` og `calculation-data-contract.md` hver én. To autoritative lister, en læser kunne slå op i og få forskellige svar — samme fejlklasse som R1-F04.
+
+## Hvad de to øvrige kontraktværn håndhæver
+
+Coverage-matrixen læser aldrig kontrakternes brødtekst. De ~230 fil- og ~430 symbolreferencer INDE i kontrakterne — det, en læser faktisk slår op i — stod derfor uden nogen dækning. To værn lukker det:
+
+- **`contractReferenceLiveness.test.ts`** udtrækker referencerne af kontraktteksten og kræver, at hver navngiven fil, sti og hvert symbol findes i koden. Undtagelserne er data i `REFERENCE_EXCEPTIONS`, hver med en retning og en begrundelse. Retningen `absent` er en PÅSTAND, der håndhæves: kontrakternes fraværsværn («der findes ingen `documentService.ts` — navnet står her som fraværsværn») bliver røde, hvis det forbudte genopstår. Værnet fandt ved indførelsen fem levende drift-tilfælde, alle i kontrakter der var stemplet som verificerede.
+- **`scripts/check-contract-verification.mjs`** (i `verify:release`) kræver, at `**Senest verificeret mod kode:**` ikke er ældre end den seneste commit, der ændrede kontraktfilen. Formatkravet alene gjorde stemplet til et ritual: seks kontrakter bar et stempel, der lå FØR deres egen seneste redigering. **Konsekvensen ved commit: ændrer du en kontrakt, opdaterer du dens stempel i SAMME commit** — efter faktisk at have efterprøvet det ændrede afsnit mod koden. Kontrollen er et script og ikke en test, fordi den kræver git-historik; uden historik rapporterer den «ikke målt» frem for et tavst grønt udfald.
 
 ## Senest verificeret mod kode-feltet
 
-Hver kontraktfil i `src/contracts/` skal have et `**Senest verificeret mod kode:** YYYY-MM-DD`-felt. Det opdateres kun efter en reel verifikation af, at kontrakten stadig er sand mod koden. De øvrige template-felter og -afsnit er anbefalede, ikke håndhævede.
+Hver kontraktfil i `src/contracts/` skal have et `**Senest verificeret mod kode:** YYYY-MM-DD`-felt. Det opdateres kun efter en reel verifikation af, at kontrakten stadig er sand mod koden — og **skal opdateres i samme commit som enhver ændring af kontraktteksten**, håndhævet af `check:contract-verification`.
+
+De øvrige template-felter og -afsnit er fortsat anbefalede, ikke håndhævede. **Det er et bevidst valg og ikke et hul.** En gennemgang af alle 28 kontrakter (2026-08-07) viste, at kun 3 følger skabelonens §1–§5 fuldt ud, mens 20 har en anden inddeling — men afvigelsen er overvejende god: `eo-snapshot-contract.md`s 15 domæneafsnit, `schema-evolution.md`s `Del 0`–`Del 5`-tjekliste og de fire domænekontrakters `Nuværende Model / Kanoniske Regler / Arkitekturvalg / Minimumstestflade` er hver især en form, der passer til sit stof. En ensretning ville koste struktur uden at gøre en eneste kontrakt mere sand.
+
+Det, der ER håndhævet, er derfor kontrakternes **indhold** frem for deres inddeling: at de navngivne filer og symboler findes (`contractReferenceLiveness.test.ts`), at fraværsværn faktisk er fraværende, at in-file testkoblinger stemmer med matrixen, og at verifikationsstemplet ikke er ældre end teksten. En kontrakt kan frit vælge sin afsnitsform; den kan ikke frit påstå noget forkert om koden.
 
 `docs/architecture/*` er informative, medmindre en kontrakt eksplicit gør et afsnit normativt.

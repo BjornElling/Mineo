@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-07
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
 Denne kontrakt beskriver den gældende arkitektur. Der findes ingen parallel inputmodel, ingen
@@ -260,7 +260,8 @@ kanal.
 Den rene form ejes af den semantiske **feltfamilie**, ikke af den tabel eller side, feltet står på:
 `src/utils/fieldFormatPlaceholders.ts` (år, uge, dato, måned, dag), `src/utils/amountInputUtils.ts`
 (`DEFAULT_AMOUNT_PLACEHOLDER`, `INTEGER_AMOUNT_PLACEHOLDER`) og `src/utils/percentInputUtils.ts`
-(`DEFAULT_PERCENT_PLACEHOLDER`). En
+(`DEFAULT_PERCENT_PLACEHOLDER` og `TWO_DECIMAL_PERCENT_PLACEHOLDER` — begge, da procentfamilien har to
+formrepræsentationer efter feltets decimalpolitik, jf. §8.3). En
 callsite må kun override en placeholder, når feltets domæne har en reelt anden FORMATREPRÆSENTATION — fx
 månedens `mm` i en periodekolonne — aldrig for at vise bounds, validering eller status.
 
@@ -356,13 +357,14 @@ Der findes ingen parallel inputklynge ved siden af den model, denne kontrakt bes
 "midlertidig" undtagelse eller under et nyt navn. To AST-regler håndhæver det, og de rammer hver sin flade:
 
 - **`input/deleted-legacy-architecture-import`** forbyder *importstier* til den fjernede klynge, uden allowlist.
-  Blandt dem: `FormPersistenceContext`, `usePersistedForm`, `useDraftField`, `useTableInputCore`, `useRowDrafts`,
-  `useSliceRowDrafts`, `useStyledFieldAdapter`, `inputRuntimeStore`, `formPersistenceStore` og de otte
+  Blandt dem: `FormPersistenceContext`, `usePersistedForm`, `useDraftField`, `useStyledFieldAdapter`,
+  `inputRuntimeStore`, `formPersistenceStore`, mappestierne `src/hooks/tableInput` og `src/rowDrafts/`
+  (som dækker `useTableInputCore` og `useRowDrafts`) og de otte
   `Styled<type>Field`-komponenter (`StyledTextField`, `StyledDateField`, `StyledAmountField`,
   `StyledIntegerField`, `StyledPercentField`, `StyledFractionField`, `StyledWeekField`, `StyledYearField`).
 - **`legacy/forbidden-identifier`** forbyder *navne*, uanset hvor de importeres fra — herunder
-  `executeLegacyInputTransaction`, `useDraftLifecycle`, `legacyGridTransactionBridge`, `InputWriteAuthority`
-  og `claimInputWriteAuthority`.
+  `executeLegacyInputTransaction`, `useDraftLifecycle`, `legacyGridTransactionBridge`, `useSliceRowDrafts`,
+  `useFormFieldErrorReporter`, `onFieldError`, `InputWriteAuthority` og `claimInputWriteAuthority`.
 
 De persisterede felter tegnes i dag af felt-familien i `src/inputCore/react/fields/` (`TextField`, `DateField`,
 `AmountField`, `IntegerField`, `PercentField`, `ChoiceField` m.fl. samt grid-varianterne). De deler de bevarede
@@ -372,7 +374,7 @@ er altså ikke forbudt, kun de otte felt-komponenter ovenfor.
 
 **`fieldErrors` er ikke et forbudt navn.** Den centrale skrivbare feltfejl-bus er væk (`src/types/fieldErrors`,
 `useFormFieldErrorReporter`, `onFieldError`, tabeltrackerne), men `fieldErrors` lever videre som et helt
-almindeligt feltnavn i domænesnapshots — fx `EetSnapshot.fieldErrors` og `EoInspektionSnapshot.fieldErrors`.
+almindeligt feltnavn i domænesnapshots — fx `EetSnapshot.fieldErrors` og `EOInspektionSnapshot.fieldErrors`.
 AST-værnet undtager derfor navnet bevidst.
 
 Den ENE dokumenterede undtagelse fra den autoritative inputtilstand er `components/inputs/transient/`: tre flader

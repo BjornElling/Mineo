@@ -1,8 +1,9 @@
 # Parallelt redesign-review — Mineo
 
-> **Status:** Aktivt arbejdsdokument for det igangværende greenfield-design på `greenfield`-branchen.
-> **Pr. 2026-08-07 er ÉN kandidat udestående: #52 (kontrakt-struktur).** #46 er lukket som
-> bevidst ikke gennemført efter brugerbeslutning.
+> **Status:** Arbejdsdokument for greenfield-designet på `greenfield`-branchen.
+> **Pr. 2026-08-07 er ALLE kandidater lukket.** 17 af 18 er gennemført; #46 er lukket som
+> bevidst ikke gennemført efter brugerbeslutning. Ét UI/UX-spørgsmål afventer stadig brugeren
+> (enhedsvalget på Anciennitetstillæg) og blokerer intet.
 >
 > **⇒ Start med afsnittet [START HER — arbejdsstatus](#start-her--arbejdsstatus-2026-08-07) i
 > bunden af filen.** Det angiver hvad der er gjort, hvad der mangler, i hvilken rækkefølge, og
@@ -1018,15 +1019,15 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 52 — Normative kontrakter: invariant-kerne vs. implementeringskort · 11
 
-- **Status: ⏳ ENESTE UDESTÅENDE KANDIDAT (2026-08-07).** Tallene i afsnittet nedenfor og i
-  «Kodeverificeret baseline» er fra 2026-08-06 og skal verificeres mod filerne først — flere
-  kontrakter er redigeret siden (bl.a. `app-shell-contract.md` §5.3 og `keyboard-navigation.md`).
+- **Status: ✅ GENNEMFØRT 2026-08-07, men OMSKÅRET — planens løsning var forkert.** Se
+  «Gennemført 2026-08-07 (fjerde omgang: #52)» nedenfor for den fulde skæring.
 
-- **Scope:** `src/contracts/` (27 kontraktfiler/~4.700 linjer), `contract-topology.json`, coverage-matrixen og informative arkitektur-/reviewdokumenter.
-- **Problem:** Stabile regler, konkrete fil-/symbolnavne, audits og historiske noter står blandet i normative kontrakter. Der er allerede drift: `eo-snapshot-contract.md` navngiver ikke-eksisterende `...PdfDocument`-funktioner, og `app-settings.md` beskriver en ældre settings-kobling. Topologi-testen kan kun verificere linkage, ikke sandheden i implementeringskortene.
-- **Greenfield:** Kontrakter indeholder kun stabile, testbare invariants og ejerskab. Fil-/symbolkort, auditsekvenser og historik flyttes til informative arkitektur-/reviewdokumenter eller maskin-afledte manifests. `contract-topology.json` bevares som autoritativt hierarki; manuelle duplikatlister fjernes.
-- **Rød tråd:** Én autoritativ beskrivelse pr. concern og mindre drift mellem norm og kode.
-- **Afhængigheder:** Uafhængig; følg topology-proceduren ved hver flytning og opdatér coverage-matrixen samlet. Ingen runtime-adfærd.
+- **Scope:** `src/contracts/` (28 kontraktfiler/5.566 linjer — ikke 27/~4.700), `contract-topology.json`, coverage-matrixen og informative arkitektur-/reviewdokumenter.
+- **Problem (som planen beskrev det — PRÆMISSEN ER DELVIST MODBEVIST):** Stabile regler, konkrete fil-/symbolnavne, audits og historiske noter står blandet i normative kontrakter. **Begge navngivne drift-eksempler var allerede rettet:** `PdfDocument` findes nul gange i samtlige kontraktfiler, og `app-settings.md` blev omskrevet 2026-08-07 og beskriver den aktuelle `projectSourceSettings`-kobling korrekt. Den præmis, der holdt, var den sidste sætning: **topologi-testen kan kun verificere linkage, ikke sandheden i implementeringskortene.**
+- **Greenfield (planens forslag — IKKE fulgt):** flyt fil-/symbolkort og historik ud i informative dokumenter. Det ville have været den forkerte operation: af ~230 fil-stier var **nul** døde, og af 569 unikke symboler var **fem** forkerte. Implementeringskortene var altså 99,7 % korrekte, og de to bedste kontrakter i sættet (`calculation-data-contract.md`, `auth-gate-contract.md`) navngiver netop mange filer i et dedikeret §3. At flytte den *rigtige* del ud og efterlade den *uverificerede* del ville have gjort kontrakterne mindre brugbare uden at fjerne én eneste drift-årsag.
+- **Faktisk gennemført:** referencerne blev gjort *kontrollerbare* i stedet for at blive flyttet. Tre værn (liveness af fil-/symbolreferencer inkl. fraværsværn, git-bundet verifikationsstempel, in-file-testkobling mod matrixen) + fem rettede drift-tilfælde.
+- **Rød tråd:** Én autoritativ beskrivelse pr. concern — håndhævet frem for aftalt.
+- **Afhængigheder:** Uafhængig. Ingen runtime-adfærd; ingen tal eller dokumentværdier berørt.
 
 ---
 
@@ -1837,24 +1838,140 @@ ikke mutationen der er urimelig.
 
 ---
 
+### Gennemført 2026-08-07 (fjerde omgang: #52 — den sidste kandidat)
+
+Mønsteret fra de tre foregående omgange gentog sig i sin reneste form: **planens diagnose pegede på et
+reelt problem, men dens ordination ville have gjort skaden større.** Præmissen blev verificeret med tre
+parallelle gennemgange af alle 29 filer i `src/contracts/`, før noget blev ændret.
+
+**Begge navngivne drift-eksempler var allerede rettet.** `PdfDocument` optræder nul gange i samtlige
+kontraktfiler; `eo-snapshot-contract.md` navngiver de seks `eoSnapshotTo*`-projektioner, som alle findes.
+`app-settings.md` blev omskrevet samme dag som review-noten og beskriver den aktuelle
+`projectSourceSettings`/`projectEoRowPolicy`/`projectDocumentRenderSettings`-kobling korrekt. Kandidatens
+to konkrete beviser var altså forældede — dens egen statuslinje advarede om netop det.
+
+**Og planens løsning var forkert.** Forslaget var at flytte fil-/symbolkortene ud af kontrakterne og over
+i informative dokumenter. En optælling viste, hvorfor det ville have været den forkerte operation: af
+~230 fil-stier var **nul** døde, og af 569 unikke symboler var **fem** forkerte — implementeringskortene
+var 99,7 % korrekte. De to bedste kontrakter i sættet (`calculation-data-contract.md`,
+`auth-gate-contract.md`) navngiver netop mange filer i et dedikeret §3 og er *bedre* for det. Planen
+ville have flyttet den rigtige del ud og efterladt den uverificerede del.
+
+**Den reelle defekt var den sidste sætning i problemformuleringen:** intet verificerede
+implementeringskortene. `contractCoverageMatrix.test.ts` er en linkage-guard — den kontrollerer, at
+koblede TESTFILER og topologiens stier eksisterer, og at verifikationsstemplet matcher en regex. Den
+åbner aldrig en kontrakts brødtekst. Alle referencer inde i kontrakterne stod uden dækning: hverken
+typecheck, lint eller arkitektur-harnesset kan se dem, fordi ingen af dem læser `.md`-filer.
+`acceptanceMatrix.test.ts` havde allerede løst nøjagtig samme fejlklasse for §5-registret og døbt den
+«grøn af tomhed»; kontraktværnet var det sidste register, der stadig brugte den svage form.
+
+**Tre værn, hver mutationstestet:**
+
+- **`contractReferenceLiveness.test.ts`** udtrækker referencerne af kontraktteksten og kræver, at hver
+  navngiven fil og hvert symbol findes. Referencerne UDLEDES frem for at stå i et register — et
+  håndholdt register over ~660 referencer ville selv skulle vedligeholdes, og en glemt post ville være
+  et nyt hul af samme slags. Kun undtagelserne skrives ned, så en ny kontrakt er dækket i samme øjeblik
+  den oprettes.
+- **`scripts/check-contract-verification.mjs`** (i `verify:release`) kræver, at
+  `**Senest verificeret mod kode:**` ikke er ældre end den seneste commit, der ændrede filen.
+- **Testkobling-afstemningen** i coverage-matrixen: hver suite, en kontrakt navngiver i sit eget
+  `Testkobling`-afsnit, skal også stå i `COVERAGE_MATRIX`.
+
+**Fraværsværnene var det, der gjorde skæringen svær.** Kontrakterne navngiver bevidst ting, der IKKE må
+findes — `document-output-contract.md` skriver ordret «der findes ingen `documentService.ts` — navnet
+står her som fraværsværn». En naiv «alt navngivet skal eksistere»-regel ville have presset de værn ud af
+kontrakterne og dermed slettet den eneste beskrivelse af, hvad der er revet ned. Hver reference har
+derfor en RETNING, og `absent` HÅNDHÆVES som en påstand: mutationstesten genskabte
+`src/document/service/documentService.ts` med en `persistData`-eksport, og begge fraværsværn blev røde.
+
+**Fem levende drift-tilfælde, alle i kontrakter stemplet som verificerede:**
+
+| Kontrakt | Skrev | Hedder faktisk |
+|---|---|---|
+| `mineo-field-pattern.md:39` | `SettledFieldState` | `SettledFieldView` |
+| `satser-contract.md:12` | `satserSchema.ts` | `satserSchemas.ts` (og var stavet rigtigt i `schema-evolution.md`) |
+| `error-contract.md:90` | `EoInspektionSnapshot` | `EOInspektionSnapshot` (versalt O) |
+| `form-contract.md:375` | `EoInspektionSnapshot` | samme |
+| `persistence-contract.md` + `schema-evolution.md` | `InputEnvelope` | `CurrentInputEnvelope` |
+
+Alle fem er ét bogstav eller ét ord galt — usynligt for hele værktøjskæden, og præcis den slags, der får
+en læser til at søge forgæves efter en type, der ikke findes.
+
+**Stemplet var et ritual.** Skabelonens ENESTE håndhævede felt var kun håndhævet på FORMAT. Seks
+kontrakter bar et stempel, der lå FØR deres egen seneste redigering — `auth-gate-contract.md` sagde
+2026-07-28, mens filen blev ændret 2026-08-01. Dertil delte 14 filer ét bulk-stempel. Nogen havde
+redigeret kontrakternes tekst uden at forny påstanden om, at teksten er sand, og feltets eneste kontrol
+kunne per konstruktion ikke se det. Reglen er nu den svageste, der fanger fejlen — ikke «stemplet skal
+være friskt», for en kontrakt, ingen har rørt i et halvt år, er ikke af den grund forældet, og en
+tidsbaseret udløbsdato ville producere rød farve uden ny information.
+
+**To autoritative lister var uenige.** Fem kontrakter fører et `Testkobling`-afsnit ved siden af
+`COVERAGE_MATRIX`. Ingen kontrol sammenholdt dem, og de divergerede: `app-shell-contract.md` navngav
+tre suiter, matrixen ikke kendte (`pwaHeaders.test.ts`, `responsiveStylingRules.ts`,
+`verify-build-artifacts.mjs`), `auth-gate-contract.md` og `calculation-data-contract.md` hver én. Alle
+filerne fandtes — så det var ikke en død reference, men det værre tilfælde: to lister, en læser kunne
+slå op i og få forskellige svar. Samme fejlklasse som R1-F04.
+
+**Mutationstesten fangede en fejl i mit eget værn.** Afsnits-mønsteret var ikke ankret i højre side, så
+`## 4. Testkobling-omdoebt` stadig talte som et Testkobling-afsnit — mutationen «fjern afsnittet»
+overlevede. Og det første gulv (`>= 5` kontrakter med afsnittet) var lig virkeligheden og kunne derfor
+per konstruktion ikke se et tab; det er nu en EKSAKT liste. Begge fejl ville have gjort værnet grønt af
+tomhed på præcis den måde, det blev bygget for at forhindre.
+
+**Bevidst IKKE gjort — skabelon-ensretningen.** 20 af 28 kontrakter afviger fra skabelonens §1–§5, og
+planen ville ensrette dem. Det er droppet efter gennemgangen: afvigelserne er overvejende gode.
+`eo-snapshot-contract.md`s 15 domæneafsnit, `schema-evolution.md`s `Del 0`–`Del 5`-tjekliste og de fire
+domænekontrakters `Nuværende Model / Kanoniske Regler / Arkitekturvalg / Minimumstestflade` er hver en
+form, der passer til sit stof. En ensretning ville koste struktur uden at gøre en eneste kontrakt mere
+sand. `contract-topology-procedure.md` siger nu eksplicit, at inddelingen er fri, mens INDHOLDET er
+håndhævet — en kontrakt kan vælge sin form, men ikke frit påstå noget forkert om koden.
+
+**Registreret som ikke gjort:** `document-output-contract.md` §B11 er en nummereret 26-punkts
+audit-arbejdsliste inde i en normativ kontrakt, og filen har to konkurrerende afsnitsnummereringer
+(`## A2` vs. `## 2. Autoritative Kilder`, uden noget `## 1`). Det er den ene kontrakt, hvor planens
+oprindelige «audits hører ikke hjemme i en kontrakt»-pointe faktisk holder. Den hører til et selvstændigt
+spor sammen med `schema-evolution.md`s domænesti-tabel (~40 stier, som filen selv skriver «skal holdes i
+sync med registry»), fordi begge kræver en beslutning om, hvor arbejdslister skal bo — ikke blot en
+flytning.
+
+**Metodenote fra denne omgang:** *en korrekt diagnose kan bære en forkert ordination.* #52 pegede rigtigt
+på, at kontrakterne kan drive fra koden, og foreslog derefter at fjerne netop det, der var korrekt, mens
+årsagen — at intet kontrollerede noget — ville have bestået uændret. Prøven, der afgjorde det, var at
+TÆLLE: nul døde stier og fem forkerte symboler ud af 800 gør «flyt kortene ud» til en dyr operation uden
+gevinst, mens «gør kortene kontrollerbare» fanger både de fem og alle fremtidige. Og igen: hvert nyt værn
+skal mutationstestes — to af mine egne værn var grønne af tomhed, indtil mutationen viste det.
+
+---
+
 ## START HER — arbejdsstatus 2026-08-07
 
 Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det FØR
 kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
 beskriver flere steder slettede mellemtrin.
 
-**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 530 testfiler / 6746 tests,
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 537 testfiler / 6940 tests,
 `typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»,
-«Efterslæb lukket 2026-08-07», «Gennemført 2026-08-07 (anden omgang: #50 og #32)» og
-«Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)» er committet.
+«Efterslæb lukket 2026-08-07», «Gennemført 2026-08-07 (anden omgang: #50 og #32)»,
+«Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)» og
+«Gennemført 2026-08-07 (fjerde omgang: #52)» er committet.
 
-**Seneste omgang (2026-08-07, tredje del)** lukkede **#26**, **#35**, **#45** og **#21**. Tre af
-de fire blev omskåret undervejs, fordi planens præmis var forkert — herunder #35, som planen
-kaldte *blokeret*: abstraktionen fandtes allerede. Se afsnittet «Gennemført 2026-08-07 (tredje
-omgang)» for hver skæring.
+**Seneste omgang (2026-08-07, fjerde del)** lukkede **#52** — den sidste kandidat. Også den blev
+omskåret: planens to drift-eksempler var allerede rettet, og dens løsning («flyt fil-/symbolkortene ud
+af kontrakterne») ville have fjernet den korrekte del og efterladt årsagen. Se «Gennemført 2026-08-07
+(fjerde omgang)».
 
-**Udestående er nu ÉN kandidat: #52** (tabellen nedenfor). Ét UI/UX-spørgsmål afventer stadig
-brugeren (enhedsvalget på Anciennitetstillæg, se nedenfor) — det blokerer ikke #52.
+**Alle kandidater er nu lukket.** 17 af 18 er gennemført; **#46** er lukket som *bevidst ikke
+gennemført* efter brugerbeslutning. Ét UI/UX-spørgsmål afventer stadig brugeren (enhedsvalget på
+Anciennitetstillæg, se nedenfor); det blokerer intet.
+
+**Registreret som ikke gjort — hører til et senere spor** (fra de fire omganges gennemgange):
+`document-output-contract.md` §B11's 26-punkts audit-arbejdsliste og filens to konkurrerende
+afsnitsnummereringer; `schema-evolution.md`s domænesti-tabel, som filen selv skriver «skal holdes i sync
+med registry»; `RowDeleteButton`-mønstrets omgivende celle (10 steder, fire varianter);
+`renderRows`-reconciliationens fætter i de fire ikke-`useCollectionTable`-tabeller;
+`DanishDateString`-datalagets to private `danishDateToNumber`-kopier og `.filter().reduce()`-max-familien
+på seks interval-start-resolvere; Indstillingssidens fire `is…Option`-typeguards og
+`defaultDirectoryHandleId`s ~143 linjer.
 
 ### Rækkefølge for det udestående
 
@@ -1866,7 +1983,7 @@ brugeren (enhedsvalget på Anciennitetstillæg, se nedenfor) — det blokerer ik
 | ~~**#35**~~ | ~~Carry-forward-opslag~~ | **✅ GENNEMFØRT 2026-08-07, og planens blokering var forkert.** `findLatestByDateInSortedList` VAR allerede den fælles abstraktion med 10 callsites; kun feltnavnet manglede at være parametriseret. To ISO-serier re-deriverede opslaget. |
 | ~~**#45**~~ | ~~Tabel-konsolidering~~ | **✅ GENNEMFØRT 2026-08-07 efter den korrigerede skæring** (ingen `GridSpec`). Rækkefølge-laget samlet i `useSortedCollectionTable`; colId-triplen erstattet af `bindSortableHeader`. |
 | ~~**#21**~~ | ~~Indstillinger~~ | **✅ GENNEMFØRT 2026-08-07 efter den korrigerede skæring** (intet settings-register). Det reelle fund var større end planen sagde: etiketterne var duplikeret 3× pr. enum, én af dem ind i dokumentlaget. |
-| **#52** | Kontrakt-struktur | Løsningen findes allerede: `contract-template.md` (§2 Normative Regler = invariant, §3 Autoritative Kilder = implementeringskort). 15 af 29 kontrakter afviger, fordi `contract-topology-procedure.md` l. 41 gør afsnittene *anbefalede, ikke håndhævede*. Værste blanding: `document-output-contract.md` (38 filrefs i normativ brødtekst), `app-settings.md` (10 refs på 80 l.). Forbilleder: `calculation-data-contract.md`, `auth-gate-contract.md`. **Bemærk:** tallene er fra gennemgangen 2026-08-06 og skal verificeres mod filerne, før de bruges — flere kontrakter er redigeret siden (bl.a. `app-shell-contract.md` §5.3 og `keyboard-navigation.md`). |
+| ~~**#52**~~ | ~~Kontrakt-struktur~~ | **✅ GENNEMFØRT 2026-08-07, og OMSKÅRET.** Planens to drift-eksempler var allerede rettet, og skabelon-ensretningen er bevidst droppet: af ~230 fil-stier var nul døde og af 569 symboler kun fem forkerte, så «flyt kortene ud» ville have fjernet den korrekte del. I stedet blev referencerne gjort kontrollerbare: liveness-værn (inkl. håndhævede fraværsværn), git-bundet verifikationsstempel og afstemning af in-file-testkobling mod matrixen. Fem drift-tilfælde rettet. |
 
 ### Brugerens beslutninger 2026-08-06 (bindende for resten af arbejdet)
 

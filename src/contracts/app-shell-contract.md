@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-07
 
 ## 1. Scope
 
@@ -24,15 +24,20 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 1. **Tynde app-entries; ét sted ejer opstart.** Hver entry (`main.tsx`, `minprocesrenteMain.tsx`) skal være tynd: den vælger app-roden og leverer variant-specifik opstart som callbacks, men delegerer al fælles runtime-opstart (device-gate, render-beslutning, install-prompt) til `bootstrapClientApp`. Device-gate-logik må aldrig duplikeres i en entry.
 
    Efter device-gaten og før app-roden returneres fra `renderApp`, initialiseres variantens ene aktive inputruntime
-   præcis én gang gennem `initializeInputRuntime`; en entry/provider-remount må aldrig rehydrere. **Hver variant har
-   præcis ÉN inputruntime** — der findes ikke og må ikke indføres en anden persistence-provider ved siden af den.
+   præcis én gang gennem `bootstrapProductionInputRuntime()`; en entry/provider-remount må aldrig rehydrere.
+   **Entries kalder ikke `initializeInputRuntime` direkte** — den ligger bag `bootstrapProductionInputRuntime`,
+   som ejer idempotens-guarden (`src/inputCore/react/productionInputRuntime.tsx`); et direkte kald ville omgå
+   netop den guard, reglen findes for. **Hver variant har præcis ÉN inputruntime** — der findes ikke og må ikke
+   indføres en anden persistence-provider ved siden af den.
    Standalone-entryen binder tilsvarende sin egen runtime atomisk med surface og consumers.
    Standalone-entryens namespace-side-effect skal være etableret før enhver
    runtimeinitialisering. Unsupported-device hard-stop må ikke initialisere sagsstate.
 
 2. **Device-gaten ejes af app-shellen.** `isUnsupportedDevice` og `UNSUPPORTED_MAX_SHORTEST_SIDE_PX` lever kun i `bootstrapClientApp.tsx`. Rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer (`isTouchLikeDevice`, fysisk skærmkortside, viewport-kortside, `isTouchLikeDeviceWithShortestSideAtMost`) lever i `src/utils/clientDevice.ts`, så samme aflæsninger kan genbruges uden at duplikere device-logik i sidekomponenter. Ved uunderstøttet enhed renderes `UnsupportedDevicePage` som hård stop, og App-roden monteres ikke. Gaten bruger touch-enhedens stabile kortside, så rotation ikke kan åbne en ellers blokeret tablet. Gaten er **fail-closed**: kan hverken fysisk skærm eller viewport aflæses på en touch-lignende enhed, behandles enheden som uunderstøttet. En app-variant kan eksplicit fravælge gaten via `enforceUnsupportedDeviceGate: false` (kun standalone-beregneren, der bevidst skal virke på mobil).
 
-3. **Multi-app-isolation — ingen krydsimport.** Standalone-laget (`src/apps/minprocesrente/**`, `src/components/pages/minprocesrente/**` og dedikerede standalone-services) må ikke importere Mineos auth-, route-, PWA-, service-worker- eller diagnose-flow (`AuthGate`, `BrowserRouter`/`App`, `pwaLaunchQueue`, `serviceWorker*`, `systemIssueReporter`/`reportSystemIssue`). De to varianter deler kun rene, tilstandsløse moduler (beregning, schemas, formatering, PDF-rendering).
+3. **Multi-app-isolation — ingen krydsimport.** Standalone-laget (`src/apps/minprocesrente/**`, `src/components/pages/minprocesrente/**` og dedikerede standalone-services) må ikke importere Mineos auth-, route-, PWA-, service-worker- eller diagnose-flow (`AuthGate`, `BrowserRouter`/`App`, `pwaLaunchQueue`, `serviceWorker*`, `systemIssueReporter`/`reportSystemIssue`). Forbuddet håndhæves strukturelt af AST-reglen `layer/minprocesrente-standalone-import-boundary`.
+
+   Det delte flademateriale er derimod **ikke** begrænset til tilstandsløse moduler. Ud over de rene moduler (beregning, schemas, formatering, PDF-rendering) deler de to varianter også konkrete UI-komponenter med egen state — `RenteberegningTab.tsx`, `SiblingSitesFooter.tsx` og `StandaloneCalculatorLayout.tsx`. Det er bevidst (brugerbeslutning 2026-08-06, jf. §5.3): en split i to varianter ville give to kopier af samme flade uden synlig gevinst. Reglen er derfor et forbud mod at dele **shell-, auth-, route-, PWA- og diagnose-flow**, ikke et krav om tilstandsløshed i det delte.
 
 4. **Storage-namespace sættes før al storage-adgang og kan ikke skifte.** Hver variant kører i sit eget sessionStorage-namespace (`mineo` eller `minprocesrente`). `setStorageNamespace(...)` kaldes præcis én gang ved bootstrap, *før* noget modul kan nå at røre sessionStorage; gentagelse med samme værdi er idempotent, mens et skift fejler hårdt. Begge entries håndhæver rækkefølgen med en **bivirknings-import** som første import (`mineoStorageNamespace.ts` henholdsvis `standaloneStorageNamespace.ts`) — før App-træets import — så ES-import-hoisting ikke kan flytte App-evalueringen foran namespace-sætningen. Namespacet må aldrig sættes inline i et entrypoint efter en App-import.
 
@@ -55,7 +60,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 ## 4. Testkobling
 
-- `src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts` (ingen krydsimport; storage-namespace sat via bivirknings-import før App-import).
+- `src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts` (storage-namespace sat via bivirknings-import før App-import). **Bemærk:** selve importforbuddet i §2.3 testes IKKE længere her — det er flyttet til AST-reglen nedenfor, og filen siger det selv.
+- `src/__tests__/quality/architecture/rules/documentRules.ts` (`layer/minprocesrente-standalone-import-boundary`: den strukturelle håndhævelse af §2.3's krydsimport-forbud).
 - `src/__tests__/apps/shared/bootstrapClientApp.test.tsx` (device-gate hård stop som default; standalone kan fravælge gaten).
 - `src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts` (reload kun ved reel opdatering, aldrig ved første install; højst én reload; ingen registrering uden for produktion eller på `/open`).
 - `src/__tests__/quality/pwaHeaders.test.ts` (HTML, SPA-ruter, manifest og service worker revalideres; hashed assets er immutable).

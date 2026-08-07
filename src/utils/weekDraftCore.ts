@@ -1,4 +1,4 @@
-// Delt commit-parse-kerne for UGE-inputs (uge/år-par) — brugt af BÅDE formularfeltet (`StyledWeekField`)
+// Delt commit-parse-kerne for UGE-inputs (uge/år-par) — brugt af BÅDE formularfeltet (`WeekField`)
 // og tabel-cellen (`weekAdapter`). Tidligere var den identiske uge-/år-parsing kopieret i begge familier;
 // A2 samler den her. Årsdelens fortolkning og interval-besked deles yderligere med årstalsfeltet via
 // `yearDraftCore` (ensartet ordlyd: "Årstallet skal være …").

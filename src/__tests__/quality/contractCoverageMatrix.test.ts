@@ -18,6 +18,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/data/calculationDataCatalog.test.ts',
       'src/__tests__/data/kapitaliseringsbekendtgoerelser.test.ts',
+      // Den transitive regel `data/calculation-catalog-not-eager-from-entrypoint` (kontraktens §2.8).
+      // Stod i kontraktens eget §4, men manglede her.
+      'src/__tests__/quality/architecture/architectureRules.test.ts',
     ],
   },
   {
@@ -268,6 +271,10 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/auth-gate-contract.md',
     requiredTestPaths: [
       'src/__tests__/auth/auth.test.ts',
+      // Gaten forbliver lukket ved afvist/fejlende login og mounter først appen efter gyldigt flag.
+      // Stod i kontraktens eget §4, men manglede her — de to lister var uenige.
+      'src/__tests__/auth/LoginPage.test.tsx',
+      'src/__tests__/auth/AuthGate.test.tsx',
       'src/__tests__/quality/authGateContractIsolation.test.ts',
     ],
   },
@@ -278,6 +285,12 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/apps/shared/bootstrapClientApp.test.tsx',
       'src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts',
       'src/__tests__/settings/indexThemeBootstrap.test.ts',
+      // De tre nedenfor stod i kontraktens eget §4, men manglede her — de to autoritative lister
+      // over samme forhold var uenige, og ingen kontrol kunne se det.
+      'src/__tests__/quality/pwaHeaders.test.ts',
+      'src/__tests__/quality/architecture/rules/responsiveStylingRules.ts',
+      'src/__tests__/quality/architecture/rules/documentRules.ts',
+      'scripts/verify-build-artifacts.mjs',
     ],
   },
   {
@@ -429,6 +442,89 @@ describe('contract linkage matrix', () => {
       [...(declared ?? [])].sort(),
       'underordnelseslisten er ikke identisk med det tværgående sæt (AGENTS.md § Kontrakthierarki)'
     ).toEqual([...topology.crossCuttingContracts].sort());
+  });
+
+  /**
+   * To autoritative lister over samme forhold skal stemme overens.
+   *
+   * Fem kontrakter har et eget `Testkobling`-afsnit, som navngiver deres testsuiter — samtidig med at
+   * `COVERAGE_MATRIX` her gør præcis det samme. Ingen kontrol sammenholdt dem, og de var faktisk
+   * uenige: `app-shell-contract.md` §4 navngav tre suiter (`pwaHeaders.test.ts`,
+   * `responsiveStylingRules.ts`, `verify-build-artifacts.mjs`), som matrixen ikke kendte;
+   * `auth-gate-contract.md` og `calculation-data-contract.md` hver én. Alle filerne fandtes — så
+   * uenigheden var ikke en død reference, men det værre tilfælde: to lister, en læser kunne slå op i og
+   * få forskellige svar. Det er samme fejlklasse som R1-F04, hvor topologien og AGENTS.md gav
+   * forskellig kontraktprioritet.
+   *
+   * Retningen er INKLUSION, ikke lighed: matrixen er registret og skal kende hver suite, kontrakten
+   * påberåber sig. Omvendt må matrixen gerne føre suiter, kontrakten ikke opremser — kontraktens
+   * afsnit er prosa for en læser, matrixen er den maskinelt håndhævede liste.
+   */
+  it('hver testsuite, en kontrakt selv navngiver i sit Testkobling-afsnit, står også i matrixen', () => {
+    const TEST_PATH_PATTERN = /`(src\/__tests__\/[A-Za-z0-9_./-]+\.(?:ts|tsx)|scripts\/[A-Za-z0-9_./-]+\.mjs)`/g;
+    const contractsDir = path.resolve(process.cwd(), 'src/contracts');
+    const matrixByContract = new Map(
+      COVERAGE_MATRIX.map((entry) => [entry.contractPath, new Set(entry.requiredTestPaths)])
+    );
+
+    const problems: string[] = [];
+    const contractsWithSection: string[] = [];
+    let declaredTotal = 0;
+
+    for (const fileName of fs.readdirSync(contractsDir).filter((name) => name.endsWith('.md'))) {
+      if (fileName === 'contract-template.md') continue;
+      const contractPath = `src/contracts/${fileName}`;
+      const lines = fs.readFileSync(path.join(contractsDir, fileName), 'utf8').split(/\r?\n/);
+
+      // Afsnittet løber fra sin egen overskrift til næste `##`-overskrift.
+      // Ankret i begge ender: uden `$` matchede mønsteret også en OMDØBT overskrift
+      // (`## 4. Testkobling-omdoebt`), så mutationstesten «fjern afsnittet» overlevede — parseren
+      // troede stadig, den så et Testkobling-afsnit.
+      const start = lines.findIndex((line) => /^##\s+\d+\.\s+Testkobling\s*$/i.test(line));
+      if (start < 0) continue;
+      contractsWithSection.push(contractPath);
+      const rest = lines.slice(start + 1);
+      const end = rest.findIndex((line) => /^##\s/.test(line));
+      const body = (end < 0 ? rest : rest.slice(0, end)).join('\n');
+
+      const declared = new Set([...body.matchAll(TEST_PATH_PATTERN)].map((match) => match[1]!));
+      declaredTotal += declared.size;
+      const inMatrix = matrixByContract.get(contractPath) ?? new Set<string>();
+      for (const testPath of declared) {
+        if (inMatrix.has(testPath)) continue;
+        problems.push(
+          `${contractPath} navngiver "${testPath}" i sit Testkobling-afsnit, men suiten står ikke i `
+            + 'COVERAGE_MATRIX. To autoritative lister over samme forhold må ikke være uenige: tilføj den '
+            + 'til matrixen, eller fjern den fra kontrakten.'
+        );
+      }
+    }
+
+    /**
+     * Værn mod grøn-af-tomhed — og det skal være en EKSAKT liste, ikke et gulv.
+     *
+     * Første udgave brugte `toBeGreaterThanOrEqual(5)`. Mutationstesten viste, at den var ubrugelig:
+     * omdøbes tre af afsnitsoverskrifterne, faldt antallet fra 6 til … 5, og testen forblev grøn,
+     * mens parseren reelt var holdt op med at måle halvdelen af sit mål. Et gulv, der tilfældigvis er
+     * lig virkeligheden, kan per konstruktion ikke se et tab. Den eksakte liste kan.
+     *
+     * Får en kontrakt med rette et nyt Testkobling-afsnit, er den røde test her netop stedet, hvor
+     * beslutningen registreres — ikke en fejl at slå fra.
+     */
+    expect(
+      contractsWithSection.sort(),
+      'sættet af kontrakter med et Testkobling-afsnit har ændret sig — er et afsnit fjernet/omdøbt, '
+        + 'eller er parseren holdt op med at genkende det?'
+    ).toEqual([
+      'src/contracts/app-shell-contract.md',
+      'src/contracts/auth-gate-contract.md',
+      'src/contracts/calculation-data-contract.md',
+      'src/contracts/document-output-contract.md',
+      'src/contracts/indskudte-loentillaeg-contract.md',
+    ]);
+    // Og afsnittene skal faktisk indeholde stier: en tom liste ville gøre sammenligningen vakuøs.
+    expect(declaredTotal, 'ingen teststier blev udtrukket af afsnittene — mønsteret matcher intet').toBeGreaterThanOrEqual(20);
+    expect(problems, problems.join('\n')).toEqual([]);
   });
 
   it('ingen anden kontrakt end page-component-kontrakten erklærer en underordnelsesliste', () => {

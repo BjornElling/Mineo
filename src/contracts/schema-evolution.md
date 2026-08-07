@@ -294,7 +294,7 @@ Omdøbning/flytning af et redigerbart felt eller ændring af rækkeidentitet kla
 canonical sektionsdata:
 
 1. `PERSISTED_DATA_VERSION` håndterer canonical sektionsdata (inkl. `.eo`-load-mapping).
-2. `InputEnvelope.envelopeVersion` håndterer den samlede sessionstruktur.
+2. `CurrentInputEnvelope.envelopeVersion` håndterer den samlede sessionstruktur.
 
 Der findes **ingen** `fieldAddressVersion` og ingen browser-session-feltadressemigration: gamle interne sessioner
 migreres aldrig. Ændrer de strukturelle feltadresser sig inkompatibelt, kan en eksisterende current-session ikke længere
@@ -341,7 +341,7 @@ forkert strip eller fingerprint-drift.
 3. ændret load-sanitization der påvirker sagsinput,
 4. bevidst breaking schema-ændring.
 
-`InputEnvelope.envelopeVersion` bumpes ved ændring af sessionaggregatets serialiserede struktur. En inkompatibel ændring
+`CurrentInputEnvelope.envelopeVersion` bumpes ved ændring af sessionaggregatets serialiserede struktur. En inkompatibel ændring
 af de strukturelle feltadresser bumpes ikke som en særskilt version, men gør enhver eksisterende current-session
 korrupt (fail-closed efter `persistence-contract.md` §4), fordi browser-sessioner aldrig migreres. Versionerne må ikke
 bumpes samlet uden klassifikation.

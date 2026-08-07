@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt. Underordner ikke andre kontrakter og er ikke underordnet `page-component-contract.md` (login-gaten ligger uden for sidekomponent-laget; den wrappes om hele `App` i app-shell-laget, før sider monteres). Berører ikke beregnings-, form- eller persistence-concerns og overlapper derfor ikke de øvrige tværgående kontrakter.
-**Senest verificeret mod kode:** 2026-07-28
+**Senest verificeret mod kode:** 2026-08-07
 
 ## 1. Scope
 
@@ -36,7 +36,8 @@ Den informative uddybning (trusselsmodel, migrations-triggere) ligger i `docs/ar
 ## 4. Testkobling
 
 - `src/__tests__/auth/auth.test.ts` (verifikation, persistens af flag, deterministisk fejl ved manglende `crypto.subtle` og ved skrivefejl).
-- `src/__tests__/auth/LoginPage.test.tsx` og `AuthGate.test.tsx` (gaten forbliver lukket ved afvist/fejlende login og mounter først appen efter gyldigt flag eller en fuldført loginsekvens).
+- `src/__tests__/auth/LoginPage.test.tsx` (gaten forbliver lukket ved tomt input, forkert adgangskode og ved en loginskrivning, der ikke kan gemmes; åbnes først når både verifikation og persistering er lykkedes).
+- `src/__tests__/auth/AuthGate.test.tsx` (mounter kun appen ved gyldigt flag eller efter en fuldført loginsekvens). Filen mocker bevidst `LoginPage` væk og dækker derfor IKKE afvist login — den dækning bor i `LoginPage.test.tsx` ovenfor.
 - `src/__tests__/quality/authGateContractIsolation.test.ts` (auth-flaget holdes ude af sessionStorage-manifestet og `.eo`-save-schemaet; ingen klartekst-persistens i auth-laget).
 
 ## 5. Kendte Undtagelser

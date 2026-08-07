@@ -626,6 +626,11 @@ export const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
   'cellFocusPaths',
   'useCellInvalidDraftChannel',
   'onFieldError',
+  // `error-contract.md` §2 og `form-contract.md` §12 navngiver BEGGE denne hook som del af den slettede,
+  // forbudte feltfejl-bus — men kun `onFieldError` stod her. To normative kontrakter erklærede altså et
+  // forbud, gaten ikke håndhævede (fundet ved kontraktverifikationen 2026-08-07). Kontrakterne havde ret;
+  // det var listen, der var ufuldstændig.
+  'useFormFieldErrorReporter',
   'visibleDocumentFailureMessage',
   'resolveOverenskomstNameOnlyDisplay',
   'normalizeGridRows',
