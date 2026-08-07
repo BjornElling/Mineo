@@ -408,6 +408,63 @@ describe('Svie/smerte beregning', () => {
       expect(beregnetPeriode?.status).toBe('error');
       expect(beregnetPeriode?.displayValue).toContain('Fejl (Der er overlappende perioder)');
       expect(overlapPeriode?.label).toBe('Periode (22-06-2023 - 31-07-2024)');
+      // Fejludfaldet er en færdig besked, ikke en periodeliste — `lines` skal være tom, så
+      // Beregning-fanen ikke tæller fejlteksten som «én periode».
+      expect(beregnetPeriode?.lines).toEqual([]);
+    });
+  });
+
+  /**
+   * Rækkens strukturerede `lines` er kilden; `displayValue` er dens serialisering.
+   *
+   * Værnet findes, fordi Beregning-fanen tidligere SPLITTEDE `displayValue` på `\n` for at få
+   * listen tilbage — en skjult aftale mellem builder og præsentation, som en ren
+   * formatteringsændring kunne bryde lydløst, og som driver synlig UI-forgrening (linjeantallet
+   * afgør ental/flertal i etiketten «Svie/smerte-periode(r)»).
+   */
+  describe('beregnetPeriode — struktureret linjeliste', () => {
+    const contextFor = (skadedato: string) => ({
+      skadedatoISO: iso(skadedato),
+      erErhvervssygdom: false,
+      menAfgoerelseDatoForTabel: undefined,
+      verserendeKlageMen: false,
+    });
+
+    const beregnetPeriodeFor = (values: ReturnType<typeof makeValues>, skadedato: string) =>
+      buildEoSvieSmerteRows(values, EMPTY_FIELD_ISSUE_SET, contextFor(skadedato))
+        .find((row) => row.id === 'sviesmerte.beregnetPeriode');
+
+    it('bærer én linje pr. periode, og displayValue er linjerne serialiseret', () => {
+      const values = makeValues({
+        vedroererPeriodeFra: iso('2024-01-01'),
+        vedroererPeriodeTil: iso('2024-12-31'),
+        svieSmertePerioder: [
+          { id: '1', fra: iso('2024-01-10'), til: iso('2024-02-10'), tilstand: 'sygemeldt' },
+          { id: '2', fra: iso('2024-05-01'), til: iso('2024-06-01'), tilstand: 'delvist-sygemeldt' },
+        ],
+      });
+
+      const row = beregnetPeriodeFor(values, '2023-12-01');
+
+      expect(row?.lines).toEqual([
+        '10-01-2024 - 10-02-2024',
+        '01-05-2024 - 01-06-2024 (delvist syg)',
+      ]);
+      // Serialiseringen er kontrakten mod dokumentgeneratorerne — den må ikke drive fra listen.
+      expect(row?.displayValue).toBe(row?.lines?.join('\n'));
+    });
+
+    it('giver tom liste og «Nej» når der ingen perioder er', () => {
+      const values = makeValues({
+        vedroererPeriodeFra: iso('2024-01-01'),
+        vedroererPeriodeTil: iso('2024-12-31'),
+        svieSmertePerioder: [],
+      });
+
+      const row = beregnetPeriodeFor(values, '2023-12-01');
+
+      expect(row?.lines).toEqual([]);
+      expect(row?.displayValue).toBe('Nej');
     });
   });
 

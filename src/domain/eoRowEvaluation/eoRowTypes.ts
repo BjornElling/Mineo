@@ -171,12 +171,28 @@ export const serializeEoRowTable = (table: EoRowTable): string =>
     ...table.rows.map((row) => row.cells.join(' | ')),
   ].join('\n');
 
+/**
+ * Serialiserer en liste af linjer til `displayValue`-formen.
+ *
+ * Samme aftale som {@link serializeEoRowTable}, men for rækker hvis værdi er en LISTE og ikke en
+ * tabel: strukturen er kilden, strengen er outputtet. Uden den måtte forbrugeren splitte
+ * `displayValue` på `\n` igen for at få listen tilbage — en skjult serialiseringsaftale, der
+ * driver synlig UI-forgrening (antal linjer afgør ental/flertal i etiketten), og som en ren
+ * formatteringsændring i builderen kunne bryde lydløst.
+ */
+export const serializeEoRowLines = (lines: readonly string[]): string => lines.join('\n');
+
 export type EoRowModel = {
   id: string;
   label: string;
   displayValue: string;
   /** Sat når rækkens værdi er en tabel; se {@link EoRowTable}. */
   table?: EoRowTable;
+  /**
+   * Sat når rækkens værdi er en LISTE af linjer. Forbrugeren skal læse denne frem for at splitte
+   * {@link displayValue} på `\n`; se {@link serializeEoRowLines}.
+   */
+  lines?: readonly string[];
   /**
    * Ansættelsesforholdet rækken hører til, når den er per-ansættelsesforhold.
    *

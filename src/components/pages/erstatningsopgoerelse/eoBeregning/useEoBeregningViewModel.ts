@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setActiveTabForPage } from '../../../../hooks/usePersistedActiveTab';
+import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
 import type { EoRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
 import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoRowNavigationMap';
@@ -296,10 +297,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
             switch (navigation.kind) {
               case 'erhvervsevnetab-tab':
                 setActiveTabForPage('erhvervsevnetab', navigation.tabKey);
-                navigate('/erhvervsevnetab');
+                navigate(APP_ROUTES.erhvervsevnetab);
                 break;
               case 'stamdata-page':
-                navigate('/stamdata');
+                navigate(APP_ROUTES.stamdata);
                 // Land på det konkrete felt, hvis issuet peger på ét (parallelt til EO-rækkernes
                 // stamdata-sti). Den generiske schema-invalid har intet enkelt felt → kun navigation.
                 if (navigation.focusFieldAddress) {
@@ -512,7 +513,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
         case 'stamdata-page':
           // Naviger til Stamdata-siden
-          navigate('/stamdata');
+          navigate(APP_ROUTES.stamdata);
           scrollToRowIssueTarget(rowId, focusTarget);
           setPendingNavigation(null);
           break;
@@ -600,10 +601,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const svieSmerteLines = React.useMemo(() => {
     if (!beregnesSvieSmerte) return [];
     if (svieSmerteRow?.status === 'error') return ['Fejl'];
-    return (svieSmerteRow?.displayValue ?? '-')
-      .split('\n')
-      .map((value) => value.trim())
-      .filter((value) => value !== '' && value !== '-');
+    // Rækkens strukturerede `lines` er kilden. Tidligere blev `displayValue` splittet på `\n`
+    // her — en skjult aftale med row-builderen, som en formatteringsændring kunne bryde lydløst,
+    // og som driver synlig UI-forgrening (antal linjer afgør ental/flertal i etiketten).
+    return svieSmerteRow?.lines ?? [];
   }, [beregnesSvieSmerte, svieSmerteRow]);
   const harSvieSmertePerioder =
     beregnesSvieSmerte &&

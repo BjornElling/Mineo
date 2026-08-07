@@ -11,7 +11,7 @@
  * og `Ä`→`a`, men `ø` har INGEN dekomposition og blev derfor spist som separator.
  * `Årsløn` blev `arsl-n` og `Ærø` blev `a-r-` — begge tabte betydningsbærende tegn
  * og kunne kollidere med en anden etiket. Derfor translittereres de danske
- * særtegn eksplicit (`ø`→`o`, `æ`→`ae`, `å`→`aa`) FØR `NFKD` rydder resten af
+ * særtegn eksplicit (`ø`→`oe`, `æ`→`ae`, `å`→`aa`) FØR `NFKD` rydder resten af
  * de diakritiske tegn.
  *
  * Bemærk: dette er IKKE filnavns-sanitering. `sanitizeFilenamePart` i

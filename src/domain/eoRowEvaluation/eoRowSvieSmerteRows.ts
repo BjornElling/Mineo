@@ -5,7 +5,7 @@ import { addMonths } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { presentIssuesForRow, resolveEoRowDisplay } from './eoRowCommon';
 import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
-import type { EoRowModel, EoRowStatus } from './eoRowTypes';
+import { serializeEoRowLines, type EoRowModel, type EoRowStatus } from './eoRowTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
@@ -346,10 +346,19 @@ export const buildEoSvieSmerteRows = (
   });
 
   // 6) Beregnet periode (sammenflettede perioder afgrænset af vedroererPeriode og menAfgoerelseDato)
-  const beregnetPeriodeResult = (() => {
-    // Hvis ingen perioder indtastet, returner tom
+  //
+  // Udfaldet er BEVIDST en union af to arter, ikke ét objekt med valgfrie felter: enten er
+  // resultatet en periodeLISTE (`lines`), eller også er det en færdig fejl-/tom-besked
+  // (`displayValue`). En valgfri `lines` ville lade en ny gren glemme begge dele.
+  type BeregnetPeriodeResult =
+    | Readonly<{ lines: readonly string[]; status: EoRowStatus }>
+    | Readonly<{ displayValue: string; status: EoRowStatus }>;
+
+  const beregnetPeriodeResult: BeregnetPeriodeResult = (() => {
+    // Hvis ingen perioder indtastet, returner tom LISTE (ikke en tom-besked): udfaldet er en
+    // periodeliste med nul perioder, og serialiseringen af den er «Nej».
     if (!harPerioder) {
-      return { displayValue: '-', status: 'ok' as EoRowStatus };
+      return { lines: [], status: 'ok' as EoRowStatus };
     }
 
     // Hvis der er fejl i periode-felterne, returner samme fejl som periode
@@ -403,7 +412,7 @@ export const buildEoSvieSmerteRows = (
       }
 
       if (sygemeldtPeriods.length === 0 && delvistSygemeldtPeriods.length === 0) {
-        return { displayValue: '-', status: 'ok' as EoRowStatus };
+        return { lines: [], status: 'ok' as EoRowStatus };
       }
 
       // Begræns til vedroererPeriode
@@ -443,7 +452,7 @@ export const buildEoSvieSmerteRows = (
       const constrainedDelvistSygemeldt = processPeriodGroup(delvistSygemeldtPeriods);
 
       if (constrainedSygemeldt.length === 0 && constrainedDelvistSygemeldt.length === 0) {
-        return { displayValue: '-', status: 'ok' as EoRowStatus };
+        return { lines: [], status: 'ok' as EoRowStatus };
       }
 
       // Kombiner alle perioder med tilstandsmarkering
@@ -457,7 +466,7 @@ export const buildEoSvieSmerteRows = (
       allPeriods.sort((a, b) => a.fra.getTime() - b.fra.getTime());
 
       // Formater resultat - hver periode på sin egen linje
-      const formatted = allPeriods
+      const periodLines = allPeriods
         .map((p) => {
           const fraISO = dateToISO(p.fra);
           const tilISO = dateToISO(p.til);
@@ -477,19 +486,35 @@ export const buildEoSvieSmerteRows = (
           }
 
           return `${fraDisplay} - ${tilDisplay}${suffix}`;
-        })
-        .join('\n');
+        });
 
-      return { displayValue: formatted, status: 'ok' as EoRowStatus };
+      return { lines: periodLines, status: 'ok' as EoRowStatus };
     } catch {
       return { displayValue: 'Fejl (Ugyldig dato i beregning)', status: 'error' as EoRowStatus };
     }
   })();
 
+  // Perioderne er rækkens egentlige værdi; `displayValue` er OUTPUTTET af dem, ikke omvendt.
+  // Uden `lines` måtte Beregning-fanen splitte strengen på `\n` igen for at tælle perioder —
+  // og en ren formatteringsændring her ville lydløst flippe etikettens ental/flertal.
+  //
+  // Kun de udfald der FAKTISK er en periodeliste bærer `lines`. De øvrige grene er
+  // fejl-/tomme-beskeder (fx «Fejl (Der er overlappende perioder)»), som er færdige strenge og
+  // ikke en liste — de beholder derfor deres `displayValue` uændret og får en tom `lines`.
+  const beregnetPeriodeDisplay = 'lines' in beregnetPeriodeResult
+    ? {
+        displayValue: beregnetPeriodeResult.lines.length === 0
+          ? 'Nej'
+          : serializeEoRowLines(beregnetPeriodeResult.lines),
+        lines: beregnetPeriodeResult.lines,
+      }
+    : { displayValue: beregnetPeriodeResult.displayValue, lines: [] as readonly string[] };
+
   rows.push({
     id: 'sviesmerte.beregnetPeriode',
     label: 'Svie/smerte-perioder i erstatningsperioden',
-    displayValue: beregnetPeriodeResult.displayValue === '-' ? 'Nej' : beregnetPeriodeResult.displayValue,
+    displayValue: beregnetPeriodeDisplay.displayValue,
+    lines: beregnetPeriodeDisplay.lines,
     status: beregnetPeriodeResult.status,
     dependsOn: [
       { kind: 'id', id: 'erstatningsopgoerelse.vedroererPeriode' },
@@ -509,7 +534,9 @@ export const buildEoSvieSmerteRows = (
       return { displayValue: periodeFejlBeskeder[0], status: 'error' as EoRowStatus };
     }
 
-    if (beregnetPeriodeResult.status === 'error' || beregnetPeriodeResult.displayValue === '-') {
+    // «Ingen perioder» aflæses nu på strukturen (tom `lines`) frem for på sentinel-strengen
+    // `'-'`. Samme udfald, men uafhængigt af hvordan tomheden formatteres.
+    if (beregnetPeriodeResult.status === 'error' || beregnetPeriodeDisplay.lines.length === 0) {
       return { displayValue: '-', status: 'ok' as EoRowStatus };
     }
 
