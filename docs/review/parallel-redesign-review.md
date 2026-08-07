@@ -1,10 +1,15 @@
 # Parallelt redesign-review — Mineo
 
 > **Status:** Aktivt arbejdsdokument for det igangværende greenfield-design på `greenfield`-branchen.
+> **Pr. 2026-08-07 er ÉN kandidat udestående: #52 (kontrakt-struktur).** #46 er lukket som
+> bevidst ikke gennemført efter brugerbeslutning.
 >
 > **⇒ Start med afsnittet [START HER — arbejdsstatus](#start-her--arbejdsstatus-2026-08-07) i
 > bunden af filen.** Det angiver hvad der er gjort, hvad der mangler, i hvilken rækkefølge, og
 > hvilke af planens oprindelige skæringer der er modbevist og IKKE må implementeres som skrevet.
+>
+> **11 af planens påstande er nu modbevist** (tabellen i «Kodeverificeret baseline»). Læs den
+> tabel før enhver kandidat implementeres efter sin oprindelige tekst.
 >
 > Fase-tabellerne og `✅`-markeringerne nedenfor er **historik**: flere af dem beskriver slettede
 > mellemtrin, gamle storagekeys og gamle lifecycle-politikker. Brug dem som kontekst, ikke som
@@ -207,13 +212,13 @@ Den kode der kollapser til tynde lag, når spinen findes.
 |:---:|:---:|---|:---:|:---:|:---:|---|
 | 24 | 16 | ✅ Split `reguleringsPresentation` + `sygeferiegodtgoerelse` | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | reg-del afsluttet i #23; SFGG-del gennemført |
 | 25 | 31 | ✅ PDF/Word-paritet som struktur | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
-| 26 | 32 | EO-sektion-funktioner → `Block[]` | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
-| 27 | 50 | TAF-graf → ren scene-model + Canvas-renderer | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | beslægtet #24 |
+| 26 | 32 | ✅ EO-sektion-funktioner → `Block[]` (omskåret) | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #24 |
+| 27 | 50 | ✅ TAF-graf → ren scene-model + Canvas-renderer | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | beslægtet #24 |
 | 28 | 27 | Samlet række-persistering-kerne | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | beslægtet #25 |
-| 29 | 45 | Deklarativt editable `GridSpec` | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25, #27 |
+| 29 | 45 | ✅ Rækkefølge-lag samlet (IKKE `GridSpec` — omskåret) | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #25, #27 |
 | 30 | 28 | Kollaps persistence læse-sti-lagstak | ★★★★☆ | ★★☆☆☆ | ★★★☆☆ | forudsætter #19, #33, #39 |
-| 31 | 30 | Konsolider validerings-ejerskab | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | beslægtet #20 |
-| 32 | 20 | eoInspektion regex-row-id → struktureret metadata | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | uafhængig |
+| 31 | 30 | ✅ Konsolider validerings-ejerskab (var reelt afsluttet) | ★★★★☆ | ★★☆☆☆ | ★★☆☆☆ | beslægtet #20 |
+| 32 | 20 | ✅ eoInspektion regex-row-id → struktureret metadata | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | uafhængig |
 
 ### Fase 4 — UI-dekomponering
 
@@ -222,17 +227,17 @@ side-mønstret; #26 (højeste lokale keyboard-risiko) laves sidst.
 
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
-| 33 | 43 | Kanonisk page-manifest + persistent app-shell | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #40; før øvrig UI-dekomponering |
+| 33 | 43 | ✅ Kanonisk page-manifest + persistent app-shell | ★★★★★ | ★★☆☆☆ | ★★☆☆☆ | forudsætter #40; før øvrig UI-dekomponering |
 | 34 | 5 | Ensartet viewmodel-mønster (meta + guard) | ★★★★★ | ★★★☆☆ | ★★★☆☆ | paraply for resten |
 | 35 | 44 | Feature-slicede EO-viewmodels | ★★★★★ | ★★☆☆☆ | ★★★☆☆ | forudsætter #5; før #1, #22 |
-| 36 | 1 | `AnsaettelsesforholdCard` → sektioner | ★★★★☆ | ★★★★☆ | ★★★★☆ | forudsætter #44 |
+| 36 | 1 | ✅ `AnsaettelsesforholdCard` → delt Lønudvikling-flade (omskåret) | ★★★★☆ | ★★★★☆ | ★★★★☆ | forudsætter #44 |
 | 37 | 6 | `Aarsloen.tsx` → VM + sektioner | ★★★★★ | ★★★☆☆ | ★★★☆☆ | forudsætter #5, #9 |
-| 38 | 18 | `EetDifferencekravTab` + delt forlig-editor | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | forudsætter #5 |
+| 38 | 18 | ✅ `EetDifferencekravTab` dekomponeret (forlig-editor bevidst urørt) | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | forudsætter #5 |
 | 39 | 10 | `Forsoergertab.tsx` → sektioner + VM | ★★★☆☆ | ★★★★☆ | ★★★★☆ | forudsætter #5 |
-| 40 | 21 | `Indstillinger.tsx` → deklarativt register | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | uafhængig; §2.2, uden for #5's VM-invariant |
-| 41 | 22 | `IndtaegtFoerSkadenSection` → under-sektioner | ★★☆☆☆ | ★★★★☆ | ★★★★☆ | forudsætter #44 |
+| 40 | 21 | ✅ Enum-etiketter fik ét hjem (IKKE register — omskåret) | ★★★☆☆ | ★★★☆☆ | ★★★★☆ | uafhængig; §2.2, uden for #5's VM-invariant |
+| 41 | 22 | ✅ `IndtaegtFoerSkadenSection` → delt Lønudvikling-flade (omskåret) | ★★☆☆☆ | ★★★★☆ | ★★★★☆ | forudsætter #44 |
 | 42 | 7 | Headless `StyledDropdown` | ★★★★☆ | ★★★★☆ | ★★★☆☆ | forudsætter `mergeSx` (#12) |
-| 43 | 26 | `Container.tsx` → headless keyboard-nav-hook | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | højeste UI-risiko; sidst |
+| 43 | 26 | ✅ `Container.tsx` → `containerNavigation/` | ★★★★☆ | ★★★☆☆ | ★★☆☆☆ | højeste UI-risiko; sidst |
 
 ### Fase 5 — Uafhængige oprydninger
 
@@ -242,12 +247,12 @@ godkendelse. Ordnet efter værdi.
 | Sekv | ID | Kandidat | For | Let | Sik | Nøgle-afhængighed |
 |:---:|:---:|---|:---:|:---:|:---:|---|
 | 44 | 2 | `documentService` → deklarativt download-register | ★★★★☆ | ★★★★☆ | ★★★★☆ | uafhængig |
-| 45 | 3 | `fileHandleStorage` → IndexedDB-kv-primitiv | ★★★★☆ | ★★★★☆ | ★★★★☆ | uafhængig |
-| 46 | 46 | Variant-ejede styles og build-assets | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | uafhængig; synlig QA/godkendelse |
-| 47 | 29 | `dateRanges.ts` split + read-time `TODAY` | ★★★☆☆ | ★★★☆☆ | ★★★☆☆ | uafhængig |
+| 45 | 3 | ✅ `fileHandleStorage` → IndexedDB-kv-primitiv | ★★★★☆ | ★★★★☆ | ★★★★☆ | uafhængig |
+| 46 | 46 | ⛔ Variant-ejede styles og build-assets (brugerbeslutning: ikke gennemført) | ★★★★☆ | ★★★☆☆ | ★★★☆☆ | uafhængig; synlig QA/godkendelse |
+| 47 | 29 | ✅ read-time `TODAY` (split ikke lavet) | ★★★☆☆ | ★★★☆☆ | ★★★☆☆ | uafhængig |
 | 48 | 4 | `utils/` residual parallel-helper-oprydning | ★★☆☆☆ | ★★★★★ | ★★★★★ | uafhængig |
-| 49 | 14 | Fjern dupleret `sanitizeFilenamePart` i reports | ★☆☆☆☆ | ★★★★★ | ★★★★★ | uafhængig |
-| 50 | 35 | Carry-forward series-opslag | ★★☆☆☆ | ★★★☆☆ | ★★☆☆☆ | uafhængig |
+| 49 | 14 | ✅ Kanonisk ASCII-slug (omskåret — de to var forskellige concerns) | ★☆☆☆☆ | ★★★★★ | ★★★★★ | uafhængig |
+| 50 | 35 | ✅ Carry-forward series-opslag | ★★☆☆☆ | ★★★☆☆ | ★★☆☆☆ | uafhængig |
 | 51 | 52 | Normative kontrakter: invariant-kerne vs. implementeringskort | ★★★★☆ | ★★★☆☆ | ★★★★☆ | uafhængig |
 
 ---
@@ -530,6 +535,11 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 21 — `Indstillinger.tsx` → deklarativt settings-register · 10
 
+- **Status: ✅ Gennemført 2026-08-07, men OMSKÅRET — intet register.** Kandidaten som skrevet
+  må ikke implementeres: kun 7 af 18 felter er ensartede. Det faktisk løste problem var, at
+  enum-etiketterne var duplikeret 3× pr. enum, heraf ind i `eoRowEvaluation`. Se «Gennemført
+  2026-08-07 (tredje omgang)».
+
 - **Scope:** `src/components/pages/Indstillinger.tsx` (628).
 - **Problem:** ~20 nær-identiske `row--label-right-hover`-blokke, hver hånd-wirer en kontrol til `updateSettings({...})` med inline type-guard og bespoke closure. Directory-picker-side-effekt blandet ind. En statisk form beskrevet imperativt 20 gange.
 - **Greenfield:** Deklarativt settings-register: `SettingsRow` drevet af descriptor (`{ label, control, key, options, guard }`) grupperet i sektioner. Directory-picker → `useDefaultDirectorySetting()`. 628 linjer → data-tabel + lille renderer; ny indstilling = én descriptor.
@@ -615,6 +625,10 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** Relateret til #27 (række-persistering) og #12 (fejl-seam). Højeste blast-radius i appen (hvert input + undo/redo + save-gating) → tung test før ændring.
 
 ### 26 — `Container.tsx` → headless keyboard-nav-hook · 9
+
+- **Status: ✅ Gennemført 2026-08-07.** Container 584 → 107 l.; navigationen i
+  `containerNavigation/` delt efter fejlmåde. Det stærke argument var utestbarhed (jsdom har
+  intet layout), ikke LOC-andelen. Se «Gennemført 2026-08-07 (tredje omgang)».
 
 - **Scope:** `src/components/layout/Container.tsx` (623).
 - **Problem:** Én `React.memo` blander normativ kontrakt-docblock, rene DOM-utils (radio-group-tab-stops, visibility-probing), en focusable-cache med `MutationObserver`, og én ~320-linjers `handleKeyDown` med nested `focusOnly`/`moveFocus`/`moveByArrow` + række-geometri-matematik.
@@ -721,6 +735,10 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Status: ❌ Udgået som kandidat (2026-07-10).** Den efterfølgende verifikation viste, at filen allerede udleder varianterne gennem `createLoenudviklingOgSatserSchema(...)`; den påståede parallelle schema-form findes ikke længere. Filen er 363 linjer, og en ren filopdeling uden et konkret grænseproblem ville være ændring for ændringens skyld. Kandidaten er derfor fjernet fra byggerækkefølgen, men ID'et bevares som historik.
 
 ### 35 — Carry-forward series-opslag · 7
+
+- **Status: ✅ Gennemført 2026-08-07. Planens «blokeret» var MODBEVIST** — abstraktionen
+  fandtes allerede med 10 callsites og manglede kun en nøglevælger. Se «Gennemført 2026-08-07
+  (tredje omgang)».
 
 - **Scope:** `data/offentligLoenLookup.ts` (binær søgning), `data/krlRates.ts`, `data/overenskomstRates.ts`, `data/klLoenaftaler.ts`, `data/statistiskeRates.ts`; allerede-delt: `data/rateSeriesIntegrity.ts`.
 - **Problem:** Integritets-primitiverne (sortering, no-interior-gap) er allerede konsolideret (R5, godt). Men *lookup*-halvdelen er stadig per-fil: hver kilde har sin egen "find nyeste entry med `effectiveDate ≤ target`" (én binær søgning, resten lineær scan) + sit eget `getReguleringsDatoIntervalFor*`. Samme carry-forward-semantik implementeret 4-5 gange — hver et sted en subtil off-by-one kunne give stille mis-regulering.
@@ -908,6 +926,11 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 
 ### 45 — Deklarativt editable `GridSpec` · 8
 
+- **Status: ✅ Gennemført 2026-08-07, men OMSKÅRET — ingen `GridSpec`.** Rækkefølge-laget er
+  samlet i `useSortedCollectionTable` (8 af 10 tabeller) og colId-triplen i
+  `bindSortableHeader`. En fælles kolonnespec må IKKE laves; se begrundelsen i «Gennemført
+  2026-08-07 (tredje omgang)».
+
 - **Scope:** `StandardLoenTable` (806), `OffentligeYdelserTable` (544), `LoenudviklingManuelTable` (476), `LoenudviklingManuelProcentsatsTable` (376), `EetAslAfgoerelserTable` (402), `StandardGridTable` og `gridCore`.
 - **Problem:** Fem editable grids hånd-wirer samme kolonneidentitet særskilt som header/sort-id, fysisk `colIndex`, `gridCell`, undo-path, error-key, fokusmål, width/alignment og editor (39 `gridCell`-sites). En kolonneombytning kan kompilere, men sende undo/error/navigation til forkert celle; den nuværende grid-shell kan ikke typekontrollere isometrien.
 - **Greenfield:** `EditableGridSpec<Row, ColumnKey>` med én descriptor pr. kolonne (`key`, stabil index, header, width, align, sort projection, editor/derived renderer, error mapping). En compiler renderer colgroup/header/body og udleder gridCell, undo/error-key og fokusmål fra samme descriptor. Dynamiske løn-/beløbsgrene er spec-factories.
@@ -994,6 +1017,10 @@ greenfield-visionen, hvordan den følger den røde tråd, samt afhængigheder.
 - **Afhængigheder:** Selvstændig data-keystone, lavere prioritet end #41. Alle værdier er beregningslogik → forelæggelse og fuld golden-værdi-identitet.
 
 ### 52 — Normative kontrakter: invariant-kerne vs. implementeringskort · 11
+
+- **Status: ⏳ ENESTE UDESTÅENDE KANDIDAT (2026-08-07).** Tallene i afsnittet nedenfor og i
+  «Kodeverificeret baseline» er fra 2026-08-06 og skal verificeres mod filerne først — flere
+  kontrakter er redigeret siden (bl.a. `app-shell-contract.md` §5.3 og `keyboard-navigation.md`).
 
 - **Scope:** `src/contracts/` (27 kontraktfiler/~4.700 linjer), `contract-topology.json`, coverage-matrixen og informative arkitektur-/reviewdokumenter.
 - **Problem:** Stabile regler, konkrete fil-/symbolnavne, audits og historiske noter står blandet i normative kontrakter. Der er allerede drift: `eo-snapshot-contract.md` navngiver ikke-eksisterende `...PdfDocument`-funktioner, og `app-settings.md` beskriver en ældre settings-kobling. Topologi-testen kan kun verificere linkage, ikke sandheden i implementeringskortene.
@@ -1262,6 +1289,10 @@ længere gyldig som arbejdsgrundlag.
 | **#30** | Valideringsansvar "ligger fortsat i flere lag" og skal konsolideres | **Reelt afsluttet.** Lagene er dokumenteret komplementære (validation-filerne afgrænser sig eksplicit mod hinanden i kildekommentarer), konvergerer i én `EoInvariant`-valuta i `eoSnapshotInvariants.ts`, og ansvarsdelingen er kontraktfæstet i `error-contract.md` §2/§11. Ingen regel er håndhævet to steder. Den eneste redundans er tilsigtet fail-closed forsvar i dybden — med eget test-værn (`eoReguleringInvariantReachability.test.ts`). |
 | **#32** | `opgoerelseSection.ts` er en efterladt imperativ rest | Ikke en rest — **normen**. Alle 7 sektioner i `document/generators/eo/sections/` er `=> void` + ctx-objekt. `opgoerelseSection` er blot den største (825 l.). Kandidaten er dermed væsentligt større end beskrevet. |
 | **#46** | Buildet kræver "copy/delete/rewrite-scripts" for variant-output | Efterbehandlingen rammer **kun** MinProcesrente, og hovedparten er **deploy-artefakter**, ikke build-hygiejne: `_headers` (Cloudflare/Netlify-cachepolitik), `robots.txt`, `sitemap.xml` og `llms.txt` med hardkodede produktions-URL'er. Kun sletningen af `sw.js`/`manifest.json`/`icons` er build-hygiejne, og den skyldes at begge varianter deler én `public/`-mappe. |
+| **#35** | Foreningen er blokeret, indtil der findes en fælles dato-nøgle-abstraktion; der er 3-4 implementeringer | **Modbevist 2026-08-07.** Abstraktionen fandtes allerede: `findLatestByDateInSortedList` med 10 callsites. Den krævede blot, at datofeltet hed `startIso` — og præcis derfor havde to ISO-serier med samme semantik overlevet med hver sin re-derivation. Der var 7 carry-forward-implementeringer, ikke 3-4. Gennemført; se «tredje omgang». |
+| **#45** | Sort-plumbingen er "identisk i alle 10 tabeller" | Overdrevet. Hook-kaldet er nær-identisk i 8; destruktureringen deler sig 4/3/3 over tre former; de to `Loenudvikling*` har materielt anden `isRowEmpty` og reorder. Det reelt duplikerede var **fire koblede ting** (reorder-persistering, render-orden, save-order, header-pil) plus colId-triplen ~22 steder. Planen nævnte hverken save-order-koblingen eller `useRegisterTableSaveOrder` (8 af 10). |
+| **#21** | Det reelle fund er, at ~63 linjers label-metadata bor i komponenten og hører i `settings/` | Halvt rigtigt, men ramte forbi det væsentlige: etiketterne var duplikeret **3× pr. enum**, og et af stederne var `eoRowEvaluation` — dokumentteksten i et bilag. Etiketterne hører ved ENUMMET (og brevhoved-navnene ved dokument-lagets nøgleliste), ikke i `settings/`. Sidens største enkeltansvar er desuden ikke metadata, men `defaultDirectoryHandleId` (~143 af 605 l.). |
+| **#26** | Argumentet er "keyboard-nav er ~320 l. = 55 % af filen" | Rigtigt tal, men det svage argument. Det stærke: **geometrien kunne ikke rammes af test**, fordi jsdom ikke har layout — alle rects er 0×0, så række-grupperingen så ens (og tom) ud uanset reglen. De 37 eksisterende tests dækkede tastesemantik, ikke nabo-udpegning. |
 | **#1** | Spejl den eksisterende `loenindkomst/sections/`-dekomponering | Der findes **ingen** `loenindkomst/sections/`-mappe, og kun **én** `sections/`-mappe i hele `src/components/` (`eoOplysninger/sections/`). |
 | **#5/#44** | Mønstret er `useXxxViewModel(form)` | Ingen af de 11 VM'er tager en `form`. De tager values/projektioner. Context-varianten er heller ikke universel (5 af 11 har context; resten sender `vm` som prop) — og `page-component-contract.md` §4.4 l. 190 gør netop det til et **frit valg**. |
 
@@ -1689,24 +1720,141 @@ afslørede nettet en forskel, jeg ellers ville have fjernet uden at opdage det.
 
 ---
 
+### Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)
+
+Tre af de fire kandidater var skåret forkert i planen. Præmisserne blev verificeret med fire
+parallelle gennemgange, før noget blev implementeret — samme arbejdsform som de foregående
+omgange, og igen den afgørende del.
+
+- **#26 — Containers fokus-traversering er flyttet ud og er nu testbar.** `Container.tsx` bar
+  440 af sine 584 linjer fokus-logik. Det tunge argument stod ikke i planen: **geometrien —
+  visuel række-gruppering med tolerance, vandret sortering, cirkulær nabo-udpegning — kunne
+  kun rammes gennem en fuld render, hvor jsdom ikke har layout.** Alle rects var 0×0, så
+  række-grupperingen så identisk (og tom) ud, uanset hvad reglen var. Den reelle logik var
+  dermed udækket, mens de 37 eksisterende tests kun dækkede tastesemantikken.
+  Navigationen bor nu i `components/layout/containerNavigation/`, delt efter **fejlmåde**:
+  `focusRowGeometry.ts` (rene beslutninger over værdier), `useFocusableInventory.ts` (DOM,
+  synlighed, MutationObserver-cache) og `useContainerKeyboardNavigation.ts`
+  (tasteoversættelse). `Container.tsx` er 107 linjer: scroll-vært og `<main>`-landmark.
+  **Bevaringen er bevist, ikke antaget.** De 37 tests var grønne både før og efter og beviser
+  derfor intet om bevaringen. En midlertidig parity-harness kørte den gamle monolit og den nye
+  vej mod PRÆCIS samme DOM med et deterministisk layout-stub og krævede identiske fokus-spor
+  trin for trin. Tre mutationer beviste, at den kunne fejle — og den tredje afdækkede et hul i
+  mit eget fixture: uden et sidefelt på tabellens visuelle linje var udelukkelsen af
+  tabel-felter utestet, så mutationen «drop udelukkelsen» overlevede først. Harnessen er
+  slettet igen; dens værdi var beviset.
+  Varigt net: `focusRowGeometry.test.ts` (24 tests uden jsdom; fire mutationer hver fanget af
+  præcis én test) + arkitekturreglen
+  `layout/focus-traversal-owned-by-container-navigation`, som pinner ejerskabet af
+  traverserings-primitiverne. **To bevarede arv er dokumenteret frem for rettet:** et
+  container-løst felt er en vandret blindgyde (kan nås fra rækken, men ikke pile tilbage), og
+  piletaster i et tabel-subtræ er blokeret uden kant-exit. Begge ville ændre brugerens
+  fokus-oplevelse og er derfor ikke mine at rette.
+  Følgevirkning: `popup-semantics-single-source`-reglens `requiredPaths` pegede på
+  `Container.tsx` som sidens navigationsflade; den peger nu på det modul, der overtog
+  popup-undtagelserne. Harnessets egen liveness-kontrol fangede driften.
+
+- **#35 — planens blokering var forkert; abstraktionen fandtes allerede.** Planen sagde, at
+  foreningen var *blokeret indtil der findes en fælles dato-nøgle-abstraktion*, og talte 3-4
+  implementeringer. **Begge dele var forkerte.** `findLatestByDateInSortedList` i
+  `reguleringSeriesLookup.ts` VAR allerede den konsoliderede abstraktion med 10 callsites — den
+  krævede blot, at datofeltet hed `startIso`. To ISO-serier med *præcis samme semantik* havde
+  derfor overlevet med hver sin re-derivation, alene fordi feltet hed noget andet:
+  `resolveLatestManualRowForDate` (`startDato`) og inspektionens indeks-rækkeopslag (`dato`).
+  Begge manglede sorterings-invarianten og gav tavst et forkert satssæt ved usorteret input;
+  inspektionens gentog desuden `slice/map/filter/sort` for hver dato, mens den *samme fil* 40
+  linjer længere ned brugte den delte funktion.
+  Kernen er nu parametriseret på en nøglevælger (`findLatestByDateKeyInSortedList`); den
+  ergonomiske `startIso`-form er kernen med en fast vælger, bevist ækvivalent i test, så de to
+  ikke kan drive fra hinanden. De 10 eksisterende callsites er urørte.
+  **Tie-break'et var det farlige.** Den gamle inspektions-form sorterede *descending* og tog
+  `[0]`; kernen scanner baglæns i en *stigende* liste. De to udpeger MODSATTE rækker, når to
+  rækker har samme dato. Ækvivalensen er efterprøvet empirisk (ikke ræsonneret frem) og
+  tie-break'et bevaret eksplicit i koden. **Ingen fixture havde dobbelt-daterede rækker**, så
+  skiftet ville ellers have flyttet et satssæt lydløst — mutationstesten viste netop, at intet
+  værn fangede det. Ny test pinner det nu (`expected 300 to be 200` ved mutation).
+  `resolveLatestManualRowForDate` havde ingen dækning før; fire tests dækker nu
+  carry-forward-semantikken selv frem for bededagssatsen omkring den.
+  Bekræftet uden for kandidaten (som planen rigtigt sagde): sygedagpenge (lukkede intervaller),
+  lovbestemte satser (per-år-eksakt) og KL-lønaftaler (eksakt-dato-Map) er andre datamodeller.
+  Registreret som ikke gjort: `DanishDateString`-datalagets to opslag har hver sin private
+  `danishDateToNumber`-kopi, og der findes en separat `.filter().reduce()`-max-familie på seks
+  interval-start-resolvere. De hører til et andet spor.
+
+- **#45 — gennemført efter den korrigerede skæring; ingen `GridSpec`.** Planens
+  «sort-plumbingen er identisk i alle 10 tabeller» var overdrevet: hook-kaldet er
+  nær-identisk i 8, destruktureringen deler sig 4/3/3 over tre former, og de to
+  `Loenudvikling*`-tabeller har en materielt anden `isRowEmpty` og reorder.
+  De reelt byte-identiske fragmenter var **fire ting, der altid følges**: reorder-persistering
+  i samme event, render-rækkefølgen, save-order-registreringen og header-cellens pil. De var
+  skrevet i hånden pr. tabel, så en ny tabel kunne få tre af fire rigtigt — og fejlen ville
+  først vise sig som **en gemt fil med en anden rækkefølge end skærmen**: ingen typefejl,
+  ingen exception. `useSortedCollectionTable` ejer dem nu; 8 tabeller er ruttet igennem.
+  `useRegisterTableSaveOrder` har dermed præcis én forbruger.
+  `bindSortableHeader` binder header-cellens tre sorterings-props ud fra ét `colId`. Før stod
+  id'et **tre gange pr. celle, ~22 steder**, hvor to af de tre kunne stave forkert uden at
+  noget fejlede — kolonnen holdt blot op med at vise sin pil, mens klikket virkede. Alle tre
+  argumenter er `string`, så hverken typecheck eller en render-test kunne se det.
+  **De to `Loenudvikling*`-tabeller er bevidst ikke lagt ind i hooken:** deres reorder ankrer
+  den programstyrede basisrække på plads, og de registrerer ingen save-order (også før). At
+  presse dem ind ville kræve escape-hatches for netop den semantik, der gør dem forskellige.
+  De deler kun `bindSortableHeader`. `renderRows` er derfor valgfri i hooken — de tabeller, der
+  bygger render-rækker direkte fra den sorterede orden, har intet at reconcile.
+  Nyt net: 6 tests på det koblede lag (tre mutationer, hver fanget af den rigtige test) +
+  arkitekturreglen `form/table-sort-order-owned-by-hook`, mutationstestet.
+  Registreret som ikke gjort: `RowDeleteButton`-mønstrets omgivende celle (`position:
+  relative` + `paddingRight: 28`) er stadig skrevet i hånden 10 steder i fire varianter, og
+  `renderRows`-reconciliationens fætter i de fire ikke-`useCollectionTable`-tabeller.
+
+- **#21 — gennemført, og det reelle fund var større end planen sagde.** Planens korrektion var
+  rigtig (intet settings-register: kun 7 af 18 felter er ensartede; de øvrige har fem
+  kontroltyper, fire opdateringssemantikker, DEV-gating og asynkrone
+  File-System-Access-handlere). Men «~63 linjers label-metadata hører i `settings/`» ramte
+  forbi: **etiketterne var duplikeret 3× pr. enum**, og et af stederne var
+  `eoRowEvaluation/eoRowSvieSmerteRows.ts` — altså rækkeevaluerings-laget, hvor teksten ender
+  i et bilag. To flader kunne kalde samme værdi noget forskelligt, uden at nogen kontrol kunne
+  se det.
+  Etiketterne bor nu ved enummet selv (`schemas/formSchemas/enumLabels.ts`) og
+  brevhoved-navnene ved dokument-lagets kanoniske nøgleliste, som allerede ejede nøglerne.
+  Begge er fuldt dækkende `Record`s over den exhaustive type. Formen er bevidst et opslag og
+  ikke en ternær: «`=== 'fuld' ? … : …`» gav tavst den forkerte etiket, hvis enummet fik et
+  tredje medlem. Sidens lokale PDF/Word-tabel er erstattet af den kanoniske
+  `getDocumentFormatLabel`, som filen i forvejen importerede fra.
+  Indstillingssiden beholder kun det, der reelt er sidens eget: rækkeopdelingen af
+  brevhoved-checkbokse. Ny test `enumLabels.test.ts` (5 tests).
+  Registreret som ikke gjort: de fire `is…Option`-typeguards på siden er samme mønster fire
+  gange og hører principielt ved enummet; og `defaultDirectoryHandleId` alene fylder ~143 af
+  filens 605 linjer (fire hooks, to async-handlere, 47 JSX-linjer for én række) — dét, ikke
+  metadata, er sidens største enkeltansvar og et selvstændigt spor.
+
+**Metodenote fra denne omgang:** *«blokeret» i planen er også en påstand, der skal
+verificeres.* #35 stod som blokeret af en manglende abstraktion, der fandtes med 10 callsites —
+ingen havde åbnet filen. Og to gange her var den farlige del ikke refaktoreringen, men en
+**tie-break eller en asymmetri, ingen fixture dækkede**: inspektionens dobbelt-daterede
+rækker og Containers container-løse blindgyde. Begge ville have flyttet sig lydløst. Reglen der
+holdt: mutationstest værnet, og hvis mutationen overlever, er det fixturet der mangler noget —
+ikke mutationen der er urimelig.
+
+---
+
 ## START HER — arbejdsstatus 2026-08-07
 
 Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det FØR
 kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
 beskriver flere steder slettede mellemtrin.
 
-**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 526 testfiler / 6688 tests,
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 530 testfiler / 6746 tests,
 `typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»,
-«Efterslæb lukket 2026-08-07» og «Gennemført 2026-08-07 (anden omgang: #50 og #32)» er committet.
+«Efterslæb lukket 2026-08-07», «Gennemført 2026-08-07 (anden omgang: #50 og #32)» og
+«Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)» er committet.
 
-**Seneste omgang (2026-08-07, anden del)** lukkede **#50** og **#32** — de to spor,
-brugerbeslutning 2 pegede på. #32 blev omskåret undervejs, fordi planens præmis viste sig
-modbevist af koden; se afsnittet for hvad den reelle defekt var, og hvilke to sektioner der
-bevidst er urørt.
+**Seneste omgang (2026-08-07, tredje del)** lukkede **#26**, **#35**, **#45** og **#21**. Tre af
+de fire blev omskåret undervejs, fordi planens præmis var forkert — herunder #35, som planen
+kaldte *blokeret*: abstraktionen fandtes allerede. Se afsnittet «Gennemført 2026-08-07 (tredje
+omgang)» for hver skæring.
 
-**Udestående er nu fem kandidater: #52, #45, #21, #26 og #35** (tabellen nedenfor). #35 er
-fortsat blokeret af den manglende dato-nøgle-abstraktion. Ét UI/UX-spørgsmål afventer stadig
-brugeren (enhedsvalget på Anciennitetstillæg, se nedenfor) — det blokerer ikke de øvrige spor.
+**Udestående er nu ÉN kandidat: #52** (tabellen nedenfor). Ét UI/UX-spørgsmål afventer stadig
+brugeren (enhedsvalget på Anciennitetstillæg, se nedenfor) — det blokerer ikke #52.
 
 ### Rækkefølge for det udestående
 
@@ -1714,11 +1862,11 @@ brugeren (enhedsvalget på Anciennitetstillæg, se nedenfor) — det blokerer ik
 |---|---|---|
 | ~~**#50**~~ | ~~TAF-graf → scene-model~~ | **✅ GENNEMFØRT 2026-08-07** — se «Gennemført 2026-08-07 (anden omgang)». |
 | ~~**#32**~~ | ~~EO-sektioner → `Block[]`~~ | **✅ GENNEMFØRT 2026-08-07, men omskåret.** Planens præmis var modbevist: sektionerne producerer allerede `DocumentBlock[]` via composeren. Det reelle fund var ctx-objektets injicerede modulfunktioner. To sektioner er bevidst urørt (testseam). Se detaljerne. |
-| **#52** | Kontrakt-struktur | Løsningen findes allerede: `contract-template.md` (§2 Normative Regler = invariant, §3 Autoritative Kilder = implementeringskort). 15 af 29 kontrakter afviger, fordi `contract-topology-procedure.md` l. 41 gør afsnittene *anbefalede, ikke håndhævede*. Værste blanding: `document-output-contract.md` (38 filrefs i normativ brødtekst), `app-settings.md` (10 refs på 80 l.). Forbilleder: `calculation-data-contract.md`, `auth-gate-contract.md`. |
-| **#45** | Tabel-konsolidering | **Lav IKKE en fuld `GridSpec`.** To shells har uforenelige bredde-API'er, kolonneindeks er ikke 1:1 med visuelle kolonner (`StandardLoenTable` mapper 3 feltnøgler til ét col-index), og cell-renderers er ikke uniforme. Det eneste reelt mekanisk duplikerede er **sort-plumbingen** (`useTableSort` → `handleHeaderClick`/`getSortRole`/`getSortDirection`, identisk i alle 10 tabeller) samt `RowDeleteButton`-mønstret. Skær kandidaten efter det. |
-| **#21** | Indstillinger | **Lav IKKE et fuldt settings-register.** Kun 8 af 18 felter er ensartede; de øvrige har 5 kontroltyper, 3 opdateringssemantikker, DEV-gating og async File-System-Access-handlers, så et register ville kræve escape-hatches. Det reelle fund er, at ~63 linjers label-/option-metadata bor i komponenten og hører i `settings/`. |
-| **#26** | Container → headless hook | Bekræftet (584 l., keyboard-nav er ~320 = 55 %). `keyboard-navigation.md` §Implementeringsfrihed (l. 228-237) **tillader eksplicit** refaktoreringen. Grid'ets `tableKeyboardNavigation.ts` er IKKE duplikering — grænsen er kodet og bevidst (`isInTableNavigation`, `markTableBoundaryExit`, delte selectors). Stærkt testnet findes (29 + ~15 cases, normativt nævnt i kontraktens §Testkrav). |
-| **#35** | Carry-forward-opslag | Blokeret indtil der findes en fælles dato-nøgle-abstraktion: `DanishDateString` (ikke leksikografisk sorterbar) vs. `ISODateString`, forskellige feltnavne, modsat sorteringsretning, `undefined` vs. `0`-fallback. Sygedagpenge (lukkede intervaller), lovbestemte satser (per-år) og KL-lønaftaler (eksakt-dato-Map) er **andre datamodeller** og hører ikke under kandidaten. |
+| ~~**#26**~~ | ~~Container → headless hook~~ | **✅ GENNEMFØRT 2026-08-07.** Container 584 → 107 l.; navigationen i `containerNavigation/` delt efter fejlmåde. Bevaringen bevist med en midlertidig parity-harness, ikke antaget. |
+| ~~**#35**~~ | ~~Carry-forward-opslag~~ | **✅ GENNEMFØRT 2026-08-07, og planens blokering var forkert.** `findLatestByDateInSortedList` VAR allerede den fælles abstraktion med 10 callsites; kun feltnavnet manglede at være parametriseret. To ISO-serier re-deriverede opslaget. |
+| ~~**#45**~~ | ~~Tabel-konsolidering~~ | **✅ GENNEMFØRT 2026-08-07 efter den korrigerede skæring** (ingen `GridSpec`). Rækkefølge-laget samlet i `useSortedCollectionTable`; colId-triplen erstattet af `bindSortableHeader`. |
+| ~~**#21**~~ | ~~Indstillinger~~ | **✅ GENNEMFØRT 2026-08-07 efter den korrigerede skæring** (intet settings-register). Det reelle fund var større end planen sagde: etiketterne var duplikeret 3× pr. enum, én af dem ind i dokumentlaget. |
+| **#52** | Kontrakt-struktur | Løsningen findes allerede: `contract-template.md` (§2 Normative Regler = invariant, §3 Autoritative Kilder = implementeringskort). 15 af 29 kontrakter afviger, fordi `contract-topology-procedure.md` l. 41 gør afsnittene *anbefalede, ikke håndhævede*. Værste blanding: `document-output-contract.md` (38 filrefs i normativ brødtekst), `app-settings.md` (10 refs på 80 l.). Forbilleder: `calculation-data-contract.md`, `auth-gate-contract.md`. **Bemærk:** tallene er fra gennemgangen 2026-08-06 og skal verificeres mod filerne, før de bruges — flere kontrakter er redigeret siden (bl.a. `app-shell-contract.md` §5.3 og `keyboard-navigation.md`). |
 
 ### Brugerens beslutninger 2026-08-06 (bindende for resten af arbejdet)
 
