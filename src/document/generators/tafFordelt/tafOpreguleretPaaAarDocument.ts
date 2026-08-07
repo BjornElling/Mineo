@@ -35,8 +35,6 @@ import {
   isSingularCount,
   resolveDocumentArtifactFileName,
 } from '../../layout/documentFormatUtils';
-import { parseOptionalIsoDate } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import { resolveLoenSkadedatoText } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import { TAF_OPREGULERET_DELTA_PCT_DECIMALS } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
 import type { Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { MoneyOre } from '../../../domain/money/money';
@@ -123,8 +121,6 @@ export const generateTafOpreguleretPaaAarDocument = (
       minRightColumnWidthText: '000.000.000,00',
     });
   };
-  const renderMoneyWithKr = (value: Calculable<MoneyOre>): string =>
-    value.status === 'ok' ? `${formatCurrencyFromOre(value.value)}${NBSP}kr.` : '—';
   // Beregningsgrundlag-lønnen er gated fail-closed i snapshot-projektionen
   // (tafBeregningsgrundlagAngivetLoenMangler) — den er altid 'ok', når vi når hertil.
   // Skulle den mod forventning ikke være det, kaster vi (systemfejl routes via A5) frem for
@@ -209,20 +205,13 @@ export const generateTafOpreguleretPaaAarDocument = (
   // Beregningsgrundlag (dagsløn/månedsløn ved skadestidspunktet) – fælles for alle år.
   renderTafBeregningsgrundlag({
     model,
+    renderMoneyWithKrOrError,
     lineHeight,
     rightColumnWidth: TAF_RIGHT_COLUMN_WIDTH,
     rightMaxWidth,
-    NBSP,
     renderSubheader: writer.writeBoldSubheader,
     safeAddWrappedText: writer.writeWrappedText,
     safeAddLeftRightText,
-    renderMoneyWithKr,
-    renderMoneyWithKrOrError,
-    formatMoneyOreWithKr,
-    formatCurrencyFromOre,
-    formatCountWithUnit,
-    formatMaanederTrimmed,
-    isSingularCount,
     writer,
   });
 
@@ -232,9 +221,6 @@ export const generateTafOpreguleretPaaAarDocument = (
       model,
       eoValues,
       stamdataValues,
-      parseOptionalIsoDate,
-      resolveLoenSkadedatoText,
-      formatDateLong,
     });
     // Løn- og offentlige-ydelser-sætningerne (adskilt af \n) skrives som separate afsnit,
     // så de får samme normale afsnits-linjeafstand (B5.2) som ferie-/fravær-linjen nedenfor —

@@ -10,53 +10,15 @@ import { defineDocument } from '../documentGeneratorSetup';
 import type { DocumentLabelValueOptions } from '../../model/documentModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
-import type { Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import type { MoneyOre } from '../../../domain/money/money';
 import { logWarning } from '../../../utils/logger';
-import {
-  parseOptionalIsoDate,
-} from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
-import {
-  resolveLoenSkadedatoText,
-} from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
-import {
-  formatCountWithUnit,
-  formatCurrencyFromOre,
-  formatCurrencyFromOreTrimmed,
-  formatMaanederTrimmed,
-  formatMoneyOreWithKr,
-  formatMoneyOreWithKrTrimmed,
-  isSingularCount,
-  resolveDocumentArtifactFileName,
-} from '../../layout/documentFormatUtils';
+import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import type { SelectedElements } from './types';
 import { renderOpgorelseSection } from './sections/opgoerelseSection';
 import { renderEoBilagSections } from './sections/eoBilagSections';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 
-const NBSP = '\u00A0';
 const EO_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
-
-const renderMoney = (value: Calculable<MoneyOre>): string => {
-  return value.status === 'ok' ? formatCurrencyFromOre(value.value) : '—';
-};
-
-const renderMoneyWithKr = (value: Calculable<MoneyOre>): string => {
-  const rendered = renderMoney(value);
-  return rendered === '—' ? '—' : `${rendered}${NBSP}kr.`;
-};
-
-const renderMoneyWithKrOrError = (value: Calculable<MoneyOre>): string => {
-  if (value.status === 'ok') return `${formatCurrencyFromOre(value.value)}${NBSP}kr.`;
-  return `Fejl (${value.reason})`;
-};
-
-const renderMoneyWithKrTrimmed = (value: Calculable<MoneyOre>): string => {
-  if (value.status !== 'ok') return '—';
-  return `${formatCurrencyFromOreTrimmed(value.value)}${NBSP}kr.`;
-};
 
 const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
 
@@ -150,8 +112,6 @@ export const generateErstatningsopgoerelseDocument = (
     );
   };
 
-  const renderSubheader = writer.writeBoldSubheader;
-
   // Tilføj erstatningsperiode-datoer direkte under titel
   if (model.periodeDisplay) {
     writer.writeWrappedText(model.periodeDisplay);
@@ -171,38 +131,13 @@ export const generateErstatningsopgoerelseDocument = (
 
   renderOpgorelseSection({
     model,
-    eoValues: eoValues,
+    eoValues,
     stamdataValues,
     lineHeight,
     doubleLineHeight,
     afsluttesMed,
-    NBSP,
     rightColumnWidth: EO_RIGHT_COLUMN_WIDTH,
-    renderSectionHeader: writer.writeSectionHeader,
-    renderSubheader,
-    renderSubheaderIfContent: writer.writeBoldSubheaderIfContent,
-    renderSubheaderWithWrappedText: writer.writeBoldSubheaderWithWrappedText,
-    safeAddWrappedText: writer.writeWrappedText,
     safeAddLeftRightText,
-    renderAtomicTableChunks: writer.writeAtomicTableChunks,
-    assertModelInvariant: (condition, message) => {
-      if (condition) return;
-      throw new Error(`Inkonsekvent PDF-model: ${message}`);
-    },
-    renderMoneyWithKr,
-    renderMoneyWithKrTrimmed,
-    renderMoneyWithKrOrError,
-    formatMoneyOreWithKr,
-    formatMoneyOreWithKrTrimmed,
-    formatCurrencyFromOre,
-    formatCurrencyFromOreTrimmed,
-    formatCountWithUnit,
-    formatMaanederTrimmed,
-    isSingularCount,
-    parseOptionalIsoDate,
-    resolveLoenSkadedatoText,
-    formatDateShort,
-    formatDateLong,
     writer,
   });
 

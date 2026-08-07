@@ -26,28 +26,38 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import type { DocumentLabelValueOptions } from '../../../model/documentModel';
 import { formatDanishList } from '../../../../utils/danishListFormatting';
+import {
+  formatCountWithUnit,
+  formatCurrencyFromOre,
+  formatMaanederTrimmed,
+  formatMoneyOreWithKr,
+  isSingularCount,
+  NBSP,
+} from '../../../layout/documentFormatUtils';
+import { renderMoneyWithKr } from '../eoMoneyText';
+import { formatIsoDateLong as formatDateLong } from '../../../../utils/dateFormatting';
+import { parseOptionalIsoDate } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import { resolveLoenSkadedatoText } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 
 export type TafBeregningsgrundlagDeps = Readonly<{
   model: EoModel;
   lineHeight: number;
   rightColumnWidth: number;
   rightMaxWidth: number;
-  NBSP: string;
+  // Beregningsgrundlag-lønnens uberegnelige udfald håndteres FORSKELLIGT af de to kaldere,
+  // og forskellen er bevidst: EO-dokumentet viser «Fejl (…)», mens TAF-opreguleret-dokumentet
+  // kaster, fordi lønnen dér er gated fail-closed i projektionen og aldrig kan være uberegnelig.
+  // Den lå før skjult i, at hver kalder sendte sin egen renderMoneyWithKrOrError ind.
+  renderMoneyWithKrOrError: (value: Calculable<MoneyOre>) => string;
   renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
+  // Kalder-bestemt minimumsbredde på højre kolonne, som composeren ikke selv kender.
   safeAddLeftRightText: (
     leftText: string,
     rightText: string,
     rightMaxWidth: number,
     options?: DocumentLabelValueOptions
   ) => void;
-  renderMoneyWithKr: (value: Calculable<MoneyOre>) => string;
-  renderMoneyWithKrOrError: (value: Calculable<MoneyOre>) => string;
-  formatMoneyOreWithKr: (ore: MoneyOre) => string;
-  formatCurrencyFromOre: (ore: MoneyOre) => string;
-  formatCountWithUnit: (value: number, singular: string, plural: string) => string;
-  formatMaanederTrimmed: (value: number) => string;
-  isSingularCount: (value: number) => boolean;
   writer: Readonly<{
     addSectionSpacer: () => void;
     keepWithNext: (minimumHeight: number) => void;
@@ -65,17 +75,10 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
     lineHeight,
     rightColumnWidth,
     rightMaxWidth,
-    NBSP,
+    renderMoneyWithKrOrError,
     renderSubheader,
     safeAddWrappedText,
     safeAddLeftRightText,
-    renderMoneyWithKr,
-    renderMoneyWithKrOrError,
-    formatMoneyOreWithKr,
-    formatCurrencyFromOre,
-    formatCountWithUnit,
-    formatMaanederTrimmed,
-    isSingularCount,
     writer,
   } = deps;
 
@@ -263,19 +266,6 @@ export type TafForventetIndkomstIntroDeps = Readonly<{
   model: EoModel;
   eoValues: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
-  parseOptionalIsoDate: (value: string | undefined) => ISODateString | undefined;
-  resolveLoenSkadedatoText: (params: {
-    subject: 'lønnen';
-    anvendtReguleringsdato: ISODateString | undefined;
-    skadedato: ISODateString | undefined;
-    skadestype: StamdataValues['skadestype'] | undefined;
-    beregnesUdFra?: ErstatningsopgoerelseValues['beregnesUdFra'] | undefined;
-    beregningsperiodeTil?: ISODateString | undefined;
-    saerligFraDatoRegulering?: ISODateString | undefined;
-    angivetLoenMetodeOpreguleresFraDato?: ISODateString | undefined;
-    useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
-  }) => string;
-  formatDateLong: (isoDate: ISODateString | undefined) => string;
 }>;
 
 /**
@@ -283,7 +273,7 @@ export type TafForventetIndkomstIntroDeps = Readonly<{
  * Identisk med `resolveIndkomstBeregningsText` i `opgoerelseSection.ts`.
  */
 export const resolveTafForventetIndkomstIntroText = (deps: TafForventetIndkomstIntroDeps): string => {
-  const { model, eoValues, stamdataValues, parseOptionalIsoDate, resolveLoenSkadedatoText, formatDateLong } = deps;
+  const { model, eoValues, stamdataValues } = deps;
 
   const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
   const aktivLoenudviklingAf = resolveAktivEllerFoersteLoenudviklingKilde(eoValues);

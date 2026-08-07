@@ -10,7 +10,12 @@ import { resolveDocumentFileName, sanitizeFilenamePart } from '../documentFileNa
 import { toKroner, type MoneyOre } from '../../domain/money/money';
 import type { DocumentDownloadFormat } from '../documentFormat';
 
-const NBSP = '\u00A0';
+/**
+ * Hårdt mellemrum mellem tal og enhed, så en PDF-/Word-linjeombrydning aldrig river
+ * «1.234 kr.» over to linjer. Eksporteret, fordi EO-generatoren tidligere holdt sin egen
+ * kopi — en divergens der ville være usynlig indtil ombrydningen.
+ */
+export const NBSP = '\u00A0';
 
 // `sanitizeFilenamePart` er format-agnostisk og bor i den kanoniske dokument-filnavnsregel
 // (`src/document/documentFileName.ts`). Re-eksporteres her, så de eksisterende PDF-call-sites

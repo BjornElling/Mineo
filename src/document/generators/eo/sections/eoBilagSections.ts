@@ -369,7 +369,6 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       shouldIncludeOffentligYdelseRowInEoBilag,
       eoBilagIndkomstYdelserMode,
       eoBilagIndkomstYdelserRanges,
-      writeBoldSubheaderWithWrappedText: writer.writeBoldSubheaderWithWrappedText,
       writer,
     });
   }
@@ -379,7 +378,6 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       groups: midlertidigtEetGroups,
       startEoBilagPage,
       renderSubheader,
-      formatAfgoerelsesdato: formatDateLong,
       tafRanges: model.tafRanges,
       writer,
     });
@@ -495,7 +493,6 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       harSfggReferenceperiodeMedShFradrag,
       startEoBilagPage,
       renderSubheader,
-      safeAddWrappedText: writer.writeWrappedText,
       writer,
     });
   }

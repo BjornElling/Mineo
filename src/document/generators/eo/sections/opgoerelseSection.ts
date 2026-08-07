@@ -1,5 +1,17 @@
 import { ensureNonBreakingKr } from '../../../layout/pdfTextUtils';
-import { formatReguleringFactorText } from '../../../layout/documentFormatUtils';
+import {
+  formatCountWithUnit,
+  formatCurrencyFromOre,
+  formatCurrencyFromOreTrimmed,
+  formatMaanederTrimmed,
+  formatMoneyOreWithKr,
+  formatMoneyOreWithKrTrimmed,
+  formatReguleringFactorText,
+  isSingularCount,
+  NBSP,
+} from '../../../layout/documentFormatUtils';
+import { renderMoneyWithKrOrError, renderMoneyWithKrTrimmed } from '../eoMoneyText';
+import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../../utils/dateFormatting';
 import {
   getDayAfterIso,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
@@ -9,7 +21,6 @@ import { buildForligIndgaaetSaetning } from '../../../../domain/erstatningsopgoe
 import type { Calculable, LoenudviklingSegment, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { addMoneyOre, zeroMoneyOre, type MoneyOre } from '../../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
-import type { ISODateString } from '../../../../types/branded';
 import type { DocumentComposer, DocumentLabelValueOptions } from '../../../model/documentModel';
 import { renderTafBeregningsgrundlag, resolveTafForventetIndkomstIntroText } from './tafBeregningsgrundlagSection';
 
@@ -20,54 +31,17 @@ type OpgorelseSectionContext = Readonly<{
   lineHeight: number;
   doubleLineHeight: number;
   afsluttesMed: 'Bekræftet godkendt' | 'Underskrift-linje' | 'Ingen';
-  NBSP: string;
   rightColumnWidth: number;
-  renderSectionHeader: (text: string) => void;
-  renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
-  renderSubheaderIfContent: DocumentComposer['writeBoldSubheaderIfContent'];
-  renderSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
-  safeAddWrappedText: (text: string) => void;
+  // Beløbslinjen har en kalder-bestemt minimumsbredde på højre kolonne, som
+  // composeren ikke selv kender. Derfor er dette den ene render-hjælper der
+  // fortsat sendes ind frem for at blive kaldt direkte på writer.
   safeAddLeftRightText: (
     leftText: string,
     rightText: string,
     rightMaxWidth: number,
     options?: DocumentLabelValueOptions
   ) => void;
-  renderAtomicTableChunks: DocumentComposer['writeAtomicTableChunks'];
-  assertModelInvariant: (condition: boolean, message: string) => void;
-  renderMoneyWithKr: (value: Calculable<MoneyOre>) => string;
-  renderMoneyWithKrTrimmed: (value: Calculable<MoneyOre>) => string;
-  renderMoneyWithKrOrError: (value: Calculable<MoneyOre>) => string;
-  formatMoneyOreWithKr: (ore: MoneyOre) => string;
-  formatMoneyOreWithKrTrimmed: (ore: MoneyOre) => string;
-  formatCurrencyFromOre: (ore: MoneyOre) => string;
-  formatCurrencyFromOreTrimmed: (ore: MoneyOre) => string;
-  formatCountWithUnit: (value: number, singular: string, plural: string) => string;
-  formatMaanederTrimmed: (value: number) => string;
-  isSingularCount: (value: number) => boolean;
-  parseOptionalIsoDate: (value: string | undefined) => ISODateString | undefined;
-  resolveLoenSkadedatoText: (params: {
-    subject: 'lønnen';
-    anvendtReguleringsdato: ISODateString | undefined;
-    skadedato: ISODateString | undefined;
-    skadestype: StamdataValues['skadestype'] | undefined;
-    beregnesUdFra?: ErstatningsopgoerelseValues['beregnesUdFra'] | undefined;
-    beregningsperiodeTil?: ISODateString | undefined;
-    saerligFraDatoRegulering?: ISODateString | undefined;
-    angivetLoenMetodeOpreguleresFraDato?: ISODateString | undefined;
-    useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
-  }) => string;
-  formatDateShort: (dateIso: ISODateString | undefined) => string;
-  formatDateLong: (isoDate: ISODateString | undefined) => string;
-  writer: Pick<
-    DocumentComposer,
-    | 'addSectionSpacer'
-    | 'addPage'
-    | 'keepWithNext'
-    | 'writeUnderlinedSubheader'
-    | 'writeNormalThenBoldLine'
-    | 'writeSignatureBlock'
-  >;
+  writer: DocumentComposer;
 }>;
 
 const mergeLoenudviklingSegments = (segments: readonly LoenudviklingSegment[]): readonly LoenudviklingSegment[] => {
@@ -130,32 +104,24 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     stamdataValues,
     lineHeight,
     afsluttesMed,
-    NBSP,
     rightColumnWidth,
-    renderSectionHeader,
-    renderSubheader,
-    renderSubheaderIfContent,
-    renderSubheaderWithWrappedText,
-    safeAddWrappedText,
     safeAddLeftRightText,
-    renderAtomicTableChunks,
-    assertModelInvariant,
-    renderMoneyWithKr,
-    renderMoneyWithKrTrimmed,
-    renderMoneyWithKrOrError,
-    formatMoneyOreWithKr,
-    formatMoneyOreWithKrTrimmed,
-    formatCurrencyFromOre,
-    formatCurrencyFromOreTrimmed,
-    formatCountWithUnit,
-    formatMaanederTrimmed,
-    isSingularCount,
-    parseOptionalIsoDate,
-    resolveLoenSkadedatoText,
-    formatDateShort,
-    formatDateLong,
     writer,
   } = ctx;
+
+  // Composerens metoder bruges under sektionens egne, kortere navne. Aliaserne fandtes
+  // før som felter på ctx, sat af generatoren til præcis de samme metoder.
+  const renderSectionHeader = writer.writeSectionHeader;
+  const renderSubheader = writer.writeBoldSubheader;
+  const renderSubheaderIfContent = writer.writeBoldSubheaderIfContent;
+  const renderSubheaderWithWrappedText = writer.writeBoldSubheaderWithWrappedText;
+  const safeAddWrappedText = writer.writeWrappedText;
+  const renderAtomicTableChunks = writer.writeAtomicTableChunks;
+
+  const assertModelInvariant = (condition: boolean, message: string): void => {
+    if (condition) return;
+    throw new Error(`Inkonsekvent PDF-model: ${message}`);
+  };
 
   // Hjælpefunktion: skriver "Dokumentation vedlægges som bilag X." med "bilag X." i fed skrift.
   // Kaldes kun når visBilagsnumre er 'Ja' OG der ikke er advarsel for det pågældende nummer.
@@ -415,20 +381,13 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     renderTafBeregningsgrundlag({
       model,
+      renderMoneyWithKrOrError,
       lineHeight,
       rightColumnWidth,
       rightMaxWidth,
-      NBSP,
       renderSubheader,
       safeAddWrappedText,
       safeAddLeftRightText,
-      renderMoneyWithKr,
-      renderMoneyWithKrOrError,
-      formatMoneyOreWithKr,
-      formatCurrencyFromOre,
-      formatCountWithUnit,
-      formatMaanederTrimmed,
-      isSingularCount,
       writer,
     });
     writeBilagReferenceLinje(bilag.beregningsgrundlagTaf);
@@ -440,9 +399,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       model,
       eoValues,
       stamdataValues,
-      parseOptionalIsoDate,
-      resolveLoenSkadedatoText,
-      formatDateLong,
     });
     if (harOffentligeYdelserUdvikling) {
       // Løn- og offentlige-ydelser-sætningerne er to selvstændige afsnit (adskilt af \n i

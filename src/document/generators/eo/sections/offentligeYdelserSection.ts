@@ -1,10 +1,10 @@
 import { amountValueToDisplayString, amountValueToNumber } from '../../../../utils/expressionAmount';
+import { formatIsoDateLong as formatAfgoerelsesdato } from '../../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../../utils/formatUtils';
 import { roundByMethod } from '../../../../utils/rounding';
 import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
-import type { ISODateString } from '../../../../types/branded';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
@@ -30,8 +30,7 @@ type OffentligeYdelserSectionContext = Readonly<{
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
-  writeBoldSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeUnderlinedSubheader'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeUnderlinedSubheader' | 'writeBoldSubheaderWithWrappedText'>;
 }>;
 
 type RenderOffentligeYdelserRowsPageContext = Readonly<{
@@ -108,9 +107,9 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     shouldIncludeOffentligYdelseRowInEoBilag,
     eoBilagIndkomstYdelserMode,
     eoBilagIndkomstYdelserRanges,
-    writeBoldSubheaderWithWrappedText,
     writer,
   } = ctx;
+  const writeBoldSubheaderWithWrappedText = writer.writeBoldSubheaderWithWrappedText;
   const normalizedEoBilagMode = normalizeEoBilagIndkomstYdelserMode(eoBilagIndkomstYdelserMode);
 
   const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
@@ -167,13 +166,12 @@ type MidlertidigtEetSectionContext = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
   startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
-  formatAfgoerelsesdato: (date: ISODateString) => string | undefined;
   tafRanges: readonly IsoRange[];
   writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable'>;
 }>;
 
 export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
-  const { groups, startEoBilagPage, renderSubheader, formatAfgoerelsesdato, tafRanges, writer } = ctx;
+  const { groups, startEoBilagPage, renderSubheader, tafRanges, writer } = ctx;
 
   // Fra/Til o.m. centreres, alle øvrige kolonner højrejusteres. Auto-bredde (ingen
   // kolonne-styles), som den oprindelige kaldeform.

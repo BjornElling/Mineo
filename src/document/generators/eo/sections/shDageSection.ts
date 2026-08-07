@@ -18,8 +18,7 @@ type SHDageSectionContext = Readonly<{
   harSfggReferenceperiodeMedShFradrag?: boolean;
   startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
-  safeAddWrappedText: (text: string) => void;
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeWrappedText'>;
 }>;
 
 const formatDateFromDateObjectLong = (date: Date): string => formatUtcDateLong(date);
@@ -52,9 +51,9 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     harSfggReferenceperiodeMedShFradrag = false,
     startEoBilagPage,
     renderSubheader,
-    safeAddWrappedText,
     writer,
   } = ctx;
+  const safeAddWrappedText = writer.writeWrappedText;
 
   const formatRangeLong = (fra: ISODateString | undefined, til: ISODateString | undefined): string => {
     const fraDisplay = formatDateLong(fra);

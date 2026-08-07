@@ -45,8 +45,8 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
       shouldIncludeOffentligYdelseRowInEoBilag: vi.fn(() => true),
       eoBilagIndkomstYdelserMode: 'Alle' as const,
       eoBilagIndkomstYdelserRanges: [] as const,
-      writeBoldSubheaderWithWrappedText: vi.fn(),
       writer: {
+        writeBoldSubheaderWithWrappedText: vi.fn(),
         addSectionSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
@@ -145,7 +145,7 @@ describe('renderOffentligeYdelserSection – kommentarer', () => {
   it('renderer kommentar-underoverskrift når kommentarfeltet er udfyldt', () => {
     const { ctx } = makeCtx();
     const writeBoldSubheaderWithWrappedText = vi.fn();
-    ctx.writeBoldSubheaderWithWrappedText = writeBoldSubheaderWithWrappedText;
+    ctx.writer.writeBoldSubheaderWithWrappedText = writeBoldSubheaderWithWrappedText;
     ctx.eoValues.offentligeYdelserRows = [
       { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
     ];
@@ -159,7 +159,7 @@ describe('renderOffentligeYdelserSection – kommentarer', () => {
   it('renderer ikke kommentar-underoverskrift når feltet er tomt', () => {
     const { ctx } = makeCtx();
     const writeBoldSubheaderWithWrappedText = vi.fn();
-    ctx.writeBoldSubheaderWithWrappedText = writeBoldSubheaderWithWrappedText;
+    ctx.writer.writeBoldSubheaderWithWrappedText = writeBoldSubheaderWithWrappedText;
     ctx.eoValues.offentligeYdelserRows = [
       { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
     ];
@@ -173,7 +173,7 @@ describe('renderOffentligeYdelserSection – kommentarer', () => {
   it('renderer ikke kommentar-underoverskrift når sektionen er tom (ingen rækker)', () => {
     const { ctx } = makeCtx();
     const writeBoldSubheaderWithWrappedText = vi.fn();
-    ctx.writeBoldSubheaderWithWrappedText = writeBoldSubheaderWithWrappedText;
+    ctx.writer.writeBoldSubheaderWithWrappedText = writeBoldSubheaderWithWrappedText;
     ctx.eoValues.offentligeYdelserRows = [];
     ctx.eoValues.offentligeYdelserKommentarer = 'Kommentar uden rækker';
 
@@ -210,8 +210,8 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
       shouldIncludeOffentligYdelseRowInEoBilag: vi.fn(() => true),
       eoBilagIndkomstYdelserMode: 'Alle',
       eoBilagIndkomstYdelserRanges: [],
-      writeBoldSubheaderWithWrappedText: vi.fn(),
       writer: {
+        writeBoldSubheaderWithWrappedText: vi.fn(),
         addSectionSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
@@ -428,7 +428,6 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-29') }],
       startEoBilagPage: vi.fn(),
       renderSubheader: vi.fn(),
-      formatAfgoerelsesdato: (date) => date,
       writer: {
         addSectionSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
@@ -465,7 +464,6 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
       tafRanges: [{ fra: iso('2025-01-11'), til: iso('2025-01-12') }],
       startEoBilagPage: vi.fn(),
       renderSubheader,
-      formatAfgoerelsesdato: () => '16. juli 2025',
       writer: {
         addSectionSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {

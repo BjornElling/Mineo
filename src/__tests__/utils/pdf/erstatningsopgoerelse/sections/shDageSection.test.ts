@@ -47,8 +47,8 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
       harSfggReferenceperiodeMedShFradrag: false,
       startEoBilagPage,
       renderSubheader,
-      safeAddWrappedText,
       writer: {
+        writeWrappedText: safeAddWrappedText,
         addSectionSpacer: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
