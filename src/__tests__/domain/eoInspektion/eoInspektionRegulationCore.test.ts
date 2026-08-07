@@ -389,6 +389,35 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(firstEntry?.packageValue).toBeCloseTo(100.45, 6);
   });
 
+  it('vælger FØRSTE af to manuelle rækker med samme dato (tie-break bevaret ved #35-konsolideringen)', () => {
+    // Da det manuelle rækkeopslag blev ruttet gennem `reguleringSeriesLookup`, skiftede
+    // sorteringen fra descending-`[0]` til et baglæns scan i en stigende liste. De to former
+    // udpeger MODSATTE rækker ved lige datoer, så tie-break'et er bevaret eksplicit i koden.
+    // Ingen fixture havde dobbelt-daterede rækker, så skiftet ville ellers været usynligt —
+    // og et tillidskritisk satssæt kunne have flyttet sig lydløst.
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelNavn = 'Manuel test';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.INGEN;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].feriePct = 0;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData = [
+      { id: 'base', dato: '', grundloen: { value: 100 }, feriepenge: 0, shSoSats: 0, fritvalg: 0, agPension: 0 },
+      // To rækker på PRÆCIS samme dato med forskellig grundløn.
+      { id: 'dup-a', dato: iso('2024-06-01'), grundloen: { value: 200 }, feriepenge: 0, shSoSats: 0, fritvalg: 0, agPension: 0 },
+      { id: 'dup-b', dato: iso('2024-06-01'), grundloen: { value: 300 }, feriepenge: 0, shSoSats: 0, fritvalg: 0, agPension: 0 },
+    ] as any;
+
+    const result = buildRegulationTimeline(input);
+    const entryOnDuplicateDate = result.ansaettelser[0]?.entries.find(
+      (entry) => entry.effectiveFrom === iso('2024-06-01')
+    );
+
+    expect(entryOnDuplicateDate).toBeDefined();
+    // Den FØRSTE af de to (200), ikke den sidste (300).
+    expect(entryOnDuplicateDate?.grundloen).toBe(200);
+  });
+
   it('inkluderer overenskomst-tillæg i Beløb-tilstand (lockstep med motoren)', () => {
     const input = makeInput();
     input.eoValues.loenindkomstAnsaettelsesforhold[0].tillaegAngivesSom = 'beloeb';

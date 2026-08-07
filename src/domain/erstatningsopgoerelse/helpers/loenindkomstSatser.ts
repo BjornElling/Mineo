@@ -17,6 +17,7 @@ import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../data/indskudteL
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import type { StandardLoenRateSegment, StandardLoenSatserInput } from '../../aarsloen/standardLoenRowCalculations';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
+import { findLatestByDateKeyInSortedList } from '../engines/reguleringSeriesLookup';
 import { round2 } from '../../../utils/roundingShortcuts';
 import { generateLoenudviklingRowId, initialLoenudviklingManuelRow } from './eoRowInitialValues';
 import { harAktivOverenskomst, resolveAktivOverenskomst } from './aktivOverenskomst';
@@ -75,15 +76,20 @@ const resolveManualPercentValue = (
   return fallback;
 };
 
+/**
+ * Carry-forward-opslag i de manuelle lønudviklings-rækker: seneste række med
+ * `startDato <= isoDate` gælder frem til næste.
+ *
+ * Semantikken ejes af `reguleringSeriesLookup` — også sorterings-invarianten, der får et
+ * usorteret input til at kaste frem for tavst at give et forkert sats-sæt. Et lokalt
+ * `[...rows].reverse().find(...)` ville miste netop den invariant.
+ * Feltet heder `startDato` her, derfor nøglevælger-formen frem for et felt-omdøb i skemaet.
+ */
 const resolveLatestManualRowForDate = (
   rows: readonly Readonly<{ row: LoenudviklingManuelRow; startDato: ISODateString }>[],
   isoDate: ISODateString
-): LoenudviklingManuelRow | undefined => {
-  const matchingEntry = [...rows]
-    .reverse()
-    .find((entry) => entry.startDato <= isoDate);
-  return matchingEntry?.row;
-};
+): LoenudviklingManuelRow | undefined =>
+  findLatestByDateKeyInSortedList(rows, isoDate, (entry) => entry.startDato, 'loenudviklingManuel:satser')?.row;
 
 const buildSegmentsFromPeriodStarts = (
   fra: ISODateString,

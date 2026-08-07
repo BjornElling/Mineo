@@ -1089,7 +1089,10 @@ export const rowCommandDestinationRule = defineRule({
  */
 const POPUP_SEMANTICS_MODULE = 'src/components/inputs/popupWidgetSemantics.ts';
 const POPUP_SEMANTICS_CONSUMERS = [
-  'src/components/layout/Container.tsx',
+  // Sidens navigationsflade. Var `layout/Container.tsx` indtil greenfield #26 flyttede
+  // tasteoversættelsen — og dermed popup-undtagelserne — ud i containerNavigation/.
+  // Grænsen er den samme; kun filen der repræsenterer fladen er flyttet.
+  'src/components/layout/containerNavigation/useContainerKeyboardNavigation.ts',
   'src/components/tables/gridCore/tableKeyboardNavigation.ts',
 ] as const;
 const POPUP_SEMANTICS_IMPORT = /popupWidgetSemantics$/;

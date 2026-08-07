@@ -69,6 +69,7 @@ import {
 import { DATE_RULES } from './rules/dateRules';
 import { NUMERIC_RULES } from './rules/numericRules';
 import { RESPONSIVE_STYLING_RULES } from './rules/responsiveStylingRules';
+import { FOCUS_NAVIGATION_RULES } from './rules/focusNavigationRules';
 
 /**
  * Registry for de AST-baserede arkitekturgrænser (greenfield #48).
@@ -113,6 +114,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   minprocesrenteStandaloneImport,
   // Shell og desktop-only-grænse
   ...RESPONSIVE_STYLING_RULES,
+  ...FOCUS_NAVIGATION_RULES,
   // Form, felt og critical action
   persistenceCommittedMirror,
   queueMicrotaskBoundary,

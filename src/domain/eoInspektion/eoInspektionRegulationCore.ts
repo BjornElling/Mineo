@@ -47,7 +47,7 @@ import {
   resolveAnciennitetForIndex,
   type AnciennitetForIndex,
 } from '../erstatningsopgoerelse/engines/overenskomstReguleringShared';
-import { findLatestByDateInSortedList } from '../erstatningsopgoerelse/engines/reguleringSeriesLookup';
+import { findLatestByDateInSortedList, findLatestByDateKeyInSortedList } from '../erstatningsopgoerelse/engines/reguleringSeriesLookup';
 import { buildShDageSetFromIsoRange, buildFerieDageSetForPeriode } from '../erstatningsopgoerelse/engines/tafDaySets';
 import type { LoenudviklingModel } from '../erstatningsopgoerelse/shared/eoTypes';
 import { type ReguleringForloeb, resolveForloebForAnsaettelse } from '../erstatningsopgoerelse/engines/reguleringForloeb';
@@ -194,14 +194,25 @@ const buildManualEntries = (args: Readonly<{
     dates.add(STORE_BEDEDAG_START);
   }
 
+  // Carry-forward-grundlaget bygges ÉN gang uden for løkken; opslaget ejes af
+  // `reguleringSeriesLookup`, som filen også bruger til de øvrige reguleringsformer.
+  //
+  // Tie-break ved FLERE rækker på samme dato: den FØRSTE i brugerens rækkefølge gælder.
+  // Reglen er kodet eksplicit — de lige-daterede rækker vendes om, så det baglæns scan i
+  // den stigende liste lander på den første. Uden omvendingen ville det være den sidste,
+  // og hvilket satssæt en dobbelt-dateret række giver, ville afhænge af en
+  // implementeringsdetalje i opslaget frem for af en valgt regel.
+  const datedRows = rows
+    .slice(1)
+    .map((row, order) => ({ row, iso: row.dato, order }))
+    .filter((entry): entry is Readonly<{ row: typeof baseRow; iso: ISODateString; order: number }> => Boolean(entry.iso))
+    .sort((a, b) => (a.iso === b.iso ? b.order - a.order : a.iso.localeCompare(b.iso)));
+
   const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));
   const entries = sortedDates.map((iso, index) => {
-    const matchingRow = rows
-      .slice(1)
-      .map((row) => ({ row, iso: row.dato }))
-      .filter((entry): entry is Readonly<{ row: typeof baseRow; iso: ISODateString }> => Boolean(entry.iso))
-      .filter((entry) => entry.iso <= iso)
-      .sort((a, b) => b.iso.localeCompare(a.iso))[0]?.row ?? baseRow;
+    const matchingRow =
+      findLatestByDateKeyInSortedList(datedRows, iso, (entry) => entry.iso, 'manuelLoenudvikling:inspektion')?.row
+      ?? baseRow;
     const grundloen = amountValueToNumber(matchingRow?.grundloen) ?? 0;
     const packageValue = buildPackageValueDecimal(iso, grundloen, matchingRow);
     const tidsenhed = getTidsenhedsvaerdier(index, sortedDates, args.eoTil, args.shDageSet, args.ferieDageSet);

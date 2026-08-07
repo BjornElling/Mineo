@@ -7,6 +7,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
+import type { LoenudviklingManuelRow } from '../../../schemas/formSchemas';
 
 // ─── syncManualBaseRowSatser ──────────────────────────────────────────────────
 
@@ -443,5 +444,97 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
     expect(segments[0]?.satser.shSoPct).toBeCloseTo(12.9, 10);
     expect(segments[1]?.fra).toBe(toISODateString('2024-03-01'));
     expect(segments[1]?.satser.shSoPct).toBeCloseTo(14.7, 10);
+  });
+});
+
+// ─── manuel lønudvikling: carry-forward mellem daterede rækker (greenfield #35) ─────
+
+/**
+ * `resolveLatestManualRowForDate` havde ingen egen dækning, før den blev ruttet gennem
+ * `reguleringSeriesLookup`s nøglevælger-form. Den gamle udgave var et
+ * `[...rows].reverse().find(...)` UDEN sorterings-invariant, så en usorteret liste gav
+ * tavst et forkert satssæt. Testene her hævder carry-forward-semantikken selv — hvilken
+ * række der gælder for et segment — frem for bededagssatsen, som de øvrige cases dækker.
+ */
+describe('buildLoenindkomstRateSegments — manuel carry-forward', () => {
+  const manualAf = (rows: LoenudviklingManuelRow[]) => ({
+    ...createDefaultLoenindkomstAnsaettelsesforhold(),
+    harOverenskomst: false,
+    loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
+    loenPaaHelligdage: 'SH-udbetaling' as const,
+    feriePct: 1,
+    fritvalgPct: 1,
+    shSoPct: 1,
+    pensionPct: 1,
+    loenudviklingManuelTableData: rows,
+  });
+
+  it('viderefører seneste daterede række frem til næste (ikke kun den nærmeste)', () => {
+    const segments = buildLoenindkomstRateSegments({
+      ansaettelsesforhold: manualAf([
+        { id: 'base', dato: toISODateString('2024-01-01'), feriepenge: 10, shSoSats: 10, fritvalg: 10, agPension: 10 },
+        { id: 'r2', dato: toISODateString('2024-03-01'), feriepenge: 20, shSoSats: 20, fritvalg: 20, agPension: 20 },
+      ]),
+      skadedato: undefined,
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-06-30'),
+    });
+
+    expect(segments).toHaveLength(2);
+    // 01-01 til 29-02: første række gælder.
+    expect(segments[0]?.satser.feriePct).toBeCloseTo(10, 10);
+    // 01-03 og frem: anden række videreføres til periodens slut.
+    expect(segments[1]?.fra).toBe(toISODateString('2024-03-01'));
+    expect(segments[1]?.satser.feriePct).toBeCloseTo(20, 10);
+  });
+
+  it('bruger seneste række FØR periodestart, når ingen række falder i perioden', () => {
+    const segments = buildLoenindkomstRateSegments({
+      ansaettelsesforhold: manualAf([
+        { id: 'base', dato: toISODateString('2023-01-01'), feriepenge: 10, shSoSats: 10, fritvalg: 10, agPension: 10 },
+        { id: 'r2', dato: toISODateString('2023-07-01'), feriepenge: 20, shSoSats: 20, fritvalg: 20, agPension: 20 },
+      ]),
+      skadedato: undefined,
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-06-30'),
+    });
+
+    expect(segments).toHaveLength(1);
+    expect(segments[0]?.satser.feriePct).toBeCloseTo(20, 10);
+  });
+
+  it('falder tilbage til ansættelsesforholdets egne satser, når perioden ligger før alle rækker', () => {
+    const segments = buildLoenindkomstRateSegments({
+      ansaettelsesforhold: manualAf([
+        { id: 'base', dato: toISODateString('2025-01-01'), feriepenge: 10, shSoSats: 10, fritvalg: 10, agPension: 10 },
+      ]),
+      skadedato: undefined,
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-06-30'),
+    });
+
+    expect(segments).toHaveLength(1);
+    // Ingen dækkende række → af'ets egne satser (1), ikke rækkens 10.
+    expect(segments[0]?.satser.feriePct).toBeCloseTo(1, 10);
+  });
+
+  it('er upåvirket af rækkernes DOM-rækkefølge: usorteret input giver samme resultat', () => {
+    // Callsitet sorterer selv før opslaget, så den nye sorterings-invariant må ikke kaste
+    // på brugerens indtastningsrækkefølge — den skal beskytte mod at et FREMTIDIGT
+    // callsite glemmer sorteringen.
+    const rows = [
+      { id: 'r2', dato: toISODateString('2024-03-01'), feriepenge: 20, shSoSats: 20, fritvalg: 20, agPension: 20 },
+      { id: 'base', dato: toISODateString('2024-01-01'), feriepenge: 10, shSoSats: 10, fritvalg: 10, agPension: 10 },
+    ];
+    const segments = buildLoenindkomstRateSegments({
+      ansaettelsesforhold: manualAf(rows),
+      skadedato: undefined,
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-06-30'),
+    });
+
+    expect(segments).toHaveLength(2);
+    expect(segments[0]?.satser.feriePct).toBeCloseTo(10, 10);
+    expect(segments[1]?.satser.feriePct).toBeCloseTo(20, 10);
   });
 });
