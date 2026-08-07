@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-07
 
 Denne kontrakt samler de trust-kritiske regler for runtime-persistence, `.eo`, save/load og autoritative replacements.
 Der findes ingen per-sektion-storage og ingen `invalidDrafts`: sagsinput ligger i én current-session-envelope med ét
@@ -65,11 +65,15 @@ Aktiv sagsinput lagres under én namespace-aware Mineo-nøgle:
 ```ts
 // src/inputCore/runtime/currentSessionEnvelope.ts — udledt af currentInputEnvelopeSchema.
 type CurrentInputEnvelope = Readonly<{
-  envelopeVersion: string;
-  persistedDataVersion: string;
+  envelopeVersion: typeof CURRENT_INPUT_ENVELOPE_VERSION;   // z.literal, ikke string
+  persistedDataVersion: typeof PERSISTED_DATA_VERSION;      // z.literal, ikke string
   input: SettledInput;
 }>;
 ```
+
+De to versionsfelter er `z.literal(...)` og ikke `z.string()`. Det er load-bearing for §4: netop fordi
+de er literals, er en anden dataversion under samme nøgle **korruption** frem for et accepteret felt.
+En `string`-form ville tillade præcis det, §4 forbyder.
 
 Nøglen opslås gennem `getCurrentInputEnvelopeStorageKey()`; suffikset er `input_v2`.
 
@@ -107,10 +111,18 @@ manifestet (`SESSION_RESET_POLICY`), hvor hver UI-nøgle er klassificeret som pr
   hydrere ind i den næste, tomme sag og påvirke den.
 - **`deviceScoped`** — uafhængig UI-præference eller devtools-tilstand, som ikke beskriver sagen. `Slet alt`
   rydder dem bevidst IKKE: §3.7 holder dem uden for inputenvelopen, og en bruger, der sletter sin sag, har
-  ikke bedt om at få sidemenuen foldet sammen. Aktive-fane-nøglerne hører her — en fane er en
-  navigationsposition, ikke sagsdata.
+  ikke bedt om at få sidemenuen foldet sammen.
 
-Klassifikationen er udtømmende og compiler-håndhævet: en ny manifest-nøgle kan ikke undlade at vælge side.
+Klassifikationen er udtømmende og compiler-håndhævet for manifestets STATISKE UI-nøgler: `satisfies`-
+constraintet er nøglet til `keyof typeof UI_STORAGE_KEY_SUFFIXES`, så en ny sådan nøgle ikke kan undlade at
+vælge side.
+
+**Aktive-fane-nøglerne står bevidst UDEN FOR klassifikationen** — ikke som `deviceScoped`, men som en
+dynamisk nøglefamilie dannet af `createActiveTabStorageKey(pageId)`. `Slet alt` rydder dem derfor ikke (en
+fane er en navigationsposition, ikke sagsdata), men adfærden følger af at de er udeladt, ikke af en
+klassifikation. Konsekvens, der skal være bevidst ved næste udvidelse: en NY dynamisk nøglefamilie kan
+tilføjes uden at compileren kræver et policy-valg. En sådan familie skal derfor selv tage stilling —
+enten ved at blive statisk klassificeret eller ved en eksplicit note her.
 
 Hele reset-transaktionen (inputenvelope, sagsnær sessionstate, filhåndtag) ejes af `CaseResetOperations`, som
 er det ENESTE sted der enumererer policyen. Hver oprydningsgrænses resultat skal kontrolleres, og en

@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domæne-/sagsglobal kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `persistence-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-07
 
 ---
 
@@ -16,7 +16,12 @@ Reference-dataenes katalogmetadata og integritetskrav følger desuden `calculati
 
 **Autoritativ beregningskilde:** `projectSatser` i `src/domain/satser/satserProjection.ts` er den eneste
 autoritative satsårs-projektion for sidevisning og dokumentgate. `resolveSatserDefaultAargang` i
-`src/domain/policies/satserCalculations.ts` fastlægger alene defaulten til en ny sag. Opregulering fra ét år til et
+`src/domain/policies/satserCalculations.ts` er den ENESTE kilde til satsårets default og beregner aldrig
+en sats. Den har to bevidst adskilte kaldere: ny-sags-seeden (`satserNewCaseSeed.ts`), som er den, der
+lander i en frisk sag, og `SATSER_INITIAL_VALUES` (`satserInitialValues.ts`), der bevidst tager året som
+et **øjebliksbillede ved app-load** for at holde objektets referenceidentitet stabil på tværs af renders.
+Ved uenighed er ny-sags-seeden autoritativ for hvad en sag faktisk får; grænsen for hvad brugeren MÅ
+indtaste er live og ejes af feltvalidatorerne, ikke af nogen af de to defaults. Opregulering fra ét år til et
 andet — den to-metoders sats-anvendelse, der er fundamentet for de øvrige domæners reguleringer — ejes af de **to
 kanoniske opregulerings-motorer** i `src/domain/satser/opreguleringsmotorer.ts`
 (`opregulerMedAslAarsloensmaksimum` og `opregulerMedAkkumuleretReguleringssats`). Ingen anden opreguleringssti må

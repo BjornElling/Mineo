@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-07
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
 implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den — se §10 og
@@ -53,6 +53,7 @@ inputtransaktion og må ikke kende et konkret domæne eller have surface-specifi
 Hver inputfamilie har ét `FieldCodec<T>` (`src/inputCore/fieldCodec.ts`):
 
 ```ts
+// udsnit; codec'en bærer også decimalPolicy? og options?.
 type FieldCodec<T> = Readonly<{
   family: FieldCodecFamily;
   parseForSettle(raw: string): FieldResolution<T>;
@@ -63,6 +64,10 @@ type FieldCodec<T> = Readonly<{
   signPolicy?: FieldSignPolicy;
 }>;
 ```
+
+`decimalPolicy` er decimalpolitikken (`form-contract.md` §8.3 ejer reglen). `options` er den
+maskinlæsbare opregning af et valgfelts mulige tilstande og er ikke kosmetik: den er det eneste sted,
+en konsument kan udlede feltets fulde værdimængde uden at gætte.
 
 `family` er obligatorisk og navngiver inputfamilien (`text`, `optionalText`, `selection`, `requiredChoice`,
 `boolean`, `date`, `integer`, `amount`, `percent`, `stringBacked`, `year`, `week`, `fraction`). `signPolicy`
@@ -131,10 +136,14 @@ Regler:
 6. Transiente UI-hjælpefelter bruger samme codec/editor, men har ingen persisted `FieldRef` og deltager ikke i history.
 7. Felt- og collection-bindings registreres i ét forseglet `InputCatalog`; dynamiske refs skal både matche templaten
    og pege på entities, der findes i det konkrete input-snapshot.
-8. History-origin kombinerer `FieldRef` med den konkrete editors fokusmål. Fokusmålet er overflademetadata, ikke en del
-   af datafeltets descriptor; samme felt kan derfor have flere gyldige editorlokationer uden parallel dataidentitet.
-   `HistoryOrigin.field` er derfor valgfri — en strukturel rækkehandling har ikke ét felt — mens route og fane
-   altid følger med.
+8. History-origin kombinerer feltets `FieldAddress` med den konkrete editors fokusmål. Fokusmålet er
+   overflademetadata, ikke en del af datafeltets descriptor; samme felt kan derfor have flere gyldige
+   editorlokationer uden parallel dataidentitet.
+   `HistoryOrigin` er en **diskrimineret union** på `kind`, ikke én type med et valgfrit felt:
+   `FieldHistoryOrigin` bærer en PÅKRÆVET `field: FieldAddress`, mens `CollectionHistoryOrigin` slet
+   ikke har feltet, men i stedet en påkrævet `collection` og en påkrævet destination. En strukturel
+   rækkehandling har ikke ét felt — men et feltcommit må heller ikke kunne sendes uden adresse, og
+   netop den fejl gør unionen urepræsenterbar. Route og fane følger altid med.
 
 ## 4. Settle-kontrakt
 
@@ -201,7 +210,7 @@ forveksles med et værdi-commit.
 Ikke-indlysende defaults og constraints skal være eksplicitte i feltdescriptoren eller den relevante domænekontrakt.
 Eksempler er procentintervaller, tocifret årspolitik og sikkerhedsgrænser for cifferantal.
 
-`infer`-politikken for tocifrede år er en låst, løbende regel: `20xx` bruges til og med fem år efter det aktuelle
+Årsfortolkningen af tocifrede år (`interpretYear` i `src/utils/dateInputValidation.ts`) er en låst, løbende regel: `20xx` bruges til og med fem år efter det aktuelle
 kalenderår; senere tocifrede år fortolkes som `19xx`. Grænsen skal flytte sig med kalenderåret og må ikke erstattes af
 et fast pivotår. Eksempel: `30` fortolkes som 1930 i 2024, men som 2030 fra og med 2025.
 

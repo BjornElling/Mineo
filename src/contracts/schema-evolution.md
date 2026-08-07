@@ -2,7 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-07
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -273,7 +273,9 @@ Fjernelse eller omdøbning af enum-værdier kræver enten:
 
 ### 3.2 `.strict()` i mergede sub-skemaer
 
-Sub-skemaerne er defineret med `.strict()` individuelt, men det er det endelige `erstatningsopgoerelseSchema` der er autoritativt ved parse. Et felt defineret i sub-skema A vil ikke blive afvist som "ukendt" af sub-skema B, fordi merge samler dem i ét objekt før strict valideres.
+Sub-skemaerne er defineret med `.strict()` individuelt, men det er det endelige merge-resultat, der er autoritativt ved parse. Et felt defineret i sub-skema A vil ikke blive afvist som "ukendt" af sub-skema B, fordi merge samler dem i ét objekt før strict valideres.
+
+**Bemærk hvilket af de to skemaer der gælder hvor.** Filen eksporterer både `erstatningsopgoerelseSchema` (formens fulde værdiform, som `erstatningsopgoerelseInitialValues.ts` parser mod, jf. §3.3) og `persistedErstatningsopgoerelseSchema`. Det er sidstnævnte, der er registreret i `persistenceRegistry.ts`, og dermed dét, `.eo`-load faktisk `safeParse`r mod. Ved spørgsmål om load-adfærd er den persisterede variant den autoritative.
 
 Et felt må dog kun defineres i ét sub-skema — hvis det ved en fejl ender i to, vinder det sidst-mergede.
 
