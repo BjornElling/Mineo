@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, rowDeleteLaneStyle } from './RowDeleteButton';
 import { GridReadOnlyLockedCell } from './GridReadOnlyLockedCell';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { bindSortableHeader, useTableSort } from './useTableSort';
@@ -79,7 +79,7 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
         <td style={getStandardGridCellStyle({ align: 'center' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(0)} displayValue={baseDateDisplay} align="center" errorMessage={baseDateErrorMessage} infoTooltipText={baseDateInfoTooltipText} /> : <GridDateCell gridCell={gc(0)} cell={dateCell} collectionRuleIssue={dateRuleIssue} />}</td>
         <td style={getStandardGridCellStyle({ align: 'right' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(1)} displayValue={appendInputUnitSuffix(formatPercentDisplay(0, true), INPUT_UNIT_SUFFIX.percent)} align="right" placeholder={LOCKED_PERCENT_PLACEHOLDER} /> : <GridPercentCell gridCell={gc(1)} cell={table.buildCellSpec(renderRow, bindings.manualPercentFields.procent, 1)} />}</td>
         <td style={getStandardGridCellStyle({ align: 'right' })}><GridReadOnlyLockedCell gridCell={gc(2)} displayValue={entry ? formatAsAmount(entry.indeks, 2) : ''} align="right" /></td>
-        <td style={{ ...getStandardGridCellStyle({ align: 'right' }), position: 'relative', paddingRight: 28 }}><GridReadOnlyLockedCell gridCell={gc(3)} displayValue={entry ? `${entry.akkumuleretPct >= 0 ? '+ ' : '- '}${formatAsAmount(Math.abs(entry.akkumuleretPct), 2)} %` : ''} align="right" />{renderRow.kind === 'existing' && !isBase && row !== undefined && !isRowEmpty(row) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
+        <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}><GridReadOnlyLockedCell gridCell={gc(3)} displayValue={entry ? `${entry.akkumuleretPct >= 0 ? '+ ' : '- '}${formatAsAmount(Math.abs(entry.akkumuleretPct), 2)} %` : ''} align="right" />{renderRow.kind === 'existing' && !isBase && row !== undefined && !isRowEmpty(row) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
       </tr>;
     })}</tbody>
   </StandardGridTable>;

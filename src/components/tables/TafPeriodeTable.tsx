@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { GridDateCell, GridIntegerCell } from '../../inputCore/react/fields/gridCells';
 import {
   eoTafPeriodeFraField,
@@ -76,10 +76,10 @@ const TafPeriodeTable = React.memo(({
           <TableCell><GridDateCell gridCell={{ rowId: row.rowId, colIndex: 0 }} cell={table.buildCellSpec(row, eoTafPeriodeFraField, 0)} /></TableCell>
           <TableCell><GridDateCell gridCell={{ rowId: row.rowId, colIndex: 1 }} cell={table.buildCellSpec(row, eoTafPeriodeTilField, 1)} /></TableCell>
           <TableCell><GridIntegerCell gridCell={{ rowId: row.rowId, colIndex: 2 }} cell={table.buildCellSpec(row, eoTafPeriodeLoseFeriedageField, 2)} /></TableCell>
-          <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
+          <RowDeleteLaneCell>
             <Typography variant="body1">{calculated === null ? '' : formatAsAmountTrimmed(calculated)}</Typography>
             {committed !== undefined && !isTafRowEmpty(committed) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
-          </TableCell>
+          </RowDeleteLaneCell>
         </TableRow>;
       })}</TableBody>
     </StandardLooseTable>

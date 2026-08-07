@@ -48,7 +48,7 @@ import type { ISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, rowDeleteLaneStyle } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
@@ -487,13 +487,11 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
                 {/* Samlet løn (altid afledt) + slet-række-knap */}
                 <td
-                  style={{
+                  style={rowDeleteLaneStyle({
                     ...getStandardGridCellStyle({ align: 'right' }),
                     padding: '4px',
-                    paddingRight: '28px',
-                    position: 'relative',
                     color: 'var(--mineo-color-active-grid-derived)',
-                  }}
+                  })}
                 >
                   {formatKr(calculated.col8, 2)}
                   {renderRow.kind === 'existing' && (

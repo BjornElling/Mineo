@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { GridDateCell } from '../../inputCore/react/fields/gridCells';
 import {
   eoFerieperiodeFraField,
@@ -96,14 +96,14 @@ const FerieperiodeTable = React.memo(({
                   cell={table.buildCellSpec(row, tilField, 1)}
                 />
               </TableCell>
-              <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
+              <RowDeleteLaneCell>
                 <Typography variant="body1" sx={{ textAlign: 'center', py: 0.5 }}>
                   {committed === undefined ? '' : (feriedageById[committed.id] ?? '')}
                 </Typography>
                 {committed !== undefined && !isFerieRowEmpty(committed) ? (
                   <RowDeleteButton onDelete={() => table.removeRow(committed.id)} />
                 ) : null}
-              </TableCell>
+              </RowDeleteLaneCell>
             </TableRow>
           );
         })}

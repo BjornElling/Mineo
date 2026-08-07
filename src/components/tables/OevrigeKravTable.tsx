@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
@@ -85,13 +85,13 @@ const OevrigeKravTableRow = React.memo(({ renderRow, committed, onDeleteRow, bui
           sx={{ width: 400 }}
         />
       </TableCell>
-      <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
+      <RowDeleteLaneCell>
         <GridAmountCell
           gridCell={gc(COL.beloeb)}
           cell={buildCellSpec<AmountValue | undefined>(renderRow, eoOevrigeKravBeloebField, COL.beloeb)}
         />
         {showDelete && <RowDeleteButton onDelete={() => onDeleteRow(rowId)} />}
-      </TableCell>
+      </RowDeleteLaneCell>
     </TableRow>
   );
 });

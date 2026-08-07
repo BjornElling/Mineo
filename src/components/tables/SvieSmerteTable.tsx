@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { MenuItem, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { GridDateCell } from '../../inputCore/react/fields/gridCells';
 import GridChoiceCell from '../../inputCore/react/fields/GridChoiceCell';
 import {
@@ -71,7 +71,7 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath 
           <TableCell><GridDateCell gridCell={{ rowId: row.rowId, colIndex: 0 }} cell={table.buildCellSpec(row, eoSvieSmertePeriodeFraField, 0)} /></TableCell>
           <TableCell><GridDateCell gridCell={{ rowId: row.rowId, colIndex: 1 }} cell={table.buildCellSpec(row, eoSvieSmertePeriodeTilField, 1)} /></TableCell>
           <TableCell><Typography variant="body1">{committed === undefined ? '' : (derivedById[committed.id]?.antalDage ?? '')}</Typography></TableCell>
-          <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
+          <RowDeleteLaneCell>
             <GridChoiceCell
               gridCell={{ rowId: row.rowId, colIndex: 3 }}
               cell={table.buildCellSpec(row, eoSvieSmertePeriodeTilstandField, 3)}
@@ -81,7 +81,7 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath 
               <MenuItem value="delvist-sygemeldt">Delvist Sygemeldt</MenuItem>
             </GridChoiceCell>
             {committed !== undefined && !isSvieSmerteRowEmpty(committed) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
-          </TableCell>
+          </RowDeleteLaneCell>
         </TableRow>;
       })}</TableBody>
     </StandardLooseTable>

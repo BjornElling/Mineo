@@ -26,6 +26,7 @@ import {
 import {
   criticalActionNoDomScanOrFrameWait,
   deletableCollectionTableOwnershipRule,
+  rowDeleteLaneCellRule,
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,
   documentGeneratorImportBoundary,
@@ -144,6 +145,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   popupSemanticsSingleSourceRule,
   messageBoxGuardedByPageMessageRule,
   deletableCollectionTableOwnershipRule,
+  rowDeleteLaneCellRule,
   ...TABLE_ORDER_RULES,
   placeholderIdentityOwnershipRule,
   // Inputgrænser og legacy-fravær

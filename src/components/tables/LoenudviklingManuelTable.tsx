@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, rowDeleteLaneStyle } from './RowDeleteButton';
 import { GridReadOnlyLockedCell } from './GridReadOnlyLockedCell';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { bindSortableHeader, useTableSort } from './useTableSort';
@@ -141,7 +141,7 @@ export default function LoenudviklingManuelTable({
             : <GridDateCell gridCell={gc(0)} cell={dateCell} collectionRuleIssue={dateRuleIssue} />}</td>
           <td style={getStandardGridCellStyle({ align: 'right' })}><GridAmountCell gridCell={gc(1)} cell={table.buildCellSpec(renderRow, bindings.manualFields.grundloen, 1)} /></td>
           {(['feriepenge', 'shSoSats', 'fritvalg'] as const).map((key, index) => <td key={key} style={getStandardGridCellStyle({ align: 'right' })}>{isBase && readOnlyBaseRowPercentFields ? lockedPercent(key, index + 2) : <GridPercentCell gridCell={gc(index + 2)} cell={table.buildCellSpec(renderRow, bindings.manualFields[key], index + 2)} />}</td>)}
-          <td style={{ ...getStandardGridCellStyle({ align: 'right' }), position: 'relative', paddingRight: 28 }}>{isBase && readOnlyBaseRowPercentFields ? lockedPercent('agPension', 5) : <GridPercentCell gridCell={gc(5)} cell={table.buildCellSpec(renderRow, bindings.manualFields.agPension, 5)} />}{renderRow.kind === 'existing' && !isBase && row !== undefined && !isRowEmpty(row) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
+          <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}>{isBase && readOnlyBaseRowPercentFields ? lockedPercent('agPension', 5) : <GridPercentCell gridCell={gc(5)} cell={table.buildCellSpec(renderRow, bindings.manualFields.agPension, 5)} />}{renderRow.kind === 'existing' && !isBase && row !== undefined && !isRowEmpty(row) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
         </tr>;
       })}</tbody>
     </StandardGridTable>

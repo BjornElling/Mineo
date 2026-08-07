@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { MenuItem, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import type { AslAfgoerelseRow, AfgoerelseType, JaNej } from '../../schemas/formSchemas';
 import {
   EET_ASL_MIN_VISIBLE_ROWS,
@@ -185,7 +185,7 @@ const EetAslAfgoerelserRow = React.memo(
             {...ruleIssueFor(tidlKapDatoCell)}
           />
         </TableCell>
-        <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
+        <RowDeleteLaneCell>
           <GridChoiceCell<JaNej, AslAfgoerelseRow, JaNej>
             gridCell={gc(COL.fsTilbageholdtEet)}
             cell={buildCellSpec<JaNej>(renderRow, aslAfgoerelseFsTilbageholdtEetField, COL.fsTilbageholdtEet)}
@@ -199,7 +199,7 @@ const EetAslAfgoerelserRow = React.memo(
           {renderRow.kind === 'existing' && (
             <RowDeleteButton onDelete={() => onDeleteRow(rowId)} />
           )}
-        </TableCell>
+        </RowDeleteLaneCell>
       </TableRow>
     );
   }

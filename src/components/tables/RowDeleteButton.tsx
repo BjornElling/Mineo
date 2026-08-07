@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { Box, IconButton, TableCell, Tooltip, type TableCellProps } from '@mui/material';
 import { Delete } from '@mui/icons-material';
+import type { SxProps, Theme } from '@mui/material/styles';
+import { mergeSx } from '../../utils/mergeSx';
 
 const ROW_DELETE_ICON_COLOR = '#b88a8a';
 const ROW_DELETE_ICON_HOVER_COLOR = '#c25555';
@@ -19,8 +21,10 @@ export type RowDeleteButtonProps = Readonly<{
  *
  * Synligheds-reglen ligger bevidst i `StandardGridTable`/`StandardLooseTable` (selektoren
  * `tbody tr:hover .mineo-row-delete-slot`), så hover-reveal er ét fælles sted for begge
- * tabel-familier. Knappen placeres i rækkens sidste celle, der skal være `position: relative`;
- * den svæver ved cellens højre kant og fanger kun klik på selve ikonet — wrapperen har
+ * tabel-familier. Knappen placeres i rækkens sidste celle, som SKAL bære lane-kontrakten —
+ * brug `RowDeleteLaneCell` (løs tabel) eller `rowDeleteLaneStyle` (`<td>`), aldrig en håndskrevet
+ * `position: relative` + `paddingRight` (håndhævet af `form/row-delete-lane-cell-single-source`).
+ * Den svæver ved cellens højre kant og fanger kun klik på selve ikonet — wrapperen har
  * `pointer-events: none`, indtil rækken er hovered, så resten af cellen forbliver interaktiv,
  * og et klik i højre kant af en ikke-hovered række kan ikke ramme et usynligt ikon.
  *
@@ -91,5 +95,54 @@ export const RowDeleteButton = React.memo(({ onDelete, title = 'Slet rækken' }:
 });
 
 RowDeleteButton.displayName = 'RowDeleteButton';
+
+/**
+ * Bredden på den reserverede bane til højre for celleindholdet. Ikonet svæver i banen
+ * (`right: 5px`, bredde 20px), så indholdet aldrig ligger under skraldespanden.
+ */
+export const ROW_DELETE_LANE_WIDTH_PX = 28;
+
+/**
+ * Cellekontrakten `RowDeleteButton` afhænger af: knappen er `position: absolute`, så dens
+ * celle SKAL være `position: relative` (ellers finder den nærmeste positionerede forfader —
+ * typisk tabellens container — og ikonet lander i tabellens hjørne i stedet for i rækken),
+ * og cellen skal reservere banen med `paddingRight`.
+ *
+ * Kontrakten var tidligere skrevet i hånden på hvert kaldsted i fire forskellige stavemåder
+ * (`sx` med `'28px'`, `sx` med tal, spredt `style` med `28`, spredt `style` med `'28px'`) uden
+ * noget værn. Den bor nu ét sted og forbruges via `RowDeleteLaneCell`/`rowDeleteLaneStyle`,
+ * så en celle ikke kan glemme halvdelen af den.
+ */
+const ROW_DELETE_LANE_CONTRACT = {
+  position: 'relative',
+  paddingRight: `${ROW_DELETE_LANE_WIDTH_PX}px`,
+} as const;
+
+/**
+ * Slet-banen for grid-tabellernes rå `<td style={...}>`-celler.
+ *
+ * Lægges SIDST i cellens style, så en spredt basisstil ikke kan overskrive kontrakten væk.
+ */
+export const rowDeleteLaneStyle = (base?: React.CSSProperties): React.CSSProperties => {
+  return { ...base, ...ROW_DELETE_LANE_CONTRACT };
+};
+
+export type RowDeleteLaneCellProps = Omit<TableCellProps, 'sx'> & Readonly<{
+  sx?: SxProps<Theme>;
+}>;
+
+/**
+ * Slet-banen for de løse tabellers MUI-`TableCell`. Samme kontrakt som `rowDeleteLaneStyle`,
+ * lagt sidst via `mergeSx` så kaldstedets egen `sx` ikke kan fjerne den.
+ */
+export const RowDeleteLaneCell = React.memo(({ sx, children, ...props }: RowDeleteLaneCellProps) => {
+  return (
+    <TableCell {...props} sx={mergeSx(sx ?? {}, ROW_DELETE_LANE_CONTRACT)}>
+      {children}
+    </TableCell>
+  );
+});
+
+RowDeleteLaneCell.displayName = 'RowDeleteLaneCell';
 
 export default RowDeleteButton;

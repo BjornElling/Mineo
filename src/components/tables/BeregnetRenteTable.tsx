@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Box, MenuItem, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import DownloadIconButton from '../inputs/DownloadIconButton';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import { formatKr } from '../../utils/formatUtils';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
@@ -218,7 +218,7 @@ const BeregnetRenteRow = React.memo(
         </TableCell>
 
         {!isMobile && (
-          <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
+          <RowDeleteLaneCell>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showDownloadButton ? (
                 <DownloadIconButton
@@ -238,7 +238,7 @@ const BeregnetRenteRow = React.memo(
             {renderRow.kind === 'existing' && !rowIsSemanticallyEmpty && (
               <RowDeleteButton onDelete={() => onDeleteRow(rowId)} />
             )}
-          </TableCell>
+          </RowDeleteLaneCell>
         )}
       </TableRow>
     );

@@ -1966,7 +1966,7 @@ Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det
 kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
 beskriver flere steder slettede mellemtrin.
 
-**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 537 testfiler / 6940 tests,
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 537 testfiler / 6946 tests,
 `typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»,
 «Efterslæb lukket 2026-08-07», «Gennemført 2026-08-07 (anden omgang: #50 og #32)»,
 «Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)» og
@@ -1984,7 +1984,8 @@ Anciennitetstillæg, se nedenfor); det blokerer intet.
 **Registreret som ikke gjort — hører til et senere spor** (fra de fire omganges gennemgange):
 `document-output-contract.md` §B11's 26-punkts audit-arbejdsliste og filens to konkurrerende
 afsnitsnummereringer; `schema-evolution.md`s domænesti-tabel, som filen selv skriver «skal holdes i sync
-med registry»; `RowDeleteButton`-mønstrets omgivende celle (10 steder, fire varianter);
+med registry»; ~~`RowDeleteButton`-mønstrets omgivende celle (10 steder, fire varianter)~~
+**✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08» nedenfor**;
 `renderRows`-reconciliationens fætter i de fire ikke-`useCollectionTable`-tabeller;
 `DanishDateString`-datalagets to private `danishDateToNumber`-kopier og `.filter().reduce()`-max-familien
 på seks interval-start-resolvere; Indstillingssidens fire `is…Option`-typeguards og
@@ -2001,6 +2002,49 @@ på seks interval-start-resolvere; Indstillingssidens fire `is…Option`-typegua
 | ~~**#45**~~ | ~~Tabel-konsolidering~~ | **✅ GENNEMFØRT 2026-08-07 efter den korrigerede skæring** (ingen `GridSpec`). Rækkefølge-laget samlet i `useSortedCollectionTable`; colId-triplen erstattet af `bindSortableHeader`. |
 | ~~**#21**~~ | ~~Indstillinger~~ | **✅ GENNEMFØRT 2026-08-07 efter den korrigerede skæring** (intet settings-register). Det reelle fund var større end planen sagde: etiketterne var duplikeret 3× pr. enum, én af dem ind i dokumentlaget. |
 | ~~**#52**~~ | ~~Kontrakt-struktur~~ | **✅ GENNEMFØRT 2026-08-07, og OMSKÅRET.** Planens to drift-eksempler var allerede rettet, og skabelon-ensretningen er bevidst droppet: af ~230 fil-stier var nul døde og af 569 symboler kun fem forkerte, så «flyt kortene ud» ville have fjernet den korrekte del. I stedet blev referencerne gjort kontrollerbare: liveness-værn (inkl. håndhævede fraværsværn), git-bundet verifikationsstempel og afstemning af in-file-testkobling mod matrixen. Fem drift-tilfælde rettet. |
+
+### Efterslæb lukket 2026-08-08 — `RowDeleteButton`s omgivende celle
+
+Første post fra listen over «registreret som ikke gjort». Den var registreret som «10 steder, fire
+varianter», altså som en stil-duplikering. Ved implementeringen viste den sig at være en **uhåndhævet
+kontrakt**, ikke bare en gentagelse: `RowDeleteButton` er `position: absolute`, så cellen SKAL være
+`position: relative` — ellers positionerer ikonet sig efter nærmeste positionerede forfader, dvs.
+tabellens container, og lander i tabellens hjørne i stedet for i rækken. Cellen skal desuden reservere
+en 28 px bane med `paddingRight`, ellers ligger skraldespanden oven på celleindholdet.
+
+Kontrakten stod hardkodet på hvert af de ti kaldsteder i fire stavemåder (`sx` med `'28px'`, `sx` med
+tal, spredt `style` med `28`, spredt `style` med `'28px'`), var kun beskrevet i knappens docstring, og
+intet værn kunne se, om et kaldsted glemte den ene halvdel. Knappens egen test rendrede den endda i en
+håndskrevet `<td style={{ position: 'relative' }}>` og beviste derfor intet om produktionens celler.
+
+**Gjort:**
+
+- `ROW_DELETE_LANE_WIDTH_PX` + et privat `ROW_DELETE_LANE_CONTRACT` i `RowDeleteButton.tsx` som eneste
+  sted, kontrakten er skrevet.
+- To forbrugere, én pr. tabelfamilie: `RowDeleteLaneCell` (MUI-`TableCell`, løse tabeller) og
+  `rowDeleteLaneStyle(base)` (rå `<td style>`, grid-tabeller). Begge lægger kontrakten **sidst**, så et
+  kaldsteds egen `sx`/`style` ikke kan overskrive den væk — men resten af kaldstedets styling overlever
+  (fx `StandardLoenTable`s `padding: '4px'` og dens afledte farve).
+- Alle ti kaldsteder omlagt: `BeregnetRenteTable`, `EetAslAfgoerelserTable`, `FerieperiodeTable`,
+  `LoenudviklingManuelProcentsatsTable`, `LoenudviklingManuelTable`, `OevrigeKravTable`,
+  `OffentligeYdelserTable`, `StandardLoenTable`, `SvieSmerteTable`, `TafPeriodeTable`. Ingen
+  `paddingRight: '28px'`/`28` er tilbage i `src/` uden for guardens egen fixture.
+- Nyt AST-værn `form/row-delete-lane-cell-single-source`: en `RowDeleteButton` skal stå i en lane-celle;
+  en håndrullet celle er en overtrædelse. Værnet har `liveTarget: precondition` med alle ti filer i
+  `requiredPaths`, så det ikke kan blive grønt af tomhed.
+- Fire nye tests på selve primitivet (kontrakten lagt oven på basisstil; kontrakten kan ikke
+  overskrives af hverken `style`-basis eller kaldstedets `sx`; den rendrede celle har faktisk
+  `position: relative` + banen).
+
+**Mutationsbevist i tre trin** (jf. guard-selvtest-princippet): (1) fixtures fanger både den fulde
+håndrullede kontrakt og den *halvt* glemte; (2) en mutation af den LEVENDE kilde — `TafPeriodeTable`
+tilbage til den håndrullede celle — gjorde harnessen rød på præcis den linje med præcis den regel-id;
+(3) en mutation af selve primitivet (fjern `position` fra kontrakten) gjorde alle fire nye tests røde
+med `expected 'static' to be 'relative'`, altså af den målte mekanisme og ikke af en konkurrerende.
+
+Ingen synlig UI-ændring: kontrakten er byte-identisk med den, de ti celler allerede havde
+(`OffentligeYdelserTable`s `textAlign: 'right'` og `StandardLoenTable`s `padding`/farve er bevaret som
+basis). Fuldt træ grønt: 537 filer / 6946 tests (+6), `typecheck`, `typecheck:test`, `lint`.
 
 ### Brugerens beslutninger 2026-08-06 (bindende for resten af arbejdet)
 

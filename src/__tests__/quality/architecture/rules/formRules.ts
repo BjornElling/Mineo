@@ -2160,6 +2160,114 @@ export const deletableCollectionTableOwnershipRule = defineRule({
   }],
 });
 
+/**
+ * Cellen omkring `RowDeleteButton` er en KONTRAKT, ikke en stilart: knappen er `position: absolute`,
+ * så mangler cellen `position: relative`, finder den nærmeste positionerede forfader — tabellens
+ * container — og ikonet lander i tabellens hjørne i stedet for i rækken. Uden `paddingRight` ligger
+ * det oven på celleindholdet.
+ *
+ * Kontrakten var hardkodet på hvert af de ti kaldsteder i fire stavemåder og var derfor lige så let
+ * at glemme halvdelen af som at skrive rigtigt. Den bor nu i `RowDeleteLaneCell`/`rowDeleteLaneStyle`,
+ * og denne regel lukker vejen tilbage: en celle må ikke selv stave kontrakten.
+ */
+const LANE_CELL_TAGS = new Set(['RowDeleteLaneCell']);
+const LANE_STYLE_HELPER = 'rowDeleteLaneStyle';
+
+/** Nærmeste omsluttende JSX-element (åbnings-tag-navn) for en node. */
+const enclosingJsxTagName = (node: ts.Node): string | undefined => {
+  for (let current = node.parent; current !== undefined; current = current.parent) {
+    if (ts.isJsxElement(current)) {
+      const { tagName } = current.openingElement;
+      return ts.isIdentifier(tagName) ? tagName.text : undefined;
+    }
+  }
+  return undefined;
+};
+
+/** Nærmeste omsluttende JSX-element hvis `style`/`sx` går gennem lane-helperen. */
+const enclosingCellUsesLaneHelper = (node: ts.Node): boolean => {
+  for (let current = node.parent; current !== undefined; current = current.parent) {
+    if (!ts.isJsxElement(current)) continue;
+    return current.openingElement.attributes.properties.some((prop) => (
+      ts.isJsxAttribute(prop)
+      && ts.isIdentifier(prop.name)
+      && (prop.name.text === 'style' || prop.name.text === 'sx')
+      && prop.initializer !== undefined
+      && ts.isJsxExpression(prop.initializer)
+      && prop.initializer.expression !== undefined
+      && ts.isCallExpression(prop.initializer.expression)
+      && ts.isIdentifier(prop.initializer.expression.expression)
+      && prop.initializer.expression.expression.text === LANE_STYLE_HELPER
+    ));
+  }
+  return false;
+};
+
+export const rowDeleteLaneCellRule = defineRule({
+  id: 'form/row-delete-lane-cell-single-source',
+  description:
+    'RowDeleteButton skal stå i en lane-celle (RowDeleteLaneCell/rowDeleteLaneStyle) — cellekontrakten må ikke håndrulles.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => jsxTagPositions(entry, 'RowDeleteButton').length > 0,
+    rationale: 'alle ti sletbare collectiontabeller renderer fortsat RowDeleteButton i en celle',
+    minimumMatches: DELETABLE_COLLECTION_TABLES.length,
+    requiredPaths: DELETABLE_COLLECTION_TABLES,
+  },
+  find: (entry) => {
+    const findings: Finding[] = [];
+    const visit = (node: ts.Node): void => {
+      if (
+        (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node))
+        && ts.isIdentifier(node.tagName)
+        && node.tagName.text === 'RowDeleteButton'
+      ) {
+        const enclosingTag = enclosingJsxTagName(node);
+        const inLaneCell = enclosingTag !== undefined && LANE_CELL_TAGS.has(enclosingTag);
+        if (!inLaneCell && !enclosingCellUsesLaneHelper(node)) {
+          const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.tagName.getStart(entry.ast));
+          findings.push({
+            position: { line: line + 1, column: character + 1 },
+            message:
+              'RowDeleteButton uden lane-celle — brug <RowDeleteLaneCell> (løs tabel) eller rowDeleteLaneStyle(...) (<td>), '
+              + 'så position: relative og den reserverede bane ikke kan glemmes halvt.',
+          });
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(entry.ast);
+    return findings;
+  },
+  violatingFixtures: [
+    // Håndrullet kontrakt: præcis den form der var kopieret ti steder.
+    {
+      relativePath: `${TABLE_SCOPE}XTable.tsx`,
+      code: 'const X = () => <TableCell sx={{ position: "relative", paddingRight: "28px" }}><RowDeleteButton onDelete={d} /></TableCell>;',
+    },
+    // Halvt glemt kontrakt (ingen position) — ikonet ville lande i tabellens hjørne.
+    {
+      relativePath: `${TABLE_SCOPE}XTable.tsx`,
+      code: 'const X = () => <td style={{ paddingRight: 28 }}><RowDeleteButton onDelete={d} /></td>;',
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: `${TABLE_SCOPE}XTable.tsx`,
+      code: 'const X = () => <RowDeleteLaneCell><RowDeleteButton onDelete={d} /></RowDeleteLaneCell>;',
+    },
+    {
+      relativePath: `${TABLE_SCOPE}XTable.tsx`,
+      code: 'const X = () => <td style={rowDeleteLaneStyle(base)}><RowDeleteButton onDelete={d} /></td>;',
+    },
+    // En celle UDEN slet-knap er ikke reglens ærinde, selv om den ligner.
+    {
+      relativePath: `${TABLE_SCOPE}XTable.tsx`,
+      code: 'const X = () => <td style={{ position: "relative" }}>{value}</td>;',
+    },
+  ],
+});
+
 const PLACEHOLDER_TABLES = [
   'BeregnetRenteTable.tsx',
   'EetAslAfgoerelserTable.tsx',

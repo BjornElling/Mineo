@@ -2,7 +2,7 @@ import * as React from 'react';
 import { MenuItem } from '@mui/material';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { RowDeleteButton } from './RowDeleteButton';
+import { RowDeleteButton, rowDeleteLaneStyle } from './RowDeleteButton';
 import { GridAmountCell, GridDateCell } from '../../inputCore/react/fields/gridCells';
 import GridChoiceCell from '../../inputCore/react/fields/GridChoiceCell';
 import { StyledDropdownDivider } from '../inputs/StyledDropdown';
@@ -99,7 +99,7 @@ const OffentligeYdelserTable = React.memo(({
         </GridChoiceCell></td>
         <td style={derivedStyle}>{derived?.periodiseringLabel ?? ''}</td>
         <td style={derivedStyle}>{derived?.antalDageDisplay ?? ''}</td>
-        <td style={{ ...derivedStyle, position: 'relative', paddingRight: '28px', textAlign: 'right' }}>
+        <td style={rowDeleteLaneStyle({ ...derivedStyle, textAlign: 'right' })}>
           {derived?.ydelsePerDagDisplay ?? ''}
           {committed !== undefined && !isRowEmpty(committed) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
         </td>
