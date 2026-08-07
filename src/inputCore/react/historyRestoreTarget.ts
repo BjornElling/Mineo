@@ -105,5 +105,10 @@ export const findRestoreTarget = (origin: HistoryOrigin): HTMLElement | null => 
  */
 export const scheduleHistoryTargetRestore = (origin: HistoryOrigin): void => {
   if (origin.kind !== 'field') return;
-  runHistoryTargetRestoreLoop(() => findRestoreTarget(origin));
+  runHistoryTargetRestoreLoop(
+    () => findRestoreTarget(origin),
+    // Kun til diagnostikken, når målet aldrig dukker op: begge halvdele af identiteten skal med, for det er
+    // netop dét par, opslaget kræver — og et brud sidder typisk i editorlokationen, ikke i feltadressen.
+    () => `${serializeFieldAddress(origin.field)} @ ${origin.editorLocationId}`
+  );
 };

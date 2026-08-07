@@ -89,12 +89,41 @@ const isSameFocusScope = (activeElement: HTMLElement, originalActiveElement: Ele
 };
 
 /**
+ * En felt-origin, hvis fokusmål ALDRIG dukker op, er en brudt invariant — ikke en tolerabel hændelse.
+ *
+ * Undo/redo-kontrakten §5 siger, at en felt-origin identificerer den editorlokation, ændringen kom fra. Efter en
+ * gennemført restore er den tilstand aktuel igen, og lokationen skal derfor findes i DOM. Sker det ikke, peger
+ * originen på en identitet, fladen ikke kan levere: en tabel, der har skiftet et række-id under brugeren (BF-005),
+ * en surface, der har glemt restore-attributterne, en editorlokation hvis id er skredet, eller en route/fane, der
+ * ikke blev navigeret til.
+ *
+ * Klassen var usynlig, fordi løkken opgav TAVST: brugeren så blot, at fokus ikke flyttede sig. Værnet gør den
+ * opdagelig efter husets console-politik — høj-lydt i udvikling (hvor devtools-monitoren opsamler det), tavs i
+ * produktion, hvor manglende fokus er en skavank og ikke må blive til en fejlskærm.
+ */
+const reportUnreachableRestoreTarget = (describeTarget?: () => string): void => {
+  if (!import.meta.env.DEV) return;
+  const description = describeTarget?.() ?? 'ukendt mål';
+  console.error(
+    `[undo/redo] Fokusrestoren fandt aldrig sit mål (${description}) efter ${String(HISTORY_TARGET_RESTORE_MAX_ATTEMPTS)} forsøg. ` +
+      'En felt-origin skal kunne findes i DOM, når dens tilstand er gendannet (undo-redo-contract §5). ' +
+      'Kontrollér, at fladen bevarer rækkens/feltets identitet på tværs af undo/redo, og at den sætter restore-attributterne.'
+  );
+};
+
+/**
  * Den delte rAF-retry-restore-løkke (§3.7). Runtime-agnostisk: kalderen leverer KUN `findTarget`, der lokaliserer
  * det synlige fokusmål (feltadresse + editorlokation, jf. `historyRestoreTarget`). Den fælles adfærd —
  * vent-på-mount over faneskift, scroll-hvis-ikke-synlig, fokus-ring-markør, blur-commit-undertrykkelse under den
  * programmatiske fokus, og AFBRYDELSE hvis brugeren imens flytter fokus til et andet brugbart felt — bor ÉT sted.
+ *
+ * `describeTarget` bruges KUN i diagnostikken, når målet aldrig dukker op. Den er en funktion, så en serialisering
+ * af originen ikke betales, når restoren lykkes (det normale forløb).
  */
-export const runHistoryTargetRestoreLoop = (findTarget: () => HTMLElement | null): void => {
+export const runHistoryTargetRestoreLoop = (
+  findTarget: () => HTMLElement | null,
+  describeTarget?: () => string
+): void => {
   const originalActiveElement = document.activeElement;
 
   let attempts = 0;
@@ -118,7 +147,11 @@ export const runHistoryTargetRestoreLoop = (findTarget: () => HTMLElement | null
     attempts += 1;
     if (attempts < HISTORY_TARGET_RESTORE_MAX_ATTEMPTS) {
       requestAnimationFrame(tick);
+      return;
     }
+    // Opbrugte forsøg — og brugeren har IKKE selv flyttet fokus væk (det tilfælde returnerer ovenfor).
+    // Målet findes altså ikke, og det er en brudt invariant frem for et normalt udfald.
+    reportUnreachableRestoreTarget(describeTarget);
   };
   requestAnimationFrame(tick);
 };

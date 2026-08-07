@@ -8,66 +8,74 @@ import * as React from 'react';
  * settle promoveres netop det id atomisk til en persisteret række (§1.11), og history-frame'et får en
  * felt-origin, der peger på DEN adresse og DEN editorlokation.
  *
- * DERFOR skal et promoveret id BEVARES, ikke kastes væk. Et undo af promoveringen fjerner rækken igen, og
- * fokusrestoren (`findRestoreTarget`) kræver et eksakt match på både feltadresse og editorlokation. Kunne
- * tabellen kun huske det SENESTE placeholder-id, ville den efter promoveringen have skiftet til et nyt id, og
- * der ville efter undo ikke længere findes noget element, restoren kan finde — fokus forsvinder lydløst ud af
- * tabellen.
+ * DERFOR er identiteten nødt til at være en REN FUNKTION af den aktuelle committede tilstand — ikke af den vej,
+ * brugeren tog derhen. Undo/redo er en tidsmaskine over inputtet: samme committede tilstand kan nås forfra
+ * (redigering), bagfra (undo) og forfra igen (redo). Peger en history-origin på et placeholder-id, findes det
+ * kun, hvis tabellen viser SAMME identitet, hver gang den samme tilstand er aktuel. Ellers finder
+ * `findRestoreTarget` intet element, og fokus forlader lydløst tabellen.
  *
- * Puljen løser det ved at være ORDNET og BEVARENDE: hvert slot husker sit id, også efter at id'et er blevet
- * committet. Forsvinder id'et igen fra de committede rækker (undo), genindtræder det som placeholder på sin
- * oprindelige plads med præcis den identitet, fokusrestoren leder efter.
+ * Modellen er derfor:
  *
- * Reglen er ikke "genbrug hvis muligt" men "et slots id er stabilt, indtil slottet forsvinder". Det gør også
- * en åben celleeditor sikker: identiteten skifter ikke under redigering.
+ *   synlige placeholder-id'er = de første `slotCount` medlemmer af tabellens id-SEKVENS,
+ *                               som ikke aktuelt er committede.
+ *
+ * Sekvensen er APPEND-ONLY og doven: `at(index)` mønter id'et, første gang indekset bruges, og returnerer
+ * derefter altid det samme. Der findes INGEN operation, der fjerner et id — det er hele pointen, og det er
+ * udtrykt i typen frem for i en regel, man kan glemme. Et tidligere `state.ids.length = cursor`-trim gjorde
+ * netop dét: efter et undo helt tilbage faldt de senere slots bag markøren og blev kastet væk, og et
+ * efterfølgende redo møntede et NYT id til den plads. Fra da af pegede alle history-origins fra den oprindelige
+ * session på et id, tabellen aldrig ville vise igen (BF-005).
+ *
+ * Sekvensen vokser ikke ubegrænset: der møntes kun et nyt id, når alle tidligere medlemmer er committede, så
+ * dens længde er højst «flest samtidigt committede rækker» + `slotCount`.
  */
-
-/** Puljens tilstand: id pr. slot, i visningsrækkefølge. Ejes af kalderens ref og mutéres kun herfra. */
-export type PlaceholderSlotState = { ids: string[] };
-
-export const createPlaceholderSlotState = (): PlaceholderSlotState => ({ ids: [] });
 
 /**
- * Beregner de synlige placeholder-id'er og opdaterer puljen.
+ * Tabellens append-only id-sekvens. `at(index)` er TOTAL og STABIL: samme indeks giver altid samme id i hele
+ * sekvensens levetid. Der findes bevidst ingen fjern-/trim-/nulstil-operation.
+ */
+export type PlaceholderIdSequence = Readonly<{ at: (index: number) => string }>;
+
+/**
+ * Bygger sekvensen over en id-fabrik. Fabrikken kaldes KUN for et indeks, der ikke er møntet før.
  *
- * REN i forhold til sit output, men muterer bevidst `state` — den ER hukommelsen på tværs af renders. Den er
- * skilt ud som en almindelig funktion frem for at ligge inde i en hook, så livscyklussen kan unit-testes uden
- * render: netop identitetsforløbet promotion → undo → genindtræden er det, der skal kunne fejle i en test.
+ * Skilt ud som en almindelig funktion frem for at ligge inde i en hook, så identitetsforløbet
+ * promotion → undo → redo → undo kan unit-testes uden render.
+ */
+export const createPlaceholderIdSequence = (mintId: () => string): PlaceholderIdSequence => {
+  const minted: string[] = [];
+  return Object.freeze({
+    at: (index: number): string => {
+      while (minted.length <= index) minted.push(mintId());
+      return minted[index]!;
+    },
+  });
+};
+
+/**
+ * De synlige placeholder-id'er for én render: de første `slotCount` sekvensmedlemmer, der ikke er committede.
  *
- * @param state          Puljen (kalderens ref-værdi).
- * @param committedIds   De aktuelt committede række-id'er.
- * @param slotCount      Antal synlige placeholder-slots (≥ 1).
- * @param createRowId    Deterministisk id-fabrik. Kaldes KUN når et slot mangler et id.
+ * REN i forhold til (sekvens, committede id'er, slotCount) — den eneste mutation er sekvensens dovne møntning,
+ * som per konstruktion ikke kan ændre et allerede udleveret id. Derfor gælder invarianten: samme committede
+ * tilstand → samme synlige id'er, uanset hvornår og i hvilken rækkefølge tilstanden opstod.
+ *
+ * @param sequence     Tabellens append-only id-sekvens (ejes af kalderens ref).
+ * @param committedIds De aktuelt committede række-id'er.
+ * @param slotCount    Antal synlige placeholder-slots (≥ 1).
  */
 export const resolvePlaceholderSlotIds = (
-  state: PlaceholderSlotState,
+  sequence: PlaceholderIdSequence,
   committedIds: ReadonlySet<string>,
-  slotCount: number,
-  createRowId: () => string
+  slotCount: number
 ): readonly string[] => {
   const visible: string[] = [];
-  let cursor = 0;
-
-  for (let slot = 0; slot < slotCount; slot += 1) {
-    // Spring de gemte id'er over, der aktuelt ER committede: de hører til en rigtig række lige nu, men
-    // beholdes i puljen, så de kan genindtræde, hvis rækken forsvinder igen (undo).
-    let id = state.ids[cursor];
-    while (id !== undefined && committedIds.has(id)) {
-      cursor += 1;
-      id = state.ids[cursor];
-    }
-    if (id === undefined) {
-      id = createRowId();
-      state.ids[cursor] = id;
-    }
-    visible.push(id);
-    cursor += 1;
+  // Højst `committedIds.size` medlemmer kan springes over, så loftet er nået, netop når sekvensen mønter
+  // dubletter — umuligt for en unik id-fabrik, men et defekt loft er at foretrække frem for en uendelig løkke.
+  const maxIndex = committedIds.size + slotCount;
+  for (let index = 0; visible.length < slotCount && index < maxIndex; index += 1) {
+    const id = sequence.at(index);
+    if (!committedIds.has(id)) visible.push(id);
   }
-
-  // Trim til den plads, vi nåede. Alt FØR `cursor` er enten synligt nu eller et committet id, der kan
-  // genindtræde ved undo, og bevares derfor; alt bagefter er slots, tabellen ikke længere viser, og som ingen
-  // history-origin kan pege på. Uden trimmet ville puljen vokse ubegrænset over en lang session.
-  state.ids.length = cursor;
   return Object.freeze(visible);
 };
 
@@ -75,15 +83,22 @@ export const resolvePlaceholderSlotIds = (
  * Hook-formen: de synlige placeholder-id'er for en tabel med `slotCount` tomme rækker.
  *
  * `committedIds` skal være et STABILT sæt (memoiseret af kalderen), da det driver re-evalueringen.
+ *
+ * Sekvensen oprettes ÉN gang pr. tabelinstans og overlever et skift af `createRowId`-identitet: fabrikken
+ * læses gennem en ref, så en kaldsside, der (gen)skaber sin fabrik pr. render, ikke nulstiller identiteten.
  */
 export const usePlaceholderSlotIds = (
   committedIds: ReadonlySet<string>,
   slotCount: number,
   createRowId: () => string
 ): readonly string[] => {
-  const stateRef = React.useRef<PlaceholderSlotState>(createPlaceholderSlotState());
+  const mintRef = React.useRef(createRowId);
+  mintRef.current = createRowId;
+  const sequenceRef = React.useRef<PlaceholderIdSequence | null>(null);
+  sequenceRef.current ??= createPlaceholderIdSequence(() => mintRef.current());
+  const sequence = sequenceRef.current;
   return React.useMemo(
-    () => resolvePlaceholderSlotIds(stateRef.current, committedIds, slotCount, createRowId),
-    [committedIds, slotCount, createRowId]
+    () => resolvePlaceholderSlotIds(sequence, committedIds, slotCount),
+    [sequence, committedIds, slotCount]
   );
 };

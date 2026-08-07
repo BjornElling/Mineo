@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet
 `docs/architecture/undo-redo-architecture.md`.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-07
 
 ## 1. Scope
 
@@ -89,8 +89,20 @@ History-origin er en strukturel `FieldRef` kombineret med den konkrete editors e
   feltdefinitionen.
 - Et stabilt persisted row-id omskrives ikke for fokusrestore.
 - Transiente UI-felter deltager ikke i global history.
+- **En endnu ikke oprettet rækkes identitet (placeholder-rækken) SKAL være en ren funktion af den aktuelle
+  committede tilstand — aldrig af vejen derhen.** Undo/redo er en tidsmaskine: samme committede tilstand nås
+  forfra, bagfra og forfra igen, og en origin, der peger på et placeholder-id, findes kun, hvis fladen viser
+  samme identitet, hver gang den samme tilstand er aktuel. En flade må derfor ikke huske identiteten i en
+  hukommelse, der kan glemme (eller genmønte) et id, history stadig kan pege på. Ejerskabet ligger i
+  `usePlaceholderSlotIds`, hvis id-sekvens er append-only per konstruktion.
 
 Fallback til det element, der tilfældigvis har DOM-fokus efter blur, er ikke en korrekt identitetskilde.
+
+**En felt-origin, hvis fokusmål aldrig kan findes, er et brud på denne kontrakt, ikke et normalt udfald.** Efter
+en gennemført restore er originens tilstand aktuel igen, så dens editorlokation skal eksistere i DOM. Den fælles
+restore-løkke opgiver derfor ikke længere tavst: opbruges forsøgene, uden at brugeren selv har flyttet fokus,
+rapporteres den brudte invariant høj-lydt i udvikling (jf. console-politikken) og tavst i produktion, hvor
+manglende fokus er en skavank og ikke må blive til en fejlskærm.
 
 ## 6. Autoritative replacements
 

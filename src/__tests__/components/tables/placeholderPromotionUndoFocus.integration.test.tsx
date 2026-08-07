@@ -253,6 +253,97 @@ describe('placeholder-promotion → undo → fokus', () => {
     expect(first.origin === undefined ? null : findRestoreTarget(first.origin)).not.toBeNull();
   });
 
+  /**
+   * BF-005, brugerens forløb: to promoveringer, undo af ALT, redo af ALT, og derefter ét undo.
+   *
+   * Fejlen var permanent for resten af sessionen: undo'et helt tilbage skubbede det senere placeholder-slot
+   * bag puljens markør, hvor det blev trimmet væk, og redo'et møntede et NYT id til pladsen. Den oprindelige
+   * promotions history-origin pegede derefter på et id, tabellen aldrig ville vise igen, og fokus forsvandt
+   * lydløst ud af tabellen. De øvrige tests i filen kører kun undo og kunne derfor ikke se det.
+   */
+  it('bevarer fokusmålet gennem undo af ALT, redo af ALT og et efterfølgende undo', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    const promote = async (value: string): Promise<{ id: string; origin: ReturnType<typeof latestOrigin> }> => {
+      const cells = screen.getAllByRole('textbox') as HTMLInputElement[];
+      await user.click(cells[cells.length - 1]!);
+      await user.keyboard(value);
+      await user.tab();
+      const rowIds = committedRowIds();
+      return { id: rowIds[rowIds.length - 1]!, origin: latestOrigin() };
+    };
+    const undo = () => { act(() => { dispatchInput(store, catalog, { kind: 'undo' }); }); };
+    const redo = () => { act(() => { dispatchInput(store, catalog, { kind: 'redo' }); }); };
+
+    const first = await promote('1000');
+    const second = await promote('2000');
+    expect(committedRowIds()).toEqual([first.id, second.id]);
+
+    undo();
+    undo();
+    expect(committedRowIds()).toEqual([]);
+
+    redo();
+    redo();
+    expect(committedRowIds()).toEqual([first.id, second.id]);
+
+    // Det afgørende undo: den anden rækkes promotion fortrydes igen.
+    undo();
+    expect(committedRowIds()).toEqual([first.id]);
+
+    const target = second.origin === undefined ? null : findRestoreTarget(second.origin);
+    expect(target).not.toBeNull();
+    expect(target).toHaveAttribute('data-mineo-editor-location-id', expect.stringContaining(second.id));
+
+    // Og undo af den første promotion opfører sig stadig som før.
+    undo();
+    expect(committedRowIds()).toEqual([]);
+    expect(first.origin === undefined ? null : findRestoreTarget(first.origin)).not.toBeNull();
+  });
+
+  /**
+   * BF-005's ANDET symptom: brugeren rapporterede, at når først fokus var gået tabt, blev en række ikke slettet,
+   * når alle dens indtastninger blev fortrudt. Rækkeoprettelsen er promoveringen, og undo er LIFO — derfor SKAL
+   * det sidste undo i en række altid fjerne selve rækken, også efter en fuld undo/redo-rundtur. Testen pinner
+   * den invariant på en række med FLERE indtastninger, så et manglende eller ekstra history-trin ville efterlade
+   * en committet, tom række og gøre testen rød.
+   */
+  it('fjerner rækken igen, når alle dens indtastninger fortrydes efter en fuld undo/redo-rundtur', async () => {
+    const user = userEvent.setup();
+    renderTable();
+
+    const undo = () => { act(() => { dispatchInput(store, catalog, { kind: 'undo' }); }); };
+    const redo = () => { act(() => { dispatchInput(store, catalog, { kind: 'redo' }); }); };
+
+    // Række 1: promotér med beløbet, og skriv derefter en indtastning mere i samme række.
+    const [amountCell] = screen.getAllByRole('textbox') as HTMLInputElement[];
+    await user.click(amountCell!);
+    await user.keyboard('1000');
+    await user.tab();
+    const rowId = committedRowIds()[0]!;
+
+    const [firstRowAmount] = screen.getAllByRole('textbox') as HTMLInputElement[];
+    await user.click(firstRowAmount!);
+    await user.keyboard('{Control>}a{/Control}2000');
+    await user.tab();
+    expect(committedRowIds()).toEqual([rowId]);
+
+    // Fuld rundtur: helt tilbage og helt frem igen.
+    undo();
+    undo();
+    expect(committedRowIds()).toEqual([]);
+    redo();
+    redo();
+    expect(committedRowIds()).toEqual([rowId]);
+
+    // Fortryd alle indtastninger i rækken: den sidste fortrydelse er promoveringen og fjerner rækken.
+    undo();
+    expect(committedRowIds()).toEqual([rowId]);
+    undo();
+    expect(committedRowIds()).toEqual([]);
+  });
+
   it('gælder også for en tabel med flere synlige tomme rækker (minimumVisibleRows)', async () => {
     const user = userEvent.setup();
     renderTable(3);

@@ -120,7 +120,15 @@ describe('scheduleHistoryTargetRestore — fokus/scroll/fokus-ring + retry (§3.
     expect(input.getAttribute('data-mineo-undo-focused')).toBe('true');
   });
 
-  it('giver op efter 15 forsøg, når målet aldrig mounter', () => {
+  /**
+   * Et mål, der aldrig dukker op, er en BRUDT INVARIANT (undo-redo-contract §5): efter en gennemført restore er
+   * originens tilstand aktuel igen, så dens editorlokation skal findes i DOM. Klassen var usynlig, netop fordi
+   * løkken opgav tavst — brugeren så blot, at fokus ikke flyttede sig, og BF-005 kunne leve i månedsvis.
+   * Diagnostikken skal derfor navngive BEGGE halvdele af identiteten, for et brud sidder typisk i
+   * editorlokationen og ikke i feltadressen.
+   */
+  it('giver op efter 15 forsøg og rapporterer den brudte invariant, når målet aldrig mounter', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     scheduleHistoryTargetRestore(originFor('findes-aldrig'));
     let guard = 0;
     while (rafQueue.length > 0 && guard < 50) {
@@ -128,6 +136,21 @@ describe('scheduleHistoryTargetRestore — fokus/scroll/fokus-ring + retry (§3.
       guard += 1;
     }
     expect(rafSpy).toHaveBeenCalledTimes(15);
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    const message = String(errorSpy.mock.calls[0]?.[0]);
+    expect(message).toContain('[undo/redo]');
+    expect(message).toContain('findes-aldrig');
+  });
+
+  /** Modstykket: lykkes restoren, er der intet at rapportere. Ellers ville værnet støje ved normal brug. */
+  it('rapporterer ikke, når målet findes og fokuseres', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    makeInput('erhvervsevnetab:oplysninger:aslAarsloen');
+    scheduleHistoryTargetRestore(originFor('erhvervsevnetab:oplysninger:aslAarsloen'));
+    runNextFrame();
+
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it('afbryder, når brugeren imens flytter fokus til et andet brugbart felt', () => {

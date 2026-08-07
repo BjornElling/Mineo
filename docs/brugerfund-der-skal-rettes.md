@@ -75,8 +75,7 @@ kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede
 
 ## Afventer reproduktion
 
-- **BF-005 — Undo mister tabelfokus.** Ikke reproduceret. Ved nyt fund angives præcis tabel, celle, indtastning
-  og om undo blev udført med tastaturgenvej eller knap.
+Ingen fund afventer reproduktion.
 
 ## Rettet — kort log
 
@@ -86,6 +85,7 @@ kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede
 | BF-002 | Manglende sidste arbejdsdag giver en linket, ikke-blokerende advarsel. |
 | BF-003 | Felt- og tabeltypografi har entydige kontrolfarver og korrekt justering. |
 | BF-004 | Offentlige ydelser bruger lønindkomsttabellens 13 px-typografi. |
+| BF-005 | Placeholder-rækkens identitet er nu en ren funktion af de committede rækker, så undo/redo altid genfinder fokusfeltet. |
 | BF-006 | Valg af tillægstidsenhed opretter ikke en ekstra rentekravsrække. |
 | BF-007 | Offentlige ydelser-dropdown kan ryddes uden systemfejl. |
 | BF-008 | Licensmodalen ombryder teksten og holder scroll i tekstområdet. |
@@ -101,5 +101,13 @@ kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede
 | BF-018 | Tillægstid accepterer højst to cifre ved tastning og markerer øvrigt input korrekt. |
 | BF-019 | EET-procenter under 15 % giver den aftalte gule feltadvarsel. |
 
-Senest opdateret: 1. august 2026. De rettede fund er automatiseret verificeret. Visuel browserverifikation
+Senest opdateret: 7. august 2026. De rettede fund er automatiseret verificeret. Visuel browserverifikation
 af BF-003, BF-004, BF-008 og BF-014 udestår, fordi ingen styrbar browser var registreret.
+
+BF-005's andet symptom (rækken slettes ikke, når alle dens indtastninger fortrydes) er IKKE reproduceret
+selvstændigt. Det blev efterprøvet på tre måder — history-algebraen, en integrationstest med beløbscelle og en
+med datocelle — og rækken blev slettet hver gang. Rækkeoprettelsen ER promoveringen, og undo er LIFO, så det
+sidste undo i en række fjerner altid rækken; invarianten er nu pinnet af en test på en række med flere
+indtastninger efter en fuld undo/redo-rundtur. Symptomet var af brugeren beskrevet som betinget af den
+fejlagtige fokustilstand, rettelsen fjerner. Optræder det igen, er den mest lovende hypotese en spuriøs
+history-frame fra en blur-commit, når den fokuserede celle unmountes uden fokusrestore (jf. `restoreFocusFlag`).
