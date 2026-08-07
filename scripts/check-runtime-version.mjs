@@ -14,6 +14,18 @@
  * Sandheden er ÉN kilde: `package.json` → `engines`. Scriptet dublerer ikke intervallerne, så en bump af
  * `engines` (eller af `.nvmrc`) kan ikke efterlade kontrollen bagud.
  *
+ * **Hvad intervallet dækker, og hvad CI måler (brugerbeslutning 2026-08-07).** `engines` tillader bevidst
+ * et BREDERE Node-interval (`>=24.18.0 <27`), end CI faktisk kører: workflowet henter sin version fra
+ * `.nvmrc` (24.18.0), så det er den ene version, der efterprøves ved hver push. Udvidelsen blev truffet,
+ * fordi hele toolchainen — fuld vitest-suite, Playwright-e2e, typecheck, lint og build — er verificeret
+ * grøn på Node 26.7.0; gaten blokerede altså på en forældet erklæring, ikke på en reel inkompatibilitet.
+ *
+ * Prisen er, at et grønt LOKALT gate-udfald på Node 25/26 ikke er efterprøvet af CI. Det er en bevidst
+ * afvejning, ikke et overset hul: kontrollen her sikrer fortsat, at runtimen ligger inden for det
+ * erklærede — men «inden for det erklærede» er nu en bredere påstand end «det CI måler». Skal de to
+ * falde sammen igen, er vejen at flytte `.nvmrc` og CI til samme major som udviklingsmaskinerne og
+ * snævre intervallet ind igen.
+ *
  * `--warn-only` findes bevidst IKKE. En advarsel ville gøre kontrollen til støj, man scroller forbi, og det er
  * netop den tilstand, fundet beskriver.
  */

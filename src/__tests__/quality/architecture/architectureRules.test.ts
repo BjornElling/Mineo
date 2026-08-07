@@ -24,13 +24,21 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
     }
   });
 
-  // Timeout på 120 s (ikke 30 s): denne case parser AST for hele kilde-grafen (~700 filer,
+  // Timeout på 300 s (ikke 30 s): denne case parser AST for hele kilde-grafen (~700 filer,
   // setParentNodes) og kører hver regels tree-walk over sit scope — reelt ~4 s CPU-arbejde lokalt.
-  // Under thread-poolen på CI's 2-vCPU-runner konkurrerer det arbejde med parallelle test-workere
-  // om kernerne, så wall-clock kan strække sig langt forbi 30 s afhængigt af samtidig belastning
-  // (deraf de sporadiske timeouts). Arbejdet er endeligt og cachet — ikke en hængning — så et
-  // rundhåndet loft fjerner flakiness uden at skjule en ægte deadlock.
-  it('ingen arkitektur-overtrædelser i kilde-grafen', { timeout: 120000 }, () => {
+  // Under thread-poolen konkurrerer det arbejde med parallelle test-workere om kernerne, så
+  // wall-clock kan strække sig langt forbi 30 s afhængigt af samtidig belastning.
+  //
+  // Loftet blev hævet fra 120 s til 300 s 2026-08-07 på et MÅLT grundlag: under `test:coverage`
+  // instrumenterer V8 hele kilde-grafen, og prisen rammer netop denne case hårdest. Alene under
+  // coverage tager den ~143 s (mod ~74 s uden), og i den fulde suite — hvor den deler maskinen med
+  // 535 andre testfiler — blev den målt til ~239 s. Det gamle loft på 120 s gjorde derfor
+  // `verify:release` deterministisk rødt, uden at nogen arkitekturregel var overtrådt. Fejlen var
+  // latent: gaten stoppede altid tidligere på `check:runtime`, så timeoutet blev aldrig nået.
+  //
+  // Arbejdet er endeligt og cachet — ikke en hængning — så et rundhåndet loft fjerner den falske
+  // rødfarvning uden at skjule en ægte deadlock: en reel hængning rammer stadig loftet.
+  it('ingen arkitektur-overtrædelser i kilde-grafen', { timeout: 300000 }, () => {
     const entries = getSourceGraph();
     const violations = ARCHITECTURE_RULES.flatMap((rule) => rule.evaluate(entries));
 
@@ -109,7 +117,7 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
   // `form/persisted-styled-field-error-reporter` (trin 13 slettede hele `Styled*Field`-vejen) og
   // `criticalAction/no-dom-scan-or-frame-wait` (scopet `src/criticalActions/` findes ikke).
   // Det var detektorens egen mutationstest: en observeret fejl, ikke en fixture.
-  it('dødt værn: hver forudsætningsregel har stadig en fil, den ville kontrollere', { timeout: 120000 }, () => {
+  it('dødt værn: hver forudsætningsregel har stadig en fil, den ville kontrollere', { timeout: 300000 }, () => {
     const entries = getSourceGraph();
     const dead: string[] = [];
 
@@ -162,7 +170,7 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
   // AST-uafhængigt liveness-signal (`requiredPaths` + dødt-værn-detektoren beviser, at filen findes), og
   // kommentar-mutationen kan pr. konstruktion ikke sige noget om den. Kun en probe, der er opfyldt af
   // KOMMENTARER men IKKE af tomhed, læser filens indhold som tekst — og det er præcis fejlformen.
-  it('liveness: ingen forudsætningsprobe kan opfyldes af ren kommentartekst (R0-F02)', { timeout: 120000 }, () => {
+  it('liveness: ingen forudsætningsprobe kan opfyldes af ren kommentartekst (R0-F02)', { timeout: 300000 }, () => {
     const entries = getSourceGraph();
     const textOnlyProbes: string[] = [];
 
@@ -198,7 +206,7 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
   // Retning 2 (prædikatet virker): navnet skal kunne FINDES i en syntetisk fil, der bruger det.
   //   Uden den retning kunne en stavefejl — `useRowDraftz` i stedet for `useRowDrafts` — "bevises
   //   fraværende" lige så let som det rigtige navn, og reglen ville være vakuøst grøn.
-  it('dødt værn: hvert forbudt navn er beviseligt fraværende — og prædikatet kan finde det', { timeout: 120000 }, () => {
+  it('dødt værn: hvert forbudt navn er beviseligt fraværende — og prædikatet kan finde det', { timeout: 300000 }, () => {
     const entries = getSourceGraph();
     const problems: string[] = [];
 
@@ -228,7 +236,7 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
   // Scan-rødder: en regels scope-præfiks skal svare til en mappe, der faktisk findes. Et forældet
   // præfiks er død konfiguration, som stille udvider grænsen igen, hvis en fil med samme sti
   // nogensinde opstår — og som samtidig skjuler, at en mappeflytning har indsnævret et scope.
-  it('dødt værn: hver scan-rod svarer til en levende mappe i grafen', { timeout: 120000 }, () => {
+  it('dødt værn: hver scan-rod svarer til en levende mappe i grafen', { timeout: 300000 }, () => {
     const entries = getSourceGraph();
     const stale: string[] = [];
 

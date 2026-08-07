@@ -219,11 +219,20 @@ nytilføjet rækkes indhold. Listen er samtidig fuldstændighedstjekket, så en 
 tilføjes uden enten at blive koblet på eller eksplicit erklæret som ikke-sagsdata. Arkitekturen er beskrevet i
 `docs/architecture/input-architecture.md` §2.11 og kontraktligt fastlagt i `src/contracts/app-settings.md`.
 
-Senest opdateret: 7. august 2026. De rettede fund er automatiseret verificeret. Visuel browserverifikation
-af BF-003, BF-004, BF-008 og BF-014 udestår, fordi ingen styrbar browser var registreret. Samme forbehold
-gælder BF-020, BF-021, BF-022 og BF-026: mekanismerne er dækket af tests (blink-klassen sættes på det rigtige
-element, togglen står på den rigtige fane, bindestregen er væk), men selve det visuelle indtryk —
-blinkets farve og rytme på de forskellige felttyper — er ikke set i en browser.
+Senest opdateret: 7. august 2026. De rettede fund er automatiseret verificeret.
+
+**Blinkmarkeringen er nu set i en browser.** Forbeholdet om BF-020/BF-021 er indfriet: `e2e/field-attention-blink.spec.ts`
+kører markeringen i Chromium gennem projektets Playwright-opsætning og måler den BEREGNEDE baggrund over tid —
+altså det, der faktisk males, ikke den erklærede regel. Målingen bekræfter fejlrød (`#ef4444`, 20 % blanding),
+en puls der når sin top og er nede igen, og samme adfærd på begge flader: MUI-formularfeltet på Stamdata og
+grid-cellen i Årslønstabellen. Under `prefers-reduced-motion: reduce` bliver markeringen et roligt statisk felt —
+den forsvinder ikke, så brugeren stadig kan se hvilket felt der peges på. Testene er mutationsprøvet i tre trin:
+fjernes `!important` (MUI's baggrundsregler vinder da), ændres farven, eller fjernes den statiske tone under
+reduceret bevægelse, bliver præcis de relevante cases røde — og kun dem.
+
+Visuel browserverifikation af BF-003, BF-004, BF-008 og BF-014 udestår fortsat. Det samme gælder BF-022 og
+BF-026, hvor mekanismen er dækket af tests (togglen står på den rigtige fane, bindestregen er væk), men det
+visuelle indtryk ikke er efterset.
 
 BF-005's andet symptom (rækken slettes ikke, når alle dens indtastninger fortrydes) er IKKE reproduceret
 selvstændigt. Det blev efterprøvet på tre måder — history-algebraen, en integrationstest med beløbscelle og en
