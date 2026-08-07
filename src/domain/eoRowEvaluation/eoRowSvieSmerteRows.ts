@@ -1,6 +1,7 @@
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish, dateToISO } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
+import { SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS } from '../../schemas/formSchemas';
 import { addMonths } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { presentIssuesForRow, resolveEoRowDisplay } from './eoRowCommon';
@@ -242,7 +243,7 @@ export const buildEoSvieSmerteRows = (
     if (delvisSygemeldingSatsMangler) {
       return 'Fejl (Sats ved delvis sygemelding er ikke valgt)';
     }
-    return delvisSygemeldingSatsValue === 'fuld' ? 'Fuld sats' : 'Halv sats';
+    return SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS.labels[delvisSygemeldingSatsValue];
   })();
 
   const delvisSygemeldingSatsStatus: EoRowStatus =

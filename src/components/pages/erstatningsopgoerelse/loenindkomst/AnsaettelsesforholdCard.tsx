@@ -22,7 +22,8 @@ import { createEoStandardLoenFieldSet } from '../../../../domain/erstatningsopgo
 import FloatingActionButton from '../../../ui/FloatingActionButton';
 import ContentBox from '../../../layout/ContentBox';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
-import { LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
+import { LOENPERIODE_LABELS } from '../../../../schemas/formSchemas';
+import { TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
 import { resolveSatserHeading } from './resolveSatserHeading';
 import {
   resolveAnvendtReguleringsdatoReferenceText,
@@ -502,11 +503,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             location={location('loenperiode')}
             name={`${af.id}:loenperiode`}
             row={true}
-            options={[
-              { value: LOENPERIODE.MAANED, label: 'Måned' },
-              { value: LOENPERIODE.UGE, label: 'Uge' },
-              { value: LOENPERIODE.DAG, label: 'Dato' },
-            ]}
+            options={LOENPERIODE_LABELS.options}
           />
         </Box>
       </Box>

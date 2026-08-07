@@ -5,15 +5,10 @@ import ContentBox from '../../layout/ContentBox';
 import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
 import PercentField from '../../../inputCore/react/fields/PercentField';
 import RadioField from '../../../inputCore/react/fields/RadioField';
-import { LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../types/loen';
+import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import type { Loenperiode, TillaegAngivesSom } from '../../../schemas/formSchemas/enumSchemas';
+import { LOENPERIODE_LABELS } from '../../../schemas/formSchemas';
 import { useAarsloenVm } from './aarsloenContext';
-
-const LOENPERIODE_OPTIONS: readonly { value: Loenperiode; label: string }[] = [
-  { value: LOENPERIODE.MAANED, label: 'Måned' },
-  { value: LOENPERIODE.UGE, label: 'Uge' },
-  { value: LOENPERIODE.DAG, label: 'Dato' },
-];
 
 /**
  * Satser: lønperiode, tillægsform og de fem procentsatser.
@@ -37,7 +32,7 @@ const AarsloenSatserSection = React.memo(() => {
             location={locations.loenperiode}
             name="loenperiode"
             row
-            options={LOENPERIODE_OPTIONS}
+            options={LOENPERIODE_LABELS.options}
           />
         </Box>
       </Box>

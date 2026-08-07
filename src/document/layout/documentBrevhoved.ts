@@ -47,3 +47,26 @@ export type DocumentBrevhovedType = (typeof DOCUMENT_BREVHOVED_TYPES)[number];
 
 /** Brevhoved-flag pr. dokument-type. Struktur-uafhængig af AppSettings. */
 export type DocumentBrevhovedFlags = Readonly<Record<DocumentBrevhovedType, boolean>>;
+
+/**
+ * Brugervendte navne på de brevhoved-bærende dokumenttyper.
+ *
+ * Etiketterne hører her, hos den kanoniske nøgleliste, og ikke på indstillingssiden: nøglerne
+ * ejes allerede af dokument-laget (`DOCUMENT_BREVHOVED_TYPES`), og de samme navne bruges af
+ * generatorernes titler. Stod etiketterne kun i UI-laget, kunne siden kalde et dokument noget
+ * andet, end dokumentet kalder sig selv, uden at nogen kontrol kunne se det.
+ *
+ * `Record` over den exhaustive type: en ny brevhoved-type bliver en compile-fejl her frem for
+ * en checkboks uden etiket.
+ */
+export const DOCUMENT_BREVHOVED_LABELS: Readonly<Record<DocumentBrevhovedType, string>> = {
+  erstatningsopgoerelse: 'Erstatningsopgørelse',
+  shDage: 'SH-dage',
+  renteberegning: 'Renteberegning',
+  regulering: 'Regulering',
+  varigeMen: 'Varige mén',
+  satser: 'Satser',
+  aarsloensberegning: 'Årslønsberegning',
+  erhvervsevnetab: 'Erhvervsevnetab',
+  forsoergertab: 'Forsørgertab',
+};

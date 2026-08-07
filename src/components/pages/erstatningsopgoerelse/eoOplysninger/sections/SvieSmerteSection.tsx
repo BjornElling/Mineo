@@ -25,6 +25,7 @@ import {
   PERIODE_INFO_TOOLTIP,
   DELVIS_SYGEMELDING_SATS_INFO_TOOLTIP,
 } from '../eoOplysningerConstants';
+import { SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS } from '../../../../../schemas/formSchemas';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
 // route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
@@ -105,10 +106,7 @@ export default function SvieSmerteSection() {
                       location={{ locationId: 'erstatningsopgoerelse.svieSmerteDelvisSygemeldingSats', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                       name="svieSmerteDelvisSygemeldingSats"
                       row={true}
-                      options={[
-                        { value: 'fuld', label: 'Fuld sats' },
-                        { value: 'halv', label: 'Halv sats' },
-                      ]}
+                      options={SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS.options}
                     />
                   </Box>
                 </Box>

@@ -47,6 +47,11 @@ export {
   type EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
 } from './formSchemas/enumSchemas';
 
+export {
+  LOENPERIODE_LABELS,
+  SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS,
+} from './formSchemas/enumLabels';
+
 export { stamdataSchema, type StamdataValues } from './formSchemas/sections/stamdataSchemas';
 export { satserSchema, type SatserValues } from './formSchemas/sections/satserSchemas';
 export {

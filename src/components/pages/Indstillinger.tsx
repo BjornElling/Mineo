@@ -16,37 +16,38 @@ import {
   APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS,
   APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
   APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS,
-  type AppSettingsDocumentDownloadFormatOption,
   type AppSettingsAfsluttesMedOption,
   type AppSettingsLoenIndtastesSomOption,
   type AppSettingsLoenPaaHelligdageOption,
   type AppSettingsSvieSmerteDelvisSygemeldingSatsOption,
   type BrevhovedIndstillinger,
 } from '../../settings/appSettingsSchema';
-import { DOCUMENT_DOWNLOAD_FORMAT_OPTIONS, isDocumentDownloadFormat } from '../../document/documentFormat';
+import { DOCUMENT_DOWNLOAD_FORMAT_OPTIONS, getDocumentFormatLabel, isDocumentDownloadFormat } from '../../document/documentFormat';
+import { DOCUMENT_BREVHOVED_LABELS, type DocumentBrevhovedType } from '../../document/layout/documentBrevhoved';
+import {
+  LOENPERIODE_LABELS,
+  SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS,
+} from '../../schemas/formSchemas';
 
 type BrevhovedOption = Readonly<{
   key: keyof BrevhovedIndstillinger;
   label: string;
 }>;
 
-const brevhovedOptionsRow1: readonly BrevhovedOption[] = [
-  { key: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse' },
-  { key: 'erhvervsevnetab', label: 'Erhvervsevnetab' },
-  { key: 'varigeMen', label: 'Varige mén' },
+/**
+ * Kun RÆKKE-OPDELINGEN er sidens egen — hvilke checkbokse der står på hvilken linje er et
+ * layoutvalg her. Etiketterne kommer fra dokument-laget (`DOCUMENT_BREVHOVED_LABELS`), så
+ * siden ikke kan kalde et dokument noget andet, end dokumentet kalder sig selv.
+ */
+const brevhovedKeyRows: readonly (readonly DocumentBrevhovedType[])[] = [
+  ['erstatningsopgoerelse', 'erhvervsevnetab', 'varigeMen'],
+  ['forsoergertab', 'aarsloensberegning', 'renteberegning', 'satser'],
+  ['shDage', 'regulering'],
 ];
 
-const brevhovedOptionsRow2: readonly BrevhovedOption[] = [
-  { key: 'forsoergertab', label: 'Forsørgertab' },
-  { key: 'aarsloensberegning', label: 'Årslønsberegning' },
-  { key: 'renteberegning', label: 'Renteberegning' },
-  { key: 'satser', label: 'Satser' },
-];
-
-const brevhovedOptionsRow3: readonly BrevhovedOption[] = [
-  { key: 'shDage', label: 'SH-dage' },
-  { key: 'regulering', label: 'Regulering' },
-];
+const [brevhovedOptionsRow1, brevhovedOptionsRow2, brevhovedOptionsRow3] = brevhovedKeyRows.map(
+  (keys): readonly BrevhovedOption[] => keys.map((key) => ({ key, label: DOCUMENT_BREVHOVED_LABELS[key] }))
+);
 
 const isLoenPaaHelligdageOption = (value: string): value is AppSettingsLoenPaaHelligdageOption => {
   return (APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS as readonly string[]).includes(value);
@@ -60,16 +61,7 @@ const isLoenIndtastesSomOption = (value: string | undefined): value is AppSettin
   return typeof value === 'string' && (APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS as readonly string[]).includes(value);
 };
 
-const loenIndtastesSomLabels: Readonly<Record<AppSettingsLoenIndtastesSomOption, string>> = {
-  maaned: 'Måned',
-  uge: 'Uge',
-  dag: 'Dato',
-};
-
-const loenIndtastesSomOptions = APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS.map((value) => ({
-  value,
-  label: loenIndtastesSomLabels[value],
-} satisfies { value: AppSettingsLoenIndtastesSomOption; label: string }));
+const loenIndtastesSomOptions = LOENPERIODE_LABELS.options;
 
 const isSvieSmerteDelvisSygemeldingSatsOption = (
   value: string | undefined
@@ -77,17 +69,9 @@ const isSvieSmerteDelvisSygemeldingSatsOption = (
   return typeof value === 'string' && (APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS as readonly string[]).includes(value);
 };
 
-const svieSmerteDelvisSygemeldingSatsOptions = APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS.map((value) => ({
-  value,
-  label: value === 'fuld' ? 'Fuld sats' : 'Halv sats',
-} satisfies { value: AppSettingsSvieSmerteDelvisSygemeldingSatsOption; label: string }));
+const svieSmerteDelvisSygemeldingSatsOptions = SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS.options;
 
 const udloebMaanederOptions = Array.from({ length: 13 }, (_, index) => index);
-
-const documentDownloadFormatLabels: Readonly<Record<AppSettingsDocumentDownloadFormatOption, string>> = {
-  pdf: 'PDF',
-  word: 'Word',
-};
 
 const BrevhovedCheckboxRow = React.memo((props: {
   items: readonly BrevhovedOption[];
@@ -324,7 +308,7 @@ const Indstillinger = React.memo(() => {
             >
               {DOCUMENT_DOWNLOAD_FORMAT_OPTIONS.map((option) => (
                 <MenuItem key={option} value={option}>
-                  {documentDownloadFormatLabels[option]}
+                  {getDocumentFormatLabel(option)}
                 </MenuItem>
               ))}
             </StyledDropdown>
