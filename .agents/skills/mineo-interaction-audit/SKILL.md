@@ -1,6 +1,6 @@
 ---
 name: mineo-interaction-audit
-description: Udfør og genoptag en autonom, vedvarende og systematisk robustheds- og adfærdsaudit af Mineo. Gennemgå hele brugerens interaktion med alle sider, felter, tabeller, valg, overlays, navigationer, undo/redo-, save/load- og dokumentforløb på tværs af understøttede browsere; afprøv happy paths, ugyldige, delvise, ekstreme og grænserelaterede input samt kombinationer og tilstandsskift; find og registrér runtimefejl, datatab, inkonsistent eller kontraktstridig brugeradfærd, mistænkelig parallel logik og uafklaret forventet adfærd uden at rette produktet.
+description: Udfør og genoptag en autonom, vedvarende og systematisk robustheds- og adfærdsaudit af Mineo uden brugerinput mellem arbejdsenheder; fortsæt principielt uden slutpunkt og afslut eller pausér kun efter en entydig brugerbesked om stop eller pause. Gennemgå hele brugerens interaktion med alle sider, felter, tabeller, valg, overlays, navigationer, undo/redo-, save/load- og dokumentforløb på tværs af understøttede browsere; afprøv happy paths, ugyldige, delvise, ekstreme og grænserelaterede input samt kombinationer og tilstandsskift; find og registrér runtimefejl, datatab, inkonsistent eller kontraktstridig brugeradfærd, mistænkelig parallel logik og uafklaret forventet adfærd uden at rette produktet.
 ---
 
 # Mineo interaktionsaudit
@@ -32,6 +32,20 @@ Skillen finder og dokumenterer problemer. Den retter ikke produktionskode, tests
 Auditten fortsætter straks efter hvert checkpoint, fund, afsluttet arbejdsenhed og afsluttet auditpass. Stop eller pause kun efter udtrykkelig besked fra brugeren. Når alle aktuelle rækker er dækket, begynd næste auditpass med en ny kildeafstemt matrix, nye kombinationer og gentagelser af tidligere ustabile eller højrisiko-sekvenser.
 
 En endelig auditpass er ikke en garanti om, at alle fremtidige sekvenser er afprøvet. Beskriv altid den resterende modelrisiko, og fortsæt med næste pass, indtil brugeren stopper.
+
+## Ufravigelig autonom fortsættelse
+
+Auditten er en åben, langvarig arbejdsopgave — ikke en enkelt leverance med et selvvalgt slutpunkt. Følg disse regler uden undtagelse:
+
+- Afslut aldrig arbejdet på eget initiativ efter en batch, et checkpoint, en testkørsel, en fundregistrering, en grøn smoke, en afsluttet auditpass, en tom fundbatch, en delvis dækning eller en statusopsummering.
+- En normal turn-grænse, værktøjsgrænse, timeout, browser-/servergenstart, midlertidig fejl eller behov for oprydning er ikke en tilladelse til at stoppe. Bevar checkpointet og fortsæt straks med næste sikre arbejdsenhed gennem den tilgængelige fortsættelsesmekanisme.
+- Send ikke en afsluttende handoff-besked, mens auditten er aktiv. En statusbesked skal være kort, ikke-blokerende og efterfølges af fortsat audit — den må ikke overlade næste skridt til brugeren.
+- Spørg aldrig brugeren, om du skal fortsætte, og vent ikke på bekræftelse af næste scenarie. Vælg næste række i den faste rækkefølge og fortsæt autonomt.
+- En brugerbesked om status, fund eller fremdrift er ikke en stopbesked. Besvar den kort med den aktuelle status og genoptag derefter straks auditten.
+- Kun en entydig, udtrykkelig brugerbesked om at stoppe eller pause auditten må afslutte den vedvarende sløjfe. Formuleringer som `stop audit`, `pause audit`, `afslut audit` eller tilsvarende tæller; almindelig stilhed, turnslut eller manglende nye fund tæller ikke.
+- Når et auditpass opfylder afslutningskriterierne, markér det som afsluttet i statusdokumentet og start næste auditpass i samme arbejdssløjfe. Den samlede auditstatus forbliver `I gang`, indtil brugeren specifikt stopper eller pauser.
+- Luk kun browser- eller serverprocesser som led i at etablere ren tilstand eller skifte batch. Hvis der er mere audit tilbage, genstart dem og fortsæt; afslut ikke kontrolinfrastrukturen som tegn på, at arbejdet er færdigt.
+- Hvis én arbejdsenhed er blokeret, dokumentér blokeringen, vælg næste uafhængige arbejdsenhed og fortsæt. En blokering i én gren må aldrig blive en selvvalgt afslutning af hele auditten.
 
 ## Start eller genoptag
 
