@@ -2,7 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-08
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -180,16 +180,30 @@ Brug denne tabel til at instantiere skabelonen ovenfor med de rigtige filer:
 | `varigemen` | `src/schemas/formSchemas/sections/varigeMenSchemas.ts` | `src/domain/varigemen/varigeMenInitialValues.ts` | `src/components/pages/VarigeMen.tsx` | `src/components/pages/varigemen/` |
 | `stamdata` | `src/schemas/formSchemas/sections/stamdataSchemas.ts` | `src/domain/stamdata/stamdataInitialValues.ts` | `src/components/pages/Stamdata.tsx` | `src/components/pages/stamdata/` |
 | `aarsloen` | `src/schemas/formSchemas/sections/aarsloenSchemas.ts` | `src/domain/aarsloen/aarsloenInitialValues.ts` | `src/components/pages/Aarsloen.tsx` | `src/components/pages/aarsloen/` |
-| `faellesAarsloen` | `src/schemas/formSchemas/sections/faellesAarsloenSchemas.ts` | `src/domain/aslEalAarsloen/faellesAarsloenInitialValues.ts` | `src/components/pages/Erhvervsevnetab.tsx` / `src/components/pages/Forsoergertab.tsx` | respektive page-filer |
+| `faellesAarsloen` | `src/schemas/formSchemas/sections/faellesAarsloenSchemas.ts` | `src/domain/aslEalAarsloen/faellesAarsloenInitialValues.ts` | `src/components/pages/Erhvervsevnetab.tsx` / `src/components/pages/Forsoergertab.tsx` | `src/components/pages/erhvervsevnetab/EetOplysningerTab.tsx`, `src/components/pages/forsoergertab/useForsoergertabViewModel.ts` |
 | `satser` | `src/schemas/formSchemas/sections/satserSchemas.ts` | `src/domain/satser/satserInitialValues.ts` | `src/components/pages/Satser.tsx` | `src/components/pages/satser/` |
 | `renteberegning` | `src/schemas/formSchemas/sections/renteberegningSchemas.ts` | `src/domain/renteberegning/renteberegningInitialValues.ts` | `src/components/pages/Renteberegning.tsx` | `src/components/pages/renteberegning/` |
 
 Feltarbejde på en side sker gennem sidens `useXxxViewModel` og dens sektionskomponenter i undermappen — ikke
-inline i page-filen. `page-component-contract.md` §4.4 ejer den regel.
+inline i page-filen. `page-component-contract.md` §4.4 ejer den regel. Kolonnen «Primær page» navngiver derfor
+sidens indgang, ikke stedet felterne bindes; sidste kolonne er der, arbejdet faktisk foregår.
+
+`faellesAarsloen` er den eneste sektion, der deles af to sider: den bærer den fælles årsløn, som både EET og
+forsørgertab regner på. Et felt dér skal derfor gennemgås for **begge** forbrugere — en ændring, der kun følges
+til ende på den ene side, er den forudsigelige fejl i netop den række.
 
 `minProcesrente` er ikke en `.eo`-sagssektion, medmindre den registreres i `persistenceRegistry`.
 
-Hvis et domæne ikke står i tabellen, må schema-arbejdet ikke fortsætte før kontrakten og registry-mapping er opdateret. `persistenceRegistry.ts` er teknisk autoritet for persisted sektionskeys; denne tabel skal holdes i sync med registry.
+`persistenceRegistry.ts` er teknisk autoritet for persisted sektionskeys, og tabellen ovenfor skal dække præcis
+de samme nøgler. Det er ikke en henstilling: `schemaEvolutionDomainTable.test.ts` parser tabellen og sammenligner
+nøglesættet med `PERSISTED_SECTION_KEYS`, så en ny persisted sektion uden en række — eller en række uden en
+sektion — gør testen rød. Står et domæne ikke i tabellen, må schema-arbejdet ikke fortsætte, før både registry
+og kontrakt er opdateret.
+
+Tabellens **stier** er dækket af `contractReferenceLiveness.test.ts`, der kræver, at hver navngiven fil og mappe
+i en kontrakt findes. Det, ingen af de to værn kan se, er **parringen**: at netop dét schema hører til netop den
+nøgle. Byttes to rækkers celler om, forbliver begge tests grønne. Parringen er derfor stadig et læseansvar, og
+det er grunden til, at kolonnerne skal holdes korte og konkrete frem for at vokse til en beskrivelse.
 
 ### 2.3 EO som referenceimplementation
 

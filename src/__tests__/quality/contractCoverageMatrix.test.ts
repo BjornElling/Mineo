@@ -85,6 +85,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/schema-evolution.md',
     requiredTestPaths: [
+      'src/__tests__/quality/schemaEvolutionDomainTable.test.ts',
       'src/__tests__/config/persistenceVersionDrift.test.ts',
       'src/__tests__/config/persistenceRegistry.test.ts',
       'src/__tests__/utils/persistenceLoadSanitization.test.ts',
@@ -480,7 +481,12 @@ describe('contract linkage matrix', () => {
       // Ankret i begge ender: uden `$` matchede mønsteret også en OMDØBT overskrift
       // (`## 4. Testkobling-omdoebt`), så mutationstesten «fjern afsnittet» overlevede — parseren
       // troede stadig, den så et Testkobling-afsnit.
-      const start = lines.findIndex((line) => /^##\s+\d+\.\s+Testkobling\s*$/i.test(line));
+      //
+      // Nummeret må bære et afsnitsbogstav (`## C2. Testkobling`): en kontrakt, der er delt i
+      // navngivne afsnit, nummererer inden for sit afsnit. Uden det led så parseren ikke
+      // dokument-output-kontraktens afsnit C, og den kontrakts suiter ville tavst holde op med at
+      // blive afstemt mod matrixen.
+      const start = lines.findIndex((line) => /^##\s+[A-Z]?\d+\.\s+Testkobling\s*$/i.test(line));
       if (start < 0) continue;
       contractsWithSection.push(contractPath);
       const rest = lines.slice(start + 1);

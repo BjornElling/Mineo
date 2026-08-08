@@ -1,15 +1,16 @@
 # Parallelt redesign-review — Mineo
 
-> **Status:** Arbejdsdokument for greenfield-designet på `greenfield`-branchen.
-> **Pr. 2026-08-07 er ALLE kandidater lukket.** 17 af 18 er gennemført; #46 er lukket som
-> bevidst ikke gennemført efter brugerbeslutning. Ét UI/UX-spørgsmål afventer stadig brugeren
-> (enhedsvalget på Anciennitetstillæg) og blokerer intet.
+> **Status:** Afsluttet. Historik for greenfield-designet på `greenfield`-branchen.
+> **Pr. 2026-08-07 er ALLE kandidater lukket** — 17 af 18 gennemført, #46 lukket som bevidst ikke
+> gennemført efter brugerbeslutning — og **pr. 2026-08-08 er også efterslæbslisten tømt** (syv
+> poster). Der er intet udestående arbejde i denne plan. Ét UI/UX-spørgsmål afventer stadig
+> brugeren (enhedsvalget på Anciennitetstillæg) og blokerer intet.
 >
 > **⇒ Start med afsnittet [START HER — arbejdsstatus](#start-her--arbejdsstatus-2026-08-07) i
-> bunden af filen.** Det angiver hvad der er gjort, hvad der mangler, i hvilken rækkefølge, og
-> hvilke af planens oprindelige skæringer der er modbevist og IKKE må implementeres som skrevet.
+> bunden af filen.** Det angiver hvad der blev gjort, og hvilke af planens oprindelige skæringer der
+> er modbevist og derfor IKKE må implementeres som skrevet, hvis nogen senere læser en kandidat op igen.
 >
-> **11 af planens påstande er nu modbevist** (tabellen i «Kodeverificeret baseline»). Læs den
+> **12 af planens påstande er modbevist** (tabellen i «Kodeverificeret baseline»). Læs den
 > tabel før enhver kandidat implementeres efter sin oprindelige tekst.
 >
 > Fase-tabellerne og `✅`-markeringerne nedenfor er **historik**: flere af dem beskriver slettede
@@ -1970,8 +1971,9 @@ beskriver flere steder slettede mellemtrin.
 `typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»,
 «Efterslæb lukket 2026-08-07», «Gennemført 2026-08-07 (anden omgang: #50 og #32)»,
 «Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)»,
-«Gennemført 2026-08-07 (fjerde omgang: #52)» og de fem «Efterslæb lukket 2026-08-08»-poster
-er committet.
+«Gennemført 2026-08-07 (fjerde omgang: #52)» og de fem første «Efterslæb lukket 2026-08-08»-poster
+er committet. De to sidste poster (sjette og syvende, ren kontrakt-/dokumentationsoprydning) er
+gennemført 2026-08-08 og afventer commit; de tilføjer én testfil.
 
 **Seneste omgang (2026-08-07, fjerde del)** lukkede **#52** — den sidste kandidat. Også den blev
 omskåret: planens to drift-eksempler var allerede rettet, og dens løsning («flyt fil-/symbolkortene ud
@@ -1997,11 +1999,9 @@ på seks interval-start-resolvere~~
 ~~`defaultDirectoryHandleId`s ~143 linjer~~
 **✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08 (femte post)» nedenfor**.
 
-**Listen over «registreret som ikke gjort» er hermed tømt** for de poster, der hørte til dette spor.
-De to tilbageværende poster er kontrakt-/dokumentationsarbejde, ikke kode:
-`document-output-contract.md` §B11's 26-punkts audit-arbejdsliste med filens to konkurrerende
-afsnitsnummereringer, og `schema-evolution.md`s domænesti-tabel, som filen selv skriver «skal holdes i
-sync med registry».
+**Listen over «registreret som ikke gjort» er hermed tømt.** De to sidste poster var
+kontrakt-/dokumentationsarbejde, ikke kode, og begge er lukket 2026-08-08 — se «Efterslæb lukket
+2026-08-08 (sjette post)» og «(syvende post)» nedenfor.
 
 ### Rækkefølge for det udestående
 
@@ -2346,6 +2346,118 @@ eneste synlige ændring er den, der retter defekten: er registreringen væk, ser
 standarden i stedet for at forklæde sig som et valg. Kontrakten `app-settings.md` bærer nu reglen.
 Fuldt træ grønt: 540 filer / 6992 tests (+11), `typecheck`, `typecheck:test`, `lint`.
 
+### Efterslæb lukket 2026-08-08 (sjette post) — en arbejdsliste der beskrev et løst problem
+
+Sjette post fra listen over «registreret som ikke gjort», og den første af de to rene
+kontraktposter: «`document-output-contract.md` §B11's 26-punkts audit-arbejdsliste og filens to
+konkurrerende afsnitsnummereringer». To adskilte forhold i samme fil.
+
+**Det reelle fund (arbejdslisten).** §B11 bad om at gennemgå 26 navngivne generatorer/sektioner i
+en bestemt rækkefølge for at fjerne «eksisterende utilsigtede forskelle», og §B10 gav de ni punkter,
+hver gennemgang skulle måle. Alle 26 filer findes stadig — listen var ikke død af omdøbning. Den var
+død af, at **problemet den beskrev, ikke længere kan opstå**:
+
+- Seks af de ni B10-punkter er blevet **uudtrykkelige**. `DocumentComposer` har hverken font-,
+  cursor- eller `advanceY`-metode, ingen spacer der tager en højde, og intet writer-/kanalobjekt.
+  `addSectionSpacer()` tager ingen argumenter. Der findes altså ingen syntaks, en generator kan
+  skrive, som overtræder dem.
+- To punkter er **AST-håndhævede** (`document/no-headerless-pseudo-table` samt de tre
+  generatorgrænse-regler), og en scanning af alle 26 filer gav 0 overtrædelser: nul
+  `hasHeaderRow: false` blandt de 18 `addTable`-kaldsteder, nul kanal-/font-/cursor-imports.
+- Ét punkt — flerlinjede højrekolonner — har ingen mekanisme. Også dét er empirisk rent: de eneste to
+  `split('\n')` i generatorlaget deler **brødtekst** i afsnit for at få §B5.2's linjeafstand, begge
+  med en kommentar der siger netop det, og ingen af dem rører en `writeLeftRightText`-værdi.
+
+En arbejdsliste, hvor hvert punkt enten er umuligt at overtræde eller allerede rent, er ikke en plan
+— den er en påstand om, at der er arbejde tilbage, som der ikke er. Værre: den inviterer den næste
+læser til at bruge tid på 26 manuelle gennemgange af noget, compileren og harnesset allerede afgør.
+
+**Gjort:** §B11 er slettet, og §B10 er omskrevet fra en tjekliste til en beskrivelse af *hvad der
+bærer hver regel* — uudtrykkelighed, AST-regel (med regel-id i en tabel), eller læsning. Det efterlader
+netop to ting, der kræver øjne ved et generator-review: `split('\n')`-skelnen mellem brødtekst og
+højrekolonne, og §B4's semantiske valg af teksttype. Skelnen er skrevet ud, fordi den ellers er let at
+læse som samme fejl.
+
+**Rettet undervejs:** to fejl i min egen første udgave af §B10, begge fundet ved at læse værnene frem
+for at gå ud fra deres navne. `document/lifecycle-single-entrypoint` blev beskrevet som «et UI-lag kan
+ikke importere en generator» — det er `document/generator-import-boundary`, der gør; den første
+handler om livscyklus-kernen og fil-I/O. Og en henvisning til «§B4.2» pegede på et afsnit, der ikke
+findes (B4's underoverskriftsregler er punkt 2 i en liste, ikke et nummereret underafsnit).
+
+**Det andet forhold: de to nummereringer.** Filen kørte `## 1. Scope`, derefter A1–A8 og B1–B11,
+og sluttede så med `## 2. Autoritative Kilder`, `## 3. Testkobling`, `## 4. Enforcement`,
+`## 5. Kendte Undtagelser`. To skemaer i samme dokument, hvor tallene 2–5 stod **efter** afsnit B og
+altså ikke var «resten af §1»-serien, men skabelonens. En henvisning som «§3» var dermed tvetydig.
+Løsningen: `1.` fjernet fra Scope-overskriften, og de fire haleafsnit samlet som **Afsnit C**
+(C1–C4), så filen har ét skema — afsnitsbogstav + nummer — og indledningen siger det eksplicit.
+
+**Det afslørede et værn, ingen havde mutationstestet mod netop denne form.**
+`contractCoverageMatrix.test.ts` finder Testkobling-afsnittet med `/^##\s+\d+\.\s+Testkobling$/` —
+strengt talnummereret. Omdøbningen til `## C2. Testkobling` ville have gjort dokument-output-kontrakten
+usynlig for den guard, og dens ti navngivne suiter ville tavst holde op med at blive afstemt mod
+matrixen. Mønsteret accepterer nu et valgfrit afsnitsbogstav. Bekræftet mutationelt: en omdøbt
+overskrift (`## C2. Testkobling-omdoebt`) gør guarden rød med præcis dens egen «sættet af kontrakter
+har ændret sig»-besked, altså ser den stadig denne fil.
+
+Ingen kodeændring, ingen tal berørt. Kontraktstemplet er opdateret i samme ombæring, jf. skabelonens
+krav om verifikation og stempel i samme commit.
+
+### Efterslæb lukket 2026-08-08 (syvende post) — en påstand om synkronisering, uden en mekanisme
+
+Sidste post: «`schema-evolution.md`s domænesti-tabel, som filen selv skriver *skal holdes i sync med
+registry*». Posten var registreret som en tvivl om, hvorvidt tabellen overhovedet burde blive.
+
+**Det reelle fund.** Den nærliggende oprydning — slet tabellen, registret er jo autoriteten — ville
+have fjernet det, der virkede, og efterladt det, der ikke gjorde. Tabellens fire sti-kolonner (34
+stier) er nemlig **allerede håndhævede**: `contractReferenceLiveness.test.ts` læser hver linje i hver
+kontrakt og kræver, at navngivne filer og mapper findes. Alle 34 resolverede. At slette tabellen ville
+altså have fjernet håndhævet information og bevaret den uhåndhævede påstand.
+
+Det uhåndhævede var **sætningen selv**. Intet kontrollerede, at tabellens rækker svarer til
+registrets nøgler — og den farlige retning er den manglende række: får en persisteret sektion et nyt
+felt, mens kontrakten ikke kender sektionen, gennemgås feltet aldrig mod §2.1's tjekliste. Liveness-
+guarden kan per konstruktion ikke se det: den udtrækker referencer som et fladt sæt pr. linje uden
+begreb om rækker eller kolonner, og sektionsnøglerne (`satser`, `varigemen`, …) er rent små bogstaver
+og udelades bevidst af dens symbolmønster. Samme fejlklasse som dæknings-intervallets (tredje post):
+*to steder der skal være enige, uden en mekanisme der holder dem det.*
+
+**En række var faktisk forkert.** `faellesAarsloen`-rækken angav «Typiske tabs/underkomponenter:
+respektive page-filer» og pegede på `Erhvervsevnetab.tsx` / `Forsoergertab.tsx`. Ingen af de to
+page-filer nævner `faellesAarsloen` overhovedet; felterne bindes i
+`erhvervsevnetab/EetOplysningerTab.tsx` og `forsoergertab/useForsoergertabViewModel.ts`. Cellen var
+dansk prosa og derfor usynlig for liveness-guarden — præcis den slags celle, der kan drive uset. Den
+peger nu på de to reelle filer, som dermed også kommer **under** guarden.
+
+**Gjort:**
+
+- Ny test `schemaEvolutionDomainTable.test.ts`: parser §2.2's tabel og sammenligner nøglesættet med
+  `PERSISTED_SECTION_KEYS`. Kontraktens «skal holdes i sync» er nu en håndhævet påstand frem for en
+  henstilling. Anden test afviser to rækker om samme nøgle.
+- Parseren er **scopet til §2.2**, ikke til filen: Del 5 har sin egen tabel, og et fil-scope ville
+  have målt den med. (Samme lektie som tredje posts værn, hvor filen også var den forkerte enhed.)
+- `faellesAarsloen`-rækken rettet, og sektionens særstilling — den eneste, der deles af to sider —
+  skrevet eksplicit, med den fejl den indbyder til: en ændring, der kun følges til ende på den ene side.
+- Kontrakten skriver nu selv, hvad de to værn tilsammen **ikke** dækker: parringen. Byttes to rækkers
+  celler om, forbliver begge tests grønne, fordi parringen ikke kan udledes maskinelt — registret bærer
+  kun schema-*symbolet* via barrel-eksporten, og hverken initial values, page eller undermappe kan
+  afledes af nøglen (`varigemen`→`varigeMenSchemas.ts`, `erstatningsopgoerelse`→
+  `persistedErstatningsopgoerelseSchema`, `faellesAarsloen`→`src/domain/aslEalAarsloen/…` bryder hver
+  sin nærliggende konvention). At skrive et værns loft ned er billigere end at lade den næste læser tro,
+  det dækker mere.
+
+**Mutationsbevist i tre trin:** (1) en slettet tabelrække (`satser`) fældede sammenligningen med
+nøglen navngivet i beskeden; (2) en mutation af den LEVENDE kilde — en ekstra sektion i
+`persistenceRegistry.ts` — fældede den i den modsatte retning, altså netop den farlige; (3) en
+dubleret række fældede *begge* tests, mens en falsk tabelrække lagt i **Del 5** lod begge være grønne,
+hvilket skelner §2.2-scopet fra en fil-bred måling.
+
+**Værnets første udgave havde en fejl, mutationstesten afslørede.** Gulvet mod grøn-af-tomhed var sat
+til antallet af sektioner, så en slettet række ramte *gulvet* først og blev rapporteret som «parseren
+er i stykker» — den forkerte diagnose af den mest sandsynlige fejl. Gulvet måler nu kun, om parseren
+ser en tabel overhovedet, og uenigheden rapporteres af sammenligningen, som kan navngive nøglen.
+
+Ingen kodeændring i produktionen, ingen tal berørt.
+
 ### Brugerens beslutninger 2026-08-06 (bindende for resten af arbejdet)
 
 De fire udestående mandatspørgsmål er forelagt samlet og besvaret. Beslutningerne herunder er
@@ -2399,7 +2511,7 @@ Ingen ændring foretages, før det er besvaret.
 
 ### Arbejdsmåde der viste sig at betale sig
 
-- **Verificér planens påstande mod koden før implementering.** Syv af dem var forkerte eller
+- **Verificér planens påstande mod koden før implementering.** Tolv af dem var forkerte eller
   forældede (se «Påstande der er modbevist»). Fire parallelle Explore-agenter over hver sit
   delsystem var den effektive form.
 - **Mutationstest hvert nyt værn.** To gange fangede det fejl i mit EGET arbejde: en
@@ -2459,6 +2571,19 @@ Ingen ændring foretages, før det er besvaret.
   i sin egen docstring visningens single source of truth og havde nul forbrugere. Netop derfor kunne
   den drive fra den streng, brugeren faktisk så. Et dødt felt er ikke bare unødvendigt — det er et
   sted, hvor to sandheder kan opstå uset. Tjek forbrugerne, før du tror på en docstring.
+- **En arbejdsliste dør ikke af, at dens filer forsvinder — den dør af, at dens problem gør.** §B11's
+  26 filer fandtes alle stadig, så enhver liveness-kontrol ville have sagt god for listen. Den var
+  alligevel værdiløs, fordi seks af dens ni målepunkter var blevet uudtrykkelige på fladen og to var
+  blevet AST-håndhævede. Spørg om en tjekliste: hvad ville en gennemgang finde i dag — og kan det
+  overhovedet skrives?
+- **Slet ikke det håndhævede for at komme af med det uhåndhævede.** Domænesti-tabellens nærliggende
+  oprydning var «slet tabellen, registret er autoriteten». Men tabellens 34 stier var allerede dækket
+  af liveness-guarden, mens det uhåndhævede var den ene *sætning* om synkronisering. Sletningen ville
+  have byttet rundt på præcis de to. Find ud af hvad der allerede er dækket, før du fjerner noget.
+- **Et værn kan fejle med den forkerte diagnose og stadig være rødt.** Første udgave af tabel-værnet
+  satte gulvet mod grøn-af-tomhed til antallet af sektioner, så en slettet række ramte gulvet først og
+  blev meldt som «parseren er i stykker». Rød på den rigtige mutation, forkert om hvorfor — og det er
+  beskeden, den næste læser handler på. Mutationstest ikke kun *at* værnet fejler, men *hvad det siger*.
 - **En sammenlægning af to kopier afslører funktionsforskelle — de skal ikke ensartes undervejs.**
   Anciennitetstillæg-blokken skjulte, at de to overflader afgør satsens enhed forskelligt. Det
   rigtige træk var at bevare begge adfærd bag en slot og forelægge forskellen, ikke at vælge en

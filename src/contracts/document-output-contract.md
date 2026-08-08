@@ -3,9 +3,9 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-08
 
-## 1. Scope
+## Scope
 
 Denne kontrakt fastlægger de tværgående regler for alt dokument-output i Mineo: de genererede tillidskritiske dokumenter, der downloades til brugeren.
 
@@ -20,10 +20,11 @@ Begge kanaler forbruger den samme immutable `DocumentModel` fra
 kanalobjekt. En eksplicit `DocumentGenerationSession` ejer renderingen uden modul-global
 state; formatvalget reguleres af `document-format-contract.md`.
 
-Kontrakten er opdelt i:
+Kontrakten er opdelt i tre afsnit, og henvisninger bruger afsnitsbogstavet: §A2a, §B5.1, §C1.
 
 - **Afsnit A — Data, gate og guards (kanal-neutral):** hvilke data og guards output må bygge på. Gælder fuldt for begge kanaler.
 - **Afsnit B — Komposition og render-target-API:** hvordan generatorer komponerer via `DocumentComposer`, og hvordan den centrale modelrenderer afspiller blokke mod det interne writer-target. Layoutreglerne er dobbeltkanal, fordi både PDF- og Word-targetet opfylder samme interne grænseflade.
+- **Afsnit C — Kilder, testkobling og undtagelser:** hvor sandheden står i koden, hvilke suiter der holder kontrakten, og hvad der bevidst afviger.
 
 Domænespecifikke snapshot-kontrakter må gerne specificere egne projektioner, men de må ikke afvige fra reglerne her.
 
@@ -486,60 +487,55 @@ Hvis en bevidst afvigelse er nødvendig, skal den dokumenteres kort ved callsite
 
 Undtagelser må ikke bruges som stilvalg.
 
-## B10. Audit-regler for eksisterende generatorer
+## B10. Hvordan generatorgrænsen håndhæves
 
-Ved audit af en generator skal mindst følgende kontrolleres:
+Reglerne i afsnit B er ikke en tjekliste, en generator skal gennemgås mod. De er enten
+**uudtrykkelige** på generatorfladen eller **maskinelt håndhævede**. Dette afsnit siger hvilken af
+delene der bærer hver regel, så en fremtidig ændring ikke svækker et værn i den tro, at en manuel
+audit fanger resten.
 
-1. at alle overskrifter bruger kanoniske writer-metoder
-2. at der ikke findes lokal manuel topafstand eller bundafstand omkring `writeBoldSubheader()` eller `writeUnderlinedSubheader()`
-3. at begge underoverskriftstyper følger samme centrale spacing- og sidebrydningsregler
-4. at underoverskrifter uden efterfølgende meningsbærende indhold undertrykkes
-5. at tabeller afsluttes via kanonisk section-end-regel
-6. at headerløse pseudo-tabeller er erstattet med composer-baseret tekstlayout
-7. at eksplicit sektionsafstand bruger `document.addSectionSpacer()`
-8. at multiline højrekolonner håndteres centralt og ikke via lokal `split('\n')`
-9. at generatoren ikke importerer kanal-, tabelrenderer-, font- eller cursorprimitiver
+**Uudtrykkelige — båret af `DocumentComposer`s form.** `DocumentComposer`
+(`src/document/model/documentModel.ts`) eksponerer udelukkende navngivne semantiske blokke. Der findes
+ingen font-, cursor- eller `advanceY`-metode, ingen spacer der tager en højde, og intet
+`DocumentWriter`- eller kanalobjekt. En generator har derfor ingen syntaks for:
 
-## B11. Anbefalet audit-sekvens
+1. en overskrift uden for de kanoniske metoder (§B3),
+2. manuel top-/bundafstand omkring en underoverskrift (§B5.1),
+3. forskellig spacing/sidebrydning for de to underoverskriftstyper — begge afvikles af samme
+   blokintention i modelrendereren (§B4, pkt. 2),
+4. en underoverskrift uden efterfølgende indhold: `writeBoldSubheaderIfContent` tilføjer ingen blok,
+   når `hasContent` er falsk, og modelrendereren udleder gaten igen ved render (§B4, pkt. 2),
+5. lokal kompensation efter en tabel — generatoren modtager ingen cursor (§B5.4),
+6. fri sektionsafstand: `addSectionSpacer()` tager ingen argumenter (§B5.3, §B6).
 
-For at fjerne eksisterende utilsigtede forskelle bør generatorerne gennemgås i denne rækkefølge:
+**Maskinelt håndhævede — båret af AST-regler i `src/__tests__/quality/architecture/`.**
 
-1. `satserDocument.ts`
-2. `renteDocument.ts`
-3. `renteOversigtDocument.ts`
-4. `aarsloenDocument.ts`
-5. `shDageDocument.ts`
-6. `varigeMenDocument.ts`
-7. `krlDocument.ts`
-8. `reguleringDocument.ts`
-9. `loebendeYdelserDocument.ts`
-10. `kapitaliseringDocument.ts`
-11. `eetEfterEalDocument.ts`
-12. `differencekravDocument.ts`
-13. `forsoergertabDocument.ts`
-14. `tafFordeltPaaAarDocument.ts`
-15. `erstatningsopgoerelseDocument.ts`
-16. `opgoerelseSection.ts`
-17. `shDageSection.ts`
-18. `loenindkomstSection.ts`
-19. `offentligeYdelserSection.ts`
-20. `reguleringSection.ts`
-21. `klLoenaftalerDocument.ts`
-22. `tafKravGrafDocument.ts`
-23. `tafOpreguleretPaaAarDocument.ts`
-24. `tafBeregningsgrundlagSection.ts`
-25. `eoBilagSections.ts`
-26. `reguleringNotes.ts`
+| Regel-id | Håndhæver |
+|---|---|
+| `document/generator-writer-import-boundary` | Ingen import af `DocumentWriter`, en kanal (`src/pdf/`, `src/docx/`), `renderDocumentModel` eller sessionsfabrikken fra `src/document/generators/**` (§B8). |
+| `document/generator-cursor-access-boundary` | Ingen medlemsadgang til cursor-/målprimitiver (`getDoc`, `getY`, `setY`, `advanceY`, `ensureSpace`, `getTextWidth`, `getPageWidth` m.fl.) i generatorlaget. |
+| `document/generator-cursor-element-access-boundary` | Samme grænse via bracket-notation, så `writer['getDoc']()` ikke er en sidevej. |
+| `document/no-headerless-pseudo-table` | Ingen `hasHeaderRow: false` i generatorlaget — headerløse opstillinger skal komponeres som tekst (§B7). |
+| `document/lifecycle-single-entrypoint` | Kun kataloget må importere livscyklus-kernen, og kun livscyklussen må importere fil-I/O — så en download ikke kan startes uden om gaten (afsnit B, indledningen). |
+| `document/generator-import-boundary` | Kun en dokumentdefinition må importere en generator; et UI-lag kan ikke nå den uden om definitionens `loadRenderer`. |
 
-Formålet med sekvensen er først at rydde de simple og mellemkomplekse generatorer og derefter de mere domænetunge dokumenter.
+**Den ene regel uden mekanisme.** §B3's krav om, at flerlinjede højrekolonner håndteres centralt og
+ikke ved lokal `split('\n')`, kan ikke udtrykkes som en AST-regel uden også at ramme legitim
+afsnitsopdeling af brødtekst. Den centrale adfærd ligger i `writeLeftRightText` og er dækket af
+`pdfWriter.test.ts`. En generator, der splitter en **højrekolonneværdi** lokalt, er derfor stadig en
+kontraktovertrædelse, der kun fanges ved læsning. Splitter en generator derimod en **brødtekst** i
+afsnit, som hver skrives med `writeWrappedText`, er det kanonisk brug og ikke en afvigelse: det er
+måden at få §B5.2's normale afsnitsafstand. Forskellen er hvilket API værdien lander i, og den bør
+noteres ved callsite — ikke som en §B9-undtagelse, men så den næste læser ikke forveksler de to.
 
-En generator fjernes fra denne liste, når den har bestået fuld audit mod B10, og der findes relevante writer-/generator-tests for dens centrale spacing-, sidebrydnings- eller gate-invariants.
-
-Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filreferencer. Eventuel konsolidering af generator-/sektionsnavne skal ske som del af auditten, så dokumentation, runtime og tests ændres samlet.
+Ved review af en ny eller ændret generator er det derfor kun to ting, der kræver øjne: den nævnte
+`split('\n')`-skelnen, og §B4's semantiske valg af teksttype. Alt øvrigt fejler af sig selv.
 
 ---
 
-## 2. Autoritative Kilder
+# Afsnit C — Kilder, testkobling og undtagelser
+
+## C1. Autoritative kilder
 
 - Kanalneutral blokmodel og generator-API: `src/document/model/documentModel.ts` (`DocumentModel`/`DocumentComposer`).
 - Intern render-target-grænse: `src/document/writer/documentWriter.ts` (`DocumentWriter`).
@@ -555,7 +551,7 @@ Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filrefe
 - Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). Der findes ingen afviklende dokumentservice og ingen `documentService.ts` — navnet står her som fraværsværn. `src/document/service/` rummer alene runtime-fejlporte og ejer ikke afviklingen (§A7.1).
 - Layout-konstanter: `src/document/layout/pdfConfig.ts`.
 
-## 3. Testkobling
+## C2. Testkobling
 
 Kontrakten er koblet i `contractCoverageMatrix.test.ts` til:
 
@@ -572,7 +568,7 @@ Kontrakten er koblet i `contractCoverageMatrix.test.ts` til:
 
 Word-kanalens indholds-paritet pr. generator er desuden dækket af `src/__tests__/docx/generators/*WordContent.test.ts` (én pr. dokument-generator, kørt gennem den rigtige generator via `wordContentHarness.ts`). Disse verificerer, at samme tekst og tal når `.docx`'en som PDF'en, og knyttes formatvalgsmæssigt til `document-format-contract.md`.
 
-### 3.1 Residual visuel verifikation
+### C2.1 Residual visuel verifikation
 
 Automatiske tests ejer indhold, tal, blokrækkefølge, tabelgeometri, spacing- og sidebrydningsinvariants. De må ikke
 erstattes af platformafhængige pixel-goldens: PDF- og Word-rendering afhænger af fontmotor og den konkrete
@@ -585,7 +581,7 @@ Kontrollen omfatter mindst klippet/overlappende tekst, danske tegn, tabelbredder
 sidehoved/-fod og læsbarhed. PDF renderes til sidebilleder før inspektion; Word åbnes i en kompatibel Word-renderer.
 Kravet er residualt og gælder kun ændringer med fysisk layout-risiko.
 
-## 4. Enforcement
+## C3. Enforcement
 
 Denne kontrakt skal understøttes af:
 
@@ -600,7 +596,7 @@ Tekstbaserede quality guards er sekundære sikkerhedsnet. De må ikke erstatte e
 
 Hvis kode og kontrakt divergerer, er det en arkitekturfejl, ikke en stilforskel.
 
-## 5. Kendte Undtagelser
+## C4. Kendte undtagelser
 
 - Word-kanalens layout er en oversættelse af de samme blokintentioner til Words afsnitsmodel
   og navngivne typografier. Word ejer selv sideflow, mens overskrifters `keepNext`, atomiske
