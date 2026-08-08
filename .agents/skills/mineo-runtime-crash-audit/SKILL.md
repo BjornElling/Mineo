@@ -1,95 +1,138 @@
 ---
 name: mineo-runtime-crash-audit
-description: Udfør og genoptag en autonom, systematisk robustheds-audit af Mineo for uventede runtimefejl udløst af brugerinput og brugeradfærd. Brug skillen, når Mineo skal gennemgås felt for felt, afhængighed for afhængighed og regelgren for regelgren med ugyldige, delvise, ekstreme og grænserelaterede værdier samt tilstandsskift; når crash-, console-, promise-, error-boundary- eller fejlrapporthændelser skal reproduceres og registreres; eller når en tidligere audit skal fortsættes fra sit checkpoint. Skillen finder og dokumenterer problemer, men retter dem ikke.
+description: Udfør og genoptag en autonom, vedvarende og systematisk robustheds- og adfærdsaudit af Mineo. Gennemgå hele brugerens interaktion med alle sider, felter, tabeller, valg, overlays, navigationer, undo/redo-, save/load- og dokumentforløb på tværs af understøttede browsere; afprøv happy paths, ugyldige, delvise, ekstreme og grænserelaterede input samt kombinationer og tilstandsskift; find og registrér runtimefejl, datatab, inkonsistent eller kontraktstridig brugeradfærd, mistænkelig parallel logik og uafklaret forventet adfærd uden at rette produktet.
 ---
 
-# Mineo runtime crash-audit
+# Mineo robustheds- og adfærdsaudit
 
-Arbejd autonomt, reproducerbart og i små checkpointede batches. Målet er dækningsbevis for den definerede input- og interaktionsmodel, ikke en ubeviselig garanti om, at ingen fremtidig hændelse kan fejle.
+Arbejd autonomt, reproducerbart og checkpointet. Målet er den bedst mulige systematiske dækning af hele den brugerobserverbare adfærd og dens afhængigheder — ikke en påstand om, at en endelig kørsel kan bevise fravær af enhver fremtidig fejl.
+
+Auditten har tre ligeværdige produkter:
+
+1. **Runtime- og systemfund:** uventede exceptions, promise-fejl, console-signaler, blanke sider, frys, fallback-tilstande eller brudte runtime-invarianter.
+2. **Adfærdsfund:** synlige afvigelser, datatab, inkonsistens, kontraktdrift, parallel eller afvigende logik, mistænkelig beregningsadfærd og manglende eller uforudsigelig feedback.
+3. **Dæknings- og afklaringsspor:** løbende checkpoint for hvad der er gennemgået, hvad der mangler, og konkrete spørgsmål om forventet adfærd, som ikke kan udledes sikkert.
+
+Skillen finder og dokumenterer problemer. Den retter ikke produktionskode, tests, kontrakter, data eller konfiguration.
+
+## Grundprincipper
+
+- Gå ud fra, at også den mest almindelige happy path kan være forkert. Giv den samme systematiske kontrol som fejl- og grænsetilstande.
+- Gennemgå hele Mineo: login, global shell, alle sider, faner, felter, tabeller, valg, overlays, hjælp, indstillinger, fejl- og stoptilstande, save/load, nulstilling, navigation og dokumenthandlinger.
+- Brug kontrakterne som normativt grundlag efter `src/contracts/contract-topology.json`. Brug den direkte kode som implementerings- og adfærdskilde. Når en kontrakt er klar, er en afvigende implementering et fund; kode alene må kun bruges som forventningsgrundlag, når hensigten er entydig.
+- Hvis korrekt adfærd ikke kan udledes af kontrakterne eller koden, skriv et konkret spørgsmål i `QUESTIONS.md`. Gæt aldrig, og lad ikke et uafklaret spørgsmål standse uafhængige arbejdsenheder.
+- Vurder ikke, om juridiske eller beregningstekniske regler er rigtige. Registrér observerbare forskelle, mistanker om fejl og forskellige fremgangsmåder for samme handling som fund, og forelæg dem som bruger-/domæneafklaringer uden selv at afgøre reglen.
+- Søg aktivt efter to forskellige løsninger på samme brugerproblem, især ved parsing, settle, validering, datoer, navigation, undo/redo, persistence og fejlvisning. Afprøv dem mod samme eller tilsvarende brugerhandling og registrér forskelle.
+- Brug kun syntetiske data. Send intet eksternt, og blokér eller registrér ekstern trafik som foreskrevet af projektet.
+- Under selve auditten må kun auditdokumenterne under `docs/testing/runtime-input-audit/` og eventuelle screenshots/traces under `test-results/runtime-input-audit/` ændres.
+- Al rækkefølge og systematik er fastlagt af inventaret og scenariomatricen. Fundets alvor må gerne registreres, men må ikke bruges til at springe lavere alvorlige flader over eller ændre gennemgangens rækkefølge.
 
 ## Vedvarende arbejdssløjfe
 
-- Auditten er en vedvarende opgave. Fortsæt straks efter hvert checkpoint, fund, afsluttet arbejdsenhed og afsluttet auditpass.
-- Stop, pause eller aflever ikke arbejdet af eget initiativ. Det gælder også, når der ikke er kommet nye fund, eller når afslutningskriteriet nedenfor er opfyldt.
-- Når alle aktuelle rækker er dækket, begynd næste auditpass med en ny kildeafstemt scenariomatrix: prioritér resterende modelrisiko, kombinationer og gentagelser af tidligere ustabile eller højrisiko-scenarier.
-- Den eneste normale stopbetingelse er en udtrykkelig besked fra brugeren om at stoppe eller pause. Ved fortsat arbejde skal checkpointet altid skrives, før næste batch begynder.
+Auditten fortsætter straks efter hvert checkpoint, fund, afsluttet arbejdsenhed og afsluttet auditpass. Stop eller pause kun efter udtrykkelig besked fra brugeren. Når alle aktuelle rækker er dækket, begynd næste auditpass med en ny kildeafstemt matrix, nye kombinationer og gentagelser af tidligere ustabile eller højrisiko-sekvenser.
 
-## Ufravigelig afgrænsning
-
-- Find, isolér og registrér. Ret ikke produktionskode, tests, kontrakter, data eller konfiguration.
-- Ændr kun auditdokumenterne under `docs/testing/runtime-input-audit/`. Gem eventuelle screenshots/traces under `test-results/runtime-input-audit/`.
-- Brug kun syntetiske data. Send intet eksternt, og blokér ekstern trafik/service workers som foreskrevet af projektet.
-- Vurdér ikke juridiske eller beregningsmæssige regler. Registrér observerbare inkonsistenser eller kontraktbrud som observationer.
-- Skeln forventet validering (fx rød kant og tooltip uden systemsignal) fra uventet runtimefejl.
-- Spørg ikke brugeren om testvalg, rækkefølge eller klassifikation, når arbejdet kan fortsætte sikkert. Registrér tvivl og fortsæt.
+En endelig auditpass er ikke en garanti om, at alle fremtidige sekvenser er afprøvet. Beskriv altid den resterende modelrisiko, og fortsæt med næste pass, indtil brugeren stopper.
 
 ## Start eller genoptag
 
-1. Fastlæg repo-roden med `git rev-parse --show-toplevel`, og kør resten af arbejdet derfra.
-2. Læs repoets `AGENTS.md`, relevante kontrakter og den komplette projektlokale `playwright-cli`-skill før browserstyring.
-3. Kør `node .agents/skills/mineo-runtime-crash-audit/scripts/init-audit-workspace.mjs .` første gang. Scriptet overskriver aldrig eksisterende auditdokumenter.
-4. Læs altid `STATUS.md` helt. Læs åbne poster i `CRASHES.md` og `OBSERVATIONS.md`; brug `rg` til målrettet opslag i lange filer.
-5. Kontrollér `git status --short`, aktuel commit og buildversion. Behandl eksisterende ændringer som brugerens og rør dem ikke.
-6. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
-7. Markér arbejdsenheden `I gang` og skriv det konkrete næste scenarie, før browserarbejdet begynder.
-
-Læs [references/audit-method.md](references/audit-method.md) helt før første auditkørsel og igen, når inventaret eller en ny afhængighedsklynge planlægges.
+1. Fastlæg repo-roden med `git rev-parse --show-toplevel`, og arbejd derfra.
+2. Læs repoets `AGENTS.md`, hele `src/contracts/contract-topology.json`, alle relevante kontrakter og den komplette projektlokale `playwright-cli`-skill før browserstyring.
+3. Kør `node .agents/skills/mineo-runtime-crash-audit/scripts/init-audit-workspace.mjs .` ved opstart eller genoptagelse. Scriptet overskriver aldrig eksisterende auditdokumenter og opretter manglende `QUESTIONS.md`.
+4. Læs [references/audit-method.md](references/audit-method.md) helt før første auditkørsel og igen, når inventaret eller en ny afhængighedsklynge planlægges.
+5. Læs altid `STATUS.md`, `CRASHES.md`, `OBSERVATIONS.md` og `QUESTIONS.md` helt eller målrettet med `rg`, hvis de er lange. Åbne fund og ubesvarede spørgsmål skal forstås, før nye scenarier vælges.
+6. Kontrollér `git status --short`, aktuel commit og buildversion. Behandl eksisterende ændringer som brugerens og rør dem ikke.
+7. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
+8. Dæk browserne Chrome, Edge og Firefox med minimum 1920×1080. Brug mindst den definerede minimumsviewport og en større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
+9. Markér arbejdsenheden `I gang`, og skriv det konkrete næste scenarie og den nødvendige starttilstand, før browserarbejdet begynder.
 
 ## Arbejdscyklus
 
-### 1. Udled inventaret fra koden
+### 1. Afstem forventet adfærd og inventar
 
-Kortlæg den valgte flade før test: route/fane, alle editorer og handlinger, Zod-schema/feltdefinition, canonical tomværdi, formatdomæne, aktive grænser, afhængige felter, selectors/projektioner, opslag, beregningsgrene, dokumentforbrugere og alle eksplicitte skæringsdatoer/-tal. Registrér hver flade, branch og afhængighedskant som en selvstændig dækningsrække i `STATUS.md`.
+Læs den valgte overflades relevante kontrakter før testen. Kortlæg derefter fra både brugerfladen og koden:
 
-Antag aldrig, at synlige felter er hele fladen. Medtag tabeller, dropdowns, toggles, radioer, overlays, hjælpefelter, tastaturhandlinger, undo/redo, navigation, gem/hent/nulstil og dokumenthandlinger.
+- route, side, fane, dialog, overlay, tabel og global handling;
+- alle editorer, valg, toggles, radioer, links, knapper og tastaturhandlinger;
+- schema-/feltdefinition, canonical tomværdi, formatdomæne og aktive brugergrænser;
+- afhængige felter, selectors/projektioner, opslag, beregnings- og dokumentforbrugere;
+- persistence, nulstilling, genindlæsning og alle eksplicitte skæringsdatoer/-tal;
+- parallelle implementationssteder for samme brugerrettede concern.
 
-### 2. Design en endelig scenariomatrix
+Afstem inventaret begge veje: enhver synlig kontrol skal have et kildegrundlag, og enhver registreret feltdefinition, branch eller handler skal kunne findes i en brugerflade eller registreres som mulig død/afvigende kode.
 
-Brug partitioner og grænseanalyse fra referencen. Test mindst:
+For hver arbejdsenhed skal auditten kunne svare på:
 
-- tom, delvis, forkert format, whitespace/Unicode, paste og ekstreme repræsenterbare værdier;
-- hver grænse ved `-1`, præcis grænse og `+1` i den relevante enhed;
-- hver skæringsdato dagen før, på dagen og dagen efter;
-- typing kontra paste samt settle via blur/Enter, Escape, Delete/Backspace og navigation med åben draft;
-- afhængig først kontra forudsætning først; udfyld → skift overordnet valg → skift tilbage; ryd og genudfyld forudsætningen;
-- parvise kombinationer på tværs af partitioner, 3-vejs kombinationer omkring høj-risiko-hubs og fuld kombination for små, endelige boolean-/mode-sæt;
-- fortsat downstream-brug: validering, opslag, beregning, faneskift, dokumentgate, save/load og re-render, når inputtet indgår dér.
+- Hvad forventes brugeren at se og kunne gøre?
+- Hvilken kontrakt eller entydig kodeadfærd begrunder forventningen?
+- Hvilke handlinger, inputpartitioner, tilstandsskift og downstream-forbrugere skal afprøves?
+- Er forventningen uafklaret? Skriv i så fald `Q-NNN` i `QUESTIONS.md` og markér kun de afhængige rækker som afventende afklaring.
+
+### 2. Byg og gennemfør scenariomatricen
+
+Brug partitioner og grænseanalyse fra [references/audit-method.md](references/audit-method.md). Hver relevant kombination skal afprøves på Chrome, Edge og Firefox ved de definerede viewports. En browser må kun stå som ikke-kørt, hvis den konkret er utilgængelig; det registreres som et dækningshul.
+
+Dæk mindst:
+
+- ren tom sag, gyldig minimumssag, delvis sag og fuld realistisk happy path;
+- tom, kun whitespace, delvist format, forkert format, Unicode, linjeskift, paste og ekstremt lange værdier;
+- `typing` tegn for tegn, hurtig typing, select-all/replace, paste, blur, Enter, Tab/Shift+Tab, klik udenfor, Escape og Delete/Backspace;
+- tal-, beløbs-, procent-, år-, uge- og dato-grænser ved under, præcis og over grænsen;
+- ugyldige kalenderdatoer, skudår, måned-/årsskifte, kronologi i begge retninger og `min > max`;
+- hvert dropdownvalg, toggle- og radioresultat, genvalg, lukning uden valg og hurtigt skift;
+- afhængig først kontra forudsætning først, ændring af styrende valg, rydning, genudfyldning og mode A → B → A;
+- tabeller med tomme, delvise, gyldige, ugyldige, duplikerede og mange rækker samt oprettelse, sletning, promotion og genoprettelse;
+- åbne drafts under re-render, faneskift, navigation, downstream-handling, save/load, nulstilling, F5 og browser tilbage/frem;
+- undo/redo for alle relevante ændringer, herunder ugyldige edits, rydning, valg, tabelrækker, afhængigheder, gentagelser og grænseovergange;
+- dokumentgate, beregningsvisning, opslag, PDF-generering, download, save/load-roundtrip og eksplicitte fejltilstande;
+- hurtige, gentagne, afbrudte og lange realistiske sekvenser, herunder flere skift mellem input, fejl, rettelser, navigation og undo/redo.
+
+Brug fuld kombination for små, endelige valg- og booleansæt. Brug systematisk parvis dækning for almindelige partitioner og 3-vejs dækning ved styrende input → afhængigt input → downstream-forbruger. Gentag og udvid matricen ved enhver parallel adfærd, tidligere fejl, uafklaret kontrakt eller uventet tilstandsændring.
 
 ### 3. Kør med aktive orakler
 
-Følg projektets browserinstruktioner og log ind gennem den synlige formular. Etabler en ren baseline før hver isoleret reproduktion. Overvåg fra før login:
+Følg browserinstruktionerne, og log ind gennem den synlige formular. Etabler en ren baseline før hver isoleret reproduktion. Overvåg fra før login:
 
-- `pageerror`, uncaught exceptions/rejections og `console.error`;
-- browser-/page-crash, fastlåst UI, blank side eller tabt interaktion;
-- ErrorBoundary/fallback og ny central fejl-/fejlrapportmenu;
-- uventet navigation, tabt afsluttet input eller anden brudt runtime-invariant;
-- ekstern netværkstrafik.
+- `pageerror`, uncaught exceptions/rejections og nye `console.error`-/`console.warn`-signaler;
+- browser-/page-crash, blank side, permanent spinner, fastlåst UI eller tabt interaktion;
+- ErrorBoundary/fallback, fejlrapportmenu, tekniske fejlvisninger og eksplicitte systemnotifikationer;
+- uventet navigation, fokus-/scrollhop, tabt afsluttet input, ændrede værdier uden handling og andre brudte runtime-invarianter;
+- relevant ekstern netværkstrafik.
 
-Et af disse signaler er et kandidatfund, også hvis appen tilsyneladende fortsætter. Forventet rød validering alene er ikke et crashfund. Kør både isolerede scenarier fra ren sag og realistiske tilstandssekvenser i samme sag.
+Forventet rød kant, tooltip eller anden dokumenteret valideringsfeedback er bestået adfærd og ikke i sig selv et crashfund. Et systemsignal er stadig et kandidatfund, selv om appen tilsyneladende fortsætter.
 
 ### 4. Isolér og registrér straks
 
-Stop kun den aktuelle matrixgren ved et signal. Bevar resten af køen. Gentag fra ren tilstand mindst to gange, minimer handlingerne og afgør den første handling, der udløser signalet.
+Stop kun den aktuelle matrixgren ved et signal. Gentag fra ren tilstand mindst to gange, minimér handlingerne, og find den første handling der udløser afvigelsen. Kontrollér en nærliggende kontrastværdi eller sekvens, som ikke udløser den, når det kan gøres sikkert.
 
-- Skriv reproducerbare runtimefejl i `CRASHES.md` med næste ledige `CRASH-NNN`.
-- Skriv ikke-crashende afvigelser, inkonsistens, datatabsmistanke, parallel adfærd og tvivlsomme regler i `OBSERVATIONS.md` med `OBS-NNN`.
-- Deduplikér efter fejltype/stacktop og kausal handling. Link relaterede scenarier i stedet for at skjule variationer.
-- Indsæt præcis fejltekst og kort relevant stack; medtag aldrig persondata eller store logs.
-- Registrér også ikke-reproducerbare signaler med status `Ustabil` og den fulde observerede sekvens.
+- Skriv runtime- og systemfejl i `CRASHES.md`.
+- Skriv synlige afvigelser, datatabsmistanke, kontrakt-/kodeafvigelser, parallel logik, mistænkelig beregningsadfærd og andre ikke-crashende fund i `OBSERVATIONS.md`.
+- Skriv kun egentlige beslutningsspørgsmål om korrekt adfærd i `QUESTIONS.md`. Et spørgsmål må ikke bruges til at skjule et allerede observeret fund; link i så fald begge poster.
+- Deduplikér efter fejltype, kausal handling og første afvigelse, men link browser-, flade- og kombinationsvarianter, så rækkevidden bevares.
+- Medtag præcis nødvendig fejltekst, relevante kildehenvisninger og korte artefaktlinks. Medtag aldrig persondata eller store logs.
+- Registrér browserafhængighed, reproduktionsrate og nærliggende ikke-fejlende kontrast. Markér ikke-reproducerbare signaler ærligt som `Ustabil`.
+- Registrér fundets type og alvor som metadata, men ændr ikke auditrækkefølgen på grundlag heraf.
 
-### 5. Checkpoint
+En post skal være så præcis, at en anden kørsel kan finde den igen alene ud fra posten. Lange fortællinger er ikke nødvendige.
 
-Opdatér dokumenterne umiddelbart efter hvert fund og efter hver lille matrixbatch. En batch må højst være én synlig flade eller én tæt afhængighedsklynge. Opdatér:
+### 5. Checkpoint og genoptagelse
 
-- rækkens status og dækkede partitioner/branches;
-- senest afsluttede scenarie og præcist næste scenarie;
-- nye/opdaterede fund-id'er;
-- sessionens commit, dirty-state, browser og tidspunkt.
+Opdatér dokumenterne umiddelbart efter hvert fund og hver lille matrixbatch. En batch må højst være én synlig flade eller én tæt afhængighedsklynge. Opdatér:
 
-Hvis brugeren udtrykkeligt beder om pause eller stop: stop ad hoc-server/browserprocesser, skriv checkpointet først, og rapportér kun antal nye crashfund, observationsfund, afsluttet arbejdsenhed og næste arbejdsenhed. Kør ingen kodekvalitetsgate, fordi skillen ikke ændrer kode. Uden en sådan besked fortsættes arbejdet straks med næste batch.
+- rækkens status og dækkede partitioner, branches, afhængighedsovergange og browsere;
+- senest afsluttede scenarie og præcist næste scenarie med starttilstand;
+- nye eller opdaterede fund-id'er, spørgsmål-id'er og dækningshuller;
+- sessionens commit, build, dirty-state, browser, viewport og tidspunkt.
 
-## Afslutningskriterium
+En række er kun `Dækket`, når den relevante brugeradfærd, kontrakt-/kodeafstemning, branches, afhængighedskanter, downstream-forbrugere og browser-/viewportvariationer er håndteret. En række, der kræver svar på et spørgsmål, står `Afventer afklaring` og tæller ikke som dækket.
 
-Markér først auditten afsluttet, når inventaret er afstemt mod både UI og kildekode, ingen række er `Ikke startet`, `I gang` eller `Blokeret`, alle identificerede branches/skæringer og afhængighedskanter har evidens, alle fejl er reproduceret eller markeret ærligt som ustabile, og den afsluttende fulde navigation-/stateful smoke er kørt uden nye systemfejl. Beskriv resterende testmodelrisiko; skriv aldrig, at fravær af observerede fejl beviser fravær af fejl.
+Bevar beståede forhold kompakt som scenarie-, partitions- og evidensreferencer, så status kan genoptages. Brug detaljeret plads på reproducerbare fund, uafklarede spørgsmål og konkrete dækningshuller — ikke på gentagen historik om hver bestået handling.
 
-At dette kriterium er opfyldt afslutter kun den aktuelle auditpass, ikke arbejdet. Skriv status og fortsæt med næste auditpass efter reglerne for vedvarende arbejdssløjfe, indtil brugeren specifikt stopper eller pauser.
+Når brugeren beder om status, pause eller stop, skal alle åbne `QUESTIONS.md`-poster fremhæves og forelægges. Hvis brugeren senere besvarer et spørgsmål, registrér svaret i posten, opdatér de berørte rækker og genkør de arbejdsenheder, som svaret ændrer.
+
+Ved ukontrolleret afbrydelse er en række `I gang` ikke pålidelig deldækning: genkør hele arbejdsenheden. En uafklaret række må ikke standse uafhængige rækker.
+
+## Afslutningskriterium for en auditpass
+
+Markér først den aktuelle auditpass afsluttet, når inventaret er afstemt mod både brugerflade, kontrakter og kildekode, ingen række står `Ikke startet`, `I gang` eller `Blokeret`, alle identificerede branches, skæringer, afhængighedskanter og browserdækninger har evidens, fund er reproduceret eller markeret som ustabile, og den fulde navigation-/stateful smoke er kørt uden nye systemfejl.
+
+Åbne spørgsmål og resterende modelrisiko skal beskrives. En afsluttet auditpass afslutter kun den aktuelle pass — begynd næste pass efter den vedvarende arbejdssløjfe, indtil brugeren specifikt stopper eller pauser.

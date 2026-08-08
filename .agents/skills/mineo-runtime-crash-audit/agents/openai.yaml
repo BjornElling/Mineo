@@ -1,4 +1,4 @@
 interface:
-  display_name: "Mineo crash-audit"
-  short_description: "Find og registrér uventede runtimefejl"
-  default_prompt: "Brug $mineo-runtime-crash-audit til autonomt at fortsætte Mineos systematiske crash-audit."
+  display_name: "Mineo robustheds-audit"
+  short_description: "Find og dokumentér fejl i brugeradfærd og runtime"
+  default_prompt: "Brug $mineo-runtime-crash-audit til autonomt at fortsætte Mineos systematiske robustheds- og adfærdsaudit."

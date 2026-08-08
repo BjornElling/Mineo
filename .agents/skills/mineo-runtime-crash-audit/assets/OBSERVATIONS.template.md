@@ -1,22 +1,25 @@
-# Mineo runtime-input-audit — øvrige observationer
+# Mineo robustheds- og adfærdsaudit — adfærds- og øvrige fund
 
-Registrér ikke-crashende afvigelser, inkonsistens, datatabsmistanke, kontraktdrift, parallel logik og spørgsmål, som senere skal vurderes af udvikleren eller brugeren.
+Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel eller afvigende logik, mistænkelig beregningsadfærd og manglende eller uforudsigelig feedback. Registrér ikke en klar, forventet valideringsreaktion som fund.
 
 ## Indeks
 
-| ID | Kort titel | Kategori | Flade | Status | Først set |
-|---|---|---|---|---|---|
+| ID | Kort titel | Kategori | Flade | Browser/viewport | Alvor | Status | Først set |
+|---|---|---|---|---|---|---|---|
 
 ## Postskabelon
 
 ### OBS-NNN — Kort, observerbar titel
 
 - Status: Ny / Bekræftet / Ustabil / Dublet / Kræver afklaring
-- Kategori: Inkonsistens / Dataintegritet / Kontraktdrift / Parallel logik / UX / Beregningsobservation / Andet
+- Kategori: Inkonsistens / Dataintegritet / Kontraktdrift / Parallel logik / UX / Beregningsobservation / Browserforskel / Andet
+- Alvor: Blokerende / Høj / Mellem / Lav
 - Først set: YYYY-MM-DD HH:mm Europe/Copenhagen
-- Commit/build og dirty-state: —
+- Commit/build: —
+- Dirty-state: —
+- Browser/viewport: —
 - Flade/scenarie: SURF-/EDGE-/CUT-id
-- Relaterede fund: —
+- Relaterede fund/spørgsmål: —
 
 **Starttilstand og reproduktion**
 
@@ -24,17 +27,22 @@ Registrér ikke-crashende afvigelser, inkonsistens, datatabsmistanke, kontraktdr
 
 **Observeret adfærd**
 
-Beskriv kun det konkrete, observerbare resultat.
+Beskriv kun det konkrete, observerbare resultat og eventuelle usynlige, men registrerede systemssignaler.
 
 **Sammenligningsgrundlag**
 
-Angiv den anden flade, kontrakt, schema-branch eller nærliggende værdi, der opfører sig anderledes.
+Angiv den anden flade, kontrakt, schema-/kodegren, implementationssted, browser eller nærliggende værdi, der opfører sig anderledes.
+
+**Forventningsgrundlag**
+
+Angiv den kontrakt eller entydige kodeadfærd, som scenariet sammenholdes med. Hvis korrekt adfærd ikke kan udledes, link et `Q-NNN` i `QUESTIONS.md`.
 
 **Hvorfor det bør undersøges**
 
-Beskriv risikoen eller det nødvendige bruger-/udviklervalg uden at foreslå en kodeændring.
+Beskriv risikoen eller det nødvendige bruger-/udviklervalg uden at foreslå en kodeændring eller afgøre en juridisk/beregningsteknisk regel.
 
 **Evidens**
 
 - Screenshot/trace/kildereference: —
 - Reproducerbarhed: —
+- Andre browsere/viewports: —

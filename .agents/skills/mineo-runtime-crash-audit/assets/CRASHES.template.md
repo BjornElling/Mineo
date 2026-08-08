@@ -1,11 +1,11 @@
-# Mineo runtime-input-audit — crashfund
+# Mineo robustheds- og adfærdsaudit — runtime- og systemfund
 
-Kun uventede systemsignaler registreres her. Forventet feltvalidering uden systemsignal hører ikke til.
+Kun uventede systemsignaler registreres her. Forventet feltvalidering uden systemsignal hører ikke til. Usynlige systemsignaler registreres også, selv om appen tilsyneladende fortsætter.
 
 ## Indeks
 
-| ID | Kort titel | Flade | Signal | Reproduktion | Status | Først set |
-|---|---|---|---|---|---|---|
+| ID | Kort titel | Flade | Browser/viewport | Signal | Reproduktion | Alvor | Status | Først set |
+|---|---|---|---|---|---|---|---|---|
 
 ## Postskabelon
 
@@ -16,13 +16,13 @@ Kun uventede systemsignaler registreres her. Forventet feltvalidering uden syste
 - Først set: YYYY-MM-DD HH:mm Europe/Copenhagen
 - Commit/build: —
 - Dirty-state: —
-- Browser: —
+- Browser/viewport: —
 - Flade/scenarie: SURF-/EDGE-/CUT-id
-- Relaterede fund: —
+- Relaterede fund/spørgsmål: —
 
 **Starttilstand**
 
-Beskriv ren sag eller alle nødvendige forudgående syntetiske værdier.
+Beskriv ren sag eller alle nødvendige syntetiske værdier.
 
 **Minimal reproduktion**
 
@@ -33,7 +33,7 @@ Beskriv ren sag eller alle nødvendige forudgående syntetiske værdier.
 
 - Felt/handling: —
 - Præcis værdi: —
-- Metode: typing / paste / dropdown / toggle / tastatur
+- Metode: typing / paste / dropdown / toggle / tastatur / navigation
 - Settle: blur / Enter / Tab / navigation / straks
 
 **Observeret systemsignal**
@@ -49,6 +49,7 @@ Beskriv ren sag eller alle nødvendige forudgående syntetiske værdier.
 - Rate: 0/0
 - Gentaget fra ren tilstand: —
 - Nærmeste ikke-fejlende kontrast: —
+- Andre browsere/viewports: —
 
 **Påvirkning og rækkevidde**
 
