@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import { Box, MenuItem, Typography } from '@mui/material';
 import StyledCheckbox from '../inputs/StyledCheckbox';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StyledDropdown from '../inputs/StyledDropdown';
@@ -9,8 +8,7 @@ import type { CommitEvent } from '../../types/fieldEvents';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBox from '../layout/ContentBox';
 import { getAlleLoenmodtagerOrg, getAlleArbejdsgiverOrg } from '../../data/overenskomstRates';
-import { saveDefaultDirectoryHandle, deleteDefaultDirectoryHandle, getDirectoryDisplayInfo } from '../../utils/fileHandleStorage';
-import { logWarning } from '../../utils/logger';
+import DefaultDirectoryRow from './indstillinger/DefaultDirectoryRow';
 import {
   APP_SETTINGS_AFSLUTTES_MED_OPTIONS,
   APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
@@ -87,9 +85,6 @@ BrevhovedCheckboxRow.displayName = 'BrevhovedCheckboxRow';
 const Indstillinger = React.memo(() => {
   const { settings, updateSettings } = useAppSettings();
 
-  // State for visningsnavn for standardplacering
-  const [directoryDisplayName, setDirectoryDisplayName] = React.useState<string>('Skrivebord (standard)');
-  const [isLoadingDirectory, setIsLoadingDirectory] = React.useState(() => Boolean(settings.defaultDirectoryHandleId));
   const handleBrevhovedToggle = React.useCallback((key: keyof BrevhovedIndstillinger, checked: boolean) => {
     const newBrevhovedIndstillinger: BrevhovedIndstillinger = {
       ...settings.brevhovedIndstillinger,
@@ -97,96 +92,6 @@ const Indstillinger = React.memo(() => {
     };
     return updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
   }, [settings.brevhovedIndstillinger, updateSettings]);
-
-  // Hent og vis nuværende standardplacering ved mount og når settings ændres
-  // VIGTIGT: Bruger getDirectoryDisplayInfo (non-invasive) - IKKE resolveDefaultDirectoryHandle
-  // da sidstnævnte kan trigge permission-requests
-  React.useEffect(() => {
-    const loadDirectoryInfo = async () => {
-      setIsLoadingDirectory(true);
-      try {
-        // Hvis ingen brugervalgt placering, vis standard
-        if (!settings.defaultDirectoryHandleId) {
-          setDirectoryDisplayName('Skrivebord (standard)');
-          return;
-        }
-
-        // Hent cached display-info UDEN permission-request
-        const meta = await getDirectoryDisplayInfo();
-        if (meta) {
-          setDirectoryDisplayName(meta.displayName);
-        } else {
-          // Metadata ikke fundet - vis blot standard (ingen recovery, ingen warning)
-          // UI er passiv observatør, ikke reparatør
-          setDirectoryDisplayName('Skrivebord (standard)');
-        }
-      } catch {
-        // Vis blot standard ved fejl - ingen logging, ingen recovery
-        setDirectoryDisplayName('Skrivebord (standard)');
-      } finally {
-        setIsLoadingDirectory(false);
-      }
-    };
-    loadDirectoryInfo();
-  }, [settings.defaultDirectoryHandleId]);
-
-  // Handler for at vælge ny standardplacering
-  const handleChooseDirectory = React.useCallback(async () => {
-    try {
-      const showDirectoryPicker = window.showDirectoryPicker;
-      if (!showDirectoryPicker) {
-        logWarning('showDirectoryPicker ikke tilgængelig i denne browser');
-        return;
-      }
-
-      // VIGTIGT: Fjernet mode: 'readwrite' for at undgå at browseren blokerer
-      // special-mapper (Downloads, Desktop, OneDrive).
-      // Write-permission requesteres først når filen faktisk gemmes.
-      const directoryHandle = await showDirectoryPicker({
-        startIn: 'desktop',
-      });
-
-      // Gem handle til IndexedDB - returnerer et unikt ID
-      // VIGTIGT: ID'et kommer fra storage-laget, IKKE UI-laget
-      const handleId = await saveDefaultDirectoryHandle(directoryHandle);
-
-      // Opdater settings med det returnerede ID
-      updateSettings({ defaultDirectoryHandleId: handleId ?? undefined });
-
-      // Opdater display name
-      setDirectoryDisplayName(directoryHandle.name);
-
-    } catch (error: unknown) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        // Bruger annullerede - ingen handling
-        return;
-      }
-      logWarning('Fejl ved valg af standardplacering', {
-        context: 'Indstillinger.handleChooseDirectory',
-        data: { error: error instanceof Error ? error.message : String(error) },
-      });
-    }
-  }, [updateSettings]);
-
-  // Handler for at nulstille til standard (skrivebord)
-  const handleResetDirectory = React.useCallback(async () => {
-    try {
-      // Slet handle fra IndexedDB
-      await deleteDefaultDirectoryHandle();
-
-      // Fjern ID fra settings
-      updateSettings({ defaultDirectoryHandleId: undefined });
-
-      // Opdater display
-      setDirectoryDisplayName('Skrivebord (standard)');
-
-    } catch (error) {
-      logWarning('Fejl ved nulstilling af standardplacering', {
-        context: 'Indstillinger.handleResetDirectory',
-        data: { error: error instanceof Error ? error.message : String(error) },
-      });
-    }
-  }, [updateSettings]);
 
   // Hent alle organisationer til overenskomst-dropdowns
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
@@ -221,53 +126,7 @@ const Indstillinger = React.memo(() => {
           </Box>
         </Box>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Placering til gemte filer</Typography>
-          <Box className="row--label-right-hover__content">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography
-                className="row--text"
-                sx={{
-                  fontStyle: settings.defaultDirectoryHandleId ? 'normal' : 'italic',
-                  color: settings.defaultDirectoryHandleId ? 'text.primary' : 'text.secondary',
-                  minWidth: 120,
-                  textAlign: 'right',
-                }}
-              >
-                {isLoadingDirectory ? 'Indlæser...' : directoryDisplayName}
-              </Typography>
-              <Tooltip title="Vælg mappe">
-                <IconButton
-                  onClick={handleChooseDirectory}
-                  size="small"
-                  sx={{
-                    padding: 0.5,
-                    '&:hover': { backgroundColor: 'var(--color-hover)' },
-                  }}
-                >
-                  <FolderOpenIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              {settings.defaultDirectoryHandleId && (
-                <Tooltip title="Nulstil til skrivebord">
-                  <Typography
-                    component="span"
-                    onClick={handleResetDirectory}
-                    sx={{
-                      fontSize: '0.75rem',
-                      color: 'text.secondary',
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      '&:hover': { color: 'primary.main' },
-                    }}
-                  >
-                    Nulstil
-                  </Typography>
-                </Tooltip>
-              )}
-            </Box>
-          </Box>
-        </Box>
+        <DefaultDirectoryRow />
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Download-format for dokumenter</Typography>

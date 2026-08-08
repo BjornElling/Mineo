@@ -8,9 +8,10 @@
  * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
+import ts from 'typescript';
 import { isValidStorageKey } from '../../../../config/storageManifest';
 import { collectCalls, collectImports, hasIdentifier } from '../astQueries';
-import { forbidCalls, forbidImports, forbidMemberAccess } from '../ruleKit';
+import { defineRule, forbidCalls, forbidImports, forbidMemberAccess, type Finding } from '../ruleKit';
 
 // --- Storage-globaler: al adgang skal gå gennem de kanoniske wrappere ---------
 
@@ -217,6 +218,80 @@ export const noFullPageReloadInShell = forbidMemberAccess({
     { relativePath: 'src/hooks/x.ts', code: 'const path = location.pathname;' },
     // Uden for scopet: auth-gaten SKAL kunne forlade appen helt.
     { relativePath: 'src/utils/authGate.ts', code: 'window.location.href = "/";' },
+  ],
+});
+
+// --- Standardplaceringens navn: ét sted ---------------------------------------
+
+const DEFAULT_DIRECTORY_LOCATION_MODULE = 'src/utils/file/defaultDirectoryLocation.ts';
+
+/**
+ * Navnet på standardplaceringen må kun staves i sit kanoniske modul.
+ *
+ * Fundet var netop, at det stod to steder i to filer med to FORSKELLIGE strenge: `'Skrivebord'` i
+ * `fileHelpers.ts` (fil-lagets `ResolvedDirectory.displayName`, som ingen læste) og
+ * `'Skrivebord (standard)'` fire steder i `Indstillinger.tsx`. Samme brugersynlige begreb, to
+ * sandheder — og fordi den ene ikke havde nogen forbruger, kunne de drive fra hinanden uden at
+ * noget nogensinde ville vise forskellen.
+ *
+ * Reglen ser på STRING-LITERALER i AST'en, ikke på filteksten. Repoet har en kendt fejlklasse, hvor
+ * dansk prosa i en kommentar udløser et tekstværn; her ville hver eneste kommentar, der forklarer
+ * hvorfor navnet er kanonisk (inklusive denne kontrakts egne), have været en overtrædelse.
+ */
+const DESKTOP_NAME_LITERAL = /^Skrivebord\b/;
+
+export const defaultDirectoryNameSingleSource = defineRule({
+  id: 'storage/default-directory-name-single-source',
+  description:
+    'Standardplaceringens visningsnavn må kun staves i defaultDirectoryLocation.ts; andre flader importerer DEFAULT_DIRECTORY_FALLBACK_NAME/-DISPLAY_NAME.',
+  liveTarget: {
+    kind: 'precondition',
+    // Proben rammer BÅDE det kanoniske modul og dets forbrugere. Uden forbrugerne ville reglen være
+    // opfyldt af modulet alene og dermed grøn af tomhed, præcis som `requiredPaths` er der for at
+    // forhindre. Og proben må ikke pinnes til den form, migreringen fjernede — den ville gå inert i
+    // samme øjeblik, den havde virket.
+    probe: (entry) => entry.relativePath === DEFAULT_DIRECTORY_LOCATION_MODULE
+      || hasIdentifier(entry, 'DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME')
+      || hasIdentifier(entry, 'resolveDefaultDirectoryLocation'),
+    rationale:
+      'det kanoniske navnemodul findes, og fladens hook resolverer placeringen gennem det',
+    // Reglens mål er PARRET modul + forbruger. Uden forbrugeren ville modulet alene opfylde proben,
+    // og reglen ville bevogte en konstant, ingen længere bruger.
+    minimumMatches: 2,
+    requiredPaths: [
+      DEFAULT_DIRECTORY_LOCATION_MODULE,
+      'src/components/pages/indstillinger/useDefaultDirectorySetting.ts',
+    ],
+  },
+  allow: [DEFAULT_DIRECTORY_LOCATION_MODULE],
+  find: (entry) => {
+    const findings: Finding[] = [];
+    const visit = (node: ts.Node): void => {
+      if (ts.isStringLiteral(node) && DESKTOP_NAME_LITERAL.test(node.text)) {
+        const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+        findings.push({
+          position: { line: line + 1, column: character + 1 },
+          message:
+            `Standardplaceringens navn staves i hånden ("${node.text}") — importér `
+            + 'DEFAULT_DIRECTORY_FALLBACK_NAME/DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME fra defaultDirectoryLocation.ts.',
+        });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(entry.ast);
+    return findings;
+  },
+  violatingFixtures: [
+    { relativePath: 'src/x.ts', code: 'const navn = "Skrivebord";' },
+    { relativePath: 'src/components/pages/x.tsx', code: 'setName("Skrivebord (standard)");' },
+  ],
+  cleanFixtures: [
+    { relativePath: 'src/x.ts', code: 'const navn = DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME;' },
+    // Kommentarer og prosa er IKKE en overtrædelse: reglen ser string-literaler i AST'en, ikke
+    // filtekst. Uden den grænse ville hver forklaring af hvorfor navnet er kanonisk flage sig selv.
+    { relativePath: 'src/x.ts', code: '// falder tilbage til Skrivebord (standard)' },
+    // Andre begreber der blot indeholder ordet, er ikke standardplaceringens navn.
+    { relativePath: 'src/x.ts', code: 'const label = "Skrivebordet er ryddet";' },
   ],
 });
 

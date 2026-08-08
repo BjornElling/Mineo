@@ -69,7 +69,6 @@ describe('resolveDefaultDirectoryHandle', () => {
     expect(result).toEqual({
       handle: directoryHandle,
       wellKnown: 'desktop',
-      displayName: 'Sager',
       isFallback: false,
     });
   });
@@ -88,7 +87,6 @@ describe('resolveDefaultDirectoryHandle', () => {
     expect(result).toEqual({
       handle: null,
       wellKnown: 'desktop',
-      displayName: 'Skrivebord',
       isFallback: true,
     });
   });
@@ -110,6 +108,7 @@ describe('resolveDefaultDirectoryHandle', () => {
       allowRequestPermission: true,
     });
     expect(result.isFallback).toBe(false);
-    expect(result.displayName).toBe('Arkiv');
+    // Målet er, at det VERIFICEREDE handle bæres igennem — ikke blot at et fallback undgås.
+    expect(result.handle).toBe(directoryHandle);
   });
 });

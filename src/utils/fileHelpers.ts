@@ -222,19 +222,25 @@ export interface ResolvedDirectory {
   handle: FileSystemDirectoryHandle | null;
   /** Well-known directory identifier (bruges som fallback) */
   wellKnown: 'desktop';
-  /** Visningsnavn til UI */
-  displayName: string;
   /** Om dette er fallback til desktop */
   isFallback: boolean;
 }
 
 /**
- * Resolver den autoritative standard-placering for gem/hent operationer.
+ * Resolver den autoritative standard-placering for GEM/HENT-operationer.
  *
  * VIGTIGT: Denne funktion er single source of truth for:
  * - Gem-operationer (fileSave.ts)
  * - Hent-operationer (fileLoad.ts)
- * - UI-visning (Indstillinger.tsx)
+ *
+ * Den er derimod IKKE visningens kilde. Fladen bruger
+ * `resolveDefaultDirectoryLocation` (`utils/file/defaultDirectoryLocation.ts`), fordi de to
+ * svarer på hvert sit spørgsmål: denne må requestere permissions og skal derfor kun kaldes fra
+ * en brugerhandling, mens visningen kaldes ved mount og re-render og skal være passiv.
+ *
+ * Typen bar tidligere også et `displayName` — «til UI» ifølge sin egen kommentar, men uden en
+ * eneste læser i produktionskoden. Det gjorde fil-laget til en anden, tavs mening om et
+ * brugersynligt navn, som fladen samtidig stavede anderledes. Navnet bor nu ét sted.
  *
  * Logik (rækkefølgen er afgørende):
  * 1. Hvis settings.defaultDirectoryHandleId findes:
@@ -257,7 +263,6 @@ export const resolveDefaultDirectoryHandle = async (
   const desktopFallback: ResolvedDirectory = {
     handle: null,
     wellKnown: 'desktop',
-    displayName: 'Skrivebord',
     isFallback: true,
   };
 
@@ -294,7 +299,6 @@ export const resolveDefaultDirectoryHandle = async (
     return {
       handle,
       wellKnown: 'desktop', // Fallback identifier hvis handle fejler ved brug
-      displayName: handle.name,
       isFallback: false,
     };
 

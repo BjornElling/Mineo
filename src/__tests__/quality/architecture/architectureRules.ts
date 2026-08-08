@@ -1,6 +1,7 @@
 import type { ArchitectureRule } from './ruleKit';
 import {
   caseResetPolicyOwnership,
+  defaultDirectoryNameSingleSource,
   deletedLegacyInputArchitectureImport,
   localStorageBoundary,
   noFullPageReloadInShell,
@@ -102,6 +103,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   sessionStorageManifestKey,
   caseResetPolicyOwnership,
   noFullPageReloadInShell,
+  defaultDirectoryNameSingleSource,
   deletedLegacyInputArchitectureImport,
   // Domæne- og laggrænser
   failOpenDisplayLookupImport,

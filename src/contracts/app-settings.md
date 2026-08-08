@@ -86,3 +86,12 @@ Konsekvens:
 - **Versionering af localStorage-nøgle**: breaking settings-schema kræver ny nøgle (`_v2` osv.) eller eksplicit one-way migration. Non-breaking tilføjelser håndteres via merge-logikken uden nøgleskift.
 - `defaultDirectoryHandleId` er device-lokal og ikke portabel; den må aldrig betragtes som sagsdata eller sendes med `.eo`.
 - `documentDownloadFormat` er device-lokal og ikke portabel; den må aldrig betragtes som sagsdata eller sendes med `.eo`.
+- **Standardplaceringen har ét navn og én tilstand.** `defaultDirectoryHandleId` (localStorage) og mappens registrering
+  (IndexedDB, `default_directory_meta`) ligger i hvert sit lager og kan ryddes uafhængigt af hinanden. En flade må derfor
+  ikke udlede *navnet* af det ene og *«er der valgt en mappe»* af det andet: overlever id'et sin registrering, ville den
+  vise standardens navn stylet som et intakt brugervalg, mens gem-vejen tavst falder tilbage til skrivebordet. Begge dele
+  udledes af `resolveDefaultDirectoryLocation` (`src/utils/file/defaultDirectoryLocation.ts`), hvis tre tilstande —
+  `standard`, `valgt`, `utilgaengelig` — er udledt af begge kilder samtidig. Navnet staves kun dér
+  (`DEFAULT_DIRECTORY_FALLBACK_NAME`/`…_DISPLAY_NAME`); håndhævet af `storage/default-directory-name-single-source`.
+  `resolveDefaultDirectoryHandle` (`fileHelpers.ts`) er den bevidst adskilte gem/hent-vej: den må requestere permissions
+  og skal derfor kun kaldes fra en brugerhandling, aldrig fra en visning.

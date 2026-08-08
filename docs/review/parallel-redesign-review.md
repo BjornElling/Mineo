@@ -1966,11 +1966,12 @@ Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det
 kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
 beskriver flere steder slettede mellemtrin.
 
-**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 539 testfiler / 6981 tests,
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 540 testfiler / 6992 tests,
 `typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»,
 «Efterslæb lukket 2026-08-07», «Gennemført 2026-08-07 (anden omgang: #50 og #32)»,
-«Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)» og
-«Gennemført 2026-08-07 (fjerde omgang: #52)» er committet.
+«Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)»,
+«Gennemført 2026-08-07 (fjerde omgang: #52)» og de fem «Efterslæb lukket 2026-08-08»-poster
+er committet.
 
 **Seneste omgang (2026-08-07, fjerde del)** lukkede **#52** — den sidste kandidat. Også den blev
 omskåret: planens to drift-eksempler var allerede rettet, og dens løsning («flyt fil-/symbolkortene ud
@@ -1993,7 +1994,14 @@ på seks interval-start-resolvere~~
 **✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08 (tredje post)» nedenfor**;
 ~~Indstillingssidens fire `is…Option`-typeguards~~
 **✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08 (fjerde post)» nedenfor**;
-`defaultDirectoryHandleId`s ~143 linjer.
+~~`defaultDirectoryHandleId`s ~143 linjer~~
+**✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08 (femte post)» nedenfor**.
+
+**Listen over «registreret som ikke gjort» er hermed tømt** for de poster, der hørte til dette spor.
+De to tilbageværende poster er kontrakt-/dokumentationsarbejde, ikke kode:
+`document-output-contract.md` §B11's 26-punkts audit-arbejdsliste med filens to konkurrerende
+afsnitsnummereringer, og `schema-evolution.md`s domænesti-tabel, som filen selv skriver «skal holdes i
+sync med registry».
 
 ### Rækkefølge for det udestående
 
@@ -2264,7 +2272,79 @@ regression. Registreret her frem for udbedret.
 *Fund til den næste post (ikke gjort her):* standardmappens visningsnavn har TO konstruktioner —
 `'Skrivebord (standard)'` hardkodet fire steder i `Indstillinger.tsx` og `'Skrivebord'` i
 `fileHelpers.ts:260`. Samme brugersynlige begreb, to forskellige strenge. Hører til
-`defaultDirectoryHandleId`-posten.
+`defaultDirectoryHandleId`-posten. **✅ Behandlet i femte post nedenfor.**
+
+### Efterslæb lukket 2026-08-08 (femte post) — to lagre, to halvdele af én række
+
+Sidste kodepost fra listen over «registreret som ikke gjort». Den var registreret som en
+STØRRELSE: «`defaultDirectoryHandleId` alene fylder ~143 af filens 605 linjer — dét er sidens
+største enkeltansvar, ikke metadata». Det tal var rigtigt, men diagnosen var kun halv. En ren
+udflytning ville have flyttet defekten med.
+
+**Det reelle fund.** Rækkens to halvdele blev udledt af HVER SIN kilde i HVERT SIT lager:
+
+| Halvdel | Kilde | Lager |
+|---|---|---|
+| Navnet (`'Sager'` / `'Skrivebord (standard)'`) | `default_directory_meta` | IndexedDB |
+| Om der ER valgt en mappe (kursivering + «Nulstil») | `settings.defaultDirectoryHandleId` | localStorage |
+
+De to lagre kan ryddes uafhængigt af hinanden — en browser evicter rutinemæssigt IndexedDB for
+ikke-persisteret origin, mens localStorage overlever. Overlever id'et sin registrering, viste rækken
+altså **standardens navn stylet som et intakt brugervalg**, med et Nulstil-link, mens gem-vejen
+samtidig tavst faldt tilbage til skrivebordet. Fladen påstod ét sted, filerne landede et andet.
+
+**Det tredje sted ingen havde talt med.** `ResolvedDirectory.displayName` i `fileHelpers.ts` var
+fil-lagets EGEN mening om samme navn (`'Skrivebord'` — den anden stavemåde), dokumenteret i sin egen
+docstring som «single source of truth for … UI-visning (Indstillinger.tsx)». Den havde **nul læsere**
+i produktionskoden: kun `handle`, `wellKnown` og `isFallback` blev nogensinde læst. En påstand om at
+være den ene sandhed, som ingen hørte — og derfor kunne den drive fra den viste streng uden at noget
+ville vise forskellen. Det er samme fejlklasse som dæknings-intervallets (tredje post): *to steder
+der skal være enige, uden en mekanisme der holder dem det.*
+
+**En anden reel defekt, den optimistiske skrivning skjulte.** `handleChooseDirectory` satte navnet
+fra `directoryHandle.name` UDEN at se på `saveDefaultDirectoryHandle`s returværdi. Fejlede
+skrivningen (`null`), blev settings-id'et ryddet, mens rækken alligevel viste den valgte mappes navn
+som et gemt valg.
+
+**Gjort:**
+
+- `utils/file/defaultDirectoryLocation.ts` er nu den ENE konstruktion af begrebet. Tilstanden er én
+  diskrimineret union — `standard` / `valgt` / `utilgaengelig` — udledt af BEGGE kilder samtidig, så
+  navn og udseende ikke længere kan modsige hinanden. `utilgaengelig` er præcis den tilstand, den
+  gamle todelte form ikke kunne udtrykke. Navnet staves ét sted
+  (`DEFAULT_DIRECTORY_FALLBACK_NAME`/`…_DISPLAY_NAME`).
+- `ResolvedDirectory.displayName` er slettet, og docstringen retter sin egen påstand: funktionen er
+  gem/hent-vejen, ikke visningens. De to er bevidst IKKE slået sammen — netop permission-adfærden
+  skiller dem (visningen kaldes ved mount og skal være passiv) — men navnet stammer nu ét sted fra.
+- Rækken er flyttet til `components/pages/indstillinger/` som `useDefaultDirectorySetting` (tilstand
+  + de to handlinger) og `DefaultDirectoryRow` (præsentation). `Indstillinger.tsx`: 605 → 390 linjer.
+- **Rettet undervejs:** det optimistiske navn er væk — effekten læser den registrering, der FAKTISK
+  blev skrevet. Og `Nulstil` rydder nu settings-id'et uanset om sletningen lykkedes: gjorde den det
+  ikke, ville et bevaret id efterlade rækken i `utilgaengelig` uden nogen vej ud, og Nulstil var
+  netop den vej.
+- Effekten bærer en cancel-vagt, så en forældet læsning ikke kan overskrive en friskere.
+- Nyt AST-værn `storage/default-directory-name-single-source`. Det ser **string-literaler i AST'en,
+  ikke filtekst** — repoet har en kendt fejlklasse, hvor dansk prosa udløser et tekstværn, og her
+  ville hver kommentar der forklarer hvorfor navnet er kanonisk (inklusive værnets egen) have flaget
+  sig selv. `liveTarget: precondition` med modul + forbruger i `requiredPaths`.
+
+**Mutationsbevist i tre trin** (jf. guard-selvtest-princippet): (1) den gamle todelte styling
+genindført i LEVENDE kilde (`utilgaengelig` behandlet som et valg) fældede præcis den ene test, der
+måler den tilstand, og ingen anden; (2) den optimistiske navnesætning genindført fældede præcis
+testen for fejlet skrivning — hvilket samtidig beviser, at den gamle kode havde defekten; (3) `Nulstil`
+sat til kun at rydde ved vellykket sletning fældede en TREDJE, anden test. Tre mutationer, tre
+forskellige tests — altså tre målte mekanismer og ikke én bred assertion, der fanger alt. Værnet selv
+er mutationsbevist ved at hardkode navnet i live kilde: harnessen blev rød med præcis regel-id'et.
+
+**Værnets første kørsel afslørede en fejl i mit eget værn.** `requiredPaths` navngav
+`DefaultDirectoryRow.tsx`, men rækken læser kun `location.displayName` fra hooken og rører aldrig
+konstanten — liveness-gaten meldte korrekt INERT. Målet er PARRET modul + forbruger, og listen er
+rettet til det, i stedet for at svække proben til at acceptere en fil, der ikke beviser noget.
+
+Rækken havde **ingen testdækning overhovedet** før. Ny testfil (11 tests). Ingen tal berørt. Den
+eneste synlige ændring er den, der retter defekten: er registreringen væk, ser rækken ud som
+standarden i stedet for at forklæde sig som et valg. Kontrakten `app-settings.md` bærer nu reglen.
+Fuldt træ grønt: 540 filer / 6992 tests (+11), `typecheck`, `typecheck:test`, `lint`.
 
 ### Brugerens beslutninger 2026-08-06 (bindende for resten af arbejdet)
 
@@ -2370,6 +2450,15 @@ Ingen ændring foretages, før det er besvaret.
   fra `value`-proppen alene, og MUI typer `MenuItem.value` bredt. To mutationer afgjorde det på et
   minut — og fastlagde præcis, hvad testen så skulle dække. Uden målingen var testen enten blevet
   overflødig eller havde efterladt hullet.
+- **En post registreret som en STØRRELSE skal stadig diagnosticeres.** «~143 af 605 linjer» er en
+  observation om placering, ikke om korrekthed, og en ren udflytning ville have flyttet defekten med.
+  Rækkens to halvdele blev udledt af hver sin kilde i hvert sit browser-lager, der kan ryddes
+  uafhængigt — så den kunne vise standardens navn stylet som et intakt brugervalg. Spørg ved enhver
+  «for stor til at bo her»-post: hvad er koden faktisk *forkert* i, ud over hvor den ligger?
+- **Et felt uden læsere er en påstand, ingen kan modsige.** `ResolvedDirectory.displayName` kaldte sig
+  i sin egen docstring visningens single source of truth og havde nul forbrugere. Netop derfor kunne
+  den drive fra den streng, brugeren faktisk så. Et dødt felt er ikke bare unødvendigt — det er et
+  sted, hvor to sandheder kan opstå uset. Tjek forbrugerne, før du tror på en docstring.
 - **En sammenlægning af to kopier afslører funktionsforskelle — de skal ikke ensartes undervejs.**
   Anciennitetstillæg-blokken skjulte, at de to overflader afgør satsens enhed forskelligt. Det
   rigtige træk var at bevare begge adfærd bag en slot og forelægge forskellen, ikke at vælge en
