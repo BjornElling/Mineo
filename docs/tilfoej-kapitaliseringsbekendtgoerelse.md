@@ -26,6 +26,7 @@ Dette matcher implementeringsretningen i:
 
 - **Ubrydelig 1:1-regel:** Tabelindhold skal altid indlægges 1-til-1 fra den konkrete kildevejledning/-bekendtgørelse.
 - Der må aldrig indføjes, udfyldes, estimeres eller \"genbruges\" værdier fra andre kapitaliseringsbekendtgørelser.
+- **Tidsafgrænsning:** Mineo understøtter kun sager med skadedato fra og med 1. januar 2005. For hver tabel skal anvendelsesområdet derfor fastslås eksplicit i PDF’en eller kildeteksten. Indlæs kun tabeller, der vedrører mindst én understøttet sag fra og med 1. januar 2005; tabeller, der udelukkende vedrører skader frem til og med 31. december 2004, må ikke indlæses. En tabel med blandet anvendelsesområde skal bevares, hvis kilden udtrykkeligt viser, at den også vedrører sager fra og med 1. januar 2005. Der må ikke gættes ved uklart anvendelsesområde.
 - Hvis en værdi/tabellerække mangler i kilden, skal den forblive manglende i outputtet (ingen fallback-data).
 - Ingen normalisering må ændre tabelindholdets faktiske værdier eller struktur; kun formatkonvertering er tilladt (fx komma -> punktum i decimaltal).
 - For ældre kilder med kønsopdelte tabeller skal kønsopdelingen bevares fuldt 1:1 i separate exports (ingen sammensmeltning, gennemsnit eller afledte tabeller).
@@ -83,6 +84,7 @@ Dette matcher implementeringsretningen i:
 - Tabel-id (A, B, C, ...).
 - Rækker med `alder` og `faktor`.
 - Markér om tabellen er kønsneutral eller kønsopdelt (`mænd`, `kvinder`).
+- Fastslå og dokumentér tabellens skadedato-/sagsperiode ud fra kilden, og frasortér tabeller, der kun vedrører skader frem til og med 31. december 2004.
 - Bevar kildens numeriske præcision.
 - Filtrér til tabeller for erhvervsevnetab/forsørgertabserstatning; udelad varige mén/behandlingsudgifter.
 - Forsørgertabstabeller (`faktorerPraHeleAar`) kan have varierende antal kolonner pr. alder-række. Bevar præcis antal værdier fra kilden; aldrig pad/trunkér.
@@ -248,7 +250,7 @@ Præcisering for filer med ældre bekendtgørelser:
 2. `..._TABELVALG_DATA` + mapped exports
 3. `...SAERFAKTOR..._DATA` + mapped export
 4. selve tabel-exports (inkl. kønsopdelte exports når relevante)
-- Tabeller fra kilden skal bevares, også hvis de ikke er refereret i det aktuelle tabelvalg. Tilføj en kort kommentar ved tabellerne om dette.
+- Relevante tabeller fra kilden skal bevares, også hvis de ikke er refereret i det aktuelle tabelvalg. Tilføj en kort kommentar ved tabellerne om dette. Tabeller, der kun vedrører skader frem til og med 31. december 2004, er ikke relevante og må ikke udtrækkes.
 - Før første forsørgertabstabel i `forsoergertabTabeller` skal kolonneforklaringen stå:
   - `Kolonne 1: Fyldt alder`
   - `Kolonne 2: Resterende erstatningsperiode, antal hele år`
@@ -283,6 +285,7 @@ Opgave: Udtræk kapitaliseringsdata fra vedlagte tekst og lever en compile-klar 
 
 Krav:
 - Brug præcis den faste kodekontrakt fra `docs/tilfoej-kapitaliseringsbekendtgoerelse.md`.
+- Indlæs kun tabeller, der ifølge kilden vedrører sager fra og med 1. januar 2005; udelad tabeller, der kun vedrører skader frem til og med 31. december 2004.
 - Ingen antagelser ved tvivl; markér i stedet manglende/uklare felter.
 - Folkepensionsalder/ophørsalder skal håndteres via `src/data/folkepensionAlderRates.ts`; kapitaliseringstabelfilen må kun indeholde tabelvalg og faktortabeller.
 - Bevar numerisk præcision fra kilden.
