@@ -269,6 +269,18 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     ],
   },
   {
+    contractPath: 'src/contracts/input-field-behavior-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/inputCore/editor/fieldEditor.test.ts',
+      'src/__tests__/inputCore/react/useFormFieldSurface.test.tsx',
+      'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
+      'src/__tests__/schemas/amountExpressionSchema.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/eoSnapshot.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/periodiseringsMotor.test.ts',
+      'src/__tests__/components/tables/tableKeyboardNavigation.arrowWrap.test.tsx',
+    ],
+  },
+  {
     contractPath: 'src/contracts/auth-gate-contract.md',
     requiredTestPaths: [
       'src/__tests__/auth/auth.test.ts',

@@ -5,7 +5,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 
 ## Nye fund
 
-Næste ID: **BF-028**. Kopiér denne blok pr. fund:
+Næste ID: **BF-052**. Kopiér denne blok pr. fund:
 
 ```md
 ## BF-028 — Kort titel
@@ -61,175 +61,324 @@ Ingen fund afventer reproduktion.
 | BF-026 | Den bare bindestreg på linjen med "Tilgængelige reguleringssatser" er væk — et ukendt interval viser nu ingenting. |
 | BF-027 | Standardværdier fra Indstillinger slår nu igennem på en ny sag med det samme — ikke først når brugeren rører feltet. |
 
-### BF-020 og BF-021 — analyse og løsning
+## BF-028 — Til-dato før fra-dato giver ingen feltfejl
 
-**Fundet.** Årslønssidens løntabel kunne få en celle til at blinke rødt, men ingen anden flade kunne. Samtidig
-førte de interne fejl-/advarselslinks brugeren hen til feltet uden at markere det, så brugeren selv skulle finde
-det blandt de øvrige felter på siden — især efter et side- eller faneskift.
+- Type: Fejl
+- Sted: Erstatningsopgørelse → Offentlige ydelser, til-dato i en tabelrække
+- Sådan fremprovokeres det:
+  1. Indtast en fra-dato i en række.
+  2. Indtast en til-dato, der ligger før fra-datoen.
+- Det sker: Værdien kan afsluttes uden rød ring og tooltip-fejlmeddelelse i til-dato-feltet.
+- Det bør ske: Både til-dato- og fra-dato-feltet skal markeres med rød ring og hver vise en konkret tooltip med den modgående dato, når til-datoen ligger før fra-datoen.
+- Påvirkning: Den ugyldige periode kan påvirke validering, beregning og dokumentgrundlag.
+- Prioritet: Høj
+- Status: Ny
 
-**Kernen.** De to fund er det samme fund set fra hver sin side. Programmet havde allerede ÉN feltidentitet i DOM
-(`data-mineo-field-address`) og tre veje, der bruger den til at lokalisere et felt: undo/redo-fokusrestoren,
-save-blokeringens fokus og fejllinkene. Navigationen var altså løst; det var kun det visuelle svar, der manglede
-— og det ene sted, det fandtes, var indelukket. Blinket i løntabellen var React-state (`flashCell`) nøglet på et
-cellekoordinat (`rowId` + `colIdx`) med sin egen `@keyframes errorFlash` i en `<style>`-tag i tabellen. Hverken
-koordinatet eller animationen kunne bruges af en anden flade, og en formularfelt-flade har slet ikke et
-cellekoordinat.
+## BF-048 — Manglende gul advarsel ved manglende midlertidig EET-dato
 
-**Løsningen.** Markeringen er løftet ud til `src/inputCore/react/fieldAttentionBlink.ts` og gjort til en ren
-DOM-effekt frem for React-state. Det er dét valg, der gør den generelt tilgængelig: en CSS-klasse kan lægges på
-ethvert element, en feltadresse peger på, uden at feltkomponenten kender til markeringen, holder state eller
-opter ind. Et nyt felt eller en ny tabel arver blinket alene ved at bære feltadressen, som surfacen allerede
-sætter. Animationen bor nu ét sted (`sharedApp.css`) og respekterer `prefers-reduced-motion`.
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → `Dato for første midlertidige erhvervsevnetabsafgørelse` og `Virkningsdato (hvis forskellig fra afgørelsesdatoen)`
+- Sådan fremprovokeres det:
+  1. Sæt `Midlertidigt EET-afgørelse` til `Ja`.
+  2. Lad både afgørelsesdatoen og virkningsdatoen stå tomme.
+  3. Gå til Beregning-siden.
+- Det sker: Der vises ikke den forventede samlede advarsel om, at der mangler en dato.
+- Det bør ske: Der skal vises en ikke-blokerende gul advarsel på Beregning-siden, når begge datoer mangler. Ingen af de to felter skal få rød ring alene på grund af den manglende værdi.
+- Påvirkning: Brugeren mangler en tydelig påmindelse om den ufuldstændige midlertidige EET-oplysning, uden at forholdet skal blokere beregningen.
+- Prioritet: Mellem
+- Status: Ny
 
-Alle tre fokusveje afslutter nu med samme markering: fejllinkene (`scrollToEoRow`) blinker det element, de
-scrollede til, og save-blokeringen blinker det felt, den fokuserede. `scrollWithRetry.onSuccess` giver det fundne
-element med, så kalderen ikke skal gentage opslaget og risikere at ramme et andet element end det, der blev
-scrollet til. Løntabellens private flash er væk; dens vedvarende «indtastning mangler»-markering bruger nu den
-delte klasse, men beholder sin egen semantik — den BLIVER stående, indtil cellen er udfyldt, hvor et blink er
-kortvarigt. `StandardGridTable.beforeTable`, som kun fandtes for at injicere de gamle keyframes, er fjernet.
+## BF-029 — Datoindtastning begrænser ikke datoens dele korrekt
 
-Markeringen er rent visuel: den ændrer ingen værdi, sætter ingen feltfejl og blokerer intet. Har en fejl intet
-enkelt ansvarligt felt (fx et overlap mellem to rækker), markeres rækkeankeret — det grovere, men stadig sande
-mål. Arkitekturen er beskrevet i `docs/architecture/input-architecture.md` §1.8.
+- Type: Fejl
+- Sted: Alle dato-inputfelter, herunder datoceller i tabeller
+- Sådan fremprovokeres det:
+  1. Åbn et dato-felt.
+  2. Indtast eksempelvis `12-2----------`.
+- Det sker: Feltet kan acceptere gentagne bindestreger og for mange cifre i dag, måned og år, eksempelvis `12-2----------` og `111-111-2026`.
+- Det bør ske: Indtastningen skal behandles tegn for tegn. Punktum, mellemrum, skråstreg og tilsvarende separatorer skal først omdannes til bindestreg. Derefter må der højst være én bindestreg mellem datoens dele, højst to cifre i dag og måned samt højst fire cifre i år. Tegn, der overskrider disse grænser, skal springes over, mens resten af indtastningen fortsætter. `12-2----------2026` skal derfor behandles som `12-2-2026`.
+- Prioritet: Mellem
+- Status: Ny
 
-Værnet er efterprøvet ved at fjerne blinket fra linkstien: begge de nye integrationstests bliver da røde.
+## BF-030 — Tomme tabelrækker ryddes ikke automatisk
 
-### BF-022, BF-023 og BF-026 — kort
+- Type: Fejl
+- Sted: Erstatningsopgørelse → Offentlige ydelser, tabelrækker
+- Sådan fremprovokeres det:
+  1. Udfyld første række med fra-dato `12-01-2026`, til-dato `25-01-2026`, beløb `12345` og ydelsen `Efterløn`.
+  2. Udfyld anden række med fra-dato `26-01-2026` og den fejlbehæftede til-dato `06-02`.
+  3. Udfyld tredje række med fra-dato `07-02-2026` og til-dato `13-02-2026`.
+  4. Slet først til-datoen og derefter fra-datoen i anden række.
+  5. Slet derefter indholdet i tredje række.
+- Det sker: Den tomme anden række bliver stående mellem udfyldte rækker, og den tredje række slettes heller ikke, når den tømmes. Den obligatoriske tomme trailing-række står efterfølgende også i tabellen.
+- Det bør ske: En række uden indhold skal automatisk fjernes, mens rækkefølgen på de øvrige rækker bevares, og der kun står den obligatoriske tomme trailing-række tilbage til ny indtastning.
+- Påvirkning: Tomme eller resterende rækker kan påvirke brugerens overblik, rækkeidentitet og eventuelt validering, beregning eller dokumentgrundlag.
+- Prioritet: Høj
+- Status: Ny
 
-**BF-022.** Togglen er flyttet til Offentlige ydelser-fanen under Midlertidigt EET-togglen. Feltet selv er
-uændret; det er editorlokationen, der er flyttet, og dermed den fane fokusnavigationen fører brugeren til.
-Synligheden var før en JSX-condition (`beregnesUdFra === 'Beregningsperiode'`) på den gamle fane. Den betingelse
-matcher præcis beregningsrelevansen — motoren danner kun reguleringsmodellen, når der findes en beregningsperiode
-— så den er bevaret og samtidig givet et navn i det delte relevans-modul
-(`erOffentligeYdelserReguleringRelevant`), så synlighed og calc-relevans har ét sandt sted. Et flyttet felt måtte
-ikke få en bredere synlighed end den, beregningen faktisk har.
+## BF-031 — Kronologifejl vises ikke stabilt i dato-par
 
-**BF-023.** Dropdownens to grupper og deres indbyrdes alfabetiske rækkefølge udledes nu i registeret
-(`primaereYdelsestypeKeys`/`supplerendeYdelsestypeKeys`) frem for at være en håndholdt liste i tabellen.
-Objektliteralens nøglerækkefølge kunne ikke bære reglen: den sorterer efter NØGLE (`su` før `uddannelseshjaelp`,
-`ressourceforloebsydelse` før `revalideringsydelse`), mens brugeren ser LABELS — 'SU' skal stå efter 'Ress.
-forløbsydelse' — og æ/ø/å falder forkert uden dansk kollation. Stregen og gruppernes indhold er uændret.
-Kontrakten er noteret i `src/contracts/periodisering-contract.md` §4.
+- Type: Fejl
+- Sted: Dato-par med fra-dato og til-dato, herunder almindelige dato-felter og datoceller
+- Sådan fremprovokeres det:
+  1. Indtast en fra-dato.
+  2. Indtast en til-dato, der ligger før fra-datoen.
+  3. Afslut begge felter.
+- Det sker: Der vises ikke pålideligt rød ring og fejl-tooltip i de berørte felter. I nogle tilfælde vises ingen fejlmeddelelse overhovedet.
+- Det bør ske: Den fælles kronologivalidering skal altid markere både fra-dato og til-dato rødt og vise den konkrete modgående dato i hver tooltip.
+- Påvirkning: En ugyldig periode kan blive stående uden synlig feedback og dermed påvirke validering, beregning og dokumentgrundlag.
+- Prioritet: Høj
+- Status: Ny
 
-**BF-026.** Bindestregen var fallback-værdien (`|| '-'`), når reguleringsdato-intervallet er ukendt. Linjen viser
-nu ingenting i det tilfælde. De øvrige bindestreger i programmet står i datatabellers talkolonner som
-pladsholder for en tom celle og er en anden — og gyldig — brug.
+## BF-032 — Ydelse-feltet tillader eller fortolker forbudte tegn
 
-### BF-025 — analyse og løsning
+- Type: Fejl
+- Sted: Erstatningsopgørelse → Offentlige ydelser, `Ydelse` og `Tillæg`
+- Sådan fremprovokeres det:
+  1. Åbn `Ydelse`-feltet.
+  2. Indtast et mellemrum eller indsæt et beløb med punktum som separator.
+- Det sker: Den almindelige indtastningsfilter tillader mellemrum i feltet, og paste-normaliseringen fortolker punktum som en beløbsseparator i stedet for at behandle punktum som et ikke-tilladt tegn.
+- Det bør ske: Feltet må kun acceptere cifre, komma, matematiske operatorer og parenteser. Mellemrum, punktum og øvrige tegn må ikke kunne indtastes. Ved paste skal sådanne tegn springes over tegn for tegn og aldrig omdannes eller fortolkes som beløbsformat.
+- Påvirkning: Den faktiske indtastningsbegrænsning og paste-adfærden afviger fra den ønskede brugerregel.
+- Prioritet: Høj
+- Status: Ny
 
-**Fundet.** På en nyåbnet sag uden indtastninger gav valget "Angivet månedsløn" eller "Angivet timeløn" under
-"Beregnes ud fra" en runtime-fejl: `eo_snapshot:hidden_angivet_loen_state_invalid` — "EO-snapshot afvist pga.
-intern datainkonsistens i angivet løn". Fejlen ramte deterministisk ved allerførste valg.
+## BF-033 — Valg-dropdowns kræver forkert præcision ved paste
 
-**Kernen.** Feltet `eoAngivetLoenLoenudvikling.loenPaaHelligdage` ("Løn på helligdage" for angivet løn) var
-erklæret tre steder med tre forskellige krav:
+- Type: Fejl
+- Sted: Dropdown-felter, herunder Erstatningsopgørelse → Offentlige ydelser, `Ydelsestype`, og EO oplysninger, `Helbredsforhold`
+- Sådan fremprovokeres det:
+  1. Markér eller kopier en valgmulighed, eksempelvis `Efterløn` eller `Sygemeldt`.
+  2. Paste teksten som `efterløn`/`sygemeldt` eller med indledende/afsluttende mellemrum.
+- Det sker: Paste-matchningen kræver aktuelt præcis samme store/små bogstaver og samme mellemrum som den viste label.
+- Det bør ske: Paste skal vælge ved fuldt label-match efter trimning og uden forskel på store og små bogstaver. Delvise eller ukendte labels skal fortsat give no-op uden at ændre det eksisterende valg.
+- Påvirkning: En gyldig valgmulighed fra eksempelvis en tekstkilde kan ignoreres, selv om den semantisk matcher den viste valgmulighed.
+- Prioritet: Mellem
+- Status: Ny
 
-- **Schemaet** gjorde det valgfrit — begrundet i, at ældre `.eo`-filer skulle kunne loades uden feltet. Det
-  fælles lønudviklings-schema var ligefrem gjort generisk netop for at kunne have to udgaver af dette ene felt.
-- **Inputdescriptoren** gjorde det til et valgfrit felt med tomværdien `undefined`, mens dets tvilling under et
-  ansættelsesforhold var et required-choice med tomværdien "Almindelig løn".
-- **Domænet** krævede en konkret sats: `resolveLoenudviklingKilde` kastede på alt andet, og `computeEoSnapshot`
-  havde en forudgående invariant, som fail-closede og rapporterede en systemfejl.
+## BF-034 — Hjælpe-datoer til sygedagpenge følger ikke datofeltets regler
 
-Dertil kom, at feltet **ikke har nogen editor** noget sted i programmet. Værdien kunne altså aldrig blive andet
-end tomværdien, og tomværdien var netop den tilstand, motoren erklærede umulig. Enhver ny sag startede dermed
-inde i den forbudte tilstand, og valget af angivet løn var blot det, der fik motoren til at kigge efter.
+- Type: Fejl
+- Sted: Erstatningsopgørelse → Offentlige ydelser → Indsæt maksimal sygedagpengesats for perioden, Fra-dato og Til-dato
+- Sådan fremprovokeres det:
+  1. Åbn et af hjælpe-datofelterne.
+  2. Indtast eller indsæt en værdi med for mange cifre, gentagne separatorer eller andre ugyldige tegn.
+  3. Indtast eventuelt en korrekt formateret dato uden for feltets aktive grænse.
+- Det sker: Hjælpe-datofelterne har ikke samme tegnfilter eller paste-normalisering som de almindelige datofelter. Bounds behandles desuden som en afvisning ved commit i stedet for som en bevaret værdi med afledt rød feltfejl.
+- Det bør ske: Begge hjælpe-datofelter skal følge den almindelige datofeltmotor tegn for tegn ved tastning og paste. En korrekt formateret dato uden for range skal bevares, markeres rødt med konkret tooltip og holde `Indsæt` disabled.
+- Påvirkning: Den samme datoindtastning kan opføre sig forskelligt afhængigt af, om den bruges i tabellen eller i hjælpefunktionen, og brugeren kan få en anden værdi-/fejltilstand end forventet.
+- Prioritet: Høj
+- Status: Ny
 
-**Hvorfor ingen test så det.** Sektionerne er `null`, indtil brugeren rører sit første felt; først dér oprettes
-sektionen fra `createEmptyErstatningsopgoerelseSection` + schemaets defaults. Men suitens fixtures — herunder det
-eksisterende værn `eoReguleringInvariantReachability` mod præcis denne klasse af fejl — bygger på
-`createErstatningsopgoerelseInitialValues`, en fabrik ingen produktionssti kalder, og som netop udfylder feltet.
-Testene målte altså en rigere sag, end produktionen nogensinde er i.
+## BF-035 — Kommentar-feltet mangler maksimumslængde
 
-**Klassen bagved.** Tre mekanismer lod en domæne-umulig tilstand blive produktionens default, og hver af dem kan
-ramme andre felter:
+- Type: Fejl
+- Sted: Erstatningsopgørelse → Offentlige ydelser → Kommentarer
+- Sådan fremprovokeres det:
+  1. Åbn feltet `Kommentarer`.
+  2. Indtast eller indsæt mere end 512 tegn.
+- Det sker: Feltet har aktuelt ingen maksimumslængde og kan derfor modtage flere end 512 tegn.
+- Det bør ske: Feltet skal højst kunne indeholde 512 tegn. Ved almindelig indtastning skal tegn efter grænsen afvises. Ved paste skal teksten behandles tegn for tegn som almindelig indtastning, så de første 512 tegn indsættes, og efterfølgende tegn springes over.
+- Påvirkning: Kommentarindhold kan få ubegrænset længde og dermed afvige fra den ønskede inputbegrænsning.
+- Prioritet: Mellem
+- Status: Ny
 
-1. To rivaliserende konstruktioner af "en ny sektion" — den levende (schema-defaults) og den døde
-   (`create*InitialValues`) — hvor kun den døde bruges af tests.
-2. Samme logiske felt erklæret med forskellige krav i schema, descriptor og domænetype, uden noget der tvinger
-   dem til at være enige.
-3. Katalogfelter uden editor, hvis værdi derfor altid er tomværdien, mens en invariant kræver mere.
+## BF-036 — EO-nummer mangler maksimumslængde
 
-**Løsningen.** Feltet er gjort required-with-default ("Almindelig løn") i både schema og descriptor — samme
-behandling årslønssektionen fik i persist-version 3.4. Load-tolerancen består (en ældre `.eo` uden feltet får
-defaulten), men `undefined` kan ikke længere repræsenteres. Både invarianten i `computeEoSnapshot`, motorens
-defensive kast og validatorreglen "Løn på helligdage skal vælges" er derfor fjernet: de vogtede en tilstand,
-typen nu udelukker. `PERSISTED_DATA_VERSION` er bumpet til 3.12.
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → Erstatningsopgørelse → Nummer
+- Sådan fremprovokeres det:
+  1. Åbn feltet `Nummer`.
+  2. Indtast eller indsæt mere end 7 tegn.
+- Det sker: Feltet har aktuelt ingen maksimumslængde og kan derfor modtage flere end 7 tegn.
+- Det bør ske: Feltet skal acceptere alle tegn, men højst 7 tegn samlet. Ved almindelig indtastning skal tegn efter grænsen afvises. Ved paste skal teksten behandles tegn for tegn som almindelig indtastning, så kun de første 7 tegn indsættes.
+- Påvirkning: EO-nummeret kan få en længde, der afviger fra den ønskede inputbegrænsning.
+- Prioritet: Mellem
+- Status: Ny
 
-Derudover er klassen lukket med tre værn, beskrevet i `docs/architecture/input-architecture.md` §2.11:
+## BF-037 — Ledsagetekst mangler maksimumslængde
 
-- `freshCaseChoiceSweep.test.ts` — fejer hvert statisk valg-/kontaktfelt gennem hver af sine valgmuligheder fra
-  præcis den tilstand, `initializeInputRuntime` giver en ny sag, og kører hele domænets læsesti. Ingen systemfejl
-  og ingen exception må forekomme. Fejningen er katalogdrevet, så nye felter og nye enum-værdier dækkes
-  automatisk. Valgmængden er gjort opregnelig ved at eksponere den på feltets codec (`FieldCodec.options`).
-  Værnet er efterprøvet ved at genindføre fejlen: det bliver rødt og navngiver både feltet og de to valg.
-- `freshSectionDefaults.test.ts` — kræver, at descriptorens tomværdi og den friske sektions faktiske værdi er
-  enige for hvert statisk felt i hver sektion, så et felt ikke kan have to defaults.
-- `newCaseFixtureParity.test.ts` — kræver, at den gamle new-case-fabrik kun afviger fra den levende sektion på
-  erklærede punkter, så en testfixture ikke igen kan være rigere end produktionens sag.
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → Erstatningsopgørelse → `+ evt. ledsagetekst`
+- Sådan fremprovokeres det:
+  1. Åbn feltet `+ evt. ledsagetekst`.
+  2. Indtast eller indsæt mere end 64 tegn.
+- Det sker: Feltet har aktuelt ingen maksimumslængde og kan derfor modtage flere end 64 tegn.
+- Det bør ske: Feltet skal acceptere alle tegn, men højst 64 tegn samlet. Ved almindelig indtastning skal tegn efter grænsen afvises. Ved paste skal teksten behandles tegn for tegn som almindelig indtastning, så kun de første 64 tegn indsættes.
+- Påvirkning: Ledsageteksten kan få en længde, der afviger fra den ønskede inputbegrænsning.
+- Prioritet: Mellem
+- Status: Ny
 
-**Åbne forhold, der ikke blev rettet her.** Fejningen afdækkede, at AppSettings-afledte standardvalg ikke slog
-igennem på en ny sag. Det er nu rettet som **BF-027** nedenfor. Tilbage står, at
-`eoAngivetLoenLoenudvikling`-feltene `loenPaaHelligdage`, `feriePct` og `saerligFraDatoRegulering` fortsat ingen
-editor har; efter rettelsen er de harmløse, men de er uindtastelige felter i kataloget.
+## BF-038 — Indsæt dags dato kan ikke bruges fra tastaturet
 
-### BF-027 — analyse og løsning
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → `Opgørelse lavet den` → knappen `Indsæt dags dato`
+- Sådan fremprovokeres det:
+  1. Navigér gennem siden med Tab.
+  2. Forsøg at nå eller aktivere knappen `Indsæt dags dato` med tastaturet.
+- Det sker: Knappen er udeladt af Tab-rækkefølgen (`tabIndex={-1}`) og har ingen tastaturaktivering.
+- Det bør ske: Knappen skal indgå i den almindelige Tab-rækkefølge og kunne aktiveres med Enter eller mellemrumstast. Aktiveringen skal indsætte dags dato, følge datofeltets normale validering og kunne fortrydes med ét undo-trin. Alle øvrige steder i programmet, hvor der indgår en knap til at indsætte dags dato skal knappen også indgå i Tab-rækkefølgen.
+- Påvirkning: Tastaturbrugere kan ikke udføre den samme dato-handling som musebrugere.
+- Prioritet: Mellem
+- Status: Ny
 
-**Fundet.** Indstillinger → Standardværdier lovede værdier, en ny sag aldrig fik. Slog brugeren "Udkast-stempel
-på nye dokumenter" til, stod "Indsæt udkast-stempel" på EO oplysninger stadig på "Nej" i hver ny sag, og den
-hentede erstatningsopgørelse kom uden UDKAST-vandmærke. Ingen fejl, ingen advarsel — kun et program, der gjorde
-noget andet end det, indstillingen sagde. Samme mønster ramte "Bilagsnumre i erstatningsopgørelser",
-"Opgørelse afsluttes med", "Svie/smerte-sats ved delvis sygemelding" og — på Årsløn-siden — "Løn indtastes som".
+## BF-039 — Forligsprocenten blokerer ikke værdier over 100 %
 
-**Kernen.** Koblingen til AppSettings fandtes kun i `create<Sektion>InitialValues`-fabrikkerne, og dem kalder
-ingen produktionssti. Den levende sag blev født ét af to steder: bootstrap-hydrationen (som kun havde en seed
-for Satsers default-år) eller reducerens materialisering af en sektion, første gang brugeren rørte et felt på
-siden — og den kender kun schemaet. Indstillingerne nåede derfor aldrig ind i en sag. Rækkeniveauet virkede,
-fordi `createDefaultLoenindkomstAnsaettelsesforhold` faktisk kaldes, når brugeren tilføjer et ansættelsesforhold.
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Procent`
+- Sådan fremprovokeres det:
+  1. Åbn feltet `Procent`.
+  2. Indtast eller indsæt `101`.
+  3. Afslut feltet.
+- Det sker: Feltet tillader værdien over 100 % og viser først en range-fejl efterfølgende.
+- Det bør ske: Indtastninger over 100 % skal blokeres allerede ved tastning og paste. Paste skal fortsætte tegn for tegn, men cifre, der ville føre værdien over 100 %, skal springes over. Værdier fra 1 til og med 100 % skal accepteres; `0` skal fortsat kunne stå som en bevaret rød fejltilstand efter settle.
+- Påvirkning: En værdi, der skal være umulig at indtaste, kan aktuelt gemmes som canonical værdi med efterfølgende fejlmarkering.
+- Prioritet: Høj
+- Status: Ny
 
-**Klassen bagved.** Tre forhold hang sammen med det samme:
+## BF-040 — Forligsprocent-paste fortolker forbudte tegn
 
-1. **`Slet alt` gav et andet udgangspunkt end en frisk session.** Kommandoen ryddede til bar `null`, så selv
-   Satsers default-år — det ene, der faktisk virkede — forsvandt permanent efter et `Slet alt`.
-2. **Ny-sags-defaults havde ingen ejer.** Der var ét seed-hook, ét sæt fabrikker uden kaldere og ét schema, og
-   ingen af dem var udpeget som svaret på "hvad indeholder en ny sag?".
-3. **Overwrite-gaten forvekslede programmets standardværdier med brugerens data.** `hasAnyData` talte udfyldte
-   felter, så et nyåbnet program med et seedet satsår allerede advarede om at overskrive "dine data" ved `Hent`.
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Procent`
+- Sådan fremprovokeres det:
+  1. Åbn feltet `Procent`.
+  2. Paste eksempelvis `12.5` eller `12 5`.
+- Det sker: Paste-normaliseringen behandler punktum og mellemrum som numerisk formatering i stedet for at springe tegnene over som ikke-tilladte tegn.
+- Det bør ske: Kun cifre og komma skal indgå. Punktum, mellemrum, procenttegn og øvrige ikke-tilladte tegn skal springes over tegn for tegn, uden at blive omdannet eller fortolket.
+- Påvirkning: Paste kan give en anden værdi end den, som tilsvarende almindelig indtastning ville have givet.
+- Prioritet: Høj
+- Status: Ny
 
-**Løsningen.** "En ny sag" har fået ét sandt sted. `src/inputCore/newCaseSections.ts` ejer typen og
-sammenfletningen af ny-sags-seeds, `createNewCaseInput` bygger den færdige sag, og `src/domain/newCaseSeed.ts`
-komponerer domænets seeds pr. slice (satser, årsløn, erstatningsopgørelse). Samme konstruktion bruges nu tre
-steder — bootstrap, `Slet alt` (kommandoen bærer seeden) og overwrite-gatens baseline — så en sags udgangspunkt
-ikke længere afhænger af, hvordan den blev født. `composeNewCaseSeeds` kaster, hvis to slices vil eje samme
-sektion. Fabrikkerne er skrevet om til at bygge på præcis de samme defaults, så en testfixture ikke igen kan
-være en anden sag end brugerens. `hasAnyData` måler nu afvigelse fra en ny sag frem for "findes der en udfyldt
-værdi?" — en urørt sektion tæller aldrig som brugerdata.
+## BF-041 — Brøk-paste fortolker forbudte tegn og fjerner afsluttende komma
 
-Klassen er lukket med et nyt værn, `newCaseSettingsDefaults.test.ts`, som måler VIRKNINGEN og ikke koblingen:
-for hver nøgle i `NEW_CASE_DEFAULT_SETTINGS_KEYS` skal en ændret værdi ændre enten den nye sags indhold eller en
-nytilføjet rækkes indhold. Listen er samtidig fuldstændighedstjekket, så en ny `default*`-indstilling ikke kan
-tilføjes uden enten at blive koblet på eller eksplicit erklæret som ikke-sagsdata. Arkitekturen er beskrevet i
-`docs/architecture/input-architecture.md` §2.11 og kontraktligt fastlagt i `src/contracts/app-settings.md`.
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Brøk`
+- Sådan fremprovokeres det:
+  1. Åbn feltet `Brøk`.
+  2. Paste en værdi med punktum, mellemrum eller et afsluttende decimal-komma, eksempelvis `1,/2`.
+- Det sker: Paste-normaliseringen kan omdanne eller fjerne tegnene, så en værdi som `1,/2` kan ende som `1/2` i stedet for at bevare den fejlbehæftede tekst.
+- Det bør ske: Paste skal behandles tegn for tegn som almindelig indtastning. Punktum og mellemrum skal springes over, mens et tilladt afsluttende komma skal bevares, så `1,/2` afsluttes som formatfejl med rød ring og tooltip.
+- Påvirkning: En paste-værdi kan blive gyldig ved en tavs omformning, som almindelig indtastning ikke ville have udført.
+- Prioritet: Høj
+- Status: Ny
 
-Senest opdateret: 7. august 2026. De rettede fund er automatiseret verificeret.
+## BF-042 — Brøkens indledende nuller normaliseres ikke
 
-**Blinkmarkeringen er nu set i en browser.** Forbeholdet om BF-020/BF-021 er indfriet: `e2e/field-attention-blink.spec.ts`
-kører markeringen i Chromium gennem projektets Playwright-opsætning og måler den BEREGNEDE baggrund over tid —
-altså det, der faktisk males, ikke den erklærede regel. Målingen bekræfter fejlrød (`#ef4444`, 20 % blanding),
-en puls der når sin top og er nede igen, og samme adfærd på begge flader: MUI-formularfeltet på Stamdata og
-grid-cellen i Årslønstabellen. Under `prefers-reduced-motion: reduce` bliver markeringen et roligt statisk felt —
-den forsvinder ikke, så brugeren stadig kan se hvilket felt der peges på. Testene er mutationsprøvet i tre trin:
-fjernes `!important` (MUI's baggrundsregler vinder da), ændres farven, eller fjernes den statiske tone under
-reduceret bevægelse, bliver præcis de relevante cases røde — og kun dem.
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Brøk`
+- Sådan fremprovokeres det:
+  1. Indtast eller indsæt `02/04`.
+  2. Afslut feltet.
+- Det sker: Feltet viser fortsat `02/04`.
+- Det bør ske: Indledende nuller skal normaliseres ved settle, så værdien vises som `2/4`, mens selve brøken fortsat ikke reduceres til `1/2`.
+- Påvirkning: Samme brøk kan vises med unødvendigt forskellige tekstformer.
+- Prioritet: Mellem
+- Status: Ny
 
-Visuel browserverifikation af BF-003, BF-004, BF-008 og BF-014 udestår fortsat. Det samme gælder BF-022 og
-BF-026, hvor mekanismen er dækket af tests (togglen står på den rigtige fane, bindestregen er væk), men det
-visuelle indtryk ikke er efterset.
+## BF-043 — Brøk med division med nul mangler konkret fejl-tooltip
 
-BF-005's andet symptom (rækken slettes ikke, når alle dens indtastninger fortrydes) er IKKE reproduceret
-selvstændigt. Det blev efterprøvet på tre måder — history-algebraen, en integrationstest med beløbscelle og en
-med datocelle — og rækken blev slettet hver gang. Rækkeoprettelsen ER promoveringen, og undo er LIFO, så det
-sidste undo i en række fjerner altid rækken; invarianten er nu pinnet af en test på en række med flere
-indtastninger efter en fuld undo/redo-rundtur. Symptomet var af brugeren beskrevet som betinget af den
-fejlagtige fokustilstand, rettelsen fjerner. Optræder det igen, er den mest lovende hypotese en spuriøs
-history-frame fra en blur-commit, når den fokuserede celle unmountes uden fokusrestore (jf. `restoreFocusFlag`).
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Brøk`
+- Sådan fremprovokeres det:
+  1. Indtast `1/0`.
+  2. Afslut feltet.
+- Det sker: Værdien bliver en generisk formatfejl uden konkret besked om division med nul.
+- Det bør ske: `1/0` skal bevares som fejltekst med rød ring og tooltip, der konkret forklarer, at nævneren ikke må være nul.
+- Påvirkning: Brugeren får ikke en præcis forklaring på, hvorfor brøken er ugyldig.
+- Prioritet: Mellem
+- Status: Ny
+
+## BF-044 — Manglende Beregning-advarsel ved manglende ménafgørelsesdato
+
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → `Dato for første ménafgørelse`
+- Sådan fremprovokeres det:
+  1. Sæt `Varige mén-afgørelse` til `Ja`.
+  2. Lad `Dato for første ménafgørelse` stå tom, eller slet datoen igen.
+  3. Gå til Beregning-siden.
+- Det sker: Når togglen står på `Ja`, og datoen mangler, fremkommer der ikke den forventede samlede advarsel på Beregning-siden.
+- Det bør ske: Manglende dato skal give en ikke-blokerende gul advarsel på Beregning-siden. Selve datofeltet skal forblive tomt uden rød ring.
+- Påvirkning: Brugeren mangler en tydelig påmindelse om den ufuldstændige ménafgørelsesoplysning, selv om forholdet ikke skal blokere beregningen.
+- Prioritet: Mellem
+- Status: Ny
+
+## BF-045 — Hjælpe-datofelter har afvigende opsætning
+
+- Type: Fejl
+- Sted: Erstatningsopgørelse → Offentlige ydelser → `Indsæt maksimal sygedagpengesats for perioden`, fra-dato og til-dato
+- Sådan fremprovokeres det:
+  1. Åbn `Indsæt maksimal sygedagpengesats for perioden`.
+  2. Klik på et af hjælpe-datofelterne.
+- Det sker: Datoindholdet er venstrestillet i stedet for centreret som i de fleste andre datofelter. Felterne er desuden ikke opsat som de øvrige datofelter, hvilket blandt andet viser sig ved, at et klik åbner editoren i stedet for at give feltet fokus.
+- Det bør ske: Hjælpe-datofelterne skal være centrerede og følge den almindelige opsætning for datofelter. Et klik skal give feltet fokus uden at åbne editoren på den afvigende måde.
+- Påvirkning: Datofelterne ser og opfører sig anderledes end tilsvarende datofelter i programmet.
+- Prioritet: Mellem
+- Status: Ny
+
+## BF-046 — Procentfelter tillader punktum
+
+- Type: Fejl
+- Sted: Procentfelter generelt, observeret i Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Procent`
+- Sådan fremprovokeres det:
+  1. Åbn et procentfelt.
+  2. Indtast et punktum.
+- Det sker: Punktum accepteres og vises som en del af indtastningen.
+- Det bør ske: Procentfelter må kun acceptere cifre og komma. Procentfelter, der undtagelsesvist tillader negative værdier, skal desuden acceptere minus-tegn. Øvrige specialtegn skal afvises.
+- Påvirkning: Procentfelter kan modtage tegn, der ikke er en del af det forventede inputformat. Fundet er observeret i forligsprocentfeltet, men kan være et centralt problem, der rammer flere felter.
+- Prioritet: Høj
+- Status: Ny
+
+## BF-047 — Inaktive afkrydsningsfelter viser ikke ren visning
+
+- Type: Fejl
+- Sted: Afkrydsningsfelter, der gøres inaktive af programmet
+- Sådan fremprovokeres det:
+  1. Udfyld eller vælg et afkrydsningsfelt.
+  2. Bring sagen i en tilstand, hvor programmet gør afkrydsningsfeltet inaktivt.
+- Det sker: Det inaktive afkrydsningsfelt viser ikke nødvendigvis ren visning uden rettehak, samtidig med at den oprindelige værdi skal bevares.
+- Det bør ske: Et afkrydsningsfelt, der er gjort inaktivt af programmet, skal vises uden rettehak som ren visning. Den oprindelige værdi skal bevares, så den vises igen, hvis programmet senere gør afkrydsningsfeltet aktivt.
+- Påvirkning: Den visuelle visning kan afvige fra den ønskede inaktive tilstand, eller den oprindelige brugerindstilling kan gå tabt, når feltet midlertidigt gøres inaktivt.
+- Prioritet: Mellem
+- Status: Ny
+
+## BF-049 — Manglende gul advarsel ved manglende endelig EET-dato
+
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → `Dato for endelig erhvervsevnetabsafgørelse` og `Virkningsdato (hvis forskellig fra afgørelsesdatoen)`
+- Sådan fremprovokeres det:
+  1. Sæt `Endeligt EET-afgørelse` til `Ja`.
+  2. Lad både afgørelsesdatoen og virkningsdatoen stå tomme.
+  3. Gå til Beregning-siden.
+- Det sker: Der vises ikke den forventede samlede advarsel om, at der mangler en dato.
+- Det bør ske: Der skal vises en ikke-blokerende gul advarsel på Beregning-siden, når begge datoer mangler. Ingen af de to felter skal få rød ring alene på grund af den manglende værdi.
+- Påvirkning: Brugeren mangler en tydelig påmindelse om den ufuldstændige endelige EET-oplysning, uden at forholdet skal blokere beregningen.
+- Prioritet: Mellem
+- Status: Ny
+
+## BF-050 — Helbredsforhold-feltet vises ikke
+
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → Svie- og smertegodtgørelse → `Helbredsforhold`
+- Sådan fremprovokeres det:
+  1. Åbn EO-oplysninger-fanen.
+  2. Se sektionen for svie- og smertegodtgørelse.
+- Det sker: `Helbredsforhold` vises ikke som et inputfelt, selv om feltet findes i datamodellen med valgmulighederne `Sygemeldt`, `Delvist Sygemeldt` og `Raskmeldt`.
+- Det bør ske: Feltet skal vises efter de tidligere afklarede regler: valgfrit uden direkte feltfejl, men med samlet Beregning-fejl hvis svie- og smertegodtgørelse er relevant og feltet mangler. Det skal understøtte de almindelige dropdown-regler.
+- Påvirkning: Brugeren kan ikke indtaste helbredsforholdet, og den gemte/beregnede sag kan derfor mangle en oplysning, som er afklaret som relevant i bestemte tilfælde.
+- Prioritet: Høj
+- Status: Ny
+
+## BF-051 — Tømt svie-/smerterække fjernes ikke automatisk
+
+- Type: Fejl
+- Sted: Erstatningsopgørelse → EO oplysninger → Svie- og smertegodtgørelse → svie-/smerte-tabellen
+- Sådan fremprovokeres det:
+  1. Udfyld en svie-/smerterække.
+  2. Slet Fra-dato, Til-dato og Tilstand, så rækken igen er helt tom.
+  3. Se tabellen og Beregning-siden.
+- Det sker: Den tidligere eksisterende række fjernes ikke automatisk, men kan blive stående som tom række.
+- Det bør ske: En helt tom række skal ikke give fejl, heller ikke på Beregning-siden, og rækken skal fjernes
+  automatisk, så der kun står én tom trailing-række tilbage.
+- Påvirkning: Tabellen kan indeholde overflødige tomme rækker og afvige fra den aftalte række-livscyklus.
+- Prioritet: Mellem
+- Status: Ny

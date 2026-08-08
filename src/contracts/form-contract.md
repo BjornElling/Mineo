@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-08
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
 Denne kontrakt beskriver den gældende arkitektur. Der findes ingen parallel inputmodel, ingen
@@ -301,9 +301,10 @@ tegnfilter — heller ikke en korrekt en. En literal er en anden samtidig sandhe
 kunne tastes i et felt, der ikke må være negativt. Håndhævet af
 `input/sign-policy-from-descriptor`.
 
-Politikken gælder **indtastning**, ikke repræsentation. §8's regel står uændret: `parseForSettle` er
-fortegns-blind, og paste bevarer et indsat minus, så en negativ værdi der NÅR frem — fx fra en tolerant
-`.eo`-load — committes canonical og bærer sit røde bounds-issue frem for at få fortegnet stille fjernet.
+Politikken gælder almindelig tastning og paste. Paste skal først følge codecets almindelige tegnfilter: et minus,
+som feltet ville afvise ved tastning, springes over, mens paste fortsætter. En negativ værdi, der allerede kommer
+fra en tolerant `.eo`-load, er en anden vej end brugerens tastning og committes canonical med sit røde bounds-issue
+frem for at få fortegnet stille fjernet.
 
 Beløbsfelter er den ene bevidste nuance: `-` er også subtraktion i et udtryk (`5000-200`), så et ikke-negativt
 beløbsfelt tillader tegnet og blokerer kun det **unære** minus.

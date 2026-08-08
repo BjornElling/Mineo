@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-08
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
 implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den — se §10 og
@@ -87,13 +87,14 @@ Krav:
 7. En korrekt formateret tal-, år- eller ugeværdi, som kan valideres af det persisterede Zod-schema, bliver canonical
    input. Feltets aktive min/max samt kronologiske og tværgående domænegrænser hører til rene validatorer/projektioner
    og må ikke samtidig implementeres som rejection i settle-policyen.
-8. Paste bevarer mest muligt input efter én regel: normalisér feltets tilladte format, og afskær derefter fra højre
-   til det længste præfiks, som feltets format, præcision og cifferloft kan rumme. Heltalsfelter
-   fjerner separatoren og hele decimaldelen uden afrunding; decimalaktiverede felter bevarer decimaler op til deres
-   præcision. Tilladte beløbsoperatorer bevares som udtryk. Samme normalisering bruges på formular- og tabeloverfladen.
-9. Dato-paste håndhæver formatets komponentgrænser (dag 1–31 og måned 1–12) med samme præfiksregel. Kronologiske
-   min/max-datobounds er en bevidst undtagelse: de må ikke afskære paste, fordi afkortning af årsdelen kan flytte datoen
-   til et andet århundrede og dermed forvanske brugerens værdi. De bounds forbliver afledte issues efter settle.
+8. Paste behandles tegn for tegn som almindelig tastning fra samme startposition. Et tegn, som codecet ville afvise,
+   springes over, men paste fortsætter med næste tegn. Præcision-, ciffer- og længdegrænser håndhæves undervejs;
+   overskydende tegn springes over. Et resultat, der stadig er formatmæssigt ugyldigt, bevares som rejected råtekst
+   ved settle i stedet for at blive tavst afkortet til en anden gyldig værdi. Samme regel bruges på formular- og
+   tabeloverfladen.
+9. Dato-paste bruger samme tegn-for-tegn-regel. Separatorer normaliseres efter datofeltets formatregel, gentagne
+   separatorer afvises, og paste fortsætter. Kronologiske min/max-datobounds må ikke afskære paste; de forbliver
+   afledte issues efter settle, mens formatmæssigt ugyldige kalenderdatoer bevares som rejected råtekst.
 
 ### Lag D — surface-adaptere
 
