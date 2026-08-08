@@ -1,86 +1,63 @@
-# Mineo runtime-input-audit — status
+# Mineo robustheds- og adfærdsaudit — status
 
 ## Auditstatus
 
-- Samlet status: I gang
-- Senest opdateret: 2026-08-01 20:33 Europe/Copenhagen
-- Seneste session: AUDIT-2026-08-01-02
-- Commit/build: c694d13df783d9b269f6f0a194802e8c655b29b1 / 2026.08.1196.c694d13
-- Dirty-state: Auditdokumenter samt brugerbestilt ændring af audit-skillens stopregel; ingen produktkode
-- Browser: Chromium via playwright-cli 0.1.17
-- Senest afsluttet scenarie: SURF-004-S09 — afgørelsesdatoer på skadedato/beregningsdato og modeafhængige skæringer
-- Næste scenarie og starttilstand: SURF-004-S10 — FS tilbageholdt EET, genoptagelse og kapitaliseringsdato
+- Samlet status: Ikke startet
+- Aktuel auditpass: —
+- Senest opdateret: —
+- Seneste session: —
+- Commit/build: —
+- Dirty-state: —
+- Senest afsluttede scenarie: —
+- Næste scenarie og starttilstand: Inventér global shell og navigation fra ren, tom sag
 - Aktive blokeringer: Ingen
+- Uafklarede spørgsmål: Se `QUESTIONS.md`
 
 ## Dækningsforklaring
 
-En række er først `Dækket`, når alle registrerede inputpartitioner, settle-måder, branches, afhængighedsovergange og relevante downstream-forbrugere er udført. Nye flader og kanter tilføjes, når kildekodeinventaret udvides.
+En række er først `Dækket`, når alle registrerede brugerhandlinger, inputpartitioner, settle-måder, branches, afhængighedsovergange, relevante downstream-forbrugere og understøttede browsere/viewports er håndteret. Nye flader, implementationssteder, kanter og skæringer tilføjes, når kildekode- eller kontraktinventaret udvides. En række med uafklaret forventet adfærd er `Afventer afklaring` og tæller ikke som dækket.
 
-### Seneste scenarie — SURF-004-S07
+## Browser- og viewportmatrix
 
-På den gendannede to-rækkes EET-sag blev `Slet alt` kørt to gange med bekræftelse; Stamdata blev tom, og EET viste kun de to tomme standardrækker uden stale data. Den fulde `.eo`-backup blev derefter indlæst gentagne gange, og begge afgørelser blev bevaret.
-
-En gyldig krypteret fil med ukendt felt og ukendt sektion viste preflight med `2 af 4` felter indlæst og `2` sat til standardværdi. `Stop og gør intet` bevarede den eksisterende sag. `Indlæs trods fejl` efterfulgt af `Overskriv` indlæste kendte felter og satte de ukendte til standardværdier. En separat gyldig fil med en ugyldig `renteberegning`-sektion viste konkret `sectionDropped`-årsag; efter fortsat load blev Stamdata indlæst, mens Renteberegning stod med tomme standardfelter.
-
-Efter fuld recovery og F5 var begge EET-afgørelser igen til stede. Console havde `0` fejl og `0` warnings; requests viste ingen dynamiske eller eksterne requests. Fallback file picker-advarslerne er kontrollerede testforhold og ikke produktfund. Der blev ikke fundet crash eller ny observation.
-
-### Seneste scenarie — SURF-004-S08
-
-Skadedatoen blev flyttet fra `01-01-2020` til `01-01-2022`. EET viste derefter konkrete dynamiske grænser (`01-01-2022`–`31-12-2026`) og konkrete fejl på afgørelser/kapitalisering før skadedatoen; Løbende ydelser viste samme upstream-fejl og fjernede PDF-gaten. Ved skadedato `01-01-2021` var en afgørelse på selve skadedagen accepteret, mens 2020-afgørelsen fortsat var blokeret.
-
-Skadedatoen blev gendannet til `01-01-2020`. Beregningsdatoens præcise maksimum `31-12-2026` blev accepteret, warnings om afgørelser efter beregningsdato forsvandt, og PDF-gaten var aktiv. Efter recovery til beregningsdato `01-01-2020` var den kendte warning-tilstand tilbage, med aktiv PDF-gate. Efter F5 var state intakt, console `0` fejl/`0` warnings og ingen dynamiske eller eksterne requests. Ingen crash eller ny observation.
-
-### Seneste scenarie — SURF-004-S09
-
-Beregningsdato blev sat til `31-12-2020`. En afgørelse på selve beregningsdatoen gav ingen efter-dato-warning og bevarede aktiv PDF-gate; samme afgørelse flyttet til `01-01-2021` gav de to konkrete ikke-blokerende warnings om afgørelsesdato og virkningsdato efter beregningsdato, mens PDF-gaten fortsat var aktiv.
-
-Den midlertidige afgørelse blev skiftet til `Endelig` uden ekstra blokering ved EET `50 %`. Ved EET `45 %` viste downstream den konkrete kryds-rækkefejl om, at EET-procenten ikke kan være lavere end den akkumulerede kapitaliseringsprocent fra tidligere afgørelser. Afgørelsen blev gendannet til `50 %`/`Midlertidig`, beregningsdato til `01-01-2020`, og efter F5 var begge rækker canonicalt intakte. Console var `0` fejl/`0` warnings og ingen dynamiske eller eksterne requests. Ingen crash eller ny observation.
+| Browser | Minimum 1920×1080 | Større desktop-viewport | Seneste baseline | Dækningshul/fund |
+|---|---|---|---|---|
+| Chrome | Ikke startet | Ikke startet | — | — |
+| Edge | Ikke startet | Ikke startet | — | — |
+| Safari | Ikke startet | Ikke startet | — | — |
 
 ## Fladeinventar
 
-| ID | Route / side / fane / flade | Felter og handlinger | Branches og skæringer | Afhængigheder / downstream | Status | Evidens / mangler | Fund |
-|---|---|---|---|---|---|---|---|
-| SURF-001 | Global shell og navigation | Synlig loginformular; sidemenu: Stamdata, Erstatningsopgørelse, Erhvervsevnetab, Varige mén, Forsørgertab, Årslønsberegning, Renteberegning, Satser; værktøjer: Gem, Hent, Slet alt, hamburger, Indstillinger, Om | auth-gate; root-redirect; 404; route-lazy-load; side-/fane-navigation; global save/load/reset; overlay/dialog; ErrorBoundary; bugrapport; devtools-notice; keyboard traversal | routing, re-render, sessionStorage for menu, input-runtime, critical actions, file flows | I gang | Login, alle 10 routes, Gem/Hent/Slet alt, Tab-cirkulation, root-redirect begge veje, 404, ekstern trafik-/console-orakel besøgt uden systemsignal. Hamburger, links, devtools/error-boundary og fuld global handling mangler | — |
-| SURF-002 | Stamdata | Journalnr.; advokat; sagsbehandler; skadelidtes navn; fødselsdato; skadestype; skadedato | datoformat-/kalenderissues; skadetypevalg; datoafledte grænser | validering, afledte datoissues, persistence, dokumenter | I gang | Whitespace/Unicode tekstsettle, ugyldige datoer, dropdownvalg, Tab-cirkulation, gemmeblokering, sideskift og F5 gennemført uden systemsignal. Grænser, paste, Escape/Delete, skæringsdatoer og downstream-dokument mangler | — |
-| SURF-003 | Erstatningsopgørelse | EO-oplysninger med tekst, dato, valg, toggle, radio, kommentarer og tabeller; faner: EO oplysninger, Lønindkomst, Offentlige ydelser, Beregning | Schema/feltdefinitioner skal inventeres | validering, beregning, kontrol, dokumentgate, PDF, persistence | I gang | `SURF-003-S05` dækket: ren browserbaseline/login; Stamdata `EO-001`, `AB`, `CD`, `Test Person`, `01-01-1980`, `Arbejdsulykke`, `01-01-2020`; EO nummer `1`, periode `01-01-2020`–`31-01-2020`, opgørelsesdato `01-02-2020`, helbred `Raskmeldt`, arbejdssituation `Fuldt arbejdsdygtig`, svie/TAF/øvrige krav `Nej`; Beregning viste ingen fejl, PDF-download lykkedes. `SURF-003-S06` dækket: `Vedrører periode fra` ændret til `31-02-2020` og Enter-settled; feltet viste rød fejl/tooltip, Beregning viste den konkrete fejl, PDF-knappen blev disabled; efter rettelse til `01-01-2020` blev Beregning aktiv igen. `SURF-003-S07` dækket: et åbent draft i `+ evt. ledsagetekst` blev bevaret ved faneskift, faneskift settlede draften, Beregning kunne læse den afsluttede værdi, og Escape på en ny ændring gendannede startværdien. `SURF-003-S08` dækket: et nyt ansættelsesforhold blev oprettet; første Måned-række blev udfyldt med måned `1`, år `2019` og løn `10.000,00 kr.`; rækken blev vist i Beregning, og downstream-PDF blev genereret. `SURF-003-S09` dækket: samme række blev skiftet Måned→Uge→Dato; en delvis række kunne vises i Beregning uden systemsignal, Dato-rækken blev udfyldt med `01-01-2020`–`31-01-2020`, og downstream-PDF blev genereret. `SURF-003-S10` dækket: første ydelsesrække blev udfyldt med `01-01-2020`–`31-01-2020` og `5.000,00 kr.`; uden ydelsestype viste Beregning den konkrete fejl og disabled PDF, efter valg af `Sygedagpenge` blev `22` arbejdsdage og `227,27 kr.` per dag vist, og downstream-PDF blev genereret. `SURF-003-S11` dækket: gyldig periode `01-01-2020`–`31-01-2020` blev brugt i funktionen for maksimal sygedagpengesats; `Indsæt` opdelte ydelsesrækken i tre beregnede delperioder med viste beløb, og Beregning/PDF fungerede fortsat. Ingen console/page-fejl og ingen ekstern trafik. EO-felt-, tabel-, persistence- og skæringsmatrix mangler. Næste arbejdsenhed: `SURF-004-S01` — Erhvervsevnetab | — |
-| SURF-004 | Erhvervsevnetab | EET oplysninger: beregningsdato, ASL/EAL-årsløn, EET-procent, ASL-afgørelsestabel med otte celletyper; Løbende ydelser; Kapitalisering; EET efter EAL; Differencekrav med bilagsvalg, toggles og forligsfelter | Schema/feltdefinitioner, afgørelsestypegrene og aktive dataskæringer | validering, beregning, dokumentgate, fire PDF’er, persistence, faneskift | I gang | `SURF-004-S01` dækket: frisk sag med Stamdata `EO-001`, `AB`, `CD`, `Test Person`, `01-01-1980`, `Arbejdsulykke`, `01-01-2020`; EET beregningsdato `01-01-2020`, ASL/EAL-årsløn `300.000 kr.`, én endelig afgørelse `01-01-2020`/`01-01-2020`/`50 %`/`50 %`, EAL-EET `50 %`; alle fem faner viste resultater; fire EET-PDF’er downloadede; ASL-placeholder blev promoveret og fik slet-handling; bilagsvalg, udvidet specifikation, begge differencekrav-toggles og forlig `25 %` med dato blev committet og vist uden systemsignal. `SURF-004-S02` dækket: ugyldig kalenderdato `31-02-2020` på beregningsdato og Afgørelsesdato, ugyldigt beløb `abc`, EET-procent `3` på både EAL- og ASL-felt, parsebar dato under dynamisk min (`01-01-2000` og `31-12-2019`), præcis beregningsdato-max `31-12-2026`, rejected input bevaret gennem faneskift, og upstream-fejl blokerede Løbende ydelser med konkret fejl og uden PDF-gate. `SURF-004-S03` dækket: persisted række blev slettet og gendannet med `Control+z`; `Control+y` slettede den igen; en placeholder blev promoveret til en anden række og beholdt værdier gennem mode-skift `Midlertidig`/`Endelig`; den ekstra række blev slettet igen. Tab/Shift+Tab, Enter/Shift+Enter, piletaster, Escape-draftannullering og Backspace-immediate-commit med undo blev gennemført. `SURF-004-S04` dækket: tre udfyldte afgørelser blev oprettet i rækkefølgen 2020/2022/2021 med endelig/midlertidig/endelig; downstream viste dem kronologisk 2020/2021/2022, og alle fire dokumentfaner renderede uden systemsignal med warnings som ikke-blokerende. To identiske afgørelser gav konkret fejl, fjernede PDF-knappen, og recovery gendannede den aktive downloadgate. `SURF-004-S05` dækket: to afgørelser blev gemt som verificeret `.eo`-artefakt i `test-results/runtime-input-audit/SURF-004-S05.eo`; efter ændring af anden afgørelsesdato gendannede Hent + Overskriv den gemte dato og begge rækker. F5 bevarede begge canonical rækker, og rejected `31-02-2021` overlevede F5; Gem blev blokeret med konkret besked og uden at ændre state. `SURF-004-S06` dækket: ugyldig tekstfil med `.eo`-endelse gav eksplicit load-fejl, mens eksisterende to-rækkesag forblev uændret; `Stop og gør intet` bevarede en bevidst ændring efter valid preflight. En gyldig minimal `.eo` med kun `MIN-001` indlæstes uden at fejle på manglende sektioner og gav tomme EET-defaultfelter; fuld backupfil gendannede derefter begge afgørelser. `SURF-004-S07` dækket: to reset-passager og gentaget fuld load bevarede ikke stale data; ukendt felt/sektion gav preflight `2 af 4` indlæst og `2` sat til standardværdi, `Stop og gør intet` var atomisk, og `Indlæs trods fejl` + `Overskriv` indlæste kendte felter. En ugyldig `renteberegning`-sektion gav konkret `sectionDropped`-årsag og tomme standardfelter på Renteberegning. `SURF-004-S08` dækket: skadedato `01-01-2020`→`01-01-2022` gav dynamiske min/max-fejl på EET-input og konkrete upstream-blokeringer; ved skadedato `01-01-2021` var afgørelsen på selve skadedagen accepteret; beregningsdato-max `31-12-2026` var accepteret og fjernede efter-dato-warnings, og recovery til `01-01-2020` gendannede known warning-/download-tilstanden. `SURF-004-S09` dækket: beregningsdato `31-12-2020` accepterede same-day-afgørelse med aktiv PDF-gate, mens `01-01-2021` gav to konkrete ikke-blokerende after-date-warnings; `Endelig`-skift ved EET 50 % bevarede PDF-gate, og EET 45 % gav konkret kryds-række-fejl om akkumuleret kapitaliseringsprocent. Recovery/F5 gendannede begge rækker; console var 0 fejl/0 warnings uden dynamiske eller eksterne requests. Fallback save/load blev brugt, fordi den headless browser ikke kan håndtere native File System Access-pickere; de kontrollerede fallback-advarsler er ikke produktfund. `OBS-001` er fortsat bekræftet: skift Endelig → Midlertidig bevarede udfyldt Kap.dato/Kap.% som røde, irrelevante felter | OBS-001 |
-| SURF-005 | Varige mén | Méngrad, beregningsdato; faner: Ménberegning, Satser | Schema/feltdefinitioner skal inventeres | validering, beregning, dokumentgate, PDF, persistence | I gang | Initialt DOM-/feltinventar gennemført; route-load uden console.error. Matrix mangler | — |
-| SURF-006 | Forsørgertab | Beregningsdato, ASL/EAL-felter, modtagere og beregning; ingen faner i initialt DOM | Schema/feltdefinitioner skal inventeres | validering, beregning, dokumentgate, PDF, persistence | I gang | Initialt DOM-/feltinventar gennemført; route-load uden console.error. Matrix mangler | — |
-| SURF-007 | Årslønsberegning | Lønperiode-radio, tillægstype, procentfelter, løntabel og beregning | Schema/feltdefinitioner skal inventeres | validering, beregning, opslag, dokumentgate, PDF, persistence | I gang | Initialt DOM-/feltinventar gennemført; route-load uden console.error. Matrix mangler | — |
-| SURF-008 | Renteberegning | Beregningsdato, renteperiode, kravtabel og kommentarer; faner: Beregning, Rentesatser | Schema/feltdefinitioner skal inventeres | validering, beregning, dokumentgate, PDF, persistence | I gang | Ugyldigt beløb/dato, ekstremt tillægstal, enhedsskift Dage→Uger, række-slet/undo/redo og begge faner gennemført uden systemsignal. Skæringer, dokument og persistence mangler | — |
-| SURF-009 | Satser | Årstal og satsvisning/download | år-/satsgrænser skal inventeres | opslag, afledninger, persistence | I gang | Initialt DOM-/feltinventar gennemført; route-load uden console.error. Matrix mangler | — |
-| SURF-010 | Indstillinger | Tema-radio, dropdown og settings-toggles | settings-schema skal inventeres | theme, startside, session/persistence | I gang | Initialt DOM-/feltinventar gennemført; route-load uden console.error. Matrix mangler | — |
-| SURF-011 | Om | Dokumentationsafsnit, MIT-modal, kontakt/GitHub-links, startside-toggle | — | render, overlays, linkhandlinger | I gang | Initialt DOM-/feltinventar gennemført; route-load uden console.error. Link- og modalhandlinger mangler | — |
+| ID | Route / side / fane / flade | Felter og handlinger | Forventningsgrundlag | Branches og skæringer | Afhængigheder / downstream | Status | Evidens / mangler | Fund / spørgsmål |
+|---|---|---|---|---|---|---|---|---|
+| SURF-001 | Global shell og navigation | Skal inventeres | Skal afstemmes mod kontrakter og kode | Skal inventeres | routing, re-render, global handling | Ikke startet | — | — |
 
 ## Afhængighedskanter
 
-| ID | Styrende input | Afhængigt input/tilstand | Forbruger | Påkrævede sekvenser | Status | Evidens / mangler | Fund |
+| ID | Styrende input | Afhængigt input/tilstand | Forbruger | Påkrævede sekvenser | Status | Evidens / mangler | Fund / spørgsmål |
 |---|---|---|---|---|---|---|---|
-| EDGE-001 | Skal inventeres | Skal inventeres | Skal inventeres | A→B→C; B→A→C; ændr; ryd; mode-retur | Ikke startet | — | — |
-| EDGE-002 | Global navigation | Aktivt felt/editor | critical-action coordinator og route | åben draft → sideskift; rejected input → sideskift; faneskift | I gang | Rejected input overlevede sideskift/F5; unsaved beforeunload-dialog blev håndteret ved stateful navigation. Åben draft, Escape efter navigation og fuld fanesekvens mangler | — |
-| EDGE-003 | Global filhandling | afsluttet canonical/rejected input | save/load/reset, overlay og navigation | Gem/Hent/Slet alt fra tom, delvis, ugyldig sag | I gang | Gem tom sag, Hent-filechooser, Slet alt med rejected/row-state og save-block ved invalid gennemført uden systemsignal. Faktisk fil-load/preflight/round-trip mangler | — |
-| EDGE-004 | Global tastatur | fokuseret felt, popup eller tabel | Container/grid navigation | Tab, Shift+Tab, Enter, Shift+Enter, Escape, Delete/Backspace, piletaster | I gang | Tab-cirkulation uden selection og rentekrav undo/redo gennemført. Enter, Shift+Tab/Enter, Escape, Delete/Backspace, popup- og tabelpilnavigation mangler | — |
+| EDGE-001 | Skal inventeres | Skal inventeres | Skal inventeres | A→B→C; B→A→C; ændr; ryd; mode-retur; navigation; save/load | Ikke startet | — | — |
 
 ## Skæringspunkter
 
-| ID | Kilde | Styrende værdi | Gren før / på / efter | Berørte felter og forbrugere | Status | Evidens / mangler | Fund |
+| ID | Kilde | Styrende værdi | Gren før / på / efter | Berørte felter og forbrugere | Status | Evidens / mangler | Fund / spørgsmål |
 |---|---|---|---|---|---|---|---|
 | CUT-001 | Skal inventeres | Skal inventeres | dag -1 / dag 0 / dag +1 | Skal inventeres | Ikke startet | — | — |
 
+## Parallelle implementationssteder
+
+| ID | Concern / brugerhandling | Flader eller kodekilder | Sammenlignede scenarier | Status | Evidens / forskelle | Fund / spørgsmål |
+|---|---|---|---|---|---|---|
+| PAR-001 | Skal inventeres | Skal inventeres | Skal inventeres | Ikke startet | — | — |
+
+## Dækningshuller
+
+Registrér konkrete manglende browsere, viewports, rækker, kilder, artefakter eller afklaringer. Alvor ændrer ikke gennemgangens rækkefølge.
+
+| ID | Hul | Berørte rækker | Årsag | Næste handling |
+|---|---|---|---|---|
+| GAP-001 | Skal inventeres | — | — | — |
+
 ## Sessionslog
 
-| Session | Tidspunkt | Commit/build og dirty-state | Arbejdsenhed | Afsluttet | Næste | Nye fund |
+| Session | Tidspunkt | Commit/build, dirty-state, browser og viewport | Arbejdsenhed | Afsluttet | Næste | Nye fund/spørgsmål |
 |---|---|---|---|---|---|---|
-| AUDIT-2026-08-01-02 | 2026-08-01 20:33 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; auditdokumenter + brugerbestilt audit-skillændring, ingen produktkode | SURF-004-S09 — afgørelsesdatoer på skadedato/beregningsdato og modeafhængige skæringer | Beregningsdatoens same-day/after-day-grænse, aktiv warning-gate, `Endelig`-skift og kryds-række-fejl ved EET 45 %, recovery/F5 | SURF-004-S10 — FS tilbageholdt EET, genoptagelse og kapitaliseringsdato | Ingen |
-| AUDIT-2026-08-01-02 | 2026-08-01 20:27 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; auditdokumenter + brugerbestilt audit-skillændring, ingen produktkode | SURF-004-S08 — skæringsdatoer, dynamiske grænser og downstream-recovery på EET | Skadedato 2020→2022→2021→2020, dynamiske min/max-fejl, skadedagsgrænse, upstream-gate, beregningsdato-max og fuld recovery/F5 | SURF-004-S09 — afgørelsesdatoer på skadedato/beregningsdato og modeafhængige skæringer | Ingen |
-| AUDIT-2026-08-01-02 | 2026-08-01 20:20 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; auditdokumenter + brugerbestilt audit-skillændring, ingen produktkode | SURF-004-S07 — unknown fields, delvise sektioner og gentaget load/reset | Gentaget `Slet alt`, gentaget fuld load, ukendt felt/sektion med preflight og atomisk cancel, ugyldig sektion med `sectionDropped`, fuld recovery og F5 | SURF-004-S08 — skæringsdatoer, dynamiske grænser og downstream-recovery på EET | Ingen |
-| AUDIT-2026-08-01-02 | 2026-08-01 20:05 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; auditdokumenter + brugerbestilt audit-skillændring, ingen produktkode | SURF-004-S06 — preflight-fejl, atomisk load og gammel/ufuldstændig `.eo` | Ugyldig fil, load-cancel, minimal fil med manglende sektioner, fuld recovery og efterfølgende F5 | SURF-004-S07 — unknown fields, delvise sektioner og gentaget load/reset | Ingen |
-| AUDIT-2026-08-01-02 | 2026-08-01 19:59 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; auditdokumenter + brugerbestilt audit-skillændring, ingen produktkode | SURF-004-S05 — save/load, F5 og genindlæsning af flere afgørelser | Verificeret `.eo`-save/load af to afgørelser, overwrite, F5 canonical/rejected, save-gate og recovery | SURF-004-S06 — preflight-fejl, atomisk load og gammel/ufuldstændig `.eo` | Ingen |
-| AUDIT-2026-08-01-02 | 2026-08-01 19:49 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; auditdokumenter + brugerbestilt audit-skillændring, ingen produktkode | SURF-004-S04 — fler-rækkeskæringer, kronologi og downstream-gates | Tre afgørelser med out-of-order input, kronologisk downstream-projektion, fire dokumentfaner, duplicate-row blocking og recovery | SURF-004-S05 — save/load, F5 og genindlæsning af flere afgørelser | Ingen |
-| AUDIT-2026-08-01-02 | 2026-08-01 19:44 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; auditdokumenter + brugerbestilt audit-skillændring, ingen produktkode | SURF-004-S03 — ASL-rækkelivscyklus, mode-/afhængighedsskift og keyboard | Række-slet/undo/redo, placeholder-promotion, afgørelsestypeovergange, Tab/Enter/piletaster, Escape, Backspace/undo | SURF-004-S04 — fler-rækkeskæringer, kronologi og downstream-gates | Ingen |
-| AUDIT-2026-08-01-02 | 2026-08-01 19:36 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; auditdokumenter + brugerbestilt audit-skillændring, ingen produktkode | SURF-004-S02 — ugyldige formater, bounds, rejected-navigation, downstream-gate og afgørelsestypeafvigelse | SURF-004-S01, EET-felter, tabelceller, konkrete bounds/tooltips, tabskift med rejected input, downstream-fejlvisning | SURF-004-S03 — ASL-rækkelivscyklus, mode-/afhængighedsskift og keyboard | OBS-001 |
-| AUDIT-2026-08-01-02 | 2026-08-01 19:30 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; auditdokumenter + brugerbestilt audit-skillændring, ingen produktkode | SURF-004-S01 — frisk gyldig EET-sag, komplet fane-/PDF-smoke, tabelpromotion, bilagsvalg, toggles og forligsfelter | Stamdata-baseline, EET-inventar, EET-oplysninger, alle fem faner, fire PDF-downloads, immediate toggles, forligsprocent/dato | SURF-004-S02 — ugyldige formater, bounds og recovery på EET-oplysninger | Ingen |
-| AUDIT-2026-08-01-02 | 2026-08-01 19:18 Europe/Copenhagen | c694d13 / 2026.08.1196.c694d13; kun auditdokumenter og testartefakt | SURF-003-S05–S11 — minimal EO-sag, rejected dato, draft/navigation, lønindkomst og offentlige ydelser | Baseline/login, Stamdata, EO-felter, Beregning, PDF-download, invalid/recovery, faneskift/Escape, Måned/Uge/Dato, ydelsesrække, validering, indsættelse/opdeling og downstream-PDF | SURF-004-S01 — Erhvervsevnetab | Ingen |
-| AUDIT-2026-08-01-01 | 2026-08-01 17:38 Europe/Copenhagen | 9a8da818 / 2026.08.1194.9a8da81; kun auditdokumenter og testartefakt | Global shell, route-load, Stamdata/EO/rente/settings/state-smoke | Login, routes, reset/save/Hent, invalid input, navigation/F5, tabs, toggles/radioer, add/delete, undo/redo, redirect/404 | SURF-003-S05 — minimale gyldige Stamdata og første downstream-beregning | Ingen |
-| AUDIT-2026-08-01-01 | 2026-08-01 17:23 Europe/Copenhagen | 9a8da818 / 2026.08.1194.9a8da81; kun auditdokumenter og testartefakt | Global shell, route-load, Stamdata input/state-smoke | Login, routes, reset/save/Hent, dropdown, invalid input, navigation/F5, keyboard traversal | SURF-003-S01 — EO-faner fra ren sag | Ingen |
-| AUDIT-2026-08-01-01 | 2026-08-01 17:08 Europe/Copenhagen | 9a8da818 / 2026.08.1194.9a8da81; kun docs/testing/runtime-input-audit/ er nye | Kodeinventar for global shell/navigation | Routes, menuitems, globale handlinger og relevante orakler identificeret | SURF-001-S01 browserbaseline og global shell-smoke fra ren session | — |

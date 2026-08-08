@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mineo interaktionsaudit"
+  short_description: "Find og dokumentér fejl i hele brugerinteraktionen"
+  default_prompt: "Brug $mineo-interaction-audit til autonomt at fortsætte Mineos systematiske interaktionsaudit."

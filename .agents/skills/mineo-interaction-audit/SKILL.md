@@ -1,9 +1,9 @@
 ---
-name: mineo-runtime-crash-audit
+name: mineo-interaction-audit
 description: Udfør og genoptag en autonom, vedvarende og systematisk robustheds- og adfærdsaudit af Mineo. Gennemgå hele brugerens interaktion med alle sider, felter, tabeller, valg, overlays, navigationer, undo/redo-, save/load- og dokumentforløb på tværs af understøttede browsere; afprøv happy paths, ugyldige, delvise, ekstreme og grænserelaterede input samt kombinationer og tilstandsskift; find og registrér runtimefejl, datatab, inkonsistent eller kontraktstridig brugeradfærd, mistænkelig parallel logik og uafklaret forventet adfærd uden at rette produktet.
 ---
 
-# Mineo robustheds- og adfærdsaudit
+# Mineo interaktionsaudit
 
 Arbejd autonomt, reproducerbart og checkpointet. Målet er den bedst mulige systematiske dækning af hele den brugerobserverbare adfærd og dens afhængigheder — ikke en påstand om, at en endelig kørsel kan bevise fravær af enhver fremtidig fejl.
 
@@ -37,12 +37,12 @@ En endelig auditpass er ikke en garanti om, at alle fremtidige sekvenser er afpr
 
 1. Fastlæg repo-roden med `git rev-parse --show-toplevel`, og arbejd derfra.
 2. Læs repoets `AGENTS.md`, hele `src/contracts/contract-topology.json`, alle relevante kontrakter og den komplette projektlokale `playwright-cli`-skill før browserstyring.
-3. Kør `node .agents/skills/mineo-runtime-crash-audit/scripts/init-audit-workspace.mjs .` ved opstart eller genoptagelse. Scriptet overskriver aldrig eksisterende auditdokumenter og opretter manglende `QUESTIONS.md`.
+3. Kør `node .agents/skills/mineo-interaction-audit/scripts/init-audit-workspace.mjs .` ved opstart eller genoptagelse. Scriptet overskriver aldrig eksisterende auditdokumenter og opretter manglende `QUESTIONS.md`.
 4. Læs [references/audit-method.md](references/audit-method.md) helt før første auditkørsel og igen, når inventaret eller en ny afhængighedsklynge planlægges.
 5. Læs altid `STATUS.md`, `CRASHES.md`, `OBSERVATIONS.md` og `QUESTIONS.md` helt eller målrettet med `rg`, hvis de er lange. Åbne fund og ubesvarede spørgsmål skal forstås, før nye scenarier vælges.
 6. Kontrollér `git status --short`, aktuel commit og buildversion. Behandl eksisterende ændringer som brugerens og rør dem ikke.
 7. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
-8. Dæk browserne Chrome, Edge og Firefox med minimum 1920×1080. Brug mindst den definerede minimumsviewport og en større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
+8. Dæk browserne Chrome, Edge og Safari med minimum 1920×1080. Brug mindst den definerede minimumsviewport og en større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
 9. Markér arbejdsenheden `I gang`, og skriv det konkrete næste scenarie og den nødvendige starttilstand, før browserarbejdet begynder.
 
 ## Arbejdscyklus
@@ -69,7 +69,7 @@ For hver arbejdsenhed skal auditten kunne svare på:
 
 ### 2. Byg og gennemfør scenariomatricen
 
-Brug partitioner og grænseanalyse fra [references/audit-method.md](references/audit-method.md). Hver relevant kombination skal afprøves på Chrome, Edge og Firefox ved de definerede viewports. En browser må kun stå som ikke-kørt, hvis den konkret er utilgængelig; det registreres som et dækningshul.
+Brug partitioner og grænseanalyse fra [references/audit-method.md](references/audit-method.md). Hver relevant kombination skal afprøves på Chrome, Edge og Safari ved de definerede viewports. En browser må kun stå som ikke-kørt, hvis den konkret er utilgængelig; det registreres som et dækningshul.
 
 Dæk mindst:
 
