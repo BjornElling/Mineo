@@ -6,6 +6,10 @@ allowed-tools: Bash(playwright-cli:*) Bash(npx:*) Bash(npm:*)
 
 # Browser Automation with playwright-cli
 
+## Headless-standard i Mineo
+
+Playwright CLI kører headless som standard. Ved Mineo-audits skal denne standard altid bevares: udelad `--headed`, og brug ikke `show --annotate` eller attach til en synlig browser. Snapshots, screenshots, traces og video kan stadig optages headless. Hvis et scenarie kræver en platformdialog eller anden synlig browseradfærd, registreres det som et dækningshul i stedet for at åbne et vindue automatisk. En headed-kørsel må kun bruges efter en udtrykkelig brugerbesked.
+
 ## Quick start
 
 ```bash
