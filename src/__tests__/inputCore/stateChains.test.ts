@@ -412,7 +412,7 @@ const CHAINS: readonly Chain[] = [
     steps: [
       {
         /**
-         * `enhed = 'uger'` gør tillaegstid irrelevant. En GYLDIG værdi BEVARES (§10-kriterium 14):
+         * `enhed = 'uger'` gør tillaegstid irrelevant. Værdien BEVARES (§5-kriterium 14):
          * canonical, visning og fravær af issue står UÆNDRET på tværs af skjulningen.
          *
          * **Consumerstatus er bevidst `ready` her, ikke `blocked`.** Readeren gater ikke på relevans —
@@ -420,9 +420,13 @@ const CHAINS: readonly Chain[] = [
          * om den er relevant for netop dens beregning ([[project_field_visibility_single_source]]). En
          * kerne, der skjulte værdien for ALLE consumers, ville gøre det umuligt for en consumer med en
          * anden relevansregel end feltets visningsregel at læse den — og ville dermed være §1.10's
-         * overblokering i kernen. Relevansen har derimod ÉN synlig konsekvens her: feltissuet.
-         * Skjulningen fjerner et aktivt rødt issue (næste kæde), fordi et usynligt felt ikke må bære en
-         * rød markering, brugeren ikke kan finde.
+         * overblokering i kernen.
+         *
+         * Relevansen har ÉN konsekvens for en GYLDIG værdi, og det er ingen: den består urørt. Bar feltet
+         * derimod en aktiv RØD fejl, ryddes det tavst med valget (§7.5 pkt. 2) — se næste kæde. Grunden er
+         * ikke, at reglen ophører, men at en rød fejl brugeren ikke kan SE, ikke kan rettes; efterlod vi
+         * den, kunne den blokere `.eo`-save eller en beregning fra et usynligt felt. Derfor bærer et
+         * irrelevant felt aldrig et aktivt issue: det skjulte er tavst, FORDI det er ryddet.
          */
         label: 'skjul (enhed → uger) bevarer den gyldige værdi uændret',
         run: (state) => apply(state, setImmediateField(enhedField.bind(ROW), 'uger')),
@@ -454,8 +458,15 @@ const CHAINS: readonly Chain[] = [
         expected: aspects(999, undefined, '999', 'bounds', 'consumer-blokeret', 3, 1, 0),
       },
       {
-        // Skjules feltet, RYDDES den fejlende værdi atomisk med det styrende valg (§10-kriterium 14) —
-        // modsat den gyldige værdi i kæden ovenfor. Feltissuet forsvinder med den.
+        /*
+         * Skjules feltet, RYDDES den fejlende værdi atomisk med det styrende valg (§5-kriterium 14, §7.5
+         * pkt. 2) — modsat den GYLDIGE værdi i kæden ovenfor, som bevares. Forskellen er hele reglen: en
+         * rød fejl, brugeren ikke kan SE, kan ikke rettes og må derfor ikke blive stående og blokere.
+         *
+         * Feltissuet forsvinder med værdien. Consumeren er derimod fortsat blokeret — men nu af `missing`
+         * (den KRÆVER feltet), ikke af en usynlig rød fejl. Det er den rigtige blokering: den peger på et
+         * manglende krav, som brugeren kan opfylde, i stedet for på en fejl i et felt, der ikke kan ses.
+         */
         label: 'skjul (enhed → uger) rydder den fejlende værdi',
         run: (state) => apply(state, setImmediateField(enhedField.bind(ROW), 'uger')),
         expected: aspects(undefined, undefined, '', undefined, 'consumer-blokeret', 4, 2, 0),

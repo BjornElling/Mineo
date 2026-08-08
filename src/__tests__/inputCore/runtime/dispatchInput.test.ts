@@ -539,8 +539,8 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
   });
 });
 
-describe('dispatchInput — styrende valg rydder nu-irrelevant fejl (§1.9/§3.6)', () => {
-  it('setImmediateField der gør et felt med aktiv bounds-fejl irrelevant rydder canonical som ét trin; bevarer gyldigt nabofelt', () => {
+describe('dispatchInput — styrende valg rydder skjult+rødt som ét trin (§1.9/§3.6/§7.5)', () => {
+  it('setImmediateField der gør et felt med aktiv bounds-fejl skjult rydder canonical som ét trin; bevarer gyldigt nabofelt', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
     dispatchInput(store, catalog, settleField(belobField.bind('r1'), '500'), { now: 2 });
     // '999' > max 100 committes canonical (999) med en rød bounds-feltfejl (§1.6).
@@ -551,11 +551,12 @@ describe('dispatchInput — styrende valg rydder nu-irrelevant fejl (§1.9/§3.6
     dispatchInput(store, catalog, setImmediateField(enhedField.bind('r1'), 'uger'), { now: 4 });
 
     const input = store.getState().input;
-    // §3.6 trin 5: en canonical bounds-værdi, der bliver irrelevant, ryddes til tomværdien.
+    // §7.5 pkt. 2: en canonical bounds-værdi, brugeren ikke længere kan SE, ryddes til tomværdien — ellers
+    // blokerede den en afhængig beregning fra et skjult felt. Et gyldigt nabofelt bevares.
     expect(canonical(input, tillaegstidField.bind('r1'))).toBeUndefined();
     expect(rejectedAt(input, tillaegstidField.bind('r1'))).toBeUndefined();
     expect(canonical(input, belobField.bind('r1'))).toBeDefined(); // bevaret
-    expect(store.getState().history.past.length).toBe(4); // netop ét history-trin for valget
+    expect(store.getState().history.past.length).toBe(4); // netop ét history-trin for valg + rydning
   });
 });
 

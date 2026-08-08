@@ -702,7 +702,7 @@ Integrationstests dækker form og grid ens for:
 11. Tomhed giver aldrig rød feltfejl og blokerer aldrig `.eo`.
 12. Missing kan blokere en afhængig beregning eller et dokument gennem contentboxen.
 13. Warning blokerer aldrig beregning, dokument eller `.eo`.
-14. Gyldigt skjult brugerinput bevares; fejlende skjult input ryddes atomisk med det styrende valg.
+14. Gyldigt skjult brugerinput bevares; skjult input med rød fejl ryddes atomisk med det styrende valg.
 15. Uafhængige beregninger og dokumenter overblokeres ikke.
 16. En blokeret ny revision viser ikke et tidligere resultat som gyldigt.
 17. Rækkeprojektioner isolerer andre rækker; aggregater inkluderer alle valgte rækker.

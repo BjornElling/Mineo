@@ -115,7 +115,10 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
     });
   });
 
-  it('rydder kun afvist input, når et periodeskift gør cellen irrelevant', () => {
+  it('rydder kun afvist input, når et periodeskift gør cellen irrelevant (§7.5 pkt. 2)', () => {
+    // Undtagelsen i praksis på en produktionsdescriptor: råteksten i dag-kolonnen ville efter et skift til
+    // måned blokere `.eo`-save globalt (§8) fra en celle, brugeren ikke længere kan se. Den ryddes derfor
+    // tavst med valget. Havde cellen båret en GYLDIG dato, var den blevet bevaret (hovedreglen).
     let input = dispatch(empty(), insertRow(tableRef, createEmptyStandardLoenRow('r1')));
     input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'dag'));
     input = dispatch(input, settleField(aarsloenTableCol0DagField.bind('r1'), 'ugyldig'));
@@ -125,6 +128,25 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
     input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'maaned'));
     expect(input.rejectedInputs[address]).toBeUndefined();
     expect(evaluate(input).reader.read(aarsloenTableCol0DagField.bind('r1'))).toMatchObject({ status: 'usable' });
+  });
+
+  it('BEVARER en gyldig celle, når samme periodeskift gør den irrelevant (§7.5 hovedregel)', () => {
+    // Kontrasttesten til ovenstående, og den der beviser, at rydningen er betinget af den RØDE FEJL — ikke
+    // blot af at cellen bliver skjult. Uden denne kunne rydningen udvides til alle skjulte celler, uden at
+    // nogen test blev rød.
+    let input = dispatch(empty(), insertRow(tableRef, createEmptyStandardLoenRow('r1')));
+    input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'dag'));
+    input = dispatch(input, settleField(aarsloenTableCol0DagField.bind('r1'), '15-01-2020'));
+
+    input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'maaned'));
+    // Værdien består skjult i den canonical sektion ...
+    expect(input.sections.aarsloen?.tableData?.[0]?.col0_dag).toBe('2020-01-15');
+    // ... og kommer uændret til syne igen ved skift tilbage.
+    input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'dag'));
+    expect(evaluate(input).reader.read(aarsloenTableCol0DagField.bind('r1'))).toMatchObject({
+      status: 'usable',
+      value: '2020-01-15',
+    });
   });
 
   it('afviser schema-gyldige, men codec-ugyldige strengværdier fra tolerant load', () => {

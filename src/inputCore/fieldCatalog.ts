@@ -157,9 +157,16 @@ export type InputCatalog = Readonly<{
   getEntityId: <TEntity>(collection: CollectionRef, entity: TEntity) => string;
   /** Alle konkrete feltinstanser i den aktuelle tilstand (statiske + pr. række). Bruges af issue-snapshot og `.eo`-gate. */
   listFieldInstances: (sections: PersistedInputSections) => readonly AnyFieldRef[];
-  /** Katalog-afhængig envelope-validering: struktur + XOR + inputdrevet eksistens (§3.1). */
+  /**
+   * Katalog-afhængig envelope-validering: struktur + XOR + inputdrevet eksistens + relevans-invarianten
+   * på rejected input (§3.1, §7.5 pkt. 2): en færdig tilstand må ikke bære rejected råtekst i et skjult
+   * felt, da den ville blokere `.eo`-save usynligt.
+   */
   validateSettledInput: (candidate: SettledInputCandidate) => SettledInput;
-  /** Reducer-intern før/efter-validering, før ny-irrelevante rejected inputs er ryddet. */
+  /**
+   * Samme validering UDEN relevans-invarianten. Kun til reducerens før/efter-læsning af relevans i det
+   * øjeblik, hvor de nu-skjulte felter endnu ikke er ryddet. Ingen anden kalder må bruge den.
+   */
   validateSettledInputBeforeRelevanceCleanup: (candidate: SettledInputCandidate) => SettledInput;
   /**
    * Materialiserer alle afledte skrivninger i kandidaten (§3.6). Kaldes af reduceren for HVER command, så
@@ -459,6 +466,13 @@ export const createInputCatalog = (options: Readonly<{
         || !deepEqual(reparsed.detail, rejected.detail)) {
         throw new Error(`SettledInput: rejected input matcher ikke feltets codec (${serialized})`);
       }
+      // Relevans-invarianten (§7.5 pkt. 2): en FÆRDIG tilstand må ikke bære rejected råtekst i et skjult
+      // felt. Råtekst blokerer `.eo`-save globalt (§8), så en skjult rejection ville spærre save fra et felt,
+      // brugeren hverken kan se eller rette. `reduceImmediateChoice` rydder derfor netop de felter, et valg
+      // gør skjulte, og denne invariant BEVISER, at rydningen er komplet.
+      //
+      // Den er slået fra i ét enkelt kald: `validateSettledInputBeforeRelevanceCleanup`, som reduceren
+      // bruger til at LÆSE efter-relevansen, netop før den rydder. Der er tilstanden lovligt mellemliggende.
       if (enforceRejectedRelevance) {
         const entityIds = address.path
           .filter((segment): segment is Extract<FieldAddressPathSegment, { kind: 'entity' }> => segment.kind === 'entity')
@@ -474,9 +488,6 @@ export const createInputCatalog = (options: Readonly<{
     return cloneAndDeepFreeze(structural) as SettledInput;
   };
 
-  const validateSettledInput = (candidate: SettledInputCandidate): SettledInput =>
-    validateSettledInputCandidate(candidate, true);
-
   return Object.freeze({
     resolveField,
     resolveFieldLocation,
@@ -490,7 +501,7 @@ export const createInputCatalog = (options: Readonly<{
     reorderEntities,
     getEntityId,
     listFieldInstances,
-    validateSettledInput,
+    validateSettledInput: (candidate) => validateSettledInputCandidate(candidate, true),
     validateSettledInputBeforeRelevanceCleanup: (candidate) =>
       validateSettledInputCandidate(candidate, false),
   });

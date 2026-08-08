@@ -71,7 +71,13 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
 /**
  * Bygger det immutable feltissue-snapshot fra afsluttet input. Rejected råtekst giver et `format`-issue;
  * canonical validatorer giver bounds/rule-issues (fx en out-of-bounds-værdi, der forbliver gembar i `.eo`).
- * Irrelevante felter giver aldrig et aktivt issue (§1.9). Mounted komponenter indgår aldrig.
+ * Mounted komponenter indgår aldrig.
+ *
+ * Irrelevante (= skjulte, §7.3) felter giver aldrig et aktivt issue (§1.9): en rød markering, brugeren ikke
+ * kan se, kan hverken rettes eller retfærdiggøres. Det gælder BEGGE fejlformer, og det er netop derfor
+ * `reduceImmediateChoice` RYDDER et felt, som et valg skjuler, mens det bar en rød fejl (§7.5 pkt. 2) —
+ * ellers ville en skjult rejection blokere `.eo`-save globalt (§8) uden et felt at pege på. Rydningen og
+ * denne tavshed er to halvdele af samme regel: det skjulte er tavst, FORDI det er ryddet.
  */
 export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCatalog): FieldIssueSet => {
   const issues: FieldIssue[] = [];

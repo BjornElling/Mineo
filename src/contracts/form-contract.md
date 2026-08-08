@@ -212,13 +212,36 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    settings-ændring.
 3. Synlighed og beregningsrelevans udledes af samme domæneprædikat.
 4. Skjult canonical input bevares gennem F5 og `.eo`, medmindre brugeren eksplicit sletter det.
-5. Når et styrende valg gør et felt med en **aktiv rød feltfejl** irrelevant, ryddes feltet i samme transaktion som
-   valget — én typed domænecommand, ét history-trin. Reglen er dependency-specifik og gælder uanset, om fejlen er
-   rejected råtekst eller en canonical bounds-/rule-fejl: begge ville ellers efterlade en usynlig rød fejl, som
-   blokerede `.eo`-save eller en afhængig beregning uden et synligt felt at rette den i.
-6. Et skjult canonical felt UDEN aktiv rød feltfejl bevares altid. Bliver det relevant igen, vises den samme værdi.
-   Rydningen i punkt 5 er derfor afgrænset til netop overgangen `relevant → irrelevant` for et felt, der havde en
-   rød fejl i før-snapshottet — ikke til skjulte værdier i almindelighed.
+5. **Hovedregel: et brugervalg sletter aldrig brugerens indtastninger.** Kun kontroller, der over for
+   brugeren er udtrykkeligt navngivet som slettende — `Slet alt`, `Slet række`, Delete/Backspace på et
+   fokuseret felt — fjerner indtastet data. Et valg, der gør et andet felt irrelevant (fx Afgørelsestype
+   `Endelig` → `Midlertidig`, `Tillæg angives som` procent → beløb, en skiftet Lønperiode), ændrer derfor
+   **kun vurderingen** af det felt: en **gyldig** værdi består uændret, feltets issues genudledes rent fra
+   det nye snapshot, og skiftes valget tilbage, kommer værdien uændret til syne igen. Et valg må ikke være
+   en skjult sletteknap.
+
+   **Undtagelse — den usynlige røde fejl:** bar feltet en **aktiv rød feltfejl**, og gør valget feltet
+   irrelevant (= skjult, punkt 3), ryddes feltet **tavst** i samme transaktion som valget — én typed
+   domænecommand, ét history-trin. Undtagelsen gælder begge fejlformer: rejected råtekst (format) såvel som
+   en canonical out-of-bounds-/rule-værdi.
+
+   Begrundelsen er ikke, at reglen ophører med at gælde for det skjulte felt; den er, at **en rød fejl,
+   brugeren ikke kan se, ikke kan rettes.** Uden rydningen kunne en ugyldig indtastning blokere
+   `.eo`-save (§8) eller en afhængig beregning fra et felt, brugeren hverken kan finde eller fikse. Undo
+   gendanner både valget og den ryddede værdi som ét trin, så handlingen er fuldt reversibel.
+
+   Afgrænsningen er snæver med vilje. Rydningen rammer netop overgangen **synlig + rød → skjult** — ikke
+   gyldige værdier, og ikke skjulte værdier i almindelighed.
+
+6. **Et skjult felt UDEN aktiv rød feltfejl bevares altid** — gennem F5 og `.eo`. Bliver det relevant igen,
+   vises den samme værdi. Sammen med punkt 5 giver det én konsistent regel: skjult og gyldigt bevares;
+   skjult og rødt ryddes.
+
+   Derfor bærer et irrelevant felt **aldrig** et aktivt issue (§1.9, §10). Det er ikke en undertrykkelse af
+   en fejl, der stadig findes: det skjulte felt er tavst, **fordi** det er ryddet. De to halvdele —
+   rydningen i punkt 5 og tavsheden her — skal derfor ændres sammen, aldrig hver for sig. Håndhæves af
+   relevans-invarianten i `validateSettledInput`, som afviser en færdig tilstand med rejected råtekst i et
+   skjult felt.
 
 ## 8. Format, bounds og save-gate
 

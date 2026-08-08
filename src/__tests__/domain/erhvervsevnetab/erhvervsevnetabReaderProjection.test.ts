@@ -269,6 +269,70 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     }
   });
 
+  it('OBS-001: skift Endelig → Midlertidig bevarer kapitaliseringsfelterne og GENUDLEDER deres fejl', () => {
+    // Auditfund OBS-001. Kravet er TODELT, og begge dele er load-bearing:
+    //
+    //  1. Værdierne BEVARES. Et skift af afgørelsestype er et almindeligt valg, ikke en sletteknap (§7.5
+    //     hovedregel). Rydnings-UNDTAGELSEN i §7.5 pkt. 2 rammer ikke her: den forudsætter, at valget gør
+    //     feltet SKJULT (en `relevance`-regel på descriptoren), og kapitaliseringsfelterne forbliver
+    //     synlige ved `Midlertidig`. Fejlen kan derfor ses og rettes, og så skal data blive stående.
+    //  2. Fejlvurderingen FØLGER valget. Kapitaliseringsreglerne er afgørelsestype-afhængige, så de
+    //     genudledes rent fra det nye snapshot — ikke fra det gamle.
+    //
+    // Det var netop punkt 2, auditten så: rækken blev stående med to røde kapitaliseringsfelter. Den røde
+    // markering er efter reglerne KORREKT (en midlertidig afgørelse må ikke bære kapitaliseringsdata), og
+    // beskeden siger præcis det. Testen pinner derfor, at fejlen er den NYE regels — og at den forsvinder
+    // igen, når typen skifter tilbage.
+    const rowWithType = (afgoerelseType: 'Endelig' | 'Midlertidig') => ({
+      ...validErhvervsevnetab,
+      aslAfgoerelser: [
+        {
+          id: 'eet_asl_obs001',
+          // Datoerne ligger EFTER `validStamdata.skadedato` (2024-07-01), så ingen anden datoregel kommer
+          // først. Testen skal isolere netop afgørelsestype-reglerne.
+          afgoerelsesDato: toISODateString('2024-08-01'),
+          virkningsDato: toISODateString('2024-08-01'),
+          eetPct: 50,
+          kapDato: toISODateString('2024-08-01'),
+          kapPct: 50,
+          afgoerelseType,
+          tidlKapDato: undefined,
+          fsTilbageholdtEet: 'Nej' as const,
+        },
+      ],
+    });
+
+    const messagesFor = (afgoerelseType: 'Endelig' | 'Midlertidig'): readonly string[] => {
+      const projection = buildErhvervsevnetabReaderProjection(
+        buildReader(rowWithType(afgoerelseType), validFaellesAarsloen, validStamdata)
+      );
+      // Værdierne står uændret i BEGGE tilstande — det er hele punkt 1.
+      const row = projection.aslAfgoerelserCommittedRows[0];
+      expect(row?.kapDato).toBe(toISODateString('2024-08-01'));
+      expect(row?.kapPct).toBe(50);
+      return projection.aslAfgoerelserRuleIssues.all.map((issue) => issue.message);
+    };
+
+    // Endelig 50 % med kap. 50 % er en fuldt gyldig række: ingen kapitaliseringsfejl.
+    const endeligMessages = messagesFor('Endelig');
+    expect(endeligMessages).not.toContain(
+      'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.'
+    );
+    expect(endeligMessages).not.toContain(
+      'Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.'
+    );
+
+    // Midlertidig med de SAMME bevarede værdier: nu gælder de to regler, så fejlene opstår — af den nye
+    // afgørelsestype, ikke som en rest fra den gamle.
+    const midlertidigMessages = messagesFor('Midlertidig');
+    expect(midlertidigMessages).toContain(
+      'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.'
+    );
+    expect(midlertidigMessages).toContain(
+      'Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.'
+    );
+  });
+
   it('fører en canonical beregningsdato-bounds-feltfejl (før skadedato) ind som field-beregningsdato på de afhængige faner (§1.6/§1.10)', () => {
     // En beregningsdato FØR skadedato er uden for dynamisk min → readeren skjuler værdien og rejser en rød bounds-
     // feltfejl. computeEetSnapshot aftager field-beregningsdato på løbende ydelser, EET efter EAL og differencekrav.

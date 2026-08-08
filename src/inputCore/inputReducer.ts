@@ -288,7 +288,28 @@ const removeRejectedBelowEntity = (
   }));
 };
 
-/** §3.6 fast før/efter-procedure for et styrende valg: commit + atomisk oprydning af nu-irrelevante feltfejl. */
+/**
+ * §3.6: et styrende valg committer sit eget felt og rydder ÉN snæver klasse af felter med det.
+ *
+ * **Hovedreglen (§7.5):** et valg må ikke slette brugerens indtastninger. Kun eksplicit slettende
+ * kontroller — `Slet række`, `Slet alt`, Delete/Backspace på et fokuseret felt — fjerner data, og de er
+ * alle navngivet som netop det over for brugeren. Et valg, der skjuler et felt, ændrer derfor kun
+ * VURDERINGEN af det: værdien består, dens issues genudledes fra det nye snapshot, og den kommer uændret
+ * til syne igen, hvis valget skiftes tilbage.
+ *
+ * **Undtagelsen (§7.5 pkt. 2):** bar feltet en AKTIV RØD FEJL i før-snapshottet, og gør valget det
+ * irrelevant (= skjult, §7.3), ryddes feltet tavst i samme transaktion — ét history-trin. Begrundelsen er
+ * ikke, at reglen ikke længere gælder; den er, at en rød fejl brugeren ikke kan SE, ikke kan rettes.
+ * Uden rydningen kunne en ugyldig indtastning blokere `.eo`-save fra et skjult felt, og brugeren ville
+ * hverken kunne finde eller fikse den. Rydningen gælder BEGGE fejlformer:
+ *
+ *   - rejected råtekst (formatfejl) — blokerer save globalt (§8), og
+ *   - en canonical out-of-bounds-/rule-værdi — blokerer afhængige beregninger og dokumenter.
+ *
+ * Afgrænsningen er snæver med vilje: et skjult felt UDEN rød fejl bevares altid (§7.6). Rydningen rammer
+ * altså netop overgangen `synlig+rød → skjult`, ikke skjulte værdier i almindelighed. Undo gendanner
+ * både valget og den ryddede værdi som ét trin, så handlingen er fuldt reversibel.
+ */
 const reduceImmediateChoice = <T>(
   input: SettledInput,
   field: FieldRef<T>,
@@ -299,7 +320,9 @@ const reduceImmediateChoice = <T>(
   const beforeReader = createValidationReader(input, catalog);
   const beforeIssues = deriveFieldIssueSet(beforeReader, catalog);
   const beforeFields = catalog.listFieldInstances(input.sections);
-  const beforeRelevant = new Map(beforeFields.map((f) => [serializeFieldAddress(f.address), beforeReader.isRelevant(f)]));
+  const beforeRelevant = new Map(
+    beforeFields.map((f) => [serializeFieldAddress(f.address), beforeReader.isRelevant(f)])
+  );
 
   // 2. Anvend valget på kandidaten.
   assertWritable(input, field, catalog);
@@ -320,14 +343,16 @@ const reduceImmediateChoice = <T>(
 
   for (const beforeField of beforeFields) {
     const key = serializeFieldAddress(beforeField.address);
-    const wasRelevant = beforeRelevant.get(key) === true;
-    if (!wasRelevant) continue;
+    if (beforeRelevant.get(key) !== true) continue;
     // Feltet kan være slettet i kandidaten (bør ikke ske ved et rent valg), så guard eksistens.
     if (!catalog.containsAddressEntities(candidate.sections, beforeField.address)) continue;
-    const nowIrrelevant = !afterReader.isRelevant(beforeField);
-    if (!nowIrrelevant) continue;
-    // 5. Ryd feltet HVIS OG KUN HVIS det havde en aktiv rød feltfejl i før-snapshottet.
+    if (afterReader.isRelevant(beforeField)) continue;
+    // 5. Ryd HVIS OG KUN HVIS feltet bar en aktiv rød feltfejl, brugeren nu ikke længere kan se.
     if (activeFieldIssue(beforeIssues, key) === undefined) continue;
+    // Rydningen fjerner BÅDE den canonical værdi OG en eventuel rejected råtekst: `withCanonicalValue`
+    // dropper adressens rejected-post som del af samme skrivning. Blev råteksten efterladt, ville den
+    // blokere `.eo`-save globalt (§8) fra et skjult felt — præcis den usynlige blokering, undtagelsen
+    // findes for at forhindre.
     candidate = withCanonicalValue(candidate, beforeField, beforeField.descriptor.emptyValue);
   }
 

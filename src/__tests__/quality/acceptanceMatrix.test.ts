@@ -300,13 +300,14 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
   },
   {
     criterion: 14,
-    title: 'Gyldigt skjult brugerinput bevares; fejlende skjult input ryddes atomisk med det styrende valg.',
+    title: 'Gyldigt skjult brugerinput bevares; skjult input med rød fejl ryddes atomisk med det styrende valg.',
     sources: [
       {
         file: 'src/__tests__/inputCore/inputCore.test.ts',
         tests: [
-          'rydder et felt, der bliver irrelevant OG havde en aktiv rød bounds-fejl',
+          'rydder et felt, der bliver skjult OG havde en aktiv rød bounds-fejl',
           'bevarer en GYLDIG værdi, der bliver irrelevant',
+          'rydder rejected råtekst, når valget skjuler feltet',
         ],
       },
       {

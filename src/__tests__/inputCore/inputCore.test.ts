@@ -35,6 +35,7 @@ import {
 } from '../../inputCore';
 import { projectEoSave } from '../../persistence/eoSaveProjection';
 import { createValidationReader, deriveFieldIssueSet } from '../../inputCore/inputReader';
+import { activeFieldIssue } from '../../inputCore/inputIssue';
 import {
   createTestCatalog,
   aargangField,
@@ -97,7 +98,7 @@ describe('SettledInput XOR-invariant (§1.5, §2.1)', () => {
     })).toThrow(/ikke-tom canonical/);
   });
 
-  it('afviser rejected råtekst, der ikke matcher feltets codec eller aktuelle relevans', () => {
+  it('afviser rejected råtekst, der ikke matcher feltets codec', () => {
     const address = serializeFieldAddress(tillaegstidField.bind('r1').address);
     const sections = {
       ...empty().sections,
@@ -107,14 +108,35 @@ describe('SettledInput XOR-invariant (§1.5, §2.1)', () => {
       sections,
       rejectedInputs: { [address]: { raw: '999', reason: 'format' } },
     })).toThrow(/matcher ikke feltets codec/);
+  });
 
-    expect(() => catalog.validateSettledInput({
-      sections: {
-        ...sections,
-        renteberegning: { ...sections.renteberegning, rentekravRows: [makeRow('r1', { enhed: 'uger' })] },
+  it('AFVISER en færdig tilstand med rejected råtekst i et skjult felt (§7.5 pkt. 2)', () => {
+    // Relevans-invarianten er det, der BEVISER, at `reduceImmediateChoice`s rydning er komplet: en skjult
+    // rejection ville blokere `.eo`-save globalt (§8) fra et felt, brugeren hverken kan se eller rette.
+    const address = serializeFieldAddress(tillaegstidField.bind('r1').address);
+    const sections = {
+      ...empty().sections,
+      renteberegning: {
+        beregningsdato: undefined,
+        kommentarer: undefined,
+        rentekravRows: [makeRow('r1', { enhed: 'uger' })], // gør tillaegstid irrelevant
       },
+    };
+    expect(() => catalog.validateSettledInput({
+      sections,
       rejectedInputs: { [address]: { raw: 'abc', reason: 'format' } },
     })).toThrow(/ikke relevant/);
+
+    // Reducerens egen før/efter-læsning har brug for præcis den mellemtilstand, invarianten afviser —
+    // derfor den ene undtagelsesvej. Ingen anden kalder må bruge den.
+    const intermediate = catalog.validateSettledInputBeforeRelevanceCleanup({
+      sections,
+      rejectedInputs: { [address]: { raw: 'abc', reason: 'format' } },
+    });
+    expect(intermediate.rejectedInputs[address]?.raw).toBe('abc');
+    // Og selv i mellemtilstanden er det skjulte felt tavst: issuet hører til det synlige (§1.9).
+    const issues = deriveFieldIssueSet(createValidationReader(intermediate, catalog), catalog);
+    expect(activeFieldIssue(issues, address)).toBeUndefined();
   });
 
   it('ugyldigt settle af tom tekst er umuligt — codec resolver tom som canonical tomværdi', () => {
@@ -239,10 +261,15 @@ describe('Immediate commit og clear (§1.3)', () => {
   });
 });
 
-describe('Styrende valg rydder nu-irrelevante feltfejl, bevarer gyldigt (§1.9, §3.6)', () => {
-  // '999' > max 100 er efter kravændringen 2026-07-18 IKKE rejected: værdien committes canonical (999) og bærer
-  // en rød bounds-feltfejl (§1.6). Et styrende valg, der gør feltet irrelevant, skal rydde BÅDE rejected råtekst
-  // OG en canonical bounds-værdi (§3.6 trin 5).
+describe('Styrende valg: gyldigt bevares, skjult+rødt ryddes (§1.9, §3.6, §7.5)', () => {
+  // §7.5's todelte regel. Hovedreglen: et valg er ikke en sletteknap — en GYLDIG værdi består, også når
+  // valget skjuler feltet. Undtagelsen: bar feltet en aktiv RØD fejl, og skjuler valget det, ryddes feltet
+  // tavst, fordi en rød fejl brugeren ikke kan SE, ikke kan rettes — og ellers kunne blokere `.eo`-save
+  // eller en beregning fra et usynligt felt.
+  //
+  // '999' > max 100 er efter kravændringen 2026-07-18 IKKE rejected: værdien committes canonical (999) og
+  // bærer en rød bounds-feltfejl (§1.6). Undtagelsen dækker BEGGE fejlformer — canonical bounds/rule OG
+  // rejected råtekst.
   const seedRowWithBoundsTillaegstid = (): State => {
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
     state = apply(state, settleField(belobField.bind('r1'), '500')); // gyldig, skal bevares
@@ -255,7 +282,7 @@ describe('Styrende valg rydder nu-irrelevante feltfejl, bevarer gyldigt (§1.9, 
     return read.status === 'error' && read.issue.reason === 'bounds';
   };
 
-  it('rydder et felt, der bliver irrelevant OG havde en aktiv rød bounds-fejl; bevarer det gyldige nabofelt', () => {
+  it('rydder et felt, der bliver skjult OG havde en aktiv rød bounds-fejl; bevarer det gyldige nabofelt', () => {
     const seeded = seedRowWithBoundsTillaegstid();
     // Værdien er canonical, men bag en rød bounds-feltfejl (ikke rejected råtekst).
     expect(rejectedAt(seeded.input, tillaegstidField.bind('r1'))).toBeUndefined();
@@ -266,20 +293,44 @@ describe('Styrende valg rydder nu-irrelevante feltfejl, bevarer gyldigt (§1.9, 
     const chosen = apply(seeded, setImmediateField(enhedField.bind('r1'), 'uger'));
 
     const validation = createValidationReader(chosen.input, catalog);
-    expect(validation.readCanonical(tillaegstidField.bind('r1'))).toBeUndefined(); // canonical bounds-værdi ryddet
+    // Den røde værdi er ryddet: brugeren kunne ikke have set eller rettet fejlen bag et skjult felt.
+    expect(validation.readCanonical(tillaegstidField.bind('r1'))).toBeUndefined();
     expect(rejectedAt(chosen.input, tillaegstidField.bind('r1'))).toBeUndefined();
-    expect(validation.readCanonical(belobField.bind('r1'))).toBeDefined(); // bevaret
+    // Nabofeltet er GYLDIGT og bevares — rydningen rammer kun det røde felt.
+    expect(validation.readCanonical(belobField.bind('r1'))).toBeDefined();
     expect(validation.readCanonical(enhedField.bind('r1'))).toBe('uger');
   });
 
   it('bevarer en GYLDIG værdi, der bliver irrelevant (§1.9)', () => {
+    // Hovedreglen: uden en rød fejl er der intet usynligt at rette, så værdien må ikke slettes. Den kommer
+    // uændret til syne igen, når valget skiftes tilbage.
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
     state = apply(state, settleField(tillaegstidField.bind('r1'), '50')); // gyldig
     const chosen = apply(state, setImmediateField(enhedField.bind('r1'), 'uger'));
     expect(createValidationReader(chosen.input, catalog).readCanonical(tillaegstidField.bind('r1'))).toBe(50);
+
+    const reverted = apply(chosen, setImmediateField(enhedField.bind('r1'), 'dage'));
+    expect(createValidationReader(reverted.input, catalog).readCanonical(tillaegstidField.bind('r1'))).toBe(50);
   });
 
-  it('undo/redo omkring skjul af bounds-fejl gendanner begge hele tilstande', () => {
+  it('rydder rejected råtekst, når valget skjuler feltet (ellers usynlig save-blokering §8)', () => {
+    let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
+    state = apply(state, settleField(tillaegstidField.bind('r1'), 'abc')); // format-rejected råtekst
+    expect(rejectedAt(state.input, tillaegstidField.bind('r1'))?.raw).toBe('abc');
+    // Råtekst blokerer `.eo`-save globalt — FØR valget er den synlig og kan rettes.
+    expect(projectEoSave(state.input, catalog).status).toBe('blocked');
+
+    const chosen = apply(state, setImmediateField(enhedField.bind('r1'), 'uger'));
+
+    // Råteksten er ryddet med valget: ellers ville saven være spærret af en fejl i et skjult felt.
+    expect(rejectedAt(chosen.input, tillaegstidField.bind('r1'))).toBeUndefined();
+    expect(reader(chosen.input).read(tillaegstidField.bind('r1')).status).not.toBe('error');
+    expect(projectEoSave(chosen.input, catalog).status).not.toBe('blocked');
+  });
+
+  it('undo gendanner den tavst ryddede værdi som ÉT trin — rydningen er fuldt reversibel', () => {
+    // Afgørende for at rydningen er acceptabel: den er tavs, men ikke uigenkaldelig. Valget og rydningen er
+    // ét history-trin, så én Ctrl+Z bringer BÅDE enheden og den røde værdi tilbage.
     const seeded = seedRowWithBoundsTillaegstid();
     const hidden = apply(seeded, setImmediateField(enhedField.bind('r1'), 'uger'));
     const undone = undoInputHistory(hidden.history, hidden.input);
