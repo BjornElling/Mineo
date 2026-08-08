@@ -181,6 +181,41 @@ fejl-/advarselslinks. Alle tre lokaliserer målet gennem den ENE feltidentitet i
 - Har en fejl intet enkelt ansvarligt felt (fx et overlap mellem to rækker), markeres rækkeankeret — det grovere,
   men stadig sande mål.
 
+**Hvor en regel skal bo, for at feltet kan blive rødt** (BF-028/BF-031). Rød ring og tooltip kan kun tegnes af et
+`FieldIssue`, og det bærer en strukturel `FieldRef`. En regel, der udtrykker sit mål som noget ANDET end en
+feltadresse — et tekst-path (`"svieSmertePerioder[0].fra"`) eller et kolonne-hint (`'fra' | 'til'`) — kan derfor
+aldrig markere feltet, uanset hvor korrekt den er. Den kan stadig vise sin tekst i "Fejl og advarsler" og endda
+navigere til feltet, og netop dét gør fejlmåden svær at få øje på: alt ser ud til at virke undtagen ringen.
+
+Placeringen følger, om fejlen entydigt tilhører ét felt:
+
+- **Descriptor-validator** — når reglen kan afgøres af feltet plus dets kontekst, som en `CanonicalView` kan læse
+  (fx kronologien i et dato-par, hvor modparten står i samme række). Dette er standardvalget.
+- **Projekteret `FieldIssue` fra et domænemodul**, leveret via `crossFieldIssue`/`collectionRuleIssue` — når reglen
+  kræver BEREGNEDE værdier, som ikke er canonical input. Modulet binder selv den rigtige adresse
+  (`manualRegulationDateIssues` og `tafCutoffDateIssues` er mønstret). Alternativet ville trække beregning ind i
+  valideringslaget. Et sådant modul skal hente sit grundlag fra SAMME resolver som beregningen — `tafCutoffDateIssues`
+  bruger `resolveTafCutoffDates`, netop den kilde motorens clamping læser — så fejlen aldrig kan navngive en anden
+  grænse end den, der faktisk anvendes.
+- **Række-/consumerissue uden ring** — når fejlen ikke har ét ansvarligt felt (overlap mellem rækker), eller når
+  den er tomhed (`missing`, §1.7). At farve den ene af to lovlige datoer ville udpege et vilkårligt offer.
+
+Der bygges **ikke** en oversætter fra tekst-path til feltadresse. En sådan bro ville gøre strengen til en de facto
+feltidentitet ved siden af `data-mineo-field-address` og genindføre præcis den drift, den ene identitet fjernede.
+
+En kronologiregel må desuden ikke clampe sine grænser mod modparten: gør den det, spiser bounds-reglen
+rækkefølgereglen, beskeden skifter til en intervaltekst, og hvad brugeren ser kommer til at afhænge af rækkens
+øvrige fejl. Clampingen hører til i motoren. Reglen bor i `src/inputCore/catalog/dateOrderValidators.ts`, og
+fra/til-parret dannes som ÉN enhed, så en kollektion ikke kan registreres med kun den halve markering.
+
+**Maskeringens bagside.** Readeren skjuler en værdi bag en rød feltfejl (§1.5). Det er rigtigt over for
+motorerne, men enhver ANDEN læser af de samme værdier — herunder legacy-validatoren — ser da et TOMT felt og kan
+konkludere, at værdien mangler. Resultatet er en dublet: den sande feltfejl plus en usand «mangler»-besked om et
+felt, brugeren tydeligvis har udfyldt. `suppressMaskedMissingInvariants` fjerner den usande halvdel, og den
+ligger dér, hvor de to lister mødes, fordi kriteriet er en egenskab ved PARRET: en validator kan ikke selv vide,
+om en tom værdi er brugerens tomhed eller readerens maskering. Tilføjes en ny regel, der maskerer et felt, skal
+det efterprøves, om en anden læser derved begynder at melde feltet tomt.
+
 ### 1.9 Skjulte og irrelevante felter
 
 Et input, som bliver skjult eller irrelevant ved et eksplicit styrende valg, behandles sådan i samme undo-trin som

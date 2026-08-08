@@ -153,6 +153,7 @@ import type { EoDependencyProjection } from './snapshot/eoDependencyProjection';
 import type { SvieSmerteCalculationValues } from './engines/svieSmerteEngine';
 import type { TafCalculationValues } from './engines/tafCalculationInput';
 import { collectManualRegulationDateIssues } from './manualRegulationDateIssues';
+import { collectTafCutoffDateIssues } from './tafCutoffDateIssues';
 
 // Erstatningsopgørelse-projektionen (§3.4/§5.4/§1.10). En
 // ALMINDELIG ren funktion over den offentlige `InputReader`, der erstatter `Erstatningsopgoerelse.tsx`'s revisions-
@@ -529,6 +530,8 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   stamdataErrors: FieldIssueSet;
   /** Aktiv manuel reguleringsforms strenge datoregel, adresseret direkte til de berørte datoceller. */
   manualRegulationDateIssues: FieldIssueSet;
+  /** TAF-cutoff mod differencekrav/EET, adresseret til den konkrete fra-/til-celle der overskrider grænsen. */
+  tafCutoffDateIssues: FieldIssueSet;
   // EO-dokumenterne læser `stamdataValues`, mens blokeringen sker gennem snapshottets strukturelle
   // stamdata-invarianter. Projektionen må ikke bære en ekstra, ulæst `documentStamdata`-projektion,
   // fordi den ville ligne en dependency-erklæring uden faktisk at gate outputtet.
@@ -546,7 +549,11 @@ const mergeIssues = (...sets: readonly (readonly FieldIssue[])[]): readonly Fiel
 const buildEoDependencyProjection = (
   reader: InputReader,
   aggregateEoIssues: readonly FieldIssue[],
-  manualRegulationDateIssues: readonly FieldIssue[]
+  /**
+   * Domæne-projekterede rækkeregler (manuel regulering + TAF-cutoff). De dannes efter readerens egne
+   * feltreads, men skal blokere præcis samme beregningsgren som en rød cellefejl fra descriptoren.
+   */
+  projectedRowIssues: readonly FieldIssue[]
 ): EoDependencyProjection => {
   const forlig = createTrackedInputReader(reader);
   const forligInput = {
@@ -657,7 +664,7 @@ const buildEoDependencyProjection = (
   const forligIssues = forlig.readIssues();
   // Manuel regulering er TAF-input. Collection-reglen dannes efter readerens egne feltreads, men skal
   // blokere præcis samme beregningsgren som en rød cellefejl fra descriptoren.
-  const tafIssues = mergeIssues(taf.readIssues(), manualRegulationDateIssues);
+  const tafIssues = mergeIssues(taf.readIssues(), projectedRowIssues);
   const oevrigeKravIssues = oevrigeKrav.readIssues();
   return Object.freeze({
     svieSmerteInput: {
@@ -713,14 +720,19 @@ export const buildErstatningsopgoerelseReaderProjection = (
   // `eoErrors` ovenfor er en PRÆSENTATIONS-projektion med kun 11 top-level feltnavne + løn-aggregatet; den kan
   // ikke se en rød rækkecelle, og en gate bygget på den lod motoren regne på readerens maskerede tomværdi.
   const manualRegulationDateIssueList = collectManualRegulationDateIssues(eoValues, stamdataValues);
-  const eoFieldIssues = mergeIssues(eoProjection.readIssues(), manualRegulationDateIssueList);
+  // TAF-cutoff (differencekrav + endeligt/midlertidigt EET) kan ikke ligge på descriptoren: grænsen udledes
+  // af domæneregler (klage-suspension, 2011-skæringsdatoen, virkningsdato-præcedens). Den projekteres derfor
+  // herfra med samme datogrundlag, som motorens clamping bruger, og bærer selv feltadressen.
+  const tafCutoffDateIssueList = collectTafCutoffDateIssues(eoValues, stamdataValues);
+  const projectedRowIssues = mergeIssues(manualRegulationDateIssueList, tafCutoffDateIssueList);
+  const eoFieldIssues = mergeIssues(eoProjection.readIssues(), projectedRowIssues);
   const stamdataFieldIssues = stamdataProjection.readIssues();
   const eoErrors = buildFieldIssueSet(eoFieldIssues);
   const stamdataErrors = buildFieldIssueSet(stamdataFieldIssues);
   const dependencyProjection = buildEoDependencyProjection(
     reader,
     eoFieldIssues,
-    manualRegulationDateIssueList
+    projectedRowIssues
   );
 
   const snapshot = computeEoSnapshot({
@@ -740,6 +752,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     eoErrors,
     stamdataErrors,
     manualRegulationDateIssues: buildFieldIssueSet(manualRegulationDateIssueList),
+    tafCutoffDateIssues: buildFieldIssueSet(tafCutoffDateIssueList),
     sourceToken: reader.sourceToken,
   };
 };

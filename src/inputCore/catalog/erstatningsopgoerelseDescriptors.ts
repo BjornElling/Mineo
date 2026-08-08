@@ -47,8 +47,10 @@ import type {
   FieldControlKind,
   FieldAddressTemplate,
   FieldDescriptor,
+  FieldRef,
   FieldValidator,
 } from '../fieldDescriptor';
+import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
 import type { FieldCodec } from '../fieldCodec';
 import {
   defineStructuralCollection,
@@ -91,7 +93,11 @@ const optionalTextField = (field: string, label: string): FieldDescriptor<string
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
-const dateField = (field: string, label: string): FieldDescriptor<ISODateString | undefined> =>
+const dateField = (
+  field: string,
+  label: string,
+  validators?: readonly FieldValidator<ISODateString | undefined>[]
+): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `eo.${field}`,
     template: { section: S, path: [], field },
@@ -101,6 +107,7 @@ const dateField = (field: string, label: string): FieldDescriptor<ISODateString 
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    ...(validators === undefined ? {} : { validators }),
   });
 
 const amountField = (field: string, label: string): FieldDescriptor<AmountValue | undefined> =>
@@ -179,8 +186,20 @@ export const eoNummerField = optionalTextField('eoNummer', 'EO-nummer');
 export const eoLedsagetekstField = optionalTextField('eoLedsagetekst', 'Ledsagetekst');
 export const eoOpgørelseLavetDenField = dateField('opgørelseLavetDen', 'Opgørelse lavet den');
 export const eoIndsaetUdkastStempelField = requiredJaNejField('indsaetUdkastStempel', 'Indsæt udkast-stempel', 'Nej');
-export const eoVedroererPeriodeFraField = dateField('vedroererPeriodeFra', 'Vedrører periode fra');
-export const eoVedroererPeriodeTilField = dateField('vedroererPeriodeTil', 'Vedrører periode til');
+// «Vedrører perioden» er et skalar-dato-par. Kronologien lå KUN i legacy-validatoren som en
+// `ValidationError` med et tekst-path, og rækkeoversigten (`buildEoErstatningsopgoerelseRows`) læser
+// udelukkende core-feltissues — så fra > til kunne stå med normal formatering i oversigten, mens fejlen
+// kun nåede frem som en generel invariant på Beregning-fanen. Reglen bor nu på descriptoren som alle andre.
+const vedroererPeriodePair: DatePairBinding = {
+  fra: () => eoVedroererPeriodeFraField,
+  til: () => eoVedroererPeriodeTilField,
+};
+export const eoVedroererPeriodeFraField = dateField(
+  'vedroererPeriodeFra', 'Vedrører periode fra', [dateOrderValidator('fra', vedroererPeriodePair)]
+);
+export const eoVedroererPeriodeTilField = dateField(
+  'vedroererPeriodeTil', 'Vedrører periode til', [dateOrderValidator('til', vedroererPeriodePair)]
+);
 export const eoRevideretOpgoerelseField = requiredJaNejField('revideretOpgoerelse', 'Revideret opgørelse', 'Nej');
 export const eoMidlertidigtEetFraEetSidenField = requiredJaNejField('midlertidigtEetFraEetSiden', 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden', 'Nej');
 export const eoRegulerOffentligeYdelserField = requiredJaNejField('regulerOffentligeYdelser', 'Regulér offentlige ydelser', 'Ja');
@@ -379,8 +398,17 @@ export const eoKomprimerBeregningField = requiredJaNejField('komprimerBeregningE
 export const eoBeregnesUdFraField = requiredChoiceField<Beregningsmetode>(
   'beregnesUdFra', 'Beregnes ud fra', ['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn'], 'Beregningsperiode',
 );
-export const eoTafBeregningsperiodeFraField = dateField('tafBeregningsperiodeFra', 'Beregningsperiode fra');
-export const eoTafBeregningsperiodeTilField = dateField('tafBeregningsperiodeTil', 'Beregningsperiode til');
+// Beregningsperioden er ligeledes et dato-par (BF-028/BF-031).
+const tafBeregningsperiodePair: DatePairBinding = {
+  fra: () => eoTafBeregningsperiodeFraField,
+  til: () => eoTafBeregningsperiodeTilField,
+};
+export const eoTafBeregningsperiodeFraField = dateField(
+  'tafBeregningsperiodeFra', 'Beregningsperiode fra', [dateOrderValidator('fra', tafBeregningsperiodePair)]
+);
+export const eoTafBeregningsperiodeTilField = dateField(
+  'tafBeregningsperiodeTil', 'Beregningsperiode til', [dateOrderValidator('til', tafBeregningsperiodePair)]
+);
 export const eoUspecificeredeFerieFridageField = integerField('uspecificeredeFerieFridage', 'Uspecificerede ferie-/fridage');
 export const eoOevrigtFravaerUdenLoenField = requiredJaNejField('oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn', 'Nej');
 export const eoOevrigeFravaersdageField = integerField('oevrigeFravaersdage', 'Øvrige fraværsdage');
@@ -407,7 +435,12 @@ const rowTemplate = (collection: string, field: string): FieldAddressTemplate =>
   section: S, path: [{ kind: 'entity', collection }], field,
 });
 
-const rowDate = (collection: string, field: string, label: string): FieldDescriptor<ISODateString | undefined> =>
+const rowDate = (
+  collection: string,
+  field: string,
+  label: string,
+  validators?: readonly FieldValidator<ISODateString | undefined>[]
+): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `eo.${collection}.${field}`,
     template: rowTemplate(collection, field),
@@ -417,7 +450,44 @@ const rowDate = (collection: string, field: string, label: string): FieldDescrip
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    ...(validators === undefined ? {} : { validators }),
   });
+
+/**
+ * Bygger fra/til-parret for en rækkekollektion som ÉN enhed (BF-028/BF-031).
+ *
+ * Parret dannes samlet, fordi de to halvdele refererer hinanden: registreres de hver for sig, kan et
+ * kaldssted glemme den ene validator, og kronologien ville da kun være markeret fra den ene side —
+ * præcis den halve dækning, fundet handler om. `rowIdOf` binder modparten i SAMME række.
+ */
+const rowDatePair = (
+  collection: string,
+  fraField: string,
+  tilField: string,
+  fraLabel: string,
+  tilLabel: string
+): Readonly<{
+  fra: FieldDescriptor<ISODateString | undefined>;
+  til: FieldDescriptor<ISODateString | undefined>;
+}> => {
+  const rowIdOf = <T>(field: FieldRef<T>): string => {
+    const entity = field.address.path.find(
+      (segment) => segment.kind === 'entity' && segment.collection === collection
+    );
+    if (entity?.kind !== 'entity') {
+      throw new Error(`EO-feltet ${field.descriptor.id} mangler ${collection}-entity`);
+    }
+    return entity.entityId;
+  };
+  const pair: DatePairBinding = {
+    fra: () => fra,
+    til: () => til,
+    bindIds: (field) => [rowIdOf(field)],
+  };
+  const fra = rowDate(collection, fraField, fraLabel, [dateOrderValidator('fra', pair)]);
+  const til = rowDate(collection, tilField, tilLabel, [dateOrderValidator('til', pair)]);
+  return { fra, til };
+};
 
 const topLevelCollection = <TEntity extends Readonly<Record<string, unknown>>>(collection: string) =>
   defineStructuralCollection<TEntity>({
@@ -428,8 +498,9 @@ const topLevelCollection = <TEntity extends Readonly<Record<string, unknown>>>(c
 
 // tafPerioder
 export const eoTafPerioderCollection = topLevelCollection<TafPeriodeRow>('tafPerioder');
-export const eoTafPeriodeFraField = rowDate('tafPerioder', 'fra', 'Fra o.m.');
-export const eoTafPeriodeTilField = rowDate('tafPerioder', 'til', 'Til o.m.');
+const tafPeriodeDates = rowDatePair('tafPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.');
+export const eoTafPeriodeFraField = tafPeriodeDates.fra;
+export const eoTafPeriodeTilField = tafPeriodeDates.til;
 export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | undefined>({
   id: 'eo.tafPerioder.loseFeriedage',
   template: rowTemplate('tafPerioder', 'loseFeriedage'),
@@ -444,18 +515,21 @@ export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | und
 
 // ferieperioder
 export const eoFerieperioderCollection = topLevelCollection<FerieperiodeRow>('ferieperioder');
-export const eoFerieperiodeFraField = rowDate('ferieperioder', 'fra', 'Fra o.m.');
-export const eoFerieperiodeTilField = rowDate('ferieperioder', 'til', 'Til o.m.');
+const ferieperiodeDates = rowDatePair('ferieperioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.');
+export const eoFerieperiodeFraField = ferieperiodeDates.fra;
+export const eoFerieperiodeTilField = ferieperiodeDates.til;
 
 // fravaerPerioder (samme rækkeform som ferieperioder)
 export const eoFravaerPerioderCollection = topLevelCollection<FerieperiodeRow>('fravaerPerioder');
-export const eoFravaerPeriodeFraField = rowDate('fravaerPerioder', 'fra', 'Fra o.m.');
-export const eoFravaerPeriodeTilField = rowDate('fravaerPerioder', 'til', 'Til o.m.');
+const fravaerPeriodeDates = rowDatePair('fravaerPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.');
+export const eoFravaerPeriodeFraField = fravaerPeriodeDates.fra;
+export const eoFravaerPeriodeTilField = fravaerPeriodeDates.til;
 
 // svieSmertePerioder
 export const eoSvieSmertePerioderCollection = topLevelCollection<SvieSmertePeriodeRow>('svieSmertePerioder');
-export const eoSvieSmertePeriodeFraField = rowDate('svieSmertePerioder', 'fra', 'Fra o.m.');
-export const eoSvieSmertePeriodeTilField = rowDate('svieSmertePerioder', 'til', 'Til o.m.');
+const svieSmertePeriodeDates = rowDatePair('svieSmertePerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.');
+export const eoSvieSmertePeriodeFraField = svieSmertePeriodeDates.fra;
+export const eoSvieSmertePeriodeTilField = svieSmertePeriodeDates.til;
 export const eoSvieSmertePeriodeTilstandField = defineStructuralField<Tilstand | undefined>({
   id: 'eo.svieSmertePerioder.tilstand',
   template: rowTemplate('svieSmertePerioder', 'tilstand'),
@@ -534,8 +608,11 @@ export const eoOevrigeKravBeloebField = defineStructuralField<AmountValue | unde
 
 // offentligeYdelserRows (ydelse/tillaeg tillader negative jf. TableAmountInput-default)
 export const eoOffentligeYdelserRowsCollection = topLevelCollection<OffentligeYdelserRow>('offentligeYdelserRows');
-export const eoOffentligeYdelserFraDatoField = rowDate('offentligeYdelserRows', 'fraDato', 'Fra dato');
-export const eoOffentligeYdelserTilDatoField = rowDate('offentligeYdelserRows', 'tilDato', 'Til dato');
+const offentligeYdelserDates = rowDatePair(
+  'offentligeYdelserRows', 'fraDato', 'tilDato', 'Fra dato', 'Til dato'
+);
+export const eoOffentligeYdelserFraDatoField = offentligeYdelserDates.fra;
+export const eoOffentligeYdelserTilDatoField = offentligeYdelserDates.til;
 const offentligYdelseAmount = (field: string, label: string): FieldDescriptor<AmountValue | undefined> =>
   defineStructuralField<AmountValue | undefined>({
     id: `eo.offentligeYdelserRows.${field}`,
@@ -599,12 +676,29 @@ export const eoSfggBeregningskildeField = sfggField<SygeferiegodtgoerelseBeregni
   createChoiceFieldCodec<SygeferiegodtgoerelseBeregningskilde>(['Overenskomst', 'Manuelt angivet', 'Ferieloven', 'Ingen']),
   undefined, isUndefined, 'choice',
 );
+// SFGG-referenceperioden er også et dato-par og skal derfor bære samme kronologiregel som de øvrige
+// (BF-028/BF-031). Parret bindes gennem SFGG-samlingens egen entity, ikke `rowDatePair`, fordi rækkerne
+// identificeres af `ansaettelsesforholdId` frem for det generiske række-id.
+const sfggReferenceperiodePair: DatePairBinding = {
+  fra: () => eoSfggReferenceperiodeFraField,
+  til: () => eoSfggReferenceperiodeTilField,
+  bindIds: (field) => {
+    const entity = field.address.path.find(
+      (segment) => segment.kind === 'entity' && segment.collection === SFGG
+    );
+    if (entity?.kind !== 'entity') {
+      throw new Error(`EO-feltet ${field.descriptor.id} mangler ${SFGG}-entity`);
+    }
+    return [entity.entityId];
+  },
+};
 export const eoSfggReferenceperiodeFraField = defineStructuralField<ISODateString | undefined>({
   id: 'eo.sfggAnsaettelsesforhold.sfggReferenceperiodeFra',
   template: rowTemplate(SFGG, 'sfggReferenceperiodeFra'),
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
   emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode fra', controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection, entityIdProperties: sfggEntityIdProps,
+  validators: [dateOrderValidator('fra', sfggReferenceperiodePair)],
 });
 export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateString | undefined>({
   id: 'eo.sfggAnsaettelsesforhold.sfggReferenceperiodeTil',
@@ -612,6 +706,7 @@ export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateStrin
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
   emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode til', controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection, entityIdProperties: sfggEntityIdProps,
+  validators: [dateOrderValidator('til', sfggReferenceperiodePair)],
 });
 export const eoSfggReferenceperiodeFravaersdageUdenLoenField = sfggField<number | undefined>(
   'sfggReferenceperiodeFravaersdageUdenLoen', 'Fraværsdage uden løn i referenceperioden',

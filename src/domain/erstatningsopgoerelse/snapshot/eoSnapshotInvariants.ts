@@ -54,6 +54,66 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
 };
 
 /**
+ * De "mangler"-beskeder, som legacy-validatoren danner, NÅR og FORDI readeren har maskeret en værdi bag en
+ * rød feltfejl. Kun disse; enhver anden legacy-besked er en selvstændig regel og skal stå.
+ */
+const MASKING_INDUCED_MISSING_MESSAGES: ReadonlySet<string> = new Set([
+  'Fra-dato mangler',
+  'Til-dato mangler',
+]);
+
+/**
+ * Fjerner de "mangler"-invarianter, som en STRUKTUREL feltfejl på samme felt allerede har dækket.
+ *
+ * Baggrunden er en direkte konsekvens af readerens maskering (§1.5): en værdi bag en rød feltfejl er
+ * `undefined` for enhver consumer. Det er rigtigt over for MOTORERNE — de må ikke regne på en værdi, brugeren
+ * har fået markeret som forkert — men legacy-validatoren læser samme maskerede værdier og konkluderer da, at
+ * feltet er TOMT. Brugeren, der har indtastet en til-dato før fra-datoen, fik derfor fire beskeder om én fejl:
+ * to sande kronologifejl plus to usande «Fra-dato mangler»/«Til-dato mangler» om datoer, der tydeligvis står i
+ * felterne. Den usande halvdel er værst, fordi den peger brugeren mod en handling (udfyld feltet), som ikke
+ * kan løse noget.
+ *
+ * Undertrykkelsen sker HER frem for i validatoren, fordi det er her de to lister mødes, og fordi kriteriet er
+ * en egenskab ved PARRET af lister — ikke ved nogen af dem alene. Validatoren kan ikke selv vide, om en tom
+ * værdi er brugerens tomhed eller readerens maskering; det kan kun den, der også kender feltissue-sættet.
+ *
+ * Matchningen går på felt-IDENTITET, ikke på tekst: `reader_field:eo.tafPerioder.fra#taf-1` og
+ * `validation:tafPerioder[0].fra` peger på samme felt gennem hver sin adresseform, og `evidence` bærer begge
+ * former. Vi kan derfor sammenligne på descriptor-id'ets sidste led + rækkens position uden at indføre en
+ * oversætter mellem tekst-path og feltadresse (som ville gøre strengen til en konkurrerende feltidentitet).
+ * Derfor er kriteriet bevidst KONSERVATIVT: kun de to `mangler`-beskeder, og kun når feltnavnet matcher.
+ */
+export const suppressMaskedMissingInvariants = (
+  validationInvariants: readonly EoInvariant[],
+  structuralFieldIssues: readonly FieldIssue[]
+): readonly EoInvariant[] => {
+  if (structuralFieldIssues.length === 0) return validationInvariants;
+
+  // Feltnavn (sidste led af descriptor-id) + entity-id'er for hvert felt, kernen allerede har markeret rødt.
+  const maskedFields = new Set<string>();
+  for (const issue of structuralFieldIssues) {
+    const fieldName = issue.field.descriptor.id.split('.').pop();
+    if (fieldName === undefined) continue;
+    const entityIds = issue.field.address.path.flatMap((segment) =>
+      segment.kind === 'entity' ? [segment.entityId] : []);
+    maskedFields.add(entityIds.length > 0 ? `${fieldName}#${entityIds.join('.')}` : fieldName);
+    // Uden entity-suffiks: legacy-pathen bærer et INDEKS, ikke et entity-id, så den kan ikke matche
+    // rækken direkte. Feltnavnet alene er tilstrækkeligt, fordi undertrykkelsen kun rammer de to
+    // `mangler`-beskeder — og en tom dato i en ANDEN række er stadig en ægte mangel, som får sin egen
+    // besked fra rækkens egen evaluering.
+    maskedFields.add(fieldName);
+  }
+
+  return validationInvariants.filter((invariant) => {
+    if (!MASKING_INDUCED_MISSING_MESSAGES.has(invariant.message)) return true;
+    const path = invariant.evidence?.[0];
+    if (path === undefined) return true;
+    const fieldName = path.split('.').pop();
+    return fieldName === undefined || !maskedFields.has(fieldName);
+  });
+};
+
+/**
  * Røde reader-feltfejl som blokerende invarianter (F2, `form-contract.md` §2.3 / `error-contract.md` §5).
  *
  * Tidligere gik `eoErrors` KUN til inspektionsvisningen, mens motorerne blev kaldt bagefter på readerens

@@ -10,6 +10,8 @@ import type { FieldIssueSet } from '../../../../inputCore/inputIssue';
  */
 export type EoOplysningerVm = ReturnType<typeof useEoOplysningerViewModel> & Readonly<{
   manualRegulationDateIssues: FieldIssueSet;
+  /** TAF-cutoff mod differencekrav/EET, adresseret pr. fra-/til-celle. */
+  tafCutoffDateIssues: FieldIssueSet;
 }>;
 
 const EoOplysningerVmContext = React.createContext<EoOplysningerVm | null>(null);

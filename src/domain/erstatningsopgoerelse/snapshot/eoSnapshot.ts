@@ -36,6 +36,7 @@ import {
   buildTafPerYearUnavailableInvariant,
   buildStructuralFieldIssueInvariants,
   buildValidationInvariants,
+  suppressMaskedMissingInvariants,
   hasAnyErrorInvariant,
   hasAnyWarningInvariant,
   hasAuthoritativeBlockingInvariant,
@@ -347,7 +348,13 @@ export const computeEoSnapshot = (args: Readonly<{
     severity: 'error' as const,
   }));
   const validationInvariants = [
-    ...buildValidationInvariants(validationResult.errors),
+    // Readerens maskering gør en rødmarkeret værdi `undefined` for legacy-validatoren, som da melder feltet
+    // TOMT oveni den ægte feltfejl. Undertrykkelsen fjerner netop den usande halvdel; se
+    // `suppressMaskedMissingInvariants`.
+    ...suppressMaskedMissingInvariants(
+      buildValidationInvariants(validationResult.errors),
+      dependencyProjection.aggregateIssues
+    ),
     ...buildValidationInvariants(stamdataDateOrderErrors),
     ...midlertidigtEetSourceInvariants,
     // F2: readerens røde feltfejl er BLOKERENDE afhængigheder, ikke kun inspektionsdata. Uden dem ville

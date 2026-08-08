@@ -58,6 +58,26 @@ export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource):
   return values.midlertidigEETVirkningsdato ?? values.midlertidigEETAfgoerelseDato;
 };
 
+/**
+ * De AKTIVE cutoff-datoer (ikke grænserne, men selve skæringsdatoerne) i én opslag.
+ *
+ * `buildTafCutoffErrorMessage` skal have præcis de datoer, der er aktive lige nu — inkl. klage-suspensionen
+ * og 2011-skæringsdatoen. Kalderne udledte dem tidligere hver for sig, hvilket er nøjagtig den duplikering,
+ * der lader to steder svare forskelligt på samme spørgsmål. Ét opslag, én sandhed.
+ */
+export const resolveTafCutoffDates = (values: TafConstraintSource): Readonly<{
+  differencekravDato: ISODateString | undefined;
+  endeligEETDato: ISODateString | undefined;
+  midlertidigEETDato: ISODateString | undefined;
+}> => {
+  const klageSuspenderer = values.verserendeKlageEet === 'Ja';
+  return {
+    differencekravDato: values.differencekravDato,
+    endeligEETDato: klageSuspenderer ? undefined : resolveEndeligEetDato(values),
+    midlertidigEETDato: klageSuspenderer ? undefined : resolveMidlertidigEetDatoHvisAktiv(values),
+  };
+};
+
 const resolveEetMaxBounds = (values: TafConstraintSource): TafConstraintBounds => {
   const endeligEetDato = resolveEndeligEetDato(values);
   const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : getDayBeforeIso(endeligEetDato);

@@ -9,7 +9,8 @@ import {
   eoTafPeriodeTilField,
   eoTafPerioderCollection,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import type { CollectionRef } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type CollectionRef } from '../../inputCore/fieldAddress';
+import type { FieldIssue, FieldIssueSet } from '../../inputCore/inputIssue';
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import { createEmptyTafCommittedRow, createTafRowId } from '../../domain/erstatningsopgoerelse/tables/tafTableModel';
 import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
@@ -25,6 +26,11 @@ export type TafPeriodeTableProps = Readonly<{
   derivedById: Readonly<Record<string, number | null>>;
   derivedColumnHeader: string;
   saveOrderPath?: TableSaveOrderPath;
+  /**
+   * TAF-cutoff mod differencekrav/EET (projekteret fra domænet, se `tafCutoffDateIssues.ts`). Leveres pr.
+   * celle på feltets EGEN adresse, så cellen behandler den som enhver anden rød feltfejl.
+   */
+  cutoffIssues?: FieldIssueSet;
 }>;
 
 const createEmptyRow = (id: string): TafPeriodeRow => createEmptyTafCommittedRow(id);
@@ -35,6 +41,7 @@ const TafPeriodeTable = React.memo(({
   derivedById,
   derivedColumnHeader,
   saveOrderPath,
+  cutoffIssues,
 }: TafPeriodeTableProps) => {
   const columns = React.useMemo(() => [
     { colId: 'fra', getSortValue: (row: TafPeriodeRow) => row.fra },
@@ -72,9 +79,26 @@ const TafPeriodeTable = React.memo(({
       <TableBody>{renderOrder.map((row) => {
         const committed = table.committedById.get(row.rowId);
         const calculated = committed === undefined ? null : (derivedById[committed.id] ?? null);
+        // Cutoff-issuet slås op på cellens EGEN, allerede bundne feltadresse. Spec'ets `field` er bundet
+        // med hele ejerstien (§3.2), så opslaget kan ikke ramme en anden række end den, cellen redigerer.
+        const fraCell = table.buildCellSpec(row, eoTafPeriodeFraField, 0);
+        const tilCell = table.buildCellSpec(row, eoTafPeriodeTilField, 1);
+        const cutoffFor = (cell: { field: { address: Parameters<typeof serializeFieldAddress>[0] } }):
+          FieldIssue | undefined =>
+          cutoffIssues?.get(serializeFieldAddress(cell.field.address));
+        const fraCutoff = cutoffFor(fraCell);
+        const tilCutoff = cutoffFor(tilCell);
         return <TableRow key={row.rowId} data-mineo-row-id={row.rowId}>
-          <TableCell><GridDateCell gridCell={{ rowId: row.rowId, colIndex: 0 }} cell={table.buildCellSpec(row, eoTafPeriodeFraField, 0)} /></TableCell>
-          <TableCell><GridDateCell gridCell={{ rowId: row.rowId, colIndex: 1 }} cell={table.buildCellSpec(row, eoTafPeriodeTilField, 1)} /></TableCell>
+          <TableCell><GridDateCell
+            gridCell={{ rowId: row.rowId, colIndex: 0 }}
+            cell={fraCell}
+            {...(fraCutoff === undefined ? {} : { collectionRuleIssue: fraCutoff })}
+          /></TableCell>
+          <TableCell><GridDateCell
+            gridCell={{ rowId: row.rowId, colIndex: 1 }}
+            cell={tilCell}
+            {...(tilCutoff === undefined ? {} : { collectionRuleIssue: tilCutoff })}
+          /></TableCell>
           <TableCell><GridIntegerCell gridCell={{ rowId: row.rowId, colIndex: 2 }} cell={table.buildCellSpec(row, eoTafPeriodeLoseFeriedageField, 2)} /></TableCell>
           <RowDeleteLaneCell>
             <Typography variant="body1">{calculated === null ? '' : formatAsAmountTrimmed(calculated)}</Typography>

@@ -61,6 +61,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             values={vm.eoValues}
             stamdataValues={vm.stamdataValues}
             manualRegulationDateIssues={vm.projection.manualRegulationDateIssues}
+            tafCutoffDateIssues={vm.projection.tafCutoffDateIssues}
           />
         </Box>
         {vm.isTabMounted(TAB_KEYS.LOENINDKOMST) && (

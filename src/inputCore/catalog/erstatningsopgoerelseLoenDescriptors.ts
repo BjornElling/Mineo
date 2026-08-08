@@ -29,7 +29,8 @@ import {
   createYearFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
-import type { FieldAddressTemplate, FieldControlKind, FieldDescriptor, FieldValidator } from '../fieldDescriptor';
+import type { FieldAddressTemplate, FieldControlKind, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
+import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
 import type { FieldCodec } from '../fieldCodec';
 import {
   defineStructuralCollection,
@@ -204,8 +205,25 @@ export const eoLoenindkomstStandardRowsCollection = defineStructuralCollection<S
 const STD_ID = 'eo.loenindkomstAnsaettelsesforhold.indtaegtsoplysningerTableData';
 const stdRowPath: PathSegments = [...employmentPath, { kind: 'entity', collection: STANDARD_ROWS }];
 
-const stdDate = (field: string, label: string): FieldDescriptor<ISODateString | undefined> =>
-  optField<ISODateString>(STD_ID, stdRowPath, field, label, 'text', dateCodec);
+const stdDate = (
+  field: string, label: string,
+  validators?: readonly FieldValidator<ISODateString | undefined>[],
+): FieldDescriptor<ISODateString | undefined> =>
+  optField<ISODateString>(STD_ID, stdRowPath, field, label, 'text', dateCodec, validators);
+
+/**
+ * Indtægtstabellens «Dato fra»/«Dato til» (BF-028/BF-031). Rækkerne ligger NESTET under et
+ * ansættelsesforhold, så modparten skal bindes med BEGGE entity-id'er — ansættelsesforholdet og rækken —
+ * i den rækkefølge, adressen har dem.
+ */
+const stdRowIds = <T,>(field: FieldRef<T>): readonly string[] =>
+  field.address.path.flatMap((segment) => segment.kind === 'entity' ? [segment.entityId] : []);
+
+const stdDagPair: DatePairBinding = {
+  fra: () => eoStandardRowFields.col0_dag,
+  til: () => eoStandardRowFields.col1_dag,
+  bindIds: stdRowIds,
+};
 const stdString = (
   field: string, label: string, codec: FieldCodec<string | undefined>,
   validators?: readonly FieldValidator<string | undefined>[],
@@ -226,8 +244,8 @@ export const eoStandardRowFields = {
   col1_maaned: stdString('col1_maaned', 'År', createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear() })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, getCurrentYear)]),
   col0_uge: stdString('col0_uge', 'Uge fra', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, getCurrentYear)]),
   col1_uge: stdString('col1_uge', 'Uge til', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, getCurrentYear)]),
-  col0_dag: stdDate('col0_dag', 'Dato fra'),
-  col1_dag: stdDate('col1_dag', 'Dato til'),
+  col0_dag: stdDate('col0_dag', 'Dato fra', [dateOrderValidator('fra', stdDagPair)]),
+  col1_dag: stdDate('col1_dag', 'Dato til', [dateOrderValidator('til', stdDagPair)]),
   col2: stdAmount('col2', 'Løn'),
   col3: stdAmount('col3', 'Løn (2)'),
   col4: stdAmount('col4', 'Løn (3)'),
