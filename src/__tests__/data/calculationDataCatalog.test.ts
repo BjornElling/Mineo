@@ -78,7 +78,7 @@ describe('calculationDataCatalog', () => {
       // (brugerbeslutning; `indskudte-loentillaeg-contract.md` §6). Payload'et er nu Store Bededag alene.
       'indskudte-loentillaeg': 'b253ea22c6f700fd78f0ac1f58fb931f5ec009bcbcf47bb049ca08505fb06acf',
       kapitaliseringsbekendtgoerelser: '9e5d18bdaf8b554717ce3ee22c73bc409bff2ac4c45fc28f840bb59e831d615b',
-      kapitaliseringstabeller: 'c850fb5803f6bb7dc77e545c5d6fdd17ff6a87b5facdd9c7f34e4424ff29a7c9',
+      kapitaliseringstabeller: 'deb01298b81aa7886facb52faef0bec1b5a320c93fd2b729ecb19576d3367eea',
       'kl-loenaftaler': 'c75de1dc16462569b7fcfe4bab5860b4c978d50d0fdb68fe4d4580c66cda9780',
       'krl-satstabeller': '080e201d0300a4354e50ad939a698412cdc4d7af1764192cd79b19c0403e53d6',
       'lovbestemte-satser': '64fc2cb0626d361cd3260d2f904ffe489bc36b5d86c7f6ae64d6abe92bf96005',
@@ -116,6 +116,6 @@ describe('calculationDataCatalog', () => {
       }])
     );
 
-    expect(fingerprint(legacyShape)).toBe('64424efcf9193c0f4a35a95759e8a14c8c015129810011c25858f6c452c6ffab');
+    expect(fingerprint(legacyShape)).toBe('349be6bd26c1167a0068af975d62589b62d723a75cbec2394ba031a1c5e04b79');
   });
 });

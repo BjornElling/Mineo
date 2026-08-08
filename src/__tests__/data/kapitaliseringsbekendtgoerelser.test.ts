@@ -85,6 +85,64 @@ describe('kapitaliseringsbekendtgørelser', () => {
     expect(readKapitaliseringsTabelFilnavne()).toEqual(expected);
   });
 
+  it('udelader kun PDF-dokumenterede tabeller for skader før 2005', () => {
+    type TableField =
+      | 'erhvervsevnetabTabeller'
+      | 'erhvervsevnetabKoensopdelteTabeller'
+      | 'forsoergertabTabeller'
+      | 'forsoergertabTabellerMaend'
+      | 'forsoergertabTabellerKvinder';
+
+    const tableNames = (id: keyof typeof kapitaliseringsTabelDataById, field: TableField): string[] => {
+      const tableData = kapitaliseringsTabelDataById[id];
+      return Object.keys(tableData[field]);
+    };
+
+    const tablesOnlyBefore2005: ReadonlyArray<readonly [keyof typeof kapitaliseringsTabelDataById, TableField, string[]]> = [
+      ['10029/2024', 'erhvervsevnetabTabeller', ['Q', 'R']],
+      ['10029/2024', 'forsoergertabTabeller', ['S']],
+      ['9376/2024', 'erhvervsevnetabTabeller', ['Q', 'R']],
+      ['9376/2024', 'forsoergertabTabeller', ['S']],
+      ['10056/2025', 'erhvervsevnetabTabeller', ['U', 'V', 'X', 'Y']],
+      ['10056/2025', 'forsoergertabTabeller', ['Z']],
+      ['10183/2025', 'erhvervsevnetabTabeller', ['U', 'V', 'X', 'Y']],
+      ['10183/2025', 'forsoergertabTabeller', ['Z']],
+      ['1221/2010', 'erhvervsevnetabKoensopdelteTabeller', ['O', 'P']],
+      ['1221/2010', 'forsoergertabTabellerMaend', ['M']],
+      ['1221/2010', 'forsoergertabTabellerKvinder', ['N']],
+      ['1403/2011', 'erhvervsevnetabKoensopdelteTabeller', ['O', 'P']],
+      ['1403/2011', 'forsoergertabTabellerMaend', ['M']],
+      ['1403/2011', 'forsoergertabTabellerKvinder', ['N']],
+      ['1700/2015', 'erhvervsevnetabTabeller', ['O', 'P']],
+      ['1700/2015', 'forsoergertabTabeller', ['N']],
+      ['198/2015', 'erhvervsevnetabTabeller', ['M', 'N']],
+      ['198/2015', 'forsoergertabTabeller', ['L']],
+    ];
+
+    for (const [id, field, tables] of tablesOnlyBefore2005) {
+      expect(tableNames(id, field)).not.toEqual(expect.arrayContaining(tables));
+    }
+
+    const mixedTablesWith2005Coverage: ReadonlyArray<readonly [keyof typeof kapitaliseringsTabelDataById, TableField, string[]]> = [
+      ['10029/2024', 'erhvervsevnetabTabeller', ['M', 'N', 'O']],
+      ['10029/2024', 'forsoergertabTabeller', ['P']],
+      ['9376/2024', 'erhvervsevnetabTabeller', ['M', 'N', 'O']],
+      ['9376/2024', 'forsoergertabTabeller', ['P']],
+      ['10056/2025', 'erhvervsevnetabTabeller', ['P', 'Q', 'R', 'S']],
+      ['10056/2025', 'forsoergertabTabeller', ['T']],
+      ['10183/2025', 'erhvervsevnetabTabeller', ['P', 'Q', 'R', 'S']],
+      ['10183/2025', 'forsoergertabTabeller', ['T']],
+      ['1221/2010', 'erhvervsevnetabKoensopdelteTabeller', ['H', 'I', 'J', 'K']],
+      ['1403/2011', 'erhvervsevnetabKoensopdelteTabeller', ['H', 'I']],
+      ['1700/2015', 'erhvervsevnetabTabeller', ['H', 'I', 'J', 'K', 'L', 'M']],
+      ['198/2015', 'erhvervsevnetabTabeller', ['G', 'H', 'I', 'J', 'K']],
+    ];
+
+    for (const [id, field, tables] of mixedTablesWith2005Coverage) {
+      expect(tableNames(id, field)).toEqual(expect.arrayContaining(tables));
+    }
+  });
+
   it('har præcis én lokal original-PDF pr. katalogiseret tabel', () => {
     const pdfDir = path.resolve(__dirname, '../../data/kapitalisering/kapitaliseringOriginalPdf');
     const actual = fs.readdirSync(pdfDir).filter((file) => file.toLowerCase().endsWith('.pdf')).sort();

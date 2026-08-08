@@ -25,15 +25,6 @@ Næste ID: **BF-028**. Kopiér denne blok pr. fund:
 Udelad punkter, der ikke er relevante. Medtag gerne præcis synlig tekst og screenshot. Skriv altid, hvis fundet
 kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede fund til den korte log nedenfor.
 
-## BF-024 — Begræns kapitaliseringstabeller til skader fra 1. januar 2005
-
-- Type: Forbedring
-- Sted: Kapitaliseringsbekendtgørelser, kapitaliseringstabeller, importværktøjer og tilhørende kontrakter/dokumentation
-- Det sker: Kapitaliseringsmaterialet og dokumentationen afgrænser ikke konsekvent kapitaliseringsfaktorerne til programmets understøttede sagsområde. Dokumentationen beskriver desuden princippet med afløsningsbeløb som et forsørgertabsforhold i stedet for som et fælles princip.
-- Det bør ske: Kapitaliseringsbekendtgørelserne gennemgås grundigt ved opslag i den tilhørende PDF-fil, så det dokumenteres, hvilke skader de enkelte tabeller vedrører. Kapitaliseringstabeller, der kun omhandler skader før 1. januar 2005, udgår. Kontrakter, anden dokumentation og de særlige hjælpeværktøjer til import af kapitaliseringsbekendtgørelser skal tydeligt fastslå, at der kun må indgå kapitaliseringsfaktorer for skader fra og med 1. januar 2005. Dette gælder både kapitalisering af erhvervsevnetab og omsætning af forsørgertab. Det skal samtidig præciseres, at afgrænsningen er et generelt princip for begge områder uden forskel. Det bør desuden fremgå som kommentarer i programfilerne ved de gengivne tabeller, hvilke skader tabellerne vedrører — programmet skal aldrig behandle skader før 1. januar 2005.
-- Prioritet: Høj
-- Status: Ny
-
 ## Afventer reproduktion
 
 Ingen fund afventer reproduktion.
@@ -65,6 +56,7 @@ Ingen fund afventer reproduktion.
 | BF-021 | Interne fejl-/advarselslinks fører nu til feltet OG blinkmarkerer det; samme markering bruges af et blokeret Gem. |
 | BF-022 | "Offentlige ydelser i beregningsperioden reguleres" er flyttet til Offentlige ydelser-fanen, under Midlertidigt EET-togglen. |
 | BF-023 | Ydelsestype-dropdownen sorteres alfabetisk inden for hver af de to grupper; rækkefølgen ejes af registeret. |
+| BF-024 | PDF-dokumenterede tabeller, der kun vedrører skader før 2005, er fjernet; blandede tabeller med dækning fra 2005 er bevaret. |
 | BF-025 | Angivet måneds-/timeløn på en ny sag udløser ikke længere en systemfejl; "en ny sags default" har fået ét sandt sted, og tre værn dækker klassen. |
 | BF-026 | Den bare bindestreg på linjen med "Tilgængelige reguleringssatser" er væk — et ukendt interval viser nu ingenting. |
 | BF-027 | Standardværdier fra Indstillinger slår nu igennem på en ny sag med det samme — ikke først når brugeren rører feltet. |
@@ -241,4 +233,3 @@ sidste undo i en række fjerner altid rækken; invarianten er nu pinnet af en te
 indtastninger efter en fuld undo/redo-rundtur. Symptomet var af brugeren beskrevet som betinget af den
 fejlagtige fokustilstand, rettelsen fjerner. Optræder det igen, er den mest lovende hypotese en spuriøs
 history-frame fra en blur-commit, når den fokuserede celle unmountes uden fokusrestore (jf. `restoreFocusFlag`).
-
