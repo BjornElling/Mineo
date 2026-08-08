@@ -28,6 +28,7 @@ import {
   criticalActionNoDomScanOrFrameWait,
   deletableCollectionTableOwnershipRule,
   rowDeleteLaneCellRule,
+  choiceFieldValueTypeInferredRule,
   documentGeneratorCursorAccess,
   documentGeneratorCursorElementAccess,
   documentGeneratorImportBoundary,
@@ -148,6 +149,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   messageBoxGuardedByPageMessageRule,
   deletableCollectionTableOwnershipRule,
   rowDeleteLaneCellRule,
+  choiceFieldValueTypeInferredRule,
   ...TABLE_ORDER_RULES,
   placeholderIdentityOwnershipRule,
   // Inputgrænser og legacy-fravær

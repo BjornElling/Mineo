@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-08
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -44,6 +44,8 @@ Konsekvens:
   - Kode, der legitimt har brug for hele `AppSettings`, må aldrig aflevere den til et af de tre snapshots som struktur-supersæt. Mærkerne udelukker det; den smalle dokument-DTO, der tidligere bar samme ansvar strukturelt, er slettet, fordi en strukturel indsnævring er en aftale og ikke en grænse.
 - **Beregnings-/regel-toggles** må som hovedregel ikke ændre beregning, validering, gating eller audit for en eksisterende sag som skjult device-lokal tilstand. Slutretningen er schema-valideret sagsdata eller eksplicit brugerobserverbar runtime-beslutning.
   - **Dokumenteret undtagelse (brugergodkendt 2026-06-19):** De to "Beregningsteknisk"-valg på Indstillinger-siden — `allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og `allowReguleringMedUdloebMedMaaneder` — er bevidst device-lokale. De ændrer ikke de producerede tal, men kun validerings-*severity* for overenskomst-/reguleringsdækning (en manglende/udløbet dækning vises som `warning` i stedet for `error`, og en udløbsperiode under grænsen accepteres). Konsekvens: samme `.eo`-sag kan validere forskelligt på to maskiner. Dette er accepteret, fordi valgene udtrykker den enkelte sagsbehandlers faste arbejdsmetode (ikke et sags-faktum), og fordi de ikke ændrer beregningsresultatet. **Re-evaluering:** flyt til schema-valideret sagsdata (`.eo`) hvis (a) der opstår behov for at to brugere skal se ens validering på samme sag, eller (b) et af valgene nogensinde kommer til at ændre de producerede tal frem for kun severity. Eneste produktions-callsite: `buildEoIndkomstRows` i `src/domain/eoRowEvaluation/eoRowIndkomstRows.ts`.
+- **En valgindstillings værditype skal INFERERES på fladen, ikke annoteres væk og repareres bagefter.** `StyledDropdown` og `StyledRadioButton` er generiske i optionernes værditype, og `TValue` inferes fra `value`-proppen. Annoterer et kaldsted sin handler bredt (`StyledDropdownChangeEvent<string>`, `CommitEvent<string>`), vinder den brede type over literal-unionen, og kaldstedet må derefter bevise med et run-time-tjek, hvad compileren lige kunne have sagt. Det var oprindelsen til Indstillinger-sidens fem håndskrevne `is…Option`-typeguards, hver med kroppen `(OPTIONS as readonly string[]).includes(value)` — hvor `as readonly string[]` igen kaster netop den type væk, guarden bagefter påstår at etablere. Håndhæves af `form/choice-field-value-type-inferred`.
+  - **Typens loft er målt og skal dækkes af en test.** `TValue` inferes fra `value`-proppen ALENE, ikke fra de rendrede `MenuItem`-børn (MUI typer `value` bredt). Compileren sikrer derfor, at det COMMITTEDE er en gyldig værdi, men ikke at kontrollen tilbyder præcis unionens værdier: både en overskydende og en manglende option typechecker grønt. Hver valgkontrols faktisk rendrede valgmuligheder skal derfor måles mod sit schema-univers i BEGGE retninger — `src/__tests__/components/pages/Indstillinger.optionCoverage.test.tsx`.
 - **KRL satstabeller har ingen separat brevhoved-toggle**:
   KRL skal altid arve `regulering`-indstillingen 1-til-1 for visning af brevhoved.
 - **Normal åbning af app/PWA**: startsiden bestemmes af den device-lokale toggle på Mineo-siden.

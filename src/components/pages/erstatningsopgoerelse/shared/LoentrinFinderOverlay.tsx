@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Button, IconButton, MenuItem, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import StyledDropdown, { type StyledDropdownChangeEvent } from '../../../inputs/StyledDropdown';
+import StyledDropdown from '../../../inputs/StyledDropdown';
 import TransientAmountInput from '../../../inputs/transient/TransientAmountInput';
 import TransientDateInput from '../../../inputs/transient/TransientDateInput';
 import { offentligLoenTypeEnum, type OffentligLoenTypeLabel } from '../../../../schemas/formSchemas';
@@ -170,14 +170,17 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                 width={180}
                 value={ansaettelse}
                 allowEmpty={false}
-                onChange={(event: StyledDropdownChangeEvent<string>) => {
-                  const parsed = offentligLoenTypeEnum.safeParse(event.target.value ?? 'Månedsløn');
-                  const nextValue: OffentligLoenTypeLabel = parsed.success ? parsed.data : 'Månedsløn';
-                  setAnsaettelse(nextValue);
+                onChange={(event) => {
+                  // `value`-proppen er `OffentligLoenTypeLabel`, så `TValue` inferes til den —
+                  // ingen annotation, ingen runtime-reparation af en type der ikke blev kastet væk.
+                  setAnsaettelse(event.target.value);
                 }}
               >
-                <MenuItem value="Månedsløn">Månedsløn</MenuItem>
-                <MenuItem value="Timeløn">Timeløn</MenuItem>
+                {offentligLoenTypeEnum.options.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
               </StyledDropdown>
             </Box>
           </Box>

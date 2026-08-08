@@ -43,14 +43,16 @@ const RadioField = <TValue extends string>({
   const controller = useFieldEditor(field as FieldRef<TValue | undefined>, location);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
 
+  // `StyledRadioButton` er generisk i optionernes værditype og mapper DOM-strengen tilbage til den
+  // option, den kom fra. `next` ER derfor `TValue` — det tidligere `as TValue`-cast er unødvendigt.
   const handleCommit = React.useCallback(
-    (e: CommitEvent<string | undefined>): boolean => {
+    (e: CommitEvent<TValue | undefined>): boolean => {
       const next = e.target.value;
       if (next === undefined) {
         controller.clearImmediate();
         return true;
       }
-      controller.commitImmediate(next as TValue);
+      controller.commitImmediate(next);
       return true;
     },
     [controller]
@@ -63,7 +65,7 @@ const RadioField = <TValue extends string>({
     <StyledRadioButton
       name={name}
       label={label}
-      options={options as RadioOption<TValue>[]}
+      options={options}
       value={controller.value}
       onCommit={handleCommit}
       row={row}

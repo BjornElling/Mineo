@@ -3,7 +3,7 @@ import { Box, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import StyledCheckbox from '../inputs/StyledCheckbox';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
-import StyledDropdown, { type StyledDropdownChangeEvent } from '../inputs/StyledDropdown';
+import StyledDropdown from '../inputs/StyledDropdown';
 import StyledRadioButton from '../inputs/StyledRadioButton';
 import type { CommitEvent } from '../../types/fieldEvents';
 import { useAppSettings } from '../../contexts/useAppSettings';
@@ -13,16 +13,10 @@ import { saveDefaultDirectoryHandle, deleteDefaultDirectoryHandle, getDirectoryD
 import { logWarning } from '../../utils/logger';
 import {
   APP_SETTINGS_AFSLUTTES_MED_OPTIONS,
-  APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS,
   APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
-  APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS,
-  type AppSettingsAfsluttesMedOption,
-  type AppSettingsLoenIndtastesSomOption,
-  type AppSettingsLoenPaaHelligdageOption,
-  type AppSettingsSvieSmerteDelvisSygemeldingSatsOption,
   type BrevhovedIndstillinger,
 } from '../../settings/appSettingsSchema';
-import { DOCUMENT_DOWNLOAD_FORMAT_OPTIONS, getDocumentFormatLabel, isDocumentDownloadFormat } from '../../document/documentFormat';
+import { DOCUMENT_DOWNLOAD_FORMAT_OPTIONS, getDocumentFormatLabel } from '../../document/documentFormat';
 import { DOCUMENT_BREVHOVED_LABELS, type DocumentBrevhovedType } from '../../document/layout/documentBrevhoved';
 import {
   LOENPERIODE_LABELS,
@@ -49,25 +43,7 @@ const [brevhovedOptionsRow1, brevhovedOptionsRow2, brevhovedOptionsRow3] = brevh
   (keys): readonly BrevhovedOption[] => keys.map((key) => ({ key, label: DOCUMENT_BREVHOVED_LABELS[key] }))
 );
 
-const isLoenPaaHelligdageOption = (value: string): value is AppSettingsLoenPaaHelligdageOption => {
-  return (APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS as readonly string[]).includes(value);
-};
-
-const isAfsluttesMedOption = (value: string): value is AppSettingsAfsluttesMedOption => {
-  return (APP_SETTINGS_AFSLUTTES_MED_OPTIONS as readonly string[]).includes(value);
-};
-
-const isLoenIndtastesSomOption = (value: string | undefined): value is AppSettingsLoenIndtastesSomOption => {
-  return typeof value === 'string' && (APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS as readonly string[]).includes(value);
-};
-
 const loenIndtastesSomOptions = LOENPERIODE_LABELS.options;
-
-const isSvieSmerteDelvisSygemeldingSatsOption = (
-  value: string | undefined
-): value is AppSettingsSvieSmerteDelvisSygemeldingSatsOption => {
-  return typeof value === 'string' && (APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS as readonly string[]).includes(value);
-};
 
 const svieSmerteDelvisSygemeldingSatsOptions = SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS.options;
 
@@ -299,10 +275,8 @@ const Indstillinger = React.memo(() => {
             <StyledDropdown
               allowEmpty={false}
               value={settings.documentDownloadFormat}
-              onChange={(e: StyledDropdownChangeEvent<string>) => {
-                if (isDocumentDownloadFormat(e.target.value)) {
-                  return updateSettings({ documentDownloadFormat: e.target.value });
-                }
+              onChange={(e) => {
+                updateSettings({ documentDownloadFormat: e.target.value });
               }}
               width={120}
             >
@@ -355,13 +329,11 @@ const Indstillinger = React.memo(() => {
               value={settings.defaultLoenIndtastesSom}
               onCommit={(event) => {
                 const next = event.target.value;
-                if (isLoenIndtastesSomOption(next)) {
-                  return updateSettings({ defaultLoenIndtastesSom: next });
-                }
-                return false;
+                if (next === undefined) return false;
+                return updateSettings({ defaultLoenIndtastesSom: next });
               }}
               row={true}
-              options={loenIndtastesSomOptions.map((option) => ({ ...option }))}
+              options={loenIndtastesSomOptions}
             />
           </Box>
         </Box>
@@ -382,10 +354,8 @@ const Indstillinger = React.memo(() => {
             <StyledDropdown
               allowEmpty={false}
               value={settings.defaultLoenPaaHelligdage}
-              onChange={(e: StyledDropdownChangeEvent<string>) => {
-                if (isLoenPaaHelligdageOption(e.target.value)) {
-                  return updateSettings({ defaultLoenPaaHelligdage: e.target.value });
-                }
+              onChange={(e) => {
+                updateSettings({ defaultLoenPaaHelligdage: e.target.value });
               }}
               width={185}
             >
@@ -405,9 +375,9 @@ const Indstillinger = React.memo(() => {
               <Typography className="row--text">L:</Typography>
               <StyledDropdown
                 value={settings.defaultOverenskomstLoenmodtager}
-                onChange={(e: StyledDropdownChangeEvent<string>) => {
+                onChange={(e) => {
                   // Alle dropdownens string-værdier er gyldige her; schemaet håndhæver kun at feltet er en string.
-                  return updateSettings({ defaultOverenskomstLoenmodtager: e.target.value });
+                  updateSettings({ defaultOverenskomstLoenmodtager: e.target.value });
                 }}
                 width={200}
                 allowEmpty={false}
@@ -423,9 +393,9 @@ const Indstillinger = React.memo(() => {
               <Typography className="row--text">A:</Typography>
               <StyledDropdown
                 value={settings.defaultOverenskomstArbejdsgiver}
-                onChange={(e: StyledDropdownChangeEvent<string>) => {
+                onChange={(e) => {
                   // Alle dropdownens string-værdier er gyldige her; schemaet håndhæver kun at feltet er en string.
-                  return updateSettings({ defaultOverenskomstArbejdsgiver: e.target.value });
+                  updateSettings({ defaultOverenskomstArbejdsgiver: e.target.value });
                 }}
                 width={200}
                 allowEmpty={false}
@@ -453,13 +423,11 @@ const Indstillinger = React.memo(() => {
               value={settings.defaultSvieSmerteDelvisSygemeldingSats}
               onCommit={(event) => {
                 const next = event.target.value;
-                if (isSvieSmerteDelvisSygemeldingSatsOption(next)) {
-                  return updateSettings({ defaultSvieSmerteDelvisSygemeldingSats: next });
-                }
-                return false;
+                if (next === undefined) return false;
+                return updateSettings({ defaultSvieSmerteDelvisSygemeldingSats: next });
               }}
               row={true}
-              options={svieSmerteDelvisSygemeldingSatsOptions.map((option) => ({ ...option }))}
+              options={svieSmerteDelvisSygemeldingSatsOptions}
             />
           </Box>
         </Box>
@@ -496,9 +464,7 @@ const Indstillinger = React.memo(() => {
               allowEmpty={false}
               value={settings.erstatningsopgoerelseAfsluttesMed}
               onChange={(e) => {
-                if (isAfsluttesMedOption(e.target.value)) {
-                  return updateSettings({ erstatningsopgoerelseAfsluttesMed: e.target.value });
-                }
+                updateSettings({ erstatningsopgoerelseAfsluttesMed: e.target.value });
               }}
               width={220}
             >
@@ -536,9 +502,9 @@ const Indstillinger = React.memo(() => {
               <StyledDropdown
                 allowEmpty={false}
                 value={settings.allowReguleringMedUdloebMedMaaneder}
-                onChange={(e: StyledDropdownChangeEvent<number>) => {
+                onChange={(e) => {
                   // Kun værdier fra udloebMaanederOptions kan nå hertil; schemaets min/max er defensiv backup.
-                  return updateSettings({ allowReguleringMedUdloebMedMaaneder: e.target.value });
+                  updateSettings({ allowReguleringMedUdloebMedMaaneder: e.target.value });
                 }}
                 width={80}
               >

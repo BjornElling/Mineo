@@ -2338,3 +2338,107 @@ export const placeholderIdentityOwnershipRule = defineRule({
     code: 'const table = useCollectionTable({ collection, committedRows, createRowId, createEmptyRow, locationPrefix, locationNav });\nconst renderRows = table.buildRenderRows(sortedRows);',
   }],
 });
+
+/**
+ * Et valg-felts værditype skal INFERERES, ikke annoteres væk og repareres bagefter.
+ *
+ * `StyledDropdown` og `StyledRadioButton` er begge generiske i optionernes værditype. Skriver et
+ * kaldsted `onChange={(e: StyledDropdownChangeEvent<string>) => …}`, låser annotationen `TValue`
+ * til `string` — den brede type vinder over den inferede literal-union. Kaldstedet har dermed selv
+ * kastet typen væk og skal nu bevise, hvad compileren lige kunne have sagt. Præcis det skete på
+ * Indstillinger-siden: fem håndskrevne `is…Option`-typeguards med kroppen
+ * `(OPTIONS as readonly string[]).includes(value)`, hvor `as readonly string[]`-castet igen kaster
+ * netop den type væk, guarden bagefter påstår at etablere.
+ *
+ * Reglen forbyder derfor den brede annotation på handleren. Fjernes den, inferes literal-unionen,
+ * og guarden har intet at lave.
+ *
+ * VIGTIGT om reglens rækkevidde (målt, ikke antaget): `TValue` inferes fra `value`-proppen ALENE,
+ * ikke fra de rendrede `MenuItem`-børn. Compileren kan derfor sikre, at det COMMITTEDE er en gyldig
+ * værdi, men IKKE at kontrollen tilbyder præcis unionens værdier. Det hul måles af
+ * `Indstillinger.optionCoverage.test.tsx` — typen og testen dækker hvert sit hul, og begge skal
+ * bruges.
+ */
+const CHOICE_HANDLER_EVENT_TYPES = new Set(['StyledDropdownChangeEvent', 'CommitEvent']);
+
+/** De brede typeargumenter, der ophæver inferensen af optionernes literal-union. */
+const WIDENING_TYPE_ARGUMENTS = new Set([
+  ts.SyntaxKind.StringKeyword,
+  ts.SyntaxKind.NumberKeyword,
+]);
+
+export const choiceFieldValueTypeInferredRule = defineRule({
+  id: 'form/choice-field-value-type-inferred',
+  description:
+    'En dropdown-/radio-handler må ikke annoteres med en bred værditype (StyledDropdownChangeEvent<string> o.l.) — literal-unionen skal inferes.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => hasAnyIdentifier(entry, ['StyledDropdown', 'StyledRadioButton']),
+    rationale: 'valg-felterne (StyledDropdown/StyledRadioButton) renderes fortsat i kildegrafen',
+    minimumMatches: 2,
+    requiredPaths: [
+      'src/components/pages/Indstillinger.tsx',
+      'src/components/inputs/StyledDropdown.tsx',
+      'src/components/inputs/StyledRadioButton.tsx',
+    ],
+  },
+  find: (entry) => {
+    const findings: Finding[] = [];
+    const visit = (node: ts.Node): void => {
+      if (ts.isParameter(node) && node.type !== undefined) {
+        const { type } = node;
+        if (
+          ts.isTypeReferenceNode(type)
+          && ts.isIdentifier(type.typeName)
+          && CHOICE_HANDLER_EVENT_TYPES.has(type.typeName.text)
+          && type.typeArguments?.some((arg) => WIDENING_TYPE_ARGUMENTS.has(arg.kind)) === true
+        ) {
+          const { line, character } = entry.ast.getLineAndCharacterOfPosition(type.getStart(entry.ast));
+          findings.push({
+            position: { line: line + 1, column: character + 1 },
+            message:
+              `${type.typeName.text}<string|number> som parameter-annotation låser feltets værditype til den brede form `
+              + 'og ophæver inferensen af optionernes literal-union. Fjern annotationen — så er der intet at typeguarde.',
+          });
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(entry.ast);
+    return findings;
+  },
+  violatingFixtures: [
+    // Den præcise form, de fem guards fandtes for at reparere.
+    {
+      relativePath: 'src/components/pages/XPage.tsx',
+      code: 'const X = () => <StyledDropdown value={v} onChange={(e: StyledDropdownChangeEvent<string>) => set(e.target.value)} />;',
+    },
+    // Samme fejl på den numeriske form.
+    {
+      relativePath: 'src/components/pages/XPage.tsx',
+      code: 'const X = () => <StyledDropdown value={v} onChange={(e: StyledDropdownChangeEvent<number>) => set(e.target.value)} />;',
+    },
+    // Radio-siden af samme familie.
+    {
+      relativePath: 'src/components/pages/XPage.tsx',
+      code: 'const X = () => <StyledRadioButton value={v} onCommit={(e: CommitEvent<string>) => set(e.target.value)} />;',
+    },
+  ],
+  cleanFixtures: [
+    // Uannoteret: literal-unionen inferes fra value-proppen.
+    {
+      relativePath: 'src/components/pages/XPage.tsx',
+      code: 'const X = () => <StyledDropdown value={v} onChange={(e) => set(e.target.value)} />;',
+    },
+    // En SMAL typeargument er ikke reglens ærinde — den ophæver ingen inferens.
+    {
+      relativePath: 'src/components/pages/XPage.tsx',
+      code: 'const X = () => <StyledDropdown value={v} onChange={(e: StyledDropdownChangeEvent<Loenperiode>) => set(e.target.value)} />;',
+    },
+    // En bred CommitEvent på et IKKE-valg-felt (boolsk toggle) er uberørt.
+    {
+      relativePath: 'src/components/pages/XPage.tsx',
+      code: 'const X = () => <StyledToggleSwitch checked={v} onCommit={(e: CommitEvent<boolean>) => set(e.target.value)} />;',
+    },
+  ],
+});

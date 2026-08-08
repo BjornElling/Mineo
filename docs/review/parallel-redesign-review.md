@@ -1966,7 +1966,7 @@ Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det
 kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
 beskriver flere steder slettede mellemtrin.
 
-**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 538 testfiler / 6972 tests,
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 539 testfiler / 6981 tests,
 `typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»,
 «Efterslæb lukket 2026-08-07», «Gennemført 2026-08-07 (anden omgang: #50 og #32)»,
 «Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)» og
@@ -1991,7 +1991,8 @@ med registry»; ~~`RowDeleteButton`-mønstrets omgivende celle (10 steder, fire 
 ~~`DanishDateString`-datalagets to private `danishDateToNumber`-kopier og `.filter().reduce()`-max-familien
 på seks interval-start-resolvere~~
 **✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08 (tredje post)» nedenfor**;
-Indstillingssidens fire `is…Option`-typeguards og
+~~Indstillingssidens fire `is…Option`-typeguards~~
+**✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08 (fjerde post)» nedenfor**;
 `defaultDirectoryHandleId`s ~143 linjer.
 
 ### Rækkefølge for det udestående
@@ -2195,6 +2196,76 @@ grænsen går nu ved den FUNKTION, der bygger intervallet.
 Ingen synlig UI-ændring og ingen tal berørt. Fuldt træ grønt: 538 filer / 6972 tests (+18),
 `typecheck`, `typecheck:test`, `lint`.
 
+### Efterslæb lukket 2026-08-08 (fjerde post) — guards der reparerede en widening, fladen selv indførte
+
+Fjerde post fra listen over «registreret som ikke gjort». Den var registreret som «Indstillingssidens
+fire `is…Option`-typeguards», altså som en duplikering: fire funktioner med samme krop. Både tallet og
+diagnosen var forkerte.
+
+**Det reelle fund.** Der var **fem**, ikke fire — den femte, `isDocumentDownloadFormat`, lå i
+dokumentlaget (`document/documentFormat.ts`), men havde præcis ét kaldsted: den samme side. Og
+guardene var ikke problemet, men et *symptom*. Hver af dem fandtes udelukkende for at reparere en
+widening, **siden selv indførte**: kaldstederne annoterede deres handlere
+`onChange={(e: StyledDropdownChangeEvent<string>) => …}`. `StyledDropdown` er generisk i `TValue`, så
+uden annotationen inferes literal-unionen fra `value`-proppen, og `e.target.value` ER allerede den
+rigtige type. Guardens `(OPTIONS as readonly string[]).includes(value)` kaster med sit cast netop den
+type væk, den bagefter påstår at etablere — et run-time-tjek sat i stedet for et compile-time-tjek,
+der allerede var muligt.
+
+**Duplikeringen var desuden ikke fem steder, men seks.** Værnet fandt selv det sjette, som ingen
+gennemgang havde nævnt: `LoentrinFinderOverlay` bar samme annotation og betalte for den med et
+`offentligLoenTypeEnum.safeParse(...)` + `'Månedsløn'`-fallback ved hvert valg — en runtime-reparation
+af en type, der ikke behøvede at være kastet væk. Dens to `MenuItem`s var samtidig hardkodede kopier
+af enummets værdier og er nu afledt af det.
+
+**Radio-siden bar samme fejl som et cast.** `StyledRadioButton` var ikke-generisk (`options` typet på
+`string`), så `RadioField` — feltfamiliens egen adapter — måtte skrive `controller.commitImmediate(next as TValue)`.
+Samme fejlklasse, blot stavet som en assertion i stedet for en typeguard.
+
+**Gjort:**
+
+- `StyledRadioButton` er nu generisk i optionernes værditype. DOM'en kan kun bære strenge, så
+  komponenten mapper den rå streng TILBAGE til den option, den kom fra (`options.find`), i stedet for
+  at lade hvert kaldsted bevise typen. `onCommit` modtager dermed `TValue`.
+- Alle fem guards er slettet, og `RadioField`s `as TValue`-cast med dem. Ingen
+  `(OPTIONS as readonly string[]).includes(...)` er tilbage i produktionskoden.
+- De seks widening-annotationer er fjernet; typen bæres nu af `value`-proppen alene.
+- Nyt AST-værn `form/choice-field-value-type-inferred` lukker vejen tilbage: en bred
+  `StyledDropdownChangeEvent<string|number>`/`CommitEvent<string>` som parameter-annotation på et
+  valg-felt er en overtrædelse. `liveTarget: precondition` med de tre bærende filer i `requiredPaths`.
+- Ny testfil `Indstillinger.optionCoverage.test.tsx` (7 tests). Siden havde **ingen testdækning
+  overhovedet** før.
+
+**Typens loft er MÅLT, ikke antaget — og det er derfor testen findes.** `TValue` inferes fra
+`value`-proppen ALENE, ikke fra de rendrede `MenuItem`-børn (MUI typer `value` bredt). Målt i begge
+retninger med en scratch-probe: en `value`-prop udvidet til `string` giver `TS2322`, mens en `MenuItem`
+med en værdi uden for unionen typechecker **grønt**. Compileren kan altså sikre, at det COMMITTEDE er
+gyldigt, men ikke at kontrollen tilbyder præcis unionens værdier. Testen måler netop det: hver
+valgkontrols faktisk rendrede valgmuligheder mod sit schema-univers i begge retninger. Typen og testen
+dækker hvert sit hul, jf. arbejdsmåde-afsnittets egen regel.
+
+**Mutationsbevist i tre trin:** (1) en bogus `<MenuItem value="Mutationstest-vaerdi">` i den LEVENDE
+kilde — typecheck forblev **grøn**, mens præcis den ene coverage-test fejlede, hvilket beviser hullet
+og at testen dækker det; (2) en mutation af selve mekanismen (`StyledRadioButton`s option-mapping
+neutraliseret) fældede præcis den ene test, der måler commit-vejen, og ingen af coverage-testene;
+(3) en *fjernet* option (`slice(0, 1)`) — igen grøn typecheck — fældede den modsatte retning. Værnet
+selv er mutationsbevist ved at genindføre annotationen i live kilde: harnessen blev rød på præcis den
+linje med præcis regel-id'et.
+
+Ingen synlig UI-ændring og ingen tal berørt: de rendrede valgmuligheder og deres etiketter er
+uændrede. Kontrakten `app-settings.md` bærer nu reglen og typens loft. Fuldt træ grønt: 539 filer /
+6981 tests (+9), `typecheck`, `typecheck:test`, `lint`.
+
+*Bemærkning uden handling:* første fulde suite-kørsel havde én `waitFor`-timeout i
+`Forsoergertab.integration.test.tsx` (download-knap, urørt af dette arbejde). Den passerer på rent træ,
+isoleret med ændringerne, sammen med den nye testfil og i en fuld gen-kørsel — altså en flake, ikke en
+regression. Registreret her frem for udbedret.
+
+*Fund til den næste post (ikke gjort her):* standardmappens visningsnavn har TO konstruktioner —
+`'Skrivebord (standard)'` hardkodet fire steder i `Indstillinger.tsx` og `'Skrivebord'` i
+`fileHelpers.ts:260`. Samme brugersynlige begreb, to forskellige strenge. Hører til
+`defaultDirectoryHandleId`-posten.
+
 ### Brugerens beslutninger 2026-08-06 (bindende for resten af arbejdet)
 
 De fire udestående mandatspørgsmål er forelagt samlet og besvaret. Beslutningerne herunder er
@@ -2288,6 +2359,17 @@ Ingen ændring foretages, før det er besvaret.
   fordi den findes. Spørg altid: hvad rammer proben EFTER at ændringen er gennemført?
 - **Filen er sjældent værnets rette enhed.** Fil-scope flagede al indeksering i en datafil, ikke bare
   den der udtaler sig om seriens ender. Grænsen skal gå ved den funktion, der bærer invarianten.
+- **Et run-time-tjek er ofte et compile-time-tjek, nogen har kastet væk længere oppe.** De fem
+  `is…Option`-typeguards lignede en duplikering, der skulle samles ét sted. De skulle slet ikke
+  eksistere: fladen annoterede selv sin handler bredt og ophævede dermed den inferens, der allerede
+  gav den rigtige type. Spørg ved enhver defensiv guard: hvor blev typen kastet væk — og kan jeg
+  lade være i stedet for at reparere bagefter? En guard, hvis krop caster til den brede form
+  (`as readonly string[]`), er selv beviset.
+- **Mål en types loft med en scratch-probe, før du stoler på den ELLER skriver testen.** Jeg antog
+  først, at en generisk dropdown ville fange en forkert `MenuItem`. Den gør den ikke: `TValue` inferes
+  fra `value`-proppen alene, og MUI typer `MenuItem.value` bredt. To mutationer afgjorde det på et
+  minut — og fastlagde præcis, hvad testen så skulle dække. Uden målingen var testen enten blevet
+  overflødig eller havde efterladt hullet.
 - **En sammenlægning af to kopier afslører funktionsforskelle — de skal ikke ensartes undervejs.**
   Anciennitetstillæg-blokken skjulte, at de to overflader afgør satsens enhed forskelligt. Det
   rigtige træk var at bevare begge adfærd bag en slot og forelægge forskellen, ikke at vælge en

@@ -15,21 +15,34 @@ import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
  * - Kan bruges individuelt eller i gruppe
  * - Horisontalt eller vertikalt layout
  */
-interface RadioOption {
-  value: string;
+interface RadioOption<TValue extends string> {
+  value: TValue;
   label: string;
 }
 
-interface StyledRadioButtonProps {
+/**
+ * Komponenten er generisk i optionernes værdi-type, og det er en TYPEGRÆNSE — ikke bekvemmelighed.
+ *
+ * DOM'en kan kun bære strenge, så `RadioGroup.onChange` afleverer altid en bar `string`. Var propsene
+ * typet på `string`, ville hvert kaldsted selv skulle bevise, at strengen er en af DETS options —
+ * hvilket de gjorde med håndskrevne `is…Option`-typeguards (og `RadioField` med et `as TValue`-cast).
+ * Guarden/castet var kun nødvendigt, fordi typen var smidt væk ét lag længere inde.
+ *
+ * Her mappes den rå streng i stedet TILBAGE til den option, den kom fra (`options.find`), så
+ * `onCommit` modtager `TValue` med den type, kaldstedet allerede har erklæret. Er strengen ikke en
+ * kendt option, er der intet at committe, og hændelsen droppes — den kan kun opstå ved en DOM-værdi,
+ * komponenten ikke selv har renderet.
+ */
+interface StyledRadioButtonProps<TValue extends string> {
   label?: string;
-  options?: RadioOption[];
-  value?: string | undefined;
+  options?: readonly RadioOption<TValue>[];
+  value?: TValue | undefined;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>, value: string) => void;
   /**
    * Valg er en immediate commit for radio-knapper.
    * Dette giver Mineo-style commit-semantik ud over det native MUI-callback.
    */
-  onCommit?: CommitHandler<string | undefined>;
+  onCommit?: CommitHandler<TValue | undefined>;
   /**
    * Hvis `true`, understøtter komponenten "intet valg" ved at committe `undefined`.
    *
@@ -74,7 +87,7 @@ const RADIO_FOCUS_HALO_SX = {
     },
 } as const;
 
-const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProps>(({
+const StyledRadioButtonInner = <TValue extends string>({
   label,
   options = [],
   value,
@@ -89,7 +102,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
   helperText = '',
   tooltipText,
   restoreTargetAttributes,
-}, ref) => {
+}: StyledRadioButtonProps<TValue>, ref: React.ForwardedRef<HTMLDivElement>) => {
   const autoId = React.useId();
   const emptyValue = `__mineo_radio_empty__${autoId}`;
   const groupName = name ?? `mineo-radio-${autoId}`;
@@ -165,9 +178,16 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
             value={resolvedValue}
             aria-describedby={showError ? a11yErrorId : undefined}
             onChange={(e, nextValue) => {
-              const committedValue = nextValue === emptyValue ? undefined : nextValue;
               if (onCommit) {
-                onCommit(createCommitEvent(committedValue));
+                // Map DOM-strengen tilbage til den option, den kom fra, så `TValue` bevares uden cast.
+                // `undefined` er KUN tomvalgs-sentinelen; en ukendt streng er ikke et valg og droppes.
+                if (nextValue === emptyValue) {
+                  onCommit(createCommitEvent<TValue | undefined>(undefined));
+                  return;
+                }
+                const selected = options.find((option) => option.value === nextValue);
+                if (selected === undefined) return;
+                onCommit(createCommitEvent<TValue | undefined>(selected.value));
                 return;
               }
               onChange?.(e, nextValue);
@@ -230,8 +250,17 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
       </Tooltip>
     </FormControl>
   );
-});
+};
 
-StyledRadioButton.displayName = 'StyledRadioButton';
+/**
+ * `React.forwardRef` kan ikke bære en typeparameter gennem sin egen signatur, så den generiske
+ * komponent castes til en kaldbar type, der KAN. Castet ændrer intet ved implementeringen — det
+ * genetablerer kun `TValue` udadtil, så kaldstedet får sin egen option-type tilbage i `onCommit`.
+ */
+const StyledRadioButton = React.forwardRef(StyledRadioButtonInner) as <TValue extends string>(
+  props: StyledRadioButtonProps<TValue> & { ref?: React.ForwardedRef<HTMLDivElement> }
+) => React.ReactElement;
+
+(StyledRadioButton as { displayName?: string }).displayName = 'StyledRadioButton';
 
 export default StyledRadioButton;
