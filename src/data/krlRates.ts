@@ -17,8 +17,12 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { getInclusivePeriodEndDanishDate } from '../utils/dateUtils';
-import { assertStrictlyMonotonicByDanishDate } from './rateSeriesIntegrity';
+import {
+  assertStrictlyMonotonicByDanishDate,
+  resolveSeriesCoverageInterval,
+  type CoverageInterval,
+  type DanishDateOrder,
+} from './rateSeriesIntegrity';
 
 // ===== TYPE DEFINITIONER =====
 
@@ -39,10 +43,13 @@ export interface KRLSatstabel {
   readonly vaerdier: ReadonlyArray<KRLSatsVaerdi>; // Nyeste først
 }
 
-export type KRLReguleringsDatoInterval = Readonly<{
-  fraDato: DanishDateString;
-  tilDato: DanishDateString;
-}>;
+export type KRLReguleringsDatoInterval = CoverageInterval;
+
+/**
+ * Sorteringsretningen for KRL-serierne — ét sted, delt af load-guarden og af det
+ * positionelle dæknings-opslag, så de to ikke kan stå med hver sin retning.
+ */
+const KRL_SERIE_ORDER: DanishDateOrder = 'descending';
 
 // ===== HELPER FUNKTIONER =====
 
@@ -145,11 +152,13 @@ const KRL_IDS: ReadonlyArray<{ id: KRLSatstabelId; colIndex: 1 | 2 | 3 | 4 }> = 
  * carry-forwarder derfor den seneste kendte procent. To latente antagelser skal
  * håndhæves, for at det er sikkert:
  *
- * (1) **Rækkefølge — strengt nyeste-først.** Både `getReguleringsDatoIntervalForKRL`
- *     (ældste = sidste række, nyeste = første række) og null-prefiks-kontrollen
+ * (1) **Rækkefølge — strengt nyeste-først (`KRL_SERIE_ORDER`).** Både
+ *     `getReguleringsDatoIntervalForKRL` (der læser enderne positionelt via
+ *     `resolveSeriesCoverageInterval` med samme retningskonstant) og null-prefiks-kontrollen
  *     nedenfor forudsætter denne rækkefølge. En mis-sorteret tabel ville give et
  *     forkert reguleringsdato-interval i række-laget (row-gatens `min`/`max`, der
- *     gater S1/S6) og kunne maskere et hul.
+ *     gater S1/S6) og kunne maskere et hul. NB: dæknings-opslaget læser den AFLEDTE
+ *     delserie, som derfor bærer sin egen guard i `buildSatstabelFromCombined`.
  *
  * (2) **Ingen interiort hul pr. kolonne.** `buildSatstabelFromCombined` frafiltrerer
  *     null-felter. Et hul *midt* i en kolonnes serie (en manglende procent mellem to
@@ -170,7 +179,7 @@ export const assertKRLCombinedDataIntegritet = (
   // (1) Strengt nyeste-først + gyldige, unikke datoer (delt primitiv).
   assertStrictlyMonotonicByDanishDate(rows, {
     getDato: (row) => row[0],
-    order: 'descending',
+    order: KRL_SERIE_ORDER,
     label: 'KRL-satstabel',
   });
 
@@ -223,6 +232,18 @@ const buildSatstabelFromCombined = (
       vaerdier.push({ fraDato: d(row[0]), reguleringsPct: pct });
     }
   }
+  // Den AFLEDTE delserie er den, dæknings-opslaget faktisk læser positionelt — ikke den
+  // samlede tabel, guarden ovenfor dækker. At delserien arver sorteringen er i dag en
+  // to-trins slutning (kombineret tabel sorteret + null kun som ældste-prefiks), som intet
+  // værn kontrollerer for det afledte resultat. Guarden gentages derfor her, hvor serien
+  // opstår, så en fremtidig ændring af filtreringen ikke kan producere en usorteret delserie,
+  // der giver et spejlvendt dæknings-interval.
+  assertStrictlyMonotonicByDanishDate(vaerdier, {
+    getDato: (vaerdi) => vaerdi.fraDato,
+    order: KRL_SERIE_ORDER,
+    label: `KRL-satstabel "${id}" (delserie)`,
+  });
+
   return { id, navn: id, vaerdier };
 };
 
@@ -251,22 +272,20 @@ export const getKRLSatstabel = (id: KRLSatstabelId): KRLSatstabel | undefined =>
  * fraDato = ældste regulerings-startdato
  * tilDato = nyeste regulerings-startdato + 6 måneder − 1 dag
  *           (KRL-satser behandles som 6-måneders perioder i Mineo)
+ *
+ * Retningen (`KRL_SERIE_ORDER`) er den samme værdi, load-guarden håndhæver, så det
+ * positionelle ældste/nyeste-opslag ikke kan drive fra sorteringen.
  */
 export const getReguleringsDatoIntervalForKRL = (
   id: KRLSatstabelId
 ): KRLReguleringsDatoInterval | undefined => {
   const tabel = krlSatstabelById.get(id);
-  if (!tabel || tabel.vaerdier.length === 0) return undefined;
+  if (!tabel) return undefined;
 
-  // Værdier er sorteret nyeste først
-  const nyeste = tabel.vaerdier[0];
-  const aeldste = tabel.vaerdier[tabel.vaerdier.length - 1];
-
-  const tilDato = getInclusivePeriodEndDanishDate(nyeste.fraDato, 6);
-  if (!tilDato) return undefined;
-
-  return {
-    fraDato: aeldste.fraDato,
-    tilDato,
-  };
+  return resolveSeriesCoverageInterval({
+    series: tabel.vaerdier,
+    getDato: (vaerdi) => vaerdi.fraDato,
+    order: KRL_SERIE_ORDER,
+    periodeMaaneder: 6,
+  });
 };

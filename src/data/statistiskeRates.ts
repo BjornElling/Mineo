@@ -12,9 +12,12 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { getInclusivePeriodEndDanishDate } from '../utils/dateUtils';
 import { aarsloenAslMax, getYearBoundsForYearlyRate } from './lovbestemteRates';
-import { assertNoInteriorYearGap } from './rateSeriesIntegrity';
+import {
+  assertNoInteriorYearGap,
+  resolveUnorderedSeriesCoverageInterval,
+  type CoverageInterval,
+} from './rateSeriesIntegrity';
 
 // ===== TYPE DEFINITIONER =====
 
@@ -71,13 +74,17 @@ export interface StatistiskLoenudviklingMeta {
  */
 export interface StatistiskLoenudvikling {
   readonly meta: StatistiskLoenudviklingMeta;
-  readonly indeksvaerdier: ReadonlyArray<StatistiskIndeksVaerdi>; // Nyeste først
+  /**
+   * Kvartals-indeksværdier. Rækkefølgen er IKKE en invariant og må ikke bygges på:
+   * beregningsstien (`buildStatistikIndexEntries`) sorterer eksplicit før brug, og
+   * dæknings-intervallet scanner enderne. Modsat KRL/KL/overenskomst/offentlig løn er der
+   * derfor bevidst intet sorterings-værn på denne serie — der er intet opslag, en forkert
+   * rækkefølge kunne føre bag lyset.
+   */
+  readonly indeksvaerdier: ReadonlyArray<StatistiskIndeksVaerdi>;
 }
 
-export type ReguleringsDatoInterval = Readonly<{
-  fraDato: DanishDateString;
-  tilDato: DanishDateString;
-}>;
+export type ReguleringsDatoInterval = CoverageInterval;
 
 export const ASL_AARSLOENSMAKSIMUM_MODEL_LABEL = 'ASL-årslønsmaksimum';
 
@@ -270,31 +277,19 @@ export const getReguleringsDatoIntervalForStatistikModel = (rawModel: string): R
   if (!modelId) return undefined;
 
   const model = statistiskLoenudviklingById.get(modelId);
-  if (!model || model.indeksvaerdier.length === 0) return undefined;
+  if (!model) return undefined;
 
-  let minKvartal = model.indeksvaerdier[0].kvartal;
-  let maxKvartal = model.indeksvaerdier[0].kvartal;
-  let minNum = kvartalToNumber(minKvartal);
-  let maxNum = minNum;
-
-  for (const vaerdi of model.indeksvaerdier) {
-    const num = kvartalToNumber(vaerdi.kvartal);
-    if (num < minNum) {
-      minNum = num;
-      minKvartal = vaerdi.kvartal;
-    }
-    if (num > maxNum) {
-      maxNum = num;
-      maxKvartal = vaerdi.kvartal;
-    }
-  }
-
-  const fraDato = kvartalToStartDato(minKvartal);
-  const maxStartDato = kvartalToStartDato(maxKvartal);
-
+  // Enderne SCANNES her, modsat de øvrige reguleringskilder, der læser dem positionelt af en
+  // håndhævet sortering: indeksseriens lagringsrækkefølge er ikke en invariant (beregningsstien
+  // `buildStatistikIndexEntries` sorterer selv eksplicit før brug), så et positionelt opslag
+  // ville hvile på en antagelse, intet værn holder.
+  //
   // ILON/SBLON-kvartalsserien dækker 12 måneder frem fra det seneste kvartals startdato
   // (kanonisk "+N mdr − 1 dag"-aritmetik, delt med de øvrige reguleringsdato-intervaller).
-  const tilDato = getInclusivePeriodEndDanishDate(maxStartDato, 12);
-  if (!tilDato) return undefined;
-  return { fraDato, tilDato };
+  return resolveUnorderedSeriesCoverageInterval({
+    series: model.indeksvaerdier,
+    getSortKey: (vaerdi) => kvartalToNumber(vaerdi.kvartal),
+    getStartDato: (vaerdi) => kvartalToStartDato(vaerdi.kvartal),
+    periodeMaaneder: 12,
+  });
 };

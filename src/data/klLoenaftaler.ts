@@ -31,8 +31,12 @@
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { getInclusivePeriodEndDanishDate } from '../utils/dateUtils';
-import { assertStrictlyMonotonicByDanishDate } from './rateSeriesIntegrity';
+import {
+  assertStrictlyMonotonicByDanishDate,
+  resolveSeriesCoverageInterval,
+  type CoverageInterval,
+  type DanishDateOrder,
+} from './rateSeriesIntegrity';
 
 // ===== TYPER =====
 
@@ -43,10 +47,14 @@ export interface KlLoenaftalerRow {
   readonly reguleringPct: number;
 }
 
-export type KlLoenaftalerReguleringsDatoInterval = Readonly<{
-  fraDato: DanishDateString;
-  tilDato: DanishDateString;
-}>;
+export type KlLoenaftalerReguleringsDatoInterval = CoverageInterval;
+
+/**
+ * Sorteringsretningen for KL-lønaftalernes serie — ét sted, delt af load-guarden og af det
+ * positionelle dæknings-opslag. Modsat KRL og de offentlige lønsatser er denne serie
+ * ældste-først (den trinvise kæde læses kronologisk).
+ */
+const KL_LOENAFTALER_SERIE_ORDER: DanishDateOrder = 'ascending';
 
 // ===== HELPER =====
 
@@ -116,8 +124,9 @@ export const klLoenaftalerRaekker: ReadonlyArray<KlLoenaftalerRow> = klRegulerin
  * KL-lønaftaler-formen regulerer trinvist på lønnen: kæde-resolveren anvender hver
  * reguleringsdato sekventielt (`buildKlLoenaftalerReguleretLoenResolver`), og
  * `getReguleringsDatoIntervalForKlLoenaftaler` udleder row-gatens dæknings-interval
- * positionelt (`[0]` = ældste, `[length-1]` = nyeste). Tre latente antagelser skal
- * håndhæves, for at det er sikkert:
+ * positionelt via `resolveSeriesCoverageInterval` med `KL_LOENAFTALER_SERIE_ORDER` — samme
+ * retning som guarden nedenfor håndhæver. Tre latente antagelser skal håndhæves, for at det
+ * er sikkert:
  *
  * (1) **Ikke-tom serie.** En tom tabel ville give et udefineret interval og ingen
  *     regulering uden fejl. Kilden skal altid have mindst basis-datoen (01-04-2005).
@@ -144,7 +153,7 @@ export const assertKlLoenaftalerDataIntegritet = (
   // (2) Strengt ældste-først + unikke, parsbare datoer (delt primitiv).
   assertStrictlyMonotonicByDanishDate(raekker, {
     getDato: (row) => row.fraDato,
-    order: 'ascending',
+    order: KL_LOENAFTALER_SERIE_ORDER,
     label: 'KL-lønaftaler',
   });
 
@@ -188,17 +197,10 @@ export const getKlLoenaftalerReguleringPctForDato = (fraDato: DanishDateString):
  * tilDato = nyeste regulerings-startdato + 6 måneder − 1 dag
  *           (satserne behandles som 6-måneders perioder i Mineo, som KRL)
  */
-export const getReguleringsDatoIntervalForKlLoenaftaler = (): KlLoenaftalerReguleringsDatoInterval | undefined => {
-  if (klLoenaftalerRaekker.length === 0) return undefined;
-
-  const aeldste = klLoenaftalerRaekker[0];
-  const nyeste = klLoenaftalerRaekker[klLoenaftalerRaekker.length - 1];
-
-  const tilDato = getInclusivePeriodEndDanishDate(nyeste.fraDato, 6);
-  if (!tilDato) return undefined;
-
-  return {
-    fraDato: aeldste.fraDato,
-    tilDato,
-  };
-};
+export const getReguleringsDatoIntervalForKlLoenaftaler = (): KlLoenaftalerReguleringsDatoInterval | undefined =>
+  resolveSeriesCoverageInterval({
+    series: klLoenaftalerRaekker,
+    getDato: (row) => row.fraDato,
+    order: KL_LOENAFTALER_SERIE_ORDER,
+    periodeMaaneder: 6,
+  });

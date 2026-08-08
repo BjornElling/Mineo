@@ -1,4 +1,4 @@
-import { coerceToDanishDateString, coerceToISODateString, danishToISO, dateToISO, isDanishDateString, isISODateString, isoToDanish, parseISODate, toDanishDateString, toISODateString } from '../../types/branded';
+import { danishDateToComparableNumber, coerceToDanishDateString, coerceToISODateString, danishToISO, dateToISO, isDanishDateString, isISODateString, isoToDanish, parseISODate, toDanishDateString, toISODateString } from '../../types/branded';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
 describe('branded.ts - Dato roundtrip tests', () => {
@@ -298,6 +298,34 @@ describe('branded.ts — type guards', () => {
     it('ikke-streng → undefined', () => {
       expect(coerceToDanishDateString(null)).toBeUndefined();
       expect(coerceToDanishDateString(undefined)).toBeUndefined();
+    });
+  });
+
+  describe('danishDateToComparableNumber', () => {
+    it('giver ÅÅÅÅMMDD som heltal', () => {
+      expect(danishDateToComparableNumber(toDanishDateString('15-06-2024'))).toBe(20240615);
+      expect(danishDateToComparableNumber(toDanishDateString('01-01-2001'))).toBe(20010101);
+      expect(danishDateToComparableNumber(toDanishDateString('31-12-2026'))).toBe(20261231);
+    });
+
+    it('sorterer kronologisk — også over årsskifte og cifferbredder', () => {
+      const datoer = ['01-10-2026', '01-04-2005', '15-06-2024', '31-12-2005']
+        .map((d) => danishDateToComparableNumber(toDanishDateString(d)));
+      expect([...datoer].sort((a, b) => a - b)).toEqual([20050401, 20051231, 20240615, 20261001]);
+    });
+
+    /**
+     * Den ene kopi denne form afløste, splittede strengen rå. En syntaktisk gyldig, men
+     * ugyldig dato blev derfor til et tal, som sorterede EFTER alle rigtige datoer — en tavs
+     * fejlordning i stedet for en fejl.
+     */
+    it('kaster ved en syntaktisk gyldig, men ugyldig dato (frem for at give et for stort tal)', () => {
+      expect(() => danishDateToComparableNumber('32-13-2024' as never)).toThrow(/Ugyldig dato/);
+      expect(() => danishDateToComparableNumber('31-02-2024' as never)).toThrow(/Ugyldig dato/);
+    });
+
+    it('kaster ved uparsbar streng', () => {
+      expect(() => danishDateToComparableNumber('ikke-en-dato' as never)).toThrow(/Ugyldig dato/);
     });
   });
 });

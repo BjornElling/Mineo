@@ -8,8 +8,9 @@
  * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
  * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
  */
+import ts from 'typescript';
 import { type PersistedSectionKey } from '../../../../config/persistenceRegistry';
-import { collectCalls, collectImports, hasIdentifier, hasTypeReference, resolveRelativeImport } from '../astQueries';
+import { collectCalls, collectElementAccess, collectImports, hasIdentifier, hasTypeReference, resolveRelativeImport } from '../astQueries';
 import { type SourceEntry } from '../sourceGraph';
 import {
   defineRule,
@@ -75,6 +76,155 @@ export const aslAarsloensmaksimumRawSubscript = forbidElementAccess({
     { relativePath: 'src/foo.ts', code: 'const idx = aarsloenAslMax;' },
     { relativePath: 'src/foo.ts', code: 'getYearBoundsForYearlyRate(aarsloenAslMax);' },
     { relativePath: 'src/foo.ts', code: 'resolveAslAarsloensmaksimumForAar(year);' },
+  ],
+});
+
+// --- Dæknings-interval: seriens ender må ikke læses positionelt --------------
+
+/**
+ * Reguleringskildernes dæknings-interval udledes af `resolveSeriesCoverageInterval`, som
+ * tager sorteringsretningen som argument og afleder BEGGE ender af den. Håndrullede
+ * `serie[0]` / `serie[serie.length - 1]`-opslag genindfører den fejlmåde, primitivet findes
+ * for: retningen står da kun som en kommentar ved siden af opslaget, mens den håndhævede
+ * sortering er konfigureret et andet sted, og de to kan drive fra hinanden uden at noget
+ * fejler — resultatet er et spejlvendt interval, altså en falsk dæknings-gate.
+ *
+ * Reglen rammer kun `src/data/`, og kun filer der FAKTISK bygger et dæknings-interval
+ * (kendetegnet ved kaldet til `getInclusivePeriodEndDanishDate`). En positionel læsning et
+ * andet sted i datalaget — fx `satser[0]` i et carry-forward-opslag — er ikke omfattet:
+ * dér er "første element" seriens semantik, ikke en påstand om, hvilken ende det er.
+ */
+const COVERAGE_INTERVAL_PRIMITIVE = 'src/data/rateSeriesIntegrity.ts';
+
+/**
+ * "Denne fil bygger et dæknings-interval" — enten via en af primitiverne (den korrekte form)
+ * eller ved selv at kalde periode-slut-aritmetikken (den håndrullede form, reglen findes for).
+ *
+ * Begge grene er nødvendige, og det er ikke redundans: kigger proben KUN efter det rå kald, går
+ * reglen inert i samme øjeblik den har virket (alle forbrugere migreret) — hvilket den gjorde
+ * ved første kørsel. Kigger den kun efter primitiv-kaldet, ser den ikke en ny fil, der bygger
+ * intervallet i hånden, og som netop derfor SKAL kontrolleres.
+ */
+const COVERAGE_BUILDING_CALLS = new Set([
+  'resolveSeriesCoverageInterval',
+  'resolveUnorderedSeriesCoverageInterval',
+  'getInclusivePeriodEndDanishDate',
+]);
+
+const buildsCoverageInterval = (entry: SourceEntry): boolean =>
+  collectCalls(entry).some((ref) => COVERAGE_BUILDING_CALLS.has(ref.calleeText));
+
+/**
+ * Nærmeste omsluttende funktion for en node — reglens EGENTLIGE enhed.
+ *
+ * Filen er den forkerte granularitet: en datafil indeholder både dæknings-opslaget og en masse
+ * urelateret indeksering (`row[0]` for en kolonne, `a[0]` i en sammenligner,
+ * `meta.loenmodtagerOrg[0]`). Med fil-scope blev alle de former flaget, selvom ingen af dem
+ * udtaler sig om seriens ender. Grænsen går ved funktionen, der bygger intervallet.
+ */
+const enclosingFunction = (node: ts.Node): ts.Node | undefined => {
+  let current: ts.Node | undefined = node.parent;
+  while (current !== undefined) {
+    if (
+      ts.isFunctionDeclaration(current)
+      || ts.isFunctionExpression(current)
+      || ts.isArrowFunction(current)
+      || ts.isMethodDeclaration(current)
+    ) {
+      return current;
+    }
+    current = current.parent;
+  }
+  return undefined;
+};
+
+/** `serie[0]` eller `serie[serie.length - 1]` — de to positionelle ende-former. */
+const isPositionalEndpointRead = (chainText: string): boolean =>
+  /\[\s*0\s*\]$/.test(chainText) || /\[\s*[A-Za-z_$][\w$.]*\.length\s*-\s*1\s*\]$/.test(chainText);
+
+export const seriesCoverageEndpointsViaPrimitive = defineRule({
+  id: 'data/series-coverage-endpoints-via-primitive',
+  description:
+    'Et dæknings-interval må ikke læse satsseriens ender positionelt; brug resolveSeriesCoverageInterval, som afleder dem af den håndhævede sorteringsretning.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath === COVERAGE_INTERVAL_PRIMITIVE
+      || (entry.relativePath.startsWith('src/data/') && buildsCoverageInterval(entry)),
+    rationale: 'primitivet findes, og datalagets fem reguleringskilder bygger stadig et dæknings-interval',
+    minimumMatches: 6,
+    // Uden disse ville reglen være opfyldt af primitivet ALENE: forsvandt hver eneste
+    // forbruger, ville proben stadig ramme én fil, og reglen ville være grøn af tomhed.
+    // Alle fem kilder navngives, så målet ikke kan skrumpe til én tilfældig rest.
+    requiredPaths: [
+      COVERAGE_INTERVAL_PRIMITIVE,
+      'src/data/krlRates.ts',
+      'src/data/klLoenaftaler.ts',
+      'src/data/offentligLoenLookup.ts',
+      'src/data/overenskomstRates.ts',
+      'src/data/statistiskeRates.ts',
+    ],
+  },
+  appliesTo: (relativePath) => relativePath.startsWith('src/data/'),
+  // Primitivet ER det ene sted, den positionelle læsning hører hjemme.
+  allow: [COVERAGE_INTERVAL_PRIMITIVE],
+  find: (entry) => {
+    // Funktionerne der bygger et dæknings-interval. En positionel ende-læsning tæller kun,
+    // hvis den står i en af DEM — ikke blot et andet sted i samme fil.
+    const coverageFunctions = new Set(
+      collectCalls(entry)
+        .filter((ref) => COVERAGE_BUILDING_CALLS.has(ref.calleeText))
+        .map((ref) => enclosingFunction(ref.node))
+        .filter((fn): fn is ts.Node => fn !== undefined)
+    );
+    if (coverageFunctions.size === 0) return [];
+
+    return collectElementAccess(entry)
+      .filter((ref) => isPositionalEndpointRead(ref.chainText))
+      .filter((ref) => {
+        const fn = enclosingFunction(ref.node);
+        return fn !== undefined && coverageFunctions.has(fn);
+      })
+      .map((ref) => ({
+        position: ref.position,
+        message:
+          `Positionel læsning af satsseriens ende (${ref.chainText}) i et dæknings-interval — `
+          + 'brug resolveSeriesCoverageInterval({ series, getDato, order, periodeMaaneder }).',
+      }));
+  },
+  violatingFixtures: [
+    {
+      relativePath: 'src/data/x.ts',
+      code: 'const f = () => { const nyeste = satser[0]; return getInclusivePeriodEndDanishDate(nyeste.fraDato, 6); };',
+    },
+    {
+      relativePath: 'src/data/x.ts',
+      code: 'const f = () => { const aeldste = tabel.vaerdier[tabel.vaerdier.length - 1]; return getInclusivePeriodEndDanishDate(aeldste.fraDato, 6); };',
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/data/x.ts',
+      code: 'const f = () => resolveSeriesCoverageInterval({ series: satser, getDato: (s) => s.fraDato, order: ORDER, periodeMaaneder: 6 });',
+    },
+    // Den usorterede variant: enderne scannes, så `[0]` er en seed-værdi og ikke en ende-påstand.
+    {
+      relativePath: 'src/data/x.ts',
+      code: 'const f = () => resolveUnorderedSeriesCoverageInterval({ series: v, getSortKey: k, getStartDato: s, periodeMaaneder: 12 });',
+    },
+    // Positionel læsning UDEN for et dæknings-interval er seriens egen semantik, ikke en
+    // påstand om hvilken ende det er — reglen må ikke ramme carry-forward-opslag.
+    { relativePath: 'src/data/x.ts', code: 'const g = () => satser[0];' },
+    // Samme FIL, men en anden FUNKTION: fil-scope ville have flaget `row[0]` her, selvom den
+    // ikke udtaler sig om nogen ende. Det er grænsen ved funktionen, der gør reglen brugbar.
+    {
+      relativePath: 'src/data/x.ts',
+      code: 'const kolonne = (row) => row[0];\nconst f = () => resolveSeriesCoverageInterval({ series: s, getDato: g, order: ORDER, periodeMaaneder: 6 });',
+    },
+    // Anden fil-familie end datalaget er uden for scope.
+    {
+      relativePath: 'src/domain/x.ts',
+      code: 'const f = () => { const nyeste = satser[0]; return getInclusivePeriodEndDanishDate(nyeste.fraDato, 6); };',
+    },
   ],
 });
 

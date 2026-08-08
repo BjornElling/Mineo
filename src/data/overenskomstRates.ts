@@ -11,9 +11,13 @@
  *   (autoritiv overenskomstsats som låser feltet)
  */
 
-import { toDanishDateString, type DanishDateString } from '../types/branded';
-import { getInclusivePeriodEndDanishDate } from '../utils/dateUtils';
-import { assertStrictlyMonotonicByDanishDate } from './rateSeriesIntegrity';
+import { danishDateToComparableNumber, toDanishDateString, type DanishDateString } from '../types/branded';
+import {
+  assertStrictlyMonotonicByDanishDate,
+  resolveSeriesCoverageInterval,
+  type CoverageInterval,
+  type DanishDateOrder,
+} from './rateSeriesIntegrity';
 import { getReguleringsDatoIntervalForOffentligLoen } from './offentligLoenLookup';
 import type { OffentligOverenskomstType } from './offentligLoenTypes';
 
@@ -100,10 +104,15 @@ export interface Overenskomst {
   readonly shDageAlmindeligLoenRegel?: ShDageAlmindeligLoenRegel;
 }
 
-export type ReguleringsDatoInterval = Readonly<{
-  fraDato: DanishDateString;
-  tilDato: DanishDateString;
-}>;
+export type ReguleringsDatoInterval = CoverageInterval;
+
+/**
+ * Sorteringsretningen for overenskomsternes satsserier — ét sted, delt af load-guarden
+ * (`assertOverenskomstSatserNyesteFoerst`), af carry-forward-opslaget
+ * (`getSatserForDatoFromList` returnerer den første sats med `fraDato ≤ dato`) og af det
+ * positionelle dæknings-opslag.
+ */
+const OVERENSKOMST_SERIE_ORDER: DanishDateOrder = 'descending';
 
 export type GrundloenAngivetPer = 'Time' | 'Måned';
 
@@ -131,18 +140,9 @@ type ShDageAlmindeligLoenRegel = Readonly<{
 const d = (dateStr: string): DanishDateString => toDanishDateString(dateStr);
 
 export const OFFENTLIG_REGULERING_MIN_DATO: DanishDateString = d('01-01-2012');
-/**
- * Konverterer DanishDateString (DD-MM-YYYY) til et sammenligneligt tal (YYYYMMDD).
- *
- * Undgår Date/timezone edge cases og giver deterministiske sammenligninger.
- */
-const danishDateToNumber = (dato: DanishDateString): number => {
-  const [day, month, year] = dato.split('-').map(Number);
-  return year * 10000 + month * 100 + day;
-};
 
 export const isOffentligReguleringsDatoGyldig = (dato: DanishDateString): boolean =>
-  danishDateToNumber(dato) >= danishDateToNumber(OFFENTLIG_REGULERING_MIN_DATO);
+  danishDateToComparableNumber(dato) >= danishDateToComparableNumber(OFFENTLIG_REGULERING_MIN_DATO);
 
 export const assertOffentligReguleringsDatoGyldig = (dato: DanishDateString): void => {
   if (isOffentligReguleringsDatoGyldig(dato)) return;
@@ -1490,9 +1490,10 @@ offentligeOverenskomster.forEach((meta) =>
  * carry-forwarde den korrekte (nyeste gældende) sats. En mis-sorteret serie ville få
  * opslaget til at returnere en ældre sats for en dato, hvor en nyere gælder → tavs
  * forkert regulering. Desuden udleder `getReguleringsDatoIntervalForOverenskomst`
- * dæknings-intervallet positionelt (`[0]` = nyeste, `[length-1]` = ældste), som gater
- * S1/S6 i række-laget. Vi håndhæver derfor ved kilden: ikke-tom serie, strengt
- * nyeste-først (faldende), og unikke, parsbare datoer.
+ * dæknings-intervallet positionelt via `resolveSeriesCoverageInterval` med
+ * `OVERENSKOMST_SERIE_ORDER` — samme retning som denne guard håndhæver — og det gater S1/S6
+ * i række-laget. Vi håndhæver derfor ved kilden: ikke-tom serie, strengt nyeste-først
+ * (faldende), og unikke, parsbare datoer.
  *
  * Tal-neutral for eksisterende data (alle serier er nyeste-først i dag) og fyrer kun
  * ved en faktisk datafejl.
@@ -1506,7 +1507,7 @@ export const assertOverenskomstSatserNyesteFoerst = (
   }
   assertStrictlyMonotonicByDanishDate(satser, {
     getDato: (sats) => sats.fraDato,
-    order: 'descending',
+    order: OVERENSKOMST_SERIE_ORDER,
     label: `Overenskomst "${id}"`,
   });
 };
@@ -1703,11 +1704,11 @@ const getSatserForDatoFromList = (
   satser: ReadonlyArray<OverenskomstPeriodeSats>,
   dato: DanishDateString
 ): OverenskomstPeriodeSats | undefined => {
-  const targetDate = danishDateToNumber(dato);
+  const targetDate = danishDateToComparableNumber(dato);
 
   // Find nyeste sats hvor fraDato <= dato
   for (const sats of satser) {
-    if (danishDateToNumber(sats.fraDato) <= targetDate) {
+    if (danishDateToComparableNumber(sats.fraDato) <= targetDate) {
       return sats;
     }
   }
@@ -1720,8 +1721,8 @@ const getSatserForPeriodeFromList = (
   fraDato: DanishDateString,
   tilDato: DanishDateString
 ): ReadonlyArray<OverenskomstPeriodeSats> => {
-  const startDate = danishDateToNumber(fraDato);
-  const endDate = danishDateToNumber(tilDato);
+  const startDate = danishDateToComparableNumber(fraDato);
+  const endDate = danishDateToComparableNumber(tilDato);
   if (startDate > endDate) return [];
 
   const relevanteFraDato = new Set<DanishDateString>();
@@ -1732,7 +1733,7 @@ const getSatserForPeriodeFromList = (
   }
 
   for (const sats of satser) {
-    const satsDato = danishDateToNumber(sats.fraDato);
+    const satsDato = danishDateToComparableNumber(sats.fraDato);
     if (satsDato > startDate && satsDato <= endDate) {
       relevanteFraDato.add(sats.fraDato);
     }
@@ -1791,18 +1792,14 @@ export const getReguleringsDatoIntervalForOverenskomst = (rawId: string): Regule
   const overenskomst = overenskomstById.get(ref.baseId);
   if (!overenskomst) return undefined;
 
-  const satser = overenskomst.satser;
-  if (satser.length === 0) return undefined;
-
-  const nyesteDato = satser[0].fraDato;
-  const aeldsteDato = satser[satser.length - 1].fraDato;
-
   // Privat overenskomst dækker 12 måneder frem fra den nyeste sats' startdato
   // (kanonisk "+N mdr − 1 dag"-aritmetik, delt med de øvrige reguleringsdato-intervaller).
-  const tilDato = getInclusivePeriodEndDanishDate(nyesteDato, 12);
-  if (!tilDato) return undefined;
-
-  return { fraDato: aeldsteDato, tilDato };
+  return resolveSeriesCoverageInterval({
+    series: overenskomst.satser,
+    getDato: (sats) => sats.fraDato,
+    order: OVERENSKOMST_SERIE_ORDER,
+    periodeMaaneder: 12,
+  });
 };
 type GetEffektiveSatserForDatoArgs = Readonly<{
   overenskomstId: OverenskomstId;

@@ -259,6 +259,28 @@ export function parseDanishDate(danishDate: DanishDateString | string | undefine
 }
 
 /**
+ * Konverterer en dansk dato (dd-mm-åååå) til et sammenligneligt heltal (ÅÅÅÅMMDD).
+ *
+ * Formen findes, fordi datalagets opslag sammenligner mange datoer i træk (binærsøgning i
+ * lønreguleringer, "seneste sats ≤ dato"-scanninger) og et heltal både er billigere og fri
+ * for Date/timezone-kanttilfælde. To datamoduler bar hver sin private kopi: den ene
+ * splittede strengen rå, så en syntaktisk gyldig men ugyldig dato ("32-13-2024") blev til et
+ * tal, der sorterede *efter* alle rigtige datoer — en tavs fejlordning frem for en fejl.
+ * Denne kanoniske form validerer via `parseDanishDate` og kaster, så en korrupt datodato
+ * fejler synligt ved kilden.
+ *
+ * Kaster ved ikke-parsbar dato (fail-closed); datalagets serier er guardede ved modul-load,
+ * så den fyrer kun ved en faktisk datafejl.
+ */
+export function danishDateToComparableNumber(dato: DanishDateString): number {
+  const parsed = parseDanishDate(dato);
+  if (!parsed) {
+    throw new Error(`Ugyldig dato: ${dato} — kunne ikke parse dansk dato.`);
+  }
+  return parsed.getUTCFullYear() * 10000 + (parsed.getUTCMonth() + 1) * 100 + parsed.getUTCDate();
+}
+
+/**
  * Konverterer Date-objekt til ISODateString
  *
  * @param date - Date-objekt

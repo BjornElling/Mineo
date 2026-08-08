@@ -16,6 +16,7 @@ import {
   inspektionLayerImport,
   moneyOreTypeAssertion,
   pageSectionAccessBoundary,
+  seriesCoverageEndpointsViaPrimitive,
 } from './rules/domainRules';
 import {
   documentActivationShowsOutcome,
@@ -109,6 +110,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   pageSectionAccessBoundary,
   crossDomainDescriptorPort,
   calculationDataCatalogLazyBoundary,
+  seriesCoverageEndpointsViaPrimitive,
   // Dokument og standalone
   pdfDownloadCommittedState,
   documentActivationShowsOutcome,

@@ -1966,7 +1966,7 @@ Dette afsnit er indgangen for en session uden den foregående kontekst. Læs det
 kandidatlisten længere oppe: de gamle fase-tabeller og `✅`-markeringer er historik og
 beskriver flere steder slettede mellemtrin.
 
-**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 538 testfiler / 6954 tests,
+**Branch:** `greenfield`. **Tilstand ved sidste commit: grøn** — 538 testfiler / 6972 tests,
 `typecheck`, `typecheck:test` og `lint` grønne. Alt beskrevet under «Gennemført i denne omgang»,
 «Efterslæb lukket 2026-08-07», «Gennemført 2026-08-07 (anden omgang: #50 og #32)»,
 «Gennemført 2026-08-07 (tredje omgang: #26, #35, #45 og #21)» og
@@ -1988,8 +1988,10 @@ med registry»; ~~`RowDeleteButton`-mønstrets omgivende celle (10 steder, fire 
 **✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08» nedenfor**;
 ~~`renderRows`-reconciliationens fætter i de fire ikke-`useCollectionTable`-tabeller~~
 **✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08 (anden post)» nedenfor**;
-`DanishDateString`-datalagets to private `danishDateToNumber`-kopier og `.filter().reduce()`-max-familien
-på seks interval-start-resolvere; Indstillingssidens fire `is…Option`-typeguards og
+~~`DanishDateString`-datalagets to private `danishDateToNumber`-kopier og `.filter().reduce()`-max-familien
+på seks interval-start-resolvere~~
+**✅ GJORT 2026-08-08, se «Efterslæb lukket 2026-08-08 (tredje post)» nedenfor**;
+Indstillingssidens fire `is…Option`-typeguards og
 `defaultDirectoryHandleId`s ~143 linjer.
 
 ### Rækkefølge for det udestående
@@ -2116,6 +2118,83 @@ af den målte mekanisme og ikke af en konkurrerende.
 Ingen synlig UI-ændring og ingen tal berørt. Fuldt træ grønt: 538 filer / 6954 tests (+8), `typecheck`,
 `typecheck:test`, `lint`.
 
+### Efterslæb lukket 2026-08-08 (tredje post) — dæknings-intervallets to sider af samme antagelse
+
+Tredje post fra listen over «registreret som ikke gjort». Den var registreret som to adskilte
+oprydninger: «to private `danishDateToNumber`-kopier» og «`.filter().reduce()`-max-familien på seks
+interval-start-resolvere». Begge beskrivelser var upræcise, og den ene pegede på en mekanisme, der
+ikke fandtes.
+
+**Det reelle fund.** Der er fem — ikke seks — reguleringskilder med et dæknings-interval, og ingen af
+dem brugte `.filter().reduce()`. Fire af dem (KRL, KL-lønaftaler, offentlige lønsatser, privat
+overenskomst) læste seriens ender POSITIONELT: `serie[0]` og `serie[serie.length - 1]`. Det er kun
+korrekt, hvis serien er sorteret i netop den retning, kilden antager — og den antagelse stod
+udelukkende som en kommentar ved siden af opslaget (`// Værdier er sorteret nyeste først`), mens den
+HÅNDHÆVEDE sortering var konfigureret et helt andet sted, i hver kildes load-guard. **Samme antagelse
+var altså skrevet to gange, i to filer, uden noget der bandt dem sammen.** De to kunne drive fra
+hinanden: vendes en kildes sortering, fanger guarden det — men vendes både sorteringen og guardens
+`order` (den nærliggende «rettelse»), bytter de positionelle opslag tavst om på `fraDato` og
+`tilDato`. Resultatet er et spejlvendt dæknings-interval: en falsk «uden for dækning»-gate på hele
+det reelle interval, og ingen gate uden for det.
+
+Retningerne er desuden ikke ens på tværs af kilderne (KRL/offentlig/overenskomst er nyeste-først,
+KL-lønaftaler er ældste-først), så det var ikke en konstant man kunne læse sig til ét sted.
+
+**Den femte kilde er et andet dyr.** `statistiskeRates` scanner min/max frem for at læse positioner —
+og det er RIGTIGT: dens beregningssti (`buildStatistikIndexEntries`) sorterer selv eksplicit før brug,
+så serien har ingen håndhævet lagringsrækkefølge. Interfacet påstod alligevel `// Nyeste først`, hvilket
+ingen kode hverken bygger på eller kontrollerer. Den påstand er fjernet og erstattet af det modsatte,
+sande udsagn.
+
+**Gjort:**
+
+- `resolveSeriesCoverageInterval({ series, getDato, order, periodeMaaneder })` i
+  `rateSeriesIntegrity.ts` er nu den ene konstruktion af et dæknings-interval fra en sorteret serie.
+  Retningen er et ARGUMENT, som funktionen udleder BEGGE ender af — så de to sider af antagelsen ikke
+  længere kan stå med hver sin værdi. Primitivet bor bevidst i samme fil som sorterings-guarden:
+  sorteringen er kun værd at håndhæve, fordi noget læser positionelt, og det positionelle opslag er kun
+  sikkert, fordi sorteringen håndhæves.
+- Hver kilde har nu ÉN retningskonstant (`KRL_SERIE_ORDER`, `KL_LOENAFTALER_SERIE_ORDER`,
+  `OFFENTLIG_LOEN_SERIE_ORDER`, `OVERENSKOMST_SERIE_ORDER`), som både dens load-guard og dens
+  dæknings-opslag læser.
+- `resolveUnorderedSeriesCoverageInterval` er den bevidst ADSKILTE søsterform til statistik-serien.
+  De to er ikke slået sammen, fordi de hviler på modsatte forudsætninger, og én fælles «find enderne»
+  ville skjule hvilken der gælder.
+- **Rettet undervejs (reelt hul):** `getReguleringsDatoIntervalForKRL` læser den per-kolonne FILTREREDE
+  delserie, mens guarden kun dækkede den SAMLEDE tabel. At delserien arver sorteringen var en to-trins
+  slutning (tabel sorteret + null kun som ældste-prefiks), som intet værn kontrollerede for resultatet.
+  Delserien bærer nu sin egen guard, hvor den opstår.
+- **Rettet undervejs (reel fejlklasse):** de to `danishDateToNumber`-kopier var IKKE identiske. Den ene
+  parsede og kastede; den anden splittede strengen rå, så en syntaktisk gyldig men ugyldig dato
+  («32-13-2024») blev til et tal, der sorterede EFTER alle rigtige datoer — en tavs fejlordning frem for
+  en fejl. Den validerende form er nu kanonisk som `danishDateToComparableNumber` i `types/branded.ts`.
+- Nyt AST-værn `data/series-coverage-endpoints-via-primitive`: en positionel ende-læsning i en funktion,
+  der bygger et dæknings-interval, er en overtrædelse. Værnet har `liveTarget: precondition` med alle
+  fem kilder + primitivet i `requiredPaths` (`minimumMatches: 6`).
+- 18 nye tests: begge primitiver (inkl. den direkte måling af, at forkert retning GIVER et spejlvendt
+  interval, og at den usorterede form er rækkefølge-uafhængig) samt den kanoniske dato-til-tal-form.
+
+**Bevist mod den GAMLE adfærd, ikke kun mod den nye kode.** Før første ændring blev alle fem resolvere
+kørt over hver eneste registrerede kilde (4 KRL-tabeller, KL, 2 offentlige, samtlige overenskomster,
+begge statistikmodeller + ASL, plus negative tilfælde) og resultatet gemt. Efter omlægningen var
+outputtet **byte-identisk**. Harnessen er slettet igen; dens værdi var beviset, ikke koden.
+
+**Mutationsbevist i tre trin:** (1) en mutation af den LEVENDE kilde — `klLoenaftaler` tilbage til den
+håndrullede form — gjorde harnessen rød på præcis de to linjer med præcis den regel-id; (2) to
+mutationer af selve primitiverne (ignorér `order`-argumentet; læs positionelt i den usorterede form)
+fældede hver præcis de to tests, der måler netop den mekanisme, og ingen andre; (3) et brud indført KUN
+i den afledte KRL-delserie — usynligt for den kombinerede tabels guard — blev fanget af den nye
+delserie-guard, hvilket skelner de to guards fra hinanden.
+
+**Værnets første kørsel afslørede en fejl i mit eget værn:** proben var keyet på
+`getInclusivePeriodEndDanishDate`, så reglen gik INERT i samme øjeblik den havde virket (alle forbrugere
+migreret væk fra det rå kald). Proben dækker nu begge former. Den første udgave var desuden fil-scopet
+og flagede urelateret indeksering i samme fil (`row[0]` for en kolonne, `a[0]` i en sammenligner);
+grænsen går nu ved den FUNKTION, der bygger intervallet.
+
+Ingen synlig UI-ændring og ingen tal berørt. Fuldt træ grønt: 538 filer / 6972 tests (+18),
+`typecheck`, `typecheck:test`, `lint`.
+
 ### Brugerens beslutninger 2026-08-06 (bindende for resten af arbejdet)
 
 De fire udestående mandatspørgsmål er forelagt samlet og besvaret. Beslutningerne herunder er
@@ -2198,6 +2277,17 @@ Ingen ændring foretages, før det er besvaret.
   imperative og skal blive til `Block[]`». De producerede allerede blokke — hele skæringen var
   forkert, og den rigtige defekt (injicerede modulfunktioner i ctx) stod ikke i planen. To
   gennemgange havde gentaget præmissen uden at åbne `documentModel.ts`.
+- **Når den samme antagelse er skrevet to steder, er duplikeringen af PÅSTANDEN problemet — ikke af
+  koden.** Dæknings-intervallets sorteringsretning stod som en kommentar ved opslaget OG som en
+  `order`-konfiguration i load-guarden, i hver sin fil. Hver for sig var begge korrekte; det farlige
+  var, at intet bandt dem sammen, så de kunne drive fra hinanden til et spejlvendt interval. Løsningen
+  var ikke at fjerne den ene, men at gøre retningen til ét argument, begge sider læser. Led efter den
+  slags par: to steder der skal være enige, uden en mekanisme der holder dem det.
+- **Et nyt værn kan gå inert af sin egen succes.** Værnets probe pegede på den form, migreringen netop
+  fjernede, så reglen var død i samme øjeblik den havde virket. Liveness-gaten fangede det — men kun
+  fordi den findes. Spørg altid: hvad rammer proben EFTER at ændringen er gennemført?
+- **Filen er sjældent værnets rette enhed.** Fil-scope flagede al indeksering i en datafil, ikke bare
+  den der udtaler sig om seriens ender. Grænsen skal gå ved den funktion, der bærer invarianten.
 - **En sammenlægning af to kopier afslører funktionsforskelle — de skal ikke ensartes undervejs.**
   Anciennitetstillæg-blokken skjulte, at de to overflader afgør satsens enhed forskelligt. Det
   rigtige træk var at bevare begge adfærd bag en slot og forelægge forskellen, ikke at vælge en

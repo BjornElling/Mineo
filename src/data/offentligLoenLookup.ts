@@ -5,9 +5,13 @@
  * Data stammer fra auto-genererede filer (se scripts/import-offentlig-loen.mjs).
  */
 
-import { type DanishDateString } from '../types/branded';
-import { getInclusivePeriodEndDanishDate, parseDanishDate } from '../utils/dateUtils';
-import { assertStrictlyMonotonicByDanishDate } from './rateSeriesIntegrity';
+import { danishDateToComparableNumber, type DanishDateString } from '../types/branded';
+import {
+  assertStrictlyMonotonicByDanishDate,
+  resolveSeriesCoverageInterval,
+  type CoverageInterval,
+  type DanishDateOrder,
+} from './rateSeriesIntegrity';
 import type {
   OffentligOverenskomstType,
   Loengruppe,
@@ -21,13 +25,11 @@ import { rltnLoenSatser } from './RLTN/rltnLoenSatser';
 
 // ===== HELPER FUNKTIONER =====
 
-const danishDateToNumber = (dato: DanishDateString): number => {
-  const parsed = parseDanishDate(dato);
-  if (!parsed) {
-    throw new Error(`Ugyldig dato: ${dato} — kunne ikke parse dansk dato.`);
-  }
-  return parsed.getUTCFullYear() * 10000 + (parsed.getUTCMonth() + 1) * 100 + parsed.getUTCDate();
-};
+/**
+ * Sorteringsretningen for de offentlige lønsatsserier — ét sted, delt af load-guarden og
+ * af det positionelle dæknings-opslag.
+ */
+const OFFENTLIG_LOEN_SERIE_ORDER: DanishDateOrder = 'descending';
 
 // ===== FORHÅNDSBEREGNET LOOKUP =====
 
@@ -82,7 +84,7 @@ export const assertOffentligLoenDataIntegritet = (
   assertOffentligLoenTabelIkkeTom(satser, label);
   assertStrictlyMonotonicByDanishDate(satser, {
     getDato: (reg) => reg.effectiveDate,
-    order: 'descending',
+    order: OFFENTLIG_LOEN_SERIE_ORDER,
     label: `${label}: lønsatser`,
   });
 };
@@ -119,7 +121,7 @@ const buildReguleringLookups = (
 
     return {
       effectiveDate: reg.effectiveDate,
-      effectiveDateNum: danishDateToNumber(reg.effectiveDate),
+      effectiveDateNum: danishDateToComparableNumber(reg.effectiveDate),
       lookup: { byTrin, plus55 },
     };
   });
@@ -172,7 +174,7 @@ export const getOffentligLoenForDato = (
   loengruppe: Loengruppe
 ): OffentligLoenResultat | undefined => {
   const lookups = getLookups(overenskomstType);
-  const targetNum = danishDateToNumber(dato);
+  const targetNum = danishDateToComparableNumber(dato);
 
   const reg = findNewestReguleringOnOrBefore(lookups, targetNum);
   if (!reg) return undefined;
@@ -207,7 +209,7 @@ export const getOffentligLoenTabelForDato = (
   entries: ReadonlyArray<OffentligLoenEntry>;
 }> | undefined => {
   const lookups = getLookups(overenskomstType);
-  const targetNum = danishDateToNumber(dato);
+  const targetNum = danishDateToComparableNumber(dato);
   const reg = findNewestReguleringOnOrBefore(lookups, targetNum);
   if (!reg) return undefined;
 
@@ -241,8 +243,8 @@ export const getOffentligLoenForPeriode = (
   loengruppe: Loengruppe
 ): ReadonlyArray<OffentligLoenResultat> => {
   const lookups = getLookups(overenskomstType);
-  const startNum = danishDateToNumber(fraDato);
-  const endNum = danishDateToNumber(tilDato);
+  const startNum = danishDateToComparableNumber(fraDato);
+  const endNum = danishDateToComparableNumber(tilDato);
 
   if (startNum > endNum) return [];
 
@@ -309,19 +311,12 @@ export const getReguleringsDatoer = (
  */
 export const getReguleringsDatoIntervalForOffentligLoen = (
   overenskomstType: OffentligOverenskomstType
-): { fraDato: DanishDateString; tilDato: DanishDateString } | undefined => {
-  const lookups = getLookups(overenskomstType);
-  if (lookups.length === 0) return undefined;
-
-  // Nyeste er først, ældste er sidst
-  const nyeste = lookups[0];
-  const aeldste = lookups[lookups.length - 1];
-
-  const tilDato = getInclusivePeriodEndDanishDate(nyeste.effectiveDate, 6);
-  if (!tilDato) return undefined;
-
-  return {
-    fraDato: aeldste.effectiveDate,
-    tilDato,
-  };
-};
+): CoverageInterval | undefined =>
+  resolveSeriesCoverageInterval({
+    // `lookups` er bygget 1:1 af `satser` i uændret rækkefølge, så den arver den
+    // sortering, load-guarden håndhæver på `satser` med samme `order`.
+    series: getLookups(overenskomstType),
+    getDato: (reg) => reg.effectiveDate,
+    order: OFFENTLIG_LOEN_SERIE_ORDER,
+    periodeMaaneder: 6,
+  });
