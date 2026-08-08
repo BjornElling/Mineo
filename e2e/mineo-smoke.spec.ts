@@ -6,16 +6,22 @@ test.describe('Mineo browser-smoke', () => {
   test('åbner Mineo gennem den synlige loginformular uden browserfejl eller ekstern trafik', async ({
     page,
   }) => {
-    const browserErrors: string[] = [];
+    const allowedOrigin = new URL(process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173').origin;
+    const runtimeSignals: string[] = [];
     const externalRequests: string[] = [];
 
     page.on('console', (message) => {
-      if (message.type() === 'error') browserErrors.push(message.text());
+      if (message.type() === 'error' || message.type() === 'warning') {
+        runtimeSignals.push(`${message.type()}: ${message.text()}`);
+      }
     });
-    page.on('pageerror', (error) => browserErrors.push(error.message));
+    page.on('pageerror', (error) => runtimeSignals.push(`pageerror: ${error.message}`));
+    page.on('requestfailed', (request) => {
+      runtimeSignals.push(`requestfailed: ${request.method()} ${request.url()} (${request.failure()?.errorText ?? 'ukendt'})`);
+    });
     page.on('request', (request) => {
       const url = new URL(request.url());
-      if (url.protocol.startsWith('http') && url.origin !== 'http://127.0.0.1:4173') {
+      if (url.protocol.startsWith('http') && url.origin !== allowedOrigin) {
         externalRequests.push(request.url());
       }
     });
@@ -31,7 +37,7 @@ test.describe('Mineo browser-smoke', () => {
     await expect(page.getByText('Programmet', { exact: true })).toBeVisible();
     await expect(page.getByText('Teknisk', { exact: true })).toBeVisible();
 
-    expect(browserErrors).toEqual([]);
+    expect(runtimeSignals).toEqual([]);
     expect(externalRequests).toEqual([]);
   });
 });

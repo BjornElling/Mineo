@@ -72,6 +72,7 @@
     "test": "vitest run --maxWorkers=100%",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
+    "preview:e2e": "vite preview --config vite.mineo.config.ts --host 127.0.0.1 --port 4174",
     "test:watch": "vitest",
     "pretest:coverage": "npm run generate:build-info",
     "test:coverage": "vitest run --coverage --maxWorkers=100%",

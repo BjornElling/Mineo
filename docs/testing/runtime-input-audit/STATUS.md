@@ -23,7 +23,8 @@ En række er først `Dækket`, når alle registrerede brugerhandlinger, inputpar
 |---|---|---|---|---|
 | Chrome | Ikke startet | Ikke startet | — | — |
 | Edge | Ikke startet | Ikke startet | — | — |
-| Safari | Ikke startet | Ikke startet | — | — |
+| Firefox | Ikke startet | Ikke startet | — | — |
+| Safari/WebKit | Ikke startet | Ikke startet | — | — |
 
 ## Fladeinventar
 

@@ -24,6 +24,11 @@ jobs:
       - name: Install dependencies (strict)
         run: npm ci
 
+      # E2E-suiten kører den samme browser-matrix som den lokale audit: Chrome-/Edge-channel
+      # leveres af runner-imaget, mens Playwright-motorerne skal installeres eksplicit.
+      - name: Install Playwright browser engines
+        run: npx playwright install --with-deps chromium firefox webkit
+
       # Én autoritativ gate. Identisk med lokal `npm run check`:
       # typecheck + typecheck:test + lint + mojibake/casing + Vitest m. coverage + build:all.
       # De byggede `dist/`-artefakter herfra er præcis dem, deploy-jobbet udgiver.

@@ -38,7 +38,7 @@ Brug kildekoden som white-box-kort og browseren som sandhed om observerbar runti
 
 Byg et praktisk, endeligt inventar i disse lag:
 
-1. **Browsere og viewports:** Chrome, Edge og Safari; minimum 1920×1080 samt mindst én større desktop-viewport. Manglende browser eller viewport er et eksplicit dækningshul.
+1. **Browsere og viewports:** Chrome, Edge, Firefox og Safari/WebKit; minimum 1920×1080 samt mindst én større desktop-viewport. Manglende browser eller viewport er et eksplicit dækningshul. Før browserarbejde kontrolleres Playwright-version, installerede Firefox/WebKit-motorer og tilgængelige Chrome-/Edge-channels; resultatet registreres, før en motor markeres som ikke-kørt. Service-worker- og PWA-rækker kræver et produktions-preview og må ikke dækkes af devserverens service-worker-blokering.
 2. **Flader:** login, global shell, route, side, fane, dialog, overlay, tabel, hjælp, indstillinger, fejl-/stoptilstand og dokumenthandling.
 3. **Editorer:** tekst, tal, beløb, procent, år, uge, dato, dropdown, autocomplete, toggle, radio og tabelcelle.
 4. **Branches:** modevalg, optionalitet, presence-checks, schema-unions, featurebetingelser, skæringsregler og fejl-/fallbackgrene.
@@ -101,7 +101,7 @@ For hver kant `A → B → C`, hvor A styrer B og C forbruger resultatet, test m
 5. A-mode 1 + detaljer i B, skift A til mode 2, brug C, skift tilbage.
 6. Hold B som åben draft, ændr fokus, navigér eller udløs C efter formkontraktens settle-regler.
 7. Gentag efter faneskift, re-render, F5, relevant save/load, nulstilling og undo/redo.
-8. Gentag med ændringer foretaget i Chrome, Edge og Safari ved begge minimums- og større viewports.
+8. Gentag med ændringer foretaget i Chrome, Edge, Firefox og Safari/WebKit ved begge minimums- og større viewports. Vent efter hver navigation på den route-specifikke synlige kontrol; en kort tom shell under lazy-load tæller ikke som fejl, men manglende side efter timeout gør.
 
 Brug pairwise-dækning mellem almindelige partitioner. Brug 3-vejs dækning, når en styrende værdi, et afhængigt felt og en downstream-forbruger mødes. Enumerér alle kombinationer for små mode-/boolean-sæt, især når branches er nested. Brug lange og nye sekvenser i senere auditpasses; de må ikke erstatte de deterministiske matrixrækker.
 

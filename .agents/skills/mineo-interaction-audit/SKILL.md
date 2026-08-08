@@ -42,7 +42,11 @@ En endelig auditpass er ikke en garanti om, at alle fremtidige sekvenser er afpr
 5. Læs altid `STATUS.md`, `CRASHES.md`, `OBSERVATIONS.md` og `QUESTIONS.md` helt eller målrettet med `rg`, hvis de er lange. Åbne fund og ubesvarede spørgsmål skal forstås, før nye scenarier vælges.
 6. Kontrollér `git status --short`, aktuel commit og buildversion. Behandl eksisterende ændringer som brugerens og rør dem ikke.
 7. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
-8. Dæk browserne Chrome, Edge og Safari med minimum 1920×1080. Brug mindst den definerede minimumsviewport og en større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
+8. Dæk browserne Chrome, Edge, Firefox og Safari/WebKit med minimum 1920×1080. Brug mindst den definerede minimumsviewport og en større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
+   - Før browserstyring: kontrollér `npx --no-install playwright-cli --version` (eller den lokale fallback `npx --no-install playwright --version`) og `npx playwright install --list`. Mangler Firefox eller WebKit, installér den konkrete motor med `npx playwright install firefox webkit`; manglende Chrome-/Edge-channel registreres eksplicit som dækningshul.
+   - Brug de navngivne sessioner `chrome`, `edge`, `firefox` og `webkit`, og luk dem med `npx playwright cli close-all` efter batchen. En session må ikke genbruges, før dens browser, viewport og rene starttilstand er verificeret.
+   - Kør den automatiske browser-smoke med `npm run test:e2e` før den brede udforskning. Den lokale Playwright-konfiguration kører de fire motorer ved 1920×1080; til den større viewport sættes `PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT=1` før samme kommando (i PowerShell: `$env:PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT='1'; npm run test:e2e`).
+   - Almindelige flows køres mod Vite-devserveren. Service-worker-, PWA- og launch-queue-flows køres separat mod et produktions-preview: `npm run build:mineo`, derefter `npm run preview:e2e` på port 4174. Brug ikke devserverens manglende service-worker som evidens for et PWA-resultat. Ved automatiseret kontrol mod preview sættes i PowerShell `$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:4174'; $env:PLAYWRIGHT_SKIP_WEBSERVER='1'; $env:PLAYWRIGHT_ALLOW_SERVICE_WORKERS='1'` før `npm run test:e2e`.
 9. Markér arbejdsenheden `I gang`, og skriv det konkrete næste scenarie og den nødvendige starttilstand, før browserarbejdet begynder.
 
 ## Arbejdscyklus
@@ -69,7 +73,7 @@ For hver arbejdsenhed skal auditten kunne svare på:
 
 ### 2. Byg og gennemfør scenariomatricen
 
-Brug partitioner og grænseanalyse fra [references/audit-method.md](references/audit-method.md). Hver relevant kombination skal afprøves på Chrome, Edge og Safari ved de definerede viewports. En browser må kun stå som ikke-kørt, hvis den konkret er utilgængelig; det registreres som et dækningshul.
+Brug partitioner og grænseanalyse fra [references/audit-method.md](references/audit-method.md). Hver relevant kombination skal afprøves på Chrome, Edge, Firefox og Safari/WebKit ved de definerede viewports. En browser må kun stå som ikke-kørt, hvis den konkret er utilgængelig; det registreres som et dækningshul.
 
 Dæk mindst:
 
@@ -97,6 +101,8 @@ Følg browserinstruktionerne, og log ind gennem den synlige formular. Etabler en
 - ErrorBoundary/fallback, fejlrapportmenu, tekniske fejlvisninger og eksplicitte systemnotifikationer;
 - uventet navigation, fokus-/scrollhop, tabt afsluttet input, ændrede værdier uden handling og andre brudte runtime-invarianter;
 - relevant ekstern netværkstrafik.
+
+Efter `goto` eller navigation er URL'en alene ikke et færdigthedsorakel. Vent på den route-specifikke synlige sidekontrol eller tekst, før scenariet fortsætter. Mineos lazy-loadede sider kan kortvarigt vise shellen med et tomt `main`; det er først et fund, hvis den forventede side stadig mangler efter Playwrights 30 sekunders element-timeout. Brug samme readiness-orakel i kontrastkørsler, så langsom første transform ikke forveksles med browserafhængig adfærd.
 
 Forventet rød kant, tooltip eller anden dokumenteret valideringsfeedback er bestået adfærd og ikke i sig selv et crashfund. Et systemsignal er stadig et kandidatfund, selv om appen tilsyneladende fortsætter.
 
