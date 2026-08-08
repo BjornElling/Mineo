@@ -324,6 +324,13 @@
 }
 
 /* ==================== Links ==================== */
+/* Klassen bruges på BÅDE `<a>` (ægte navigation) og `<button>` (kontroller, der udfører en handling på
+   siden — fx åbner licensdialogen eller starter PWA-installationen). En handling skal semantisk være en
+   knap, ikke et `<a href="#">`: fragment-href'et løj om semantikken og nulstillede browserens sekventielle
+   fokus-udgangspunkt, så næste Tab sprang tilbage mod dokumentets top (OBS-002).
+
+   Derfor nulstiller reglen browserens knap-styling, så de to elementtyper ser IDENTISKE ud. Ændres
+   udseendet her, gælder ændringen begge. */
 .MuiTypography-root.icon-text-link,
 .icon-text-link {
   color: var(--color-text-primary);
@@ -333,6 +340,18 @@
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
   transition: color 0.2s ease;
+}
+
+/* Neutralisér UA-knap-styling, så en `<button class="icon-text-link">` er visuelt umulig at skelne fra
+   `<a class="icon-text-link">` og flyder med i den omgivende brødtekst. */
+button.icon-text-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  cursor: pointer;
 }
 
 .MuiTypography-root.icon-text-link:hover,

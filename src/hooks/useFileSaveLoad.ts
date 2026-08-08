@@ -278,6 +278,20 @@ export const useFileSaveLoad = ({
         return;
       }
 
+      // En helt urørt sag gemmes ikke. Målestokken er den ENE data-presence-forespørgsel, `hasAnyData()`
+      // (`settledInputHasAnyData`), som måler mod NY-SAGS-baseline — ikke mod tomhed. En ny sag er nemlig
+      // ikke tom: den bærer domænets og brugerens erklærede standardværdier (satsår, lønperiode, bilagsvalg,
+      // udkast-stempel), og de er programmets svar, ikke brugerens.
+      //
+      // Gaten ligger HER og ikke i `fileSave.ts`, fordi kun runtimen kender ny-sags-baselinen. `fileSave.ts`
+      // ser udelukkende det schema-parsede snapshot og kan derfor ikke skelne "brugeren har intet indtastet"
+      // fra "brugeren har bevidst valgt netop standardværdierne". Dens tidligere `hasRealData()`-tjek
+      // regnede hver `false` og hvert standardtal som brugerdata og sagde derfor ja til en tom standardsag.
+      if (!ops.file.hasAnyData()) {
+        showOverlay({ message: 'Ingen data fundet at gemme', type: 'warning' });
+        return;
+      }
+
       // §3.9: evaluér `.eo`-save mod et frisk kildesnapshot. Blokeres KUN af aktivt relevant rejected råinput;
       // canonical bounds/rule-fejl og manglende felter tillader save (§1.6).
       const saveOutcome = ops.file.evaluateSave();

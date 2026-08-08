@@ -1,4 +1,4 @@
-import { hasRealData, countFilledFields } from './dataCollection';
+import { countFilledFields } from './dataCollection';
 import { buildEoFileContainer, encodeEoFile } from './eoFileCodec';
 import { downloadFile, type ResolvedDirectory } from './fileHelpers';
 import {
@@ -127,17 +127,18 @@ export const saveToFile = async (
     // Brug den parsed repræsentation for at undgå at gemme ukendte felter, `null`-rester, mv.
     const canonicalData: CanonicalEoData = parsedData.data;
 
-    // 2. Valider at vi har egentlige data at gemme
-    if (!hasRealData(canonicalData)) {
-      throw new SaveValidationError('Ingen data fundet at gemme');
-    }
-
-    // 3. Tæl antal felter med data til preflight-rapportering ved hent
+    // 2. Tæl antal felter med data til preflight-rapportering ved hent.
+    //
+    // Her er BEVIDST ingen "er sagen tom?"-gate. Spørgsmålet kan ikke besvares her: dette lag ser kun det
+    // schema-parsede snapshot og kender ikke ny-sags-baselinen, så det kan ikke skelne "intet indtastet" fra
+    // "standardværdierne er bevidst valgt". Et tidligere `hasRealData()`-tjek forsøgte det ved at tælle
+    // udfyldte felter og regnede hver `false` og hvert standardtal som brugerdata — derfor gemte en helt tom
+    // standardsag som et tilsyneladende rigtigt sagsartefakt. Gaten ejes nu af `hasAnyData()` i save-shellen,
+    // som måler mod netop den baseline.
+    //
+    // `fieldCount === 0` er derfor ikke længere en fejl her: en sag KAN gyldigt bestå af udelukkende
+    // standardværdier, når brugeren har ændret noget andet. Tallet er kun preflight-rapportering.
     const fieldCount = countFilledFields(canonicalData);
-
-    if (fieldCount === 0) {
-      throw new SaveValidationError('Ingen udfyldte felter fundet');
-    }
 
     // 4. Opbyg fil-struktur med metadata (codec stempler version + metadata; fieldCount
     //    genbruges til preflight-rapportering ved hent).

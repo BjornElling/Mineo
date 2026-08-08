@@ -229,8 +229,27 @@ describe('useFileSaveLoad', () => {
       );
     });
 
+    it('gemmer ikke en urørt sag — tomheds-gaten måler mod ny-sags-baseline, ikke feltoptælling', async () => {
+      // OBS-003: en helt ny/nulstillet sag blev tidligere gemt som et rigtigt sagsartefakt. Årsagen var, at
+      // gaten lå i `fileSave.ts` som en feltoptælling (`hasRealData`), der regnede hver `false` og hvert
+      // standardtal (satsår, lønperiode, bilagsvalg) som brugerdata. Gaten ejes nu af `hasAnyData()`, som
+      // sammenligner med ny-sags-baselinen og derfor kan skelne programmets standardsvar fra brugerens input.
+      const handles = renderHook(); // ingen `hasData` → urørt standardsag
+
+      await act(async () => {
+        await handles.api?.handleGem();
+      });
+
+      // Ingen fil-I/O overhovedet: pickeren må ikke engang åbne for en sag uden brugerdata.
+      expect(saveToFileMock).not.toHaveBeenCalled();
+      expect(handles.markSaved).not.toHaveBeenCalled();
+      expect(handles.showOverlay).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Ingen data fundet at gemme', type: 'warning' })
+      );
+    });
+
     it('markerer ikke gemt når brugeren annullerer file picker', async () => {
-      const handles = renderHook();
+      const handles = renderHook({ hasData: true }); // skal forbi tomheds-gaten for at nå pickeren
       saveToFileMock.mockResolvedValue({ status: 'cancelled' });
 
       await act(async () => {

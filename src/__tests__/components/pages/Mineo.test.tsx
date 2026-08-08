@@ -73,7 +73,7 @@ describe('Mineo - License Modal Integration', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
 
     // Find og klik på MIT-licensen linket (via role, ikke tekst-match)
-    const licenseLink = screen.getByRole('link', { name: /mit-licensen/i });
+    const licenseLink = screen.getByRole('button', { name: /mit-licensen/i });
     await user.click(licenseLink);
 
     // Modal skal nu være åben (i DOM med dialog role)
@@ -90,7 +90,7 @@ describe('Mineo - License Modal Integration', () => {
     renderMineo();
 
     // Åbn modal
-    const licenseLink = screen.getByRole('link', { name: /mit-licensen/i });
+    const licenseLink = screen.getByRole('button', { name: /mit-licensen/i });
     await user.click(licenseLink);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
@@ -106,7 +106,7 @@ describe('Mineo - License Modal Integration', () => {
     renderMineo();
 
     // Åbn modal
-    const licenseLink = screen.getByRole('link', { name: /mit-licensen/i });
+    const licenseLink = screen.getByRole('button', { name: /mit-licensen/i });
     await user.click(licenseLink);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
@@ -123,7 +123,7 @@ describe('Mineo - License Modal Integration', () => {
     const user = userEvent.setup();
     renderMineo();
 
-    const licenseLink = screen.getByRole('link', { name: /mit-licensen/i });
+    const licenseLink = screen.getByRole('button', { name: /mit-licensen/i });
 
     // Første åbning/lukning
     await user.click(licenseLink);
@@ -138,13 +138,26 @@ describe('Mineo - License Modal Integration', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  test('license-link er klikbart element', () => {
+  test('licens-kontrollen er en KNAP, ikke et link — den udfører en handling', () => {
     renderMineo();
 
-    // Test semantik (role) i stedet for implementation detail (href)
-    const licenseLink = screen.getByRole('link', { name: /mit-licensen/i });
+    // Semantikken er load-bearing, ikke kosmetik: kontrollen åbner en dialog og navigerer ikke, så den skal
+    // være en knap. Som `<a href="#">` løj den om semantikken OG nulstillede browserens sekventielle
+    // fokus-udgangspunkt til dokumentets top, så næste Tab sprang tilbage til startside-togglen længere oppe
+    // på siden (OBS-002).
+    const licenseLink = screen.getByRole('button', { name: /mit-licensen/i });
     expect(licenseLink).toBeInTheDocument();
     expect(licenseLink).toBeVisible();
+    // Intet fragment-href må komme tilbage — det er præcis det, der flyttede fokus-origoen.
+    expect(licenseLink).not.toHaveAttribute('href');
+  });
+
+  test('download-kontrollen er ligeledes en KNAP uden fragment-href', () => {
+    renderMineo();
+
+    const installControl = screen.getByRole('button', { name: /download hjælpeprogram/i });
+    expect(installControl).toBeVisible();
+    expect(installControl).not.toHaveAttribute('href');
   });
 
   describe('Mineo-side indhold', () => {

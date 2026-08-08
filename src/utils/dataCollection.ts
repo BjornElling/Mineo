@@ -122,9 +122,12 @@ export const countFilledFields = (data: unknown): number => {
   return totalCount;
 };
 
-/**
- * Tjekker om datasættet indeholder egentligt brugerindhold.
- */
-export const hasRealData = (data: unknown): boolean => {
-  return countFilledFields(data) > 0;
-};
+// BEVIDST INGEN `hasRealData()` her. "Indeholder sagen brugerdata?" har ÉT sandt sted:
+// `settledInputHasAnyData()` i `src/persistence/caseFileOperations.ts`, eksponeret som `hasAnyData()`.
+// Den måler mod NY-SAGS-baseline, ikke mod tomhed, og er derfor den eneste, der kan skelne brugerens
+// input fra programmets egne standardværdier.
+//
+// Den tidligere `hasRealData()` (= `countFilledFields(data) > 0`) var et konkurrerende svar: den regnede
+// hver `false` og hvert standardtal som brugerdata og lod derfor en helt tom standardsag gemme som et
+// tilsyneladende rigtigt sagsartefakt. Genindfør den ikke — funktionerne nedenfor/ovenfor tæller felter til
+// PREFLIGHT-RAPPORTERING, og et feltantal er ikke et svar på, om brugeren har indtastet noget.

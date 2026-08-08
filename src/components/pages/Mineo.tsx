@@ -19,13 +19,17 @@ const Mineo = React.memo(() => {
   const { settings, updateSettings } = useAppSettings();
   const [licenseOpen, setLicenseOpen] = React.useState(false);
 
-  const handleInstallClick = React.useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
+  // Begge kontroller UDFØRER en handling på siden (åbner en dialog / starter PWA-installationen) — de
+  // navigerer ikke. De er derfor `<button>`, ikke `<a href="#">`. Et bart fragment-href gjorde to skader:
+  // det løj om semantikken over for skærmlæsere, OG det nulstillede browserens sekventielle
+  // fokus-udgangspunkt til dokumentets top, så næste `Tab` sprang tilbage til startside-togglen længere
+  // OPPE på siden i stedet for videre til næste link (OBS-002). Ingen `preventDefault` kan reparere det,
+  // fordi det er href'et selv — ikke default-handlingen — der flytter fokus-origoen.
+  const handleInstallClick = React.useCallback(() => {
     void requestPwaInstall();
   }, []);
 
-  const handleLicenseClick = React.useCallback((event: React.MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
+  const handleLicenseClick = React.useCallback(() => {
     setLicenseOpen(true);
   }, []);
 
@@ -94,8 +98,8 @@ const Mineo = React.memo(() => {
         >
           <Box component="li" sx={{ marginBottom: 0 }}>
             <Box
-              component="a"
-              href="#installer"
+              component="button"
+              type="button"
               onClick={handleInstallClick}
               className="icon-text-link"
             >
@@ -157,8 +161,8 @@ const Mineo = React.memo(() => {
         <Typography className="row--text">
           Programmet er gratis at bruge og udgives under{' '}
           <Box
-            component="a"
-            href="#"
+            component="button"
+            type="button"
             onClick={handleLicenseClick}
             className="icon-text-link"
             sx={{ display: 'inline' }}

@@ -1,6 +1,5 @@
 import {
   countFilledFields,
-  hasRealData,
   isMeaningfulValue,
 } from '../../utils/dataCollection';
 
@@ -84,48 +83,14 @@ describe('dataCollection', () => {
     });
   });
 
-  describe('hasRealData', () => {
-    it('returnerer false ved manglende data', () => {
-      expect(hasRealData(undefined)).toBe(false);
-      expect(hasRealData(null)).toBe(false);
-      expect(hasRealData({})).toBe(false);
-    });
-
-    it('returnerer false for kun tomme værdier', () => {
-      expect(
-        hasRealData({
-          stamdata: { journalnr: '', advokat: undefined },
-        })
-      ).toBe(false);
-    });
-
-    it('returnerer true når én meningsfuld værdi findes', () => {
-      expect(
-        hasRealData({
-          stamdata: { journalnr: 'J-123' },
-        })
-      ).toBe(true);
-    });
-
-    it('returnerer false for nested objekter uden meningsfulde blade', () => {
-      expect(
-        hasRealData({
-          erstatningsopgoerelse: {
-            nested: {
-              value: undefined,
-            },
-          },
-        })
-      ).toBe(false);
-    });
-
-    it('behandler array med tomme objekter som ikke-reelt data', () => {
-      expect(
-        hasRealData({
-          rows: [{}],
-        })
-      ).toBe(false);
-    });
+  // `hasRealData()` er BEVIDST slettet: "indeholder sagen brugerdata?" har ét sandt sted,
+  // `settledInputHasAnyData()` (eksponeret som `hasAnyData()`), som måler mod NY-SAGS-baseline i stedet for
+  // mod tomhed. `hasRealData` var et konkurrerende svar bygget på feltoptælling og regnede hver `false` og
+  // hvert standardtal som brugerdata — derfor kunne en helt tom standardsag gemmes som et rigtigt
+  // sagsartefakt. Modulet her tæller nu KUN felter til preflight-rapportering.
+  it('eksporterer ikke en konkurrerende data-presence-forespørgsel', async () => {
+    const module = await import('../../utils/dataCollection');
+    expect(Object.keys(module)).not.toContain('hasRealData');
   });
 
   describe('isMeaningfulValue', () => {

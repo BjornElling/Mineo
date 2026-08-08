@@ -2,7 +2,7 @@
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { decryptFromString, encryptToString } from '../../utils/encryption';
 import { readFromFileHandle } from '../../utils/fileSystemAccess';
-import { SaveValidationError, saveToFile } from '../../utils/fileSave';
+import { saveToFile } from '../../utils/fileSave';
 import { downloadFile } from '../../utils/fileHelpers';
 import { buildAllDataRawFromSnapshot, compareData, verifyAfterSave } from '../../utils/fileSaveInternals';
 import { logError, logWarning } from '../../utils/logger';
@@ -538,10 +538,20 @@ describe('fileSave', () => {
       expect(mockedDownloadFile).not.toHaveBeenCalled();
     });
 
-    it('logger ikke fejl når der ikke er data at gemme', async () => {
-      const emptySnapshot = {
+    it('ejer ikke en tomheds-gate — et default-only snapshot afvises IKKE her', async () => {
+      // "Er sagen tom?" kan IKKE besvares på dette lag: her ses kun det schema-parsede snapshot, ikke
+      // ny-sags-baselinen, så "intet indtastet" og "standardværdierne er bevidst valgt" ser ens ud. Den
+      // tidligere `hasRealData()`-gate gættede via feltoptælling og regnede hver `false` og hvert
+      // standardtal som brugerdata — derfor kunne en tom standardsag gemmes (OBS-003). Gaten ejes nu af
+      // `hasAnyData()` i save-shellen; se `useFileSaveLoad`-testen «gemmer ikke en urørt sag».
+      //
+      // Testen her pinner den NYE grænse: et snapshot, som kun bærer standardværdier, går igennem dette lag
+      // uden at blive afvist som "ingen data". Det er shellens beslutning, ikke dette lags.
+      // Kun et standard-satsår: ingen brugerindtastning. Præcis den slags standardtal, den gamle
+      // feltoptælling regnede som brugerdata, og som derfor lod en tom sag gemme.
+      const defaultOnlySnapshot = {
         stamdata: undefined,
-        satser: undefined,
+        satser: { aargang: 2026 },
         aarsloen: undefined,
         faellesAarsloen: undefined,
         renteberegning: undefined,
@@ -551,7 +561,15 @@ describe('fileSave', () => {
         erhvervsevnetab: undefined,
       } as const;
 
-      await expect(saveToFile(emptySnapshot)).rejects.toBeInstanceOf(SaveValidationError);
+      mockedIsFileSystemAccessSupported.mockReturnValue(false);
+      mockedEncryptToString.mockResolvedValueOnce('encrypted');
+      mockedDecryptFromString.mockResolvedValueOnce(currentContainer({
+        satser: { aargang: 2026 },
+      }));
+
+      const result = await saveToFile(defaultOnlySnapshot);
+
+      expect(result.status).toBe('saved');
       expect(mockedLogError).not.toHaveBeenCalled();
     });
   });
