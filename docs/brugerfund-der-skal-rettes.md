@@ -481,8 +481,9 @@ Den usande halvdel var værst, fordi den pegede mod en handling — udfyld felte
 
 `suppressMaskedMissingInvariants` fjerner netop den halvdel. Undertrykkelsen ligger dér, hvor de to lister
 mødes, fordi kriteriet er en egenskab ved PARRET: validatoren kan ikke selv vide, om en tom værdi er brugerens
-tomhed eller readerens maskering. Den er bevidst konservativ — kun de to `mangler`-beskeder, og kun når
-feltnavnet matcher et felt, kernen allerede har markeret. En ÆGTE tom dato får fortsat sin besked.
+tomhed eller readerens maskering. Den matcher derfor de to `mangler`-beskeder på den konkrete legacy-sti,
+som den strukturelle rækkeadresse og rækkens stabile entity-id entydigt peger på. En ægte tom dato i en anden
+række med samme feltnavn får fortsat sin besked.
 
 **2. Tre dato-par manglede.** Kronologien dækkede ikke `tafBeregningsperiodeFra/Til`, SFGG-referenceperioden
 eller indtægtstabellens `col0_dag`/`col1_dag`. Den sidste var værst: et literalt «Dato fra»/«Dato til»-par

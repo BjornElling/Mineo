@@ -1,5 +1,6 @@
 import { isoToDanish, type ISODateString } from '../../types/branded';
 import type { CanonicalView, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
+import { hasDateOrderError } from '../../utils/dateOrderValidation';
 
 // Kronologireglen for et dato-par (BF-028/BF-031): ét sted, alle fra/til-par arver.
 //
@@ -76,7 +77,7 @@ export const dateOrderValidator = (
   if (counterpart === undefined) return undefined;
   const fra = role === 'fra' ? value : counterpart;
   const til = role === 'til' ? value : counterpart;
-  if (fra <= til) return undefined;
+  if (!hasDateOrderError(fra, til)) return undefined;
   return {
     reason: 'rule',
     code: `${field.descriptor.id}.dateOrder`,

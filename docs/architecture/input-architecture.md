@@ -213,8 +213,9 @@ motorerne, men enhver ANDEN læser af de samme værdier — herunder legacy-vali
 konkludere, at værdien mangler. Resultatet er en dublet: den sande feltfejl plus en usand «mangler»-besked om et
 felt, brugeren tydeligvis har udfyldt. `suppressMaskedMissingInvariants` fjerner den usande halvdel, og den
 ligger dér, hvor de to lister mødes, fordi kriteriet er en egenskab ved PARRET: en validator kan ikke selv vide,
-om en tom værdi er brugerens tomhed eller readerens maskering. Tilføjes en ny regel, der maskerer et felt, skal
-det efterprøves, om en anden læser derved begynder at melde feltet tomt.
+om en tom værdi er brugerens tomhed eller readerens maskering. For rækkefelter matches den konkrete legacy-sti
+via den stabile entity-id; feltnavnet alene må ikke skjule en ægte mangel i en anden række. Tilføjes en ny regel,
+der maskerer et felt, skal det efterprøves, om en anden læser derved begynder at melde feltet tomt.
 
 ### 1.9 Skjulte og irrelevante felter
 
@@ -771,4 +772,3 @@ Designet indfører ikke:
 
 Målet er den mindste auditerbare arkitektur, som gør den godkendte adfærd deterministisk og gør stale input,
 mount-afhængige fejl og parallelle write-/readveje urepræsenterbare.
-

@@ -5,6 +5,7 @@ import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
+import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 export type EoProjectionTarget = 'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
 
@@ -78,38 +79,50 @@ const MASKING_INDUCED_MISSING_MESSAGES: ReadonlySet<string> = new Set([
  * værdi er brugerens tomhed eller readerens maskering; det kan kun den, der også kender feltissue-sættet.
  *
  * Matchningen går på felt-IDENTITET, ikke på tekst: `reader_field:eo.tafPerioder.fra#taf-1` og
- * `validation:tafPerioder[0].fra` peger på samme felt gennem hver sin adresseform, og `evidence` bærer begge
- * former. Vi kan derfor sammenligne på descriptor-id'ets sidste led + rækkens position uden at indføre en
- * oversætter mellem tekst-path og feltadresse (som ville gøre strengen til en konkurrerende feltidentitet).
- * Derfor er kriteriet bevidst KONSERVATIVT: kun de to `mangler`-beskeder, og kun når feltnavnet matcher.
+ * `validation:tafPerioder[0].fra` peger på samme felt gennem hver sin adresseform. Rækkens stabile entity-id
+ * oversættes kun til den legacy-validatorsti, der allerede bruges som evidence; den bliver ikke en ny
+ * feltidentitet. Det præcise match er nødvendigt, fordi et felt med samme navn i en anden række fortsat kan
+ * være en ægte mangel.
  */
+const legacyPathForFieldIssue = (
+  issue: FieldIssue,
+  values: ErstatningsopgoerelseValues,
+): string | undefined => {
+  const supportedCollections = {
+    tafPerioder: values.tafPerioder,
+    svieSmertePerioder: values.svieSmertePerioder,
+  } as const;
+  const entity = issue.field.address.path.find((segment) => (
+    segment.kind === 'entity' && segment.collection in supportedCollections
+  ));
+  if (entity?.kind !== 'entity') return undefined;
+
+  const collection = entity.collection as keyof typeof supportedCollections;
+  const rows = supportedCollections[collection];
+  const index = rows.findIndex((row) => row.id === entity.entityId);
+  if (index < 0) return undefined;
+  if (issue.field.address.field !== 'fra' && issue.field.address.field !== 'til') return undefined;
+  return `${collection}[${index}].${issue.field.address.field}`;
+};
+
 export const suppressMaskedMissingInvariants = (
   validationInvariants: readonly EoInvariant[],
-  structuralFieldIssues: readonly FieldIssue[]
+  structuralFieldIssues: readonly FieldIssue[],
+  values: ErstatningsopgoerelseValues,
 ): readonly EoInvariant[] => {
   if (structuralFieldIssues.length === 0) return validationInvariants;
 
-  // Feltnavn (sidste led af descriptor-id) + entity-id'er for hvert felt, kernen allerede har markeret rødt.
-  const maskedFields = new Set<string>();
-  for (const issue of structuralFieldIssues) {
-    const fieldName = issue.field.descriptor.id.split('.').pop();
-    if (fieldName === undefined) continue;
-    const entityIds = issue.field.address.path.flatMap((segment) =>
-      segment.kind === 'entity' ? [segment.entityId] : []);
-    maskedFields.add(entityIds.length > 0 ? `${fieldName}#${entityIds.join('.')}` : fieldName);
-    // Uden entity-suffiks: legacy-pathen bærer et INDEKS, ikke et entity-id, så den kan ikke matche
-    // rækken direkte. Feltnavnet alene er tilstrækkeligt, fordi undertrykkelsen kun rammer de to
-    // `mangler`-beskeder — og en tom dato i en ANDEN række er stadig en ægte mangel, som får sin egen
-    // besked fra rækkens egen evaluering.
-    maskedFields.add(fieldName);
-  }
+  const maskedLegacyPaths = new Set(
+    structuralFieldIssues
+      .map((issue) => legacyPathForFieldIssue(issue, values))
+      .filter((path): path is string => path !== undefined)
+  );
 
   return validationInvariants.filter((invariant) => {
     if (!MASKING_INDUCED_MISSING_MESSAGES.has(invariant.message)) return true;
     const path = invariant.evidence?.[0];
     if (path === undefined) return true;
-    const fieldName = path.split('.').pop();
-    return fieldName === undefined || !maskedFields.has(fieldName);
+    return !maskedLegacyPaths.has(path);
   });
 };
 

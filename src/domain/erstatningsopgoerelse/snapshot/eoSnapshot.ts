@@ -353,7 +353,8 @@ export const computeEoSnapshot = (args: Readonly<{
     // `suppressMaskedMissingInvariants`.
     ...suppressMaskedMissingInvariants(
       buildValidationInvariants(validationResult.errors),
-      dependencyProjection.aggregateIssues
+      dependencyProjection.aggregateIssues,
+      parsedEo.data
     ),
     ...buildValidationInvariants(stamdataDateOrderErrors),
     ...midlertidigtEetSourceInvariants,

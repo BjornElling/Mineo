@@ -58,7 +58,7 @@ import {
 import { harAktivOverenskomst, harModstridendeOverenskomstValg } from '../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
-import { DATE_ORDER_ERROR_MESSAGE } from '../utils/dateOrderValidation';
+import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../utils/dateOrderValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import {
   opregulerMedAkkumuleretReguleringssats,
@@ -108,7 +108,7 @@ function validateStandaloneRules(values: ErstatningsopgoerelseValues): Validatio
   if (
     values.vedroererPeriodeFra &&
     values.vedroererPeriodeTil &&
-    values.vedroererPeriodeFra > values.vedroererPeriodeTil
+    hasDateOrderError(values.vedroererPeriodeFra, values.vedroererPeriodeTil)
   ) {
     errors.push({
       path: 'vedroererPeriodeFra',
@@ -463,7 +463,7 @@ function validateSvieSmerteRowCompleteness(
   // Dato-interval validering. isISODateString-guards er type narrowing — ikke format-validering.
   // Format er garanteret af Zod-schema (validateParsed modtager kun schema-validerede værdier).
   if (hasFra && hasTil && isISODateString(row.fra) && isISODateString(row.til)) {
-    if (row.fra > row.til) {
+    if (hasDateOrderError(row.fra, row.til)) {
       errors.push({ path: `${prefix}.fra`, message: DATE_ORDER_ERROR_MESSAGE, severity: 'error' });
     } else {
       // Fejlgivende bound: til-dato >= menAfgoerelseDato når afgørelse er truffet og ikke påklaget.
@@ -922,7 +922,7 @@ function validateBeregnesUdFra(values: ErstatningsopgoerelseValues): ValidationE
     if (
       values.tafBeregningsperiodeFra &&
       values.tafBeregningsperiodeTil &&
-      values.tafBeregningsperiodeFra > values.tafBeregningsperiodeTil
+      hasDateOrderError(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil)
     ) {
       errors.push({
         path: 'tafBeregningsperiodeFra',

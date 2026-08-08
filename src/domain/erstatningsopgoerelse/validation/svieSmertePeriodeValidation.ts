@@ -3,7 +3,7 @@ import { computeRowDateBounds } from '../helpers/rowDateBounds';
 import { validateISODateRange } from '../../../utils/isoDateHelpers';
 import { detectOverlappingPeriods } from '../engines/periodOverlapDetection';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
-import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
+import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../../../utils/dateOrderValidation';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 import { formatDanishList } from '../../../utils/danishListFormatting';
 
@@ -140,7 +140,7 @@ const evaluateOne = (
   }
 
   if (harFejl) {
-    const fraFoerTilError = fraISO && tilISO && fraISO > tilISO ? DATE_ORDER_ERROR_MESSAGE : undefined;
+    const fraFoerTilError = hasDateOrderError(fraISO, tilISO) ? DATE_ORDER_ERROR_MESSAGE : undefined;
     const allMessages = computedRangeMessages.map((m) => m.trim()).filter((m) => m !== '');
     const errorMessages = hasOverlap ? 'Der er overlappende perioder' : (fraFoerTilError ?? allMessages.join('; '));
     const field: 'fra' | 'til' | undefined = hasOverlap

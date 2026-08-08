@@ -3,7 +3,7 @@ import { computeRowDateBounds } from '../helpers/rowDateBounds';
 import { getDayBeforeIso, validateISODateRange } from '../../../utils/isoDateHelpers';
 import { detectOverlappingPeriods } from '../engines/periodOverlapDetection';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, getToday } from '../../../config/dateRanges';
-import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
+import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../../../utils/dateOrderValidation';
 import { buildTafCutoffErrorMessage } from './tafPeriodConstraints';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 
@@ -175,7 +175,7 @@ const evaluateOne = (
   );
 
   if (hasOverlap || preferredFieldErrorMessages.length > 0 || computedRangeMessages.length > 0) {
-    const fraFoerTilError = fraISO > tilISO ? DATE_ORDER_ERROR_MESSAGE : undefined;
+    const fraFoerTilError = hasDateOrderError(fraISO, tilISO) ? DATE_ORDER_ERROR_MESSAGE : undefined;
     const rangeOrCutoffErrorMessage =
       preferredFieldErrorMessages.length > 0
         ? preferredFieldErrorMessages.join('; ')

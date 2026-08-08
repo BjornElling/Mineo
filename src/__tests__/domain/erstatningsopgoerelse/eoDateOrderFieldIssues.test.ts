@@ -14,6 +14,12 @@ import { resolveFieldIssueTooltip } from '../../../inputCore/inputIssue';
 import {
   eoOffentligeYdelserFraDatoField,
   eoOffentligeYdelserTilDatoField,
+  eoFerieperiodeFraField,
+  eoFerieperiodeTilField,
+  eoFravaerPeriodeFraField,
+  eoFravaerPeriodeTilField,
+  eoSfggReferenceperiodeFraField,
+  eoSfggReferenceperiodeTilField,
   eoSvieSmertePeriodeFraField,
   eoSvieSmertePeriodeTilField,
   eoTafBeregningsperiodeFraField,
@@ -23,7 +29,14 @@ import {
   eoVedroererPeriodeFraField,
   eoVedroererPeriodeTilField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  eoStandardRowFields,
+} from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { createEmptyStandardLoenRow } from '../../../domain/aarsloen/standardLoenRowInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 
@@ -161,11 +174,17 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
 
   it('dækker alle fem rækkekollektioner med dato-par', () => {
     // Fabrikken `rowDatePair` er det ene sted, parret dannes. Registreres en kollektion uden den,
-    // er kronologien tavs igen præcis dér — derfor tælles felterne, ikke bare ét eksempel.
+    // er kronologien tavs igen præcis dér — derfor dækkes hver af de fem konkrete kollektioner.
     const evaluation = buildReader({
       ...baseEo(),
       tafPerioder: [
         { id: 't1', fra: toISODateString('2022-06-30'), til: toISODateString('2022-04-01') },
+      ],
+      ferieperioder: [
+        { id: 'f1', fra: toISODateString('2022-06-30'), til: toISODateString('2022-04-01') },
+      ],
+      fravaerPerioder: [
+        { id: 'fr1', fra: toISODateString('2022-06-30'), til: toISODateString('2022-04-01') },
       ],
       svieSmertePerioder: [
         {
@@ -175,12 +194,27 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
           tilstand: 'sygemeldt',
         },
       ],
+      offentligeYdelserRows: [
+        {
+          id: 'o1',
+          fraDato: toISODateString('2022-06-30'),
+          tilDato: toISODateString('2022-04-01'),
+          ydelse: { kind: 'number', value: 1000 },
+          ydelsestype: 'efterloen',
+        },
+      ],
     });
 
     expect(issueAt(evaluation, eoTafPeriodeFraField.bind('t1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoTafPeriodeTilField.bind('t1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoFerieperiodeFraField.bind('f1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoFerieperiodeTilField.bind('f1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoFravaerPeriodeFraField.bind('fr1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoFravaerPeriodeTilField.bind('fr1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoSvieSmertePeriodeFraField.bind('s1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoSvieSmertePeriodeTilField.bind('s1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoOffentligeYdelserFraDatoField.bind('o1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoOffentligeYdelserTilDatoField.bind('o1'))?.reason).toBe('rule');
   });
 
   it('en maskeret dato giver IKKE også en falsk «mangler»-besked', () => {
@@ -196,6 +230,9 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
       tafPerioder: [
         { id: 'taf-1', fra: toISODateString('2022-06-30'), til: toISODateString('2022-04-01'), loseFeriedage: 0 },
       ],
+      svieSmertePerioder: [
+        { id: 'svie-mangler', fra: undefined, til: toISODateString('2022-04-01'), tilstand: 'sygemeldt' },
+      ],
       // Kontrolgruppe: en urelateret legacy-fejl, som IKKE afhænger af de maskerede datoer. Uden den
       // kunne testen ikke skelne en smal undertrykkelse fra en, der swallower enhver legacy-besked.
       uspecificeredeFerieFridage: 999,
@@ -203,8 +240,14 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     const projection = buildErstatningsopgoerelseReaderProjection(evaluation.reader, { revision: 'r' });
     const failed = projection.snapshot.invariants.filter((i) => !i.passed);
 
-    expect(failed.filter((i) => i.message === 'Fra-dato mangler')).toHaveLength(0);
-    expect(failed.filter((i) => i.message === 'Til-dato mangler')).toHaveLength(0);
+    expect(failed.some((i) => (
+      i.message === 'Fra-dato mangler'
+      && i.evidence?.includes('tafPerioder[0].fra')
+    ))).toBe(false);
+    expect(failed.some((i) => (
+      i.message === 'Til-dato mangler'
+      && i.evidence?.includes('tafPerioder[0].til')
+    ))).toBe(false);
     // De to ægte kronologifejl står tilbage.
     expect(failed.filter((i) => i.id.startsWith('reader_field:eo.tafPerioder'))).toHaveLength(2);
     // Undertrykkelsen skal være SMAL: den urelaterede legacy-fejl må IKKE ryge med. Uden denne
@@ -212,6 +255,11 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     // tomhed frem for grøn af bevis. Assertionen går på BESKEDEN, fordi id'et for netop denne fejl
     // omskrives til `beregningsperiode:…` og derfor ikke kan skelne kilden.
     expect(failed.some((i) => i.message.includes('Uspecificerede ferie-/feriefridage overstiger'))).toBe(true);
+    // En anden rækkes reelle tomhed må ikke blive skjult, selv om den har samme feltnavn.
+    expect(failed.some((i) => (
+      i.message === 'Fra-dato mangler'
+      && i.evidence?.includes('svieSmertePerioder[0].fra')
+    ))).toBe(true);
   });
 
   it('en ÆGTE tom dato giver stadig sin «mangler»-besked', () => {
@@ -241,9 +289,34 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
       beregnesUdFra: 'Beregningsperiode',
       tafBeregningsperiodeFra: toISODateString('2022-06-30'),
       tafBeregningsperiodeTil: toISODateString('2022-04-01'),
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'sfgg-1',
+        sfggBeregningskilde: undefined,
+        sfggReferenceperiodeFra: toISODateString('2022-06-30'),
+        sfggReferenceperiodeTil: toISODateString('2022-04-01'),
+        sfggReferenceperiodeFravaersdageUdenLoen: undefined,
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+      loenindkomstAnsaettelsesforhold: [{
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'employment-1',
+        indtaegtsoplysningerTableData: [{
+          ...createEmptyStandardLoenRow('income-1'),
+          col0_dag: toISODateString('2022-06-30'),
+          col1_dag: toISODateString('2022-04-01'),
+        }],
+      }],
     });
     expect(issueAt(evaluation, eoTafBeregningsperiodeFraField.bind())?.reason).toBe('rule');
     expect(issueAt(evaluation, eoTafBeregningsperiodeTilField.bind())?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoSfggReferenceperiodeFraField.bind('sfgg-1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoSfggReferenceperiodeTilField.bind('sfgg-1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoStandardRowFields.col0_dag.bind('employment-1', 'income-1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoStandardRowFields.col1_dag.bind('employment-1', 'income-1'))?.reason).toBe('rule');
   });
 
   it('feltfejlen når frem til snapshottets blokerende invarianter (samme adresse, ét sprog)', () => {
