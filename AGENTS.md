@@ -171,6 +171,8 @@ Tjekkene har forskellig dækning og pris. Vælg det smalleste tjek der realistis
 
 **Grundregel:** Ingen tjek er nødvendige for rene ændringer i dokumentation/procesregler, medmindre ændringen berører scripts, config, genereret output eller en kontrakt der skal verificeres mod kode. For kodeændringer køres tjek efter en sammenhængende delændring, ikke efter hver enkelt hunk.
 
+**Fuld Vitest-suite:** Den kan legitimt overstige to minutter (senest målt ca. 3½ minut). Brug mindst 10 minutters værktøjs-timeout ved `npm run test` eller `npm run test:coverage`; behold processen aktiv og aflæs status løbende frem for at genstarte den efter to minutter uden et afsluttet resultat.
+
 | Tjek | Kommando | Hvornår |
 |------|----------|---------|
 | **Typecheck (kildekode)** | `npm run typecheck` | Efter en sammenhængende ændring af `.ts/.tsx` i `src/` uden for `__tests__`, når ændringen påvirker typer, imports/exports, props, schemas, hooks, state, domænefunktioner eller delt infrastruktur. Kan springes over ved ren tekst-/kommentarændring, CSS-only ændring, eller mekanisk flytning hvor imports allerede er verificeret af et smallere relevant tjek. |
