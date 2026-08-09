@@ -25,6 +25,7 @@ import {
   computeSkadedatoMinRule,
   getCurrentYear,
   dateRanges_erstatningsopgoerelse,
+  dateRanges_offentligeYdelser,
   MIN_SVIESMERTE_YEAR,
 } from '../../config/dateRanges';
 import { DEFAULT_FRACTION_MAX_DIGITS } from '../../utils/fraction';
@@ -51,6 +52,8 @@ import type {
   FieldValidator,
 } from '../fieldDescriptor';
 import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
+import { dateBounds, originWhenNarrowed, systemrammeSpec } from './dateBoundsValidators';
+import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
 import type { FieldCodec } from '../fieldCodec';
 import {
   defineStructuralCollection,
@@ -64,7 +67,7 @@ import {
   yearBoundsValidator,
 } from './boundsValidators';
 import { stamdataSkadedatoField, stamdataSkadestypeField } from './stamdataDescriptors';
-import { resolveDateRangeErrorMessage, derivedDateBounds } from '../../utils/dateRangeErrorMessages';
+import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import { evaluateForligAnsvarsgradRules } from '../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { evaluateForligsgrad } from '../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
@@ -93,10 +96,20 @@ const optionalTextField = (field: string, label: string): FieldDescriptor<string
     createEmptySection: createEmptyErstatningsopgoerelseSection,
   });
 
+/**
+ * Et EO-datofelt. Grænserne er PÅKRÆVEDE og leveres som en `dateBounds(...)`-spredning, der bærer både
+ * erklæringen og dens validator. Den valgfrie `validators?`-parameter, der stod her før, var netop det, der
+ * lod 14 EO-datofelter blive oprettet helt uden grænser; nu er udeladelse en typefejl.
+ */
+type DateFieldBounds = Readonly<{
+  dateBounds: DateBoundsSpec;
+  validators: readonly FieldValidator<ISODateString | undefined>[];
+}>;
+
 const dateField = (
   field: string,
   label: string,
-  validators?: readonly FieldValidator<ISODateString | undefined>[]
+  bounds: DateFieldBounds
 ): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `eo.${field}`,
@@ -107,8 +120,54 @@ const dateField = (
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
-    ...(validators === undefined ? {} : { validators }),
+    ...bounds,
   });
+
+// ── EO's datogrænser: fra deklaration til håndhævelse ────────────────────────────
+//
+// EO var det værste tilfælde af det strukturelle hul (se `dateBoundsValidators.ts`): `dateRanges.ts`
+// deklarerede grænser for periodefelterne, de fem AES-datoer, differencekravsdatoen og alle tabellernes
+// dato-par, men INGEN af dem havde en bounds-validator. Kun Forligsdato og Øvrige krav havde én, og de var
+// skrevet i hånden hver for sig. Byggeklodserne nedenfor gør de tre tilbagevendende grænseformer til data,
+// så et nyt EO-datofelt arver dem frem for at genopfinde dem — eller glemme dem.
+
+/** Skadedato + Skadestype → EO's tilbagevendende nedre grænse (skadesdagen, eller anmeldedato minus 5 år). */
+const skadedatoMinRuleFor = (
+  context: DateBoundsContext,
+  fallbackMin: ISODateString
+): ReturnType<typeof computeSkadedatoMinRule> =>
+  computeSkadedatoMinRule({
+    skadedatoISO: context.view.readCanonical(stamdataSkadedatoField.bind()),
+    erErhvervssygdom: context.view.readCanonical(stamdataSkadestypeField.bind()) === 'Erhvervssygdom',
+    fallbackMin,
+  });
+
+/**
+ * Grænseformen «tidligst skadesdagen, senest <max>» — EO's mest udbredte datoregel.
+ *
+ * Den bar tidligere kun Forligsdato og Øvrige krav, hver med sin egen håndskrevne kopi. De fem AES-datoer,
+ * opgørelsesdatoen og differencekravsdatoen deklarerede nøjagtig samme regel i konfigurationen uden at
+ * håndhæve den, så datoer før skadedagen kunne afsluttes canonical og nå hele vejen til PDF (OBS-023).
+ */
+const skadedatoBoundedSpec = (
+  range: Readonly<{ fallbackMin: ISODateString; max: ISODateString }>
+): DateBoundsSpec => ({
+  min: () => range.fallbackMin,
+  max: () => range.max,
+  narrowMin: (context) => skadedatoMinRuleFor(context, range.fallbackMin).minDate,
+  special: (context) => {
+    const rule = skadedatoMinRuleFor(context, range.fallbackMin);
+    return rule.minBoundKind === undefined || rule.minDate <= range.fallbackMin
+      ? undefined
+      : { minBoundKind: rule.minBoundKind, minBoundReferenceISO: rule.minBoundReferenceISO };
+  },
+  // Skadedato kan i sig selv gøre intervallet umuligt (fx en skadedato efter konfigurationens max), og
+  // Skadestype afgør hvilken af de to min-regler der gælder. Begge navngives derfor som årsag.
+  origin: originWhenNarrowed(
+    'Skadedato og Skadestype',
+    (context) => skadedatoMinRuleFor(context, range.fallbackMin).minDate > range.fallbackMin
+  ),
+});
 
 const amountField = (field: string, label: string): FieldDescriptor<AmountValue | undefined> =>
   defineStructuralField<AmountValue | undefined>({
@@ -184,7 +243,10 @@ const requiredJaNejSkjulField = (
 // ── Base-blok ─────────────────────────────────────────────────────────────────────
 export const eoNummerField = optionalTextField('eoNummer', 'EO-nummer');
 export const eoLedsagetekstField = optionalTextField('eoLedsagetekst', 'Ledsagetekst');
-export const eoOpgørelseLavetDenField = dateField('opgørelseLavetDen', 'Opgørelse lavet den');
+export const eoOpgørelseLavetDenField = dateField(
+  'opgørelseLavetDen', 'Opgørelse lavet den',
+  dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.opgoerelse)),
+);
 export const eoIndsaetUdkastStempelField = requiredJaNejField('indsaetUdkastStempel', 'Indsæt udkast-stempel', 'Nej');
 // «Vedrører perioden» er et skalar-dato-par. Kronologien lå KUN i legacy-validatoren som en
 // `ValidationError` med et tekst-path, og rækkeoversigten (`buildEoErstatningsopgoerelseRows`) læser
@@ -194,11 +256,30 @@ const vedroererPeriodePair: DatePairBinding = {
   fra: () => eoVedroererPeriodeFraField,
   til: () => eoVedroererPeriodeTilField,
 };
+// Grænserne clampes bevidst IKKE mod modparten (jf. `dateOrderValidators.ts`): gjorde de det, ville
+// bounds-reglen spise kronologireglen, og beskeden ville skifte til en intervaltekst, der ikke nævner
+// den modgående dato. Kronologien ejes af `dateOrderValidator`, den ydre ramme af `dateBounds`.
 export const eoVedroererPeriodeFraField = dateField(
-  'vedroererPeriodeFra', 'Vedrører periode fra', [dateOrderValidator('fra', vedroererPeriodePair)]
+  'vedroererPeriodeFra', 'Vedrører periode fra',
+  dateBounds(
+    {
+      min: () => dateRanges_erstatningsopgoerelse.periodeFra.min,
+      max: () => dateRanges_erstatningsopgoerelse.periodeFra.fallbackMax,
+      origin: STATIC_DATE_BOUNDS,
+    },
+    [dateOrderValidator('fra', vedroererPeriodePair)],
+  ),
 );
 export const eoVedroererPeriodeTilField = dateField(
-  'vedroererPeriodeTil', 'Vedrører periode til', [dateOrderValidator('til', vedroererPeriodePair)]
+  'vedroererPeriodeTil', 'Vedrører periode til',
+  dateBounds(
+    {
+      min: () => dateRanges_erstatningsopgoerelse.periodeTil.fallbackMin,
+      max: () => dateRanges_erstatningsopgoerelse.periodeTil.max,
+      origin: STATIC_DATE_BOUNDS,
+    },
+    [dateOrderValidator('til', vedroererPeriodePair)],
+  ),
 );
 export const eoRevideretOpgoerelseField = requiredJaNejField('revideretOpgoerelse', 'Revideret opgørelse', 'Nej');
 export const eoMidlertidigtEetFraEetSidenField = requiredJaNejField('midlertidigtEetFraEetSiden', 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden', 'Nej');
@@ -260,6 +341,9 @@ export const eoForligAnsvarsgradBroekField: FieldDescriptor<string | undefined> 
   }],
 });
 
+const forligDatoBoundsSpec = skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.forligDato);
+const forligDatoBounds = dateBounds(forligDatoBoundsSpec);
+
 export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = defineStructuralField<ISODateString | undefined>({
   id: 'eo.forligDato',
   template: { section: S, path: [], field: 'forligDato' },
@@ -269,43 +353,24 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
   label: 'Forligsdato',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
-  validators: [(value, _field, view) => {
-    if (value === undefined) return undefined;
-    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
-    const skadestype = view.readCanonical(stamdataSkadestypeField.bind());
-    const minRule = computeSkadedatoMinRule({
-      skadedatoISO: skadedato,
-      erErhvervssygdom: skadestype === 'Erhvervssygdom',
-      fallbackMin: dateRanges_erstatningsopgoerelse.forligDato.fallbackMin,
-    });
-    const maxDate = dateRanges_erstatningsopgoerelse.forligDato.max;
-    if (value < minRule.minDate || value > maxDate) {
-      return {
-        reason: 'bounds',
-        code: 'eo.forligDato.bounds',
-        message: resolveDateRangeErrorMessage({
-          iso: value,
-          minDate: minRule.minDate,
-          maxDate,
-          special: {
-            minBoundKind: minRule.minBoundKind,
-            minBoundReferenceISO: minRule.minBoundReferenceISO,
-          },
-          // En Skadedato efter konfigurationens max gør intervallet umuligt.
-          // Årsagen er Skadedato — og Skadestype, som afgør om erhvervssygdomsreglen (anmeldedato minus
-          // 5 år) eller skadesdagen sætter min.
-          bounds: derivedDateBounds('Skadedato og Skadestype'),
-        }),
-        detail: { minDate: minRule.minDate, maxDate },
-      };
-    }
-    const message = evaluateForligAnsvarsgradRules({
-      forligAnsvarsgradProcent: view.readCanonical(eoForligAnsvarsgradProcentField.bind()),
-      forligAnsvarsgradBroek: view.readCanonical(eoForligAnsvarsgradBroekField.bind()),
-      forligDato: value,
-    }).forligDatoFejl;
-    return message === undefined ? undefined : { reason: 'rule', code: 'eo.forligDato.ansvarsgradMangler', message };
-  }],
+  // Bounds deler nu spec med de øvrige EO-datoer; ansvarsgrad-reglen er feltets egen og bliver stående.
+  // Rækkefølgen bevarer den hidtidige forrang: bounds FØRST, ansvarsgrad-reglen derefter. Den gamle
+  // håndskrevne validator returnerede bounds-issuet i en tidlig return, så en dato uden for intervallet
+  // aldrig nåede ansvarsgrad-kontrollen. `forligDatoBounds` holder erklæringen og bounds-validatoren
+  // samlet, mens den feltlokale regel tilføjes efter den.
+  ...forligDatoBounds,
+  validators: [
+    ...forligDatoBounds.validators,
+    (value, _field, view) => {
+      if (value === undefined) return undefined;
+      const message = evaluateForligAnsvarsgradRules({
+        forligAnsvarsgradProcent: view.readCanonical(eoForligAnsvarsgradProcentField.bind()),
+        forligAnsvarsgradBroek: view.readCanonical(eoForligAnsvarsgradBroekField.bind()),
+        forligDato: value,
+      }).forligDatoFejl;
+      return message === undefined ? undefined : { reason: 'rule', code: 'eo.forligDato.ansvarsgradMangler', message };
+    },
+  ],
 });
 export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', 'Ja');
 export const eoOffentligeYdelserKommentarerField = optionalTextField('offentligeYdelserKommentarer', 'Kommentarer');
@@ -349,16 +414,38 @@ export const eoBilagSelectionSygeferiegodtgoerelseField = bilagToggle('sygeferie
 
 // ── AES afgørelser (skalarer) ─────────────────────────────────────────────────────
 export const eoVarigeMenAfgorelseField = requiredJaNejField('varigeMenAfgorelse', 'Varige mén-afgørelse', 'Nej');
-export const eoMenAfgoerelseDatoField = dateField('menAfgoerelseDato', 'Mén-afgørelsesdato');
+// De fem AES-datoer og differencekravsdatoen deler grænseformen «tidligst skadesdagen, senest <max>».
+// Alle seks stod uden validator, så datoer før skadedagen — og efter dags dato — kunne afsluttes canonical
+// og nå hele vejen til en aktiv PDF-knap (OBS-023). Kun `max` skiller dem: afgørelsesdatoer kan ikke ligge
+// i fremtiden, mens virkningsdatoer kan række et år frem.
+export const eoMenAfgoerelseDatoField = dateField(
+  'menAfgoerelseDato', 'Mén-afgørelsesdato',
+  dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.menAfgoerelseDato)),
+);
 export const eoVerserendeKlageMenField = requiredJaNejField('verserendeKlageMen', 'Verserende klage (mén)', 'Nej');
 export const eoMidlertidigtEETAfgorelseField = requiredJaNejField('midlertidigtEETAfgorelse', 'Midlertidigt EET-afgørelse', 'Nej');
-export const eoMidlertidigEETAfgoerelseDatoField = dateField('midlertidigEETAfgoerelseDato', 'Midlertidigt EET-afgørelsesdato');
-export const eoMidlertidigEETVirkningsdatoField = dateField('midlertidigEETVirkningsdato', 'Midlertidigt EET-virkningsdato');
+export const eoMidlertidigEETAfgoerelseDatoField = dateField(
+  'midlertidigEETAfgoerelseDato', 'Midlertidigt EET-afgørelsesdato',
+  dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.midlertidigEETAfgoerelseDato)),
+);
+export const eoMidlertidigEETVirkningsdatoField = dateField(
+  'midlertidigEETVirkningsdato', 'Midlertidigt EET-virkningsdato',
+  dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.midlertidigEETVirkningsdato)),
+);
 export const eoEndeligtEETAfgorelseField = requiredJaNejField('endeligtEETAfgorelse', 'Endeligt EET-afgørelse', 'Nej');
-export const eoEndeligEETAfgoerelseDatoField = dateField('endeligEETAfgoerelseDato', 'Endeligt EET-afgørelsesdato');
-export const eoEndeligEETVirkningsdatoField = dateField('endeligEETVirkningsdato', 'Endeligt EET-virkningsdato');
+export const eoEndeligEETAfgoerelseDatoField = dateField(
+  'endeligEETAfgoerelseDato', 'Endeligt EET-afgørelsesdato',
+  dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.endeligEETAfgoerelseDato)),
+);
+export const eoEndeligEETVirkningsdatoField = dateField(
+  'endeligEETVirkningsdato', 'Endeligt EET-virkningsdato',
+  dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.endeligEETVirkningsdato)),
+);
 export const eoVerserendeKlageEetField = requiredJaNejField('verserendeKlageEet', 'Verserende klage (EET)', 'Nej');
-export const eoDifferencekravDatoField = dateField('differencekravDato', 'Differencekravsdato');
+export const eoDifferencekravDatoField = dateField(
+  'differencekravDato', 'Differencekravsdato',
+  dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.differencekravDato)),
+);
 
 // ── Svie/smerte (skalarer) ──────────────────────────────────────────────────────
 export const eoKravPaaSvieSmerteGodtgoerelseField = requiredJaNejSkjulField('kravPaaSvieSmerteGodtgoerelse', 'Krav på svie- og smertegodtgørelse', 'Ja');
@@ -390,7 +477,11 @@ export const eoTafArbejdsstatusField = choiceField<Arbejdsstatus>('tafArbejdssta
   'Uarbejdsdygtig', 'Delvist raskmeldt', 'Fuldt arbejdsdygtig', 'Fleksjob', 'Revalidering', 'Uddannelse',
   'Førtidspension', 'Seniorpension', 'Folkepension', 'Efterløn', 'Kontanthjælp',
 ]);
-export const eoSidsteDagAnsaettelsesforholdField = dateField('sidsteDagAnsaettelsesforhold', 'Sidste dag i ansættelsesforhold');
+// Uden en kendt domæneregel: systemets ydre ramme. Den fanger et forkert århundrede uden at påstå en
+// juridisk grænse, feltet ikke har.
+export const eoSidsteDagAnsaettelsesforholdField = dateField(
+  'sidsteDagAnsaettelsesforhold', 'Sidste dag i ansættelsesforhold', dateBounds(systemrammeSpec),
+);
 export const eoTidligereModtagetTafField = amountField('tidligereModtagetTaf', 'Tidligere modtaget TAF');
 
 // ── Indtægt før skaden (skalarer, fanen lønindkomst) ──────────────────────────────
@@ -404,10 +495,12 @@ const tafBeregningsperiodePair: DatePairBinding = {
   til: () => eoTafBeregningsperiodeTilField,
 };
 export const eoTafBeregningsperiodeFraField = dateField(
-  'tafBeregningsperiodeFra', 'Beregningsperiode fra', [dateOrderValidator('fra', tafBeregningsperiodePair)]
+  'tafBeregningsperiodeFra', 'Beregningsperiode fra',
+  dateBounds(systemrammeSpec, [dateOrderValidator('fra', tafBeregningsperiodePair)]),
 );
 export const eoTafBeregningsperiodeTilField = dateField(
-  'tafBeregningsperiodeTil', 'Beregningsperiode til', [dateOrderValidator('til', tafBeregningsperiodePair)]
+  'tafBeregningsperiodeTil', 'Beregningsperiode til',
+  dateBounds(systemrammeSpec, [dateOrderValidator('til', tafBeregningsperiodePair)]),
 );
 export const eoUspecificeredeFerieFridageField = integerField('uspecificeredeFerieFridage', 'Uspecificerede ferie-/fridage');
 export const eoOevrigtFravaerUdenLoenField = requiredJaNejField('oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn', 'Nej');
@@ -416,9 +509,13 @@ export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField('oevrigeF
 export const eoMaanedsloenenUdgoerField = amountField('maanedsloenenUdgoer', 'Månedslønnen udgør');
 export const eoDagsloenenUdgoerField = amountField('dagsloenenUdgoer', 'Dagslønnen udgør');
 export const eoAngivetMaanedsloenBaseretPaaField = optionalTextField('angivetMaanedsloenBaseretPaa', 'Angivet månedsløn baseret på');
-export const eoAngivetMaanedsloenOpreguleresFraDatoField = dateField('angivetMaanedsloenOpreguleresFraDato', 'Angivet månedsløn opreguleres fra');
+export const eoAngivetMaanedsloenOpreguleresFraDatoField = dateField(
+  'angivetMaanedsloenOpreguleresFraDato', 'Angivet månedsløn opreguleres fra', dateBounds(systemrammeSpec),
+);
 export const eoAngivetDagsloenBaseretPaaField = optionalTextField('angivetDagsloenBaseretPaa', 'Angivet dagsløn baseret på');
-export const eoAngivetDagsloenOpreguleresFraDatoField = dateField('angivetDagsloenOpreguleresFraDato', 'Angivet dagsløn opreguleres fra');
+export const eoAngivetDagsloenOpreguleresFraDatoField = dateField(
+  'angivetDagsloenOpreguleresFraDato', 'Angivet dagsløn opreguleres fra', dateBounds(systemrammeSpec),
+);
 
 // ── Bilagsnumre (skalarer) ────────────────────────────────────────────────────────
 export const eoVisBilagsnumreField = requiredJaNejField('visBilagsnumre', 'Vis bilagsnumre', 'Nej');
@@ -439,7 +536,7 @@ const rowDate = (
   collection: string,
   field: string,
   label: string,
-  validators?: readonly FieldValidator<ISODateString | undefined>[]
+  bounds: DateFieldBounds
 ): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `eo.${collection}.${field}`,
@@ -450,7 +547,7 @@ const rowDate = (
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
-    ...(validators === undefined ? {} : { validators }),
+    ...bounds,
   });
 
 /**
@@ -465,7 +562,8 @@ const rowDatePair = (
   fraField: string,
   tilField: string,
   fraLabel: string,
-  tilLabel: string
+  tilLabel: string,
+  specs: Readonly<{ fra: DateBoundsSpec; til: DateBoundsSpec }>
 ): Readonly<{
   fra: FieldDescriptor<ISODateString | undefined>;
   til: FieldDescriptor<ISODateString | undefined>;
@@ -484,8 +582,8 @@ const rowDatePair = (
     til: () => til,
     bindIds: (field) => [rowIdOf(field)],
   };
-  const fra = rowDate(collection, fraField, fraLabel, [dateOrderValidator('fra', pair)]);
-  const til = rowDate(collection, tilField, tilLabel, [dateOrderValidator('til', pair)]);
+  const fra = rowDate(collection, fraField, fraLabel, dateBounds(specs.fra, [dateOrderValidator('fra', pair)]));
+  const til = rowDate(collection, tilField, tilLabel, dateBounds(specs.til, [dateOrderValidator('til', pair)]));
   return { fra, til };
 };
 
@@ -498,7 +596,19 @@ const topLevelCollection = <TEntity extends Readonly<Record<string, unknown>>>(c
 
 // tafPerioder
 export const eoTafPerioderCollection = topLevelCollection<TafPeriodeRow>('tafPerioder');
-const tafPeriodeDates = rowDatePair('tafPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.');
+// TAF-perioderne deklarerede min = skadedato i konfigurationen, men håndhævede den kun i
+// rækkeevaluerings-motoren, som producerer et kolonne-hint uden feltadresse — teksten kunne stå i
+// "Fejl og advarsler", mens cellen aldrig blev rød (OBS-024). Grænsen bor nu på descriptoren.
+const tafPeriodeDates = rowDatePair('tafPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
+  fra: skadedatoBoundedSpec({
+    fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
+    max: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax,
+  }),
+  til: skadedatoBoundedSpec({
+    fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFTil.fallbackMin,
+    max: dateRanges_erstatningsopgoerelse.tabelTAFTil.fallbackMax,
+  }),
+});
 export const eoTafPeriodeFraField = tafPeriodeDates.fra;
 export const eoTafPeriodeTilField = tafPeriodeDates.til;
 export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | undefined>({
@@ -515,19 +625,36 @@ export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | und
 
 // ferieperioder
 export const eoFerieperioderCollection = topLevelCollection<FerieperiodeRow>('ferieperioder');
-const ferieperiodeDates = rowDatePair('ferieperioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.');
+// Ferieperioderne er erklæret `unconstrained` i konfigurationen (optjeningsår kan ligge før skaden), så de
+// får systemets ydre ramme frem for en skadedato-grænse — nok til at fange et forkert århundrede.
+const ferieperiodeDates = rowDatePair('ferieperioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
+  fra: systemrammeSpec,
+  til: systemrammeSpec,
+});
 export const eoFerieperiodeFraField = ferieperiodeDates.fra;
 export const eoFerieperiodeTilField = ferieperiodeDates.til;
 
 // fravaerPerioder (samme rækkeform som ferieperioder)
 export const eoFravaerPerioderCollection = topLevelCollection<FerieperiodeRow>('fravaerPerioder');
-const fravaerPeriodeDates = rowDatePair('fravaerPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.');
+const fravaerPeriodeDates = rowDatePair('fravaerPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
+  fra: systemrammeSpec,
+  til: systemrammeSpec,
+});
 export const eoFravaerPeriodeFraField = fravaerPeriodeDates.fra;
 export const eoFravaerPeriodeTilField = fravaerPeriodeDates.til;
 
 // svieSmertePerioder
 export const eoSvieSmertePerioderCollection = topLevelCollection<SvieSmertePeriodeRow>('svieSmertePerioder');
-const svieSmertePeriodeDates = rowDatePair('svieSmertePerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.');
+const svieSmertePeriodeDates = rowDatePair('svieSmertePerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
+  fra: skadedatoBoundedSpec({
+    fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
+    max: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMax,
+  }),
+  til: skadedatoBoundedSpec({
+    fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.fallbackMin,
+    max: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.max,
+  }),
+});
 export const eoSvieSmertePeriodeFraField = svieSmertePeriodeDates.fra;
 export const eoSvieSmertePeriodeTilField = svieSmertePeriodeDates.til;
 export const eoSvieSmertePeriodeTilstandField = defineStructuralField<Tilstand | undefined>({
@@ -555,34 +682,8 @@ export const eoOevrigeKravDatoField: FieldDescriptor<ISODateString | undefined> 
   label: 'Dato',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
-  validators: [(value, _field, view) => {
-    if (value === undefined) return undefined;
-    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
-    const skadestype = view.readCanonical(stamdataSkadestypeField.bind());
-    const minRule = computeSkadedatoMinRule({
-      skadedatoISO: skadedato,
-      erErhvervssygdom: skadestype === 'Erhvervssygdom',
-      fallbackMin: dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.fallbackMin,
-    });
-    const maxDate = dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.max;
-    if (value >= minRule.minDate && value <= maxDate) return undefined;
-    return {
-      reason: 'bounds',
-      code: 'eo.oevrigeKravPerioder.dato.bounds',
-      message: resolveDateRangeErrorMessage({
-        iso: value,
-        minDate: minRule.minDate,
-        maxDate,
-        special: {
-          minBoundKind: minRule.minBoundKind,
-          minBoundReferenceISO: minRule.minBoundReferenceISO,
-        },
-        // Samme udledning som forligsdatoen: min kommer fra Skadedato + Skadestype.
-        bounds: derivedDateBounds('Skadedato og Skadestype'),
-      }),
-      detail: { minDate: minRule.minDate, maxDate },
-    };
-  }],
+  // Var en håndskrevet kopi af skadedato-reglen; deler nu spec med de øvrige EO-datoer.
+  ...dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato)),
 });
 export const eoOevrigeKravUdgiftTilField = defineStructuralField<string>({
   id: 'eo.oevrigeKravPerioder.udgiftTil',
@@ -608,8 +709,24 @@ export const eoOevrigeKravBeloebField = defineStructuralField<AmountValue | unde
 
 // offentligeYdelserRows (ydelse/tillaeg tillader negative jf. TableAmountInput-default)
 export const eoOffentligeYdelserRowsCollection = topLevelCollection<OffentligeYdelserRow>('offentligeYdelserRows');
+// Offentlige ydelser har sin EGEN ramme: satsdækningen for sygedagpenge og ATP, ikke skadedatoen.
+// Grænserne stod hidtil kun som `minDate`/`maxDate`-props på inputkomponenten i `OffentligeYdelserTab.tsx`
+// — altså som en visuel hjælp uden et issue bag, så en dato uden for satsdækningen blev afsluttet
+// canonical uden fejl. Konfigurationen er nu den håndhævede kilde.
 const offentligeYdelserDates = rowDatePair(
-  'offentligeYdelserRows', 'fraDato', 'tilDato', 'Fra dato', 'Til dato'
+  'offentligeYdelserRows', 'fraDato', 'tilDato', 'Fra dato', 'Til dato',
+  {
+    fra: {
+      min: () => dateRanges_offentligeYdelser.fraDato.min,
+      max: () => dateRanges_offentligeYdelser.fraDato.fallbackMax,
+      origin: STATIC_DATE_BOUNDS,
+    },
+    til: {
+      min: () => dateRanges_offentligeYdelser.tilDato.fallbackMin,
+      max: () => dateRanges_offentligeYdelser.tilDato.max,
+      origin: STATIC_DATE_BOUNDS,
+    },
+  },
 );
 export const eoOffentligeYdelserFraDatoField = offentligeYdelserDates.fra;
 export const eoOffentligeYdelserTilDatoField = offentligeYdelserDates.til;
@@ -698,7 +815,7 @@ export const eoSfggReferenceperiodeFraField = defineStructuralField<ISODateStrin
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
   emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode fra', controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection, entityIdProperties: sfggEntityIdProps,
-  validators: [dateOrderValidator('fra', sfggReferenceperiodePair)],
+  ...dateBounds(systemrammeSpec, [dateOrderValidator('fra', sfggReferenceperiodePair)]),
 });
 export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateString | undefined>({
   id: 'eo.sfggAnsaettelsesforhold.sfggReferenceperiodeTil',
@@ -706,7 +823,7 @@ export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateStrin
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
   emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode til', controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection, entityIdProperties: sfggEntityIdProps,
-  validators: [dateOrderValidator('til', sfggReferenceperiodePair)],
+  ...dateBounds(systemrammeSpec, [dateOrderValidator('til', sfggReferenceperiodePair)]),
 });
 export const eoSfggReferenceperiodeFravaersdageUdenLoenField = sfggField<number | undefined>(
   'sfggReferenceperiodeFravaersdageUdenLoen', 'Fraværsdage uden løn i referenceperioden',

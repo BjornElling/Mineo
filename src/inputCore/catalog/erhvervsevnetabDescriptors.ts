@@ -13,7 +13,9 @@ import {
   derivedDateBounds,
   type DateRangeSpecialErrors,
 } from '../../utils/dateRangeErrorMessages';
-import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+import { getDayBeforeIso, maxISO } from '../../utils/isoDateHelpers';
+import { dateBounds } from './dateBoundsValidators';
+import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
   validatePercentDivisibleBy5FromValue,
   validatePercentNotZero,
@@ -48,8 +50,22 @@ const createEmptyErhvervsevnetabSection = (): unknown =>
   structuredClone(ERHVERVSEVNETAB_INITIAL_VALUES as PersistedSectionMap['erhvervsevnetab']);
 
 // Beregningsdatoens dynamiske minimum og faste maksimum er en canonical bounds-FELTVALIDATOR (§1.6).
-// Grænser og beskedtekst kommer fra `dateRanges_erhvervsevnetab` og `resolveDateRangeErrorMessage`.
-// Skadedato krydslæses via `view.readCanonical`, fordi den canonical dato bestemmer minimumsgrænsen.
+// Grænserne kommer fra `dateRanges_erhvervsevnetab`; Skadedato krydslæses via `view.readCanonical`,
+// fordi den canonical dato bestemmer minimumsgrænsen.
+/**
+ * Gulvet ER skadedatoen — bemærk at det sættes via `min`, ikke `narrowMin`. `narrowMin` clamper med
+ * `maxISO` og kan kun HÆVE gulvet; her skal en skadedato FØR 2005 tværtimod sænke det tilsvarende.
+ */
+const eetBeregningsdatoBoundsSpec: DateBoundsSpec = {
+  min: (context) => context.view.readCanonical(stamdataSkadedatoField.bind())
+    ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin,
+  max: () => dateRanges_erhvervsevnetab.beregningsdato.max,
+  special: () => ({ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }),
+  // Min ER skadedatoen (uden clamp), så en skadedato efter datadækningen gør intervallet umuligt.
+  origin: derivedDateBounds('Skadedato'),
+};
+const eetBeregningsdatoBounds = dateBounds(eetBeregningsdatoBoundsSpec);
+
 export const erhvervsevnetabBeregningsdatoField = defineStructuralField<ISODateString | undefined>({
   id: 'erhvervsevnetab.beregningsdato',
   template: { section: 'erhvervsevnetab', path: [], field: 'beregningsdato' },
@@ -59,28 +75,9 @@ export const erhvervsevnetabBeregningsdatoField = defineStructuralField<ISODateS
   label: 'Beregningsdato',
   controlKind: 'text',
   createEmptySection: createEmptyErhvervsevnetabSection,
+  ...eetBeregningsdatoBounds,
   validators: [
-    (value, _field, view) => {
-      if (value === undefined) return undefined;
-      const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
-      // Brug IKKE max med fallbackMin: en skadedato før 2005 skal sænke minimumsgrænsen tilsvarende.
-      const minDate = skadedato ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin;
-      const maxDate = dateRanges_erhvervsevnetab.beregningsdato.max;
-      if (value >= minDate && value <= maxDate) return undefined;
-      return {
-        reason: 'bounds',
-        code: 'erhvervsevnetab.beregningsdato.bounds',
-        message: resolveDateRangeErrorMessage({
-          iso: value,
-          minDate,
-          maxDate,
-          special: { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' },
-          // Min ER skadedatoen (uden clamp), så en skadedato efter datadækningen gør intervallet umuligt.
-          bounds: derivedDateBounds('Skadedato'),
-        }),
-        detail: { minDate, maxDate },
-      };
-    },
+    ...eetBeregningsdatoBounds.validators,
     (value, _field, view) => {
       if (value === undefined) return undefined;
       const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
@@ -238,37 +235,59 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
     const afgoerelsesDato = role === 'afgoerelsesDato'
       ? value
       : view.readCanonical(aslAfgoerelseAfgoerelsesDatoField.bind(rowId));
+    const skadedatoMinIsEffective = skadedato !== undefined && skadedato > fallbackMin;
+    const kapDatoMinIsEffective = afgoerelsesDato !== undefined && afgoerelsesDato > skadedatoMin;
 
-    const minDate = role === 'kapDato' ? (afgoerelsesDato ?? skadedatoMin) : skadedatoMin;
+    const minDate = role === 'kapDato'
+      ? afgoerelsesDato === undefined ? skadedatoMin : maxISO(skadedatoMin, afgoerelsesDato)
+      : skadedatoMin;
     const maxDate = role === 'afgoerelsesDato'
       ? dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max
       : role === 'virkningsDato'
         ? dateRanges_erhvervsevnetab.tabelVirkningsdato.max
         : role === 'kapDato'
           ? dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max
-          : getDayBeforeIso(afgoerelsesDato);
+          // Uden rækkens afgørelsesdato findes der ingen "dagen før"-grænse. Konfigurationens
+          // `fallbackMax` (EET-datadækningen) gælder da — den er netop erklæret til dette tilfælde.
+          // Faldt loftet i stedet ud som `undefined`, var feltet HELT uden øvre grænse, indtil
+          // afgørelsesdatoen blev udfyldt, og år 2100 kunne stå canonical.
+          : getDayBeforeIso(afgoerelsesDato)
+            ?? dateRanges_erhvervsevnetab.tabelTidlKapitaliseringsdato.fallbackMax;
     const special: DateRangeSpecialErrors = role === 'afgoerelsesDato'
       ? {
-        minBoundKind: 'skadedato',
-        minBoundReferenceISO: skadedato,
+        ...(skadedatoMinIsEffective
+          ? { minBoundKind: 'skadedato' as const, minBoundReferenceISO: skadedato }
+          : {}),
         maxBoundKind: 'eetDataMax',
         maxBoundFieldLabel: 'Afgørelsesdato',
       }
       : role === 'virkningsDato'
-        ? { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Virkningsdato' }
+        ? {
+          ...(skadedatoMinIsEffective
+            ? { minBoundKind: 'skadedato' as const, minBoundReferenceISO: skadedato }
+            : {}),
+          maxBoundKind: 'eetDataMax',
+          maxBoundFieldLabel: 'Virkningsdato',
+        }
         : role === 'kapDato'
           ? {
-            ...(afgoerelsesDato === undefined
-              ? {}
-              : { minBoundKind: 'kapDatoFoerAfgoerelsesdato' as const, minBoundReferenceISO: afgoerelsesDato }),
+            ...(kapDatoMinIsEffective
+              ? { minBoundKind: 'kapDatoFoerAfgoerelsesdato' as const, minBoundReferenceISO: afgoerelsesDato }
+              : skadedatoMinIsEffective
+                ? { minBoundKind: 'skadedato' as const, minBoundReferenceISO: skadedato }
+                : {}),
             maxBoundKind: 'eetDataMax',
             maxBoundFieldLabel: 'Kapitaliseringsdato',
           }
           : {
-            minBoundKind: 'skadedato',
-            minBoundReferenceISO: skadedato,
-            maxBoundKind: 'foerAfgoerelsesdato',
-            maxBoundReferenceISO: afgoerelsesDato,
+            // Kun når rækken HAR en afgørelsesdato, er loftet "dagen før" den. Uden den er loftet
+            // datadækningen, og beskeden skal sige netop det frem for at pege på en dato, der ikke findes.
+            ...(skadedatoMinIsEffective
+              ? { minBoundKind: 'skadedato' as const, minBoundReferenceISO: skadedato }
+              : {}),
+            ...(afgoerelsesDato === undefined
+              ? { maxBoundKind: 'dataCoverageMax' as const, maxBoundFieldLabel: 'Tidl. kap.dato' }
+              : { maxBoundKind: 'foerAfgoerelsesdato' as const, maxBoundReferenceISO: afgoerelsesDato }),
           };
     if (value >= minDate && (maxDate === undefined || value <= maxDate)) return undefined;
     return {
@@ -290,6 +309,24 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
     };
   };
 
+/**
+ * ASL-rækkens grænser som erklæring.
+ *
+ * Selve håndhævelsen bliver i `aslDateBoundsValidator`: dens fire roller fletter min/max, `special` og
+ * årsagstekst i ét udtryk, hvor både gulv og loft skifter kilde pr. rolle (og `tidlKapDato`s loft er dagen
+ * FØR rækkens afgørelsesdato). Presset ned i `DateBoundsSpec`s min/max/narrow-form ville reglen skulle
+ * skrives om, og en omskrivning her risikerer at flytte en besked uden at nogen opdager det.
+ *
+ * Erklæringen gengiver derfor den YDRE ramme, som gælder uanset rolle og rækkeindhold — den er sand og
+ * håndhævet. Værnet `dateFieldsDeclareBounds.test.ts` måler adfærd, ikke erklæringen, så feltet skal
+ * stadig faktisk afvise datoer uden for rammen for at bestå.
+ */
+const aslOuterBoundsSpec: DateBoundsSpec = {
+  min: () => dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.fallbackMin,
+  max: () => dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max,
+  origin: derivedDateBounds('Afgørelsesdato og Skadedato'),
+};
+
 const aslDate = (
   field: AslDateRole,
   label: string
@@ -298,12 +335,15 @@ const aslDate = (
     id: `erhvervsevnetab.aslAfgoerelser.${field}`,
     template: aslRowTemplate(field),
     codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
+    // ASL-validatoren fletter rolle-, række- og skadedato-afhængige grænser i én besked. En standard
+    // bounds-validator oveni ville give to konkurrerende issues med samme kode og kunne vælge den
+    // forkerte tooltip-tekst i issue-prioriteringen.
+    ...dateBounds(aslOuterBoundsSpec, [], () => aslDateBoundsValidator(field)),
     emptyValue: undefined,
     isEmpty: isUndefined,
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErhvervsevnetabSection,
-    validators: [aslDateBoundsValidator(field)],
   });
 
 const aslPct = (field: string, label: string): FieldDescriptor<number | undefined> =>

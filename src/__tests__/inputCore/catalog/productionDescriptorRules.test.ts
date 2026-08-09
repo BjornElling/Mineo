@@ -23,6 +23,10 @@ import {
   aarsloenTableCol2Field,
 } from '../../../inputCore/catalog/aarsloenDescriptors';
 import {
+  forsoergertabBeregningsdatoField,
+  forsoergertabVirkningsdatoField,
+} from '../../../inputCore/catalog/forsoergertabDescriptors';
+import {
   renteberegningBeregningsdatoField,
   rentekravBelobField,
   rentekravRenterFraField,
@@ -39,6 +43,7 @@ import {
 import {
   erhvervsevnetabBeregningsdatoField,
   aslAfgoerelseAfgoerelsesDatoField,
+  aslAfgoerelseKapDatoField,
   aslAfgoerelseEetPctField,
   erhvervsevnetabAslAfgoerelserCollectionRef,
   erhvervsevnetabEalEetPctField,
@@ -53,6 +58,7 @@ import { createEmptyAslAfgoerelseRow } from '../../../domain/erhvervsevnetab/eet
 import { createEmptyRentekravCommittedRow } from '../../../domain/renteberegning/rentekravTableModel';
 import { createCollectionRef } from '../../../inputCore/fieldAddress';
 import { toISODateString } from '../../../types/branded';
+import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
 import { varigeMenBeregningsdatoField } from '../../../inputCore/catalog/varigeMenDescriptors';
 import {
   eoEmploymentManual,
@@ -195,6 +201,52 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
     expect(evaluation.reader.read(aslAfgoerelseAfgoerelsesDatoField.bind('r1')).status).toBe('error');
     expect(evaluation.reader.read(aslAfgoerelseEetPctField.bind('r1')).status).toBe('error');
     expect(evaluation.reader.read(erhvervsevnetabEalEetPctField.bind()).status).toBe('error');
+  });
+
+  it('bruger ikke en par- eller dækningsbesked, når den ydre grænse vinder', () => {
+    let aarsloenInput = dispatch(empty(), insertRow(tableRef, createEmptyStandardLoenRow('r1')));
+    aarsloenInput = dispatch(aarsloenInput, setImmediateField(aarsloenLoenperiodeField.bind(), 'dag'));
+    aarsloenInput = dispatch(aarsloenInput, settleField(aarsloenTableCol0DagField.bind('r1'), '31-12-2100'));
+    aarsloenInput = dispatch(aarsloenInput, settleField(aarsloenTableCol1DagField.bind('r1'), '31-12-2100'));
+    const aarsloenIssue = evaluate(aarsloenInput).reader.read(aarsloenTableCol0DagField.bind('r1'));
+    expect(aarsloenIssue.status).toBe('error');
+    if (aarsloenIssue.status === 'error') {
+      expect(aarsloenIssue.issue.message).not.toBe(DATE_ORDER_ERROR_MESSAGE);
+    }
+
+    let forsoergertabInput = dispatch(empty(), settleField(forsoergertabBeregningsdatoField.bind(), '01-01-2020'));
+    forsoergertabInput = dispatch(forsoergertabInput, settleField(forsoergertabVirkningsdatoField.bind(), '02-01-2020'));
+    const forsoergertabIssue = evaluate(forsoergertabInput).reader.read(forsoergertabVirkningsdatoField.bind());
+    expect(forsoergertabIssue.status).toBe('error');
+    if (forsoergertabIssue.status === 'error') {
+      expect(forsoergertabIssue.issue.message).not.toContain('Virkningsdato kan senest være');
+    }
+  });
+
+  it('viser ikke en skadedato, der ikke findes, i ASL-beskeden', () => {
+    let input = dispatch(empty(), insertRow(
+      erhvervsevnetabAslAfgoerelserCollectionRef,
+      { ...createEmptyAslAfgoerelseRow(), id: 'r1' },
+    ));
+    input = dispatch(input, settleField(aslAfgoerelseAfgoerelsesDatoField.bind('r1'), '31-12-2004'));
+
+    const issue = evaluate(input).reader.read(aslAfgoerelseAfgoerelsesDatoField.bind('r1'));
+    expect(issue.status).toBe('error');
+    if (issue.status === 'error') expect(issue.issue.message).not.toContain('skadesdagen');
+  });
+
+  it('håndhæver den ydre minimumsgrænse, når ASL-kapitaliseringsdatoens afgørelse er tidligere', () => {
+    let input = dispatch(empty(), insertRow(
+      erhvervsevnetabAslAfgoerelserCollectionRef,
+      { ...createEmptyAslAfgoerelseRow(), id: 'r1' },
+    ));
+    input = dispatch(input, settleField(aslAfgoerelseAfgoerelsesDatoField.bind('r1'), '31-12-2004'));
+    input = dispatch(input, settleField(aslAfgoerelseKapDatoField.bind('r1'), '30-12-2004'));
+
+    expect(evaluate(input).reader.read(aslAfgoerelseKapDatoField.bind('r1'))).toMatchObject({
+      status: 'error',
+      issue: { reason: 'bounds', detail: { minDate: '2005-01-01' } },
+    });
   });
 
   it('erklærer to decimaler som grid-hovedregel og EET som eksplicit heltalsundtagelse', () => {

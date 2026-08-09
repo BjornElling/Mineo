@@ -3,8 +3,9 @@ import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
 import type { RentekravRow } from '../../schemas/formSchemas/sections/renteberegningSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
-import { resolveDateRangeErrorMessage, derivedDateBounds, STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
-import { minISO } from '../../utils/isoDateHelpers';
+import { derivedDateBounds, STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
+import { dateBounds } from './dateBoundsValidators';
+import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
   createAmountFieldCodec,
   createDateFieldCodec,
@@ -15,7 +16,6 @@ import {
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import { defineStructuralCollection, defineStructuralField, isUndefined } from '../structuralDescriptors';
-import type { FieldValidator } from '../fieldDescriptor';
 import { amountBoundsValidator, integerBoundsValidator } from './boundsValidators';
 
 // Produkt-descriptors for `renteberegning`-sektionen (§3.2): to skalarfelter og samlingen
@@ -24,36 +24,18 @@ import { amountBoundsValidator, integerBoundsValidator } from './boundsValidator
 
 const createEmptyRenteberegningSection = (): unknown => ({ rentekravRows: [] });
 
-const beregningsdatoBoundsValidator: FieldValidator<ISODateString | undefined> = (value) => {
-  if (value === undefined) return undefined;
-  const { min, max } = dateRanges_renteberegning.renteTil;
-  if (value >= min && value <= max) return undefined;
-  return {
-    reason: 'bounds',
-    code: 'renteberegning.beregningsdato.bounds',
-    message: resolveDateRangeErrorMessage({ iso: value, minDate: min, maxDate: max, bounds: STATIC_DATE_BOUNDS }),
-    detail: { minDate: min, maxDate: max },
-  };
+const beregningsdatoBoundsSpec: DateBoundsSpec = {
+  min: () => dateRanges_renteberegning.renteTil.min,
+  max: () => dateRanges_renteberegning.renteTil.max,
+  origin: STATIC_DATE_BOUNDS,
 };
 
-const renterFraBoundsValidator: FieldValidator<ISODateString | undefined> = (value, _field, view) => {
-  if (value === undefined) return undefined;
-  const minDate = dateRanges_renteberegning.renteTil.min;
-  const standardMax = dateRanges_renteberegning.renteTil.max;
-  const beregningsdato = view.readCanonical(renteberegningBeregningsdatoField.bind());
-  const maxDate = beregningsdato === undefined ? standardMax : minISO(beregningsdato, standardMax);
-  if (value >= minDate && value <= maxDate) return undefined;
-  return {
-    reason: 'bounds',
-    code: 'renteberegning.rentekravRows.renterFra.bounds',
-    message: resolveDateRangeErrorMessage({
-      iso: value,
-      minDate,
-      maxDate,
-      bounds: derivedDateBounds('Beregningsdato'),
-    }),
-    detail: { minDate, maxDate },
-  };
+const renterFraBoundsSpec: DateBoundsSpec = {
+  min: () => dateRanges_renteberegning.renteTil.min,
+  max: () => dateRanges_renteberegning.renteTil.max,
+  // Renter kan ikke løbe fra en dato efter den, der beregnes til.
+  narrowMax: (context) => context.view.readCanonical(renteberegningBeregningsdatoField.bind()),
+  origin: derivedDateBounds('Beregningsdato'),
 };
 
 export const renteberegningBeregningsdatoField = defineStructuralField<ISODateString | undefined>({
@@ -65,7 +47,7 @@ export const renteberegningBeregningsdatoField = defineStructuralField<ISODateSt
   label: 'Beregningsdato',
   controlKind: 'text',
   createEmptySection: createEmptyRenteberegningSection,
-  validators: [beregningsdatoBoundsValidator],
+  ...dateBounds(beregningsdatoBoundsSpec),
 });
 
 export const renteberegningKommentarerField = defineStructuralField<string | undefined>({
@@ -119,7 +101,7 @@ export const rentekravRenterFraField = defineStructuralField<ISODateString | und
   label: 'Renter fra',
   controlKind: 'text',
   createEmptySection: createEmptyRenteberegningSection,
-  validators: [renterFraBoundsValidator],
+  ...dateBounds(renterFraBoundsSpec),
 });
 
 /** Den synlige heltalsform er 0–99; normal tastning begrænses derfor til to cifre. */

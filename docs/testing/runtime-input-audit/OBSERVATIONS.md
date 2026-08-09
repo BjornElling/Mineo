@@ -27,9 +27,9 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-019 | Forsørgertabs blokerede dato-gate viser generisk downloadårsag | Kontraktdrift / UX | CUT-001 / FORS-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:19 Europe/Copenhagen |
 | OBS-020 | Renteberegningens dato-bounds skjules af generisk download-tooltip | Kontraktdrift / UX | CUT-001 / RENTE-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
 | OBS-021 | Årsløns dato-bounds skjules af generisk beregnings-tooltip | Kontraktdrift / UX | CUT-001 / AAR-011 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
-| OBS-022 | Erstatningsopgørelsens deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-09 02:47 Europe/Copenhagen |
-| OBS-023 | EO's AES-datofelter accepterer datoer før skadedagen | Kontraktdrift / Dataintegritet | CUT-001 / EO-008 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-09 02:56 Europe/Copenhagen |
-| OBS-024 | EO-tabellernes deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-009 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-09 02:56 Europe/Copenhagen |
+| OBS-022 | Erstatningsopgørelsens deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-09 02:47 Europe/Copenhagen |
+| OBS-023 | EO's AES-datofelter accepterer datoer før skadedagen | Kontraktdrift / Dataintegritet | CUT-001 / EO-008 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-09 02:56 Europe/Copenhagen |
+| OBS-024 | EO-tabellernes deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-009 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-09 02:56 Europe/Copenhagen |
 | OBS-025 | Beløb over binary64-grænsen reduceres stille ved indsættelse | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / RENTE-006 / Årsløn-tabel / EO-Øvrige krav / EO-Lønindkomst / EO-Svie-smerte / EO-TAF | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Bekræftet | 2026-08-09 03:36 Europe/Copenhagen |
 | OBS-026 | Fælles årsløn over binary64-grænsen udløser teknisk fejladvarsel | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / EET- og Forsørgertab-årsløn | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Bekræftet | 2026-08-09 03:53 Europe/Copenhagen |
 | OBS-027 | Tab-navigation afslutter ikke draft på Satser-feltet | UX / Tilgængelighed / Kontraktdrift | SURF-009 / CUT-003 / Satser | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 06:16 Europe/Copenhagen |
@@ -750,6 +750,13 @@ En bruger, der står i et felt og åbner den destruktive nulstilling, kan ikke n
 
 ### OBS-018 — Nedre Fødselsdato-grænse vises som generisk indtastningsfejl
 
+> **Ikke løst 2026-08-09 — anden årsag end OBS-022–024.** Undersøgt i forbindelse med datogrænse-rettelsen og
+> afgrænset derfra: `31-12-1899` når ALDRIG frem til en bounds-validator. Året ligger uden for `ISODateString`
+> selv (`isISODateString` afviser år uden for 1900..2100), så feltets codec afviser værdien som `format` —
+> og `format` viser pr. kontrakt (§4) den generiske «Fejl i indtastning». Feltets nedre grænse ER håndhævet;
+> den er blot uopnåelig, fordi det repræsenterbare domæne stopper samme sted. En rettelse skal ændre, hvordan
+> ikke-repræsenterbare årstal præsenteres, ikke datogrænserne. Bevaret som selvstændigt fund.
+
 - Status: Bekræftet
 - Kategori: Kontraktdrift / UX
 - Alvor: Mellem
@@ -789,6 +796,12 @@ Brugeren får ingen information om, hvilken dato der er tidligst tilladt, selv o
 - Screenshot/trace: snapshots `.playwright-cli/page-2026-08-09T00-19-01-244Z.yml` og tilsvarende Edge/Firefox/WebKit snapshots.
 
 ### OBS-019 — Forsørgertabs blokerede dato-gate viser generisk downloadårsag
+
+> **Ikke løst 2026-08-09 — anden årsag end OBS-022–024.** Undersøgt sammen med datogrænse-rettelsen og
+> afgrænset derfra: FELTET viser allerede den konkrete bounds-tekst, og gør det fortsat. Fundet handler om,
+> at DOWNLOADKNAPPENS tooltip reducerer enhver rød feltfejl til gate-kindens generiske tekst («Fejl i
+> indtastning»). Det er et spørgsmål om, hvad en blokeret handling skal fortælle, ikke om grænserne
+> håndhæves. Samme mønster som OBS-020 og OBS-021. Bevaret som selvstændigt fund.
 
 - Status: Bekræftet
 - Kategori: Kontraktdrift / UX
@@ -832,6 +845,10 @@ Når download er blokeret af et umuligt datointerval, kan brugeren ikke se den k
 
 ### OBS-020 — Renteberegningens dato-bounds skjules af generisk download-tooltip
 
+> **Ikke løst 2026-08-09 — anden årsag end OBS-022–024.** Samme mønster som OBS-019: Renteberegningens
+> datofelter håndhæver deres grænser og viser den konkrete tekst, også efter datogrænse-rettelsen. Fundet
+> angår download-tooltippens generiske gate-tekst. Bevaret som selvstændigt fund.
+
 - Status: Bekræftet
 - Kategori: Kontraktdrift / UX
 - Alvor: Mellem
@@ -872,6 +889,10 @@ Når brugeren går direkte til den blokerede downloadhandling, mangler den konkr
 - Screenshot/trace: Chrome snapshots `.playwright-cli/page-2026-08-09T00-26-28-370Z.yml` og `.playwright-cli/page-2026-08-09T00-26-53-820Z.yml`.
 
 ### OBS-021 — Årsløns dato-bounds skjules af generisk beregnings-tooltip
+
+> **Ikke løst 2026-08-09 — anden årsag end OBS-022–024.** Samme mønster som OBS-019 og OBS-020: Årsløns
+> datoceller håndhæver deres grænser og viser den konkrete tekst. Fundet angår beregnings-/download-
+> tooltippens generiske gate-tekst. Bevaret som selvstændigt fund.
 
 - Status: Bekræftet
 - Kategori: Kontraktdrift / UX
@@ -914,7 +935,13 @@ Ved en ugyldig periode kan brugeren se den nødvendige forklaring ved felterne, 
 
 ### OBS-022 — Erstatningsopgørelsens deklarerede datogrænser håndhæves ikke
 
-- Status: Bekræftet
+> **Løst 2026-08-09.** Roden var strukturel og ikke lokal for EO: `dateRanges.ts` deklarerede grænserne, men
+> intet bandt deklarationen til en validator, så 31 af 54 datofelter i hele programmet accepterede både år
+> 1900 og år 2100 uden ét issue. Grænserne er nu data (`dateBounds(spec)`), der leverer erklæring og validator
+> samlet, og værnet `dateFieldsDeclareBounds.test.ts` måler for hvert datofelt, at det faktisk afviser en dato
+> uden for sine egne grænser. `eoDateBoundsFieldIssues.test.ts` dækker dette scenarie konkret.
+
+- Status: Løst
 - Kategori: Kontraktdrift / Dataintegritet
 - Alvor: Høj
 - Først set: 2026-08-09 02:47 Europe/Copenhagen
@@ -957,7 +984,12 @@ Brugeren kan afslutte datoer, der ligger uden for de grænser programmet selv de
 
 ### OBS-023 — EO's AES-datofelter accepterer datoer før skadedagen
 
-- Status: Bekræftet
+> **Løst 2026-08-09.** Alle fem AES-datoer deler nu grænseformen «tidligst skadesdagen, senest <max>» med
+> Forligsdato — det ene felt, der havde en håndskrevet validator og derfor virkede. Formen er ét sted
+> (`skadedatoBoundedSpec`), så felterne ikke længere kan komme fra hinanden. En dato før skadedagen giver
+> beskeden «Datoen kan ikke være før skadesdagen (dd-mm-åååå)» på feltets egen adresse. Se OBS-022 for roden.
+
+- Status: Løst
 - Kategori: Kontraktdrift / Dataintegritet
 - Alvor: Høj
 - Først set: 2026-08-09 02:56 Europe/Copenhagen
@@ -1002,7 +1034,13 @@ Datoer før Skadedato kan afsluttes uden synlig fejl og derfor blive stående i 
 
 ### OBS-024 — EO-tabellernes deklarerede datogrænser håndhæves ikke
 
-- Status: Bekræftet
+> **Løst 2026-08-09.** `rowDatePair` påførte kun kronologivalidatoren; bounds fandtes i rækkeevaluerings-
+> motoren som et kolonne-hint uden feltadresse og kunne derfor aldrig gøre cellen rød. Grænserne ligger nu på
+> descriptoren for alle fem tabel-dato-par (svie/smerte, TAF, ferie, fravær, offentlige ydelser), så cellen
+> markeres på sin egen adresse. Offentlige ydelser bruger sin egen ramme (satsdækningen), som hidtil kun stod
+> som `minDate`/`maxDate`-props på inputkomponenten uden et issue bag. Se OBS-022 for roden.
+
+- Status: Løst
 - Kategori: Kontraktdrift / Dataintegritet
 - Alvor: Høj
 - Først set: 2026-08-09 02:56 Europe/Copenhagen

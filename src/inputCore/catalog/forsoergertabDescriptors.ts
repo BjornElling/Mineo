@@ -1,8 +1,10 @@
 import type { Koen } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_forsoergertab } from '../../config/dateRanges';
-import { maxISO, minISO } from '../../utils/isoDateHelpers';
-import { resolveDateRangeErrorMessage, derivedDateBounds, STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
+import { maxISO } from '../../utils/isoDateHelpers';
+import { derivedDateBounds, STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
+import { dateBounds } from './dateBoundsValidators';
+import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
   createChoiceFieldCodec,
   createDateFieldCodec,
@@ -30,10 +32,14 @@ const createEmptyForsoergertabSection = (): unknown => ({});
 const resolveSkadedatoMin = (skadedato: ISODateString | undefined): ISODateString =>
   skadedato ?? dateRanges_forsoergertab.virkningsdato.fallbackMin;
 
+/** Grænserne er PÅKRÆVEDE og leveres som en `dateBounds(...)`-spredning (erklæring + validator i ét). */
 const dateField = (
   field: string,
   label: string,
-  validators?: readonly FieldValidator<ISODateString | undefined>[]
+  bounds: Readonly<{
+    dateBounds: DateBoundsSpec;
+    validators: readonly FieldValidator<ISODateString | undefined>[];
+  }>
 ): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `forsoergertab.${field}`,
@@ -44,78 +50,52 @@ const dateField = (
     label,
     controlKind: 'text',
     createEmptySection: createEmptyForsoergertabSection,
-    ...(validators === undefined ? {} : { validators }),
+    ...bounds,
   });
 
 // Efterladtes fødselsdato: statisk 1900-01-01 .. i dag (dateRanges_forsoergertab.efterladteFodselsdato).
-export const forsoergertabEfterladteFodselsdatoField = dateField('efterladteFodselsdato', 'Efterladte ægtefælle/samlevers fødselsdato', [
-  (value) => {
-    if (value === undefined) return undefined;
-    const minDate = dateRanges_forsoergertab.efterladteFodselsdato.min;
-    const maxDate = dateRanges_forsoergertab.efterladteFodselsdato.max;
-    if (value >= minDate && value <= maxDate) return undefined;
-    return {
-      reason: 'bounds',
-      code: 'forsoergertab.efterladteFodselsdato.bounds',
-      // Begge grænser er konstanter fra konfigurationen; intervallet kan ikke blive umuligt.
-      message: resolveDateRangeErrorMessage({ iso: value, minDate, maxDate, bounds: STATIC_DATE_BOUNDS }),
-      detail: { minDate, maxDate },
-    };
-  },
-]);
+export const forsoergertabEfterladteFodselsdatoField = dateField(
+  'efterladteFodselsdato', 'Efterladte ægtefælle/samlevers fødselsdato',
+  dateBounds({
+    min: () => dateRanges_forsoergertab.efterladteFodselsdato.min,
+    max: () => dateRanges_forsoergertab.efterladteFodselsdato.max,
+    // Begge grænser er konstanter fra konfigurationen; intervallet kan ikke blive umuligt.
+    origin: STATIC_DATE_BOUNDS,
+  }),
+);
 
 // Beregningsdato: min = max(skadedatoMin, virkningsdato); max = forsørgertab-datadækning (dataCoverageMax).
-export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Beregningsdato', [
-  (value, _field, view) => {
-    if (value === undefined) return undefined;
-    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
-    const virkningsdato = view.readCanonical(forsoergertabVirkningsdatoField.bind());
-    const skadedatoMin = resolveSkadedatoMin(skadedato);
-    const minDate = virkningsdato ? maxISO(skadedatoMin, virkningsdato) : skadedatoMin;
-    const maxDate = dateRanges_forsoergertab.beregningsdato.max;
-    if (value >= minDate && value <= maxDate) return undefined;
-    return {
-      reason: 'bounds',
-      code: 'forsoergertab.beregningsdato.bounds',
-      message: resolveDateRangeErrorMessage({
-        iso: value,
-        minDate,
-        maxDate,
-        special: { maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' },
-        // Min udledes af Skadedato og Startdato for ASL-ydelse; en for sen af dem gør intervallet umuligt.
-        bounds: derivedDateBounds('Skadedato og Startdato for ASL-ydelse'),
-      }),
-      detail: { minDate, maxDate },
-    };
+export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Beregningsdato', dateBounds({
+  min: () => dateRanges_forsoergertab.beregningsdato.fallbackMin,
+  max: () => dateRanges_forsoergertab.beregningsdato.max,
+  // Både Skadedato og Startdato for ASL-ydelse hæver gulvet; `narrowMin` tager den højeste af dem.
+  narrowMin: (context) => {
+    const skadedatoMin = resolveSkadedatoMin(context.view.readCanonical(stamdataSkadedatoField.bind()));
+    const virkningsdato = context.view.readCanonical(forsoergertabVirkningsdatoField.bind());
+    return virkningsdato === undefined ? skadedatoMin : maxISO(skadedatoMin, virkningsdato);
   },
-]);
+  special: () => ({ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' }),
+  // Min udledes af Skadedato og Startdato for ASL-ydelse; en for sen af dem gør intervallet umuligt.
+  origin: derivedDateBounds('Skadedato og Startdato for ASL-ydelse'),
+}));
 
 // Startdato for ASL-ydelse (virkningsdato): min = skadedatoMin; max = min(dataCoverageMax, beregningsdato).
 // Legacy: `minDate={snapshot.inputBounds.skadedatoMin}` / `maxDate={snapshot.inputBounds.virkningsdatoMax}`.
-export const forsoergertabVirkningsdatoField = dateField('virkningsdato', 'Startdato for ASL-ydelse', [
-  (value, _field, view) => {
-    if (value === undefined) return undefined;
-    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
-    const beregningsdato = view.readCanonical(forsoergertabBeregningsdatoField.bind());
-    const minDate = resolveSkadedatoMin(skadedato);
-    const maxCoverage = dateRanges_forsoergertab.virkningsdato.max;
-    const maxDate = beregningsdato ? minISO(maxCoverage, beregningsdato) : maxCoverage;
-    if (value >= minDate && value <= maxDate) return undefined;
-    return {
-      reason: 'bounds',
-      code: 'forsoergertab.virkningsdato.bounds',
-      message: resolveDateRangeErrorMessage({
-        iso: value,
-        minDate,
-        maxDate,
-        special: { maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' },
-        // Min fra Skadedato, max fra Beregningsdato: en Beregningsdato før Skadedato gør intervallet umuligt.
-        bounds: derivedDateBounds('Skadedato og Beregningsdato'),
-      }),
-      detail: { minDate, maxDate },
-    };
+export const forsoergertabVirkningsdatoField = dateField('virkningsdato', 'Startdato for ASL-ydelse', dateBounds({
+  min: () => dateRanges_forsoergertab.virkningsdato.fallbackMin,
+  max: () => dateRanges_forsoergertab.virkningsdato.max,
+  narrowMin: (context) => resolveSkadedatoMin(context.view.readCanonical(stamdataSkadedatoField.bind())),
+  // Beregningsdatoen sænker loftet: ydelsen kan ikke starte efter den dato, der beregnes til.
+  narrowMax: (context) => context.view.readCanonical(forsoergertabBeregningsdatoField.bind()),
+  special: (context) => {
+    const beregningsdato = context.view.readCanonical(forsoergertabBeregningsdatoField.bind());
+    return beregningsdato !== undefined && beregningsdato < dateRanges_forsoergertab.virkningsdato.max
+      ? undefined
+      : { maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' };
   },
-]);
+  // Min fra Skadedato, max fra Beregningsdato: en Beregningsdato før Skadedato gør intervallet umuligt.
+  origin: derivedDateBounds('Skadedato og Beregningsdato'),
+}));
 
 export const forsoergertabKoenField = defineStructuralField<Koen | undefined>({
   id: 'forsoergertab.koen',

@@ -82,6 +82,20 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 - En dato uden for en aktiv domænegrænse bevares og markeres rødt. Den må ikke ændres til nærmeste gyldige dato.
 - Paste af kun ugyldige tegn giver tomt felt uden rød fejl. Separatorer før første tal giver ikke i sig selv fejl.
 
+**Hvert datofelt SKAL erklære sine grænser, og erklæringen SKAL være håndhævet.** Reglen ovenfor er ikke ny;
+det var bindingen, der manglede. `src/config/dateRanges.ts` deklarerede grænser, mens hver validator blev
+skrevet i hånden på sin egen descriptor — så et felt havde grænser præcis hvis nogen huskede dem. Målingen
+2026-08-09 fandt 31 af 54 datofelter, der accepterede både år 1900 og år 2100 uden ét issue.
+
+- Grænserne erklæres som `dateBounds(spec)` (`src/inputCore/catalog/dateBoundsValidators.ts`), der leverer
+  erklæringen og dens validator samlet, så de to ikke kan komme fra hinanden.
+- Et felt uden en skarpere domæneregel bruger systemrammen `dateRange_systemramme` (01-01-2005 til 31-12
+  året efter indeværende). Rammen fanger et forkert århundrede uden at påstå en juridisk grænse.
+- Et felt uden reelle grænser skal fravælges AKTIVT med `unconstrainedDateBounds('<begrundelse>')`.
+- Håndhæves af `src/__tests__/inputCore/dateFieldsDeclareBounds.test.ts`, som måler ADFÆRD: hvert datofelt
+  i produktionskataloget skal faktisk afvise en dato uden for sine egne erklærede grænser. En erklæring,
+  ingen validator læser, er derfor rød — ikke grøn.
+
 ### 2.2 Beløbsfelter og beløbsudtryk
 
 For de gennemgåede beløbsfelter er følgende regler bindende:

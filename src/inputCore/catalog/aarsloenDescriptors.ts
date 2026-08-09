@@ -7,10 +7,11 @@ import type {
 import type { StandardLoenTableRow } from '../../schemas/formSchemas/sections/aarsloenSchemas';
 import type { ISODateString } from '../../types/branded';
 import { getCurrentYear, dateRanges_aarsloen, MIN_YEAR } from '../../config/dateRanges';
-import { resolveDateRangeErrorMessage, derivedDateBounds } from '../../utils/dateRangeErrorMessages';
+import { derivedDateBounds } from '../../utils/dateRangeErrorMessages';
 import { parseWeekString } from '../../utils/dateUtils';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
-import { maxISO, minISO } from '../../utils/isoDateHelpers';
+import { dateBounds } from './dateBoundsValidators';
+import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
   booleanFieldCodec,
   createBooleanFieldCodec,
@@ -186,37 +187,42 @@ const rowTemplate = (field: string): FieldAddressTemplate => ({
   field,
 });
 
-const dateBoundsValidator = (
-  role: 'fra' | 'til'
-): FieldValidator<ISODateString | undefined> => (value, field, view) => {
-  if (value === undefined) return undefined;
-  const rowId = rowIdOf(field);
-  const counterpart = role === 'fra'
-    ? view.readCanonical(aarsloenTableCol1DagField.bind(rowId))
-    : view.readCanonical(aarsloenTableCol0DagField.bind(rowId));
-  const minDate = role === 'fra'
+/**
+ * Årslønstabellens datokolonner. Rækkens modpart clamper den ene ende, konfigurationen den anden.
+ *
+ * Issue-koden skifter hermed fra `aarsloen.tableData.<role>.bounds` til descriptorens standardform
+ * (`aarsloen.tableData.col0_dag.bounds`). Den gamle form var rolle-baseret og dermed ikke entydig pr.
+ * felt; ingen kode eller test bandt på den. Beskedteksten er uændret.
+ */
+const dateBoundsSpecFor = (role: 'fra' | 'til'): DateBoundsSpec => ({
+  min: () => role === 'fra'
     ? dateRanges_aarsloen.tabelAarsloenFra.min
-    : counterpart === undefined
-      ? dateRanges_aarsloen.tabelAarsloenTil.fallbackMin
-      : maxISO(counterpart, dateRanges_aarsloen.tabelAarsloenTil.fallbackMin);
-  const maxDate = role === 'fra'
-    ? counterpart === undefined
-      ? dateRanges_aarsloen.tabelAarsloenFra.fallbackMax
-      : minISO(counterpart, dateRanges_aarsloen.tabelAarsloenFra.fallbackMax)
-    : dateRanges_aarsloen.tabelAarsloenTil.max;
-  if (value >= minDate && value <= maxDate) return undefined;
-  return {
-    reason: 'bounds',
-    code: `aarsloen.tableData.${role}.bounds`,
-    message: resolveDateRangeErrorMessage({
-      iso: value,
-      minDate,
-      maxDate,
-      special: { fraTilRole: role },
-      bounds: derivedDateBounds('Dato fra og Dato til i samme række'),
-    }),
-    detail: { minDate, maxDate },
-  };
+    : dateRanges_aarsloen.tabelAarsloenTil.fallbackMin,
+  max: () => role === 'fra'
+    ? dateRanges_aarsloen.tabelAarsloenFra.fallbackMax
+    : dateRanges_aarsloen.tabelAarsloenTil.max,
+  // Til-datoen kan ikke ligge før rækkens fra-dato — og omvendt.
+  ...(role === 'til'
+    ? { narrowMin: (context: DateBoundsContext) => counterpartOf(context, 'til') }
+    : { narrowMax: (context: DateBoundsContext) => counterpartOf(context, 'fra') }),
+  special: (context) => {
+    const counterpart = counterpartOf(context, role);
+    const pairBoundIsEffective = role === 'fra'
+      ? counterpart !== undefined && counterpart < dateRanges_aarsloen.tabelAarsloenFra.fallbackMax
+      : counterpart !== undefined && counterpart > dateRanges_aarsloen.tabelAarsloenTil.fallbackMin;
+    return pairBoundIsEffective ? { fraTilRole: role } : undefined;
+  },
+  origin: derivedDateBounds('Dato fra og Dato til i samme række'),
+});
+
+const counterpartOf = (
+  context: DateBoundsContext,
+  role: 'fra' | 'til'
+): ISODateString | undefined => {
+  const rowId = rowIdOf(context.field);
+  return role === 'fra'
+    ? context.view.readCanonical(aarsloenTableCol1DagField.bind(rowId))
+    : context.view.readCanonical(aarsloenTableCol0DagField.bind(rowId));
 };
 
 const weekOrderValidator = (
@@ -253,7 +259,7 @@ const rowDate = (
     controlKind: 'text',
     createEmptySection: createEmptyAarsloenSection,
     relevance: periodIs('dag'),
-    validators: [dateBoundsValidator(role)],
+    ...dateBounds(dateBoundsSpecFor(role)),
   });
 
 const rowString = (

@@ -27,6 +27,7 @@ import {
   catalogFields,
   defineField,
   createIntegerFieldCodec,
+  createDateFieldCodec,
   type SettledInput,
   type InputMutationCommand,
   type InputHistory,
@@ -77,6 +78,22 @@ const reader = (input: SettledInput) => {
 
 const rejectedAt = <T>(input: SettledInput, field: FieldRef<T>) =>
   input.rejectedInputs[serializeFieldAddress(field.address)];
+
+describe('Feltdefinitioner', () => {
+  it('afviser datofelter uden en aktiv dateBounds-erklæring', () => {
+    expect(() => defineField({
+      id: 'renteberegning.testDatoUdenBounds',
+      template: { section: 'renteberegning', path: [], field: 'testDatoUdenBounds' },
+      codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
+      emptyValue: undefined,
+      isEmpty: (value) => value === undefined,
+      label: 'Testdato uden bounds',
+      controlKind: 'text',
+      readCanonical: () => undefined,
+      writeCanonical: (sections) => sections,
+    })).toThrow(/dateBounds/);
+  });
+});
 
 describe('SettledInput XOR-invariant (§1.5, §2.1)', () => {
   it('gyldig A → ugyldig X efterlader ikke A i current snapshot', () => {

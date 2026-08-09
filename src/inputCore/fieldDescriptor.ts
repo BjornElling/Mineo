@@ -8,6 +8,7 @@ import {
   type SectionKey,
 } from './fieldAddress';
 import type { FieldCodec } from './fieldCodec';
+import type { DateBoundsDeclaration } from './dateBoundsDeclaration';
 import type { PersistedInputSections } from './settledInput';
 
 // Inputkernen (§3.2): hvert persisteret brugerfelt har ÉN immutable beskrivelse med kun de egenskaber,
@@ -85,6 +86,17 @@ export type FieldDescriptorConfig<T> = Readonly<{
   relevance?: RelevanceRule<T>;
   /** Canonical-værdi-validatorer (bounds/rule). Format/range håndteres af codecet, ikke her. */
   validators?: readonly FieldValidator<T>[];
+  /**
+   * Datofelters erklærede grænser (§1.6a). PÅKRÆVET for hvert felt med codec-familien `date` — håndhævet af
+   * `dateFieldsDeclareBounds.test.ts` og `defineField`-runtimeværnet. Typesystemet kan ikke håndhæve det,
+   * fordi `FieldDescriptorConfig` er generisk over `T` og ikke kan se codec-familien.
+   *
+   * Erklæringen findes, fordi `dateRanges.ts` tidligere DEKLAREREDE grænser, som intet bandt til
+   * håndhævelsen: 31 af 54 datofelter accepterede år 1900 og år 2100 uden ét issue. Feltet gør bindingen
+   * inspicerbar, så et datofelt uden grænser bliver en testfejl frem for en tavs mangel. Den bevidst
+   * grænseløse form (`unconstrainedDateBounds('<begrundelse>')`) er et aktivt, dokumenteret fravalg.
+   */
+  dateBounds?: DateBoundsDeclaration;
 }>;
 
 export type FieldDescriptor<T> = FieldDescriptorConfig<T> & Readonly<{
@@ -143,6 +155,9 @@ export const defineField = <T>(config: FieldDescriptorConfig<T>): FieldDescripto
   idSchema.parse(config.id);
   labelSchema.parse(config.label);
   const template = fieldAddressTemplateSchema.parse(config.template);
+  if (config.codec.family === 'date' && config.dateBounds === undefined) {
+    throw new Error(`FieldDescriptor(${config.id}): datofelter skal have en dateBounds-erklæring`);
+  }
   for (const [name, fn] of [
     ['parseForSettle', config.codec.parseForSettle],
     ['format', config.codec.format],

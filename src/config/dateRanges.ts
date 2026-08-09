@@ -192,6 +192,31 @@ export const computeSkadedatoMinRule = (args: Readonly<{
 };
 
 // ============================================================================
+// SYSTEMETS YDRE DATORAMME
+// ============================================================================
+
+/**
+ * Den ydre ramme, ethvert datofelt uden en skarpere domæneregel valideres mod.
+ *
+ * Rammen findes, fordi «ingen erklæret grænse» i praksis betød «ingen grænse overhovedet»: 14 datofelter
+ * (sidste arbejdsdag, anciennitetsdatoer, opreguleringsdatoer, lønudviklingstabellernes datoer) havde ingen
+ * post her og dermed heller ingen validator, så år 1900 og år 2100 kunne afsluttes canonical uden ét issue.
+ *
+ * Grænserne er bevidst VIDE. De skal fange reelle slåfejl — et forkert århundrede, en tastet dato i år 1900 —
+ * uden at opfinde juridiske regler, feltet ikke har. Et felt med en kendt domæneregel skal fortsat erklære
+ * sin egen, skarpere grænse frem for at læne sig på rammen.
+ *
+ * `max` er en getter af samme grund som {@link getToday}: en session, der står åben hen over nytår, ville
+ * ellers validere mod det GAMLE årsskifte, og brugeren kunne ikke indtaste en dato, rammen tillader.
+ */
+export const dateRange_systemramme: StaticDateRange = {
+  type: 'static',
+  min: DATE_2005_01_01,
+  get max() { return datePlus1YearEnd(); },
+  notes: 'Systemets ydre datoramme: 1. januar 2005 til 31. december året efter indeværende år. Bruges af datofelter uden en skarpere domænegrænse.',
+};
+
+// ============================================================================
 // STAMDATA-SIDEN
 // ============================================================================
 

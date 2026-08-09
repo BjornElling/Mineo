@@ -27,6 +27,7 @@ import {
   type FieldDescriptor,
   type PersistedInputSections,
 } from '../../inputCore';
+import { unconstrainedDateBounds } from '../../inputCore/dateBoundsDeclaration';
 
 // Ren, framework-fri testkatalog for greenfield-inputkernen. Bygger på ægte sektionsschemas (`satser`,
 // `renteberegning`), så XOR- og eksistens-valideringen køres mod den rigtige Zod-kontrakt.
@@ -72,6 +73,7 @@ export const beregningsdatoField: FieldDescriptor<ISODateString | undefined> = d
   isEmpty: isUndefined,
   label: 'Beregningsdato',
   controlKind: 'text',
+  dateBounds: unconstrainedDateBounds('Testfeltet tester inputkernen, ikke en produktgrænse.'),
   // Bounds på en CANONICAL værdi (§1.6, anden repræsentation): datoen forbliver canonical, men et afledt
   // rødt issue skjuler den. Modstykke til format/range, der er rejected råtekst.
   validators: [(value) => value !== undefined && value < '2000-01-01'
@@ -195,6 +197,7 @@ export const renterFraField: FieldDescriptor<ISODateString | undefined> = define
   isEmpty: isUndefined,
   label: 'Renter fra',
   controlKind: 'text',
+  dateBounds: unconstrainedDateBounds('Testfeltet tester inputkernen, ikke en produktgrænse.'),
   readCanonical: (sections, address) => readRow(sections, findRowId(address))?.renterFra,
   writeCanonical: (sections, address, value) =>
     updateRow(sections, findRowId(address), (row) => ({ ...row, renterFra: value })),

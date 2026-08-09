@@ -1,4 +1,5 @@
 import { defineField, type FieldControlKind, type FieldDescriptor, type FieldDescriptorConfig, type FieldValidator, type RelevanceRule } from './fieldDescriptor';
+import type { DateBoundsDeclaration } from './dateBoundsDeclaration';
 import type { CollectionDescriptor } from './fieldCatalog';
 import type { FieldAddressTemplate } from './fieldDescriptor';
 import type { CollectionTemplate } from './fieldCatalog';
@@ -38,6 +39,8 @@ export type StructuralFieldOptions<T> = Readonly<{
   createEmptySection: () => unknown;
   relevance?: RelevanceRule<T>;
   validators?: readonly FieldValidator<T>[];
+  /** Datofelters erklærede grænser (§1.6a); `defineField` afviser datofelter uden erklæring. */
+  dateBounds?: DateBoundsDeclaration;
   /** Id-egenskaber for samlinger i templatens sti, der ikke bruger `id`. */
   entityIdProperties?: EntityIdProperties;
 }>;
@@ -58,6 +61,7 @@ export const defineStructuralField = <T>(options: StructuralFieldOptions<T>): Fi
       writeCanonicalAtAddress(sections, address, value, options.createEmptySection, resolver),
     ...(options.relevance === undefined ? {} : { relevance: options.relevance }),
     ...(options.validators === undefined ? {} : { validators: options.validators }),
+    ...(options.dateBounds === undefined ? {} : { dateBounds: options.dateBounds }),
   };
   return defineField(config);
 };

@@ -1,8 +1,9 @@
 import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_skadelidteFodselsdato, dateRanges_stamdata } from '../../config/dateRanges';
-import { maxISO, minISO } from '../../utils/isoDateHelpers';
-import { resolveDateRangeErrorMessage, derivedDateBounds } from '../../utils/dateRangeErrorMessages';
+import { derivedDateBounds } from '../../utils/dateRangeErrorMessages';
+import { dateBounds } from './dateBoundsValidators';
+import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
   createChoiceFieldCodec,
   createDateFieldCodec,
@@ -29,10 +30,14 @@ const textField = (field: string, label: string): FieldDescriptor<string | undef
     createEmptySection: createEmptyStamdataSection,
   });
 
+/** Grænserne er PÅKRÆVEDE og leveres som en `dateBounds(...)`-spredning (erklæring + validator i ét). */
 const dateField = (
   field: string,
   label: string,
-  validators?: readonly FieldValidator<ISODateString | undefined>[]
+  bounds: Readonly<{
+    dateBounds: DateBoundsSpec;
+    validators: readonly FieldValidator<ISODateString | undefined>[];
+  }>
 ): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `stamdata.${field}`,
@@ -43,38 +48,26 @@ const dateField = (
     label,
     controlKind: 'text',
     createEmptySection: createEmptyStamdataSection,
-    ...(validators === undefined ? {} : { validators }),
+    ...bounds,
   });
 
 export const stamdataJournalnrField = textField('journalnr', 'Journalnr.');
 export const stamdataAdvokatField = textField('advokat', 'Advokat');
 export const stamdataSagsbehandlerField = textField('sagsbehandler', 'Sagsbehandler');
 export const stamdataSkadelidteField = textField('skadelidte', 'Skadelidtes navn');
-export const stamdataSkadelidteFodselsdatoField = dateField('skadelidteFodselsdato', 'Fødselsdato', [
-  (value, _field, view) => {
-    const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
-    if (value === undefined) return undefined;
-    const minDate = dateRanges_skadelidteFodselsdato.min;
-    const maxDate = skadedato === undefined
-      ? dateRanges_skadelidteFodselsdato.max
-      : minISO(dateRanges_skadelidteFodselsdato.max, skadedato);
-    if (value >= minDate && value <= maxDate) return undefined;
-    return {
-      reason: 'bounds',
-      code: 'stamdata.skadelidteFodselsdato.bounds',
-      message: resolveDateRangeErrorMessage({
-        iso: value,
-        minDate,
-        maxDate,
-        special: skadedato === undefined
-          ? undefined
-          : { maxBoundKind: 'skadedato', maxBoundReferenceISO: skadedato },
-        bounds: derivedDateBounds('Fødselsdato og Skadedato'),
-      }),
-      detail: { minDate, maxDate },
-    };
+export const stamdataSkadelidteFodselsdatoField = dateField('skadelidteFodselsdato', 'Fødselsdato', dateBounds({
+  min: () => dateRanges_skadelidteFodselsdato.min,
+  max: () => dateRanges_skadelidteFodselsdato.max,
+  // Skadedatoen kan kun SÆNKE loftet: man kan ikke være født efter sin egen skade.
+  narrowMax: (context) => context.view.readCanonical(stamdataSkadedatoField.bind()),
+  special: (context) => {
+    const skadedato = context.view.readCanonical(stamdataSkadedatoField.bind());
+    return skadedato === undefined || skadedato >= dateRanges_skadelidteFodselsdato.max
+      ? undefined
+      : { maxBoundKind: 'skadedato', maxBoundReferenceISO: skadedato };
   },
-]);
+  origin: derivedDateBounds('Fødselsdato og Skadedato'),
+}));
 
 export const stamdataSkadestypeField = defineStructuralField<Skadestype | undefined>({
   id: 'stamdata.skadestype',
@@ -88,31 +81,19 @@ export const stamdataSkadestypeField = defineStructuralField<Skadestype | undefi
 });
 
 // Feltets brugervendte label er dynamisk i UI'et; feltdefinitionens label er den kanoniske betegnelse.
-export const stamdataSkadedatoField = dateField('skadedato', 'Skadedato', [
-  (value, _field, view) => {
-    const foedselsdato = view.readCanonical(stamdataSkadelidteFodselsdatoField.bind());
-    if (value === undefined) return undefined;
-    const minDate = foedselsdato === undefined
-      ? dateRanges_stamdata.skadedato.min
-      : maxISO(dateRanges_stamdata.skadedato.min, foedselsdato);
-    const maxDate = dateRanges_stamdata.skadedato.max;
-    if (value >= minDate && value <= maxDate) return undefined;
-    return {
-      reason: 'bounds',
-      code: 'stamdata.skadedato.bounds',
-      message: resolveDateRangeErrorMessage({
-        iso: value,
-        minDate,
-        maxDate,
-        special: foedselsdato === undefined
-          ? undefined
-          : { minBoundKind: 'fodselsdato', minBoundReferenceISO: foedselsdato },
-        bounds: derivedDateBounds('Fødselsdato og Skadedato'),
-      }),
-      detail: { minDate, maxDate },
-    };
+export const stamdataSkadedatoField = dateField('skadedato', 'Skadedato', dateBounds({
+  min: () => dateRanges_stamdata.skadedato.min,
+  max: () => dateRanges_stamdata.skadedato.max,
+  // Fødselsdatoen kan kun HÆVE gulvet: skaden kan ikke ligge før fødslen.
+  narrowMin: (context) => context.view.readCanonical(stamdataSkadelidteFodselsdatoField.bind()),
+  special: (context) => {
+    const foedselsdato = context.view.readCanonical(stamdataSkadelidteFodselsdatoField.bind());
+    return foedselsdato === undefined || foedselsdato <= dateRanges_stamdata.skadedato.min
+      ? undefined
+      : { minBoundKind: 'fodselsdato', minBoundReferenceISO: foedselsdato };
   },
-]);
+  origin: derivedDateBounds('Fødselsdato og Skadedato'),
+}));
 
 export const stamdataFields = catalogFields(
   stamdataJournalnrField,

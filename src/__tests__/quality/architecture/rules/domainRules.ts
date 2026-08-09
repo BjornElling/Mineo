@@ -368,6 +368,7 @@ export const CATALOG_DIR = 'src/inputCore/catalog';
  */
 export const NON_DOMAIN_CATALOG_MODULES: readonly string[] = [
   'boundsValidators',
+  'dateBoundsValidators',
   'dateOrderValidators',
   'productionCatalog',
   'fieldLocationCatalog',
