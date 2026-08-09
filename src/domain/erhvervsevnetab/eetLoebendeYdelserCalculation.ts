@@ -1,6 +1,7 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues, JaNej } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import { EET_UNDER_15_WARNING } from './eetFieldWarnings';
+import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
@@ -23,7 +24,7 @@ import {
 } from '../satser/aslAarsloensmaksimum';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
-import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
+import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { SKAERING_2011_01_01, SKAERING_2024_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
@@ -619,7 +620,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
     issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));
   }
   if (!beregningsdato) {
-    issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt'));
+    issues.push(MISSING_BEREGNINGSDATO_ISSUE);
   }
   if (!skadedato) {
     issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt'));
@@ -640,14 +641,14 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
     !skadedato ||
     !fodselsdato
   ) {
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const skadesaar = isoYear(skadedato);
   const maxAarsloenISkadesaar = resolveAslAarsloensmaksimumForAar(skadesaar);
   if (maxAarsloenISkadesaar === undefined) {
     issues.push(toIssue('aarsloen-max-missing', formatAslAarsloensmaksimumMissing(skadesaar)));
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const aslAarsloen = aslAarsloenRaw as number;
@@ -666,7 +667,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   const reguleringFoer2024 = reguleringsprocentErhvervsevnetabFoer2024[2024];
   if (before2024Skade && !Number.isFinite(reguleringFoer2024)) {
     issues.push(toIssue('reguleringssats-missing-2024', 'Reguleringssats mangler for år 2024'));
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const grundloen = before2024Skade
@@ -814,7 +815,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   }
 
   if (issues.some((issue) => issue.severity === 'error')) {
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const computation: EetLoebendeComputation = {
@@ -834,7 +835,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   };
 
   return {
-    issues: dedupeIssuesBySeverityAndMessage(issues),
+    issues: dedupeIssuesByIdentity(issues),
     computation,
   };
 };

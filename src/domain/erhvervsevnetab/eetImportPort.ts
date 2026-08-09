@@ -19,6 +19,7 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from './erhvervsevnetabInitialValues';
 import { readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjection';
 import { eetIssueSchema, type EetIssue } from './eetTypes';
 import { isAslAfgoerelseRowEmpty } from './eetAslAfgoerelser';
+import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
 import {
   computeEetLoebendeYdelserForEoImport,
   EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS,
@@ -231,11 +232,7 @@ export const buildUnavailableEetImportContext = (
       message: 'EET-oplysningerne kunne ikke indlæses sikkert til Erstatningsopgørelsen.',
     }
     : manglerEetBeregningsdato
-      ? {
-        id: 'beregningsdato-missing',
-        severity: 'error',
-        message: 'Beregningsdato er ikke udfyldt',
-      }
+      ? MISSING_BEREGNINGSDATO_ISSUE
       : {
         id: 'midlertidigt-eet-slutdato-missing',
         severity: 'error',

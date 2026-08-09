@@ -112,6 +112,33 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'field-beregningsdato')).toBe(true);
   });
 
+  it('viser manglende beregningsdato præcis én gang på Differencekrav', () => {
+    const snapshot = computeEetSnapshot({
+      values: {
+        ...createValues(),
+        beregningsdato: undefined,
+      },
+      stamdata: createStamdata(),
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: {},
+        faellesAarsloen: {},
+      },
+    });
+
+    const beregningsdatoIssues = snapshot.differencekrav.issues.filter(
+      (issue) => issue.id === 'beregningsdato-missing'
+    );
+
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+    expect(snapshot.differencekrav.computation).toBeNull();
+    expect(beregningsdatoIssues).toEqual([{
+      id: 'beregningsdato-missing',
+      severity: 'error',
+      message: 'Beregningsdato er ikke udfyldt',
+    }]);
+  });
+
   it('et blokeret panel har ALTID computation null — motoren må ikke have kørt på et maskeret input', () => {
     // INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5): kun en ready projektion må fodre motoren.
     //

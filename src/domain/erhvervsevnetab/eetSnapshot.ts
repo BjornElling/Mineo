@@ -8,7 +8,7 @@ import {
   type ForligAnsvarsgradInput,
 } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { ISODateString } from '../../types/branded';
-import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
+import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import {
   aarsloenAslMax,
   erhvervsevnetabEalMax,
@@ -75,7 +75,7 @@ type EetTabProjection<TComputation> = Readonly<{
 export type EetSnapshot = EetCanonicalOutput;
 
 const sortAndDedupeIssues = (issues: readonly EetIssue[]): readonly EetIssue[] => {
-  return dedupeIssuesBySeverityAndMessage([...issues]).sort(
+  return dedupeIssuesByIdentity([...issues]).sort(
     (a, b) => navigationSortKey(a.id) - navigationSortKey(b.id)
   );
 };

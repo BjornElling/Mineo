@@ -5,7 +5,7 @@ import { coerceToISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 import { isoYear } from '../../utils/isoDateHelpers';
-import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
+import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
@@ -339,14 +339,14 @@ export const computeEetKapitaliseringCalculation = (
   const resolvedRows = collectResolvedRows(values.aslAfgoerelser, issues, skadedato, fodselsdato);
 
   if (issues.some((issue) => issue.severity === 'error') || !Number.isFinite(aarsloen) || !skadedato || !fodselsdato) {
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const skadesaar = isoYear(skadedato);
   const maxAarsloenISkadesaar = resolveAslAarsloensmaksimumForAar(skadesaar);
   if (maxAarsloenISkadesaar === undefined) {
     issues.push(toIssue('aarsloen-max-missing', formatAslAarsloensmaksimumMissing(skadesaar)));
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const aslAarsloen = aarsloen as number;
@@ -362,7 +362,7 @@ export const computeEetKapitaliseringCalculation = (
   const needsKoen = resolvedRows.some((row) => row.kapDato !== null && row.kapDato < SKAERING_2015_03_01);
   if (needsKoen && !values.koen) {
     issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives'));
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const computations: EetKapitaliseringAfgoerelseComputation[] = [];
@@ -608,11 +608,11 @@ export const computeEetKapitaliseringCalculation = (
   }
 
   if (issues.some((issue) => issue.severity === 'error')) {
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   return {
-    issues: dedupeIssuesBySeverityAndMessage(issues),
+    issues: dedupeIssuesByIdentity(issues),
     computation: { afgoerelser: computations },
   };
 };

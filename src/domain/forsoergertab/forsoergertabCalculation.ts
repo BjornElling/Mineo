@@ -1,4 +1,4 @@
-import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
+import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../types/branded';
 import type { Koen } from '../../schemas/formSchemas';
@@ -58,7 +58,7 @@ export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalc
       aslAarsloen: input.aslAarsloen,
     });
 
-  const issues = dedupeIssuesBySeverityAndMessage([...ealResult.issues, ...aslResult.issues]);
+  const issues = dedupeIssuesByIdentity([...ealResult.issues, ...aslResult.issues]);
   if (!ealResult.computation || !aslResult.computation) {
     return {
       issues,

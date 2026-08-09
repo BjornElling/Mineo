@@ -9,9 +9,10 @@ import {
 import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { formatISOToDanish } from '../../utils/dateFormatting';
-import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
+import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import { isoYear } from '../../utils/isoDateHelpers';
 import { parseCommittedPercent } from './eetAslAfgoerelser';
+import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
 import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
@@ -582,7 +583,9 @@ export const composeEetDifferencekravCalculation = (
       allSourceIssues.push(issue);
     }
   } else if (!beregningsdato) {
-    allSourceIssues.push({ id: 'beregningsdato-missing', severity: 'error', message: 'Beregningsdato er ikke udfyldt.' });
+    // EAL-grenen rapporterer normalt samme fejl. Denne reserve holder Differencekrav forklarende og fail-closed,
+    // hvis en senere ændring gør den gren utilgængelig, før den kan levere sit issue.
+    allSourceIssues.push(MISSING_BEREGNINGSDATO_ISSUE);
   } else if (!dagFoerBeregningsdato) {
     allSourceIssues.push({ id: 'beregningsdato-invalid', severity: 'error', message: 'Beregningsdato er ugyldig.' });
   }
@@ -667,7 +670,7 @@ export const composeEetDifferencekravCalculation = (
 
   // 'no-endelig-afgoerelser' er kun relevant på fane 3 og filtreres altid væk fra fane 5.
   // F5 kan opgøre rest-EET som fradrag 3 uafhængigt af om der tidligere er foretaget kapitalisering.
-  const deduped = dedupeIssuesBySeverityAndMessage(allSourceIssues)
+  const deduped = dedupeIssuesByIdentity(allSourceIssues)
     .filter((issue) => {
       if (issue.id === 'no-endelig-afgoerelser') return false;
       if (
@@ -686,7 +689,7 @@ export const composeEetDifferencekravCalculation = (
       if (issue.id === 'asl-afgoerelser-empty') return false;
       return true;
     });
-  const dedupedWithKnownAtBeregningsdatoIssues = dedupeIssuesBySeverityAndMessage([
+  const dedupedWithKnownAtBeregningsdatoIssues = dedupeIssuesByIdentity([
     ...deduped,
     ...aslRowsAnalysis.issues,
   ]);

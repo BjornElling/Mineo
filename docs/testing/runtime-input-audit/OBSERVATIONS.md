@@ -268,7 +268,7 @@ Brugeren kan tro, at Gem eller Hent er fejlbehæftet, selv om dataflowet lykkes.
 
 ### OBS-006 — Differencekrav viser samme manglende beregningsdato to gange
 
-- Status: Bekræftet
+- Status: Løst 2026-08-09
 - Kategori: Parallel logik / UX
 - Alvor: Lav
 - Først set: 2026-08-08 16:23 Europe/Copenhagen
@@ -299,12 +299,21 @@ De andre manglende input i samme oversigt vises én gang hver. Den nærliggende 
 
 Den dobbelte fejl får brugeren til at tro, at der mangler to forskellige beregningsdatoer, selv om begge poster fører til samme input. Det gør fejloversigten mindre præcis og kan skjule andre fejl.
 
+**Løsning 2026-08-09**
+
+EET's fælles issue-samler identificerer nu en dublet på stabilt issue-id, severity og den synlige besked — med et
+afsluttende punktum som ren præsentationsvariation. Samme tekst fra forskellige issue-id'er bevares, ligesom samme
+issue-id med forskellig konkret forklaring bevares. Den fælles fejl om manglende beregningsdato kommer desuden fra ét
+EET-katalog; Differencekravs reservegren findes fortsat, så den forklarende blokering ikke kan forsvinde, hvis en
+søstergren senere ikke leverer sit eget issue.
+
 **Evidens**
 
-- Browserkontrol: `Differencekrav` viste begge tekster samtidigt; begge knapper havde navnet `Grundlæggende oplysninger`.
-- Reproducerbarhed: 2/2 sessioner (1/1 Firefox og 1/1 Chrome); øvrige browsere mangler.
-- Console/system: ingen nye console.error eller console.warn under tabskift og navigation.
-- Screenshot/trace: ikke bevaret; accessibility-snapshot er den aktuelle evidens.
+- Browserkontrol efter rettelsen: `Differencekrav` viste én `Beregningsdato er ikke udfyldt` og én knap til
+  `Grundlæggende oplysninger` i Chrome, Edge, Firefox og Safari/WebKit ved desktop-viewport.
+- Regressionstest: snapshot-testen kræver præcis ét issue på den reelle vej; utility-testen bevarer forskellige
+  felter/forklaringer og Differencekravs test dækker reservegrenen uden EAL-issue.
+- Console/system: 0 console.error og 0 console.warn under login, tabskift og navigation.
 
 ### OBS-007 — Gem giver ingen feedback ved canonical tværgående datofejl
 

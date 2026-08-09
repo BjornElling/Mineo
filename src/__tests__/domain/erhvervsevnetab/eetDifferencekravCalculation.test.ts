@@ -55,6 +55,39 @@ describe('computeEetDifferencekravCalculation', () => {
     }
   });
 
+  it('bevarer forklaringen om manglende beregningsdato, hvis EAL-grenen ikke kan levere den', () => {
+    const spy = vi.spyOn(eetEalCalculation, 'computeEetEalCalculation').mockReturnValue({
+      issues: [],
+      computation: null,
+    });
+
+    try {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: undefined,
+          aslAarsloen: asAmount(401000),
+          ealAarsloen: asAmount(401000),
+          ealEetPct: 60,
+        },
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1980-01-01'),
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.hasBlockingErrors).toBe(true);
+      expect(result.issues).toContainEqual({
+        id: 'beregningsdato-missing',
+        severity: 'error',
+        message: 'Beregningsdato er ikke udfyldt',
+      });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   describe('uden ≤ 2 år til folkepension', () => {
     it('fradrager løbende ydelser til dagen før beregningsdatoen og proformakapitaliserer rest-EET', () => {
       const result = computeEetDifferencekravCalculation({

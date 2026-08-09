@@ -1,12 +1,13 @@
 import type { ErhvervsevnetabComposedValues, AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import { EET_UNDER_15_WARNING } from './eetFieldWarnings';
+import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
 import type { YearlyRate } from '../../data/lovbestemteRates';
 import { calculateUtcAgeInWholeYears } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
+import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import { isoYear } from '../../utils/isoDateHelpers';
 import { roundByMethod } from '../../utils/rounding';
 import {
@@ -250,7 +251,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));
   }
   if (!beregningsdato) {
-    issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt'));
+    issues.push(MISSING_BEREGNINGSDATO_ISSUE);
   }
   if (!skadedato) {
     issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt'));
@@ -258,7 +259,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const hasBlockingIssues = issues.some((issue) => issue.severity === 'error');
   if (hasBlockingIssues || !aarsloen.value || !aarsloen.source || !eetPctResolution.resolved || !beregningsdato || !skadedato || !fodselsdato) {
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const skadesaar = isoYear(skadedato);
@@ -349,7 +350,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   }
 
   if (blockingIssues || !Number.isFinite(eetMaks) || alderVedSkade === null) {
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const reguleringsfaktor = ealRegulering.faktor;
@@ -405,7 +406,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   };
 
   return {
-    issues: dedupeIssuesBySeverityAndMessage(issues),
+    issues: dedupeIssuesByIdentity(issues),
     computation,
   };
 };

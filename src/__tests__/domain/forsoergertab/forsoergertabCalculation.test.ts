@@ -554,7 +554,7 @@ describe('computeForsoergertabAslYdelser — inputvalidering (fail-closed græns
       'efterladte-fodselsdato-missing',
       'tilkendt-for-periode-missing',
     ]));
-    // Ingen dubletter (dedupeIssuesBySeverityAndMessage).
+    // Ingen dubletter (dedupeIssuesByIdentity).
     const messages = result.issues.map((i) => `${i.severity}|${i.message}`);
     expect(new Set(messages).size).toBe(messages.length);
   });
@@ -607,5 +607,3 @@ describe('computeForsoergertabAslYdelser — fail-closed på manglende mellemår
     }
   });
 });
-
-

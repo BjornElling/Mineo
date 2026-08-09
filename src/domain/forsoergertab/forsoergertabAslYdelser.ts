@@ -14,7 +14,7 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { Koen } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { roundByMethod } from '../../utils/rounding';
-import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
+import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import { endOfYearIso, isoYear, startOfYearIso } from '../../utils/isoDateHelpers';
 import { SKAERING_2015_03_01 } from '../erhvervsevnetab/eetSkaeringsdatoer';
 import { isoDateToDate } from '../dates/isoDate';
@@ -282,7 +282,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     input.tilkendtForPeriodeAar === undefined ||
     aslAarsloen === undefined
   ) {
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const skadesaar = isoYear(input.skadedato);
@@ -300,7 +300,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     aarsloenMaxSkadesaar === undefined ||
     aarsloenMaxBeregningsaar === undefined
   ) {
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const virkningsaar = isoYear(input.virkningsdato);
@@ -313,7 +313,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     }
   }
   if (issues.length > 0) {
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen);
@@ -332,13 +332,13 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   const kapitaliseringsbekendtgoerelseId = resolveKapitaliseringsbekendtgoerelseId(input.skadedato, input.beregningsdato);
   if (!kapitaliseringsbekendtgoerelseId) {
     issues.push(toIssue('kapitaliseringsbekendtgoerelse-missing', 'Der kan ikke findes relevant kapitaliseringsbekendtgørelse.'));
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const tabeldata = getKapitaliseringsTabelData(kapitaliseringsbekendtgoerelseId);
   if (!tabeldata) {
     issues.push(toIssue('kapitaliseringstabeldata-missing', 'Kapitaliseringsdata mangler for den relevante bekendtgørelse.'));
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const fpTabelvalg = resolveKapitaliseringTabelvalg(
@@ -349,13 +349,13 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   );
   if (!fpTabelvalg) {
     issues.push(toIssue('folkepensionsalder-unresolved', 'Folkepensionsalder kan ikke fastlægges fra de centrale satser.'));
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const alder = calculateAgeYearsMonths(input.efterladteFodselsdato, input.beregningsdato);
   if (!alder) {
     issues.push(toIssue('forsoergertab-alder-unresolved', 'Efterladtes alder kan ikke beregnes på beregningsdatoen.'));
-    return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
   const harNaaetFolkepensionsalder = alder.totalMonths >= fpTabelvalg.folkepensionsalderMaaneder;
@@ -367,25 +367,25 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     kapitaliseringsTabel = resolveForsoergertabTabel(tabeldata, input.skadedato, usesKoen, input.koen);
     if (!kapitaliseringsTabel) {
       issues.push(toIssue('forsoergertab-tabel-missing', 'Der kan ikke findes relevant forsørgertabstabel.'));
-      return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+      return { issues: dedupeIssuesByIdentity(issues), computation: null };
     }
 
     const rows = resolveForsoergertabRows(tabeldata, kapitaliseringsTabel, usesKoen, input.koen);
     if (!rows || rows.length === 0) {
       issues.push(toIssue('forsoergertab-tabel-rows-missing', `Ingen kapitaliseringsfaktorer fundet for tabel ${kapitaliseringsTabel}.`));
-      return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+      return { issues: dedupeIssuesByIdentity(issues), computation: null };
     }
 
     const ageRow = rows.find((row) => row.alder === alder.years);
     if (!ageRow) {
       issues.push(toIssue('forsoergertab-alder-missing', `Der findes ingen aldersrække for ${alder.years} år i tabel ${kapitaliseringsTabel}.`));
-      return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+      return { issues: dedupeIssuesByIdentity(issues), computation: null };
     }
 
     kapitalfaktor = interpolateKapitalfaktor(ageRow, resterendeAar, resterendeMaaneder);
     if (kapitalfaktor === null) {
       issues.push(toIssue('forsoergertab-faktor-unresolved', 'Kapitalfaktoren kan ikke beregnes ud fra den resterende periode.'));
-      return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
+      return { issues: dedupeIssuesByIdentity(issues), computation: null };
     }
   }
 
@@ -437,5 +437,5 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     aslLobendeYdelserTotal,
   };
 
-  return { issues: dedupeIssuesBySeverityAndMessage(issues), computation };
+  return { issues: dedupeIssuesByIdentity(issues), computation };
 };
