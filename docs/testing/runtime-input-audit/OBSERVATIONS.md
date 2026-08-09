@@ -14,7 +14,7 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-006 | Differencekrav viser samme manglende beregningsdato to gange | Parallel logik / UX | SURF-004 / EET-002 | Firefox 1920×1080 | Lav | Bekræftet | 2026-08-08 16:23 Europe/Copenhagen |
 | OBS-007 | Gem giver ingen feedback ved canonical tværgående datofejl | Dataintegritet / UX | SURF-001/SURF-002 / STAM-005 | Chrome/Edge 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:56 Europe/Copenhagen |
 | OBS-008 | Ugyldig fil ved Hent behandles som teknisk runtimefejl | Kontraktdrift / UX | SURF-003 / EO-OPLYS-005 | WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 17:59 Europe/Copenhagen |
-| OBS-009 | Trecifret tillægstid trunkeres til to cifre uden range-issue | Dataintegritet / Kontraktdrift | SURF-008 / RENTE-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-08 18:47 Europe/Copenhagen |
+| OBS-009 | Trecifret tillægstid trunkeres til to cifre uden range-issue | Dataintegritet / Kontraktdrift | SURF-008 / RENTE-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bortfaldet 2026-08-09 (kontraktændring) | 2026-08-08 18:47 Europe/Copenhagen |
 | OBS-010 | Syv Indstillinger-kontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-010 / SETTINGS-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:06 Europe/Copenhagen |
 | OBS-011 | Om-sidens startside-toggle mangler tilgængeligt navn | UX / Tilgængelighed | SURF-011 / MINEO-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:15 Europe/Copenhagen |
 | OBS-012 | Fire EET-valgkontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-004 / EET-002 | Chrome/Edge/Firefox/WebKit 1920×1080; WebKit også 2560×1440 | Mellem | Bekræftet | 2026-08-08 19:23 Europe/Copenhagen |
@@ -370,9 +370,18 @@ Brugeren kan tro, at Mineo eller sagen er teknisk beskadiget, selv om Hent blot 
 
 ### OBS-009 — Trecifret tillægstid trunkeres til to cifre uden range-issue
 
-- Status: Bekræftet
+> **Bortfaldet 2026-08-09 ved kontraktændring.** Fundet målte den dagældende regel om, at paste ikke måtte
+> afkortes. Det princip er ophævet: et inputfelt skal nu have en effektiv blokering mod tegn og længde, der
+> ikke passer feltet, og paste behandles præcis som tastning med identisk afgrænsning
+> (`input-field-behavior-contract.md` §1.2 og §1.2a, `renteberegning-contract.md` §2 regel 7). At `100` bliver
+> til `10` i et tocifret felt er dermed den ØNSKEDE adfærd, ikke skjult truncering — det tredje ciffer ville
+> også være blevet afvist ved tastning. Den observerede adfærd er uændret; det er forventningsgrundlaget, der
+> er ændret. Bemærk dog, at fundets bemærkning om den åbne PDF-gate ikke længere er en fejl af samme grund:
+> `10` er en gyldig værdi.
+
+- Status: Bortfaldet (kontraktændring 2026-08-09)
 - Kategori: Dataintegritet / Kontraktdrift
-- Alvor: Høj
+- Alvor: Høj (som registreret; bortfaldet)
 - Først set: 2026-08-08 18:47 Europe/Copenhagen
 - Commit/build: `b3f5e279adf8` / `2026.08.1237.b3f5e27`
 - Dirty-state: syntetisk rentekrav med 10.000 kr., rentefra 01-01-2024 og beregningsdato 31-01-2024
@@ -394,15 +403,19 @@ I alle fire browsere blev draft og afsluttet værdi `10`; `100` blev dermed stil
 
 **Sammenligningsgrundlag**
 
-Den synlige feltdefinition angiver maksimum to cifre, men den gældende renteberegningskontrakt skelner mellem normal tastning og paste/programmatisk input. Den tilsvarende formregel kræver, at en repræsenterbar værdi ikke skjules ved truncering.
+Den synlige feltdefinition angiver maksimum to cifre. Den dagældende renteberegningskontrakt skelnede mellem normal tastning og paste/programmatisk input; den skelnen er ophævet ved kontraktændringen 2026-08-09, så paste nu afgrænses præcis som tastning.
 
 **Forventningsgrundlag**
 
-`renteberegning-contract.md` §2, regel 7 kræver, at en trecifret heltalsdraft ved paste/programmatisk input bliver canonical ved settle og får et afledt 0–99-bounds-issue, som blokerer afhængige consumers. Den observerede adfærd gør i stedet `100` til `10` uden issue.
+*Ved registreringen:* `renteberegning-contract.md` §2, regel 7 krævede, at en trecifret heltalsdraft ved paste/programmatisk input blev canonical ved settle og fik et afledt 0–99-bounds-issue.
+
+*Efter kontraktændringen 2026-08-09:* samme regel kræver det modsatte for brugerinput — feltet skal blokere det tredje ciffer, og et paste af `100` skal give samme resultat som at taste `100`. Den observerede adfærd (`10`, `aria-invalid=false`, åben gate) er dermed korrekt. Reglen om et canonical bounds-issue gælder fortsat for værdier fra `.eo`-load, som ikke er en tastning.
 
 **Hvorfor det bør undersøges**
 
-En brugerhandling, der leverer `100`, kan blive behandlet som `10` uden synlig fejl. Det kan ændre rentedato, rente og dokumentindhold, mens feltet og downloadgaten signalerer, at inputtet er gyldigt.
+*Ved registreringen:* en brugerhandling, der leverer `100`, kunne blive behandlet som `10` uden synlig fejl og påvirke rentedato, rente og dokumentindhold.
+
+*Efter kontraktændringen:* der er ikke længere noget at undersøge i den observerede tastnings-/paste-adfærd. Det udestående er alene, at load-vejen fortsat skal give et canonical bounds-issue for en trecifret værdi fra fil.
 
 **Evidens**
 
@@ -1082,7 +1095,16 @@ Tabeldatoer før Skadedato kan afsluttes og blive stående i den canonical state
 
 ### OBS-025 — Beløb over binary64-grænsen reduceres stille ved indsættelse
 
-- Status: Bekræftet
+> **Fundet består, men den rette løsning er ændret 2026-08-09.** Kontrakten har nu en langt lavere
+> beløbsgrænse end binary64: et beløbsfelt rummer højst 7 heltalscifre og 2 decimaler, altså `±9.999.999,99`
+> (`input-field-behavior-contract.md` §2.2). Det 8. heltalsciffer kommer ikke ind i feltet — hverken ved
+> tastning eller paste — så en indsættelse af `70368744177664,00` skal afkortes til de første 7 cifre efter
+> den almindelige længderegel og aldrig nå frem til `money.fromKroner` eller schemaet. Den observerede stille
+> reduktion til en ANDEN værdi er fortsat forkert: afkortning skal ske tegn for tegn ved indgangen, ikke som
+> en talmæssig reduktion efter parsing. Den eksklusive `2^46`-grænse i `amount-contract.md` §3 forbliver et
+> internt fail-closed-værn for load og beregning, men er ikke længere feltets grænse.
+
+- Status: Bekræftet (forventningsgrundlag opdateret 2026-08-09)
 - Kategori: Dataintegritet / Kontraktdrift / Runtimefejl
 - Alvor: Høj
 - Først set: 2026-08-09 03:36 Europe/Copenhagen
@@ -1143,7 +1165,9 @@ Efterfølgende blev både EO's erstatningsperiode og TAF-perioden sat til `01-02
 
 **Forventningsgrundlag**
 
-Beløb på eller over den eksklusive binary64-grænse skal afvises fail-closed efter beløbskontrakten. En værdi over grænsen må ikke blive til en anden, mindre og tilsyneladende gyldig beløbsværdi.
+*Ved registreringen:* beløb på eller over den eksklusive binary64-grænse skulle afvises fail-closed efter beløbskontrakten. En værdi over grænsen måtte ikke blive til en anden, mindre og tilsyneladende gyldig beløbsværdi.
+
+*Efter kontraktændringen 2026-08-09:* feltets grænse er `±9.999.999,99` (7 heltalscifre + 2 decimaler). Den indsatte tekst skal afkortes tegn for tegn ved indgangen, så kun de første 7 heltalscifre kommer ind i feltet; binary64-grænsen kan derfor slet ikke nås gennem tastning eller paste. Den bevarede del af fundet er, at værdien i dag reduceres talmæssigt EFTER parsing i stedet for at blive afgrænset ved indgangen — det giver en anden værdi end tegn-for-tegn-reglen ville give.
 
 **Hvorfor det bør undersøges**
 
@@ -1174,7 +1198,14 @@ En bruger kan indsætte et beløb, som stille ændres til et andet beløb, uden 
 
 ### OBS-026 — Fælles årsløn over binary64-grænsen udløser teknisk fejladvarsel
 
-- Status: Bekræftet
+> **Fundet består, men den rette løsning er ændret 2026-08-09.** Efter den nye beløbsgrænse på 7 heltalscifre
+> (`input-field-behavior-contract.md` §2.2) kan `70368744177664` slet ikke komme ind i feltet: det 8. ciffer
+> blokeres ved både tastning og paste. Den fælles årsløns eget domæneinterval `1.000`–`9.999.999` ligger
+> desuden inden for de 7 cifre, så en overskridelse af DET interval skal fortsat give rød ring og konkret
+> tooltip, ikke en `ZodError`. Kernen i fundet — at settle kaster en uncaught schemafejl i stedet for at give
+> en feltissue — er uændret gyldig.
+
+- Status: Bekræftet (forventningsgrundlag opdateret 2026-08-09)
 - Kategori: Dataintegritet / Kontraktdrift / Runtimefejl
 - Alvor: Høj
 - Først set: 2026-08-09 03:53 Europe/Copenhagen

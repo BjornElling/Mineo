@@ -30,9 +30,14 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
 5. Renderer-fejl må ikke være primær gate for ugyldigt brugerinput.
 6. En rentekravsrække med kun valgt tillægstidsenhed er semantisk tom og udgør selv tabellens ene trailing
    indtastningsrække. Enhedsvalget må ikke i sig selv skabe en ekstra synlig række.
-7. `Evt. tillægstid` har den synlige heltalsform 0–99. Normal tastning accepterer højst to cifre. Paste og
-   programmatisk input må ikke trunkeres skjult; en trecifret heltalsdraft bliver canonical ved settle og får det
-   afledte 0–99-bounds-issue, som blokerer afhængige consumers. Samme bounds-regel er autoritativ ved load.
+7. `Evt. tillægstid` har den synlige heltalsform 0–99 og rummer højst to cifre. Feltet blokerer effektivt det
+   tredje ciffer: det kommer ikke ind i feltet, hverken ved tastning eller paste. Paste behandles præcis som
+   tastning, så et paste af `100` giver samme resultat som at taste `100`, nemlig at det sidste ciffer aldrig
+   når feltet. Den afkortning er det forventede resultat af feltets længdegrænse og er ikke skjult truncering
+   af en værdi, feltet kunne have rummet. En værdi, der derimod ligger inden for de to cifre, men uden for
+   0–99, bliver canonical ved settle og får det afledte bounds-issue, som blokerer afhængige consumers. Samme
+   bounds-regel er autoritativ ved load, hvor en trecifret værdi fra fil ikke er en tastning og derfor
+   committes canonical med sit røde bounds-issue frem for at blive afkortet.
 
 ---
 

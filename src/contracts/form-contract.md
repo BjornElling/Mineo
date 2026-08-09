@@ -309,6 +309,20 @@ frem for at få fortegnet stille fjernet.
 Beløbsfelter er den ene bevidste nuance: `-` er også subtraktion i et udtryk (`5000-200`), så et ikke-negativt
 beløbsfelt tillader tegnet og blokerer kun det **unære** minus.
 
+### 8.2a Længdepolitikken ejes af feltets codec
+
+Fortegnet er ét tilfælde af den generelle regel: **et tegn, feltet ikke kan rumme, kommer ikke ind i feltet.**
+Det gælder både tegnsæt og længde — maksimalt antal tegn, heltalscifre og decimaler — og det gælder tastning og
+paste ens, jf. `input-field-behavior-contract.md` §1.2. Grænserne erklæres på codecet og læses af begge flader;
+en feltkomponent eller tabelcelle må ikke bære sin egen længdeliteral, af samme grund som den ikke må bære sin
+egen `allowNegative`-literal.
+
+Blokeringen omfatter ikke **talværdi**. Et felts min/max, kronologi og øvrige domænegrænser er rene
+validatorer/projektioner efter §7 i `mineo-field-pattern.md`: en korrekt formateret værdi inden for
+længdegrænsen bliver canonical og får sit røde bounds-issue. Beløbsudtryk er nuancen — udtrykkets enkelte
+talled længdebegrænses tegn for tegn, mens et beregnet resultat uden for feltets beløbsgrænse først kan fanges
+ved settle og derfor bliver et canonical issue.
+
 ### 8.3 Decimalpolitikken ejes af feltets codec
 
 Om et beløbs- eller procentfelt accepterer dansk decimalkomma, erklæres på codecet som

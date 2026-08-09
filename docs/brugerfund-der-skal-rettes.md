@@ -226,6 +226,13 @@ Ingen fund afventer reproduktion.
 
 ## BF-039 — Forligsprocenten blokerer ikke værdier over 100 %
 
+> **Bortfaldet 2026-08-09 ved kontraktændring.** Særreglen om indtastningsblokering over 100 % er ophævet.
+> `Forlig om ansvarsgrad → Procent` bruger nu samme hovedregel som de øvrige procentfelter: blokeringen
+> omfatter tegnsæt og længde (højst 3 heltalscifre og 2 decimaler), ikke talværdi. `101` skal derfor kunne
+> indtastes og skal give rød ring, konkret tooltip og blokere download, hvor ansvarsgraden har betydning —
+> altså præcis den adfærd, dette fund beskrev som forkert. Se `input-field-behavior-contract.md` §2.3 og §4.10.
+> Længdedelen er dog fortsat et udestående: et 4. heltalsciffer skal blokeres ved både tastning og paste.
+
 - Type: Fejl
 - Sted: Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Procent`
 - Sådan fremprovokeres det:
@@ -233,10 +240,10 @@ Ingen fund afventer reproduktion.
   2. Indtast eller indsæt `101`.
   3. Afslut feltet.
 - Det sker: Feltet tillader værdien over 100 % og viser først en range-fejl efterfølgende.
-- Det bør ske: Indtastninger over 100 % skal blokeres allerede ved tastning og paste. Paste skal fortsætte tegn for tegn, men cifre, der ville føre værdien over 100 %, skal springes over. Værdier fra 1 til og med 100 % skal accepteres; `0` skal fortsat kunne stå som en bevaret rød fejltilstand efter settle.
-- Påvirkning: En værdi, der skal være umulig at indtaste, kan aktuelt gemmes som canonical værdi med efterfølgende fejlmarkering.
-- Prioritet: Høj
-- Status: Ny
+- Det bør ske: *(bortfaldet)* Den oprindelige beskrivelse krævede blokering allerede ved tastning og paste. Efter kontraktændringen er det modsatte det rigtige: `101` skal accepteres som canonical værdi med rød ring, konkret tooltip om det tilladte interval og blokeret download. Det, der skal blokeres, er alene det 4. heltalsciffer og den 3. decimal.
+- Påvirkning: Ingen — den observerede adfærd er nu den ønskede for talværdien.
+- Prioritet: Bortfaldet (længdeblokeringen føres videre som en del af den generelle tegn-/længderegel)
+- Status: Bortfaldet 2026-08-09
 
 ## BF-040 — Forligsprocent-paste fortolker forbudte tegn
 

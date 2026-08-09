@@ -60,6 +60,14 @@ Den største positive canonical centværdi er dermed `70.368.744.177.663,99`. Gr
 strengere end `Number.MAX_SAFE_INTEGER / 100`, fordi den naive grænse lader forskellige
 centværdier kollapse til samme `number`.
 
+**Denne grænse er ikke inputfelternes grænse.** Den er et internt fail-closed-værn for
+repræsentation, load og beregning. Brugervendte beløbsfelter har en langt lavere og
+brugerforståelig grænse: højst 7 heltalscifre og 2 decimaler, altså `±9.999.999,99`, hvor
+det 8. heltalsciffer blokeres allerede ved tastning og paste
+(`input-field-behavior-contract.md` §2.2). Binary64-grænsen kan derfor ikke nås gennem
+brugerinput; den kan kun rammes af en tolerant `.eo`-load eller et beregnet mellemresultat,
+og den forbliver den autoritative fail-closed-grænse for netop de veje.
+
 ---
 
 ## 4. MoneyOre og pengealgebra

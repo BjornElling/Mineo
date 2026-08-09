@@ -3,7 +3,8 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-08
+**Senest verificeret mod kode:** 2026-08-08 (§1.2, §1.2a, §2.1–2.5 og §4.10 er ændret 2026-08-09 og beskriver
+ØNSKET adfærd, der endnu ikke er verificeret mod koden)
 
 Dette dokument er den autoritative arbejdsbeskrivelse af den ønskede brugeradfærd for de inputfelter og
 kontroller, der er gennemgået i brugerens inputkrydsforhør. Det beskriver observerbar adfærd, ikke en bestemt
@@ -12,6 +13,26 @@ feltspecifik regel fra dette dokument.
 
 De kendte afvigelser mellem denne kontrakt og den aktuelle implementering er registreret i
 `docs/brugerfund-der-skal-rettes.md`.
+
+**Ændring 2026-08-09 — tegn- og længdeblokering afløser det tidligere fulde-længde-princip.** Kontrakten
+byggede tidligere på, at enhver værdi skulle kunne indtastes og indsættes i sin fulde længde, og at en
+afkortning derfor var et datatab. Det princip er ophævet. Et felt skal nu effektivt blokere tegn og længde, der
+ikke passer feltets grænser, og paste skal behandles præcis som tastning med identisk afgrænsning. Ændringen
+har tre konkrete følger, som er indarbejdet nedenfor:
+
+1. Beløbsfelter rummer højst 7 heltalscifre og 2 decimaler (`±9.999.999,99`), jf. §2.2.
+2. Procentfelter rummer højst 3 heltalscifre og — hvor feltet tillader decimaler — 2 decimaler, jf. §2.3.
+3. Særreglen om, at `Forlig om ansvarsgrad → Procent` blokerede indtastning over 100 %, er ophævet; feltet
+   følger nu hovedreglen, jf. §4.10 og §8.
+
+Blokeringen omfatter tegnsæt og længde — ikke talværdi. Range-, kronologi- og domænegrænser bevares fortsat som
+canonical værdi med rød ring, konkret tooltip og blokeret download, præcis som hidtil.
+
+Ciffergrænserne er **lofter, ikke tilladelser**: et felt med færre cifre, et lavere maksimum, forbud mod
+negative beløb eller krav om fx delelighed med 1.000 beholder sin strengere regel uændret. Og de gælder kun
+brugerens indtastning: 0–100 % er udgangspunktet for et procentFELT, ikke en grænse for procentsatser som
+sådan. Méngraden kan være op til 120 %, og beregnede procenter — fx indeksværdier ved regulering af TAF — kan
+lovligt overstige 100 %.
 
 ## 1. Begreber og fælles livscyklus
 
@@ -28,20 +49,42 @@ De kendte afvigelser mellem denne kontrakt og den aktuelle implementering er reg
 - Manglende værdi er ikke automatisk en rød feltfejl. Om tomhed giver en samlet fejl, en gul advarsel eller ingen
   feedback, afgøres af det konkrete felt og den consumer, der kræver værdien.
 
-### 1.2 Paste – den universelle hovedregel
+### 1.2 Tegn- og længdeblokering – den universelle hovedregel
 
-Paste skal give samme resultat, som hvis brugeren havde tastet den indsatte tekst ét tegn ad gangen fra samme
-startposition:
+Et inputfelt skal have en effektiv blokering mod, at der overhovedet kommer tegn ind i feltet, som ikke stemmer
+med feltets erklærede tegnsæt og maksimale længde:
+
+1. Et tegn, som feltets tegnsæt ikke tillader, kommer ikke ind i feltet. Det gælder både tastning og paste.
+2. Et tegn ud over feltets maksimale antal tegn, cifre eller decimaler kommer ikke ind i feltet. Det gælder
+   både tastning og paste.
+3. Blokeringen er tavs: den afviste tastning giver ingen rød ring, ingen fejltekst og ingen tooltip, fordi der
+   ikke er opstået nogen fejltilstand — tegnet blev aldrig en del af værdien.
+
+Blokeringen omfatter **tegnsæt og længde**, ikke talværdi. En korrekt formateret værdi inden for feltets
+længdegrænse, der bryder en aktiv range-, kronologi- eller anden domænegrænse, blokeres derfor **ikke** ved
+indtastningen: den bevares som canonical værdi og markeres rødt med konkret tooltip efter §1.1. En méngrad på
+`121` eller en dato uden for feltets grænser skal fortsat kunne indtastes og fortsat give en synlig rød fejl.
+
+### 1.2a Paste – samme afgrænsning som tastning
+
+Paste er ikke en selvstændig indgang til feltet. Paste skal principielt behandles præcis, som hvis brugeren selv
+havde tastet den indsatte tekst ét tegn ad gangen fra samme startposition, med identisk afgrænsning af de tegn,
+der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
 
 1. Tegnene behandles i rækkefølge fra det første tegn.
 2. Et tegn, som feltet ville afvise ved almindelig tastning, springes over.
 3. Paste fortsætter med næste tegn; et ulovligt tegn må ikke afbryde resten af paste-handlingen.
-4. Præcisions-, ciffer-, tegn- og længdegrænser håndhæves undervejs. Tegn, der ikke længere kan rummes,
-   springes over, mens efterfølgende input fortsat vurderes efter samme regel.
-5. Hvis det filtrerede resultat stadig er ugyldigt ved settle, bevares resultatet som afsluttet fejltekst og
-   vises med rød ring og tooltip. Det må ikke tavst forkortes til en anden gyldig værdi.
+4. Præcisions-, ciffer-, tegn- og længdegrænser håndhæves undervejs efter §1.2. Tegn, der ikke længere kan
+   rummes, springes over, mens efterfølgende input fortsat vurderes efter samme regel.
+5. Hvis det filtrerede resultat stadig er formatmæssigt ugyldigt ved settle, bevares resultatet som afsluttet
+   fejltekst og vises med rød ring og tooltip. Det må ikke tavst ændres til en anden gyldig værdi.
 6. Hvis paste-resultatet bliver tomt, ryddes feltet uden rød fejl, medmindre feltet er en kontrol med særskilt
    no-op-regel, eksempelvis dropdowns og toggles.
+
+Et paste, der bliver afkortet, fordi den indsatte tekst er længere end feltets maksimale længde, er derfor det
+**forventede** resultat og ikke et datatab: præcis de samme tegn ville være blevet afvist ved tastning. Et
+paste må derimod aldrig ændre en værdi, der ligger inden for feltets tegn- og længdegrænser, til en anden
+værdi.
 
 Paste i et fokuseret, lukket felt erstatter den markerede eller eksisterende værdi og committer straks. Paste i
 en åben editor indsættes ved markørens position og følger den åbne editors almindelige settle ved blur/Enter.
@@ -76,7 +119,8 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 - Separatorer før det første tal ignoreres.
 - `12-2-2026` er gyldigt input og formateres først ved Enter, blur eller lukket-felt-paste til `12-02-2026`.
 - Tocifrede år fortolkes efter den fælles tocifrede-årspolitik og vises som fire cifre ved settle.
-- Tegn ud over dag-/måned-/årgrænserne springes over ved tastning og paste; paste stopper ikke.
+- Tegn ud over dag-/måned-/årgrænserne blokeres ved tastning og springes over ved paste; paste stopper ikke.
+  Et femte årsciffer eller et tredje dag-/månedsciffer kommer aldrig ind i feltet.
 - En ugyldig kalenderdato som `31-02-2026`, `00-02-2026` eller `12-00-2026` bevares som fejltekst ved settle.
 - Begge rangegrænser er inklusive, når det konkrete felt ikke angiver en anden regel.
 - En dato uden for en aktiv domænegrænse bevares og markeres rødt. Den må ikke ændres til nærmeste gyldige dato.
@@ -103,7 +147,7 @@ For de gennemgåede beløbsfelter er følgende regler bindende:
 - Negative værdier er tilladt, når feltet er angivet som negativt tilladt.
 - Et beløb må indeholde cifre, komma, matematiske operatorer (`+`, `-`, `*`, `/`, `x`) og parenteser.
 - Punktum, mellemrum, tusindtalsseparatorer og andre tegn er ikke tilladt og må hverken tastes eller indsættes.
-  Bogstaver, `kr.`, `kr` og `%` springes over ved paste.
+  Bogstaver, `kr.`, `kr` og `%` blokeres ved tastning og springes over ved paste.
 - Minus i begyndelsen er negativt fortegn; minus mellem tal er subtraktion. Plus foran første tal er ugyldigt.
 - Der må højst være to decimaler i hvert talled. Et afsluttende komma normaliseres ved settle, så `123,` bliver
   `123,00`.
@@ -113,27 +157,77 @@ For de gennemgåede beløbsfelter er følgende regler bindende:
 - Gentagne operatorer som `5000--200` og `5000+-200` giver rød formatfejl.
 - Et alene stående minus giver rød formatfejl; `0` er et gyldigt beløb.
 - Division med nul bevares som fejltekst og får konkret tooltip om division med nul.
-- For de gennemgåede ydelsesfelter er rå maksimumlængde 512 tegn og højst 20 cifre i hvert heltalsled.
-  Overskydende cifre springes over uden at forhindre senere operatorer og tal i at blive behandlet.
+
+**Beløbsgrænsen: højst 7 heltalscifre og 2 decimaler.**
+
+- Et beløbsfelt kan rumme højst 7 heltalscifre og — hvor feltet tillader decimaler — derudover 2 decimaler.
+  Største beløb er dermed `9.999.999,99`. Et negativt beløbsfelt skal have plads til den tilsvarende negative
+  værdi, altså de samme 9 cifre plus et foranstillet minustegn: mindste beløb er `-9.999.999,99`.
+- Grænsen håndhæves som en **længderegel pr. talled**: det 8. heltalsciffer og den 3. decimal i et talled
+  kommer ikke ind i feltet, hverken ved tastning eller paste. Overskydende cifre springes over ved paste uden
+  at forhindre senere operatorer og tal i at blive behandlet. Dette erstatter den tidligere regel om 20
+  heltalscifre pr. talled.
+- Et beløbsudtryk, der er syntaktisk gyldigt, men hvis **beregnede resultat** ligger uden for
+  `-9.999.999,99` til `9.999.999,99`, kan ikke blokeres tegn for tegn. Resultatet bevares derfor som canonical
+  værdi med rød ring og konkret tooltip om, at beløbet ikke kan overstige `9.999.999,99` (henholdsvis ikke kan
+  være mindre end `-9.999.999,99`), og det blokerer de beregninger og dokumenter, hvor beløbet indgår.
+- Den rå maksimumlængde for hele udtrykket er fortsat 512 tegn for de gennemgåede ydelsesfelter. Den begrænser
+  udtrykkets samlede længde og træder til ud over ciffergrænsen pr. talled.
+
+**De 7 cifre er et loft, ikke en tilladelse.** Reglen afgrænser alene det maksimale antal tegn, der kan
+indtastes i et beløbsfelt. Den siger intet om, hvilke beløb det enkelte felt må indeholde, og den løsner
+aldrig en grænse, feltet allerede har:
+
+- Et felt kan tillade **færre cifre** eller en **lavere maksimumværdi** end de 7 cifre. Den strengeste grænse
+  gælder. Et felt med maksimum `100.000` skal fortsat afvise `9.999.999`, selv om værdien ligger inden for de
+  7 cifre.
+- Et felt kan forbyde **negative beløb**. De 7 cifre giver ikke i sig selv adgang til det negative interval;
+  fortegnspolitikken ejes fortsat af feltets codec (`form-contract.md` §8.2).
+- Et felt kan stille **andre krav til værdien**, fx at beløbet skal være deleligt med 1.000, ligge over et
+  minimum eller være et heltal. Sådanne krav er uberørte af ciffergrænsen.
+- Den skarpere feltgrænse følger den almindelige arbejdsdeling: er den en **tegn- eller længdegrænse**
+  (færre cifre, ingen decimaler), blokeres den ved indtastningen efter §1.2; er den en **talværdi- eller
+  domæneregel** (maksimum, minimum, delelighed, fortegn på en beregnet værdi), bevares værdien canonical med
+  rød ring og konkret tooltip.
 
 ### 2.3 Procentfelter
 
 - Procentfelter accepterer cifre og dansk komma. Punktum, mellemrum, procenttegn og øvrige ikke-tilladte tegn
-  afvises ved tastning og springes over tegn for tegn ved paste.
-- Der må højst være to decimaler.
+  blokeres ved tastning og springes over tegn for tegn ved paste.
+- Et procentfelt kan rumme højst 3 heltalscifre og — hvor feltet tillader decimaler — derudover 2 decimaler.
+  Det 4. heltalsciffer og den 3. decimal kommer ikke ind i feltet, hverken ved tastning eller paste.
 - Et afsluttende komma færdiggøres ved settle med to decimaler; afsluttede procentværdier vises med to decimaler,
   når feltet bruger decimalrepræsentation.
 - Indledende nuller normaliseres ved settle.
-- En korrekt formateret værdi, der ligger uden for feltets aktive interval, bevares som rød fejltekst, medmindre
-  feltets særlige regler udtrykkeligt blokerer selve indtastningen.
+- En korrekt formateret værdi inden for de 3 cifre, der ligger uden for feltets aktive interval, bevares som
+  canonical værdi med rød ring og konkret tooltip om det tilladte interval, og den blokerer download og
+  beregning, hvor værdien har betydning for resultatet. Intervalgrænsen blokerer altså ikke selve
+  indtastningen: `101` i et 0–100-felt skal kunne indtastes og skal give en synlig rød fejl.
+
+**Der er ingen universel 100 %-grænse.** De 3 cifre er en længderegel for brugerens indtastning, ikke et loft
+over, hvad en procentsats kan være:
+
+- 0–100 % er **udgangspunktet** for et indtastningsfelt, ikke en regel for hele procentfamilien. Det enkelte
+  felt erklærer sit eget interval.
+- **Méngrad** er en udtrykkelig undtagelse: méngraden kan efter arbejdsskadereglerne fastsættes til op til
+  120 %, og feltets interval er derfor 1–120, ikke 0–100. Méngrad er desuden et **heltalsfelt** uden
+  decimaler, jf. `varigemen-contract.md` §5–6, som ejer reglen. `121` committes canonical med rød
+  range-markering og blokerer engine og PDF.
+- **Beregnede** procentsatser kan lovligt overstige 100 % og er slet ikke omfattet af denne regel, som kun
+  gælder inputfelter. Indeksværdier ved regulering af TAF er det typiske eksempel: en akkumuleret
+  reguleringssats kan give en procentværdi langt over 100 uden at være en fejl. En afledt eller beregnet
+  procent må derfor aldrig afvises eller markeres rødt, blot fordi den overstiger 100.
+- Et procentfelt, hvis domæne tillader værdier over 999, kan ikke rummes af de 3 cifre. Et sådant felt hører
+  ikke til procentfamilien i denne kontrakt og skal have sin egen erklærede længde.
 
 ### 2.4 Brøkfelter
 
 - Formatet er tæller/nævner. Tæller og nævner kan hver indeholde cifre og komma; der må være præcis højst én
   skråstreg.
-- Punktum, mellemrum, fortegn og øvrige tegn afvises ved tastning og springes over tegn for tegn ved paste.
+- Punktum, mellemrum, fortegn og øvrige tegn blokeres ved tastning og springes over tegn for tegn ved paste.
 - Negative tal er forbudt.
-- Hver del må have højst 10 heltalscifre og højst 10 decimaler.
+- Hver del må have højst 10 heltalscifre og højst 10 decimaler. Cifre ud over disse grænser kommer ikke ind i
+  feltet, hverken ved tastning eller paste.
 - Tæller 0 er ugyldig. Nævner 0 er ugyldig og skal have konkret division-med-nul-tooltip.
 - En brøk større end 1 bevares som rød fejltekst. Brøken reduceres ikke automatisk: `2/4` forbliver `2/4`.
 - Indledende nuller normaliseres, fx `02/04` til `2/4`.
@@ -146,7 +240,8 @@ For de gennemgåede beløbsfelter er følgende regler bindende:
   specialtegn og emoji, når feltet er angivet som frit tekstfelt.
 - Mellemrum inde i teksten bevares.
 - Indledende og afsluttende mellemrum fjernes kun ved settle i de felter, hvor det er angivet særskilt nedenfor.
-- En fastsat maksimumslængde håndhæves tegn for tegn ved både tastning og paste.
+- En fastsat maksimumslængde håndhæves tegn for tegn ved både tastning og paste: tegn ud over længden kommer
+  ikke ind i feltet. Et paste, der er længere end feltets maksimum, afkortes derfor til de tegn, der kan rummes.
 - Felter, hvor al tekst er gyldig, giver ikke rød feltfejl på grund af tekstens indhold.
 
 ### 2.6 Dropdowns
@@ -194,7 +289,7 @@ For de gennemgåede beløbsfelter er følgende regler bindende:
 - Et indledende minus er negativt fortegn; minus mellem tal er subtraktion. `x` er multiplikation på lige fod
   med `*`. Et indledende plus er ugyldigt.
 - De universelle beløbsregler om tilladte tegn, to decimaler, normalisering, udtryksfejl, 512 rå tegn og højst
-  20 heltalscifre pr. talled gælder.
+  7 heltalscifre pr. talled gælder, herunder feltgrænsen `±9.999.999,99` for et beregnet udtryksresultat.
 - En korrekt formateret, men domænemæssigt ugyldig værdi bevares og markeres rødt. En formatfejl i selve
   udtrykket vises i beløbsfeltet; manglende eller utilstrækkelige øvrige rækkeværdier vises først samlet på
   Beregning-siden.
@@ -324,9 +419,14 @@ For de gennemgåede beløbsfelter er følgende regler bindende:
 - Feltet er frivilligt. Både Procent og Brøk må være tomme uden direkte fejl.
 - Hvis begge udfyldes, markeres begge rødt med tooltip om, at kun én må udfyldes.
 - Kun ikke-negative tal med komma og højst to decimaler kan indtastes. Punktum, mellemrum, procenttegn og
-  andre tegn afvises; paste filtreres tegn for tegn.
+  andre tegn blokeres; paste filtreres tegn for tegn.
+- Feltet følger den universelle procentregel i §2.3 uden særregel: højst 3 heltalscifre og 2 decimaler kan
+  komme ind i feltet.
 - `1` til `100` inklusive er gyldigt. `0` bevares som rød fejltekst, fordi minimum er 1.
-- Værdier over 100 % blokeres allerede ved tastning og paste; de skal ikke kunne ende som canonical rangefejl.
+- Værdier over 100 % blokeres **ikke** ved indtastningen. `101` skal kunne indtastes og bevares som canonical
+  værdi med rød ring og konkret tooltip om det tilladte interval, og den blokerer download, hvor
+  ansvarsgraden har betydning for resultatet. Den tidligere særregel om indtastningsblokering ved 100 % er
+  ophævet, så feltet bruger samme hovedregel som de øvrige procentfelter.
 - Beløbs-/procentnormalisering, Delete/Backspace, Escape og settle følger de universelle regler.
 
 ### 4.11 `Forlig om ansvarsgrad → Brøk`
@@ -480,7 +580,19 @@ når adfærden implementeres:
 - Dropdowns og toggles har no-op-regler for paste, fordi de ikke skal fortolke fri tekst som valg eller Ja/Nej.
 - Sygedagpenge-hjælpefelter må stå tomme uden direkte feltfejl, men deres `Indsæt`-handling kræver en komplet,
   gyldig periode.
-- Procent over 100 % er en indtastningsblokering, mens andre korrekt formaterede intervalfejl normalt bevares som
-  canonical værdi med rød fejl. Det er en bevidst feltregel for `Forlig om ansvarsgrad → Procent`.
+- Tegn- og længdeblokeringen i §1.2 er ikke en undtagelse fra fejlmodellen, men dens forudsætning: fordi et
+  ulovligt eller overskydende tegn aldrig kommer ind i feltet, kan det heller ikke give en fejltilstand. Alle
+  intervalgrænser — også procentfelters — bevares derimod som canonical værdi med rød fejl. Der er ingen
+  felter med indtastningsblokering på talværdi; den tidligere særregel for `Forlig om ansvarsgrad → Procent`
+  er ophævet.
+- Beløbsudtryk er den ene nuance i §1.2: udtrykkets enkelte talled længdebegrænses tegn for tegn, mens et
+  beregnet resultat uden for `±9.999.999,99` først kan fanges ved settle og derfor bliver en canonical rød fejl
+  med konkret tooltip.
+- Ciffergrænserne i §2.2 og §2.3 er lofter, ikke tilladelser. De løsner aldrig en strengere feltregel — færre
+  cifre, lavere maksimum, forbud mod negative beløb, krav om delelighed — og de udtaler sig ikke om beregnede
+  værdier.
+- **Méngraden kan være op til 120 %** og er den udtrykkelige undtagelse fra procentfelternes 0–100-udgangspunkt.
+  Beregnede procentsatser, fx indeksværdier ved regulering af TAF, kan lovligt overstige 100 % og er slet ikke
+  omfattet af inputreglerne.
 - Svie-/smerte-rækkens Erhvervssygdom-regel tillader datoer før anmeldelsesdatoen; den præcise nedre grænse ejes
   af den fælles domæneafledning for skadestype og dato.
