@@ -6,33 +6,20 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 
 | ID | Kort titel | Kategori | Flade | Browser/viewport | Alvor | Status | Først set |
 |---|---|---|---|---|---|---|---|
-| OBS-001 | Formular-blink kan måles for svagt i Safari ved stor viewport | Browserforskel / UX | SURF-001 / BASELINE-001 | Safari/WebKit 2560×1440 | Mellem | Løst 2026-08-09 | 2026-08-08 15:48 Europe/Copenhagen |
 | OBS-002 | Sidemenuets toggle mangler tilgængeligt navn | UX / Andet | SURF-001 / SHELL-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Lav | Bekræftet | 2026-08-08 15:52 Europe/Copenhagen |
 | OBS-003 | Datoissue navngiver ikke den synlige kontekstuelle label | Inkonsistens / UX | SURF-002 / STAM-003 | Chrome 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:03 Europe/Copenhagen |
-| OBS-004 | Gem er visuelt aktiv ved rejected input, men blokeres først ved klik | Falsk positiv (audit) | SURF-001/SURF-002 / STAM-004 | Chrome 1920×1080 | — | Bortfaldet 2026-08-09 (falsk positiv) | 2026-08-08 16:07 Europe/Copenhagen |
 | OBS-005 | Firefox-fallback giver en synlig teknisk advarsel ved normal Gem/Hent | UX / Console-politik | SURF-001 / SHELL-003 | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:19 Europe/Copenhagen |
-| OBS-006 | Differencekrav viser samme manglende beregningsdato to gange | Parallel logik / UX | SURF-004 / EET-002 | Firefox 1920×1080 | Lav | Løst 2026-08-09 | 2026-08-08 16:23 Europe/Copenhagen |
-| OBS-007 | Gem giver ingen feedback ved canonical tværgående datofejl | Falsk positiv (audit) | SURF-001/SURF-002 / STAM-005 | Chrome/Edge 1920×1080 | — | Bortfaldet 2026-08-09 (falsk positiv) | 2026-08-08 16:56 Europe/Copenhagen |
 | OBS-008 | Ugyldig fil ved Hent behandles som teknisk runtimefejl | Kontraktdrift / UX | SURF-003 / EO-OPLYS-005 | WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 17:59 Europe/Copenhagen |
-| OBS-009 | Trecifret tillægstid trunkeres til to cifre uden range-issue | Dataintegritet / Kontraktdrift | SURF-008 / RENTE-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bortfaldet 2026-08-09 (kontraktændring); afgrænsning håndhævet 2026-08-09 | 2026-08-08 18:47 Europe/Copenhagen |
 | OBS-010 | Syv Indstillinger-kontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-010 / SETTINGS-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:06 Europe/Copenhagen |
 | OBS-011 | Om-sidens startside-toggle mangler tilgængeligt navn | UX / Tilgængelighed | SURF-011 / MINEO-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:15 Europe/Copenhagen |
 | OBS-012 | Fire EET-valgkontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-004 / EET-002 | Chrome/Edge/Firefox/WebKit 1920×1080; WebKit også 2560×1440 | Mellem | Bekræftet | 2026-08-08 19:23 Europe/Copenhagen |
-| OBS-013 | PWA-filåbning registrerer ikke launchQueue-consumer | Kontraktdrift / Dataintegritet | SURF-012 / OPEN-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-08 20:14 Europe/Copenhagen |
 | OBS-014 | Årsløn skjuler beregning og download ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-007 / AAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:28 Europe/Copenhagen |
 | OBS-015 | EET skjuler dokumentdownload ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-004 / EET-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:48 Europe/Copenhagen |
-| OBS-016 | EET lader dokumentdownload være aktiv ved fejl i en senere afgørelse | Falsk positiv (audit) | EDGE-003 / EET-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | — | Bortfaldet 2026-08-09 (falsk positiv) | 2026-08-08 21:55 Europe/Copenhagen |
 | OBS-017 | Nulstillingsdialog overtager ikke keyboardfokus | UX / Tilgængelighed / Kontraktdrift | SURF-001 / PAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 23:15 Europe/Copenhagen |
 | OBS-018 | Nedre Fødselsdato-grænse vises som generisk indtastningsfejl | Kontraktdrift / UX | CUT-001 / STAM-008 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:19 Europe/Copenhagen |
 | OBS-019 | Forsørgertabs blokerede dato-gate viser generisk downloadårsag | Kontraktdrift / UX | CUT-001 / FORS-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:19 Europe/Copenhagen |
 | OBS-020 | Renteberegningens dato-bounds skjules af generisk download-tooltip | Kontraktdrift / UX | CUT-001 / RENTE-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
 | OBS-021 | Årsløns dato-bounds skjules af generisk beregnings-tooltip | Kontraktdrift / UX | CUT-001 / AAR-011 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
-| OBS-022 | Erstatningsopgørelsens deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-09 02:47 Europe/Copenhagen |
-| OBS-023 | EO's AES-datofelter accepterer datoer før skadedagen | Kontraktdrift / Dataintegritet | CUT-001 / EO-008 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-09 02:56 Europe/Copenhagen |
-| OBS-024 | EO-tabellernes deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-009 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-09 02:56 Europe/Copenhagen |
-| OBS-025 | Beløb over binary64-grænsen reduceres stille ved indsættelse | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / RENTE-006 / Årsløn-tabel / EO-Øvrige krav / EO-Lønindkomst / EO-Svie-smerte / EO-TAF | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Løst 2026-08-09 | 2026-08-09 03:36 Europe/Copenhagen |
-| OBS-026 | Fælles årsløn over binary64-grænsen udløser teknisk fejladvarsel | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / EET- og Forsørgertab-årsløn | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Løst 2026-08-09 | 2026-08-09 03:53 Europe/Copenhagen |
-| OBS-027 | Tab-navigation afslutter ikke draft på Satser-feltet | UX / Tilgængelighed / Kontraktdrift | SURF-009 / CUT-003 / Satser | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Løst 2026-08-09 | 2026-08-09 06:16 Europe/Copenhagen |
 | OBS-028 | Firefox-teknisk advarsel blokerer Løntrin-finderens datofelt | Browserforskel / UX / Kontraktdrift | SURF-003 / PAR-003 / Løntrin-finder | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-09 06:29 Europe/Copenhagen |
 
 ### OBS-002 — Sidemenuets toggle mangler tilgængeligt navn
@@ -326,60 +313,6 @@ En bruger, der navigerer med skærmlæser eller anden semantisk tastaturstøtte,
 - Andre browsere/viewports: minimumsviewport er dækket i alle fire; WebKit er desuden dækket ved stor desktop-viewport.
 - Screenshot/trace: ikke bevaret; accessibility-snapshots og DOM-attributter fra EET-002 er den aktuelle evidens.
 
-### OBS-013 — PWA-filåbning registrerer ikke launchQueue-consumer
-
-- Status: Løst 2026-08-09
-- Kategori: Kontraktdrift / Dataintegritet
-- Alvor: Høj
-- Først set: 2026-08-08 20:14 Europe/Copenhagen
-- Commit/build: working tree ved verifikation / `2026.08.1258.a1143ae`
-- Dirty-state: kun denne rettelse, dens tests og dokumentation
-- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
-- Flade/scenarie: SURF-012 / OPEN-002
-- Relaterede fund/spørgsmål: —
-
-**Starttilstand og reproduktion**
-
-1. Start en ny browserkontekst ved 1920×1080.
-2. Injicér før appens første script et `window.launchQueue`-objekt med den standardiserede `setConsumer`-metode; dette simulerer kun browserens PWA-launch-surface og omgår ikke login eller browser-storage.
-3. Log ind gennem den synlige loginformular.
-4. Kontrollér, om Mineo registrerer en consumer, og åbn derefter `/open`.
-
-**Observeret adfærd**
-
-Mineo kaldte ikke `setConsumer` i nogen af de fire browsere (`consumerReady=false`). `/open` viste kun fallback-fladen. `Færdiggør indlæsningen` gav den forventede eksplicitte besked om, at filen ikke kunne findes, fordi ingen pending request var oprettet. En simuleret queued `.eo`-fil kunne derfor ikke afleveres til Mineos load-flow.
-
-**Sammenligningsgrundlag**
-
-`src/utils/pwaLaunchQueue.ts` eksporterer `setupPwaLaunchQueueConsumer`, og `usePwaLaunchQueue`/`OpenEo` indeholder den efterfølgende behandling. Men runtime-søgning viste kun setup-funktionen i selve utility-modulet og testfilerne; den kaldes ikke fra `src/main.tsx`, `bootstrapClientApp` eller en anden runtime-entry. `page-component-contract.md` beskriver samtidig, at app-entryen leverer PWA-opstart.
-
-**Forventningsgrundlag**
-
-`app-shell-contract.md` og `page-component-contract.md` beskriver PWA-filåbning som en del af Mineos app-shell-opstart, mens `persistence-contract.md` har særskilte krav til PWA-initieret load. `/open`-fallbacken forudsætter tilsvarende, at en pending request kan være produceret af launch queue.
-
-**Hvorfor det bør undersøges**
-
-Hvis brugeren åbner en `.eo`-fil gennem en installeret PWA eller operativsystemets filassociation, kan appen starte uden at indlæse filen. Den synlige `/open`-side kan derefter kun fortælle, at filen ikke blev fundet, selv om filåbningen var den handling, der startede appen. Det gør den primære PWA-filåbningsrejse utilgængelig og kan efterlade brugeren i tvivl om, hvorvidt sagen blev indlæst.
-
-**Evidens**
-
-- Kildereference: `src/utils/pwaLaunchQueue.ts:125-158` definerer producer-setup; `rg` fandt ingen runtime-callsite; `src/main.tsx` leverer kun service-worker-/install-prompt-setup til `bootstrapClientApp`.
-- Browserkontrol: `setConsumer` blev ikke kaldt i Chrome, Edge, Firefox eller WebKit; alle fire viste `/open`-fallback og samme eksplicitte no-file-besked; ingen console.error, console.warn eller requestfailed.
-- Reproducerbarhed: 4/4 browsere.
-- Andre browsere/viewports: Minimumsviewport dækket; større viewport mangler for dette flow.
-- Screenshot: `.playwright-cli/pwa-open-chrome.png` viser fallback-fladen efter login og retry-beskeden.
-
-**Løsning og ny verifikation (2026-08-09)**
-
-`src/main.tsx` leverer igen PWA-filåbningscallbacken til `bootstrapClientApp`: den registrerer
-launchQueue-consumeren før service-worker-opstart og hydrerer derefter en pending request før React renderes. Dermed
-kan en `.eo`-fil, som nåede den tidligere PWA-version lige før en opdatering, genoptages af den nye version. Samtidig
-kan en langsom IndexedDB-hydrering ikke længere overskrive en fil, brugeren netop har åbnet; den nyeste fil vinder.
-
-- Unit: `main.pwaLaunchQueue.test.ts` låser entrypoint-koblingen og rækkefølgen consumer → hydrering.
-- Unit: `pwaLaunchQueue.test.ts` simulerer gammelt → nyt app-modul med samme file handle, samtidig gammel/ny request og utilgængelig IndexedDB.
-- Browser: `e2e/pwa-file-open.spec.ts` var grøn i Chrome, Edge, Firefox og WebKit ved 1920×1080. Den injicerede standardfladen før første script, gennemførte synligt login og bekræftede consumer-registrering uden console.error/-warn eller page-fejl.
-
 ### OBS-014 — Årsløn skjuler beregning og download ved stamdatafejl
 
 - Status: Bekræftet
@@ -390,7 +323,7 @@ kan en langsom IndexedDB-hydrering ikke længere overskrive en fil, brugeren net
 - Dirty-state: dirty ved genoptagelse; kun auditdokumenter og midlertidige audit-artefakter ændret
 - Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
 - Flade/scenarie: SURF-007 / AAR-003
-- Relaterede fund/spørgsmål: OBS-004, OBS-007
+- Relaterede fund/spørgsmål: —
 
 **Starttilstand og reproduktion**
 
