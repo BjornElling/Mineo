@@ -6,6 +6,7 @@ Registrér kun spørgsmål, hvor korrekt brugeradfærd ikke kan udledes sikkert 
 
 | ID | Kort spørgsmål | Flade | Afventende rækker | Status | Først set |
 |---|---|---|---|---|---|
+| Q-001 | Skal Escape fra Løntrin-finder returnere fokus til Find løntrin-knappen? | SURF-003 / PAR-003 / Løntrin-finder | SURF-003 | Afventer svar | 2026-08-09 06:28 Europe/Copenhagen |
 
 ## Postskabelon
 

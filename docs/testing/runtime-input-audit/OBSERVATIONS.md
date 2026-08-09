@@ -23,6 +23,17 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-015 | EET skjuler dokumentdownload ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-004 / EET-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:48 Europe/Copenhagen |
 | OBS-016 | EET lader dokumentdownload være aktiv ved fejl i en senere afgørelse | Dataintegritet / Kontraktdrift | EDGE-003 / EET-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-08 21:55 Europe/Copenhagen |
 | OBS-017 | Nulstillingsdialog overtager ikke keyboardfokus | UX / Tilgængelighed / Kontraktdrift | SURF-001 / PAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 23:15 Europe/Copenhagen |
+| OBS-018 | Nedre Fødselsdato-grænse vises som generisk indtastningsfejl | Kontraktdrift / UX | CUT-001 / STAM-008 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:19 Europe/Copenhagen |
+| OBS-019 | Forsørgertabs blokerede dato-gate viser generisk downloadårsag | Kontraktdrift / UX | CUT-001 / FORS-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:19 Europe/Copenhagen |
+| OBS-020 | Renteberegningens dato-bounds skjules af generisk download-tooltip | Kontraktdrift / UX | CUT-001 / RENTE-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
+| OBS-021 | Årsløns dato-bounds skjules af generisk beregnings-tooltip | Kontraktdrift / UX | CUT-001 / AAR-011 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
+| OBS-022 | Erstatningsopgørelsens deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-09 02:47 Europe/Copenhagen |
+| OBS-023 | EO's AES-datofelter accepterer datoer før skadedagen | Kontraktdrift / Dataintegritet | CUT-001 / EO-008 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-09 02:56 Europe/Copenhagen |
+| OBS-024 | EO-tabellernes deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-009 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-09 02:56 Europe/Copenhagen |
+| OBS-025 | Beløb over binary64-grænsen reduceres stille ved indsættelse | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / RENTE-006 / Årsløn-tabel / EO-Øvrige krav / EO-Lønindkomst / EO-Svie-smerte / EO-TAF | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Bekræftet | 2026-08-09 03:36 Europe/Copenhagen |
+| OBS-026 | Fælles årsløn over binary64-grænsen udløser teknisk fejladvarsel | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / EET- og Forsørgertab-årsløn | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Bekræftet | 2026-08-09 03:53 Europe/Copenhagen |
+| OBS-027 | Tab-navigation afslutter ikke draft på Satser-feltet | UX / Tilgængelighed / Kontraktdrift | SURF-009 / CUT-003 / Satser | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 06:16 Europe/Copenhagen |
+| OBS-028 | Firefox-teknisk advarsel blokerer Løntrin-finderens datofelt | Browserforskel / UX / Kontraktdrift | SURF-003 / PAR-003 / Løntrin-finder | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-09 06:29 Europe/Copenhagen |
 
 ### OBS-001 — Formular-blink kan måles for svagt i Safari ved stor viewport
 
@@ -736,6 +747,525 @@ En bruger, der står i et felt og åbner den destruktive nulstilling, kan ikke n
 - Browserkontrol: Chrome, Edge, Firefox og WebKit viste `dialog=true` med aktivt underliggende `INPUT`; efter `Tab` var fokus fortsat i et underliggende input, dialogknapperne var ikke aktive; efter `Escape` var dialogen fortsat synlig.
 - Reproducerbarhed: 4/4 browsere ved 1920×1080.
 - Screenshot: `.playwright-cli/par-003-chrome-reset-dialog.png` viser dialogen med det fokuserede underliggende datofelt bag overlayet.
+
+### OBS-018 — Nedre Fødselsdato-grænse vises som generisk indtastningsfejl
+
+- Status: Bekræftet
+- Kategori: Kontraktdrift / UX
+- Alvor: Mellem
+- Først set: 2026-08-09 02:19 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
+- Flade/scenarie: CUT-001 / STAM-008
+- Relaterede fund/spørgsmål: —
+
+**Starttilstand og reproduktion**
+
+1. Log ind gennem den synlige loginformular og åbn Stamdata.
+2. Sæt Fødselsdato til den repræsenterbare værdi `31-12-1899`, som ligger én dag før den deklarerede nedre grænse `01-01-1900`.
+3. Afslut feltet med Tab og hold markøren over feltet.
+
+**Observeret adfærd**
+
+Feltet beholder den indtastede tekst og markeres rødt i alle fire browsere, men tooltippen og den visuelt skjulte fejltekst er den generiske `Fejl i indtastning` / `Der er udfyldt en ugyldig værdi i feltet 'Fødselsdato'`. Den konkrete nedre grænse `01-01-1900` vises ikke.
+
+**Sammenligningsgrundlag**
+
+Stamdata-kronologifejl og øvre Skadedato-bounds viser konkrete modgående datoer eller `Datoen er efter dags dato (09-08-2026)`. Varige mén og Forsørgertab viser tilsvarende konkrete datointervaller for bounds-fejl.
+
+**Forventningsgrundlag**
+
+`date-contract.md` deklarerer Fødselsdatoens interval `01-01-1900` til dags dato. `error-contract.md` §4 kræver, at bounds-/range-tooltips viser den fulde konkrete besked, og `input-field-behavior-contract.md` §2.1 kræver konkret feedback for datogrænser.
+
+**Hvorfor det bør undersøges**
+
+Brugeren får ingen information om, hvilken dato der er tidligst tilladt, selv om fejlen skyldes en kendt grænse og kan rettes direkte ud fra den manglende information.
+
+**Evidens**
+
+- Browserkontrol: alle fire browsere viste `31-12-1899`, `aria-invalid=true` og generisk tooltip ved 1920×1080.
+- Reproducerbarhed: 4/4 browsere; ingen produkt-console.error, console.warn eller requestfailed.
+- Screenshot/trace: snapshots `.playwright-cli/page-2026-08-09T00-19-01-244Z.yml` og tilsvarende Edge/Firefox/WebKit snapshots.
+
+### OBS-019 — Forsørgertabs blokerede dato-gate viser generisk downloadårsag
+
+- Status: Bekræftet
+- Kategori: Kontraktdrift / UX
+- Alvor: Mellem
+- Først set: 2026-08-09 02:19 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080; alle fire kontrolleret ved 2560×1440 i gyldig kontrast
+- Flade/scenarie: CUT-001 / FORS-007
+- Relaterede fund/spørgsmål: —
+
+**Starttilstand og reproduktion**
+
+1. Brug Stamdata med Skadedato `01-01-2020`.
+2. Åbn Forsørgertab og sæt Startdato for ASL-ydelse til `01-01-2020`.
+3. Sæt Beregningsdato til `31-12-2019`, så der ikke findes en gyldig dato mellem den afledte nedre og øvre grænse.
+4. Hold markøren over Beregningsdato og den deaktiverede downloadkontrol.
+
+**Observeret adfærd**
+
+Beregningsdato viser den konkrete bounds-tekst `Dato skal være mellem 01-01-2020 og 31-12-2026`. Startdato-feltet viser korrekt, at der ingen gyldig dato findes, og navngiver `Skadedato og Beregningsdato`. Den deaktiverede `Download specifikation` viser derimod kun den generiske årsag `Fejl i indtastning`.
+
+**Sammenligningsgrundlag**
+
+Varige mén viser den konkrete bounds-tekst direkte på den deaktiverede dokumentknap ved ugyldig Beregningsdato. Forsørgertabs egen Beregningsdato viser også den fulde konkrete tekst, men downloadkontrollen reducerer den til generisk tekst.
+
+**Forventningsgrundlag**
+
+`error-contract.md` §4 og §5 kræver, at dokumentrelevante bounds-/rule-issues bevarer den konkrete besked i download-tooltippen, mens `document-output-contract.md` §A2 kræver en auditerbar gateårsag.
+
+**Hvorfor det bør undersøges**
+
+Når download er blokeret af et umuligt datointerval, kan brugeren ikke se den konkrete årsag fra den handling, der er blokeret. Det gør den ellers korrekte feltfeedback sværere at finde og skaber forskel mellem domænernes gates.
+
+**Evidens**
+
+- Browserkontrol: Chrome, Edge, Firefox og WebKit viste samme kombination af konkrete feltissues og generisk disabled downloadkontrol ved 1920×1080.
+- Reproducerbarhed: 4/4 browsere; ingen produkt-console.error, console.warn eller requestfailed.
+- Viewportkontrast: alle fire viste samme gyldige max-bound-kontrast ved 2560×1440 uden layoutbrud.
+- Screenshot/trace: Chrome snapshot `.playwright-cli/page-2026-08-09T00-17-49-242Z.yml` viser begge konkrete felttekster og den generiske `Fejl i indtastning` på downloadkontrollen.
+
+### OBS-020 — Renteberegningens dato-bounds skjules af generisk download-tooltip
+
+- Status: Bekræftet
+- Kategori: Kontraktdrift / UX
+- Alvor: Mellem
+- Først set: 2026-08-09 02:32 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
+- Flade/scenarie: CUT-001 / RENTE-005
+- Relaterede fund/spørgsmål: OBS-019
+
+**Starttilstand og reproduktion**
+
+1. Log ind gennem den synlige loginformular og åbn Renteberegning.
+2. Sæt en række til `1.000,00 kr.` og `Renter fra=31-12-2031`.
+3. Sæt Beregningsdato til `01-01-2032`, én dag efter den deklarerede øvre grænse `31-12-2031`.
+4. Hold markøren over den deaktiverede `Download samlet oversigt`.
+
+**Observeret adfærd**
+
+Beregningsdato viser den konkrete bounds-tekst `Dato skal være mellem 01-01-2005 og 31-12-2031`. Den deaktiverede downloadkontrol viser kun `Indtastning mangler`. Samme generic gate-tekst blev observeret, når en gyldig Beregningsdato `01-01-2020` blev kombineret med en ugyldig `Renter fra=02-01-2020`.
+
+**Sammenligningsgrundlag**
+
+Renter fra-feltet viser selv den konkrete dynamiske grænse `Dato skal være mellem 01-01-2005 og 01-01-2020`, mens den samlede downloadkontrol ikke viderefører bounds-oplysningen. Den statiske gate-kode klassificerer dato-/række-fejlen som `invalid-input`, og Renteberegning-fladen anvender desuden den universelle download-tooltip.
+
+**Forventningsgrundlag**
+
+`error-contract.md` §5 kræver, at bounds-/rule-issues bevarer den fulde konkrete besked i download-tooltippen. `document-output-contract.md` §A5 fastslår, at den deaktiverede knaps tooltip er gate-blokeringens eneste brugerkanal og skal bære årsagen.
+
+**Hvorfor det bør undersøges**
+
+Når brugeren går direkte til den blokerede downloadhandling, mangler den konkrete øvre eller dynamiske grænse, selv om den allerede er kendt og vist på feltet. Det gør den samme datofejl mindre handlingsanvisende end feltet alene.
+
+**Evidens**
+
+- Browserkontrol: Chrome, Edge, Firefox og WebKit viste samme accept af `01-01-2005`/`31-12-2031` og samme afvisning/gate ved de ugyldige datoer.
+- Reproducerbarhed: 4/4 browsere; ingen produkt-console.error, console.warn eller requestfailed.
+- Screenshot/trace: Chrome snapshots `.playwright-cli/page-2026-08-09T00-26-28-370Z.yml` og `.playwright-cli/page-2026-08-09T00-26-53-820Z.yml`.
+
+### OBS-021 — Årsløns dato-bounds skjules af generisk beregnings-tooltip
+
+- Status: Bekræftet
+- Kategori: Kontraktdrift / UX
+- Alvor: Mellem
+- Først set: 2026-08-09 02:32 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
+- Flade/scenarie: CUT-001 / AAR-011
+- Relaterede fund/spørgsmål: OBS-019
+
+**Starttilstand og reproduktion**
+
+1. Log ind gennem den synlige loginformular, åbn Årslønsberegning og vælg `Dato`.
+2. Opret en række med `Dato fra=31-12-2026`, `Dato til=31-12-2026` og `30.000,00 kr.`.
+3. Sæt `Dato til` til `01-01-2027`, én dag efter den deklarerede øvre grænse.
+4. Hold markøren over den deaktiverede beregnings-/downloadkontrol.
+
+**Observeret adfærd**
+
+`Dato til` viser den konkrete bounds-tekst `Dato skal være mellem 31-12-2026 og 31-12-2026`. Ved omvendt kronologi (`Dato fra=02-01-2020`, `Dato til=01-01-2020`) viser begge felter den konkrete tekst `Til-dato skal være efter fra-dato`. Den deaktiverede beregnings-/downloadkontrol viser i begge tilfælde kun `Fejl i indtastning`.
+
+**Sammenligningsgrundlag**
+
+Årslønsfeltet og den fælles datodescriptor viser den konkrete bounds-/regelbesked, men dokumentgaten reducerer hele tabelvalideringsfejlen til den universelle `invalid-input`-tekst. Kodeinventaret viser, at `aarsloenDownloadGate` har den konkrete feltissue tilgængelig i projektionen, men returnerer en generisk tabelvalideringsårsag.
+
+**Forventningsgrundlag**
+
+`error-contract.md` §5 kræver, at bounds-/rule-issues bevarer den fulde konkrete besked i download-tooltippen. `document-output-contract.md` §A5 fastslår, at den deaktiverede knaps tooltip er gate-blokeringens eneste brugerkanal og skal bære årsagen.
+
+**Hvorfor det bør undersøges**
+
+Ved en ugyldig periode kan brugeren se den nødvendige forklaring ved felterne, men ikke fra den handling, der er blokeret. Det skaber en gentagen forskel mellem feltets kendte datogrænse og beregningsgaten.
+
+**Evidens**
+
+- Browserkontrol: Chrome viste detaljeret max-bound og omvendt kronologi; Edge, Firefox og WebKit gentog max-bound og omvendt kronologi med samme `aria-invalid=true` på begge felter.
+- Reproducerbarhed: 4/4 browsere; ingen produkt-console.error, console.warn eller requestfailed.
+- Screenshot/trace: Chrome snapshots `.playwright-cli/page-2026-08-09T00-30-03-247Z.yml` og `.playwright-cli/page-2026-08-09T00-30-27-670Z.yml`.
+
+### OBS-022 — Erstatningsopgørelsens deklarerede datogrænser håndhæves ikke
+
+- Status: Bekræftet
+- Kategori: Kontraktdrift / Dataintegritet
+- Alvor: Høj
+- Først set: 2026-08-09 02:47 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080; Chrome også 2560×1440
+- Flade/scenarie: CUT-001 / EO-007
+- Relaterede fund/spørgsmål: OBS-018–021
+
+**Starttilstand og reproduktion**
+
+1. Log ind gennem den synlige loginformular, sæt `Skadedato=01-01-2020`, og åbn Erstatningsopgørelse.
+2. Sæt `Vedrører periode fra=01-01-2005` og `Vedrører periode til=01-01-2028`, én dag efter den deklarerede maksimumsgrænse `31-12-2027`.
+3. Sæt `Opgørelse lavet den=31-12-2019` og `Differencekravsdato=31-12-2019`, før den deklarerede dynamiske minimumsgrænse fra skadedatoen.
+4. Sæt `Forligsdato=31-12-2019` som kontrol af samme nedre datoområde, og afprøv derefter perioden omvendt med `fra=02-01-2020` og `til=01-01-2020`.
+
+**Observeret adfærd**
+
+`Vedrører periode til=01-01-2028`, `Opgørelse lavet den=31-12-2019` og `Differencekravsdato=31-12-2019` blev alle afsluttet som canonical med `aria-invalid=false`. Den omvendte periode blev afvist i begge felter med henholdsvis `Fra-dato skal være før til-dato (01-01-2020)` og `Til-dato skal være efter fra-dato (02-01-2020)`. `Forligsdato=31-12-2019` blev afvist med den konkrete besked `Datoen kan ikke være før skadesdagen (01-01-2020)`.
+
+Der blev ikke observeret produkt-`console.error`, produkt-`console.warn` eller `requestfailed` i de fire browsere. Chrome-screenshot ved 2560×1440 viste ingen layoutbrud i EET-fladen efter navigation med de afsluttede EO-værdier.
+
+**Sammenligningsgrundlag**
+
+`src/config/dateRanges.ts` deklarerer dynamiske grænser for `periodeFra`, `periodeTil`, `opgoerelse` og `differencekravDato`: periodefelterne har maksimum `31-12-2027` i den aktuelle kørsel, mens de øvrige minimumsgrænser afledes af `Skadedato`. I `src/inputCore/catalog/erstatningsopgoerelseDescriptors.ts` bruger periodefelterne kun kronologivalidatorer, og de tre øvrige topfelter bruger en almindelig `dateField` uden bounds-validator. `Forligsdato` har derimod en eksplicit bounds-/regelvalidator og håndhæver den samme nedre grænse.
+
+**Forventningsgrundlag**
+
+Fundet beskriver drift mellem den deklarerede konfiguration og den observerede validering; det tager ikke stilling til, om de underliggende domæne-/juridiske grænser er korrekte. `date-contract.md` og `error-contract.md` kræver, at anvendte datogrænser håndhæves med konkret feedback. Hvis de eksplicit deklarerede `dateRanges` er autoritative, er den nuværende EO-adfærd ikke i overensstemmelse med dem.
+
+**Hvorfor det bør undersøges**
+
+Brugeren kan afslutte datoer, der ligger uden for de grænser programmet selv deklarerer, uden feltfejl. Det kan sende uventede datoer videre til EO-snapshot, beregning, gemning eller dokumentforbrug. Afvigelsen bør afklares og håndteres samlet for de berørte EO-felter; auditten ændrer ikke produktet.
+
+**Evidens**
+
+- Browserkontrol: Chrome, Edge, Firefox og WebKit viste samme `aria-invalid=false` for de out-of-range EO-værdier og samme konkrete afvisning af Forligsdato og omvendt periode.
+- Reproducerbarhed: 4/4 browsere; ingen produkt-console.error, console.warn eller requestfailed.
+- Screenshot/trace: Chrome snapshots `.playwright-cli/page-2026-08-09T00-38-10-670Z.yml` og `.playwright-cli/page-2026-08-09T00-39-21-665Z.yml`; screenshot `C:\tmp\mineo-cut001c-eet.png`.
+
+### OBS-023 — EO's AES-datofelter accepterer datoer før skadedagen
+
+- Status: Bekræftet
+- Kategori: Kontraktdrift / Dataintegritet
+- Alvor: Høj
+- Først set: 2026-08-09 02:56 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
+- Flade/scenarie: CUT-001 / EO-008
+- Relaterede fund/spørgsmål: OBS-022, OBS-024
+
+**Starttilstand og reproduktion**
+
+1. Log ind gennem den synlige loginformular, sæt `Skadedato=01-01-2020`, og åbn Erstatningsopgørelse.
+2. Aktivér `Varige mén`, `Midlertidigt erhvervsevnetab` og `Endeligt erhvervsevnetab`, så de tilhørende datoer vises.
+3. Afslut `Mén-afgørelsesdato`, `Midlertidigt EET-afgørelsesdato`, `Midlertidigt EET-virkningsdato`, `Endeligt EET-afgørelsesdato` og `Endeligt EET-virkningsdato` med `31-12-2019`, dagen før Skadedato.
+
+**Observeret adfærd**
+
+Alle fem datoer blev afsluttet som canonical med `aria-invalid=false` i alle fire browsere, både med `31-12-2019` før Skadedato og med `01-01-2027` efter den aktuelle dagsdato `09-08-2026`. Ved en dynamisk ændring af Stamdata fra `Skadedato=01-01-2020` til `Skadedato=01-01-2021` blev `Mén-afgørelsesdato=01-01-2020` fortsat stående med `aria-invalid=false`, mens `Forligsdato=01-01-2020` blev afvist med den konkrete besked `Datoen kan ikke være før skadesdagen (01-01-2021)`. Kontrasten blev dermed observeret direkte mellem AES-datoerne og Forligsdatoen.
+
+Efterfølgende blev et minimalt ellers gyldigt EO gjort færdigt med navn, skadestype, nummer, periode, opgørelsesdato og skjulte S/S-/TAF-sektioner. Med `Skadedato=01-01-2021` og `Mén-afgørelsesdato=01-01-2020` viste Beregning ingen fejlsektion, `Download som PDF` var aktiv, og alle fire browsere downloadede faktisk EO-PDF. Da samme AES-dato blev ændret til `01-01-2027`, forblev feltet canonical med `aria-invalid=false`, og PDF-knappen forblev aktiv.
+
+Der blev ikke observeret produkt-`console.error`, produkt-`console.warn` eller `requestfailed`.
+
+**Sammenligningsgrundlag**
+
+`src/config/dateRanges.ts` deklarerer dynamisk minimum fra Skadedato og maksimum for `menAfgoerelseDato`, `midlertidigEETAfgoerelseDato`, `midlertidigEETVirkningsdato`, `endeligEETAfgoerelseDato` og `endeligEETVirkningsdato`. I `src/inputCore/catalog/erstatningsopgoerelseDescriptors.ts` er alle fem felter oprettet med den almindelige `dateField` uden validators. `Forligsdato` bruger derimod en eksplicit bounds-/regelvalidator.
+
+**Forventningsgrundlag**
+
+Fundet beskriver drift mellem den deklarerede konfiguration og den observerede validering; det tager ikke stilling til, om de underliggende domæne-/juridiske grænser er korrekte. `date-contract.md` og de konkrete `dateRanges`-noter beskriver de pågældende min/max-grænser som gældende valideringsgrænser.
+
+**Hvorfor det bør undersøges**
+
+Datoer før Skadedato kan afsluttes uden synlig fejl og derfor blive stående i den aktuelle canonical state. Det kan påvirke EO-snapshot, downstream-beregning, gemning eller dokumentforbrug, samtidig med at den tilsvarende Forligsdato bliver blokeret.
+
+**Evidens**
+
+- Browserkontrol: Chrome, Edge, Firefox og WebKit viste `aria-invalid=false` for alle fem AES-datoer med både `31-12-2019` og `01-01-2027`; samme fire browsere bevarede `Mén-afgørelsesdato=01-01-2020` som `aria-invalid=false` efter Skadedato blev ændret til `01-01-2021`. I det minimale EO var PDF-gaten aktiv ved både `01-01-2020` og `01-01-2027`, og alle fire browsere downloadede PDF ved den første værdi.
+- CUT-002-sekvens: minimal EO med `Skadedato=01-01-2021`, `Mén-afgørelsesdato=01-01-2020`, Beregning uden fejlsektion og faktisk PDF-download i Chrome/Edge/Firefox/WebKit.
+- Reproducerbarhed: 4/4 browsere; ingen produkt-console.error, console.warn eller requestfailed.
+- Kildereference: `src/config/dateRanges.ts` og `src/inputCore/catalog/erstatningsopgoerelseDescriptors.ts`.
+
+### OBS-024 — EO-tabellernes deklarerede datogrænser håndhæves ikke
+
+- Status: Bekræftet
+- Kategori: Kontraktdrift / Dataintegritet
+- Alvor: Høj
+- Først set: 2026-08-09 02:56 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
+- Flade/scenarie: CUT-001 / EO-009
+- Relaterede fund/spørgsmål: OBS-022–023
+
+**Starttilstand og reproduktion**
+
+1. Brug `Skadedato=01-01-2020` og åbn Erstatningsopgørelse.
+2. På EO-oplysninger afsluttes første række i både svie/smerte- og TAF-tabellen med fra/til `31-12-2019`.
+3. Åbn fanen Offentlige ydelser og afslut første ydelsesrække med `Fra dato=31-12-2019` og `Til dato=31-12-2019`.
+
+**Observeret adfærd**
+
+Alle seks testede tabelceller — fra/til i svie/smerte, fra/til i TAF og fra/til i offentlige ydelser — blev afsluttet som canonical med `aria-invalid=false`, selv om datoerne lå før Skadedato. Fra/til-kronologien blev fortsat håndhævet; der blev ikke observeret en bounds-issue.
+
+Der blev ikke observeret produkt-`console.error`, produkt-`console.warn` eller `requestfailed`.
+
+**Sammenligningsgrundlag**
+
+`src/config/dateRanges.ts` deklarerer dynamiske datogrænser for `tabelSvieSmerteFra`, `tabelSvieSmerteTil`, `tabelTAFFra` og `tabelTAFTil`, herunder minimum fra Skadedato. `DateRanges_OffentligeYdelser` deklarerer tilsvarende dynamisk minimum/maksimum for ydelsesrækkerne. De berørte descriptors bruger `rowDatePair`, som kun tilføjer `dateOrderValidator`; der tilføjes ingen bounds-validator fra de deklarerede ranges. `Øvrige krav` på samme EO-side har en separat konkret bounds-validator og er ikke omfattet af denne observation.
+
+**Forventningsgrundlag**
+
+Fundet beskriver drift mellem de deklarerede tabelranges og den observerede validering; det tager ikke stilling til de underliggende domæne-/juridiske grænser. `date-contract.md` og konfigurationsnoterne beskriver de pågældende min/max-grænser som gældende datogrænser.
+
+**Hvorfor det bør undersøges**
+
+Tabeldatoer før Skadedato kan afsluttes og blive stående i den canonical state uden en konkret brugerfeedback. Tabeldatoerne bruges af EO's downstream-forbrugere, så afvigelsen bør afklares samlet for de tre berørte tabelområder.
+
+**Evidens**
+
+- Browserkontrol: Chrome, Edge, Firefox og WebKit viste `aria-invalid=false` for alle seks testede out-of-range-celler.
+- Reproducerbarhed: 4/4 browsere; ingen produkt-console.error, console.warn eller requestfailed.
+- Kildereference: `src/config/dateRanges.ts` og `src/inputCore/catalog/erstatningsopgoerelseDescriptors.ts`.
+
+### OBS-025 — Beløb over binary64-grænsen reduceres stille ved indsættelse
+
+- Status: Bekræftet
+- Kategori: Dataintegritet / Kontraktdrift / Runtimefejl
+- Alvor: Høj
+- Først set: 2026-08-09 03:36 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox 1920×1080; WebKit testet, men samme clipboard-forløb kunne ikke reproduceres via CLI
+- Flade/scenarie: CUT-003 / RENTE-006 / Årsløn-tabel / EO-Øvrige krav / EO-Lønindkomst / EO-Svie-smerte / EO-TAF / EO-Offentlige ydelser / EO-SFGG / EO-Lønudvikling
+- Relaterede fund/spørgsmål: OBS-009
+
+**Starttilstand og reproduktion**
+
+1. Log ind gennem den synlige loginformular.
+2. På Stamdata afsluttes `Fødselsdato=01-01-1980`, `Skadedato=01-01-2020` og skadestype `Arbejdsulykke`.
+3. På Renteberegning afsluttes `Beregningsdato=01-01-2020`, første rækkes beløb med `1.000` og `Renter fra=01-01-2020`.
+4. I Renteberegningens beløbsfelt indsættes `70368744177664,00`, som er præcis `2^46` og dermed over den eksklusive beløbsgrænse.
+5. På Årsløn vælges Måned, og første række afsluttes med `Måned=1`, `År=2020` og et beløbsfelt. Den samme værdi indsættes i lønfeltet.
+6. På Erstatningsopgørelse vælges `Ja` for Øvrige erstatningskrav, og værdien indsættes i første beløbsfelt.
+7. På Lønindkomst vælges `Overenskomst`, `KL-overenskomsten` og `Overenskomst` som beregningsgrundlag. Værdien indsættes i `Evt. forhøjet grundløn udover løntrin`.
+8. På EO-oplysninger vælges `Angivet månedsløn` og derefter `Angivet dagsløn` som beregningsmetode. Værdien indsættes i de tilsvarende beløbsfelter.
+9. På Lønindkomst indsættes værdien i alle otte synlige `Løn`/tillægsbeløb i de to standard-lønindkomstrækker. På Offentlige ydelser indsættes værdien i `Ydelse` og `Tillæg`. På Lønindkomst vælges manuel sygeferiegodtgørelse, hvorefter værdien indsættes i `Manuel dagssats` og `Allerede betalt beløb`.
+10. På Lønindkomst vælges `Manuelt angivet` som lønudviklingsgrundlag, og værdien indsættes i begge synlige `Grundløn`-rækker. Anciennitetstillæg aktiveres, hvorefter værdien indsættes i `Anciennitetstillægssats`.
+11. På Årsløn skiftes `Tillæg angives som` fra `Procent` til `Beløb`, hvorefter værdien indsættes i `FP/FV/SH/SO/St.B.` og `Arb.g. Pension` i begge synlige rækker.
+12. På EO sættes `Erstatningsopgørelse, nummer=2`, `Krav på svie- og smertegodtgørelse=Ja` og `Tidligere beregnet S/S til max.=Nej`, så feltet for tidligere S/S bliver relevant. Værdien indsættes i feltet.
+
+**Observeret adfærd**
+
+I Renteberegning blev den indsatte værdi i Chrome, Edge og Firefox vist som `7.036.874.417.766,00`, altså en tiendedel af den indsatte værdi. Feltet havde `aria-invalid=false`, og værdien blev ikke afvist eller markeret med en issue. Rækken forblev beregnings- og PDF-aktiv; i Chrome viste beregningen `1.547.727.843,25 kr.`, og både rækkens PDF-knap og `Download samlet oversigt` var aktive.
+
+På Årsløn blev samme indsættelse i første lønfelt vist som `7.036.874.417.766,00` med `aria-invalid=false` i Chrome, Edge og Firefox. Efter den øvrige procentissue var ryddet, viste alle tre browsere beløbet i `Sammentælling af løn fra tabellen:` og havde aktiv `Download som PDF`. WebKit reproducerede ikke samme clipboard-paste via CLI.
+
+På Erstatningsopgørelse → Øvrige erstatningskrav blev samme indsættelse i første beløbsfelt vist som `7.036.874.417.766,00` med `aria-invalid=false` i Chrome, Edge og Firefox. WebKit reproducerede ikke samme clipboard-paste via CLI.
+
+På Erstatningsopgørelse → Lønindkomst → `Evt. forhøjet grundløn udover løntrin` blev samme indsættelse i Firefox vist som `7.036.874.417.766,00` med `aria-invalid=false`. Feltet havde ingen synlig fejlfeedback.
+
+På Erstatningsopgørelse → Svie- og smertegodtgørelse → `Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode` blev samme indsættelse i Firefox vist som `7.036.874.417.766,00` med `aria-invalid=false` og uden synlig fejlfeedback.
+
+På Erstatningsopgørelse → TAF → `Evt. allerede modtaget TAF` blev samme indsættelse i Firefox vist som `7.036.874.417.766,00` med `aria-invalid=false` og uden synlig fejlfeedback.
+
+På EO-oplysninger → `Angivet månedsløn` og `Angivet dagsløn` blev samme indsættelse i Firefox vist som `7.036.874.417.766,00` med `aria-invalid=false` og uden synlig fejlfeedback.
+
+På Lønindkomsts to synlige standardtabeller blev alle otte beløbsfelter (`col2`–`col5` i hver række) i Firefox vist som `7.036.874.417.766,00` med `aria-invalid=false`. På Offentlige ydelser blev både `Ydelse` og `Tillæg` vist med samme reducerede værdi og `aria-invalid=false`. Ved manuel sygeferiegodtgørelse blev både `Manuel dagssats` og `Allerede betalt beløb` vist med samme reducerede værdi og `aria-invalid=false`.
+
+På Lønindkomst blev begge manuelle `Grundløn`-rækker og ansættelsesforholdets `Anciennitetstillægssats` i Firefox vist som `7.036.874.417.766,00` med `aria-invalid=false` og uden synlig fejlfeedback.
+
+På Årsløn efter skift til `Beløb` blev både `FP/FV/SH/SO/St.B.` og `Arb.g. Pension` i begge synlige rækker vist som `7.036.874.417.766,00` med `aria-invalid=false`. De afledte række-totaler viste samme reducerede beløb.
+
+På EO med nummer `2` og `Tidligere beregnet S/S til max.=Nej` blev `Svie/smerte-krav i tidligere erstatningsopgørelser` vist som `7.036.874.417.766,00` med `aria-invalid=false` og uden synlig fejlfeedback.
+
+Som kontrol gav indsættelse af `70368744177663,99` i Chrome og Edge den forventede maksimumsværdi `70.368.744.177.663,99` med `aria-invalid=false`. WebKit reproducerede ikke samme clipboard-paste via CLI; der konkluderes derfor ikke en browserforskel på baggrund af WebKit-forløbet.
+
+I de isolerede feltkontroller blev der ikke observeret produkt-`console.error`, produkt-`console.warn` eller `requestfailed`. Senere i samme Firefox-session blev en før-lønsberegning aktiveret ved at slå komprimering fra og udfylde `tafBeregningsperiodeFra/Til=01-01-2020/31-01-2020`. Herefter viste Beregning-fladen `EO-beregningen kan ikke gennemføres på grund af en intern beregningsfejl`, og den synlige tekniske fejl viste `eo_snapshot:runtime_exception`. Konsollen registrerede tre ens fejl gennem `money.fromKroner` i SFGG-kæden under `eoSnapshot.computeEoSnapshot`. De reducerede beløb stod fortsat som tilsyneladende canonical UI-værdier uden `aria-invalid` på de berørte felter. En separat syntetisk periodeoverlap-fejl var samtidig synlig, så dette downstream-forløb blev ikke behandlet som en ren gyldig dokumenttest.
+
+Efterfølgende blev både EO's erstatningsperiode og TAF-perioden sat til `01-02-2020–29-02-2020`, mens før-lønsperioden lå i januar, så det tidligere periodeoverlap ikke længere var til stede. Den samme SFGG-runtimefejl blev stadig reproduceret: Beregning viste kun den interne beregningsfejl, den tekniske alert stod synlig, og alle downstream-downloads var disabled.
+
+**Sammenligningsgrundlag**
+
+`src/contracts/amount-contract.md` §3 angiver den eksklusive grænse `2^46` og den største positive canonical centværdi `70.368.744.177.663,99`. `src/utils/numericSafety.ts` indeholder `isSafeCanonicalDecimal`. Renteberegningens beløbsdescriptor, Årsløns tabelbeløbsdescriptor, EO's Øvrige krav-descriptor og EO-Lønindkomsts `offentligLoenEkstraGrundloen` bruger Amount-codec.
+
+**Forventningsgrundlag**
+
+Beløb på eller over den eksklusive binary64-grænse skal afvises fail-closed efter beløbskontrakten. En værdi over grænsen må ikke blive til en anden, mindre og tilsyneladende gyldig beløbsværdi.
+
+**Hvorfor det bør undersøges**
+
+En bruger kan indsætte et beløb, som stille ændres til et andet beløb, uden fejlfeedback. Den ændrede værdi kan derefter indgå i beregning og dokument, så brugeren risikerer at overse, at tallet ikke længere svarer til det indsatte.
+
+**Evidens**
+
+- Renteberegning i Chrome/Edge/Firefox: reproduceret med `70368744177664,00`; vist værdi `7.036.874.417.766,00`, `aria-invalid=false`, aktiv beregnings-/PDF-gate.
+- Årsløn i Chrome/Edge/Firefox: samme indsættelse gav `7.036.874.417.766,00`, `aria-invalid=false`, og aktiv `Download som PDF` efter oprydning af den uafhængige procentissue.
+- EO Øvrige krav i Chrome/Edge/Firefox: samme indsættelse gav `7.036.874.417.766,00` med `aria-invalid=false`.
+- EO Lønindkomst → `Evt. forhøjet grundløn udover løntrin` i Firefox: samme indsættelse gav `7.036.874.417.766,00` med `aria-invalid=false`.
+- EO Svie/smerte → `Evt. allerede modtaget svie/smerte` i Firefox: samme indsættelse gav `7.036.874.417.766,00` med `aria-invalid=false`.
+- EO TAF → `Evt. allerede modtaget TAF` i Firefox: samme indsættelse gav `7.036.874.417.766,00` med `aria-invalid=false`.
+- EO angivet måned-/dagsløn i Firefox: samme indsættelse gav `7.036.874.417.766,00` med `aria-invalid=false`.
+- Lønindkomst i Firefox: alle otte standardtabelfelter `col2`–`col5` i de to rækker gav `7.036.874.417.766,00` med `aria-invalid=false`.
+- Offentlige ydelser i Firefox: `Ydelse` og `Tillæg` gav `7.036.874.417.766,00` med `aria-invalid=false`.
+- Manuel sygeferiegodtgørelse i Firefox: `Manuel dagssats` og `Allerede betalt beløb` gav `7.036.874.417.766,00` med `aria-invalid=false`.
+- Lønudvikling i Firefox: begge synlige manuelle `Grundløn`-rækker og `Anciennitetstillægssats` gav `7.036.874.417.766,00` med `aria-invalid=false`.
+- Årsløn i Firefox, `Beløb`-mode: begge synlige `FP/FV/SH/SO/St.B.`- og `Arb.g. Pension`-felter gav `7.036.874.417.766,00` med `aria-invalid=false`; række-totalerne viste også den reducerede værdi.
+- EO `svieSmerteTidligereTotal` i Firefox: med EO-nummer `2` og `Tidligere beregnet S/S til max.=Nej` gav feltet `7.036.874.417.766,00` med `aria-invalid=false`.
+- Chrome downloadede faktisk `Årslønsberegning.pdf` fra den aktive gate; Firefox gennemførte også Gem og downloadede en faktisk krypteret `.eo`-fil, mens den reducerede værdi stod i Årsløn.
+- I en frisk Firefox-session blev den gemte `.eo` indlæst gennem den synlige Hent/filechooser-flow; Årsløn viste igen `7.036.874.417.766,00`, `aria-invalid=false` og aktiv `Download som PDF`, med 0 nye console.error/console.warn i den rene load.
+- Chrome/Edge-kontrol ved kontraktens maksimum: `70.368.744.177.663,99` blev bevaret canonical.
+- WebKit: samme clipboard-forløb kunne ikke reproduceres via CLI.
+- Isolerede feltkontroller: ingen produkt-console.error, console.warn eller requestfailed.
+- Firefox downstream-forløb: tre ens `console.error` fra `eoSnapshot.computeEoSnapshot` via `money.fromKroner`/SFGG, synlig intern beregningsfejl og disabled downstream-download; ingen ny console.warn.
+- Kildereference for downstream-signalet: `src/domain/money/money.ts`, `src/domain/erstatningsopgoerelse/engines/sfggSegmentering.ts`, `src/domain/erstatningsopgoerelse/engines/sfggEngine.ts` og `src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts`.
+
+### OBS-026 — Fælles årsløn over binary64-grænsen udløser teknisk fejladvarsel
+
+- Status: Bekræftet
+- Kategori: Dataintegritet / Kontraktdrift / Runtimefejl
+- Alvor: Høj
+- Først set: 2026-08-09 03:53 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox 1920×1080; WebKit testet, men samme clipboard-forløb kunne ikke reproduceres via CLI
+- Flade/scenarie: CUT-003 / EET- og Forsørgertab-årsløn
+- Relaterede fund/spørgsmål: OBS-025
+
+**Starttilstand og reproduktion**
+
+1. Log ind gennem den synlige loginformular og åbn Erhvervsevnetab.
+2. På Erhvervsevnetab indsættes `70368744177664` i feltet `Årsløn` og derefter i `Årsløn (hvis forskellig fra ASL)`, som er over den eksklusive binary64-grænse.
+3. Feltet afsluttes med blur/Tab.
+4. Samme indsættelse gentages i det fælles `Årsløn`-felt på Forsørgertab.
+
+**Observeret adfærd**
+
+I Chrome, Edge og Firefox blev værdien vist som `70368744177664` med `aria-invalid=false` i både `Årsløn` og `Årsløn (hvis forskellig fra ASL)`. Samtidig viste appen en synlig teknisk fejladvarsel med teksten `Teknisk fejl registreret` og registrerede `ZodError` i konsollen med beskeden `Beløbet er for stort til at kunne gemmes præcist`. I Chrome blev der registreret tre fejl efter gentagelse på Erhvervsevnetab; Edge og Firefox registrerede hver to fejl. Samme adfærd blev reproduceret på Forsørgertab. Den viste værdi stod fortsat i feltet efter navigation væk fra og tilbage til Erhvervsevnetab i Chrome.
+
+Efter fejlen kunne klik på en anden sidemenu, fx `Forsørgertab` fra Erhvervsevnetab eller `Erhvervsevnetab` fra Forsørgertab, ikke flytte URL'en i Chrome, Edge eller Firefox. Blur på det aktive felt gentog fejlen, og brugeren blev på den aktuelle side.
+
+WebKit reproducerede ikke samme clipboard-paste via CLI; der konkluderes derfor ikke en browserforskel på baggrund af WebKit-forløbet.
+
+**Sammenligningsgrundlag**
+
+`src/inputCore/catalog/faellesAarsloenDescriptors.ts` bruger Amount-codec for den fælles årsløn og deklarerer domænegrænserne `1.000`–`9.999.999`. `src/schemas/amountExpressionSchema.ts` afviser samtidig beløb, der ikke kan gemmes præcist, med `Beløbet er for stort til at kunne gemmes præcist`. Fejlen blev kastet fra `validateSettledInputCandidate` under settle.
+
+**Forventningsgrundlag**
+
+Et korrekt formateret, men ikke repræsenterbart eller for stort beløb skal håndteres som afsluttet afvist input eller en konkret feltissue efter input- og beløbskontrakterne. Settle må ikke give en uncaught schemafejl, en teknisk runtimeadvarsel eller et felt uden `aria-invalid`/issue.
+
+**Hvorfor det bør undersøges**
+
+Brugeren får en teknisk fejladvarsel og kan samtidig se et beløb, som feltet ikke markerer som ugyldigt. Det gør det uklart, om værdien er gemt, om downstream-beregninger bruger den, og om den kan indgå i en efterfølgende dokument- eller save-handling.
+
+**Evidens**
+
+- Chrome/Edge/Firefox: samme indsættelse på både EET og Forsørgertab gav synlig teknisk fejladvarsel, `aria-invalid=false` og `ZodError` med `Beløbet er for stort til at kunne gemmes præcist`.
+- Chrome/Edge/Firefox: navigation mellem EET og Forsørgertab blev blokeret, mens det unsafe input stod aktivt.
+- Chrome: værdien stod fortsat i Årsløn-feltet efter navigation væk fra og tilbage til Erhvervsevnetab.
+- WebKit: samme clipboard-forløb kunne ikke reproduceres via CLI.
+- Kildereference: `src/inputCore/catalog/faellesAarsloenDescriptors.ts`, `src/schemas/amountExpressionSchema.ts`, `src/inputCore/fieldCatalog.ts`.
+
+### OBS-027 — Tab-navigation afslutter ikke draft på Satser-feltet
+
+- Status: Bekræftet
+- Kategori: UX / Tilgængelighed / Kontraktdrift
+- Alvor: Mellem
+- Først set: 2026-08-09 06:16 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty ved genoptagelse; kun auditdokumenter ændret
+- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
+- Flade/scenarie: SURF-009 / CUT-003 / Satser → Satsår
+- Relaterede fund/spørgsmål: OBS-017
+
+**Starttilstand og reproduktion**
+
+1. Log ind gennem den synlige loginformular, åbn Satser, og afslut `Satsår=2026` med Enter.
+2. Åbn feltet igen, erstat draften med `2027`, og tryk `Tab`.
+3. Gentag med `Shift+Tab` i Firefox og gentag Tab-forløbet i Chrome, Edge og WebKit.
+
+**Observeret adfærd**
+
+I alle fire browsere stod feltet efter Tab med draftteksten `2027`, men var fortsat fokuseret, `aria-invalid=false`, og siden viste stadig `Arbejdsskadesatser 2026` med den gyldige downloadknap aktiv. Draften var dermed ikke afsluttet, bounds-issuen var ikke vist, og fokus flyttede ikke til et andet element. Firefox viste samme manglende settle ved `Shift+Tab`.
+
+Et klik på overskriften `Årstal` afsluttede derimod draften: feltet blev `aria-invalid=true`, og den konkrete tooltip `Årstallet skal være mellem 2005 og 2026` samt disabled download blev vist. Enter afsluttede også draften og viste den konkrete issue.
+
+**Sammenligningsgrundlag**
+
+`src/contracts/form-contract.md` §2.2 og §5.2 angiver blur og Enter som fælles settle-grænse. `src/contracts/keyboard-navigation.md` kræver, at Tab/Shift+Tab flytter fokus til næste/forrige fokusbare element, og at Enter opfører sig som Tab. Den observerede Satser-flade har kun ét registreret felt, så containerens cirkulære fokus forbliver på samme input, uden at den åbne draft først bliver settled.
+
+**Forventningsgrundlag**
+
+Tab og Shift+Tab skal give den samme observerbare navigation og settle-adfærd som den øvrige formularnavigation. En draft må ikke blive stående synlig som `2027`, mens canonical visning og download-gate fortsat bruger det tidligere afsluttede `2026`.
+
+**Hvorfor det bør undersøges**
+
+Brugeren kan tro, at årstallet er ændret, selv om siden og PDF-gaten stadig bruger det gamle år. På Satser er den ugyldige draft ikke markeret, og fokus bliver stående i feltet, så tastaturbrugeren mangler både navigation og feedback, indtil der trykkes Enter eller klikkes et andet sted.
+
+**Evidens**
+
+- Chrome/Edge/Firefox/WebKit: `2027` efter Tab, `aria-invalid=false`, aktiv download, overskrift fortsat `Arbejdsskadesatser 2026`, fokus fortsat på `placeholder="åååå"`.
+- Firefox: samme resultat efter `Shift+Tab`.
+- Kontrol med klik på `Årstal` eller Enter: konkret bounds-issue og disabled download blev vist.
+- Kildereference: `src/components/layout/containerNavigation/useContainerKeyboardNavigation.ts`, `src/inputCore/react/fields/YearField.tsx`, `src/contracts/form-contract.md`, `src/contracts/keyboard-navigation.md`.
+
+### OBS-028 — Firefox-teknisk advarsel blokerer Løntrin-finderens datofelt
+
+- Status: Bekræftet
+- Kategori: Browserforskel / UX / Kontraktdrift
+- Alvor: Mellem
+- Først set: 2026-08-09 06:29 Europe/Copenhagen
+- Commit/build: `bc503c06b31c9bb63e077eb3806baae92544892b` / `2026.08.1243.bc503c0`
+- Dirty-state: dirty under audit; kun auditdokumenter ændret
+- Browser/viewport: Firefox 1920×1080
+- Flade/scenarie: SURF-003 / PAR-003 / Lønindkomst → Find løntrin
+- Relaterede fund/spørgsmål: OBS-005
+
+**Starttilstand og reproduktion**
+
+1. Log ind gennem den synlige loginformular i Firefox og behold den normale synlige `Teknisk advarsel registreret` fra fallback-flowet.
+2. På Erstatningsopgørelse → Lønindkomst vælges `Overenskomst`, `KL-overenskomsten` og `Overenskomst` som beregningsgrundlag.
+3. Åbn `Find løntrin`, afslut beløbsfeltet med `700000`, og forsøg at klikke i overlayets datofelt.
+
+**Observeret adfærd**
+
+Klikket på overlayets synlige datofelt kunne ikke gennemføres. Playwrights klikforsøg timeoutede efter 30 sekunder, fordi den synlige tekniske advarsel lå ovenpå og interceptede pointer events fra datofeltet. Beløbsfeltet var allerede udfyldt med `700.000,00`, men datoen kunne ikke indtastes, og overlayets `Beregn` kunne derfor ikke nås gennem den normale klikrejse.
+
+Efter klik på advarslens `Skjul` forsvandt blokeringen. Datoen `01-01-2020` kunne indtastes, `Beregn` viste resultater i overlayet, og dialogen kunne lukkes normalt.
+
+**Sammenligningsgrundlag**
+
+`OBS-005` registrerer, at Firefox-fallbacken viser en teknisk advarsel under normal brug. Advarslens synlige tekst siger samtidig, at brugeren kan fortsætte med at bruge programmet som hidtil. I Løntrin-finder-overlayet overlapper advarslen imidlertid et nødvendigt input og gør den konkrete brugerrejse umulig, indtil advarslen skjules.
+
+**Forventningsgrundlag**
+
+En synlig teknisk advarsel må ikke forhindre interaktion med et åbent page-lokalt overlay, hvis den samtidig kommunikerer, at brugeren kan fortsætte. Hvis advarslen bevidst skal blokere, skal den observerbare adfærd og brugerbesked være konsistent med det.
+
+**Hvorfor det bør undersøges**
+
+En Firefox-bruger kan åbne Løntrin-finder, men kan ikke udfylde datoen eller beregne, før brugeren selv opdager og skjuler en separat teknisk advarsel. Det gør overlayet tilsyneladende defekt og kobler en allerede kendt fallback-advarsel til en ny, urelateret brugerrejse.
+
+**Evidens**
+
+- Firefox: klik på overlayets `dd-mm-åååå`-felt timeoutede med pointer-event-interception fra `Teknisk advarsel registreret`.
+- Efter `Skjul`: `01-01-2020` og `Beregn` gennemførte, og overlayet viste `Nærmeste lønsatser`.
+- Firefox-konsol: 0 `console.error` og 0 `console.warn`; problemet var synlig overlay-interception, ikke en ny runtimefejl.
+- Kildereference: `src/components/pages/erstatningsopgoerelse/shared/LoentrinFinderOverlay.tsx`, `OBS-005`.
 
 ## Postskabelon
 
