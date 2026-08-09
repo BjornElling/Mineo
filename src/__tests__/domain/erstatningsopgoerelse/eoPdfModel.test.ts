@@ -1839,6 +1839,57 @@ describe('eoPdfModel', () => {
     );
   });
 
+  it('BF-054: midlertidig EET uden datoer oplyses som truffet, ikke som "ikke truffet"', () => {
+    const eoValues = makeValues({
+      midlertidigtEETAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Nej',
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.eetLinjer).toContain(
+      'Der er truffet midlertidig afgørelse om erhvervsevnetab med 15 % eller derover.'
+    );
+    expect(
+      model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('ikke truffet afgørelse'))
+    ).toBe(false);
+  });
+
+  it('BF-054: endelig EET uden datoer oplyses som truffet, ikke som "ikke truffet"', () => {
+    const eoValues = makeValues({
+      endeligtEETAfgorelse: 'Ja',
+      midlertidigtEETAfgorelse: 'Nej',
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.eetLinjer).toContain(
+      'Der er truffet endelig afgørelse om erhvervsevnetab med 15 % eller derover.'
+    );
+    expect(
+      model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('ikke truffet afgørelse'))
+    ).toBe(false);
+  });
+
+  it('BF-054: begge EET-afgørelser uden datoer → kun den endelige linje vises', () => {
+    const eoValues = makeValues({
+      midlertidigtEETAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Ja',
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.tabtArbejdsfortjeneste.eetLinjer).toContain(
+      'Der er truffet endelig afgørelse om erhvervsevnetab med 15 % eller derover.'
+    );
+    expect(
+      model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('midlertidig afgørelse'))
+    ).toBe(false);
+  });
+
   it('viser kun endelig EET-linje informativt når begge afgørelser er angivet uden ophørsgrund', () => {
     const eoValues = makeValues({
       endeligtEETAfgorelse: 'Ja',

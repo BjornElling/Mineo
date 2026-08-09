@@ -276,6 +276,11 @@ export const buildTabtArbejdsfortjenesteModel = (
       const tekst = `Der er den ${dato} truffet endelig erhvervsevnetabsafgørelse.`;
       endeligtEetLinje = values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
       endeligtEetReferenceDato = values.endeligEETAfgoerelseDato;
+    } else {
+      // Uden dato kan afgørelsen ikke afgrænse TAF (ingen referencedato), men den ER truffet
+      // og skal derfor stadig oplyses — ellers påstår dokumentet det modsatte (BF-054).
+      const tekst = 'Der er truffet endelig afgørelse om erhvervsevnetab med 15 % eller derover.';
+      endeligtEetLinje = values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
     }
   }
 
@@ -292,6 +297,10 @@ export const buildTabtArbejdsfortjenesteModel = (
       const tekst = `Der er den ${dato} truffet midlertidig erhvervsevnetabsafgørelse.`;
       midlertidigEetLinje = values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
       midlertidigEetReferenceDato = values.midlertidigEETAfgoerelseDato;
+    } else {
+      // Se kommentaren i den endelige blok ovenfor: datoløs afgørelse oplyses uden referencedato.
+      const tekst = 'Der er truffet midlertidig afgørelse om erhvervsevnetab med 15 % eller derover.';
+      midlertidigEetLinje = values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
     }
   }
 

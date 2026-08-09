@@ -5,7 +5,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 
 ## Nye fund
 
-Næste ID: **BF-054**. Kopiér denne blok pr. fund:
+Næste ID: **BF-055**. Kopiér denne blok pr. fund:
 
 ```md
 ## BF-028 — Kort titel
@@ -82,6 +82,7 @@ Ingen fund afventer reproduktion.
 | BF-048 | Manglende midlertidig EET-dato vises som en ikke-blokerende gul advarsel på Beregning. |
 | BF-049 | Manglende endelig EET-dato vises som en ikke-blokerende gul advarsel på Beregning. |
 | BF-052 | Slet alt rydder den sagsnære aktive fanehistorik, så sider åbner på deres standardfane. |
+| BF-054 | En EET-afgørelse uden datoer oplyses nu som truffet i dokumentet i stedet for at blive påstået ikke-truffet; den bærer ingen referencedato og kan derfor fortsat ikke afgrænse TAF. |
 
 ## BF-033 — Valg-dropdowns kræver forkert præcision ved paste
 
@@ -121,13 +122,4 @@ Ingen fund afventer reproduktion.
 - Påvirkning: Brugeren får ikke en præcis forklaring på, hvorfor brøken er ugyldig.
 - Prioritet: Mellem
 - Status: Ny
-
-
-
-NYT BRUGERFUND, DER SKAL SKRIVES IND:
-- Når valgmuligheden 'Truffet afgørelse om midlertidigt erhvervsevnetab på 15 % eller derover' sat til true, men der ikke er indtastet en afgørelses- eller virkningsdato, og brugeren downloader erstatningsopgørelsen, angives dette: "Der er den 3. juni 2026 ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover." hvilket er en fejl. Der burde stå: "Der er truffet midlertidig afgørelse om erhvervsevnetab med 15 % eller derover."
-- Tilsvarende, når valgmuligheden "Truffet afgørelse om endeligt erhvervsevnetab på 15 % eller derover" er sat til true, uden angivelse af en afgørelses- eller virkningsdato. I dette tilfælde skal teksten i det downloadede dokument være ""Der er truffet endelig afgørelse om erhvervsevnetab med 15 % eller derover."
-- Er begge sat til True har teksten for endelig erhvervsevnetab forrang, så kun denne vises. Der er i forvejen systematikker for, hvad der vises i tilfælde, hvor der både er angivet midlertidig og endelig EET-afgørelse, som også skal følges i dette tilfælde. 
-
-
 
