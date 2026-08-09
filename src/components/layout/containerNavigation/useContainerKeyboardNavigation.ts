@@ -226,7 +226,14 @@ export const useContainerKeyboardNavigation = (
         return;
       }
       const target = resolveCircularNeighbor(focusableElements, activeFocusable, step);
-      if (target) focusOnly(target);
+      if (!target) return;
+
+      if (target === activeFocusable) {
+        // En singleton-sekvens har intet andet fokusmål, så browseren udløser ikke selv blur.
+        // Gennemfør den normale blur/settle før samme felt får det cirkulære fokus tilbage.
+        activeFocusable.blur();
+      }
+      focusOnly(target);
     },
     [containerRef, getFocusableElements, invalidate, inventory, isInTableNavigation],
   );

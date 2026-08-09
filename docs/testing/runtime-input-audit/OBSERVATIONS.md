@@ -1352,7 +1352,7 @@ Brugeren får en teknisk fejladvarsel og kan samtidig se et beløb, som feltet i
 
 ### OBS-027 — Tab-navigation afslutter ikke draft på Satser-feltet
 
-- Status: Bekræftet
+- Status: Løst 2026-08-09
 - Kategori: UX / Tilgængelighed / Kontraktdrift
 - Alvor: Mellem
 - Først set: 2026-08-09 06:16 Europe/Copenhagen
@@ -1392,6 +1392,12 @@ Brugeren kan tro, at årstallet er ændret, selv om siden og PDF-gaten stadig br
 - Firefox: samme resultat efter `Shift+Tab`.
 - Kontrol med klik på `Årstal` eller Enter: konkret bounds-issue og disabled download blev vist.
 - Kildereference: `src/components/layout/containerNavigation/useContainerKeyboardNavigation.ts`, `src/inputCore/react/fields/YearField.tsx`, `src/contracts/form-contract.md`, `src/contracts/keyboard-navigation.md`.
+
+**Løsning 2026-08-09**
+
+Containerens cirkulære navigation gennemfører nu den normale blur/settle, når målfeltet er identisk med det
+aktive felt. Reglen gælder kun den ene singleton-gren; navigation mellem forskellige felter er uændret.
+Den er dækket med Container- og Satser-integrationstest samt browser-test i Chrome, Edge, Firefox og WebKit.
 
 ### OBS-028 — Firefox-teknisk advarsel blokerer Løntrin-finderens datofelt
 

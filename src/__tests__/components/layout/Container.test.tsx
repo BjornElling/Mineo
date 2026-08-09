@@ -226,6 +226,30 @@ describe('Container keyboard navigation', () => {
     expect(field3.selectionStart).toBe(field3.selectionEnd);
   });
 
+  it('Tab og Shift+Tab afslutter et enkelt felt, før det får fokus igen', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn();
+
+    render(
+      <Container>
+        <input data-testid="eneste-felt" type="text" onBlur={onBlur} style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const field = screen.getByTestId('eneste-felt') as HTMLInputElement;
+    field.focus();
+
+    await user.keyboard('{Tab}');
+    await waitForSelectionClear();
+    expect(onBlur).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(field);
+
+    await user.keyboard('{Shift>}{Tab}{/Shift}');
+    await waitForSelectionClear();
+    expect(onBlur).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(field);
+  });
+
   it('Enter på combobox-widget intercepteres IKKE af Container', async () => {
     const user = userEvent.setup();
     let enterWasFired = false;

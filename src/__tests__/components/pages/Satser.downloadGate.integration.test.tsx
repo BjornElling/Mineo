@@ -9,6 +9,7 @@ import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimI
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import Container from '../../../components/layout/Container';
 import Satser from '../../../components/pages/Satser';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
@@ -55,7 +56,9 @@ const renderSatser = (committedAargang: number) => {
       <AppSettingsProvider>
         <RoutePathnameProvider>
           <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
-            <Satser />
+            <Container>
+              <Satser />
+            </Container>
           </ProductionInputRuntimeProvider>
         </RoutePathnameProvider>
       </AppSettingsProvider>
@@ -101,6 +104,30 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     expect(screen.getByText('Arbejdsskadesatser')).toBeInTheDocument();
     expect(screen.getByText('Vælg et gyldigt år for at se satserne.')).toBeInTheDocument();
     expect(screen.queryByText(`Arbejdsskadesatser ${satserAngivAarYearBounds.maxYear}`)).not.toBeInTheDocument();
+  });
+
+  it('Tab og Shift+Tab afslutter en åben Satsår-draft i sidens singleton-sekvens', async () => {
+    const user = userEvent.setup();
+    renderSatser(satserAngivAarYearBounds.maxYear);
+    const input = getYearInput();
+
+    await user.dblClick(input);
+    await user.clear(input);
+    await user.type(input, '2027');
+    await user.keyboard('{Tab}');
+
+    expect(input).toHaveValue('2027');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(getDownloadButton()).toBeDisabled();
+
+    await user.dblClick(input);
+    await user.clear(input);
+    await user.type(input, String(satserAngivAarYearBounds.maxYear));
+    await user.keyboard('{Shift>}{Tab}{/Shift}');
+
+    expect(input).toHaveValue(String(satserAngivAarYearBounds.maxYear));
+    expect(input).toHaveAttribute('aria-invalid', 'false');
+    expect(getDownloadButton()).toBeEnabled();
   });
 
   it('en åben ugyldig draft ændrer intet afsluttet; et downloadklik settler først og når ikke servicen (§1.2/§1.4)', async () => {

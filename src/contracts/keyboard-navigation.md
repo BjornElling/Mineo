@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-09
 
 ---
 
@@ -29,6 +29,9 @@ Alle tastatur-navigation skal:
 - Cirkulær navigation: Tab fra sidste felt → første felt, Shift+Tab fra første felt → sidste felt
 - **MÅ ALDRIG selektere indhold i målfeltet**
 - Kun fokus – ingen selection
+- Når en side kun har ét fokusbart felt, er mål og udgangspunkt samme element. Container skal da først
+  udløse feltets almindelige blur/settle og derefter bevare fokus på feltet; ellers ville den cirkulære
+  navigation lade en åben draft stå uafsluttet, fordi browseren ikke har noget andet element at blur'e til.
 
 **Undtagelser:**
 - Popup-widgets der er åbne (aria-expanded="true") – Container intercepter IKKE Tab, så widget selv kan håndtere det
