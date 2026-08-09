@@ -21,7 +21,7 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-013 | PWA-filåbning registrerer ikke launchQueue-consumer | Kontraktdrift / Dataintegritet | SURF-012 / OPEN-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-08 20:14 Europe/Copenhagen |
 | OBS-014 | Årsløn skjuler beregning og download ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-007 / AAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:28 Europe/Copenhagen |
 | OBS-015 | EET skjuler dokumentdownload ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-004 / EET-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:48 Europe/Copenhagen |
-| OBS-016 | EET lader dokumentdownload være aktiv ved fejl i en senere afgørelse | Dataintegritet / Kontraktdrift | EDGE-003 / EET-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-08 21:55 Europe/Copenhagen |
+| OBS-016 | EET lader dokumentdownload være aktiv ved fejl i en senere afgørelse | Falsk positiv (audit) | EDGE-003 / EET-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | — | Bortfaldet 2026-08-09 (falsk positiv) | 2026-08-08 21:55 Europe/Copenhagen |
 | OBS-017 | Nulstillingsdialog overtager ikke keyboardfokus | UX / Tilgængelighed / Kontraktdrift | SURF-001 / PAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 23:15 Europe/Copenhagen |
 | OBS-018 | Nedre Fødselsdato-grænse vises som generisk indtastningsfejl | Kontraktdrift / UX | CUT-001 / STAM-008 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:19 Europe/Copenhagen |
 | OBS-019 | Forsørgertabs blokerede dato-gate viser generisk downloadårsag | Kontraktdrift / UX | CUT-001 / FORS-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:19 Europe/Copenhagen |
@@ -728,9 +728,19 @@ Fail-closed er opfyldt for selve PDF-outputtet, men brugeren kan ikke se den dok
 
 ### OBS-016 — EET lader dokumentdownload være aktiv ved fejl i en senere afgørelse
 
-- Status: Bekræftet
-- Kategori: Dataintegritet / Kontraktdrift
-- Alvor: Høj
+> **Bortfaldet 2026-08-09 (falsk positiv).** De tre registrerede forhold er advarsler, ikke fejl.
+> EET viser advarsler med en gul trekant og fejl med et rødt udråbstegn; overskriften `Fejl og advarsler`
+> angiver ikke severity. Allerede i den auditerede `b3f5e279adf8`-version blev den midlertidige afgørelse
+> efter en endelig afgørelse samt datoerne efter beregningsdatoen oprettet med `toWarning`.
+>
+> Kontrakten er korrekt: `error-contract.md` §1 fastslår, at en `warning` aldrig blokerer beregning,
+> dokument eller `.eo`, og EET afleder kun `hasBlockingErrors` af issues med severity `error`. En aktiv
+> download er derfor den forventede adfærd, når der ikke findes andre fejl. Den modsatte kontrast —
+> `no-asl-afgoerelser-known-at-beregningsdato` — er et egentligt `error` og blokerer korrekt.
+
+- Status: Bortfaldet 2026-08-09 (falsk positiv)
+- Kategori: Falsk positiv (audit)
+- Alvor: —
 - Først set: 2026-08-08 21:55 Europe/Copenhagen
 - Commit/build: `b3f5e279adf8` / `2026.08.1237.b3f5e27`
 - Dirty-state: dirty ved genoptagelse; kun auditdokumenter og midlertidige audit-artefakter ændret

@@ -142,6 +142,19 @@ headless-auditten ikke kan afslutte eller inspicere. Registrér i så fald det p
 den implementerede save-projektion samt en browser/sink, hvor resultatet kan verificeres. Opret ikke et fund om
 blokeret Gem, før den valgte sinks resultat eller handlerens dokumenterede blokering er kontrolleret.
 
+### Dokument-orakel: severity før tekst
+
+Fastlæg et issues severity og den berørte dokumentprojektion, før en aktiv eller blokeret download vurderes.
+Udled aldrig en fejl alene af teksten, overskriften `Fejl og advarsler`, antallet af issues eller den viste
+beregning:
+
+- En `warning` skal ikke blokere beregning, dokument eller `.eo`. Kontroller, at `hasBlockingErrors` er falsk,
+  og at download kan være aktiv, når der ikke findes andre blokeringer.
+- Kun et dokumentrelevant `error` skal udløse dokumentgaten. Kontroller både den reaktive knaptilstand og den
+  klikbaserede gate med en kontrast, hvor samme flade har et egentligt `error`.
+- Aflæs og registrér issue-id, severity og den synlige statusmarkør. Kald ikke et issue en fejl, før severity er
+  bekræftet i projektionen eller den autoritative issue-kilde.
+
 ### 4. Isolér og registrér straks
 
 Stop kun den aktuelle matrixgren ved et signal. Gentag fra ren tilstand mindst to gange, minimér handlingerne, og find den første handling der udløser afvigelsen. Kontrollér en nærliggende kontrastværdi eller sekvens, som ikke udløser den, når det kan gøres sikkert.
