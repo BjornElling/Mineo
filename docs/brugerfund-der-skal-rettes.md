@@ -469,7 +469,14 @@ paste ændrer en værdi, der ligger inden for feltets grænser. Den forkerte var
 - Det bør ske: Blinkmarkeringen skal altid udløses på det felt, som linket fører til. Ved dropdown-felter skal hele feltets synlige baggrund, inklusive området bag pilen ned til højre, blinke rødt. Det skal også virke, når linket fører til et felt på en anden side.
 - Påvirkning: Brugeren får ikke entydig visuel bekræftelse af, hvilket felt der kræver opmærksomhed, selv om linket navigerer til den rigtige placering.
 - Prioritet: Høj
-- Status: Ny
+- Status: **Løst 2026-08-09**
+
+**Løsning.** Feltadressen sidder bevidst på den fokuserbare editor, men MUI-dropdownens synlige baggrund
+ligger på editorens overordnede skal. Den delte blinkmekanisme finder nu den nærmeste `MuiInputBase-root` og
+animerer den i stedet for det indre input. Dermed dækker markeringen hele feltet, også området bag pilen,
+uden at hver enkelt felttype skal have sin egen blinklogik. Celler og ikke-MUI-felter bruger fortsat deres
+eget element som synlig flade. Playwright kontrollerer de faktiske fejl-links både inden for EO og til
+Stamdata efter route-skift i Chrome, Edge, Firefox og Safari/WebKit.
 
 ### BF-028 og BF-031 — analyse og løsning
 

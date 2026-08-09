@@ -63,6 +63,7 @@ const mountFieldAt = (address: FieldAddress, options: MountOptions = {}): HTMLIn
   input.setAttribute(EDITOR_TAB_ATTR, options.tabKey ?? '');
 
   const host = document.createElement('div');
+  host.className = 'MuiInputBase-root';
   if (options.hidden === true) host.setAttribute('hidden', '');
   host.appendChild(input);
   document.body.appendChild(host);
@@ -163,7 +164,7 @@ describe('focusFirstBlockingRejectedField', () => {
 
     await focusFirstBlockingRejectedField([serializeFieldAddress(stamdataSkadedato)], navigate as never);
 
-    expect(target.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
+    expect(target.closest('.MuiInputBase-root')?.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
   });
 
   // Kernen i adressebaseret targeting: to rækker deler feltnavnet `belob`. En navnebaseret søgning ville

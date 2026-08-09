@@ -89,6 +89,52 @@ const sampleBlink = async (page: Page, selector: string): Promise<readonly strin
 };
 
 /**
+ * Start browserens egen rAF-sampling FØR et rigtigt fejllink klikkes.
+ *
+ * På en stor WebKit-viewport kan en Playwright-rundtur nå at komme sent ind i den korte 1,5 s-animation.
+ * Sampling må derfor følge browserens frames fra klasseændringen, ikke fra testprocessens næste await.
+ */
+const startBlinkSampling = (page: Page): Promise<void> => page.evaluate((className) => {
+  type BlinkSamplingState = { samples: string[]; complete: boolean };
+  const windowWithBlinkSampling = window as Window & { mineoBlinkSampling?: BlinkSamplingState };
+  windowWithBlinkSampling.mineoBlinkSampling = { samples: [], complete: false };
+
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      const target = record.target;
+      if (!(target instanceof HTMLElement) || !target.classList.contains(className)) continue;
+
+      observer.disconnect();
+      const state = windowWithBlinkSampling.mineoBlinkSampling;
+      if (!state) return;
+      const sampleFrame = () => {
+        if (!target.classList.contains(className)) {
+          state.complete = true;
+          return;
+        }
+        state.samples.push(getComputedStyle(target).backgroundColor);
+        requestAnimationFrame(sampleFrame);
+      };
+      requestAnimationFrame(sampleFrame);
+      return;
+    }
+  });
+
+  observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+}, BLINK_CLASS);
+
+const readBlinkSamples = async (page: Page): Promise<readonly string[]> => {
+  await page.waitForFunction(() => {
+    const state = (window as Window & { mineoBlinkSampling?: { complete: boolean } }).mineoBlinkSampling;
+    return state?.complete === true;
+  });
+  return page.evaluate(() => {
+    const state = (window as Window & { mineoBlinkSampling?: { samples: string[] } }).mineoBlinkSampling;
+    return state?.samples ?? [];
+  });
+};
+
+/**
  * Læs alfa ud af en beregnet farve. Chromium rapporterer den animerede blanding som `oklab(... / a)`
  * og den statiske som `color(srgb ... / a)`, så alfa tages fra `/ a`-suffikset i begge former.
  */
@@ -103,15 +149,63 @@ const alphaOf = (color: string): number => {
  * imellem — altså et BLINK og ikke en konstant baggrund.
  */
 const expectRedPulse = (samples: readonly string[]): void => {
-  const painted = samples.filter((sample) => alphaOf(sample) > 0.02);
-  // En enkelt tydelig painted sample er tilstrækkelig; WebKit kan samle flere CSS-frames i samme
-  // sample, så antallet af observerede mellemframes er ikke en stabil browserkontrakt.
-  expect(painted.length).toBeGreaterThan(0);
-  for (const sample of painted) expect(containsErrorRed(sample)).toBe(true);
+  // Nogle motorer afleverer MUI-skallens hvide normalbaggrund i den FØRSTE rAF efter klasseændringen.
+  // Den er ikke en animationframe og må ikke kunne skjule eller afvise de efterfølgende røde frames.
+  const redAnimationSamples = samples.filter(containsErrorRed);
+  expect(redAnimationSamples.length).toBeGreaterThan(0);
 
-  const alphas = samples.map(alphaOf);
-  expect(Math.max(...alphas)).toBeGreaterThan(0.12);
-  expect(Math.min(...alphas)).toBeLessThan(0.02);
+  const alphas = redAnimationSamples.map(alphaOf);
+  const maximumAlpha = Math.max(...alphas);
+  const minimumAlpha = Math.min(...alphas);
+  expect(maximumAlpha).toBeGreaterThan(0.12);
+  // WebKit kan springe helt over animationens eksakte 0-frame ved route-skift. Kravet er den
+  // observerbare puls (klar top og tydeligt fald), ikke at måleren får netop denne ene frame.
+  expect(maximumAlpha - minimumAlpha).toBeGreaterThan(0.1);
+};
+
+/** Opretter de fejl, der driver de rigtige navigerbare links på EO's Beregning-fane. */
+const openEoErrorOverview = async (page: Page): Promise<void> => {
+  await login(page);
+  await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+  await page.locator("input[name='kravPaaSvieSmerteGodtgoerelse'][value='Ja']").check();
+  await page.getByRole('tab', { name: 'Beregning' }).click();
+  await expect(page.getByText('Fejl og advarsler', { exact: true })).toBeVisible();
+};
+
+/** Klikker den handlingsknap, der hører til præcis den viste fejl-/advarselsrække. */
+const clickEoIssueLink = async (page: Page, message: string, actionName: string): Promise<void> => {
+  const issueRow = page.locator('.row--label-right-hover').filter({ hasText: message });
+  await expect(issueRow).toBeVisible();
+  await issueRow.getByRole('button', { name: actionName, exact: true }).click();
+};
+
+/**
+ * Et StyledDropdowns synlige flade er MUI-roden, ikke det indre input med feltadressen.
+ * Rodens rektangel ligger bag den absolut placerede pil, så dens pulserende baggrund beviser også
+ * dækningen af pilens område.
+ */
+const expectLinkedDropdownToPulse = async (
+  page: Page,
+  inputName: string,
+  samples: Promise<readonly string[]>
+): Promise<void> => {
+  const input = page.locator(`input[name="${inputName}"]`);
+  await expect(input).toBeVisible();
+  const surface = input.locator('xpath=..');
+  await expect(surface).toHaveClass(new RegExp(BLINK_CLASS));
+
+  const arrowIsInsideSurface = await input.evaluate((element) => {
+    const surface = element.closest<HTMLElement>('.MuiInputBase-root');
+    const arrow = surface?.parentElement?.querySelector<SVGElement>('svg');
+    if (!surface || !arrow) return false;
+    const surfaceBox = surface.getBoundingClientRect();
+    const arrowBox = arrow.getBoundingClientRect();
+    return arrowBox.left >= surfaceBox.left && arrowBox.right <= surfaceBox.right
+      && arrowBox.top >= surfaceBox.top && arrowBox.bottom <= surfaceBox.bottom;
+  });
+  expect(arrowIsInsideSurface).toBe(true);
+
+  expectRedPulse(await samples);
 };
 
 test.describe('Blinkmarkeringen males i browseren', () => {
@@ -153,5 +247,25 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     expect(animationName).toBe('none');
     expect(background).toContain(ERROR_RED_SRGB);
     expect(alphaOf(background)).toBeCloseTo(0.2, 2);
+  });
+
+  test('fejllink på samme side blinker hele dropdownen, også under pilen', async ({ page }) => {
+    await openEoErrorOverview(page);
+    await startBlinkSampling(page);
+
+    await clickEoIssueLink(page, 'Helbredsforhold er ikke angivet', 'Erstatningsopgørelse');
+
+    await expect(page.getByRole('tab', { name: 'EO oplysninger' })).toHaveAttribute('aria-selected', 'true');
+    await expectLinkedDropdownToPulse(page, 'svieSmerteHelbredsstatus', readBlinkSamples(page));
+  });
+
+  test('fejllink til en anden side blinker det konkrete dropdownfelt efter route-skift', async ({ page }) => {
+    await openEoErrorOverview(page);
+    await startBlinkSampling(page);
+
+    await clickEoIssueLink(page, 'Skadestype er ikke angivet', 'Skadelidte');
+
+    await expect(page).toHaveURL(/\/stamdata$/);
+    await expectLinkedDropdownToPulse(page, 'skadestype', readBlinkSamples(page));
   });
 });

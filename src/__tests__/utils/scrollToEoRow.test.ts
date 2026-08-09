@@ -95,7 +95,10 @@ describe('scrollToEoRow', () => {
     input.setAttribute(EDITOR_ROUTE_ATTR, '/erstatningsopgoerelse');
     input.setAttribute(EDITOR_TAB_ATTR, 'eo_oplysninger');
     if (options.hidden) input.setAttribute('hidden', '');
-    document.body.appendChild(input);
+    const surface = document.createElement('div');
+    surface.className = 'MuiInputBase-root';
+    surface.appendChild(input);
+    document.body.appendChild(surface);
     return input;
   };
 
@@ -152,8 +155,8 @@ describe('scrollToEoRow', () => {
 
     scrollToEoRow('taf.periode.taf-1', { focusTarget: { kind: 'fieldAddress', address: field.address } });
 
-    // Markeringen er den DELTE mekanisme og lander på PRÆCIS det element, der blev scrollet til.
-    expect(editor.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
+    // Scroll- og fokusmålet er editoren, mens blinket skal dække den synlige MUI-skal.
+    expect(editor.closest('.MuiInputBase-root')?.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
   });
 
   it('blinkmarkerer rækkeankeret, når fejlen ikke har ét ansvarligt felt', () => {

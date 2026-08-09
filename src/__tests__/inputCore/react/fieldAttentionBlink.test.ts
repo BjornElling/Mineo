@@ -57,14 +57,18 @@ describe('fieldAttentionBlink — den delte «peg på dette felt»-markering', (
     expect(element.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(false);
   });
 
-  it('finder elementet gennem den kanoniske feltadresse', () => {
+  it('finder feltet gennem den kanoniske feltadresse og markerer dets synlige MUI-skal', () => {
     const address = serializeFieldAddress(eoTafPeriodeFraField.bind('taf-1').address);
     const element = document.createElement('input');
     element.setAttribute(FIELD_ADDRESS_ATTR, address);
-    document.body.appendChild(element);
+    const surface = document.createElement('div');
+    surface.className = 'MuiInputBase-root';
+    surface.appendChild(element);
+    document.body.appendChild(surface);
 
     expect(blinkFieldAttentionByAddress(address)).toBe(true);
-    expect(element.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
+    expect(surface.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
+    expect(element.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(false);
   });
 
   it('er en no-op uden mål — hverken for en ukendt adresse eller et manglende element', () => {

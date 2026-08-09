@@ -31,8 +31,20 @@ export const FIELD_ATTENTION_BLINK_CLASS = 'mineo-field-attention-blink';
  */
 export const FIELD_ATTENTION_BLINK_DURATION_MS = 1500;
 
-/** Timeren pr. element, så gentagne blink på samme element ikke efterlader en forældet oprydning. */
+/** Timeren pr. synlig overflade, så gentagne blink ikke efterlader en forældet oprydning. */
 const pendingClears = new WeakMap<HTMLElement, number>();
+
+/**
+ * Den fokuserbare editor er ikke altid den flade, brugeren ser som feltet.
+ *
+ * MUIs tekst- og dropdownfelter lægger feltadressen på deres indre `<input>`, mens den hvide, synlige
+ * baggrund — inklusive dropdownens reserverede område under pilen — ejes af den omgivende
+ * `MuiInputBase-root`. Blinkede vi inputtet direkte, blev kun tekstområdet rødt, og et link kunne derfor
+ * se ud til ikke at have peget på feltet. Tabellenes celler og øvrige ikke-MUI-mål er allerede deres egen
+ * synlige flade og falder bevidst tilbage til sig selv.
+ */
+const resolveAttentionSurface = (element: HTMLElement): HTMLElement =>
+  element.closest<HTMLElement>('.MuiInputBase-root') ?? element;
 
 /**
  * Lad et element blinke for at pege brugeren på det.
@@ -48,22 +60,24 @@ const pendingClears = new WeakMap<HTMLElement, number>();
 export const blinkFieldAttention = (element: HTMLElement | null | undefined): void => {
   if (!element || typeof window === 'undefined') return;
 
-  const existingTimer = pendingClears.get(element);
+  const surface = resolveAttentionSurface(element);
+
+  const existingTimer = pendingClears.get(surface);
   if (existingTimer !== undefined) {
     window.clearTimeout(existingTimer);
-    pendingClears.delete(element);
+    pendingClears.delete(surface);
   }
 
   // Genstart animationen: fjern klassen, tving reflow, sæt den igen.
-  element.classList.remove(FIELD_ATTENTION_BLINK_CLASS);
-  void element.offsetWidth;
-  element.classList.add(FIELD_ATTENTION_BLINK_CLASS);
+  surface.classList.remove(FIELD_ATTENTION_BLINK_CLASS);
+  void surface.offsetWidth;
+  surface.classList.add(FIELD_ATTENTION_BLINK_CLASS);
 
   const timer = window.setTimeout(() => {
-    element.classList.remove(FIELD_ATTENTION_BLINK_CLASS);
-    pendingClears.delete(element);
+    surface.classList.remove(FIELD_ATTENTION_BLINK_CLASS);
+    pendingClears.delete(surface);
   }, FIELD_ATTENTION_BLINK_DURATION_MS);
-  pendingClears.set(element, timer);
+  pendingClears.set(surface, timer);
 };
 
 /**

@@ -6,7 +6,7 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 
 | ID | Kort titel | Kategori | Flade | Browser/viewport | Alvor | Status | Først set |
 |---|---|---|---|---|---|---|---|
-| OBS-001 | Formular-blink kan måles for svagt i Safari ved stor viewport | Browserforskel / UX | SURF-001 / BASELINE-001 | Safari/WebKit 2560×1440 | Mellem | Ustabil | 2026-08-08 15:48 Europe/Copenhagen |
+| OBS-001 | Formular-blink kan måles for svagt i Safari ved stor viewport | Browserforskel / UX | SURF-001 / BASELINE-001 | Safari/WebKit 2560×1440 | Mellem | Løst 2026-08-09 | 2026-08-08 15:48 Europe/Copenhagen |
 | OBS-002 | Sidemenuets toggle mangler tilgængeligt navn | UX / Andet | SURF-001 / SHELL-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Lav | Bekræftet | 2026-08-08 15:52 Europe/Copenhagen |
 | OBS-003 | Datoissue navngiver ikke den synlige kontekstuelle label | Inkonsistens / UX | SURF-002 / STAM-003 | Chrome 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:03 Europe/Copenhagen |
 | OBS-004 | Gem er visuelt aktiv ved rejected input, men blokeres først ved klik | Dataintegritet / Kontraktdrift | SURF-001/SURF-002 / STAM-004 | Chrome 1920×1080 | Høj | Bekræftet | 2026-08-08 16:07 Europe/Copenhagen |
@@ -37,7 +37,7 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 
 ### OBS-001 — Formular-blink kan måles for svagt i Safari ved stor viewport
 
-- Status: Ustabil
+- Status: Løst 2026-08-09
 - Kategori: Browserforskel / UX
 - Alvor: Mellem
 - Først set: 2026-08-08 15:48 Europe/Copenhagen
@@ -70,12 +70,22 @@ Samme formularsekvens bestod i Chrome, Edge og Firefox ved 2560×1440 samt i Saf
 
 Ved den observerede kørsel er den brugerrettede markering på et formularfelt næsten usynlig i en understøttet browser/viewport, så brugeren kan misse fokusmålet for en fejl eller navigation. Den ustabile reproduktion gør det uklart, om årsagen er timing/animationssampling eller en reel browserafvigelse.
 
+**Løsning 2026-08-09**
+
+Årsagen var ikke Safari-specifik: den delte blinkmekanisme satte klassen på editorens indre `<input>`, selv om
+MUI ejer den synlige feltbaggrund på den omgivende `MuiInputBase-root`. Derfor kunne et input få røde pixels,
+mens selve feltet — og især dropdownens område under pilen — fortsat var hvidt. `fieldAttentionBlink.ts`
+opløser nu den synlige MUI-skal før animation og timeroprydning; celler og andre flader uden en MUI-skal
+blinker fortsat på deres eget element. Browserkontrollen dækker både et fejl-link inden for EO og et link til
+Stamdata efter route-skift og måler den faktiske røde puls på den fulde dropdownskal.
+
 **Evidens**
 
 - Screenshot/trace: Playwright genererede screenshot, video og trace ved den oprindelige fejl; artefakterne blev fjernet af den efterfølgende målrettede kørsel og er ikke bevaret i auditmappen.
-- Kildereference: `e2e/field-attention-blink.spec.ts:111-114`.
-- Reproducerbarhed: 1/3 samlet; 0/2 i målrettet gentagelse.
-- Andre browsere/viewports: Bestået som beskrevet ovenfor.
+- Kildereference: `src/inputCore/react/fieldAttentionBlink.ts` og `e2e/field-attention-blink.spec.ts`.
+- Reproducerbarhed: Den gamle afvigelse reproduceredes på det indre input; den synlige skal blev ikke farvet.
+- Regressionstest: Reelle fejl-links på samme side og over route-skift måler puls, fuld dropdowndækning og
+  reduced-motion-adfærd på alle understøttede desktopbrowsere.
 
 ### OBS-002 — Sidemenuets toggle mangler tilgængeligt navn
 
