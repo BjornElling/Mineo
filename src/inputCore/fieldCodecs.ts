@@ -256,11 +256,8 @@ export const createIntegerFieldCodec = (
     formatForEdit: (value) => value === undefined ? '' : String(value),
     // Minus åbner kun editoren på et felt, der FÅR være negativt.
     acceptsInitialKey: (key) => /^\d$/.test(key) || (key === '-' && config.allowNegative),
-    // Paste beholder BEVIDST `allowNegative: true`: en INDSAT negativ værdi skal committes canonical og bære
-    // sit røde bounds-issue (§1.6), ikke få fortegnet stille fjernet. Tegnfilteret gælder tastning — det
-    // forhindrer indtastningen, mens paste aldrig må ændre data i tavshed.
     normalizePaste: (raw) => normalizeIntegerPaste(raw, {
-      allowNegative: true,
+      allowNegative: config.allowNegative,
     }),
   });
 };
@@ -312,7 +309,7 @@ export const createAmountFieldCodec = (options: Readonly<{
     // (`containsUnaryMinusToken`), og den skelnen kan et enkelt-tegns-opslag ikke gøre.
     acceptsInitialKey: (key) => (options.allowDecimals ? /^[0-9,()-]$/ : /^[0-9()-]$/).test(key),
     normalizePaste: (raw) => normalizeAmountPaste(raw, {
-      allowNegative: true,
+      allowNegative: options.allowNegative,
       allowDecimals: options.allowDecimals,
       maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
       maxDecimalDigits: displayPrecision,
@@ -355,8 +352,10 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
       return (config.allowDecimals ? /^[0-9,]$/ : /^[0-9]$/).test(key);
     },
     normalizePaste: (raw) => normalizePercentPaste(raw, {
-      allowNegative: true,
+      allowNegative: config.allowNegative,
       allowDecimals: config.allowDecimals,
+      maxIntegerDigits: 3,
+      maxDecimalDigits: config.allowDecimals ? 2 : 0,
     }),
   });
 };

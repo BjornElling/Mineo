@@ -19,10 +19,10 @@ import { isISODateString } from '../../types/branded';
 import { resolveManualRegulationBasisRowId } from '../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
 import { activeFieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import { isLoenudviklingManuelProcentsatsRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 
 const LOCKED_PERCENT_PLACEHOLDER = withInputUnitPlaceholderSuffix(TWO_DECIMAL_PERCENT_PLACEHOLDER, INPUT_UNIT_SUFFIX.percent);
 const createEmptyRow = (id: string): LoenudviklingManuelProcentsatsRow => ({ ...initialLoenudviklingManuelProcentsatsRow, id });
-const isRowEmpty = (row: LoenudviklingManuelProcentsatsRow) => row.dato === undefined && row.procent === undefined;
 
 export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   bindings: ManualBindings;
@@ -54,7 +54,7 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
     { colId: 'indeks', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => entryById.get(row.id)?.indeks },
     { colId: 'akkumuleret', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => entryById.get(row.id)?.akkumuleretPct },
   ], [baseDateISO, baseRowId, entryById]);
-  const sort = useTableSort({ rows: committedRows, getRowId: (row) => row.id, isRowEmpty: (row) => row.id === baseRowId ? false : isRowEmpty(row), columns, onSortedRowsChange: (next) => table.reorderRows((baseRowId === undefined ? next : [committedRows[0], ...next.filter((row) => row.id !== baseRowId)]).filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined).map((row) => row.id)) });
+  const sort = useTableSort({ rows: committedRows, getRowId: (row) => row.id, isRowEmpty: (row) => row.id === baseRowId ? false : isLoenudviklingManuelProcentsatsRowEmpty(row), columns, onSortedRowsChange: (next) => table.reorderRows((baseRowId === undefined ? next : [committedRows[0], ...next.filter((row) => row.id !== baseRowId)]).filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined).map((row) => row.id)) });
   // Basisrækken er programstyret og ankres først; resten følger sorteringen. Den orden er
   // tabellens visningsorden, og render-modellen bygges af den ÉT sted (`buildRenderRows`) —
   // ikke ved at permutere en færdigbygget model på plads bagefter.
@@ -81,7 +81,7 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
         <td style={getStandardGridCellStyle({ align: 'center' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(0)} displayValue={baseDateDisplay} align="center" errorMessage={baseDateErrorMessage} infoTooltipText={baseDateInfoTooltipText} /> : <GridDateCell gridCell={gc(0)} cell={dateCell} collectionRuleIssue={dateRuleIssue} />}</td>
         <td style={getStandardGridCellStyle({ align: 'right' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(1)} displayValue={appendInputUnitSuffix(formatPercentDisplay(0, true), INPUT_UNIT_SUFFIX.percent)} align="right" placeholder={LOCKED_PERCENT_PLACEHOLDER} /> : <GridPercentCell gridCell={gc(1)} cell={table.buildCellSpec(renderRow, bindings.manualPercentFields.procent, 1)} />}</td>
         <td style={getStandardGridCellStyle({ align: 'right' })}><GridReadOnlyLockedCell gridCell={gc(2)} displayValue={entry ? formatAsAmount(entry.indeks, 2) : ''} align="right" /></td>
-        <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}><GridReadOnlyLockedCell gridCell={gc(3)} displayValue={entry ? `${entry.akkumuleretPct >= 0 ? '+ ' : '- '}${formatAsAmount(Math.abs(entry.akkumuleretPct), 2)} %` : ''} align="right" />{renderRow.kind === 'existing' && !isBase && row !== undefined && !isRowEmpty(row) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
+        <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}><GridReadOnlyLockedCell gridCell={gc(3)} displayValue={entry ? `${entry.akkumuleretPct >= 0 ? '+ ' : '- '}${formatAsAmount(Math.abs(entry.akkumuleretPct), 2)} %` : ''} align="right" />{renderRow.kind === 'existing' && !isBase && row !== undefined && !isLoenudviklingManuelProcentsatsRowEmpty(row) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
       </tr>;
     })}</tbody>
   </StandardGridTable>;

@@ -17,6 +17,7 @@ import { getDayBeforeIso, maxISO } from '../../utils/isoDateHelpers';
 import { dateBounds } from './dateBoundsValidators';
 import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
+  isAslAfgoerelseRowPersistenceEmpty,
   validatePercentDivisibleBy5FromValue,
   validatePercentNotZero,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
@@ -200,6 +201,7 @@ export const erhvervsevnetabAslAfgoerelserCollection = defineStructuralCollectio
   id: 'erhvervsevnetab.aslAfgoerelser',
   template: { section: 'erhvervsevnetab', path: [], collection: 'aslAfgoerelser' },
   createEmptySection: createEmptyErhvervsevnetabSection,
+  isEntityEmpty: (row) => isAslAfgoerelseRowPersistenceEmpty(row),
 });
 
 /** Den kanoniske CollectionRef for ASL-afgørelsesrækkerne (top-level collection, ingen entity-parent). */

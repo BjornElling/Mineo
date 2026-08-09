@@ -117,13 +117,11 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   }, []);
 
   // Tegnfilter i åben editor. Enter/Escape ejes af grid-core-navigationen (capture-fase) og når ikke hertil
-  // som edit-taster; vi filtrerer kun almindelige tegn, og kun mens der ikke er en aktiv rød fejl (så en
-  // fejlende råtekst kan rettes frit — samme gate som formular-surfacen).
+  // som edit-taster. En aktiv rød fejl ændrer ikke feltets tegn- eller længdepolitik.
   const onKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     const { controller: ctl, keyFilter: filter } = latest.current;
     if (!ctl.isOpen) return;
     if (!filter) return;
-    if (ctl.issue !== undefined) return;
     filter(e);
   }, []);
 

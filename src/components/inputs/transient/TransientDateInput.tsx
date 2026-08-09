@@ -2,8 +2,14 @@ import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from '../StyledTextFieldBase';
 import type { ISODateString } from '../../../types/branded';
-import { parseDateDraftForCommit } from '../../../utils/dateDraftCommit';
+import { parseDateDraftForCommit, MAX_DATE_DRAFT_LENGTH } from '../../../utils/dateDraftCommit';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
+import { filterDateLikeKeyDown } from '../inputKeyFilters';
+import { normalizeDatePaste } from '../../../utils/inputPasteNormalization';
+import { readClipboardText } from '../../../utils/clipboardUtils';
+import { spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
+import { assignRef } from '../../../utils/refUtils';
+import { mergeSx } from '../../../utils/mergeSx';
 import {
   resolveDateRangeErrorMessage,
   STATIC_DATE_BOUNDS,
@@ -16,9 +22,10 @@ import { useTransientDraft } from './useTransientDraft';
 import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
 // Transient datofelt (§3.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor datoen kun lever i
-// komponentens egen state — fx løntrin-finderens opslagsdato. Deler dato-parse-kernen
-// (`parseDateDraftForCommit`) og tegnfilteret med de persisterede datofelter, så indtastningsreglerne er ens;
-// men den har hverken feltadresse, issue-snapshot, history eller persistens.
+// komponentens egen state — fx løntrin-finderens opslagsdato. Scratch-værdien har ingen feltadresse, history
+// eller persistens, men dens redigeringsflade følger BEVIDST det ordinære datofelt: samme to-trins-aktivering,
+// tegnfilter, paste-normalisering, længerestriksning og bounds-tilstand. Ellers ville den samme dato have to
+// brugerregler afhængigt af, om den tilfældigvis indgik i en sag.
 
 export type TransientDateInputProps = Readonly<{
   value: ISODateString | undefined;
@@ -26,11 +33,11 @@ export type TransientDateInputProps = Readonly<{
   /** Vist fejl (ejes af kalderen, som også rydder den ved et nyt commit). */
   errorMessage?: string;
   /**
-   * Kaldes når draften afvises ved commit, så kalderen kan vise sin egen fejl. Kaldes også med
-   * `undefined` ved et gyldigt commit, så kalderen kan rydde en tidligere fejl.
+   * Kaldes både ved formatfejl og ved et canonical bounds-issue, så kalderen kan vise den samme røde
+   * ring/tooltip og holde sin lokale handling disabled. `undefined` rydder en tidligere fejl.
    */
   onReject?: (message: string | undefined) => void;
-  /** Kronologiske grænser. Overtrædelse afvises ved commit med den delte bounds-besked. */
+  /** Kronologiske grænser. En overtrædelse bevares canonical og vises som feltfejl. */
   minDate?: ISODateString;
   maxDate?: ISODateString;
   /**
@@ -59,7 +66,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
       maxDate,
       bounds = STATIC_DATE_BOUNDS,
       specialRangeErrors,
-      width,
+      width = 130,
       placeholder,
       inputRef,
       sx,
@@ -67,55 +74,137 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
     },
     ref
   ) => {
+    const inputElementRef = React.useRef<HTMLInputElement | null>(null);
+    const ignoreOpeningBlurRef = React.useRef(false);
     const draftState = useTransientDraft<ISODateString | undefined>({
       value,
-      format: (v) => (v === undefined ? '' : formatISOToDanish(v)),
+      format: (next) => (next === undefined ? '' : formatISOToDanish(next)),
       parse: (draft) => {
         const parsed = parseDateDraftForCommit(draft, { twoDigitYearPolicy: 'infer' });
         if (!parsed.ok) return { ok: false, message: parsed.message };
-        if (parsed.iso !== undefined) {
-          // Bounds afgøres ved commit gennem den DELTE bounds-besked-kerne, så et transient datofelt
-          // giver samme fejltekst som et persisteret felt med samme grænser.
-          const boundsMessage = resolveDateRangeErrorMessage({
-            iso: parsed.iso,
-            minDate,
-            maxDate,
-            special: specialRangeErrors,
-            bounds,
-          });
-          // ⚠️ `resolveDateRangeErrorMessage` signalerer "ingen fejl" med en TOM STRENG, ikke med `undefined`.
-          // En `!== undefined`-test her afviste derfor ENHVER gyldig dato — med en tom fejlbesked, så feltet
-          // bare aldrig committede. Test dermed på indhold, ikke på tilstedeværelse.
-          if (boundsMessage !== '') return { ok: false, message: boundsMessage };
-        }
-        return { ok: true, value: parsed.iso };
+        if (parsed.iso === undefined) return { ok: true, value: undefined };
+
+        const boundsMessage = resolveDateRangeErrorMessage({
+          iso: parsed.iso,
+          minDate,
+          maxDate,
+          special: specialRangeErrors,
+          bounds,
+        });
+        return {
+          ok: true,
+          value: parsed.iso,
+          ...(boundsMessage === '' ? {} : { issueMessage: boundsMessage }),
+        };
       },
-      onCommit: (next) => {
-        onReject?.(undefined);
+      onCommit: (next, issueMessage) => {
+        onReject?.(issueMessage);
         onCommit(next);
       },
-      onReject: (_draft, message) => onReject?.(message ?? 'Ugyldig dato'),
+      onReject: (_draft, message) => {
+        // Et formatfejl-settle må ikke lade den foregående canonical dato gemme sig under den røde tekst.
+        // Hjælperækken følger dermed samme XOR-regel som sagsdata: enten en dato eller fejlteksten, aldrig begge.
+        onCommit(undefined);
+        onReject?.(message ?? 'Ugyldig dato');
+      },
+      twoStageActivation: { acceptsInitialKey: (key) => /^\d$/.test(key) },
     });
+
+    const assignInputRef = React.useCallback(
+      (node: HTMLInputElement | null) => {
+        inputElementRef.current = node;
+        assignRef(inputRef, node);
+      },
+      [inputRef]
+    );
+
+    const previousOpenRef = React.useRef(draftState.isOpen);
+    React.useLayoutEffect(() => {
+      const justOpened = !previousOpenRef.current && draftState.isOpen;
+      previousOpenRef.current = draftState.isOpen;
+      if (!justOpened) return;
+      const element = inputElementRef.current;
+      if (!element || element.readOnly || document.activeElement !== element) return;
+
+      // Samme caret-limbo-værn som ordinære DateField: et andet klik på et allerede fokuseret felt skal
+      // åbne en reelt redigerbar editor i alle browsere, ikke blot skifte den visuelle markering.
+      const end = element.value.length;
+      const caret = element.selectionStart ?? end;
+      ignoreOpeningBlurRef.current = true;
+      try {
+        element.blur();
+        element.focus({ preventScroll: true });
+        element.setSelectionRange(caret, caret);
+      } finally {
+        ignoreOpeningBlurRef.current = false;
+      }
+    }, [draftState.isOpen]);
+
+    const handleBlur = React.useCallback(() => {
+      if (ignoreOpeningBlurRef.current) return;
+      draftState.onBlur();
+    }, [draftState]);
+
+    const handleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+      draftState.onKeyDown(event);
+      if (draftState.isOpen && !event.defaultPrevented) {
+        filterDateLikeKeyDown(event);
+      }
+    }, [draftState]);
+
+    const handlePaste = React.useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
+      const normalized = normalizeDatePaste(readClipboardText(event));
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (!draftState.isOpen) {
+        // Lukket paste erstatter værdien og afslutter straks — præcis som et ordinært datofelt.
+        draftState.commitDraft(normalized, true);
+        return;
+      }
+
+      const draft = draftState.draft;
+      const element = inputElementRef.current;
+      const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
+      const end = typeof element?.selectionEnd === 'number' ? element.selectionEnd : start;
+      const spliced = spliceDraftWithPaste(draft, normalized, start, end, MAX_DATE_DRAFT_LENGTH);
+      draftState.onDraftChange(spliced.draft);
+      requestAnimationFrame(() => {
+        const currentElement = inputElementRef.current;
+        if (!currentElement) return;
+        currentElement.setSelectionRange(spliced.caret, spliced.caret);
+      });
+    }, [draftState]);
 
     return (
       <StyledTextFieldBase
         ref={ref}
-        inputRef={inputRef}
+        inputRef={assignInputRef}
         width={width}
-        sx={sx}
+        sx={mergeSx({
+          '& .MuiInputBase-input': {
+            textAlign: 'center',
+            caretColor: draftState.isOpen ? 'auto' : 'transparent',
+            cursor: draftState.isOpen ? 'text' : 'pointer',
+          },
+        }, sx)}
         placeholder={placeholder ?? DATE_FORMAT_PLACEHOLDER}
         draft={draftState.draft}
-        onDraftChange={(next) => draftState.onDraftChange(next)}
+        onDraftChange={draftState.onDraftChange}
         onFocus={draftState.onFocus}
-        onBlur={draftState.onBlur}
-        // Bevidst UDEN tegnfilter under indtastning: filtrene (`filterDateLikeKeyDown`) læser
-        // `e.currentTarget.value`, som halter bag den kontrollerede draft i et transient felt og derfor ville
-        // blokere indtastning efter de første cifre. Korrektheden ligger i stedet ved commit, hvor den DELTE
-        // `parseDateDraftForCommit` afviser en malformet dato med samme besked som de persisterede datofelter.
-        onKeyDown={draftState.onKeyDown}
-        error={Boolean(errorMessage)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        onMouseDown={draftState.onMouseDown}
+        onClick={draftState.onClick}
+        onPaste={handlePaste}
+        error={errorMessage !== undefined}
         helperText={errorMessage ?? ''}
-        htmlInputAttributes={{ inputMode: 'numeric', 'aria-label': rest['aria-label'] }}
+        htmlInputAttributes={{
+          inputMode: 'numeric',
+          maxLength: MAX_DATE_DRAFT_LENGTH,
+          readOnly: !draftState.isOpen,
+          'aria-label': rest['aria-label'],
+        }}
       />
     );
   }

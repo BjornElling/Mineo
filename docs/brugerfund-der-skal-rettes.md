@@ -5,7 +5,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 
 ## Nye fund
 
-Næste ID: **BF-052**. Kopiér denne blok pr. fund:
+Næste ID: **BF-054**. Kopiér denne blok pr. fund:
 
 ```md
 ## BF-028 — Kort titel
@@ -63,10 +63,19 @@ Ingen fund afventer reproduktion.
 | BF-028 | Kronologien i EO's dato-par er flyttet til descriptoren som strukturel feltfejl; begge felter markeres nu rødt med den modgående dato i hver tooltip. |
 | BF-031 | Ustabiliteten er væk: rækkefølgereglen var før et biprodukt af bounds-clampingen og afhang af rækkens øvrige fejl. Den er nu en selvstændig regel ét sted. |
 | BF-029 | Gentagne separatorer afvises igen ved tastning. Ciffer-lofterne var aldrig væk; det var afvisningen af den ANDEN separator på stribe, som forsvandt i `5c864afe` (2026-04-23) uden at nogen test blev rød. |
+| BF-030 | Fælles række-livscyklus fjerner igen helt tømte brugeroprettede tabelrækker og efterlader præcis én trailing-række; systemstyrede basisrækker bevares. |
+| BF-032 | Beløbsfelter afviser mellemrum og punktum ens ved tastning og paste; paste springer forbudte tegn over i stedet for at fortolke dem. |
+| BF-034 | Sygedagpenge-hjælperens to datoer bruger nu den almindelige datofeltmotor, inklusive tegnfilter, paste, bounds-fejl og Indsæt-gate. |
 | BF-035 | `Kommentarer` har nu de erklærede 512 tegn, håndhævet ved både tastning og paste. |
 | BF-036 | EO-`Nummer` har nu de erklærede 7 tegn, håndhævet ved både tastning og paste. |
 | BF-037 | `+ evt. ledsagetekst` har nu de erklærede 64 tegn, håndhævet ved både tastning og paste. |
 | BF-039 | Bortfaldet ved kontraktændringen 2026-08-09; længdedelen (4. heltalsciffer) er nu håndhævet som del af den generelle tegn-/længderegel. |
+| BF-040 | Procent-paste følger nu samme tegn-for-tegn-regel som tastning og fortolker hverken punktum eller mellemrum. |
+| BF-041 | Brøk-paste bevarer et lovligt afsluttende komma som rejected tekst og springer kun forbudte tegn over. |
+| BF-045 | Sygedagpenge-hjælperens datoer er centrerede og følger den almindelige totrins fokus-/redigeringsmodel. |
+| BF-046 | Procentfelter afviser punktum og andre forbudte tegn centralt på både formular- og tabeloverflader. |
+| BF-050 | Svie-/smerte-tabellen arver den fælles livscyklus for helt tømte brugeroprettede rækker. |
+| BF-053 | Et afsluttet rejected input kan ikke længere omgå et felts tegn- eller cifferloft. |
 
 ## BF-028 — Til-dato før fra-dato giver ingen feltfejl
 
@@ -160,7 +169,7 @@ uden reglen — altså måle en konkurrerende mekanisme.
 - Det bør ske: En række uden indhold skal automatisk fjernes, mens rækkefølgen på de øvrige rækker bevares, og der kun står den obligatoriske tomme trailing-række tilbage til ny indtastning.
 - Påvirkning: Tomme eller resterende rækker kan påvirke brugerens overblik, rækkeidentitet og eventuelt validering, beregning eller dokumentgrundlag.
 - Prioritet: Høj
-- Status: Ny
+- Status: **Løst 2026-08-09**
 
 ## BF-031 — Kronologifejl vises ikke stabilt i dato-par
 
@@ -187,7 +196,7 @@ uden reglen — altså måle en konkurrerende mekanisme.
 - Det bør ske: Feltet må kun acceptere cifre, komma, matematiske operatorer og parenteser. Mellemrum, punktum og øvrige tegn må ikke kunne indtastes. Ved paste skal sådanne tegn springes over tegn for tegn og aldrig omdannes eller fortolkes som beløbsformat.
 - Påvirkning: Den faktiske indtastningsbegrænsning og paste-adfærden afviger fra den ønskede brugerregel.
 - Prioritet: Høj
-- Status: Ny
+- Status: **Løst 2026-08-09**
 
 ## BF-033 — Valg-dropdowns kræver forkert præcision ved paste
 
@@ -214,7 +223,7 @@ uden reglen — altså måle en konkurrerende mekanisme.
 - Det bør ske: Begge hjælpe-datofelter skal følge den almindelige datofeltmotor tegn for tegn ved tastning og paste. En korrekt formateret dato uden for range skal bevares, markeres rødt med konkret tooltip og holde `Indsæt` disabled.
 - Påvirkning: Den samme datoindtastning kan opføre sig forskelligt afhængigt af, om den bruges i tabellen eller i hjælpefunktionen, og brugeren kan få en anden værdi-/fejltilstand end forventet.
 - Prioritet: Høj
-- Status: Ny
+- Status: **Løst 2026-08-09**
 
 ## BF-035 — Kommentar-feltet mangler maksimumslængde
 
@@ -325,7 +334,7 @@ paste ændrer en værdi, der ligger inden for feltets grænser. Den forkerte var
 - Det bør ske: Kun cifre og komma skal indgå. Punktum, mellemrum, procenttegn og øvrige ikke-tilladte tegn skal springes over tegn for tegn, uden at blive omdannet eller fortolket.
 - Påvirkning: Paste kan give en anden værdi end den, som tilsvarende almindelig indtastning ville have givet.
 - Prioritet: Høj
-- Status: Ny
+- Status: **Løst 2026-08-09**
 
 ## BF-041 — Brøk-paste fortolker forbudte tegn og fjerner afsluttende komma
 
@@ -338,7 +347,7 @@ paste ændrer en værdi, der ligger inden for feltets grænser. Den forkerte var
 - Det bør ske: Paste skal behandles tegn for tegn som almindelig indtastning. Punktum og mellemrum skal springes over, mens et tilladt afsluttende komma skal bevares, så `1,/2` afsluttes som formatfejl med rød ring og tooltip.
 - Påvirkning: En paste-værdi kan blive gyldig ved en tavs omformning, som almindelig indtastning ikke ville have udført.
 - Prioritet: Høj
-- Status: Ny
+- Status: **Løst 2026-08-09**
 
 ## BF-042 — Brøkens indledende nuller normaliseres ikke
 
@@ -391,7 +400,7 @@ paste ændrer en værdi, der ligger inden for feltets grænser. Den forkerte var
 - Det bør ske: Hjælpe-datofelterne skal være centrerede og følge den almindelige opsætning for datofelter. Et klik skal give feltet fokus uden at åbne editoren på den afvigende måde.
 - Påvirkning: Datofelterne ser og opfører sig anderledes end tilsvarende datofelter i programmet.
 - Prioritet: Mellem
-- Status: Ny
+- Status: **Løst 2026-08-09**
 
 ## BF-046 — Procentfelter tillader punktum
 
@@ -404,7 +413,7 @@ paste ændrer en værdi, der ligger inden for feltets grænser. Den forkerte var
 - Det bør ske: Procentfelter må kun acceptere cifre og komma. Procentfelter, der undtagelsesvist tillader negative værdier, skal desuden acceptere minus-tegn. Øvrige specialtegn skal afvises.
 - Påvirkning: Procentfelter kan modtage tegn, der ikke er en del af det forventede inputformat. Fundet er observeret i forligsprocentfeltet, men kan være et centralt problem, der rammer flere felter.
 - Prioritet: Høj
-- Status: Ny
+- Status: **Løst 2026-08-09**
 
 ## BF-047 — Inaktive afkrydsningsfelter viser ikke ren visning
 
@@ -446,7 +455,7 @@ paste ændrer en værdi, der ligger inden for feltets grænser. Den forkerte var
   automatisk, så der kun står én tom trailing-række tilbage.
 - Påvirkning: Tabellen kan indeholde overflødige tomme rækker og afvige fra den aftalte række-livscyklus.
 - Prioritet: Mellem
-- Status: Ny
+- Status: **Løst 2026-08-09**
 
 ## BF-051 — Blinkmarkering mangler eller dækker ikke hele mål-feltet
 
@@ -589,10 +598,30 @@ uden den ville testen ikke kunne skelne en smal undertrykkelse fra en altædende
 målt igen: 2.044 beregnings-, PDF- og dokumenttests, nul ændrede udfald.
 
 
-## Nyt brugerfund, der skal registreres i tabellen
+## BF-052 — Slet alt nulstiller ikke sidernes aktive fane
 
-Når slet alt-funktionaliteten benyttes, skal programmet 'glemme' hvilke faner det senest var inde på og nulstille disse til default-værdien. Har brugeren fx gået ind på Erstatningsopgørelse vises 'EO Oplysninger' fanen som default. Vælger brugeren 'Offentlige ydelser' fanen og skifter til en anden side, husker programmet fanen og går til denne, hvis brugeren senere går tilbage til Erstatningsopgørelse-siden. Hvis brugeren benytter 'Slet alt' skal dette 'glemmes', og brugeren føres til default-siden, dvs. 'EO Oplysninger'.
+- Type: Fejl
+- Sted: Sidemenu → `Slet alt`, efterfølgende navigation til sider med faner
+- Sådan fremprovokeres det:
+  1. Åbn Erstatningsopgørelse, og vælg `Offentlige ydelser`.
+  2. Navigér til en anden side.
+  3. Vælg `Slet alt`, og bekræft.
+  4. Gå tilbage til Erstatningsopgørelse.
+- Det sker: Siden genåbner den tidligere valgte fane.
+- Det bør ske: `Slet alt` skal glemme den sagsnære fanehistorik. Erstatningsopgørelse skal derfor åbne på `EO oplysninger`, og øvrige sider med faner på deres egen standardfane.
+- Påvirkning: En ny, tom sag åbner ikke konsekvent på sit forventede udgangspunkt.
+- Prioritet: Mellem
+- Status: Ny
 
-## Nyt brugerfund, der skal registreres i tabellen
+## BF-053 — Cifferloft kan omgås efter et ugyldigt procent-input
 
-Påstanden om, at procent-felter nu er afgrænset til at der maksimalt kan indtastes tre cifre før komma og, hvis feltet tillader komma-værdier, maksimalt to cifre efter komma, er forkert. Rettelsen virker ikke korrekt. I forlig-feltet på 'EO oplysninger' siden er det muligt at indtaste meget lange tal i denne situation: Der indtastes en ugyldig værdi, fx. 111,11. På dette tidspunkt virker ciffer-begrænsningen korrekt, og eftersom værdien er ugyldig, får feltet rød ring og tooltip. Fjernes fokus fra feltet, og gives derefter fokus til feltet, kan man indtaste et meget langt tal, fx. '1111111' i feltet.
+- Type: Fejl
+- Sted: Procentfelter generelt, observeret i Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Procent`
+- Sådan fremprovokeres det:
+  1. Indtast `111,11`, og afslut feltet, så det får rød ring og tooltip.
+  2. Giv feltet fokus igen, og indtast flere cifre, fx `1111111`.
+- Det sker: Det aktive rejected input springer tegn- og cifferfilteret over, så værdien kan blive længere end feltets loft.
+- Det bør ske: Tegnsæt og længde skal håndhæves ens, også når feltet allerede har en rød fejl. Procentfelter må fortsat højst rumme tre heltalscifre og to decimaler.
+- Påvirkning: Den centrale indtastningsbegrænsning kan omgås; samme fejlklasse rammer øvrige filterstyrede inputfelter.
+- Prioritet: Høj
+- Status: **Løst 2026-08-09**

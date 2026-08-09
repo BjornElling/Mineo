@@ -1,4 +1,12 @@
-import type { OevrigeKravRow, SvieSmertePeriodeRow, TafPeriodeRow, FerieperiodeRow } from '../../../schemas/formSchemas';
+import type {
+  LoenudviklingManuelProcentsatsRow,
+  LoenudviklingManuelRow,
+  OffentligeYdelserRow,
+  OevrigeKravRow,
+  SvieSmertePeriodeRow,
+  TafPeriodeRow,
+  FerieperiodeRow,
+} from '../../../schemas/formSchemas';
 import {
   ferieperiodeRowSchema,
   oevrigeKravRowSchema,
@@ -28,3 +36,23 @@ export const isOevrigeKravRowEmpty = (row: OevrigeKravRow): boolean => {
   return isEmptyByKeys(row, OEVRIGE_KRAV_KEYS);
 };
 
+/** Samme semantiske tomhed bruges af både tabellen og collectionens atomiske rydning. */
+export const isOffentligeYdelserRowEmpty = (row: OffentligeYdelserRow): boolean =>
+  row.fraDato === undefined
+  && row.tilDato === undefined
+  && row.ydelse === undefined
+  && row.tillaeg === undefined
+  && (row.ydelsestype === undefined || row.ydelsestype.trim() === '');
+
+/** Basisrækken beskyttes af collection-descriptoren; denne regel beskriver kun rækkeindholdet. */
+export const isLoenudviklingManuelRowEmpty = (row: LoenudviklingManuelRow): boolean =>
+  row.dato === undefined
+  && row.grundloen === undefined
+  && row.feriepenge === undefined
+  && row.shSoSats === undefined
+  && row.fritvalg === undefined
+  && row.agPension === undefined;
+
+export const isLoenudviklingManuelProcentsatsRowEmpty = (
+  row: LoenudviklingManuelProcentsatsRow
+): boolean => row.dato === undefined && row.procent === undefined;

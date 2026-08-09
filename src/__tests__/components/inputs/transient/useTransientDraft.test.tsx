@@ -190,17 +190,13 @@ describe('TransientDateInput', () => {
 
     const input = screen.getByLabelText('dato');
     await user.click(input);
-    await user.keyboard('15012026');
-    expect(input).toHaveValue('15012026');
+    await user.keyboard('15-01-2026');
+    expect(input).toHaveValue('15-01-2026');
 
     await user.keyboard('{Enter}');
 
     expect(screen.getByTestId('committed')).toHaveTextContent('2026-01-15');
-    // Draften re-formateres bevidst IKKE, mens feltet stadig har fokus (§: træk aldrig indtastningen væk
-    // under fingrene). Den kanoniske danske visning overtager først ved blur.
-    expect(input).toHaveValue('15012026');
-
-    await user.tab();
+    // Enter lukker den almindelige to-trins-editor, så den canonical danske visning overtager straks.
     expect(input).toHaveValue('15-01-2026');
   });
 
@@ -237,7 +233,9 @@ describe('TransientDateInput', () => {
     expect(screen.getByTestId('fejl').textContent).not.toBe('-');
 
     // …og en dato INDEN FOR grænserne committer stadig.
-    await user.keyboard('{Control>}a{/Control}15012026{Enter}');
+    await user.click(input);
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}15-01-2026{Enter}');
     expect(screen.getByTestId('committed')).toHaveTextContent('2026-01-15');
   });
 });

@@ -50,6 +50,11 @@ import {
   yearStringBoundsValidator,
 } from './boundsValidators';
 import { createEmptyErstatningsopgoerelseSection } from './erstatningsopgoerelseDescriptors';
+import { isStandardLoenRowPersistenceEmpty } from '../../domain/aarsloen/standardLoenRowInitialValues';
+import {
+  isLoenudviklingManuelProcentsatsRowEmpty,
+  isLoenudviklingManuelRowEmpty,
+} from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 
 // Produkt-descriptors for EO's nested løntræ (§3.2): samlingen `loenindkomstAnsaettelsesforhold`
 // med skalarfelter + overenskomstFilter + tre nested tabeller, samt det singulære property-objekt
@@ -230,6 +235,7 @@ export const eoLoenindkomstStandardRowsCollection = defineStructuralCollection<S
   id: 'eo.loenindkomstAnsaettelsesforhold.indtaegtsoplysningerTableData',
   template: { section: S, path: employmentPath, collection: STANDARD_ROWS },
   createEmptySection: createEmptyErstatningsopgoerelseSection,
+  isEntityEmpty: (row) => isStandardLoenRowPersistenceEmpty(row),
 });
 
 const STD_ID = 'eo.loenindkomstAnsaettelsesforhold.indtaegtsoplysningerTableData';
@@ -325,11 +331,15 @@ const createManualBindings = (ownerId: string, ownerPath: PathSegments): ManualB
     id: `${ownerId}.loenudviklingManuelTableData`,
     template: { section: S, path: ownerPath, collection: MANUAL_ROWS },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    // Første række er den programstyrede basisrække og må aldrig forsvinde ved almindelig field-clear.
+    isEntityEmpty: (row, index) => index > 0 && isLoenudviklingManuelRowEmpty(row),
   });
   const manualPercentCollection = defineStructuralCollection<LoenudviklingManuelProcentsatsRow>({
     id: `${ownerId}.loenudviklingManuelProcentsatsTableData`,
     template: { section: S, path: ownerPath, collection: MANUAL_PERCENT_ROWS },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    // Som ovenfor: basisrækken er strukturel, mens efterfølgende bruger-rækker auto-ryddes når de tømmes.
+    isEntityEmpty: (row, index) => index > 0 && isLoenudviklingManuelProcentsatsRowEmpty(row),
   });
   const manualRowPath: PathSegments = [...ownerPath, { kind: 'entity', collection: MANUAL_ROWS }];
   const manualPercentRowPath: PathSegments = [...ownerPath, { kind: 'entity', collection: MANUAL_PERCENT_ROWS }];

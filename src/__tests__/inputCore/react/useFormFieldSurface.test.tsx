@@ -9,6 +9,7 @@ import {
   useFormFieldSurface,
   type InputRuntimeBinding,
 } from '../../../inputCore/react';
+import { filterIntegerKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { createInputEvaluation, createValidationReader } from '../../../inputCore/inputReader';
 import {
   settleField,
@@ -73,11 +74,15 @@ const wrapper = (binding: InputRuntimeBinding) => {
   return Wrapper;
 };
 
-const renderSurface = <T,>(field: FieldRef<T>, locationId = 'loc-1') => {
+const renderSurface = <T,>(
+  field: FieldRef<T>,
+  locationId = 'loc-1',
+  config?: Parameters<typeof useFormFieldSurface<T>>[2]
+) => {
   const binding = makeBinding();
   return {
     binding,
-    ...renderHook(() => useFormFieldSurface(field, testLocation(locationId)), { wrapper: wrapper(binding) }),
+    ...renderHook(() => useFormFieldSurface(field, testLocation(locationId), config), { wrapper: wrapper(binding) }),
   };
 };
 
@@ -102,6 +107,21 @@ const keyEvent = (key: string): React.KeyboardEvent<HTMLInputElement> => {
   };
   return e as unknown as React.KeyboardEvent<HTMLInputElement>;
 };
+
+const keyEventAt = (
+  key: string,
+  input: HTMLInputElement,
+  callbacks: Readonly<{ onPrevent?: () => void; onStop?: () => void }> = {}
+): React.KeyboardEvent<HTMLInputElement> => ({
+  key,
+  currentTarget: input,
+  ctrlKey: false,
+  metaKey: false,
+  altKey: false,
+  nativeEvent: { isComposing: false },
+  preventDefault: () => callbacks.onPrevent?.(),
+  stopPropagation: () => callbacks.onStop?.(),
+}) as unknown as React.KeyboardEvent<HTMLInputElement>;
 
 const focusEvent = (): React.FocusEvent<HTMLInputElement> =>
   ({}) as unknown as React.FocusEvent<HTMLInputElement>;
@@ -240,6 +260,31 @@ describe('useFormFieldSurface — issue-visning (§1.2/§1.8)', () => {
     act(() => result.current.onKeyDown(keyEvent('2')));
     act(() => result.current.onDraftChange('2021'));
     expect(result.current.issue?.code).toBe('x.bounds'); // uændret mens der redigeres
+  });
+
+  it('bevarer tegn- og cifferfilteret, når en rød feltfejl er aktiv', () => {
+    issues = [Object.freeze({
+      kind: 'field', code: 'x.bounds', severity: 'error', field: toAnyFieldRef(field),
+      reason: 'bounds', message: 'uden for interval',
+    })];
+    const { result } = renderSurface(field, 'loc-filter', {
+      keyFilter: (event) => filterIntegerKeyDown(event, { maxDigits: 3 }),
+    });
+    act(() => result.current.onKeyDown(keyEvent('1')));
+    act(() => result.current.onDraftChange('111'));
+
+    const input = document.createElement('input');
+    input.value = '111';
+    input.setSelectionRange(3, 3);
+    let prevented = false;
+    let stopped = false;
+    act(() => result.current.onKeyDown(keyEventAt('1', input, {
+      onPrevent: () => { prevented = true; },
+      onStop: () => { stopped = true; },
+    })));
+
+    expect(prevented).toBe(true);
+    expect(stopped).toBe(true);
   });
 });
 

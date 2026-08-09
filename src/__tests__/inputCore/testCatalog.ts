@@ -262,6 +262,21 @@ export const createTestCatalog = () => createInputCatalog({
   collections: catalogCollections(rentekravRowsCollection),
 });
 
+/** Variant der isoleret tester den produktionsfælles tomrække-livscyklus uden at ændre det generelle feltfixture. */
+export const createAutoPruningTestCatalog = () => createInputCatalog({
+  fields: catalogFields(
+    aargangField, beregningsdatoField, kommentarerField,
+    belobField, tillaegstidField, enhedField, renterFraField,
+    feriePctField, omregningField, skadestypeField
+  ),
+  collections: catalogCollections({
+    ...rentekravRowsCollection,
+    // `enhed='dage'` er rækkens canonical default og må ikke alene holde en ellers tom række i live.
+    isEntityEmpty: (row: RentekravRow) =>
+      row.belob === undefined && row.renterFra === undefined && row.tillaegstid === undefined,
+  }),
+});
+
 export const makeRow = (id: string, overrides: Partial<RentekravRow> = {}): RentekravRow => ({
   id,
   belob: undefined,

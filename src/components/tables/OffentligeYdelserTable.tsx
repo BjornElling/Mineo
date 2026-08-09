@@ -24,6 +24,7 @@ import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
+import { isOffentligeYdelserRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 
 type DerivedRow = Readonly<{ periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string }>;
 export type OffentligeYdelserTableProps = Readonly<{
@@ -35,10 +36,6 @@ export type OffentligeYdelserTableProps = Readonly<{
 
 const collection = eoOffentligeYdelserRowsCollection.template as CollectionRef;
 const createEmptyRow = (id: string): OffentligeYdelserRow => ({ ...initialOffentligYdelseRow, id });
-const isRowEmpty = (row: OffentligeYdelserRow): boolean =>
-  row.fraDato === undefined && row.tilDato === undefined && row.ydelse === undefined
-  && row.tillaeg === undefined && (row.ydelsestype === undefined || row.ydelsestype.trim() === '');
-
 // Grupperne OG deres indbyrdes alfabetiske rækkefølge ejes af ydelsestype-registeret (BF-023), så
 // dropdownen ikke bærer sin egen liste, der kunne drifte fra registerets.
 
@@ -70,7 +67,7 @@ const OffentligeYdelserTable = React.memo(({
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
-    isRowEmpty,
+    isRowEmpty: isOffentligeYdelserRowEmpty,
     columns,
     reorderRows: table.reorderRows,
     saveOrderPath,
@@ -101,7 +98,7 @@ const OffentligeYdelserTable = React.memo(({
         <td style={derivedStyle}>{derived?.antalDageDisplay ?? ''}</td>
         <td style={rowDeleteLaneStyle({ ...derivedStyle, textAlign: 'right' })}>
           {derived?.ydelsePerDagDisplay ?? ''}
-          {committed !== undefined && !isRowEmpty(committed) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
+          {committed !== undefined && !isOffentligeYdelserRowEmpty(committed) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
         </td>
       </tr>;
     })}</tbody>

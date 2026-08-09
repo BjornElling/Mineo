@@ -66,10 +66,12 @@ export const defineStructuralField = <T>(options: StructuralFieldOptions<T>): Fi
   return defineField(config);
 };
 
-export type StructuralCollectionOptions = Readonly<{
+export type StructuralCollectionOptions<TEntity extends Readonly<Record<string, unknown>>> = Readonly<{
   id: string;
   template: CollectionTemplate;
   createEmptySection: () => unknown;
+  /** Se CollectionDescriptor.isEntityEmpty. Udelades for rene struktur-/ejer-samlinger uden trailing række. */
+  isEntityEmpty?: (entity: TEntity, index: number) => boolean;
   /** Entity-id-egenskaben for denne samling (default `id`). Fx `ansaettelsesforholdId`. */
   entityIdProperty?: string;
   /** Id-egenskaber for eventuelle parent-samlinger i templatens sti (nested samlinger). */
@@ -77,7 +79,7 @@ export type StructuralCollectionOptions = Readonly<{
 }>;
 
 export const defineStructuralCollection = <TEntity extends Readonly<Record<string, unknown>>>(
-  options: StructuralCollectionOptions
+  options: StructuralCollectionOptions<TEntity>
 ): CollectionDescriptor<TEntity> => {
   const idProperty = options.entityIdProperty ?? 'id';
   const resolver = makeEntityIdResolver({
@@ -87,6 +89,7 @@ export const defineStructuralCollection = <TEntity extends Readonly<Record<strin
   return {
     id: options.id,
     template: options.template,
+    ...(options.isEntityEmpty === undefined ? {} : { isEntityEmpty: options.isEntityEmpty }),
     getEntityId: (entity: TEntity): string => {
       const id = entity[idProperty];
       if (typeof id !== 'string') {

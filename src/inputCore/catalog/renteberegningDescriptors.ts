@@ -17,6 +17,7 @@ import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import { defineStructuralCollection, defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { amountBoundsValidator, integerBoundsValidator } from './boundsValidators';
+import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 
 // Produkt-descriptors for `renteberegning`-sektionen (§3.2): to skalarfelter og samlingen
 // `rentekravRows` med dens rækkefelter. Den tomme sektion har en tom collection (schemaet kræver arrayet,
@@ -65,6 +66,7 @@ export const rentekravRowsCollection = defineStructuralCollection<RentekravRow>(
   id: 'renteberegning.rentekravRows',
   template: { section: 'renteberegning', path: [], collection: 'rentekravRows' },
   createEmptySection: createEmptyRenteberegningSection,
+  isEntityEmpty: (row) => isRentekravRowEmpty(row),
 });
 
 /** Den kanoniske CollectionRef for rentekrav-rækkerne (top-level collection, ingen entity-parent). */

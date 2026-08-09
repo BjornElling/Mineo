@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TransientAmountInput from '../../../components/inputs/transient/TransientAmountInput';
 import TransientDateInput from '../../../components/inputs/transient/TransientDateInput';
@@ -103,7 +103,7 @@ describe('TransientDateInput', () => {
     );
   };
 
-  it('afviser en dato uden for de kronologiske grænser og committer ikke', async () => {
+  it('bevarer en dato uden for de kronologiske grænser og markerer den som fejl', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();
     render(
@@ -116,7 +116,8 @@ describe('TransientDateInput', () => {
 
     await user.type(screen.getByRole('textbox'), '15-01-2020{Enter}');
 
-    expect(onCommit).not.toHaveBeenCalled();
+    // Range er ikke en formatfejl: datoen bevares, mens hjælperens handling holdes disabled af fejlen.
+    expect(onCommit).toHaveBeenCalledWith(toISODateString('2020-01-15'));
     // Bounds-beskeden kommer fra den DELTE bounds-kerne, som de persisterede datofelter også bruger.
     expect(await screen.findByText(/2026/)).toBeInTheDocument();
   });
@@ -137,6 +138,31 @@ describe('TransientDateInput', () => {
     expect(screen.getByRole('textbox')).toHaveValue('15-01-2026');
     await user.click(screen.getByRole('button', { name: 'skift' }));
     expect(screen.getByRole('textbox')).toHaveValue('20-02-2026');
+  });
+
+  it('følger den almindelige datofeltmotor ved klik, tastning og lukket-felt-paste', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+    render(<Harness onCommit={onCommit} />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    expect(input).toHaveProperty('readOnly', true);
+
+    await user.click(input);
+    expect(input).toHaveProperty('readOnly', false);
+    await user.keyboard('12--2-2026');
+    // Den anden separator og cifre ud over segmenternes lofter kommer aldrig ind ved tastning.
+    expect(input).toHaveValue('12-2-2026');
+
+    await user.keyboard('{Escape}');
+    expect(input).toHaveProperty('readOnly', true);
+
+    // Lukket paste normaliseres tegn for tegn, erstatter værdien og committer straks.
+    fireEvent.paste(input, {
+      clipboardData: { getData: () => '---12--2----------2026' },
+    });
+    expect(onCommit).toHaveBeenLastCalledWith(toISODateString('2026-02-12'));
   });
 });
 

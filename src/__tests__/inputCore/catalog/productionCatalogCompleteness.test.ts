@@ -23,6 +23,13 @@ import { deepEqual } from '../../../utils/deepEqual';
 const sections = PERSISTED_SECTION_KEYS as SectionKey[];
 const sortSet = (values: Iterable<string>): string[] => [...new Set(values)].sort((a, b) => a.localeCompare(b, 'da'));
 
+// De to collectioner er ejer-/strukturdata, ikke tabeller med en trailing indtastningsrække. Alle øvrige
+// collectioner renderes gennem `useCollectionTable` og skal derfor erklære den fælles tomrække-livscyklus.
+const STRUCTURAL_NON_TABLE_COLLECTION_IDS = new Set([
+  'eo.loenindkomstAnsaettelsesforhold',
+  'eo.sfggAnsaettelsesforhold',
+]);
+
 const templateParentPath = (path: FieldAddressTemplate['path'] | CollectionTemplate['path']): string =>
   path.map((segment) => segment.kind === 'property' ? segment.name : `${segment.collection}[]`).join('.');
 
@@ -75,6 +82,15 @@ describe('produkt-descriptor-kataloget (§3.2)', () => {
     const collectionIds = productionInputCollections.map((collection) => collection.id);
     expect(new Set(fieldIds).size).toBe(fieldIds.length);
     expect(new Set(collectionIds).size).toBe(collectionIds.length);
+  });
+
+  it('lader alle trailing-tabeller erklære deres semantiske tomhed centralt', () => {
+    const missing = productionInputCollections
+      .filter((collection) => !STRUCTURAL_NON_TABLE_COLLECTION_IDS.has(collection.id))
+      .filter((collection) => collection.isEntityEmpty === undefined)
+      .map((collection) => collection.id);
+
+    expect(missing).toEqual([]);
   });
 
   it('hvert felts codec resolver semantisk tom tekst til feltets tomværdi (XOR-forudsætning)', () => {

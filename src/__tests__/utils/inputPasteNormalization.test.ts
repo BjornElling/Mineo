@@ -25,47 +25,33 @@ describe('inputPasteNormalization', () => {
     expect(normalizeDatePaste('---12--2----------2026')).toBe('12-2-2026');
   });
 
-  it('normaliserer heltal fra første tal og afskærer decimaldelen uden afrunding', () => {
+  it('springer ugyldige heltalstegn over uden at fortolke separatorer', () => {
     expect(normalizeIntegerPaste('adffergregs//sgd1712,56//', { maxDigits: 4 })).toBe('1712');
-    expect(normalizeIntegerPaste('12,99')).toBe('12');
-    expect(normalizeIntegerPaste('-12.99', { allowNegative: true })).toBe('-12');
+    expect(normalizeIntegerPaste('12,99')).toBe('1299');
+    expect(normalizeIntegerPaste('-12.99', { allowNegative: true })).toBe('-1299');
     expect(normalizeIntegerPaste('ab1712cd', { maxDigits: 3 })).toBe('171');
-    expect(normalizeIntegerPaste('ab1712cd', { maxDigits: 4, maxValue: 170 })).toBe('17');
-    expect(normalizeIntegerPaste('abc - 1712cd', { maxDigits: 4, allowNegative: true })).toBe('-1712');
+    expect(normalizeIntegerPaste('12 34')).toBe('1234');
   });
 
-  it('afskærer fra højre til det længste heltalspræfiks inden for intervallet', () => {
-    expect(normalizeIntegerPaste('9999', { maxValue: 100 })).toBe('99');
-    expect(normalizeIntegerPaste('-9999', { allowNegative: true, minValue: -100 })).toBe('-99');
-    expect(normalizeIntegerPaste('999', { minValue: 10, maxValue: 100 })).toBe('99');
-    expect(normalizeIntegerPaste('9', { minValue: 10, maxValue: 100 })).toBe('');
+  it('lader talværdi-grænser gå videre til canonical validering', () => {
+    expect(normalizeIntegerPaste('9999', { maxValue: 100 })).toBe('9999');
+    expect(normalizeIntegerPaste('-9999', { allowNegative: true, minValue: -100 })).toBe('-9999');
   });
 
-  it('afskærer til længste præfiks som kan repræsenteres præcist', () => {
-    expect(normalizeIntegerPaste('90071992547409919')).toBe('9007199254740991');
-    expect(normalizePercentPaste('90071992547409,919', {
-      allowDecimals: true,
-      maxDecimalDigits: 2,
-    })).toBe('9007199254740');
-    expect(normalizePercentPaste('70368744177663,99', {
-      allowDecimals: true,
-      maxDecimalDigits: 2,
-    })).toBe('70368744177663,99');
-  });
-
-  it('bevarer gyldige beløbsudtryk og decimaler inden for feltets præcision', () => {
-    expect(normalizeAmountPaste('adffergregs//sgd1712,56//')).toBe('1712,56');
+  it('bevarer beløbsudtryk, men fortolker aldrig tegn som formattering', () => {
     expect(normalizeAmountPaste('abc12,')).toBe('12,');
     expect(normalizeAmountPaste('foo 100+25')).toBe('100+25');
-    expect(normalizeAmountPaste('2X3')).toBe('2x3');
+    expect(normalizeAmountPaste('2X3')).toBe('23');
     expect(normalizeAmountPaste('12,987', { maxDecimalDigits: 2 })).toBe('12,98');
     expect(normalizeAmountPaste('foo - 100,25 bar', { allowNegative: true })).toBe('-100,25');
+    expect(normalizeAmountPaste('12.5')).toBe('125');
+    expect(normalizeAmountPaste('12 5')).toBe('125');
   });
 
-  it('afskærer beløb fra højre efter format og interval', () => {
-    expect(normalizeAmountPaste('123,99', { allowDecimals: false })).toBe('123');
+  it('lader syntaktiske fejl og talværdi-grænser stå til settle', () => {
+    expect(normalizeAmountPaste('123,99', { allowDecimals: false })).toBe('12399');
     expect(normalizeAmountPaste('12345,67', { maxIntegerDigits: 3 })).toBe('123,67');
-    expect(normalizeAmountPaste('100+25', { maxValue: 100 })).toBe('100');
+    expect(normalizeAmountPaste('100+25', { maxValue: 100 })).toBe('100+25');
   });
 
   it('håndhæver beløbets ciffergrænse separat for hvert talled', () => {
@@ -74,27 +60,25 @@ describe('inputPasteNormalization', () => {
     expect(normalizeAmountPaste('9999999,999+2,999')).toBe('9999999,99+2,99');
   });
 
-  it('normaliserer procent til længste præfiks inden for format og interval', () => {
-    expect(normalizePercentPaste('adffergregs//sgd1712,56//', { maxValue: 100 })).toBe('17');
+  it('filtrerer procent tegn for tegn uden formatteringsfortolkning', () => {
     expect(normalizePercentPaste('abc1007', { maxValue: 100 })).toBe('100');
-    expect(normalizePercentPaste('abc999', { maxValue: 8 })).toBe('');
+    expect(normalizePercentPaste('abc999', { maxValue: 8 })).toBe('999');
     expect(normalizePercentPaste('12,987', { allowDecimals: true, maxDecimalDigits: 2 })).toBe('12,98');
-    expect(normalizePercentPaste('12,987', { allowDecimals: false })).toBe('12');
-    expect(normalizePercentPaste('-999', { allowNegative: true, minValue: -100 })).toBe('-99');
+    expect(normalizePercentPaste('12,987', { allowDecimals: false })).toBe('129');
+    expect(normalizePercentPaste('-999', { allowNegative: true, minValue: -100 })).toBe('-999');
+    expect(normalizePercentPaste('12.5', { allowDecimals: true })).toBe('125');
+    expect(normalizePercentPaste('12 5', { allowDecimals: true })).toBe('125');
   });
 
-  it('normaliserer procent uden intervalafskæring når grænsen er udeladt', () => {
-    expect(normalizePercentPaste('adffergregs//sgd1712,56//', { maxValue: undefined })).toBe('1712');
-  });
-
-  it('normaliserer brøk fra første tal og en valgfri nævner', () => {
-    expect(normalizeFractionPaste('adffergregs//sgd1712,56//')).toBe('1712,56/');
+  it('bevarer brøkens formatfejl, når de består af tilladte tegn', () => {
     expect(normalizeFractionPaste('foo12,5/bar8,25baz')).toBe('12,5/8,25');
     expect(normalizeFractionPaste('foo12,5bar')).toBe('12,5');
     expect(normalizeFractionPaste('12345,678/98765,432', { maxDigits: 3 }))
       .toBe('123,678/987,432');
     expect(normalizeFractionPaste('123,9/987,8', { maxDigits: 3, requireIntegerFraction: true }))
       .toBe('123/987');
+    expect(normalizeFractionPaste('1,/2')).toBe('1,/2');
+    expect(normalizeFractionPaste('1./2')).toBe('1/2');
   });
 
   it('normaliserer uge med ugegrænse og efterfølgende år', () => {

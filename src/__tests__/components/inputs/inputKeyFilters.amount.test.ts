@@ -44,9 +44,13 @@ describe('filterAmountExpressionKeyDown', () => {
     expect(isBlockedInsertion('12,34', '5')).toBe(true);
   });
 
+  it('blokerer mellemrum som øvrige forbudte beløbstegn', () => {
+    expect(isBlockedInsertion('12', ' ')).toBe(true);
+  });
+
   it('håndhæver grænsen i hvert talled i et beløbsudtryk', () => {
-    expect(isBlockedInsertion('12,34 + 5,6', '7')).toBe(false);
-    expect(isBlockedInsertion('12,34 + 5,67', '8')).toBe(true);
+    expect(isBlockedInsertion('12,34+5,6', '7')).toBe(false);
+    expect(isBlockedInsertion('12,34+5,67', '8')).toBe(true);
   });
 
   it('tillader redigering inden for de eksisterende to decimalpladser', () => {
@@ -92,7 +96,7 @@ describe('filterAmountExpressionKeyDown', () => {
   });
 
   it('behandler hver operator og parentes som en talled-grænse', () => {
-    for (const separator of ['+', '-', '*', '/', 'x', '(', ')', ' ']) {
+    for (const separator of ['+', '-', '*', '/', 'x', '(', ')']) {
       expect(
         isBlockedInsertion(`1${separator}9999999`, '9', undefined, { maxIntegerDigits: SEVEN })
       ).toBe(true);

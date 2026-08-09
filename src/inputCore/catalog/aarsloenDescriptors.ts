@@ -10,6 +10,7 @@ import { getCurrentYear, dateRanges_aarsloen, MIN_YEAR } from '../../config/date
 import { derivedDateBounds } from '../../utils/dateRangeErrorMessages';
 import { parseWeekString } from '../../utils/dateUtils';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
+import { isStandardLoenRowPersistenceEmpty } from '../../domain/aarsloen/standardLoenRowInitialValues';
 import { dateBounds } from './dateBoundsValidators';
 import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
@@ -179,6 +180,7 @@ export const aarsloenTableDataCollection = defineStructuralCollection<StandardLo
   id: 'aarsloen.tableData',
   template: { section: 'aarsloen', path: [], collection: 'tableData' },
   createEmptySection: createEmptyAarsloenSection,
+  isEntityEmpty: (row) => isStandardLoenRowPersistenceEmpty(row),
 });
 
 const rowTemplate = (field: string): FieldAddressTemplate => ({

@@ -36,11 +36,6 @@ export type FormFieldSurfaceConfig = Readonly<{
   singleStageClick?: boolean;
   /** Tegnfilter i åben editor (fx dato: kun cifre/separatorer). Kaldes efter Enter/Escape-håndtering. */
   keyFilter?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  /**
-   * Spring `keyFilter` over, mens feltet har en aktiv rød feltfejl. Legacy gatede på `touched && invalid`;
-   * feltfejlen er den afsluttede revisions issue (§1.8), ikke en draft-afledt fejl.
-   */
-  gateKeyFilterOnIssue?: boolean;
   /** Sæt caret efter en åben-editor-splice-paste (dato/beløb/brøk). */
   setPasteCaret?: boolean;
   /**
@@ -100,7 +95,6 @@ export const useFormFieldSurface = <T>(
     disabled = false,
     singleStageClick = false,
     keyFilter,
-    gateKeyFilterOnIssue = false,
     setPasteCaret = false,
     settleOnEnter = true,
     maxDraftLength,
@@ -137,7 +131,6 @@ export const useFormFieldSurface = <T>(
     controller,
     config,
     keyFilter,
-    gateKeyFilterOnIssue,
     setPasteCaret,
     disabled,
     singleStageClick,
@@ -148,7 +141,6 @@ export const useFormFieldSurface = <T>(
     controller,
     config,
     keyFilter,
-    gateKeyFilterOnIssue,
     setPasteCaret,
     disabled,
     singleStageClick,
@@ -221,7 +213,7 @@ export const useFormFieldSurface = <T>(
   }, []);
 
   const onKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    const { controller: ctl, config: cfg, keyFilter: filter, gateKeyFilterOnIssue: gate, disabled: dis } = latest.current;
+    const { controller: ctl, config: cfg, keyFilter: filter, disabled: dis } = latest.current;
     if (dis) return;
 
     if (!ctl.isOpen) {
@@ -255,9 +247,9 @@ export const useFormFieldSurface = <T>(
       ctl.cancel();
       return;
     }
-    if (filter && !(gate && ctl.issue !== undefined)) {
-      filter(e);
-    }
+    // En afsluttet format- eller bounds-fejl må aldrig slå tegn- og længdeværnet fra.
+    // Ellers kunne et felt med rød ring bruges til at indtaste værdier, som samme felt afviser normalt.
+    filter?.(e);
     cfg.onKeyDown?.(e);
   }, [field]);
 

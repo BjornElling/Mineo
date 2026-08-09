@@ -1,45 +1,8 @@
 import {
-  normalizePastedAmount,
   containsAnyDigit,
   normalizeTrailingSeparator,
   normalizeZero,
 } from '../../utils/amountInputUtils';
-
-// De tidligere `sanitizePastedAmount`-tests er fjernet sammen med funktionen:
-// den havde ingen produktions-callsites og var kun holdt i live af sine egne
-// tests. `normalizePastedAmount` nedenfor er den faktiske paste-indgang.
-
-describe('normalizePastedAmount', () => {
-  it('normaliserer dansk valutaformat med kr til rent beløb', () => {
-    expect(normalizePastedAmount('9.602,05 kr.')).toBe('9602,05');
-  });
-
-  it('udtrækker beløb fra labeltekst før valutaenhed', () => {
-    expect(normalizePastedAmount('Hovedstol: 17.613,05 kr.')).toBe('17613,05');
-  });
-
-  it('normaliserer international valutaformat med spaces og punktum-decimal', () => {
-    expect(normalizePastedAmount('DKK 9 602.05')).toBe('9602,05');
-  });
-
-  it('behandler ét komma som dansk decimalseparator også med tre decimalcifre', () => {
-    expect(normalizePastedAmount('12,987')).toBe('12,987');
-  });
-
-  it('bevarer udtryk som udtryk i stedet for at tvinge tal-normalisering', () => {
-    expect(normalizePastedAmount('1.200,50 / 2')).toBe('1.200,50 / 2');
-    expect(normalizePastedAmount('2X3')).toBe('2x3');
-  });
-
-  it('bevarer subtraktion som udtryk i stedet for at tolke det som negativt beløb', () => {
-    expect(normalizePastedAmount('1200 - 200')).toBe('1200 - 200');
-    expect(normalizePastedAmount('1.200,50 - 2')).toBe('1.200,50 - 2');
-  });
-
-  it('tolker parentes-notation som negativt beløb for plain money-like paste', () => {
-    expect(normalizePastedAmount('(9.602,05 kr.)')).toBe('-9602,05');
-  });
-});
 
 describe('containsAnyDigit', () => {
   it('streng med tal → true', () => {

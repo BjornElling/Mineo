@@ -70,6 +70,13 @@ import { stamdataSkadedatoField, stamdataSkadestypeField } from './stamdataDescr
 import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import { evaluateForligAnsvarsgradRules } from '../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { evaluateForligsgrad } from '../../domain/erstatningsopgoerelse/engines/forligsgrad';
+import {
+  isFerieRowEmpty,
+  isOffentligeYdelserRowEmpty,
+  isOevrigeKravRowEmpty,
+  isSvieSmerteRowEmpty,
+  isTafRowEmpty,
+} from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 
 // Produkt-descriptors for `erstatningsopgoerelse`-sektionen (§3.2): top-level skalarer (incl. nested
 // bilagsvalgs-booleans) og de rene top-level samlinger med deres rækkefelter. Lønindkomstens/EO-angivet løns
@@ -611,15 +618,19 @@ const rowDatePair = (
   return { fra, til };
 };
 
-const topLevelCollection = <TEntity extends Readonly<Record<string, unknown>>>(collection: string) =>
+const topLevelCollection = <TEntity extends Readonly<Record<string, unknown>>>(
+  collection: string,
+  isEntityEmpty?: (entity: TEntity, index: number) => boolean
+) =>
   defineStructuralCollection<TEntity>({
     id: `eo.${collection}`,
     template: { section: S, path: [], collection },
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    ...(isEntityEmpty === undefined ? {} : { isEntityEmpty }),
   });
 
 // tafPerioder
-export const eoTafPerioderCollection = topLevelCollection<TafPeriodeRow>('tafPerioder');
+export const eoTafPerioderCollection = topLevelCollection<TafPeriodeRow>('tafPerioder', isTafRowEmpty);
 // TAF-perioderne deklarerede min = skadedato i konfigurationen, men håndhævede den kun i
 // rækkeevaluerings-motoren, som producerer et kolonne-hint uden feltadresse — teksten kunne stå i
 // "Fejl og advarsler", mens cellen aldrig blev rød (OBS-024). Grænsen bor nu på descriptoren.
@@ -648,7 +659,7 @@ export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | und
 });
 
 // ferieperioder
-export const eoFerieperioderCollection = topLevelCollection<FerieperiodeRow>('ferieperioder');
+export const eoFerieperioderCollection = topLevelCollection<FerieperiodeRow>('ferieperioder', isFerieRowEmpty);
 // Ferieperioderne er erklæret `unconstrained` i konfigurationen (optjeningsår kan ligge før skaden), så de
 // får systemets ydre ramme frem for en skadedato-grænse — nok til at fange et forkert århundrede.
 const ferieperiodeDates = rowDatePair('ferieperioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
@@ -659,7 +670,7 @@ export const eoFerieperiodeFraField = ferieperiodeDates.fra;
 export const eoFerieperiodeTilField = ferieperiodeDates.til;
 
 // fravaerPerioder (samme rækkeform som ferieperioder)
-export const eoFravaerPerioderCollection = topLevelCollection<FerieperiodeRow>('fravaerPerioder');
+export const eoFravaerPerioderCollection = topLevelCollection<FerieperiodeRow>('fravaerPerioder', isFerieRowEmpty);
 const fravaerPeriodeDates = rowDatePair('fravaerPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: systemrammeSpec,
   til: systemrammeSpec,
@@ -668,7 +679,10 @@ export const eoFravaerPeriodeFraField = fravaerPeriodeDates.fra;
 export const eoFravaerPeriodeTilField = fravaerPeriodeDates.til;
 
 // svieSmertePerioder
-export const eoSvieSmertePerioderCollection = topLevelCollection<SvieSmertePeriodeRow>('svieSmertePerioder');
+export const eoSvieSmertePerioderCollection = topLevelCollection<SvieSmertePeriodeRow>(
+  'svieSmertePerioder',
+  isSvieSmerteRowEmpty
+);
 const svieSmertePeriodeDates = rowDatePair('svieSmertePerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
@@ -693,7 +707,10 @@ export const eoSvieSmertePeriodeTilstandField = defineStructuralField<Tilstand |
 });
 
 // oevrigeKravPerioder
-export const eoOevrigeKravPerioderCollection = topLevelCollection<OevrigeKravRow>('oevrigeKravPerioder');
+export const eoOevrigeKravPerioderCollection = topLevelCollection<OevrigeKravRow>(
+  'oevrigeKravPerioder',
+  isOevrigeKravRowEmpty
+);
 // Datoens dynamiske grænser (min=skadedatoMinRule / max=i dag) er en canonical
 // bounds-feltvalidator (§1.6). Den krydslæser skadedato og
 // skadestype via `view.readCanonical` (ingen recursion — validators læser canonical, ikke issues).
@@ -732,7 +749,10 @@ export const eoOevrigeKravBeloebField = defineStructuralField<AmountValue | unde
 });
 
 // offentligeYdelserRows (ydelse/tillaeg tillader negative jf. TableAmountInput-default)
-export const eoOffentligeYdelserRowsCollection = topLevelCollection<OffentligeYdelserRow>('offentligeYdelserRows');
+export const eoOffentligeYdelserRowsCollection = topLevelCollection<OffentligeYdelserRow>(
+  'offentligeYdelserRows',
+  isOffentligeYdelserRowEmpty
+);
 // Offentlige ydelser har sin EGEN ramme: satsdækningen for sygedagpenge og ATP, ikke skadedatoen.
 // Grænserne stod hidtil kun som `minDate`/`maxDate`-props på inputkomponenten i `OffentligeYdelserTab.tsx`
 // — altså som en visuel hjælp uden et issue bag, så en dato uden for satsdækningen blev afsluttet

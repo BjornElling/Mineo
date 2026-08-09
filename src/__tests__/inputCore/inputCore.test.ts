@@ -39,6 +39,7 @@ import { createValidationReader, deriveFieldIssueSet } from '../../inputCore/inp
 import { activeFieldIssue } from '../../inputCore/inputIssue';
 import {
   createTestCatalog,
+  createAutoPruningTestCatalog,
   aargangField,
   beregningsdatoField,
   belobField,
@@ -275,6 +276,68 @@ describe('Immediate commit og clear (§1.3)', () => {
       setImmediateField(enhedField.bind('r1'), 'ukendt' as 'dage'),
       catalog
     )).toThrow(/accepteres ikke/);
+  });
+});
+
+describe('Automatisk rydning af tomme tabelrækker (§9)', () => {
+  const autoPruningCatalog = createAutoPruningTestCatalog();
+  const autoEmpty = (): SettledInput => autoPruningCatalog.validateSettledInput({
+    sections: {
+      stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
+      varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,
+    },
+    rejectedInputs: {},
+  });
+  const autoDispatch = <TField, TEntity>(
+    input: SettledInput,
+    command: InputMutationCommand<TField, TEntity>
+  ): SettledInput => reduceInputCommand(input, command, autoPruningCatalog).input;
+
+  it('fjerner den sidst ryddede række atomisk og bevarer de øvrige rækkers rækkefølge', () => {
+    let input = autoDispatch(autoEmpty(), insertRow(rentekravRowsRef(), makeRow('første')));
+    input = autoDispatch(input, insertRow(rentekravRowsRef(), makeRow('anden')));
+    input = autoDispatch(input, settleField(belobField.bind('første'), '100'));
+    input = autoDispatch(input, settleField(belobField.bind('anden'), '200'));
+
+    const cleared = autoDispatch(input, clearField(belobField.bind('første')));
+
+    expect(autoPruningCatalog.listEntityIds(cleared.sections, rentekravRowsRef())).toEqual(['anden']);
+    expect(createValidationReader(cleared, autoPruningCatalog).readCanonical(belobField.bind('anden')))
+      .toMatchObject({ value: 200 });
+  });
+
+  it('bevarer en række med rejected råtekst, men rydder den når brugeren eksplicit tømmer fejlfeltet', () => {
+    let input = autoDispatch(autoEmpty(), insertRow(rentekravRowsRef(), makeRow('fejl')));
+    input = autoDispatch(input, settleField(belobField.bind('fejl'), 'ikke-et-beløb'));
+
+    expect(rejectedAt(input, belobField.bind('fejl'))?.raw).toBe('ikke-et-beløb');
+    expect(autoPruningCatalog.listEntityIds(input.sections, rentekravRowsRef())).toEqual(['fejl']);
+
+    const cleared = autoDispatch(input, clearField(belobField.bind('fejl')));
+    expect(autoPruningCatalog.listEntityIds(cleared.sections, rentekravRowsRef())).toEqual([]);
+  });
+
+  it('udsætter rydningen til transaktionens færdige rækkestatus', () => {
+    let input = autoDispatch(autoEmpty(), insertRow(rentekravRowsRef(), makeRow('begge')));
+    input = autoDispatch(input, settleField(belobField.bind('begge'), '100'));
+    input = autoDispatch(input, settleField(tillaegstidField.bind('begge'), '3'));
+
+    const cleared = autoDispatch(input, inputTransaction([
+      inputTransactionStep(clearField(belobField.bind('begge'))),
+      inputTransactionStep(clearField(tillaegstidField.bind('begge'))),
+    ]));
+
+    expect(autoPruningCatalog.listEntityIds(cleared.sections, rentekravRowsRef())).toEqual([]);
+  });
+
+  it('bevarer et immediate valgt enhed alene, indtil brugeren eksplicit rydder den', () => {
+    let input = autoDispatch(autoEmpty(), insertRow(rentekravRowsRef(), makeRow('enhed')));
+    input = autoDispatch(input, setImmediateField(enhedField.bind('enhed'), 'uger'));
+
+    expect(autoPruningCatalog.listEntityIds(input.sections, rentekravRowsRef())).toEqual(['enhed']);
+
+    const cleared = autoDispatch(input, clearField(enhedField.bind('enhed')));
+    expect(autoPruningCatalog.listEntityIds(cleared.sections, rentekravRowsRef())).toEqual([]);
   });
 });
 

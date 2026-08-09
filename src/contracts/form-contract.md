@@ -355,6 +355,10 @@ livscyklus. Den ejer ikke en parallel `draftRows`-kopi af celleværdier.
 
 - Hver celle bruger samme feltmotor og codec som formularfelter.
 - Første settle i en tom UI-række promoverer rækken atomisk, også hvis inputtet er ugyldigt.
+- Når et settle eller en field-clear gør en allerede oprettet brugerrække semantisk tom, fjernes rækken
+  atomisk i samme brugerhandling. Tabellen viser derefter kun sine transiente trailing-rækker. En rejected
+  råtekst er indhold og bevarer derfor rækken, indtil brugeren retter eller rydder feltet. Programstyrede
+  basisrækker og required default-valg beskyttes af collectionens eksplicitte tomhedsregel.
 - Sletning af en række fjerner række og alle descendant-rejections i samme transaktion.
 - Orphan-state skal være urepræsenterbar; reconcile-effects er forbudt som slutarkitektur.
 - Add, delete og reorder bruger samme command-runner som feltændringer.

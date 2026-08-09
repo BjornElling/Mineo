@@ -2,11 +2,12 @@ import {
   DEFAULT_AMOUNT_PRECISION,
   MAX_AMOUNT_INPUT_INTEGER_DIGITS,
   MAX_AMOUNT_RAW_LENGTH,
-  normalizePastedAmount,
 } from './amountInputUtils';
-import { parseAmountInput } from './expressionAmount';
-import { DEFAULT_FRACTION_MAX_DIGITS } from './fraction';
-import { hasSafeDecimalDigits } from './numericSafety';
+import { DEFAULT_FRACTION_MAX_DIGITS, isFractionDraftAllowed } from './fraction';
+import {
+  isAmountExpressionDraftAllowed,
+  isPercentDraftAllowed,
+} from './numericDraftAdmission';
 import { resolveYearFromToken, type TwoDigitYearPolicy } from './yearDraftCore';
 
 const findNextDigitIndex = (text: string, start: number): number => {
@@ -17,16 +18,6 @@ const findNextDigitIndex = (text: string, start: number): number => {
     }
   }
   return -1;
-};
-
-const hasNegativeMarkerBeforeIndex = (text: string, index: number): boolean => {
-  for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
-    const char = text[cursor];
-    if (char === undefined) break;
-    if (/\s/.test(char)) continue;
-    return char === '-';
-  }
-  return false;
 };
 
 const extractContiguousDigits = (
@@ -63,54 +54,6 @@ type AmountPasteOptions = NumericPasteOptions & Readonly<{
   maxRawLength?: number;
 }>;
 
-const NUMERIC_GROUPING_PATTERN = /[\s\u00A0\u202F'’`]/g;
-
-const hasGroupedTriplets = (parts: readonly string[]): boolean => {
-  if (parts.length < 2 || !/^\d{1,3}$/.test(parts[0] ?? '')) return false;
-  return parts.slice(1).every((part) => /^\d{3}$/.test(part));
-};
-
-const extractNumericToken = (text: string, start = 0): Readonly<{
-  integerDigits: string;
-  decimalDigits: string;
-  firstDigitIndex: number;
-}> => {
-  const firstDigitIndex = findNextDigitIndex(text, start);
-  if (firstDigitIndex === -1) {
-    return { integerDigits: '', decimalDigits: '', firstDigitIndex };
-  }
-
-  let end = firstDigitIndex;
-  while (end < text.length && /[\d.,\s\u00A0\u202F'’`]/.test(text[end] ?? '')) {
-    end += 1;
-  }
-
-  const token = text.slice(firstDigitIndex, end).trim().replace(NUMERIC_GROUPING_PATTERN, '');
-  const lastComma = token.lastIndexOf(',');
-  const lastDot = token.lastIndexOf('.');
-  let decimalIndex = -1;
-
-  if (lastComma >= 0 && lastDot >= 0) {
-    decimalIndex = Math.max(lastComma, lastDot);
-  } else if (lastComma >= 0) {
-    const parts = token.split(',');
-    // Komma er dansk decimalseparator. Kun flere entydige 3-ciffergrupper behandles
-    // som et internationalt grupperet heltal.
-    if (parts.length <= 2 || !hasGroupedTriplets(parts)) decimalIndex = lastComma;
-  } else if (lastDot >= 0) {
-    const parts = token.split('.');
-    if (!hasGroupedTriplets(parts)) decimalIndex = lastDot;
-  }
-
-  const integerSource = decimalIndex === -1 ? token : token.slice(0, decimalIndex);
-  const decimalSource = decimalIndex === -1 ? '' : token.slice(decimalIndex + 1);
-  return {
-    integerDigits: integerSource.replace(/[^0-9]/g, ''),
-    decimalDigits: decimalSource.replace(/[^0-9]/g, ''),
-    firstDigitIndex,
-  };
-};
-
 const normalizePositiveIntegerOption = (value: number | undefined, fallback: number): number => {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
     ? Math.trunc(value)
@@ -129,49 +72,22 @@ const isWithinBounds = (value: number, minValue: number | undefined, maxValue: n
 };
 
 /**
- * Paste behandles ens i alle numeriske felter: start ved første tal, behold kun feltets
- * tilladte format, og afkort fra højre til det længste præfiks der overholder intervallet.
- * Decimaldelen er dermed altid det første, der forsvinder ved en overskridelse.
+ * Behandler den indsatte tekst som på hinanden følgende tastetryk fra et tomt felt.
+ * Tegn, der ikke passer feltets aktuelle tekst, springes over, mens resten fortsætter.
  */
-const normalizeNumericPaste = (text: string, options: NumericPasteOptions): string => {
-  const token = extractNumericToken(text);
-  if (token.integerDigits === '') return '';
-
-  const isNegative = options.allowNegative === true
-    && hasNegativeMarkerBeforeIndex(text, token.firstDigitIndex);
-  const maxIntegerDigits = normalizePositiveIntegerOption(
-    options.maxIntegerDigits,
-    token.integerDigits.length
-  );
-  const maxDecimalDigits = normalizeNonNegativeIntegerOption(options.maxDecimalDigits, 2);
-  const integerDigits = token.integerDigits.slice(0, maxIntegerDigits);
-  const decimalDigits = options.allowDecimals === true
-    ? token.decimalDigits.slice(0, maxDecimalDigits)
-    : '';
-  const sign = isNegative ? '-' : '';
-  let candidate = `${sign}${integerDigits}${decimalDigits === '' ? '' : `,${decimalDigits}`}`;
-
-  while (candidate !== '' && candidate !== '-') {
-    const unsigned = candidate.startsWith('-') ? candidate.slice(1) : candidate;
-    const [candidateIntegerDigits, candidateDecimalDigits = ''] = unsigned.split(',') as [string, string?];
-    const value = Number(candidate.replace(',', '.'));
-    if (
-      hasSafeDecimalDigits(
-        candidateIntegerDigits,
-        candidateDecimalDigits,
-        options.allowDecimals === true ? maxDecimalDigits : 0
-      )
-      && Number.isFinite(value)
-      && isWithinBounds(value, options.minValue, options.maxValue)
-    ) {
-      return candidate;
+const filterPasteCharacters = (
+  text: string,
+  isDraftAllowed: (draft: string) => boolean,
+  maxLength?: number
+): string => {
+  let result = '';
+  for (const character of text) {
+    const candidate = `${result}${character}`;
+    if ((maxLength === undefined || candidate.length <= maxLength) && isDraftAllowed(candidate)) {
+      result = candidate;
     }
-
-    candidate = candidate.slice(0, -1);
-    if (candidate.endsWith(',')) candidate = candidate.slice(0, -1);
   }
-
-  return '';
+  return result;
 };
 
 /**
@@ -224,12 +140,12 @@ export const normalizeIntegerPaste = (
     allowNegative?: boolean;
   }> = {}
 ): string => {
-  return normalizeNumericPaste(text, {
-    allowNegative: options.allowNegative,
-    allowDecimals: false,
-    maxIntegerDigits: options.maxDigits,
-    minValue: options.minValue,
-    maxValue: options.maxValue,
+  const allowNegative = options.allowNegative === true;
+  const maxDigits = options.maxDigits;
+  return filterPasteCharacters(text, (draft) => {
+    const unsigned = draft.startsWith('-') ? draft.slice(1) : draft;
+    return (allowNegative ? /^-?\d*$/ : /^\d*$/).test(draft)
+      && (maxDigits === undefined || unsigned.length <= maxDigits);
   });
 };
 
@@ -247,57 +163,31 @@ export const normalizeAmountPaste = (
     DEFAULT_AMOUNT_PRECISION
   );
   const maxRawLength = normalizePositiveIntegerOption(options.maxRawLength, MAX_AMOUNT_RAW_LENGTH);
-  const normalized = normalizePastedAmount(text);
-  const firstDigitIndex = findNextDigitIndex(normalized, 0);
-  if (firstDigitIndex === -1) return '';
-  const prefix = normalized.slice(0, firstDigitIndex).trimEnd();
-  const numericStart = prefix.endsWith('-') ? firstDigitIndex - 1 : firstDigitIndex;
-  let candidate = normalized
-    .slice(Math.max(0, numericStart))
-    .replace(/X/g, 'x')
-    .replace(/(\d(?:[\d.,\s\u00A0\u202F'’`]*\d)?|\d)/g, (token) => normalizeNumericPaste(token, {
+  return filterPasteCharacters(
+    text,
+    (draft) => isAmountExpressionDraftAllowed(draft, {
+      allowNegative: options.allowNegative,
       allowDecimals,
       maxIntegerDigits,
       maxDecimalDigits,
-    }))
-    .slice(0, maxRawLength)
-    .trim();
-
-  if (options.allowNegative !== true) {
-    // Minus efter start, parentes eller en operator er unært og fjernes; binær subtraktion bevares.
-    candidate = candidate.replace(/(^|[+*/x(])\s*-\s*/g, '$1');
-  }
-
-  while (candidate !== '') {
-    const parsed = parseAmountInput(candidate, {
-      precision: maxDecimalDigits,
-      allowNegative: options.allowNegative === true,
-      allowDecimals,
-      maxIntegerDigits,
-      maxRawLength,
-    });
-    if (
-      parsed.ok
-      && parsed.value !== undefined
-      && isWithinBounds(parsed.value.value, options.minValue, options.maxValue)
-    ) {
-      return candidate;
-    }
-
-    candidate = candidate.slice(0, -1).trimEnd();
-  }
-
-  return '';
+    }),
+    maxRawLength
+  );
 };
 
 export const normalizePercentPaste = (
   text: string,
   options: NumericPasteOptions = {}
 ): string => {
-  return normalizeNumericPaste(text, {
-    ...options,
-    allowDecimals: options.allowDecimals === true,
-  });
+  const allowDecimals = options.allowDecimals === true;
+  const maxIntegerDigits = normalizePositiveIntegerOption(options.maxIntegerDigits, 3);
+  const maxDecimalDigits = normalizeNonNegativeIntegerOption(options.maxDecimalDigits, 2);
+  return filterPasteCharacters(text, (draft) => isPercentDraftAllowed(draft, {
+    allowNegative: options.allowNegative,
+    allowDecimals,
+    maxIntegerDigits,
+    maxDecimalDigits,
+  }));
 };
 
 export const normalizeFractionPaste = (
@@ -309,27 +199,10 @@ export const normalizeFractionPaste = (
   }> = {}
 ): string => {
   const maxDigits = normalizePositiveIntegerOption(options.maxDigits, DEFAULT_FRACTION_MAX_DIGITS);
-  const numerator = normalizeNumericPaste(text, {
-    allowNegative: options.allowNegative,
-    allowDecimals: options.requireIntegerFraction !== true,
-    maxIntegerDigits: maxDigits,
-    maxDecimalDigits: maxDigits,
-  });
-  if (numerator === '') return '';
-
-  const firstDigitIndex = findNextDigitIndex(text, 0);
-  const slashIndex = text.indexOf('/', Math.max(0, firstDigitIndex));
-  if (slashIndex === -1) {
-    return numerator;
-  }
-
-  const denominator = normalizeNumericPaste(text.slice(slashIndex + 1), {
-    allowNegative: options.allowNegative,
-    allowDecimals: options.requireIntegerFraction !== true,
-    maxIntegerDigits: maxDigits,
-    maxDecimalDigits: maxDigits,
-  });
-  return `${numerator}/${denominator}`;
+  return filterPasteCharacters(text, (draft) =>
+    (options.requireIntegerFraction !== true || !draft.includes(','))
+    && isFractionDraftAllowed(draft, { maxDigits, allowNegative: options.allowNegative })
+  );
 };
 
 export const normalizeWeekPaste = (

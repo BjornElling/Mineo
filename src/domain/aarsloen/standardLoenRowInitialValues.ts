@@ -21,3 +21,21 @@ export const createEmptyStandardLoenRow = <TId extends string>(
   fpFvShSoBeloeb: undefined,
   pensionBeloeb: undefined,
 });
+
+/**
+ * Persistence-tomhed for tabelinfrastrukturen. I modsætning til beregningens "effektivt tom" tæller
+ * et eksplicit nulbeløb som indhold her: brugeren skal ikke miste en afsluttet, repræsenterbar værdi.
+ */
+export const isStandardLoenRowPersistenceEmpty = (row: StandardLoenTableRow): boolean =>
+  (row.col0_maaned ?? '').trim() === ''
+  && (row.col1_maaned ?? '').trim() === ''
+  && (row.col0_uge ?? '').trim() === ''
+  && (row.col1_uge ?? '').trim() === ''
+  && row.col0_dag === undefined
+  && row.col1_dag === undefined
+  && row.col2 === undefined
+  && row.col3 === undefined
+  && row.col4 === undefined
+  && row.col5 === undefined
+  && row.fpFvShSoBeloeb === undefined
+  && row.pensionBeloeb === undefined;

@@ -2,7 +2,9 @@ import { deepEqual } from '../utils/deepEqual';
 import { cloneAndDeepFreeze } from '../utils/deepFreeze';
 import {
   createCollectionRef,
+  createEntityPath,
   deserializeFieldAddress,
+  isFieldAddressBelowEntity,
   type CollectionRef,
   type FieldAddress,
   type FieldAddressPathSegment,
@@ -38,6 +40,12 @@ export type CollectionDescriptor<TEntity> = Readonly<{
   id: string;
   template: CollectionTemplate;
   getEntityId: (entity: TEntity) => string;
+  /**
+   * Den semantiske tomhedsregel for en brugerredigerbar tabelrække. Når den er erklæret, fjerner
+   * inputkernen en række, som bliver tom ved et felt-settle eller en field-clear. `index` gør det
+   * muligt at beskytte en eventuel programstyret basisrække, som aldrig er en trailing indtastningsrække.
+   */
+  isEntityEmpty?: (entity: TEntity, index: number) => boolean;
   readEntities: (sections: PersistedInputSections, collection: CollectionRef) => readonly TEntity[];
   writeEntities: (
     sections: PersistedInputSections,
@@ -149,6 +157,14 @@ export type InputCatalog = Readonly<{
     collection: CollectionRef,
     entityId: string
   ) => PersistedInputSections;
+  /**
+   * Fjerner den direkte ejer-række for et netop ryddet/settlet felt, hvis collectionen eksplicit
+   * har erklæret rækken semantisk tom. Rejected råtekst bevarer altid rækken, så fejlen kan rettes.
+   */
+  removeEmptyOwningEntity: <T>(
+    input: SettledInput,
+    field: FieldRef<T>
+  ) => SettledInput;
   reorderEntities: (
     sections: PersistedInputSections,
     collection: CollectionRef,
@@ -231,6 +247,9 @@ export const createInputCatalog = (options: Readonly<{
       ['writeEntities', descriptor.writeEntities],
     ] as const) {
       if (typeof fn !== 'function') throw new Error(`InputCatalog: ${descriptor.id}.${name} skal være en funktion`);
+    }
+    if (descriptor.isEntityEmpty !== undefined && typeof descriptor.isEntityEmpty !== 'function') {
+      throw new Error(`InputCatalog: ${descriptor.id}.isEntityEmpty skal være en funktion`);
     }
     const key = collectionTemplateKey(descriptor.template);
     if (collectionsByTemplate.has(key)) throw new Error(`InputCatalog: dubleret samling (${descriptor.id})`);
@@ -355,6 +374,56 @@ export const createInputCatalog = (options: Readonly<{
       ...current.slice(0, index),
       ...current.slice(index + 1),
     ]);
+  };
+
+  const removeEmptyOwningEntity = <T>(
+    input: SettledInput,
+    field: FieldRef<T>
+  ): SettledInput => {
+    // Feltet kan være slettet af et tidligere cleanup-trin i samme transaktion. Det er en legitim
+    // mellemtilstand: rækken skal kun ryddes én gang, og senere trin må derfor være stille no-op.
+    if (!containsAddressEntities(input.sections, field.address)) return input;
+
+    let entityIndex = -1;
+    for (let index = 0; index < field.address.path.length; index += 1) {
+      if (field.address.path[index]?.kind === 'entity') entityIndex = index;
+    }
+    if (entityIndex < 0) return input;
+    const entity = field.address.path[entityIndex];
+    if (entity?.kind !== 'entity') return input;
+
+    const collection = createCollectionRef({
+      section: field.address.section,
+      path: field.address.path.slice(0, entityIndex),
+      collection: entity.collection,
+    });
+    const descriptor = requireCollection(input.sections, collection);
+    if (descriptor.isEntityEmpty === undefined) return input;
+
+    const entities = descriptor.readEntities(isolateSections(input.sections), collection);
+    const rowIndex = entities.findIndex((entry) => descriptor.getEntityId(entry) === entity.entityId);
+    if (rowIndex < 0) return input;
+    if (!descriptor.isEntityEmpty(entities[rowIndex]!, rowIndex)) return input;
+
+    const entityPath = createEntityPath([
+      ...collection.path,
+      { kind: 'entity', collection: collection.collection, entityId: entity.entityId },
+    ]);
+    // En formatfejl er også indhold. Fjernes rækken her, taber brugeren den rejected råtekst uden
+    // at have valgt "Slet række"; den skal i stedet blive stående og kunne rettes eller ryddes eksplicit.
+    const hasRejectedDescendant = Object.keys(input.rejectedInputs).some((serialized) => {
+      const address = deserializeFieldAddress(serialized);
+      return address !== null && isFieldAddressBelowEntity(address, collection.section, entityPath);
+    });
+    if (hasRejectedDescendant) return input;
+
+    return {
+      sections: descriptor.writeEntities(structuredClone(input.sections), collection, [
+        ...entities.slice(0, rowIndex),
+        ...entities.slice(rowIndex + 1),
+      ]),
+      rejectedInputs: input.rejectedInputs,
+    };
   };
 
   const reorderEntities = (
@@ -498,6 +567,7 @@ export const createInputCatalog = (options: Readonly<{
     getCollection,
     insertEntity,
     deleteEntity,
+    removeEmptyOwningEntity,
     reorderEntities,
     getEntityId,
     listFieldInstances,

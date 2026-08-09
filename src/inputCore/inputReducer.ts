@@ -52,6 +52,11 @@ export type SettleFieldInNewRowCommand<TEntity, TField> = Readonly<{
 export type InputTransactionStep = Readonly<{
   reduce: (input: SettledInput, catalog: InputCatalog) => SettledInput;
   /**
+   * Udføres FØRST når samtlige transaktionstrin er anvendt. Dermed kan en brugerhandling, der rydder
+   * flere felter i samme række, ikke slette rækken mellem sine egne trin.
+   */
+  removeEmptyOwningEntity?: (input: SettledInput, catalog: InputCatalog) => SettledInput;
+  /**
    * Er trinnet en STRUKTUREL rækkeændring?
    *
    * Trinnet pakker sin command ind i en closure, så dispatch-porten ellers ikke kan se, at transaktionen
@@ -174,7 +179,16 @@ export const settleFieldInNewRow = <TEntity, TField>(
 export const inputTransactionStep = <TField, TEntity>(
   command: InputSurfaceCommand<TField, TEntity>
 ): InputTransactionStep => Object.freeze({
-  reduce: (input, catalog) => reduceInputCommand(input, command, catalog).input,
+  reduce: (input, catalog) => reduceInputTransactionStep(input, command, catalog),
+  // Det er alene settle/clear, der kan gøre en allerede eksisterende tabelrække tom. Immediate valg
+  // promoverer bl.a. bevidst en rentekrav-række med kun valgt enhed; den handling må ikke straks
+  // omfortolkes som en skjult sletning af den netop valgte værdi.
+  ...(command.kind === 'settleField' || command.kind === 'clearField'
+    ? {
+        removeEmptyOwningEntity: (input: SettledInput, catalog: InputCatalog) =>
+          catalog.removeEmptyOwningEntity(input, command.field),
+      }
+    : {}),
   // Klassifikationen udledes HER, hvor commanden endnu er synlig — derefter er den lukket inde i `reduce`.
   structural: isStructuralInputCommand(command),
 });
@@ -363,16 +377,21 @@ const reduceImmediateChoice = <T>(
 const buildCandidate = <TField, TEntity>(
   input: SettledInput,
   command: InputMutationCommand<TField, TEntity>,
-  catalog: InputCatalog
+  catalog: InputCatalog,
+  removeEmptyRows = true
 ): SettledInputCandidate => {
   switch (command.kind) {
-    case 'settleField':
-      return reduceSettle(input, command.field, command.raw, catalog);
+    case 'settleField': {
+      const settled = reduceSettle(input, command.field, command.raw, catalog);
+      return removeEmptyRows ? catalog.removeEmptyOwningEntity(settled, command.field) : settled;
+    }
     case 'setImmediateField':
       return reduceImmediateChoice(input, command.field, command.value, catalog);
-    case 'clearField':
+    case 'clearField': {
       assertWritable(input, command.field, catalog);
-      return withCanonicalValue(input, command.field, command.field.descriptor.emptyValue);
+      const cleared = withCanonicalValue(input, command.field, command.field.descriptor.emptyValue);
+      return removeEmptyRows ? catalog.removeEmptyOwningEntity(cleared, command.field) : cleared;
+    }
     case 'insertRow':
       return {
         sections: catalog.insertEntity(input.sections, command.collection, command.entity, command.index),
@@ -413,6 +432,9 @@ const buildCandidate = <TField, TEntity>(
       for (const step of command.steps) {
         candidate = step.reduce(candidate, catalog);
       }
+      for (const step of command.steps) {
+        candidate = step.removeEmptyOwningEntity?.(candidate, catalog) ?? candidate;
+      }
       return candidate;
     }
     case 'resetSection': {
@@ -429,6 +451,16 @@ const buildCandidate = <TField, TEntity>(
       return { sections: buildNewCaseSections(command.seed), rejectedInputs: {} };
   }
 };
+
+/**
+ * Transaktionstrin valideres fortsat enkeltvis, men deres eventuelle tomrække-oprydning udsættes til
+ * transaktionens sluttilstand. Ellers kunne et første clear slette rækken, som næste trin stadig skal skrive.
+ */
+const reduceInputTransactionStep = <TField, TEntity>(
+  input: SettledInput,
+  command: InputSurfaceCommand<TField, TEntity>,
+  catalog: InputCatalog
+): SettledInput => catalog.validateSettledInput(buildCandidate(input, command, catalog, false));
 
 export type InputReducerResult = Readonly<{ changed: boolean; input: SettledInput }>;
 
