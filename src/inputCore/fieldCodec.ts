@@ -95,6 +95,20 @@ export type FieldCodec<T> = Readonly<{
   /** Om et numerisk felt accepterer decimaladskiller under redigering. Beløbs- og procentflader læser denne politik. */
   decimalPolicy?: FieldDecimalPolicy;
   /**
+   * Feltets maksimale RÅ tegnlængde under indtastning, når den er en egenskab ved feltet selv
+   * (`input-field-behavior-contract.md` §2.5: «En fastsat maksimumslængde håndhæves tegn for tegn ved
+   * både tastning og paste»).
+   *
+   * Samme begrundelse som {@link FieldSignPolicy} og {@link FieldDecimalPolicy}: længden ER en erklæret
+   * egenskab ved feltet, og så længe den kun stod som en prop på ét kaldssted, kunne den anden flade
+   * glemme den. Målt: `AmountField` gav `<input>` sit 512-loft, mens INGEN grid-celle gav noget, og
+   * `Kommentarer`/EO-`Nummer`/ledsagetekst havde slet ingen grænse, selv om kontrakten angav 512/7/64.
+   *
+   * Udeladt for familier, hvor længden følger af formatet i stedet (dato, uge, år) eller hvor grænsen
+   * er en ciffergrænse pr. talled frem for et råt tegnloft (beløb, procent — se `charLengthPolicy.ts`).
+   */
+  maxLength?: number;
+  /**
    * VALGMÆNGDEN for de opregnelige familier (`selection`, `requiredChoice`, `boolean`) som CANONICAL værdier.
    *
    * Samme begrundelse som {@link FieldSignPolicy}: mængden ER erklæret inde i codecet, og uden den udadtil

@@ -11,7 +11,8 @@ export type ParsedDateDraft =
   | Readonly<{ ok: false; kind: 'invalid'; message: string }>;
 
 const INVALID_DATE_MESSAGE = 'Ugyldig dato';
-const MAX_DRAFT_LENGTH = 16;
+/** Fælles rå draft-grænse for persisterede og grid-baserede datofelter. */
+export const MAX_DATE_DRAFT_LENGTH = 16;
 
 // Parse afledes altid på commit (form-kernereglen forbyder typing-feedback), så et ufuldstændigt
 // input er en egentlig fejl — ikke en "endnu ikke færdig"-tilstand.
@@ -41,7 +42,7 @@ export const parseDateDraftForCommit = (
 ): ParsedDateDraft => {
   const trimmed = draft.trim();
   if (trimmed === '' || shouldClearField(trimmed)) return { ok: true, danish: '', iso: undefined };
-  if (trimmed.length > MAX_DRAFT_LENGTH) return INVALID_DATE;
+  if (trimmed.length > MAX_DATE_DRAFT_LENGTH) return INVALID_DATE;
 
   let dayRaw: string;
   let monthRaw: string;

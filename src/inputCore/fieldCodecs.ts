@@ -16,7 +16,7 @@ import { parseFractionString, type FractionParseOptions } from '../utils/fractio
 import { isSafeCanonicalInteger, isSafeCanonicalDecimal, isSafeCanonicalNumber } from '../utils/numericSafety';
 import { getNumericBoundsConfigErrors } from '../utils/numericFieldConfig';
 import {
-  MAX_AMOUNT_INTEGER_DIGITS,
+  MAX_AMOUNT_INPUT_INTEGER_DIGITS,
   DEFAULT_AMOUNT_PRECISION,
   MAX_AMOUNT_RAW_LENGTH,
 } from '../utils/amountInputUtils';
@@ -82,6 +82,13 @@ const assertNumericBounds = (
   }
 };
 
+const assertOptionalMaxLength = (codec: string, maxLength: number | undefined): void => {
+  if (maxLength === undefined) return;
+  if (!Number.isInteger(maxLength) || maxLength <= 0) {
+    throw new Error(`${codec}: maxLength skal være et positivt heltal`);
+  }
+};
+
 /** Formular- og tabeltekst bruger samme canonical trimning ved settle. Tekst kan aldrig afvises. */
 export const textFieldCodec: FieldCodec<string> = Object.freeze({
   family: 'text',
@@ -91,8 +98,19 @@ export const textFieldCodec: FieldCodec<string> = Object.freeze({
   acceptsInitialKey: initialKey(/^.$/u),
 });
 
-/** Factory-form af {@link textFieldCodec}, så descriptor-moduler kan læse ensartet `create*`-stil. */
-export const createTextFieldCodec = (): FieldCodec<string> => textFieldCodec;
+/**
+ * Factory-form af {@link textFieldCodec}, så descriptor-moduler kan læse ensartet `create*`-stil.
+ *
+ * `maxLength` er feltets erklærede maksimale tegnlængde (§2.5). Udelades den, har feltet ingen
+ * længdegrænse — og det skal være et bevidst valg, ikke en forglemmelse.
+ */
+export const createTextFieldCodec = (
+  options: Readonly<{ maxLength?: number }> = {}
+): FieldCodec<string> => {
+  assertOptionalMaxLength('TextFieldCodec', options.maxLength);
+  if (options.maxLength === undefined) return textFieldCodec;
+  return Object.freeze({ ...textFieldCodec, maxLength: options.maxLength });
+};
 
 /** Optional fritekst: canonical tomhed er `undefined`, ikke `''`. */
 export const optionalTextFieldCodec: FieldCodec<string | undefined> = Object.freeze({
@@ -106,8 +124,17 @@ export const optionalTextFieldCodec: FieldCodec<string | undefined> = Object.fre
   acceptsInitialKey: initialKey(/^.$/u),
 });
 
-/** Factory-form af {@link optionalTextFieldCodec}, så descriptor-moduler kan læse ensartet `create*`-stil. */
-export const createOptionalTextFieldCodec = (): FieldCodec<string | undefined> => optionalTextFieldCodec;
+/**
+ * Factory-form af {@link optionalTextFieldCodec}, så descriptor-moduler kan læse ensartet `create*`-stil.
+ * Se {@link createTextFieldCodec} om `maxLength`.
+ */
+export const createOptionalTextFieldCodec = (
+  options: Readonly<{ maxLength?: number }> = {}
+): FieldCodec<string | undefined> => {
+  assertOptionalMaxLength('OptionalTextFieldCodec', options.maxLength);
+  if (options.maxLength === undefined) return optionalTextFieldCodec;
+  return Object.freeze({ ...optionalTextFieldCodec, maxLength: options.maxLength });
+};
 
 /** Dropdown-/radio-valg. Tom tekst er canonical `undefined`; ukendt tekst afvises som format. */
 export const createSelectionFieldCodec = <T extends string | number>(options: Readonly<{
@@ -203,7 +230,7 @@ export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: Dat
     format: (value) => value === undefined ? '' : coerceToDanishDateString(value) ?? '',
     formatForEdit: (value) => value === undefined ? '' : coerceToDanishDateString(value) ?? '',
     acceptsInitialKey: initialKey(/^\d$/),
-    normalizePaste: (raw) => normalizeDatePaste(raw, options),
+    normalizePaste: (raw) => normalizeDatePaste(raw),
   });
 
 export const createIntegerFieldCodec = (
@@ -266,7 +293,7 @@ export const createAmountFieldCodec = (options: Readonly<{
         // Fortegn er en canonical bounds-regel; parseren afviser kun format og sikker repræsentation.
         allowNegative: true,
         allowDecimals: options.allowDecimals,
-        maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
+        maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
         maxRawLength: MAX_AMOUNT_RAW_LENGTH,
       });
       // Kun format/schema-repræsenterbarhed afvises (§1.6). Aktive min/max vurderes af en canonical
@@ -287,7 +314,7 @@ export const createAmountFieldCodec = (options: Readonly<{
     normalizePaste: (raw) => normalizeAmountPaste(raw, {
       allowNegative: true,
       allowDecimals: options.allowDecimals,
-      maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
+      maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
       maxDecimalDigits: displayPrecision,
       maxRawLength: MAX_AMOUNT_RAW_LENGTH,
     }),

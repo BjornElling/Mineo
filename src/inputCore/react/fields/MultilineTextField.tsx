@@ -28,11 +28,15 @@ export type MultilineTextFieldProps = Readonly<{
 
 const MultilineTextField = React.forwardRef<HTMLDivElement, MultilineTextFieldProps>(
   ({ field, location, width, name, placeholder, disabled, rows, singleStageClick = false, sx, inputRef }, ref) => {
+    // Længden er erklæret på codec'en (§2.5/§3.4) og håndhæves både som `maxLength` på <textarea>
+    // (tastning) og gennem surfacens paste-splice, hvor elementets eget loft ikke virker (§1.2a).
+    const maxLength = field.descriptor.codec.maxLength;
     const surface = useFormFieldSurface(field, location, {
       disabled,
       singleStageClick,
       // Enter er indhold i et textarea; blur er fortsat den autoritative settle-grænse.
       settleOnEnter: false,
+      ...(maxLength === undefined ? {} : { maxDraftLength: maxLength }),
     });
 
     const assignInputRef = React.useCallback(
@@ -95,7 +99,11 @@ const MultilineTextField = React.forwardRef<HTMLDivElement, MultilineTextFieldPr
         error={hasError}
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
-        htmlTextAreaAttributes={{ readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
+        htmlTextAreaAttributes={{
+          ...(maxLength === undefined ? {} : { maxLength }),
+          readOnly: surface.readOnly,
+          ...surface.restoreTargetAttributes,
+        }}
         sx={mergeSx({
           '& .MuiInputBase-input': {
             caretColor: surface.isOpen ? 'auto' : 'transparent',

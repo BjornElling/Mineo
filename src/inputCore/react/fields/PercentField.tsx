@@ -8,11 +8,10 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import type { FieldIssue } from '../../inputIssue';
 import NumericTextField from './NumericTextField';
-import { fieldAllowsNegative } from './signPolicy';
 import StyledTextFieldBase from '../../../components/inputs/StyledTextFieldBase';
 import { formatPercentDisplay } from '../../../utils/percentDraftCore';
 import type { FieldWarning } from '../../fieldWarning';
-import { fieldAllowsDecimals } from './decimalPolicy';
+import { resolvePercentCharPolicy } from './charLengthPolicy';
 import { mergeSx } from '../../../utils/mergeSx';
 
 // Procent-felt (§2.4/§3.5): familie-skal over `NumericTextField` med procent-tegnfilteret,
@@ -53,18 +52,19 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
     },
     ref
   ) => {
-    // Fortegns-politikken kommer fra descriptorens codec — ikke fra et hardkodet flag her. Alle
-    // procent-descriptorer er ikke-negative, og komponenten svarede tidligere `true` i strid med dem, så et
-    // minus kunne tastes som første tegn.
-    const allowNegative = fieldAllowsNegative(field);
-    const allowDecimals = fieldAllowsDecimals(field);
+    // Tegn- og længdepolitikken kommer fra descriptorens codec gennem den DELTE `resolvePercentCharPolicy`
+    // — samme kilde som grid-cellen. Alle procent-descriptorer er ikke-negative, og komponenten svarede
+    // tidligere `true` i strid med dem, så et minus kunne tastes som første tegn.
+    const { allowNegative, allowDecimals, maxIntegerDigits, maxDraftLength } =
+      resolvePercentCharPolicy(field);
     const keyFilter = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) =>
         filterPercentKeyDown(e, {
           allowNegative,
           allowDecimals,
+          maxIntegerDigits,
         }),
-      [allowDecimals, allowNegative]
+      [allowDecimals, allowNegative, maxIntegerDigits]
     );
 
     // Adornmentet mutes, når draften er tom. Muted-flaget kommer fra `NumericTextField`s
@@ -82,6 +82,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
         singleStageClick={singleStageClick}
         textAlign="right"
         inputMode={allowDecimals ? 'decimal' : 'numeric'}
+        maxDraftLength={maxDraftLength}
         endAdornment={({ isDraftEmpty }) => (
           <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={isDraftEmpty} />
         )}

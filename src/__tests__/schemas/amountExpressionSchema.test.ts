@@ -122,6 +122,14 @@ describe('amountExpressionSchema', () => {
     });
   });
 
+  it('bevarer repræsentationsvejen for load over den brugerrettede 7-ciffergrænse', () => {
+    // `.eo`-/schema-vejen må fortsat læse repræsenterbare historiske beløb med op til 20 heltalscifre;
+    // 7-ciffergrænsen gælder kun den skrivende feltflade.
+    const parsed = optionalAmountValueSchema.safeParse('12345678+1');
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data?.value).toBe(12_345_679);
+  });
+
   it('afviser malformed persisted beløbstekst uden prefix-parsing eller implicit clear', () => {
     expect(optionalAmountValueSchema.safeParse('123abc').success).toBe(false);
     expect(optionalAmountValueSchema.safeParse('1+').success).toBe(false);

@@ -62,6 +62,11 @@ Ingen fund afventer reproduktion.
 | BF-027 | Standardværdier fra Indstillinger slår nu igennem på en ny sag med det samme — ikke først når brugeren rører feltet. |
 | BF-028 | Kronologien i EO's dato-par er flyttet til descriptoren som strukturel feltfejl; begge felter markeres nu rødt med den modgående dato i hver tooltip. |
 | BF-031 | Ustabiliteten er væk: rækkefølgereglen var før et biprodukt af bounds-clampingen og afhang af rækkens øvrige fejl. Den er nu en selvstændig regel ét sted. |
+| BF-029 | Gentagne separatorer afvises igen ved tastning. Ciffer-lofterne var aldrig væk; det var afvisningen af den ANDEN separator på stribe, som forsvandt i `5c864afe` (2026-04-23) uden at nogen test blev rød. |
+| BF-035 | `Kommentarer` har nu de erklærede 512 tegn, håndhævet ved både tastning og paste. |
+| BF-036 | EO-`Nummer` har nu de erklærede 7 tegn, håndhævet ved både tastning og paste. |
+| BF-037 | `+ evt. ledsagetekst` har nu de erklærede 64 tegn, håndhævet ved både tastning og paste. |
+| BF-039 | Bortfaldet ved kontraktændringen 2026-08-09; længdedelen (4. heltalsciffer) er nu håndhævet som del af den generelle tegn-/længderegel. |
 
 ## BF-028 — Til-dato før fra-dato giver ingen feltfejl
 
@@ -100,7 +105,46 @@ Ingen fund afventer reproduktion.
 - Det sker: Feltet kan acceptere gentagne bindestreger og for mange cifre i dag, måned og år, eksempelvis `12-2----------` og `111-111-2026`.
 - Det bør ske: Indtastningen skal behandles tegn for tegn. Punktum, mellemrum, skråstreg og tilsvarende separatorer skal først omdannes til bindestreg. Derefter må der højst være én bindestreg mellem datoens dele, højst to cifre i dag og måned samt højst fire cifre i år. Tegn, der overskrider disse grænser, skal springes over, mens resten af indtastningen fortsætter. `12-2----------2026` skal derfor behandles som `12-2-2026`.
 - Prioritet: Mellem
-- Status: Ny
+- Status: **Løst 2026-08-09** (se «BF-029 — analyse og løsning» nedenfor)
+
+### BF-029 — analyse og løsning
+
+**Fundets præmis var delvist forkert, og det viste vej til den rigtige rettelse.** Antagelsen var, at
+dato-ciffergrænsen var slettet under en refaktorering. Målingen viste noget andet:
+
+- **Ciffer-lofterne var aldrig væk.** `111-111-2026` blev faktisk afvist hele tiden — `111` bryder
+  dag-loftet på to cifre. `isDateLikeDraftAllowed(draft, [2, 2, 4])` var og er wired til både
+  `DateField` og `GridDateCell`, og dens tests har stået i `dateDraftNormalization.test.ts` uafbrudt.
+- **Greenfield-refaktoreringen var ikke skyldig.** `53317aa5` (2026-07-25) slettede `StyledDateField` og
+  `TableDateInput`, men implementeringen var allerede flyttet til `src/utils/` og fulgte ikke med.
+- **Det tabte skete 2026-04-23** i `5c864afe` («Normaliser datofelter ved commit»), som udskiftede en
+  streng segment-regex med en løkke. Med den forsvandt afvisningen af den ANDEN separator på stribe.
+  `12-2----------` er præcis det symptom.
+- **Ingen test dækkede gentagne separatorer** — hverken før eller efter. Derfor kunne løsningen
+  passere CI i stilhed. Det hul er nu lukket med egne cases.
+
+**Hvorfor et rent tilbagerul ville have været en fejl.** Den gamle regex tillod kun separatorsættet
+`[.,/\- ]`, mens kontrakten (§2.1) kræver ethvert ikke-alfanumerisk tegn: `1,1@28` skal kunne tastes.
+`5c864afe` tilføjede selv en testcase for netop det. To yderligere forskelle blev MÅLT frem for antaget:
+
+1. Den gamle regex **tillod** `-12`. Den afviste altså ikke ledende separatorer, og §2.1 siger
+   udtrykkeligt at «separatorer før det første tal ignoreres». De skal derfor forblive tilladte.
+2. Den gamle regex **blokerede** `12-2-2026-`, men den slettede testcase «committer ikke ufuldstændig
+   dato med trailing separator» krævede, at `1-1-2-` kan tastes og først afvises ved commit.
+
+Reglen er derfor genopbygget som kontrakten beskriver den — permissivt separatorsæt bevaret, gentagne
+separatorer afvist, ledende separatorer ignoreret — og verificeret mod alle cases fra den levende
+testfil, de tabte BF-029-cases og de cases `5c864afe` selv tilføjede.
+
+**Paste er bevidst IKKE ensrettet med tastningen.** §2.1 siger, at gentagne bindestreger «afvises efter
+den første; paste fortsætter derfor gennem dem». Tastning blokerer den anden separator; paste springer
+den over og fortsætter, fordi et ulovligt tegn efter §1.2a aldrig må afbryde pasten.
+
+**Beviser.** Værnet er mutationstestet i tre trin, som hver gør testen rød: afvisningen af gentagne
+separatorer fjernet, undtagelsen for ledende separatorer fjernet, og ciffer-loftet hævet. Cases er
+bevidst KORTE (`12-2--` frem for `12--2--2026`): en lang draft med ekstra separatorer afvises nemlig
+også af segment-loftet, fordi hver separator rykker segmentindekset, og ville derfor være grøn selv
+uden reglen — altså måle en konkurrerende mekanisme.
 
 ## BF-030 — Tomme tabelrækker ryddes ikke automatisk
 
@@ -183,7 +227,7 @@ Ingen fund afventer reproduktion.
 - Det bør ske: Feltet skal højst kunne indeholde 512 tegn. Ved almindelig indtastning skal tegn efter grænsen afvises. Ved paste skal teksten behandles tegn for tegn som almindelig indtastning, så de første 512 tegn indsættes, og efterfølgende tegn springes over.
 - Påvirkning: Kommentarindhold kan få ubegrænset længde og dermed afvige fra den ønskede inputbegrænsning.
 - Prioritet: Mellem
-- Status: Ny
+- Status: **Løst 2026-08-09** (se «BF-035, BF-036 og BF-037 — analyse og løsning» nedenfor)
 
 ## BF-036 — EO-nummer mangler maksimumslængde
 
@@ -196,7 +240,7 @@ Ingen fund afventer reproduktion.
 - Det bør ske: Feltet skal acceptere alle tegn, men højst 7 tegn samlet. Ved almindelig indtastning skal tegn efter grænsen afvises. Ved paste skal teksten behandles tegn for tegn som almindelig indtastning, så kun de første 7 tegn indsættes.
 - Påvirkning: EO-nummeret kan få en længde, der afviger fra den ønskede inputbegrænsning.
 - Prioritet: Mellem
-- Status: Ny
+- Status: **Løst 2026-08-09** (se «BF-035, BF-036 og BF-037 — analyse og løsning» nedenfor)
 
 ## BF-037 — Ledsagetekst mangler maksimumslængde
 
@@ -209,7 +253,29 @@ Ingen fund afventer reproduktion.
 - Det bør ske: Feltet skal acceptere alle tegn, men højst 64 tegn samlet. Ved almindelig indtastning skal tegn efter grænsen afvises. Ved paste skal teksten behandles tegn for tegn som almindelig indtastning, så kun de første 64 tegn indsættes.
 - Påvirkning: Ledsageteksten kan få en længde, der afviger fra den ønskede inputbegrænsning.
 - Prioritet: Mellem
-- Status: Ny
+- Status: **Løst 2026-08-09** (se «BF-035, BF-036 og BF-037 — analyse og løsning» nedenfor)
+
+### BF-035, BF-036 og BF-037 — analyse og løsning
+
+De tre fund er ét fund: ingen af felterne havde en længdegrænse, selv om kontrakten angav en præcis
+længde for hvert af dem (§3.4: 512 tegn, §4.1: 7 tegn, §4.2: 64 tegn).
+
+**Rodårsagen var, at længden ikke var ERKLÆRET nogen steder.** Den var en prop på ét kaldssted, og
+derfor kunne den anden flade glemme den. Målt: `AmountField` gav `<input>` sit 512-loft, mens INGEN
+grid-celle gav noget som helst, og tekstfelterne gav ingenting nogen af stederne. Længden er nu data på
+codec'en (`FieldCodec.maxLength`) — samme mønster og samme begrundelse som `signPolicy` og
+`decimalPolicy`, der blev indført for at lukke præcis denne fejlklasse for fortegn og decimaler.
+Descriptoren erklærer tallet, og både formularfeltet og en eventuel celle læser det ene sted.
+
+**Paste var det egentlige hul.** `onPaste` kalder `preventDefault()` og skriver selv draften, så
+browserens `maxLength` gælder ALDRIG ved paste. Både den åbne editors splice og det lukkede felts
+straks-commit kunne derfor sætte en vilkårligt lang værdi, mens hvert enkelt tastetryk ville være blevet
+afvist. `spliceDraftWithPaste` lukker begge veje for alle familier på én gang.
+
+Afkortningen rammer bevidst kun det INDSATTE, ikke præfiks og suffiks: ellers ville et paste midt i en
+fuld værdi klippe halen af og dermed slette tegn, brugeren selv havde skrevet — og §1.2a forbyder, at
+paste ændrer en værdi, der ligger inden for feltets grænser. Den forkerte variant
+(`(prefix + pasted + suffix).slice(0, max)`) er mutationstestet og gør fire tests røde.
 
 ## BF-038 — Indsæt dags dato kan ikke bruges fra tastaturet
 
@@ -231,7 +297,10 @@ Ingen fund afventer reproduktion.
 > omfatter tegnsæt og længde (højst 3 heltalscifre og 2 decimaler), ikke talværdi. `101` skal derfor kunne
 > indtastes og skal give rød ring, konkret tooltip og blokere download, hvor ansvarsgraden har betydning —
 > altså præcis den adfærd, dette fund beskrev som forkert. Se `input-field-behavior-contract.md` §2.3 og §4.10.
-> Længdedelen er dog fortsat et udestående: et 4. heltalsciffer skal blokeres ved både tastning og paste.
+> Længdedelen er **håndhævet 2026-08-09**: procentfelter erklærer nu højst 3 heltalscifre og 2 decimaler
+> gennem den delte `resolvePercentCharPolicy`, som både `PercentField` og `GridPercentCell` læser. Det 4.
+> heltalsciffer og den 3. decimal blokeres ved tastning, og paste afgrænses samme vej. Fundet er dermed
+> lukket i sin helhed.
 
 - Type: Fejl
 - Sted: Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Procent`
@@ -242,8 +311,8 @@ Ingen fund afventer reproduktion.
 - Det sker: Feltet tillader værdien over 100 % og viser først en range-fejl efterfølgende.
 - Det bør ske: *(bortfaldet)* Den oprindelige beskrivelse krævede blokering allerede ved tastning og paste. Efter kontraktændringen er det modsatte det rigtige: `101` skal accepteres som canonical værdi med rød ring, konkret tooltip om det tilladte interval og blokeret download. Det, der skal blokeres, er alene det 4. heltalsciffer og den 3. decimal.
 - Påvirkning: Ingen — den observerede adfærd er nu den ønskede for talværdien.
-- Prioritet: Bortfaldet (længdeblokeringen føres videre som en del af den generelle tegn-/længderegel)
-- Status: Bortfaldet 2026-08-09
+- Prioritet: Bortfaldet (længdeblokeringen er indført med den generelle tegn-/længderegel)
+- Status: Bortfaldet 2026-08-09; længdedelen løst samme dag
 
 ## BF-040 — Forligsprocent-paste fortolker forbudte tegn
 
@@ -518,3 +587,12 @@ den kræver en beregningsbeslutning og er derfor ikke rørt.
 urelateret legacy-fejl i samme fixture, så en mutation, der swallower ENHVER legacy-besked, bliver rød —
 uden den ville testen ikke kunne skelne en smal undertrykkelse fra en altædende. Beregnings-ækvivalensen er
 målt igen: 2.044 beregnings-, PDF- og dokumenttests, nul ændrede udfald.
+
+
+## Nyt brugerfund, der skal registreres i tabellen
+
+Når slet alt-funktionaliteten benyttes, skal programmet 'glemme' hvilke faner det senest var inde på og nulstille disse til default-værdien. Har brugeren fx gået ind på Erstatningsopgørelse vises 'EO Oplysninger' fanen som default. Vælger brugeren 'Offentlige ydelser' fanen og skifter til en anden side, husker programmet fanen og går til denne, hvis brugeren senere går tilbage til Erstatningsopgørelse-siden. Hvis brugeren benytter 'Slet alt' skal dette 'glemmes', og brugeren føres til default-siden, dvs. 'EO Oplysninger'.
+
+## Nyt brugerfund, der skal registreres i tabellen
+
+Påstanden om, at procent-felter nu er afgrænset til at der maksimalt kan indtastes tre cifre før komma og, hvis feltet tillader komma-værdier, maksimalt to cifre efter komma, er forkert. Rettelsen virker ikke korrekt. I forlig-feltet på 'EO oplysninger' siden er det muligt at indtaste meget lange tal i denne situation: Der indtastes en ugyldig værdi, fx. 111,11. På dette tidspunkt virker ciffer-begrænsningen korrekt, og eftersom værdien er ugyldig, får feltet rød ring og tooltip. Fjernes fokus fra feltet, og gives derefter fokus til feltet, kan man indtaste et meget langt tal, fx. '1111111' i feltet.

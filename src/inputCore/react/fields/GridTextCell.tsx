@@ -70,7 +70,10 @@ const GridTextCellInner = <T, TEntity>(
   }: GridTextCellProps<T, TEntity>
 ): React.ReactElement => {
   const gridApi = useGridCoreApi();
-  const surface = useGridCellSurface<T, TEntity>(gridCell, cell, { keyFilter });
+  const surface = useGridCellSurface<T, TEntity>(gridCell, cell, {
+    keyFilter,
+    ...(maxDraftLength === undefined ? {} : { maxDraftLength }),
+  });
 
   const assignInputRef = React.useCallback(
     (node: HTMLInputElement | null) => {

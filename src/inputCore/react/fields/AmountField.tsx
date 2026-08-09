@@ -3,14 +3,13 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import { filterAmountExpressionKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import InputUnitAdornment from '../../../components/inputs/InputUnitAdornment';
-import { DEFAULT_AMOUNT_PLACEHOLDER, INTEGER_AMOUNT_PLACEHOLDER, MAX_AMOUNT_RAW_LENGTH } from '../../../utils/amountInputUtils';
+import { DEFAULT_AMOUNT_PLACEHOLDER, INTEGER_AMOUNT_PLACEHOLDER } from '../../../utils/amountInputUtils';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
-import { fieldAllowsNegative } from './signPolicy';
 import type { FieldWarning } from '../../fieldWarning';
-import { fieldAllowsDecimals } from './decimalPolicy';
+import { resolveAmountCharPolicy } from './charLengthPolicy';
 
 // Beløbs-felt (§2.4/§3.5, samlet input-enhed): familie-skal over `NumericTextField` med
 // beløbsudtryks-tegnfilteret, den delte "kr."-enheds-adornment (muted når tom) og et `fx`-udtryksmærke, når den
@@ -82,14 +81,20 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
     },
     ref
   ) => {
-    // Fortegns-politikken kommer fra descriptorens codec. For beløb rammer filteret KUN det unære
-    // minus (`containsUnaryMinusToken`), så subtraktion i et udtryk — "5000-200" — forbliver lovlig også i et
-    // ikke-negativt felt.
-    const allowNegative = fieldAllowsNegative(field);
-    const allowDecimals = fieldAllowsDecimals(field);
+    // Tegn- og længdepolitikken udledes af descriptorens codec gennem den DELTE `resolveAmountCharPolicy`,
+    // så formularfeltet og grid-cellen ikke kan komme til at håndhæve forskellige grænser på samme felt.
+    // For beløb rammer fortegnsfilteret KUN det unære minus (`containsUnaryMinusToken`), så subtraktion i
+    // et udtryk — "5000-200" — forbliver lovlig også i et ikke-negativt felt.
+    const policy = resolveAmountCharPolicy(field);
+    const { allowNegative, allowDecimals, maxIntegerDigits, maxDecimalDigits, maxDraftLength } = policy;
     const keyFilter = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, { allowNegative, allowDecimals }),
-      [allowNegative, allowDecimals]
+      (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, {
+        allowNegative,
+        allowDecimals,
+        maxIntegerDigits,
+        maxDecimalDigits,
+      }),
+      [allowNegative, allowDecimals, maxIntegerDigits, maxDecimalDigits]
     );
 
     // Placeholderen følger `allowDecimals`, så et komma-frit felt ikke antyder en decimalhale. Et eksplicit
@@ -111,7 +116,7 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
         {...(warning === undefined ? {} : { warning })}
         textAlign="right"
         inputMode={allowDecimals ? 'decimal' : 'numeric'}
-        maxDraftLength={MAX_AMOUNT_RAW_LENGTH}
+        maxDraftLength={maxDraftLength}
         endAdornment={({ isDraftEmpty, value }) => (
           <>
             <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.currency} muted={isDraftEmpty} />

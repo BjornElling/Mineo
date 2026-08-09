@@ -3,8 +3,8 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-08 (§1.2, §1.2a, §2.1–2.5 og §4.10 er ændret 2026-08-09 og beskriver
-ØNSKET adfærd, der endnu ikke er verificeret mod koden)
+**Senest verificeret mod kode:** 2026-08-09 (§1.2, §1.2a, §2.1, §2.2, §2.3, §2.5 og §4.10's længdedel er
+implementeret og verificeret; §2.4's brøkgrænser og de øvrige feltspecifikke afsnit er uændrede fra 2026-08-08)
 
 Dette dokument er den autoritative arbejdsbeskrivelse af den ønskede brugeradfærd for de inputfelter og
 kontroller, der er gennemgået i brugerens inputkrydsforhør. Det beskriver observerbar adfærd, ikke en bestemt

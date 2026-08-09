@@ -14,7 +14,7 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-006 | Differencekrav viser samme manglende beregningsdato to gange | Parallel logik / UX | SURF-004 / EET-002 | Firefox 1920×1080 | Lav | Bekræftet | 2026-08-08 16:23 Europe/Copenhagen |
 | OBS-007 | Gem giver ingen feedback ved canonical tværgående datofejl | Dataintegritet / UX | SURF-001/SURF-002 / STAM-005 | Chrome/Edge 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:56 Europe/Copenhagen |
 | OBS-008 | Ugyldig fil ved Hent behandles som teknisk runtimefejl | Kontraktdrift / UX | SURF-003 / EO-OPLYS-005 | WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 17:59 Europe/Copenhagen |
-| OBS-009 | Trecifret tillægstid trunkeres til to cifre uden range-issue | Dataintegritet / Kontraktdrift | SURF-008 / RENTE-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bortfaldet 2026-08-09 (kontraktændring) | 2026-08-08 18:47 Europe/Copenhagen |
+| OBS-009 | Trecifret tillægstid trunkeres til to cifre uden range-issue | Dataintegritet / Kontraktdrift | SURF-008 / RENTE-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bortfaldet 2026-08-09 (kontraktændring); afgrænsning håndhævet 2026-08-09 | 2026-08-08 18:47 Europe/Copenhagen |
 | OBS-010 | Syv Indstillinger-kontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-010 / SETTINGS-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:06 Europe/Copenhagen |
 | OBS-011 | Om-sidens startside-toggle mangler tilgængeligt navn | UX / Tilgængelighed | SURF-011 / MINEO-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:15 Europe/Copenhagen |
 | OBS-012 | Fire EET-valgkontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-004 / EET-002 | Chrome/Edge/Firefox/WebKit 1920×1080; WebKit også 2560×1440 | Mellem | Bekræftet | 2026-08-08 19:23 Europe/Copenhagen |
@@ -30,8 +30,8 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-022 | Erstatningsopgørelsens deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-09 02:47 Europe/Copenhagen |
 | OBS-023 | EO's AES-datofelter accepterer datoer før skadedagen | Kontraktdrift / Dataintegritet | CUT-001 / EO-008 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-09 02:56 Europe/Copenhagen |
 | OBS-024 | EO-tabellernes deklarerede datogrænser håndhæves ikke | Kontraktdrift / Dataintegritet | CUT-001 / EO-009 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-09 02:56 Europe/Copenhagen |
-| OBS-025 | Beløb over binary64-grænsen reduceres stille ved indsættelse | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / RENTE-006 / Årsløn-tabel / EO-Øvrige krav / EO-Lønindkomst / EO-Svie-smerte / EO-TAF | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Bekræftet | 2026-08-09 03:36 Europe/Copenhagen |
-| OBS-026 | Fælles årsløn over binary64-grænsen udløser teknisk fejladvarsel | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / EET- og Forsørgertab-årsløn | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Bekræftet | 2026-08-09 03:53 Europe/Copenhagen |
+| OBS-025 | Beløb over binary64-grænsen reduceres stille ved indsættelse | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / RENTE-006 / Årsløn-tabel / EO-Øvrige krav / EO-Lønindkomst / EO-Svie-smerte / EO-TAF | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Løst 2026-08-09 | 2026-08-09 03:36 Europe/Copenhagen |
+| OBS-026 | Fælles årsløn over binary64-grænsen udløser teknisk fejladvarsel | Dataintegritet / Kontraktdrift / Runtimefejl | CUT-003 / EET- og Forsørgertab-årsløn | Chrome/Edge/Firefox 1920×1080; WebKit paste-gap | Høj | Løst 2026-08-09 | 2026-08-09 03:53 Europe/Copenhagen |
 | OBS-027 | Tab-navigation afslutter ikke draft på Satser-feltet | UX / Tilgængelighed / Kontraktdrift | SURF-009 / CUT-003 / Satser | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 06:16 Europe/Copenhagen |
 | OBS-028 | Firefox-teknisk advarsel blokerer Løntrin-finderens datofelt | Browserforskel / UX / Kontraktdrift | SURF-003 / PAR-003 / Løntrin-finder | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-09 06:29 Europe/Copenhagen |
 
@@ -378,8 +378,16 @@ Brugeren kan tro, at Mineo eller sagen er teknisk beskadiget, selv om Hent blot 
 > også være blevet afvist ved tastning. Den observerede adfærd er uændret; det er forventningsgrundlaget, der
 > er ændret. Bemærk dog, at fundets bemærkning om den åbne PDF-gate ikke længere er en fejl af samme grund:
 > `10` er en gyldig værdi.
+>
+> **Håndhævet 2026-08-09.** Afgrænsningen er nu en egenskab ved feltet frem for en tilfældighed:
+> `maxDraftLength` gælder også ved paste (`spliceDraftWithPaste`), fordi `onPaste` kalder
+> `preventDefault()` og derfor aldrig kunne bruge `<input maxLength>`. Integrationstesten
+> «markerer et indsat trecifret tal ugyldigt ved settle» byggede på det ophævede princip og er
+> omskrevet til «afgrænser et indsat trecifret tal som ved tastning»: `98`, `aria-invalid=false`.
+> Det udestående, som fundet selv nævner, består uændret: en trecifret værdi fra `.eo`-load er ikke
+> tastning og skal fortsat give et canonical bounds-issue.
 
-- Status: Bortfaldet (kontraktændring 2026-08-09)
+- Status: Bortfaldet (kontraktændring 2026-08-09); den ønskede afgrænsning håndhævet 2026-08-09
 - Kategori: Dataintegritet / Kontraktdrift
 - Alvor: Høj (som registreret; bortfaldet)
 - Først set: 2026-08-08 18:47 Europe/Copenhagen
@@ -1103,8 +1111,27 @@ Tabeldatoer før Skadedato kan afsluttes og blive stående i den canonical state
 > reduktion til en ANDEN værdi er fortsat forkert: afkortning skal ske tegn for tegn ved indgangen, ikke som
 > en talmæssig reduktion efter parsing. Den eksklusive `2^46`-grænse i `amount-contract.md` §3 forbliver et
 > internt fail-closed-værn for load og beregning, men er ikke længere feltets grænse.
+>
+> **Løst 2026-08-09.** Fundet er lukket ved kilden: `70368744177664,00` kan ikke længere komme ind i et
+> beløbsfelt, hverken ved tastning eller paste, så `money.fromKroner` og beløbsschemaet nås aldrig ad
+> den vej. Tre ting var i vejen, og alle tre er rettet:
+>
+> 1. `MAX_AMOUNT_INTEGER_DIGITS = 20` var ÉT tal, som både indtastning og schema/load læste. Den er
+>    delt i `MAX_AMOUNT_INPUT_INTEGER_DIGITS` (7, indtastning) og
+>    `MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS` (20, schema/load). Delingen er selve pointen: så længe
+>    de delte ét tal, kunne inputgrænsen ikke strammes uden også at stramme load-vejen — og en gyldig
+>    gammel sag med et større BEREGNET beløb skal fortsat kunne indlæses (`amount-contract.md` §3).
+> 2. Tegnfilteret kendte overhovedet ikke heltalscifre, kun decimaler. Grænsen håndhæves nu pr. talled,
+>    så `9999999+9999999` fortsat er lovligt, mens det 8. ciffer i et led blokeres.
+> 3. Paste omgik hvert længdeloft, fordi `onPaste` kalder `preventDefault()` og selv skriver draften.
+>    `spliceDraftWithPaste` lukker både den åbne editors splice og det lukkede felts straks-commit.
+>
+> Et gyldigt UDTRYK kan fortsat regne sig forbi grænsen (`9999999*2`); det kan ikke blokeres tegn for
+> tegn og bliver derfor en canonical rød feltfejl med konkret tooltip, jf. §2.2. Validatoren tilføjes
+> DERIVERET i `defineField` til hvert felt med codec-familien `amount`, så ingen af de mange
+> beløbsdescriptorer kan mangle den.
 
-- Status: Bekræftet (forventningsgrundlag opdateret 2026-08-09)
+- Status: **Løst 2026-08-09**
 - Kategori: Dataintegritet / Kontraktdrift / Runtimefejl
 - Alvor: Høj
 - Først set: 2026-08-09 03:36 Europe/Copenhagen
@@ -1204,8 +1231,30 @@ En bruger kan indsætte et beløb, som stille ændres til et andet beløb, uden 
 > desuden inden for de 7 cifre, så en overskridelse af DET interval skal fortsat give rød ring og konkret
 > tooltip, ikke en `ZodError`. Kernen i fundet — at settle kaster en uncaught schemafejl i stedet for at give
 > en feltissue — er uændret gyldig.
+>
+> **Løst 2026-08-09, og årsagen var en anden end fundet antog.** Den indsatte tekst `70368744177664` kan
+> ikke længere komme ind i feltet (det 8. ciffer blokeres), men det lukkede kun den ENE indgang. Under
+> arbejdet blev den egentlige rodårsag målt: **beløbsparseren og beløbsschemaet brugte hver sin
+> precision.** `parseAmountInput` målte repræsentationsgrænsen mod FELTETS `precision`, mens
+> `amountValueSchema` altid validerer ved 2 decimaler. Ved precision 0 er den sikre grænse `2^53`
+> (~9,0e15), ved precision 2 er den `2^46` (~7,0e13). Et HELTALS-beløbsfelt kunne derfor parse
+> `9999999*9999999` = `99.999.980.000.001` som fuldt gyldigt — intet talled er over 7 cifre, så
+> ciffergrænsen kan ikke fange det — og først inde i schemaet blev det en uncaught `ZodError` med præcis
+> den observerede tekst «Beløbet er for stort til at kunne gemmes præcist».
+>
+> Tal-grenen i parseren havde længe sit `canonicalValueIsSafe`-værn; **udtryks-grenen manglede det
+> tilsvarende.** Den måler nu mod `DEFAULT_AMOUNT_PRECISION`, så alt, parseren accepterer, også kan
+> parses af schemaet. Et for stort udtryksresultat bliver dermed afsluttet rejected råtekst med rød
+> feltfejl (§1.6) frem for en teknisk fejladvarsel. Invarianten er testet direkte —
+> «alt, parseren ACCEPTERER, kan også parses af beløbsschemaet» — og mutationstestet ved at måle mod
+> feltets precision igen, hvilket gør to tests røde.
+>
+> Fundets øvrige led er dermed også lukkede: den fælles årsløns eget interval `1.000`–`9.999.999` ligger
+> inden for de 7 cifre og håndhæves fortsat af `amountBoundsValidator` som rød ring med konkret tooltip,
+> og et resultat mellem feltgrænsen og den canonical grænse (fx `9999999*2` = `19.999.998`) committes
+> canonical med rød ring fra `amountResultBoundsValidator` — ikke som en schemafejl.
 
-- Status: Bekræftet (forventningsgrundlag opdateret 2026-08-09)
+- Status: **Løst 2026-08-09**
 - Kategori: Dataintegritet / Kontraktdrift / Runtimefejl
 - Alvor: Høj
 - Først set: 2026-08-09 03:53 Europe/Copenhagen

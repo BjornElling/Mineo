@@ -4,7 +4,7 @@ import { roundByMethod } from '../utils/rounding';
 import { isSafeCanonicalDecimal } from '../utils/numericSafety';
 import {
   DEFAULT_AMOUNT_PRECISION,
-  MAX_AMOUNT_INTEGER_DIGITS,
+  MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS,
   MAX_AMOUNT_RAW_LENGTH,
 } from '../utils/amountInputUtils';
 
@@ -63,7 +63,7 @@ export const amountExpressionSchema = z
       precision: AMOUNT_SCHEMA_PRECISION,
       allowNegative: true,
       allowDecimals: true,
-      maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
+      maxIntegerDigits: MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS,
       maxRawLength: MAX_AMOUNT_RAW_LENGTH,
     });
 
@@ -106,7 +106,7 @@ export const coerceToAmountValue = (value: unknown): unknown => {
       precision: AMOUNT_SCHEMA_PRECISION,
       allowNegative: true,
       allowDecimals: true,
-      maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
+      maxIntegerDigits: MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS,
       maxRawLength: MAX_AMOUNT_RAW_LENGTH,
     });
     if (parsed.ok && parsed.value !== undefined) return parsed.value;

@@ -1,6 +1,6 @@
 import {
   DEFAULT_AMOUNT_PRECISION,
-  MAX_AMOUNT_INTEGER_DIGITS,
+  MAX_AMOUNT_INPUT_INTEGER_DIGITS,
   MAX_AMOUNT_RAW_LENGTH,
   normalizePastedAmount,
 } from './amountInputUtils';
@@ -27,49 +27,6 @@ const hasNegativeMarkerBeforeIndex = (text: string, index: number): boolean => {
     return char === '-';
   }
   return false;
-};
-
-const extractBoundedDateComponent = (
-  text: string,
-  start: number,
-  maxValue: number
-): Readonly<{ value: string; nextIndex: number; overflow: boolean }> => {
-  const firstDigitIndex = findNextDigitIndex(text, start);
-  if (firstDigitIndex === -1) {
-    return { value: '', nextIndex: text.length, overflow: false };
-  }
-
-  const firstDigit = text[firstDigitIndex] ?? '';
-  const secondChar = text[firstDigitIndex + 1];
-  if (secondChar !== undefined && /\d/.test(secondChar)) {
-    const twoDigits = `${firstDigit}${secondChar}`;
-    const twoDigitValue = Number.parseInt(twoDigits, 10);
-    if (twoDigitValue >= 1 && twoDigitValue <= maxValue) {
-      return { value: twoDigits, nextIndex: firstDigitIndex + 2, overflow: false };
-    }
-
-    const oneDigitValue = Number.parseInt(firstDigit, 10);
-    if (oneDigitValue >= 1 && oneDigitValue <= maxValue) {
-      return { value: firstDigit, nextIndex: firstDigitIndex + 1, overflow: true };
-    }
-
-    return {
-      value: '',
-      nextIndex: firstDigitIndex,
-      overflow: true,
-    };
-  }
-
-  const oneDigitValue = Number.parseInt(firstDigit, 10);
-  if (oneDigitValue < 1 || oneDigitValue > maxValue) {
-    return { value: '', nextIndex: firstDigitIndex, overflow: true };
-  }
-
-  return {
-    value: firstDigit,
-    nextIndex: firstDigitIndex + 1,
-    overflow: false,
-  };
 };
 
 const extractContiguousDigits = (
@@ -217,22 +174,45 @@ const normalizeNumericPaste = (text: string, options: NumericPasteOptions): stri
   return '';
 };
 
-export const normalizeDatePaste = (
-  text: string,
-  options: Readonly<{ twoDigitYearPolicy?: TwoDigitYearPolicy }> = {}
-): string => {
-  const day = extractBoundedDateComponent(text, 0, 31);
-  if (day.value === '') return '';
-  if (day.overflow) return day.value;
+/**
+ * Filtrerer dato-paste efter cifferlængde og tegnfølge — aldrig efter kalender-værdi.
+ *
+ * Et ciffer, der overskrider dag/måned/år-segmentets længde, springes over, men afbryder ikke resten af
+ * pasten. Det er vigtigt, at fx `32-12-2020` når frem til settle som netop den ugyldige dato, så en
+ * kalenderfejl ikke tavst reduceres til `3`. Separatorer før første tal ignoreres, og gentagne separatorer
+ * kollapses ved at springe alle efter den første over (§1.2a og §2.1).
+ */
+export const normalizeDatePaste = (text: string): string => {
+  const segmentMaxLengths = [2, 2, 4] as const;
+  const digitGroups = text.match(/[0-9]+/g) ?? [];
+  let segmentIndex = 0;
+  let result = '';
 
-  const month = extractBoundedDateComponent(text, day.nextIndex, 12);
-  if (month.value === '') return day.value;
-  if (month.overflow) return `${day.value}-${month.value}`;
+  for (const [groupIndex, group] of digitGroups.entries()) {
+    if (segmentIndex >= segmentMaxLengths.length) break;
 
-  const year = normalizeYearPaste(text.slice(month.nextIndex), options);
-  if (year === '') return `${day.value}-${month.value}`;
+    // Den første sammenhængende ciffergruppe kan være en separatorfri dato (`17121956`) og fylder
+    // derfor flere komponenter. Efterfølgende grupper er allerede adskilt af mindst ét ugyldigt tegn;
+    // de hører kun til den næste komponent. Det springer både gentagne separatorer og overskydende
+    // cifre over uden at afbryde resten af paste-handlingen (`12-345-2020` → `12-34-2020`).
+    const available = segmentMaxLengths[segmentIndex];
+    const accepted = groupIndex === 0
+      ? group.slice(0, segmentMaxLengths.slice(segmentIndex).reduce((sum, max) => sum + max, 0))
+      : group.slice(0, available);
+    let offset = 0;
+    while (offset < accepted.length && segmentIndex < segmentMaxLengths.length) {
+      const segment = accepted.slice(offset, offset + segmentMaxLengths[segmentIndex]);
+      if (segment !== '') {
+        if (result !== '') result += '-';
+        result += segment;
+        offset += segment.length;
+        segmentIndex += 1;
+      }
+    }
 
-  return `${day.value}-${month.value}-${year}`;
+  }
+
+  return result;
 };
 
 export const normalizeIntegerPaste = (
@@ -260,7 +240,7 @@ export const normalizeAmountPaste = (
   const allowDecimals = options.allowDecimals !== false;
   const maxIntegerDigits = normalizePositiveIntegerOption(
     options.maxIntegerDigits,
-    MAX_AMOUNT_INTEGER_DIGITS
+    MAX_AMOUNT_INPUT_INTEGER_DIGITS
   );
   const maxDecimalDigits = normalizeNonNegativeIntegerOption(
     options.maxDecimalDigits,

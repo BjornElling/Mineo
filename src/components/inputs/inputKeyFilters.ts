@@ -131,11 +131,49 @@ export const filterFractionKeyDown = (
 };
 
 /**
- * Beløbsudtryk: tillad cifre, ét komma, operatorer, parenteser og mellemrum.
+ * Om ET talled i et beløbsudtryk overskrider ciffergrænsen (`input-field-behavior-contract.md` §2.2).
+ *
+ * Grænsen er pr. TALLED, ikke pr. draft: `9999999+9999999` er lovligt, mens `99999999` ikke er.
+ * Derfor skal draften deles op ved operatorer, parenteser og mellemrum, og hvert led måles for sig.
+ * Tusindtalsseparatorer findes ikke i et beløbsfelt (punktum er blokeret), så cifrene tælles direkte.
+ *
+ * Bemærk at dette KUN er en længderegel. Et udtryk, hvis beregnede RESULTAT overskrider
+ * `±9.999.999,99`, kan ikke fanges tegn for tegn og bliver i stedet en canonical rød feltfejl ved
+ * settle (§2.2, §8) — se `amountResultBoundsValidator`.
+ */
+const exceedsAmountTokenDigits = (
+  draft: string,
+  maxIntegerDigits: number,
+  maxDecimalDigits: number | undefined
+): boolean => {
+  // Split ved alt, der ikke kan være en del af ét talled. Minus er både fortegn og operator; i begge
+  // tilfælde starter et nyt talled efter det.
+  for (const token of draft.split(/[+\-*/x()\s]+/)) {
+    if (token === '') continue;
+    const [integerPart = '', ...decimalParts] = token.split(',');
+    if (integerPart.replace(/\D/g, '').length > maxIntegerDigits) return true;
+    if (
+      typeof maxDecimalDigits === 'number'
+      && decimalParts.join('').replace(/\D/g, '').length > maxDecimalDigits
+    ) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * Beløbsudtryk: tillad cifre, ét komma, operatorer, parenteser og mellemrum — og håndhæv
+ * ciffergrænsen pr. talled (§2.2: højst 7 heltalscifre og 2 decimaler).
  */
 export const filterAmountExpressionKeyDown = (
   e: KeyDownEvent,
-  options?: { allowNegative?: boolean; allowDecimals?: boolean; maxDecimalDigits?: number }
+  options?: {
+    allowNegative?: boolean;
+    allowDecimals?: boolean;
+    maxDecimalDigits?: number;
+    maxIntegerDigits?: number;
+  }
 ): void => {
   if (!shouldValidateCharInsertion(e)) return;
   const next = getNextValueFromInsertion(e.currentTarget, e.key);
@@ -163,6 +201,19 @@ export const filterAmountExpressionKeyDown = (
   ) {
     // Beløbsudtryk kan have flere talled. Værnet kontrollerer derfor hvert decimalkomma i hele den
     // kommende draft i stedet for kun tegnene omkring cursoren.
+    block(e);
+    return;
+  }
+  // Ciffergrænsen pr. talled. Måles på hele den kommende draft af samme grund som decimalværnet
+  // ovenfor: brugeren kan sætte cursoren midt i et eksisterende talled og skrive der.
+  if (
+    typeof options?.maxIntegerDigits === 'number'
+    && exceedsAmountTokenDigits(
+      next,
+      options.maxIntegerDigits,
+      allowDecimals ? maxDecimalDigits : 0
+    )
+  ) {
     block(e);
     return;
   }

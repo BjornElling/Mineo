@@ -13,7 +13,6 @@ import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import InputUnitAdornment from '../../../components/inputs/InputUnitAdornment';
 import {
   DEFAULT_AMOUNT_PLACEHOLDER,
-  DEFAULT_AMOUNT_PRECISION,
   INTEGER_AMOUNT_PLACEHOLDER,
 } from '../../../utils/amountInputUtils';
 import {
@@ -27,7 +26,8 @@ import type { FieldIssue } from '../../inputIssue';
 import type { CellSpec } from '../useCellEditor';
 import GridTextCell from './GridTextCell';
 import { fieldAllowsNegative } from './signPolicy';
-import { fieldAllowsDecimals } from './decimalPolicy';
+import { resolveAmountCharPolicy, resolvePercentCharPolicy } from './charLengthPolicy';
+import { MAX_DATE_DRAFT_LENGTH } from '../../../utils/dateDraftCommit';
 
 // Grid-celle-familier (§2.5/§3.5): tynde skaller over `GridTextCell`. Hver vælger kun sit
 // tegnfilter + adornment + justering; parse/format/paste og commit-intervaller ejes af descriptorens codec
@@ -65,19 +65,23 @@ const ExpressionIndicator = (): React.ReactElement => (
 export const GridAmountCell = (
   { gridCell, cell, placeholder, inputRef }: BaseCellProps<AmountValue | undefined>
 ): React.ReactElement => {
-  // Fortegns-politikken kommer fra cellens egen descriptor, ikke fra et hardkodet flag: løntabellens
-  // beløbskolonner ER fortegnede, mens fx et 0-og-op-beløb i en anden tabel ikke er — og cellen deler kode.
-  const allowNegative = fieldAllowsNegative(cell.field);
-  const allowDecimals = fieldAllowsDecimals(cell.field);
+  // Tegn- og længdepolitikken kommer fra cellens egen descriptor gennem den DELTE
+  // `resolveAmountCharPolicy` — samme kilde som formularens `AmountField`. Løntabellens beløbskolonner
+  // ER fortegnede, mens fx et 0-og-op-beløb i en anden tabel ikke er, og cellen deler kode; men INGEN af
+  // grænserne må længere være et lokalt valg her, for det var netop dét, der lod celle og formular
+  // håndhæve forskellige decimal- og længdegrænser på samme felt.
+  const { allowNegative, allowDecimals, maxIntegerDigits, maxDecimalDigits, maxDraftLength } =
+    resolveAmountCharPolicy(cell.field);
   const resolvedPlaceholder = placeholder
     ?? (allowDecimals ? DEFAULT_AMOUNT_PLACEHOLDER : INTEGER_AMOUNT_PLACEHOLDER);
   const keyFilter = React.useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, {
       allowNegative,
       allowDecimals,
-      maxDecimalDigits: allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0,
+      maxIntegerDigits,
+      maxDecimalDigits,
     }),
-    [allowDecimals, allowNegative]
+    [allowDecimals, allowNegative, maxIntegerDigits, maxDecimalDigits]
   );
   return (
     <GridTextCell<AmountValue | undefined>
@@ -87,6 +91,7 @@ export const GridAmountCell = (
       placeholder={resolvedPlaceholder}
       textAlign="right"
       inputMode={allowDecimals ? 'decimal' : 'numeric'}
+      maxDraftLength={maxDraftLength}
       endAdornment={({ isDraftEmpty }) => (
         <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.currency} muted={isDraftEmpty} />
       )}
@@ -108,13 +113,17 @@ export const GridPercentCell = (
   // Politikken læses nu af descriptoren. Cellen svarede før hardkodet `false` — tilfældigvis RIGTIGT
   // for alle nuværende procent-descriptorer, men uden nogen forbindelse til det, de erklærede. Netop derfor
   // kunne formular-pendanten svare `true` på samme felter, uden at noget blev rødt.
-  const allowNegative = fieldAllowsNegative(cell.field);
-  const allowDecimals = fieldAllowsDecimals(cell.field);
+  const { allowNegative, allowDecimals, maxIntegerDigits, maxDraftLength } =
+    resolvePercentCharPolicy(cell.field);
   const resolvedPlaceholder = placeholder
     ?? (allowDecimals ? TWO_DECIMAL_PERCENT_PLACEHOLDER : DEFAULT_PERCENT_PLACEHOLDER);
   const keyFilter = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => filterPercentKeyDown(e, { allowNegative, allowDecimals }),
-    [allowNegative, allowDecimals]
+    (e: React.KeyboardEvent<HTMLInputElement>) => filterPercentKeyDown(e, {
+      allowNegative,
+      allowDecimals,
+      maxIntegerDigits,
+    }),
+    [allowNegative, allowDecimals, maxIntegerDigits]
   );
   return (
     <GridTextCell<number | undefined>
@@ -124,6 +133,7 @@ export const GridPercentCell = (
       placeholder={resolvedPlaceholder}
       textAlign="right"
       inputMode={allowDecimals ? 'decimal' : 'numeric'}
+      maxDraftLength={maxDraftLength}
       endAdornment={({ isDraftEmpty }) => (
         <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={isDraftEmpty} />
       )}
@@ -170,6 +180,7 @@ export const GridYearCell = (
     placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
+    maxDraftLength={MAX_DATE_DRAFT_LENGTH}
     {...(inputRef === undefined ? {} : { inputRef })}
   />
 );
@@ -200,6 +211,7 @@ export const GridDateCell = (
     placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
+    maxDraftLength={MAX_DATE_DRAFT_LENGTH}
     {...(collectionRuleIssue === undefined ? {} : { collectionRuleIssue })}
     {...(inputRef === undefined ? {} : { inputRef })}
   />

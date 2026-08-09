@@ -10,15 +10,12 @@ import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
+import { MAX_DATE_DRAFT_LENGTH } from '../../../utils/dateDraftCommit';
 
 // Dato-felt (§2.4/§3.5): tynd skal over `useFormFieldSurface`. Format/parse/paste-normalisering
 // ejes af descriptorens dato-codec; kronologiske min/max-bounds er FELTVALIDATORER på den canonical værdi
 // (§1.6, inputkernen), IKKE komponent-props. Komponenten viser derfor kun feltets aktive issue fra det tokenbundne
 // snapshot (§1.8) og modtager ingen `minDate`/`maxDate`/`onFieldError` mere.
-
-const MAX_CANONICAL_DANISH_DATE_LENGTH = 10; // dd-mm-åååå
-// Tillad lidt flere draft-tegn end den kanoniske form (eftergivende typing af separatorer/whitespace).
-const MAX_DRAFT_LENGTH = MAX_CANONICAL_DANISH_DATE_LENGTH + 6;
 
 export type DateFieldProps = Readonly<{
   field: FieldRef<ISODateString | undefined>;
@@ -42,6 +39,8 @@ const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
       // Gate tegnfilteret, når feltet har en aktiv rød fejl, så brugeren kan rette den fejlende råtekst frit.
       gateKeyFilterOnIssue: true,
       setPasteCaret: true,
+      // Samme loft som `<input maxLength>` nedenfor; paste kan ikke bruge elementets eget loft (§1.2a).
+      maxDraftLength: MAX_DATE_DRAFT_LENGTH,
     });
 
     const assignInputRef = React.useCallback(
@@ -74,7 +73,7 @@ const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
         error={hasError}
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
-        htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_DRAFT_LENGTH, readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
+        htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_DATE_DRAFT_LENGTH, readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
         sx={mergeSx({
           '& .MuiInputBase-input': {
             textAlign: 'center',

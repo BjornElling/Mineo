@@ -83,12 +83,30 @@ export const createEmptyErstatningsopgoerelseSection = (): unknown =>
 
 const S = 'erstatningsopgoerelse' as const;
 
+/**
+ * Erklærede tegnlængder for EO's fritekstfelter (`input-field-behavior-contract.md` §3.4, §4.1, §4.2).
+ * De står som navngivne konstanter, fordi kontrakten angiver dem præcist — et bart tal på kaldsstedet
+ * ville ikke kunne spores tilbage til den regel, det stammer fra.
+ */
+export const EO_NUMMER_MAX_LENGTH = 7;
+export const EO_LEDSAGETEKST_MAX_LENGTH = 64;
+export const EO_KOMMENTARER_MAX_LENGTH = 512;
+
 // ── Generiske top-level felt-hjælpere ────────────────────────────────────────────
-const optionalTextField = (field: string, label: string): FieldDescriptor<string | undefined> =>
+/**
+ * `maxLength` er feltets erklærede maksimale tegnlængde (`input-field-behavior-contract.md` §2.5).
+ * Den erklæres HER — på descriptoren — så både formularfeltet og en eventuel tabelcelle håndhæver
+ * samme tal ved tastning OG paste. Udelades den, har feltet bevidst ingen længdegrænse.
+ */
+const optionalTextField = (
+  field: string,
+  label: string,
+  maxLength?: number
+): FieldDescriptor<string | undefined> =>
   defineStructuralField<string | undefined>({
     id: `eo.${field}`,
     template: { section: S, path: [], field },
-    codec: createOptionalTextFieldCodec(),
+    codec: createOptionalTextFieldCodec(maxLength === undefined ? {} : { maxLength }),
     emptyValue: undefined,
     isEmpty: isUndefined,
     label,
@@ -241,8 +259,11 @@ const requiredJaNejSkjulField = (
   requiredChoiceField(field, label, ['Ja', 'Nej', 'Skjul'], emptyValue);
 
 // ── Base-blok ─────────────────────────────────────────────────────────────────────
-export const eoNummerField = optionalTextField('eoNummer', 'EO-nummer');
-export const eoLedsagetekstField = optionalTextField('eoLedsagetekst', 'Ledsagetekst');
+// Længderne er kontraktens egne (§4.1: 7 tegn; §4.2: 64 tegn), ikke skønnede. BF-036 og BF-037.
+export const eoNummerField = optionalTextField('eoNummer', 'EO-nummer', EO_NUMMER_MAX_LENGTH);
+export const eoLedsagetekstField = optionalTextField(
+  'eoLedsagetekst', 'Ledsagetekst', EO_LEDSAGETEKST_MAX_LENGTH
+);
 export const eoOpgørelseLavetDenField = dateField(
   'opgørelseLavetDen', 'Opgørelse lavet den',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.opgoerelse)),
@@ -373,7 +394,10 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
   ],
 });
 export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', 'Ja');
-export const eoOffentligeYdelserKommentarerField = optionalTextField('offentligeYdelserKommentarer', 'Kommentarer');
+// §3.4: «Maksimumlængden er 512 tegn.» BF-035.
+export const eoOffentligeYdelserKommentarerField = optionalTextField(
+  'offentligeYdelserKommentarer', 'Kommentarer', EO_KOMMENTARER_MAX_LENGTH
+);
 export const eoSaerligeKommentarerField = optionalTextField('saerligeKommentarer', 'Særlige kommentarer');
 
 export const eoAfsluttesMedField = requiredChoiceField<AfsluttesMed>(

@@ -90,6 +90,8 @@ const NumericTextFieldInner = <T,>(
     // Gate tegnfilteret, når feltet har en aktiv rød fejl, så brugeren kan rette den fejlende råtekst frit.
     gateKeyFilterOnIssue: true,
     setPasteCaret: true,
+    // Samme loft som `<input maxLength>` nedenfor. Paste kan ikke bruge elementets eget loft (§1.2a).
+    ...(maxDraftLength === undefined ? {} : { maxDraftLength }),
   });
 
   const surfaceInputRef = surface.inputElementRef;

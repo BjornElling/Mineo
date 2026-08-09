@@ -96,6 +96,71 @@ describe('numeriske feltpresets', () => {
   });
 });
 
+// ── Ciffergrænsen er WIRED til de faktiske felter (§2.2) ──
+//
+// Disse tests findes, fordi `inputKeyFilters.amount.test.ts` kalder filteret DIREKTE og derfor ikke kan
+// se, om de virkelige komponenter faktisk sender grænsen med. Målt: en mutation, der satte
+// `maxIntegerDigits: 99` i `charLengthPolicy`, lod alle 775 øvrige inputtests være grønne. Formular og
+// grid prøves hver for sig — det var netop en form/grid-uenighed, der lod den 3. decimal passere i en
+// formular, men ikke i en celle.
+
+/**
+ * Åbner editoren, sætter draften til `seed` og spørger om `key` ville blive BLOKERET af feltets eget
+ * tegnfilter. Vi måler `keyDown`'s returværdi (falsk = `preventDefault` blev kaldt) frem for at
+ * inspicere `input.value` bagefter: elementet er kontrolleret af draft-state, så en `change`, der
+ * efterligner browserens indsættelse, ville måle vores egen testkode i stedet for filteret.
+ *
+ * Editoren SKAL være åben først. På et lukket felt kalder `useFormFieldSurface.onKeyDown` selv
+ * `preventDefault` for enhver tast, codec'en accepterer som første tegn (tast-initieret åbning, §1.3) —
+ * en tidligere version af denne helper målte derfor editor-åbningen og ikke ciffergrænsen.
+ */
+const isKeyBlockedByField = (input: HTMLInputElement, seed: string, key: string): boolean => {
+  // Felterne rendres med `singleStageClick`, så mousedown+click åbner editoren i ét trin.
+  fireEvent.mouseDown(input);
+  fireEvent.click(input);
+  // Sanity: uden en åben editor måler resten af helperen den forkerte mekanisme.
+  expect(input.readOnly).toBe(false);
+  fireEvent.change(input, { target: { value: seed } });
+  input.setSelectionRange(seed.length, seed.length);
+  return !fireEvent.keyDown(input, { key });
+};
+
+describe('beløbsfelters ciffergrænse er koblet til komponenterne', () => {
+  // Testkatalogets `belobField` har `maxValue: 1_000_000`. Cifrene måles derfor med et talled i et
+  // UDTRYK: `filterAmountExpressionKeyDown` vurderer kun ciffer-LÆNGDEN pr. talled, mens en talværdi-
+  // grænse hører til feltvalidatoren på den committede værdi (§1.6). Uden det ville testen måle
+  // feltets maksimum i stedet for ciffergrænsen — to konkurrerende mekanismer.
+
+  it('AmountField (formular) blokerer det 8. heltalsciffer i et talled', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
+    renderField(<AmountField field={belobField.bind('r1')} location={testLocation('amt-1')} name="belob" singleStageClick />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    expect(isKeyBlockedByField(input, '0+9999999', '9')).toBe(true);
+  });
+
+  it('AmountField (formular) tillader det 7. heltalsciffer i et talled', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
+    renderField(<AmountField field={belobField.bind('r1')} location={testLocation('amt-2')} name="belob" singleStageClick />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    // Kontrolgruppe: uden denne ville en mutation, der blokerede ALT, se ud som en bestået grænse.
+    expect(isKeyBlockedByField(input, '0+999999', '9')).toBe(false);
+  });
+
+  it('AmountField (formular) blokerer den 3. decimal', () => {
+    // Formularen sendte tidligere INTET decimalloft, mens grid-cellen sendte 2 — samme felt-familie,
+    // to adfærd. Denne test er den, der ville være blevet rød dengang.
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
+    renderField(<AmountField field={belobField.bind('r1')} location={testLocation('amt-3')} name="belob" singleStageClick />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    expect(isKeyBlockedByField(input, '12,34', '5')).toBe(true);
+    // Kontrolgruppe: den 2. decimal skal fortsat kunne tastes.
+    expect(isKeyBlockedByField(input, '12,3', '4')).toBe(false);
+  });
+});
+
 describe('flerlinjet tekstfelt', () => {
   it('behandler Enter som tekst og settler først ved blur', () => {
     renderField(

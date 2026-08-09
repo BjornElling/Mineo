@@ -3,7 +3,9 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` for draft/settle-semantik; overordnet arkitekturdokumenter ved konflikt.
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-09 (§3 er implementeret og verificeret: `MAX_AMOUNT_INPUT_INTEGER_DIGITS`
+= 7 gælder indtastning, mens `MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS` = 20 og binary64-værnet fortsat ejer
+schema-/load-vejen)
 
 Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form- og beregningsdokumentation.
 

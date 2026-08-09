@@ -9,6 +9,7 @@ import { gridCellKey } from '../../components/tables/gridCore/gridCoreUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
+import { spliceDraftWithPaste } from './pasteSplice';
 
 // Grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den
 // bro-forbinder de TO redigerings-autoriteter, som en løntabel har:
@@ -33,6 +34,12 @@ export type GridCellSurfaceConfig = Readonly<{
   keyFilter?: GridCellKeyFilter;
   /** Låst celle: ingen redigering/commit (fx afledte kolonner renderes ikke som celler, så sjældent brugt). */
   locked?: boolean;
+  /**
+   * Cellens rå maksimale draft-længde. Håndhæves ved PASTE i en åben celle, hvor `<input maxLength>` ikke
+   * virker, fordi `onPaste` kalder `preventDefault()` og selv skriver draften (§1.2a). Skal være det
+   * SAMME tal, cellen giver `<input>` som `maxLength`.
+   */
+  maxDraftLength?: number;
 }>;
 
 export type GridCellSurface<T> = Readonly<{
@@ -72,7 +79,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   cell: CellSpec<T, TEntity>,
   config: GridCellSurfaceConfig = {}
 ): GridCellSurface<T> => {
-  const { keyFilter, locked = false } = config;
+  const { keyFilter, locked = false, maxDraftLength } = config;
   const gridApi = useGridCoreApi();
   const isEditing = useGridCellEditing(gridCell);
   const isFocused = useGridCellFocus(gridCell);
@@ -85,8 +92,8 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   const controller = useCellEditor<T, TEntity>(cell, focusTarget);
 
   // En stabil ref til aktuelle {controller, isEditing, config}, så event-handlere/handle-metoder er stabile.
-  const latest = React.useRef({ controller, isEditing, keyFilter, locked });
-  latest.current = { controller, isEditing, keyFilter, locked };
+  const latest = React.useRef({ controller, isEditing, keyFilter, locked, maxDraftLength });
+  latest.current = { controller, isEditing, keyFilter, locked, maxDraftLength };
 
   // Den bundne cellereference (til codec-opslag i paste + tast-initieret åbning). Holdes i en ref, så de
   // stabile handlere altid ser den aktuelle celles felt uden at churne.
@@ -133,18 +140,23 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     if (normalized === '') return;
 
     if (!ctl.isOpen) {
-      // Lukket paste = immediate commit: åbn, seed hele den indsatte tekst som draft, settle straks.
-      ctl.open(normalized);
+      // Lukket paste = immediate commit: åbn, seed den indsatte tekst som draft, settle straks. Længden
+      // afkortes også her, ellers ville netop denne vej committe en for lang værdi i fuld længde, mens
+      // tastning og åben paste afviste de samme tegn (§1.2a).
+      ctl.open(spliceDraftWithPaste('', normalized, 0, 0, latest.current.maxDraftLength).draft);
       ctl.settle();
       return;
     }
 
+    // Afgrænset af cellens erklærede længde, fordi `<input maxLength>` ikke kan gælde her
+    // (se `spliceDraftWithPaste`).
     const input = inputElementRef.current;
     const draft = ctl.displayText;
     const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
     const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-    ctl.changeDraft(draft.slice(0, start) + normalized + draft.slice(end));
-    const nextCaret = start + normalized.length;
+    const spliced = spliceDraftWithPaste(draft, normalized, start, end, latest.current.maxDraftLength);
+    ctl.changeDraft(spliced.draft);
+    const nextCaret = spliced.caret;
     requestAnimationFrame(() => {
       const el = inputElementRef.current;
       if (!el) return;

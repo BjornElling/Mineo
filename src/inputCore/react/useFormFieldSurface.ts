@@ -7,6 +7,7 @@ import { readClipboardText } from '../../utils/clipboardUtils';
 import type { InputSelectionSnapshot } from '../../utils/inputSelectionUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
+import { spliceDraftWithPaste } from './pasteSplice';
 
 // React-laget (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
 // Den parrer `useFieldEditor`-controlleren (som ejer draft/settle/cancel/clear/commit + dispatch, §3.6) med
@@ -42,6 +43,13 @@ export type FormFieldSurfaceConfig = Readonly<{
   gateKeyFilterOnIssue?: boolean;
   /** Sæt caret efter en åben-editor-splice-paste (dato/beløb/brøk). */
   setPasteCaret?: boolean;
+  /**
+   * Feltets rå maksimale draft-længde. Håndhæves ved PASTE i en åben editor, hvor `<input>`-elementets
+   * eget `maxLength` ikke virker, fordi `onPaste` kalder `preventDefault()` og selv skriver draften
+   * (§1.2a — paste skal afgrænses som tastning). Skal være det SAMME tal, kaldsstedet giver
+   * `<input>` som `maxLength`, ellers har feltet to forskellige lofter.
+   */
+  maxDraftLength?: number;
   /** Flerlinjede tekstfelter indsætter linjeskift; enkeltlinjefelter settler på Enter. */
   settleOnEnter?: boolean;
 
@@ -95,6 +103,7 @@ export const useFormFieldSurface = <T>(
     gateKeyFilterOnIssue = false,
     setPasteCaret = false,
     settleOnEnter = true,
+    maxDraftLength,
   } = config;
 
   const inputElementRef = React.useRef<HTMLInputElement>(null);
@@ -133,6 +142,7 @@ export const useFormFieldSurface = <T>(
     disabled,
     singleStageClick,
     settleOnEnter,
+    maxDraftLength,
   });
   latest.current = {
     controller,
@@ -143,6 +153,7 @@ export const useFormFieldSurface = <T>(
     disabled,
     singleStageClick,
     settleOnEnter,
+    maxDraftLength,
   };
 
   // Draft-ændring er ren draft-mutation (§1.2): ingen normalisering under redigering, så browserens egen caret
@@ -262,20 +273,26 @@ export const useFormFieldSurface = <T>(
     if (!ctl.isOpen) {
       // Lukket paste er en afsluttet inputhandling: commit straks gennem samme codec/settle-sti som grid.
       // Editorens åbne draft må ikke efterlades som en skjult mellemtilstand efter clipboard-handlingen.
-      ctl.open(normalized);
+      //
+      // Længden afkortes også her. Et lukket paste erstatter hele værdien, så der er ingen eksisterende
+      // tekst at gøre plads til — men uden afkortningen ville en for lang indsættelse blive committet i
+      // fuld længde ad netop denne vej, mens tastning og åben paste afviste de samme tegn (§1.2a).
+      ctl.open(spliceDraftWithPaste('', normalized, 0, 0, latest.current.maxDraftLength).draft);
       ctl.settle();
       return;
     }
 
-    // Åben paste: splice ind i draften på caret-positionen.
+    // Åben paste: splice ind i draften på caret-positionen — afgrænset af feltets erklærede længde,
+    // fordi `<input maxLength>` ikke kan gælde her (se `spliceDraftWithPaste`).
     const input = inputElementRef.current;
     const draft = ctl.displayText;
     const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
     const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-    ctl.changeDraft(draft.slice(0, start) + normalized + draft.slice(end));
+    const spliced = spliceDraftWithPaste(draft, normalized, start, end, latest.current.maxDraftLength);
+    ctl.changeDraft(spliced.draft);
 
     if (caret) {
-      const nextCaret = start + normalized.length;
+      const nextCaret = spliced.caret;
       requestAnimationFrame(() => {
         const el = inputElementRef.current;
         if (!el) return;

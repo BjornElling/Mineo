@@ -3,7 +3,9 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-09 (§Regel 7's paste-afgrænsning er verificeret: `maxDraftLength`
+håndhæves nu også ved paste, og integrationstesten «afgrænser et indsat trecifret tal som ved tastning»
+måler at et paste af `987` giver `98` uden fejltilstand)
 
 ---
 

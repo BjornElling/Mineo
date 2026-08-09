@@ -31,7 +31,14 @@ export type TextFieldProps = Readonly<{
 
 const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
   ({ field, location, width, id, name, placeholder, disabled, inputType = 'text', sx, singleStageClick = false, inputRef }, ref) => {
-    const surface = useFormFieldSurface(field, location, { disabled, singleStageClick });
+    // Længden er erklæret på codec'en (§2.5) og håndhæves BÅDE som `<input maxLength>` (tastning) og
+    // gennem surfacens paste-splice, hvor elementets eget loft ikke virker (§1.2a).
+    const maxLength = field.descriptor.codec.maxLength;
+    const surface = useFormFieldSurface(field, location, {
+      disabled,
+      singleStageClick,
+      ...(maxLength === undefined ? {} : { maxDraftLength: maxLength }),
+    });
 
     const mergedInputRef = React.useCallback(
       (node: HTMLInputElement | null) => {
@@ -65,7 +72,11 @@ const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
         error={hasError}
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
-        htmlInputAttributes={{ readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
+        htmlInputAttributes={{
+          ...(maxLength === undefined ? {} : { maxLength }),
+          readOnly: surface.readOnly,
+          ...surface.restoreTargetAttributes,
+        }}
         sx={mergeSx({
           '& .MuiInputBase-input': {
             caretColor: surface.isOpen ? 'auto' : 'transparent',

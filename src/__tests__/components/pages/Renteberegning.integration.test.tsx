@@ -182,7 +182,13 @@ describe('Renteberegning — Evt. tillægstid', () => {
     expect(input).toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('markerer et indsat trecifret tal ugyldigt ved settle', async () => {
+  // Kontraktændring 2026-08-09 (`input-field-behavior-contract.md` §1.2/§1.2a, OBS-009): paste afgrænses
+  // nu PRÆCIS som tastning. Testen krævede før, at et indsat `987` overlevede i fuld længde og blev en rød
+  // fejl ved settle — det byggede på det ophævede princip om, at paste aldrig måtte afkortes. Nu er det
+  // tredje ciffer blokeret ved indgangen, ligesom det er ved tastning, så `98` er den ØNSKEDE værdi og
+  // feltet er gyldigt. Bemærk at testen ovenfor — det PROGRAMMATISKE trecifrede input — fortsat skal give
+  // rød fejl: en programmatisk skrivning og en `.eo`-load er ikke tastning og har ingen tegnblokering.
+  it('afgrænser et indsat trecifret tal som ved tastning', async () => {
     const user = userEvent.setup();
     hydrate([{ ...validRow('r1'), tillaegstid: undefined }], '2024-12-31');
     renderRenteberegning();
@@ -191,9 +197,11 @@ describe('Renteberegning — Evt. tillægstid', () => {
     await user.dblClick(input);
     await user.paste('987');
 
-    expect(input).toHaveValue('987');
+    expect(input).toHaveValue('98');
     fireEvent.blur(input);
-    expect(input).toHaveValue('987');
-    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveValue('98');
+    // Tavs blokering (§1.2 pkt. 3): det afviste ciffer blev aldrig en del af værdien, så der er
+    // ingen fejltilstand at vise.
+    expect(input).toHaveAttribute('aria-invalid', 'false');
   });
 });

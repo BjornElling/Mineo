@@ -1,0 +1,37 @@
+/**
+ * Indsættelse af paste-tekst i en ÅBEN draft — den ene implementering, formular- og grid-surfacen deler.
+ *
+ * **Hvorfor længden skal håndhæves her.** Feltets rå længdeloft er i dag udtrykt som `maxLength` på
+ * `<input>`-elementet, og det virker kun for TASTNING: `onPaste` kalder `e.preventDefault()`, før den
+ * selv skriver draften, så browseren aldrig får lov at anvende sit eget loft. Splicen kunne derfor
+ * skubbe draften vilkårligt langt forbi den grænse, feltet erklærede — også når hvert enkelt tastetryk
+ * ville være blevet afvist. Det er præcis det, `input-field-behavior-contract.md` §1.2a forbyder:
+ * paste skal behandles som om brugeren havde tastet den indsatte tekst ét tegn ad gangen.
+ *
+ * Afkortningen er derfor det FORVENTEDE resultat og ikke et datatab (§1.2a): de samme tegn ville være
+ * blevet afvist ved tastning. Den er tavs — der opstår ingen fejltilstand, fordi tegnene aldrig blev
+ * en del af værdien.
+ */
+export const spliceDraftWithPaste = (
+  draft: string,
+  pasted: string,
+  selectionStart: number,
+  selectionEnd: number,
+  maxLength?: number
+): Readonly<{ draft: string; caret: number }> => {
+  const start = Math.max(0, Math.min(selectionStart, draft.length));
+  const end = Math.max(start, Math.min(selectionEnd, draft.length));
+  const prefix = draft.slice(0, start);
+  const suffix = draft.slice(end);
+
+  if (typeof maxLength !== 'number' || !Number.isFinite(maxLength) || maxLength <= 0) {
+    return Object.freeze({ draft: prefix + pasted + suffix, caret: start + pasted.length });
+  }
+
+  // Præfiks og suffiks er brugerens EGEN eksisterende værdi og afkortes ikke: kun det indsatte
+  // beskæres til den plads, der faktisk er tilbage. Ellers kunne et paste slette tegn, brugeren
+  // allerede havde stående — og §1.2a forbyder, at paste ændrer en værdi inden for feltets grænser.
+  const available = Math.max(0, maxLength - prefix.length - suffix.length);
+  const accepted = pasted.slice(0, available);
+  return Object.freeze({ draft: prefix + accepted + suffix, caret: start + accepted.length });
+};

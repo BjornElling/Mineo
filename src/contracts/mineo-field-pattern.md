@@ -3,7 +3,9 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-08-08
+**Senest verificeret mod kode:** 2026-08-09 (regel 8–10 er implementeret og verificeret: ciffergrænser pr.
+talled for beløb/procent, erklæret `maxLength` for tekstfelter, paste-afgrænsning i `spliceDraftWithPaste` og
+afvisning af gentagne dato-separatorer)
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
 implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den — se §10 og
@@ -87,12 +89,21 @@ Krav:
 7. En korrekt formateret tal-, år- eller ugeværdi, som kan valideres af det persisterede Zod-schema, bliver canonical
    input. Feltets aktive min/max samt kronologiske og tværgående domænegrænser hører til rene validatorer/projektioner
    og må ikke samtidig implementeres som rejection i settle-policyen.
-8. Codecet er den effektive blokering mod tegn og længde, der ikke passer feltet. Et tegn uden for feltets
+8. Feltet har en effektiv blokering mod tegn og længde, der ikke passer feltet. Et tegn uden for feltets
    tegnsæt og et tegn ud over feltets maksimale antal tegn, cifre eller decimaler kommer ikke ind i feltet.
    Blokeringen omfatter tegnsæt og længde, ikke talværdi: en korrekt formateret værdi inden for længdegrænsen,
    der bryder feltets min/max, bliver canonical og får sit afledte bounds-issue efter regel 7. Blokeringen
    gælder kun brugerens indtastning i feltet — ikke afledte eller beregnede værdier, som frit må have flere
    cifre end det inputfelt, de stammer fra.
+
+   **Grænsen erklæres ét sted og håndhæves ad tre veje.** Politikken er DATA på codecet
+   (`signPolicy`, `decimalPolicy`, `maxLength`) eller udledt af det gennem den delte
+   `charLengthPolicy.ts`; den må ikke være et lokalt valg på kaldsstedet. Håndhævelsen sker i
+   tegnfilteret (tastning), i `codec.normalizePaste` + `spliceDraftWithPaste` (paste) og i
+   `codec.parseForSettle` (settle). Fordelingen er ikke frivillig: formular- og tabelfladen SKAL læse
+   samme erklæring, for da de konfigurerede hver sit filter i hånden, blev de uenige om samme felt —
+   tabelcellen blokerede den 3. decimal, formularen gjorde ikke, og ingen grid-celle havde et
+   længdeloft overhovedet.
 9. Paste er ikke en selvstændig indgang. Paste behandles tegn for tegn som almindelig tastning fra samme
    startposition, med identisk afgrænsning: et tegn, som codecet ville afvise ved tastning, springes over, men
    paste fortsætter med næste tegn. Præcision-, ciffer- og længdegrænser håndhæves undervejs; overskydende tegn

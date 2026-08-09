@@ -9,19 +9,20 @@ import {
 } from '../../utils/inputPasteNormalization';
 
 describe('inputPasteNormalization', () => {
-  it('normaliserer dato ved at læse ciffergrupper i rækkefølge', () => {
+  it('normaliserer dato efter cifferlængde og fortsætter gennem ugyldige tegn', () => {
     expect(normalizeDatePaste('adffergregs//sgd1712,56//')).toBe('17-12-56');
     expect(normalizeDatePaste('a1b2c1999')).toBe('1-2-1999');
     expect(normalizeDatePaste('17121956')).toBe('17-12-1956');
     expect(normalizeDatePaste('01012024')).toBe('01-01-2024');
   });
 
-  it('afskærer dato ved første dag-, måned- eller årskomponent som overskrider formatet', () => {
-    expect(normalizeDatePaste('32122020')).toBe('3');
-    expect(normalizeDatePaste('17132020')).toBe('17-1');
-    expect(normalizeDatePaste('00122020')).toBe('');
-    expect(normalizeDatePaste('3112202', { twoDigitYearPolicy: 'infer' })).toBe('31-12-20');
-    expect(normalizeDatePaste('3112202', { twoDigitYearPolicy: 'reject' })).toBe('31-12');
+  it('håndhæver kun cifferlængde, springer gentagne separatorer over og fortsætter', () => {
+    expect(normalizeDatePaste('32122020')).toBe('32-12-2020');
+    expect(normalizeDatePaste('17132020')).toBe('17-13-2020');
+    expect(normalizeDatePaste('00122020')).toBe('00-12-2020');
+    expect(normalizeDatePaste('3112202')).toBe('31-12-202');
+    expect(normalizeDatePaste('12-345-2020')).toBe('12-34-2020');
+    expect(normalizeDatePaste('---12--2----------2026')).toBe('12-2-2026');
   });
 
   it('normaliserer heltal fra første tal og afskærer decimaldelen uden afrunding', () => {
@@ -65,6 +66,12 @@ describe('inputPasteNormalization', () => {
     expect(normalizeAmountPaste('123,99', { allowDecimals: false })).toBe('123');
     expect(normalizeAmountPaste('12345,67', { maxIntegerDigits: 3 })).toBe('123,67');
     expect(normalizeAmountPaste('100+25', { maxValue: 100 })).toBe('100');
+  });
+
+  it('håndhæver beløbets ciffergrænse separat for hvert talled', () => {
+    expect(normalizeAmountPaste('99999999+2')).toBe('9999999+2');
+    expect(normalizeAmountPaste('1+99999999+3')).toBe('1+9999999+3');
+    expect(normalizeAmountPaste('9999999,999+2,999')).toBe('9999999,99+2,99');
   });
 
   it('normaliserer procent til længste præfiks inden for format og interval', () => {

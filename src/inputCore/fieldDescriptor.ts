@@ -10,6 +10,7 @@ import {
 import type { FieldCodec } from './fieldCodec';
 import type { DateBoundsDeclaration } from './dateBoundsDeclaration';
 import type { PersistedInputSections } from './settledInput';
+import { amountResultBoundsValidator } from './amountResultBounds';
 
 // Inputkernen (§3.2): hvert persisteret brugerfelt har ÉN immutable beskrivelse med kun de egenskaber,
 // der bruges nu. Kataloget er et almindeligt statisk readonly katalog, som valideres én gang — ingen
@@ -178,13 +179,32 @@ export const defineField = <T>(config: FieldDescriptorConfig<T>): FieldDescripto
     }
   }
 
+  // Beløbsfeltets RESULTAT-grænse er DERIVERET, ikke erklæret pr. felt (§2.2). Ciffergrænsen blokerer
+  // det 8. heltalsciffer tegn for tegn, men et gyldigt UDTRYK kan regne sig forbi grænsen — `9999999*2`
+  // giver 19.999.998 uden at noget enkelt talled er for langt. Den fejl kan først fanges ved settle, og
+  // så skal den være en canonical rød feltfejl med konkret tooltip.
+  //
+  // Validatoren tilføjes derfor HER, hvor hvert eneste felt passerer, i stedet for at blive skrevet på
+  // hver af de ~15 beløbsdescriptorer. Ellers ville et nyt beløbsfelt være uden grænse, indtil nogen
+  // huskede den — præcis den fejlklasse, `dateFieldsDeclareBounds` blev bygget for at lukke for datoer.
+  // Feltets EGNE, skarpere min/max-validators står før i listen og har derfor forrang (§1.8).
+  const derivedValidators = config.codec.family === 'amount'
+    ? [
+        ...(config.validators ?? []),
+        // Issue-prioriteten har kun `reason` og kode som tie-breaker. Det afledte værn skal derfor have
+        // en sorteringskode efter feltets egne `.bounds`-/`.rule`-koder, ellers kan det maskere en skarpere
+        // feltregel, selv om validatoren står sidst i listen.
+        amountResultBoundsValidator(`${config.id}.zz_amountResultBounds`) as FieldValidator<T>,
+      ]
+    : config.validators;
+
   let descriptor: FieldDescriptor<T>;
   descriptor = Object.freeze({
     ...config,
     template,
     emptyValue,
     codec: Object.freeze({ ...config.codec }),
-    validators: config.validators === undefined ? undefined : Object.freeze([...config.validators]),
+    validators: derivedValidators === undefined ? undefined : Object.freeze([...derivedValidators]),
     bind: (...entityIds: readonly string[]): FieldRef<T> => Object.freeze({
       address: createFieldAddress({
         section: template.section,

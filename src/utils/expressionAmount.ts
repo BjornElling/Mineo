@@ -1,7 +1,7 @@
 import { formatAsAmount } from './formatUtils';
-import { containsAnyDigit, normalizeTrailingSeparator, normalizeZero } from './amountInputUtils';
+import { DEFAULT_AMOUNT_PRECISION, containsAnyDigit, normalizeTrailingSeparator, normalizeZero } from './amountInputUtils';
 import type { AmountValue } from '../schemas/amountExpressionSchema';
-import { isSafeScaledInteger } from './numericSafety';
+import { isSafeCanonicalDecimal, isSafeScaledInteger } from './numericSafety';
 
 export type ExpressionErrorCode =
   | 'INVALID_CHAR'
@@ -479,6 +479,20 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
   const normalizedValue = normalizeZero(evaluated.value);
   if (!options.allowNegative && normalizedValue < 0) {
     return { ok: false, error: { kind: 'expression', message: 'Beløb kan ikke være negativt' } };
+  }
+
+  // Et udtryksresultat skal kunne REPRÆSENTERES canonical, ellers kaster beløbsschemaet senere.
+  // Grænsen måles mod `DEFAULT_AMOUNT_PRECISION` og IKKE mod feltets egen `options.precision`:
+  // `amountValueSchema` validerer altid ved 2 decimaler, mens et heltalsfelt parser ved 0. Ved
+  // precision 0 er den sikre grænse 2^53, ved precision 2 er den 2^46 — et heltals-beløbsfelt kunne
+  // derfor parse `9999999*9999999` = 99.999.980.000.001 som gyldigt og først fejle inde i schemaet
+  // med en uncaught ZodError (OBS-026). Tal-grenen havde længe sit `canonicalValueIsSafe`-værn;
+  // udtryks-grenen manglede det tilsvarende.
+  if (!isSafeCanonicalDecimal(normalizedValue, DEFAULT_AMOUNT_PRECISION)) {
+    return {
+      ok: false,
+      error: { kind: 'expression', message: 'Beløb er for stort til at kunne gemmes præcist' },
+    };
   }
 
   return {
