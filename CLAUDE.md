@@ -36,7 +36,7 @@ Sådan gør jeg, i denne rækkefølge:
    mangler, hvilke filer er berørt, og hvad det næste konkrete skridt er. Skriv det så en session
    uden min nuværende kontekst kan tage over. Filen er midlertidig og slettes, når arbejdet er
    afsluttet.
-3. **Opdatér progress-memoryen** `project_greenfield_draft_commit_progress.md` med hvor arbejdet
+3. **Opdatér progress-memoryen** `project_fix_it_progress.md` med hvor arbejdet
    står — samme detaljeringsniveau som de øvrige statuslinjer der.
 4. **Rapportér til brugeren** hvad der er gemt, hvad der er ufærdigt, og om træet er rødt eller grønt.
 

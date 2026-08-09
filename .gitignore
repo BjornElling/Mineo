@@ -49,8 +49,7 @@ desktop.ini
 .claude/*
 !.claude/skills/
 .claude/skills/*
-!.claude/skills/greenfield/
-!.claude/skills/verify/
+!.claude/skills/fix-it/
 
 # Vitest output
 vitest-output.txt
