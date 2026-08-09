@@ -112,10 +112,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
                 className="row--text icon-text-link"
                 component="button"
                 type="button"
-                onClick={() => {
-                  if (row.focusTarget) handleNavigate(row.navigation, row.id, row.focusTarget);
-                  else handleNavigate(row.navigation, row.id);
-                }}
+                onClick={() => handleNavigate(row.navigation, row.id, row.focusTarget)}
                 sx={{
                   cursor: 'pointer',
                   border: 0,
@@ -138,10 +135,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
                 className="row--text icon-text-link"
                 component="button"
                 type="button"
-                onClick={() => {
-                  if (row.focusTarget) handleNavigate(row.navigation, row.id, row.focusTarget);
-                  else handleNavigate(row.navigation, row.id);
-                }}
+                onClick={() => handleNavigate(row.navigation, row.id, row.focusTarget)}
                 sx={{
                   cursor: 'pointer',
                   border: 0,

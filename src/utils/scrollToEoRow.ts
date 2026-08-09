@@ -92,7 +92,17 @@ export const scrollToEoRow = (
 
   scrollWithRetry({
     maxRetries,
-    findTarget: () => findElementByFocusTarget(options.focusTarget) ?? (anchorId ? findElementByMineoRowId(anchorId) : null),
+    findTarget: () => {
+      const focusedElement = findElementByFocusTarget(options.focusTarget);
+
+      if (options.focusTarget?.kind === 'rowId') {
+        // Et bevidst samlet rækkeanker må ikke falde tilbage til et overordnet
+        // kort: det ville blinke et felt, som ikke er årsagen til fejlen.
+        return focusedElement;
+      }
+
+      return focusedElement ?? (anchorId ? findElementByMineoRowId(anchorId) : null);
+    },
     // behavior udelades bevidst: scrollTargetIntoView afleder den fra prefers-reduced-motion.
     onSuccess: (target) => {
       // Den delte blinkmarkering (BF-021): når linket har ført brugeren hen til indtastningen, peger

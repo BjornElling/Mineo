@@ -60,6 +60,7 @@ const makeRow = (
   displayValue: id,
   status,
   dependsOn,
+  ...(status === 'ok' ? {} : { focusTarget: { kind: 'rowId', rowId: id } }),
 });
 
 describe('collectAllEoRows', () => {
@@ -347,6 +348,24 @@ describe('collectAllEoRows', () => {
     expect(allRows[0].navigation.kind).toBe('unsupported');
     expect(relevantRows).toHaveLength(1);
     expect(relevantRows[0].navigation.kind).toBe('unsupported');
+  });
+
+  it('afviser en aktiv issue-række uden eksplicit fokusmål', () => {
+    registry.__setBuilders([
+      {
+        name: 'builder-1',
+        run: () => [{ id: 'debug.mangler-fokusmaal', label: 'Test', displayValue: 'Advarsel', status: 'warning' }],
+      },
+    ]);
+
+    expect(() =>
+      collectAllEoRows(
+        STAMDATA_INITIAL_VALUES,
+        stamdataErrors,
+        createErstatningsopgoerelseInitialValues(),
+        eoErrors
+      )
+    ).toThrow('mangler et eksplicit fokusmål');
   });
 
   it('throws when duplicate row ids are produced by builders', () => {

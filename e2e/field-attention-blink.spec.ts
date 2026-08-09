@@ -268,4 +268,30 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await expect(page).toHaveURL(/\/stamdata$/);
     await expectLinkedDropdownToPulse(page, 'skadestype', readBlinkSamples(page));
   });
+
+  test('SFGG-fejllink blinker beregningskilden, ikke ansættelseskortet', async ({ page }) => {
+    await login(page);
+    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await page.getByRole('tab', { name: 'Lønindkomst' }).click();
+    await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Ja, tilføj' }).click();
+    await page.getByRole('tab', { name: 'Beregning' }).click();
+
+    await startBlinkSampling(page);
+    await clickEoIssueLink(
+      page,
+      'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt',
+      'Ansættelsesforhold'
+    );
+
+    await expect(page.getByRole('tab', { name: 'Lønindkomst' })).toHaveAttribute('aria-selected', 'true');
+    const input = page.locator('input[name$=":sfggBeregningskilde"]');
+    await expect(input).toBeVisible();
+    const inputName = await input.getAttribute('name');
+    expect(inputName).not.toBeNull();
+
+    const employmentCard = input.locator('xpath=ancestor::*[@data-mineo-row-id][1]');
+    await expect(employmentCard).not.toHaveClass(BLINK_CLASS);
+    await expectLinkedDropdownToPulse(page, inputName!, readBlinkSamples(page));
+  });
 });

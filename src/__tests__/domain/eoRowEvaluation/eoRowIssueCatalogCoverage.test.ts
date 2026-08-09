@@ -6,12 +6,15 @@ import {
   eoFerieperiodeFraField,
   eoOevrigeKravBeloebField,
   eoOevrigeKravUdgiftTilField,
+  eoSfggBeregningskildeField,
+  eoSfggSatsvalgField,
   eoSvieSmertePeriodeFraField,
   eoSvieSmertePeriodeTilField,
   eoSvieSmertePeriodeTilstandField,
   eoTafPeriodeFraField,
   eoTafPeriodeTilField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { eoEmploymentFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import type { FieldDescriptor } from '../../../inputCore/fieldDescriptor';
 import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
 
@@ -190,32 +193,50 @@ const CASES: readonly Case[] = [
     name: 'SFGG – beregningskilde ikke valgt',
     row: { id: 'sfgg.beregningskilde.af-1', label: 'Sygeferiegodtgørelse beregnes ud fra', message: 'Intet valgt' },
     expectedSummary: 'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt',
+    expectedFocus: focus(eoSfggBeregningskildeField, 'af-1'),
   },
   {
     name: 'SFGG – ukendt overenskomst',
     row: { id: 'sfgg.beregningskilde.af-1', label: 'Sygeferiegodtgørelse beregnes ud fra', message: 'Ukendt overenskomst-ID' },
     expectedSummary: 'Den valgte overenskomst for sygeferiegodtgørelse er ukendt',
+    expectedFocus: focus(eoSfggBeregningskildeField, 'af-1'),
   },
   {
     name: 'SFGG – satsvalg ikke valgt',
     row: { id: 'sfgg.satsvalg.af-1', label: 'Uddannelse og arbejdssted', message: 'Intet valgt' },
     expectedSummary: 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt',
+    expectedFocus: focus(eoSfggSatsvalgField, 'af-1'),
+  },
+  {
+    name: 'SFGG – overenskomst ikke valgt',
+    row: { id: 'sfgg.overenskomst.af-1', label: 'Overenskomst (angivet ovenfor)', message: 'Ingen overenskomst valgt' },
+    expectedSummary: 'Det er angivet, at SFGG fastsættes efter overenskomst, men ingen overenskomst er valgt',
+    expectedFocus: focus(eoEmploymentFields.overenskomstId, 'af-1'),
+  },
+  {
+    name: 'lønindkomst – manglende arbejdsstedsnavn peger på tekstfeltet',
+    row: { id: 'loenindkomst.af-1.arbejdsstedNavn', label: 'Navn på arbejdssted', message: 'er ikke angivet', status: 'warning' },
+    expectedSummary: "'Navn på arbejdssted' er ikke angivet",
+    expectedFocus: focus(eoEmploymentFields.navnPaaArbejdssted, 'af-1'),
   },
   // ── Lønudvikling / regulering ─────────────────────────────────────────────
   {
     name: 'regulering – statistik ikke valgt',
     row: { id: 'loenindkomst.af-1.regulering.valgt', label: 'Valgt regulering', message: 'Statistisk beregningsmodel er ikke valgt' },
     expectedSummary: "Regulering er sat til 'Statistik', men ingen statistisk beregningsmodel er valgt",
+    expectedFocus: focus(eoEmploymentFields.loenudviklingStatistikModel, 'af-1'),
   },
   {
     name: 'regulering – KRL ikke valgt',
     row: { id: 'loenindkomst.af-1.regulering.valgt', label: 'Valgt regulering', message: 'KRL satstabel er ikke valgt' },
     expectedSummary: "Regulering er sat til 'KRL', men ingen KRL-satstabel er valgt",
+    expectedFocus: focus(eoEmploymentFields.loenudviklingKRLSatstabel, 'af-1'),
   },
   {
     name: 'offentlig løn – løntrin ikke angivet vises uden label-præfiks',
     row: { id: 'loenindkomst.af-1.regulering.offentligLoenoplysninger', label: 'KL-/RLTN-oplysninger', displayValue: 'Fejl (Løntrin er ikke angivet)' },
     expectedSummary: 'Løntrin er ikke angivet',
+    expectedFocus: focus(eoEmploymentFields.offentligLoenTrin, 'af-1'),
   },
   // ── Mén / EET-datoer ──────────────────────────────────────────────────────
   {
@@ -239,12 +260,26 @@ describe('eoRowIssueCatalog – systematisk dækning', () => {
   it.each(CASES)('$name', ({ row, expectedSummary, expectedFocus }) => {
     const model = makeRow(row);
     expect(resolveEoIssueSummaryText(model)).toBe(expectedSummary);
+    expect(resolveEoIssueFocusTarget(model)).toBeDefined();
     if (expectedFocus) {
       expect(resolveEoIssueFocusTarget(model)).toEqual({
         kind: 'fieldAddress',
         address: expectedFocus.field.bind(expectedFocus.rowId).address,
       });
     }
+  });
+
+  it.each([
+    'loenindkomst.af-1.loenoplysninger',
+    'loenindkomst.af-1.regulering.alleVaerdier',
+    'offentligeYdelser.dagpenge',
+    'sfgg.referencesats.af-1',
+    'sfgg.advarsel.seksmaaneder.af-1',
+    'taf.beregningsgrundlag.arbejdsdage',
+  ])('giver det bevidste samlede fokusmål til %s', (rowId) => {
+    const target = resolveEoIssueFocusTarget(makeRow({ id: rowId }));
+
+    expect(target).toEqual({ kind: 'rowId', rowId });
   });
 
   it('ingen viste fejltekster indeholder generiske catch-all-fraser eller label-præfiks', () => {

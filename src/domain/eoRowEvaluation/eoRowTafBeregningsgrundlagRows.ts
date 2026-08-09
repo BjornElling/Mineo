@@ -18,6 +18,10 @@ import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatning
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { formatRowCount, formatRowMonths, calculateElapsedWholeMonths } from './eoRowShared';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
+import {
+  eoAngivetDagsloenBaseretPaaField,
+  eoAngivetMaanedsloenBaseretPaaField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 export const buildEoTafBeregningsgrundlagRows = (
   values: ErstatningsopgoerelseValues,
@@ -548,6 +552,15 @@ export const buildEoTafBeregningsgrundlagRows = (
       label: '- baseret på',
       displayValue: loenBaseretPaaDisplay.displayValue,
       status: loenBaseretPaaDisplay.status,
+      // Rækken samler to betingede skalarer; builderen ejer betingelsen og må derfor også binde
+      // det konkrete felt. Kataloget kan ikke udlede dette sikkert fra række-id'et alene.
+      focusTarget: {
+        kind: 'fieldAddress',
+        address: (beregnesUdFra === 'Angivet månedsløn'
+          ? eoAngivetMaanedsloenBaseretPaaField
+          : eoAngivetDagsloenBaseretPaaField
+        ).bind().address,
+      },
       dependsOn: [
         { kind: 'id', id: 'taf.beregningsgrundlag.beregnesUdFra' },
       ],

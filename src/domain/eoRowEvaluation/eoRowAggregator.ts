@@ -11,7 +11,7 @@
  * men kan aldrig flytte gaten via display-formattering (jf. `inspektionLayerIsolation.test.ts`).
  */
 
-import type { EoRowModel } from './eoRowTypes';
+import type { EoIssueFocusTarget, EoRowModel } from './eoRowTypes';
 import type { NavigationTarget } from './eoRowNavigationMap';
 import { DEFAULT_EO_ROW_POLICY, type EoRowPolicy } from '../../settings/sourceSettings';
 import type {
@@ -39,11 +39,23 @@ export type EoRowWithNavigation = EoRowModel & {
 };
 
 /**
+ * En række der faktisk vises som fejl eller advarsel med et klikbart destinationslink.
+ *
+ * Målet er obligatorisk her, ikke på alle beregningsrækker: afledte rækker kan ikke altid
+ * sandfærdigt ejes af ét input. De skal i stedet vælge et eksplicit `rowId`-mål. Dermed kan UI'et
+ * aldrig stiltiende falde tilbage fra en manglende feltadresse til et vilkårligt kort.
+ */
+export type EoNavigableIssueRow = EoRowWithNavigation & Readonly<{
+  status: Exclude<EoRowModel['status'], 'ok'>;
+  focusTarget: EoIssueFocusTarget;
+}>;
+
+/**
  * Grupperet resultat af fejl og warnings
  */
 export type BeregningErrorSummary = {
-  errors: ReadonlyArray<EoRowWithNavigation>;
-  warnings: ReadonlyArray<EoRowWithNavigation>;
+  errors: ReadonlyArray<EoNavigableIssueRow>;
+  warnings: ReadonlyArray<EoNavigableIssueRow>;
   allRows: ReadonlyArray<EoRowWithNavigation>;
   relevantRows: ReadonlyArray<EoRowWithNavigation>;
 };
@@ -194,6 +206,20 @@ const addNavigationMetadata = (row: EoRowModel): EoRowWithNavigation => ({
   navigation: getNavigationTargetFromRowId(row.id),
 });
 
+const requireIssueFocusTarget = (row: EoRowWithNavigation): EoNavigableIssueRow => {
+  if (row.status === 'ok') {
+    throw new Error(`Den aktive EO-række "${row.id}" har status ok og kan ikke vises som issue.`);
+  }
+  const focusTarget = row.focusTarget;
+  if (focusTarget === undefined) {
+    throw new Error(
+      `Den aktive EO-${row.status === 'warning' ? 'advarsel' : 'fejl'}række "${row.id}" mangler et eksplicit fokusmål. ` +
+        'Tilføj en kanonisk feltadresse eller et bevidst rækkeanker i issue-kataloget eller row-builderen.'
+    );
+  }
+  return { ...row, status: row.status, focusTarget };
+};
+
 const isRowRelevantForEoValues = (
   row: EoRowWithNavigation,
   values: ErstatningsopgoerelseValues
@@ -329,12 +355,12 @@ export const collectAllEoRows = (
   const maxAncestorSeverityById = buildMaxAncestorSeverityMap(ids, depsById, statusById, inCycle);
 
   // Filtrer og gruppér efter status
-  const errors = relevantRows.filter(
-    (r) => r.status === 'error' && !shouldSuppressRow(r, maxAncestorSeverityById)
-  );
-  const warnings = relevantRows.filter(
-    (r) => r.status === 'warning' && !shouldSuppressRow(r, maxAncestorSeverityById)
-  );
+  const errors = relevantRows
+    .filter((r) => r.status === 'error' && !shouldSuppressRow(r, maxAncestorSeverityById))
+    .map(requireIssueFocusTarget);
+  const warnings = relevantRows
+    .filter((r) => r.status === 'warning' && !shouldSuppressRow(r, maxAncestorSeverityById))
+    .map(requireIssueFocusTarget);
 
   return { errors, warnings, allRows: rowsWithNavigation, relevantRows };
 };

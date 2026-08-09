@@ -7,6 +7,7 @@ import {
   FIELD_ADDRESS_ATTR,
 } from '../../inputCore/react/historyRestoreTarget';
 import {
+  eoSfggBeregningskildeField,
   eoSvieSmertePeriodeTilField,
   eoTafPeriodeFraField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
@@ -114,6 +115,22 @@ describe('scrollToEoRow', () => {
     expect(scrollIntoViewMock.mock.instances[0]).toBe(editor);
   });
 
+  it('lader SFGG-beregningskildens felt vinde over ansættelsesforholdets kort', () => {
+    const field = eoSfggBeregningskildeField.bind('af-1');
+    const employmentCard = document.createElement('div');
+    employmentCard.setAttribute('data-mineo-row-id', 'af-1');
+    document.body.appendChild(employmentCard);
+    const editor = mountFieldEditor(field.address);
+
+    scrollToEoRow('sfgg.beregningskilde.af-1', {
+      focusTarget: { kind: 'fieldAddress', address: field.address },
+    });
+
+    expect(scrollIntoViewMock.mock.instances[0]).toBe(editor);
+    expect(editor.closest('.MuiInputBase-root')?.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
+    expect(employmentCard.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(false);
+  });
+
   it('rammer den rigtige rækkes felt, når to rækker har samme felt', () => {
     const first = eoTafPeriodeFraField.bind('taf-1');
     const second = eoTafPeriodeFraField.bind('taf-2');
@@ -169,6 +186,23 @@ describe('scrollToEoRow', () => {
     scrollToEoRow('taf.periode.taf-1');
 
     expect(anchor.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
+  });
+
+  it('falder ikke fra et eksplicit samlet fokusmål til et overordnet kort', () => {
+    const onFailure = vi.fn();
+    const employmentCard = document.createElement('div');
+    employmentCard.setAttribute('data-mineo-row-id', 'af-1');
+    document.body.appendChild(employmentCard);
+
+    scrollToEoRow('sfgg.dagssats.af-1', {
+      focusTarget: { kind: 'rowId', rowId: 'sfgg.dagssats.af-1' },
+      maxRetries: 3,
+      onFailure,
+    });
+
+    expect(onFailure).toHaveBeenCalledTimes(1);
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+    expect(employmentCard.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(false);
   });
 
   it('rapporterer fejl, når hverken feltets editor eller rækkeankeret findes', () => {

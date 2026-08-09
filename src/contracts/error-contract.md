@@ -177,7 +177,10 @@ udlede klassen af beskedteksten. Den visuelt skjulte a11y-tekst er fortsat den F
 skærmlæserbruger kan ikke se feltet, forkortelsen bygger på.
 
 Kontrolvisninger må gruppere alle relevante issues, men må ikke gætte fra beskedtekst. Links skal bruge issueets
-strukturelle fokusmål. Henvises til en anden side, er kun sidens navn klikbart.
+strukturelle fokusmål. Hver aktiv EO-fejl eller -advarsel med et navigationslink skal derfor have et eksplicit mål,
+før den når UI'et: en kanonisk feltadresse, når ét konkret input ejer årsagen, eller et bevidst rækkeanker, når
+årsagen er afledt af flere input. Et manglende mål er en invariantfejl i rækkeaggregeringen; UI'et må aldrig selv
+falde tilbage til en grovere sektion eller contentbox. Henvises til en anden side, er kun sidens navn klikbart.
 
 **En besked-boks findes kun MED indhold (normativ).** En fejl-/meddelelsesboks må aldrig være synlig uden en
 læsbar besked. En boks med overskrift og tom brødtekst er værre end ingen boks: den påstår en fejl, den ikke kan

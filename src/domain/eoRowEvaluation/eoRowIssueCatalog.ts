@@ -1,6 +1,13 @@
 import {
   eoAngivetMaanedsloenOpreguleresFraDatoField,
   eoBeregnesUdFraField,
+  eoBilagsnumreBeregningsgrundlagTafField,
+  eoBilagsnumreEetAfgoerelserField,
+  eoBilagsnumreLoenISygeperiodenField,
+  eoBilagsnumreMenAfgoerelseField,
+  eoBilagsnumreOffentligeYdelserField,
+  eoBilagsnumreOevrigeErstatningskravField,
+  eoBilagsnumreSvieSmerteDokumentationField,
   eoDagsloenenUdgoerField,
   eoDifferencekravDatoField,
   eoEndeligEETAfgoerelseDatoField,
@@ -17,13 +24,19 @@ import {
   eoMidlertidigEETAfgoerelseDatoField,
   eoMidlertidigEETVirkningsdatoField,
   eoMidlertidigtEETAfgorelseField,
+  eoLedsagetekstField,
   eoNummerField,
   eoOevrigeFravaersdageField,
+  eoOevrigeFravaersdageBeskrivelseField,
   eoOevrigeKravBeloebField,
   eoOevrigeKravDatoField,
   eoOevrigeKravUdgiftTilField,
   eoOpgørelseLavetDenField,
   eoRevideretOpgoerelseField,
+  eoSfggBeregningskildeField,
+  eoSfggManuelDagssatsField,
+  eoSfggReferenceperiodeFraField,
+  eoSfggSatsvalgField,
   eoSvieSmerteAktuelPeriodeField,
   eoSvieSmerteDelvisSygemeldingSatsField,
   eoSvieSmerteHelbredsstatusField,
@@ -32,6 +45,7 @@ import {
   eoSvieSmertePeriodeTilstandField,
   eoSvieSmerteSatserAarField,
   eoSvieSmerteTidligereTotalField,
+  eoSaerligeKommentarerField,
   eoTafArbejdsstatusField,
   eoTafBeregningsperiodeFraField,
   eoTafPeriodeFraField,
@@ -43,6 +57,7 @@ import {
   eoVedroererPeriodeFraField,
   eoVerserendeKlageEetField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { eoAngivetLoenFields, eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import {
   stamdataAdvokatField,
   stamdataJournalnrField,
@@ -129,6 +144,9 @@ const rowIdSuffix = (rowId: string, prefix: string): string | null =>
 
 const target = (field: AnyFieldRef): EoIssueFocusTarget => ({ kind: 'fieldAddress', address: field.address });
 
+/** Et bevidst grovere mål, når ingen enkelt feltadresse kan beskrive årsagen sandfærdigt. */
+const rowTarget = (rowId: string): EoIssueFocusTarget => ({ kind: 'rowId', rowId });
+
 const inferDateField = <T>(
   message: string,
   fraField: FieldDescriptor<T>,
@@ -165,6 +183,7 @@ const exactFieldTargets: Readonly<Record<string, EoIssueFocusTarget>> = {
   'stamdata.skadestype': target(stamdataSkadestypeField.bind()),
   'stamdata.skadedato': target(stamdataSkadedatoField.bind()),
   'erstatningsopgoerelse.eoNummer': target(eoNummerField.bind()),
+  'erstatningsopgoerelse.eoLedsagetekst': target(eoLedsagetekstField.bind()),
   'erstatningsopgoerelse.revideretOpgoerelse': target(eoRevideretOpgoerelseField.bind()),
   'erstatningsopgoerelse.vedroererPeriode': target(eoVedroererPeriodeFraField.bind()),
   'erstatningsopgoerelse.opgørelseLavetDen': target(eoOpgørelseLavetDenField.bind()),
@@ -191,14 +210,129 @@ const exactFieldTargets: Readonly<Record<string, EoIssueFocusTarget>> = {
   'taf.beregningsgrundlag.beregningsperiode': target(eoTafBeregningsperiodeFraField.bind()),
   'taf.beregningsgrundlag.uspecificeredeFerieFridage': target(eoUspecificeredeFerieFridageField.bind()),
   'taf.beregningsgrundlag.oevrigeFravaersdage': target(eoOevrigeFravaersdageField.bind()),
+  'taf.beregningsgrundlag.oevrigeFravaersdageBeskrivelse': target(eoOevrigeFravaersdageBeskrivelseField.bind()),
   'taf.beregningsgrundlag.maanedsloen': target(eoMaanedsloenenUdgoerField.bind()),
   'taf.beregningsgrundlag.dagsloen': target(eoDagsloenenUdgoerField.bind()),
   'taf.beregningsgrundlag.angivetLoenOpreguleresFraDato': target(eoAngivetMaanedsloenOpreguleresFraDatoField.bind()),
   'taf.tidligereModtagetTaf': target(eoTidligereModtagetTafField.bind()),
+  'saerligekommentarer': target(eoSaerligeKommentarerField.bind()),
+  'bilagsnumre.menAfgoerelse': target(eoBilagsnumreMenAfgoerelseField.bind()),
+  'bilagsnumre.eetAfgoerelser': target(eoBilagsnumreEetAfgoerelserField.bind()),
+  'bilagsnumre.svieSmerteDokumentation': target(eoBilagsnumreSvieSmerteDokumentationField.bind()),
+  'bilagsnumre.beregningsgrundlagTaf': target(eoBilagsnumreBeregningsgrundlagTafField.bind()),
+  'bilagsnumre.loenISygeperioden': target(eoBilagsnumreLoenISygeperiodenField.bind()),
+  'bilagsnumre.offentligeYdelser': target(eoBilagsnumreOffentligeYdelserField.bind()),
+  'bilagsnumre.oevrigeErstatningskrav': target(eoBilagsnumreOevrigeErstatningskravField.bind()),
 };
 
 const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget | undefined => {
   const hint = row.focusFieldHint;
+
+  const sfggBeregningskildeEmploymentId = rowIdSuffix(row.id, 'sfgg.beregningskilde.');
+  if (sfggBeregningskildeEmploymentId) {
+    return target(eoSfggBeregningskildeField.bind(sfggBeregningskildeEmploymentId));
+  }
+
+  const sfggOverenskomstEmploymentId = rowIdSuffix(row.id, 'sfgg.overenskomst.');
+  if (sfggOverenskomstEmploymentId) {
+    return target(eoEmploymentFields.overenskomstId.bind(sfggOverenskomstEmploymentId));
+  }
+
+  const sfggSatsvalgEmploymentId = rowIdSuffix(row.id, 'sfgg.satsvalg.');
+  if (sfggSatsvalgEmploymentId) {
+    return target(eoSfggSatsvalgField.bind(sfggSatsvalgEmploymentId));
+  }
+
+  const sfggManuelDagssatsEmploymentId = rowIdSuffix(row.id, 'sfgg.dagssats.');
+  if (sfggManuelDagssatsEmploymentId) {
+    if (message === 'Dagssats kunne ikke fastsættes for den valgte overenskomst i TAF-perioden') {
+      // Den valgte overenskomst og TAF-perioden ejer resultatet sammen; en manuel sats ville være
+      // et falsk fokusmål. Den eksplicitte rækkeforankring forhindrer netop den slags fejlblink.
+      return rowTarget(row.id);
+    }
+    return target(eoSfggManuelDagssatsField.bind(sfggManuelDagssatsEmploymentId));
+  }
+
+  const sfggReferenceperiodeEmploymentId = rowIdSuffix(row.id, 'sfgg.referenceperiode.');
+  if (sfggReferenceperiodeEmploymentId) {
+    return target(eoSfggReferenceperiodeFraField.bind(sfggReferenceperiodeEmploymentId));
+  }
+
+  const sfggReferencesatsEmploymentId = rowIdSuffix(row.id, 'sfgg.referencesats.');
+  if (sfggReferencesatsEmploymentId && message.includes('Referenceperiode')) {
+    return target(eoSfggReferenceperiodeFraField.bind(sfggReferencesatsEmploymentId));
+  }
+  if (sfggReferencesatsEmploymentId) {
+    // Referencesatsen er en afledt værdi fra flere løn- og periodesfelter. En enkelt af dem ville
+    // være et falsk fokusmål, så fejloversigten skal kun føre til den relevante sektion.
+    return rowTarget(row.id);
+  }
+
+  if (row.id.startsWith('sfgg.advarsel.seksmaaneder.')) {
+    // Advarslen sammenholder SFGG-perioden med den seneste af flere lønindtægtsrækker.
+    return rowTarget(row.id);
+  }
+
+  const loenindkomstStatusMatch = row.id.match(/^loenindkomst\.([^.]+)\.(arbejdsstedNavn|satserSkadestidspunkt|loenoplysninger|loenEfterOphoer)$/);
+  if (loenindkomstStatusMatch) {
+    const [, employmentId, issue] = loenindkomstStatusMatch;
+    if (issue === 'arbejdsstedNavn') return target(eoEmploymentFields.navnPaaArbejdssted.bind(employmentId!));
+    // Satser, lønoplysninger og løn efter ophør sammenfatter flere felter/rækker. Et præcist
+    // input findes ikke uden at gætte på årsagen, så de bærer et bevidst samlet fokusmål.
+    return rowTarget(row.id);
+  }
+
+  if (
+    /^loenindkomst\.[^.]+\.regulering\.(alleVaerdier|reguleringsvaerdi|startvaerdi|slutvaerdi|daekningAdvarsel)$/.test(row.id)
+    || /^taf\.beregningsgrundlag\.loenudvikling\.[^.]+\.(alleVaerdier|reguleringsvaerdi|startvaerdi|slutvaerdi|daekningAdvarsel)$/.test(row.id)
+  ) {
+    // Reguleringsdækningen er afledt fra en kilde og kan kræve flere samtidige rettelser.
+    return rowTarget(row.id);
+  }
+
+  if (row.id.startsWith('offentligeYdelser.')) {
+    // Statusrækkerne grupperer flere brugerindtastede ydelser; deres id er ikke et felt-id.
+    return rowTarget(row.id);
+  }
+
+  if (row.id === 'midlertidigtEetKonsistens.ydelerUdenAfgorelse') {
+    return target(eoMidlertidigtEETAfgorelseField.bind());
+  }
+  if (row.id === 'midlertidigtEetKonsistens.afgorelseUdenYdelser') {
+    // Der findes ingen ydelsesrække endnu. Navigationen åbner den rigtige tabel uden at foregive,
+    // at en eksisterende celle er fejlårsagen.
+    return rowTarget(row.id);
+  }
+
+  const loenindkomstReguleringMatch = row.id.match(/^loenindkomst\.([^.]+)\.regulering\.(valgt|valgtRegulering)$/);
+  const tafReguleringMatch = row.id.match(/^taf\.beregningsgrundlag\.loenudvikling\.([^.]+)\.(valgt|valgtRegulering)$/);
+  if (loenindkomstReguleringMatch) {
+    const employmentId = loenindkomstReguleringMatch[1]!;
+    if (message === 'Overenskomst er ikke valgt') return target(eoEmploymentFields.overenskomstId.bind(employmentId));
+    if (message === 'Statistisk beregningsmodel er ikke valgt') return target(eoEmploymentFields.loenudviklingStatistikModel.bind(employmentId));
+    if (message === 'KRL satstabel er ikke valgt') return target(eoEmploymentFields.loenudviklingKRLSatstabel.bind(employmentId));
+    return target(eoEmploymentFields.loenudviklingBeregningsgrundlag.bind(employmentId));
+  }
+  if (tafReguleringMatch) {
+    if (message === 'Overenskomst er ikke valgt') return target(eoAngivetLoenFields.overenskomstId.bind());
+    if (message === 'Statistisk beregningsmodel er ikke valgt') return target(eoAngivetLoenFields.loenudviklingStatistikModel.bind());
+    if (message === 'KRL satstabel er ikke valgt') return target(eoAngivetLoenFields.loenudviklingKRLSatstabel.bind());
+    return target(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind());
+  }
+
+  const loenindkomstOffentligMatch = row.id.match(/^loenindkomst\.([^.]+)\.regulering\.offentligLoenoplysninger$/);
+  const tafOffentligMatch = row.id.match(/^taf\.beregningsgrundlag\.loenudvikling\.([^.]+)\.offentligLoenoplysninger$/);
+  if (loenindkomstOffentligMatch) {
+    const employmentId = loenindkomstOffentligMatch[1]!;
+    if (message.startsWith('Løntrin')) return target(eoEmploymentFields.offentligLoenTrin.bind(employmentId));
+    if (message.startsWith('Gruppe')) return target(eoEmploymentFields.offentligLoenGruppe.bind(employmentId));
+    return target(eoEmploymentFields.offentligLoenType.bind(employmentId));
+  }
+  if (tafOffentligMatch) {
+    if (message.startsWith('Løntrin')) return target(eoAngivetLoenFields.offentligLoenTrin.bind());
+    if (message.startsWith('Gruppe')) return target(eoAngivetLoenFields.offentligLoenGruppe.bind());
+    return target(eoAngivetLoenFields.offentligLoenType.bind());
+  }
 
   const svieSmerteRowId = rowIdSuffix(row.id, 'sviesmerte.periode.');
   if (svieSmerteRowId) {
@@ -217,6 +351,12 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
   const tafRowId = rowIdSuffix(row.id, 'taf.periode.');
   if (tafRowId) {
     return target(dateFieldFromHint(hint, message, eoTafPeriodeFraField, eoTafPeriodeTilField).bind(tafRowId));
+  }
+
+  const folkepensionsTafRowId = rowIdSuffix(row.id, 'taf.folkepensionsalder.');
+  if (folkepensionsTafRowId) {
+    // Det er TAF-periodens slutdato, brugeren kan forkorte, når den løber efter pensionsalderen.
+    return target(eoTafPeriodeTilField.bind(folkepensionsTafRowId));
   }
 
   const tafFerieRowId = rowIdSuffix(row.id, 'taf.ferie.');
@@ -242,6 +382,26 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     if (lower.includes('beskrivelse')) return target(eoOevrigeKravUdgiftTilField.bind(oevrigeKravRowId));
     if (lower.includes('beløb')) return target(eoOevrigeKravBeloebField.bind(oevrigeKravRowId));
     return target(eoOevrigeKravDatoField.bind(oevrigeKravRowId));
+  }
+
+  if (row.id === 'taf.beregningsgrundlag.indkomst') {
+    // Indkomsten er en afledt sum af flere perioder og kan ikke ærligt bindes til ét inputfelt.
+    return rowTarget(row.id);
+  }
+
+  if (row.id === 'taf.beregningsgrundlag.arbejdsdage' || row.id === 'taf.beregningsgrundlag.maaneder') {
+    // Begge er afledte fra beregningsperioden og fraværsfelterne og har derfor ingen ærlig enkeltadresse.
+    return rowTarget(row.id);
+  }
+
+  if (row.id === 'taf.perioder.clampedAway') {
+    // Alle perioder falder uden for EO-perioden; ingen enkelt TAF-række kan udpeges som årsag.
+    return rowTarget(row.id);
+  }
+
+  if (row.id === 'sviesmerte.ophoerSkyldes' || row.id === 'taf.ophoerSkyldes') {
+    // Ophørsårsagen beskriver et samlet perioderesultat og har bevidst ingen falsk feltadresse.
+    return rowTarget(row.id);
   }
 
   return exactFieldTargets[row.id];
@@ -280,6 +440,10 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
       { kind: 'id', id: 'sviesmerte.ophoerSkyldes' },
     ],
     summaryText: (_row, message) => message || 'Der er ikke angivet nogen svie/smerte-periode i EO-perioden',
+    // Der findes ingen periode at adressere, før brugeren opretter den; marker derfor ikke et
+    // uvedkommende felt. Ruten fører til den korrekte sektion, og måltypen dokumenterer bevidst
+    // den fler-input-/opret-række-situation.
+    focusTarget: (row) => rowTarget(row.id),
   },
   {
     key: 'svie-smerte-tidligere-total',
@@ -307,6 +471,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
       { kind: 'id', id: 'taf.ophoerSkyldes' },
     ],
     summaryText: (_row, message) => message || 'Der er ikke angivet nogen TAF-periode i EO-perioden',
+    focusTarget: (row) => rowTarget(row.id),
   },
   {
     key: 'taf-period-row',

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { setActiveTabForPage } from '../../../../hooks/usePersistedActiveTab';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
-import type { EoRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
+import type { EoNavigableIssueRow, EoRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
 import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoRowNavigationMap';
 import { resolveEoIssueSummaryText } from '../../../../domain/eoRowEvaluation/eoRowIssueCatalog';
 import { scrollToSection } from '../../../../utils/scrollToSection';
@@ -67,8 +67,8 @@ export type EetIssueRow = Readonly<{
 }>;
 
 type EoRowsMemoResult = Readonly<{
-  errors: ReadonlyArray<EoRowWithNavigation>;
-  warnings: ReadonlyArray<EoRowWithNavigation>;
+  errors: ReadonlyArray<EoNavigableIssueRow>;
+  warnings: ReadonlyArray<EoNavigableIssueRow>;
   relevantRows: ReadonlyArray<EoRowWithNavigation>;
   eoRowAggregationErrorMessage: string | null;
 }>;
@@ -82,12 +82,8 @@ const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
 const isDevtoolsReportableInvariant = (invariant: EoInvariant): boolean =>
   invariant.source === 'system' && DEVTOOLS_REPORTABLE_INVARIANT_IDS.has(invariant.id);
 
-const scrollToRowIssueTarget = (rowId: string, focusTarget: EoIssueFocusTarget | undefined): void => {
-  if (focusTarget) {
-    scrollToEoRow(rowId, { focusTarget });
-    return;
-  }
-  scrollToEoRow(rowId);
+const scrollToRowIssueTarget = (rowId: string, focusTarget: EoIssueFocusTarget): void => {
+  scrollToEoRow(rowId, { focusTarget });
 };
 
 const buildInvariantDiagnostics = (
@@ -496,13 +492,13 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   ]);
 
   const [pendingNavigation, setPendingNavigation] = React.useState<{
-    target: NavigationTarget;
-    rowId: string;
-    focusTarget?: EoIssueFocusTarget;
+  target: NavigationTarget;
+  rowId: string;
+  focusTarget: EoIssueFocusTarget;
   } | null>(null);
 
   const handleNavigate = React.useCallback(
-    (target: NavigationTarget, rowId: string, focusTarget?: EoIssueFocusTarget) => {
+    (target: NavigationTarget, rowId: string, focusTarget: EoIssueFocusTarget) => {
       switch (target.kind) {
         case 'erstatningsopgoerelse-tab':
           // Switch til korrekt fane
