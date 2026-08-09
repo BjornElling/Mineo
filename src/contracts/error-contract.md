@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-09
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.

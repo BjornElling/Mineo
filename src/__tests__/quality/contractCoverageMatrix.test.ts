@@ -303,6 +303,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/quality/pwaHeaders.test.ts',
       'src/__tests__/quality/architecture/rules/responsiveStylingRules.ts',
       'src/__tests__/quality/architecture/rules/documentRules.ts',
+      'src/__tests__/main.pwaLaunchQueue.test.ts',
+      'src/__tests__/utils/pwaLaunchQueue.test.ts',
       'scripts/verify-build-artifacts.mjs',
     ],
   },

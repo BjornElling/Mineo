@@ -18,7 +18,7 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-010 | Syv Indstillinger-kontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-010 / SETTINGS-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:06 Europe/Copenhagen |
 | OBS-011 | Om-sidens startside-toggle mangler tilgængeligt navn | UX / Tilgængelighed | SURF-011 / MINEO-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:15 Europe/Copenhagen |
 | OBS-012 | Fire EET-valgkontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-004 / EET-002 | Chrome/Edge/Firefox/WebKit 1920×1080; WebKit også 2560×1440 | Mellem | Bekræftet | 2026-08-08 19:23 Europe/Copenhagen |
-| OBS-013 | PWA-filåbning registrerer ikke launchQueue-consumer | Kontraktdrift / Dataintegritet | SURF-012 / OPEN-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bekræftet | 2026-08-08 20:14 Europe/Copenhagen |
+| OBS-013 | PWA-filåbning registrerer ikke launchQueue-consumer | Kontraktdrift / Dataintegritet | SURF-012 / OPEN-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Løst 2026-08-09 | 2026-08-08 20:14 Europe/Copenhagen |
 | OBS-014 | Årsløn skjuler beregning og download ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-007 / AAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:28 Europe/Copenhagen |
 | OBS-015 | EET skjuler dokumentdownload ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-004 / EET-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:48 Europe/Copenhagen |
 | OBS-016 | EET lader dokumentdownload være aktiv ved fejl i en senere afgørelse | Falsk positiv (audit) | EDGE-003 / EET-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | — | Bortfaldet 2026-08-09 (falsk positiv) | 2026-08-08 21:55 Europe/Copenhagen |
@@ -328,12 +328,12 @@ En bruger, der navigerer med skærmlæser eller anden semantisk tastaturstøtte,
 
 ### OBS-013 — PWA-filåbning registrerer ikke launchQueue-consumer
 
-- Status: Bekræftet
+- Status: Løst 2026-08-09
 - Kategori: Kontraktdrift / Dataintegritet
 - Alvor: Høj
 - Først set: 2026-08-08 20:14 Europe/Copenhagen
-- Commit/build: `b3f5e279adf8` / `2026.08.1237.b3f5e27`
-- Dirty-state: dirty ved genoptagelse; kun auditdokumenter og midlertidige audit-artefakter ændret
+- Commit/build: working tree ved verifikation / `2026.08.1258.a1143ae`
+- Dirty-state: kun denne rettelse, dens tests og dokumentation
 - Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
 - Flade/scenarie: SURF-012 / OPEN-002
 - Relaterede fund/spørgsmål: —
@@ -368,6 +368,17 @@ Hvis brugeren åbner en `.eo`-fil gennem en installeret PWA eller operativsystem
 - Reproducerbarhed: 4/4 browsere.
 - Andre browsere/viewports: Minimumsviewport dækket; større viewport mangler for dette flow.
 - Screenshot: `.playwright-cli/pwa-open-chrome.png` viser fallback-fladen efter login og retry-beskeden.
+
+**Løsning og ny verifikation (2026-08-09)**
+
+`src/main.tsx` leverer igen PWA-filåbningscallbacken til `bootstrapClientApp`: den registrerer
+launchQueue-consumeren før service-worker-opstart og hydrerer derefter en pending request før React renderes. Dermed
+kan en `.eo`-fil, som nåede den tidligere PWA-version lige før en opdatering, genoptages af den nye version. Samtidig
+kan en langsom IndexedDB-hydrering ikke længere overskrive en fil, brugeren netop har åbnet; den nyeste fil vinder.
+
+- Unit: `main.pwaLaunchQueue.test.ts` låser entrypoint-koblingen og rækkefølgen consumer → hydrering.
+- Unit: `pwaLaunchQueue.test.ts` simulerer gammelt → nyt app-modul med samme file handle, samtidig gammel/ny request og utilgængelig IndexedDB.
+- Browser: `e2e/pwa-file-open.spec.ts` var grøn i Chrome, Edge, Firefox og WebKit ved 1920×1080. Den injicerede standardfladen før første script, gennemførte synligt login og bekræftede consumer-registrering uden console.error/-warn eller page-fejl.
 
 ### OBS-014 — Årsløn skjuler beregning og download ved stamdatafejl
 

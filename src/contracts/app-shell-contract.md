@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-09
 
 ## 1. Scope
 
@@ -13,6 +13,7 @@ Det øverste runtime-lag, der binder programmet sammen, og isolationen mellem de
 - Delt app-shell: `src/apps/shared/bootstrapClientApp.tsx` (device-gate, render-beslutning, install-prompt-politik).
 - Delt device-aflæsning: `src/utils/clientDevice.ts` (rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer, uden app-shell-render-beslutninger).
 - Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering og opdaterings-/reload-disciplin).
+- PWA-filåbning: `src/utils/pwaLaunchQueue.ts` (launchQueue-consumer og versionssikker pending request).
 - PWA-cachepolitik: `public/_headers` (revalidering af HTML, SPA-ruter, manifest og service worker; immutable hashed assets).
 - Standalone-specifik opstart og isolation: `src/apps/minprocesrente/standaloneStorageNamespace.ts`, `MinProcesrenteApp.tsx`, `StandaloneErrorBoundary.tsx`.
 - Storage-namespace-maskineriet i `src/config/storageManifest.ts` (for så vidt det adskiller varianterne).
@@ -43,11 +44,13 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 5. **Install-prompt-politik er eksplicit pr. variant.** Kun den variant der reelt er en installerbar PWA (Mineo, `capturePwaInstallPrompt: true`) capturer browserens `beforeinstallprompt`. Alle øvrige tilfælde (standalone, eller uunderstøttet enhed) suppresser prompten. Capture/suppress bruger den **kanoniske** implementering i `src/utils/pwaInstallPrompt.ts` — der må ikke findes en parallel install-prompt-håndtering i shell-laget.
 
-6. **Service-worker er cache-fri og reload-disciplineret.** `public/sw.js` precacher ikke, runtime-cacher ikke og intercepter ikke `fetch` (for aldrig at servere forældet beregningslogik). HTML, SPA-ruter, manifest og service worker skal samtidig have no-cache/no-store headers i `public/_headers`, så browser/host-fallbacks ikke fastholder en gammel app-shell; hashed Vite-assets må fortsat være immutable. Klientsiden må kun udløse `window.location.reload()` ved en **reel opdatering** — dvs. når en *ventende* worker aktiveres og der allerede fandtes en controller, da dokumentet loadede. En `controllerchange` udløst af første installs `clients.claim()` (ingen controller ved load) må **aldrig** reloade, da det ville give en uønsket hard-reload midt i første åbning og kunne tabe ikke-gemt indtastning. Reload sker højst én gang pr. dokument, og hele update-lifecyclen wires gennem én fælles, idempotent funktion (ikke divergerende kopier på boot- og på de periodiske tjek).
+6. **PWA-filåbning registreres før service-worker og React.** Mineos entry leverer `setupPwaFileOpenHandling` til den fælles shell. På en understøttet desktop-enhed kalder shellen den før `beforeDesktopRender` og før app-roden renderes. Callbacken registrerer først launchQueue-consumeren og hydrerer derefter den persisterede pending request. Rækkefølgen bevarer en `.eo`-fil, der blev åbnet lige før en PWA-opdatering, så den nye app-version kan fortsætte samme load-flow efter login. Ankommer en ny launchQueue-fil under hydrering, vinder den nye brugerhandling over den ældre persisterede request. Standalone leverer aldrig callbacken.
 
-7. **Top-level fejl fanges pr. variant.** Hver app-variant skal have en top-level error boundary mellem shell-render og hele variantroden. Mineo bruger `src/components/errors/ErrorBoundary` (med diagnose-rapportering via `systemIssueReporter`). Standalone bruger `StandaloneErrorBoundary` (bevidst **uden** diagnose-rapportering, jf. regel 3's isolationskrav — se Kendte Undtagelser). Boundarien skal ligge over providers, router og layout. Fejl før React-render (style-/bootstrap-fejl) fanges separat af shellen og giver en deterministisk dansk hard-stop frem for en blank side.
+7. **Service-worker er cache-fri og reload-disciplineret.** `public/sw.js` precacher ikke, runtime-cacher ikke og intercepter ikke `fetch` (for aldrig at servere forældet beregningslogik). HTML, SPA-ruter, manifest og service worker skal samtidig have no-cache/no-store headers i `public/_headers`, så browser/host-fallbacks ikke fastholder en gammel app-shell; hashed Vite-assets må fortsat være immutable. Klientsiden må kun udløse `window.location.reload()` ved en **reel opdatering** — dvs. når en *ventende* worker aktiveres og der allerede fandtes en controller, da dokumentet loadede. En `controllerchange` udløst af første installs `clients.claim()` (ingen controller ved load) må **aldrig** reloade, da det ville give en uønsket hard-reload midt i første åbning og kunne tabe ikke-gemt indtastning. Reload sker højst én gang pr. dokument, og hele update-lifecyclen wires gennem én fælles, idempotent funktion (ikke divergerende kopier på boot- og på de periodiske tjek).
 
-8. **Styles og build-output er variant-ejede.** Shellens fontindlæsning er fælles, mens hver entry leverer sin egen style-entry. Fælles designregler kan deles, men Mineos `body/#root`-shell må ikke indlæses i standalone. Mineo bygges fra repoets ene `index.html`; theme-bootstrap injiceres fra den kanoniske generator i `src/settings/themeBootstrap.ts`. Hvert build afsluttes med `verify-build-artifacts.mjs`, der kontrollerer entry, manifest og variantfiler, før output kan godkendes.
+8. **Top-level fejl fanges pr. variant.** Hver app-variant skal have en top-level error boundary mellem shell-render og hele variantroden. Mineo bruger `src/components/errors/ErrorBoundary` (med diagnose-rapportering via `systemIssueReporter`). Standalone bruger `StandaloneErrorBoundary` (bevidst **uden** diagnose-rapportering, jf. regel 3's isolationskrav — se Kendte Undtagelser). Boundarien skal ligge over providers, router og layout. Fejl før React-render (style-/bootstrap-fejl) fanges separat af shellen og giver en deterministisk dansk hard-stop frem for en blank side.
+
+9. **Styles og build-output er variant-ejede.** Shellens fontindlæsning er fælles, mens hver entry leverer sin egen style-entry. Fælles designregler kan deles, men Mineos `body/#root`-shell må ikke indlæses i standalone. Mineo bygges fra repoets ene `index.html`; theme-bootstrap injiceres fra den kanoniske generator i `src/settings/themeBootstrap.ts`. Hvert build afsluttes med `verify-build-artifacts.mjs`, der kontrollerer entry, manifest og variantfiler, før output kan godkendes.
 
 ## 3. Autoritative Kilder
 
@@ -55,6 +58,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - Device-capability-aflæsning og orienteringsstabil touch-klassifikation: `src/utils/clientDevice.ts` (delt, render-agnostisk browserdata).
 - Storage-namespace-resolution: `src/config/storageManifest.ts` (dovne getters; namespace sat ved bootstrap).
 - Install-prompt capture/suppress: `src/utils/pwaInstallPrompt.ts` (kanonisk).
+- PWA-filåbnings- og versionsskiftehåndtering: `src/utils/pwaLaunchQueue.ts`.
 - Service-worker-adfærd: `public/sw.js` (worker) + `src/apps/mineo/serviceWorkerBootstrap.ts` (klient-lifecycle/reload-gate).
 - PWA-cachepolitik: `public/_headers`.
 
@@ -63,7 +67,10 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts` (storage-namespace sat via bivirknings-import før App-import). **Bemærk:** selve importforbuddet i §2.3 testes IKKE længere her — det er flyttet til AST-reglen nedenfor, og filen siger det selv.
 - `src/__tests__/quality/architecture/rules/documentRules.ts` (`layer/minprocesrente-standalone-import-boundary`: den strukturelle håndhævelse af §2.3's krydsimport-forbud).
 - `src/__tests__/apps/shared/bootstrapClientApp.test.tsx` (device-gate hård stop som default; standalone kan fravælge gaten).
+- `src/__tests__/main.pwaLaunchQueue.test.ts` (Mineo-entryen leverer consumer-registrering og rehydrering til shellen i rækkefølge).
+- `src/__tests__/utils/pwaLaunchQueue.test.ts` (pending request overlever versionsskift; ny launch vinder over gammel persisted request; utilgængelig IndexedDB stopper ikke opstarten).
 - `src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts` (reload kun ved reel opdatering, aldrig ved første install; højst én reload; ingen registrering uden for produktion eller på `/open`).
+- `e2e/pwa-file-open.spec.ts` (launchQueue-consumer registreres i den fulde loginrejse i Chrome, Edge, Firefox og WebKit).
 - `src/__tests__/quality/pwaHeaders.test.ts` (HTML, SPA-ruter, manifest og service worker revalideres; hashed assets er immutable).
 - `src/__tests__/settings/indexThemeBootstrap.test.ts` (kanonisk theme-bootstrap og systemfallback ved manglende, ugyldig eller ulæselig settings-storage).
 - `scripts/verify-build-artifacts.mjs` (postbuild-værn for entries, manifest og variantfiler).

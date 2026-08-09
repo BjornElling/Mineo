@@ -67,6 +67,106 @@ describe('pwaLaunchQueue', () => {
     expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toBeNull();
   });
 
+  it('bevarer en PWA-fil gennem versionsskift og registrerer consumeren i den nye app-version', async () => {
+    let persistedRequest: unknown = null;
+    savePendingPwaOpenRequestToIndexedDBMock.mockImplementation(async (request: unknown) => {
+      persistedRequest = request;
+      return true;
+    });
+    loadPendingPwaOpenRequestFromIndexedDBMock.mockImplementation(async () => persistedRequest);
+
+    const oldVersionSetConsumerMock = vi.fn();
+    Object.defineProperty(window, 'launchQueue', {
+      configurable: true,
+      value: { setConsumer: oldVersionSetConsumerMock },
+    });
+
+    pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+    const oldVersionConsumer = oldVersionSetConsumerMock.mock.calls[0]?.[0] as ((params: {
+      files?: ReadonlyArray<FileSystemHandle>;
+      targetURL?: string;
+    }) => Promise<void>) | undefined;
+    const fileHandle = buildFileHandle('før-opdatering.eo');
+
+    await oldVersionConsumer?.({ files: [fileHandle], targetURL: '/open' });
+    await vi.waitFor(() => {
+      expect(persistedRequest).toEqual(expect.objectContaining({ fileHandle, fileName: 'før-opdatering.eo' }));
+    });
+
+    // En ny modulevaluation svarer til den app-version, der starter efter PWA-opdateringen.
+    vi.resetModules();
+    const updatedPwaLaunchQueue = await import('../../utils/pwaLaunchQueue');
+    const updatedVersionSetConsumerMock = vi.fn();
+    Object.defineProperty(window, 'launchQueue', {
+      configurable: true,
+      value: { setConsumer: updatedVersionSetConsumerMock },
+    });
+
+    updatedPwaLaunchQueue.setupPwaLaunchQueueConsumer();
+    await updatedPwaLaunchQueue.hydratePendingPwaFileOpenRequest();
+
+    expect(updatedVersionSetConsumerMock).toHaveBeenCalledOnce();
+    expect(updatedPwaLaunchQueue.getPendingPwaFileOpenRequest()).toEqual(expect.objectContaining({
+      fileHandle,
+      fileName: 'før-opdatering.eo',
+    }));
+
+    delete (window as Window & { launchQueue?: unknown }).launchQueue;
+  });
+
+  it('lader en ny launchQueue-fil vinde over en ældre request, der hydreres samtidig', async () => {
+    const olderHandle = buildFileHandle('ældre.eo');
+    const newerHandle = buildFileHandle('nyere.eo');
+    let resolveStoredRequest: ((request: unknown) => void) | undefined;
+    loadPendingPwaOpenRequestFromIndexedDBMock.mockImplementationOnce(() => (
+      new Promise((resolve) => {
+        resolveStoredRequest = resolve;
+      })
+    ));
+
+    const setConsumerMock = vi.fn();
+    Object.defineProperty(window, 'launchQueue', {
+      configurable: true,
+      value: { setConsumer: setConsumerMock },
+    });
+    pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+
+    const hydratePromise = pwaLaunchQueue.hydratePendingPwaFileOpenRequest();
+    const consumer = setConsumerMock.mock.calls[0]?.[0] as ((params: {
+      files?: ReadonlyArray<FileSystemHandle>;
+      targetURL?: string;
+    }) => Promise<void>) | undefined;
+    await consumer?.({ files: [newerHandle], targetURL: '/open' });
+    resolveStoredRequest?.({
+      id: 'pwa-open-7',
+      createdAtEpochMs: 123,
+      targetUrl: '/open',
+      fileHandle: olderHandle,
+      fileName: 'ældre.eo',
+      ignoredFileCount: 0,
+    });
+    await hydratePromise;
+
+    expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toEqual(expect.objectContaining({
+      fileHandle: newerHandle,
+      fileName: 'nyere.eo',
+    }));
+
+    delete (window as Window & { launchQueue?: unknown }).launchQueue;
+  });
+
+  it('fortsætter uden pending request, hvis IndexedDB ikke kan læses ved opstart', async () => {
+    loadPendingPwaOpenRequestFromIndexedDBMock.mockRejectedValueOnce(new Error('IndexedDB utilgængelig'));
+
+    await expect(pwaLaunchQueue.hydratePendingPwaFileOpenRequest()).resolves.toBeUndefined();
+
+    expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toBeNull();
+    expect(logWarningMock).toHaveBeenCalledWith(
+      'Pending PWA-open request kunne ikke hentes fra IndexedDB',
+      expect.objectContaining({ context: 'hydratePendingPwaFileOpenRequest.load' })
+    );
+  });
+
   it('dispatches PWA-open event even if persistence of the pending request fails', async () => {
     const setConsumerMock = vi.fn();
     Object.defineProperty(window, 'launchQueue', {

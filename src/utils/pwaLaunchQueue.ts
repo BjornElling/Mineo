@@ -100,7 +100,21 @@ export const hydratePendingPwaFileOpenRequest = async (): Promise<void> => {
   }
 
   hydratePendingRequestPromise = (async () => {
-    const stored = await loadPendingPwaOpenRequestFromIndexedDB();
+    let stored: Awaited<ReturnType<typeof loadPendingPwaOpenRequestFromIndexedDB>>;
+    try {
+      stored = await loadPendingPwaOpenRequestFromIndexedDB();
+    } catch (error: unknown) {
+      logWarning('Pending PWA-open request kunne ikke hentes fra IndexedDB', {
+        context: 'hydratePendingPwaFileOpenRequest.load',
+        data: { errorMessage: error instanceof Error ? error.message : String(error) },
+      });
+      return;
+    }
+
+    // launchQueue kan aflevere en ny fil, mens IndexedDB læses. Den nyligt modtagne fil er
+    // brugerens seneste handling og må aldrig erstattes af en ældre request fra før opdateringen.
+    if (pendingRequest !== null) return;
+
     if (isStoredPwaFileOpenRequest(stored)) {
       pendingRequest = stored;
       const numericSuffix = Number.parseInt(stored.id.replace(/^pwa-open-/, ''), 10);

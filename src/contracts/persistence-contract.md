@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-09
 
 Denne kontrakt samler de trust-kritiske regler for runtime-persistence, `.eo`, save/load og autoritative replacements.
 Der findes ingen per-sektion-storage og ingen `invalidDrafts`: sagsinput ligger i én current-session-envelope med ét
@@ -181,6 +181,12 @@ integritetskontrol og må ikke blandes med loadens tolerante migrering.
 Load- og savekilder/sinks er typede porte med diskriminerede resultater. Egentlige fejl kastes; cancel er et eksplicit
 resultat. Højst én filhandling må være aktiv ad gangen. En PWA-loadrequest under en aktiv filhandling må ikke tabes:
 seneste request bevares og tilbydes med `Indlæs fil`/`Ignorer`, når den aktive handling er afsluttet.
+
+En PWA-filrequest registreres før service-worker-opstart og React-render. Dens fil-handle ligger i memory straks og
+persisteres som pending request, så en app-version der starter efter en opdatering kan hydrere og behandle den samme
+fil. En live launchQueue-request, der ankommer mens en ældre request hydreres, vinder altid; den gamle request må
+aldrig overskrive brugerens seneste filåbning. Kan IndexedDB ikke læses, fortsætter opstarten uden pending request og
+med en kontrolleret warning; den aktuelle sag muteres ikke.
 
 ## 6. Load-garantier
 

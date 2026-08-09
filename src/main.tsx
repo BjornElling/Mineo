@@ -5,6 +5,10 @@ import {
   setupServiceWorkerUpdateChecks,
 } from './apps/mineo/serviceWorkerBootstrap';
 import { setupPwaInstallPromptCapture } from './utils/pwaInstallPrompt';
+import {
+  hydratePendingPwaFileOpenRequest,
+  setupPwaLaunchQueueConsumer,
+} from './utils/pwaLaunchQueue';
 import { bootstrapProductionInputRuntime } from './inputCore/react';
 import ErrorBoundary from './components/errors/ErrorBoundary';
 
@@ -22,6 +26,13 @@ void bootstrapClientApp({
     );
   },
   loadAppStyles: () => import('./index.css'),
+  setupPwaFileOpenHandling: async () => {
+    // En launchQueue-request kan være leveret til den tidligere app-version lige før en
+    // opdatering. Consumeren skal derfor være klar før hydrering, mens hydreringen bringer
+    // den persisterede request med ind i den nye app-version før React monteres.
+    setupPwaLaunchQueueConsumer();
+    await hydratePendingPwaFileOpenRequest();
+  },
   beforeDesktopRender: ensureLatestServiceWorkerBeforeRender,
   afterDesktopRenderSetup: setupServiceWorkerUpdateChecks,
   setupPwaInstallPromptCapture,
