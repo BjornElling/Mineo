@@ -122,6 +122,26 @@ Efter `goto` eller navigation er URL'en alene ikke et færdigthedsorakel. Vent p
 
 Forventet rød kant, tooltip eller anden dokumenteret valideringsfeedback er bestået adfærd og ikke i sig selv et crashfund. Et systemsignal er stadig et kandidatfund, selv om appen tilsyneladende fortsætter.
 
+### Save-orakel: repræsentation før farve
+
+Før et Gem-forløb klassificeres, fastlæg feltets **afsluttede repræsentation** fra den relevante
+feltmotor/projektion og kontroller `form-contract.md` §8, `error-contract.md` §5 og
+`persistence-contract.md` §5:
+
+- Rejected råtekst (format-/schemafejl) skal stoppe `.eo`-save i handleren, fokusere det relevante felt og
+  give den dokumenterede afvisningsfeedback. En aktiv Gem-knap er ikke i sig selv et fund: krav om reaktivt
+  disabled gælder dokument-output, ikke Gem.
+- Schema-gyldigt canonical input med range-/bounds-/rule-issue skal fortsat kunne gemmes uændret. Den samme
+  røde feltfarve må aldrig bruges som bevis for samme save-policy som rejected input.
+- Dokument-download og `.eo`-save er separate gates. Overfør aldrig disabled-krav eller dokumentorakler til
+  Gem uden en udtrykkelig save-kontrakt.
+
+Vælg et sink-egnet success-orakel. Fravær af netværkstrafik, downloadrequest eller app-overlay beviser aldrig,
+at Gem ikke fortsatte: Chrome/Edge kan åbne en lokal File System Access-dialog, som ikke er en request og som
+headless-auditten ikke kan afslutte eller inspicere. Registrér i så fald det præcise dialogdækningshul og brug
+den implementerede save-projektion samt en browser/sink, hvor resultatet kan verificeres. Opret ikke et fund om
+blokeret Gem, før den valgte sinks resultat eller handlerens dokumenterede blokering er kontrolleret.
+
 ### 4. Isolér og registrér straks
 
 Stop kun den aktuelle matrixgren ved et signal. Gentag fra ren tilstand mindst to gange, minimér handlingerne, og find den første handling der udløser afvigelsen. Kontrollér en nærliggende kontrastværdi eller sekvens, som ikke udløser den, når det kan gøres sikkert.

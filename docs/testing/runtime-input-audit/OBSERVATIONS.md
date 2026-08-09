@@ -9,10 +9,10 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-001 | Formular-blink kan måles for svagt i Safari ved stor viewport | Browserforskel / UX | SURF-001 / BASELINE-001 | Safari/WebKit 2560×1440 | Mellem | Løst 2026-08-09 | 2026-08-08 15:48 Europe/Copenhagen |
 | OBS-002 | Sidemenuets toggle mangler tilgængeligt navn | UX / Andet | SURF-001 / SHELL-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Lav | Bekræftet | 2026-08-08 15:52 Europe/Copenhagen |
 | OBS-003 | Datoissue navngiver ikke den synlige kontekstuelle label | Inkonsistens / UX | SURF-002 / STAM-003 | Chrome 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:03 Europe/Copenhagen |
-| OBS-004 | Gem er visuelt aktiv ved rejected input, men blokeres først ved klik | Dataintegritet / Kontraktdrift | SURF-001/SURF-002 / STAM-004 | Chrome 1920×1080 | Høj | Bekræftet | 2026-08-08 16:07 Europe/Copenhagen |
+| OBS-004 | Gem er visuelt aktiv ved rejected input, men blokeres først ved klik | Falsk positiv (audit) | SURF-001/SURF-002 / STAM-004 | Chrome 1920×1080 | — | Bortfaldet 2026-08-09 (falsk positiv) | 2026-08-08 16:07 Europe/Copenhagen |
 | OBS-005 | Firefox-fallback giver en synlig teknisk advarsel ved normal Gem/Hent | UX / Console-politik | SURF-001 / SHELL-003 | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:19 Europe/Copenhagen |
 | OBS-006 | Differencekrav viser samme manglende beregningsdato to gange | Parallel logik / UX | SURF-004 / EET-002 | Firefox 1920×1080 | Lav | Bekræftet | 2026-08-08 16:23 Europe/Copenhagen |
-| OBS-007 | Gem giver ingen feedback ved canonical tværgående datofejl | Dataintegritet / UX | SURF-001/SURF-002 / STAM-005 | Chrome/Edge 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:56 Europe/Copenhagen |
+| OBS-007 | Gem giver ingen feedback ved canonical tværgående datofejl | Falsk positiv (audit) | SURF-001/SURF-002 / STAM-005 | Chrome/Edge 1920×1080 | — | Bortfaldet 2026-08-09 (falsk positiv) | 2026-08-08 16:56 Europe/Copenhagen |
 | OBS-008 | Ugyldig fil ved Hent behandles som teknisk runtimefejl | Kontraktdrift / UX | SURF-003 / EO-OPLYS-005 | WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 17:59 Europe/Copenhagen |
 | OBS-009 | Trecifret tillægstid trunkeres til to cifre uden range-issue | Dataintegritet / Kontraktdrift | SURF-008 / RENTE-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Høj | Bortfaldet 2026-08-09 (kontraktændring); afgrænsning håndhævet 2026-08-09 | 2026-08-08 18:47 Europe/Copenhagen |
 | OBS-010 | Syv Indstillinger-kontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-010 / SETTINGS-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:06 Europe/Copenhagen |
@@ -172,9 +172,21 @@ Brugeren får en rød fejl på et felt, der hedder `Anmeldelsesdato`, men bliver
 
 ### OBS-004 — Gem er visuelt aktiv ved rejected input, men blokeres først ved klik
 
-- Status: Bekræftet
-- Kategori: Dataintegritet / Kontraktdrift
-- Alvor: Høj
+> **Bortfaldet 2026-08-09 (falsk positiv).** Fundet sammenblandede `.eo`-save med dokument-download.
+> `critical-action-contract.md` §4 og `page-component-contract.md` §11 regulerer dokumentknapper, ikke den
+> globale Gem-handling. De relevante save-kontrakter (`form-contract.md` §8, `error-contract.md` §5 og
+> `persistence-contract.md` §5) kræver i stedet, at aktivt relevant rejected råinput stopper selve
+> filhandlingen; de kræver ikke en reaktivt disabled Gem-knap.
+>
+> Den registrerede build havde allerede den relevante adfærd: `useFileSaveLoad.ts` fokuserer det rejected
+> felt og viser den orange besked `Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og
+> prøv igen.` før fil-I/O. Kontrol 2026-08-09 med `31-12` i Skadedato bekræftede præcis dette forløb med
+> `disabled=false`, rød feltfejl, fokus på Skadedato, orange besked og ingen console-fejl. Påstanden om ingen
+> særskilt besked var derfor ikke reproducerbar og skyldes ikke en efterfølgende produktrettelse.
+
+- Status: Bortfaldet 2026-08-09 (falsk positiv)
+- Kategori: Falsk positiv (audit)
+- Alvor: —
 - Først set: 2026-08-08 16:07 Europe/Copenhagen
 - Commit/build: `b3f5e279adf8` / `2026.08.1237.b3f5e27`
 - Dirty-state: syntetisk session; ingen øvrige sagsdata
@@ -296,9 +308,19 @@ Den dobbelte fejl får brugeren til at tro, at der mangler to forskellige beregn
 
 ### OBS-007 — Gem giver ingen feedback ved canonical tværgående datofejl
 
-- Status: Bekræftet
-- Kategori: Dataintegritet / UX
-- Alvor: Mellem
+> **Bortfaldet 2026-08-09 (falsk positiv).** En parsebar dato uden for en aktiv grænse committes canonical
+> med et afledt rødt issue. Den kan blokere en afhængig beregning eller et dokument, men den skal fortsat kunne
+> gemmes uændret i `.eo` (`form-contract.md` §8 og `persistence-contract.md` §5). Derfor er den aktive
+> Gem-knap og den efterfølgende lokale gem-dialog den korrekte adfærd.
+>
+> Den oprindelige evidens, »ingen downloadrequest«, kan ikke afgøre dette i Chrome/Edge: File System Access
+> API åbner en operativsystemdialog og laver ingen netværksrequest. Headless-auditten kan ikke afslutte eller
+> inspicere den dialog; det er et dækningshul, ikke bevis for en blokeret save. Manuel kontrol 2026-08-09
+> bekræftede, at dialogen åbner, og at filen gemmes uden fejl.
+
+- Status: Bortfaldet 2026-08-09 (falsk positiv)
+- Kategori: Falsk positiv (audit)
+- Alvor: —
 - Først set: 2026-08-08 16:56 Europe/Copenhagen
 - Commit/build: `b3f5e279adf8` / `2026.08.1237.b3f5e27`
 - Dirty-state: syntetisk session med journalnummer `X` og valgt skadestype
