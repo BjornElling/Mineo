@@ -1,15 +1,14 @@
 /**
- * Gaten for de tre reguleringssats-outputs (Fase 5, pass 5 + review-fund K2).
+ * Gaten for de tre reguleringssats-outputs.
  *
  * To ting pinnes her, begge BRUGERGODKENDT 2026-07-26:
  *
  * 1. **Offentlig-løn-tjekket gælder KUN ved grundlaget `Overenskomst`.** Skjulte felter bevares
  *    bevidst ved grundlagsskift (`loenindkomstStateCleanup.ts`), så et tomt løntrin fra et tidligere
  *    valgt offentligt overenskomst-grundlag må ALDRIG blokere et Statistik-, KRL- eller
- *    KL-dokument, som slet ikke bruger løntrinnet. Den fejl fandtes i første udgave af pass 5 og
- *    blev fundet af codex-reviewet.
+ *    KL-dokument, som slet ikke bruger løntrinnet.
  * 2. **Inden for Overenskomst er reglen den strenge:** et løntrin, opslaget ikke kender, blokerer —
- *    på BEGGE scopes. Sagsniveauet nøjedes før Fase 5 med at se efter, at feltet var et tal.
+ *    på BEGGE scopes. Et sagsniveau, der kun ser efter, at feltet er et tal, er ikke tilstrækkeligt.
  */
 import {
   createEvaluationSourceToken,
@@ -36,8 +35,8 @@ import {
 
 const catalog = getProductionInputCatalog();
 
-// Bygges gennem projektoren; gate-settings er nominel (WI-009). Format og brevhoved er
-// render-settings og findes ikke i projektionskonteksten (R6-F03). Se `documentGateMatrix.test.ts`.
+// Bygges gennem projektoren; gate-settings er nominel. Format og brevhoved er
+// render-settings og findes ikke i projektionskonteksten. Se `documentGateMatrix.test.ts`.
 const GATE_SETTINGS: MineoDocumentGateSettings = __createTestEoRowPolicy({
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,

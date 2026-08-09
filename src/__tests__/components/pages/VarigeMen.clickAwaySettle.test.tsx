@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Fase 7 acceptmatrix punkt 3, KLIK-VÆK-benet (WI-013, tilføjet efter re-review R7).
+// §1.3 settle-udløser: KLIK-VÆK-benet.
 //
 // §1.3 opregner fire settle-udløsere: "Blur, Enter, klik uden for feltet og almindelig
 // side-/fanenavigation". Blur og Enter var dækket i `useFormFieldSurface.test.tsx`, men gennem DIREKTE
@@ -53,7 +53,7 @@ const renderPage = () => render(
 const settledMengrad = (): unknown =>
   (slimInputStore.getState().input.sections.varigemen as { mengrad?: unknown } | null)?.mengrad;
 
-describe('VarigeMen — klik uden for feltet settler den åbne editor (§1.3, acceptmatrix punkt 3)', () => {
+describe('VarigeMen — klik uden for feltet settler den åbne editor (§1.3)', () => {
   beforeEach(() => {
     sessionStorage.clear();
     __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());

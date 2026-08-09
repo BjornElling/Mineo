@@ -33,7 +33,7 @@ import {
 } from '../../../inputCore';
 import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
 
-// Fase 2.3 (§2.3/§3.5, §7.1): den fælles felt-editor mod syntetiske immutable issue-snapshots (§2.3-verifikation).
+// Den fælles felt-editor (§2.3/§3.5, §7.1) mod syntetiske immutable issue-snapshots.
 // Adapteren parser/persisterer/holder ingen fejlstate — den driver kun state-machinen + engine + runner.
 
 let catalog: InputCatalog;
@@ -233,7 +233,7 @@ describe('useFieldEditor — §7.1 feltkontrakt (form-surface)', () => {
   });
 });
 
-// UT-F05/R2-F01: en handlingsknap ved siden af et TEKSTFELT (»Indsæt dags dato«) skal afslutte feltet gennem
+// En handlingsknap ved siden af et TEKSTFELT (»Indsæt dags dato«) skal afslutte feltet gennem
 // den normale settle-vej. `commitImmediate` er forbeholdt choice/toggle, og reduceren kaster på et tekstfelt —
 // derfor er `settleValue` den ene lovlige programmatiske afslutning for et text-control.
 describe('useFieldEditor — programmatisk settle af en leveret værdi (§1.3)', () => {

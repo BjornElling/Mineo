@@ -77,21 +77,20 @@ import { FOCUS_NAVIGATION_RULES } from './rules/focusNavigationRules';
 import { TABLE_ORDER_RULES } from './rules/tableOrderRules';
 
 /**
- * Registry for de AST-baserede arkitekturgrænser (greenfield #48).
+ * Registry for de AST-baserede arkitekturgrænser.
  *
  * Reglerne selv bor i `rules/`, opdelt efter KONCERN — storage, domæne, dokument, form og
  * inputgrænser. Denne fil samler dem til den ene liste, `architectureRules.test.ts` kører:
  * nul overtrædelser i kilde-grafen, ingen inert regel (fixtures + dødt-værn-detektoren) og
  * generisk anti-rot på hver allowlist.
  *
- * **Hvorfor opdelt (Fase 6, genåbnet):** manifestet var vokset til 2.133 linjer med storage-,
- * input-, domæne-, UI- og dokumentregler i samme fil. Filen var dermed hverken læsbar som helhed
- * eller navigerbar pr. koncern, og to naboregler kunne have intet med hinanden at gøre. Opdelingen
- * ændrer INGEN regel — kun hvor den bor — og registryet nedenfor er fortsat ét sted at se dem alle.
+ * **Hvorfor opdelt pr. koncern:** som én fil voksede manifestet til godt 2.000 linjer, hvor storage-,
+ * input-, domæne-, UI- og dokumentregler lå mellem hinanden. Det gør filen hverken læsbar som helhed
+ * eller navigerbar pr. koncern, og to naboregler kan have intet med hinanden at gøre. Opdelingen
+ * flytter kun regler, den ændrer ingen — og registryet nedenfor er fortsat ét sted at se dem alle.
  *
- * Reglerne erstatter de tidligere håndrullede directory-walk + regex/substring-scannere, hvis egne
- * kommentarer indrømmede silent-pass-huller (aliasing, destrukturering, bracket-notation) — huller
- * AST'en lukker strukturelt.
+ * Grænserne måles som AST og ikke med directory-walk + regex/substring-scannere: en tekstscanner har
+ * silent-pass-huller ved aliasing, destrukturering og bracket-notation, som AST'en lukker strukturelt.
  */
 export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   // Dato- og numeriske kildeinvarianter

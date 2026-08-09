@@ -19,7 +19,7 @@ import {
 // samme identitet som undo/redo-restoren. Adressen reduceres ALDRIG til et feltnavn: to celler i forskellige
 // rækker deler feltnavn, så en navnebaseret søgning kunne fokusere den forkerte celle.
 //
-// DESTINATIONEN ejes af editorlokationen (§3.2, R7-F03). Der findes ikke længere en global feltadresse→fane-
+// DESTINATIONEN ejes af editorlokationen (§3.2). Der findes ikke længere en global feltadresse→fane-
 // afbildning: den mounted editor bærer sin egen route + fane i DOM. Testene nedenfor er skrevet mod netop det
 // skift — særligt "hidden mounted editor vinder over sektionens side" og "et spejlet felt følger den editor,
 // brugeren står ved", som den globale model kun kunne ramme med route-særregler.
@@ -156,7 +156,7 @@ describe('focusFirstBlockingRejectedField', () => {
     expect(document.activeElement).toBe(target);
   });
 
-  it('blinkmarkerer det blokerende felt med den delte markering (BF-020)', async () => {
+  it('blinkmarkerer det blokerende felt med den delte markering', async () => {
     // Et blokeret Gem kan sende brugeren til en anden fane; uden markeringen skulle brugeren selv
     // finde det røde felt blandt de øvrige på siden.
     const target = mountFieldAt(stamdataSkadedato);
@@ -183,7 +183,7 @@ describe('focusFirstBlockingRejectedField', () => {
     expect(document.activeElement).not.toBe(firstRow);
   });
 
-  // R7-F03's kerne: fanen kommer fra editoren, ikke fra et globalt adresse→fane-kort. Feltet her er en
+  // Kernen: fanen kommer fra editoren, ikke fra et globalt adresse→fane-kort. Feltet her er en
   // øvrige-krav-celle, hvis editor selv erklærer Beregning-fanen — den globale model havde nøglet dens
   // collection til EO-oplysninger og var derfor uenig med den flade, feltet faktisk står på.
   it('aktiverer den fane, DEN MOUNTEDE editor erklærer — ikke en fane udledt af adressen', async () => {

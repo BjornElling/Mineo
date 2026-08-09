@@ -172,7 +172,7 @@ const skadedatoMinRuleFor = (
  *
  * Den bar tidligere kun Forligsdato og Øvrige krav, hver med sin egen håndskrevne kopi. De fem AES-datoer,
  * opgørelsesdatoen og differencekravsdatoen deklarerede nøjagtig samme regel i konfigurationen uden at
- * håndhæve den, så datoer før skadedagen kunne afsluttes canonical og nå hele vejen til PDF (OBS-023).
+ * håndhæve den, så datoer før skadedagen kunne afsluttes canonical og nå hele vejen til PDF.
  */
 const skadedatoBoundedSpec = (
   range: Readonly<{ fallbackMin: ISODateString; max: ISODateString }>
@@ -266,7 +266,7 @@ const requiredJaNejSkjulField = (
   requiredChoiceField(field, label, ['Ja', 'Nej', 'Skjul'], emptyValue);
 
 // ── Base-blok ─────────────────────────────────────────────────────────────────────
-// Længderne er kontraktens egne (§4.1: 7 tegn; §4.2: 64 tegn), ikke skønnede. BF-036 og BF-037.
+// Længderne er kontraktens egne (§4.1: 7 tegn; §4.2: 64 tegn), ikke skønnede.
 export const eoNummerField = optionalTextField('eoNummer', 'EO-nummer', EO_NUMMER_MAX_LENGTH);
 export const eoLedsagetekstField = optionalTextField(
   'eoLedsagetekst', 'Ledsagetekst', EO_LEDSAGETEKST_MAX_LENGTH
@@ -401,7 +401,7 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
   ],
 });
 export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', 'Ja');
-// §3.4: «Maksimumlængden er 512 tegn.» BF-035.
+// §3.4: «Maksimumlængden er 512 tegn.»
 export const eoOffentligeYdelserKommentarerField = optionalTextField(
   'offentligeYdelserKommentarer', 'Kommentarer', EO_KOMMENTARER_MAX_LENGTH
 );
@@ -447,7 +447,7 @@ export const eoBilagSelectionSygeferiegodtgoerelseField = bilagToggle('sygeferie
 export const eoVarigeMenAfgorelseField = requiredJaNejField('varigeMenAfgorelse', 'Varige mén-afgørelse', 'Nej');
 // De fem AES-datoer og differencekravsdatoen deler grænseformen «tidligst skadesdagen, senest <max>».
 // Alle seks stod uden validator, så datoer før skadedagen — og efter dags dato — kunne afsluttes canonical
-// og nå hele vejen til en aktiv PDF-knap (OBS-023). Kun `max` skiller dem: afgørelsesdatoer kan ikke ligge
+// og nå hele vejen til en aktiv PDF-knap. Kun `max` skiller dem: afgørelsesdatoer kan ikke ligge
 // i fremtiden, mens virkningsdatoer kan række et år frem.
 export const eoMenAfgoerelseDatoField = dateField(
   'menAfgoerelseDato', 'Mén-afgørelsesdato',
@@ -520,7 +520,7 @@ export const eoKomprimerBeregningField = requiredJaNejField('komprimerBeregningE
 export const eoBeregnesUdFraField = requiredChoiceField<Beregningsmetode>(
   'beregnesUdFra', 'Beregnes ud fra', ['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn'], 'Beregningsperiode',
 );
-// Beregningsperioden er ligeledes et dato-par (BF-028/BF-031).
+// Beregningsperioden er ligeledes et dato-par.
 const tafBeregningsperiodePair: DatePairBinding = {
   fra: () => eoTafBeregningsperiodeFraField,
   til: () => eoTafBeregningsperiodeTilField,
@@ -582,7 +582,7 @@ const rowDate = (
   });
 
 /**
- * Bygger fra/til-parret for en rækkekollektion som ÉN enhed (BF-028/BF-031).
+ * Bygger fra/til-parret for en rækkekollektion som ÉN enhed.
  *
  * Parret dannes samlet, fordi de to halvdele refererer hinanden: registreres de hver for sig, kan et
  * kaldssted glemme den ene validator, og kronologien ville da kun være markeret fra den ene side —
@@ -633,7 +633,7 @@ const topLevelCollection = <TEntity extends Readonly<Record<string, unknown>>>(
 export const eoTafPerioderCollection = topLevelCollection<TafPeriodeRow>('tafPerioder', isTafRowEmpty);
 // TAF-perioderne deklarerede min = skadedato i konfigurationen, men håndhævede den kun i
 // rækkeevaluerings-motoren, som producerer et kolonne-hint uden feltadresse — teksten kunne stå i
-// "Fejl og advarsler", mens cellen aldrig blev rød (OBS-024). Grænsen bor nu på descriptoren.
+// "Fejl og advarsler", mens cellen aldrig blev rød. Grænsen bor nu på descriptoren.
 const tafPeriodeDates = rowDatePair('tafPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
@@ -838,7 +838,7 @@ export const eoSfggBeregningskildeField = sfggField<SygeferiegodtgoerelseBeregni
   undefined, isUndefined, 'choice',
 );
 // SFGG-referenceperioden er også et dato-par og skal derfor bære samme kronologiregel som de øvrige
-// (BF-028/BF-031). Parret bindes gennem SFGG-samlingens egen entity, ikke `rowDatePair`, fordi rækkerne
+//. Parret bindes gennem SFGG-samlingens egen entity, ikke `rowDatePair`, fordi rækkerne
 // identificeres af `ansaettelsesforholdId` frem for det generiske række-id.
 const sfggReferenceperiodePair: DatePairBinding = {
   fra: () => eoSfggReferenceperiodeFraField,

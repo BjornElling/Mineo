@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 //
-// Greenfield Forsørgertab-slice (§2.4 formularrækkefølge trin 6 / Fase 3): hele siden kører nu på den ENE
+// Forsørgertab-siden (§2.4 formularrækkefølge): hele siden kører på den ENE
 // greenfield input-runtime (ingen legacy FormPersistence/invalidDrafts/props). Denne integrationstest kører gennem
 // den RIGTIGE migrerede side + den ægte produktions-runtime og beviser stien felt → settle → reader-projektion →
 // download-gate (§1.5/§1.6/§3.9): et fuldt gyldigt input aktiverer download og når dokumentservicen med et frisk
@@ -26,7 +26,7 @@ import { DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE } from '../../../document/layout
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 
 /**
- * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
+ * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
  * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden (barriere, frisk
  * capture, token-lighed, gate, lazy-load, friskheds-recheck, rendering) faktisk kørte.
  */
@@ -151,7 +151,7 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
   });
 
   /**
-   * Beslutning 3 (GM-F05): oplysningen om ASL-maksimum skal NÅ brugeren.
+   * Oplysningen om ASL-maksimum skal NÅ brugeren.
    *
    * Beskeden blev udledt i snapshottet før rettelsen, men ingen komponent læste den — derfor er det netop
    * en test gennem den ægte side, der er beviset. En snapshot-unittest kunne ikke skelne "udledt" fra "vist".
@@ -182,7 +182,7 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
 });
 
 /**
- * UT-F07: gate-årsagen står KUN i tooltippet — også når blokeringen rammer selve aktiveringen.
+ * Gate-årsagen står KUN i tooltippet — også når blokeringen rammer selve aktiveringen.
  *
  * Brugertestens symptom på denne side var den lange gate-interne besked "Der er ikke beregnet en PDF-klar
  * EAL- eller ASL-del.", vist BÅDE som tekst og som tooltip. Tre ting skal derfor gælde samtidig:
@@ -195,7 +195,7 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
  * download-knap svarer aldrig med tekst. Knappen var synligt inaktiv, og brugeren har haft tooltippet;
  * en besked oveni ville forklare det, brugeren allerede kunne se.
  */
-describe('Forsoergertab — gate-årsagen vises kun i tooltippet (UT-F07)', () => {
+describe('Forsoergertab — gate-årsagen vises kun i tooltippet', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();

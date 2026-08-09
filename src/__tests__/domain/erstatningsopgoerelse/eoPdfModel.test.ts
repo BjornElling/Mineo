@@ -1839,7 +1839,7 @@ describe('eoPdfModel', () => {
     );
   });
 
-  it('BF-054: midlertidig EET uden datoer oplyses som truffet, ikke som "ikke truffet"', () => {
+  it('midlertidig EET uden datoer oplyses som truffet, ikke som "ikke truffet"', () => {
     const eoValues = makeValues({
       midlertidigtEETAfgorelse: 'Ja',
       endeligtEETAfgorelse: 'Nej',
@@ -1856,7 +1856,7 @@ describe('eoPdfModel', () => {
     ).toBe(false);
   });
 
-  it('BF-054: endelig EET uden datoer oplyses som truffet, ikke som "ikke truffet"', () => {
+  it('endelig EET uden datoer oplyses som truffet, ikke som "ikke truffet"', () => {
     const eoValues = makeValues({
       endeligtEETAfgorelse: 'Ja',
       midlertidigtEETAfgorelse: 'Nej',
@@ -1873,7 +1873,7 @@ describe('eoPdfModel', () => {
     ).toBe(false);
   });
 
-  it('BF-054: begge EET-afgørelser uden datoer → kun den endelige linje vises', () => {
+  it('begge EET-afgørelser uden datoer → kun den endelige linje vises', () => {
     const eoValues = makeValues({
       midlertidigtEETAfgorelse: 'Ja',
       endeligtEETAfgorelse: 'Ja',

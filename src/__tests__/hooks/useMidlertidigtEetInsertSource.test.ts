@@ -77,7 +77,7 @@ describe('buildMidlertidigtEetInsertSource', () => {
     expect(source.issues).toBeUndefined();
   });
 
-  // R3-F01: gaten var sektionsvis og blokerede importen ved ETHVERT rødt felt i `erhvervsevnetab`.
+  // En sektionsvis gate ville blokere importen ved ETHVERT rødt felt i `erhvervsevnetab`.
   // `ealEetPct` læses ikke af `computeEetLoebendeYdelserForEoImport` — kun af EET-siden selv og
   // EET-efter-EAL. En bounds-fejl her fjernede altså importen og dens grupper fra Erstatningsopgørelsen
   // uden at røre noget tal i importen. Overblokering er lige så forkert som falske tal (§1.10).

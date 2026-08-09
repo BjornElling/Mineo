@@ -10,7 +10,7 @@ import { serializeFieldAddress, type FieldAddress } from '../../../inputCore/fie
 import type { HistoryOrigin } from '../../../inputCore/inputHistory';
 
 /**
- * WI-003: greenfield undo/redo-fokusrestore lokaliserer målet PRÆCIST via BÅDE feltadresse OG editorlokation
+ * Undo/redo-fokusrestore lokaliserer målet PRÆCIST via BÅDE feltadresse OG editorlokation
  * (ikke `name`), så samme datafelt redigeret flere steder fokuserer den editor, ændringen kom fra. Testen driver
  * kun den offentlige funktion og styrer requestAnimationFrame manuelt (samme mønster som legacy-restoren).
  */
@@ -123,7 +123,7 @@ describe('scheduleHistoryTargetRestore — fokus/scroll/fokus-ring + retry (§3.
   /**
    * Et mål, der aldrig dukker op, er en BRUDT INVARIANT (undo-redo-contract §5): efter en gennemført restore er
    * originens tilstand aktuel igen, så dens editorlokation skal findes i DOM. Klassen var usynlig, netop fordi
-   * løkken opgav tavst — brugeren så blot, at fokus ikke flyttede sig, og BF-005 kunne leve i månedsvis.
+   * løkken opgav tavst — brugeren så blot, at fokus ikke flyttede sig, og fejlen kunne leve i månedsvis.
    * Diagnostikken skal derfor navngive BEGGE halvdele af identiteten, for et brud sidder typisk i
    * editorlokationen og ikke i feltadressen.
    */

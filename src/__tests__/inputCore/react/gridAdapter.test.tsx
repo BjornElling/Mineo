@@ -35,7 +35,7 @@ import {
   testRowOrigin, testLocation } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
-// Fase 2.5 trin 1 (§2.5/§3.8, §7.1): grid-adapteren (rækkeinfrastruktur + celleeditor) mod syntetiske issue-
+// Grid-adapteren (§2.5/§3.8, §7.1) — rækkeinfrastruktur + celleeditor — mod syntetiske issue-
 // snapshots. Rækkeinfrastrukturen ejer KUN id'er/rækkefølge/add/delete/reorder; celleværdier bor i
 // inputaggregaten (ingen konkurrerende værdikopi, §3.8). Placeholder-promotion (§1.11) tester vi eksplicit.
 

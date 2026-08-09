@@ -26,7 +26,7 @@ import {
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
-// UT-F02: en dropdown i en tabel skal åbne sin menu på Enter — ikke flytte cellefokus én række ned.
+// En dropdown i en tabel skal åbne sin menu på Enter — ikke flytte cellefokus én række ned.
 //
 // Det kontraktkryds, ingen test dækkede, er "LUKKET popup-kontrol + tabellens capture-handler + Enter".
 // Grid'et fritog tidligere kun dropdowns, der bar en PRIVAT markør-attribut fra en slettet komponent
@@ -167,7 +167,7 @@ const focusElement = async (element: HTMLElement) => {
 };
 
 describe('popup-kontrakt: LUKKET dropdown ejer selv sin aktiveringstast', () => {
-  it('Enter på en tabel-dropdown ÅBNER menuen og flytter ikke cellefokus (UT-F02)', async () => {
+  it('Enter på en tabel-dropdown ÅBNER menuen og flytter ikke cellefokus', async () => {
     renderGrid();
     const combobox = comboboxFor('r1');
     await focusElement(combobox);
@@ -235,7 +235,7 @@ describe('popup-kontrakt: LUKKET dropdown ejer selv sin aktiveringstast', () => 
   });
 
   it('pointer-vejen fører ingen to-trins-redigeringsbogføring for dropdownen', async () => {
-    // Samme klassifikation som Enter-grenen (UT-F02, punkt 5): en dropdown må ikke behandles
+    // Samme klassifikation som Enter-grenen: en dropdown må ikke behandles
     // forskelligt afhængigt af eventtype. Et klik åbner menuen; grid'et åbner ingen celle-editor.
     renderGrid();
     const combobox = comboboxFor('r1');

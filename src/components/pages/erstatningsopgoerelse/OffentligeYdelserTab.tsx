@@ -77,7 +77,7 @@ const MIDLERTIDIGT_EET_LOCATION: EditorLocation = {
 
 /**
  * Reguleringstogglens editorlokation (§3.2). Feltet blev flyttet hertil fra EO oplysninger-fanen
- * (BF-022); `locationId` er uændret, fordi det navngiver FELTETS editorlokation og ikke fanen — men
+ *; `locationId` er uændret, fordi det navngiver FELTETS editorlokation og ikke fanen — men
  * `tabKey` peger nu på Offentlige ydelser, så fokusnavigationen lander det rigtige sted.
  */
 const REGULER_OFFENTLIGE_YDELSER_LOCATION: EditorLocation = {
@@ -430,7 +430,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
 
         {/*
           Reguleringen af offentlige ydelser hører til ydelserne selv og stod tidligere på EO
-          oplysninger-fanen (BF-022). Feltet er uændret; kun editorlokationen er flyttet hertil, så
+          oplysninger-fanen. Feltet er uændret; kun editorlokationen er flyttet hertil, så
           fokusnavigationen fører brugeren til den fane, feltet faktisk redigeres på (§3.2).
 
           Synligheden er PRÆCIS den samme betingelse som før flytningen — nu udtrykt gennem det delte

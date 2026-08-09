@@ -1,5 +1,5 @@
 /**
- * Årsløns to download-gates som RENE funktioner over reader-projektionen (Fase 5).
+ * Årsløns to download-gates som RENE funktioner over reader-projektionen.
  *
  * Reglerne lå før i `src/hooks/useAarsloenDocumentGates.ts` og opererede på et
  * `AarsloenDocumentSnapshot`, som komponenten samlede af ni felter. Under migreringen var de dækket

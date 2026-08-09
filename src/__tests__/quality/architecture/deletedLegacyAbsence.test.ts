@@ -9,7 +9,7 @@ import {
 import { getSourceGraph } from './sourceGraph';
 
 /**
- * Fraværsreglernes modstykke (Fase 6, WI-012 pass 1).
+ * Fraværsreglernes modstykke.
  *
  * En forbudsregel kan ikke bevise sin egen relevans ved at ramme noget: nul hits ER den ønskede
  * tilstand. Det efterlader et hul, som `architectureRules.test.ts`' fixture-selvtest ikke kan lukke —
@@ -17,9 +17,9 @@ import { getSourceGraph } from './sourceGraph';
  * stavet rigtigt. En regel, der forbyder `useRowDraftz`, ville se lige så grøn ud som en, der forbyder
  * `useRowDrafts`, mens den rigtige fil levede videre ved siden af.
  *
- * Denne fil er den omvendte kontrol, planens Fase 6 trin 1 reelt beder om: for hvert forbudt
- * modul/navn, BEVIS at det er fraværende i den levende kilde-graf. Det er samtidig den maskinelle
- * erstatning for "gennemlæs slettelisterne fra fase 1-5", og den kan køres igen.
+ * Denne fil er den omvendte kontrol: for hvert forbudt modul/navn BEVISES det, at navnet er
+ * fraværende i den levende kilde-graf. Det er den maskinelle erstatning for en manuel gennemlæsning
+ * af slettelister — og modsat gennemlæsningen kan den køres igen.
  */
 
 describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', () => {
@@ -166,7 +166,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
   });
 
   /**
-   * NAVNEUAFHÆNGIG facade-detektion (Fase 6, genåbnet).
+   * NAVNEUAFHÆNGIG facade-detektion.
    *
    * Kontrollen ovenfor leder efter `@deprecated` og efter `Legacy`/`Compat` i EKSPORTNAVNE. Den kunne
    * derfor ikke se de facader, der faktisk fandtes: tre filer, som selv erklærede deres formål i en

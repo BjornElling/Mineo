@@ -20,7 +20,7 @@ import { assertPathExists } from './testUtils';
 
 const SRC_ROOT = path.resolve(process.cwd(), 'src');
 /**
- * EO's specialimport blev i Fase 5 delt i to: React-adapteren (hook'en) og den rene builder i
+ * EO's specialimport er delt i to: React-adapteren (hook'en) og den rene builder i
  * domænelaget, så ikke-React-konsumenter — fx EO's dokumentdefinition — kan bruge builderen uden at
  * trække React ind.
  *

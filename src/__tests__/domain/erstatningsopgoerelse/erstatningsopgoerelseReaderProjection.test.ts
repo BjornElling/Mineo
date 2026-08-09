@@ -26,7 +26,7 @@ import { erstatningsopgoerelseSchema, stamdataSchema } from '../../../schemas/fo
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 
-// Greenfield Erstatningsopgørelse reader-projektion (§3.4/§5.4/§1.10, Fase 2.4 trin 8): beviser at projektionen
+// Erstatningsopgørelsens reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen
 // (a) rekonstruerer det fulde EO-/stamdata-værdiobjekt byte-identisk fra readeren (inkl. det nested løntræ), (b)
 // kører den EKSISTERENDE `computeEoSnapshot` UÆNDRET på de reader-læste værdier (§5.4 hårdt stop mod talændring),
 // (c) fører røde reader-feltfejl ind i eoErrors/stamdataErrors-mappene (top-level + `${afId}:loenindkomst`), og

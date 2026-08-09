@@ -105,7 +105,7 @@ export const scrollToEoRow = (
     },
     // behavior udelades bevidst: scrollTargetIntoView afleder den fra prefers-reduced-motion.
     onSuccess: (target) => {
-      // Den delte blinkmarkering (BF-021): når linket har ført brugeren hen til indtastningen, peger
+      // Den delte blinkmarkering: når linket har ført brugeren hen til indtastningen, peger
       // markeringen på PRÆCIS det element, der blev scrollet til. Faldt vi tilbage til rækkeankeret,
       // blinker rækken — det grovere, men stadig sande mål for en fejl uden ét ansvarligt felt.
       blinkFieldAttention(target);

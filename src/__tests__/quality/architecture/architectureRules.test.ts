@@ -4,7 +4,7 @@ import { getSourceGraph, makeSyntheticEntry } from './sourceGraph';
 import { pageSectionAccessBoundary } from './rules/domainRules';
 
 /**
- * Kør-motor + selvtest for det AST-baserede arkitektur-harness (greenfield #48).
+ * Kør-motor + selvtest for det AST-baserede arkitektur-harness.
  *
  * Ét sted håndhæver:
  *   1. at kilde-grafen ikke overtræder nogen regel,
@@ -103,20 +103,18 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
   // slettet eller ikke længere udløser reglen, er død konfiguration, der stille udvider grænsen næste gang
   // en fil med samme sti opstår. `antiRot: false` findes bevidst ikke: en undtagelse skal kunne bevises.
   // ---------------------------------------------------------------------------
-  // Dødt-værn-detektor (Fase 6): har hver regel stadig noget at holde øje med?
+  // Dødt-værn-detektor: har hver regel stadig noget at holde øje med?
   // ---------------------------------------------------------------------------
   //
   // Selvtesten ovenfor beviser, at reglens WALKER virker (fixtures flages). Den beviser IKKE, at
   // reglens mål stadig findes i produktionen. Slettes målet, matcher fixtures fortsat, mens grafen
   // ikke længere indeholder noget, reglen kan udtale sig om — reglen bliver grøn af TOMHED og
-  // fremstår som dækning, den ikke leverer. Det er samme fejlklasse som WI-007's inerte AST-værn
-  // og WI-008's rene type-brand, og Fase 6 gør princippet maskinelt frem for en vane pr. regel.
+  // fremstår som dækning, den ikke leverer. Detektoren gør det princip maskinelt frem for en vane
+  // pr. regel.
   //
-  // Da denne detektor blev indført, rapporterede den tre døde værn i manifestet:
-  // `pdf/download-committed-state` (Fase 5 slettede alle 18 `download*Dokument`),
-  // `form/persisted-styled-field-error-reporter` (trin 13 slettede hele `Styled*Field`-vejen) og
-  // `criticalAction/no-dom-scan-or-frame-wait` (scopet `src/criticalActions/` findes ikke).
-  // Det var detektorens egen mutationstest: en observeret fejl, ikke en fixture.
+  // Den er selv mutationstestet af virkeligheden: da den blev indført, rapporterede den tre døde
+  // værn i manifestet, hvis mål var slettet eller omdøbt under dem. Det var observerede fejl, ikke
+  // fixtures — og hvert af de tre værn fremstod grønt indtil da.
   it('dødt værn: hver forudsætningsregel har stadig en fil, den ville kontrollere', { timeout: 300000 }, () => {
     const entries = getSourceGraph();
     const dead: string[] = [];
@@ -150,7 +148,7 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // R0-F02: en liveness-probe må ikke kunne opfyldes af en KOMMENTAR
+  // En liveness-probe må ikke kunne opfyldes af en KOMMENTAR
   // ---------------------------------------------------------------------------
   //
   // Flere prober brugte `entry.text.includes(...)` eller et regex over hele filteksten. En kommentar kunne
@@ -170,7 +168,7 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
   // AST-uafhængigt liveness-signal (`requiredPaths` + dødt-værn-detektoren beviser, at filen findes), og
   // kommentar-mutationen kan pr. konstruktion ikke sige noget om den. Kun en probe, der er opfyldt af
   // KOMMENTARER men IKKE af tomhed, læser filens indhold som tekst — og det er præcis fejlformen.
-  it('liveness: ingen forudsætningsprobe kan opfyldes af ren kommentartekst (R0-F02)', { timeout: 300000 }, () => {
+  it('liveness: ingen forudsætningsprobe kan opfyldes af ren kommentartekst', { timeout: 300000 }, () => {
     const entries = getSourceGraph();
     const textOnlyProbes: string[] = [];
 
@@ -191,7 +189,7 @@ describe('architectureRules — AST-baseret arkitekturgrænse-harness', () => {
         textOnlyProbes.push(
           `${rule.id}: proben er stadig opfyldt, når HELE ${match.relativePath} er kommenteret ud. `
           + 'Den måler altså tekst frem for AST-noder, og en kommentar kan holde reglen kunstigt levende '
-          + '(R0-F02). Brug `hasIdentifier`/`hasAnyIdentifier`/`hasTypeReference`/`hasImportFrom`/'
+          + 'Brug `hasIdentifier`/`hasAnyIdentifier`/`hasTypeReference`/`hasImportFrom`/'
           + '`hasJsxAttribute`/`hasDeclaredMember`/`hasMemberRead` eller en anden AST-query.'
         );
       }

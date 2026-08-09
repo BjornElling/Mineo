@@ -18,7 +18,7 @@ describe('production runtime — settingssnapshot', () => {
     );
     const before = captureProductionEvaluationSource();
     // Testen sammenlignede tidligere med `toBe(initial)` — altså identitet med hele `AppSettings`.
-    // Efter WI-009 publicerer broen det projekterede snapshot, og DET er pointen: den brede værdi må
+    // Broen publicerer det projekterede snapshot, og DET er pointen: den brede værdi må
     // ikke nå evalueringen. Vi pinner derfor både at snapshottet svarer til det committede input, OG
     // at det ikke bærer nøgler uden for sættet.
     expect(before.settings).toEqual(projectSourceSettings(initial));

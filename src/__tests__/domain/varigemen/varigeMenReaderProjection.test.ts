@@ -97,7 +97,7 @@ describe('buildVarigeMenReaderProjection', () => {
   });
 
   /**
-   * GM-F07: motoren må ALDRIG kaldes i en blokeret projektion (§3.9).
+   * Motoren må ALDRIG kaldes i en blokeret projektion (§3.9).
    *
    * ÆRLIG AFGRÆNSNING af hvad denne test beviser. Med de fire aktuelle dependencies kommer ENHVER blokering
    * fra en `unavailable`-læsning, som den gamle form også standsede på — den gamle og den nye form er derfor

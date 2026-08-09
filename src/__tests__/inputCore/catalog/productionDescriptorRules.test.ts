@@ -272,7 +272,7 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
   });
 });
 
-// R3-F03: årsagsinputtene i det UMULIGE datointerval, målt gennem det ÆGTE produktionskatalog.
+// Årsagsinputtene i det UMULIGE datointerval, målt gennem det ÆGTE produktionskatalog.
 //
 // Fundets reproduktion: sæt `stamdata.skadedato` til 2099-01-01. Skadedatoen bliver da EO-datofelternes nedre
 // grænse og ligger efter deres konfigurerede øvre grænse, så intet er gyldigt. Beskeden viste før rettelsen de
@@ -281,7 +281,7 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
 //
 // Testen måler `issue.message` frem for blot `status`, fordi det er BESKEDEN, fundet handler om. En status-only
 // assertion havde været grøn hele vejen igennem.
-describe('produktdescriptors — umuligt datointerval navngiver sine årsagsinputs (R3-F03)', () => {
+describe('produktdescriptors — umuligt datointerval navngiver sine årsagsinputs', () => {
   const withSkadedatoAfterCoverage = (): SettledInput =>
     dispatch(empty(), resetSection('stamdata', { skadedato: toISODateString('2099-01-01') }));
 

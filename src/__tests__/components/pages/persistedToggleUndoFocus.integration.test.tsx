@@ -21,7 +21,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
-// R7-F02 + GM-F03: de to specialtoggles er persisterede felter gennem feltfamilien.
+// De to specialtoggles er persisterede felter gennem feltfamilien.
 //
 // DEN MANGLENDE EVIDENS. `useOmregningToggle.test.tsx` er en mock-baseret unittest af gate-politikken; den kan
 // pr. konstruktion ikke se, om kontrollen bærer sin feltidentitet i DOM. Netop det var fundet: begge toggles
@@ -32,7 +32,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 // kan: at et faktisk klik skaber en history-origin med feltets adresse OG editorlokation, og at
 // `findRestoreTarget` — den funktion, undo/redo selv bruger — kan finde kontrollen igen bagefter.
 //
-// Den tredje assertion (`lookupEditorLocation`) dækker R7-F03 fra samme vinkel: togglen skal også oplyse sin
+// Den tredje assertion (`lookupEditorLocation`) dækker destinationen fra samme vinkel: togglen skal også oplyse sin
 // EGEN destination, ellers kan save-blokeringens fokus ikke sende brugeren til dens fane.
 
 const catalog = getProductionInputCatalog();
@@ -73,7 +73,7 @@ const latestOrigin = () => {
   return frames[frames.length - 1]?.origin;
 };
 
-describe('persisterede specialtoggles → klik → undo-fokusmål (R7-F02/GM-F03)', () => {
+describe('persisterede specialtoggles → klik → undo-fokusmål', () => {
   it('Årsløns GATEDE omregningstoggle bærer feltadresse + editorlokation, så undo kan refokusere den', () => {
     // Gaten skal TILLADE aktiveringen, ellers afvises committen (og der er intet at refokusere). En løntabel
     // med én fuldt udfyldt månedsperiode opfylder gatens krav om en gyldig periode uden fejlende celler.
@@ -114,7 +114,7 @@ describe('persisterede specialtoggles → klik → undo-fokusmål (R7-F02/GM-F03
     //     `StyledToggleSwitch` ingen restore-attributter, og dette returnerede `null`.
     expect(findRestoreTarget(origin)).toBe(toggle);
 
-    // (3) Togglen oplyser sin EGEN destination (R7-F03): Årsløn er en side uden faner.
+    // (3) Togglen oplyser sin EGEN destination: Årsløn er en side uden faner.
     const lookup = lookupEditorLocation(serializeFieldAddress(origin.field));
     expect(lookup.kind).toBe('visible');
   });
@@ -149,7 +149,7 @@ describe('persisterede specialtoggles → klik → undo-fokusmål (R7-F02/GM-F03
       .toBe(serializeFieldAddress(eoMidlertidigtEetFraEetSidenField.bind().address));
     expect(findRestoreTarget(origin)).toBe(toggle);
 
-    // Og den oplyser sin fane, så save-blokeringens fokus kan finde den (R7-F03).
+    // Og den oplyser sin fane, så save-blokeringens fokus kan finde den.
     const lookup = lookupEditorLocation(serializeFieldAddress(origin.field));
     expect(lookup.kind).toBe('visible');
     expect(toggle).toHaveAttribute('data-mineo-editor-tab', 'offentlige_ydelser');

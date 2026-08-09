@@ -1,18 +1,18 @@
 /**
- * Dokumentgates er formatblinde — nu STRUKTURELT (R6-F03, §10-kriterium 27).
+ * Dokumentgates er formatblinde — STRUKTURELT (§10-kriterium 27).
  *
- * **Hvad testen var, og hvorfor den er skrevet om.** Indtil R6-F03 bar `DocumentSourceContext.settings`
- * hele `SourceSettings`, og `documentDownloadFormat` var et felt på den. Enhver af de 18 definitioner
- * KUNNE derfor læse det valgte outputformat i sin `project` og gøre samme sag `ready` som PDF og
- * `blocked` som Word — en usynlig, formatafhængig blokering, som §A2a's krav om samme definition til
- * reaktiv gate og click-preflight ikke fanger, fordi BEGGE kanaler ville se den samme skæve gate.
+ * **Fejlformen, det udelukker.** Bar `DocumentSourceContext.settings` hele `SourceSettings` med
+ * `documentDownloadFormat` som felt, kunne enhver af de 18 definitioner læse det valgte outputformat i
+ * sin `project` og gøre samme sag `ready` som PDF og `blocked` som Word — en usynlig, formatafhængig
+ * blokering, som §A2a's krav om samme definition til reaktiv gate og click-preflight ikke fanger, fordi
+ * BEGGE kanaler ville se den samme skæve gate.
  *
- * Filen indeholdt derfor et VÆRN oven på en åben capability: den projicerede alle 18 definitioner for
- * begge formater og krævede identiske resultater. Værnets svaghed var kendt og skrevet ned: 34 af 36
- * projektioner var `blocked`, kun 2 nåede deres `ready`-gren, så en formatafhængighed skjult i en af de
- * 16 øvrige ready-grene ville ikke blive fanget (R0-F03's `knownLimitation`).
+ * Et VÆRN oven på en sådan åben capability — projicér alle 18 definitioner for begge formater og kræv
+ * identiske resultater — har en iboende svaghed: langt de fleste projektioner er `blocked`, og kun få
+ * når deres `ready`-gren, så en formatafhængighed skjult i en af de øvrige ready-grene ville ikke blive
+ * fanget.
  *
- * **Capabilityen er nu fjernet frem for bevogtet.** `DocumentSourceContext` bærer kun GATE-settings
+ * **Capabilityen er derfor fjernet frem for bevogtet.** `DocumentSourceContext` bærer kun GATE-settings
  * (`MineoDocumentGateSettings` = EO's rækkepolitik). Formatet og brevhoved-flagene bor i miljøets
  * `renderSettings` og anvendes først EFTER gaten. Konsekvensen for denne fil er, at den gamle
  * invarians-sammenligning ikke længere KAN skrives: der findes ingen formatakse at variere i en
@@ -98,7 +98,7 @@ const compileProbe = (source: string): readonly ts.Diagnostic[] => {
 const diagnosticTexts = (diagnostics: readonly ts.Diagnostic[]): string =>
   diagnostics.map((d) => `TS${d.code}: ${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`).join('\n');
 
-describe('dokumentgates er formatblinde (R6-F03, §10-kriterium 27)', () => {
+describe('dokumentgates er formatblinde (§10-kriterium 27)', () => {
   /**
    * Testens hovedpåstand. Proben er skrevet, som en formatafhængig definition faktisk ville se ud:
    * den forgrener sin gate på det valgte format og bliver dermed `ready` for PDF og `blocked` for

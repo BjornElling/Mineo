@@ -24,7 +24,7 @@ import * as React from 'react';
  * udtrykt i typen frem for i en regel, man kan glemme. Et tidligere `state.ids.length = cursor`-trim gjorde
  * netop dét: efter et undo helt tilbage faldt de senere slots bag markøren og blev kastet væk, og et
  * efterfølgende redo møntede et NYT id til den plads. Fra da af pegede alle history-origins fra den oprindelige
- * session på et id, tabellen aldrig ville vise igen (BF-005).
+ * session på et id, tabellen aldrig ville vise igen.
  *
  * Sekvensen vokser ikke ubegrænset: der møntes kun et nyt id, når alle tidligere medlemmer er committede, så
  * dens længde er højst «flest samtidigt committede rækker» + `slotCount`.

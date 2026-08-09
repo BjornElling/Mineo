@@ -10,7 +10,7 @@ import { loenudviklingBeregningsgrundlagEnum } from '../../../schemas/formSchema
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 /**
- * ÉN sats-vurdering driver både feltmarkeringen og blokeringen (GM-F01).
+ * ÉN sats-vurdering driver både feltmarkeringen og blokeringen.
  *
  * Testene måler den godkendte relevansmatrix eksplicit for ALLE syv reguleringsformer plus den tomme form,
  * og de måler skift begge veje mellem et krævende og et ikke-krævende spor. Det er netop den drift, fundet

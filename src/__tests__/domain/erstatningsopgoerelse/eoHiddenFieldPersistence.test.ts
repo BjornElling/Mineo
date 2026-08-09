@@ -23,10 +23,9 @@ const amount = (value: number): AmountValue => ({ kind: 'number', value });
  *
  * Kæden bar tidligere et ekstra `serializeFormValues`-trin (undefined→null), som produktionen IKKE
  * udfører: `encodeEoFile`/current-session-envelopen stringify'er den schema-parsede sektion direkte, og
- * `JSON.stringify` DROPPER `undefined`-nøgler frem for at nulle dem. Den gamle udgave gjorde derfor
- * round-trippen lettere end virkeligheden — et felt, hvis schema kun tolererer `null` men ikke fravær,
- * ville bestå her og fejle i produktionen. Trinnet fulgte med GM-F09's slettede `buildPersistedSection`
- * (se INC-F15).
+ * `JSON.stringify` DROPPER `undefined`-nøgler frem for at nulle dem. Et ekstra normaliseringstrin her
+ * ville gøre round-trippen lettere end virkeligheden — et felt, hvis schema kun tolererer `null` men
+ * ikke fravær, ville bestå her og fejle i produktionen.
  */
 const roundTripSaveLoad = (values: ErstatningsopgoerelseValues): ErstatningsopgoerelseValues => {
   const throughFile = JSON.parse(JSON.stringify(values)) as unknown;

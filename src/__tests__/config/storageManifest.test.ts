@@ -23,7 +23,7 @@ describe('UI_STORAGE_KEYS', () => {
 });
 
 /**
- * Reset-policyen (R4-F02). At HVER nøgle er klassificeret håndhæves af compileren (`satisfies`); det, en test
+ * Reset-policyen. At HVER nøgle er klassificeret håndhæves af compileren (`satisfies`); det, en test
  * kan tilføje, er at klassifikationen faktisk deler mængden — begge sider er ikke-tomme, og en nøgle kan ikke
  * være begge steder. En tom `caseScoped`-side ville gøre `Slet alt`s oprydning til en no-op, der ser grøn ud.
  */
@@ -102,7 +102,7 @@ describe('isValidStorageKey', () => {
   /**
    * De slettede legacy-nøgler må ikke kunne skrives igen. Skrivevagten i AST-harnessen bruger
    * `isValidStorageKey` som sit hvidlistetjek, så en genindført per-sektion-nøgle eller
-   * `invalidDrafts`-kanal skal fejle her (greenfield trin 13 — modellen er slettet, ikke udskudt).
+   * `invalidDrafts`-kanal skal fejle her — modellen er slettet, ikke udskudt.
    */
   it('afviser de slettede per-sektion- og invalidDrafts-nøgler', () => {
     for (const deleted of [

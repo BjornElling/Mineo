@@ -60,7 +60,7 @@ import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 //    (col6/7/8) og tomheds-vurdering.
 //  - valideringssummaryen er REN og reader-afledt (`fieldSet.resolveValidation`) — ikke et imperativt celle-fejl-
 //    handle. Det imperative handle bærer KUN visuel feedback (blink/scroll/missing-hint), og selve blinket er
-//    den DELTE `blinkFieldAttention` (BF-020), ikke en tabel-lokal animation.
+//    den DELTE `blinkFieldAttention`, ikke en tabel-lokal animation.
 
 export type StandardLoenTableProps = {
   /** Feltsættet, der binder tabellen til en konkret collection + celle-descriptors (§2.5-parametrisering). */
@@ -232,7 +232,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     // Save-order = de committede rækker i sorteret rækkefølge (placeholder-rækker persisteres ikke).
     // ── Visuel peg-mekanisme ────────────────────────────────────────────────────
-    // Selve blinket ejes IKKE længere her: det er den delte `blinkFieldAttention` (BF-020), som enhver
+    // Selve blinket ejes IKKE længere her: det er den delte `blinkFieldAttention`, som enhver
     // flade i programmet bruger. Tilbage i tabellen er kun `missingCell` — og den er et ANDET begreb end
     // et blink: den står, indtil cellen er udfyldt, mens et blink er en kortvarig markering. En engangs-
     // markering af en fejlcelle behøver derfor ingen state her.
@@ -295,7 +295,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           const el = cellRefsByCellKeyRef.current[`${error.rowId}:${colIdx}`];
           if (!el) return;
           scrollTargetIntoView(el, { force: true });
-          // Den delte markering (BF-020): samme mekanisme, som fejllinks og save-blokeringen bruger.
+          // Den delte markering: samme mekanisme, som fejllinks og save-blokeringen bruger.
           blinkFieldAttention(el);
         },
         showNeedsPeriodHint: () => {

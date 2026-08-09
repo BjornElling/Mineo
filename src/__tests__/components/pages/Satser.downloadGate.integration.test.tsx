@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 //
-// Greenfield Satser-slice (§2.4 + Fase 3): Satser-sidens `aargang` er nu et `YearField` over den ene
+// Satser-siden (§2.4): sidens `aargang` er et `YearField` over den ene
 // input-runtime. Denne integrationstest kører gennem den RIGTIGE migrerede side + den ægte produktions-runtime
 // (`ProductionInputRuntimeProvider` mod `slimInputStore`/`criticalActionCoordinator`) — den beviser den
 // virkelige sti felt → settle → reader-projektion → download-gate (§1.5/§1.6/§3.9), uden legacy
@@ -22,7 +22,7 @@ import {
 } from '../../../inputCore/react';
 
 /**
- * Fase 5: testen måler nu på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem
+ * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem
  * for på et servicekald. Det er en strammere assertion: den beviser, at hele kæden — barriere,
  * frisk capture, token-lighed, gate, lazy-load, friskheds-recheck, rendering — faktisk kørte til
  * ende, ikke bare at en funktion blev kaldt.

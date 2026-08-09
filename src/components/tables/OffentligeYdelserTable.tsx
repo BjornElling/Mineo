@@ -36,7 +36,7 @@ export type OffentligeYdelserTableProps = Readonly<{
 
 const collection = eoOffentligeYdelserRowsCollection.template as CollectionRef;
 const createEmptyRow = (id: string): OffentligeYdelserRow => ({ ...initialOffentligYdelseRow, id });
-// Grupperne OG deres indbyrdes alfabetiske rækkefølge ejes af ydelsestype-registeret (BF-023), så
+// Grupperne OG deres indbyrdes alfabetiske rækkefølge ejes af ydelsestype-registeret, så
 // dropdownen ikke bærer sin egen liste, der kunne drifte fra registerets.
 
 const OffentligeYdelserTable = React.memo(({

@@ -1,7 +1,7 @@
 import { amountValueSchema } from '../../schemas/amountExpressionSchema';
 import { parseAmountInput } from '../../utils/expressionAmount';
 
-// OBS-026: settle må ALDRIG kaste en uncaught ZodError. Et udtryksresultat, som beløbsschemaet ikke kan
+// Settle må ALDRIG kaste en uncaught ZodError. Et udtryksresultat, som beløbsschemaet ikke kan
 // gemme præcist, skal derfor afvises af PARSEREN — så bliver det afsluttet rejected råtekst med rød
 // feltfejl (§1.6) i stedet for en teknisk fejladvarsel.
 //

@@ -2,8 +2,7 @@
 /**
  * §10-kriterium 22 som en DIREKTE måling: *issues, beregninger og gates afhænger ikke af component mount.*
  *
- * **Hvorfor kriteriet manglede en kilde (R8-F01, etape 10).** Den gamle 15-punkts acceptmatrix havde ingen
- * post for mount-uafhængigheden, og de tests, der kunne have båret den, målte hver især noget andet:
+ * **Hvorfor kriteriet har brug for sin EGEN kilde.** De nærliggende tests måler hver især noget andet:
  * arkitekturharnesset beviser, at ingen komponent SKRIVER ind i issue-snapshottet, og de enkelte
  * surface-tests beviser, at et lukket felt ikke holder en lokal kopi. Ingen af dem sammenligner det
  * FAKTISKE udfald med og uden et komponenttræ — og det er præcis den påstand, kriteriet gør.
@@ -277,7 +276,7 @@ describe('§10-kriterium 22 — issues, beregninger og gates afhænger ikke af c
 
   /**
    * Modsat retning: observationen skal kunne SE en forskel. Et prædikat, der gav samme resultat for to
-   * forskellige inputs, ville bestå de tre tests ovenfor uden at måle noget (jf. Fase 6's `verifyAbsent`).
+   * forskellige inputs, ville bestå de tre tests ovenfor uden at måle noget.
    */
   it('observationen er ikke vakuøs: et ændret input giver et ANDET udfald', () => {
     buildMixedCase();

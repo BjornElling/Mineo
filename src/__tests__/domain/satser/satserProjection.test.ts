@@ -12,7 +12,7 @@ import { satserAargangField } from '../../../inputCore/catalog/satserDescriptors
 import { satserAngivAarYearBounds, getSatserForYear } from '../../../data/lovbestemteRates';
 import { projectSatser } from '../../../domain/satser/satserProjection';
 
-// Greenfield Satser-projektion (§3.4/§3.9, Fase 3-slice): den rene reader-projektion erstatter den legacy
+// Satser-projektionen (§3.4/§3.9): den rene reader-projektion erstatter den legacy
 // den slettede legacyprojektion. Beviser de tre tilstande (§1.6/§1.7) og at ready-data == getSatserForYear.
 
 const catalog = getProductionInputCatalog();

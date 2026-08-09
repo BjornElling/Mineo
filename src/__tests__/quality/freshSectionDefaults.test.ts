@@ -7,7 +7,7 @@ import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import type { SectionKey } from '../../inputCore/fieldAddress';
 
 /**
- * VÆRN (BF-025): descriptorens tomværdi og den FØRST MATERIALISEREDE sektions værdi skal være enige.
+ * VÆRN: descriptorens tomværdi og den FØRST MATERIALISEREDE sektions værdi skal være enige.
  *
  * En sektion er `null`, indtil brugeren rører sit første felt på siden; først dér oprettes den fra
  * `createEmpty<Sektion>Section` og sanereres gennem det persisterede schema. Alt, hvad sektionen har i det

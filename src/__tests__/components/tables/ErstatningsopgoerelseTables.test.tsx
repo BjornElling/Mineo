@@ -112,7 +112,7 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
   });
 
   it('grupperer de supplerende ydelsestyper efter en divider og sorterer hver gruppe alfabetisk', () => {
-    // BF-023: stregen og de to gruppers indhold er uændret; det NYE er, at hver gruppe er sorteret
+    // Stregen og de to gruppers indhold er uændret; det NYE er, at hver gruppe er sorteret
     // alfabetisk indbyrdes efter den viste label. Testen assertes derfor på selve reglen — sorteret
     // efter dansk kollation — og ikke på en håndskrevet labelrækkefølge, som ville skulle rettes hver
     // gang en ydelsestype tilføjes.

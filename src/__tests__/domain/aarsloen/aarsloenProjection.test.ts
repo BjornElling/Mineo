@@ -25,7 +25,7 @@ import {
   resolveAarsloenFieldErrorGate,
 } from '../../../domain/aarsloen/aarsloenProjection';
 
-// Greenfield Årsløn-projektion (§3.4/§5.4, Fase 3 Årsløn-slice, Pass 1). Beviser at `readAarsloenValues`
+// Årsløn-projektionen (§3.4/§5.4). Beviser at `readAarsloenValues`
 // rekonstruerer et komplet `AarsloenValues` fra readeren, og at `resolveAarsloenFieldErrorGate` spejler
 // legacy `resolveAarsloenCanonicalRangeIssues`' betingelser (§1.6/§1.9): rød sats blokerer kun i procent-tilstand.
 
@@ -177,7 +177,7 @@ describe('buildAarsloenReaderProjection', () => {
   });
 
   /**
-   * R5-F01/GM-F04: aggregatet må ikke fremstilles som gyldigt, når en medregnet række har en ukendt værdi.
+   * Aggregatet må ikke fremstilles som gyldigt, når en medregnet række har en ukendt værdi.
    *
    * Scenariet er fundets egen runtime-probe: to rækker, hvor kun den anden har en ugyldig `col2`. Readeren
    * skjuler den røde celle bag sin tomværdi, så motoren fik tidligere KUN række 1's 1.000 og siden viste

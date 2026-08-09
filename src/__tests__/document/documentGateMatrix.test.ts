@@ -1,7 +1,7 @@
 /**
- * Den udtømmende matrix, del 2: GATE-cases pr. output (Fase 5, pass 7).
+ * Den udtømmende matrix, del 2: GATE-cases pr. output.
  *
- * Planens fire input-klasser er per-definition og kan derfor ikke testes generisk:
+ * De fire input-klasser er per-definition og kan derfor ikke testes generisk:
  *
  *   - relevant ugyldigt FORMAT (`reason: 'invalid'`) — uparselig råtekst
  *   - relevant BOUNDS-/range-fejl — parselig værdi uden for descriptorens interval
@@ -46,7 +46,7 @@ import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefi
 import { varigeMenDocumentDefinition } from '../../domain/varigemen/varigeMenDocumentDefinition';
 import { forsoergertabDocumentDefinition } from '../../domain/forsoergertab/forsoergertabDocumentDefinition';
 import { renteOversigtDocumentDefinition } from '../../domain/renteberegning/renteberegningDocumentDefinitions';
-// Warning-benet (R8-F05): ÆGTE domæne-warnings + motor-spy. Se suitens egen note nederst.
+// Warning-benet: ÆGTE domæne-warnings + motor-spy. Se suitens egen note nederst.
 import { mapReadyProjection, runProjection } from '../../inputCore/projection';
 import { projectEoSave } from '../../persistence/eoSaveProjection';
 import { buildErhvervsevnetabReaderProjection } from '../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
@@ -67,14 +67,12 @@ import { insertRow } from '../../inputCore/inputReducer';
 const catalog = getProductionInputCatalog();
 
 // Bygges gennem projektoren, ikke som objektliteral: gate-settings er nominel, så et snapshot ikke
-// kan fremstilles uden om projektoren (WI-009). Nøglesættet kommer fortsat fra typen — override er
+// kan fremstilles uden om projektoren. Nøglesættet kommer fra typen — override er
 // `Partial<EoRowPolicyPayload>` — så en ny gate-relevant regel fejler her frem for at blive skjult
 // bag et `as`.
 //
-// **Ingen brevhoved-flags og intet format (R6-F03):** de er render-settings og findes ikke længere i
-// projektionskonteksten. Suiten kan derfor slet ikke pinne et format, og den tidligere
-// `documentDownloadFormat: 'pdf'`-binding — som var netop det, format-invariansværnet blev skrevet
-// for at kompensere for — er væk, fordi der intet er at binde.
+// **Ingen brevhoved-flags og intet format:** de er render-settings og findes ikke i
+// projektionskonteksten. Suiten kan derfor slet ikke pinne et format — der er intet at binde.
 const GATE_SETTINGS: MineoDocumentGateSettings = __createTestEoRowPolicy({
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,
@@ -284,18 +282,15 @@ const eetCaseWithUnderFifteenPercent = (): SettledInput => {
 
 describe('gate-matrix: warnings blokerer intet (§7.3, §10-kriterium 13)', () => {
   /**
-   * **Denne suite er omskrevet i etape 10 (R8-F05).** Den tidligere test hed "en gyldig sag med
-   * advarsler i en irrelevant sektion forbliver ready" og skabte INGEN warning: den committede en
-   * bounds-fejl på `varigeMenMengrad` — altså §7.3's IKKE-RELEVANT-dimension, som allerede er dækket
-   * af `klasse IKKE-RELEVANT`-benene ovenfor. Warning-benet var dermed falsk dækket: en regression,
-   * hvor warnings begyndte at blokere, kunne bestå den deklarerede matrix.
+   * **Warning-benet kræver en ÆGTE warning.** En fixture, der committer en bounds-fejl (fx på
+   * `varigeMenMengrad`), skaber ingen warning — den måler §7.3's IKKE-RELEVANT-dimension, som allerede
+   * er dækket af `klasse IKKE-RELEVANT`-benene ovenfor. Med en sådan fixture er warning-benet falsk
+   * dækket: en regression, hvor warnings begynder at blokere, ville bestå den deklarerede matrix.
    *
-   * **Hvor warnings faktisk findes.** Kortlægningen viste, at `ProjectionCollector.warn` og
-   * `InputIssue`s `Warning`-variant havde NUL producenter og NUL læsere i produktionen (INC-F17,
-   * slettet). Warnings dannes i domænernes egne typer — `EetIssue.severity`, `EoRowStatus`,
-   * `IntegrityIssue.severity` — og det er derfor DEM, invarianten skal måles på. En syntetisk
-   * `collector.warn`-fixture ville have målt en kanal, ingen produktionskode bruger, og dermed været
-   * en fjerde variant af R0-F02's fejlklasse.
+   * **Hvor warnings faktisk findes.** Warnings dannes i domænernes egne typer — `EetIssue.severity`,
+   * `EoRowStatus`, `IntegrityIssue.severity` — og det er derfor DEM, invarianten måles på. En
+   * syntetisk `collector.warn`-fixture ville måle en kanal, ingen produktionskode bruger, og dermed
+   * være grøn uden at dække noget.
    *
    * De to tests nedenfor dækker de tre konsekvenskanaler, en ægte warning kan nå: beregningen
    * (bliver den udført?), dokumentgaten (blokerer den?) og `.eo` (kan sagen gemmes?). Den fjerde —
@@ -310,7 +305,7 @@ describe('gate-matrix: warnings blokerer intet (§7.3, §10-kriterium 13)', () =
     const fane = snapshot.loebendeYdelser;
     const warnings = fane.issues.filter((issue) => issue.severity === 'warning');
     // Fixturens forudsætning: der ER en warning, og der er INGEN fejl. Uden begge ben måler resten
-    // af testen ingenting — præcis den tomhed, fundet påpegede.
+    // af testen ingenting.
     expect(warnings.map((issue) => issue.id)).toContain('warn-asl-eet-under-15');
     expect(fane.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
 
@@ -327,7 +322,7 @@ describe('gate-matrix: warnings blokerer intet (§7.3, §10-kriterium 13)', () =
 
   /**
    * §7.3's sidste punkt som sin egen assertion: *beregningsmotor kaldes aldrig fra en blocked
-   * projektion.* Sweepet i R8-F05 fandt ingen eksplicit spy-assertion på netop den invariant —
+   * projektion.* Uden en eksplicit spy-assertion på netop den invariant —
    * kun tests, der målte at RESULTATET var fraværende. Forskellen er load-bearing: en motor, der
    * kaldes og hvis resultat kastes væk, ville bestå en resultat-assertion, men kunne kaste,
    * mutere eller regne på et maskeret input.

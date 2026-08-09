@@ -4,7 +4,7 @@ import {
 } from '../../../inputCore/react/placeholderSlots';
 
 /**
- * Placeholder-identitetens LIVSCYKLUS (§1.11, §3.7, UT-F03).
+ * Placeholder-identitetens LIVSCYKLUS (§1.11, §3.7).
  *
  * Den afgørende invariant er ikke "genbrug id'er hvis muligt", men: de synlige placeholder-id'er er en REN
  * FUNKTION af de aktuelt committede rækker. Undo/redo er en tidsmaskine over inputtet, så den samme committede
@@ -48,7 +48,7 @@ describe('resolvePlaceholderSlotIds', () => {
   });
 
   /**
-   * KERNEN i UT-F03. Efter promoveringen af p1 viser tabellen p2. Et undo fjerner p1 fra de committede rækker,
+   * KERNEN. Efter promoveringen af p1 viser tabellen p2. Et undo fjerner p1 fra de committede rækker,
    * og DA skal p1 genindtræde som placeholder — med præcis den identitet, history-originen peger på.
    */
   it('lader et promoveret id GENINDTRÆDE som placeholder efter undo', () => {
@@ -75,14 +75,14 @@ describe('resolvePlaceholderSlotIds', () => {
   });
 
   /**
-   * BF-005. Brugerens forløb: to promoveringer, undo HELT tilbage, redo HELT frem, og derefter ét undo.
+   * Brugerens forløb: to promoveringer, undo HELT tilbage, redo HELT frem, og derefter ét undo.
    *
    * Det er præcis her, en hukommelsesbaseret pulje svigtede: undo'et helt tilbage skubbede de senere slots bag
    * markøren, hvor de blev trimmet væk, og redo'et møntede derfor et NYT id til pladsen. Fra da af pegede
    * history-originen fra den oprindelige promotion på et id, tabellen aldrig ville vise igen — fokus forsvandt
    * lydløst, og fejlen var permanent for resten af sessionen.
    */
-  it('bevarer identiteten gennem undo HELT tilbage og redo HELT frem (BF-005)', () => {
+  it('bevarer identiteten gennem undo HELT tilbage og redo HELT frem', () => {
     const sequence = newSequence();
 
     resolvePlaceholderSlotIds(sequence, ids(), 1);              // p1 vises
@@ -102,7 +102,7 @@ describe('resolvePlaceholderSlotIds', () => {
   });
 
   /**
-   * Den GENERELLE invariant bag BF-005, målt over en tilfældig vandring frem og tilbage gennem committede
+   * Den GENERELLE invariant, målt over en tilfældig vandring frem og tilbage gennem committede
    * tilstande: en tilstand, der ses igen, skal give præcis de samme synlige id'er. Scenarie-testene ovenfor er
    * enkeltpunkter på den kurve; denne siger, at der ikke findes andre punkter, hvor identiteten kan skride.
    */

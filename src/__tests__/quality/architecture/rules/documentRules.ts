@@ -4,9 +4,9 @@
  * Dokumentlivscyklussen: render-from-argument, generator-isolation og standalone-appens snit mod
  * hovedappens tværgående flows.
  *
- * Del af det opdelte arkitekturmanifest (Fase 6, genåbnet): manifestet var 2.133 linjer og blandede
- * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
- * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
+ * Del af det koncern-opdelte arkitekturmanifest: storage-, input-, domæne-, UI- og dokumentregler bor
+ * hver for sig, så en regel og dens nabo hører til samme emne. `architectureRules.ts` samler de fem
+ * moduler til ét registry.
  */
 import ts from 'typescript';
 import { collectCalls } from '../astQueries';
@@ -16,14 +16,14 @@ import { defineRule, forbidImports } from '../ruleKit';
 // --- Dokument-downloads må ikke læse committed state undervejs -----------------
 
 /**
- * Fase 6 omskrev denne regel fra `download*Dokument` til livscyklussens faktiske entrypoints.
+ * Reglen måler livscyklussens faktiske entrypoints, ikke et bestemt funktionsnavn.
  *
- * Reglens INTENTION — "render-from-argument": en fil, der udløser en dokument-download, må ikke læse
- * autoritativ tilstand undervejs, men skal danne dokumentet ud fra det ÉNE snapshot, gaten godkendte
- * — er uændret gyldig. Målet skiftede blot navn: Fase 5 slettede alle 18 `download*Dokument`, så
- * reglens forudsætning kunne ikke længere opfyldes af nogen fil, og dødt-værn-detektoren rapporterede
- * den som inert. Første version af denne kommentar er dermed også dokumentationen for, hvorfor
- * reglen ikke bare blev slettet: den havde et levende mål, den bare ikke pegede på længere.
+ * Reglens INTENTION er "render-from-argument": en fil, der udløser en dokument-download, må ikke læse
+ * autoritativ tilstand undervejs, men skal danne dokumentet ud fra det ÉNE snapshot, gaten godkendte.
+ * Da de gamle `download*Dokument`-entrypoints forsvandt, kunne reglens forudsætning ikke opfyldes af
+ * nogen fil, og dødt-værn-detektoren rapporterede den som inert. Den blev derfor RETARGETET frem for
+ * slettet — intentionen var uændret gyldig, målet havde blot skiftet navn. Det er den generelle
+ * fremgangsmåde: et inert værn med et levende mål skal pege det rigtige sted hen, ikke fjernes.
  *
  * De nuværende trigger-punkter er katalogets React-flade (`useMineoDocument*`) og handlings-hooket
  * `useReguleringDocumentAction`. Den forbudte læsning er tilsvarende skiftet fra de afskaffede
@@ -101,7 +101,7 @@ export const pdfDownloadCommittedState = defineRule({
 // --- Ingen lydløs download: en aktivering skal ledsages af en udfaldsvisning ---
 
 /**
- * En flade, der AKTIVERER en download, skal også kunne VISE dens udfald (R6-F02/GM-F11).
+ * En flade, der AKTIVERER en download, skal også kunne VISE dens udfald.
  *
  * `DocumentDownloadHandle` leverede korrekt en dansk besked for de udfald, brugeren selv kan handle på —
  * et stale-afbrud, fordi sagen ændrede sig undervejs, eller en død DEV-server — men intet håndhævede, at
@@ -158,7 +158,7 @@ const DOCUMENT_OUTCOME_VIEW_OWNER = 'src/components/inputs/DocumentOutcomeMessag
 export const documentActivationShowsOutcome = defineRule({
   id: 'document/activation-shows-outcome',
   description:
-    'En flade, der aktiverer en dokument-download, skal også vise dens udfald (R6-F02/GM-F11). Ellers kan '
+    'En flade, der aktiverer en dokument-download, skal også vise dens udfald. Ellers kan '
     + 'et stale-afbrud eller en utilgængelig DEV-server give brugeren en aktiv knap, ingen fil og ingen '
     + 'forklaring. Brug `DocumentOutcomeMessage` med `handle.errorMessage` råt — hook\'en har allerede '
     + 'filtreret gate-blokeringer væk, som bevidst er tavse.',
@@ -170,7 +170,7 @@ export const documentActivationShowsOutcome = defineRule({
       'den kanoniske udfaldsvisning OG mindst én flade, der aktiverer en download, findes stadig — '
       + 'forsvinder visningen, er mønsteret flyttet og reglen skal skrives om',
     // Ankrene er de flader, der faktisk AKTIVERER en download plus visningens ejer. Satser-ankeret peger på
-    // sektion-komponenten frem for `Satser.tsx`: efter R7-F01's VM-lag er siden ren komposition, og
+    // sektion-komponenten frem for `Satser.tsx`: med VM-laget er siden ren komposition, og
     // aktiveringen bor i sektionen. Et anker på en fil, der ikke længere aktiverer noget, ville gøre
     // liveness-kontrollen rød af den forkerte grund.
     requiredPaths: [
@@ -195,7 +195,7 @@ export const documentActivationShowsOutcome = defineRule({
       message:
         `\`${first.calleeText}(...)\` aktiverer en dokument-download, men filen viser intet udfald. `
         + 'Tilføj `<DocumentOutcomeMessage message={…} />`, så et stale-afbrud eller en DEV-serverfejl '
-        + 'ikke er lydløs for brugeren (R6-F02/GM-F11).',
+        + 'ikke er lydløs for brugeren.',
     }];
   },
   violatingFixtures: [

@@ -25,7 +25,7 @@ const BEREGNING_VM_PATH = path.resolve(
   SRC_ROOT,
   'components/pages/erstatningsopgoerelse/eoBeregning/useEoBeregningViewModel.ts'
 );
-/** Fase 5: dokument-gatens nye ejer — definitionen ved EO's domænegrænse. */
+/** Dokument-gatens ejer — definitionen ved EO's domænegrænse. */
 const EO_DOCUMENT_DEFINITIONS_PATH = path.resolve(
   DOMAIN_ROOT,
   'erstatningsopgoerelse/eoDocumentDefinitions.ts'
@@ -60,10 +60,9 @@ describe('inspektionLayerIsolation — wiring', () => {
   });
 
   /**
-   * Efter Fase 5 ejer DEFINITIONEN download-gaten, ikke view-modellen: preflighten (projektion,
-   * gate, midlertidigt-EET-kilden) er flyttet fra `useEoBeregningViewModel` til
-   * `eoDocumentDefinitions.ts`. Guarden er derfor flyttet med til det nye ejerskab — den måler
-   * fortsat præcis det samme: at gaten konsumerer den autoritative motor og er inspektionsfri.
+   * DEFINITIONEN ejer download-gaten, ikke view-modellen: preflighten (projektion, gate,
+   * midlertidigt-EET-kilden) bor i `eoDocumentDefinitions.ts`. Guarden måler derfor gaten dér: at
+   * den konsumerer den autoritative motor og er inspektionsfri.
    */
   it('C: download-gaten konsumerer den AUTORITATIVE motor — ikke inspektions-/kontrollaget', () => {
     const source = fs.readFileSync(EO_DOCUMENT_DEFINITIONS_PATH, 'utf8');
@@ -74,9 +73,9 @@ describe('inspektionLayerIsolation — wiring', () => {
   });
 
   /**
-   * View-modellen må efter Fase 5 hverken bygge EO-projektionen eller evaluere gaten selv — så var
-   * den to sandheder igen. Den konsumerer stadig den autoritative rækkemotor til issue-listerne,
-   * og den skal fortsat være inspektionsfri.
+   * View-modellen må hverken bygge EO-projektionen eller evaluere gaten selv — så ville den være en
+   * anden sandhed ved siden af definitionens. Den konsumerer den autoritative rækkemotor til
+   * issue-listerne, og den skal være inspektionsfri.
    */
   it('C2: view-modellen har afgivet gate-ejerskabet, men bruger fortsat den autoritative rækkemotor', () => {
     const source = fs.readFileSync(BEREGNING_VM_PATH, 'utf8');

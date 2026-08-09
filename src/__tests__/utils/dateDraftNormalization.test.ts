@@ -104,7 +104,7 @@ describe('isDateLikeDraftAllowed', () => {
     expect(isDateLikeDraftAllowed('', segments)).toBe(true);
   });
 
-  // ── Gentagne separatorer (BF-029) ──
+  // ── Gentagne separatorer ──
   // Netop DENNE gruppe manglede, da segment-regexen blev udskiftet i `5c864afe` (2026-04-23).
   // Ciffer-lofterne havde tests og blev derfor bevaret; gentagne separatorer havde ingen, og
   // afvisningen af dem forsvandt uden at noget blev rødt. Fjernes værnet igen, bliver disse røde.
@@ -116,7 +116,7 @@ describe('isDateLikeDraftAllowed', () => {
   // der fjerner `previousWasSeparator`-afvisningen, forbliver `12--2--2026` afvist, mens `12-2--`
   // bliver tilladt. Kun den korte case er derfor evidens.
 
-  it('anden separator på stribe → ikke tilladt (BF-029)', () => {
+  it('anden separator på stribe → ikke tilladt', () => {
     expect(isDateLikeDraftAllowed('12-2--', segments)).toBe(false);
     expect(isDateLikeDraftAllowed('12-2----------', segments)).toBe(false);
     expect(isDateLikeDraftAllowed('12--', segments)).toBe(false);
@@ -129,9 +129,9 @@ describe('isDateLikeDraftAllowed', () => {
     expect(isDateLikeDraftAllowed('12./', segments)).toBe(false);
   });
 
-  it('den fulde BF-029-draft er afvist (uanset hvilken regel der fanger den)', () => {
+  it('den fulde brugerreproduktion er afvist (uanset hvilken regel der fanger den)', () => {
     // Brugerens oprindelige reproduktion. Her kan BEGGE regler fange, og det er fint — testen
-    // dokumenterer udfaldet for brugerfundet, mens de korte cases ovenfor beviser mekanismen.
+    // dokumenterer udfaldet for den rapporterede draft, mens de korte cases ovenfor beviser mekanismen.
     expect(isDateLikeDraftAllowed('12-2----------2026', segments)).toBe(false);
     expect(isDateLikeDraftAllowed('12--2--2026', segments)).toBe(false);
   });

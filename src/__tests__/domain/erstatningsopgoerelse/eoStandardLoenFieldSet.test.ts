@@ -68,7 +68,7 @@ describe('eoStandardLoenFieldSet', () => {
       { ...emptyRow('r2'), col0_maaned: '2', col1_maaned: '2022', col2: asAmount(41000) },
     ];
     const reader = buildReader(buildEoWithLoenRows(rows));
-    // Rekonstruktionen er den FÆLLES (GM-F15): ejer-id'et kommer fra feltsættets collection-sti.
+    // Rekonstruktionen er den FÆLLES: ejer-id'et kommer fra feltsættets collection-sti.
     const rebuilt = readStandardLoenTableRows(createEoStandardLoenFieldSet('af-1'), reader);
     expect(rebuilt).toEqual(rows);
   });

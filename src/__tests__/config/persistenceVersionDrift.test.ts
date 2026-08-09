@@ -65,7 +65,7 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // fingerprint: `z.toJSONSchema` udsender en tom `items: {}` for et transformeret array, så hele det nestede
 // løntræ forsvandt ud af både fingerprintet og ledgerens felt-/collection-udledninger. Fjernelsen sker
 // derfor i migratoren, og fingerprintet dækker igen hvert persisteret felt.
-// Opdateret 2026-08-07 (BF-025): `eoAngivetLoenLoenudvikling.loenPaaHelligdage` var valgfri, mens
+// Opdateret 2026-08-07: `eoAngivetLoenLoenudvikling.loenPaaHelligdage` var valgfri, mens
 // ansættelsesforholdets tvilling var påkrævet — samme logiske felt med to forskellige kontrakter. Feltet er
 // nu required-with-default ('Almindelig løn') for BEGGE ejere, præcis som årslønssektionen fik det i 3.4.
 // Load-tolerancen består (ældre `.eo` uden feltet får defaulten), men `undefined` kan ikke længere

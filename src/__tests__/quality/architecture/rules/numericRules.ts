@@ -45,8 +45,6 @@ const MATH_ROUND_ALLOWLIST = new Set([
   'domain/dates/shDageBeregning.ts',
   // UI-virtualisering: scroll offset i pixels — aldrig vist til bruger som beløb
   'components/tables/VirtualizedDisplayTable.tsx',
-  // NB: `components/inputs/StyledPercentField.tsx` (UI-inputbredde) stod her, indtil trin 13 slettede
-  // hele `Styled*Field`-familien. Fjernet i Fase 7 (WI-013) via anti-rot-testen nedenfor.
   // Binær søgning i lønopslag-tabel (indeksaritmetik)
   'data/offentligLoenLookup.ts',
   // Bug-rapport: binær søgning til tekstafkortning (ikke finansielt)
@@ -81,9 +79,6 @@ const TO_FIXED_ALLOWLIST = new Set([
   'utils/formatUtils.ts',
   'utils/rounding.ts',
   // Fingerprint: deterministisk canonical streng til ændringsdetektion (ikke display)
-  // NB: `components/inputs/table/TableAmountInput.tsx` og `TablePercentInput.tsx` stod her, indtil
-  // greenfield-trin 13 slettede hele `components/inputs/table/`. Posterne blev fjernet i Fase 7
-  // (WI-013), da anti-rot-testen nedenfor afslørede dem som døde undtagelser.
 ]);
 
 /**
@@ -99,9 +94,10 @@ const TO_LOCALE_STRING_ALLOWLIST = new Set<string>();
 /**
  * Filer der lovligt bruger `new Date(value)` uden `Date.UTC`/`getTime()`.
  *
- * Hoistet fra en inline `new Set([...])` i Fase 7 (WI-013): en allowlist, der kun findes inde i sin
- * `it(...)`, kan ikke anti-rot-kontrolleres. Det er ikke kosmetik — det var netop sådan
- * `StyledDateField.tsx` kunne blive stående som undtagelse længe efter, at trin 13 havde slettet filen.
+ * Listen står på modulniveau og ikke inde i sin `it(...)`, fordi kun en hoistet allowlist kan
+ * anti-rot-kontrolleres. Det er ikke kosmetik: en undtagelse, der kun findes inde i sin egen test,
+ * kan blive stående længe efter at filen, den fritog, er slettet — og en fritagelse for en fil, der
+ * ikke findes, skjuler at listen er blevet forældet.
  */
 const NEW_DATE_ALLOWLIST = new Set([
   // createDate er den kanoniske constructor — bruger Date.UTC internt
@@ -120,11 +116,8 @@ const NEW_DATE_ALLOWLIST = new Set([
   // kopi af UTC Date fra isoDateToDate(), ikke string-parsing.
   // Devtools-fejlnotice: ny Date fra ISO timestamp til lokal display (ikke domæne-dato)
   'components/errors/DevtoolsIssueNotice.tsx',
-  // NB: tre poster er fjernet i Fase 7 (WI-013), fordi anti-rot-testen viste dem døde:
-  //   - `components/inputs/StyledDateField.tsx` — trin 13 slettede `Styled*Field`-familien.
-  //   - `document/generators/renteberegning/rentePdf.ts` → omdøbt til `renteDocument.ts` i Fase 5
-  //   - `document/generators/aarsloen/shDagePdf.ts`      → omdøbt til `shDageDocument.ts` i Fase 5
-  // De to omdøbte efterfølgere bruger slet ikke `new Date(` og skal derfor IKKE undtages.
+  // NB: dokumentgeneratorerne for renteberegning og SH-dage bruger slet ikke `new Date(` og skal
+  // derfor IKKE undtages — en undtagelse for dem ville være en fritagelse for ingenting.
 ]);
 
 /** Filer der lovligt bruger `.toISOString().slice()`. Hoistet sammen med `NEW_DATE_ALLOWLIST`. */

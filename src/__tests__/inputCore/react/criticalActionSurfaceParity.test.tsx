@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * §7.5's kritiske handlinger med VIRKELIGE form- og grid-editorer (R8-F06, etape 10).
+ * §7.5's kritiske handlinger med VIRKELIGE form- og grid-editorer.
  *
  * **Hvad fundet var.** Coordinator- og save/load-testene brugte SYNTETISKE `ActiveEditor`-objekter, og
  * dokumentlivscyklussens "åben draft"-cases castede instrumenterede resultater ind frem for at åbne en
@@ -172,7 +172,7 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
 
       act(() => mounted.controller().open());
       act(() => mounted.controller().changeDraft(raw().valid));
-      // Dette er kernen i R8-F06: en VIRKELIG adapter, ikke et syntetisk `ActiveEditor`-objekt.
+      // Dette er kernen: en VIRKELIG adapter, ikke et syntetisk `ActiveEditor`-objekt.
       expect(registry.getEditing(), `${surface}: den ægte editor registrerede sig ikke`).not.toBeNull();
 
       act(() => mounted.controller().settle());

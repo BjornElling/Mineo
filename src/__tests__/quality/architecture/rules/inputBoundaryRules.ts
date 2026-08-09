@@ -4,9 +4,9 @@
  * Skrivegrænsen, den rå sektionsadgang, systemportens producentliste, de transiente controls og
  * forbudt-identifier-gaten. Kernen i §3.6's capability-opdeling.
  *
- * Del af det opdelte arkitekturmanifest (Fase 6, genåbnet): manifestet var 2.133 linjer og blandede
- * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
- * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
+ * Del af det koncern-opdelte arkitekturmanifest: storage-, input-, domæne-, UI- og dokumentregler bor
+ * hver for sig, så en regel og dens nabo hører til samme emne. `architectureRules.ts` samler de fem
+ * moduler til ét registry.
  */
 import ts from 'typescript';
 import {
@@ -68,7 +68,7 @@ export const inputWriteBoundary = defineRule({
     + 'produktionsbrug af den isolerede testfabrik.',
   liveTarget: {
     kind: 'precondition',
-    // R0-F02: AST-signal, ikke tekst — skrivevejenes NAVNE skal findes som identifiers, ikke blot omtales.
+    // AST-signal, ikke tekst: skrivevejenes NAVNE skal findes som identifiers, ikke blot omtales.
     probe: (entry) => entry.relativePath === INPUT_STORE_OWNER
       || hasAnyIdentifier(entry, ['registerSlimInputStoreInternals', 'hydrateInputStoreOnce', 'dispatchInput']),
     rationale:
@@ -178,7 +178,7 @@ export const inputWriteBoundary = defineRule({
  * gennem `InputReader`/projektionen, så en værdi bag en rød feltfejl er skjult og en gate kan blokere
  * korrekt. Et rå sektionsopslag omgår hele den mekanik.
  *
- * Reglen blev tilføjet efter Fase 6's genåbning: der fandtes præcis ét sådant opslag uden for
+ * Der findes præcis ét sådant opslag uden for
  * inputinfrastrukturen (shellens devtools-diagnostik), og intet hindrede det næste. Diagnostikken har
  * et legitimt behov for den rå form — en fejlrapport skal vise hvad der ER gemt — men behovet hører i
  * en NAVNGIVEN projektion (`inputDiagnosticsProjection`), ikke i en generel undtagelse.
@@ -195,7 +195,7 @@ const RAW_SECTION_SERIALIZERS: readonly string[] = [
   // Case-fil-porten er den anden legitime rå ejer: den bygger load-kandidatens sektions-map fra det
   // schema-gyldige `.eo`-snapshot og svarer på hel-sags-data-presence. Begge er per definition udtømmende
   // over sektionerne og kan ikke udtrykkes gennem readeren, som netop skjuler værdier bag røde issues.
-  // Den blev synlig, da R5-F02's udvidelse tilføjede property-/spread-formen; den var altså ejer i
+  // Den blev synlig, da property-/spread-formen kom med i reglen; den var altså ejer i
   // praksis, mens reglen kun målte bracket-formen.
   'src/persistence/caseFileOperations.ts',
 ];
@@ -231,7 +231,7 @@ export const rawSectionAccessBoundary = defineRule({
     kind: 'precondition',
     probe: (entry) => (entry.relativePath.startsWith(RAW_SECTION_OWNERS)
       || RAW_SECTION_SERIALIZERS.includes(entry.relativePath))
-      // R0-F02: AST-signal, ikke tekst — `.sections` skal LÆSES, ikke blot nævnes i en kommentar (og netop
+      // AST-signal, ikke tekst: `.sections` skal LÆSES, ikke blot nævnes i en kommentar (og netop
       // dette modul bærer nu flere kommentarer om den rå form, som en tekstprobe ville have accepteret).
       && hasMemberRead(entry, 'sections'),
     rationale:
@@ -246,7 +246,7 @@ export const rawSectionAccessBoundary = defineRule({
     ],
   },
   allow: [],
-  // R5-F02: reglen målte KUN `collectElementAccess`, altså bracket-formen `input.sections["satser"]`. En
+  // En regel, der KUN måler `collectElementAccess`, ser kun bracket-formen `input.sections["satser"]`. En
   // syntetisk kørsel viste, at `input.sections.satser` gav NUL fund, og at en reference til hele
   // `input.sections` (fx et spread) heller ikke blev set. Grænsen handler om ADGANG TIL VÆRDIEN, ikke om
   // hvilken syntaks der bruges, så alle fire former måles nu:
@@ -286,7 +286,7 @@ export const rawSectionAccessBoundary = defineRule({
       code: 'const s = runtime.getSettled().input.sections[pageKey];',
     },
     { relativePath: 'src/domain/x/y.ts', code: 'const v = snapshot.input.sections["satser"];' },
-    // De tre former, den oprindelige regel var blind for (R5-F02).
+    // De tre former, den oprindelige regel var blind for.
     { relativePath: 'src/domain/x/y.ts', code: 'const v = snapshot.input.sections.satser;' },
     { relativePath: 'src/domain/x/y.ts', code: 'const next = { ...empty.sections, satser: v };' },
     { relativePath: 'src/domain/x/y.ts', code: 'const { sections } = snapshot.input;' },
@@ -318,7 +318,7 @@ export const rawSectionAccessBoundary = defineRule({
   ],
 });
 
-// --- EO's inputflader ligger på den autoritative editorvej (R8-F07) -----------
+// --- EO's inputflader ligger på den autoritative editorvej -----------
 
 /**
  * Enhver EO-inputflade skal føre sit input gennem inputkernens autoritative editorvej.
@@ -327,7 +327,7 @@ export const rawSectionAccessBoundary = defineRule({
  * fandt inputflader med regex over kildeteksten og godkendte arkitekturvejen med `source.includes(...)`. En
  * håndrullet inputflade kunne derfor passere alene ved at NÆVNE fx `useFieldEditor` i en kommentar — en
  * in-memory probe med `// useFieldEditor` foran en `<Input field={x} onChange={…} />` blev accepteret
- * (R8-F07). Det er samme fejlklasse som INC-F03 og R0-F02, men i et lokalt værn frem for i harnesset.
+ *. Det er samme fejlklasse, blot i et lokalt værn frem for i harnesset.
  *
  * Begge ender er nu AST:
  *  - FLADEN genkendes på JSX-attributter (`field`/`location`/`onCommit`/`onDraftChange`), der er noder.
@@ -409,7 +409,7 @@ export const eoSurfaceOnAuthoritativeEditorPath = defineRule({
       relativePath: 'src/components/pages/erstatningsopgoerelse/X.tsx',
       code: 'const C = () => <Input field={x} onChange={(e) => setLocal(e.target.value)} />;',
     },
-    // R8-F07's konkrete bypass: kommentaren nævner editor-hooket, men INTET kalder eller importerer det.
+    // Det konkrete bypass: kommentaren nævner editor-hooket, men INTET kalder eller importerer det.
     {
       relativePath: 'src/components/pages/erstatningsopgoerelse/Y.tsx',
       code: '// useFieldEditor\nconst C = () => <Input field={x} onChange={(e) => setLocal(e.target.value)} />;',
@@ -580,7 +580,7 @@ export const transientCannotWriteCaseData = forbidImports({
 // --- Forbudt-identifier-gate: de reelt døde legacy-navne ----------------------
 
 /**
- * Fase 6's forbudt-symbol-gate, med planens liste KORRIGERET mod den faktiske kildetilstand.
+ * Forbudt-symbol-gaten, med listen holdt mod den faktiske kildetilstand.
  *
  * Gaten måler **identifiers fra AST'en**, ikke tekst. Det er afgørende, fordi de fleste af navnene
  * stadig optræder i produktionen — som KOMMENTARER, der forklarer hvorfor en mekanisme ikke findes
@@ -600,10 +600,10 @@ export const transientCannotWriteCaseData = forbidImports({
  * identifier produktionen retmæssigt bruger. At forbyde det ville tvinge en kosmetisk omdøbning igennem
  * uden gevinst — stik imod [[feedback_prefer_structural_unification]].
  *
- * `usePersistedForm` og `useSliceRowDrafts` blev afklaret i WI-012's pass 1: begge har NUL identifiers
+ * `usePersistedForm` og `useSliceRowDrafts` er afklaret: begge har NUL identifiers
  * i produktionen (og `usePersistedForm` har ingen definition overhovedet), så de hører hjemme på listen.
  *
- * `EoInputIssueSource`/`EoFieldIssuesBySource` er tilføjet efter Fase 6's genåbning: EO's parallelle
+ * `EoInputIssueSource`/`EoFieldIssuesBySource` er med på listen: EO's parallelle
  * source-register er slettet, og `error-contract.md` §11 forbyder det eksplicit.
  */
 export const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
@@ -679,7 +679,7 @@ export const forbiddenLegacyIdentifier = defineRule({
     // for, at gaten ikke kolliderer med den bevidste dokumentation af hvad der blev slettet.
     {
       relativePath: 'src/x.ts',
-      code: '// Nøglen `mineo_invalidDrafts` findes ikke: invalidDrafts-kanalen er slettet (trin 13).',
+      code: '// Nøglen `mineo_invalidDrafts` findes ikke: invalidDrafts-kanalen er slettet.',
     },
     {
       relativePath: 'src/x.ts',
@@ -689,14 +689,14 @@ export const forbiddenLegacyIdentifier = defineRule({
     { relativePath: 'src/x.ts', code: 'const names = ["useRowDrafts", "invalidDrafts"];' },
     // Levende vokabular må ikke rammes: `fieldErrors` er det nuværende feltnavn i
     // snapshot-/projektionskontrakterne. (`blocksSave` stod tidligere i denne fixture som "levende" —
-    // det var netop fejlklassifikationen Fase 6's genåbning rettede; navnet er nu forbudt.)
+    // det var netop en fejlklassifikation; navnet er forbudt.)
     { relativePath: 'src/x.ts', code: 'const { fieldErrors } = snapshot;' },
     // En KOMMENTAR om den slettede boolean skal fortsat bevares.
     { relativePath: 'src/x.ts', code: '// INGEN blocksSave-booleans: konsekvensen udledes strukturelt.\nexport const x = 1;' },
   ],
 });
 
-// --- Source-settings-snapshottet: kun projektoren konstruerer det (WI-009) ----
+// --- Source-settings-snapshottet: kun projektoren konstruerer det --------------
 
 /** Modulet der ejer de to nominelle settings-snapshots og deres projektorer. */
 const SOURCE_SETTINGS_OWNER = 'src/settings/sourceSettings.ts';
@@ -704,9 +704,9 @@ const SOURCE_SETTINGS_OWNER = 'src/settings/sourceSettings.ts';
 /**
  * De brandede settings-typer, kun projektorerne må stemple.
  *
- * `DocumentRenderSettings` kom til med R6-F03: da gate- og render-halvdelen blev adskilt, blev
+ * `DocumentRenderSettings` kom til, da gate- og render-halvdelen blev adskilt: da blev
  * render-halvdelen sin egen offentlige type, og uden et mærke var hele `AppSettings` strukturelt
- * assignable til den — altså samme tavse hul, WI-009 lukkede for de to øvrige.
+ * assignable til den — altså samme tavse hul som for de to øvrige.
  */
 const BRANDED_SETTINGS_TYPE_NAMES = ['SourceSettings', 'EoRowPolicy', 'DocumentRenderSettings'] as const;
 const BRANDED_SETTINGS_TYPES: ReadonlySet<string> = new Set(BRANDED_SETTINGS_TYPE_NAMES);
@@ -730,7 +730,7 @@ const DEFINITION_FACTORY_PATTERN = /^define[A-Z]/;
  *
  * `SourceSettings` og `EoRowPolicy` er nominelle (unique-symbol-brands), og `projectSourceSettings`/
  * `projectEoRowPolicy` er deres eneste konstruktører. Derfor kan hele `AppSettings` ikke længere
- * flyde ind i evaluering, rækkepolitik eller dokumentcapture — hvilket var WI-009's hul: en læsning
+ * flyde ind i evaluering, rækkepolitik eller dokumentcapture — netop hullet her: en læsning
  * af en nøgle UDEN FOR `SOURCE_SETTINGS_KEYS` ville indføre en source-afhængighed, der ikke gør et
  * optaget `EvaluationSourceToken` stale, så en download godkendt under den gamle regel kunne
  * overleve et regelskift.
@@ -763,7 +763,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
   id: 'input/source-settings-projection-boundary',
   description:
     'Source-settings-snapshottet og EO-rækkepolitikken konstrueres KUN af deres projektorer i '
-    + `${SOURCE_SETTINGS_OWNER} (WI-009). Grænsen er STRUKTUREL: begge typer er nominelle, så hele `
+    + `${SOURCE_SETTINGS_OWNER}. Grænsen er STRUKTUREL: begge typer er nominelle, så hele `
     + '`AppSettings` ikke kan flyde ind i evaluering, rækkepolitik eller dokumentcapture. Reglen '
     + 'dækker resten — en type-assertion, der stempler mærket uden om projektoren.',
   liveTarget: {
@@ -810,7 +810,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
           `Type-assertion til '${target}' uden om projektoren — mærket skal komme fra `
           + '`projectSourceSettings`/`projectEoRowPolicy`, ellers er indsnævringen til '
           + '`SOURCE_SETTINGS_KEYS` ikke sket, og en nøgle uden for sættet kan ændre en gate uden at '
-          + 'gøre et optaget `EvaluationSourceToken` stale (WI-009).',
+          + 'gøre et optaget `EvaluationSourceToken` stale.',
       });
     }
 
@@ -834,7 +834,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
         message:
           `'${target}' gives som eksplicit type-argument til \`${ref.calleeText}\` — en generisk `
           + 'hjælper, der producerer den brandede type, er en assertion flyttet én funktion væk. Byg '
-          + 'værdien med `projectSourceSettings`/`projectEoRowPolicy` (WI-009).',
+          + 'værdien med `projectSourceSettings`/`projectEoRowPolicy`.',
       });
     }
 
@@ -852,7 +852,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
           message:
             `Test-fabrikken \`${binding}\` må ikke bruges i produktionskode — den bygger et snapshot `
             + 'fra en vilkårlig override og uden om settings-revisionsbroen. Produktionen skal '
-            + 'projicere det committede `AppSettings` (WI-009).',
+            + 'projicere det committede `AppSettings`.',
         });
       }
     }
@@ -932,7 +932,7 @@ export const cellBindingSingleSource = defineRule({
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === CELL_BINDING_OWNER
-      // R0-F02: AST-signal, ikke tekst.
+      // AST-signal, ikke tekst.
       || (entry.relativePath.startsWith(`${TABLE_SURFACE_DIR}/`) && hasIdentifier(entry, 'buildCellSpec')),
     rationale:
       'bindingsejeren OG mindst én tabelflade, der bygger celle-specs, findes stadig — forsvinder '
@@ -1004,7 +1004,7 @@ const isInsideOnCommitAttribute = (node: ts.Node): boolean => {
 /**
  * `commitImmediate` bygger `setImmediateField`, som reduceren KUN tillader for choice/toggle. Et datofelt er
  * et text-control, så et `commitImmediate(today)` kaster en uncaught systemfejl i brugerens ansigt — præcis
- * UT-F05/R2-F01, hvor den samme forkerte kommando var kopieret til alle fem dags-dato-knapper.
+ * Fejlformen er den samme forkerte kommando kopieret til alle fem dags-dato-knapper.
  *
  * Den rigtige vej er `settleValue`, som sender værdien gennem feltets codec og den normale settle-motor.
  *
@@ -1024,7 +1024,7 @@ export const programmaticFieldCommitUsesSettle = defineRule({
     + 'skal gennem `settleValue`, så den parses af feltets codec som en tastet værdi.',
   liveTarget: {
     kind: 'precondition',
-    // R0-F02: AST-signal, ikke tekst — `onCommit` skal SÆTTES som JSX-attribut, ikke blot vises i en
+    // AST-signal, ikke tekst: `onCommit` skal SÆTTES som JSX-attribut, ikke blot vises i en
     // kommentar som eksempel på prop-formen.
     probe: (entry) => entry.relativePath === TODAY_DATE_BUTTON
       || hasJsxAttribute(entry, 'onCommit'),
@@ -1100,12 +1100,12 @@ export const programmaticFieldCommitUsesSettle = defineRule({
 // --- Issue-capabilityen: consumers blokerer på konkrete reads (§1.10, §3.4) ----
 
 /**
- * Den brede issue-capability var rodårsagen bag BEGGE de observerede overblokeringer (R3-F04).
+ * En bred issue-capability er rodårsagen til overblokering.
  *
- * Den offentlige `InputReader` bar tidligere `fieldIssues: FieldIssueSnapshot`. Enhver consumer kunne
- * derfor filtrere `issues.all` på sektionsnavn og blokere på felter, den aldrig læser — og gjorde det:
- * EO globaliserede ethvert stamdataissue (R3-F02), og EET-importen blokerede på hele tre sektioner
- * (R3-F01). Præcis dependency var en konvention, ikke en grænse.
+ * Bærer den offentlige `InputReader` et helt `fieldIssues: FieldIssueSnapshot`, kan enhver consumer
+ * filtrere `issues.all` på sektionsnavn og blokere på felter, den aldrig læser: ét stamdataissue bliver
+ * en global sagsspærring, og en import kan spærre på flere urelaterede sektioner. Præcis dependency
+ * skal derfor være en GRÆNSE, ikke en konvention.
  *
  * Grænsen er primært STRUKTUREL: `fieldIssues` er FJERNET fra den offentlige reader, så det brede
  * snapshot slet ikke er i hånden — et genindført sektionsfilter er nu en typefejl. Reglen lukker resten:
@@ -1134,14 +1134,14 @@ export const issueSnapshotCapabilityBoundary = defineRule({
   description:
     'Det brede feltissue-snapshot (`issues.all`) læses kun i inputkernen. Consumers uden for kernen '
     + 'blokerer på konkrete reads — `reader.read(field)` eller `createTrackedInputReader` — så en gate ikke kan blokere bredere end sine '
-    + 'faktiske dependencies (§1.10, §3.4, R3-F04).',
+    + 'faktiske dependencies (§1.10, §3.4).',
   liveTarget: {
     kind: 'precondition',
     // Reglen hviler på TRE forudsætninger, og hver af dem skal kunne konstateres i kildegrafen. Proben
     // genkender derfor hver fil på SIT eget mærke — ellers ville `requiredPaths` (som kræver, at hver
     // forudsat fil selv matcher proben) være selvmodsigende, og reglen kunne stå halvt død.
     probe: (entry) => {
-      // Alle tre signaler er AST-noder, ikke tekst (R0-F02): et `FieldIssueSet`-medlem, en erklæret
+      // Alle tre signaler er AST-noder, ikke tekst: et `FieldIssueSet`-medlem, en erklæret
       // funktion og en member-læsning kan hver især ikke opfyldes af en kommentar eller en streng.
       //
       // 1) Den brede capability findes stadig. Forsvinder `all`, er der intet at regulere.
@@ -1187,12 +1187,12 @@ export const issueSnapshotCapabilityBoundary = defineRule({
     return findings;
   },
   violatingFixtures: [
-    // Det præcise mønster bag R3-F01: en sektionsvis blokering.
+    // Den ene overblokeringsform: en sektionsvis blokering.
     {
       relativePath: 'src/domain/x/xImportPort.ts',
       code: 'const bad = evaluation.issues.all.some((i) => i.field.address.section === "stamdata");',
     },
-    // …og bag R3-F02: en global fail-closed på hele snapshottet.
+    // …og den anden: en global fail-closed på hele snapshottet.
     {
       relativePath: 'src/domain/y/ySnapshot.ts',
       code: 'const blocked = ev.issues.all.length > 0;',
@@ -1218,10 +1218,10 @@ export const issueSnapshotCapabilityBoundary = defineRule({
     },
     // `.all` på noget andet end et issue-sæt er ikke reglens ærinde.
     { relativePath: 'src/domain/x/y.ts', code: 'const n = results.all.length;' },
-    // Historik-prosa i en kommentar er ingen AST-node (jf. INC-F03).
+    // Prosa i en kommentar er ingen AST-node og må ikke kunne udløse et fund.
     {
       relativePath: 'src/domain/x/y.ts',
-      code: '// Tidligere: `evaluation.issues.all.some(...)` — erstattet af konkrete reads.\nexport const x = 1;',
+      code: '// Consumeren læser konkrete FieldRefs, ikke `evaluation.issues.all.some(...)`.\nexport const x = 1;',
     },
   ],
 });
@@ -1229,18 +1229,18 @@ export const issueSnapshotCapabilityBoundary = defineRule({
 // --- Afledte felter skrives i reduktionen, ikke fra en effect (§3.6) -----------
 
 /**
- * Et AFLEDT felt er en konsekvens af brugerens valg, ikke en selvstændig handling (GM-F02).
+ * Et AFLEDT felt er en konsekvens af brugerens valg, ikke en selvstændig handling.
  *
- * EO's overenskomstbundne satser blev tidligere beregnet efter render og skrevet af en `useEffect` som en
- * NY autoritativ handling. Det gav to history-trin for én oplevet brugerhandling, og et undo af satsen
- * kunne straks blive skrevet tilbage af den samme effect, fordi det styrende valg stadig var aktivt.
- * Løsningen er en ren domæneprojektion: afledte værdier materialiseres aldrig som input.
+ * Beregnes en afledt værdi (fx EO's overenskomstbundne satser) efter render og skrives af en `useEffect`,
+ * bliver den en NY autoritativ handling: én oplevet brugerhandling giver to history-trin, og et undo kan
+ * straks blive skrevet tilbage af den samme effect, fordi det styrende valg stadig er aktivt. Afledte
+ * værdier hører derfor i en ren domæneprojektion og materialiseres aldrig som input.
  *
  * Dette værn erstatter et tekstbaseret forbud, der var GRØNT AF TOMHED: dets fire mønstre
  * (`setValues(`, `setFormValues(`, `replaceFormValues(`, `onAnsaettelsesforholdChange(`) var alle
  * legacy-funktionsnavne, som ikke længere fandtes nogen steder i kildegrafen, og dets allowlist-markør
  * fandtes heller ikke i den fil, den fritog. Reglen kunne derfor ikke fejle — heller ikke på den effect,
- * den var skrevet for at bevogte (INC-F05).
+ * den var skrevet for at bevogte.
  *
  * Reglen måler nu den AKTUELLE skrivevej: et `edit.dispatch(...)`/`dispatchInput(...)`-kald inde i et
  * `useEffect`-vindue. Det er den ene vej, en effect faktisk KAN skrive sagsinput ad, efter at hele den
@@ -1333,15 +1333,15 @@ export const derivedValuesNotWrittenFromEffects = defineRule({
       relativePath: 'src/components/pages/X.tsx',
       code: 'const f = () => { React.useEffect(() => { setLocalState(1); }, []); };',
     },
-    // Historik-prosa i en kommentar er ingen AST-node (jf. INC-F03).
+    // Prosa i en kommentar er ingen AST-node og må ikke kunne udløse et fund.
     {
       relativePath: 'src/components/pages/X.tsx',
-      code: '// En tidligere effect-skrivning er nu en ren domæneprojektion.\nexport const x = 1;',
+      code: '// Afledte værdier hører i en ren domæneprojektion, ikke i en effect-skrivning.\nexport const x = 1;',
     },
   ],
 });
 
-// --- Fortegns-politik: feltets descriptor bestemmer, ikke komponenten (UT-F08) -------------------
+// --- Fortegns-politik: feltets descriptor bestemmer, ikke komponenten ---------------------------
 
 /** Modulet der ejer opslaget fra descriptor til fortegns-politik. */
 const SIGN_POLICY_OWNER = 'src/inputCore/react/fields/signPolicy.ts';
@@ -1380,9 +1380,9 @@ const hasLiteralAllowNegative = (argument: ts.Expression): ts.Node | undefined =
 };
 
 /**
- * Et felts FORTEGNS-politik ejes af dens descriptor, ikke af den komponent der tegner den (UT-F08).
+ * Et felts FORTEGNS-politik ejes af dens descriptor, ikke af den komponent der tegner den.
  *
- * **Fundet, reglen forhindrer i at vende tilbage.** `allowNegative` var erklæret på hvert numerisk codec i
+ * **Fejlformen, reglen forhindrer.** `allowNegative` var erklæret på hvert numerisk codec i
  * produktionskataloget — og honoreret af INGENTING. Hver feltkomponent hardkodede sit eget svar, og de var
  * indbyrdes uenige for de SAMME descriptorer: `GridPercentCell` blokerede minus, `PercentField` tillod det.
  * Brugeren kunne derfor taste et minustegn i et procentfelt, der ikke må være negativt.
@@ -1399,7 +1399,7 @@ export const fieldSignPolicyFromDescriptor = defineRule({
   description:
     'Et tegnfilters `allowNegative` må ikke være en hardkodet literal i en komponent. Fortegns-politikken '
     + 'erklæres på feltets codec og læses med `fieldAllowsNegative(field)` / `codecAllowsNegative(codec)` '
-    + '— ellers kan to flader af samme feltfamilie svare forskelligt for den samme descriptor (UT-F08).',
+    + '— ellers kan to flader af samme feltfamilie svare forskelligt for den samme descriptor.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === SIGN_POLICY_OWNER
@@ -1431,7 +1431,7 @@ export const fieldSignPolicyFromDescriptor = defineRule({
           message:
             `\`${call.calleeName}\` får en hardkodet \`allowNegative\`-literal. Fortegns-politikken ejes af `
             + 'feltets codec — brug `fieldAllowsNegative(field)` eller `codecAllowsNegative(descriptor.codec)`, '
-            + 'så formular og grid ikke kan svare forskelligt for samme descriptor (UT-F08).',
+            + 'så formular og grid ikke kan svare forskelligt for samme descriptor.',
         });
       }
     }

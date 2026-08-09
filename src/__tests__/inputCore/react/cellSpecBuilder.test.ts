@@ -68,7 +68,7 @@ describe('buildCollectionCellSpec — samme adressestruktur for begge cellearter
     expect(entityIdsOf(cell.field.address.path)).toEqual(['row-1']);
   });
 
-  it('NESTED: adressen har BÅDE ansættelsesforholdets og rækkens entity-id (UT-F04)', () => {
+  it('NESTED: adressen har BÅDE ansættelsesforholdets og rækkens entity-id', () => {
     // Det konkrete crash: løntabellen under et ansættelsesforhold bandt kun rækkens id, og
     // `FieldDescriptor.bind` afviste den manglende arity under render.
     const b = binding(eoStandardLoenCollectionRef('af-1'));

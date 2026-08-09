@@ -185,7 +185,7 @@ export const enhedField: FieldDescriptor<TillaegstidEnhed> = defineField({
 /**
  * `renterFra` — datofamiliens RÆKKE-repræsentant.
  *
- * Tilføjet i etape 10 (R8-F02): §7.1's fælles feltkontrakt skal køres mod BÅDE form- og grid-adapteren for
+ * §7.1's fælles feltkontrakt skal køres mod BÅDE form- og grid-adapteren for
  * hver codecfamilie, og `date` havde kun et formularfelt i testkataloget. Uden en celle-udgave kunne
  * kontrakten ikke sammenligne de to adaptere for netop den familie.
  */
@@ -205,7 +205,7 @@ export const renterFraField: FieldDescriptor<ISODateString | undefined> = define
 
 // ── §7.1's øvrige codecfamilier ──────────────────────────────────────────────────────────────────────
 //
-// De tre nedenfor er tilføjet i etape 10 (R8-F02), så den FÆLLES feltkontrakt kan køres mod begge
+// De tre nedenfor findes, så den FÆLLES feltkontrakt kan køres mod begge
 // adaptere for hver familie, produktionen har på begge surfaces. De bruger `defineStructuralField`, som
 // læser/skriver generisk på adressen, frem for håndskrevne read/write-par: sektionerne (`aarsloen`,
 // `stamdata`) er produktionens ægte Zod-schemas, så XOR-, eksistens- og relevansvalideringen fortsat
@@ -289,7 +289,7 @@ export const makeRow = (id: string, overrides: Partial<RentekravRow> = {}): Rent
 export const rentekravRowsRef = () => createCollectionRef({ section: 'renteberegning', path: [], collection: 'rentekravRows' });
 
 /**
- * Rækkeorigin til test-fixtures, der SEEDER rækker via `dispatchInput` (§3.7, WI-004 runde 4, fund S4).
+ * Rækkeorigin til test-fixtures, der SEEDER rækker via `dispatchInput` (§3.7).
  *
  * Strukturelle rækkecommands kræver en origin, så en undo altid har et restore-anker. En test, der blot
  * opsætter en baseline-række, har ingen brugerhandling at pege på — men den skal levere en gyldig origin

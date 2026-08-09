@@ -40,7 +40,7 @@ import { createEmptyStandardLoenRow } from '../../../domain/aarsloen/standardLoe
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 
-// BF-028/BF-031: kronologireglen for et dato-par skal give en STRUKTUREL feltfejl på BEGGE felter.
+// Kronologireglen for et dato-par skal give en STRUKTUREL feltfejl på BEGGE felter.
 //
 // Reglen fandtes før kun i række-evaluerings-motoren som `{ message, field: 'fra' | 'til' }`. Et kolonne-hint
 // er ikke en feltadresse, og rød ring/tooltip kræver et `FieldIssue` med en strukturel `FieldRef` — derfor
@@ -100,7 +100,7 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
 
     expect(fra?.reason).toBe('rule');
     expect(til?.reason).toBe('rule');
-    // BF-028: hver tooltip navngiver den MODGÅENDE dato, ikke feltets egen.
+    // Hver tooltip navngiver den MODGÅENDE dato, ikke feltets egen.
     expect(fra?.message).toBe('Fra-dato skal være før til-dato (01-01-2025)');
     expect(til?.message).toBe('Til-dato skal være efter fra-dato (01-01-2026)');
     // `rule` vises ORDRET i tooltippet (§4) — ellers ville netop modpartsdatoen forsvinde.

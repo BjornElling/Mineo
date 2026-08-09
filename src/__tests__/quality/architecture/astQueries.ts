@@ -323,7 +323,7 @@ export type DestructuredPropertyRef = Readonly<{
  *
  * Nødvendig for enhver capability-regel, der handler om ADGANG til en værdi frem for om én syntaksform:
  * `collectMemberAccess`/`collectElementAccess` ser ikke destrukturering, så en regel bygget kun på dem
- * kan omgås med én linje (`const { sections } = input`). Det var præcis R5-F02's tredje hul.
+ * kan omgås med én linje (`const { sections } = input`).
  *
  * `propertyName` er kildens navn, ikke det lokale alias — en omdøbning må ikke kunne skjule adgangen.
  */
@@ -356,11 +356,11 @@ export const hasIdentifier = (entry: SourceEntry, name: string): boolean =>
 /**
  * Bruges MINDST ÉT af navnene som identifier i filen?
  *
- * `liveTarget`-probernes kanoniske signal (R0-F02). De brugte tidligere `entry.text.includes(...)` eller et
- * regex over hele filteksten, og en KOMMENTAR kunne derfor opfylde liveness, selv om det levende AST-mål var
- * slettet. Storage-reglens egen rene fixture (`// merge af settings fra localStorage`) demonstrerede det:
- * evaluatoren flagede den ikke, men proben sagde "levende". Et værn kunne dermed fremstå load-bearing efter
- * mekanismens faktiske sletning — samme fejlklasse som INC-F03, blot i liveness-laget frem for i evaluatoren.
+ * `liveTarget`-probernes kanoniske signal. En probe bygget på `entry.text.includes(...)` eller et regex
+ * over hele filteksten lader en KOMMENTAR opfylde liveness, selv når det levende AST-mål er slettet:
+ * storage-reglens rene fixture (`// merge af settings fra localStorage`) er netop den form — evaluatoren
+ * flager den ikke, men en tekstprobe ville sige "levende". Et værn kunne dermed fremstå load-bearing,
+ * efter at mekanismen faktisk var væk.
  *
  * Da identifiers er AST-noder, kan hverken en kommentar eller en strengliteral opfylde signalet.
  */
@@ -374,7 +374,7 @@ export const hasAnyIdentifier = (entry: SourceEntry, names: readonly string[]): 
  *
  * Skilt fra `hasIdentifier`, fordi et typenavn ofte KUN findes i typepositioner — `MoneyOre` importeres som
  * type og bruges i annotationer, aldrig som værdi. En tekstprobe ville derimod også ramme navnet i en
- * kommentar, hvilket er R0-F02's fejlform.
+ * kommentar og dermed holde reglen kunstigt levende.
  */
 export const hasTypeReference = (entry: SourceEntry, name: string): boolean => {
   const { ast } = entry;
@@ -395,7 +395,7 @@ export const hasTypeReference = (entry: SourceEntry, name: string): boolean => {
  * Importerer filen fra et modul, hvis specifier matcher mønstret?
  *
  * AST-modstykket til en `from ['"]…['"]`-regex over filteksten: en import er en node, så en kommentar eller
- * en dokumentationsstreng, der citerer importlinjen, kan ikke opfylde signalet (R0-F02).
+ * en dokumentationsstreng, der citerer importlinjen, kan ikke opfylde signalet.
  */
 export const hasImportFrom = (entry: SourceEntry, modulePattern: RegExp): boolean =>
   collectImports(entry).some((ref) => modulePattern.test(ref.moduleSpecifier));
@@ -404,7 +404,7 @@ export const hasImportFrom = (entry: SourceEntry, modulePattern: RegExp): boolea
  * Sættes JSX-attributten et sted i filen?
  *
  * AST-modstykket til en `\bonCommit=\{`-regex: en JSX-attribut er en node, så en kommentar, der viser
- * prop-formen som eksempel, kan ikke opfylde signalet (R0-F02).
+ * prop-formen som eksempel, kan ikke opfylde signalet.
  */
 export const hasJsxAttribute = (entry: SourceEntry, attributeName: string): boolean => {
   const { ast } = entry;
@@ -423,7 +423,7 @@ export const hasJsxAttribute = (entry: SourceEntry, attributeName: string): bool
  * Erklærer filen en property/metode med dette navn i et interface, en type-literal eller en klasse?
  *
  * Bruges af liveness-prober, hvis mål er en TYPES medlem (fx `FieldIssueSet.all`): et regex over
- * `all: readonly FieldIssue[]` ville også ramme kommentaren, der forklarer feltet (R0-F02).
+ * `all: readonly FieldIssue[]` ville også ramme kommentaren, der forklarer feltet.
  */
 export const hasDeclaredMember = (entry: SourceEntry, memberName: string): boolean => {
   const { ast } = entry;
@@ -438,7 +438,7 @@ export const hasDeclaredMember = (entry: SourceEntry, memberName: string): boole
   return found;
 };
 
-/** Læses `<noget>.<property>` et sted i filen? AST-modstykket til en `\bissues\.all\b`-regex (R0-F02). */
+/** Læses `<noget>.<property>` et sted i filen? AST-modstykket til en `\bissues\.all\b`-regex. */
 export const hasMemberRead = (entry: SourceEntry, propertyName: string): boolean =>
   collectMemberAccess(entry).some((ref) => ref.node.name.text === propertyName);
 

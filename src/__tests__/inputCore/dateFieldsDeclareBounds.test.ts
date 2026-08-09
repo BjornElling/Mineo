@@ -10,7 +10,7 @@ import { maxISO, minISO } from '../../utils/isoDateHelpers';
 // deklarationen til håndhævelsen: hver validator var håndskrevet pr. descriptor, så et felt havde grænser
 // præcis hvis nogen huskede at skrive dem. Målingen 2026-08-09 viste 31 af 54 datofelter, der accepterede
 // BÅDE år 1900 og år 2100 uden ét issue — heriblandt alle fem AES-datoer, differencekravsdatoen og
-// samtlige EO-tabellers dato-par. Runtime-auditten nåede kun at ramme 3 af dem (OBS-022–024).
+// samtlige EO-tabellers dato-par. En runtime-audit nåede kun at ramme 3 af dem.
 //
 // Værnet måler ADFÆRD, ikke kildekode. En descriptor kunne bære en `dateBounds`-erklæring, som ingen
 // validator læste, og et regex/AST-værn ville da være grønt, mens brugeren fortsat kunne indtaste år 1900.

@@ -141,7 +141,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
     expect(store.getState().revision).toBe(revisionEfter);
   });
 
-  // Fase 7 acceptmatrix punkt 4 (WI-013): Escape skal dække alle TRE udgangspunkter. Kun det gyldige var
+  // Escape skal dække alle TRE udgangspunkter. Kun det gyldige var
   // dækket. De to andre er ikke symmetrisk pynt — de rammer hver sin invariant, som en Escape-fejl kan bryde
   // usynligt: fra TOMT må Escape ikke fabrikere et felt (§1.7 "tomhed giver aldrig rød feltfejl"), og fra
   // FEJLENDE må den ikke tavst rydde den afviste råtekst, brugeren skal vende tilbage til (§1.3 sidste led).

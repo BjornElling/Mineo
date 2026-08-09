@@ -17,7 +17,7 @@
  *     kan per konstruktion ikke se det.
  *   - `// it('navn', …)` i en kommentar blev medtaget som en levende deklaration.
  *
- * **Hvorfor LEAF/SUITE-sondringen** (R8-F01): et `describe`-navn overlever, efter at hver `it` under det
+ * **Hvorfor LEAF/SUITE-sondringen**: et `describe`-navn overlever, efter at hver `it` under det
  * er slettet. Et register, der accepterer suitenavne, kan derfor stå grønt uden en eneste udførende
  * assertion.
  *

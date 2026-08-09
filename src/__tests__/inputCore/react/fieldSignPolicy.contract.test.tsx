@@ -23,7 +23,7 @@ import { dispatchInput } from '../../../inputCore/runtime';
 import { createCollectionRef } from '../../../inputCore/fieldAddress';
 
 /**
- * UT-F08: et felts FORTEGNS-politik kommer fra dens descriptor — ét sted, samme svar på alle flader.
+ * Et felts FORTEGNS-politik kommer fra dens descriptor — ét sted, samme svar på alle flader.
  *
  * **Fundet.** Brugeren kunne taste et minustegn som første tegn i et procentfelt, der ikke må være negativt.
  * Årsagen var ikke en manglende `false` på ét callsite: `allowNegative` var erklæret på hvert numerisk codec i
@@ -66,7 +66,7 @@ const renderField = (node: React.ReactNode) => {
   return render(<InputRuntimeProvider binding={binding}>{node}</InputRuntimeProvider>);
 };
 
-describe('UT-F08 lag 1 — codecet bærer den erklærede fortegns-politik', () => {
+describe('lag 1 — codecet bærer den erklærede fortegns-politik', () => {
   it('procent: allowNegative:false giver nonNegative og afviser minus som åbningstast', () => {
     const codec = createPercentFieldCodec({ allowNegative: false, allowDecimals: true, minValue: 0, maxValue: 100 });
     expect(codec.signPolicy).toBe('nonNegative');
@@ -114,7 +114,7 @@ describe('UT-F08 lag 1 — codecet bærer den erklærede fortegns-politik', () =
   });
 });
 
-describe('UT-F08 lag 2 — hvert numerisk produktionsfelt ERKLÆRER en politik', () => {
+describe('lag 2 — hvert numerisk produktionsfelt ERKLÆRER en politik', () => {
   /**
    * Uden dette ben kunne surface-testene være grønne, mens et produktionsfelt manglede sin politik og derfor
    * fail-open'ede til "minus tilladt". Det er samtidig værnet mod et NYT numerisk felt uden politik: laget
@@ -146,7 +146,7 @@ describe('UT-F08 lag 2 — hvert numerisk produktionsfelt ERKLÆRER en politik',
   });
 });
 
-describe('UT-F08 lag 3 — den ægte komponent blokerer tastetrykket', () => {
+describe('lag 3 — den ægte komponent blokerer tastetrykket', () => {
   /**
    * Åbner editoren og returnerer inputtet. Et lukket greenfield-felt er `readOnly`, og dets tegnfilter er
    * ikke tilkoblet — en test, der taster på et LUKKET felt, ville derfor være grøn uanset politikken. Det var

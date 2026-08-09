@@ -20,7 +20,7 @@ import type {
 // hvert datofelt, men intet bandt deklarationen til håndhævelsen: hver validator var håndskrevet på sin egen
 // descriptor, så et felt havde grænser præcis hvis nogen huskede at skrive dem. Målingen 2026-08-09 viste, at
 // 31 af 54 datofelter accepterede både år 1900 og år 2100 uden ét eneste issue — konfigurationen sagde ét, og
-// programmet gjorde noget andet. Runtime-auditten fandt kun 3 af de 31 (OBS-022–024), fordi den prøvede
+// programmet gjorde noget andet. En runtime-audit fandt kun 3 af de 31, fordi den prøvede
 // felter stikprøvevis; hullet var aldrig lokalt for de felter, den nåede at ramme.
 //
 // Derfor er reglen nu DATA (en `DateBoundsSpec`) frem for kode pr. felt: et datofelt erklærer sine grænser, og

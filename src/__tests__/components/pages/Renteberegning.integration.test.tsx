@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 //
-// Greenfield Renteberegning-slice (§2.4 trin 4 / §2.5 / Fase 3): hele siden kører nu på den ENE greenfield
+// Renteberegning-siden (§2.4/§2.5): hele siden kører på den ENE
 // input-runtime (ingen legacy FormPersistence/invalidDrafts). Denne integrationstest kører gennem den RIGTIGE
 // migrerede side + den ægte produktions-runtime og beviser den virkelige sti felt → settle → reader-projektion
 // → download-gate (§1.5/§1.6/§3.9): en afsluttet ugyldig beregningsdato blokerer downloads, og en gyldig
@@ -23,7 +23,7 @@ import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamd
 import { toISODateString } from '../../../types/branded';
 
 /**
- * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
+ * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
  * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte. Begge
  * rente-outputs går gennem samme handling, så tælleren dækker dem tilsammen.
  */
@@ -182,7 +182,7 @@ describe('Renteberegning — Evt. tillægstid', () => {
     expect(input).toHaveAttribute('aria-invalid', 'true');
   });
 
-  // Kontraktændring 2026-08-09 (`input-field-behavior-contract.md` §1.2/§1.2a, OBS-009): paste afgrænses
+  // Kontraktændring 2026-08-09 (`input-field-behavior-contract.md` §1.2/§1.2a): paste afgrænses
   // nu PRÆCIS som tastning. Testen krævede før, at et indsat `987` overlevede i fuld længde og blev en rød
   // fejl ved settle — det byggede på det ophævede princip om, at paste aldrig måtte afkortes. Nu er det
   // tredje ciffer blokeret ved indgangen, ligesom det er ved tastning, så `98` er den ØNSKEDE værdi og

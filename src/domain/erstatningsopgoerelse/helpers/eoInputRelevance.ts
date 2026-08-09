@@ -74,7 +74,7 @@ export const erOevrigeKravSektionAktiv = (values: ErstatningsopgoerelseValues): 
  * sektionen er aktiv OG `beregnesUdFra === 'Beregningsperiode'`. Ved angivet måneds-/dagsløn er
  * feltet uden virkning.
  *
- * Prædikatet fik sit eget navn her, da togglen flyttede fane (BF-022). Betingelsen stod tidligere
+ * Prædikatet fik sit eget navn her, da togglen flyttede fane. Betingelsen stod tidligere
  * kun som en JSX-condition på EO oplysninger-fanen, og et flyttet felt måtte ikke risikere at få en
  * anden — bredere — synlighed end den, beregningen faktisk har.
  */

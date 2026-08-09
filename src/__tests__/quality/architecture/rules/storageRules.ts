@@ -4,9 +4,9 @@
  * Adgang til browser-globaler og til den persisterede sektionsform: alt skal gennem de kanoniske
  * wrappere og manifestets nøgler, og den slettede legacy-inputarkitektur må ikke genopstå.
  *
- * Del af det opdelte arkitekturmanifest (Fase 6, genåbnet): manifestet var 2.133 linjer og blandede
- * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
- * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
+ * Del af det koncern-opdelte arkitekturmanifest: storage-, input-, domæne-, UI- og dokumentregler bor
+ * hver for sig, så en regel og dens nabo hører til samme emne. `architectureRules.ts` samler de fem
+ * moduler til ét registry.
  */
 import ts from 'typescript';
 import { isValidStorageKey } from '../../../../config/storageManifest';
@@ -27,9 +27,9 @@ export const localStorageBoundary = forbidMemberAccess({
     'Direkte window.localStorage-adgang er kun tilladt i den kanoniske safeLocalStorage-wrapper.',
   liveTarget: {
     kind: 'precondition',
-    // R0-F02: AST-signal, ikke tekst. Reglens EGEN rene fixture er en kommentar, der blot NÆVNER
-    // localStorage — den opfyldte tekstproben, mens evaluatoren korrekt ikke flagede den. Proben kunne
-    // dermed erklære grænsen levende, efter mekanismen var slettet.
+    // AST-signal, ikke tekst. Reglens EGEN rene fixture er en kommentar, der blot NÆVNER localStorage:
+    // den ville opfylde en tekstprobe, mens evaluatoren korrekt ikke flager den. Proben kunne dermed
+    // erklære grænsen levende, efter at mekanismen var slettet.
     probe: (entry) => hasIdentifier(entry, 'localStorage'),
     rationale: 'mindst én fil rører localStorage — ellers har grænsen ingen trafik at regulere',
   },
@@ -53,7 +53,7 @@ export const sessionStorageBoundary = forbidMemberAccess({
     'Direkte sessionStorage-adgang er kun tilladt i persistence-infrastrukturen og den kanoniske helper.',
   liveTarget: {
     kind: 'precondition',
-    // R0-F02: AST-signal, ikke tekst (samme fejlform som localStorage-reglens fixture).
+    // AST-signal, ikke tekst (samme fejlform som localStorage-reglens fixture).
     probe: (entry) => hasIdentifier(entry, 'sessionStorage'),
     rationale: 'mindst én fil rører sessionStorage — ellers har grænsen ingen trafik at regulere',
   },
@@ -120,7 +120,7 @@ export const sessionStorageManifestKey = forbidCalls({
   violatingFixtures: [
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("ikke-en-key", v);' },
     { relativePath: 'src/x.ts', code: 'window.sessionStorage.setItem("random", v);' },
-    // De slettede legacy-nøgler må ikke kunne skrives igen (greenfield trin 13): sagsinput ligger i
+    // De slettede legacy-nøgler må ikke kunne skrives igen: sagsinput ligger i
     // ÉN envelope, og per-sektion-persistering/`invalidDrafts` er ikke længere en skrivegrænse.
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_stamdata", v);' },
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_invalidDrafts", v);' },
@@ -141,10 +141,10 @@ export const sessionStorageManifestKey = forbidCalls({
   ],
 });
 
-// --- Hel-sags-reset: ét ejerskab, én afslutning (R4-F02/GM-F12) --------------
+// --- Hel-sags-reset: ét ejerskab, én afslutning ------------------------------
 
 /**
- * Reset-transaktionen ejes af `CaseResetOperations` (R4-F02).
+ * Reset-transaktionen ejes af `CaseResetOperations`.
  *
  * Fundet var netop, at oprydningen lå som løse kald i shell-use-casen, hvis boolean-resultater ingen
  * læste. Reglen forbyder derfor, at nogen ANDEN end porten enumererer reset-policyen: en ny kalder af
@@ -167,7 +167,7 @@ export const caseResetPolicyOwnership = forbidCalls({
   allow: ['src/persistence/caseResetOperations.ts'],
   forbidden: (ref) => ref.calleeName === 'getCaseScopedSessionStorageKeys',
   message: () =>
-    'getCaseScopedSessionStorageKeys uden for CaseResetOperations — en parallel reset-vej rapporterer ikke rester (R4-F02).',
+    'getCaseScopedSessionStorageKeys uden for CaseResetOperations — en parallel reset-vej rapporterer ikke rester.',
   violatingFixtures: [
     { relativePath: 'src/hooks/x.ts', code: 'for (const k of getCaseScopedSessionStorageKeys()) remove(k);' },
     { relativePath: 'src/components/x.tsx', code: 'const keys = getCaseScopedSessionStorageKeys();' },
@@ -179,7 +179,7 @@ export const caseResetPolicyOwnership = forbidCalls({
 });
 
 /**
- * `Slet alt` afsluttes INDE i appen (GM-F12, beslutning 4).
+ * `Slet alt` afsluttes INDE i appen (brugerbeslutning).
  *
  * Den fulde `window.location`-genindlæsning er fjernet: load og hel-sags-clear bruger samme
  * autoritative replacement-grænse og skal ikke ende to forskellige steder. Reglen er en
@@ -207,7 +207,7 @@ export const noFullPageReloadInShell = forbidMemberAccess({
     || relativePath.startsWith('src/components/pages/'),
   forbidden: (ref) => FULL_PAGE_RELOAD_ACCESS.test(ref.chainText),
   message: (ref) =>
-    `Fuld sidegenindlæsning (${ref.chainText}) i shell-/sidelaget — hel-sags-handlinger afsluttes inde i appen (GM-F12).`,
+    `Fuld sidegenindlæsning (${ref.chainText}) i shell-/sidelaget — hel-sags-handlinger afsluttes inde i appen.`,
   violatingFixtures: [
     { relativePath: 'src/hooks/x.ts', code: 'window.location.href = "/stamdata";' },
     { relativePath: 'src/components/layout/x.tsx', code: 'window.location.reload();' },
@@ -312,7 +312,7 @@ const DELETED_LEGACY_INPUT_MODULES =
  * De konkrete modul-STIER regexen ovenfor forbyder — eksplicit opregnet, fordi et regex ikke kan
  * opremse sig selv.
  *
- * Fase 6: en fraværsregel kan ikke bevise sin egen liveness ved at ramme noget (nul hits ER målet).
+ * En fraværsregel kan ikke bevise sin egen liveness ved at ramme noget (nul hits ER målet).
  * I stedet beviser `deletedLegacyAbsence.test.ts`, at hver af disse stier faktisk ER fraværende i
  * kilde-grafen. Uden det kunne reglen stille skifte fra "forbyder noget, der findes" til "forbyder
  * en stavefejl" — og fremstå som dækning, mens den rigtige fil lever videre ved siden af.

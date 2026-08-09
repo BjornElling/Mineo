@@ -30,10 +30,10 @@ const assertConsumedSymbol = (entry: ConsumedInventoryEntry): void => {
 
 describe('konsument- og schema-registre', () => {
   /**
-   * Schema-drift-detektor (omklassificeret i Fase 6).
+   * Schema-drift-detektor.
    *
    * Snapshottet hed før `greenfield-phase-0-persisted-input-inventory.json` og lå i
-   * `docs/architecture/`, hvor det lignede et migrationsartefakt fra fase 0 — og planens Fase 6 trin 2
+   * `docs/architecture/`, hvor det lignede et engangsartefakt — hvilket
    * bad derfor om at FJERNE det, "når slutkatalogerne selv giver udtømmende coverage".
    *
    * Præmissen er vendt om: filen er ikke et frosset inventar. Den GENERERES ved hver kørsel af
@@ -63,7 +63,7 @@ describe('konsument- og schema-registre', () => {
   });
 
   /**
-   * Completeness for dokumentoutputs (Fase 5).
+   * Completeness for dokumentoutputs.
    *
    * Målestokken var før "alle `download*Dokument`-exports i `documentService.ts`" — en regex over ÉT
    * modul. Det modul findes ikke længere: hvert output ejes af en definition ved sin egen

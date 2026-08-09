@@ -9,7 +9,7 @@ import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/
 import { toDanishDateString, toISODateString } from '../../../types/branded';
 
 /**
- * Trust-binding for KL-lønaftaler-kæden (review-punkt 10, silent-path S4).
+ * Trust-binding for KL-lønaftaler-kæden.
  *
  * KL-lønaftaler-kæde-resolveren (`buildKlLoenaftalerReguleretLoenResolver`) bygger sin
  * kæde direkte fra kilde-rækkerne (`klLoenaftalerRaekker`), så dato og periodesats aldrig

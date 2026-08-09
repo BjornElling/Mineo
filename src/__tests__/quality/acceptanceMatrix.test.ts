@@ -3,31 +3,25 @@
  *
  * **Hvorfor dette register findes, og hvorfor det ikke er en manuel afkrydsning.**
  *
- * Planens Fase 7 beskrev en "manuel browsermatrix" over 15 punkter. Det afsnit blev skrevet FØR
- * fase 1-5 blev bygget, hvor inputtilstanden endnu var mount-afhængig og punkterne derfor kun KUNNE
- * observeres i en browser. Designet afskaffede netop den egenskab: §5-kriterium 22 kræver, at
- * "issues, beregninger og gates ikke afhænger af component mount", og kriterium 7, at et lukket felt
- * ingen værdibærende lokal kopi har. En manuel matrix ville måle arkitekturen med det instrument,
- * arkitekturen blev bygget for at fjerne — og et engangs-"OK" fra en menneskelig gennemgang rådner ved
- * næste commit uden at kunne fejle i CI.
+ * En manuel browsermatrix ville måle arkitekturen med præcis det instrument, arkitekturen er bygget
+ * for at fjerne: §5-kriterium 22 kræver, at "issues, beregninger og gates ikke afhænger af component
+ * mount", og kriterium 7, at et lukket felt ingen værdibærende lokal kopi har. Netop derfor kan
+ * kriterierne konstateres uden en browser. Dertil rådner et engangs-"OK" fra en menneskelig
+ * gennemgang ved næste commit, uden at kunne fejle i CI.
  *
- * **Registret måler MÅLARKITEKTUREN, ikke rejsen dertil** (R8-F01, etape 10). Indtil da registrerede
- * filen den historiske 15-punkts Fase 7-liste. Den liste var en mellemtilstands acceptflade: dens
- * punkter grupperede interaktionsforløb ("blur, Enter, klik væk og navigation"), mens §5's kriterier
- * er de INVARIANTER, slutarkitekturen påstår at holde. Et register over den forkerte flade kan være
- * fuldstændigt grønt, mens et §5-kriterium slet ikke har en dækningskilde — hvilket det var: fem af
- * de 30 kriterier (1, 8, 22, 28, 29) havde ingen post nogen steder.
+ * **Registret måler INVARIANTER, ikke interaktionsforløb.** §5's kriterier er de påstande,
+ * arkitekturen holder; en acceptflade, der i stedet grupperer forløb ("blur, Enter, klik væk og
+ * navigation"), kan stå fuldstændigt grøn, mens et §5-kriterium slet ikke har en dækningskilde.
  *
- * **Registret skal selv kunne fejle.** Fase 6's dødt-værn-detektor viste, at et værn, hvis mål er
- * slettet, bliver grønt af tomhed. Et register, der kun kontrollerede at en FIL findes, har præcis den
- * svaghed: testfilen kan overleve, mens netop den `it(...)`, punktet hvilede på, er væk. Derfor
- * verificeres hvert punkt på TESTNAVN — og navnet skal tilhøre en AKTIV deklaration i den angivne fil.
+ * **Registret skal selv kunne fejle.** Et værn, hvis mål er slettet, bliver grønt af tomhed — og et
+ * register, der kun kontrollerer at en FIL findes, har præcis den svaghed: testfilen kan overleve,
+ * mens netop den `it(...)`, punktet hvilede på, er væk. Derfor verificeres hvert punkt på TESTNAVN,
+ * og navnet skal tilhøre en AKTIV deklaration i den angivne fil.
  *
- * **En suite er ikke evidens i sig selv** (R8-F01). Den gamle udgave accepterede både `describe` og
- * `it` som dækningskilde. Et `describe`-navn kan bestå, efter at hver `it` under det er slettet — så
- * punktet ville stå grønt uden en eneste udførende assertion. Registret citerer derfor kun LEAF-tests
- * (`it`/`test`), og parseren kender forskellen strukturelt: en `describe`, der bærer et citeret navn,
- * afvises med en fejl, der siger hvorfor.
+ * **En suite er ikke evidens i sig selv.** Et `describe`-navn kan bestå, efter at hver `it` under det
+ * er slettet — så punktet ville stå grønt uden en eneste udførende assertion. Registret citerer derfor
+ * kun LEAF-tests (`it`/`test`), og parseren kender forskellen strukturelt: en `describe`, der bærer et
+ * citeret navn, afvises med en fejl, der siger hvorfor.
  *
  * Registret er et REGISTER, ikke en ny testkopi: det peger på de assertions, der allerede bor ved deres
  * egen grænse. At samle de 30 kriteriers adfærd her ville duplikere dækning frem for at ensarte
@@ -56,13 +50,13 @@ type AcceptanceCriterion = Readonly<{
   title: string;
   sources: readonly CoverageSource[];
   /**
-   * En KENDT begrænsning i kriteriets dækning, med den WI der lukker den.
+   * En KENDT begrænsning i kriteriets dækning, med det dokument der sporer den.
    *
    * Et kriterium må ikke fremstå fuldt dækket, når dets dækning beviseligt har et hul. Alternativet —
    * at lade kriteriet stå uden note — er netop den falske fuldstændighed, hele registret er bygget for
    * at udelukke. Feltet er derfor en del af registrets kontrakt, ikke en kommentar: testen nedenfor
-   * kræver, at den nævnte WI-fil FINDES, så et hul ikke kan dokumenteres væk med en henvisning til en
-   * opfølgning, ingen har oprettet.
+   * kræver, at filen i `trackedIn` FINDES, så et hul ikke kan dokumenteres væk med en henvisning til
+   * en opfølgning, ingen har oprettet.
    */
   knownLimitation?: Readonly<{ description: string; trackedIn: string }>;
 }>;
@@ -162,9 +156,9 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
     title: 'Form og grid bruger samme editor og codec; deres adaptere ejer kun interaktion/rendering/navigation.',
     sources: [
       {
-        // §7.1's FÆLLES kontrakt: ÉN invariantliste, kørt mod BEGGE adaptere for hver codecfamilie
-        // (R8-F02). Uden en fælles suite ville kriteriet være målt af to uafhængige suiter, der
-        // tilfældigvis hver dækkede sin halvdel.
+        // §7.1's FÆLLES kontrakt: ÉN invariantliste, kørt mod BEGGE adaptere for hver codecfamilie.
+        // Uden en fælles suite ville kriteriet være målt af to uafhængige suiter, der tilfældigvis
+        // hver dækkede sin halvdel.
         file: 'src/__tests__/inputCore/react/fieldContract.surfaces.test.tsx',
         tests: ['gyldigt settle skriver ny canonical', 'ugyldigt settle er XOR'],
       },
@@ -198,7 +192,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
         tests: ['afviser dubleret felt-id', 'afviser et entity-felt uden registreret parentsamling'],
       },
       {
-        // Adressen udledes af collectionens STI, ikke af kolonneindeks eller DOM (UT-F04).
+        // Adressen udledes af collectionens STI, ikke af kolonneindeks eller DOM.
         file: 'src/__tests__/inputCore/react/cellSpecBuilder.test.ts',
         tests: [
           'NESTED: adressen har BÅDE ansættelsesforholdets og rækkens entity-id',
@@ -278,10 +272,9 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
     title: 'Warning blokerer aldrig beregning, dokument eller `.eo`.',
     sources: [
       {
-        // ÆGTE warning-fixtures over alle fire konsekvenskanaler (R8-F05). Den tidligere kilde
-        // (`documentGateMatrix`' "warnings blokerer intet") skabte slet ingen warning — den committede
-        // en IRRELEVANT bounds-fejl, altså kriterium 15's dimension. Warnings dannes i domænerne, og
-        // det er dér, invarianten nu er målt.
+        // ÆGTE warning-fixtures over alle fire konsekvenskanaler. En fixture, der committer en
+        // bounds-FEJL, måler kriterium 15's dimension og skaber slet ingen warning — warnings dannes
+        // i domænerne, og det er dér, invarianten skal måles.
         file: 'src/__tests__/document/documentGateMatrix.test.ts',
         tests: [
           'en ÆGTE domæne-warning blokerer hverken beregning, dokumentgate eller .eo',
@@ -407,7 +400,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
     title: 'Hver reel inputhandling giver én revision og højst ét history-trin.',
     sources: [
       {
-        // EXHAUSTIVT over hver runtime-command-kind (R8-F04), ikke kun `settleField`.
+        // EXHAUSTIVT over hver runtime-command-kind, ikke kun `settleField`.
         file: 'src/__tests__/inputCore/runtime/commandInvariants.test.ts',
         tests: [
           'giver ÉN monoton revision og HØJST ét history-trin',
@@ -497,7 +490,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
       + 'ved succes.',
     sources: [
       {
-        // Form OG grid gennem de ÆGTE editorer for hver kritisk handling (R8-F06). De syntetiske
+        // Form OG grid gennem de ÆGTE editorer for hver kritisk handling. De syntetiske
         // coordinator-tests nedenfor beviser mekanismen; denne beviser integrationen.
         file: 'src/__tests__/inputCore/react/criticalActionSurfaceParity.test.tsx',
         tests: [
@@ -541,10 +534,10 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
   {
     criterion: 27,
     title: 'Alle 18 dokumentoutputs bruger samme definition til reaktiv gate og click-preflight.',
-    // Kriteriets tidligere `knownLimitation` er FJERNET, fordi begrænsningen er lukket ved roden
-    // (R6-F03/R0-F03): formatet er ikke længere synligt i projektionskonteksten, så spørgsmålet
-    // "nåede fixturen ready-grenen?" er blevet irrelevant. En gate KAN ikke læse formatet — det er en
-    // compilerfejl, bevist af en rigtig oversættelse af en virtuel definition mod det ægte program.
+    // Kriteriet har ingen `knownLimitation`: formatet er ikke synligt i projektionskonteksten, så
+    // spørgsmålet "nåede fixturen ready-grenen?" er irrelevant. En gate KAN ikke læse formatet — det
+    // er en compilerfejl, bevist af en rigtig oversættelse af en virtuel definition mod det ægte
+    // program.
     sources: [
       {
         file: 'src/__tests__/document/documentCatalogCompleteness.test.ts',
@@ -554,13 +547,13 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
         ],
       },
       {
-        // Gate = preflight for HVER af de 18 definitioner (R6-F04). Kontrakten lovede det for alle
-        // atten; målingen dækkede fire.
+        // Gate = preflight for HVER af de 18 definitioner. En måling af fire kan ikke bære en
+        // påstand om atten.
         file: 'src/__tests__/document/documentGatePreflightParity.test.ts',
         tests: ['reaktiv gate og click-preflight giver samme udfald for alle 18 outputs'],
       },
       {
-        // Formatblindheden er en TYPEGRÆNSE efter R6-F03 og måles med en rigtig oversættelse frem for
+        // Formatblindheden er en TYPEGRÆNSE og måles med en rigtig oversættelse frem for
         // med 18 fixture-sammenligninger. Kontrolprøven citeres med, fordi den er det, der gør
         // TS2339-assertionen til evidens og ikke til tilfældighed.
         file: 'src/__tests__/document/documentGateFormatInvariance.test.ts',
@@ -582,7 +575,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
     title: 'Ingen beregnings-, save- eller dokumentkode kan importere raw canonical sections.',
     sources: [
       {
-        // Alle fire adgangsformer (element/property/reference-spread/destrukturering) som AST — R5-F02.
+        // Alle fire adgangsformer (element/property/reference-spread/destrukturering) som AST.
         file: 'src/__tests__/quality/architecture/architectureRules.test.ts',
         tests: ['ingen arkitektur-overtrædelser i kilde-grafen', 'anti-rot: hver allowlist-post udløser stadig sin regel'],
       },
@@ -637,7 +630,7 @@ const DESIGN_DOC = 'docs/architecture/input-architecture.md';
  *
  * Registrets titler er ikke dekoration: de er den påstand, hvert kriterium dækker. Uden denne kobling
  * kunne §5 omformuleres eller udvides, mens registret uforstyrret blev ved med at måle en anden liste
- * — samme fejlklasse som det 15-punkts-register, R8-F01 afløste, blot et niveau højere.
+ * — et register over den forkerte flade, blot et niveau højere end en enkelt forkert dækningskilde.
  */
 const parseDesignCriteria = (): ReadonlyMap<number, string> => {
   const lines = readFile(DESIGN_DOC).split(/\r?\n/);
@@ -709,11 +702,11 @@ describe('§5-acceptregister (målarkitekturens 30 kriterier)', () => {
   });
 
   /**
-   * En kendt begrænsning skal spores i en WI, der FINDES. Ellers kunne et dækningshul erklæres
+   * En kendt begrænsning skal spores i et dokument, der FINDES. Ellers kunne et dækningshul erklæres
    * "håndteret" med en henvisning til en opfølgning, ingen har oprettet — en påstand uden dækning,
    * hvilket er samme fejlklasse som resten af registret værner mod.
    */
-  it('hver kendt begrænsning peger på en WI-fil, der findes', () => {
+  it('hver kendt begrænsning peger på et sporingsdokument, der findes', () => {
     const withLimitation = ACCEPTANCE_CRITERIA.filter((entry) => entry.knownLimitation !== undefined);
     for (const entry of withLimitation) {
       const limitation = entry.knownLimitation!;
@@ -723,9 +716,8 @@ describe('§5-acceptregister (målarkitekturens 30 kriterier)', () => {
         `kriterium ${entry.criterion}: begrænsningen henviser til ${limitation.trackedIn}, som ikke findes`
       ).toBe(true);
     }
-    // **Der er INGEN kendte begrænsninger tilbage.** Kriterium 27's var den sidste, og den blev
-    // lukket ved roden 2026-07-29 (R6-F03/R0-F03): formatet er fjernet fra projektionskonteksten, så
-    // hullet i dens dækning ikke længere findes at måle.
+    // **Der er INGEN kendte begrænsninger.** Den sidste blev lukket ved roden: formatet er fjernet
+    // fra projektionskonteksten, så hullet i kriterium 27's dækning ikke længere findes at måle.
     //
     // Assertionen er bevidst BEVARET frem for slettet med noten. Feltet `knownLimitation` findes
     // stadig i registrets kontrakt, og en tom liste er en påstand, der kan brydes: skrives en ny
@@ -780,7 +772,7 @@ describe('§5-acceptregister — kilde-verifikation', () => {
 
   /**
    * Modsat retning: kontrollen skal kunne FEJLE. Et prædikat, der ikke kan afvise et navn, som
-   * beviseligt IKKE er deklareret, ville bestå alt (jf. Fase 6's `verifyAbsent`-lære).
+   * beviseligt IKKE er deklareret, ville bestå alt.
    */
   it('kontrollen afviser et navn, der ikke er en aktiv deklaration — prædikatet er ikke vakuøst', () => {
     const file = 'src/__tests__/inputCore/editor/fieldEditor.test.ts';
@@ -789,7 +781,7 @@ describe('§5-acceptregister — kilde-verifikation', () => {
     expect(leaves.some((name) => name.includes('dette testnavn findes bevisligt ikke'))).toBe(false);
     // Et navn, der findes, genkendes — ellers var prædikatet blot altid falsk.
     expect(leaves.some((name) => name.includes('Escape lukker uden command'))).toBe(true);
-    // Og en SUITE i samme fil er ikke en leaf: det er præcis den form, R8-F01 afviste som evidens.
+    // Og en SUITE i samme fil er ikke en leaf: det er præcis den form, registret afviser som evidens.
     expect(leaves.some((name) => name.includes('felt-editor-state-machine'))).toBe(false);
     expect(suiteNames(readFile(file), file).some((name) => name.includes('felt-editor-state-machine'))).toBe(true);
   });
@@ -821,7 +813,7 @@ describe('§5-acceptregister — kilde-verifikation', () => {
       'it(`${x}: dynamisk navn med statisk hale`, () => {});',
       'it.skip(`${x}: skippet dynamisk navn`, () => {});',
       // En TØMT suite: navnet lever, men der er ingen udførende assertion under det. Det er præcis den
-      // form, R8-F01 fandt — og som registret nu ikke kan citere.
+      // form — og som registret ikke kan citere.
       "describe('tømt suite uden tests', () => {});",
     ].join('\n');
 

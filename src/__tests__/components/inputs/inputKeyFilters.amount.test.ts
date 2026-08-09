@@ -80,7 +80,7 @@ describe('filterAmountExpressionKeyDown', () => {
 
   // ── Heltalscifre: højst 7 pr. talled (§2.2) ──
   // Grænsen fandtes overhovedet ikke i tegnfilteret før; det kendte kun decimaler. Derfor kunne
-  // `70368744177664` tastes og nå frem til beløbsschemaet (OBS-025/OBS-026).
+  // `70368744177664` tastes og nå frem til beløbsschemaet.
 
   it('tillader det 7. heltalsciffer og blokerer det 8.', () => {
     expect(isBlockedInsertion('999999', '9', undefined, { maxIntegerDigits: SEVEN })).toBe(false);

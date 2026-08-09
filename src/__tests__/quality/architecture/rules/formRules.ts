@@ -4,9 +4,9 @@
  * Feltfladen og den kritiske handlingsbarriere: ingen lokal spejling af committed state, ingen
  * microtask-/frame-venten i commit-sensitiv kode, og restore-/destinationskravene til undo/redo.
  *
- * Del af det opdelte arkitekturmanifest (Fase 6, genåbnet): manifestet var 2.133 linjer og blandede
- * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
- * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
+ * Del af det koncern-opdelte arkitekturmanifest: storage-, input-, domæne-, UI- og dokumentregler bor
+ * hver for sig, så en regel og dens nabo hører til samme emne. `architectureRules.ts` samler de fem
+ * moduler til ét registry.
  */
 import ts from 'typescript';
 import { collectCalls, collectIdentifiers, hasAnyIdentifier, hasIdentifier, hasImportFrom } from '../astQueries';
@@ -76,17 +76,15 @@ const referencesTrackedCommittedSource = (
 };
 
 /**
- * Fase 6 retargetede denne regel til greenfields faktiske læse-grænse.
+ * Reglen er rettet mod den faktiske læse-grænse — ikke mod et bestemt hook-navn.
  *
- * Mekanikken — spor en variabel fra den committede kilde, og flag den, hvis den flyder ind i en
- * `useState`-initializer eller en setter i en `useEffect` — er uændret og fanger stadig præcis det,
- * den skal. Men KILDERNE var `usePersistedSectionSelector`/`getPersistedSectionSnapshot`/
- * `usePersistedForm`, som alle tre er afskaffet: dødt-værn-detektoren viste nul kald i grafen, så
- * reglen returnerede tomt på første linje for hver eneste fil.
+ * Mekanikken: spor en variabel fra den committede kilde, og flag den, hvis den flyder ind i en
+ * `useState`-initializer eller en setter i en `useEffect`. Peger KILDERNE på hooks, der ikke længere
+ * findes, returnerer reglen tomt på første linje for hver eneste fil og måler dermed ingenting.
  *
- * Greenfields ene læse-grænse er `useInputEvaluation()` (§3.4), hvis `reader` fodrer de rene
- * reader-projektioner. Spejles dét i lokal React-state, genopstår præcis den divergens mellem
- * committed sandhed og lokal kopi, reglen blev skrevet for at forhindre.
+ * Den ene læse-grænse er `useInputEvaluation()` (§3.4), hvis `reader` fodrer de rene
+ * reader-projektioner. Spejles dét i lokal React-state, opstår præcis den divergens mellem
+ * committed sandhed og lokal kopi, reglen er skrevet for at forhindre.
  */
 const COMMITTED_MIRROR_MARKERS = ['useInputEvaluation'];
 /** Evalueringens committede medlem: `const { reader } = useInputEvaluation()`. */
@@ -97,8 +95,8 @@ const READER_PROJECTION_BUILDER = /^build[A-Za-z]*(?:Reader)?Projection$/;
 /**
  * Bruger filen overhovedet en committed kilde — evalueringen eller en reader-projektion?
  *
- * AST-baseret (R0-F02): den tidligere udgave søgte i filteksten, så en kommentar, der forklarede
- * committed-grænsen, kunne alene opfylde både `liveTarget` og denne forport til analysen.
+ * AST-baseret og ikke en tekstsøgning: ellers kunne en kommentar, der forklarer committed-grænsen,
+ * alene opfylde både `liveTarget` og denne forport til analysen.
  */
 const usesCommittedSource = (entry: SourceEntry): boolean =>
   hasAnyIdentifier(entry, COMMITTED_MIRROR_MARKERS)
@@ -277,7 +275,7 @@ export const persistenceCommittedMirror = defineRule({
 
 // --- Form-kontrakt: ingen microtask-/Promise-tick i commit-sensitiv kode -------
 
-// `src/rowDrafts/` og `src/criticalActions/` er FJERNET fra listen i Fase 6: begge mapper blev slettet
+// `src/rowDrafts/` og `src/criticalActions/` står IKKE på listen: begge mapper er slettet
 // i greenfield-cutoveren, så de var død konfiguration, der stille ville udvide grænsen igen, hvis en fil
 // med samme sti nogensinde opstod. Greenfields egen barriere ligger i `src/inputCore/runtime/`, som er
 // tilføjet i stedet — den er commit-sensitiv i præcis den forstand, reglen handler om.
@@ -357,7 +355,7 @@ export const promiseTickBoundary = forbidCalls({
  * mønster inde i selve barrieren. `document.activeElement` (fokus-mål-capture, ikke deltager-
  * opdagelse) er en property-access og rammes derfor ikke.
  */
-// Fase 6: scopet var `src/criticalActions/` — en mappe, greenfield-cutoveren slettede. Dødt-værn-
+// Scopet var `src/criticalActions/` — en mappe, der er slettet. Dødt-værn-
 // detektorens scan-rod-kontrol fangede det: reglen scannede en tom rod og var inert, selv om dens
 // fixtures (som lå på syntetiske `src/criticalActions/`-stier) blev ved med at bestå. Barrieren bor nu
 // i `criticalActionCoordinator.ts` under greenfield-runtimen, og kontrakt §2's løfte gælder den.
@@ -725,9 +723,9 @@ export const sfggWarningsImportBoundary = forbidImports({
 });
 
 /**
- * Fase 5's strukturelle håndhævelse: dokument-livscyklussen er den ENE vej til et dokument.
+ * Strukturel håndhævelse: dokument-livscyklussen er den ENE vej til et dokument.
  *
- * Før Fase 5 lå livscyklussen spredt over tre lag pr. output, og hvert af de 18 outputs havde sin
+ * Lå livscyklussen spredt over tre lag pr. output, ville hvert af de 18 outputs have sin
  * egen kopi af spredningen — hvorfor fem af dem manglede mindst ét trin (commit-barriere, frisk
  * kildeoptagelse, token-lighed, friskheds-recheck). Nu ejer definitionen rækkefølgen, men det
  * holder kun, hvis ingen kan gå udenom. Derfor:
@@ -898,7 +896,7 @@ export const documentGeneratorCursorElementAccess = forbidElementAccess({
   cleanFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'const value = data["value"];' }],
 });
 
-// --- WI-003: kommitterende felt-familier skal bære undo/redo-restore-target-attributterne ----------
+// --- Kommitterende felt-familier skal bære undo/redo-restore-target-attributterne ---------------
 //
 // En feltfamilie, der renderer sit EGET fokuserbare element — enten via en surface-hook
 // (`useFormFieldSurface`/`useGridCellSurface`) eller ved at rendere en fokuserbar `Styled*`-kontrol
@@ -910,7 +908,7 @@ export const documentGeneratorCursorElementAccess = forbidElementAccess({
 // Scopet er HELE feltmappen (ikke et navnepræfiks): et nyt felt i mappen er dækket automatisk, og reglen kan
 // ikke stille blive inert af en omdøbning.
 const FIELDS_DIR = 'src/inputCore/react/fields';
-// R0-F02: navnene måles som IDENTIFIERS, ikke som tekst. Reglen var før et rent tekst-værn i BEGGE ender, så en
+// Navnene måles som IDENTIFIERS, ikke som tekst. Reglen var før et rent tekst-værn i BEGGE ender, så en
 // kommentar kunne både gøre den levende og — værre — få en manglende gennemføring til at se opfyldt ud:
 // forklarende prosa om `restoreTargetAttributes` var nok til at gøre en overtrædelse grøn.
 const RESTORE_ATTR_NAMES = ['useRestoreTargetAttributes', 'restoreTargetAttributes'];
@@ -1066,7 +1064,7 @@ export const rowCommandDestinationRule = defineRule({
   ],
 });
 
-// --- Popup-semantik klassificeres ét sted (UT-F02) ----------------------------
+// --- Popup-semantik klassificeres ét sted ----------------------------
 
 /**
  * Navigationsfladerne (`Container` og grid-navigationen) må IKKE hver især afgøre "er dette en popup-
@@ -1111,12 +1109,12 @@ export const popupSemanticsSingleSourceRule = defineRule({
   id: 'input/popup-semantics-single-source',
   description:
     'Navigationsflader skal klassificere popup-kontroller gennem popupWidgetSemantics — ikke med en privat '
-    + 'markør-attribut eller en lokal kopi af ARIA-opslaget (UT-F02).',
+    + 'markør-attribut eller en lokal kopi af ARIA-opslaget.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
       POPUP_SEMANTICS_CONSUMERS.includes(entry.relativePath as (typeof POPUP_SEMANTICS_CONSUMERS)[number])
-      // R0-F02: importen måles som en AST-node, ikke som tekst — en kommentar, der citerer importlinjen,
+      // Importen måles som en AST-node, ikke som tekst — en kommentar, der citerer importlinjen,
       // må ikke kunne holde grænsen levende.
       && hasImportFrom(entry, POPUP_SEMANTICS_IMPORT),
     rationale:
@@ -1137,7 +1135,7 @@ export const popupSemanticsSingleSourceRule = defineRule({
     const findings: Finding[] = [];
     const lines = entry.text.split('\n');
     lines.forEach((line, index) => {
-      // Kommentarer er ikke kode (jf. INC-F03): en linje, der kun forklarer den gamle fejlform, er ikke
+      // Kommentarer er ikke kode: en linje, der kun forklarer den gamle fejlform, er ikke
       // en overtrædelse. Vi måler derfor kun linjer med faktisk kode uden for en kommentar.
       const withoutComment = line.replace(/\/\/.*$/, '').replace(/^\s*\*.*$/, '');
       if (withoutComment.trim() === '') return;
@@ -1147,7 +1145,7 @@ export const popupSemanticsSingleSourceRule = defineRule({
           position,
           message:
             'Popup-kontroller klassificeres med en privat markør-attribut. Det var netop den fejlform, der gjorde '
-            + 'grid\'ets dropdown-fritagelse inert (UT-F02) — brug popupWidgetSemantics i stedet.',
+            + 'grid\'ets dropdown-fritagelse inert — brug popupWidgetSemantics i stedet.',
         });
       }
       if (LOCAL_ARIA_POPUP_LOOKUP.test(withoutComment)) {
@@ -1202,19 +1200,17 @@ export const popupSemanticsSingleSourceRule = defineRule({
   ],
 });
 
-// --- Fokusmålets ejerskab: lokationen, ikke feltadressen (etape 7, andet pas) --
+// --- Fokusmålets ejerskab: lokationen, ikke feltadressen ----------------------
 
 /**
- * Fokusnavigationens grænser, som R7-F02 og R7-F03 afdækkede. De tre regler nedenfor lukker hvert sit
- * hul i SAMME mekanisme — hvem der ejer et fokusmål — og de er skrevet, fordi ingen af hullerne kunne
- * fanges af en type:
+ * Fokusnavigationens grænser. De tre regler nedenfor lukker hvert sit hul i SAMME mekanisme — hvem der
+ * ejer et fokusmål — og de er skrevet, fordi ingen af hullerne kan fanges af en type:
  *
- * 1. `input/persisted-controls-use-field-family` — R7-F02's egentlige fund. Det EKSISTERENDE værn
- *    (`form/restore-target-attributes`) gælder kun `src/inputCore/react/fields/**` og var derfor grønt,
- *    mens to LEVENDE produktions-callsites omgik feltfamilien. Rapportens tilfældighedsfund krævede
- *    udtrykkeligt, at værnets troværdighed blev genåbnet her.
- * 2. `input/focus-destination-owned-by-location` — R7-F03's fund. Typen sikrer, at en lokation HAR en
- *    destination, men ikke at ingen UDLEDER en destination af dataadressen i stedet.
+ * 1. `input/persisted-controls-use-field-family` — det beslægtede værn
+ *    (`form/restore-target-attributes`) gælder kun `src/inputCore/react/fields/**` og er derfor grønt,
+ *    selv når et produktions-callsite uden for den mappe omgår feltfamilien.
+ * 2. `input/focus-destination-owned-by-location` — typen sikrer, at en lokation HAR en destination,
+ *    men ikke at ingen UDLEDER en destination af dataadressen i stedet.
  * 3. `input/restore-attributes-carry-destination` — den nye DOM-kontrakt. En surface, der glemmer at
  *    sætte route/fane-attributterne, gør fokusnavigationen inert, uden at nogen type eller test fejler.
  */
@@ -1270,7 +1266,7 @@ const collectRawControlTags = (entry: SourceEntry): readonly Finding[] => {
         message:
           `<${node.tagName.text}> renderes direkte uden for feltfamilien. En persisteret control skal gå `
           + 'gennem sin typede adapter (ToggleField/MappedToggleField/CheckboxField/RadioField/ChoiceField), '
-          + 'som binder FieldRef, commitvej OG undo/redo-fokusmetadata sammen (R7-F02). Har fladen et '
+          + 'som binder FieldRef, commitvej OG undo/redo-fokusmetadata sammen. Har fladen et '
           + 'særligt afslutningsbehov — en gate eller en atomisk flerfelts-transaktion — brug adapterens '
           + '`commit`-override (ToggleCommitDecision) frem for at forbinde editoren manuelt. Er værdien '
           + 'IKKE sagsdata, tilføj fladen til NON_CASE_DATA_CONTROL_SURFACES med en begrundelse.',
@@ -1287,7 +1283,7 @@ export const persistedControlsUseFieldFamilyRule = defineRule({
   description:
     'Rå interaktive input-primitiver (StyledToggleSwitch/Checkbox/RadioButton/Dropdown) må kun renderes af '
     + 'feltfamilien selv eller af de eksplicit navngivne ikke-sagsdata-flader. Ellers falder FieldRef- og '
-    + 'fokuskontrakten væk uden at nogen type fejler (R7-F02/GM-F03).',
+    + 'fokuskontrakten væk uden at nogen type fejler.',
   liveTarget: {
     kind: 'precondition',
     // Målet er feltfamiliens adaptere: findes de ikke længere, er der intet at henvise callsites til, og
@@ -1312,7 +1308,7 @@ export const persistedControlsUseFieldFamilyRule = defineRule({
   find: (entry) => collectRawControlTags(entry),
   allow: NON_CASE_DATA_CONTROL_SURFACES,
   violatingFixtures: [
-    // R7-F02's præcise fejlform: Årsløns gatede toggle.
+    // Den præcise fejlform: Årsløns gatede toggle.
     {
       relativePath: 'src/components/pages/Aarsloen.tsx',
       code: 'const C = () => <StyledToggleSwitch name="omregningTilFuldtAar" checked={c} onCommit={h} />;',
@@ -1339,7 +1335,7 @@ export const persistedControlsUseFieldFamilyRule = defineRule({
       relativePath: 'src/components/pages/erstatningsopgoerelse/OffentligeYdelserTab.tsx',
       code: 'const C = () => <MappedToggleField field={ref} location={loc} checkedValue="Ja" uncheckedValue="Nej" />;',
     },
-    // En KOMMENTAR om den gamle fejlform må ikke bære reglen (INC-F03's lærepunkt).
+    // En KOMMENTAR om fejlformen må ikke bære reglen.
     {
       relativePath: 'src/components/pages/NySide.tsx',
       code: '// Tidligere brugte vi StyledToggleSwitch direkte her; nu ToggleField.\nconst C = () => <ToggleField field={r} location={l} />;',
@@ -1369,7 +1365,7 @@ const FOCUS_NAVIGATION_SURFACES: readonly string[] = [
 /**
  * De navne, en destinations-udledning fra DATAADRESSEN ville bruge. `PAGE_DEFAULT_TAB` og de to fane-nøglekort
  * er ikke forbudte i sig selv — de er legitime for en side, der viser sine egne faner — men i en FOKUS-flade er
- * de netop den globale afbildning, R7-F03 lukkede: fanen kan kun kendes af den editor, feltet redigeres i.
+ * de netop den globale afbildning, reglen udelukker: fanen kan kun kendes af den editor, feltet redigeres i.
  */
 const ADDRESS_DERIVED_DESTINATION_NAMES: readonly string[] = [
   'PAGE_DEFAULT_TAB',
@@ -1387,7 +1383,7 @@ const collectAddressDerivedDestinationUses = (entry: SourceEntry): readonly Find
         position: { line: line + 1, column: character + 1 },
         message:
           `Fokus-fladen bruger ${node.text} til at udlede en destination af feltets dataadresse. Det var `
-          + 'præcis den model, R7-F03 lukkede: dataidentiteten kan ikke afgøre, HVOR et felt redigeres — et '
+          + 'præcis den udelukkede model: dataidentiteten kan ikke afgøre, HVOR et felt redigeres — et '
           + 'felt kan have flere editorer (faellesAarsloen, forligsfelterne), og afbildningen måtte da '
           + 'kompensere med særregler for brugerens aktuelle route. Spørg i stedet den mountede editor via '
           + '`lookupEditorLocation`; destinationen står på lokationen (§3.2).',
@@ -1403,7 +1399,7 @@ export const focusDestinationOwnedByLocationRule = defineRule({
   id: 'input/focus-destination-owned-by-location',
   description:
     'En fokus-flade må ikke udlede route/fane af feltets dataadresse gennem et globalt fane-kort. '
-    + 'Destinationen ejes af editorlokationen og læses gennem editorLocationDestination (R7-F03).',
+    + 'Destinationen ejes af editorlokationen og læses gennem editorLocationDestination.',
   liveTarget: {
     kind: 'precondition',
     // Målet er de to fokus-flader, der faktisk NAVIGERER, plus det ejende modul. Holder save-fokus op med at
@@ -1421,7 +1417,7 @@ export const focusDestinationOwnedByLocationRule = defineRule({
   find: (entry) => collectAddressDerivedDestinationUses(entry),
   allow: [],
   violatingFixtures: [
-    // R7-F03's præcise fejlform: sektionens standardfane som fallback i fokus-fladen.
+    // Den præcise fejlform: sektionens standardfane som fallback i fokus-fladen.
     {
       relativePath: 'src/inputCore/react/saveBlockedFocus.ts',
       code: 'const tab = PAGE_DEFAULT_TAB[address.section];',
@@ -1443,7 +1439,7 @@ export const focusDestinationOwnedByLocationRule = defineRule({
       relativePath: 'src/inputCore/react/saveBlockedFocus.ts',
       code: "import { getRouteForPageKey } from '../../config/pageNavigation';\nconst route = getRouteForPageKey(address.section);",
     },
-    // En kommentar, der forklarer den afløste model, må ikke bære reglen (INC-F03).
+    // En kommentar, der forklarer den afløste model, må ikke bære reglen.
     {
       relativePath: 'src/inputCore/react/saveBlockedFocus.ts',
       code: '// Den afløste model slog fanen op i PAGE_DEFAULT_TAB og EO_TAB_KEYS; nu ejer lokationen den.\nconst x = 1;',
@@ -1482,7 +1478,7 @@ const REQUIRED_RESTORE_ATTRS: readonly string[] = [
  * udgave af denne regel talte enhver computed property i filen, og `RestoreTargetAttributes`-TYPENS fire
  * computed keys opfyldte den derfor på egen hånd: en mutation, der fjernede
  * `[EDITOR_ROUTE_ATTR]`/`[EDITOR_TAB_ATTR]` fra builderens objekt, forblev GRØN. Netop den fejlform er
- * review-planens grundregel 5 og INC-F03 igen — et grønt værn er ikke evidens for noget, før mutationen er
+ * Grundreglen igen — et grønt værn er ikke evidens for noget, før mutationen er
  * prøvet mod den LEVENDE kilde og ikke kun mod fixtures.
  */
 const RESTORE_ATTR_BUILDER = 'buildRestoreTargetAttributes';
@@ -1527,7 +1523,7 @@ export const restoreAttributesCarryDestinationRule = defineRule({
   description:
     'Restore-target-attributterne skal bære BÅDE identiteten (feltadresse + lokations-id) OG destinationen '
     + '(route + fane). Uden destinationen kan save-blokeringens fokus ikke finde feltets fane, og '
-    + 'fokusnavigationen bliver inert uden at nogen type fejler (R7-F03).',
+    + 'fokusnavigationen bliver inert uden at nogen type fejler.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === RESTORE_ATTRIBUTE_BUILDER_MODULE
@@ -1547,7 +1543,7 @@ export const restoreAttributesCarryDestinationRule = defineRule({
       message:
         `Restore-target-attributterne mangler ${missing.join(', ')}. Et fokuserbart felt skal bære sin `
         + 'editorlokations EGEN route og fane, så save-blokeringens fokus kan sende brugeren til den rigtige '
-        + 'fane uden et globalt adresse→fane-kort (§3.2/R7-F03).',
+        + 'fane uden et globalt adresse→fane-kort (§3.2).',
     }];
   },
   violatingFixtures: [
@@ -1576,7 +1572,7 @@ export const restoreAttributesCarryDestinationRule = defineRule({
   ],
 });
 
-// --- Hver persisteret fagside har ét kanonisk viewmodel-indgangspunkt (R7-F01) ---
+// --- Hver persisteret fagside har ét kanonisk viewmodel-indgangspunkt ---
 
 /**
  * `page-component-contract.md` §4.4: hver persisteret fagside (§2.1) skal have PRÆCIS ÉT kanonisk
@@ -1678,7 +1674,7 @@ export const persistedPageHasViewModelRule = defineRule({
   description:
     'Hver persisteret fagside (§2.1) skal have præcis ét kanonisk `useXxxViewModel`-indgangspunkt, som ejer '
     + 'sidens afledte state, handlers og gates (page-component-contract.md §4.4). Sidelisten udledes af '
-    + 'APP_ROUTES, så en ny fagside gør reglen rød frem for at falde uden for den (R7-F01).',
+    + 'APP_ROUTES, så en ny fagside gør reglen rød frem for at falde uden for den.',
   liveTarget: {
     kind: 'precondition',
     // Målet er den DERIVEREDE sidelistes kilde plus page-komponenterne selv. Findes `APP_ROUTES` ikke længere
@@ -1761,18 +1757,18 @@ export const persistedPageHasViewModelRule = defineRule({
   ],
 });
 
-// --- Ét felt-identitetssystem i DOM (GM-F10/INC-F14) --------------------------
+// --- Ét felt-identitetssystem i DOM --------------------------
 
 /**
  * Den KANONISKE feltidentitet i DOM er den serialiserede feltadresse (`data-mineo-field-address`) plus
  * editorlokations-id'et. Det er den identitet undo/redo (`findRestoreTarget`), save-blokeringens fokus og
  * EO's fejllinks (`scrollToEoRow`) alle slår op på.
  *
- * Før GM-F10 fandtes to PARALLELLE, streng-baserede identiteter ved siden af: `data-mineo-field-path` og
+ * To PARALLELLE, streng-baserede identiteter ved siden af hinanden — `data-mineo-field-path` og
  * `data-mineo-undo-field-path`, hvis værdi var et bart feltNAVN — eller for EO's rækkemål en
  * `tableId:rowScope:rowId:colIndex`-konvention. Det var ikke blot en dublet, men en BRUDT dublet:
  * grid-cellerne satte slet ikke attributterne, så hvert celle-præcist EO-fejllink faldt lydløst tilbage til
- * rækkeankeret, og ingen test kunne se det (INC-F14). Ved omlægningen havde BEGGE attributter i øvrigt nul
+ * rækkeankeret, og ingen test kunne se det. Ved omlægningen havde BEGGE attributter i øvrigt nul
  * læsere tilbage og kun producenter — den endelige evidens for at modellen var en rest.
  *
  * Reglen måler alle tre former, attributterne faktisk optrådte i: en JSX-attribut (`StyledTextAreaBase`), en
@@ -1821,7 +1817,7 @@ const collectForbiddenFieldIdentityAttrs = (entry: SourceEntry): readonly Findin
         `${form} bruger '${attr}' som feltidentitet i DOM. Feltidentiteten er den serialiserede feltadresse `
         + '(data-mineo-field-address) plus editorlokations-id — ÉT system, som undo/redo, save-fokus og '
         + 'EO-fejllinks deler (§3.2). En navne- eller kolonnestreng ved siden af er den parallelle model, '
-        + 'GM-F10 lukkede, og den var bevisligt uopnåelig for grid-celler (INC-F14).',
+        + 'den er en parallel model og bevisligt uopnåelig for grid-celler.',
     });
   };
 
@@ -1866,7 +1862,7 @@ export const singleFieldIdentityInDomRule = defineRule({
   description:
     'Der findes ÉN feltidentitet i DOM: den serialiserede feltadresse plus editorlokations-id. De afløste '
     + 'navnestreng-attributter (data-mineo-field-path, data-mineo-undo-field-path) må ikke genindføres — de '
-    + 'var en parallel model, og for grid-celler var de bevisligt uopnåelige (GM-F10/INC-F14).',
+    + 'var en parallel model, og for grid-celler var de bevisligt uopnåelige.',
   liveTarget: {
     kind: 'precondition',
     // Målet er modulet, der ejer den kanoniske identitet, PLUS at EO's fejllink-opslag stadig bruger den.
@@ -1874,8 +1870,8 @@ export const singleFieldIdentityInDomRule = defineRule({
     //
     // ⚠️ EO-halvdelen måler et faktisk KALD, ikke blot at navnet nævnes. En `hasIdentifier`-probe var for svag:
     // et alias-import (`lookupEditorLocation as lookupMoved`) efterlader navnet i import-clausen, så proben
-    // forblev sand, selv om opslaget var flyttet. Mutationen mod den levende kilde afslørede det (INC-F20) —
-    // samme fejlklasse som INC-F11, hvor typens computed keys opfyldte et attribut-værn på egen hånd.
+    // forblev sand, selv om opslaget var flyttet. Mutationen mod den levende kilde afslørede det —
+    // samme fejlklasse som når en types computed keys opfylder et attribut-værn på egen hånd.
     probe: (entry) => {
       if (entry.relativePath === CANONICAL_FIELD_IDENTITY_MODULE) {
         return hasIdentifier(entry, 'FIELD_ADDRESS_ATTR');
@@ -1932,7 +1928,7 @@ export const singleFieldIdentityInDomRule = defineRule({
       relativePath: 'src/utils/scrollToEoRow.ts',
       code: 'const lookup = lookupEditorLocation(serializeFieldAddress(target.address));',
     },
-    // En KOMMENTAR, der forklarer den afløste model, må ikke bære reglen (INC-F03's lærepunkt).
+    // En KOMMENTAR, der forklarer den afløste model, må ikke bære reglen.
     {
       relativePath: 'src/utils/scrollToEoRow.ts',
       code: '// Den afløste model slog op via data-mineo-field-path og data-mineo-undo-field-path.\nconst x = 1;',

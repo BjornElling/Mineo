@@ -8,7 +8,7 @@ import {
 import { DEFAULT_AMOUNT_PLACEHOLDER } from '../../utils/amountInputUtils';
 import { DEFAULT_PERCENT_PLACEHOLDER } from '../../utils/percentInputUtils';
 
-// UT-F06: en placeholder beskriver UDELUKKENDE værdiens form. De brugervendte assertions kører gennem den
+// En placeholder beskriver UDELUKKENDE værdiens form. De brugervendte assertions kører gennem den
 // ægte side (`Aarsloen.integration.test.tsx`); her pinnes selve KONSTANTERNE, så et fremtidigt "hjælpsomt"
 // tillæg til én af dem ikke slipper igennem uden at nogen har set reglen.
 
@@ -22,7 +22,7 @@ const ALL_FORMAT_PLACEHOLDERS = [
   DEFAULT_PERCENT_PLACEHOLDER,
 ] as const;
 
-describe('format-placeholders pr. feltfamilie (UT-F06)', () => {
+describe('format-placeholders pr. feltfamilie', () => {
   it('har de rene, forventede former', () => {
     expect(YEAR_FORMAT_PLACEHOLDER).toBe('åååå');
     expect(WEEK_FORMAT_PLACEHOLDER).toBe('uu/åååå');

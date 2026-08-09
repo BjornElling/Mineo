@@ -17,7 +17,7 @@ import type { ErhvervsevnetabValues, FaellesAarsloenValues, StamdataValues } fro
 import { toISODateString } from '../../../types/branded';
 
 /**
- * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
+ * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
  * på fire servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte. Alle
  * fire EET-outputs går gennem samme handling.
  */

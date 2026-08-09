@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
 //
-// Greenfield Årsløn-slice (§2.4 trin 3 / §2.5, Pass 2). Integrationstest gennem den RIGTIGE migrerede side + den
+// Årsløn-siden (§2.4/§2.5). Integrationstest gennem den RIGTIGE side + den
 // ægte produktions-runtime (`ProductionInputRuntimeProvider` mod `slimInputStore`). Beviser den virkelige sti:
 // hydreret sag → reader-projektion → StandardLoenTable over grid-adapteren (afledte kolonner, valideringssummary,
 // række-infrastruktur) + beregningsprincip-blok, uden legacy `usePersistedForm`/`invalidDrafts`.
@@ -23,7 +23,7 @@ import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamd
 import { toISODateString } from '../../../types/branded';
 
 /**
- * Fase 5: testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
+ * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
  * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte.
  */
 const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
@@ -289,14 +289,14 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
   });
 });
 
-// UT-F06: en placeholder beskriver UDELUKKENDE værdiens form. Årsløns månedstabel viste
+// En placeholder beskriver UDELUKKENDE værdiens form. Årsløns månedstabel viste
 // `åååå (≤2026)` — en valideringsgrænse i formvejledningens kanal, som desuden ændrede sig med
 // kalenderåret. Formen ejes nu af feltfamilien (`utils/fieldFormatPlaceholders.ts`), og tabellen
 // override'er kun, hvor domænets FORMAT reelt er en anden (månedens `mm`).
 //
 // Testen kører gennem den ÆGTE side og den ægte runtime, fordi det netop var visningslaget, der koblede
 // grænsen på: en unittest af feltfamilien ville have været grøn hele tiden.
-describe('Årsløn — placeholders viser kun værdiens FORM (UT-F06)', () => {
+describe('Årsløn — placeholders viser kun værdiens FORM', () => {
   // Missing-markeringen scroller cellen ind (`scrollTargetIntoView`); jsdom implementerer slet ikke
   // `scrollIntoView` (den kan derfor ikke spy'es — den skal defineres). Vi stubber den, fordi det er
   // scroll-BIVIRKNINGEN vi ikke måler her; markeringen (selve rettelsen) læses fra cellens style nedenfor.
@@ -355,7 +355,7 @@ describe('Årsløn — placeholders viser kun værdiens FORM (UT-F06)', () => {
   });
 
   it('«Indtastning mangler» overtager IKKE placeholderen; cellen markeres i stedet visuelt', async () => {
-    // UT-F06 punkt 4 (brugergodkendt 2026-07-28): manglende-værdi-feedbacken bruger samme visuelle idiom
+    // Brugergodkendt 2026-07-28: manglende-værdi-feedbacken bruger samme visuelle idiom
     // som en fejlflash — cellen scrolles ind og blinker rødt — i stedet for at erstatte formvejledningen.
     // Kæden er den ÆGTE: omregnings-toggle uden gyldig periode → tabellens imperative handle → markering.
     const user = userEvent.setup();
@@ -370,7 +370,7 @@ describe('Årsløn — placeholders viser kun værdiens FORM (UT-F06)', () => {
     await user.click(screen.getAllByRole('checkbox')[0]);
 
     await waitFor(() => {
-      // Markeringen er den DELTE blink-klasse på cellen (BF-020) — ikke en ny placeholdertekst og ikke
+      // Markeringen er den DELTE blink-klasse på cellen — ikke en ny placeholdertekst og ikke
       // længere en tabel-lokal animation.
       expect(monthCell.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
     });

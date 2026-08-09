@@ -362,7 +362,7 @@ export default function LoenudviklingFields<
                   erstattet af den fælles resolver, som vælger efter settle på et frisk snapshot.
                 */}
                 {/*
-                  Er intervallet ukendt, vises INTET — hverken tekst eller pladsholdertegn (BF-026).
+                  Er intervallet ukendt, vises INTET — hverken tekst eller pladsholdertegn.
                   Bindestregen her var et levn fra en fjernet inline-tekst; erstatningen skulle have
                   været ingenting, og et bart `-` på linjen ligner en værdi, der ikke findes.
                 */}

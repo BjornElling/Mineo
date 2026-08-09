@@ -21,7 +21,7 @@ import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas'
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';
 
-// WI-003: hver greenfield-kommitterende feltfamilie skal bære undo/redo-restore-target-attributterne
+// Hver kommitterende feltfamilie skal bære undo/redo-restore-target-attributterne
 // (`data-mineo-field-address` + `data-mineo-editor-location-id`) på sit FOKUSERBARE element, så restoren
 // lokaliserer PRÆCIST den editorlokation, ændringen kom fra (ikke via `name`). Her verificeres selve rendering:
 // attributterne når frem til DOM'en for form-felt, gridcelle, dropdown, radio, toggle og checkbox.

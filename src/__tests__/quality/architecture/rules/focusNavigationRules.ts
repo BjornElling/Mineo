@@ -56,7 +56,7 @@ export const focusTraversalOwnershipRule = forbidImports({
   liveTarget: {
     kind: 'precondition',
     // AST-baseret, ikke tekst: ellers kunne en kommentar, der blot OMTALER selectoren,
-    // holde reglen kunstigt levende (harnessens R0-F02 fanger netop det).
+    // holde reglen kunstigt levende — hvilket harnessens liveness-selvtest fanger.
     probe: (entry) => hasAnyIdentifier(entry, TRAVERSAL_PRIMITIVE_NAMES),
     rationale:
       'reglen forudsætter, at traverserings-primitiverne stadig findes og forbruges; forsvinder de, er der ingen grænse at håndhæve',

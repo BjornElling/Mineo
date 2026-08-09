@@ -213,7 +213,7 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
       contract: 'src/contracts/form-contract.md',
       reference: name,
       direction: 'absent' as const,
-      note: 'Slettet felt-familie (greenfield trin 13). §12 navngiver den for at forbyde genkomst; erstattet af src/inputCore/react/fields/.',
+      note: 'Slettet felt-familie. §12 navngiver den for at forbyde genkomst; erstattet af src/inputCore/react/fields/.',
     })
   ),
   /**

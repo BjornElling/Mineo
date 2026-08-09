@@ -23,7 +23,7 @@ import type { EoDependencyProjection } from '../../../domain/erstatningsopgoerel
 // ⚠️ Baseline SKAL være beregningsklar (`data !== null`). En tom EO-sag har i forvejen validatorfejl, så en
 // test bygget på den ville være selvopfyldende: `data` var `null` uanset gaten.
 //
-// ⚠️ GATENS AUTORITET er `eoFieldIssues` — de STRUKTURELLE feltissues — ikke `eoErrors`-mappet (runde 4,
+// ⚠️ GATENS AUTORITET er `eoFieldIssues` — de STRUKTURELLE feltissues — ikke `eoErrors`-mappet (
 // fund S3). Testene driver derfor gaten gennem strukturelle adresser. `eoErrors` bruges kun dér, hvor det
 // er `buildReaderFieldIssueInvariants`' egen vej, der testes.
 
@@ -227,12 +227,12 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
 
 });
 
-// WI-004 (R1 + runde 4's S1/S2): EO's afhængighedsopdeling. §1.10 kræver flere små dependency-specifikke
+// EO's afhængighedsopdeling. §1.10 kræver flere små dependency-specifikke
 // gates — ikke én global. Modellen er A (Codex sol/high): de UAFHÆNGIGE grene overlever hinandens fejl, mens
 // det krydsgående aggregat (samlet total + canonicalOutput + pdfModel) blokeres, hvis bare ét led er blokeret.
 //
 // Testene her hævder BEGGE retninger pr. gren, OG at den gyldige grens FAKTISKE OUTPUT bevares — ikke kun at
-// en boolean er `false`. Runde 4's fund S1 var netop, at en boolean-only-test bestod med en global gate:
+// en boolean er `false`. En boolean-only-test ville bestå med en global gate:
 // `blockedDependencies.taf === false` sagde intet om, hvorvidt TAF-periodiseringen nåede Beregning-fanen.
 describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
   let svieSmerteSpy: ReturnType<typeof vi.spyOn>;
@@ -414,7 +414,7 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
   });
 });
 
-// R3-F02: stamdata-afhængigheder er klassificeret, ikke globale.
+// Stamdata-afhængigheder er klassificeret, ikke globale.
 //
 // Stamdata er en FREMMED sektion for EO, men EO læser den på tværs af sektionsgrænsen. Tidligere gjorde
 // ETHVERT rødt stamdataissue hele EO's autoritative output ikke-autoritativt. Det var en overblokering:
@@ -422,7 +422,7 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
 // og alle fire EO-dokumenter. §1.10: overblokering er lige så forkert som falske tal.
 //
 // Testene hævder BEGGE retninger, så en for smal klassifikation er lige så rød som en for bred.
-describe('EO: stamdata blokerer efter faktisk afhængighed, ikke efter sektion (R3-F02)', () => {
+describe('EO: stamdata blokerer efter faktisk afhængighed, ikke efter sektion', () => {
   const stamdataIssue = (field: string, descriptorId: string, reason: FieldIssue['reason'] = 'bounds'): FieldIssue =>
     fieldIssue({ section: 'stamdata', path: [], field }, descriptorId, reason);
 

@@ -2,7 +2,7 @@ import { isoToDanish, type ISODateString } from '../../types/branded';
 import type { CanonicalView, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
 import { hasDateOrderError } from '../../utils/dateOrderValidation';
 
-// Kronologireglen for et dato-par (BF-028/BF-031): ét sted, alle fra/til-par arver.
+// Kronologireglen for et dato-par: ét sted, alle fra/til-par arver.
 //
 // Reglen lå tidligere UDELUKKENDE i række-evaluerings-motoren
 // (`validation/tafPeriodeValidation.ts` m.fl.), som producerer `{ message, field: 'fra' | 'til' }`. Et
@@ -15,7 +15,7 @@ import { hasDateOrderError } from '../../utils/dateOrderValidation';
 // henholdsvis rækkeissue og projekteret domæne-issue. Se `docs/architecture/input-architecture.md`.
 
 /**
- * BF-028: BEGGE felter i parret markeres, og hver tooltip navngiver den MODGÅENDE dato.
+ * BEGGE felter i parret markeres, og hver tooltip navngiver den MODGÅENDE dato.
  *
  * Det er ikke kosmetik. En kronologifejl er én regel om to værdier, og brugeren kan rette den fra begge
  * sider; markeres kun det ene felt, udpeger programmet vilkårligt den ene af to lovlige datoer som "den
@@ -66,7 +66,7 @@ const readCounterpart = <T>(
  * og bruges i praksis. Grænserne clampes bevidst IKKE her — clamping mod modpartens dato hører til i
  * motoren. Lod validatoren `til.min` clampe mod `fra`, ville bounds-reglen spise kronologireglen, og
  * beskeden ville skifte til en intervaltekst, der ikke nævner det egentlige problem. Præcis den
- * indbyrdes maskering gjorde fejlen ustabil (BF-031).
+ * indbyrdes maskering gjorde fejlen ustabil.
  */
 export const dateOrderValidator = (
   role: 'fra' | 'til',

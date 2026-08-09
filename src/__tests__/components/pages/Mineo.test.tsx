@@ -144,7 +144,7 @@ describe('Mineo - License Modal Integration', () => {
     // Semantikken er load-bearing, ikke kosmetik: kontrollen åbner en dialog og navigerer ikke, så den skal
     // være en knap. Som `<a href="#">` løj den om semantikken OG nulstillede browserens sekventielle
     // fokus-udgangspunkt til dokumentets top, så næste Tab sprang tilbage til startside-togglen længere oppe
-    // på siden (OBS-002).
+    // på siden.
     const licenseLink = screen.getByRole('button', { name: /mit-licensen/i });
     expect(licenseLink).toBeInTheDocument();
     expect(licenseLink).toBeVisible();

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// UT-F05 / R2-F01 — ÉN fælles kontrakttest for »Indsæt dags dato« på ALLE fem flader.
+// ÉN fælles kontrakttest for »Indsæt dags dato« på ALLE fem flader.
 //
 // Fejlen var, at hver af de fem knapper kaldte `commitImmediate(today)`. Den command er `setImmediateField`,
 // som reduceren kun tillader for choice/toggle — alle datofelter er text-controls, så et klik kastede
@@ -110,7 +110,7 @@ const renderSurface = (surface: (typeof SURFACES)[number]) => render(
   </MemoryRouter>
 );
 
-describe('»Indsæt dags dato« — fælles kommandokontrakt på alle fem flader (UT-F05/R2-F01)', () => {
+describe('»Indsæt dags dato« — fælles kommandokontrakt på alle fem flader', () => {
   beforeEach(() => {
     sessionStorage.clear();
     hydrateEmpty();

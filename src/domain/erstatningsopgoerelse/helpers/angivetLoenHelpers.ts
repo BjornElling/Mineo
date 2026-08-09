@@ -61,7 +61,7 @@ export const resolveLoenudviklingKilde = (
   const loenudviklingErOverenskomst = eo.loenudviklingBeregningsgrundlag === 'Overenskomst';
   // `loenPaaHelligdage` er required-with-default i det persisterede schema OG i inputdescriptoren, så der
   // findes ingen manglende/ugyldig værdi at kaste på. Det defensive kast, der stod her, var kun nåeligt,
-  // fordi feltet var valgfrit — og det var netop den vej, en nyoprettet sag altid tog (BF-025).
+  // fordi feltet var valgfrit — og det var netop den vej, en nyoprettet sag altid tog.
   const loenPaaHelligdage = eo.loenPaaHelligdage;
 
   return [{

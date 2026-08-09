@@ -254,7 +254,7 @@ const stdDate = (
   dateFieldWithBounds(STD_ID, stdRowPath, field, label, spec, extraValidators);
 
 /**
- * Indtægtstabellens «Dato fra»/«Dato til» (BF-028/BF-031). Rækkerne ligger NESTET under et
+ * Indtægtstabellens «Dato fra»/«Dato til». Rækkerne ligger NESTET under et
  * ansættelsesforhold, så modparten skal bindes med BEGGE entity-id'er — ansættelsesforholdet og rækken —
  * i den rækkefølge, adressen har dem.
  */
@@ -405,7 +405,7 @@ export const eoAngivetLoenFields = {
   feriePct: eoLoen<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, [percentBoundsValidator(`${EO_LOEN_ID}.feriePct.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
   // Samme required-choice-kontrakt som ansættelsesforholdets tvilling (`eoEmploymentFields.loenPaaHelligdage`).
   // Feltet har ingen editor under angivet løn, så dets værdi ER tomværdien — og en tomværdi på `undefined`
-  // ville føde motoren en tilstand, den erklærer umulig (BF-025). Descriptorens tomværdi skal derfor være den
+  // ville føde motoren en tilstand, den erklærer umulig. Descriptorens tomværdi skal derfor være den
   // samme konkrete sats, som schemaets `.default()` giver.
   loenPaaHelligdage: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
   saerligFraDatoRegulering: eoLoenDate('saerligFraDatoRegulering', 'Særlig fra-dato for regulering'),

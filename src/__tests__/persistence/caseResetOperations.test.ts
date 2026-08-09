@@ -8,7 +8,7 @@ import {
   type SlimInputStore,
 } from '../../inputCore/runtime';
 
-// R4-F02: porten ejer HELE reset-transaktionen — input, sagsnær UI-sessionstate og filhåndtag — og rapporterer
+// Porten ejer HELE reset-transaktionen — input, sagsnær UI-sessionstate og filhåndtag — og rapporterer
 // rester frem for at lade dem forsvinde i en ubetinget succes. Filhåndtagsgrænsen mockes, fordi dens
 // `false`-ben er selve fundet; sessionStorage er jsdom's ægte.
 const deleteFileHandleFromIndexedDBMock = vi.fn<() => Promise<boolean>>();
@@ -83,7 +83,7 @@ describe('caseResetOperations.clearAll', () => {
   });
 });
 
-describe('caseResetOperations.clearAll — reset-policyen (R4-F02)', () => {
+describe('caseResetOperations.clearAll — reset-policyen', () => {
   it('rydder hver sagsnær manifestnøgle og lader de device-scopede bestå', async () => {
     const caseScoped = getCaseScopedSessionStorageKeys();
     expect(caseScoped.length).toBeGreaterThan(0);

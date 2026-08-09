@@ -29,7 +29,7 @@ import type { RentekravRow } from '../../../schemas/formSchemas/sections/rentebe
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
 /**
- * DEN FÆLLES KONTRAKT for placeholder-promotion → undo → fokus (§1.11, §3.7, UT-F03).
+ * DEN FÆLLES KONTRAKT for placeholder-promotion → undo → fokus (§1.11, §3.7).
  *
  * Ingen eksisterende test krydsede hele kæden. `dispatchInput.test.ts` hedder "undo fokuserer den skrevne
  * celle", men hævder kun at `restoredOrigin` returneres uændret; `historyRestoreTarget` tester det eksakte
@@ -254,7 +254,7 @@ describe('placeholder-promotion → undo → fokus', () => {
   });
 
   /**
-   * BF-005, brugerens forløb: to promoveringer, undo af ALT, redo af ALT, og derefter ét undo.
+   * Brugerens forløb: to promoveringer, undo af ALT, redo af ALT, og derefter ét undo.
    *
    * Fejlen var permanent for resten af sessionen: undo'et helt tilbage skubbede det senere placeholder-slot
    * bag puljens markør, hvor det blev trimmet væk, og redo'et møntede et NYT id til pladsen. Den oprindelige
@@ -303,7 +303,7 @@ describe('placeholder-promotion → undo → fokus', () => {
   });
 
   /**
-   * BF-005's ANDET symptom: brugeren rapporterede, at når først fokus var gået tabt, blev en række ikke slettet,
+   * Det ANDET symptom: brugeren rapporterede, at når først fokus var gået tabt, blev en række ikke slettet,
    * når alle dens indtastninger blev fortrudt. Rækkeoprettelsen er promoveringen, og undo er LIFO — derfor SKAL
    * det sidste undo i en række altid fjerne selve rækken, også efter en fuld undo/redo-rundtur. Testen pinner
    * den invariant på en række med FLERE indtastninger, så et manglende eller ekstra history-trin ville efterlade

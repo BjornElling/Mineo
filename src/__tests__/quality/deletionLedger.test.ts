@@ -1,73 +1,67 @@
 /**
- * Fase 7's afleveringsgate, betingelsen "alle slettelister er tomme" (WI-013).
+ * De afskaffede inputmodulers FYSISKE fravær.
  *
- * Planens fase 2-5 har fire slettelister (design-dokumentets §2.6, fase 3-afsnittet, fase 4's
- * sletteliste og trin 13), som alle er markeret "gennemført". Betingelsen kontrolleres her MASKINELT
- * frem for på ordet: en markering i et dokument er en påstand, og fase 6 blev netop genåbnet, fordi en
- * legacyklassifikation hvilede på tekstsøgning i stedet for på den faktiske tilstand.
- *
- * **Hvad denne test dækker, og hvad den ikke gør.** Den måler FYSISK fravær af de slettede filer og
- * mapper. Den overlapper med vilje ikke `legacy/forbidden-identifier` og
+ * **Hvad denne test dækker, og hvad den ikke gør.** Den måler, om filen eller mappen overhovedet
+ * findes. Den overlapper med vilje ikke `legacy/forbidden-identifier` og
  * `input/deleted-legacy-architecture-import` i arkitektur-harnesset: de måler AST-identifiers og
- * imports, dvs. om noget BRUGER en legacy-mekanisme. Her måles, om filen overhovedet findes — en
- * midlertidig fysisk rest uden importer ville passere begge AST-regler, og præcis den rest er, hvad
- * planens fase 6 trin 1 pålægger fase 7 at verificere.
+ * imports, dvs. om noget BRUGER en legacy-mekanisme. En fysisk rest uden importer ville passere
+ * begge AST-regler, og denne test lukker netop det hul.
  *
- * Listen bæres her frem for i planen, fordi en markdownliste ikke kan fejle.
+ * Listen bæres i kode frem for i et dokument, fordi en markdownliste ikke kan fejle: en markering af
+ * at noget er slettet er en påstand, mens filsystemet er den faktiske tilstand.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 
 import { LEGACY_MODULE_PATH_SELFTEST } from './architecture/rules/storageRules';
 
-/** Sti der SKAL være fysisk væk, med den sletteliste den kommer fra. */
-type DeletedPath = Readonly<{ path: string; list: string }>;
+/** Sti der SKAL være fysisk væk, med den afskaffede klynge den hørte til. */
+type DeletedPath = Readonly<{ path: string; cluster: string }>;
 
 const DELETION_LEDGER: readonly DeletedPath[] = [
-  // ── §2.6 (fase 2): editor-, write- og rækkekopiroller + invalidDrafts-familien ──────────────────
-  { path: 'src/input/legacyInputCompatibility.ts', list: '§2.6' },
-  { path: 'src/input/legacyGridTransactionBridge.ts', list: '§2.6' },
-  { path: 'src/persistence/inputSessionMigration.ts', list: '§2.6' },
-  { path: 'src/schemas/invalidDraftsSchema.ts', list: '§2.6' },
-  { path: 'src/types/invalidDrafts.ts', list: '§2.6' },
-  { path: 'src/config/invalidDraftsVersion.ts', list: '§2.6' },
-  { path: 'src/config/cellInvalidDraftScopes.ts', list: '§2.6' },
-  { path: 'src/config/entityInvalidDraftScopes.ts', list: '§2.6' },
-  { path: 'src/utils/invalidDraftsStorage.ts', list: '§2.6' },
-  { path: 'src/contexts/CellInvalidDraftScopeContext.tsx', list: '§2.6' },
-  { path: 'src/hooks/useDraftField.ts', list: '§2.6' },
-  { path: 'src/hooks/fieldState', list: '§2.6' },
-  { path: 'src/hooks/tableInput', list: '§2.6' },
-  { path: 'src/rowDrafts', list: '§2.6' },
-  { path: 'src/components/tables/gridCore/useGridRowPersistenceCore.ts', list: '§2.6' },
-  { path: 'src/stores/formPersistenceStore.ts', list: '§2.6' },
-  { path: 'src/stores/formPersistenceReadModel.ts', list: '§2.6' },
+  // ── Editor-, write- og rækkekopiroller + invalidDrafts-familien ────────────────────────────────
+  { path: 'src/input/legacyInputCompatibility.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/input/legacyGridTransactionBridge.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/persistence/inputSessionMigration.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/schemas/invalidDraftsSchema.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/types/invalidDrafts.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/config/invalidDraftsVersion.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/config/cellInvalidDraftScopes.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/config/entityInvalidDraftScopes.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/utils/invalidDraftsStorage.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/contexts/CellInvalidDraftScopeContext.tsx', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/hooks/useDraftField.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/hooks/fieldState', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/hooks/tableInput', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/rowDrafts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/components/tables/gridCore/useGridRowPersistenceCore.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/stores/formPersistenceStore.ts', cluster: 'felt-/rækkedrafts' },
+  { path: 'src/stores/formPersistenceReadModel.ts', cluster: 'felt-/rækkedrafts' },
 
-  // ── Fase 3/4-slettelisten: fejlkanalens duplikater ─────────────────────────────────────────────
-  { path: 'src/types/fieldErrors.ts', list: 'fase 3/4' },
-  { path: 'src/hooks/useFormFieldErrors.ts', list: 'fase 3/4' },
-  { path: 'src/utils/fieldErrorSelectors.ts', list: 'fase 3/4' },
-  { path: 'src/hooks/useTableCellErrorTracker.ts', list: 'fase 3/4' },
+  // ── Fejlkanalens duplikater ────────────────────────────────────────────────────────────────────
+  { path: 'src/types/fieldErrors.ts', cluster: 'fejlkanal' },
+  { path: 'src/hooks/useFormFieldErrors.ts', cluster: 'fejlkanal' },
+  { path: 'src/utils/fieldErrorSelectors.ts', cluster: 'fejlkanal' },
+  { path: 'src/hooks/useTableCellErrorTracker.ts', cluster: 'fejlkanal' },
 
-  // ── Trin 13: hele den parallelle legacy-inputklynge ────────────────────────────────────────────
-  { path: 'src/stores/inputRuntimeStore.ts', list: 'trin 13' },
-  { path: 'src/input/inputTransactionRunner.ts', list: 'trin 13' },
-  { path: 'src/criticalActions', list: 'trin 13' },
-  { path: 'src/components/inputs/table', list: 'trin 13' },
-  { path: 'src/hooks/useStyledFieldAdapter.ts', list: 'trin 13' },
-  { path: 'src/hooks/useTwoStageInputActivation.ts', list: 'trin 13' },
-  { path: 'src/hooks/useFormPersistenceSelectors.ts', list: 'trin 13' },
-  { path: 'src/utils/saveBlockedFocus.ts', list: 'trin 13' },
-  { path: 'src/contexts/FormPersistenceContext.tsx', list: 'trin 13' },
-  { path: 'src/hooks/useFormPersistence.ts', list: 'trin 13' },
-  { path: 'src/hooks/usePersistedForm.ts', list: 'trin 13' },
-  { path: 'src/components/pages/stamdata/StamdataTestTab.tsx', list: 'trin 13' },
+  // ── Hele den parallelle legacy-inputklynge ─────────────────────────────────────────────────────
+  { path: 'src/stores/inputRuntimeStore.ts', cluster: 'parallel inputklynge' },
+  { path: 'src/input/inputTransactionRunner.ts', cluster: 'parallel inputklynge' },
+  { path: 'src/criticalActions', cluster: 'parallel inputklynge' },
+  { path: 'src/components/inputs/table', cluster: 'parallel inputklynge' },
+  { path: 'src/hooks/useStyledFieldAdapter.ts', cluster: 'parallel inputklynge' },
+  { path: 'src/hooks/useTwoStageInputActivation.ts', cluster: 'parallel inputklynge' },
+  { path: 'src/hooks/useFormPersistenceSelectors.ts', cluster: 'parallel inputklynge' },
+  { path: 'src/utils/saveBlockedFocus.ts', cluster: 'parallel inputklynge' },
+  { path: 'src/contexts/FormPersistenceContext.tsx', cluster: 'parallel inputklynge' },
+  { path: 'src/hooks/useFormPersistence.ts', cluster: 'parallel inputklynge' },
+  { path: 'src/hooks/usePersistedForm.ts', cluster: 'parallel inputklynge' },
+  { path: 'src/components/pages/stamdata/StamdataTestTab.tsx', cluster: 'parallel inputklynge' },
 ];
 
 /**
- * Den forkastede pre-rebase Fase 0-4-implementering (24 filer i `src/input/`). Efter trin 13 må mappen
- * enten være helt væk eller kun indeholde levende greenfield-moduler — aldrig den gamle parallelle
- * inputmodel. Navnene her er dens kendetegnende moduler.
+ * Den forkastede parallelle inputmodel i `src/input/`. Mappen skal enten være helt væk eller kun
+ * indeholde levende moduler — aldrig den forkastede model. Navnene her er dens kendetegnende moduler.
  */
 const REJECTED_PARALLEL_INPUT_MODEL: readonly string[] = [
   'src/input/fieldAddress.ts',
@@ -83,9 +77,9 @@ describe('slettelisterne er tomme (fraværsgate)', () => {
   it('ingen fil eller mappe fra slettelisterne findes fysisk', () => {
     const rester = DELETION_LEDGER
       .filter((entry) => exists(entry.path))
-      .map((entry) => `${entry.path} (${entry.list})`);
+      .map((entry) => `${entry.path} (${entry.cluster})`);
 
-    expect(rester, 'Fysiske rester fra en gennemført sletteliste').toEqual([]);
+    expect(rester, 'Fysiske rester af en afskaffet inputklynge').toEqual([]);
   });
 
   it('den forkastede parallelle inputmodel i src/input/ findes ikke', () => {
@@ -93,15 +87,13 @@ describe('slettelisterne er tomme (fraværsgate)', () => {
   });
 
   /**
-   * Ét kanonisk slettelsesmanifest frem for to håndkopierede lister (tilføjet efter eksternt review,
-   * WI-013 R5).
+   * Ét kanonisk slettelsesmanifest frem for to håndkopierede lister.
    *
-   * Ledgeren ovenfor var manuelt afskrevet fra planens prosa og manglede derfor bl.a. de otte
-   * `Styled*Field.tsx`. Roden er duplikering: arkitekturværnet
-   * `input/deleted-legacy-architecture-import` fører allerede den autoritative liste over slettede
-   * legacy-moduler — men det måler IMPORTER, ikke fysisk eksistens. De to kontroller er komplementære og
-   * skal derfor dele kilde, ikke liste hver sit udsnit. Her læses den ene liste, så en fremtidig
-   * tilføjelse ét sted automatisk dækkes af begge.
+   * En håndskrevet ledger driver fra den autoritative liste og kommer til at mangle poster. Roden er
+   * duplikering: arkitekturværnet `input/deleted-legacy-architecture-import` fører allerede den
+   * autoritative liste over slettede legacy-moduler — men det måler IMPORTER, ikke fysisk eksistens.
+   * De to kontroller er komplementære og skal derfor dele kilde, ikke liste hver sit udsnit. Her læses
+   * den ene liste, så en fremtidig tilføjelse ét sted automatisk dækkes af begge.
    *
    * Stierne er udvidelsesløse modulstier; hver prøves med de relevante endelser (og som mappe).
    */
@@ -122,7 +114,8 @@ describe('slettelisterne er tomme (fraværsgate)', () => {
     // Blev listen tømt, ville kontrollen ovenfor være grøn uden at måle noget. Gulvet er den målte
     // størrelse, så en utilsigtet tømning ses.
     expect(LEGACY_MODULE_PATH_SELFTEST.paths.length).toBeGreaterThanOrEqual(30);
-    // Og de otte `Styled*Field`, reviewet efterlyste, ER faktisk i manifestet.
+    // Og de otte `Styled*Field` ER faktisk i manifestet — de er den post, en håndskrevet ledger
+    // lettest kommer til at mangle.
     for (const name of ['Text', 'Amount', 'Date', 'Integer', 'Percent', 'Fraction', 'Week', 'Year']) {
       expect(
         LEGACY_MODULE_PATH_SELFTEST.paths,
@@ -132,7 +125,7 @@ describe('slettelisterne er tomme (fraværsgate)', () => {
   });
 
   /**
-   * Selvtest (fase 6's lære): en eksistens-kontrol, der ikke kan finde noget, ville rapportere grønt
+   * Selvtest: en eksistens-kontrol, der ikke kan finde noget, ville rapportere grønt
    * for en vilkårlig liste. Kontrollen prøves derfor i modsat retning mod en fil, der beviseligt
    * FINDES — kan prædikatet ikke se den, er reglen selv i stykker, ikke træet rent.
    */

@@ -1066,7 +1066,7 @@ function validateLoenudviklingsKravForAktivKilde(
       // Ingen "Løn på helligdage skal vælges"-regel: feltet er required-with-default i det persisterede
       // schema for BEGGE lønkilder (ansættelsesforhold og EO-angivet løn), så `undefined` ikke kan nå hertil.
       // Reglen stod her som et værn, der aldrig kunne fyre — og den skjulte samtidig, at angivet løn manglede
-      // en default og derfor fail-closede som systemfejl i stedet (BF-025).
+      // en default og derfor fail-closede som systemfejl i stedet.
       // Offentlig overenskomst kræver en fuld løn-indplacering (løntype + løntrin + gruppe).
       // Validatoren afgør det med SAMME parser som motoren (`parseOffentligLoenSelection`), så de to
       // ikke kan divergere: hver `reason` motoren ville kaste på, er her en synlig feltfejl.

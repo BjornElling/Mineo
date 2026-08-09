@@ -1,11 +1,11 @@
 /**
- * R6-F01 — kildesnapshottets to halvdele skal optages på SAMME tidspunkt.
+ * Kildesnapshottets to halvdele skal optages på SAMME tidspunkt.
  *
- * Fejlen var, at `createMineoDocumentEnvironment(runtime, settings)` lukkede over et `SourceSettings`-objekt,
- * som React-hooken havde fanget ved render, mens `captureEvaluationSource()` blev læst friskt efter settle.
- * Et click-preflight kunne derfor parre et NYERE settingsrevision-token med et ÆLDRE format-, brevhoved- eller
- * EO-regelobjekt. Tokenet var aktuelt, så ingen af de senere friskhedschecks kunne fange kombinationen — og
- * dokumentet kunne gates eller renderes efter en forældet indstilling.
+ * Fejlformen: lukkede `createMineoDocumentEnvironment(runtime, settings)` over et `SourceSettings`-objekt,
+ * som React-hooken havde fanget ved render, mens `captureEvaluationSource()` blev læst friskt efter settle,
+ * kunne et click-preflight parre et NYERE settingsrevision-token med et ÆLDRE format-, brevhoved- eller
+ * EO-regelobjekt. Tokenet ville være aktuelt, så ingen af de senere friskhedschecks kunne fange
+ * kombinationen — og dokumentet kunne gates eller renderes efter en forældet indstilling.
  *
  * Testen måler netop det vindue: settings ændres MELLEM miljøets konstruktion og `captureSource()`. Den
  * fanger ikke en typefejl — den fanger, hvilken VÆRDI capturen leverer.
@@ -45,7 +45,7 @@ const pdfSettings = (): SourceSettings =>
 const wordSettings = (): SourceSettings =>
   projectSourceSettings({ ...DEFAULT_APP_SETTINGS, documentDownloadFormat: 'word' });
 
-describe('createMineoDocumentEnvironment — kildesnapshottets friskhed (R6-F01)', () => {
+describe('createMineoDocumentEnvironment — kildesnapshottets friskhed', () => {
   it('læser settings på CAPTURE-tidspunktet, ikke ved konstruktionen', () => {
     // Den publicerede værdi ligger i en mutabel celle, præcis som `publishedSettings` i
     // produktions-runtimen: den sættes i samme layout-fase, som settingsrevisionen hæves.
@@ -167,13 +167,13 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed (R6-F01)
   });
 
   /**
-   * R6-F03's opdeling må ikke svække R6-F01's atomicitet.
+   * Opdelingen i to settings-halvdele må ikke svække capturens atomicitet.
    *
-   * Snapshottet har nu TO settings-halvdele (`gateSettings` + `renderSettings`), og hver af dem
-   * projiceres af sin egen funktion. Var de projiceret fra to `readSourceSettings()`-kald, kunne de
-   * stamme fra hver sin revision — netop den divergens, R6-F01 lukkede for evaluering-mod-settings,
-   * men nu internt mellem gaten og renderingen. Da begge halvdele er nominelle, kan ingen assertion
-   * sammenligne dem direkte; det målbare er, at læsningen sker ÉN gang pr. capture.
+   * Snapshottet har TO settings-halvdele (`gateSettings` + `renderSettings`), og hver af dem
+   * projiceres af sin egen funktion. Blev de projiceret fra to `readSourceSettings()`-kald, kunne de
+   * stamme fra hver sin revision — samme divergens som mellem evaluering og settings, blot internt
+   * mellem gaten og renderingen. Da begge halvdele er nominelle, kan ingen assertion sammenligne dem
+   * direkte; det målbare er, at læsningen sker ÉN gang pr. capture.
    */
   it('projicerer BEGGE settings-halvdele fra ét enkelt læs, så gate og rendering ikke kan divergere', () => {
     let reads = 0;

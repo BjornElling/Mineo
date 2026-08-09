@@ -786,7 +786,7 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
     expect(hasError(values, 'Overenskomst skal vælges')).toBe(true);
   });
 
-  // BF-025: her stod en test af reglen "Løn på helligdage skal vælges". Den kunne kun blive grøn, fordi
+  // Her stod en test af reglen "Løn på helligdage skal vælges". Den kunne kun blive grøn, fordi
   // fixturen satte feltet til `undefined` — en tilstand schemaet nu ikke kan producere. Reglen er derfor
   // fjernet sammen med testen; kontrakten er i stedet, at feltet ALTID bærer en konkret sats.
   it('angivet løn med overenskomstregulering har altid en konkret sats for løn på helligdage', () => {

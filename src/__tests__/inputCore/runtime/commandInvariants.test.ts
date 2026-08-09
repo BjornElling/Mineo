@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * §7.4's transaktionsinvarianter EXHAUSTIVT over hver runtime-command-kind (R8-F04, etape 10).
+ * §7.4's transaktionsinvarianter EXHAUSTIVT over hver runtime-command-kind.
  *
  * **Hvad fundet var.** Runtime-unionen omfatter 12 mutationsarter plus `undo`/`redo`, men de fulde
  * assertions for write, revision, history og rollback blev kun kørt for `settleField`. De øvrige commands

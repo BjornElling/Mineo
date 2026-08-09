@@ -8,7 +8,7 @@ import {
   type SlimInputStore,
 } from '../../../inputCore/runtime';
 
-// Fase 2.2 (§1.4/§2.2, critical-action-contract §3/§5/§7): den greenfield-coordinator afsluttes gennem den
+// Coordinatoren (§1.4/§2.2, critical-action-contract §3/§5/§7) afsluttes gennem den
 // rebasede handlingsmatrix — INGEN `block`-policy. Navigation/save/download settler; load bevarer draften frem til
 // vellykket replacement; undo/redo er no-op. Testene driver en syntetisk editor uden React/DOM.
 
@@ -124,9 +124,9 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     expect(discard).not.toHaveBeenCalled();
   });
 
-  // R4-F01: discard skal ramme den draft, handlingen ERSTATTEDE. Et registry-opslag efter apply er ikke en
+  // Discard skal ramme den draft, handlingen ERSTATTEDE. Et registry-opslag efter apply er ikke en
   // stabil identitet — den editor, opslaget finder, kan være åbnet af brugeren i den NYE sag.
-  it('kasserer ikke en editor, der er registreret EFTER replacement (R4-F01)', async () => {
+  it('kasserer ikke en editor, der er registreret EFTER replacement', async () => {
     const discardBefore = vi.fn();
     const discardAfter = vi.fn();
     const before = makeEditor({ id: 'før', discard: discardBefore });
@@ -144,7 +144,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     expect(discardAfter).not.toHaveBeenCalled();
   });
 
-  it('kasserer intet, når ingen editor var åben ved handlingens start (R4-F01)', async () => {
+  it('kasserer intet, når ingen editor var åben ved handlingens start', async () => {
     const discardAfter = vi.fn();
 
     await coordinator.applyReplacement(() => {

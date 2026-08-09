@@ -6,7 +6,7 @@ import { getReguleringsDatoIntervalForOverenskomst } from '../../../data/overens
 import { parseDanishToIso } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { toISODateString } from '../../../types/branded';
 
-// Kanonisk fælles fundament (regulering-review punkt 1): coverage-opløsningen som
+// Kanonisk fælles fundament: coverage-opløsningen som
 // alle overenskomst-baserede former deler. Vi tester den observerbare kontrakt
 // (undefined-håndtering, interval-parsing, `>`-clamp), ikke datatabellens
 // konkrete tal — coverage-startdatoen udledes derfor dynamisk fra datakilden.

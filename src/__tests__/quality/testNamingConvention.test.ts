@@ -1,5 +1,5 @@
 /**
- * Aktive testnavne beskriver INVARIANTEN, ikke omlægningen (R8-F08, R1-F05).
+ * Aktive testnavne beskriver INVARIANTEN, ikke omlægningen.
  *
  * Testoutput er dokumentation. Et navn som `describe('Årsløn (greenfield) — migreret side …')` fortæller
  * en læser om en REJSE, der er afsluttet, i stedet for om den regel, testen beskytter — og den værste
@@ -39,6 +39,14 @@ const MIGRATION_TERMS: readonly RegExp[] = [
   /\bmigration\b/i,
   /\bmigrering\b/i,
   /\bmigreret\b/i,
+  // Sags-id'er fra lukkede arbejdsforløb: fund-id'er på formen «bogstaver-F<tal>», observations- og
+  // brugerfund-numre. Et testnavn er dokumentation, og et navn, der kun kan slås op i et dokument,
+  // som ikke findes, fortæller ingenting om invarianten. Testens EMNE skal stå i navnet — ikke den
+  // sag, den engang blev oprettet under.
+  /\b[A-Z][A-Z0-9]*-F\d+\b/,
+  /\bOBS-\d+\b/,
+  /\bBF-\d+\b/,
+  /\bacceptmatrix\b/i,
 ];
 
 /**
@@ -75,7 +83,7 @@ const collectTestFiles = (dir: string, out: string[] = []): string[] => {
   return out;
 };
 
-describe('aktive testnavne beskriver invarianten, ikke omlægningen (R8-F08)', () => {
+describe('aktive testnavne beskriver invarianten, ikke omlægningen', () => {
   const files = collectTestFiles(TEST_ROOT);
 
   it('testfladen findes — værnet kan ikke være grønt af tomhed', () => {
@@ -113,7 +121,7 @@ describe('aktive testnavne beskriver invarianten, ikke omlægningen (R8-F08)', (
   /**
    * Anti-rot i den anden retning. En undtagelse for et navn, der ikke længere findes, er en
    * dokumenteret fritagelse for ingenting — og den ville skjule, at listen er blevet forældet.
-   * Præcis den fejlklasse som R0-F02's døde prober.
+   * Præcis samme fejlklasse som en liveness-probe, hvis mål er slettet.
    */
   it('hver undtagelse svarer til en aktiv deklaration, der faktisk findes', () => {
     const live = new Set<string>();

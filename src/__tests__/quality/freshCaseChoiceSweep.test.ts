@@ -20,10 +20,10 @@ import { buildRenteberegningReaderProjection } from '../../domain/renteberegning
 import { referenceRates, surchargeRates } from '../../data/interestRates';
 
 /**
- * VÆRN (BF-025): på en HELT NY, tom sag må intet enkelt valg i en dropdown eller på en kontakt udløse en
+ * VÆRN: på en HELT NY, tom sag må intet enkelt valg i en dropdown eller på en kontakt udløse en
  * systemfejl.
  *
- * BF-025 var netop den handling: åbn programmet, gå til EO-oplysninger, sæt "Beregnes ud fra" til
+ * Den konkrete fælde var netop den handling: åbn programmet, gå til EO-oplysninger, sæt "Beregnes ud fra" til
  * "Angivet månedsløn" — og mød `eo_snapshot:hidden_angivet_loen_state_invalid`. Årsagen var, at et skjult
  * felt manglede en default, men KLASSEN er større: en systemfejl er per definition en tilstand, koden
  * erklærer umulig, og et brugervalg på en tom sag må aldrig kunne nå den. En systemfejl er ikke en
@@ -147,7 +147,7 @@ describe('tom sag: ét brugervalg må aldrig udløse en systemfejl', () => {
     const felter = new Set(sweepableFields.map(({ descriptor }) => descriptor.id));
     expect(felter.size).toBeGreaterThan(20);
     expect(sweepableFields.length).toBeGreaterThan(50);
-    // Feltet fra BF-025's reproduktion skal være med — ellers måler fejningen ikke den handling, den findes for.
+    // Feltet fra reproduktionen skal være med — ellers måler fejningen ikke den handling, den findes for.
     expect(felter).toContain('eo.beregnesUdFra');
   });
 

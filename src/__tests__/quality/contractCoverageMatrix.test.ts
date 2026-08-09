@@ -26,12 +26,12 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/form-contract.md',
     requiredTestPaths: [
-      // Effect-write-grænsen håndhæves nu af AST-reglen `input/derived-writes-materialize-in-reduction`
-      // i arkitektur-harnesset. Det tidligere tekstbaserede værn her var grønt af tomhed: alle fire
-      // mønstre var legacy-funktionsnavne, der ikke længere fandtes i kildegrafen (INC-F05).
+      // Effect-write-grænsen håndhæves af AST-reglen `input/derived-writes-materialize-in-reduction`
+      // i arkitektur-harnesset — ikke af et tekstbaseret værn her, som bliver grønt af tomhed, så
+      // snart de navne, det leder efter, forsvinder fra kildegrafen.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
-      // Greenfield-cutover: `useDraftField`/`Table*Input`/`useRowDrafts`-implementeringstestene er slettet
-      // sammen med den legacy feltvej. Feltkontrakten dækkes nu af editor-/surface-kontrakttestene.
+      // Feltkontrakten dækkes af editor-/surface-kontrakttestene, ikke af implementeringstests pr.
+      // felthook.
       'src/__tests__/inputCore/editor/fieldEditor.test.ts',
       'src/__tests__/inputCore/react/useFormFieldSurface.test.tsx',
     ],
@@ -71,8 +71,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       // Import-/adgangs-grænserne + committed-section-mirror håndhæves nu af harnesset.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
-      // Greenfield-cutover (WI-002): den legacy `legacyGridTransactionBridge`/`inputSessionMigration` er slettet
-      // (browser-sessionmigration er et ikke-mål, §2.6). `.eo`-save/load/apply-grænsen dækkes nu af caseportene.
+      // Browser-sessionmigration er et ikke-mål (§2.6); `.eo`-save/load/apply-grænsen dækkes af
+      // caseportene.
       'src/__tests__/persistence/caseFileOperations.test.ts',
       'src/__tests__/persistence/caseResetOperations.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
@@ -108,7 +108,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/components/layout/Container.checklistGaps.test.tsx',
       'src/__tests__/components/tables/tableKeyboardNavigation.arrowWrap.test.tsx',
       'src/__tests__/components/tables/tableKeyboardNavigation.lockedSkip.test.tsx',
-      // UT-F02: kontraktkrydset "LUKKET popup-kontrol + tabellens capture-handler + Enter", kørt mod
+      // Kontraktkrydset "LUKKET popup-kontrol + tabellens capture-handler + Enter", kørt mod
       // BEGGE surfaces (form + celle), så popup-semantikken ikke kan divergere mellem dem igen.
       'src/__tests__/components/tables/popupWidgetKeyboardContract.integration.test.tsx',
     ],
@@ -119,10 +119,10 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/settings/appSettingsSchema.test.ts',
       'src/__tests__/document/documentFileName.test.ts',
       'src/__tests__/docx/docxWriter.test.ts',
-      // Fase 5: formatvalget sker i miljøet EFTER gaten, og outputnavne må ikke bære et
-      // formatsuffiks (den gamle `/PDF/g`-substitution er væk). Begge dele måles her.
+      // Formatvalget sker i miljøet EFTER gaten, og outputnavne må ikke bære et formatsuffiks.
+      // Begge dele måles her.
       'src/__tests__/document/documentCatalogCompleteness.test.ts',
-      // Fase 7: formatet vælger writer, ikke DÆKNING — verificeret generisk over alle 18
+      // Formatet vælger writer, ikke DÆKNING — verificeret generisk over alle 18
       // hovedapp-outputs, så ingen gate kan blive formatafhængig.
       'src/__tests__/document/documentGateFormatInvariance.test.ts',
     ],
@@ -132,7 +132,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       // Download-committed-state-grænsen håndhæves nu af det AST-baserede harness.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
-      // Fase 5: ét kanonisk katalog med præcis én definition pr. output (§A2a).
+      // Ét kanonisk katalog med præcis én definition pr. output (§A2a).
       'src/__tests__/document/documentCatalogCompleteness.test.ts',
       // Den udtømmende matrix, delt i livscyklus-cases (definitionsuafhængige) og gate-cases
       // (per-definition, med `invalid` og `bounds` som SEPARATE klasser jf. §A2a).
@@ -187,7 +187,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/domain/aarsloen/aarsloenCalculations.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenProjection.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenValidationPolicies.test.ts',
-      // Fase 5: årsløns- og SH-dage-gaten flyttede fra `useAarsloenDocumentGates` til domænelaget.
+      // Årsløns- og SH-dage-gaten ejes af domænelaget, ikke af et React-hook.
       'src/__tests__/domain/aarsloen/aarsloenDownloadGate.test.ts',
     ],
   },
@@ -249,8 +249,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/error-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/errorContractIsolation.test.ts',
-      // Greenfield-cutover (WI-002): den legacy `useFormFieldErrors`-implementeringstest er slettet. §1.6-issue-
-      // modellen (feltfejl/consumerfejl/warning, rød-felt-maskering, strukturel save-sondring) dækkes af kernen.
+      // §1.6-issue-modellen (feltfejl/consumerfejl/warning, rød-felt-maskering, strukturel
+      // save-sondring) dækkes af kernen, ikke af en implementeringstest pr. fejl-hook.
       'src/__tests__/inputCore/inputCore.test.ts',
     ],
   },
@@ -430,11 +430,11 @@ describe('contract linkage matrix', () => {
   });
 
   /**
-   * R1-F04: FIL-completeness er ikke HIERARKI-completeness.
+   * FIL-completeness er ikke HIERARKI-completeness.
    *
-   * Testen ovenfor kontrollerede, at hver underordnelses-reference er en klassificeret kontraktfil.
-   * Den kunne ikke se den modsatte fejl — at en tværgående kontrakt MANGLER i listen. Netop det var
-   * tilfældet: `page-component-contract.md` er ifølge både AGENTS.md's kontrakthierarki og sin egen
+   * Testen ovenfor kontrollerer, at hver underordnelses-reference er en klassificeret kontraktfil.
+   * Den kan ikke se den modsatte fejl — at en tværgående kontrakt MANGLER i listen. Det er en reel
+   * fejlform: `page-component-contract.md` er ifølge både AGENTS.md's kontrakthierarki og sin egen
    * prioritetslinje underordnet SAMTLIGE tværgående kontrakter, men topologien udelod
    * `snapshot-contract.md` og `auth-gate-contract.md`. To autoritative beskrivelser gav dermed
    * forskellig kontraktprioritet, og den maskinlæsbare — den, en læser og et værktøj slår op i — var
@@ -468,7 +468,7 @@ describe('contract linkage matrix', () => {
    * `responsiveStylingRules.ts`, `verify-build-artifacts.mjs`), som matrixen ikke kendte;
    * `auth-gate-contract.md` og `calculation-data-contract.md` hver én. Alle filerne fandtes — så
    * uenigheden var ikke en død reference, men det værre tilfælde: to lister, en læser kunne slå op i og
-   * få forskellige svar. Det er samme fejlklasse som R1-F04, hvor topologien og AGENTS.md gav
+   * få forskellige svar. Det er samme fejlklasse, som når topologien og AGENTS.md giver
    * forskellig kontraktprioritet.
    *
    * Retningen er INKLUSION, ikke lighed: matrixen er registret og skal kende hver suite, kontrakten

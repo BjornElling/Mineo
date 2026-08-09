@@ -10,7 +10,7 @@ import { FIELD_ADDRESS_ATTR } from '../../../inputCore/react/historyRestoreTarge
 import { eoTafPeriodeFraField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 /**
- * Den delte blinkmarkering (BF-020/BF-021).
+ * Den delte blinkmarkering.
  *
  * Markeringen er den ENE visuelle «peg på dette felt»-mekanisme. Testene her måler de tre ting, der gør
  * den generelt tilgængelig: at den kan lægges på et vilkårligt element, at den kan findes gennem den

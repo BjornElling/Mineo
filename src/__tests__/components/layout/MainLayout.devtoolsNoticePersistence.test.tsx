@@ -14,7 +14,7 @@ import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import type { DevtoolsIssue, DevtoolsIssueSnapshot } from '../../../utils/devtoolsMonitor';
 
-// Greenfield-shell (WI-002 Fase 4): devtools-notice-diagnostikken læses uændret; kun mount-wrapperen skifter
+// Devtools-notice-diagnostikken læses gennem shellen; mount-wrapperen er testens eneste særegne del
 // fra legacy FormPersistence til den ene produktions-runtime.
 const catalog = getProductionInputCatalog();
 bootstrapProductionInputRuntime();

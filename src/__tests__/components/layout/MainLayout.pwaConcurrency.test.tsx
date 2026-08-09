@@ -54,7 +54,7 @@ import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFileHandle } from '../../../utils/fileLoad';
 import { dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
 
-// Greenfield-shell (WI-002 Fase 4): PWA-samtidighed drives uændret via DOM-events; kun mount-wrapperen skifter
+// PWA-samtidighed drives via DOM-events; mount-wrapperen er testens eneste særegne del
 // fra legacy FormPersistence til den ene produktions-runtime. Ingen af disse tests hævder mod field-error-lageret.
 const catalog = getProductionInputCatalog();
 bootstrapProductionInputRuntime();

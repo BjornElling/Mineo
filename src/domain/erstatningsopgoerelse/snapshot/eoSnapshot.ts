@@ -334,7 +334,7 @@ export const computeEoSnapshot = (args: Readonly<{
   // Her stod tidligere en `invariant_guard` for `eoAngivetLoenLoenudvikling.loenPaaHelligdage === undefined`
   // (systemfejl `eo_snapshot:hidden_angivet_loen_state_invalid`). Den er fjernet, fordi tilstanden ikke
   // længere kan repræsenteres: feltet er required-with-default i BÅDE schemaet og descriptoren, så hverken
-  // en nyoprettet sektion, en ældre `.eo` eller readerens tomværdi kan give `undefined`. Se BF-025 —
+  // en nyoprettet sektion, en ældre `.eo` eller readerens tomværdi kan give `undefined` —
   // gaten var ikke et værn mod en umulig tilstand, men den eneste udgang fra den tilstand, en HELT NY sag
   // altid startede i. Genindfør den ikke; genindfør i stedet ikke den valgfrihed, den vogtede over.
 

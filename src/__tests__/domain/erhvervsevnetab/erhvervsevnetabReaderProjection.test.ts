@@ -47,7 +47,7 @@ import type {
   StamdataValues,
 } from '../../../schemas/formSchemas';
 
-// Greenfield Erhvervsevnetab reader-projektion (§3.4/§5.4/§1.10, Fase 3-slice): beviser at projektionen (a) kører den
+// Erhvervsevnetabs reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen (a) kører den
 // EKSISTERENDE `computeEetSnapshot` byte-identisk på reader-læste værdier (§5.4 hårdt stop mod talændring, inkl. den
 // rekonstruerede aslAfgoerelser-collection), (b) fører canonical bounds-feltfejl (§1.6) på ealEetPct + rækkeceller ind
 // i snapshottets per-fane-gate, og (c) bevarer den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10): en ealEetPct-fejl
@@ -224,7 +224,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     const projection = buildErhvervsevnetabReaderProjection(reader);
     expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
     expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
-    // GM-F06: kryds-række-reglerne er STRUKTURELLE feltissues med rigtige feltadresser — ikke en parallel
+    // Kryds-række-reglerne er STRUKTURELLE feltissues med rigtige feltadresser — ikke en parallel
     // `${rowId}|${field}`-strengnøgle. Adressen er den, cellen og fokusnavigationen selv slår op på.
     const ruleIssues = projection.aslAfgoerelserRuleIssues.all;
     expect(ruleIssues.length).toBeGreaterThan(0);
@@ -269,8 +269,8 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     }
   });
 
-  it('OBS-001: skift Endelig → Midlertidig bevarer kapitaliseringsfelterne og GENUDLEDER deres fejl', () => {
-    // Auditfund OBS-001. Kravet er TODELT, og begge dele er load-bearing:
+  it('skift Endelig → Midlertidig bevarer kapitaliseringsfelterne og GENUDLEDER deres fejl', () => {
+    // Kravet er TODELT, og begge dele er load-bearing:
     //
     //  1. Værdierne BEVARES. Et skift af afgørelsestype er et almindeligt valg, ikke en sletteknap (§7.5
     //     hovedregel). Rydnings-UNDTAGELSEN i §7.5 pkt. 2 rammer ikke her: den forudsætter, at valget gør
@@ -336,7 +336,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
   it('fører en canonical beregningsdato-bounds-feltfejl (før skadedato) ind som field-beregningsdato på de afhængige faner (§1.6/§1.10)', () => {
     // En beregningsdato FØR skadedato er uden for dynamisk min → readeren skjuler værdien og rejser en rød bounds-
     // feltfejl. computeEetSnapshot aftager field-beregningsdato på løbende ydelser, EET efter EAL og differencekrav.
-    // (Regressionsvagt for et selv-review-fund: descriptoren manglede oprindeligt denne bounds-validator, så en
+    // (Regressionsvagt: uden denne bounds-validator på descriptoren ville en
     // out-of-range beregningsdato ville passere lydløst modsat legacy.)
     const reader = buildReader(
       { ...validErhvervsevnetab, beregningsdato: toISODateString('2020-01-01') },

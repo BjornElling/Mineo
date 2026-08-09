@@ -7,7 +7,7 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import { toISODateString } from '../../../types/branded';
 
 /**
- * Trust-binding for den OFFENTLIGE overenskomst-gren (review-punkt 6).
+ * Trust-binding for den OFFENTLIGE overenskomst-gren.
  *
  * `getOffentligLoenForDato` kaster ved en manglende løntrin INDEN FOR dækning (og
  * giver kun `undefined` FØR dækningen — det er den gatede zero-delta-sti, S3). Med
@@ -43,7 +43,7 @@ vi.mock('../../../data/offentligLoenLookup', async (importActual) => {
   };
 });
 
-describe('Overenskomst offentlig — manglende løntrin inden for dækning fail-closer (review-punkt 6)', () => {
+describe('Overenskomst offentlig — manglende løntrin inden for dækning fail-closer', () => {
   it('kaster (degraderer IKKE til zero-delta) når et dækket segments løntrin mangler', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';

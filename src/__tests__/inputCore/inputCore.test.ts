@@ -564,7 +564,7 @@ describe('Obligatorisk statekæde: gyldig A → ugyldig X → undo → redo (§7
 });
 
 describe('Kildesnapshot og history-grænser (§3.4, §3.7)', () => {
-  // Settings-halvdelen af denne test er fjernet med `deriveSettingsFieldIssues` (WI-009): kernen
+  // Denne test dækker kun input-halvdelen: kernen
   // læser ikke længere settings, så der er intet settingssnapshot at fryse her. Bindingen mellem
   // input, issues og token er derimod fortsat en levende invariant og pinnes videre.
   // (Frysningen af det brede settingsobjekt var mekanismens egen test, ikke en produktinvariant.)

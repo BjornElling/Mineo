@@ -12,7 +12,7 @@ import type { SectionKey } from '../../inputCore/fieldAddress';
 import { deepEqual } from '../../utils/deepEqual';
 
 /**
- * VÆRN (BF-025): en testfixture må ikke være RIGERE end den sag, produktionen faktisk laver.
+ * VÆRN: en testfixture må ikke være RIGERE end den sag, produktionen faktisk laver.
  *
  * En sektion får sin første værdi ét af to steder:
  *  1. NY-SAGS-SEEDEN, som `createNewCaseInput` anvender ved bootstrap og `Slet alt`. Den ejer de krav om "sådan
@@ -23,7 +23,7 @@ import { deepEqual } from '../../utils/deepEqual';
  * Begge er LEVENDE. Ved siden af dem står `create<Sektion>InitialValues` — fabrikker, ingen produktionssti
  * kalder, men som ~110 testfiler bygger deres fixture med. Hvor fabrikken og den levende sag er uenige, tester
  * suiten en tilstand, produktionen aldrig er i, og produktionen er i en tilstand, ingen test måler. Det var
- * præcis fælden i BF-025.
+ * præcis den fælde.
  *
  * Testen forbyder ikke uenighed — den kræver, at hver afvigelse står EKSPLICIT nedenfor med sin begrundelse,
  * så den er set og valgt frem for opstået.
@@ -120,7 +120,7 @@ describe('fixture-paritet: den gamle new-case-fabrik afviger kun der, hvor det e
     ).toEqual(erklaerede);
   });
 
-  it('BF-025-feltet er IKKE længere en afvigelse (regressionslås)', () => {
+  it('det tidligere afvigende felt er IKKE længere en afvigelse (regressionslås)', () => {
     const live = materializeLiveSection('erstatningsopgoerelse');
     const angivetLoen = live.eoAngivetLoenLoenudvikling as Record<string, unknown>;
     const fixtureAngivetLoen = createErstatningsopgoerelseInitialValues()

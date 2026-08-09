@@ -54,7 +54,7 @@ import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
 import { clickMainLayoutAction, dispatchPwaFileOpen, flushMainLayoutAsyncAction } from './mainLayoutActionTestUtils';
 
-// Greenfield-shell (WI-002 Fase 4): "der findes allerede data" læses fra runtime (`ops.file.hasAnyData()`),
+// "Der findes allerede data" læses fra runtime (`ops.file.hasAnyData()`),
 // ikke fra legacy per-sektions-sessionStorage. Vi hydrerer derfor den ægte runtime med data i stedet for at
 // seede `mineo_*`-nøgler, og læser den anvendte tilstand fra den ene greenfield current-envelope.
 

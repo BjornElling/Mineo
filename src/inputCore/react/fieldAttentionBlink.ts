@@ -1,5 +1,5 @@
 /**
- * Den DELTE «peg på dette felt»-blinkmarkering (BF-020/BF-021).
+ * Den DELTE «peg på dette felt»-blinkmarkering.
  *
  * Programmet har tre veje, der fører brugeren hen til en indtastning, som kræver opmærksomhed:
  * undo/redo-fokusrestoren, save-blokeringens fokus og de interne fejl-/advarselslinks. Alle tre

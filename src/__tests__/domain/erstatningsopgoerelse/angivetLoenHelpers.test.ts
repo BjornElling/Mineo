@@ -62,7 +62,7 @@ describe('resolveLoenudviklingKilde', () => {
     expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.INGEN);
   });
 
-  // BF-025: her lå et kast på `loenPaaHelligdage === undefined`. Testen var grøn, fordi fixturen SATTE
+  // Her lå et kast på `loenPaaHelligdage === undefined`. Testen var grøn, fordi fixturen SATTE
   // feltet til undefined — mens produktionen nåede samme gren uden at nogen satte noget, netop fordi feltet
   // var valgfrit og manglede en editor. Kontrakten er nu, at en tom, nyoprettet sag bærer en konkret sats
   // gennem hele lønudviklings-kilden uden at kaste.

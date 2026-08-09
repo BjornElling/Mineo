@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * §7.1's FÆLLES feltkontrakt — ÉN invariantliste kørt mod BEGGE adaptere for hver codecfamilie
- * (R8-F02, etape 10).
+ * Kørt mod BEGGE adaptere.
  *
  * **Hvad fundet var.** Form-suiterne (`useFieldEditor`, `useFormFieldSurface`) brugte kun `aargangField`
  * med integer-codec, og grid-suiten brugte primært `belobField` med amount-codec. Der fandtes INGEN

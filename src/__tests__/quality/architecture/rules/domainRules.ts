@@ -4,9 +4,9 @@
  * Hvem må koble til hvilket domæne. Page-grænsen følger IMPORTGRAFEN (ikke kun direkte imports),
  * så en kobling gennem en projektion eller facade ikke kan gøre reglen tavs.
  *
- * Del af det opdelte arkitekturmanifest (Fase 6, genåbnet): manifestet var 2.133 linjer og blandede
- * storage-, input-, domæne-, UI- og dokumentregler i én fil, hvor en regel og dens nabo intet havde
- * med hinanden at gøre. `architectureRules.ts` samler nu de fem koncern-moduler til ét registry.
+ * Del af det koncern-opdelte arkitekturmanifest: storage-, input-, domæne-, UI- og dokumentregler bor
+ * hver for sig, så en regel og dens nabo hører til samme emne. `architectureRules.ts` samler de fem
+ * moduler til ét registry.
  */
 import ts from 'typescript';
 import { type PersistedSectionKey } from '../../../../config/persistenceRegistry';
@@ -28,7 +28,7 @@ export const failOpenDisplayLookupImport = forbidImports({
     'Det fail-open getSatserForYear (lovbestemteRates) må kun importeres af display-/dokument-lag — aldrig en beregningssti.',
   liveTarget: {
     kind: 'precondition',
-    // R0-F02: AST-signal, ikke tekst — en kommentar, der nævner opslaget, må ikke holde reglen levende.
+    // AST-signal, ikke tekst: en kommentar, der nævner opslaget, må ikke holde reglen levende.
     probe: (entry) => hasIdentifier(entry, 'getSatserForYear'),
     rationale: 'det fail-open opslag findes stadig og importeres af mindst én fil',
   },
@@ -59,7 +59,7 @@ export const aslAarsloensmaksimumRawSubscript = forbidElementAccess({
     'Rå aarsloenAslMax[år]-opslag skal gå gennem resolveAslAarsloensmaksimumForAar (gateway); kun datakilde + gateway må subscripte.',
   liveTarget: {
     kind: 'precondition',
-    // R0-F02: AST-signal, ikke tekst.
+    // AST-signal, ikke tekst.
     probe: (entry) => hasIdentifier(entry, 'aarsloenAslMax'),
     rationale: 'datatabellen `aarsloenAslMax` findes stadig og kan subscriptes',
   },
@@ -278,7 +278,7 @@ export const inspektionLayerImport = forbidImports({
 
 // --- EET-domæne: intet tværside-persisted-opslag ind i erhvervsevnetab -------
 
-// `domain/eet-cross-domain-persisted-lookup` er SLETTET i Fase 6.
+// `domain/eet-cross-domain-persisted-lookup` er SLETTET.
 //
 // Reglen forbød `getPersistedData`/`usePersistedSection`/`commitSection` med `'erhvervsevnetab'` som
 // literal-argument. Dødt-værn-detektoren afslørede, at ingen af de tre callees findes i grafen længere:
@@ -287,7 +287,7 @@ export const inspektionLayerImport = forbidImports({
 // Reglen var altså grøn af tomhed.
 //
 // Intentionen — EET må ikke kobles til af et fremmed domæne — er IKKE opgivet: den håndhæves nu af
-// `domain/page-section-access-boundary`, som efter Fase 6 måler den kobling, greenfield faktisk har
+// `domain/page-section-access-boundary`, som måler den kobling, koden faktisk har
 // (hvilket descriptor-katalog en side importerer), mod den samme autorisationstabel. Det er en STÆRKERE
 // kontrol end den slettede, fordi den dækker alle sektioner og ikke kun literal-argumenter.
 
@@ -299,7 +299,7 @@ export const moneyOreTypeAssertion = forbidTypeAssertions({
     'MoneyOre må ikke konstrueres med type-assertion; brug den validerede pengealgebra.',
   liveTarget: {
     kind: 'precondition',
-    // R0-F02: MoneyOre findes kun i TYPE-positioner (den importeres som type), så typereferencen er
+    // MoneyOre findes kun i TYPE-positioner (den importeres som type), så typereferencen er
     // signalet. En tekstprobe ville også ramme navnet i en kommentar.
     probe: (entry) => hasTypeReference(entry, 'MoneyOre'),
     rationale: 'MoneyOre-typen findes stadig og kan asserteres til',
@@ -323,7 +323,7 @@ export const moneyOreTypeAssertion = forbidTypeAssertions({
 /**
  * Hvilket persisteret domæne hvert descriptor-katalog giver adgang til.
  *
- * **Fase 6 omskrev denne regel fra kald til imports.** Første udgave målte string-literal-argumenter
+ * **Reglen måler IMPORTS, ikke kald.** En udgave, der måler string-literal-argumenter,
  * til sektions-hooks (`usePersistedForm('aarsloen')` …). Dødt-værn-detektoren afslørede, at ALLE de
  * hooks er væk efter greenfield-cutoveren: `usePersistedSection`/`commitSection` har nul forekomster,
  * og de øvrige lever kun som historik-kommentarer i page-filerne. Reglen kontrollerede altså en
@@ -437,7 +437,7 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
   },
   { label: 'Forsørgertab', root: 'src/components/pages/Forsoergertab.tsx', allowedSections: ['forsoergertab', 'faellesAarsloen', 'stamdata'] },
   {
-    // Forsørgertabs viewmodel + sektion-komponenter (R7-F01's VM-lag). Autorisationen er DEN SAMME som
+    // Forsørgertabs viewmodel + sektion-komponenter. Autorisationen er DEN SAMME som
     // sidens: sektionslaget er sidens eget, og en anden liste her ville betyde, at ansvaret kunne flyttes
     // over grænsen ved at flytte en fil ned i mappen.
     label: 'Forsørgertab sektioner',
@@ -449,7 +449,7 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     // Delte renteberegning-faner (bruges af både hovedapp og standalone minProcesrente). RenteberegningTab
     // binder beregningsdato til den afsluttede inputrevision, så filen tilgår
     // `renteberegning`-sektionen.
-    // `stamdata` er med efter R7-F01: sidens viewmodel bor nu her og komponerer de to rente-dokument-
+    // `stamdata` er med: sidens viewmodel bor her og komponerer de to rente-dokument-
     // definitioner, som læser brevhovedets stamdata. Autorisationen er dermed identisk med
     // `Renteberegning.tsx`' egen — koblingen er den samme, kun filen er flyttet.
     label: 'Renteberegning-faner',
@@ -473,15 +473,15 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
   },
 ];
 
-// --- Hvem må kalde en beregningsmotor (WI-005) --------------------------------
+// --- Hvem må kalde en beregningsmotor -----------------------------------------
 
 /**
  * ANSVARSGRÆNSE: en beregningsmotor kaldes KUN af sin egen reader-projektion.
  *
- * `§7.3`/GM-F07: motoren fodres kun fra en `ready`-projektion. Grænsen holdt i praksis — nul callsites uden for
- * projektionerne — men den var UBEVOGTET: intet ville have fanget en side, en dokumentdefinition eller en
- * komponent, der greb direkte efter motoren og dermed omgik gaten. Netop det er WI-005's ønskede slutbillede:
- * værn, der håndhæver ANSVAR (hvem må kalde en motor) frem for de NAVNE, migrationen kom fra.
+ * §7.3: motoren fodres kun fra en `ready`-projektion. Grænsen kan holde i praksis — nul callsites uden for
+ * projektionerne — og alligevel være UBEVOGTET: uden denne regel ville intet fange en side, en
+ * dokumentdefinition eller en komponent, der greb direkte efter motoren og dermed omgik gaten. Værnet
+ * håndhæver derfor ANSVARET (hvem må kalde en motor) frem for bestemte NAVNE.
  *
  * Kortet er 1:1 og udtømmende pr. slice, så det ikke kan udvandes: hver motor har præcis ÉN lovlig kalder.
  * En syvende slice, hvis motor får en anden kalder, skal registreres her — og en motor, hvis navn forsvinder,
@@ -510,15 +510,15 @@ const collectForeignEngineCalls = (entry: SourceEntry): readonly Finding[] =>
       message:
         `\`${ref.calleeName}(...)\` er en beregningsmotor, som kun må kaldes af sin egen reader-projektion `
         + `(${ENGINE_ENTRYPOINT_OWNERS.get(ref.calleeName)}). Motoren fodres KUN fra en \`ready\`-projektion `
-        + '(§7.3/GM-F07); et direkte kald herfra omgår dependency-gaten, så et tal kan beregnes på input, der '
+        + '(§7.3); et direkte kald herfra omgår dependency-gaten, så et tal kan beregnes på input, der '
         + 'ikke rækker til det. Læs projektionens resultat i stedet.',
     }));
 
 export const engineCallOwnedByProjectionRule = defineRule({
   id: 'domain/engine-call-owned-by-projection',
   description:
-    'En beregningsmotor kaldes kun af sin egen reader-projektion (§7.3/GM-F07). Et direkte motorkald fra en '
-    + 'side, en dokumentdefinition eller en komponent omgår dependency-gaten (WI-005).',
+    'En beregningsmotor kaldes kun af sin egen reader-projektion (§7.3). Et direkte motorkald fra en '
+    + 'side, en dokumentdefinition eller en komponent omgår dependency-gaten.',
   liveTarget: {
     kind: 'precondition',
     // Målet er motorernes EJERE: hver projektion skal stadig kalde sin motor. Holder en projektion op med at
@@ -570,7 +570,7 @@ export const engineCallOwnedByProjectionRule = defineRule({
       code: "import type { ForsoergertabSnapshot } from '../../domain/forsoergertab/forsoergertabSnapshot';\n"
         + 'const f = (s: ForsoergertabSnapshot) => s;',
     },
-    // En KOMMENTAR, der nævner motoren, må ikke bære reglen (INC-F03's lærepunkt).
+    // En KOMMENTAR, der nævner motoren, må ikke bære reglen.
     {
       relativePath: 'src/components/pages/Forsoergertab.tsx',
       code: '// Projektionen kalder computeForsoergertabSnapshot() uændret (§5.4).\nconst x = 1;',
@@ -591,7 +591,7 @@ type SectionAccess = Readonly<{
 }>;
 
 /**
- * TRANSITIV domænekobling (Fase 6, genåbnet).
+ * TRANSITIV domænekobling.
  *
  * Reglen målte tidligere kun DIREKTE descriptor-imports i page-filen. Det var en reel blindhed: den
  * greenfield-arkitektur, planen selv foreskriver, lader siden importere en domæne-PROJEKTION, som
@@ -886,10 +886,10 @@ export const crossDomainDescriptorPort = forbidImports({
   ],
 });
 
-// `form/persisted-styled-field-error-reporter` er SLETTET i Fase 6.
+// `form/persisted-styled-field-error-reporter` er SLETTET.
 //
 // Reglen krævede en `onFieldError`-prop på parse-kompetente `Styled*Field`-komponenter på
-// produktionssider. Trin 13 slettede hele den feltvej, og dødt-værn-detektoren afslørede, at reglen
+// produktionssider. Hele den feltvej er slettet, og dødt-værn-detektoren afslørede, at reglen
 // derfor ikke havde ét eneste mål tilbage: `grep '<Styled[A-Za-z]*Field'` under `src/components/pages/`
 // giver nul træffere.
 //
@@ -902,7 +902,7 @@ export const crossDomainDescriptorPort = forbidImports({
 //     issue-snapshot (§1.8) — ikke af en valgfri callback. Der er intet `onFieldError` at udelade;
 //     et felt kan ikke opt-out af sin egen fejltilstand.
 //
-// Fase 6's krav "persisted controls kræver konkrete refs" er dermed opfyldt af TYPEN frem for af en
+// Kravet "persisted controls kræver konkrete refs" er opfyldt af TYPEN frem for af en
 // regel — samme rangorden som `ManifestStorageKey` etablerede
 // ([[project_typed_write_boundary_over_ast_guard]]). En pro forma-regel oven på en compiler-håndhævet
 // invariant ville være regel-antal uden dækning, og ville selv være det næste døde værn.

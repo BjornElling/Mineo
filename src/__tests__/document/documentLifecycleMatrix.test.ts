@@ -1,7 +1,7 @@
 /**
- * Den udtømmende matrix, del 1: livscyklussens egne cases (Fase 5, pass 7).
+ * Den udtømmende matrix, del 1: livscyklussens egne cases.
  *
- * Planen kræver ni cases pr. output. Fem af dem er DEFINITIONSUAFHÆNGIGE af konstruktion — de
+ * Kontrakten kræver ni cases pr. output. Fem af dem er DEFINITIONSUAFHÆNGIGE af konstruktion — de
  * afhænger kun af `documentLifecycle.ts`' rækkefølge, ikke af hvad definitionen projicerer:
  *
  *   - åben draft, som settler gyldigt
@@ -10,8 +10,8 @@
  *   - direkte programmatisk aktivering
  *   - "for blokerede cases sker der ikke lazy-load, generatorimport eller fil-I/O"
  *
- * Før Fase 5 var de per-output, fordi hvert output HAVDE sin egen kopi af livscyklussen — og fem af
- * de atten kopier manglede mindst ét trin. Netop den duplikering er nu væk: der findes ét
+ * Havde hvert output sin egen kopi af livscyklussen, ville de fem være per-output — og en kopi kunne
+ * mangle et trin, uden at nogen anden kopi blev rød. Den duplikering findes ikke: der er ét
  * `executeDocumentDownload`, og alle 21 outputs går gennem det. At teste de fem cases 21 gange ville
  * derfor teste den samme kodesti 21 gange og give falsk tryghed om, at dækningen var per-output.
  *

@@ -1,5 +1,5 @@
 /**
- * Katalog-completeness for de 21 dokumentoutputs (Fase 5, pass 7).
+ * Katalog-completeness for de 21 dokumentoutputs.
  *
  * Kontraktens §A2a kræver ét kanonisk outputkatalog, hvor hvert katalogiseret output har præcis én
  * definition — inklusive standalone MinProcesrente, som historisk stod helt uden for kataloget.
@@ -136,7 +136,7 @@ describe('dokumentkatalog — completeness (§A2a)', () => {
     for (const definition of ALL_DEFINITIONS) {
       expect(definition.labels.documentName.trim(), `${definition.id} mangler documentName`).not.toBe('');
       // Navnet må ikke bære et formatsuffiks: formatet tilføjes af beskedlaget, og et hårdkodet
-      // "PDF" her var netop den legacy-form, hvis /PDF/g-substitution Fase 5 fjernede.
+      // "PDF" her var netop den legacy-form, en /PDF/g-substitution ville efterlade.
       expect(definition.labels.documentName, `${definition.id} har formatsuffiks i navnet`)
         .not.toMatch(/\b(pdf|word|docx)\b/i);
       expect(['settings-key', 'none']).toContain(definition.brevhoved.kind);

@@ -210,7 +210,7 @@ export default function IndtaegtFoerSkadenSection() {
 
                 {/*
                   «Offentlige ydelser i beregningsperioden reguleres» stod tidligere her, men hører
-                  sagligt til de offentlige ydelser og bor nu på Offentlige ydelser-fanen (BF-022).
+                  sagligt til de offentlige ydelser og bor nu på Offentlige ydelser-fanen.
                   Feltet selv er uændret — kun editorlokationen er flyttet, og dermed den fane
                   fokusnavigationen fører brugeren til (§3.2).
                 */}

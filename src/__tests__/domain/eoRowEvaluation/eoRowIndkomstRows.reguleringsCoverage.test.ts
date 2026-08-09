@@ -293,7 +293,7 @@ describe('buildEoIndkomstRows regulering details', () => {
 });
 
 /**
- * Multi-af-maskering (udskudt fund U2 / review-punkt 13, led 2).
+ * Multi-af-maskering.
  *
  * I `Beregningsperiode`-grenen beregner både compute-motoren OG row-laget hvert
  * ansættelsesforhold uafhængigt: row-laget itererer `resolveLoenudviklingKilde` (= alle
@@ -386,7 +386,7 @@ describe('buildEoIndkomstRows escape-hatch — flipper kun severity, ikke værdi
 });
 
 /**
- * U6 — `alleVaerdier`-row-domæneforskel og dobbelt-signalering (review-punkt 13).
+ * `alleVaerdier`-row-domæneforskel og dobbelt-signalering.
  */
 describe('buildEoIndkomstRows alleVaerdier — manuel-form-domæneforskel (U6)', () => {
   const buildManualValues = (basis: 'Manuel procentsats' | 'Manuelt angivet') => {

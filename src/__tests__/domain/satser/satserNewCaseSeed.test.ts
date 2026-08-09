@@ -9,7 +9,7 @@ import { seedSatserNewCase } from '../../../domain/satser/satserNewCaseSeed';
 
 // §1.12/brugerbeslutning: en frisk sag seedes med default-satsåret som ægte committed input (ikke skygge-visning).
 //
-// Efter R5-F02 leverer seeden kun sin SEKTIONSVÆRDI; `initializeInputRuntime` ejer konstruktionen af
+// Seeden leverer kun sin SEKTIONSVÆRDI; `initializeInputRuntime` ejer konstruktionen af
 // aggregatet og re-validerer gennem kataloget. Testen går derfor gennem den ægte bootstrap-vej frem for at
 // kalde seeden med en rå `SettledInput` — det er samtidig stærkere evidens: den beviser, at værdien faktisk
 // LANDER i den hydrerede baseline, hvor den gamle udgave kun beviste, at seeden byggede et gyldigt objekt.
@@ -51,7 +51,7 @@ describe('seedSatserNewCase (§1.12)', () => {
     }
   });
 
-  it('lader de øvrige sektioner urørte — seeden kan ikke bygge aggregatet selv (R5-F02)', () => {
+  it('lader de øvrige sektioner urørte — seeden kan ikke bygge aggregatet selv', () => {
     const { store } = hydrateFreshCase();
     const sections = store.getState().input.sections;
 

@@ -246,7 +246,7 @@ describe('regulering S3 — offentlig overenskomst før dækning er gated af en 
 });
 
 /**
- * Manuelt angivet (review-punkt 7) — før-basis-rækker.
+ * Manuelt angivet — før-basis-rækker.
  *
  * Basisrækken repræsenterer niveauet på reguleringsdatoen. Rækker på eller før dette anker er
  * feltplacerede fejl i reader-projektionen; motorens drop er defense-in-depth og skal være tal-neutralt.

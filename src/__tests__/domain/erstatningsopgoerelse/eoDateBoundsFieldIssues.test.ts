@@ -24,7 +24,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 
-// Runtime-auditens OBS-022–024: EO's DEKLAREREDE datogrænser blev ikke håndhævet.
+// EO's DEKLAREREDE datogrænser skal håndhæves.
 //
 // Fundene var, at datoer før skadedagen — og efter konfigurationens maksimum — kunne AFSLUTTES canonical
 // med `aria-invalid=false`, uden feltfejl, uden tooltip og uden at blokere PDF-gaten. Årsagen var ikke
@@ -74,10 +74,10 @@ const issueAt = (
   field: { address: Parameters<typeof serializeFieldAddress>[0] }
 ) => evaluation.issues.get(serializeFieldAddress(field.address));
 
-/** Dagen før skadedagen — den værdi, OBS-023 observerede blev accepteret canonical. */
+/** Dagen før skadedagen — en værdi der ikke må accepteres canonical. */
 const DAGEN_FOER_SKADEN = toISODateString('2019-12-31');
 
-describe('OBS-023: EO’s AES-datofelter afviser datoer før skadedagen', () => {
+describe('EO’s AES-datofelter afviser datoer før skadedagen', () => {
   // Auditten afsluttede alle fem som canonical med `aria-invalid=false`, mens Forligsdato — det ENE
   // felt med en håndskrevet validator — afviste samme værdi. Kontrasten var beviset for, at manglen
   // lå i bindingen og ikke i reglen.
@@ -106,7 +106,7 @@ describe('OBS-023: EO’s AES-datofelter afviser datoer før skadedagen', () => 
   });
 });
 
-describe('OBS-022: EO’s topfelter håndhæver deres deklarerede grænser', () => {
+describe('EO’s topfelter håndhæver deres deklarerede grænser', () => {
   it('«Opgørelse lavet den» før skadedagen markeres rødt', () => {
     const issue = issueAt(
       buildReader({ ...baseEo(), opgørelseLavetDen: DAGEN_FOER_SKADEN }),
@@ -141,7 +141,7 @@ describe('OBS-022: EO’s topfelter håndhæver deres deklarerede grænser', () 
   });
 });
 
-describe('OBS-024: EO-tabellernes datoceller håndhæver deres deklarerede grænser', () => {
+describe('EO-tabellernes datoceller håndhæver deres deklarerede grænser', () => {
   // Grænsen fandtes i rækkeevaluerings-motoren, men kun som et kolonne-hint (`{ message, field }`).
   // Et hint er ikke en feltadresse, så cellen kunne aldrig blive rød. Nu er reglen på descriptoren.
   it('svie/smerte-rækkens fra-dato før skadedagen markeres rødt på CELLENS adresse', () => {

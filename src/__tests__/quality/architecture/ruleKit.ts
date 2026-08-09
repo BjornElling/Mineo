@@ -45,8 +45,7 @@ export type RuleFixture = Readonly<{
  *
  * Fixtures beviser, at reglens walker VIRKER. De beviser ikke, at der er noget at gå efter:
  * slettes reglens mål, matcher fixtures stadig, mens grafen ikke længere indeholder noget,
- * reglen kan udtale sig om. Reglen bliver da grøn af TOMHED — samme fejlklasse som WI-007's
- * inerte AST-værn og WI-008's rene type-brand.
+ * reglen kan udtale sig om. Reglen bliver da grøn af TOMHED.
  *
  * Klassifikationen er EKSPLICIT pr. regel, ikke inferet: reglerne deler sig i to arter, hvor
  * "nul hits" betyder modsatte ting, og en fælles "≥1 hit"-kontrol ville ramme den ene forkert.

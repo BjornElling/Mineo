@@ -113,7 +113,7 @@ export type FieldCodec<T> = Readonly<{
    *
    * Samme begrundelse som {@link FieldSignPolicy}: mængden ER erklæret inde i codecet, og uden den udadtil
    * er den eneste maskinlæsbare opregning af "hvilke tilstande kan brugeren sætte dette felt i" umulig.
-   * Det var netop den manglende opregning, der lod BF-025 leve: ingen test kunne feje en tom sags
+   * Netop en manglende opregning lader en sådan fejl leve: ingen test kan feje en tom sags
    * dropdown-valg igennem, fordi ingen kunne SPØRGE et felt om dets valg.
    *
    * Udeladt for de frie familier (tekst, dato, tal …), hvor mængden ikke er endelig.

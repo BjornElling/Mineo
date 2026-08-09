@@ -12,7 +12,7 @@ import type {
   StamdataValues,
 } from '../../../schemas/formSchemas';
 
-// Greenfield Forsørgertab reader-projektion (§3.4/§5.4/§1.10, Fase 3-slice): beviser at projektionen (a) kører den
+// Forsørgertabs reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen (a) kører den
 // EKSISTERENDE `computeForsoergertabSnapshot` byte-identisk på reader-læste værdier (§5.4 hårdt stop mod talændring),
 // (b) fører en canonical bounds-feltfejl (§1.6) ind i snapshottets gate, og (c) bevarer den DEPENDENCY-SPECIFIKKE
 // panel-visning (§1.10): en fejl på virkningsdato blokerer ASL + download, men bevarer EAL-panelet — som legacy.

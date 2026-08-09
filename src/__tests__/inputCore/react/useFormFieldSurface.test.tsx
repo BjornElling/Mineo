@@ -25,7 +25,7 @@ import {
 } from '../../../inputCore';
 import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
 
-// Fase 2.4 (§2.4/§3.5, §7.1): UI-mekanik-laget mod syntetiske issue-snapshots. Surface-hooken oversætter kun
+// UI-mekanik-laget (§2.4/§3.5, §7.1) mod syntetiske issue-snapshots. Surface-hooken oversætter kun
 // DOM-events → editor-controller; den parser/persisterer/holder ingen fejlstate.
 
 let catalog: InputCatalog;

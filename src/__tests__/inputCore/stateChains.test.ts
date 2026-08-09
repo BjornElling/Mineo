@@ -1,5 +1,5 @@
 /**
- * §7.2's OTTE obligatoriske statekæder som én datadrevet matrix (R8-F03, etape 10).
+ * §7.2's OTTE obligatoriske statekæder som én datadrevet matrix.
  *
  * **Hvad fundet var.** Kun to af de otte kæder havde et egentligt undo/redo-forløb. `ugyldig X → ugyldig Y`
  * og `ugyldig → gyldig` var samlet i én test UDEN undo/redo, og kæderne med tom værdi, bounds-fejl, skjult
@@ -557,7 +557,7 @@ describe('Obligatoriske statekæder (§7.2) — alle otte, alle ni aspekter pr. 
     /**
      * **Hvorfor kædenavnet står i en `describe` og ikke i leaf-testens navn.**
      *
-     * §10-acceptregistret citerer udelukkende LEAF-tests som evidens (R8-F01), og et dynamisk leaf-navn
+     * §10-acceptregistret citerer udelukkende LEAF-tests som evidens, og et dynamisk leaf-navn
      * (`it(chain.name + …)`) kan pr. konstruktion ikke citeres: registrets AST-parser ser kun statiske
      * navnedele, og en interpolation er en per-case-værdi, ingen registerpost kan kende. Kædenavnene er
      * derfor bundet et STÆRKERE sted end et testnavn — i `NORMATIVE_CHAIN_NAMES`, som

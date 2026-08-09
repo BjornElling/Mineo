@@ -9,7 +9,7 @@ import type { LoadFileResult, LoadPreflightWarning, SaveFileResult } from '../..
 // markSaved-bogføring). Selve fil-I/O og persistence-apply mockes på modulgrænsen, så
 // testene hævder hookens invarianter — ikke de underliggende utils' implementering.
 //
-// Greenfield (WI-002 Fase 4): hooken forbruger nu de rene case-porte (`ops`) + den greenfield
+// Hooken forbruger de rene case-porte (`ops`) + den
 // `CriticalActionCoordinator` (`criticalActions`) i stedet for det legacy args-interface
 // (`combinedSectionRevisionRef`/`replaceAllPersistedData`/`getFirstBlockingInputError` osv.).
 // Save/hent-tilstand drives derfor gennem den ægte produktions-runtime:
@@ -17,7 +17,7 @@ import type { LoadFileResult, LoadPreflightWarning, SaveFileResult } from '../..
 //  - "åbent felt kan ikke committes" → en åben editor i `activeEditorRegistry`, hvis settle KASTER
 //    (fail-closed `blocked`, §1.4). Bemærk: åben editor blokerer KUN save/navigate — load er
 //    `replace`-policy og settler/blokeres ALDRIG (§1.4), så "hent"-testen hævder nu det modsatte.
-//  - Load-apply er efter R4-F01 delt i to mockede halvdele: den SYNKRONE
+//  - Load-apply er delt i to mockede halvdele: den SYNKRONE
 //    `applyAuthoritativeLoadSnapshot` (kalder den injicerede `applySnapshot`, så den ægte `replaceCase` kører og
 //    hæver `replacementGeneration` — coordinatorens apply-guard, §7) og den asynkrone `synchronizeLoadMetadata`.
 
@@ -51,7 +51,7 @@ vi.mock('../../utils/fileHelpers', () => ({
   resolveDefaultDirectoryHandle: vi.fn(async () => undefined),
 }));
 
-// `Slet alt`s filhåndtags-oprydning (R4-F02) skal kunne fejle i test: reset-porten LÆSER nu resultatet, og et
+// `Slet alt`s filhåndtags-oprydning skal kunne fejle i test: reset-porten LÆSER resultatet, og et
 // `false` skal vises som en rest frem for at forsvinde i "Alt data slettet".
 const deleteFileHandleFromIndexedDBMock = vi.fn<() => Promise<boolean>>();
 vi.mock('../../utils/fileHandleStorage', () => ({
@@ -230,7 +230,7 @@ describe('useFileSaveLoad', () => {
     });
 
     it('gemmer ikke en urørt sag — tomheds-gaten måler mod ny-sags-baseline, ikke feltoptælling', async () => {
-      // OBS-003: en helt ny/nulstillet sag blev tidligere gemt som et rigtigt sagsartefakt. Årsagen var, at
+      // En helt ny/nulstillet sag må ikke gemmes som et rigtigt sagsartefakt. Fælden er, at
       // gaten lå i `fileSave.ts` som en feltoptælling (`hasRealData`), der regnede hver `false` og hvert
       // standardtal (satsår, lønperiode, bilagsvalg) som brugerdata. Gaten ejes nu af `hasAnyData()`, som
       // sammenligner med ny-sags-baselinen og derfor kan skelne programmets standardsvar fra brugerens input.
@@ -486,8 +486,8 @@ describe('useFileSaveLoad', () => {
     });
   });
 
-  // ─── Etape 8 ─────────────────────────────────────────────────────────────
-  describe('R4-F01 — den asynkrone metadatafase ligger uden for replacement-barrieren', () => {
+  // ─── Filhåndtag og overskrivning ─────────────────────────────────────────
+  describe('den asynkrone metadatafase ligger uden for replacement-barrieren', () => {
     it('gennemfører den autoritative apply FØR metadata-synkroniseringen afventes', async () => {
       const handles = renderHook({ hasData: false });
       loadFromFileMock.mockResolvedValue(successfulLoad());
@@ -536,7 +536,7 @@ describe('useFileSaveLoad', () => {
     });
   });
 
-  describe('handleSletAlt — hel-sags-clear (R4-F02, GM-F12)', () => {
+  describe('handleSletAlt — hel-sags-clear', () => {
     let confirmSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
@@ -571,7 +571,7 @@ describe('useFileSaveLoad', () => {
       // Uafhængig UI-præference består bevidst (reset-policyens `deviceScoped`).
       expect(sessionStorage.getItem(UI_STORAGE_KEYS.sideMenuExpanded)).toBe('true');
       expect(deleteFileHandleFromIndexedDBMock).toHaveBeenCalledTimes(1);
-      // GM-F12: samme afslutning som load — navigation inde i appen, besked vist direkte.
+      // Samme afslutning som load — navigation inde i appen, besked vist direkte.
       expect(handles.navigate).toHaveBeenCalledWith('/stamdata', { replace: true });
       expect(handles.showOverlay).toHaveBeenCalledWith({ message: 'Alt data slettet', type: 'info' });
     });
@@ -608,7 +608,7 @@ describe('useFileSaveLoad', () => {
     });
   });
 
-  describe('GM-F13 — én load-shell med injiceret filkilde', () => {
+  describe('én load-shell med injiceret filkilde', () => {
     it('kører PWA-load gennem samme kæde og bærer antallet af ignorerede filer i beskeden', async () => {
       const handles = renderHook({ hasData: false });
       loadFromFileHandleMock.mockResolvedValue(successfulLoad());

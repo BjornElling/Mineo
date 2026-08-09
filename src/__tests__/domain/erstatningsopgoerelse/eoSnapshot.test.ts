@@ -104,7 +104,7 @@ describe('computeEoSnapshot', () => {
     }));
   });
 
-  // BF-025: det skjulte EO-lønfelt `loenPaaHelligdage` havde ingen editor og var valgfrit i schemaet, så
+  // Det skjulte EO-lønfelt `loenPaaHelligdage` havde ingen editor og var valgfrit i schemaet, så
   // enhver NY sag mødte en systemfejl i det øjeblik "Beregnes ud fra" blev sat til angivet løn. Feltet er nu
   // required-with-default begge steder; her pinnes, at valget er tavst og bærer den konkrete sats videre.
   it.each(['Angivet månedsløn', 'Angivet dagsløn'] as const)(

@@ -229,8 +229,8 @@ describe('computeForsoergertabSnapshot', () => {
       },
     });
 
-    // Beslutning 3 (GM-F05): oplysningen NÅR brugeren som en ikke-blokerende besked. Den var før udledt som
-    // `fieldUi.ealAarsloen.helperText`, men intet læste den, så beskeden blev aldrig vist.
+    // Oplysningen NÅR brugeren som en ikke-blokerende besked. Udledes den kun som
+    // `fieldUi.ealAarsloen.helperText`, er der intet der læser den, og beskeden vises aldrig.
     expect(snapshot.ealAarsloenNotice).toBe(
       'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.'
     );
@@ -256,8 +256,8 @@ describe('computeForsoergertabSnapshot', () => {
       },
     });
 
-    // Beslutning 3 (GM-F05): oplysningen NÅR brugeren som en ikke-blokerende besked. Den var før udledt som
-    // `fieldUi.ealAarsloen.helperText`, men intet læste den, så beskeden blev aldrig vist.
+    // Oplysningen NÅR brugeren som en ikke-blokerende besked. Udledes den kun som
+    // `fieldUi.ealAarsloen.helperText`, er der intet der læser den, og beskeden vises aldrig.
     expect(snapshot.ealAarsloenNotice).toBe(
       'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.'
     );

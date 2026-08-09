@@ -14,7 +14,7 @@ import { createEvaluationSourceToken, settleField, type InputCatalog } from '../
 import { createTestCatalog, aargangField } from '../testCatalog';
 import type { HistoryOrigin } from '../../../inputCore/inputHistory';
 
-// WI-003: shell-kontrakten for undo/redo-fokusrestore. Hooken kalder `onRestore` med det gendannede frames origin
+// Shell-kontrakten for undo/redo-fokusrestore. Hooken kalder `onRestore` med det gendannede frames origin
 // EFTER en gennemført undo/redo — og ALDRIG for en no-op restore. Kører mod den ægte runtime-binding + coordinator
 // (samme som produktionen), driver Ctrl+Z på window, og observerer callbacket. MainLayout leverer i produktionen
 // et `onRestore`, der navigerer + fokuserer; her verificeres selve kontrakten mod hooken.

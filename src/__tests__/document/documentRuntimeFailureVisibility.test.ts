@@ -13,7 +13,7 @@
  * uden at nogen test bemærkede, at signalet var forsvundet. Denne fil pinner kæden.
  *
  * Testen måler bevidst gennem den ÆGTE monitor og den ÆGTE reporter frem for at mocke dem: en mock ville bevise,
- * at kaldet sker, ikke at signalet kommer FREM. Det er netop den forskel, WI-010 stillede spørgsmålet om.
+ * at kaldet sker, ikke at signalet kommer FREM — og det er netop forskellen, der afgør, om brugeren ser fejlen.
  */
 import { subscribeDevtoolsIssues, startDevtoolsMonitor, resetDevtoolsMonitor } from '../../utils/devtoolsMonitor';
 import { reportDocumentRuntimeFailure } from '../../document/service/documentRuntimeFailure';

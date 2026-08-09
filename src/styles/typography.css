@@ -327,7 +327,7 @@
 /* Klassen bruges på BÅDE `<a>` (ægte navigation) og `<button>` (kontroller, der udfører en handling på
    siden — fx åbner licensdialogen eller starter PWA-installationen). En handling skal semantisk være en
    knap, ikke et `<a href="#">`: fragment-href'et løj om semantikken og nulstillede browserens sekventielle
-   fokus-udgangspunkt, så næste Tab sprang tilbage mod dokumentets top (OBS-002).
+   fokus-udgangspunkt, så næste Tab sprang tilbage mod dokumentets top.
 
    Derfor nulstiller reglen browserens knap-styling, så de to elementtyper ser IDENTISKE ud. Ændres
    udseendet her, gælder ændringen begge. */

@@ -7,9 +7,9 @@ const standaloneRoots = [
   path.join(repoRoot, 'src/components/pages/minprocesrente'),
 ];
 /**
- * Efter Fase 5 ligger AL standalone-specifik kode under de to rødder ovenfor: dokument-miljøet,
- * de tre definitioner og deres React-grænse bor i `src/apps/minprocesrente/document/`. Den
- * tidligere enkeltfil `src/pdf/infrastructure/standaloneRentePdfService.ts` er slettet.
+ * AL standalone-specifik kode ligger under de to rødder ovenfor: dokument-miljøet, de tre
+ * definitioner og deres React-grænse bor i `src/apps/minprocesrente/document/`. Listen er derfor
+ * tom — der findes ingen standalone-fil uden for rødderne.
  */
 const standaloneFiles: readonly string[] = [];
 

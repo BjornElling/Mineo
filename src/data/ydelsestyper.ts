@@ -106,7 +106,7 @@ export const ydelsestyper:
 export const ydelsestypeKeys = Object.keys(ydelsestyperLiteral) as YdelsestypeKey[];
 
 /* ----------------------------------------------------------------------------------------
- * Valgrækkefølgen i Ydelsestype-dropdownen (BF-023)
+ * Valgrækkefølgen i Ydelsestype-dropdownen
  *
  * Dropdownen viser ydelsestyperne i TO grupper adskilt af en streg: de egentlige offentlige
  * ydelser over stregen, og de supplerende posteringer under. Inden for hver gruppe sorteres

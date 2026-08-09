@@ -1,22 +1,19 @@
 /**
- * Wiring-paritet: hvad definitionerne FAKTISK sender til generatorerne (Fase 5, review-fund 6).
+ * Wiring-paritet: hvad definitionerne FAKTISK sender til generatorerne.
  *
- * **Hvorfor denne test findes.** Ved cutoveren flyttede testoraklet fra argument-paritet (mocks på
- * `download*Dokument`, som asserterede de konkrete parametre) til "en fil blev leveret"
- * (`triggerDocumentDownload`). Det er en STRAMMERE ende-til-ende-assertion, men en SVAGERE
- * wiring-assertion, og forskellen var ikke teoretisk: den slap en kritisk fejl igennem.
+ * **Hvorfor denne test findes.** Et testorakel, der kun måler "en fil blev leveret"
+ * (`triggerDocumentDownload`), er en stram ende-til-ende-assertion, men en SVAG wiring-assertion. Den
+ * forskel er ikke teoretisk: den kan slippe en kritisk fejl igennem.
  *
- * Konkret fejl (review-fund 1): `generateRenteDocument` tog `dd-mm-åååå` og parsede med
- * `parseDanishDate`, mens `generateRenteOversigtDocument` tog canonical `ISODateString`. To generatorer i
- * SAMME domæne med hver sit datoformat. Definitionerne sendte ISO til begge, så hver eneste
- * enkeltrente-download kastede "Ugyldige datoer for renteberegning" — i begge apps. Integrationstesten
- * fangede det ikke, fordi den kun aktiverer oversigts-outputtet, altså netop den af de to, hvis kontrakt
- * tilfældigvis passede.
+ * Fejlformen: to generatorer i SAMME domæne med hver sit datoformat — den ene tager `dd-mm-åååå` og
+ * parser med `parseDanishDate`, den anden canonical `ISODateString`. Sender definitionerne ISO til
+ * begge, kaster hver eneste enkeltrente-download "Ugyldige datoer for renteberegning" i begge apps.
+ * En integrationstest fanger det ikke, hvis den kun aktiverer det ene output, altså netop den af de
+ * to, hvis kontrakt tilfældigvis passer.
  *
- * **§WI-011 fjernede divergensen ved RODEN:** begge generatorer tager nu `ISODateString`, og konverteringen
- * pr. callsite er væk. Testen pinner derfor ikke længere to forskellige formater — den pinner, at ALLE fire
- * definitioner (Mineo + standalone × specifikation + oversigt) sender canonical ISO uændret. En genindført
- * konvertering ville gøre en af dem rød.
+ * Divergensen er lukket ved RODEN: begge generatorer tager `ISODateString`, og konverteringen pr.
+ * callsite findes ikke. Testen pinner, at ALLE fire definitioner (Mineo + standalone × specifikation
+ * + oversigt) sender canonical ISO uændret. En genindført konvertering ville gøre en af dem rød.
  *
  * Testen kalder `loadRenderer()` og kører rendereren mod en fake session, så de faktiske argumenter kan
  * inspiceres. Den er bevidst formatFOKUSERET: den pinner grænsen mellem definition og generator.
@@ -94,9 +91,9 @@ describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
   });
 
   it('regression: en DANSK datostreng ville nu få generatoren til at kaste', async () => {
-    // Beviser at testene ovenfor faktisk måler noget. Assertionen er VENDT med §WI-011: før var ISO det
-    // ugyldige format for denne generator, nu er dansk det. Uden dette ben kunne begge kontrakter være
-    // grønne, og testen ville ikke sige noget om, hvilket format generatoren faktisk kræver.
+    // Beviser at testene ovenfor faktisk måler noget: dansk format er det UGYLDIGE for denne generator.
+    // Uden dette ben kunne begge kontrakter være grønne, og testen ville ikke sige noget om, hvilket
+    // format generatoren faktisk kræver.
     //
     // Generatoren validerer datoerne SYNKRONT, før den returnerer sit promise — derfor `toThrow` på selve
     // kaldet og ikke `rejects`. Castet er nødvendigt, fordi typen nu udelukker den forkerte form.
@@ -112,9 +109,8 @@ describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
   });
 
   it('BEGGE rente-outputs deler nu ét datoformat — pin det, så en divergens ikke genopstår', () => {
-    // Før §WI-011 pinnede denne test bevidst, at de to formater var FORSKELLIGE. Divergensen er fjernet
-    // ved roden (generatorens signatur), så testen pinner nu enigheden: begge definitioner bærer ISO, og
-    // ingen af dem må bære dansk format.
+    // Divergensen er lukket ved roden (generatorens signatur), så testen pinner enigheden: begge
+    // definitioner bærer ISO, og ingen af dem må bære dansk format.
     expect(input.actualInterestDate).toMatch(ISO_DATE);
     expect(input.beregningsdato).toMatch(ISO_DATE);
     expect(input.actualInterestDate).not.toMatch(DANISH_DATE);

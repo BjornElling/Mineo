@@ -23,7 +23,7 @@ const Mineo = React.memo(() => {
   // navigerer ikke. De er derfor `<button>`, ikke `<a href="#">`. Et bart fragment-href gjorde to skader:
   // det løj om semantikken over for skærmlæsere, OG det nulstillede browserens sekventielle
   // fokus-udgangspunkt til dokumentets top, så næste `Tab` sprang tilbage til startside-togglen længere
-  // OPPE på siden i stedet for videre til næste link (OBS-002). Ingen `preventDefault` kan reparere det,
+  // OPPE på siden i stedet for videre til næste link. Ingen `preventDefault` kan reparere det,
   // fordi det er href'et selv — ikke default-handlingen — der flytter fokus-origoen.
   const handleInstallClick = React.useCallback(() => {
     void requestPwaInstall();

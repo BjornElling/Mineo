@@ -1101,7 +1101,7 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
     }
   );
 
-  // Review-punkt 7 — carry-forward og fail-closed for manuelt angivet.
+  // Carry-forward og fail-closed for manuelt angivet.
   it('carry-forwarder seneste dateret række til efterfølgende segmenter (intet interiort hul, ingen efter-sidste-nulstilling)', () => {
     // Tre daterede rækker; 'Ingen' løn på helligdage isolerer carry-forward fra Store Bededag-split.
     // Hvert segment bruger seneste dateret række <= segment.fra (findLatestByDateInSortedList):
@@ -1297,10 +1297,9 @@ const buildParityTafNettoBeregning = (values: ErstatningsopgoerelseValues) => {
 };
 
 // ---------------------------------------------------------------------------
-// Regulering punkt 2 — Form: Ingen
+// Regulering — Form: Ingen
 //
-// Invarianter fastlagt under regulering-review punkt 2 (arbejdsdokumentet er lukket/slettet;
-// oversigt i greenfield-reviewets kandidat #23):
+// Invarianterne for den regulerings-form:
 //   (a) alle-Ingen → strategi 'ingen' → ÆGTE nul-regulering: deltaPct 0 på hvert
 //       segment, men den fulde basisløn bæres videre (deltaPct 0 ≠ nul beløb).
 //   (b) uvalgt/tom strategi → throw (fail-closed), IKKE stiltiende nul-regulering.
@@ -1308,7 +1307,7 @@ const buildParityTafNettoBeregning = (values: ErstatningsopgoerelseValues) => {
 //       → 'Ingen'-forholdet maskerer/fortrænger IKKE reguleringen på det aktive
 //       ansættelsesforhold; hver af reguleres uafhængigt og summeres.
 // ---------------------------------------------------------------------------
-describe('buildLoenudviklingModel — Form: Ingen (review-punkt 2)', () => {
+describe('buildLoenudviklingModel — Form: Ingen', () => {
   const buildMaanedIndkomstRow = (id: string) => ({
     id,
     col0_maaned: '1',
@@ -1458,7 +1457,7 @@ describe('buildLoenudviklingModel — Form: Ingen (review-punkt 2)', () => {
 });
 
 /**
- * Form: Overenskomst — offentlig (KL/RLTN) (review-punkt 6).
+ * Form: Overenskomst — offentlig (KL/RLTN).
  *
  * Den offentlige gren i `buildLoenudviklingFromOverenskomst` slår grundlønnen op i
  * KL/RLTN-løntabellerne via `getOffentligLoenForDato` (carry-forward: nyeste
@@ -1467,7 +1466,7 @@ describe('buildLoenudviklingModel — Form: Ingen (review-punkt 2)', () => {
  * loenPaaHelligdage = 'Ingen', reduceres lønpakken til den rene månedsløn, så
  * `deltaPct = (segment-månedsløn / basis-månedsløn − 1) × 100`.
  */
-describe('buildLoenudviklingModel — Overenskomst offentlig (KL) (review-punkt 6)', () => {
+describe('buildLoenudviklingModel — Overenskomst offentlig (KL)', () => {
   const byggOffentligModel = (regDatoIso: string, tafFra: string, tafTil: string) => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';

@@ -16,7 +16,7 @@ import { EXPECTED_COLLECTION_COUNT } from '../../../inputCore/ledger/collectionL
 import { createEmptySettledInput, persistedInputSectionsSchema } from '../../../inputCore/settledInput';
 import { deepEqual } from '../../../utils/deepEqual';
 
-// Fase 2.1 exitkontrol: det ene produkt-descriptor-katalog dækker NØJAGTIG de persisterede datafelter og
+// Det ene produkt-descriptor-katalog dækker NØJAGTIG de persisterede datafelter og
 // collections, som de levende Zod-schemas producerer (samme autoritet som ledger-baselinen 239/16). Testen
 // reconcilerer descriptor-templates mod schemas — ikke mod de (snart slettede) legacy-bindings.
 

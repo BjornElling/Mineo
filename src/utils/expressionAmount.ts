@@ -486,7 +486,7 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
   // `amountValueSchema` validerer altid ved 2 decimaler, mens et heltalsfelt parser ved 0. Ved
   // precision 0 er den sikre grænse 2^53, ved precision 2 er den 2^46 — et heltals-beløbsfelt kunne
   // derfor parse `9999999*9999999` = 99.999.980.000.001 som gyldigt og først fejle inde i schemaet
-  // med en uncaught ZodError (OBS-026). Tal-grenen havde længe sit `canonicalValueIsSafe`-værn;
+  // med en uncaught ZodError. Tal-grenen havde længe sit `canonicalValueIsSafe`-værn;
   // udtryks-grenen manglede det tilsvarende.
   if (!isSafeCanonicalDecimal(normalizedValue, DEFAULT_AMOUNT_PRECISION)) {
     return {

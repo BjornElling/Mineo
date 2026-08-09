@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// R6-F02/GM-F11 — den kanoniske visning af et dokumentudfald.
+// Den kanoniske visning af et dokumentudfald.
 //
 // Otte dokumentførende flader aktiverede en download uden nogensinde at rendere hookens besked, så et
 // stale-afbrud eller en død DEV-server var lydløs: brugeren klikkede på en aktiv knap, fik ingen fil og ingen

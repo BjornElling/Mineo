@@ -34,7 +34,7 @@ import { FIELD_ISSUE_GENERIC_TOOLTIP } from '../../../inputCore/inputIssue';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';
 
-// Fase 2.4 (§2.4/§3.5): de nye Greenfield-feltskaller. De numeriske presets er tynde over den allerede-testede
+// Feltskallerne (§2.4/§3.5). De numeriske presets er tynde over den allerede-testede
 // `useFormFieldSurface`; her verificeres kun, at de mounter korrekt (adornment/committed visning). Radio er en ny
 // immediate-commit-control og testes for at committe det valgte via `setImmediateField`.
 

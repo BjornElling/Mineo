@@ -325,7 +325,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
     expect(undo.restoredOrigin?.kind).toBe('collection');
   });
 
-  // WI-004 runde 4 (fund S4): en STRUKTUREL rækkecommand skal have en origin, så undo/redo altid har et
+  // En STRUKTUREL rækkecommand skal have en origin, så undo/redo altid har et
   // restore-anker. Kernetypen krævede route+fane, men PORTEN tillod at udelade origin HELT — history gemte da
   // `undefined`, og en undo kunne gendanne en række uden noget sted at navigere til.
   //
@@ -628,7 +628,7 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
     expect(dispatchInput(store, catalog, settleField(aargangField.bind(), '2020')).changed).toBe(true);
   });
 
-  // Fase 7 acceptmatrix punkt 10 og 11 (WI-013). Hydration af en GYLDIG session var dækket; en session med
+  // Hydration af en GYLDIG session er dækket ovenfor; en session med
   // FEJLENDE input var ikke. Det er ikke symmetrisk pynt: §10-kriterium 18 ("første fejlende settle i
   // placeholder-række overlever F5") og §1.6's sondring mellem rejected råtekst og canonical bounds-fejl er
   // begge kun opfyldt, hvis fejltilstanden faktisk genopstår gennem `initializeInputRuntime`. Testene nedenfor
@@ -674,7 +674,7 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
     // Den STRUKTURELLE halvdel af punkt 10's draft-ben: envelopen kan kun bære `sections` +
     // `rejectedInputs`, så der findes ikke et sted, en åben draft KUNNE gemmes.
     //
-    // NB efter eksternt review (WI-013 R4): denne test hed tidligere "en åben draft overlever IKKE
+    // NB: denne test hed tidligere "en åben draft overlever IKKE
     // reload", men den åbnede aldrig en editor — navnet påstod mere end assertionen bar. Den ADFÆRDSMÆSSIGE
     // halvdel (en rigtig åben draft, der ikke genopstår efter reload) ligger nu i
     // `react/useFieldEditor.openDraftNotPersisted.test.tsx`, hvor en editor faktisk kan åbnes.

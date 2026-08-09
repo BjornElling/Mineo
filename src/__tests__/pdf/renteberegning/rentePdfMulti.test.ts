@@ -57,7 +57,7 @@ describe('generateRenteDocument', () => {
     }).toThrow('Ingen perioder fundet for renteberegning');
   });
 
-  // Castet er BEVIDST: efter §WI-011 er parameteren `ISODateString`, så en ugyldig dato ikke KAN nå hertil ad
+  // Castet er BEVIDST: parameteren er `ISODateString`, så en ugyldig dato ikke KAN nå hertil ad
   // en typet vej. Testen beviser, at generatorens defensive parse-guard stadig fyrer — den er defense-in-depth
   // mod en `as`-omgåelse eller en fremtidig utypet kalder, og en fjernet guard skal gøre noget rødt.
   it('kaster ved ugyldige datoer', () => {

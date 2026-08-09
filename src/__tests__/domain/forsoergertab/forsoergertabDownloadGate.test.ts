@@ -4,7 +4,7 @@ import type { ForsoergertabSnapshot } from '../../../domain/forsoergertab/forsoe
 import { createInputRevision, createSettingsRevision, type EvaluationSourceToken } from '../../../inputCore/evaluationSource';
 import { allowDocumentDownload, blockDocumentDownload } from '../../../document/layout/documentGateTypes';
 
-// Greenfield-gate (§3.4/§5.4/§1.10, Fase 3 Forsørgertab-slice): gaten videregiver snapshottets egen `pdfGate`,
+// Forsørgertabs download-gate (§3.4/§5.4/§1.10): gaten videregiver snapshottets egen `pdfGate`,
 // som bærer den uændrede dependency-specifikke blokering (røde feltfejl ført ind via de reader-afledte
 // fieldErrors, samt manglende PDF-klar EAL-/ASL-del). Sandhedstabellen er dermed identisk med legacy.
 

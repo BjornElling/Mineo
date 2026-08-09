@@ -10,7 +10,7 @@ import {
 import { createEmptySettledInput, type SettledInput } from '../../inputCore';
 import { createFieldAddress, type FieldAddress } from '../../inputCore/fieldAddress';
 
-// WI-003: history bevarer struktur-origin (§3.7) symmetrisk gennem undo → redo, så undo/redo-restoren kan
+// History bevarer struktur-origin (§3.7) symmetrisk gennem undo → redo, så undo/redo-restoren kan
 // navigere til den rette route/fane og fokusere feltet, ændringen kom fra. Ren datastruktur-test uden runtime.
 
 const address: FieldAddress = { section: 'satser', path: [], field: 'aargang' };
@@ -60,7 +60,7 @@ describe('inputHistory — origin-bevaring (§3.7)', () => {
   });
 });
 
-// WI-004 (R4): destinationen skal være påkrævet i KERNETYPEN, ikke kun i surface-hookens `CollectionRowOrigin`.
+// Destinationen skal være påkrævet i KERNETYPEN, ikke kun i surface-hookens `CollectionRowOrigin`.
 // Ellers kan en direkte `dispatchInput`-kalder lave en rækkehandling uden et sted at navigere hen — og en
 // rækkehandling har ingen feltadresse at falde tilbage på. Testen er compile-time: `@ts-expect-error` FEJLER,
 // hvis typen igen bliver eftergivende, så en opblødning ikke kan slippe gennem en grøn suite.
@@ -98,7 +98,7 @@ describe('CollectionHistoryOrigin — destinationen er påkrævet i kernetypen (
   });
 });
 
-// Verifikationsrunde (WI-004 runde 4): destinationen er ALT-eller-INTET. En `tabKey` uden `route` er lydløst
+// Destinationen er ALT-eller-INTET. En `tabKey` uden `route` er lydløst
 // inert, fordi restoren kun aktiverer fanen inde i `route !== undefined`-grenen (`MainLayout`). Typen gør den
 // inkohærens urepræsenterbar, i stedet for at lade et runtime-værn fange den bagefter.
 describe('FieldHistoryOrigin — destinationen er alt-eller-intet (§3.7)', () => {

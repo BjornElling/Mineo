@@ -27,7 +27,7 @@ export const normalizeDateDraftOnCommit = (draft: string): string => draft.trim(
  * 1. **Ciffer-lofter pr. segment.** Dag og måned må have højst to cifre, år højst fire
  *    (`segmentMaxLengths = [2, 2, 4]`). Det tredje dag-/månedsciffer og det femte årsciffer kommer
  *    aldrig ind i feltet.
- * 2. **Gentagne separatorer afvises efter den første.** `12-2----------` er BF-029: den anden
+ * 2. **Gentagne separatorer afvises efter den første.** `12-2----------` er fejlformen: den anden
  *    separator på stribe blokeres, så en serie bindestreger ikke kan hobe sig op i draften.
  * 3. **Separatorer FØR første tal ignoreres.** `-12` og `---12-2-2026` er lovlige at taste. De
  *    åbner ikke et segment; de springes bare over.
@@ -68,7 +68,7 @@ export const isDateLikeDraftAllowed = (
     if (isDateDraftSeparatorChar(char)) {
       // Pkt. 3: før det første tal er separatoren betydningsløs og åbner ikke et segment.
       if (!hasSeenDigit) continue;
-      // Pkt. 2: den anden separator på stribe afvises (BF-029).
+      // Pkt. 2: den anden separator på stribe afvises.
       if (previousWasSeparator) return false;
       segmentIndex += 1;
       currentSegmentLength = 0;

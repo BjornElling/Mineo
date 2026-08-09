@@ -25,7 +25,7 @@ const focusAndScroll = (element: HTMLElement): void => {
   focusElementWithoutScroll(element);
   // Spring til den blokerende fejl: centrér altid, så brugeren ledes direkte til problemet.
   scrollTargetIntoView(element, { force: true });
-  // Den DELTE blinkmarkering (BF-020/BF-021). Et blokeret Gem kan sende brugeren til en anden fane; uden
+  // Den DELTE blinkmarkering. Et blokeret Gem kan sende brugeren til en anden fane; uden
   // markeringen skulle brugeren selv finde det røde felt blandt de andre på siden.
   blinkFieldAttention(element);
 };

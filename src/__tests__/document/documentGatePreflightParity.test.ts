@@ -1,13 +1,12 @@
 /**
  * §10-kriterium 27 / kontraktens §A2a: *alle 18 dokumentoutputs bruger samme definition til reaktiv gate
- * og click-preflight* — målt for ALLE atten (R6-F04, etape 10).
+ * og click-preflight* — målt for ALLE atten.
  *
- * **Hvad fundet var.** `document-output-contract.md` §A2a lover, at hver dokumentdefinition særskilt
+ * **Hvorfor alle atten.** `document-output-contract.md` §A2a lover, at hver dokumentdefinition særskilt
  * beviser begge fejlklasser (rejected format og canonical bounds) for BÅDE den reaktive gate og en direkte
- * aktivering. Målingen dækkede fire definitioner (`documentGateMatrix.test.ts`' fire domæner). For de
- * øvrige fjorten hvilede påstanden på en STRUKTUREL læsning: begge kanaler kalder `action.resolve`, som
- * kalder `definition.project`. Læsningen er rigtig — men en påstand om atten outputs, der kun er efterprøvet
- * for fire, er præcis den slags dækning, review-planen kalder falsk fuldstændighed.
+ * aktivering. Måler man kun fire definitioner, hviler påstanden for de øvrige fjorten på en STRUKTUREL
+ * læsning: begge kanaler kalder `action.resolve`, som kalder `definition.project`. Læsningen er rigtig —
+ * men en påstand om atten outputs, der kun er efterprøvet for fire, er falsk fuldstændighed.
  *
  * **Hvad denne test måler.** For hver af de 18 definitioner, på tre inputtilstande, sammenlignes
  *
@@ -206,7 +205,12 @@ const clickPreflight = (
 
 /**
  * Tre inputtilstande. Den midterste er den vigtigste: den gør NOGLE outputs ready, så pariteten ikke kun
- * måles blocked-mod-blocked (samme svaghed, WI-014 sporer for format-invariansen).
+ * måles blocked-mod-blocked.
+ *
+ * **Kendt grænse for målingen.** To kanaler, der begge er `blocked` af FORSKELLIGE grunde, tæller som
+ * enige, hvis kun udfaldet sammenlignes. Netop derfor sammenlignes også `reasons` nedenfor, og netop
+ * derfor skal mindst én tilstand nå ready-grenen: uden den ville hele matricen bestå af blocked-par og
+ * ikke sige noget om, at de to kanaler er den SAMME definition.
  */
 const INPUTS: readonly (readonly [string, () => SettledInput])[] = [
   ['tomt input', empty],

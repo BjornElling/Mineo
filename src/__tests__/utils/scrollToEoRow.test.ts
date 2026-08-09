@@ -79,11 +79,11 @@ describe('scrollToEoRow', () => {
     expect(onFailure.mock.calls[0][0]).toContain('missing-row');
   });
 
-  // ── Fokusmålet er en kanonisk feltadresse (GM-F10/INC-F14) ──────────────────────────────────────
+  // ── Fokusmålet er en kanonisk feltadresse ───────────────────────────────────────────────────────
   //
-  // Før omlægningen var fokusmålet en `tableId:rowScope:rowId:colIndex`-streng, som INGEN produktionsflade
-  // satte i DOM. Opslaget faldt derfor altid igennem til rækkeankeret, og ingen test opdagede det, fordi
-  // ingen test overhovedet gav et `focusTarget`. Disse tests dækker netop den gren og hævder, at målet er
+  // Fejlformen: en `tableId:rowScope:rowId:colIndex`-streng svarer ikke til nogen produktionsflades
+  // identitet i DOM, så opslaget falder tavst igennem til rækkeankeret — og en testsuite, der aldrig
+  // giver et `focusTarget`, opdager det ikke. Disse tests dækker netop den gren og hævder, at målet er
   // det element, der bærer feltets serialiserede adresse — samme identitet undo/redo bruger.
 
   /** Byg et fokuserbart element med præcis de attributter, form-/grid-surfacen sætter. */
@@ -166,7 +166,7 @@ describe('scrollToEoRow', () => {
     expect(scrollIntoViewMock.mock.instances[0]).toBe(anchor);
   });
 
-  it('blinkmarkerer det felt, linket førte brugeren hen til (BF-021)', () => {
+  it('blinkmarkerer det felt, linket førte brugeren hen til', () => {
     const field = eoTafPeriodeFraField.bind('taf-1');
     const editor = mountFieldEditor(field.address);
 

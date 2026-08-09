@@ -66,7 +66,7 @@ import { deleteFileHandleFromIndexedDB } from '../../../utils/fileHandleStorage'
 import { clickMainLayoutAction, dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
 import { OpenEditor } from './editorTestUtils';
 
-// Greenfield-shell (WI-002 Fase 4): al "unsaved changes"-adfærd drives nu gennem den ENE runtime.
+// Al "unsaved changes"-adfærd drives gennem den ENE runtime.
 //  - "committed input change" → en ægte settle (revision > baseline → beforeunload aktiveres).
 //  - "authoritative replace / load baseline" → en `replaceCase`-command (hæver replacementGeneration →
 //    guardens baseline nulstilles).

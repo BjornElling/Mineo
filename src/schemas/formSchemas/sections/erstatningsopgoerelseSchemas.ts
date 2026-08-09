@@ -240,7 +240,7 @@ const overenskomstFilterSchema = z.object({
 // Fælles lønudviklingsfelter for de to persisted ejere (ansættelsesforhold og EO-angivet løn).
 //
 // ⚠️ `loenPaaHelligdage` var tidligere PARAMETRISERET, så EO-angivet løn kunne loades uden feltet, mens
-// ansættelsesforholdet krævede det. Den parametrisering var selve BF-025: den gjorde `undefined` — en værdi,
+// ansættelsesforholdet krævede det. Den parametrisering er selve fælden: den gør `undefined` — en værdi,
 // motoren erklærer umulig — til den tilstand en nyoprettet sag altid har. Load-tolerance og "må mangle" er
 // ikke det samme krav: en `.default()` giver ældre `.eo`-filer uden feltet en gyldig værdi OG holder typen
 // påkrævet, så den umulige tilstand ikke kan repræsenteres. Genindfør ikke `.optional()` her.

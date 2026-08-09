@@ -1,9 +1,8 @@
 import React from 'react';
 import { activeEditorRegistry, type ActiveEditor } from '../../../inputCore/runtime/activeEditorRegistry';
 
-// Delt greenfield-shell-testlim (WI-002 Fase 4): den legacy `useCriticalActionParticipant`/`CriticalActionProvider`
-// er ude af shellen. En "åben editor" i de nye shell-tests registreres derfor direkte i det GREENFIELD
-// `activeEditorRegistry`, som coordinatoren læser (§1.4). En editor, hvis `settle()` KASTER, giver et fail-closed
+// Delt shell-testlim. En "åben editor" registreres direkte i `activeEditorRegistry`, som
+// coordinatoren læser (§1.4). En editor, hvis `settle()` KASTER, giver et fail-closed
 // `blocked` for settle-handlinger (save/navigate); undo/redo bliver et stille `noop`, mens en editor er åben.
 
 /**

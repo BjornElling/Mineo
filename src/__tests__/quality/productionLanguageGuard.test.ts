@@ -13,6 +13,11 @@ const walk = (directory: string): string[] => readdirSync(directory).flatMap((na
 const PROJECT_HISTORY_MARKERS = [
   /\bWI-\d+\b/i,
   /\b[A-Z][A-Z0-9]*-F\d+\b/i,
+  // Sagsnumre fra lukkede arbejdsforløb: observations- og brugerfund-id'er. En kommentar, hvis
+  // begrundelse kun kan slås op i et sagsregister, der ikke findes, gør sin egen WHY uopslåelig —
+  // koden skal forklare hvad der gælder, ikke hvilken sag der engang førte til det.
+  /\bOBS-\d+\b/i,
+  /\bBF-\d+\b/i,
   /\bFase\s+\d+(?:\.\d+)?\b/,
   /\bpass\s+\d+\b/i,
   /\bgreenfield\b/i,

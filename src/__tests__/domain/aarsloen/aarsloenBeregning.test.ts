@@ -8,7 +8,7 @@ import { harTabelData } from '../../../domain/aarsloen/aarsloenValidationPolicie
 import { beregnMaanedPeriode } from '../../../utils/periodeBeregning';
 import { toISODateString } from '../../../types/branded';
 
-// GM-F08: testene kaldte tidligere `useAarsloenBeregning` gennem `renderHook` — en React-adapter, INGEN
+// Testene kalder den rene beregning direkte. En test gennem `renderHook` ville måle en React-adapter, INGEN
 // produktionskode brugte. De hævdede altså kontrolflowet gennem en død vej, mens den levende
 // (`aarsloenProjection.ts` → `computeAarsloenBeregning`) var utestet på netop disse grene. Adapteren er
 // slettet; invarianterne er bevaret ordret mod den aktive indgang og har ikke længere brug for et

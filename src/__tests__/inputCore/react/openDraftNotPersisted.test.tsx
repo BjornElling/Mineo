@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Fase 7 acceptmatrix punkt 10, DRAFT-benet (WI-013, tilføjet efter eksternt review R4).
+// Hydrering af en session med en åben draft: DRAFT-benet.
 //
 // Planens punkt 10 kræver "F5 med gyldigt og fejlende afsluttet input samt ÅBEN DRAFT". De to første
 // dækkes i `runtime/dispatchInput.test.ts`; dette er det tredje.
@@ -89,7 +89,7 @@ const field = aargangField.bind();
 const canonicalIn = (target: SlimInputStore): unknown =>
   createValidationReader(target.getState().input, catalog).readCanonical(field);
 
-describe('åben draft persisteres ikke over en reload (§1.2, acceptmatrix punkt 10)', () => {
+describe('åben draft persisteres ikke over en reload (§1.2)', () => {
   it('en ændret, IKKE-settlet draft findes ikke efter hydration — kun afsluttet input genopstår', () => {
     // Afsluttet udgangspunkt: 2020.
     dispatchInput(store, catalog, settleField(field, '2020'), { now: 1 });

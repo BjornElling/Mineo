@@ -93,7 +93,7 @@ const isSameFocusScope = (activeElement: HTMLElement, originalActiveElement: Ele
  *
  * Undo/redo-kontrakten §5 siger, at en felt-origin identificerer den editorlokation, ændringen kom fra. Efter en
  * gennemført restore er den tilstand aktuel igen, og lokationen skal derfor findes i DOM. Sker det ikke, peger
- * originen på en identitet, fladen ikke kan levere: en tabel, der har skiftet et række-id under brugeren (BF-005),
+ * originen på en identitet, fladen ikke kan levere: en tabel, der har skiftet et række-id under brugeren,
  * en surface, der har glemt restore-attributterne, en editorlokation hvis id er skredet, eller en route/fane, der
  * ikke blev navigeret til.
  *

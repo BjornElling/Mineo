@@ -29,11 +29,12 @@ describe('error-kontrakt isolation', () => {
 });
 
 /**
- * R1-F07: kontraktens §4 hævdede prioritet "efter severity og reason/source". Koden prioriterer
- * `reason` → `code` → `message`; der findes ingen `source`-dimension (§11 forbyder source-registre), og
- * `severity` er en enkelt-værdi-literal (`'error'`), som ikke kan sortere noget.
+ * Koden prioriterer `reason` → `code` → `message`. Der findes ingen `source`-dimension (§11 forbyder
+ * source-registre), og `severity` er en enkelt-værdi-literal (`'error'`), som ikke kan sortere noget —
+ * så en kontrakttekst, der taler om prioritet "efter severity og reason/source", beskriver noget andet
+ * end koden.
  *
- * Teksten er rettet — men en ren tekstrettelse kan drifte igen. Suiten binder derfor kontraktens
+ * En ren tekstrettelse kan drifte igen. Suiten binder derfor kontraktens
  * NUMMEREREDE prioritetsliste til den faktiske komparator: rækkefølgen læses ud af `error-contract.md`
  * og bruges som testens forventning. Ændres den ene uden den anden, bliver dette rødt.
  */

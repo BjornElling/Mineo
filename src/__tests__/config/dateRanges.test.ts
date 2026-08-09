@@ -116,7 +116,7 @@ describe('dateRanges_stamdata', () => {
 
   // Bemærk: der er ingen placeholder-assertion længere. Intervallerne bar tidligere et
   // `placeholder`-felt, som INGEN kode læste; denne test og dens søster i varige mén var det eneste,
-  // der holdt det i live. Formvejledningen ejes nu af dato-feltfamilien (UT-F06/INC-F08), og
+  // der holdt det i live. Formvejledningen ejes af dato-feltfamilien, og
   // `fieldFormatPlaceholders.test.ts` måler den dér.
 });
 

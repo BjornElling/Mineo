@@ -9,7 +9,7 @@ import {
 import type { ApplicableLoadFileResult } from '../../types/fileOperations';
 import { toISODateString } from '../../types/branded';
 
-// Load-apply har efter R4-F01 TO entrypoints, og opdelingen er selve rettelsen: kun
+// Load-apply har TO entrypoints, og opdelingen er selve pointen: kun
 // `applyAuthoritativeLoadSnapshot` er autoritativ og SYNKRON — den hører inde i coordinatorens
 // `applyReplacement`, hvor draft-discard sker. `synchronizeLoadMetadata` er den asynkrone filnavns-/handle-/
 // PWA-fase (§4.1); den ejer ikke sagsinput og må derfor ikke holde replacement-barrieren åben, mens brugeren
@@ -18,7 +18,7 @@ import { toISODateString } from '../../types/branded';
 // Rækkefølge-invarianten "metadata kører aldrig for en sag, der ikke blev indlæst" er dermed flyttet fra en
 // intern try/catch til TYPEN: den asynkrone fase er et selvstændigt kald, som en kaster fra fase 1 aldrig
 // nåer. Testene hævder begge halvdele hver for sig plus den ægte rækkefølge gennem `useFileSaveLoad`
-// (se `useFileSaveLoad.test.tsx` → "R4-F01").
+// (se `useFileSaveLoad.test.tsx`).
 
 const saveFileHandleToIndexedDBMock = vi.fn();
 const deleteFileHandleFromIndexedDBMock = vi.fn();
@@ -110,7 +110,7 @@ describe('applyAuthoritativeLoadSnapshot — den synkrone, autoritative fase', (
 
   it('kaster med "Ingen data blev anvendt", når apply af data kaster', () => {
     // Fase 1 fejler → kalderen kaster inde i replacement-barrieren, så den åbne draft bevares og
-    // fase 2 aldrig nås (persistence-contract §10: fase 1 fejler → uændret state).
+    // den asynkrone halvdel aldrig nås (persistence-contract §10: fejler den synkrone fase, er state uændret).
     const applySnapshot = vi.fn(() => {
       throw new Error('Zod-validering fejlede under apply');
     });

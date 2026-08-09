@@ -1,9 +1,10 @@
 import { toISODateString } from '../../types/branded';
 import { isValidClosedDateRange, rangesOverlap } from '../../utils/closedDateRange';
 
-// Det kanoniske LUKKEDE datointerval (GM-F15). Primitivet lå tidligere i fire udgaver — én eksporteret fra
-// EO's overlapsmodul, to lokale kopier i TAF-motoren/dagsæt-modulet og én inlinet ulighed. Testene her flyttede
-// med primitivet, så det ikke er EO's testfil, der er hjemsted for en generel intervalregel.
+// Det kanoniske LUKKEDE datointerval. Primitivet bor ÉT sted: fire parallelle udgaver — en eksport fra
+// EO's overlapsmodul, lokale kopier i TAF-motoren og dagsæt-modulet, plus en inlinet ulighed — driver fra
+// hinanden i kantcases. Testene bor sammen med primitivet, så en generel intervalregel ikke har hjemsted
+// i EO's testfil.
 
 describe('isValidClosedDateRange', () => {
   it('returnerer true for gyldigt range (fra <= til)', () => {

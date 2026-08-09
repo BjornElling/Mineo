@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Fase 7 acceptmatrix punkt 3, FANE-benet (WI-013).
+// §1.3 settle-udløser: FANE-benet.
 //
 // §1.3 er normativ: "Blur, Enter, klik uden for feltet og almindelig side-/FANEnavigation afslutter editoren
 // gennem samme settle-sti." Side-benet er dækket af `MainLayout.navigationCommitGuard.test.tsx`. Fane-benet var
@@ -12,12 +12,12 @@
 // Testen måler gennem den ÆGTE side, den ægte `PageTabs` og den ægte produktions-runtime, og assertionen læses
 // fra det AUTORITATIVE afsluttede input — ikke fra DOM'en.
 //
-// **HVILKEN settle-sti beviser testen? (eksternt review, WI-013 R2 — antagelsen er bevidst.)**
+// **HVILKEN settle-sti beviser testen? (Antagelsen er bevidst.)**
 //
 // `user.click` på fanen flytter fokus fra inputtet og udløser blur, FØR tabens `onChange` skifter state.
 // Testen går derfor gennem BLUR-stien; det er verificeret ved mutation (gør `useFormFieldSurface.onBlur`
-// til en no-op, og begge tests nedenfor bliver røde, mens fanen fortsat skifter). Reviewet spurgte, om
-// testen så blot gentager en allerede dækket sti frem for at bevise en selvstændig fane-grænse.
+// til en no-op, og begge tests nedenfor bliver røde, mens fanen fortsat skifter). Det rejser spørgsmålet,
+// om testen så blot gentager en allerede dækket sti frem for at bevise en selvstændig fane-grænse.
 //
 // Svaret er nej, og grunden er, at der IKKE findes en produktionssti, som skifter fane med en uafsluttet
 // draft. Fane-skift kan kun ske på to måder:
@@ -74,7 +74,7 @@ const renderPage = () => render(
 const settledMengrad = (): unknown =>
   (slimInputStore.getState().input.sections.varigemen as { mengrad?: unknown } | null)?.mengrad;
 
-describe('VarigeMen — fanenavigation settler den åbne editor (§1.3, acceptmatrix punkt 3)', () => {
+describe('VarigeMen — fanenavigation settler den åbne editor (§1.3)', () => {
   beforeEach(() => {
     sessionStorage.clear();
     __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
