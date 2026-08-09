@@ -34,6 +34,8 @@ const SpecifikationDownloadBox = React.memo(({
         <Tooltip title={disabled && !isLoading ? DOWNLOAD_DISABLED_TOOLTIP : ''}>
           <span>
             <Button
+              type="button"
+              data-mineo-focusable-button="true"
               variant="outlined"
               startIcon={isLoading ? <CircularProgress size={14} /> : <Download />}
               disabled={disabled || isLoading}

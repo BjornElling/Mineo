@@ -211,6 +211,11 @@ export const useContainerKeyboardNavigation = (
           activeFocusable.click();
           return;
         }
+
+        // Sideintegrerede handlingsknapper er eksplicit optaget i Containerens sekvens.
+        // De ejer Enter selv, så native button-semantik også dækker mellemrum uden en
+        // særskilt Container-vej og uden at fokus springer videre før aktiveringen.
+        if (activeFocusable instanceof HTMLButtonElement) return;
       } else if (activeWidgetIsExpanded) {
         // Tab i en ÅBEN popup lades til browseren, men selection på næste felt skal stadig
         // neutraliseres — derfor efter næste frame, når fokus er flyttet.
@@ -232,6 +237,25 @@ export const useContainerKeyboardNavigation = (
         // En singleton-sekvens har intet andet fokusmål, så browseren udløser ikke selv blur.
         // Gennemfør den normale blur/settle før samme felt får det cirkulære fokus tilbage.
         activeFocusable.blur();
+      }
+
+      if (target instanceof HTMLButtonElement) {
+        // En sidehandling kan blive deaktiveret af det felt, der netop afsluttes (fx en
+        // download efter en ugyldig Satsår-værdi). Blur først og vent én frame på Reacts
+        // render; ellers forsøger fokuslogikken at fokusere knappens gamle, nu deaktiverede DOM-node.
+        activeFocusable.blur();
+        requestAnimationFrame(() => {
+          invalidate();
+          const settledElements = getFocusableElements();
+          if (settledElements.length === 0) return;
+          const settledTarget = settledElements.includes(activeFocusable)
+            ? resolveCircularNeighbor(settledElements, activeFocusable, step)
+            : step === -1
+              ? settledElements[settledElements.length - 1]
+              : settledElements[0];
+          if (settledTarget) focusOnly(settledTarget);
+        });
+        return;
       }
       focusOnly(target);
     },

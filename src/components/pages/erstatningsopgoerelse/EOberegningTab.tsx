@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Checkbox, FormControlLabel, Tooltip, MenuItem } from '@mui/material';
+import { Box, Typography, Tooltip, MenuItem } from '@mui/material';
 import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
@@ -10,6 +10,7 @@ import {
   eoBilagIndgaarField,
   eoBilagSelectionLoenindkomstField,
   eoBilagSelectionMidlertidigEetField,
+  eoBilagSelectionOpgoerelseField,
   eoBilagSelectionOffentligeYdelserField,
   eoBilagSelectionReguleringField,
   eoBilagSelectionShDageField,
@@ -410,17 +411,13 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
           >
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <Box component="span" className="mineo-disabled-hover-target">
-                <FormControlLabel
-                  className="mineo-disabled-hover-target"
-                  control={(
-                    <Checkbox
-                      id="eo-bilag-opgoerelse"
-                      name="eo-bilag-opgoerelse"
-                      slotProps={{ input: { id: 'eo-bilag-opgoerelse', name: 'eo-bilag-opgoerelse' } }}
-                      checked
-                      disabled
-                    />
-                  )}
+                <CheckboxField
+                  field={eoBilagSelectionOpgoerelseField.bind()}
+                  location={{ locationId: 'erstatningsopgoerelse.eoBilagSelection.opgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
+                  name="eo-bilag-opgoerelse"
+                  // Opgørelsen indgår altid, men feltet er en persisted dokumentindstilling. Den bindes derfor
+                  // gennem feltadapteren, selv om programmet låser den i denne flade.
+                  disabled
                   label="Opgørelse"
                 />
               </Box>

@@ -28,14 +28,15 @@ describe('UI_STORAGE_KEYS', () => {
  * være begge steder. En tom `caseScoped`-side ville gøre `Slet alt`s oprydning til en no-op, der ser grøn ud.
  */
 describe('reset-policyen (getCaseScopedSessionStorageKeys)', () => {
-  it('deler manifestet i to ikke-tomme, disjunkte sider', () => {
+  it('deler de statiske manifestnøgler i to ikke-tomme, disjunkte sider', () => {
     const caseScoped = getCaseScopedSessionStorageKeys();
     const allKeys = Object.values(UI_STORAGE_KEYS);
-    const deviceScoped = allKeys.filter((key) => !caseScoped.includes(key));
+    const staticCaseScoped = caseScoped.filter((key) => allKeys.includes(key));
+    const deviceScoped = allKeys.filter((key) => !staticCaseScoped.includes(key));
 
-    expect(caseScoped.length).toBeGreaterThan(0);
+    expect(staticCaseScoped.length).toBeGreaterThan(0);
     expect(deviceScoped.length).toBeGreaterThan(0);
-    expect(caseScoped.length + deviceScoped.length).toBe(allKeys.length);
+    expect(staticCaseScoped.length + deviceScoped.length).toBe(allKeys.length);
   });
 
   it('rydder de sagsnære nøgler og bevarer de uafhængige UI-præferencer', () => {
@@ -49,6 +50,15 @@ describe('reset-policyen (getCaseScopedSessionStorageKeys)', () => {
     // Uafhængig UI-/devtools-tilstand beskriver ikke sagen og ryddes bevidst IKKE (contract §3.7).
     expect(caseScoped).not.toContain(UI_STORAGE_KEYS.sideMenuExpanded);
     expect(caseScoped).not.toContain(UI_STORAGE_KEYS.devtoolsLastSeenIssueId);
+  });
+
+  it('rydder alle sagsnære aktive-fane-nøgler', () => {
+    const caseScoped = getCaseScopedSessionStorageKeys();
+
+    expect(caseScoped).toContain(createActiveTabStorageKey('erstatningsopgoerelse'));
+    expect(caseScoped).toContain(createActiveTabStorageKey('erhvervsevnetab'));
+    expect(caseScoped).toContain(createActiveTabStorageKey('renteberegning'));
+    expect(caseScoped).toContain(createActiveTabStorageKey('varigemen'));
   });
 
   it('følger det aktive namespace', async () => {

@@ -63,6 +63,9 @@ const normalizeRadioGroupTabStops = (elements: readonly FocusableElement[]): Foc
  * den gren. `getComputedStyle` er dyrt og undgås i den hurtige vej.
  */
 export const isFocusableElementVisible = (el: HTMLElement): boolean => {
+  // `hidden` kan sidde på en wrapper om en betinget vist handling. Browseren giver normalt
+  // barnet nul rects, men den eksplicitte kontrol bevarer invarianten i alle DOM-miljøer.
+  if (el.closest('[hidden]') !== null) return false;
   if (el.getClientRects().length === 0) return false;
 
   if (el.offsetParent === null && el !== document.body) {

@@ -23,7 +23,9 @@ describe('SpecifikationDownloadBox', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /download som PDF/i })).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: /download som PDF/i });
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute('data-mineo-focusable-button', 'true');
   });
 
   it('aktiverer onDownloadAll ved klik på knappen', async () => {

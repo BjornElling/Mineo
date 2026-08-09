@@ -238,6 +238,9 @@ Det betyder:
 - CSS-selectors, fokus-hjælpefunktioner og konkrete `focus(...)`-kald er implementeringsdetaljer.
 - Hvilke elementer der indgår i tab-sekvensen, skal fortsat være eksplicit og auditérbart defineret, men ikke nødvendigvis via den samme selector-strategi som i dag.
 - Sideintegrerede handlingsknapper må kun indgå i den normale feltsekvens ved eksplicit opt-in.
+- `Indsæt dags dato` og synlige dokumentdownload-knapper har dette opt-in. De skal kunne fokuseres med Tab og
+  aktiveres med native knapadfærd (`Enter` og mellemrum). Skjulte eller native deaktiverede knapper indgår ikke i
+  sekvensen.
 
 ---
 
@@ -260,7 +263,7 @@ Container keyboard-navigation testes på to niveauer:
 - pilnavigation fra sidefelter ind i tabel og tabel-edge-exit op/ned
 - at ArrowLeft/ArrowRight ikke slipper ud af tabel ved rækkekant
 - ArrowLeft/ArrowRight på radiobutton flytter aktiv selection og fokus med wrap i radiogruppen
-- inline action buttons, radiogruppe som ét tabstop, scroll til felt uden for viewport og popup-undtagelser
+- inline action buttons, `Indsæt dags dato`, synlige/skjulte/deaktiverede dokumentdownload-knapper, radiogruppe som ét tabstop, scroll til felt uden for viewport og popup-undtagelser
 - Cirkulær navigation fungerer
 - Disabled-felter springes over i Tab-/Shift+Tab-rækkefølgen (Container.checklistGaps)
 - Container intercepter IKKE museklik; klik giver fokus til det klikkede felt (Container.checklistGaps)

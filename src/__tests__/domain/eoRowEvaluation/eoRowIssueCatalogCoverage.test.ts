@@ -220,17 +220,17 @@ const CASES: readonly Case[] = [
   // ── Mén / EET-datoer ──────────────────────────────────────────────────────
   {
     name: 'mén – afgørelsesdato ikke angivet',
-    row: { id: 'aes.menAfgoerelseDato', label: 'Mén-afgørelsesdato', displayValue: 'Fejl (Afgørelsesdato mangler)' },
+    row: { id: 'aes.menAfgoerelseDato', label: 'Mén-afgørelsesdato', displayValue: 'Advarsel (Afgørelsesdato mangler)', status: 'warning' },
     expectedSummary: 'Dato for ménafgørelse er ikke angivet',
   },
   {
     name: 'midlertidigt EET – dato ikke angivet',
-    row: { id: 'aes.midlertidigEETAfgoerelseDato', label: 'Dato for midlertidig EET-afgørelse', displayValue: 'Fejl (Afgørelsesdato eller virkningsdato mangler)' },
+    row: { id: 'aes.midlertidigEETAfgoerelseDato', label: 'Dato for midlertidig EET-afgørelse', displayValue: 'Advarsel (Afgørelsesdato eller virkningsdato mangler)', status: 'warning' },
     expectedSummary: 'Afgørelses- eller virkningsdato for midlertidig EET-afgørelse er ikke angivet',
   },
   {
     name: 'endeligt EET – dato ikke angivet',
-    row: { id: 'aes.endeligEETAfgoerelseDato', label: 'Dato for endelig EET-afgørelse', displayValue: 'Fejl (Afgørelsesdato eller virkningsdato mangler)' },
+    row: { id: 'aes.endeligEETAfgoerelseDato', label: 'Dato for endelig EET-afgørelse', displayValue: 'Advarsel (Afgørelsesdato eller virkningsdato mangler)', status: 'warning' },
     expectedSummary: 'Afgørelses- eller virkningsdato for endelig EET-afgørelse er ikke angivet',
   },
 ];

@@ -23,7 +23,7 @@ export const CONTAINER_FOCUSABLE_SELECTOR =
   'input:not([disabled]):not([tabindex="-1"]):not([type="hidden"]):not([type="button"]),' +
   'select:not([disabled]):not([tabindex="-1"]),' +
   'textarea:not([disabled]):not([tabindex="-1"]),' +
-  'button[data-mineo-focusable-button="true"]:not([tabindex="-1"]),' +
+  'button[data-mineo-focusable-button="true"]:not([disabled]):not([tabindex="-1"]),' +
   '[role="combobox"][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
   '[aria-haspopup][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
   '[aria-controls][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])';

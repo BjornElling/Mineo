@@ -278,6 +278,10 @@ Regler:
 6. EOInspektion og EOKontrolTabel kan fortsat dannes fra sikre snapshotdata; de må ikke lave fallback-enginekald for at
    udfylde output efter en blokeret autoritativ beregning.
 7. Når `inspektionSnapshot` er `null`, vises en tom-/fejltilstand uden beregningsindhold.
+8. Når `Varige mén-afgørelse`, `Midlertidigt EET-afgørelse` eller `Endeligt EET-afgørelse` er `Ja`, er en helt
+   manglende nødvendig afgørelses-/virkningsdato en gul, ikke-blokerende komplethedsadvarsel i "Fejl og advarsler".
+   Den efterlader datofelterne uden rød markering og må ikke blokere dokumenter. En faktisk `FieldIssue` på et af
+   de samme datofelter har altid forrang som rød fejl; den må aldrig maskeres som en manglende-dato-advarsel.
 
 EO-kontroltabeller bruger etablerede tabeltyper; `StandardDisplayTable` er canonical for rene visningstabeller og har
 centralt styret samlet bredde på 100 %.

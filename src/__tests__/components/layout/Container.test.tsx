@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event';
 import Container from '../../../components/layout/Container';
 import TransientTextInput from '../../../components/inputs/transient/TransientTextInput';
 import InlineActionButton from '../../../components/inputs/InlineActionButton';
+import InsertTodayDateButton from '../../../components/inputs/InsertTodayDateButton';
+import DownloadIconButton from '../../../components/inputs/DownloadIconButton';
 import { StandardGridTable } from '../../../components/tables/StandardGridTable';
 
 /**
@@ -499,6 +501,129 @@ describe('Container keyboard navigation', () => {
     expect(onClick).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(button);
     expect(document.activeElement).not.toBe(field3);
+  });
+
+  it('Indsæt dags dato og synlige download-knapper indgår i Tab-rækkefølgen og aktiveres med Enter og mellemrum', async () => {
+    const user = userEvent.setup();
+    const onInsertToday = vi.fn();
+    const onDownload = vi.fn();
+
+    render(
+      <Container>
+        <input data-testid="before-action-buttons" type="text" style={{ position: 'fixed' }} />
+        <InsertTodayDateButton onCommit={onInsertToday} />
+        <DownloadIconButton onClick={onDownload} tooltip="Download som PDF" />
+        <input data-testid="after-action-buttons" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const before = screen.getByTestId('before-action-buttons') as HTMLInputElement;
+    const insertToday = screen.getByRole('button', { name: 'Indsæt dags dato' });
+    const download = screen.getByRole('button', { name: 'Download som PDF' });
+
+    // JSDOM har ingen layoutmotor. Inline position giver samme synlighedssignal som i de øvrige
+    // Container-tests og invalidérer inventarets cache gennem den observerede style-attribut.
+    insertToday.style.position = 'fixed';
+    download.style.position = 'fixed';
+    await act(async () => { await Promise.resolve(); });
+
+    before.focus();
+    await user.keyboard('{Tab}');
+    expect(document.activeElement).toBe(insertToday);
+
+    await user.keyboard('{Enter}');
+    expect(onInsertToday).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(insertToday);
+
+    await user.keyboard(' ');
+    expect(onInsertToday).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(insertToday);
+
+    await user.keyboard('{Tab}');
+    expect(document.activeElement).toBe(download);
+
+    await user.keyboard('{Enter}');
+    expect(onDownload).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(download);
+
+    await user.keyboard(' ');
+    expect(onDownload).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(download);
+  });
+
+  it('skipper skjulte download-knapper i Tab-rækkefølgen', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input data-testid="before-hidden-download" type="text" style={{ position: 'fixed' }} />
+        <div hidden>
+          <DownloadIconButton onClick={vi.fn()} tooltip="Skjult download" />
+        </div>
+        <input data-testid="after-hidden-download" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const before = screen.getByTestId('before-hidden-download') as HTMLInputElement;
+    const after = screen.getByTestId('after-hidden-download') as HTMLInputElement;
+
+    before.focus();
+    await user.keyboard('{Tab}');
+
+    expect(document.activeElement).toBe(after);
+  });
+
+  it('skipper deaktiverede download-knapper i Tab-rækkefølgen', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input data-testid="before-disabled-download" type="text" style={{ position: 'fixed' }} />
+        <DownloadIconButton disabled onClick={vi.fn()} tooltip="Deaktiveret download" />
+        <input data-testid="after-disabled-download" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const before = screen.getByTestId('before-disabled-download') as HTMLInputElement;
+    const after = screen.getByTestId('after-disabled-download') as HTMLInputElement;
+
+    before.focus();
+    await user.keyboard('{Tab}');
+
+    expect(document.activeElement).toBe(after);
+  });
+
+  it('beholder fokus på feltet, når dets settle deaktiverer den næste download-knap', async () => {
+    const user = userEvent.setup();
+
+    const Harness = () => {
+      const [downloadDisabled, setDownloadDisabled] = React.useState(false);
+      return (
+        <Container>
+          <input
+            data-testid="settling-field"
+            type="text"
+            onBlur={() => setDownloadDisabled(true)}
+            style={{ position: 'fixed' }}
+          />
+          <DownloadIconButton disabled={downloadDisabled} onClick={vi.fn()} tooltip="Afhængig download" />
+        </Container>
+      );
+    };
+
+    render(<Harness />);
+
+    const field = screen.getByTestId('settling-field') as HTMLInputElement;
+    const download = screen.getByRole('button', { name: 'Afhængig download' });
+    download.style.position = 'fixed';
+    await act(async () => { await Promise.resolve(); });
+
+    field.focus();
+    await user.keyboard('{Tab}');
+    await waitForSelectionClear();
+
+    expect(download).toBeDisabled();
+    expect(document.activeElement).toBe(field);
   });
 
   it('Enter i textarea giver newline (ikke fokus-flytning)', async () => {

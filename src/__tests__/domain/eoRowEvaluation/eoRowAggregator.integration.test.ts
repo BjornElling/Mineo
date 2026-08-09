@@ -7,8 +7,74 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { toISODateString } from '../../../types/branded';
+import {
+  eoEndeligEETAfgoerelseDatoField,
+  eoMenAfgoerelseDatoField,
+  eoMidlertidigEETAfgoerelseDatoField,
+} from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { buildTestFieldIssueSetFrom } from '../../utils/fieldIssueTestSupport';
 
 describe('collectAllEoRows integration', () => {
+  it('sender manglende mén- og EET-datoer til advarselsboksen uden downloadblokering', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.varigeMenAfgorelse = 'Ja';
+    eoValues.midlertidigtEETAfgorelse = 'Ja';
+    eoValues.endeligtEETAfgorelse = 'Ja';
+
+    const result = collectAllEoRows(
+      STAMDATA_INITIAL_VALUES,
+      EMPTY_FIELD_ISSUE_SET,
+      eoValues,
+      EMPTY_FIELD_ISSUE_SET
+    );
+
+    const missingDateRowIds = [
+      'aes.menAfgoerelseDato',
+      'aes.midlertidigEETAfgoerelseDato',
+      'aes.endeligEETAfgoerelseDato',
+    ];
+    expect(result.errors.filter((row) => missingDateRowIds.includes(row.id))).toEqual([]);
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'aes.menAfgoerelseDato',
+        summaryText: 'Dato for ménafgørelse er ikke angivet',
+      }),
+      expect.objectContaining({
+        id: 'aes.midlertidigEETAfgoerelseDato',
+        summaryText: 'Afgørelses- eller virkningsdato for midlertidig EET-afgørelse er ikke angivet',
+      }),
+      expect.objectContaining({
+        id: 'aes.endeligEETAfgoerelseDato',
+        summaryText: 'Afgørelses- eller virkningsdato for endelig EET-afgørelse er ikke angivet',
+      }),
+    ]));
+  });
+
+  it('bevarer rejected mén- og EET-datoer som blokerende fejl', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.varigeMenAfgorelse = 'Ja';
+    eoValues.midlertidigtEETAfgorelse = 'Ja';
+    eoValues.endeligtEETAfgorelse = 'Ja';
+    const eoErrors = buildTestFieldIssueSetFrom([
+      { field: eoMenAfgoerelseDatoField.bind(), message: 'Ugyldig dato' },
+      { field: eoMidlertidigEETAfgoerelseDatoField.bind(), message: 'Ugyldig dato' },
+      { field: eoEndeligEETAfgoerelseDatoField.bind(), message: 'Ugyldig dato' },
+    ]);
+
+    const result = collectAllEoRows(
+      STAMDATA_INITIAL_VALUES,
+      EMPTY_FIELD_ISSUE_SET,
+      eoValues,
+      eoErrors
+    );
+
+    expect(result.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'aes.menAfgoerelseDato', status: 'error' }),
+      expect.objectContaining({ id: 'aes.midlertidigEETAfgoerelseDato', status: 'error' }),
+      expect.objectContaining({ id: 'aes.endeligEETAfgoerelseDato', status: 'error' }),
+    ]));
+  });
+
   it('materialises svie/smerte sats-aar warning with summary message', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.opgørelseLavetDen = toISODateString('2025-12-15');

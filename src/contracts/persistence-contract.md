@@ -117,12 +117,12 @@ Klassifikationen er udtømmende og compiler-håndhævet for manifestets STATISKE
 constraintet er nøglet til `keyof typeof UI_STORAGE_KEY_SUFFIXES`, så en ny sådan nøgle ikke kan undlade at
 vælge side.
 
-**Aktive-fane-nøglerne står bevidst UDEN FOR klassifikationen** — ikke som `deviceScoped`, men som en
-dynamisk nøglefamilie dannet af `createActiveTabStorageKey(pageId)`. `Slet alt` rydder dem derfor ikke (en
-fane er en navigationsposition, ikke sagsdata), men adfærden følger af at de er udeladt, ikke af en
-klassifikation. Konsekvens, der skal være bevidst ved næste udvidelse: en NY dynamisk nøglefamilie kan
-tilføjes uden at compileren kræver et policy-valg. En sådan familie skal derfor selv tage stilling —
-enten ved at blive statisk klassificeret eller ved en eksplicit note her.
+**Aktive-fane-nøglerne er en caseScoped dynamisk nøglefamilie** dannet af
+`createActiveTabStorageKey(pageId)`. En fane er ikke sagsinput og kommer derfor ikke med i `.eo`-filer, men
+den beskriver den konkrete sag i browserens session: `Slet alt` SKAL rydde den, så hver fagside åbner på sin
+standardfane i den nye, tomme sag. Medlemmerne udledes af `PAGE_DEFAULT_TAB`, så en ny side med persisteret
+fanevalg automatisk indgår i oprydningen. En ny dynamisk nøglefamilie skal tilsvarende have en eksplicit
+reset-policy her og i manifestet.
 
 Hele reset-transaktionen (inputenvelope, sagsnær sessionstate, filhåndtag) ejes af `CaseResetOperations`, som
 er det ENESTE sted der enumererer policyen. Hver oprydningsgrænses resultat skal kontrolleres, og en

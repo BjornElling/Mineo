@@ -205,58 +205,76 @@ export const buildEoAesRows = (
   const danishEndeligEETVirkningsdato = endeligEetErSynlig ? isoToDanish(values.endeligEETVirkningsdato) : undefined;
   const danishDifferencekravDato = isoToDanish(values.differencekravDato);
 
+  const menAfgoerelseDatoErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'menAfgoerelseDato'));
+  const midlertidigEETAfgoerelseDatoErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'midlertidigEETAfgoerelseDato'));
+  const midlertidigEETVirkningsdatoErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'midlertidigEETVirkningsdato'));
+  const endeligEETAfgoerelseDatoErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'endeligEETAfgoerelseDato'));
+  const endeligEETVirkningsdatoErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'endeligEETVirkningsdato'));
+
   // Tjek om varige mén toggle er Ja men dato mangler
-  const menAfgoerelseDatoMangler = varigeMenErSynlig && !isNonEmptyString(danishMenAfgoerelseDato);
+  const menAfgoerelseDatoMangler =
+    varigeMenErSynlig
+    && !isNonEmptyString(danishMenAfgoerelseDato)
+    && menAfgoerelseDatoErrors.length === 0;
 
   const harMidlertidigEETVirkningsdato = isNonEmptyString(danishMidlertidigEETVirkningsdato);
   const harMidlertidigEETAfgoerelseDato = isNonEmptyString(danishMidlertidigEETAfgoerelseDato);
 
   // Tjek om midlertidig EET toggle er Ja men der mangler dato (hverken afgørelsesdato eller virkningsdato)
   const midlertidigEETAfgoerelseDatoMangler =
-    midlertidigEetErSynlig && !harMidlertidigEETAfgoerelseDato && !harMidlertidigEETVirkningsdato;
+    midlertidigEetErSynlig
+    && !harMidlertidigEETAfgoerelseDato
+    && !harMidlertidigEETVirkningsdato
+    && midlertidigEETAfgoerelseDatoErrors.length === 0
+    && midlertidigEETVirkningsdatoErrors.length === 0;
 
   const harEndeligEETVirkningsdato = isNonEmptyString(danishEndeligEETVirkningsdato);
   const harEndeligEETAfgoerelseDato = isNonEmptyString(danishEndeligEETAfgoerelseDato);
 
   // Tjek om endelig EET toggle er Ja men der mangler dato (hverken afgørelsesdato eller virkningsdato)
-  const endeligEETAfgoerelseDatoMangler = endeligEetErSynlig && !harEndeligEETAfgoerelseDato && !harEndeligEETVirkningsdato;
+  const endeligEETAfgoerelseDatoMangler =
+    endeligEetErSynlig
+    && !harEndeligEETAfgoerelseDato
+    && !harEndeligEETVirkningsdato
+    && endeligEETAfgoerelseDatoErrors.length === 0
+    && endeligEETVirkningsdatoErrors.length === 0;
 
-  // Varige mén afgørelsesdato - vis fejl hvis toggle er Ja men dato mangler
+  // Udfyldning af afgørelsesdatoerne er en vejledende komplethedsoplysning: de skal fremgå
+  // af Beregnings-fanens fælles advarselsboks uden at gøre felterne røde eller blokere output.
+  // Varige mén-afgørelsesdato - vis advarsel hvis toggle er Ja men dato mangler
   const menAfgoerelseDatoResolved = resolveEoRowDisplay({
     value: danishMenAfgoerelseDato,
     issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'menAfgoerelseDato'),
     emptyState: 'ok',
   });
-  const menAfgoerelseDatoDisplay = menAfgoerelseDatoMangler ? 'Fejl (Afgørelsesdato mangler)' : menAfgoerelseDatoResolved.displayValue;
-  const menAfgoerelseDatoStatus: EoRowStatus = menAfgoerelseDatoMangler ? 'error' : menAfgoerelseDatoResolved.status;
+  const menAfgoerelseDatoDisplay = menAfgoerelseDatoMangler ? 'Advarsel (Afgørelsesdato mangler)' : menAfgoerelseDatoResolved.displayValue;
+  const menAfgoerelseDatoStatus: EoRowStatus = menAfgoerelseDatoMangler ? 'warning' : menAfgoerelseDatoResolved.status;
 
-  // Midlertidig EET afgørelsesdato - vis fejl hvis toggle er Ja men dato mangler
+  // Midlertidig EET-afgørelsesdato - vis advarsel hvis toggle er Ja men dato mangler
   const midlertidigEETAfgoerelseDatoResolved = resolveEoRowDisplay({
     value: danishMidlertidigEETAfgoerelseDato,
     issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'midlertidigEETAfgoerelseDato'),
     emptyState: 'ok',
   });
   const midlertidigEETAfgoerelseDatoDisplay = midlertidigEETAfgoerelseDatoMangler
-    ? 'Fejl (Afgørelsesdato eller virkningsdato mangler)'
+    ? 'Advarsel (Afgørelsesdato eller virkningsdato mangler)'
     : midlertidigEETAfgoerelseDatoResolved.displayValue;
   const midlertidigEETAfgoerelseDatoStatus: EoRowStatus = midlertidigEETAfgoerelseDatoMangler
-    ? 'error'
+    ? 'warning'
     : midlertidigEETAfgoerelseDatoResolved.status;
 
-  // Endelig EET afgørelsesdato - vis fejl hvis toggle er Ja men dato mangler
+  // Endelig EET-afgørelsesdato - vis advarsel hvis toggle er Ja men dato mangler
   const endeligEETAfgoerelseDatoResolved = resolveEoRowDisplay({
     value: danishEndeligEETAfgoerelseDato,
     issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'endeligEETAfgoerelseDato'),
     emptyState: 'ok',
   });
   const endeligEETAfgoerelseDatoDisplay = endeligEETAfgoerelseDatoMangler
-    ? 'Fejl (Afgørelsesdato eller virkningsdato mangler)'
+    ? 'Advarsel (Afgørelsesdato eller virkningsdato mangler)'
     : endeligEETAfgoerelseDatoResolved.displayValue;
-  const endeligEETAfgoerelseDatoStatus: EoRowStatus = endeligEETAfgoerelseDatoMangler ? 'error' : endeligEETAfgoerelseDatoResolved.status;
+  const endeligEETAfgoerelseDatoStatus: EoRowStatus = endeligEETAfgoerelseDatoMangler ? 'warning' : endeligEETAfgoerelseDatoResolved.status;
 
   // Beregnet startdato for midlertidigt EET - kun hvis felterne er synlige
-  const midlertidigEETAfgoerelseDatoErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'midlertidigEETAfgoerelseDato'));
-  const midlertidigEETVirkningsdatoErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'midlertidigEETVirkningsdato'));
   const harMidlertidigVirkningsdatoFejl = midlertidigEetErSynlig && midlertidigEETVirkningsdatoErrors.length > 0;
   const harMidlertidigAfgoerelsesdatoFejl =
     midlertidigEetErSynlig && (midlertidigEETAfgoerelseDatoErrors.length > 0 || midlertidigEETAfgoerelseDatoMangler);
@@ -279,7 +297,14 @@ export const buildEoAesRows = (
           parts.push(...midlertidigEETAfgoerelseDatoErrors.map((e) => e.message.trim()));
         }
       }
-      return { displayValue: `Fejl (${parts.join('; ')})`, status: 'error' as EoRowStatus };
+      const erKunManglendeDatoAdvarsel =
+        midlertidigEETAfgoerelseDatoMangler
+        && midlertidigEETVirkningsdatoErrors.length === 0
+        && midlertidigEETAfgoerelseDatoErrors.length === 0;
+      return {
+        displayValue: `${erKunManglendeDatoAdvarsel ? 'Advarsel' : 'Fejl'} (${parts.join('; ')})`,
+        status: erKunManglendeDatoAdvarsel ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
+      };
     }
 
     // Hvis virkningsdato er udfyldt, brug den
@@ -297,8 +322,6 @@ export const buildEoAesRows = (
   })();
 
   // Beregnet startdato for endeligt EET - kun hvis felterne er synlige
-  const endeligEETVirkningsdatoErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'endeligEETVirkningsdato'));
-  const endeligEETAfgoerelseDatoErrors = presentIssuesForRow(topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'endeligEETAfgoerelseDato'));
   const harEndeligVirkningsdatoFejl = endeligEetErSynlig && endeligEETVirkningsdatoErrors.length > 0;
   const harEndeligAfgoerelsesdatoFejl =
     endeligEetErSynlig && (endeligEETAfgoerelseDatoErrors.length > 0 || endeligEETAfgoerelseDatoMangler);
@@ -321,7 +344,14 @@ export const buildEoAesRows = (
           parts.push(...endeligEETAfgoerelseDatoErrors.map((e) => e.message.trim()));
         }
       }
-      return { displayValue: `Fejl (${parts.join('; ')})`, status: 'error' as EoRowStatus };
+      const erKunManglendeDatoAdvarsel =
+        endeligEETAfgoerelseDatoMangler
+        && endeligEETVirkningsdatoErrors.length === 0
+        && endeligEETAfgoerelseDatoErrors.length === 0;
+      return {
+        displayValue: `${erKunManglendeDatoAdvarsel ? 'Advarsel' : 'Fejl'} (${parts.join('; ')})`,
+        status: erKunManglendeDatoAdvarsel ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
+      };
     }
 
     // Hvis virkningsdato er udfyldt, brug den

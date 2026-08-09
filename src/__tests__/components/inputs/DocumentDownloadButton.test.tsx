@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import DownloadIconButton from '../../../components/inputs/DownloadIconButton';
 import DocumentDownloadButton from '../../../components/inputs/DocumentDownloadButton';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
@@ -14,6 +15,7 @@ describe('DownloadIconButton (presentationskerne)', () => {
     render(<DownloadIconButton onClick={vi.fn()} tooltip="Download som PDF" />);
     const button = screen.getByRole('button', { name: 'Download som PDF' });
     expect(button.tagName).toBe('BUTTON');
+    expect(button).toHaveAttribute('data-mineo-focusable-button', 'true');
     // Standard-MUI-ikonets testid bevares, så eksisterende download-tests fortsat finder ikonet.
     expect(screen.getByTestId('DownloadIcon')).toBeInTheDocument();
   });
@@ -27,6 +29,20 @@ describe('DownloadIconButton (presentationskerne)', () => {
     rerender(<DownloadIconButton onClick={onClick} disabled tooltip="Kan ikke hentes" />);
     fireEvent.click(screen.getByRole('button'));
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('aktiveres med Enter og mellemrum, når den har fokus', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(<DownloadIconButton onClick={onClick} tooltip="Download som PDF" />);
+    const button = screen.getByRole('button', { name: 'Download som PDF' });
+
+    button.focus();
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+
+    expect(onClick).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(button);
   });
 
   it('bruger en eksplicit ariaLabel når den er sat, men beholder tooltip-teksten', () => {

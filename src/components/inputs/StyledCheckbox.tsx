@@ -31,6 +31,9 @@ const StyledCheckbox = ({
   const autoId = React.useId();
   const resolvedId = id ?? autoId;
   const resolvedName = name ?? resolvedId;
+  // En programinaktiv checkbox må ikke fremstå som et aktivt tilvalg. Den afsluttede værdi
+  // bevares i inputkernen og vises igen, når programmet genaktiverer feltet.
+  const visibleChecked = disabled ? false : checked;
 
   const commitChecked = React.useCallback(
     (nextChecked: boolean) => {
@@ -68,7 +71,7 @@ const StyledCheckbox = ({
         <Checkbox
           id={resolvedId}
           name={resolvedName}
-          checked={checked}
+          checked={visibleChecked}
           onChange={handleChange}
           disabled={disabled}
           size={size}
@@ -83,7 +86,7 @@ const StyledCheckbox = ({
               id: resolvedId,
               name: resolvedName,
               onKeyDown: handleKeyDown,
-              'aria-checked': checked,
+              'aria-checked': visibleChecked,
               ...(restoreTargetAttributes ?? {}),
             } as React.InputHTMLAttributes<HTMLInputElement>,
           }}

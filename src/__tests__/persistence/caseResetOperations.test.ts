@@ -17,7 +17,11 @@ vi.mock('../../utils/fileHandleStorage', () => ({
 }));
 
 import { createCaseResetOperations } from '../../persistence/caseResetOperations';
-import { UI_STORAGE_KEYS, getCaseScopedSessionStorageKeys } from '../../config/storageManifest';
+import {
+  UI_STORAGE_KEYS,
+  createActiveTabStorageKey,
+  getCaseScopedSessionStorageKeys,
+} from '../../config/storageManifest';
 import { aargangField, createTestCatalog } from '../inputCore/testCatalog';
 
 const catalog = createTestCatalog();
@@ -95,6 +99,22 @@ describe('caseResetOperations.clearAll — reset-policyen (R4-F02)', () => {
     for (const key of caseScoped) expect(sessionStorage.getItem(key)).toBeNull();
     expect(sessionStorage.getItem(UI_STORAGE_KEYS.sideMenuExpanded)).toBe('true');
     expect(sessionStorage.getItem(UI_STORAGE_KEYS.devtoolsLastSeenIssueId)).toBe('42');
+  });
+
+  it('rydder aktiv fanehistorik, så den næste sag bruger hver sides standardfane', async () => {
+    const activeTabs = [
+      createActiveTabStorageKey('erstatningsopgoerelse'),
+      createActiveTabStorageKey('erhvervsevnetab'),
+      createActiveTabStorageKey('renteberegning'),
+      createActiveTabStorageKey('varigemen'),
+    ];
+    for (const key of activeTabs) sessionStorage.setItem(key, 'tidligere-fane');
+    const store = __createSlimInputTestStore();
+
+    const result = await buildOps(store, new ActiveEditorRegistry()).clearAll();
+
+    expect(result.status).toBe('cleared');
+    for (const key of activeTabs) expect(sessionStorage.getItem(key)).toBeNull();
   });
 
   it('rapporterer filhåndtaget som en rest, når sletningen ikke kan verificeres', async () => {

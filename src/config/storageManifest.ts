@@ -24,6 +24,8 @@
  * Læsning/sletning tager fortsat `string`: at rydde op efter en ukendt nøgle er lovligt,
  * at skabe ny persisteret tilstand under den er ikke.
  */
+import { PAGE_DEFAULT_TAB } from './pageNavigation';
+
 export type ManifestStorageKey = string & { readonly __manifestStorageKey: unique symbol };
 
 const asManifestKey = (key: string): ManifestStorageKey => key as ManifestStorageKey;
@@ -92,12 +94,17 @@ const SESSION_RESET_POLICY = {
 
 /**
  * De sagsnære nøgler, `Slet alt` skal rydde — i deklarationsrækkefølge, resolveret mod det AKTUELLE namespace.
- * Aktive-fane-nøglerne er bevidst udenfor: en fane er en navigationsposition, ikke sagsdata.
+ * En aktiv fane beskriver den aktuelle sag, selv om den ikke er en del af sagsinputtet: efter `Slet alt` skal
+ * hver fagside derfor starte på sin standardfane. Familie-medlemmerne udledes af `PAGE_DEFAULT_TAB`, så en ny
+ * side med persisteret fanevalg automatisk bliver omfattet af reset-policyen.
  */
 export const getCaseScopedSessionStorageKeys = (): readonly ManifestStorageKey[] =>
-  (Object.keys(SESSION_RESET_POLICY) as (keyof typeof SESSION_RESET_POLICY)[])
-    .filter((name) => SESSION_RESET_POLICY[name] === 'caseScoped')
-    .map((name) => asManifestKey(ns(UI_STORAGE_KEY_SUFFIXES[name])));
+  [
+    ...(Object.keys(SESSION_RESET_POLICY) as (keyof typeof SESSION_RESET_POLICY)[])
+      .filter((name) => SESSION_RESET_POLICY[name] === 'caseScoped')
+      .map((name) => asManifestKey(ns(UI_STORAGE_KEY_SUFFIXES[name]))),
+    ...Object.keys(PAGE_DEFAULT_TAB).map((pageId) => createActiveTabStorageKey(pageId)),
+  ];
 
 /**
  * Den ENESTE sessionStorage-nøgle for sagsinput (draft/commit-designet §2.1.6/§3.7): hele det

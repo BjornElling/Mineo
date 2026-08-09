@@ -27,7 +27,9 @@ const DownloadIconButton = ({ onClick, disabled = false, shake = false, tooltip,
   <Tooltip title={tooltip}>
     <span>
       <IconButton
+        type="button"
         aria-label={ariaLabel ?? tooltip}
+        data-mineo-focusable-button="true"
         data-testid={dataTestId}
         onClick={onClick}
         size="small"
