@@ -323,6 +323,13 @@ længdegrænsen bliver canonical og får sit røde bounds-issue. Beløbsudtryk e
 talled længdebegrænses tegn for tegn, mens et beregnet resultat uden for feltets beløbsgrænse først kan fanges
 ved settle og derfor bliver et canonical issue.
 
+Blokeringen gælder desuden kun **den skrivende overflade**: et felt, brugeren taster eller indsætter i. Den er
+ikke en grænse for programmets beregninger. Afledte og sammentalte værdier — rækkesummer, totaler, projektioner
+og motoroutput — må frit have flere cifre end det inputfelt, de stammer fra, og en read-only celle eller
+resultatvisning skal vise det fulde beregnede tal uden afkortning eller rød markering. Længdepolitikken
+erklæres derfor på inputfeltets codec og læses af de skrivende flader; den følger ikke med en afledt værdi ud i
+visningen.
+
 ### 8.3 Decimalpolitikken ejes af feltets codec
 
 Om et beløbs- eller procentfelt accepterer dansk decimalkomma, erklæres på codecet som

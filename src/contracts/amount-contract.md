@@ -68,6 +68,13 @@ det 8. heltalsciffer blokeres allerede ved tastning og paste
 brugerinput; den kan kun rammes af en tolerant `.eo`-load eller et beregnet mellemresultat,
 og den forbliver den autoritative fail-closed-grænse for netop de veje.
 
+**Omvendt begrænser feltets 7 cifre ikke beregnede beløb.** Ciffergrænsen gælder kun det,
+brugeren taster eller indsætter. Et beregnet beløb — en rækkesum, en årstotal, et
+kapitaliseret beløb, en rente — må frit overstige `9.999.999,99`, og det er den forventede
+adfærd, når brugeren indtaster flere beløb tæt på grænsen. For beregnede værdier er det
+alene binary64-værnet ovenfor, der gælder. En beregnet total må derfor hverken afkortes,
+afvises eller markeres rødt, fordi den er længere end det inputfelt, den stammer fra.
+
 ---
 
 ## 4. MoneyOre og pengealgebra

@@ -29,10 +29,17 @@ Blokeringen omfatter tegnsæt og længde — ikke talværdi. Range-, kronologi- 
 canonical værdi med rød ring, konkret tooltip og blokeret download, præcis som hidtil.
 
 Ciffergrænserne er **lofter, ikke tilladelser**: et felt med færre cifre, et lavere maksimum, forbud mod
-negative beløb eller krav om fx delelighed med 1.000 beholder sin strengere regel uændret. Og de gælder kun
-brugerens indtastning: 0–100 % er udgangspunktet for et procentFELT, ikke en grænse for procentsatser som
-sådan. Méngraden kan være op til 120 %, og beregnede procenter — fx indeksværdier ved regulering af TAF — kan
-lovligt overstige 100 %.
+negative beløb eller krav om fx delelighed med 1.000 beholder sin strengere regel uændret.
+
+**Reglen gælder KUN felter, brugeren skriver i.** Den begrænser indtastning, ikke programmets efterfølgende
+beregninger. Indtaster brugeren lønbeløb tæt på 7-ciffergrænsen i flere rækker, er den beregnede sum større end
+ethvert enkeltbeløb — det er korrekt og accepteret. Beregnede, afledte og sammentalte værdier er ikke omfattet
+af nogen ciffergrænse i denne kontrakt, jf. §1.2.
+
+For procent gælder desuden en **formodningsregel**: et procent-inputfelt har maksimum 100 %, medmindre feltet
+udtrykkeligt angiver andet. Formodningen kan fraviges i begge retninger — méngrad går til 120 % — men den
+ændrer aldrig antallet af tilladte cifre, som altid er højst 3 før kommaet og 2 efter. Beregnede procenter, fx
+indeksværdier ved regulering af TAF, kan lovligt overstige 100 % og er slet ikke omfattet.
 
 ## 1. Begreber og fælles livscyklus
 
@@ -59,11 +66,29 @@ med feltets erklærede tegnsæt og maksimale længde:
    både tastning og paste.
 3. Blokeringen er tavs: den afviste tastning giver ingen rød ring, ingen fejltekst og ingen tooltip, fordi der
    ikke er opstået nogen fejltilstand — tegnet blev aldrig en del af værdien.
+4. Reglen gælder **kun felter, brugeren skriver i**. Den er en grænse for indtastning, ikke for programmets
+   efterfølgende beregninger.
 
 Blokeringen omfatter **tegnsæt og længde**, ikke talværdi. En korrekt formateret værdi inden for feltets
 længdegrænse, der bryder en aktiv range-, kronologi- eller anden domænegrænse, blokeres derfor **ikke** ved
 indtastningen: den bevares som canonical værdi og markeres rødt med konkret tooltip efter §1.1. En méngrad på
 `121` eller en dato uden for feltets grænser skal fortsat kunne indtastes og fortsat give en synlig rød fejl.
+
+**Ciffergrænserne gælder brugerens indtastning — ikke programmets beregninger.** Det er den vigtigste
+afgrænsning af hele reglen, og den skal læses med i hver enkelt ciffergrænse i §2. En beregnet, afledt,
+sammenlagt eller opreguleret værdi må frit overskride den grænse, der gælder for det felt, den stammer fra:
+
+- **Afledte og sammentalte værdier er ikke omfattet.** Indtaster brugeren lønbeløb tæt på 7-ciffergrænsen i
+  flere rækker, er den samlede sum større end ethvert enkeltbeløb. Det er korrekt og accepteret adfærd.
+  Rækkesummer, årstotaler, kapitaliserede beløb, renter og alle øvrige beregnede beløb må gerne have flere
+  cifre end inputfeltet.
+- **Visningsfelter og afledte celler er ikke inputfelter.** En read-only celle, en beregnet totalrække eller en
+  resultatvisning skal vise det fulde beregnede tal og må hverken afkortes eller markeres rødt, fordi tallet
+  ville have været for langt at taste.
+- **Grænsen for beregnede værdier er en anden.** Den relevante øvre grænse for et beregnet beløb er
+  beløbskontraktens interne repræsentationsværn (`amount-contract.md` §3), ikke feltets ciffergrænse.
+- Kun dér, hvor brugeren selv skriver eller indsætter tegn, blokeres der. Programmatisk skrivning, `.eo`-load
+  og motorernes output følger deres egne kontrakter og er ikke tastning.
 
 ### 1.2a Paste – samme afgrænsning som tastning
 
@@ -204,21 +229,35 @@ aldrig en grænse, feltet allerede har:
   beregning, hvor værdien har betydning for resultatet. Intervalgrænsen blokerer altså ikke selve
   indtastningen: `101` i et 0–100-felt skal kunne indtastes og skal give en synlig rød fejl.
 
-**Der er ingen universel 100 %-grænse.** De 3 cifre er en længderegel for brugerens indtastning, ikke et loft
-over, hvad en procentsats kan være:
+**Formodningsreglen: et procentfelt har maksimum 100 %, medmindre andet er angivet.**
 
-- 0–100 % er **udgangspunktet** for et indtastningsfelt, ikke en regel for hele procentfamilien. Det enkelte
-  felt erklærer sit eget interval.
-- **Méngrad** er en udtrykkelig undtagelse: méngraden kan efter arbejdsskadereglerne fastsættes til op til
-  120 %, og feltets interval er derfor 1–120, ikke 0–100. Méngrad er desuden et **heltalsfelt** uden
-  decimaler, jf. `varigemen-contract.md` §5–6, som ejer reglen. `121` committes canonical med rød
-  range-markering og blokerer engine og PDF.
-- **Beregnede** procentsatser kan lovligt overstige 100 % og er slet ikke omfattet af denne regel, som kun
-  gælder inputfelter. Indeksværdier ved regulering af TAF er det typiske eksempel: en akkumuleret
-  reguleringssats kan give en procentværdi langt over 100 uden at være en fejl. En afledt eller beregnet
-  procent må derfor aldrig afvises eller markeres rødt, blot fordi den overstiger 100.
-- Et procentfelt, hvis domæne tillader værdier over 999, kan ikke rummes af de 3 cifre. Et sådant felt hører
-  ikke til procentfamilien i denne kontrakt og skal have sin egen erklærede længde.
+Et procent-INPUTFELT antages at have det tilladte interval 0–100 %. Formodningen gælder, indtil det konkrete
+felt udtrykkeligt angiver noget andet, og den er feltets aktive grænse på præcis samme måde som en udtrykkeligt
+erklæret grænse: en værdi over 100 bevares canonical med rød ring, konkret tooltip og blokeret download, hvor
+den har betydning for resultatet.
+
+- **Formodningen kan fraviges i begge retninger.** Hvert enkelt felt kan angive en HØJERE maksimumgrænse end
+  100 % og kan angive en LAVERE. Et felt kan tilsvarende angive sit eget minimum. Angivelsen sker på feltet
+  selv; den skal være udtrykkelig, så et interval aldrig opstår ved en forglemmelse.
+- **Méngrad** er den kendte fravigelse opad: méngraden kan efter arbejdsskadereglerne fastsættes til op til
+  120 %, og feltets interval er derfor 1–120. Méngrad er desuden et **heltalsfelt** uden decimaler, jf.
+  `varigemen-contract.md` §5–6, som ejer reglen. `121` committes canonical med rød range-markering og blokerer
+  engine og PDF.
+- **Formodningen ændrer aldrig antallet af tilladte cifre.** Et procent-inputfelt rummer altid højst 3
+  heltalscifre og — hvor decimaler er tilladt — 2 decimaler, uanset om feltets maksimum er 100, 120 eller
+  lavere. Et lavere maksimum giver ikke færre cifre, og en fravigelse opad giver ikke flere. De to regler er
+  uafhængige: cifrene er en længdeblokering ved indtastningen, maksimum er en talværdigrænse, der bliver til
+  en canonical rød fejl.
+
+**Der er ingen universel 100 %-grænse for procentsatser som sådan.** Formodningen ovenfor gælder kun felter,
+brugeren skriver i, jf. §1.2:
+
+- **Beregnede** procentsatser kan lovligt overstige 100 % og er slet ikke omfattet. Indeksværdier ved
+  regulering af TAF er det typiske eksempel: en akkumuleret reguleringssats kan give en procentværdi langt
+  over 100 uden at være en fejl. En afledt eller beregnet procent må derfor aldrig afvises eller markeres
+  rødt, blot fordi den overstiger 100, og en beregnet procent er heller ikke bundet af de 3 cifre.
+- Et procent-INPUTFELT, hvis domæne kræver værdier over 999, kan ikke rummes af de 3 cifre. Et sådant felt
+  hører ikke til procentfamilien i denne kontrakt og skal have sin egen erklærede længde.
 
 ### 2.4 Brøkfelter
 
@@ -422,6 +461,8 @@ over, hvad en procentsats kan være:
   andre tegn blokeres; paste filtreres tegn for tegn.
 - Feltet følger den universelle procentregel i §2.3 uden særregel: højst 3 heltalscifre og 2 decimaler kan
   komme ind i feltet.
+- Maksimum følger formodningsreglen i §2.3 og er dermed 100 %; feltet fraviger den ikke. Minimum er derimod
+  udtrykkeligt sat til 1.
 - `1` til `100` inklusive er gyldigt. `0` bevares som rød fejltekst, fordi minimum er 1.
 - Værdier over 100 % blokeres **ikke** ved indtastningen. `101` skal kunne indtastes og bevares som canonical
   værdi med rød ring og konkret tooltip om det tilladte interval, og den blokerer download, hvor
@@ -589,9 +630,12 @@ når adfærden implementeres:
   beregnet resultat uden for `±9.999.999,99` først kan fanges ved settle og derfor bliver en canonical rød fejl
   med konkret tooltip.
 - Ciffergrænserne i §2.2 og §2.3 er lofter, ikke tilladelser. De løsner aldrig en strengere feltregel — færre
-  cifre, lavere maksimum, forbud mod negative beløb, krav om delelighed — og de udtaler sig ikke om beregnede
-  værdier.
-- **Méngraden kan være op til 120 %** og er den udtrykkelige undtagelse fra procentfelternes 0–100-udgangspunkt.
+  cifre, lavere maksimum, forbud mod negative beløb, krav om delelighed.
+- **Beregnede værdier er ikke omfattet af nogen ciffergrænse.** Rækkesummer, årstotaler, kapitaliserede beløb
+  og opregulerede satser må frit overskride det inputfelt, de stammer fra. Grænsen for et beregnet beløb er
+  `amount-contract.md` §3, ikke feltets ciffergrænse.
+- **Procentfelters maksimum er 100 % som formodning**, ikke som fast regel. Hvert felt kan udtrykkeligt angive
+  et højere eller lavere maksimum; méngrad går til 120 %. Fravigelsen ændrer aldrig ciffergrænsen på 3+2.
   Beregnede procentsatser, fx indeksværdier ved regulering af TAF, kan lovligt overstige 100 % og er slet ikke
   omfattet af inputreglerne.
 - Svie-/smerte-rækkens Erhvervssygdom-regel tillader datoer før anmeldelsesdatoen; den præcise nedre grænse ejes

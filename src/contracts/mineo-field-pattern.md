@@ -90,7 +90,9 @@ Krav:
 8. Codecet er den effektive blokering mod tegn og længde, der ikke passer feltet. Et tegn uden for feltets
    tegnsæt og et tegn ud over feltets maksimale antal tegn, cifre eller decimaler kommer ikke ind i feltet.
    Blokeringen omfatter tegnsæt og længde, ikke talværdi: en korrekt formateret værdi inden for længdegrænsen,
-   der bryder feltets min/max, bliver canonical og får sit afledte bounds-issue efter regel 7.
+   der bryder feltets min/max, bliver canonical og får sit afledte bounds-issue efter regel 7. Blokeringen
+   gælder kun brugerens indtastning i feltet — ikke afledte eller beregnede værdier, som frit må have flere
+   cifre end det inputfelt, de stammer fra.
 9. Paste er ikke en selvstændig indgang. Paste behandles tegn for tegn som almindelig tastning fra samme
    startposition, med identisk afgrænsning: et tegn, som codecet ville afvise ved tastning, springes over, men
    paste fortsætter med næste tegn. Præcision-, ciffer- og længdegrænser håndhæves undervejs; overskydende tegn
