@@ -16,10 +16,16 @@ export type CheckboxFieldProps = Readonly<{
   location: EditorLocation;
   label: React.ReactNode;
   disabled?: boolean;
+  /**
+   * Permanent tilvalg (§3.6): feltet vises altid markeret og kan ikke fravælges. Bruges til elementer,
+   * der pr. definition indgår. Feltet bindes stadig gennem editor-controlleren — låsningen er ren
+   * visning og committer aldrig, så den afsluttede værdi er uændret.
+   */
+  lockedOn?: boolean;
   name?: string;
 }>;
 
-const CheckboxField = ({ field, location, label, disabled, name }: CheckboxFieldProps): React.ReactElement => {
+const CheckboxField = ({ field, location, label, disabled, lockedOn, name }: CheckboxFieldProps): React.ReactElement => {
   const controller = useFieldEditor(field, location);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const checked = controller.value ?? false;
@@ -38,6 +44,7 @@ const CheckboxField = ({ field, location, label, disabled, name }: CheckboxField
       onCommit={handleCommit}
       label={label}
       {...(disabled === undefined ? {} : { disabled })}
+      {...(lockedOn === undefined ? {} : { lockedOn })}
       {...(name === undefined ? {} : { name })}
       restoreTargetAttributes={restoreTargetAttributes}
     />

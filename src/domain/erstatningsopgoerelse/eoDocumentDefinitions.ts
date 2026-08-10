@@ -109,8 +109,19 @@ const resolveBilagSelection = (projection: ErstatningsopgoerelseReaderProjection
   for (const key of EO_BILAG_DYNAMIC_SELECTION_KEYS) {
     if (!availability[key].enabled) selection[key] = false;
   }
+  // Opgørelsen er ikke et valg: fladen viser den låst til (`lockedOn`), og generatoren kaster, hvis den
+  // mangler. En sag gemt før låsningen — eller en håndredigeret .eo-fil — kan bære `opgoerelse: false`,
+  // og uden dette ville et felt, brugeren ikke kan røre, blokere dokumentet. Låsningen gælder derfor
+  // begge veje: visningen OG kilden.
+  selection.opgoerelse = true;
   return selection;
 };
+
+/**
+ * Test-adgang til bilagsvalget. Reglen «opgørelsen er altid valgt» er en invariant mellem fladen og
+ * generatoren, og den skal kunne prøves direkte — ikke kun gennem en fuld dokumentkørsel.
+ */
+export const __testResolveBilagSelection = resolveBilagSelection;
 
 const resolveMidlertidigtEetGroups = (
   projection: ErstatningsopgoerelseReaderProjection

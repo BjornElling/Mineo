@@ -9,6 +9,14 @@ type StyledCheckboxProps = Readonly<{
   id?: string;
   name?: string;
   disabled?: boolean;
+  /**
+   * Permanent tilvalg: feltet er ikke redigerbart, men er — modsat `disabled` — ALTID markeret.
+   * `disabled` betyder «programinaktiv», og et programinaktivt felt vises bevidst umarkeret (se
+   * `visibleChecked`). Et element, der pr. definition altid indgår, er den modsatte tilstand og kan
+   * derfor ikke udtrykkes med `disabled` alene. Låst-til er en ren visning: den committer aldrig, så
+   * feltets afsluttede værdi ændres ikke af, at fladen låser den.
+   */
+  lockedOn?: boolean;
   size?: 'small' | 'medium';
   /**
    * Undo/redo-fokusrestore-attributter (§3.7): sættes på checkbox-input-slottet, så fokus efter undo/redo
@@ -25,22 +33,27 @@ const StyledCheckbox = ({
   id,
   name,
   disabled = false,
+  lockedOn = false,
   size = 'small',
   restoreTargetAttributes,
 }: StyledCheckboxProps) => {
   const autoId = React.useId();
   const resolvedId = id ?? autoId;
   const resolvedName = name ?? resolvedId;
-  // En programinaktiv checkbox må ikke fremstå som et aktivt tilvalg. Den afsluttede værdi
-  // bevares i inputkernen og vises igen, når programmet genaktiverer feltet.
-  const visibleChecked = disabled ? false : checked;
+  // Et låst-til felt indgår altid og vises derfor markeret, uanset den afsluttede værdi.
+  // Ellers gælder: en programinaktiv checkbox må ikke fremstå som et aktivt tilvalg. Den afsluttede
+  // værdi bevares i inputkernen og vises igen, når programmet genaktiverer feltet.
+  const interactionDisabled = disabled || lockedOn;
+  const visibleChecked = lockedOn ? true : disabled ? false : checked;
 
   const commitChecked = React.useCallback(
     (nextChecked: boolean) => {
+      // Låst-til er kun visning: den må aldrig skrive en værdi tilbage til feltet.
+      if (lockedOn) return;
       if (nextChecked === checked) return;
       onCommit(createCommitEvent(nextChecked));
     },
-    [checked, onCommit]
+    [checked, lockedOn, onCommit]
   );
 
   const handleChange = React.useCallback(
@@ -58,11 +71,11 @@ const StyledCheckbox = ({
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
       event.stopPropagation();
-      if (!disabled) {
+      if (!interactionDisabled) {
         commitChecked(!checked);
       }
     },
-    [checked, commitChecked, disabled]
+    [checked, commitChecked, interactionDisabled]
   );
 
   return (
@@ -73,7 +86,7 @@ const StyledCheckbox = ({
           name={resolvedName}
           checked={visibleChecked}
           onChange={handleChange}
-          disabled={disabled}
+          disabled={interactionDisabled}
           size={size}
           slotProps={{
             // Feltidentitet i DOM: serialiseret feltadresse + editorlokation (§3.2/§3.7), sat af
