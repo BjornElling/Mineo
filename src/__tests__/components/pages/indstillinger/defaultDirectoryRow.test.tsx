@@ -168,6 +168,62 @@ describe('DefaultDirectoryRow — handlinger', () => {
   });
 });
 
+/**
+ * Mappevalget var kun klikbart: knappen bar ikke Container'ens opt-in-markør, så den lå uden for
+ * feltsekvensen og kunne ikke nås med Tab. Aktivering med Enter/mellemrum måles på selve
+ * handlingen — ikke på attributten — så testen ville fange en senere ændring til fx et <span>,
+ * der beholdt markøren men mistede den native knapadfærd.
+ */
+describe('DefaultDirectoryRow — «Vælg mappe» er tastaturtilgængelig', () => {
+  const renderMedMappevaelger = async () => {
+    const directoryHandle = { name: 'Sager' } as unknown as FileSystemDirectoryHandle;
+    const showDirectoryPicker = vi.fn(async () => directoryHandle);
+    saveDefaultDirectoryHandleMock.mockResolvedValue({ id: 'dir-1', displayName: 'Sager' });
+    vi.stubGlobal('showDirectoryPicker', showDirectoryPicker);
+    renderRow(undefined);
+    await waitFor(() => {
+      expect(screen.getByText(DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME)).toBeInTheDocument();
+    });
+    return { showDirectoryPicker, knap: screen.getByRole('button', { name: 'Vælg mappe' }) };
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('knappen indgår i Container-feltsekvensen og kan fokuseres med Tab', async () => {
+    const user = userEvent.setup();
+    const { knap } = await renderMedMappevaelger();
+
+    // Selve opt-in'et: uden markøren udelader CONTAINER_FOCUSABLE_SELECTOR knappen.
+    expect(knap.tagName).toBe('BUTTON');
+    expect(knap).toHaveAttribute('data-mineo-focusable-button', 'true');
+
+    await user.tab();
+    expect(knap).toHaveFocus();
+  });
+
+  it('Enter på den fokuserede knap åbner mappevælgeren', async () => {
+    const user = userEvent.setup();
+    const { showDirectoryPicker, knap } = await renderMedMappevaelger();
+
+    knap.focus();
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(showDirectoryPicker).toHaveBeenCalledTimes(1));
+  });
+
+  it('mellemrum på den fokuserede knap åbner mappevælgeren', async () => {
+    const user = userEvent.setup();
+    const { showDirectoryPicker, knap } = await renderMedMappevaelger();
+
+    knap.focus();
+    await user.keyboard('[Space]');
+
+    await waitFor(() => expect(showDirectoryPicker).toHaveBeenCalledTimes(1));
+  });
+});
+
 describe('resolveDefaultDirectoryLocation — de tre tilstande', () => {
   it('uden id: standard, uden opslag i storet', async () => {
     const result = await resolveDefaultDirectoryLocation(undefined);

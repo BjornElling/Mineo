@@ -36,9 +36,17 @@ const DefaultDirectoryRow = React.memo(() => {
           </Typography>
           <Tooltip title="Vælg mappe">
             <IconButton
+              type="button"
               onClick={chooseDirectory}
               // Kun et ikon som indhold; tooltippen giver ikke et varigt tilgængeligt navn.
               aria-label="Vælg mappe"
+              /*
+                Opt-in til Container'ens feltsekvens (§Implementeringsfrihed i
+                `keyboard-navigation.md`): uden markøren er mappevalget kun tilgængeligt for musen,
+                fordi CONTAINER_FOCUSABLE_SELECTOR bevidst kun medtager knapper, der beder om det.
+                Aktivering med Enter/mellemrum følger af det native <button> — ingen egen keydown.
+              */
+              data-mineo-focusable-button="true"
               size="small"
               sx={{
                 padding: 0.5,
