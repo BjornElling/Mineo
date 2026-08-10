@@ -123,3 +123,8 @@ Ingen fund afventer reproduktion.
 - Prioritet: Mellem
 - Status: Ny
 
+NYE BRUGERFUND, DER SKAL REGISTRERES:
+
+- På minProcesrente-siden aktiveres 'Slet alle indtastninger' funktionen ikke, hvis den eneste indtastning er en schema-ugyldig værdi i feltet med "Rente beregnes til og med". Det er en fejl. "Slet alle indtastninger" skal være aktiveret i samme øjeblik noget indhold på siden er udfyldt.
+
+- På nuværende tidspunkt fungerer 'Indsæt dags dato' knappen sådan, at når den er anvendt, rykkes fokus til det tilhørende dato-felt. Det skal ikke være sådan. Fokus skal forblive på 'Indsæt dags dato' knappen efter den er trykket på.
