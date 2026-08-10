@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { filterYearKeyDown } from '../../../components/inputs/inputKeyFilters';
+import { yearAdmission } from '../../../components/inputs/draftAdmission';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
@@ -14,6 +14,8 @@ import { YEAR_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders'
 
 // Et år har højst 4 cifre; tillad et par ekstra draft-tegn til eftergivende typing (fx førende/efterfølgende ws).
 const MAX_YEAR_DRAFT_LENGTH = 6;
+
+const YEAR_ADMISSION = yearAdmission();
 
 export type YearFieldProps = Readonly<{
   field: FieldRef<number | undefined>;
@@ -34,7 +36,7 @@ const YearField = React.forwardRef<HTMLDivElement, YearFieldProps>(
       ref={ref}
       field={field}
       location={location}
-      keyFilter={filterYearKeyDown}
+      admission={YEAR_ADMISSION}
       name={name}
       width={width}
       placeholder={placeholder}

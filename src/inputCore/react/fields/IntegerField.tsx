@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { filterIntegerKeyDown } from '../../../components/inputs/inputKeyFilters';
+import { integerAdmission } from '../../../components/inputs/draftAdmission';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
@@ -28,17 +28,13 @@ const IntegerField = React.forwardRef<HTMLDivElement, IntegerFieldProps>(
   ({ field, location, name, width = 130, placeholder, disabled, singleStageClick = false, inputRef, sx }, ref) => {
     // Fortegns-politikken kommer fra descriptorens codec, ikke fra et hardkodet flag her.
     const allowNegative = fieldAllowsNegative(field);
-    const keyFilter = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) =>
-        filterIntegerKeyDown(e, { allowNegative }),
-      [allowNegative]
-    );
+    const admission = React.useMemo(() => integerAdmission({ allowNegative }), [allowNegative]);
     return (
       <NumericTextField
         ref={ref}
         field={field}
         location={location}
-        keyFilter={keyFilter}
+        admission={admission}
         name={name}
         width={width}
         placeholder={placeholder}

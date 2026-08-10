@@ -4,7 +4,11 @@ import StyledTextFieldBase from '../StyledTextFieldBase';
 import type { ISODateString } from '../../../types/branded';
 import { parseDateDraftForCommit, MAX_DATE_DRAFT_LENGTH } from '../../../utils/dateDraftCommit';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
-import { filterDateLikeKeyDown } from '../inputKeyFilters';
+import {
+  dateLikeAdmission,
+  keyFilterFromAdmission,
+  restoreDomValueAfterRejectedDraft,
+} from '../draftAdmission';
 import { normalizeDatePaste } from '../../../utils/inputPasteNormalization';
 import { readClipboardText } from '../../../utils/clipboardUtils';
 import { spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
@@ -54,6 +58,10 @@ export type TransientDateInputProps = Readonly<{
   sx?: SxProps<Theme>;
   'aria-label'?: string;
 }>;
+
+// Ét prædikat for datoformen; keydown-filteret afledes af PRÆCIS samme prædikat (§1.2, `draftAdmission.ts`).
+const DATE_ADMISSION = dateLikeAdmission();
+const DATE_KEY_FILTER = keyFilterFromAdmission(DATE_ADMISSION);
 
 const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputProps>(
   (
@@ -108,6 +116,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
         onReject?.(message ?? 'Ugyldig dato');
       },
       twoStageActivation: { acceptsInitialKey: (key) => /^\d$/.test(key) },
+      admission: DATE_ADMISSION,
     });
 
     const assignInputRef = React.useCallback(
@@ -148,8 +157,18 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
     const handleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
       draftState.onKeyDown(event);
       if (draftState.isOpen && !event.defaultPrevented) {
-        filterDateLikeKeyDown(event);
+        DATE_KEY_FILTER(event);
       }
+    }, [draftState]);
+
+    // `<input>` er styret af draften. Afviser prædikatet en ændring, er den rendrede draft uændret, og
+    // React skriver derfor ikke elementet tilbage — det afviste tegn ville blive stående i DOM'en.
+    const handleDraftChange = React.useCallback((next: string) => {
+      if (!DATE_ADMISSION(next)) {
+        restoreDomValueAfterRejectedDraft(inputElementRef.current, draftState.draft);
+        return;
+      }
+      draftState.onDraftChange(next);
     }, [draftState]);
 
     const handlePaste = React.useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
@@ -190,7 +209,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
         }, sx)}
         placeholder={placeholder ?? DATE_FORMAT_PLACEHOLDER}
         draft={draftState.draft}
-        onDraftChange={draftState.onDraftChange}
+        onDraftChange={handleDraftChange}
         onFocus={draftState.onFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}

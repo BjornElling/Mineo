@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { filterWeekKeyDown } from '../../../components/inputs/inputKeyFilters';
+import { weekAdmission } from '../../../components/inputs/draftAdmission';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
@@ -12,6 +12,8 @@ import { WEEK_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders'
 
 // `WW-YYYY` + lidt slæk til eftergivende typing.
 const MAX_WEEK_DRAFT_LENGTH = 8;
+
+const WEEK_ADMISSION = weekAdmission();
 
 export type WeekFieldProps = Readonly<{
   field: FieldRef<string | undefined>;
@@ -32,7 +34,7 @@ const WeekField = React.forwardRef<HTMLDivElement, WeekFieldProps>(
       ref={ref}
       field={field}
       location={location}
-      keyFilter={filterWeekKeyDown}
+      admission={WEEK_ADMISSION}
       name={name}
       width={width}
       placeholder={placeholder}

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { filterFractionKeyDown } from '../../../components/inputs/inputKeyFilters';
+import { fractionAdmission } from '../../../components/inputs/draftAdmission';
 import { DEFAULT_FRACTION_MAX_DIGITS } from '../../../utils/fraction';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
@@ -24,9 +24,8 @@ export type FractionFieldProps = Readonly<{
 
 const FractionField = React.forwardRef<HTMLDivElement, FractionFieldProps>(
   ({ field, location, name, width = 120, placeholder, disabled, inputRef, sx }, ref) => {
-    const keyFilter = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) =>
-        filterFractionKeyDown(e, { maxDigits: DEFAULT_FRACTION_MAX_DIGITS, allowNegative: false }),
+    const admission = React.useMemo(
+      () => fractionAdmission({ maxDigits: DEFAULT_FRACTION_MAX_DIGITS, allowNegative: false }),
       []
     );
 
@@ -35,7 +34,7 @@ const FractionField = React.forwardRef<HTMLDivElement, FractionFieldProps>(
         ref={ref}
         field={field}
         location={location}
-        keyFilter={keyFilter}
+        admission={admission}
         {...(name === undefined ? {} : { name })}
         width={width}
         {...(placeholder === undefined ? {} : { placeholder })}

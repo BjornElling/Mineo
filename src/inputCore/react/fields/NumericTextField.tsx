@@ -9,6 +9,7 @@ import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import type { FieldWarning } from '../../fieldWarning';
+import { keyFilterFromAdmission, type DraftAdmission } from '../../../components/inputs/draftAdmission';
 
 // Numerisk tekst-felt (§2.4/§3.5): den delte TYNDE skal for alle single-`<input>` numeriske
 // codec-familier (år, heltal, beløb, procent, brøk, uge). Præcis som `DateField`, men med et
@@ -19,8 +20,12 @@ import type { FieldWarning } from '../../fieldWarning';
 export type NumericTextFieldProps<T> = Readonly<{
   field: FieldRef<T>;
   location: EditorLocation;
-  /** Familiespecifikt tegnfilter i åben editor (fx `filterYearKeyDown`). */
-  keyFilter: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  /**
+   * Familiens tegn- og længdeprædikat (fx `yearAdmission()`). ÉN erklæring pr. kaldssted: surfacen
+   * håndhæver det i `onDraftChange` (modalitets-uafhængigt, §1.2) og afleder samtidig keydown-filteret af
+   * det, så de to værn ikke kan drifte fra hinanden. Se `draftAdmission.ts`.
+   */
+  admission: DraftAdmission;
 
   name?: string;
   width?: number | string;
@@ -65,7 +70,7 @@ const NumericTextFieldInner = <T,>(
   {
     field,
     location,
-    keyFilter,
+    admission,
     name,
     width = 130,
     placeholder,
@@ -83,10 +88,12 @@ const NumericTextFieldInner = <T,>(
   }: NumericTextFieldProps<T>,
   ref: React.ForwardedRef<HTMLDivElement>
 ): React.ReactElement => {
+  const keyFilter = React.useMemo(() => keyFilterFromAdmission(admission), [admission]);
   const surface = useFormFieldSurface(field, location, {
     disabled,
     singleStageClick,
     keyFilter,
+    draftAdmission: admission,
     setPasteCaret: true,
     // Samme loft som `<input maxLength>` nedenfor. Paste kan ikke bruge elementets eget loft (§1.2a).
     ...(maxDraftLength === undefined ? {} : { maxDraftLength }),

@@ -10,6 +10,7 @@ import { readClipboardText } from '../../utils/clipboardUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
 import { spliceDraftWithPaste } from './pasteSplice';
+import { restoreDomValueAfterRejectedDraft, type DraftAdmission } from '../../components/inputs/draftAdmission';
 
 // Grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den
 // bro-forbinder de TO redigerings-autoriteter, som en løntabel har:
@@ -32,6 +33,12 @@ export type GridCellKeyFilter = (e: React.KeyboardEvent<HTMLInputElement>) => vo
 export type GridCellSurfaceConfig = Readonly<{
   /** Familiespecifikt tegnfilter i åben editor. */
   keyFilter?: GridCellKeyFilter;
+  /**
+   * Cellefamiliens tegn- og længdeprædikat (§1.2). Håndhæves i `onDraftChange` og er derved uafhængigt af
+   * indtastningsmodaliteten — se `draftAdmission.ts` for hvorfor `keyFilter` alene ikke rakte (mobile
+   * skærmtastaturer skriver i `<input>` uden en brugbar `keydown`).
+   */
+  draftAdmission?: DraftAdmission;
   /** Låst celle: ingen redigering/commit (fx afledte kolonner renderes ikke som celler, så sjældent brugt). */
   locked?: boolean;
   /**
@@ -79,7 +86,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   cell: CellSpec<T, TEntity>,
   config: GridCellSurfaceConfig = {}
 ): GridCellSurface<T> => {
-  const { keyFilter, locked = false, maxDraftLength } = config;
+  const { keyFilter, draftAdmission, locked = false, maxDraftLength } = config;
   const gridApi = useGridCoreApi();
   const isEditing = useGridCellEditing(gridCell);
   const isFocused = useGridCellFocus(gridCell);
@@ -92,8 +99,8 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   const controller = useCellEditor<T, TEntity>(cell, focusTarget);
 
   // En stabil ref til aktuelle {controller, isEditing, config}, så event-handlere/handle-metoder er stabile.
-  const latest = React.useRef({ controller, isEditing, keyFilter, locked, maxDraftLength });
-  latest.current = { controller, isEditing, keyFilter, locked, maxDraftLength };
+  const latest = React.useRef({ controller, isEditing, keyFilter, draftAdmission, locked, maxDraftLength });
+  latest.current = { controller, isEditing, keyFilter, draftAdmission, locked, maxDraftLength };
 
   // Den bundne cellereference (til codec-opslag i paste + tast-initieret åbning). Holdes i en ref, så de
   // stabile handlere altid ser den aktuelle celles felt uden at churne.
@@ -113,7 +120,14 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   );
 
   const onDraftChange = React.useCallback((nextDraft: string) => {
-    latest.current.controller.changeDraft(nextDraft);
+    const { controller: ctl, draftAdmission: admits } = latest.current;
+    if (admits !== undefined && !admits(nextDraft)) {
+      // §1.2: tegnet blev aldrig en del af værdien, og blokeringen er tavs. Se
+      // `restoreDomValueAfterRejectedDraft` for hvorfor DOM'en skal skrives tilbage eksplicit.
+      restoreDomValueAfterRejectedDraft(inputElementRef.current, ctl.displayText);
+      return;
+    }
+    ctl.changeDraft(nextDraft);
   }, []);
 
   // Tegnfilter i åben editor. Enter/Escape ejes af grid-core-navigationen (capture-fase) og når ikke hertil

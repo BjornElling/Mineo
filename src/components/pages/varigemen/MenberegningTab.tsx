@@ -8,7 +8,7 @@ import InputUnitAdornment from '../../inputs/InputUnitAdornment';
 import ContentBox from '../../layout/ContentBox';
 import { PageMessageRow } from '../../layout/PageMessageBox';
 import { pageMessage } from '../../layout/pageMessage';
-import { filterIntegerKeyDown } from '../../inputs/inputKeyFilters';
+import { integerAdmission } from '../../inputs/draftAdmission';
 import { codecAllowsNegative } from '../../../inputCore/react/fields/signPolicy';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import { coerceToISODateString, parseISODate } from '../../../types/branded';
@@ -79,9 +79,8 @@ const MenberegningTab = React.memo(() => {
 
   // Politikken læses af méngrad-feltets EGET codec frem for at være hardkodet her. Svaret er det
   // samme (méngrad er 1..120), men nu er det feltets erklæring og ikke en lokal gentagelse af den.
-  const mengradKeyFilter = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) =>
-      filterIntegerKeyDown(e, { allowNegative: MENGRAD_ALLOWS_NEGATIVE }),
+  const mengradAdmission = React.useMemo(
+    () => integerAdmission({ allowNegative: MENGRAD_ALLOWS_NEGATIVE }),
     []
   );
 
@@ -256,7 +255,7 @@ const MenberegningTab = React.memo(() => {
           <NumericTextField
             field={mengradRef}
             location={MENGRAD_LOCATION}
-            keyFilter={mengradKeyFilter}
+            admission={mengradAdmission}
             name="mengrad"
             placeholder="0"
             width={100}

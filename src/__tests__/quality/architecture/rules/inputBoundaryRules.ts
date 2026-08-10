@@ -1346,17 +1346,33 @@ export const derivedValuesNotWrittenFromEffects = defineRule({
 /** Modulet der ejer opslaget fra descriptor til fortegns-politik. */
 const SIGN_POLICY_OWNER = 'src/inputCore/react/fields/signPolicy.ts';
 
-/** Modulet der ejer tegnfiltrene. Her ER `allowNegative` en parameter og ikke en beslutning. */
-const KEY_FILTER_OWNER = 'src/components/inputs/inputKeyFilters.ts';
+/**
+ * Modulerne der EJER tegn-/længdeværnet. Her ER `allowNegative` en parameter og ikke en beslutning.
+ *
+ * `draftAdmission.ts` kom til, da værnet blev flyttet fra keydown til draft-prædikatet: et keydown-filter
+ * forudsætter en tast og var derfor helt fraværende på mobile skærmtastaturer, som skriver direkte i
+ * `<input>`. Prædikaterne er nu den primære erklæring, og `inputKeyFilters.ts` afleder filtrene af dem.
+ */
+const KEY_FILTER_OWNERS: readonly string[] = [
+  'src/components/inputs/inputKeyFilters.ts',
+  'src/components/inputs/draftAdmission.ts',
+];
 
 /**
- * De tegnfiltre, hvis `allowNegative` skal komme fra feltets descriptor. `filterFractionKeyDown` er
- * bevidst UDE: brøkfamilien har ingen `signPolicy`, og dens fortegn er en egenskab ved brøk-formatet.
+ * De tegn-/længdeværn, hvis `allowNegative` skal komme fra feltets descriptor. Brøkfamilien er bevidst
+ * UDE: den har ingen `signPolicy`, og dens fortegn er en egenskab ved brøk-formatet.
+ *
+ * BEGGE former står her med vilje. Kaldsstederne erklærer nu deres politik gennem `*Admission`-fabrikkerne,
+ * men `filter*KeyDown` er stadig en offentlig, kaldbar vej — udelades den, ville et nyt callsite kunne
+ * hardkode `allowNegative` ad præcis den vej, reglen blev skrevet for at lukke.
  */
 const SIGN_SENSITIVE_KEY_FILTERS = new Set<string>([
   'filterIntegerKeyDown',
   'filterPercentKeyDown',
   'filterAmountExpressionKeyDown',
+  'integerAdmission',
+  'percentAdmission',
+  'amountExpressionAdmission',
 ]);
 
 /**
@@ -1397,7 +1413,8 @@ const hasLiteralAllowNegative = (argument: ts.Expression): ts.Node | undefined =
 export const fieldSignPolicyFromDescriptor = defineRule({
   id: 'input/sign-policy-from-descriptor',
   description:
-    'Et tegnfilters `allowNegative` må ikke være en hardkodet literal i en komponent. Fortegns-politikken '
+    'Et tegn-/længdeværns `allowNegative` må ikke være en hardkodet literal i en komponent — hverken i '
+    + 'et `filter*KeyDown` eller i en `*Admission`-fabrik. Fortegns-politikken '
     + 'erklæres på feltets codec og læses med `fieldAllowsNegative(field)` / `codecAllowsNegative(codec)` '
     + '— ellers kan to flader af samme feltfamilie svare forskelligt for den samme descriptor.',
   liveTarget: {
@@ -1405,7 +1422,7 @@ export const fieldSignPolicyFromDescriptor = defineRule({
     probe: (entry) => entry.relativePath === SIGN_POLICY_OWNER
       || collectCalls(entry).some((ref) => SIGN_SENSITIVE_KEY_FILTERS.has(ref.calleeName)),
     rationale:
-      'politik-opslaget OG mindst ét fortegns-følsomt tegnfilter-callsite findes stadig — forsvinder '
+      'politik-opslaget OG mindst ét fortegns-følsomt værn-callsite findes stadig — forsvinder '
       + 'opslaget, er politikken flyttet og reglen skal skrives om',
     requiredPaths: [
       SIGN_POLICY_OWNER,
@@ -1415,7 +1432,7 @@ export const fieldSignPolicyFromDescriptor = defineRule({
   },
   // Filter-ejeren undtages: dér ER `allowNegative` parameteren, og dens defaults hører i implementeringen.
   appliesTo: (relativePath) =>
-    relativePath.startsWith('src/') && relativePath !== KEY_FILTER_OWNER,
+    relativePath.startsWith('src/') && !KEY_FILTER_OWNERS.includes(relativePath),
   allow: [],
   find: (entry) => {
     const findings: Finding[] = [];
@@ -1452,6 +1469,19 @@ export const fieldSignPolicyFromDescriptor = defineRule({
       relativePath: 'src/components/tables/X.tsx',
       code: 'const f = (e) => filterAmountExpressionKeyDown(e, { allowNegative: true, allowDecimals: true });',
     },
+    // Samme forbud gælder prædikat-fabrikkerne — det er DEM kaldsstederne bruger nu.
+    {
+      relativePath: 'src/inputCore/react/fields/X.tsx',
+      code: 'const a = percentAdmission({ allowNegative: true, allowDecimals: true });',
+    },
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const a = integerAdmission({ allowNegative: false });',
+    },
+    {
+      relativePath: 'src/components/tables/X.tsx',
+      code: 'const a = amountExpressionAdmission({ allowNegative: true });',
+    },
   ],
   cleanFixtures: [
     // Den ønskede vej: politikken læses af feltet.
@@ -1464,10 +1494,19 @@ export const fieldSignPolicyFromDescriptor = defineRule({
       relativePath: 'src/components/pages/X.tsx',
       code: 'const A = codecAllowsNegative(mengradField.codec);\nconst f = (e) => filterIntegerKeyDown(e, { allowNegative: A });',
     },
-    // Brøkfilteret er ikke fortegns-følsomt i denne forstand (ingen `signPolicy` i familien).
+    // Brøkfamilien er ikke fortegns-følsom i denne forstand (ingen `signPolicy` i familien).
     {
       relativePath: 'src/inputCore/react/fields/X.tsx',
       code: 'const f = (e) => filterFractionKeyDown(e, { maxDigits: 4, allowNegative: false });',
+    },
+    {
+      relativePath: 'src/inputCore/react/fields/X.tsx',
+      code: 'const a = fractionAdmission({ maxDigits: 4, allowNegative: false });',
+    },
+    // Den nuværende vej: prædikat-fabrikken får politikken fra descriptoren.
+    {
+      relativePath: 'src/inputCore/react/fields/X.tsx',
+      code: 'const a = fieldAllowsNegative(field);\nconst p = percentAdmission({ allowNegative: a, allowDecimals: true });',
     },
     // En kommentar, der blot NÆVNER literalen, er ikke en AST-node.
     {

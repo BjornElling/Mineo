@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from '../../../components/inputs/StyledTextFieldBase';
 import type { ISODateString } from '../../../types/branded';
-import { filterDateLikeKeyDown } from '../../../components/inputs/inputKeyFilters';
+import { dateLikeAdmission, keyFilterFromAdmission } from '../../../components/inputs/draftAdmission';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFormFieldSurface } from '../useFormFieldSurface';
@@ -16,6 +16,11 @@ import { MAX_DATE_DRAFT_LENGTH } from '../../../utils/dateDraftCommit';
 // ejes af descriptorens dato-codec; kronologiske min/max-bounds er FELTVALIDATORER på den canonical værdi
 // (§1.6, inputkernen), IKKE komponent-props. Komponenten viser derfor kun feltets aktive issue fra det tokenbundne
 // snapshot (§1.8) og modtager ingen `minDate`/`maxDate`/`onFieldError` mere.
+
+// Ét prædikat for datoformen; keydown-filteret afledes af PRÆCIS samme prædikat, så de to værn ikke kan
+// drifte fra hinanden (§1.2, se `draftAdmission.ts`).
+const DATE_ADMISSION = dateLikeAdmission();
+const DATE_KEY_FILTER = keyFilterFromAdmission(DATE_ADMISSION);
 
 export type DateFieldProps = Readonly<{
   field: FieldRef<ISODateString | undefined>;
@@ -35,7 +40,8 @@ const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
     const surface = useFormFieldSurface(field, location, {
       disabled,
       singleStageClick,
-      keyFilter: filterDateLikeKeyDown,
+      keyFilter: DATE_KEY_FILTER,
+      draftAdmission: DATE_ADMISSION,
       setPasteCaret: true,
       // Samme loft som `<input maxLength>` nedenfor; paste kan ikke bruge elementets eget loft (§1.2a).
       maxDraftLength: MAX_DATE_DRAFT_LENGTH,

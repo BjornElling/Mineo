@@ -10,7 +10,8 @@ import type { GridCellCoord } from '../../../components/tables/gridCore/gridCore
 import type { CellSpec } from '../useCellEditor';
 import type { FieldIssue } from '../../inputIssue';
 import type { FieldWarning } from '../../fieldWarning';
-import { useGridCellSurface, type GridCellKeyFilter } from '../useGridCellSurface';
+import { useGridCellSurface } from '../useGridCellSurface';
+import { keyFilterFromAdmission, type DraftAdmission } from '../../../components/inputs/draftAdmission';
 import { resolveFieldIssueText } from '../fieldIssueText';
 
 // Grid-celle-basis (§2.5/§3.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
@@ -22,8 +23,12 @@ import { resolveFieldIssueText } from '../fieldIssueText';
 export type GridTextCellProps<T, TEntity = unknown> = Readonly<{
   gridCell: GridCellCoord;
   cell: CellSpec<T, TEntity>;
-  /** Familiespecifikt tegnfilter i åben editor (fx `filterIntegerKeyDown`). */
-  keyFilter?: GridCellKeyFilter;
+  /**
+   * Familiens tegn- og længdeprædikat (fx `integerAdmission({ allowNegative })`). ÉN erklæring pr.
+   * cellefamilie: surfacen håndhæver det i `onDraftChange` (modalitets-uafhængigt, §1.2) og afleder
+   * keydown-filteret af det SAMME prædikat. Se `draftAdmission.ts`.
+   */
+  admission?: DraftAdmission;
   /**
    * Et COLLECTION-afledt feltissue på cellen: en kryds-række-domæneregel (dublet-datoer, identiske
    * afgørelser), som en descriptor-validator ikke kan udtrykke, fordi den kun ser sin egen celles værdi.
@@ -56,7 +61,7 @@ const GridTextCellInner = <T, TEntity>(
   {
     gridCell,
     cell,
-    keyFilter,
+    admission,
     collectionRuleIssue,
     warning,
     placeholder,
@@ -70,8 +75,13 @@ const GridTextCellInner = <T, TEntity>(
   }: GridTextCellProps<T, TEntity>
 ): React.ReactElement => {
   const gridApi = useGridCoreApi();
+  const keyFilter = React.useMemo(
+    () => (admission === undefined ? undefined : keyFilterFromAdmission(admission)),
+    [admission]
+  );
   const surface = useGridCellSurface<T, TEntity>(gridCell, cell, {
-    keyFilter,
+    ...(keyFilter === undefined ? {} : { keyFilter }),
+    ...(admission === undefined ? {} : { draftAdmission: admission }),
     ...(maxDraftLength === undefined ? {} : { maxDraftLength }),
   });
 

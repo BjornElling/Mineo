@@ -1,47 +1,31 @@
 import type * as React from 'react';
 import { readClipboardText } from '../../utils/clipboardUtils';
-import { isDateLikeDraftAllowed } from '../../utils/dateDraftNormalization';
-import { isFractionDraftAllowed } from '../../utils/fraction';
-import { parseDanishNumberString } from '../../utils/numberParsing';
 import {
-  isAmountExpressionDraftAllowed,
-  isPercentDraftAllowed,
-} from '../../utils/numericDraftAdmission';
+  amountExpressionAdmission,
+  dateLikeAdmission,
+  fractionAdmission,
+  integerAdmission,
+  isIntegerDraftAllowed,
+  keyFilterFromAdmission,
+  percentAdmission,
+  weekAdmission,
+  yearAdmission,
+  type IntegerDraftConstraints,
+} from './draftAdmission';
 
 export { containsUnaryMinusToken } from '../../utils/numericDraftAdmission';
+export { isIntegerDraftAllowed } from './draftAdmission';
+
+// Tastaturfiltrene er nu AFLEDT af feltfamiliernes draft-prædikater i `draftAdmission.ts`, som også er
+// det, `onDraftChange` håndhæver. Før havde keydown-vejen sin egen kopi af hver regel, og den kopi var
+// samtidig det ENESTE værn — derfor forsvandt hele tegn- og længdekontrollen på mobile skærmtastaturer,
+// som skriver direkte i `<input>` uden en brugbar `keydown`. Filteret er nu et ekstra, caret-bevarende
+// værn oven på prædikatet, ikke en parallel sandhed om hvad feltet tillader.
 
 type KeyDownEvent = React.KeyboardEvent<HTMLInputElement>;
 type PasteEvent = React.ClipboardEvent<HTMLInputElement>;
-type BlockableEvent = { preventDefault(): void; stopPropagation(): void };
-type IntegerInputConstraints = Readonly<{
-  maxDigits?: number;
-  maxValue?: number;
-  allowNegative?: boolean;
-}>;
 
-const isBypassKeyEvent = (e: KeyDownEvent): boolean => {
-  // IME/composition og kommandoer på OS-/browser-niveau må ikke forstyrres.
-  const native = e.nativeEvent as unknown as { isComposing?: boolean };
-  if (native.isComposing === true || e.key === 'Process' || e.key === 'Unidentified') return true;
-  if (e.ctrlKey || e.metaKey || e.altKey) return true;
-  return false;
-};
-
-const isNonCharacterKey = (e: KeyDownEvent): boolean => {
-  // Tillad navigations-/redigeringstaster.
-  const nonCharKeys = new Set([
-    'Backspace',
-    'Delete',
-    'ArrowLeft',
-    'ArrowRight',
-    'ArrowUp',
-    'ArrowDown',
-    'Home',
-    'End',
-    'Tab',
-  ]);
-  return nonCharKeys.has(e.key);
-};
+type IntegerInputConstraints = IntegerDraftConstraints;
 
 const getNextValueFromInsertion = (input: HTMLInputElement, insertion: string): string => {
   const current = input.value ?? '';
@@ -50,43 +34,11 @@ const getNextValueFromInsertion = (input: HTMLInputElement, insertion: string): 
   return current.slice(0, start) + insertion + current.slice(end);
 };
 
-const block = (e: BlockableEvent): void => {
-  e.preventDefault();
-  e.stopPropagation();
-};
-
-const shouldValidateCharInsertion = (e: KeyDownEvent): e is KeyDownEvent & { key: string } => {
-  if (isBypassKeyEvent(e)) return false;
-  if (isNonCharacterKey(e)) return false;
-  if (e.key.length !== 1) return false;
-  return true;
-};
-
-export const isIntegerDraftAllowed = (input: string, options?: IntegerInputConstraints): boolean => {
-  const allowNegative = options?.allowNegative === true;
-  const pattern = allowNegative ? /^-?\d*$/ : /^\d*$/;
-  if (!pattern.test(input)) return false;
-
-  if (typeof options?.maxDigits === 'number') {
-    const withoutSign = input.startsWith('-') ? input.slice(1) : input;
-    if (withoutSign.length > options.maxDigits) return false;
-  }
-
-  if (typeof options?.maxValue === 'number' && /^-?\d+$/.test(input)) {
-    const numeric = Number.parseInt(input, 10);
-    if (Number.isFinite(numeric) && numeric > options.maxValue) return false;
-  }
-
-  return true;
-};
-
 /**
  * Heltal: kun cifre.
  */
 export const filterIntegerKeyDown = (e: KeyDownEvent, options?: IntegerInputConstraints): void => {
-  if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  if (!isIntegerDraftAllowed(next, options)) block(e);
+  keyFilterFromAdmission(integerAdmission(options))(e);
 };
 
 /**
@@ -96,18 +48,17 @@ export const filterIntegerPaste = (e: PasteEvent, options?: IntegerInputConstrai
   const text = readClipboardText(e);
   if (text === '') return;
   const next = getNextValueFromInsertion(e.currentTarget, text);
-  if (!isIntegerDraftAllowed(next, options)) block(e);
+  if (!isIntegerDraftAllowed(next, options)) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
 };
 
 /**
  * År: kun cifre, op til 4 cifre (`YYYY`).
- *
- * Dette er kun et værn under indtastning; paste kan stadig omgå det.
  */
 export const filterYearKeyDown = (e: KeyDownEvent): void => {
-  if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  if (!/^\d{0,4}$/.test(next)) block(e);
+  keyFilterFromAdmission(yearAdmission())(e);
 };
 
 /**
@@ -117,9 +68,7 @@ export const filterFractionKeyDown = (
   e: KeyDownEvent,
   options?: Readonly<{ maxDigits?: number; allowNegative?: boolean }>
 ): void => {
-  if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  if (!isFractionDraftAllowed(next, options)) block(e);
+  keyFilterFromAdmission(fractionAdmission(options))(e);
 };
 
 /**
@@ -135,9 +84,7 @@ export const filterAmountExpressionKeyDown = (
     maxIntegerDigits?: number;
   }
 ): void => {
-  if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  if (!isAmountExpressionDraftAllowed(next, options)) block(e);
+  keyFilterFromAdmission(amountExpressionAdmission(options))(e);
 };
 
 /**
@@ -154,33 +101,7 @@ export const filterPercentKeyDown = (
     maxValue?: number;
   }
 ): void => {
-  if (!shouldValidateCharInsertion(e)) return;
-
-  const allowDecimals = options?.allowDecimals !== false;
-  const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  if (!isPercentDraftAllowed(next, options)) {
-    block(e);
-    return;
-  }
-
-  const normalized = next.startsWith('-') ? next.slice(1) : next;
-  const [intPart] = normalized.split(',') as [string, string?];
-  const intNum = Number.parseInt(intPart, 10);
-  if (typeof options?.maxIntegerPart === 'number' && Number.isFinite(intNum) && intNum > options.maxIntegerPart) {
-    block(e);
-    return;
-  }
-
-  if (typeof options?.maxValue === 'number') {
-    const compact = next.replace(/\s+/g, '');
-    // Partial decimal input (fx "10,") må passere under typing; commit-validering håndterer endelig værdi.
-    if (compact === '' || compact === '-' || compact.endsWith(',')) return;
-
-    const numeric = parseDanishNumberString(compact, { precision: allowDecimals ? 2 : 0 });
-    if (numeric !== undefined && numeric > options.maxValue) {
-      block(e);
-    }
-  }
+  keyFilterFromAdmission(percentAdmission(options))(e);
 };
 
 /**
@@ -189,13 +110,9 @@ export const filterPercentKeyDown = (
  *
  * Tilladte separatorer: ethvert ikke-alfanumerisk tegn (mellemrum og specialtegn).
  * Segmentregler (efter cifre mellem separatorer): `DD`-`MM`-`YYYY` (2-2-4), delvis indtastning tilladt.
- *
- * Dette er kun et værn under indtastning; paste kan stadig omgå det.
  */
 export const filterDateLikeKeyDown = (e: KeyDownEvent): void => {
-  if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  if (!isDateLikeDraftAllowed(next, [2, 2, 4])) block(e);
+  keyFilterFromAdmission(dateLikeAdmission())(e);
 };
 
 /**
@@ -205,14 +122,5 @@ export const filterDateLikeKeyDown = (e: KeyDownEvent): void => {
  * Segmentregler: `WW`-`YYYY`, delvis indtastning tilladt.
  */
 export const filterWeekKeyDown = (e: KeyDownEvent): void => {
-  if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  const allowedChars = /^[0-9.,/\\\- ]*$/;
-  if (!allowedChars.test(next)) {
-    block(e);
-    return;
-  }
-
-  const segmentGuard = /^\d{0,2}(?:[.,/\\\- ]\d{0,4})?$/;
-  if (!segmentGuard.test(next)) block(e);
+  keyFilterFromAdmission(weekAdmission())(e);
 };

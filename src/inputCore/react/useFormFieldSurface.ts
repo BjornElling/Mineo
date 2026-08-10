@@ -8,6 +8,7 @@ import type { InputSelectionSnapshot } from '../../utils/inputSelectionUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
 import { spliceDraftWithPaste } from './pasteSplice';
+import { restoreDomValueAfterRejectedDraft, type DraftAdmission } from '../../components/inputs/draftAdmission';
 
 // React-laget (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
 // Den parrer `useFieldEditor`-controlleren (som ejer draft/settle/cancel/clear/commit + dispatch, §3.6) med
@@ -36,6 +37,18 @@ export type FormFieldSurfaceConfig = Readonly<{
   singleStageClick?: boolean;
   /** Tegnfilter i åben editor (fx dato: kun cifre/separatorer). Kaldes efter Enter/Escape-håndtering. */
   keyFilter?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  /**
+   * Feltfamiliens tegn- og længdeprædikat (§1.2). Håndhæves i `onDraftChange` og er derved uafhængigt af
+   * indtastningsmodaliteten.
+   *
+   * `keyFilter` alene var utilstrækkeligt: et mobilt skærmtastatur skriver tegnet direkte i `<input>` og
+   * fyrer kun et `input`-event — den eventuelle `keydown` bærer `key === 'Unidentified'`, som filteret med
+   * vilje lader passere for ikke at forstyrre IME/composition. Hele tegnværnet var derfor fraværende på
+   * mobil (målt: `21-1111111-2026` gik uændret ind i et datofelt). `onDraftChange` er den ene kanal,
+   * ENHVER modalitet passerer, og er derfor det bærende værn; `keyFilter` bevares som et ekstra,
+   * caret-bevarende værn afledt af det SAMME prædikat (`draftAdmission.ts`).
+   */
+  draftAdmission?: DraftAdmission;
   /** Sæt caret efter en åben-editor-splice-paste (dato/beløb/brøk). */
   setPasteCaret?: boolean;
   /**
@@ -95,6 +108,7 @@ export const useFormFieldSurface = <T>(
     disabled = false,
     singleStageClick = false,
     keyFilter,
+    draftAdmission,
     setPasteCaret = false,
     settleOnEnter = true,
     maxDraftLength,
@@ -131,6 +145,7 @@ export const useFormFieldSurface = <T>(
     controller,
     config,
     keyFilter,
+    draftAdmission,
     setPasteCaret,
     disabled,
     singleStageClick,
@@ -141,6 +156,7 @@ export const useFormFieldSurface = <T>(
     controller,
     config,
     keyFilter,
+    draftAdmission,
     setPasteCaret,
     disabled,
     singleStageClick,
@@ -153,7 +169,16 @@ export const useFormFieldSurface = <T>(
   // i deres egen codec/adapter ved migreringen — den generiske surface holder ingen caret-genskabelse, som
   // ellers ville kunne genskabe en forældet caret ved en senere ekstern revisionsændring.
   const onDraftChange = React.useCallback((nextDraft: string, _selection?: InputSelectionSnapshot) => {
-    latest.current.controller.changeDraft(nextDraft);
+    const { controller: ctl, draftAdmission: admits } = latest.current;
+    if (admits !== undefined && !admits(nextDraft)) {
+      // §1.2: tegnet blev aldrig en del af værdien. Blokeringen er TAVS — ingen rød ring, ingen fejltekst.
+      // `<input>` er styret af `displayText`, men React skriver ikke elementet tilbage, når den rendrede
+      // værdi er uændret. Uden denne linje ville et afvist tegn blive stående i DOM'en, mens draften i
+      // motoren var uden det — altså to forskellige sandheder om hvad feltet indeholder.
+      restoreDomValueAfterRejectedDraft(inputElementRef.current, ctl.displayText);
+      return;
+    }
+    ctl.changeDraft(nextDraft);
   }, []);
 
   // ⚠️ FJERN IKKE — caret-limbo-fixet. Ved editor-åbning på et

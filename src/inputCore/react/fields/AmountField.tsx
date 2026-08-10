@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { filterAmountExpressionKeyDown } from '../../../components/inputs/inputKeyFilters';
+import { amountExpressionAdmission } from '../../../components/inputs/draftAdmission';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import InputUnitAdornment from '../../../components/inputs/InputUnitAdornment';
 import { DEFAULT_AMOUNT_PLACEHOLDER, INTEGER_AMOUNT_PLACEHOLDER } from '../../../utils/amountInputUtils';
@@ -87,8 +87,8 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
     // et udtryk — "5000-200" — forbliver lovlig også i et ikke-negativt felt.
     const policy = resolveAmountCharPolicy(field);
     const { allowNegative, allowDecimals, maxIntegerDigits, maxDecimalDigits, maxDraftLength } = policy;
-    const keyFilter = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, {
+    const admission = React.useMemo(
+      () => amountExpressionAdmission({
         allowNegative,
         allowDecimals,
         maxIntegerDigits,
@@ -107,7 +107,7 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
         ref={ref}
         field={field}
         location={location}
-        keyFilter={keyFilter}
+        admission={admission}
         name={name}
         width={width}
         placeholder={resolvedPlaceholder}

@@ -2,13 +2,13 @@ import * as React from 'react';
 import type { ISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import {
-  filterAmountExpressionKeyDown,
-  filterDateLikeKeyDown,
-  filterIntegerKeyDown,
-  filterPercentKeyDown,
-  filterWeekKeyDown,
-  filterYearKeyDown,
-} from '../../../components/inputs/inputKeyFilters';
+  amountExpressionAdmission,
+  dateLikeAdmission,
+  integerAdmission,
+  percentAdmission,
+  weekAdmission,
+  yearAdmission,
+} from '../../../components/inputs/draftAdmission';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import InputUnitAdornment from '../../../components/inputs/InputUnitAdornment';
 import {
@@ -29,8 +29,13 @@ import { fieldAllowsNegative } from './signPolicy';
 import { resolveAmountCharPolicy, resolvePercentCharPolicy } from './charLengthPolicy';
 import { MAX_DATE_DRAFT_LENGTH } from '../../../utils/dateDraftCommit';
 
+// Modul-konstante prædikater for de familier, hvis form ikke afhænger af descriptoren.
+const YEAR_ADMISSION = yearAdmission();
+const WEEK_ADMISSION = weekAdmission();
+const DATE_ADMISSION = dateLikeAdmission();
+
 // Grid-celle-familier (§2.5/§3.5): tynde skaller over `GridTextCell`. Hver vælger kun sit
-// tegnfilter + adornment + justering; parse/format/paste og commit-intervaller ejes af descriptorens codec
+// tegn-/længdeprædikat + adornment + justering; parse/format/paste og commit-intervaller ejes af descriptorens codec
 // og feltvalidatorer.
 
 type BaseCellProps<T> = Readonly<{
@@ -74,8 +79,8 @@ export const GridAmountCell = (
     resolveAmountCharPolicy(cell.field);
   const resolvedPlaceholder = placeholder
     ?? (allowDecimals ? DEFAULT_AMOUNT_PLACEHOLDER : INTEGER_AMOUNT_PLACEHOLDER);
-  const keyFilter = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, {
+  const admission = React.useMemo(
+    () => amountExpressionAdmission({
       allowNegative,
       allowDecimals,
       maxIntegerDigits,
@@ -87,7 +92,7 @@ export const GridAmountCell = (
     <GridTextCell<AmountValue | undefined>
       gridCell={gridCell}
       cell={cell}
-      keyFilter={keyFilter}
+      admission={admission}
       placeholder={resolvedPlaceholder}
       textAlign="right"
       inputMode={allowDecimals ? 'decimal' : 'numeric'}
@@ -117,19 +122,15 @@ export const GridPercentCell = (
     resolvePercentCharPolicy(cell.field);
   const resolvedPlaceholder = placeholder
     ?? (allowDecimals ? TWO_DECIMAL_PERCENT_PLACEHOLDER : DEFAULT_PERCENT_PLACEHOLDER);
-  const keyFilter = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => filterPercentKeyDown(e, {
-      allowNegative,
-      allowDecimals,
-      maxIntegerDigits,
-    }),
+  const admission = React.useMemo(
+    () => percentAdmission({ allowNegative, allowDecimals, maxIntegerDigits }),
     [allowNegative, allowDecimals, maxIntegerDigits]
   );
   return (
     <GridTextCell<number | undefined>
       gridCell={gridCell}
       cell={cell}
-      keyFilter={keyFilter}
+      admission={admission}
       placeholder={resolvedPlaceholder}
       textAlign="right"
       inputMode={allowDecimals ? 'decimal' : 'numeric'}
@@ -151,16 +152,12 @@ export const GridIntegerCell = <T extends string | number | undefined>(
   // Fortegns-politikken kommer fra descriptoren. Månedscellen er et string-backed heltal 1..12, så
   // adapterens viderestilling af politikken er det, der gør minus umuligt at taste her.
   const allowNegative = fieldAllowsNegative(cell.field);
-  const keyFilter = React.useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) =>
-      filterIntegerKeyDown(e, { allowNegative }),
-    [allowNegative]
-  );
+  const admission = React.useMemo(() => integerAdmission({ allowNegative }), [allowNegative]);
   return (
     <GridTextCell<T>
       gridCell={gridCell}
       cell={cell}
-      keyFilter={keyFilter}
+      admission={admission}
       {...(placeholder === undefined ? {} : { placeholder })}
       textAlign="center"
       inputMode="numeric"
@@ -176,7 +173,7 @@ export const GridYearCell = (
   <GridTextCell<string | undefined>
     gridCell={gridCell}
     cell={cell}
-    keyFilter={filterYearKeyDown}
+    admission={YEAR_ADMISSION}
     placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
@@ -192,7 +189,7 @@ export const GridWeekCell = (
   <GridTextCell<string | undefined>
     gridCell={gridCell}
     cell={cell}
-    keyFilter={filterWeekKeyDown}
+    admission={WEEK_ADMISSION}
     placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
@@ -207,7 +204,7 @@ export const GridDateCell = (
   <GridTextCell<ISODateString | undefined>
     gridCell={gridCell}
     cell={cell}
-    keyFilter={filterDateLikeKeyDown}
+    admission={DATE_ADMISSION}
     placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"

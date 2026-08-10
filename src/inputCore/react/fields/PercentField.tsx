@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { filterPercentKeyDown } from '../../../components/inputs/inputKeyFilters';
+import { percentAdmission } from '../../../components/inputs/draftAdmission';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import InputUnitAdornment from '../../../components/inputs/InputUnitAdornment';
 import { DEFAULT_PERCENT_PLACEHOLDER } from '../../../utils/percentInputUtils';
@@ -57,13 +57,8 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
     // tidligere `true` i strid med dem, så et minus kunne tastes som første tegn.
     const { allowNegative, allowDecimals, maxIntegerDigits, maxDraftLength } =
       resolvePercentCharPolicy(field);
-    const keyFilter = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) =>
-        filterPercentKeyDown(e, {
-          allowNegative,
-          allowDecimals,
-          maxIntegerDigits,
-        }),
+    const admission = React.useMemo(
+      () => percentAdmission({ allowNegative, allowDecimals, maxIntegerDigits }),
       [allowDecimals, allowNegative, maxIntegerDigits]
     );
 
@@ -74,7 +69,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
         ref={ref}
         field={field}
         location={location}
-        keyFilter={keyFilter}
+        admission={admission}
         name={name}
         width={width}
         placeholder={placeholder}

@@ -36,7 +36,7 @@ import {
 } from '../../inputCore/react/fields/gridCells';
 import GridTextCell from '../../inputCore/react/fields/GridTextCell';
 import GridChoiceCell from '../../inputCore/react/fields/GridChoiceCell';
-import { filterIntegerKeyDown } from '../inputs/inputKeyFilters';
+import { integerAdmission } from '../inputs/draftAdmission';
 import { codecAllowsNegative } from '../../inputCore/react/fields/signPolicy';
 import {
   rentekravRowsCollectionRef,
@@ -79,6 +79,7 @@ const COL = { belob: 0, renterFra: 1, tillaegstid: 2, enhed: 3 } as const;
  * centreret) og får derfor ikke `GridIntegerCell`'s automatiske opslag.
  */
 const TILLAEGSTID_ALLOWS_NEGATIVE = codecAllowsNegative(rentekravTillaegstidField.codec);
+const TILLAEGSTID_ADMISSION = integerAdmission({ allowNegative: TILLAEGSTID_ALLOWS_NEGATIVE });
 
 export type BeregnetRenteTableProps = Readonly<{
   /** De committede rækker (læst reader-afledt af forælderen), i den afsluttede rækkefølge. */
@@ -165,7 +166,7 @@ const BeregnetRenteRow = React.memo(
                   cell={buildCellSpec<number | undefined>(renderRow, rentekravTillaegstidField, COL.tillaegstid)}
                   // Politikken læses af descriptoren; `tillaegstid` er 0..99 og altså ikke-negativ.
                   // Callsitet hardkodede før `true` i strid med feltets egen erklæring.
-                  keyFilter={(e) => filterIntegerKeyDown(e, { allowNegative: TILLAEGSTID_ALLOWS_NEGATIVE })}
+                  admission={TILLAEGSTID_ADMISSION}
                   placeholder="0"
                   textAlign="center"
                   inputMode="numeric"

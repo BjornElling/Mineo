@@ -3,7 +3,10 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-09 (§1.2, §1.2a, §2.1, §2.2, §2.3, §2.5 og §4.10's længdedel er
+**Senest verificeret mod kode:** 2026-08-10 (§1.2's modalitets-uafhængighed er målt i browser og dækket af
+`e2e/mobile-virtual-keyboard-limits.spec.ts`; verifikationen 2026-08-09 nedenfor målte KUN tastning og
+overså derfor, at værnet var fraværende på mobile skærmtastaturer)
+2026-08-09 (§1.2, §1.2a, §2.1, §2.2, §2.3, §2.5 og §4.10's længdedel er
 implementeret og verificeret; §2.4's brøkgrænser og de øvrige feltspecifikke afsnit er uændrede fra 2026-08-08)
 
 Dette dokument er den autoritative arbejdsbeskrivelse af den ønskede brugeradfærd for de inputfelter og
@@ -60,6 +63,15 @@ indeksværdier ved regulering af TAF, kan lovligt overstige 100 % og er slet ikk
 
 Et inputfelt skal have en effektiv blokering mod, at der overhovedet kommer tegn ind i feltet, som ikke stemmer
 med feltets erklærede tegnsæt og maksimale længde:
+
+**Blokeringen er MODALITETS-UAFHÆNGIG.** Reglen gælder tegnet, ikke tastetrykket. Et felt, hvis værn kun er et
+`keydown`-filter, opfylder den ikke: et mobilt skærmtastatur skriver tegnet direkte i `<input>` og fyrer kun et
+`input`-event, og den `keydown`, der eventuelt følger, bærer `key === 'Unidentified'`, som et tegnfilter skal
+lade passere for ikke at forstyrre IME/composition. Det var den faktiske tilstand indtil 2026-08-10: hele
+tegn- og længdeværnet var fraværende på mobil, og `21-1111111-2026` kunne stå i et datofelt, som desktop
+afviste. Værnet skal derfor ligge på draft-ændringen (`onDraftChange`) — den ene kanal, enhver modalitet
+passerer — med feltfamiliens prædikat som kilde; et keydown-filter må kun være et EKSTRA, caret-bevarende
+værn afledt af samme prædikat. Prædikaterne bor i `src/components/inputs/draftAdmission.ts`.
 
 1. Et tegn, som feltets tegnsæt ikke tillader, kommer ikke ind i feltet. Det gælder både tastning og paste.
 2. Et tegn ud over feltets maksimale antal tegn, cifre eller decimaler kommer ikke ind i feltet. Det gælder
