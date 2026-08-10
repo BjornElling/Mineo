@@ -137,8 +137,16 @@ export default defineConfig({
     // parallel suite. Uden en eksplicit hook-timeout markeres efterfølgende tests fejlagtigt som skipped.
     hookTimeout: 30_000,
     // Interaktionstests deler CPU med de tunge domæne-golden-tests. 5 sekunder giver derfor falske timeouts i en
-    // ellers færdig parallel suite; 15 sekunder bevarer fejl på hængende flows uden denne flakiness.
-    testTimeout: 15_000,
+    // ellers færdig parallel suite.
+    //
+    // 15 sekunder rakte til den almindelige suite, men ikke til `test:coverage`: under v8-instrumentering koster
+    // de tsc-/træscannende kvalitetstests 23-42 sekunder på en belastet maskine, mens de samme filer kører på ~10
+    // sekunder tilsammen isoleret. Det gav vandrende timeouts i release-gaten — skiftende filer fra kørsel til
+    // kørsel, aldrig de samme to gange, og grønt igen ved en isoleret kørsel af netop de filer.
+    //
+    // 60 sekunder er sat efter den målte værste kørsel (42 s) med luft til en langsommere CI-runner. Grænsen er
+    // stadig en ægte fejlkilde: et flow, der hænger, fejler fortsat - blot uden at ramme raske kørsler.
+    testTimeout: 60_000,
     coverage: {
       provider: 'v8',
       include: ['src/domain/**', 'src/utils/**', 'src/hooks/**', 'src/rowDrafts/**', 'src/contexts/**'],

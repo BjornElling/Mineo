@@ -73,11 +73,26 @@ const hasDomEnvironment =
   typeof HTMLElement !== 'undefined';
 
 if (hasDomEnvironment) {
-  const [matchers, { cleanup, act }, { default: userEvent }] = await Promise.all([
+  const [matchers, { cleanup, act, configure }, { default: userEvent }] = await Promise.all([
     import('@testing-library/jest-dom/matchers'),
     import('@testing-library/react'),
     import('@testing-library/user-event'),
   ]);
+
+  /**
+   * `waitFor`/`findBy*` har deres EGEN timeout på 1 sekund, som `testTimeout` i `vite.config.ts` ikke
+   * styrer. Den grænse blev derfor ved med at ramme, selv efter testTimeout var hævet til 15 s af præcis
+   * samme grund: under coverage-instrumentering tager en integrationsfil 11–25 s, og et asynkront
+   * dokument-download-flow overskrider da 1 sekund, selv om intet hænger.
+   *
+   * Symptomet var falske, VANDRENDE fejl i coverage-gaten — «expected vi.fn() to be called 1 times, but
+   * got 0 times» i skiftende integrationsfiler fra kørsel til kørsel, mens den samme kommando kunne stå
+   * grøn minuttet efter. Grænsen sættes centralt frem for pr. kaldsted, så den følger den begrundelse,
+   * der allerede er skrevet ned for `testTimeout`, og ikke skal gentages i hver ny test.
+   *
+   * Den bevarer ægte fejl: et flow, der aldrig fuldfører, fejler stadig — blot på testTimeout.
+   */
+  configure({ asyncUtilTimeout: 5_000 });
 
   const globalExpect = (globalThis as unknown as { expect?: { extend: (m: object) => void } }).expect;
   globalExpect?.extend(matchers);
