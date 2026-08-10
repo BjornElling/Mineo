@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { VERSION } from '../../config/buildInfo';
 import { requestPwaInstall } from '../../utils/pwaInstallPrompt';
 import ContentBox from '../layout/ContentBox';
+import LabeledControlRow from '../layout/LabeledControlRow';
 import SiblingSitesFooter from '../layout/SiblingSitesFooter';
 import LicenseModal from '../ui/LicenseModal';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
@@ -116,15 +117,16 @@ const Mineo = React.memo(() => {
             Indstillinger-siden. Mineo-siden er den første side nye brugere møder, og
             det giver kontekst til valget: brugeren ser programbeskrivelsen og kan
             derfra beslutte, om Stamdata skal være standardstart. */}
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Gør stamdata-siden til startside fremover</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Gør stamdata-siden til startside fremover">
+          {({ labelledBy, controlId }) => (
             <StyledToggleSwitch
+              id={controlId}
+              labelledBy={labelledBy}
               checked={settings.defaultStartsideErStamdata}
               onCommit={(event: CommitEvent<boolean>) => updateSettings({ defaultStartsideErStamdata: event.target.value })}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
       </ContentBox>
 

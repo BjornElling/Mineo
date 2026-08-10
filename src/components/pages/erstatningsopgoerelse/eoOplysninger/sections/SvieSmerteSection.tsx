@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
+import LabeledControlRow from '../../../../layout/LabeledControlRow';
 import InfoTooltipIcon from '../../../../common/InfoTooltipIcon';
 import RadioField from '../../../../../inputCore/react/fields/RadioField';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
@@ -56,18 +57,19 @@ export default function SvieSmerteSection() {
 
         {erSvieSmerteSektionAktiv(values) && (
           <>
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Tidligere beregnet S/S til max.</Typography>
-              <Box className="row--label-right-hover__content">
+            <LabeledControlRow label="Tidligere beregnet S/S til max.">
+              {({ labelledBy, controlId }) => (
                 <MappedToggleField
                   field={eoTidligereSsMaxField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.tidligereSsMax', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   checkedValue="Ja"
                   uncheckedValue="Nej"
                   name="tidligereSsMax"
+                  id={controlId}
+                  labelledBy={labelledBy}
                 />
-              </Box>
-            </Box>
+              )}
+            </LabeledControlRow>
 
             {/* Periode-input deler præcis beregningens relevans-prædikat (sektion aktiv +
                 ikke "tidligere S/S til max"), så synlighed og neutralisering ikke kan divergere. */}

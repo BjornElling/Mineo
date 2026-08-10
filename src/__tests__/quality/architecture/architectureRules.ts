@@ -74,6 +74,7 @@ import { DATE_RULES } from './rules/dateRules';
 import { NUMERIC_RULES } from './rules/numericRules';
 import { RESPONSIVE_STYLING_RULES } from './rules/responsiveStylingRules';
 import { FOCUS_NAVIGATION_RULES } from './rules/focusNavigationRules';
+import { ACCESSIBILITY_RULES } from './rules/accessibilityRules';
 import { TABLE_ORDER_RULES } from './rules/tableOrderRules';
 
 /**
@@ -121,6 +122,8 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   // Shell og desktop-only-grænse
   ...RESPONSIVE_STYLING_RULES,
   ...FOCUS_NAVIGATION_RULES,
+  // Tilgængeligt navn på interaktive kontroller
+  ...ACCESSIBILITY_RULES,
   // Form, felt og critical action
   persistenceCommittedMirror,
   queueMicrotaskBoundary,

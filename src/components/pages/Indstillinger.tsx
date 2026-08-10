@@ -7,6 +7,7 @@ import StyledRadioButton from '../inputs/StyledRadioButton';
 import type { CommitEvent } from '../../types/fieldEvents';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBox from '../layout/ContentBox';
+import LabeledControlRow from '../layout/LabeledControlRow';
 import { getAlleLoenmodtagerOrg, getAlleArbejdsgiverOrg } from '../../data/overenskomstRates';
 import DefaultDirectoryRow from './indstillinger/DefaultDirectoryRow';
 import {
@@ -197,15 +198,16 @@ const Indstillinger = React.memo(() => {
           </Box>
         </Box>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Fuld løn under ferie</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Fuld løn under ferie">
+          {({ labelledBy, controlId }) => (
             <StyledToggleSwitch
+              id={controlId}
+              labelledBy={labelledBy}
               checked={settings.defaultFuldLoenUnderFerie}
               onCommit={(e: CommitEvent<boolean>) => updateSettings({ defaultFuldLoenUnderFerie: e.target.value })}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Løn på helligdage</Typography>
@@ -296,25 +298,27 @@ const Indstillinger = React.memo(() => {
           <Box className="row--label-right-hover__content" />
         </Box>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Udkast-stempel på nye dokumenter</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Udkast-stempel på nye dokumenter">
+          {({ labelledBy, controlId }) => (
             <StyledToggleSwitch
+              id={controlId}
+              labelledBy={labelledBy}
               checked={settings.defaultIndsaetUdkastStempel}
               onCommit={(e: CommitEvent<boolean>) => updateSettings({ defaultIndsaetUdkastStempel: e.target.value })}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Bilagsnumre i erstatningsopgørelser</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Bilagsnumre i erstatningsopgørelser">
+          {({ labelledBy, controlId }) => (
             <StyledToggleSwitch
+              id={controlId}
+              labelledBy={labelledBy}
               checked={settings.defaultVisBilagsnumre}
               onCommit={(e: CommitEvent<boolean>) => updateSettings({ defaultVisBilagsnumre: e.target.value })}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Opgørelse afsluttes med</Typography>
@@ -340,19 +344,18 @@ const Indstillinger = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Beregningsteknisk</Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            Tillad regulering med overenskomst, der ikke dækker hele perioden
-          </Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Tillad regulering med overenskomst, der ikke dækker hele perioden">
+          {({ labelledBy, controlId }) => (
             <StyledToggleSwitch
+              id={controlId}
+              labelledBy={labelledBy}
               checked={settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden}
               onCommit={(e: CommitEvent<boolean>) =>
                 updateSettings({ allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: e.target.value })
               }
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Efter udløb anses overenskomst for forældet efter</Typography>
@@ -382,25 +385,27 @@ const Indstillinger = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Kontrol</Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Vis knap til at rapportere fejl og forbedringsønsker på indholdsbokse</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Vis knap til at rapportere fejl og forbedringsønsker på indholdsbokse">
+          {({ labelledBy, controlId }) => (
             <StyledToggleSwitch
+              id={controlId}
+              labelledBy={labelledBy}
               checked={settings.showContentBoxReportButton}
               onCommit={(e: CommitEvent<boolean>) => updateSettings({ showContentBoxReportButton: e.target.value })}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Vis kontrolfaner på Erstatningsopgørelse-side</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Vis kontrolfaner på Erstatningsopgørelse-side">
+          {({ labelledBy, controlId }) => (
             <StyledToggleSwitch
+              id={controlId}
+              labelledBy={labelledBy}
               checked={settings.showEOInspektionMenu}
               onCommit={(e: CommitEvent<boolean>) => updateSettings({ showEOInspektionMenu: e.target.value })}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         {/* DEV-only: denne indstilling vises kun i udviklingsmiljøet (import.meta.env.DEV).
             Den forbrugende adfærd er ligeledes DEV-gated (font-style-farver i AppSettingsContext),
@@ -408,15 +413,16 @@ const Indstillinger = React.memo(() => {
             adfærden i en produktions-build. */}
         {import.meta.env.DEV && (
           <>
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Farvemarkering af font-styles</Typography>
-              <Box className="row--label-right-hover__content">
+            <LabeledControlRow label="Farvemarkering af font-styles">
+              {({ labelledBy, controlId }) => (
                 <StyledToggleSwitch
+                  id={controlId}
+                  labelledBy={labelledBy}
                   checked={settings.fontStyleColorDebug}
                   onCommit={(e: CommitEvent<boolean>) => updateSettings({ fontStyleColorDebug: e.target.value })}
                 />
-              </Box>
-            </Box>
+              )}
+            </LabeledControlRow>
           </>
         )}
 

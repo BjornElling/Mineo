@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
 
 import ContentBox from '../../layout/ContentBox';
+import LabeledControlRow from '../../layout/LabeledControlRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
 import IntegerField from '../../../inputCore/react/fields/IntegerField';
@@ -30,19 +31,20 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
       <Typography className="section-header">Beregningsprincipper</Typography>
 
       {/* Omregning til fuldt år — GATET immediate-commit (checked = persisted input, ikke effectiveEnabled). */}
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">Omregning til fuldt år:</Typography>
-        <Box className="row--label-right-hover__content">
+      <LabeledControlRow label="Omregning til fuldt år:">
+        {({ labelledBy, controlId }) => (
           <ToggleField
             field={fields.omregningTilFuldtAar}
             location={locations.omregningTilFuldtAar}
             name="omregningTilFuldtAar"
+            id={controlId}
+            labelledBy={labelledBy}
             ref={vm.toggleRef}
             checkedOverride={vm.omregningChecked}
             commit={vm.decideOmregningToggle}
           />
-        </Box>
-      </Box>
+        )}
+      </LabeledControlRow>
 
       <Box sx={{ display: canShowOmregning ? 'block' : 'none' }}>
         <Box className="row--label-right-hover">
@@ -50,31 +52,33 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
           <Typography className="row--text">{vm.indtastetEnhedSummary.value}</Typography>
         </Box>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Fuld løn under ferie:</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Fuld løn under ferie:">
+          {({ labelledBy, controlId }) => (
             <ToggleField
               name="fuldLoenUnderFerie"
               field={fields.fuldLoenUnderFerie}
               location={locations.fuldLoenUnderFerie}
+              id={controlId}
+              labelledBy={labelledBy}
               disabled={!canShowOmregning}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         {/* Ret til 6. ferieuge — kun synlig hvis IKKE fuld løn under ferie */}
         <Box sx={{ display: vm.shouldShowFerieFields ? 'block' : 'none' }}>
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">Ret til 6. ferieuge:</Typography>
-            <Box className="row--label-right-hover__content">
+          <LabeledControlRow label="Ret til 6. ferieuge:">
+            {({ labelledBy, controlId }) => (
               <ToggleField
                 name="retTilSjetteFerieuge"
                 field={fields.retTilSjetteFerieuge}
                 location={locations.retTilSjetteFerieuge}
+                id={controlId}
+                labelledBy={labelledBy}
                 disabled={!canShowOmregning}
               />
-            </Box>
-          </Box>
+            )}
+          </LabeledControlRow>
         </Box>
 
         {/* Antal feriedage — kun synlig hvis IKKE fuld løn under ferie */}

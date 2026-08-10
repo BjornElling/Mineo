@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import DateField from '../../../../inputCore/react/fields/DateField';
 import AmountField from '../../../../inputCore/react/fields/AmountField';
 import type { AnciennitetstillaegBinding } from './loenudviklingBinding';
+import LabeledControlRow from '../../../layout/LabeledControlRow';
 
 /**
  * Den fælles Anciennitetstillæg-blok.
@@ -28,8 +29,14 @@ import type { AnciennitetstillaegBinding } from './loenudviklingBinding';
 export type AnciennitetstillaegFieldsProps = Readonly<{
   /** Adresse + location pr. logisk felt for den aktuelle overflade. */
   binding: AnciennitetstillaegBinding;
-  /** Om-knappen: har skadelidte opnået anciennitetstillæg. Overfladerne bruger hver sin togglekomponent. */
-  toggleSlot: ReactNode;
+  /**
+   * Om-knappen: har skadelidte opnået anciennitetstillæg. Overfladerne bruger hver sin togglekomponent.
+   *
+   * Kaldes med rækkens navnebinding, fordi ETIKETTEN hører til her (den interpolerer `referenceText`),
+   * mens KONTROLLEN ejes af callsitet. Uden bindingen måtte hvert callsite gentage etiketteksten som
+   * et `ariaLabel` — to kopier af samme streng, der kan glide fra hinanden.
+   */
+  toggleSlot: (binding: Readonly<{ labelledBy: string; controlId: string }>) => ReactNode;
   /** Sand når toggle'en er slået til; styrer om detaljerne vises. */
   harAnciennitetstillaeg: boolean;
   /** Referenceteksten i toggle-rækkens etiket (fx «efter reguleringsdatoen …»). */
@@ -55,12 +62,11 @@ export default function AnciennitetstillaegFields({
     <>
       <Typography className="row--subheading">Anciennitetstillæg</Typography>
 
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">
-          {`Ville skadelidte have opnået anciennitetstillæg efter ${referenceText}`}
-        </Typography>
-        <Box className="row--label-right-hover__content">{toggleSlot}</Box>
-      </Box>
+      <LabeledControlRow
+        label={`Ville skadelidte have opnået anciennitetstillæg efter ${referenceText}`}
+      >
+        {(binding) => toggleSlot(binding)}
+      </LabeledControlRow>
 
       {harAnciennitetstillaeg ? (
         <>

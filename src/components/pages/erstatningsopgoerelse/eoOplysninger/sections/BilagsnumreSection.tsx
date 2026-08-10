@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
+import LabeledControlRow from '../../../../layout/LabeledControlRow';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
 import TextField from '../../../../../inputCore/react/fields/TextField';
 import {
@@ -26,18 +27,19 @@ export default function BilagsnumreSection() {
       <ContentBox className="content-box" data-section-id="bilagsnumre">
         <Typography className="section-header">Bilagsnumre</Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Indsæt bilagsnumre i erstatningsopgørelsen</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Indsæt bilagsnumre i erstatningsopgørelsen">
+          {({ labelledBy, controlId }) => (
             <MappedToggleField
               field={eoVisBilagsnumreField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.visBilagsnumre', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="visBilagsnumre"
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         {erBilagsnumreRelevant(values) && (
           <>

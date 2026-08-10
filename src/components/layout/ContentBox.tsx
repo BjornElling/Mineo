@@ -62,6 +62,8 @@ const ContentBox = React.memo(({ className, sx, children, disableReport = false,
             size="small"
             className="content-box-report-btn"
             onClick={handleOpenReport}
+            // Kun et ikon som indhold; tooltippen giver ikke et varigt tilgængeligt navn.
+            aria-label="Rapportér fejl eller forbedringsønske"
             tabIndex={-1}
             sx={{
               position: 'absolute',

@@ -37,6 +37,8 @@ const DefaultDirectoryRow = React.memo(() => {
           <Tooltip title="Vælg mappe">
             <IconButton
               onClick={chooseDirectory}
+              // Kun et ikon som indhold; tooltippen giver ikke et varigt tilgængeligt navn.
+              aria-label="Vælg mappe"
               size="small"
               sx={{
                 padding: 0.5,
@@ -48,15 +50,25 @@ const DefaultDirectoryRow = React.memo(() => {
           </Tooltip>
           {location !== null && location.kind !== 'standard' && (
             <Tooltip title="Nulstil til skrivebord">
+              {/*
+                Var et <span> med onClick: klikbart for musen, men usynligt for tastatur og
+                skærmlæser (ingen rolle, ingen fokus, ingen Enter/Space). Som <button> er handlingen
+                tilgængelig ad alle veje. Den nulstillede styling bevarer det oprindelige udseende.
+              */}
               <Typography
-                component="span"
+                component="button"
+                type="button"
                 onClick={resetToDefault}
                 sx={{
+                  font: 'inherit',
                   fontSize: '0.75rem',
                   color: 'text.secondary',
                   cursor: 'pointer',
                   textDecoration: 'underline',
                   '&:hover': { color: 'primary.main' },
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
                 }}
               >
                 Nulstil

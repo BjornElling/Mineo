@@ -3,6 +3,7 @@ import { Switch, FormControlLabel } from '@mui/material';
 import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 import type { StyledToggleSwitchHandle } from '../../types/handles';
 import { useShakeFlag } from '../../hooks/useShakeFlag';
+import { accessibleNameAttributes, type AccessibleNameProps } from './accessibleName';
 
 type ToggleInputSlotProps = React.InputHTMLAttributes<HTMLInputElement> & {
   'data-mineo-field-address'?: string;
@@ -29,10 +30,16 @@ type ToggleInputSlotProps = React.InputHTMLAttributes<HTMLInputElement> & {
  * Features:
  * - Moderne slider-design med rund figur
  * - Blå farve når aktiveret
- * - Kan bruges med eller uden label
+ *
+ * Tilgængeligt navn (obligatorisk):
+ * - Switchen renderes med `role="checkbox"` og SKAL kunne identificeres af skærmlæsere og
+ *   rolle-/navn-navigation. Navnet er derfor et krav i typen, ikke en valgfri prop — se
+ *   `accessibleName.ts` for hvorfor de to tidligere valgfrie props efterlod 34 af 35
+ *   callsites navnløse.
+ * - Normalvejen er `visibleLabel`: teksten renderes som kontrollens egen `<label>`, så det viste og
+ *   det oplæste er samme streng, og klik på teksten aktiverer switchen.
  */
-interface StyledToggleSwitchProps {
-  label?: string;
+type StyledToggleSwitchOwnProps = {
   /**
    * Controlled state - obligatorisk.
    *
@@ -48,37 +55,39 @@ interface StyledToggleSwitchProps {
    */
   onCommit: CommitHandler<boolean>;
   disabled?: boolean;
-  /** Kun relevant når `label` er angivet. */
+  /** Kun relevant når `visibleLabel` er angivet. */
   labelPlacement?: 'start' | 'end' | 'top' | 'bottom';
   id?: string;
   name?: string;
   value?: string;
-  /** Sættes når togglen bruges uden synligt label (label er placeret som søsker-element).
-   *  Giver assistive technologies — og tests — en stabil accessible name. */
-  ariaLabel?: string;
   /**
    * Undo/redo-fokusrestore-attributter (§3.7): sættes på input-slottet, så fokus efter undo/redo lander
    * PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
    * `inputCore/react/fields/ToggleField` og `MappedToggleField` leverer dem.
    */
   restoreTargetAttributes?: Readonly<Record<string, string>>;
-}
+};
 
-const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledToggleSwitchProps>(({
-  label,
-  checked,
-  onCommit,
-  disabled = false,
-  labelPlacement = 'end',
-  id,
-  name,
-  value,
-  ariaLabel,
-  restoreTargetAttributes,
-}, ref) => {
+type StyledToggleSwitchProps = StyledToggleSwitchOwnProps & AccessibleNameProps;
+
+const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledToggleSwitchProps>((props, ref) => {
+  const {
+    checked,
+    onCommit,
+    disabled = false,
+    labelPlacement = 'end',
+    id,
+    name,
+    value,
+    restoreTargetAttributes,
+  } = props;
   const autoId = React.useId();
   const resolvedId = id ?? autoId;
   const resolvedName = name ?? resolvedId;
+  // Navnet valideres og oversættes til ARIA-attributter ét sted. `visibleLabel` sætter bevidst ingen
+  // attribut: navnet kommer fra FormControlLabel's <label>-binding nedenfor.
+  const nameAttributes = accessibleNameAttributes(props, `StyledToggleSwitch(${resolvedName})`);
+  const { visibleLabel } = props;
 
   // Shake-animation via den kanoniske deklarative hook (timeout + cleanup ejes af hooken).
   const { shake: isShaking, triggerShake } = useShakeFlag();
@@ -153,7 +162,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
     role: 'checkbox',
     onKeyDown: handleKeyDown,
     'aria-checked': checked,
-    ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
+    ...nameAttributes,
     // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.2/§3.7).
     ...(restoreTargetAttributes ?? {}),
   };
@@ -199,12 +208,14 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
     />
   );
 
-  // Hvis der er en label, wrap i FormControlLabel
-  if (label) {
+  // Synlig label: FormControlLabel binder <label> til input'et (htmlFor/id), så teksten BÅDE er
+  // kontrollens accessible name og et klikbart mål. Uden binding var teksten kun et søskende-element,
+  // og switchen stod navnløs — se accessibleName.ts.
+  if (visibleLabel !== undefined) {
     return (
       <FormControlLabel
         control={switchComponent}
-        label={label}
+        label={visibleLabel}
         labelPlacement={labelPlacement}
         sx={{
           '& .MuiFormControlLabel-label': {

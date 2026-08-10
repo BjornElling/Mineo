@@ -6,6 +6,10 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
+import {
+  selectAccessibleNameProps,
+  type AccessibleNameProps,
+} from '../../../components/inputs/accessibleName';
 
 // Toggle-felt (§1.3/§3.6): en boolsk immediate-commit control. Klik/Enter/Space committer STRAKS via
 // `commitImmediate` — ingen draft/settle-fase. Modtager kun sin `field`/`location`; den viste checked-tilstand
@@ -33,12 +37,10 @@ export type ToggleFieldProps = Readonly<{
   field: FieldRef<boolean>;
   location: EditorLocation;
 
-  label?: string;
   labelPlacement?: 'start' | 'end' | 'top' | 'bottom';
   disabled?: boolean;
   name?: string;
   id?: string;
-  ariaLabel?: string;
   /** Callsite-ejet afslutning (gate/atomisk transaktion). Udelades for en almindelig ét-felts-toggle. */
   commit?: ToggleCommitOverride<boolean>;
   /**
@@ -46,10 +48,14 @@ export type ToggleFieldProps = Readonly<{
    * synlige tilstand ud af det persisterede ønske plus dets forudsætninger. Udelades normalt.
    */
   checkedOverride?: boolean;
-}>;
+}> &
+  // Det tilgængelige navn er obligatorisk og videreføres uændret til switchen. Kravet ligger i typen,
+  // så en navnløs toggle ikke kan type-checke — se components/inputs/accessibleName.ts.
+  AccessibleNameProps;
 
 const ToggleField = React.forwardRef<StyledToggleSwitchHandle, ToggleFieldProps>(
-  ({ field, location, label, labelPlacement, disabled, name, id, ariaLabel, commit, checkedOverride }, ref) => {
+  (props, ref) => {
+    const { field, location, labelPlacement, disabled, name, id, commit, checkedOverride } = props;
     const controller = useFieldEditor(field, location);
     const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
     // En boolsk descriptor har altid en defineret canonical værdi (emptyValue false/true); controller.value er
@@ -72,12 +78,11 @@ const ToggleField = React.forwardRef<StyledToggleSwitchHandle, ToggleFieldProps>
         ref={ref}
         checked={checked}
         onCommit={handleCommit}
-        {...(label === undefined ? {} : { label })}
+        {...selectAccessibleNameProps(props)}
         {...(labelPlacement === undefined ? {} : { labelPlacement })}
         {...(disabled === undefined ? {} : { disabled })}
         {...(name === undefined ? {} : { name })}
         {...(id === undefined ? {} : { id })}
-        {...(ariaLabel === undefined ? {} : { ariaLabel })}
         restoreTargetAttributes={restoreTargetAttributes}
       />
     );

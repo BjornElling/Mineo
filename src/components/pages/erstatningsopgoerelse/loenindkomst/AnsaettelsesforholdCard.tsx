@@ -21,6 +21,7 @@ import type { FieldRef } from '../../../../inputCore/fieldDescriptor';
 import { createEoStandardLoenFieldSet } from '../../../../domain/erstatningsopgoerelse/eoStandardLoenFieldSet';
 import FloatingActionButton from '../../../ui/FloatingActionButton';
 import ContentBox from '../../../layout/ContentBox';
+import LabeledControlRow from '../../../layout/LabeledControlRow';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import { LOENPERIODE_LABELS } from '../../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
@@ -301,28 +302,30 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         </Box>
       </Box>
 
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">{`Ansat på ${skadeEllerAnmeldelsesdato.labelLower}`}</Typography>
-        <Box className="row--label-right-hover__content">
+      <LabeledControlRow label={`Ansat på ${skadeEllerAnmeldelsesdato.labelLower}`}>
+        {({ labelledBy, controlId }) => (
           <ToggleField
             field={field(eoEmploymentFields.ansatPaaSkadestidspunktet)}
             location={location('ansatPaaSkadestidspunktet')}
             name={`${af.id}:ansatPaaSkadestidspunktet`}
+            id={controlId}
+            labelledBy={labelledBy}
           />
-        </Box>
-      </Box>
+        )}
+      </LabeledControlRow>
 
       {showMedlemOpsagt ? (
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Opsagt fra stillingen</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Opsagt fra stillingen">
+          {({ labelledBy, controlId }) => (
             <ToggleField
               field={field(eoEmploymentFields.ansaettelsesforholdOphoert)}
               location={location('ansaettelsesforholdOphoert')}
               name={`${af.id}:ansaettelsesforholdOphoert`}
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
       ) : null}
 
       <Box sx={{ display: showSidsteArbejdsdag ? 'block' : 'none' }}>
@@ -336,12 +339,17 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
 
       <Typography className="row--subheading">Lønforhold</Typography>
 
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">Overenskomst</Typography>
-        <Box className="row--label-right-hover__content">
-          <ToggleField field={field(eoEmploymentFields.harOverenskomst)} location={location('harOverenskomst')} name={`${af.id}:harOverenskomst`} />
-        </Box>
-      </Box>
+      <LabeledControlRow label="Overenskomst">
+        {({ labelledBy, controlId }) => (
+          <ToggleField
+            field={field(eoEmploymentFields.harOverenskomst)}
+            location={location('harOverenskomst')}
+            name={`${af.id}:harOverenskomst`}
+            id={controlId}
+            labelledBy={labelledBy}
+          />
+        )}
+      </LabeledControlRow>
 
       <Box sx={{ display: showOverenskomst ? 'block' : 'none' }}>
         <Box className="row--label-right-hover">
@@ -452,18 +460,19 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         </Box>
       </Box>
 
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">Fuld løn under ferie:</Typography>
-        <Box className="row--label-right-hover__content">
+      <LabeledControlRow label="Fuld løn under ferie:">
+        {({ labelledBy, controlId }) => (
           <MappedToggleField
             field={field(eoEmploymentFields.fuldLoenUnderFerie)}
             location={location('fuldLoenUnderFerie')}
             checkedValue="Ja"
             uncheckedValue="Nej"
             name={`${af.id}:fuldLoenUnderFerie`}
+            id={controlId}
+            labelledBy={labelledBy}
           />
-        </Box>
-      </Box>
+        )}
+      </LabeledControlRow>
 
       <Box className="row--label-right-hover">
         <Typography className="row--text">Løn på helligdage:</Typography>
@@ -666,13 +675,16 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               location: location('anciennitetstillaegSats'),
             },
           }}
-          toggleSlot={
+          toggleSlot={({ labelledBy, controlId }) => (
             <ToggleField
               field={field(eoEmploymentFields.harAnciennitetstillaegEfterSkadedatoen)}
               location={location('harAnciennitetstillaegEfterSkadedatoen')}
               name={`${af.id}:harAnciennitetstillaegEfterSkadedatoen`}
+              // Etiketten ejes af AnciennitetstillaegFields, som leverer bindingen her.
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          }
+          )}
           harAnciennitetstillaeg={Boolean(af.harAnciennitetstillaegEfterSkadedatoen)}
           referenceText={anvendtReguleringsdatoReferenceText}
           satsPerTekst={anciennitetSatsPerTekst}

@@ -1,5 +1,6 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
+import LabeledControlRow from '../../../../layout/LabeledControlRow';
 import TextField from '../../../../../inputCore/react/fields/TextField';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
 import DateField from '../../../../../inputCore/react/fields/DateField';
@@ -63,18 +64,19 @@ export default function EoSagsinfoSection() {
           </Box>
         </Box>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Revideret opgørelse</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Revideret opgørelse">
+          {({ labelledBy, controlId }) => (
             <MappedToggleField
               field={eoRevideretOpgoerelseField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.revideretOpgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="revideretOpgoerelse"
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Vedrører perioden</Typography>
@@ -116,18 +118,19 @@ export default function EoSagsinfoSection() {
           </Box>
         </Box>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Indsæt udkast-stempel</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Indsæt udkast-stempel">
+          {({ labelledBy, controlId }) => (
             <MappedToggleField
               field={eoIndsaetUdkastStempelField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.indsaetUdkastStempel', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="indsaetUdkastStempel"
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         <Typography className="row--subheading">{statusSubheaderLabel}</Typography>
 

@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
+import LabeledControlRow from '../../layout/LabeledControlRow';
 import { PageMessageRow } from '../../layout/PageMessageBox';
 import { pageMessage } from '../../layout/pageMessage';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -437,21 +438,26 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
           relevans-prædikat, så synlighed og beregningsrelevans har ét sandt sted.
         */}
         {erOffentligeYdelserReguleringRelevant(values) ? (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">
-              Offentlige ydelser i beregningsperioden reguleres
-              <InfoTooltipIcon title="Offentlige ydelser fremskrives efter statslig praksis med tilpasningsprocenten + 2 % per 1. januar" />
-            </Typography>
-            <Box className="row--label-right-hover__content">
+          <LabeledControlRow
+            label={(
+              <>
+                Offentlige ydelser i beregningsperioden reguleres
+                <InfoTooltipIcon title="Offentlige ydelser fremskrives efter statslig praksis med tilpasningsprocenten + 2 % per 1. januar" />
+              </>
+            )}
+          >
+            {({ labelledBy, controlId }) => (
               <MappedToggleField
                 field={eoRegulerOffentligeYdelserField.bind()}
                 location={REGULER_OFFENTLIGE_YDELSER_LOCATION}
                 checkedValue="Ja"
                 uncheckedValue="Nej"
                 name="regulerOffentligeYdelser"
+                id={controlId}
+                labelledBy={labelledBy}
               />
-            </Box>
-          </Box>
+            )}
+          </LabeledControlRow>
         ) : null}
       </ContentBox>
 

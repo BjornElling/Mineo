@@ -1,5 +1,6 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
+import LabeledControlRow from '../../../../layout/LabeledControlRow';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
 import ChoiceField from '../../../../../inputCore/react/fields/ChoiceField';
 import DateField from '../../../../../inputCore/react/fields/DateField';
@@ -155,18 +156,19 @@ export default function IndtaegtFoerSkadenSection() {
         <ContentBox className="content-box" data-section-id="taf-beregningsgrundlag">
         <Typography className="section-header">{indtaegtFoerSkadenSectionTitle}</Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Skjul beregning efter første opgørelse</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Skjul beregning efter første opgørelse">
+          {({ labelledBy, controlId }) => (
             <MappedToggleField
               field={eoKomprimerBeregningField.bind()}
               location={eoOplyLocation('erstatningsopgoerelse.komprimerBeregningEfterFoersteOpgoerelse')}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="komprimerBeregningEfterFoersteOpgoerelse"
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         {!skalKomprimereIndtaegtFoerSkaden && (
           <>
@@ -237,18 +239,19 @@ export default function IndtaegtFoerSkadenSection() {
 
                 <Typography className="row--subheading">Øvrigt fravær i beregningsperioden:</Typography>
 
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Øvrigt fravær uden løn</Typography>
-                  <Box className="row--label-right-hover__content">
+                <LabeledControlRow label="Øvrigt fravær uden løn">
+                  {({ labelledBy, controlId }) => (
                     <MappedToggleField
                       field={eoOevrigtFravaerUdenLoenField.bind()}
                       location={eoOplyLocation('erstatningsopgoerelse.oevrigtFravaerUdenLoen')}
                       checkedValue="Ja"
                       uncheckedValue="Nej"
                       name="oevrigtFravaerUdenLoen"
+                      id={controlId}
+                      labelledBy={labelledBy}
                     />
-                  </Box>
-                </Box>
+                  )}
+                </LabeledControlRow>
 
                 {values.oevrigtFravaerUdenLoen === 'Ja' && (
                   <>
@@ -480,15 +483,18 @@ export default function IndtaegtFoerSkadenSection() {
                     location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegSats'),
                   },
                 }}
-                toggleSlot={
+                toggleSlot={({ labelledBy, controlId }) => (
                   <MappedToggleField
                     field={eoAngivetLoenFields.harAnciennitetstillaegEfterSkadedatoen.bind()}
                     location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen')}
                     checkedValue={true}
                     uncheckedValue={false}
                     name="harAnciennitetstillaegEfterSkadedatoen"
+                    // Etiketten ejes af AnciennitetstillaegFields, som leverer bindingen her.
+                    id={controlId}
+                    labelledBy={labelledBy}
                   />
-                }
+                )}
                 harAnciennitetstillaeg={Boolean(eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen)}
                 referenceText={loenudviklingBaseDateReferenceText}
                 satsPerTekst={eoAnciennitetSatsPerTekst}

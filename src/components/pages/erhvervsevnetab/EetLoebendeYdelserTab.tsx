@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
+import LabeledControlRow from '../../layout/LabeledControlRow';
 import ToggleField from '../../../inputCore/react/fields/ToggleField';
 import StandardDisplayTable, { type StandardDisplayTableColumn, type StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import { useAppSettings } from '../../../contexts/useAppSettings';
@@ -94,16 +95,17 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
               </Box>
             </Box>
 
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Medtag udvidet specifikation i {documentFormatLabel}</Typography>
-              <Box className="row--label-right-hover__content">
+            <LabeledControlRow label={<>Medtag udvidet specifikation i {documentFormatLabel}</>}>
+              {({ labelledBy, controlId }) => (
                 <ToggleField
                   field={extendedSpecificationRef}
                   location={EXTENDED_SPECIFICATION_LOCATION}
                   name="visUdvidetSpecifikation"
+                  id={controlId}
+                  labelledBy={labelledBy}
                 />
-              </Box>
-            </Box>
+              )}
+            </LabeledControlRow>
 
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>

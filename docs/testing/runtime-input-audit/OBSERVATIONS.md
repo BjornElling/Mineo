@@ -6,13 +6,13 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 
 | ID | Kort titel | Kategori | Flade | Browser/viewport | Alvor | Status | Først set |
 |---|---|---|---|---|---|---|---|
-| OBS-002 | Sidemenuets toggle mangler tilgængeligt navn | UX / Andet | SURF-001 / SHELL-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Lav | Bekræftet | 2026-08-08 15:52 Europe/Copenhagen |
+| OBS-002 | Sidemenuets toggle mangler tilgængeligt navn | UX / Andet | SURF-001 / SHELL-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Lav | Løst | 2026-08-08 15:52 Europe/Copenhagen |
 | OBS-003 | Datoissue navngiver ikke den synlige kontekstuelle label | Inkonsistens / UX | SURF-002 / STAM-003 | Chrome 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:03 Europe/Copenhagen |
 | OBS-005 | Firefox-fallback giver en synlig teknisk advarsel ved normal Gem/Hent | UX / Console-politik | SURF-001 / SHELL-003 | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:19 Europe/Copenhagen |
 | OBS-008 | Ugyldig fil ved Hent behandles som teknisk runtimefejl | Kontraktdrift / UX | SURF-003 / EO-OPLYS-005 | WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 17:59 Europe/Copenhagen |
-| OBS-010 | Syv Indstillinger-kontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-010 / SETTINGS-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:06 Europe/Copenhagen |
-| OBS-011 | Om-sidens startside-toggle mangler tilgængeligt navn | UX / Tilgængelighed | SURF-011 / MINEO-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 19:15 Europe/Copenhagen |
-| OBS-012 | Fire EET-valgkontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-004 / EET-002 | Chrome/Edge/Firefox/WebKit 1920×1080; WebKit også 2560×1440 | Mellem | Bekræftet | 2026-08-08 19:23 Europe/Copenhagen |
+| OBS-010 | Syv Indstillinger-kontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-010 / SETTINGS-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Løst | 2026-08-08 19:06 Europe/Copenhagen |
+| OBS-011 | Om-sidens startside-toggle mangler tilgængeligt navn | UX / Tilgængelighed | SURF-011 / MINEO-002 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Løst | 2026-08-08 19:15 Europe/Copenhagen |
+| OBS-012 | Fire EET-valgkontroller mangler tilgængeligt navn | UX / Tilgængelighed | SURF-004 / EET-002 | Chrome/Edge/Firefox/WebKit 1920×1080; WebKit også 2560×1440 | Mellem | Løst | 2026-08-08 19:23 Europe/Copenhagen |
 | OBS-014 | Årsløn skjuler beregning og download ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-007 / AAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:28 Europe/Copenhagen |
 | OBS-015 | EET skjuler dokumentdownload ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-004 / EET-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:48 Europe/Copenhagen |
 | OBS-017 | Nulstillingsdialog overtager ikke keyboardfokus | UX / Tilgængelighed / Kontraktdrift | SURF-001 / PAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 23:15 Europe/Copenhagen |
@@ -24,7 +24,18 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 
 ### OBS-002 — Sidemenuets toggle mangler tilgængeligt navn
 
-- Status: Bekræftet
+> **Løst 2026-08-10 sammen med OBS-010, OBS-011 og OBS-012 — fælles rod.** De fire fund var symptomer
+> på samme årsag: navnet på en interaktiv kontrol var valgfrit. `StyledToggleSwitch` gjorde både
+> `label` og `ariaLabel` valgfrie uden fallback (34 af 35 toggle-callsites var navnløse), og rå
+> ikon-knapper som denne havde intet krav overhovedet. Rettet strukturelt i tre lag, så et manglende
+> navn ikke kan nå brugerfladen: (1) typerne kræver nu præcis ét navnefelt — en navnløs kontrol kan
+> ikke type-checke; (2) arkitekturreglen `a11y/interactive-control-has-accessible-name` fanger de rå
+> DOM-/MUI-kontroller, typerne ikke når; (3) en runtime-invariant kaster i udvikling/test, hvis et
+> navn ender tomt. Sidemenuens toggle har nu et tilstandsafhængigt navn («Fold menuen ud»/«Fold menuen
+> sammen»), og navigationsknapperne beholder deres navn i kollapset tilstand. Verificeret i browser
+> med `e2e/control-accessible-names.spec.ts`.
+
+- Status: Løst
 - Kategori: UX / Andet
 - Alvor: Lav
 - Først set: 2026-08-08 15:52 Europe/Copenhagen
@@ -191,7 +202,14 @@ Brugeren kan tro, at Mineo eller sagen er teknisk beskadiget, selv om Hent blot 
 
 ### OBS-010 — Syv Indstillinger-kontroller mangler tilgængeligt navn
 
-- Status: Bekræftet
+> **Løst 2026-08-10 — se den fælles note under OBS-002.** Den synlige tekst stod som et
+> `<Typography>`-søskende uden semantisk forbindelse til switchen. Rækkerne bruger nu
+> `LabeledControlRow`, som binder teksten til kontrollen med `aria-labelledby` + `<label htmlFor>`.
+> Alle syv switches kan findes på deres synlige tekst, og et klik på teksten betjener kontrollen.
+> Layoutet er uændret. Samme pas rettede sidens navnløse mappevælger-ikonknap og gjorde
+> «Nulstil» til en rigtig knap (den var et `<span>` med `onClick`: usynlig for tastatur og skærmlæser).
+
+- Status: Løst
 - Kategori: UX / Tilgængelighed
 - Alvor: Mellem
 - Først set: 2026-08-08 19:06 Europe/Copenhagen
@@ -232,7 +250,11 @@ En bruger, der navigerer med skærmlæser eller anden semantisk tastaturstøtte,
 
 ### OBS-011 — Om-sidens startside-toggle mangler tilgængeligt navn
 
-- Status: Bekræftet
+> **Løst 2026-08-10 — se den fælles note under OBS-002.** Togglen bruger nu `LabeledControlRow` og
+> kan findes som checkbox med navnet «Gør stamdata-siden til startside fremover». Verificeret i
+> browser, inkl. at et klik på den synlige tekst slår indstillingen til.
+
+- Status: Løst
 - Kategori: UX / Tilgængelighed
 - Alvor: Mellem
 - Først set: 2026-08-08 19:15 Europe/Copenhagen
@@ -273,7 +295,13 @@ En bruger, der navigerer med skærmlæser eller anden semantisk tastaturstøtte,
 
 ### OBS-012 — Fire EET-valgkontroller mangler tilgængeligt navn
 
-- Status: Bekræftet
+> **Løst 2026-08-10 — se den fælles note under OBS-002.** De fire kontroller bruger nu
+> `LabeledControlRow`. Hvor den synlige tekst bærer et info-ikon, bliver navnet teksten UDEN ikonets
+> tooltip-forklaring: forklaringen er en uddybning, ikke kontrollens navn, og ville ellers blive læst
+> op i sin fulde længde hver gang fokus ramte kontrollen. Et afsluttende kolon fjernes tilsvarende fra
+> navnet, men bevares i den viste tekst.
+
+- Status: Løst
 - Kategori: UX / Tilgængelighed
 - Alvor: Mellem
 - Først set: 2026-08-08 19:23 Europe/Copenhagen

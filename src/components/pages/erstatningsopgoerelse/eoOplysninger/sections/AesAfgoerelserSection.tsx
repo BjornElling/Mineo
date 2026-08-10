@@ -1,5 +1,6 @@
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
+import LabeledControlRow from '../../../../layout/LabeledControlRow';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
 import DateField from '../../../../../inputCore/react/fields/DateField';
 import {
@@ -41,18 +42,19 @@ export default function AesAfgoerelserSection() {
           Varige mén
         </Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Truffet afgørelse om varige mén på 5 % eller derover</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Truffet afgørelse om varige mén på 5 % eller derover">
+          {({ labelledBy, controlId }) => (
             <MappedToggleField
               field={eoVarigeMenAfgorelseField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.varigeMenAfgorelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="varigeMenAfgorelse"
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         {erVarigeMenAfgoerelseAktiv(values) && (
           <>
@@ -67,18 +69,19 @@ export default function AesAfgoerelserSection() {
               </Box>
             </Box>
 
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Verserende klagesag over ménafgørelse?</Typography>
-              <Box className="row--label-right-hover__content">
+            <LabeledControlRow label="Verserende klagesag over ménafgørelse?">
+              {({ labelledBy, controlId }) => (
                 <MappedToggleField
                   field={eoVerserendeKlageMenField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.verserendeKlageMen', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   checkedValue="Ja"
                   uncheckedValue="Nej"
                   name="verserendeKlageMen"
+                  id={controlId}
+                  labelledBy={labelledBy}
                 />
-              </Box>
-            </Box>
+              )}
+            </LabeledControlRow>
           </>
         )}
 
@@ -87,18 +90,19 @@ export default function AesAfgoerelserSection() {
           Midlertidigt erhvervsevnetab
         </Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Truffet afgørelse om midlertidigt erhvervsevnetab på 15 % eller derover</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Truffet afgørelse om midlertidigt erhvervsevnetab på 15 % eller derover">
+          {({ labelledBy, controlId }) => (
             <MappedToggleField
               field={eoMidlertidigtEETAfgorelseField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.midlertidigtEETAfgorelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="midlertidigtEETAfgorelse"
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         {erMidlertidigtEETAfgoerelseAktiv(values) && (
           <>
@@ -130,18 +134,19 @@ export default function AesAfgoerelserSection() {
           Endeligt erhvervsevnetab
         </Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Truffet afgørelse om endeligt erhvervsevnetab på 15 % eller derover</Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Truffet afgørelse om endeligt erhvervsevnetab på 15 % eller derover">
+          {({ labelledBy, controlId }) => (
             <MappedToggleField
               field={eoEndeligtEETAfgorelseField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.endeligtEETAfgorelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="endeligtEETAfgorelse"
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         {erEndeligtEETAfgoerelseAktiv(values) && (
           <>
@@ -174,18 +179,19 @@ export default function AesAfgoerelserSection() {
         </Typography>
 
         {erEETKlageRelevant(values) && (
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">Verserende klagesag over EET-afgørelse?</Typography>
-            <Box className="row--label-right-hover__content">
+          <LabeledControlRow label="Verserende klagesag over EET-afgørelse?">
+            {({ labelledBy, controlId }) => (
               <MappedToggleField
                 field={eoVerserendeKlageEetField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.verserendeKlageEet', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 checkedValue="Ja"
                 uncheckedValue="Nej"
                 name="verserendeKlageEet"
+                id={controlId}
+                labelledBy={labelledBy}
               />
-            </Box>
-          </Box>
+            )}
+          </LabeledControlRow>
         )}
 
         <Box className="row--label-right-hover">

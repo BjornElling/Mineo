@@ -7,6 +7,10 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import type { ToggleCommitOverride } from './ToggleField';
+import {
+  selectAccessibleNameProps,
+  type AccessibleNameProps,
+} from '../../../components/inputs/accessibleName';
 
 /**
  * Toggle for persisted enumfelter, hvor den synlige switch mapper mellem to canonical værdier
@@ -17,35 +21,34 @@ export type MappedToggleFieldProps<TValue> = Readonly<{
   location: EditorLocation;
   checkedValue: NoInfer<TValue>;
   uncheckedValue: NoInfer<TValue>;
-  label?: string;
   labelPlacement?: 'start' | 'end' | 'top' | 'bottom';
   disabled?: boolean;
   name?: string;
   id?: string;
-  ariaLabel?: string;
   /**
    * Callsite-ejet afslutning (§1.11) — se {@link ToggleCommitOverride}. Kaldes med den MAPPEDE canonical værdi,
    * ikke med boolean, så callsitet arbejder i feltets eget domæne. Udelades for en almindelig ét-felts-toggle.
    */
   commit?: ToggleCommitOverride<NoInfer<TValue>>;
-}>;
+}> &
+  // Obligatorisk tilgængeligt navn — samme krav som ToggleField, jf. components/inputs/accessibleName.ts.
+  AccessibleNameProps;
 
 const MappedToggleFieldInner = <TValue,>(
-  {
+  props: MappedToggleFieldProps<TValue>,
+  ref: React.ForwardedRef<StyledToggleSwitchHandle>
+): React.ReactElement => {
+  const {
     field,
     location,
     checkedValue,
     uncheckedValue,
-    label,
     labelPlacement,
     disabled,
     name,
     id,
-    ariaLabel,
     commit,
-  }: MappedToggleFieldProps<TValue>,
-  ref: React.ForwardedRef<StyledToggleSwitchHandle>
-): React.ReactElement => {
+  } = props;
   const controller = useFieldEditor(field, location);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const checked = Object.is(controller.value, checkedValue);
@@ -66,12 +69,11 @@ const MappedToggleFieldInner = <TValue,>(
       ref={ref}
       checked={checked}
       onCommit={handleCommit}
-      {...(label === undefined ? {} : { label })}
+      {...selectAccessibleNameProps(props)}
       {...(labelPlacement === undefined ? {} : { labelPlacement })}
       {...(disabled === undefined ? {} : { disabled })}
       {...(name === undefined ? {} : { name })}
       {...(id === undefined ? {} : { id })}
-      {...(ariaLabel === undefined ? {} : { ariaLabel })}
       restoreTargetAttributes={restoreTargetAttributes}
     />
   );

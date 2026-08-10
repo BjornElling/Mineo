@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
+import LabeledControlRow from '../../layout/LabeledControlRow';
 import CheckboxField from '../../../inputCore/react/fields/CheckboxField';
 import ToggleField from '../../../inputCore/react/fields/ToggleField';
 import PercentField from '../../../inputCore/react/fields/PercentField';
@@ -149,16 +150,17 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
             </Box>
           </Box>
 
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">Medtag udvidet specifikation på løbende ydelser</Typography>
-            <Box className="row--label-right-hover__content">
+          <LabeledControlRow label="Medtag udvidet specifikation på løbende ydelser">
+            {({ labelledBy, controlId }) => (
               <ToggleField
                 field={refs.visUdvidetSpecifikationLoebendeYdelserBilag}
                 location={location('visUdvidetSpecifikationLoebendeYdelserBilag')}
                 name="visUdvidetSpecifikationLoebendeYdelserBilag"
+                id={controlId}
+                labelledBy={labelledBy}
               />
-            </Box>
-          </Box>
+            )}
+          </LabeledControlRow>
         </ContentBox>
       )}
 
@@ -166,32 +168,36 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
       <ContentBox className="content-box">
         <Typography className="section-header">Valgmuligheder</Typography>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft
-            <InfoTooltipIcon title="Opstår ved endelig afgørelse, der får virkning for en periode, der tidligere er udbetalt midlertidig EET for" />
-          </Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow
+          label={
+            <>
+              Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft
+              <InfoTooltipIcon title="Opstår ved endelig afgørelse, der får virkning for en periode, der tidligere er udbetalt midlertidig EET for" />
+            </>
+          }
+        >
+          {({ labelledBy, controlId }) => (
             <ToggleField
               field={refs.tilbagevirkende}
               location={location('tilbagevirkende')}
               name="endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft"
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            Indregn mer-erstatning ved forhøjet pensionsalder
-          </Typography>
-          <Box className="row--label-right-hover__content">
+        <LabeledControlRow label="Indregn mer-erstatning ved forhøjet pensionsalder">
+          {({ labelledBy, controlId }) => (
             <ToggleField
               field={refs.merErstatning}
               location={location('merErstatning')}
               name="indregnMerErstatningVedForhoejetPensionsalder"
+              id={controlId}
+              labelledBy={labelledBy}
             />
-          </Box>
-        </Box>
+          )}
+        </LabeledControlRow>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Forlig om ansvarsgrad</Typography>

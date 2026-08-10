@@ -145,6 +145,10 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         <Button
           onClick={toggleMenu}
           startIcon={<MenuIcon />}
+          // Knappen har kun et ikon som indhold og ville ellers stå navnløs i accessibility-træet.
+          // Navnet beskriver HANDLINGEN og følger derfor menuens aktuelle tilstand.
+          aria-label={isExpanded ? 'Fold menuen sammen' : 'Fold menuen ud'}
+          aria-expanded={isExpanded}
           tabIndex={-1}
           sx={{
             textTransform: 'none',
@@ -194,6 +198,11 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
               onClick={() => handleNavigation(item.id)}
               onMouseDown={handleMenuButtonMouseDown}
               startIcon={item.icon}
+              // Tekstbarnet forsvinder, når menuen er kollapset (`{isExpanded && item.label}`), og
+              // knappen ville da stå navnløs med kun sit ikon. Tooltippen navngiver den ikke: MUI
+              // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
+              // Et fast aria-label giver samme navn i begge menutilstande.
+              aria-label={item.label}
               tabIndex={-1}
               className={activePage === item.id ? 'menu-item active' : 'menu-item'}
             sx={{
@@ -238,6 +247,11 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
               onClick={() => handleFileOperation(item)}
               onMouseDown={handleMenuButtonMouseDown}
               startIcon={item.icon}
+              // Tekstbarnet forsvinder, når menuen er kollapset (`{isExpanded && item.label}`), og
+              // knappen ville da stå navnløs med kun sit ikon. Tooltippen navngiver den ikke: MUI
+              // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
+              // Et fast aria-label giver samme navn i begge menutilstande.
+              aria-label={item.label}
               tabIndex={-1}
               className="menu-item"
               sx={{
@@ -281,6 +295,11 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
               onClick={() => handleNavigation(item.id)}
               onMouseDown={handleMenuButtonMouseDown}
               startIcon={item.icon}
+              // Tekstbarnet forsvinder, når menuen er kollapset (`{isExpanded && item.label}`), og
+              // knappen ville da stå navnløs med kun sit ikon. Tooltippen navngiver den ikke: MUI
+              // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
+              // Et fast aria-label giver samme navn i begge menutilstande.
+              aria-label={item.label}
               tabIndex={-1}
               className={activePage === item.id ? 'menu-item active' : 'menu-item'}
               sx={{

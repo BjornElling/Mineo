@@ -32,7 +32,9 @@ function renderControlledToggle(
 
     return (
       <StyledToggleSwitch
-        label={withLabel ? 'Test toggle' : undefined}
+        // Navnet er obligatorisk. `withLabel` vælger nu mellem SYNLIG tekst og et rent
+        // accessibility-navn — ikke mellem navn og intet navn, som ikke længere er en mulig tilstand.
+        {...(withLabel ? { visibleLabel: 'Test toggle' } : { ariaLabel: 'Test toggle' })}
         checked={checked}
         disabled={disabled}
         onCommit={handleCommit}
@@ -65,7 +67,7 @@ function renderWithRef(initialChecked = false) {
     return (
       <StyledToggleSwitch
         ref={toggleRef}
-        label="Test toggle"
+        visibleLabel="Test toggle"
         checked={checked}
         onCommit={handleCommit}
       />
@@ -284,15 +286,17 @@ describe('StyledToggleSwitch', () => {
       expect(screen.getByRole('checkbox')).toBeChecked();
     });
 
-    it('viser label korrekt', () => {
+    it('viser label korrekt og bruger den som kontrollens navn', () => {
       renderControlledToggle(false, false, true);
       expect(screen.getByText('Test toggle')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: 'Test toggle' })).toBeInTheDocument();
     });
 
-    it('rendrer uden label', () => {
+    it('har et navn uden synlig tekst, når navnet gives som ariaLabel', () => {
       renderControlledToggle(false, false, false);
-      expect(screen.getByRole('checkbox')).toBeInTheDocument();
       expect(screen.queryByText('Test toggle')).not.toBeInTheDocument();
+      // Navnløs er ikke længere en mulig tilstand: kontrollen kan altid findes på sit navn.
+      expect(screen.getByRole('checkbox', { name: 'Test toggle' })).toBeInTheDocument();
     });
 
     it('viser disabled state', () => {

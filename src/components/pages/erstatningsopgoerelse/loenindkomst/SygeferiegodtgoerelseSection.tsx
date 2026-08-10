@@ -20,6 +20,7 @@ import {
 } from '../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import type { CollectionRef } from '../../../../inputCore/fieldAddress';
 import InfoTooltipIcon from '../../../common/InfoTooltipIcon';
+import LabeledControlRow from '../../../layout/LabeledControlRow';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import type { SfggPresentation } from '../../../../domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
@@ -260,18 +261,19 @@ const SygeferiegodtgoerelseSection = ({
             </Box>
           </Box>
 
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">Først sygeferiegodtgørelse efter ophør af sygeløn</Typography>
-            <Box className="row--label-right-hover__content">
+          <LabeledControlRow label="Først sygeferiegodtgørelse efter ophør af sygeløn">
+            {({ labelledBy, controlId }) => (
               <MappedToggleField
                 field={eoSfggManuelFoerstEfterSygeloenField.bind(af.id)}
                 location={location('sfggManuelFoerstEfterSygeloen')}
                 checkedValue="Ja"
                 uncheckedValue="Nej"
                 name={`${af.id}:sfggManuelFoerstEfterSygeloen`}
+                id={controlId}
+                labelledBy={labelledBy}
               />
-            </Box>
-          </Box>
+            )}
+          </LabeledControlRow>
         </>
       ) : null}
 
