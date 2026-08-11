@@ -72,6 +72,8 @@ Ingen fund afventer reproduktion.
 | BF-039 | Bortfaldet ved kontraktændringen 2026-08-09; længdedelen (4. heltalsciffer) er nu håndhævet som del af den generelle tegn-/længderegel. |
 | BF-040 | Procent-paste følger nu samme tegn-for-tegn-regel som tastning og fortolker hverken punktum eller mellemrum. |
 | BF-041 | Brøk-paste bevarer et lovligt afsluttende komma som rejected tekst og springer kun forbudte tegn over. |
+| BF-042 | Brøkens indledende nuller normaliseres ved settle uden at reducere selve brøken. |
+| BF-043 | Brøk med nævner 0 bevares som afvist tekst med konkret tooltip om, at nævneren ikke må være 0. |
 | BF-045 | Sygedagpenge-hjælperens datoer er centrerede og følger den almindelige totrins fokus-/redigeringsmodel. |
 | BF-046 | Procentfelter afviser punktum og andre forbudte tegn centralt på både formular- og tabeloverflader. |
 | BF-050 | Svie-/smerte-tabellen arver den fælles livscyklus for helt tømte brugeroprettede rækker. |
@@ -94,32 +96,6 @@ Ingen fund afventer reproduktion.
 - Det sker: Paste-matchningen kræver aktuelt præcis samme store/små bogstaver og samme mellemrum som den viste label.
 - Det bør ske: Paste skal vælge ved fuldt label-match efter trimning og uden forskel på store og små bogstaver. Delvise eller ukendte labels skal fortsat give no-op uden at ændre det eksisterende valg.
 - Påvirkning: En gyldig valgmulighed fra eksempelvis en tekstkilde kan ignoreres, selv om den semantisk matcher den viste valgmulighed.
-- Prioritet: Mellem
-- Status: Ny
-
-## BF-042 — Brøkens indledende nuller normaliseres ikke
-
-- Type: Fejl
-- Sted: Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Brøk`
-- Sådan fremprovokeres det:
-  1. Indtast eller indsæt `02/04`.
-  2. Afslut feltet.
-- Det sker: Feltet viser fortsat `02/04`.
-- Det bør ske: Indledende nuller skal normaliseres ved settle, så værdien vises som `2/4`, mens selve brøken fortsat ikke reduceres til `1/2`.
-- Påvirkning: Samme brøk kan vises med unødvendigt forskellige tekstformer.
-- Prioritet: Mellem
-- Status: Ny
-
-## BF-043 — Brøk med division med nul mangler konkret fejl-tooltip
-
-- Type: Fejl
-- Sted: Erstatningsopgørelse → EO oplysninger → Forlig om ansvarsgrad → `Brøk`
-- Sådan fremprovokeres det:
-  1. Indtast `1/0`.
-  2. Afslut feltet.
-- Det sker: Værdien bliver en generisk formatfejl uden konkret besked om division med nul.
-- Det bør ske: `1/0` skal bevares som fejltekst med rød ring og tooltip, der konkret forklarer, at nævneren ikke må være nul.
-- Påvirkning: Brugeren får ikke en præcis forklaring på, hvorfor brøken er ugyldig.
 - Prioritet: Mellem
 - Status: Ny
 
