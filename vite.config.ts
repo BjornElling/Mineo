@@ -72,6 +72,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
     open: false,
+    watch: {
+      // Genererede test- og buildartefakter ligger under projektroden, men er
+      // ikke appens kildetræ. Hvis de overvåges, bliver hver rapportfil til en
+      // falsk HMR/full-reload, når test eller build kører parallelt med dev.
+      ignored: ['**/coverage/**', '**/playwright-report/**', '**/test-results/**', '**/dist/**'],
+    },
   },
 
   build: {
