@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -57,7 +57,7 @@ jobs:
     steps:
       # Checkout kun for wrangler-konfigurationerne; der bygges IKKE på ny.
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # wrangler-action installerer wrangler i det udcheckede repo, hvor
       # package.json's engines kræver Node >=24.18.0. Dette trin sikrer, at
