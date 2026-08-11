@@ -11,6 +11,7 @@ import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './hi
 import { serializeFieldAddress } from '../fieldAddress';
 import { spliceDraftWithPaste } from './pasteSplice';
 import { restoreDomValueAfterRejectedDraft, type DraftAdmission } from '../../components/inputs/draftAdmission';
+import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 
 // Grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den
 // bro-forbinder de TO redigerings-autoriteter, som en løntabel har:
@@ -71,7 +72,7 @@ export type GridCellSurface<T> = Readonly<{
   onDraftChange: (nextDraft: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => void;
-  onBlur: () => void;
+  onBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
 
   controller: FieldEditorController<T>;
 }>;
@@ -253,8 +254,11 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorHandle, gridApi, resolvedGridCellKey]);
 
-  const onBlur = React.useCallback(() => {
+  const onBlur = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
     if (!latest.current.controller.isOpen) return;
+    // Dialogens fokusflyt er ikke en normal redigeringsafslutning. Grid-editoren skal derfor blive åben, så
+    // Annuller kan genskabe samme draft, og en bekræftet replacement kan kassere den gennem coordinatoren.
+    if (isFocusTransferIntoConfirmationDialog(e.relatedTarget)) return;
     latest.current.controller.settle();
     gridApi.closeEditing();
   }, [gridApi]);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box } from '@mui/material';
+import { CONFIRMATION_DIALOG_FOCUS_MARKER } from '../../inputCore/react/modalFocusTransfer';
 
 type ConfirmationDialogProps = {
   open: boolean;
@@ -11,8 +12,6 @@ type ConfirmationDialogProps = {
   cancelText?: string;
   confirmColor?: 'primary' | 'error';
   hideCancelButton?: boolean;
-  /** Bevar fokus i en åben felteditor, indtil en destruktiv handling faktisk bekræftes. */
-  preserveExternalFocus?: boolean;
   /**
    * Ekstra actions (fx "Send fejloplysninger").
    *
@@ -43,18 +42,85 @@ const ConfirmationDialog = React.memo(({
   cancelText = 'Annuller',
   confirmColor = 'primary',
   hideCancelButton = false,
-  preserveExternalFocus = false,
   extraActions,
 }: ConfirmationDialogProps) => {
+  const restoreTargetRef = React.useRef<HTMLElement | null>(null);
+  const cancelButtonRef = React.useRef<HTMLButtonElement>(null);
+  const confirmButtonRef = React.useRef<HTMLButtonElement>(null);
+  const confirmStartedRef = React.useRef(false);
+  const wasOpenRef = React.useRef(false);
+
+  // MUI gemmer selv restore-målet, men dets interne reference kan ikke hjælpe, hvis en bekræftet handling
+  // fjerner det oprindelige felt fra DOM'en. Gem derfor samme konkrete mål og giv et fokusbart fallback ved
+  // transitionens afslutning; ved normal Annuller er MUI's egen restore-adfærd stadig den primære vej.
+  React.useLayoutEffect(() => {
+    if (open && !wasOpenRef.current) {
+      const activeElement = document.activeElement;
+      restoreTargetRef.current = activeElement instanceof HTMLElement && activeElement !== document.body
+        ? activeElement
+        : null;
+    }
+    wasOpenRef.current = open;
+  }, [open]);
+
+  React.useEffect(() => {
+    if (!open) return undefined;
+    // MUI's native autoFocus kan blive overtrumfet af den omgivende side-/felt-navigation, når dialogen åbnes
+    // fra en allerede aktiv editor. Fokusér derfor den første handling på næste frame, efter portalens og
+    // focus trap'ens mount-fokus er udført; FocusTrap ejer stadig den efterfølgende Tab-cirkulation.
+    const frame = window.requestAnimationFrame(() => {
+      (hideCancelButton ? confirmButtonRef.current : cancelButtonRef.current)?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, hideCancelButton]);
+
+  React.useEffect(() => {
+    if (!open) confirmStartedRef.current = false;
+  }, [open]);
+
+  const handleConfirmClick = React.useCallback(() => {
+    // En enkelt bekræftelse må kun starte én kritisk handling, også hvis Enter eller et dobbeltklik
+    // rammer knappen, mens den asynkrone handling stadig holder dialogen åben.
+    if (confirmStartedRef.current) return;
+    confirmStartedRef.current = true;
+    try {
+      onConfirm();
+    } catch (error) {
+      confirmStartedRef.current = false;
+      throw error;
+    }
+  }, [onConfirm]);
+
+  const restoreFocusAfterClose = React.useCallback(() => {
+    if (document.activeElement !== document.body) return;
+
+    const originalTarget = restoreTargetRef.current;
+    if (originalTarget?.isConnected) {
+      originalTarget.focus({ preventScroll: true });
+      return;
+    }
+
+    // Hvis en bekræftet handling fjernede feltet, er et eksisterende første fokusbart element den mindst
+    // overraskende fallback. Et fokusforsøg på den gamle, detached node ville ellers efterlade fokus på body.
+    const fallback = Array.from(document.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]'
+    )).find((element) => (
+      element.isConnected
+      && !element.hidden
+      && element.tabIndex >= 0
+      && element.closest('[aria-hidden="true"]') === null
+    ));
+    fallback?.focus({ preventScroll: true });
+  }, []);
+
   return (
     <Dialog
       open={open}
       onClose={onCancel}
+      onTransitionExited={restoreFocusAfterClose}
       maxWidth="sm"
       fullWidth
-      disableAutoFocus={preserveExternalFocus}
-      disableEnforceFocus={preserveExternalFocus}
-      disableRestoreFocus={preserveExternalFocus}
+      {...{ [CONFIRMATION_DIALOG_FOCUS_MARKER]: 'true' }}
       sx={{
         '& .MuiDialog-paper': {
           borderRadius: '10px',
@@ -69,7 +135,7 @@ const ConfirmationDialog = React.memo(({
         {!hideCancelButton && (
           <Button
             onClick={onCancel}
-            onMouseDown={preserveExternalFocus ? (event) => event.preventDefault() : undefined}
+            ref={cancelButtonRef}
             variant="outlined"
             sx={{
               borderRadius: '10px',
@@ -83,8 +149,8 @@ const ConfirmationDialog = React.memo(({
         )}
         {extraActions}
         <Button
-          onClick={onConfirm}
-          onMouseDown={preserveExternalFocus ? (event) => event.preventDefault() : undefined}
+          onClick={handleConfirmClick}
+          ref={confirmButtonRef}
           variant="contained"
           color={confirmColor}
           sx={{

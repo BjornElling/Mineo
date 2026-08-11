@@ -9,6 +9,7 @@ import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './hi
 import { serializeFieldAddress } from '../fieldAddress';
 import { spliceDraftWithPaste } from './pasteSplice';
 import { restoreDomValueAfterRejectedDraft, type DraftAdmission } from '../../components/inputs/draftAdmission';
+import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 
 // React-laget (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
 // Den parrer `useFieldEditor`-controlleren (som ejer draft/settle/cancel/clear/commit + dispatch, §3.6) med
@@ -232,6 +233,9 @@ export const useFormFieldSurface = <T>(
 
   const onBlur = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
     if (ignoreBlurRef.current) return;
+    // En bekræftelsesdialog flytter bevidst fokus væk fra editoren, men må ikke settle draften. Ved Annuller
+    // genopretter dialogen fokus til feltet; ved bekræftelse kasserer replacement-flowet editoren atomisk.
+    if (isFocusTransferIntoConfirmationDialog(e.relatedTarget)) return;
     // Blur er en settle-sti (§1.3): en åben editor settler; en lukket editor er no-op (controlleren guarder).
     latest.current.controller.settle();
     latest.current.config.onBlur?.(e);

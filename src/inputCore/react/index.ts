@@ -29,3 +29,4 @@ export * from './useCaseOperations';
 export * from './inputDiagnosticsProjection';
 export * from './useUndoRedoShortcuts';
 export * from './saveBlockedFocus';
+export * from './modalFocusTransfer';

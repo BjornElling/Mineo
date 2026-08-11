@@ -24,6 +24,7 @@ import {
   type FieldIssueSnapshot,
 } from '../../../inputCore';
 import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
+import { CONFIRMATION_DIALOG_FOCUS_MARKER } from '../../../inputCore/react/modalFocusTransfer';
 
 // UI-mekanik-laget (§2.4/§3.5, §7.1) mod syntetiske issue-snapshots. Surface-hooken oversætter kun
 // DOM-events → editor-controller; den parser/persisterer/holder ingen fejlstate.
@@ -123,8 +124,8 @@ const keyEventAt = (
   stopPropagation: () => callbacks.onStop?.(),
 }) as unknown as React.KeyboardEvent<HTMLInputElement>;
 
-const focusEvent = (): React.FocusEvent<HTMLInputElement> =>
-  ({}) as unknown as React.FocusEvent<HTMLInputElement>;
+const focusEvent = (relatedTarget: EventTarget | null = null): React.FocusEvent<HTMLInputElement> =>
+  ({ relatedTarget }) as unknown as React.FocusEvent<HTMLInputElement>;
 
 const pasteEvent = (raw: string): React.ClipboardEvent<HTMLInputElement> => ({
   clipboardData: { getData: () => raw },
@@ -172,6 +173,38 @@ describe('useFormFieldSurface — §7.1 aktivering + settle', () => {
     act(() => result.current.onBlur(focusEvent()));
     expect(result.current.isOpen).toBe(false);
     expect(canonical(field)).toBe(2022);
+  });
+
+  it('blur ind i ConfirmationDialog bevarer åben draft og afsluttet input', () => {
+    dispatchInput(store, catalog, settleField(field, '2020'));
+    const { result } = renderSurface(field);
+    act(() => result.current.onKeyDown(keyEvent('9')));
+    act(() => result.current.onDraftChange('2099'));
+
+    const dialogButton = document.createElement('button');
+    dialogButton.setAttribute(CONFIRMATION_DIALOG_FOCUS_MARKER, 'true');
+    act(() => result.current.onBlur(focusEvent(dialogButton)));
+
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.displayText).toBe('2099');
+    expect(canonical(field)).toBe(2020);
+    expect(store.getState().revision).toBe(1);
+  });
+
+  it('blur med manglende relatedTarget genkender aktivt dialogfokus', () => {
+    const { result } = renderSurface(field);
+    act(() => result.current.onKeyDown(keyEvent('2')));
+    act(() => result.current.onDraftChange('2022'));
+
+    const dialogButton = document.createElement('button');
+    dialogButton.setAttribute(CONFIRMATION_DIALOG_FOCUS_MARKER, 'true');
+    document.body.append(dialogButton);
+    dialogButton.focus();
+    act(() => result.current.onBlur(focusEvent()));
+
+    expect(result.current.isOpen).toBe(true);
+    expect(canonical(field)).toBeUndefined();
+    dialogButton.remove();
   });
 
   it('Escape lukker uden command; efterfølgende blur settler ikke (§1.3)', () => {
