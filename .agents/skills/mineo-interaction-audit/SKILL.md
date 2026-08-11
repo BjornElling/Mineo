@@ -1,9 +1,16 @@
 ---
 name: mineo-interaction-audit
-description: Udfør og genoptag en autonom, vedvarende og systematisk robustheds- og adfærdsaudit af Mineo uden brugerinput mellem arbejdsenheder; fortsæt principielt uden slutpunkt og afslut eller pausér kun efter en entydig brugerbesked om stop eller pause. Gennemgå hele brugerens interaktion med alle sider, felter, tabeller, valg, overlays, navigationer, undo/redo-, save/load- og dokumentforløb på tværs af understøttede browsere; afprøv happy paths, ugyldige, delvise, ekstreme og grænserelaterede input samt kombinationer og tilstandsskift; find og registrér runtimefejl, datatab, inkonsistent eller kontraktstridig brugeradfærd, mistænkelig parallel logik og uafklaret forventet adfærd uden at rette produktet.
+description: Brug kun efter brugerens udtrykkelige anmodning om netop en Mineo-interaktionsaudit. Udfør og genoptag derefter en autonom, vedvarende og systematisk robustheds- og adfærdsaudit af Mineo uden brugerinput mellem arbejdsenheder; fortsæt principielt uden slutpunkt og afslut eller pausér kun efter en entydig brugerbesked om stop eller pause. Gennemgå hele brugerens interaktion med alle sider, felter, tabeller, valg, overlays, navigationer, undo/redo-, save/load- og dokumentforløb på tværs af understøttede browsere; afprøv happy paths, ugyldige, delvise, ekstreme og grænserelaterede input samt kombinationer og tilstandsskift; find og registrér runtimefejl, datatab, inkonsistent eller kontraktstridig brugeradfærd, mistænkelig parallel logik og uafklaret forventet adfærd uden at rette produktet.
 ---
 
 # Mineo interaktionsaudit
+
+## Aktivering og autonom kørsel
+
+Skillen har to adskilte betingelser:
+
+1. **Aktivering:** Brug kun skillen, når brugeren udtrykkeligt beder om at få udført eller genoptaget netop en Mineo-interaktionsaudit. Aktivér den aldrig af egen drift, og brug den aldrig til andre formål — heller ikke fordi en anden opgave involverer browseradfærd, test, robusthed, fejlsøgning, review eller gennemgang af Mineo. En generel anmodning om test, review eller browserkontrol er ikke tilstrækkelig; anmodningen skal tydeligt omfatte denne specifikke, systematiske interaktionsaudit.
+2. **Kørsel efter aktivering:** Når brugeren har aktiveret skillen som beskrevet ovenfor, skal auditten køre autonomt og vedvarende uden løbende bekræftelser fra brugeren. Reglerne om at fortsætte uden nyt brugerinput gælder kun for den allerede aktiverede audit og må aldrig fortolkes som tilladelse til selv at starte en ny audit i en senere eller anden opgave.
 
 Arbejd autonomt, reproducerbart og checkpointet. Målet er den bedst mulige systematiske dækning af hele den brugerobserverbare adfærd og dens afhængigheder — ikke en påstand om, at en endelig kørsel kan bevise fravær af enhver fremtidig fejl.
 
