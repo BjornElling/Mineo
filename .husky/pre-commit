@@ -9,3 +9,6 @@ npm run check:mojibake
 
 # Stop commit hvis Git og filsystem er uenige om filnavns-casing
 npm run check:filename-case
+
+# Stop commit hvis en ændret kontrakt ikke er verificeret og stemplet i dag
+npm run check:contract-verification -- --staged

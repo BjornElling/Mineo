@@ -42,11 +42,40 @@ const contractsDir = join(repoRoot, 'src', 'contracts');
 const EXEMPT = new Set(['contract-template.md']);
 
 const STAMP_PATTERN = /\*\*Senest verificeret mod kode:\*\*\s*(\d{4}-\d{2}-\d{2})/;
+const STAGED_MODE = process.argv.slice(2).includes('--staged');
+
+if (process.argv.slice(2).some((argument) => argument !== '--staged')) {
+  console.error('check:contract-verification: ukendt argument. Kun --staged understøttes.');
+  process.exit(1);
+}
 
 const contractFiles = () =>
   readdirSync(contractsDir)
     .filter((name) => name.endsWith('.md') && !EXEMPT.has(name))
     .sort();
+
+const stagedContractPaths = () => execFileSync(
+  'git',
+  ['diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR', '--', 'src/contracts'],
+  { cwd: repoRoot }
+).toString('utf8')
+  .split('\0')
+  .filter((relativePath) => relativePath.endsWith('.md') && !EXEMPT.has(relativePath.slice('src/contracts/'.length)))
+  .sort();
+
+const readStagedContract = (relativePath) => execFileSync(
+  'git',
+  ['show', `:${relativePath}`],
+  { cwd: repoRoot, encoding: 'utf8' }
+);
+
+const today = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 /**
  * Datoen for den seneste commit, der ændrede filen — i commit-datoens egen tidszone, så en dag ikke
@@ -71,14 +100,28 @@ const hasGitHistory = () => {
   }
 };
 
-const main = () => {
-  if (!hasGitHistory()) {
-    // Eksplicit «ikke målt» frem for et tavst grønt udfald: uden historik kan kontrollen ikke svare,
-    // og et grønt svar ville da bære en påstand, ingen har efterprøvet.
-    console.error('check:contract-verification: ingen git-historik tilgængelig — kontrollen kunne IKKE køres.');
-    process.exit(1);
+const collectStagedProblems = () => {
+  const expectedStamp = today();
+  const problems = [];
+
+  for (const relativePath of stagedContractPaths()) {
+    const match = readStagedContract(relativePath).match(STAMP_PATTERN);
+    if (match === null) {
+      problems.push(`${relativePath}: mangler et "**Senest verificeret mod kode:** YYYY-MM-DD"-felt.`);
+      continue;
+    }
+
+    if (match[1] !== expectedStamp) {
+      problems.push(
+        `${relativePath}: stemplet er ${match[1]}, men en ændret kontrakt skal verificeres og stemples ${expectedStamp} før commit.`
+      );
+    }
   }
 
+  return problems;
+};
+
+const collectHistoricalProblems = () => {
   const problems = [];
   const files = contractFiles();
 
@@ -113,8 +156,22 @@ const main = () => {
     }
   }
 
+  return problems;
+};
+
+const main = () => {
+  if (!hasGitHistory()) {
+    // Eksplicit «ikke målt» frem for et tavst grønt udfald: uden historik kan kontrollen ikke svare,
+    // og et grønt svar ville da bære en påstand, ingen har efterprøvet.
+    console.error('check:contract-verification: ingen git-historik tilgængelig — kontrollen kunne IKKE køres.');
+    process.exit(1);
+  }
+
+  const problems = STAGED_MODE ? collectStagedProblems() : collectHistoricalProblems();
+
   if (problems.length > 0) {
-    console.error(`check:contract-verification: ${problems.length} kontrakt(er) med et forældet verifikationsstempel:\n`);
+    const context = STAGED_MODE ? 'staged kontrakt(er) med et ikke-opdateret verifikationsstempel' : 'kontrakt(er) med et forældet verifikationsstempel';
+    console.error(`check:contract-verification: ${problems.length} ${context}:\n`);
     for (const problem of problems) console.error(`  - ${problem}`);
     console.error(
       '\nStemplet er skabelonens ENESTE håndhævede felt og bærer derfor hele påstanden om, at kontrakten\n'
@@ -123,7 +180,12 @@ const main = () => {
     process.exit(1);
   }
 
-  console.log(`check:contract-verification: ${files.length} kontrakter har et stempel, der ikke er ældre end deres seneste ændring.`);
+  if (STAGED_MODE) {
+    console.log('check:contract-verification: alle ændrede kontrakter er stemplet med dagens dato.');
+    return;
+  }
+
+  console.log(`check:contract-verification: ${contractFiles().length} kontrakter har et stempel, der ikke er ældre end deres seneste ændring.`);
 };
 
 main();
