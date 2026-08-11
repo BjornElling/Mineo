@@ -111,51 +111,61 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
           <Box className="row--label-right-hover">
             <Typography className="row--text">Bilag, der indsættes</Typography>
             <Box className="row--label-right-hover__content">
-              {/* Indholdsbredde holder bilagsvalgene samlet ved højre kant; uden den strækker gruppen sig over hele cellen. */}
+              {/* Bilagsvalgene står som to højrestillede linjer med samme tætte afstand som på EO-siden. */}
               <Box
+                className="disabled-hover-checkbox-group"
                 sx={{
                   display: 'flex',
-                  gap: 2,
-                  flexWrap: 'wrap',
-                  justifyContent: 'flex-end',
-                  width: 'max-content',
-                  maxWidth: '100%',
+                  flexDirection: 'column',
+                  gap: 0,
+                  alignItems: 'flex-end',
+                  '& .MuiFormControlLabel-label': {
+                    fontFamily: 'var(--font-family-base)',
+                    fontSize: '15px',
+                    fontWeight: 'var(--font-weight-regular)',
+                    lineHeight: 'var(--line-height-base)',
+                    color: 'var(--mineo-color-row-text)',
+                  },
                 }}
               >
-                <CheckboxField
-                  field={refs.loebendeYdelser}
-                  location={location('bilag-loebendeYdelser')}
-                  name="loebendeYdelser"
-                  label="Løbende ydelser"
-                />
-                <CheckboxField
-                  field={refs.kapitalisering}
-                  location={location('bilag-kapitalisering')}
-                  name="kapitalisering"
-                  label="Kapitalisering"
-                />
-                <CheckboxField
-                  field={refs.eetEfterEal}
-                  location={location('bilag-eetEfterEal')}
-                  name="eetEfterEal"
-                  label="EET efter EAL"
-                />
-                {computation.proformaKapitalisering && (
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <CheckboxField
-                    field={refs.proformaKapitalisering}
-                    location={location('bilag-proformaKapitalisering')}
-                    name="proformaKapitalisering"
-                    label="Proformakap. af rest-EET"
+                    field={refs.loebendeYdelser}
+                    location={location('bilag-loebendeYdelser')}
+                    name="loebendeYdelser"
+                    label="Løbende ydelser"
                   />
-                )}
-                {computation.merErstatningPensionsalder && (
                   <CheckboxField
-                    field={refs.merErstatningPensionsalder}
-                    location={location('bilag-merErstatningPensionsalder')}
-                    name="merErstatningPensionsalder"
-                    label="Mer-erstatning forhøjet folkepension"
+                    field={refs.kapitalisering}
+                    location={location('bilag-kapitalisering')}
+                    name="kapitalisering"
+                    label="Kapitalisering"
                   />
-                )}
+                  <CheckboxField
+                    field={refs.eetEfterEal}
+                    location={location('bilag-eetEfterEal')}
+                    name="eetEfterEal"
+                    label="EET efter EAL"
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {computation.proformaKapitalisering && (
+                    <CheckboxField
+                      field={refs.proformaKapitalisering}
+                      location={location('bilag-proformaKapitalisering')}
+                      name="proformaKapitalisering"
+                      label="Proformakap. af rest-EET"
+                    />
+                  )}
+                  {computation.merErstatningPensionsalder && (
+                    <CheckboxField
+                      field={refs.merErstatningPensionsalder}
+                      location={location('bilag-merErstatningPensionsalder')}
+                      name="merErstatningPensionsalder"
+                      label="Mer-erstatning forhøjet folkepension"
+                    />
+                  )}
+                </Box>
               </Box>
             </Box>
           </Box>

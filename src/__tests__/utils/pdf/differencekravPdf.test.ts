@@ -219,4 +219,53 @@ describe('generateDifferencekravDocument', () => {
     expect(renderedText).toContain('730.081 kr.');
     expect(renderedText).not.toContain('Beregnet differencekrav');
   });
+
+  it('skriver forhøjet pensionsalder som sektionsoverskrift', async () => {
+    const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
+
+    generateDifferencekravDocument(pdfSession, {
+      computation: {
+        beregningsdato: toISODateString('2026-03-17'),
+        skadedato: toISODateString('2020-01-01'),
+        dagFoerBeregningsdato: toISODateString('2026-03-16'),
+        ealKravOre: fromKroner(100000),
+        ealEetPct: 15,
+        fradragLoebendeYdelserOre: fromKroner(0),
+        fradragKapitaliseretEetOre: fromKroner(0),
+        proformaKapitalisering: null,
+        proformaBeloebOre: fromKroner(0),
+        differencekravFoerForligOre: fromKroner(100000),
+        forligFactor: null,
+        forligLabel: null,
+        differencekravOre: fromKroner(100000),
+        afgoerelser: [],
+        kapitaliseringerAfgoerelser: [],
+        merErstatningPensionsalder: {
+          events: [{
+            forhoejelsesdato: toISODateString('2024-01-01'),
+            gammelAlderLabel: '67 år',
+            nyAlderLabel: '68 år',
+            merErstatningOre: fromKroner(4431),
+          }],
+        },
+        loebendeComputation: null,
+        kapComputation: null,
+        ealComputation: null,
+      } as never,
+      bilagSelection: {
+        loebendeYdelser: false,
+        kapitalisering: false,
+        eetEfterEal: false,
+        proformaKapitalisering: false,
+        merErstatningPensionsalder: false,
+        visUdvidetSpecifikationLoebendeYdelserBilag: false,
+      },
+    });
+
+    const instance = MockJsPDF.instances.at(-1);
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => String(call[0]));
+
+    expect(renderedText).toContain('Forhøjet pensionsalder');
+    expect(renderedText).not.toContain('Mer-erstatning ved forhøjet folkepensionsalder');
+  });
 });

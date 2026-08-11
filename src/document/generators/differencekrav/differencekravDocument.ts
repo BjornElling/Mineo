@@ -199,7 +199,7 @@ const addProformaKapitaliseringSection = (
 };
 
 // ============================================================================
-// MER-ERSTATNING VED FORHØJET FOLKEPENSIONSALDER-SEKTION
+// FORHØJET PENSIONSALDER-SEKTION
 // ============================================================================
 
 const addMerErstatningEvent = (
@@ -294,7 +294,7 @@ const addMerErstatningPensionsalderSection = (
   koen: string | undefined
 ): void => {
   writer.addPage();
-  writer.writeSectionHeader('Mer-erstatning ved forhøjet folkepensionsalder');
+  writer.writeSectionHeader('Forhøjet pensionsalder');
 
   computation.events.forEach((event) => {
     addMerErstatningEvent(writer, event, koen);
@@ -446,9 +446,9 @@ const renderDifferencekravPage = (
     }
   }
 
-  // Mer-erstatning ved forhøjet folkepensionsalder
+  // Forhøjet pensionsalder
   if (computation.merErstatningPensionsalder) {
-    writer.writeBoldSubheader('Mer-erstatning ved forhøjet folkepensionsalder');
+    writer.writeSectionHeader('Forhøjet pensionsalder');
     for (const event of computation.merErstatningPensionsalder.events) {
       writer.writeLeftRightText(
         `Forhøjelse pr. ${formatISOToDanish(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`,
