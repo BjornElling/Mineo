@@ -1,7 +1,7 @@
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { createAmountFieldCodec } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
-import type { FieldDescriptor, FieldValidator } from '../fieldDescriptor';
+import type { CanonicalView, FieldDescriptor, FieldValidator } from '../fieldDescriptor';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { amountBoundsValidator } from './boundsValidators';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -9,11 +9,14 @@ import {
   validateAslAarsloenBySkadesaarMax,
   validateAslAarsloenDivisibleBy1000,
 } from '../../domain/aslEalAarsloen/aarsloenValidators';
+import { resolveAslAarsloensmaksimumForAar } from '../../domain/satser/aslAarsloensmaksimum';
+import { erhvervsevnetabBeregningsdatoField, isValidErhvervsevnetabBeregningsdato } from './erhvervsevnetabDescriptors';
 import { stamdataSkadedatoField } from './stamdataDescriptors';
 
 // Produkt-descriptors for `faellesAarsloen`-sektionen (ASL/EAL-årsløn, §3.2). Sektionen har ingen
 // egen route; den redigeres i flere domænekontekster (EET, Forsørgertab, EO). Beløbene er heltal med et hårdt
-// gulv på 1000 og loft på 9999999 — nu en afledt canonical bounds-feltvalidator (§1.6), ikke en codec-afvisning.
+// gulv på 1000 og et fallback-loft på 9999999 — altid som en afledt canonical bounds-feltvalidator (§1.6),
+// ikke som en codec-afvisning. ASL-feltets loft skærpes til den validerede EET-beregningsdato, når den findes.
 // En værdi under gulvet committes canonical med et rødt bounds-issue og kan gemmes i `.eo`. Fortegn ikke tilladt.
 
 const createEmptyFaellesAarsloenSection = (): unknown => ({});
@@ -21,10 +24,13 @@ const createEmptyFaellesAarsloenSection = (): unknown => ({});
 const AMOUNT_MIN = 1000;
 const AMOUNT_MAX = 9999999;
 
+type AmountMaxResolver = (view: CanonicalView) => number;
+
 const amountField = (
   field: string,
   label: string,
-  extraValidators: readonly FieldValidator<AmountValue | undefined>[] = []
+  extraValidators: readonly FieldValidator<AmountValue | undefined>[] = [],
+  resolveMaxValue: AmountMaxResolver = () => AMOUNT_MAX,
 ): FieldDescriptor<AmountValue | undefined> =>
   defineStructuralField<AmountValue | undefined>({
     id: `faellesAarsloen.${field}`,
@@ -35,8 +41,25 @@ const amountField = (
     label,
     controlKind: 'text',
     createEmptySection: createEmptyFaellesAarsloenSection,
-    validators: [amountBoundsValidator(`faellesAarsloen.${field}.bounds`, AMOUNT_MIN, AMOUNT_MAX), ...extraValidators],
+    validators: [
+      (value, fieldRef, view) => amountBoundsValidator(
+        `faellesAarsloen.${field}.bounds`,
+        AMOUNT_MIN,
+        resolveMaxValue(view),
+      )(value, fieldRef, view),
+      ...extraValidators,
+    ],
   });
+
+const resolveAslAarsloenMaxValue = (view: CanonicalView): number => {
+  if (!isValidErhvervsevnetabBeregningsdato(view)) return AMOUNT_MAX;
+
+  const beregningsdato = view.readCanonical(erhvervsevnetabBeregningsdatoField.bind());
+  if (beregningsdato === undefined) return AMOUNT_MAX;
+
+  const beregningsaar = Number.parseInt(beregningsdato.slice(0, 4), 10);
+  return resolveAslAarsloensmaksimumForAar(beregningsaar) ?? AMOUNT_MAX;
+};
 
 export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', 'Årsløn', [
   (value, _field, view) => {
@@ -49,7 +72,7 @@ export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', 'Årsl
       ? undefined
       : { reason: 'rule', code: 'faellesAarsloen.aslAarsloen.rule', message };
   },
-]);
+], resolveAslAarsloenMaxValue);
 export const faellesAarsloenEalAarsloenField = amountField('ealAarsloen', 'Årsløn (hvis forskellig fra ASL)');
 
 export const faellesAarsloenFields = catalogFields(faellesAarsloenAslAarsloenField, faellesAarsloenEalAarsloenField);

@@ -19,6 +19,12 @@ import { amountResultBoundsValidator } from './amountResultBounds';
 export type FieldControlKind = 'text' | 'choice' | 'toggle';
 
 /**
+ * En regel, der afgør om feltets værdi overhovedet er meningsfuld i den aktuelle feltkontekst.
+ * Den placeres efter formatfejl, men før almindelige bounds-/regelissues.
+ */
+export type FieldIssuePriority = 'context';
+
+/**
  * Adressetemplaten uden konkrete entity-id'er. Statiske felter har kun property-led; dynamiske felter har
  * `entity`-led, som bindes til stabile id'er via {@link FieldDescriptor.bind}.
  */
@@ -55,6 +61,7 @@ export type FieldIssueSpec = Readonly<{
   reason: 'bounds' | 'rule' | 'schema';
   code: string;
   message: string;
+  priority?: FieldIssuePriority;
   detail?: Readonly<Record<string, string | number | boolean>>;
 }>;
 

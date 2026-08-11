@@ -158,6 +158,66 @@ const eetValues: ErhvervsevnetabComposedValues = {
 };
 
 describe('midlertidigt EET transient injection', () => {
+  it('bevarer det midlertidige EET-bilag for en midlertidig og delvist endelig afgørelse med de rapporterede datoer', () => {
+    const eoValues = {
+      ...createValidEoBase(),
+      midlertidigtEetFraEetSiden: 'Ja' as const,
+      vedroererPeriodeFra: iso('2023-06-22'),
+      vedroererPeriodeTil: iso('2026-09-30'),
+      tafPerioder: [{ id: 'taf-1', fra: iso('2023-10-09'), til: iso('2025-08-28'), loseFeriedage: 0 }],
+    };
+    const reportedStamdata = { ...stamdata, skadedato: iso('2023-06-22') };
+    const reportedEetValues: ErhvervsevnetabComposedValues = {
+      ...eetValues,
+      beregningsdato: iso('2026-08-11'),
+      aslAarsloen: asAmountValue(588000),
+      aslAfgoerelser: [
+        {
+          id: 'midlertidig',
+          afgoerelsesDato: iso('2025-07-16'),
+          virkningsDato: iso('2025-01-13'),
+          eetPct: 25,
+          afgoerelseType: 'Midlertidig',
+          kapDato: undefined,
+          kapPct: undefined,
+          tidlKapDato: undefined,
+          fsTilbageholdtEet: 'Ja',
+        },
+        {
+          id: 'delvist-endelig',
+          afgoerelsesDato: iso('2025-08-29'),
+          virkningsDato: iso('2024-09-04'),
+          eetPct: 25,
+          afgoerelseType: 'Delvist endelig',
+          kapDato: iso('2025-08-29'),
+          kapPct: 15,
+          tidlKapDato: undefined,
+          fsTilbageholdtEet: 'Nej',
+        },
+      ],
+      skadelidteFodselsdato: reportedStamdata.skadelidteFodselsdato,
+    };
+
+    const snapshot = computeEoSnapshot({
+      revision: 'midlertidigt-eet-rapporteret-sag',
+      stamdataValues: reportedStamdata,
+      eoValues,
+      eetImportSource: { eetValues: reportedEetValues, skadedato: reportedStamdata.skadedato },
+    });
+
+    const bilagGroups = buildMidlertidigtEetPdfGroupsForTafRanges(
+      snapshot.data?.midlertidigtEetGroups ?? [],
+      snapshot.data?.canonicalOutput.periodiseringer.tafPerioder ?? []
+    );
+    expect(bilagGroups).toHaveLength(1);
+    expect(bilagGroups[0]?.afgoerelsesdato).toBe(iso('2025-08-29'));
+    expect(bilagGroups[0]?.perioder).toContainEqual(expect.objectContaining({
+      fra: iso('2024-09-04'),
+      til: iso('2025-08-28'),
+    }));
+    expect(bilagGroups[0]?.perioder.at(-1)?.til).toBe(iso('2025-08-28'));
+  });
+
   it('ignorerer EET-kilden når togglen er slået fra', () => {
     const eoValues = {
       ...createValidEoBase(),

@@ -73,6 +73,7 @@ describe('buildMidlertidigtEetInsertSource', () => {
     expect(source.revision).toBe('input-7-settings-3');
     // Importkilden indeholder kun importmotorens typed read-set; EAL-procenten hører til en anden gren.
     expect(source.eetValues.ealEetPct).toBeUndefined();
+    expect(source.eetValues.ealAarsloen).toBeUndefined();
     expect(source.eetValues.aslAfgoerelser).toHaveLength(1);
     expect(source.issues).toBeUndefined();
   });

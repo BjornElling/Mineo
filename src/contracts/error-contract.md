@@ -131,14 +131,23 @@ advarsler" UDEN feltet foran sig, og labels indeholder selv punktummer og bindes
 ## 4. Prioritet og visning
 
 Hvis flere issues rammer samme felt, vælger en central deterministisk resolver højst ét aktivt feltissue.
-Prioriteten er `compareFieldIssues` (`src/inputCore/inputIssue.ts`) og har præcis tre led i denne rækkefølge:
+Prioriteten er `compareFieldIssues` (`src/inputCore/inputIssue.ts`) og følger denne rækkefølge:
 
-1. **`reason`** efter fast rangorden `format` → `bounds` → `rule` → `schema`. Den mest direkte feltfejl vinder:
-   kunne råteksten ikke parses, er en regel om den parsede værdi uden mening.
-2. **`code`** leksikografisk.
-3. **`message`** leksikografisk.
+1. **`format`** vinder altid. En afvist råtekst må aldrig skjules af en regel om den canonical værdi — fx skal en
+   delvist indtastet dato fortsat vise `Fejl i indtastning`.
+2. **`priority: 'context'`** vinder derefter. Den bruges kun af en feltplaceret regel, der afgør, at feltets
+   canonical værdi ikke er meningsfuld i den valgte kontekst, fx kapitaliseringsdato ved en midlertidig afgørelse
+   eller tidligere kapitaliseringsdato uden en ny kapitalisering.
+3. Den almindelige rangorden `format` → `bounds` → `rule` → `schema` gælder for issues uden en kontekstprioritet;
+   fordi `format` allerede er absolut første prioritet, betyder dette for øvrige issues `bounds` → `rule` → `schema`.
+4. **`code`** leksikografisk.
+5. **`message`** leksikografisk.
 
 Komponentrækkefølge eller seneste reporter må aldrig påvirke den.
+
+Et `context`-issue gør ikke en schema-repræsenterbar canonical værdi rejected. InputReaderen bevarer derfor værdien,
+så et skift mellem synlige afgørelsestyper ikke sletter brugerinput; den domæneprojektion, der ejer kontekstreglen,
+viser issuet og blokerer sin egen afhængighed.
 
 **Hverken `source` eller `severity` indgår.** Der findes ingen `source`-dimension — §11 forbyder source-registre —
 og `severity` er på et `FieldIssue`/`ConsumerIssue` den ENESTE literal `'error'`: et kerneissue er per definition

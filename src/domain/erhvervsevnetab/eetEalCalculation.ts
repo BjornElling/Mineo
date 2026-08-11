@@ -1,6 +1,6 @@
 import type { ErhvervsevnetabComposedValues, AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
-import { EET_UNDER_15_WARNING } from './eetFieldWarnings';
+import { EET_UNDER_15_WARNING, hasEetAslAarsloenMaxWarning } from './eetFieldWarnings';
 import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
@@ -338,14 +338,13 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
       ealAarsloenInput === maxAarsloenForSkadesaar
     ) {
       issues.push(toWarning('warn-eal-aarsloen-is-max', maxAarsloenWarningMessage));
-    } else if (
-      (ealAarsloenInput === undefined || !Number.isFinite(ealAarsloenInput)) &&
-      aarsloen.source === 'asl'
-    ) {
-      const aslAarsloenValue = amountValueToNumber(values.aslAarsloen);
-      if (typeof aslAarsloenValue === 'number' && aslAarsloenValue === maxAarsloenForSkadesaar) {
-        issues.push(toWarning('warn-asl-aarsloen-is-max', maxAarsloenWarningMessage));
-      }
+    } else if (hasEetAslAarsloenMaxWarning(
+      values.aslAarsloen,
+      values.ealAarsloen,
+      skadedato,
+      input.aarsloenAslMax,
+    )) {
+      issues.push(toWarning('warn-asl-aarsloen-is-max', maxAarsloenWarningMessage));
     }
   }
 

@@ -15,6 +15,7 @@ import {
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import type { ErhvervsevnetabValues, FaellesAarsloenValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
@@ -135,6 +136,37 @@ describe('Erhvervsevnetab — samlet surface og reader-projektion', () => {
     expect(input).toHaveAttribute('aria-invalid', 'true');
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Løbende ydelser' }));
     expect(screen.getByText(/Årsløn skal være deleligt/)).toBeInTheDocument();
+  });
+
+  it('viser maksimumssatsen fra den gyldige EET-beregningsdato i årslønsfejlen', () => {
+    hydrate(
+      { ...validEet, beregningsdato: toISODateString('2025-03-19') },
+      { ...validAarsloen, aslAarsloen: amount(9999999) },
+      validStamdata,
+    );
+    renderPage();
+
+    const input = document.querySelector('input[name="aslAarsloen"]');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    const describedBy = input?.getAttribute('aria-describedby');
+    const statusId = describedBy?.split(' ').at(-1);
+    expect(statusId).toBeDefined();
+    expect(document.getElementById(statusId!)?.textContent).toBe('Værdi skal være mellem 1000 og 632000');
+  });
+
+  it('viser gul ring og tooltip på EAL-årslønnen når ASL-årslønnen er skadesårets maksimum', async () => {
+    hydrate(
+      validEet,
+      { aslAarsloen: amount(aarsloenAslMax[2024]!), ealAarsloen: undefined },
+      validStamdata,
+    );
+    renderPage();
+
+    const input = document.querySelector('input[name="ealAarsloen"]') as HTMLInputElement;
+    await userEvent.setup().hover(input);
+
+    expect(await screen.findByText('Årsløn efter ASL er sat til max-årslønnen')).toBeInTheDocument();
+    expect(input.closest('.MuiOutlinedInput-root')).not.toHaveClass('Mui-error');
   });
 
   it('settler friskt og leverer løbende-ydelser-dokumentet med frisk stamdata', async () => {

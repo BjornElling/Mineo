@@ -1,6 +1,6 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues, JaNej } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
-import { EET_UNDER_15_WARNING } from './eetFieldWarnings';
+import { EET_UNDER_15_WARNING, hasEetAslAarsloenMaxWarning } from './eetFieldWarnings';
 import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
@@ -657,8 +657,13 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
 
   collectWarnings(skadedato, beregningsdato, resolvedAfgoerelser, issues);
 
-  const ealAarsloenInput = amountValueToNumber(input.erhvervsevnetab.ealAarsloen);
-  if ((ealAarsloenInput === undefined || !Number.isFinite(ealAarsloenInput)) && aslAarsloen === maxAarsloenISkadesaar) {
+  // EO-importen bruger samme beregningskerne til at indsætte midlertidige rækker, men denne EET-oplysning
+  // hører kun hjemme på erhvervsevnetab-fanerne og må derfor ikke følge med som en EO-advarsel.
+  if (input.context.kind === 'eet_page' && hasEetAslAarsloenMaxWarning(
+    input.erhvervsevnetab.aslAarsloen,
+    input.erhvervsevnetab.ealAarsloen,
+    skadedato,
+  )) {
     issues.push(toWarning('warn-asl-aarsloen-is-max', 'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL'));
   }
 

@@ -1836,4 +1836,29 @@ describe('computeEetLoebendeYdelserForEoImport', () => {
     expect(result.computation?.beregningsdato).toBe(toISODateString('2024-12-31'));
     expect(result.computation?.afgoerelser.flatMap((a) => a.perioder).at(-1)?.til).toBe(toISODateString('2024-04-30'));
   });
+
+  it('viser ikke ASL-maksimumadvarslen i EO-importkonteksten', () => {
+    const maxAarsloen2019 = aarsloenAslMax[2019];
+    if (!Number.isFinite(maxAarsloen2019)) throw new Error('expected max salary for 2019');
+
+    const result = computeEetLoebendeYdelserForEoImport({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2026-02-27'),
+        aslAarsloen: asAmount(maxAarsloen2019),
+        aslAfgoerelser: [
+          {
+            ...midlertidigRow,
+            afgoerelsesDato: toISODateString('2023-07-01'),
+            virkningsDato: toISODateString('2023-02-01'),
+          },
+        ],
+      },
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      slutdato: toISODateString('2026-02-27'),
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(false);
+  });
 });

@@ -6,10 +6,7 @@ import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
 import { createTrackedInputReader, type InputEvaluation } from '../../inputCore/inputReader';
 import { erhvervsevnetabBeregningsdatoField } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
-import {
-  faellesAarsloenAslAarsloenField,
-  faellesAarsloenEalAarsloenField,
-} from '../../inputCore/catalog/faellesAarsloenDescriptors';
+import { faellesAarsloenAslAarsloenField } from '../../inputCore/catalog/faellesAarsloenDescriptors';
 import {
   stamdataSkadedatoField,
   stamdataSkadelidteFodselsdatoField,
@@ -67,8 +64,8 @@ export type EetImportSource = Readonly<{
  *   folkepensionsafgrænsningen af den løbende ydelse.
  *
  * BEVIDST UDE — læst, men uden talvirkning eller slet ikke læst:
- * - `faellesAarsloen.ealAarsloen`: læses KUN til advarslen `warn-asl-aarsloen-is-max` (severity `warning`,
- *   filtreres bort af importens fejl-filter). En rød EAL-årsløn må derfor ikke blokere importen.
+ * - `faellesAarsloen.ealAarsloen`: læses ikke af EO-importen. EAL-årslønnen hører til EET-sidens
+ *   EAL-beregning og er ikke en del af importens typed read-set.
  * - `erhvervsevnetab.ealEetPct`, `koen`, `bilag*`-toggles og de to differencekrav-toggles: ikke læst på
  *   denne vej (de hører til EET-siden selv / EET-efter-EAL).
  * - Stamdatas brevhovedfelter: importen sender dem som `''` og læser dem ikke.
@@ -83,7 +80,6 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
   const stamdataProjection = createTrackedInputReader(evaluation.reader);
   const beregningsdatoRead = eetProjection.reader.read(erhvervsevnetabBeregningsdatoField.bind());
   const aslAarsloenRead = aarsloenProjection.reader.read(faellesAarsloenAslAarsloenField.bind());
-  const ealAarsloenRead = evaluation.reader.read(faellesAarsloenEalAarsloenField.bind());
   const skadedatoRead = stamdataProjection.reader.read(stamdataSkadedatoField.bind());
   const fodselsdatoRead = stamdataProjection.reader.read(stamdataSkadelidteFodselsdatoField.bind());
   const eetValues: ErhvervsevnetabComposedValues = {
@@ -91,8 +87,6 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
     beregningsdato: beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined,
     aslAfgoerelser: readAslAfgoerelserCommittedRows(eetProjection.reader),
     aslAarsloen: aslAarsloenRead.status === 'usable' ? aslAarsloenRead.value : undefined,
-    // EAL-årslønnen påvirker kun en warning og er derfor et ikke-blokerende read.
-    ealAarsloen: ealAarsloenRead.status === 'usable' ? ealAarsloenRead.value : undefined,
     skadelidteFodselsdato: fodselsdatoRead.status === 'usable' ? fodselsdatoRead.value : undefined,
   };
   const sourceIssues: EetIssue[] = [];

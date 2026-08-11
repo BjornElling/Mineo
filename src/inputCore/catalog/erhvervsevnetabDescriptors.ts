@@ -18,6 +18,8 @@ import { dateBounds } from './dateBoundsValidators';
 import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
   isAslAfgoerelseRowPersistenceEmpty,
+  KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE,
+  TIDL_KAP_DATO_WITHOUT_KAPITALISERING_MESSAGE,
   validatePercentDivisibleBy5FromValue,
   validatePercentNotZero,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
@@ -31,7 +33,13 @@ import {
 import { validResolution } from '../fieldCodec';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
-import type { FieldAddressTemplate, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
+import type {
+  CanonicalView,
+  FieldAddressTemplate,
+  FieldDescriptor,
+  FieldRef,
+  FieldValidator,
+} from '../fieldDescriptor';
 import {
   defineStructuralCollection,
   defineStructuralField,
@@ -99,6 +107,21 @@ export const erhvervsevnetabBeregningsdatoField = defineStructuralField<ISODateS
     },
   ],
 });
+
+/**
+ * Om EET-beregningsdatoen kan bruges som grundlag for en årsafhængig feltgrænse.
+ *
+ * `CanonicalView` viser med vilje kun canonical værdier og ikke andre felters issues. Derfor er det ikke nok
+ * at finde en dato: en dato før skadedatoen er stadig canonical, men har en rød bounds-fejl. Årslønsfeltet
+ * bruger denne fælles validatorliste, så den ikke kommer til at vise en årsgrænse, som datoen selv ikke må
+ * bruges til at aflede.
+ */
+export const isValidErhvervsevnetabBeregningsdato = (view: CanonicalView): boolean => {
+  const field = erhvervsevnetabBeregningsdatoField.bind();
+  const value = view.readCanonical(field);
+  if (value === undefined) return false;
+  return (field.descriptor.validators ?? []).every((validator) => validator(value, field, view) === undefined);
+};
 
 export const erhvervsevnetabKoenField = defineStructuralField<Koen | undefined>({
   id: 'erhvervsevnetab.koen',
@@ -311,6 +334,38 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
     };
   };
 
+const aslDateContextValidator = (role: AslDateRole): FieldValidator<ISODateString | undefined> =>
+  (value, field, view) => {
+    if (value === undefined) return undefined;
+    const rowId = aslRowIdOf(field);
+
+    if (role === 'kapDato') {
+      const afgoerelseType = view.readCanonical(aslAfgoerelseAfgoerelseTypeField.bind(rowId));
+      if (afgoerelseType === 'Midlertidig') {
+        return {
+          reason: 'rule',
+          code: 'erhvervsevnetab.aslAfgoerelser.kapDato.midlertidig',
+          priority: 'context',
+          message: KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE,
+        };
+      }
+    }
+
+    if (role === 'tidlKapDato') {
+      const kapDato = view.readCanonical(aslAfgoerelseKapDatoField.bind(rowId));
+      if (kapDato === undefined) {
+        return {
+          reason: 'rule',
+          code: 'erhvervsevnetab.aslAfgoerelser.tidlKapDato.udenKapitalisering',
+          priority: 'context',
+          message: TIDL_KAP_DATO_WITHOUT_KAPITALISERING_MESSAGE,
+        };
+      }
+    }
+
+    return undefined;
+  };
+
 /**
  * ASL-rækkens grænser som erklæring.
  *
@@ -332,21 +387,24 @@ const aslOuterBoundsSpec: DateBoundsSpec = {
 const aslDate = (
   field: AslDateRole,
   label: string
-): FieldDescriptor<ISODateString | undefined> =>
-  defineStructuralField<ISODateString | undefined>({
+): FieldDescriptor<ISODateString | undefined> => {
+  const bounds = dateBounds(aslOuterBoundsSpec, [], () => aslDateBoundsValidator(field));
+  return defineStructuralField<ISODateString | undefined>({
     id: `erhvervsevnetab.aslAfgoerelser.${field}`,
     template: aslRowTemplate(field),
     codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
     // ASL-validatoren fletter rolle-, række- og skadedato-afhængige grænser i én besked. En standard
     // bounds-validator oveni ville give to konkurrerende issues med samme kode og kunne vælge den
     // forkerte tooltip-tekst i issue-prioriteringen.
-    ...dateBounds(aslOuterBoundsSpec, [], () => aslDateBoundsValidator(field)),
+    ...bounds,
     emptyValue: undefined,
     isEmpty: isUndefined,
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErhvervsevnetabSection,
+    validators: [...bounds.validators, aslDateContextValidator(field)],
   });
+};
 
 const aslPct = (field: string, label: string): FieldDescriptor<number | undefined> =>
   defineStructuralField<number | undefined>({

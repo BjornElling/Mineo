@@ -120,6 +120,7 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
         field: anyRef,
         reason: spec.reason,
         message: spec.message,
+        ...(spec.priority === undefined ? {} : { priority: spec.priority }),
         ...(spec.detail === undefined ? {} : { detail: spec.detail }),
       }));
     }
@@ -129,8 +130,9 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
 };
 
 // ── §3.4 pkt. 3: den offentlige InputReader ─────────────────────────────────────────────────────────
-// Kombinerer samme input med issue-snapshottet og SKJULER enhver værdi med en aktiv feltfejl. Ingen
-// consumer må se den canonical værdi bag en rød feltfejl (§1.5/§2.1).
+// Kombinerer samme input med issue-snapshot. Rejected input og almindelige canonical fejl skjules for consumers;
+// en `context`-fejl er den kontrollerede undtagelse: værdien er formatmæssigt repræsenterbar og skal bevares, mens
+// den domæneprojektion, der ejer kontekstreglen, selv gater den berørte beregning.
 
 export type ReadFieldResult<T> =
   | Readonly<{ status: 'usable'; value: T }>
@@ -141,8 +143,9 @@ export type ReadFieldResult<T> =
  *
  * ⚠️ Der er BEVIDST ingen `fieldIssues: FieldIssueSnapshot` her. Et frit issue-snapshot ville lade en
  * consumer filtrere på sektionsnavn og blokere på felter, den aldrig læser. Afhængigheder ville dermed
- * være en konvention frem for en grænse. `read(field)` skjuler værdien bag en rød feltfejl og returnerer
- * issuet for netop det felt, consumeren faktisk læser.
+ * være en konvention frem for en grænse. `read(field)` skjuler værdien bag en almindelig rød feltfejl og returnerer
+ * issuet for netop det felt, consumeren faktisk læser. En `context`-fejl returnerer værdien, fordi den er canonical;
+ * den relevante domæneprojektion skal i stedet vise issuet og gate sin egen beregning.
  *
  * En projektion, der skal samle fejl fra flere reads, bruger `createTrackedInputReader`. Dermed kommer
  * issue-sættet fra de konkrete `FieldRef`s, projektionen faktisk læste, ikke fra en efterfølgende
@@ -204,7 +207,9 @@ const createInputReader = (options: Readonly<{
     read: <T>(field: FieldRef<T>): ReadFieldResult<T> => {
       const value = validation.readCanonical(field); // verificerer også kendt + eksisterende entity
       const issue = activeFieldIssue(options.issues, serializeFieldAddress(field.address));
-      if (issue !== undefined) return Object.freeze({ status: 'error', issue });
+      // En kontekstregel markerer værdien, men gør den ikke rejected. Den må derfor ikke maskere canonical input;
+      // den konkrete domæneprojektion skal både vise issuet og blokere sin egen afhængighed.
+      if (issue !== undefined && issue.priority !== 'context') return Object.freeze({ status: 'error', issue });
       return Object.freeze({ status: 'usable', value });
     },
     labelOf: <T>(field: FieldRef<T>): string => {

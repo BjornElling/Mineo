@@ -55,6 +55,10 @@ export const hasTextValue = (raw: string | number | undefined): boolean =>
 
 const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato';
 
+export const KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
+  'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
+export const TIDL_KAP_DATO_WITHOUT_KAPITALISERING_MESSAGE = 'Kun relevant ved tidligere kapitalisering.';
+
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
 /**
@@ -231,7 +235,7 @@ export const validateKapDatoByAfgoerelsestype = (
   const kapDatoIso = coerceToISODateString(row.kapDato);
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
     if (hasTextValue(row.kapDato)) {
-      return 'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
+      return KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE;
     }
   }
 
@@ -385,7 +389,7 @@ export const validateTidlKapDatoByAfgoerelsestype = (
   row: AslAfgoerelseRow
 ): string | undefined => {
   if (hasTextValue(row.tidlKapDato) && !hasTextValue(row.kapDato)) {
-    return 'Kun relevant ved tidligere kapitalisering.';
+    return TIDL_KAP_DATO_WITHOUT_KAPITALISERING_MESSAGE;
   }
 
   const afgoerelsestype = row.afgoerelseType;

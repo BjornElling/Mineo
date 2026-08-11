@@ -1,5 +1,5 @@
 import { serializeFieldAddress, type SerializedFieldAddress } from './fieldAddress';
-import type { AnyFieldRef } from './fieldDescriptor';
+import type { AnyFieldRef, FieldIssuePriority } from './fieldDescriptor';
 import type { EvaluationSourceToken } from './evaluationSource';
 
 // Inputkernen (§3.4/§1.6): issue-modellen skelner mellem feltfejl, consumerfejl og warning. Der lagres
@@ -28,6 +28,7 @@ export type FieldIssue = Readonly<{
   field: AnyFieldRef;
   reason: FieldIssueReason;
   message: string;
+  priority?: FieldIssuePriority;
   detail?: IssueDetail;
 }>;
 
@@ -68,10 +69,19 @@ const FIELD_REASON_PRIORITY: Readonly<Record<FieldIssueReason, number>> = {
   schema: 3,
 };
 
+const fieldIssuePriority = (issue: FieldIssue): number => {
+  // En kontekstregel kan kun afgøres på en canonical værdi og må derfor aldrig skjule en rejected
+  // råtekstfejl. Når formatet er gyldigt, fortæller den derimod, at feltets værdi slet ikke er relevant
+  // i den valgte kontekst, og skal derfor vises før afledte interval- og regelbeskeder.
+  if (issue.reason === 'format') return 0;
+  if (issue.priority === 'context') return 1;
+  return FIELD_REASON_PRIORITY[issue.reason] + 1;
+};
+
 const compareText = (left: string, right: string): number => left < right ? -1 : left > right ? 1 : 0;
 
 export const compareFieldIssues = (left: FieldIssue, right: FieldIssue): number =>
-  FIELD_REASON_PRIORITY[left.reason] - FIELD_REASON_PRIORITY[right.reason]
+  fieldIssuePriority(left) - fieldIssuePriority(right)
   || compareText(left.code, right.code)
   || compareText(left.message, right.message);
 

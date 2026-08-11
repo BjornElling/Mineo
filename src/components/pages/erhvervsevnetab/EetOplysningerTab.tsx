@@ -23,7 +23,10 @@ import { SKAERING_2015_03_01 } from '../../../domain/erhvervsevnetab/eetSkaering
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import { APP_ROUTES } from '../../../config/pageNavigation';
-import { resolveEetUnder15Warning } from '../../../domain/erhvervsevnetab/eetFieldWarnings';
+import {
+  resolveEetAslAarsloenMaxWarning,
+  resolveEetUnder15Warning,
+} from '../../../domain/erhvervsevnetab/eetFieldWarnings';
 
 export type EetOplysningerTabProps = Readonly<{
   projection: ErhvervsevnetabReaderProjection;
@@ -137,6 +140,11 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               location={LOCATIONS.ealAarsloen}
               name="ealAarsloen"
               width={MILLION_AMOUNT_FIELD_WIDTH}
+              warning={resolveEetAslAarsloenMaxWarning(
+                values.aslAarsloen,
+                values.ealAarsloen,
+                skadedato,
+              )}
             />
           </Box>
         </Box>

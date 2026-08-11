@@ -29,7 +29,7 @@ describe('error-kontrakt isolation', () => {
 });
 
 /**
- * Koden prioriterer `reason` → `code` → `message`. Der findes ingen `source`-dimension (§11 forbyder
+ * Koden prioriterer format/context → reason → code → message. Der findes ingen `source`-dimension (§11 forbyder
  * source-registre), og `severity` er en enkelt-værdi-literal (`'error'`), som ikke kan sortere noget —
  * så en kontrakttekst, der taler om prioritet "efter severity og reason/source", beskriver noget andet
  * end koden.
@@ -107,5 +107,17 @@ describe('error-kontraktens feltprioritet er bundet til compareFieldIssues (§4)
     const reversed = [...issues].reverse().sort(compareFieldIssues).map((issue) => issue.reason);
 
     expect(reversed, 'komparatoren er ikke rækkefølge-uafhængig').toEqual(forward);
+  });
+
+  it('kontekstfejl ligger efter format, men før bounds', () => {
+    const format = issueWith('format', 'format', 'format');
+    const context = {
+      ...issueWith('rule', 'context', 'context'),
+      priority: 'context' as const,
+    };
+    const bounds = issueWith('bounds', 'bounds', 'bounds');
+
+    expect([bounds, context, format].sort(compareFieldIssues).map((issue) => issue.message))
+      .toEqual(['format', 'context', 'bounds']);
   });
 });

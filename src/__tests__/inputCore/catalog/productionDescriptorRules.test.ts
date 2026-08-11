@@ -43,8 +43,10 @@ import {
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import {
   erhvervsevnetabBeregningsdatoField,
+  aslAfgoerelseAfgoerelseTypeField,
   aslAfgoerelseAfgoerelsesDatoField,
   aslAfgoerelseKapDatoField,
+  aslAfgoerelseTidlKapDatoField,
   aslAfgoerelseEetPctField,
   erhvervsevnetabAslAfgoerelserCollectionRef,
   erhvervsevnetabEalEetPctField,
@@ -266,6 +268,80 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
     expect(evaluate(input).reader.read(aslAfgoerelseKapDatoField.bind('r1'))).toMatchObject({
       status: 'error',
       issue: { reason: 'bounds', detail: { minDate: '2005-01-01' } },
+    });
+  });
+
+  it('viser midlertidig-afgørelsesfejlen før kap.datoens afgørelsesdatogrænse', () => {
+    let input = dispatch(empty(), insertRow(
+      erhvervsevnetabAslAfgoerelserCollectionRef,
+      { ...createEmptyAslAfgoerelseRow(), id: 'r1' },
+    ));
+    input = dispatch(input, settleField(aslAfgoerelseAfgoerelsesDatoField.bind('r1'), '31-12-2024'));
+    input = dispatch(input, setImmediateField(aslAfgoerelseAfgoerelseTypeField.bind('r1'), 'Midlertidig'));
+    input = dispatch(input, settleField(aslAfgoerelseKapDatoField.bind('r1'), '30-12-2024'));
+
+    const evaluation = evaluate(input);
+    expect(evaluation.reader.read(aslAfgoerelseKapDatoField.bind('r1'))).toMatchObject({
+      status: 'usable',
+      value: expect.anything(),
+    });
+    expect(evaluation.issues.all).toContainEqual(expect.objectContaining({
+      reason: 'rule',
+      priority: 'context',
+      message: 'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.',
+    }));
+  });
+
+  it('viser "Kun relevant ved tidligere kapitalisering" før tidl. kap.datoens datogrænse', () => {
+    let input = dispatch(empty(), insertRow(
+      erhvervsevnetabAslAfgoerelserCollectionRef,
+      { ...createEmptyAslAfgoerelseRow(), id: 'r1' },
+    ));
+    input = dispatch(input, settleField(aslAfgoerelseAfgoerelsesDatoField.bind('r1'), '31-12-2024'));
+    input = dispatch(input, settleField(aslAfgoerelseTidlKapDatoField.bind('r1'), '31-12-2024'));
+
+    const evaluation = evaluate(input);
+    expect(evaluation.reader.read(aslAfgoerelseTidlKapDatoField.bind('r1'))).toMatchObject({
+      status: 'usable',
+      value: expect.anything(),
+    });
+    expect(evaluation.issues.all).toContainEqual(expect.objectContaining({
+      reason: 'rule',
+      priority: 'context',
+      message: 'Kun relevant ved tidligere kapitalisering.',
+    }));
+  });
+
+  it('viser formatfejl før kontekstfejlen ved delvist indtastet kap.dato', () => {
+    let input = dispatch(empty(), insertRow(
+      erhvervsevnetabAslAfgoerelserCollectionRef,
+      { ...createEmptyAslAfgoerelseRow(), id: 'r1' },
+    ));
+    input = dispatch(input, setImmediateField(aslAfgoerelseAfgoerelseTypeField.bind('r1'), 'Midlertidig'));
+    input = dispatch(input, settleField(aslAfgoerelseKapDatoField.bind('r1'), '15-06-202'));
+
+    expect(evaluate(input).reader.read(aslAfgoerelseKapDatoField.bind('r1'))).toMatchObject({
+      status: 'error',
+      issue: {
+        reason: 'format',
+        message: "Der er udfyldt en ugyldig værdi i feltet 'Kap.dato'",
+      },
+    });
+  });
+
+  it('viser formatfejl før kontekstfejlen ved delvist indtastet tidligere kap.dato', () => {
+    let input = dispatch(empty(), insertRow(
+      erhvervsevnetabAslAfgoerelserCollectionRef,
+      { ...createEmptyAslAfgoerelseRow(), id: 'r1' },
+    ));
+    input = dispatch(input, settleField(aslAfgoerelseTidlKapDatoField.bind('r1'), '15-06-202'));
+
+    expect(evaluate(input).reader.read(aslAfgoerelseTidlKapDatoField.bind('r1'))).toMatchObject({
+      status: 'error',
+      issue: {
+        reason: 'format',
+        message: "Der er udfyldt en ugyldig værdi i feltet 'Hvis genopt. - tidl. kap.dato'",
+      },
     });
   });
 

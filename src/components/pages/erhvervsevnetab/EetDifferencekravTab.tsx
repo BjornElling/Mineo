@@ -111,7 +111,17 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
           <Box className="row--label-right-hover">
             <Typography className="row--text">Bilag, der indsættes</Typography>
             <Box className="row--label-right-hover__content">
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              {/* Indholdsbredde holder bilagsvalgene samlet ved højre kant; uden den strækker gruppen sig over hele cellen. */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 2,
+                  flexWrap: 'wrap',
+                  justifyContent: 'flex-end',
+                  width: 'max-content',
+                  maxWidth: '100%',
+                }}
+              >
                 <CheckboxField
                   field={refs.loebendeYdelser}
                   location={location('bilag-loebendeYdelser')}
