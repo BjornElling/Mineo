@@ -2,6 +2,8 @@
 import { toISODateString } from '../../../types/branded';
 import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
 import { fromKroner } from '../../../domain/money/money';
+import type { DocumentGenerationSession } from '../../../document/documentGenerationSession';
+import type { DocumentModel } from '../../../document/model/documentModel';
 
 let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 /// <reference types="vitest/globals" />
@@ -220,10 +222,19 @@ describe('generateDifferencekravDocument', () => {
     expect(renderedText).not.toContain('Beregnet differencekrav');
   });
 
-  it('skriver forhøjet pensionsalder som sektionsoverskrift', async () => {
+  it('skriver forhøjet pensionsalder som bilagets dokumenttitel', async () => {
     const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
 
-    generateDifferencekravDocument(pdfSession, {
+    let capturedModel: DocumentModel | undefined;
+    const modelSession: DocumentGenerationSession = {
+      format: 'pdf',
+      render: async ({ model }) => {
+        capturedModel = model;
+        return new Blob([], { type: 'application/pdf' });
+      },
+    };
+
+    await generateDifferencekravDocument(modelSession, {
       computation: {
         beregningsdato: toISODateString('2026-03-17'),
         skadedato: toISODateString('2020-01-01'),
@@ -241,12 +252,8 @@ describe('generateDifferencekravDocument', () => {
         afgoerelser: [],
         kapitaliseringerAfgoerelser: [],
         merErstatningPensionsalder: {
-          events: [{
-            forhoejelsesdato: toISODateString('2024-01-01'),
-            gammelAlderLabel: '67 år',
-            nyAlderLabel: '68 år',
-            merErstatningOre: fromKroner(4431),
-          }],
+          events: [],
+          samletMerErstatningOre: fromKroner(0),
         },
         loebendeComputation: null,
         kapComputation: null,
@@ -257,14 +264,16 @@ describe('generateDifferencekravDocument', () => {
         kapitalisering: false,
         eetEfterEal: false,
         proformaKapitalisering: false,
-        merErstatningPensionsalder: false,
+        merErstatningPensionsalder: true,
         visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },
     });
 
-    const instance = MockJsPDF.instances.at(-1);
-    const renderedText = (instance?.text.mock.calls ?? []).map((call) => String(call[0]));
+    const renderedText = (capturedModel?.blocks ?? []).flatMap((block) =>
+      'text' in block ? [block.text] : []
+    );
 
+    expect(capturedModel?.blocks).toContainEqual({ kind: 'title', text: 'Forhøjet pensionsalder' });
     expect(renderedText).toContain('Forhøjet pensionsalder');
     expect(renderedText).not.toContain('Mer-erstatning ved forhøjet folkepensionsalder');
   });

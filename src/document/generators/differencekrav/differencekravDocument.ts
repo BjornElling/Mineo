@@ -294,7 +294,7 @@ const addMerErstatningPensionsalderSection = (
   koen: string | undefined
 ): void => {
   writer.addPage();
-  writer.writeSectionHeader('Forhøjet pensionsalder');
+  writer.writeTitle('Forhøjet pensionsalder');
 
   computation.events.forEach((event) => {
     addMerErstatningEvent(writer, event, koen);
@@ -560,7 +560,7 @@ export const generateDifferencekravDocument = defineDocument<GenerateDifferencek
     addProformaKapitaliseringSection(writer, computation.proformaKapitalisering, koen);
   }
 
-  // Bilag: Mer-erstatning ved forhøjet folkepensionsalder
+  // Bilag: Forhøjet pensionsalder
   if (bilagSelection.merErstatningPensionsalder && computation.merErstatningPensionsalder) {
     addMerErstatningPensionsalderSection(writer, computation.merErstatningPensionsalder, koen);
   }
