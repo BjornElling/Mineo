@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node from .nvmrc
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
@@ -63,7 +63,7 @@ jobs:
       # package.json's engines kræver Node >=24.18.0. Dette trin sikrer, at
       # deploy-jobbet bruger samme projekt-runtime som verify-jobbet.
       - name: Setup Node from .nvmrc
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
