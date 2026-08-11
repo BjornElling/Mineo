@@ -80,7 +80,8 @@
     "import:loen": "node scripts/import-offentlig-loen.mjs",
     "check:offentlig-loen": "node scripts/import-offentlig-loen.mjs --check",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
-    "verify:release": "npm run check:runtime && npm run check:github-actions-runtime && npm run typecheck && npm run typecheck:test && npm run typecheck:e2e && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run check:contract-verification && npm run verify:ledgers && npm run test:coverage && npm run test:e2e && npm run build:all",
+    "verify:release:core": "npm run check:runtime && npm run check:github-actions-runtime && npm run typecheck && npm run typecheck:test && npm run typecheck:e2e && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run check:contract-verification && npm run verify:ledgers && npm run test:coverage && npm run build:all",
+    "verify:release": "npm run verify:release:core && npm run test:e2e",
     "check": "npm run verify:release"
   },
   "overrides": {

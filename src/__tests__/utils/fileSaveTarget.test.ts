@@ -12,6 +12,7 @@ import {
   deleteFileHandleFromIndexedDB,
 } from '../../utils/fileHandleStorage';
 import type { EoFileContainer } from '../../schemas/eoFileSchema';
+import { logWarning } from '../../utils/logger';
 
 vi.mock('../../utils/logger', () => ({
   logWarning: vi.fn(),
@@ -44,6 +45,7 @@ const mockedRequestPersistentStorage = vi.mocked(requestPersistentStorage);
 const mockedLoadFileHandleFromIndexedDB = vi.mocked(loadFileHandleFromIndexedDB);
 const mockedVerifyFileHandleDetailed = vi.mocked(verifyFileHandleDetailed);
 const mockedDeleteFileHandleFromIndexedDB = vi.mocked(deleteFileHandleFromIndexedDB);
+const mockedLogWarning = vi.mocked(logWarning);
 
 const fileData = {
   data: { stamdata: { journalnr: 'J-1' } },
@@ -72,6 +74,7 @@ describe('resolveSaveTarget', () => {
 
     expect(target).toEqual({ kind: 'download', filename: 'foreslaaet-navn.eo' });
     expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+    expect(mockedLogWarning).not.toHaveBeenCalled();
   });
 
   it('genbruger et gyldigt persisteret handle uden at persistere det igen', async () => {

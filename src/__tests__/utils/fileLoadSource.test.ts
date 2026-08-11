@@ -13,6 +13,7 @@ import {
 } from '../../utils/fileSystemAccess';
 import { selectFile, readFile } from '../../utils/fileHelpers';
 import { MAX_FILE_SIZE } from '../../config/version';
+import { logWarning } from '../../utils/logger';
 
 vi.mock('../../utils/logger', () => ({
   logWarning: vi.fn(),
@@ -40,6 +41,7 @@ const mockedReadFromFileHandle = vi.mocked(readFromFileHandle);
 const mockedEnsurePermission = vi.mocked(ensureFileHandleReadPermission);
 const mockedSelectFile = vi.mocked(selectFile);
 const mockedReadFile = vi.mocked(readFile);
+const mockedLogWarning = vi.mocked(logWarning);
 
 const makeFile = (name: string, size = 10): File => {
   const file = new File(['x'], name, { type: 'application/octet-stream' });
@@ -104,6 +106,7 @@ describe('createManualLoadSource', () => {
     expect(outcome.fileHandle).toBeUndefined();
     await expect(outcome.readContent()).resolves.toBe('bytes');
     expect(mockedReadFile).toHaveBeenCalledWith(file);
+    expect(mockedLogWarning).not.toHaveBeenCalled();
   });
 
   it('Fallback: annullering giver cancelled', async () => {

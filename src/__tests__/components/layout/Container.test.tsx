@@ -527,8 +527,9 @@ describe('Container keyboard navigation', () => {
     download.style.position = 'fixed';
     await act(async () => { await Promise.resolve(); });
 
-    before.focus();
+    await user.click(before);
     await user.keyboard('{Tab}');
+    await waitForSelectionClear();
     expect(document.activeElement).toBe(insertToday);
 
     await user.keyboard('{Enter}');

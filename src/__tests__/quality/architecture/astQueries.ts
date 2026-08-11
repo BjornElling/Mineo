@@ -67,6 +67,35 @@ export type TypeAssertionRef = Readonly<{
   position: CodePosition;
 }>;
 
+type AstQueryCache = {
+  imports?: readonly ImportRef[];
+  calls?: readonly CallRef[];
+  memberAccess?: readonly MemberAccessRef[];
+  elementAccess?: readonly ElementAccessRef[];
+  typeAssertions?: readonly TypeAssertionRef[];
+  identifiers?: readonly IdentifierRef[];
+  destructuredProperties?: readonly DestructuredPropertyRef[];
+  typeReferences?: ReadonlySet<string>;
+  jsxAttributes?: ReadonlySet<string>;
+  declaredMembers?: ReadonlySet<string>;
+  localTypeAliases?: ReadonlyMap<string, string>;
+  callTypeArguments?: readonly TypeArgumentRef[];
+};
+
+// Arkitekturharnesset kører mange regler over den samme kilde-graf. Uden denne cache vandrer hver
+// regel igen gennem de samme AST-noder for hver forespørgselstype, selv om en fil og dens AST er
+// uændret under hele testkørslen. Cachen ændrer ikke hvad en forespørgsel finder; den genbruger kun
+// det allerede beregnede resultat for den konkrete SourceEntry.
+const queryCaches = new WeakMap<SourceEntry, AstQueryCache>();
+
+const getQueryCache = (entry: SourceEntry): AstQueryCache => {
+  const existing = queryCaches.get(entry);
+  if (existing !== undefined) return existing;
+  const created: AstQueryCache = {};
+  queryCaches.set(entry, created);
+  return created;
+};
+
 const positionOf = (ast: ts.SourceFile, node: ts.Node): CodePosition => {
   const { line, character } = ast.getLineAndCharacterOfPosition(node.getStart(ast));
   return { line: line + 1, column: character + 1 };
@@ -95,6 +124,9 @@ const namedBindingsOf = (
 
 /** Alle modul-imports i filen: statiske, `export ... from`, dynamiske og `require`. */
 export const collectImports = (entry: SourceEntry): readonly ImportRef[] => {
+  const cache = getQueryCache(entry);
+  if (cache.imports !== undefined) return cache.imports;
+
   const { ast } = entry;
   const refs: ImportRef[] = [];
 
@@ -166,6 +198,7 @@ export const collectImports = (entry: SourceEntry): readonly ImportRef[] => {
     }
   });
 
+  cache.imports = refs;
   return refs;
 };
 
@@ -194,6 +227,9 @@ const calleeNameOf = (expression: ts.Expression): string => {
 
 /** Alle kald-udtryk med callee-navn/-tekst og deres direkte string-literal-argumenter. */
 export const collectCalls = (entry: SourceEntry): readonly CallRef[] => {
+  const cache = getQueryCache(entry);
+  if (cache.calls !== undefined) return cache.calls;
+
   const { ast } = entry;
   const refs: CallRef[] = [];
 
@@ -217,6 +253,7 @@ export const collectCalls = (entry: SourceEntry): readonly CallRef[] => {
     });
   });
 
+  cache.calls = refs;
   return refs;
 };
 
@@ -235,6 +272,9 @@ const chainTextOf = (node: ts.PropertyAccessExpression): string => calleeTextOf(
  * adgang som `sessionStorage.setItem` / `window.localStorage` strukturelt.
  */
 export const collectMemberAccess = (entry: SourceEntry): readonly MemberAccessRef[] => {
+  const cache = getQueryCache(entry);
+  if (cache.memberAccess !== undefined) return cache.memberAccess;
+
   const { ast } = entry;
   const refs: MemberAccessRef[] = [];
 
@@ -248,11 +288,15 @@ export const collectMemberAccess = (entry: SourceEntry): readonly MemberAccessRe
     });
   });
 
+  cache.memberAccess = refs;
   return refs;
 };
 
 /** Alle element-adgange (`a[x]`, `a.b[x]`). Bruges til at fange rå subscript-opslag som `aarsloenAslMax[year]`. */
 export const collectElementAccess = (entry: SourceEntry): readonly ElementAccessRef[] => {
+  const cache = getQueryCache(entry);
+  if (cache.elementAccess !== undefined) return cache.elementAccess;
+
   const { ast } = entry;
   const refs: ElementAccessRef[] = [];
 
@@ -266,11 +310,15 @@ export const collectElementAccess = (entry: SourceEntry): readonly ElementAccess
     });
   });
 
+  cache.elementAccess = refs;
   return refs;
 };
 
 /** Alle eksplicitte type-assertions (`value as Type` og `<Type>value`). */
 export const collectTypeAssertions = (entry: SourceEntry): readonly TypeAssertionRef[] => {
+  const cache = getQueryCache(entry);
+  if (cache.typeAssertions !== undefined) return cache.typeAssertions;
+
   const { ast } = entry;
   const refs: TypeAssertionRef[] = [];
 
@@ -283,6 +331,7 @@ export const collectTypeAssertions = (entry: SourceEntry): readonly TypeAssertio
     });
   });
 
+  cache.typeAssertions = refs;
   return refs;
 };
 
@@ -300,6 +349,9 @@ export type IdentifierRef = Readonly<{
  * ikke identifiers, så et manifest der NÆVNER navnene som data, rammes ikke.
  */
 export const collectIdentifiers = (entry: SourceEntry): readonly IdentifierRef[] => {
+  const cache = getQueryCache(entry);
+  if (cache.identifiers !== undefined) return cache.identifiers;
+
   const { ast } = entry;
   const refs: IdentifierRef[] = [];
 
@@ -308,6 +360,7 @@ export const collectIdentifiers = (entry: SourceEntry): readonly IdentifierRef[]
     refs.push({ text: node.text, node, position: positionOf(ast, node) });
   });
 
+  cache.identifiers = refs;
   return refs;
 };
 
@@ -328,6 +381,9 @@ export type DestructuredPropertyRef = Readonly<{
  * `propertyName` er kildens navn, ikke det lokale alias — en omdøbning må ikke kunne skjule adgangen.
  */
 export const collectDestructuredProperties = (entry: SourceEntry): readonly DestructuredPropertyRef[] => {
+  const cache = getQueryCache(entry);
+  if (cache.destructuredProperties !== undefined) return cache.destructuredProperties;
+
   const { ast } = entry;
   const refs: DestructuredPropertyRef[] = [];
 
@@ -340,6 +396,7 @@ export const collectDestructuredProperties = (entry: SourceEntry): readonly Dest
     refs.push({ propertyName: source.text, node, position: positionOf(ast, node) });
   });
 
+  cache.destructuredProperties = refs;
   return refs;
 };
 
@@ -377,18 +434,21 @@ export const hasAnyIdentifier = (entry: SourceEntry, names: readonly string[]): 
  * kommentar og dermed holde reglen kunstigt levende.
  */
 export const hasTypeReference = (entry: SourceEntry, name: string): boolean => {
-  const { ast } = entry;
-  let found = false;
+  const cache = getQueryCache(entry);
+  if (cache.typeReferences === undefined) {
+    const references = new Set<string>();
+    const { ast } = entry;
+    walk(ast, (node) => {
+      if (!ts.isTypeReferenceNode(node)) return;
+      const typeName = node.typeName;
+      const leaf = ts.isQualifiedName(typeName) ? typeName.right : typeName;
+      if (ts.isIdentifier(leaf)) references.add(leaf.text);
+    });
+    cache.typeReferences = references;
+  }
+  if (cache.typeReferences.has(name)) return true;
 
-  walk(ast, (node) => {
-    if (found) return;
-    if (!ts.isTypeReferenceNode(node)) return;
-    const typeName = node.typeName;
-    const leaf = ts.isQualifiedName(typeName) ? typeName.right : typeName;
-    if (ts.isIdentifier(leaf) && leaf.text === name) found = true;
-  });
-
-  return found;
+  return false;
 };
 
 /**
@@ -407,16 +467,17 @@ export const hasImportFrom = (entry: SourceEntry, modulePattern: RegExp): boolea
  * prop-formen som eksempel, kan ikke opfylde signalet.
  */
 export const hasJsxAttribute = (entry: SourceEntry, attributeName: string): boolean => {
-  const { ast } = entry;
-  let found = false;
-
-  walk(ast, (node) => {
-    if (found) return;
-    if (!ts.isJsxAttribute(node)) return;
-    if (ts.isIdentifier(node.name) && node.name.text === attributeName) found = true;
-  });
-
-  return found;
+  const cache = getQueryCache(entry);
+  if (cache.jsxAttributes === undefined) {
+    const attributes = new Set<string>();
+    const { ast } = entry;
+    walk(ast, (node) => {
+      if (!ts.isJsxAttribute(node) || !ts.isIdentifier(node.name)) return;
+      attributes.add(node.name.text);
+    });
+    cache.jsxAttributes = attributes;
+  }
+  return cache.jsxAttributes.has(attributeName);
 };
 
 /**
@@ -426,16 +487,17 @@ export const hasJsxAttribute = (entry: SourceEntry, attributeName: string): bool
  * `all: readonly FieldIssue[]` ville også ramme kommentaren, der forklarer feltet.
  */
 export const hasDeclaredMember = (entry: SourceEntry, memberName: string): boolean => {
-  const { ast } = entry;
-  let found = false;
-
-  walk(ast, (node) => {
-    if (found) return;
-    if (!ts.isPropertySignature(node) && !ts.isPropertyDeclaration(node) && !ts.isMethodSignature(node)) return;
-    if (ts.isIdentifier(node.name) && node.name.text === memberName) found = true;
-  });
-
-  return found;
+  const cache = getQueryCache(entry);
+  if (cache.declaredMembers === undefined) {
+    const members = new Set<string>();
+    const { ast } = entry;
+    walk(ast, (node) => {
+      if (!ts.isPropertySignature(node) && !ts.isPropertyDeclaration(node) && !ts.isMethodSignature(node)) return;
+      if (ts.isIdentifier(node.name)) members.add(node.name.text);
+    });
+    cache.declaredMembers = members;
+  }
+  return cache.declaredMembers.has(memberName);
 };
 
 /** Læses `<noget>.<property>` et sted i filen? AST-modstykket til en `\bissues\.all\b`-regex. */
@@ -451,6 +513,9 @@ export const hasMemberRead = (entry: SourceEntry, propertyName: string): boolean
  * namespace-import ikke skjuler målet.
  */
 export const collectLocalTypeAliases = (entry: SourceEntry): ReadonlyMap<string, string> => {
+  const cache = getQueryCache(entry);
+  if (cache.localTypeAliases !== undefined) return cache.localTypeAliases;
+
   const { ast } = entry;
   const direct = new Map<string, string>();
 
@@ -475,6 +540,7 @@ export const collectLocalTypeAliases = (entry: SourceEntry): ReadonlyMap<string,
     }
     resolved.set(alias, current);
   }
+  cache.localTypeAliases = resolved;
   return resolved;
 };
 
@@ -498,6 +564,9 @@ export type TypeArgumentRef = Readonly<{
  * assertion, blot flyttet en funktion væk. Derfor opsamles kun kaldenes type-argumenter.
  */
 export const collectCallTypeArguments = (entry: SourceEntry): readonly TypeArgumentRef[] => {
+  const cache = getQueryCache(entry);
+  if (cache.callTypeArguments !== undefined) return cache.callTypeArguments;
+
   const { ast } = entry;
   const refs: TypeArgumentRef[] = [];
 
@@ -514,6 +583,7 @@ export const collectCallTypeArguments = (entry: SourceEntry): readonly TypeArgum
     }
   });
 
+  cache.callTypeArguments = refs;
   return refs;
 };
 

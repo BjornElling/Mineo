@@ -6,7 +6,7 @@ import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 // (`ProductionInputRuntimeProvider` mod `slimInputStore`/`criticalActionCoordinator`) — den beviser den
 // virkelige sti felt → settle → reader-projektion → download-gate (§1.5/§1.6/§3.9), uden legacy
 // `invalidDrafts`/`FormPersistenceProvider`.
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Container from '../../../components/layout/Container';
@@ -181,7 +181,7 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
 
     // Hele kæden kørte: barriere → frisk capture → token-lighed → gate → generator-load →
     // writer-load → rendering → friskheds-recheck → fil-I/O.
-    await vi.waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
     const artifact = mockTriggerDocumentDownload.mock.calls[0]?.[0] as { filename: string };
     expect(artifact.filename).toContain(String(satserAngivAarYearBounds.maxYear));
   });

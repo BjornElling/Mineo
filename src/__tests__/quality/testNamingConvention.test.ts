@@ -83,9 +83,15 @@ const collectTestFiles = (dir: string, out: string[] = []): string[] => {
   return out;
 };
 
-describe('aktive testnavne beskriver invarianten, ikke omlægningen', () => {
-  const files = collectTestFiles(TEST_ROOT);
+const files = collectTestFiles(TEST_ROOT);
+const declarationsByFile = new Map(
+  files.map((file) => [
+    file,
+    activeDeclarations(fs.readFileSync(path.resolve(process.cwd(), file), 'utf8'), file),
+  ] as const)
+);
 
+describe('aktive testnavne beskriver invarianten, ikke omlægningen', () => {
   it('testfladen findes — værnet kan ikke være grønt af tomhed', () => {
     // Uden gulvet ville en flyttet eller omdøbt testrod gøre hele reglen tavs grøn.
     expect(files.length, `ingen testfiler fundet under ${TEST_ROOT}`).toBeGreaterThan(400);
@@ -98,8 +104,7 @@ describe('aktive testnavne beskriver invarianten, ikke omlægningen', () => {
     const findings: string[] = [];
 
     for (const file of files) {
-      const content = fs.readFileSync(path.resolve(process.cwd(), file), 'utf8');
-      for (const declaration of activeDeclarations(content, file)) {
+      for (const declaration of declarationsByFile.get(file) ?? []) {
         if (ALLOWED_NAMES.has(declaration.name)) continue;
         const term = MIGRATION_TERMS.find((pattern) => pattern.test(declaration.name));
         if (term === undefined) continue;
@@ -126,8 +131,7 @@ describe('aktive testnavne beskriver invarianten, ikke omlægningen', () => {
   it('hver undtagelse svarer til en aktiv deklaration, der faktisk findes', () => {
     const live = new Set<string>();
     for (const file of files) {
-      const content = fs.readFileSync(path.resolve(process.cwd(), file), 'utf8');
-      for (const declaration of activeDeclarations(content, file)) live.add(declaration.name);
+      for (const declaration of declarationsByFile.get(file) ?? []) live.add(declaration.name);
     }
 
     const dead = ALLOWED.filter((entry) => !live.has(entry.name)).map((entry) => entry.name);

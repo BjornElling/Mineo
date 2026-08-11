@@ -13,6 +13,7 @@ on:
 
 jobs:
   verify:
+    name: Verify release core
     runs-on: ubuntu-latest
 
     steps:
@@ -30,16 +31,11 @@ jobs:
       - name: Install dependencies (strict)
         run: npm ci
 
-      # E2E-suiten kører den samme browser-matrix som den lokale audit: Chrome-/Edge-channel
-      # leveres af runner-imaget, mens Playwright-motorerne skal installeres eksplicit.
-      - name: Install Playwright browser engines
-        run: npx playwright install --with-deps chromium firefox webkit
-
-      # Én autoritativ gate. Identisk med lokal `npm run check`:
-      # runtime-gates + typecheck + typecheck:test + lint + mojibake/casing + Vitest m. coverage + build:all.
-      # De byggede `dist/`-artefakter herfra er præcis dem, deploy-jobbet udgiver.
+      # Den tunge release-gate uden browsermatrixen. E2E-suiten kører nedenfor som fire
+      # selvstændige, parallelle jobs — ét pr. browserprojekt — så hver browser beholder én
+      # stabil worker uden at blokere de øvrige projekter.
       - name: Verify release
-        run: npm run verify:release
+        run: npm run verify:release:core
 
       - name: Upload verified build artifacts
         uses: actions/upload-artifact@v7
@@ -49,8 +45,48 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  e2e:
+    name: E2E (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: chrome-desktop
+            browser: chromium
+          - project: edge-desktop
+            browser: chromium
+          - project: firefox-desktop
+            browser: firefox
+          - project: safari-webkit-desktop
+            browser: webkit
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node from .nvmrc
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Install dependencies (strict)
+        run: npm ci
+
+      # Chrome-/Edge-channel leveres af runner-imaget; Chromium-installationen er den
+      # Playwright-motor, som begge channel-projekter bruger som fallback. Hvert job installerer
+      # kun sin egen motor, så paralleliseringen ikke betaler for tre ubrugte browserpakker.
+      - name: Install Playwright browser engine
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run browser project
+        run: npm run test:e2e -- --project=${{ matrix.project }}
+
   deploy:
-    needs: verify
+    needs: [verify, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 

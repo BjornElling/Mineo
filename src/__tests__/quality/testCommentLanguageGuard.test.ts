@@ -83,9 +83,15 @@ const collectTestFiles = (dir: string, out: string[] = []): string[] => {
   return out;
 };
 
-describe('testtræets kommentarer beskriver sluttilstanden', () => {
-  const files = collectTestFiles(TEST_ROOT);
+const files = collectTestFiles(TEST_ROOT);
+const commentsByFile = new Map(
+  files.map((file) => [
+    file,
+    sourceComments(fs.readFileSync(path.resolve(process.cwd(), file), 'utf8'), file),
+  ] as const)
+);
 
+describe('testtræets kommentarer beskriver sluttilstanden', () => {
   it('testfladen findes — værnet kan ikke være grønt af tomhed', () => {
     // Uden gulvet ville en flyttet eller omdøbt testrod gøre hele reglen tavs grøn.
     expect(files.length, `ingen testfiler fundet under ${TEST_ROOT}`).toBeGreaterThan(400);
@@ -129,8 +135,7 @@ describe('testtræets kommentarer beskriver sluttilstanden', () => {
     const findings: string[] = [];
 
     for (const file of files) {
-      const content = fs.readFileSync(path.resolve(process.cwd(), file), 'utf8');
-      for (const comment of sourceComments(content, file)) {
+      for (const comment of commentsByFile.get(file) ?? []) {
         if (ALLOWED.some((entry) => comment.text.includes(entry.fragment))) continue;
         // HVER ramt linje rapporteres, ikke kun den første i blokken. En JSDoc-blok kan bære flere
         // henvisninger, og et fund pr. blok ville få de øvrige til at se rettede ud, så snart den
@@ -152,9 +157,7 @@ describe('testtræets kommentarer beskriver sluttilstanden', () => {
 
   it('hver undtagelse svarer til en kommentar, der faktisk findes', () => {
     // Anti-rot: en undtagelse for prosa, ingen længere skriver, er en fritagelse for ingenting.
-    const live = files.flatMap((file) => sourceComments(
-      fs.readFileSync(path.resolve(process.cwd(), file), 'utf8'), file
-    ).map((comment) => comment.text));
+    const live = files.flatMap((file) => (commentsByFile.get(file) ?? []).map((comment) => comment.text));
     const dead = ALLOWED
       .filter((entry) => !live.some((text) => text.includes(entry.fragment)))
       .map((entry) => entry.fragment);

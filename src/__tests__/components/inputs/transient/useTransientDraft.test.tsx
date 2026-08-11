@@ -184,6 +184,26 @@ describe('TransientDateInput', () => {
     );
   };
 
+  const BoundedHarness: React.FC = () => {
+    const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
+    const [error, setError] = React.useState<string | undefined>(undefined);
+    return (
+      <>
+        <TransientDateInput
+          value={value}
+          onCommit={setValue}
+          onReject={setError}
+          errorMessage={error}
+          minDate={'2026-01-10' as ISODateString}
+          maxDate={'2026-01-20' as ISODateString}
+          aria-label="dato"
+        />
+        <span data-testid="committed">{value ?? '-'}</span>
+        <span data-testid="fejl">{error ?? '-'}</span>
+      </>
+    );
+  };
+
   it('committer en dato ved Enter og normaliserer visningen', async () => {
     const user = userEvent.setup();
     render(<DateHarness />);
@@ -203,25 +223,6 @@ describe('TransientDateInput', () => {
   it('afviser en dato uden for de angivne grænser', async () => {
     // Regressionsværn for bounds-stien: `resolveDateRangeErrorMessage` melder "ingen fejl" med en TOM STRENG.
     // En `!== undefined`-test afviste derfor tidligere ENHVER dato — også de gyldige — med en tom besked.
-    const BoundedHarness: React.FC = () => {
-      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
-      const [error, setError] = React.useState<string | undefined>(undefined);
-      return (
-        <>
-          <TransientDateInput
-            value={value}
-            onCommit={setValue}
-            onReject={setError}
-            errorMessage={error}
-            minDate={'2026-01-10' as ISODateString}
-            maxDate={'2026-01-20' as ISODateString}
-            aria-label="dato"
-          />
-          <span data-testid="committed">{value ?? '-'}</span>
-          <span data-testid="fejl">{error ?? '-'}</span>
-        </>
-      );
-    };
     const user = userEvent.setup();
     render(<BoundedHarness />);
 
@@ -231,11 +232,17 @@ describe('TransientDateInput', () => {
 
     expect(screen.getByTestId('committed')).toHaveTextContent('-');
     expect(screen.getByTestId('fejl').textContent).not.toBe('-');
+  });
 
-    // …og en dato INDEN FOR grænserne committer stadig.
+  it('committer en dato inden for de angivne grænser', async () => {
+    const user = userEvent.setup();
+    render(<BoundedHarness />);
+
+    const input = screen.getByLabelText('dato');
     await user.click(input);
     await user.click(input);
     await user.keyboard('{Control>}a{/Control}15-01-2026{Enter}');
+
     expect(screen.getByTestId('committed')).toHaveTextContent('2026-01-15');
   });
 });

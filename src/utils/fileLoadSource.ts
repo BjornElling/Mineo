@@ -7,7 +7,6 @@ import {
   readFromFileHandle,
 } from './fileSystemAccess';
 import { formatAsAmount } from './formatUtils';
-import { logWarning } from './logger';
 
 /**
  * Typet indlæsnings-port: hvor `.eo`-bytes kommer FRA.
@@ -90,7 +89,6 @@ export const createManualLoadSource = (resolvedDirectory?: ResolvedDirectory): L
       };
     }
 
-    logWarning('File System Access API ikke tilgængelig - bruger fallback file picker');
     const selected = await selectFile('.eo');
     if (!selected) {
       return { status: 'cancelled', source: 'manual' };

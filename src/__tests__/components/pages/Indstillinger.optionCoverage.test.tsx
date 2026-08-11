@@ -42,7 +42,7 @@ import {
  * fejl, og ingen af dem ville standse en typecheck.
  */
 
-const renderIndstillinger = () =>
+const renderIndstillinger = async (): Promise<void> => {
   render(
     <BrowserRouter>
       <ThemeProvider theme={createTheme()}>
@@ -52,6 +52,10 @@ const renderIndstillinger = () =>
       </ThemeProvider>
     </BrowserRouter>
   );
+  // Vent på den device-lokale standardmappe, så dens asynkrone resolver ikke skriver state efter
+  // testens første assertion og dermed havner uden for Testing Librarys act-vindue.
+  await screen.findByText('Skrivebord (standard)');
+};
 
 beforeEach(() => {
   // Kendt udgangspunkt uden at røre window.localStorage direkte (forbudt af test-setup).
@@ -75,27 +79,27 @@ const openDropdownOptions = async (comboboxIndex: number): Promise<readonly stri
 
 describe('Indstillinger — hver valgkontrols valgmuligheder er præcis sit schema-univers', () => {
   it('«Download-format for dokumenter» tilbyder præcis DOCUMENT_DOWNLOAD_FORMAT_OPTIONS', async () => {
-    renderIndstillinger();
+    await renderIndstillinger();
     const rendered = await openDropdownOptions(0);
     expect(rendered).toEqual(DOCUMENT_DOWNLOAD_FORMAT_OPTIONS.map(getDocumentFormatLabel));
   });
 
   it('«Løn på helligdage» tilbyder præcis APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS', async () => {
-    renderIndstillinger();
+    await renderIndstillinger();
     const rendered = await openDropdownOptions(1);
     expect(rendered).toEqual([...APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS]);
   });
 
   it('«Opgørelse afsluttes med» tilbyder præcis APP_SETTINGS_AFSLUTTES_MED_OPTIONS', async () => {
-    renderIndstillinger();
+    await renderIndstillinger();
     // Rækkefølgen af comboboxes følger DOM-rækkefølgen: format(0), helligdage(1),
     // overenskomst L(2), overenskomst A(3), afsluttes med(4), udløb-måneder(5).
     const rendered = await openDropdownOptions(4);
     expect(rendered).toEqual([...APP_SETTINGS_AFSLUTTES_MED_OPTIONS]);
   });
 
-  it('«Løn indtastes som» tilbyder præcis lønperiode-enummets etiketter', () => {
-    renderIndstillinger();
+  it('«Løn indtastes som» tilbyder præcis lønperiode-enummets etiketter', async () => {
+    await renderIndstillinger();
     const expected = LOENPERIODE_LABELS.options.map((option) => option.label);
     for (const label of expected) {
       expect(screen.getByRole('radio', { name: label })).toBeInTheDocument();
@@ -106,8 +110,8 @@ describe('Indstillinger — hver valgkontrols valgmuligheder er præcis sit sche
     expect(within(group as HTMLElement).getAllByRole('radio')).toHaveLength(expected.length);
   });
 
-  it('«Svie/smerte-sats ved delvis sygemelding» tilbyder præcis satsvalg-enummets etiketter', () => {
-    renderIndstillinger();
+  it('«Svie/smerte-sats ved delvis sygemelding» tilbyder præcis satsvalg-enummets etiketter', async () => {
+    await renderIndstillinger();
     const expected = SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS.options.map((option) => option.label);
     for (const label of expected) {
       expect(screen.getByRole('radio', { name: label })).toBeInTheDocument();
@@ -121,7 +125,7 @@ describe('Indstillinger — hver valgkontrols valgmuligheder er præcis sit sche
 describe('Indstillinger — et valg committes med sin egen type', () => {
   it('valg i «Opgørelse afsluttes med» skriver den valgte værdi til settings', async () => {
     const user = userEvent.setup();
-    renderIndstillinger();
+    await renderIndstillinger();
 
     const target = APP_SETTINGS_AFSLUTTES_MED_OPTIONS.find(
       (option) => option !== 'Bekræftet godkendt'
@@ -138,7 +142,7 @@ describe('Indstillinger — et valg committes med sin egen type', () => {
 
   it('valg i «Løn indtastes som» skriver den valgte værdi til settings', async () => {
     const user = userEvent.setup();
-    renderIndstillinger();
+    await renderIndstillinger();
 
     // Default er 'maaned' ⇒ vælg en anden for at måle en faktisk ændring.
     const target = LOENPERIODE_LABELS.options.find((option) => option.value !== 'maaned');

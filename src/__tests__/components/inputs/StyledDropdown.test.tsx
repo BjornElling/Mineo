@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import React from 'react';
-import { createEvent, fireEvent, render, screen } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledDropdown from '../../../components/inputs/StyledDropdown';
 
@@ -90,7 +90,7 @@ describe('StyledDropdown', () => {
     await user.click(input);
     expect(screen.getByRole('listbox')).toBeInTheDocument();
 
-    input.focus();
+    act(() => input.focus());
     await user.keyboard('{Tab}');
 
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
@@ -138,7 +138,7 @@ describe('StyledDropdown', () => {
 
     const input = screen.getByRole('combobox');
     await user.click(input);
-    input.focus();
+    act(() => input.focus());
 
     await user.keyboard('{ArrowDown}');
 
@@ -152,7 +152,7 @@ describe('StyledDropdown', () => {
     render(<ControlledDropdown />);
 
     const input = screen.getByRole('combobox');
-    fireEvent.focus(input);
+    act(() => input.focus());
 
     await user.keyboard('{ArrowDown}');
 
@@ -165,7 +165,7 @@ describe('StyledDropdown', () => {
 
     const input = screen.getByRole('combobox');
     await user.click(input);
-    input.focus();
+    act(() => input.focus());
 
     await user.keyboard('b');
     expect(input.getAttribute('aria-activedescendant')).toMatch(/-option-2$/);
@@ -188,7 +188,10 @@ describe('StyledDropdown', () => {
     render(<Wrapper />);
 
     const input = screen.getByRole('combobox');
-    input.focus();
+    // `fireEvent` leverer den fokushændelse, mens den eksplicitte focus holder JSDOMs
+    // `activeElement` korrekt til keyboard-eventet.
+    fireEvent.focus(input);
+    act(() => input.focus());
 
     await user.keyboard('f');
     expect(input).toHaveValue('Flekstilskud');
@@ -199,8 +202,8 @@ describe('StyledDropdown', () => {
     await user.keyboard('f');
     expect(input).toHaveValue('Flekstilskud');
 
-    input.blur();
-    input.focus();
+    act(() => input.blur());
+    act(() => input.focus());
     await user.keyboard('f');
     expect(input).toHaveValue('Flekstilskud');
 
@@ -219,7 +222,7 @@ describe('StyledDropdown', () => {
     );
 
     const input = screen.getByRole('combobox');
-    input.focus();
+    act(() => input.focus());
     await user.keyboard('b');
     expect(input).toHaveValue('Aktiv');
 
@@ -279,7 +282,7 @@ describe('StyledDropdown', () => {
     await user.click(input);
     expect((input as HTMLInputElement).value).toBe('Alfa');
 
-    input.focus();
+    act(() => input.focus());
     await user.paste('Charlie');
 
     expect((input as HTMLInputElement).value).toBe('Charlie');
@@ -292,7 +295,7 @@ describe('StyledDropdown', () => {
     const input = screen.getByRole('combobox');
     await user.click(input);
 
-    input.focus();
+    act(() => input.focus());
     await user.paste('charlie');
 
     expect((input as HTMLInputElement).value).toBe('Alfa');

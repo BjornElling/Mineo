@@ -75,15 +75,16 @@ const Harness = ({ reorderRows, saveOrderPath = SAVE_ORDER_PATH }: HarnessProps)
     reorderRows,
     saveOrderPath,
   });
+  const sortableHeader = result.sortableHeader('navn');
   const renderRows = buildRenderRows(result.sortedRows);
 
   return (
     <div>
-      <button type="button" data-testid="sort-navn" {...result.sortableHeader('navn')}>
+      <button type="button" data-testid="sort-navn" onClick={sortableHeader.onClick}>
         navn
       </button>
-      <span data-testid="sort-role">{result.sortableHeader('navn').sortRole}</span>
-      <span data-testid="sort-direction">{String(result.sortableHeader('navn').sortDirection)}</span>
+      <span data-testid="sort-role">{sortableHeader.sortRole}</span>
+      <span data-testid="sort-direction">{String(sortableHeader.sortDirection)}</span>
       <span data-testid="sorted-ids">{result.sortedRows.map(getRowId).join(',')}</span>
       <span data-testid="render-ids">{renderRows.map((row) => row.rowId).join(',')}</span>
       <span data-testid="registered-ids">{result.sortedRowIds.join(',')}</span>
@@ -187,7 +188,7 @@ describe('bindSortableHeader', () => {
       const bound = bindSortableHeader(sort, 'tal');
       return (
         <div>
-          <button type="button" data-testid="sort-tal" {...bound}>tal</button>
+          <button type="button" data-testid="sort-tal" onClick={bound.onClick}>tal</button>
           <span data-testid="role">{bound.sortRole}</span>
           <span data-testid="ids">{sort.sortedRows.map(getRowId).join(',')}</span>
         </div>

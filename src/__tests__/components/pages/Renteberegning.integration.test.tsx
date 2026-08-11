@@ -123,7 +123,7 @@ describe('Renteberegning — download-gate mod afsluttet input', () => {
 
   });
 
-  it('lader Slet alle rydde en alene rejected beregningsdato (BF-055)', async () => {
+  it('lader Slet alle rydde en alene afvist beregningsdato', async () => {
     const user = userEvent.setup();
     hydrate([], undefined);
     renderRenteberegning();

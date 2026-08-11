@@ -158,8 +158,8 @@ export const resolveSaveTarget = async (
     return { kind: 'fileHandle', fileHandle: picked, persistHandleAfterSuccess: true, fallbackWarning };
   }
 
-  // Fallback til klassisk download (Firefox m.fl.).
-  logWarning('File System Access API ikke tilgængelig - bruger fallback download');
+  // Fallback til klassisk download (Firefox m.fl.). Det er en forventet browserforskel og
+  // skal derfor ikke registreres som en teknisk advarsel.
 
   const lastSavedPath = readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
   const currentFilename = generateFilename(fileData.data);

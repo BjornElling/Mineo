@@ -135,7 +135,7 @@ describe('»Indsæt dags dato« — fælles kommandokontrakt på alle fem flader
         await user.click(button);
 
         await waitFor(() => expect(readCommitted(surface.field)).toBe(getTodayLocalISO()));
-        // BF-056 / keyboard-navigation.md: aktiveringen må ikke flytte tastaturbrugeren til datofeltet.
+        // keyboard-navigation.md: aktiveringen må ikke flytte tastaturbrugeren til datofeltet.
         await waitFor(() => expect(button).toHaveFocus());
         expect(errors).toEqual([]);
         // Ét klik = ét afsluttet felt-commit; feltet står canonical, ikke som rejected råtekst (§1.5).

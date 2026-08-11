@@ -22,6 +22,7 @@ import {
 } from '../../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../../document/definition/documentSourceContext';
 import { defineDocumentOutput } from '../../../document/definition/documentDefinition';
+import { createDocumentComposer } from '../../../document/model/documentModel';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import { renteberegningBeregningsdatoField, renteberegningKommentarerField } from '../../../inputCore/catalog/renteberegningDescriptors';
 import type { ProcessInterestPeriod } from '../../../domain/renteberegning/procesrenteCalculator';
@@ -264,10 +265,9 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
      * i definitionen, sammen med den tunge import — og ikke i kernen.
      */
     loadRenderer: async () => {
-      const [{ buildRenteDocumentBaseTitle, writeRenteDocumentContent }, { createDocumentComposer }, { resolveDocumentArtifactFileName }, { getDocumentCreatorBrand }, { parseISODate }] =
+      const [{ buildRenteDocumentBaseTitle, writeRenteDocumentContent }, { resolveDocumentArtifactFileName }, { getDocumentCreatorBrand }, { parseISODate }] =
         await Promise.all([
           import('../../../document/generators/renteberegning/renteDocument'),
-          import('../../../document/model/documentModel'),
           import('../../../document/layout/documentFormatUtils'),
           import('../../../document/layout/documentLayoutHelpers'),
           import('../../../types/branded'),
