@@ -37,9 +37,18 @@ type TabAnchor = CellLocator;
 // Den fokuserede celle ejes derimod af ÉN autoritet: `core.setFocusedCell`, sat fra
 // `handleTableFocusCapture` når fysisk DOM-fokus lander (læses via `core.getFocusedCell()`).
 const tabAnchorByTable = new WeakMap<HTMLTableElement, TabAnchor>();
-const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired: CellLocator }>>();
 const clickEditableCellByTable = new WeakMap<HTMLTableElement, GridCellCoord>();
 const pointerDownFocusedCellByTable = new WeakMap<HTMLTableElement, GridCellCoord>();
+
+type FocusRecoveryOptions = Readonly<{
+  force?: boolean;
+}>;
+type PendingFocusRecovery = Readonly<{
+  desired: CellLocator;
+  force: boolean;
+}>;
+
+const pendingRecoveryByTable = new WeakMap<HTMLTableElement, PendingFocusRecovery>();
 
 // Navigations-semantik (ejet af dette modul):
 // - Enter / Shift+Enter: flyt vertikalt mens "anchor-cellen" bevares hvis den findes; ellers brug den aktuelle celle.
@@ -76,15 +85,15 @@ const shouldIgnoreKey = (e: React.KeyboardEvent): boolean => {
   return false;
 };
 
-const scheduleFocusRecovery = (table: HTMLTableElement, desired: CellLocator) => {
-  pendingRecoveryByTable.set(table, { desired });
+const scheduleFocusRecovery = (table: HTMLTableElement, desired: CellLocator, options?: FocusRecoveryOptions) => {
+  pendingRecoveryByTable.set(table, { desired, force: options?.force === true });
   requestAnimationFrame(() => {
     const pending = pendingRecoveryByTable.get(table);
     if (!pending) return;
     pendingRecoveryByTable.delete(table);
 
     const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    if (active && table.contains(active)) return;
+    if (pending.force !== true && active && table.contains(active)) return;
 
     if (typeof pending.desired.rowId === 'string' && pending.desired.rowId.trim() !== '') {
       const rowId = pending.desired.rowId;
@@ -310,7 +319,14 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     }
     activeEditableCell.clearAndCommit();
     core?.executeFocusPlan();
-    scheduleFocusRecovery(table, activePos);
+    // Delete bevarer den fysiske tabelposition. Den slettede rækkes id kan straks blive genbrugt af trailing-
+    // placeholderen, fordi undo skal kunne finde samme rækkeidentitet igen; et id-opslag ville derfor flytte
+    // fokus til den nye tomme række i stedet for til den række, der rykkede op på den slettede rækkes plads.
+    scheduleFocusRecovery(table, {
+      rowIndex: activePos.rowIndex,
+      colIndex: activePos.colIndex,
+      subIndex: activePos.subIndex,
+    }, { force: true });
     return;
   }
 
