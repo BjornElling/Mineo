@@ -552,6 +552,29 @@ describe('Container keyboard navigation', () => {
     expect(document.activeElement).toBe(download);
   });
 
+  it('beholder fokus på indsætningsknappen efter et commit, der gen-render fladen', async () => {
+    const user = userEvent.setup();
+
+    const DynamicAction = () => {
+      const [value, setValue] = React.useState('før');
+      return (
+        <>
+          <InsertTodayDateButton onCommit={() => setValue('efter')} />
+          <output data-testid="dynamic-action-value">{value}</output>
+        </>
+      );
+    };
+
+    render(<DynamicAction />);
+    const button = screen.getByRole('button', { name: 'Indsæt dags dato' });
+    button.focus();
+
+    await user.keyboard('{Enter}');
+    expect(screen.getByTestId('dynamic-action-value')).toHaveTextContent('efter');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(button);
+  });
+
   it('skipper skjulte download-knapper i Tab-rækkefølgen', async () => {
     const user = userEvent.setup();
 

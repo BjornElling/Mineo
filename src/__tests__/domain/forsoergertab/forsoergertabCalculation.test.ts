@@ -42,10 +42,31 @@ describe('computeForsoergertabCalculation', () => {
     expect(computation.opreguleretAarligYdelse).toBe(expectedOpreguleretAarligYdelse);
     // Delegerings-identitet: faktoren skal være tal-identisk med den fælles motors
     // output (ikke kun den manuelt reproducerede formel). Låser at callsite og motor
-    // ikke kan drive fra hinanden — fx hvis motorens clamp/afrunding ændres.
+    // ikke kan drive fra hinanden — fx hvis motorens afrunding ændres.
     expect(computation.opreguleringsfaktor).toBe(
       opregulerMedAslAarsloensmaksimum({ kildeAar: 2020, maalAar: 2026 }).faktor
     );
+  });
+
+  it('blokerer direkte ASL-beregning når årslønnen overstiger skadesårets maksimum', () => {
+    const result = computeForsoergertabCalculation({ ...NOT_BLOCKED,
+      skadedato: toISODateString('2020-05-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1973-01-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-01-01'),
+      koen: 'Kvinde',
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(aarsloenAslMax[2020]! + 1000),
+      ealAarsloen: asAmount(450000),
+    });
+
+    expect(result.aslComputation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'asl-aarsloen-over-max',
+      severity: 'error',
+      message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (551.000 kr.)',
+    });
   });
 
   it('kræver køn og slår korrekt op i kønsafhængige tabeller før 1. marts 2015', () => {
@@ -165,7 +186,7 @@ describe('computeForsoergertabCalculation', () => {
       virkningsdato: toISODateString('2025-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 10,
-      aslAarsloen: asAmount(700000),
+      aslAarsloen: asAmount(aarsloenAslMax[2020]!),
       ealAarsloen: asAmount(100000),
     });
 

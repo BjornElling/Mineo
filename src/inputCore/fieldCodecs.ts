@@ -237,6 +237,7 @@ export const createIntegerFieldCodec = (
   config: IntegerDraftParseConfig & Readonly<{ minValue?: number; maxValue?: number }>
 ): FieldCodec<number | undefined> => {
   assertBoolean('IntegerFieldCodec', 'allowNegative', config.allowNegative);
+  assertPositiveInteger('IntegerFieldCodec', 'maxDigits', config.maxDigits);
   assertNumericBounds('IntegerFieldCodec', config, isSafeCanonicalInteger);
   return Object.freeze({
     family: 'integer',
@@ -248,16 +249,20 @@ export const createIntegerFieldCodec = (
       const normalized = edge === '' && raw.trim() !== '' ? raw.trim() : edge;
       // Fortegn, cifferantal og min/max er feltgrænser, ikke schema-repræsenterbarhed. Parse derfor ethvert
       // sikkert heltal; descriptorens canonical validator ejer den røde bounds-fejl (§1.6).
+      // Cifferloftet gælder den skrivende overflade, ikke allerede indlæst eller programmatisk input (§1.2).
+      // Derfor parses en sikker heltalsværdi her uden at gøre feltets input-admission til en schema-afvisning.
       const parsed = parseIntegerDraftForCommit(normalized, { allowNegative: true });
       if (!parsed.ok) return rejectedResolution('format');
       return validResolution(parsed.value);
     },
     format: (value) => value === undefined ? '' : String(value),
     formatForEdit: (value) => value === undefined ? '' : String(value),
+    ...(config.maxDigits === undefined ? {} : { maxDigits: config.maxDigits }),
     // Minus åbner kun editoren på et felt, der FÅR være negativt.
     acceptsInitialKey: (key) => /^\d$/.test(key) || (key === '-' && config.allowNegative),
     normalizePaste: (raw) => normalizeIntegerPaste(raw, {
       allowNegative: config.allowNegative,
+      maxDigits: config.maxDigits,
     }),
   });
 };
@@ -303,11 +308,13 @@ export const createAmountFieldCodec = (options: Readonly<{
     // Et komma må kun åbne editoren i et felt, der faktisk kan rumme decimaler — ellers ville
     // tastetrykket starte en redigering, som tegnfilteret straks blokerer.
     //
-    // `-` beholdes for BEGGE fortegns-politikker, i modsætning til heltal og procent: i et
-    // beløbsfelt er minus også SUBTRAKTION i et udtryk ("5000-200"), og et ikke-negativt felt må gerne
-    // regne sig ned til et lovligt resultat. Tegnfilteret blokerer netop kun det UNÆRE minus
-    // (`containsUnaryMinusToken`), og den skelnen kan et enkelt-tegns-opslag ikke gøre.
-    acceptsInitialKey: (key) => (options.allowDecimals ? /^[0-9,()-]$/ : /^[0-9()-]$/).test(key),
+    // Et ikke-negativt felt må stadig bruge minus som SUBTRAKTION i et åbent udtryk ("5000-200"),
+    // men et tomt felt skal ikke åbnes med et ugyldigt unært minus. Det åbne draft-filter afgør fortsat
+    // den samme skelnen gennem `containsUnaryMinusToken`.
+    acceptsInitialKey: (key) => {
+      if (key === '-') return options.allowNegative;
+      return (options.allowDecimals ? /^[0-9,()]$/ : /^[0-9()]$/).test(key);
+    },
     normalizePaste: (raw) => normalizeAmountPaste(raw, {
       allowNegative: options.allowNegative,
       allowDecimals: options.allowDecimals,
@@ -380,6 +387,7 @@ export const createStringBackedFieldCodec = <T extends string | number>(
   // ikke hvad der er et lovligt fortegn. Uden viderestillingen ville månedscellen — et heltal 1..12 gennem
   // denne adapter — miste sin ikke-negative politik og få minus tilbage i tegnfilteret.
   ...(sourceCodec.signPolicy === undefined ? {} : { signPolicy: sourceCodec.signPolicy }),
+  ...(sourceCodec.maxDigits === undefined ? {} : { maxDigits: sourceCodec.maxDigits }),
   ...(sourceCodec.normalizePaste === undefined ? {} : { normalizePaste: sourceCodec.normalizePaste }),
 });
 

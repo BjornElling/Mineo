@@ -146,7 +146,7 @@ export type RentekravRowResult = Readonly<{
     actualInterestDate: ISODateString;
     beregningsdato: ISODateString;
     periods: ReadonlyArray<ProcessInterestPeriod>;
-    latestReferenceRateDate: ISODateString | null;
+    latestReferenceRatePeriodEnd: ISODateString | null;
     /** Autoritativt afrundet samlet rente for rækken (matcher tabellens "Beregnet rente"). */
     calculatedInterest: number;
   }> | null;
@@ -174,7 +174,7 @@ export const computeRentekravRow = (
     return { actualInterestDate: result.actualInterestDate, calculatedInterest: null, pdfContext: null };
   }
 
-  const latestReferenceRateDate = (() => {
+  const latestReferenceRatePeriodEnd = (() => {
     try {
       const latest = findLatestReferenceRatePeriodEnd(refRates);
       return latest ? (dateToISO(latest) ?? null) : null;
@@ -191,7 +191,7 @@ export const computeRentekravRow = (
       actualInterestDate: result.actualInterestDate,
       beregningsdato,
       periods: result.periods,
-      latestReferenceRateDate,
+      latestReferenceRatePeriodEnd,
       calculatedInterest: result.calculatedInterest,
     },
   };

@@ -63,7 +63,7 @@ const AarsloenBeregningSection = React.memo(() => {
           <Typography className="row--text">
             {vm.harFatalBeregningsFejl ? '—' : `${formatCurrency(beregnetAarsloen)} kr.`}
           </Typography>
-          {vm.visDownloadVedSammentaelling && downloadButton}
+          {(vm.visDownloadVedSammentaelling || vm.harFatalBeregningsFejl) && downloadButton}
         </Box>
       </Box>
 

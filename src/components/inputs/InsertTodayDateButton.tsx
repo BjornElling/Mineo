@@ -4,6 +4,7 @@ import { ContentPasteGo } from '@mui/icons-material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type { ISODateString } from '../../types/branded';
 import { insertTodayDate } from '../../utils/insertTodayDate';
+import { restoreFocusIfPossible } from '../../utils/focusUtils';
 import { mergeSx } from '../../utils/mergeSx';
 
 type InsertTodayDateButtonProps = Readonly<{
@@ -14,13 +15,21 @@ type InsertTodayDateButtonProps = Readonly<{
 
 const InsertTodayDateButton = React.memo(
   ({ onCommit, tooltip = 'Indsæt dags dato', sx }: InsertTodayDateButtonProps) => {
+    const buttonRef = React.useRef<HTMLButtonElement>(null);
     const handleClick = React.useCallback(() => {
+      const button = buttonRef.current;
       insertTodayDate({ onCommit });
+      // WebKit kan miste native fokus, når commit'et synkront gen-render et kontrolleret felt.
+      // Fokus skal blive på handlingen, så Tab fortsat går til næste kontrol i rækkefølgen.
+      if (button) {
+        requestAnimationFrame(() => restoreFocusIfPossible(button));
+      }
     }, [onCommit]);
 
     return (
       <Tooltip title={tooltip} arrow>
         <IconButton
+          ref={buttonRef}
           type="button"
           aria-label={tooltip}
           data-mineo-focusable-button="true"

@@ -65,6 +65,19 @@ describe('safeSessionStorage', () => {
     removeItemSpy.mockRestore();
   });
 
+  it('rapporterer tavse storage-no-op som fejl', () => {
+    sessionStorage.setItem('mineo_ui_test', 'eksisterende');
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as Storage;
+    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation(() => undefined);
+    const removeItemSpy = vi.spyOn(storageProto, 'removeItem').mockImplementation(() => undefined);
+
+    expect(writeOptionalSessionStorageValue(testKey('mineo_ui_test'), 'vaerdi')).toBe(false);
+    expect(removeOptionalSessionStorageValue('mineo_ui_test')).toBe(false);
+
+    setItemSpy.mockRestore();
+    removeItemSpy.mockRestore();
+  });
+
   it('returns null for optional read helper when sessionStorage read access fails', () => {
     const storageProto = Object.getPrototypeOf(window.sessionStorage) as Storage;
     const getItemSpy = vi.spyOn(storageProto, 'getItem').mockImplementation(() => {

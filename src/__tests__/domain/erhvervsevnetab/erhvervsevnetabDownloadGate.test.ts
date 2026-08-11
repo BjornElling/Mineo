@@ -215,6 +215,23 @@ describe('evaluateErhvervsevnetabDownloadGates (fra reader-projektionen)', () =>
     expect(gates.differencekrav.canDownload).toBe(true);
   });
 
+  it('blokerer output i stedet for at reducere ASL-årsløn over skadesårets maksimum', () => {
+    const projection = buildErhvervsevnetabReaderProjection(
+      buildReader(
+        validErhvervsevnetab,
+        { aslAarsloen: asAmount(632000), ealAarsloen: undefined },
+        validStamdata,
+      )
+    );
+    const gates = evaluateErhvervsevnetabDownloadGates(projection);
+
+    expect(gates.loebendeYdelser.canDownload).toBe(false);
+    expect(gates.kapitalisering.canDownload).toBe(false);
+    expect(gates.efterEal.canDownload).toBe(false);
+    expect(gates.differencekrav.canDownload).toBe(false);
+    expect(gates.loebendeYdelser.reasons[0]?.code).toBe('eet-loebende-ydelser:field-error');
+  });
+
   it('§1.10: en ealEetPct-bounds-feltfejl blokerer EET efter EAL og differencekravet', () => {
     // Differencekravet genbruger EAL-resultatet; de to ASL-faner er uafhængige.
     const projection = buildErhvervsevnetabReaderProjection(

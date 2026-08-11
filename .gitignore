@@ -53,6 +53,7 @@ desktop.ini
 
 # Vitest output
 vitest-output.txt
+vitest-results.json
 
 # Kontinuerligt fejloprettet nul-fil
 nul

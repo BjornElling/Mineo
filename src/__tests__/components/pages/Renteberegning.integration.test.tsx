@@ -196,14 +196,13 @@ describe('Renteberegning — Evt. tillægstid', () => {
     expect(input).toHaveAttribute('aria-invalid', 'false');
   });
 
-  it('fail-closer et programmatisk trecifret input gennem det eksisterende bounds-issue', () => {
-    hydrate([{ ...validRow('r1'), tillaegstid: undefined }], '2024-12-31');
+  it('bevarer et indlæst trecifret canonical input gennem det eksisterende bounds-issue', () => {
+    // Cifferloftet er et værn på den skrivende overflade. Et allerede schema-gyldigt canonical tal fra
+    // load/programmatisk state må ikke afvises som format; det skal i stedet få det afledte bounds-issue.
+    hydrate([{ ...validRow('r1'), tillaegstid: 123 }], '2024-12-31');
     renderRenteberegning();
 
     const input = getTillaegstidInput();
-    fireEvent.doubleClick(input);
-    fireEvent.change(input, { target: { value: '123' } });
-    fireEvent.blur(input);
 
     expect(input).toHaveValue('123');
     expect(input).toHaveAttribute('aria-invalid', 'true');
@@ -213,8 +212,8 @@ describe('Renteberegning — Evt. tillægstid', () => {
   // nu PRÆCIS som tastning. Testen krævede før, at et indsat `987` overlevede i fuld længde og blev en rød
   // fejl ved settle — det byggede på det ophævede princip om, at paste aldrig måtte afkortes. Nu er det
   // tredje ciffer blokeret ved indgangen, ligesom det er ved tastning, så `98` er den ØNSKEDE værdi og
-  // feltet er gyldigt. Bemærk at testen ovenfor — det PROGRAMMATISKE trecifrede input — fortsat skal give
-  // rød fejl: en programmatisk skrivning og en `.eo`-load er ikke tastning og har ingen tegnblokering.
+  // feltet er gyldigt. Et allerede indlæst canonical tal er en separat read-side-situation og bevares
+  // derfor fortsat med sit afledte bounds-issue, som testen ovenfor hævder.
   it('afgrænser et indsat trecifret tal som ved tastning', async () => {
     const user = userEvent.setup();
     hydrate([{ ...validRow('r1'), tillaegstid: undefined }], '2024-12-31');

@@ -1,24 +1,25 @@
 import { spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
+import { dateLikeAdmission } from '../../../components/inputs/draftAdmission';
 
 // `input-field-behavior-contract.md` §1.2a: paste afgrænses PRÆCIS som tastning. Splicen er den vej,
 // hvor `<input maxLength>` ikke virker, fordi `onPaste` kalder `preventDefault()` og selv skriver draften.
 
 describe('spliceDraftWithPaste', () => {
   it('indsætter ved caret uden grænse', () => {
-    expect(spliceDraftWithPaste('1234', 'AB', 2, 2)).toEqual({ draft: '12AB34', caret: 4 });
+    expect(spliceDraftWithPaste('1234', 'AB', 2, 2)).toEqual({ draft: '12AB34', caret: 4, acceptedLength: 2 });
   });
 
   it('erstatter markeringen', () => {
-    expect(spliceDraftWithPaste('1234', 'AB', 1, 3)).toEqual({ draft: '1AB4', caret: 3 });
+    expect(spliceDraftWithPaste('1234', 'AB', 1, 3)).toEqual({ draft: '1AB4', caret: 3, acceptedLength: 2 });
   });
 
   it('afkorter det INDSATTE til den resterende plads', () => {
     // Feltet rummer 5 tegn; `12` + `34` fylder 4, så kun ét tegn kan indsættes.
-    expect(spliceDraftWithPaste('1234', 'ABC', 2, 2, 5)).toEqual({ draft: '12A34', caret: 3 });
+    expect(spliceDraftWithPaste('1234', 'ABC', 2, 2, 5)).toEqual({ draft: '12A34', caret: 3, acceptedLength: 1 });
   });
 
   it('afkorter til tom indsættelse, når feltet allerede er fyldt', () => {
-    expect(spliceDraftWithPaste('12345', 'ABC', 2, 2, 5)).toEqual({ draft: '12345', caret: 2 });
+    expect(spliceDraftWithPaste('12345', 'ABC', 2, 2, 5)).toEqual({ draft: '12345', caret: 2, acceptedLength: 0 });
   });
 
   it('sletter ALDRIG brugerens eksisterende tegn for at gøre plads', () => {
@@ -33,7 +34,7 @@ describe('spliceDraftWithPaste', () => {
 
   it('en markeret del frigør plads til det indsatte', () => {
     // Markeringen fjernes, så pladsen er 5 - 0 - 2 = 3 tegn.
-    expect(spliceDraftWithPaste('12345', 'ABCDEF', 0, 3, 5)).toEqual({ draft: 'ABC45', caret: 3 });
+    expect(spliceDraftWithPaste('12345', 'ABCDEF', 0, 3, 5)).toEqual({ draft: 'ABC45', caret: 3, acceptedLength: 3 });
   });
 
   it('caret følger den FAKTISK indsatte længde', () => {
@@ -54,5 +55,21 @@ describe('spliceDraftWithPaste', () => {
     expect(spliceDraftWithPaste('12', 'AB', -5, -5).draft).toBe('AB12');
     // Omvendt rækkefølge må ikke give en negativ udsnitslængde.
     expect(spliceDraftWithPaste('1234', 'AB', 3, 1).draft).toBe('123AB4');
+  });
+
+  it('springer afviste tegn over og fortsætter med resten af pasten', () => {
+    expect(spliceDraftWithPaste('', '12a34', 0, 0, 4, (draft) => /^\d{0,4}$/.test(draft)))
+      .toEqual({ draft: '1234', caret: 4, acceptedLength: 4 });
+  });
+
+  it('vurderer paste mod den eksisterende draft ved caret-positionen', () => {
+    const admission = dateLikeAdmission();
+    expect(spliceDraftWithPaste('12-', ',34', 3, 3, 10, admission))
+      .toEqual({ draft: '12-34', caret: 5, acceptedLength: 2 });
+  });
+
+  it('rapporterer når paste ikke indsatte ét eneste accepteret tegn', () => {
+    expect(spliceDraftWithPaste('2020', 'abc', 4, 4, 4, (draft) => /^\d{0,4}$/.test(draft)))
+      .toEqual({ draft: '2020', caret: 4, acceptedLength: 0 });
   });
 });

@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-09 (§Regel 7's paste-afgrænsning er verificeret: `maxDraftLength`
+**Senest verificeret mod kode:** 2026-08-11 (§Regel 7's paste-afgrænsning er verificeret: `maxDraftLength`
 håndhæves nu også ved paste, og integrationstesten «afgrænser et indsat trecifret tal som ved tastning»
 måler at et paste af `987` giver `98` uden fejltilstand)
 
@@ -40,6 +40,13 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
    0–99, bliver canonical ved settle og får det afledte bounds-issue, som blokerer afhængige consumers. Samme
    bounds-regel er autoritativ ved load, hvor en trecifret værdi fra fil ikke er en tastning og derfor
    committes canonical med sit røde bounds-issue frem for at blive afkortet.
+8. Hvert kalenderår er opdelt i to halvår: 1. januar–30. juni og 1. juli–31. december. En referencesats
+   fastsættes på halvårets første dag og gælder til halvårets sidste dag. Hvis beregningsdatoen ligger efter
+   udgangen af det senest dækkede halvår, bruger motoren den senest kendte referencesats og dokumentet viser
+   en tydelig advarsel med denne halvårsudgang. Datoen for satsens ikrafttræden er ikke i sig selv en
+   advarselsgrænse. Denne fail-soft-regel er den autoritative beregningsmetode; fremtidige satser må ikke
+   gættes eller indføres som en skjult særregel, og beregningen må ikke blokeres alene fordi datoen ligger
+   fremme i tid.
 
 ---
 

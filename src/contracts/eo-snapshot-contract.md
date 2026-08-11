@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-11
 
 ---
 
@@ -199,9 +199,11 @@ Bruges til:
 - Manglende nødvendige inputfelter (validator-fejl)
 
 **Bounds-violations (§2.2)** (differencekravDato, EET-virkningsdato, ménafgørelsesdato)
-håndteres ikke som snapshot-invariants. De eksponeres som afledte issues fra inputprojektionen og gengives på
-EOberegningTab; relevante dokumentdefinitioner blokeres.
-Snapshot beregnes stadig på de clampede værdier og `data` er tilgængeligt.
+er strukturelle feltissues og bliver derfor også snapshot-invariants for de consumers, der læser feltet.
+De må gerne gemmes som schema-gyldigt canonical input, men må ikke fodre en autoritativ motor eller et
+afhængigt dokument. Snapshottes autoritative `data` er derfor `null` i den blokerede gren; uafhængige
+inspektionsgrene må fortsat eksponere de data, der ikke læser det fejlramte felt. Der beregnes ikke stiltiende
+videre på en clampet værdi.
 
 ### 3.2 `blocksOutputs`
 

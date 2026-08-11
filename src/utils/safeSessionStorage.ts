@@ -68,13 +68,15 @@ export const readOptionalSessionStorageValue = (key: string): string | null => {
 export const writeOptionalSessionStorageValue = (key: ManifestStorageKey, value: string): boolean => {
   return withOptionalSessionStorage(false, (storage) => {
     storage.setItem(key, value);
-    return true;
+    // Nogle browser-/testimplementeringer kan acceptere kaldet uden faktisk at
+    // skrive. Metadata- og reset-kaldere må ikke tolke et sådant no-op som succes.
+    return storage.getItem(key) === value;
   });
 };
 
 export const removeOptionalSessionStorageValue = (key: string): boolean => {
   return withOptionalSessionStorage(false, (storage) => {
     storage.removeItem(key);
-    return true;
+    return storage.getItem(key) === null;
   });
 };

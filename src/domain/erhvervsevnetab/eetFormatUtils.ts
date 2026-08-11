@@ -150,6 +150,7 @@ const ASL_IDS = new Set([
   'reguleringssats-missing',
   'reguleringssats-missing-2024',
   'aarsloen-max-missing',
+  'aarsloen-over-max',
   'warn-asl-eet-under-15',
   'warn-asl-aarsloen-is-max',
   'warn-invalid-eet-pct-after-2024-07-01',

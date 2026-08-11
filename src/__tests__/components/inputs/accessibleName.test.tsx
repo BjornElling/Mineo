@@ -194,3 +194,14 @@ describe('LabeledControlRow', () => {
     expect(screen.getByRole('checkbox', { name: 'Anden indstilling' })).toBeInTheDocument();
   });
 });
+
+describe('InfoTooltipIcon', () => {
+  it('kan fokuseres med tastatur og har tooltipteksten som navn', () => {
+    render(<InfoTooltipIcon title="Forklaring til feltet" />);
+
+    const icon = screen.getByRole('img', { name: 'Forklaring til feltet' });
+    expect(icon).toHaveAttribute('tabindex', '0');
+    icon.focus();
+    expect(icon).toHaveFocus();
+  });
+});

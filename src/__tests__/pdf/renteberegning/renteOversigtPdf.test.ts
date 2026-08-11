@@ -47,8 +47,8 @@ describe('writeRenteOversigtDocumentContent', () => {
   it('skriver hypotetisk-advarsel med samme tekst som rente-specifikationen', () => {
     const { composer, build } = createDocumentComposer();
 
-    writeRenteOversigtDocumentContent(composer, toISODateString('2024-02-01'), [makeRow()], {
-      latestReferenceRateDate: toISODateString('2024-01-31'),
+    writeRenteOversigtDocumentContent(composer, toISODateString('2024-07-01'), [makeRow()], {
+      latestReferenceRatePeriodEnd: toISODateString('2024-06-30'),
     });
 
     expect(build().blocks).toContainEqual(expect.objectContaining({ text: expect.stringContaining('Beregning derefter er hypotetisk!') }));
@@ -57,8 +57,8 @@ describe('writeRenteOversigtDocumentContent', () => {
   it('udelader hypotetisk-advarsel når beregningsdatoen er dækket af procesrentesatser', () => {
     const { composer, build } = createDocumentComposer();
 
-    writeRenteOversigtDocumentContent(composer, toISODateString('2024-01-31'), [makeRow()], {
-      latestReferenceRateDate: toISODateString('2024-01-31'),
+    writeRenteOversigtDocumentContent(composer, toISODateString('2024-06-30'), [makeRow()], {
+      latestReferenceRatePeriodEnd: toISODateString('2024-06-30'),
     });
 
     expect(build().blocks).not.toContainEqual(expect.objectContaining({ text: expect.stringContaining('Beregning derefter er hypotetisk!') }));

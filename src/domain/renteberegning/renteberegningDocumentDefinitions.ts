@@ -114,22 +114,22 @@ const readAggregate = (source: SharedRenteSource) =>
 export type RenteOversigtDocumentInput = Readonly<{
   beregningsdato: ISODateString;
   rows: readonly RenteOversigtRow[];
-  latestReferenceRateDate: ISODateString | null;
+  latestReferenceRatePeriodEnd: ISODateString | null;
   kommentarer: string | undefined;
   stamdata: StamdataValues;
 }>;
 
 /**
- * Den seneste referencerentedato på tværs af rækkerne. Var før en løkke i click-handleren; den er en
- * ren afledning af projektionen og hører derfor i definitionen.
+ * Den seneste dækkede halvårsudgang på tværs af rækkerne. Var før en løkke i click-handleren; den er
+ * en ren afledning af projektionen og hører derfor i definitionen.
  */
-const resolveLatestReferenceRateDate = (
-  pdfContexts: ReadonlyMap<string, Readonly<{ latestReferenceRateDate: ISODateString | null }>>
+const resolveLatestReferenceRatePeriodEnd = (
+  pdfContexts: ReadonlyMap<string, Readonly<{ latestReferenceRatePeriodEnd: ISODateString | null }>>
 ): ISODateString | null => {
   let latest: ISODateString | null = null;
   for (const ctx of pdfContexts.values()) {
-    if (ctx.latestReferenceRateDate === null) continue;
-    if (latest === null || ctx.latestReferenceRateDate > latest) latest = ctx.latestReferenceRateDate;
+    if (ctx.latestReferenceRatePeriodEnd === null) continue;
+    if (latest === null || ctx.latestReferenceRatePeriodEnd > latest) latest = ctx.latestReferenceRatePeriodEnd;
   }
   return latest;
 };
@@ -178,7 +178,7 @@ export const renteOversigtDocumentDefinition: MineoDocumentDefinition<RenteOvers
         input: {
           beregningsdato: source.beregningsdato,
           rows,
-          latestReferenceRateDate: resolveLatestReferenceRateDate(ready.aggregate.pdfContexts),
+          latestReferenceRatePeriodEnd: resolveLatestReferenceRatePeriodEnd(ready.aggregate.pdfContexts),
           kommentarer: source.kommentarer,
           stamdata: ready.stamdata,
         },
@@ -196,7 +196,7 @@ export const renteOversigtDocumentDefinition: MineoDocumentDefinition<RenteOvers
           visBrevhoved: ctx.visBrevhoved,
           stamdata: input.stamdata,
           kommentarer: input.kommentarer,
-          latestReferenceRateDate: input.latestReferenceRateDate,
+          latestReferenceRatePeriodEnd: input.latestReferenceRatePeriodEnd,
         }
       );
     },
@@ -221,7 +221,7 @@ export type RenteDocumentInput = Readonly<{
   actualInterestDate: ISODateString;
   beregningsdato: ISODateString;
   periods: readonly ProcessInterestPeriod[];
-  latestReferenceRateDate: ISODateString | null;
+  latestReferenceRatePeriodEnd: ISODateString | null;
   kommentarer: string | undefined;
   stamdata: StamdataValues;
 }>;
@@ -265,7 +265,7 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
           actualInterestDate: pdfContext.actualInterestDate,
           beregningsdato: pdfContext.beregningsdato,
           periods: pdfContext.periods,
-          latestReferenceRateDate: pdfContext.latestReferenceRateDate,
+          latestReferenceRatePeriodEnd: pdfContext.latestReferenceRatePeriodEnd,
           kommentarer: source.kommentarer,
           stamdata: source.stamdata.value,
         },
@@ -289,7 +289,7 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
           visBrevhoved: ctx.visBrevhoved,
           stamdata: input.stamdata,
           kommentarer: input.kommentarer,
-          latestReferenceRateDate: input.latestReferenceRateDate ?? null,
+          latestReferenceRatePeriodEnd: input.latestReferenceRatePeriodEnd ?? null,
         }
       );
     },

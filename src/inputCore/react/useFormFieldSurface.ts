@@ -7,8 +7,12 @@ import { readClipboardText } from '../../utils/clipboardUtils';
 import type { InputSelectionSnapshot } from '../../utils/inputSelectionUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
-import { spliceDraftWithPaste } from './pasteSplice';
-import { restoreDomValueAfterRejectedDraft, type DraftAdmission } from '../../components/inputs/draftAdmission';
+import { normalizePasteForDraft, spliceDraftWithPaste } from './pasteSplice';
+import {
+  isDraftWithinMaxLength,
+  restoreDomValueAfterRejectedDraft,
+  type DraftAdmission,
+} from '../../components/inputs/draftAdmission';
 import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 
 // React-laget (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
@@ -170,8 +174,8 @@ export const useFormFieldSurface = <T>(
   // i deres egen codec/adapter ved migreringen — den generiske surface holder ingen caret-genskabelse, som
   // ellers ville kunne genskabe en forældet caret ved en senere ekstern revisionsændring.
   const onDraftChange = React.useCallback((nextDraft: string, _selection?: InputSelectionSnapshot) => {
-    const { controller: ctl, draftAdmission: admits } = latest.current;
-    if (admits !== undefined && !admits(nextDraft)) {
+    const { controller: ctl, draftAdmission: admits, maxDraftLength } = latest.current;
+    if (!isDraftWithinMaxLength(nextDraft, maxDraftLength) || (admits !== undefined && !admits(nextDraft))) {
       // §1.2: tegnet blev aldrig en del af værdien. Blokeringen er TAVS — ingen rød ring, ingen fejltekst.
       // `<input>` er styret af `displayText`, men React skriver ikke elementet tilbage, når den rendrede
       // værdi er uændret. Uden denne linje ville et afvist tegn blive stående i DOM'en, mens draften i
@@ -286,11 +290,11 @@ export const useFormFieldSurface = <T>(
     const { controller: ctl, setPasteCaret: caret, disabled: dis } = latest.current;
     if (dis) return;
     const normalize = field.descriptor.codec.normalizePaste ?? ((raw: string) => raw);
-    const normalized = normalize(readClipboardText(e));
+    const raw = readClipboardText(e);
+    const pasteContextDraft = ctl.isOpen ? ctl.displayText : '';
+    const normalized = normalizePasteForDraft(raw, normalize, pasteContextDraft);
     e.preventDefault();
     e.stopPropagation();
-    if (normalized === '') return;
-
     if (!ctl.isOpen) {
       // Lukket paste er en afsluttet inputhandling: commit straks gennem samme codec/settle-sti som grid.
       // Editorens åbne draft må ikke efterlades som en skjult mellemtilstand efter clipboard-handlingen.
@@ -298,7 +302,18 @@ export const useFormFieldSurface = <T>(
       // Længden afkortes også her. Et lukket paste erstatter hele værdien, så der er ingen eksisterende
       // tekst at gøre plads til — men uden afkortningen ville en for lang indsættelse blive committet i
       // fuld længde ad netop denne vej, mens tastning og åben paste afviste de samme tegn (§1.2a).
-      ctl.open(spliceDraftWithPaste('', normalized, 0, 0, latest.current.maxDraftLength).draft);
+      const spliced = spliceDraftWithPaste(
+        '',
+        normalized,
+        0,
+        0,
+        latest.current.maxDraftLength,
+        latest.current.draftAdmission
+      );
+      // Et paste med kun afviste tegn må ikke blive en skjult slettehandling. Rydning kræver
+      // Delete/Backspace, så clipboard-indhold uden ét eneste accepteret tegn er et no-op.
+      if (spliced.acceptedLength === 0) return;
+      ctl.open(spliced.draft);
       ctl.settle();
       return;
     }
@@ -309,7 +324,18 @@ export const useFormFieldSurface = <T>(
     const draft = ctl.displayText;
     const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
     const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-    const spliced = spliceDraftWithPaste(draft, normalized, start, end, latest.current.maxDraftLength);
+    const spliced = spliceDraftWithPaste(
+      draft,
+      normalized,
+      start,
+      end,
+      latest.current.maxDraftLength,
+      latest.current.draftAdmission
+    );
+    if (spliced.acceptedLength === 0) {
+      restoreDomValueAfterRejectedDraft(input, draft);
+      return;
+    }
     ctl.changeDraft(spliced.draft);
 
     if (caret) {

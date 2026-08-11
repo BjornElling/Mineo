@@ -139,6 +139,24 @@ describe('synchronizeLoadMetadata — den asynkrone metadatafase', () => {
     expect(result.status).toBe('applied-with-metadata-error');
   });
 
+  it('skriver ikke ny filnavnsmetadata når handle-leddet fejler', async () => {
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, 'gammel.eo');
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Gammel"}');
+    saveFileHandleToIndexedDBMock.mockResolvedValueOnce(false);
+
+    const result = await synchronizeLoadMetadata({
+      status: 'loaded',
+      source: 'pwa',
+      filename: 'ny.eo',
+      fileHandle: { name: 'ny.eo' } as FileSystemFileHandle,
+      snapshot: { stamdata: { skadelidte: 'Ny' } },
+    });
+
+    expect(result.status).toBe('applied-with-metadata-error');
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename)).toBe('gammel.eo');
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBe('{"skadelidte":"Gammel"}');
+  });
+
   it('synkroniserer filnavn og rydder et forældet basisnavn', async () => {
     sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"forrige"}');
 
@@ -182,6 +200,18 @@ describe('synchronizeLoadMetadata — den asynkrone metadatafase', () => {
     expect(clearPendingPwaFileOpenRequestMock).not.toHaveBeenCalled();
     expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
     expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBeNull();
+  });
+
+  it('rydder ikke en nyere PWA-request ved manuel indlæsning', async () => {
+    await synchronizeLoadMetadata({
+      status: 'loaded',
+      source: 'manual',
+      filename: 'manuel.eo',
+      snapshot: {},
+    });
+
+    expect(clearPendingPwaFileOpenRequestMock).not.toHaveBeenCalled();
+    expect(markPendingPwaFileOpenRequestHandledMock).not.toHaveBeenCalled();
   });
 
   it('returnerer metadata-advarsel når en storagegrænse kaster', async () => {

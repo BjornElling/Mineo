@@ -32,6 +32,7 @@ import {
   type FieldIssueSnapshot,
 } from '../../../inputCore';
 import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
+import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
 
 // Den fælles felt-editor (§2.3/§3.5, §7.1) mod syntetiske immutable issue-snapshots.
 // Adapteren parser/persisterer/holder ingen fejlstate — den driver kun state-machinen + engine + runner.
@@ -338,6 +339,26 @@ describe('useFieldEditor — registrering + kritisk handling', () => {
     act(() => result.current.open());
 
     expect(registry.getEditing()?.id).toBe('loc-2');
+  });
+
+  it('binder også route og fane igen, når locationId genbruges', () => {
+    const binding = makeBinding();
+    const firstLocation: EditorLocation = { locationId: 'samme-id', route: '/første', tabKey: 'første-fane' };
+    const secondLocation: EditorLocation = { locationId: 'samme-id', route: '/anden', tabKey: 'anden-fane' };
+    const { result, rerender } = renderHook(
+      ({ location }) => useFieldEditor(field, location),
+      { initialProps: { location: firstLocation }, wrapper: wrapper(binding) }
+    );
+
+    rerender({ location: secondLocation });
+    act(() => result.current.settleValue(2024));
+
+    const origin = store.getState().history.past.at(-1)?.origin;
+    expect(origin).toMatchObject({
+      editorLocationId: 'samme-id',
+      route: '/anden',
+      tabKey: 'anden-fane',
+    });
   });
 
   it('bevarer åben draft og registrering, hvis dispatch fejler', () => {

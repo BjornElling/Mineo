@@ -345,11 +345,12 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
     return 'handled';
   }, [commitMidlertidigtEetToggle, isMidlertidigtEetFraEetSiden, rows]);
 
-  const handleMidlertidigtEetConfirm = React.useCallback(() => {
+  const handleMidlertidigtEetConfirm = React.useCallback((): boolean => {
     const didCommit = commitMidlertidigtEetToggle(true);
     if (didCommit) {
       setMidlertidigtEetConfirmDialogOpen(false);
     }
+    return didCommit;
   }, [commitMidlertidigtEetToggle]);
 
   return (

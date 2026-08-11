@@ -101,6 +101,7 @@ const ChoiceField = <
         width={width}
         disabled={disabled}
         getOptionLabel={getOptionLabel}
+        expectedOptionValues={field.descriptor.codec.options}
         error={hasError}
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
@@ -125,6 +126,7 @@ const ChoiceField = <
       width={width}
       disabled={disabled}
       getOptionLabel={getOptionLabel}
+      expectedOptionValues={field.descriptor.codec.options}
       error={hasError}
       helperText={issueText.message ?? ''}
       {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}

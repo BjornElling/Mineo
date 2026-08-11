@@ -15,6 +15,7 @@ import {
   formatAslAarsloensmaksimumMissing,
   resolveAslAarsloensmaksimumForAar,
 } from '../satser/aslAarsloensmaksimum';
+import { validateAslAarsloenBySkadesaarMax } from '../aslEalAarsloen/aarsloenValidators';
 import {
   getKapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
@@ -350,8 +351,15 @@ export const computeEetKapitaliseringCalculation = (
   }
 
   const aslAarsloen = aarsloen as number;
+  const aslAarsloenMaxIssue = validateAslAarsloenBySkadesaarMax(aslAarsloen, skadedato);
+  if (aslAarsloenMaxIssue !== undefined) {
+    // Direkte kald skal have samme fail-closed-regel som readerens felt-gate;
+    // ellers kan en overmaksimal inputværdi skjult blive reduceret i beregningen.
+    issues.push(toIssue('aarsloen-over-max', aslAarsloenMaxIssue));
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
+  }
   const aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen);
-  const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, maxAarsloenISkadesaar);
+  const benyttetAarsloen = aslAarsloenAfrundet1000;
   const before2024Skade = skadedato < SKAERING_2024_07_01;
   const from2011 = skadedato >= SKAERING_2011_01_01;
   const grundloenOre = fromKroner(before2024Skade

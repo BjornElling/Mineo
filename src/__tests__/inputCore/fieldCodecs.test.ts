@@ -59,6 +59,8 @@ describe('fieldCodecs', () => {
     });
     expect(integer.parseForSettle('-1')).toEqual({ status: 'valid', value: -1 });
     expect(integer.parseForSettle('999')).toEqual({ status: 'valid', value: 999 });
+    expect(integer.maxDigits).toBe(2);
+    expect(integer.normalizePaste?.('123')).toBe('12');
 
     const amount = createAmountFieldCodec({
       allowNegative: false,

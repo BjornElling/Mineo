@@ -1,4 +1,5 @@
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
+import { afgoerelseTypeEnum } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { createRowId } from '../../utils/rowId';
@@ -32,6 +33,11 @@ export const createEmptyAslAfgoerelseRow = (): AslAfgoerelseRow => ({
   id: createAslAfgoerelseRowId(),
   ...emptyAslAfgoerelseRowFields,
 });
+
+/** Fælles runtime-guard for den enum, som alle EET-afgørelsesforbrugere deler. */
+export const isKnownAfgoerelseType = (
+  value: unknown
+): value is NonNullable<AslAfgoerelseRow['afgoerelseType']> => afgoerelseTypeEnum.safeParse(value).success;
 
 export const isAslAfgoerelseRowEmpty = (row: AslAfgoerelseRow): boolean =>
   !row.afgoerelsesDato &&

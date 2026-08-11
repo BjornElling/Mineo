@@ -7,7 +7,6 @@ import {
 import {
   isFileSystemAccessSupported,
   openFileWithPicker,
-  readFromFileHandle,
   ensureFileHandleReadPermission,
   FileHandleAccessError,
 } from '../../utils/fileSystemAccess';
@@ -24,7 +23,6 @@ vi.mock('../../utils/logger', () => ({
 vi.mock('../../utils/fileSystemAccess', () => ({
   isFileSystemAccessSupported: vi.fn(),
   openFileWithPicker: vi.fn(),
-  readFromFileHandle: vi.fn(),
   ensureFileHandleReadPermission: vi.fn(),
   FileHandleAccessError: class FileHandleAccessError extends Error {},
 }));
@@ -37,7 +35,6 @@ vi.mock('../../utils/fileHelpers', () => ({
 
 const mockedIsFileSystemAccessSupported = vi.mocked(isFileSystemAccessSupported);
 const mockedOpenFileWithPicker = vi.mocked(openFileWithPicker);
-const mockedReadFromFileHandle = vi.mocked(readFromFileHandle);
 const mockedEnsurePermission = vi.mocked(ensureFileHandleReadPermission);
 const mockedSelectFile = vi.mocked(selectFile);
 const mockedReadFile = vi.mocked(readFile);
@@ -71,7 +68,7 @@ describe('createManualLoadSource', () => {
     const file = makeFile('sag.eo');
     const handle = { name: 'sag.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
     mockedOpenFileWithPicker.mockResolvedValue({ file, handle });
-    mockedReadFromFileHandle.mockResolvedValue('bytes');
+    mockedReadFile.mockResolvedValue('bytes');
 
     const outcome = await createManualLoadSource().open();
 
@@ -81,7 +78,7 @@ describe('createManualLoadSource', () => {
     expect(outcome.file).toBe(file);
     expect(outcome.fileHandle).toBe(handle);
     await expect(outcome.readContent()).resolves.toBe('bytes');
-    expect(mockedReadFromFileHandle).toHaveBeenCalledWith(handle);
+    expect(mockedReadFile).toHaveBeenCalledWith(file);
   });
 
   it('File System Access: annullering giver cancelled', async () => {
@@ -126,7 +123,7 @@ describe('createPwaLoadSource', () => {
     const getFile = vi.fn().mockResolvedValue(makeFile('pwa.eo'));
     const handle = { name: 'pwa.eo', getFile } as unknown as FileSystemFileHandle;
     mockedEnsurePermission.mockResolvedValue(undefined);
-    mockedReadFromFileHandle.mockResolvedValue('bytes');
+    mockedReadFile.mockResolvedValue('bytes');
 
     const outcome = await createPwaLoadSource(handle, 'req-1').open();
 
@@ -136,6 +133,11 @@ describe('createPwaLoadSource', () => {
     expect(outcome.source).toBe('pwa');
     expect(outcome.requestId).toBe('req-1');
     expect(outcome.fileHandle).toBe(handle);
+    if (outcome.status === 'selected') {
+      await expect(outcome.readContent()).resolves.toBe('bytes');
+      expect(mockedReadFile).toHaveBeenCalledWith(expect.any(File));
+      expect(getFile).toHaveBeenCalledOnce();
+    }
   });
 
   it('kaster (og åbner aldrig filen) hvis tilladelse mangler', async () => {

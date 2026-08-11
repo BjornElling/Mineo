@@ -10,6 +10,7 @@ import {
   type InputRuntimeBinding,
 } from '../../../inputCore/react';
 import { filterIntegerKeyDown } from '../../../components/inputs/inputKeyFilters';
+import { integerAdmission } from '../../../components/inputs/draftAdmission';
 import { createInputEvaluation, createValidationReader } from '../../../inputCore/inputReader';
 import {
   settleField,
@@ -268,6 +269,54 @@ describe('useFormFieldSurface — §7.1 aktivering + settle', () => {
     expect(canonical(field)).toBe(2024);
     expect(result.current.isOpen).toBe(false);
     expect(registry.getEditing()).toBeNull();
+  });
+
+  it('filtrerer ulovlige paste-tegn og fortsætter med de efterfølgende tegn', () => {
+    const { result } = renderSurface(field, 'paste-admission', {
+      draftAdmission: (draft) => /^\d{0,4}$/.test(draft),
+      maxDraftLength: 4,
+    });
+    act(() => result.current.onPaste(pasteEvent('20a25')));
+    expect(canonical(field)).toBe(2025);
+  });
+
+  it('tomt filtreret paste er no-op og rydder ikke et eksisterende lukket felt', () => {
+    dispatchInput(store, catalog, settleField(field, '2020'));
+    const { result } = renderSurface(field, 'empty-paste', {
+      draftAdmission: (draft) => /^\d{0,4}$/.test(draft),
+      maxDraftLength: 4,
+    });
+    act(() => result.current.onPaste(pasteEvent('abc')));
+    expect(canonical(field)).toBe(2020);
+    expect(rejectedRaw(field)).toBeUndefined();
+  });
+
+  it('normaliserer ikke paste fra en tom draft, når den indsættes i en åben kontekst', () => {
+    const { result } = renderSurface(field, 'contextual-paste', {
+      draftAdmission: integerAdmission({ allowNegative: false }),
+    });
+
+    act(() => result.current.onKeyDown(keyEvent('5')));
+    act(() => result.current.onPaste(pasteEvent('-2')));
+
+    expect(result.current.displayText).toBe('52');
+    act(() => result.current.onBlur(focusEvent()));
+    expect(canonical(field)).toBe(52);
+  });
+
+  it('håndhæver maxDraftLength på direkte input-events, ikke kun ved tastning og paste', () => {
+    dispatchInput(store, catalog, settleField(field, '2020'));
+    const { result } = renderSurface(field, 'direct-length', {
+      draftAdmission: integerAdmission({ allowNegative: false }),
+      maxDraftLength: 4,
+    });
+
+    act(() => result.current.controller.open());
+    act(() => result.current.onDraftChange('20201'));
+    act(() => result.current.onBlur(focusEvent()));
+
+    expect(canonical(field)).toBe(2020);
+    expect(rejectedRaw(field)).toBeUndefined();
   });
 });
 

@@ -2,6 +2,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { computeEetDifferencekravCalculation } from '../../../domain/erhvervsevnetab/eetCalculationGraph';
 import * as eetEalCalculation from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { fromKroner, toKroner, type MoneyOre } from '../../../domain/money/money';
 import { toISODateString } from '../../../types/branded';
 
@@ -639,7 +640,7 @@ describe('computeEetDifferencekravCalculation', () => {
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
         beregningsdato: toISODateString('2026-01-01'),
-        aslAarsloen: asAmount(632000),
+        aslAarsloen: asAmount(aarsloenAslMax[2011]!),
         aslAfgoerelser: [{
           id: 'a1',
           fsTilbageholdtEet: 'Nej',

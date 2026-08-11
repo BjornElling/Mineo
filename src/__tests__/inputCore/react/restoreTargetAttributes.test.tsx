@@ -79,6 +79,7 @@ describe('restore-target-attributter på det fokuserbare element (§3.7)', () =>
       >
         <option value="dage">Dage</option>
         <option value="uger">Uger</option>
+        <option value="maaneder">Måneder</option>
       </ChoiceField>
     );
     const combobox = document.querySelector('input[role="combobox"]');
@@ -156,6 +157,7 @@ describe('restore-target-attributter på det fokuserbare element (§3.7)', () =>
           >
             <option value="dage">Dage</option>
             <option value="uger">Uger</option>
+            <option value="maaneder">Måneder</option>
           </GridChoiceCell>
         </GridCoreProvider>
       </InputRuntimeProvider>

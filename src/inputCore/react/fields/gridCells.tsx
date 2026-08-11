@@ -152,7 +152,11 @@ export const GridIntegerCell = <T extends string | number | undefined>(
   // Fortegns-politikken kommer fra descriptoren. Månedscellen er et string-backed heltal 1..12, så
   // adapterens viderestilling af politikken er det, der gør minus umuligt at taste her.
   const allowNegative = fieldAllowsNegative(cell.field);
-  const admission = React.useMemo(() => integerAdmission({ allowNegative }), [allowNegative]);
+  const maxDigits = cell.field.descriptor.codec.maxDigits;
+  const admission = React.useMemo(
+    () => integerAdmission({ allowNegative, ...(maxDigits === undefined ? {} : { maxDigits }) }),
+    [allowNegative, maxDigits]
+  );
   return (
     <GridTextCell<T>
       gridCell={gridCell}

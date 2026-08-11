@@ -64,6 +64,35 @@ describe('computeEetKapitaliseringCalculation', () => {
     }
   });
 
+  it('blokerer direkte beregning når ASL-årslønnen overstiger skadesårets maksimum', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(aarsloenAslMax[2025]! + 1000),
+        aslAfgoerelser: [{
+          id: 'a',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2025-07-01'),
+          virkningsDato: toISODateString('2025-07-01'),
+          eetPct: 50,
+          kapDato: toISODateString('2025-10-01'),
+          kapPct: 25,
+          afgoerelseType: 'Delvist endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'aarsloen-over-max',
+      severity: 'error',
+      message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (632.000 kr.)',
+    });
+  });
+
   it('giver en generel fejl når der ikke er indtastet nogen afgørelse', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
@@ -308,7 +337,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        aslAarsloen: asAmount(632000),
+        aslAarsloen: asAmount(aarsloenAslMax[2011]!),
         aslAfgoerelser: [
           {
             id: 'a',
@@ -493,7 +522,7 @@ describe('computeEetKapitaliseringCalculation', () => {
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
         koen: undefined,
-        aslAarsloen: asAmount(400000),
+        aslAarsloen: asAmount(aarsloenAslMax[2005]!),
         aslAfgoerelser: [
           {
             id: 'a',
@@ -555,7 +584,7 @@ describe('computeEetKapitaliseringCalculation', () => {
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
         koen: 'Mand',
-        aslAarsloen: asAmount(400000),
+        aslAarsloen: asAmount(aarsloenAslMax[2005]!),
         aslAfgoerelser: [
           {
             id: 'a',

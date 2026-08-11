@@ -18,6 +18,7 @@ import {
 import { isAslAfgoerelseRowEmpty, isAslAfgoerelseRowPersistenceEmpty } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { toISODateString, type ISODateString } from '../../../types/branded';
 import { fromKroner, toKroner } from '../../../domain/money/money';
+import { formatAsAmount } from '../../../utils/formatUtils';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -1754,7 +1755,7 @@ describe('warn-asl-aarsloen-is-max', () => {
     expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(false);
   });
 
-  it('viser ikke advarsel når indtastet årsløn er højere end maksimum for skadesåret', () => {
+  it('blokerer direkte beregning når indtastet årsløn er højere end maksimum for skadesåret', () => {
     const maxAarsloen2019 = aarsloenAslMax[2019];
     if (!Number.isFinite(maxAarsloen2019)) throw new Error('expected max salary for 2019');
 
@@ -1781,7 +1782,12 @@ describe('warn-asl-aarsloen-is-max', () => {
       skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
-    expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(false);
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'aarsloen-over-max',
+      severity: 'error',
+      message: `Årsløn kan ikke overstige maks årslønnen i skadesåret (${formatAsAmount(maxAarsloen2019, 0)} kr.)`,
+    });
   });
 });
 

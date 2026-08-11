@@ -4,7 +4,8 @@ import { CONFIRMATION_DIALOG_FOCUS_MARKER } from '../../inputCore/react/modalFoc
 
 type ConfirmationDialogProps = {
   open: boolean;
-  onConfirm: () => void;
+  /** Returnér `false`, hvis handlingen ikke blev gennemført, så brugeren kan prøve igen. */
+  onConfirm: () => void | boolean | PromiseLike<void | boolean>;
   onCancel?: () => void;
   title: string;
   message: string | React.ReactNode;
@@ -84,7 +85,20 @@ const ConfirmationDialog = React.memo(({
     if (confirmStartedRef.current) return;
     confirmStartedRef.current = true;
     try {
-      onConfirm();
+      const result = onConfirm();
+      if (result !== null && typeof result === 'object' && 'then' in result) {
+        // En async kritisk handling kan fejle, mens dialogen stadig er åben. Frigiv kun låsen i
+        // den situation; et vellykket resultat overlader lukningen til den kontrollerende side.
+        void result.then((outcome) => {
+          if (outcome === false) confirmStartedRef.current = false;
+        }, () => {
+          confirmStartedRef.current = false;
+        });
+      } else if (result === false) {
+        // En synkron handling kan også melde «ikke gennemført» uden at kaste. Ellers bliver en
+        // dialog, der med rette står åben efter fejlen, permanent låst efter første klik.
+        confirmStartedRef.current = false;
+      }
     } catch (error) {
       confirmStartedRef.current = false;
       throw error;

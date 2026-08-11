@@ -138,7 +138,7 @@ describe('Erhvervsevnetab — samlet surface og reader-projektion', () => {
     expect(screen.getByText(/Årsløn skal være deleligt/)).toBeInTheDocument();
   });
 
-  it('viser maksimumssatsen fra den gyldige EET-beregningsdato i årslønsfejlen', () => {
+  it('viser maksimumssatsen fra skadesåret i årslønsfejlen', () => {
     hydrate(
       { ...validEet, beregningsdato: toISODateString('2025-03-19') },
       { ...validAarsloen, aslAarsloen: amount(9999999) },
@@ -151,7 +151,7 @@ describe('Erhvervsevnetab — samlet surface og reader-projektion', () => {
     const describedBy = input?.getAttribute('aria-describedby');
     const statusId = describedBy?.split(' ').at(-1);
     expect(statusId).toBeDefined();
-    expect(document.getElementById(statusId!)?.textContent).toBe('Værdi skal være mellem 1000 og 632000');
+    expect(document.getElementById(statusId!)?.textContent).toBe('Værdi skal være mellem 1000 og 608000');
   });
 
   it('viser gul ring og tooltip på EAL-årslønnen når ASL-årslønnen er skadesårets maksimum', async () => {
@@ -165,7 +165,7 @@ describe('Erhvervsevnetab — samlet surface og reader-projektion', () => {
     const input = document.querySelector('input[name="ealAarsloen"]') as HTMLInputElement;
     await userEvent.setup().hover(input);
 
-    expect(await screen.findByText('Årsløn efter ASL er sat til max-årslønnen')).toBeInTheDocument();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Årsløn efter ASL er sat til max-årslønnen');
     expect(input.closest('.MuiOutlinedInput-root')).not.toHaveClass('Mui-error');
   });
 

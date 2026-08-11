@@ -6,6 +6,7 @@ import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab
 import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
+import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import { formatKr } from '../../../utils/formatUtils';
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
@@ -37,6 +38,8 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
         issues={issues}
         onGoToEetOplysninger={onGoToEetOplysninger}
       />
+
+      {hasBlockingErrors && <EetDocumentDownloadBox download={download} />}
 
       {!hasBlockingErrors && computation && (
         <>

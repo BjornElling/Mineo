@@ -85,6 +85,8 @@ describe('MinProcesrente standalone isolation', () => {
     expect(standaloneEntry).toMatch(/<StandaloneErrorBoundary>[\s\S]*<MinProcesrenteApp/);
     expect(mineoEntry).toContain("loadAppStyles: () => import('./index.css')");
     expect(standaloneEntry).toContain("loadAppStyles: () => import('./minprocesrente.css')");
+    // Standalone-beregneren er den dokumenterede undtagelse fra Mineos desktop-only gate.
+    expect(standaloneEntry).toContain('enforceUnsupportedDeviceGate: false');
     expect(sharedShell).not.toContain("import('../../index.css')");
   });
 

@@ -202,7 +202,7 @@ describe('computeForsoergertabSnapshot', () => {
         forsoergertab: {},
         faellesAarsloen: {
           aslAarsloen: {
-            message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (539.000 kr.)',
+        message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (551.000 kr.)',
           },
         },
         stamdata: {},

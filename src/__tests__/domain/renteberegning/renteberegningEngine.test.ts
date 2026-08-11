@@ -395,9 +395,32 @@ describe('renteberegningEngine', () => {
         actualInterestDate: toISODateString('2024-01-11'),
         beregningsdato,
         periods: result.pdfContext?.periods ?? [],
-        latestReferenceRateDate: toISODateString('2020-06-30'),
+        latestReferenceRatePeriodEnd: toISODateString('2020-06-30'),
         calculatedInterest: result.calculatedInterest,
       });
+    });
+
+    it('bruger seneste kendte referencesats efter tabellens dækningsdato', () => {
+      const referenceRates = [{ effectiveDate: toISODateString('2020-01-01'), ratePct: 1 }];
+      const surchargeRates = [{ effectiveDate: toISODateString('2020-01-01'), ratePct: 2 }];
+      const row = {
+        id: 'row-fremtidig-beregningsdato',
+        belob: amountNumber(1000),
+        renterFra: toISODateString('2020-01-01'),
+        tillaegstid: 0,
+        enhed: 'dage' as const,
+      };
+
+      const result = computeRentekravRow(
+        row,
+        toISODateString('2021-01-01'),
+        referenceRates,
+        surchargeRates,
+      );
+
+      expect(result.calculatedInterest).not.toBeNull();
+      expect(result.pdfContext?.latestReferenceRatePeriodEnd).toBe(toISODateString('2020-06-30'));
+      expect(result.pdfContext?.periods.every((period) => period.referenceRatePct === 1)).toBe(true);
     });
 
     it('manglende beløb → null rente og ingen pdfContext', () => {

@@ -114,8 +114,21 @@ const startBlinkSampling = (page: Page): Promise<void> => page.evaluate((classNa
       observer.disconnect();
       const state = windowWithBlinkSampling.mineoBlinkSampling;
       if (!state) return;
+      const removalObserver = new MutationObserver((removalRecords) => {
+        if (removalRecords.some((removalRecord) =>
+          removalRecord.target instanceof HTMLElement
+          && !removalRecord.target.classList.contains(className))) {
+          removalObserver.disconnect();
+          state.complete = true;
+        }
+      });
+      removalObserver.observe(target, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
       const sampleFrame = () => {
         if (!target.classList.contains(className)) {
+          removalObserver.disconnect();
           state.complete = true;
           return;
         }

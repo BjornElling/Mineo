@@ -98,12 +98,10 @@ describe('lag 1 — codecet bærer den erklærede fortegns-politik', () => {
     expect(adapted.acceptsInitialKey('-')).toBe(false);
   });
 
-  it('beløb: minus åbner editoren SELV i et ikke-negativt felt, fordi det også er subtraktion', () => {
-    // Den bevidste afgrænsning. Beløbsfelter er udtryksfelter ("5000-200"), så et enkelt-tegns-opslag kan
-    // ikke skelne fortegn fra operator; tegnfilteret blokerer kun det UNÆRE minus.
+  it('beløb: minus åbner ikke et tomt ikke-negativt felt som ugyldigt fortegn', () => {
     const codec = createAmountFieldCodec({ allowNegative: false, allowDecimals: true });
     expect(codec.signPolicy).toBe('nonNegative');
-    expect(codec.acceptsInitialKey('-')).toBe(true);
+    expect(codec.acceptsInitialKey('-')).toBe(false);
   });
 
   it('AFGRÆNSNING: parse/settle er fortsat fortegns-blind (§1.6)', () => {

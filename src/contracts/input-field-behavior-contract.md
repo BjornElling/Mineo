@@ -116,8 +116,9 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
    rummes, springes over, mens efterfølgende input fortsat vurderes efter samme regel.
 5. Hvis det filtrerede resultat stadig er formatmæssigt ugyldigt ved settle, bevares resultatet som afsluttet
    fejltekst og vises med rød ring og tooltip. Det må ikke tavst ændres til en anden gyldig værdi.
-6. Hvis paste-resultatet bliver tomt, ryddes feltet uden rød fejl, medmindre feltet er en kontrol med særskilt
-   no-op-regel, eksempelvis dropdowns og toggles.
+6. Hvis paste-resultatet bliver tomt, er paste et no-op. En eksisterende værdi må ikke forsvinde, blot fordi
+   clipboard-teksten kun indeholder afviste tegn eller er tom; rydning kræver den eksplicitte
+   Delete/Backspace-handling, medmindre feltet er en kontrol med særskilt no-op-regel.
 
 Et paste, der bliver afkortet, fordi den indsatte tekst er længere end feltets maksimale længde, er derfor det
 **forventede** resultat og ikke et datatab: præcis de samme tegn ville være blevet afvist ved tastning. Et

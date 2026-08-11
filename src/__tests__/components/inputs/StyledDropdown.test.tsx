@@ -255,6 +255,28 @@ describe('StyledDropdown', () => {
     expect(screen.getByRole('combobox')).toHaveValue('');
   });
 
+  it('committer ikke den første option når en stale værdi åbnes og Enter trykkes', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <StyledDropdown<DemoValue>
+        value={'ukendt' as DemoValue}
+        placeholder="Vælg"
+        onChange={onChange}
+      >
+        <MenuOption value="A">Alfa</MenuOption>
+        <MenuOption value="B">Beta</MenuOption>
+      </StyledDropdown>
+    );
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.keyboard('{Enter}');
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+  });
+
   it('kopierer den viste label ved copy-genvej', async () => {
     const user = userEvent.setup();
     render(<ControlledDropdown initialValue="B" />);
@@ -288,7 +310,7 @@ describe('StyledDropdown', () => {
     expect((input as HTMLInputElement).value).toBe('Charlie');
   });
 
-  it('ignorerer paste når label ikke matcher en option præcist', async () => {
+  it('ignorerer paste når label ikke matcher en option efter normalisering', async () => {
     const user = userEvent.setup();
     render(<ControlledDropdown initialValue="A" />);
 
@@ -296,8 +318,89 @@ describe('StyledDropdown', () => {
     await user.click(input);
 
     act(() => input.focus());
-    await user.paste('charlie');
+    await user.paste('charlies');
 
     expect((input as HTMLInputElement).value).toBe('Alfa');
+  });
+
+  it('matcher paste case-insensitivt og ignorerer ydre/mellemste whitespace', async () => {
+    const user = userEvent.setup();
+    render(<ControlledDropdown initialValue="A" />);
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.paste('  cHaRlie\n ');
+
+    expect(input).toHaveValue('Charlie');
+  });
+
+  it('behandler tomt paste som no-op og vælger ikke tom-rækken', async () => {
+    const user = userEvent.setup();
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<DemoValue | undefined>('A');
+      return (
+        <StyledDropdown<DemoValue>
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="Vælg"
+        >
+          <MenuOption value="A">Alfa</MenuOption>
+          <MenuOption value="B">Beta</MenuOption>
+        </StyledDropdown>
+      );
+    };
+    render(<Wrapper />);
+
+    const input = screen.getByRole('combobox');
+    await user.click(input);
+    await user.paste(' \n\t ');
+
+    expect(input).toHaveValue('Alfa');
+  });
+
+  it('bruger getOptionLabel som fælles labelkilde for menu, lukket visning, typeahead og paste', async () => {
+    const user = userEvent.setup();
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<'a' | 'b'>('a');
+      return (
+        <StyledDropdown<'a' | 'b'>
+          value={value}
+          allowEmpty={false}
+          getOptionLabel={(optionValue) => optionValue === 'a' ? 'Kanonisk alfa' : 'Kanonisk beta'}
+          onChange={(event) => setValue(event.target.value)}
+        >
+          <MenuOption value="a">Forældet alfa</MenuOption>
+          <MenuOption value="b">Forældet beta</MenuOption>
+        </StyledDropdown>
+      );
+    };
+    render(<Wrapper />);
+
+    const input = screen.getByRole('combobox');
+    expect(input).toHaveValue('Kanonisk alfa');
+
+    await user.click(input);
+    expect(screen.getByRole('option', { name: 'Kanonisk alfa' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Forældet alfa' })).not.toBeInTheDocument();
+
+    act(() => input.focus());
+    fireEvent.paste(input, {
+      clipboardData: { getData: () => ' kanonisk BETA ' },
+    });
+    expect(input).toHaveValue('Kanonisk beta');
+  });
+
+  it('afviser en mismatch mellem codecets valgmængde og children i DEV', () => {
+    expect(() => {
+      render(
+        <StyledDropdown<'a' | 'b'>
+          value="a"
+          allowEmpty={false}
+          expectedOptionValues={['a', 'b']}
+        >
+          <MenuOption value="a">Alfa</MenuOption>
+        </StyledDropdown>
+      );
+    }).toThrow('children-options matcher ikke codecets valgmængde');
   });
 });

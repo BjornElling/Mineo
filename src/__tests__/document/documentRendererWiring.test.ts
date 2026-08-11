@@ -66,7 +66,7 @@ describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
     actualInterestDate: toISODateString('2024-01-01'),
     beregningsdato: toISODateString('2024-12-31'),
     periods,
-    latestReferenceRateDate: toISODateString('2024-06-30'),
+    latestReferenceRatePeriodEnd: toISODateString('2024-06-30'),
     kommentarer: undefined,
     stamdata,
   };
@@ -83,7 +83,7 @@ describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
       actualInterestDate: input.actualInterestDate,
       beregningsdato: input.beregningsdato,
       periods: input.periods,
-      latestReferenceRateDate: input.latestReferenceRateDate,
+      latestReferenceRatePeriodEnd: input.latestReferenceRatePeriodEnd,
       kommentarer: undefined,
     };
     const render = await standaloneRenteDocumentDefinition.loadRenderer();
@@ -124,7 +124,7 @@ describe('renderer-wiring: rente-oversigten kræver CANONICAL ISO', () => {
     const input: RenteOversigtDocumentInput = {
       beregningsdato: toISODateString('2024-12-31'),
       rows,
-      latestReferenceRateDate: toISODateString('2024-06-30'),
+      latestReferenceRatePeriodEnd: toISODateString('2024-06-30'),
       kommentarer: undefined,
       stamdata,
     };
@@ -136,7 +136,7 @@ describe('renderer-wiring: rente-oversigten kræver CANONICAL ISO', () => {
     const input: StandaloneRenteOversigtDocumentInput = {
       beregningsdato: toISODateString('2024-12-31'),
       rows,
-      latestReferenceRateDate: toISODateString('2024-06-30'),
+      latestReferenceRatePeriodEnd: toISODateString('2024-06-30'),
       kommentarer: undefined,
     };
     const render = await standaloneRenteOversigtDocumentDefinition.loadRenderer();

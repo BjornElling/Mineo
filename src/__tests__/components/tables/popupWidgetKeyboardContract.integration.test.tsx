@@ -106,6 +106,7 @@ const GridHarness: React.FC = () => {
                 >
                   <option value="dage">Dage</option>
                   <option value="uger">Uger</option>
+                  <option value="maaneder">Måneder</option>
                 </GridChoiceCell>
               </td>
             </tr>
@@ -282,6 +283,7 @@ describe('popup-kontrakt: LUKKET dropdown ejer selv sin aktiveringstast', () => 
         >
           <option value="dage">Dage</option>
           <option value="uger">Uger</option>
+          <option value="maaneder">Måneder</option>
         </ChoiceField>
       </InputRuntimeProvider>
     );

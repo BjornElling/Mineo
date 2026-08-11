@@ -54,4 +54,21 @@ describe('dateBoundsValidator', () => {
     maxDate = toISODateString('2027-12-31');
     expect(validator(toISODateString('2027-01-01'), field, view)).toBeUndefined();
   });
+
+  it('bevarer den strukturerede oprindelse i issue-detail frem for at kræve tekstfortolkning', () => {
+    const spec: DateBoundsSpec = {
+      min: () => toISODateString('2010-01-01'),
+      max: () => toISODateString('2030-12-31'),
+      origin: STATIC_DATE_BOUNDS,
+      special: () => ({
+        minBoundKind: 'fodselsdato',
+        minBoundReferenceISO: toISODateString('2015-01-01'),
+      }),
+    };
+
+    expect(validateWith(spec, '2009-12-31')?.detail).toMatchObject({
+      minBoundKind: 'fodselsdato',
+      minBoundReferenceISO: '2015-01-01',
+    });
+  });
 });

@@ -36,6 +36,12 @@ import {
  */
 export type DraftAdmission = (draft: string) => boolean;
 
+/** Et fælles længdeværn for alle input-events, også når browseren omgår HTML-attributten. */
+export const isDraftWithinMaxLength = (draft: string, maxLength: number | undefined): boolean => {
+  if (typeof maxLength !== 'number' || !Number.isFinite(maxLength) || maxLength <= 0) return true;
+  return draft.length <= maxLength;
+};
+
 type KeyDownEvent = React.KeyboardEvent<HTMLInputElement>;
 
 const isBypassKeyEvent = (e: KeyDownEvent): boolean => {

@@ -13,6 +13,7 @@ import {
 } from '../../utils/fileHandleStorage';
 import type { EoFileContainer } from '../../schemas/eoFileSchema';
 import { logWarning } from '../../utils/logger';
+import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 
 vi.mock('../../utils/logger', () => ({
   logWarning: vi.fn(),
@@ -59,6 +60,7 @@ describe('resolveSaveTarget', () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     mockedRequestPersistentStorage.mockResolvedValue(true);
+    mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(true);
     mockedIsFileSystemFileHandle.mockImplementation(
       (value): value is FileSystemFileHandle =>
         Boolean(value) &&
@@ -79,6 +81,7 @@ describe('resolveSaveTarget', () => {
 
   it('genbruger et gyldigt persisteret handle uden at persistere det igen', async () => {
     sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
     const handle = makeHandle('eksisterende.eo');
     mockedIsFileSystemAccessSupported.mockReturnValue(true);
     mockedLoadFileHandleFromIndexedDB.mockResolvedValue(handle);
@@ -90,8 +93,34 @@ describe('resolveSaveTarget', () => {
     expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['manglende', null],
+    ['korrupt', '{ikke-json'],
+  ])('genbruger ikke et gammelt handle når filnavnsbasis er %s', async (_description, storedBasis) => {
+    sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
+    if (storedBasis !== null) {
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, storedBasis);
+    }
+    const stored = makeHandle('eksisterende.eo');
+    const picked = makeHandle('ny.eo');
+    mockedIsFileSystemAccessSupported.mockReturnValue(true);
+    mockedLoadFileHandleFromIndexedDB.mockResolvedValue(stored);
+    mockedSaveFileWithPicker.mockResolvedValue(picked);
+
+    const target = await resolveSaveTarget(fileData);
+
+    expect(mockedVerifyFileHandleDetailed).not.toHaveBeenCalled();
+    expect(mockedDeleteFileHandleFromIndexedDB).toHaveBeenCalledOnce();
+    expect(target).toEqual({
+      kind: 'fileHandle',
+      fileHandle: picked,
+      persistHandleAfterSuccess: true,
+    });
+  });
+
   it('annullerer stille når brugeren afviser tilladelses-prompten på et gemt handle', async () => {
     sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
     const handle = makeHandle('eksisterende.eo');
     mockedIsFileSystemAccessSupported.mockReturnValue(true);
     mockedLoadFileHandleFromIndexedDB.mockResolvedValue(handle);
@@ -110,6 +139,7 @@ describe('resolveSaveTarget', () => {
 
   it('kasserer et ubrugeligt handle, åbner picker og bærer en advarsel + persist-flag', async () => {
     sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
     const stored = makeHandle('eksisterende.eo');
     const picked = makeHandle('ny.eo');
     mockedIsFileSystemAccessSupported.mockReturnValue(true);
@@ -127,6 +157,25 @@ describe('resolveSaveTarget', () => {
     });
     if (target.kind !== 'fileHandle') return;
     expect(target.fallbackWarning).toContain('ikke fundet');
+  });
+
+  it('afbryder fail-closed, hvis et ubrugeligt handle ikke kan ryddes', async () => {
+    sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
+    const stored = makeHandle('eksisterende.eo');
+    mockedIsFileSystemAccessSupported.mockReturnValue(true);
+    mockedLoadFileHandleFromIndexedDB.mockResolvedValue(stored);
+    mockedVerifyFileHandleDetailed.mockResolvedValue({ valid: false, reason: 'not_found' });
+    mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(false);
+
+    const target = await resolveSaveTarget(fileData);
+
+    expect(target).toEqual({ kind: 'cancelled' });
+    expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+    expect(mockedLogWarning).toHaveBeenCalledWith(
+      'Gammelt file handle kunne ikke ryddes sikkert; gemning afbrudt',
+      expect.objectContaining({ context: 'resolveSaveTarget.failedToInvalidateStoredHandle' })
+    );
   });
 
   it('annullerer når brugeren lukker file-pickeren', async () => {

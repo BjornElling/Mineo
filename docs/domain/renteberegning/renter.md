@@ -90,7 +90,7 @@ Opfyldes betingelserne ikke, returneres `calculatedInterest: null` for den påg�
 - Første halvår 2025 (01-01–30-06): referencesats 2,75 %, total 10,75 %
   - 181 dage / 365 dage = 0,4959 år
   - Rente = 100.000 × 10,75 % × 0,4959 ≈ 5.330,82 kr.
-- Andet halvår (01-07–01-07): referencesats 1,75 %, total 9,75 %
+- Andet halvår (01-07–31-12): referencesats 1,75 %, total 9,75 %
   - 1 dag / 365 = 0,00274 år
   - Rente = 100.000 × 9,75 % × 0,00274 ≈ 26,71 kr.
 - **Samlet: 5.357,53 kr.**
@@ -108,7 +108,7 @@ Opfyldes betingelserne ikke, returneres `calculatedInterest: null` for den påg�
 | `src/domain/renteberegning/renteberegningEngine.ts` | Autoritativ engine; `computeRenteberegning`, `computeRentekravRow` |
 | `src/domain/renteberegning/procesrenteCalculator.ts` | Renteberegningsmotor; `calculateProcessInterestWithRates` (samlet rentebeløb), `calculateProcessInterestBreakdownWithRates` (samme beregning, men returnerer hele periodeopdelingen bag beløbet), `findLatestReferenceRatePeriodEnd` (sidste dato referencesats-tabellen dækker — udgangen af det halvår den nyeste sats hører til) |
 | `src/domain/renteberegning/rentekravValidation.ts` | Domænefunktioner: `calculateInterestDate`, `validateInterestCalculation` |
-| `src/data/interestRates.ts` | Satser: `referenceRates`, `surchargeRates`, `MIN_INTEREST_DATE`, `MAX_INTEREST_YEAR` |
+| `src/data/interestRates.ts` | Satser: `referenceRates`, `surchargeRates`, `MIN_INTEREST_DATE` |
 | `src/domain/renteberegning/renteCalculationPrinciples.ts` | `RENTE_CALCULATION_PRINCIPLES` — de fire principper som array af strings |
 
 ### Engine
@@ -223,14 +223,16 @@ for hvert år i perioden:
   årsRente = beløb × sats/100 × dage / dageIÅret
 ```
 
-### Satsnøgles grænser
+### Satskildens grænser
 
 ```typescript
 MIN_INTEREST_DATE: ISODateString  // '2005-01-01' — tidligste mulige rentedato
-MAX_INTEREST_YEAR: number         // seneste år med referencesats
+findLatestReferenceRatePeriodEnd(referenceRates): Date | null  // sidste dækkede halvår
 ```
 
-Begge er udledt dynamisk fra tabellens yderpunkter — ændres tabellen, ændres konstanterne automatisk.
+`MIN_INTEREST_DATE` er udledt af tabellens tidligste referencesats. Den seneste dækkede dato bruges i
+dokumentets eventuelle satsadvarsel via `findLatestReferenceRatePeriodEnd`; der findes ikke længere en
+eksporteret `MAX_INTEREST_YEAR`.
 
 ### Afrunding
 
@@ -245,7 +247,7 @@ Afrunding sker centralt i engine'en efter beregning.
 
 | Import | Kilde |
 |---|---|
-| `referenceRates`, `surchargeRates`, `RateEntry`, `MIN_INTEREST_DATE`, `MAX_INTEREST_YEAR` | `src/data/interestRates.ts` |
+| `referenceRates`, `surchargeRates`, `RateEntry`, `MIN_INTEREST_DATE` | `src/data/interestRates.ts` |
 | `calculateInterestDate`, `validateInterestCalculation` | `src/domain/renteberegning/rentekravValidation.ts` |
 | `calculateProcessInterestWithRates` | `src/domain/renteberegning/procesrenteCalculator.ts` |
 | `amountValueToNumber` | `src/utils/expressionAmount.ts` |
@@ -261,6 +263,12 @@ Afrunding sker centralt i engine'en efter beregning.
 
 ---
 
-## Kendte udeståender
+## Bemærkning om fremtidige beregningsdatoer
 
-*Ingen kendte udeståender pr. dags dato. Filen er synkroniseret med koden.*
+Hvert år er opdelt i halvårene 01-01–30-06 og 01-07–31-12. Referencesatsen fastsættes på den første dag
+i det pågældende halvår og gælder til halvårets udgang. Ligger beregningsdatoen efter udgangen af det senest
+dækkede halvår, anvender motoren den senest kendte referencesats, og dokumentet viser datoen for den seneste
+dækkede halvårsudgang. Det er en bevidst fail-soft driftsadfærd og den autoritative metode for fremtidige
+beregningsdatoer. Datoen for satsens ikrafttræden er ikke i sig selv en advarselsgrænse. Beregningen blokeres
+ikke alene fordi datoen ligger efter den seneste offentliggjorte referencesats, men dokumentets advarsel må
+ikke fjernes eller skjules.

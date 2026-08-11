@@ -45,14 +45,14 @@ describe('renteOversigt → Word-indhold', () => {
 
   it('skriver hypotetisk-advarsel til .docx når beregningsdatoen ligger efter seneste procesrente', async () => {
     const { documentXml } = await renderWordDocument((session) => {
-      return generateRenteOversigtDocument(session, toISODateString('2024-02-01'), [makeRow()], {
-        latestReferenceRateDate: toISODateString('2024-01-31'),
+      return generateRenteOversigtDocument(session, toISODateString('2024-07-01'), [makeRow()], {
+        latestReferenceRatePeriodEnd: toISODateString('2024-06-30'),
       });
     });
     const text = xmlToPlainText(documentXml);
 
     expect(text).toContain(
-      'Der er kun fastsat procesrente frem til 31-01-2024. Beregning derefter er hypotetisk!'
+      'Der er kun fastsat procesrente frem til 30-06-2024. Beregning derefter er hypotetisk!'
     );
   });
 });

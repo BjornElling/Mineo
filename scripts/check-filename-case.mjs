@@ -16,6 +16,21 @@ const getTrackedFiles = () => {
     .filter(Boolean);
 };
 
+const getDeletedTrackedFiles = () => {
+  const deleted = new Set();
+  for (const args of [
+    ['diff', '--name-only', '--diff-filter=D'],
+    ['diff', '--cached', '--name-only', '--diff-filter=D'],
+  ]) {
+    const output = execFileSync('git', args, {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    });
+    output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).forEach((file) => deleted.add(file));
+  }
+  return deleted;
+};
+
 const findActualPath = (relativePath) => {
   const segments = relativePath.split('/');
   let currentPath = repoRoot;
@@ -46,7 +61,11 @@ const findActualPath = (relativePath) => {
   };
 };
 
+// En fil, der bevidst er slettet i den aktuelle working tree, er korrekt fraværende. Gate'en skal
+// derfor ikke gøre en legitim deletion umulig, før næste commit har fjernet stien fra Git-indexet.
+const deletedTrackedFiles = getDeletedTrackedFiles();
 const mismatches = getTrackedFiles()
+  .filter((trackedPath) => !deletedTrackedFiles.has(trackedPath))
   .map((trackedPath) => {
     const resolved = findActualPath(trackedPath);
 

@@ -11,7 +11,7 @@ import {
 } from '../draftAdmission';
 import { normalizeDatePaste } from '../../../utils/inputPasteNormalization';
 import { readClipboardText } from '../../../utils/clipboardUtils';
-import { spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
+import { normalizePasteForDraft, spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import {
@@ -172,21 +172,37 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
     }, [draftState]);
 
     const handlePaste = React.useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
-      const normalized = normalizeDatePaste(readClipboardText(event));
+      const draft = draftState.draft;
+      const normalized = normalizePasteForDraft(
+        readClipboardText(event),
+        normalizeDatePaste,
+        draftState.isOpen ? draft : ''
+      );
       event.preventDefault();
       event.stopPropagation();
 
-      if (!draftState.isOpen) {
-        // Lukket paste erstatter værdien og afslutter straks — præcis som et ordinært datofelt.
-        draftState.commitDraft(normalized, true);
-        return;
-      }
-
-      const draft = draftState.draft;
       const element = inputElementRef.current;
       const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
       const end = typeof element?.selectionEnd === 'number' ? element.selectionEnd : start;
-      const spliced = spliceDraftWithPaste(draft, normalized, start, end, MAX_DATE_DRAFT_LENGTH);
+      const spliced = spliceDraftWithPaste(
+        draftState.isOpen ? draft : '',
+        normalized,
+        draftState.isOpen ? start : 0,
+        draftState.isOpen ? end : 0,
+        MAX_DATE_DRAFT_LENGTH,
+        DATE_ADMISSION
+      );
+      // Et clipboard-event med kun afviste tegn må ikke fungere som en skjult slettehandling.
+      // Transientfelter følger samme eksplicitte Delete/Backspace-regel som de persisterede felter.
+      if (spliced.acceptedLength === 0) {
+        restoreDomValueAfterRejectedDraft(inputElementRef.current, draft);
+        return;
+      }
+      if (!draftState.isOpen) {
+        // Lukket paste erstatter værdien og afslutter straks — præcis som et ordinært datofelt.
+        draftState.commitDraft(spliced.draft, true);
+        return;
+      }
       draftState.onDraftChange(spliced.draft);
       requestAnimationFrame(() => {
         const currentElement = inputElementRef.current;

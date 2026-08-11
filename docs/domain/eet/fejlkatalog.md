@@ -105,6 +105,14 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Navigationslink | — (systemfejl) |
 | Betingelse | Maks. årsløn for skadesåret mangler i datakonstanterne |
 
+#### `aarsloen-over-max` — "Årsløn kan ikke overstige maks årslønnen i skadesåret ({beløb} kr.)"
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | En direkte beregningskaldssti modtager en ASL-årsløn over maksimum for skadesåret. Den normale reader-sti viser samme regel som en rød feltfejl, før motoren kaldes. |
+
 #### `asl-afgoerelser-empty` — "Ingen ASL-afgørelser er indtastet."
 | Felt | Værdi |
 |---|---|
@@ -112,6 +120,14 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Vises på | F2, F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
 | Betingelse | Alle rækker i afgørelsestabellen er tomme. På F5 undertrykker denne `eet-pct-missing`. |
+
+#### `no-asl-afgoerelser-known-at-beregningsdato` — "Der er ingen ASL-afgørelser med virkningsdato på eller før beregningsdatoen."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | Alle ASL-afgørelser har virkningsdato efter beregningsdatoen. F5 kan derfor ikke fastlægge den relevante afgørelse på beregningsdatoen. |
 
 #### `missing-afgoerelsesdato` — "Der er en afgørelse uden afgørelsesdato."
 | Felt | Værdi |
@@ -230,7 +246,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F2, F3, F4, F5 |
 | Navigationslink | — (systemfejl) |
-| Betingelse | En påkrævet ASL-reguleringssats mangler. F2 og F5's restydelsesvariant bruger per-år-ID (`reguleringssats-missing-2026`), mens F3, F4 og F5's proformavariant bruger det generiske ID. |
+| Betingelse | En påkrævet ASL-reguleringssats mangler. F2 og F5's restydelsesvariant bruger per-år-ID (fx `reguleringssats-missing-2024`), mens F3, F4 og F5's proformavariant bruger det generiske ID. |
 
 #### `eet-max-missing` — "Maksimum for erhvervsevnetab mangler for år {år}."
 | Felt | Værdi |

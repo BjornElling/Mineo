@@ -98,14 +98,14 @@ const requireReadyAggregate = <TInput>(
 const readAggregate = (source: SharedStandaloneRenteSource) =>
   source.projection.aggregateProjection.status === 'ready' ? source.projection.aggregateProjection.value : null;
 
-/** Den seneste referencerentedato på tværs af rækkerne. */
-const resolveLatestReferenceRateDate = (
-  pdfContexts: ReadonlyMap<string, Readonly<{ latestReferenceRateDate: ISODateString | null }>>
+/** Udleder den seneste dækkede halvårsudgang på tværs af rækkerne. */
+const resolveLatestReferenceRatePeriodEnd = (
+  pdfContexts: ReadonlyMap<string, Readonly<{ latestReferenceRatePeriodEnd: ISODateString | null }>>
 ): ISODateString | null => {
   let latest: ISODateString | null = null;
   for (const ctx of pdfContexts.values()) {
-    if (ctx.latestReferenceRateDate === null) continue;
-    if (latest === null || ctx.latestReferenceRateDate > latest) latest = ctx.latestReferenceRateDate;
+    if (ctx.latestReferenceRatePeriodEnd === null) continue;
+    if (latest === null || ctx.latestReferenceRatePeriodEnd > latest) latest = ctx.latestReferenceRatePeriodEnd;
   }
   return latest;
 };
@@ -121,7 +121,7 @@ export type StandaloneRenteDocumentInput = Readonly<{
   actualInterestDate: ISODateString;
   beregningsdato: ISODateString;
   periods: readonly ProcessInterestPeriod[];
-  latestReferenceRateDate: ISODateString | null;
+  latestReferenceRatePeriodEnd: ISODateString | null;
   kommentarer: string | undefined;
 }>;
 
@@ -159,7 +159,7 @@ export const standaloneRenteDocumentDefinition: StandaloneDocumentDefinition<
         actualInterestDate: pdfContext.actualInterestDate,
         beregningsdato: pdfContext.beregningsdato,
         periods: pdfContext.periods,
-        latestReferenceRateDate: pdfContext.latestReferenceRateDate,
+        latestReferenceRatePeriodEnd: pdfContext.latestReferenceRatePeriodEnd,
         kommentarer: source.kommentarer,
       },
     };
@@ -180,7 +180,7 @@ export const standaloneRenteDocumentDefinition: StandaloneDocumentDefinition<
         visBrevhoved: false,
         stamdata: null,
         kommentarer: input.kommentarer,
-        latestReferenceRateDate: input.latestReferenceRateDate ?? null,
+        latestReferenceRatePeriodEnd: input.latestReferenceRatePeriodEnd ?? null,
         metadata: STANDALONE_DOCUMENT_METADATA,
       }
     );
@@ -212,7 +212,7 @@ export type StandaloneRenteAlleRow = Readonly<{
   actualInterestDate: ISODateString;
   beregningsdato: ISODateString;
   periods: readonly ProcessInterestPeriod[];
-  latestReferenceRateDate: ISODateString | null;
+  latestReferenceRatePeriodEnd: ISODateString | null;
 }>;
 
 export type StandaloneRenteAlleDocumentInput = Readonly<{
@@ -251,7 +251,7 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
         actualInterestDate: ctx.actualInterestDate,
         beregningsdato: ctx.beregningsdato,
         periods: ctx.periods,
-        latestReferenceRateDate: ctx.latestReferenceRateDate,
+        latestReferenceRatePeriodEnd: ctx.latestReferenceRatePeriodEnd,
       }));
       if (rows.length === 0) {
         return blockedProjection('standalone-rente-alle:no-rows', 'Ingen rækker at downloade');
@@ -291,7 +291,7 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
             visBrevhoved: false,
             stamdata: null,
             kommentarer: input.kommentarer,
-            latestReferenceRateDate: row.latestReferenceRateDate ?? null,
+            latestReferenceRatePeriodEnd: row.latestReferenceRatePeriodEnd ?? null,
           });
         }
 
@@ -325,7 +325,7 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
 export type StandaloneRenteOversigtDocumentInput = Readonly<{
   beregningsdato: ISODateString;
   rows: readonly RenteOversigtRow[];
-  latestReferenceRateDate: ISODateString | null;
+  latestReferenceRatePeriodEnd: ISODateString | null;
   kommentarer: string | undefined;
 }>;
 
@@ -370,7 +370,7 @@ export const standaloneRenteOversigtDocumentDefinition: StandaloneDocumentDefini
         input: {
           beregningsdato: source.beregningsdato,
           rows,
-          latestReferenceRateDate: resolveLatestReferenceRateDate(ready.aggregate.pdfContexts),
+          latestReferenceRatePeriodEnd: resolveLatestReferenceRatePeriodEnd(ready.aggregate.pdfContexts),
           kommentarer: source.kommentarer,
         },
       };
@@ -383,7 +383,7 @@ export const standaloneRenteOversigtDocumentDefinition: StandaloneDocumentDefini
         visBrevhoved: false,
         stamdata: null,
         kommentarer: input.kommentarer,
-        latestReferenceRateDate: input.latestReferenceRateDate,
+        latestReferenceRatePeriodEnd: input.latestReferenceRatePeriodEnd,
         metadata: STANDALONE_DOCUMENT_METADATA,
       });
     },

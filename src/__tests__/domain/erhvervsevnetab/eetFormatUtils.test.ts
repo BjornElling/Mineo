@@ -73,6 +73,7 @@ describe('resolveEetIssueNavigation', () => {
       'asl-afgoerelser-empty',
       'no-asl-afgoerelser-known-at-beregningsdato',
       'reguleringssats-missing',
+      'aarsloen-over-max',
     ]) {
       expect(resolveEetIssueNavigation(id)?.sectionId).toBe('eet-oplysninger-asl');
     }

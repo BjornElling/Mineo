@@ -189,6 +189,7 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
   });
 
   it('håndhæver Renteberegnings globale og rækkeafhængige grænser', () => {
+    expect(rentekravTillaegstidField.codec.maxDigits).toBe(2);
     let input = dispatch(empty(), settleField(renteberegningBeregningsdatoField.bind(), '01-01-2004'));
     expect(evaluate(input).reader.read(renteberegningBeregningsdatoField.bind()).status).toBe('error');
 

@@ -49,7 +49,11 @@ describe('setupVitePreloadRecovery', () => {
   });
 
   it('genindlæser ikke uden en kvitteret recovery-markør', () => {
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    // Brug den prototype, som jsdoms konkrete sessionStorage faktisk implementerer.
+    // Node 26 eksponerer også en global Storage-konstruktør, men den er ikke nødvendigvis
+    // identisk med browserens prototype; ellers tester spy'en ikke den kode, der skriver.
+    const storagePrototype = Object.getPrototypeOf(window.sessionStorage) as Storage;
+    vi.spyOn(storagePrototype, 'setItem').mockImplementation(() => {
       throw new Error('sessionStorage er utilgængelig');
     });
 

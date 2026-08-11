@@ -6,6 +6,7 @@ import {
   resolveDateRangeErrorMessage,
   STATIC_DATE_BOUNDS,
 } from '../../utils/dateRangeErrorMessages';
+import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import type { FieldValidator } from '../fieldDescriptor';
 import type {
   DateBoundResolver,
@@ -39,6 +40,22 @@ const resolveBound = (
   typeof resolver === 'function'
     ? (resolver as (c: DateBoundsContext) => ISODateString)(context)
     : resolver;
+
+const toSpecialIssueDetail = (
+  special: DateRangeSpecialErrors | undefined
+): Readonly<Record<string, string | number | boolean>> => {
+  if (special === undefined) return {};
+
+  return {
+    ...(special.fraTilRole === undefined ? {} : { fraTilRole: special.fraTilRole }),
+    ...(special.minBoundKind === undefined ? {} : { minBoundKind: special.minBoundKind }),
+    ...(special.minBoundReferenceISO === undefined ? {} : { minBoundReferenceISO: special.minBoundReferenceISO }),
+    ...(special.minBoundLabel === undefined ? {} : { minBoundLabel: special.minBoundLabel }),
+    ...(special.maxBoundKind === undefined ? {} : { maxBoundKind: special.maxBoundKind }),
+    ...(special.maxBoundFieldLabel === undefined ? {} : { maxBoundFieldLabel: special.maxBoundFieldLabel }),
+    ...(special.maxBoundReferenceISO === undefined ? {} : { maxBoundReferenceISO: special.maxBoundReferenceISO }),
+  };
+};
 
 /**
  * Oversætter en `DateBoundsSpec` til feltets bounds-validator.
@@ -87,6 +104,7 @@ export const dateBoundsValidator = (
     detail: {
       ...(minDate === undefined ? {} : { minDate }),
       ...(maxDate === undefined ? {} : { maxDate }),
+      ...toSpecialIssueDetail(special),
     },
   };
 };

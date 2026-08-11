@@ -4,6 +4,7 @@ import {
   resolveAslAarsloensmaksimumForAar,
 } from '../satser/aslAarsloensmaksimum';
 import { formatAsAmount } from '../../utils/formatUtils';
+import { isoYear } from '../../utils/isoDateHelpers';
 
 export const validateAslAarsloenDivisibleBy1000 = (
   aarsloen: number | undefined
@@ -13,6 +14,19 @@ export const validateAslAarsloenDivisibleBy1000 = (
   return undefined;
 };
 
+/**
+ * Det kanoniske ASL-årslønsloft for en skade. Feltets bounds-visning og den
+ * efterfølgende domæneregel skal bruge samme skadesår; hvis de hver udleder
+ * et år fra hver sin dato, kan en værdi, som tooltippen tillader, straks blive
+ * afvist af den næste valideringskanal.
+ */
+export const resolveAslAarsloensmaksimumForSkadedato = (
+  skadedatoIso: ISODateString | undefined
+): number | undefined =>
+  skadedatoIso === undefined
+    ? undefined
+    : resolveAslAarsloensmaksimumForAar(isoYear(skadedatoIso));
+
 export const validateAslAarsloenBySkadesaarMax = (
   aarsloen: number | undefined,
   skadedatoIso: ISODateString | undefined
@@ -20,10 +34,8 @@ export const validateAslAarsloenBySkadesaarMax = (
   if (aarsloen === undefined || !Number.isFinite(aarsloen)) return undefined;
   if (skadedatoIso === undefined) return undefined;
 
-  const skadesaar = Number.parseInt(skadedatoIso.slice(0, 4), 10);
-  if (!Number.isFinite(skadesaar)) return undefined;
-
-  const maxAarsloen = resolveAslAarsloensmaksimumForAar(skadesaar);
+  const skadesaar = isoYear(skadedatoIso);
+  const maxAarsloen = resolveAslAarsloensmaksimumForSkadedato(skadedatoIso);
   if (maxAarsloen === undefined) {
     // Fail-closed: en manglende maks-sats for skadesåret må ikke stiltiende acceptere årslønnen.
     // Det rammer fx en skade i et år uden offentliggjort sats (før 2005 eller et fremtidigt år).

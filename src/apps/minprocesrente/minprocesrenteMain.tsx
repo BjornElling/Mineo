@@ -23,5 +23,6 @@ void bootstrapClientApp({
   },
   loadAppStyles: () => import('./minprocesrente.css'),
   capturePwaInstallPrompt: false,
+  // Standalone-beregneren er den kontraktfastsatte mobil/tablet-undtagelse (§app-shell §3.1).
   enforceUnsupportedDeviceGate: false,
 });

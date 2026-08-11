@@ -91,6 +91,23 @@ export const readRentekravCommittedRows = (reader: InputReader): RentekravRow[] 
     };
   });
 
+/**
+ * Om rentetabellen indeholder afsluttet brugerinput — også rejected råtekst.
+ *
+ * En `RentekravRow` er en beregningsprojektion og skjuler med vilje rejected felter som `undefined`.
+ * Den må derfor ikke bruges til at afgøre, om den destruktive «Slet alle»-handling skal være aktiv; ellers
+ * kan en række med den eneste fejlende indtastning blive umulig at rydde uden at rette fejlen først.
+ */
+export const hasAnyRentekravInput = (reader: InputReader): boolean =>
+  reader.listEntities(rentekravRowsCollectionRef).some(({ entityId }) => {
+    const belob = reader.read(rentekravBelobField.bind(entityId));
+    const renterFra = reader.read(rentekravRenterFraField.bind(entityId));
+    const tillaegstid = reader.read(rentekravTillaegstidField.bind(entityId));
+    return [belob, renterFra, tillaegstid].some((result) => (
+      result.status === 'error' || result.value !== undefined
+    ));
+  });
+
 export const buildRenteberegningReaderProjection = (args: Readonly<{
   reader: InputReader;
   referenceRates: ReadonlyArray<RateEntry>;

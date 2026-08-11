@@ -110,8 +110,12 @@ ASL-beregningen følger samme struktur som ASL-kapitalisering i EET:
 
 ```text
 aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen)
-benyttetAarsloen = min(aslAarsloenAfrundet1000, aarsloenMax[skadesaar])
+benyttetAarsloen = aslAarsloenAfrundet1000
 ```
+
+En ASL-årsløn over maksimum for skadesåret giver en blokerende fejl. Den må
+ikke reduceres stiltiende til maksimum; den samme regel håndhæves både af den
+fælles feltvalidering og af den direkte beregningsmotor.
 
 ### 5.2 Årlig ASL-erstatning
 

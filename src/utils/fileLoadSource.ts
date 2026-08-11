@@ -4,7 +4,6 @@ import {
   ensureFileHandleReadPermission,
   isFileSystemAccessSupported,
   openFileWithPicker,
-  readFromFileHandle,
 } from './fileSystemAccess';
 import { formatAsAmount } from './formatUtils';
 
@@ -28,7 +27,7 @@ export type LoadSourceOutcome =
       fileHandle?: FileSystemFileHandle;
       /** PWA request-id, hvis kilden er PWA. */
       requestId?: string;
-      /** Læser filens rå bytes med kildens egen reader (read-back-sti bevares pr. kilde). */
+      /** Læser den samme immutable `File`-snapshot, som blev valideret ved åbningen. */
       readContent: () => Promise<string>;
     }
   | { status: 'cancelled'; source: 'manual' | 'pwa' };
@@ -85,7 +84,10 @@ export const createManualLoadSource = (resolvedDirectory?: ResolvedDirectory): L
         source: 'manual',
         file: result.file,
         fileHandle: result.handle,
-        readContent: () => readFromFileHandle(result.handle),
+        // Handle.getFile() må ikke kaldes igen her: filen kan være ændret mellem
+        // endelses-/størrelseskontrollen og afkodningen. Den validerede File-instans
+        // er den eneste bytes-snapshot, resten af load-kæden må behandle.
+        readContent: () => readFile(result.file),
       };
     }
 
@@ -120,7 +122,9 @@ export const createPwaLoadSource = (
       file,
       fileHandle,
       requestId,
-      readContent: () => readFromFileHandle(fileHandle),
+      // Samme TOCTOU-værn som ved manuel FSA-load: brug de bytes, der blev hentet
+      // og valideret før handlen blev givet videre som metadata.
+      readContent: () => readFile(file),
     };
   },
 });

@@ -638,6 +638,35 @@ describe('useFileSaveLoad', () => {
       expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
       expect(handles.navigate).not.toHaveBeenCalled();
     });
+
+    it('afviser reset, mens en ældre load stadig venter, så load og reset ikke kan krydse', async () => {
+      let resolveLoad: ((result: LoadFileResult) => void) | undefined;
+      loadFromFileMock.mockImplementationOnce(() => new Promise<LoadFileResult>((resolve) => {
+        resolveLoad = resolve;
+      }));
+      const handles = renderHook({ hasData: true });
+
+      let loadPromise: Promise<void> | undefined;
+      await act(async () => {
+        loadPromise = handles.api?.handleHent();
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        await handles.api?.handleSletAlt();
+      });
+
+      expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
+      expect(handles.showOverlay).toHaveBeenCalledWith({
+        message: 'En filhandling er allerede i gang.',
+        type: 'warning',
+      });
+
+      resolveLoad?.(successfulLoad());
+      await act(async () => {
+        await loadPromise;
+      });
+    });
   });
 
   describe('én load-shell med injiceret filkilde', () => {

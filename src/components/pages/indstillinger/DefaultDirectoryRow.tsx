@@ -67,6 +67,9 @@ const DefaultDirectoryRow = React.memo(() => {
                 component="button"
                 type="button"
                 onClick={resetToDefault}
+                // Nulstil er en sideintegreret handling og skal derfor eksplicit indgå i Containerens
+                // fokusinventar, præcis som «Vælg mappe» (§keyboard-navigation.md).
+                data-mineo-focusable-button="true"
                 sx={{
                   font: 'inherit',
                   fontSize: '0.75rem',

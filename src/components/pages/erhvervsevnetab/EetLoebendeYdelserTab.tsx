@@ -23,6 +23,7 @@ import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
+import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import { formatJaNej, formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
 import { getDocumentFormatLabel } from '../../../document/documentFormat';
@@ -82,6 +83,8 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
         issues={issues}
         onGoToEetOplysninger={onGoToEetOplysninger}
       />
+
+      {hasBlockingErrors && <EetDocumentDownloadBox download={download} />}
 
       {!hasBlockingErrors && computation && (
         <>

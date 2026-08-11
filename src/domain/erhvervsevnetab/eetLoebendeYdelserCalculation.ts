@@ -22,6 +22,7 @@ import {
   formatAslAarsloensmaksimumMissing,
   resolveAslAarsloensmaksimumForAar,
 } from '../satser/aslAarsloensmaksimum';
+import { validateAslAarsloenBySkadesaarMax } from '../aslEalAarsloen/aarsloenValidators';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
@@ -29,7 +30,15 @@ import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../u
 import { SKAERING_2011_01_01, SKAERING_2024_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { sumMaanedsbroekForInterval } from '../dates/maanedsbroek';
-import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parseCommittedPercent } from './eetAslAfgoerelser';
+import {
+  ASL_IDENTICAL_AFGOERELSER_ID,
+  collectIncompleteRowIssues,
+  hasIdenticalAfgoerelser,
+  hasTextValue,
+  isAslAfgoerelseRowEmpty,
+  isKnownAfgoerelseType,
+  parseCommittedPercent,
+} from './eetAslAfgoerelser';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
 import {
   fromKroner,
@@ -439,9 +448,21 @@ const splitPeriodByBoundaries = (
 };
 
 const assertValidPeriodSectionRows = (rows: readonly PeriodSectionRow[]): PeriodSectionRow[] => {
-  const invalidRow = rows.find((row) => row.fra > row.til);
-  if (invalidRow) {
-    throw new Error(`Invalid EET period invariant: ${invalidRow.fra} is after ${invalidRow.til}`);
+  for (const [index, row] of rows.entries()) {
+    if (row.fra > row.til) {
+      throw new Error(`Invalid EET period invariant: ${row.fra} is after ${row.til}`);
+    }
+
+    const previous = rows[index - 1];
+    if (!previous) continue;
+
+    const expectedStart = getDayAfterIso(previous.til);
+    if (expectedStart === undefined || row.fra !== expectedStart) {
+      // Denne funktion arbejder på den komplette tekniske periodisering, før rækker med 0 kr.
+      // eventuelt skjules i visningen. Derfor skal hvert teknisk delinterval være både sorteret
+      // og direkte sammenhængende; ellers kan en ny skæringsregel skabe dobbelt- eller tabte dage.
+      throw new Error(`Invalid EET period invariant: ${previous.til} is not directly before ${row.fra}`);
+    }
   }
   return [...rows];
 };
@@ -699,6 +720,19 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
 
   collectBlockingInputIssues(input.erhvervsevnetab.aslAfgoerelser, issues);
 
+  const hasUnknownAfgoerelseType = input.erhvervsevnetab.aslAfgoerelser.some(
+    (row) => row.afgoerelseType !== undefined && !isKnownAfgoerelseType(row.afgoerelseType)
+  );
+  if (hasUnknownAfgoerelseType) {
+    // Schemavalideringen afviser normalt ukendte enumværdier. Domæne-entrypointet kan dog også
+    // kaldes direkte fra runtime-kode; et ukendt typefelt må ikke glide videre som en delvist
+    // fortolket afgørelse og derefter producere et output, som ikke passer til output-schemaet.
+    issues.push(toIssue(
+      'invalid-afgoerelse-type',
+      'En afgørelse har en ukendt afgørelsestype og kan derfor ikke beregnes sikkert.'
+    ));
+  }
+
   const resolvedAfgoerelser = collectResolvedAfgoerelser(input.erhvervsevnetab.aslAfgoerelser);
   const allRowsEmpty = input.erhvervsevnetab.aslAfgoerelser.every((row) => isAslAfgoerelseRowEmpty(row));
   if (allRowsEmpty) {
@@ -723,8 +757,16 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   }
 
   const aslAarsloen = aslAarsloenRaw as number;
+  const aslAarsloenMaxIssue = validateAslAarsloenBySkadesaarMax(aslAarsloen, skadedato);
+  if (aslAarsloenMaxIssue !== undefined) {
+    // En direkte motorbruger kan komme uden om readerens felt-gate. Værdien må
+    // derfor stoppes her; en defensiv min()-afskæring ville ellers give et
+    // resultat for en inputværdi, som domænet har afvist.
+    issues.push(toIssue('aarsloen-over-max', aslAarsloenMaxIssue));
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
+  }
   const aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen);
-  const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, maxAarsloenISkadesaar);
+  const benyttetAarsloen = aslAarsloenAfrundet1000;
 
   collectWarnings(skadedato, beregningsdato, resolvedAfgoerelser, issues);
 

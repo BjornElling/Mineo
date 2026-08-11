@@ -21,7 +21,7 @@ let isInitialized = false;
 let requestCounter = 0;
 let pendingRequest: PwaFileOpenRequest | null = null;
 let hydratePendingRequestPromise: Promise<void> | null = null;
-let persistPendingRequestQueue: Promise<void> = Promise.resolve();
+let persistPendingRequestQueue: Promise<boolean> = Promise.resolve(true);
 
 const isFileHandle = (handle: FileSystemHandle): handle is FileSystemFileHandle => {
   return handle.kind === 'file';
@@ -47,9 +47,14 @@ const isStoredPwaFileOpenRequest = (value: unknown): value is PwaFileOpenRequest
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<PwaFileOpenRequest>;
   return typeof candidate.id === 'string'
+    && candidate.id.trim() !== ''
     && typeof candidate.createdAtEpochMs === 'number'
+    && Number.isFinite(candidate.createdAtEpochMs)
     && typeof candidate.fileName === 'string'
+    && candidate.fileName.trim() !== ''
     && typeof candidate.ignoredFileCount === 'number'
+    && Number.isInteger(candidate.ignoredFileCount)
+    && candidate.ignoredFileCount >= 0
     && isFileSystemFileHandle(candidate.fileHandle)
     && (candidate.targetUrl === undefined || typeof candidate.targetUrl === 'string');
 };
@@ -58,13 +63,18 @@ const dispatchPendingRequestEvent = (request: PwaFileOpenRequest): void => {
   window.dispatchEvent(new CustomEvent(Mineo_PWA_FILE_OPEN_EVENT, { detail: { requestId: request.id } }));
 };
 
-const persistPendingPwaFileOpenRequestState = async (): Promise<void> => {
-  const run = async (): Promise<void> => {
+const persistPendingPwaFileOpenRequestState = async (): Promise<boolean> => {
+  const run = async (): Promise<boolean> => {
     const request = pendingRequest;
     try {
       if (!request) {
-        await deletePendingPwaOpenRequestFromIndexedDB();
-        return;
+        const deleted = await deletePendingPwaOpenRequestFromIndexedDB();
+        if (!deleted) {
+          logWarning('Pending PWA-open request kunne ikke slettes sikkert fra IndexedDB', {
+            context: 'persistPendingPwaFileOpenRequestState.delete',
+          });
+        }
+        return deleted;
       }
 
       const saved = await savePendingPwaOpenRequestToIndexedDB(request);
@@ -74,6 +84,7 @@ const persistPendingPwaFileOpenRequestState = async (): Promise<void> => {
           data: { requestId: request.id, fileName: request.fileName },
         });
       }
+      return saved;
     } catch (error: unknown) {
       logWarning('Pending PWA-open request kunne ikke persisteres; fortsætter med in-memory request', {
         context: 'persistPendingPwaFileOpenRequestState.save',
@@ -83,6 +94,7 @@ const persistPendingPwaFileOpenRequestState = async (): Promise<void> => {
           errorMessage: error instanceof Error ? error.message : String(error),
         },
       });
+      return false;
     }
   };
 
@@ -90,6 +102,7 @@ const persistPendingPwaFileOpenRequestState = async (): Promise<void> => {
   // overskrive den efterfølgende delete og genopstå som falsk pending request ved næste boot.
   persistPendingRequestQueue = persistPendingRequestQueue.then(run, run);
   await persistPendingRequestQueue;
+  return persistPendingRequestQueue;
 };
 
 export const hydratePendingPwaFileOpenRequest = async (): Promise<void> => {
@@ -125,7 +138,9 @@ export const hydratePendingPwaFileOpenRequest = async (): Promise<void> => {
       logWarning('Ugyldig pending PWA-open request blev fjernet fra IndexedDB', {
         context: 'hydratePendingPwaFileOpenRequest.invalidStoredRequest',
       });
-      await deletePendingPwaOpenRequestFromIndexedDB();
+      // Oprydningen skal gennem samme serialiserede kø som saves/deletes. En ny launchQueue-fil kan
+      // ankomme mens den ugyldige record fjernes; en direkte delete ville da kunne slette den nye request.
+      await persistPendingPwaFileOpenRequestState();
     }
   })();
 
@@ -164,8 +179,12 @@ export const setupPwaLaunchQueueConsumer = (): void => {
 
     // Deterministisk strategi: seneste request vinder (overskriver evt. tidligere pending request).
     pendingRequest = request;
+    // Eventet udsendes FØR den langsomme IDB-skrivning, så en request, der ankommer under Gem/Hent/
+    // Slet alt, registreres som travl ved ankomst og ikke pludselig behandles som en ny ledig handling,
+    // når persisteringen er færdig. Callbacken afventer stadig den serialiserede skrivning, så launchQueue
+    // får en afsluttet durable-handoff i samme async-forløb.
     dispatchPendingRequestEvent(request);
-    void persistPendingPwaFileOpenRequestState();
+    await persistPendingPwaFileOpenRequestState();
   });
 };
 
@@ -191,11 +210,22 @@ export const markPendingPwaFileOpenRequestHandled = async (requestId: string): P
     return;
   }
 
+  const handledRequest = pendingRequest;
   pendingRequest = null;
-  await persistPendingPwaFileOpenRequestState();
+  const persisted = await persistPendingPwaFileOpenRequestState();
+  if (!persisted && pendingRequest === null) {
+    pendingRequest = handledRequest;
+    throw new Error('Pending PWA-fil-request kunne ikke markeres håndteret sikkert.');
+  }
 };
 
-export const clearPendingPwaFileOpenRequest = async (): Promise<void> => {
+export const clearPendingPwaFileOpenRequest = async (expectedRequestId?: string): Promise<void> => {
+  if (expectedRequestId !== undefined && pendingRequest?.id !== expectedRequestId) return;
+  const clearedRequest = pendingRequest;
   pendingRequest = null;
-  await persistPendingPwaFileOpenRequestState();
+  const persisted = await persistPendingPwaFileOpenRequestState();
+  if (!persisted && pendingRequest === null && clearedRequest !== null) {
+    pendingRequest = clearedRequest;
+    throw new Error('Pending PWA-fil-request kunne ikke ryddes sikkert.');
+  }
 };

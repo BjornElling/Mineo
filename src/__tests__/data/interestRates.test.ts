@@ -42,6 +42,12 @@ describe('referenceRates', () => {
     expect(entry2026).toBeDefined();
     expect(entry2026?.ratePct).toBeCloseTo(1.75, 5);
   });
+
+  it('har kun halvårets første dag som effektiv dato', () => {
+    for (const entry of referenceRates) {
+      expect(['01-01', '07-01']).toContain(entry.effectiveDate.slice(5));
+    }
+  });
 });
 
 describe('surchargeRates', () => {

@@ -159,4 +159,23 @@ describe('ConfirmationDialog', () => {
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
+
+  it('frigiver bekræftelsen, når handlingen melder fejl uden at lukke dialogen', async () => {
+    const user = userEvent.setup();
+    const onConfirm = vi.fn(() => false);
+    renderDialog({
+      open: true,
+      title: 'Bekræft handling',
+      message: 'Besked',
+      onConfirm,
+      onCancel: vi.fn(),
+    });
+
+    const confirmButton = within(screen.getByRole('dialog')).getByRole('button', { name: 'Ja' });
+    await user.click(confirmButton);
+    await user.click(confirmButton);
+
+    // Offentlige ydelser holder dialogen åben ved intern transaktionsfejl. Den skal kunne prøves igen.
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+  });
 });

@@ -116,7 +116,9 @@ export const useFieldEditor = <T>(
   const [state, setState] = React.useState<FieldEditorState<T>>(() => createClosedEditor(field, location));
   const sameEditorIdentity = state.field.descriptor.id === field.descriptor.id
     && fieldAddressesEqual(state.field.address, field.address)
-    && state.location.locationId === location.locationId;
+    && state.location.locationId === location.locationId
+    && state.location.route === location.route
+    && state.location.tabKey === location.tabKey;
   if (!sameEditorIdentity && isEditorOpen(state)) {
     throw new Error(
       `useFieldEditor: en åben editor (${state.location.locationId}) må ikke genbruges til ${location.locationId}.`

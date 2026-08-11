@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
-import { buildRenteberegningReaderProjection } from '../../../domain/renteberegning/renteberegningReaderProjection';
+import {
+  buildRenteberegningReaderProjection,
+  hasAnyRentekravInput,
+} from '../../../domain/renteberegning/renteberegningReaderProjection';
 import * as renteberegningEngine from '../../../domain/renteberegning/renteberegningEngine';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
@@ -185,6 +188,24 @@ describe('Renteberegning projektionsmatrix: motoren kaldes ikke i blocked', () =
 });
 
 describe('Renteberegning projektionsmatrix: tomme og manglende værdier', () => {
+  it('regner rejected råtekst som indtastning til Slet alle', () => {
+    const reader = buildReader(
+      [createRow('r1', { belob: undefined })],
+      '2024-12-31',
+      [REJECTED_BELOB('r1')]
+    );
+
+    expect(hasAnyRentekravInput(reader)).toBe(true);
+  });
+
+  it('regner en helt tom række som ingen indtastning', () => {
+    const reader = buildReader([
+      { id: 'r-empty', belob: undefined, renterFra: undefined, tillaegstid: undefined, enhed: 'dage' },
+    ], '2024-12-31');
+
+    expect(hasAnyRentekravInput(reader)).toBe(false);
+  });
+
   it('en manglende beregningsdato holder projektionen ready (feltet er optional)', () => {
     // `beregningsdato` læses med `optional`, så tomhed er ikke en blokering — kun rejected råtekst er.
     // Testen fastholder den afgrænsning, så en fremtidig ændring til `require` ikke sker ubemærket.

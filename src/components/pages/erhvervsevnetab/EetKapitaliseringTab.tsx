@@ -11,6 +11,7 @@ import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
+import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { type DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 
@@ -86,6 +87,8 @@ const EetKapitaliseringTab = ({ onGoToEetOplysninger, projection, download }: Pr
         issues={issues}
         onGoToEetOplysninger={onGoToEetOplysninger}
       />
+
+      {hasBlockingErrors && <EetDocumentDownloadBox download={download} />}
 
       {!hasBlockingErrors && (
         <ContentBox className="content-box">

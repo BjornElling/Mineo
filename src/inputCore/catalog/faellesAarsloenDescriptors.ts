@@ -6,17 +6,16 @@ import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { amountBoundsValidator } from './boundsValidators';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import {
+  resolveAslAarsloensmaksimumForSkadedato,
   validateAslAarsloenBySkadesaarMax,
   validateAslAarsloenDivisibleBy1000,
 } from '../../domain/aslEalAarsloen/aarsloenValidators';
-import { resolveAslAarsloensmaksimumForAar } from '../../domain/satser/aslAarsloensmaksimum';
-import { erhvervsevnetabBeregningsdatoField, isValidErhvervsevnetabBeregningsdato } from './erhvervsevnetabDescriptors';
 import { stamdataSkadedatoField } from './stamdataDescriptors';
 
 // Produkt-descriptors for `faellesAarsloen`-sektionen (ASL/EAL-årsløn, §3.2). Sektionen har ingen
 // egen route; den redigeres i flere domænekontekster (EET, Forsørgertab, EO). Beløbene er heltal med et hårdt
 // gulv på 1000 og et fallback-loft på 9999999 — altid som en afledt canonical bounds-feltvalidator (§1.6),
-// ikke som en codec-afvisning. ASL-feltets loft skærpes til den validerede EET-beregningsdato, når den findes.
+// ikke som en codec-afvisning. ASL-feltets loft skærpes til skadesårets kanoniske ASL-maksimum, når skadedatoen findes.
 // En værdi under gulvet committes canonical med et rødt bounds-issue og kan gemmes i `.eo`. Fortegn ikke tilladt.
 
 const createEmptyFaellesAarsloenSection = (): unknown => ({});
@@ -52,13 +51,8 @@ const amountField = (
   });
 
 const resolveAslAarsloenMaxValue = (view: CanonicalView): number => {
-  if (!isValidErhvervsevnetabBeregningsdato(view)) return AMOUNT_MAX;
-
-  const beregningsdato = view.readCanonical(erhvervsevnetabBeregningsdatoField.bind());
-  if (beregningsdato === undefined) return AMOUNT_MAX;
-
-  const beregningsaar = Number.parseInt(beregningsdato.slice(0, 4), 10);
-  return resolveAslAarsloensmaksimumForAar(beregningsaar) ?? AMOUNT_MAX;
+  const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
+  return resolveAslAarsloensmaksimumForSkadedato(skadedato) ?? AMOUNT_MAX;
 };
 
 export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', 'Årsløn', [

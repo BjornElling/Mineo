@@ -149,7 +149,6 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
           // Navnet beskriver HANDLINGEN og følger derfor menuens aktuelle tilstand.
           aria-label={isExpanded ? 'Fold menuen sammen' : 'Fold menuen ud'}
           aria-expanded={isExpanded}
-          tabIndex={-1}
           sx={{
             textTransform: 'none',
             justifyContent: 'flex-start',
@@ -203,7 +202,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
               // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
               // Et fast aria-label giver samme navn i begge menutilstande.
               aria-label={item.label}
-              tabIndex={-1}
+              aria-current={activePage === item.id ? 'page' : undefined}
               className={activePage === item.id ? 'menu-item active' : 'menu-item'}
             sx={{
               justifyContent: 'flex-start',
@@ -252,7 +251,6 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
               // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
               // Et fast aria-label giver samme navn i begge menutilstande.
               aria-label={item.label}
-              tabIndex={-1}
               className="menu-item"
               sx={{
                 justifyContent: 'flex-start',
@@ -300,7 +298,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
               // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
               // Et fast aria-label giver samme navn i begge menutilstande.
               aria-label={item.label}
-              tabIndex={-1}
+              aria-current={activePage === item.id ? 'page' : undefined}
               className={activePage === item.id ? 'menu-item active' : 'menu-item'}
               sx={{
                 justifyContent: 'flex-start',

@@ -19,7 +19,10 @@ export type SideTabProps = {
  */
 const SideTab = React.memo(({ label, active, onClick, top }: SideTabProps) => (
   <Box
+    component="button"
+    type="button"
     onClick={onClick}
+    aria-pressed={active}
     className={active ? 'tab-item side-tab active' : 'tab-item side-tab'}
     sx={{
       position: 'absolute',
@@ -35,10 +38,19 @@ const SideTab = React.memo(({ label, active, onClick, top }: SideTabProps) => (
       minWidth: 140,
       minHeight: 48,
       padding: '12px 16px',
+      appearance: 'none',
+      border: 'none',
+      background: 'transparent',
+      color: 'inherit',
+      textAlign: 'center',
+      font: 'inherit',
       fontSize: '0.875rem',
       fontFamily: 'Montserrat, sans-serif',
       lineHeight: 1.25,
       letterSpacing: '0.02857em',
+      '&.active': {
+        borderBottom: '2px solid var(--color-primary)',
+      },
     }}
   >
     {label}

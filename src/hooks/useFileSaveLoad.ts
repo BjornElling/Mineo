@@ -72,7 +72,7 @@ type LoadFlowState =
 
 export type PwaLoadOutcome = 'busy' | 'cancelled' | 'preflight' | 'awaitingUser' | 'applied' | 'error';
 
-type FileOperationKind = 'save' | 'manual-load' | 'pwa-load';
+type FileOperationKind = 'save' | 'manual-load' | 'pwa-load' | 'reset';
 
 /**
  * Den injicerede filkilde til den fælles load-shell. Alt, hvad de to entrypoints deler, ligger i
@@ -516,6 +516,14 @@ export const useFileSaveLoad = ({
       return;
     }
 
+    // Reset er selv en fil-/sagshandling og skal dele samme lås. Uden denne
+    // reservation kunne en allerede igangværende load eller Gem afslutte efter
+    // reset og genindsætte data eller metadata fra den gamle operation.
+    if (!beginFileOperation('reset', true)) {
+      restoreFocusIfPossible(focusTargetBeforeDeleteAll);
+      return;
+    }
+
     try {
       // §7/§1.12: `Slet alt` gennem replacement-grænsen (no-settle; draften kasseres først ved
       // succes) — dette er også recovery-vejen ud af en `writesBlocked` current-session. Porten ejer HELE
@@ -537,8 +545,10 @@ export const useFileSaveLoad = ({
         message: 'Kunne ikke slette data',
         type: 'error',
       });
+    } finally {
+      finishFileOperation();
     }
-  }, [navigate, ops.reset, showOverlay]);
+  }, [beginFileOperation, finishFileOperation, navigate, ops.reset, showOverlay]);
 
   // De to dialog-states afledes read-only fra den ene tilstandsmaskine, så de aldrig kan være
   // sat samtidigt (den ugyldige kombination er urepræsenterbar).

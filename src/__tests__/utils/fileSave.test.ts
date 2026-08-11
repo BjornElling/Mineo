@@ -23,6 +23,7 @@ import {
   isFileSystemAccessSupported,
   isFileSystemFileHandle,
 } from '../../utils/fileSystemAccess';
+import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 
 vi.mock('../../utils/logger', () => ({
   logError: vi.fn(),
@@ -99,6 +100,7 @@ describe('fileSave', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(true);
     mockedIsFileSystemFileHandle.mockImplementation(
       (value): value is FileSystemFileHandle =>
         Boolean(value) &&
@@ -385,6 +387,7 @@ describe('fileSave', () => {
       const pickedHandle = { name: 'sag.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
 
       sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
       mockedIsFileSystemAccessSupported.mockReturnValue(true);
       mockedRequestPersistentStorage.mockResolvedValue(true);
       mockedLoadFileHandleFromIndexedDB.mockResolvedValue(existingHandle);
@@ -412,6 +415,7 @@ describe('fileSave', () => {
       const loadedHandle = { name: 'indlaest.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
 
       sessionStorage.setItem('mineo_ui_lastSavedFilename', 'indlaest.eo');
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
       mockedIsFileSystemAccessSupported.mockReturnValue(true);
       mockedRequestPersistentStorage.mockResolvedValue(true);
       mockedLoadFileHandleFromIndexedDB.mockResolvedValue(loadedHandle);
@@ -434,6 +438,7 @@ describe('fileSave', () => {
       const loadedHandle = { name: 'indlaest.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
 
       sessionStorage.setItem('mineo_ui_lastSavedFilename', 'indlaest.eo');
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
       mockedIsFileSystemAccessSupported.mockReturnValue(true);
       mockedRequestPersistentStorage.mockResolvedValue(true);
       mockedLoadFileHandleFromIndexedDB.mockResolvedValue(loadedHandle);

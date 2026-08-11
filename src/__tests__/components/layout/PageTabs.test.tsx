@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import PageTabs from '../../../components/layout/PageTabs';
 import SideTab from '../../../components/layout/SideTab';
 
@@ -61,5 +62,21 @@ describe('SideTab', () => {
     render(<SideTab label="Kontroltabel" active={false} onClick={onClick} top="125px" />);
     fireEvent.click(screen.getByText('Kontroltabel'));
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('er en native knap, der kan aktiveres med Enter og mellemrum', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(<SideTab label="Kontroltabel" active={false} onClick={onClick} top="125px" />);
+
+    const tab = screen.getByRole('button', { name: 'Kontroltabel' });
+    expect(tab).toHaveAttribute('type', 'button');
+    expect(tab).toHaveAttribute('aria-pressed', 'false');
+
+    tab.focus();
+    await user.keyboard('{Enter}');
+    await user.keyboard('[Space]');
+
+    expect(onClick).toHaveBeenCalledTimes(2);
   });
 });

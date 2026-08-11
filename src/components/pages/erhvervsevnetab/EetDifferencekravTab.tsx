@@ -18,6 +18,7 @@ import { EetProformaKapitaliseringBox } from './differencekrav/EetProformaKapita
 import { EetMerErstatningPensionsalderBox } from './differencekrav/EetMerErstatningPensionsalderBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
+import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import { formatMaaneder, formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
@@ -78,6 +79,8 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
         issues={issues}
         onGoToEetOplysninger={onGoToEetOplysninger}
       />
+
+      {hasBlockingErrors && <EetDocumentDownloadBox download={download} />}
 
       {/* Beregning */}
       {!hasBlockingErrors && computation && (

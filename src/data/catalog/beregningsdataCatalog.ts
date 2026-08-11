@@ -90,6 +90,19 @@ const assertNewestFirstRates = (
   }
 };
 
+const assertReferenceRateHalfYearBoundaries = (
+  rates: readonly Readonly<{ effectiveDate: string; ratePct: number }>[]
+): void => {
+  for (const rate of rates) {
+    const monthAndDay = rate.effectiveDate.slice(5);
+    if (monthAndDay !== '01-01' && monthAndDay !== '07-01') {
+      throw new Error(
+        `Referencesatser: effektiv dato ${rate.effectiveDate} skal være 1. januar eller 1. juli`
+      );
+    }
+  }
+};
+
 const assertFolkepensionAlderPerioder = (periods: typeof folkepensionAlderPerioder): void => {
   assertNonEmpty(periods, 'Folkepensionsalder');
   let expectedPeriodStart: string | null = null;
@@ -232,6 +245,7 @@ export const beregningsdataCatalog = defineCalculationDataCatalog([
     payload: { referenceRates, surchargeRates },
     validate: (payload) => {
       assertNewestFirstRates(payload.referenceRates, 'Referencesatser');
+      assertReferenceRateHalfYearBoundaries(payload.referenceRates);
       assertNewestFirstRates(payload.surchargeRates, 'Tillægssatser');
     },
   }),

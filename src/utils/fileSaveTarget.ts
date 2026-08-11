@@ -15,6 +15,7 @@ import type { EoFileContainer } from '../schemas/eoFileSchema';
 import { UI_STORAGE_KEYS } from '../config/storageManifest';
 import {
   buildFilenameBasisFromStamdata,
+  isKnownSavedFilenameBasis,
   loadStoredFilenameBasis,
 } from './filePersistenceMetadata';
 import { readOptionalSessionStorageValue } from './safeSessionStorage';
@@ -45,7 +46,10 @@ const hasFilenameBasisChanged = (
   previousBasis: unknown,
   nextStamdata: unknown
 ): boolean => {
-  if (!previousBasis || typeof previousBasis !== 'object') return false;
+  // Et manglende eller korrupt basis er ukendt — aldrig et bevis for lighed. Ellers kan et
+  // gammelt handle genbruges til en anden sag, fordi den defensive sammenligning fejlagtigt
+  // fortolker metadata-hullet som "uændret".
+  if (!isKnownSavedFilenameBasis(previousBasis)) return true;
   const nextBasis = buildFilenameBasisFromStamdata(nextStamdata);
   return (
     (previousBasis as Record<string, unknown>).skadelidte !== nextBasis.skadelidte ||
@@ -127,13 +131,42 @@ export const resolveSaveTarget = async (
               detail: handleVerification.detail,
             },
           });
-          await deleteFileHandleFromIndexedDB();
+          const deleted = await deleteFileHandleFromIndexedDB();
+          if (!deleted) {
+            // Et gammelt handle må ikke blive liggende, mens et nyt filnavn eventuelt gemmes:
+            // ellers kan næste Gem koble de nye metadata til den gamle fil og overskrive forkert mål.
+            // Fail-closed er den eneste sikre vej, når browseren ikke kan bekræfte oprydningen.
+            logWarning('Gammelt file handle kunne ikke ryddes sikkert; gemning afbrudt', {
+              context: 'resolveSaveTarget.failedToInvalidateStoredHandle',
+            });
+            return { kind: 'cancelled' };
+          }
           fileHandle = null;
         }
       } else {
         // Stamdata ændret — åbn picker med nyt foreslået filnavn i stedet for at overskrive.
+        const deleted = await deleteFileHandleFromIndexedDB();
+        if (!deleted) {
+          // Samme fail-closed-regel gælder ved en bevidst ny fil: et gammelt handle må ikke kunne
+          // genbruges, hvis persisteringen af det nye handle senere fejler.
+          logWarning('Gammelt file handle kunne ikke ryddes sikkert; gemning afbrudt', {
+            context: 'resolveSaveTarget.changedFilenameBasisHandle',
+          });
+          return { kind: 'cancelled' };
+        }
         fileHandle = null;
       }
+    } else if (fileHandle) {
+      // Et handle uden tilhørende filnavn er ikke et verificerbart overwrite-mål. Kasser det før
+      // picker-flowet, så manglende metadata aldrig bliver en genvej til et ukendt gammelt mål.
+      const deleted = await deleteFileHandleFromIndexedDB();
+      if (!deleted) {
+        logWarning('Ukendt file handle kunne ikke ryddes sikkert; gemning afbrudt', {
+          context: 'resolveSaveTarget.orphanedStoredHandle',
+        });
+        return { kind: 'cancelled' };
+      }
+      fileHandle = null;
     }
 
     if (shouldUseExistingHandle && fileHandle) {

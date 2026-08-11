@@ -192,17 +192,27 @@ export const selectFile = (accept = '.eo'): Promise<File | null> => {
     input.accept = accept;
     input.style.display = 'none';
 
+    let settled = false;
+    const finish = (file: File | null): void => {
+      // Firefox kan levere både change og cancel for samme dialogforløb. Dialogens cleanup skal derfor
+      // være idempotent; et ubetinget removeChild kastede en teknisk fejl efter en ellers gyldig Hent.
+      if (settled) return;
+      settled = true;
+      input.onchange = null;
+      input.oncancel = null;
+      input.remove();
+      resolve(file);
+    };
+
     input.onchange = (e: Event) => {
       const target = e.target as HTMLInputElement | null;
       const file = target?.files?.[0] ?? null;
-      document.body.removeChild(input);
-      resolve(file);
+      finish(file);
     };
 
     // Håndter annullering
     input.oncancel = () => {
-      document.body.removeChild(input);
-      resolve(null);
+      finish(null);
     };
 
     document.body.appendChild(input);

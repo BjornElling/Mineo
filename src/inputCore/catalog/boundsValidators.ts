@@ -37,6 +37,18 @@ export type YearBound = number | (() => number) | undefined;
 const resolveYearBound = (bound: YearBound): number | undefined =>
   typeof bound === 'function' ? bound() : bound;
 
+const parseStrictIntegerString = (value: string): number | undefined => {
+  if (!/^-?\d+$/.test(value)) return undefined;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
+};
+
+const parseStrictYearString = (value: string): number | undefined => {
+  if (!/^\d{4}$/.test(value)) return undefined;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
+};
+
 /**
  * Defense-in-depth for string-backed legacy-schemafelter. Tolerant `.eo`-load kan levere en schema-gyldig streng,
  * som feltets codec ikke kan fortolke (fx "abc" som måned). Parsebare historiske former accepteres; kun en reel
@@ -76,8 +88,8 @@ export const integerStringBoundsValidator = (
   maxValue: number | undefined
 ): FieldValidator<string | undefined> => (value) => {
   if (value === undefined || value.trim() === '') return undefined;
-  const numeric = Number.parseInt(value, 10);
-  if (!Number.isSafeInteger(numeric)) return undefined;
+  const numeric = parseStrictIntegerString(value);
+  if (numeric === undefined) return undefined;
   const message = getIntegerRangeErrorMessage(numeric, minValue, maxValue);
   if (message === '') return undefined;
   return { reason: 'bounds', code, message, detail: boundsDetail(minValue, maxValue) };
@@ -137,8 +149,8 @@ export const yearStringBoundsValidator = (
   maxYear: YearBound
 ): FieldValidator<string | undefined> => (value) => {
   if (value === undefined || value.trim() === '') return undefined;
-  const year = Number.parseInt(value, 10);
-  if (!Number.isFinite(year)) return undefined;
+  const year = parseStrictYearString(value);
+  if (year === undefined) return undefined;
   const min = resolveYearBound(minYear);
   const max = resolveYearBound(maxYear);
   const message = getYearRangeErrorMessage(year, min, max);
@@ -158,8 +170,8 @@ export const weekYearBoundsValidator = (
   if (value === undefined || value.trim() === '') return undefined;
   const yearPart = value.split('/')[1];
   if (yearPart === undefined) return undefined;
-  const year = Number.parseInt(yearPart, 10);
-  if (!Number.isFinite(year)) return undefined;
+  const year = parseStrictYearString(yearPart);
+  if (year === undefined) return undefined;
   const min = resolveYearBound(minYear);
   const max = resolveYearBound(maxYear);
   const message = getYearRangeErrorMessage(year, min, max);

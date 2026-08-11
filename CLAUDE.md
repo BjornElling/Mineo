@@ -19,6 +19,13 @@ AGENTS.md siger allerede "Hold kommunikation på et absolut minimum". Denne skæ
 Prøven før hver besked, der hverken er et spørgsmål eller en afsluttende status: *kan den skæres til én linje
 — eller helt væk?* Så gør det. Sig hvad der ER gjort, ikke hvad jeg overvejer.
 
+### Afsluttende ntfy-notifikation
+
+Den globale ntfy-hook sender ved reel afslutning, ved et hovedagent-stop der afventer brugerinput og ved
+tekniske stopfejl. Når alle nødvendige ændringer og kvalitetstjek er færdige, skal den afsluttende besked
+slutte med den skjulte markør `<!-- ntfy:done -->`. Markøren må ikke bruges i mellemstatusser, spørgsmål
+eller subagent-svar. Subagent-stop giver ingen ntfy-besked.
+
 ## Nedluknings-protokol ("luk ned")
 
 Når brugeren skriver **"luk ned"** (typisk fordi statuslinjen har fyret en ntfy om at

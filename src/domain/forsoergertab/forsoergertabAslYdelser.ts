@@ -3,6 +3,7 @@ import {
   formatAslAarsloensmaksimumMissing,
   resolveAslAarsloensmaksimumForAar,
 } from '../satser/aslAarsloensmaksimum';
+import { validateAslAarsloenBySkadesaarMax } from '../aslEalAarsloen/aarsloenValidators';
 import {
   getKapitaliseringsTabelData,
   type ForsoergertabMatrixRaekke,
@@ -316,8 +317,16 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
+  const aslAarsloenMaxIssue = validateAslAarsloenBySkadesaarMax(aslAarsloen, input.skadedato);
+  if (aslAarsloenMaxIssue !== undefined) {
+    // Readeren viser normalt samme regel som feltfejl. Dette værn holder også
+    // direkte motoropslag fail-closed i stedet for at reducere input stiltiende.
+    issues.push(toIssue('asl-aarsloen-over-max', aslAarsloenMaxIssue));
+    return { issues: dedupeIssuesByIdentity(issues), computation: null };
+  }
+
   const aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen);
-  const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, aarsloenMaxSkadesaar);
+  const benyttetAarsloen = aslAarsloenAfrundet1000;
   // OPREGULERINGSMETODE: ASL-årslønsmaksimum (idx[beregningsår] / idx[skadeår]).
   const opreguleringsfaktor = opregulerMedAslAarsloensmaksimum({ kildeAar: skadesaar, maalAar: beregningsaar }).faktor;
   const opreguleretAarligYdelse = round2(FORSOERGERTABSPROCENT * benyttetAarsloen * opreguleringsfaktor);

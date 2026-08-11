@@ -137,9 +137,10 @@ export const usePwaLaunchQueue = ({
   }, [processNextPwaFileOpenRequest, updatePendingConfirmation]);
 
   const ignoreQueuedPwaFileOpen = React.useCallback((): void => {
+    const ignoredRequestId = pendingConfirmationRef.current?.requestId;
     updatePendingConfirmation(null);
     queuedWhileBusyRef.current = false;
-    void clearPendingPwaFileOpenRequest().catch((error: unknown) => {
+    void clearPendingPwaFileOpenRequest(ignoredRequestId).catch((error: unknown) => {
       logWarning('Kunne ikke rydde ignoreret PWA-fil-request', {
         context: 'usePwaLaunchQueue.ignoreQueuedRequest',
         data: { errorMessage: asError(error).message },

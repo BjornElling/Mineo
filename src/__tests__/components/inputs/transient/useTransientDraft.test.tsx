@@ -100,17 +100,16 @@ describe('transient input: commit-mekanik', () => {
     expect(screen.getByTestId('committed')).toHaveTextContent('2500');
   });
 
-  it('uparsebar tekst RYDDER feltet — samme regel som de persisterede beløbsfelter', async () => {
-    // `parseAmountInput` returnerer `ok` uden værdi for tekst, der ikke er et beløb; det committes derfor som
-    // "tomt" i stedet for at blive afvist. Transientfeltet arver bevidst den delte kernes regel, så et
-    // overlay-beløb opfører sig som et rigtigt beløbsfelt.
+  it('afviser teksttegn før commit og bevarer den senest committede værdi', async () => {
+    // Beløbets tegn- og længdeprædikat afviser bogstaver allerede ved draft-change. De kommer derfor aldrig
+    // frem til parseren eller til en ny commit.
     const user = userEvent.setup();
     render(<AmountHarness initial={amount(1000)} />);
 
     await user.click(screen.getByLabelText('beloeb'));
     await user.keyboard('{Control>}a{/Control}ikke-et-beloeb{Enter}');
 
-    expect(screen.getByTestId('committed')).toHaveTextContent('-');
+    expect(screen.getByTestId('committed')).toHaveTextContent('1000');
   });
 
   it('parser et regneudtryk gennem den DELTE beløbskerne', async () => {
@@ -123,6 +122,47 @@ describe('transient input: commit-mekanik', () => {
     await user.keyboard('1000+500{Enter}');
 
     expect(screen.getByTestId('committed')).toHaveTextContent('1500');
+  });
+
+  it('afviser ulovlige tegn ved draft-change og gendanner DOM-værdien', async () => {
+    const user = userEvent.setup();
+    render(<AmountHarness initial={amount(1000)} />);
+
+    const input = screen.getByLabelText('beloeb');
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}42');
+    fireEvent.change(input, { target: { value: '42a' } });
+
+    expect(input).toHaveValue('42');
+    expect(screen.getByTestId('committed')).toHaveTextContent('1000');
+  });
+
+  it('filtrerer paste tegn for tegn og bevarer resten af teksten', async () => {
+    const user = userEvent.setup();
+    render(<AmountHarness onCommitSpy={vi.fn()} />);
+
+    const input = screen.getByLabelText('beloeb');
+    await user.click(input);
+    fireEvent.paste(input, {
+      clipboardData: { getData: () => '12 kr. 34' },
+    });
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByTestId('committed')).toHaveTextContent('1234');
+  });
+
+  it('lader et paste med kun ugyldige tegn være no-op på et eksisterende beløb', async () => {
+    const user = userEvent.setup();
+    render(<AmountHarness initial={amount(1000)} />);
+
+    const input = screen.getByLabelText('beloeb');
+    await user.click(input);
+    fireEvent.paste(input, {
+      clipboardData: { getData: () => 'abc' },
+    });
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByTestId('committed')).toHaveTextContent('1000');
   });
 });
 

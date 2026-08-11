@@ -106,13 +106,12 @@ export const rentekravRenterFraField = defineStructuralField<ISODateString | und
   ...dateBounds(renterFraBoundsSpec),
 });
 
-/** Den synlige heltalsform er 0–99; normal tastning begrænses derfor til to cifre. */
-export const RENTEKRAV_TILLAEGSTID_MAX_DRAFT_LENGTH = 2;
-
 export const rentekravTillaegstidField = defineStructuralField<number | undefined>({
   id: 'renteberegning.rentekravRows.tillaegstid',
   template: rowTemplate('tillaegstid'),
-  codec: createIntegerFieldCodec({ allowNegative: false }),
+  // Den samme to-cifferpolitik skal bruges af codec, formular/grid-admission og paste. Bounds-validatoren
+  // ejer talintervallet; codecets maxDigits ejer den repræsenterbare brugerindtastning.
+  codec: createIntegerFieldCodec({ allowNegative: false, maxDigits: 2 }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Tillægstid',

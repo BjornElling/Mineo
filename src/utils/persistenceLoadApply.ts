@@ -3,7 +3,7 @@ import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import type { ApplicableLoadFileResult } from '../types/fileOperations';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from './fileHandleStorage';
 import { persistLoadedFilenameMetadata } from './filePersistenceMetadata';
-import { clearPendingPwaFileOpenRequest, markPendingPwaFileOpenRequestHandled } from './pwaLaunchQueue';
+import { markPendingPwaFileOpenRequestHandled } from './pwaLaunchQueue';
 
 const buildAuthoritativeLoadSnapshot = (
   partialSnapshot: Partial<Record<PersistedSectionKey, unknown>> | undefined
@@ -71,11 +71,10 @@ export const synchronizeLoadMetadata = async (
   result: ApplicableLoadFileResult
 ): Promise<PersistenceLoadApplyResult> => {
   try {
-    persistLoadedFilenameMetadata({
-      filename: result.filename,
-      stamdata: result.snapshot?.stamdata,
-    });
-
+    // Handle/metadata er et samlet overwrite-target, men IndexedDB og sessionStorage kan ikke
+    // deltage i samme transaktion. Skriv derfor det potentielt fejlende IDB-led først: ved fejl
+    // forbliver den gamle metadata koblet til det gamle handle, og næste Gem kan ikke genbruge en
+    // delvist indlæst target-record. Metadata skrives først, når handle-leddet er bekræftet.
     if (result.fileHandle) {
       const saved = await saveFileHandleToIndexedDB(result.fileHandle);
       if (!saved) throw new Error('Filhåndtaget kunne ikke gemmes til senere direkte Gem.');
@@ -84,11 +83,15 @@ export const synchronizeLoadMetadata = async (
       if (!deleted) throw new Error('Det tidligere filhåndtag kunne ikke ryddes.');
     }
 
-    if (result.requestId) {
-      await markPendingPwaFileOpenRequestHandled(result.requestId);
-    } else {
-      await clearPendingPwaFileOpenRequest();
-    }
+    persistLoadedFilenameMetadata({
+      filename: result.filename,
+      stamdata: result.snapshot?.stamdata,
+    });
+
+    // En manuel load ejer ingen PWA-request. En ubetinget clear her kunne slette en
+    // nyere PWA-fil, der ankom mens filvælgeren eller metadatafasen afventede.
+    // Kun den request, som faktisk blev loaded, må markeres håndteret.
+    if (result.requestId) await markPendingPwaFileOpenRequestHandled(result.requestId);
     return { status: 'applied' };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';

@@ -44,7 +44,6 @@ import {
   rentekravRenterFraField,
   rentekravTillaegstidField,
   rentekravEnhedField,
-  RENTEKRAV_TILLAEGSTID_MAX_DRAFT_LENGTH,
 } from '../../inputCore/catalog/renteberegningDescriptors';
 import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
@@ -79,7 +78,11 @@ const COL = { belob: 0, renterFra: 1, tillaegstid: 2, enhed: 3 } as const;
  * centreret) og får derfor ikke `GridIntegerCell`'s automatiske opslag.
  */
 const TILLAEGSTID_ALLOWS_NEGATIVE = codecAllowsNegative(rentekravTillaegstidField.codec);
-const TILLAEGSTID_ADMISSION = integerAdmission({ allowNegative: TILLAEGSTID_ALLOWS_NEGATIVE });
+const TILLAEGSTID_MAX_DIGITS = rentekravTillaegstidField.codec.maxDigits;
+const TILLAEGSTID_ADMISSION = integerAdmission({
+  allowNegative: TILLAEGSTID_ALLOWS_NEGATIVE,
+  ...(TILLAEGSTID_MAX_DIGITS === undefined ? {} : { maxDigits: TILLAEGSTID_MAX_DIGITS }),
+});
 
 export type BeregnetRenteTableProps = Readonly<{
   /** De committede rækker (læst reader-afledt af forælderen), i den afsluttede rækkefølge. */
@@ -170,7 +173,7 @@ const BeregnetRenteRow = React.memo(
                   placeholder="0"
                   textAlign="center"
                   inputMode="numeric"
-                  maxDraftLength={RENTEKRAV_TILLAEGSTID_MAX_DRAFT_LENGTH}
+                  maxDraftLength={TILLAEGSTID_MAX_DIGITS}
                 />
               </Box>
             </Box>

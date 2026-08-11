@@ -11,8 +11,6 @@ import { toISODateString } from '../../types/branded';
 import { FileSelectionError } from '../../utils/fileLoadSource';
 import { logError } from '../../utils/logger';
 
-const readFromFileHandleMock = vi.fn();
-
 vi.mock('../../utils/fileSystemAccess', async (importOriginal) => {
   // Bevar de ægte exports (bl.a. FileHandleAccessError + ensureFileHandleReadPermission, som
   // loadFromFileHandle nu bruger) og override kun det, testen styrer.
@@ -21,7 +19,6 @@ vi.mock('../../utils/fileSystemAccess', async (importOriginal) => {
     ...actual,
     isFileSystemAccessSupported: () => false,
     openFileWithPicker: vi.fn(),
-    readFromFileHandle: (...args: unknown[]) => readFromFileHandleMock(...args),
   };
 });
 const selectFileMock = vi.fn();
@@ -437,7 +434,7 @@ describe('loadFromFileHandle', () => {
     const handle = {
       getFile: vi.fn().mockResolvedValue(new File([content], 'pwa.eo', { type: 'application/octet-stream' })),
     } as unknown as FileSystemFileHandle;
-    readFromFileHandleMock.mockResolvedValueOnce(content);
+    readFileMock.mockResolvedValueOnce(content);
 
     const result = await loadFromFileHandle(handle, { requestId: 'req-1' });
 

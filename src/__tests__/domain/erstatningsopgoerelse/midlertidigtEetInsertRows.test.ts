@@ -3,6 +3,7 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { buildMidlertidigtEetAfgoerelseGroupsFromImportContext } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { computeEetLoebendeYdelser, type EetLoebendeComputation } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { fromKroner, toKroner } from '../../../domain/money/money';
 import { buildEetImportContext, eetImportContextSchema } from '../../../domain/erhvervsevnetab/eetImportPort';
 import { toISODateString } from '../../../types/branded';
@@ -12,7 +13,7 @@ const makeValues = (): ErhvervsevnetabComposedValues => ({
   ...FAELLES_AARSLOEN_INITIAL_VALUES,
   beregningsdato: toISODateString('2026-03-19'),
   skadelidteFodselsdato: toISODateString('1980-01-01'),
-  aslAarsloen: { kind: 'number', value: 600000 },
+  aslAarsloen: { kind: 'number', value: aarsloenAslMax[2019]! },
   aslAfgoerelser: [
     {
       id: 'row-1',
@@ -193,6 +194,28 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromImportContext', () => {
     const { groups } = computeGroups(values);
 
     expect(groups).toEqual([]);
+  });
+
+  it('fail-closer før relevansfilteret ved en ukendt afgørelsestype', () => {
+    const values = makeValues();
+    values.aslAfgoerelser = [{
+      ...values.aslAfgoerelser[0]!,
+      afgoerelseType: 'Ukendt' as never,
+    }];
+
+    const context = buildEetImportContext({
+      revision: 'unknown-type-before-filter',
+      eetValues: values,
+      skadedato: toISODateString('2024-07-01'),
+    }, toISODateString('2026-03-19'));
+
+    expect(context.groups).toEqual([]);
+    expect(context.issues).toEqual([
+      expect.objectContaining({
+        id: 'midlertidigt-eet-import-invariant',
+        severity: 'error',
+      }),
+    ]);
   });
 
   it('failer eksplicit ved ukendt afgørelsestype i EET-computation', () => {

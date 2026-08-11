@@ -37,7 +37,7 @@ type RenteDocumentOptions = DocumentCommonOptions & Readonly<{
    * Canonical ISO, så rente- og oversigtsgeneratoren har samme typed datoformat. Formatering til dansk
    * sker INDE i generatoren, hvor den hører til som præsentation.
    */
-  latestReferenceRateDate?: ISODateString | null;
+  latestReferenceRatePeriodEnd?: ISODateString | null;
   metadata?: StandardDocumentMetadata;
 }>;
 
@@ -47,14 +47,14 @@ const RIGHT_ALIGNED_INSET_RENTESATS_MM = 8;
 export const addHypotheticalInterestWarning = (
   writer: DocumentComposer,
   endDate: Date,
-  latestReferenceRateDate: Date | null,
+  latestReferenceRatePeriodEnd: Date | null,
 ): boolean => {
-  if (latestReferenceRateDate === null || endDate <= latestReferenceRateDate) {
+  if (latestReferenceRatePeriodEnd === null || endDate <= latestReferenceRatePeriodEnd) {
     return false;
   }
 
   writer.writeBoldWrappedText(
-    `Der er kun fastsat procesrente frem til ${formatDanishDate(latestReferenceRateDate)}. Beregning derefter er hypotetisk!`
+    `Der er kun fastsat procesrente frem til ${formatDanishDate(latestReferenceRatePeriodEnd)}. Beregning derefter er hypotetisk!`
   );
   writer.addSectionSpacer();
   return true;
@@ -85,7 +85,7 @@ const addSpecificationTable = (
   writer: DocumentComposer,
   periods: ReadonlyArray<ProcessInterestPeriod>,
   endDate: Date,
-  latestReferenceRateDate: Date | null
+  latestReferenceRatePeriodEnd: Date | null
 ): void => {
   // Rentedage/Rentesats er højrejusteret i BEGGE kanaler (talkolonne-konvention, som
   // 'Beregnet rente'); PDF får desuden et fast visuelt inset. Overskrifterne holdes
@@ -117,7 +117,7 @@ const addSpecificationTable = (
     }
   );
 
-  addHypotheticalInterestWarning(writer, endDate, latestReferenceRateDate);
+  addHypotheticalInterestWarning(writer, endDate, latestReferenceRatePeriodEnd);
 
   writer.addTable({
     columns,
@@ -178,7 +178,7 @@ export const writeRenteDocumentContent = (
     visBrevhoved = false,
     stamdata = null,
     kommentarer,
-    latestReferenceRateDate = null,
+    latestReferenceRatePeriodEnd = null,
   } = options;
 
   if (visBrevhoved) {
@@ -191,7 +191,7 @@ export const writeRenteDocumentContent = (
     writer,
     periods,
     endDate,
-    latestReferenceRateDate ? parseISODate(latestReferenceRateDate) ?? null : null
+    latestReferenceRatePeriodEnd ? parseISODate(latestReferenceRatePeriodEnd) ?? null : null
   );
   addCalculationPrinciples(writer, kommentarer);
 };

@@ -36,7 +36,7 @@ export type RenteOversigtRow = Readonly<{
 type RenteOversigtDocumentOptions = DocumentCommonOptions & Readonly<{
   stamdata?: DocumentStamdata | null;
   kommentarer?: string;
-  latestReferenceRateDate?: ISODateString | null;
+  latestReferenceRatePeriodEnd?: ISODateString | null;
   metadata?: StandardDocumentMetadata;
 }>;
 
@@ -49,7 +49,7 @@ const addOversigtTable = (
   writer: DocumentComposer,
   rows: ReadonlyArray<RenteOversigtRow>,
   beregningsdato: ISODateString,
-  latestReferenceRateDate: ISODateString | null,
+  latestReferenceRatePeriodEnd: ISODateString | null,
 ): void => {
   // Kolonner: fast Beløb (45 mm) | flex Rente fra | fast Beregnet rente (45 mm, højre).
   const columns: readonly ColumnSpec[] = [
@@ -78,9 +78,9 @@ const addOversigtTable = (
   );
 
   const endDate = parseISODate(beregningsdato);
-  const latestRateDate = latestReferenceRateDate ? parseISODate(latestReferenceRateDate) : undefined;
-  if (endDate && latestRateDate) {
-    addHypotheticalInterestWarning(writer, endDate, latestRateDate);
+  const latestRatePeriodEnd = latestReferenceRatePeriodEnd ? parseISODate(latestReferenceRatePeriodEnd) : undefined;
+  if (endDate && latestRatePeriodEnd) {
+    addHypotheticalInterestWarning(writer, endDate, latestRatePeriodEnd);
   }
 
   writer.addTable({
@@ -109,7 +109,7 @@ export const writeRenteOversigtDocumentContent = (
     throw new Error('Ingen renteberegninger fundet for oversigt');
   }
 
-  const { visBrevhoved = false, stamdata = null, kommentarer, latestReferenceRateDate = null } = options;
+  const { visBrevhoved = false, stamdata = null, kommentarer, latestReferenceRatePeriodEnd = null } = options;
 
   if (visBrevhoved) {
     writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
@@ -117,7 +117,7 @@ export const writeRenteOversigtDocumentContent = (
 
   writer.writeTitle(PDF_TITLE);
   addDateLine(writer, beregningsdato);
-  addOversigtTable(writer, rows, beregningsdato, latestReferenceRateDate);
+  addOversigtTable(writer, rows, beregningsdato, latestReferenceRatePeriodEnd);
   addCalculationPrinciples(writer, kommentarer);
 };
 

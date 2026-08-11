@@ -3,6 +3,7 @@ import {
   findTypeaheadMatchIndex,
   isClearKey,
   isTypeaheadCharKey,
+  normalizeDropdownLabel,
 } from '../../../components/inputs/dropdownInteractionCore';
 
 const key = (overrides: Partial<React.KeyboardEvent<HTMLElement>>): React.KeyboardEvent<HTMLElement> =>
@@ -34,6 +35,13 @@ describe('dropdownInteractionCore.findTypeaheadMatchIndex', () => {
 
   it('dansk æøå sammenlignes på første bogstav', () => {
     expect(findTypeaheadMatchIndex(['Æble', 'Øl', 'Åre'], 'ø', -1)).toBe(1);
+  });
+});
+
+describe('dropdownInteractionCore.normalizeDropdownLabel', () => {
+  it('normaliserer dansk case, ydre whitespace og linjeskift ens', () => {
+    expect(normalizeDropdownLabel('  Delvist\n  RASKMELDT  ')).toBe('delvist raskmeldt');
+    expect(normalizeDropdownLabel('ÆØÅ')).toBe('æøå');
   });
 });
 

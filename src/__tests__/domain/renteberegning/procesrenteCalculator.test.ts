@@ -1,6 +1,9 @@
 import type { RateEntry } from '../../../data/interestRates';
 import { toISODateString, parseISODate } from '../../../types/branded';
-import { calculateProcessInterestWithRates } from '../../../domain/renteberegning/procesrenteCalculator';
+import {
+  calculateProcessInterestWithRates,
+  findLatestReferenceRatePeriodEnd,
+} from '../../../domain/renteberegning/procesrenteCalculator';
 import { getDaysInYear } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 
@@ -30,6 +33,15 @@ const buildExpectedInterest = (amount: number, start: string, end: string, rateP
 const badDate = 'not-a-date' as unknown as Parameters<typeof calculateProcessInterestWithRates>[1];
 
 describe('calculateProcessInterestWithRates — null-paths', () => {
+  it.each([
+    ['2024-01-01', '2024-06-30'],
+    ['2024-07-01', '2024-12-31'],
+  ])('udleder halvårets dækningsslutning for en sats der træder i kraft %s', (effectiveDate, expectedEnd) => {
+    expect(findLatestReferenceRatePeriodEnd([
+      { effectiveDate: toISODateString(effectiveDate), ratePct: 2 },
+    ])).toEqual(parseISODate(toISODateString(expectedEnd)));
+  });
+
   it('ugyldig startdato (ikke-parseable) → null', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(

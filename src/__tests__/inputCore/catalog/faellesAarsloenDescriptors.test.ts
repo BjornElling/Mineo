@@ -42,7 +42,7 @@ describe('faellesAarsloen-descriptors — årsafhængigt ASL-maksimum', () => {
     expect(read).toMatchObject({ status: 'usable', value: { kind: 'number', value: 9999000 } });
   });
 
-  it('viser maksimumssatsen for året med en gyldig EET-beregningsdato', () => {
+  it('viser maksimumssatsen for skadesåret, ikke EET-beregningsåret', () => {
     let input = settle(empty(), erhvervsevnetabBeregningsdatoField.bind(), '01-01-2025');
     input = dispatch(input, resetSection('stamdata', { skadedato: toISODateString('2024-01-01') }));
     input = settle(input, faellesAarsloenAslAarsloenField.bind(), '9999999');
@@ -53,35 +53,49 @@ describe('faellesAarsloen-descriptors — årsafhængigt ASL-maksimum', () => {
       status: 'error',
       issue: {
         reason: 'bounds',
-        message: 'Værdi skal være mellem 1000 og 632000',
-        detail: { minValue: 1000, maxValue: 632000 },
+        message: 'Værdi skal være mellem 1000 og 608000',
+        detail: { minValue: 1000, maxValue: 608000 },
       },
     });
   });
 
-  it('accepterer den årsafhængige maksimumsværdi præcis på grænsen', () => {
+  it('accepterer den kanoniske skadesårs-maksimumsværdi præcis på grænsen', () => {
     let input = settle(empty(), erhvervsevnetabBeregningsdatoField.bind(), '01-01-2025');
-    input = settle(input, faellesAarsloenAslAarsloenField.bind(), '632000');
+    input = dispatch(input, resetSection('stamdata', { skadedato: toISODateString('2024-01-01') }));
+    input = settle(input, faellesAarsloenAslAarsloenField.bind(), '608000');
 
     expect(evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind())).toMatchObject({
       status: 'usable',
-      value: { kind: 'number', value: 632000 },
+      value: { kind: 'number', value: 608000 },
     });
   });
 
-  it('falder tilbage til det generelle loft ved ugyldig eller rødmarkeret beregningsdato', () => {
+  it('afviser en beregningsårs-maksimumsværdi med samme skadesårsregel som feltets fejl-tooltip', () => {
+    let input = settle(empty(), erhvervsevnetabBeregningsdatoField.bind(), '01-01-2025');
+    input = dispatch(input, resetSection('stamdata', { skadedato: toISODateString('2024-01-01') }));
+    input = settle(input, faellesAarsloenAslAarsloenField.bind(), '632000');
+
+    expect(evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind())).toMatchObject({
+      status: 'error',
+      issue: { message: 'Værdi skal være mellem 1000 og 608000' },
+    });
+  });
+
+  it('falder kun tilbage til det generelle loft når skadedatoen mangler', () => {
     let input = settle(empty(), erhvervsevnetabBeregningsdatoField.bind(), '31-02-2025');
     input = settle(input, faellesAarsloenAslAarsloenField.bind(), '9999000');
     expect(evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind())).toMatchObject({
       status: 'usable',
       value: { kind: 'number', value: 9999000 },
     });
+  });
 
-    input = dispatch(empty(), resetSection('stamdata', { skadedato: toISODateString('2024-01-01') }));
-    input = settle(input, erhvervsevnetabBeregningsdatoField.bind(), '01-01-2020');
+  it('bruger fortsat skadesårets loft når EET-beregningsdatoen er ugyldig', () => {
+    let input = settle(empty(), erhvervsevnetabBeregningsdatoField.bind(), '31-02-2025');
+    input = dispatch(input, resetSection('stamdata', { skadedato: toISODateString('2024-01-01') }));
     input = settle(input, faellesAarsloenAslAarsloenField.bind(), '9999000');
     expect(evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind())).toMatchObject({
-      issue: { message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)' },
+      issue: { message: 'Værdi skal være mellem 1000 og 608000' },
     });
   });
 

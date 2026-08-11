@@ -12,20 +12,28 @@ const InfoTooltipIcon = React.memo(({ title }: InfoTooltipIconProps) => {
       title={title}
       arrow
       placement="top"
+      describeChild
     >
-      <InfoOutlinedIcon
+      <span
+        role="img"
+        aria-label={title}
+        tabIndex={0}
         onClick={(event) => event.stopPropagation()}
-        sx={{
-          fontSize: '0.8em',
-          ml: 0.5,
-          verticalAlign: 'baseline',
-          position: 'relative',
-          top: '-0.35em',
-          lineHeight: 1,
-          color: 'primary.main',
-          cursor: 'default',
-        }}
-      />
+        style={{ display: 'inline-block', lineHeight: 1, cursor: 'default' }}
+      >
+        <InfoOutlinedIcon
+          aria-hidden="true"
+          sx={{
+            fontSize: '0.8em',
+            ml: 0.5,
+            verticalAlign: 'baseline',
+            position: 'relative',
+            top: '-0.35em',
+            lineHeight: 1,
+            color: 'primary.main',
+          }}
+        />
+      </span>
     </Tooltip>
   );
 });

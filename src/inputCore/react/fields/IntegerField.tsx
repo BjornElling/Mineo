@@ -28,7 +28,11 @@ const IntegerField = React.forwardRef<HTMLDivElement, IntegerFieldProps>(
   ({ field, location, name, width = 130, placeholder, disabled, singleStageClick = false, inputRef, sx }, ref) => {
     // Fortegns-politikken kommer fra descriptorens codec, ikke fra et hardkodet flag her.
     const allowNegative = fieldAllowsNegative(field);
-    const admission = React.useMemo(() => integerAdmission({ allowNegative }), [allowNegative]);
+    const maxDigits = field.descriptor.codec.maxDigits;
+    const admission = React.useMemo(
+      () => integerAdmission({ allowNegative, ...(maxDigits === undefined ? {} : { maxDigits }) }),
+      [allowNegative, maxDigits]
+    );
     return (
       <NumericTextField
         ref={ref}

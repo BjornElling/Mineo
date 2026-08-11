@@ -5,7 +5,12 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import { mergeSx } from '../../utils/mergeSx';
 import { copyTextToClipboard, readClipboardText } from '../../utils/clipboardUtils';
 import { createCommitEvent, type CommitEvent } from '../../types/fieldEvents';
-import { findTypeaheadMatchIndex, isClearKey, isTypeaheadCharKey } from './dropdownInteractionCore';
+import {
+  findTypeaheadMatchIndex,
+  isClearKey,
+  isTypeaheadCharKey,
+  normalizeDropdownLabel,
+} from './dropdownInteractionCore';
 
 /**
  * StyledDropdown (combobox-trigger + popover-listbox)
@@ -54,6 +59,11 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
    * Hvis udeladt, forventer komponenten at option-children er `string | number`.
    */
   getOptionLabel?: (value: TValue) => string;
+  /**
+   * Codecets kanoniske, endelige valgmængde. Børnene bestemmer rækkefølge, disabled-status og visuel markup,
+   * men deres værdier skal matche denne mængde præcist. Udeladt for åbne katalogvalg.
+   */
+  expectedOptionValues?: readonly unknown[];
   /**
    * Undo/redo-fokusrestore-attributter (§3.7): sættes på det fokuserbare combobox-input, så fokus efter
    * undo/redo lander PRÆCIST på denne editorlokation (feltadresse + editorlokation), ikke via `name`.
@@ -145,6 +155,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     helperText = '',
     tooltipText,
     getOptionLabel,
+    expectedOptionValues,
     allowEmpty = true,
     restoreTargetAttributes,
     returnFocusOnClose = true,
@@ -209,6 +220,16 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       return `Ugyldig konfiguration: duplicate option values (${duplicates.join(', ')})`;
     }
 
+    if (expectedOptionValues !== undefined) {
+      const expected = new Set(expectedOptionValues);
+      const actual = new Set<unknown>(availableValues);
+      const missing = expectedOptionValues.filter((candidate) => !actual.has(candidate));
+      const unexpected = availableValues.filter((candidate) => !expected.has(candidate));
+      if (missing.length > 0 || unexpected.length > 0) {
+        return 'Ugyldig konfiguration: children-options matcher ikke codecets valgmængde';
+      }
+    }
+
     if (availableValues.length === 0 && !hasEmptyOption) {
       return 'Ugyldig konfiguration: ingen valgbare options';
     }
@@ -225,7 +246,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     }
 
     return '';
-  }, [allowEmpty, childNodes, hasEmptyOption, resolvedValue]);
+  }, [allowEmpty, childNodes, expectedOptionValues, hasEmptyOption, resolvedValue]);
 
   const hasConfigError = configErrorMessage.trim() !== '';
 
@@ -320,10 +341,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     if (resolvedValue === undefined) return hasEmptyOption ? 0 : -1;
     const index = visualOptions.findIndex((opt) => opt.kind === 'value' && opt.value === resolvedValue);
     if (index >= 0) return index;
-    // Runtime-fallback (PROD): hvis allowEmpty=false og en værdi mangler blandt options,
-    // hold keyboard-/navigation deterministisk ved at highlighte den første option.
-    if (hasEmptyOption) return 0;
-    return visualOptions.findIndex((opt) => opt.kind === 'value' && !opt.disabled);
+    // En tolerant load kan efterlade en stale værdi, som ikke længere findes blandt options.
+    // Den må ikke blive til et skjult valg af tom-rækken ved Enter; brugeren skal eksplicit vælge
+    // en ny option eller rydde feltet. ArrowDown/ArrowUp starter stadig navigationen fra første valg.
+    return -1;
   }, [hasEmptyOption, resolvedValue, visualOptions]);
 
   const selectedVisualOption = React.useMemo(() => {
@@ -355,9 +376,13 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     inputElementRef.current?.focus();
     setAnchorEl(anchorRef.current);
     setOpen(true);
-    const initialHighlight = selectedIndex >= 0 ? selectedIndex : findSelectableIndex(-1, 1);
+    const initialHighlight = selectedIndex >= 0
+      ? selectedIndex
+      : resolvedValue === undefined
+        ? findSelectableIndex(-1, 1)
+        : -1;
     setHighlightedIndex(initialHighlight);
-  }, [disabled, findSelectableIndex, hasConfigError, selectedIndex]);
+  }, [disabled, findSelectableIndex, hasConfigError, resolvedValue, selectedIndex]);
 
   const handleClose = React.useCallback(
     (reason: CloseReason) => {
@@ -417,10 +442,15 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
   const findValueByExactLabel = React.useCallback(
     (label: string): TValue | undefined | null => {
+      const normalizedLabel = normalizeDropdownLabel(label);
+      // En tom paste må aldrig vælge dropdownens tom-række. Delete/Backspace er den eneste eksplicitte
+      // ryddehandling; paste af tom tekst er ifølge dropdown-kontrakten et stille no-op.
+      if (normalizedLabel === '') return null;
+
       for (let index = 0; index < visualOptions.length; index += 1) {
         const opt = visualOptions[index];
         const optionLabel = visualOptionLabels[index] ?? '';
-        if (optionLabel !== label) continue;
+        if (normalizeDropdownLabel(optionLabel) !== normalizedLabel) continue;
         if (opt?.kind === 'empty') return undefined;
         if (opt?.kind === 'value' && !opt.disabled) return opt.value;
       }
@@ -785,7 +815,11 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                 sx={optionSxMerged}
                 onMouseEnter={() => setHighlightedIndex(index)}
               >
-                {opt.kind === 'empty' ? <em style={{ color: 'var(--mineo-color-dropdown-option-placeholder)' }}>{placeholder}</em> : opt.children}
+                {opt.kind === 'empty'
+                  ? <em style={{ color: 'var(--mineo-color-dropdown-option-placeholder)' }}>{placeholder}</em>
+                  : getOptionLabel
+                    ? visualOptionLabels[index]
+                    : opt.children}
               </MenuItem>
             );
           })}

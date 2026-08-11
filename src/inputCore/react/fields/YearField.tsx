@@ -12,8 +12,9 @@ import { YEAR_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders'
 // min/maxYear er efter kravændringen 2026-07-18 en canonical bounds-feltvalidator; røde bounds-fejl kommer fra
 // issue-snapshottet, og et velformet år uden for intervallet kan stadig gemmes i `.eo` (§1.6).
 
-// Et år har højst 4 cifre; tillad et par ekstra draft-tegn til eftergivende typing (fx førende/efterfølgende ws).
-const MAX_YEAR_DRAFT_LENGTH = 6;
+// Admission-prædikatet accepterer højst fire cifre; DOM-loftet skal være det samme,
+// ellers ser brugeren et felt, der modtager tegn, som inputmotoren straks afviser.
+const MAX_YEAR_DRAFT_LENGTH = 4;
 
 const YEAR_ADMISSION = yearAdmission();
 

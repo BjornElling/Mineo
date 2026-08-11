@@ -58,6 +58,7 @@ export default function EntityChoiceField<TValue extends StyledDropdownValue, TE
     }}
     placeholder={placeholder}
     width={width}
+    expectedOptionValues={descriptor.codec.options}
     error={issueText.message !== undefined}
     helperText={issueText.message ?? ''}
     {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}

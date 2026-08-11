@@ -164,6 +164,7 @@ const GridChoiceCellInner = <
         inputProps={{ 'aria-label': ariaLabel }}
         restoreTargetAttributes={restoreTargetAttributes}
         width="100%"
+        expectedOptionValues={cell.field.descriptor.codec.options}
         value={value as TValue}
         allowEmpty={false}
         onChange={handleChange}
@@ -184,6 +185,7 @@ const GridChoiceCellInner = <
       inputProps={{ 'aria-label': ariaLabel }}
       restoreTargetAttributes={restoreTargetAttributes}
       width="100%"
+      expectedOptionValues={cell.field.descriptor.codec.options}
       value={controller.value === undefined ? undefined : controller.value as TValue}
       allowEmpty
       placeholder={placeholder}

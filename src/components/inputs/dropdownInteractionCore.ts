@@ -22,13 +22,13 @@ export const findTypeaheadMatchIndex = (
   key: string,
   currentIndex: number
 ): number => {
-  const normalizedKey = key.toLocaleLowerCase('da-DK');
+  const normalizedKey = normalizeDropdownLabel(key);
   const matchingIndices: number[] = [];
 
   labels.forEach((label, index) => {
-    const trimmed = label.trim();
-    if (trimmed.length === 0) return;
-    const firstChar = trimmed.charAt(0).toLocaleLowerCase('da-DK');
+    const normalizedLabel = normalizeDropdownLabel(label);
+    if (normalizedLabel.length === 0) return;
+    const firstChar = normalizedLabel.charAt(0);
     if (firstChar === normalizedKey) {
       matchingIndices.push(index);
     }
@@ -42,6 +42,16 @@ export const findTypeaheadMatchIndex = (
   const nextPos = (currentPos + 1) % matchingIndices.length;
   return matchingIndices[nextPos];
 };
+
+/**
+ * Normaliserer en label til dropdownens eneste tekstmatch-regel.
+ *
+ * Paste og typeahead må ikke have hver sin fortolkning af danske labels. Ydre mellemrum og linjeskift er
+ * ikke en del af den viste valgmulighed, og flere whitespace-tegn mellem ord er samme label i en clipboard-
+ * tekst. `da-DK` bevarer den forventede sammenligning for æ, ø og å.
+ */
+export const normalizeDropdownLabel = (label: string): string =>
+  label.trim().replace(/\s+/gu, ' ').toLocaleLowerCase('da-DK');
 
 /**
  * Sandt hvis tastetrykket er et enkelt skrivbart tegn uden modifikator — kandidat til typeahead.

@@ -46,7 +46,7 @@ grundløn = round0(min(årsløn_afrundet_1000, aarsloenMax[skadesår]) × (367.0
 grundløn = round0(min(årsløn_afrundet_1000, aarsloenMax[skadesår]) × (608.000 / aarsloenMax[skadesår]))
 ```
 
-Årslønnens maks-loft (`aarsloenMax[skadesår]`) er det gældende maksimum for det kalenderår skaden sker i. Ønsker brugeren at bruge årsløn over loftet, afskæres beløbet stille til loftet.
+Årslønnens maks-loft (`aarsloenMax[skadesår]`) er det gældende maksimum for det kalenderår skaden sker i. En årsløn over loftet bevares som canonical brugerinput, men får et afledt bounds-issue, og beregningsgaten blokerer derfor output. Beregningsmotoren gentager samme regel som et fail-closed-værn for direkte kald og producerer intet resultat, hvis reader-gaten ikke har været anvendt.
 
 #### Trin 2 — Grundydelse per afgørelse
 
@@ -107,12 +107,13 @@ Fra skæringsdatoen yder B sin fulde løbende rest-EET, og A er ophørt.
 
 #### FS tilbageholdt EET
 
-`FS tilbageholdt EET` er et overgangsfelt på afgørelsen, der senere afløses. Når A har `FS tilbageholdt EET = Ja`, bruges den gamle afløsningsregel for overgangen til B:
-- Der dannes ingen overlapsperiode.
-- A beregnes til og med dagen før B's faktiske virkningsdato.
-- B beregnes fra sin faktiske virkningsdato.
+`FS tilbageholdt EET` er et overgangsfelt på afgørelsen, der senere afløses. Når A har `FS tilbageholdt EET = Ja`, må A ikke bruges som den betalte forgænger i B's overlapberegning:
 
-Reglen gælder uanset om EET-procenten stiger, falder eller er uændret. Feltet på den sidste afgørelse har ingen beregningsmæssig effekt, fordi afgørelsen ikke afløses af en senere afgørelse.
+- A's selvstændige periode beregnes fortsat. Ved tilbagevirkende B ophører A dog senest dagen før B's faktiske virkningsdato.
+- B's overlapdel beregnes mod en eventuel ældre, faktisk udbetalt afgørelse — ikke mod A. Findes ingen sådan forgænger, bliver der ingen synlig overlapdifference.
+- B's almindelige del starter fra den gældende skæringsdato eller, når der ikke er en overlapperiode, fra B's faktiske virkningsdato.
+
+Reglen gælder uanset om EET-procenten stiger, falder eller er uændret. Feltet på den sidste afgørelse har ingen beregningsmæssig effekt, fordi afgørelsen ikke afløses af en senere afgørelse. Den bindende beskrivelse findes i `src/contracts/domain-boundary-contract.md` §6.1, pkt. 7–9.
 
 #### Trin 3 — Årsydelse for et givet beregningsår
 

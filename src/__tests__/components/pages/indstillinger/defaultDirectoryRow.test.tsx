@@ -110,7 +110,9 @@ describe('DefaultDirectoryRow — handlinger', () => {
     renderRow('dir-1');
 
     await waitFor(() => expect(screen.getByText('Sager')).toBeInTheDocument());
-    await user.click(screen.getByText('Nulstil'));
+    const resetButton = screen.getByRole('button', { name: 'Nulstil til skrivebord' });
+    expect(resetButton).toHaveAttribute('data-mineo-focusable-button', 'true');
+    await user.click(resetButton);
 
     expect(deleteDefaultDirectoryHandleMock).toHaveBeenCalledTimes(1);
     // Settings-id'et er ryddet ⇒ rækken falder tilbage til standarden uden Nulstil.

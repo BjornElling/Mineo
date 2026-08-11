@@ -103,6 +103,7 @@ const GridHarness: React.FC = () => {
               >
                 <option value="dage">Dage</option>
                 <option value="uger">Uger</option>
+                <option value="maaneder">Måneder</option>
               </GridChoiceCell>
             </td>
           </tr>

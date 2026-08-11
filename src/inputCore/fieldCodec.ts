@@ -94,6 +94,8 @@ export type FieldCodec<T> = Readonly<{
   signPolicy?: FieldSignPolicy;
   /** Om et numerisk felt accepterer decimaladskiller under redigering. Beløbs- og procentflader læser denne politik. */
   decimalPolicy?: FieldDecimalPolicy;
+  /** Maksimalt antal heltalscifre i en integer-draft, ekskl. eventuelt fortegn. */
+  maxDigits?: number;
   /**
    * Feltets maksimale RÅ tegnlængde under indtastning, når den er en egenskab ved feltet selv
    * (`input-field-behavior-contract.md` §2.5: «En fastsat maksimumslængde håndhæves tegn for tegn ved

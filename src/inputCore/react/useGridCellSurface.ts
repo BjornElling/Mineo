@@ -9,8 +9,12 @@ import { gridCellKey } from '../../components/tables/gridCore/gridCoreUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
-import { spliceDraftWithPaste } from './pasteSplice';
-import { restoreDomValueAfterRejectedDraft, type DraftAdmission } from '../../components/inputs/draftAdmission';
+import { normalizePasteForDraft, spliceDraftWithPaste } from './pasteSplice';
+import {
+  isDraftWithinMaxLength,
+  restoreDomValueAfterRejectedDraft,
+  type DraftAdmission,
+} from '../../components/inputs/draftAdmission';
 import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 
 // Grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den
@@ -121,8 +125,8 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   );
 
   const onDraftChange = React.useCallback((nextDraft: string) => {
-    const { controller: ctl, draftAdmission: admits } = latest.current;
-    if (admits !== undefined && !admits(nextDraft)) {
+    const { controller: ctl, draftAdmission: admits, maxDraftLength } = latest.current;
+    if (!isDraftWithinMaxLength(nextDraft, maxDraftLength) || (admits !== undefined && !admits(nextDraft))) {
       // §1.2: tegnet blev aldrig en del af værdien, og blokeringen er tavs. Se
       // `restoreDomValueAfterRejectedDraft` for hvorfor DOM'en skal skrives tilbage eksplicit.
       restoreDomValueAfterRejectedDraft(inputElementRef.current, ctl.displayText);
@@ -147,16 +151,25 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     if (isLocked) return;
     const raw = readClipboardText(e);
     const normalize = cellFieldRef.current.descriptor.codec.normalizePaste ?? ((r: string) => r);
-    const normalized = normalize(raw);
+    const normalized = normalizePasteForDraft(raw, normalize, ctl.isOpen ? ctl.displayText : '');
     e.preventDefault();
     e.stopPropagation();
-    if (normalized === '') return;
-
     if (!ctl.isOpen) {
       // Lukket paste = immediate commit: åbn, seed den indsatte tekst som draft, settle straks. Længden
       // afkortes også her, ellers ville netop denne vej committe en for lang værdi i fuld længde, mens
       // tastning og åben paste afviste de samme tegn (§1.2a).
-      ctl.open(spliceDraftWithPaste('', normalized, 0, 0, latest.current.maxDraftLength).draft);
+      const spliced = spliceDraftWithPaste(
+        '',
+        normalized,
+        0,
+        0,
+        latest.current.maxDraftLength,
+        latest.current.draftAdmission
+      );
+      // Et paste med kun afviste tegn må ikke slette cellens afsluttede værdi. Sletning er en
+      // eksplicit Delete/Backspace-handling, ikke en bivirkning af clipboard-filteret.
+      if (spliced.acceptedLength === 0) return;
+      ctl.open(spliced.draft);
       ctl.settle();
       return;
     }
@@ -167,7 +180,18 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     const draft = ctl.displayText;
     const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
     const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-    const spliced = spliceDraftWithPaste(draft, normalized, start, end, latest.current.maxDraftLength);
+    const spliced = spliceDraftWithPaste(
+      draft,
+      normalized,
+      start,
+      end,
+      latest.current.maxDraftLength,
+      latest.current.draftAdmission
+    );
+    if (spliced.acceptedLength === 0) {
+      restoreDomValueAfterRejectedDraft(input, draft);
+      return;
+    }
     ctl.changeDraft(spliced.draft);
     const nextCaret = spliced.caret;
     requestAnimationFrame(() => {

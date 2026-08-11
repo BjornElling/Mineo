@@ -10,10 +10,10 @@ import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
 import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
 import { PageMessageRow } from '../../layout/PageMessageBox';
 import { pageMessage } from '../../layout/pageMessage';
-import { isRentekravRowEmpty } from '../../../domain/renteberegning/rowEmpty';
 import type { DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 import {
   buildRenteberegningReaderProjection,
+  hasAnyRentekravInput,
   readRentekravCommittedRows,
 } from '../../../domain/renteberegning/renteberegningReaderProjection';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
@@ -159,8 +159,8 @@ const RenteberegningTab = React.memo(({
   const hasAnySettledInput = React.useMemo(() => {
     if (beregningsdatoRead.status === 'error' || beregningsdato !== undefined) return true;
     if (kommentarer !== undefined && kommentarer.trim() !== '') return true;
-    return committedRows.some((row) => !isRentekravRowEmpty(row));
-  }, [beregningsdato, beregningsdatoRead.status, committedRows, kommentarer]);
+    return hasAnyRentekravInput(evaluation.reader);
+  }, [beregningsdato, beregningsdatoRead.status, kommentarer, evaluation.reader]);
   const clearAllDisabled = !hasAnySettledInput;
 
   const handleClearAll = React.useCallback(async () => {

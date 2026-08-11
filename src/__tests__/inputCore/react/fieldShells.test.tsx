@@ -247,4 +247,44 @@ describe('grid-felt', () => {
     expect(screen.getByText("Der er udfyldt en ugyldig værdi i feltet 'Beløb'")).toBeInTheDocument();
     expect(screen.getByLabelText(FIELD_ISSUE_GENERIC_TOOLTIP)).toBeInTheDocument();
   });
+
+  it('lukket grid-paste med kun ugyldige tegn er no-op og sletter ikke canonical input', () => {
+    const rowId = 'r1';
+    const gridCell: GridCellCoord = { rowId, colIndex: 0 };
+    const originalAmount = { kind: 'number' as const, value: 100 };
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow(rowId, { belob: originalAmount })), {
+      origin: testRowOrigin(),
+    });
+
+    const binding = makeBinding();
+    const gridStateStore: GridCoreStateStore = {
+      subscribe: () => () => undefined,
+      getFocusedCell: () => gridCell,
+      getEditingCell: () => null,
+    };
+
+    render(
+      <InputRuntimeProvider binding={binding}>
+        <GridCoreProvider value={{
+          gridStateStore,
+          openEditing: () => undefined,
+          closeEditing: () => undefined,
+          registerEditor: () => undefined,
+          unregisterEditor: () => undefined,
+          getEditor: () => null,
+          requestFocusPlan: () => undefined,
+        }}>
+          <GridAmountCell
+            gridCell={gridCell}
+            cell={{ kind: 'existing', field: belobField.bind(rowId), location: testLocation('r1:belob') }}
+          />
+        </GridCoreProvider>
+      </InputRuntimeProvider>
+    );
+
+    const input = screen.getByRole('textbox');
+    fireEvent.paste(input, { clipboardData: { getData: () => 'abc' } });
+
+    expect(canonical(belobField.bind(rowId))).toEqual(originalAmount);
+  });
 });

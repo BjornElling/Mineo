@@ -15,7 +15,7 @@ import { STAMDATA_DATE_ORDER_ERROR_MESSAGE } from '../stamdata/stamdataDateOrder
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from './erhvervsevnetabInitialValues';
 import { readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjection';
 import { eetIssueSchema, type EetIssue } from './eetTypes';
-import { isAslAfgoerelseRowEmpty } from './eetAslAfgoerelser';
+import { isAslAfgoerelseRowEmpty, isKnownAfgoerelseType } from './eetAslAfgoerelser';
 import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
 import {
   computeEetLoebendeYdelserForEoImport,
@@ -107,7 +107,7 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
   }
   const skadedatoIssue = skadedatoRead.status === 'error' ? skadedatoRead.issue : undefined;
   const hasStamdataDateOrderIssue = skadedatoIssue?.code === 'stamdata.skadedato.bounds'
-    && skadedatoIssue.message.toLocaleLowerCase('da').includes('fødselsdato');
+    && skadedatoIssue.detail?.minBoundKind === 'fodselsdato';
   if (hasStamdataDateOrderIssue) {
     sourceIssues.push({
       id: 'midlertidigt-eet-stamdata-date-order',
@@ -148,6 +148,20 @@ export const buildEetImportContext = (
       revision: source.revision,
       groups: [],
       issues: source.issues,
+    });
+  }
+
+  const hasUnknownAfgoerelseType = source.eetValues.aslAfgoerelser.some((row) =>
+    !isAslAfgoerelseRowEmpty(row)
+    && !isKnownAfgoerelseType(row.afgoerelseType)
+  );
+  if (hasUnknownAfgoerelseType) {
+    // Relevansfilteret må ikke gøre en malformed, delvist udfyldt afgørelse usynlig. En ukendt type
+    // er et invariantbrud, også når rækken ellers ikke ville give en importérbar periode.
+    return failedContext(source.revision, {
+      id: 'midlertidigt-eet-import-invariant',
+      severity: 'error',
+      message: 'EET-oplysningerne kunne ikke klargøres sikkert til Erstatningsopgørelsen.',
     });
   }
 

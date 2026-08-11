@@ -274,7 +274,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     virkningsdato: getIssueMessage(calculation.issues, ['beregningsdato-before-virkningsdato']),
     koen: getIssueMessage(calculation.issues, ['missing-koen']),
     tilkendtForPeriodeAar: getIssueMessage(calculation.issues, ['tilkendt-for-periode-invalid']),
-    aslAarsloen: getIssueMessage(calculation.issues, ['asl-aarsloen-zero']),
+    aslAarsloen: getIssueMessage(calculation.issues, ['asl-aarsloen-zero', 'asl-aarsloen-over-max']),
     ealAarsloen: ealAarsloenHelperIssue,
     skadedato: stamdataDateOrderMessage
       ?? getIssueMessage(calculation.issues, ['skadedato-missing', 'aarsloen-max-missing-skadesaar']),
@@ -358,6 +358,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   ].some((error) => Boolean(error?.message));
   const hasDomainInputError = hasIssue(calculation.issues, [
     'asl-aarsloen-zero',
+    'asl-aarsloen-over-max',
     'eal-aarsloen-zero',
     'tilkendt-for-periode-invalid',
     'beregningsdato-before-virkningsdato',
