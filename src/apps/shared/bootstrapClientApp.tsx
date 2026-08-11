@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import UnsupportedDevicePage from '../../components/system/UnsupportedDevicePage';
 import { isTouchLikeDeviceWithShortestSideAtMost } from '../../utils/clientDevice';
 import { suppressPwaInstallPrompt } from '../../utils/pwaInstallPrompt';
+import { setupVitePreloadRecovery } from './vitePreloadRecovery';
 
 const UNSUPPORTED_MAX_SHORTEST_SIDE_PX = 1366;
 
@@ -51,6 +52,9 @@ const loadUnsupportedDeviceStyles = async (): Promise<void> => {
 };
 
 export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Promise<void> => {
+  // Skal installeres før shellens egne dynamiske style-imports, så ét værn dækker alle lazy chunks.
+  setupVitePreloadRecovery();
+
   const rootElement = document.getElementById('root');
   if (!rootElement) {
     throw new Error('Root element "#root" was not found.');

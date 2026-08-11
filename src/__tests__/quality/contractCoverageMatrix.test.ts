@@ -296,6 +296,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts',
       'src/__tests__/apps/shared/bootstrapClientApp.test.tsx',
+      'src/__tests__/apps/shared/vitePreloadRecovery.test.ts',
       'src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts',
       'src/__tests__/settings/indexThemeBootstrap.test.ts',
       // De tre nedenfor stod i kontraktens eget §4, men manglede her — de to autoritative lister

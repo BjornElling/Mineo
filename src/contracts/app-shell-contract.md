@@ -3,14 +3,15 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-09
+**Senest verificeret mod kode:** 2026-08-11
 
 ## 1. Scope
 
 Det øverste runtime-lag, der binder programmet sammen, og isolationen mellem de to app-varianter:
 
 - App-entries: `src/main.tsx` (Mineo) og `src/apps/minprocesrente/minprocesrenteMain.tsx` (standalone MinProcesrente).
-- Delt app-shell: `src/apps/shared/bootstrapClientApp.tsx` (device-gate, render-beslutning, install-prompt-politik).
+- Delt app-shell: `src/apps/shared/bootstrapClientApp.tsx` (device-gate, render-beslutning, install-prompt-politik og installation af den fælles Vite-recovery).
+- Vite lazy-load-recovery: `src/apps/shared/vitePreloadRecovery.ts` (engangsbeskyttet recovery efter en deploy, der har fjernet et hash-navngivet asset).
 - Delt device-aflæsning: `src/utils/clientDevice.ts` (rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer, uden app-shell-render-beslutninger).
 - Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering og opdaterings-/reload-disciplin).
 - PWA-filåbning: `src/utils/pwaLaunchQueue.ts` (launchQueue-consumer og versionssikker pending request).
@@ -46,7 +47,11 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 6. **PWA-filåbning registreres før service-worker og React.** Mineos entry leverer `setupPwaFileOpenHandling` til den fælles shell. På en understøttet desktop-enhed kalder shellen den før `beforeDesktopRender` og før app-roden renderes. Callbacken registrerer først launchQueue-consumeren og hydrerer derefter den persisterede pending request. Rækkefølgen bevarer en `.eo`-fil, der blev åbnet lige før en PWA-opdatering, så den nye app-version kan fortsætte samme load-flow efter login. Ankommer en ny launchQueue-fil under hydrering, vinder den nye brugerhandling over den ældre persisterede request. Standalone leverer aldrig callbacken.
 
-7. **Service-worker er cache-fri og reload-disciplineret.** `public/sw.js` precacher ikke, runtime-cacher ikke og intercepter ikke `fetch` (for aldrig at servere forældet beregningslogik). HTML, SPA-ruter, manifest og service worker skal samtidig have no-cache/no-store headers i `public/_headers`, så browser/host-fallbacks ikke fastholder en gammel app-shell; hashed Vite-assets må fortsat være immutable. Klientsiden må kun udløse `window.location.reload()` ved en **reel opdatering** — dvs. når en *ventende* worker aktiveres og der allerede fandtes en controller, da dokumentet loadede. En `controllerchange` udløst af første installs `clients.claim()` (ingen controller ved load) må **aldrig** reloade, da det ville give en uønsket hard-reload midt i første åbning og kunne tabe ikke-gemt indtastning. Reload sker højst én gang pr. dokument, og hele update-lifecyclen wires gennem én fælles, idempotent funktion (ikke divergerende kopier på boot- og på de periodiske tjek).
+7. **Service-worker er cache-fri, og deploymentsrecovery er begrænset.** `public/sw.js` precacher ikke, runtime-cacher ikke og intercepter ikke `fetch` (for aldrig at servere forældet beregningslogik). HTML, SPA-ruter, manifest og service worker skal samtidig have no-cache/no-store headers i `public/_headers`, så browser/host-fallbacks ikke fastholder en gammel app-shell; hashed Vite-assets må fortsat være immutable.
+
+   Klientsiden må kun udløse `window.location.reload()` ved en **reel opdatering**: enten når en *ventende* worker aktiveres og der allerede fandtes en controller, da dokumentet loadede, eller når Vite udsender det dokumenterede `vite:preloadError`-signal for et lazy-loadet asset, som den åbne app-version ikke længere kan hente efter en deploy. En `controllerchange` udløst af første installs `clients.claim()` (ingen controller ved load) må **aldrig** reloade, da det ville give en uønsket hard-reload midt i første åbning og kunne tabe ikke-gemt indtastning.
+
+   Vite-recovery installeres centralt af `bootstrapClientApp` før enhver dynamisk style-, route-, renderer- eller writer-import. Den gemmer den fejlede asset-signatur i en manifest-ejet, device-scoped sessionnøgle før reload. Genopstår samme fejl efter reload, må den ikke genindlæse igen; den almindelige fejlhåndtering skal overtage. Kan markøren ikke skrives, må der heller ikke reloades. Dermed er der ingen reload-løkke ved netværks- eller storagefejl, mens en ny hash-signatur fra en senere deploy fortsat får ét recovery-forsøg.
 
 8. **Top-level fejl fanges pr. variant.** Hver app-variant skal have en top-level error boundary mellem shell-render og hele variantroden. Mineo bruger `src/components/errors/ErrorBoundary` (med diagnose-rapportering via `systemIssueReporter`). Standalone bruger `StandaloneErrorBoundary` (bevidst **uden** diagnose-rapportering, jf. regel 3's isolationskrav — se Kendte Undtagelser). Boundarien skal ligge over providers, router og layout. Fejl før React-render (style-/bootstrap-fejl) fanges separat af shellen og giver en deterministisk dansk hard-stop frem for en blank side.
 
@@ -67,6 +72,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts` (storage-namespace sat via bivirknings-import før App-import). **Bemærk:** selve importforbuddet i §2.3 testes IKKE længere her — det er flyttet til AST-reglen nedenfor, og filen siger det selv.
 - `src/__tests__/quality/architecture/rules/documentRules.ts` (`layer/minprocesrente-standalone-import-boundary`: den strukturelle håndhævelse af §2.3's krydsimport-forbud).
 - `src/__tests__/apps/shared/bootstrapClientApp.test.tsx` (device-gate hård stop som default; standalone kan fravælge gaten).
+- `src/__tests__/apps/shared/vitePreloadRecovery.test.ts` (Vite-signal genindlæser kun én gang pr. fejlet asset-signatur og aldrig uden sikker recovery-markør).
 - `src/__tests__/main.pwaLaunchQueue.test.ts` (Mineo-entryen leverer consumer-registrering og rehydrering til shellen i rækkefølge).
 - `src/__tests__/utils/pwaLaunchQueue.test.ts` (pending request overlever versionsskift; ny launch vinder over gammel persisted request; utilgængelig IndexedDB stopper ikke opstarten).
 - `src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts` (reload kun ved reel opdatering, aldrig ved første install; højst én reload; ingen registrering uden for produktion eller på `/open`).
