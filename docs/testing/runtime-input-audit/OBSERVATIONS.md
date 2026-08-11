@@ -6,59 +6,14 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 
 | ID | Kort titel | Kategori | Flade | Browser/viewport | Alvor | Status | Først set |
 |---|---|---|---|---|---|---|---|
-| OBS-003 | Datoissue navngiver ikke den synlige kontekstuelle label | Inkonsistens / UX | SURF-002 / STAM-003 | Chrome 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:03 Europe/Copenhagen |
 | OBS-005 | Firefox-fallback giver en synlig teknisk advarsel ved normal Gem/Hent | UX / Console-politik | SURF-001 / SHELL-003 | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-08 16:19 Europe/Copenhagen |
-| OBS-008 | Ugyldig fil ved Hent behandles som teknisk runtimefejl | Kontraktdrift / UX | SURF-003 / EO-OPLYS-005 | WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 17:59 Europe/Copenhagen |
 | OBS-014 | Årsløn skjuler beregning og download ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-007 / AAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:28 Europe/Copenhagen |
 | OBS-015 | EET skjuler dokumentdownload ved stamdatafejl | Dataintegritet / Kontraktdrift / UX | SURF-004 / EET-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 20:48 Europe/Copenhagen |
-| OBS-017 | Nulstillingsdialog overtager ikke keyboardfokus | UX / Tilgængelighed / Kontraktdrift | SURF-001 / PAR-003 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-08 23:15 Europe/Copenhagen |
 | OBS-018 | Nedre Fødselsdato-grænse vises som generisk indtastningsfejl | Kontraktdrift / UX | CUT-001 / STAM-008 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:19 Europe/Copenhagen |
 | OBS-019 | Forsørgertabs blokerede dato-gate viser generisk downloadårsag | Kontraktdrift / UX | CUT-001 / FORS-007 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:19 Europe/Copenhagen |
 | OBS-020 | Renteberegningens dato-bounds skjules af generisk download-tooltip | Kontraktdrift / UX | CUT-001 / RENTE-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
 | OBS-021 | Årsløns dato-bounds skjules af generisk beregnings-tooltip | Kontraktdrift / UX | CUT-001 / AAR-011 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
 | OBS-028 | Firefox-teknisk advarsel blokerer Løntrin-finderens datofelt | Browserforskel / UX / Kontraktdrift | SURF-003 / PAR-003 / Løntrin-finder | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-09 06:29 Europe/Copenhagen |
-
-### OBS-003 — Datoissue navngiver ikke den synlige kontekstuelle label
-
-- Status: Bekræftet
-- Kategori: Inkonsistens / UX
-- Alvor: Mellem
-- Først set: 2026-08-08 16:03 Europe/Copenhagen
-- Commit/build: `b3f5e279adf8` / `2026.08.1237.b3f5e27`
-- Dirty-state: syntetisk session; ingen øvrige sagsdata
-- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
-- Flade/scenarie: SURF-002 / STAM-003
-- Relaterede fund/spørgsmål: —
-
-**Starttilstand og reproduktion**
-
-1. Log ind og åbn Stamdata fra en ren sag.
-2. Vælg `Arbejdsulykke` i `Skadestype`.
-3. Åbn `Skadedato`, skriv `31-02-2020`, og settle med Tab.
-4. Skift `Skadestype` til `Erhvervssygdom`.
-
-**Observeret adfærd**
-
-Feltet skifter synlig label fra `Skadedato` til `Anmeldelsesdato`, men den aktive fejlvisning beholder teksten `Der er udfyldt en ugyldig værdi i feltet 'Skadedato'`. Den røde markering og rejected tekst bliver stående.
-
-**Sammenligningsgrundlag**
-
-På samme side viser feltet efter valget `Erhvervssygdom` den synlige label `Anmeldelsesdato`, mens fejlteksten bruger den tidligere kontekst. Ved ugyldig `Fødselsdato` navngiver feedbacken i stedet det felt, brugeren faktisk ser (`Fødselsdato`).
-
-**Forventningsgrundlag**
-
-`error-contract.md` kræver, at kontroltype og label kommer fra feltdescriptoren, og at felt-/datofeedback navngiver det konkrete input. `form-contract.md` kræver én feltidentitet og rent afledte issues; den afgør ikke, hvordan en kontekstuelt ændret præsentationslabel skal afspejles i den danske besked.
-
-**Hvorfor det bør undersøges**
-
-Brugeren får en rød fejl på et felt, der hedder `Anmeldelsesdato`, men bliver bedt om at rette `Skadedato`. Det kan gøre det uklart, hvilket input der skal rettes, især fordi beskeden ikke bruger den synlige label.
-
-**Evidens**
-
-- Kildereference: Stamdata-feltet med feltadressen for `stamdata.skadedato`; den synlige label brancher på skadestype.
-- Browserkontrol: accessibility snapshot viste `Anmeldelsesdato` og samtidig `Fejl i indtastning` med fuld besked `... 'Skadedato'`.
-- Reproducerbarhed: 5/5 sessioner (2/2 Chrome, 1/1 Edge, 1/1 Firefox og 1/1 WebKit); ingen console.error eller console.warn.
-- Andre browsere/viewports: Ikke gentaget ved stor viewport.
 
 ### OBS-005 — Firefox-fallback giver en synlig teknisk advarsel ved normal Gem/Hent
 
@@ -100,48 +55,6 @@ Brugeren kan tro, at Gem eller Hent er fejlbehæftet, selv om dataflowet lykkes.
 - Browserkontrol: download `Mineo.eo` på 3300 bytes; Hent viste `Overskriv eksisterende data?`; efter `Overskriv` viste siden `Hentet` og bevarede `SAVE1`.
 - Systemsignal: 0 console.error; den kontrollerede warning var `File System Access API ikke tilgængelig - bruger fallback download`; ingen ekstern trafik.
 - Reproducerbarhed: 1/1 Firefox-session; gentagelse i øvrige browsere mangler.
-- Screenshot/trace: ikke bevaret; CLI-snapshot og console-log fra sessionen er den aktuelle evidens.
-
-### OBS-008 — Ugyldig fil ved Hent behandles som teknisk runtimefejl
-
-- Status: Bekræftet
-- Kategori: Kontraktdrift / UX
-- Alvor: Mellem
-- Først set: 2026-08-08 17:59 Europe/Copenhagen
-- Commit/build: `b3f5e279adf8` / `2026.08.1237.b3f5e27`
-- Dirty-state: syntetisk sag med `eoNummer = BEFORE-INVALID-FILE`
-- Browser/viewport: WebKit 1920×1080
-- Flade/scenarie: SURF-003 / EO-OPLYS-005
-- Relaterede fund/spørgsmål: CRASH-001
-
-**Starttilstand og reproduktion**
-
-1. Log ind gennem den synlige loginformular og åbn Erstatningsopgørelse → EO oplysninger.
-2. Sæt `eoNummer` til `BEFORE-INVALID-FILE` og settle feltet.
-3. Aktivér `Hent` og vælg en fil med endelsen `.yml` i den synlige fallback-filvælger.
-
-**Observeret adfærd**
-
-Den eksisterende sag bevares, og siden viser den konkrete besked `Kunne ikke indlæse fil: Valgt fil er ikke en .eo fil`. Samtidig vises `Teknisk fejl registreret` med to fejl. Browserkonsollen indeholder både `Hent-operation fejlede` og `Hent fejlede` som `console.error`. Der blev ikke observeret datatab eller navigering væk fra sagen.
-
-**Sammenligningsgrundlag**
-
-Filtypen kontrolleres eksplicit i `assertLoadableEoFile`, og ugyldig filtype er derfor en forventelig brugerhandling. `persistence-contract.md` kræver en eksplicit fejl og uændret aktiv sag ved fejl, mens `error-contract.md` reserverer tekniske runtimefejl og `console.error` til uventede fejl efter en godkendt projektion. Chrome og Edge viste ved annullering af deres native filvælger ingen fejl; ugyldig fil kunne ikke uploades gennem CLI’en i de browsere.
-
-**Forventningsgrundlag**
-
-Den konkrete brugerbesked og uændrede sag er korrekt observeret, men den ekstra tekniske fejlregistrering og `console.error` fremstår som kontraktdrift, fordi fejlen kommer fra en forventelig filtypevalidering og ikke fra en uventet runtimefejl.
-
-**Hvorfor det bør undersøges**
-
-Brugeren kan tro, at Mineo eller sagen er teknisk beskadiget, selv om Hent blot afviste en fil med forkert endelse. Det gør en almindelig fejlhandling sværere at skelne fra reelle dataintegritets- eller runtimeproblemer.
-
-**Evidens**
-
-- Browserkontrol: WebKit viste den konkrete filfejl, teknisk fejlramme og bevarede `BEFORE-INVALID-FILE`.
-- Systemsignal: to `console.error`; den ene kommer fra `loadFromFile`, den anden fra `useFileSaveLoad`.
-- Reproducerbarhed: 1/1 WebKit-fallback-upload; Firefox har samme fallbackvej, men ugyldig fil er ikke gentaget efter CRASH-001.
-- Andre browsere/viewports: Chrome og Edge annullerede native filvælger uden fejl; invalid-upload kunne ikke automatiseres via CLI.
 - Screenshot/trace: ikke bevaret; CLI-snapshot og console-log fra sessionen er den aktuelle evidens.
 
 ### OBS-014 — Årsløn skjuler beregning og download ved stamdatafejl
@@ -229,48 +142,6 @@ Fail-closed er opfyldt for selve PDF-outputtet, men brugeren kan ikke se den dok
 - Browserkontrol: alle fire browsere viste EET-blokeringen og 0 downloadknapper efter rejected skadedato; rydning gav samme gate uden knapper; genoprettelse gav EAL-resultat og 1 downloadknap på den aktive fane. Chrome viste i kontrast alle fire aktive PDF-knapper og downloadede fire dokumenter.
 - Reproducerbarhed: 4/4 browsere; ingen nye console.error, console.warn eller requestfailed ud over den allerede kendte fallback-warning i Firefox/WebKit.
 - Screenshot: `.playwright-cli/edge-001-eet-invalid-chrome.png` viser EET-blokeringen uden dokumenthandling.
-
-### OBS-017 — Nulstillingsdialog overtager ikke keyboardfokus
-
-- Status: Bekræftet
-- Kategori: UX / Tilgængelighed / Kontraktdrift
-- Alvor: Mellem
-- Først set: 2026-08-08 23:15 Europe/Copenhagen
-- Commit/build: `b3f5e279adf8` / `2026.08.1237.b3f5e27`
-- Dirty-state: dirty ved genoptagelse; kun auditdokumenter og midlertidige audit-artefakter ændret
-- Browser/viewport: Chrome/Edge/Firefox/WebKit 1920×1080
-- Flade/scenarie: SURF-001 / PAR-003
-- Relaterede fund/spørgsmål: —
-
-**Starttilstand og reproduktion**
-
-1. Log ind gennem den synlige loginformular og åbn Renteberegning.
-2. Indtast `10.000` i en beløbscelle og afslut feltet, så `Slet alle indtastninger` bliver aktiv.
-3. Fokuser et underliggende felt og aktivér `Slet alle indtastninger`.
-4. Tryk `Tab` og derefter `Escape` uden at klikke på dialogens knapper.
-
-**Observeret adfærd**
-
-Dialogen med `Annuller` og `Ja, slet` vises med `aria-modal="true"`, men fokus flyttes ikke fra feltet bag dialogen. `Tab` flytter fokus videre til endnu et underliggende felt; ingen af dialogens knapper bliver fokuseret. `Escape` lukker ikke dialogen. Klik på `Annuller` lukker dialogen og bevarer inputtet.
-
-**Sammenligningsgrundlag**
-
-Dialogens egen knaprække er synlig og klikbar, og klik på `Annuller` fungerer. Den genbrugelige `ConfirmationDialog` har samtidig en særlig `preserveExternalFocus`-gren for åbne felteditorer. Den aktuelle brugerrejse gør derfor den synlige annullering og bekræftelse utilgængelig gennem almindelig Tab/Enter-navigation, når fokus ligger i feltfladen.
-
-**Forventningsgrundlag**
-
-`keyboard-navigation.md` kræver forudsigelig tastaturnavigation og beskriver, at popup-/overlay-adfærd skal følge den konkrete widgets lukkeadfærd. Overlay-noten kræver desuden, at popupens interne focus-trap stopper fokuslæk til siden bagved. `page-component-contract.md` placerer globale og lokale dialoger i den fælles brugerobserverbare UI-adfærd. Det bør afklares, hvordan `preserveExternalFocus` skal forenes med dialogens keyboardadgang.
-
-**Hvorfor det bør undersøges**
-
-En bruger, der står i et felt og åbner den destruktive nulstilling, kan ikke nå `Annuller` eller `Ja, slet` med Tab/Enter og kan ikke afbryde med Escape. Det gør en kritisk handling uforudsigelig for tastaturbrugere og kan efterlade dialogen fastlåst, selv om musseklik virker.
-
-**Evidens**
-
-- Kildereference: `src/components/pages/renteberegning/RenteberegningTab.tsx:310-329` aktiverer `ConfirmationDialog` med `preserveExternalFocus`; `src/components/ui/ConfirmationDialog.tsx:50-57` deaktiverer auto-/enforce-/restore-focus i denne gren.
-- Browserkontrol: Chrome, Edge, Firefox og WebKit viste `dialog=true` med aktivt underliggende `INPUT`; efter `Tab` var fokus fortsat i et underliggende input, dialogknapperne var ikke aktive; efter `Escape` var dialogen fortsat synlig.
-- Reproducerbarhed: 4/4 browsere ved 1920×1080.
-- Screenshot: `.playwright-cli/par-003-chrome-reset-dialog.png` viser dialogen med det fokuserede underliggende datofelt bag overlayet.
 
 ### OBS-018 — Nedre Fødselsdato-grænse vises som generisk indtastningsfejl
 
