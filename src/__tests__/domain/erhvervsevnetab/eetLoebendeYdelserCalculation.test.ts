@@ -410,7 +410,7 @@ describe('computeEetLoebendeYdelser', () => {
     expect(fullOverlap.maanederPraecis).toBe(1);
   });
 
-  it('bruger overlap ved samme afgørelsesdato når virkningsdato ligger før skæringsdatoen', () => {
+  it('afløser efter virkningsdato ved samme afgørelsesdato, også før afgørelsesdatoen', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
@@ -433,13 +433,94 @@ describe('computeEetLoebendeYdelser', () => {
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!first || !second) throw new Error('expected two decisions');
 
-    expect(first.ophoerDato).toBe(toISODateString('2024-03-31'));
-    expect(second.harOverlap).toBe(true);
-    expect(second.skaeringsDato).toBe(toISODateString('2024-04-01'));
+    expect(first.ophoerDato).toBe(toISODateString('2024-01-31'));
+    expect(second.harOverlap).toBe(false);
+    expect(second.skaeringsDato).toBeNull();
     expect(second.perioder[0]?.fra).toBe(toISODateString('2024-02-01'));
-    expect(second.perioder[0]?.til).toBe(toISODateString('2024-03-31'));
+    expect(second.perioder[0]?.til).toBe(toISODateString('2024-12-31'));
     expect(toKroner(second.perioder[0]!.grundydelseAfrundetOre)).toBeGreaterThan(0);
-    expect(second.perioder[1]?.fra).toBe(toISODateString('2024-04-01'));
+  });
+
+  it('beregner senere tilbagevirkende afgørelse mod de faktisk udbetalte samme-dato-afgørelser', () => {
+    const scenarios = [
+      { label: 'ingen tilbageholdelse', aFs: 'Nej', bFs: 'Nej', aOphoer: '2024-02-29', bHasPeriods: true, cHasMarchPeriod: false, cHasSeptemberPeriod: true },
+      { label: 'kun A tilbageholdt', aFs: 'Ja', bFs: 'Nej', aOphoer: '2024-01-31', bHasPeriods: true, cHasMarchPeriod: false, cHasSeptemberPeriod: true },
+      { label: 'kun B tilbageholdt', aFs: 'Nej', bFs: 'Ja', aOphoer: '2024-02-29', bHasPeriods: false, cHasMarchPeriod: true, cHasSeptemberPeriod: true },
+      { label: 'A og B tilbageholdt', aFs: 'Ja', bFs: 'Ja', aOphoer: '2024-01-31', bHasPeriods: false, cHasMarchPeriod: false, cHasSeptemberPeriod: false },
+    ] as const;
+
+    for (const scenario of scenarios) {
+      const result = computeTestRows([
+        testRow({
+          id: 'a',
+          afgoerelsesDato: toISODateString('2024-05-01'),
+          virkningsDato: toISODateString('2024-01-01'),
+          eetPct: 20,
+          afgoerelseType: 'Midlertidig',
+          fsTilbageholdtEet: scenario.aFs,
+        }),
+        testRow({
+          id: 'b',
+          afgoerelsesDato: toISODateString('2024-05-01'),
+          virkningsDato: toISODateString('2024-03-01'),
+          eetPct: 30,
+          afgoerelseType: 'Midlertidig',
+          fsTilbageholdtEet: scenario.bFs,
+        }),
+        testRow({
+          id: 'c',
+          afgoerelsesDato: toISODateString('2024-08-15'),
+          virkningsDato: toISODateString('2024-02-01'),
+          eetPct: 25,
+          afgoerelseType: 'Midlertidig',
+        }),
+      ], { beregningsdato: toISODateString('2024-12-31') });
+
+      const [a, b, c] = result.computation?.afgoerelser ?? [];
+      if (!a || !b || !c) throw new Error('expected three decisions');
+
+      expect(a.ophoerDato).toBe(toISODateString(scenario.aOphoer));
+      expect(b.perioder.length > 0).toBe(scenario.bHasPeriods);
+      expect(c.perioder[0]?.fra).toBe(toISODateString('2024-02-01'));
+      const cPeriodStarts = c.perioder.map((period) => period.fra);
+      if (scenario.cHasMarchPeriod) {
+        expect(cPeriodStarts, scenario.label).toContain(toISODateString('2024-03-01'));
+      } else {
+        expect(cPeriodStarts, scenario.label).not.toContain(toISODateString('2024-03-01'));
+      }
+      expect(c.perioder.some((period) => period.fra === toISODateString('2024-09-01'))).toBe(scenario.cHasSeptemberPeriod);
+    }
+  });
+
+  it('lader delvist endelig afgørelse afløse på virkningsdato før kapitalisering', () => {
+    const result = computeTestRows([
+      testRow({
+        id: 'a',
+        afgoerelsesDato: toISODateString('2024-05-01'),
+        virkningsDato: toISODateString('2024-01-01'),
+        eetPct: 30,
+        afgoerelseType: 'Midlertidig',
+      }),
+      testRow({
+        id: 'b',
+        afgoerelsesDato: toISODateString('2024-05-01'),
+        virkningsDato: toISODateString('2024-03-01'),
+        eetPct: 50,
+        afgoerelseType: 'Delvist endelig',
+        kapDato: toISODateString('2024-05-01'),
+        kapPct: 20,
+      }),
+    ], { beregningsdato: toISODateString('2024-12-31') });
+
+    const [a, b] = result.computation?.afgoerelser ?? [];
+    if (!a || !b) throw new Error('expected two decisions');
+
+    expect(a.ophoerDato).toBe(toISODateString('2024-02-29'));
+    expect(b.eetPct).toBe(50);
+    expect(b.restEetPct).toBe(30);
+    expect(b.perioder[0]?.fra).toBe(toISODateString('2024-03-01'));
+    expect(b.perioder[0]?.til).toBe(toISODateString('2024-04-30'));
+    expect(b.perioder[1]?.fra).toBe(toISODateString('2024-05-01'));
   });
 
   it('fordeler kædet overlap mellem seneste referenceafgørelser når procenterne stiger trinvist', () => {
@@ -1201,7 +1282,71 @@ describe('computeEetLoebendeYdelser', () => {
       skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
-    expect(result.issues.some((issue) => issue.id === 'warn-non-endelig-after-endelig')).toBe(true);
+    expect(result.issues).toContainEqual({
+      id: 'warn-non-endelig-after-endelig',
+      severity: 'warning',
+      message: 'Der er angivet en midlertidig afgørelse efter en endelig afgørelse.',
+    });
+  });
+
+  it('giver advarsel når midlertidig afgørelse fra samme dag virker efter endelig afgørelse', () => {
+    const result = computeTestRows([
+      testRow({
+        id: 'endelig',
+        afgoerelsesDato: toISODateString('2024-05-01'),
+        virkningsDato: toISODateString('2024-01-01'),
+        eetPct: 50,
+        afgoerelseType: 'Endelig',
+      }),
+      testRow({
+        id: 'midlertidig',
+        afgoerelsesDato: toISODateString('2024-05-01'),
+        virkningsDato: toISODateString('2024-03-01'),
+        eetPct: 40,
+        afgoerelseType: 'Midlertidig',
+      }),
+    ], { beregningsdato: toISODateString('2024-12-31') });
+
+    expect(result.computation).not.toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'warn-non-endelig-after-endelig',
+      severity: 'warning',
+      message: 'Der er angivet en midlertidig afgørelse efter en endelig afgørelse.',
+    });
+  });
+
+  it('navngiver begge afgørelsestyper i advarslen når begge ligger efter en endelig afgørelse', () => {
+    const result = computeTestRows([
+      testRow({
+        id: 'endelig',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
+        eetPct: 50,
+        afgoerelseType: 'Endelig',
+      }),
+      testRow({
+        id: 'midlertidig',
+        afgoerelsesDato: toISODateString('2024-02-01'),
+        virkningsDato: toISODateString('2024-02-01'),
+        eetPct: 40,
+        afgoerelseType: 'Midlertidig',
+      }),
+      testRow({
+        id: 'delvist-endelig',
+        afgoerelsesDato: toISODateString('2024-03-01'),
+        virkningsDato: toISODateString('2024-03-01'),
+        eetPct: 45,
+        afgoerelseType: 'Delvist endelig',
+        kapDato: toISODateString('2024-03-01'),
+        kapPct: 20,
+      }),
+    ], { beregningsdato: toISODateString('2024-12-31') });
+
+    expect(result.issues).toContainEqual({
+      id: 'warn-non-endelig-after-endelig',
+      severity: 'warning',
+      message: 'Der er angivet en midlertidig og delvist endelig afgørelse efter en endelig afgørelse.',
+    });
   });
 
   it('stopper fail-closed når reguleringssats mangler for et nødvendigt år', () => {

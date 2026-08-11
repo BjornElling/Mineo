@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-11
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
@@ -17,7 +17,7 @@ Mineo har flere legitime periodiseringskategorier. De må ikke blandes:
 
 1. EO-TAF/offentlige ydelser: kanonisk motor `src/domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts`.
 2. Årsløn/omregning: kanoniske helpers i `src/utils/periodeBeregning.ts` og domænets årslønsmoduler.
-3. EET-løbende ydelser: kanonisk EET-motor/projektion, jf. `eet-snapshot-contract.md`.
+3. EET-løbende ydelser: kanonisk EET-motor/projektion, jf. `eet-snapshot-contract.md`. Afløsning mellem afgørelser, periodisering af tilbagevirkende overlap og virkningen af `FS tilbageholdt EET` hører alle til i denne motor; de må ikke genimplementeres i EO-import, UI eller dokumenter.
 4. Forsørgertab/kapitalisering: kanonisk Forsørgertab-snapshot og domænemotorer, jf. `forsoergertab-snapshot-contract.md`.
 
 EO's periodiseringsmotor må ikke automatisk antages at gælde for Årsløn, EET eller Forsørgertab.

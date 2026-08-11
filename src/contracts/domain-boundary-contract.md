@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; constrainer `page-component-contract.md`.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-11
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 
@@ -112,8 +112,11 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 5. `computeEetSnapshot(...)` er den autoritative beregnings-entry for tab- og PDF-projektioner i Erhvervsevnetab-domænet.
    Den følger `snapshot-contract.md` og den domænespecifikke `eet-snapshot-contract.md`.
 6. Tab-komponenter og PDF-flow må ikke lave parallelle EET-beregninger uden om snapshot-projektionen.
-7. ASL-afgørelsesrækken indeholder `fsTilbageholdtEet` (`Ja`/`Nej`). Feltet er beregningsmæssigt knyttet til den afgørelse, der senere afløses. Når feltet er `Ja`, skal overgangen til den næste afgørelse bruge den næste afgørelses faktiske virkningsdato som afløsningsdato i stedet for den nye overlap-skæringsdato. Feltet på den sidste afgørelse har aldrig beregningsmæssig effekt, fordi den ikke afløses af en efterfølger. Der må ikke bygges parallel validering eller beregning af dette felt uden om den centrale EET-beregning.
-8. Folkepensionsalder må kun beregnes via `src/data/folkepensionAlderRates.ts` — herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Kapitaliseringstabellerne må ikke være kilde til alder i måneder, labels eller folkepensionsdato. Filen ligger i `src/data/` (ikke under `src/data/kapitalisering/`) fordi den er tværdomæne og ikke kapitaliseringsspecifik.
+7. ASL-afgørelsesrækken indeholder `fsTilbageholdtEet` (`Ja`/`Nej`). Feltet er beregningsmæssigt knyttet til den afgørelse, der senere afløses. `Ja` fjerner kun den pågældende afgørelses løbende ydelse i den periode, hvor en senere afgørelse overlapper den; afgørelsens selvstændige, ikke-overlappede periode beregnes altid. Der må ikke bygges parallel validering eller beregning af dette felt uden om den centrale EET-beregning.
+8. Har to eller flere afgørelser samme afgørelsesdato og forskellige virkningsdatoer, sorteres de efter virkningsdato. Hver afgørelse giver alene løbende ydelse fra sin egen virkningsdato til dagen før den næste virkningsdato i gruppen. Reglen gælder uden undtagelse for afgørelsestyper og `FS tilbageholdt EET`.
+9. En senere afgørelse med tilbagevirkende virkning beregnes i sin overlapperiode mod den faktisk aktive, tidligere afgørelse for hver delperiode. Er den tidligere afgørelse ikke tilbageholdt, gives kun merudbetalingen; er den tilbageholdt, gives den senere afgørelses fulde løbende ydelse. Efter den senere afgørelses almindelige overlap-skæringsdato gives alene den senere afgørelses løbende ydelse.
+10. En midlertidig eller delvist endelig afgørelse efter en endelig afgørelse giver en ikke-blokerende advarsel. Det gælder både ved en strengt senere afgørelsesdato og ved samme afgørelsesdato, når den midlertidige eller delvist endelige afgørelse har den senere virkningsdato. Advarslen navngiver kun de typer, der faktisk forekommer, og forbinder dem med `og`, når begge forekommer.
+11. Folkepensionsalder må kun beregnes via `src/data/folkepensionAlderRates.ts` — herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Kapitaliseringstabellerne må ikke være kilde til alder i måneder, labels eller folkepensionsdato. Filen ligger i `src/data/` (ikke under `src/data/kapitalisering/`) fordi den er tværdomæne og ikke kapitaliseringsspecifik.
 
 ### 6.2 Forsørgertab
 

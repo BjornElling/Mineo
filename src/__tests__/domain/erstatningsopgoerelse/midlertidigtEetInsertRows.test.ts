@@ -120,6 +120,60 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromImportContext', () => {
     );
   });
 
+  it('importerer samme-dato-afgørelser og senere merudbetaling med deres faktiske perioder', () => {
+    const values = makeValues();
+    values.beregningsdato = toISODateString('2024-12-31');
+    values.aslAfgoerelser = [
+      {
+        id: 'a',
+        afgoerelsesDato: toISODateString('2024-05-01'),
+        virkningsDato: toISODateString('2024-01-01'),
+        eetPct: 20,
+        kapDato: undefined,
+        kapPct: undefined,
+        afgoerelseType: 'Midlertidig',
+        fsTilbageholdtEet: 'Nej',
+        tidlKapDato: undefined,
+      },
+      {
+        id: 'b',
+        afgoerelsesDato: toISODateString('2024-05-01'),
+        virkningsDato: toISODateString('2024-03-01'),
+        eetPct: 30,
+        kapDato: undefined,
+        kapPct: undefined,
+        afgoerelseType: 'Midlertidig',
+        fsTilbageholdtEet: 'Nej',
+        tidlKapDato: undefined,
+      },
+      {
+        id: 'c',
+        afgoerelsesDato: toISODateString('2024-08-15'),
+        virkningsDato: toISODateString('2024-02-01'),
+        eetPct: 25,
+        kapDato: undefined,
+        kapPct: undefined,
+        afgoerelseType: 'Midlertidig',
+        fsTilbageholdtEet: 'Nej',
+        tidlKapDato: undefined,
+      },
+    ];
+
+    const context = buildEetImportContext({
+      revision: 'samme-dato-afgørelser',
+      eetValues: values,
+      skadedato: toISODateString('2019-04-01'),
+    }, toISODateString('2024-12-31'));
+    const groups = buildMidlertidigtEetAfgoerelseGroupsFromImportContext(context.groups);
+
+    expect(context.issues.some((issue) => issue.severity === 'error')).toBe(false);
+    expect(groups.map((group) => group.perioder.map((periode) => [periode.fra, periode.til]))).toEqual([
+      [['2024-01-01', '2024-02-29']],
+      [['2024-03-01', '2024-08-31']],
+      [['2024-02-01', '2024-02-29'], ['2024-09-01', '2024-12-31']],
+    ]);
+  });
+
   it('returnerer tomt resultat når der ikke findes indsatbare perioder', () => {
     const values = makeValues();
     values.aslAfgoerelser = [

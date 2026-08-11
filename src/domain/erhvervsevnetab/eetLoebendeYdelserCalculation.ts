@@ -156,8 +156,14 @@ type PeriodSectionRow = Readonly<{
 
 type AfgoerelseTransition = Readonly<{
   useOverlap: boolean;
+  calculateOverlap: boolean;
   cutoverDate: ISODateString;
   skaeringsDato: ISODateString | null;
+}>;
+
+type ResolvedAfgoerelseTiming = Readonly<{
+  afgoerelse: ResolvedAfgoerelseWithKapitalisering;
+  ophoerDato: ISODateString;
 }>;
 
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
@@ -171,6 +177,18 @@ const parsePct = (raw: number | undefined): number | undefined => {
 };
 const formatPctForWarning = (value: number): string =>
   formatAsAmountTrimmed(value, 2);
+
+const formatNonEndeligAfterEndeligWarning = (
+  hasMidlertidig: boolean,
+  hasDelvistEndelig: boolean
+): string => {
+  const afgoerelsestype = hasMidlertidig && hasDelvistEndelig
+    ? 'midlertidig og delvist endelig'
+    : hasMidlertidig
+      ? 'midlertidig'
+      : 'delvist endelig';
+  return `Der er angivet en ${afgoerelsestype} afgørelse efter en endelig afgørelse.`;
+};
 
 export const firstOfMonthAfter = firstOfMonthAfterIso;
 
@@ -254,26 +272,28 @@ const collectWarnings = (
     );
   }
 
-  const endeligDates = afgoerelser
-    .filter((row) => row.afgoerelseType === 'Endelig')
-    .map((row) => row.afgoerelsesdato);
+  const endeligeAfgoerelser = afgoerelser.filter((row) => row.afgoerelseType === 'Endelig');
 
-  if (endeligDates.length > 0) {
-    const earliestEndelig = endeligDates.reduce((earliest, current) => (current < earliest ? current : earliest));
-    if (
-      afgoerelser.some(
-        (row) =>
-          (row.afgoerelseType === 'Midlertidig' || row.afgoerelseType === 'Delvist endelig') &&
-          row.afgoerelsesdato > earliestEndelig
+  const nonEndeligeAfterEndelig = afgoerelser.filter((row) =>
+    (row.afgoerelseType === 'Midlertidig' || row.afgoerelseType === 'Delvist endelig') &&
+    endeligeAfgoerelser.some((endelig) =>
+      row.afgoerelsesdato > endelig.afgoerelsesdato ||
+      (
+        row.afgoerelsesdato === endelig.afgoerelsesdato &&
+        row.virkningsdato > endelig.virkningsdato
       )
-    ) {
-      issues.push(
-        toWarning(
-          'warn-non-endelig-after-endelig',
-          'Der er angivet en midlertidig eller delvist endelig afgørelse efter en endelig afgørelse.'
+    )
+  );
+  if (nonEndeligeAfterEndelig.length > 0) {
+    issues.push(
+      toWarning(
+        'warn-non-endelig-after-endelig',
+        formatNonEndeligAfterEndeligWarning(
+          nonEndeligeAfterEndelig.some((row) => row.afgoerelseType === 'Midlertidig'),
+          nonEndeligeAfterEndelig.some((row) => row.afgoerelseType === 'Delvist endelig')
         )
-      );
-    }
+      )
+    );
   }
 
   if (afgoerelser.some((row) => row.afgoerelsesdato > beregningsdato)) {
@@ -488,39 +508,92 @@ const resolveAfgoerelseTransition = (
   previous: ResolvedAfgoerelseWithKapitalisering | undefined,
   current: ResolvedAfgoerelseWithKapitalisering
 ): AfgoerelseTransition => {
-  // FS tilbageholdt EET på forgængeren er en overgangsregel: næste afgørelse afløser på sin faktiske virkningsdato.
-  if (!previous || previous.fsTilbageholdtEet === 'Ja' || !hasOverlapPeriod(current.virkningsdato, current.afgoerelsesdato)) {
+  // Afgørelser fra samme dag er én samlet afgørelseshandling. De afløser derfor altid
+  // hinanden på virkningsdatoerne, også når disse ligger før afgørelsesdatoen.
+  if (
+    !previous ||
+    previous.afgoerelsesdato === current.afgoerelsesdato ||
+    !hasOverlapPeriod(current.virkningsdato, current.afgoerelsesdato)
+  ) {
     return {
       useOverlap: false,
+      calculateOverlap: false,
       cutoverDate: current.virkningsdato,
       skaeringsDato: null,
     };
   }
 
   const skaeringsDato = firstOfMonthAfter(current.afgoerelsesdato);
+  if (previous.fsTilbageholdtEet === 'Ja') {
+    return {
+      // Visningen må fortsat vise, at den umiddelbare forgænger er tilbageholdt.
+      // Beregningen skal dog undersøge ældre, faktisk udbetalte afgørelser i samme periode.
+      useOverlap: false,
+      calculateOverlap: true,
+      cutoverDate: skaeringsDato,
+      skaeringsDato: null,
+    };
+  }
   return {
     useOverlap: true,
+    calculateOverlap: true,
     cutoverDate: skaeringsDato,
     skaeringsDato,
   };
 };
 
+const resolveActivePaidPredecessor = (
+  predecessors: readonly ResolvedAfgoerelseTiming[],
+  dato: ISODateString
+): ResolvedAfgoerelseWithKapitalisering | undefined => {
+  for (let index = predecessors.length - 1; index >= 0; index -= 1) {
+    const predecessor = predecessors[index];
+    const afgoerelse = predecessor.afgoerelse;
+    if (afgoerelse.fsTilbageholdtEet === 'Ja') continue;
+    if (afgoerelse.virkningsdato <= dato && dato <= predecessor.ophoerDato) {
+      return afgoerelse;
+    }
+  }
+  return undefined;
+};
+
+const hasPaidPredecessorInOverlapPeriod = (
+  predecessors: readonly ResolvedAfgoerelseTiming[],
+  current: ResolvedAfgoerelseWithKapitalisering
+): boolean => {
+  const overlapEnd = getDayBeforeIso(firstOfMonthAfter(current.afgoerelsesdato));
+  if (!overlapEnd) return false;
+  return predecessors.some(({ afgoerelse, ophoerDato }) =>
+    afgoerelse.fsTilbageholdtEet === 'Nej' &&
+    afgoerelse.virkningsdato <= overlapEnd &&
+    ophoerDato >= current.virkningsdato
+  );
+};
+
 const buildComputedSectionRows = (
   args: Readonly<{
     current: ResolvedAfgoerelseWithKapitalisering;
-    previous: ResolvedAfgoerelseWithKapitalisering | undefined;
+    predecessors: readonly ResolvedAfgoerelseTiming[];
     finalStop: ISODateString;
     useOverlap: boolean;
     events: readonly KapitaliseringEvent[];
   }>
 ): PeriodSectionRow[] => {
-  const { current, previous, finalStop, useOverlap, events } = args;
+  const { current, predecessors, finalStop, useOverlap, events } = args;
   const rows: PeriodSectionRow[] = [];
   const skaeringsDato = firstOfMonthAfter(current.afgoerelsesdato);
   const overlapEnd = useOverlap ? getDayBeforeIso(skaeringsDato) : undefined;
-  const splitBoundaries = events.map((event) => event.dato);
+  const overlapSplitBoundaries = [
+    ...events.map((event) => event.dato),
+    ...predecessors.flatMap(({ afgoerelse, ophoerDato }) => {
+      const dayAfterOphoer = getDayAfterIso(ophoerDato);
+      return dayAfterOphoer === undefined
+        ? [afgoerelse.virkningsdato]
+        : [afgoerelse.virkningsdato, dayAfterOphoer];
+    }),
+  ];
 
-  if (useOverlap && previous && overlapEnd) {
+  if (useOverlap && overlapEnd) {
     const boundedOverlapEnd = minISO(overlapEnd, finalStop);
     const overlapBasePeriods = buildCalendarYearSectionPeriods({
       startdato: current.virkningsdato,
@@ -528,14 +601,12 @@ const buildComputedSectionRows = (
     });
 
     for (const period of overlapBasePeriods) {
-      const splitRows = splitPeriodByBoundaries(period, [
-        ...splitBoundaries,
-        previous.virkningsdato,
-      ]);
+      const splitRows = splitPeriodByBoundaries(period, overlapSplitBoundaries);
       for (const splitRow of splitRows) {
         const currentRest = restEetPctAt(current, events, splitRow.fra);
-        const previousRest = previous.virkningsdato <= splitRow.fra
-          ? restEetPctAt(previous, events, splitRow.fra)
+        const predecessor = resolveActivePaidPredecessor(predecessors, splitRow.fra);
+        const previousRest = predecessor
+          ? restEetPctAt(predecessor, events, splitRow.fra)
           : 0;
         rows.push({
           ...splitRow,
@@ -553,7 +624,7 @@ const buildComputedSectionRows = (
       slutdato: finalStop,
     });
     for (const period of fullBasePeriods) {
-      const splitRows = splitPeriodByBoundaries(period, splitBoundaries);
+      const splitRows = splitPeriodByBoundaries(period, events.map((event) => event.dato));
       for (const splitRow of splitRows) {
         rows.push({
           ...splitRow,
@@ -677,14 +748,63 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   const { resolvedRows: resolvedAfgoerelserWithKapitalisering, events: kapitaliseringEvents } =
     buildKapitaliseringEvents(resolvedAfgoerelser, skadedato, fodselsdato);
 
+  const loebendeYdelserSlutdato = input.context.kind === 'eo_import'
+    ? input.context.slutdato
+    : beregningsdato;
+
+  const afgoerelseTimings = resolvedAfgoerelserWithKapitalisering.map((current, index) => {
+    const previous = resolvedAfgoerelserWithKapitalisering[index - 1];
+    const next = resolvedAfgoerelserWithKapitalisering[index + 1];
+    const transition = resolveAfgoerelseTransition(previous, current);
+    const nextTransition = next ? resolveAfgoerelseTransition(current, next) : undefined;
+    const nextStopDate = nextTransition ? getDayBeforeIso(nextTransition.cutoverDate) : undefined;
+    const folkepensionsDagFoer = resolveFolkepensionsDagFoer(fodselsdato, current.afgoerelsesdato);
+    const dayBeforeKapitalisering = current.effectiveKapDato ? getDayBeforeIso(current.effectiveKapDato) : undefined;
+    const hasRestSection = current.effectiveKapDato !== undefined &&
+      restEetPctAt(current, kapitaliseringEvents, current.effectiveKapDato) > 0;
+
+    const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [
+      { date: loebendeYdelserSlutdato, cause: 'beregningsdato' },
+    ];
+    if (nextStopDate) finalCandidates.push({ date: nextStopDate, cause: 'senere-afgoerelse' });
+    if (folkepensionsDagFoer) finalCandidates.push({ date: folkepensionsDagFoer, cause: 'folkepensionsdato' });
+    if (!hasRestSection && dayBeforeKapitalisering) {
+      finalCandidates.push({ date: dayBeforeKapitalisering, cause: 'kapitalisering' });
+    }
+
+    if (current.fsTilbageholdtEet === 'Ja') {
+      for (const laterAfgoerelse of resolvedAfgoerelserWithKapitalisering.slice(index + 1)) {
+        // Tilbageholdelse angår kun den del af den gamle afgørelse, der overlapper en senere.
+        // En alene liggende periode må aldrig forsvinde, blot fordi feltet er sat til Ja.
+        if (
+          laterAfgoerelse.afgoerelsesdato > current.afgoerelsesdato &&
+          hasOverlapPeriod(laterAfgoerelse.virkningsdato, laterAfgoerelse.afgoerelsesdato)
+        ) {
+          const dayBeforeLaterVirkningsdato = getDayBeforeIso(laterAfgoerelse.virkningsdato);
+          if (dayBeforeLaterVirkningsdato) {
+            finalCandidates.push({ date: dayBeforeLaterVirkningsdato, cause: 'senere-afgoerelse' });
+          }
+        }
+      }
+    }
+
+    const finalStop = finalCandidates.reduce((earliest, currentCandidate) => {
+      if (currentCandidate.date < earliest.date) return currentCandidate;
+      if (currentCandidate.date > earliest.date) return earliest;
+      // Prioritet bruges kun som deterministisk tie-break ved identiske ophørsdatoer.
+      return OPHOER_AARSAG_PRIORITY[currentCandidate.cause] < OPHOER_AARSAG_PRIORITY[earliest.cause]
+        ? currentCandidate
+        : earliest;
+    });
+
+    return { current, transition, finalStop };
+  });
+
   const computations: EetLoebendeAfgoerelseComputation[] = [];
 
-  for (let i = 0; i < resolvedAfgoerelserWithKapitalisering.length; i += 1) {
-    const current = resolvedAfgoerelserWithKapitalisering[i];
-    const previous = resolvedAfgoerelserWithKapitalisering[i - 1];
-    const next = resolvedAfgoerelserWithKapitalisering[i + 1];
+  for (let i = 0; i < afgoerelseTimings.length; i += 1) {
+    const { current, transition: currentTransition, finalStop } = afgoerelseTimings[i];
     const priorKapPct = activeKapitaliseringPctAtExcluding(kapitaliseringEvents, current.virkningsdato, current.rowId);
-    const currentTransition = resolveAfgoerelseTransition(previous, current);
     const hasKapitalisering = !!current.effectiveKapDato && current.effectiveKapPct > 0;
     const kapPctKumulativ = current.effectiveKapDato
       ? activeKapitaliseringPctAt(kapitaliseringEvents, current.effectiveKapDato)
@@ -697,32 +817,6 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
       ? restEetPctAt(current, kapitaliseringEvents, current.effectiveKapDato)
       : restEetPctAt(current, kapitaliseringEvents, current.virkningsdato);
     const hasRestSection = hasKapitalisering && restEetPct > 0;
-
-    const nextTransition = next ? resolveAfgoerelseTransition(current, next) : undefined;
-    const nextStopDate = nextTransition ? getDayBeforeIso(nextTransition.cutoverDate) : undefined;
-    const folkepensionsDagFoer = resolveFolkepensionsDagFoer(fodselsdato, current.afgoerelsesdato);
-    const dayBeforeKapitalisering = current.effectiveKapDato ? getDayBeforeIso(current.effectiveKapDato) : undefined;
-
-    const loebendeYdelserSlutdato = input.context.kind === 'eo_import'
-      ? input.context.slutdato
-      : beregningsdato;
-    const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [
-      { date: loebendeYdelserSlutdato, cause: 'beregningsdato' },
-    ];
-    if (nextStopDate) finalCandidates.push({ date: nextStopDate, cause: 'senere-afgoerelse' });
-    if (folkepensionsDagFoer) finalCandidates.push({ date: folkepensionsDagFoer, cause: 'folkepensionsdato' });
-    if (!hasRestSection && dayBeforeKapitalisering) {
-      finalCandidates.push({ date: dayBeforeKapitalisering, cause: 'kapitalisering' });
-    }
-
-    const finalStop = finalCandidates.reduce((earliest, currentCandidate) => {
-      if (currentCandidate.date < earliest.date) return currentCandidate;
-      if (currentCandidate.date > earliest.date) return earliest;
-      // Prioritet bruges kun som deterministisk tie-break ved identiske ophørsdatoer.
-      return OPHOER_AARSAG_PRIORITY[currentCandidate.cause] < OPHOER_AARSAG_PRIORITY[earliest.cause]
-        ? currentCandidate
-        : earliest;
-    });
 
     const fullPctFactor = eetPctFoerAktuelKap / 100;
     const restPctFactor = restEetPct / 100;
@@ -739,11 +833,15 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
         ? round2(grundydelseRestKroner * (1 + reguleringFoer2024 / 100))
         : grundydelseRestKroner;
 
+    const predecessors = afgoerelseTimings.slice(0, i).map(({ current: afgoerelse, finalStop: predecessorFinalStop }) => ({
+      afgoerelse,
+      ophoerDato: predecessorFinalStop.date,
+    }));
     const allPeriods = buildComputedSectionRows({
       current,
-      previous,
+      predecessors,
       finalStop: finalStop.date,
-      useOverlap: currentTransition.useOverlap,
+      useOverlap: currentTransition.calculateOverlap && hasPaidPredecessorInOverlapPeriod(predecessors, current),
       events: kapitaliseringEvents,
     });
     const computedRows: EetLoebendePeriodeRow[] = [];
