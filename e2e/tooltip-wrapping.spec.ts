@@ -30,7 +30,7 @@ const lineWidths = async (page: Page): Promise<number[]> => page.locator('[role=
 });
 
 test.describe('fælles tooltip-ombrydning', () => {
-  test('balancerer lange beskeder og bevarer hele ord', async ({ page }) => {
+  test('udnytter boksens bredde ved lange beskeder og bevarer hele ord', async ({ page }) => {
     const consoleErrors: string[] = [];
     const pageErrors: string[] = [];
     page.on('console', (message) => {
@@ -58,16 +58,16 @@ test.describe('fælles tooltip-ombrydning', () => {
     // CSSOM kan rapportere venstrejustering som den logiske værdi `start` i stedet for `left`.
     expect(['left', 'start']).toContain(alignment.textAlign);
     await expect(tooltipContent).toHaveCSS('white-space', 'normal');
-    // MUI/Emotion serialiserer shorthand-værdien som CSS-longhanden `text-wrap-style`.
-    await expect(tooltipContent).toHaveCSS('text-wrap-style', 'balance');
+    // Boksens intrinsic bredde bestemmes før balanceret ombrydning. `wrap` forhindrer derfor en
+    // maksimumsbred boks omkring to korte, afbalancerede linjer.
+    await expect(tooltipContent).toHaveCSS('text-wrap-style', 'auto');
     await expect(tooltipContent).toHaveCSS('overflow-wrap', 'break-word');
     await expect(tooltipContent).toHaveCSS('word-break', 'normal');
 
     const widths = await lineWidths(page);
     expect(widths).toHaveLength(2);
-    expect(widths[0]).toBeGreaterThan(140);
-    expect(widths[1]).toBeGreaterThan(140);
-    expect(Math.abs((widths[0] ?? 0) - (widths[1] ?? 0))).toBeLessThan(40);
+    const tooltipWidth = await tooltipContent.evaluate((element) => element.getBoundingClientRect().width);
+    expect(Math.max(...widths)).toBeGreaterThan(tooltipWidth - 45);
 
     const longTokenLayout = await tooltipContent.evaluate((element) => {
       const probe = element.cloneNode(false) as HTMLDivElement;

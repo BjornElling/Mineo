@@ -26,7 +26,6 @@ describe('buildTheme', () => {
       maxWidth: '360px',
       textAlign: 'left',
       whiteSpace: 'normal',
-      textWrap: 'balance',
       overflowWrap: 'break-word',
       wordBreak: 'normal',
     });

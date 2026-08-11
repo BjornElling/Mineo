@@ -60,9 +60,9 @@ export const buildTheme = (mode: AppThemeMode): Theme =>
             maxWidth: '360px',
             textAlign: 'left',
             whiteSpace: 'normal',
-            // Balance holder den sidste linje fra at blive et enkelt restord; break-word er kun nødværnet
-            // for et langt sammenhængende token, som ellers ville stikke ud af den fælles maksimumsbredde.
-            textWrap: 'balance',
+            // Tooltipboksens intrinsic bredde fastlægges før balanceret ombrydning. Balance kan derfor efterlade
+            // en meget bred boks omkring to korte linjer; almindelig ombrydning lader den længste linje udnytte
+            // den fælles maksimumsbredde.
             overflowWrap: 'break-word',
             wordBreak: 'normal',
           },
