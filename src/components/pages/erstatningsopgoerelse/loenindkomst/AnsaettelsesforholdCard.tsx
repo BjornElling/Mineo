@@ -26,7 +26,9 @@ import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchema
 import { LOENPERIODE_LABELS } from '../../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
 import { resolveSatserHeading } from './resolveSatserHeading';
+import InfoTooltipIcon from '../../../common/InfoTooltipIcon';
 import {
+  formatAnvendtReguleringsdatoInfoTooltip,
   resolveAnvendtReguleringsdatoReferenceText,
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
@@ -51,6 +53,8 @@ import { useReguleringDocumentAction } from '../../../../domain/erstatningsopgoe
 import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
+import { activeFieldIssue } from '../../../../inputCore/inputIssue';
+import { useInputReadPort } from '../../../../inputCore/react/inputRuntimeContext';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -123,6 +127,15 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const { openLoentrinFinder } = loentrinFinder;
 
   const field = <T,>(descriptor: { bind: (...ids: readonly string[]) => T }): T => descriptor.bind(af.id);
+  const inputRead = useInputReadPort();
+  const issueSnapshot = React.useSyncExternalStore(inputRead.subscribe, inputRead.getIssues, inputRead.getIssues);
+  const saerligFraDatoReguleringField = field(eoEmploymentFields.saerligFraDatoRegulering);
+  const saerligFraDatoReguleringIssue = activeFieldIssue(
+    issueSnapshot,
+    serializeFieldAddress(saerligFraDatoReguleringField.address)
+  );
+  const showSaerligFraDatoInfo = af.saerligFraDatoRegulering === undefined
+    || saerligFraDatoReguleringIssue !== undefined;
   // route + tabKey er eksplicit navigation-metadata (§3.7); ansættelsesforholdets felter bor på Lønindkomstfanen.
   const location = (name: string) => ({
     locationId: `erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:${name}`,
@@ -202,6 +215,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     beregningsperiodeTil: tafBeregningsperiodeTil,
     saerligFraDatoRegulering: af.saerligFraDatoRegulering,
   });
+  const anvendtReguleringsdatoReferenceLabel = capitalizeFirstCharDa(anvendtReguleringsdatoReferenceText);
   const satserHeading = resolveSatserHeading({
     anvendtReguleringsdato,
     skadedato: skadedato,
@@ -493,10 +507,20 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
 
       {beregnesUdFra === 'Beregningsperiode' && (
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Evt. særlig fra-dato for regulering</Typography>
+          <Typography className="row--text">
+            Evt. særlig fra-dato for regulering
+            {showSaerligFraDatoInfo ? (
+              <InfoTooltipIcon
+                title={formatAnvendtReguleringsdatoInfoTooltip(
+                  anvendtReguleringsdatoReferenceText,
+                  anvendtReguleringsdato,
+                )}
+              />
+            ) : null}
+          </Typography>
           <Box className="row--label-right-hover__content">
             <DateField
-              field={field(eoEmploymentFields.saerligFraDatoRegulering)}
+              field={saerligFraDatoReguleringField}
               location={location('saerligFraDatoRegulering')}
               name={`${af.id}:saerligFraDatoRegulering`}
             />
@@ -647,7 +671,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           baseDateInfoTooltipText={
             loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
               ? undefined
-              : capitalizeFirstCharDa(anvendtReguleringsdatoReferenceText)
+              : anvendtReguleringsdatoReferenceLabel
           }
           manualNavnWidth={350}
           shouldShowReguleringsDatoInterval={shouldShowReguleringsDatoInterval}

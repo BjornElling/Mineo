@@ -86,6 +86,14 @@ export const formatEoDatoReferenceWithDate = (
 export const resolveAnvendtReguleringsdatoReferenceText = (params: Parameters<typeof resolveAnvendtReguleringsdatoReference>[0]): string =>
   formatEoDatoReferenceWithDate(resolveAnvendtReguleringsdatoReference(params), params.anvendtReguleringsdato);
 
+/** Tooltiptekst til en særlig fra-dato ud fra den allerede resolverede reference, som også vises længere nede. */
+export const formatAnvendtReguleringsdatoInfoTooltip = (
+  referenceText: string,
+  anvendtReguleringsdato: ISODateString | undefined,
+): string => anvendtReguleringsdato === undefined
+  ? `Aktuelt kan der ikke anvendes en reguleringsdato, fordi ${referenceText} ikke er udfyldt.`
+  : `Aktuelt anvendes ${referenceText}.`;
+
 export const resolveLoenReferencedatoText = (params: Readonly<{
   subject: 'lønnen';
   anvendtReguleringsdato: ISODateString | undefined;

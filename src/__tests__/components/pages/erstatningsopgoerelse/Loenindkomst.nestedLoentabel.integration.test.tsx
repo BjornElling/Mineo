@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
 import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoerelse';
@@ -21,6 +22,10 @@ import {
 import { hydrateSlimInputStoreForTest } from '../../../../test/actSafeInputStore';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 import type { StandardLoenTableRow } from '../../../../schemas/formSchemas';
+import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
+import { eoEmploymentFields } from '../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { serializeFieldAddress } from '../../../../inputCore/fieldAddress';
+import { toISODateString, type ISODateString } from '../../../../types/branded';
 
 // Den nested løntabel under et ansættelsesforhold (§1.11, §3.2). Kravet: hele kortet — inklusive løntabellens
 // placeholder-række OG dens committede rækker — kan renderes. Cellernes dataidentitet er nested (ejerens id +
@@ -40,22 +45,39 @@ const loenRow = (id: string, maaned: string, aar: string): StandardLoenTableRow 
   fpFvShSoBeloeb: undefined, pensionBeloeb: undefined,
 });
 
-const hydrate = (rows: readonly StandardLoenTableRow[]): void => {
+type HydrateOptions = Readonly<{
+  saerligFraDatoRegulering?: ISODateString;
+  tafBeregningsperiodeTil?: ISODateString;
+  skadedato?: ISODateString;
+  rejectedSaerligFraDatoRegulering?: string;
+}>;
+
+const hydrate = (rows: readonly StandardLoenTableRow[], options: HydrateOptions = {}): void => {
   const catalog = getProductionInputCatalog();
+  const employment = {
+    ...createDefaultLoenindkomstAnsaettelsesforhold(),
+    id: 'af-1',
+    indtaegtsoplysningerTableData: [...rows],
+    saerligFraDatoRegulering: options.saerligFraDatoRegulering,
+  };
+  const specialDateAddress = serializeFieldAddress(eoEmploymentFields.saerligFraDatoRegulering.bind('af-1').address);
   hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
     sections: {
-      stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
+      stamdata: {
+        ...STAMDATA_INITIAL_VALUES,
+        skadestype: 'Arbejdsulykke',
+        skadedato: options.skadedato,
+      }, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
       varigemen: null, forsoergertab: null, erhvervsevnetab: null,
       erstatningsopgoerelse: {
         ...createErstatningsopgoerelseInitialValues(),
-        loenindkomstAnsaettelsesforhold: [{
-          ...createDefaultLoenindkomstAnsaettelsesforhold(),
-          id: 'af-1',
-          indtaegtsoplysningerTableData: [...rows],
-        }],
+        tafBeregningsperiodeTil: options.tafBeregningsperiodeTil,
+        loenindkomstAnsaettelsesforhold: [employment],
       },
     },
-    rejectedInputs: {},
+    rejectedInputs: options.rejectedSaerligFraDatoRegulering === undefined
+      ? {}
+      : { [specialDateAddress]: { raw: options.rejectedSaerligFraDatoRegulering, reason: 'format' } },
   }));
 };
 
@@ -103,5 +125,50 @@ describe('EO-lønindkomst — nested løntabel under et ansættelsesforhold', ()
     await waitFor(() => {
       expect(screen.getAllByDisplayValue('2024').length).toBeGreaterThan(0);
     });
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  it('viser grundlagsikonet og forklarer beregningsperiodens aktuelle slutdato', async () => {
+    hydrate([], { tafBeregningsperiodeTil: toISODateString('2024-12-31') });
+    renderLoenindkomst();
+
+    await waitFor(() => {
+      expect(screen.getByText('Evt. særlig fra-dato for regulering')).toBeInTheDocument();
+    });
+    const label = screen.getByText('Evt. særlig fra-dato for regulering');
+    const icon = label.querySelector('svg');
+    expect(icon).not.toBeNull();
+
+    await userEvent.hover(icon!);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Aktuelt anvendes beregningsperiodens udløb (31-12-2024).'
+    );
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  it('viser ikke grundlagsikonet når den særlige dato er gyldig', async () => {
+    hydrate([], {
+      saerligFraDatoRegulering: toISODateString('2024-03-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
+    });
+    renderLoenindkomst();
+
+    await waitFor(() => {
+      expect(screen.getByText('Evt. særlig fra-dato for regulering')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Evt. særlig fra-dato for regulering').querySelector('svg')).toBeNull();
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  it('viser grundlagsikonet når den særlige dato er afvist som ugyldig råtekst', async () => {
+    hydrate([], {
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
+      rejectedSaerligFraDatoRegulering: '31-02-2024',
+    });
+    renderLoenindkomst();
+
+    await waitFor(() => {
+      expect(screen.getByText('Evt. særlig fra-dato for regulering')).toBeInTheDocument();
+    });
+    const label = screen.getByText('Evt. særlig fra-dato for regulering');
+    expect(label.querySelector('svg')).not.toBeNull();
+    expect(label.parentElement?.querySelector('input')).toHaveAttribute('aria-invalid', 'true');
   }, ASYNC_TEST_TIMEOUT_MS);
 });
