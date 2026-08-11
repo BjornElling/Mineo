@@ -39,17 +39,33 @@ export interface LoadSource {
 }
 
 /**
+ * Forventelig afvisning af en fil, som brugeren har valgt.
+ *
+ * Filvælgerens endelses- og størrelsesregler er en del af den normale brugerrejse, ikke en
+ * uventet systemfejl. Typen gør det muligt for både load-porten og UI-orchestratoren at bevare
+ * den konkrete besked uden at sende afvisningen gennem den tekniske fejlkanal.
+ */
+export class FileSelectionError extends Error {
+  readonly kind = 'file-selection' as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'FileSelectionError';
+  }
+}
+
+/**
  * Delt endelse- + størrelses-validering for en valgt fil. Tidligere verbatim-dupleret i alle tre
  * indlæsnings-grene; nu ét sted, så en `.eo`-fil valideres ens uanset hvordan den blev valgt.
  */
 export const assertLoadableEoFile = (file: File): void => {
   if (!file.name.toLowerCase().endsWith('.eo')) {
-    throw new Error('Valgt fil er ikke en .eo fil');
+    throw new FileSelectionError('Valgt fil er ikke en .eo fil');
   }
   if (file.size > MAX_FILE_SIZE) {
     const sizeMB = formatAsAmount(file.size / (1024 * 1024), 1);
     const maxSizeMB = formatAsAmount(MAX_FILE_SIZE / (1024 * 1024), 0);
-    throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
+    throw new FileSelectionError(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
   }
 };
 

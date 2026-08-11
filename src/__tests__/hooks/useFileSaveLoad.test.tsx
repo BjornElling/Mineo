@@ -74,6 +74,7 @@ import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
 import type { SettledInput } from '../../inputCore/settledInput';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import { writeOptionalSessionStorageValue } from '../../utils/safeSessionStorage';
+import { FileSelectionError } from '../../utils/fileLoadSource';
 
 type HookApi = ReturnType<typeof useFileSaveLoad>;
 
@@ -339,6 +340,37 @@ describe('useFileSaveLoad', () => {
   });
 
   describe('handleHent — atomisk preflight-gating', () => {
+    it('viser filvalideringsfejl uden teknisk console.error', async () => {
+      const handles = renderHook();
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      loadFromFileMock.mockRejectedValueOnce(new FileSelectionError('Valgt fil er ikke en .eo fil'));
+
+      await act(async () => {
+        await handles.api?.handleHent();
+      });
+
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(handles.showOverlay).toHaveBeenCalledWith({
+        message: 'Valgt fil er ikke en .eo fil',
+        type: 'error',
+      });
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('logger fortsat uventede loadfejl teknisk', async () => {
+      const handles = renderHook();
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const unexpectedError = new Error('Uventet læsefejl');
+      loadFromFileMock.mockRejectedValueOnce(unexpectedError);
+
+      await act(async () => {
+        await handles.api?.handleHent();
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Hent fejlede:', unexpectedError);
+      consoleErrorSpy.mockRestore();
+    });
+
     it('gennemfører hent uden settle selv med en åben editor (load er replace-policy, §1.4)', async () => {
       // Rebaset §1.4: en åben editor blokerer ALDRIG load — coordinatorens `prepare("load")` er
       // replace-policy (settler ikke). Load gennemføres, og draften kasseres først ved succes.

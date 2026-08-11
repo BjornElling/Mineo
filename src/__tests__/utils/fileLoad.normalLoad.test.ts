@@ -8,6 +8,8 @@ import { VERSION } from '../../config/buildInfo';
 import { FILE_FORMAT_VERSION } from '../../config/version';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { toISODateString } from '../../types/branded';
+import { FileSelectionError } from '../../utils/fileLoadSource';
+import { logError } from '../../utils/logger';
 
 const readFromFileHandleMock = vi.fn();
 
@@ -78,6 +80,8 @@ const makeValidContainer = async (overrides: Record<string, unknown> = {}): Prom
 // ─── loadFromFile – success ───────────────────────────────────────────────────
 
 describe('fileLoad – normalLoadFlow', () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it('returnerer success med snapshot ved gyldig fil', async () => {
     const content = await makeValidContainer();
     const file = new File([content], 'sag.eo', { type: 'application/octet-stream' });
@@ -108,7 +112,23 @@ describe('fileLoad – normalLoadFlow', () => {
     const file = new File(['data'], 'forkert.txt', { type: 'text/plain' });
     selectFileMock.mockResolvedValueOnce(file);
 
-    await expect(loadFromFile()).rejects.toThrow('ikke en .eo fil');
+    await expect(loadFromFile()).rejects.toMatchObject({
+      name: FileSelectionError.name,
+      message: 'Valgt fil er ikke en .eo fil',
+    });
+    expect(logError).not.toHaveBeenCalled();
+  });
+
+  it('logger stadig en reel fejl fra fil-læsningen', async () => {
+    const file = new File(['data'], 'sag.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockRejectedValueOnce(new Error('Læseren fejlede'));
+
+    await expect(loadFromFile()).rejects.toThrow('Læseren fejlede');
+    expect(logError).toHaveBeenCalledWith(
+      'Hent-operation fejlede',
+      expect.objectContaining({ context: 'loadFromFile' }),
+    );
   });
 
   it('kaster fejl for for stor fil', async () => {
@@ -121,7 +141,8 @@ describe('fileLoad – normalLoadFlow', () => {
     } as File;
     selectFileMock.mockResolvedValueOnce(file);
 
-    await expect(loadFromFile()).rejects.toThrow('for stor');
+    await expect(loadFromFile()).rejects.toBeInstanceOf(FileSelectionError);
+    expect(logError).not.toHaveBeenCalled();
     // Supress unused variable lint
     void bigContent;
   });

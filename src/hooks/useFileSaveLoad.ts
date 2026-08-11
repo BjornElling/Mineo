@@ -32,6 +32,7 @@ import type { CaseOperations } from '../inputCore/react/useCaseOperations';
 import type { ResetResidue } from '../persistence/caseResetOperations';
 import type { CriticalActionCoordinator } from '../inputCore/runtime/criticalActionCoordinator';
 import { logWarning } from '../utils/logger';
+import { FileSelectionError } from '../utils/fileLoadSource';
 
 // Shellens use-case for save/load/`Slet alt` mod input-runtime:
 //  - `.eo`-save går gennem `ops.file.evaluateSave()` (rejected råinput blokerer; canonical bounds-fejl kan gemmes,
@@ -135,6 +136,10 @@ const resolveSaveError = (error: unknown): OverlayData => {
 };
 
 const resolveLoadError = (error: unknown): { message: string; expected: boolean } => {
+  if (error instanceof FileSelectionError) {
+    return { message: error.message, expected: true };
+  }
+
   if (error instanceof Error && isCalculationError(error) && error.code === 'FILE_LOAD_FAILED') {
     const expected = error.cause instanceof EncryptionError;
     return { message: getUserMessage(error), expected };

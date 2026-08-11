@@ -17,6 +17,7 @@ import {
   assertLoadableEoFile,
   createManualLoadSource,
   createPwaLoadSource,
+  FileSelectionError,
   type LoadSource,
 } from './fileLoadSource';
 
@@ -217,12 +218,16 @@ const loadFromSource = async (source: LoadSource): Promise<LoadFileResult> => {
 };
 
 /**
- * Den kilde-uafhængige fejl-hale delt af begge load-entrypoints: en allerede-mappet
- * `FILE_LOAD_FAILED` passeres uændret videre; enhver anden fejl CPR-maskeres, logges og
- * kastes som en generisk dansk indlæsnings-fejl. Kilde-specifik mapping (fx PWA-handle-
- * tilladelse) skal ske FØR denne kaldes.
+ * Den kilde-uafhængige fejl-hale delt af begge load-entrypoints: forventelige afvisninger fra
+ * filvælgerens validering og allerede-mappede `FILE_LOAD_FAILED`-fejl passeres uændret videre.
+ * Enhver anden fejl CPR-maskeres, logges og kastes som en generisk dansk indlæsnings-fejl.
+ * Kilde-specifik mapping (fx PWA-handle-tilladelse) skal ske FØR denne kaldes.
  */
 const mapGenericLoadError = (error: unknown, context: string): never => {
+  if (error instanceof FileSelectionError) {
+    throw error;
+  }
+
   if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
     throw error;
   }
