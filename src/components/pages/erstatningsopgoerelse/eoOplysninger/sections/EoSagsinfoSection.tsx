@@ -28,10 +28,7 @@ import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
 
 /** Sektion 1: Erstatningsopgørelse-info (nummer, periode, status, bekræftelse). */
 export default function EoSagsinfoSection() {
-  const {
-    opgoerelseLavetDenInputRef,
-    statusSubheaderLabel,
-  } = useEoOplysningerVm();
+  const { statusSubheaderLabel } = useEoOplysningerVm();
   const opgoerelseLavetDenEditor = useFieldEditor(
     eoOpgørelseLavetDenField.bind(),
     { locationId: 'erstatningsopgoerelse.opgørelseLavetDen', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }
@@ -105,14 +102,12 @@ export default function EoSagsinfoSection() {
                 field={eoOpgørelseLavetDenField.bind()}
                 location={{ locationId: 'erstatningsopgoerelse.opgørelseLavetDen', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 name="opgørelseLavetDen"
-                inputRef={opgoerelseLavetDenInputRef}
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
                   opgoerelseLavetDenEditor.settleValue(today);
                   return true;
                 }}
-                focusRef={opgoerelseLavetDenInputRef}
               />
             </Box>
           </Box>

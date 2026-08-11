@@ -74,12 +74,10 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
   // valget mellem regulering/KRL/KL-lønaftaler, og den vælger først EFTER commit-barrieren — så et
   // grundlagsskifte i en åben editor ikke kan levere det forrige grundlags dokument.
   const reguleringDocument = useReguleringDocumentAction(CASE_REGULERING_REQUEST);
-  const opgoerelseLavetDenInputRef = React.useRef<HTMLInputElement>(null);
-
   return {
     values, skadedatoISO, erErhvervssygdom: stamdataValues.skadestype === 'Erhvervssygdom', forligFejl,
     svie, tafDerived, ferieFeriedageById, fravaerFeriedageById,
-    fravaer: { committedRowsEnsured: values.fravaerPerioder }, opgoerelseLavetDenInputRef,
+    fravaer: { committedRowsEnsured: values.fravaerPerioder },
     statusSubheaderLabel: formatLabelDayAfterIsoDate('Status ved erstatningsperiodens udløb', values.vedroererPeriodeTil, 'Status').replace(/:$/, ''),
     menAfgoerelseDatoForTabel: values.varigeMenAfgorelse === 'Ja' ? values.menAfgoerelseDato : undefined,
     endeligEETBeregnetDato: values.endeligtEETAfgorelse === 'Ja' ? (values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato) : undefined,

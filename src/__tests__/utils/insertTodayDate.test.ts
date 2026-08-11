@@ -24,28 +24,4 @@ describe('insertTodayDate', () => {
     expect(calledMs).toBeGreaterThan(before - twoDaysMs);
     expect(calledMs).toBeLessThan(after + twoDaysMs);
   });
-
-  it('uden focusRef → ingen fejl', () => {
-    const onCommit = vi.fn();
-    expect(() => insertTodayDate({ onCommit })).not.toThrow();
-    expect(onCommit).toHaveBeenCalled();
-  });
-
-  it('med focusRef.current = null → onCommit kaldes stadig', () => {
-    const onCommit = vi.fn();
-    const focusRef = { current: null };
-    insertTodayDate({ onCommit, focusRef });
-    expect(onCommit).toHaveBeenCalledOnce();
-  });
-
-  it('med focusRef.current = mock input → forsøger focus i næste frame', () => {
-    const onCommit = vi.fn();
-    const focus = vi.fn();
-    const mockInput = { focus } as unknown as HTMLInputElement;
-    const focusRef = { current: mockInput };
-    insertTodayDate({ onCommit, focusRef });
-    // onCommit kaldes synkront
-    expect(onCommit).toHaveBeenCalledOnce();
-    // focus er asynkron (requestAnimationFrame/setTimeout) — verificer at der ikke kastes
-  });
 });

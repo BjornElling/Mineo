@@ -284,7 +284,6 @@ const MenberegningTab = React.memo(() => {
             onCommit={(today) => {
               beregningsdatoController.settleValue(today);
             }}
-            focusRef={beregningsdatoInputRef}
           />
         </Box>
       </Box>

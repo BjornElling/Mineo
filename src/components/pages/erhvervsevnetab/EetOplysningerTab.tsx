@@ -49,7 +49,6 @@ const LOCATIONS = {
 
 const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
   const { values, skadedato } = projection;
-  const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, LOCATIONS.beregningsdato);
 
   const visKoenFelt = React.useMemo(() => {
@@ -96,13 +95,11 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               field={beregningsdatoRef}
               location={LOCATIONS.beregningsdato}
               name="beregningsdato"
-              inputRef={beregningsdatoInputRef}
             />
             <InsertTodayDateButton
               onCommit={(today) => {
                 beregningsdatoController.settleValue(today);
               }}
-              focusRef={beregningsdatoInputRef}
             />
           </Box>
         </Box>

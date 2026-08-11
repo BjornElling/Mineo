@@ -41,11 +41,9 @@ const ForsoergertabBeregningSection = React.memo(() => {
             field={vm.fields.beregningsdato}
             location={vm.locations.beregningsdato}
             name="beregningsdato"
-            inputRef={vm.beregningsdatoInputRef}
           />
           <InsertTodayDateButton
             onCommit={vm.settleBeregningsdato}
-            focusRef={vm.beregningsdatoInputRef}
           />
         </Box>
       </Box>

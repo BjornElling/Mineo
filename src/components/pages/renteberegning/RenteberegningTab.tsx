@@ -101,7 +101,6 @@ const RenteberegningTab = React.memo(({
   const [downloadAllIsLoading, setDownloadAllIsLoading] = React.useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = React.useState(false);
 
-  const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
 
   // Den ENE reader-afledte projektion (§3.4/§5.4) — tabeloutput og download-gates deler præcis samme sandhed.
@@ -155,13 +154,14 @@ const RenteberegningTab = React.memo(({
   const renderOversigtRow = showOversigtBox && renteOversigtDownload !== undefined && !isMobile;
   const renderClearAllRow = !isMobile;
 
-  // Slet-knappen deaktiveres når der intet er at slette (afgøres KUN fra afsluttet/committed state).
-  const hasAnyCommittedInput = React.useMemo(() => {
-    if (beregningsdato !== undefined) return true;
+  // Slet-knappen deaktiveres kun uden afsluttet input. En rejected dato er ikke beregningsklar, men er
+  // stadig brugerens indtastning og skal kunne ryddes gennem den samme recovery-handling.
+  const hasAnySettledInput = React.useMemo(() => {
+    if (beregningsdatoRead.status === 'error' || beregningsdato !== undefined) return true;
     if (kommentarer !== undefined && kommentarer.trim() !== '') return true;
     return committedRows.some((row) => !isRentekravRowEmpty(row));
-  }, [beregningsdato, committedRows, kommentarer]);
-  const clearAllDisabled = !hasAnyCommittedInput;
+  }, [beregningsdato, beregningsdatoRead.status, committedRows, kommentarer]);
+  const clearAllDisabled = !hasAnySettledInput;
 
   const handleClearAll = React.useCallback(async () => {
     // Draften forbliver urørt, mens dialogen er åben. Først efter bekræftelse gennemføres reset atomisk; ved
@@ -182,7 +182,6 @@ const RenteberegningTab = React.memo(({
                 field={beregningsdatoRef}
                 location={BEREGNINGSDATO_LOCATION}
                 name="beregningsdato"
-                inputRef={beregningsdatoInputRef}
                 width={isMobile ? 110 : 130}
                 singleStageClick={isMobile}
                 sx={isMobile
@@ -205,7 +204,6 @@ const RenteberegningTab = React.memo(({
                 onCommit={(today) => {
                   beregningsdatoController.settleValue(today);
                 }}
-                focusRef={beregningsdatoInputRef}
               />
             </Box>
           </Box>

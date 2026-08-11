@@ -85,6 +85,8 @@ Ingen fund afventer reproduktion.
 | BF-049 | Manglende endelig EET-dato vises som en ikke-blokerende gul advarsel på Beregning. |
 | BF-052 | Slet alt rydder den sagsnære aktive fanehistorik, så sider åbner på deres standardfane. |
 | BF-054 | En EET-afgørelse uden datoer oplyses nu som truffet i dokumentet i stedet for at blive påstået ikke-truffet; den bærer ingen referencedato og kan derfor fortsat ikke afgrænse TAF. |
+| BF-055 | Slet alle indtastninger er også aktiv ved en afsluttet afvist beregningsdato, så brugeren altid kan rydde siden. |
+| BF-056 | Indsæt dags dato bevarer fokus på den aktiverede knap på alle fem flader. |
 
 ## BF-033 — Valg-dropdowns kræver forkert præcision ved paste
 
@@ -96,31 +98,5 @@ Ingen fund afventer reproduktion.
 - Det sker: Paste-matchningen kræver aktuelt præcis samme store/små bogstaver og samme mellemrum som den viste label.
 - Det bør ske: Paste skal vælge ved fuldt label-match efter trimning og uden forskel på store og små bogstaver. Delvise eller ukendte labels skal fortsat give no-op uden at ændre det eksisterende valg.
 - Påvirkning: En gyldig valgmulighed fra eksempelvis en tekstkilde kan ignoreres, selv om den semantisk matcher den viste valgmulighed.
-- Prioritet: Mellem
-- Status: Ny
-
-## BF-055 — Slet alle indtastninger er inaktiv ved schema-ugyldig dato
-
-- Type: Fejl
-- Sted: MinProcesrente → feltet `Rente beregnes til og med` og knappen `Slet alle indtastninger`
-- Sådan fremprovokeres det:
-  1. Gå til MinProcesrente.
-  2. Indtast en værdi i `Rente beregnes til og med`, som indeholder tekst, men ikke kan godkendes af schemaet.
-- Det sker: Knappen `Slet alle indtastninger` forbliver inaktiv, selv om feltet indeholder brugerindtastet indhold.
-- Det bør ske: Knappen skal aktiveres straks, når der er indhold på siden, også når indholdet er schema-ugyldigt, så brugeren altid kan rydde siden.
-- Påvirkning: Brugeren kan ikke bruge sidens samlede ryddefunktion til at komme ud af en ugyldig indtastning.
-- Prioritet: Mellem
-- Status: Ny
-
-## BF-056 — Indsæt dags dato flytter fokus væk fra knappen
-
-- Type: Fejl
-- Sted: Datofelter med knappen `Indsæt dags dato`
-- Sådan fremprovokeres det:
-  1. Fokusér knappen `Indsæt dags dato` ved siden af et datofelt.
-  2. Aktivér knappen.
-- Det sker: Datoen indsættes, og fokus flyttes til det tilhørende datofelt.
-- Det bør ske: Datoen skal indsættes, mens fokus forbliver på knappen `Indsæt dags dato`.
-- Påvirkning: Tastaturbrugere mister deres fokusposition og får en uventet Tab-rækkefølge efter handlingen.
 - Prioritet: Mellem
 - Status: Ny

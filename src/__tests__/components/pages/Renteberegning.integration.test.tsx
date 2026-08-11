@@ -120,6 +120,33 @@ describe('Renteberegning — download-gate mod afsluttet input', () => {
     // Gaten blokerer nu (den globale beregningsdato er rejected) → oversigts-download er deaktiveret og servicen nås ikke.
     expect(screen.getByRole('button', { name: 'Download samlet oversigt' })).toBeDisabled();
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
+
+  });
+
+  it('lader Slet alle rydde en alene rejected beregningsdato (BF-055)', async () => {
+    const user = userEvent.setup();
+    hydrate([], undefined);
+    renderRenteberegning();
+
+    const clearAllButton = screen.getByRole('button', { name: 'Slet alle indtastninger' });
+    expect(clearAllButton).toBeDisabled();
+
+    const beregningsdatoBox = screen
+      .getByText('Rente beregnes til og med')
+      .closest('.row--label-right-hover') as HTMLElement;
+    const dateInput = within(beregningsdatoBox).getByRole('textbox') as HTMLInputElement;
+
+    await user.click(dateInput);
+    await user.type(dateInput, '99-99-9999');
+    await user.tab();
+
+    // Afvist råtekst er stadig brugerindtastet indhold, så den destruktive recovery-handling
+    // skal være mulig, selv om samme felt naturligt blokerer dokumenter.
+    expect(clearAllButton).toBeEnabled();
+
+    await user.click(clearAllButton);
+    await user.click(screen.getByRole('button', { name: 'Ja, slet' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Slet alle indtastninger' })).toBeDisabled());
   });
 
   it('canonical datoordensfejl i stamdata blokerer både række- og oversigtsdownload', async () => {

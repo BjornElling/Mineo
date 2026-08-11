@@ -8,19 +8,15 @@ import { mergeSx } from '../../utils/mergeSx';
 
 type InsertTodayDateButtonProps = Readonly<{
   onCommit: (today: ISODateString) => void;
-  focusRef?: React.RefObject<HTMLInputElement | null>;
   tooltip?: string;
   sx?: SxProps<Theme>;
 }>;
 
 const InsertTodayDateButton = React.memo(
-  ({ onCommit, focusRef, tooltip = 'Indsæt dags dato', sx }: InsertTodayDateButtonProps) => {
+  ({ onCommit, tooltip = 'Indsæt dags dato', sx }: InsertTodayDateButtonProps) => {
     const handleClick = React.useCallback(() => {
-      insertTodayDate({
-        onCommit,
-        focusRef,
-      });
-    }, [focusRef, onCommit]);
+      insertTodayDate({ onCommit });
+    }, [onCommit]);
 
     return (
       <Tooltip title={tooltip} arrow>

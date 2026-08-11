@@ -80,7 +80,6 @@ export function useForsoergertabViewModel() {
   const navigate = useNavigate();
   const evaluation = useInputEvaluation();
 
-  const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
 
   const projection = React.useMemo(
@@ -115,7 +114,6 @@ export function useForsoergertabViewModel() {
   return {
     fields: FIELDS,
     locations: LOCATIONS,
-    beregningsdatoInputRef,
     settleBeregningsdato,
     /**
      * Handlet gives ubearbejdet videre. UdfaldsBESKEDEN udledes i den sektion, der AKTIVERER downloaden —
