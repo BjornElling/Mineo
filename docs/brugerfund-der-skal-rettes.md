@@ -5,7 +5,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 
 ## Nye fund
 
-Næste ID: **BF-055**. Kopiér denne blok pr. fund:
+Næste ID: **BF-057**. Kopiér denne blok pr. fund:
 
 ```md
 ## BF-028 — Kort titel
@@ -99,8 +99,28 @@ Ingen fund afventer reproduktion.
 - Prioritet: Mellem
 - Status: Ny
 
-NYE BRUGERFUND, DER SKAL REGISTRERES:
+## BF-055 — Slet alle indtastninger er inaktiv ved schema-ugyldig dato
 
-- På minProcesrente-siden aktiveres 'Slet alle indtastninger' funktionen ikke, hvis den eneste indtastning er en schema-ugyldig værdi i feltet med "Rente beregnes til og med". Det er en fejl. "Slet alle indtastninger" skal være aktiveret i samme øjeblik noget indhold på siden er udfyldt.
+- Type: Fejl
+- Sted: MinProcesrente → feltet `Rente beregnes til og med` og knappen `Slet alle indtastninger`
+- Sådan fremprovokeres det:
+  1. Gå til MinProcesrente.
+  2. Indtast en værdi i `Rente beregnes til og med`, som indeholder tekst, men ikke kan godkendes af schemaet.
+- Det sker: Knappen `Slet alle indtastninger` forbliver inaktiv, selv om feltet indeholder brugerindtastet indhold.
+- Det bør ske: Knappen skal aktiveres straks, når der er indhold på siden, også når indholdet er schema-ugyldigt, så brugeren altid kan rydde siden.
+- Påvirkning: Brugeren kan ikke bruge sidens samlede ryddefunktion til at komme ud af en ugyldig indtastning.
+- Prioritet: Mellem
+- Status: Ny
 
-- På nuværende tidspunkt fungerer 'Indsæt dags dato' knappen sådan, at når den er anvendt, rykkes fokus til det tilhørende dato-felt. Det skal ikke være sådan. Fokus skal forblive på 'Indsæt dags dato' knappen efter den er trykket på.
+## BF-056 — Indsæt dags dato flytter fokus væk fra knappen
+
+- Type: Fejl
+- Sted: Datofelter med knappen `Indsæt dags dato`
+- Sådan fremprovokeres det:
+  1. Fokusér knappen `Indsæt dags dato` ved siden af et datofelt.
+  2. Aktivér knappen.
+- Det sker: Datoen indsættes, og fokus flyttes til det tilhørende datofelt.
+- Det bør ske: Datoen skal indsættes, mens fokus forbliver på knappen `Indsæt dags dato`.
+- Påvirkning: Tastaturbrugere mister deres fokusposition og får en uventet Tab-rækkefølge efter handlingen.
+- Prioritet: Mellem
+- Status: Ny
