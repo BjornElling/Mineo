@@ -10,7 +10,8 @@ import {
   eoSvieSmertePeriodeTilstandField,
   eoSvieSmertePerioderCollection,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import type { CollectionRef } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type CollectionRef } from '../../inputCore/fieldAddress';
+import type { FieldIssue, FieldIssueSet } from '../../inputCore/inputIssue';
 import type { SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { createEmptySvieCommittedRow, createSvieRowId } from '../../domain/erstatningsopgoerelse/tables/svieSmerteTableModel';
 import { isSvieSmerteRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
@@ -26,12 +27,14 @@ export type SvieSmerteTableProps = Readonly<{
   committedRows: readonly SvieSmertePeriodeRow[];
   derivedById: Readonly<Record<string, SvieSmerteDerived>>;
   saveOrderPath?: TableSaveOrderPath;
+  /** Svie/smerte-cutoff mod ménafgørelsen, projekteret pr. konkret datocelle. */
+  cutoffIssues?: FieldIssueSet;
 }>;
 
 const createEmptyRow = (id: string): SvieSmertePeriodeRow => createEmptySvieCommittedRow(id);
 const collection = eoSvieSmertePerioderCollection.template as CollectionRef;
 
-const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath }: SvieSmerteTableProps) => {
+const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath, cutoffIssues }: SvieSmerteTableProps) => {
   const table = useCollectionTable({
     collection,
     committedRows,
@@ -67,9 +70,23 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath 
       </TableRow></TableHead>
       <TableBody>{renderRows.map((row) => {
         const committed = table.committedById.get(row.rowId);
+        const fraCell = table.buildCellSpec(row, eoSvieSmertePeriodeFraField, 0);
+        const tilCell = table.buildCellSpec(row, eoSvieSmertePeriodeTilField, 1);
+        const cutoffFor = (cell: { field: { address: Parameters<typeof serializeFieldAddress>[0] } }): FieldIssue | undefined =>
+          cutoffIssues?.get(serializeFieldAddress(cell.field.address));
+        const fraCutoff = cutoffFor(fraCell);
+        const tilCutoff = cutoffFor(tilCell);
         return <TableRow key={row.rowId} data-mineo-row-id={row.rowId}>
-          <TableCell><GridDateCell gridCell={{ rowId: row.rowId, colIndex: 0 }} cell={table.buildCellSpec(row, eoSvieSmertePeriodeFraField, 0)} /></TableCell>
-          <TableCell><GridDateCell gridCell={{ rowId: row.rowId, colIndex: 1 }} cell={table.buildCellSpec(row, eoSvieSmertePeriodeTilField, 1)} /></TableCell>
+          <TableCell><GridDateCell
+            gridCell={{ rowId: row.rowId, colIndex: 0 }}
+            cell={fraCell}
+            {...(fraCutoff === undefined ? {} : { collectionRuleIssue: fraCutoff })}
+          /></TableCell>
+          <TableCell><GridDateCell
+            gridCell={{ rowId: row.rowId, colIndex: 1 }}
+            cell={tilCell}
+            {...(tilCutoff === undefined ? {} : { collectionRuleIssue: tilCutoff })}
+          /></TableCell>
           <TableCell><Typography variant="body1">{committed === undefined ? '' : (derivedById[committed.id]?.antalDage ?? '')}</Typography></TableCell>
           <RowDeleteLaneCell>
             <GridChoiceCell

@@ -50,6 +50,7 @@ import {
   getValidTafRange,
   resolveTafConstraintBounds,
 } from '../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { buildSvieSmerteCutoffErrorMessage } from '../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/engines/tafCalculations';
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import {
@@ -474,9 +475,13 @@ function validateSvieSmerteRowCompleteness(
         values.verserendeKlageMen === 'Nej' &&
         menAfgoerelseDato !== undefined;
       if (menBoundActive && menAfgoerelseDato !== undefined && row.til >= menAfgoerelseDato) {
+        const message = buildSvieSmerteCutoffErrorMessage({
+          value: row.til,
+          menAfgoerelseDato,
+        });
         errors.push({
           path: `${prefix}.til`,
-          message: `Til-dato kan ikke være på eller efter afgørelsesdato for varige mén (${menAfgoerelseDato})`,
+          message: message ?? `Til-dato kan ikke være på eller efter afgørelsesdato for varige mén (${menAfgoerelseDato})`,
           severity: 'error',
         });
       }

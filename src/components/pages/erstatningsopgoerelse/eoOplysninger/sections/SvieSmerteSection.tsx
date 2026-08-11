@@ -39,6 +39,7 @@ export default function SvieSmerteSection() {
   const {
     values,
     svie,
+    svieSmerteCutoffDateIssues,
   } = useEoOplysningerVm();
   const satserAarEditor = useFieldEditor(
     eoSvieSmerteSatserAarField.bind(),
@@ -90,6 +91,7 @@ export default function SvieSmerteSection() {
                   committedRows={values.svieSmertePerioder}
                   derivedById={svie.derivedById}
                   saveOrderPath="erstatningsopgoerelse.svieSmertePerioder"
+                  cutoffIssues={svieSmerteCutoffDateIssues}
                 />
 
                 <Box className="row--label-right-hover">

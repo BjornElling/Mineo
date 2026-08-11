@@ -12,6 +12,8 @@ export type EoOplysningerVm = ReturnType<typeof useEoOplysningerViewModel> & Rea
   manualRegulationDateIssues: FieldIssueSet;
   /** TAF-cutoff mod differencekrav/EET, adresseret pr. fra-/til-celle. */
   tafCutoffDateIssues: FieldIssueSet;
+  /** Svie/smerte-cutoff mod ménafgørelsen, adresseret pr. fra-/til-celle. */
+  svieSmerteCutoffDateIssues: FieldIssueSet;
 }>;
 
 const EoOplysningerVmContext = React.createContext<EoOplysningerVm | null>(null);

@@ -6,6 +6,7 @@ import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../..
 import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../../../utils/dateOrderValidation';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 import { formatDanishList } from '../../../utils/danishListFormatting';
+import { buildSvieSmerteCutoffErrorMessage } from './svieSmerteConstraints';
 
 /**
  * Ren (React-/kontrol-frit) blokerings-afgørelse for én svie/smerte-periode-række.
@@ -32,6 +33,8 @@ export type SvieSmertePeriodeBoundsContext = Readonly<{
   skadedatoISO: ISODateString | undefined;
   erErhvervssygdom: boolean;
   menAfgoerelseDatoForTabel: ISODateString | undefined;
+  /** Den oprindelige afgørelsesdato til den brugerrettede cutoff-besked (ikke dagen før). */
+  menAfgoerelseDato?: ISODateString | undefined;
   verserendeKlageMen: boolean;
 }>;
 
@@ -124,11 +127,22 @@ const evaluateOne = (
     return result.isValid ? undefined : result.errorMessage;
   })();
 
+  const menCutoffDate = !context.verserendeKlageMen ? context.menAfgoerelseDato : undefined;
+  const fraCutoffError = buildSvieSmerteCutoffErrorMessage({
+    value: fraISO,
+    menAfgoerelseDato: menCutoffDate,
+  });
+  const tilCutoffError = buildSvieSmerteCutoffErrorMessage({
+    value: tilISO,
+    menAfgoerelseDato: menCutoffDate,
+  });
+  const preferredCutoffError = fraCutoffError ?? tilCutoffError;
+
   const computedRangeMessages = [fraRangeErrorMessage, tilRangeErrorMessage].filter(
     (m): m is string => typeof m === 'string' && m.trim() !== ''
   );
 
-  const harFejl = computedRangeMessages.length > 0 || hasOverlap;
+  const harFejl = preferredCutoffError !== undefined || computedRangeMessages.length > 0 || hasOverlap;
 
   if (!allFilled) {
     const manglerFelter: string[] = [];
@@ -142,14 +156,20 @@ const evaluateOne = (
   if (harFejl) {
     const fraFoerTilError = hasDateOrderError(fraISO, tilISO) ? DATE_ORDER_ERROR_MESSAGE : undefined;
     const allMessages = computedRangeMessages.map((m) => m.trim()).filter((m) => m !== '');
-    const errorMessages = hasOverlap ? 'Der er overlappende perioder' : (fraFoerTilError ?? allMessages.join('; '));
+    const errorMessages = hasOverlap
+      ? 'Der er overlappende perioder'
+      : (preferredCutoffError ?? fraFoerTilError ?? allMessages.join('; '));
     const field: 'fra' | 'til' | undefined = hasOverlap
       ? undefined
-      : fraFoerTilError
-        ? 'til'
-        : fraRangeErrorMessage
-          ? 'fra'
-          : 'til';
+      : fraCutoffError
+        ? 'fra'
+        : tilCutoffError
+          ? 'til'
+          : fraFoerTilError
+            ? 'til'
+            : fraRangeErrorMessage
+              ? 'fra'
+              : 'til';
     return { kind: 'error', message: errorMessages, field };
   }
 

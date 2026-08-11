@@ -258,4 +258,38 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(projection.eoValues.loenindkomstAnsaettelsesforhold).toEqual([]);
     expect(projection.snapshot.revision).toBe('empty');
   });
+
+  it('projekterer svie/smerte-ménafgørelses-cutoff til de konkrete datofelter og den rette beregningsgren', () => {
+    const eo = buildValidEo();
+    const withSvieSmerteCutoff: ErstatningsopgoerelseValues = {
+      ...eo,
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
+      kravPaaSvieSmerteGodtgoerelse: 'Ja',
+      tidligereSsMax: 'Nej',
+      varigeMenAfgorelse: 'Ja',
+      verserendeKlageMen: 'Nej',
+      menAfgoerelseDato: toISODateString('2022-09-16'),
+      vedroererPeriodeFra: toISODateString('2022-04-01'),
+      vedroererPeriodeTil: toISODateString('2022-12-31'),
+      svieSmerteSatserAar: 2022,
+      svieSmerteDelvisSygemeldingSats: 'fuld',
+      svieSmerteHelbredsstatus: 'Sygemeldt',
+      svieSmertePerioder: [{
+        id: 'ss-1',
+        fra: toISODateString('2022-09-17'),
+        til: toISODateString('2022-10-01'),
+        tilstand: 'sygemeldt',
+      }],
+    };
+    const reader = buildReader(withSvieSmerteCutoff, validStamdata);
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'svie-cutoff' });
+
+    expect(projection.svieSmerteCutoffDateIssues.all.map((issue) => issue.field.address.field).sort()).toEqual(['fra', 'til']);
+    expect(projection.svieSmerteCutoffDateIssues.all[0]?.message).toBe(
+      'Der er angivet svie/smerte efter datoen for en ménafgørelse (16-09-2022)'
+    );
+    expect(projection.eoErrors.all).toEqual(expect.arrayContaining([...projection.svieSmerteCutoffDateIssues.all]));
+    expect(projection.snapshot.blockedDependencies?.svieSmerte).toBe(true);
+    expect(projection.snapshot.status).toBe('error');
+  });
 });

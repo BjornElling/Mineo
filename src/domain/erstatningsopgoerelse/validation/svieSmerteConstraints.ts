@@ -1,4 +1,4 @@
-import type { ISODateString } from '../../../types/branded';
+import { isoToDanish, type ISODateString } from '../../../types/branded';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 
 import { minISO, maxISO } from '../../../utils/isoDateHelpers';
@@ -17,6 +17,32 @@ export type SvieSmerteConstraintBounds = Readonly<{
   maxEnd?: ISODateString;
 }>;
 
+/** Den aktive afgørelsesdato, som stopper svie/smerte-perioder. */
+export const resolveSvieSmerteCutoffDate = (
+  values: SvieSmerteConstraintSource,
+): ISODateString | undefined => {
+  if (values.varigeMenAfgorelse !== 'Ja' || values.verserendeKlageMen !== 'Nej') return undefined;
+  return values.menAfgoerelseDato;
+};
+
+/**
+ * Den fælles brugerbesked for svie/smerte efter ménafgørelsen.
+ *
+ * Den bruges både af række-evalueringen og den strukturelle feltissue-projektion. Hvis de to steder bygger
+ * teksten hver for sig, får brugeren igen én besked ved feltet og en anden på Beregning-siden — netop den
+ * drift som den konkrete fejl afslørede.
+ */
+export const buildSvieSmerteCutoffErrorMessage = (args: Readonly<{
+  value: ISODateString | undefined;
+  menAfgoerelseDato: ISODateString | undefined;
+}>): string | undefined => {
+  if (args.value === undefined || args.menAfgoerelseDato === undefined || args.value < args.menAfgoerelseDato) {
+    return undefined;
+  }
+  const dateText = isoToDanish(args.menAfgoerelseDato) ?? args.menAfgoerelseDato;
+  return `Der er angivet svie/smerte efter datoen for en ménafgørelse (${dateText})`;
+};
+
 /**
  * Fejlgivende øvre grænse for svie/smerte-perioder: menAfgoerelseDato − 1.
  * Returnerer undefined hvis ménafgørelse ikke er endelig (verserendeKlageMen = 'Ja' eller
@@ -30,9 +56,7 @@ export type SvieSmerteConstraintBounds = Readonly<{
 export const resolveSvieSmerteFejlgivendeBounds = (
   values: SvieSmerteConstraintSource,
 ): SvieSmerteConstraintBounds => {
-  const shouldApplyMenCutoff =
-    values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej';
-  const menAfgoerelseDato = shouldApplyMenCutoff ? values.menAfgoerelseDato : undefined;
+  const menAfgoerelseDato = resolveSvieSmerteCutoffDate(values);
   const maxEnd = getDayBeforeIso(menAfgoerelseDato);
   return { maxEnd };
 };

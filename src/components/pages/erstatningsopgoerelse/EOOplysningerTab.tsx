@@ -16,20 +16,21 @@ import BilagsnumreSection from './eoOplysninger/sections/BilagsnumreSection';
 import type { FieldIssueSet } from '../../../inputCore/inputIssue';
 
 const EOOplysningerTab = React.memo(({
-  values, stamdataValues, manualRegulationDateIssues, tafCutoffDateIssues,
+  values, stamdataValues, manualRegulationDateIssues, tafCutoffDateIssues, svieSmerteCutoffDateIssues,
 }: {
   values: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
   manualRegulationDateIssues: FieldIssueSet;
   tafCutoffDateIssues: FieldIssueSet;
+  svieSmerteCutoffDateIssues: FieldIssueSet;
 }) => {
   // View-model-laget bygges her og deles med sektion-komponenterne via konteksten (jf. A1):
   // hver sektion forbruger `useEoOplysningerVm()` i stedet for at modtage props. Fanen er nu en
   // ren komposition af sektioner + den side-lokale løntrin-finder-overlay.
   const baseVm = useEoOplysningerViewModel(values, stamdataValues);
   const vm = React.useMemo(
-    () => ({ ...baseVm, manualRegulationDateIssues, tafCutoffDateIssues }),
-    [baseVm, manualRegulationDateIssues, tafCutoffDateIssues]
+    () => ({ ...baseVm, manualRegulationDateIssues, tafCutoffDateIssues, svieSmerteCutoffDateIssues }),
+    [baseVm, manualRegulationDateIssues, tafCutoffDateIssues, svieSmerteCutoffDateIssues]
   );
   const { loentrinFinder } = baseVm;
 

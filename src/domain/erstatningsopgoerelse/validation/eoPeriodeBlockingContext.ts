@@ -2,6 +2,7 @@ import type { PersistedSectionMap } from '../../../config/persistenceRegistry';
 import type { ISODateString } from '../../../types/branded';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { resolveMidlertidigEetDatoHvisAktiv } from './tafPeriodConstraints';
+import { resolveSvieSmerteCutoffDate } from './svieSmerteConstraints';
 
 /**
  * Afledning af de dato-/afgørelses-grænser som periode-blokeringen (svie/smerte, TAF, ferie)
@@ -19,6 +20,8 @@ export type SvieSmerteContext = {
   skadedatoISO: ISODateString | undefined;
   erErhvervssygdom: boolean;
   menAfgoerelseDatoForTabel: ISODateString | undefined;
+  /** Den oprindelige afgørelsesdato til fejltekster; tabelgrænsen er dagen før. */
+  menAfgoerelseDato: ISODateString | undefined;
   verserendeKlageMen: boolean;
 };
 
@@ -37,16 +40,15 @@ export const buildSvieSmerteContext = (
   erstatningsopgoerelseValues: ErstatningsopgoerelseValues
 ): SvieSmerteContext => {
   const erErhvervssygdom = stamdataValues.skadestype === 'Erhvervssygdom';
-  const menAfgoerelseDatoForTabel =
-    erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja'
-      ? getDayBeforeIso(erstatningsopgoerelseValues.menAfgoerelseDato)
-      : undefined;
+  const menAfgoerelseDato = resolveSvieSmerteCutoffDate(erstatningsopgoerelseValues);
+  const menAfgoerelseDatoForTabel = getDayBeforeIso(menAfgoerelseDato);
   const verserendeKlageMen = erstatningsopgoerelseValues.verserendeKlageMen === 'Ja';
 
   return {
     skadedatoISO: stamdataValues.skadedato,
     erErhvervssygdom,
     menAfgoerelseDatoForTabel,
+    menAfgoerelseDato,
     verserendeKlageMen,
   };
 };

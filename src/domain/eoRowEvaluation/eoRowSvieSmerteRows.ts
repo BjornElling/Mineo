@@ -11,6 +11,7 @@ import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { evaluateSvieSmertePerioder } from '../erstatningsopgoerelse/validation/svieSmertePeriodeValidation';
+import { resolveSvieSmerteCutoffDate } from '../erstatningsopgoerelse/validation/svieSmerteConstraints';
 import { mergeDateRanges } from '../erstatningsopgoerelse/engines/isoRangeAlgebra';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
@@ -28,6 +29,7 @@ export const buildEoSvieSmerteRows = (
     skadedatoISO: ISODateString | undefined;
     erErhvervssygdom: boolean;
     menAfgoerelseDatoForTabel: ISODateString | undefined;
+    menAfgoerelseDato?: ISODateString | undefined;
     verserendeKlageMen: boolean;
   }>,
   canonicalOutput?: EoCanonicalOutput
@@ -57,6 +59,7 @@ export const buildEoSvieSmerteRows = (
     skadedatoISO: context.skadedatoISO,
     erErhvervssygdom: context.erErhvervssygdom,
     menAfgoerelseDatoForTabel: context.menAfgoerelseDatoForTabel,
+    menAfgoerelseDato: context.menAfgoerelseDato ?? resolveSvieSmerteCutoffDate(values),
     verserendeKlageMen: context.verserendeKlageMen,
   });
 
