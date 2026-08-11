@@ -3,7 +3,8 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-10 (§1.2's modalitets-uafhængighed er målt i browser og dækket af
+**Senest verificeret mod kode:** 2026-08-11 (§4.6a er dækket i alle desktopbrowsere af
+`e2e/svie-smerte-satsaar-button.spec.ts`; §1.2's modalitets-uafhængighed er målt i browser og dækket af
 `e2e/mobile-virtual-keyboard-limits.spec.ts`; verifikationen 2026-08-09 nedenfor målte KUN tastning og
 overså derfor, at værnet var fraværende på mobile skærmtastaturer)
 2026-08-09 (§1.2, §1.2a, §2.1, §2.2, §2.3, §2.5 og §4.10's længdedel er
@@ -439,6 +440,18 @@ brugeren skriver i, jf. §1.2:
   datoen alligevel og markeres rødt; knappen disabledes ikke af denne rangefejl.
 - Én aktivering kan fortrydes med ét undo-trin. Gentagne aktiveringer med samme dags dato giver ikke overflødige
   undo-trin.
+
+### 4.6a `Indsæt aktuelt årstal` ved svie/smerte-satsår
+
+- Knappen står til højre for `Hvilket års svie/smerte-satser lægges til grund?`, har samme udseende og native
+  knapadfærd som den almindelige `Indsæt dags dato`-knap, men med tooltippen `Indsæt aktuelt årstal`, og indgår i
+  den almindelige Tab-rækkefølge.
+- Ved aktivering anvendes kalenderåret én måned efter `Opgørelse lavet den`, hvis feltet har en afsluttet canonical
+  dato; ellers anvendes kalenderåret én måned efter dags dato på aktiveringstidspunktet. Månedstilføjelsen følger
+  den fælles clamp-semantik for månedsslut.
+- Knappen indsætter det afledte år, når både svie/smerte-dagssatsen og maksimumssatsen findes for året. Mangler
+  den fremtidige satsrække, indsættes i stedet det højeste tidligere år med begge satser. Indsættelsen går gennem
+  årsfeltets normale settle-vej, bevarer knapfokus og giver højst ét undo-trin.
 
 ### 4.7 `Indsæt udkast-stempel`
 

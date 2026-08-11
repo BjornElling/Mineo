@@ -6,6 +6,7 @@ import RadioField from '../../../../../inputCore/react/fields/RadioField';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
 import YearField from '../../../../../inputCore/react/fields/YearField';
 import AmountField from '../../../../../inputCore/react/fields/AmountField';
+import InsertTodayDateButton from '../../../../inputs/InsertTodayDateButton';
 import SvieSmerteTable from '../../../../tables/SvieSmerteTable';
 import {
   eoKravPaaSvieSmerteGodtgoerelseField,
@@ -15,6 +16,7 @@ import {
   eoSvieSmerteTidligereTotalField,
   eoTidligereSsMaxField,
 } from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { useFieldEditor } from '../../../../../inputCore/react/useFieldEditor';
 import {
   erSvieSmerteSektionAktiv,
   erSvieSmertePeriodeInputRelevant,
@@ -29,6 +31,7 @@ import {
 import { SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS } from '../../../../../schemas/formSchemas';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
+import { resolveSvieSmerteSatsAarForReferenceDate } from '../../../../../domain/erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 // route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 4: Svie- og smertegodtgørelse (krav, periode-tabel, satser, tidligere godtgørelse). */
@@ -37,6 +40,10 @@ export default function SvieSmerteSection() {
     values,
     svie,
   } = useEoOplysningerVm();
+  const satserAarEditor = useFieldEditor(
+    eoSvieSmerteSatserAarField.bind(),
+    { locationId: 'erstatningsopgoerelse.svieSmerteSatserAar', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }
+  );
 
   return (
       <ContentBox className="content-box" data-section-id="sviesmerte">
@@ -88,12 +95,21 @@ export default function SvieSmerteSection() {
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Hvilket års svie/smerte-satser lægges til grund?</Typography>
                   <Box className="row--label-right-hover__content">
-                    <YearField
-                      field={eoSvieSmerteSatserAarField.bind()}
-                      location={{ locationId: 'erstatningsopgoerelse.svieSmerteSatserAar', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
-                      name="svieSmerteSatserAar"
-                      width={100}
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <YearField
+                        field={eoSvieSmerteSatserAarField.bind()}
+                        location={{ locationId: 'erstatningsopgoerelse.svieSmerteSatserAar', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
+                        name="svieSmerteSatserAar"
+                        width={100}
+                      />
+                      <InsertTodayDateButton
+                        tooltip="Indsæt aktuelt årstal"
+                        onCommit={(today) => {
+                          const satserAar = resolveSvieSmerteSatsAarForReferenceDate(values.opgørelseLavetDen ?? today);
+                          if (satserAar !== undefined) satserAarEditor.settleValue(satserAar);
+                        }}
+                      />
+                    </Box>
                   </Box>
                 </Box>
 

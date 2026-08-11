@@ -20,7 +20,8 @@ import type { AmountValue } from '../schemas/amountExpressionSchema';
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
 import { isISODateString, isoToDanish, type ISODateString } from '../types/branded';
-import { aarsloenAslMax, getYearBoundsForYearlyRate, reguleringssats, svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
+import { aarsloenAslMax, getYearBoundsForYearlyRate, reguleringssats, satserAngivAarYearBounds } from '../data/lovbestemteRates';
+import { hasSvieSmerteSatserForAar } from '../domain/erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 import { resolveKildeReguleringsIntervalIso } from '../domain/erstatningsopgoerelse/helpers/reguleringKildeCoverage';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
@@ -398,9 +399,7 @@ function validateSvieSmerte(values: ErstatningsopgoerelseValues): ValidationErro
         severity: 'error',
       });
     } else {
-      const harPrDag = satserAar in svieSmertePrDag;
-      const harMax = satserAar in svieSmerteMax;
-      if (!harPrDag || !harMax) {
+      if (!hasSvieSmerteSatserForAar(satserAar)) {
         errors.push({
           path: 'svieSmerteSatserAar',
           message: `Satser findes ikke for år ${satserAar} (tilgængelige: ${satserAngivAarYearBounds.minYear}–${satserAngivAarYearBounds.maxYear})`,

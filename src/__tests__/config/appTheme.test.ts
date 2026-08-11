@@ -26,7 +26,8 @@ describe('buildTheme', () => {
       maxWidth: '360px',
       textAlign: 'left',
       whiteSpace: 'normal',
-      overflowWrap: 'normal',
+      textWrap: 'balance',
+      overflowWrap: 'break-word',
       wordBreak: 'normal',
     });
   });

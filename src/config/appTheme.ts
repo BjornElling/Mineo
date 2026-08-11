@@ -60,7 +60,10 @@ export const buildTheme = (mode: AppThemeMode): Theme =>
             maxWidth: '360px',
             textAlign: 'left',
             whiteSpace: 'normal',
-            overflowWrap: 'normal',
+            // Balance holder den sidste linje fra at blive et enkelt restord; break-word er kun nødværnet
+            // for et langt sammenhængende token, som ellers ville stikke ud af den fælles maksimumsbredde.
+            textWrap: 'balance',
+            overflowWrap: 'break-word',
             wordBreak: 'normal',
           },
         },

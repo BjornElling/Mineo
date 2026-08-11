@@ -16,4 +16,4 @@ export const PERIODE_INFO_TOOLTIP =
   'Indsæt alle perioder. Tidligere indtastede perioder skal ikke slettes ved senere opgørelse.';
 
 export const DELVIS_SYGEMELDING_SATS_INFO_TOOLTIP =
-  'Juridisk omtvistet, men nyere\nretspraksis hælder mod fuld sats';
+  'Juridisk omtvistet, men nyere retspraksis hælder mod fuld sats';

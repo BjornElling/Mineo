@@ -2,7 +2,6 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish, dateToISO } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS } from '../../schemas/formSchemas';
-import { addMonths } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { presentIssuesForRow, resolveEoRowDisplay } from './eoRowCommon';
 import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
@@ -18,17 +17,8 @@ import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { erSvieSmerteTidligereTotalRelevant } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
+import { getYearOneMonthAfter, hasSvieSmerteSatserForAar } from '../erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
-
-const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
-  if (!isoDate) return undefined;
-  // Kanonisk addMonths (clamp til månedsslut) — ÉN "læg måneder til dato"-semantik i
-  // hele kodebasen, ingen rå setUTCMonth-rollover. Adfærdsbevarende her, fordi vi kun
-  // udtrækker *årstallet*: clamp og rollover er kun forskellige i dag-på-måneden, og den
-  // forskel kan aldrig ændre året. December + 1 måned ruller ganske vist til næste år —
-  // men identisk under begge semantikker — så det udtrukne år er det samme.
-  return addMonths(isoDateToDate(isoDate), 1).getUTCFullYear();
-};
 
 
 export const buildEoSvieSmerteRows = (
@@ -188,11 +178,11 @@ export const buildEoSvieSmerteRows = (
   const satserAarMangler = harPerioder && !isNonEmptyString(satserAarValue);
   const satserAarParsed = Number.parseInt(satserAarValue?.trim() ?? '', 10);
   const hasValidSatserAar = Number.isInteger(satserAarParsed);
-  const opgoerelsePlusOneMonthYear = getYearAfterAddingOneMonth(values.opgørelseLavetDen);
+  const opgoerelsePlusOneMonthYear = values.opgørelseLavetDen === undefined
+    ? undefined
+    : getYearOneMonthAfter(values.opgørelseLavetDen);
   const hasSatserForOpgoerelsePlusOneMonthYear =
-    typeof opgoerelsePlusOneMonthYear === 'number' &&
-    typeof svieSmertePrDag[opgoerelsePlusOneMonthYear] === 'number' &&
-    typeof svieSmerteMax[opgoerelsePlusOneMonthYear] === 'number';
+    typeof opgoerelsePlusOneMonthYear === 'number' && hasSvieSmerteSatserForAar(opgoerelsePlusOneMonthYear);
   const shouldShowSatsYearSuggestionWarning =
     satserAarResolved.status !== 'error' &&
     !satserAarMangler &&
