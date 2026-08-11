@@ -228,9 +228,9 @@ lovbestemte grænser og afrundinger ligger dermed uændret i kroner.
 
 Se [fejlkatalog.md](./fejlkatalog.md) for komplet katalog. Fane 4 producerer:
 
-**Blokerende fejl:** `aarsloen-missing`, `aarsloen-zero`, `eal-aarsloen-zero`, `eet-pct-missing`, `eal-eet-pct-invalid`, `asl-selected-eet-pct-invalid`, `asl-identiske-afgoerelser`, `fodselsdato-missing`, `beregningsdato-missing`, `skadedato-missing`, `reguleringssats-missing`, `eet-max-missing`, `alder-unresolved`.
+**Blokerende fejl:** `aarsloen-missing`, `aarsloen-zero`, `eal-aarsloen-zero`, `eet-pct-missing`, `eal-eet-pct-invalid`, `asl-selected-eet-pct-invalid`, `asl-identiske-afgoerelser` (kun ved ASL-fallback), `fodselsdato-missing`, `beregningsdato-missing`, `skadedato-missing`, `reguleringssats-missing`, `eet-max-missing`, `alder-unresolved`.
 
-**Advarsler:** `warn-eal-eet-under-15`, `warn-asl-eet-under-15`, `warn-eal-aarsloen-empty-for-2024-07-01`, `warn-eal-aarsloen-is-max`, `warn-asl-aarsloen-is-max`.
+**Advarsler:** `warn-beregningsdato-foer-skadedato`, `warn-eal-eet-under-15`, `warn-asl-eet-under-15`, `warn-eal-aarsloen-empty-for-2024-07-01`, `warn-eal-aarsloen-is-max`, `warn-asl-aarsloen-is-max`.
 
 ### Tests
 

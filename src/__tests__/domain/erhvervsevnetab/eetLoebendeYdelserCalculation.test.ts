@@ -1579,7 +1579,7 @@ describe('toAfgoerelseTypeLabel', () => {
 });
 
 describe('warn-asl-aarsloen-is-max', () => {
-  it('viser advarsel når indtastet årsløn er præcis lig maksimum for skadesåret', () => {
+  it('viser ikke advarsel på Løbende ydelser, selv når ASL-årslønnen er lig maksimum', () => {
     const maxAarsloen2019 = aarsloenAslMax[2019];
     if (!Number.isFinite(maxAarsloen2019)) throw new Error('expected max salary for 2019');
 
@@ -1606,7 +1606,7 @@ describe('warn-asl-aarsloen-is-max', () => {
       skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
-    expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(true);
+    expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(false);
   });
 
   it('viser ikke advarsel når indtastet årsløn er højere end maksimum for skadesåret', () => {

@@ -95,7 +95,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Vises på | F2, F3, F4, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
 | Betingelse F2, F3 | `aslAarsloenRaw === 0` |
-| Betingelse F4, F5 | `aslAarsloenRaw === 0` og `ealAarsloenRaw !== 0`. Hvis `ealAarsloenRaw === 0` emitteres i stedet `eal-aarsloen-zero`. |
+| Betingelse F4, F5 | `ealAarsloenRaw === undefined` og `aslAarsloenRaw <= 0`. Hvis EAL-årslønnen er udfyldt med 0 eller negativ, emitteres i stedet `eal-aarsloen-zero`. |
 
 #### `aarsloen-max-missing` — "Maksimum årsløn mangler for år {år}."
 | Felt | Værdi |
@@ -141,9 +141,10 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Felt | Værdi |
 |---|---|
 | Type | Fejl |
-| Vises på | F2, F3, F4, F5 |
+| Vises på | F2, F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | To rækker har identisk afgørelsesdato **og** virkningsdato. Afgørelsestype indgår ikke. Blokerer alle faner. |
+| Betingelse F2, F3 | To rækker har identisk afgørelsesdato **og** virkningsdato. Afgørelsestype indgår ikke. |
+| Betingelse F5 | Samme som F2/F3, men kun når `ealEetPct` ikke er udfyldt eller er 0, fordi EAL ellers ikke bruger afgørelsestabellen. |
 
 #### `no-endelig-afgoerelser` — "Ingen endelig eller delvist endelig afgørelser indtastet."
 | Felt | Værdi |
@@ -352,6 +353,14 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 
 ## Del 3 — Advarsler
 
+#### `warn-beregningsdato-foer-skadedato` — "Beregningsdatoen ligger før skadedatoen. Kravet opreguleres ikke — kontrollér datoerne."
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F4, F5 |
+| Navigationslink | EET oplysninger → Grundlæggende oplysninger |
+| Betingelse | `beregningsdato < skadedato`. Beregningen fortsætter uden opregulering. |
+
 #### `warn-asl-eet-under-15` — "Der er indtastet en afgørelse med < 15 % erhvervsevnetab."
 | Felt | Værdi |
 |---|---|
@@ -445,10 +454,9 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 | Felt | Værdi |
 |---|---|
 | Type | Advarsel |
-| Vises på | F2, F4, F5 |
+| Vises på | F4, F5 |
 | Navigationslink | EET oplysninger → Erstatningsansvarsloven |
-| Betingelse F2 | `ealAarsloen` ikke udfyldt og `aslAarsloen` er præcis lig maks. årsløn for skadesåret |
-| Betingelse F4, F5 | `ealAarsloen` ikke udfyldt og `aslAarsloen` er præcis lig maks. årsløn for skadesåret |
+| Betingelse | `ealAarsloen` ikke udfyldt og `aslAarsloen` er præcis lig maks. årsløn for skadesåret |
 
 ---
 

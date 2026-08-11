@@ -41,6 +41,28 @@ describe('computeEetEalCalculation', () => {
     expect(result.issues).toContainEqual({ id: issueId, severity: 'error', message });
   });
 
+  it('ignorerer ugyldig ASL-årsløn, når EAL-årslønnen er udfyldt positivt', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        ealAarsloen: asAmount(600000),
+        aslAarsloen: asAmount(0),
+        ealEetPct: 40,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+    expect(result.computation?.aarsloenSource).toBe('eal');
+    expect(result.issues.some((issue) => issue.id === 'aarsloen-zero')).toBe(false);
+    expect(result.computation).not.toBeNull();
+  });
+
   it.each([-5, 105])('blokerer EAL-procent %s uden monteret felt', (ealEetPct) => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
@@ -251,6 +273,42 @@ describe('computeEetEalCalculation', () => {
 
     expect(result.computation).toBeNull();
     expect(result.issues.some((issue) => issue.message.includes('identiske afgørelser'))).toBe(true);
+  });
+
+  it('ignorerer identiske ASL-afgørelser, når EAL-EET-procenten er udfyldt', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        aslAarsloen: asAmount(500000),
+        ealAarsloen: asAmount(600000),
+        ealEetPct: 40,
+        aslAfgoerelser: [
+          aslRow({
+            id: 'a',
+            afgoerelsesDato: iso('2025-01-01'),
+            virkningsDato: iso('2025-06-01'),
+            eetPct: 40,
+            afgoerelseType: 'Endelig',
+          }),
+          aslRow({
+            id: 'b',
+            afgoerelsesDato: iso('2025-01-01'),
+            virkningsDato: iso('2025-06-01'),
+            eetPct: 45,
+            afgoerelseType: 'Endelig',
+          }),
+        ],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+    expect(result.computation).not.toBeNull();
+    expect(result.issues.some((issue) => issue.id === 'asl-identiske-afgoerelser')).toBe(false);
   });
 
   it('giver fejl når EET % ikke kan bestemmes fra EAL eller ASL', () => {

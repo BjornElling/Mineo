@@ -47,7 +47,12 @@ describe('resolveEetIssueNavigation', () => {
   });
 
   it('router beregningsdato/maks-fejl til grundlæggende oplysninger', () => {
-    for (const id of ['beregningsdato-missing', 'beregningsdato-invalid', 'eet-max-missing']) {
+    for (const id of [
+      'beregningsdato-missing',
+      'beregningsdato-invalid',
+      'warn-beregningsdato-foer-skadedato',
+      'eet-max-missing',
+    ]) {
       const nav = resolveEetIssueNavigation(id);
       expect(nav?.route).toBe(APP_ROUTES.erhvervsevnetab);
       expect(nav?.sectionId).toBe('eet-oplysninger-grundlaeggende');

@@ -231,13 +231,17 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const aslAarsloenRaw = amountValueToNumber(values.aslAarsloen);
   if (ealAarsloenRaw !== undefined && ealAarsloenRaw <= 0) {
     issues.push(toIssue('eal-aarsloen-zero', 'EAL-årsløn skal være større end 0 kr'));
-  } else if (aslAarsloenRaw !== undefined && aslAarsloenRaw <= 0) {
+  } else if (ealAarsloenRaw === undefined && aslAarsloenRaw !== undefined && aslAarsloenRaw <= 0) {
+    // ASL-årslønnen er kun en EAL-afhængighed ved fallback. En ugyldig ASL-værdi må derfor ikke blokere
+    // EAL-fanen, når brugeren allerede har angivet en positiv EAL-årsløn.
     issues.push(toIssue('aarsloen-zero', 'Årsløn skal være større end 0 kr'));
   } else if (aarsloen.value === null || aarsloen.source === null) {
     issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
   }
 
-  if (hasIdenticalAfgoerelser(values.aslAfgoerelser ?? [])) {
+  // Identiske ASL-afgørelser er kun relevante, når EAL-EET-procenten skal findes via ASL-fallbacken.
+  // Med en positiv EAL-procent læser denne beregning ikke afgørelsestabellen.
+  if ((values.ealEetPct === undefined || values.ealEetPct === 0) && hasIdenticalAfgoerelser(values.aslAfgoerelser ?? [])) {
     issues.push(toIssue(ASL_IDENTICAL_AFGOERELSER_ID, 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato'));
   }
 

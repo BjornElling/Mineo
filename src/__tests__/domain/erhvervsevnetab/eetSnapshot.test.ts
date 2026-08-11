@@ -91,6 +91,29 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.differencekrav.hasBlockingErrors).toBe(false);
   });
 
+  it('viser ikke EAL-irrelevante ASL-issues, når EAL-felterne er de primære', () => {
+    const values = createValues();
+    const duplicateRow = { ...values.aslAfgoerelser[0], id: 'row-2' };
+    const snapshot = computeEetSnapshot({
+      values: {
+        ...values,
+        aslAarsloen: { kind: 'number', value: 0 },
+        aslAfgoerelser: [values.aslAfgoerelser[0], duplicateRow],
+      },
+      stamdata: createStamdata(),
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: {},
+        faellesAarsloen: {},
+      },
+    });
+
+    expect(snapshot.efterEal.issues.some((issue) => issue.id === 'aarsloen-zero')).toBe(false);
+    expect(snapshot.efterEal.issues.some((issue) => issue.id === 'asl-identiske-afgoerelser')).toBe(false);
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(false);
+    expect(snapshot.efterEal.computation).not.toBeNull();
+  });
+
   it('propagerer feltfejl ind i alle relevante tab-projektioner', () => {
     const snapshot = computeEetSnapshot({
       values: createValues(),

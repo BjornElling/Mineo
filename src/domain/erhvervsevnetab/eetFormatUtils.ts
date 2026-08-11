@@ -97,6 +97,7 @@ const STAMDATA_IDS = new Set([
 const GRUNDLAEGGENDE_IDS = new Set([
   'beregningsdato-missing',
   'beregningsdato-invalid',
+  'warn-beregningsdato-foer-skadedato',
   'field-beregningsdato',
   'eet-max-missing',
   'proforma-kapitaliseringsbekendtgoerelse-missing',
