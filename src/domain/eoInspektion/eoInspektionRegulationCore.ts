@@ -51,6 +51,7 @@ import { findLatestByDateInSortedList, findLatestByDateKeyInSortedList } from '.
 import { buildShDageSetFromIsoRange, buildFerieDageSetForPeriode } from '../erstatningsopgoerelse/engines/tafDaySets';
 import type { LoenudviklingModel } from '../erstatningsopgoerelse/shared/eoTypes';
 import { type ReguleringForloeb, resolveForloebForAnsaettelse } from '../erstatningsopgoerelse/engines/reguleringForloeb';
+import { resolveSkadestypeDatoLabel } from '../policies/stamdataCalculations';
 
 const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 
@@ -593,7 +594,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     // så den fælles angivetLoenOpreguleresFraDato gælder for hele løkken.
     const referenceLabel =
       referenceIso === skadedatoIso
-        ? (input.stamdataValues.skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato') // 'Skadedato' uden s, jf. kanonisk betegnelse
+        ? resolveSkadestypeDatoLabel(input.stamdataValues.skadestype) // feltets ene navneregel (§3.2a)
         : (
             input.eoValues.beregnesUdFra === 'Beregningsperiode'
             && !saerligFraDatoRegulering

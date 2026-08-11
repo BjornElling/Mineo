@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -160,11 +160,11 @@ describe('MainLayout (unsaved beforeunload)', () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     pendingPwaRequest = null;
-    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+    hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   afterEach(() => {
-    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+    hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   it('prevents beforeunload after committed input change', async () => {
@@ -195,7 +195,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
   it('keeps beforeunload disabled after session hydration without a new commit', async () => {
     // Hydration sætter baseline uden at hæve revisionen ud over den → ingen unsaved-guard.
-    __hydrateSlimInputStoreForTest(slimInputStore,
+    hydrateSlimInputStoreForTest(slimInputStore,
       catalog.validateSettledInput({
         sections: { ...emptyInput().sections, satser: { aargang: 2020 } },
         rejectedInputs: {},

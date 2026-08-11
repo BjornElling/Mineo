@@ -13,6 +13,7 @@ import {
   type InputMutationCommand,
   type SettledInput,
 } from '../../../inputCore';
+import { toAnyFieldRef } from '../../../inputCore/fieldDescriptor';
 import {
   aarsloenLoenperiodeField,
   aarsloenTableCol0DagField,
@@ -75,6 +76,25 @@ const evaluate = (input: SettledInput) => createInputEvaluation({ input, catalog
 const tableRef = createCollectionRef({ section: 'aarsloen', path: [], collection: 'tableData' });
 
 describe('produktdescriptors — dato-, periode- og relevansregler', () => {
+  it('bruger den aktuelle kontekstuelle label i rejected datofejl', () => {
+    let input = dispatch(empty(), resetSection('stamdata', { skadestype: 'Erhvervssygdom' }));
+    input = dispatch(input, settleField(stamdataSkadedatoField.bind(), '31-02-2020'));
+
+    const evaluation = evaluate(input);
+    const issue = evaluation.reader.read(stamdataSkadedatoField.bind());
+    expect(evaluation.reader.labelOf(stamdataSkadedatoField.bind())).toBe('Anmeldelsesdato');
+    expect(issue).toMatchObject({
+      status: 'error',
+      issue: { reason: 'format', message: "Der er udfyldt en ugyldig værdi i feltet 'Anmeldelsesdato'" },
+    });
+  });
+
+  it('afviser kontekstuelle labels uden canonical view i issue-adapteren', () => {
+    expect(() => toAnyFieldRef(stamdataSkadedatoField.bind())).toThrow(
+      'Kontekstuel feltlabel kan ikke opløses uden en canonical view'
+    );
+  });
+
   it('håndhæver Stamdatas faste datogrænser som afledte feltissues', () => {
     const invalidBirth = dispatch(empty(), resetSection('stamdata', {
       skadelidteFodselsdato: toISODateString('2100-12-31'),

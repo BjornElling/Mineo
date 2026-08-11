@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -47,7 +47,7 @@ const renderLayout = (children: React.ReactNode) =>
 
 /** Bygger en history-frame (satsår 2020), så et efterfølgende undo har noget at gendanne. */
 const seedUndoableHistory = () => {
-  __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+  hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   dispatchInput(slimInputStore, catalog, settleField(satserAargangField.bind(), '2020'));
 };
 
@@ -66,11 +66,11 @@ const dispatchShortcut = (init: KeyboardEventInit) => {
 describe('MainLayout undo/redo editor guard', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+    hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   afterEach(() => {
-    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+    hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   it('ignores undo shortcuts silently while an editor is open', async () => {

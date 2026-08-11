@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import OevrigeKravTable from '../../../components/tables/OevrigeKravTable';
@@ -49,7 +49,7 @@ const hydrate = (rows: OevrigeKravRow[]): void => {
     },
     rejectedInputs: {},
   });
-  __hydrateSlimInputStoreForTest(slimInputStore, input);
+  hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const renderTable = (committedRows: OevrigeKravRow[]) => render(

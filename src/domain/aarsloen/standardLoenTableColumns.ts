@@ -1,26 +1,52 @@
 import * as React from 'react';
 import type { Loenperiode, StandardLoenTableRow } from '../../schemas/formSchemas';
-import type { StandardLoenTableColumnKey } from '../../types/table';
+import { STANDARD_LOEN_COLUMN_LABELS, type StandardLoenTableColumnKey } from '../../types/table';
 import InfoTooltipIcon from '../../components/common/InfoTooltipIcon';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 
 // Normativt: col2 og col3 er to visuelt adskilte lønfelter med identisk domænebetydning.
 // De må kun adskilles i præsentationen; beregningsmæssigt summeres de blot.
-export const STANDARD_LOEN_COL2_LABEL = 'Løn';
-export const STANDARD_LOEN_COL3_LABEL = 'Løn (2)';
-export const STANDARD_LOEN_COL4_LABEL = 'Ikke-pensions-\ngivende løn';
-export const STANDARD_LOEN_COL5_LABEL = 'ATP og anden\nløn u. tillæg';
-export const STANDARD_LOEN_FPFVSHSO_LABEL = 'FP/FV/SH/\nSO/St.B.';
-export const STANDARD_LOEN_PENSION_LABEL = 'Arb.g.\nPension';
+//
+// KOLONNENAVNE ER ÉT SANDT STED (§3.2a): `STANDARD_LOEN_COLUMN_LABELS` i `types/table.ts`. Både de to
+// descriptor-kataloger og overskrifterne herunder læser derfra. Modulet havde tidligere sin EGEN navneliste,
+// og de to drev fra hinanden: `col4` hed «Ikke-pensionsgivende løn» i overskriften, mens en fejl på præcis
+// den celle bad brugeren rette «Løn (3)». Samme fejlklasse, blot mellem gridoverskrift og
+// feltfejl frem for mellem formularlabel og feltfejl.
+//
+// Linjeskiftene i overskrifterne er REN LAYOUT — de ombryder et langt navn i en smal kolonne og tilføjes
+// oven på navnet i `withHeaderLineBreak`. De er derfor aldrig en del af navnet.
+
+/**
+ * Kolonner, hvis navn ombrydes i tabeloverskriften. Nøglen er kolonnen; værdien er navnet med et `\n`
+ * indsat — og det SKAL være samme tegn i samme rækkefølge som navnet, kun med et linjeskift tilføjet.
+ * `standardLoenHeaderLineBreaksArePresentationOnly.test.ts` beviser det ved at strippe skiftene og
+ * sammenligne med descriptor-labelen.
+ */
+const HEADER_LINE_BREAKS: Readonly<Partial<Record<StandardLoenTableColumnKey, string>>> = Object.freeze({
+  col4: 'Ikke-pensions-\ngivende løn',
+  col5: 'ATP og anden\nløn u. tillæg',
+  fpFvShSoBeloeb: 'FP/FV/SH/\nSO/St.B.',
+  pensionBeloeb: 'Arb.g.\nPension',
+});
+
+/** Overskriftens form af et kolonnenavn: navnet, eventuelt ombrudt for den smalle kolonne. */
+const withHeaderLineBreak = (colKey: StandardLoenTableColumnKey): string =>
+  HEADER_LINE_BREAKS[colKey] ?? STANDARD_LOEN_COLUMN_LABELS[colKey];
+
+export const STANDARD_LOEN_COL2_LABEL = withHeaderLineBreak('col2');
+export const STANDARD_LOEN_COL3_LABEL = withHeaderLineBreak('col3');
+export const STANDARD_LOEN_COL4_LABEL = withHeaderLineBreak('col4');
+export const STANDARD_LOEN_COL5_LABEL = withHeaderLineBreak('col5');
+export const STANDARD_LOEN_FPFVSHSO_LABEL = withHeaderLineBreak('fpFvShSoBeloeb');
+export const STANDARD_LOEN_PENSION_LABEL = withHeaderLineBreak('pensionBeloeb');
+/** Beregnet kolonne uden redigerbart felt — og derfor uden descriptor at hente navnet fra. */
 export const STANDARD_LOEN_SAMLET_LABEL = 'Samlet løn';
 
 const PERIOD_HEADERS: Record<Loenperiode, readonly [string, string]> = {
-  maaned: ['Måned', 'År'],
-  uge: ['Uge fra', 'Uge til'],
-  dag: ['Dato fra', 'Dato til'],
+  maaned: [STANDARD_LOEN_COLUMN_LABELS.col0_maaned, STANDARD_LOEN_COLUMN_LABELS.col1_maaned],
+  uge: [STANDARD_LOEN_COLUMN_LABELS.col0_uge, STANDARD_LOEN_COLUMN_LABELS.col1_uge],
+  dag: [STANDARD_LOEN_COLUMN_LABELS.col0_dag, STANDARD_LOEN_COLUMN_LABELS.col1_dag],
 };
-
-const stripHeaderLineBreaks = (label: string): string => label.replace(/\n/g, '');
 
 /**
  * Resolver de to periode-kolonner (fra/til) for en standard-løn-række til den tekst,
@@ -46,39 +72,12 @@ export const resolveStandardLoenPeriodColumns = (
   return [formatISOToDanish(row.col0_dag), formatISOToDanish(row.col1_dag)];
 };
 
-export const resolveStandardLoenColumnLabel = (colKey: StandardLoenTableColumnKey): string => {
-  switch (colKey) {
-    case 'col0_maaned':
-      return 'Måned';
-    case 'col1_maaned':
-      return 'År';
-    case 'col0_uge':
-      return 'Uge fra';
-    case 'col1_uge':
-      return 'Uge til';
-    case 'col0_dag':
-      return 'Dato fra';
-    case 'col1_dag':
-      return 'Dato til';
-    case 'col2':
-      return STANDARD_LOEN_COL2_LABEL;
-    case 'col3':
-      return STANDARD_LOEN_COL3_LABEL;
-    case 'col4':
-      return stripHeaderLineBreaks(STANDARD_LOEN_COL4_LABEL);
-    case 'col5':
-      return stripHeaderLineBreaks(STANDARD_LOEN_COL5_LABEL);
-    case 'fpFvShSoBeloeb':
-      return stripHeaderLineBreaks(STANDARD_LOEN_FPFVSHSO_LABEL);
-    case 'pensionBeloeb':
-      return stripHeaderLineBreaks(STANDARD_LOEN_PENSION_LABEL);
-    default: {
-      const _exhaustive: never = colKey;
-      void _exhaustive;
-      return 'felt';
-    }
-  }
-};
+/**
+ * Kolonnens navn i BESKEDER — uden overskriftens layout-linjeskift. Det er samme navn som feltets
+ * descriptor-label og dermed samme navn, en feltfejl på cellen bruger (§3.2a).
+ */
+export const resolveStandardLoenColumnLabel = (colKey: StandardLoenTableColumnKey): string =>
+  STANDARD_LOEN_COLUMN_LABELS[colKey];
 
 export const getStandardLoenTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
   return [

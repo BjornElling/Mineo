@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../../test/actSafeInputStore';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -67,7 +67,7 @@ describe('Erstatningsopgoerelse kontrol snapshot-refresh', () => {
 
   it('genbygger snapshot ved hver afsluttet revision uafhængigt af den aktive fane', async () => {
     const catalog = getProductionInputCatalog();
-    __hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
+    hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
         varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,

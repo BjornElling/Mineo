@@ -76,16 +76,23 @@ const addBlinkClass = (page: Page, selector: string): Promise<void> =>
 
 /** Sæt markeringen og følg baggrunden gennem animationens løbetid. */
 const sampleBlink = async (page: Page, selector: string): Promise<readonly string[]> => {
-  await addBlinkClass(page, selector);
-  const samples: string[] = [];
-  // Starten af en CSS-animation kan ligge mellem to browserframes. Et lidt tættere og længere
-  // sample-vindue gør testen robust på Firefox/WebKit uden at ændre produktets timing.
-  await page.waitForTimeout(50);
-  for (let index = 0; index < 24; index += 1) {
-    samples.push(await readBackground(page, selector));
-    await page.waitForTimeout(75);
-  }
-  return samples;
+  // Brug samme rAF-observation som de navigerbare fejl-links. Faste Playwright-timere kan i WebKit
+  // blive afviklet efter den korte animation og dermed kun se den statiske sluttilstand, selv om
+  // markeringen faktisk blev malet. Browserens egne frames er den observerbare kontrakt.
+  await startBlinkSampling(page);
+  await page.evaluate(
+    ([sel, cls]) => {
+      const target = document.querySelector(sel);
+      if (!(target instanceof HTMLElement)) throw new Error(`Blinkmål findes ikke: ${sel}`);
+      const removeClass = () => target.classList.remove(cls);
+      target.addEventListener('animationend', removeClass, { once: true });
+      target.classList.add(cls);
+      // Fallback for motorer, der ikke sender animationend ved en dynamisk classList-ændring.
+      window.setTimeout(removeClass, 2000);
+    },
+    [selector, BLINK_CLASS] as const
+  );
+  return readBlinkSamples(page);
 };
 
 /**

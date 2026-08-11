@@ -10,7 +10,11 @@ import {
   createOptionalTextFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
-import type { FieldDescriptor, FieldValidator } from '../fieldDescriptor';
+import type { ContextualLabelRule, FieldDescriptor, FieldValidator } from '../fieldDescriptor';
+import {
+  SKADESTYPE_DATO_LABEL_DEFAULT,
+  resolveSkadestypeDatoLabel,
+} from '../../domain/policies/stamdataCalculations';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 
 // Produkt-descriptors for `stamdata`-sektionen (§3.2). Alle felter er top-level skalarer; ingen
@@ -37,7 +41,8 @@ const dateField = (
   bounds: Readonly<{
     dateBounds: DateBoundsSpec;
     validators: readonly FieldValidator<ISODateString | undefined>[];
-  }>
+  }>,
+  contextualLabel?: ContextualLabelRule
 ): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `stamdata.${field}`,
@@ -48,6 +53,7 @@ const dateField = (
     label,
     controlKind: 'text',
     createEmptySection: createEmptyStamdataSection,
+    ...(contextualLabel === undefined ? {} : { contextualLabel }),
     ...bounds,
   });
 
@@ -80,8 +86,15 @@ export const stamdataSkadestypeField = defineStructuralField<Skadestype | undefi
   createEmptySection: createEmptyStamdataSection,
 });
 
-// Feltets brugervendte label er dynamisk i UI'et; feltdefinitionens label er den kanoniske betegnelse.
-export const stamdataSkadedatoField = dateField('skadedato', 'Skadedato', dateBounds({
+/**
+ * Feltets navn er KONTEKSTUELT (§3.2a): «Skadedato» ved Arbejdsulykke og ukendt skadestype,
+ * «Anmeldelsesdato» ved Erhvervssygdom. Reglen er erklæret HER — på feltet — så både den synlige label og
+ * enhver besked om feltet navngiver det ens.
+ *
+ * Selve navnevalget er en domæneregel og bliver derfor læst fra `resolveSkadestypeDatoLabel`, ikke skrevet
+ * som en ternary her: alle kanaler (UI, beskeder, PDF, EO-rækker) skal dele præcis det ene navnevalg.
+ */
+export const stamdataSkadedatoField = dateField('skadedato', SKADESTYPE_DATO_LABEL_DEFAULT, dateBounds({
   min: () => dateRanges_stamdata.skadedato.min,
   max: () => dateRanges_stamdata.skadedato.max,
   // Fødselsdatoen kan kun HÆVE gulvet: skaden kan ikke ligge før fødslen.
@@ -93,7 +106,7 @@ export const stamdataSkadedatoField = dateField('skadedato', 'Skadedato', dateBo
       : { minBoundKind: 'fodselsdato', minBoundReferenceISO: foedselsdato };
   },
   origin: derivedDateBounds('Fødselsdato og Skadedato'),
-}));
+}), (view) => resolveSkadestypeDatoLabel(view.readCanonical(stamdataSkadestypeField.bind())));
 
 export const stamdataFields = catalogFields(
   stamdataJournalnrField,

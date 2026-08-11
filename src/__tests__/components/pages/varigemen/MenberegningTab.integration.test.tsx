@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../../test/actSafeInputStore';
 //
 // Varige mén-fanen (§2.4 formularrækkefølge): hele fanen kører på den ENE
 // input-runtime (ingen legacy FormPersistence/invalidDrafts/props). Denne integrationstest kører gennem den
@@ -52,7 +52,7 @@ const hydrate = (
     },
     rejectedInputs: {},
   });
-  __hydrateSlimInputStoreForTest(slimInputStore, input);
+  hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const validStamdata: StamdataValues = {

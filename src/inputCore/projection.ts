@@ -1,6 +1,6 @@
 import type { CollectionRef } from './fieldAddress';
 import type { FieldRef } from './fieldDescriptor';
-import { toAnyFieldRef } from './fieldDescriptor';
+import { toAnyFieldRefWithLabel } from './fieldDescriptor';
 import type { ConsumerIssue, FieldIssue } from './inputIssue';
 import type { EntityRef, InputReader } from './inputReader';
 import type { EvaluationSourceToken } from './evaluationSource';
@@ -48,18 +48,23 @@ export type ProjectionCollector = Readonly<{
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
 }>;
 
-const missingIssue = <V>(consumerId: string, field: FieldRef<V>): ConsumerIssue => Object.freeze({
+/**
+ * `label` kommer fra readerens `labelOf` — feltets navn i den AKTUELLE kontekst (§3.2a), ikke descriptorens
+ * kontekstfrie form. Ellers ville en `missing`-besked navngive feltet anderledes end den røde feltfejl på
+ * samme felt, og anderledes end den label brugeren ser.
+ */
+const missingIssue = <V>(consumerId: string, field: FieldRef<V>, label: string): ConsumerIssue => Object.freeze({
   kind: 'consumer',
   code: `${consumerId}.missing.${field.descriptor.id}`,
   severity: 'error',
   consumerId,
   reason: 'missing',
   message: field.descriptor.controlKind === 'choice'
-    ? `${field.descriptor.label} er ikke valgt`
+    ? `${label} er ikke valgt`
     : field.descriptor.controlKind === 'toggle'
-      ? `${field.descriptor.label} er ikke angivet`
-      : `Feltet ${field.descriptor.label} er ikke udfyldt`,
-  field: toAnyFieldRef(field),
+      ? `${label} er ikke angivet`
+      : `Feltet ${label} er ikke udfyldt`,
+  field: toAnyFieldRefWithLabel(field, label),
 });
 
 /**
@@ -89,7 +94,7 @@ export const runProjection = <T>(
         return Object.freeze({ status: 'unavailable', issue: result.issue });
       }
       if (field.descriptor.isEmpty(result.value)) {
-        const issue = missingIssue(consumerId, field);
+        const issue = missingIssue(consumerId, field, reader.labelOf(field));
         addIssue(issue);
         return Object.freeze({ status: 'unavailable', issue });
       }

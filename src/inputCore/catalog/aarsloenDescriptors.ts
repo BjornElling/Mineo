@@ -11,6 +11,7 @@ import { derivedDateBounds } from '../../utils/dateRangeErrorMessages';
 import { parseWeekString } from '../../utils/dateUtils';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
 import { isStandardLoenRowPersistenceEmpty } from '../../domain/aarsloen/standardLoenRowInitialValues';
+import { STANDARD_LOEN_COLUMN_LABELS } from '../../types/table';
 import { dateBounds } from './dateBoundsValidators';
 import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
@@ -305,38 +306,46 @@ const rowAmount = (
     ...(relevance === undefined ? {} : { relevance }),
   });
 
-export const aarsloenTableCol0DagField = rowDate('col0_dag', 'Dato fra', 'fra');
-export const aarsloenTableCol1DagField = rowDate('col1_dag', 'Dato til', 'til');
+// Årsløn og EO-lønindkomst viser SAMME tabel med samme overskrifter, men har hvert sit descriptor-sæt.
+// Navnene kommer derfor fra det neutrale `STANDARD_LOEN_COLUMN_LABELS` (§3.2a) — ellers kunne samme kolonne
+// hedde to ting afhængigt af hvilken side, brugeren stod på.
+const stdLabel = STANDARD_LOEN_COLUMN_LABELS;
+
+export const aarsloenTableCol0DagField = rowDate('col0_dag', stdLabel.col0_dag, 'fra');
+export const aarsloenTableCol1DagField = rowDate('col1_dag', stdLabel.col1_dag, 'til');
 export const aarsloenTableCol0MaanedField = rowString(
-  'col0_maaned', 'Måned',
+  'col0_maaned', stdLabel.col0_maaned,
   createStringBackedFieldCodec(createIntegerFieldCodec({ allowNegative: false, maxDigits: 2, minValue: 1, maxValue: 12 })),
   periodIs('maaned'),
   [integerStringBoundsValidator('aarsloen.tableData.col0_maaned.bounds', 1, 12)],
 );
 export const aarsloenTableCol1MaanedField = rowString(
-  'col1_maaned', 'År',
+  'col1_maaned', stdLabel.col1_maaned,
   createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear() })),
   periodIs('maaned'),
   [yearStringBoundsValidator('aarsloen.tableData.col1_maaned.bounds', MIN_YEAR, getCurrentYear)],
 );
 export const aarsloenTableCol0UgeField = rowString(
-  'col0_uge', 'Uge fra',
+  'col0_uge', stdLabel.col0_uge,
   createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })),
   periodIs('uge'),
   [weekYearBoundsValidator('aarsloen.tableData.col0_uge.bounds', MIN_YEAR, getCurrentYear), weekOrderValidator('fra')],
 );
 export const aarsloenTableCol1UgeField = rowString(
-  'col1_uge', 'Uge til',
+  'col1_uge', stdLabel.col1_uge,
   createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })),
   periodIs('uge'),
   [weekYearBoundsValidator('aarsloen.tableData.col1_uge.bounds', MIN_YEAR, getCurrentYear), weekOrderValidator('til')],
 );
-export const aarsloenTableCol2Field = rowAmount('col2', 'Løn');
-export const aarsloenTableCol3Field = rowAmount('col3', 'Løn (2)');
-export const aarsloenTableCol4Field = rowAmount('col4', 'Løn (3)');
-export const aarsloenTableCol5Field = rowAmount('col5', 'Løn (4)');
-export const aarsloenTableFpFvShSoBeloebField = rowAmount('fpFvShSoBeloeb', 'FP/FV/SH/SO/St.B.', isAmountMode);
-export const aarsloenTablePensionBeloebField = rowAmount('pensionBeloeb', 'Arb.g. Pension', isAmountMode);
+// Årsløn og EO-lønindkomst har hver sit descriptor-sæt, men viser SAMME tabel med samme overskrifter.
+// Navnene tages derfor fra det ene sted, `STANDARD_LOEN_COLUMN_LABELS` udleder overskrifterne fra — ellers
+// kunne samme kolonne hedde to ting afhængigt af hvilken side, brugeren stod på.
+export const aarsloenTableCol2Field = rowAmount('col2', stdLabel.col2);
+export const aarsloenTableCol3Field = rowAmount('col3', stdLabel.col3);
+export const aarsloenTableCol4Field = rowAmount('col4', stdLabel.col4);
+export const aarsloenTableCol5Field = rowAmount('col5', stdLabel.col5);
+export const aarsloenTableFpFvShSoBeloebField = rowAmount('fpFvShSoBeloeb', stdLabel.fpFvShSoBeloeb, isAmountMode);
+export const aarsloenTablePensionBeloebField = rowAmount('pensionBeloeb', stdLabel.pensionBeloeb, isAmountMode);
 
 export const aarsloenFields = catalogFields(
   aarsloenFeriePctField,

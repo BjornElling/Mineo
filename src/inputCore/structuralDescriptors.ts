@@ -1,4 +1,4 @@
-import { defineField, type FieldControlKind, type FieldDescriptor, type FieldDescriptorConfig, type FieldValidator, type RelevanceRule } from './fieldDescriptor';
+import { defineField, type ContextualLabelRule, type FieldControlKind, type FieldDescriptor, type FieldDescriptorConfig, type FieldValidator, type RelevanceRule } from './fieldDescriptor';
 import type { DateBoundsDeclaration } from './dateBoundsDeclaration';
 import type { CollectionDescriptor } from './fieldCatalog';
 import type { FieldAddressTemplate } from './fieldDescriptor';
@@ -34,6 +34,7 @@ export type StructuralFieldOptions<T> = Readonly<{
   emptyValue: T;
   isEmpty: (value: T) => boolean;
   label: string;
+  contextualLabel?: ContextualLabelRule;
   controlKind: FieldControlKind;
   /** Sektionens canonical tomme værdi; bruges kun når et første commit lander i en tom/`null` sektion. */
   createEmptySection: () => unknown;
@@ -54,6 +55,7 @@ export const defineStructuralField = <T>(options: StructuralFieldOptions<T>): Fi
     emptyValue: options.emptyValue,
     isEmpty: options.isEmpty,
     label: options.label,
+    ...(options.contextualLabel === undefined ? {} : { contextualLabel: options.contextualLabel }),
     controlKind: options.controlKind,
     readCanonical: (sections: PersistedInputSections, address: FieldAddress): T =>
       readCanonicalAtAddress(sections, address, resolver) as T,

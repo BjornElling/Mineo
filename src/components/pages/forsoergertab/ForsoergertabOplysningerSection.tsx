@@ -56,7 +56,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
       </Box>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Skadedato</Typography>
+        <Typography className="row--text">{vm.skadedatoLabel}</Typography>
         <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
           {vm.skadedato && !vm.skadedatoError ? (
             <Typography className="row--text">{isoToDanish(vm.skadedato)}</Typography>

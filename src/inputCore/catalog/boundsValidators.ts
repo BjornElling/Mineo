@@ -3,6 +3,7 @@ import { getYearRangeErrorMessage } from '../../utils/yearDraftCore';
 import { buildPercentRangeErrorMessage } from '../../utils/percentDraftCore';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { FieldValidator } from '../fieldDescriptor';
+import { resolveFieldLabel } from '../fieldDescriptor';
 import type { FieldCodec } from '../fieldCodec';
 import { quoteFieldLabel } from '../inputIssue';
 
@@ -44,13 +45,15 @@ const resolveYearBound = (bound: YearBound): number | undefined =>
 export const canonicalStringCodecValidator = (
   code: string,
   codec: FieldCodec<string | undefined>
-): FieldValidator<string | undefined> => (value, field) => {
+): FieldValidator<string | undefined> => (value, field, view) => {
   if (value === undefined || value.trim() === '') return undefined;
   if (codec.parseForSettle(value).status === 'valid') return undefined;
   return {
     reason: 'schema',
     code,
-    message: `Der er gemt en ugyldig værdi i feltet ${quoteFieldLabel(field.descriptor.label)}`,
+    // Samme navneautoritet som `format`-beskeden: en kontekstuel label (§3.2a) skal også her være det navn,
+    // brugeren ser stå ved feltet.
+    message: `Der er gemt en ugyldig værdi i feltet ${quoteFieldLabel(resolveFieldLabel(field.descriptor, view))}`,
   };
 };
 

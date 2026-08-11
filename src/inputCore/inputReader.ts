@@ -15,7 +15,7 @@ import {
   type FieldIssueSet,
   type FieldIssueSnapshot,
 } from './inputIssue';
-import { toAnyFieldRef } from './fieldDescriptor';
+import { resolveFieldLabel, toAnyFieldRef } from './fieldDescriptor';
 import type { EvaluationSourceToken } from './evaluationSource';
 
 export type EntityRef = Readonly<{ collection: CollectionRef; entityId: string }>;
@@ -85,7 +85,9 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
 
   for (const field of catalog.listFieldInstances(reader.input.sections)) {
     if (!reader.isRelevant(field)) continue;
-    const anyRef = toAnyFieldRef(field);
+    // Kontekstuelle labels (§3.2a) opløses HER, hvor konteksten findes: issuet skal navngive feltet med
+    // præcis det navn, brugeren ser stå ved feltet i denne tilstand.
+    const anyRef = toAnyFieldRef(field, view);
 
     const rejected = reader.readRejected(field);
     if (rejected !== undefined) {
@@ -149,6 +151,18 @@ export type InputReader = Readonly<{
   sourceToken: EvaluationSourceToken;
   read: <T>(field: FieldRef<T>) => ReadFieldResult<T>;
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
+  /**
+   * Feltets brugervendte navn i den aktuelle kontekst (§3.2a) — det navn brugeren SER stå ved feltet.
+   *
+   * Kanalen er bevidst SMAL: readeren navngiver et felt, den udleverer ikke canonical værdier. En
+   * kontekstuel labelregel læser andre felters canonical værdier, men gør det INDE i readeren, hvor
+   * `ValidationReader` allerede ejer den grænse. Havde consumers i stedet fået en fri `CanonicalView`
+   * for at kunne navngive et felt, var issue-grænsen (§1.5: ingen consumer ser værdien bag en rød
+   * feltfejl) åben for enhver læser, der bare kaldte sig en labelopløser.
+   *
+   * Navngivning er tilladt på et felt med en rød fejl — det er netop DA, navnet skal være rigtigt.
+   */
+  labelOf: <T>(field: FieldRef<T>) => string;
 }>;
 
 export type TrackedInputReader = Readonly<{
@@ -163,6 +177,7 @@ export const createTrackedInputReader = (reader: InputReader): TrackedInputReade
     reader: Object.freeze({
       sourceToken: reader.sourceToken,
       listEntities: reader.listEntities,
+      labelOf: reader.labelOf,
       read: <T>(field: FieldRef<T>): ReadFieldResult<T> => {
         const result = reader.read(field);
         if (result.status === 'error') {
@@ -181,6 +196,7 @@ const createInputReader = (options: Readonly<{
   issues: FieldIssueSnapshot;
 }>): InputReader => {
   const validation = createValidationReader(options.input, options.catalog);
+  const labelView: CanonicalView = Object.freeze({ readCanonical: validation.readCanonical });
 
   return Object.freeze({
     sourceToken: options.issues.sourceToken,
@@ -189,6 +205,10 @@ const createInputReader = (options: Readonly<{
       const issue = activeFieldIssue(options.issues, serializeFieldAddress(field.address));
       if (issue !== undefined) return Object.freeze({ status: 'error', issue });
       return Object.freeze({ status: 'usable', value });
+    },
+    labelOf: <T>(field: FieldRef<T>): string => {
+      validation.readCanonical(field); // samme grænse som `read`: ukendt/forkert bundet ref er en fejl
+      return resolveFieldLabel(field.descriptor, labelView);
     },
     listEntities: validation.listEntities,
   });

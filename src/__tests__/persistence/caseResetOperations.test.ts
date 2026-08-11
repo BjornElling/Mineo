@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { __createSlimInputTestStore, __hydrateSlimInputStoreForTest } from '../../inputCore/runtime/slimInputStore';
+import { __createSlimInputTestStore } from '../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../test/actSafeInputStore';
 import { settleField, clearCase } from '../../inputCore';
 import {
   ActiveEditorRegistry,
@@ -73,7 +74,7 @@ describe('caseResetOperations.clearAll', () => {
   it('rydder en writesBlocked current-session (§1.12 recovery)', async () => {
     const store = __createSlimInputTestStore();
     // Simulér en bevaret korrupt session: writes blokeret, men clearCase skal stadig kunne rydde.
-    __hydrateSlimInputStoreForTest(store, store.getState().input, { writesBlocked: true });
+    hydrateSlimInputStoreForTest(store, store.getState().input, { writesBlocked: true });
     const ops = buildOps(store, new ActiveEditorRegistry());
 
     const result = await ops.clearAll();

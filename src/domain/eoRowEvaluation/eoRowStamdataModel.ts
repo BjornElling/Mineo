@@ -5,6 +5,7 @@ import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRang
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import type { FieldIssueSet } from '../../inputCore/inputIssue';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
+import { resolveSkadestypeDatoLabel } from '../policies/stamdataCalculations';
 
 /**
  * Række-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
@@ -48,7 +49,8 @@ export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFiel
     ? advokatErrors.concat(sagsbehandlerErrors).some((e) => e.severity === 'error') ? 'error' : 'warning'
     : isNonEmptyString(advokatSagsbehandler) ? 'ok' : 'ok';
 
-  const skadedatoLabel = values.skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato';
+  // Rækkens label er samme feltnavn, brugeren ser på Stamdata: læses fra feltets ene navneregel (§3.2a).
+  const skadedatoLabel = resolveSkadestypeDatoLabel(values.skadestype);
 
   // Konverter skadedato til dansk format
   const danishSkadedato = isoToDanish(values.skadedato);

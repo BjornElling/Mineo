@@ -51,6 +51,7 @@ import {
 } from './boundsValidators';
 import { createEmptyErstatningsopgoerelseSection } from './erstatningsopgoerelseDescriptors';
 import { isStandardLoenRowPersistenceEmpty } from '../../domain/aarsloen/standardLoenRowInitialValues';
+import { STANDARD_LOEN_COLUMN_LABELS } from '../../types/table';
 import {
   isLoenudviklingManuelProcentsatsRowEmpty,
   isLoenudviklingManuelRowEmpty,
@@ -279,29 +280,34 @@ const stdString = (
 const stdAmount = (field: string, label: string): FieldDescriptor<AmountValue | undefined> =>
   optField<AmountValue>(STD_ID, stdRowPath, field, label, 'text', tableAmountCodec);
 
+// Kolonnenavnene er ét sandt sted (`STANDARD_LOEN_COLUMN_LABELS`, §3.2a): descriptor-labelen ER
+// gridoverskriften, så en fejl på en celle navngiver den kolonne, brugeren faktisk ser. `col4`/`col5` hed
+// tidligere «Løn (3)»/«Løn (4)» her, mens overskriften sagde noget andet.
+const stdLabel = STANDARD_LOEN_COLUMN_LABELS;
+
 export const eoStandardRowFields = {
-  col0_maaned: stdString('col0_maaned', 'Måned', createStringBackedFieldCodec(integerCodec(1, 12, 2)), [
+  col0_maaned: stdString('col0_maaned', stdLabel.col0_maaned, createStringBackedFieldCodec(integerCodec(1, 12, 2)), [
     integerStringBoundsValidator(`${STD_ID}.col0_maaned.bounds`, 1, 12),
   ]),
-  col1_maaned: stdString('col1_maaned', 'År', createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear() })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, getCurrentYear)]),
-  col0_uge: stdString('col0_uge', 'Uge fra', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, getCurrentYear)]),
-  col1_uge: stdString('col1_uge', 'Uge til', createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, getCurrentYear)]),
-  col0_dag: stdDate('col0_dag', 'Dato fra', {
+  col1_maaned: stdString('col1_maaned', stdLabel.col1_maaned, createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear() })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, getCurrentYear)]),
+  col0_uge: stdString('col0_uge', stdLabel.col0_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, getCurrentYear)]),
+  col1_uge: stdString('col1_uge', stdLabel.col1_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, getCurrentYear)]),
+  col0_dag: stdDate('col0_dag', stdLabel.col0_dag, {
     min: () => dateRanges_aarsloen.tabelAarsloenFra.min,
     max: () => dateRanges_aarsloen.tabelAarsloenFra.fallbackMax,
     origin: STATIC_DATE_BOUNDS,
   }, [dateOrderValidator('fra', stdDagPair)]),
-  col1_dag: stdDate('col1_dag', 'Dato til', {
+  col1_dag: stdDate('col1_dag', stdLabel.col1_dag, {
     min: () => dateRanges_aarsloen.tabelAarsloenTil.fallbackMin,
     max: () => dateRanges_aarsloen.tabelAarsloenTil.max,
     origin: STATIC_DATE_BOUNDS,
   }, [dateOrderValidator('til', stdDagPair)]),
-  col2: stdAmount('col2', 'Løn'),
-  col3: stdAmount('col3', 'Løn (2)'),
-  col4: stdAmount('col4', 'Løn (3)'),
-  col5: stdAmount('col5', 'Løn (4)'),
-  fpFvShSoBeloeb: stdAmount('fpFvShSoBeloeb', 'FP/FV/SH/SO/St.B.'),
-  pensionBeloeb: stdAmount('pensionBeloeb', 'Arb.g. Pension'),
+  col2: stdAmount('col2', stdLabel.col2),
+  col3: stdAmount('col3', stdLabel.col3),
+  col4: stdAmount('col4', stdLabel.col4),
+  col5: stdAmount('col5', stdLabel.col5),
+  fpFvShSoBeloeb: stdAmount('fpFvShSoBeloeb', stdLabel.fpFvShSoBeloeb),
+  pensionBeloeb: stdAmount('pensionBeloeb', stdLabel.pensionBeloeb),
 } as const;
 
 const standardRowFields = Object.values(eoStandardRowFields);

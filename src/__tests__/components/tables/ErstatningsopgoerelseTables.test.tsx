@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import type React from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -38,7 +38,7 @@ const hydrate = (eo: ErstatningsopgoerelseValues): void => {
     },
     rejectedInputs: {},
   });
-  __hydrateSlimInputStoreForTest(slimInputStore, input);
+  hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const renderInRuntime = (child: React.ReactNode) => render(

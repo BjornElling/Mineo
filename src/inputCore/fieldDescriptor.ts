@@ -79,7 +79,22 @@ export type FieldDescriptorConfig<T> = Readonly<{
   emptyValue: T;
   /** Semantisk tomhed er eksplicit; gyldige defaults som `false` eller `'dage'` må ikke gættes som missing. */
   isEmpty: (value: T) => boolean;
+  /**
+   * Feltets brugervendte navn — det navn brugeren SER, og det eneste navn beskeder må bruge.
+   *
+   * Er navnet kontekstafhængigt, erklæres reglen i {@link FieldDescriptorConfig.contextualLabel}, og `label`
+   * er da den kontekstfrie form (bruges når konteksten er ukendt/utilgængelig). Ét felt har ALDRIG to
+   * navnesystemer: rendersiden læser samme autoritet som beskederne, gennem `resolveFieldLabel`.
+   */
   label: string;
+  /**
+   * Kontekstuel labelregel (§3.2a). Udeladt = `label` er navnet i alle kontekster.
+   *
+   * Erklæres den, SKAL `label` være den kontekstfrie form af samme navn, og hver mulig returværdi skal være
+   * et navn, brugeren faktisk kan se stå ved feltet. Rendersiden må ikke skrive labelen selv — den læser
+   * `resolveFieldLabel`, så synligt navn og beskednavn ikke kan drifte.
+   */
+  contextualLabel?: ContextualLabelRule;
   controlKind: FieldControlKind;
   readCanonical: CanonicalRead<T>;
   writeCanonical: CanonicalWrite<T>;
@@ -115,6 +130,21 @@ export type AnyFieldRef = Readonly<{
   address: FieldAddress;
   descriptor: Readonly<{ id: string; label: string; controlKind: FieldControlKind }>;
 }>;
+
+/**
+ * Kontekstuel labelregel (§3.2a): feltets brugervendte navn som en REN funktion af andre felters canonical
+ * værdier — samme form som {@link RelevanceRule} og {@link FieldValidator}, og derfor med samme garantier
+ * (ingen mounted componentstate, ingen AppSettings, ingen cirkularitet).
+ *
+ * Findes fordi et felts synlige navn kan afhænge af konteksten: `stamdata.skadedato` hedder «Skadedato» ved
+ * Arbejdsulykke og «Anmeldelsesdato» ved Erhvervssygdom. Før reglen fandtes, var `label` en statisk streng,
+ * der navngav feltet i BESKEDER, mens den synlige label blev skrevet i hånden på rendersiden. Intet bandt de
+ * to, så feltet kunne hedde «Anmeldelsesdato» på skærmen, mens fejlen bad brugeren rette «Skadedato».
+ *
+ * Reglen returnerer den FULDE label — ikke et suffiks eller en delstreng — så der aldrig findes en
+ * halvfærdig label, et kaldssted skal samle færdig.
+ */
+export type ContextualLabelRule = (view: CanonicalView) => string;
 
 const idSchema = z.string().min(1).refine((v) => v.trim() === v, 'Felt-id må ikke have ydre mellemrum');
 const labelSchema = z.string().min(1).refine((v) => v.trim() === v, 'Feltlabel må ikke have ydre mellemrum');
@@ -155,6 +185,9 @@ const bindTemplatePath = (
 export const defineField = <T>(config: FieldDescriptorConfig<T>): FieldDescriptor<T> => {
   idSchema.parse(config.id);
   labelSchema.parse(config.label);
+  if (config.contextualLabel !== undefined && typeof config.contextualLabel !== 'function') {
+    throw new Error(`FieldDescriptor(${config.id}): contextualLabel skal være en funktion`);
+  }
   const template = fieldAddressTemplateSchema.parse(config.template);
   if (config.codec.family === 'date' && config.dateBounds === undefined) {
     throw new Error(`FieldDescriptor(${config.id}): datofelter skal have en dateBounds-erklæring`);
@@ -218,11 +251,43 @@ export const defineField = <T>(config: FieldDescriptorConfig<T>): FieldDescripto
   return descriptor;
 };
 
-export const toAnyFieldRef = <T>(field: FieldRef<T>): AnyFieldRef => Object.freeze({
+/**
+ * Feltets navn i den GIVNE kontekst — den ENE autoritet for feltnavne, både i beskeder og på skærmen.
+ *
+ * For statiske labels er `view` valgfri. En kontekstuel label kræver derimod en `view`: uden den kan navnet
+ * ikke opløses sikkert, og en stiltiende brug af descriptorens standardlabel ville kunne give samme drift som
+ * den oprindelige fejl. Alle produktionskaldssteder med kontekst har derfor en view gennem issue- eller
+ * readerlaget.
+ */
+export const resolveFieldLabel = <T>(
+  descriptor: Pick<FieldDescriptor<T>, 'label' | 'contextualLabel'>,
+  view: CanonicalView | undefined
+): string => {
+  const rule = descriptor.contextualLabel;
+  if (rule === undefined) return descriptor.label;
+  if (view === undefined) {
+    throw new Error('Kontekstuel feltlabel kan ikke opløses uden en canonical view');
+  }
+  return rule(view);
+};
+
+/**
+ * Type-udslettet ref til issue-laget med et FÆRDIGOPLØST navn. Findes for de producenter, der får navnet
+ * gennem `InputReader.labelOf` frem for en rå `CanonicalView` — de skal kunne bygge samme ref uden at
+ * håndrulle objektformen (og dermed uden at kunne glemme et led).
+ */
+export const toAnyFieldRefWithLabel = <T>(field: FieldRef<T>, label: string): AnyFieldRef => Object.freeze({
   address: field.address,
   descriptor: Object.freeze({
     id: field.descriptor.id,
-    label: field.descriptor.label,
+    label,
     controlKind: field.descriptor.controlKind,
   }),
 });
+
+/**
+ * Type-udslettet ref til issue-laget. `view` bærer konteksten, en kontekstuel label kræver; udelades den,
+ * navngives feltet kontekstfrit (se {@link resolveFieldLabel}).
+ */
+export const toAnyFieldRef = <T>(field: FieldRef<T>, view?: CanonicalView): AnyFieldRef =>
+  toAnyFieldRefWithLabel(field, resolveFieldLabel(field.descriptor, view));

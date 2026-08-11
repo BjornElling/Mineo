@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 //
 // Renteberegning-siden (§2.4/§2.5): hele siden kører på den ENE
 // input-runtime (ingen legacy FormPersistence/invalidDrafts). Denne integrationstest kører gennem den RIGTIGE
@@ -57,7 +57,7 @@ const hydrate = (
     },
     rejectedInputs: {},
   });
-  __hydrateSlimInputStoreForTest(slimInputStore, input);
+  hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const validRow = (id: string): RentekravRow => ({

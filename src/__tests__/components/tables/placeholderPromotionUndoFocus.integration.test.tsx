@@ -207,8 +207,9 @@ describe('placeholder-promotion → undo → fokus', () => {
       fireEvent.click(combobox);
       await Promise.resolve();
     });
+    const weeksOption = await screen.findByRole('option', { name: 'Uger' });
     await act(async () => {
-      fireEvent.click(await screen.findByRole('option', { name: 'Uger' }));
+      fireEvent.click(weeksOption);
       await Promise.resolve();
     });
 

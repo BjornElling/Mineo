@@ -11,6 +11,34 @@ export type StandardLoenTableColumnKey =
   | 'pensionBeloeb';
 
 /**
+ * KOLONNENAVNENE — ét sandt sted (§3.2a).
+ *
+ * Standard-løn-tabellen vises af BÅDE Årsløn og EO-lønindkomst, som har hvert sit descriptor-katalog.
+ * Navnene bor derfor her, i det neutrale type-lag, og forbruges tre steder: de to descriptor-kataloger
+ * sætter dem som `label`, og `standardLoenTableColumns.ts` bygger gridoverskrifterne af dem. Ellers ville
+ * samme kolonne kunne hedde én ting på skærmen og en anden i en fejlbesked om cellen — `col4` hed
+ * «Ikke-pensionsgivende løn» i overskriften og «Løn (3)» i beskeden.
+ *
+ * Navnene står UDEN linjeskift. Overskriftens ombrydning er ren layout og tilføjes i
+ * `standardLoenTableColumns.ts`.
+ */
+export const STANDARD_LOEN_COLUMN_LABELS: Readonly<Record<StandardLoenTableColumnKey, string>> =
+  Object.freeze({
+    col0_maaned: 'Måned',
+    col1_maaned: 'År',
+    col0_uge: 'Uge fra',
+    col1_uge: 'Uge til',
+    col0_dag: 'Dato fra',
+    col1_dag: 'Dato til',
+    col2: 'Løn',
+    col3: 'Løn (2)',
+    col4: 'Ikke-pensionsgivende løn',
+    col5: 'ATP og anden løn u. tillæg',
+    fpFvShSoBeloeb: 'FP/FV/SH/SO/St.B.',
+    pensionBeloeb: 'Arb.g. Pension',
+  });
+
+/**
  * De fem satser (procent) StandardLoenTable bruger til at beregne tillæg pr. række. Datatypen bor i
  * type-laget (ikke i tabel-komponenten), så det React-frie view-model-/afledningslag kan referere den
  * uden at importere fra `components/` (domæne→UI-kobling). Jf. domain-boundary-contract.

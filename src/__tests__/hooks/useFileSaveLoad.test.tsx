@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../test/actSafeInputStore';
 import React from 'react';
 import { act, render } from '@testing-library/react';
 import type { LoadFileResult, LoadPreflightWarning, SaveFileResult } from '../../types/fileOperations';
@@ -130,7 +130,7 @@ const renderHook = (
     : overrides.hasData
       ? inputWithData()
       : emptyInput();
-  __hydrateSlimInputStoreForTest(slimInputStore, initialInput);
+  hydrateSlimInputStoreForTest(slimInputStore, initialInput);
 
   if (overrides.openEditorFailsSettle) {
     registerEditorThatFailsSettle();
@@ -197,7 +197,7 @@ describe('useFileSaveLoad', () => {
     vi.clearAllMocks();
     unregisterEditor?.();
     unregisterEditor = null;
-    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+  hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   describe('handleGem', () => {

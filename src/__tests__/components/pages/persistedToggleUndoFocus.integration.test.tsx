@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Aarsloen from '../../../components/pages/Aarsloen';
@@ -46,7 +46,7 @@ const hydrate = (sections: Partial<Parameters<typeof catalog.validateSettledInpu
     },
     rejectedInputs: {},
   });
-  __hydrateSlimInputStoreForTest(slimInputStore, input);
+  hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const renderPage = (node: React.ReactNode, route: string) => render(

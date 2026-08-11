@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { __createSlimInputTestStore, __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import {
   ActiveEditorRegistry,
   CriticalActionCoordinator,
@@ -96,7 +97,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     registry.register(editor);
 
     await expect(coordinator.applyReplacement(() => {
-      __hydrateSlimInputStoreForTest(store, store.getState().input);
+      hydrateSlimInputStoreForTest(store, store.getState().input);
       return 'erstattet';
     })).resolves.toBe('erstattet');
     expect(discard).toHaveBeenCalledOnce();
@@ -133,7 +134,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     const unregisterBefore = registry.register(before.editor);
 
     await coordinator.applyReplacement(() => {
-      __hydrateSlimInputStoreForTest(store, store.getState().input);
+      hydrateSlimInputStoreForTest(store, store.getState().input);
       // Den erstattede editor unmountes, og brugeren åbner et felt i den netop indlæste sag.
       unregisterBefore();
       registry.register(makeEditor({ id: 'efter', discard: discardAfter }).editor);
@@ -148,7 +149,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     const discardAfter = vi.fn();
 
     await coordinator.applyReplacement(() => {
-      __hydrateSlimInputStoreForTest(store, store.getState().input);
+      hydrateSlimInputStoreForTest(store, store.getState().input);
       registry.register(makeEditor({ id: 'ny', discard: discardAfter }).editor);
       return 'erstattet';
     });
@@ -162,7 +163,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
     registry.register(editor);
 
     await expect(coordinator.applyDestructive(() => {
-      __hydrateSlimInputStoreForTest(store, store.getState().input);
+      hydrateSlimInputStoreForTest(store, store.getState().input);
       return 'slettet';
     })).resolves.toBe('slettet');
     expect(settleCount()).toBe(0);

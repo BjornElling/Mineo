@@ -19,6 +19,7 @@ import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { resolveVarigeMenWarning } from '../../../domain/varigemen/varigeMenPolicy';
+import { resolveSkadestypeDatoLabel } from '../../../domain/policies/stamdataCalculations';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
 import { varigeMenDocumentDefinition } from '../../../domain/varigemen/varigeMenDocumentDefinition';
 import { useMineoDocumentOutput } from '../../../document/runtime/react/useMineoDocumentOutput';
@@ -123,8 +124,8 @@ const MenberegningTab = React.memo(() => {
     [beregningsdato]
   );
 
-  // Kun skadestypen påvirker labelen ('Anmeldelsesdato' ved erhvervssygdom, ellers 'Skadedato').
-  const skadedatoLabel = skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato';
+  // Spejlet stamdata-værdi: navnet kommer fra feltets ene navneregel (§3.2a), aldrig fra en lokal ternary.
+  const skadedatoLabel = resolveSkadestypeDatoLabel(skadestype);
 
   // Fokusér det første blokerende felt efter en blokeret download (best-effort UI-hint fra render-tilstanden).
   // Prioritet: Fødselsdato → Skadedato → Méngrad → Beregningsdato. Kun felter på denne side kan fokuseres direkte;

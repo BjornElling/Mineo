@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 //
 // Forsørgertab-siden (§2.4 formularrækkefølge): hele siden kører på den ENE
 // greenfield input-runtime (ingen legacy FormPersistence/invalidDrafts/props). Denne integrationstest kører gennem
@@ -54,7 +54,7 @@ const hydrate = (
     },
     rejectedInputs: {},
   });
-  __hydrateSlimInputStoreForTest(slimInputStore, input);
+  hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const validForsoergertab: ForsoergertabValues = {
@@ -110,6 +110,17 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
     // stamdata-dependency nåede hele vejen ind i det leverede dokument.
     const artifact = mockTriggerDocumentDownload.mock.calls[0]?.[0] as { filename: string };
     expect(artifact.filename).toContain('J-2026-002');
+  });
+
+  it('viser den aktuelle kontekstuelle label for Stamdatas dato', () => {
+    hydrate(validForsoergertab, validFaellesAarsloen, {
+      ...validStamdata,
+      skadestype: 'Erhvervssygdom',
+    });
+    renderPage();
+
+    expect(screen.getByText('Anmeldelsesdato')).toBeInTheDocument();
+    expect(screen.queryByText('Skadedato')).toBeNull();
   });
 
   it('en canonical tilkendt-periode uden for 1..10 committes, viser rød feltfejl og blokerer download (§1.6)', async () => {

@@ -5,6 +5,7 @@ import type { IsoRange } from '../validation/tafPeriodConstraints';
 import type { SygeferiegodtgoerelseResult } from '../engines/sfggResult';
 import type { ReguleringForloeb } from '../engines/reguleringForloeb';
 import type { MoneyOre } from '../../money/money';
+import type { SkadestypeDatoLabel } from '../../policies/stamdataCalculations';
 
 export type Calculable<T> =
   | Readonly<{ status: 'ok'; value: T }>
@@ -22,6 +23,11 @@ export type EoModel = Readonly<{
   periodeDisplay: string | null;
   skadelidteNavn: string | null;
   skadestypeLinje: string | null;
+  /**
+   * Skadedato-feltets navn i sagens kontekst (§3.2a). Bæres FÆRDIGT gennem modellen, så en generator ikke
+   * skal genskabe navnet ved at læse `skadestypeLinje`s prosa-præfiks.
+   */
+  skadedatoLabel: SkadestypeDatoLabel;
   brevhoved: Readonly<{
     journalnr?: string;
     advokat?: string;

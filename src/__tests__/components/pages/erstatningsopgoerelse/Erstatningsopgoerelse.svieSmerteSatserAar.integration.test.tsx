@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../../test/actSafeInputStore';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -28,7 +28,7 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
 
   it('viser sats-aar advarslen i Beregning-fanen på den rigtige side', async () => {
     const catalog = getProductionInputCatalog();
-    __hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
+    hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
         varigemen: null, forsoergertab: null, erhvervsevnetab: null,

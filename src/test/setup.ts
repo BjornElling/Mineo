@@ -73,6 +73,11 @@ const hasDomEnvironment =
   typeof HTMLElement !== 'undefined';
 
 if (hasDomEnvironment) {
+  // React skal vide, at alle DOM-testfiler kører i et act-kompatibelt miljø.
+  // Uden flaget bliver selv korrekt act-wrappede eksterne store-opdateringer
+  // rapporteret som uunderstøttede af testmiljøet.
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
   const [matchers, { cleanup, act, configure }, { default: userEvent }] = await Promise.all([
     import('@testing-library/jest-dom/matchers'),
     import('@testing-library/react'),

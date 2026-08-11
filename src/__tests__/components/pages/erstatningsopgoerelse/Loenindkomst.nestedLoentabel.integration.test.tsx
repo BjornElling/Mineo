@@ -16,9 +16,9 @@ import {
   createProductionInputRuntimeBinding,
 } from '../../../../inputCore/react';
 import {
-  __hydrateSlimInputStoreForTest,
   slimInputStore,
 } from '../../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../../test/actSafeInputStore';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 import type { StandardLoenTableRow } from '../../../../schemas/formSchemas';
 
@@ -42,7 +42,7 @@ const loenRow = (id: string, maaned: string, aar: string): StandardLoenTableRow 
 
 const hydrate = (rows: readonly StandardLoenTableRow[]): void => {
   const catalog = getProductionInputCatalog();
-  __hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
+  hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
     sections: {
       stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
       varigemen: null, forsoergertab: null, erhvervsevnetab: null,

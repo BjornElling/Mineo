@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../../test/actSafeInputStore';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -31,7 +31,7 @@ describe('EOOplysningerTab sektioner', () => {
 
   it('renderer alle uafhængigt synlige sektioner på oplysninger-fanen', async () => {
     const catalog = getProductionInputCatalog();
-    __hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
+    hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
         varigemen: null, forsoergertab: null,

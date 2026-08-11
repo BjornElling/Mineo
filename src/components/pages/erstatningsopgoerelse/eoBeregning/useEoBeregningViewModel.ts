@@ -13,6 +13,7 @@ import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { projectEoRowPolicy, projectSourceSettings } from '../../../../settings/sourceSettings';
 import { isoToDanish } from '../../../../types/branded';
 import { toReadableSummaryMessage } from '../../../../domain/erstatningsopgoerelse/helpers/readableSummaryMessage';
+import { resolveSkadestypeDatoLabel } from '../../../../domain/policies/stamdataCalculations';
 import {
   erstatningsopgoerelseDocumentDefinition,
   tafFordeltPaaAarDocumentDefinition,
@@ -642,8 +643,8 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   const tafSummaryLines = harTafPerioder ? tafPerioderLines : [tafFravalgtTekst];
   const tafSummaryLabel = harTafPerioder && tafPerioderLines.length > 1 ? 'TAF-perioder' : 'TAF-periode';
 
-  const erErhvervssygdom = stamdataValues?.skadestype === 'Erhvervssygdom';
-  const skadedatoLabel = erErhvervssygdom ? 'Anmeldelsesdato' : 'Skadedato';
+  // Navnet kommer fra feltets ene navneregel (§3.2a), aldrig fra en lokal ternary.
+  const skadedatoLabel = resolveSkadestypeDatoLabel(stamdataValues?.skadestype);
   const skadedatoDisplay = formatIsoDateLong(stamdataValues?.skadedato) || '-';
 
   const erRevideret = eoValues.revideretOpgoerelse === 'Ja';

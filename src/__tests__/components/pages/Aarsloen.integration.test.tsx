@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 //
 // Årsløn-siden (§2.4/§2.5). Integrationstest gennem den RIGTIGE side + den
 // ægte produktions-runtime (`ProductionInputRuntimeProvider` mod `slimInputStore`). Beviser den virkelige sti:
@@ -21,6 +21,12 @@ import {
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import { toISODateString } from '../../../types/branded';
+
+const { logErrorMock } = vi.hoisted(() => ({ logErrorMock: vi.fn() }));
+vi.mock('../../../utils/logger', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../utils/logger')>(),
+  logError: logErrorMock,
+}));
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
@@ -47,7 +53,7 @@ const hydrateAarsloen = (
     },
     rejectedInputs: {},
   });
-  __hydrateSlimInputStoreForTest(slimInputStore, input);
+  hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
 const renderAarsloen = () => render(
@@ -190,6 +196,7 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
     const spy = vi.spyOn(periodeBeregning, 'beregnMaanedPeriode').mockImplementation(() => {
       throw new Error('syntetisk beregningsfejl');
     });
+    logErrorMock.mockClear();
 
     try {
       hydrateAarsloen({
@@ -207,6 +214,10 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
       // indhold er værre end ingen boks: den påstår en fejl uden at kunne navngive den.
       const boxText = header?.parentElement?.textContent?.replace('Kritisk Fejl', '').trim() ?? '';
       expect(boxText.length).toBeGreaterThan(0);
+      expect(logErrorMock).toHaveBeenCalledWith(
+        'Systemfejl registreret: Beregningsfejl',
+        expect.any(Object),
+      );
     } finally {
       spy.mockRestore();
     }

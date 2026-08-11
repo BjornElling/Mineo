@@ -25,7 +25,8 @@ import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react';
-import { slimInputStore, __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 
 const catalog = getProductionInputCatalog();
 
@@ -56,11 +57,11 @@ const settledMengrad = (): unknown =>
 describe('VarigeMen — klik uden for feltet settler den åbne editor (§1.3)', () => {
   beforeEach(() => {
     sessionStorage.clear();
-    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+    hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   afterEach(() => {
-    __hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+    hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   it('afslutter draften, når brugeren klikker på et element uden for feltet', async () => {

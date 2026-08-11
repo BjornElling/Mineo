@@ -2438,3 +2438,385 @@ export const choiceFieldValueTypeInferredRule = defineRule({
     },
   ],
 });
+
+// --- Kontekstuelle feltnavne har ÉN autoritet -------------------------------
+
+/**
+ * Modulet, der EJER navnevalget for skadedato-feltets kontekstafhængige navn (§3.2a). Det ene sted, hvor
+ * begge navne må stå i samme udtryk. Alle andre — også `eoDateReferenceText.ts`, som bøjer navnet til
+ * EO-prosa — skal KALDE `resolveSkadestypeDatoLabel` frem for at gentage valget.
+ */
+const CONTEXTUAL_LABEL_AUTHORITIES: readonly string[] = [
+  'src/domain/policies/stamdataCalculations.ts',
+];
+
+/**
+ * De to navne, skadedato-feltet kan bære. Står de begge i SAMME udtryk, er det et navnevalg — uanset om
+ * det er skrevet som en ternary, en `if`/`return` eller et opslag.
+ */
+const SKADESTYPE_LABEL_LITERALS: readonly string[] = ['Skadedato', 'Anmeldelsesdato'];
+
+/**
+ * Finder steder, der SELV vælger mellem feltets to navne.
+ *
+ * Kriteriet er bevidst «begge navne i samme sætning» frem for «indeholder ordet Anmeldelsesdato»: et enkelt
+ * navn kan stå legitimt i en overskrift eller en dokumenttekst, mens BEGGE navne i samme udtryk kun kan
+ * betyde, at koden gentager navnevalget. Det var netop den gentagelse — fire kopier af samme ternary — der
+ * gjorde det muligt for feltets synlige navn og dets fejlbesked at drive fra hinanden.
+ *
+ * Kun rigtige string-literals i KODE tæller. En kommentar, der nævner begge navne (som denne), er ikke et
+ * navnevalg, og AST'en kan skelne dem — det kunne en tekstsøgning ikke.
+ */
+const collectSkadestypeLabelChoices = (entry: SourceEntry): readonly Finding[] => {
+  const findings: Finding[] = [];
+
+  const literalsIn = (node: ts.Node): ReadonlySet<string> => {
+    const found = new Set<string>();
+    const visit = (current: ts.Node): void => {
+      // En literal-union i TYPE-position (`'Skadedato' | 'Anmeldelsesdato'`) er ikke et navnevalg — den
+      // BEGRÆNSER hvilke navne en værdi må have, og selve valget sker et andet sted. `SkadestypeDatoLabel`
+      // er den navngivne form af netop den type.
+      if (ts.isLiteralTypeNode(current) || ts.isUnionTypeNode(current)) return;
+      if (
+        (ts.isStringLiteral(current) || ts.isNoSubstitutionTemplateLiteral(current))
+        && SKADESTYPE_LABEL_LITERALS.includes(current.text)
+      ) {
+        found.add(current.text);
+      }
+      ts.forEachChild(current, visit);
+    };
+    visit(node);
+    return found;
+  };
+
+  // Den mindste enhed, et navnevalg kan udtrykkes i: en ternary, et binært udtryk eller en hel
+  // funktionskrop (dækker `if (…) return 'Skadedato'; return 'Anmeldelsesdato';`).
+  const visit = (node: ts.Node): void => {
+    const isChoiceScope =
+      ts.isConditionalExpression(node)
+      || ts.isBinaryExpression(node)
+      || ts.isFunctionDeclaration(node)
+      || ts.isFunctionExpression(node)
+      || ts.isArrowFunction(node)
+      || ts.isMethodDeclaration(node);
+
+    if (isChoiceScope && literalsIn(node).size === SKADESTYPE_LABEL_LITERALS.length) {
+      const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+      findings.push({
+        position: { line: line + 1, column: character + 1 },
+        message:
+          'Her vælges der mellem feltets to navne («Skadedato»/«Anmeldelsesdato»). Navnevalget er feltets '
+          + 'eget (§3.2a) og bor i `resolveSkadestypeDatoLabel`; `stamdata.skadedato`-descriptorens '
+          + '`contextualLabel` læser det, og både den synlige label og enhver besked om feltet får det '
+          + 'derfra. Gentages valget her, kan de to drive fra hinanden — feltet hed «Anmeldelsesdato» på '
+          + 'skærmen, mens fejlen bad brugeren rette «Skadedato». Kald funktionen i stedet, og '
+          + 'hent den SYNLIGE label i en komponent med `useFieldLabel(field)`.',
+      });
+      return; // ét fund pr. valg — ikke ét pr. omsluttende knude
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+/** Finder hårdkodede labels for det kontekstuelle Stamdata-felt på synlige fagsider. */
+const collectHardcodedContextualFieldLabels = (entry: SourceEntry): readonly Finding[] => {
+  if (!entry.relativePath.startsWith('src/components/pages/')) return [];
+
+  const findings: Finding[] = [];
+  const positionOf = (node: ts.Node): Finding['position'] => {
+    const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+    return { line: line + 1, column: character + 1 };
+  };
+  const isInsideJsx = (node: ts.Node): boolean => {
+    let current: ts.Node | undefined = node.parent;
+    while (current !== undefined) {
+      if (ts.isJsxElement(current) || ts.isJsxSelfClosingElement(current)) return true;
+      current = current.parent;
+    }
+    return false;
+  };
+
+  const visit = (node: ts.Node): void => {
+    const isStaticLabel = ts.isJsxText(node)
+      ? node.getText(entry.ast).trim() === SKADESTYPE_LABEL_LITERALS[0]
+      : (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
+        && SKADESTYPE_LABEL_LITERALS.includes(node.text)
+        && isInsideJsx(node);
+    if (isStaticLabel) {
+      findings.push({
+        position: positionOf(node),
+        message:
+          'En synlig JSX-label for det kontekstuelle Stamdata-datofelt er skrevet som en fast tekst. '
+          + 'Læs feltets aktuelle navn gennem `useFieldLabel(stamdataSkadedatoField.bind())` eller '
+          + '`InputReader.labelOf`; ellers kan skærmen og fejlbeskeden igen navngive feltet forskelligt.',
+      });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+export const contextualFieldLabelSingleAuthorityRule = defineRule({
+  id: 'input/contextual-field-label-single-authority',
+  description:
+    'Et kontekstafhængigt feltnavn må kun vælges ét sted. Gentages valget, kan feltets synlige label og '
+    + 'beskeden om samme felt navngive det forskelligt.',
+  liveTarget: {
+    kind: 'precondition',
+    // Målet er navneautoriteten selv. Forsvinder `resolveSkadestypeDatoLabel`, findes den funktion,
+    // reglen henviser callsites til, ikke længere, og reglen skal skrives om frem for at stå grøn.
+    probe: (entry) =>
+      entry.relativePath === 'src/domain/policies/stamdataCalculations.ts'
+      && hasIdentifier(entry, 'resolveSkadestypeDatoLabel'),
+    rationale:
+      'navneautoriteten `resolveSkadestypeDatoLabel` findes stadig; forsvinder den, har reglen ingen '
+      + 'funktion at henvise til',
+    requiredPaths: ['src/domain/policies/stamdataCalculations.ts'],
+  },
+  appliesTo: (relativePath) =>
+    (relativePath.endsWith('.ts') || relativePath.endsWith('.tsx'))
+    && !relativePath.startsWith('src/__tests__/'),
+  allow: CONTEXTUAL_LABEL_AUTHORITIES,
+  find: (entry) => [
+    ...collectSkadestypeLabelChoices(entry),
+    ...collectHardcodedContextualFieldLabels(entry),
+  ],
+  violatingFixtures: [
+    // Den præcise fejlform: den inline ternary, der stod fire steder.
+    {
+      relativePath: 'src/components/pages/varigemen/MenberegningTab.tsx',
+      code: "const label = skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato';",
+    },
+    // Samme valg skrevet som en funktion med to returns — en ternary-regel alene ville være blind for den.
+    {
+      relativePath: 'src/domain/eoRowEvaluation/eoRowStamdataModel.ts',
+      code: "function navn(t: string) {\n  if (t === 'Erhvervssygdom') return 'Anmeldelsesdato';\n  return 'Skadedato';\n}",
+    },
+    // Og som et opslagsobjekt inde i en pilefunktion.
+    {
+      relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
+      code: "const navn = (t: string) => ({ Erhvervssygdom: 'Anmeldelsesdato', Arbejdsulykke: 'Skadedato' })[t];",
+    },
+    // En enkelt fast label på en fagside er også forkert: den skjuler konteksten fra den fælles descriptor.
+    {
+      relativePath: 'src/components/pages/x/XTab.tsx',
+      code: '<Typography className="row--text">Skadedato</Typography>',
+    },
+  ],
+  cleanFixtures: [
+    // Den godkendte løsning: kald autoriteten.
+    {
+      relativePath: 'src/components/pages/varigemen/MenberegningTab.tsx',
+      code: 'const label = resolveSkadestypeDatoLabel(skadestype);',
+    },
+    // Rendersidens vej til den SYNLIGE label.
+    {
+      relativePath: 'src/components/pages/stamdata/useStamdataViewModel.ts',
+      code: 'const datoLabel = useFieldLabel(skadedatoRef);',
+    },
+    // ÉT af navnene alene er ikke et navnevalg — en dokumentoverskrift må gerne skrive det.
+    {
+      relativePath: 'src/document/generators/eo/sections/x.ts',
+      code: "const overskrift = 'Skadedato';",
+    },
+    // En KOMMENTAR, der nævner begge navne, er ikke kode og må ikke udløse reglen.
+    {
+      relativePath: 'src/domain/x.ts',
+      code: "// Feltet hedder 'Skadedato' eller 'Anmeldelsesdato' afhængigt af skadestypen.\nconst label = resolveSkadestypeDatoLabel(t);",
+    },
+    // To navne i SAMME FIL, men i hvert sit urelaterede udtryk, er ikke et valg.
+    {
+      relativePath: 'src/domain/x.ts',
+      code: "const a = 'Skadedato';\nconst b = 'Anmeldelsesdato';",
+    },
+  ],
+});
+
+// --- Test-store hydration skal gå gennem én act-grænse ----------------------
+
+const RAW_TEST_HYDRATION_NAME = '__hydrateSlimInputStoreForTest';
+const RAW_TEST_HYDRATION_OWNER = 'src/inputCore/runtime/slimInputStore.ts';
+const RAW_TEST_HYDRATION_HELPER = 'src/test/actSafeInputStore.ts';
+
+const collectRawTestHydrationAccesses = (entry: SourceEntry): readonly Finding[] => {
+  if (entry.relativePath === RAW_TEST_HYDRATION_OWNER || entry.relativePath === RAW_TEST_HYDRATION_HELPER) return [];
+
+  const findings: Finding[] = [];
+  const positionOf = (node: ts.Node): Finding['position'] => {
+    const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+    return { line: line + 1, column: character + 1 };
+  };
+  const visit = (node: ts.Node): void => {
+    const isIdentifierAccess = ts.isIdentifier(node) && node.text === RAW_TEST_HYDRATION_NAME;
+    const isComputedAccess = ts.isElementAccessExpression(node)
+      && ts.isStringLiteralLike(node.argumentExpression)
+      && node.argumentExpression.text === RAW_TEST_HYDRATION_NAME;
+    if (isIdentifierAccess || isComputedAccess) {
+      findings.push({
+        position: positionOf(node),
+        message:
+          'Rå test-store-hydration må ikke bruges direkte. Brug `hydrateSlimInputStoreForTest`, som omslutter '
+          + 'store-notifikationen i `act`.',
+      });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+/**
+ * Den rå hydration-port må kun bruges af den ene test-helper, der omslutter store-notifikationen i `act`.
+ * Ellers kan en ny test igen mutere en monteret React-store direkte og sende samme CI-advarsel videre.
+ */
+export const testStoreHydrationActBoundaryRule = defineRule({
+  id: 'test/store-hydration-uses-act-boundary',
+  description:
+    'Test-only store-hydration skal gå gennem den fælles act-helper, så monterede React-komponenter ikke '
+    + 'opdateres uden for Reacts testgrænse.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      entry.relativePath === RAW_TEST_HYDRATION_OWNER
+      && hasIdentifier(entry, RAW_TEST_HYDRATION_NAME),
+    rationale:
+      'den rå hydration-port findes stadig i input-runtime; flyttes eller slettes porten, skal reglen følge '
+      + 'den nye testgrænse',
+    requiredPaths: ['src/inputCore/runtime/slimInputStore.ts'],
+  },
+  find: (entry) => collectRawTestHydrationAccesses(entry),
+  violatingFixtures: [
+    {
+      relativePath: 'src/__tests__/components/pages/X.integration.test.tsx',
+      code: "import { __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';",
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/__tests__/components/pages/X.integration.test.tsx',
+      code: "import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';",
+    },
+  ],
+});
+
+// --- Standard-løn-kolonnenavne har ÉN kilde ---------------------------------
+
+/** Modulet, der EJER standard-løn-tabellens kolonnenavne. Alle andre skal læse derfra. */
+const STANDARD_LOEN_LABEL_OWNER = 'src/types/table.ts';
+
+/**
+ * Modulerne, der legitimt FORBRUGER kolonnenavnene: de to descriptor-kataloger (som `label`) og
+ * overskrifts-modulet (som gridoverskrift). Reglen kontrollerer netop disse tre, fordi det er dem, der
+ * tidligere hver havde sin egen navneliste.
+ */
+const STANDARD_LOEN_LABEL_CONSUMERS: readonly string[] = [
+  'src/inputCore/catalog/erstatningsopgoerelseLoenDescriptors.ts',
+  'src/inputCore/catalog/aarsloenDescriptors.ts',
+  'src/domain/aarsloen/standardLoenTableColumns.ts',
+];
+
+/**
+ * Kolonnenavne, der ville afsløre en gen-indført parallel navneliste. `col4`/`col5`-navnene er de to, der
+ * FAKTISK drev fra hinanden — descriptoren sagde «Løn (3)», overskriften «Ikke-pensionsgivende løn» — og de
+ * øvrige er med, fordi en ny kopi typisk gentager hele listen.
+ */
+const STANDARD_LOEN_LABEL_LITERALS: readonly string[] = [
+  'Ikke-pensionsgivende løn',
+  'ATP og anden løn u. tillæg',
+  'FP/FV/SH/SO/St.B.',
+  'Arb.g. Pension',
+  'Uge fra',
+  'Uge til',
+];
+
+/** Finder kolonnenavne skrevet som literals i en forbruger, der burde læse dem fra ejeren. */
+const collectStandardLoenLabelLiterals = (entry: SourceEntry): readonly Finding[] => {
+  const findings: Finding[] = [];
+  const visit = (node: ts.Node): void => {
+    // En literal-union i TYPE-position begrænser værdier; den er ikke en navneliste.
+    if (ts.isLiteralTypeNode(node) || ts.isUnionTypeNode(node)) return;
+    if (
+      (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
+      && STANDARD_LOEN_LABEL_LITERALS.includes(node.text)
+    ) {
+      const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+      findings.push({
+        position: { line: line + 1, column: character + 1 },
+        message:
+          `Kolonnenavnet «${node.text}» er skrevet som en literal her. Standard-løn-tabellens kolonnenavne `
+          + `har ÉN kilde (\`STANDARD_LOEN_COLUMN_LABELS\` i ${STANDARD_LOEN_LABEL_OWNER}, §3.2a): de to `
+          + 'descriptor-kataloger sætter dem som `label`, og `standardLoenTableColumns.ts` bygger '
+          + 'gridoverskrifterne af dem. Skrives navnet igen her, kan overskriften og en fejlbesked om samme '
+          + 'celle navngive kolonnen forskelligt — `col4` hed «Ikke-pensionsgivende løn» i overskriften og '
+          + '«Løn (3)» i beskeden. Læs fra `STANDARD_LOEN_COLUMN_LABELS` i stedet.',
+      });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+export const standardLoenColumnLabelsSingleSourceRule = defineRule({
+  id: 'input/standard-loen-column-labels-single-source',
+  description:
+    'Standard-løn-tabellens kolonnenavne må kun stå ét sted. Gentages de, kan gridoverskriften og en '
+    + 'fejlbesked om samme celle navngive kolonnen forskelligt.',
+  liveTarget: {
+    kind: 'precondition',
+    // Målet er de tre forbrugere: hver af dem SKAL findes og læse navnene fra ejeren. Forsvinder en, er
+    // reglens dækning skrumpet, og det skal være en testfejl frem for en tavs mangel.
+    probe: (entry) =>
+      STANDARD_LOEN_LABEL_CONSUMERS.includes(entry.relativePath)
+      && hasIdentifier(entry, 'STANDARD_LOEN_COLUMN_LABELS'),
+    rationale:
+      'alle tre forbrugere (de to descriptor-kataloger + overskrifts-modulet) læser stadig navnene fra '
+      + '`STANDARD_LOEN_COLUMN_LABELS`; gør de ikke, findes den ene kilde ikke længere',
+    minimumMatches: STANDARD_LOEN_LABEL_CONSUMERS.length,
+    requiredPaths: STANDARD_LOEN_LABEL_CONSUMERS,
+  },
+  appliesTo: (relativePath) => STANDARD_LOEN_LABEL_CONSUMERS.includes(relativePath),
+  find: (entry) => collectStandardLoenLabelLiterals(entry),
+  violatingFixtures: [
+    // Den præcise fejlform: descriptoren skriver sit eget kolonnenavn.
+    {
+      relativePath: 'src/inputCore/catalog/erstatningsopgoerelseLoenDescriptors.ts',
+      code: "const f = stdAmount('col4', 'Ikke-pensionsgivende løn');",
+    },
+    // Det andet katalog kunne drive fra det første på samme måde.
+    {
+      relativePath: 'src/inputCore/catalog/aarsloenDescriptors.ts',
+      code: "export const c5 = rowAmount('col5', 'ATP og anden løn u. tillæg');",
+    },
+    // Overskrifts-modulet med en gen-indført egen navneliste.
+    {
+      relativePath: 'src/domain/aarsloen/standardLoenTableColumns.ts',
+      code: "const PERIOD = { uge: ['Uge fra', 'Uge til'] };",
+    },
+  ],
+  cleanFixtures: [
+    // Den godkendte løsning: læs fra den ene kilde.
+    {
+      relativePath: 'src/inputCore/catalog/erstatningsopgoerelseLoenDescriptors.ts',
+      code: "const f = stdAmount('col4', STANDARD_LOEN_COLUMN_LABELS.col4);",
+    },
+    // Overskriftens LAYOUT-ombrydning er ikke navnet — linjeskiftet gør strengen til en anden tekst.
+    {
+      relativePath: 'src/domain/aarsloen/standardLoenTableColumns.ts',
+      code: "const H = { col4: 'Ikke-pensions-\ngivende løn' };",
+    },
+    // En KOMMENTAR, der nævner navnet, er ikke en navneliste.
+    {
+      relativePath: 'src/inputCore/catalog/aarsloenDescriptors.ts',
+      code: "// col4 hed tidligere 'Løn (3)', nu 'Ikke-pensionsgivende løn'.\nconst f = rowAmount('col4', stdLabel.col4);",
+    },
+    // Et urelateret navn i samme fil er uberørt.
+    {
+      relativePath: 'src/inputCore/catalog/aarsloenDescriptors.ts',
+      code: "const f = percentField('feriePct', 'Feriegodtgørelse/-tillæg');",
+    },
+  ],
+});

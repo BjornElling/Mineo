@@ -12,6 +12,7 @@ import { type VarigeMenBeregningResult } from '../../../domain/varigemen/varigeM
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
+import type { SkadestypeDatoLabel } from '../../../domain/policies/stamdataCalculations';
 
 /**
  * Tilføj stamdata-sektion
@@ -21,7 +22,7 @@ const addStamdataSection = (
   fodselsdato: ISODateString | undefined,
   skadedato: ISODateString | undefined,
   alderVedSkade: number,
-  skadedatoLabel: 'Skadedato' | 'Anmeldelsesdato'
+  skadedatoLabel: SkadestypeDatoLabel
 ): void => {
   writer.writeBoldSubheader('Stamdata');
   writeLabelValueRows(writer, [
@@ -92,8 +93,8 @@ type GenerateVarigeMenDocumentParams = DocumentCommonOptions & Readonly<{
   mengrad: number;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
-  /** Kanonisk: 'Skadedato' (uden s) eller 'Anmeldelsesdato' (med s) */
-  skadedatoLabel: 'Skadedato' | 'Anmeldelsesdato';
+  /** Feltets navn i sagens kontekst — afgjort af `resolveSkadestypeDatoLabel`, ikke af generatoren. */
+  skadedatoLabel: SkadestypeDatoLabel;
 }>;
 
 export const generateVarigeMenDocument = defineDocument<GenerateVarigeMenDocumentParams>({

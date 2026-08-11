@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import { resolveStamdataDatoLabel } from '../../../domain/policies';
 import { APP_ROUTES } from '../../../config/pageNavigation';
 import {
   stamdataAdvokatField,
@@ -11,7 +10,7 @@ import {
   stamdataSkadelidteFodselsdatoField,
   stamdataSkadestypeField,
 } from '../../../inputCore/catalog/stamdataDescriptors';
-import { useInputEvaluation } from '../../../inputCore/react';
+import { useFieldLabel } from '../../../inputCore/react';
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
 
 /**
@@ -23,6 +22,7 @@ import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState'
  *
  * Modellen ejer ingen skrivekanal: felterne skriver selv gennem deres `field` + `location`, og labelen læses
  * gennem den offentlige `InputReader`, så et fejlende felt ikke kan omgå issue-grænsen med et rå canonical read.
+ * Modellen UDLEDER heller ikke labelen — den spørger feltet (§3.2a), som ejer sit eget navn.
  */
 
 // Bundne field-refs (stabile — alle Stamdata-felter er top-level skalarer uden entity-id).
@@ -66,16 +66,10 @@ const FIELDS = Object.freeze({
 });
 
 export function useStamdataViewModel() {
-  // Den dynamiske datolabel afhænger af den AFSLUTTEDE skadestype-værdi (§1.2) og læses gennem samme offentlige
-  // reader som øvrige consumers.
-  const evaluation = useInputEvaluation();
-  const skadestypeRead = evaluation.reader.read(skadestypeRef);
-  const skadestype = skadestypeRead.status === 'usable' ? skadestypeRead.value : undefined;
-
-  const datoLabel = React.useMemo(
-    () => resolveStamdataDatoLabel(skadestype === undefined ? null : { skadestype }),
-    [skadestype]
-  );
+  // Skadedato-feltets navn er KONTEKSTUELT (§3.2a) og kommer fra feltet selv — ikke fra en label, siden
+  // udleder på egen hånd. Det er netop den binding, der gør, at beskeden om feltet og den label brugeren ser
+  // ikke kan navngive feltet forskelligt.
+  const datoLabel = useFieldLabel(skadedatoRef);
 
   return React.useMemo(
     () => ({ fields: FIELDS, locations: LOCATIONS, datoLabel }),

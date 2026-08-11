@@ -24,6 +24,7 @@ export * from './useCollectionRows';
 export * from './useCellEditor';
 export * from './useGridCellSurface';
 export * from './useInputEvaluation';
+export * from './useFieldLabel';
 export * from './useCaseOperations';
 export * from './inputDiagnosticsProjection';
 export * from './useUndoRedoShortcuts';

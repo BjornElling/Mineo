@@ -2,20 +2,32 @@ import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 
 export type StamdataValues = PersistedSectionMap['stamdata'];
 
+export type SkadestypeDatoLabel = 'Anmeldelsesdato' | 'Skadedato';
+
 /**
- * Kanoniske betegnelser for skadedato-feltet:
- *   - "Skadedato"       (uden s) — bruges ved Arbejdsulykke og ukendt skadestype
- *   - "Anmeldelsesdato" (med s)  — bruges ved Erhvervssygdom
- *
- * Alle steder i UI og PDF skal bruge denne funktion frem for inline ternaries.
+ * Feltnavnet, når skadestypen er ukendt — og dermed `stamdata.skadedato`-descriptorens kontekstfrie `label`.
+ * Konstanten findes, så descriptoren og denne regel ikke kan erklære forskellige udgangspunkter.
  */
+export const SKADESTYPE_DATO_LABEL_DEFAULT: SkadestypeDatoLabel = 'Skadedato';
+
+/**
+ * DET ENE navnevalg for `stamdata.skadedato`:
+ *   - "Skadedato"       (uden s) — ved Arbejdsulykke og ukendt skadestype
+ *   - "Anmeldelsesdato" (med s)  — ved Erhvervssygdom
+ *
+ * Reglen er feltets `contextualLabel` (§3.2a) og forbruges derigennem af BÅDE den synlige label og enhver
+ * besked om feltet. Skriv den aldrig som en inline ternary: gjorde fire kaldssteder det tidligere, og et
+ * felt, der hed «Anmeldelsesdato» på skærmen, bad brugeren rette «Skadedato».
+ */
+export const resolveSkadestypeDatoLabel = (
+  skadestype: StamdataValues['skadestype'] | undefined
+): SkadestypeDatoLabel =>
+  skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato';
+
+/** Sektionsformen af {@link resolveSkadestypeDatoLabel} — for consumers, der holder hele `stamdata`. */
 export const resolveStamdataDatoLabel = (
   stamdata: StamdataValues | null
-): 'Anmeldelsesdato' | 'Skadedato' => {
-  const skadestype = stamdata?.skadestype;
-  if (skadestype === 'Erhvervssygdom') return 'Anmeldelsesdato';
-  return 'Skadedato';
-};
+): SkadestypeDatoLabel => resolveSkadestypeDatoLabel(stamdata?.skadestype);
 
 export const hasStamdataAny = (stamdata: StamdataValues | null): boolean => {
   if (!stamdata) return false;

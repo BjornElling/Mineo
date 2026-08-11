@@ -101,6 +101,7 @@ export function useForsoergertabViewModel() {
   const skadedatoRead = evaluation.reader.read(skadedatoRef);
   const skadedato = skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined;
   const skadedatoError = skadedatoRead.status === 'error' ? skadedatoRead.issue.message : undefined;
+  const skadedatoLabel = evaluation.reader.labelOf(skadedatoRef);
 
   const goToStamdata = React.useCallback(() => navigate(APP_ROUTES.stamdata), [navigate]);
 
@@ -127,6 +128,7 @@ export function useForsoergertabViewModel() {
     skadelidteFodselsdatoError,
     skadedato,
     skadedatoError,
+    skadedatoLabel,
     goToStamdata,
     // Snapshot-afledt visning og panel-gates (§1.10).
     result: snapshot.calculation.result,

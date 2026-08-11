@@ -1,5 +1,11 @@
 name: CI
 
+env:
+  # Sørger for Node 24 som sikkerhedsnet, hvis en workflow-action kortvarigt
+  # ikke er opdateret endnu. Runtime-gaten nedenfor stopper samtidig ukendte
+  # eller forældede action-versioner, før de kan blive kørt.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   pull_request:
   push:
@@ -30,13 +36,13 @@ jobs:
         run: npx playwright install --with-deps chromium firefox webkit
 
       # Én autoritativ gate. Identisk med lokal `npm run check`:
-      # typecheck + typecheck:test + lint + mojibake/casing + Vitest m. coverage + build:all.
+      # runtime-gates + typecheck + typecheck:test + lint + mojibake/casing + Vitest m. coverage + build:all.
       # De byggede `dist/`-artefakter herfra er præcis dem, deploy-jobbet udgiver.
       - name: Verify release
         run: npm run verify:release
 
       - name: Upload verified build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dist
           path: dist/
@@ -54,16 +60,19 @@ jobs:
         uses: actions/checkout@v6
 
       # wrangler-action installerer wrangler i det udcheckede repo, hvor
-      # package.json's engines kræver Node >=24.18.0. Uden dette trin bruger
-      # runneren sin default-Node (v22) og npm afviser med EBADENGINE.
+      # package.json's engines kræver Node >=24.18.0. Dette trin sikrer, at
+      # deploy-jobbet bruger samme projekt-runtime som verify-jobbet.
       - name: Setup Node from .nvmrc
         uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
 
+      - name: Verify GitHub Actions runtimes
+        run: npm run check:github-actions-runtime
+
       - name: Download verified build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: dist
           path: dist/

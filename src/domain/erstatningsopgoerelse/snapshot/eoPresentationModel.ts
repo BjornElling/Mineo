@@ -10,6 +10,10 @@ import type {
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import type { EoComputedTotals } from './eoCanonicalOutput';
+import {
+  resolveSkadestypeDatoLabel,
+  type SkadestypeDatoLabel,
+} from '../../policies/stamdataCalculations';
 
 export type {
   Calculable,
@@ -35,6 +39,13 @@ export type EoPdfPresentation = Readonly<{
   periodeDisplay: string | null;
   skadelidteNavn: string | null;
   skadestypeLinje: string | null;
+  /**
+   * Skadedato-feltets navn i sagens kontekst (§3.2a). Modellen bærer det FÆRDIGT, fordi den er det sidste
+   * sted, skadestypen findes som en værdi: en downstream-generator kunne ellers kun genskabe navnet ved at
+   * læse `skadestypeLinje`s prosa-præfiks — og en ændret formulering ville da tavst give feltet det forkerte
+   * navn i grafen.
+   */
+  skadedatoLabel: SkadestypeDatoLabel;
   brevhoved: Readonly<{
     journalnr?: string;
     advokat?: string;
@@ -76,6 +87,7 @@ export const buildEoPdfPresentation = (
     periodeDisplay,
     skadelidteNavn: navn !== '' ? navn : null,
     skadestypeLinje,
+    skadedatoLabel: resolveSkadestypeDatoLabel(stamdataValues.skadestype),
     brevhoved: {
       journalnr: stamdataValues.journalnr,
       advokat: stamdataValues.advokat,
@@ -125,6 +137,7 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
     periodeDisplay: args.presentation.periodeDisplay,
     skadelidteNavn: args.presentation.skadelidteNavn,
     skadestypeLinje: args.presentation.skadestypeLinje,
+    skadedatoLabel: args.presentation.skadedatoLabel,
     brevhoved: args.presentation.brevhoved,
     svieSmerte,
     forlig: args.forlig,

@@ -26,7 +26,8 @@ import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
 } from '../../../inputCore/react';
-import { slimInputStore, __hydrateSlimInputStoreForTest } from '../../../inputCore/runtime/slimInputStore';
+import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import type { FieldRef, PersistedInputSections } from '../../../inputCore';
 import { forsoergertabBeregningsdatoField } from '../../../inputCore/catalog/forsoergertabDescriptors';
 import { varigeMenBeregningsdatoField } from '../../../inputCore/catalog/varigeMenDescriptors';
@@ -45,7 +46,7 @@ const EMPTY_SECTIONS: PersistedInputSections = {
 };
 
 const hydrateEmpty = (): void => {
-  __hydrateSlimInputStoreForTest(
+  hydrateSlimInputStoreForTest(
     slimInputStore,
     catalog.validateSettledInput({ sections: EMPTY_SECTIONS, rejectedInputs: {} })
   );
