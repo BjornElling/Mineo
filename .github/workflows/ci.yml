@@ -17,12 +17,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup Node from .nvmrc
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
@@ -42,7 +42,7 @@ jobs:
         run: npm run verify:release
 
       - name: Upload verified build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -57,13 +57,13 @@ jobs:
     steps:
       # Checkout kun for wrangler-konfigurationerne; der bygges IKKE på ny.
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # wrangler-action installerer wrangler i det udcheckede repo, hvor
       # package.json's engines kræver Node >=24.18.0. Dette trin sikrer, at
       # deploy-jobbet bruger samme projekt-runtime som verify-jobbet.
       - name: Setup Node from .nvmrc
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
@@ -72,7 +72,7 @@ jobs:
         run: npm run check:github-actions-runtime
 
       - name: Download verified build artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/

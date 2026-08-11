@@ -21,10 +21,10 @@ const workflowRoot = join(repoRoot, '.github', 'workflows');
  * bevidst, så en fremtidig opdatering ikke ændrer runtime ubemærket.
  */
 const actionPolicies = new Map([
-  ['actions/checkout', { major: 6, nodeMajor: 24 }],
-  ['actions/setup-node', { major: 6, nodeMajor: 24 }],
-  ['actions/upload-artifact', { major: 6, nodeMajor: 24 }],
-  ['actions/download-artifact', { major: 7, nodeMajor: 24 }],
+  ['actions/checkout', { major: 7, nodeMajor: 24 }],
+  ['actions/setup-node', { major: 7, nodeMajor: 24 }],
+  ['actions/upload-artifact', { major: 7, nodeMajor: 24 }],
+  ['actions/download-artifact', { major: 8, nodeMajor: 24 }],
   ['cloudflare/wrangler-action', { major: 4, nodeMajor: 24 }],
 ]);
 
