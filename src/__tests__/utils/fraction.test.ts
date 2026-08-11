@@ -17,6 +17,21 @@ describe('fraction utils', () => {
     expect(parseFractionString('1.25/3.5')).toEqual({ ok: false, reason: 'invalid' });
   });
 
+  it('normaliserer indledende nuller uden at reducere brøken', () => {
+    expect(parseFractionString('02/04')).toMatchObject({
+      ok: true,
+      parsed: { value: '2/4' },
+    });
+    expect(parseFractionString('000,50/003,0')).toMatchObject({
+      ok: true,
+      parsed: { value: '0,50/3,0' },
+    });
+    expect(parseFractionString('6/4')).toMatchObject({
+      ok: true,
+      parsed: { value: '6/4' },
+    });
+  });
+
   it('afviser negative brøker som standard og accepterer dem når allowNegative er sat', () => {
     expect(parseFractionString('-3/4')).toEqual({ ok: false, reason: 'negative-not-allowed' });
     expect(parseFractionString('-3/4', { allowNegative: true })).toMatchObject({
@@ -112,5 +127,19 @@ describe('fraction utils', () => {
   it('afviser en afledt kvotient uden sikker numerisk størrelsesorden', () => {
     expect(parseFractionString('9999999999/0,0000000001'))
       .toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('afviser indre mellemrum og ufuldstændige dele, men trimmer ydre mellemrum', () => {
+    expect(parseFractionString(' 1/2 ')).toMatchObject({ ok: true, parsed: { value: '1/2' } });
+    expect(parseFractionString('1 /2')).toEqual({ ok: false, reason: 'invalid' });
+    expect(parseFractionString('1/ 2')).toEqual({ ok: false, reason: 'invalid' });
+    expect(parseFractionString('1/')).toEqual({ ok: false, reason: 'invalid' });
+    expect(parseFractionString('/2')).toEqual({ ok: false, reason: 'invalid' });
+    expect(parseFractionString(',5/2')).toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('skelner nul-tæller og nul-nævner efter decimalnormalisering', () => {
+    expect(parseFractionString('00,0/2')).toEqual({ ok: false, reason: 'zero-numerator' });
+    expect(parseFractionString('1/00,0')).toEqual({ ok: false, reason: 'zero-denominator' });
   });
 });

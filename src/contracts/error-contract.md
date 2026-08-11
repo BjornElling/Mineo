@@ -156,17 +156,19 @@ datotooltips skal vise konkrete grænser. Hvis `min > max`, forklarer tooltippen
 begge grænser og navngiver de brugervendte input, der skabte dem.
 
 **Tooltip vs. "Fejl og advarsler" (brugerkrav 2026-07-30).** De to flader viser IKKE nødvendigvis samme tekst.
-Boksen viser altid den fulde besked. Tooltippet afhænger af `reason`, og `resolveFieldIssueTooltip`
-(`src/inputCore/inputIssue.ts`) er det ENE sted, valget træffes:
+Boksen viser altid den fulde besked. Tooltippet afhænger af `reason` og en eventuel maskinlæsbar codec-detalje,
+og `resolveFieldIssueTooltip` (`src/inputCore/inputIssue.ts`) er det ENE sted, valget træffes:
 
 | `reason` | Tooltip |
 |---|---|
 | `bounds`, `rule` | den fulde besked, ordret |
-| alle øvrige (`format`, `schema`) | den generiske `FIELD_ISSUE_GENERIC_TOOLTIP` = `Fejl i indtastning` |
+| `format` med `detail.tooltip` | den konkrete codec-leverede tooltip |
+| øvrige (`format`, `schema`) | den generiske `FIELD_ISSUE_GENERIC_TOOLTIP` = `Fejl i indtastning` |
 
-Tabellen er en **allowlist**: `REASONS_WITH_SPECIFIC_TOOLTIP` rummer præcis `bounds` og `rule`, og enhver anden
-— også en fremtidig — `reason` falder i den generiske gren. Det er den sikre default: en ukendt årsag lækker
-ikke en uegnet tekst til tooltippet. Samme klassifikation gælder download-tooltip: `format`/`schema` må bruge
+Tabellen er en **allowlist**: `REASONS_WITH_SPECIFIC_TOOLTIP` rummer præcis `bounds` og `rule`, og en
+`format`-detalje må kun levere feltets konkrete rettelsesvej gennem den strukturerede `tooltip`-nøgle. Enhver
+anden eller ukendt årsag falder i den generiske gren. Det er den sikre default: en ukendt årsag lækker ikke en
+uegnet tekst til tooltippet. Samme klassifikation gælder download-tooltip: `format`/`schema` må bruge
 `Fejl i indtastning`, mens `bounds`/`rule` skal bevare den konkrete besked.
 
 Begrundelsen er informationsværdi, ikke længde: `bounds`/`rule` fortæller HVAD der er galt ("skal være mellem 0

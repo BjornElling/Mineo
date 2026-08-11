@@ -47,11 +47,22 @@ const buildDraftPattern = (maxDigits: number, allowNegative: boolean): RegExp =>
 };
 
 const normalizeToken = (raw: string, options: Readonly<{ maxDigits: number; allowNegative: boolean }>): string | null => {
-  const trimmed = raw.trim();
-  if (!buildTokenPattern(options.maxDigits, options.allowNegative).test(trimmed)) {
+  if (!buildTokenPattern(options.maxDigits, options.allowNegative).test(raw)) {
     return null;
   }
-  return trimmed;
+  return raw;
+};
+
+/**
+ * Fjerner kun overflødige nuller foran heltalsdelen. Decimalpræcisionen bevares, og brøken reduceres ikke.
+ * Det er vigtigt, fordi `2/4` skal forblive `2/4`, mens `02/04` skal have én entydig visningsform.
+ */
+const normalizeLeadingZeros = (token: string): string => {
+  const sign = token.startsWith('-') ? '-' : '';
+  const unsigned = sign === '' ? token : token.slice(1);
+  const [integerPart, decimalPart] = unsigned.split(',') as [string, string?];
+  const normalizedIntegerPart = integerPart.replace(/^0+(?=\d)/, '');
+  return `${sign}${normalizedIntegerPart}${decimalPart === undefined ? '' : `,${decimalPart}`}`;
 };
 
 const gcd = (a: number, b: number): number => {
@@ -98,7 +109,7 @@ export const parseFractionString = (
   if (slashCount !== 1) return { ok: false, reason: 'invalid' };
 
   const [rawNumerator, rawDenominator] = trimmed.split('/') as [string, string];
-  if (rawNumerator.trim().startsWith('-') && !allowNegative) {
+  if (rawNumerator.startsWith('-') && !allowNegative) {
     return { ok: false, reason: 'negative-not-allowed' };
   }
   const numeratorToken = normalizeToken(rawNumerator, { maxDigits, allowNegative });
@@ -124,6 +135,9 @@ export const parseFractionString = (
   // at binary64 ikke længere kan bære et deterministisk afledt tal.
   if (!isSafeCanonicalNumber(factor)) return { ok: false, reason: 'invalid' };
 
+  const normalizedNumeratorToken = normalizeLeadingZeros(numeratorToken);
+  const normalizedDenominatorToken = normalizeLeadingZeros(denominatorToken);
+
   if (canonicalizeOnCommit && isIntegerFraction) {
     const divisor = gcd(numerator, denominator);
     const reducedNumerator = numerator / divisor;
@@ -146,7 +160,7 @@ export const parseFractionString = (
       numerator,
       denominator,
       factor,
-      value: `${numeratorToken}/${denominatorToken}`,
+      value: `${normalizedNumeratorToken}/${normalizedDenominatorToken}`,
       isIntegerFraction,
     },
   };

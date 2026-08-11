@@ -438,10 +438,18 @@ export const createFractionFieldCodec = (config: FractionParseOptions): FieldCod
   return Object.freeze({
     family: 'fraction',
     parseForSettle: (raw) => {
-      const trimmed = trimToAlphanumericEdges(raw);
+      // Brøken må parses strengt: alfanumerisk kanttrimning ville fx gøre `,5/2` eller `-1/2`
+      // til en anden, gyldig værdi i stedet for at bevare den faktiske fejlende tekst.
+      const trimmed = raw.trim();
       if (trimmed === '') return validResolution(undefined);
       const parsed = parseFractionString(trimmed, config);
-      return parsed.ok ? validResolution(parsed.parsed.value) : rejectedResolution('format');
+      if (parsed.ok) return validResolution(parsed.parsed.value);
+      const detail = parsed.reason === 'zero-denominator'
+        ? { tooltip: 'Nævneren må ikke være 0' }
+        : parsed.reason === 'zero-numerator'
+          ? { tooltip: 'Tælleren må ikke være 0' }
+          : undefined;
+      return rejectedResolution('format', detail);
     },
     format: (value) => value ?? '',
     formatForEdit: (value) => value ?? '',

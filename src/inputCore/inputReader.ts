@@ -100,6 +100,7 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
         field: anyRef,
         reason: rejected.reason,
         message: buildFieldIssueMessage(anyRef),
+        ...(rejected.detail === undefined ? {} : { detail: rejected.detail }),
       }));
       continue;
     }

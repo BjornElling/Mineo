@@ -88,6 +88,27 @@ describe('fieldCodecs', () => {
     expect(codec.parseForSettle('')).toEqual({ status: 'valid', value: undefined });
   });
 
+  it('normaliserer brøkens nuller og bærer konkret nul-fejl som detail', () => {
+    const codec = createFractionFieldCodec({ maxDigits: 10, canonicalizeOnCommit: false });
+    expect(codec.parseForSettle('02/04')).toEqual({ status: 'valid', value: '2/4' });
+    expect(codec.parseForSettle('1/0')).toEqual({
+      status: 'rejected',
+      reason: 'format',
+      detail: { tooltip: 'Nævneren må ikke være 0' },
+    });
+    expect(codec.parseForSettle('0/2')).toEqual({
+      status: 'rejected',
+      reason: 'format',
+      detail: { tooltip: 'Tælleren må ikke være 0' },
+    });
+  });
+
+  it('afviser indre mellemrum uden at omskrive den fejlende brøk', () => {
+    const codec = createFractionFieldCodec({ maxDigits: 10 });
+    expect(codec.parseForSettle('1 / 2')).toEqual({ status: 'rejected', reason: 'format' });
+    expect(codec.parseForSettle('-1/2')).toEqual({ status: 'rejected', reason: 'format' });
+  });
+
   /**
    * Et beløbsfelt, der ikke tager imod et komma, må heller ikke VISE et. Før denne binding hardkodede
    * amount-codec'en præcision 2 i både `format` og `formatForEdit`, så et heltalsfelt viste "450.000,00" —

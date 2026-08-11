@@ -1,7 +1,7 @@
 import { resolveFieldIssueTooltip, type FieldIssue } from '../inputIssue';
 
 // Feltfejl → de TO tekster, en feltflade viser (§4): den fulde besked og hover-teksten. De var samme streng,
-// indtil brugerkravet 2026-07-30 gjorde tooltippet generisk for `format`/`schema`. Helperen findes, fordi alle
+// indtil brugerkravet 2026-07-30 gjorde tooltippet generisk for de fleste `format`-/`schema`-issues. Helperen findes, fordi alle
 // otte feltfamilier + de to gridceller skal træffe samme valg: læste hver af dem selv `issue.message` til
 // tooltippet, ville forkortelsen skulle huskes tolv steder, og et nyt felt ville arve den gamle opførsel i
 // tavshed. Reason→tekst-beslutningen ejes fortsat af `resolveFieldIssueTooltip`; her sker kun sammenkoblingen

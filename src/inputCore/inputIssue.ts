@@ -95,9 +95,9 @@ export const quoteFieldLabel = (label: string): string => `'${label}'`;
 
 /**
  * Den generiske tooltiptekst for en feltfejl, hvis fulde besked ikke tilføjer noget ved feltet: `format`
- * (råteksten kunne slet ikke parses — fx en delvist indtastet dato) og `schema` (en gemt værdi, der ikke længere
- * validerer). Begge deres fulde beskeder siger i praksis kun "dette felt er forkert" plus feltets eget navn, og
- * navnet står allerede ved markøren.
+ * (råteksten kunne slet ikke parses — fx en delvist indtastet dato) uden en eksplicit codec-detalje og `schema`
+ * (en gemt værdi, der ikke længere validerer). Begge deres fulde beskeder siger normalt kun "dette felt er forkert"
+ * plus feltets eget navn, og navnet står allerede ved markøren.
  */
 export const FIELD_ISSUE_GENERIC_TOOLTIP = 'Fejl i indtastning';
 
@@ -125,8 +125,13 @@ const REASONS_WITH_SPECIFIC_TOOLTIP: ReadonlySet<FieldIssueReason> = new Set<Fie
  * valgt selv, ville det kun kunne gøre det ved strengmatch på beskedteksten — samme drift, som
  * `DocumentDownloadGateReasonKind` blev indført for at undgå.
  */
-export const resolveFieldIssueTooltip = (issue: FieldIssue): string =>
-  REASONS_WITH_SPECIFIC_TOOLTIP.has(issue.reason) ? issue.message : FIELD_ISSUE_GENERIC_TOOLTIP;
+export const resolveFieldIssueTooltip = (issue: FieldIssue): string => {
+  const specificFormatTooltip = issue.reason === 'format' && typeof issue.detail?.tooltip === 'string'
+    ? issue.detail.tooltip
+    : undefined;
+  return specificFormatTooltip
+    ?? (REASONS_WITH_SPECIFIC_TOOLTIP.has(issue.reason) ? issue.message : FIELD_ISSUE_GENERIC_TOOLTIP);
+};
 
 /**
  * Immutabelt feltissue-snapshot: højst ét aktivt rødt issue pr. felt (§1.8). Bygges af feltvalidatorerne

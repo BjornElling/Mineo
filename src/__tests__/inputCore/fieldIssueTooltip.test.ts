@@ -27,10 +27,20 @@ const issue = (reason: FieldIssueReason, message: string): FieldIssue => ({
   message,
 });
 
+const issueWithDetail = (detail: Readonly<Record<string, string | number | boolean>>): FieldIssue => ({
+  ...issue('format', 'Der er udfyldt en ugyldig værdi i feltet \'Brøk\''),
+  detail,
+});
+
 describe('resolveFieldIssueTooltip — reason afgør tooltipteksten', () => {
   it('forkorter `format` til den generiske tekst', () => {
     expect(resolveFieldIssueTooltip(issue('format', 'Der er udfyldt en ugyldig værdi i feltet \'Beløb\'')))
       .toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
+  });
+
+  it('viser en codec-leveret konkret format-tooltip, når den findes', () => {
+    expect(resolveFieldIssueTooltip(issueWithDetail({ tooltip: 'Nævneren må ikke være 0' })))
+      .toBe('Nævneren må ikke være 0');
   });
 
   it('forkorter `schema` til den generiske tekst', () => {
