@@ -65,6 +65,12 @@ export const suppressPwaInstallPrompt = (): void => {
  */
 export const PWA_START_URL = '/';
 export const PWA_MANIFEST_URL = '/manifest.json';
+/**
+ * En almindelig same-origin-navigation kan ikke pålideligt starte en PWA fra en side, der allerede
+ * ligger i PWA'ens scope. En protokolhandler overlader i stedet åbningen til browserens native PWA-
+ * integration. Første brug kan derfor udløse browserens tilladelsesdialog.
+ */
+export const PWA_OPEN_PROTOCOL_URL = 'web+mineo://open';
 
 const getUrlPath = (value: string): string | null => {
   if (typeof window === 'undefined') return null;
@@ -126,25 +132,6 @@ export const detectPwaInstallationState = async (): Promise<PwaInstallationState
   }
 
   return 'unknown';
-};
-
-/**
- * Åbn (eller fokusér) det installerede hjælpeprogram.
- *
- * Manifestets `launch_handler.client_mode: 'focus-existing'` gør, at et allerede åbent PWA-vindue
- * fokuseres i stedet for at der åbnes en dublet. Vi peger på manifestets `start_url` — ikke den
- * aktuelle sti — så programmet starter dér, hvor det selv ville starte.
- */
-export const openInstalledPwa = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  const openedWindow = window.open(PWA_START_URL, '_blank');
-  if (openedWindow === null) return false;
-
-  // `noopener` som tredje argument gør browserens returværdi null — også når åbningen lykkes —
-  // så den kan ikke bruges til at opdage popup-blokering. Vinduet er samme-origin; nulstilling af
-  // opener-referencen efter åbningen bevarer sikkerhedsformålet uden at forveksle succes med fejl.
-  openedWindow.opener = null;
-  return true;
 };
 
 export const requestPwaInstall = async (): Promise<PwaInstallResult> => {

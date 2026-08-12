@@ -1,7 +1,7 @@
 {
   "short_name": "Mineo",
   "name": "Mineo Erstatningsberegner",
-  "id": "/",
+  "id": "https://mineo.dk/",
   "icons": [
     {
       "src": "/icons/mineo-icon-192.png",
@@ -24,14 +24,20 @@
   "related_applications": [
     {
       "platform": "webapp",
-      "url": "/manifest.json",
-      "id": "/"
+      "url": "https://mineo.dk/manifest.json",
+      "id": "https://mineo.dk/"
     }
   ],
   "display": "standalone",
   "launch_handler": {
     "client_mode": "focus-existing"
   },
+  "protocol_handlers": [
+    {
+      "protocol": "web+mineo",
+      "url": "/?mineo-launch=%s"
+    }
+  ],
   "theme_color": "#e9ecef",
   "background_color": "#ffffff",
   "file_handlers": [

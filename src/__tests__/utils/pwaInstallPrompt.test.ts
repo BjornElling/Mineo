@@ -229,37 +229,26 @@ describe('pwaInstallPrompt', () => {
     });
   });
 
-  describe('openInstalledPwa', () => {
-    it('åbner manifestets start_url, så programmet starter hvor det selv ville', async () => {
-      const { openInstalledPwa, PWA_START_URL } = await import('../../utils/pwaInstallPrompt');
-      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+  describe('PWA-kontrakt', () => {
+    it('produktionsmanifestet bruger samme absolutte app-id som Chromium installerer', async () => {
+      const { PWA_OPEN_PROTOCOL_URL, PWA_START_URL } = await import('../../utils/pwaInstallPrompt');
+      const productionOrigin = 'https://mineo.dk';
+      const productionStartUrl = new URL(PWA_START_URL, productionOrigin).href;
 
-      openInstalledPwa();
-
-      expect(openSpy).toHaveBeenCalledWith(PWA_START_URL, '_blank');
-      openSpy.mockRestore();
-    });
-
-    it('returnerer false, hvis browseren blokerer det nye vindue', async () => {
-      const { openInstalledPwa } = await import('../../utils/pwaInstallPrompt');
-      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
-
-      expect(openInstalledPwa()).toBe(false);
-
-      openSpy.mockRestore();
-    });
-
-    it('den åbnede sti ER manifestets start_url (drift-værn)', async () => {
-      const { PWA_START_URL } = await import('../../utils/pwaInstallPrompt');
-
-      // Ændres manifestet uden modulet, ville vi åbne en anden indgang end hjælpeprogrammets egen.
-      expect(PWA_START_URL).toBe(manifest.start_url);
-    });
-
-    it('manifestet identificerer sig selv som relateret webapp', () => {
-      expect(manifest.id).toBe(manifest.start_url);
+      // Chromium registrerer den installerede PWA med et absolut id. En relativ self-relation bliver
+      // derfor ikke fundet af getInstalledRelatedApps() på den offentlige hjemmeside.
+      expect(manifest.id).toBe(productionStartUrl);
+      expect(manifest.start_url).toBe(PWA_START_URL);
       expect(manifest.related_applications).toEqual([
-        { platform: 'webapp', url: '/manifest.json', id: manifest.id },
+        {
+          platform: 'webapp',
+          url: new URL('/manifest.json', productionOrigin).href,
+          id: productionStartUrl,
+        },
+      ]);
+      expect(PWA_OPEN_PROTOCOL_URL).toBe('web+mineo://open');
+      expect(manifest.protocol_handlers).toEqual([
+        { protocol: 'web+mineo', url: '/?mineo-launch=%s' },
       ]);
     });
 

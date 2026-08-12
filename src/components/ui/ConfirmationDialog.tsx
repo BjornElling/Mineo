@@ -10,6 +10,10 @@ type ConfirmationDialogProps = {
   title: string;
   message: string | React.ReactNode;
   confirmText?: string;
+  /**
+   * Gør bekræftelsen til en navigation, som browseren kan sende til en installeret PWA-protokolhandler.
+   */
+  confirmHref?: string;
   cancelText?: string;
   confirmColor?: 'primary' | 'error';
   hideCancelButton?: boolean;
@@ -48,6 +52,7 @@ const ConfirmationDialog = React.memo(({
   title,
   message,
   confirmText = 'Ja',
+  confirmHref,
   cancelText = 'Annuller',
   confirmColor = 'primary',
   hideCancelButton = false,
@@ -212,6 +217,7 @@ const ConfirmationDialog = React.memo(({
         <Button
           onClick={handleConfirmClick}
           ref={confirmButtonRef}
+          href={confirmHref}
           variant="contained"
           color={confirmColor}
           sx={{

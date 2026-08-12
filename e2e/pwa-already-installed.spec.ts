@@ -99,6 +99,7 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
     )) as {
       id: string;
       related_applications: Array<{ platform: string; url: string; id: string }>;
+      protocol_handlers: Array<{ protocol: string; url: string }>;
     };
     const expectedId = new URL('/', page.url()).href;
     const expectedManifestUrl = new URL('/manifest.json', page.url()).href;
@@ -107,9 +108,12 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
     expect(manifest.related_applications).toEqual([
       { platform: 'webapp', url: expectedManifestUrl, id: expectedId },
     ]);
+    expect(manifest.protocol_handlers).toEqual([
+      { protocol: 'web+mineo', url: '/?mineo-launch=%s' },
+    ]);
   });
 
-  test('på hjemmesiden med installeret hjælpeprogram: dialogen tilbyder Åbn program / Annuller', async ({ page }) => {
+  test('på hjemmesiden med installeret hjælpeprogram: dialogen tilbyder browseråbning og fallback', async ({ page }) => {
     const runtimeSignals: string[] = [];
     page.on('pageerror', (error) => runtimeSignals.push(`pageerror: ${error.message}`));
 
@@ -120,30 +124,13 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText('Hjælpeprogrammet er allerede installeret')).toBeVisible();
-    await expect(dialog.getByRole('button', { name: 'Åbn program' })).toBeVisible();
+    await expect(dialog.getByRole('link', { name: 'Åbn program' })).toBeVisible();
+    await expect(dialog.getByRole('link', { name: 'Åbn program' })).toHaveAttribute('href', 'web+mineo://open');
     await expect(dialog.getByRole('button', { name: 'Annuller' })).toBeVisible();
+    await expect(dialog.getByText(/browseren bede om tilladelse/i)).toBeVisible();
+    await expect(dialog.getByText(/computerens appmenu eller skrivebord/i)).toBeVisible();
 
     expect(runtimeSignals).toEqual([]);
-  });
-
-  test('«Åbn program» åbner hjælpeprogrammet på manifestets start_url', async ({ page, context }) => {
-    await applyScenario(page, 'installed');
-    await openMineoPage(page);
-    await clickDownloadLink(page);
-
-    // Det ægte bevis: browseren åbner faktisk en ny kontekst. En mock kan kun vise, at vi kaldte
-    // `window.open` — ikke at browseren tillod den (popup-blokering rammer først uden for et klik).
-    const [openedPage] = await Promise.all([
-      context.waitForEvent('page'),
-      page.getByRole('dialog').getByRole('button', { name: 'Åbn program' }).click(),
-    ]);
-
-    // Edge følger efter åbningen den eksisterende login-session og sender derfor nogle gange
-    // start_url `/` videre til Mineos arbejdsside. Selve åbningskontrakten testes separat gennem
-    // den kanoniske PWA_START_URL-assertion i enhedstesten; begge slutstier er korrekte her.
-    expect(['/', '/mineo']).toContain(new URL(openedPage.url()).pathname);
-    await expect(page.getByRole('dialog')).toBeHidden();
-    await openedPage.close();
   });
 
   test('«Annuller» lukker dialogen uden at åbne et vindue', async ({ page, context }) => {
@@ -188,7 +175,7 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByText('Hjælpeprogrammet er allerede åbent')).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Luk' })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: 'Åbn program' })).toBeHidden();
+    await expect(dialog.getByRole('link', { name: 'Åbn program' })).toBeHidden();
     await expect(dialog.getByRole('button')).toHaveCount(1);
 
     expect(runtimeSignals).toEqual([]);

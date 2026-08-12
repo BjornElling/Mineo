@@ -14,14 +14,13 @@ vi.mock('../../../assets/LICENSE.txt?raw', () => ({
 }));
 
 // Mock PWA install utility
-const openInstalledPwaMock = vi.fn().mockReturnValue(true);
 const requestPwaInstallMock = vi.fn().mockResolvedValue({
   kind: 'unavailable',
   reason: 'promptUnavailable',
 });
 
 vi.mock('../../../utils/pwaInstallPrompt', () => ({
-  openInstalledPwa: () => openInstalledPwaMock(),
+  PWA_OPEN_PROTOCOL_URL: 'web+mineo://open',
   requestPwaInstall: () => requestPwaInstallMock(),
 }));
 
@@ -169,7 +168,6 @@ describe('Mineo - License Modal Integration', () => {
 
   describe('«Download hjælpeprogram» når programmet allerede er installeret', () => {
     beforeEach(() => {
-      openInstalledPwaMock.mockReset().mockReturnValue(true);
       requestPwaInstallMock.mockReset().mockResolvedValue({
         kind: 'unavailable',
         reason: 'promptUnavailable',
@@ -230,7 +228,7 @@ describe('Mineo - License Modal Integration', () => {
       expect(requestPwaInstallMock).toHaveBeenCalledTimes(1);
     });
 
-    test('popup\'en tilbyder præcis to valg: «Åbn program» og «Annuller»', async () => {
+    test('popup\'en tilbyder åbning via browseren og en tydelig fallback', async () => {
       const user = userEvent.setup();
       requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'installed' });
       renderMineo();
@@ -238,37 +236,12 @@ describe('Mineo - License Modal Integration', () => {
       await clickDownload(user);
       const dialog = await screen.findByRole('dialog');
 
-      expect(within(dialog).getByRole('button', { name: 'Åbn program' })).toBeVisible();
+      expect(within(dialog).getByRole('link', { name: 'Åbn program' })).toBeVisible();
+      expect(within(dialog).getByRole('link', { name: 'Åbn program' })).toHaveAttribute('href', 'web+mineo://open');
       expect(within(dialog).getByRole('button', { name: 'Annuller' })).toBeVisible();
-      expect(within(dialog).getAllByRole('button')).toHaveLength(2);
-    });
-
-    test('«Åbn program» åbner hjælpeprogrammet og lukker popup\'en', async () => {
-      const user = userEvent.setup();
-      requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'installed' });
-      renderMineo();
-
-      await clickDownload(user);
-      const dialog = await screen.findByRole('dialog');
-      await user.click(within(dialog).getByRole('button', { name: 'Åbn program' }));
-
-      expect(openInstalledPwaMock).toHaveBeenCalledTimes(1);
-      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    });
-
-    test('viser en besked, hvis browseren blokerer åbningen af programmet', async () => {
-      const user = userEvent.setup();
-      requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'installed' });
-      openInstalledPwaMock.mockReturnValue(false);
-      renderMineo();
-
-      await clickDownload(user);
-      const dialog = await screen.findByRole('dialog');
-      await user.click(within(dialog).getByRole('button', { name: 'Åbn program' }));
-
-      expect(within(dialog).getByText('Hjælpeprogrammet er installeret')).toBeInTheDocument();
-      expect(within(dialog).getByText(/kunne ikke åbne hjælpeprogrammet automatisk/i)).toBeInTheDocument();
-      expect(within(dialog).getByRole('button', { name: 'Luk' })).toBeVisible();
+      expect(within(dialog).getByText(/browseren bede om tilladelse/i)).toBeInTheDocument();
+      expect(within(dialog).getByText(/computerens appmenu eller skrivebord/i)).toBeInTheDocument();
+      expect(within(dialog).getAllByRole('button')).toHaveLength(1);
     });
 
     test('«Annuller» lukker popup\'en UDEN at åbne noget', async () => {
@@ -281,7 +254,6 @@ describe('Mineo - License Modal Integration', () => {
       await user.click(within(dialog).getByRole('button', { name: 'Annuller' }));
 
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-      expect(openInstalledPwaMock).not.toHaveBeenCalled();
       expect(requestPwaInstallMock).toHaveBeenCalledTimes(1);
     });
 
@@ -295,7 +267,6 @@ describe('Mineo - License Modal Integration', () => {
       await user.keyboard('{Escape}');
 
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-      expect(openInstalledPwaMock).not.toHaveBeenCalled();
     });
 
     test('INDE i PWA\'en: popup\'en siger «allerede åbent» og har kun ÉN knap', async () => {
@@ -324,7 +295,6 @@ describe('Mineo - License Modal Integration', () => {
 
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       // Et nyt vindue her ville åbne en dublet af det vindue, brugeren allerede sidder i.
-      expect(openInstalledPwaMock).not.toHaveBeenCalled();
     });
 
     test('tilstanden aflæses ved HVERT klik, ikke ved render', async () => {

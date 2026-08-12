@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { VERSION } from '../../config/buildInfo';
 import {
-  openInstalledPwa,
+  PWA_OPEN_PROTOCOL_URL,
   requestPwaInstall,
   type PwaInstallUnavailableReason,
 } from '../../utils/pwaInstallPrompt';
@@ -20,8 +20,7 @@ import BrowserUpdatedIcon from '@mui/icons-material/BrowserUpdated';
 
 type PwaInstallDialogState =
   | { kind: 'alreadyInstalled'; state: 'running' | 'installed' }
-  | { kind: 'unavailable'; reason: PwaInstallUnavailableReason }
-  | { kind: 'openFailed' };
+  | { kind: 'unavailable'; reason: PwaInstallUnavailableReason };
 
 type PwaInstallDialogCopy = Readonly<{
   title: string;
@@ -41,19 +40,10 @@ const getPwaInstallDialogCopy = (state: PwaInstallDialogState): PwaInstallDialog
       }
       : {
         title: 'Hjælpeprogrammet er allerede installeret',
-        message: 'Du behøver ikke hente det igen. Vil du åbne det nu?',
+        message: 'Du behøver ikke hente det igen. Vil du åbne det nu? Første gang kan browseren bede om tilladelse til at åbne hjælpeprogrammet. Hvis det ikke åbner, kan du starte det fra computerens appmenu eller skrivebord.',
         confirmText: 'Åbn program',
         hideCancelButton: false,
       };
-  }
-
-  if (state.kind === 'openFailed') {
-    return {
-      title: 'Hjælpeprogrammet er installeret',
-      message: 'Browseren kunne ikke åbne hjælpeprogrammet automatisk. Åbn det fra computerens appmenu eller skrivebord.',
-      confirmText: 'Luk',
-      hideCancelButton: true,
-    };
   }
 
   if (state.reason === 'statusUnknown') {
@@ -132,18 +122,6 @@ const Mineo = React.memo(() => {
   const handleAlreadyInstalledClose = React.useCallback(() => {
     setPwaInstallDialogState(null);
   }, []);
-
-  // Inde i PWA-vinduet er der intet at åbne, så dialogen har kun én knap, og «bekræft» lukker den.
-  const handleAlreadyInstalledConfirm = React.useCallback(() => {
-    if (pwaInstallDialogState?.kind === 'alreadyInstalled' && pwaInstallDialogState.state === 'installed') {
-      if (!openInstalledPwa()) {
-        setPwaInstallDialogState({ kind: 'openFailed' });
-        return false;
-      }
-    }
-    setPwaInstallDialogState(null);
-    return true;
-  }, [pwaInstallDialogState]);
 
   const handleLicenseClick = React.useCallback(() => {
     setLicenseOpen(true);
@@ -339,12 +317,15 @@ const Mineo = React.memo(() => {
       {/* «Allerede installeret»-dialog */}
       <ConfirmationDialog
         open={pwaInstallDialogState !== null}
-        onConfirm={handleAlreadyInstalledConfirm}
+        onConfirm={handleAlreadyInstalledClose}
         onCancel={handleAlreadyInstalledClose}
         hideCancelButton={pwaInstallDialogCopy?.hideCancelButton ?? true}
         title={pwaInstallDialogCopy?.title ?? 'Installationsstatus'}
         message={pwaInstallDialogCopy?.message ?? 'Installationsstatus er ikke tilgængelig.'}
         confirmText={pwaInstallDialogCopy?.confirmText ?? 'Luk'}
+        confirmHref={pwaInstallDialogState?.kind === 'alreadyInstalled' && pwaInstallDialogState.state === 'installed'
+          ? PWA_OPEN_PROTOCOL_URL
+          : undefined}
         cancelText="Annuller"
         restoreFocusTo={installButtonRef}
       />
