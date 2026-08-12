@@ -110,6 +110,18 @@ describe('pwaInstallPrompt', () => {
       await expect(detectPwaInstallationState()).resolves.toBe('installed');
     });
 
+    it('melder «installed» når browseren returnerer en absolut relation fra en anden origin', async () => {
+      const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+      setInstalledRelatedApps([{
+        platform: 'webapp',
+        url: 'https://mineo.example/manifest.json',
+        id: 'https://mineo.example/',
+      }]);
+
+      await expect(detectPwaInstallationState()).resolves.toBe('installed');
+    });
+
     it('melder «installed» efter appinstalled i denne fane — også uden opslag', async () => {
       const { detectPwaInstallationState, setupPwaInstallPromptCapture } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
@@ -149,8 +161,16 @@ describe('pwaInstallPrompt', () => {
       const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
       setInstalledRelatedApps([
-        { platform: 'play', url: 'https://play.google.com/store/apps/details?id=other.app' },
+        { platform: 'webapp', url: 'https://other.example/other-manifest.json', id: 'https://other.example/' },
       ]);
+
+      await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
+    });
+
+    it('ignorerer en relation med ugyldig URL uden at fejle installationsflowet', async () => {
+      const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+      setInstalledRelatedApps([{ platform: 'webapp', url: 'not a URL', id: 'https://mineo.example/' }]);
 
       await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
     });

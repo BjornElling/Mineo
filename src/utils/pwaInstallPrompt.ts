@@ -66,14 +66,32 @@ export const suppressPwaInstallPrompt = (): void => {
 export const PWA_START_URL = '/';
 export const PWA_MANIFEST_URL = '/manifest.json';
 
+const getUrlPath = (value: string): string | null => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    return new URL(value, window.location.href).pathname;
+  } catch {
+    // Browserens relation er ekstern input. En ugyldig URL må ikke afbryde klik-flowet og blive
+    // misrapporteret som en fejlende installationsprompt.
+    return null;
+  }
+};
+
 const isMineoRelatedApplication = (app: RelatedApplication): boolean => {
   if (app.platform !== 'webapp') return false;
-  if (app.url === undefined) return true;
   if (typeof window === 'undefined') return false;
 
-  const appUrl = new URL(app.url, window.location.href);
-  const manifestUrl = new URL(PWA_MANIFEST_URL, window.location.href);
-  return appUrl.origin === manifestUrl.origin && appUrl.pathname === manifestUrl.pathname;
+  const manifestPath = new URL(PWA_MANIFEST_URL, window.location.href).pathname;
+  const appIdPath = new URL(PWA_START_URL, window.location.href).pathname;
+  const urlMatches = app.url === undefined || getUrlPath(app.url) === manifestPath;
+  const idMatches = app.id === undefined || getUrlPath(app.id) === appIdPath;
+
+  // `getInstalledRelatedApps()` har allerede valideret relationen ud fra sidens manifest. Vi
+  // sammenligner derfor paths, ikke origins: dev-server og deploy kan have forskellige origins,
+  // mens Mineos manifest- og app-id-path er stabile. Begge felter skal passe, når browseren
+  // leverer dem; et manglende felt er tilladt af browserens API.
+  return urlMatches && idMatches;
 };
 
 /**
