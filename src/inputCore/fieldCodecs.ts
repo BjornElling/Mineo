@@ -20,7 +20,11 @@ import {
   DEFAULT_AMOUNT_PRECISION,
   MAX_AMOUNT_RAW_LENGTH,
 } from '../utils/amountInputUtils';
-import { parseDateDraftForCommit, type DateYearPolicy } from '../utils/dateDraftCommit';
+import {
+  parseDateDraftForCommit,
+  type DateYearPolicy,
+  type ParsedDateDraft,
+} from '../utils/dateDraftCommit';
 import {
   normalizeAmountPaste,
   normalizeDatePaste,
@@ -35,10 +39,15 @@ import {
   parsePercentDraftForCommit,
   type PercentParseConfig,
 } from '../utils/percentDraftCore';
-import { parseWeekDraftForCommit, type WeekDraftParseConfig } from '../utils/weekDraftCore';
+import {
+  parseWeekDraftForCommit,
+  type WeekDraftParseConfig,
+  type WeekDraftParseResult,
+} from '../utils/weekDraftCore';
 import { parseYearDraftForCommit, type YearDraftParseConfig } from '../utils/yearDraftCore';
 import {
   type FieldCodec,
+  type FieldRejectDetail,
   type FieldResolution,
   validResolution,
   rejectedResolution,
@@ -51,6 +60,44 @@ import {
 // Paste-normaliseringen beholder sin min/max-clamp — kun commit-tidens range-afvisning er fjernet.
 
 const initialKey = (pattern: RegExp): ((key: string) => boolean) => (key) => pattern.test(key);
+
+/**
+ * Pakker en parse-kernes KONKRETE fejlbesked som den strukturerede `detail.tooltip`, en `format`-rejection må
+ * bære (`error-contract.md` §4: «`format` med `detail.tooltip` → den konkrete codec-leverede tooltip»).
+ *
+ * **Hvorfor den findes.** Dato-, årstals- og ugekernerne beregnede allerede præcise beskeder
+ * («Årstallet skal være mellem 1900 og 2100», «Uge skal være mellem 1 og 53»), men codec'erne SMED dem væk
+ * med et bart `rejectedResolution('format')`. Resultatet var, at tre vidt forskellige fejl — et
+ * urepræsenterbart årstal, en ikke-eksisterende kalenderdag og ren volapyk — alle nåede brugeren som den
+ * samme generiske «Fejl i indtastning». Fordi tabet skete i codec-laget, ramte det ENHVER flade på én gang:
+ * formular, gridcelle, a11y-tekst og download-tooltip.
+ *
+ * Helperen er ét sted, så de tre familier ikke kan drifte fra hinanden, og så en ny familie med en
+ * beskedbærende parse-kerne har et færdigt mønster at bruge frem for at genopfinde nøglenavnet.
+ */
+const tooltipDetail = (tooltip: string): FieldRejectDetail => ({ tooltip });
+
+/**
+ * Dato: kun de fejl, hvor der ER noget konkret at fortælle, får en tooltip.
+ *
+ * `malformed` dækker delvist indtastet og uparsebar tekst («15-», «abc»). Den har bevidst INGEN konkret
+ * tooltip: den eneste sande besked ville være "dette er ikke en dato", og feltets navn står allerede ved
+ * markøren. Den falder derfor i den generiske gren, præcis som `error-contract.md` §4 foreskriver — og som
+ * §4 pkt. 1 udtrykkeligt nævner for netop en delvist indtastet dato.
+ */
+const resolveDateTooltipDetail = (
+  parsed: Extract<ParsedDateDraft, { ok: false }>
+): FieldRejectDetail | undefined =>
+  parsed.invalidKind === 'malformed' ? undefined : tooltipDetail(parsed.message);
+
+/**
+ * Uge: kun ugenummer-fejlen bærer en konkret tooltip. Se `resolveDateTooltipDetail` om `malformed`.
+ * Skellet aflæses på den strukturerede `invalidKind`, ALDRIG på beskedteksten.
+ */
+const resolveWeekTooltipDetail = (
+  parsed: Extract<WeekDraftParseResult, { ok: false }>
+): FieldRejectDetail | undefined =>
+  parsed.invalidKind === 'weekNumber' ? tooltipDetail(parsed.errorMessage) : undefined;
 
 const assertBoolean = (codec: string, name: string, value: boolean): void => {
   if (typeof value !== 'boolean') throw new Error(`${codec}: ${name} skal være en boolean`);
@@ -223,9 +270,12 @@ export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: Dat
     parseForSettle: (raw): FieldResolution<ISODateString | undefined> => {
       const parsed = parseDateDraftForCommit(raw, options);
       // Kun reelt tom tekst er canonical tomhed; anden ikke-parsebar tekst bevares som rejected format.
-      return parsed.ok && (parsed.iso !== undefined || raw.trim() === '')
-        ? validResolution(parsed.iso)
-        : rejectedResolution('format');
+      if (parsed.ok && (parsed.iso !== undefined || raw.trim() === '')) return validResolution(parsed.iso);
+      // Parse-kernen VED, hvorfor teksten ikke blev en dato. Den viden må ikke kastes væk her: uden den
+      // ville et årstal uden for det repræsenterbare domæne (`31-12-1899`) og en ikke-eksisterende
+      // kalenderdag (`31-02-2026`) begge blive vist som den generiske «Fejl i indtastning».
+      // Se `resolveDateTooltipDetail` for hvorfor `malformed` bevidst IKKE får en konkret tooltip.
+      return rejectedResolution('format', parsed.ok ? undefined : resolveDateTooltipDetail(parsed));
     },
     format: (value) => value === undefined ? '' : coerceToDanishDateString(value) ?? '',
     formatForEdit: (value) => value === undefined ? '' : coerceToDanishDateString(value) ?? '',
@@ -404,6 +454,9 @@ export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<n
     family: 'year',
     parseForSettle: (raw) => {
       const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
+      // Årsgrænserne er fjernet fra `formatOnlyConfig` (bounds er en validators ansvar, §1.6), så den eneste
+      // fejl, kernen kan melde her, er «Ugyldigt årstal» — en besked, der ikke siger mere end feltets navn.
+      // Den falder derfor bevidst i den generiske gren frem for at blive en støjende tooltip.
       return parsed.ok ? validResolution(parsed.value) : rejectedResolution('format');
     },
     format: (value) => value === undefined ? '' : String(value),
@@ -428,7 +481,12 @@ export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<s
     family: 'week',
     parseForSettle: (raw) => {
       const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
-      return parsed.ok ? validResolution(parsed.value) : rejectedResolution('format');
+      if (parsed.ok) return validResolution(parsed.value);
+      // UGE-nummeret er en repræsenterbarhedsgrænse (se ovenfor) og forbliver derfor `format` — men
+      // «Uge skal være mellem 1 og 53» fortæller præcis, hvad rettelsen er, og er dermed netop den slags
+      // besked, `detail.tooltip` findes til. De rent formmæssige beskeder («Ugyldigt format»,
+      // «Ugyldigt årstal») siger derimod ikke mere end feltets navn og forbliver generiske.
+      return rejectedResolution('format', resolveWeekTooltipDetail(parsed));
     },
     format: (value) => value ?? '',
     formatForEdit: (value) => value ?? '',

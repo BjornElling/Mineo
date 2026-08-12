@@ -2,6 +2,7 @@ import {
   booleanFieldCodec,
   createChoiceFieldCodec,
   createAmountFieldCodec,
+  createDateFieldCodec,
   createFractionFieldCodec,
   createIntegerFieldCodec,
   createPercentFieldCodec,
@@ -12,6 +13,17 @@ import {
   optionalTextFieldCodec,
   textFieldCodec,
 } from '../../inputCore';
+import {
+  buildFieldIssueMessage,
+  resolveFieldIssueTooltip,
+  FIELD_ISSUE_GENERIC_TOOLTIP,
+  type FieldIssue,
+} from '../../inputCore/inputIssue';
+import type { AnyFieldRef } from '../../inputCore/fieldDescriptor';
+import {
+  DATE_YEAR_OUT_OF_RANGE_MESSAGE,
+  NONEXISTENT_DAY_MESSAGE,
+} from '../../utils/dateDraftCommit';
 
 describe('fieldCodecs', () => {
   it('canonicaliserer tomhed efter codecets værditype', () => {
@@ -147,5 +159,78 @@ describe('fieldCodecs', () => {
     expect(withDecimals.acceptsInitialKey(',')).toBe(true);
     expect(integerOnly.decimalPolicy).toBe('integerOnly');
     expect(integerOnly.acceptsInitialKey(',')).toBe(false);
+  });
+
+  /**
+   * Codec-laget er det sted, en konkret parse-besked kan gå tabt for ALLE flader på én gang: et bart
+   * `rejectedResolution('format')` ville kassere den besked, parse-kernen allerede har beregnet, og både
+   * formular, gridcelle, a11y-tekst og download-tooltip ville falde til den generiske «Fejl i indtastning».
+   * Testene måler den strukturerede `detail.tooltip`, som `resolveFieldIssueTooltip` viser ordret
+   * (`error-contract.md` §4).
+   */
+  describe('en format-afvisning bærer parse-kernens konkrete årsag', () => {
+    const date = createDateFieldCodec({ twoDigitYearPolicy: 'infer' });
+
+    it('datoens urepræsenterbare årstal nævner de faktiske årstal', () => {
+      expect(date.parseForSettle('31-12-1899')).toEqual({
+        status: 'rejected',
+        reason: 'format',
+        detail: { tooltip: 'Årstallet skal være mellem 1900 og 2100' },
+      });
+      expect(date.parseForSettle('01-01-2101'))
+        .toMatchObject({ detail: { tooltip: DATE_YEAR_OUT_OF_RANGE_MESSAGE } });
+    });
+
+    it('en ikke-eksisterende kalenderdag får sin egen tekst', () => {
+      expect(date.parseForSettle('31-02-2026'))
+        .toMatchObject({ status: 'rejected', reason: 'format', detail: { tooltip: NONEXISTENT_DAY_MESSAGE } });
+    });
+
+    /**
+     * Kontrasten, der gør ovenstående til mere end «alt får en tooltip»: uparsebar og delvist indtastet
+     * tekst har INGEN konkret besked at give, og §4 pkt. 1 nævner netop en delvist indtastet dato som det
+     * tilfælde, der skal vise den generiske tekst. Uden denne gren ville tooltippen blive støj.
+     */
+    it('lader uparsebar tekst falde i den generiske gren', () => {
+      for (const draft of ['abc', '15-', '15-06-202']) {
+        expect(date.parseForSettle(draft)).toEqual({ status: 'rejected', reason: 'format' });
+      }
+    });
+
+    it('ugenummeret uden for årets uger bærer den konkrete grænse', () => {
+      const week = createWeekFieldCodec({ twoDigitYearPolicy: 'infer', maxDraftLength: 9 });
+      // 2021 har 52 uger, 2020 har 53 — grænsen er årsafhængig og skal stå konkret i tooltippen.
+      expect(week.parseForSettle('53/2021'))
+        .toMatchObject({ detail: { tooltip: 'Uge skal være mellem 1 og 52' } });
+      expect(week.parseForSettle('53/2020')).toEqual({ status: 'valid', value: '53/2020' });
+      expect(week.parseForSettle('0/2020')).toMatchObject({ detail: { tooltip: 'Uge skal være mindst 1' } });
+      // Ren formfejl har intet konkret at sige.
+      expect(week.parseForSettle('xx')).toEqual({ status: 'rejected', reason: 'format' });
+    });
+
+    /** Hele vejen til den tekst, brugeren faktisk ser ved markøren. */
+    it('viser den konkrete tekst som feltets tooltip', () => {
+      const field = { descriptor: { label: 'Fødselsdato' }, address: {} } as unknown as AnyFieldRef;
+      const asIssue = (raw: string): FieldIssue => {
+        const resolution = date.parseForSettle(raw);
+        if (resolution.status !== 'rejected') throw new Error(`forventede en afvisning for ${raw}`);
+        return {
+          kind: 'field',
+          code: 'foedselsdato.format',
+          severity: 'error',
+          field,
+          reason: resolution.reason,
+          message: buildFieldIssueMessage(field),
+          ...(resolution.detail === undefined ? {} : { detail: resolution.detail }),
+        };
+      };
+
+      expect(resolveFieldIssueTooltip(asIssue('31-12-1899')))
+        .toBe('Årstallet skal være mellem 1900 og 2100');
+      expect(resolveFieldIssueTooltip(asIssue('abc'))).toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
+      // "Fejl og advarsler" viser fortsat den FULDE besked med feltnavnet — tooltippet er den korte kanal.
+      expect(asIssue('31-12-1899').message)
+        .toBe('Der er udfyldt en ugyldig værdi i feltet \'Fødselsdato\'');
+    });
   });
 });

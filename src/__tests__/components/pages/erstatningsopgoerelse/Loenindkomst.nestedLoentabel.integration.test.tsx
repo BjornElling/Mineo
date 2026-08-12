@@ -52,6 +52,24 @@ type HydrateOptions = Readonly<{
   rejectedSaerligFraDatoRegulering?: string;
 }>;
 
+/**
+ * Bygger den afviste råtekst, som feltets EGET codec ville have frembragt — inklusive den maskinlæsbare
+ * `detail`, en konkret parse-årsag bærer. Skrives detaljen i hånden, beskriver fixturen en tilstand, brugeren
+ * ikke kan nå, og `validateSettledInput` afviser den med rette.
+ */
+const rejectedSpecialDate = (raw: string) => {
+  const resolution = eoEmploymentFields.saerligFraDatoRegulering.bind('af-1')
+    .descriptor.codec.parseForSettle(raw);
+  if (resolution.status !== 'rejected') {
+    throw new Error(`Fixturen forudsætter, at '${raw}' afvises af datofeltets codec`);
+  }
+  return {
+    raw,
+    reason: resolution.reason,
+    ...(resolution.detail === undefined ? {} : { detail: resolution.detail }),
+  };
+};
+
 const hydrate = (rows: readonly StandardLoenTableRow[], options: HydrateOptions = {}): void => {
   const catalog = getProductionInputCatalog();
   const employment = {
@@ -75,9 +93,13 @@ const hydrate = (rows: readonly StandardLoenTableRow[], options: HydrateOptions 
         loenindkomstAnsaettelsesforhold: [employment],
       },
     },
+    // Den afviste råtekst SKAL bære præcis den `detail`, feltets eget codec ville give den: kataloget
+    // reparser og afviser en uenighed (`validateSettledInputCandidate`). Detaljen udledes derfor af codec'en
+    // frem for at blive skrevet i hånden — ellers ville fixturen påstå en anden tilstand end den, en
+    // rigtig indtastning frembringer.
     rejectedInputs: options.rejectedSaerligFraDatoRegulering === undefined
       ? {}
-      : { [specialDateAddress]: { raw: options.rejectedSaerligFraDatoRegulering, reason: 'format' } },
+      : { [specialDateAddress]: rejectedSpecialDate(options.rejectedSaerligFraDatoRegulering) },
   }));
 };
 

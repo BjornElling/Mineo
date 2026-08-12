@@ -17,12 +17,26 @@ export type WeekDraftParseConfig = Readonly<{
   maxDraftLength: number;
 }>;
 
+/**
+ * HVORFOR et ugedraft blev afvist — maskinlæsbart, så en LÆSER kan skelne uden at matche på beskedteksten.
+ *
+ * - `malformed` — teksten er ikke et uge/år-par (forkert længde, ikke-cifre, manglende del). Beskeden kan
+ *   ikke sige mere end feltets navn.
+ * - `weekNumber` — uge/år-parret er velformet, men ugenummeret findes ikke i det år («Uge skal være mellem
+ *   1 og 53»). Her ER der en konkret rettelse at vise brugeren.
+ *
+ * Skellet er en TYPE og ikke en strengsammenligning, fordi `error-contract.md` §4 udtrykkeligt forbyder
+ * skaller at udlede issue-klassen af beskedteksten — det er præcis den drift, `detail`-nøglen findes for.
+ */
+export type WeekDraftInvalidKind = 'malformed' | 'weekNumber';
+
 export type WeekDraftParseResult =
   | Readonly<{ ok: true; value: string | undefined }>
-  | Readonly<{ ok: false; errorMessage: string }>;
+  | Readonly<{ ok: false; invalidKind: WeekDraftInvalidKind; errorMessage: string }>;
 
-const fail = (errorMessage: string): WeekDraftParseResult => ({
+const fail = (errorMessage: string, invalidKind: WeekDraftInvalidKind = 'malformed'): WeekDraftParseResult => ({
   ok: false,
+  invalidKind,
   errorMessage,
 });
 
@@ -48,7 +62,9 @@ export const parseWeekDraftForCommit = (
   if (weekRaw.length > 2) return fail('Ugyldigt format');
 
   const weekNum = Number.parseInt(weekRaw, 10);
-  if (!Number.isFinite(weekNum) || weekNum < 1) return fail('Ugyldig uge');
+  // Ugenummeret vurderes før årstallet er kendt, så den øvre grænse (52/53) kan ikke nævnes her. Den nedre
+  // kan, og «Ugyldig uge» sagde reelt kun det, feltnavnet allerede siger.
+  if (!Number.isFinite(weekNum) || weekNum < 1) return fail('Uge skal være mindst 1', 'weekNumber');
 
   const year = resolveYearFromToken(yearRaw, twoDigitYearPolicy);
   if (year === null) return fail('Ugyldigt årstal');
@@ -57,7 +73,7 @@ export const parseWeekDraftForCommit = (
   if (rangeError !== '') return fail(rangeError);
 
   const maxWeek = yearHas53Weeks(year) ? 53 : 52;
-  if (weekNum > maxWeek) return fail(`Uge skal være mellem 1 og ${maxWeek}`);
+  if (weekNum > maxWeek) return fail(`Uge skal være mellem 1 og ${maxWeek}`, 'weekNumber');
 
   return { ok: true, value: `${String(weekNum).padStart(2, '0')}/${String(year)}` };
 };
