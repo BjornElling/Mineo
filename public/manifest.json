@@ -1,6 +1,7 @@
 {
   "short_name": "Mineo",
   "name": "Mineo Erstatningsberegner",
+  "id": "/",
   "icons": [
     {
       "src": "/icons/mineo-icon-192.png",
@@ -20,6 +21,13 @@
   ],
   "start_url": "/",
   "scope": "/",
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "/manifest.json",
+      "id": "/"
+    }
+  ],
   "display": "standalone",
   "launch_handler": {
     "client_mode": "focus-existing"

@@ -59,6 +59,7 @@ const ConfirmationDialog = React.memo(({
   const confirmButtonRef = React.useRef<HTMLButtonElement>(null);
   const confirmStartedRef = React.useRef(false);
   const wasOpenRef = React.useRef(false);
+  const justClosedRef = React.useRef(false);
 
   // MUI gemmer selv restore-målet, men dets interne reference kan ikke hjælpe, hvis en bekræftet handling
   // fjerner det oprindelige felt fra DOM'en. Gem derfor samme konkrete mål og giv et fokusbart fallback ved
@@ -70,6 +71,7 @@ const ConfirmationDialog = React.memo(({
         ? activeElement
         : null;
     }
+    justClosedRef.current = !open && wasOpenRef.current;
     wasOpenRef.current = open;
   }, [open]);
 
@@ -160,6 +162,17 @@ const ConfirmationDialog = React.memo(({
       if (isFocusLost()) restoreTarget();
     });
   }, [restoreFocusTo]);
+
+  React.useEffect(() => {
+    if (open || !justClosedRef.current) return undefined;
+    justClosedRef.current = false;
+
+    // WebKit kan flytte fokus til body allerede ved Escape, før MUI's transition når
+    // `onTransitionExited`. Gendan derfor også på lukningens første frame; transition-callbacken
+    // ovenfor er fortsat et ekstra værn for browsere, der først mister fokus ved unmount.
+    const frame = window.requestAnimationFrame(restoreFocusAfterClose);
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, restoreFocusAfterClose]);
 
   return (
     <Dialog

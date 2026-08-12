@@ -62,6 +62,34 @@ const clickDownloadLink = async (page: Page): Promise<void> => {
   await page.getByRole('button', { name: 'Download hjælpeprogram' }).click();
 };
 
+const exposeInstallPrompt = async (page: Page): Promise<void> => {
+  await page.evaluate(() => {
+    const probe = { promptCalled: false, defaultPrevented: false };
+    Object.defineProperty(window, '__mineoInstallPromptProbe', {
+      configurable: true,
+      value: probe,
+    });
+
+    const event = new Event('beforeinstallprompt', { cancelable: true });
+    Object.defineProperties(event, {
+      prompt: {
+        configurable: true,
+        value: () => {
+          probe.promptCalled = true;
+          return Promise.resolve();
+        },
+      },
+      userChoice: {
+        configurable: true,
+        value: Promise.resolve({ outcome: 'accepted', platform: 'web' }),
+      },
+    });
+
+    window.dispatchEvent(event);
+    probe.defaultPrevented = event.defaultPrevented;
+  });
+};
+
 test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er installeret', () => {
   test('på hjemmesiden med installeret hjælpeprogram: dialogen tilbyder Åbn program / Annuller', async ({ page }) => {
     const runtimeSignals: string[] = [];
@@ -159,13 +187,27 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
     expect(openedPages).toEqual([]);
   });
 
-  test('uden installation vises ingen dialog — den normale installationsvej bevares', async ({ page }) => {
+  test('uden installation starter den normale installationsvej under brugerens klik', async ({ page }) => {
+    await applyScenario(page, 'notInstalled');
+    await openMineoPage(page);
+    await exposeInstallPrompt(page);
+    await clickDownloadLink(page);
+
+    await expect.poll(() => page.evaluate(() => (
+      window as Window & { __mineoInstallPromptProbe?: { promptCalled: boolean; defaultPrevented: boolean } }
+    ).__mineoInstallPromptProbe)).toEqual({ promptCalled: true, defaultPrevented: true });
+    await expect(page.getByRole('dialog')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Download hjælpeprogram' })).toBeVisible();
+  });
+
+  test('uden installprompt får brugeren en konkret fallback-besked', async ({ page }) => {
     await applyScenario(page, 'notInstalled');
     await openMineoPage(page);
     await clickDownloadLink(page);
 
-    // Browseren viser sin egen installationsdialog (uden for DOM'en); vores popup må ikke komme i vejen.
-    await expect(page.getByRole('dialog')).toBeHidden();
-    await expect(page.getByRole('button', { name: 'Download hjælpeprogram' })).toBeVisible();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText('Installationsdialogen kunne ikke åbnes')).toBeVisible();
+    await expect(dialog.getByText(/installationsikonet i adresselinjen/i)).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Luk' })).toBeVisible();
   });
 });

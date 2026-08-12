@@ -59,6 +59,7 @@ describe('pwaInstallPrompt', () => {
     const result = await requestPwaInstall();
 
     expect(prompt).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
     expect(result).toEqual({ kind: 'completed', outcome: 'accepted' });
   });
 
@@ -78,9 +79,9 @@ describe('pwaInstallPrompt', () => {
 
     const result = await requestPwaInstall();
 
-    expect(preventDefaultSpy).toHaveBeenCalledTimes(1);
+    expect(preventDefaultSpy).toHaveBeenCalled();
     expect(prompt).not.toHaveBeenCalled();
-    expect(result).toEqual({ kind: 'unavailable' });
+    expect(result).toEqual({ kind: 'unavailable', reason: 'promptUnavailable' });
   });
 
   describe('detectPwaInstallationState', () => {
@@ -104,7 +105,7 @@ describe('pwaInstallPrompt', () => {
     it('melder «installed» i browseren når opslaget kender en installation', async () => {
       const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
-      setInstalledRelatedApps([{ platform: 'webapp', url: 'https://mineo.dk/manifest.json' }]);
+      setInstalledRelatedApps([{ platform: 'webapp', url: '/manifest.json' }]);
 
       await expect(detectPwaInstallationState()).resolves.toBe('installed');
     });
@@ -128,21 +129,83 @@ describe('pwaInstallPrompt', () => {
       await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
     });
 
-    it('falder tilbage til «notInstalled» når opslaget kaster — så installationsvejen bevares', async () => {
+    it('melder «unknown» når opslaget kaster — et fejlende opslag er ikke bevis for fravær', async () => {
       const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
       setInstalledRelatedApps(new Error('NotAllowedError'));
 
-      // Et kast betyder «ved ikke». Boblede det ud, ville klikket dø uden hverken dialog eller install.
-      await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
+      await expect(detectPwaInstallationState()).resolves.toBe('unknown');
     });
 
-    it('melder «notInstalled» i browsere helt uden opslag (Safari/Firefox)', async () => {
+    it('melder «unknown» i browsere helt uden opslag (Safari/Firefox)', async () => {
       const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
 
       expect(navigator.getInstalledRelatedApps).toBeUndefined();
+      await expect(detectPwaInstallationState()).resolves.toBe('unknown');
+    });
+
+    it('ignorerer relaterede apps, der ikke er Mineos webapp', async () => {
+      const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+      setInstalledRelatedApps([
+        { platform: 'play', url: 'https://play.google.com/store/apps/details?id=other.app' },
+      ]);
+
       await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
+    });
+  });
+
+  describe('requestPwaInstall', () => {
+    it('finder en kendt installation uden installprompt', async () => {
+      const { requestPwaInstall } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+      setInstalledRelatedApps([{ platform: 'webapp', url: '/manifest.json' }]);
+
+      await expect(requestPwaInstall()).resolves.toEqual({
+        kind: 'alreadyInstalled',
+        state: 'installed',
+      });
+    });
+
+    it('returnerer en tydelig unavailable-årsag, når installationen ikke kan startes', async () => {
+      const { requestPwaInstall } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+      setInstalledRelatedApps([]);
+
+      await expect(requestPwaInstall()).resolves.toEqual({
+        kind: 'unavailable',
+        reason: 'promptUnavailable',
+      });
+    });
+
+    it('returnerer statusUnknown, når browseren hverken kan måle eller vise prompten', async () => {
+      const { requestPwaInstall } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+
+      await expect(requestPwaInstall()).resolves.toEqual({
+        kind: 'unavailable',
+        reason: 'statusUnknown',
+      });
+    });
+
+    it('rapporterer promptFailed, hvis browserens prompt kaster', async () => {
+      const { requestPwaInstall, setupPwaInstallPromptCapture } = await import('../../utils/pwaInstallPrompt');
+      const prompt = vi.fn().mockRejectedValue(new Error('blocked'));
+      const event = new Event('beforeinstallprompt', { cancelable: true }) as BeforeInstallPromptEvent;
+
+      Object.assign(event, {
+        prompt,
+        userChoice: Promise.resolve({ outcome: 'accepted', platform: 'web' }),
+      });
+
+      setupPwaInstallPromptCapture();
+      window.dispatchEvent(event);
+
+      await expect(requestPwaInstall()).resolves.toEqual({
+        kind: 'unavailable',
+        reason: 'promptFailed',
+      });
     });
   });
 
@@ -153,7 +216,16 @@ describe('pwaInstallPrompt', () => {
 
       openInstalledPwa();
 
-      expect(openSpy).toHaveBeenCalledWith(PWA_START_URL, '_blank', 'noopener');
+      expect(openSpy).toHaveBeenCalledWith(PWA_START_URL, '_blank');
+      openSpy.mockRestore();
+    });
+
+    it('returnerer false, hvis browseren blokerer det nye vindue', async () => {
+      const { openInstalledPwa } = await import('../../utils/pwaInstallPrompt');
+      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+
+      expect(openInstalledPwa()).toBe(false);
+
       openSpy.mockRestore();
     });
 
@@ -162,6 +234,13 @@ describe('pwaInstallPrompt', () => {
 
       // Ændres manifestet uden modulet, ville vi åbne en anden indgang end hjælpeprogrammets egen.
       expect(PWA_START_URL).toBe(manifest.start_url);
+    });
+
+    it('manifestet identificerer sig selv som relateret webapp', () => {
+      expect(manifest.id).toBe(manifest.start_url);
+      expect(manifest.related_applications).toEqual([
+        { platform: 'webapp', url: '/manifest.json', id: manifest.id },
+      ]);
     });
 
     it('manifestet fokuserer et eksisterende vindue frem for at åbne en dublet', () => {

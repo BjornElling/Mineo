@@ -38,7 +38,7 @@ Brug kildekoden som white-box-kort og browseren som sandhed om observerbar runti
 
 Byg et praktisk, endeligt inventar i disse lag:
 
-1. **Browsere og viewports:** Chrome, Edge, Firefox og Safari/WebKit; minimum 1920×1080 samt mindst én større desktop-viewport. Manglende browser eller viewport er et eksplicit dækningshul. Før browserarbejde kontrolleres Playwright-version, installerede Firefox/WebKit-motorer og tilgængelige Chrome-/Edge-channels; resultatet registreres, før en motor markeres som ikke-kørt. Service-worker- og PWA-rækker kræver et produktions-preview og må ikke dækkes af devserverens service-worker-blokering.
+1. **Browsere og viewports:** Chrome, Edge, Firefox og Safari/WebKit; både 1536×864 CSS-pixels (minimum for en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering og 100 % browserzoom), 1920×1080 CSS-pixels og mindst én større desktop-viewport. Playwright simulerer CSS-viewporten, ikke operativsystemets fysiske skalering; log derfor også `window.devicePixelRatio` og eventuelle manglende OS-/headed-verifikationer. Manglende browser eller viewport er et eksplicit dækningshul. Før browserarbejde kontrolleres Playwright-version, installerede Firefox/WebKit-motorer og tilgængelige Chrome-/Edge-channels; resultatet registreres, før en motor markeres som ikke-kørt. Service-worker- og PWA-rækker kræver et produktions-preview og må ikke dækkes af devserverens service-worker-blokering.
 2. **Flader:** login, global shell, route, side, fane, dialog, overlay, tabel, hjælp, indstillinger, fejl-/stoptilstand og dokumenthandling.
 3. **Editorer:** tekst, tal, beløb, procent, år, uge, dato, dropdown, autocomplete, toggle, radio og tabelcelle.
 4. **Branches:** modevalg, optionalitet, presence-checks, schema-unions, featurebetingelser, skæringsregler og fejl-/fallbackgrene.
@@ -49,6 +49,8 @@ Byg et praktisk, endeligt inventar i disse lag:
 Afstem inventaret begge veje: enhver synlig editor skal have en kildeidentitet, og enhver registreret feltdefinition, branch eller handler skal findes i en brugerflade eller markeres som mulig død/afvigende kode i `OBSERVATIONS.md`.
 
 En række er ikke dækket, fordi én happy path virker. Alle relevante partitioner, branches, sekvenser, downstream-forbrugere og understøttede browsere skal være håndteret.
+
+For den globale shell er minimumshøjden en selvstændig matrixdimension. Auditér udvidet og sammenfoldet sidemenu ved 1536×864 samt 1920×1080 i alle fire browsere og PWA-preview. Kontroller sidste menupunkt, sidste globale handling, fokus ved `Tab`/`Shift+Tab`, aktivering med `Enter`, routeændring og faktisk synlig/klikbar geometri. Sidemenuen må ikke have egen intern lodret scroll; en clipped eller ikke-fokuserbar kontrol er et fund, også hvis resten af siden kan scrolles. En eventuel komprimering af menuens rækker eller afstande er en markant synlig UI-ændring og skal behandles efter brugerens godkendelsesregel.
 
 ## 3. Inputpartitioner
 

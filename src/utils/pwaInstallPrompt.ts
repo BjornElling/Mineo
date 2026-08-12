@@ -1,8 +1,12 @@
-type PwaInstallOutcome = 'accepted' | 'dismissed';
+import { isRunningInsideInstalledPwa } from './pwaDisplayMode';
 
-type PwaInstallResult =
-  | { kind: 'unavailable' }
-  | { kind: 'alreadyInstalled' }
+export type PwaInstallOutcome = 'accepted' | 'dismissed';
+
+export type PwaInstallUnavailableReason = 'promptUnavailable' | 'statusUnknown' | 'promptFailed';
+
+export type PwaInstallResult =
+  | { kind: 'unavailable'; reason: PwaInstallUnavailableReason }
+  | { kind: 'alreadyInstalled'; state: Exclude<PwaInstallationState, 'notInstalled' | 'unknown'> }
   | { kind: 'completed'; outcome: PwaInstallOutcome };
 
 /**
@@ -10,9 +14,10 @@ type PwaInstallResult =
  *
  * - `running`   — vi kører allerede INDE i det installerede hjælpeprogram. Der er intet at åbne.
  * - `installed` — vi står i browseren, men hjælpeprogrammet er installeret på maskinen.
- * - `notInstalled` — intet spor af en installation; den almindelige installationsvej gælder.
+ * - `notInstalled` — opslaget bekræfter, at der ikke findes en installation.
+ * - `unknown` — browseren kan ikke give et sikkert svar.
  */
-export type PwaInstallationState = 'running' | 'installed' | 'notInstalled';
+export type PwaInstallationState = 'running' | 'installed' | 'notInstalled' | 'unknown';
 
 type InstallPromptSetupMode = 'capture' | 'suppress';
 
@@ -32,8 +37,11 @@ const setupPwaInstallPrompt = (mode: InstallPromptSetupMode): void => {
       return;
     }
 
+    // Prompten skal først vises ved klik på vores egen kontrol. Uden preventDefault kan browseren
+    // åbne sin egen installationsflade før brugeren klikker, og det gemte event kan derefter ikke
+    // bruges sikkert af vores kontrol.
+    event.preventDefault();
     const promptEvent = event as BeforeInstallPromptEvent;
-    // Vi kalder ikke preventDefault her: browserens standard adfærd bevares også i development.
     deferredPrompt = promptEvent;
   });
 
@@ -51,28 +59,21 @@ export const suppressPwaInstallPrompt = (): void => {
   setupPwaInstallPrompt('suppress');
 };
 
-const STANDALONE_DISPLAY_MODE_QUERY = '(display-mode: standalone)';
-
 /**
  * Skal svare til `start_url` i `public/manifest.json`; bundet af en test, så de ikke kan drifte fra
  * hinanden. Åbnes en anden sti, starter hjælpeprogrammet et andet sted end det selv ville.
  */
 export const PWA_START_URL = '/';
+export const PWA_MANIFEST_URL = '/manifest.json';
 
-type NavigatorWithStandalone = Navigator & { standalone?: boolean };
+const isMineoRelatedApplication = (app: RelatedApplication): boolean => {
+  if (app.platform !== 'webapp') return false;
+  if (app.url === undefined) return true;
+  if (typeof window === 'undefined') return false;
 
-/**
- * Kører dette dokument i det installerede hjælpeprograms eget vindue?
- *
- * Samme to signaler som `useInstalledPwaDisplayMode`: standalone-display-mode dækker Chromium og
- * desktop, `navigator.standalone` dækker iOS' hjemmeskærms-vindue, som ikke sætter display-mode.
- */
-const isRunningInsideInstalledPwa = (): boolean => {
-  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-    && window.matchMedia(STANDALONE_DISPLAY_MODE_QUERY).matches) {
-    return true;
-  }
-  return typeof navigator !== 'undefined' && (navigator as NavigatorWithStandalone).standalone === true;
+  const appUrl = new URL(app.url, window.location.href);
+  const manifestUrl = new URL(PWA_MANIFEST_URL, window.location.href);
+  return appUrl.origin === manifestUrl.origin && appUrl.pathname === manifestUrl.pathname;
 };
 
 /**
@@ -84,25 +85,29 @@ const isRunningInsideInstalledPwa = (): boolean => {
  * 2. `appinstalled` i denne fane er ligeledes et positivt bevis (modulets `isInstalled`).
  * 3. `getInstalledRelatedApps()` er det eneste signal, der kan se en installation foretaget i en
  *    ANDEN fane eller session. Kun Chromium har den, og den kan kaste — et kast betyder «ved ikke»,
- *    ikke «ikke installeret», så vi falder videre til punkt 4 frem for at melde noget forkert.
- * 4. Har browseren tilbudt os en installprompt, er den beviseligt IKKE installeret. Fraværet af en
- *    prompt beviser derimod intet (Safari/Firefox fyrer den aldrig), så det fald-tilbage-svar er
- *    `notInstalled`: den bevarer den almindelige installationsvej i browsere, vi ikke kan udspørge.
+ *    ikke «ikke installeret».
+ * 4. Har browseren tilbudt os en installprompt, er den beviseligt IKKE installeret. Fravær af både
+ *    opslag og prompt er derimod ukendt — især Safari/Firefox kan hverken udspørges eller levere
+ *    `beforeinstallprompt`, så det må ikke fejlagtigt kaldes `notInstalled`.
  */
 export const detectPwaInstallationState = async (): Promise<PwaInstallationState> => {
   if (isRunningInsideInstalledPwa()) return 'running';
   if (isInstalled) return 'installed';
+  if (deferredPrompt) return 'notInstalled';
 
   if (typeof navigator !== 'undefined' && typeof navigator.getInstalledRelatedApps === 'function') {
     try {
       const relatedApps = await navigator.getInstalledRelatedApps();
-      if (relatedApps.length > 0) return 'installed';
+      if (!Array.isArray(relatedApps)) return 'unknown';
+      const hasMineoPwa = relatedApps.some(isMineoRelatedApplication);
+      return hasMineoPwa ? 'installed' : 'notInstalled';
     } catch {
-      // Ved ikke — lad de øvrige signaler afgøre det.
+      // Et opslag, der fejler, er ikke bevis for fravær af installation.
+      return 'unknown';
     }
   }
 
-  return 'notInstalled';
+  return 'unknown';
 };
 
 /**
@@ -112,25 +117,51 @@ export const detectPwaInstallationState = async (): Promise<PwaInstallationState
  * fokuseres i stedet for at der åbnes en dublet. Vi peger på manifestets `start_url` — ikke den
  * aktuelle sti — så programmet starter dér, hvor det selv ville starte.
  */
-export const openInstalledPwa = (): void => {
-  if (typeof window === 'undefined') return;
-  window.open(PWA_START_URL, '_blank', 'noopener');
+export const openInstalledPwa = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const openedWindow = window.open(PWA_START_URL, '_blank');
+  if (openedWindow === null) return false;
+
+  // `noopener` som tredje argument gør browserens returværdi null — også når åbningen lykkes —
+  // så den kan ikke bruges til at opdage popup-blokering. Vinduet er samme-origin; nulstilling af
+  // opener-referencen efter åbningen bevarer sikkerhedsformålet uden at forveksle succes med fejl.
+  openedWindow.opener = null;
+  return true;
 };
 
 export const requestPwaInstall = async (): Promise<PwaInstallResult> => {
-  if (isInstalled) return { kind: 'alreadyInstalled' };
-  if (!deferredPrompt) return { kind: 'unavailable' };
-
-  const prompt = deferredPrompt;
-  deferredPrompt = null;
-
-  await prompt.prompt();
-  const choice = await prompt.userChoice;
-
-  if (choice.outcome === 'accepted') {
-    isInstalled = true;
+  if (isRunningInsideInstalledPwa()) return { kind: 'alreadyInstalled', state: 'running' };
+  if (isInstalled) return { kind: 'alreadyInstalled', state: 'installed' };
+  if (setupMode === 'suppress') {
+    return { kind: 'unavailable', reason: 'promptUnavailable' };
   }
 
-  return { kind: 'completed', outcome: choice.outcome };
-};
+  // Denne funktion kaldes direkte fra klik-handleren. Så længe prompt-kaldet står før det første
+  // `await`, bevarer browseren brugeraktiveringen, som `beforeinstallprompt.prompt()` kræver.
+  const prompt = deferredPrompt;
+  if (!prompt) {
+    const state = await detectPwaInstallationState();
+    if (state === 'running' || state === 'installed') {
+      return { kind: 'alreadyInstalled', state };
+    }
+    return {
+      kind: 'unavailable',
+      reason: state === 'unknown' ? 'statusUnknown' : 'promptUnavailable',
+    };
+  }
 
+  deferredPrompt = null;
+
+  try {
+    await prompt.prompt();
+    const choice = await prompt.userChoice;
+
+    if (choice.outcome === 'accepted') {
+      isInstalled = true;
+    }
+
+    return { kind: 'completed', outcome: choice.outcome };
+  } catch {
+    return { kind: 'unavailable', reason: 'promptFailed' };
+  }
+};

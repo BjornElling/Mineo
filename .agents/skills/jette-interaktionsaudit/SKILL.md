@@ -63,13 +63,13 @@ Auditten er en åben, langvarig arbejdsopgave — ikke en enkelt leverance med e
 5. Læs altid `STATUS.md`, `CRASHES.md`, `OBSERVATIONS.md` og `QUESTIONS.md` helt eller målrettet med `rg`, hvis de er lange. Åbne fund og ubesvarede spørgsmål skal forstås, før nye scenarier vælges.
 6. Kontrollér `git status --short`, aktuel commit og buildversion. Behandl eksisterende ændringer som brugerens og rør dem ikke.
 7. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
-8. Dæk browserne Chrome, Edge, Firefox og Safari/WebKit med minimum 1920×1080. Brug mindst den definerede minimumsviewport og en større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
+8. Dæk browserne Chrome, Edge, Firefox og Safari/WebKit med både den almindelige Full-HD-CSS-viewport 1920×1080 og den bindende minimums-CSS-viewport 1536×864. Sidstnævnte svarer til en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering, når browserens zoom står på 100 %. Playwright styrer CSS-viewporten og simulerer ikke selve operativsystemets fysiske skalering; registrér derfor altid både CSS-viewport og `window.devicePixelRatio`, og registrér et eventuelt hul i ægte OS-/headed-verifikation særskilt. Brug mindst én større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
    - Før browserstyring: kontrollér `npx --no-install playwright-cli --version` (eller den lokale fallback `npx --no-install playwright --version`) og `npx playwright install --list`. Mangler Firefox eller WebKit, installér den konkrete motor med `npx playwright install firefox webkit`; manglende Chrome-/Edge-channel registreres eksplicit som dækningshul.
    - Kør alle browserkørsler headless. `playwright-cli` er headless som standard, så brug aldrig `--headed`, `npm run test:e2e:headed`, `show --annotate` eller en synlig browser-attach under auditten. Snapshots, screenshots, traces og video kan stadig optages headless. Det holder browseren fra skærmen og fra operativsystemets input-/dvaleinteraktion.
    - Brug de navngivne sessioner `chrome`, `edge`, `firefox` og `webkit`, og luk dem med `npx playwright cli close-all` efter batchen. En session må ikke genbruges, før dens browser, viewport og rene starttilstand er verificeret.
    - Platformdialoger, der kun kan åbnes af en synlig browser eller operativsystemet, kan ikke afprøves i den headless audit. Registrér dem som et konkret dækningshul og fortsæt med uafhængige arbejdsenheder; skift ikke automatisk til headed. En synlig kørsel kræver en udtrykkelig brugerbesked.
-   - Kør den automatiske browser-smoke med `npm run test:e2e` før den brede udforskning. Den lokale Playwright-konfiguration kører de fire motorer ved 1920×1080; til den større viewport sættes `PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT=1` før samme kommando (i PowerShell: `$env:PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT='1'; npm run test:e2e`).
-   - Almindelige flows køres mod Vite-devserveren. Service-worker-, PWA- og launch-queue-flows køres separat mod et produktions-preview: `npm run build:mineo`, derefter `npm run preview:e2e` på port 4174. Brug ikke devserverens manglende service-worker som evidens for et PWA-resultat. Ved automatiseret kontrol mod preview sættes i PowerShell `$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:4174'; $env:PLAYWRIGHT_SKIP_WEBSERVER='1'; $env:PLAYWRIGHT_ALLOW_SERVICE_WORKERS='1'` før `npm run test:e2e`.
+   - Kør den automatiske browser-smoke med `npm run test:e2e` før den brede udforskning. Den lokale Playwright-konfiguration skal køre de fire motorer ved både 1536×864 og 1920×1080; til den større viewport sættes `PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT=1` før samme kommando (i PowerShell: `$env:PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT='1'; npm run test:e2e`).
+   - Almindelige flows køres mod Vite-devserveren. Service-worker-, PWA- og launch-queue-flows køres separat mod et produktions-preview: `npm run build:mineo`, derefter `npm run preview:e2e` på port 4174. Brug ikke devserverens manglende service-worker som evidens for et PWA-resultat. Ved automatiseret kontrol mod preview sættes i PowerShell `$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:4174'; $env:PLAYWRIGHT_SKIP_WEBSERVER='1'; $env:PLAYWRIGHT_ALLOW_SERVICE_WORKERS='1'` før `npm run test:e2e`. PWA-rækkerne gentages ved 1536×864 og 1920×1080; kontrollér også at installeret/standalone-vinduets shell, navigation og dokumentflows ikke mister indhold.
 9. Markér arbejdsenheden `I gang`, og skriv det konkrete næste scenarie og den nødvendige starttilstand, før browserarbejdet begynder.
 
 ## Arbejdscyklus
@@ -114,6 +114,18 @@ Dæk mindst:
 - hurtige, gentagne, afbrudte og lange realistiske sekvenser, herunder flere skift mellem input, fejl, rettelser, navigation og undo/redo.
 
 Brug fuld kombination for små, endelige valg- og booleansæt. Brug systematisk parvis dækning for almindelige partitioner og 3-vejs dækning ved styrende input → afhængigt input → downstream-forbruger. Gentag og udvid matricen ved enhver parallel adfærd, tidligere fejl, uafklaret kontrakt eller uventet tilstandsændring.
+
+#### Minimumshøjde, sidemenu og scroll
+
+Ved 1536×864 skal alle globale handlinger og alle sidemenuens punkter kunne nås med tastatur og pointer. Auditér både udvidet og sammenfoldet sidemenu, login efter fuld opstart, alle routede sider, åbne dialoger og PWA-preview. Kontroller for hvert relevant viewport/browser-par:
+
+- at sidemenuens sidste synlige punkt og alle globale handlinger har en faktisk tilgængelig fokus-/klikgeometri;
+- at ingen side-menu-wrapper, sidemenu-scrollregion eller skjult `overflow` gør et punkt utilgængeligt;
+- at sidemenuen ikke får en egen intern lodret scrollfunktion. Hvis hele siden kræver lodret plads, skal den almindelige app-/dokument-scroll eller en anden eksplicit, brugerforståelig shell-adfærd bære det — ikke en separat scrollbar i sidemenuen;
+- at fokus på sidste menupunkt, `Tab`/`Shift+Tab`, `Enter` og navigation til sidste route fungerer, og at fokus ikke flyttes til et clipped element;
+- at eventuel tættere spacing, mindre typografi eller anden komprimering ved lav højde registreres som synlig UI-/adfærdsændring og forelægges før produktimplementering, hvis den ikke allerede er en entydig genskabelse af dokumenteret adfærd.
+
+Et bestået resultat kræver ikke, at alle sidemenuens punkter står permanent synlige på enhver højde; det kræver, at de er tilgængelige uden en skjult eller uforudsigelig vej. Hvis den nuværende shell ikke kan opfylde dette uden en markant ændring af udseende eller adfærd, registrér først det konkrete fund og spørgsmålet om ønsket løsning.
 
 ### 3. Kør med aktive orakler
 

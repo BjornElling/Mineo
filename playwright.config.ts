@@ -4,10 +4,13 @@ const defaultBaseURL = 'http://127.0.0.1:4173';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? defaultBaseURL;
 const useExternalWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 const allowServiceWorkers = process.env.PLAYWRIGHT_ALLOW_SERVICE_WORKERS === '1';
-const minimumDesktopViewport = { width: 1920, height: 1080 } as const;
+// 1536×864 CSS-pixels svarer til en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering
+// og browserzoom 100 %. Full HD køres som en særskilt kontrastviewport, ikke som minimum.
+const minimumDesktopViewport = { width: 1536, height: 864 } as const;
+const fullHdDesktopViewport = { width: 1920, height: 1080 } as const;
 const largerDesktopViewport = { width: 2560, height: 1440 } as const;
 
-const desktopProjects = [
+const minimumDesktopProjects = [
   {
     name: 'chrome-desktop',
     use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: minimumDesktopViewport },
@@ -25,6 +28,27 @@ const desktopProjects = [
     use: { ...devices['Desktop Safari'], viewport: minimumDesktopViewport },
   },
 ];
+
+const fullHdDesktopProjects = [
+  {
+    name: 'chrome-desktop-full-hd',
+    use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: fullHdDesktopViewport },
+  },
+  {
+    name: 'edge-desktop-full-hd',
+    use: { ...devices['Desktop Edge'], channel: 'msedge', viewport: fullHdDesktopViewport },
+  },
+  {
+    name: 'firefox-desktop-full-hd',
+    use: { ...devices['Desktop Firefox'], viewport: fullHdDesktopViewport },
+  },
+  {
+    name: 'safari-webkit-desktop-full-hd',
+    use: { ...devices['Desktop Safari'], viewport: fullHdDesktopViewport },
+  },
+];
+
+const desktopProjects = [...minimumDesktopProjects, ...fullHdDesktopProjects];
 
 const projects = [
   ...desktopProjects,
