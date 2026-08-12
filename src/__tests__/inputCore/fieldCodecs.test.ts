@@ -20,10 +20,6 @@ import {
   type FieldIssue,
 } from '../../inputCore/inputIssue';
 import type { AnyFieldRef } from '../../inputCore/fieldDescriptor';
-import {
-  DATE_YEAR_OUT_OF_RANGE_MESSAGE,
-  NONEXISTENT_DAY_MESSAGE,
-} from '../../utils/dateDraftCommit';
 
 describe('fieldCodecs', () => {
   it('canonicaliserer tomhed efter codecets værditype', () => {
@@ -171,19 +167,34 @@ describe('fieldCodecs', () => {
   describe('en format-afvisning bærer parse-kernens konkrete årsag', () => {
     const date = createDateFieldCodec({ twoDigitYearPolicy: 'infer' });
 
-    it('datoens urepræsenterbare årstal nævner de faktiske årstal', () => {
+    /**
+     * Datofeltet videregiver ÅRSAGEN, ikke en færdig tekst. Et codec kender ikke feltet, og en generisk
+     * årstalsbesked ville modsige feltets faktiske grænse (Fødselsdato slutter ved dags dato, ikke år 2100).
+     * Teksten dannes derfor af `resolveDateFormatIssueText` — se `dateFormatIssueText.test.ts`.
+     */
+    it('datoens urepræsenterbare årstal videregives som en maskinlæsbar årsag', () => {
       expect(date.parseForSettle('31-12-1899')).toEqual({
         status: 'rejected',
         reason: 'format',
-        detail: { tooltip: 'Årstallet skal være mellem 1900 og 2100' },
+        detail: { dateInvalidKind: 'yearOutOfRepresentableRange' },
       });
       expect(date.parseForSettle('01-01-2101'))
-        .toMatchObject({ detail: { tooltip: DATE_YEAR_OUT_OF_RANGE_MESSAGE } });
+        .toMatchObject({ detail: { dateInvalidKind: 'yearOutOfRepresentableRange' } });
     });
 
-    it('en ikke-eksisterende kalenderdag får sin egen tekst', () => {
-      expect(date.parseForSettle('31-02-2026'))
-        .toMatchObject({ status: 'rejected', reason: 'format', detail: { tooltip: NONEXISTENT_DAY_MESSAGE } });
+    /** Ordlyds-værn: codec'et må ikke lække et årsinterval til et DATOfelt. */
+    it('lader ikke codec-laget formulere en årstalsbesked', () => {
+      const rejection = date.parseForSettle('31-12-1899') as { detail?: Record<string, unknown> };
+      expect(rejection.detail?.tooltip).toBeUndefined();
+      expect(JSON.stringify(rejection.detail)).not.toMatch(/1900|2100|årstal/i);
+    });
+
+    it('en ikke-eksisterende kalenderdag får sin egen årsag', () => {
+      expect(date.parseForSettle('31-02-2026')).toMatchObject({
+        status: 'rejected',
+        reason: 'format',
+        detail: { dateInvalidKind: 'nonexistentDay' },
+      });
     });
 
     /**
@@ -208,15 +219,16 @@ describe('fieldCodecs', () => {
       expect(week.parseForSettle('xx')).toEqual({ status: 'rejected', reason: 'format' });
     });
 
-    /** Hele vejen til den tekst, brugeren faktisk ser ved markøren. */
+    /** Hele vejen til den tekst, brugeren faktisk ser ved markøren — for de UGE-fejl, codec'et selv ejer. */
     it('viser den konkrete tekst som feltets tooltip', () => {
-      const field = { descriptor: { label: 'Fødselsdato' }, address: {} } as unknown as AnyFieldRef;
+      const week = createWeekFieldCodec({ twoDigitYearPolicy: 'infer', maxDraftLength: 9 });
+      const field = { descriptor: { label: 'Uge' }, address: {} } as unknown as AnyFieldRef;
       const asIssue = (raw: string): FieldIssue => {
-        const resolution = date.parseForSettle(raw);
+        const resolution = week.parseForSettle(raw);
         if (resolution.status !== 'rejected') throw new Error(`forventede en afvisning for ${raw}`);
         return {
           kind: 'field',
-          code: 'foedselsdato.format',
+          code: 'uge.format',
           severity: 'error',
           field,
           reason: resolution.reason,
@@ -225,12 +237,11 @@ describe('fieldCodecs', () => {
         };
       };
 
-      expect(resolveFieldIssueTooltip(asIssue('31-12-1899')))
-        .toBe('Årstallet skal være mellem 1900 og 2100');
-      expect(resolveFieldIssueTooltip(asIssue('abc'))).toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
+      expect(resolveFieldIssueTooltip(asIssue('53/2021'))).toBe('Uge skal være mellem 1 og 52');
+      expect(resolveFieldIssueTooltip(asIssue('xx'))).toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
       // "Fejl og advarsler" viser fortsat den FULDE besked med feltnavnet — tooltippet er den korte kanal.
-      expect(asIssue('31-12-1899').message)
-        .toBe('Der er udfyldt en ugyldig værdi i feltet \'Fødselsdato\'');
+      expect(asIssue('53/2021').message)
+        .toBe('Der er udfyldt en ugyldig værdi i feltet \'Uge\'');
     });
   });
 });

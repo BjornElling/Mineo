@@ -35,19 +35,20 @@ export const MAX_DATE_DRAFT_LENGTH = 16;
 /**
  * Det årsinterval, en {@link ISODateString} kan repræsentere. Spejler `isISODateString` (`types/branded.ts`)
  * — den ENE kilde til, hvad der er en gyldig ISO-dato. Konstanterne står her, fordi det er her, et draft
- * afvises på grund af dem, og fordi brugerbeskeden skal kunne nævne de konkrete årstal frem for at skrive
- * dem i hånden. `dateDraftCommit.representable-year-range` pinner de to steder sammen.
+ * afvises på grund af dem.
+ *
+ * De er en REPRÆSENTATIONSgrænse, ikke en brugerregel, og må derfor ikke lække til brugerteksten: hvert
+ * datofelt har sin egen, ofte smallere grænse (Fødselsdato slutter ved dags dato), og en besked om
+ * «1900..2100» ville modsige den. Feltets konkrete datoer formuleres af `resolveDateFormatIssueText`.
  */
 export const MIN_REPRESENTABLE_DATE_YEAR = 1900;
 export const MAX_REPRESENTABLE_DATE_YEAR = 2100;
 
 /**
- * Brugerbeskeden for et årstal uden for det repræsenterbare domæne. Den nævner begge årstal, fordi det er
- * den eneste information, brugeren kan handle på: grænsen er ikke en domæneregel, men programmets ydre
- * ramme, og den er derfor ens for hvert eneste datofelt.
+ * Fald-tilbage-teksten for et urepræsenterbart årstal på en flade UDEN en feltgrænse-erklæring (den
+ * transiente dato-overlay). Den taler bevidst om DATOEN og ikke om et årsinterval — se konstanterne ovenfor.
  */
-export const DATE_YEAR_OUT_OF_RANGE_MESSAGE =
-  `Årstallet skal være mellem ${MIN_REPRESENTABLE_DATE_YEAR} og ${MAX_REPRESENTABLE_DATE_YEAR}`;
+export const DATE_YEAR_OUT_OF_RANGE_MESSAGE = 'Datoen ligger uden for det gyldige interval';
 
 /** Konkret besked for en velformet, men ikke-eksisterende kalenderdato (`31-02-2026`). */
 export const NONEXISTENT_DAY_MESSAGE = 'Datoen findes ikke i kalenderen';

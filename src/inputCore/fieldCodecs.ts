@@ -78,17 +78,25 @@ const initialKey = (pattern: RegExp): ((key: string) => boolean) => (key) => pat
 const tooltipDetail = (tooltip: string): FieldRejectDetail => ({ tooltip });
 
 /**
- * Dato: kun de fejl, hvor der ER noget konkret at fortælle, får en tooltip.
+ * Dato: kun de fejl, hvor der ER noget konkret at fortælle, får en detalje.
  *
- * `malformed` dækker delvist indtastet og uparsebar tekst («15-», «abc»). Den har bevidst INGEN konkret
- * tooltip: den eneste sande besked ville være "dette er ikke en dato", og feltets navn står allerede ved
- * markøren. Den falder derfor i den generiske gren, præcis som `error-contract.md` §4 foreskriver — og som
- * §4 pkt. 1 udtrykkeligt nævner for netop en delvist indtastet dato.
+ * **Et datofelt taler om DATOER, ikke om årstalsintervaller.** Parse-kernen kan konstatere, at et årstal
+ * ligger uden for det repræsenterbare domæne (1900..2100), men den grænse er en egenskab ved
+ * `ISODateString` — ikke feltets regel. Ville codec'en selv sige «Årstallet skal være mellem 1900 og 2100»,
+ * ville beskeden modsige feltets faktiske grænse: Fødselsdato slutter ved DAGS DATO, ikke ved år 2100.
+ * Derfor videregives kun den maskinlæsbare ÅRSAG (`dateInvalidKind`), og selve teksten formuleres af
+ * `resolveDateFormatIssueText` ud fra feltets egen `dateBounds`-erklæring — med konkrete datoer.
+ * Årstals-ordlyden hører hjemme i årstalsFELTER (`year`-familien), hvor et årstal er selve værdien.
+ *
+ * `malformed` dækker delvist indtastet og uparsebar tekst («15-», «abc»). Den har bevidst INGEN detalje:
+ * den eneste sande besked ville være "dette er ikke en dato", og feltets navn står allerede ved markøren.
+ * Den falder derfor i den generiske gren, præcis som `error-contract.md` §4 foreskriver — og som §4 pkt. 1
+ * udtrykkeligt nævner for netop en delvist indtastet dato.
  */
 const resolveDateTooltipDetail = (
   parsed: Extract<ParsedDateDraft, { ok: false }>
 ): FieldRejectDetail | undefined =>
-  parsed.invalidKind === 'malformed' ? undefined : tooltipDetail(parsed.message);
+  parsed.invalidKind === 'malformed' ? undefined : { dateInvalidKind: parsed.invalidKind };
 
 /**
  * Uge: kun ugenummer-fejlen bærer en konkret tooltip. Se `resolveDateTooltipDetail` om `malformed`.

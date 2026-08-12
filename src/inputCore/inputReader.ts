@@ -16,6 +16,8 @@ import {
   type FieldIssueSnapshot,
 } from './inputIssue';
 import { resolveFieldLabel, toAnyFieldRef } from './fieldDescriptor';
+import { resolveDateFormatIssueText } from './catalog/dateBoundsValidators';
+import type { ISODateString } from '../types/branded';
 import type { EvaluationSourceToken } from './evaluationSource';
 
 export type EntityRef = Readonly<{ collection: CollectionRef; entityId: string }>;
@@ -93,6 +95,18 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
     if (rejected !== undefined) {
       // Rejected råtekst er efter kravændringen 2026-07-18 altid `format` (§1.6): en schema-repræsenterbar
       // out-of-bounds-værdi er canonical og fanges i stedet af validatorerne nedenfor.
+      //
+      // Et DATOfelt formulerer sin egen tekst her, hvor feltets `dateBounds`-erklæring er kendt. Codec'et
+      // videregiver kun den maskinlæsbare årsag, fordi det ikke kender feltet: en generisk årstalsbesked
+      // ville modsige den faktiske grænse (fx Fødselsdato, der slutter ved dags dato).
+      const dateTooltip = typeof rejected.detail?.dateInvalidKind === 'string'
+        ? resolveDateFormatIssueText(
+          field.descriptor.dateBounds,
+          rejected.detail.dateInvalidKind,
+          { view, field: field as FieldRef<ISODateString | undefined> }
+        )
+        : undefined;
+      const detail = dateTooltip === undefined ? rejected.detail : { ...rejected.detail, tooltip: dateTooltip };
       issues.push(Object.freeze({
         kind: 'field',
         code: `${field.descriptor.id}.${rejected.reason}`,
@@ -100,7 +114,7 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
         field: anyRef,
         reason: rejected.reason,
         message: buildFieldIssueMessage(anyRef),
-        ...(rejected.detail === undefined ? {} : { detail: rejected.detail }),
+        ...(detail === undefined ? {} : { detail }),
       }));
       continue;
     }

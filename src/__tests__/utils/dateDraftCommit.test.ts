@@ -74,15 +74,19 @@ describe('parseDateDraftForCommit', () => {
    * `31-12-1899` er en fuldt gyldig KALENDERdato, hvis ÅRSTAL blot ligger uden for det domæne, en
    * `ISODateString` kan repræsentere. Uden en maskinlæsbar årsag ville den blive afvist med præcis samme
    * flade besked som ren volapyk, og feltet ville vise den generiske «Fejl i indtastning» uden at fortælle
-   * brugeren, hvilket årstal der faktisk er tidligst muligt.
+   * brugeren, hvilke datoer der faktisk er mulige.
+   *
+   * Kernen melder ÅRSAGEN, ikke den endelige tekst: teksten formuleres af feltet, som kender sine egne
+   * grænser (`resolveDateFormatIssueText`). Kernens egen besked er kun fald-tilbage for flader uden en
+   * grænse-erklæring, og den taler derfor om DATOEN — aldrig om et årsinterval, feltet ikke har.
    */
   describe('afvisningsårsagen er maskinlæsbar', () => {
-    it('årstal under det repræsenterbare domæne nævner begge årstal', () => {
+    it('årstal under det repræsenterbare domæne får sin egen årsag', () => {
       expect(commit('31-12-1899')).toEqual({
         ok: false,
         kind: 'invalid',
         invalidKind: 'yearOutOfRepresentableRange',
-        message: 'Årstallet skal være mellem 1900 og 2100',
+        message: DATE_YEAR_OUT_OF_RANGE_MESSAGE,
       });
     });
 
@@ -92,6 +96,15 @@ describe('parseDateDraftForCommit', () => {
         invalidKind: 'yearOutOfRepresentableRange',
         message: DATE_YEAR_OUT_OF_RANGE_MESSAGE,
       });
+    });
+
+    /**
+     * Ordlyds-værn: et DATOfelt må aldrig tale om årstalsintervaller. Grænsen 1900..2100 er en
+     * repræsentationsdetalje, og en besked om den ville modsige feltets faktiske grænse.
+     */
+    it('taler om datoen, ikke om et årsinterval', () => {
+      expect(DATE_YEAR_OUT_OF_RANGE_MESSAGE).not.toMatch(/årstal/i);
+      expect(DATE_YEAR_OUT_OF_RANGE_MESSAGE).not.toMatch(/1900|2100/);
     });
 
     it('begge yderpunkter er INDE i domænet', () => {
@@ -132,8 +145,11 @@ describe('parseDateDraftForCommit', () => {
       expect(isISODateString(pad(MAX_REPRESENTABLE_DATE_YEAR))).toBe(true);
       expect(isISODateString(pad(MIN_REPRESENTABLE_DATE_YEAR - 1))).toBe(false);
       expect(isISODateString(pad(MAX_REPRESENTABLE_DATE_YEAR + 1))).toBe(false);
-      expect(DATE_YEAR_OUT_OF_RANGE_MESSAGE)
-        .toBe(`Årstallet skal være mellem ${MIN_REPRESENTABLE_DATE_YEAR} og ${MAX_REPRESENTABLE_DATE_YEAR}`);
+      // Konstanterne styrer, hvornår årsagen udløses — netop på domænets kant.
+      expect(commit(`31-12-${MIN_REPRESENTABLE_DATE_YEAR - 1}`))
+        .toMatchObject({ invalidKind: 'yearOutOfRepresentableRange' });
+      expect(commit(`01-01-${MAX_REPRESENTABLE_DATE_YEAR + 1}`))
+        .toMatchObject({ invalidKind: 'yearOutOfRepresentableRange' });
     });
   });
 

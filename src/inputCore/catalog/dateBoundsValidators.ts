@@ -1,5 +1,7 @@
 import type { ISODateString } from '../../types/branded';
 import { dateRange_systemramme } from '../../config/dateRanges';
+import { NONEXISTENT_DAY_MESSAGE } from '../../utils/dateDraftCommit';
+import { formatISOToDanish } from '../../utils/dateFormatting';
 import { maxISO, minISO } from '../../utils/isoDateHelpers';
 import {
   derivedDateBounds,
@@ -8,9 +10,11 @@ import {
 } from '../../utils/dateRangeErrorMessages';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import type { FieldValidator } from '../fieldDescriptor';
+import { isUnconstrainedDateBounds } from '../dateBoundsDeclaration';
 import type {
   DateBoundResolver,
   DateBoundsContext,
+  DateBoundsDeclaration,
   DateBoundsOriginSpec,
   DateBoundsSpec,
 } from '../dateBoundsDeclaration';
@@ -107,6 +111,39 @@ export const dateBoundsValidator = (
       ...toSpecialIssueDetail(special),
     },
   };
+};
+
+/**
+ * Den brugervendte tekst for et datofelt, hvis RÅTEKST blev afvist af en grund, der kan udtrykkes konkret.
+ *
+ * **Hvorfor teksten dannes her og ikke i codec'et.** Et codec er generisk: det kender formatet, men ikke
+ * feltet. Parse-kernen kan konstatere, at årstallet ligger uden for det repræsenterbare domæne
+ * (1900..2100) — men det er en egenskab ved `ISODateString`, ikke feltets regel. Sagde codec'et selv
+ * «Årstallet skal være mellem 1900 og 2100», ville beskeden MODSIGE feltets faktiske grænse: Fødselsdato
+ * slutter ved dags dato, ikke ved år 2100, og en dato efter i dag har allerede sin egen, korrekte besked.
+ *
+ * Her er feltets `dateBounds`-erklæring derimod kendt, og de samme grænser, som en canonical værdi ville
+ * blive målt mod, kan derfor navngives med KONKRETE datoer — den samme ordlyd, brugeren får for en dato,
+ * der lige akkurat ER repræsenterbar. De to fejlformer bliver dermed ikke til to forskellige sprog.
+ *
+ * Returnerer `undefined`, når der ikke kan siges noget bedre end den generiske «Fejl i indtastning».
+ */
+export const resolveDateFormatIssueText = (
+  declaration: DateBoundsDeclaration | undefined,
+  dateInvalidKind: string,
+  context: DateBoundsContext
+): string | undefined => {
+  if (dateInvalidKind === 'nonexistentDay') return NONEXISTENT_DAY_MESSAGE;
+  if (dateInvalidKind !== 'yearOutOfRepresentableRange') return undefined;
+  // Et grænseløst felt har ingen konkrete datoer at nævne. Den generiske tekst er da det ærlige svar —
+  // bedre end at opfinde en ramme, feltet ikke har.
+  if (declaration === undefined || isUnconstrainedDateBounds(declaration)) return undefined;
+
+  const minDate = resolveBound(declaration.min, context);
+  const maxDate = resolveBound(declaration.max, context);
+  // Kun de YDRE grænser bruges. En skærpelse udledt af andre felter kan ikke gøres skarpere af en værdi,
+  // der aldrig blev canonical, og et umuligt interval ville her beskrive en tilstand, råteksten ikke nåede.
+  return `Dato skal være mellem ${formatISOToDanish(minDate)} og ${formatISOToDanish(maxDate)}`;
 };
 
 /**
