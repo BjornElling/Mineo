@@ -65,6 +65,8 @@
     "verify:ledgers": "node scripts/architecture/verify-input-ledgers.mjs",
     "check:commit-msg": "node scripts/check-commit-msg.mjs",
     "check:runtime": "node scripts/check-runtime-version.mjs",
+    "check:package-manifest": "npm ci --dry-run --ignore-scripts && node scripts/check-package-manifest.mjs",
+    "check:dependencies": "npm run check:package-manifest && npm audit --audit-level=moderate",
     "check:github-actions-runtime": "node scripts/check-github-actions-runtime.mjs",
     "check:contract-verification": "node scripts/check-contract-verification.mjs",
     "lint": "eslint src e2e playwright.config.ts --max-warnings 0",
@@ -80,7 +82,7 @@
     "import:loen": "node scripts/import-offentlig-loen.mjs",
     "check:offentlig-loen": "node scripts/import-offentlig-loen.mjs --check",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
-    "verify:release:core": "npm run check:runtime && npm run check:github-actions-runtime && npm run typecheck && npm run typecheck:test && npm run typecheck:e2e && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run check:contract-verification && npm run verify:ledgers && npm run test:coverage && npm run build:all",
+    "verify:release:core": "npm run check:dependencies && npm run check:runtime && npm run check:github-actions-runtime && npm run typecheck && npm run typecheck:test && npm run typecheck:e2e && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run check:contract-verification && npm run verify:ledgers && npm run test:coverage && npm run build:all",
     "verify:release": "npm run verify:release:core && npm run test:e2e",
     "check": "npm run verify:release"
   },
@@ -131,7 +133,6 @@
   "allowScripts": {
     "core-js@3.49.0": true,
     "esbuild@0.28.1": true,
-    "sharp@0.34.5": true,
-    "workerd@1.20260625.1": true
+    "workerd@1.20260804.1": true
   }
 }

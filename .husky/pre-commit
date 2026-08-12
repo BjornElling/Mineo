@@ -12,3 +12,11 @@ npm run check:filename-case
 
 # Stop commit hvis en ændret kontrakt ikke er verificeret og stemplet i dag
 npm run check:contract-verification -- --staged
+
+# Dependency-manifester skal være indbyrdes konsistente, før de kan committes.
+# npm audit kræver netværk til npm-registret og hører derfor til i release-gaten,
+# ikke i den lokale pre-commit-hook, hvor en midlertidig DNS-/netværksfejl ellers
+# kan blokere et commit uden at sige noget om manifestets lokale konsistens.
+if git diff --cached --name-only | grep -Eq '^(package\.json|package-lock\.json|\.nvmrc|\.npmrc)$'; then
+  npm run check:package-manifest
+fi
