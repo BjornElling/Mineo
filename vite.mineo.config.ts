@@ -70,78 +70,30 @@ const mineoDevPwaManifest = (): Plugin => ({
   },
 });
 
-const SERVICE_WORKER_SOURCE_PATH = path.resolve(__dirname, 'sw/mineoServiceWorker.js');
-const SERVICE_WORKER_VERSION_PLACEHOLDER = '__MINEO_BUILD_VERSION__';
-
 /**
- * Build-versionen kommer fra `.env.build-info.local` (genereret af `scripts/generate-build-info.mjs`)
- * og eksponeres til app-koden som `import.meta.env.VITE_APP_VERSION` i `vite.config.ts`. Node-siden
- * af buildet kan ikke læse `src/config/buildInfo.ts` — det er app-kode — så versionen læses her fra
- * samme `define`, som app-koden selv får sin fra. Én kilde, to forbrugere.
+ * Den aktive service worker læser manifestet under installation og cacher netop denne builds
+ * immutable Vite-assets. Det gør en allerede åben PWA-version selvstændig, når en senere deploy
+ * fjerner dens hash-navngivne lazy chunks.
  */
-const resolveBuildVersion = (define: Record<string, unknown> | undefined): string => {
-  const defined = define?.['import.meta.env.VITE_APP_VERSION'];
-  const version = typeof defined === 'string' ? (JSON.parse(defined) as unknown) : undefined;
-  if (typeof version !== 'string' || version.trim() === '') {
-    throw new Error(
-      'Mineo-buildet mangler VITE_APP_VERSION. Kør scripts/generate-build-info.mjs før build: '
-      + 'en service worker uden ægte build-version kan hverken navngive sin cache eller opdage en deploy.'
-    );
-  }
-  return version.trim();
-};
+const mineoPwaAssetManifest = (): Plugin => ({
+  name: 'mineo-pwa-asset-manifest',
+  apply: 'build',
+  generateBundle(_, bundle) {
+    const assets = Object.keys(bundle)
+      .filter((fileName) => fileName.startsWith('assets/'))
+      .sort();
 
-/**
- * Emitterer buildets to PWA-artefakter som ét sammenhængende par:
- *
- * - `sw.js` med build-versionen indbagt i sine bytes. Det er dét, der gør `registration.update()`
- *   i stand til at opdage en deploy i en åben session — registrerings-URL'ens query ændrer sig jo
- *   ikke, så længe klienten kører den samme build.
- * - `pwa-assets.json` med `version` OG `assets`. Versionsfeltet har to forbrugere: workeren afviser
- *   at installere mod et manifest fra en anden build, og klienten bruger det som det autoritative
- *   svar på «er den udrullede build en anden end den, dette dokument kører?».
- *
- * De to filer skal altid bære samme version; `scripts/verify-build-artifacts.mjs` håndhæver det.
- */
-const mineoPwaArtifacts = (): Plugin => {
-  let buildVersion = '';
-
-  return {
-    name: 'mineo-pwa-artifacts',
-    apply: 'build',
-    configResolved(config) {
-      buildVersion = resolveBuildVersion(config.define);
-    },
-    generateBundle(_, bundle) {
-      const assets = Object.keys(bundle)
-        .filter((fileName) => fileName.startsWith('assets/'))
-        .sort();
-
-      const workerSource = readFileSync(SERVICE_WORKER_SOURCE_PATH, 'utf8');
-      if (!workerSource.includes(SERVICE_WORKER_VERSION_PLACEHOLDER)) {
-        throw new Error(
-          `Service-worker-kilden mangler ${SERVICE_WORKER_VERSION_PLACEHOLDER}; versionen ville ikke blive indbagt.`
-        );
-      }
-
-      this.emitFile({
-        type: 'asset',
-        fileName: 'sw.js',
-        source: workerSource.replaceAll(SERVICE_WORKER_VERSION_PLACEHOLDER, buildVersion),
-      });
-
-      this.emitFile({
-        type: 'asset',
-        fileName: 'pwa-assets.json',
-        source: `${JSON.stringify({ version: buildVersion, assets })}\n`,
-      });
-    },
-  };
-};
+    this.emitFile({
+      type: 'asset',
+      fileName: 'pwa-assets.json',
+      source: `${JSON.stringify({ assets })}\n`,
+    });
+  },
+});
 
 export default defineConfig(
   mergeConfig(baseConfig, {
-    plugins: [mineoPwaArtifacts(), mineoDevPwaManifest()],
+    plugins: [mineoPwaAssetManifest(), mineoDevPwaManifest()],
     build: {
       outDir: 'dist/mineo',
       emptyOutDir: true,
