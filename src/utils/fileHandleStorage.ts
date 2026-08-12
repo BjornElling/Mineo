@@ -3,9 +3,13 @@ import { isRecord } from './typeGuards';
 import {
   deleteFileHandleValues,
   readFileHandleValue,
+  readFileHandleValueResult,
   writeFileHandleValues,
   type DirectoryHandleMeta,
 } from './file/fileHandleKvStore';
+import type { PwaFileOpenRequest } from '../schemas/pwaFileOpenRequestSchema';
+import { pwaFileOpenRequestSchema } from '../schemas/pwaFileOpenRequestSchema';
+import type { IndexedDbResult } from './indexedDbStore';
 
 /**
  * De navngivne fil-handle-operationer, som resten af appen bruger.
@@ -140,18 +144,13 @@ export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
   return result.status === 'ok';
 };
 
-export type StoredPendingPwaOpenRequest = Readonly<{
-  id: string;
-  createdAtEpochMs: number;
-  targetUrl?: string;
-  fileHandle: FileSystemFileHandle;
-  fileName: string;
-  ignoredFileCount: number;
-}>;
+export type StoredPendingPwaOpenRequest = PwaFileOpenRequest;
 
 export const savePendingPwaOpenRequestToIndexedDB = async (
   request: StoredPendingPwaOpenRequest
 ): Promise<boolean> => {
+  if (!pwaFileOpenRequestSchema.safeParse(request).success) return false;
+
   const result = await writeFileHandleValues(
     { pending_pwa_open_request: request },
     'savePendingPwaOpenRequestToIndexedDB'
@@ -159,14 +158,9 @@ export const savePendingPwaOpenRequestToIndexedDB = async (
   return result.status === 'ok';
 };
 
-export const loadPendingPwaOpenRequestFromIndexedDB =
-  async (): Promise<StoredPendingPwaOpenRequest | null> => {
-    const stored = await readFileHandleValue(
-      'pending_pwa_open_request',
-      'loadPendingPwaOpenRequestFromIndexedDB'
-    );
-    return (stored as StoredPendingPwaOpenRequest | null) ?? null;
-  };
+export const loadPendingPwaOpenRequestFromIndexedDB = async (): Promise<
+  IndexedDbResult<StoredPendingPwaOpenRequest | null>
+> => readFileHandleValueResult('pending_pwa_open_request', 'loadPendingPwaOpenRequestFromIndexedDB');
 
 export const deletePendingPwaOpenRequestFromIndexedDB = async (): Promise<boolean> => {
   const result = await deleteFileHandleValues(

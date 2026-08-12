@@ -2,7 +2,7 @@
 
 Status: **IMPLEMENTERET** 2026-08-12, efter review af Codex 5.6 luna (xhigh).
 
-Reviewet fandt fire reelle defekter, som alle er rettet og dækket af tests:
+Reviewet fandt seks reelle defekter, som alle er rettet og dækket af tests:
 
 | # | Fund | Rettelse |
 |---|---|---|
@@ -10,6 +10,8 @@ Reviewet fandt fire reelle defekter, som alle er rettet og dækket af tests:
 | 2 | Løkkeværn med kun «sidst sete version» kunne reloade i ring ved en flappende, delvis udrullet origin | Markøren holder nu **alle mål forsøgt fra denne kildeversion** |
 | 3 | En `.eo`-fil kunne gå tabt: `launchQueue`-callbacken persisterer asynkront, og reloaden kunne ramme midt i skrivningen | Ny `awaitDurablePendingPwaFileOpenHandoff()`; kan handoff ikke bekræftes, reloades der ikke |
 | 4 | `App.tsx` genindlæste ubetinget ved bfcache-restore — et build-skift midt i en åben sag | `pageshow`-lytteren er fjernet |
+| 5 | En IndexedDB-læsefejl blev behandlet som «ingen pending request» og kunne derfor tillade en reload, der tabte en `.eo`-request | Persistencegrænsen returnerer nu læsestatus og blokerer reload ved ukendt eller fejlet storage |
+| 6 | En ny launchQueue-fil eller en worker-reference kunne ændre sig under den sidste kontrol | Durable handoff stabiliserer launch-generationen, og `SKIP_WAITING` sendes til den konkrete worker, der blev verificeret |
 
 Codex bekræftede desuden de to rettelser, jeg havde lavet forinden (behold `SKIP_WAITING`, fjern
 `clients.claim()`), og gav medhold i §1.3-beslutningen om at beholde lazy dokument-vendorer.
@@ -155,7 +157,7 @@ export const ensureLatestVersionBeforeRender = async (): Promise<void>
    allerede den HTML, origin lige leverede, og cachen er på plads fra næste opstart.
 8. Ellers `activateNewBuildWorker(registration)` — **tre trin, i denne rækkefølge**:
    1. afvent `installed` (komplet precache),
-   2. `postMessage({type:'SKIP_WAITING'})` til `registration.waiting`,
+   2. `postMessage({type:'SKIP_WAITING'})` til den konkrete installerede worker,
    3. **afvent `activated`** — bekræftelsen, ikke installationen, er reload-barrieren.
 
    Hele forløbet deler ét `UPDATE_INSTALL_TIMEOUT_MS`-loft (15 s) som værn mod at hænge.
@@ -259,11 +261,15 @@ fejlet preload må aldrig kunne vælte noget), fortsat efter render.
 | 18 | `.eo` afleveret midt i opstartens barriere | Reload afvises, indtil handoff er bekræftet i IndexedDB. |
 | 19 | bfcache-restore af en åben session | **Ingen** reload; brugeren vender tilbage til sit eget arbejde. |
 | 20 | Registrering afvist (fx private vindue) | Ingen reload; programmet starter normalt. |
+| 21 | IndexedDB-læsning fejler eller hænger under handoff | Ingen reload; brugerens `.eo`-request prioriteres, og næste opstart prøver igen. |
+| 22 | Ny `.eo`-request ankommer under sidste durable kontrol | Kontrollen gentages for den nye launch-generation; reload frigives først ved stabil match. |
 
 **Bevidst uden for klientens rækkevidde** (dokumenteret, ikke løst i kode): Cache Storage-eviction
 under lagerpres og en første installation, der aldrig fuldføres, kan stadig give en manglende chunk.
 Dér — og kun dér — overtager `vite:preloadError`-linjen, som er den ene tilbageværende flade, der
-kræver en brugerhandling. Se app-shell-kontraktens «Kendte Undtagelser 4».
+kræver en brugerhandling. Det accepteres som et sjældent, fail-safe fallback: automatisk opdatering er
+stadig standarden i alle forløb, hvor klienten kan klargøre den nye version. Se app-shell-kontraktens
+«Kendte Undtagelser 4».
 
 ## 4. Bevidste konsekvenser
 

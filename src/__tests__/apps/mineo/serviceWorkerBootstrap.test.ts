@@ -204,6 +204,20 @@ describe('serviceWorkerBootstrap — ny session = ny version, åben session urø
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('sender aktiveringsbeskeden til den konkrete installerede worker', async () => {
+    stubDeployedVersion(DEPLOYED_NEWER_VERSION);
+    const installing = buildServiceWorker('installed');
+    // Browseren kan nå at flytte worker-reference mellem installationens statechange og
+    // klientens besked. Reload må ikke afhænge af, at registration.waiting stadig er udfyldt.
+    buildServiceWorkerContainer(buildRegistration({ installing, waiting: null }));
+
+    const { ensureLatestVersionBeforeRender } = await importBootstrap();
+    await ensureLatestVersionBeforeRender();
+
+    expect(installing.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('venter på at precachen bliver komplet, før der genindlæses', async () => {
     stubDeployedVersion(DEPLOYED_NEWER_VERSION);
     const installing = buildServiceWorker('installing');

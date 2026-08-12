@@ -60,6 +60,10 @@ const projects = [
     : []),
 ];
 
+const webServerCommand = allowServiceWorkers
+  ? 'npm run build:mineo && npx vite preview --config vite.mineo.config.ts --host 127.0.0.1 --port 4173'
+  : 'npm run dev:e2e -- --port 4173';
+
 export default defineConfig({
   testDir: './e2e',
   // Mineos store modultræ kan bruge over 30 sekunder på første Vite-transform på Windows,
@@ -84,7 +88,9 @@ export default defineConfig({
   webServer: useExternalWebServer
     ? undefined
     : {
-      command: 'npm run dev:e2e -- --port 4173',
+      // Den ægte PWA-suite skal ramme de emitterede sw.js/pwa-assets.json-artefakter. Den almindelige
+      // suite bruger fortsat Vite-devserveren og blokerede service workers for at være cachefri.
+      command: webServerCommand,
       url: baseURL,
       // Audit- og E2E-resultater må komme fra den build/server, som testen selv starter.
       // En eksisterende proces må kun genbruges eksplicit, ellers kan en gammel server skjule

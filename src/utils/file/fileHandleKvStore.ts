@@ -1,11 +1,11 @@
 import {
   awaitRequest,
   runTransaction,
-  runTransactionOr,
   runTransactionSilently,
   type IndexedDbResult,
   type IndexedDbSchema,
 } from '../indexedDbStore';
+import type { PwaFileOpenRequest } from '../../schemas/pwaFileOpenRequestSchema';
 
 /**
  * Det device-lokale kv-store bag fil-handles, standardmappe og afventende PWA-åbning.
@@ -54,7 +54,7 @@ export type FileHandleStoreValue = {
   current_file_handle: FileSystemFileHandle;
   default_directory_handle: FileSystemDirectoryHandle;
   default_directory_meta: DirectoryHandleMeta;
-  pending_pwa_open_request: unknown;
+  pending_pwa_open_request: PwaFileOpenRequest;
 };
 
 export type FileHandleStoreKey = keyof FileHandleStoreValue;
@@ -71,6 +71,22 @@ export const readFileHandleValue = async <K extends FileHandleStoreKey>(
   context: string,
   options?: Readonly<{ silent?: boolean }>
 ): Promise<FileHandleStoreValue[K] | null> => {
+  const result = await readFileHandleValueResult(key, context, options);
+  return result.status === 'ok' ? result.value : null;
+};
+
+/**
+ * Læser én nøgle og bevarer forskellen på manglende værdi, utilgængelig database og fejl.
+ *
+ * De fleste device-lokale caches må gerne degradere til `null`, men en pending PWA-fil må ikke
+ * behandles som manglende, hvis databasen faktisk ikke kunne læses. Den særskilte resultatvej
+ * bruges derfor af versionsbarrieren, mens de øvrige kald fortsat bruger den korte fail-safe vej.
+ */
+export const readFileHandleValueResult = async <K extends FileHandleStoreKey>(
+  key: K,
+  context: string,
+  options?: Readonly<{ silent?: boolean }>
+): Promise<IndexedDbResult<FileHandleStoreValue[K] | null>> => {
   const read = async (transaction: IDBTransaction) => {
     const result = await awaitRequest<unknown>(
       transaction.objectStore(STORE_NAME).get(key)
@@ -78,12 +94,9 @@ export const readFileHandleValue = async <K extends FileHandleStoreKey>(
     return (result as FileHandleStoreValue[K] | undefined) ?? null;
   };
 
-  if (options?.silent === true) {
-    const result = await runTransactionSilently(SCHEMA, [STORE_NAME], 'readonly', read);
-    return result.status === 'ok' ? result.value : null;
-  }
-
-  return runTransactionOr(null, SCHEMA, [STORE_NAME], 'readonly', read, context);
+  return options?.silent === true
+    ? runTransactionSilently(SCHEMA, [STORE_NAME], 'readonly', read)
+    : runTransaction(SCHEMA, [STORE_NAME], 'readonly', read, context);
 };
 
 /** Skriver én eller flere nøgler ATOMISK i samme transaction. */

@@ -164,7 +164,11 @@ const activateNewBuildWorker = async (registration: ServiceWorkerRegistration): 
   // Trin 2: aktivér. Uden dette forbliver workeren waiting, indtil ALLE klienter er lukket — hvilket
   // en almindelig genindlæsning aldrig opnår.
   if (pending.state !== 'activated') {
-    registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+    // Send til den worker, hvis state vi netop har observeret. `registration.waiting` kan nå at
+    // blive nulstillet eller pege på en anden worker mellem statechange-eventet og dette kald; et
+    // tavst no-op dér ville efterlade den konkrete worker waiting, hvorefter reload-barrieren blot
+    // løber ud på timeout.
+    pending.postMessage({ type: 'SKIP_WAITING' });
   }
 
   // Trin 3: bekræft, at den nye worker faktisk ER aktiv, før dokumentet rives ned.

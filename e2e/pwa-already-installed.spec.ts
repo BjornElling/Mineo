@@ -98,6 +98,7 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
       await fetch('/manifest.json', { cache: 'no-store' }).then((response) => response.json())
     )) as {
       id: string;
+      launch_handler: { client_mode: string };
       related_applications: Array<{ platform: string; url: string; id: string }>;
       protocol_handlers: Array<{ protocol: string; url: string }>;
     };
@@ -105,6 +106,7 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
     const expectedManifestUrl = new URL('/manifest.json', page.url()).href;
 
     expect(manifest.id).toBe(expectedId);
+    expect(manifest.launch_handler).toEqual({ client_mode: 'focus-existing' });
     expect(manifest.related_applications).toEqual([
       { platform: 'webapp', url: expectedManifestUrl, id: expectedId },
     ]);
