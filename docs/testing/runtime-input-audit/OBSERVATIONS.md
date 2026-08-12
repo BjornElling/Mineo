@@ -2,6 +2,11 @@
 
 Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel eller afvigende logik, mistænkelig beregningsadfærd og manglende eller uforudsigelig feedback. Registrér ikke en klar, forventet valideringsreaktion som fund.
 
+**Rettede fund slettes.** Når et fund er rettet, fjernes både dets indeksrække og dets post fra denne fil — registeret viser
+altså kun åbne fund. Huller i ID-rækken er derfor forventede og ikke et tegn på manglende poster. Et rettet fund må heller
+ikke stå som reference andre steder i auditdokumenterne; henvisninger til det omskrives til «rettet og lukket», når posten
+slettes, så intet dokument peger på et ID, der ikke længere findes.
+
 ## Indeks
 
 | ID | Kort titel | Kategori | Flade | Browser/viewport | Alvor | Status | Først set |
@@ -14,7 +19,6 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-020 | Renteberegningens dato-bounds skjules af generisk download-tooltip | Kontraktdrift / UX | CUT-001 / RENTE-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
 | OBS-021 | Årsløns dato-bounds skjules af generisk beregnings-tooltip | Kontraktdrift / UX | CUT-001 / AAR-011 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
 | OBS-028 | Firefox-teknisk advarsel blokerer Løntrin-finderens datofelt | Browserforskel / UX / Kontraktdrift | SURF-003 / PAR-003 / Løntrin-finder | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-09 06:29 Europe/Copenhagen |
-| OBS-029 | Status refererer til manglende observationsposter | Auditdokumentation / Inkonsistens | CUT-003 / auditregister | — | Lav | Bekræftet | 2026-08-12 08:54 Europe/Copenhagen |
 
 ### OBS-005 — Firefox-fallback giver en synlig teknisk advarsel ved normal Gem/Hent
 
@@ -146,7 +150,7 @@ Fail-closed er opfyldt for selve PDF-outputtet, men brugeren kan ikke se den dok
 
 ### OBS-018 — Nedre Fødselsdato-grænse vises som generisk indtastningsfejl
 
-> **Ikke løst 2026-08-09 — anden årsag end OBS-022–024.** Undersøgt i forbindelse med datogrænse-rettelsen og
+> **Ikke løst 2026-08-09 — anden årsag end de dengang samtidige EO-boundsfund (nu rettet og slettet).** Undersøgt i forbindelse med datogrænse-rettelsen og
 > afgrænset derfra: `31-12-1899` når ALDRIG frem til en bounds-validator. Året ligger uden for `ISODateString`
 > selv (`isISODateString` afviser år uden for 1900..2100), så feltets codec afviser værdien som `format` —
 > og `format` viser pr. kontrakt (§4) den generiske «Fejl i indtastning». Feltets nedre grænse ER håndhævet;
@@ -193,7 +197,7 @@ Brugeren får ingen information om, hvilken dato der er tidligst tilladt, selv o
 
 ### OBS-019 — Forsørgertabs blokerede dato-gate viser generisk downloadårsag
 
-> **Ikke løst 2026-08-09 — anden årsag end OBS-022–024.** Undersøgt sammen med datogrænse-rettelsen og
+> **Ikke løst 2026-08-09 — anden årsag end de dengang samtidige EO-boundsfund (nu rettet og slettet).** Undersøgt sammen med datogrænse-rettelsen og
 > afgrænset derfra: FELTET viser allerede den konkrete bounds-tekst, og gør det fortsat. Fundet handler om,
 > at DOWNLOADKNAPPENS tooltip reducerer enhver rød feltfejl til gate-kindens generiske tekst («Fejl i
 > indtastning»). Det er et spørgsmål om, hvad en blokeret handling skal fortælle, ikke om grænserne
@@ -241,7 +245,7 @@ Når download er blokeret af et umuligt datointerval, kan brugeren ikke se den k
 
 ### OBS-020 — Renteberegningens dato-bounds skjules af generisk download-tooltip
 
-> **Ikke løst 2026-08-09 — anden årsag end OBS-022–024.** Samme mønster som OBS-019: Renteberegningens
+> **Ikke løst 2026-08-09 — anden årsag end de dengang samtidige EO-boundsfund (nu rettet og slettet).** Samme mønster som OBS-019: Renteberegningens
 > datofelter håndhæver deres grænser og viser den konkrete tekst, også efter datogrænse-rettelsen. Fundet
 > angår download-tooltippens generiske gate-tekst. Bevaret som selvstændigt fund.
 
@@ -286,7 +290,7 @@ Når brugeren går direkte til den blokerede downloadhandling, mangler den konkr
 
 ### OBS-021 — Årsløns dato-bounds skjules af generisk beregnings-tooltip
 
-> **Ikke løst 2026-08-09 — anden årsag end OBS-022–024.** Samme mønster som OBS-019 og OBS-020: Årsløns
+> **Ikke løst 2026-08-09 — anden årsag end de dengang samtidige EO-boundsfund (nu rettet og slettet).** Samme mønster som OBS-019 og OBS-020: Årsløns
 > datoceller håndhæver deres grænser og viser den konkrete tekst. Fundet angår beregnings-/download-
 > tooltippens generiske gate-tekst. Bevaret som selvstændigt fund.
 
@@ -371,45 +375,6 @@ En Firefox-bruger kan åbne Løntrin-finder, men kan ikke udfylde datoen eller b
 - Efter `Skjul`: `01-01-2020` og `Beregn` gennemførte, og overlayet viste `Nærmeste lønsatser`.
 - Firefox-konsol: 0 `console.error` og 0 `console.warn`; problemet var synlig overlay-interception, ikke en ny runtimefejl.
 - Kildereference: `src/components/pages/erstatningsopgoerelse/shared/LoentrinFinderOverlay.tsx`, `OBS-005`.
-
-### OBS-029 — Status refererer til manglende observationsposter
-
-- Status: Bekræftet
-- Kategori: Auditdokumentation / Inkonsistens
-- Alvor: Lav
-- Først set: 2026-08-12 08:54 Europe/Copenhagen
-- Commit/build: `c6added1c39133a246327f9c9efb4af5ede3f74d` / `2026.08.1297.c6added`
-- Dirty-state: dirty under audit; eksisterende brugerændringer i `.agents/skills/` er bevaret
-- Browser/viewport: —
-- Flade/scenarie: CUT-003 / auditregister
-- Relaterede fund/spørgsmål: OBS-025, OBS-026, OBS-027
-
-**Starttilstand og reproduktion**
-
-1. Sammenhold observationsreferencerne i `STATUS.md` med indeks og overskrifter i `OBSERVATIONS.md`.
-2. Søg efter `OBS-025`, `OBS-026` og `OBS-027` i auditdokumenterne.
-
-**Observeret adfærd**
-
-`STATUS.md` bruger `OBS-025`, `OBS-026` og `OBS-027` som konklusions- og sporbarhedsreferencer, men `OBSERVATIONS.md` indeholder ingen indeksrækker eller detaljer med disse ID'er. De nærmeste registrerede poster er `OBS-022`–`OBS-024` og `OBS-028`.
-
-**Sammenligningsgrundlag**
-
-De øvrige observationer har både en indeksrække og en detaljeret post i samme dokument.
-
-**Forventningsgrundlag**
-
-Auditregistreringen skal gøre hvert fund sporbar fra status og scenarier til én entydig observationspost. Et ID må ikke stå som reference uden en tilsvarende post.
-
-**Hvorfor det bør undersøges**
-
-Manglende poster gør det uklart, hvilke konkrete beløbs- og satsobservationer de historiske CUT-003-konklusioner bygger på, og vanskeliggør reproduktion og lukning af auditsporet.
-
-**Evidens**
-
-- Kildereference: `docs/testing/runtime-input-audit/STATUS.md` og `docs/testing/runtime-input-audit/OBSERVATIONS.md`; `rg` finder referencer til `OBS-025`–`OBS-027` alene i `STATUS.md`.
-- Reproducerbarhed: 1 dokumentkontrol.
-- Andre browsere/viewports: ikke relevant.
 
 ## Postskabelon
 
