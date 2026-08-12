@@ -5,3 +5,15 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
+
+/** Kun Chromium-browsere implementerer denne — derfor optional på Navigator. */
+interface RelatedApplication {
+  id?: string;
+  platform: string;
+  url?: string;
+  version?: string;
+}
+
+interface Navigator {
+  getInstalledRelatedApps?: () => Promise<RelatedApplication[]>;
+}

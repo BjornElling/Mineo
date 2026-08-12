@@ -127,6 +127,53 @@ describe('ConfirmationDialog', () => {
     await waitFor(() => expect(screen.getByRole('textbox', { name: 'Aktivt felt' })).toHaveFocus());
   });
 
+  it('gendanner fokus til restoreFocusTo, når intet element var aktivt ved åbningen', async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    // WebKit fokuserer ikke en `<button>` ved klik. Dialogen har derfor intet `activeElement` at
+    // huske, og uden den eksplicitte reference ville fokus lande på sidens FØRSTE fokusbare knap.
+    const view = renderDialog({
+      open: false,
+      title: 'Bekræft handling',
+      message: 'Besked',
+      onCancel,
+      onConfirm: vi.fn(),
+    });
+
+    const firstButton = document.createElement('button');
+    firstButton.textContent = 'Første knap på siden';
+    const opener = document.createElement('button');
+    opener.textContent = 'Åbnende kontrol';
+    view.container.append(firstButton, opener);
+
+    const openerRef: React.RefObject<HTMLElement | null> = { current: opener };
+    // Ingen `.focus()` her: det ER hele pointen — klikket efterlod intet aktivt element.
+    expect(document.activeElement).toBe(document.body);
+
+    const renderWithOpen = (open: boolean) => view.rerender(
+      <ThemeProvider theme={createTheme()}>
+        <ConfirmationDialog
+          open={open}
+          title="Bekræft handling"
+          message="Besked"
+          onCancel={onCancel}
+          onConfirm={vi.fn()}
+          restoreFocusTo={openerRef}
+        />
+      </ThemeProvider>
+    );
+
+    renderWithOpen(true);
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Annuller' })).toHaveFocus());
+    await user.click(within(dialog).getByRole('button', { name: 'Annuller' }));
+
+    renderWithOpen(false);
+
+    await waitFor(() => expect(opener).toHaveFocus());
+    expect(firstButton).not.toHaveFocus();
+  });
+
   it('giver bekræft-knappen fokus, når annuller er skjult', async () => {
     renderDialog({
       open: true,

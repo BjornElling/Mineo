@@ -14,6 +14,14 @@ type ConfirmationDialogProps = {
   confirmColor?: 'primary' | 'error';
   hideCancelButton?: boolean;
   /**
+   * Elementet, fokus skal vende tilbage til ved lukning.
+   *
+   * Nødvendig når dialogen åbnes fra en kontrol, browseren ikke selv fokuserer ved klik: WebKit
+   * fokuserer ikke `<button>` på klik, så dialogen har intet `document.activeElement` at huske, og
+   * fokus ville lande på sidens første fokusbare element i stedet for dér, brugeren kom fra.
+   */
+  restoreFocusTo?: React.RefObject<HTMLElement | null>;
+  /**
    * Ekstra actions (fx "Send fejloplysninger").
    *
    * Renderes mellem cancel- og confirm-knappen.
@@ -44,6 +52,7 @@ const ConfirmationDialog = React.memo(({
   confirmColor = 'primary',
   hideCancelButton = false,
   extraActions,
+  restoreFocusTo,
 }: ConfirmationDialogProps) => {
   const restoreTargetRef = React.useRef<HTMLElement | null>(null);
   const cancelButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -106,26 +115,51 @@ const ConfirmationDialog = React.memo(({
   }, [onConfirm]);
 
   const restoreFocusAfterClose = React.useCallback(() => {
-    if (document.activeElement !== document.body) return;
+    // Nettet må ikke kun se efter `body`. WebKit flytter ved Escape fokus til dialogens egen
+    // container, som først forsvinder når portalen unmountes; på dette tidspunkt er `activeElement`
+    // derfor hverken body eller et blivende element. Et frakoblet eller stadig dialog-ejet element
+    // tæller som «fokus er tabt», præcis som body gør. Står fokus derimod på et ægte, blivende
+    // element uden for dialogen, har noget andet med rette overtaget det, og nettet holder sig væk.
+    const isFocusLost = (): boolean => {
+      const activeElement = document.activeElement;
+      return activeElement === null
+        || activeElement === document.body
+        || !activeElement.isConnected
+        || activeElement.closest('[role="dialog"], [role="presentation"]') !== null;
+    };
 
-    const originalTarget = restoreTargetRef.current;
-    if (originalTarget?.isConnected) {
-      originalTarget.focus({ preventScroll: true });
-      return;
-    }
+    const restoreTarget = (): void => {
+      // Den eksplicit udpegede kontrol vinder: den er sand også i browsere, hvor et klik ikke
+      // efterlader kontrollen som `activeElement`, og hvor den huskede reference derfor er tom.
+      const originalTarget = restoreFocusTo?.current ?? restoreTargetRef.current;
+      if (originalTarget?.isConnected) {
+        originalTarget.focus({ preventScroll: true });
+        return;
+      }
 
-    // Hvis en bekræftet handling fjernede feltet, er et eksisterende første fokusbart element den mindst
-    // overraskende fallback. Et fokusforsøg på den gamle, detached node ville ellers efterlade fokus på body.
-    const fallback = Array.from(document.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]'
-    )).find((element) => (
-      element.isConnected
-      && !element.hidden
-      && element.tabIndex >= 0
-      && element.closest('[aria-hidden="true"]') === null
-    ));
-    fallback?.focus({ preventScroll: true });
-  }, []);
+      // Hvis en bekræftet handling fjernede feltet, er et eksisterende første fokusbart element den mindst
+      // overraskende fallback. Et fokusforsøg på den gamle, detached node ville ellers efterlade fokus på body.
+      const fallback = Array.from(document.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]'
+      )).find((element) => (
+        element.isConnected
+        && !element.hidden
+        && element.tabIndex >= 0
+        && element.closest('[aria-hidden="true"]') === null
+      ));
+      fallback?.focus({ preventScroll: true });
+    };
+
+    if (!isFocusLost()) return;
+    restoreTarget();
+
+    // Transitionen slutter FØR portalen er unmountet, og WebKit nulstiller fokus til body, når den
+    // fokuserede dialog-node forsvinder — efter vores genoprettelse. Ét eftersyn på næste frame
+    // fanger den rækkefølge; er fokus stadig i behold, gør eftersynet ingenting.
+    window.requestAnimationFrame(() => {
+      if (isFocusLost()) restoreTarget();
+    });
+  }, [restoreFocusTo]);
 
   return (
     <Dialog

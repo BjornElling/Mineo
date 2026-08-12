@@ -1,10 +1,16 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { VERSION } from '../../config/buildInfo';
-import { requestPwaInstall } from '../../utils/pwaInstallPrompt';
+import {
+  detectPwaInstallationState,
+  openInstalledPwa,
+  requestPwaInstall,
+  type PwaInstallationState,
+} from '../../utils/pwaInstallPrompt';
 import ContentBox from '../layout/ContentBox';
 import LabeledControlRow from '../layout/LabeledControlRow';
 import SiblingSitesFooter from '../layout/SiblingSitesFooter';
+import ConfirmationDialog from '../ui/ConfirmationDialog';
 import LicenseModal from '../ui/LicenseModal';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../types/fieldEvents';
@@ -19,6 +25,14 @@ import BrowserUpdatedIcon from '@mui/icons-material/BrowserUpdated';
 const Mineo = React.memo(() => {
   const { settings, updateSettings } = useAppSettings();
   const [licenseOpen, setLicenseOpen] = React.useState(false);
+  // `null` = dialogen er lukket. Ellers bærer tilstanden HVILKEN situation dialogen beskriver, så
+  // tekst og knapper udledes ét sted frem for at leve i to parallelle flag.
+  const [alreadyInstalledState, setAlreadyInstalledState] = React.useState<
+    Exclude<PwaInstallationState, 'notInstalled'> | null
+  >(null);
+  // WebKit fokuserer ikke en `<button>` ved klik, så dialogen har intet aktivt element at huske.
+  // Uden denne reference ville fokus efter lukning lande på sidens første knap (hamburger-menuen).
+  const installButtonRef = React.useRef<HTMLButtonElement>(null);
 
   // Begge kontroller UDFØRER en handling på siden (åbner en dialog / starter PWA-installationen) — de
   // navigerer ikke. De er derfor `<button>`, ikke `<a href="#">`. Et bart fragment-href gjorde to skader:
@@ -26,9 +40,29 @@ const Mineo = React.memo(() => {
   // fokus-udgangspunkt til dokumentets top, så næste `Tab` sprang tilbage til startside-togglen længere
   // OPPE på siden i stedet for videre til næste link. Ingen `preventDefault` kan reparere det,
   // fordi det er href'et selv — ikke default-handlingen — der flytter fokus-origoen.
+
+  // Installations-tilstanden aflæses ved KLIKKET, ikke ved render. En bruger, der installerer
+  // hjælpeprogrammet fra adresselinjen og derefter klikker på linket, skal møde den aktuelle
+  // sandhed — ikke en tilstand, der blev målt da siden blev åbnet.
   const handleInstallClick = React.useCallback(() => {
-    void requestPwaInstall();
+    void detectPwaInstallationState().then((state) => {
+      if (state === 'notInstalled') {
+        void requestPwaInstall();
+        return;
+      }
+      setAlreadyInstalledState(state);
+    });
   }, []);
+
+  const handleAlreadyInstalledClose = React.useCallback(() => {
+    setAlreadyInstalledState(null);
+  }, []);
+
+  // Inde i PWA-vinduet er der intet at åbne, så dialogen har kun én knap, og «bekræft» lukker den.
+  const handleAlreadyInstalledConfirm = React.useCallback(() => {
+    if (alreadyInstalledState === 'installed') openInstalledPwa();
+    setAlreadyInstalledState(null);
+  }, [alreadyInstalledState]);
 
   const handleLicenseClick = React.useCallback(() => {
     setLicenseOpen(true);
@@ -101,6 +135,7 @@ const Mineo = React.memo(() => {
             <Box
               component="button"
               type="button"
+              ref={installButtonRef}
               onClick={handleInstallClick}
               className="icon-text-link"
             >
@@ -213,6 +248,24 @@ const Mineo = React.memo(() => {
       <LicenseModal
         open={licenseOpen}
         onClose={handleLicenseClose}
+      />
+
+      {/* ------------------------------------------------------ */}
+      {/* «Allerede installeret»-dialog */}
+      <ConfirmationDialog
+        open={alreadyInstalledState !== null}
+        onConfirm={handleAlreadyInstalledConfirm}
+        onCancel={handleAlreadyInstalledClose}
+        hideCancelButton={alreadyInstalledState === 'running'}
+        title={alreadyInstalledState === 'running'
+          ? 'Hjælpeprogrammet er allerede åbent'
+          : 'Hjælpeprogrammet er allerede installeret'}
+        message={alreadyInstalledState === 'running'
+          ? 'Du bruger det lige nu. Du behøver ikke hente det igen.'
+          : 'Du behøver ikke hente det igen. Vil du åbne det nu?'}
+        confirmText={alreadyInstalledState === 'running' ? 'Luk' : 'Åbn program'}
+        cancelText="Annuller"
+        restoreFocusTo={installButtonRef}
       />
 
       {/* ------------------------------------------------------ */}

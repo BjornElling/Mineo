@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
@@ -14,8 +14,14 @@ vi.mock('../../../assets/LICENSE.txt?raw', () => ({
 }));
 
 // Mock PWA install utility
+const detectPwaInstallationStateMock = vi.fn().mockResolvedValue('notInstalled');
+const openInstalledPwaMock = vi.fn();
+const requestPwaInstallMock = vi.fn().mockResolvedValue(undefined);
+
 vi.mock('../../../utils/pwaInstallPrompt', () => ({
-  requestPwaInstall: vi.fn().mockResolvedValue(undefined),
+  detectPwaInstallationState: () => detectPwaInstallationStateMock(),
+  openInstalledPwa: () => openInstalledPwaMock(),
+  requestPwaInstall: () => requestPwaInstallMock(),
 }));
 
 /**
@@ -158,6 +164,158 @@ describe('Mineo - License Modal Integration', () => {
     const installControl = screen.getByRole('button', { name: /download hjælpeprogram/i });
     expect(installControl).toBeVisible();
     expect(installControl).not.toHaveAttribute('href');
+  });
+
+  describe('«Download hjælpeprogram» når programmet allerede er installeret', () => {
+    beforeEach(() => {
+      detectPwaInstallationStateMock.mockReset().mockResolvedValue('notInstalled');
+      openInstalledPwaMock.mockReset();
+      requestPwaInstallMock.mockReset().mockResolvedValue(undefined);
+    });
+
+    const clickDownload = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
+      await user.click(screen.getByRole('button', { name: /download hjælpeprogram/i }));
+    };
+
+    test('på hjemmesiden UDEN installation: ingen popup, den normale installation starter', async () => {
+      const user = userEvent.setup();
+      detectPwaInstallationStateMock.mockResolvedValue('notInstalled');
+      renderMineo();
+
+      await clickDownload(user);
+
+      // Den oprindelige adfærd må ikke ofres for den nye dialog.
+      await waitFor(() => expect(requestPwaInstallMock).toHaveBeenCalledTimes(1));
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    test('på hjemmesiden MED installation: popup i stedet for installation', async () => {
+      const user = userEvent.setup();
+      detectPwaInstallationStateMock.mockResolvedValue('installed');
+      renderMineo();
+
+      await clickDownload(user);
+
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/allerede installeret/i)).toBeInTheDocument();
+      // Ingen installation må startes, når der ikke er noget at installere.
+      expect(requestPwaInstallMock).not.toHaveBeenCalled();
+    });
+
+    test('popup\'en tilbyder præcis to valg: «Åbn program» og «Annuller»', async () => {
+      const user = userEvent.setup();
+      detectPwaInstallationStateMock.mockResolvedValue('installed');
+      renderMineo();
+
+      await clickDownload(user);
+      const dialog = await screen.findByRole('dialog');
+
+      expect(within(dialog).getByRole('button', { name: 'Åbn program' })).toBeVisible();
+      expect(within(dialog).getByRole('button', { name: 'Annuller' })).toBeVisible();
+      expect(within(dialog).getAllByRole('button')).toHaveLength(2);
+    });
+
+    test('«Åbn program» åbner hjælpeprogrammet og lukker popup\'en', async () => {
+      const user = userEvent.setup();
+      detectPwaInstallationStateMock.mockResolvedValue('installed');
+      renderMineo();
+
+      await clickDownload(user);
+      const dialog = await screen.findByRole('dialog');
+      await user.click(within(dialog).getByRole('button', { name: 'Åbn program' }));
+
+      expect(openInstalledPwaMock).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    test('«Annuller» lukker popup\'en UDEN at åbne noget', async () => {
+      const user = userEvent.setup();
+      detectPwaInstallationStateMock.mockResolvedValue('installed');
+      renderMineo();
+
+      await clickDownload(user);
+      const dialog = await screen.findByRole('dialog');
+      await user.click(within(dialog).getByRole('button', { name: 'Annuller' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(openInstalledPwaMock).not.toHaveBeenCalled();
+      expect(requestPwaInstallMock).not.toHaveBeenCalled();
+    });
+
+    test('Escape lukker popup\'en uden at åbne noget', async () => {
+      const user = userEvent.setup();
+      detectPwaInstallationStateMock.mockResolvedValue('installed');
+      renderMineo();
+
+      await clickDownload(user);
+      await screen.findByRole('dialog');
+      await user.keyboard('{Escape}');
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(openInstalledPwaMock).not.toHaveBeenCalled();
+    });
+
+    test('INDE i PWA\'en: popup\'en siger «allerede åbent» og har kun ÉN knap', async () => {
+      const user = userEvent.setup();
+      detectPwaInstallationStateMock.mockResolvedValue('running');
+      renderMineo();
+
+      await clickDownload(user);
+      const dialog = await screen.findByRole('dialog');
+
+      expect(within(dialog).getByText(/allerede åbent/i)).toBeInTheDocument();
+      // Der er intet at åbne, når programmet allerede kører — så intet «Åbn program»-valg.
+      expect(within(dialog).getAllByRole('button')).toHaveLength(1);
+      expect(within(dialog).getByRole('button', { name: 'Luk' })).toBeVisible();
+      expect(within(dialog).queryByRole('button', { name: 'Åbn program' })).toBeNull();
+    });
+
+    test('INDE i PWA\'en: «Luk» lukker popup\'en uden at åbne et nyt vindue', async () => {
+      const user = userEvent.setup();
+      detectPwaInstallationStateMock.mockResolvedValue('running');
+      renderMineo();
+
+      await clickDownload(user);
+      const dialog = await screen.findByRole('dialog');
+      await user.click(within(dialog).getByRole('button', { name: 'Luk' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      // Et nyt vindue her ville åbne en dublet af det vindue, brugeren allerede sidder i.
+      expect(openInstalledPwaMock).not.toHaveBeenCalled();
+    });
+
+    test('tilstanden aflæses ved HVERT klik, ikke ved render', async () => {
+      const user = userEvent.setup();
+      // Brugeren installerer fra adresselinjen MELLEM de to klik. Måltes tilstanden ved render,
+      // ville andet klik stadig forsøge en installation af noget, der allerede er installeret.
+      detectPwaInstallationStateMock
+        .mockResolvedValueOnce('notInstalled')
+        .mockResolvedValueOnce('installed');
+      renderMineo();
+
+      await clickDownload(user);
+      await waitFor(() => expect(requestPwaInstallMock).toHaveBeenCalledTimes(1));
+      expect(screen.queryByRole('dialog')).toBeNull();
+
+      await clickDownload(user);
+
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+      expect(requestPwaInstallMock).toHaveBeenCalledTimes(1);
+    });
+
+    test('popup\'en kan åbnes igen efter lukning', async () => {
+      const user = userEvent.setup();
+      detectPwaInstallationStateMock.mockResolvedValue('installed');
+      renderMineo();
+
+      await clickDownload(user);
+      await screen.findByRole('dialog');
+      await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+      await clickDownload(user);
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    });
   });
 
   describe('Mineo-side indhold', () => {
