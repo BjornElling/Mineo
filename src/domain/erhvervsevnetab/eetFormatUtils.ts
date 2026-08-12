@@ -1,5 +1,18 @@
 import { formatAsAmountTrimmed, formatPercentTrimmedFromRounded4 } from '../../utils/formatUtils';
 import { APP_ROUTES } from '../../config/pageNavigation';
+import {
+  erhvervsevnetabBeregningsdatoField,
+  erhvervsevnetabEalEetPctField,
+} from '../../inputCore/catalog/erhvervsevnetabDescriptors';
+import {
+  faellesAarsloenAslAarsloenField,
+  faellesAarsloenEalAarsloenField,
+} from '../../inputCore/catalog/faellesAarsloenDescriptors';
+import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+} from '../../inputCore/catalog/stamdataDescriptors';
+import type { FieldAddress } from '../../inputCore/fieldAddress';
 import type { EetIssue } from './eetTypes';
 
 export type EetTabNavigation = Readonly<{
@@ -7,6 +20,8 @@ export type EetTabNavigation = Readonly<{
   sectionName: string;
   route: typeof APP_ROUTES.stamdata | typeof APP_ROUTES.erhvervsevnetab;
   sectionId: string;
+  /** Det konkrete felt, når et issue har én entydig brugerrettelse. */
+  focusFieldAddress?: FieldAddress;
 }>;
 
 export const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
@@ -64,6 +79,44 @@ const NAV_STAMDATA_SKADELIDTE: EetTabNavigation = {
   route: APP_ROUTES.stamdata,
   sectionId: 'stamdata-skadelidte',
 };
+
+const STAMDATA_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
+  'skadedato-missing': stamdataSkadedatoField.bind().address,
+  'field-skadedato': stamdataSkadedatoField.bind().address,
+  'skadelidte-fodselsdato-missing': stamdataSkadelidteFodselsdatoField.bind().address,
+  'field-skadelidte-fodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
+};
+
+const GRUNDLAEGGENDE_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
+  'beregningsdato-missing': erhvervsevnetabBeregningsdatoField.bind().address,
+  'beregningsdato-invalid': erhvervsevnetabBeregningsdatoField.bind().address,
+  'warn-beregningsdato-foer-skadedato': erhvervsevnetabBeregningsdatoField.bind().address,
+  'field-beregningsdato': erhvervsevnetabBeregningsdatoField.bind().address,
+};
+
+const EAL_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
+  'eal-aarsloen-missing': faellesAarsloenEalAarsloenField.bind().address,
+  'eal-aarsloen-zero': faellesAarsloenEalAarsloenField.bind().address,
+  'field-aarsloen-eal': faellesAarsloenEalAarsloenField.bind().address,
+  'warn-eal-aarsloen-is-max': faellesAarsloenEalAarsloenField.bind().address,
+  'warn-eal-aarsloen-empty-for-2024-07-01': faellesAarsloenEalAarsloenField.bind().address,
+  'eal-eet-pct-invalid': erhvervsevnetabEalEetPctField.bind().address,
+  'eet-pct-missing': erhvervsevnetabEalEetPctField.bind().address,
+  'field-eal-eet-pct': erhvervsevnetabEalEetPctField.bind().address,
+  'warn-eal-eet-under-15': erhvervsevnetabEalEetPctField.bind().address,
+};
+
+const ASL_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
+  'aarsloen-missing': faellesAarsloenAslAarsloenField.bind().address,
+  'aarsloen-zero': faellesAarsloenAslAarsloenField.bind().address,
+  'field-aarsloen-asl': faellesAarsloenAslAarsloenField.bind().address,
+  'aarsloen-over-max': faellesAarsloenAslAarsloenField.bind().address,
+};
+
+const withFocusField = (
+  navigation: EetTabNavigation,
+  focusFieldAddress: FieldAddress | undefined
+): EetTabNavigation => focusFieldAddress === undefined ? navigation : { ...navigation, focusFieldAddress };
 
 const NAV_EET_GRUNDLAEGGENDE: EetTabNavigation = {
   pageName: 'EET oplysninger',
@@ -163,10 +216,10 @@ const ASL_IDS = new Set([
 ]);
 
 export const resolveEetIssueNavigation = (issueId: string): EetTabNavigation | null => {
-  if (STAMDATA_IDS.has(issueId)) return NAV_STAMDATA_SKADELIDTE;
-  if (GRUNDLAEGGENDE_IDS.has(issueId)) return NAV_EET_GRUNDLAEGGENDE;
-  if (EAL_IDS.has(issueId)) return NAV_EET_EAL;
-  if (ASL_IDS.has(issueId)) return NAV_EET_ASL;
+  if (STAMDATA_IDS.has(issueId)) return withFocusField(NAV_STAMDATA_SKADELIDTE, STAMDATA_FIELD_BY_ISSUE_ID[issueId]);
+  if (GRUNDLAEGGENDE_IDS.has(issueId)) return withFocusField(NAV_EET_GRUNDLAEGGENDE, GRUNDLAEGGENDE_FIELD_BY_ISSUE_ID[issueId]);
+  if (EAL_IDS.has(issueId)) return withFocusField(NAV_EET_EAL, EAL_FIELD_BY_ISSUE_ID[issueId]);
+  if (ASL_IDS.has(issueId)) return withFocusField(NAV_EET_ASL, ASL_FIELD_BY_ISSUE_ID[issueId]);
   return null;
 };
 

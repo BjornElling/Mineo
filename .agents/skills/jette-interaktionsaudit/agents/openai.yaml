@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jette interaktionsaudit"
+  short_description: "Find og dokumentér fejl i hele brugerinteraktionen"
+  default_prompt: "Brug $jette-interaktionsaudit til autonomt at fortsætte Mineos systematiske interaktionsaudit."

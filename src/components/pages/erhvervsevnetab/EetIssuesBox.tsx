@@ -3,10 +3,11 @@ import { Box, Typography } from '@mui/material';
 import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ContentBox from '../../layout/ContentBox';
-import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 import { type EetTabNavigation, resolveEetIssueNavigation } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { APP_ROUTES } from '../../../config/pageNavigation';
+import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
+import { scrollToSection } from '../../../utils/scrollToSection';
 
 type Props = Readonly<{
   issues: readonly EetIssue[];
@@ -15,20 +16,26 @@ type Props = Readonly<{
 
 const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
   const navigate = useNavigate();
-  const scrollToSectionWithRetry = useScrollToSectionWithRetry();
 
   const handleNavigate = React.useCallback(
     (navigation: EetTabNavigation) => {
       if (navigation.route === APP_ROUTES.erhvervsevnetab) {
         onGoToEetOplysninger();
-        scrollToSectionWithRetry(navigation.sectionId);
-        return;
+      } else {
+        navigate(navigation.route);
       }
 
-      navigate(navigation.route);
-      scrollToSectionWithRetry(navigation.sectionId);
+      // Navigationshandlingen kan unmount'e denne boks ved route-skift. Retryforskydningen må derfor
+      // være en selvstændig, begrænset DOM-operation — ikke en hook, hvis cleanup afbryder den før
+      // destinationens editor når at mounte. Et konkret felt vinder; sektionen bruges kun ved regler
+      // med flere mulige årsagsfelter eller ved systemdata, der ikke kan rettes i ét input.
+      if (navigation.focusFieldAddress) {
+        scrollToFieldAddress(navigation.focusFieldAddress);
+      } else {
+        scrollToSection(navigation.sectionId, { attention: true });
+      }
     },
-    [navigate, onGoToEetOplysninger, scrollToSectionWithRetry]
+    [navigate, onGoToEetOplysninger]
   );
 
   if (issues.length === 0) return null;

@@ -228,6 +228,18 @@ const expectLinkedDropdownToPulse = async (
   expectRedPulse(await samples);
 };
 
+/** Samme visuelle kontrakt for tekst-, dato- og procentfelter uden dropdown-pil. */
+const expectLinkedInputToPulse = async (
+  page: Page,
+  inputName: string,
+  samples: Promise<readonly string[]>
+): Promise<void> => {
+  const input = page.locator(`input[name="${inputName}"]`);
+  await expect(input).toBeVisible();
+  await expect(input.locator('xpath=..')).toHaveClass(new RegExp(BLINK_CLASS));
+  expectRedPulse(await samples);
+};
+
 test.describe('Blinkmarkeringen males i browseren', () => {
   test('formularfelt: pulserer rødt og forsvinder igen', async ({ page }) => {
     await login(page);
@@ -313,5 +325,59 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     const employmentCard = input.locator('xpath=ancestor::*[@data-mineo-row-id][1]');
     await expect(employmentCard).not.toHaveClass(BLINK_CLASS);
     await expectLinkedDropdownToPulse(page, inputName!, readBlinkSamples(page));
+  });
+
+  test('EET-fejllink blinker beregningsdatoen efter et faneskift', async ({ page }) => {
+    await login(page);
+    await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+    await page.getByRole('tab', { name: 'Differencekrav' }).click();
+    const issue = page.locator('.row--label-right-hover').filter({
+      hasText: 'Beregningsdato er ikke udfyldt',
+    });
+    await expect(issue).toBeVisible();
+
+    await startBlinkSampling(page);
+    await issue.getByRole('button', { name: 'Grundlæggende oplysninger', exact: true }).click();
+
+    await expect(page.getByRole('tab', { name: 'EET oplysninger' })).toHaveAttribute('aria-selected', 'true');
+    await expectLinkedInputToPulse(page, 'beregningsdato', readBlinkSamples(page));
+  });
+
+  test('EET-advarselslink blinker EAL-procenten efter et faneskift', async ({ page }) => {
+    await login(page);
+    await page.getByRole('button', { name: 'Stamdata' }).click();
+    for (const [name, value] of [
+      ['skadelidteFodselsdato', '01-01-1980'],
+      ['skadedato', '01-01-2020'],
+    ] as const) {
+      const input = page.locator(`input[name="${name}"]`);
+      await input.dblclick();
+      await input.fill(value);
+      await input.press('Tab');
+    }
+    await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+    const beregningsdato = page.locator('input[name="beregningsdato"]');
+    const ealEetPct = page.locator('input[name="ealEetPct"]');
+    await beregningsdato.dblclick();
+    await beregningsdato.fill('01-01-2026');
+    await beregningsdato.press('Tab');
+    const aslAarsloen = page.locator('input[name="aslAarsloen"]');
+    await aslAarsloen.dblclick();
+    await aslAarsloen.fill('300000');
+    await aslAarsloen.press('Tab');
+    await ealEetPct.dblclick();
+    await ealEetPct.fill('10');
+    await ealEetPct.press('Tab');
+    await page.getByRole('tab', { name: 'EET efter EAL' }).click();
+    const warning = page.locator('.row--label-right-hover').filter({
+      hasText: 'Der kan ikke tilkendes erhvervsevnetab under 15 %',
+    });
+    await expect(warning).toBeVisible();
+
+    await startBlinkSampling(page);
+    await warning.getByRole('button', { name: 'Erstatningsansvarsloven', exact: true }).click();
+
+    await expect(page.getByRole('tab', { name: 'EET oplysninger' })).toHaveAttribute('aria-selected', 'true');
+    await expectLinkedInputToPulse(page, 'ealEetPct', readBlinkSamples(page));
   });
 });

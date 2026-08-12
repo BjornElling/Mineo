@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-11 (§4.6a er dækket i alle desktopbrowsere af
+**Senest verificeret mod kode:** 2026-08-12 (§4.6a er dækket i alle desktopbrowsere af
 `e2e/svie-smerte-satsaar-button.spec.ts`; §1.2's modalitets-uafhængighed er målt i browser og dækket af
 `e2e/mobile-virtual-keyboard-limits.spec.ts`; verifikationen 2026-08-09 nedenfor målte KUN tastning og
 overså derfor, at værnet var fraværende på mobile skærmtastaturer)
@@ -442,10 +442,10 @@ brugeren skriver i, jf. §1.2:
 - Én aktivering kan fortrydes med ét undo-trin. Gentagne aktiveringer med samme dags dato giver ikke overflødige
   undo-trin.
 
-### 4.6a `Indsæt aktuelt årstal` ved svie/smerte-satsår
+### 4.6a `Indsæt årstal` ved svie/smerte-satsår
 
 - Knappen står til højre for `Hvilket års svie/smerte-satser lægges til grund?`, har samme udseende og native
-  knapadfærd som den almindelige `Indsæt dags dato`-knap, men med tooltippen `Indsæt aktuelt årstal`, og indgår i
+  knapadfærd som den almindelige `Indsæt dags dato`-knap, men med tooltippen `Indsæt årstal`, og indgår i
   den almindelige Tab-rækkefølge.
 - Ved aktivering anvendes kalenderåret én måned efter `Opgørelse lavet den`, hvis feltet har en afsluttet canonical
   dato; ellers anvendes kalenderåret én måned efter dags dato på aktiveringstidspunktet. Månedstilføjelsen følger

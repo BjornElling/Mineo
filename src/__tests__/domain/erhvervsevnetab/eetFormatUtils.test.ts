@@ -6,6 +6,11 @@ import {
   toFieldIssue,
 } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { APP_ROUTES } from '../../../config/pageNavigation';
+import {
+  erhvervsevnetabBeregningsdatoField,
+  erhvervsevnetabEalEetPctField,
+} from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
+import { faellesAarsloenAslAarsloenField } from '../../../inputCore/catalog/faellesAarsloenDescriptors';
 
 describe('formatJaNej', () => {
   it('mapper boolean til dansk Ja/Nej', () => {
@@ -57,6 +62,20 @@ describe('resolveEetIssueNavigation', () => {
       expect(nav?.route).toBe(APP_ROUTES.erhvervsevnetab);
       expect(nav?.sectionId).toBe('eet-oplysninger-grundlaeggende');
     }
+  });
+
+  it('giver fejl og advarsler med ét ansvarligt input en kanonisk feltadresse', () => {
+    expect(resolveEetIssueNavigation('beregningsdato-missing')?.focusFieldAddress)
+      .toEqual(erhvervsevnetabBeregningsdatoField.bind().address);
+    expect(resolveEetIssueNavigation('warn-eal-eet-under-15')?.focusFieldAddress)
+      .toEqual(erhvervsevnetabEalEetPctField.bind().address);
+    expect(resolveEetIssueNavigation('aarsloen-missing')?.focusFieldAddress)
+      .toEqual(faellesAarsloenAslAarsloenField.bind().address);
+  });
+
+  it('bevarer sektionsankeret for issues med flere mulige årsagsfelter', () => {
+    expect(resolveEetIssueNavigation('missing-eet-pct')?.focusFieldAddress).toBeUndefined();
+    expect(resolveEetIssueNavigation('warn-asl-eet-under-15')?.focusFieldAddress).toBeUndefined();
   });
 
   it('router EAL-specifikke fejl til EAL-sektionen', () => {

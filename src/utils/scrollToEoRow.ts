@@ -10,10 +10,9 @@
  * rækkefejl uden ét ansvarligt felt (fx et overlap mellem to rækker) kan kun forankres til rækken. Det
  * bruges også som fallback, hvis feltets editor ikke er synlig.
  */
-import { scrollWithRetry } from './scrollWithRetry';
-import { serializeFieldAddress } from '../inputCore/fieldAddress';
-import { lookupEditorLocation } from '../inputCore/react/editorLocationDestination';
+import { scrollWithRetry, type CancelScrollWithRetry } from './scrollWithRetry';
 import { blinkFieldAttention } from '../inputCore/react/fieldAttentionBlink';
+import { findVisibleFieldEditor as findVisibleFieldEditorByAddress } from './scrollToFieldAddress';
 import type { EoIssueFocusTarget } from '../domain/eoRowEvaluation/eoRowTypes';
 
 const resolveAnchorIdFromRowId = (rowId: string): string | null => {
@@ -63,8 +62,7 @@ const findElementByMineoRowId = (rowId: string): HTMLElement | null => {
  * fane-/route-skift, findes så snart den er der.
  */
 const findVisibleFieldEditor = (address: EoIssueFocusTarget & { kind: 'fieldAddress' }): HTMLElement | null => {
-  const lookup = lookupEditorLocation(serializeFieldAddress(address.address));
-  return lookup.kind === 'visible' ? lookup.element : null;
+  return findVisibleFieldEditorByAddress(address.address);
 };
 
 const findElementByFocusTarget = (target: EoIssueFocusTarget | undefined): HTMLElement | null => {
@@ -81,16 +79,16 @@ export const scrollToEoRow = (
     onSuccess?: () => void;
     onFailure?: (reason: string) => void;
   } = {}
-): void => {
+): CancelScrollWithRetry => {
   const anchorId = resolveAnchorIdFromRowId(rowId);
   if (!anchorId && !options.focusTarget) {
     options.onFailure?.(`No row anchor could be resolved from rowId="${rowId}"`);
-    return;
+    return () => {};
   }
 
   const { maxRetries = 150, onSuccess, onFailure } = options;
 
-  scrollWithRetry({
+  return scrollWithRetry({
     maxRetries,
     findTarget: () => {
       const focusedElement = findElementByFocusTarget(options.focusTarget);

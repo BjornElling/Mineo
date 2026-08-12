@@ -14,6 +14,7 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 | OBS-020 | Renteberegningens dato-bounds skjules af generisk download-tooltip | Kontraktdrift / UX | CUT-001 / RENTE-005 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
 | OBS-021 | Årsløns dato-bounds skjules af generisk beregnings-tooltip | Kontraktdrift / UX | CUT-001 / AAR-011 | Chrome/Edge/Firefox/WebKit 1920×1080 | Mellem | Bekræftet | 2026-08-09 02:32 Europe/Copenhagen |
 | OBS-028 | Firefox-teknisk advarsel blokerer Løntrin-finderens datofelt | Browserforskel / UX / Kontraktdrift | SURF-003 / PAR-003 / Løntrin-finder | Firefox 1920×1080 | Mellem | Bekræftet | 2026-08-09 06:29 Europe/Copenhagen |
+| OBS-029 | Status refererer til manglende observationsposter | Auditdokumentation / Inkonsistens | CUT-003 / auditregister | — | Lav | Bekræftet | 2026-08-12 08:54 Europe/Copenhagen |
 
 ### OBS-005 — Firefox-fallback giver en synlig teknisk advarsel ved normal Gem/Hent
 
@@ -370,6 +371,45 @@ En Firefox-bruger kan åbne Løntrin-finder, men kan ikke udfylde datoen eller b
 - Efter `Skjul`: `01-01-2020` og `Beregn` gennemførte, og overlayet viste `Nærmeste lønsatser`.
 - Firefox-konsol: 0 `console.error` og 0 `console.warn`; problemet var synlig overlay-interception, ikke en ny runtimefejl.
 - Kildereference: `src/components/pages/erstatningsopgoerelse/shared/LoentrinFinderOverlay.tsx`, `OBS-005`.
+
+### OBS-029 — Status refererer til manglende observationsposter
+
+- Status: Bekræftet
+- Kategori: Auditdokumentation / Inkonsistens
+- Alvor: Lav
+- Først set: 2026-08-12 08:54 Europe/Copenhagen
+- Commit/build: `c6added1c39133a246327f9c9efb4af5ede3f74d` / `2026.08.1297.c6added`
+- Dirty-state: dirty under audit; eksisterende brugerændringer i `.agents/skills/` er bevaret
+- Browser/viewport: —
+- Flade/scenarie: CUT-003 / auditregister
+- Relaterede fund/spørgsmål: OBS-025, OBS-026, OBS-027
+
+**Starttilstand og reproduktion**
+
+1. Sammenhold observationsreferencerne i `STATUS.md` med indeks og overskrifter i `OBSERVATIONS.md`.
+2. Søg efter `OBS-025`, `OBS-026` og `OBS-027` i auditdokumenterne.
+
+**Observeret adfærd**
+
+`STATUS.md` bruger `OBS-025`, `OBS-026` og `OBS-027` som konklusions- og sporbarhedsreferencer, men `OBSERVATIONS.md` indeholder ingen indeksrækker eller detaljer med disse ID'er. De nærmeste registrerede poster er `OBS-022`–`OBS-024` og `OBS-028`.
+
+**Sammenligningsgrundlag**
+
+De øvrige observationer har både en indeksrække og en detaljeret post i samme dokument.
+
+**Forventningsgrundlag**
+
+Auditregistreringen skal gøre hvert fund sporbar fra status og scenarier til én entydig observationspost. Et ID må ikke stå som reference uden en tilsvarende post.
+
+**Hvorfor det bør undersøges**
+
+Manglende poster gør det uklart, hvilke konkrete beløbs- og satsobservationer de historiske CUT-003-konklusioner bygger på, og vanskeliggør reproduktion og lukning af auditsporet.
+
+**Evidens**
+
+- Kildereference: `docs/testing/runtime-input-audit/STATUS.md` og `docs/testing/runtime-input-audit/OBSERVATIONS.md`; `rg` finder referencer til `OBS-025`–`OBS-027` alene i `STATUS.md`.
+- Reproducerbarhed: 1 dokumentkontrol.
+- Andre browsere/viewports: ikke relevant.
 
 ## Postskabelon
 

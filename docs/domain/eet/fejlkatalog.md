@@ -19,7 +19,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 
 ### Principper
 
-- Alle fejl har et navigationslink til det felt brugeren skal rette. Undtagelse: fejl der udelukkende skyldes manglende systemdata (satser mv.) brugeren ikke kan rette.
+- Alle fejl og advarsler med ét entydigt årsagsfelt har et navigationslink til netop det felt. Regler med flere mulige årsagsfelter (fx flere afgørelsesrækker) bruger i stedet deres fælles sektion som ærligt anker. Begge mål blinkmarkeres efter navigationen. Fejl der udelukkende skyldes manglende systemdata (satser mv.), peger ikke på et brugerfelt.
 - `alder-unresolved` undertrykkes hvis `skadelidte-fodselsdato-missing` eller `skadedato-missing` allerede er aktiv — den afledte fejl er redundant.
 - `warn-eal-aarsloen-empty-for-2024-07-01` undertrykkes ikke af `aarsloen-missing` — de to kan vises samtidigt.
 - `eet-pct-missing` undertrykkes på F5 hvis `asl-afgoerelser-empty` er aktiv.
@@ -386,7 +386,7 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 | Betingelse F2, F3, F5 | Mindst én afgørelse med EET % > 0 har EET % < 15 |
 | Betingelse F4 | `ealEetPct` ikke udfyldt og seneste ASL-afgørelse har EET % < 15. Hvis `ealEetPct` er udfyldt bruges `warn-eal-eet-under-15` i stedet. |
 
-#### `warn-eal-eet-under-15` — "Der er angivet et EET efter EAL på mindre end 15 %."
+#### `warn-eal-eet-under-15` — "Der kan ikke tilkendes erhvervsevnetab under 15 %."
 | Felt | Værdi |
 |---|---|
 | Type | Advarsel |
@@ -501,14 +501,10 @@ Alle `toIssue()` og `toWarning()` helper-funktioner er defineret lokalt i de res
 
 ### Navigation
 
-Navigation fra fejl-linje til inputsektion styres centralt af `resolveMidlertidigtEetIssueNavigation(issue)` i
-`src/domain/erhvervsevnetab/eetIssueNavigation.ts`. Den returnerer en diskrimineret union med to varianter:
-
-- `kind: 'stamdata-page'` for de fem stamdata-issues (`STAMDATA_ISSUE_IDS`), med `pageName`, `sectionTitle`
-  og et `focusFieldAddress` — den kanoniske feltadresse, ikke en fri streng.
-- `kind: 'erhvervsevnetab-tab'` for alle øvrige, med `pageName`, `tabKey` og `tabName`.
-
-Sektionsnavnene på "EET oplysninger" er præcist: `Stamdata`, `Arbejdsskadesikringsloven`, `Erstatningsansvarsloven`.
+Navigation fra fejl-linje styres centralt af `resolveEetIssueNavigation(issueId)` i
+`src/domain/erhvervsevnetab/eetFormatUtils.ts`. Den returnerer route, sektion og — når issuet har ét
+ansvarligt input — `focusFieldAddress`, den kanoniske feltadresse. `EetIssuesBox` venter derefter på det
+synlige felt og blinkmarkerer det; uden en entydig adresse blinkmarkeres det fælles sektionsanker i stedet.
 
 ### Tests
 

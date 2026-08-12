@@ -1,9 +1,9 @@
 ---
-name: mineo-interaction-audit
+name: jette-interaktionsaudit
 description: Brug kun efter brugerens udtrykkelige anmodning om netop en Mineo-interaktionsaudit. Udfør og genoptag derefter en autonom, vedvarende og systematisk robustheds- og adfærdsaudit af Mineo uden brugerinput mellem arbejdsenheder; fortsæt principielt uden slutpunkt og afslut eller pausér kun efter en entydig brugerbesked om stop eller pause. Gennemgå hele brugerens interaktion med alle sider, felter, tabeller, valg, overlays, navigationer, undo/redo-, save/load- og dokumentforløb på tværs af understøttede browsere; afprøv happy paths, ugyldige, delvise, ekstreme og grænserelaterede input samt kombinationer og tilstandsskift; find og registrér runtimefejl, datatab, inkonsistent eller kontraktstridig brugeradfærd, mistænkelig parallel logik og uafklaret forventet adfærd uden at rette produktet.
 ---
 
-# Mineo interaktionsaudit
+# Jette interaktionsaudit
 
 ## Aktivering og autonom kørsel
 
@@ -58,7 +58,7 @@ Auditten er en åben, langvarig arbejdsopgave — ikke en enkelt leverance med e
 
 1. Fastlæg repo-roden med `git rev-parse --show-toplevel`, og arbejd derfra.
 2. Læs repoets `AGENTS.md`, hele `src/contracts/contract-topology.json`, alle relevante kontrakter og den komplette projektlokale `playwright-cli`-skill før browserstyring.
-3. Kør `node .agents/skills/mineo-interaction-audit/scripts/init-audit-workspace.mjs .` ved opstart eller genoptagelse. Scriptet overskriver aldrig eksisterende auditdokumenter og opretter manglende `QUESTIONS.md`.
+3. Kør `node .agents/skills/jette-interaktionsaudit/scripts/init-audit-workspace.mjs .` ved opstart eller genoptagelse. Scriptet overskriver aldrig eksisterende auditdokumenter og opretter manglende `QUESTIONS.md`.
 4. Læs [references/audit-method.md](references/audit-method.md) helt før første auditkørsel og igen, når inventaret eller en ny afhængighedsklynge planlægges.
 5. Læs altid `STATUS.md`, `CRASHES.md`, `OBSERVATIONS.md` og `QUESTIONS.md` helt eller målrettet med `rg`, hvis de er lange. Åbne fund og ubesvarede spørgsmål skal forstås, før nye scenarier vælges.
 6. Kontrollér `git status --short`, aktuel commit og buildversion. Behandl eksisterende ændringer som brugerens og rør dem ikke.

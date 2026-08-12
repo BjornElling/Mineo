@@ -105,7 +105,7 @@ export default function SvieSmerteSection() {
                         width={100}
                       />
                       <InsertTodayDateButton
-                        tooltip="Indsæt aktuelt årstal"
+                        tooltip="Indsæt årstal"
                         onCommit={(today) => {
                           const satserAar = resolveSvieSmerteSatsAarForReferenceDate(values.opgørelseLavetDen ?? today);
                           if (satserAar !== undefined) satserAarEditor.settleValue(satserAar);

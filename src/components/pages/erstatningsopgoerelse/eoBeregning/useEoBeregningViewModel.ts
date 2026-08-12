@@ -83,9 +83,14 @@ const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
 const isDevtoolsReportableInvariant = (invariant: EoInvariant): boolean =>
   invariant.source === 'system' && DEVTOOLS_REPORTABLE_INVARIANT_IDS.has(invariant.id);
 
-const scrollToRowIssueTarget = (rowId: string, focusTarget: EoIssueFocusTarget): void => {
-  scrollToEoRow(rowId, { focusTarget });
-};
+const scrollToRowIssueTarget = (
+  rowId: string,
+  focusTarget: EoIssueFocusTarget,
+  options?: {
+    onSuccess?: () => void;
+    onFailure?: (reason: string) => void;
+  }
+) => scrollToEoRow(rowId, { focusTarget, ...options });
 
 const buildInvariantDiagnostics = (
   invariant: EoInvariant,
@@ -539,13 +544,26 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     if (activeTab !== pendingNavigation.target.tabId) return;
 
     let cancelled = false;
+    const navigation = pendingNavigation;
+    const target = navigation.target;
+    if (target.kind !== 'erstatningsopgoerelse-tab') return;
+    let cancelPendingScroll: (() => void) | null = null;
+    const complete = () => {
+      if (cancelled) return;
+      // En ny brugerhandling kan have erstattet denne navigation, mens målet blev mountet.
+      // Ryd kun den navigation, som netop afsluttede, så et ældre retry-loop aldrig sletter et nyere klik.
+      setPendingNavigation((current) => current === navigation ? null : current);
+    };
     const runRowScroll = () => {
       if (cancelled) return;
-      scrollToRowIssueTarget(pendingNavigation.rowId, pendingNavigation.focusTarget);
+      cancelPendingScroll = scrollToRowIssueTarget(navigation.rowId, navigation.focusTarget, {
+        onSuccess: complete,
+        onFailure: complete,
+      });
     };
 
     const isLoenindkomstEmploymentInspektionRow =
-      pendingNavigation.target.tabId === 'loenindkomst' &&
+      target.tabId === 'loenindkomst' &&
       (
         pendingNavigation.rowId.startsWith('loenindkomst.')
         || pendingNavigation.rowId.startsWith('sfgg.')
@@ -553,14 +571,14 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
     if (isLoenindkomstEmploymentInspektionRow) {
       runRowScroll();
-      setPendingNavigation(null);
       return () => {
         cancelled = true;
+        cancelPendingScroll?.();
       };
     }
 
-    if (pendingNavigation.target.sectionId) {
-      scrollToSection(pendingNavigation.target.sectionId, {
+    if (target.sectionId) {
+      cancelPendingScroll = scrollToSection(target.sectionId, {
         onSuccess: () => {
           if (cancelled) return;
           requestAnimationFrame(() => {
@@ -575,10 +593,9 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       runRowScroll();
     }
 
-    setPendingNavigation(null);
-
     return () => {
       cancelled = true;
+      cancelPendingScroll?.();
     };
   }, [activeTab, pendingNavigation]);
 

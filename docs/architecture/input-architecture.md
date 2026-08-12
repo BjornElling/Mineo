@@ -165,8 +165,9 @@ rejected input blokerer, mens Zod-valideret canonical input kan gemmes.
 
 **Den delte «peg på dette felt»-blinkmarkering** (BF-020/BF-021). Programmet har tre veje, der fører brugeren hen
 til en indtastning, som kræver opmærksomhed: undo/redo-fokusrestoren, save-blokeringens fokus og de interne
-fejl-/advarselslinks. Alle tre lokaliserer målet gennem den ENE feltidentitet i DOM
-(`data-mineo-field-address`, §3.2), og alle tre afslutter med den samme visuelle markering:
+fejl-/advarselslinks. Når et issue har ét ansvarligt input, lokaliserer alle tre målet gennem den ENE
+feltidentitet i DOM (`data-mineo-field-address`, §3.2); et bevidst fælles række-/sektionsanker bruges kun
+når flere input kan være årsagen. Begge veje afslutter med den samme visuelle markering:
 `blinkFieldAttention` i `src/inputCore/react/fieldAttentionBlink.ts`.
 
 - Markeringen er en **ren DOM-effekt** (en CSS-klasse sat på det fundne element), ikke React-state. Det er netop

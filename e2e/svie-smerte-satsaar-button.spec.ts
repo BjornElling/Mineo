@@ -16,7 +16,7 @@ const setDate = async (input: Locator, value: string): Promise<void> => {
   await expect(input).toHaveValue(value);
 };
 
-test.describe('Svie/smerte-satsår — Indsæt aktuelt årstal', () => {
+test.describe('Svie/smerte-satsår — Indsæt årstal', () => {
   test('indsætter satsåret fra opgørelsesdatoen, falder tilbage og er et tabstop', async ({ page }) => {
     const runtimeErrors: string[] = [];
     page.on('console', (message) => {
@@ -33,7 +33,7 @@ test.describe('Svie/smerte-satsår — Indsæt aktuelt årstal', () => {
     const satsAarRow = page.locator('.row--label-right-hover').filter({
       hasText: 'Hvilket års svie/smerte-satser lægges til grund?',
     });
-    const insertButton = satsAarRow.getByRole('button', { name: 'Indsæt aktuelt årstal' });
+    const insertButton = satsAarRow.getByRole('button', { name: 'Indsæt årstal' });
 
     await expect(insertButton).toBeVisible();
     const expectedSatsAarFromToday = await page.evaluate(() => {
