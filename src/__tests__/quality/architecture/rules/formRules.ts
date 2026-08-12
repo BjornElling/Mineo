@@ -1762,7 +1762,7 @@ export const persistedPageHasViewModelRule = defineRule({
 /**
  * Den KANONISKE feltidentitet i DOM er den serialiserede feltadresse (`data-mineo-field-address`) plus
  * editorlokations-id'et. Det er den identitet undo/redo (`findRestoreTarget`), save-blokeringens fokus og
- * EO's fejllinks (`scrollToEoRow`) alle slår op på.
+ * EO's fejllinks (`scrollToFieldAddress`) alle slår op på.
  *
  * To PARALLELLE, streng-baserede identiteter ved siden af hinanden — `data-mineo-field-path` og
  * `data-mineo-undo-field-path`, hvis værdi var et bart feltNAVN — eller for EO's rækkemål en
@@ -1773,7 +1773,7 @@ export const persistedPageHasViewModelRule = defineRule({
  *
  * Reglen måler alle tre former, attributterne faktisk optrådte i: en JSX-attribut (`StyledTextAreaBase`), en
  * quoted property i et slotProps-objekt eller en proptype (de fire immediate-commit-widgets) og en
- * `[attr="…"]`-selector i opslaget (`scrollToEoRow`).
+ * `[attr="…"]`-selector i opslaget (`scrollToFieldAddress`).
  */
 const FORBIDDEN_FIELD_IDENTITY_ATTRS: readonly string[] = [
   'data-mineo-field-path',
@@ -1792,7 +1792,7 @@ const CANONICAL_FIELD_IDENTITY_MODULE = 'src/inputCore/react/historyRestoreTarge
 const FIELD_IDENTITY_SURFACES = (relativePath: string): boolean =>
   relativePath.startsWith('src/components/inputs/')
   || relativePath.startsWith('src/inputCore/react/')
-  || relativePath === 'src/utils/scrollToEoRow.ts'
+  || relativePath === 'src/utils/scrollToFieldAddress.ts'
   || relativePath === 'src/domain/eoRowEvaluation/eoRowIssueCatalog.ts'
   || relativePath === 'src/domain/erhvervsevnetab/eetIssueNavigation.ts';
 
@@ -1865,7 +1865,7 @@ export const singleFieldIdentityInDomRule = defineRule({
     + 'var en parallel model, og for grid-celler var de bevisligt uopnåelige.',
   liveTarget: {
     kind: 'precondition',
-    // Målet er modulet, der ejer den kanoniske identitet, PLUS at EO's fejllink-opslag stadig bruger den.
+    // Målet er modulet, der ejer den kanoniske identitet, PLUS at feltopslaget stadig bruger den.
     // Holder én af dem op med at findes, er mekanismen flyttet, og reglen skal skrives om frem for at stå grøn.
     //
     // ⚠️ EO-halvdelen måler et faktisk KALD, ikke blot at navnet nævnes. En `hasIdentifier`-probe var for svag:
@@ -1876,16 +1876,16 @@ export const singleFieldIdentityInDomRule = defineRule({
       if (entry.relativePath === CANONICAL_FIELD_IDENTITY_MODULE) {
         return hasIdentifier(entry, 'FIELD_ADDRESS_ATTR');
       }
-      if (entry.relativePath === 'src/utils/scrollToEoRow.ts') {
+      if (entry.relativePath === 'src/utils/scrollToFieldAddress.ts') {
         return collectCalls(entry).some((call) => call.calleeName === 'lookupEditorLocation');
       }
       return false;
     },
     rationale:
-      'den kanoniske identitets-attribut findes stadig, og EO-fejllinket KALDER stadig lookupEditorLocation; '
+      'den kanoniske identitets-attribut findes stadig, og feltopslaget KALDER stadig lookupEditorLocation; '
       + 'forsvinder en af de to, skal reglen følge mekanismen frem for at stå grøn',
     minimumMatches: 2,
-    requiredPaths: [CANONICAL_FIELD_IDENTITY_MODULE, 'src/utils/scrollToEoRow.ts'],
+    requiredPaths: [CANONICAL_FIELD_IDENTITY_MODULE, 'src/utils/scrollToFieldAddress.ts'],
   },
   appliesTo: FIELD_IDENTITY_SURFACES,
   find: (entry) => collectForbiddenFieldIdentityAttrs(entry),
@@ -1906,9 +1906,9 @@ export const singleFieldIdentityInDomRule = defineRule({
       relativePath: 'src/components/inputs/StyledTextFieldBase.tsx',
       code: "type Attrs = { 'data-mineo-field-path'?: string };",
     },
-    // Forbrugersiden: et opslag på navnestrengen i EO-fejllinket.
+    // Forbrugersiden: et opslag på navnestrengen i feltopslaget.
     {
-      relativePath: 'src/utils/scrollToEoRow.ts',
+      relativePath: 'src/utils/scrollToFieldAddress.ts',
       code: 'const el = document.querySelector("[data-mineo-undo-field-path=" + path + "]");',
     },
   ],
@@ -1923,19 +1923,19 @@ export const singleFieldIdentityInDomRule = defineRule({
       relativePath: 'src/inputCore/react/historyRestoreTarget.ts',
       code: "export const FIELD_ADDRESS_ATTR = 'data-mineo-field-address';",
     },
-    // EO-fejllinket slår op gennem editorlokationen på den kanoniske adresse.
+    // Feltopslaget slår op gennem editorlokationen på den kanoniske adresse.
     {
-      relativePath: 'src/utils/scrollToEoRow.ts',
+      relativePath: 'src/utils/scrollToFieldAddress.ts',
       code: 'const lookup = lookupEditorLocation(serializeFieldAddress(target.address));',
     },
     // En KOMMENTAR, der forklarer den afløste model, må ikke bære reglen.
     {
-      relativePath: 'src/utils/scrollToEoRow.ts',
+      relativePath: 'src/utils/scrollToFieldAddress.ts',
       code: '// Den afløste model slog op via data-mineo-field-path og data-mineo-undo-field-path.\nconst x = 1;',
     },
     // Rækkeankeret er det GROVERE mål, ikke en parallel feltidentitet, og forbliver lovligt.
     {
-      relativePath: 'src/utils/scrollToEoRow.ts',
+      relativePath: 'src/utils/scrollToFieldAddress.ts',
       code: 'const el = document.querySelector("[data-mineo-row-id=" + rowId + "]");',
     },
   ],

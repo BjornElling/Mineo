@@ -1,5 +1,5 @@
 /**
- * Formatting utilities
+ * Formateringshjælpere
  *
  * Centraliserede funktioner til formatering af tal, beløb og procenter.
  */
@@ -95,3 +95,9 @@ export const formatPercent = (num: number | null | undefined): string => {
 export const formatPercentTrimmedFromRounded4 = (value: number): string => {
   return formatAsAmountTrimmed(round4(value), 4);
 };
+
+/**
+ * Formaterer et procentpoint-tal med op til fire decimaler og dansk procent-suffiks.
+ * Brug denne frem for lokale sammensætninger, så dokumenter og UI følger samme afrunding.
+ */
+export const formatPercentRounded4 = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;

@@ -4,6 +4,7 @@ import {
   formatAsAmount,
   formatAsAmountTrimmed,
   formatPercentTrimmedFromRounded4,
+  formatPercentRounded4,
   isSingularCount,
   formatCountWithUnit,
 } from '../../utils/formatUtils';
@@ -138,6 +139,13 @@ describe('formatPercentTrimmedFromRounded4', () => {
     expect(formatPercentTrimmedFromRounded4(22.8100)).toBe('22,81');
     expect(formatPercentTrimmedFromRounded4(22.8)).toBe('22,8');
     expect(formatPercentTrimmedFromRounded4(23)).toBe('23');
+  });
+});
+
+describe('formatPercentRounded4', () => {
+  it('anvender den kanoniske fire-decimal-afrunding og procent-suffiks', () => {
+    expect(formatPercentRounded4(22.8178)).toBe('22,8178 %');
+    expect(formatPercentRounded4(22.8100)).toBe('22,81 %');
   });
 });
 

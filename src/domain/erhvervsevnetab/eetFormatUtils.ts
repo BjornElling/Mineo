@@ -1,4 +1,4 @@
-import { formatAsAmountTrimmed, formatPercentTrimmedFromRounded4 } from '../../utils/formatUtils';
+import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import {
   erhvervsevnetabBeregningsdatoField,
@@ -32,10 +32,10 @@ export const formatFaktor = (value: number): string => formatAsAmountTrimmed(val
 export const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4);
 
 /**
- * Kanonisk EET-procentformatter (afrundet til 4 decimaler, trailing zeros trimmet, " %"-suffiks).
- * Ejes af domænelaget og deles af både UI-faner og dokument-generatorer — hold ikke lokale kopier.
+ * EET-facadens navn bevares for de EET-specifikke visninger. Andre domæner skal importere den
+ * domæneuafhængige formatter direkte, så EET ikke bliver en fælles afhængighedsgrænse.
  */
-export const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
+export { formatPercentRounded4 as formatPct } from '../../utils/formatUtils';
 
 export const toFieldIssue = (
   id: string,

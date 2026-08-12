@@ -1,6 +1,6 @@
 import { amountValueToDisplayString, amountValueToNumber } from '../../../../utils/expressionAmount';
 import { formatIsoDateLong as formatAfgoerelsesdato } from '../../../../utils/dateFormatting';
-import { formatAsAmount } from '../../../../utils/formatUtils';
+import { formatAsAmount, formatPercentRounded4 } from '../../../../utils/formatUtils';
 import { roundByMethod } from '../../../../utils/rounding';
 import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
@@ -10,7 +10,6 @@ import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
-import { formatPct } from '../../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatISOToDanish } from '../../../../utils/dateFormatting';
 import { formatMaanederFixed, formatReguleringPct, formatKr } from '../../../layout/documentFormatUtils';
 import type { DocumentComposer } from '../../../model/documentModel';
@@ -213,7 +212,7 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
     bilagIndex++;
 
     const datoText = formatAfgoerelsesdato(group.afgoerelsesdato) ?? group.afgoerelsesdato;
-    const pctText = Number.isFinite(group.eetPct) ? ` (${formatPct(group.eetPct)})` : '';
+    const pctText = Number.isFinite(group.eetPct) ? ` (${formatPercentRounded4(group.eetPct)})` : '';
     renderSubheader(`Afgørelse ${datoText}${pctText}`, { addTopSpacing: bilagIndex > 1 });
 
     const specRows: RowSpec[] = [
