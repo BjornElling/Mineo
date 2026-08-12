@@ -186,7 +186,7 @@ const buildResetResidueMessage = (residue: readonly ResetResidue[]): string => {
   ].filter((part): part is string => part !== null);
 
   return [
-    'Alle indtastede oplysninger er slettet, men oprydningen kunne ikke gennemføres helt.',
+    'Alle indtastninger er slettet, men oprydningen kunne ikke gennemføres helt.',
     '',
     `Følgende kan bestå: ${parts.join(' og ')}.`,
     'Luk browserfanen og åbn Mineo igen, hvis en tidligere sags oplysninger dukker op.',
@@ -508,7 +508,8 @@ export const useFileSaveLoad = ({
   const handleSletAlt = React.useCallback(async () => {
     const focusTargetBeforeDeleteAll = captureActiveElement();
     const confirmed = window.confirm(
-      'ADVARSEL: Dette vil slette alle indtastede oplysninger!\n\nEr du sikker på at du vil fortsætte?',
+      'ADVARSEL: Dette sletter alle ikke-gemte indtastninger i Mineo!\n\n'
+        + 'Indholdet i gemte .eo-filer ændres ikke.\n\nEr du sikker på at du vil fortsætte?',
     );
 
     if (!confirmed) {
@@ -535,7 +536,7 @@ export const useFileSaveLoad = ({
       // fjernet, og med den behovet for at bære beskeden gennem sessionStorage og for at undertrykke
       // unsaved-guardens beforeunload-advarsel (den nulstiller selv sin baseline på `replacementGeneration`).
       showOverlay(clearResult.status === 'cleared'
-        ? { message: 'Alt data slettet', type: 'info' }
+        ? { message: 'Alle indtastninger slettet', type: 'info' }
         : { message: buildResetResidueMessage(clearResult.residue), type: 'warning' });
       navigate(APP_ROUTES.stamdata, { replace: true });
     } catch (error) {

@@ -163,7 +163,7 @@ describe('MainLayout (overwrite gating)', () => {
 
     await clickMainLayoutAction('Hent');
 
-    await screen.findByText('Overskriv eksisterende data?');
+    await screen.findByText('Erstat de aktuelle indtastninger?');
 
     expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
     expect(storedInput().sections.satser?.aargang).toBe(2020);
@@ -173,15 +173,15 @@ describe('MainLayout (overwrite gating)', () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('Overskriv eksisterende data?')).toBeNull();
+      expect(screen.queryByText('Erstat de aktuelle indtastninger?')).toBeNull();
     });
     expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
     expect(storedInput().sections.satser?.aargang).toBe(2020);
 
     await clickMainLayoutAction('Hent');
-    await screen.findByText('Overskriv eksisterende data?');
+    await screen.findByText('Erstat de aktuelle indtastninger?');
 
-    await clickMainLayoutAction('Overskriv');
+    await clickMainLayoutAction('Erstat');
 
     expect(storedInput().sections.stamdata?.skadelidte).toBe('Y');
     expect(storedInput().sections.satser?.aargang).toBe(2021);
@@ -224,12 +224,12 @@ describe('MainLayout (overwrite gating)', () => {
     await act(async () => {
       resolvePwaLoad?.(pwaLoadResult);
       await pwaLoad;
-      for (let attempt = 0; attempt < 5 && !document.body.textContent?.includes('Overskriv eksisterende data?'); attempt += 1) {
+      for (let attempt = 0; attempt < 5 && !document.body.textContent?.includes('Erstat de aktuelle indtastninger?'); attempt += 1) {
         await flushMainLayoutAsyncAction();
       }
     });
 
-    expect(screen.getByText('Overskriv eksisterende data?')).toBeInTheDocument();
+    expect(screen.getByText('Erstat de aktuelle indtastninger?')).toBeInTheDocument();
 
     expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
     expect(storedInput().sections.satser?.aargang).toBe(2020);
@@ -237,7 +237,7 @@ describe('MainLayout (overwrite gating)', () => {
     await clickMainLayoutAction('Stop og gør intet');
 
     await waitFor(() => {
-      expect(screen.queryByText('Overskriv eksisterende data?')).toBeNull();
+      expect(screen.queryByText('Erstat de aktuelle indtastninger?')).toBeNull();
     });
     expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
     expect(storedInput().sections.satser?.aargang).toBe(2020);
@@ -270,14 +270,14 @@ describe('MainLayout (overwrite gating)', () => {
     await act(async () => {
       resolveSecondPwaLoad?.(secondPwaLoadResult);
       await secondPwaLoad;
-      for (let attempt = 0; attempt < 5 && !document.body.textContent?.includes('Overskriv eksisterende data?'); attempt += 1) {
+      for (let attempt = 0; attempt < 5 && !document.body.textContent?.includes('Erstat de aktuelle indtastninger?'); attempt += 1) {
         await flushMainLayoutAsyncAction();
       }
     });
 
-    expect(screen.getByText('Overskriv eksisterende data?')).toBeInTheDocument();
+    expect(screen.getByText('Erstat de aktuelle indtastninger?')).toBeInTheDocument();
 
-    await clickMainLayoutAction('Overskriv');
+    await clickMainLayoutAction('Erstat');
 
     expect(storedInput().sections.stamdata?.skadelidte).toBe('Y');
     expect(storedInput().sections.satser?.aargang).toBe(2021);

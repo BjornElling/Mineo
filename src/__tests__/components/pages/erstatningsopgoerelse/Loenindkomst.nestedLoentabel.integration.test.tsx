@@ -106,7 +106,7 @@ describe('EO-lønindkomst — nested løntabel under et ansættelsesforhold', ()
     renderLoenindkomst();
 
     await waitFor(() => {
-      expect(screen.getByText('Oplysninger om ansættelsesforhold')).toBeInTheDocument();
+      expect(screen.getByText('Ansættelsesforhold')).toBeInTheDocument();
     });
     // Løntabellens periodekolonne beviser, at den nested tabel faktisk nåede at rendere.
     expect(screen.getAllByPlaceholderText('mm').length).toBeGreaterThan(0);
@@ -119,7 +119,7 @@ describe('EO-lønindkomst — nested løntabel under et ansættelsesforhold', ()
     renderLoenindkomst();
 
     await waitFor(() => {
-      expect(screen.getByText('Oplysninger om ansættelsesforhold')).toBeInTheDocument();
+      expect(screen.getByText('Ansættelsesforhold')).toBeInTheDocument();
     });
     // De committede cellers værdier skal være læst gennem den nested feltadresse.
     await waitFor(() => {

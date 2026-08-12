@@ -67,24 +67,36 @@ const LoenindkomstTab = React.memo(({
         className="content-box"
         sx={{ position: 'relative', marginBottom: totalAnsaettelsesforhold > 0 ? '40px' : '60px' }}
       >
-        <Typography className="section-header">Oplysninger om ansættelsesforhold</Typography>
+        <Typography className="section-header">Ansættelsesforhold</Typography>
 
         <Box className="row--label-right-hover">
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
             <Typography className="row--text">
-              Lønindkomst, tillæg og andre relevante oplysninger angives individuelt for hvert enkelt
-              ansættelsesforhold.
+              Tryk på den blå knap for at indsætte et ansættelsesforhold.
             </Typography>
           </Box>
         </Box>
 
         <Box className="row--label-right-hover">
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
-            <Typography className="row--text">
-              Det er ikke nødvendigt at dele indtastninger op i før og efter skaden. Programmet sondrer selv.
-            </Typography>
+            <Typography className="row--text">Bemærk, at</Typography>
           </Box>
         </Box>
+
+        {/* Punkterne står som almindelige tekstrækker med et ledende «•», så de deler `row--text`s
+            typografi og rækkeafstand med resten af siden (der findes ingen delt listekomponent). */}
+        {[
+          'Lønindkomst, tillæg og andre relevante oplysninger angives individuelt for hvert enkelt ansættelsesforhold.',
+          'Det er ikke nødvendigt at dele indtastninger op i før og efter skaden. Programmet sondrer selv.',
+        ].map((punkt) => (
+          <Box className="row--label-right-hover" key={punkt}>
+            <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
+              <Typography className="row--text" sx={{ paddingLeft: '16px' }}>
+                {`•  ${punkt}`}
+              </Typography>
+            </Box>
+          </Box>
+        ))}
 
         {totalAnsaettelsesforhold === 0 ? (
           <Box sx={{ position: 'absolute', bottom: -28, right: 44, display: 'flex', gap: '14px' }}>

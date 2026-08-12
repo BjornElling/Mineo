@@ -52,7 +52,7 @@ vi.mock('../../utils/fileHelpers', () => ({
 }));
 
 // `Slet alt`s filhåndtags-oprydning skal kunne fejle i test: reset-porten LÆSER resultatet, og et
-// `false` skal vises som en rest frem for at forsvinde i "Alt data slettet".
+// `false` skal vises som en rest frem for at forsvinde i "Alle indtastninger slettet".
 const deleteFileHandleFromIndexedDBMock = vi.fn<() => Promise<boolean>>();
 vi.mock('../../utils/fileHandleStorage', () => ({
   deleteFileHandleFromIndexedDB: () => deleteFileHandleFromIndexedDBMock(),
@@ -605,10 +605,10 @@ describe('useFileSaveLoad', () => {
       expect(deleteFileHandleFromIndexedDBMock).toHaveBeenCalledTimes(1);
       // Samme afslutning som load — navigation inde i appen, besked vist direkte.
       expect(handles.navigate).toHaveBeenCalledWith('/stamdata', { replace: true });
-      expect(handles.showOverlay).toHaveBeenCalledWith({ message: 'Alt data slettet', type: 'info' });
+      expect(handles.showOverlay).toHaveBeenCalledWith({ message: 'Alle indtastninger slettet', type: 'info' });
     });
 
-    it('rapporterer en rest frem for "Alt data slettet", når filhåndtaget ikke kan ryddes', async () => {
+    it('rapporterer en rest frem for "Alle indtastninger slettet", når filhåndtaget ikke kan ryddes', async () => {
       deleteFileHandleFromIndexedDBMock.mockResolvedValue(false);
       const handles = renderHook({ hasData: true });
 
@@ -620,7 +620,7 @@ describe('useFileSaveLoad', () => {
         type: 'warning',
         message: expect.stringContaining('filhåndtag'),
       }));
-      expect(handles.showOverlay).not.toHaveBeenCalledWith({ message: 'Alt data slettet', type: 'info' });
+      expect(handles.showOverlay).not.toHaveBeenCalledWith({ message: 'Alle indtastninger slettet', type: 'info' });
       // Inputtet er stadig ryddet: den autoritative del kan ikke rulles tilbage af en storagefejl.
       expect(handles.navigate).toHaveBeenCalledWith('/stamdata', { replace: true });
     });

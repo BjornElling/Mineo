@@ -137,9 +137,9 @@ describe('MainLayout (preflight apply)', () => {
     await clickMainLayoutAction('Indlæs trods fejl');
 
     // Et rejected råinput tæller som data (§1.6), så preflight-godkendelsen fører videre til
-    // overwrite-bekræftelse; applyet sker først ved "Overskriv".
-    await screen.findByText('Overskriv eksisterende data?');
-    await clickMainLayoutAction('Overskriv');
+    // overwrite-bekræftelse; applyet sker først ved "Erstat".
+    await screen.findByText('Erstat de aktuelle indtastninger?');
+    await clickMainLayoutAction('Erstat');
 
     await waitFor(() => {
       const nextGeneration = Number(screen.getByTestId('epoch').textContent ?? '0');
