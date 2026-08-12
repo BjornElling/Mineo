@@ -21,11 +21,12 @@ import {
  * reset OG `Slet alt`: de deler den samme no-settle-regel, fordi en gennemført handling under alle
  * omstændigheder erstatter eller sletter det input, draften kunne være blevet til (§7).
  */
-export type CriticalAction = 'save' | 'download' | 'navigate' | 'load' | 'undo' | 'redo';
+export type CriticalAction = 'save' | 'download' | 'navigate' | 'reload' | 'load' | 'undo' | 'redo';
 
 /**
  * Hvordan den åbne editor behandles for en given handling (§1.4):
- * - `settle`: afslut editoren gennem normal settle-sti, også ved fejlende settle (save/download/navigate).
+ * - `settle`: afslut editoren gennem normal settle-sti, også ved fejlende settle
+ *   (save/download/navigate/reload).
  * - `replace`: klargør uden settle; replacement-porten kasserer først draften efter vellykket apply.
  * - `noop`: handlingen må ikke nå history, mens editoren er åben.
  */
@@ -35,6 +36,7 @@ const EDITOR_HANDLING: Readonly<Record<CriticalAction, EditorHandling>> = {
   save: 'settle',
   download: 'settle',
   navigate: 'settle',
+  reload: 'settle',
   load: 'replace',
   undo: 'noop',
   redo: 'noop',

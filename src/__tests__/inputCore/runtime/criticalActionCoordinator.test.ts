@@ -43,7 +43,7 @@ const makeEditor = (options?: Partial<ActiveEditor> & { throwOnSettle?: boolean 
   return { editor, settleCount: () => settles };
 };
 
-const SETTLE_ACTIONS: CriticalAction[] = ['save', 'download', 'navigate'];
+const SETTLE_ACTIONS: CriticalAction[] = ['save', 'download', 'navigate', 'reload'];
 describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
   it('afviser async apply ved typegrænsen', () => {
     const typeBoundary = () => {

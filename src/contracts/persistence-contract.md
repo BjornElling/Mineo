@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-08-09
+**Senest verificeret mod kode:** 2026-08-12
 
 Denne kontrakt samler de trust-kritiske regler for runtime-persistence, `.eo`, save/load og autoritative replacements.
 Der findes ingen per-sektion-storage og ingen `invalidDrafts`: sagsinput ligger i én current-session-envelope med ét
@@ -66,19 +66,20 @@ Aktiv sagsinput lagres under én namespace-aware Mineo-nøgle:
 // src/inputCore/runtime/currentSessionEnvelope.ts — udledt af currentInputEnvelopeSchema.
 type CurrentInputEnvelope = Readonly<{
   envelopeVersion: typeof CURRENT_INPUT_ENVELOPE_VERSION;   // z.literal, ikke string
-  persistedDataVersion: typeof PERSISTED_DATA_VERSION;      // z.literal, ikke string
+  persistedDataVersion: string;                              // autoritativ kildeversion til sektionsmigrering
   input: SettledInput;
 }>;
 ```
 
-De to versionsfelter er `z.literal(...)` og ikke `z.string()`. Det er load-bearing for §4: netop fordi
-de er literals, er en anden dataversion under samme nøgle **korruption** frem for et accepteret felt.
-En `string`-form ville tillade præcis det, §4 forbyder.
+`envelopeVersion` er en `z.literal(...)`: en ukendt aggregatstruktur er korruption. `persistedDataVersion` er derimod
+den konkrete kildes version og passerer til den fælles sektionsmigrering; en åben session skal kunne overleve en
+schema-opdatering på samme måde som en `.eo`-fil. Versionen må aldrig gættes ud fra payloadens form.
 
 Nøglen opslås gennem `getCurrentInputEnvelopeStorageKey()`; suffikset er `input_v2`.
 
-Envelopen har **ét** current-only format. Der findes ingen `fieldAddressVersion`-bro, sentinel-adresser eller
-adresseoversættelse: feltadresser er altid det aktuelle kanoniske strukturelle format, valideret mod kataloget.
+Envelopen har én current aggregatstruktur. Canonical sektioner er versionerede og migreres per sektion. Feltadresser
+er fortsat aktuelle kanoniske adresser, valideret mod kataloget; ændres de, skal releasen samtidig levere en eksplicit,
+testet adresseoversættelse for aktive sessioners `rejectedInputs`.
 
 Regler:
 
@@ -134,17 +135,20 @@ grænse og må ikke ende to forskellige steder. En fuld sidegenindlæsning er ik
 
 ## 4. Bootstrap og current-session-korruption
 
-Gamle interne browser-sessioner migreres **ikke**. Programmet opdateres kun, når ingen brugere er aktive, så der bygges
-ingen legacy-sessionreader, per-sektion-nøgle-migration, `invalidDrafts`-oversættelse, adressebro, dual-read eller
-kompatibilitetsdialog. Kun `.eo`-fil-load er bagud-/fremadtolerant (§5); det er en separat produktgaranti og må aldrig
-bruges som begrundelse for runtime-kompatibilitet.
+Programmet deployes hele døgnet, også mens sager er åbne eller står natten over. En aktiv session skal derfor hydreres
+gennem samme per-sektion-kæde som `.eo`-load: kildeversion → eksakt migrator → sanitize → schema-parse. Hver kendt,
+migrerbar canonical værdi skal overleve. En migration må aldrig gætte en domæneværdi eller stille strippe brugerdata.
+Opdager hydration et ukendt felt, en ukendt sektion, en ikke-migrerbar struktur eller en `rejectedInputs`-adresse uden
+en eksplicit oversættelse, bevares rå envelopen uændret og writes blokeres med den danske dataintegritetsfejl. Det er
+fail-closed, ikke tavst datatab; en release med en sådan forventelig ændring må ikke udgives uden den nødvendige migrering.
 
 Bootstrap læser kun den nye, manifest-ejede current-session-nøgle én gang før React-render. Data under pensionerede
 browsernøgler læses eller dekodes aldrig og er derfor hverken current-data eller current-korruption. En inkompatibel
 envelopeændring kræver en ny nøgle; kun indhold under den aktuelle nøgle klassificeres efter følgende regler:
 
 1. Findes ingen envelope, starter sagen tom.
-2. Findes en gyldig envelope, hydreres den.
+2. Findes en komplet migrerbar envelope, hydreres den. Hydration må ikke skrive eller opgradere den rå envelope; først
+   den næste fuldførte, atomiske inputtransaktion skriver current-versionens envelope.
 3. Er den tilstedeværende envelope korrupt (kan ikke parses/valideres mod current-format), håndteres det **fail-closed**
    som dataintegritet, ikke versionskompatibilitet: den rå envelope bevares uændret, alle normale inputwrites blokeres,
    og brugeren får den eksisterende eksplicitte danske systemfejl. Bootstrap må aldrig stiltiende starte tomt og senere
@@ -257,8 +261,8 @@ destruktiv erstatning må ikke tilbydes.
 Der findes **ingen** særskilt feltadresseversion: feltadresser er altid current-formatet. De øvrige versioner bumpes kun
 ved ændringer i deres eget ansvar. `.eo`-load-migrationer er eksakte og typed; der gættes aldrig ud fra shape eller
 versionssortering. En version uden sikker mapping går til den dokumenterede fail-closed/preflight-sti. En inkompatibel
-ændring af de strukturelle feltadresser er ikke en versioneret migration, men en current-session-korruption efter §4,
-fordi gamle interne sessioner aldrig migreres.
+ændring af de strukturelle feltadresser kræver en eksplicit, testet oversættelse af aktive sessioners `rejectedInputs`;
+uden den bliver sessionen fail-closed efter §4 med rå bytes bevaret.
 
 Der findes ingen runtimekode, som alene eksisterer for at betjene gamle interne modeller.
 

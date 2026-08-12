@@ -576,13 +576,13 @@ describe('currentSessionEnvelope', () => {
     expect(() => parseCurrentEnvelope('ikke json{')).toThrow();
   });
 
-  it('afviser en anden persisted dataversion som current-session-korruption', () => {
+  it('normaliserer en tidligere persisted dataversion gennem den fælles inbound-kæde', () => {
     const serialized = JSON.parse(serializeCurrentEnvelope(createEmptySettledInput())) as Record<string, unknown>;
     expect(serialized.persistedDataVersion).toBe(PERSISTED_DATA_VERSION);
-    expect(() => parseCurrentEnvelope(JSON.stringify({
+    expect(parseCurrentEnvelope(JSON.stringify({
       ...serialized,
       persistedDataVersion: 'forældet-version',
-    }))).toThrow();
+    }))).toEqual(createEmptySettledInput());
   });
 });
 
@@ -722,7 +722,7 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
       .read(belobField.bind(rowId)).status).toBe('error');
   });
 
-  it('fail-closer en envelope med anden persisted dataversion og bevarer de rå bytes', () => {
+  it('hydrerer en session fra en tidligere persisted dataversion uden datatab', () => {
     const raw = JSON.stringify({
       ...JSON.parse(serializeCurrentEnvelope(createEmptySettledInput())),
       persistedDataVersion: 'forældet-version',
@@ -731,8 +731,11 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
 
     const startup = initializeInputRuntime(store, catalog);
 
-    expect(startup.notice?.type).toBe('error');
-    expect(store.getState().meta.inputWritesBlocked).toBe(true);
+    expect(startup.notice).toBeNull();
+    expect(store.getState().meta.inputWritesBlocked).toBeUndefined();
+    expect(store.getState().input).toEqual(createEmptySettledInput());
+    // Hydration skriver aldrig, heller ikke når den læser en tidligere version. Den rå kilde kan
+    // derfor kun erstattes atomisk af brugerens næste afsluttede inputtransaktion.
     expect(sessionStorage.getItem(key)).toBe(raw);
   });
 });

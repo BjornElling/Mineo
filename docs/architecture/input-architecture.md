@@ -263,8 +263,10 @@ anmoder om sletning eller erstatning—felt-rydning, række-sletning, reset, `Sl
 - Gamle `.eo`-filer indlæses fortsat tolerant efter persistence-kontrakten.
 - En gammel `.eo`-fil kan indlæses med en canonical værdi, som nu giver rød bounds-fejl; værdien vises og kan gemmes
   igen, mens den fortsat blokerer afhængige beregninger og dokumenter.
-- Gamle interne browser-sessioner skal ikke migreres. Programmet opdateres kun, når ingen brugere er aktive, og der
-  bygges derfor ingen legacy-sessionreader, adresseoversættelse, dual-read eller kompatibilitetsdialog.
+- Programmet kan opdateres hele døgnet, også mens brugere har sager åbne eller lader dem stå natten over. Canonical
+  sektioner i en aktiv session hydreres derfor gennem samme versionsstyrede migrering som `.eo`-load. En adresseændring
+  for rejected input kræver en eksplicit, testet oversættelse; kan den ikke gennemføres uden datatab, bevares den rå
+  session fail-closed frem for at blive overskrevet.
 - Korruption i den aktuelle sessionversion skal fortsat håndteres fail-closed. Den rå envelope bevares uændret,
   alle normale writes blokeres, og brugeren får den eksisterende eksplicitte danske systemfejl. Kun brugerens
   eksplicitte `Slet alt` må fjerne den korrupte kilde og starte en ny sag. Bootstrap må aldrig stiltiende starte tomt
@@ -749,7 +751,7 @@ Integrationstests dækker form og grid ens for:
 21. Undo/redo/load/reset skaber nye monotone revisioner.
 22. Issues, beregninger og gates afhænger ikke af component mount.
 23. `.eo` indeholder kun schema-gyldigt canonical brugerinput og aldrig rejected raw.
-24. `.eo`-load er tolerant; browser-sessioner har ingen legacy-kompatibilitet.
+24. `.eo`-load og aktive browser-sessioner migrerer canonical input uden tavst datatab.
 25. Navigation settler begge surfaces; load/reset/clear gennemføres uden settle og kasserer kun åben draft ved
     succes.
 26. Save/download settler og evaluerer friskt input-/settingssnapshot før fil-/generatorarbejde.

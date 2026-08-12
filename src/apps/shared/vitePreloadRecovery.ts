@@ -1,17 +1,36 @@
 /**
- * Genopretter fra en Vite lazy-load-fejl, når en åben app-version peger på et asset, der blev
- * fjernet ved en ny deploy. Uden reload kan den gamle modulreference aldrig blive gyldig igen.
+ * Håndterer den sidste restkategori af Vite lazy-load-fejl. Den normale deploybeskyttelse er
+ * service-workerens versionscache; denne vej må derfor aldrig selv genindlæse og risikere en
+ * åben editors draft. Mineo-shellen gør i stedet den nødvendige genindlæsning synlig og passerer
+ * den gennem CriticalActionCoordinator.
  *
  * Vite udsender `vite:preloadError` for både route-, renderer- og writer-chunks. Derfor ligger
  * håndteringen i den fælles bootstrap og ikke i den enkelte dokumentdefinition.
  */
-import { UI_STORAGE_KEYS } from '../../config/storageManifest';
-import {
-  readOptionalSessionStorageValue,
-  writeOptionalSessionStorageValue,
-} from '../../utils/safeSessionStorage';
-
 let removePreloadErrorListener: (() => void) | null = null;
+let recoveryPending = false;
+const recoveryListeners = new Set<() => void>();
+
+const publishRecoveryPending = (nextValue: boolean): void => {
+  if (recoveryPending === nextValue) return;
+  recoveryPending = nextValue;
+  for (const listener of recoveryListeners) listener();
+};
+
+export const isVitePreloadRecoveryPending = (): boolean => recoveryPending;
+
+export const subscribeVitePreloadRecovery = (listener: () => void): (() => void) => {
+  recoveryListeners.add(listener);
+  return () => recoveryListeners.delete(listener);
+};
+
+/** Genindlæser kun efter shellens eksplicitte, input-sikrede brugerhandling. */
+export const reloadAfterVitePreloadRecovery = (): boolean => {
+  if (!recoveryPending || typeof window === 'undefined') return false;
+  publishRecoveryPending(false);
+  window.location.reload();
+  return true;
+};
 
 const getFailureSignature = (payload: unknown): string | null => {
   if (!(payload instanceof Error)) return null;
@@ -21,10 +40,9 @@ const getFailureSignature = (payload: unknown): string | null => {
 /**
  * Installerer Vites ene globale recovery-hook.
  *
- * Den senest fejlede asset-signatur gemmes før reload. Kommer den samme fejl igen efter reload,
- * lader vi Vite-fejlen nå den normale fejlhåndtering i stedet for at skabe en reload-løkke. Kan
- * sessionStorage ikke kvittere for markøren, reloader vi heller ikke: uden den kvittering kan en
- * midlertidig netværksfejl blive til en uendelig løkke.
+ * Et Vite-signal undertrykkes og offentliggøres som en ventende, sikker recovery. Det er bevidst
+ * ikke en automatisk reload: sessionStorage indeholder afsluttet input, men en åben editor har
+ * stadig en draft, som kun den kritiske handlingsbarriere kan settle eller afvise korrekt.
  */
 export const setupVitePreloadRecovery = (): void => {
   if (!import.meta.env.PROD) return;
@@ -32,19 +50,9 @@ export const setupVitePreloadRecovery = (): void => {
   if (removePreloadErrorListener !== null) return;
 
   const handlePreloadError = (event: VitePreloadErrorEvent): void => {
-    const signature = getFailureSignature(event.payload);
-    if (signature === null) return;
-
-    if (readOptionalSessionStorageValue(UI_STORAGE_KEYS.vitePreloadRecovery) === signature) {
-      return;
-    }
-
-    if (!writeOptionalSessionStorageValue(UI_STORAGE_KEYS.vitePreloadRecovery, signature)) {
-      return;
-    }
-
+    if (getFailureSignature(event.payload) === null) return;
     event.preventDefault();
-    window.location.reload();
+    publishRecoveryPending(true);
   };
 
   window.addEventListener('vite:preloadError', handlePreloadError);
@@ -57,4 +65,6 @@ export const setupVitePreloadRecovery = (): void => {
 /** Kun test-infrastruktur må afmontere den globale browser-listener. */
 export const __resetVitePreloadRecoveryForTests = (): void => {
   removePreloadErrorListener?.();
+  recoveryPending = false;
+  recoveryListeners.clear();
 };

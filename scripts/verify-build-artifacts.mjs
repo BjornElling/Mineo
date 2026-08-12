@@ -34,7 +34,7 @@ const manifestSources = Object.entries(manifest)
   .filter((value) => typeof value === 'string');
 
 if (variant === 'mineo') {
-  for (const required of ['sw.js', 'manifest.json', 'icons']) requirePath(required);
+  for (const required of ['sw.js', 'manifest.json', 'pwa-assets.json', 'icons']) requirePath(required);
   if (!manifestSources.some((source) => source.endsWith('index.html'))) {
     throw new Error('Mineo-buildets manifest mangler index.html-entryen.');
   }
@@ -45,8 +45,15 @@ if (variant === 'mineo') {
   ) {
     throw new Error('Mineo-buildets synkrone theme-bootstrap er ikke injiceret korrekt.');
   }
+  const pwaAssets = JSON.parse(readFileSync(path.join(outDir, 'pwa-assets.json'), 'utf8'));
+  if (!Array.isArray(pwaAssets.assets) || pwaAssets.assets.length === 0) {
+    throw new Error('Mineo-buildets PWA-assetmanifest mangler immutable Vite-assets.');
+  }
+  if (!pwaAssets.assets.every((asset) => typeof asset === 'string' && asset.startsWith('assets/'))) {
+    throw new Error('Mineo-buildets PWA-assetmanifest indeholder en ugyldig asset-sti.');
+  }
 } else {
-  for (const forbidden of ['sw.js', 'manifest.json', 'icons', 'favicon-mineo.svg']) forbidPath(forbidden);
+  for (const forbidden of ['sw.js', 'manifest.json', 'pwa-assets.json', 'icons', 'favicon-mineo.svg']) forbidPath(forbidden);
   if (!manifestSources.some((source) => source.endsWith('minprocesrente.html'))) {
     throw new Error('MinProcesrente-buildets manifest mangler standalone-entryen.');
   }

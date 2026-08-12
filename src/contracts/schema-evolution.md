@@ -2,7 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-08
+**Senest verificeret mod kode:** 2026-08-12
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -312,10 +312,11 @@ canonical sektionsdata:
 1. `PERSISTED_DATA_VERSION` håndterer canonical sektionsdata (inkl. `.eo`-load-mapping).
 2. `CurrentInputEnvelope.envelopeVersion` håndterer den samlede sessionstruktur.
 
-Der findes **ingen** `fieldAddressVersion` og ingen browser-session-feltadressemigration: gamle interne sessioner
-migreres aldrig. Ændrer de strukturelle feltadresser sig inkompatibelt, kan en eksisterende current-session ikke længere
-valideres og håndteres som current-session-korruption (fail-closed) efter `persistence-contract.md` §4 — ikke som en
-versioneret adressemigration. Kun `.eo`-fil-load forbliver tolerant efter `PERSISTED_DATA_VERSION`-mappingen.
+Der findes ingen selvstændig `fieldAddressVersion`. Programmet deployes imidlertid også under aktive sessioner, så en
+inkompatibel feltadresseændring skal ledsages af en eksakt, testet oversættelse af aktive sessioners `rejectedInputs`.
+Kan en adresse ikke oversættes uden at gætte eller skjule rå tekst, håndteres sessionen fail-closed efter
+`persistence-contract.md` §4 med de rå bytes bevaret; releasen må ikke betragtes som kompatibel. Canonical
+sektionsdata følger fortsat `PERSISTED_DATA_VERSION`-mappingen.
 
 ### 3.5 AppSettings
 
@@ -340,9 +341,10 @@ Se `src/contracts/app-settings.md` for den normative regel om nested merge-logik
   → snapshot opdateres med sektionens data
 ```
 
-Session-hydrering validerer den samlede current-session-envelope; kan den ikke valideres mod current-formatet,
-håndteres det fail-closed efter `persistence-contract.md` §4 (ingen migration). Rejected input valideres særskilt mod
-feltkataloget (kendt adresse + eksisterende entity + XOR). Zod-versioner og
+Session-hydrering læser envelope-strukturen og passerer derefter hver canonical sektion gennem præcis samme
+migrator → sanitize → schema-parse-kæde som `.eo`-load. Et strip, en ukendt sektion eller en ikke-migrerbar adresse
+må ikke blive til en ændret session; de rå bytes bevares fail-closed efter `persistence-contract.md` §4. Rejected input
+valideres særskilt mod feltkataloget (kendt adresse + eksisterende entity + XOR). Zod-versioner og
 `stripUnknownFieldsBySchema`'s `.shape`/pipe-afhængigheder skal verificeres ved Zod-opgradering, fordi fejl her kan give
 forkert strip eller fingerprint-drift.
 
@@ -357,10 +359,9 @@ forkert strip eller fingerprint-drift.
 3. ændret load-sanitization der påvirker sagsinput,
 4. bevidst breaking schema-ændring.
 
-`CurrentInputEnvelope.envelopeVersion` bumpes ved ændring af sessionaggregatets serialiserede struktur. En inkompatibel ændring
-af de strukturelle feltadresser bumpes ikke som en særskilt version, men gør enhver eksisterende current-session
-korrupt (fail-closed efter `persistence-contract.md` §4), fordi browser-sessioner aldrig migreres. Versionerne må ikke
-bumpes samlet uden klassifikation.
+`CurrentInputEnvelope.envelopeVersion` bumpes ved ændring af sessionaggregatets serialiserede struktur og kræver en
+eksakt envelope-adapter for stadig understøttede aktive sessioner. En inkompatibel ændring af strukturelle feltadresser
+kræver en samtidig, testet `rejectedInputs`-oversættelse. Versionerne må ikke bumpes samlet uden klassifikation.
 
 `FILE_FORMAT_VERSION` bumpes kun ved inkompatible containerændringer uden for persisted sektionsdata, fx nye obligatoriske load-krav, inkompatibel metadata-struktur eller krypterings-/indpakningsformat. Additive metadatafelter, som er optionelle ved load, kræver ikke bump.
 

@@ -92,7 +92,7 @@ const LoenindkomstTab = React.memo(({
           <Box className="row--label-right-hover" key={punkt}>
             <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
               <Typography className="row--text" sx={{ paddingLeft: '16px' }}>
-                {`•  ${punkt}`}
+                {`•  ${punkt}`}
               </Typography>
             </Box>
           </Box>

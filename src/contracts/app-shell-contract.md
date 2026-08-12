@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-11
+**Senest verificeret mod kode:** 2026-08-12
 
 ## 1. Scope
 
@@ -11,9 +11,10 @@ Det øverste runtime-lag, der binder programmet sammen, og isolationen mellem de
 
 - App-entries: `src/main.tsx` (Mineo) og `src/apps/minprocesrente/minprocesrenteMain.tsx` (standalone MinProcesrente).
 - Delt app-shell: `src/apps/shared/bootstrapClientApp.tsx` (device-gate, render-beslutning, install-prompt-politik og installation af den fælles Vite-recovery).
-- Vite lazy-load-recovery: `src/apps/shared/vitePreloadRecovery.ts` (engangsbeskyttet recovery efter en deploy, der har fjernet et hash-navngivet asset).
+- Vite lazy-load-recovery: `src/apps/shared/vitePreloadRecovery.ts` (sidste sikkerhedsnet for et manglende lazy asset; den normale deploybeskyttelse ligger i service-workerens versionscache).
 - Delt device-aflæsning: `src/utils/clientDevice.ts` (rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer, uden app-shell-render-beslutninger).
-- Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering og opdaterings-/reload-disciplin).
+- Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering, opdateringsstatus og brugerbekræftet reload).
+- Genindlæsningslinje: `src/components/system/ApplicationReloadNotice.tsx` (synlig opdaterings-/lazy-recoverytilstand og sikker genindlæsning).
 - PWA-filåbning: `src/utils/pwaLaunchQueue.ts` (launchQueue-consumer og versionssikker pending request).
 - PWA-cachepolitik: `public/_headers` (revalidering af HTML, SPA-ruter, manifest og service worker; immutable hashed assets).
 - Standalone-specifik opstart og isolation: `src/apps/minprocesrente/standaloneStorageNamespace.ts`, `MinProcesrenteApp.tsx`, `StandaloneErrorBoundary.tsx`.
@@ -47,9 +48,17 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 6. **PWA-filåbning registreres før service-worker og React.** Mineos entry leverer `setupPwaFileOpenHandling` til den fælles shell. På en understøttet desktop-enhed kalder shellen den før `beforeDesktopRender` og før app-roden renderes. Callbacken registrerer først launchQueue-consumeren og hydrerer derefter den persisterede pending request. Rækkefølgen bevarer en `.eo`-fil, der blev åbnet lige før en PWA-opdatering, så den nye app-version kan fortsætte samme load-flow efter login. Ankommer en ny launchQueue-fil under hydrering, vinder den nye brugerhandling over den ældre persisterede request. Standalone leverer aldrig callbacken.
 
-7. **Service-worker er cache-fri, og deploymentsrecovery er begrænset.** `public/sw.js` precacher ikke, runtime-cacher ikke og intercepter ikke `fetch` (for aldrig at servere forældet beregningslogik). HTML, SPA-ruter, manifest og service worker skal samtidig have no-cache/no-store headers i `public/_headers`, så browser/host-fallbacks ikke fastholder en gammel app-shell; hashed Vite-assets må fortsat være immutable.
+7. **Service-worker bevarer hver åbne builds immutable lazy assets.** `vite.mineo.config.ts` emitterer det genererede PWA-assetmanifest med alle buildets hash-navngivne `/assets/*`. `public/sw.js` må kun installeres, når hele manifestet er precachet i en cache navngivet med workerens build-version; en mislykket eller ufuldstændig cache afviser installationen. Fetch-interception må KUN besvare præcise, same-origin `/assets/<hash>`-requests fra disse versionscacher og må falde tilbage til netværket ved cache-miss. HTML, SPA-ruter, manifest, service worker, data og vilkårlige assets må aldrig besvares fra cache. Dermed får en åben version fortsat adgang til sin PDF-/Word-writer og øvrige lazy chunks efter en deploy, mens en ny navigation altid henter den aktuelle app-shell og dens beregningslogik.
 
-   Klientsiden må kun udløse `window.location.reload()` ved en **reel opdatering**: enten når en *ventende* worker aktiveres og der allerede fandtes en controller, da dokumentet loadede, eller når Vite udsender det dokumenterede `vite:preloadError`-signal for et lazy-loadet asset, som den åbne app-version ikke længere kan hente efter en deploy. En `controllerchange` udløst af første installs `clients.claim()` (ingen controller ved load) må **aldrig** reloade, da det ville give en uønsket hard-reload midt i første åbning og kunne tabe ikke-gemt indtastning.
+   Tidligere versionscacher slettes ikke automatisk: når en ny worker aktiveres, kan den også tage kontrol over andre åbne klienter, som stadig kører gammel JavaScript. Hash-navne er indholdsadresserede og immutable, så det er sikkert at svare på netop en gammel hash-request, men ikke på HTML eller ruter. Retention er den bevidste pris for at gøre deployment midt i aktive og natlange sessioner sikker; browseren eller brugeren kan fortsat rydde website-data eksplicit. `scripts/verify-build-artifacts.mjs` skal afvise et Mineo-build uden et gyldigt assetmanifest.
+
+   En ny worker kalder heller ikke `skipWaiting()` under installation: første installation aktiveres af klienten før React-render, mens en senere worker forbliver ventende. HTML, SPA-ruter, manifest og service worker skal samtidig have no-cache/no-store headers i `public/_headers`, så browser/host-fallbacks ikke fastholder en gammel app-shell; hashed Vite-assets skal fortsat være immutable.
+
+   En ventende service-worker-opdatering aktiveres **aldrig automatisk** — heller ikke ved timer-, online- eller synlighedstjek. Shellen viser i stedet den vedvarende linje “En ny version er klar” med handlingen “Genindlæs nu”. Ved brugerens aktivering afslutter `CriticalActionCoordinator` først en åben editor efter reload-policyen; lykkes det, beder klienten den ventende worker om aktivering og genindlæser først på den efterfølgende `controllerchange`. Fejler afslutningen teknisk, fokuseres feltet, og brugeren bliver på den aktuelle version. En `controllerchange`, som ikke stammer fra denne udtrykkelige brugerhandling — herunder første installs `clients.claim()` — må aldrig reloade.
+
+   Vites `vite:preloadError` er alene sidste sikkerhedsnet for fejl, der ikke burde være mulige efter en komplet versionscache. Det må aldrig kalde `location.reload()` selv. Signalet undertrykkes, og `ApplicationReloadNotice` tilbyder den samme brugerudløste reload gennem `CriticalActionCoordinator`; dermed bliver også en åben draft enten afsluttet eller eksplicit blokeret før navigation.
+
+   Klientsiden må desuden genindlæse ved Vites dokumenterede `vite:preloadError`-signal for et lazy-loadet asset, som den åbne app-version ikke længere kan hente efter en deploy. Vite-recoveryen er den akutte, begrænsede fallback; den almindelige opdateringsvej er altid den brugerbekræftede service-worker-aktivering ovenfor.
 
    Vite-recovery installeres centralt af `bootstrapClientApp` før enhver dynamisk style-, route-, renderer- eller writer-import. Den gemmer den fejlede asset-signatur i en manifest-ejet, device-scoped sessionnøgle før reload. Genopstår samme fejl efter reload, må den ikke genindlæse igen; den almindelige fejlhåndtering skal overtage. Kan markøren ikke skrives, må der heller ikke reloades. Dermed er der ingen reload-løkke ved netværks- eller storagefejl, mens en ny hash-signatur fra en senere deploy fortsat får ét recovery-forsøg.
 
@@ -72,10 +81,12 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts` (storage-namespace sat via bivirknings-import før App-import). **Bemærk:** selve importforbuddet i §2.3 testes IKKE længere her — det er flyttet til AST-reglen nedenfor, og filen siger det selv.
 - `src/__tests__/quality/architecture/rules/documentRules.ts` (`layer/minprocesrente-standalone-import-boundary`: den strukturelle håndhævelse af §2.3's krydsimport-forbud).
 - `src/__tests__/apps/shared/bootstrapClientApp.test.tsx` (device-gate hård stop som default; standalone kan fravælge gaten).
-- `src/__tests__/apps/shared/vitePreloadRecovery.test.ts` (Vite-signal genindlæser kun én gang pr. fejlet asset-signatur og aldrig uden sikker recovery-markør).
+- `src/__tests__/apps/shared/vitePreloadRecovery.test.ts` (Vite-signal er kun sidste sikkerhedsnet og må ikke genindlæse en aktiv sag uvarslet).
 - `src/__tests__/main.pwaLaunchQueue.test.ts` (Mineo-entryen leverer consumer-registrering og rehydrering til shellen i rækkefølge).
 - `src/__tests__/utils/pwaLaunchQueue.test.ts` (pending request overlever versionsskift; ny launch vinder over gammel persisted request; utilgængelig IndexedDB stopper ikke opstarten).
-- `src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts` (reload kun ved reel opdatering, aldrig ved første install; højst én reload; ingen registrering uden for produktion eller på `/open`).
+- `src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts` (ventende opdatering annonceres uden automatisk reload; brugeraccept aktiverer worker og reloader én gang på `controllerchange`; ingen registrering uden for produktion eller på `/open`).
+- `src/__tests__/apps/mineo/serviceWorkerProtocol.test.ts` (workeren kræver en komplet versionscache, serverer kun immutable hashed assets og springer ikke selv ventetiden over).
+- `src/__tests__/components/system/ApplicationReloadNotice.test.tsx` (genindlæsningslinjen bruger reload-barrieren for både opdatering og lazy-recovery).
 - `e2e/pwa-file-open.spec.ts` (launchQueue-consumer registreres i den fulde loginrejse i Chrome, Edge, Firefox og WebKit).
 - `src/__tests__/quality/pwaHeaders.test.ts` (HTML, SPA-ruter, manifest og service worker revalideres; hashed assets er immutable).
 - `src/__tests__/settings/indexThemeBootstrap.test.ts` (kanonisk theme-bootstrap og systemfallback ved manglende, ugyldig eller ulæselig settings-storage).

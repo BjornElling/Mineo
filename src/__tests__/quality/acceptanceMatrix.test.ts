@@ -469,7 +469,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
   },
   {
     criterion: 24,
-    title: '`.eo`-load er tolerant; browser-sessioner har ingen legacy-kompatibilitet.',
+    title: '`.eo`-load og aktive browser-sessioner migrerer canonical input uden tavst datatab.',
     sources: [
       {
         file: 'src/__tests__/utils/fileLoad.normalLoad.test.ts',
@@ -478,8 +478,8 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
       {
         file: 'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
         tests: [
-          'afviser en anden persisted dataversion som current-session-korruption',
-          'fail-closer en envelope med anden persisted dataversion og bevarer de rå bytes',
+          'normaliserer en tidligere persisted dataversion gennem den fælles inbound-kæde',
+          'hydrerer en session fra en tidligere persisted dataversion uden datatab',
         ],
       },
     ],

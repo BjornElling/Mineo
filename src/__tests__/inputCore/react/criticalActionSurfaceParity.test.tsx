@@ -309,8 +309,8 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
    * Selve PARITETEN: de to surfaces skal give SAMME udfaldsstatus for hver handling. De handlingsvise
    * tests ovenfor kører hver for sig og kunne begge være grønne på hver sin forkerte måde.
    */
-  it('form og grid giver identisk udfaldsstatus for hver af de seks kritiske handlinger', async () => {
-    const ACTIONS: readonly CriticalAction[] = ['save', 'download', 'navigate', 'load', 'undo', 'redo'];
+  it('form og grid giver identisk udfaldsstatus for hver af de syv kritiske handlinger', async () => {
+    const ACTIONS: readonly CriticalAction[] = ['save', 'download', 'navigate', 'reload', 'load', 'undo', 'redo'];
     const outcomes: Record<SurfaceKind, string[]> = { form: [], grid: [] };
 
     for (const surface of SURFACES) {
@@ -336,8 +336,8 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
     }
 
     expect(outcomes.grid).toEqual(outcomes.form);
-    // Og listen er ikke tom af tomhed: seks handlinger, og mindst to forskellige udfald.
-    expect(outcomes.form).toHaveLength(6);
+    // Og listen er ikke tom af tomhed: syv handlinger, og mindst to forskellige udfald.
+    expect(outcomes.form).toHaveLength(7);
     expect(new Set(outcomes.form.map((entry) => entry.split(':')[1])).size).toBeGreaterThan(1);
   });
 });

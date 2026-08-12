@@ -1,21 +1,19 @@
 // @vitest-environment jsdom
 
 /**
- * Verificerer reload-disciplinen i service-worker-bootstrappen:
- *  - Første install (ingen controller ved load) må ALDRIG udløse reload, selvom `sw.js`'s
- *    `clients.claim()` fyrer `controllerchange` på et dokument der lige er booted.
- *  - En reel opdatering (controller fandtes ved load) reloader på `controllerchange`.
- *  - Reload sker højst én gang pr. dokument.
- *
- * Disse tests beskytter mod den uønskede hard-reload midt i første åbning, der ellers ville
- * kunne tabe ikke-gemt indtastning.
+ * Verificerer opdateringsdisciplinen i service-worker-bootstrappen:
+ *  - En ventende worker annonceres, men tager aldrig en aktiv sag over automatisk.
+ *  - Først brugerens eksplicitte accept sender SKIP_WAITING.
+ *  - Reload sker præcis én gang og først efter den accepterede workers controllerchange.
  */
 
 type ControllerChangeListener = () => void;
+type StateChangeListener = () => void;
 
 type FakeServiceWorker = {
   state: ServiceWorker['state'];
   postMessage: ReturnType<typeof vi.fn>;
+  addEventListener: ReturnType<typeof vi.fn>;
 };
 
 type FakeRegistration = {
@@ -27,6 +25,17 @@ type FakeRegistration = {
 
 const setProd = (value: boolean): void => {
   vi.stubEnv('PROD', value);
+};
+
+const buildServiceWorker = (state: ServiceWorker['state']): FakeServiceWorker => {
+  const listeners: StateChangeListener[] = [];
+  return {
+    state,
+    postMessage: vi.fn(),
+    addEventListener: vi.fn((type: string, listener: StateChangeListener) => {
+      if (type === 'statechange') listeners.push(listener);
+    }),
+  };
 };
 
 const buildServiceWorkerContainer = (options: {
@@ -48,17 +57,18 @@ const buildServiceWorkerContainer = (options: {
   return { container, fireControllerChange };
 };
 
-const buildRegistration = (): FakeRegistration => ({
+const buildRegistration = (waiting: FakeServiceWorker | null = null): FakeRegistration => ({
   installing: null,
-  waiting: null,
+  waiting,
   update: vi.fn(async () => undefined),
   addEventListener: vi.fn(),
 });
 
-describe('serviceWorkerBootstrap reload-disciplin', () => {
+describe('serviceWorkerBootstrap opdateringsdisciplin', () => {
   let reloadSpy: ReturnType<typeof vi.fn>;
+  let resetBootstrap: () => void;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     setProd(true);
     reloadSpy = vi.fn();
@@ -66,59 +76,19 @@ describe('serviceWorkerBootstrap reload-disciplin', () => {
       configurable: true,
       value: { pathname: '/', reload: reloadSpy },
     });
+    const bootstrap = await import('../../../apps/mineo/serviceWorkerBootstrap');
+    resetBootstrap = bootstrap.__resetServiceWorkerBootstrapForTests;
   });
 
   afterEach(() => {
+    resetBootstrap();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
-  it('reloader IKKE ved første install (ingen controller ved load), selv når controllerchange fyrer', async () => {
-    const registration = buildRegistration();
-    const { container, fireControllerChange } = buildServiceWorkerContainer({
-      controller: null,
-      registration,
-    });
-    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: container });
-
-    const { ensureLatestServiceWorkerBeforeRender } = await import(
-      '../../../apps/mineo/serviceWorkerBootstrap'
-    );
-    await ensureLatestServiceWorkerBeforeRender();
-
-    // sw.js's clients.claim() ville fyre controllerchange efter første aktivering:
-    fireControllerChange();
-
-    expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
-  it('reloader ALDRIG i et første-install-dokument, heller ikke ved en senere controllerchange', async () => {
-    // Bevidst konservativ adfærd: et dokument der loadede uden controller (første install)
-    // auto-reloader aldrig — heller ikke hvis en ny version aktiveres senere i samme dokument.
-    // `controllerExistedAtLoad` (ikke `{once:true}`-listeneren) er den gate der styrer dette;
-    // opdateringen tages i brug ved næste åbning. Denne test værner mod, at gaten fjernes ved
-    // en fejlagtig "fix", fordi den fremstår overflødig.
-    const registration = buildRegistration();
-    const { container, fireControllerChange } = buildServiceWorkerContainer({
-      controller: null,
-      registration,
-    });
-    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: container });
-
-    const { ensureLatestServiceWorkerBeforeRender } = await import(
-      '../../../apps/mineo/serviceWorkerBootstrap'
-    );
-    await ensureLatestServiceWorkerBeforeRender();
-
-    // Første-install-claim fyrer controllerchange, og senere aktiverer en ny version også:
-    fireControllerChange();
-    fireControllerChange();
-
-    expect(reloadSpy).not.toHaveBeenCalled();
-  });
-
-  it('reloader netop én gang ved en reel opdatering (controller fandtes ved load)', async () => {
-    const registration = buildRegistration();
+  it('annoncerer en ventende opdatering uden at genindlæse automatisk', async () => {
+    const waiting = buildServiceWorker('installed');
+    const registration = buildRegistration(waiting);
     const existingController = { state: 'activated' } as unknown as ServiceWorker;
     const { container, fireControllerChange } = buildServiceWorkerContainer({
       controller: existingController,
@@ -126,16 +96,66 @@ describe('serviceWorkerBootstrap reload-disciplin', () => {
     });
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: container });
 
-    const { ensureLatestServiceWorkerBeforeRender } = await import(
-      '../../../apps/mineo/serviceWorkerBootstrap'
-    );
+    const {
+      ensureLatestServiceWorkerBeforeRender,
+      getServiceWorkerUpdateStatus,
+    } = await import('../../../apps/mineo/serviceWorkerBootstrap');
     await ensureLatestServiceWorkerBeforeRender();
 
-    // En ventende worker aktiverer → controllerchange fyrer (evt. mere end én gang).
-    fireControllerChange();
-    fireControllerChange();
+    expect(getServiceWorkerUpdateStatus()).toBe('ready');
+    expect(waiting.postMessage).not.toHaveBeenCalled();
 
+    // Selv en controllerchange uden brugeraccept må aldrig rive den aktive sag ned.
+    fireControllerChange();
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('aktiverer og genindlæser kun efter brugerens eksplicitte accept', async () => {
+    const waiting = buildServiceWorker('installed');
+    const registration = buildRegistration(waiting);
+    const existingController = { state: 'activated' } as unknown as ServiceWorker;
+    const { container, fireControllerChange } = buildServiceWorkerContainer({
+      controller: existingController,
+      registration,
+    });
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: container });
+
+    const {
+      activateAvailableServiceWorkerUpdate,
+      ensureLatestServiceWorkerBeforeRender,
+      getServiceWorkerUpdateStatus,
+    } = await import('../../../apps/mineo/serviceWorkerBootstrap');
+    await ensureLatestServiceWorkerBeforeRender();
+
+    expect(activateAvailableServiceWorkerUpdate()).toBe(true);
+    expect(waiting.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+    expect(getServiceWorkerUpdateStatus()).toBe('activating');
+    expect(reloadSpy).not.toHaveBeenCalled();
+
+    fireControllerChange();
+    fireControllerChange();
     expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('aktiverer første install før app-render uden at annoncere eller genindlæse', async () => {
+    const waiting = buildServiceWorker('installed');
+    const registration = buildRegistration(waiting);
+    const { container, fireControllerChange } = buildServiceWorkerContainer({
+      controller: null,
+      registration,
+    });
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: container });
+
+    const {
+      ensureLatestServiceWorkerBeforeRender,
+      getServiceWorkerUpdateStatus,
+    } = await import('../../../apps/mineo/serviceWorkerBootstrap');
+    await ensureLatestServiceWorkerBeforeRender();
+
+    expect(getServiceWorkerUpdateStatus()).toBe('idle');
+    expect(waiting.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+    fireControllerChange();
+    expect(reloadSpy).not.toHaveBeenCalled();
   });
 
   it('gør intet uden for produktion', async () => {

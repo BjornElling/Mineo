@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Underordnet form-, persistence- og dokument-output-kontrakterne for deres dataregler.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-12
 
 ## 1. Scope
 
@@ -14,6 +14,7 @@ Kontrakten gælder handlinger, der aflæser, erstatter eller kan unmount'e autor
 - sidenavigation,
 - global undo/redo,
 - dokument-output.
+- brugerbekræftet PWA-genindlæsning efter en opdatering.
 
 ## 2. Én coordinator
 
@@ -38,6 +39,7 @@ Policyen er ens for form- og grid-editoren; korrekthed må aldrig afhænge af br
 | Gem | settle først, evaluér derefter frisk input-/settingssnapshot | afvent |
 | Dokument-output | settle først, evaluér derefter frisk input-/settingssnapshot | afvent |
 | Sidenavigation | settle og fortsæt (også ved fejlende settle) | afvent |
+| PWA-genindlæsning | settle og fortsæt (også ved fejlende settle) | afvent |
 | Manuel/PWA-indlæsning | gennemfør uden settle; den åbne draft må aldrig blokere handlingen | afvent |
 | Load, reset og `Slet alt` | gennemfør uden settle; den åbne draft må aldrig blokere handlingen | afvent |
 | Undo/redo | stille no-op; den åbne draft ændres ikke | afvent |

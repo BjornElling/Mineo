@@ -65,7 +65,6 @@ const UI_STORAGE_KEY_SUFFIXES = {
   eoOffentligeYdelserHelpers: 'ui_eoOffentligeYdelserHelpers',
   devtoolsLastSeenIssueId: 'ui_devtools_lastSeenIssueId',
   sideMenuExpanded: 'sideMenuExpanded',
-  vitePreloadRecovery: 'ui_vitePreloadRecovery',
 } as const;
 
 const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
@@ -91,7 +90,6 @@ const SESSION_RESET_POLICY = {
   eoOffentligeYdelserHelpers: 'caseScoped',
   devtoolsLastSeenIssueId: 'deviceScoped',
   sideMenuExpanded: 'deviceScoped',
-  vitePreloadRecovery: 'deviceScoped',
 } as const satisfies { readonly [K in keyof typeof UI_STORAGE_KEY_SUFFIXES]: 'caseScoped' | 'deviceScoped' };
 
 /**

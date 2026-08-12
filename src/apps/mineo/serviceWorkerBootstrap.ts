@@ -4,19 +4,28 @@ const SW_UPDATE_CHECK_TIMEOUT_MS = 5000;
 const SW_PERIODIC_UPDATE_CHECK_MS = 60 * 60 * 1000;
 const swUpdateLifecycleWired = new WeakSet<ServiceWorkerRegistration>();
 
-// Hvorvidt der allerede var en aktiv controller, da dokumentet loadede.
-//
-// Dette afgør, om en `controllerchange` skal udløse reload:
-// - Første install (ingen controller endnu): `sw.js` kalder `clients.claim()` i sin
-//   activate-handler, hvilket fyrer `controllerchange` på et dokument der lige er booted.
-//   Det er IKKE en opdatering — at reloade dér ville give en uønsket hard-reload midt i
-//   første åbning (og potentielt tabe ikke-gemt indtastning). Vi springer derfor reload over.
-// - Senere aktivering af en *waiting* worker (controller fandtes ved load): det ER en
-//   opdatering, og reload er den korrekte måde at tage den nye kode i brug på.
-const hadControllerAtLoad = (): boolean => {
-  if (typeof navigator === 'undefined') return false;
-  if (!('serviceWorker' in navigator)) return false;
-  return navigator.serviceWorker.controller !== null;
+export type ServiceWorkerUpdateStatus = 'idle' | 'ready' | 'activating';
+
+let updateStatus: ServiceWorkerUpdateStatus = 'idle';
+let updateRegistration: ServiceWorkerRegistration | null = null;
+let reloadAfterAcceptedUpdate = false;
+let hasTriggeredReload = false;
+let controllerChangeWired = false;
+const updateStatusListeners = new Set<() => void>();
+
+const publishUpdateStatus = (nextStatus: ServiceWorkerUpdateStatus): void => {
+  if (updateStatus === nextStatus) return;
+  updateStatus = nextStatus;
+  for (const listener of updateStatusListeners) listener();
+};
+
+export const getServiceWorkerUpdateStatus = (): ServiceWorkerUpdateStatus => updateStatus;
+
+export const subscribeServiceWorkerUpdateStatus = (listener: () => void): (() => void) => {
+  updateStatusListeners.add(listener);
+  return () => {
+    updateStatusListeners.delete(listener);
+  };
 };
 
 const isPwaFileOpenRoute = (): boolean => {
@@ -24,29 +33,70 @@ const isPwaFileOpenRoute = (): boolean => {
   return window.location.pathname === '/open';
 };
 
-let hasTriggeredReload = false;
-let controllerExistedAtLoad = false;
+/**
+ * En ny worker må aldrig tage kontrol over en aktiv sag af sig selv. Brugeren vælger tidspunktet
+ * i shellens opdateringslinje, som først afslutter en eventuel åben editor gennem inputkernen.
+ */
+const announceWaitingUpdate = (registration: ServiceWorkerRegistration): void => {
+  if (!registration.waiting) return;
+  if (!navigator.serviceWorker.controller) return;
+  updateRegistration = registration;
+  publishUpdateStatus('ready');
+};
 
-const reloadForActivatedUpdate = (): void => {
-  // Reload kun hvis dette er en reel opdatering (controller fandtes ved load), ikke
-  // første-install-claim. Engangs-guard mod dobbelt-reload i samme dokument.
-  if (!controllerExistedAtLoad) return;
-  if (hasTriggeredReload) return;
+const clearWaitingUpdate = (): void => {
+  updateRegistration = null;
+  publishUpdateStatus('idle');
+};
+
+/** Første installation sker før app-render og kan derfor aktiveres uden at afbryde brugerarbejde. */
+const activateFirstInstall = (registration: ServiceWorkerRegistration): void => {
+  if (navigator.serviceWorker.controller !== null) return;
+  registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+};
+
+const reloadAfterAcceptedControllerChange = (): void => {
+  if (!reloadAfterAcceptedUpdate || hasTriggeredReload) {
+    clearWaitingUpdate();
+    return;
+  }
   hasTriggeredReload = true;
   window.location.reload();
 };
 
-// Bed en ventende worker om at aktivere. Den faktiske reload sker via `controllerchange`
-// (registreret ved boot), så aktivering og reload har én fælles gate (`reloadForActivatedUpdate`).
-const promoteWaitingWorker = (registration: ServiceWorkerRegistration): void => {
-  registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+const wireControllerChange = (): void => {
+  if (controllerChangeWired) return;
+  controllerChangeWired = true;
+  navigator.serviceWorker.addEventListener('controllerchange', reloadAfterAcceptedControllerChange);
+};
+
+/**
+ * Aktiverer en allerede annonceret opdatering. Kaldet er bevidst ikke en direkte reload: først når
+ * den nye service worker har taget kontrol (`controllerchange`), genindlæses dokumentet.
+ */
+export const activateAvailableServiceWorkerUpdate = (): boolean => {
+  if (!import.meta.env.PROD) return false;
+  const waiting = updateRegistration?.waiting;
+  if (!waiting || updateStatus !== 'ready') return false;
+
+  reloadAfterAcceptedUpdate = true;
+  publishUpdateStatus('activating');
+  waiting.postMessage({ type: 'SKIP_WAITING' });
+  return true;
 };
 
 // Én fælles update-lifecycle-wiring. Idempotent pr. registration via WeakSet.
 // `navigator.serviceWorker.ready` og `register()` resolver til samme registration-objekt,
 // så både boot-stien og de periodiske tjek deler denne ene wiring og dermed samme adfærd.
 const wireUpdateLifecycle = (registration: ServiceWorkerRegistration): void => {
-  if (swUpdateLifecycleWired.has(registration)) return;
+  if (swUpdateLifecycleWired.has(registration)) {
+    if (navigator.serviceWorker.controller === null) {
+      activateFirstInstall(registration);
+    } else {
+      announceWaitingUpdate(registration);
+    }
+    return;
+  }
   swUpdateLifecycleWired.add(registration);
 
   registration.addEventListener('updatefound', () => {
@@ -54,11 +104,20 @@ const wireUpdateLifecycle = (registration: ServiceWorkerRegistration): void => {
     if (!installing) return;
 
     installing.addEventListener('statechange', () => {
-      if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-        promoteWaitingWorker(registration);
+      if (installing.state === 'installed') {
+        if (navigator.serviceWorker.controller === null) {
+          activateFirstInstall(registration);
+        } else {
+          announceWaitingUpdate(registration);
+        }
       }
     });
   });
+  if (navigator.serviceWorker.controller === null) {
+    activateFirstInstall(registration);
+  } else {
+    announceWaitingUpdate(registration);
+  }
 };
 
 const registerServiceWorker = async (): Promise<void> => {
@@ -68,33 +127,8 @@ const registerServiceWorker = async (): Promise<void> => {
 
   const serviceWorkerUrl = `/sw.js?v=${encodeURIComponent(VERSION)}`;
 
-  const waitForInstalledOrRedundant = async (worker: ServiceWorker): Promise<void> => {
-    if (worker.state === 'installed' || worker.state === 'redundant') {
-      return;
-    }
-
-    await new Promise<void>((resolve) => {
-      const handleStateChange = (): void => {
-        if (worker.state === 'installed' || worker.state === 'redundant') {
-          worker.removeEventListener('statechange', handleStateChange);
-          resolve();
-        }
-      };
-      worker.addEventListener('statechange', handleStateChange);
-    });
-  };
-
   try {
-    // `hasTriggeredReload` ejer éngangs-garantien, og `controllerExistedAtLoad` afgør om en
-    // `controllerchange` overhovedet er en reel opdatering. `{ once: true }` er derfor kun en
-    // ekstra oprydning: i et dokument der havde en controller ved load reloader den FØRSTE
-    // controllerchange (og dokumentet erstattes), så listeneren behøver ikke leve videre. I et
-    // første-install-dokument (ingen controller ved load) blokerer `controllerExistedAtLoad`
-    // bevidst reload — også for senere aktiveringer i samme dokument — så et fjernet/forbrugt
-    // listener ændrer ikke adfærd. Opdateringen tages i brug ved næste åbning, hvor en
-    // controller findes ved load.
-    navigator.serviceWorker.addEventListener('controllerchange', reloadForActivatedUpdate, { once: true });
-
+    wireControllerChange();
     const registration = await navigator.serviceWorker.register(serviceWorkerUrl, {
       scope: '/',
       updateViaCache: 'none',
@@ -102,16 +136,7 @@ const registerServiceWorker = async (): Promise<void> => {
 
     wireUpdateLifecycle(registration);
     await registration.update();
-
-    promoteWaitingWorker(registration);
-
-    const installing = registration.installing;
-    if (installing) {
-      await waitForInstalledOrRedundant(installing);
-      if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-        promoteWaitingWorker(registration);
-      }
-    }
+    announceWaitingUpdate(registration);
   } catch (error) {
     console.warn('Service worker registrering/opdatering fejlede.', error);
   }
@@ -122,11 +147,6 @@ export const ensureLatestServiceWorkerBeforeRender = async (): Promise<void> => 
   if (typeof navigator === 'undefined') return;
   if (!('serviceWorker' in navigator)) return;
   if (isPwaFileOpenRoute()) return;
-
-  // Snapshot controller-tilstanden FØR registrering: efter `register()`/`claim()` kan
-  // controller være sat, og så ville reload-gaten ikke længere kunne skelne første install
-  // fra en reel opdatering.
-  controllerExistedAtLoad = hadControllerAtLoad();
 
   await Promise.race([
     registerServiceWorker(),
@@ -145,9 +165,8 @@ const checkForServiceWorkerUpdate = async (): Promise<void> => {
   try {
     const registration = await navigator.serviceWorker.ready;
     wireUpdateLifecycle(registration);
-    promoteWaitingWorker(registration);
     await registration.update();
-    promoteWaitingWorker(registration);
+    announceWaitingUpdate(registration);
   } catch {
     // Ikke-fatal: næste trigger forsøger igen deterministisk.
   }
@@ -171,4 +190,14 @@ export const setupServiceWorkerUpdateChecks = (): void => {
   window.addEventListener('online', () => {
     void checkForServiceWorkerUpdate();
   });
+};
+
+/** Kun testinfrastruktur må nulstille den modulglobale service-worker-livscyklus. */
+export const __resetServiceWorkerBootstrapForTests = (): void => {
+  updateStatus = 'idle';
+  updateRegistration = null;
+  reloadAfterAcceptedUpdate = false;
+  hasTriggeredReload = false;
+  controllerChangeWired = false;
+  updateStatusListeners.clear();
 };
