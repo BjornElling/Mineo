@@ -352,6 +352,75 @@ describe('pwaLaunchQueue', () => {
     );
   });
 
+  describe('durable handoff-barriere før opstartens genindlæsning', () => {
+    // Opstartens opdateringsbarriere kan genindlæse dokumentet. En `.eo`-request, browseren afleverede
+    // få millisekunder forinden, lever da kun i hukommelsen, mens IndexedDB-skrivningen er undervejs —
+    // en genindlæsning ville tabe brugerens fil. Boot skal derfor kunne vente på den durable handoff.
+
+    it('bekræfter handoff, når der slet ingen pending request er', async () => {
+      expect(await pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff()).toBe(true);
+    });
+
+    it('afventer den igangværende skrivning og bekræfter først, når requesten står i IndexedDB', async () => {
+      const handle = buildFileHandle('sag.eo');
+      let resolveSave: ((value: boolean) => void) | null = null;
+      savePendingPwaOpenRequestToIndexedDBMock.mockImplementation(
+        () => new Promise<boolean>((resolve) => {
+          resolveSave = resolve;
+        }),
+      );
+
+      let consumer: ((params: { files: FileSystemFileHandle[] }) => Promise<void>) | null = null;
+      (window as unknown as { launchQueue: unknown }).launchQueue = {
+        setConsumer: (fn: (params: { files: FileSystemFileHandle[] }) => Promise<void>) => {
+          consumer = fn;
+        },
+      };
+      pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+      const consumed = consumer!({ files: [handle] });
+
+      // Skrivningen er endnu ikke færdig: barrieren må ikke frigive opstarten.
+      let settled = false;
+      const barrier = pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff().then((value) => {
+        settled = true;
+        return value;
+      });
+      await Promise.resolve();
+      expect(settled).toBe(false);
+
+      loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({
+        id: 'pwa-open-1',
+        createdAtEpochMs: 123,
+        fileHandle: handle,
+        fileName: 'sag.eo',
+        ignoredFileCount: 0,
+      });
+      resolveSave!(true);
+      await consumed;
+
+      expect(await barrier).toBe(true);
+    });
+
+    it('afviser handoff, når requesten ikke kan bekræftes i IndexedDB', async () => {
+      const handle = buildFileHandle('sag.eo');
+      savePendingPwaOpenRequestToIndexedDBMock.mockResolvedValue(false);
+
+      let consumer: ((params: { files: FileSystemFileHandle[] }) => Promise<void>) | null = null;
+      (window as unknown as { launchQueue: unknown }).launchQueue = {
+        setConsumer: (fn: (params: { files: FileSystemFileHandle[] }) => Promise<void>) => {
+          consumer = fn;
+        },
+      };
+      pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+      await consumer!({ files: [handle] });
+
+      // Intet i IndexedDB ⇒ opstarten må ikke genindlæse; brugerens fil vejer tungere end at komme
+      // på nyeste version med det samme.
+      loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue(null);
+      expect(await pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff()).toBe(false);
+    });
+  });
+
   it.each([
     { id: '', createdAtEpochMs: 123, fileName: 'test.eo', ignoredFileCount: 0 },
     { id: 'pwa-open-1', createdAtEpochMs: Number.NaN, fileName: 'test.eo', ignoredFileCount: 0 },

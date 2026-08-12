@@ -188,6 +188,33 @@ export const setupPwaLaunchQueueConsumer = (): void => {
   });
 };
 
+/**
+ * Afventer, at enhver igangværende launchQueue-persistering er nået sikkert i IndexedDB.
+ *
+ * Opstartens opdateringsbarriere kan genindlæse dokumentet. En `.eo`-request, browseren afleverede
+ * få millisekunder forinden, lever på det tidspunkt kun i hukommelsen, mens skrivningen er undervejs
+ * — og en genindlæsning ville tabe den. Boot skal derfor kunne vente på den durable handoff, FØR den
+ * river dokumentet ned.
+ *
+ * Returnerer `false`, hvis der findes en pending request, som ikke kunne bekræftes persisteret. Da
+ * må opstarten ikke genindlæse: brugerens fil vejer tungere end at komme på nyeste version straks.
+ */
+export const awaitDurablePendingPwaFileOpenHandoff = async (): Promise<boolean> => {
+  try {
+    await persistPendingRequestQueue;
+  } catch {
+    return false;
+  }
+  if (pendingRequest === null) return true;
+
+  try {
+    const stored = await loadPendingPwaOpenRequestFromIndexedDB();
+    return isStoredPwaFileOpenRequest(stored) && stored.id === pendingRequest.id;
+  } catch {
+    return false;
+  }
+};
+
 export const getPendingPwaFileOpenRequest = (): PwaFileOpenRequest | null => {
   return pendingRequest;
 };

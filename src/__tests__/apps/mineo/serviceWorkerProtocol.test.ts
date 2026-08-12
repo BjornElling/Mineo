@@ -10,9 +10,13 @@ type WorkerEvent = Readonly<{
 
 type WorkerListener = (event: WorkerEvent) => void;
 
+const BUILD_VERSION = '2026.08.12';
+
 const loadServiceWorker = (options: {
   manifestAssets?: readonly string[];
   manifestResponseOk?: boolean;
+  manifestVersion?: string;
+  workerVersion?: string;
 } = {}) => {
   const listeners = new Map<string, WorkerListener>();
   const skipWaiting = vi.fn(() => Promise.resolve());
@@ -32,12 +36,15 @@ const loadServiceWorker = (options: {
     keys: vi.fn(async () => ['mineo-build-assets:2026.08.12']),
   };
   const fetch = vi.fn(async () => new Response(
-    JSON.stringify({ assets: options.manifestAssets ?? ['assets/index-ABC123.js'] }),
+    JSON.stringify({
+      version: options.manifestVersion ?? BUILD_VERSION,
+      assets: options.manifestAssets ?? ['assets/index-ABC123.js'],
+    }),
     { status: options.manifestResponseOk === false ? 500 : 200 }
   ));
   const self = {
     location: {
-      href: 'https://mineo.dk/sw.js?v=2026.08.12',
+      href: `https://mineo.dk/sw.js?v=${BUILD_VERSION}`,
       origin: 'https://mineo.dk',
     },
     addEventListener: (type: string, listener: WorkerListener) => {
@@ -46,9 +53,13 @@ const loadServiceWorker = (options: {
     skipWaiting,
     clients: { claim },
   };
-  const source = readFileSync(path.resolve(process.cwd(), 'public/sw.js'), 'utf8');
+  // Kilden er en skabelon; buildet substituerer versionen. Testen gør præcis det samme, så den
+  // måler den worker, der faktisk deployes — ikke en variant, der kun findes i testen.
+  const template = readFileSync(path.resolve(process.cwd(), 'sw/mineoServiceWorker.js'), 'utf8');
+  expect(template).toContain('__MINEO_BUILD_VERSION__');
+  const source = template.replaceAll('__MINEO_BUILD_VERSION__', options.workerVersion ?? BUILD_VERSION);
   vm.runInNewContext(source, { Promise, URL, Response, fetch, caches, self });
-  return { listeners, skipWaiting, cache, fetch };
+  return { listeners, skipWaiting, claim, cache, caches, fetch };
 };
 
 describe('service worker-opdateringsprotokol', () => {
@@ -69,12 +80,64 @@ describe('service worker-opdateringsprotokol', () => {
     expect(skipWaiting).not.toHaveBeenCalled();
   });
 
+  it('navngiver cachen efter den indbagte build-version, ikke efter worker-URL\'ens query', async () => {
+    const { listeners, caches } = loadServiceWorker({
+      workerVersion: '2026.08.99',
+      manifestVersion: '2026.08.99',
+    });
+    const waitUntil = vi.fn();
+    listeners.get('install')?.({ waitUntil });
+    await waitUntil.mock.calls[0]?.[0];
+
+    // URL'en siger 2026.08.12; kun de indbagte bytes er sandheden.
+    expect(caches.open).toHaveBeenCalledWith('mineo-build-assets:2026.08.99');
+  });
+
   it('afviser installationen, hvis assetmanifestet ikke kan give en komplet sikker cache', async () => {
     const { listeners } = loadServiceWorker({ manifestResponseOk: false });
     const waitUntil = vi.fn();
     listeners.get('install')?.({ waitUntil });
 
     await expect(waitUntil.mock.calls[0]?.[0]).rejects.toThrow('PWA-assetmanifest kunne ikke hentes');
+  });
+
+  it('afviser installationen, hvis manifestet hører til en anden build end workeren', async () => {
+    // Kapløbet: en deploy lander mellem workerens hentning og manifestets. Uden dette værn ville en
+    // cache NAVNGIVET denne build blive fyldt med den næste builds assets, og denne builds egne
+    // lazy chunks aldrig blive cachet — fejlen ville først vise sig ved et senere download.
+    const { listeners, cache } = loadServiceWorker({ manifestVersion: '2026.08.13' });
+    const waitUntil = vi.fn();
+    listeners.get('install')?.({ waitUntil });
+
+    await expect(waitUntil.mock.calls[0]?.[0]).rejects.toThrow('hører til en anden build');
+    expect(cache.addAll).not.toHaveBeenCalled();
+  });
+
+  it('overtager ALDRIG eksisterende klienter ved aktivering (ingen clients.claim)', () => {
+    // Invariantets anden halvdel: en åben session skifter aldrig version. Med `clients.claim()` ville
+    // en nyaktiveret worker kunne overtage et andet fanebladss levende sag midt i arbejdet.
+    const { listeners, claim } = loadServiceWorker();
+    const activate = listeners.get('activate');
+    expect(activate).toBeDefined();
+
+    activate?.({ waitUntil: vi.fn() });
+    expect(claim).not.toHaveBeenCalled();
+  });
+
+  it('bevarer SKIP_WAITING-vejen, så en ny build overhovedet kan blive aktiv', () => {
+    // Uden denne besked aktiverer en ventende worker først ved NUL klienter, og en genindlæsning når
+    // aldrig nul. En installeret PWA ville i praksis aldrig kunne opdatere.
+    //
+    // Målingen sker på KODEN, ikke på filens råtekst: kommentaren ovenfor `activate` nævner bevidst
+    // `clients.claim()` for at forklare fraværet, og en ren tekstsøgning kunne hverken skelne den fra
+    // et ægte kald eller overleve en omformulering.
+    const source = readFileSync(path.resolve(process.cwd(), 'sw/mineoServiceWorker.js'), 'utf8');
+    const executableSource = source
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+    expect(executableSource).toContain('SKIP_WAITING');
+    expect(executableSource).not.toContain('clients.claim');
   });
 
   it('accepterer kun den kanoniske SKIP_WAITING-besked som aktivering', () => {

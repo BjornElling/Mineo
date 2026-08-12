@@ -65,19 +65,38 @@ const lazyPageByRoute: Readonly<Record<string, PageComponent>> = Object.freeze(
   )
 );
 
-const preloadRouteModules = () => {
-  void Promise.allSettled(Object.values(routeModuleLoaders).map((loadRouteModule) => loadRouteModule()));
+/**
+ * Dokument-/writer-vendorerne, hentet i baggrunden på linje med route-modulerne.
+ *
+ * De er bevidst IKKE statiske imports. Målt på buildet fylder jsPDF, docx og html2canvas ca. 1,1 MB
+ * ukomprimeret; som opstartsimports ville de lægge parse- og eval-arbejde i den kritiske vej for
+ * ENHVER session — også de mange, der aldrig danner et dokument. Hentet her, efter første render,
+ * har en åben session alligevel alt liggende, længe før brugeren når at trykke på en downloadknap.
+ *
+ * Selve fejlsikkerheden kommer ikke herfra, men fra service-workerens precache, som dækker hele
+ * buildets assets, før workeren overhovedet installeres.
+ */
+const deferredVendorLoaders: ReadonlyArray<() => Promise<unknown>> = [
+  async () => import('./pdf/infrastructure/pdfWriter'),
+  async () => import('./docx/infrastructure/docxWriter'),
+];
+
+const preloadDeferredModules = () => {
+  const loaders = [...Object.values(routeModuleLoaders), ...deferredVendorLoaders];
+  // `allSettled`: en fejlet baggrundshentning må aldrig kunne vælte noget. Mangler en chunk reelt,
+  // fanges det af `vite:preloadError`-værnet, når den faktisk skal bruges.
+  void Promise.allSettled(loaders.map((loadModule) => loadModule()));
 };
 
-const scheduleRouteModulePreload = () => {
+const scheduleDeferredModulePreload = () => {
   if ('requestIdleCallback' in window) {
-    const idleCallbackId = window.requestIdleCallback(preloadRouteModules, { timeout: 2_000 });
+    const idleCallbackId = window.requestIdleCallback(preloadDeferredModules, { timeout: 2_000 });
     return () => {
       window.cancelIdleCallback(idleCallbackId);
     };
   }
 
-  const timeoutId = globalThis.setTimeout(preloadRouteModules, 500);
+  const timeoutId = globalThis.setTimeout(preloadDeferredModules, 500);
   return () => {
     globalThis.clearTimeout(timeoutId);
   };
@@ -134,7 +153,7 @@ const ThemedApp = ({
   // Hold `EvaluationSourceToken` og det konkrete AppSettings-snapshot samlet (§3.4).
   useSettingsRevisionBridge(settings);
 
-  React.useEffect(() => scheduleRouteModulePreload(), []);
+  React.useEffect(() => scheduleDeferredModulePreload(), []);
 
   return (
     <ThemeProvider theme={theme}>
@@ -176,20 +195,18 @@ function App({
   inputRuntimeBinding: InputRuntimeBinding;
 }) {
   // Håndter browser back/forward cache (bfcache) for at undgå React hook fejl
-  React.useEffect(() => {
-    const handlePageShow = (event: PageTransitionEvent) => {
-      // Hvis siden kommer fra bfcache, genindlæs den
-      if (event.persisted) {
-        window.location.reload();
-      }
-    };
-
-    window.addEventListener('pageshow', handlePageShow);
-
-    return () => {
-      window.removeEventListener('pageshow', handlePageShow);
-    };
-  }, []);
+  /*
+   * BEVIDST INGEN bfcache-genindlæsning.
+   *
+   * Her lå tidligere en `pageshow`-lytter, der ubetinget kaldte `location.reload()`, når dokumentet
+   * blev gendannet fra browserens back/forward-cache. Den bryder invariantet «en åben session skifter
+   * aldrig version»: en gendannelse fra bfcache er IKKE en ny session — brugeren vender tilbage til
+   * sit eget, igangværende arbejde. Et reload dér ville uvarslet kunne skifte build midt i en sag og
+   * kaste en åben editors draft væk, uden om `CriticalActionCoordinator`.
+   *
+   * En opdatering hører til ved en ægte opstart (`ensureLatestVersionBeforeRender`), hvor der endnu
+   * ikke findes brugerarbejde at miste.
+   */
 
   return (
     <AppSettingsProvider>

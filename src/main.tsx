@@ -1,9 +1,6 @@
 import './apps/mineo/mineoStorageNamespace';
 import { bootstrapClientApp } from './apps/shared/bootstrapClientApp';
-import {
-  ensureLatestServiceWorkerBeforeRender,
-  setupServiceWorkerUpdateChecks,
-} from './apps/mineo/serviceWorkerBootstrap';
+import { ensureLatestVersionBeforeRender } from './apps/mineo/serviceWorkerBootstrap';
 import { setupPwaInstallPromptCapture } from './utils/pwaInstallPrompt';
 import {
   hydratePendingPwaFileOpenRequest,
@@ -33,8 +30,9 @@ void bootstrapClientApp({
     setupPwaLaunchQueueConsumer();
     await hydratePendingPwaFileOpenRequest();
   },
-  beforeDesktopRender: ensureLatestServiceWorkerBeforeRender,
-  afterDesktopRenderSetup: setupServiceWorkerUpdateChecks,
+  // En opdatering er enten helt gennemført her — før render — eller slet ikke sket. Der findes
+  // bevidst ingen `afterDesktopRenderSetup`: en åben session skifter aldrig version.
+  beforeDesktopRender: ensureLatestVersionBeforeRender,
   setupPwaInstallPromptCapture,
   capturePwaInstallPrompt: true,
 });

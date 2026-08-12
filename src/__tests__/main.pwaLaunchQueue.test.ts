@@ -16,8 +16,7 @@ vi.mock('../apps/shared/bootstrapClientApp', () => ({
   bootstrapClientApp: (options: unknown) => bootstrapClientAppMock(options),
 }));
 vi.mock('../apps/mineo/serviceWorkerBootstrap', () => ({
-  ensureLatestServiceWorkerBeforeRender: vi.fn(),
-  setupServiceWorkerUpdateChecks: vi.fn(),
+  ensureLatestVersionBeforeRender: vi.fn(),
 }));
 vi.mock('../utils/pwaInstallPrompt', () => ({
   setupPwaInstallPromptCapture: vi.fn(),

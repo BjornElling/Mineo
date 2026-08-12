@@ -7,7 +7,7 @@ import Overlay from '../ui/Overlay';
 import ConfirmationDialog from '../ui/ConfirmationDialog';
 import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
-import ApplicationReloadNotice from '../system/ApplicationReloadNotice';
+import LazyChunkRecoveryNotice from '../system/LazyChunkRecoveryNotice';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import type { PersistedSectionKey } from '../../config/persistenceRegistry';
@@ -207,7 +207,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         onSletAlt={handleSletAlt}
       />
       <Container>
-        <ApplicationReloadNotice
+        <LazyChunkRecoveryNotice
           onReloadBlocked={() => {
             setOverlay({
               message: 'Kan ikke genindlæse endnu: afslut eller ret det aktive felt først.',
