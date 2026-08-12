@@ -179,6 +179,12 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     note: 'Samme fraværsværn som ovenfor.',
   },
   {
+    contract: 'src/contracts/app-shell-contract.md',
+    reference: 'pwa-assets.json',
+    direction: 'absent',
+    note: 'Bygget artefakt uden kildefil: `mineoPwaArtifacts` i vite.mineo.config.ts emitterer det ved build, og scripts/verify-build-artifacts.mjs verificerer det i dist. Der findes med vilje ingen fil af det navn i kildetræet.',
+  },
+  {
     contract: 'src/contracts/eo-snapshot-contract.md',
     reference: 'periodeTilBeregningFra',
     direction: 'absent',

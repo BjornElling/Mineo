@@ -12,7 +12,7 @@ const expectNoCacheRule = (headers: string, path: string): void => {
 };
 
 describe('PWA cache headers', () => {
-  it('revaliderer HTML, manifest, service worker og alle SPA-ruter', () => {
+  it('revaliderer HTML, manifest, service worker, assetmanifest og alle SPA-ruter', () => {
     const headers = readHeaders();
 
     for (const path of [
@@ -21,6 +21,9 @@ describe('PWA cache headers', () => {
       '/open',
       '/manifest.json',
       '/sw.js',
+      // Bærer den udrullede builds version og er dermed klientens opdateringssignal: revalideres
+      // den ikke, kan en åben session hverken opdage en deploy eller afvise en fremmed builds cache.
+      '/pwa-assets.json',
       ...Object.values(APP_ROUTES),
       '/indstillinger',
       '/mineo',

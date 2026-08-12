@@ -49,8 +49,37 @@ if (variant === 'mineo') {
   if (!Array.isArray(pwaAssets.assets) || pwaAssets.assets.length === 0) {
     throw new Error('Mineo-buildets PWA-assetmanifest mangler immutable Vite-assets.');
   }
-  if (!pwaAssets.assets.every((asset) => typeof asset === 'string' && asset.startsWith('assets/'))) {
-    throw new Error('Mineo-buildets PWA-assetmanifest indeholder en ugyldig asset-sti.');
+  // Samme mønster som service-workerens `ASSET_PATH_PATTERN`. Skiftede `chunkFileNames` en dag til
+  // en nested sti (`assets/js/...`), ville workerens interception holde op med at matche noget som
+  // helst — og hele deploybeskyttelsen forsvinde tavst. Værnet skal fange det her, i buildet.
+  const ASSET_PATH_PATTERN = /^assets\/[A-Za-z0-9._-]+$/;
+  const invalidAsset = pwaAssets.assets.find(
+    (asset) => typeof asset !== 'string' || !ASSET_PATH_PATTERN.test(asset)
+  );
+  if (invalidAsset !== undefined) {
+    throw new Error(
+      `Mineo-buildets PWA-assetmanifest indeholder en asset-sti, service-workeren ikke kan matche: ${String(invalidAsset)}.`
+    );
+  }
+
+  // Worker og assetmanifest skal bære SAMME version. Workeren afviser at installere mod et manifest
+  // fra en anden build, så et par ude af trit ville give et build helt uden versionscache — og
+  // dermed uden beskyttelse mod at en åben session mister sine lazy chunks efter næste deploy.
+  const serviceWorkerSource = readFileSync(path.join(outDir, 'sw.js'), 'utf8');
+  if (serviceWorkerSource.includes('__MINEO_BUILD_VERSION__')) {
+    throw new Error('Mineo-buildets service worker har ikke fået sin build-version indbagt.');
+  }
+  const workerVersion = /const BUILD_VERSION = '([^']+)'/.exec(serviceWorkerSource)?.[1];
+  if (!workerVersion) {
+    throw new Error('Mineo-buildets service worker mangler en læsbar BUILD_VERSION.');
+  }
+  if (typeof pwaAssets.version !== 'string' || pwaAssets.version.trim() === '') {
+    throw new Error('Mineo-buildets PWA-assetmanifest mangler en build-version.');
+  }
+  if (pwaAssets.version !== workerVersion) {
+    throw new Error(
+      `Mineo-buildets service worker (${workerVersion}) og assetmanifest (${pwaAssets.version}) hører til hver sin build.`
+    );
   }
 } else {
   for (const forbidden of ['sw.js', 'manifest.json', 'pwa-assets.json', 'icons', 'favicon-mineo.svg']) forbidPath(forbidden);

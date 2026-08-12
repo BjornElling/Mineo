@@ -117,6 +117,20 @@ export const getCaseScopedSessionStorageKeys = (): readonly ManifestStorageKey[]
  */
 const CURRENT_INPUT_ENVELOPE_SUFFIX = 'input_v2';
 
+/**
+ * Løkkeværn for opstartens versions-reload (`serviceWorkerBootstrap`). Nøglen holder den udrullede
+ * version, der SIDST udløste et automatisk reload i denne session.
+ *
+ * Værnet er ikke pyntelig defensivitet: opstarten genindlæser, når den udrullede build afviger fra
+ * dokumentets egen. Er den observerede version allerede noteret her, må der ikke reloades igen —
+ * ellers ville en fejlagtig eller uophørligt skiftende versionsangivelse sende programmet i en
+ * genindlæsningsløkke, som er værre end den forældede kode, den skulle rette.
+ *
+ * Nøglen er `deviceScoped` af natur (den beskriver ikke sagen) og indgår derfor ikke i
+ * `SESSION_RESET_POLICY`: den hører ikke til UI-familien, som `Slet alt` enumererer.
+ */
+const BOOT_RELOAD_VERSION_SUFFIX = 'pwa_bootReloadVersion';
+
 const buildKeyMap = <T extends Record<string, string>>(
   suffixes: T
 ): { readonly [K in keyof T]: ManifestStorageKey } => {
@@ -139,6 +153,10 @@ export const createActiveTabStorageKey = (pageId: string): ManifestStorageKey =>
 export const getCurrentInputEnvelopeStorageKey = (): ManifestStorageKey =>
   asManifestKey(ns(CURRENT_INPUT_ENVELOPE_SUFFIX));
 
+/** Nøgle til opstartens versions-reload-løkkeværn. Namespace-aware og dovent resolveret. */
+export const getBootReloadVersionStorageKey = (): ManifestStorageKey =>
+  asManifestKey(ns(BOOT_RELOAD_VERSION_SUFFIX));
+
 /**
  * Tjek om en sessionStorage key er en gyldig key for den aktive variant.
  *
@@ -149,5 +167,6 @@ export const isValidStorageKey = (key: string): boolean => {
   const uiKeys = Object.values(UI_STORAGE_KEYS) as string[];
   return uiKeys.includes(key)
     || key === ns(CURRENT_INPUT_ENVELOPE_SUFFIX)
+    || key === ns(BOOT_RELOAD_VERSION_SUFFIX)
     || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
 };
