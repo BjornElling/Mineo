@@ -42,7 +42,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
                     component="span"
                     className="icon-text-link"
                     color="inherit"
-                    onClick={vm.goToStamdata}
+                    onClick={vm.goToSkadelidteFodselsdato}
                     sx={{ cursor: 'pointer' }}
                   >
                     Stamdata
@@ -65,7 +65,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
               {vm.skadedatoError ?? (
                 <>
                   Mangler (angiv i&nbsp;{' '}
-                  <Typography component="span" className="icon-text-link" color="inherit" onClick={vm.goToStamdata} sx={{ cursor: 'pointer' }}>
+                  <Typography component="span" className="icon-text-link" color="inherit" onClick={vm.goToSkadedato} sx={{ cursor: 'pointer' }}>
                     Stamdata
                   </Typography>
                   )

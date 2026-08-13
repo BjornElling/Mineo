@@ -7,9 +7,11 @@ import {
   FIELD_ADDRESS_ATTR,
 } from '../../inputCore/react/historyRestoreTarget';
 import {
+  eoFerieperiodeFraField,
   eoSfggBeregningskildeField,
   eoSvieSmertePeriodeTilField,
   eoTafPeriodeFraField,
+  eoTafPeriodeTilField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { FIELD_ATTENTION_BLINK_CLASS } from '../../inputCore/react/fieldAttentionBlink';
 
@@ -190,19 +192,92 @@ describe('scrollToEoRow', () => {
 
   it('falder ikke fra et eksplicit samlet fokusmål til et overordnet kort', () => {
     const onFailure = vi.fn();
-    const employmentCard = document.createElement('div');
-    employmentCard.setAttribute('data-mineo-row-id', 'af-1');
-    document.body.appendChild(employmentCard);
+    // Ankeret her er BEVIDST et andet kort end det, målet navngiver: et samlet rækkeanker må ikke
+    // kunne glide over på en nabo-flade, for så ville linket blinke noget, der ikke er årsagen.
+    const otherCard = document.createElement('div');
+    otherCard.setAttribute('data-mineo-row-id', 'af-2');
+    document.body.appendChild(otherCard);
 
     scrollToEoRow('sfgg.dagssats.af-1', {
-      focusTarget: { kind: 'rowId', rowId: 'sfgg.dagssats.af-1' },
+      focusTarget: { kind: 'rowId', rowId: 'af-1' },
       maxRetries: 3,
       onFailure,
     });
 
     expect(onFailure).toHaveBeenCalledTimes(1);
     expect(scrollIntoViewMock).not.toHaveBeenCalled();
-    expect(employmentCard.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(false);
+    expect(otherCard.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(false);
+  });
+
+  // ── Den endnu ikke oprettede indtastning ────────────────────────────────────────────────────────
+  //
+  // Fejlformen der begrunder disse tests: advarslen «Der er ikke angivet nogen TAF-periode i
+  // EO-perioden» handler om en række, brugeren IKKE har oprettet. Den bar tidligere et rækkeanker på
+  // sit eget synthetiske id, og da `data-mineo-row-id` kun sættes på virkelige collection-rækker,
+  // kunne opslaget aldrig finde noget: linket skiftede fane og blinkede intet. Tabellen viser til
+  // gengæld altid sin tomme indtastningsrække, hvis celler bærer en fuldt bundet feltadresse.
+
+  it('blinker den tomme indtastningsrækkes celle, når rækken endnu ikke findes', () => {
+    // Placeholderens række-id dannes i UI'et og kan ikke kendes i domænet — her et vilkårligt slot-id.
+    const placeholder = mountFieldEditor(eoTafPeriodeFraField.bind('placeholder-slot-1').address);
+
+    scrollToEoRow('taf.ingenTafIEoPerioden', {
+      focusTarget: { kind: 'collectionField', template: eoTafPeriodeFraField.template },
+    });
+
+    expect(scrollIntoViewMock.mock.instances[0]).toBe(placeholder);
+    expect(placeholder.closest('.MuiInputBase-root')?.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
+  });
+
+  it('vælger den FØRSTE række, når tabellen har flere', () => {
+    const first = mountFieldEditor(eoTafPeriodeFraField.bind('taf-1').address);
+    mountFieldEditor(eoTafPeriodeFraField.bind('taf-2').address);
+
+    scrollToEoRow('taf.ophoerSkyldes', {
+      focusTarget: { kind: 'collectionField', template: eoTafPeriodeFraField.template },
+    });
+
+    expect(scrollIntoViewMock.mock.instances[0]).toBe(first);
+  });
+
+  it('rammer kun det navngivne felt — ikke en naboKOLONNE i samme collection', () => {
+    // Til-cellen står FØRST i DOM, så en template-match, der kun så på collectionen, ville tage den.
+    mountFieldEditor(eoTafPeriodeTilField.bind('taf-1').address);
+    const fraEditor = mountFieldEditor(eoTafPeriodeFraField.bind('taf-1').address);
+
+    scrollToEoRow('taf.ingenTafIEoPerioden', {
+      focusTarget: { kind: 'collectionField', template: eoTafPeriodeFraField.template },
+    });
+
+    expect(scrollIntoViewMock.mock.instances[0]).toBe(fraEditor);
+  });
+
+  it('rammer kun den navngivne COLLECTION — ikke en anden tabels felt med samme feltnavn', () => {
+    // Ferie- og TAF-perioderne har begge et `fra`-felt; kun sektionen og collectionen skiller dem.
+    mountFieldEditor(eoFerieperiodeFraField.bind('f-1').address);
+    const tafEditor = mountFieldEditor(eoTafPeriodeFraField.bind('taf-1').address);
+
+    scrollToEoRow('taf.ingenTafIEoPerioden', {
+      focusTarget: { kind: 'collectionField', template: eoTafPeriodeFraField.template },
+    });
+
+    expect(scrollIntoViewMock.mock.instances[0]).toBe(tafEditor);
+  });
+
+  it('springer en skjult editor over og venter på den synlige', () => {
+    // Samme regel som for en konkret feltadresse: et mountet-men-skjult felt (fx på en besøgt, men
+    // ikke-aktiv fane) er ikke et brugbart mål.
+    mountFieldEditor(eoTafPeriodeFraField.bind('taf-1').address, { hidden: true });
+    const onFailure = vi.fn();
+
+    scrollToEoRow('taf.ingenTafIEoPerioden', {
+      focusTarget: { kind: 'collectionField', template: eoTafPeriodeFraField.template },
+      maxRetries: 3,
+      onFailure,
+    });
+
+    expect(onFailure).toHaveBeenCalledTimes(1);
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 
   it('rapporterer fejl, når hverken feltets editor eller rækkeankeret findes', () => {

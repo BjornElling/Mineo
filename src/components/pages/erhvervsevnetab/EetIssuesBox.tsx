@@ -6,7 +6,10 @@ import ContentBox from '../../layout/ContentBox';
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 import { type EetTabNavigation, resolveEetIssueNavigation } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { APP_ROUTES } from '../../../config/pageNavigation';
-import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
+import {
+  scrollToCollectionFieldTemplate,
+  scrollToFieldAddress,
+} from '../../../utils/scrollToFieldAddress';
 import { scrollToSection } from '../../../utils/scrollToSection';
 
 type Props = Readonly<{
@@ -27,10 +30,14 @@ const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
 
       // Navigationshandlingen kan unmount'e denne boks ved route-skift. Retryforskydningen må derfor
       // være en selvstændig, begrænset DOM-operation — ikke en hook, hvis cleanup afbryder den før
-      // destinationens editor når at mounte. Et konkret felt vinder; sektionen bruges kun ved regler
-      // med flere mulige årsagsfelter eller ved systemdata, der ikke kan rettes i ét input.
+      // destinationens editor når at mounte. Et konkret felt vinder; dernæst den tomme
+      // indtastningsrækkes celle, når issuet efterspørger en række, brugeren ikke har oprettet endnu;
+      // sektionen bruges kun ved regler med flere mulige årsagsfelter eller ved systemdata, der ikke
+      // kan rettes i ét input.
       if (navigation.focusFieldAddress) {
         scrollToFieldAddress(navigation.focusFieldAddress);
+      } else if (navigation.focusFirstRowField) {
+        scrollToCollectionFieldTemplate(navigation.focusFirstRowField);
       } else {
         scrollToSection(navigation.sectionId, { attention: true });
       }

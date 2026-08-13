@@ -13,6 +13,7 @@
 import { scrollWithRetry, type CancelScrollWithRetry } from './scrollWithRetry';
 import { blinkFieldAttention } from '../inputCore/react/fieldAttentionBlink';
 import { findVisibleFieldEditor as findVisibleFieldEditorByAddress } from './scrollToFieldAddress';
+import { findFirstVisibleEditorForTemplate } from '../inputCore/react/editorLocationDestination';
 import type { EoIssueFocusTarget } from '../domain/eoRowEvaluation/eoRowTypes';
 
 const resolveAnchorIdFromRowId = (rowId: string): string | null => {
@@ -68,6 +69,9 @@ const findVisibleFieldEditor = (address: EoIssueFocusTarget & { kind: 'fieldAddr
 const findElementByFocusTarget = (target: EoIssueFocusTarget | undefined): HTMLElement | null => {
   if (target === undefined) return null;
   if (target.kind === 'rowId') return findElementByMineoRowId(target.rowId);
+  // Den endnu ikke oprettede indtastning: feltet udpeges af sin template, og tabellens tomme
+  // indtastningsrække er den flade, brugeren skal udfylde.
+  if (target.kind === 'collectionField') return findFirstVisibleEditorForTemplate(target.template);
   return findVisibleFieldEditor(target);
 };
 

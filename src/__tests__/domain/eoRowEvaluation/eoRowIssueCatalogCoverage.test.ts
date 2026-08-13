@@ -269,17 +269,41 @@ describe('eoRowIssueCatalog – systematisk dækning', () => {
     }
   });
 
+  /**
+   * De bevidst SAMLEDE fokusmål: rækker uden ét ansvarligt felt forankres til en flade, brugeren kan se.
+   *
+   * Forventningen er ankerets EGEN id — ansættelsesforholdets kort (`af.id`) — og ikke rækkens id. Testen
+   * hævdede tidligere `rowId === row.id`, altså den punkterede rækkesti, og var derfor i overensstemmelse
+   * med koden og alligevel blind: `data-mineo-row-id` sættes kun på virkelige collection-rækker og kort,
+   * så de mål kunne aldrig findes, og linkene blinkede intet. Se
+   * `eoRowIssueFocusTargetReachability.test.ts` for det strukturelle værn mod netop den form.
+   */
   it.each([
-    'loenindkomst.af-1.loenoplysninger',
-    'loenindkomst.af-1.regulering.alleVaerdier',
-    'offentligeYdelser.dagpenge',
-    'sfgg.referencesats.af-1',
-    'sfgg.advarsel.seksmaaneder.af-1',
-    'taf.beregningsgrundlag.arbejdsdage',
-  ])('giver det bevidste samlede fokusmål til %s', (rowId) => {
+    { rowId: 'loenindkomst.af-1.loenoplysninger', expectedAnchor: 'af-1' },
+    { rowId: 'loenindkomst.af-1.regulering.alleVaerdier', expectedAnchor: 'af-1' },
+    { rowId: 'sfgg.referencesats.af-1', expectedAnchor: 'af-1' },
+    { rowId: 'sfgg.advarsel.seksmaaneder.af-1', expectedAnchor: 'af-1' },
+  ])('giver det bevidste samlede fokusmål til $rowId', ({ rowId, expectedAnchor }) => {
     const target = resolveEoIssueFocusTarget(makeRow({ id: rowId }));
 
-    expect(target).toEqual({ kind: 'rowId', rowId });
+    expect(target).toEqual({ kind: 'rowId', rowId: expectedAnchor });
+  });
+
+  /**
+   * De rækker, der handler om en indtastning, brugeren endnu ikke har OPRETTET. De kan ikke bære en
+   * konkret feltadresse (rækken findes ikke) og heller ikke et rækkeanker (statusrækkens id findes ikke i
+   * DOM). Målet er derfor collectionens felt-template: den tomme indtastningsrækkes celle.
+   */
+  it.each([
+    { rowId: 'taf.ingenTafIEoPerioden', field: eoTafPeriodeFraField },
+    { rowId: 'sviesmerte.ingenSvieSmerteIEoPerioden', field: eoSvieSmertePeriodeFraField },
+    { rowId: 'taf.perioder.clampedAway', field: eoTafPeriodeFraField },
+    { rowId: 'taf.ophoerSkyldes', field: eoTafPeriodeTilField },
+    { rowId: 'sviesmerte.ophoerSkyldes', field: eoSvieSmertePeriodeTilField },
+  ])('peger $rowId på den tomme indtastningsrækkes celle', ({ rowId, field }) => {
+    const target = resolveEoIssueFocusTarget(makeRow({ id: rowId, status: 'warning' }));
+
+    expect(target).toEqual({ kind: 'collectionField', template: field.template });
   });
 
   it('ingen viste fejltekster indeholder generiske catch-all-fraser eller label-præfiks', () => {

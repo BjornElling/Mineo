@@ -3,6 +3,7 @@
  */
 
 import type { FieldAddress } from '../../inputCore/fieldAddress';
+import type { FieldAddressTemplate } from '../../inputCore/fieldDescriptor';
 import type { ISODateString } from '../../types/branded';
 
 /**
@@ -118,10 +119,19 @@ export type DependencySpec =
  *
  * `rowId` er ikke et alternativt identitetssystem, men det GROVERE mål: en række uden et enkelt ansvarligt
  * felt (fx et overlap mellem to rækker) forankres til rækkens `data-mineo-row-id`.
+ *
+ * `collectionField` løser den TREDJE situation, de to første ikke kan udtrykke sandt: advarslen handler om en
+ * indtastning, der IKKE FINDES ENDNU («Der er ikke angivet nogen TAF-periode i EO-perioden»). Der er intet
+ * række-id at pege på, fordi brugeren ikke har oprettet rækken — men tabellen viser altid en tom
+ * indtastningsrække, hvis celler bærer en fuldt bundet feltadresse. Målet navngiver derfor feltet gennem
+ * descriptorens `template` (collection + feltnavn UDEN entity-id) og lader opslaget finde den FØRSTE editor
+ * for netop det felt. Det er samme feltidentitet som `fieldAddress` — kun med rækkeleddet ubundet, fordi
+ * placeholderens id dannes i UI'et (`usePlaceholderSlotIds`) og derfor ikke kan kendes i domænet.
  */
 export type EoIssueFocusTarget =
   | Readonly<{ kind: 'fieldAddress'; address: FieldAddress }>
-  | Readonly<{ kind: 'rowId'; rowId: string }>;
+  | Readonly<{ kind: 'rowId'; rowId: string }>
+  | Readonly<{ kind: 'collectionField'; template: FieldAddressTemplate }>;
 
 /**
  * Hvilket konkret input i en periode-/tabelrække en fejl er forankret til. Sættes af row-builderne

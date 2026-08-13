@@ -40,6 +40,14 @@ export type OffentligeYdelserStatusRow = Readonly<{
   status: EoRowStatus;
   message: string;
   summaryDisplay?: 'messageOnly';
+  /**
+   * Den ydelsesRÆKKE, statusrækkens besked stammer fra — tabellens eget række-id, ikke gruppenøglen.
+   *
+   * Statusrækkerne grupperer flere ydelsesrækker pr. ydelsestype, og gruppenøglen
+   * (`ydelsestype-<key>`/`mangler-ydelsestype`) er derfor ikke et element i DOM. Uden den oprindelige
+   * række kunne fejllinket kun føre til fanen; med den kan det pege på den række, beskeden handler om.
+   */
+  sourceRowId?: string;
 }>;
 
 const PERIOD_COLUMN_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, StandardLoenTableColumnKey]> = {
@@ -269,6 +277,9 @@ export const buildOffentligeYdelserStatusRows = (
     label: string;
     firstErrorMessage?: string;
     warningCount: number;
+    /** Rækken bag den FØRSTE fejl — og ellers bag den første advarsel — i gruppen. */
+    firstErrorRowId?: string;
+    firstWarningRowId?: string;
   };
 
   const result: OffentligeYdelserStatusRowDraft[] = [];
@@ -296,6 +307,7 @@ export const buildOffentligeYdelserStatusRows = (
     const issue = issuesByRowId.get(row.id);
     if (issue?.level === 'error') {
       if (!group.firstErrorMessage) {
+        group.firstErrorRowId = row.id;
         if (issue.reason === 'input') {
           const rowErrorKeys = cellErrorsByRowId.get(row.id) ?? new Set<OffentligeYdelserTableColumnKey>();
           const firstInvalidColumn = OFFENTLIGE_YDELSER_COLUMN_ORDER.find((colKey) => rowErrorKeys.has(colKey));
@@ -320,6 +332,7 @@ export const buildOffentligeYdelserStatusRows = (
 
     if (issue?.level === 'warning') {
       group.warningCount += 1;
+      group.firstWarningRowId ??= row.id;
     }
   }
 
@@ -331,6 +344,7 @@ export const buildOffentligeYdelserStatusRows = (
         status: 'error' as EoRowStatus,
         message: row.firstErrorMessage,
         summaryDisplay: 'messageOnly',
+        ...(row.firstErrorRowId === undefined ? {} : { sourceRowId: row.firstErrorRowId }),
       };
     }
     if (row.warningCount > 0) {
@@ -343,6 +357,7 @@ export const buildOffentligeYdelserStatusRows = (
         status: 'warning' as EoRowStatus,
         message: warningMessage,
         summaryDisplay: 'messageOnly',
+        ...(row.firstWarningRowId === undefined ? {} : { sourceRowId: row.firstWarningRowId }),
       };
     }
     return {

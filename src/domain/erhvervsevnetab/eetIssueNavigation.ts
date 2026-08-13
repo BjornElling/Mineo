@@ -17,6 +17,11 @@ export type EetIssueNavigationTarget =
       pageName: 'Erhvervsevnetab';
       tabKey: ErhvervsevnetabTabKey;
       tabName: string;
+      /**
+       * Sektionen på fanen (`data-section-id`), når issuet kan henføres til én. Bevidst en streng og
+       * ikke en feltadresse: EO-siden forbruger denne rute og må ikke koble til EET's feltdescriptorer.
+       */
+      sectionId?: string;
     }>
   | Readonly<{
       kind: 'stamdata-page';
@@ -55,6 +60,43 @@ const STAMDATA_ISSUE_IDS = new Set([
   'field-skadelidte-fodselsdato',
 ]);
 
+/**
+ * Sektionen på EET-oplysningerfanen pr. issue-id — rene `data-section-id`-strenge.
+ *
+ * Bevidst en selvstændig tabel og ikke et opslag i `eetFormatUtils`: dette modul forbruges af EO's
+ * Beregning-fane, og en import derfra ville koble EO til EET's og faellesAarsloens feltdescriptorer og
+ * bryde side/sektions-grænsen (se `resolveMidlertidigtEetIssueNavigation`). Kun de issue-id'er, der
+ * faktisk kan flyde gennem `midlertidigt_eet_source:`-invarianten, står her; ukendte id'er får fanen
+ * alene, præcis som før.
+ */
+const EET_SECTION_ID_BY_ISSUE_ID: Readonly<Record<string, string>> = {
+  'aarsloen-missing': 'eet-oplysninger-asl',
+  'asl-aarsloen-missing': 'eet-oplysninger-asl',
+  'aarsloen-zero': 'eet-oplysninger-asl',
+  'aarsloen-over-max': 'eet-oplysninger-asl',
+  'aarsloen-max-missing': 'eet-oplysninger-asl',
+  'asl-afgoerelser-empty': 'eet-oplysninger-asl',
+  'no-asl-afgoerelser-known-at-beregningsdato': 'eet-oplysninger-asl',
+  'no-endelig-afgoerelser': 'eet-oplysninger-asl',
+  'missing-afgoerelsesdato': 'eet-oplysninger-asl',
+  'missing-eet-pct': 'eet-oplysninger-asl',
+  'missing-afgoerelseType': 'eet-oplysninger-asl',
+  'missing-kap-dato': 'eet-oplysninger-asl',
+  'missing-kap-pct': 'eet-oplysninger-asl',
+  'missing-koen': 'eet-oplysninger-asl',
+  'endelig-under-50-missing-kapitalisering': 'eet-oplysninger-asl',
+  'delvist-endelig-missing-kapitalisering': 'eet-oplysninger-asl',
+  'kapitaliseringstabel-missing': 'eet-oplysninger-asl',
+  'kapitaliseringsfaktor-unresolved': 'eet-oplysninger-asl',
+  'reguleringssats-missing': 'eet-oplysninger-asl',
+  'beregningsdato-missing': 'eet-oplysninger-grundlaeggende',
+  'beregningsdato-invalid': 'eet-oplysninger-grundlaeggende',
+  'eet-max-missing': 'eet-oplysninger-grundlaeggende',
+  'eet-pct-missing': 'eet-oplysninger-eal',
+  'eal-aarsloen-missing': 'eet-oplysninger-eal',
+  'eal-aarsloen-zero': 'eet-oplysninger-eal',
+};
+
 export const resolveMidlertidigtEetIssueNavigation = (
   issue: Pick<EetIssue, 'id'>
 ): EetIssueNavigationTarget => {
@@ -67,10 +109,24 @@ export const resolveMidlertidigtEetIssueNavigation = (
     };
   }
 
+  // EET-fanen. Målet er BEVIDST kun fanen + sektionen, ikke et konkret felt.
+  //
+  // Det oplagte ville være at genbruge EET-sidens egen `resolveEetIssueNavigation`, som kender feltet.
+  // Men denne modul-sti forbruges af EO's Beregning-fane, og EO-siden må ikke koble til EET's og
+  // faellesAarsloens feltdescriptorer (domain-boundary-contract §9/§10, håndhævet af
+  // `domain/page-section-access-boundary`). En import her ville trække hele descriptor-kataloget ind i
+  // EO's afhængighedsgraf gennem bagdøren.
+  //
+  // Sektions-id'et er derimod en ren streng uden descriptor-kobling, og det er nok til at føre brugeren
+  // til det rigtige sted PÅ fanen med den delte sektionsmarkering — frem for at lande øverst på siden
+  // uden nogen anvisning, som før.
   return {
     kind: 'erhvervsevnetab-tab',
     pageName: 'Erhvervsevnetab',
     tabKey: ERHVERVSEVNETAB_TAB_KEYS.EET_OPLYSNINGER,
     tabName: 'EET oplysninger',
+    ...(EET_SECTION_ID_BY_ISSUE_ID[issue.id] === undefined
+      ? {}
+      : { sectionId: EET_SECTION_ID_BY_ISSUE_ID[issue.id] }),
   };
 };

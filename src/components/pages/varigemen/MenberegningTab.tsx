@@ -35,6 +35,8 @@ import {
 } from '../../../inputCore/catalog/stamdataDescriptors';
 import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
+import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
+import { blinkFieldAttention } from '../../../inputCore/react/fieldAttentionBlink';
 
 // MenberegningTab: Hele fanen kører
 // nu på inputCore: méngrad + beregningsdato skriver/læser gennem den offentlige `InputReader` + den ene
@@ -127,28 +129,65 @@ const MenberegningTab = React.memo(() => {
   // Spejlet stamdata-værdi: navnet kommer fra feltets ene navneregel (§3.2a), aldrig fra en lokal ternary.
   const skadedatoLabel = resolveSkadestypeDatoLabel(skadestype);
 
+  /**
+   * Naviger til Stamdata OG markér det felt, der mangler.
+   *
+   * Bruges både af «Mangler (angiv i Stamdata)»-linkene og af blokerings-feedbacken nedenfor. Markeringen
+   * er den DELTE `blinkFieldAttention` via `scrollToFieldAddress` — samme adfærd som fejl- og
+   * advarselslinkene i resten af programmet, så der ikke findes en side-lokal «peg på feltet»-vej.
+   */
+  const goToStamdataField = React.useCallback(
+    (address: Parameters<typeof scrollToFieldAddress>[0]) => {
+      navigate(APP_ROUTES.stamdata);
+      scrollToFieldAddress(address);
+    },
+    [navigate]
+  );
+  const goToFodselsdato = React.useCallback(
+    () => goToStamdataField(fodselsdatoRef.address),
+    [goToStamdataField]
+  );
+  const goToSkadedato = React.useCallback(
+    () => goToStamdataField(skadedatoRef.address),
+    [goToStamdataField]
+  );
+
   // Fokusér det første blokerende felt efter en blokeret download (best-effort UI-hint fra render-tilstanden).
-  // Prioritet: Fødselsdato → Skadedato → Méngrad → Beregningsdato. Kun felter på denne side kan fokuseres direkte;
-  // stamdata-fejl fokuseres via navigation til Stamdata-siden.
+  // Prioritet: Fødselsdato → Skadedato → Méngrad → Beregningsdato.
+  //
+  // Stamdata-felterne føres nu HELT frem: tidligere navigerede fødselsdato-grenen til Stamdata uden at pege
+  // på feltet, og skadedato-grenen returnerede uden at gøre NOGET som helst — brugeren fik en shake på
+  // knappen og ingen anvisning. Begge bruger nu samme markering som sidens egne felter.
   const focusFirstBlockingField = React.useCallback(() => {
     if (fodselsdatoError !== undefined || fodselsdato === undefined) {
-      navigate(APP_ROUTES.stamdata);
+      goToFodselsdato();
       return;
     }
     if (skadedatoError !== undefined || skadedato === undefined) {
-      // Skadedato bor i Stamdata; den vises som fejl her, men fokuseres ikke direkte.
+      goToSkadedato();
       return;
     }
     if (beregningsResultat === null && mengradInputRef.current) {
       mengradInputRef.current.focus();
       mengradInputRef.current.blur();
+      blinkFieldAttention(mengradInputRef.current);
       return;
     }
     if (beregningsdatoError !== undefined && beregningsdatoInputRef.current) {
       beregningsdatoInputRef.current.focus();
       beregningsdatoInputRef.current.blur();
+      blinkFieldAttention(beregningsdatoInputRef.current);
     }
-  }, [beregningsResultat, beregningsdatoError, fodselsdato, fodselsdatoError, navigate, skadedato, skadedatoError]);
+  }, [
+    beregningsResultat,
+    beregningsdatoError,
+    fodselsdato,
+    fodselsdatoError,
+    goToFodselsdato,
+    goToSkadedato,
+    skadedato,
+    skadedatoError,
+  ]);
 
   /**
    * Aktivering. Hele preflighten (settle, frisk capture, token-lighed, gate) ligger i definitionen;
@@ -192,7 +231,7 @@ const MenberegningTab = React.memo(() => {
                 component="span"
                 className="icon-text-link"
                 color="inherit"
-                onClick={() => navigate(APP_ROUTES.stamdata)}
+                onClick={goToFodselsdato}
                 sx={{ cursor: 'pointer' }}
               >
                 Stamdata
@@ -216,7 +255,7 @@ const MenberegningTab = React.memo(() => {
                   component="span"
                   className="icon-text-link"
                   color="inherit"
-                  onClick={() => navigate(APP_ROUTES.stamdata)}
+                  onClick={goToSkadedato}
                   sx={{ cursor: 'pointer' }}
                 >
                   Stamdata

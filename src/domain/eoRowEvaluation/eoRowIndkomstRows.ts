@@ -566,6 +566,12 @@ export const buildEoOffentligeYdelserRows = (
       displayValue: row.status === 'ok' ? 'ok' : formatStatusMessage(row.status, row.message),
       status: row.status,
       summaryDisplay: row.summaryDisplay ?? 'default',
+      // Statusrækkens id er en GRUPPENØGLE pr. ydelsestype og findes ikke i DOM. Modellen har båret den
+      // ydelsesrække, beskeden stammer fra, hele vejen hertil, så linket kan forankres til netop den
+      // række i tabellen frem for kun at skifte fane.
+      ...(row.sourceRowId === undefined
+        ? {}
+        : { focusTarget: { kind: 'rowId' as const, rowId: row.sourceRowId } }),
     });
   });
 

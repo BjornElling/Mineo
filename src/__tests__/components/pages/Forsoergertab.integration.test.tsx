@@ -7,7 +7,7 @@ import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 // download-gate (§1.5/§1.6/§3.9): et fuldt gyldigt input aktiverer download og når dokumentservicen med et frisk
 // stamdata-snapshot; en canonical tilkendt-periode uden for 1..10 blokerer med en synlig rød feltfejl; en byttet
 // stamdata-datoorden blokerer.
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Forsoergertab from '../../../components/pages/Forsoergertab';
@@ -24,6 +24,10 @@ import type { FaellesAarsloenValues, ForsoergertabValues } from '../../../schema
 import { toISODateString } from '../../../types/branded';
 import { DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE } from '../../../document/layout/documentGateTypes';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+} from '../../../inputCore/catalog/stamdataDescriptors';
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
@@ -35,6 +39,18 @@ const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
 vi.mock('../../../document/downloadArtifact', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../../document/downloadArtifact')>(),
   triggerDocumentDownload: mockTriggerDocumentDownload,
+}));
+
+/**
+ * `scrollToFieldAddress` mockes, fordi jsdom hverken har layout eller scroll, og Stamdata-siden ikke er
+ * mountet her: den ægte funktion ville køre sin rAF-retry-løkke uden at finde en editor. Påstanden er
+ * koblingen — at siden bruger den DELTE markeringsvej med den rigtige feltadresse.
+ */
+const mockScrollToFieldAddress = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../utils/scrollToFieldAddress', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../utils/scrollToFieldAddress')>(),
+  scrollToFieldAddress: mockScrollToFieldAddress,
 }));
 
 const catalog = getProductionInputCatalog();
@@ -94,6 +110,34 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
+    mockScrollToFieldAddress.mockClear();
+  });
+
+  /**
+   * «Mangler (angiv i Stamdata)» skal PEGE på feltet — ikke kun skifte side.
+   *
+   * Linkene navigerede tidligere blot til Stamdata og efterlod brugeren dér uden anvisning, selv om det er
+   * den reneste form for «en indtastning mangler»: feltet findes, det er blot tomt, og dets descriptor er
+   * allerede bundet i viewmodellen. Begge rækker har hver SIT felt, så testen dækker dem hver for sig —
+   * ellers kunne ét fælles mål bestå for den forkerte række.
+   */
+  it.each([
+    { label: 'Skadelidtes fødselsdato', field: stamdataSkadelidteFodselsdatoField },
+    { label: 'Skadedato', field: stamdataSkadedatoField },
+  ])('$label-linket fører til feltet i Stamdata og markerer det', async ({ label, field }) => {
+    const user = userEvent.setup();
+    hydrate(validForsoergertab, validFaellesAarsloen, {
+      ...validStamdata,
+      skadelidteFodselsdato: undefined,
+      skadedato: undefined,
+    });
+    renderPage();
+
+    const row = screen.getByText(label).closest('.row--label-right-hover');
+    expect(row).not.toBeNull();
+    await user.click(within(row as HTMLElement).getByText('Stamdata'));
+
+    expect(mockScrollToFieldAddress).toHaveBeenCalledWith(field.bind().address);
   });
 
   it('et fuldt gyldigt input aktiverer download og leverer et dokument med frisk stamdata', async () => {

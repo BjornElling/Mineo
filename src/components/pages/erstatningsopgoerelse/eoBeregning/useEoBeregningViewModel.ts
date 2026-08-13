@@ -7,6 +7,8 @@ import type { EoNavigableIssueRow, EoRowWithNavigation } from '../../../../domai
 import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoRowNavigationMap';
 import { resolveEoIssueSummaryText } from '../../../../domain/eoRowEvaluation/eoRowIssueCatalog';
 import { scrollToSection } from '../../../../utils/scrollToSection';
+import { scrollToFieldAddress } from '../../../../utils/scrollToFieldAddress';
+import { resolveEoValidationPathAddress } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
 import { scrollToEoRow } from '../../../../utils/scrollToEoRow';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
@@ -300,15 +302,25 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
               case 'erhvervsevnetab-tab':
                 setActiveTabForPage('erhvervsevnetab', navigation.tabKey);
                 navigate(APP_ROUTES.erhvervsevnetab);
+                // Markér sektionen, så linket ikke bare skifter fane og efterlader brugeren øverst på
+                // siden uden anvisning. Et konkret felt ville kræve EET's feltdescriptorer, og dem må
+                // EO-siden ikke koble til (domain-boundary-contract §9/§10) — sektionen er den præcision,
+                // grænsen tillader, og den bruger samme delte markering som alle andre links.
+                if (navigation.sectionId) {
+                  scrollToSection(navigation.sectionId, { attention: true });
+                }
                 break;
               case 'stamdata-page':
                 navigate(APP_ROUTES.stamdata);
                 // Land på det konkrete felt, hvis issuet peger på ét (parallelt til EO-rækkernes
-                // stamdata-sti). Den generiske schema-invalid har intet enkelt felt → kun navigation.
+                // stamdata-sti). Den generiske schema-invalid har intet enkelt felt; den får sektionen,
+                // så linket altid viser brugeren HVOR på siden problemet hører.
                 if (navigation.focusFieldAddress) {
                   scrollToEoRow('', {
                     focusTarget: { kind: 'fieldAddress', address: navigation.focusFieldAddress },
                   });
+                } else {
+                  scrollToSection('stamdata-skadelidte', { attention: true });
                 }
                 break;
               default: {
@@ -480,7 +492,23 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         // så de er aldrig en usynlig-blokerings-risiko og må ikke dubleres her.
         .filter((invariant) => !invariant.id.startsWith('midlertidigt_eet_source:'))
         .forEach((invariant) => {
-          pushIssue({ id: `blocking-invariant:${invariant.id}`, message: invariant.message });
+          // Nettet dækker per definition regler, INGEN row-builder har dannet en række for, så der er
+          // intet række-id at route fra. Invarianten bærer til gengæld validatorens egen felt-sti som
+          // evidence; navngiver den ét top-level EO-felt, kan rækken få samme link og blinkmarkering som
+          // enhver anden fejl. Kan stien ikke opløses, forbliver rækken tekst uden link — bevidst, frem
+          // for at sende brugeren til et gættet felt.
+          const address = resolveEoValidationPathAddress(invariant.evidence?.[0]);
+          pushIssue({
+            id: `blocking-invariant:${invariant.id}`,
+            message: invariant.message,
+            ...(address === undefined ? {} : {
+              actionLabel: 'EO oplysninger',
+              onAction: () => {
+                setActiveTab('eo_oplysninger');
+                scrollToFieldAddress(address);
+              },
+            }),
+          });
         });
     }
 

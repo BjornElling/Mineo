@@ -1,5 +1,7 @@
 import { FIELD_ADDRESS_ATTR, EDITOR_ROUTE_ATTR, EDITOR_TAB_ATTR } from './historyRestoreTarget';
 import { isRestoreTargetVisible } from './historyTargetRestoreLoop';
+import { deserializeFieldAddress, type FieldAddress } from '../fieldAddress';
+import type { FieldAddressTemplate } from '../fieldDescriptor';
 
 // En MOUNTED fokusdestination ejes af editorlokationen, ikke af feltets dataadresse (§3.2). Før første mount
 // lever den prioriterede route/fane i inputkatalogets statiske, descriptor-keyede feltlokationskatalog.
@@ -76,4 +78,54 @@ export const lookupEditorLocation = (serializedAddress: string): EditorLocationL
   }
 
   return mounted ?? Object.freeze({ kind: 'unmounted' });
+};
+
+/**
+ * Find den FØRSTE synlige editor for et felt, hvor rækkeleddet er UBUNDET — feltet udpeges af sin
+ * adressetemplate (collection + feltnavn) frem for af en konkret adresse.
+ *
+ * Findes til den advarsel, der handler om en indtastning, brugeren ENDNU IKKE HAR OPRETTET: er der ingen
+ * TAF-periode, findes der intet række-id, og `lookupEditorLocation` har dermed ingen adresse at slå op. Men
+ * tabellen viser altid en tom indtastningsrække (`useCollectionTable`), og dens celler bærer en fuldt bundet
+ * feltadresse. Opslaget matcher derfor på adressens STRUKTUR — samme sektion, samme sti bortset fra
+ * entity-id'erne, samme feltnavn — og lader placeholderens runtime-id være det ene, der må variere.
+ *
+ * Der indføres INGEN ny feltidentitet i DOM: attributten, der læses, er den samme `data-mineo-field-address`,
+ * som alle andre fokusveje bruger. Vi deserialiserer den og sammenligner strukturelt frem for at
+ * strengmatche et præfiks — en præfiksmatch ville ramme et vilkårligt felt, hvis navnet indgår i et andet
+ * felts serialisering.
+ *
+ * Første i dokumentrækkefølge vinder: i en tabel er det tabellens øverste række, som også er den, brugeren
+ * naturligt udfylder først.
+ */
+export const findFirstVisibleEditorForTemplate = (
+  template: FieldAddressTemplate
+): HTMLElement | null => {
+  if (typeof document === 'undefined') return null;
+
+  const matchesTemplate = (address: FieldAddress): boolean => {
+    if (address.section !== template.section) return false;
+    if (address.field !== template.field) return false;
+    if (address.path.length !== template.path.length) return false;
+    return template.path.every((segment, index) => {
+      const candidate = address.path[index];
+      if (candidate === undefined || candidate.kind !== segment.kind) return false;
+      if (segment.kind === 'property') {
+        return candidate.kind === 'property' && candidate.name === segment.name;
+      }
+      // Entity-leddet: collectionen skal stemme, men id'et er netop det ubundne led.
+      return candidate.kind === 'entity' && candidate.collection === segment.collection;
+    });
+  };
+
+  for (const element of document.querySelectorAll(`[${FIELD_ADDRESS_ATTR}]`)) {
+    if (!(element instanceof HTMLElement)) continue;
+    const serialized = element.getAttribute(FIELD_ADDRESS_ATTR);
+    if (serialized === null) continue;
+    const address = deserializeFieldAddress(serialized);
+    if (address === null || !matchesTemplate(address)) continue;
+    if (isRestoreTargetVisible(element)) return element;
+  }
+
+  return null;
 };

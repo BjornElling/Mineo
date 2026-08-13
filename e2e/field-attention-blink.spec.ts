@@ -327,6 +327,40 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await expectLinkedDropdownToPulse(page, inputName!, readBlinkSamples(page));
   });
 
+  /**
+   * Advarslen om en indtastning, der IKKE FINDES ENDNU.
+   *
+   * «Der er ikke angivet nogen TAF-periode i EO-perioden» handler om en række, brugeren ikke har
+   * oprettet. Advarslen bar tidligere et rækkeanker på sit eget synthetiske id, og da
+   * `data-mineo-row-id` kun sættes på virkelige tabelrækker, kunne opslaget ikke finde noget: linket
+   * skiftede fane og blinkede intet. Testen hævder den adfærd, brugeren skal opleve — at fra-cellen i
+   * TAF-tabellens første (tomme) række markeres.
+   */
+  test('advarsel om manglende TAF-periode blinker fra-cellen i tabellens første række', async ({ page }) => {
+    await login(page);
+    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await page.locator("input[name='kravPaaTabtArbejdsfortjeneste'][value='Ja']").check();
+    await page.getByRole('tab', { name: 'Beregning' }).click();
+
+    await startBlinkSampling(page);
+    await clickEoIssueLink(
+      page,
+      'Der er ikke angivet nogen TAF-periode i EO-perioden',
+      'Tabt arbejdsfortjeneste'
+    );
+
+    await expect(page.getByRole('tab', { name: 'EO oplysninger' })).toHaveAttribute('aria-selected', 'true');
+
+    // Den tomme indtastningsrækkes fra-celle: en TAF-fra-adresse med et entity-led (rækken), altså
+    // netop den celle brugeren skal udfylde for at få advarslen væk.
+    const fraCell = page
+      .locator('[data-mineo-field-address*="tafPerioder"][data-mineo-field-address*="\\"field\\":\\"fra\\""]')
+      .first();
+    await expect(fraCell).toBeVisible();
+    await expect(fraCell.locator('xpath=..')).toHaveClass(new RegExp(BLINK_CLASS));
+    expectRedPulse(await readBlinkSamples(page));
+  });
+
   test('EET-fejllink blinker beregningsdatoen efter et faneskift', async ({ page }) => {
     await login(page);
     await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();

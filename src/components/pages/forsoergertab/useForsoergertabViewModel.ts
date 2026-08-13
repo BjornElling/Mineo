@@ -17,6 +17,8 @@ import {
   faellesAarsloenEalAarsloenField,
 } from '../../../inputCore/catalog/faellesAarsloenDescriptors';
 import { stamdataSkadedatoField, stamdataSkadelidteFodselsdatoField } from '../../../inputCore/catalog/stamdataDescriptors';
+import type { FieldAddress } from '../../../inputCore/fieldAddress';
+import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
 import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
@@ -102,7 +104,29 @@ export function useForsoergertabViewModel() {
   const skadedatoError = skadedatoRead.status === 'error' ? skadedatoRead.issue.message : undefined;
   const skadedatoLabel = evaluation.reader.labelOf(skadedatoRef);
 
-  const goToStamdata = React.useCallback(() => navigate(APP_ROUTES.stamdata), [navigate]);
+  /**
+   * «Mangler (angiv i Stamdata)»-linket: naviger OG peg på det felt, der mangler.
+   *
+   * Linket navigerede tidligere kun til siden og efterlod brugeren dér uden anvisning — selv om det er den
+   * reneste form for «en indtastning mangler»: feltet FINDES, det er blot tomt, og dets descriptor er
+   * allerede bundet her. Markeringen er den delte `blinkFieldAttention` via `scrollToFieldAddress`, altså
+   * samme adfærd som fejl- og advarselslinkene; ingen parallel vej.
+   */
+  const goToStamdataField = React.useCallback(
+    (address: FieldAddress) => {
+      navigate(APP_ROUTES.stamdata);
+      scrollToFieldAddress(address);
+    },
+    [navigate]
+  );
+  const goToSkadelidteFodselsdato = React.useCallback(
+    () => goToStamdataField(skadelidteFodselsdatoRef.address),
+    [goToStamdataField]
+  );
+  const goToSkadedato = React.useCallback(
+    () => goToStamdataField(skadedatoRef.address),
+    [goToStamdataField]
+  );
 
   const settleBeregningsdato = React.useCallback(
     (today: Parameters<typeof beregningsdatoController.settleValue>[0]) => {
@@ -127,7 +151,8 @@ export function useForsoergertabViewModel() {
     skadedato,
     skadedatoError,
     skadedatoLabel,
-    goToStamdata,
+    goToSkadelidteFodselsdato,
+    goToSkadedato,
     // Snapshot-afledt visning og panel-gates (§1.10).
     result: snapshot.calculation.result,
     ealComputation: snapshot.calculation.ealComputation,

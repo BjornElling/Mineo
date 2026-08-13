@@ -7,7 +7,7 @@ import { hydrateSlimInputStoreForTest } from '../../../../test/actSafeInputStore
 // download-gate (§1.5/§1.6/§3.9): en canonical méngrad uden for 1..120 blokerer downloaden med en synlig rød
 // feltfejl, en byttet datoorden i stamdata blokerer, og et fuldt gyldigt input når dokumentservicen med et frisk
 // stamdata-snapshot.
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import MenberegningTab from '../../../../components/pages/varigemen/MenberegningTab';
@@ -23,6 +23,10 @@ import type { StamdataValues } from '../../../../schemas/formSchemas/sections/st
 import type { VarigeMenValues } from '../../../../schemas/formSchemas';
 import { toISODateString } from '../../../../types/branded';
 import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+} from '../../../../inputCore/catalog/stamdataDescriptors';
+import {
   DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE,
   DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
 } from '../../../../document/layout/documentGateTypes';
@@ -36,6 +40,18 @@ const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
 vi.mock('../../../../document/downloadArtifact', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../../../document/downloadArtifact')>(),
   triggerDocumentDownload: mockTriggerDocumentDownload,
+}));
+
+/**
+ * `scrollToFieldAddress` mockes, fordi jsdom hverken har layout eller scroll: den ægte funktion ville
+ * køre sin rAF-retry-løkke uden nogensinde at finde en editor (Stamdata-siden er ikke mountet her).
+ * Påstanden er koblingen — at fanen bruger den DELTE markeringsvej med den rigtige feltadresse.
+ */
+const mockScrollToFieldAddress = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../../utils/scrollToFieldAddress', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../../utils/scrollToFieldAddress')>(),
+  scrollToFieldAddress: mockScrollToFieldAddress,
 }));
 
 const catalog = getProductionInputCatalog();
@@ -80,6 +96,7 @@ describe('MenberegningTab — reader-projektion + download-gate', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
+    mockScrollToFieldAddress.mockClear();
   });
 
   it('et fuldt gyldigt input aktiverer download og når dokumentservicen med frisk stamdata', async () => {
@@ -204,5 +221,52 @@ describe('MenberegningTab — gate-årsagen vises kun i tooltippet', () => {
     const button = screen.getByTestId('varigemen-download');
     expect(button).not.toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
     expect(screen.queryByText(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE)).toBeNull();
+  });
+
+  /**
+   * «Mangler (angiv i Stamdata)» skal PEGE på feltet — ikke kun skifte side.
+   *
+   * Linkene navigerede tidligere blot til Stamdata og efterlod brugeren dér uden anvisning, selv om det er
+   * den reneste form for «en indtastning mangler»: feltet findes, det er blot tomt. Blokerings-feedbacken
+   * havde samme mangel, og skadedato-grenen returnerede endda uden at gøre noget som helst.
+   *
+   * Testen hævder, at den DELTE markeringsvej kaldes med præcis det stamdata-felt, rækken handler om.
+   * Selve blinket er dækket af `scrollToFieldAddress`-/blink-testene og af e2e; her er påstanden
+   * koblingen: rigtigt felt, rigtig vej, ingen side-lokal kopi.
+   */
+  it.each([
+    { label: 'Fødselsdato', field: stamdataSkadelidteFodselsdatoField },
+    { label: 'Skadedato', field: stamdataSkadedatoField },
+  ])('$label-linket fører til feltet i Stamdata og markerer det', async ({ label, field }) => {
+    const user = userEvent.setup();
+    // Begge datoer er tomme, så begge rækker viser «Mangler (angiv i Stamdata)».
+    hydrate({ mengrad: 10, beregningsdato: toISODateString('2020-01-01') }, {
+      ...validStamdata,
+      skadelidteFodselsdato: undefined,
+      skadedato: undefined,
+    });
+    renderTab();
+
+    const row = screen.getByText(label).closest('.row--label-right-hover');
+    expect(row).not.toBeNull();
+    await user.click(within(row as HTMLElement).getByText('Stamdata'));
+
+    expect(mockScrollToFieldAddress).toHaveBeenCalledWith(field.bind().address);
+  });
+
+  it('en blokeret download peger på den manglende stamdata-dato frem for kun at ryste knappen', async () => {
+    const user = userEvent.setup();
+    hydrate({ mengrad: 10, beregningsdato: toISODateString('2020-01-01') }, {
+      ...validStamdata,
+      skadelidteFodselsdato: undefined,
+    });
+    renderTab();
+
+    await user.click(screen.getByTestId('varigemen-download'));
+
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
+    expect(mockScrollToFieldAddress).toHaveBeenCalledWith(
+      stamdataSkadelidteFodselsdatoField.bind().address
+    );
   });
 });
