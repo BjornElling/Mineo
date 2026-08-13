@@ -4,6 +4,11 @@ echo "HUSKY PRE-COMMIT KØRER"
 
 set -e
 
+# Stop commit hvis kildekode, testkode eller E2E-konfiguration ikke typechecker, eller hvis lint fejler.
+# Den samme samlede gate bruges af release-flowet, så et normalt commit ikke kan komme foran den
+# kontrol, GitHub ellers først ville udføre efter commit.
+npm run check:commit
+
 # Stop commit hvis der er encoding/mojibake-fejl
 npm run check:mojibake
 

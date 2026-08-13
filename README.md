@@ -51,8 +51,10 @@ Kvalitetstjek:
 ```bash
 npm run typecheck       # typecheck af kildekode (tsconfig.json)
 npm run typecheck:test  # typecheck af testkode (tsconfig.test.json — separat config)
+npm run check:types     # samlet typecheck af kilde-, test- og E2E-kode
+npm run check:commit    # samlet typecheck + lint, samme gate som pre-commit
 npm run lint            # eslint (--max-warnings 0)
-npm run test            # kør hele testsuiten (Vitest)
+npm run test            # samlet typecheck efterfulgt af hele testsuiten (Vitest)
 npm run test:watch      # Vitest i watch-mode
 ```
 
