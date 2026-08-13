@@ -40,7 +40,7 @@ test.describe('Svie/smerte efter ménafgørelse', () => {
     await setDate(fra, '17-09-2024');
     await setDate(til, '01-10-2024');
 
-    await row.getByRole('combobox', { name: 'Vælg tilstand' }).click();
+    await row.getByRole('combobox', { name: 'Tilstand' }).click();
     await page.getByRole('option', { name: 'Sygemeldt', exact: true }).click();
 
     await expect(fra).toHaveAttribute('aria-invalid', 'true');
