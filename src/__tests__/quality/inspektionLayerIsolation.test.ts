@@ -84,7 +84,11 @@ describe('inspektionLayerIsolation — wiring', () => {
       "import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator'"
     );
     expect(findInspektionImports(source, path.dirname(BEREGNING_VM_PATH))).toEqual([]);
-    expect(source).toContain('hasBlockingEoRowErrors');
+    // Rækkemotoren skal fortsat KALDES her (issue-listerne til "Fejl og advarsler" er view-modellens
+    // ansvar). Tidligere pinnede testen navnet `hasBlockingEoRowErrors`, men den variabel var page-lokal
+    // gate-logik, som er flyttet til `eoDocumentDownloadGate` (klassen `page-errors`) — et `toContain` på
+    // et navn, der nu kun står i en forklarende kommentar, ville bestå af den forkerte grund.
+    expect(source).toContain('collectAllEoRows(');
     expect(source).not.toContain('evaluateErstatningsopgoerelseDownloadGates');
     expect(source).not.toContain('buildErstatningsopgoerelseReaderProjection');
   });

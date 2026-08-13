@@ -1,18 +1,23 @@
 import {
+  DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE,
   DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE,
   DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
   blockDocumentDownload,
   blockDocumentDownloadForInvalidInput,
   blockDocumentDownloadForFieldIssue,
   blockDocumentDownloadWithSpecificReason,
+  classifyBlockingCauses,
   invalidInputReason,
   missingInputReason,
+  pageErrorsReason,
   resolveBlockedGateTooltip,
   resolveDocumentGateTooltip,
   resolvePrimaryGateReason,
   specificReason,
+  toBlockingCauses,
   type DocumentDownloadGateReasonKind,
 } from '../../../document/layout/documentGateTypes';
+import type { ConsumerIssue, FieldIssue } from '../../../inputCore/inputIssue';
 import { varigeMenMengradField } from '../../../inputCore/catalog/varigeMenDescriptors';
 
 // Brugerkravet 2026-07-30 tilføjede `invalid-input` som tredje klasse. Før den kollapsede "der mangler noget"
@@ -52,18 +57,149 @@ describe('resolveDocumentGateTooltip — klasse → brugertekst', () => {
    * De to universelle tekster skal være FORSKELLIGE — det er hele kravet. En sammenlægning (fx ved en
    * copy-paste af konstanten) ville ellers gøre alle testene ovenfor grønne samtidig.
    */
-  it('holder de to universelle tekster adskilt', () => {
-    expect(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE).not.toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
-  });
-
   it('har et udfald for hver klasse i typen', () => {
-    const kinds: readonly DocumentDownloadGateReasonKind[] = ['missing-input', 'invalid-input', 'specific'];
+    const kinds: readonly DocumentDownloadGateReasonKind[] = ['page-errors', 'missing-input', 'invalid-input', 'specific'];
     const texts = kinds.map((kind) => resolveDocumentGateTooltip({ code: 'c', message: 'ordret', kind }));
     expect(texts).toEqual([
+      DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE,
       DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
       DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE,
       'ordret',
     ]);
+  });
+
+  /**
+   * De fire tekster skal være FORSKELLIGE. En sammenlægning (fx ved copy-paste af en konstant) ville ellers
+   * kunne gøre testene ovenfor grønne samtidig.
+   */
+  it('holder alle fire universelle tekster adskilt', () => {
+    const texts = new Set([
+      DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE,
+      DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
+      DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE,
+    ]);
+    expect(texts.size).toBe(3);
+  });
+});
+
+/**
+ * Klassifikationen fra årsagsmetadata (lempelsen 2026-08-13).
+ *
+ * Et tidligere udkast ville udlede klassen af issue-listens LÆNGDE. Testene her pinner, hvorfor det ikke
+ * holder: `runProjection` dedupper på `kind:code`, og `require` registrerer ét `missing`-issue pr. tomt
+ * felt — så listens længde måler hverken antal felter eller antal årsager. Kun `field`/`row`-scope tælles.
+ */
+describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
+  const fieldIssue = (reason: FieldIssue['reason'], message: string): FieldIssue => ({
+    kind: 'field',
+    severity: 'error',
+    reason,
+    code: `x:${reason}`,
+    field: varigeMenMengradField.bind(),
+    message,
+  });
+
+  const missingIssue = (code: string, message: string): ConsumerIssue => ({
+    kind: 'consumer',
+    severity: 'error',
+    reason: 'missing',
+    consumerId: 'test',
+    code,
+    message,
+  });
+
+  it('citerer ÉN bounds-feltfejl ordret', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'field', issue: fieldIssue('bounds', 'Méngrad skal være mellem 1 og 120') },
+    ], 'fallback');
+    expect(reason.kind).toBe('specific');
+    expect(resolveDocumentGateTooltip(reason)).toBe('Méngrad skal være mellem 1 og 120');
+  });
+
+  it('citerer IKKE, når to felter er røde — så ingen fejl fremstår som den eneste', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'field', issue: fieldIssue('bounds', 'Méngrad skal være mellem 1 og 120') },
+      { scope: 'field', issue: fieldIssue('rule', 'Datoen skal ligge efter skadedatoen') },
+    ], 'fallback');
+    expect(reason.kind).toBe('invalid-input');
+    expect(resolveDocumentGateTooltip(reason)).toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
+  });
+
+  it('bruger den generiske klassetekst for en formatfejl', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'field', issue: fieldIssue('format', 'Der er udfyldt en ugyldig værdi i feltet') },
+    ], 'fallback');
+    expect(reason.kind).toBe('invalid-input');
+  });
+
+  it('lader en rød feltfejl vinde over tomme felter (brugerens b før c)', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'missing', issue: missingIssue('m1', 'Feltet Beregningsdato er ikke udfyldt') },
+      { scope: 'field', issue: fieldIssue('format', 'ugyldig') },
+      { scope: 'missing', issue: missingIssue('m2', 'Feltet Skadedato er ikke udfyldt') },
+    ], 'fallback');
+    expect(reason.kind).toBe('invalid-input');
+  });
+
+  /**
+   * Netop dette tilfælde brød længde-heuristikken: ÉT rødt felt + tre tomme felter er fire issues, men den
+   * røde fejl er stadig den ene, der kan citeres.
+   */
+  it('citerer den ENE røde bounds-fejl, selv når flere felter samtidig er tomme', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'missing', issue: missingIssue('m1', 'Feltet Beregningsdato er ikke udfyldt') },
+      { scope: 'missing', issue: missingIssue('m2', 'Feltet Skadedato er ikke udfyldt') },
+      { scope: 'field', issue: fieldIssue('bounds', 'Méngrad skal være mellem 1 og 120') },
+    ], 'fallback');
+    expect(reason.kind).toBe('specific');
+    expect(resolveDocumentGateTooltip(reason)).toBe('Méngrad skal være mellem 1 og 120');
+  });
+
+  it('giver den universelle mangel-tekst for tomme felter alene', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'missing', issue: missingIssue('m1', 'Feltet Beregningsdato er ikke udfyldt') },
+    ], 'fallback');
+    expect(reason.kind).toBe('missing-input');
+    expect(resolveDocumentGateTooltip(reason)).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
+  });
+
+  it('citerer én navngiven række ordret', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'row', rowId: 'feriePct', message: 'Procent skal være mellem 0 og 100' },
+    ], 'fallback');
+    expect(reason.kind).toBe('specific');
+    expect(resolveDocumentGateTooltip(reason)).toBe('Procent skal være mellem 0 og 100');
+  });
+
+  it('citerer ikke et aggregat, men bruger dets besked som intern forklaring', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'aggregate', message: 'Valideringsfejl i tabel' },
+    ], 'fallback');
+    expect(reason.kind).toBe('missing-input');
+    expect(reason.message).toBe('Valideringsfejl i tabel');
+  });
+
+  it('bruger fallback-beskeden for en tom årsagsliste', () => {
+    const reason = classifyBlockingCauses('c', [], 'Beregning kan ikke dannes');
+    expect(reason.kind).toBe('missing-input');
+    expect(reason.message).toBe('Beregning kan ikke dannes');
+  });
+
+  /**
+   * En consumerplaceret domæneregel er IKKE samme tilstand som et tomt felt (`error-contract.md` §1.1).
+   * Faldt den i `missing`-grenen, ville et udfyldt felt få "Indtastning mangler".
+   */
+  it('mapper en consumer-regel til aggregat frem for til missing', () => {
+    const ruleIssue: ConsumerIssue = {
+      kind: 'consumer',
+      severity: 'error',
+      reason: 'rule',
+      consumerId: 'test',
+      code: 'r1',
+      message: 'Perioden overlapper en anden periode',
+    };
+    const causes = toBlockingCauses([ruleIssue]);
+    expect(causes).toEqual([{ scope: 'aggregate', message: 'Perioden overlapper en anden periode' }]);
   });
 });
 
@@ -79,13 +215,39 @@ describe('resolvePrimaryGateReason — forrang mellem klasser', () => {
     expect(resolvePrimaryGateReason(invalidFirst)?.code).toBe('b');
   });
 
-  it('lader specific vinde over begge', () => {
+  /**
+   * OMVENDT af den oprindelige model (brugerbeslutning 2026-08-13). `specific` vandt før alt, men efter
+   * lempelsen er et ordret citat kun tilladt for præcis ÉN felt-/rækkefejl. Er en anden klasse også i spil,
+   * dækker blokeringen mere end den ene fejl, og at fremhæve den ville få brugeren til at tro, den var den
+   * eneste. `specific` er derfor LAVEST rangerende.
+   */
+  it('lader invalid-input vinde over specific, så et citat ikke skjuler de øvrige fejl', () => {
     const reasons = [
       missingInputReason('a', 'mangler'),
       invalidInputReason('b', 'ugyldig'),
-      specificReason('c', 'Feltet Beregningsdato er ikke udfyldt'),
+      specificReason('c', 'Méngrad skal være mellem 1 og 120'),
     ];
+    expect(resolvePrimaryGateReason(reasons)?.code).toBe('b');
+  });
+
+  it('bruger specific, når den er den eneste klasse i spil', () => {
+    const reasons = [specificReason('c', 'Méngrad skal være mellem 1 og 120')];
     expect(resolvePrimaryGateReason(reasons)?.code).toBe('c');
+  });
+
+  /**
+   * `page-errors` vinder ALT: står fejlen allerede i sidens fejlboks, er henvisningen dertil det, brugeren
+   * skal læse — uanset om en af de underliggende fejl kunne navngives.
+   */
+  it('lader page-errors vinde over alle øvrige klasser', () => {
+    const reasons = [
+      missingInputReason('a', 'mangler'),
+      invalidInputReason('b', 'ugyldig'),
+      specificReason('c', 'Méngrad skal være mellem 1 og 120'),
+      pageErrorsReason('d', 'Feriegodtgørelse er ikke udfyldt'),
+    ];
+    expect(resolvePrimaryGateReason(reasons)?.code).toBe('d');
+    expect(resolveBlockedGateTooltip(reasons)).toBe(DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE);
   });
 
   it('bevarer gatens egen rækkefølge inden for samme klasse', () => {

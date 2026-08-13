@@ -19,7 +19,7 @@ import {
   type MineoDocumentGateSettings,
 } from '../../document/definition/mineoDocumentDefinition';
 import {
-  blockedFromIssues,
+  blockedProjectionFromCauses,
   blockedProjection,
   toGateReasons,
 } from '../../document/definition/documentOutcome';
@@ -80,7 +80,7 @@ const requireReadyAggregate = <TInput>(
   if (source.stamdata.status !== 'ready') {
     return {
       kind: 'blocked',
-      result: blockedFromIssues(
+      result: blockedProjectionFromCauses(
         'renteberegning:stamdata-blocked',
         source.stamdata.status === 'blocked' ? source.stamdata.issues : undefined,
         'Stamdata indeholder fejl'
@@ -91,13 +91,14 @@ const requireReadyAggregate = <TInput>(
   if (aggregate === null) {
     return {
       kind: 'blocked',
-      result: blockedFromIssues(
+      result: blockedProjectionFromCauses(
         'renteberegning:field-error',
         source.projection.aggregateProjection.status === 'blocked'
           ? source.projection.aggregateProjection.issues
           : undefined,
-        'Fejl i indtastning',
-        'invalid-input'
+        // Fallbacken bruges kun ved en TOM issue-liste; ellers udleder klassifikationen klassen af
+        // aggregat-projektionens egne issues (§3.1), som her altid er røde feltissues (kun `optional`-reads).
+        'Fejl i indtastning'
       ),
     };
   }
@@ -148,10 +149,6 @@ export const renteOversigtDocumentDefinition: MineoDocumentDefinition<RenteOvers
         beregningsdato: source.beregningsdato,
         hasValidPdfContexts: ready.aggregate.pdfContexts.size > 0,
         anyRowHasError: ready.aggregate.anyRowHasError,
-        // Feltfejl på beregningsdato fanges allerede af aggregat-projektionen ovenfor; den ville
-        // gøre den `blocked`. Flaget er derfor altid false her — bevaret for at kalde gaten med dens
-        // fulde, uændrede signatur (§5.4).
-        beregningsdatoHasError: false,
       });
       if (!gate.canDownload) {
         return {
@@ -234,7 +231,7 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
     project: (context, request) => {
       const source = context.shared(readSharedRenteSource);
       if (source.stamdata.status !== 'ready') {
-        return blockedFromIssues(
+        return blockedProjectionFromCauses(
           'renteberegning:stamdata-blocked',
           source.stamdata.status === 'blocked' ? source.stamdata.issues : undefined,
           'Stamdata indeholder fejl'
@@ -247,7 +244,7 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
         return blockedProjection('rente:row-missing', 'Rentelinjen findes ikke længere');
       }
       if (rowProjection.status !== 'ready') {
-        return blockedFromIssues(
+        return blockedProjectionFromCauses(
           'rente:row-blocked',
           rowProjection.status === 'blocked' ? rowProjection.issues : undefined,
           'Rentelinjen er ugyldig'

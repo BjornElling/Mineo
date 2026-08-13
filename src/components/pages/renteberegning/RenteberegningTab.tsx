@@ -20,6 +20,7 @@ import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/ren
 import SpecifikationDownloadBox from './SpecifikationDownloadBox';
 import DownloadIconButton from '../../inputs/DownloadIconButton';
 import { DOWNLOAD_DISABLED_TOOLTIP, getDocumentFormatLabel, type DocumentDownloadFormat } from '../../../document/documentFormat';
+import { resolveBlockedGateTooltip } from '../../../document/layout/documentGateTypes';
 import { useInputEvaluation, useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import { useSectionReset } from '../../../inputCore/react/inputRuntimeContext';
@@ -125,12 +126,19 @@ const RenteberegningTab = React.memo(({
     await renteDownload.download({ rowId });
   }, [renteDownload]);
 
-  /** Rækkens gate fra definitionen selv — samme `project`, samme kontekst, samme request som klikket. */
+  /**
+   * Rækkens gate fra definitionen selv — samme `project`, samme kontekst, samme request som klikket.
+   *
+   * Teksten SKAL gennem `resolveBlockedGateTooltip`. Her stod før `gate.reasons[0].message`, hvilket omgik
+   * både prioriteringen mellem årsager og klasse→tekst-oversættelsen: rækkeknapperne viste derfor gatens
+   * INTERNE beskeder ("Rentelinjen findes ikke længere", "Stamdata indeholder fejl") direkte til brugeren,
+   * i strid med `page-component-contract.md` §11.1.
+   */
   const resolveRowDownloadGate = React.useCallback((rowId: string) => {
     const gate = renteDownload.gateFor({ rowId });
     return gate.canDownload
       ? { canDownload: true as const }
-      : { canDownload: false as const, disabledReason: gate.reasons[0].message };
+      : { canDownload: false as const, disabledReason: resolveBlockedGateTooltip(gate.reasons) };
   }, [renteDownload]);
 
   const handleDownloadAll = React.useCallback(async () => {
@@ -237,7 +245,12 @@ const RenteberegningTab = React.memo(({
                   <DownloadIconButton
                     onClick={() => { void handleDownloadOversigt(); }}
                     disabled={oversigtDownloadDisabled}
-                    tooltip={oversigtDownloadDisabled ? DOWNLOAD_DISABLED_TOOLTIP : `Download som ${getDocumentFormatLabel(documentDownloadFormat)}`}
+                    // Gatens egen årsag frem for den generiske default: oversigten kan blokere af flere
+                    // grunde (manglende beregningsdato, ingen gyldige rentelinjer), og knappen læste dem
+                    // slet ikke — den svarede altid "Indtastning mangler".
+                    tooltip={oversigtDownloadDisabled
+                      ? (renteOversigtDownload?.disabledReason ?? DOWNLOAD_DISABLED_TOOLTIP)
+                      : `Download som ${getDocumentFormatLabel(documentDownloadFormat)}`}
                     ariaLabel="Download samlet oversigt"
                   />
                 </Box>
@@ -280,6 +293,7 @@ const RenteberegningTab = React.memo(({
           errorMessage={pageMessage(renteAlleDownload?.errorMessage)}
           isLoading={downloadAllIsLoading}
           disabled={downloadAllDisabled}
+          disabledReason={renteAlleDownload?.disabledReason}
           ContentBoxComponent={ContentBoxComponent}
           documentDownloadFormat={documentDownloadFormat}
         />

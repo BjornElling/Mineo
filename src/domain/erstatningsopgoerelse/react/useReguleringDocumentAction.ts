@@ -15,6 +15,7 @@
  * click-preflighten kalder — og de to steder kan ikke længere drifte.
  */
 import type { DocumentOutcome } from '../../../document/definition/documentOutcome';
+import { resolveDocumentGateTooltip } from '../../../document/layout/documentGateTypes';
 import {
   useMineoDocumentActionOutput,
   useMineoDocumentSourceContext,
@@ -50,7 +51,11 @@ export const useReguleringDocumentAction = (
 
   return {
     canDownload: output.canDownload,
-    disabledReason: output.disabledReason ?? REGULERING_NO_OUTPUT_REASON.message,
+    // Fallbacken oversættes gennem `resolveDocumentGateTooltip` som enhver anden årsag. Her stod før
+    // `REGULERING_NO_OUTPUT_REASON.message`, altså den INTERNE forklaring — så brugeren kunne læse "Der er
+    // ikke valgt et grundlag med tilgængelige reguleringssatser" på en knap, hvis årsag selv siger
+    // `missing-input`. `message` er aldrig brugertekst (`page-component-contract.md` §11.1).
+    disabledReason: output.disabledReason ?? resolveDocumentGateTooltip(REGULERING_NO_OUTPUT_REASON),
     errorMessage: output.errorMessage,
     download: () => output.download(request),
   };

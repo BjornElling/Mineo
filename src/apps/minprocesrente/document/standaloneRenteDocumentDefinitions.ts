@@ -16,7 +16,7 @@
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import type { DocumentDefinition, DocumentProjectionResult } from '../../../document/definition/documentDefinition';
 import {
-  blockedFromIssues,
+  blockedProjectionFromCauses,
   blockedProjection,
   toGateReasons,
 } from '../../../document/definition/documentOutcome';
@@ -82,13 +82,14 @@ const requireReadyAggregate = <TInput>(
   if (aggregate === null) {
     return {
       kind: 'blocked',
-      result: blockedFromIssues(
+      result: blockedProjectionFromCauses(
         'renteberegning:field-error',
         source.projection.aggregateProjection.status === 'blocked'
           ? source.projection.aggregateProjection.issues
           : undefined,
-        'Fejl i indtastning',
-        'invalid-input'
+        // Fallbacken bruges kun ved en TOM issue-liste; ellers udleder klassifikationen klassen af
+        // aggregat-projektionens egne issues (§3.1), som her altid er røde feltissues (kun `optional`-reads).
+        'Fejl i indtastning'
       ),
     };
   }
@@ -141,7 +142,7 @@ export const standaloneRenteDocumentDefinition: StandaloneDocumentDefinition<
       return blockedProjection('rente:row-missing', 'Rentelinjen findes ikke længere');
     }
     if (rowProjection.status !== 'ready') {
-      return blockedFromIssues(
+      return blockedProjectionFromCauses(
         'rente:row-blocked',
         rowProjection.status === 'blocked' ? rowProjection.issues : undefined,
         'Rentelinjen er ugyldig'
@@ -234,7 +235,6 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
         hasValidPdfContexts: ready.aggregate.pdfContexts.size > 0,
         anyRowHasError: ready.aggregate.anyRowHasError,
         // Feltfejl på beregningsdato ville allerede have gjort aggregat-projektionen blokeret.
-        beregningsdatoHasError: false,
       });
       if (!gate.canDownload) {
         return {
@@ -343,7 +343,6 @@ export const standaloneRenteOversigtDocumentDefinition: StandaloneDocumentDefini
         beregningsdato: source.beregningsdato,
         hasValidPdfContexts: ready.aggregate.pdfContexts.size > 0,
         anyRowHasError: ready.aggregate.anyRowHasError,
-        beregningsdatoHasError: false,
       });
       if (!gate.canDownload) {
         return {

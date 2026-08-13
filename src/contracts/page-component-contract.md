@@ -3,7 +3,7 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-08-11
+**Senest verificeret mod kode:** 2026-08-13
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -470,18 +470,30 @@ ikke kan blive synlig uden læsbart indhold. Viewmodellen pinder sine besked-fel
 altså inferensen selv, og en forkert typet besked derfor ikke har noget at afvige fra. Se
 `error-contract.md` §4 for invarianten og dens baggrund.
 
-**Teksten ejes af årsagen, ikke af fladen.** `DocumentDownloadGateReason.kind` har tre værdier og afgør,
+**Teksten ejes af årsagen, ikke af fladen.** `DocumentDownloadGateReason.kind` har fire værdier og afgør,
 hvad brugeren læser:
 
 | `kind` | Brugertekst |
 |---|---|
+| `page-errors` | `DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE` ("Opgørelse kan ikke hentes, når der er fejl ovenfor") — når siden selv viser fejlen i sin fejl-/advarselsboks |
+| `invalid-input` | den universelle `DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE` ("Fejl i indtastning") |
 | `missing-input` | den universelle `DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE` ("Indtastning mangler") |
-| `invalid-input` | den generiske tekst for ugyldigt indtastet input, konstrueret af `invalidInputReason` |
-| `specific` | citeres ordret; reserveret til en konkret, felt-/rækkenavngiven fejl, brugeren kan handle på |
+| `specific` | citeres ordret; reserveret til PRÆCIS ÉN felt-/rækkenavngiven fejl (se `error-contract.md` §4) |
 
-`message` er altid den interne forklaring og
-må ikke antages at være brugertekst. En flade må ikke vælge tekst selv eller læse
-`blockedReasons[0].message` til visning — brug `handle.disabledReason`, som allerede er oversat.
+Prioritet ved flere årsager og den fulde klassifikationsregel står i `document-output-contract.md` §A5.1.
+
+`message` er altid den interne forklaring og må ikke antages at være brugertekst. En flade må ikke vælge
+tekst selv eller læse `blockedReasons[0].message` til visning — brug `handle.disabledReason`, som allerede er
+oversat, eller `resolveBlockedGateTooltip(gate.reasons)` for en per-række-gate.
+
+Grænsen er håndhævet af `document/download-tooltip-from-gate` i AST-manifestet: `.message` på et
+`reasons`-/`blockedReasons`-udtryk i `src/components/**` gør harnesset rødt. Værnet blev tilføjet, fordi
+Renteberegnings rækkeknapper viste gate-interne strenge ("Rentelinjen findes ikke længere") direkte til
+brugeren — kontrakten forbød det i forvejen, men intet målte det.
+
+En flade må heller ikke lægge sin egen `??`-fallback eller ternary oven på gatens svar. EO's fire knapper
+gjorde netop det og kastede gatens årsag væk for en hardkodet streng; den beslutning hører i gaten (klassen
+`page-errors`), ikke i den flade der tegner knappen.
 
 ### 11.2 Fælles komponenter før lokal speciallogik
 

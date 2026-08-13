@@ -19,7 +19,9 @@ import {
   allowDocumentDownload,
   blockDocumentDownload,
   blockDocumentDownloadForInvalidInput,
-  blockDocumentDownloadWithSpecificReason,
+  blockDocumentDownloadForUnavailableCalculation,
+  blockDocumentDownloadFromCauses,
+  toBlockingCauses,
   type DocumentDownloadGateResult,
 } from '../../document/layout/documentGateTypes';
 import { resolveAarsloenCanonicalRangeIssues } from './aarsloenValidationPolicies';
@@ -29,37 +31,47 @@ import { hasAtLeastOneValidRow } from './standardLoenRowCalculations';
 /**
  * Fælles for begge gates: stamdata er en obligatorisk dokumentdependency.
  *
- * Årsagen er `specific`, når den kommer fra et stamdata-ISSUE: issuet navngiver det felt, brugeren
- * skal rette, og den besked er mere værd end den universelle tekst. Den generiske fallback er derimod
- * `missing-input` — "Stamdata indeholder fejl" fortæller intet, brugeren kan handle på.
+ * Klassen UDLEDES nu af projektionens issues (§3.1) frem for at citere `issues[0]` ubetinget. Den gamle
+ * form gjorde enhver stamdata-blokering `specific`, også når der var flere samtidige røde felter — så
+ * tooltippet fremhævede ét af dem og fik brugeren til at tro, det var det eneste. Efter lempelsen
+ * 2026-08-13 citeres kun en ENKELT felt-/rækkefejl.
  */
 const blockedByStamdata = (
   projection: AarsloenReaderProjection,
   code: string
 ): DocumentDownloadGateResult | null => {
-  if (projection.documentStamdata.status === 'ready') return null;
-  const issueMessage = projection.documentStamdata.status === 'blocked'
-    ? projection.documentStamdata.issues[0]?.message
-    : undefined;
-  return issueMessage === undefined
-    ? blockDocumentDownload({ code, message: 'Stamdata indeholder fejl' })
-    : blockDocumentDownloadWithSpecificReason({ code, message: issueMessage });
+  const stamdata = projection.documentStamdata;
+  if (stamdata.status === 'ready') return null;
+  return blockDocumentDownloadFromCauses(
+    code,
+    toBlockingCauses(stamdata.issues),
+    'Stamdata indeholder fejl'
+  );
 };
 
 /**
- * Fælles for begge gates: et canonical range-issue blokerer. Issuets egen besked navngiver grænsen
- * ("Procent skal være mellem 0 og 100"), så den citeres ordret.
+ * Fælles for begge gates: et canonical range-issue blokerer.
+ *
+ * Er der præcis ÉT, navngiver dets besked grænsen ("Procent skal være mellem 0 og 100") og citeres. Er der
+ * flere, ville et citat af det første skjule de øvrige, og klasseteksten er da det ærlige svar — issuene er
+ * `bounds` på canonical værdier, så felterne bærer selv de konkrete grænser.
  */
 const blockedByCanonicalRange = (
   projection: AarsloenReaderProjection,
   code: string
 ): DocumentDownloadGateResult | null => {
-  const issue = resolveAarsloenCanonicalRangeIssues(projection.values, {
+  const issues = resolveAarsloenCanonicalRangeIssues(projection.values, {
     omregningAktiveret: projection.omregningGate.effectiveEnabled,
-  })[0];
-  return issue === undefined
-    ? null
-    : blockDocumentDownloadWithSpecificReason({ code, message: issue.message });
+  });
+  if (issues.length === 0) return null;
+  // Issuene er en domænelokal `{field, message}`-form, ikke `FieldIssue`. De adresserer hver ét navngivent
+  // procentfelt, så de bæres som `row`-causes med feltnavnet som stabil identitet: præcis én giver et
+  // ordret citat af grænsen, flere giver klasseteksten.
+  return blockDocumentDownloadFromCauses(
+    code,
+    issues.map((issue) => ({ scope: 'row' as const, rowId: issue.field, message: issue.message })),
+    'Fejl i indtastning'
+  );
 };
 
 /** Årsløns-dokumentet. Rækkefølgen er identisk med `resolveAarsloenDocumentEligibility`. */
@@ -78,6 +90,8 @@ export const evaluateAarsloenDownloadGate = (
   }
   if (tableValidation.errors.length > 0) {
     // Rækkerne ER udfyldt, men indholdet er ugyldigt → "Fejl i indtastning", ikke "Indtastning mangler".
+    // Bevidst `aggregate`: tabelvalideringen dækker N celler på tværs af N rækker, så ingen enkelt besked
+    // må citeres som om den var den eneste fejl (lempelsen §2). Cellerne bærer selv deres røde markering.
     return blockDocumentDownloadForInvalidInput({ code: 'aarsloen:table-validation-error', message: 'Valideringsfejl i tabel' });
   }
   if (!hasAtLeastOneValidRow(values.tableData, values.loenperiode, {
@@ -89,16 +103,23 @@ export const evaluateAarsloenDownloadGate = (
   }, values.tillaegAngivesSom)) {
     return blockDocumentDownload({ code: 'aarsloen:no-valid-rows', message: 'Ingen gyldige rækker i tabel' });
   }
-  // Feltgaten var rød, så motoren blev ikke kaldt (§3.9). Tidligere svarede dette til
-  // `harFatalBeregningsFejl` på et snapshot, hvor beregningen altid var forsøgt.
+  // `calculation === null` betyder, at feltgaten var RØD, så motoren aldrig blev kaldt (§3.9) — ikke at
+  // noget mangler. Klassen udledes derfor af projektionens egne `fieldIssues`; før svarede grenen
+  // "Indtastning mangler" på et felt, der var udfyldt med en ugyldig værdi (samme forveksling som
+  // brugerkravet 2026-07-30 rettede andre steder).
   if (calculation === null) {
-    return blockDocumentDownload({ code: 'aarsloen:fatal-calculation-error', message: 'Fatale beregningsfejl' });
+    return blockDocumentDownloadFromCauses(
+      'aarsloen:fatal-calculation-error',
+      toBlockingCauses(projection.fieldIssues),
+      'Fatale beregningsfejl'
+    );
   }
   if (calculation.harFatalBeregningsFejl) {
-    return blockDocumentDownload({ code: 'aarsloen:fatal-calculation-error', message: 'Fatale beregningsfejl' });
+    // Motoren KØRTE og meldte fatal fejl: input er komplet, men beregningen kan ikke dannes (§1.1).
+    return blockDocumentDownloadForUnavailableCalculation({ code: 'aarsloen:fatal-calculation-error', message: 'Fatale beregningsfejl' });
   }
   if (omregningGate.effectiveEnabled && calculation.periodeData === null) {
-    return blockDocumentDownload({ code: 'aarsloen:missing-period-data', message: 'Mangler periode-data' });
+    return blockDocumentDownloadForUnavailableCalculation({ code: 'aarsloen:missing-period-data', message: 'Mangler periode-data' });
   }
   return allowDocumentDownload();
 };
@@ -114,14 +135,26 @@ export const evaluateShDageDownloadGate = (
   if (rangeBlocked) return rangeBlocked;
 
   const { calculation } = projection;
-  if (calculation === null || calculation.periodeData === null) {
-    return blockDocumentDownload({ code: 'aarsloen:sh-missing-period-data', message: 'Mangler periode-data' });
+  // Som årslønsgaten: `calculation === null` er en RØD feltgate, ikke en mangel. SH-dage-gaten tjekker
+  // desuden IKKE `tableValidation.errors` først, så røde tabelfejl lander netop her — de fik derfor
+  // "Indtastning mangler" på en udfyldt, men ugyldig tabel.
+  if (calculation === null) {
+    return blockDocumentDownloadFromCauses(
+      'aarsloen:sh-missing-period-data',
+      toBlockingCauses(projection.fieldIssues),
+      'Mangler periode-data'
+    );
+  }
+  if (calculation.periodeData === null) {
+    return blockDocumentDownloadForUnavailableCalculation({ code: 'aarsloen:sh-missing-period-data', message: 'Mangler periode-data' });
   }
   if (calculation.shDageAntal === null) {
-    return blockDocumentDownload({ code: 'aarsloen:sh-no-count', message: 'Antal SH-dage er ikke beregnet' });
+    return blockDocumentDownloadForUnavailableCalculation({ code: 'aarsloen:sh-no-count', message: 'Antal SH-dage er ikke beregnet' });
   }
   if (calculation.shDageAntal === 0) {
-    return blockDocumentDownload({ code: 'aarsloen:sh-zero', message: 'Ingen SH-dage i de indtastede perioder' });
+    // Et GYLDIGT, komplet input med resultatet nul. Intet mangler og intet er forkert — dokumentet ville
+    // blot være tomt.
+    return blockDocumentDownloadForUnavailableCalculation({ code: 'aarsloen:sh-zero', message: 'Ingen SH-dage i de indtastede perioder' });
   }
   return allowDocumentDownload();
 };

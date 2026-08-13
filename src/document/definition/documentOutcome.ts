@@ -10,11 +10,14 @@
  *   - `failed` med `kind: 'runtime'` — uventet. Den ENESTE klasse der hører til systemfejl-sinken.
  */
 import {
+  classifyBlockingCauses,
   invalidInputReason,
   missingInputReason,
   specificReason,
+  toBlockingCauses,
   type DocumentDownloadGateReason,
 } from '../layout/documentGateTypes';
+import type { ConsumerIssue, FieldIssue } from '../../inputCore/inputIssue';
 import type { DocumentOutputId } from './documentOutputId';
 
 /**
@@ -96,30 +99,26 @@ export const blockedProjectionWithSpecificReason = (
 ): BlockedProjection => ({ status: 'blocked', reasons: [specificReason(code, message)] });
 
 /**
- * Blokering ud fra en projektions ISSUE-liste — mønsteret "citér issuet, hvis der er et; ellers en generisk
- * tilstandsbeskrivelse". Det stod før udskrevet fire steder (satser ×2, renteberegning ×2, aarsløn-gaten,
- * rente-rækken) med hver sin `?? 'fallback'`-kæde.
+ * Blokering ud fra en projektions ISSUE-liste, hvor klassen UDLEDES af issuene (§3.1).
  *
- * Skelnen er hele pointen: et issue navngiver det felt eller den grænse, brugeren skal rette, og
- * citeres derfor ordret.
+ * Erstatter den tidligere `blockedFromIssues`, som citerede `issues[0].message` ordret, hvis der blot FANDTES
+ * et issue. Den havde to fejl på samme tid:
  *
- * `fallbackKind` klassificerer den GENERISKE fallback, når der ikke er noget issue at citere: en fallback som
- * "Stamdata indeholder fejl" er en manglende-indtastning (default), mens "Fejl i indtastning" netop betyder,
- * at det indtastede er ugyldigt. Uden parameteren fik sidstnævnte tooltippet "Indtastning mangler", altså
- * modsat sin egen ordlyd.
+ *  1. En `missing`-consumerfejl blev citeret ("Feltet Skadedato er ikke udfyldt") frem for at give den
+ *     universelle "Indtastning mangler", som issuets egen klasse foreskriver.
+ *  2. Et vilkårligt FØRSTE issue blev fremhævet, også når projektionen bar flere — så brugeren kunne tro,
+ *     den citerede fejl var den eneste (lempelsen §2).
+ *
+ * `fallbackMessage` bruges kun, når listen er tom (eller kun rummer aggregat-årsager uden besked).
  */
-export const blockedFromIssues = (
+export const blockedProjectionFromCauses = (
   code: string,
-  issues: readonly Readonly<{ message: string }>[] | undefined,
-  genericFallback: string,
-  fallbackKind: 'missing-input' | 'invalid-input' = 'missing-input'
-): BlockedProjection => {
-  const issueMessage = issues?.[0]?.message;
-  if (issueMessage !== undefined) return blockedProjectionWithSpecificReason(code, issueMessage);
-  return fallbackKind === 'invalid-input'
-    ? blockedProjectionForInvalidInput(code, genericFallback)
-    : blockedProjection(code, genericFallback);
-};
+  issues: readonly (FieldIssue | ConsumerIssue)[] | undefined,
+  fallbackMessage: string
+): BlockedProjection => ({
+  status: 'blocked',
+  reasons: [classifyBlockingCauses(code, toBlockingCauses(issues ?? []), fallbackMessage)],
+});
 
 /**
  * En forventelig afvisning. Ingen af disse er programfejl, og ingen af dem må nå

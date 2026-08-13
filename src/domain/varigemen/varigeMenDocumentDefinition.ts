@@ -12,7 +12,7 @@
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
-import { blockedProjection, blockedProjectionForInvalidInput, toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjection, blockedProjectionFromCauses, toGateReasons } from '../../document/definition/documentOutcome';
 import { resolveStamdataDatoLabel } from '../policies/stamdataCalculations';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
 import type { VarigeMenBeregningResult } from './varigeMenCalculations';
@@ -55,9 +55,13 @@ export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocum
         return blockedProjection('varigemen:no-result', 'Beregning kan ikke dannes');
       }
 
+      // Brevhoved-stamdata læses kun med `collector.optional`, så projektionen kan aldrig blokere på
+      // TOMHED — kun på en rød feltfejl. Klassen `invalid-input` var derfor korrekt, men den var hardkodet
+      // og mistede dermed muligheden for at citere grænsen, når præcis ét felt har en bounds-/rule-fejl.
+      // Klassifikationen udleder nu begge dele (§3.1).
       const stamdata = projectStamdataForDocument(context.evaluation.reader, VARIGEMEN_DOCUMENT_CONSUMER_ID);
       if (stamdata.status !== 'ready') {
-        return blockedProjectionForInvalidInput('varigemen:stamdata-blocked', 'Fejl i indtastning');
+        return blockedProjectionFromCauses('varigemen:stamdata-blocked', stamdata.issues, 'Fejl i indtastning');
       }
 
       const data = projection.value;

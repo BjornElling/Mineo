@@ -13,8 +13,7 @@
  */
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import {
-  blockedProjection,
-  blockedProjectionWithSpecificReason,
+  blockedProjectionFromCauses,
 } from '../../document/definition/documentOutcome';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
@@ -36,23 +35,17 @@ export const satserDocumentDefinition: MineoDocumentDefinition<SatserDocumentInp
     labels: { documentName: 'satser' },
     project: (context) => {
       const { reader } = context.evaluation;
-      // Findes et konkret issue, ER dens besked den brugerrettede årsag (den navngiver satsåret/feltet) og
-      // citeres ordret; de generiske fallbacks beskriver kun en tilstand og bliver den universelle
-      // "Indtastning mangler".
+      // Klassen UDLEDES af issuene (§3.1). Før citerede begge grene `issues[0]` ubetinget, så et tomt
+      // satsår gav "Satsår er ikke udfyldt" som ordret citat frem for den universelle "Indtastning
+      // mangler" — modsat den `missing`-klasse, issuet selv bærer.
       const projection = projectSatser(reader);
       if (projection.status !== 'ready') {
-        const issueMessage = projection.issues[0]?.message;
-        return issueMessage === undefined
-          ? blockedProjection('satser:year-blocked', 'Satsåret er ikke gyldigt')
-          : blockedProjectionWithSpecificReason('satser:year-blocked', issueMessage);
+        return blockedProjectionFromCauses('satser:year-blocked', projection.issues, 'Satsåret er ikke gyldigt');
       }
 
       const stamdata = projectStamdataForDocument(reader, SATSER_DOCUMENT_CONSUMER_ID);
       if (stamdata.status !== 'ready') {
-        const issueMessage = stamdata.status === 'blocked' ? stamdata.issues[0]?.message : undefined;
-        return issueMessage === undefined
-          ? blockedProjection('satser:stamdata-blocked', 'Stamdata indeholder fejl')
-          : blockedProjectionWithSpecificReason('satser:stamdata-blocked', issueMessage);
+        return blockedProjectionFromCauses('satser:stamdata-blocked', stamdata.issues, 'Stamdata indeholder fejl');
       }
 
       return {

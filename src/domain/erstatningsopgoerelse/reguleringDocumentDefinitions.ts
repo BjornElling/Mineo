@@ -29,8 +29,8 @@ import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statisti
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
 import { defineDocumentAction, resolveDocumentDefinition } from '../../document/definition/documentAction';
 import type { DocumentBrevhovedType } from '../../document/layout/documentBrevhoved';
-import type { DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
-import { blockedFromIssues, blockedProjection } from '../../document/definition/documentOutcome';
+import { missingInputReason, type DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
+import { blockedProjection, blockedProjectionFromCauses } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import {
   defineMineoDocument,
@@ -291,7 +291,7 @@ const projectReguleringCommon = <TInput>(
   if (shared.stamdata.status !== 'ready') {
     return {
       kind: 'blocked',
-      result: blockedFromIssues(
+      result: blockedProjectionFromCauses(
         'regulering:stamdata-blocked',
         shared.stamdata.status === 'blocked' ? shared.stamdata.issues : undefined,
         'Stamdata indeholder fejl'
@@ -533,9 +533,12 @@ export const reguleringDocumentAction = defineDocumentAction<
 /**
  * "Der er ikke valgt et grundlag" er en manglende INDTASTNING, ikke en specifik fejl: brugeren ser
  * derfor den universelle tekst, mens beskeden her bevares som den interne forklaring.
+ *
+ * Bygget med `missingInputReason` frem for et objektliteral. Literalet var det ENE sted i `src/`, der
+ * konstruerede en gate-årsag uden om konstruktørerne, og dermed det ene sted, hvor en forkert `kind` ikke
+ * ville blive fanget af en ændring i konstruktørerne.
  */
-export const REGULERING_NO_OUTPUT_REASON: DocumentDownloadGateReason = {
-  code: 'regulering:no-output',
-  message: 'Der er ikke valgt et grundlag med tilgængelige reguleringssatser',
-  kind: 'missing-input',
-};
+export const REGULERING_NO_OUTPUT_REASON: DocumentDownloadGateReason = missingInputReason(
+  'regulering:no-output',
+  'Der er ikke valgt et grundlag med tilgængelige reguleringssatser'
+);

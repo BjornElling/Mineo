@@ -12,6 +12,14 @@ interface SpecifikationDownloadBoxProps {
   errorMessage: PageMessage;
   isLoading: boolean;
   disabled?: boolean;
+  /**
+   * Gate-årsagen, oversat af `resolveBlockedGateTooltip` (typisk `handle.disabledReason`).
+   *
+   * Boksen fik før KUN en `disabled`-boolean, så `evaluateDownloadAllGate`s årsager aldrig nåede nogen
+   * flade: knappen svarede altid den generiske default, uanset om blokeringen var en tom beregningsdato
+   * eller en ugyldig rentelinje.
+   */
+  disabledReason?: string;
   ContentBoxComponent: ContentBoxComponent;
   documentDownloadFormat: DocumentDownloadFormat;
 }
@@ -21,6 +29,7 @@ const SpecifikationDownloadBox = React.memo(({
   errorMessage,
   isLoading,
   disabled = false,
+  disabledReason,
   ContentBoxComponent,
   documentDownloadFormat,
 }: SpecifikationDownloadBoxProps) => {
@@ -31,7 +40,7 @@ const SpecifikationDownloadBox = React.memo(({
       <Typography className="section-header">Specifikationer</Typography>
       <PageMessageRow message={errorMessage} rightCellHasContentClass />
       <Box>
-        <Tooltip title={disabled && !isLoading ? DOWNLOAD_DISABLED_TOOLTIP : ''}>
+        <Tooltip title={disabled && !isLoading ? (disabledReason ?? DOWNLOAD_DISABLED_TOOLTIP) : ''}>
           <span>
             <Button
               type="button"

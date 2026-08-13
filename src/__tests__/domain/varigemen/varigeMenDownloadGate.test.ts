@@ -94,14 +94,41 @@ describe('varigeMenDownloadGate', () => {
     );
     expect(gate.canDownload).toBe(false);
     expect(gate.reasons[0]?.code).toBe('varigemen:field-error');
+    // Ét rødt felt med en konkret bounds-besked ⇒ ordret citat, selv med et samtidigt tomt felt.
+    expect(gate.reasons[0]?.kind).toBe('specific');
   });
 
-  it('blokerer ved manglende felter (kun consumerfejl)', () => {
+  /**
+   * TO røde felter ⇒ klasseteksten, ikke et citat af det ene.
+   *
+   * Gaten valgte før ÉT feltissue med `.find()` og citerede det, så to samtidige røde felter fremstod som
+   * én fejl — brugeren fik at vide, at méngraden var problemet, mens også datoen var rød. Fejlen blev fanget
+   * af browsertesten (`e2e/download-tooltip-classes.spec.ts`), ikke af unit-testene, fordi den kun var
+   * synlig i den færdige tooltip.
+   */
+  it('citerer IKKE, når to felter er røde samtidig', () => {
+    const gate = evaluateVarigeMenDownloadGate(
+      blockedProjection([
+        fieldIssue('varigemen.mengrad.bounds'),
+        fieldIssue('stamdata.skadelidteFodselsdato.bounds'),
+      ])
+    );
+    expect(gate.canDownload).toBe(false);
+    expect(gate.reasons[0]?.kind).toBe('invalid-input');
+  });
+
+  /**
+   * Sondringen ligger nu i `kind`, ikke i to forskellige koder: gaten sender HELE issue-listen til
+   * `classifyBlockingCauses` under én kode, og klassen — som afgør brugerteksten — udledes derfra.
+   * Tidligere valgte gaten selv mellem `field-error` og `missing-fields`, og kunne derfor kun se ÉT
+   * feltissue ad gangen.
+   */
+  it('blokerer ved manglende felter (kun consumerfejl) med missing-input-klassen', () => {
     const gate = evaluateVarigeMenDownloadGate(
       blockedProjection([missingIssue('document.varigemen.missing.varigemen.mengrad')])
     );
     expect(gate.canDownload).toBe(false);
-    expect(gate.reasons[0]?.code).toBe('varigemen:missing-fields');
+    expect(gate.reasons[0]?.kind).toBe('missing-input');
   });
 
   it('blokerer når beregningen ikke kan dannes (ready uden resultat)', () => {

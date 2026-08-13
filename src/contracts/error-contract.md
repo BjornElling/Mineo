@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-11
+**Senest verificeret mod kode:** 2026-08-13
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -177,8 +177,29 @@ og `resolveFieldIssueTooltip` (`src/inputCore/inputIssue.ts`) er det ENE sted, v
 Tabellen er en **allowlist**: `REASONS_WITH_SPECIFIC_TOOLTIP` rummer præcis `bounds` og `rule`, og en
 `format`-detalje må kun levere feltets konkrete rettelsesvej gennem den strukturerede `tooltip`-nøgle. Enhver
 anden eller ukendt årsag falder i den generiske gren. Det er den sikre default: en ukendt årsag lækker ikke en
-uegnet tekst til tooltippet. Samme klassifikation gælder download-tooltip: `format`/`schema` må bruge
-`Fejl i indtastning`, mens `bounds`/`rule` skal bevare den konkrete besked.
+uegnet tekst til tooltippet.
+
+**Tabellen ovenfor gælder FELTETS eget tooltip. Download-knappens tooltip følger en egen, lempet regel
+(brugerbeslutning 2026-08-13).** Kontrakten krævede tidligere, at `bounds`/`rule` bevarede den fulde konkrete
+besked også i download-tooltippen. Det krav er lempet, fordi en downloadknap kan være blokeret af FLERE
+uafhængige input på én gang, hvor feltet altid er blokeret af præcis sit eget:
+
+> En download-tooltip citerer kun en konkret besked, når gate-producenten eksplicit har angivet **præcis én**
+> blokerende årsag med scope `field` eller `row` — inkl. feltets issue eller en stabil rækkeidentitet. Er
+> årsagen aggregat-, multi-felt-, multi-række-, system- eller uklassificeret, bruges klasseteksten for
+> årsagens `kind`.
+
+Kravet er et **typekrav på producenten** (`DocumentBlockingCause` i `document/layout/documentGateTypes.ts`),
+ikke en slutning fra beskedtekst eller fra issue-listens længde. Længden kan ikke bruges: `runProjection`
+dedupper på `kind:code`, `require` registrerer ét `missing`-issue pr. tomt felt, og `buildFieldIssueSet`
+beholder højst ét issue pr. feltadresse — så listens længde måler hverken antal felter eller antal årsager.
+
+Begrundelsen er igen informationsværdi: en tooltip på "Download samlet oversigt", der citerer én tilfældig
+rækkes datogrænse, får brugeren til at tro, det er den eneste fejl. De røde felter bærer selv deres konkrete
+grænser, og klasseteksten sender brugeren derhen uden at love, at der kun er én. For et enkeltfeltsdokument er
+den konkrete grænse derimod hele pointen og bevares.
+
+Se `document-output-contract.md` §A5 for de fire klasser og deres prioritet.
 
 Begrundelsen er informationsværdi, ikke længde: `bounds`/`rule` fortæller HVAD der er galt ("skal være mellem 0
 og 100", "skal ligge efter skadedatoen"), og det er den eneste brugbare del i et tooltip. `format`/`schema`

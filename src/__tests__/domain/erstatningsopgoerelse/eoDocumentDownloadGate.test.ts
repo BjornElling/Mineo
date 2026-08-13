@@ -1,3 +1,8 @@
+import {
+  DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE,
+  DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
+  resolveBlockedGateTooltip,
+} from '../../../document/layout/documentGateTypes';
 import { evaluateEoDocumentDownloadGate } from '../../../domain/erstatningsopgoerelse/snapshot/eoDocumentDownloadGate';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
@@ -75,5 +80,63 @@ describe('evaluateEoDocumentDownloadGate (A5: ét autoritativt output-gate pr. d
     });
     expect(gate.canDownload).toBe(false);
     expect(gate.reasons[0]?.message).toBe('Projektion blokeret');
+  });
+});
+
+/**
+ * BRUGERTEKSTEN, ikke den interne `message`.
+ *
+ * Testene ovenfor hævder `reasons[0].message`, som bevidst er den INTERNE forklaring (koder, tests, logs).
+ * Ingen af dem så, hvad brugeren faktisk læste — og netop derfor kunne EO's gate klassificere ALLE sine
+ * blokeringer som `specific` (ordret citat), mens `EOberegningTab` i praksis overstyrede tooltippen med en
+ * hardkodet streng. To kilder til samme afgørelse, ingen test imellem.
+ */
+describe('evaluateEoDocumentDownloadGate — brugerrettet tooltip', () => {
+  it('henviser til fejlboksen ved en rækkeblokering frem for at citere rækken', () => {
+    const gate = evaluateEoDocumentDownloadGate({
+      ...baseInput,
+      hasBlockingRows: true,
+      blockingRowMessage: 'Feriegodtgørelse er ikke udfyldt',
+    });
+    expect(gate.reasons[0]?.kind).toBe('page-errors');
+    expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE);
+    // Den konkrete besked bevares som intern forklaring, så koder/logs fortsat kan skelne.
+    expect(gate.reasons[0]?.message).toBe('Feriegodtgørelse er ikke udfyldt');
+  });
+
+  /**
+   * Fane-uafhængighed (`document-output-contract.md` §A2.1). Gaten har bevidst INGEN `isActive`-guard, mens
+   * view-modellen filtrerer rækkerne væk på en inaktiv fane. Havde teksten hængt på view-modellens
+   * filtrerede liste, kunne knappen henvise til fejl, der ikke var gengivet. Samme input ⇒ samme tekst.
+   */
+  it('giver samme tooltip uanset om fanen er aktiv (gaten kender ikke mount-tilstand)', () => {
+    const gate = evaluateEoDocumentDownloadGate({
+      ...baseInput,
+      hasBlockingRows: true,
+      blockingRowMessage: 'Feriegodtgørelse er ikke udfyldt',
+    });
+    const again = evaluateEoDocumentDownloadGate({
+      ...baseInput,
+      hasBlockingRows: true,
+      blockingRowMessage: 'Feriegodtgørelse er ikke udfyldt',
+    });
+    expect(resolveBlockedGateTooltip(gate.reasons)).toBe(resolveBlockedGateTooltip(again.reasons));
+  });
+
+  /**
+   * Snapshot-, invariant- og projektionsblokeringer er IKKE rækkefejl: de har ingen garanteret række i
+   * boksen (sikkerhedsnettet i `useEoBeregningViewModel` findes netop for at fange dem). At henvise til
+   * "fejl ovenfor" ville pege på en boks, der kan være tom.
+   */
+  it.each([
+    ['manglende snapshot', { snapshot: null, projection: null }],
+    ['fail_closed', { snapshot: { status: 'fail_closed', invariants: [invariant('F')] } as unknown as EoSnapshot, projection: { kind: 'blocked' as const, message: 'x' } }],
+    ['autoritativ invariant', { authoritativeBlockingInvariants: [invariant('A')], projection: { kind: 'blocked' as const, message: 'x' } }],
+    ['blokeret projektion', { projection: { kind: 'blocked' as const, message: 'Projektion blokeret' } }],
+  ])('bruger IKKE page-errors ved %s', (_label, overrides) => {
+    const gate = evaluateEoDocumentDownloadGate({ ...baseInput, ...overrides });
+    expect(gate.canDownload).toBe(false);
+    expect(gate.reasons[0]?.kind).not.toBe('page-errors');
+    expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
   });
 });

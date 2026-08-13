@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-08-08
+**Senest verificeret mod kode:** 2026-08-13
 
 ## Scope
 
@@ -175,6 +175,37 @@ download er systemfejl.
 En GATE-blokering er udtrykkeligt IKKE en lokal fejlbesked. En deaktiveret download-knap svarer aldrig
 med tekst — årsagen har én kanal, knappens tooltip ved hover — og det gælder også, når blokeringen først
 opdages under aktiveringen. Se `page-component-contract.md` §11.1, som ejer reglen.
+
+### A5.1 Gate-årsagens fire klasser (normativ)
+
+Tooltippets tekst afgøres af årsagens `kind`, aldrig af dens `message` (som altid er den interne
+forklaring) og aldrig af den flade, der tegner knappen. `resolveDocumentGateTooltip` er den ENE oversættelse.
+
+| `kind` | Brugertekst | Hvornår |
+|---|---|---|
+| `page-errors` | «Opgørelse kan ikke hentes, når der er fejl ovenfor» | Blokeringen skyldes fejl, siden ALLEREDE viser i sin egen fejl-/advarselsboks |
+| `invalid-input` | «Fejl i indtastning» | Mindst ét rødt felt blokerer |
+| `missing-input` | «Indtastning mangler» | Tomme påkrævede felter, eller en beregning der ikke kan dannes |
+| `specific` | årsagens besked, ordret | Præcis ÉN felt-/rækkenavngiven årsag med konkret tekst |
+
+**Prioritet ved flere årsager:** `page-errors` → `invalid-input` → `missing-input` → `specific`.
+
+- `page-errors` vinder alt: er fejlen synlig i boksen, er henvisningen dertil det, brugeren skal læse —
+  også når en af de underliggende fejl kunne navngives (brugerbeslutning 2026-08-13: forudsigelighed over
+  handlingsanvisning). Klassen må KUN bruges, når fejlen faktisk gengives på siden; en snapshot- eller
+  invariantblokering uden garanteret fejlrække må den ikke dække.
+- `invalid-input` slår `missing-input`: noget forkert er mere akut end noget uudfyldt.
+- `specific` er LAVEST rangerende. Er en anden klasse også i spil, dækker blokeringen mere end den ene
+  fejl, og at fremhæve den ville få brugeren til at tro, den var den eneste.
+
+Klassen skal **udledes** af producentens `DocumentBlockingCause`-liste gennem `classifyBlockingCauses` /
+`blockDocumentDownloadFromCauses`, når årsagerne kan opregnes. En gate må ikke hardkode en klasse, den kunne
+have udledt — en hardkodet klasse er den fejlkilde, der giver «Indtastning mangler» på et felt, som ER
+udfyldt, blot ugyldigt. Se `error-contract.md` §4 for `specific`-allowlisten og hvorfor issue-listens LÆNGDE
+ikke er et gyldigt mål.
+
+Gaten skal være uafhængig af mount- og fanetilstand (§A2.1). En klasse må derfor ikke udledes af en
+view-models filtrerede visningsliste, men af gatens egen rene projektion.
 
 ## A6. Domænespecifikke projektioner
 

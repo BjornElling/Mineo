@@ -25,9 +25,11 @@ export type RenteDownloadGateInput = Readonly<{
   hasValidPdfContexts: boolean;
   /** En committed ikke-tom række uden gyldig pdfContext (fx delvist udfyldt). */
   anyRowHasError: boolean;
-  /** Feltfejl på committed beregningsdato (range-/datofejl). */
-  beregningsdatoHasError: boolean;
 }>;
+
+// Der var også et `beregningsdatoHasError`-flag. Det er FJERNET: en feltfejl på beregningsdatoen gør
+// aggregat-projektionen `blocked`, så alle tre callsites sendte hardkodet `false`, og begge grene, flaget
+// styrede, var uopnåelige. Et felt, ingen kan sætte sandt, beskriver en gate-tilstand der ikke findes.
 
 /**
  * "Download alle specifikationer" (mobil-boksen).
@@ -43,9 +45,6 @@ export const evaluateDownloadAllGate = (input: RenteDownloadGateInput): Document
   if (input.anyRowHasError) {
     return blockDocumentDownloadForInvalidInput({ code: 'renteberegning:row-has-error', message: 'En rente-linje med indtastning er ugyldig' });
   }
-  if (input.beregningsdatoHasError) {
-    return blockDocumentDownloadForInvalidInput({ code: 'renteberegning:beregningsdato-error', message: 'Beregningsdato er ugyldig' });
-  }
   return allowDocumentDownload();
 };
 
@@ -60,9 +59,6 @@ export const evaluateOversigtDownloadGate = (
 ): DocumentDownloadGateResult => {
   if (input.beregningsdato === undefined) {
     return blockDocumentDownload({ code: 'renteberegning:missing-beregningsdato', message: 'Beregningsdato mangler' });
-  }
-  if (input.beregningsdatoHasError) {
-    return blockDocumentDownloadForInvalidInput({ code: 'renteberegning:beregningsdato-error', message: 'Beregningsdato er ugyldig' });
   }
   if (!input.hasValidPdfContexts) {
     return blockDocumentDownload({ code: 'renteberegning:no-valid-rows', message: 'Ingen gyldige rente-linjer' });

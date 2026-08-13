@@ -27,8 +27,6 @@ import {
 import { APP_ROUTES } from '../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../config/eoTabKeys';
 
-const EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP = 'Opgørelse kan ikke hentes, når der er fejl ovenfor';
-
 const FEJL_ADVARSLER_ROW_SX = {
   display: 'grid',
   gridTemplateColumns: '1fr max-content',
@@ -59,7 +57,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     eetLoebendeWarningRows,
     systemIssueRows,
     pdfDownloadErrorMessage,
-    hasBlockingEoRowErrors,
     eoPdfDisabledReason,
     tafPdfDisabledReason,
     tafOpreguleretPdfDisabledReason,
@@ -374,7 +371,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <DocumentDownloadButton
               disabled={!canDownloadSnapshotEoPdf}
               onClick={handleDownloadPdf}
-              disabledReason={(hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : eoPdfDisabledReason) ?? 'Opgørelsen kan ikke hentes for den aktuelle sag.'}
+              disabledReason={eoPdfDisabledReason ?? undefined}
             />
           </Box>
         </Box>
@@ -461,7 +458,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <DocumentDownloadButton
               disabled={!canDownloadSnapshotTafPdf}
               onClick={handleDownloadTafFordeltPdf}
-              disabledReason={(hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafPdfDisabledReason) ?? 'TAF fordelt på år kan ikke genereres for den aktuelle sag.'}
+              disabledReason={tafPdfDisabledReason ?? undefined}
             />
           </Box>
         </Box>
@@ -475,7 +472,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <DocumentDownloadButton
               disabled={!canDownloadSnapshotTafOpreguleretPdf}
               onClick={handleDownloadTafOpreguleretPdf}
-              disabledReason={(hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafOpreguleretPdfDisabledReason) ?? 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag.'}
+              disabledReason={tafOpreguleretPdfDisabledReason ?? undefined}
             />
           </Box>
         </Box>
@@ -488,7 +485,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <DocumentDownloadButton
               disabled={!canDownloadSnapshotTafKravGrafPdf}
               onClick={handleDownloadTafKravGrafPdf}
-              disabledReason={(hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : tafKravGrafPdfDisabledReason) ?? 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag.'}
+              disabledReason={tafKravGrafPdfDisabledReason ?? undefined}
             />
           </Box>
         </Box>

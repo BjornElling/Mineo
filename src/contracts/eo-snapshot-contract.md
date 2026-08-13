@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-08-11
+**Senest verificeret mod kode:** 2026-08-13
 
 ---
 
@@ -514,8 +514,9 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   som snapshot-laget og viser EET-issues (errors og warnings) i "Fejl og advarsler" med link
   til Erhvervsevnetab-siden. Errors blokerer download af **alle fire** Beregning-fane-dokumenter
   (erstatningsopgørelse, TAF fordelt på år, TAF opreguleret til beregningsåret og Visuel graf over
-  indtægtsniveau) via `hasBlockingEoRowErrors` — samme adfærd som det øvrige `errors`-array fra
-  rækkeevalueringen.
+  indtægtsniveau) via gatens `hasBlockingRows` — samme adfærd som det øvrige `errors`-array fra
+  rækkeevalueringen. Blokeringen får klassen `page-errors`, fordi fejlen allerede står i "Fejl og
+  advarsler" (`document-output-contract.md` §A5.1).
 - Når togglen er `'Nej'`, vises EET-issues ikke (de er irrelevante for EO-beregningen, fordi
   koblingen er deaktiveret).
 - EET-issues overføres som udgangspunkt ukritisk. Det betyder, at en EET-fejl kan blokere

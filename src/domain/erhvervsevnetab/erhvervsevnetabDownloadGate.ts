@@ -15,8 +15,13 @@
  *  - fanen blokeret KUN af manglende/afledte consumer-fejl (`*-missing` m.fl.)
  *      → `missing-fields`, kind `missing-input` ("Indtastning mangler"),
  *  - fanen `ready`, men uden beregningsresultat (`computation === null`)
- *      → `no-result` ("Beregning kan ikke dannes"),
+ *      → `no-result`, kind `missing-input` ("Beregning kan ikke dannes"),
  *  - ellers download tilladt.
+ *
+ * De to `Beregning kan ikke dannes`-grene bruger `blockDocumentDownloadForUnavailableCalculation`: input er
+ * komplet og gyldigt, men beregningen kan ikke dannes. Klassen er fortsat `missing-input` (brugerens
+ * praktiske handling ER at udfylde mere), men valget er nu eksplicit frem for en default, en fremtidig
+ * gren kunne falde i.
  *
  * En rød feltfejl har forrang over en manglende-felt-fejl (samme prioritet som Varige mén-/Forsørgertab-gaten
  * og som EetIssuesBox' visning). Klassifikationen field vs missing ejes af `isEetFieldErrorIssueId`, så den ikke
@@ -29,6 +34,9 @@ import {
   allowDocumentDownload,
   blockDocumentDownload,
   blockDocumentDownloadForInvalidInput,
+  blockDocumentDownloadForUnavailableCalculation,
+  blockDocumentDownloadFromCauses,
+  toBlockingCauses,
   type DocumentDownloadGateResult,
 } from '../../document/layout/documentGateTypes';
 import type { EetSnapshot } from './eetSnapshot';
@@ -60,7 +68,8 @@ export const evaluateEetFaneDownloadGate = (
   const codePrefix = GATE_CODE_PREFIX[fane];
   if (projection.hasBlockingErrors) {
     if (projection.issues.some((issue) => issue.id === 'runtime-exception')) {
-      return blockDocumentDownload({ code: `${codePrefix}:internal-error`, message: 'Beregning kan ikke dannes' });
+      // En intern beregningsundtagelse: intet mangler og intet er rødt (§1.1).
+      return blockDocumentDownloadForUnavailableCalculation({ code: `${codePrefix}:internal-error`, message: 'Beregning kan ikke dannes' });
     }
     const hasFieldError = projection.issues.some(
       (issue) => issue.severity === 'error' && isEetFieldErrorIssueId(issue.id)
@@ -71,7 +80,7 @@ export const evaluateEetFaneDownloadGate = (
     return blockDocumentDownload({ code: `${codePrefix}:missing-fields`, message: 'Indtastning mangler' });
   }
   if (projection.computation === null) {
-    return blockDocumentDownload({ code: `${codePrefix}:no-result`, message: 'Beregning kan ikke dannes' });
+    return blockDocumentDownloadForUnavailableCalculation({ code: `${codePrefix}:no-result`, message: 'Beregning kan ikke dannes' });
   }
   return allowDocumentDownload();
 };
@@ -89,7 +98,13 @@ export const evaluateErhvervsevnetabDownloadGates = (
 ): ErhvervsevnetabDownloadGates => {
   const { snapshot } = projection;
   if (projection.documentStamdata.status === 'blocked') {
-    const stamdataGate = blockDocumentDownloadForInvalidInput({ code: 'eet:stamdata-field-error', message: 'Fejl i indtastning' });
+    // Brevhoved-stamdata kan kun blokere på en RØD feltfejl (kun `optional`-reads), så klassen var
+    // korrekt — men hardkodet, og kunne derfor ikke citere en enkeltstående bounds-/rule-grænse.
+    const stamdataGate = blockDocumentDownloadFromCauses(
+      'eet:stamdata-field-error',
+      toBlockingCauses(projection.documentStamdata.issues),
+      'Fejl i indtastning'
+    );
     return {
       loebendeYdelser: stamdataGate,
       kapitalisering: stamdataGate,

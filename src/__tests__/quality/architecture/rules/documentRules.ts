@@ -340,3 +340,91 @@ export const documentHeaderlessPseudoTableRule = defineRule({
     code: 'document.addTable({ columns, rows, hasHeaderRow: true });',
   }],
 });
+
+// --- Download-tooltippen kommer fra gaten, ikke fra en rå `message` ------------
+
+/**
+ * `DocumentDownloadGateReason.message` er den INTERNE forklaring — aldrig brugertekst.
+ *
+ * Brugerteksten afgøres af `reason.kind` og produceres af `resolveDocumentGateTooltip` /
+ * `resolveBlockedGateTooltip`; en flade skal bruge `handle.disabledReason`, som allerede er oversat
+ * (`page-component-contract.md` §11.1). Læser en flade i stedet `.message`, omgår den både
+ * prioriteringen mellem flere årsager og hele klasse→tekst-oversættelsen.
+ *
+ * Præcis det skete i `RenteberegningTab`, hvor rækkeknapperne brugte `gate.reasons[0].message` og
+ * derfor viste gate-interne strenge ("Rentelinjen findes ikke længere", "Stamdata indeholder fejl")
+ * direkte til brugeren. Kontrakten forbød det i forvejen; der var blot intet værn.
+ *
+ * Reglen er bevidst SNÆVER: den rammer `.message` på et udtryk, der nævner `reasons`/`blockedReasons`,
+ * altså netop gate-årsagslisten. `message` som feltnavn er udbredt i domænesnapshots og fejlbokse, og
+ * et bredere forbud ville ramme dem.
+ */
+const GATE_REASONS_ACCESS = /(?:^|\.)(?:reasons|blockedReasons)\s*(?:\?\.)?\s*(?:\[[^\]]*\]|\.at\([^)]*\))?$/;
+
+export const documentDownloadTooltipFromGate = defineRule({
+  id: 'document/download-tooltip-from-gate',
+  description:
+    'En flade må ikke læse `reasons[...].message` til visning. `message` er gatens interne forklaring; '
+    + 'brugerteksten kommer fra `handle.disabledReason` eller `resolveBlockedGateTooltip`.',
+  liveTarget: {
+    kind: 'scoped',
+    roots: ['src/components/pages'],
+    rationale:
+      'sidefladerne er det levende scope, hvor en download-tooltip kan bygges; forsvinder de, er '
+      + 'mønsteret flyttet og reglen skal skrives om',
+  },
+  appliesTo: (relativePath) => relativePath.startsWith('src/components/'),
+  find: (entry) => {
+    const findings: Array<{ position: { line: number; column: number }; message: string }> = [];
+    const visit = (node: ts.Node): void => {
+      if (
+        ts.isPropertyAccessExpression(node)
+        && node.name.text === 'message'
+        && GATE_REASONS_ACCESS.test(node.expression.getText(entry.ast))
+      ) {
+        const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.name.getStart(entry.ast));
+        findings.push({
+          position: { line: line + 1, column: character + 1 },
+          message:
+            `\`${node.getText(entry.ast)}\` viser gatens INTERNE forklaring. Brug `
+            + '`handle.disabledReason` (allerede oversat) eller `resolveBlockedGateTooltip(gate.reasons)`.',
+        });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(entry.ast);
+    return findings;
+  },
+  violatingFixtures: [
+    // Den konkrete fejl, reglen findes for.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const t = (g) => g.canDownload ? undefined : g.reasons[0].message;',
+    },
+    {
+      relativePath: 'src/components/pages/Y.tsx',
+      code: 'const t = (h) => h.blockedReasons?.[0].message;',
+    },
+  ],
+  cleanFixtures: [
+    // Den ønskede vej: den oversatte tekst fra handlet.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const t = (h) => h.disabledReason;',
+    },
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const t = (g) => resolveBlockedGateTooltip(g.reasons);',
+    },
+    // `message` på noget, der IKKE er gatens årsagsliste, er uberørt — fejlbokse og snapshot-issues
+    // bruger samme feltnavn i vidt omfang.
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const t = (row) => row.message;',
+    },
+    {
+      relativePath: 'src/components/pages/X.tsx',
+      code: 'const t = (issues) => issues[0].message;',
+    },
+  ],
+});

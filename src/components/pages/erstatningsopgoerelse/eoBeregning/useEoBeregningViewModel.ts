@@ -341,7 +341,17 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     [eetLoebendeIssueRows]
   );
 
-  const hasBlockingEoRowErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || eoRowAggregationErrorMessage !== null;
+  /**
+   * Rækkefejlenes blokering udledes IKKE længere her.
+   *
+   * Fanen brugte tidligere en page-lokal `hasBlockingEoRowErrors` til at overstyre gatens tooltip med en
+   * hardkodet streng ("…når der er fejl ovenfor"). Det var to konkurrerende kilder til samme afgørelse, og
+   * viewmodellens variant var desuden fane-afhængig (`isActive`-guarden nedenfor filtrerer rækkerne væk på
+   * en inaktiv fane), hvad en gate-tekst aldrig må være (`document-output-contract.md` §A2.1).
+   *
+   * Beslutningen ligger nu i `eoDocumentDownloadGate` som klassen `page-errors`, afledt af gatens egen
+   * fane-uafhængige `collectAllEoRows`-kørsel. Fanen læser kun `*DisabledReason` fra handlet.
+   */
 
   /**
    * De fire EO-dokumentoutputs. Hele preflighten — settle, frisk capture, token-lighed,
@@ -730,7 +740,6 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
     // Download-gates + årsager
     pdfDownloadErrorMessage,
-    hasBlockingEoRowErrors,
     eoPdfDisabledReason,
     tafPdfDisabledReason,
     tafOpreguleretPdfDisabledReason,

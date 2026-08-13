@@ -6,10 +6,9 @@
  * boolean-baserede input (`hasBlockingFieldErrors`/`hasMissingFields`/`hasBeregningsResultat`), der byggede på
  * `useFormFieldErrors` + rå sektioner. Sandhedstabellen er uændret:
  *
- *  - projektion blokeret af en rød feltfejl (format/bounds/rule) → `field-error`, kind `invalid-input`
- *    ("Fejl i indtastning"),
- *  - projektion blokeret KUN af manglende påkrævede felter → `missing-fields`, kind `missing-input`
- *    ("Indtastning mangler"),
+ *  - projektion blokeret af rød(e) feltfejl (format/bounds/rule) → kind `invalid-input`
+ *    ("Fejl i indtastning"), eller `specific` hvis der er præcis ÉN rød fejl med en konkret tekst,
+ *  - projektion blokeret KUN af manglende påkrævede felter → kind `missing-input` ("Indtastning mangler"),
  *  - projektion `ready`, men uden beregningsresultat (fx intet lovsats-år) → `no-result`.
  *
  * Funktionen er uden React, så sandhedstabellen kan unit-testes direkte og ikke afhænger af monterede inputfelter.
@@ -17,8 +16,9 @@
 
 import {
   allowDocumentDownload,
-  blockDocumentDownload,
-  blockDocumentDownloadForFieldIssue,
+  blockDocumentDownloadForUnavailableCalculation,
+  blockDocumentDownloadFromCauses,
+  toBlockingCauses,
   type DocumentDownloadGateResult,
 } from '../../document/layout/documentGateTypes';
 import type { VarigeMenReaderProjection } from './varigeMenReaderProjection';
@@ -27,16 +27,20 @@ export const evaluateVarigeMenDownloadGate = (
   projection: VarigeMenReaderProjection
 ): DocumentDownloadGateResult => {
   if (projection.status === 'blocked') {
-    // En rød feltfejl (kind 'field') har forrang over en manglende-felt-consumerfejl, præcis som den tidligere
-    // rækkefølge `beregningsFejl` → `manglendeFelter`.
-    const fieldIssue = projection.issues.find((issue) => issue.kind === 'field');
-    if (fieldIssue?.kind === 'field') {
-      return blockDocumentDownloadForFieldIssue(fieldIssue, 'varigemen:field-error');
-    }
-    return blockDocumentDownload({ code: 'varigemen:missing-fields', message: 'Indtastning mangler' });
+    // HELE issue-listen sendes til klassifikationen. Gaten valgte før ÉT feltissue med `.find()` og citerede
+    // det — så to samtidige røde felter så ud som én fejl, og tooltippen udpegede det ene som "fejlen".
+    // Rød-før-tom-forrangen (den tidligere `beregningsFejl` → `manglendeFelter`) ligger nu i
+    // `classifyBlockingCauses`, som stadig lader en feltfejl vinde over en `missing`-consumerfejl.
+    return blockDocumentDownloadFromCauses(
+      'varigemen:field-error',
+      toBlockingCauses(projection.issues),
+      'Indtastning mangler'
+    );
   }
   if (projection.value.beregningsResultat === null) {
-    return blockDocumentDownload({ code: 'varigemen:no-result', message: 'Beregning kan ikke dannes' });
+    // Input er komplet og gyldigt (projektionen er `ready`), men motoren fandt fx ingen lovsats for
+    // beregningsåret (§1.1).
+    return blockDocumentDownloadForUnavailableCalculation({ code: 'varigemen:no-result', message: 'Beregning kan ikke dannes' });
   }
   return allowDocumentDownload();
 };

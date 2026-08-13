@@ -1,6 +1,7 @@
 import {
   allowDocumentDownload,
-  blockDocumentDownloadWithSpecificReason,
+  blockDocumentDownloadForPageErrors,
+  blockDocumentDownloadFromCauses,
   type DocumentDownloadGateResult,
 } from '../../../document/layout/documentGateTypes';
 import type { EoInvariant } from './eoSnapshotInvariants';
@@ -44,6 +45,11 @@ export type EvaluateEoDocumentDownloadGateInput = Readonly<{
   gateFallback: string;
 }>;
 
+/**
+ * Den interne forklaring på blokeringen. Efter brugerbeslutningen 2026-08-13 er den IKKE længere
+ * brugerteksten for en rækkeblokering — men den bevares som `message`, så koder, tests og logs stadig kan
+ * skelne to blokeringer, der deler samme tooltip.
+ */
 const resolveDisabledReason = (input: EvaluateEoDocumentDownloadGateInput): string | null => {
   if (input.blockingRowMessage) {
     return input.blockingRowMessage;
@@ -68,12 +74,29 @@ export const evaluateEoDocumentDownloadGate = (
   if (canDownload) {
     return allowDocumentDownload();
   }
-  // EO's årsag er den ENESTE, der citeres ordret til brugeren: den kommer fra rækkemotoren eller en
-  // snapshot-invariant og navngiver det konkrete felt/den konkrete række, der skal rettes — fx
-  // "Feriegodtgørelse er ikke udfyldt". Den slags besked er præcis det, brugeren har brug for, og må ikke
-  // erstattes af den universelle "Indtastning mangler".
-  return blockDocumentDownloadWithSpecificReason({
-    code: 'erstatningsopgoerelse:pdf-blocked',
-    message: resolveDisabledReason(input) ?? input.gateFallback,
-  });
+  const message = resolveDisabledReason(input) ?? input.gateFallback;
+
+  // BRUGERBESLUTNING 2026-08-13: er blokeringen en rækkefejl, står den ALLEREDE i "Fejl og advarsler"
+  // ovenfor, og knappen henviser dertil frem for at citere én af rækkerne. Brugeren valgte
+  // forudsigelighed over handlingsanvisning: samme tooltip hver gang boksen viser en fejl, også når
+  // fejlen kunne navngives ("Feriegodtgørelse er ikke udfyldt").
+  //
+  // Klassen erstatter den page-lokale ternary i `EOberegningTab`, som tidligere kastede gatens svar væk
+  // for netop denne tilstand. Beslutningen hører i gaten, ikke i den flade der tegner knappen.
+  //
+  // BEVIDST fane-uafhængig: `hasBlockingRows` afledes af gatens egen `collectAllEoRows`-kørsel uden
+  // viewmodellens `isActive`-guard (§A2.1 — en gate må ikke afhænge af mount/fane). Viewmodellens guard er
+  // ren render-optimering; begge kalder samme funktion på samme projektion, så teksten kan ikke drifte.
+  if (input.hasBlockingRows) {
+    return blockDocumentDownloadForPageErrors({ code: 'erstatningsopgoerelse:pdf-blocked-by-rows', message });
+  }
+
+  // Snapshot-, invariant- og projektionsblokeringer er IKKE rækkefejl: de har ingen garanteret række i
+  // boksen, og sikkerhedsnettet i `useEoBeregningViewModel` findes netop for at fange dem. De beskriver en
+  // tilstand i beregningen frem for et felt, brugeren kan rette, og er derfor et aggregat.
+  return blockDocumentDownloadFromCauses(
+    'erstatningsopgoerelse:pdf-blocked',
+    [{ scope: 'aggregate', message }],
+    input.gateFallback
+  );
 };

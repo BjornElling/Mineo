@@ -9,6 +9,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Aarsloen from '../../../components/pages/Aarsloen';
+import { DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE } from '../../../document/layout/documentGateTypes';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
@@ -293,7 +294,17 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
     });
     renderAarsloen();
 
-    const downloadButton = screen.getByRole('button', { name: /Fødselsdato|Skadedato/ });
+    /**
+     * Tooltippen er KLASSETEKSTEN, ikke den konkrete kronologibesked.
+     *
+     * Testen fandt før knappen på `/Fødselsdato|Skadedato/`, fordi gaten citerede stamdata-issuet ordret.
+     * Efter lempelsen 2026-08-13 (`error-contract.md` §4) citeres kun præcis ÉN felt-/rækkefejl, og en
+     * kronologifejl er en regel over TO felter — et citat ville udpege ét af dem som "fejlen". Felterne
+     * bærer selv den fulde besked i deres egne tooltips.
+     *
+     * Det væsentlige for gaten er uændret: knappen er disabled, og aktivering starter intet dokumentarbejde.
+     */
+    const downloadButton = screen.getByRole('button', { name: DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE });
     expect(downloadButton).toBeDisabled();
     await user.click(downloadButton);
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
