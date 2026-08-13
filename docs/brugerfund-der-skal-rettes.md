@@ -5,7 +5,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 
 ## Nye fund
 
-Næste ID: **BF-057**. Kopiér denne blok pr. fund:
+Næste ID: **BF-058**. Kopiér denne blok pr. fund:
 
 ```md
 ## BF-028 — Kort titel
@@ -87,6 +87,7 @@ Ingen fund afventer reproduktion.
 | BF-054 | En EET-afgørelse uden datoer oplyses nu som truffet i dokumentet i stedet for at blive påstået ikke-truffet; den bærer ingen referencedato og kan derfor fortsat ikke afgrænse TAF. |
 | BF-055 | Slet alle indtastninger er også aktiv ved en afsluttet afvist beregningsdato, så brugeren altid kan rydde siden. |
 | BF-056 | Indsæt dags dato bevarer fokus på den aktiverede knap på alle fem flader. |
+| BF-057 | Formularfelter og dropdowns har stabile tilgængelige navne, der følger feltets synlige label. |
 
 ## BF-033 — Valg-dropdowns kræver forkert præcision ved paste
 
@@ -100,18 +101,3 @@ Ingen fund afventer reproduktion.
 - Påvirkning: En gyldig valgmulighed fra eksempelvis en tekstkilde kan ignoreres, selv om den semantisk matcher den viste valgmulighed.
 - Prioritet: Mellem
 - Status: Ny
-
-## BF-057 — Formularfelter mangler tilgængelige navne
-
-- Type: Fejl
-- Sted: Formularfelter på beregningssiderne; konkret Stamdata → Sagsinfo → `Journalnr.` og tilsvarende tekst-, dato-, beløbs- og dropdownfelter.
-- Sådan fremprovokeres det:
-  1. Log ind gennem den synlige loginformular.
-  2. Åbn Stamdata og gå til `Journalnr.` med Tab, eller inspicér feltet med en skærmlæser/rollebaseret værktøj.
-  3. Forsøg at finde feltet på den synlige etiket `Journalnr.`.
-- Det sker: Den synlige tekst står som et separat afsnit ved siden af inputfeltet og er ikke semantisk bundet til det. Inputfeltet har hverken tilgængeligt navn, `label`-binding eller `aria-labelledby`; `Journalnr.` kan derfor ikke findes som et textbox med dette navn. Det samme mønster rammer bl.a. `Skadelidtes navn`, `Fødselsdato` og `Skadedato`. I de aktive standardfaner blev alle viste tekstfelter navnløse: 6/6 på Stamdata, 6/6 på Erstatningsopgørelse, 25/25 på Erhvervsevnetab, 16/16 på Varige mén, 2/2 på Forsørgertab, 6/6 på Årslønsberegning, 17/17 på Renteberegning, 5/5 på Satser og 1/1 på Indstillinger. Flere viste comboboxes mangler også et navn.
-- Det bør ske: Hvert interaktivt tekstfelt og hver dropdown skal have et stabilt tilgængeligt navn, der svarer til den synlige etiket. Navnet skal være tilgængeligt for skærmlæsere og rolle-/navnebaseret tastaturnavigation og må ikke afhænge af placeholdertekst. Den fælles løsning bør dække alle feltfamilier, så rettelsen ikke skal gentages enkeltvis på hver side.
-- Påvirkning: Ingen direkte ændring af beregnede tal, gemte data eller dokumenter, men næsten alle sagsinput er vanskeligere eller umulige at identificere for brugere af skærmlæser og andre hjælpemidler.
-- Prioritet: Høj
-- Status: Løst
-- Løsning: De fælles feltbaser kræver nu et tilgængeligt navn, og persisted feltskaller henter det automatisk fra felt-descriptorens synlige label. Direkte kontroller uden `FieldRef` skal angive en eksplicit label, så nye felter ikke kan introduceres uden navn.
