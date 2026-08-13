@@ -100,3 +100,17 @@ Ingen fund afventer reproduktion.
 - Påvirkning: En gyldig valgmulighed fra eksempelvis en tekstkilde kan ignoreres, selv om den semantisk matcher den viste valgmulighed.
 - Prioritet: Mellem
 - Status: Ny
+
+## BF-057 — Formularfelter mangler tilgængelige navne
+
+- Type: Fejl
+- Sted: Formularfelter på beregningssiderne; konkret Stamdata → Sagsinfo → `Journalnr.` og tilsvarende tekst-, dato-, beløbs- og dropdownfelter.
+- Sådan fremprovokeres det:
+  1. Log ind gennem den synlige loginformular.
+  2. Åbn Stamdata og gå til `Journalnr.` med Tab, eller inspicér feltet med en skærmlæser/rollebaseret værktøj.
+  3. Forsøg at finde feltet på den synlige etiket `Journalnr.`.
+- Det sker: Den synlige tekst står som et separat afsnit ved siden af inputfeltet og er ikke semantisk bundet til det. Inputfeltet har hverken tilgængeligt navn, `label`-binding eller `aria-labelledby`; `Journalnr.` kan derfor ikke findes som et textbox med dette navn. Det samme mønster rammer bl.a. `Skadelidtes navn`, `Fødselsdato` og `Skadedato`. I de aktive standardfaner blev alle viste tekstfelter navnløse: 6/6 på Stamdata, 6/6 på Erstatningsopgørelse, 25/25 på Erhvervsevnetab, 16/16 på Varige mén, 2/2 på Forsørgertab, 6/6 på Årslønsberegning, 17/17 på Renteberegning, 5/5 på Satser og 1/1 på Indstillinger. Flere viste comboboxes mangler også et navn.
+- Det bør ske: Hvert interaktivt tekstfelt og hver dropdown skal have et stabilt tilgængeligt navn, der svarer til den synlige etiket. Navnet skal være tilgængeligt for skærmlæsere og rolle-/navnebaseret tastaturnavigation og må ikke afhænge af placeholdertekst. Den fælles løsning bør dække alle feltfamilier, så rettelsen ikke skal gentages enkeltvis på hver side.
+- Påvirkning: Ingen direkte ændring af beregnede tal, gemte data eller dokumenter, men næsten alle sagsinput er vanskeligere eller umulige at identificere for brugere af skærmlæser og andre hjælpemidler.
+- Prioritet: Høj
+- Status: Ny
