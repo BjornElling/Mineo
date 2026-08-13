@@ -5,6 +5,7 @@ import { mergeSx } from '../../utils/mergeSx';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
 import MineoTextareaInputComponent from './MineoTextareaInputComponent';
+import { resolveAccessibleName } from './accessibleName';
 
 type AllowedInputAttributes = Pick<
   React.TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -28,6 +29,8 @@ export type StyledTextAreaBaseProps = {
   id?: string;
   name?: string;
   label?: React.ReactNode;
+  /** Tilgængeligt navn fra feltfamilien eller den transiente input-wrapper. */
+  accessibleName: string;
   placeholder?: string;
 
   draft: string;
@@ -66,6 +69,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
       id,
       name,
       label,
+      accessibleName,
       placeholder,
       draft,
       onDraftChange,
@@ -94,6 +98,10 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
     const autoId = React.useId();
     const resolvedId = id ?? autoId;
     const resolvedName = name ?? resolvedId;
+    const resolvedAccessibleName = resolveAccessibleName(
+      { ariaLabel: accessibleName },
+      `StyledTextAreaBase(${resolvedId})`
+    );
 
     if (import.meta.env.DEV && error && helperText.trim() === '') {
       throw new Error('StyledTextAreaBase: helperText is required when error=true (avoid silent error states)');
@@ -215,6 +223,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
               },
               htmlInput: {
                 ...htmlTextAreaAttributes,
+                'aria-label': resolvedAccessibleName,
                 'aria-describedby': describedBy,
                 // Feltidentiteten i DOM er restore-target-attributterne (serialiseret feltadresse +
                 // editorlokation), som feltfamilien sender med gennem `htmlTextAreaAttributes` — samme

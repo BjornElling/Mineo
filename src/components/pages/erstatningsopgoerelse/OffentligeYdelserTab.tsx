@@ -377,6 +377,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
           <Box className="row--label-right-hover__content" sx={{ gap: 1.5, flexWrap: 'wrap' }}>
             <TransientDateInput
               inputRef={sygedagpengeFraInputRef}
+              aria-label="Fra-dato"
               value={sygedagpengeFraDato}
               onCommit={(next) => {
                 if (suppressSygedagpengeFieldCommitRef.current) return;
@@ -393,6 +394,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
             />
             <Typography className="row--text">-</Typography>
             <TransientDateInput
+              aria-label="Til-dato"
               value={sygedagpengeTilDato}
               onCommit={(next) => {
                 if (suppressSygedagpengeFieldCommitRef.current) return;

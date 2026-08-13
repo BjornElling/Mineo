@@ -138,6 +138,7 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
     return (
       <StyledTextFieldBase
         ref={ref}
+        accessibleName={rest['aria-label'] ?? 'Beløb'}
         inputRef={assignInputRef}
         width={width}
         placeholder={placeholder}
@@ -153,7 +154,6 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
         htmlInputAttributes={{
           inputMode: allowDecimals ? 'decimal' : 'numeric',
           maxLength: MAX_AMOUNT_RAW_LENGTH,
-          'aria-label': rest['aria-label'],
         }}
       />
     );

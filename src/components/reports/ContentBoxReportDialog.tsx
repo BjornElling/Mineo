@@ -190,6 +190,7 @@ const ContentBoxReportDialog = React.memo(({
               <TransientTextInput
                 value={message}
                 onChange={setMessage}
+                aria-label="Fejl eller forbedringsønske"
                 multiline
                 rows={4}
                 fullWidth

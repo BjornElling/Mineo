@@ -1249,7 +1249,7 @@ const NON_CASE_DATA_CONTROL_SURFACES: readonly string[] = [
   'src/components/pages/Indstillinger.tsx',
   // Mineo-forsiden: en visningspræference uden sagsdata.
   'src/components/pages/Mineo.tsx',
-  // Løntrin-finder-overlayet: transient søgeflade (dropdown UDEN name, jf. dens egen markør-kommentar).
+  // Løntrin-finder-overlayet: transient søgeflade med sit eget eksplicitte tilgængelige navn.
   'src/components/pages/erstatningsopgoerelse/shared/LoentrinFinderOverlay.tsx',
 ];
 

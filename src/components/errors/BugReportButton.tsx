@@ -203,6 +203,7 @@ const BugReportButton = ({
               <TextField
                 id="mineo-bug-report-preview"
                 name="mineo-bug-report-preview"
+                aria-label="Fejlrapport"
                 value={prepared.report}
                 fullWidth
                 multiline

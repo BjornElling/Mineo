@@ -3,9 +3,9 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-08-09 (regel 8–10 er implementeret og verificeret: ciffergrænser pr.
+**Senest verificeret mod kode:** 2026-08-13 (regel 8–10 er implementeret og verificeret: ciffergrænser pr.
 talled for beløb/procent, erklæret `maxLength` for tekstfelter, paste-afgrænsning i `spliceDraftWithPaste` og
-afvisning af gentagne dato-separatorer)
+afvisning af gentagne dato-separatorer samt fælles tilgængelige navne)
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
 implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den — se §10 og
@@ -34,6 +34,15 @@ Den må ikke:
 
 Den modtager en draft-string og en string-callback. Inputsemantiske handlers bindes til det faktiske input; musehandlers
 kan bindes til feltroden for at bevare to-trins-aktiveringen.
+
+**Tilgængeligt navn er en del af UI-base-kontrakten.** Enhver faktisk fokusérbar tekst-, tal-, dato- eller
+valgkontrol skal have et tilgængeligt navn på selve DOM-kontrollen. For persisted `FieldRef`-felter kommer navnet
+fra `useFieldLabel` og dermed descriptorens label; det må ikke kopieres fra placeholder, `name` eller en fri streng
+på kaldsstedet. `StyledTextFieldBase`, `StyledTextAreaBase` og `StyledDropdown` kræver derfor navnet som en
+typet prop og skriver det på den faktiske input/combobox. Formularskallerne leverer det fra `FieldRef`, så nye
+felter i en eksisterende familie automatisk følger reglen. Grid-celler bruger descriptorens label, også for en
+placeholder-række hvor en endnu ikke eksisterende entity ikke kan læses af `InputReader`. Transiente eller
+indstillingskontroller uden `FieldRef` skal levere en eksplicit dansk label.
 
 ### Lag B — fælles felt-editor
 

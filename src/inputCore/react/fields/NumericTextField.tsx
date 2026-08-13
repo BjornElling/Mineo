@@ -10,6 +10,7 @@ import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import type { FieldWarning } from '../../fieldWarning';
 import { keyFilterFromAdmission, type DraftAdmission } from '../../../components/inputs/draftAdmission';
+import { useFieldLabel } from '../useFieldLabel';
 
 // Numerisk tekst-felt (§2.4/§3.5): den delte TYNDE skal for alle single-`<input>` numeriske
 // codec-familier (år, heltal, beløb, procent, brøk, uge). Præcis som `DateField`, men med et
@@ -88,6 +89,7 @@ const NumericTextFieldInner = <T,>(
   }: NumericTextFieldProps<T>,
   ref: React.ForwardedRef<HTMLDivElement>
 ): React.ReactElement => {
+  const accessibleName = useFieldLabel(field);
   const keyFilter = React.useMemo(() => keyFilterFromAdmission(admission), [admission]);
   const surface = useFormFieldSurface(field, location, {
     disabled,
@@ -120,6 +122,7 @@ const NumericTextFieldInner = <T,>(
   return (
     <StyledTextFieldBase
       ref={ref}
+      accessibleName={accessibleName}
       name={name}
       draft={surface.displayText}
       onDraftChange={surface.onDraftChange}

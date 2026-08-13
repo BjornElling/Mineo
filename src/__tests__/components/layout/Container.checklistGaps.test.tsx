@@ -175,6 +175,7 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
       <Container>
         <input data-testid="before" type="text" style={{ position: 'fixed' }} />
         <StyledDropdown
+          ariaLabel="Valg"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           name="valg"

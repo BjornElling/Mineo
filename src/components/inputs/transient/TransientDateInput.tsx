@@ -214,6 +214,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
     return (
       <StyledTextFieldBase
         ref={ref}
+        accessibleName={rest['aria-label'] ?? 'Dato'}
         inputRef={assignInputRef}
         width={width}
         sx={mergeSx({
@@ -238,7 +239,6 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
           inputMode: 'numeric',
           maxLength: MAX_DATE_DRAFT_LENGTH,
           readOnly: !draftState.isOpen,
-          'aria-label': rest['aria-label'],
         }}
       />
     );

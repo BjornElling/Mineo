@@ -49,6 +49,7 @@ const TransientTextInput = ({
   if (multiline === true) {
     return (
       <StyledTextAreaBase
+        accessibleName={rest['aria-label'] ?? 'Tekst'}
         width={width}
         fullWidth={fullWidth}
         placeholder={placeholder}
@@ -58,13 +59,14 @@ const TransientTextInput = ({
         rows={rows}
         draft={value}
         onDraftChange={onChange}
-        htmlTextAreaAttributes={{ 'aria-label': rest['aria-label'] }}
+        htmlTextAreaAttributes={{}}
       />
     );
   }
 
   return (
     <StyledTextFieldBase
+      accessibleName={rest['aria-label'] ?? (typeof label === 'string' ? label : 'Tekst')}
       inputRef={inputRef}
       width={width}
       fullWidth={fullWidth}
@@ -75,10 +77,7 @@ const TransientTextInput = ({
       sx={sx}
       draft={value}
       onDraftChange={(next) => onChange(next)}
-      htmlInputAttributes={{
-        ...(maxLength === undefined ? {} : { maxLength }),
-        'aria-label': rest['aria-label'],
-      }}
+      htmlInputAttributes={{ ...(maxLength === undefined ? {} : { maxLength }) }}
     />
   );
 };

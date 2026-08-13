@@ -166,6 +166,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
             <Typography className="row--text">Ansættelse</Typography>
             <Box className="row--label-right-hover__content">
               <StyledDropdown
+                ariaLabel="Ansættelse"
                 ref={loentrinFinderAnsaettelseRef}
                 width={180}
                 value={ansaettelse}
@@ -190,6 +191,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
             <Box className="row--label-right-hover__content">
               <TransientAmountInput
                 ref={loentrinFinderBeloebRef}
+                aria-label={ansaettelse}
                 width={180}
                 value={beloeb}
                 allowNegative={false}
@@ -208,6 +210,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
             <Box className="row--label-right-hover__content">
               <TransientDateInput
                 ref={loentrinFinderDatoRef}
+                aria-label="Dato"
                 value={dato}
                 onCommit={(next) => {
                   setDato(next);

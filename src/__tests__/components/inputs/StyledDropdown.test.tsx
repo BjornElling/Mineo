@@ -18,6 +18,7 @@ const ControlledDropdown = ({
   return (
     <>
       <StyledDropdown<DemoValue>
+        ariaLabel="Valg"
         allowEmpty={false}
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -104,6 +105,7 @@ describe('StyledDropdown', () => {
       const [value, setValue] = React.useState<DemoValue>('A');
       return (
         <StyledDropdown<DemoValue>
+          ariaLabel="Valg"
           allowEmpty={false}
           value={value}
           onChange={(e) => {
@@ -179,7 +181,7 @@ describe('StyledDropdown', () => {
     const Wrapper = () => {
       const [value, setValue] = React.useState<'fleks' | 'ferie'>('ferie');
       return (
-        <StyledDropdown value={value} allowEmpty={false} onChange={(event) => setValue(event.target.value)}>
+        <StyledDropdown ariaLabel="Valg" value={value} allowEmpty={false} onChange={(event) => setValue(event.target.value)}>
           <MenuOption value="fleks">Flekstilskud</MenuOption>
           <MenuOption value="ferie">Feriepenge</MenuOption>
         </StyledDropdown>
@@ -215,7 +217,7 @@ describe('StyledDropdown', () => {
   it('fører disabled-optioner igennem til menuen og springer dem over ved typeahead', async () => {
     const user = userEvent.setup();
     render(
-      <StyledDropdown value="aktiv" allowEmpty={false}>
+      <StyledDropdown ariaLabel="Valg" value="aktiv" allowEmpty={false}>
         <MenuOption value="aktiv">Aktiv</MenuOption>
         <MenuOption value="blokeret" disabled>Blokeret</MenuOption>
       </StyledDropdown>
@@ -235,7 +237,7 @@ describe('StyledDropdown', () => {
 
     expect(() => {
       render(
-        <StyledDropdown allowEmpty={false} value={undefined as never}>
+      <StyledDropdown ariaLabel="Valg" allowEmpty={false} value={undefined as never}>
           <MenuOption value="A">Alfa</MenuOption>
         </StyledDropdown>
       );
@@ -246,7 +248,7 @@ describe('StyledDropdown', () => {
 
   it('viser placeholder for en valgfri værdi som ikke findes blandt options', () => {
     render(
-      <StyledDropdown<DemoValue> value={'ukendt' as DemoValue} placeholder="Vælg">
+      <StyledDropdown<DemoValue> ariaLabel="Valg" value={'ukendt' as DemoValue} placeholder="Vælg">
         <MenuOption value="A">Alfa</MenuOption>
         <MenuOption value="B">Beta</MenuOption>
       </StyledDropdown>
@@ -260,6 +262,7 @@ describe('StyledDropdown', () => {
     const onChange = vi.fn();
     render(
       <StyledDropdown<DemoValue>
+        ariaLabel="Valg"
         value={'ukendt' as DemoValue}
         placeholder="Vælg"
         onChange={onChange}
@@ -340,6 +343,7 @@ describe('StyledDropdown', () => {
       const [value, setValue] = React.useState<DemoValue | undefined>('A');
       return (
         <StyledDropdown<DemoValue>
+          ariaLabel="Valg"
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder="Vælg"
@@ -364,6 +368,7 @@ describe('StyledDropdown', () => {
       const [value, setValue] = React.useState<'a' | 'b'>('a');
       return (
         <StyledDropdown<'a' | 'b'>
+          ariaLabel="Valg"
           value={value}
           allowEmpty={false}
           getOptionLabel={(optionValue) => optionValue === 'a' ? 'Kanonisk alfa' : 'Kanonisk beta'}
@@ -394,6 +399,7 @@ describe('StyledDropdown', () => {
     expect(() => {
       render(
         <StyledDropdown<'a' | 'b'>
+          ariaLabel="Valg"
           value="a"
           allowEmpty={false}
           expectedOptionValues={['a', 'b']}

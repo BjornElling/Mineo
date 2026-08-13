@@ -90,4 +90,22 @@ test.describe('Tilgængelige navne på interaktive kontroller', () => {
       page.getByRole('checkbox', { name: 'Indregn mer-erstatning ved forhøjet pensionsalder' })
     ).toBeVisible();
   });
+
+  test('Stamdatas tekst-, dato- og dropdownfelter kan findes på deres synlige label', async ({ page }) => {
+    const runtimeErrors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') runtimeErrors.push(message.text());
+    });
+    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+
+    await login(page);
+    await page.getByRole('button', { name: 'Stamdata' }).click();
+
+    await expect(page.getByRole('textbox', { name: 'Journalnr.' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Skadelidtes navn' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Fødselsdato' })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Skadestype' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Skadedato' })).toBeVisible();
+    expect(runtimeErrors).toEqual([]);
+  });
 });

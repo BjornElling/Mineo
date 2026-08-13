@@ -138,6 +138,7 @@ const GridTextCellInner = <T, TEntity>(
             {...(resolvedEndAdornment === undefined ? {} : { endAdornment: resolvedEndAdornment })}
             placeholder={surface.isFocused && !surface.readOnly ? '' : placeholder}
             inputProps={{
+              'aria-label': cell.field.descriptor.label,
               inputMode,
               ...(maxDraftLength === undefined ? {} : { maxLength: maxDraftLength }),
               readOnly: surface.readOnly,

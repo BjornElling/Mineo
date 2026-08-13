@@ -9,6 +9,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor, type ImmediateCommitOverride } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
+import { useFieldLabel } from '../useFieldLabel';
 
 // Choice-felt (§1.3/§3.6): dropdown committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options som children. Den viste værdi læses fra den afsluttede
@@ -66,6 +67,7 @@ const ChoiceField = <
   containerSx,
   immediateCommitOverride,
 }: ChoiceFieldProps<TValue, TCanonical>): React.ReactElement => {
+  const accessibleName = useFieldLabel(field);
   const controller = useFieldEditor(field, location, undefined, undefined, immediateCommitOverride);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
 
@@ -94,6 +96,7 @@ const ChoiceField = <
     }
     return (
       <StyledDropdown<TValue>
+        ariaLabel={accessibleName}
         name={name}
         allowEmpty={false}
         value={value ?? emptyUiValue as TValue}
@@ -119,6 +122,7 @@ const ChoiceField = <
 
   return (
     <StyledDropdown<TValue>
+      ariaLabel={accessibleName}
       name={name}
       value={controller.value}
       onChange={handleChange}

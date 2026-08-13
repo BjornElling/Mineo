@@ -11,6 +11,7 @@ import {
   isTypeaheadCharKey,
   normalizeDropdownLabel,
 } from './dropdownInteractionCore';
+import { resolveAccessibleName } from './accessibleName';
 
 /**
  * StyledDropdown (combobox-trigger + popover-listbox)
@@ -41,6 +42,8 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
   width?: number | string;
   children?: React.ReactNode;
   name?: string;
+  /** Tilgængeligt navn; rå dropdown-kald må ikke kunne være navnløse. */
+  ariaLabel: string;
   error?: boolean;
   helperText?: string;
   /** Kortere hover-tekst end den fulde besked. Se `StyledTextFieldBaseProps.tooltipText`. */
@@ -151,6 +154,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     width = 200,
     children,
     name,
+    ariaLabel,
     error = false,
     helperText = '',
     tooltipText,
@@ -182,6 +186,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const autoId = React.useId();
   const resolvedId = id ?? autoId;
   const listboxId = `${resolvedId}-listbox`;
+  const resolvedAccessibleName = resolveAccessibleName(
+    { ariaLabel },
+    `StyledDropdown(${resolvedId})`
+  );
 
   const childNodes = React.useMemo(() => React.Children.toArray(children), [children]);
 
@@ -648,6 +656,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         placeholder={placeholder}
         inputProps={{
           ...userInputProps,
+          'aria-label': resolvedAccessibleName,
           role: 'combobox',
           'aria-haspopup': 'listbox',
           'aria-expanded': open,

@@ -7,6 +7,7 @@ import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
 import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 import type { InputSelectionSnapshot } from '../../utils/inputSelectionUtils';
+import { resolveAccessibleName } from './accessibleName';
 
 type AllowedInputAttributes = Pick<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -55,6 +56,8 @@ export type StyledTextFieldBaseProps = {
   id?: string;
   name?: string;
   label?: React.ReactNode;
+  /** Tilgængeligt navn fra feltfamilien eller den transiente input-wrapper. */
+  accessibleName: string;
   placeholder?: string;
 
   draft: string;
@@ -110,6 +113,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       id,
       name,
       label,
+      accessibleName,
       placeholder,
       draft,
       onDraftChange,
@@ -141,6 +145,10 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     const autoId = React.useId();
     const resolvedId = id ?? autoId;
     const resolvedName = name ?? resolvedId;
+    const resolvedAccessibleName = resolveAccessibleName(
+      { ariaLabel: accessibleName },
+      `StyledTextFieldBase(${resolvedId})`
+    );
 
     if (import.meta.env.DEV && error && helperText.trim() === '') {
       throw new Error('StyledTextFieldBase: helperText is required when error=true (avoid silent error states)');
@@ -231,6 +239,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
 
     const mergedHtmlInputProps = {
       ...htmlInputAttributes,
+      'aria-label': resolvedAccessibleName,
       'aria-describedby': describedBy,
       // Feltidentiteten i DOM er restore-target-attributterne (serialiseret feltadresse + editorlokation),
       // som feltfamilien sender med gennem `htmlInputAttributes`. Basen udleder ingen egen identitet af

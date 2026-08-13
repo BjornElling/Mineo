@@ -71,6 +71,7 @@ const GridChoiceCellInner = <
   const hasError = issueText.message !== undefined;
   const errorMessage = issueText.message ?? '';
   const tooltipProp = issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip };
+  const accessibleName = ariaLabel ?? cell.field.descriptor.label;
 
   // En ikke-oprettet placeholder-række kan ikke "ryddes" (der er intet felt at rydde); et tom-valg dér er derfor
   // no-op. Et ikke-tomt valg promoverer rækken atomisk via `commitImmediate`'s placeholder-override (§1.11).
@@ -160,8 +161,8 @@ const GridChoiceCellInner = <
     return (
       <StyledDropdown<TValue>
         ref={dropdownRootRef}
+        ariaLabel={accessibleName}
         name={resolvedGridCellKey}
-        inputProps={{ 'aria-label': ariaLabel }}
         restoreTargetAttributes={restoreTargetAttributes}
         width="100%"
         expectedOptionValues={cell.field.descriptor.codec.options}
@@ -181,8 +182,8 @@ const GridChoiceCellInner = <
   return (
     <StyledDropdown<TValue>
       ref={dropdownRootRef}
+      ariaLabel={accessibleName}
       name={resolvedGridCellKey}
-      inputProps={{ 'aria-label': ariaLabel }}
       restoreTargetAttributes={restoreTargetAttributes}
       width="100%"
       expectedOptionValues={cell.field.descriptor.codec.options}

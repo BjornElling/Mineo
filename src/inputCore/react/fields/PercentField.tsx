@@ -101,6 +101,7 @@ export const DerivedPercentField = React.forwardRef<HTMLDivElement, Readonly<{
 }>>(({ value, name, placeholder = DEFAULT_PERCENT_PLACEHOLDER, sx }, ref) => (
   <StyledTextFieldBase
     ref={ref}
+    accessibleName="Beregnet procent"
     name={name}
     draft={formatPercentDisplay(value, true)}
     onDraftChange={() => undefined}

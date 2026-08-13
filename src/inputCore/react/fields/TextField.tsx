@@ -7,6 +7,7 @@ import { useFormFieldSurface } from '../useFormFieldSurface';
 import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
+import { useFieldLabel } from '../useFieldLabel';
 
 // Tekst-felt (§2.4/§3.5): en TYND skal over `useFormFieldSurface`. Modtager KUN sin konkrete
 // `field`/`location` — ikke `value`, `parse`, `format`, `onCommit`, invalid-key eller error-reporter (§2.4:
@@ -31,6 +32,7 @@ export type TextFieldProps = Readonly<{
 
 const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
   ({ field, location, width, id, name, placeholder, disabled, inputType = 'text', sx, singleStageClick = false, inputRef }, ref) => {
+    const accessibleName = useFieldLabel(field);
     // Længden er erklæret på codec'en (§2.5) og håndhæves BÅDE som `<input maxLength>` (tastning) og
     // gennem surfacens paste-splice, hvor elementets eget loft ikke virker (§1.2a).
     const maxLength = field.descriptor.codec.maxLength;
@@ -56,6 +58,7 @@ const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
         ref={ref}
         id={id}
         name={name}
+        accessibleName={accessibleName}
         placeholder={placeholder}
         draft={surface.displayText}
         onDraftChange={surface.onDraftChange}

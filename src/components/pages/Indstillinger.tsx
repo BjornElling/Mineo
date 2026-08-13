@@ -133,6 +133,7 @@ const Indstillinger = React.memo(() => {
           <Typography className="row--text">Download-format for dokumenter</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDropdown
+              ariaLabel="Download-format for dokumenter"
               allowEmpty={false}
               value={settings.documentDownloadFormat}
               onChange={(e) => {
@@ -213,6 +214,7 @@ const Indstillinger = React.memo(() => {
           <Typography className="row--text">Løn på helligdage</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDropdown
+              ariaLabel="Løn på helligdage"
               allowEmpty={false}
               value={settings.defaultLoenPaaHelligdage}
               onChange={(e) => {
@@ -235,6 +237,7 @@ const Indstillinger = React.memo(() => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">L:</Typography>
               <StyledDropdown
+                ariaLabel="Lønmodtager"
                 value={settings.defaultOverenskomstLoenmodtager}
                 onChange={(e) => {
                   // Alle dropdownens string-værdier er gyldige her; schemaet håndhæver kun at feltet er en string.
@@ -253,6 +256,7 @@ const Indstillinger = React.memo(() => {
 
               <Typography className="row--text">A:</Typography>
               <StyledDropdown
+                ariaLabel="Arbejdsgiver"
                 value={settings.defaultOverenskomstArbejdsgiver}
                 onChange={(e) => {
                   // Alle dropdownens string-værdier er gyldige her; schemaet håndhæver kun at feltet er en string.
@@ -324,6 +328,7 @@ const Indstillinger = React.memo(() => {
           <Typography className="row--text">Opgørelse afsluttes med</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDropdown
+              ariaLabel="Opgørelse afsluttes med"
               allowEmpty={false}
               value={settings.erstatningsopgoerelseAfsluttesMed}
               onChange={(e) => {
@@ -362,6 +367,7 @@ const Indstillinger = React.memo(() => {
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDropdown
+                ariaLabel="Efter udløb anses overenskomst for forældet efter"
                 allowEmpty={false}
                 value={settings.allowReguleringMedUdloebMedMaaneder}
                 onChange={(e) => {

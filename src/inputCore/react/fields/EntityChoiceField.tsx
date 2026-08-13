@@ -45,7 +45,11 @@ export default function EntityChoiceField<TValue extends StyledDropdownValue, TE
   // fokus efter undo/redo lander på DENNE editorlokation.
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const issueText = resolveFieldIssueText(controller.issue);
+  // En placeholder-række findes entityen endnu ikke i inputaggregatet, så InputReader.labelOf ville
+  // korrekt afvise referencen. Descriptorens label er stadig den stabile brugerlabel for begge cellearter.
+  const accessibleName = field.descriptor.label;
   return <StyledDropdown<TValue>
+    ariaLabel={accessibleName}
     name={name}
     value={controller.value}
     onChange={(event) => {

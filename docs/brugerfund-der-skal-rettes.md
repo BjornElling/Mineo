@@ -113,4 +113,5 @@ Ingen fund afventer reproduktion.
 - Det bør ske: Hvert interaktivt tekstfelt og hver dropdown skal have et stabilt tilgængeligt navn, der svarer til den synlige etiket. Navnet skal være tilgængeligt for skærmlæsere og rolle-/navnebaseret tastaturnavigation og må ikke afhænge af placeholdertekst. Den fælles løsning bør dække alle feltfamilier, så rettelsen ikke skal gentages enkeltvis på hver side.
 - Påvirkning: Ingen direkte ændring af beregnede tal, gemte data eller dokumenter, men næsten alle sagsinput er vanskeligere eller umulige at identificere for brugere af skærmlæser og andre hjælpemidler.
 - Prioritet: Høj
-- Status: Ny
+- Status: Løst
+- Løsning: De fælles feltbaser kræver nu et tilgængeligt navn, og persisted feltskaller henter det automatisk fra felt-descriptorens synlige label. Direkte kontroller uden `FieldRef` skal angive en eksplicit label, så nye felter ikke kan introduceres uden navn.

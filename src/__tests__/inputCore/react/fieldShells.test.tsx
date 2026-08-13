@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
 import * as React from 'react';
+import { MenuItem } from '@mui/material';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { dispatchInput, ActiveEditorRegistry, type SlimInputStore } from '../../../inputCore/runtime';
 import { createInputRuntimeBinding, InputRuntimeProvider, type InputRuntimeBinding } from '../../../inputCore/react';
 import {
   IntegerField,
+  DateField,
+  ChoiceField,
   PercentField,
   AmountField,
   RadioField,
@@ -24,11 +27,14 @@ import { insertRow } from '../../../inputCore/inputReducer';
 import {
   createTestCatalog,
   aargangField,
+  beregningsdatoField,
   kommentarerField,
   enhedField,
   belobField,
   makeRow,
-  testRowOrigin, testLocation } from '../testCatalog';
+  testRowOrigin, testLocation,
+  skadestypeField,
+} from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 import { FIELD_ISSUE_GENERIC_TOOLTIP } from '../../../inputCore/inputIssue';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
@@ -93,6 +99,27 @@ describe('numeriske feltpresets', () => {
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
     renderField(<AmountField field={belobField.bind('r1')} location={testLocation('amt-1')} name="belob" />);
     expect(screen.getByText('kr.')).toBeInTheDocument();
+  });
+});
+
+describe('felt-skaller navngiver de faktiske interaktive kontroller', () => {
+  it('bruger feltbeskrivelsens label som tilgængeligt navn for tekst-, dato-, tal- og valgfelter', () => {
+    renderField(
+      <>
+        <MultilineTextField field={kommentarerField.bind()} location={testLocation('a11y-text')} name="tekst" />
+        <DateField field={beregningsdatoField.bind()} location={testLocation('a11y-date')} name="dato" />
+        <IntegerField field={aargangField.bind()} location={testLocation('a11y-number')} name="tal" />
+        <ChoiceField field={skadestypeField.bind()} location={testLocation('a11y-choice')} name="valg">
+          <MenuItem value="Arbejdsulykke">Arbejdsulykke</MenuItem>
+          <MenuItem value="Erhvervssygdom">Erhvervssygdom</MenuItem>
+        </ChoiceField>
+      </>
+    );
+
+    expect(screen.getByRole('textbox', { name: 'Kommentarer' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Beregningsdato' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Satsår' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Skadestype' })).toBeInTheDocument();
   });
 });
 

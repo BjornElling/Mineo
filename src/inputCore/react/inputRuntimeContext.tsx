@@ -261,6 +261,7 @@ export const createInputRuntimeBinding = (
 ): InputRuntimeBinding => {
   let cached: InternalSettledSnapshot | null = null;
   let cachedRevision: SettledSnapshot | null = null;
+  let cachedEvaluation: InputEvaluation | null = null;
   let cachedIssues: FieldIssueSnapshot | null = null;
   const getSettled = (): InternalSettledSnapshot => {
     const state = store.getState();
@@ -294,11 +295,20 @@ export const createInputRuntimeBinding = (
     }
     return cachedIssues;
   };
+  const getStableEvaluation = (): InputEvaluation => {
+    const next = getEvaluation();
+    // React kræver, at samme revisionsbundne snapshot har samme objektreference. Det er et runtime-værn
+    // på bindingen, så en simpel test- eller adapterleverandør ikke kan udløse et uendeligt render-loop.
+    if (cachedEvaluation === null || !sourceTokensEqual(cachedEvaluation.issues.sourceToken, next.issues.sourceToken)) {
+      cachedEvaluation = next;
+    }
+    return cachedEvaluation;
+  };
   const captureEvaluationSource = (): InputEvaluation => {
     // `getEvaluation` kan selv være cachet. Tokenet skal derfor bekræfte, at evalueringen stadig
     // hører til den runtime-tilstand, der er aktuel efter læsningen.
     for (let attempt = 0; attempt < 4; attempt += 1) {
-      const evaluation = getEvaluation();
+      const evaluation = getStableEvaluation();
       if (sourceTokensEqual(evaluation.issues.sourceToken, readSourceToken(store))) return evaluation;
     }
     throw new Error('InputRuntime: kunne ikke optage en stabil evaluering til kritisk handling');
@@ -321,7 +331,7 @@ export const createInputRuntimeBinding = (
       // `useSyncExternalStore` kræver stabil snapshot-identitet mellem revisioner. Samme token beskriver samme
       // rene issueprojektion, så en leverandør, der bygger et nyt wrapperobjekt pr. kald, normaliseres her.
       getIssues: getStableIssues,
-      getEvaluation,
+      getEvaluation: getStableEvaluation,
     }),
     edit: Object.freeze({
       // Implementeringen tager den brede form; det er SIGNATUREN i `InputEditPort` der håndhæver den
