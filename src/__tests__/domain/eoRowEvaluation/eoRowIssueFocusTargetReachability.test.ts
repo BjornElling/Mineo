@@ -23,6 +23,7 @@ import {
   resolveEoIssueFocusTarget,
 } from '../../../domain/eoRowEvaluation/eoRowIssueCatalog';
 import type { EoRowModel, EoIssueFocusTarget } from '../../../domain/eoRowEvaluation/eoRowTypes';
+import type { FieldAddressTemplate } from '../../../inputCore/fieldDescriptor';
 
 const makeRow = (patch: Partial<EoRowModel>): EoRowModel => ({
   id: 'row.id',
@@ -299,11 +300,18 @@ const ISSUE_ROWS: readonly Readonly<{ name: string; row: Partial<EoRowModel> }>[
 /** Et bart entity-id (ingen punkter) er den form, tabeller og kort faktisk sætter i DOM. */
 const isBareEntityId = (value: string): boolean => value.length > 0 && !value.includes('.');
 
+/**
+ * Collectionen bag en felt-template. Den ligger i templatens `entity`-led — templaten har ingen
+ * `collection`-egenskab i sig selv, fordi stien kan indeholde både property- og entity-led.
+ */
+const templateCollection = (template: FieldAddressTemplate): string =>
+  template.path.find((segment) => segment.kind === 'entity')?.collection ?? '';
+
 const describeTarget = (target: EoIssueFocusTarget): string =>
   target.kind === 'rowId'
     ? `rowId="${target.rowId}"`
     : target.kind === 'collectionField'
-      ? `collectionField(${target.template.collection ?? ''}.${target.template.field})`
+      ? `collectionField(${templateCollection(target.template)}.${target.template.field})`
       : `fieldAddress(${target.address.field})`;
 
 describe('EO-issues: fokusmålet kan ramme en produktionsflade', () => {
