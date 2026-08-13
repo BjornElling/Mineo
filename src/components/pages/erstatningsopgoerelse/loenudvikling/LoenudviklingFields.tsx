@@ -211,9 +211,15 @@ export default function LoenudviklingFields<
                   width={70}
                 />
                 <Tooltip title="Find løntrin" arrow>
+                  {/* Eksplicit opt-in i Containerens tab-sekvens (jf. keyboard-navigation.md
+                      §Implementeringsfrihed), samme tilgang som `Indsæt dags dato`. Container
+                      lader Enter passere på knapper, så native button-semantik dækker både
+                      Enter og mellemrum — der skal ingen egen keydown-vej til. Overlayet flytter
+                      selv fokus ind i sig ved åbning, så knappen behøver ingen fokus-restore. */}
                   <IconButton
+                    type="button"
                     onClick={onOpenLoentrinFinder}
-                    tabIndex={-1}
+                    data-mineo-focusable-button="true"
                     aria-label="Find løntrin"
                     sx={{
                       width: '32px',

@@ -77,26 +77,25 @@ const LoenindkomstTab = React.memo(({
           </Box>
         </Box>
 
-        <Box className="row--label-right-hover">
-          <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
-            <Typography className="row--text">Bemærk, at</Typography>
-          </Box>
-        </Box>
+        {/* «Bemærk, at» + punkterne står i en egen `flow--16`-blok (samme utility som Mineo-siden
+            bruger til løbende tekst): den neutraliserer `row--text`s faste rækkehøjde, så linjerne
+            står tæt sammen i stedet for at fylde en hoverrække hver. Wrapperen ligger på blokken
+            alene — ikke på hele `content-box` — så section-headeren og knap-rækken beholder
+            sidens normale rækkeafstand. */}
+        <Box className="flow--16">
+          <Typography className="row--text">Bemærk, at</Typography>
 
-        {/* Punkterne står som almindelige tekstrækker med et ledende «•», så de deler `row--text`s
-            typografi og rækkeafstand med resten af siden (der findes ingen delt listekomponent). */}
-        {[
-          'Lønindkomst, tillæg og andre relevante oplysninger angives individuelt for hvert enkelt ansættelsesforhold.',
-          'Det er ikke nødvendigt at dele indtastninger op i før og efter skaden. Programmet sondrer selv.',
-        ].map((punkt) => (
-          <Box className="row--label-right-hover" key={punkt}>
-            <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
-              <Typography className="row--text" sx={{ paddingLeft: '16px' }}>
-                {`•  ${punkt}`}
-              </Typography>
-            </Box>
-          </Box>
-        ))}
+          {[
+            'Lønindkomst, tillæg og andre relevante oplysninger skal angives individuelt for hvert enkelt ansættelsesforhold.',
+            'Det er ikke nødvendigt at dele indtastninger op i før og efter skaden. Programmet sondrer selv.',
+          ].map((punkt) => (
+            // Indrykningen ligger som margin, ikke padding: `.flow--16 .row--text` sætter
+            // `padding: 0 12px !important` og ville ellers slå den ud.
+            <Typography className="row--text" key={punkt} sx={{ marginLeft: '16px' }}>
+              {`•  ${punkt}`}
+            </Typography>
+          ))}
+        </Box>
 
         {totalAnsaettelsesforhold === 0 ? (
           <Box sx={{ position: 'absolute', bottom: -28, right: 44, display: 'flex', gap: '14px' }}>

@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-10
+**Senest verificeret mod kode:** 2026-08-13
 
 ---
 
@@ -238,9 +238,9 @@ Det betyder:
 - CSS-selectors, fokus-hjælpefunktioner og konkrete `focus(...)`-kald er implementeringsdetaljer.
 - Hvilke elementer der indgår i tab-sekvensen, skal fortsat være eksplicit og auditérbart defineret, men ikke nødvendigvis via den samme selector-strategi som i dag.
 - Sideintegrerede handlingsknapper må kun indgå i den normale feltsekvens ved eksplicit opt-in.
-- `Indsæt dags dato`, synlige dokumentdownload-knapper og `Vælg mappe` på Indstillinger har dette opt-in. De
-  skal kunne fokuseres med Tab og aktiveres med native knapadfærd (`Enter` og mellemrum). Skjulte eller native
-  deaktiverede knapper indgår ikke i sekvensen.
+- `Indsæt dags dato`, `Find løntrin`, synlige dokumentdownload-knapper og `Vælg mappe` på Indstillinger har
+  dette opt-in. De skal kunne fokuseres med Tab og aktiveres med native knapadfærd (`Enter` og mellemrum).
+  Skjulte eller native deaktiverede knapper indgår ikke i sekvensen.
 
 ---
 
