@@ -192,4 +192,6 @@ Hold én aktiv arbejdsenhed. Skriv efter hver batch:
 - hvilke partitioner, branches, browsere og viewports der mangler;
 - fund-id'er, spørgsmål-id'er og eventuel blokering.
 
+Lease-checkpointet under `test-results/runtime-input-audit/session.json` er den maskinlæsbare del af samme fremdrift. Brug `audit-session.mjs begin` før en arbejdsenhed, `heartbeat` mindst hvert andet minut under længere browserarbejde og `complete` efter dokumentcheckpointet. Ved en ny turn efter tool-, netværks- eller sleep-afbrydelse bruges `status`; en stale `active` lease markeres med `recover` og genoptages med `resume`. Hele den aktive arbejdsenhed gentages fra ren tilstand. Lease-heartbeat må ikke komme fra en keep-awake-proces, fordi det ellers kan skjule en mistet agentforbindelse.
+
 Ved ukontrolleret afbrydelse behandles `I gang` som ikke-pålidelig deldækning: genkør hele den lille arbejdsenhed. En blokering eller et uafklaret spørgsmål må ikke standse andre uafhængige rækker.

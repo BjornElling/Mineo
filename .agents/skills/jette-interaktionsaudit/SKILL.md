@@ -22,6 +22,39 @@ Auditten har tre ligeværdige produkter:
 
 Skillen finder og dokumenterer problemer. Den retter ikke produktionskode, tests, kontrakter, data eller konfiguration.
 
+## Langvarig kørsel, lease og afbrydelser
+
+En audit må ikke afhænge af, at én Codex-turn, ét tool-kald eller én browser-/serverproces lever i dagevis. En netværksafbrydelse, en suspenderet computer eller en genstart af browseren er en normal driftsforstyrrelse, ikke et signal om at afslutte auditten. Auditten skal derfor køres som korte, selvstændige arbejdsenheder med en lokal, durable lease under `test-results/runtime-input-audit/session.json`.
+
+Brug skillens session-helper fra repo-roden:
+
+```powershell
+$lease = '.agents/skills/jette-interaktionsaudit/scripts/audit-session.mjs'
+node $lease begin --repo . --scenario SHELL-MIN-002 --start-state 'Ren login i hver browser' --browser alle --viewport 1536x864
+node $lease heartbeat --repo . --stage 'Baseline-smoke kører'
+node $lease complete --repo . --next-scenario SHELL-MIN-003 --next-start-state 'Ren login i hver browser'
+node $lease status --repo .
+```
+
+Reglerne for lease-kørslen er:
+
+- En arbejdsenhed skal være lille nok til normalt at afsluttes på højst cirka 15 minutter og må højst være én synlig flade eller én tæt afhængighedsklynge.
+- Start lease før browserarbejde, skriv heartbeat mindst hvert andet minut ved længere arbejdsenheder, og skriv `complete` umiddelbart efter auditdokumenterne er checkpointet.
+- En åben `active` lease er ikke deldækning. Efter ukontrolleret afbrydelse skal hele den aktive arbejdsenhed gentages fra ren tilstand.
+- Ved genoptagelse fra en ny turn køres først `status`. Hvis den aktive lease ikke har haft heartbeat i mindst 15 minutter, køres `recover` og derefter `resume`; den viste arbejdsenhed gentages fra ren tilstand. Et wall-clock-gap på mindst fem minutter registreres som mulig sleep-/systemafbrydelse, men må ikke uden Windows-/proces-evidens erklæres som sleep.
+- `ready` betyder, at den forrige arbejdsenhed er checkpointet, og at `nextScenario`/`nextStartState` skal startes med en ny `begin`. En `recovery-required` lease må ikke overskrives med en ny arbejdsenhed.
+- Lease-helperens heartbeat er kun audit-infrastruktur. En keep-awake-proces må aldrig skrive audit-heartbeat, for så kan en mistet Codex-forbindelse se levende ud.
+- Ved resume lukkes gamle CLI-sessioner og stale browser-/serverprocesser, der kan identificeres sikkert, og der etableres frisk browser- og servertilstand. Brug ikke en in-memory browser-session som den eneste bærer af auditens fremskridt.
+
+Ved fler-dages kørsel kan Windows' normale idle-sleep forebygges med den lokale helper. Start den efter `begin` i en skjult proces:
+
+```powershell
+$keepAwake = (Resolve-Path '.agents/skills/jette-interaktionsaudit/scripts/keep-awake.ps1').Path
+$keepAwakeProcess = Start-Process powershell.exe -WindowStyle Hidden -PassThru -ArgumentList @('-NoLogo', '-NoProfile', '-File', $keepAwake, '-RepoRoot', (Get-Location).Path)
+```
+
+Gem `$keepAwakeProcess.Id` eller PID-filen `test-results/runtime-input-audit/keep-awake.pid`, og stop processen ved en entydig brugerbesked om pause/stop. Helperen forhindrer kun normal Windows idle-sleep; den løser ikke strømudfald, genstart, tvungen sleep, netværksfejl eller en mistet Codex-forbindelse. Hvis den ikke kan starte, registreres det som et dæknings-/driftsforhold, og checkpoint-/resume-protokollen fortsætter stadig.
+
 ## Grundprincipper
 
 - Gå ud fra, at også den mest almindelige happy path kan være forkert. Giv den samme systematiske kontrol som fejl- og grænsetilstande.
@@ -62,15 +95,16 @@ Auditten er en åben, langvarig arbejdsopgave — ikke en enkelt leverance med e
 4. Læs [references/audit-method.md](references/audit-method.md) helt før første auditkørsel og igen, når inventaret eller en ny afhængighedsklynge planlægges.
 5. Læs altid `STATUS.md`, `CRASHES.md`, `OBSERVATIONS.md` og `QUESTIONS.md` helt eller målrettet med `rg`, hvis de er lange. Åbne fund og ubesvarede spørgsmål skal forstås, før nye scenarier vælges.
 6. Kontrollér `git status --short`, aktuel commit og buildversion. Behandl eksisterende ændringer som brugerens og rør dem ikke.
-7. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
-8. Dæk browserne Chrome, Edge, Firefox og Safari/WebKit med både den almindelige Full-HD-CSS-viewport 1920×1080 og den bindende minimums-CSS-viewport 1536×864. Sidstnævnte svarer til en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering, når browserens zoom står på 100 %. Playwright styrer CSS-viewporten og simulerer ikke selve operativsystemets fysiske skalering; registrér derfor altid både CSS-viewport og `window.devicePixelRatio`, og registrér et eventuelt hul i ægte OS-/headed-verifikation særskilt. Brug mindst én større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
+7. Kør `node .agents/skills/jette-interaktionsaudit/scripts/audit-session.mjs status --repo .`. Hvis der ikke findes en lease, oprettes den med `STATUS.md`'s registrerede næste scenarie og starttilstand. Ved en frisk opstart med `ready` lease startes den registrerede næste arbejdsenhed; ved `active` lease fortsættes kun, hvis heartbeat stadig er aktuelt og der ikke findes en anden levende audit-worker. Ellers køres `recover` og `resume`, hvorefter hele den aktive arbejdsenhed gentages fra ren tilstand.
+8. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
+9. Dæk browserne Chrome, Edge, Firefox og Safari/WebKit med både den almindelige Full-HD-CSS-viewport 1920×1080 og den bindende minimums-CSS-viewport 1536×864. Sidstnævnte svarer til en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering, når browserens zoom står på 100 %. Playwright styrer CSS-viewporten og simulerer ikke selve operativsystemets fysiske skalering; registrér derfor altid både CSS-viewport og `window.devicePixelRatio`, og registrér et eventuelt hul i ægte OS-/headed-verifikation særskilt. Brug mindst én større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
    - Før browserstyring: kontrollér `npx --no-install playwright-cli --version` (eller den lokale fallback `npx --no-install playwright --version`) og `npx playwright install --list`. Mangler Firefox eller WebKit, installér den konkrete motor med `npx playwright install firefox webkit`; manglende Chrome-/Edge-channel registreres eksplicit som dækningshul.
    - Kør alle browserkørsler headless. `playwright-cli` er headless som standard, så brug aldrig `--headed`, `npm run test:e2e:headed`, `show --annotate` eller en synlig browser-attach under auditten. Snapshots, screenshots, traces og video kan stadig optages headless. Det holder browseren fra skærmen og fra operativsystemets input-/dvaleinteraktion.
    - Brug de navngivne sessioner `chrome`, `edge`, `firefox` og `webkit`, og luk dem med `npx playwright cli close-all` efter batchen. En session må ikke genbruges, før dens browser, viewport og rene starttilstand er verificeret.
    - Platformdialoger, der kun kan åbnes af en synlig browser eller operativsystemet, kan ikke afprøves i den headless audit. Registrér dem som et konkret dækningshul og fortsæt med uafhængige arbejdsenheder; skift ikke automatisk til headed. En synlig kørsel kræver en udtrykkelig brugerbesked.
    - Kør den automatiske browser-smoke med `npm run test:e2e` før den brede udforskning. Den lokale Playwright-konfiguration skal køre de fire motorer ved både 1536×864 og 1920×1080; til den større viewport sættes `PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT=1` før samme kommando (i PowerShell: `$env:PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT='1'; npm run test:e2e`).
    - Almindelige flows køres mod Vite-devserveren. Service-worker-, PWA- og launch-queue-flows køres separat mod et produktions-preview: `npm run build:mineo`, derefter `npm run preview:e2e` på port 4174. Brug ikke devserverens manglende service-worker som evidens for et PWA-resultat. Ved automatiseret kontrol mod preview sættes i PowerShell `$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:4174'; $env:PLAYWRIGHT_SKIP_WEBSERVER='1'; $env:PLAYWRIGHT_ALLOW_SERVICE_WORKERS='1'` før `npm run test:e2e`. PWA-rækkerne gentages ved 1536×864 og 1920×1080; kontrollér også at installeret/standalone-vinduets shell, navigation og dokumentflows ikke mister indhold.
-9. Markér arbejdsenheden `I gang`, og skriv det konkrete næste scenarie og den nødvendige starttilstand, før browserarbejdet begynder.
+10. Markér arbejdsenheden `I gang`, opret eller genoptag lease-helperens arbejdsenhed, og skriv det konkrete næste scenarie og den nødvendige starttilstand, før browserarbejdet begynder.
 
 ## Arbejdscyklus
 
@@ -196,6 +230,16 @@ Opdatér dokumenterne umiddelbart efter hvert fund og hver lille matrixbatch. En
 - senest afsluttede scenarie og præcist næste scenarie med starttilstand;
 - nye eller opdaterede fund-id'er, spørgsmål-id'er og dækningshuller;
 - sessionens commit, build, dirty-state, browser, viewport og tidspunkt.
+
+Skriv samtidig lease-checkpointet, så en ny turn kan skelne mellem en afsluttet arbejdsenhed og en afbrudt arbejdsenhed:
+
+```powershell
+$lease = '.agents/skills/jette-interaktionsaudit/scripts/audit-session.mjs'
+node $lease heartbeat --repo . --stage 'STATUS.md, fundregistre og næste scenarie er opdateret'
+node $lease complete --repo . --next-scenario NEXT-ID --next-start-state 'Konkret ren starttilstand'
+```
+
+`complete` må først køres, når dokumenterne er skrevet. Hvis forbindelsen falder før `complete`, skal den aktive arbejdsenhed gentages; hvis `complete` er skrevet, startes næste scenarie med `begin`.
 
 En række er kun `Dækket`, når den relevante brugeradfærd, kontrakt-/kodeafstemning, branches, afhængighedskanter, downstream-forbrugere og browser-/viewportvariationer er håndteret. En række, der kræver svar på et spørgsmål, står `Afventer afklaring` og tæller ikke som dækket.
 
