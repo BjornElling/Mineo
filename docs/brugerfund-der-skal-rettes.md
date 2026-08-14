@@ -25,6 +25,20 @@ Næste ID: **BF-058**. Kopiér denne blok pr. fund:
 Udelad punkter, der ikke er relevante. Medtag gerne præcis synlig tekst og screenshot. Skriv altid, hvis fundet
 kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede fund til den korte log nedenfor.
 
+## BF-058 — Flaky E2E-tests i WebKit og Firefox
+
+- Type: Fejl
+- Sted: Den fulde E2E-suite, især `field-attention-blink` og `download-tooltip-classes`
+- Sådan fremprovokeres det:
+  1. Kør den fulde `npm run test:e2e`-suite.
+  2. Gennemgå fejlene fra WebKit og Firefox.
+  3. Gentag kørslen uden lokale kodeændringer, eksempelvis fra et rent eller stashet arbejdstræ.
+- Det sker: Suiten giver 18 fejl, mens 342 tests består. Næsten alle fejl ligger i `field-attention-blink` og `download-tooltip-classes` under WebKit/Firefox. De samme fejl opstår uden de lokale ændringer, som blev undersøgt.
+- Det bør ske: E2E-suiten bør være stabil og skelne pålideligt mellem præeksisterende testflakiness og reelle produktregressioner.
+- Påvirkning: Testresultatet er mindre pålideligt som kvalitets- og regressionsgate. Fundet er ikke undersøgt nærmere og er ikke i sig selv en konstatering af en produktfejl.
+- Prioritet: Mellem
+- Status: Ny
+
 ## Afventer reproduktion
 
 Ingen fund afventer reproduktion.
