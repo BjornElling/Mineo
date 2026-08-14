@@ -636,6 +636,13 @@ export const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
   'normalizeGridRows',
   'reconcileGridRowIdentityForRestore',
   'undoAliasRowIdsByRowId',
+  // Undo/redo-restorens blur-commit-undertrykkelse (slettet 2026-08-14). Modulet satte et globalt flag
+  // omkring den programmatiske `target.focus()` for at hindre, at et blur committede en forældet draft —
+  // men `isRestoreFocusInProgress` havde nul læsere, så undertrykkelsen var en no-op, OG tilstanden kan
+  // ikke opstå: undo/redo er `noop` ved åben editor, så restore-løkken nås aldrig med en draft åben.
+  // Genindføres værnet, skjuler det igen den antagelse frem for at håndhæve den.
+  'isRestoreFocusInProgress',
+  'withRestoreFocusSuppressed',
 ];
 
 const FORBIDDEN_IDENTIFIER_SET = new Set(FORBIDDEN_LEGACY_IDENTIFIERS);

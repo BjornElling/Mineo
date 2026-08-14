@@ -1,10 +1,8 @@
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
-import { withRestoreFocusSuppressed } from './restoreFocusFlag';
 
 // Den ENE undo/redo-fokusrestore-løkke (§3.7). Runtime-neutral: kalderen leverer KUN `findTarget`, der
 // lokaliserer det synlige fokusmål. Den fælles adfærd — vent-på-mount over faneskift, scroll-hvis-ikke-synlig,
-// fokus-ring-markør, blur-commit-undertrykkelse under den programmatiske fokus, og AFBRYDELSE hvis brugeren
-// imens flytter fokus til et andet brugbart felt — bor ÉT sted.
+// fokus-ring-markør og AFBRYDELSE hvis brugeren imens flytter fokus til et andet brugbart felt — bor ÉT sted.
 //
 // Målopslaget selv ejes af `historyRestoreTarget` (feltadresse + editorlokation). Der findes ingen anden
 // restore-vej og ingen anden feltidentitet i DOM; grænsen håndhæves af `input/single-field-identity-in-dom`.
@@ -56,17 +54,18 @@ const focusRestoredField = (target: HTMLElement): boolean => {
   // gav et uønsket spring helt op selv når feltet allerede var synligt. Vi scroller FØR focus, så
   // den efterfølgende `focus({ preventScroll: true })` ikke konkurrerer med scroll-animationen.
   scrollTargetIntoView(target);
-  // Undertryk commit mens vi flytter fokus programmatisk: target.focus() udløser SYNKRONT et blur på
-  // det tidligere fokuserede felt. Det felts blur-commit ville ellers committe en FORÆLDET draft (fra
-  // før resync nåede at opdatere den) → en spuriøs frame, der nulstiller redo-stakken. Flaget bor i
-  // `restoreFocusFlag` og aflæses af commit-stierne.
-  withRestoreFocusSuppressed(() => {
-    try {
-      target.focus({ preventScroll: true });
-    } catch {
-      target.focus();
-    }
-  });
+  // Her stod tidligere en blur-commit-undertrykkelse (`withRestoreFocusSuppressed` +
+  // `isRestoreFocusInProgress`) mod en FORÆLDET draft: `target.focus()` udløser synkront et blur på det
+  // tidligere fokuserede felt, hvis blur-commit så ville lande en draft fra før resync. Værnet er slettet,
+  // fordi den tilstand ikke kan opstå: undo/redo er `noop` ved åben editor
+  // (`criticalActionCoordinator`s EDITOR_HANDLING), så `history.undo()` — og dermed denne løkke — nås
+  // aldrig, mens en draft er åben. Setteren fandtes desuden uden nogen læser, så undertrykkelsen var
+  // alligevel en no-op. Genindfør den ikke uden først at ændre den noop-politik.
+  try {
+    target.focus({ preventScroll: true });
+  } catch {
+    target.focus();
+  }
 
   const activeElement = document.activeElement;
   const focused = activeElement === target || (activeElement instanceof Node && target.contains(activeElement));
@@ -114,8 +113,8 @@ const reportUnreachableRestoreTarget = (describeTarget?: () => string): void => 
 /**
  * Den delte rAF-retry-restore-løkke (§3.7). Runtime-agnostisk: kalderen leverer KUN `findTarget`, der lokaliserer
  * det synlige fokusmål (feltadresse + editorlokation, jf. `historyRestoreTarget`). Den fælles adfærd —
- * vent-på-mount over faneskift, scroll-hvis-ikke-synlig, fokus-ring-markør, blur-commit-undertrykkelse under den
- * programmatiske fokus, og AFBRYDELSE hvis brugeren imens flytter fokus til et andet brugbart felt — bor ÉT sted.
+ * vent-på-mount over faneskift, scroll-hvis-ikke-synlig, fokus-ring-markør og AFBRYDELSE hvis brugeren imens
+ * flytter fokus til et andet brugbart felt — bor ÉT sted.
  *
  * `describeTarget` bruges KUN i diagnostikken, når målet aldrig dukker op. Den er en funktion, så en serialisering
  * af originen ikke betales, når restoren lykkes (det normale forløb).
