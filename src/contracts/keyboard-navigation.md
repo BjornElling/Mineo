@@ -189,11 +189,17 @@ eget luk-element (X, annuller) er ikke et gyldigt restore-mål: det forsvinder s
 
 **Én implementering.** Restoren ejes af `src/hooks/useDialogFocusRestore.ts`. En popup må ikke føre
 sin egen restore-vej — hverken et `focus()`-kald i en lukkehandler eller en kopi af
-tilstands-bogføringen. Tre forhold gør den naive form utilstrækkelig, og de er alle afdækket i
+tilstands-bogføringen. Fire forhold gør den naive form utilstrækkelig, og de er alle afdækket i
 konkrete browserfejl: WebKits manglende klik-fokus (se ovenfor), at fokus ved `Escape` kan stå på
-popupens egen container frem for `body`, og at MUI's transition slutter **før** portalen unmountes,
-så fokus falder til `body` *efter* en for tidlig genoprettelse. Reglen er håndhævet af
+popupens egen container frem for `body`, at MUI's transition slutter **før** portalen unmountes,
+så fokus falder til `body` *efter* en for tidlig genoprettelse, og at **MUI's `Dialog` selv genopretter
+fokus** til det element, der var aktivt ved åbningen. Reglen er håndhævet af
 `layout/popup-focus-restore-single-source`.
+
+**En MUI-baseret popup skal sætte `disableRestoreFocus`.** MUI's egen genoprettelse kører sidst og
+overskriver derfor målet uden at noget fejler. Den kender ikke målprioriteten ovenfor og rammer forkert,
+netop når triggeren undertrykker sit eget fokus (`onMouseDown` + `preventDefault()`) — da er et FELT
+aktivt ved åbningen, og fokus vender tilbage dertil i stedet for til den åbnende kontrol.
 
 **Triggerens tastaturtilgængelighed.** En popup-åbnende kontrol skal som udgangspunkt kunne
 fokuseres med `Tab` og aktiveres med både `Enter` og mellemrum gennem native knapsemantik
@@ -259,6 +265,11 @@ const handleKeyDown = (e: React.KeyboardEvent) => {
 Overlayet er omfattet af §Popup-fokus-restore: `Escape`, X og backdrop-klik returnerer alle fokus
 til `Find løntrin`-knappen, der åbnede det.
 
+`Lønindkomst` har **én knap pr. ansættelsesforhold**, og restore-målet er den knap, brugeren faktisk
+åbnede overlayet med — ikke «en» af dem. Målet skal derfor være nøglet på ansættelsesforholdets id
+(`useLoentrinFinder.registerTrigger`). Én ref delt mellem kortene opfylder ikke reglen: React efterlader
+den på det sidst monterede kort, så fokus vender tilbage til det nederste korts knap.
+
 Løntrin-finder popup (`src/components/pages/erstatningsopgoerelse/shared/LoentrinFinderOverlay.tsx`, anvendt i
 både `Lønindkomst` og `EO-oplysninger`) bruger en eksplicit, hardcoded tab-sekvens:
 
@@ -273,6 +284,16 @@ Krav:
 - `ArrowUp`/`ArrowDown` må kun overtage intern popup-navigation, når dropdown-menu ikke er åben og editor ikke er åben.
 
 Overlayets interne focus-trap ejes af overlay-komponenten selv. `Container` må kun undlade at interferere med popup/portal-subtrees. Overlayet er ansvarligt for at stoppe fokuslæk til siden bagved.
+
+Overlayet ejer **al** fokusadfærd: både tastaturnavigationen inde i popupen (tab-sekvens, `Escape`,
+piletaster) og restoren ved lukning gennem `useDialogFocusRestore`. `useLoentrinFinder` ejer state og
+beregning og leverer kun restore-MÅLET (`triggerRef`), fordi målet er en knap uden for overlayet.
+
+Delingen er ikke vilkårlig: samles restoren og navigationens `focus()`-kald i samme fil, er filens ene
+restore-vej entydig — og `layout/popup-focus-restore-single-source` kan skelne dem fra en parallel vej.
+Lægges restoren i hooken i stedet, står overlayets lovlige navigations-`focus()`-kald tilbage i en
+popup-fil uden den fælles hook, hvilket værnet med rette flager. De to flader deler den ene hook og det
+ene overlay; en flade må ikke føre sin egen kopi af nogen af delene.
 
 ---
 

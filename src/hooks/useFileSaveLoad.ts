@@ -4,7 +4,6 @@ import { APP_ROUTES } from '../config/pageNavigation';
 import { SaveValidationError, saveToFile } from '../utils/fileSave';
 import { loadFromFile, loadFromFileHandle } from '../utils/fileLoad';
 import { resolveDefaultDirectoryHandle } from '../utils/fileHelpers';
-import { restoreFocusIfPossible } from '../utils/focusUtils';
 import type {
   ApplicableLoadFileResult,
   LoadFileResult,
@@ -42,6 +41,8 @@ import { FileSelectionError } from '../utils/fileLoadSource';
 //  - §1.4 har INGEN `block`-policy for load: `prepare('load')` settler ikke og blokerer
 //    aldrig. Fokus-før-handling fanges her i use-casen via `document.activeElement`, fordi `prepare`
 //    ikke længere returnerer et `focusTargetBeforeAction`.
+//  - `Slet alt` fanger den IKKE: dens bekræftelse er `ConfirmationDialog`, som selv ejer fokus-restoren
+//    gennem `useDialogFocusRestore`. En fangst her ville være en parallel restore-vej.
 
 export type OverlayData = {
   message: string;
@@ -69,6 +70,18 @@ type LoadFlowState =
   | { phase: 'idle' }
   | { phase: 'preflight'; result: PreflightFileResult; navigateToStamdataAfterApply: boolean }
   | { phase: 'overwrite'; result: ApplicableLoadFileResult; overlay: OverlayData; navigateToStamdataAfterApply: boolean };
+
+/**
+ * `Slet alt`-bekræftelsens tilstand. Skilt fra `LoadFlowState`, fordi de to flows har hver sin
+ * livscyklus: load reserverer filoperationslåsen FØR sin dialog (filen er allerede læst og skal ikke
+ * kunne krydses), mens reset først reserverer den ved bekræftelsen — der er intet at beskytte, så længe
+ * brugeren blot bliver spurgt. De kan derfor ikke slås sammen til én fase uden at give den ene flows
+ * låseregel til den anden. At begge er åbne samtidig er umuligt: `Slet alt` afvises, mens en filhandling
+ * kører (`beginFileOperation`), og PWA-køen holdes tilbage, mens bekræftelsen står åben.
+ */
+type ResetFlowState =
+  | { phase: 'idle' }
+  | { phase: 'confirming' };
 
 export type PwaLoadOutcome = 'busy' | 'cancelled' | 'preflight' | 'awaitingUser' | 'applied' | 'error';
 
@@ -110,7 +123,14 @@ type UseFileSaveLoadResult = {
   pendingPreflightBugReportError: Error | null;
   handleGem: () => Promise<void>;
   handleHent: () => Promise<void>;
-  handleSletAlt: () => Promise<void>;
+  /** Åbner `Slet alt`-bekræftelsen. Sletter intet selv — bekræftelsen sker i `handleConfirmSletAlt`. */
+  handleSletAlt: () => void;
+  /** Er `Slet alt`-bekræftelsen åben? Driver dialogen og holder PWA-køen tilbage. */
+  pendingResetConfirmation: boolean;
+  /** Lukker `Slet alt`-bekræftelsen uden at slette noget. */
+  dismissPendingReset: () => void;
+  /** Gennemfører den bekræftede `Slet alt`. `false` = ikke gennemført, så dialogen kan prøve igen. */
+  handleConfirmSletAlt: () => Promise<boolean>;
   handleLoadDespiteIssues: () => Promise<void>;
   handleConfirmOverwriteApply: () => Promise<void>;
   handleHentFromPwaRequest: (request: PwaFileOpenRequest) => Promise<PwaLoadOutcome>;
@@ -206,6 +226,7 @@ export const useFileSaveLoad = ({
   showOverlay,
 }: UseFileSaveLoadArgs): UseFileSaveLoadResult => {
   const [loadFlow, setLoadFlow] = React.useState<LoadFlowState>({ phase: 'idle' });
+  const [resetFlow, setResetFlow] = React.useState<ResetFlowState>({ phase: 'idle' });
   const activeFileOperationRef = React.useRef<FileOperationKind | null>(null);
   const [activeFileOperation, setActiveFileOperation] = React.useState<FileOperationKind | null>(null);
 
@@ -505,25 +526,31 @@ export const useFileSaveLoad = ({
     }
   }, [applyLoadedSnapshot, finishFileOperation, navigate, loadFlow, showOverlay]);
 
-  const handleSletAlt = React.useCallback(async () => {
-    const focusTargetBeforeDeleteAll = captureActiveElement();
-    const confirmed = window.confirm(
-      'ADVARSEL: Dette sletter alle ikke-gemte indtastninger i Mineo!\n\n'
-        + 'Indholdet i gemte .eo-filer ændres ikke.\n\nEr du sikker på at du vil fortsætte?',
-    );
+  /**
+   * Åbner bekræftelsen. Handlingen er delt i to, fordi bekræftelsen er programmets egen dialog og ikke
+   * længere en native `window.confirm`: den blokerede JS-tråden og kunne derfor spørge midt i kaldet.
+   * Skiftet er ikke kosmetisk — `ConfirmationDialog` bærer `CONFIRMATION_DIALOG_FOCUS_MARKER`, som holder
+   * en åben felteditor fra at settle, mens brugeren svarer (`critical-action-contract.md` §7: `Slet alt`
+   * gennemføres UDEN settle, og draften kasseres først ved en vellykket apply).
+   *
+   * Fokus-restoren ved annullering ligger derfor i dialogen (`useDialogFocusRestore`), ikke her: netop
+   * denne hook må ikke føre en parallel restore-vej (`keyboard-navigation.md` §Popup-fokus-restore).
+   */
+  const handleSletAlt = React.useCallback(() => {
+    setResetFlow({ phase: 'confirming' });
+  }, []);
 
-    if (!confirmed) {
-      restoreFocusIfPossible(focusTargetBeforeDeleteAll);
-      return;
-    }
+  const dismissPendingReset = React.useCallback(() => {
+    setResetFlow({ phase: 'idle' });
+  }, []);
+
+  const handleConfirmSletAlt = React.useCallback(async (): Promise<boolean> => {
+    setResetFlow({ phase: 'idle' });
 
     // Reset er selv en fil-/sagshandling og skal dele samme lås. Uden denne
     // reservation kunne en allerede igangværende load eller Gem afslutte efter
     // reset og genindsætte data eller metadata fra den gamle operation.
-    if (!beginFileOperation('reset', true)) {
-      restoreFocusIfPossible(focusTargetBeforeDeleteAll);
-      return;
-    }
+    if (!beginFileOperation('reset', true)) return false;
 
     try {
       // §7/§1.12: `Slet alt` gennem replacement-grænsen (no-settle; draften kasseres først ved
@@ -539,13 +566,14 @@ export const useFileSaveLoad = ({
         ? { message: 'Alle indtastninger slettet', type: 'info' }
         : { message: buildResetResidueMessage(clearResult.residue), type: 'warning' });
       navigate(APP_ROUTES.stamdata, { replace: true });
+      return true;
     } catch (error) {
-      restoreFocusIfPossible(focusTargetBeforeDeleteAll);
       console.error('Slet alt fejlede:', error);
       showOverlay({
         message: 'Kunne ikke slette data',
         type: 'error',
       });
+      return false;
     } finally {
       finishFileOperation();
     }
@@ -594,6 +622,9 @@ export const useFileSaveLoad = ({
     handleGem,
     handleHent,
     handleSletAlt,
+    pendingResetConfirmation: resetFlow.phase === 'confirming',
+    dismissPendingReset,
+    handleConfirmSletAlt,
     handleLoadDespiteIssues,
     handleConfirmOverwriteApply,
     handleHentFromPwaRequest,

@@ -569,14 +569,23 @@ describe('useFileSaveLoad', () => {
   });
 
   describe('handleSletAlt — hel-sags-clear', () => {
-    let confirmSpy: ReturnType<typeof vi.spyOn>;
+    /**
+     * Bekræftelsen er programmets egen `ConfirmationDialog`, ikke en native `window.confirm`. Handlingen
+     * er derfor delt i to: `handleSletAlt()` åbner kun bekræftelsen, og `handleConfirmSletAlt()`
+     * gennemfører den. Testene driver de to trin eksplicit — der er ingen confirm at mocke.
+     */
+    it('åbner kun bekræftelsen og rører hverken input, filhåndtag eller navigation', async () => {
+      const handles = renderHook({ hasData: true });
+      const generationBefore = slimInputStore.getState().replacementGeneration;
 
-    beforeEach(() => {
-      confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    });
+      await act(async () => {
+        handles.api?.handleSletAlt();
+      });
 
-    afterEach(() => {
-      confirmSpy.mockRestore();
+      expect(handles.api?.pendingResetConfirmation).toBe(true);
+      expect(slimInputStore.getState().replacementGeneration).toBe(generationBefore);
+      expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
+      expect(handles.navigate).not.toHaveBeenCalled();
     });
 
     it('rydder de sagsnære sessionnøgler og afslutter INDE i appen uden genindlæsning', async () => {
@@ -589,7 +598,7 @@ describe('useFileSaveLoad', () => {
       const handles = renderHook({ hasData: true });
 
       await act(async () => {
-        await handles.api?.handleSletAlt();
+        await handles.api?.handleConfirmSletAlt();
       });
 
       for (const key of [
@@ -613,7 +622,7 @@ describe('useFileSaveLoad', () => {
       const handles = renderHook({ hasData: true });
 
       await act(async () => {
-        await handles.api?.handleSletAlt();
+        await handles.api?.handleConfirmSletAlt();
       });
 
       expect(handles.showOverlay).toHaveBeenCalledWith(expect.objectContaining({
@@ -626,14 +635,17 @@ describe('useFileSaveLoad', () => {
     });
 
     it('gør intet, når brugeren afviser bekræftelsen', async () => {
-      confirmSpy.mockReturnValue(false);
       const handles = renderHook({ hasData: true });
       const generationBefore = slimInputStore.getState().replacementGeneration;
 
       await act(async () => {
-        await handles.api?.handleSletAlt();
+        handles.api?.handleSletAlt();
+      });
+      await act(async () => {
+        handles.api?.dismissPendingReset();
       });
 
+      expect(handles.api?.pendingResetConfirmation).toBe(false);
       expect(slimInputStore.getState().replacementGeneration).toBe(generationBefore);
       expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
       expect(handles.navigate).not.toHaveBeenCalled();
@@ -652,10 +664,13 @@ describe('useFileSaveLoad', () => {
         await Promise.resolve();
       });
 
+      // `false` frigiver `ConfirmationDialog`s ét-klik-lås, så brugeren kan prøve igen når loaden er færdig.
+      let confirmOutcome: boolean | undefined;
       await act(async () => {
-        await handles.api?.handleSletAlt();
+        confirmOutcome = await handles.api?.handleConfirmSletAlt();
       });
 
+      expect(confirmOutcome).toBe(false);
       expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
       expect(handles.showOverlay).toHaveBeenCalledWith({
         message: 'En filhandling er allerede i gang.',

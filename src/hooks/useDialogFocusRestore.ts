@@ -20,11 +20,16 @@ import { focusElementWithoutScroll } from '../utils/focusUtils';
  * 3. **Lukningen er ikke ét tidspunkt.** MUI's transition slutter FØR portalen er unmountet, og
  *    WebKit nulstiller fokus til `body`, når den fokuserede popup-node forsvinder — altså EFTER
  *    vores genoprettelse. Derfor efterses restoren én gang på næste frame.
+ * 4. **MUI genopretter selv fokus.** En `Dialog` fører sin egen restore til det element, der var
+ *    aktivt ved åbningen, og den kører SIDST — så den overskriver vores mål, uden at noget fejler.
+ *    En popup bygget på MUI skal derfor sætte `disableRestoreFocus` (se `ConfirmationDialog`), ellers
+ *    er der to restore-veje, og den, der ikke kender kontraktens målprioritet, vinder.
  *
  * Restoren har bevidst INGEN blur-commit-undertrykkelse. Fokus står ved lukningen i popupen
  * (eller er tabt), ikke i et sagsdatafelt med en åben draft, så der er intet felt at blur'e
- * fra. Popupfelterne er selv transiente. Undo/redo-restoren har det behov og bruger derfor
- * `withRestoreFocusSuppressed`; her ville flaget være støj uden effekt.
+ * fra. Popupfelterne er selv transiente. En åben felteditor beskyttes i stedet ved ÅBNINGEN:
+ * `ConfirmationDialog` bærer `CONFIRMATION_DIALOG_FOCUS_MARKER`, som felt- og gridfladen læser for
+ * at undlade at settle, når fokus flyttes ind i dialogen (`modalFocusTransfer`).
  */
 export type UseDialogFocusRestoreOptions<TTrigger extends HTMLElement = HTMLElement> = Readonly<{
   /** Popupens åbne-tilstand. Angives den, kører restoren automatisk ved lukning. */
@@ -141,6 +146,13 @@ export const useDialogFocusRestore = <TTrigger extends HTMLElement = HTMLElement
 
     // Se §3 i modulkommentaren: lukningen er ikke ét tidspunkt. Er fokus stadig i behold efter
     // denne frame, gør eftersynet ingenting.
+    //
+    // Eftersynet er desuden det, der får en trigger UDEN FOR portalen hjem: mens dialogen er åben,
+    // ligger resten af appen i MUI's `aria-hidden="true"`-container, så `isUsableTarget` afviser
+    // triggeren i første forsøg (bekræftet i chrome-desktop, hvor `Slet alt`-menuknappen lå i et
+    // `aria-hidden`-DIV, og fokus derfor blev overladt til MUI og landede på et vilkårligt felt).
+    // Attributten er fjernet igen på næste frame, og målet er da brugbart. Derfor må eftersynet ikke
+    // gøres betinget af, at FØRSTE forsøg fandt et mål.
     requestAnimationFrame(() => {
       if (isFocusLost()) restoreTarget();
     });

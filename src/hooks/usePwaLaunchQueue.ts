@@ -22,6 +22,13 @@ type UsePwaLaunchQueueArgs = {
   locationPathname: string;
   pendingLoadResultOpen: boolean;
   pendingOverwriteApplyOpen: boolean;
+  /**
+   * Står `Slet alt`-bekræftelsen åben? Så holdes en ankommen PWA-fil i kø, indtil brugeren har svaret.
+   * Gaten blev nødvendig, da bekræftelsen gik fra `window.confirm` (som frøs JS-tråden og derfor
+   * blokerede køen gratis) til programmets egen dialog. Uden den kunne fil-bekræftelsen lægge sig oven
+   * på sletnings-bekræftelsen, så brugeren stod med to spørgsmål og kunne svare Ja til det forkerte.
+   */
+  pendingResetConfirmationOpen: boolean;
   fileOperationInProgress: boolean;
   isFileOperationInProgress: () => boolean;
   handleHentFromPwaRequest: (request: PwaFileOpenRequest) => Promise<PwaLoadOutcome>;
@@ -37,6 +44,7 @@ export const usePwaLaunchQueue = ({
   locationPathname,
   pendingLoadResultOpen,
   pendingOverwriteApplyOpen,
+  pendingResetConfirmationOpen,
   fileOperationInProgress,
   isFileOperationInProgress,
   handleHentFromPwaRequest,
@@ -71,7 +79,7 @@ export const usePwaLaunchQueue = ({
 
   const processNextPwaFileOpenRequest = React.useCallback((allowAlreadyAttempted = false): void => {
     if (isPwaLoadInProgressRef.current || isFileOperationInProgress()) return;
-    if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
+    if (pendingLoadResultOpen || pendingOverwriteApplyOpen || pendingResetConfirmationOpen) return;
     if (queuedWhileBusyRef.current || pendingConfirmationRef.current !== null) return;
 
     const request = getPendingPwaFileOpenRequest();
@@ -100,13 +108,14 @@ export const usePwaLaunchQueue = ({
     isFileOperationInProgress,
     pendingLoadResultOpen,
     pendingOverwriteApplyOpen,
+    pendingResetConfirmationOpen,
     queueLatestRequest,
   ]);
 
   const promoteQueuedRequest = React.useCallback((): void => {
     if (!queuedWhileBusyRef.current) return;
     if (isPwaLoadInProgressRef.current || isFileOperationInProgress()) return;
-    if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
+    if (pendingLoadResultOpen || pendingOverwriteApplyOpen || pendingResetConfirmationOpen) return;
 
     const request = getPendingPwaFileOpenRequest();
     if (!request) {
@@ -119,6 +128,7 @@ export const usePwaLaunchQueue = ({
     isFileOperationInProgress,
     pendingLoadResultOpen,
     pendingOverwriteApplyOpen,
+    pendingResetConfirmationOpen,
     updatePendingConfirmation,
   ]);
 
@@ -158,6 +168,7 @@ export const usePwaLaunchQueue = ({
         || isPwaLoadInProgressRef.current
         || pendingLoadResultOpen
         || pendingOverwriteApplyOpen
+        || pendingResetConfirmationOpen
         || pendingConfirmationRef.current !== null
       ) {
         queueLatestRequest(request);
@@ -174,6 +185,7 @@ export const usePwaLaunchQueue = ({
     isFileOperationInProgress,
     pendingLoadResultOpen,
     pendingOverwriteApplyOpen,
+    pendingResetConfirmationOpen,
     processNextPwaFileOpenRequest,
     queueLatestRequest,
   ]);
@@ -185,6 +197,7 @@ export const usePwaLaunchQueue = ({
       || pwaLoadInProgress
       || pendingLoadResultOpen
       || pendingOverwriteApplyOpen
+      || pendingResetConfirmationOpen
       || queuedWhileBusyRef.current
     ) return;
     processNextPwaFileOpenRequest();
@@ -193,13 +206,14 @@ export const usePwaLaunchQueue = ({
     pwaLoadInProgress,
     pendingLoadResultOpen,
     pendingOverwriteApplyOpen,
+    pendingResetConfirmationOpen,
     processNextPwaFileOpenRequest,
     promoteQueuedRequest,
   ]);
 
   React.useEffect(() => {
     if (locationPathname !== APP_SYSTEM_PAGE_DEFINITIONS.openEo.route) return;
-    if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
+    if (pendingLoadResultOpen || pendingOverwriteApplyOpen || pendingResetConfirmationOpen) return;
 
     const startedAt = Date.now();
     let timeoutId: number | null = null;
@@ -211,7 +225,7 @@ export const usePwaLaunchQueue = ({
       if (request && request.id !== lastAttemptedRequestIdRef.current) {
         if (isFileOperationInProgress() || isPwaLoadInProgressRef.current) {
           queueLatestRequest(request);
-        } else if (!pendingLoadResultOpen && !pendingOverwriteApplyOpen) {
+        } else if (!pendingLoadResultOpen && !pendingOverwriteApplyOpen && !pendingResetConfirmationOpen) {
           processNextPwaFileOpenRequest();
         }
       }
@@ -230,6 +244,7 @@ export const usePwaLaunchQueue = ({
     locationPathname,
     pendingLoadResultOpen,
     pendingOverwriteApplyOpen,
+    pendingResetConfirmationOpen,
     processNextPwaFileOpenRequest,
     queueLatestRequest,
   ]);

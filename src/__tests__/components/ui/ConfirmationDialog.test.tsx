@@ -174,6 +174,63 @@ describe('ConfirmationDialog', () => {
     expect(firstButton).not.toHaveFocus();
   });
 
+  /**
+   * `restoreFocusTo` skal vinde over det element, der tilfældigvis var aktivt ved åbningen — ikke kun
+   * når intet var aktivt (testen ovenfor).
+   *
+   * Sagen er ægte: sidemenuens `Slet alt` kalder `preventDefault()` i `onMouseDown` for at bevare
+   * felt-fokus, så et felt ER aktivt, når dialogen åbner. MUI genopretter som standard SELV fokus til
+   * netop det element ved unmount, og fordi dens genoprettelse kører sidst, overskrev den vores. Fokus
+   * endte derfor på det felt, brugeren stod i (bekræftet i alle fire browsere: `Fødselsdato`), i strid
+   * med kontraktens målprioritet. `disableRestoreFocus` på `Dialog` er det, der lukker den
+   * konkurrerende vej — fjernes den, fejler denne test.
+   */
+  it('gendanner fokus til restoreFocusTo FREM FOR det felt, der var aktivt ved åbningen', async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    const view = renderDialog({
+      open: false,
+      title: 'Bekræft handling',
+      message: 'Besked',
+      onCancel,
+      onConfirm: vi.fn(),
+    });
+
+    const field = document.createElement('input');
+    field.setAttribute('aria-label', 'Feltet brugeren stod i');
+    const opener = document.createElement('button');
+    opener.textContent = 'Åbnende kontrol';
+    view.container.append(field, opener);
+
+    const openerRef: React.RefObject<HTMLElement | null> = { current: opener };
+    // Feltet ER aktivt, da dialogen åbner — præcis som når triggeren undertrykker sit eget fokus.
+    field.focus();
+    expect(field).toHaveFocus();
+
+    const renderWithOpen = (open: boolean) => view.rerender(
+      <ThemeProvider theme={createTheme()}>
+        <ConfirmationDialog
+          open={open}
+          title="Bekræft handling"
+          message="Besked"
+          onCancel={onCancel}
+          onConfirm={vi.fn()}
+          restoreFocusTo={openerRef}
+        />
+      </ThemeProvider>
+    );
+
+    renderWithOpen(true);
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Annuller' })).toHaveFocus());
+    await user.click(within(dialog).getByRole('button', { name: 'Annuller' }));
+
+    renderWithOpen(false);
+
+    await waitFor(() => expect(opener).toHaveFocus());
+    expect(field).not.toHaveFocus();
+  });
+
   it('giver bekræft-knappen fokus, når annuller er skjult', async () => {
     renderDialog({
       open: true,

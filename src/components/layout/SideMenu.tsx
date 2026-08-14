@@ -39,6 +39,13 @@ type FileOperationItem = {
   label: string;
   icon: React.ReactElement;
   action: () => void;
+  /**
+   * Ref til knappen, når handlingens bekræftelsesdialog skal føre fokus tilbage hertil. Nødvendig,
+   * fordi `handleMenuButtonMouseDown` kalder `preventDefault()`: knappen bliver derfor aldrig
+   * `activeElement`, og dialogen har intet fokus at huske (`keyboard-navigation.md`
+   * §Popup-fokus-restore).
+   */
+  buttonRef?: React.RefObject<HTMLButtonElement | null>;
 };
 
 // Menu-dimensioner
@@ -90,9 +97,11 @@ interface SideMenuProps {
   onGem: () => void;
   onHent: () => void;
   onSletAlt: () => void;
+  /** Restore-mål for `Slet alt`-bekræftelsen — se `FileOperationItem.buttonRef`. */
+  sletAltButtonRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAlt }: SideMenuProps) => {
+const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAlt, sletAltButtonRef }: SideMenuProps) => {
   const [isExpanded, setIsExpanded] = useState(() => {
     const storedValue = readStoredMenuState();
     return storedValue === null ? true : storedValue === 'true';
@@ -102,8 +111,8 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
   const fileOperations = React.useMemo((): FileOperationItem[] => [
     { id: 'gem', label: 'Gem', icon: <Save />, action: onGem },
     { id: 'hent', label: 'Hent', icon: <BrowserUpdated />, action: onHent },
-    { id: 'slet-alt', label: 'Slet\u00A0alt', icon: <DeleteForever />, action: onSletAlt }
-  ], [onGem, onHent, onSletAlt]);
+    { id: 'slet-alt', label: 'Slet\u00A0alt', icon: <DeleteForever />, action: onSletAlt, buttonRef: sletAltButtonRef }
+  ], [onGem, onHent, onSletAlt, sletAltButtonRef]);
 
   const toggleMenu = React.useCallback(() => {
     setIsExpanded(prev => {
@@ -243,6 +252,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
           >
             <Button
               fullWidth
+              ref={item.buttonRef}
               onClick={() => handleFileOperation(item)}
               onMouseDown={handleMenuButtonMouseDown}
               startIcon={item.icon}

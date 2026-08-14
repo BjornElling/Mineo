@@ -124,6 +124,13 @@ const ConfirmationDialog = React.memo(({
       onTransitionExited={restoreFocus}
       maxWidth="sm"
       fullWidth
+      // MUI genopretter som standard selv fokus ved unmount — til det element, der var aktivt da
+      // dialogen åbnede. Det er en KONKURRERENDE restore-vej, og den vinder, fordi den kører sidst:
+      // vores egen genoprettelse lykkedes (knappen fik fokus), hvorefter MUI flyttede det tilbage til
+      // feltet. Restoren ejes af `useDialogFocusRestore`, som følger kontraktens målprioritet
+      // (`keyboard-navigation.md` §Popup-fokus-restore) — MUI's gæt gør ikke. Bekræftet i chrome-desktop
+      // med `Slet alt`, hvor fokus endte på `Fødselsdato` i stedet for på menuknappen.
+      disableRestoreFocus
       {...{ [CONFIRMATION_DIALOG_FOCUS_MARKER]: 'true' }}
       sx={{
         '& .MuiDialog-paper': {

@@ -462,13 +462,14 @@ describe('MainLayout (unsaved beforeunload)', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const deleteFileHandleMock = vi.mocked(deleteFileHandleFromIndexedDB);
     deleteFileHandleMock.mockRejectedValue(new Error('Simuleret cleanup-fejl'));
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     renderLayout();
 
     commitInputChange();
 
+    // To trin: menupunktet åbner kun bekræftelsen, som er programmets egen dialog (ikke `window.confirm`).
     await clickMainLayoutAction('Slet alt');
+    await clickMainLayoutAction('Ja, slet');
 
     await waitFor(() => {
       expect(deleteFileHandleMock).toHaveBeenCalledTimes(1);
@@ -485,10 +486,8 @@ describe('MainLayout (unsaved beforeunload)', () => {
     handler(event);
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(event.returnValue).toBe('');
-    expect(confirmSpy).toHaveBeenCalled();
 
     addEventListenerSpy.mockRestore();
     consoleErrorSpy.mockRestore();
-    confirmSpy.mockRestore();
   });
 });

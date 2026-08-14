@@ -137,6 +137,9 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     }
   }, [criticalActions, location.pathname, navigate]);
 
+  // Restore-målet for `Slet alt`-bekræftelsen. Se dialogen nedenfor for hvorfor den skal være eksplicit.
+  const sletAltButtonRef = React.useRef<HTMLButtonElement>(null);
+
   const {
     pendingLoadResult,
     pendingOverwriteApply,
@@ -146,6 +149,9 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     handleGem,
     handleHent,
     handleSletAlt,
+    pendingResetConfirmation,
+    dismissPendingReset,
+    handleConfirmSletAlt,
     handleLoadDespiteIssues,
     handleConfirmOverwriteApply,
     handleHentFromPwaRequest,
@@ -168,6 +174,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     locationPathname: location.pathname,
     pendingLoadResultOpen: pendingLoadResult !== null,
     pendingOverwriteApplyOpen: pendingOverwriteApply !== null,
+    pendingResetConfirmationOpen: pendingResetConfirmation,
     fileOperationInProgress,
     isFileOperationInProgress,
     handleHentFromPwaRequest,
@@ -205,6 +212,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         onGem={handleGem}
         onHent={handleHent}
         onSletAlt={handleSletAlt}
+        sletAltButtonRef={sletAltButtonRef}
       />
       <Container>
         <LazyChunkRecoveryNotice
@@ -275,6 +283,32 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
             )
             : null
         }
+      />
+
+      {/* `Slet alt`. Fokus SKAL føres eksplicit tilbage til menuknappen: sidemenuen kalder
+          `preventDefault()` i `onMouseDown` for at bevare felt-fokus, så knappen står aldrig som
+          `activeElement`, og restoren ville ellers falde tilbage på et vilkårligt mål
+          (`keyboard-navigation.md` §Popup-fokus-restore, målprioritet 1). */}
+      <ConfirmationDialog
+        open={pendingResetConfirmation}
+        title="Slet alle indtastninger"
+        message={(
+          <>
+            ADVARSEL: Dette sletter alle ikke-gemte indtastninger i Mineo!
+            <br />
+            <br />
+            Indholdet i gemte .eo-filer ændres ikke.
+            <br />
+            <br />
+            Er du sikker på at du vil fortsætte?
+          </>
+        )}
+        cancelText="Annuller"
+        confirmText="Ja, slet"
+        confirmColor="error"
+        onCancel={dismissPendingReset}
+        onConfirm={handleConfirmSletAlt}
+        restoreFocusTo={sletAltButtonRef}
       />
 
       <ConfirmationDialog
