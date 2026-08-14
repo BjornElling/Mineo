@@ -7,7 +7,11 @@ import ToggleField from '../../../inputCore/react/fields/ToggleField';
 import PercentField from '../../../inputCore/react/fields/PercentField';
 import FractionField from '../../../inputCore/react/fields/FractionField';
 import DateField from '../../../inputCore/react/fields/DateField';
-import { buildBeregnetDifferencekravLabel } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
+import {
+  buildBeregnetDifferencekravLabel,
+  resolveMerErstatningPensionsalderBilagDisabledReason,
+  resolveProformaKapitaliseringBilagDisabledReason,
+} from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import { APP_ROUTES } from '../../../config/pageNavigation';
 import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
@@ -137,37 +141,51 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                     location={location('bilag-loebendeYdelser')}
                     name="loebendeYdelser"
                     label="Løbende ydelser"
+                    unavailableReason={null}
                   />
                   <CheckboxField
                     field={refs.kapitalisering}
                     location={location('bilag-kapitalisering')}
                     name="kapitalisering"
                     label="Kapitalisering"
+                    unavailableReason={null}
                   />
                   <CheckboxField
                     field={refs.eetEfterEal}
                     location={location('bilag-eetEfterEal')}
                     name="eetEfterEal"
                     label="EET efter EAL"
+                    unavailableReason={null}
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {computation.proformaKapitalisering && (
-                    <CheckboxField
-                      field={refs.proformaKapitalisering}
-                      location={location('bilag-proformaKapitalisering')}
-                      name="proformaKapitalisering"
-                      label="Proformakap. af rest-EET"
-                    />
-                  )}
-                  {computation.merErstatningPensionsalder && (
-                    <CheckboxField
-                      field={refs.merErstatningPensionsalder}
-                      location={location('bilag-merErstatningPensionsalder')}
-                      name="merErstatningPensionsalder"
-                      label="Mer-erstatning forhøjet folkepension"
-                    />
-                  )}
+                  {/*
+                    Begge bilagsvalg vises ALTID — også når bilaget ikke findes i den aktuelle beregning.
+                    De gøres da inaktive og umarkerede med årsagen i tooltippet, frem for at forsvinde fra
+                    rækken (jf. page-component-contract.md §"Bilagsvalg og andre betingede
+                    afkrydsningsfelter"). Et valg der forsvinder, efterlader brugeren i tvivl om, hvorvidt
+                    muligheden findes.
+                  */}
+                  <CheckboxField
+                    field={refs.proformaKapitalisering}
+                    location={location('bilag-proformaKapitalisering')}
+                    name="proformaKapitalisering"
+                    label="Proformakap. af rest-EET"
+                    unavailableReason={resolveProformaKapitaliseringBilagDisabledReason(
+                      computation.proformaKapitalisering !== null,
+                      computation.resterendeLoebendeYdelser !== null
+                    )}
+                  />
+                  <CheckboxField
+                    field={refs.merErstatningPensionsalder}
+                    location={location('bilag-merErstatningPensionsalder')}
+                    name="merErstatningPensionsalder"
+                    label="Mer-erstatning forhøjet folkepension"
+                    unavailableReason={resolveMerErstatningPensionsalderBilagDisabledReason(
+                      values.indregnMerErstatningVedForhoejetPensionsalder,
+                      computation.merErstatningPensionsalder !== null
+                    )}
+                  />
                 </Box>
               </Box>
             </Box>

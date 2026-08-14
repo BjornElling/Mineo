@@ -35,6 +35,16 @@ describe('StyledCheckbox', () => {
     expect(onCommit).not.toHaveBeenCalled();
   });
 
+  it('viser et kombineret programinaktivt og låst felt umarkeret', () => {
+    const onCommit = vi.fn();
+    render(<StyledCheckbox checked disabled lockedOn label="Bilag" onCommit={onCommit} />);
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Bilag' });
+    expect(checkbox).toBeDisabled();
+    expect(checkbox).not.toBeChecked();
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('kan ikke fravælges med klik eller tastatur, og committer aldrig', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();

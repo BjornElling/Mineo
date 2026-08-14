@@ -3,7 +3,7 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-08-13
+**Senest verificeret mod kode:** 2026-08-14
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -406,6 +406,48 @@ fælles maksimalbredde og balanceret, naturlig ordombrydning ved hele ord. Calls
 tooltipbredder, centreret tekst eller manuelle linjeskift for at styre ombrydningen. Afvigelser kræver et reelt
 andet indholdsformat, ikke blot lokal tilpasning. Et langt sammenhængende token må nødombrydes, så det ikke
 overskrider den fælles maksimalbredde.
+
+### 10.5 Bilagsvalg og andre betingede afkrydsningsfelter
+
+Individuelle afkrydsningsfelter og deres tilhørende tekst skjules aldrig, så længe den omgivende sektion
+vises. Det gælder både almindelige og betingede valg. Hvis et felt ikke er aktuelt, vises det **inaktivt
+og umarkeret** med årsagen i tooltippet. Den afsluttede værdi bevares i inputkernen og vises igen, når
+forudsætningen bliver opfyldt. Hele sektionen må fortsat skjules efter sidens overordnede flow.
+
+Begrundelsen er den samme som for download-ikonet (§11): et valg, der forsvinder, efterlader brugeren i tvivl
+om, hvorvidt muligheden findes i programmet. Et inaktivt felt med en forklaring besvarer i stedet både
+"findes valget?" og "hvorfor kan jeg ikke vælge det nu?". Reglen gælder uanset, om forudsætningen mangler,
+fordi beregningen ikke producerer noget bilag, eller fordi brugeren selv har fravalgt indholdet et andet sted.
+
+Regler:
+
+1. **Inaktivering og årsag er uadskillelige.** `CheckboxField` modtager dem som ÉN prop
+   (`unavailableReason: string | null`); `null` betyder, at valget er muligt. Et inaktivt betinget felt uden
+   årsag efterlader brugeren uden forklaring, og en årsag uden inaktivering beskriver en tilstand, feltet ikke
+   er i — begge er umulige at konstruere gennem prop'en. Bærer en domænemodel tilgængeligheden, gør den samme
+   invariant strukturel (discriminated union på `enabled`), så en årsagsløs inaktiv tilstand ikke kan opstå.
+2. **Årsagen har ÉN visningskanal: tooltippet — og kun ved hover.** Som gate-årsagen i §11 må ingen flade
+   rendere den som en tekstknude ved eller under feltet.
+3. **Årsagen er kort og præcis:** ÉN kort sætning på brugerens sprog, der navngiver den manglende
+   forudsætning — fx «Pensionsalderen er ikke forhøjet i perioden» eller «Mer-erstatning er fravalgt
+   nedenfor». Ingen udbygget begrundelse, ingen gentagelse af feltets egen label, og ingen redegørelse for
+   regelgrundlaget eller for hvad brugeren så skal gøre; et tooltip læses i forbifarten (brugerbeslutning
+   2026-08-14). Men den skal stadig navngive forudsætningen — ikke et indholdsløst "ikke tilgængelig".
+4. **Rangorden når flere forudsætninger mangler:** brugerens eget fravalg forklares FØR en beregningsårsag.
+   Har brugeren fravalgt indholdet, er beregningen ikke udført, og en beregningsårsag ville da være en påstand
+   om et regnestykke, programmet ikke har lavet.
+5. **Den afsluttede værdi bevares uændret,** mens feltet er inaktivt (den vises blot umarkeret, jf.
+   `StyledCheckbox`), og vises igen, når valget bliver muligt. Et inaktivt bilagsvalg må aldrig kunne nå
+   dokumentmodellen: dokumentlaget gater selvstændigt på både valget og indholdets tilstedeværelse.
+6. **Tooltip-indpakningen ejes af feltfamilien,** ikke af fladen. Et disabled MUI-input udsender ingen
+   pointer-events, så hover-fladen er en wrapper (`mineo-disabled-hover-target`) omkring kontrol + label.
+   Fladen sætter kun gruppeklassen `disabled-hover-checkbox-group`, der bærer nedtoningen og hover-kontrasten.
+
+Afgrænsning: synlighedsreglen gælder alle individuelle afkrydsningsfelter. Den ændrer ikke inputfelter,
+der skjules af et **Ja/Nej-svar på samme formular** (fx datofelterne under en ménafgørelse) — der er
+skjulningen selve formularens forgrening, og felterne er dækket af
+`input-field-behavior-contract.md`'s regler om skjulte værdier. Et element, der pr. definition ALTID indgår,
+bruger `lockedOn` (altid markeret), ikke `disabled` (altid umarkeret).
 
 ---
 

@@ -6,10 +6,22 @@ import {
 import {
   getEoBilagAvailability,
   hasMidlertidigtEetYdelsestype,
+  type EoBilagAvailabilityState,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 import type { LoenudviklingModel, OffentligeYdelserUdviklingModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
+
+/**
+ * Læser årsagen ud af en inaktiv tilgængelighedstilstand. Tilstanden er en discriminated union, netop
+ * fordi et inaktivt bilagsvalg ALTID skal have en årsag at vise i tooltippet — narrowingen her hævder
+ * derfor invarianten frem for at omgå den med en assertion.
+ */
+const disabledReasonOf = (state: EoBilagAvailabilityState): string => {
+  expect(state.enabled).toBe(false);
+  if (state.enabled) throw new Error('forventede en inaktiv tilstand med årsag');
+  return state.disabledReason;
+};
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues> = {}): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
@@ -74,7 +86,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.loenindkomst.enabled).toBe(false);
-    expect(result.loenindkomst.disabledReason).toBe('Der er ikke indtastet lønoplysninger i TAF-perioden');
+    expect(disabledReasonOf(result.loenindkomst)).toBe('Der er ingen lønoplysninger i TAF-perioden');
   });
 
   it('aktiverer lønindkomst når mindst én lønrække har beløbsinput', () => {
@@ -140,7 +152,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.offentligeYdelser.enabled).toBe(false);
-    expect(result.offentligeYdelser.disabledReason).toBe('Der er ikke indtastet offentlige ydelser i TAF-perioden');
+    expect(disabledReasonOf(result.offentligeYdelser)).toBe('Der er ingen offentlige ydelser i TAF-perioden');
   });
 
   it('deaktiverer offentlige ydelser når der kun er delvis indtastning uden beløb', () => {
@@ -190,7 +202,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.midlertidigEet.enabled).toBe(false);
-    expect(result.midlertidigEet.disabledReason).toBe('Forudsætter, at indstillingen "Midlertidigt EET indsættes..." er slået til på fanen med Offentlige Ydelser');
+    expect(disabledReasonOf(result.midlertidigEet)).toBe('Midlertidigt EET indsættes fra Erhvervsevnetab-siden er ikke slået til');
   });
 
   it('aktiverer midlertidig EET når togglen "Midlertidigt EET fra Erhvervsevnetab-siden" er aktiveret', () => {
@@ -212,8 +224,8 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.regulering.enabled).toBe(false);
-    expect(result.regulering.disabledReason).toBe(
-      'Der er ingen løn eller offentlige ydelser, som faktisk reguleres i den aktuelle opgørelse.'
+    expect(disabledReasonOf(result.regulering)).toBe(
+      'Der er ingen løn eller offentlige ydelser, der reguleres'
     );
   });
 
@@ -250,7 +262,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.regulering.enabled).toBe(false);
-    expect(result.regulering.disabledReason).toBe('Der sker ingen regulering i TAF-perioden');
+    expect(disabledReasonOf(result.regulering)).toBe('Der sker ingen regulering i TAF-perioden');
   });
 
   it('aktiverer regulering når valgt lønregulering giver regulering i TAF-perioden', () => {
@@ -322,7 +334,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.regulering.enabled).toBe(false);
-    expect(result.regulering.disabledReason).toBe('Der sker ingen regulering i TAF-perioden');
+    expect(disabledReasonOf(result.regulering)).toBe('Der sker ingen regulering i TAF-perioden');
   });
 
   it('deaktiverer filtrerede bilag når Perioden er valgt uden TAF-perioder', () => {
@@ -361,7 +373,7 @@ describe('getEoBilagAvailability', () => {
     expect(result.loenindkomst.enabled).toBe(false);
     expect(result.offentligeYdelser.enabled).toBe(false);
     expect(result.regulering.enabled).toBe(false);
-    expect(result.loenindkomst.disabledReason).toBe('Der er ikke angivet nogen TAF-perioder i EO-perioden.');
+    expect(disabledReasonOf(result.loenindkomst)).toBe('Der er ingen TAF-perioder i EO-perioden');
   });
 
   it('deaktiverer regulering ved angivet løn når EO-lønudvikling ikke er valgt', () => {
@@ -376,8 +388,8 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.regulering.enabled).toBe(false);
-    expect(result.regulering.disabledReason).toBe(
-      'Der er ingen løn eller offentlige ydelser, som faktisk reguleres i den aktuelle opgørelse.'
+    expect(disabledReasonOf(result.regulering)).toBe(
+      'Der er ingen løn eller offentlige ydelser, der reguleres'
     );
   });
 
@@ -387,7 +399,7 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.shDage.enabled).toBe(false);
-    expect(result.shDage.disabledReason).toBe('TAF beregnes som måneder. SH-dage er derfor ikke relevante.');
+    expect(disabledReasonOf(result.shDage)).toBe('TAF beregnes som måneder, og SH-dage er derfor ikke relevante');
   });
 
   it('aktiverer SH-dage når TAF beregnes som arbejdsdage', () => {
@@ -419,8 +431,8 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.sygeferiegodtgoerelse.enabled).toBe(false);
-    expect(result.sygeferiegodtgoerelse.disabledReason).toBe(
-      'Sygeferiegodtgørelse er ikke valgt for noget ansættelsesforhold på lønindkomst-siden.'
+    expect(disabledReasonOf(result.sygeferiegodtgoerelse)).toBe(
+      'Sygeferiegodtgørelse er ikke valgt for noget ansættelsesforhold'
     );
   });
 
@@ -496,10 +508,10 @@ describe('getEoBilagAvailability', () => {
         }),
       });
 
-      const forventetAarsag = 'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden. Skift bilag til "Alle" for at medtage oplysningerne.';
+      const forventetAarsag = 'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden';
       for (const key of ['loenindkomst', 'offentligeYdelser', 'midlertidigEet', 'regulering', 'shDage', 'sygeferiegodtgoerelse'] as const) {
         expect(result[key].enabled).toBe(false);
-        expect(result[key].disabledReason).toBe(forventetAarsag);
+        expect(disabledReasonOf(result[key])).toBe(forventetAarsag);
       }
     }
   );

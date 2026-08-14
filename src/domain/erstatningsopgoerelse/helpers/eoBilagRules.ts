@@ -89,18 +89,24 @@ export const EO_BILAG_DYNAMIC_SELECTION_KEYS = [
 
 export type EoBilagDynamicSelectionKey = (typeof EO_BILAG_DYNAMIC_SELECTION_KEYS)[number];
 
-export type EoBilagAvailabilityState = Readonly<{
-  enabled: boolean;
-  disabledReason?: string;
-}>;
+/**
+ * Om ét dynamisk bilagsvalg kan vælges — og hvis ikke, hvorfor.
+ *
+ * Bevidst en discriminated union og ikke `{ enabled: boolean; disabledReason?: string }`: et utilgængeligt
+ * bilagsvalg skjules ikke, men vises inaktivt med årsagen i tooltippet, og en manglende årsag ville derfor
+ * efterlade brugeren med et uforklaret inaktivt felt. Unionen gør den tilstand umulig at konstruere frem
+ * for at overlade det til fladen at gætte en tekst.
+ */
+export type EoBilagAvailabilityState =
+  | Readonly<{ enabled: true }>
+  | Readonly<{ enabled: false; disabledReason: string }>;
 
 export type EoBilagAvailabilityMap = Readonly<Record<EoBilagDynamicSelectionKey, EoBilagAvailabilityState>>;
 
-const EO_BILAG_PERIOD_FILTER_REASON =
-  'Der er ikke angivet nogen TAF-perioder i EO-perioden.';
+// Bilagsvalgenes tooltips: ÉN kort sætning uden punktum, jf. `page-component-contract.md` §10.5 punkt 3.
+const EO_BILAG_PERIOD_FILTER_REASON = 'Der er ingen TAF-perioder i EO-perioden';
 
-const EO_BILAG_INGEN_TAF_KRAV_REASON =
-  'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden. Skift bilag til "Alle" for at medtage oplysningerne.';
+const EO_BILAG_INGEN_TAF_KRAV_REASON = 'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden';
 
 const EO_BILAG_INGEN_REGULERING_I_TAF_REASON = 'Der sker ingen regulering i TAF-perioden';
 
@@ -274,7 +280,7 @@ export const getEoBilagAvailability = (params: Readonly<{
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
             ? EO_BILAG_PERIOD_FILTER_REASON
-            : 'Der er ikke indtastet lønoplysninger i TAF-perioden',
+            : 'Der er ingen lønoplysninger i TAF-perioden',
         },
     offentligeYdelser: harOffentligeYdelser
       ? { enabled: true }
@@ -282,13 +288,13 @@ export const getEoBilagAvailability = (params: Readonly<{
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
             ? EO_BILAG_PERIOD_FILTER_REASON
-            : 'Der er ikke indtastet offentlige ydelser i TAF-perioden',
+            : 'Der er ingen offentlige ydelser i TAF-perioden',
         },
     midlertidigEet: midlertidigtEetFraEetSiden
       ? { enabled: true }
       : {
           enabled: false,
-          disabledReason: 'Forudsætter, at indstillingen "Midlertidigt EET indsættes..." er slået til på fanen med Offentlige Ydelser',
+          disabledReason: 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden er ikke slået til',
         },
     regulering: kanViseIndkomstOgYdelserBilag && harRegulering
       ? { enabled: true }
@@ -298,19 +304,19 @@ export const getEoBilagAvailability = (params: Readonly<{
             ? EO_BILAG_PERIOD_FILTER_REASON
             : harValgtReguleringMedBeregnetGrundlag
               ? EO_BILAG_INGEN_REGULERING_I_TAF_REASON
-              : 'Der er ingen løn eller offentlige ydelser, som faktisk reguleres i den aktuelle opgørelse.',
+              : 'Der er ingen løn eller offentlige ydelser, der reguleres',
         },
     shDage: tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
       ? { enabled: true }
       : {
           enabled: false,
-          disabledReason: 'TAF beregnes som måneder. SH-dage er derfor ikke relevante.',
+          disabledReason: 'TAF beregnes som måneder, og SH-dage er derfor ikke relevante',
         },
     sygeferiegodtgoerelse: harSygeferiegodtgoerelse
       ? { enabled: true }
       : {
           enabled: false,
-          disabledReason: 'Sygeferiegodtgørelse er ikke valgt for noget ansættelsesforhold på lønindkomst-siden.',
+          disabledReason: 'Sygeferiegodtgørelse er ikke valgt for noget ansættelsesforhold',
         },
   };
 };

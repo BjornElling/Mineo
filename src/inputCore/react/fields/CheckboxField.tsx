@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Box, Tooltip } from '@mui/material';
 import StyledCheckbox from '../../../components/inputs/StyledCheckbox';
 import type { CommitEvent } from '../../../types/fieldEvents';
 import type { FieldRef } from '../../fieldDescriptor';
@@ -11,21 +12,28 @@ import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 // Modtager kun sin `field`/`location` + label; den viste checked-tilstand læses fra den afsluttede revision gennem
 // editor-controlleren.
 
-export type CheckboxFieldProps = Readonly<{
+type CheckboxFieldBaseProps = Readonly<{
   field: FieldRef<boolean>;
   location: EditorLocation;
   label: React.ReactNode;
-  disabled?: boolean;
-  /**
-   * Permanent tilvalg (§3.6): feltet vises altid markeret og kan ikke fravælges. Bruges til elementer,
-   * der pr. definition indgår. Feltet bindes stadig gennem editor-controlleren — låsningen er ren
-   * visning og committer aldrig, så den afsluttede værdi er uændret.
-   */
-  lockedOn?: boolean;
   name?: string;
 }>;
 
-const CheckboxField = ({ field, location, label, disabled, lockedOn, name }: CheckboxFieldProps): React.ReactElement => {
+type CheckboxFieldStateProps =
+  | Readonly<{
+      /** Feltet er et permanent tilvalg og vises derfor altid markeret. */
+      lockedOn: true;
+      unavailableReason: null;
+    }>
+  | Readonly<{
+      /** Et aktuelt felt kan være markeret; et inaktuelt felt vises umarkeret. */
+      lockedOn?: false;
+      unavailableReason: string | null;
+    }>;
+
+export type CheckboxFieldProps = CheckboxFieldBaseProps & CheckboxFieldStateProps;
+
+const CheckboxField = ({ field, location, label, lockedOn, unavailableReason, name }: CheckboxFieldProps): React.ReactElement => {
   const controller = useFieldEditor(field, location);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const checked = controller.value ?? false;
@@ -38,16 +46,30 @@ const CheckboxField = ({ field, location, label, disabled, lockedOn, name }: Che
     [controller]
   );
 
-  return (
+  const checkbox = (
     <StyledCheckbox
       checked={checked}
       onCommit={handleCommit}
       label={label}
-      {...(disabled === undefined ? {} : { disabled })}
+      disabled={unavailableReason !== null}
       {...(lockedOn === undefined ? {} : { lockedOn })}
       {...(name === undefined ? {} : { name })}
       restoreTargetAttributes={restoreTargetAttributes}
     />
+  );
+
+  if (unavailableReason === null) return checkbox;
+
+  // Tooltippet ankres på en wrapper og ikke på kontrollen selv: et disabled MUI-input udsender ingen
+  // pointer-events, så et tooltip direkte på kontrollen ville aldrig vises. `mineo-disabled-hover-target`
+  // er den etablerede klasse for netop denne hover-flade (nedtoning + hover-kontrast defineres i
+  // `src/styles/layout.css` under `.disabled-hover-checkbox-group`).
+  return (
+    <Tooltip title={unavailableReason} arrow placement="top">
+      <Box component="span" className="mineo-disabled-hover-target">
+        {checkbox}
+      </Box>
+    </Tooltip>
   );
 };
 

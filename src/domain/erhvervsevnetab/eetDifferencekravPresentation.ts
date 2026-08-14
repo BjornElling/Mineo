@@ -17,3 +17,44 @@ export const buildBeregnetDifferencekravLabel = (
     ? 'Beregnet differencekrav'
     : `Beregnet differencekrav (${forligLabel} af ${foerForligFormatted})`;
 };
+
+/**
+ * Hvorfor bilagsvalget "Mer-erstatning forhøjet folkepension" er inaktivt.
+ *
+ * Bilagsvalget skjules ikke, når der ikke er noget bilag at vælge (jf. `page-component-contract.md`
+ * §"Bilagsvalg og andre betingede afkrydsningsfelter"): det vises inaktivt og umarkeret med årsagen i
+ * tooltippet, så brugeren kan se, at valget findes, og hvorfor det ikke kan vælges lige nu.
+ *
+ * Rækkefølgen er bevidst: brugerens eget fravalg forklares FØR beregningsårsagen. Er togglen sat til
+ * Nej, er mer-erstatningen slet ikke beregnet, og "Pensionsalderen er ikke forhøjet i perioden" ville da
+ * være en påstand om et regnestykke, programmet ikke har udført — altså potentielt forkert.
+ *
+ * `null` betyder, at bilaget kan vælges (feltet er aktivt).
+ */
+export const resolveMerErstatningPensionsalderBilagDisabledReason = (
+  indregnMerErstatning: boolean,
+  harMerErstatning: boolean
+): string | null => {
+  if (!indregnMerErstatning) return 'Mer-erstatning er fravalgt nedenfor';
+  if (!harMerErstatning) return 'Pensionsalderen er ikke forhøjet i perioden';
+  return null;
+};
+
+/**
+ * Hvorfor bilagsvalget "Proformakap. af rest-EET" er inaktivt.
+ *
+ * Fradraget for det resterende erhvervsevnetab opgøres på ÉN af to måder, aldrig begge: er der mere end
+ * to år til folkepensionsalderen på beregningsdatoen, proformakapitaliseres resten; ellers opgøres den som
+ * resterende løbende ydelser. Der er derfor to grunde til, at bilaget ikke kan vælges — ingen rest-EET at
+ * opgøre, eller en rest der er opgjort som løbende ydelser og altså ikke har et proformabilag.
+ *
+ * `null` betyder, at bilaget kan vælges (feltet er aktivt).
+ */
+export const resolveProformaKapitaliseringBilagDisabledReason = (
+  harProformaKapitalisering: boolean,
+  harResterendeLoebendeYdelser: boolean
+): string | null => {
+  if (harProformaKapitalisering) return null;
+  if (harResterendeLoebendeYdelser) return 'Resten er opgjort som løbende ydelser';
+  return 'Der er intet rest-EET at proformakapitalisere';
+};

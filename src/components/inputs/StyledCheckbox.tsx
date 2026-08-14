@@ -44,7 +44,9 @@ const StyledCheckbox = ({
   // Ellers gælder: en programinaktiv checkbox må ikke fremstå som et aktivt tilvalg. Den afsluttede
   // værdi bevares i inputkernen og vises igen, når programmet genaktiverer feltet.
   const interactionDisabled = disabled || lockedOn;
-  const visibleChecked = lockedOn ? true : disabled ? false : checked;
+  // Programinaktivitet vinder over låst visning, hvis kombinationen nogensinde slipper gennem en
+  // lavere komponentgrænse: et inaktuelt valg må aldrig fremstå som valgt.
+  const visibleChecked = disabled ? false : lockedOn ? true : checked;
 
   const commitChecked = React.useCallback(
     (nextChecked: boolean) => {

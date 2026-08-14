@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Tooltip, MenuItem } from '@mui/material';
+import { Box, Typography, MenuItem } from '@mui/material';
 import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
@@ -259,25 +259,18 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
       shDage: eoBilagSelectionShDageField,
       sygeferiegodtgoerelse: eoBilagSelectionSygeferiegodtgoerelseField,
     };
-    const checkbox = (
+    // Inaktivering og årsag leveres som ÉN prop, så feltfamilien selv ejer tooltip-indpakningen
+    // (hover-fladen for et disabled input). Fladen skjuler aldrig et utilgængeligt bilagsvalg.
+    return (
       <CheckboxField
+        key={key}
         field={descriptors[key].bind()}
         // route + tabKey er eksplicit navigation-metadata (§3.7); bilagsvalgene bor på Beregningsfanen.
         location={{ locationId: `erstatningsopgoerelse.eoBilagSelection.${key}`, route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
         name={`eo-bilag-${key}`}
-        disabled={!availability.enabled}
+        unavailableReason={availability.enabled ? null : availability.disabledReason}
         label={label}
       />
-    );
-
-    if (availability.enabled || !availability.disabledReason) {
-      return <React.Fragment key={key}>{checkbox}</React.Fragment>;
-    }
-
-    return (
-      <Tooltip key={key} title={availability.disabledReason} arrow placement="top">
-        <Box component="span" className="mineo-disabled-hover-target">{checkbox}</Box>
-      </Tooltip>
     );
   }, [bilagAvailability]);
 
@@ -401,21 +394,20 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             }}
           >
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <Box component="span" className="mineo-disabled-hover-target">
-                <CheckboxField
-                  field={eoBilagSelectionOpgoerelseField.bind()}
-                  location={{ locationId: 'erstatningsopgoerelse.eoBilagSelection.opgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
-                  name="eo-bilag-opgoerelse"
-                  // Opgørelsen indgår ALTID. Feltet var før kun `disabled`, men en programinaktiv checkbox
-                  // vises bevidst UMARKERET — så en sag gemt eller indlæst med `opgoerelse: false` viste et
-                  // låst, tomt felt, brugeren hverken kunne forklare eller rette, og dokumentgenereringen
-                  // kastede «Dokumentgenerering kræver, at elementet "Opgørelse" er valgt.». `lockedOn` er
-                  // den modsatte tilstand: altid markeret, aldrig redigerbar. `resolveBilagSelection` tvinger
-                  // det samme valg sandt i dokumentkilden, så visning og dokument ikke kan komme fra hinanden.
-                  lockedOn
-                  label="Opgørelse"
-                />
-              </Box>
+              <CheckboxField
+                field={eoBilagSelectionOpgoerelseField.bind()}
+                location={{ locationId: 'erstatningsopgoerelse.eoBilagSelection.opgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
+                name="eo-bilag-opgoerelse"
+                // Opgørelsen indgår ALTID. Feltet var før kun `disabled`, men en programinaktiv checkbox
+                // vises bevidst UMARKERET — så en sag gemt eller indlæst med `opgoerelse: false` viste et
+                // låst, tomt felt, brugeren hverken kunne forklare eller rette, og dokumentgenereringen
+                // kastede «Dokumentgenerering kræver, at elementet "Opgørelse" er valgt.». `lockedOn` er
+                // den modsatte tilstand: altid markeret, aldrig redigerbar. `resolveBilagSelection` tvinger
+                // det samme valg sandt i dokumentkilden, så visning og dokument ikke kan komme fra hinanden.
+                lockedOn
+                unavailableReason={null}
+                label="Opgørelse"
+              />
               {renderBilagCheckbox('loenindkomst', 'Lønindkomst')}
               {renderBilagCheckbox('offentligeYdelser', 'Offentlige ydelser')}
               {renderBilagCheckbox('midlertidigEet', 'Midlertidig EET')}
