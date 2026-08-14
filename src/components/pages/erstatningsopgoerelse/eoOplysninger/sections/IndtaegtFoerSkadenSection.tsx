@@ -113,6 +113,16 @@ export default function IndtaegtFoerSkadenSection() {
 
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return null;
 
+  // «Angivet løn» har ÉN `Find løntrin`-knap, så finderen behøver ingen nøgle: den åbnes for sagens ene
+  // overenskomst og husker bevidst ikke indtastningen mellem åbninger (modsat Lønindkomst).
+  const loentrinFinderTriggerRef = loentrinFinder.registerTrigger('eoAngivetLoen');
+  const openLoentrinFinder = () => {
+    loentrinFinder.openFinder({
+      overenskomstId: eoLoenudvikling.overenskomstId,
+      offentligLoenType: eoLoenudvikling.offentligLoenType,
+    });
+  };
+
   /**
    * Bindingen til den delte Lønudvikling-flade. «Angivet løn» har én forekomst pr. sag, så
    * adresserne er statiske — modsat Lønindkomst, der binder pr. ansættelsesforhold.
@@ -441,8 +451,8 @@ export default function IndtaegtFoerSkadenSection() {
                   </Box>
                 }
                 offentligLoenEkstraGrundloenSuffix={offentligLoenEkstraGrundloenSuffix}
-                onOpenLoentrinFinder={loentrinFinder.openLoentrinFinder}
-                loentrinFinderTriggerRef={loentrinFinder.loentrinFinderTriggerRef}
+                onOpenLoentrinFinder={openLoentrinFinder}
+                loentrinFinderTriggerRef={loentrinFinderTriggerRef}
                 baseDateDisplay={loenudviklingBaseDateDisplay}
                 baseDateISO={loenudviklingBaseDateISO}
                 baseDateErrorMessage={loenudviklingBaseDateErrorMessage}

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
-import { useEoLoentrinFinder } from './useEoLoentrinFinder';
+import { useLoentrinFinder } from '../shared/useLoentrinFinder';
 import { calculateKalenderdageInclusive } from '../../../../domain/erstatningsopgoerelse/engines/tafCalculations';
 import { calculateFerieHverdageMinusSHDage } from '../../../../domain/erstatningsopgoerelse/engines/ferieCalculations';
 import { buildTafDerived } from '../../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
@@ -36,7 +36,7 @@ const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: Erstatningsop
 export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, stamdataValues: StamdataValues) {
   const skadedatoISO = stamdataValues.skadedato;
   const eoLoenudvikling = values.eoAngivetLoenLoenudvikling;
-  const loentrinFinder = useEoLoentrinFinder(eoLoenudvikling.overenskomstId, eoLoenudvikling.offentligLoenType);
+  const loentrinFinder = useLoentrinFinder();
   const svie = React.useMemo(() => ({
     derivedById: Object.fromEntries(values.svieSmertePerioder.map((row) => {
       const hasRangeError = row.fra !== undefined && row.til !== undefined && row.fra > row.til;

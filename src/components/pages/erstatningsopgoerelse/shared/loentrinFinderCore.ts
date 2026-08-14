@@ -10,11 +10,11 @@ import { getOffentligLoenTabelForDato } from '../../../../data/offentligLoenLook
 /**
  * Delt, ren beregnings-/valideringskerne for løntrin-finder-overlayet.
  *
- * Bevidst React-fri: tager allerede-resolvet input og returnerer et resultat. De to hooks
- * (useLoentrinFinder for loenindkomst med sessionStorage + per-ansættelsesforhold, og
- * useEoLoentrinFinder for EO-oplysninger uden sessionStorage) ejer fortsat deres egen
- * open-/transient-state og kalder denne kerne for den 100%-identiske beregningslogik
- * (inputvalidering + satstabel-opslag + resultatbygning/-sortering).
+ * Bevidst React-fri: tager allerede-resolvet input og returnerer et resultat. `useLoentrinFinder`
+ * (samme mappe) ejer state og kalder denne kerne for beregningslogikken (inputvalidering +
+ * satstabel-opslag + resultatbygning/-sortering). Kernen blev udskilt, mens de to flader endnu havde
+ * hver sin hook; de er nu konsolideret til én, men adskillelsen består, fordi den holder den rene
+ * beregning testbar uden React.
  */
 
 export type LoentrinFinderErrors = Readonly<{

@@ -45,29 +45,25 @@ const EOOplysningerTab = React.memo(({
         <IndtaegtFoerSkadenSection />
 
         <LoentrinFinderOverlay
-          open={loentrinFinder.loentrinFinderOpen}
-          ansaettelse={loentrinFinder.loentrinFinderAnsaettelse}
-          setAnsaettelse={loentrinFinder.setLoentrinFinderAnsaettelse}
-          beloeb={loentrinFinder.loentrinFinderBeloeb}
-          setBeloeb={loentrinFinder.setLoentrinFinderBeloeb}
-          dato={loentrinFinder.loentrinFinderDato}
-          setDato={loentrinFinder.setLoentrinFinderDato}
-          errors={loentrinFinder.loentrinFinderErrors}
-          setErrors={loentrinFinder.setLoentrinFinderErrors}
-          onAmountFieldError={loentrinFinder.handleLoentrinFinderAmountFieldError}
-          onDateFieldError={loentrinFinder.handleLoentrinFinderDateFieldError}
-          results={loentrinFinder.loentrinFinderResults}
-          buttonShake={loentrinFinder.loentrinFinderButtonShake}
-          dialogRef={loentrinFinder.loentrinFinderDialogRef}
-          loentrinFinderAnsaettelseRef={loentrinFinder.loentrinFinderAnsaettelseRef}
-          loentrinFinderBeloebRef={loentrinFinder.loentrinFinderBeloebRef}
-          loentrinFinderDatoRef={loentrinFinder.loentrinFinderDatoRef}
-          beregnRef={loentrinFinder.loentrinFinderBeregnRef}
-          headingId={loentrinFinder.loentrinFinderHeadingId}
-          overenskomstLabel={loentrinFinder.loentrinFinderOverenskomstLabel}
-          inputAmountNumber={loentrinFinder.loentrinFinderInputAmountNumber}
-          onClose={loentrinFinder.closeLoentrinFinder}
-          onCalculate={loentrinFinder.handleLoentrinFinderCalculate}
+          open={loentrinFinder.open}
+          ansaettelse={loentrinFinder.ansaettelse}
+          setAnsaettelse={loentrinFinder.setAnsaettelse}
+          beloeb={loentrinFinder.beloeb}
+          setBeloeb={loentrinFinder.setBeloeb}
+          dato={loentrinFinder.dato}
+          setDato={loentrinFinder.setDato}
+          errors={loentrinFinder.errors}
+          setErrors={loentrinFinder.setErrors}
+          onAmountFieldError={loentrinFinder.handleAmountFieldError}
+          onDateFieldError={loentrinFinder.handleDateFieldError}
+          results={loentrinFinder.results}
+          buttonShake={loentrinFinder.buttonShake}
+          headingId={loentrinFinder.headingId}
+          overenskomstLabel={loentrinFinder.overenskomstLabel}
+          inputAmountNumber={loentrinFinder.inputAmountNumber}
+          triggerRef={loentrinFinder.activeTriggerRef}
+          onClose={loentrinFinder.closeFinder}
+          onCalculate={loentrinFinder.handleCalculate}
         />
 
         <OevrigeKravSection />

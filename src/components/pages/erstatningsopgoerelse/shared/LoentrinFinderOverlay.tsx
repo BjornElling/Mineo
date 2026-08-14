@@ -9,6 +9,7 @@ import type { AmountValue } from '../../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../../types/branded';
 import { formatCurrency } from '../../../../utils/formatUtils';
 import { hasExactDisplayedAmountMatch } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import { useDialogFocusRestore } from '../../../../hooks/useDialogFocusRestore';
 import type { LoentrinFinderErrors, LoentrinFinderResult } from './loentrinFinderCore';
 
 /**
@@ -35,17 +36,14 @@ export type LoentrinFinderOverlayProps = Readonly<{
   onDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
   buttonShake: boolean;
-  dialogRef: React.RefObject<HTMLDivElement | null>;
-  // `loentrinFinder`-præfikset er nu blot beskrivende. Det bar tidligere en tekst-markør, som det
-  // slettede `fieldIdentityGuard` scannede JSX'en for; overlayet er i stedet ét af de tre eksplicit
-  // navngivne ikke-sagsdata-callsites i `input/persisted-controls-use-field-family`.
-  loentrinFinderAnsaettelseRef: React.RefObject<HTMLDivElement | null>;
-  loentrinFinderBeloebRef: React.RefObject<HTMLDivElement | null>;
-  loentrinFinderDatoRef: React.RefObject<HTMLDivElement | null>;
-  beregnRef: React.RefObject<HTMLButtonElement | null>;
   headingId: string;
   overenskomstLabel: string;
   inputAmountNumber: number | undefined;
+  /**
+   * Den `Find løntrin`-knap, fokus skal vende tilbage til ved lukning. Sættes af `useLoentrinFinder` ved
+   * åbning til NETOP den trigger, brugeren brugte — Lønindkomst har én pr. ansættelsesforhold.
+   */
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
   onCalculate: () => void;
 }>;
@@ -55,8 +53,10 @@ export type LoentrinFinderOverlayProps = Readonly<{
  * og EO-oplysninger-fanen.
  *
  * Transient: skriver aldrig til persisteret sagsdata (jf. mineo-field-pattern §3). Den eksplicitte,
- * hardcodede tab-/keyboard-sekvens ejes af den kaldende hooks keyboard-effekt; dette er bevidst og
- * auditeret UX-adfærd (jf. keyboard-navigation.md "Løntrin-finder").
+ * hardcodede tab-/keyboard-sekvens ejes af overlayet selv (nedenfor); dette er bevidst og auditeret
+ * UX-adfærd (jf. keyboard-navigation.md "Løntrin-finder"). Overlayet ejer også fokus-restoren ved
+ * lukning gennem `useDialogFocusRestore`; `useLoentrinFinder` leverer kun restore-MÅLET (`triggerRef`),
+ * fordi det er en knap uden for overlayet, og kaldes fladen fra flere kort, er der én knap pr. kort.
  */
 const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => {
   const {
@@ -73,17 +73,173 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
     onDateFieldError,
     results,
     buttonShake,
-    dialogRef,
-    loentrinFinderAnsaettelseRef,
-    loentrinFinderBeloebRef,
-    loentrinFinderDatoRef,
-    beregnRef,
     headingId,
     overenskomstLabel,
     inputAmountNumber,
+    triggerRef,
     onClose,
     onCalculate,
   } = props;
+
+  // Fokus tilbage til den `Find løntrin`-knap, der åbnede overlayet (jf. `keyboard-navigation.md`
+  // §Popup-fokus-restore). Uden den blev fokus efterladt på overlayets forsvindende felt og faldt til
+  // `body` — bekræftet i Chrome, Edge, Firefox og WebKit i AUDIT-2026-08-14-21. Restoren bor her, hvor
+  // popupen bor, så overlayets øvrige `focus()`-kald (tastaturnavigationen nedenfor) ikke er en
+  // konkurrerende restore-vej.
+  useDialogFocusRestore<HTMLButtonElement>({ open, triggerRef });
+
+  // Refs til overlayets egen tastaturnavigation. De hørte tidligere i de kaldende hooks og blev sendt ind
+  // som otte props — men de bruges KUN her, og kontrakten placerer focus-trap'en i overlayet
+  // (`keyboard-navigation.md` §Løntrin-finder: «Overlayets interne focus-trap ejes af overlay-komponenten
+  // selv»). `loentrinFinder`-præfikset er beskrivende: overlayet er ét af de tre eksplicit navngivne
+  // ikke-sagsdata-callsites i `input/persisted-controls-use-field-family`.
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const loentrinFinderAnsaettelseRef = React.useRef<HTMLDivElement>(null);
+  const loentrinFinderBeloebRef = React.useRef<HTMLDivElement>(null);
+  const loentrinFinderDatoRef = React.useRef<HTMLDivElement>(null);
+  const beregnRef = React.useRef<HTMLButtonElement>(null);
+
+  // Fokusér første felt ved åbning.
+  React.useEffect(() => {
+    if (!open) return;
+    loentrinFinderAnsaettelseRef.current?.querySelector<HTMLInputElement>('input')?.focus();
+  }, [open]);
+
+  const getTabOrder = React.useCallback((): HTMLElement[] => {
+    const ansaettelseInput = loentrinFinderAnsaettelseRef.current?.querySelector<HTMLInputElement>('input') ?? null;
+    const beloebInput = loentrinFinderBeloebRef.current?.querySelector<HTMLInputElement>('input') ?? null;
+    const datoInput = loentrinFinderDatoRef.current?.querySelector<HTMLInputElement>('input') ?? null;
+    const orderedElements: Array<HTMLElement | null> = [ansaettelseInput, beloebInput, datoInput, beregnRef.current];
+    return orderedElements.filter((item): item is HTMLElement => item !== null);
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return undefined;
+
+    const handleDocumentKeyDown = (event: KeyboardEvent) => {
+      const dialog = dialogRef.current;
+      const activeElement = document.activeElement as HTMLElement | null;
+      const isInsideOverlay = Boolean(dialog && activeElement && dialog.contains(activeElement));
+
+      if (!isInsideOverlay) return;
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        const isDropdownCombobox = activeElement?.getAttribute('role') === 'combobox';
+        if (isDropdownCombobox) {
+          // StyledDropdown håndterer Enter selv (åbn/vælg). Undlad at overskrive den adfærd.
+          return;
+        }
+
+        const isOpenTextEditor =
+          activeElement instanceof HTMLInputElement &&
+          !activeElement.readOnly;
+        if (isOpenTextEditor) {
+          // Overlay-regel: Enter i åben editor skal afslutte redigering (commit/close via blur),
+          // men fokus skal blive i samme felt.
+          const input = activeElement;
+          event.preventDefault();
+          event.stopPropagation();
+          input.blur();
+          requestAnimationFrame(() => {
+            // Overlayet kan være lukket imens (fx Escape i samme frame); fokusér da ikke et felt væk.
+            if (!dialogRef.current) return;
+            input.focus();
+          });
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (activeElement === beregnRef.current) {
+          onCalculate();
+        }
+        return;
+      }
+
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        const tabOrder = getTabOrder();
+        if (tabOrder.length === 0) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
+
+        const isDropdownCombobox = activeElement?.getAttribute('role') === 'combobox';
+        const isDropdownExpanded = activeElement?.getAttribute('aria-expanded') === 'true';
+        if (isDropdownCombobox && isDropdownExpanded) {
+          // Når dropdown-menuen er åben, skal pil-op/pil-ned navigere i menuen.
+          return;
+        }
+
+        if (activeElement instanceof HTMLInputElement && !activeElement.readOnly) {
+          // Når editor er åben, skal piletaster ikke kapres af overlay-navigationen.
+          return;
+        }
+
+        const activeIndex = tabOrder.findIndex((element) => element === activeElement);
+        event.preventDefault();
+        event.stopPropagation();
+
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        if (activeIndex === -1) {
+          tabOrder[0].focus();
+          return;
+        }
+
+        const nextIndex = (activeIndex + step + tabOrder.length) % tabOrder.length;
+        tabOrder[nextIndex].focus();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const tabOrder = getTabOrder();
+      if (tabOrder.length === 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      const first = tabOrder[0];
+      const last = tabOrder[tabOrder.length - 1];
+      const activeIndex = tabOrder.findIndex((element) => element === activeElement);
+
+      // Bevidst hardcodet tab-sekvens:
+      // Ansættelse -> Beløb -> Dato -> Beregn.
+      // Vi tvinger denne rækkefølge, fordi generisk focus-trap-adfærd viste sig ustabil med StyledDropdowns popover-fokus
+      // og forårsagede focus leaks til den underliggende side. Denne eksplicitte sekvens er bevidst og auditeret UX-adfærd.
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.shiftKey) {
+        if (activeIndex === -1 || activeElement === first) {
+          last.focus();
+          return;
+        }
+        tabOrder[activeIndex - 1].focus();
+        return;
+      }
+
+      if (activeIndex === -1 || activeElement === last) {
+        first.focus();
+        return;
+      }
+      tabOrder[activeIndex + 1].focus();
+    };
+
+    document.addEventListener('keydown', handleDocumentKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', handleDocumentKeyDown, true);
+    };
+  }, [getTabOrder, onCalculate, onClose, open]);
 
   if (!open) return null;
 

@@ -27,7 +27,7 @@ import { toAnyFieldRef } from '../../../../inputCore/fieldDescriptor';
 import { deriveLoenindkomstVm } from '../../../../domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations';
 import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg } from '../../../../data/overenskomstRates';
 import { scrollTargetIntoView } from '../../../../utils/scrollTargetIntoView';
-import { useLoentrinFinder } from './useLoentrinFinder';
+import { useLoentrinFinder } from '../shared/useLoentrinFinder';
 
 type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 const MAX_ANSAETTELSESFORHOLD = 10;
@@ -100,7 +100,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null);
   const [scrollTargetId, setScrollTargetId] = React.useState<string | null>(null);
   const deleteTargetName = employments.find((employment) => employment.id === deleteTargetId)?.navnPaaArbejdssted?.trim() ?? '';
-  const loentrinFinder = useLoentrinFinder(employments);
+  const loentrinFinder = useLoentrinFinder();
 
   const handleAddConfirm = React.useCallback(() => {
     if (rows.rowIds.length < MAX_ANSAETTELSESFORHOLD) {

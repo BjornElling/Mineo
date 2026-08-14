@@ -124,7 +124,18 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const reguleringDocument = useReguleringDocumentAction(
     React.useMemo(() => ({ scope: 'employment' as const, employmentId: af.id }), [af.id])
   );
-  const { openLoentrinFinder } = loentrinFinder;
+  // Hvert kort har sin EGEN trigger-ref, nøglet på `af.id`. Alle kort bandt tidligere den samme ref, så
+  // React efterlod den på det sidst monterede kort: åbnede man finderen fra et andet kort, vendte fokus
+  // ved lukning tilbage til det NEDERSTE korts knap (keyboard-navigation.md §Popup-fokus-restore).
+  const loentrinFinderTriggerRef = loentrinFinder.registerTrigger(af.id);
+  const openLoentrinFinderForCard = React.useCallback(() => {
+    loentrinFinder.openFinder({
+      overenskomstId: af.overenskomstId,
+      offentligLoenType: af.offentligLoenType,
+      // Lønindkomst husker indtastningen pr. ansættelsesforhold, så en genåbning starter hvor man slap.
+      sessionKey: af.id,
+    });
+  }, [af.id, af.offentligLoenType, af.overenskomstId, loentrinFinder]);
 
   const field = <T,>(descriptor: { bind: (...ids: readonly string[]) => T }): T => descriptor.bind(af.id);
   const inputRead = useInputReadPort();
@@ -664,8 +675,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             </Box>
           }
           offentligLoenEkstraGrundloenSuffix={getOffentligLoenEkstraGrundloenSuffix(af.offentligLoenType)}
-          onOpenLoentrinFinder={() => openLoentrinFinder(af)}
-          loentrinFinderTriggerRef={loentrinFinder.loentrinFinderTriggerRef}
+          onOpenLoentrinFinder={openLoentrinFinderForCard}
+          loentrinFinderTriggerRef={loentrinFinderTriggerRef}
           baseDateDisplay={loenudviklingBaseDate.display}
           baseDateISO={loenudviklingBaseDate.iso}
           baseDateErrorMessage={loenudviklingBaseDate.errorMessage}
