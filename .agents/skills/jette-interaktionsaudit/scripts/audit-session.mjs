@@ -18,10 +18,16 @@ const MAX_EVENTS = 100;
 const command = process.argv[2];
 const options = parseOptions(process.argv.slice(3));
 const repoRoot = path.resolve(options.repo ?? process.cwd());
-const sessionDirectory = path.join(repoRoot, 'test-results', 'runtime-input-audit');
+// Playwright rydder test-results ved suite-start. Lease-state må derfor ligge i audit-skillens lokale
+// state-katalog; ellers kan en fuld E2E-kørsel slette den aktive arbejdsenhed midt i auditten.
+const sessionDirectory = path.join(repoRoot, '.agents', 'skills', 'jette-interaktionsaudit', 'state');
 const sessionPath = path.join(sessionDirectory, 'session.json');
 const sessionBackupPath = `${sessionPath}.previous`;
 const sessionTemporaryPath = `${sessionPath}.tmp`;
+const legacySessionDirectory = path.join(repoRoot, 'test-results', 'runtime-input-audit');
+const legacySessionPath = path.join(legacySessionDirectory, 'session.json');
+const legacySessionBackupPath = `${legacySessionPath}.previous`;
+const legacySessionTemporaryPath = `${legacySessionPath}.tmp`;
 
 try {
   const result = await runCommand(command);
@@ -308,7 +314,14 @@ async function requireSession() {
 }
 
 async function loadSession() {
-  const candidates = [sessionPath, sessionTemporaryPath, sessionBackupPath];
+  const candidates = [
+    sessionPath,
+    sessionTemporaryPath,
+    sessionBackupPath,
+    legacySessionPath,
+    legacySessionTemporaryPath,
+    legacySessionBackupPath,
+  ];
   for (const candidate of candidates) {
     try {
       const content = await readFile(candidate, 'utf8');

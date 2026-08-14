@@ -18,6 +18,7 @@ const documents = [
 
 await mkdir(targetDir, { recursive: true });
 await mkdir(path.join(repoRoot, 'test-results', 'runtime-input-audit'), { recursive: true });
+await mkdir(path.join(repoRoot, '.agents', 'skills', 'jette-interaktionsaudit', 'state'), { recursive: true });
 
 for (const [templateName, targetName] of documents) {
   const source = path.join(skillRoot, 'assets', templateName);

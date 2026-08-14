@@ -20,11 +20,31 @@ Auditten har tre ligeværdige produkter:
 2. **Adfærdsfund:** synlige afvigelser, datatab, inkonsistens, kontraktdrift, parallel eller afvigende logik, mistænkelig beregningsadfærd og manglende eller uforudsigelig feedback.
 3. **Dæknings- og afklaringsspor:** løbende checkpoint for hvad der er gennemgået, hvad der mangler, og konkrete spørgsmål om forventet adfærd, som ikke kan udledes sikkert.
 
-Skillen finder og dokumenterer problemer. Den retter ikke produktionskode, tests, kontrakter, data eller konfiguration.
+Skillen finder og dokumenterer problemer. Den retter ikke produktionskode, audit-tests, kontrakter, brugerdata eller produktkonfiguration. Den må dog selv vedligeholde sit lokale auditværktøj, sine lokale browserbinærer og den projektlokale browser-skill efter reglerne nedenfor.
+
+## Selvvedligeholdelse af auditmiljøet
+
+Før første browserarbejdsenhed, efter `recover`/`resume`, og før en ny browserbatch køres miljøkontrollen:
+
+```powershell
+node .agents/skills/jette-interaktionsaudit/scripts/ensure-audit-environment.mjs --repo .
+```
+
+Helperen reparerer kun auditinfrastrukturen og skriver et maskinlæsbart checkpoint til `test-results/runtime-input-audit/environment.json`. Den må hente lokale udviklingspakker fra npm, men Mineo må fortsat ikke få serverkommunikation, telemetri eller eksterne runtimekald.
+
+Versionsreglen er eksplicit:
+
+- Sammenlign først en pakke med dens egen `package.json`/`package-lock.json`-kilde. Mangler pakken eller er den bagud i forhold til lockfilen, opdateres/installeres den.
+- En allerede installeret højere version beholdes. Brug aldrig `npm ci`, en eksplicit ældre versionsspecifikation eller anden handling, der nedgraderer en forudgående version for at få et andet værktøj til at ligne den.
+- `@playwright/test` er Mineos E2E-familie. `@playwright/cli` og `@playwright/mcp` er CLI/MCP-familien og skal afstemmes indbyrdes, men må ikke afstemmes ved at nedgradere E2E-familien. Hvis CLI/MCP-familien er splittet, opdateres den bagudstående pakke til den seneste kompatible udgave; hvis den ikke kan afstemmes uden nedgradering, registreres den konkrete blokering.
+- Browserbinærer fjernes aldrig som led i reparationen. Hvis den aktuelle Playwright-runtime mangler sin krævede revision, installeres revisionen side om side; en nyere eksisterende revision beholdes.
+- En reparerbar versionsforskel er en miljøhandling, ikke et auditfund. Kun en forskel, der består efter helperens reparation eller konkret påvirker auditdækningen, registreres som dækningshul.
+
+Hvis helperen ikke kan reparere en nødvendig komponent, gemmes checkpointet, den konkrete fejl registreres som dækningshul, og uafhængige arbejdsenheder fortsættes med de komponenter, der er verificeret.
 
 ## Langvarig kørsel, lease og afbrydelser
 
-En audit må ikke afhænge af, at én Codex-turn, ét tool-kald eller én browser-/serverproces lever i dagevis. En netværksafbrydelse, en suspenderet computer eller en genstart af browseren er en normal driftsforstyrrelse, ikke et signal om at afslutte auditten. Auditten skal derfor køres som korte, selvstændige arbejdsenheder med en lokal, durable lease under `test-results/runtime-input-audit/session.json`.
+En audit må ikke afhænge af, at én Codex-turn, ét tool-kald eller én browser-/serverproces lever i dagevis. En netværksafbrydelse, en suspenderet computer eller en genstart af browseren er en normal driftsforstyrrelse, ikke et signal om at afslutte auditten. Auditten skal derfor køres som korte, selvstændige arbejdsenheder med en lokal, durable lease under `.agents/skills/jette-interaktionsaudit/state/session.json`. Lease-state ligger uden for `test-results`, fordi Playwright normalt rydder den mappe ved suite-start og ellers kan slette auditens genoptagelsespunkt.
 
 Brug skillens session-helper fra repo-roden:
 
@@ -53,7 +73,7 @@ $keepAwake = (Resolve-Path '.agents/skills/jette-interaktionsaudit/scripts/keep-
 $keepAwakeProcess = Start-Process powershell.exe -WindowStyle Hidden -PassThru -ArgumentList @('-NoLogo', '-NoProfile', '-File', $keepAwake, '-RepoRoot', (Get-Location).Path)
 ```
 
-Gem `$keepAwakeProcess.Id` eller PID-filen `test-results/runtime-input-audit/keep-awake.pid`, og stop processen ved en entydig brugerbesked om pause/stop. Helperen forhindrer kun normal Windows idle-sleep; den løser ikke strømudfald, genstart, tvungen sleep, netværksfejl eller en mistet Codex-forbindelse. Hvis den ikke kan starte, registreres det som et dæknings-/driftsforhold, og checkpoint-/resume-protokollen fortsætter stadig.
+Gem `$keepAwakeProcess.Id` eller PID-filen `.agents/skills/jette-interaktionsaudit/state/keep-awake.pid`, og stop processen ved en entydig brugerbesked om pause/stop. Helperen forhindrer kun normal Windows idle-sleep; den løser ikke strømudfald, genstart, tvungen sleep, netværksfejl eller en mistet Codex-forbindelse. Hvis den ikke kan starte, registreres det som et dæknings-/driftsforhold, og checkpoint-/resume-protokollen fortsætter stadig.
 
 ## Grundprincipper
 
@@ -64,7 +84,7 @@ Gem `$keepAwakeProcess.Id` eller PID-filen `test-results/runtime-input-audit/kee
 - Vurder ikke, om juridiske eller beregningstekniske regler er rigtige. Registrér observerbare forskelle, mistanker om fejl og forskellige fremgangsmåder for samme handling som fund, og forelæg dem som bruger-/domæneafklaringer uden selv at afgøre reglen.
 - Søg aktivt efter to forskellige løsninger på samme brugerproblem, især ved parsing, settle, validering, datoer, navigation, undo/redo, persistence og fejlvisning. Afprøv dem mod samme eller tilsvarende brugerhandling og registrér forskelle.
 - Brug kun syntetiske data. Send intet eksternt, og blokér eller registrér ekstern trafik som foreskrevet af projektet.
-- Under selve auditten må kun auditdokumenterne under `docs/testing/runtime-input-audit/` og eventuelle screenshots/traces under `test-results/runtime-input-audit/` ændres.
+- Under selve auditten må auditdokumenterne under `docs/testing/runtime-input-audit/`, eventuelle screenshots/traces under `test-results/runtime-input-audit/`, miljøcheckpointet og den lokale auditværktøjsskill ændres. Selvvedligeholdelse må ikke ændre produktkode, audit-scenarier, kontrakter eller brugerdata.
 - Al rækkefølge og systematik er fastlagt af inventaret og scenariomatricen. Fundets alvor må gerne registreres, men må ikke bruges til at springe lavere alvorlige flader over eller ændre gennemgangens rækkefølge.
 
 ## Vedvarende arbejdssløjfe
@@ -98,7 +118,7 @@ Auditten er en åben, langvarig arbejdsopgave — ikke en enkelt leverance med e
 7. Kør `node .agents/skills/jette-interaktionsaudit/scripts/audit-session.mjs status --repo .`. Hvis der ikke findes en lease, oprettes den med `STATUS.md`'s registrerede næste scenarie og starttilstand. Ved en frisk opstart med `ready` lease startes den registrerede næste arbejdsenhed; ved `active` lease fortsættes kun, hvis heartbeat stadig er aktuelt og der ikke findes en anden levende audit-worker. Ellers køres `recover` og `resume`, hvorefter hele den aktive arbejdsenhed gentages fra ren tilstand.
 8. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
 9. Dæk browserne Chrome, Edge, Firefox og Safari/WebKit med både den almindelige Full-HD-CSS-viewport 1920×1080 og den bindende minimums-CSS-viewport 1536×864. Sidstnævnte svarer til en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering, når browserens zoom står på 100 %. Playwright styrer CSS-viewporten og simulerer ikke selve operativsystemets fysiske skalering; registrér derfor altid både CSS-viewport og `window.devicePixelRatio`, og registrér et eventuelt hul i ægte OS-/headed-verifikation særskilt. Brug mindst én større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
-   - Før browserstyring: kontrollér `npx --no-install playwright-cli --version` (eller den lokale fallback `npx --no-install playwright --version`) og `npx playwright install --list`. Mangler Firefox eller WebKit, installér den konkrete motor med `npx playwright install firefox webkit`; manglende Chrome-/Edge-channel registreres eksplicit som dækningshul.
+   - Før browserstyring: kør `ensure-audit-environment.mjs` som beskrevet ovenfor. Kontrollér derefter `npx --no-install playwright-cli --version`, `node node_modules/@playwright/test/cli.js --version` og `node node_modules/@playwright/test/cli.js install --list`. Brug den eksplicitte test-CLI til Mineos E2E-motor; den generiske `playwright`-bin kan tilhøre CLI/MCP-familien. Helperen installerer manglende Firefox/WebKit/Chromium-revisioner, bevarer nyere revisioner og registrerer manglende Chrome-/Edge-channel eksplicit som dækningshul.
    - Kør alle browserkørsler headless. `playwright-cli` er headless som standard, så brug aldrig `--headed`, `npm run test:e2e:headed`, `show --annotate` eller en synlig browser-attach under auditten. Snapshots, screenshots, traces og video kan stadig optages headless. Det holder browseren fra skærmen og fra operativsystemets input-/dvaleinteraktion.
    - Brug de navngivne sessioner `chrome`, `edge`, `firefox` og `webkit`, og luk dem med `npx playwright cli close-all` efter batchen. En session må ikke genbruges, før dens browser, viewport og rene starttilstand er verificeret.
    - Platformdialoger, der kun kan åbnes af en synlig browser eller operativsystemet, kan ikke afprøves i den headless audit. Registrér dem som et konkret dækningshul og fortsæt med uafhængige arbejdsenheder; skift ikke automatisk til headed. En synlig kørsel kræver en udtrykkelig brugerbesked.

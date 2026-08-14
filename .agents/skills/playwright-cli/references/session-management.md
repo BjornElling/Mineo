@@ -183,7 +183,7 @@ playwright-cli open https://example.com --config=.playwright/my-cli.json
 # Open with specific browser
 playwright-cli open https://example.com --browser=firefox
 
-# Open in headed mode only for an explicitly requested visible UI inspection
+# Open in headed mode
 playwright-cli open https://example.com --headed
 
 # Open with persistent profile

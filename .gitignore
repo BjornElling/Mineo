@@ -9,6 +9,7 @@ node_modules/
 /test-results
 /.playwright-cli
 /.playwright-mcp
+/.agents/skills/jette-interaktionsaudit/state/
 
 # Production
 /build

@@ -12,8 +12,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $resolvedRepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
-$sessionPath = Join-Path $resolvedRepoRoot 'test-results\runtime-input-audit\session.json'
-$pidPath = Join-Path $resolvedRepoRoot 'test-results\runtime-input-audit\keep-awake.pid'
+$stateDirectory = Join-Path $resolvedRepoRoot '.agents\skills\jette-interaktionsaudit\state'
+$sessionPath = Join-Path $stateDirectory 'session.json'
+$pidPath = Join-Path $stateDirectory 'keep-awake.pid'
+
+New-Item -ItemType Directory -Path $stateDirectory -Force | Out-Null
 
 if (-not ('MineoAuditPowerPolicy' -as [type])) {
     Add-Type @'
