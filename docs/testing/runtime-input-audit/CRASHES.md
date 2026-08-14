@@ -6,8 +6,10 @@ Kun uventede systemsignaler registreres her. Forventet feltvalidering uden syste
 
 | ID | Kort titel | Flade | Browser/viewport | Signal | Reproduktion | Alvor | Status | Først set |
 |---|---|---|---|---|---|---|---|---|
+| CRASH-002 | WebKit-login klikker ikke igennem under fuld parallel smoke | PWA-login / `SURF-003-EO-STATUS-GATES` | Safari/WebKit 1536×864 | `locator.click` ventede 120 sekunder på et synligt/stabilt `Log ind`-klik; samme suite loggede `Appens opstart fejlede. undefined` | 1/1 fuld smoke; 0/56 målrettede kontrastkørsler | Mellem | Ustabil | 2026-08-14 |
 
-*Ingen åbne runtimefund. Filvælger-exceptionen ved Hent i Firefox blev lukket 2026-08-13: oprydningen
+CRASH-002 er aktuelt ustabilt og er ikke reproduceret i de efterfølgende målrettede kontrastkørsler.
+Filvælger-exceptionen ved Hent i Firefox blev lukket 2026-08-13: oprydningen
 er gjort idempotent, og efterkontrollen blev først bevist at fejle mod den genindførte fejl. Se
 `e2e/audit-firefox-fallback-verification.spec.ts`.*
 
