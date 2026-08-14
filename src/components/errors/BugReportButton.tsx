@@ -21,6 +21,7 @@ import {
   prepareBugReport,
 } from '../../utils/bugReport';
 import type { BugReportExtraSection, PreparedBugReport } from '../../utils/bugReport';
+import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
 
 interface BugReportButtonProps {
   variant?: 'text' | 'outlined' | 'contained';
@@ -59,6 +60,11 @@ const BugReportButton = ({
   const [isPreparing, setIsPreparing] = React.useState(false);
   const [prepared, setPrepared] = React.useState<PreparedBugReport | null>(null);
   const actionTakenRef = React.useRef(false);
+
+  // Fokus tilbage til knappen ved lukning (jf. `keyboard-navigation.md` §Popup-fokus-restore).
+  // Gælder også når denne dialog ligger inde i preflight-dialogen som «Send fejloplysninger»:
+  // fokus skal da tilbage til den knap, ikke ud til den omgivende dialog.
+  const { triggerRef } = useDialogFocusRestore<HTMLButtonElement>({ open: dialogOpen });
 
   const handleBugReport = React.useCallback(async () => {
     setDialogOpen(true);
@@ -160,6 +166,7 @@ const BugReportButton = ({
     <>
       <Button
         variant={variant}
+        ref={triggerRef}
         startIcon={<BugReportIcon />}
         onClick={handleBugReport}
         fullWidth={fullWidth}

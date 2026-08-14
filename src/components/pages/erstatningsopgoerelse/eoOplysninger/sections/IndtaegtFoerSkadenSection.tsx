@@ -442,6 +442,7 @@ export default function IndtaegtFoerSkadenSection() {
                 }
                 offentligLoenEkstraGrundloenSuffix={offentligLoenEkstraGrundloenSuffix}
                 onOpenLoentrinFinder={loentrinFinder.openLoentrinFinder}
+                loentrinFinderTriggerRef={loentrinFinder.loentrinFinderTriggerRef}
                 baseDateDisplay={loenudviklingBaseDateDisplay}
                 baseDateISO={loenudviklingBaseDateISO}
                 baseDateErrorMessage={loenudviklingBaseDateErrorMessage}

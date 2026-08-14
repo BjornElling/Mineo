@@ -20,6 +20,7 @@ const ContentBox = React.memo(({ className, sx, children, disableReport = false,
   const { settings } = useAppSettings();
   const location = useLocation();
   const contentBoxRef = React.useRef<HTMLDivElement>(null);
+  const reportButtonRef = React.useRef<HTMLButtonElement>(null);
   const [reportOpen, setReportOpen] = React.useState(false);
   const [identity, setIdentity] = React.useState<ContentBoxIdentity>({ routePath: location.pathname });
 
@@ -61,6 +62,7 @@ const ContentBox = React.memo(({ className, sx, children, disableReport = false,
           <Fab
             size="small"
             className="content-box-report-btn"
+            ref={reportButtonRef}
             onClick={handleOpenReport}
             // Kun et ikon som indhold; tooltippen giver ikke et varigt tilgængeligt navn.
             aria-label="Rapportér fejl eller forbedringsønske"
@@ -96,6 +98,7 @@ const ContentBox = React.memo(({ className, sx, children, disableReport = false,
           onClose={() => setReportOpen(false)}
           identity={identity}
           contentBoxRef={contentBoxRef}
+          restoreFocusTo={reportButtonRef}
         />
       ) : null}
     </ContentBoxFrame>

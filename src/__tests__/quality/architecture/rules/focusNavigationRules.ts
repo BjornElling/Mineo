@@ -17,8 +17,9 @@
  * et almindeligt `element.focus()` er ikke en traversering, og et værn der forbød det
  * ville støje uden at ramme mekanismen.
  */
-import { forbidImports } from '../ruleKit';
-import { hasAnyIdentifier } from '../astQueries';
+import { defineRule, forbidImports, type Finding } from '../ruleKit';
+import { collectCalls, hasAnyIdentifier, hasIdentifier } from '../astQueries';
+import type { SourceEntry } from '../sourceGraph';
 
 /**
  * Modulerne der ejer traverseringen. Kun disse — og selectorernes eget hjem — må
@@ -104,4 +105,101 @@ export const focusTraversalOwnershipRule = forbidImports({
   ],
 });
 
-export const FOCUS_NAVIGATION_RULES = [focusTraversalOwnershipRule] as const;
+/**
+ * Popup-fokus-restore har ÉN implementering (`keyboard-navigation.md` §Popup-fokus-restore).
+ *
+ * Regel: lukkes en popup, vender fokus tilbage til den kontrol, brugeren åbnede den med.
+ * Reglen her håndhæver ikke selve adfærden — den håndhæver, at adfærden kun findes ÉT sted.
+ *
+ * Hvorfor et værn: den naive form ser rigtig ud og virker næsten. Et `element.focus()` i en
+ * lukkehandler dækker Chrome, men fejler i WebKit (klik fokuserer ikke `<button>`, så der er
+ * intet husket mål), ved `Escape` (fokus står på popupens egen container, ikke `body`) og ved
+ * MUI's transition (portalen unmountes EFTER transitionen, så fokus falder til `body` bagefter).
+ * Præcis de tre fælder blev løst én gang inde i `ConfirmationDialog` — og de tre håndrullede
+ * overlays havde derefter hver sin egen mangel, fordi løsningen ikke var genbrugelig.
+ *
+ * Skæringen er på `focus()`-kald i en fil, der SELV ejer en popup (renderer en `Dialog`/`Modal`
+ * eller sætter `role="dialog"`), og som ikke aftager den fælles hook. Et `focus()` i et felt, en
+ * knap eller navigationen er ikke en popup-restore og rammes ikke.
+ */
+const DIALOG_FOCUS_RESTORE_HOOK = 'useDialogFocusRestore';
+
+/**
+ * Der er bevidst INGEN allowlist. Undtagelsen er indbygget i selve prædikatet: aftager filen
+ * `useDialogFocusRestore`, ejer den ikke sin egen restore-vej, og dens øvrige `focus()`-kald
+ * (fx fokus IND i overlayet ved åbning) er lovlige. En allowlist ville derfor bestå af poster,
+ * der aldrig kan udløse reglen — præcis det harnessens anti-rot-kontrol med rette afviser.
+ */
+
+/** Markører for «denne fil ejer en popup-flade». */
+const POPUP_OWNER_MARKERS = ['Dialog', 'Modal'] as const;
+
+const ownsPopupSurface = (entry: SourceEntry): boolean => {
+  if (!/\.tsx?$/.test(entry.relativePath)) return false;
+  if (entry.text.includes('role="dialog"')) return true;
+  return POPUP_OWNER_MARKERS.some((marker) => hasIdentifier(entry, marker));
+};
+
+const findUnownedPopupFocusRestore = (entry: SourceEntry): readonly Finding[] => {
+  if (!ownsPopupSurface(entry)) return [];
+  // Aftager filen den fælles hook, ejer den ikke sin egen restore-vej.
+  if (hasIdentifier(entry, DIALOG_FOCUS_RESTORE_HOOK)) return [];
+
+  return collectCalls(entry)
+    .filter((ref) => ref.calleeName === 'focus')
+    .map((ref) => ({
+      position: ref.position,
+      message:
+        `Popup-flade kalder selv \`${ref.calleeText}()\`. Fokus-restore ved lukning ejes af `
+        + '`useDialogFocusRestore` (keyboard-navigation.md §Popup-fokus-restore) — byg ikke en '
+        + 'parallel vej: et bart focus()-kald fejler i WebKit, ved Escape og ved MUI-transitionen.',
+    }));
+};
+
+export const popupFocusRestoreSingleSourceRule = defineRule({
+  id: 'layout/popup-focus-restore-single-source',
+  description:
+    'Fokus-restore ved lukning af en popup ejes af useDialogFocusRestore. En popup-flade må ikke føre sin egen focus()-restore-vej.',
+  liveTarget: {
+    kind: 'precondition',
+    // AST-baseret: en kommentar der blot OMTALER hooken må ikke holde reglen kunstigt levende.
+    probe: (entry) => hasIdentifier(entry, DIALOG_FOCUS_RESTORE_HOOK),
+    rationale:
+      'reglen forudsætter, at den fælles restore-hook findes og aftages; forsvinder den, er der ingen enkeltkilde at håndhæve',
+    // Hooken plus de flader, der aftager den. Gulvet gør det synligt, hvis vejen skrumper.
+    minimumMatches: 4,
+    requiredPaths: [
+      'src/hooks/useDialogFocusRestore.ts',
+      'src/components/ui/ConfirmationDialog.tsx',
+      'src/components/ui/LicenseModal.tsx',
+    ],
+  },
+  find: findUnownedPopupFocusRestore,
+  violatingFixtures: [
+    {
+      relativePath: 'src/components/ui/SomeOverlay.tsx',
+      code: 'const Overlay = () => { const close = () => { triggerRef.current?.focus(); }; return <Dialog onClose={close} />; };',
+    },
+    {
+      relativePath: 'src/components/pages/SomePopup.tsx',
+      code: 'const P = () => <div role="dialog" onKeyDown={() => { opener.focus(); }} />;',
+    },
+  ],
+  cleanFixtures: [
+    // Aftager den fælles hook — lovligt, uanset at filen også ejer en popup.
+    {
+      relativePath: 'src/components/ui/GoodOverlay.tsx',
+      code: 'const O = () => { const { triggerRef } = useDialogFocusRestore({ open }); return <Dialog ref={triggerRef} />; };',
+    },
+    // Et almindeligt felt-fokus uden popup i filen er ikke en popup-restore.
+    {
+      relativePath: 'src/components/inputs/SomeField.tsx',
+      code: 'const F = () => { const focusIt = () => inputRef.current?.focus(); return <input onBlur={focusIt} />; };',
+    },
+  ],
+});
+
+export const FOCUS_NAVIGATION_RULES = [
+  focusTraversalOwnershipRule,
+  popupFocusRestoreSingleSourceRule,
+] as const;

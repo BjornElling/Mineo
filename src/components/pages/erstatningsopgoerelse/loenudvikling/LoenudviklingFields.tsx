@@ -67,6 +67,11 @@ export type LoenudviklingFieldsProps<
 
   offentligLoenEkstraGrundloenSuffix: string;
   onOpenLoentrinFinder: () => void;
+  /**
+   * Ref til `Find løntrin`-knappen. Overlayet gendanner fokus hertil ved lukning
+   * (jf. `keyboard-navigation.md` §Popup-fokus-restore).
+   */
+  loentrinFinderTriggerRef: React.RefObject<HTMLButtonElement | null>;
 
   /** Basisrækkens dato i de manuelle tabeller. */
   baseDateDisplay: string;
@@ -120,6 +125,7 @@ export default function LoenudviklingFields<
   overenskomstSlot,
   offentligLoenEkstraGrundloenSuffix,
   onOpenLoentrinFinder,
+  loentrinFinderTriggerRef,
   baseDateDisplay,
   baseDateISO,
   baseDateErrorMessage,
@@ -214,10 +220,12 @@ export default function LoenudviklingFields<
                   {/* Eksplicit opt-in i Containerens tab-sekvens (jf. keyboard-navigation.md
                       §Implementeringsfrihed), samme tilgang som `Indsæt dags dato`. Container
                       lader Enter passere på knapper, så native button-semantik dækker både
-                      Enter og mellemrum — der skal ingen egen keydown-vej til. Overlayet flytter
-                      selv fokus ind i sig ved åbning, så knappen behøver ingen fokus-restore. */}
+                      Enter og mellemrum — der skal ingen egen keydown-vej til. Refen bærer
+                      overlayets fokus-restore-mål (§Popup-fokus-restore): fokus skal tilbage
+                      hertil ved lukning, uanset om brugeren lukkede med Escape, X eller backdrop. */}
                   <IconButton
                     type="button"
+                    ref={loentrinFinderTriggerRef}
                     onClick={onOpenLoentrinFinder}
                     data-mineo-focusable-button="true"
                     aria-label="Find løntrin"

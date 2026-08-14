@@ -2,10 +2,16 @@ import React from 'react';
 import { Box, Typography, IconButton, useTheme } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import licenseText from '../../assets/LICENSE.txt?raw';
+import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
 
 type LicenseModalProps = {
   open: boolean;
   onClose: () => void;
+  /**
+   * Elementet, fokus skal vende tilbage til ved lukning — knappen der åbnede modalen
+   * (jf. `keyboard-navigation.md` §Popup-fokus-restore).
+   */
+  restoreFocusTo: React.RefObject<HTMLElement | null>;
 };
 
 /**
@@ -14,10 +20,15 @@ type LicenseModalProps = {
  * @param {boolean} open - Om modalen er åben
  * @param {function} onClose - Callback når modalen lukkes
  */
-const LicenseModal = React.memo(({ open, onClose }: LicenseModalProps) => {
+const LicenseModal = React.memo(({ open, onClose, restoreFocusTo }: LicenseModalProps) => {
   const theme = useTheme();
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const headingId = React.useId();
+
+  // Fokus tilbage til «MIT-licensen»-knappen ved lukning (jf. `keyboard-navigation.md`
+  // §Popup-fokus-restore). Uden den blev fokus efterladt på modalens forsvindende X-knap og
+  // faldt til `body`, så tastaturbrugeren måtte tabbe forfra gennem hele siden.
+  useDialogFocusRestore({ open, triggerRef: restoreFocusTo });
 
   // Luk modal ved Escape-tryk (kun når modal er åben)
   React.useEffect(() => {

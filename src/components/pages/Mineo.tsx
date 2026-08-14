@@ -84,7 +84,14 @@ const Mineo = React.memo(() => {
   // WebKit fokuserer ikke en `<button>` ved klik, så dialogen har intet aktivt element at huske.
   // Uden denne reference ville fokus efter lukning lande på sidens første knap (hamburger-menuen).
   const installButtonRef = React.useRef<HTMLButtonElement>(null);
+  const licenseButtonRef = React.useRef<HTMLButtonElement>(null);
 
+  // Begge kontroller bærer `data-mineo-focusable-button="true"`: uden markøren er de ikke i
+  // Containerens fokusinventar, og Enter faldt derfor igennem til den generiske «flyt til næste
+  // felt»-vej frem for at ramme knap-undtagelsen. Mellemrum virkede (native knapsemantik), men
+  // Enter flyttede fokus videre uden at åbne popupen — en popup-åbnende knap skal kunne aktiveres
+  // med begge taster (jf. keyboard-navigation.md §Implementeringsfrihed og §Popup-fokus-restore).
+  //
   // Begge kontroller UDFØRER en handling på siden (åbner en dialog / starter PWA-installationen) — de
   // navigerer ikke. De er derfor `<button>`, ikke `<a href="#">`. Et bart fragment-href gjorde to skader:
   // det løj om semantikken over for skærmlæsere, OG det nulstillede browserens sekventielle
@@ -200,6 +207,7 @@ const Mineo = React.memo(() => {
               type="button"
               ref={installButtonRef}
               onClick={handleInstallClick}
+              data-mineo-focusable-button="true"
               className="icon-text-link"
             >
               Download hjælpeprogram
@@ -263,7 +271,9 @@ const Mineo = React.memo(() => {
           <Box
             component="button"
             type="button"
+            ref={licenseButtonRef}
             onClick={handleLicenseClick}
+            data-mineo-focusable-button="true"
             className="icon-text-link"
             sx={{ display: 'inline' }}
           >
@@ -311,6 +321,7 @@ const Mineo = React.memo(() => {
       <LicenseModal
         open={licenseOpen}
         onClose={handleLicenseClose}
+        restoreFocusTo={licenseButtonRef}
       />
 
       {/* ------------------------------------------------------ */}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box } from '@mui/material';
 import { CONFIRMATION_DIALOG_FOCUS_MARKER } from '../../inputCore/react/modalFocusTransfer';
+import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
 
 type ConfirmationDialogProps = {
   open: boolean;
@@ -59,26 +60,19 @@ const ConfirmationDialog = React.memo(({
   extraActions,
   restoreFocusTo,
 }: ConfirmationDialogProps) => {
-  const restoreTargetRef = React.useRef<HTMLElement | null>(null);
   const cancelButtonRef = React.useRef<HTMLButtonElement>(null);
   const confirmButtonRef = React.useRef<HTMLButtonElement>(null);
   const confirmStartedRef = React.useRef(false);
-  const wasOpenRef = React.useRef(false);
-  const justClosedRef = React.useRef(false);
 
-  // MUI gemmer selv restore-målet, men dets interne reference kan ikke hjælpe, hvis en bekræftet handling
-  // fjerner det oprindelige felt fra DOM'en. Gem derfor samme konkrete mål og giv et fokusbart fallback ved
-  // transitionens afslutning; ved normal Annuller er MUI's egen restore-adfærd stadig den primære vej.
-  React.useLayoutEffect(() => {
-    if (open && !wasOpenRef.current) {
-      const activeElement = document.activeElement;
-      restoreTargetRef.current = activeElement instanceof HTMLElement && activeElement !== document.body
-        ? activeElement
-        : null;
-    }
-    justClosedRef.current = !open && wasOpenRef.current;
-    wasOpenRef.current = open;
-  }, [open]);
+  // Fokus-restore ved lukning ejes af den fælles hook (jf. `keyboard-navigation.md`
+  // §Popup-fokus-restore). Bekræftelsesdialoger tillader fallback til sidens første fokusbare
+  // element, fordi en bekræftet handling kan fjerne selve triggeren — fx «Slet ansættelsesforhold»,
+  // hvor hele kortet med sletteknappen forsvinder.
+  const { restoreFocus } = useDialogFocusRestore({
+    open,
+    triggerRef: restoreFocusTo,
+    allowFirstFocusableFallback: true,
+  });
 
   React.useEffect(() => {
     if (!open) return undefined;
@@ -121,69 +115,13 @@ const ConfirmationDialog = React.memo(({
     }
   }, [onConfirm]);
 
-  const restoreFocusAfterClose = React.useCallback(() => {
-    // Nettet må ikke kun se efter `body`. WebKit flytter ved Escape fokus til dialogens egen
-    // container, som først forsvinder når portalen unmountes; på dette tidspunkt er `activeElement`
-    // derfor hverken body eller et blivende element. Et frakoblet eller stadig dialog-ejet element
-    // tæller som «fokus er tabt», præcis som body gør. Står fokus derimod på et ægte, blivende
-    // element uden for dialogen, har noget andet med rette overtaget det, og nettet holder sig væk.
-    const isFocusLost = (): boolean => {
-      const activeElement = document.activeElement;
-      return activeElement === null
-        || activeElement === document.body
-        || !activeElement.isConnected
-        || activeElement.closest('[role="dialog"], [role="presentation"]') !== null;
-    };
-
-    const restoreTarget = (): void => {
-      // Den eksplicit udpegede kontrol vinder: den er sand også i browsere, hvor et klik ikke
-      // efterlader kontrollen som `activeElement`, og hvor den huskede reference derfor er tom.
-      const originalTarget = restoreFocusTo?.current ?? restoreTargetRef.current;
-      if (originalTarget?.isConnected) {
-        originalTarget.focus({ preventScroll: true });
-        return;
-      }
-
-      // Hvis en bekræftet handling fjernede feltet, er et eksisterende første fokusbart element den mindst
-      // overraskende fallback. Et fokusforsøg på den gamle, detached node ville ellers efterlade fokus på body.
-      const fallback = Array.from(document.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]'
-      )).find((element) => (
-        element.isConnected
-        && !element.hidden
-        && element.tabIndex >= 0
-        && element.closest('[aria-hidden="true"]') === null
-      ));
-      fallback?.focus({ preventScroll: true });
-    };
-
-    if (!isFocusLost()) return;
-    restoreTarget();
-
-    // Transitionen slutter FØR portalen er unmountet, og WebKit nulstiller fokus til body, når den
-    // fokuserede dialog-node forsvinder — efter vores genoprettelse. Ét eftersyn på næste frame
-    // fanger den rækkefølge; er fokus stadig i behold, gør eftersynet ingenting.
-    window.requestAnimationFrame(() => {
-      if (isFocusLost()) restoreTarget();
-    });
-  }, [restoreFocusTo]);
-
-  React.useEffect(() => {
-    if (open || !justClosedRef.current) return undefined;
-    justClosedRef.current = false;
-
-    // WebKit kan flytte fokus til body allerede ved Escape, før MUI's transition når
-    // `onTransitionExited`. Gendan derfor også på lukningens første frame; transition-callbacken
-    // ovenfor er fortsat et ekstra værn for browsere, der først mister fokus ved unmount.
-    const frame = window.requestAnimationFrame(restoreFocusAfterClose);
-    return () => window.cancelAnimationFrame(frame);
-  }, [open, restoreFocusAfterClose]);
-
   return (
     <Dialog
       open={open}
       onClose={onCancel}
-      onTransitionExited={restoreFocusAfterClose}
+      // Transitionen slutter FØR portalen er unmountet. Hooken gendanner allerede på lukningens
+      // første frame; dette er det ekstra værn for browsere, der først mister fokus ved unmount.
+      onTransitionExited={restoreFocus}
       maxWidth="sm"
       fullWidth
       {...{ [CONFIRMATION_DIALOG_FOCUS_MARKER]: 'true' }}

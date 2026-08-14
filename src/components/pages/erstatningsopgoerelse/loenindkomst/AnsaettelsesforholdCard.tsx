@@ -665,6 +665,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           }
           offentligLoenEkstraGrundloenSuffix={getOffentligLoenEkstraGrundloenSuffix(af.offentligLoenType)}
           onOpenLoentrinFinder={() => openLoentrinFinder(af)}
+          loentrinFinderTriggerRef={loentrinFinder.loentrinFinderTriggerRef}
           baseDateDisplay={loenudviklingBaseDate.display}
           baseDateISO={loenudviklingBaseDate.iso}
           baseDateErrorMessage={loenudviklingBaseDate.errorMessage}

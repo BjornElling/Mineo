@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-13
+**Senest verificeret mod kode:** 2026-08-14
 
 ---
 
@@ -160,6 +160,51 @@ I en åben dropdown må gentagne matchende tegn fortsat cirkulere mellem match i
 
 ---
 
+## Popup-fokus-restore (normativ)
+
+Når en popup-flade lukkes, skal fokus vende tilbage til **den kontrol, brugeren åbnede den med**.
+Reglen gælder alle lukkeveje uden undtagelse: `Escape`, luk-/annuller-knap, X, backdrop-klik og
+lukning efter en gennemført handling. Den gælder uanset om popupen er modal, og uanset om den er
+bygget på MUI `Dialog` eller er et håndrullet overlay.
+
+Hver popup har præcis **én** åbnende kontrol, så restore-målet er entydigt og må ikke udledes
+heuristisk.
+
+**Målets prioritet** — første brugbare mål vinder:
+
+1. **Den åbnende kontrol**, udpeget eksplicit gennem en ref. Dette er den primære kilde, fordi
+   WebKit ikke fokuserer `<button>` ved klik: dér findes der intet `document.activeElement` at
+   huske, og en restore, der kun bygger på det, lander på sidens første fokusbare element.
+   Samme problem opstår ved kontroller, hvis `onMouseDown` kalder `preventDefault()`.
+2. **Det element der havde fokus, da popupen åbnede.** Dækker de flader, der ikke åbnes ved et
+   brugerklik — fx en PWA-filåbning eller en load-preflight, der afbryder brugeren midt i et felt.
+   Fokus vender da tilbage til det felt, brugeren blev afbrudt i.
+3. **Sidens første fokusbare element** — kun ved eksplicit opt-in
+   (`allowFirstFocusableFallback`). Forbeholdt popups, hvis bekræftelse kan fjerne selve
+   triggeren (fx `Slet ansættelsesforhold`, hvor hele kortet med sletteknappen forsvinder).
+   Uden opt-in er fallbacket uønsket: det ville skjule en manglende ref bag et vilkårligt fokusmål.
+
+Fokus må **aldrig** efterlades på `body` eller på et frakoblet element efter en lukning. En popups
+eget luk-element (X, annuller) er ikke et gyldigt restore-mål: det forsvinder sammen med popupen.
+
+**Én implementering.** Restoren ejes af `src/hooks/useDialogFocusRestore.ts`. En popup må ikke føre
+sin egen restore-vej — hverken et `focus()`-kald i en lukkehandler eller en kopi af
+tilstands-bogføringen. Tre forhold gør den naive form utilstrækkelig, og de er alle afdækket i
+konkrete browserfejl: WebKits manglende klik-fokus (se ovenfor), at fokus ved `Escape` kan stå på
+popupens egen container frem for `body`, og at MUI's transition slutter **før** portalen unmountes,
+så fokus falder til `body` *efter* en for tidlig genoprettelse. Reglen er håndhævet af
+`layout/popup-focus-restore-single-source`.
+
+**Triggerens tastaturtilgængelighed.** En popup-åbnende kontrol skal som udgangspunkt kunne
+fokuseres med `Tab` og aktiveres med både `Enter` og mellemrum gennem native knapsemantik
+(jf. §Implementeringsfrihed). Bevidst undtagelse: `Rapportér fejl eller forbedringsønske` på hver
+`ContentBox` står uden for tab-sekvensen (`tabIndex={-1}`), fordi den ellers ville lægge ét ekstra
+tabstop på hver indholdsboks på hver side. Den er en ren muse-affordance, men er fortsat omfattet
+af fokus-restore-reglen ovenfor: `tabIndex={-1}` udelukker kun tab-navigation, ikke programmatisk
+fokus.
+
+---
+
 ## Popup-widget detection
 
 Normativt krav:
@@ -211,6 +256,9 @@ const handleKeyDown = (e: React.KeyboardEvent) => {
 
 ## Overlay note: Løntrin-finder
 
+Overlayet er omfattet af §Popup-fokus-restore: `Escape`, X og backdrop-klik returnerer alle fokus
+til `Find løntrin`-knappen, der åbnede det.
+
 Løntrin-finder popup (`src/components/pages/erstatningsopgoerelse/shared/LoentrinFinderOverlay.tsx`, anvendt i
 både `Lønindkomst` og `EO-oplysninger`) bruger en eksplicit, hardcoded tab-sekvens:
 
@@ -220,7 +268,7 @@ Dette er bevidst og normativt for den popup, fordi generisk focus-trap tidligere
 
 Krav:
 - `Tab`/`Shift+Tab` skal altid cirkulere inden for popup-sekvensen.
-- `Escape` lukker popup.
+- `Escape` lukker popup og returnerer fokus til `Find løntrin` (§Popup-fokus-restore).
 - `Enter` på åbne dropdowns håndteres af dropdown selv.
 - `ArrowUp`/`ArrowDown` må kun overtage intern popup-navigation, når dropdown-menu ikke er åben og editor ikke er åben.
 
@@ -238,9 +286,14 @@ Det betyder:
 - CSS-selectors, fokus-hjælpefunktioner og konkrete `focus(...)`-kald er implementeringsdetaljer.
 - Hvilke elementer der indgår i tab-sekvensen, skal fortsat være eksplicit og auditérbart defineret, men ikke nødvendigvis via den samme selector-strategi som i dag.
 - Sideintegrerede handlingsknapper må kun indgå i den normale feltsekvens ved eksplicit opt-in.
-- `Indsæt dags dato`, `Find løntrin`, synlige dokumentdownload-knapper og `Vælg mappe` på Indstillinger har
-  dette opt-in. De skal kunne fokuseres med Tab og aktiveres med native knapadfærd (`Enter` og mellemrum).
+- `Indsæt dags dato`, `Find løntrin`, synlige dokumentdownload-knapper, `Vælg mappe` på Indstillinger
+  samt `MIT-licensen` og `Download hjælpeprogram` på Om-siden har dette opt-in. De skal kunne fokuseres
+  med Tab og aktiveres med native knapadfærd (`Enter` og mellemrum).
   Skjulte eller native deaktiverede knapper indgår ikke i sekvensen.
+- **Opt-in'et er en forudsætning for `Enter`, ikke kun for Tab.** Uden markøren er knappen ikke i
+  fokusinventaret, og `Enter` falder igennem til den generiske «flyt til næste felt»-vej frem for at
+  ramme knap-undtagelsen. Mellemrum virker alligevel gennem native knapsemantik, så en manglende
+  markør viser sig **kun** på `Enter` — præcis den asymmetri der ramte de to Om-side-knapper.
 
 ---
 
@@ -269,6 +322,16 @@ Container keyboard-navigation testes på to niveauer:
 - Container intercepter IKKE museklik; klik giver fokus til det klikkede felt (Container.checklistGaps)
 - Den rigtige `StyledDropdown` (readOnly combobox) indgår i Tab-rækkefølgen og åbner på Enter/første klik uden at Container kaprer (Container.checklistGaps)
 - Dato- og tekstfelter får fokus uden selection (Container.checklistGaps)
+
+**Popup-fokus-restore (§Popup-fokus-restore)** dækkes af:
+`src/__tests__/hooks/useDialogFocusRestore.test.tsx` (restore til trigger, WebKit-formen hvor
+klikket ikke efterlod triggeren fokuseret, aldrig `body` efter lukning, opt-in-fallback når
+triggeren blev fjernet, og at restoren holder sig væk når en anden kontrol med rette har fokus),
+`src/__tests__/components/ui/ConfirmationDialog.test.tsx`,
+`src/__tests__/components/ui/LicenseModal.test.tsx` og
+`src/__tests__/components/pages/erstatningsopgoerelse/loentrinFinderTrigger.keyboard.test.tsx`
+(Escape fra Løntrin-finder returnerer fokus til `Find løntrin`).
+Enkeltkilde-grænsen er håndhævet af `layout/popup-focus-restore-single-source`.
 
 **Escape-adfærden (§Editor åben) dækkes ikke af Container-testene, men af felt-editoren:**
 `src/__tests__/inputCore/editor/fieldEditor.test.ts` og
@@ -327,6 +390,8 @@ ikke genindføres. Håndhævet af `input/single-field-identity-in-dom`,
 ## Se også
 
 - `src/components/layout/Container.tsx` – Implementation
+- `src/hooks/useDialogFocusRestore.ts` – Den ene popup-fokus-restore-vej
+- `src/__tests__/hooks/useDialogFocusRestore.test.tsx` – Automatiske tests (popup-fokus-restore)
 - `src/__tests__/components/layout/Container.test.tsx` – Automatiske tests
 - `src/__tests__/components/layout/Container.checklistGaps.test.tsx` – Automatiske tests (disabled-skip, museklik, StyledDropdown, dato/tekst-selection)
 - `AGENTS.md` – kontrakthierarki og no-live-preview regler

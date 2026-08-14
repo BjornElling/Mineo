@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material';
@@ -10,7 +11,10 @@ vi.mock('../../../assets/LICENSE.txt?raw', () => ({
 }));
 
 /**
- * Helper til at rendere LicenseModal med MUI theme
+ * Helper til at rendere LicenseModal med MUI theme.
+ *
+ * Triggeren («MIT-licensen»-knappen) rendereres med, fordi den er modalens fokus-restore-mål
+ * (jf. `keyboard-navigation.md` §Popup-fokus-restore) — uden den kan lukkeadfærden ikke måles.
  */
 const renderLicenseModal = (props: { open: boolean; onClose: () => void }) => {
   const theme = createTheme({
@@ -22,11 +26,16 @@ const renderLicenseModal = (props: { open: boolean; onClose: () => void }) => {
       },
     },
   });
-  return render(
-    <ThemeProvider theme={theme}>
-      <LicenseModal {...props} />
-    </ThemeProvider>
-  );
+  const Harness = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+    const triggerRef = React.useRef<HTMLButtonElement>(null);
+    return (
+      <ThemeProvider theme={theme}>
+        <button type="button" ref={triggerRef}>MIT-licensen</button>
+        <LicenseModal open={open} onClose={onClose} restoreFocusTo={triggerRef} />
+      </ThemeProvider>
+    );
+  };
+  return render(<Harness {...props} />);
 };
 
 describe('LicenseModal', () => {
@@ -139,6 +148,36 @@ describe('LicenseModal', () => {
       await waitFor(() => {
         expect(closeButton).toHaveFocus();
       });
+    });
+
+    test('fokus vender tilbage til MIT-licensen-knappen ved lukning', async () => {
+      // Kontraktkrav (§Popup-fokus-restore): fokus må ikke efterlades på den forsvindende
+      // X-knap og falde til body — brugeren skal kunne fortsætte fra knappen, de åbnede med.
+      const user = userEvent.setup();
+      const theme = createTheme();
+      const Harness = () => {
+        const [open, setOpen] = React.useState(false);
+        const triggerRef = React.useRef<HTMLButtonElement>(null);
+        return (
+          <ThemeProvider theme={theme}>
+            <button type="button" ref={triggerRef} onClick={() => setOpen(true)}>
+              MIT-licensen
+            </button>
+            <LicenseModal open={open} onClose={() => setOpen(false)} restoreFocusTo={triggerRef} />
+          </ThemeProvider>
+        );
+      };
+      render(<Harness />);
+
+      const trigger = screen.getByRole('button', { name: 'MIT-licensen' });
+      await user.click(trigger);
+
+      const closeButton = screen.getByRole('button', { name: /luk/i });
+      await waitFor(() => expect(closeButton).toHaveFocus());
+
+      await user.click(closeButton);
+
+      await waitFor(() => expect(trigger).toHaveFocus());
     });
   });
 

@@ -6,6 +6,7 @@ import type { ISODateString } from '../../../../types/branded';
 import { isISODateString } from '../../../../types/branded';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import { useShakeFlag } from '../../../../hooks/useShakeFlag';
+import { useDialogFocusRestore } from '../../../../hooks/useDialogFocusRestore';
 import { UI_STORAGE_KEYS } from '../../../../config/storageManifest';
 import {
   readOptionalSessionStorageValue,
@@ -55,6 +56,8 @@ export type UseLoentrinFinderResult = Readonly<{
   loentrinFinderBeloebRef: React.RefObject<HTMLDivElement | null>;
   loentrinFinderDatoRef: React.RefObject<HTMLDivElement | null>;
   loentrinFinderBeregnRef: React.RefObject<HTMLButtonElement | null>;
+  /** Sættes på `Find løntrin`-knappen; fokus vender hertil ved lukning. */
+  loentrinFinderTriggerRef: React.RefObject<HTMLButtonElement | null>;
   loentrinFinderHeadingId: string;
   loentrinFinderOverenskomstLabel: string;
   loentrinFinderInputAmountNumber: number | undefined;
@@ -93,6 +96,12 @@ export const useLoentrinFinder = (
   const loentrinFinderDatoRef = React.useRef<HTMLDivElement>(null);
   const loentrinFinderBeregnRef = React.useRef<HTMLButtonElement>(null);
   const loentrinFinderHeadingId = React.useId();
+
+  // Fokus tilbage til `Find løntrin`-knappen ved lukning (jf. `keyboard-navigation.md`
+  // §Popup-fokus-restore). Uden den blev fokus efterladt på overlayets forsvindende felt og
+  // faldt til `body` — bekræftet i Chrome, Edge, Firefox og WebKit i AUDIT-2026-08-14-21.
+  const { triggerRef: loentrinFinderTriggerRef } =
+    useDialogFocusRestore<HTMLButtonElement>({ open: loentrinFinderOpenForAfId !== null });
 
   const resetLoentrinFinderState = React.useCallback(() => {
     setLoentrinFinderBeloeb(undefined);
@@ -367,6 +376,7 @@ export const useLoentrinFinder = (
     loentrinFinderBeloebRef,
     loentrinFinderDatoRef,
     loentrinFinderBeregnRef,
+    loentrinFinderTriggerRef,
     loentrinFinderHeadingId,
     loentrinFinderOverenskomstLabel,
     loentrinFinderInputAmountNumber,

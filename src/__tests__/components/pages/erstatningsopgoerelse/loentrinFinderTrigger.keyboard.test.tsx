@@ -11,6 +11,10 @@
 // Mekanikken bag Enter/mellemrum (Container lader Enter passere på knapper, så native
 // button-semantik gælder) er dækket generisk i `Container.test.tsx`. Det testen tilføjer her, er at
 // DETTE render-sted faktisk har opt-in'et og derfor indgår i sekvensen.
+//
+// Testen dækker desuden vejen TILBAGE: Escape fra overlayet skal returnere fokus til knappen
+// (keyboard-navigation.md §Popup-fokus-restore). Uden det krav endte fokus på `body`, og
+// tastaturbrugeren måtte tabbe forfra gennem siden — registreret som Q-001 i runtime-input-auditen.
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -135,8 +139,29 @@ describe('»Find løntrin« indgår i tastatur-sekvensen', () => {
     await tabTilFinder(user);
 
     await user.keyboard('{Enter}');
-    // Overlayet flytter selv fokus ind i sig ved åbning, så knappen behøver ingen fokus-restore.
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  /**
+   * Svaret på Q-001 i runtime-input-auditen: Escape skal returnere fokus til »Find løntrin«.
+   *
+   * Fokus endte tidligere på `body` i alle fire browsere (AUDIT-2026-08-14-21), så
+   * tastaturbrugeren måtte tabbe forfra gennem hele siden for at komme tilbage til knappen.
+   * Kontrakten fastlægger nu restore-målet (keyboard-navigation.md §Popup-fokus-restore).
+   */
+  it('returnerer fokus til knappen, når overlayet lukkes med Escape', async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    const finder = await tabTilFinder(user);
+    await user.keyboard('{Enter}');
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(finder).toHaveFocus());
+    expect(document.activeElement).not.toBe(document.body);
   }, ASYNC_TEST_TIMEOUT_MS);
 
   it('åbner overlayet på mellemrum, når den er nået med Tab', async () => {

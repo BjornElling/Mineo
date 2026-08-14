@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import BugReportButton from './BugReportButton';
+import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
 
 interface ErrorFallbackProps {
   error: Error | null;
@@ -32,6 +33,11 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
   const canShowStack = import.meta.env.DEV;
   const [showDetails, setShowDetails] = React.useState(false);
   const [confirmReloadOpen, setConfirmReloadOpen] = React.useState(false);
+
+  // Fokus tilbage til `Genindlæs siden` ved Annuller (jf. `keyboard-navigation.md`
+  // §Popup-fokus-restore). Ved Bekræft genindlæses siden, så restoren er uden betydning der.
+  const { triggerRef: reloadButtonRef } =
+    useDialogFocusRestore<HTMLButtonElement>({ open: confirmReloadOpen });
 
   const handleToggleDetails = () => {
     setShowDetails((prev) => !prev);
@@ -95,7 +101,12 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
             Prøv igen
           </Button>
 
-          <Button variant="outlined" onClick={handleHardReloadRequest} sx={{ borderRadius: '10px' }}>
+          <Button
+            variant="outlined"
+            ref={reloadButtonRef}
+            onClick={handleHardReloadRequest}
+            sx={{ borderRadius: '10px' }}
+          >
             Genindlæs siden
           </Button>
 

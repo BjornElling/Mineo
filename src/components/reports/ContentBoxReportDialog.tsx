@@ -14,6 +14,7 @@ import {
 import TransientTextInput from '../inputs/transient/TransientTextInput';
 import { getTodayCopenhagenISO } from '../../utils/dateUtils';
 import { asciiSlug } from '../../utils/asciiSlug';
+import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
 import {
   type ContentBoxIdentity,
   openBugReportEmail,
@@ -25,6 +26,12 @@ type ContentBoxReportDialogProps = {
   onClose: () => void;
   identity: ContentBoxIdentity;
   contentBoxRef: React.RefObject<HTMLDivElement | null>;
+  /**
+   * Rapportér-knappen, fokus skal vende tilbage til ved lukning (jf. `keyboard-navigation.md`
+   * §Popup-fokus-restore). Knappen er bevidst uden for tab-rækkefølgen (`tabIndex={-1}`), men
+   * skal alligevel kunne modtage fokus programmatisk, så en musebruger ikke mister sin plads.
+   */
+  restoreFocusTo: React.RefObject<HTMLElement | null>;
 };
 
 const buildScreenshotFilename = (identity: ContentBoxIdentity): string => {
@@ -50,7 +57,9 @@ const ContentBoxReportDialog = React.memo(({
   onClose,
   identity,
   contentBoxRef,
+  restoreFocusTo,
 }: ContentBoxReportDialogProps) => {
+  useDialogFocusRestore({ open, triggerRef: restoreFocusTo });
   const [message, setMessage] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
   const [isDownloading, setIsDownloading] = React.useState(false);
