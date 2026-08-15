@@ -3,7 +3,8 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-15 (§1.2's længdedel er nu håndhævet for ALLE tastede
+**Senest verificeret mod kode:** 2026-08-15 (§2.6's og §2.7's fælles undo-regel for tastaturvalg er en
+brugerbeslutning truffet samme dag og målt af `keyboardChoiceUndoSteps.test.tsx`; §1.2's længdedel er nu håndhævet for ALLE tastede
 feltfamilier: `maxLength`/`maxDigits` er påkrævet i codec-typen, og
 `src/__tests__/inputCore/fieldCharLengthPolicy.test.ts` måler for hvert produktionsfelt, at et for langt
 paste faktisk afkortes. Målingen fandt forinden 28 af 31 tekstfelter og 8 af 12 heltalsfelter helt uden
@@ -332,6 +333,27 @@ uændret ind i sagen og blev gemt. Det er samme fejlmåde som datofelternes mang
   de ikke må være tomme.
 - Ét valg kan fortrydes med ét undo-trin.
 
+**Hvert tastetryk, der ændrer valget, er sin egen handling i undo/redo** (brugerbeslutning 2026-08-15).
+
+Reglen præciserer punktet ovenfor for den ene situation, hvor den ellers kunne læses på to måder: når
+brugeren bladrer med bogstavtasten i en LUKKET dropdown. `Arbejdssituation` har fire valgmuligheder, der
+begynder med F, og fire tryk på `f` giver derfor fire fortryd-trin — ikke ét. Det ER den ønskede adfærd:
+hvert tryk sætter en ny, fuldgyldig værdi på feltet, og brugeren skal kunne gå tilbage til hver enkelt af
+dem. «Bladringen» er ikke én sammensat handling med et mellemresultat; den er en række selvstændige valg.
+
+Afgrænsninger, der følger af reglen:
+
+- Det er ÆNDRINGEN, der tæller, ikke tastetrykket. Et tryk, der lander på den værdi feltet allerede har,
+  er et semantisk no-op og giver hverken ny revision eller nyt history-trin (§2.6 i
+  `docs/architecture/input-architecture.md`).
+- I en ÅBEN menu flytter bogstavtasten og piletasterne kun markeringen. Der committes intet, og der opstår
+  derfor heller ingen history-trin, før brugeren vælger med Enter eller klik.
+- Delete/Backspace, der rydder et valg, er ét trin på samme måde som et valg.
+
+Reglen må ikke senere fremstilles som en potentiel fejl eller «manglende sammenlægning af undo-trin».
+Håndhæves af `src/__tests__/components/inputs/keyboardChoiceUndoSteps.test.tsx`, som måler antallet af
+history-trin for en bogstav-cykling. Samme regel gælder radiogrupper, se §2.7.
+
 ### 2.7 Toggles og radio buttons
 
 - En toggle har altid Ja eller Nej, aldrig tom værdi, og har ingen rød fejltilstand.
@@ -342,6 +364,18 @@ uændret ind i sagen og blev gemt. Det er samme fejlmåde som datofelternes mang
   radiogruppen.
 - En radiogruppe med et påkrævet valg giver samlet mangelfeedback ved manglende valg, ikke en formatfejl på en
   ikke-eksisterende tekstværdi.
+
+**Hvert tastetryk, der ændrer det valgte i en radiogruppe, er sin egen handling i undo/redo**
+(brugerbeslutning 2026-08-15). Det er ordret samme regel som for dropdowns, §2.6, og den gælder uanset
+hvilken tast der udløste valget: pil, Enter eller mellemrum. Flytter brugeren med piletasten gennem en
+gruppe med tre valgmuligheder, opstår der tre fortryd-trin — ikke ét. Hvert tryk sætter en ny, fuldgyldig
+værdi på feltet, og brugeren skal kunne gå tilbage til hver enkelt af dem.
+
+Afgrænsningerne fra §2.6 gælder uændret: det er ÆNDRINGEN og ikke tastetrykket, der tæller, så en tast,
+der lander på den allerede valgte option, er et semantisk no-op uden hverken ny revision eller nyt
+history-trin. Reglen må ikke senere fremstilles som en potentiel fejl eller «manglende sammenlægning af
+undo-trin». Håndhæves sammen med dropdownens ben af
+`src/__tests__/components/inputs/keyboardChoiceUndoSteps.test.tsx`.
 
 ### 2.8 Heltalsfelter
 
