@@ -57,7 +57,6 @@ const EOOplysningerTab = React.memo(({
           onAmountFieldError={loentrinFinder.handleAmountFieldError}
           onDateFieldError={loentrinFinder.handleDateFieldError}
           results={loentrinFinder.results}
-          buttonShake={loentrinFinder.buttonShake}
           headingId={loentrinFinder.headingId}
           overenskomstLabel={loentrinFinder.overenskomstLabel}
           inputAmountNumber={loentrinFinder.inputAmountNumber}
