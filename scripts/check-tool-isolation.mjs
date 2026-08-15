@@ -14,7 +14,7 @@
  *   1. Ingen to top-level pakker må slås om det samme kommandonavn (den generelle årsag).
  *   2. Agentværktøjerne har deres eget manifest og eget node_modules (den strukturelle adskillelse).
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readdirSync, readlinkSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -68,16 +68,54 @@ const findCommandConflicts = (lockPackages) => {
     .map(([command, owners]) => ({ command, owners }));
 };
 
-/** Læser hvilken pakke npm faktisk har lagt i `.bin`-slottet i det installerede træ. */
+/**
+ * Udleder pakkenavnet af en sti ind i node_modules, fx `../@playwright/test/cli.js`
+ * → `@playwright/test`. Stien er altid relativ til `.bin`, så pakkenavnet er de første
+ * ét eller to segmenter efter de indledende `../`.
+ */
+const packageNameFromBinTarget = (target) => {
+  const segments = target.replace(/\\/g, '/').split('/').filter((segment) => segment !== '' && segment !== '.');
+  const start = segments.findIndex((segment) => segment !== '..');
+  if (start === -1) return null;
+  const first = segments[start];
+  if (first === undefined) return null;
+  if (first.startsWith('@')) {
+    const second = segments[start + 1];
+    return second === undefined ? null : `${first}/${second}`;
+  }
+  return first;
+};
+
+/**
+ * Læser hvilken pakke npm faktisk har lagt i `.bin`-slottet i det installerede træ.
+ *
+ * npm bruger to forskellige mekanismer, og kontrollen skal kunne læse dem begge:
+ *   - POSIX (bl.a. CI's ubuntu-runner): et ægte symlink, hvis MÅL er pakkestien. Filens
+ *     indhold er den pegede-på fil, så det skal læses med readlink — ikke readFileSync,
+ *     der følger linket og udleverer selve CLI-kildekoden.
+ *   - Windows: en cmd-/sh-shim, dvs. en almindelig fil hvis INDHOLD nævner pakkestien.
+ *
+ * Kan ejeren ikke afgøres, rapporteres det som `undetermined` frem for som en forkert ejer.
+ * Ellers ville en ulæselig shim ligne en ægte konflikt — præcis den fejl, denne kontrol
+ * selv fejlede med i CI, hvor symlinket blev læst som «et ukendt sted».
+ */
 const resolveInstalledCommandOwner = (repoRoot, command) => {
   const binDirectory = join(repoRoot, 'node_modules', '.bin');
-  if (!existsSync(binDirectory)) return { present: false, owner: null };
-  const shimName = readdirSync(binDirectory).find((entry) => entry === command)
-    ?? readdirSync(binDirectory).find((entry) => entry === `${command}.cmd`);
-  if (shimName === undefined) return { present: false, owner: null };
-  const shim = readFileSync(join(binDirectory, shimName), 'utf8');
-  const owner = /[\\/]\.\.[\\/]((?:@[^\\/"'\s]+[\\/])?[^\\/"'\s]+)[\\/]/.exec(shim.replace(/\\/g, '/'));
-  return { present: true, owner: owner?.[1] ?? null };
+  if (!existsSync(binDirectory)) return { present: false, owner: null, undetermined: false };
+  const entries = readdirSync(binDirectory);
+  const shimName = entries.find((entry) => entry === command)
+    ?? entries.find((entry) => entry === `${command}.cmd`);
+  if (shimName === undefined) return { present: false, owner: null, undetermined: false };
+
+  const shimPath = join(binDirectory, shimName);
+  if (lstatSync(shimPath).isSymbolicLink()) {
+    const owner = packageNameFromBinTarget(readlinkSync(shimPath));
+    return { present: true, owner, undetermined: owner === null };
+  }
+
+  const shim = readFileSync(shimPath, 'utf8');
+  const match = /[\\/]\.\.[\\/]((?:@[^\\/"'\s]+[\\/])?[^\\/"'\s]+)[\\/]/.exec(shim.replace(/\\/g, '/'));
+  return { present: true, owner: match?.[1] ?? null, undetermined: match === null };
 };
 
 const validateToolIsolation = (repoRoot) => {
@@ -162,9 +200,14 @@ const validateToolIsolation = (repoRoot) => {
     const installed = resolveInstalledCommandOwner(repoRoot, E2E_COMMAND);
     if (!installed.present) {
       problems.push(`node_modules/.bin/${E2E_COMMAND} mangler i det installerede træ.`);
+    } else if (installed.undetermined) {
+      problems.push(
+        `node_modules/.bin/${E2E_COMMAND} kunne ikke tydes, så ejeren er ukendt; det er en fejl i `
+        + 'denne kontrol, ikke nødvendigvis i afhængighedsgrafen.'
+      );
     } else if (installed.owner !== E2E_COMMAND_OWNER) {
       problems.push(
-        `node_modules/.bin/${E2E_COMMAND} peger på ${installed.owner ?? 'et ukendt sted'} i stedet for `
+        `node_modules/.bin/${E2E_COMMAND} peger på ${installed.owner} i stedet for `
         + `${E2E_COMMAND_OWNER}; kør \`npm dedupe\`, så slottet igen ejes af E2E-motoren.`
       );
     }
@@ -202,4 +245,4 @@ if (isMain) {
   }
 }
 
-export { validateToolIsolation };
+export { packageNameFromBinTarget, resolveInstalledCommandOwner, validateToolIsolation };
