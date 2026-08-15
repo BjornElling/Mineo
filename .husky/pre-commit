@@ -25,3 +25,10 @@ npm run check:contract-verification -- --staged
 if git diff --cached --name-only | grep -Eq '^(package\.json|package-lock\.json|\.nvmrc|\.npmrc)$'; then
   npm run check:package-manifest
 fi
+
+# Agentværktøjernes træ må ikke smelte sammen med projektets eget: to pakker, der deklarerer samme
+# kommandonavn, giver npm ét lydløst valg af, hvem der ejer node_modules/.bin — og en E2E-suite, der
+# kører med den forkerte runner. Kontrollen er lokal og kræver ikke netværk.
+if git diff --cached --name-only | grep -Eq '^(package\.json|package-lock\.json|\.agents/tools/)'; then
+  npm run check:tool-isolation
+fi

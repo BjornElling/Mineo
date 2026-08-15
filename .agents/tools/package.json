@@ -1,0 +1,11 @@
+{
+  "name": "mineo-agent-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agentværktøjernes egen afhængighedsgraf. Playwright CLI og MCP pinner en anden Playwright-runtime end Mineos E2E-motor, og de to må derfor ikke dele node_modules: npm hejser kun én af dem til node_modules/playwright og node_modules/.bin/playwright, og så kører npx playwright test testfilerne med en anden runner-instans end den, filerne importerer.",
+  "license": "MIT",
+  "dependencies": {
+    "@playwright/cli": "^0.1.18",
+    "@playwright/mcp": "^0.0.79"
+  }
+}
