@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { reportMachineProfile, resolveMachineProfile } from './e2e/support/machineProfile';
 
 const defaultBaseURL = 'http://127.0.0.1:4173';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? defaultBaseURL;
@@ -60,6 +61,14 @@ const projects = [
     : []),
 ];
 
+// Suiten køres både på en kraftig stationær maskine, i CI og på en svagere bærbar. Profilen måler
+// maskinens kerner, hukommelse og faktiske hastighed og skruer parallelitet og timeout-lofter
+// derefter. På referencemaskinen og i CI giver den præcis de værdier, konfigurationen havde før.
+const machineProfile = resolveMachineProfile();
+reportMachineProfile(machineProfile);
+
+const scaleTimeout = (baseMs: number): number => Math.round(baseMs * machineProfile.timeoutScale);
+
 const webServerCommand = allowServiceWorkers
   ? 'npm run build:mineo && npx vite preview --config vite.mineo.config.ts --host 127.0.0.1 --port 4173'
   : 'npm run dev:e2e -- --port 4173';
@@ -69,12 +78,18 @@ export default defineConfig({
   // Mineos store modultræ kan bruge over 30 sekunder på første Vite-transform på Windows,
   // især i Firefox/WebKit. Den høje loftstid gælder hele flowet; elementforventninger får et
   // separat loft, så en langsom lazy-load ikke registreres som et falsk browserfund.
-  timeout: 120_000,
-  expect: { timeout: 30_000 },
+  //
+  // Lofterne skaleres med maskinprofilen. Ingen test venter på sin timeout, så et højere loft gør
+  // ingen kørsel langsommere — det flytter alene skillelinjen mellem «maskinen er langsom» og
+  // «flowet hænger», så en langsom maskine ikke rapporterer sig selv som et browserfund.
+  timeout: scaleTimeout(120_000),
+  expect: { timeout: scaleTimeout(30_000) },
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Ingen lokale retries: en flaky test skal ses som flaky, ikke skjules af et genforsøg. Det er
+  // parallelitetsloftet — ikke retries — der holder en svagere maskine fri af ressourcecrashes.
+  workers: process.env.CI ? 1 : machineProfile.workers,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL,
@@ -98,6 +113,6 @@ export default defineConfig({
       reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === '1',
       stdout: 'ignore',
       stderr: 'pipe',
-      timeout: 120_000,
+      timeout: scaleTimeout(120_000),
     },
 });

@@ -142,6 +142,16 @@ const mineoPwaArtifacts = (): Plugin => {
 export default defineConfig(
   mergeConfig(baseConfig, {
     plugins: [mineoPwaArtifacts(), mineoDevPwaManifest()],
+    server: {
+      // Mineos modultræ er stort, og den første transform af det koster over 30 sekunder på
+      // Windows. Uden opvarmning betales den regning først når browserne forbinder — og under en
+      // E2E-kørsel rammer alle workers devserveren samtidig i netop det øjeblik. Opvarmningen
+      // flytter kaskaden til serverens opstart, hvor den overlapper med browserstarten i stedet
+      // for at konkurrere med den.
+      warmup: {
+        clientFiles: ['./src/main.tsx'],
+      },
+    },
     build: {
       outDir: 'dist/mineo',
       emptyOutDir: true,

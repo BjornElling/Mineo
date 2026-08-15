@@ -27,6 +27,7 @@ export * from './useInputEvaluation';
 export * from './useFieldLabel';
 export * from './useCaseOperations';
 export * from './inputDiagnosticsProjection';
+export * from './automationIntrospectionBridge';
 export * from './useUndoRedoShortcuts';
 export * from './saveBlockedFocus';
 export * from './modalFocusTransfer';

@@ -20,6 +20,7 @@ import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyResto
 import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
   getProductionInputRuntimeStartup,
+  useAutomationIntrospectionBridge,
   useCaseOperations,
   useCriticalInputActions,
   useInputDiagnostics,
@@ -40,6 +41,9 @@ interface MainLayoutProps {
 
 const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   const diagnostics = useInputDiagnostics();
+  // Maskinlæsbar udlæsning af issue-/rejected-tilstanden til e2e og den eksterne interaktionsaudit.
+  // Ren read-only og elimineret af dead-code-fjernelsen i produktionsbuildet (§DEV-gate i modulet).
+  useAutomationIntrospectionBridge();
   const criticalActions = useCriticalInputActions();
   const navigate = useNavigate();
   const location = useLocation();
