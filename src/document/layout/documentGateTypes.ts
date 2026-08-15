@@ -50,11 +50,14 @@ export const DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE = 'Indtastning mangler';
 
 /**
  * Den universelle brugerrettede tekst for en blokering, hvor der ER indtastet noget ugyldigt (brugerkrav
- * 2026-07-30). Samme ordlyd som feltets eget generiske tooltip
- * ({@link ../../inputCore/inputIssue!FIELD_ISSUE_GENERIC_TOOLTIP}), så knappen og det felt, brugeren skal rette,
- * taler samme sprog.
+ * 2026-07-30).
+ *
+ * Den ER feltets eget generiske tooltip ({@link FIELD_ISSUE_GENERIC_TOOLTIP}) — ikke blot samme ordlyd.
+ * Indtil 2026-08-15 var det to identiske strengliteraler med en kommentar imellem, der PÅSTOD, at de skulle
+ * følges ad. Knappen og det felt, brugeren skal rette, skal sige det samme, og to literaler med samme
+ * betydning kan drifte uden at nogen test bliver rød. Aliaset gør påstanden til en kendsgerning.
  */
-export const DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE = 'Fejl i indtastning';
+export const DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE = FIELD_ISSUE_GENERIC_TOOLTIP;
 
 /**
  * Teksten for en blokering, hvis årsager siden allerede viser i sin fejl-/advarselsboks. Ordlyden er
@@ -108,14 +111,69 @@ export type DocumentDownloadGateReason = Readonly<{
 export type DocumentBlockingCause =
   /** Præcis ét rødt felt. Kun denne (og `row`) kan give en ordret citeret tooltip. */
   | Readonly<{ scope: 'field'; issue: FieldIssue }>
-  /** Præcis én navngiven række, med stabil rækkeidentitet. */
+  /** Præcis én navngiven række, med stabil rækkeidentitet. Rød som `field`. */
   | Readonly<{ scope: 'row'; rowId: string; message: string }>
-  /** Flere uafhængige input, en tabelvalidering eller en flerfeltsregel — aldrig ordret citeret. */
-  | Readonly<{ scope: 'aggregate'; message: string }>
+  /**
+   * Flere uafhængige input, en tabelvalidering eller en flerfeltsregel — aldrig ordret citeret.
+   *
+   * `kind` er PÅKRÆVET, fordi et aggregat er den ENESTE cause-form, hvis klasse ikke kan udledes af
+   * formen selv: "tabellen har fejl" siger intet om, hvorvidt cellerne er udfyldt forkert eller slet
+   * ikke udfyldt. Feltet er tilføjet efter et konkret brugerfund (2026-08-15): Årslønssidens
+   * dokumentgate svarede «Fejl i indtastning» på en lønrække med komplet periode og INTET beløb —
+   * altså en ren mangel. Gaten kollapsede alle tabelfejl til én hardkodet klasse, selv om
+   * `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`.
+   *
+   * Uden feltet faldt ethvert aggregat gennem til `missing-input`, og en producent kunne ikke
+   * udtrykke det modsatte uden at gå uden om klassifikationen. Nu er klassen et VALG, producenten
+   * skal træffe pr. årsag — og et valg, en læser kan efterprøve mod den fejl, årsagen kom af.
+   */
+  | Readonly<{ scope: 'aggregate'; kind: DocumentBlockingCauseClass; message: string }>
   /** Et tomt påkrævet felt (`missing`-consumerfejl). */
   | Readonly<{ scope: 'missing'; issue: ConsumerIssue }>
   /** Input er komplet og gyldigt, men beregningen kunne ikke dannes. Se §1.1 i planen. */
   | Readonly<{ scope: 'unavailable-calculation'; message: string }>;
+
+/**
+ * De to klasser, en INPUT-blokering kan have. `page-errors` og `specific` er visningsvalg oven på dem
+ * (henvis til boksen / citér ordret) og hører derfor ikke til her.
+ */
+export type DocumentBlockingCauseClass = Extract<
+  DocumentDownloadGateReasonKind,
+  'invalid-input' | 'missing-input'
+>;
+
+/**
+ * Den ENE oversættelse fra en årsags FORM til brugerens to klasser.
+ *
+ * Skelnen er brugerens, formuleret 2026-08-15: «Fejl i indtastning» bruges, når der ER indtastet
+ * noget, men indtastningen er forkert (feltet får rød ring — uanset om det er format eller en
+ * grænse); «Indtastning mangler» bruges, når der mangler en indtastning. Det er hele programmets
+ * princip, ikke en regel for downloadknapper alene.
+ *
+ * Switchen er UDTØMMENDE med vilje: en ny `scope` giver en compile-fejl netop her, så klassen bliver
+ * besvaret sammen med den nye årsagsform frem for at falde i en default-gren.
+ */
+export const classifyBlockingCause = (cause: DocumentBlockingCause): DocumentBlockingCauseClass => {
+  switch (cause.scope) {
+    // En `FieldIssue` er pr. definition afsluttet input, der blev afvist (§1.6) — der ER indtastet
+    // noget. En `row`-cause er dens rækkeækvivalent og bærer samme røde markering.
+    case 'field':
+    case 'row':
+      return 'invalid-input';
+    case 'missing':
+      return 'missing-input';
+    // Input er komplet og gyldigt, men beregningen kan ikke dannes. Brugerens praktiske handling ER
+    // at udfylde mere, så klassen er `missing-input` — se `blockDocumentDownloadForUnavailableCalculation`.
+    case 'unavailable-calculation':
+      return 'missing-input';
+    case 'aggregate':
+      return cause.kind;
+  }
+};
+
+/** Årsagens INTERNE forklaring, uanset form. Aldrig brugertekst — se modulets hoveddoc. */
+const causeMessage = (cause: DocumentBlockingCause): string =>
+  cause.scope === 'field' || cause.scope === 'missing' ? cause.issue.message : cause.message;
 
 /**
  * Oversætter en producents årsagsliste til ÉN klassificeret gate-årsag.
@@ -123,9 +181,16 @@ export type DocumentBlockingCause =
  * Rækkefølgen er brugerens hierarki (b før c) med `specific` som snæver undtagelse:
  *
  *  1. Præcis ÉN `field`/`row`-cause med en konkret tekst → `specific` (ordret citat).
- *  2. Mindst én `field`-cause → `invalid-input` ("noget forkert" slår "noget uudfyldt").
- *  3. Mindst én `missing`-cause → `missing-input`.
- *  4. Ellers (`aggregate`/`unavailable-calculation`) → `missing-input` med `fallbackMessage`.
+ *  2. Mindst én årsag, der klassificeres som `invalid-input` → `invalid-input`
+ *     ("noget forkert" slår "noget uudfyldt").
+ *  3. Mindst én årsag, der klassificeres som `missing-input` → `missing-input`.
+ *  4. Tom liste → `missing-input` med `fallbackMessage`.
+ *
+ * Trin 2–3 spørger `classifyBlockingCause` frem for at matche på `scope`. Den tidligere form kiggede kun
+ * efter `scope: 'field'` og derefter `scope: 'missing'`, og havde derfor et hul, ingen test ramte: en
+ * `row`-cause — som er lige så rød som en feltfejl — matchede ingen af de to grene og faldt hele vejen ned
+ * i `missing-input`. To samtidige out-of-range-procenter på Årsløn svarede altså «Indtastning mangler» på
+ * felter, der var udfyldt. Én udtømmende klassifikation lukker begge retninger på én gang.
  *
  * Trin 1 genbruger `resolveFieldIssueTooltip` frem for at gentage allowlisten `bounds|rule`. Den funktion
  * ejer allerede afgørelsen "har dette issue en konkret tekst værd at vise" — inklusive et `format`-issue med
@@ -158,19 +223,16 @@ export const classifyBlockingCauses = (
     const text = only.scope === 'row' ? only.message : resolveFieldIssueTooltip(only.issue);
     if (text !== FIELD_ISSUE_GENERIC_TOOLTIP) return { code, message: text, kind: 'specific' };
   }
-  const firstField = causes.find((cause) => cause.scope === 'field');
-  if (firstField?.scope === 'field') {
-    return { code, message: firstField.issue.message, kind: 'invalid-input' };
+  const firstInvalid = causes.find((cause) => classifyBlockingCause(cause) === 'invalid-input');
+  if (firstInvalid !== undefined) {
+    return { code, message: causeMessage(firstInvalid), kind: 'invalid-input' };
   }
-  const firstMissing = causes.find((cause) => cause.scope === 'missing');
-  if (firstMissing?.scope === 'missing') {
-    return { code, message: firstMissing.issue.message, kind: 'missing-input' };
+  const firstMissing = causes.find((cause) => classifyBlockingCause(cause) === 'missing-input');
+  if (firstMissing !== undefined) {
+    return { code, message: causeMessage(firstMissing), kind: 'missing-input' };
   }
-  const firstOther = causes.find(
-    (cause) => cause.scope === 'aggregate' || cause.scope === 'unavailable-calculation'
-  );
-  const message = firstOther !== undefined && 'message' in firstOther ? firstOther.message : fallbackMessage;
-  return { code, message, kind: 'missing-input' };
+  // Kun en TOM liste når hertil: `classifyBlockingCause` er udtømmende, så enhver årsag har en klasse.
+  return { code, message: fallbackMessage, kind: 'missing-input' };
 };
 
 /**
@@ -189,9 +251,11 @@ export const blockDocumentDownloadFromCauses = (
 /**
  * Oversætter en `ProjectionResult`s issues til causes.
  *
- * `ConsumerIssue` med `reason: 'rule'` bliver `aggregate`, IKKE `missing`: en consumerplaceret domæneregel
- * er ikke samme tilstand som et tomt felt (`error-contract.md` §1.1), og at lade den falde i
- * `missing`-grenen ville give "Indtastning mangler" på et felt, der er udfyldt.
+ * `ConsumerIssue` med `reason: 'rule'` bliver `aggregate` med klassen `invalid-input`, IKKE `missing`: en
+ * consumerplaceret domæneregel er ikke samme tilstand som et tomt felt (`error-contract.md` §1.1) — felterne
+ * ER udfyldt, og det er sammensætningen af dem, der er forkert. Klassen stod tidligere kun i denne kommentar:
+ * `aggregate` havde ingen klasse og faldt igennem til `missing-input`, så en udfyldt, regelstridig
+ * sammensætning fik "Indtastning mangler" alligevel. Nu siger årsagen det, kommentaren altid har påstået.
  */
 export const toBlockingCauses = (
   issues: readonly (FieldIssue | ConsumerIssue)[]
@@ -201,7 +265,7 @@ export const toBlockingCauses = (
       ? { scope: 'field', issue }
       : issue.reason === 'missing'
         ? { scope: 'missing', issue }
-        : { scope: 'aggregate', message: issue.message }
+        : { scope: 'aggregate', kind: 'invalid-input', message: issue.message }
   );
 
 export type DocumentDownloadGateResult = Readonly<{
@@ -301,6 +365,13 @@ export const blockDocumentDownload = (
 /**
  * Blokering, hvor det indtastede ER ugyldigt (en rød feltfejl blokerer projektionen). Brugeren ser den
  * universelle {@link DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE}; `message` er den interne forklaring.
+ *
+ * ⚠️ Klassen er HARDKODET her — funktionen ser ingen data og kan derfor ikke tage fejl af, hvad den får at
+ * vide. Den må kun bruges, når gatens gren er BEVISELIGT ét-klasset, altså når betingelsen ikke kan være
+ * sand for en manglende indtastning. Dækker grenen både «udfyldt forkert» og «ikke udfyldt», er den
+ * halvdelen af tiden forkert — netop den fejl brugerfundet 2026-08-15 afdækkede to steder. Kan årsagerne
+ * opregnes, er {@link blockDocumentDownloadFromCauses} den rigtige, og et nyt kaldssted skal føjes til
+ * allowlisten i arkitekturreglen `document/gate-class-hardcoded-invalid-input`.
  */
 export const blockDocumentDownloadForInvalidInput = (
   reason: Readonly<{ code: string; message: string }>

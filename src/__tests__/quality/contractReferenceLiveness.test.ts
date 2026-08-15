@@ -143,6 +143,16 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     note: 'Eksplicit fraværsværn: afviklingen bor i definition/documentLifecycle.ts. Kontrakten skriver selv, at navnet står her som fraværsværn.',
   },
   {
+    contract: 'src/contracts/document-output-contract.md',
+    reference: 'blockedProjectionForInvalidInput',
+    direction: 'absent',
+    note:
+      'Slettet 2026-08-15 uden kaldssteder. Den hardkodede klassen «Fejl i indtastning» for en hel '
+      + 'projektionsblokering og var dermed en åben, uafprøvet vej til netop den fejlklasse, brugerfundet '
+      + 'samme dag afdækkede to andre steder. Kontrakten navngiver den for at forbyde dens genkomst; '
+      + 'arkitekturreglen `document/gate-class-hardcoded-invalid-input` holder også kald ude.',
+  },
+  {
     contract: 'src/contracts/error-contract.md',
     reference: 'useFormFieldErrorReporter',
     direction: 'absent',

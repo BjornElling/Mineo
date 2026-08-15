@@ -42,6 +42,11 @@ import {
   evaluateAarsloenDownloadGate,
   evaluateShDageDownloadGate,
 } from '../../../domain/aarsloen/aarsloenDownloadGate';
+import {
+  DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE,
+  DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
+  resolveBlockedGateTooltip,
+} from '../../../document/layout/documentGateTypes';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 
 const catalog = getProductionInputCatalog();
@@ -170,6 +175,123 @@ describe('evaluateAarsloenDownloadGate', () => {
       expect(['aarsloen:missing-period-data', 'aarsloen:fatal-calculation-error'])
         .toContain(gate.reasons[0]?.code);
     }
+  });
+});
+
+/**
+ * Brugerfundet 2026-08-15 og dets klasse.
+ *
+ * Fundet: en lønrække med komplet periode (`11`/`2012`) og INTET beløb blokerede downloaden med
+ * «Fejl i indtastning». Det er en ren MANGEL — brugeren blev sendt ud at lede efter en ugyldig værdi,
+ * der ikke fandtes.
+ *
+ * Årsagen var strukturel: gaten kollapsede HELE `tableValidation.errors` til én hardkodet klasse, selv
+ * om `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`. Testene her
+ * måler derfor hver art for sig OG deres samspil — ikke kun den ene tilstand, fundet beskrev.
+ *
+ * Assertionerne går på den TEKST brugeren læser (`resolveBlockedGateTooltip`), ikke kun på `kind`: det er
+ * teksten, fundet handlede om, og en sammenlægning af de to konstanter ville ellers kunne gøre begge
+ * retninger grønne samtidig.
+ */
+describe('evaluateAarsloenDownloadGate — manglende vs. ugyldig indtastning i løntabellen', () => {
+  /** Måned + år udfyldt, men ingen beløb → `missing_amount`. Præcis brugerfundets tilstand. */
+  const withCompletePeriodWithoutAmount = (input: SettledInput, id: string, maaned: string): SettledInput => {
+    let next = dispatch(input, insert(emptyRow(id)));
+    next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind(id), maaned));
+    return dispatch(next, settle(aarsloenTableCol1MaanedField.bind(id), '2012'));
+  };
+
+  /** Beløb udfyldt, men perioden er halv → `partial_period`. */
+  const withAmountWithoutPeriod = (input: SettledInput, id: string): SettledInput => {
+    let next = dispatch(input, insert(emptyRow(id)));
+    next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind(id), '3'));
+    return dispatch(next, settle(aarsloenTableCol2Field.bind(id), '1000'));
+  };
+
+  /**
+   * En AFVIST celleværdi → `invalid`. Måned 13 findes ikke, så feltvalidatoren gør cellen rød.
+   * Testen efterprøver selv, at cellen faktisk ER rød — ellers ville den måle en anden gren end tiltænkt.
+   */
+  const withInvalidCell = (input: SettledInput, id: string): SettledInput => {
+    let next = dispatch(input, insert(emptyRow(id)));
+    next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind(id), '13'));
+    next = dispatch(next, settle(aarsloenTableCol1MaanedField.bind(id), '2012'));
+    return dispatch(next, settle(aarsloenTableCol2Field.bind(id), '1000'));
+  };
+
+  it('svarer «Indtastning mangler» på brugerfundets scenarie (komplet periode, intet beløb)', () => {
+    // Række 2 er komplet og gyldig, så tabellen ikke også blokerer af andre grunde.
+    let input = withCompletePeriodWithoutAmount(withValidStamdata(empty()), 'r1', '11');
+    input = dispatch(input, insert(emptyRow('r2')));
+    input = dispatch(input, settle(aarsloenTableCol0MaanedField.bind('r2'), '12'));
+    input = dispatch(input, settle(aarsloenTableCol1MaanedField.bind('r2'), '2012'));
+    input = dispatch(input, settle(aarsloenTableCol2Field.bind('r2'), '234'));
+
+    const projection = project(input);
+    // Pinner mellemleddet: fejlen ER klassificerbar i data, og gaten skal aflæse den frem for at gætte.
+    expect(projection.tableValidation.errors).toEqual([
+      { kind: 'cell', issue: 'missing_amount', rowId: 'r1', colKey: 'col2' },
+    ]);
+
+    const gate = evaluateAarsloenDownloadGate(projection);
+    expectBlocked(gate, 'aarsloen:table-validation-error');
+    if (gate.canDownload) return;
+    expect(gate.reasons[0]?.kind).toBe('missing-input');
+    expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
+  });
+
+  it('svarer «Indtastning mangler» på en halv periode (beløb uden årstal)', () => {
+    const input = withAmountWithoutPeriod(withValidStamdata(empty()), 'r1');
+    const projection = project(input);
+    expect(projection.tableValidation.errors.some((e) => e.kind === 'cell' && e.issue === 'partial_period')).toBe(true);
+
+    const gate = evaluateAarsloenDownloadGate(projection);
+    expectBlocked(gate, 'aarsloen:table-validation-error');
+    if (gate.canDownload) return;
+    expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
+  });
+
+  it('svarer «Fejl i indtastning» på en AFVIST celleværdi', () => {
+    const input = withInvalidCell(withValidStamdata(empty()), 'r1');
+    const projection = project(input);
+    // Uden denne kontrol kunne testen være grøn, fordi måned 13 blev accepteret og rækken i stedet
+    // blokerede som en mangel — altså den modsatte klasse af den, testen påstår at måle.
+    expect(projection.tableValidation.errors.some((e) => e.kind === 'cell' && e.issue === 'invalid')).toBe(true);
+
+    const gate = evaluateAarsloenDownloadGate(projection);
+    expectBlocked(gate, 'aarsloen:table-validation-error');
+    if (gate.canDownload) return;
+    expect(gate.reasons[0]?.kind).toBe('invalid-input');
+    expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
+  });
+
+  /**
+   * Forrangen er den fælles (`invalid-input` slår `missing-input`) og må ikke afhænge af, hvilken række
+   * der tilfældigvis står først. Begge rækkefølger måles.
+   */
+  it('lader den ugyldige celle vinde, når begge arter er i tabellen samtidig', () => {
+    const invalidFirst = withCompletePeriodWithoutAmount(
+      withInvalidCell(withValidStamdata(empty()), 'r1'), 'r2', '11'
+    );
+    const missingFirst = withInvalidCell(
+      withCompletePeriodWithoutAmount(withValidStamdata(empty()), 'r1', '11'), 'r2'
+    );
+
+    for (const input of [invalidFirst, missingFirst]) {
+      const gate = evaluateAarsloenDownloadGate(project(input));
+      expect(gate.canDownload).toBe(false);
+      if (gate.canDownload) continue;
+      expect(gate.reasons[0]?.kind).toBe('invalid-input');
+      expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
+    }
+  });
+
+  /**
+   * De to universelle tekster SKAL være forskellige. Uden denne kontrol ville en sammenlægning af
+   * konstanterne gøre alle testene ovenfor grønne på én gang — og fundet ville kunne genopstå usynligt.
+   */
+  it('holder de to brugertekster adskilt', () => {
+    expect(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE).not.toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
   });
 });
 

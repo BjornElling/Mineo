@@ -6,6 +6,7 @@ import {
   blockDocumentDownloadForInvalidInput,
   blockDocumentDownloadForFieldIssue,
   blockDocumentDownloadWithSpecificReason,
+  classifyBlockingCause,
   classifyBlockingCauses,
   invalidInputReason,
   missingInputReason,
@@ -15,9 +16,18 @@ import {
   resolvePrimaryGateReason,
   specificReason,
   toBlockingCauses,
+  type DocumentBlockingCause,
   type DocumentDownloadGateReasonKind,
 } from '../../../document/layout/documentGateTypes';
-import type { ConsumerIssue, FieldIssue } from '../../../inputCore/inputIssue';
+import {
+  FIELD_ISSUE_GENERIC_TOOLTIP,
+  type ConsumerIssue,
+  type FieldIssue,
+} from '../../../inputCore/inputIssue';
+import {
+  ACTION_BLOCKED_INVALID_INPUT_MESSAGE,
+  ACTION_BLOCKED_MISSING_INPUT_MESSAGE,
+} from '../../../components/inputs/actionGate';
 import { varigeMenMengradField } from '../../../inputCore/catalog/varigeMenDescriptors';
 
 // Brugerkravet 2026-07-30 tilføjede `invalid-input` som tredje klasse. Før den kollapsede "der mangler noget"
@@ -79,6 +89,18 @@ describe('resolveDocumentGateTooltip — klasse → brugertekst', () => {
       DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE,
     ]);
     expect(texts.size).toBe(3);
+  });
+
+  /**
+   * Knappen og feltet skal sige DET SAMME om «der er indtastet noget forkert» — ikke bare i dag, men
+   * uanset senere omformuleringer. Konstanten er derfor et alias for feltets generiske tooltip, og denne
+   * test måler identiteten frem for at gentage strengen (som ville acceptere en drift, hvis begge ændres
+   * hver for sig). Handlingsgatens `ACTION_BLOCKED_*` re-eksporterer i forvejen downloadgatens to.
+   */
+  it('deler «Fejl i indtastning» med feltets eget generiske tooltip', () => {
+    expect(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE).toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
+    expect(ACTION_BLOCKED_INVALID_INPUT_MESSAGE).toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
+    expect(ACTION_BLOCKED_MISSING_INPUT_MESSAGE).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
   });
 });
 
@@ -173,7 +195,7 @@ describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
 
   it('citerer ikke et aggregat, men bruger dets besked som intern forklaring', () => {
     const reason = classifyBlockingCauses('c', [
-      { scope: 'aggregate', message: 'Valideringsfejl i tabel' },
+      { scope: 'aggregate', kind: 'missing-input', message: 'Valideringsfejl i tabel' },
     ], 'fallback');
     expect(reason.kind).toBe('missing-input');
     expect(reason.message).toBe('Valideringsfejl i tabel');
@@ -187,9 +209,11 @@ describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
 
   /**
    * En consumerplaceret domæneregel er IKKE samme tilstand som et tomt felt (`error-contract.md` §1.1).
-   * Faldt den i `missing`-grenen, ville et udfyldt felt få "Indtastning mangler".
+   * Faldt den i `missing`-grenen, ville et udfyldt felt få "Indtastning mangler" — og indtil 2026-08-15
+   * fik det den tekst ALLIGEVEL, fordi `aggregate` var klasseløst og faldt igennem til mangel-grenen.
+   * Klassen står nu PÅ årsagen, så påstanden i kommentaren og kodens udfald er den samme.
    */
-  it('mapper en consumer-regel til aggregat frem for til missing', () => {
+  it('mapper en consumer-regel til et aggregat, der er klassificeret som ugyldigt input', () => {
     const ruleIssue: ConsumerIssue = {
       kind: 'consumer',
       severity: 'error',
@@ -199,7 +223,92 @@ describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
       message: 'Perioden overlapper en anden periode',
     };
     const causes = toBlockingCauses([ruleIssue]);
-    expect(causes).toEqual([{ scope: 'aggregate', message: 'Perioden overlapper en anden periode' }]);
+    expect(causes).toEqual([{
+      scope: 'aggregate',
+      kind: 'invalid-input',
+      message: 'Perioden overlapper en anden periode',
+    }]);
+    expect(classifyBlockingCauses('c', causes, 'fallback').kind).toBe('invalid-input');
+  });
+});
+
+/**
+ * `classifyBlockingCause` — den ENE oversættelse fra en årsags FORM til brugerens to klasser.
+ *
+ * Brugerens princip (2026-08-15): «Fejl i indtastning» når der ER indtastet noget forkert (rød ring),
+ * «Indtastning mangler» når en indtastning mangler. Testene her måler hver enkelt årsagsform mod det
+ * princip, så en ny form ikke kan arve en tilfældig default.
+ */
+describe('classifyBlockingCause — årsagens form → brugerens klasse', () => {
+  const fieldIssue: FieldIssue = {
+    kind: 'field',
+    severity: 'error',
+    reason: 'bounds',
+    code: 'x:bounds',
+    field: varigeMenMengradField.bind(),
+    message: 'Méngrad skal være mellem 1 og 120',
+  };
+  const consumerMissing: ConsumerIssue = {
+    kind: 'consumer',
+    severity: 'error',
+    reason: 'missing',
+    consumerId: 'test',
+    code: 'm1',
+    message: 'Feltet Beregningsdato er ikke udfyldt',
+  };
+
+  /**
+   * ALLE former er opregnet her — ikke et udvalg. Listen er typet som `DocumentBlockingCause`, så en ny
+   * `scope` uden en post her giver en compile-fejl i selve testen, ikke blot i produktionskoden.
+   */
+  const CASES: ReadonlyArray<readonly [string, DocumentBlockingCause, 'invalid-input' | 'missing-input']> = [
+    ['et rødt felt', { scope: 'field', issue: fieldIssue }, 'invalid-input'],
+    ['en rød navngiven række', { scope: 'row', rowId: 'r1', message: 'Procent skal være mellem 0 og 100' }, 'invalid-input'],
+    ['et tomt påkrævet felt', { scope: 'missing', issue: consumerMissing }, 'missing-input'],
+    ['en beregning der ikke kan dannes', { scope: 'unavailable-calculation', message: 'Ingen lovsats' }, 'missing-input'],
+    ['et aggregat der siger ugyldigt', { scope: 'aggregate', kind: 'invalid-input', message: 'Ugyldig celle' }, 'invalid-input'],
+    ['et aggregat der siger manglende', { scope: 'aggregate', kind: 'missing-input', message: 'Manglende beløb' }, 'missing-input'],
+  ];
+
+  it.each(CASES)('%s → %s', (_label, cause, expected) => {
+    expect(classifyBlockingCause(cause)).toBe(expected);
+  });
+
+  /**
+   * REGRESSIONEN, der motiverede omlægningen: en `row`-cause er lige så rød som en feltfejl, men den gamle
+   * klassifikation kiggede kun efter `scope: 'field'` og lod `row` falde helt ned i mangel-grenen. To
+   * samtidige out-of-range-procenter på Årsløn svarede derfor «Indtastning mangler» på udfyldte felter.
+   *
+   * Testen bruger TO rækker med vilje: præcis én ville blive citeret ordret (`specific`) og aldrig nå den
+   * gren, fejlen lå i.
+   */
+  it('to røde rækker giver «Fejl i indtastning», ikke «Indtastning mangler»', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'row', rowId: 'feriePct', message: 'Procent skal være mellem 0 og 100' },
+      { scope: 'row', rowId: 'pensionPct', message: 'Procent skal være mellem 0 og 100' },
+    ], 'fallback');
+    expect(reason.kind).toBe('invalid-input');
+    expect(resolveDocumentGateTooltip(reason)).toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
+  });
+
+  /**
+   * Forrangen skal komme fra KLASSEN, ikke fra årsagens form eller listens rækkefølge. Et aggregat, der
+   * siger «ugyldigt», skal slå et tomt felt lige så sikkert som en feltfejl gør.
+   */
+  it('lader et invalid-klassificeret aggregat vinde over et tomt felt — uanset rækkefølge', () => {
+    const invalid: DocumentBlockingCause = { scope: 'aggregate', kind: 'invalid-input', message: 'Ugyldig celle' };
+    const missing: DocumentBlockingCause = { scope: 'missing', issue: consumerMissing };
+    expect(classifyBlockingCauses('c', [missing, invalid], 'fallback').kind).toBe('invalid-input');
+    expect(classifyBlockingCauses('c', [invalid, missing], 'fallback').kind).toBe('invalid-input');
+  });
+
+  /** Et aggregat, der siger «mangler», må ikke kunne trække et rødt felt med sig ned i mangel-klassen. */
+  it('lader et rødt felt vinde over et missing-klassificeret aggregat', () => {
+    const reason = classifyBlockingCauses('c', [
+      { scope: 'aggregate', kind: 'missing-input', message: 'Manglende beløb' },
+      { scope: 'field', issue: { ...fieldIssue, reason: 'format', message: 'ugyldig' } },
+    ], 'fallback');
+    expect(reason.kind).toBe('invalid-input');
   });
 });
 

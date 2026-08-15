@@ -22,6 +22,7 @@ import {
 import {
   documentActivationShowsOutcome,
   documentDownloadTooltipFromGate,
+  documentGateClassHardcodedInvalidInput,
   documentHeaderlessPseudoTableRule,
   minprocesrenteStandaloneImport,
   pdfDownloadCommittedState,
@@ -122,6 +123,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   pdfDownloadCommittedState,
   documentActivationShowsOutcome,
   documentDownloadTooltipFromGate,
+  documentGateClassHardcodedInvalidInput,
   documentHeaderlessPseudoTableRule,
   minprocesrenteStandaloneImport,
   // Shell og desktop-only-grænse

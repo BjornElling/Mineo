@@ -11,7 +11,6 @@
  */
 import {
   classifyBlockingCauses,
-  invalidInputReason,
   missingInputReason,
   specificReason,
   toBlockingCauses,
@@ -72,25 +71,22 @@ export type BlockedProjection = Readonly<{ status: 'blocked'; reasons: DocumentG
  * Projektionernes fail-closed sikkerhedsnet — "Beregning kan ikke dannes", "Rentelinjen findes ikke længere"
  * — beskriver en TILSTAND i gaten, ikke en handling brugeren kan udføre. De er derfor `missing-input`, så
  * brugeren møder den universelle tekst. Er blokeringen derimod et RØDT FELT, er
- * {@link blockedProjectionForInvalidInput} den rigtige; har projektionen undtagelsesvist en konkret,
- * brugerrettet besked, er det `blockedProjectionWithSpecificReason`.
+ * {@link blockedProjectionFromCauses} den rigtige — den UDLEDER klassen af issuene frem for at hardkode
+ * den; har projektionen undtagelsesvist en konkret, brugerrettet besked, er det
+ * `blockedProjectionWithSpecificReason`.
  *
  * Helperen findes, fordi de ni definitionsfiler før byggede `{status:'blocked', reasons:[{code,message}]}`
  * i hånden — en parallel vej, der omgik gate-konstruktørerne og derfor kunne glemme klassifikationen.
+ *
+ * Der fandtes tidligere en `blockedProjectionForInvalidInput`-tvilling, som hardkodede `invalid-input`.
+ * Ingen definitionsfil kaldte den — den var en åben, uafprøvet vej til præcis den fejlklasse, brugerfundet
+ * 2026-08-15 afdækkede to andre steder (en hardkodet klasse over en betingelse, der dækker begge klasser).
+ * Den er derfor slettet frem for bevaret, og `document/gate-class-hardcoded-invalid-input` holder den ude.
  */
 export const blockedProjection = (
   code: string,
   message: string
 ): BlockedProjection => ({ status: 'blocked', reasons: [missingInputReason(code, message)] });
-
-/**
- * Som {@link blockedProjection}, men blokeringen skyldes en UGYLDIG indtastning (et rødt felt), så brugeren
- * møder "Fejl i indtastning" frem for "Indtastning mangler" (brugerkrav 2026-07-30).
- */
-export const blockedProjectionForInvalidInput = (
-  code: string,
-  message: string
-): BlockedProjection => ({ status: 'blocked', reasons: [invalidInputReason(code, message)] });
 
 /** Som {@link blockedProjection}, men beskeden citeres ordret til brugeren. */
 export const blockedProjectionWithSpecificReason = (

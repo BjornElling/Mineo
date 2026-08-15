@@ -93,10 +93,15 @@ export const evaluateEoDocumentDownloadGate = (
 
   // Snapshot-, invariant- og projektionsblokeringer er IKKE rækkefejl: de har ingen garanteret række i
   // boksen, og sikkerhedsnettet i `useEoBeregningViewModel` findes netop for at fange dem. De beskriver en
-  // tilstand i beregningen frem for et felt, brugeren kan rette, og er derfor et aggregat.
+  // TILSTAND i beregningen frem for et felt, brugeren kan rette.
+  //
+  // Scope er derfor `unavailable-calculation` og ikke længere `aggregate`: årsagen er præcis den, scopet
+  // navngiver, og klassen (`missing-input`) følger af formen frem for at være et valg, dette kaldssted
+  // skulle træffe. `aggregate` kræver nu en eksplicit klasse, og at skrive «mangler» i hånden her ville
+  // være samme hardkodning, som brugerfundet 2026-08-15 handlede om.
   return blockDocumentDownloadFromCauses(
     'erstatningsopgoerelse:pdf-blocked',
-    [{ scope: 'aggregate', message }],
+    [{ scope: 'unavailable-calculation', message }],
     input.gateFallback
   );
 };

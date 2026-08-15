@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-08-13
+**Senest verificeret mod kode:** 2026-08-16
 
 ## Scope
 
@@ -206,6 +206,36 @@ ikke er et gyldigt mål.
 
 Gaten skal være uafhængig af mount- og fanetilstand (§A2.1). En klasse må derfor ikke udledes af en
 view-models filtrerede visningsliste, men af gatens egen rene projektion.
+
+#### Årsagens form bestemmer klassen (`classifyBlockingCause`)
+
+Skelnen er brugerens, formuleret 2026-08-15 og gældende for HELE programmet — ikke kun for downloadknapper:
+«Fejl i indtastning» bruges, når der ER indtastet noget, men indtastningen er forkert (feltet får rød ring,
+uanset om årsagen er format eller en grænse); «Indtastning mangler», når en indtastning mangler.
+
+`classifyBlockingCause` (`src/document/layout/documentGateTypes.ts`) er den ENE oversættelse fra
+årsagsform til klasse, og switchen er udtømmende — en ny `scope` giver en compile-fejl frem for at arve en
+default:
+
+| `scope` | Klasse | Hvorfor |
+|---|---|---|
+| `field` | `invalid-input` | En `FieldIssue` er afsluttet input, der blev afvist (§1.6) — der ER indtastet noget |
+| `row` | `invalid-input` | Rækkeækvivalenten til `field`; bærer samme røde markering |
+| `missing` | `missing-input` | Et tomt påkrævet felt |
+| `unavailable-calculation` | `missing-input` | Input er komplet og gyldigt, men beregningen kan ikke dannes; brugerens handling er at udfylde mere |
+| `aggregate` | `kind` på årsagen | Formen alene siger intet — producenten SKAL angive klassen |
+
+`aggregate` er den eneste form, hvis klasse ikke følger af formen: «tabellen har fejl» siger intet om,
+hvorvidt cellerne er udfyldt forkert eller slet ikke udfyldt. `kind` er derfor et påkrævet felt, og et
+aggregat uden klasse kan ikke konstrueres.
+
+**Håndhævelse.** `document/gate-class-hardcoded-invalid-input` (arkitektur-manifestet) forbyder
+`blockDocumentDownloadForInvalidInput` / `invalidInputReason` / den slettede
+`blockedProjectionForInvalidInput` uden for en auditeret allowlist, hvor grenen er beviseligt ét-klasset.
+Reglen findes efter et brugerfund 2026-08-15: Årslønssidens gate kollapsede hele `tableValidation.errors`
+til én hardkodet klasse og svarede «Fejl i indtastning» på en lønrække med komplet periode og intet beløb,
+selv om `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`. Samme form
+fandtes på Renteberegning. Kontrakten forbød det i forvejen i ord; nu er forbuddet målt.
 
 ## A6. Domænespecifikke projektioner
 

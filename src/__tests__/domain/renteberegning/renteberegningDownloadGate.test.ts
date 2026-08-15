@@ -1,10 +1,20 @@
 import { evaluateDownloadAllGate, evaluateOversigtDownloadGate } from '../../../domain/renteberegning/renteberegningDownloadGate';
+import {
+  DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE,
+  resolveBlockedGateTooltip,
+} from '../../../document/layout/documentGateTypes';
 import { toISODateString } from '../../../types/branded';
 
 // Sandhedstabellen dækker den canonical-afledte fallback for de to downloadgates. Afsluttet
 // rejected input håndteres før disse funktioner af renteberegningens inputprojektion:
 //   downloadAll(disabled) = !hasValidPdfContexts || anyRowHasError   (+ loading separat i UI)
 //   oversigt(disabled)    = beregningsdato === undefined || !hasValidPdfContexts || anyRowHasError
+//
+// `anyRowHasError` svarede før «Fejl i indtastning». Det var forkert for HELE grenen: flaget aflæses kun i
+// aggregatets `ready`-gren, og et rødt felt gør aggregatet `blocked` (rækkens felter læses med
+// `collector.optional`). Er flaget sandt, er alle felter altså læsbare, og den manglende pdfContext skyldes
+// en UFULDSTÆNDIG række — typisk et beløb uden «Renter fra»-dato. Klassen er derfor `missing-input`.
+// `renteberegningProjectionMatrix.test.ts` dækker selve præmissen (rød række → blocked projektion).
 
 const VALID_DATO = toISODateString('2024-12-31');
 
@@ -22,10 +32,12 @@ describe('renteberegningDownloadGate', () => {
       expect(gate.reasons[0]?.code).toBe('renteberegning:no-valid-rows');
     });
 
-    it('blokerer når en række med indtastning er ugyldig', () => {
+    it('blokerer når en række med indtastning er ufuldstændig', () => {
       const gate = evaluateDownloadAllGate({ hasValidPdfContexts: true, anyRowHasError: true });
       expect(gate.canDownload).toBe(false);
       expect(gate.reasons[0]?.code).toBe('renteberegning:row-has-error');
+      expect(gate.reasons[0]?.kind).toBe('missing-input');
+      expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
     });
 
   });
@@ -48,10 +60,12 @@ describe('renteberegningDownloadGate', () => {
       expect(gate.reasons[0]?.code).toBe('renteberegning:no-valid-rows');
     });
 
-    it('blokerer når en række med indtastning er ugyldig', () => {
+    it('blokerer når en række med indtastning er ufuldstændig', () => {
       const gate = evaluateOversigtDownloadGate({ beregningsdato: VALID_DATO, hasValidPdfContexts: true, anyRowHasError: true });
       expect(gate.canDownload).toBe(false);
       expect(gate.reasons[0]?.code).toBe('renteberegning:row-has-error');
+      expect(gate.reasons[0]?.kind).toBe('missing-input');
+      expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
     });
   });
 

@@ -11,7 +11,7 @@
 import ts from 'typescript';
 import { collectCalls } from '../astQueries';
 import type { SourceEntry } from '../sourceGraph';
-import { defineRule, forbidImports } from '../ruleKit';
+import { defineRule, forbidCalls, forbidImports } from '../ruleKit';
 
 // --- Dokument-downloads må ikke læse committed state undervejs -----------------
 
@@ -233,6 +233,113 @@ export const documentActivationShowsOutcome = defineRule({
     {
       relativePath: 'src/components/pages/X.tsx',
       code: 'const C = () => { const download = () => {}; return <Button onClick={() => download()} />; };',
+    },
+  ],
+});
+
+// --- «Fejl i indtastning» må ikke hardkodes over en betingelse, der dækker begge klasser ---
+
+/**
+ * Konstruktørerne, der HARDKODER klassen `invalid-input` uden at se på data.
+ *
+ * **Fejlformen, reglen findes for (brugerfund 2026-08-15).** Årslønssidens dokumentgate svarede «Fejl i
+ * indtastning» på en lønrække med komplet periode og INTET beløb. Årsagen var strukturel og ikke lokal:
+ * gaten kollapsede hele `tableValidation.errors` til ét `blockDocumentDownloadForInvalidInput`-kald, selv
+ * om `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`. Samme form fandtes
+ * på Renteberegning, hvor `anyRowHasError` — som pr. konstruktion kun kan være sand for en UFULDSTÆNDIG
+ * række — også svarede «Fejl i indtastning».
+ *
+ * Fælles for begge: en aggregeret boolean over flere tilstande fik påklistret én klasse, funktionen umuligt
+ * kunne efterprøve. `document-output-contract.md` §A5.1 forbød det allerede i ord — der var blot intet værn.
+ *
+ * **Hvorfor en allowlist og ikke et totalforbud.** Der findes legitime kaldssteder, hvor grenen er
+ * BEVISELIGT ét-klasset: EET klassificerer pr. issue-id gennem `isEetFieldErrorIssueId`, og Forsørgertab
+ * pusher én årsag pr. konkret betingelse. De to er auditerede undtagelser, og harnessets anti-rot-kontrol
+ * kræver, at hver af dem stadig udløser reglen — så en undtagelse ikke kan overleve sit kaldssted.
+ *
+ * Den kanoniske vej er `blockDocumentDownloadFromCauses`/`blockedProjectionFromCauses`, hvor hver årsag
+ * bærer sin egen klasse og `classifyBlockingCause` afgør udfaldet ét sted.
+ */
+const HARDCODED_INVALID_INPUT_CONSTRUCTORS = new Set<string>([
+  'blockDocumentDownloadForInvalidInput',
+  'invalidInputReason',
+  // Slettet 2026-08-15 (ingen kaldssteder). Beholdt i forbuddet, så den ikke kan genopstå som en
+  // uafprøvet vej til samme fejlklasse.
+  'blockedProjectionForInvalidInput',
+]);
+
+/** Den kanoniske, årsagsudledende vej. Bruges som liveness-probe: findes den, findes mønsteret. */
+const DERIVED_GATE_CONSTRUCTORS = new Set<string>([
+  'blockDocumentDownloadFromCauses',
+  'blockedProjectionFromCauses',
+  'classifyBlockingCauses',
+]);
+
+export const documentGateClassHardcodedInvalidInput = forbidCalls({
+  id: 'document/gate-class-hardcoded-invalid-input',
+  description:
+    'Klassen «Fejl i indtastning» må ikke hardkodes for en gate-gren. Den skal udledes af årsagerne '
+    + '(`blockDocumentDownloadFromCauses` / `blockedProjectionFromCauses`), så en betingelse, der også '
+    + 'dækker en MANGLENDE indtastning, ikke kan svare «Fejl i indtastning» på et tomt felt.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) =>
+      collectCalls(entry).some((ref) =>
+        DERIVED_GATE_CONSTRUCTORS.has(ref.calleeName)
+        || HARDCODED_INVALID_INPUT_CONSTRUCTORS.has(ref.calleeName)),
+    rationale:
+      'mindst én gate bygger stadig et blokerings-resultat — reglens forudsætning findes altså; '
+      + 'forsvinder gate-konstruktørerne, er klassifikationen flyttet og reglen skal skrives om',
+    // Sammensat mål: BEGGE de auditerede undtagelser skal stadig findes og stadig bygge en gate. En
+    // slettet undtagelse skal opdages her frem for at efterlade en allowlist-post uden dækning.
+    requiredPaths: [
+      'src/domain/erhvervsevnetab/erhvervsevnetabDownloadGate.ts',
+      'src/domain/forsoergertab/forsoergertabSnapshot.ts',
+      'src/domain/aarsloen/aarsloenDownloadGate.ts',
+    ],
+  },
+  allow: [
+    // AUDITERET: klassen udledes pr. issue-id gennem `isEetFieldErrorIssueId`, så grenen er ét-klasset.
+    'src/domain/erhvervsevnetab/erhvervsevnetabDownloadGate.ts',
+    // AUDITERET: én årsag pr. konkret betingelse (`hasDownloadBlockingFieldError` er kun røde felter).
+    'src/domain/forsoergertab/forsoergertabSnapshot.ts',
+  ],
+  forbidden: (ref) => HARDCODED_INVALID_INPUT_CONSTRUCTORS.has(ref.calleeName),
+  message: (ref) =>
+    `\`${ref.calleeText}(...)\` hardkoder klassen «Fejl i indtastning». Dækker betingelsen også en `
+    + 'MANGLENDE indtastning, svarer knappen forkert på et tomt felt. Byg i stedet en '
+    + '`DocumentBlockingCause`-liste, hvor hver årsag bærer sin egen klasse, og lad '
+    + '`blockDocumentDownloadFromCauses` afgøre udfaldet.',
+  violatingFixtures: [
+    // Den konkrete fejl, reglen findes for: hele tabelvalideringen som én hardkodet klasse.
+    {
+      relativePath: 'src/domain/aarsloen/x.ts',
+      code: "const g = errors.length > 0 ? blockDocumentDownloadForInvalidInput({ code: 'a', message: 'b' }) : null;",
+    },
+    {
+      relativePath: 'src/domain/x/y.ts',
+      code: "const r = invalidInputReason('a', 'b');",
+    },
+    // Den slettede tvilling må ikke kunne genopstå.
+    {
+      relativePath: 'src/document/definition/x.ts',
+      code: "export const p = () => blockedProjectionForInvalidInput('a', 'b');",
+    },
+  ],
+  cleanFixtures: [
+    // Den ønskede vej: klassen bæres af årsagerne.
+    {
+      relativePath: 'src/domain/aarsloen/x.ts',
+      code: "const g = blockDocumentDownloadFromCauses('a', errors.map(toCause), 'fallback');",
+    },
+    {
+      relativePath: 'src/domain/x/y.ts',
+      code: "const c = { scope: 'aggregate', kind: 'invalid-input', message: 'm' };",
+    },
+    // En mangel-blokering er uberørt — reglen handler kun om den hardkodede FEJL-klasse.
+    {
+      relativePath: 'src/domain/x/y.ts',
+      code: "const g = blockDocumentDownload({ code: 'a', message: 'b' });",
     },
   ],
 });

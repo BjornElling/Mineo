@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-13
+**Senest verificeret mod kode:** 2026-08-16
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -163,6 +163,22 @@ tooltip; rød fejl har altid visuel forrang. En gul kant uden en ikke-tom toolti
 Ingen inline-valideringstekst vises under feltet. Range- og
 datotooltips skal vise konkrete grænser. Hvis `min > max`, forklarer tooltippen, at ingen gyldige værdier findes, viser
 begge grænser og navngiver de brugervendte input, der skabte dem.
+
+**«Fejl i indtastning» vs. «Indtastning mangler» — programmets generelle princip (brugerkrav 2026-08-15).**
+Skelnen er den samme overalt, hvor programmet forklarer en blokering, og den følger brugerens tilstand — ikke
+den flade, der forklarer:
+
+- **«Fejl i indtastning»** bruges, når der ER indtastet noget, men indtastningen er forkert, altså dér hvor
+  feltet får rød ring. Det gælder uanset om årsagen er formatet eller en overskredet grænse.
+- **«Indtastning mangler»** bruges, når en indtastning mangler.
+
+Princippet gælder feltets eget tooltip (`FIELD_ISSUE_GENERIC_TOOLTIP`, tabellen nedenfor), enhver deaktiveret
+handlingsknap (`ACTION_BLOCKED_*` i `src/components/inputs/actionGate.ts`) og enhver deaktiveret
+downloadknap (`DOWNLOAD_BLOCKED_*`). De tre flader deler konstanterne frem for at kopiere dem.
+
+Konsekvensen for en gate er, at klassen skal **udledes af de data, der kender svaret** — ikke hardkodes for
+en betingelse, der dækker begge tilstande. `document-output-contract.md` §A5.1 ejer den regel, dens
+årsagsform→klasse-tabel og dens håndhævelse.
 
 **Tooltip vs. "Fejl og advarsler" (brugerkrav 2026-07-30).** De to flader viser IKKE nødvendigvis samme tekst.
 Boksen viser altid den fulde besked. Tooltippet afhænger af `reason` og en eventuel maskinlæsbar codec-detalje,

@@ -137,6 +137,59 @@ test.describe('Download-tooltip — de tre klasser', () => {
   });
 
   /**
+   * Brugerfundet 2026-08-15, målt fra brugerens side af skærmen.
+   *
+   * En lønrække med komplet periode (`11`/`2012`) og INTET beløb blokerede downloaden med «Fejl i
+   * indtastning». Det er en ren mangel: brugeren blev sendt ud at lede efter en ugyldig værdi, der ikke
+   * fandtes. Årsagen var, at gaten kollapsede HELE tabelvalideringen til én hardkodet klasse, selv om
+   * `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`.
+   *
+   * Testen måler BEGGE retninger i samme flow — mangel, gyldig, ugyldig — så en rettelse, der blot bytter
+   * om på de to tekster, ikke kan være grøn.
+   */
+  test('Årslønnens løntabel skelner manglende beløb fra ugyldig celle', async ({ page }) => {
+    const runtimeErrors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') runtimeErrors.push(message.text());
+    });
+    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+
+    await login(page);
+    await page.getByRole('button', { name: 'Årslønsberegning' }).click();
+
+    const download = page.locator('.row--label-right-hover')
+      .filter({ hasText: 'Sammentælling af løn fra tabellen' })
+      .getByRole('button');
+
+    // Rækkerne bærer deres id som data-attribut; cellerne læses positionelt, fordi rækkens id dannes
+    // først ved indtastning og derfor ikke kan skrives i testen.
+    const firstRow = page.locator('tbody tr[data-mineo-row-id]').first();
+    const maaned = firstRow.locator('input').nth(0);
+    const aar = firstRow.locator('input').nth(1);
+    const loen = firstRow.locator('input').nth(2);
+
+    // Tom tabel → intet at hente, og der mangler indtastning.
+    await expectDisabledDownloadTooltip(download, MISSING_INPUT);
+
+    // (c) Brugerfundets tilstand: komplet periode, intet beløb.
+    await setFieldValueAndSettle(maaned, '11');
+    await setFieldValueAndSettle(aar, '2012');
+    await expectDisabledDownloadTooltip(download, MISSING_INPUT);
+
+    // Udfyldes beløbet, er grundlaget komplet, og knappen bliver aktiv. Uden dette trin kunne testen
+    // være grøn af en gate, der ALTID svarer «Indtastning mangler».
+    await setFieldValueAndSettle(loen, '234');
+    await expect(download).toBeEnabled();
+
+    // (b) En afvist celleværdi: måned 13 findes ikke → rød celle → «Fejl i indtastning».
+    await setFieldValueAndSettle(maaned, '13');
+    await expect(maaned).toHaveAttribute('aria-invalid', 'true');
+    await expectDisabledDownloadTooltip(download, INVALID_INPUT);
+
+    expect(runtimeErrors).toEqual([]);
+  });
+
+  /**
    * Dokumentaffordancen skal blive stående på en blokeret revision (auditfundene om Årsløn/EET, hvor
    * beregnings- og downloadfladen forsvandt helt fra DOM'en ved en stamdatafejl). En skjult knap gør
    * blokeringen tavs — der er da ingen tooltip at læse.

@@ -18,15 +18,46 @@
 import {
   allowDocumentDownload,
   blockDocumentDownload,
-  blockDocumentDownloadForInvalidInput,
   blockDocumentDownloadForUnavailableCalculation,
   blockDocumentDownloadFromCauses,
   toBlockingCauses,
+  type DocumentBlockingCause,
   type DocumentDownloadGateResult,
 } from '../../document/layout/documentGateTypes';
+import type { TableError } from '../../types/table';
 import { resolveAarsloenCanonicalRangeIssues } from './aarsloenValidationPolicies';
 import type { AarsloenReaderProjection } from './aarsloenProjection';
 import { hasAtLeastOneValidRow } from './standardLoenRowCalculations';
+
+/**
+ * Én tabelfejl som en klassificeret blokerings-årsag.
+ *
+ * **Fundet, der gjorde det nødvendigt (2026-08-15).** Gaten svarede før «Fejl i indtastning» på HELE
+ * `tableValidation.errors` gennem én hardkodet klasse. En lønrække med komplet periode (fx `11`/`2012`) og
+ * intet beløb giver `missing_amount` — en ren MANGEL — og brugeren blev derfor sendt ud at lede efter en
+ * ugyldig værdi, der ikke fandtes. `TableError` bar hele tiden svaret i sin `issue`-diskriminant; kun gaten
+ * kastede det væk.
+ *
+ * Switchen er UDTØMMENDE: en ny `TableError`-art giver en compile-fejl her, så dens brugerklasse besvares
+ * sammen med arten frem for at arve en tilfældig default. `message` er gate-intern diagnostik (tests, logs)
+ * — brugeren ser klassens universelle tekst, og cellerne bærer selv deres røde markering.
+ */
+const toTableBlockingCause = (error: TableError): DocumentBlockingCause => {
+  if (error.kind === 'table') {
+    return { scope: 'aggregate', kind: 'missing-input', message: 'Ingen gyldige rækker i tabel' };
+  }
+  switch (error.issue) {
+    case 'invalid':
+      // En afvist celleværdi: der ER indtastet noget, og cellen er rød.
+      return { scope: 'aggregate', kind: 'invalid-input', message: 'Ugyldig celleværdi i tabel' };
+    case 'partial_period':
+      // Rækken er påbegyndt, men periodens anden halvdel mangler.
+      return { scope: 'aggregate', kind: 'missing-input', message: 'Ufuldstændig periode i tabel' };
+    case 'missing_amount':
+      // Komplet periode uden ét eneste beløb — præcis brugerfundets tilstand.
+      return { scope: 'aggregate', kind: 'missing-input', message: 'Manglende beløb i tabelrække' };
+  }
+};
 
 /**
  * Fælles for begge gates: stamdata er en obligatorisk dokumentdependency.
@@ -55,6 +86,13 @@ const blockedByStamdata = (
  * Er der præcis ÉT, navngiver dets besked grænsen ("Procent skal være mellem 0 og 100") og citeres. Er der
  * flere, ville et citat af det første skjule de øvrige, og klasseteksten er da det ærlige svar — issuene er
  * `bounds` på canonical værdier, så felterne bærer selv de konkrete grænser.
+ *
+ * Klasseteksten er «Fejl i indtastning»: en `row`-cause er rød som en feltfejl. Det blev den først
+ * 2026-08-15. Før da kiggede `classifyBlockingCauses` kun efter `scope: 'field'`, så to samtidige
+ * `row`-årsager faldt helt ned i mangel-grenen og ville have svaret «Indtastning mangler» på udfyldte
+ * felter — samme forveksling som brugerfundet, blot i den modsatte retning. Grenen her er et
+ * fail-closed sikkerhedsnet (feltvalidatorerne fanger i praksis en out-of-range-sats først, og readeren
+ * skjuler da værdien), men hullet lå i den DELTE klassifikation, ikke i denne gren.
  */
 const blockedByCanonicalRange = (
   projection: AarsloenReaderProjection,
@@ -89,10 +127,15 @@ export const evaluateAarsloenDownloadGate = (
     return blockDocumentDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
   }
   if (tableValidation.errors.length > 0) {
-    // Rækkerne ER udfyldt, men indholdet er ugyldigt → "Fejl i indtastning", ikke "Indtastning mangler".
-    // Bevidst `aggregate`: tabelvalideringen dækker N celler på tværs af N rækker, så ingen enkelt besked
-    // må citeres som om den var den eneste fejl (lempelsen §2). Cellerne bærer selv deres røde markering.
-    return blockDocumentDownloadForInvalidInput({ code: 'aarsloen:table-validation-error', message: 'Valideringsfejl i tabel' });
+    // Klassen UDLEDES pr. tabelfejl (se `toTableBlockingCause`) frem for at være hardkodet for hele
+    // listen. Bevidst `aggregate`: tabelvalideringen dækker N celler på tværs af N rækker, så ingen enkelt
+    // besked må citeres som om den var den eneste fejl (lempelsen §2). Er både en ugyldig celle og en
+    // manglende indtastning i spil, vinder `invalid-input` — den fælles forrang, ikke en lokal regel.
+    return blockDocumentDownloadFromCauses(
+      'aarsloen:table-validation-error',
+      tableValidation.errors.map(toTableBlockingCause),
+      'Valideringsfejl i tabel'
+    );
   }
   if (!hasAtLeastOneValidRow(values.tableData, values.loenperiode, {
     feriePct: values.feriePct,
