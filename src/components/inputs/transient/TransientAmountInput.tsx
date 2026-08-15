@@ -18,6 +18,14 @@ import {
 // i komponentens egen state — fx løntrin-finderens ekstra grundløn. Deler beløbs-/udtryks-parse-kernen
 // (`parseAmountInput`) og tegnfilteret med de persisterede beløbsfelter, så indtastningsreglerne er ens;
 // men den har hverken feltadresse, issue-snapshot, history eller persistens.
+//
+// **Totrins-aktivering som alle andre felter.** Feltet var tidligere ETTRINS: ét klik åbnede
+// editoren med det samme, mens `TransientDateInput` ved siden af — i samme lille vindue — krævede to.
+// To felter side om side opførte sig altså forskelligt. Forskellen havde desuden en konsekvens for
+// Escape: et ettrins-felt er ALTID «åbent», så `useTransientDraft` fandt altid noget at annullere, og
+// Escape derfra kunne pr. konstruktion aldrig nå det omgivende overlay. Med totrins gælder XOR-reglen
+// nu ens for begge felter: Escape i en ÅBEN editor annullerer indtastningen, Escape i et lukket felt
+// lukker vinduet.
 
 export type TransientAmountInputProps = Readonly<{
   value: AmountValue | undefined;
@@ -51,6 +59,9 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
     ref
   ) => {
     const inputElementRef = React.useRef<HTMLInputElement | null>(null);
+    // Blur'en fra caret-værnets egen blur/focus-cyklus må ikke opfattes som brugerens blur og
+    // dermed afslutte den editor, der lige blev åbnet.
+    const ignoreOpeningBlurRef = React.useRef(false);
     const admission = React.useMemo(() => {
       const charAdmission = amountExpressionAdmission({
         allowNegative,
@@ -76,6 +87,10 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       },
       onCommit,
       onReject: (_draft, message) => onReject?.(message ?? 'Ugyldigt beløb'),
+      // Åbningstasterne er feltets EGNE lovlige starttegn, ikke en håndskrevet liste: `admission`
+      // kender allerede tegnsættet (cifre, separator og evt. minus), så et felt med `allowNegative`
+      // eller uden decimaler åbner på præcis de tegn, det også accepterer bagefter.
+      twoStageActivation: { acceptsInitialKey: (key) => admission(key) },
       admission,
     });
 
@@ -86,6 +101,35 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       },
       [inputRef]
     );
+
+    // Samme caret-limbo-værn som `TransientDateInput` og de ordinære felter: et andet klik på et
+    // allerede fokuseret felt skal åbne en reelt redigerbar editor i alle browsere. Uden blur/focus-
+    // cyklussen bliver `readOnly`-ophævelsen i visse browsere kun en visuel markering, og feltet tager
+    // ikke imod tastetryk, selv om det ser åbent ud.
+    const previousOpenRef = React.useRef(draftState.isOpen);
+    React.useLayoutEffect(() => {
+      const justOpened = !previousOpenRef.current && draftState.isOpen;
+      previousOpenRef.current = draftState.isOpen;
+      if (!justOpened) return;
+      const element = inputElementRef.current;
+      if (!element || element.readOnly || document.activeElement !== element) return;
+
+      const end = element.value.length;
+      const caret = element.selectionStart ?? end;
+      ignoreOpeningBlurRef.current = true;
+      try {
+        element.blur();
+        element.focus({ preventScroll: true });
+        element.setSelectionRange(caret, caret);
+      } finally {
+        ignoreOpeningBlurRef.current = false;
+      }
+    }, [draftState.isOpen]);
+
+    const handleBlur = React.useCallback(() => {
+      if (ignoreOpeningBlurRef.current) return;
+      draftState.onBlur();
+    }, [draftState]);
 
     const handleDraftChange = React.useCallback((next: string) => {
       if (!admission(next)) {
@@ -101,7 +145,9 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
 
     const handleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
       draftState.onKeyDown(event);
-      if (!event.defaultPrevented) keyFilter(event);
+      // Tegnfilteret gælder kun den ÅBNE editor. I lukket tilstand ejer `onKeyDown` selv tasten:
+      // den afgør, om et tegn åbner editoren, og et filter oveni ville afvise åbningstasten.
+      if (draftState.isOpen && !event.defaultPrevented) keyFilter(event);
     }, [draftState, keyFilter]);
 
     const handlePaste = React.useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
@@ -112,15 +158,22 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
       const end = typeof element?.selectionEnd === 'number' ? element.selectionEnd : start;
       const spliced = spliceDraftWithPaste(
-        draft,
+        // Lukket felt: paste ERSTATTER værdien i stedet for at splejse ind i den viste tekst — samme
+        // regel som `TransientDateInput` og de ordinære felter.
+        draftState.isOpen ? draft : '',
         readClipboardText(event),
-        start,
-        end,
+        draftState.isOpen ? start : 0,
+        draftState.isOpen ? end : 0,
         MAX_AMOUNT_RAW_LENGTH,
         admission
       );
       if (spliced.acceptedLength === 0) {
         restoreDomValueAfterRejectedDraft(inputElementRef.current, draft);
+        return;
+      }
+      if (!draftState.isOpen) {
+        // Lukket paste afslutter straks, så feltet ikke efterlades i en halvåben tilstand.
+        draftState.commitDraft(spliced.draft, true);
         return;
       }
       draftState.onDraftChange(spliced.draft);
@@ -142,11 +195,21 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
         inputRef={assignInputRef}
         width={width}
         placeholder={placeholder}
+        sx={{
+          '& .MuiInputBase-input': {
+            // Den lukkede tilstand skal SES: ingen caret og en peger-markør, præcis som
+            // `TransientDateInput` og de ordinære totrins-felter.
+            caretColor: draftState.isOpen ? 'auto' : 'transparent',
+            cursor: draftState.isOpen ? 'text' : 'pointer',
+          },
+        }}
         draft={draftState.draft}
         onDraftChange={handleDraftChange}
         onFocus={draftState.onFocus}
-        onBlur={draftState.onBlur}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
+        onMouseDown={draftState.onMouseDown}
+        onClick={draftState.onClick}
         onPaste={handlePaste}
         error={Boolean(errorMessage)}
         helperText={errorMessage ?? ''}
@@ -154,6 +217,7 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
         htmlInputAttributes={{
           inputMode: allowDecimals ? 'decimal' : 'numeric',
           maxLength: MAX_AMOUNT_RAW_LENGTH,
+          readOnly: !draftState.isOpen,
         }}
       />
     );

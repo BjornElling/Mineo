@@ -1,10 +1,25 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, IconButton, Typography } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
 /**
  * Overlay-komponent til at vise midlertidige beskeder.
  * Vises øverst til højre. Auto-close-varigheden afhænger af typen:
- * success 3 s, info 4 s, warning 5 s. Error auto-lukker aldrig (kræver klik).
+ * success 3 s, info 4 s, warning 5 s. Error auto-lukker aldrig.
+ *
+ * **Fejlbeskeden kan lukkes uden mus.** Den blev tidligere KUN lukket ved et klik på selve
+ * boksen, med museteksten «Klik for at lukke» som eneste vejledning: der var ingen synlig lukkeknap,
+ * Escape gjorde intet, og boksen lå uden for tab-rækkefølgen. Den blev derfor stående og dækkede en
+ * del af skærmen, indtil brugeren fandt den med musen. Nu gælder tre ting for den blivende
+ * fejlvariant:
+ *
+ *  - en synlig, fokusérbar lukkeknap,
+ *  - Escape lukker,
+ *  - `role="alert"`, så en skærmlæser oplyser beskeden, når den kommer.
+ *
+ * De auto-lukkende varianter (success/info/warning) beholder deres adfærd: de forsvinder af sig selv
+ * og har derfor ikke brug for en lukkeaffordance. De bærer `role="status"`, som er den høflige
+ * pendant — den afbryder ikke oplæsningen midt i en sætning.
  *
  * @param {Object} props
  * @param {string} props.message - Besked der skal vises
@@ -48,6 +63,39 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
   React.useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  /**
+   * Den ENE lukkevej. Både lukkeknappen, Escape og klik på boksen ender her, så fade-ud og
+   * `onClose`-kvitteringen ikke kan komme ud af trit mellem tre kopier af samme handler.
+   */
+  const dismissTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismiss = React.useCallback(() => {
+    if (dismissTimeoutRef.current !== null) return;
+    setFadeOut(true);
+    dismissTimeoutRef.current = setTimeout(() => {
+      setVisible(false);
+      dismissTimeoutRef.current = null;
+      onCloseRef.current?.();
+    }, 300);
+  }, []);
+
+  React.useEffect(() => () => {
+    if (dismissTimeoutRef.current !== null) clearTimeout(dismissTimeoutRef.current);
+  }, []);
+
+  // Escape lukker den blivende fejlbesked. Kun den: de auto-lukkende varianter forsvinder selv, og en
+  // Escape-lytter på dem ville stjæle tasten fra en åben dialog eller en igangværende feltredigering.
+  const isDismissible = duration === null;
+  React.useEffect(() => {
+    if (!isDismissible) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      dismiss();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => { document.removeEventListener('keydown', handleKeyDown); };
+  }, [dismiss, isDismissible]);
 
   React.useEffect(() => {
     // Hvis duration er null (error-type), luk ikke automatisk
@@ -102,6 +150,9 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
 
   return (
     <Box
+      // `alert` afbryder og oplyser straks — rigtigt for den blivende fejl, brugeren skal reagere på.
+      // `status` er den høflige pendant til de beskeder, der forsvinder af sig selv.
+      role={isDismissible ? 'alert' : 'status'}
       sx={{
         position: 'fixed',
         top: 20,
@@ -110,7 +161,7 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
         backgroundColor: colorScheme.bg,
         border: `2px solid ${colorScheme.border}`,
         borderRadius: '10px',
-        padding: '12px 20px',
+        padding: isDismissible ? '12px 12px 12px 20px' : '12px 20px',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
         minWidth: '150px',
         maxWidth: '400px',
@@ -118,19 +169,14 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
         transform: fadeOut ? 'translateY(-10px)' : 'translateY(0)',
         transition: 'all 0.3s ease-out',
         pointerEvents: fadeOut ? 'none' : 'auto',
-        cursor: type === 'error' ? 'pointer' : 'default',
+        // Klik på hele boksen bevares som en genvej for musebrugere, der er vant til den.
+        cursor: isDismissible ? 'pointer' : 'default',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
+        gap: isDismissible ? '8px' : 0,
       }}
-      onClick={type === 'error' ? () => {
-        setFadeOut(true);
-        setTimeout(() => {
-          setVisible(false);
-          onCloseRef.current?.();
-        }, 300);
-      } : undefined}
-      title={type === 'error' ? 'Klik for at lukke' : undefined}
+      onClick={isDismissible ? dismiss : undefined}
     >
       <Typography
         variant="text"
@@ -140,10 +186,29 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
           textAlign: 'center',
           margin: 0,
           whiteSpace: 'pre-line', // Tillad line breaks i beskeder
+          flex: 1,
         }}
       >
         {message}
       </Typography>
+      {isDismissible ? (
+        <IconButton
+          type="button"
+          aria-label="Luk besked"
+          data-mineo-focusable-button="true"
+          size="small"
+          // Boksen ejer selv et klik-til-luk; uden dette ville knappens klik boble op og kalde
+          // `dismiss` to gange. Den anden ville være en no-op, men afhængigheden af det ville være
+          // uskreven — så den stoppes eksplicit.
+          onClick={(event) => {
+            event.stopPropagation();
+            dismiss();
+          }}
+          sx={{ color: colorScheme.text, padding: '4px' }}
+        >
+          <CloseIcon sx={{ fontSize: '18px' }} />
+        </IconButton>
+      ) : null}
     </Box>
   );
 });

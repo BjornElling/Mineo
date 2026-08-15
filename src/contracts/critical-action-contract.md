@@ -3,7 +3,10 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Underordnet form-, persistence- og dokument-output-kontrakterne for deres dataregler.
-**Senest verificeret mod kode:** 2026-08-12
+**Senest verificeret mod kode:** 2026-08-15 (§3's nye faneskift-række er målt af `PageTabs.test.tsx`:
+en RIGTIG editor registreres i coordinatorens registry, og testen kræver, at settle sker FØR skiftet —
+rækkefølgen er mutationstestet. En modprøve uden åben editor sikrer, at barrieren ikke blokerer et
+almindeligt faneskift)
 
 ## 1. Scope
 
@@ -12,6 +15,7 @@ Kontrakten gælder handlinger, der aflæser, erstatter eller kan unmount'e autor
 - Gem,
 - manuel/PWA-indlæsning,
 - sidenavigation,
+- faneskift inden for en side,
 - global undo/redo,
 - dokument-output.
 - brugerbekræftet PWA-genindlæsning efter en opdatering.
@@ -39,6 +43,7 @@ Policyen er ens for form- og grid-editoren; korrekthed må aldrig afhænge af br
 | Gem | settle først, evaluér derefter frisk input-/settingssnapshot | afvent |
 | Dokument-output | settle først, evaluér derefter frisk input-/settingssnapshot | afvent |
 | Sidenavigation | settle og fortsæt (også ved fejlende settle) | afvent |
+| Faneskift | settle og fortsæt (også ved fejlende settle) | afvent |
 | PWA-genindlæsning | settle og fortsæt (også ved fejlende settle) | afvent |
 | Manuel/PWA-indlæsning | gennemfør uden settle; den åbne draft må aldrig blokere handlingen | afvent |
 | Load, reset og `Slet alt` | gennemfør uden settle; den åbne draft må aldrig blokere handlingen | afvent |
@@ -51,6 +56,17 @@ faktisk godkender apply: ved succes bortfalder draften sammen med den erstattede
 apply-fejl forbliver både afsluttet input og åben draft uændret.
 
 Klargøring må ikke starte fil-I/O, routeændring, history-restore eller dokumentgenerator ved et blokeret resultat.
+
+**Faneskift bruger `navigate`-handlingen, ikke sin egen klasse.** Et faneskift skifter hvilke felter der
+er monteret, præcis som et sideskift, og har derfor samme policy: settle og fortsæt. En selvstændig
+klasse ville tillade, at de to kom til at behandle den åbne editor forskelligt, uden at nogen
+opdagede det. Barrieren kaldes i den DELTE `PageTabs`, så ingen side kan tegne faner uden om den.
+
+Skiftet må ikke bygge på, at et museklik i sig selv blur'er det åbne felt. Den bivirkning er ægte, men
+den er browserens, ikke fanens: fanerne står bevidst uden for Tab-rækkefølgen i dag, men bliver de
+tastaturtilgængelige, eller udløser programmet selv et skift, findes bivirkningen ikke, og en
+igangværende indtastning ville gå tabt uden varsel. Klargøringen skal derfor ske FØR skiftet, uanset
+hvordan det blev udløst.
 
 ## 4. Dokument-output og åben editor
 

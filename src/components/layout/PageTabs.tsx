@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Tab, Tabs } from '@mui/material';
+import { useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
 
 export type PageTabItem<T extends string> = {
   readonly key: T;
@@ -36,14 +37,46 @@ function PageTabs<T extends string>({
   onChange,
   minTabWidth = 140,
 }: PageTabsProps<T>): React.ReactElement {
+  const criticalActions = useCriticalInputActions();
   const allowedKeys = React.useMemo(() => new Set(items.map((item) => item.key)), [items]);
+
+  /**
+   * Faneskift settler selv den åbne editor.
+   *
+   * Før byggede skiftet på en bivirkning: klikker man på en fane med MUSEN, forlader musen først
+   * feltet, og blur'en committede det indtastede. Skiftet gjorde altså intet selv — det var
+   * heldigt stillet. Da fanerne bevidst ikke kan nås med tastaturet, kunne det ikke fremprovokeres,
+   * men sikringen manglede: bliver fanerne en dag tastaturtilgængelige, eller udløser programmet
+   * selv et skift, ville en igangværende indtastning gå tabt uden varsel.
+   *
+   * `'navigate'` er den rigtige handlingsklasse og ikke en ny: et faneskift har præcis samme policy
+   * som sidenavigation — settle og fortsæt, også ved et fejlende settle (`critical-action-contract.md`
+   * §3). Et sideskift og et faneskift må ikke kunne drifte fra hinanden.
+   *
+   * Ved et fail-closed `blocked` fokuseres det aktive felt, og skiftet stopper — samme svar som
+   * sidemenuens navigation giver.
+   */
   const handleChange = React.useCallback(
     (_event: React.SyntheticEvent, next: unknown) => {
-      if (typeof next === 'string' && allowedKeys.has(next as T)) {
-        onChange(next as T);
-      }
+      if (typeof next !== 'string' || !allowedKeys.has(next as T)) return;
+      const target = next as T;
+      void (async () => {
+        try {
+          const preparation = await criticalActions.prepare('navigate');
+          if (preparation.status === 'blocked') {
+            preparation.target?.focus();
+            return;
+          }
+        } catch {
+          // Fail-closed som sidemenuen: et uventet settle-nedbrud stopper skiftet, så en indtastning
+          // ikke går tabt på vej væk fra fanen. Sidemenuen viser desuden en advarsel; det gør denne
+          // flade ikke, fordi fanen bliver stående og selv er det synlige svar.
+          return;
+        }
+        onChange(target);
+      })();
     },
-    [allowedKeys, onChange]
+    [allowedKeys, criticalActions, onChange]
   );
 
   return (

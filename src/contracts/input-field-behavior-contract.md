@@ -8,7 +8,10 @@ brugerbeslutning truffet samme dag og målt af `keyboardChoiceUndoSteps.test.tsx
 feltfamilier: `maxLength`/`maxDigits` er påkrævet i codec-typen, og
 `src/__tests__/inputCore/fieldCharLengthPolicy.test.ts` måler for hvert produktionsfelt, at et for langt
 paste faktisk afkortes. Målingen fandt forinden 28 af 31 tekstfelter og 8 af 12 heltalsfelter helt uden
-grænse; §2.5 og §2.8 bærer nu de brugergodkendte tal)
+grænse; §2.5 og §2.8 bærer nu de brugergodkendte tal. §1.1a's totrins-krav for de TRANSIENTE felter er
+målt af `useTransientDraft.test.tsx`: et lukket felt er `readOnly` ved første klik og åbnes først ved
+det andet, et lovligt starttegn erstatter værdien, og Escape-XOR'en er målt fra begge sider — lukket
+felt lader tasten passere til den omgivende dialog, åben editor annullerer indtastningen)
 2026-08-12 (§4.6a er dækket i alle desktopbrowsere af
 `e2e/svie-smerte-satsaar-button.spec.ts`; §1.2's modalitets-uafhængighed er målt i browser og dækket af
 `e2e/mobile-virtual-keyboard-limits.spec.ts`; verifikationen 2026-08-09 nedenfor målte KUN tastning og
@@ -65,6 +68,24 @@ indeksværdier ved regulering af TAF, kan lovligt overstige 100 % og er slet ikk
   som canonical værdi og markeres med rød feltfejl og konkret tooltip.
 - Manglende værdi er ikke automatisk en rød feltfejl. Om tomhed giver en samlet fejl, en gul advarsel eller ingen
   feedback, afgøres af det konkrete felt og den consumer, der kræver værdien.
+
+### 1.1a Totrins-aktivering — universelt, også for transiente felter
+
+Et felt åbnes i **to trin**: første klik fokuserer feltet, andet klik (eller et lovligt starttegn, eller
+Delete/Backspace) åbner editoren. Et lukket felt er `readOnly`, viser ingen caret og bruger peger-markør.
+
+Reglen gælder **alle** redigerbare felter — også de transiente (overlay-/dialog-scratchfelter, som ikke
+er sagsdata). Transiensen angår, hvor værdien lever, ikke hvordan feltet tager imod: to felter side om
+side i samme lille vindue må ikke opføre sig forskelligt. `TransientAmountInput` var som det eneste
+ettrins og stod netop ved siden af et totrins `TransientDateInput` i «Find løntrin».
+
+Forskellen er ikke kosmetisk, for den forplanter sig til Escape (§Escape i `keyboard-navigation.md`):
+et ettrins-felt er ALTID «åbent» og har derfor altid noget at annullere, så det slugte Escape og gjorde
+det umuligt at lukke det omgivende overlay derfra. Med totrins gælder XOR-reglen ens: Escape i en åben
+editor annullerer indtastningen, Escape i et lukket felt passerer videre til fladen udenom.
+
+Åbningstegnene skal udledes af feltets EGET tegnsæt (dets `admission`), ikke skrives i hånden pr. felt:
+ellers kan et felt åbne på et tegn, det afviser i næste øjeblik.
 
 ### 1.2 Tegn- og længdeblokering – den universelle hovedregel
 

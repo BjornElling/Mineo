@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, act } from '@testing-library/react';
+import { render, act, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
 
@@ -58,5 +58,96 @@ describe('Overlay', () => {
       vi.advanceTimersByTime(60000);
     });
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+// Fejlbeskeden bliver stående, indtil brugeren lukker den. Den kunne tidligere KUN lukkes med et
+// museklik på selve boksen: ingen synlig lukkeknap, ingen Escape, ingen plads i tab-rækkefølgen — og
+// museteksten «Klik for at lukke» som eneste vejledning.
+describe('Overlay: fejlbeskeden kan lukkes uden mus', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => {
+    act(() => { vi.runOnlyPendingTimers(); });
+    vi.useRealTimers();
+  });
+
+  /** Kører fade-ud-forsinkelsen færdig, så `onClose`-kvitteringen når frem. */
+  const flushDismiss = () => { act(() => { vi.advanceTimersByTime(300); }); };
+
+  it('har en synlig, navngivet lukkeknap', () => {
+    render(<Overlay message="Fejl" type="error" onClose={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Luk besked' })).toBeInTheDocument();
+  });
+
+  it('lukker ved klik på lukkeknappen', () => {
+    const onClose = vi.fn();
+    render(<Overlay message="Fejl" type="error" onClose={onClose} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Luk besked' }));
+    flushDismiss();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('lukker ved Escape', () => {
+    const onClose = vi.fn();
+    render(<Overlay message="Fejl" type="error" onClose={onClose} />);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    flushDismiss();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('kvitterer PRÆCIS én gang, selv om knappen klikkes inde i den klikbare boks', () => {
+    // Boksen bevarer sin klik-til-luk-genvej for musebrugere. Uden `stopPropagation` ville knappens
+    // klik boble op og udløse lukkevejen to gange.
+    const onClose = vi.fn();
+    render(<Overlay message="Fejl" type="error" onClose={onClose} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Luk besked' }));
+    flushDismiss();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('oplyses som en alert, så en skærmlæser får beskeden', () => {
+    render(<Overlay message="Fejl" type="error" onClose={vi.fn()} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('Fejl');
+  });
+
+  it('bevarer museklikket på boksen som genvej', () => {
+    const onClose = vi.fn();
+    render(<Overlay message="Fejl" type="error" onClose={onClose} />);
+
+    fireEvent.click(screen.getByRole('alert'));
+    flushDismiss();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Overlay: de auto-lukkende varianter er uændrede', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => {
+    act(() => { vi.runOnlyPendingTimers(); });
+    vi.useRealTimers();
+  });
+
+  it('har INGEN lukkeknap — de forsvinder selv', () => {
+    render(<Overlay message="Gemt" type="success" onClose={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Luk besked' })).not.toBeInTheDocument();
+  });
+
+  it('reagerer ikke på Escape, så tasten forbliver dialogens og feltets', () => {
+    // En Escape-lytter på en besked, der lukker af sig selv, ville stjæle tasten fra en åben dialog
+    // eller en igangværende feltredigering — én Escape må kun gøre én ting.
+    const onClose = vi.fn();
+    render(<Overlay message="Gemt" type="success" onClose={onClose} />);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    act(() => { vi.advanceTimersByTime(300); });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('bruger den høflige `status`-rolle frem for `alert`', () => {
+    render(<Overlay message="Gemt" type="success" onClose={vi.fn()} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Gemt');
   });
 });
