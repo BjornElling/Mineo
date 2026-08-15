@@ -5,7 +5,7 @@ import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 // ægte produktions-runtime (`ProductionInputRuntimeProvider` mod `slimInputStore`). Beviser den virkelige sti:
 // hydreret sag → reader-projektion → StandardLoenTable over grid-adapteren (afledte kolonner, valideringssummary,
 // række-infrastruktur) + beregningsprincip-blok, uden legacy `usePersistedForm`/`invalidDrafts`.
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Aarsloen from '../../../components/pages/Aarsloen';
@@ -14,7 +14,10 @@ import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
-import { FIELD_ATTENTION_BLINK_CLASS } from '../../../inputCore/react/fieldAttentionBlink';
+import {
+  FIELD_ATTENTION_BLINK_CLASS,
+  FIELD_ATTENTION_BLINK_DURATION_MS,
+} from '../../../inputCore/react/fieldAttentionBlink';
 import {
   ProductionInputRuntimeProvider,
   createProductionInputRuntimeBinding,
@@ -392,12 +395,50 @@ describe('Årsløn — placeholders viser kun værdiens FORM', () => {
     await user.click(screen.getAllByRole('checkbox')[0]);
 
     await waitFor(() => {
-      // Markeringen er den DELTE blink-klasse på cellen — ikke en ny placeholdertekst og ikke
-      // længere en tabel-lokal animation.
-      expect(monthCell.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
+      // Markeringen er den DELTE blink-klasse — ikke en ny placeholdertekst og ikke en tabel-lokal
+      // animation. Klassen sættes af `blinkFieldAttention` på feltets SYNLIGE flade (MUI-skallen),
+      // så opslaget går på cellens undertræ frem for på `<td>` selv.
+      expect(monthCell.querySelector(`.${FIELD_ATTENTION_BLINK_CLASS}`)).not.toBeNull();
     });
     expect((within(monthCell).getByRole('textbox') as HTMLInputElement).placeholder).toBe('mm');
     expect(screen.queryByPlaceholderText('Indtastning mangler')).toBeNull();
+  });
+
+  it('markerer cellen IGEN ved hvert nyt klik på omregnings-togglen', async () => {
+    // Regression: markeringen kom kun ved FØRSTE klik. Tabellen satte blink-klassen deklarativt ud
+    // fra `missingCell`-state, så andet klik skrev SAMME værdi, React bailede ud af re-renderen, og
+    // brugeren fik intet svar. En «peg på dette felt»-markering er transient og skal komme igen,
+    // hver gang den udløses.
+    //
+    // Testen måler den GENSTARTEDE markering, ikke blot at klassen «er der»: den venter på, at
+    // klassen er væk igen efter animationens 1,5 s, og kræver, at næste klik bringer den tilbage.
+    // Uden ventetiden ville en klasse, der blot BLEV stående, se ud som en bestået test.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      hydrateAarsloen({ loenperiode: 'maaned', omregningTilFuldtAar: false, tableData: [] });
+      renderAarsloen();
+
+      const monthCell = getDataRowCells(0)[0];
+      const toggle = screen.getAllByRole('checkbox')[0];
+      const isMarked = () => monthCell.querySelector(`.${FIELD_ATTENTION_BLINK_CLASS}`) !== null;
+
+      for (const attempt of [1, 2, 3]) {
+        await user.click(toggle);
+        await waitFor(() => {
+          expect(isMarked(), `klik #${String(attempt)} gav ingen markering`).toBe(true);
+        });
+
+        // Lad markeringen løbe helt ud, så næste runde måler en ÆGTE genstart.
+        await act(async () => {
+          vi.advanceTimersByTime(FIELD_ATTENTION_BLINK_DURATION_MS + 50);
+          await Promise.resolve();
+        });
+        expect(isMarked(), `markeringen blev hængende efter klik #${String(attempt)}`).toBe(false);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('INGEN placeholder i tabellen bærer et grænsesymbol eller et årstal', () => {

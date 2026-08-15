@@ -14,7 +14,7 @@ import type {
 import type { StandardLoenTableHandle } from '../../types/handles';
 import { createRowId } from '../../utils/rowId';
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
-import { blinkFieldAttention, FIELD_ATTENTION_BLINK_CLASS } from '../../inputCore/react/fieldAttentionBlink';
+import { blinkFieldAttention } from '../../inputCore/react/fieldAttentionBlink';
 import {
   calculateStandardLoenRowDerived,
   isStandardLoenRowEffectivelyEmpty,
@@ -232,12 +232,15 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     // Save-order = de committede rækker i sorteret rækkefølge (placeholder-rækker persisteres ikke).
     // ── Visuel peg-mekanisme ────────────────────────────────────────────────────
-    // Selve blinket ejes IKKE længere her: det er den delte `blinkFieldAttention`, som enhver
-    // flade i programmet bruger. Tilbage i tabellen er kun `missingCell` — og den er et ANDET begreb end
-    // et blink: den står, indtil cellen er udfyldt, mens et blink er en kortvarig markering. En engangs-
-    // markering af en fejlcelle behøver derfor ingen state her.
-    const [missingCell, setMissingCell] = React.useState<{ rowId: string; colKey: StandardLoenTableColumnKey } | null>(null);
-
+    // ALLE tre peg-handlinger går gennem den delte `blinkFieldAttention`. Tabellen fører ingen egen
+    // markerings-state.
+    //
+    // Den tidligere `missingCell`-state satte blink-KLASSEN deklarativt for at lade markeringen «blive
+    // stående, indtil værdien er indtastet». Den begrundelse holdt ikke: klassens animation løber
+    // 0,5 s × 3 og efterlader derefter en helt gennemsigtig celle (målt), så der var ingen vedvarende
+    // markering at vinde — kun en genstart at tabe. Et gentaget klik satte samme state igen, React
+    // bailede ud, og brugeren fik INTET svar anden gang. Det var netop den fejl, en afvist
+    // omregnings-aktivering viste: kun det første klik blinkede.
     const isVisibleColKey = React.useCallback(
       (colKey: StandardLoenTableColumnKey): boolean => {
         if (colKey === 'col0_maaned' || colKey === 'col1_maaned') return loenperiode === 'maaned';
@@ -256,47 +259,33 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       return Number.parseInt(colKey.slice(3), 10);
     }, []);
 
-    // "Indtastning mangler" bruger SAMME visuelle idiom som en fejlflash frem for at overtage
-    // placeholderens semantiske ansvar: cellen scrolles ind og blinker
-    // rødt, mens placeholderen fortsat kun viser værdiens FORM (`mm`/`åååå`/`uu/åååå`/`dd-mm-åååå`).
-    // Markeringen er ikke en feltfejl (§1.7) — den gør ikke feltet rødt og blokerer intet; den lokaliserer
-    // blot cellen, og `missingCell`-effecten ovenfor rydder den, så snart værdien er indtastet.
-    // Den vedvarende «indtastning mangler»-markering bruger den DELTE blink-klasse frem for en egen
-    // animation, så de to markeringer ser ens ud og har ét sted at blive ændret. Klassen sættes her
-    // deklarativt (og ikke gennem `blinkFieldAttention`), fordi markeringen skal BLIVE stående, indtil
-    // værdien er indtastet — effecten nedenfor rydder den.
-    const getCellClassName = React.useCallback((rowId: string, colIdx: number): string | undefined => {
-      const isMissing = missingCell?.rowId === rowId && resolveColIdxFromKey(missingCell.colKey) === colIdx;
-      return isMissing ? FIELD_ATTENTION_BLINK_CLASS : undefined;
-    }, [missingCell, resolveColIdxFromKey]);
-
-    // Ryd missing-markeringen, når den pegede celle ikke længere er tom eller ikke længere er synlig.
-    React.useEffect(() => {
-      if (!missingCell) return;
-      if (!isVisibleColKey(missingCell.colKey)) { setMissingCell(null); return; }
-      const row = committedById.get(missingCell.rowId);
-      const value = row ? row[missingCell.colKey] : undefined;
-      const isEmpty = value === undefined || (typeof value === 'string' && value.trim() === '');
-      if (!isEmpty) setMissingCell(null);
-    }, [committedById, isVisibleColKey, missingCell]);
+    /**
+     * Scroll cellen frem og lad den blinke. Den ENE peg-vej for alle tre handles.
+     *
+     * "Indtastning mangler" bruger SAMME visuelle idiom som en fejlflash frem for at overtage
+     * placeholderens semantiske ansvar: cellen scrolles ind og blinker rødt, mens placeholderen
+     * fortsat kun viser værdiens FORM (`mm`/`åååå`/`uu/åååå`/`dd-mm-åååå`). Markeringen er ikke en
+     * feltfejl (§1.7) — den gør ikke feltet rødt og blokerer intet; den lokaliserer blot cellen.
+     */
+    const pointAtCell = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey): void => {
+      if (!isVisibleColKey(colKey)) return;
+      const el = cellRefsByCellKeyRef.current[`${rowId}:${resolveColIdxFromKey(colKey)}`];
+      if (!el) return;
+      scrollTargetIntoView(el, { force: true });
+      // Den delte markering: samme mekanisme, som fejllinks, save-blokeringen og undo/redo bruger —
+      // og den ENESTE, der genstarter animationen ved en gentagen peg-handling.
+      blinkFieldAttention(el);
+    }, [isVisibleColKey, resolveColIdxFromKey]);
 
     React.useImperativeHandle(
       ref,
       () => ({
         showMissingEntryError: (cell: StandardLoenTableFirstErrorCell) => {
           if (cell.reason !== 'missing') return;
-          if (!isVisibleColKey(cell.colKey)) return;
-          setMissingCell({ rowId: cell.rowId, colKey: cell.colKey });
-          const el = cellRefsByCellKeyRef.current[`${cell.rowId}:${resolveColIdxFromKey(cell.colKey)}`];
-          if (el) scrollTargetIntoView(el, { force: true });
+          pointAtCell(cell.rowId, cell.colKey);
         },
         flashError: (error) => {
-          const colIdx = resolveColIdxFromKey(error.colKey);
-          const el = cellRefsByCellKeyRef.current[`${error.rowId}:${colIdx}`];
-          if (!el) return;
-          scrollTargetIntoView(el, { force: true });
-          // Den delte markering: samme mekanisme, som fejllinks og save-blokeringen bruger.
-          blinkFieldAttention(el);
+          pointAtCell(error.rowId, error.colKey);
         },
         showNeedsPeriodHint: () => {
           // Den FØRSTE viste række, uanset om den er committet eller en placeholder — altså render-
@@ -304,13 +293,10 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           const firstRowId = renderRows[0]?.rowId;
           if (firstRowId === undefined) return;
           const [periodStartKey] = getStandardLoenPeriodKeys(loenperiode);
-          if (!isVisibleColKey(periodStartKey)) return;
-          setMissingCell({ rowId: firstRowId, colKey: periodStartKey });
-          const el = cellRefsByCellKeyRef.current[`${firstRowId}:${resolveColIdxFromKey(periodStartKey)}`];
-          if (el) scrollTargetIntoView(el, { force: true });
+          pointAtCell(firstRowId, periodStartKey);
         },
       }),
-      [isVisibleColKey, loenperiode, renderRows, resolveColIdxFromKey]
+      [loenperiode, pointAtCell, renderRows]
     );
 
     const headers = React.useMemo(() => getStandardLoenTableHeaderNodes(loenperiode), [loenperiode]);
@@ -361,7 +347,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                 {/* Periode fra. `mm` på månedscellen er en ægte FORMAT-override: kolonnen viser måneden
                     alene, og heltalsfamilien kender ikke den form. Uge-, dato- og årscellerne arver
                     deres families rene form og får derfor INGEN placeholder-prop her. */}
-                <td className={getCellClassName(rowId, COL.period0)} style={getStandardGridCellStyle({ align: 'center' })}>
+                <td style={getStandardGridCellStyle({ align: 'center' })}>
                   {loenperiode === 'maaned' ? (
                     <GridIntegerCell
                       gridCell={gc(COL.period0)}
@@ -385,7 +371,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                 </td>
 
                 {/* Periode til */}
-                <td className={getCellClassName(rowId, COL.period1)} style={getStandardGridCellStyle({ align: 'center' })}>
+                <td style={getStandardGridCellStyle({ align: 'center' })}>
                   {loenperiode === 'maaned' ? (
                     <GridYearCell
                       gridCell={gc(COL.period1)}
@@ -414,7 +400,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   [COL.col4, fieldSet.col4] as const,
                   [COL.col5, fieldSet.col5] as const,
                 ]).map(([colIdx, descriptor]) => (
-                  <td key={colIdx} className={getCellClassName(rowId, colIdx)} style={getStandardGridCellStyle({ align: 'right' })}>
+                  <td key={colIdx} style={getStandardGridCellStyle({ align: 'right' })}>
                     <GridAmountCell
                       gridCell={gc(colIdx)}
                       cell={buildCellSpec<AmountValue | undefined>(renderRow, descriptor, colIdx)}
@@ -425,7 +411,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
                 {/* FP/FV/SH/SO/St.B. — redigerbar i Beløb, afledt i Procent */}
                 {beloebMode ? (
-                  <td className={getCellClassName(rowId, COL.beloeb0)} style={getStandardGridCellStyle({ align: 'right' })}>
+                  <td style={getStandardGridCellStyle({ align: 'right' })}>
                     <GridAmountCell
                       gridCell={gc(COL.beloeb0)}
                       cell={buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.fpFvShSoBeloeb, COL.beloeb0)}
@@ -440,7 +426,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
                 {/* Arb.g. Pension — redigerbar i Beløb, afledt i Procent */}
                 {beloebMode ? (
-                  <td className={getCellClassName(rowId, COL.beloeb1)} style={getStandardGridCellStyle({ align: 'right' })}>
+                  <td style={getStandardGridCellStyle({ align: 'right' })}>
                     <GridAmountCell
                       gridCell={gc(COL.beloeb1)}
                       cell={buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.pensionBeloeb, COL.beloeb1)}
