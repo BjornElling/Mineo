@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-12
+**Senest verificeret mod kode:** 2026-08-15
 
 ## 1. Scope
 
@@ -15,7 +15,7 @@ Det øverste runtime-lag, der binder programmet sammen, og isolationen mellem de
 - Vite lazy-load-recovery: `src/apps/shared/vitePreloadRecovery.ts` (sidste sikkerhedsnet for et manglende lazy asset; den normale deploybeskyttelse ligger i service-workerens versionscache).
 - Service-worker-kilde: `sw/mineoServiceWorker.js` (skabelon; buildet substituerer versionen og emitterer `sw.js`).
 - Delt device-aflæsning: `src/utils/clientDevice.ts` (rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer, uden app-shell-render-beslutninger).
-- Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering, opdateringsstatus og brugerbekræftet reload).
+- Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering, versionsprobe og opstartens ene opdateringsbarriere — der findes hverken opdateringsstatus eller brugerbekræftet reload, jf. §2.8).
 - Lazy-recoverylinje: `src/components/system/LazyChunkRecoveryNotice.tsx` (sidste værn for en manglende lazy chunk; **ikke** en opdateringslinje).
 - PWA-filåbning: `src/utils/pwaLaunchQueue.ts` (launchQueue-consumer og versionssikker pending request).
 - PWA-cachepolitik: `public/_headers` (revalidering af HTML, SPA-ruter, manifest, service worker og assetmanifest; immutable hashed assets).
@@ -81,6 +81,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
    Registreringen springes **ikke** over på nogen rute, heller ikke `/open`. En session startet ved dobbeltklik på en `.eo`-fil skal have sin egen versionscache; ellers kan netop den langlivede fil-session (manifestets `launch_handler: "focus-existing"` tilskynder dem) miste sine PDF-/Word-chunks ved næste deploy.
 
    **Ingen bfcache-genindlæsning.** En gendannelse fra browserens back/forward-cache er **ikke** en ny session: brugeren vender tilbage til sit eget, igangværende arbejde. En `pageshow`-lytter, der genindlæste ved `event.persisted`, ville kunne skifte build midt i en sag og kaste en åben editors draft væk uden om `CriticalActionCoordinator`.
+
+   **Bevidst forkastet: én model for browser, en anden for PWA.** Idéen — lad browserfanen altid køre nyeste version, og lad kun den installerede PWA vente til næste opstart — blev vurderet og afvist (brugerbeslutning 2026-08-12). Tre grunde: (1) `display-mode: standalone` fortæller, hvordan vinduet blev *åbnet*, ikke om der er arbejde i gang; et browserfaneblad kan sagtens rumme en timegammel, halvfærdig erstatningsopgørelse, så en datasikkerhedsregel hængt på et *visnings*-signal er kun rigtig ved et tilfælde. (2) «Altid nyeste» i browseren betyder enten intet eller et tvunget reload midt i brugerens arbejde — altså opdateringslinjen ad bagdøren for én launch-mode. (3) To modeller fordobler edge-case-matricen for en sondring, der ikke følger det, invariantet beskytter. Det, idéen var ude efter, leverer no-store-HTML'en allerede: enhver ny fane, navigation eller genindlæsning henter nyeste HTML, så «åbne et faneblad» *er* en ny session. Grænsen er **sessionsstart**, ikke **launch-mode**.
 
    Vites `vite:preloadError` er alene sidste sikkerhedsnet for fejl, der ikke burde være mulige efter en komplet versionscache. Det må aldrig kalde `location.reload()` selv. Signalet undertrykkes, og `LazyChunkRecoveryNotice` tilbyder en brugerudløst reload gennem `CriticalActionCoordinator`; dermed bliver også en åben draft enten afsluttet eller eksplicit blokeret før navigation. Linjen er **ikke** en opdateringslinje — den dækker kun manglende chunks (se Kendte Undtagelser 4). Vite-recovery installeres centralt af `bootstrapClientApp` før enhver dynamisk style-, route-, renderer- eller writer-import.
 
