@@ -1,4 +1,6 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+import { setVerbatimFieldValueAndSettle } from './support/mineoTest';
 
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 
@@ -9,12 +11,8 @@ const login = async (page: Page): Promise<void> => {
   await expect(page).toHaveURL(/\/mineo$/);
 };
 
-const setDate = async (input: Locator, value: string): Promise<void> => {
-  await input.dblclick();
-  await input.fill(value);
-  await input.press('Tab');
-  await expect(input).toHaveValue(value);
-};
+/** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
+const setDate = setVerbatimFieldValueAndSettle;
 
 test.describe('Svie/smerte-satsår — Indsæt årstal', () => {
   test('indsætter satsåret fra opgørelsesdatoen, falder tilbage og er et tabstop', async ({ page }) => {

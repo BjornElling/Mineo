@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { setFieldValue, setFieldValueAndSettle } from './support/mineoTest';
+
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 
 const login = async (page: Page): Promise<void> => {
@@ -24,14 +26,11 @@ test.describe('Bekræftelsesdialog', () => {
     const deleteAll = page.getByRole('button', { name: 'Slet alle indtastninger' });
     await expect(date).toBeVisible();
 
-    await date.dblclick();
-    await date.fill('01-01-2026');
-    await date.press('Tab');
+    await setFieldValueAndSettle(date, '01-01-2026');
     await expect(date).toHaveValue('01-01-2026');
     await expect(deleteAll).toBeEnabled();
 
-    await date.dblclick();
-    await date.fill('02-02-2026');
+    await setFieldValue(date, '02-02-2026');
     await deleteAll.click();
 
     const dialog = page.getByRole('dialog');
@@ -82,9 +81,7 @@ test.describe('Slet alt-bekræftelse', () => {
     // Et afsluttet felt, der skal overleve begge annulleringsveje og forsvinde ved bekræftelse.
     const navn = page.locator("input[name='skadelidte']");
     await expect(navn).toBeVisible();
-    await navn.dblclick();
-    await navn.fill('Slet Alt Testperson');
-    await navn.press('Tab');
+    await setFieldValueAndSettle(navn, 'Slet Alt Testperson');
     await expect(navn).toHaveValue('Slet Alt Testperson');
 
     const sletAlt = page.getByRole('button', { name: /^Slet\salt$/ });

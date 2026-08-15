@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { setFieldValueAndSettle } from './support/mineoTest';
+
 /**
  * Browser-verifikation af den delte «peg på dette felt»-blinkmarkering (BF-020/BF-021).
  *
@@ -18,6 +20,9 @@ import { expect, test, type Page } from '@playwright/test';
 
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 const BLINK_CLASS = 'mineo-field-attention-blink';
+
+/** Den ENE feltidentitet i DOM (§3.2). Bruges til at skrive blinkmålets identitet ned. */
+const FIELD_ADDRESS_ATTRIBUTE = 'data-mineo-field-address';
 
 /** `--color-status-error` er #ef4444; markeringen er 20 % af den farve blandet ind i baggrunden. */
 const ERROR_RED_SRGB = '0.937255 0.266667 0.266667';
@@ -100,59 +105,167 @@ const sampleBlink = async (page: Page, selector: string): Promise<readonly strin
  *
  * På en stor WebKit-viewport kan en Playwright-rundtur nå at komme sent ind i den korte 1,5 s-animation.
  * Sampling må derfor følge browserens frames fra klasseændringen, ikke fra testprocessens næste await.
+ *
+ * **Observationen er samtidig testens ENESTE kilde til HVILKET element der blinkede.** Blinket er en
+ * transient tilstand: klassen står i 1,5 s og fjernes så af `fieldAttentionBlink.ts`. En påstand, der
+ * spørger den LEVENDE DOM «bærer feltet klassen?», er derfor et kapløb mod den timer — grøn på en hurtig
+ * maskine, og på en langsom maskine et 30 s-loft brugt på at vente på en tilstand, der aldrig kommer
+ * tilbage. Sampleren skriver derfor målets identitet ned, mens klassen er der, og
+ * påstandene læser den nedskrevne observation bagefter — uafhængigt af hvornår testprocessen når frem.
  */
-const startBlinkSampling = (page: Page): Promise<void> => page.evaluate((className) => {
-  type BlinkSamplingState = { samples: string[]; complete: boolean };
-  const windowWithBlinkSampling = window as Window & { mineoBlinkSampling?: BlinkSamplingState };
-  windowWithBlinkSampling.mineoBlinkSampling = { samples: [], complete: false };
+const startBlinkSampling = (page: Page): Promise<void> => page.evaluate(
+  ([className, addressAttribute]) => {
+    type BlinkSamplingState = {
+      samples: string[];
+      complete: boolean;
+      /** Feltadressen på det element, der faktisk blinkede — nedskrevet mens klassen stod der. */
+      targetAddress: string | null;
+      /** `name`-attributten på målets eget input, så en påstand kan pege på det konkrete felt. */
+      targetInputName: string | null;
+      /** Målets klasseliste på observationstidspunktet. */
+      targetClassName: string | null;
+      /** Sandt hvis dropdownpilen lå inden for målets rektangel, da blinket blev malet. */
+      arrowInsideSurface: boolean | null;
+      /** Sandt når de spolede prøver af animationens top og bund er taget (kun én gang). */
+      seekedSamplesTaken: boolean;
+    };
+    const windowWithBlinkSampling = window as Window & { mineoBlinkSampling?: BlinkSamplingState };
+    const state: BlinkSamplingState = {
+      samples: [],
+      complete: false,
+      targetAddress: null,
+      targetInputName: null,
+      targetClassName: null,
+      arrowInsideSurface: null,
+      seekedSamplesTaken: false,
+    };
+    windowWithBlinkSampling.mineoBlinkSampling = state;
 
-  const observer = new MutationObserver((records) => {
-    for (const record of records) {
-      const target = record.target;
-      if (!(target instanceof HTMLElement) || !target.classList.contains(className)) continue;
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        const target = record.target;
+        if (!(target instanceof HTMLElement) || !target.classList.contains(className)) continue;
 
-      observer.disconnect();
-      const state = windowWithBlinkSampling.mineoBlinkSampling;
-      if (!state) return;
-      const removalObserver = new MutationObserver((removalRecords) => {
-        if (removalRecords.some((removalRecord) =>
-          removalRecord.target instanceof HTMLElement
-          && !removalRecord.target.classList.contains(className))) {
-          removalObserver.disconnect();
-          state.complete = true;
+        observer.disconnect();
+
+        // Skriv målets identitet ned MENS klassen står der. Efter 1,5 s er den væk for altid.
+        state.targetClassName = target.className;
+        const inner = target.matches('input')
+          ? target
+          : target.querySelector<HTMLElement>(`input[${addressAttribute}], input[name]`);
+        state.targetAddress = (inner ?? target).getAttribute(addressAttribute)
+          ?? target.getAttribute(addressAttribute);
+        state.targetInputName = inner?.getAttribute('name') ?? null;
+
+        // Pilens dækning er også en observation af blinkøjeblikket, ikke af tiden bagefter.
+        const arrow = target.parentElement?.querySelector<SVGElement>('svg');
+        if (arrow) {
+          const surfaceBox = target.getBoundingClientRect();
+          const arrowBox = arrow.getBoundingClientRect();
+          state.arrowInsideSurface = arrowBox.left >= surfaceBox.left
+            && arrowBox.right <= surfaceBox.right
+            && arrowBox.top >= surfaceBox.top
+            && arrowBox.bottom <= surfaceBox.bottom;
         }
-      });
-      removalObserver.observe(target, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      const sampleFrame = () => {
-        if (!target.classList.contains(className)) {
-          removalObserver.disconnect();
-          state.complete = true;
-          return;
-        }
-        state.samples.push(getComputedStyle(target).backgroundColor);
+
+        const removalObserver = new MutationObserver((removalRecords) => {
+          if (removalRecords.some((removalRecord) =>
+            removalRecord.target instanceof HTMLElement
+            && !removalRecord.target.classList.contains(className))) {
+            removalObserver.disconnect();
+            state.complete = true;
+          }
+        });
+        removalObserver.observe(target, {
+          attributes: true,
+          attributeFilter: ['class'],
+        });
+        /**
+         * Aflæs animationens top og bund DETERMINISTISK i stedet for at håbe på, at en rAF-frame
+         * lander der.
+         *
+         * rAF-sampling måler kun de øjeblikke, browseren tilfældigvis nåede at tegne. Under
+         * hukommelses- og CPU-pres tegner WebKit så få frames, at samtlige prøver kan lande i
+         * animationens lave faser: målt maxAlpha 0,006–0,105 mod et krav på 0,12, selv om blinket
+         * FAKTISK blev malet — en måleartefakt, ikke en produktfejl.
+         *
+         * Web Animations API'et kender animationen uafhængigt af tegningen. Ved at spole til et
+         * kendt tidspunkt (0,25 s = første pulstop, 0,5 s = bund) aflæses de to yderpunkter, som
+         * kontrakten handler om, uden at afhænge af framerate. Bagefter stilles uret tilbage, så
+         * animationen kører videre og fjernes normalt.
+         */
+        const readAtOffsets = () => {
+          const animations = target.getAnimations?.() ?? [];
+          const blink = animations.find((candidate) =>
+            (candidate as CSSAnimation).animationName === 'mineoFieldAttentionBlink');
+          if (!blink) return false;
+
+          const resumeTime = blink.currentTime;
+          for (const offsetMs of [250, 500, 750]) {
+            blink.currentTime = offsetMs;
+            // Tving stilberegningen frem på det spolede tidspunkt.
+            state.samples.push(getComputedStyle(target).backgroundColor);
+          }
+          blink.currentTime = resumeTime;
+          return true;
+        };
+
+        const sampleFrame = () => {
+          if (!target.classList.contains(className)) {
+            removalObserver.disconnect();
+            state.complete = true;
+            return;
+          }
+          if (!state.seekedSamplesTaken) {
+            state.seekedSamplesTaken = readAtOffsets();
+          }
+          state.samples.push(getComputedStyle(target).backgroundColor);
+          requestAnimationFrame(sampleFrame);
+        };
         requestAnimationFrame(sampleFrame);
-      };
-      requestAnimationFrame(sampleFrame);
-      return;
-    }
-  });
+        return;
+      }
+    });
 
-  observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-}, BLINK_CLASS);
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  },
+  [BLINK_CLASS, FIELD_ADDRESS_ATTRIBUTE] as const
+);
 
-const readBlinkSamples = async (page: Page): Promise<readonly string[]> => {
+/** Den nedskrevne observation af ét blink. Læses efter animationen; ingen levende DOM-opslag. */
+type BlinkObservation = Readonly<{
+  samples: readonly string[];
+  targetAddress: string | null;
+  targetInputName: string | null;
+  targetClassName: string | null;
+  arrowInsideSurface: boolean | null;
+}>;
+
+/**
+ * Vent på, at blinket er kørt HELT færdigt, og aflever den nedskrevne observation.
+ *
+ * Ventetiden er bundet til at animationen er slut — ikke til at en klasse tilfældigvis stadig står.
+ * Derfor er den lige robust på en hurtig og en langsom maskine.
+ */
+const readBlinkObservation = async (page: Page): Promise<BlinkObservation> => {
   await page.waitForFunction(() => {
     const state = (window as Window & { mineoBlinkSampling?: { complete: boolean } }).mineoBlinkSampling;
     return state?.complete === true;
   });
   return page.evaluate(() => {
-    const state = (window as Window & { mineoBlinkSampling?: { samples: string[] } }).mineoBlinkSampling;
-    return state?.samples ?? [];
+    const state = (window as Window & { mineoBlinkSampling?: BlinkObservation }).mineoBlinkSampling;
+    return {
+      samples: state?.samples ?? [],
+      targetAddress: state?.targetAddress ?? null,
+      targetInputName: state?.targetInputName ?? null,
+      targetClassName: state?.targetClassName ?? null,
+      arrowInsideSurface: state?.arrowInsideSurface ?? null,
+    };
   });
 };
+
+const readBlinkSamples = async (page: Page): Promise<readonly string[]> =>
+  (await readBlinkObservation(page)).samples;
 
 /**
  * Læs alfa ud af en beregnet farve. Chromium rapporterer den animerede blanding som `oklab(... / a)`
@@ -207,37 +320,31 @@ const clickEoIssueLink = async (page: Page, message: string, actionName: string)
 const expectLinkedDropdownToPulse = async (
   page: Page,
   inputName: string,
-  samples: Promise<readonly string[]>
+  observation: Promise<BlinkObservation>
 ): Promise<void> => {
-  const input = page.locator(`input[name="${inputName}"]`);
-  await expect(input).toBeVisible();
-  const surface = input.locator('xpath=..');
-  await expect(surface).toHaveClass(new RegExp(BLINK_CLASS));
+  await expect(page.locator(`input[name="${inputName}"]`)).toBeVisible();
 
-  const arrowIsInsideSurface = await input.evaluate((element) => {
-    const surface = element.closest<HTMLElement>('.MuiInputBase-root');
-    const arrow = surface?.parentElement?.querySelector<SVGElement>('svg');
-    if (!surface || !arrow) return false;
-    const surfaceBox = surface.getBoundingClientRect();
-    const arrowBox = arrow.getBoundingClientRect();
-    return arrowBox.left >= surfaceBox.left && arrowBox.right <= surfaceBox.right
-      && arrowBox.top >= surfaceBox.top && arrowBox.bottom <= surfaceBox.bottom;
-  });
-  expect(arrowIsInsideSurface).toBe(true);
-
-  expectRedPulse(await samples);
+  const observed = await observation;
+  // Blinket ramte netop dette felt — aflæst da klassen stod der, ikke gættet på bagefter.
+  expect(observed.targetInputName).toBe(inputName);
+  expect(observed.targetClassName).toContain(BLINK_CLASS);
+  // Pilen lå inden for den blinkende flade, så markeringen dækkede også dropdownens pileområde.
+  expect(observed.arrowInsideSurface).toBe(true);
+  expectRedPulse(observed.samples);
 };
 
 /** Samme visuelle kontrakt for tekst-, dato- og procentfelter uden dropdown-pil. */
 const expectLinkedInputToPulse = async (
   page: Page,
   inputName: string,
-  samples: Promise<readonly string[]>
+  observation: Promise<BlinkObservation>
 ): Promise<void> => {
-  const input = page.locator(`input[name="${inputName}"]`);
-  await expect(input).toBeVisible();
-  await expect(input.locator('xpath=..')).toHaveClass(new RegExp(BLINK_CLASS));
-  expectRedPulse(await samples);
+  await expect(page.locator(`input[name="${inputName}"]`)).toBeVisible();
+
+  const observed = await observation;
+  expect(observed.targetInputName).toBe(inputName);
+  expect(observed.targetClassName).toContain(BLINK_CLASS);
+  expectRedPulse(observed.samples);
 };
 
 test.describe('Blinkmarkeringen males i browseren', () => {
@@ -288,7 +395,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await clickEoIssueLink(page, 'Helbredsforhold er ikke angivet', 'Erstatningsopgørelse');
 
     await expect(page.getByRole('tab', { name: 'EO oplysninger' })).toHaveAttribute('aria-selected', 'true');
-    await expectLinkedDropdownToPulse(page, 'svieSmerteHelbredsstatus', readBlinkSamples(page));
+    await expectLinkedDropdownToPulse(page, 'svieSmerteHelbredsstatus', readBlinkObservation(page));
   });
 
   test('fejllink til en anden side blinker det konkrete dropdownfelt efter route-skift', async ({ page }) => {
@@ -298,7 +405,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await clickEoIssueLink(page, 'Skadestype er ikke angivet', 'Skadelidte');
 
     await expect(page).toHaveURL(/\/stamdata$/);
-    await expectLinkedDropdownToPulse(page, 'skadestype', readBlinkSamples(page));
+    await expectLinkedDropdownToPulse(page, 'skadestype', readBlinkObservation(page));
   });
 
   test('SFGG-fejllink blinker beregningskilden, ikke ansættelseskortet', async ({ page }) => {
@@ -322,9 +429,11 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     const inputName = await input.getAttribute('name');
     expect(inputName).not.toBeNull();
 
-    const employmentCard = input.locator('xpath=ancestor::*[@data-mineo-row-id][1]');
-    await expect(employmentCard).not.toHaveClass(BLINK_CLASS);
-    await expectLinkedDropdownToPulse(page, inputName!, readBlinkSamples(page));
+    const observed = await readBlinkObservation(page);
+    // Blinket ramte beregningskilden — ikke ansættelseskortet. Den negative påstand aflæses på den
+    // NEDSKREVNE observation: kortet kan ikke «holde op med» at blinke sig fri af en levende kontrol.
+    expect(observed.targetInputName).toBe(inputName);
+    await expectLinkedDropdownToPulse(page, inputName!, Promise.resolve(observed));
   });
 
   /**
@@ -357,8 +466,14 @@ test.describe('Blinkmarkeringen males i browseren', () => {
       .locator('[data-mineo-field-address*="tafPerioder"][data-mineo-field-address*="\\"field\\":\\"fra\\""]')
       .first();
     await expect(fraCell).toBeVisible();
-    await expect(fraCell.locator('xpath=..')).toHaveClass(new RegExp(BLINK_CLASS));
-    expectRedPulse(await readBlinkSamples(page));
+
+    const observed = await readBlinkObservation(page);
+    expect(observed.targetClassName).toContain(BLINK_CLASS);
+    // Den blinkede adresse ER TAF-tabellens fra-celle — aflæst fra observationen, ikke fra en klasse,
+    // der forlængst kan være fjernet igen på en langsom maskine.
+    expect(observed.targetAddress).toContain('tafPerioder');
+    expect(observed.targetAddress).toContain('"field":"fra"');
+    expectRedPulse(observed.samples);
   });
 
   test('EET-fejllink blinker beregningsdatoen efter et faneskift', async ({ page }) => {
@@ -374,7 +489,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await issue.getByRole('button', { name: 'Grundlæggende oplysninger', exact: true }).click();
 
     await expect(page.getByRole('tab', { name: 'EET oplysninger' })).toHaveAttribute('aria-selected', 'true');
-    await expectLinkedInputToPulse(page, 'beregningsdato', readBlinkSamples(page));
+    await expectLinkedInputToPulse(page, 'beregningsdato', readBlinkObservation(page));
   });
 
   test('EET-advarselslink blinker EAL-procenten efter et faneskift', async ({ page }) => {
@@ -384,24 +499,12 @@ test.describe('Blinkmarkeringen males i browseren', () => {
       ['skadelidteFodselsdato', '01-01-1980'],
       ['skadedato', '01-01-2020'],
     ] as const) {
-      const input = page.locator(`input[name="${name}"]`);
-      await input.dblclick();
-      await input.fill(value);
-      await input.press('Tab');
+      await setFieldValueAndSettle(page.locator(`input[name="${name}"]`), value);
     }
     await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
-    const beregningsdato = page.locator('input[name="beregningsdato"]');
-    const ealEetPct = page.locator('input[name="ealEetPct"]');
-    await beregningsdato.dblclick();
-    await beregningsdato.fill('01-01-2026');
-    await beregningsdato.press('Tab');
-    const aslAarsloen = page.locator('input[name="aslAarsloen"]');
-    await aslAarsloen.dblclick();
-    await aslAarsloen.fill('300000');
-    await aslAarsloen.press('Tab');
-    await ealEetPct.dblclick();
-    await ealEetPct.fill('10');
-    await ealEetPct.press('Tab');
+    await setFieldValueAndSettle(page.locator('input[name="beregningsdato"]'), '01-01-2026');
+    await setFieldValueAndSettle(page.locator('input[name="aslAarsloen"]'), '300000');
+    await setFieldValueAndSettle(page.locator('input[name="ealEetPct"]'), '10');
     await page.getByRole('tab', { name: 'EET efter EAL' }).click();
     const warning = page.locator('.row--label-right-hover').filter({
       hasText: 'Der kan ikke tilkendes erhvervsevnetab under 15 %',
@@ -412,6 +515,6 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await warning.getByRole('button', { name: 'Erstatningsansvarsloven', exact: true }).click();
 
     await expect(page.getByRole('tab', { name: 'EET oplysninger' })).toHaveAttribute('aria-selected', 'true');
-    await expectLinkedInputToPulse(page, 'ealEetPct', readBlinkSamples(page));
+    await expectLinkedInputToPulse(page, 'ealEetPct', readBlinkObservation(page));
   });
 });

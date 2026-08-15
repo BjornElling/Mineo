@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { setFieldValueAndSettle } from './support/mineoTest';
+
 test.describe('MinProcesrente — recovery og fokus', () => {
   test('rydder en afvist beregningsdato og bevarer fokus på Indsæt dags dato', async ({ page }) => {
     const runtimeErrors: string[] = [];
@@ -16,9 +18,7 @@ test.describe('MinProcesrente — recovery og fokus', () => {
     await expect(dateInput).toBeVisible();
     await expect(clearAllButton).toBeDisabled();
 
-    await dateInput.dblclick();
-    await dateInput.fill('99-99-9999');
-    await dateInput.press('Tab');
+    await setFieldValueAndSettle(dateInput, '99-99-9999');
     await expect(dateInput).toHaveAttribute('aria-invalid', 'true');
 
     // BF-055: afvist tekst er stadig brugerdata, som skal kunne ryddes centralt.

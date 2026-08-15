@@ -1,4 +1,4 @@
-import { expect, type Page, test as base } from '@playwright/test';
+import { expect, type Locator, type Page, test as base } from '@playwright/test';
 
 // Delt e2e-grundlag. Findes fordi de 20 spec-filer hver især gentog det samme opstartsarbejde: 19 kopier af
 // testpasswordet, 38 linjers håndskrevet login og en runtime-signalopsamling, der kun var med i nogle af dem.
@@ -78,6 +78,61 @@ export const waitForSettledChange = async (page: Page, previousRevision: number)
     .poll(async () => (await readAutomationSnapshot(page)).revision)
     .not.toBe(previousRevision);
   return (await readAutomationSnapshot(page)).revision;
+};
+
+/**
+ * Skriv en værdi i et felt gennem dets almindelige totrins fokus-/redigeringsmodel.
+ *
+ * Findes som ÉT sted, fordi mønsteret `dblclick()` → `fill()` var gentaget 19 gange i ni spec-filer, og
+ * hver kopi bar den samme tidsafhængighed: dobbeltklikket åbner redigeringstilstanden, men kun hvis
+ * feltet allerede er interaktivt, OG kun hvis browserens to klik falder inden for dens dobbeltklik-
+ * interval. På en langsom, hukommelsespresset maskine kan begge dele glippe. `fill()` rammer så et felt,
+ * der ikke redigerer, og testen bruger hele sit timeout-loft på et klik uden virkning — uden at
+ * produktet fejler.
+ *
+ * Helperen venter på interaktivitet og bekræfter, at værdien faktisk landede; ramte dobbeltklikket
+ * ikke, åbnes redigeringstilstanden igen frem for at antage det modsatte. `toPass` gør genforsøget til
+ * en betingelse på den observerede tilstand, ikke en fast ventetid.
+ */
+export const setFieldValue = async (input: Locator, value: string): Promise<void> => {
+  await expect(input).toBeVisible();
+  await expect(input).toBeEnabled();
+
+  await expect(async () => {
+    await input.dblclick();
+    await input.fill(value);
+    await expect(input).toHaveValue(value, { timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+};
+
+/**
+ * Som `setFieldValue`, men afslutter indtastningen med Tab, så feltet settler.
+ *
+ * Her hævdes værdien BEVIDST ikke igen bagefter. Settle er netop det tidspunkt, hvor feltet må
+ * normalisere sin visning: et beløbsfelt viser `300.000` for den indtastede `300000`, en brøk
+ * reducerer `02/04` til `2/4`. En efterkontrol på den RÅ streng ville derfor være falsk for hele
+ * beløbs- og brøkfamilien. Kontrollen af, at indtastningen landede, hører hjemme i `setFieldValue`,
+ * hvor feltet stadig viser den rå tekst — og den er allerede sket, når vi når hertil. Skal en test
+ * hævde den formaterede visning, gør den det eksplicit på sit eget sted, hvor den rigtige forventede
+ * tekst er kendt.
+ */
+export const setFieldValueAndSettle = async (input: Locator, value: string): Promise<void> => {
+  await setFieldValue(input, value);
+  await input.press('Tab');
+};
+
+/**
+ * Som `setFieldValueAndSettle`, men for felter hvor settle IKKE omformaterer visningen — datoer og fri
+ * tekst. Her er den settlede visning lig den indtastede streng, og efterkontrollen er derfor både
+ * gyldig og værdifuld: den fanger et felt, der tavst kasserede eller normaliserede indtastningen.
+ * Brug den IKKE til beløb eller brøker (`300000` → `300.000`, `02/04` → `2/4`).
+ */
+export const setVerbatimFieldValueAndSettle = async (
+  input: Locator,
+  value: string,
+): Promise<void> => {
+  await setFieldValueAndSettle(input, value);
+  await expect(input).toHaveValue(value);
 };
 
 /**

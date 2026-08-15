@@ -5,7 +5,7 @@ Beskriv den oplevede adfærd; agenten ejer teknisk analyse, implementeringsplan 
 
 ## Nye fund
 
-Næste ID: **BF-058**. Kopiér denne blok pr. fund:
+Næste ID: **BF-059**. Kopiér denne blok pr. fund:
 
 ```md
 ## BF-028 — Kort titel
@@ -24,20 +24,6 @@ Næste ID: **BF-058**. Kopiér denne blok pr. fund:
 
 Udelad punkter, der ikke er relevante. Medtag gerne præcis synlig tekst og screenshot. Skriv altid, hvis fundet
 kan påvirke beregnede tal, gemte data eller dokumenter. Agenten flytter rettede fund til den korte log nedenfor.
-
-## BF-058 — Flaky E2E-tests i WebKit og Firefox
-
-- Type: Fejl
-- Sted: Den fulde E2E-suite, især `field-attention-blink` og `download-tooltip-classes`
-- Sådan fremprovokeres det:
-  1. Kør den fulde `npm run test:e2e`-suite.
-  2. Gennemgå fejlene fra WebKit og Firefox.
-  3. Gentag kørslen uden lokale kodeændringer, eksempelvis fra et rent eller stashet arbejdstræ.
-- Det sker: Suiten giver 18 fejl, mens 342 tests består. Næsten alle fejl ligger i `field-attention-blink` og `download-tooltip-classes` under WebKit/Firefox. De samme fejl opstår uden de lokale ændringer, som blev undersøgt.
-- Det bør ske: E2E-suiten bør være stabil og skelne pålideligt mellem præeksisterende testflakiness og reelle produktregressioner.
-- Påvirkning: Testresultatet er mindre pålideligt som kvalitets- og regressionsgate. Fundet er ikke undersøgt nærmere og er ikke i sig selv en konstatering af en produktfejl.
-- Prioritet: Mellem
-- Status: Ny
 
 ## Afventer reproduktion
 
@@ -102,6 +88,7 @@ Ingen fund afventer reproduktion.
 | BF-055 | Slet alle indtastninger er også aktiv ved en afsluttet afvist beregningsdato, så brugeren altid kan rydde siden. |
 | BF-056 | Indsæt dags dato bevarer fokus på den aktiverede knap på alle fem flader. |
 | BF-057 | Formularfelter og dropdowns har stabile tilgængelige navne, der følger feltets synlige label. |
+| BF-058 | To måleartefakter er fjernet: blinket aflæses nu fra en nedskrevet observation i stedet for et kapløb mod den 1,5 s transiente klasse, og animationens top/bund aflæses deterministisk frem for at afhænge af framerate. Felters totrins-indtastning er samlet i én tidsrobust helper (19 kopier i ni filer), og et AST-værn holder begge mønstre ude. |
 
 ## BF-033 — Valg-dropdowns kræver forkert præcision ved paste
 

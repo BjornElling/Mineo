@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { setFieldValueAndSettle } from './support/mineoTest';
+
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 
 const login = async (page: Page): Promise<void> => {
@@ -23,15 +25,11 @@ test.describe('Brøkfeltet', () => {
     const input = page.locator("input[name='forligAnsvarsgradBroek']");
     await expect(input).toBeVisible();
 
-    await input.dblclick();
-    await input.fill('02/04');
-    await input.press('Tab');
+    await setFieldValueAndSettle(input, '02/04');
     await expect(input).toHaveValue('2/4');
     await expect(input).toHaveAttribute('aria-invalid', 'false');
 
-    await input.dblclick();
-    await input.fill('1/0');
-    await input.press('Tab');
+    await setFieldValueAndSettle(input, '1/0');
     await expect(input).toHaveValue('1/0');
     await expect(input).toHaveAttribute('aria-invalid', 'true');
     await input.focus();

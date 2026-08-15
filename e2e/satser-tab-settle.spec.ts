@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { setFieldValueAndSettle } from './support/mineoTest';
+
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 
 const login = async (page: import('@playwright/test').Page): Promise<void> => {
@@ -25,10 +27,7 @@ test.describe('Satser — afslutning af singleton-draft med Tab', () => {
     await expect(input).toBeVisible();
     await expect(input).toHaveValue('2026');
 
-    await input.dblclick();
-    await expect(input).toBeEditable();
-    await input.fill('2027');
-    await input.press('Tab');
+    await setFieldValueAndSettle(input, '2027');
 
     await expect(input).toBeFocused();
     await expect(input).toHaveValue('2027');

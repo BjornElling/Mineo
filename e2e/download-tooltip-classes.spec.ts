@@ -1,5 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
+import { setFieldValueAndSettle, setVerbatimFieldValueAndSettle } from './support/mineoTest';
+
 /**
  * Download-knappens tooltip: de tre brugerrettede klasser (brugerbeslutning 2026-08-13).
  *
@@ -30,12 +32,8 @@ const login = async (page: Page): Promise<void> => {
   await expect(page).toHaveURL(/\/mineo$/);
 };
 
-const setDate = async (input: Locator, value: string): Promise<void> => {
-  await input.dblclick();
-  await input.fill(value);
-  await input.press('Tab');
-  await expect(input).toHaveValue(value);
-};
+/** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
+const setDate = setVerbatimFieldValueAndSettle;
 
 /** Den deaktiverede downloadknaps tooltip er dens accessible name (jf. `DownloadIconButton`). */
 const expectDisabledDownloadTooltip = async (button: Locator, tooltip: string): Promise<void> => {
@@ -94,16 +92,12 @@ test.describe('Download-tooltip — de tre klasser', () => {
      * så to datofelter med samme fejlkode kollapser til ÉN post og ville forblive et lovligt enkeltcitat.
      */
     const mengrad = page.locator("input[name='mengrad']");
-    await mengrad.dblclick();
-    await mengrad.fill('999');
-    await mengrad.press('Tab');
+    await setFieldValueAndSettle(mengrad, '999');
     await expect(mengrad).toHaveAttribute('aria-invalid', 'true');
     await expectDisabledDownloadTooltip(download, INVALID_INPUT);
 
     // Rettes méngraden, er der igen kun ÉN rød fejl at citere.
-    await mengrad.dblclick();
-    await mengrad.fill('10');
-    await mengrad.press('Tab');
+    await setFieldValueAndSettle(mengrad, '10');
     await expect(mengrad).not.toHaveAttribute('aria-invalid', 'true');
     await expectDisabledDownloadTooltip(download, NONEXISTENT_DAY);
 

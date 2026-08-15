@@ -1,4 +1,6 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+import { setFieldValueAndSettle, setVerbatimFieldValueAndSettle } from './support/mineoTest';
 
 /**
  * Betingede bilagsvalg vises ALTID — inaktive og umarkerede med årsagen i tooltippet
@@ -24,18 +26,15 @@ const login = async (page: Page): Promise<void> => {
   await expect(page).toHaveURL(/\/mineo$/);
 };
 
-const setDate = async (input: Locator, value: string): Promise<void> => {
-  await input.dblclick();
-  await input.fill(value);
-  await input.press('Tab');
-  await expect(input).toHaveValue(value);
-};
+/** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
+const setDate = setVerbatimFieldValueAndSettle;
 
-const setText = async (input: Locator, value: string): Promise<void> => {
-  await input.dblclick();
-  await input.fill(value);
-  await input.press('Tab');
-};
+/**
+ * Tal-/tekstindtastning uden efterkontrol på den rå streng: felterne her er beløb og procenter, som
+ * NORMALISERER deres visning ved settle (`400000` → `400.000`). Den oprindelige helper hævdede
+ * bevidst heller ikke værdien bagefter.
+ */
+const setText = setFieldValueAndSettle;
 
 /**
  * Fylder det mindste EET-forløb, der får Differencekrav-fanens "Beregning"-boks (og dermed bilagsvalgene)
