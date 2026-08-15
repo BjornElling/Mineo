@@ -20,6 +20,40 @@ Auditten har tre ligeværdige produkter:
 2. **Adfærdsfund:** synlige afvigelser, datatab, inkonsistens, kontraktdrift, parallel eller afvigende logik, mistænkelig beregningsadfærd og manglende eller uforudsigelig feedback.
 3. **Dæknings- og afklaringsspor:** løbende checkpoint for hvad der er gennemgået, hvad der mangler, og konkrete spørgsmål om forventet adfærd, som ikke kan udledes sikkert.
 
+Derudover fører auditworkerens egen kørsel en separat, append-only driftslog i
+`docs/testing/runtime-input-audit/AUDIT-WORKER-ERRORS.md`. Den log må kun indeholde fejl
+i auditten, browser-/serverstyringen eller de lokale auditværktøjer — ikke Mineo-fund.
+Opret den ved opstart via `init-audit-workspace.mjs`, og registrér enhver fejl i selve
+arbejdskørslen løbende med:
+
+```powershell
+node .agents/skills/jette-interaktionsaudit/scripts/record-audit-error.mjs --repo . `
+  --type 'tool-fejl' --phase 'browserarbejde' --command 'Konkret kommando eller handling' `
+  --scenario 'SCENARIO-ID' --browser 'chrome' --viewport '1536x864' `
+  --recoverable 'ja/nej' --message 'Kort konkret fejl' --details 'Kort nødvendig kontekst'
+```
+
+Det er obligatorisk at registrere alle ikke-nul exitkoder, exceptions/rejections i
+auditworkerens egne scripts, browser- eller serverstartfejl, mistede browserkontekster,
+afbrudte checkpoints, timeouts og andre fejl, som forhindrer eller forvrider auditens
+egen kørsel. Registrér fejlen før genoptagelse, recovery eller skift til næste uafhængige
+arbejdsenhed.
+
+Loggen er derimod ikke et sted for **kendt og dokumenteret mekanik**. Følgende registreres
+IKKE, fordi den korrekte fremgangsmåde står i afsnittet «Browsermekanik: de faste greb» og
+et forkert greb derfor er en instruktion, der ikke blev fulgt — ikke et driftsforhold:
+
+- read-only-felt der kræver `dblclick` før `fill`;
+- forventet `beforeunload`-timeout i det foreskrevne `reload` → `dialog-accept` → `snapshot`-forløb;
+- en CLI-kommando, -option eller et niveau der ikke findes, når `--help` ikke blev kontrolleret først;
+- en locator-fejl (manglende citationstegn, strict-mode, stale ref), hvor locator-rækkefølgen ikke blev fulgt;
+- en PowerShell-quoting-fejl i inline `run-code`, hvor `--filename` skulle have været brugt.
+
+Bliver det samme greb alligevel en fejl to gange, er det et tegn på, at instruktionen er
+utilstrækkelig: registrér da ÉN post om selve instruktionen frem for en post pr. gentagelse. Produktets `console.error`, `pageerror` og synlige fejl registreres fortsat
+i `CRASHES.md` efter de almindelige auditregler og kopieres kun til workerloggen, hvis
+selve auditværktøjet også fejler.
+
 Skillen finder og dokumenterer problemer. Den retter ikke produktionskode, audit-tests, kontrakter, brugerdata eller produktkonfiguration. Den må dog selv vedligeholde sit lokale auditværktøj, sine lokale browserbinærer og den projektlokale browser-skill efter reglerne nedenfor.
 
 ## Selvvedligeholdelse af auditmiljøet
@@ -36,7 +70,8 @@ Versionsreglen er eksplicit:
 
 - Sammenlign først en pakke med dens egen `package.json`/`package-lock.json`-kilde. Mangler pakken eller er den bagud i forhold til lockfilen, opdateres/installeres den.
 - En allerede installeret højere version beholdes. Brug aldrig `npm ci`, en eksplicit ældre versionsspecifikation eller anden handling, der nedgraderer en forudgående version for at få et andet værktøj til at ligne den.
-- `@playwright/test` er Mineos E2E-familie. `@playwright/cli` og `@playwright/mcp` er CLI/MCP-familien og skal afstemmes indbyrdes, men må ikke afstemmes ved at nedgradere E2E-familien. Hvis CLI/MCP-familien er splittet, opdateres den bagudstående pakke til den seneste kompatible udgave; hvis den ikke kan afstemmes uden nedgradering, registreres den konkrete blokering.
+- `@playwright/test` er Mineos E2E-familie og bor i projektets eget `node_modules`. `@playwright/cli` og `@playwright/mcp` er CLI/MCP-familien og bor i deres eget træ under `.agents/tools`, fordi de pinner en anden Playwright-runtime. De to træer må aldrig slås sammen: begge familier deklarerer kommandoen `playwright`, og deler de node_modules, kan npm kun give den ene kommandoen — så kører `npx playwright test` e2e-filerne med en anden runner-instans, end filerne importerer, og hver fil fejler med «did not expect test.describe() to be called here». `npm run check:tool-isolation` håndhæver adskillelsen.
+- CLI/MCP-familien skal afstemmes indbyrdes, men må ikke afstemmes ved at nedgradere E2E-familien. Hvis CLI/MCP-familien er splittet, opdateres den bagudstående pakke til den seneste kompatible udgave; hvis den ikke kan afstemmes uden nedgradering, registreres den konkrete blokering.
 - Browserbinærer fjernes aldrig som led i reparationen. Hvis den aktuelle Playwright-runtime mangler sin krævede revision, installeres revisionen side om side; en nyere eksisterende revision beholdes.
 - En reparerbar versionsforskel er en miljøhandling, ikke et auditfund. Kun en forskel, der består efter helperens reparation eller konkret påvirker auditdækningen, registreres som dækningshul.
 
@@ -72,6 +107,15 @@ Ved fler-dages kørsel kan Windows' normale idle-sleep forebygges med den lokale
 $keepAwake = (Resolve-Path '.agents/skills/jette-interaktionsaudit/scripts/keep-awake.ps1').Path
 $keepAwakeProcess = Start-Process powershell.exe -WindowStyle Hidden -PassThru -ArgumentList @('-NoLogo', '-NoProfile', '-File', $keepAwake, '-RepoRoot', (Get-Location).Path)
 ```
+
+Alle andre lokale hjælpeprocesser skal startes med `Start-Process -WindowStyle Hidden`
+og `-NoNewWindow`/redirected output, hvor det er relevant. Brug aldrig Vites almindelige
+`dev`-script under auditten, fordi det indeholder `--open`; start i stedet serveren med
+`npm run generate:build-info` efterfulgt af `npx vite --config vite.mineo.config.ts
+--host 127.0.0.1` eller brug Playwright-konfigurationens skjulte `webServer`.
+Hvis en proces alligevel åbner et vindue, stop den sikkert, registrér det i
+`AUDIT-WORKER-ERRORS.md`, og genstart med den skjulte variant. En synlig browser eller
+operativsystemsdialog må ikke åbnes som workaround.
 
 Gem `$keepAwakeProcess.Id` eller PID-filen `.agents/skills/jette-interaktionsaudit/state/keep-awake.pid`, og stop processen ved en entydig brugerbesked om pause/stop. Helperen forhindrer kun normal Windows idle-sleep; den løser ikke strømudfald, genstart, tvungen sleep, netværksfejl eller en mistet Codex-forbindelse. Hvis den ikke kan starte, registreres det som et dæknings-/driftsforhold, og checkpoint-/resume-protokollen fortsætter stadig.
 
@@ -118,9 +162,9 @@ Auditten er en åben, langvarig arbejdsopgave — ikke en enkelt leverance med e
 7. Kør `node .agents/skills/jette-interaktionsaudit/scripts/audit-session.mjs status --repo .`. Hvis der ikke findes en lease, oprettes den med `STATUS.md`'s registrerede næste scenarie og starttilstand. Ved en frisk opstart med `ready` lease startes den registrerede næste arbejdsenhed; ved `active` lease fortsættes kun, hvis heartbeat stadig er aktuelt og der ikke findes en anden levende audit-worker. Ellers køres `recover` og `resume`, hvorefter hele den aktive arbejdsenhed gentages fra ren tilstand.
 8. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
 9. Dæk browserne Chrome, Edge, Firefox og Safari/WebKit med både den almindelige Full-HD-CSS-viewport 1920×1080 og den bindende minimums-CSS-viewport 1536×864. Sidstnævnte svarer til en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering, når browserens zoom står på 100 %. Playwright styrer CSS-viewporten og simulerer ikke selve operativsystemets fysiske skalering; registrér derfor altid både CSS-viewport og `window.devicePixelRatio`, og registrér et eventuelt hul i ægte OS-/headed-verifikation særskilt. Brug mindst én større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
-   - Før browserstyring: kør `ensure-audit-environment.mjs` som beskrevet ovenfor. Kontrollér derefter `npx --no-install playwright-cli --version`, `node node_modules/@playwright/test/cli.js --version` og `node node_modules/@playwright/test/cli.js install --list`. Brug den eksplicitte test-CLI til Mineos E2E-motor; brug aldrig den generiske `npx playwright`-alias, fordi den kan ramme CLI/MCP-familiens anden Playwright-version. Helperen installerer manglende Firefox/WebKit/Chromium-revisioner, bevarer nyere revisioner og registrerer manglende Chrome-/Edge-channel eksplicit som dækningshul.
-   - Kør alle browserkørsler headless. `playwright-cli` er headless som standard, så brug aldrig `--headed`, `npm run test:e2e:headed`, `show --annotate` eller en synlig browser-attach under auditten. Snapshots, screenshots, traces og video kan stadig optages headless. Det holder browseren fra skærmen og fra operativsystemets input-/dvaleinteraktion.
-   - Brug de navngivne sessioner `chrome`, `edge`, `firefox` og `webkit`, og luk dem med `npx --no-install playwright-cli close-all` efter batchen. En session må ikke genbruges, før dens browser, viewport og rene starttilstand er verificeret. E2E-smoke og andre testkørsler køres fortsat via projektets eksplicitte `node node_modules/@playwright/test/cli.js` eller `npm run test:e2e` — de to CLI-familier må ikke blandes sammen.
+   - Før browserstyring: kør `ensure-audit-environment.mjs` som beskrevet ovenfor. Kontrollér derefter `node .agents/tools/playwright-cli.mjs --version`, `npx playwright --version` og `npx playwright install --list`. De to kommandoer rammer hver sin familie, fordi CLI/MCP-familien bor i `.agents/tools` og `npx playwright` derfor entydigt er Mineos E2E-motor. Helperen installerer manglende Firefox/WebKit/Chromium-revisioner, bevarer nyere revisioner og registrerer manglende Chrome-/Edge-channel eksplicit som dækningshul.
+   - Kør alle browserkørsler headless. `playwright-cli` er headless som standard, så brug aldrig `--headed`, `npm run test:e2e:headed`, `show --annotate`, `--open` eller en synlig browser-attach under auditten. Snapshots, screenshots, traces og video kan stadig optages headless. Det holder browseren fra skærmen og fra operativsystemets input-/dvaleinteraktion.
+   - Brug de navngivne sessioner `chrome`, `edge`, `firefox` og `webkit`, og luk dem med `node .agents/tools/playwright-cli.mjs close-all` efter batchen. En session må ikke genbruges, før dens browser, viewport og rene starttilstand er verificeret. E2E-smoke og andre testkørsler køres via `npm run test:e2e` eller `npx playwright test` — de to CLI-familier har hver sit træ og må ikke blandes sammen.
    - Platformdialoger, der kun kan åbnes af en synlig browser eller operativsystemet, kan ikke afprøves i den headless audit. Registrér dem som et konkret dækningshul og fortsæt med uafhængige arbejdsenheder; skift ikke automatisk til headed. En synlig kørsel kræver en udtrykkelig brugerbesked.
    - Kør den automatiske browser-smoke med `npm run test:e2e` før den brede udforskning. Den lokale Playwright-konfiguration skal køre de fire motorer ved både 1536×864 og 1920×1080; til den større viewport sættes `PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT=1` før samme kommando (i PowerShell: `$env:PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT='1'; npm run test:e2e`).
    - Almindelige flows køres mod Vite-devserveren. Service-worker-, PWA- og launch-queue-flows køres separat mod et produktions-preview: `npm run build:mineo`, derefter `npm run preview:e2e` på port 4174. Brug ikke devserverens manglende service-worker som evidens for et PWA-resultat. Ved automatiseret kontrol mod preview sættes i PowerShell `$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:4174'; $env:PLAYWRIGHT_SKIP_WEBSERVER='1'; $env:PLAYWRIGHT_ALLOW_SERVICE_WORKERS='1'` før `npm run test:e2e`. PWA-rækkerne gentages ved 1536×864 og 1920×1080; kontrollér også at installeret/standalone-vinduets shell, navigation og dokumentflows ikke mister indhold.
@@ -180,6 +224,90 @@ Ved 1536×864 skal alle globale handlinger og alle sidemenuens punkter kunne nå
 - at eventuel tættere spacing, mindre typografi eller anden komprimering ved lav højde registreres som synlig UI-/adfærdsændring og forelægges før produktimplementering, hvis den ikke allerede er en entydig genskabelse af dokumenteret adfærd.
 
 Et bestået resultat kræver ikke, at alle sidemenuens punkter står permanent synlige på enhver højde; det kræver, at de er tilgængelige uden en skjult eller uforudsigelig vej. Hvis den nuværende shell ikke kan opfylde dette uden en markant ændring af udseende eller adfærd, registrér først det konkrete fund og spørgsmålet om ønsket løsning.
+
+### Browsermekanik: de faste greb
+
+Driftsloggen viser, at langt de fleste afbrudte arbejdsenheder ikke skyldtes Mineo, men gentagne fejlgreb
+i selve browserstyringen. Følgende regler er derfor bindende og skal følges, før en handling gentages
+eller registreres i `AUDIT-WORKER-ERRORS.md`.
+
+**Locator-rækkefølgen er fast.** Brug den første mulighed, der kan bruges, og gå aldrig direkte til en
+rå CSS-selector:
+
+1. `data-mineo-field-address` er Mineos ENESTE feltidentitet i DOM (`keyboard-navigation.md` §Feltidentitet)
+   og sidder på selve det fokuserbare element. Den er entydig også når to felter deler synligt navn, og den
+   skelner tabelrækker via `entityId`. Find adressen med `eval` og målret den derefter:
+   ```powershell
+   node .agents/tools/playwright-cli.mjs -s=chrome --raw eval "JSON.stringify([...document.querySelectorAll('[data-mineo-field-address]')].map(el => el.getAttribute('data-mineo-field-address')))"
+   node .agents/tools/playwright-cli.mjs -s=chrome click "[data-mineo-field-address='<den ordrette adresse>']"
+   ```
+2. Ellers en frisk snapshot-`ref` fra samme kommando-kæde.
+3. Ellers en Playwright-rolle-locator (`getByRole('button', { name: 'Slet rækken' })`), afgrænset til
+   en række med `.filter()`/`.nth()`, når navnet går igen.
+
+Rå CSS med accessible name (`input[aria-label=Årsløn]`) er den hyppigste enkeltfejl i loggen: den fejler
+både på manglende citationstegn, på mellemrum i labels, på felter der slet ikke har `aria-label`, og på
+strict-mode når navnet går igen. Brug den ikke.
+
+**Snapshot-refs er kun gyldige indtil næste re-render.** Refs som `e569` invalideres af ethvert valg,
+enhver commit og enhver navigation, og præfikser (`e1e17`, `f2…`) hører til én bestemt browserkontekst.
+Sammensæt aldrig refs på tværs af kommandoer, og genbrug aldrig en ref fra en tidligere turn eller session.
+Skal flere handlinger udføres i træk efter en re-render, brug feltadresse eller rolle-locator i stedet.
+
+**Mineo-felter er read-only, indtil editoren er åbnet.** Direkte `fill` timeouter på både formular- og
+tabelfelter. Den korrekte sekvens er altid `dblclick` → `fill` → `Tab`/`Enter` (settle). Det er dokumenteret
+produktadfærd, ikke et fund, og skal ikke registreres i driftsloggen.
+
+**`beforeunload` skal håndteres FØR navigation, ikke bagefter.** Når sagen har afsluttede ændringer, åbner
+`reload`, `goto` og browser tilbage/frem produktets beforeunload-dialog. Dialogen holder kaldet åbent, til
+CLI'ens 60-sekunders timeout rammer, og derefter afvises `snapshot`, `run-code` og `reload` med modal state.
+`page.on('dialog')` inde i `run-code` fanger den ikke. Kør derfor altid navigation som:
+
+```powershell
+node .agents/tools/playwright-cli.mjs -s=chrome reload      # rammer dialogen og timeouter — forventet
+node .agents/tools/playwright-cli.mjs -s=chrome dialog-accept
+node .agents/tools/playwright-cli.mjs -s=chrome snapshot
+```
+
+Timeout i dette forløb er forventet mekanik og registreres ikke som fejl. `dialog-accept` uden aktiv dialog
+giver exit 1 — kontrollér med `snapshot`, om dialogen allerede er væk, før accept gentages.
+
+**Kommandofladen er den, `--help` viser — ikke den forventede.** Kontrollér `node .agents/tools/playwright-cli.mjs
+--help <kommando>` før en ukendt kommando bruges. Konkret fra loggen:
+
+- Der findes ingen `wait-for-time` og ingen `pageerrors`. Brug `snapshot` (som venter selv) og `console`.
+- `console` tager niveauet `warning`, ikke `warn`.
+- `screenshot` tager en target-locator, ikke en filsti; filnavn sættes med `--filename=…`.
+- `open` har ingen `--viewport-size`; brug `resize <w> <h>` efter `open`.
+- Viewporten er 1280×720 som standard. Sæt den eksplicit med `resize` efter hver `open`, og verificér den,
+  før et screenshot bruges som viewport-evidens.
+- Hver kommando skal bære `-s=<session>` præcis én gang. Manglende option rammer default-sessionen
+  ("browser default is not open"); to gange giver sessionsnavnet `chrome,chrome`.
+
+**PowerShell-quoting ved `run-code`.** Indre dobbelte anførselstegn splitter kommandoen, før CLI'en ser den,
+og `window` findes ikke i `run-code`-omgivelserne (brug `page.evaluate`). Skriv derfor kode med mere end ét
+udtryk til en fil og kør den med `--filename`, i stedet for at escape den inline:
+
+```powershell
+Set-Content -Path test-results/runtime-input-audit/step.js -Value $code -Encoding utf8
+node .agents/tools/playwright-cli.mjs -s=chrome run-code --filename=test-results/runtime-input-audit/step.js
+```
+
+Hold desuden `run-code`-scripts korte. Et samlet setup-script, der fejler på locator nr. 7, efterlader en
+halvt etableret tilstand, som ikke kan bruges som baseline; små trin med frisk locator pr. trin er hurtigere
+i praksis.
+
+**Serverstart.** Start aldrig Vite via `node vite.js` eller sammensatte `Start-Process`-kommandoer — begge
+fejlede gentagne gange i loggen. Brug projektets egne scripts, som allerede er `--open`-fri, og vent på at
+porten faktisk svarer, før browserarbejdet begynder:
+
+```powershell
+npm run generate:build-info
+Start-Process npm.cmd -WindowStyle Hidden -ArgumentList @('run','dev:e2e','--','--port','4173')
+```
+
+Verificér med et HTTP-svar (ikke en fast ventetid), og find den PID, der reelt ejer porten, med
+`Get-NetTCPConnection -LocalPort 4173`, før en proces stoppes. En forudkendt PID er ikke evidens.
 
 ### 3. Kør med aktive orakler
 

@@ -14,6 +14,7 @@ const documents = [
   ['CRASHES.template.md', 'CRASHES.md'],
   ['OBSERVATIONS.template.md', 'OBSERVATIONS.md'],
   ['QUESTIONS.template.md', 'QUESTIONS.md'],
+  ['AUDIT-WORKER-ERRORS.template.md', 'AUDIT-WORKER-ERRORS.md'],
 ];
 
 await mkdir(targetDir, { recursive: true });

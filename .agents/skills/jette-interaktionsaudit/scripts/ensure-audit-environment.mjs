@@ -11,8 +11,17 @@ const checkOnly = process.argv.includes('--check-only');
 const auditRoot = path.join(repoRoot, 'test-results', 'runtime-input-audit');
 const environmentPath = path.join(auditRoot, 'environment.json');
 
-const DIRECT_PLAYWRIGHT_PACKAGES = ['@playwright/cli', '@playwright/mcp', '@playwright/test'];
+// CLI/MCP-familien pinner en anden Playwright-runtime end E2E-motoren og bor derfor i sit eget
+// afhængighedstræ. Delte de node_modules, ville kun den ene af dem kunne eje kommandoen
+// `playwright`, og `npx playwright test` ville køre e2e-filerne med den forkerte runner.
+const AGENT_TOOLS_ROOT = path.join(repoRoot, '.agents', 'tools');
 const CLI_MCP_PACKAGES = ['@playwright/cli', '@playwright/mcp'];
+const DIRECT_PLAYWRIGHT_PACKAGES = [
+  { name: '@playwright/cli', root: AGENT_TOOLS_ROOT },
+  { name: '@playwright/mcp', root: AGENT_TOOLS_ROOT },
+  { name: '@playwright/test', root: repoRoot },
+];
+const PLAYWRIGHT_CLI_LAUNCHER = path.join('.agents', 'tools', 'playwright-cli.mjs');
 const BROWSERS = ['chromium', 'firefox', 'webkit'];
 
 const repairs = [];
@@ -21,28 +30,27 @@ const warnings = [];
 await main();
 
 async function main() {
-  let manifest = await readJson(path.join(repoRoot, 'package.json'));
-  let lockfile = await readJson(path.join(repoRoot, 'package-lock.json'));
+  let packages = await inspectDirectPackages();
+  const rootsNeedingRepair = [...new Set(packages
+    .filter((entry) => entry.status === 'missing' || entry.status === 'behind')
+    .map((entry) => entry.root))];
 
-  let packages = await inspectDirectPackages(manifest, lockfile);
-  const packageRepairNeeded = packages.some((entry) => entry.status === 'missing' || entry.status === 'behind');
-
-  if (packageRepairNeeded && !checkOnly) {
-    await runNpmPreservingAheadVersions(packages, [
-      'install',
-      '--ignore-scripts',
-      '--no-audit',
-      '--no-fund',
-      '--prefer-offline',
-    ]);
+  if (rootsNeedingRepair.length > 0 && !checkOnly) {
+    for (const root of rootsNeedingRepair) {
+      await runNpmPreservingAheadVersions(packages, root, [
+        'install',
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        '--prefer-offline',
+      ]);
+    }
     repairs.push('npm installerede manglende eller bagudstående Playwright-pakker efter den eksisterende manifest/lockfile-kilde');
-    manifest = await readJson(path.join(repoRoot, 'package.json'));
-    lockfile = await readJson(path.join(repoRoot, 'package-lock.json'));
-    packages = await inspectDirectPackages(manifest, lockfile);
+    packages = await inspectDirectPackages();
   }
 
   await alignCliMcpRuntime(packages, checkOnly);
-  packages = await inspectDirectPackages(manifest, lockfile);
+  packages = await inspectDirectPackages();
 
   const cliSkill = await synchronizeCliSkill(checkOnly);
   const browserStatus = await ensureBrowsers(packages, checkOnly);
@@ -73,10 +81,18 @@ async function main() {
   }
 }
 
-async function inspectDirectPackages(manifest, lockfile) {
+async function inspectDirectPackages() {
   const result = [];
-  for (const name of DIRECT_PLAYWRIGHT_PACKAGES) {
-    const packageJson = await readOptionalJson(packagePath(repoRoot, name));
+  const manifests = new Map();
+  for (const { name, root } of DIRECT_PLAYWRIGHT_PACKAGES) {
+    if (!manifests.has(root)) {
+      manifests.set(root, {
+        manifest: await readOptionalJson(path.join(root, 'package.json')) ?? {},
+        lockfile: await readOptionalJson(path.join(root, 'package-lock.json')) ?? {},
+      });
+    }
+    const { manifest, lockfile } = manifests.get(root);
+    const packageJson = await readOptionalJson(packagePath(root, name));
     const declared = manifest.devDependencies?.[name] ?? manifest.dependencies?.[name] ?? null;
     const locked = lockfile.packages?.[`node_modules/${name}`]?.version ?? null;
     const installed = packageJson?.version ?? null;
@@ -84,13 +100,15 @@ async function inspectDirectPackages(manifest, lockfile) {
 
     result.push({
       name,
+      root,
+      rootLabel: path.relative(repoRoot, root) || '.',
       declared,
       locked,
       installed,
       status,
       runtime: packageJson?.dependencies?.playwright ?? null,
       runtimeResolved: packageJson
-        ? await resolveRuntimeVersion(repoRoot, name, 'playwright')
+        ? await resolveRuntimeVersion(root, name, 'playwright')
         : null,
     });
   }
@@ -134,9 +152,9 @@ async function alignCliMcpRuntime(packages, isCheckOnly) {
     return;
   }
 
-  await runNpmPreservingAheadVersions(packages, [
+  await runNpmPreservingAheadVersions(packages, AGENT_TOOLS_ROOT, [
     'install',
-    '--save-dev',
+    '--save',
     ...updateable.map(({ name }) => `${name}@latest`),
     '--ignore-scripts',
     '--no-audit',
@@ -145,18 +163,16 @@ async function alignCliMcpRuntime(packages, isCheckOnly) {
   repairs.push(`opdaterede bagudstående CLI/MCP-pakke(r): ${updateable.map(({ name }) => name).join(', ')}`);
 }
 
-async function runNpmPreservingAheadVersions(packages, argumentsList) {
+async function runNpmPreservingAheadVersions(packages, root, argumentsList) {
   const aheadVersions = packages
-    .filter((entry) => entry.status === 'ahead' && entry.installed)
+    .filter((entry) => entry.root === root && entry.status === 'ahead' && entry.installed)
     .map((entry) => ({ name: entry.name, version: entry.installed }));
 
-  await runNpm(argumentsList);
+  await runNpm(argumentsList, false, root);
 
   if (aheadVersions.length === 0) return;
 
-  let manifest = await readJson(path.join(repoRoot, 'package.json'));
-  let lockfile = await readJson(path.join(repoRoot, 'package-lock.json'));
-  let current = await inspectDirectPackages(manifest, lockfile);
+  let current = await inspectDirectPackages();
   const downgraded = aheadVersions.filter(({ name, version }) => {
     const installed = current.find((entry) => entry.name === name)?.installed;
     return installed === null || installed === undefined || compareVersions(installed, version) < 0;
@@ -171,12 +187,10 @@ async function runNpmPreservingAheadVersions(packages, argumentsList) {
     '--ignore-scripts',
     '--no-audit',
     '--no-fund',
-  ])));
+  ], false, root)));
   repairs.push(`genoprettede forudgående højere versioner uden nedgradering: ${downgraded.map(({ name }) => name).join(', ')}`);
 
-  manifest = await readJson(path.join(repoRoot, 'package.json'));
-  lockfile = await readJson(path.join(repoRoot, 'package-lock.json'));
-  current = await inspectDirectPackages(manifest, lockfile);
+  current = await inspectDirectPackages();
   const stillDowngraded = downgraded.filter(({ name, version }) => {
     const installed = current.find((entry) => entry.name === name)?.installed;
     return installed === null || installed === undefined || compareVersions(installed, version) < 0;
@@ -187,14 +201,14 @@ async function runNpmPreservingAheadVersions(packages, argumentsList) {
 }
 
 async function synchronizeCliSkill(isCheckOnly) {
-  const help = await runNpx(['--no-install', 'playwright-cli', '--help'], true);
+  const help = await runPlaywrightCli(['--help'], true);
   const helpText = `${help.stdout}\n${help.stderr}`;
   const mismatch = helpText.includes('does not match the tool version');
 
   if (mismatch && isCheckOnly) {
     warnings.push('playwright-cli-skillen matcher ikke den installerede CLI');
   } else if (mismatch) {
-    await runNpx(['--no-install', 'playwright-cli', 'install', '--skills=agents']);
+    await runPlaywrightCli(['install', '--skills=agents']);
     repairs.push('synkroniserede den projektlokale playwright-cli-skill med CLI-versionen');
   }
 
@@ -213,8 +227,8 @@ async function ensureBrowsers(packages, isCheckOnly) {
   const listText = `${list.stdout}\n${list.stderr}`;
   const required = [];
 
-  for (const name of ['@playwright/test', '@playwright/cli']) {
-    const browserFile = await resolveBrowserManifest(repoRoot, name);
+  for (const { name, root } of DIRECT_PLAYWRIGHT_PACKAGES.filter(({ name: candidate }) => candidate !== '@playwright/mcp')) {
+    const browserFile = await resolveBrowserManifest(root, name);
     if (!browserFile) {
       warnings.push(`Kunne ikke finde browsers.json for ${name}`);
       continue;
@@ -240,7 +254,7 @@ async function ensureBrowsers(packages, isCheckOnly) {
       repairs.push('installerede Mineos Playwright Test-browserrevisioner uden at fjerne nyere lokale revisioner');
     }
     for (const browser of [...new Set(cliMissing.map(({ name }) => name))]) {
-      await runNpx(['--no-install', 'playwright-cli', 'install-browser', browser]);
+      await runPlaywrightCli(['install-browser', browser]);
       repairs.push(`installerede CLI-browseren ${browser} uden at fjerne nyere lokale revisioner`);
     }
 
@@ -286,12 +300,12 @@ async function resolveRuntimeVersion(root, packageName, dependencyName) {
   return rootPackage?.version ?? null;
 }
 
-async function runNpm(argumentsList, allowFailure = false) {
-  return runExecutable(process.platform === 'win32' ? 'npm.cmd' : 'npm', argumentsList, allowFailure);
+async function runNpm(argumentsList, allowFailure = false, cwd = repoRoot) {
+  return runExecutable(process.platform === 'win32' ? 'npm.cmd' : 'npm', argumentsList, allowFailure, cwd);
 }
 
-async function runNpx(argumentsList, allowFailure = false) {
-  return runExecutable(process.platform === 'win32' ? 'npx.cmd' : 'npx', argumentsList, allowFailure);
+async function runPlaywrightCli(argumentsList, allowFailure = false) {
+  return runExecutable('node', [PLAYWRIGHT_CLI_LAUNCHER, ...argumentsList], allowFailure);
 }
 
 async function runMineoPlaywright(argumentsList, allowFailure = false) {
@@ -301,14 +315,14 @@ async function runMineoPlaywright(argumentsList, allowFailure = false) {
   ], allowFailure);
 }
 
-async function runExecutable(command, argumentsList, allowFailure) {
+async function runExecutable(command, argumentsList, allowFailure, cwd = repoRoot) {
   try {
     const executable = process.platform === 'win32' ? (process.env.ComSpec ?? 'cmd.exe') : command;
     const executableArguments = process.platform === 'win32'
       ? ['/d', '/s', '/c', [command, ...argumentsList].join(' ')]
       : argumentsList;
     const result = await execFileAsync(executable, executableArguments, {
-      cwd: repoRoot,
+      cwd,
       windowsHide: true,
       maxBuffer: 4 * 1024 * 1024,
       encoding: 'utf8',
@@ -394,7 +408,7 @@ function getOption(name) {
 }
 
 function printSummary(result) {
-  const packageSummary = result.packages.map((entry) => `${entry.name}=${entry.installed ?? 'mangler'} (${entry.status})`).join(', ');
+  const packageSummary = result.packages.map((entry) => `${entry.name}=${entry.installed ?? 'mangler'} (${entry.status} i ${entry.rootLabel})`).join(', ');
   const browserSummary = result.browsers.installed.map((entry) => `${entry.name}-${entry.revision}:${entry.present ? 'ok' : 'mangler'}`).join(', ');
   console.info(`Auditmiljø: ${packageSummary}`);
   console.info(`Browserrevisioner: ${browserSummary || 'ukendt'}`);
