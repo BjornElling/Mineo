@@ -21,7 +21,7 @@ import {
   prepareBugReport,
 } from '../../utils/bugReport';
 import type { BugReportExtraSection, PreparedBugReport } from '../../utils/bugReport';
-import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
+import { useOverlayBehavior } from '../../hooks/useOverlayBehavior';
 
 interface BugReportButtonProps {
   variant?: 'text' | 'outlined' | 'contained';
@@ -64,7 +64,16 @@ const BugReportButton = ({
   // Fokus tilbage til knappen ved lukning (jf. `keyboard-navigation.md` §Popup-fokus-restore).
   // Gælder også når denne dialog ligger inde i preflight-dialogen som «Send fejloplysninger»:
   // fokus skal da tilbage til den knap, ikke ud til den omgivende dialog.
-  const { triggerRef } = useDialogFocusRestore<HTMLButtonElement>({ open: dialogOpen });
+  // Den fælles overlay-adfærd. Escape ejes af MUI's `onClose` (som allerede respekterer
+  // `isPreparing`); hooken tilføjer tilbage-knappen, stak-disciplinen og fokus-restoren.
+  // `handleDialogClose` er defineret længere nede (den læser `prepared`), så lukkevejen kaldes
+  // gennem en ref. Ét lukkested frem for en kopi af afbruds-logningen to steder.
+  const closeRef = React.useRef<() => void>(() => undefined);
+  const { triggerRef, overlayRootProps, requestClose } = useOverlayBehavior<HTMLButtonElement>({
+    open: dialogOpen,
+    onClose: () => { closeRef.current(); },
+    disableEscape: true,
+  });
 
   const handleBugReport = React.useCallback(async () => {
     setDialogOpen(true);
@@ -161,6 +170,7 @@ const BugReportButton = ({
     }
     setDialogOpen(false);
   }, [context?.source, isPreparing, prepared]);
+  closeRef.current = handleDialogClose;
 
   return (
     <>
@@ -175,7 +185,20 @@ const BugReportButton = ({
         {label}
       </Button>
 
-      <Dialog open={dialogOpen} onClose={handleDialogClose} maxWidth="md" fullWidth>
+      <Dialog
+        open={dialogOpen}
+        onClose={(_event, reason) => {
+          if (isPreparing) return;
+          requestClose(reason === 'backdropClick' ? 'backdrop' : 'escape');
+        }}
+        maxWidth="md"
+        fullWidth
+        // Se `ConfirmationDialog`: uden dette fører MUI sin egen, konkurrerende fokus-restore, som
+        // kører sidst og overskriver `useDialogFocusRestore` (`keyboard-navigation.md`
+        // §Popup-fokus-restore kræver ÉN implementering).
+        disableRestoreFocus
+        {...overlayRootProps}
+      >
         <DialogTitle>Fejlrapport (gennemgå før du sender)</DialogTitle>
         <DialogContent>
           {isPreparing && (
@@ -228,7 +251,7 @@ const BugReportButton = ({
         </DialogContent>
 
         <DialogActions sx={{ padding: 2 }}>
-          <Button onClick={handleDialogClose} sx={{ borderRadius: '10px' }}>
+          <Button onClick={() => requestClose('close-button')} sx={{ borderRadius: '10px' }}>
             Luk
           </Button>
           <Box sx={{ flexGrow: 1 }} />

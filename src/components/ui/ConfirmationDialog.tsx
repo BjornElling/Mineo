@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box } from '@mui/material';
 import { CONFIRMATION_DIALOG_FOCUS_MARKER } from '../../inputCore/react/modalFocusTransfer';
-import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
+import { useOverlayBehavior } from '../../hooks/useOverlayBehavior';
 
 type ConfirmationDialogProps = {
   open: boolean;
@@ -64,14 +64,24 @@ const ConfirmationDialog = React.memo(({
   const confirmButtonRef = React.useRef<HTMLButtonElement>(null);
   const confirmStartedRef = React.useRef(false);
 
-  // Fokus-restore ved lukning ejes af den fælles hook (jf. `keyboard-navigation.md`
-  // §Popup-fokus-restore). Bekræftelsesdialoger tillader fallback til sidens første fokusbare
-  // element, fordi en bekræftet handling kan fjerne selve triggeren — fx «Slet ansættelsesforhold»,
-  // hvor hele kortet med sletteknappen forsvinder.
-  const { restoreFocus } = useDialogFocusRestore({
+  // Den fælles overlay-adfærd. MUI `Dialog` bidrager med fokusfangst, Escape og backdrop-klik;
+  // hooken tilføjer resten af det fælles regelsæt — tilbage-knappen, stak-disciplinen og
+  // fokus-restoren (som fortsat er `useDialogFocusRestore` indeni).
+  //
+  // `disableEscape`: MUI ejer allerede Escape gennem sin `onClose`. To lyttere ville lukke to lag
+  // på ét tryk, når en dialog ligger oven på en anden — netop det, stakken findes for at forhindre.
+  //
+  // Bekræftelsesdialoger tillader fallback til sidens første fokusbare element, fordi en bekræftet
+  // handling kan fjerne selve triggeren — fx «Slet ansættelsesforhold», hvor hele kortet med
+  // sletteknappen forsvinder.
+  const { overlayRootProps, requestClose, restoreFocus } = useOverlayBehavior({
     open,
+    // `onCancel` er valgfri (en dialog kan have OK som eneste knap). Et ubetinget kald ville kaste
+    // ved Escape/backdrop på netop den variant.
+    onClose: () => { onCancel?.(); },
     triggerRef: restoreFocusTo,
     allowFirstFocusableFallback: true,
+    disableEscape: true,
   });
 
   React.useEffect(() => {
@@ -118,7 +128,12 @@ const ConfirmationDialog = React.memo(({
   return (
     <Dialog
       open={open}
-      onClose={onCancel}
+      // MUI leverer selv Escape og backdrop-klik hertil. Begge routes gennem `requestClose`, så
+      // ALLE lukkeveje — også dem MUI ejer — rydder overlayets historik-trin op. Ellers ville et
+      // Escape efterlade et dødt trin, og næste tilbage-tryk ville ikke gøre det, brugeren forventer.
+      onClose={(_event, reason) => {
+        requestClose(reason === 'backdropClick' ? 'backdrop' : 'escape');
+      }}
       // Transitionen slutter FØR portalen er unmountet. Hooken gendanner allerede på lukningens
       // første frame; dette er det ekstra værn for browsere, der først mister fokus ved unmount.
       onTransitionExited={restoreFocus}
@@ -132,6 +147,10 @@ const ConfirmationDialog = React.memo(({
       // med `Slet alt`, hvor fokus endte på `Fødselsdato` i stedet for på menuknappen.
       disableRestoreFocus
       {...{ [CONFIRMATION_DIALOG_FOCUS_MARKER]: 'true' }}
+      // Overlay-markøren: `Container` giver slip på Tab, så længe et overlay er åbent. En portaleret
+      // dialog slap i forvejen igennem på DOM-indeslutningen, men markøren gør reglen éns for begge
+      // monteringsformer i stedet for at afhænge af, hvor komponenten tilfældigvis ligger.
+      {...overlayRootProps}
       sx={{
         '& .MuiDialog-paper': {
           borderRadius: '10px',
@@ -145,7 +164,8 @@ const ConfirmationDialog = React.memo(({
       <DialogActions sx={{ padding: 2, gap: 1 }}>
         {!hideCancelButton && (
           <Button
-            onClick={onCancel}
+            // Gennem `requestClose`, så annulleringen rydder historik-trinnet som de øvrige lukkeveje.
+            onClick={() => requestClose('close-button')}
             ref={cancelButtonRef}
             variant="outlined"
             sx={{

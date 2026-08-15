@@ -9,7 +9,7 @@ import type { AmountValue } from '../../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../../types/branded';
 import { formatCurrency } from '../../../../utils/formatUtils';
 import { hasExactDisplayedAmountMatch } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import { useDialogFocusRestore } from '../../../../hooks/useDialogFocusRestore';
+import { useOverlayBehavior } from '../../../../hooks/useOverlayBehavior';
 import type { LoentrinFinderErrors, LoentrinFinderResult } from './loentrinFinderCore';
 
 /**
@@ -35,7 +35,6 @@ export type LoentrinFinderOverlayProps = Readonly<{
   onAmountFieldError: (errorMsg: string | undefined) => void;
   onDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
-  buttonShake: boolean;
   headingId: string;
   overenskomstLabel: string;
   inputAmountNumber: number | undefined;
@@ -74,7 +73,6 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
     onAmountFieldError,
     onDateFieldError,
     results,
-    buttonShake,
     headingId,
     overenskomstLabel,
     inputAmountNumber,
@@ -88,7 +86,17 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
   // `body` — bekræftet i Chrome, Edge, Firefox og WebKit i AUDIT-2026-08-14-21. Restoren bor her, hvor
   // popupen bor, så overlayets øvrige `focus()`-kald (tastaturnavigationen nedenfor) ikke er en
   // konkurrerende restore-vej.
-  useDialogFocusRestore<HTMLButtonElement>({ open, triggerRef });
+  // Den fælles overlay-adfærd: tilbage-knappen, stak-disciplinen og fokus-restoren.
+  //
+  // `disableEscape`: overlayet ejer selv Escape i en BOBLE-fase-lytter nedenfor, fordi et åbent felt
+  // inde i overlayet skal kunne annullere sin egen redigering FØRST (én Escape = én handling). Den
+  // lytter kalder `requestClose('escape')`, så lukningen stadig går gennem ét sted.
+  const { overlayRootProps, requestClose } = useOverlayBehavior<HTMLButtonElement>({
+    open,
+    onClose: onClose,
+    triggerRef,
+    disableEscape: true,
+  });
 
   // Refs til overlayets egen tastaturnavigation. De hørte tidligere i de kaldende hooks og blev sendt ind
   // som otte props — men de bruges KUN her, og kontrakten placerer focus-trap'en i overlayet
@@ -244,7 +252,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
       const activeElement = document.activeElement as HTMLElement | null;
       if (!(dialog && activeElement && dialog.contains(activeElement))) return;
       event.preventDefault();
-      onClose();
+      requestClose('escape');
     };
 
     document.addEventListener('keydown', handleDocumentKeyDown, true);
@@ -253,14 +261,14 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
       document.removeEventListener('keydown', handleDocumentKeyDown, true);
       document.removeEventListener('keydown', handleEscapeAfterFields);
     };
-  }, [getTabOrder, onCalculate, onClose, open]);
+  }, [getTabOrder, onCalculate, requestClose, open]);
 
   if (!open) return null;
 
   return (
     <>
       <Box
-        onClick={onClose}
+        onClick={() => requestClose('backdrop')}
         sx={{
           position: 'fixed',
           top: 0,
@@ -278,6 +286,10 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
+        // Markøren gør overlayet synligt for `Container`s tastaturnavigation. Overlayet vandt
+        // tidligere kun sin Tab-kamp, fordi dets capture-lytter nåede tasten FØR sidens navigation —
+        // en tredje mekanisme, der skulle ramme rigtigt hver gang. Nu giver siden aktivt slip.
+        {...overlayRootProps}
         ref={dialogRef}
         sx={{
           position: 'fixed',
@@ -310,7 +322,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
             Find løntrin
           </Typography>
           <IconButton
-            onClick={onClose}
+            onClick={() => requestClose('close-button')}
             aria-label="Luk"
             tabIndex={-1}
             sx={{
@@ -401,12 +413,6 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                 borderRadius: '10px',
                 px: 3,
                 py: 1,
-                animation: buttonShake ? 'shake 0.5s ease' : 'none',
-                '@keyframes shake': {
-                  '0%, 100%': { transform: 'translateX(0)' },
-                  '25%': { transform: 'translateX(-4px)' },
-                  '75%': { transform: 'translateX(4px)' },
-                },
               }}
             >
               Beregn

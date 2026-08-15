@@ -8,7 +8,12 @@
 `CONTAINER_FOCUSABLE_SELECTOR` og erklæret som en truffet beslutning; Escape-reglen og de to
 toggle-/checkbox-taster er verificeret mod `StyledDropdown`, `useTransientDraft`,
 `LoentrinFinderOverlay`, `StyledToggleSwitch` og `StyledCheckbox` og dækket af
-`dropdownFeedbackAndKeys.test.tsx` samt `loentrinFinder.sharedHook.test.tsx`)
+`dropdownFeedbackAndKeys.test.tsx` samt `loentrinFinder.sharedHook.test.tsx`. §Overlay-adfærd er målt i
+alle fire browsere af `e2e/overlay-behaviour.spec.ts` — tab-fangst for BEGGE monteringsformer,
+tilbage-knappen, og at hver af de tre øvrige lukkeveje forbruger sit historik-trin; `Container`s
+overlay-værn er mutationstestet. §«Peg på dette felt»-markeringen er målt af
+`e2e/attention-blink-repeat.spec.ts`, som tæller `animationstart`: tre udløsninger giver tre
+genstarter, hvor den deklarative form gav én)
 2026-08-14
 
 ---
@@ -97,8 +102,9 @@ Konsekvens:
 
 **Lukket editor:** Escape ændrer ikke sagsinput.
 
-Popup-/overlay-Escape følger den konkrete widgets lukkeadfærd. Hvis en teksteditor er åben inde i en popup, skal
-editorens cancel håndteres før popupen eventuelt lukkes; én Escape-handling må ikke både committe og lukke.
+Popup-/overlay-Escape følger §Overlay-adfærd ovenfor: Escape lukker det ØVERSTE overlay. Hvis en
+teksteditor er åben inde i en popup, skal editorens cancel håndteres før popupen eventuelt lukkes; én
+Escape-handling må ikke både committe og lukke.
 
 **En kontrol må kun SLUGE Escape, når den faktisk annullerer noget.** Reglen ovenfor har en praktisk
 konsekvens, som to flader brød: en lukket dropdown kaldte `preventDefault()` + `stopPropagation()` på en
@@ -107,6 +113,16 @@ uændret. I begge tilfælde kunne den omgivende dialog eller overlay derfor ikke
 fokus stod i et af dens felter. Kontrollen skal lade tasten passere, når der intet er at annullere, så
 den næste ansvarlige flade får den. Tilsvarende må en overlay-lytter i CAPTURE-fasen ikke nå Escape før
 felterne inde i overlayet; lukningen hører i boble-fasen.
+
+**En besked, der BLIVER STÅENDE, indtil brugeren fjerner den, skal kunne lukkes med Escape** — og have
+en synlig, navngivet lukkeknap. Det gælder `Overlay`s fejlvariant (den røde boks efter et mislykket
+Gem/Hent), som aldrig auto-lukker. Uden begge dele var den ren muse-affordance: den dækkede en del af
+skærmen, indtil brugeren fandt den med musen, vejledt af museteksten «Klik for at lukke».
+
+Beskeder, der lukker AF SIG SELV (success/info/warning), må derimod **ikke** lytte på Escape. De har
+intet at annullere, og en lytter ville stjæle tasten fra en åben dialog eller en igangværende
+feltredigering — samme regel som ovenfor, set fra den anden side. Rollerne følger med: en blivende
+fejl er `role="alert"` (afbryder og oplyses straks), en selvlukkende besked er `role="status"`.
 
 ---
 
@@ -197,6 +213,68 @@ I en åben dropdown må gentagne matchende tegn fortsat cirkulere mellem match i
 
 ---
 
+## Overlay-adfærd — ÉT regelsæt (normativ)
+
+Alle overlays i programmet deler ét regelsæt for tastatur og lukning. Reglerne er IKKE til fri
+afbenyttelse pr. flade: en overlay-komponent må ikke implementere sin egen delmængde.
+
+**Hvad et overlay er:** en modal flade, der dækker siden og kræver et svar — `role="dialog"` eller en
+MUI `Dialog`. Toasts og notitser (`role="alert"` / `role="status"`) er IKKE overlays: de fanger ikke
+fokus og har ingen backdrop. Popup-widgets (dropdown-`Popover`) er heller ikke overlays; de har deres
+eget regelsæt under §Popup-widget detection, og fokus bliver bevidst på comboboxen.
+
+### Tastaturet bliver i vinduet
+
+Så længe et overlay er åbent, ejer overlayet tastaturet. `Tab`/`Shift+Tab` cirkulerer inde i vinduet:
+fra sidste element til første og omvendt (brugerbeslutning 2026-08-15). Fokus må aldrig nå siden
+bagved.
+
+Fangsten leveres af MUI's `FocusTrap` — gratis i en `Dialog`, eksplicit monteret i et håndrullet
+overlay. Skriv ikke en fjerde fokusmekanisme i hånden.
+
+**En fangst er ikke nok i sig selv.** `Container` ejer `Tab` for hele siden, og dens undtagelse er
+DOM-indeslutning: en portaleret dialog ligger under `document.body` og slipper igennem, mens et
+INLINE monteret overlay er en ægte efterkommer af containeren og derfor IKKE gør. Sidens navigation
+overtog dermed `Tab` inde i licensvinduet og kørte forbi trap'ens vagtposter, selv om trap'en var
+korrekt monteret — målt i chrome-desktop, hvor otte Tab i træk alle landede uden for dialogen.
+
+Derfor er «er der et overlay åbent?» noget overlayet **siger**, ikke noget der udledes af, hvor
+komponenten tilfældigvis er monteret: overlayet sætter `data-mineo-overlay-root="true"` på sin
+rod-node, og `Container` giver slip, så længe markøren findes. Monteringsformen må aldrig igen være
+det, der afgør adfærden.
+
+### Lukkeveje — alle fire, altid
+
+| Vej | Krav |
+|---|---|
+| `Escape` | Lukker det ØVERSTE overlay. Et åbent felt inde i overlayet annullerer dog sin egen redigering først (§Escape: én Escape = én handling). |
+| Backdrop-klik | Lukker. |
+| Luk-/annuller-knap | Lukker. Knappen skal have et tilgængeligt navn. |
+| Browserens/musens **tilbage-knap** | Lukker overlayet og bliver på siden (brugerkrav 2026-08-15). |
+
+Tilbage-knappen var ikke understøttet nogen steder: et tryk navigerede SIDEN væk under det åbne
+vindue, så brugeren mistede både vinduet og sin plads. Et åbent overlay skubber derfor ét
+`history`-trin, som tilbage-knappen forbruger. Lukkes overlayet ad en anden vej, ryddes trinnet op
+igen — ellers ville næste tilbage-tryk ramme et dødt trin og se ud, som om knappen ikke virkede.
+
+### Lag på lag
+
+Overlays kan ligge oven på hinanden (fejlrapport-dialogen åbnes fra load-preflightens bekræftelse).
+Kun det **øverste** reagerer på `Escape` og på tilbage-knappen; ét tryk lukker ét lag. Rækkefølgen
+ejes af overlay-stakken i `components/ui/overlayBehavior.ts`, ikke af den enkelte flade.
+
+### Én implementering
+
+Hele regelsættet aftages gennem `src/hooks/useOverlayBehavior.ts`, som selv bruger
+`useDialogFocusRestore` til restoren. Håndhævet af `layout/overlay-uses-shared-behavior`.
+
+**Tab-fangst skal måles i e2e, ikke i JSDOM.** JSDOM implementerer ikke browserens tab-traversering,
+så en JSDOM-test kan kun se, at en `FocusTrap` er MONTERET — ikke om den faktisk holder fokus. Præcis
+det skete: en grøn JSDOM-test dækkede over, at fokus i alle rigtige browsere vandrede ud af vinduet.
+Dækningen ligger i `e2e/overlay-behaviour.spec.ts`.
+
+---
+
 ## Popup-fokus-restore (normativ)
 
 Når en popup-flade lukkes, skal fokus vende tilbage til **den kontrol, brugeren åbnede den med**.
@@ -237,6 +315,19 @@ fokus** til det element, der var aktivt ved åbningen. Reglen er håndhævet af
 overskriver derfor målet uden at noget fejler. Den kender ikke målprioriteten ovenfor og rammer forkert,
 netop når triggeren undertrykker sit eget fokus (`onMouseDown` + `preventDefault()`) — da er et FELT
 aktivt ved åbningen, og fokus vender tilbage dertil i stedet for til den åbnende kontrol.
+
+Dette er den farligste af de to fejlformer, fordi INTET ser forkert ud: hooken er kaldt, kontrakten
+ser overholdt ud, og den konkurrerende vej er ikke kode i filen — den er MUI's default. Reglen
+`layout/popup-focus-restore-single-source` er blind for den, fordi den skærer på `focus()`-kald.
+Den lukkes derfor af sin egen regel, `layout/mui-dialog-disables-own-focus-restore`, som flager en
+`<Dialog>` uden `disableRestoreFocus` i en fil, der selv aftager `useDialogFocusRestore`. Kravet stod
+her i forvejen; tre dialoger overtrådte det alligevel, fordi intet målte det.
+
+**Fokus-FANGST og fokus-RESTORE er to forskellige ansvar.** Restoren (hvor fokus lander EFTER
+lukningen) ejes af `useDialogFocusRestore`. Fangsten (at Tab bliver INDE i vinduet, mens det er
+åbent) kommer fra MUI's `FocusTrap` — den samme primitiv, `Dialog` selv bruger. En håndrullet popup
+arver den ikke automatisk og skal montere den eksplicit; `aria-modal="true"` alene fanger ingenting.
+Skriv ikke en tredje fokusmekanisme i hånden.
 
 **Triggerens tastaturtilgængelighed.** En popup-åbnende kontrol skal som udgangspunkt kunne
 fokuseres med `Tab` og aktiveres med både `Enter` og mellemrum gennem native knapsemantik
@@ -442,6 +533,35 @@ Feltidentitet i DOM har præcis ét attributnavn: `data-mineo-field-address`. Fo
 den sammen med editorlokationen; `data-mineo-field-path` og tilsvarende parallelle stinavne findes ikke og må
 ikke genindføres. Håndhævet af `input/single-field-identity-in-dom`,
 `input/restore-attributes-carry-destination` og `form/restore-target-attributes`.
+
+---
+
+## «Peg på dette felt»-markeringen (normativ)
+
+Når programmet fører brugeren hen til et felt — et fejl-/advarselslink, et blokeret Gem, undo/redo,
+en afvist handling der peger på den celle, der mangler — markeres målet visuelt med den delte
+blinkmarkering. Markeringen er RENT visuel: den ændrer ingen værdi, sætter ingen feltfejl (§1.7) og
+blokerer intet. Den siger «her», ikke «dette er forkert», og bruges derfor både til en ægte fejl og
+til en manglende indtastning, der endnu ikke er en fejl.
+
+**Markeringen er TRANSIENT og skal komme igen hver gang.** Udløser brugeren den samme handling to
+gange, skal der komme et nyt, synligt svar begge gange — også når målet er præcis det samme felt.
+En markering, der kun virker første gang, læses som at programmet ignorerer brugeren.
+
+**Derfor sættes klassen kun af `blinkFieldAttention`** (`inputCore/react/fieldAttentionBlink.ts`),
+som ejer genstarten: fjern klassen, tving reflow, sæt den igen. Ingen flade må sætte
+blink-klassen deklarativt ud fra React-state. Det er ikke en stilpræference — det er den konkrete
+fejlmekanisme: en state-sat klasse skrives med SAMME værdi ved andet forsøg, React bailer ud af
+re-renderen, og der sker intet synligt. Ingen test fejler, og fejlen ser ud som om programmet ikke
+reagerer. Præcis det skete i løntabellen, hvor en afvist «Omregning til fuldt år» kun blinkede ved
+første klik. Håndhævet af `layout/attention-blink-applied-by-helper`.
+
+**Markeringen står ikke ved.** Den løber sin animation (0,5 s × 3) og forsvinder. En flade må ikke
+forsøge at gøre den vedvarende ved at holde klassen sat: klassens animation er alligevel spillet af
+bagefter, så en «vedvarende» markering er visuelt tom — den koster kun genstarten. Skal en tilstand
+være vedvarende synlig, er den en feltfejl eller en advarsel efter `error-contract.md`, ikke en
+peg-markering. (Under `prefers-reduced-motion` erstatter CSS'en blinket med en rolig, statisk
+tone i markeringens levetid; det er et tilgængelighedshensyn i ét sted, ikke en anden model.)
 
 ---
 

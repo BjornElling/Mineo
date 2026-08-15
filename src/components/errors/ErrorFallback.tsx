@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import BugReportButton from './BugReportButton';
-import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
+import { useOverlayBehavior } from '../../hooks/useOverlayBehavior';
 
 interface ErrorFallbackProps {
   error: Error | null;
@@ -34,10 +34,18 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
   const [showDetails, setShowDetails] = React.useState(false);
   const [confirmReloadOpen, setConfirmReloadOpen] = React.useState(false);
 
-  // Fokus tilbage til `Genindlæs siden` ved Annuller (jf. `keyboard-navigation.md`
-  // §Popup-fokus-restore). Ved Bekræft genindlæses siden, så restoren er uden betydning der.
-  const { triggerRef: reloadButtonRef } =
-    useDialogFocusRestore<HTMLButtonElement>({ open: confirmReloadOpen });
+  // Den fælles overlay-adfærd. Fokus vender tilbage til `Genindlæs siden` ved annullering; ved
+  // bekræftelse genindlæses siden, så restoren er uden betydning der. Escape ejes af MUI's `onClose`; hooken tilføjer tilbage-knappen,
+  // stak-disciplinen og fokus-restoren til «Genindlæs siden».
+  const {
+    triggerRef: reloadButtonRef,
+    overlayRootProps,
+    requestClose,
+  } = useOverlayBehavior<HTMLButtonElement>({
+    open: confirmReloadOpen,
+    onClose: () => setConfirmReloadOpen(false),
+    disableEscape: true,
+  });
 
   const handleToggleDetails = () => {
     setShowDetails((prev) => !prev);
@@ -45,10 +53,6 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
 
   const handleHardReloadRequest = () => {
     setConfirmReloadOpen(true);
-  };
-
-  const handleHardReloadCancel = () => {
-    setConfirmReloadOpen(false);
   };
 
   const handleHardReloadConfirm = () => {
@@ -163,7 +167,18 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
         )}
       </Alert>
 
-      <Dialog open={confirmReloadOpen} onClose={handleHardReloadCancel} maxWidth="sm" fullWidth>
+      <Dialog
+        open={confirmReloadOpen}
+        onClose={(_event, reason) => {
+          requestClose(reason === 'backdropClick' ? 'backdrop' : 'escape');
+        }}
+        maxWidth="sm"
+        fullWidth
+        // Se `ConfirmationDialog`: MUI's egen restore er ellers en konkurrerende vej, der kører sidst
+        // og overskriver `useDialogFocusRestore` (`keyboard-navigation.md` §Popup-fokus-restore).
+        disableRestoreFocus
+        {...overlayRootProps}
+      >
         <DialogTitle>Genindlæs siden?</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
@@ -171,7 +186,7 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ padding: 2 }}>
-          <Button onClick={handleHardReloadCancel} sx={{ borderRadius: '10px' }}>
+          <Button onClick={() => requestClose('close-button')} sx={{ borderRadius: '10px' }}>
             Annuller
           </Button>
           <Button onClick={handleHardReloadConfirm} variant="contained" sx={{ borderRadius: '10px' }}>

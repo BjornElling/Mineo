@@ -150,6 +150,16 @@ describe('LicenseModal', () => {
       });
     });
 
+    /**
+     * Tab-FANGSTEN måles bevidst IKKE her, men i `e2e/overlay-behaviour.spec.ts`.
+     *
+     * En tidligere jsdom-test her påstod at måle den og var grøn — mens fokus i den rigtige browser
+     * vandrede ud af vinduet ved hvert eneste Tab. JSDOM implementerer ikke browserens
+     * tab-traversering, så testen kunne kun bekræfte, at `FocusTrap` var MONTERET; den kunne ikke se,
+     * at sidens egen navigation overtog tasten og kørte forbi trap'ens vagtposter. En test, der ikke
+     * kan observere den mekanisme, den påstår at måle, er værre end ingen test.
+     */
+
     test('fokus vender tilbage til MIT-licensen-knappen ved lukning', async () => {
       // Kontraktkrav (§Popup-fokus-restore): fokus må ikke efterlades på den forsvindende
       // X-knap og falde til body — brugeren skal kunne fortsætte fra knappen, de åbnede med.

@@ -14,7 +14,7 @@ import {
 import TransientTextInput from '../inputs/transient/TransientTextInput';
 import { getTodayCopenhagenISO } from '../../utils/dateUtils';
 import { asciiSlug } from '../../utils/asciiSlug';
-import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
+import { useOverlayBehavior } from '../../hooks/useOverlayBehavior';
 import {
   type ContentBoxIdentity,
   openBugReportEmail,
@@ -67,7 +67,6 @@ const ContentBoxReportDialog = React.memo(({
   contentBoxRef,
   restoreFocusTo,
 }: ContentBoxReportDialogProps) => {
-  useDialogFocusRestore({ open, triggerRef: restoreFocusTo });
   const [message, setMessage] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
   const [isDownloading, setIsDownloading] = React.useState(false);
@@ -76,6 +75,16 @@ const ContentBoxReportDialog = React.memo(({
     message: string;
     severity: 'success' | 'error';
   }>({ open: false, message: '', severity: 'success' });
+
+  // Den fælles overlay-adfærd (Escape ejes af MUI's `onClose`; hooken tilføjer tilbage-knappen,
+  // stak-disciplinen og fokus-restoren). Placeret EFTER `isSending`, som lukkevejen læser.
+  const { overlayRootProps, requestClose } = useOverlayBehavior({
+    open,
+    // Under afsendelse må dialogen ikke kunne lukkes — heller ikke med tilbage-knappen.
+    onClose: () => { if (!isSending) onClose(); },
+    triggerRef: restoreFocusTo,
+    disableEscape: true,
+  });
 
   React.useEffect(() => {
     if (!open) {
@@ -174,7 +183,20 @@ const ContentBoxReportDialog = React.memo(({
 
   return (
     <>
-      <Dialog open={open} onClose={isSending ? undefined : onClose} maxWidth="md" fullWidth>
+      <Dialog
+        open={open}
+        onClose={isSending ? undefined : (_event, reason) => {
+          requestClose(reason === 'backdropClick' ? 'backdrop' : 'escape');
+        }}
+        maxWidth="md"
+        fullWidth
+        // MUI genopretter ellers SELV fokus ved unmount — til det element, der var aktivt ved
+        // åbningen — og den kører sidst, så den overskriver `useDialogFocusRestore` ovenfor uden at
+        // noget fejler. To restore-veje, hvor kun den ene kender kontraktens målprioritet
+        // (`keyboard-navigation.md` §Popup-fokus-restore). Se `ConfirmationDialog` for samme værn.
+        disableRestoreFocus
+        {...overlayRootProps}
+      >
         <DialogTitle>Rapporter fejl eller forbedringsønske</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ marginBottom: 2 }}>

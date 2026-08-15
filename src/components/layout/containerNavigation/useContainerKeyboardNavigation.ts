@@ -3,6 +3,7 @@ import { hasTableBoundaryExit } from '../../tables/gridCore/tableFocusHelpers';
 import { getPopupWidgetHost, isPopupWidget, isPopupWidgetExpanded } from '../../inputs/popupWidgetSemantics';
 import { CONTAINER_FOCUSABLE_SELECTOR } from '../../tables/gridCore/tableFocusHelpers';
 import { scrollTargetIntoView } from '../../../utils/scrollTargetIntoView';
+import { hasOpenOverlay } from '../../ui/overlayBehavior';
 import {
   type FocusCandidate,
   resolveCircularNeighbor,
@@ -123,6 +124,20 @@ export const useContainerKeyboardNavigation = (
       // gennem portals; ellers ville popovers/dialogs/datepickere gå i stykker.
       const targetNode = e.target instanceof Node ? e.target : null;
       if (targetNode && !container.contains(targetNode)) return;
+
+      // Er der et overlay åbent, ejer overlayet tastaturet — ikke siden bagved.
+      //
+      // Denne prøve kan IKKE erstattes af DOM-indeslutningen ovenfor. Et portaleret overlay (MUI
+      // `Dialog`) ligger under `document.body` og slipper igennem der; et INLINE overlay
+      // (`role="dialog"` renderet i sidens træ) er derimod en ægte efterkommer af containeren, så
+      // prøven ovenfor siger «indenfor», og navigationen overtog Tab inde i vinduet. Præcis det skete
+      // i licensvinduet: fokus vandrede ud i siden bagved, selv om vinduet havde en korrekt monteret
+      // `FocusTrap` — sidens navigation kørte simpelthen forbi trap'ens vagtposter.
+      //
+      // Åbenhed aflæses derfor på overlayets EGEN markør (`overlayBehavior`), ikke på hvor
+      // komponenten tilfældigvis er monteret. `hasOpenOverlay()` frem for «er målet inde i et
+      // overlay?»: et modalt vindue skal også fange et Tab, der starter på et element bag det.
+      if (hasOpenOverlay()) return;
 
       // IME/composition og OS-/browser-kommandoer må ikke forstyrres.
       if ((e.nativeEvent as unknown as { isComposing?: boolean }).isComposing === true) return;

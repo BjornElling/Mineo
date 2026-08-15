@@ -1,8 +1,8 @@
 import React from 'react';
-import { Box, Typography, IconButton, useTheme } from '@mui/material';
+import { Box, Typography, IconButton, useTheme, Unstable_TrapFocus as FocusTrap } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import licenseText from '../../assets/LICENSE.txt?raw';
-import { useDialogFocusRestore } from '../../hooks/useDialogFocusRestore';
+import { useOverlayBehavior } from '../../hooks/useOverlayBehavior';
 
 type LicenseModalProps = {
   open: boolean;
@@ -17,6 +17,15 @@ type LicenseModalProps = {
 /**
  * Modal til visning af LICENSE-tekst
  *
+ * **Tastaturet bliver i vinduet.** Modalen er et håndrullet overlay — den bygger ikke på MUI
+ * `Dialog` og arvede derfor heller ikke dens `FocusTrap`. Tab vandrede ud i siden bagved, selv om
+ * vinduet dækkede skærmen og erklærede sig `aria-modal="true"`. Fangsten kommer nu fra den SAMME
+ * primitiv, MUI `Dialog` selv bruger, frem for en fjerde håndrullet fokusmekanisme
+ * (`keyboard-navigation.md` §Popup-fokus-restore: én implementering).
+ *
+ * Arbejdsdelingen er bevidst: `FocusTrap` ejer Tab-cirkulationen INDE i vinduet, mens
+ * `useDialogFocusRestore` ejer, hvor fokus lander EFTER lukningen. De to overlapper ikke.
+ *
  * @param {boolean} open - Om modalen er åben
  * @param {function} onClose - Callback når modalen lukkes
  */
@@ -25,24 +34,14 @@ const LicenseModal = React.memo(({ open, onClose, restoreFocusTo }: LicenseModal
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const headingId = React.useId();
 
-  // Fokus tilbage til «MIT-licensen»-knappen ved lukning (jf. `keyboard-navigation.md`
-  // §Popup-fokus-restore). Uden den blev fokus efterladt på modalens forsvindende X-knap og
-  // faldt til `body`, så tastaturbrugeren måtte tabbe forfra gennem hele siden.
-  useDialogFocusRestore({ open, triggerRef: restoreFocusTo });
-
-  // Luk modal ved Escape-tryk (kun når modal er åben)
-  React.useEffect(() => {
-    if (!open) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [open, onClose]);
+  // Hele overlay-adfærden ét sted: Escape, browserens/musens tilbage-knap, stak-disciplin ved
+  // lag-på-lag, og fokus-restore til «MIT-licensen»-knappen. Modalen havde tidligere sin egen
+  // Escape-lytter og kendte slet ikke tilbage-knappen.
+  const { overlayRootProps, requestClose } = useOverlayBehavior({
+    open,
+    onClose: () => onClose(),
+    triggerRef: restoreFocusTo,
+  });
 
   // Sæt fokus på close-knap når modal åbnes
   React.useEffect(() => {
@@ -59,7 +58,7 @@ const LicenseModal = React.memo(({ open, onClose, restoreFocusTo }: LicenseModal
     <>
       {/* Backdrop */}
       <Box
-        onClick={onClose}
+        onClick={() => requestClose('backdrop')}
         data-testid="license-backdrop"
         sx={{
           position: 'fixed',
@@ -75,11 +74,23 @@ const LicenseModal = React.memo(({ open, onClose, restoreFocusTo }: LicenseModal
         }}
       />
 
-      {/* Modal indhold */}
+      {/* Modal indhold. `FocusTrap` holder Tab inde i vinduet, så længe det er åbent.
+          `disableAutoFocus`: mount-fokus sættes allerede eksplicit på lukkeknappen ovenfor, og to
+          konkurrerende mount-fokus ville gøre landingspunktet uforudsigeligt.
+          `disableRestoreFocus`: restoren ved lukning ejes af `useDialogFocusRestore` — præcis den
+          konkurrerende MUI-vej, som §Popup-fokus-restore forbyder. */}
+      <FocusTrap open disableAutoFocus disableRestoreFocus>
       <Box
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
+        // Markøren gør vinduet synligt for `Container`s tastaturnavigation, så den giver slip på Tab.
+        // Uden den overtager sidens navigation Tab og kører forbi `FocusTrap`s vagtposter — vinduet er
+        // en INLINE DOM-efterkommer af containeren og slipper derfor ikke igennem portal-undtagelsen.
+        {...overlayRootProps}
+        // FocusTrap kræver et fokusérbart barn for at kunne holde fokus, når indholdet i øvrigt
+        // kun rummer knapper, der kan forsvinde. -1 holder den ude af Tab-rækkefølgen.
+        tabIndex={-1}
         sx={{
           position: 'fixed',
           top: '50%',
@@ -119,7 +130,7 @@ const LicenseModal = React.memo(({ open, onClose, restoreFocusTo }: LicenseModal
           </Typography>
           <IconButton
             ref={closeButtonRef}
-            onClick={onClose}
+            onClick={() => requestClose('close-button')}
             aria-label="Luk"
             sx={{
               color: 'text.secondary',
@@ -160,6 +171,7 @@ const LicenseModal = React.memo(({ open, onClose, restoreFocusTo }: LicenseModal
           </Box>
         </Box>
       </Box>
+      </FocusTrap>
     </>
   );
 });

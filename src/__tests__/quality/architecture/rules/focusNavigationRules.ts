@@ -17,6 +17,7 @@
  * et almindeligt `element.focus()` er ikke en traversering, og et værn der forbød det
  * ville støje uden at ramme mekanismen.
  */
+import ts from 'typescript';
 import { defineRule, forbidImports, type Finding } from '../ruleKit';
 import { collectCalls, hasAnyIdentifier, hasIdentifier } from '../astQueries';
 import type { SourceEntry } from '../sourceGraph';
@@ -124,6 +125,9 @@ export const focusTraversalOwnershipRule = forbidImports({
  */
 const DIALOG_FOCUS_RESTORE_HOOK = 'useDialogFocusRestore';
 
+/** Den fælles overlay-adfærd; aftager selv `useDialogFocusRestore` indeni. */
+const OVERLAY_BEHAVIOR_HOOK = 'useOverlayBehavior';
+
 /**
  * Der er bevidst INGEN allowlist. Undtagelsen er indbygget i selve prædikatet: aftager filen
  * `useDialogFocusRestore`, ejer den ikke sin egen restore-vej, og dens øvrige `focus()`-kald
@@ -134,16 +138,52 @@ const DIALOG_FOCUS_RESTORE_HOOK = 'useDialogFocusRestore';
 /** Markører for «denne fil ejer en popup-flade». */
 const POPUP_OWNER_MARKERS = ['Dialog', 'Modal'] as const;
 
+/**
+ * Renderer filen en JSX-attribut `role="dialog"`?
+ *
+ * AST-baseret og IKKE `entry.text.includes('role="dialog"')`. Tekstformen kan ikke skelne kode fra
+ * kommentar: en kommentar, der FORKLARER reglen — fx navigationens note om, at et inline
+ * `role="dialog"`-overlay er en DOM-efterkommer — gjorde filen til en «popup-ejer» og udløste reglen
+ * på dens almindelige `element.focus()`-kald. Prosa må ikke kunne ændre, hvad et værn måler.
+ */
+const rendersDialogRoleAttribute = (entry: SourceEntry): boolean => {
+  let found = false;
+  const visit = (node: ts.Node): void => {
+    if (found) return;
+    if (ts.isJsxAttribute(node) && ts.isIdentifier(node.name) && node.name.text === 'role') {
+      const { initializer } = node;
+      if (initializer && ts.isStringLiteral(initializer) && initializer.text === 'dialog') {
+        found = true;
+        return;
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return found;
+};
+
 const ownsPopupSurface = (entry: SourceEntry): boolean => {
   if (!/\.tsx?$/.test(entry.relativePath)) return false;
-  if (entry.text.includes('role="dialog"')) return true;
+  if (rendersDialogRoleAttribute(entry)) return true;
   return POPUP_OWNER_MARKERS.some((marker) => hasIdentifier(entry, marker));
 };
 
+/**
+ * Aftager filen den fælles restore-vej? Enten DIREKTE gennem `useDialogFocusRestore`, eller gennem
+ * `useOverlayBehavior`, som selv kalder den indeni og videregiver dens `restoreFocus`.
+ *
+ * Begge tæller, fordi garantien er den samme: der er ÉN implementering af restoren. Da overlays blev
+ * samlet om det fælles regelsæt, flyttede indgangen — ikke mekanismen. En probe, der kun kendte det
+ * gamle navn, ville erklære reglen inert, selv om den beskyttede præcis lige så meget som før.
+ */
+const consumesSharedFocusRestore = (entry: SourceEntry): boolean =>
+  hasIdentifier(entry, DIALOG_FOCUS_RESTORE_HOOK) || hasIdentifier(entry, OVERLAY_BEHAVIOR_HOOK);
+
 const findUnownedPopupFocusRestore = (entry: SourceEntry): readonly Finding[] => {
   if (!ownsPopupSurface(entry)) return [];
-  // Aftager filen den fælles hook, ejer den ikke sin egen restore-vej.
-  if (hasIdentifier(entry, DIALOG_FOCUS_RESTORE_HOOK)) return [];
+  // Aftager filen den fælles vej, ejer den ikke sin egen restore-vej.
+  if (consumesSharedFocusRestore(entry)) return [];
 
   return collectCalls(entry)
     .filter((ref) => ref.calleeName === 'focus')
@@ -163,13 +203,14 @@ export const popupFocusRestoreSingleSourceRule = defineRule({
   liveTarget: {
     kind: 'precondition',
     // AST-baseret: en kommentar der blot OMTALER hooken må ikke holde reglen kunstigt levende.
-    probe: (entry) => hasIdentifier(entry, DIALOG_FOCUS_RESTORE_HOOK),
+    probe: consumesSharedFocusRestore,
     rationale:
-      'reglen forudsætter, at den fælles restore-hook findes og aftages; forsvinder den, er der ingen enkeltkilde at håndhæve',
-    // Hooken plus de flader, der aftager den. Gulvet gør det synligt, hvis vejen skrumper.
+      'reglen forudsætter, at den fælles restore-vej findes og aftages — direkte eller gennem `useOverlayBehavior`; forsvinder den, er der ingen enkeltkilde at håndhæve',
+    // Hooken, det fælles overlay-lag, plus de flader der aftager dem.
     minimumMatches: 4,
     requiredPaths: [
       'src/hooks/useDialogFocusRestore.ts',
+      'src/hooks/useOverlayBehavior.ts',
       'src/components/ui/ConfirmationDialog.tsx',
       'src/components/ui/LicenseModal.tsx',
     ],
@@ -199,7 +240,271 @@ export const popupFocusRestoreSingleSourceRule = defineRule({
   ],
 });
 
+/**
+ * En MUI-baseret popup, der selv genopretter fokus, skal slå MUI's egen restore fra.
+ *
+ * **Hvorfor reglen findes ved siden af `popup-focus-restore-single-source`.** Den regel fanger den
+ * SYNLIGE parallelle vej: et `focus()`-kald i en fil, der ejer en popup uden at aftage den fælles
+ * hook. Den er blind for den USYNLIGE: en `<Dialog>`, der aftager hooken korrekt, men glemmer
+ * `disableRestoreFocus`. Dér er den konkurrerende vej ikke kode i filen — den er MUI's default.
+ *
+ * Det er værre end den synlige variant, netop fordi intet ser forkert ud: hooken er kaldt, kontrakten
+ * ser overholdt ud, og MUI's restore kører SIDST og overskriver målet uden at noget fejler. Tre
+ * dialoger stod i præcis den tilstand (fejlrapport fra indholdsbokse, fejlrapport-knappen og
+ * ErrorFallbacks genindlæsningsbekræftelse), mens `ConfirmationDialog` — den ene, nogen havde
+ * fejlsøgt — bar flaget.
+ *
+ * Kontrakten krævede det i forvejen (`keyboard-navigation.md` §Popup-fokus-restore: «En MUI-baseret
+ * popup skal sætte `disableRestoreFocus`»), men intet målte det.
+ *
+ * **Skæringen** er snæver med vilje: kun filer, der BÅDE renderer et `<Dialog>` OG aftager
+ * `useDialogFocusRestore`. En dialog uden egen restore har ingen konkurrerende vej, og MUI's default
+ * er da det rigtige svar — den skal ikke tvinges til at slå den fra.
+ */
+const findMuiDialogWithoutRestoreOptOut = (entry: SourceEntry): readonly Finding[] => {
+  if (!/\.tsx$/.test(entry.relativePath)) return [];
+  // Kun filer med en EGEN restore-vej: uden den er MUI's default ikke en konkurrent.
+  if (!consumesSharedFocusRestore(entry)) return [];
+
+  const findings: Finding[] = [];
+  const visit = (node: ts.Node): void => {
+    const opening = ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node) ? node : null;
+    if (opening !== null && ts.isIdentifier(opening.tagName) && opening.tagName.text === 'Dialog') {
+      const optsOut = opening.attributes.properties.some((property) => {
+        // `{...props}` kan bære flaget, reglen ikke kan se. Vær tavs frem for at støje.
+        if (ts.isJsxSpreadAttribute(property)) return true;
+        if (!ts.isJsxAttribute(property)) return false;
+        return ts.isIdentifier(property.name) && property.name.text === 'disableRestoreFocus';
+      });
+      if (!optsOut) {
+        const { line, character } = entry.ast.getLineAndCharacterOfPosition(opening.getStart(entry.ast));
+        findings.push({
+          position: { line: line + 1, column: character + 1 },
+          message:
+            'MUI `<Dialog>` i en fil, der selv fører fokus-restore gennem `useDialogFocusRestore`, mangler '
+            + '`disableRestoreFocus`. MUI genopretter da SELV fokus til det element, der var aktivt ved '
+            + 'åbningen, og den kører sidst — så den overskriver kontraktens målprioritet uden at noget '
+            + 'fejler (`keyboard-navigation.md` §Popup-fokus-restore). Se `ConfirmationDialog`.',
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+export const muiDialogRestoreOptOutRule = defineRule({
+  id: 'layout/mui-dialog-disables-own-focus-restore',
+  description:
+    'En MUI-Dialog, hvis fil selv fører fokus-restore, skal sætte disableRestoreFocus, så MUI ikke overskriver målet.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: consumesSharedFocusRestore,
+    rationale:
+      'reglen forudsætter, at den fælles restore-vej findes og aftages af MUI-baserede dialoger — '
+      + 'direkte eller gennem `useOverlayBehavior`; forsvinder den, er der ingen konkurrerende vej at lukke',
+    minimumMatches: 4,
+    requiredPaths: ['src/components/ui/ConfirmationDialog.tsx'],
+  },
+  find: findMuiDialogWithoutRestoreOptOut,
+  violatingFixtures: [
+    {
+      relativePath: 'src/components/ui/LeakyDialog.tsx',
+      code: 'const D = () => { const { triggerRef } = useDialogFocusRestore({ open }); '
+        + 'return <Dialog open={open} onClose={close}><span ref={triggerRef} /></Dialog>; };',
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/ui/GoodDialog.tsx',
+      code: 'const D = () => { const { triggerRef } = useDialogFocusRestore({ open }); '
+        + 'return <Dialog open={open} disableRestoreFocus><span ref={triggerRef} /></Dialog>; };',
+    },
+    // Ingen egen restore-vej ⇒ MUI's default er det rigtige svar, og reglen er tavs.
+    {
+      relativePath: 'src/components/ui/PlainDialog.tsx',
+      code: 'const D = () => <Dialog open={open} onClose={close} />;',
+    },
+  ],
+});
+
+/**
+ * Ethvert overlay aftager den fælles overlay-adfærd.
+ *
+ * **Hvorfor.** Der fandtes seks overlay-flader og lige så mange delvise løsninger: tre forskellige
+ * måder at lytte på Escape (window-lytter, capture+boble-par, MUI's `onClose`), ingen fælles
+ * lukkekontrakt, og INGEN af dem kendte browserens/musens tilbage-knap. En flade kunne se komplet
+ * ud og alligevel mangle en lukkevej, uden at noget fejlede.
+ *
+ * Værre: forskellen mellem en PORTALERET og en INLINE monteret popup afgjorde, om sidens
+ * tastaturnavigation overtog Tab inde i vinduet — og den forskel var tilfældig, ikke valgt.
+ * `useOverlayBehavior` gør åbenhed til noget overlayet SIGER (markøren), så begge monteringsformer
+ * opfører sig ens.
+ *
+ * **Skæringen** er en fil, der ejer en overlay-flade (`role="dialog"` eller en `<Dialog>`), og som
+ * IKKE aftager `useOverlayBehavior`. Toasts og ikke-modale notitser rammes ikke: de bærer
+ * `role="alert"`/`role="status"`, ikke `role="dialog"`.
+ */
+
+/** Filer der ejer en overlay-flade uden at være et overlay i kontraktens forstand. */
+const OVERLAY_RULE_EXEMPT_PATHS: ReadonlySet<string> = new Set([
+  // Definerer selve markøren og de rene beslutninger; aftager ikke sin egen React-hook.
+  'src/components/ui/overlayBehavior.ts',
+  // ER hooken.
+  'src/hooks/useOverlayBehavior.ts',
+  // `StyledDropdown`s `Popover` er en popup-WIDGET, ikke et modalt overlay: fokus skal bevidst blive
+  // på comboboxen (`disableEnforceFocus`), og dens Escape ejes af feltets egen tastelogik. Et
+  // overlay-regelsæt ovenpå ville slå den adfærd i stykker.
+  'src/components/inputs/StyledDropdown.tsx',
+]);
+
+const findOverlayWithoutSharedBehavior = (entry: SourceEntry): readonly Finding[] => {
+  if (!/\.tsx$/.test(entry.relativePath)) return [];
+  if (OVERLAY_RULE_EXEMPT_PATHS.has(entry.relativePath)) return [];
+  // Ejer filen en MODAL overlay-flade? `Dialog`-identifikatoren eller en eksplicit dialog-rolle.
+  // AST-baseret af samme grund som `ownsPopupSurface`: en kommentar om reglen må ikke udløse den.
+  const ownsOverlay = rendersDialogRoleAttribute(entry) || hasIdentifier(entry, 'Dialog');
+  if (!ownsOverlay) return [];
+  if (hasIdentifier(entry, OVERLAY_BEHAVIOR_HOOK)) return [];
+
+  const { line, character } = entry.ast.getLineAndCharacterOfPosition(0);
+  return [{
+    position: { line: line + 1, column: character + 1 },
+    message:
+      'Overlay-flade uden `useOverlayBehavior`. Programmets overlays deler ÉT regelsæt for tastatur og '
+      + 'lukkeveje (`keyboard-navigation.md` §Overlay-adfærd): Escape, backdrop, lukkeknap OG browserens/'
+      + 'musens tilbage-knap, plus stak-disciplin når overlays ligger oven på hinanden. En flade må ikke '
+      + 'implementere sin egen delmængde — det var netop sådan, tilbage-knappen manglede overalt og Tab '
+      + 'kunne slippe ud af et inline-monteret vindue.',
+  }];
+};
+
+export const overlaySharedBehaviorRule = defineRule({
+  id: 'layout/overlay-uses-shared-behavior',
+  description:
+    'Enhver overlay-flade (role="dialog" eller MUI Dialog) skal aftage useOverlayBehavior, så tastatur- og lukkeregler er ens.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => hasIdentifier(entry, OVERLAY_BEHAVIOR_HOOK),
+    rationale:
+      'reglen forudsætter, at den fælles overlay-hook findes og aftages; forsvinder den, er der intet fælles regelsæt at håndhæve',
+    // Hooken plus de seks overlay-flader.
+    minimumMatches: 5,
+    requiredPaths: [
+      'src/hooks/useOverlayBehavior.ts',
+      'src/components/ui/ConfirmationDialog.tsx',
+      'src/components/ui/LicenseModal.tsx',
+    ],
+  },
+  find: findOverlayWithoutSharedBehavior,
+  violatingFixtures: [
+    {
+      relativePath: 'src/components/ui/LonelyOverlay.tsx',
+      code: 'const O = () => <div role="dialog" aria-modal="true"><button>Luk</button></div>;',
+    },
+    {
+      relativePath: 'src/components/ui/LonelyDialog.tsx',
+      code: 'const D = () => <Dialog open={open} onClose={close}><span /></Dialog>;',
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/ui/GoodOverlay.tsx',
+      code: 'const O = () => { const { overlayRootProps } = useOverlayBehavior({ open, onClose }); '
+        + 'return <div role="dialog" {...overlayRootProps} />; };',
+    },
+    // En toast er ikke et overlay: den fanger ikke fokus og har ingen backdrop.
+    {
+      relativePath: 'src/components/ui/SomeToast.tsx',
+      code: 'const T = () => <div role="alert">Fejl</div>;',
+    },
+  ],
+});
+
+/**
+ * Blink-markeringen sættes KUN af `blinkFieldAttention` — aldrig deklarativt fra React-state.
+ *
+ * **Hvorfor det er en regel og ikke bare en konvention.** En «peg på dette felt»-markering er en
+ * TRANSIENT respons: den skal komme igen, hver gang brugeren udløser den. Sættes klassen derimod
+ * deklarativt ud fra state, dør gentagelsen lydløst — anden gang skrives den SAMME værdi, React
+ * bailer ud af re-renderen, og der sker intet synligt. Ingen test fejler; brugeren tror bare, at
+ * programmet ignorerer dem.
+ *
+ * Præcis det skete i løntabellen: en afvist «Omregning til fuldt år» blinkede kun ved FØRSTE klik.
+ * Målt med `animationstart` gav tre klik 1, 1, 1 — efter rettelsen 1, 2, 3.
+ *
+ * Helperen ejer genstarten (fjern klasse → tving reflow → sæt igen) og oprydningen. Den er
+ * desuden det ene sted, varigheden og `prefers-reduced-motion`-hensynet kan ændres.
+ *
+ * Skæringen er snæver: kun selve klasse-KONSTANTEN og dens strengværdi uden for helper-modulet.
+ */
+const BLINK_CLASS_CONSTANT = 'FIELD_ATTENTION_BLINK_CLASS';
+const BLINK_CLASS_LITERAL = 'mineo-field-attention-blink';
+const BLINK_HELPER_MODULE = 'src/inputCore/react/fieldAttentionBlink.ts';
+
+const findDeclarativeBlinkClassUse = (entry: SourceEntry): readonly Finding[] => {
+  if (!/\.tsx?$/.test(entry.relativePath)) return [];
+  // Helper-modulet DEFINERER klassen og sætter den — det er hele pointen med det.
+  if (entry.relativePath === BLINK_HELPER_MODULE) return [];
+
+  const findings: Finding[] = [];
+  const visit = (node: ts.Node): void => {
+    const isConstantRef = ts.isIdentifier(node) && node.text === BLINK_CLASS_CONSTANT;
+    const isLiteralRef = ts.isStringLiteral(node) && node.text === BLINK_CLASS_LITERAL;
+    if (isConstantRef || isLiteralRef) {
+      const { line, character } = entry.ast.getLineAndCharacterOfPosition(node.getStart(entry.ast));
+      findings.push({
+        position: { line: line + 1, column: character + 1 },
+        message:
+          'Blink-klassen bruges uden for `blinkFieldAttention`. En «peg på dette felt»-markering skal '
+          + 'sættes gennem helperen, som GENSTARTER animationen. Sættes klassen deklarativt fra state, '
+          + 'er en gentagen markering på samme mål et no-op: React skriver samme værdi, re-renderen '
+          + 'udebliver, og brugeren får intet svar anden gang.',
+      });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+export const attentionBlinkSingleSourceRule = defineRule({
+  id: 'layout/attention-blink-applied-by-helper',
+  description:
+    'Blink-markeringen må kun sættes af blinkFieldAttention, så en gentagen markering altid genstarter animationen.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => hasIdentifier(entry, 'blinkFieldAttention'),
+    rationale:
+      'reglen forudsætter, at den delte blink-helper findes og aftages; forsvinder den, er der ingen enkeltkilde at håndhæve',
+    // Helperen plus de flader, der peger på et felt.
+    minimumMatches: 3,
+    requiredPaths: [BLINK_HELPER_MODULE],
+  },
+  find: findDeclarativeBlinkClassUse,
+  violatingFixtures: [
+    {
+      relativePath: 'src/components/tables/SomeTable.tsx',
+      code: 'const cls = (id: string) => (marked === id ? FIELD_ATTENTION_BLINK_CLASS : undefined);',
+    },
+    {
+      relativePath: 'src/components/pages/SomePage.tsx',
+      code: "const cls = isMarked ? 'mineo-field-attention-blink' : '';",
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/tables/GoodTable.tsx',
+      code: 'const point = (el: HTMLElement) => { blinkFieldAttention(el); };',
+    },
+  ],
+});
+
 export const FOCUS_NAVIGATION_RULES = [
   focusTraversalOwnershipRule,
   popupFocusRestoreSingleSourceRule,
+  muiDialogRestoreOptOutRule,
+  overlaySharedBehaviorRule,
+  attentionBlinkSingleSourceRule,
 ] as const;
