@@ -1,12 +1,11 @@
 import React from 'react';
-import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../types/handles';
+import type { StandardLoenTableHandle } from '../types/handles';
 import type { AarsloenOmregningGate } from '../domain/aarsloen/aarsloenValidationPolicies';
 import type { ToggleCommitDecision, ToggleCommitOverride } from '../inputCore/react/fields/ToggleField';
 
 interface UseOmregningToggleProps {
   gate: AarsloenOmregningGate;
   tabelRef: React.RefObject<StandardLoenTableHandle | null>;
-  toggleRef: React.RefObject<StyledToggleSwitchHandle | null>;
 }
 
 interface UseOmregningToggleReturn {
@@ -15,7 +14,7 @@ interface UseOmregningToggleReturn {
   /**
    * Gatens afgørelse som feltadapterens {@link ToggleCommitOverride} (§1.11): `'reject'` ved en ugyldig
    * aktivering, hvorved adapteren IKKE skriver og togglen bliver stående, ellers `'commit'`, hvorved adapteren
-   * skriver gennem sin normale write-grænse. Bivirkningerne — shake og fejlcelle-guidning — hører til
+   * skriver gennem sin normale write-grænse. Bivirkningen — fejlcelle-guidningen — hører til
    * afvisningen og sker derfor her.
    *
    * Hooken skriver ikke selv: gaten er en afslutningsPOLITIK, ikke en grund til at
@@ -30,19 +29,19 @@ interface UseOmregningToggleReturn {
  * Principper:
  * - Persisted brugerinput er ønsket tilstand
  * - Den centrale omregnings-gate afgør både toggle-visning og effektiv aktivering
- * - Manuel enable blokeres tidligt ved ugyldige forhold (→ shake + fokus på første fejl)
+ * - Manuel enable blokeres tidligt ved ugyldige forhold (→ fokus/markering på første fejl)
+ *
+ * Rystelsen af togglen er fjernet (brugerbeslutning 2026-08-15). Hver afvisningsgren peger i
+ * forvejen brugeren på en KONKRET celle — fejlcellen, den manglende indtastning eller første
+ * periodecelle — og det er den vejvisning, der havde værdi. Rystelsen tilføjede kun «noget er galt».
  */
 export const useOmregningToggle = ({
   gate,
   tabelRef,
-  toggleRef,
 }: UseOmregningToggleProps): UseOmregningToggleReturn => {
   const decideToggle = React.useCallback(
     (newValue: boolean): ToggleCommitDecision => {
       if (newValue && !gate.canEnable) {
-        // Altid ryst toggle ved ugyldig aktivering
-        toggleRef.current?.shake();
-
         // Hvis der er tabel-fejl, guid brugeren til den relevante celle
         const summary = gate.validationSummary;
         if (summary.firstErrorCell) {
@@ -69,7 +68,7 @@ export const useOmregningToggle = ({
       // Gyldig ændring → feltadapteren skriver gennem sin normale write-grænse.
       return 'commit';
     },
-    [gate, tabelRef, toggleRef]
+    [gate, tabelRef]
   );
 
   return {

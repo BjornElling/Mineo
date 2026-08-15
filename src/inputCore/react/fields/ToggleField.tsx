@@ -1,7 +1,6 @@
 import * as React from 'react';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../../types/fieldEvents';
-import type { StyledToggleSwitchHandle } from '../../../types/handles';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
@@ -13,8 +12,9 @@ import {
 
 // Toggle-felt (§1.3/§3.6): en boolsk immediate-commit control. Klik/Enter/Space committer STRAKS via
 // `commitImmediate` — ingen draft/settle-fase. Modtager kun sin `field`/`location`; den viste checked-tilstand
-// læses fra den afsluttede revision gennem editor-controlleren. Handle-ref (`shake()`) forwardes uændret, så en
-// gate-afvisning (fx omregning) fortsat kan animere kontrollen.
+// læses fra den afsluttede revision gennem editor-controlleren. Feltet har BEVIDST ingen ref-videreførsel:
+// den fandtes alene for at give en gate-afvisning adgang til switchens `shake()`, og rystelsen er fjernet
+// i hele programmet. En afvisning peger nu på den konkrete fejlcelle i stedet.
 
 /**
  * En callsite-ejet afslutning af togglen (§1.11). Kaldes med den ønskede næste værdi og afgør, hvad der sker:
@@ -53,8 +53,7 @@ export type ToggleFieldProps = Readonly<{
   // så en navnløs toggle ikke kan type-checke — se components/inputs/accessibleName.ts.
   AccessibleNameProps;
 
-const ToggleField = React.forwardRef<StyledToggleSwitchHandle, ToggleFieldProps>(
-  (props, ref) => {
+const ToggleField = (props: ToggleFieldProps) => {
     const { field, location, labelPlacement, disabled, name, id, commit, checkedOverride } = props;
     const controller = useFieldEditor(field, location);
     const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
@@ -75,7 +74,6 @@ const ToggleField = React.forwardRef<StyledToggleSwitchHandle, ToggleFieldProps>
 
     return (
       <StyledToggleSwitch
-        ref={ref}
         checked={checked}
         onCommit={handleCommit}
         {...selectAccessibleNameProps(props)}
@@ -86,8 +84,7 @@ const ToggleField = React.forwardRef<StyledToggleSwitchHandle, ToggleFieldProps>
         restoreTargetAttributes={restoreTargetAttributes}
       />
     );
-  }
-);
+};
 
 ToggleField.displayName = 'ToggleField';
 

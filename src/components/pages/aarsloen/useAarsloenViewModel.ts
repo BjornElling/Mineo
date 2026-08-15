@@ -35,7 +35,7 @@ import {
   shouldShowAarsloenShDageFields,
   shouldWarnAarsloenFeriePct,
 } from '../../../domain/policies/aarsloenPolicy';
-import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../../types/handles';
+import type { StandardLoenTableHandle } from '../../../types/handles';
 import type { LoenPaaHelligdage, TillaegAngivesSom } from '../../../schemas/formSchemas/enumSchemas';
 import { firstPageMessage, pageMessage, withPageMessages } from '../../layout/pageMessage';
 
@@ -103,7 +103,6 @@ const LOCATIONS = Object.freeze({
 /** Løntabellens navigationslokation — tabellen bygger selv sine celle-lokationer af den. */
 const TABLE_LOCATION_NAV = Object.freeze({ route: APP_ROUTES.aarsloen, tabKey: null });
 
-const DOWNLOAD_SHAKE_MS = 500;
 
 export function useAarsloenViewModel() {
   const evaluation = useInputEvaluation();
@@ -120,13 +119,12 @@ export function useAarsloenViewModel() {
   // reagerer på samme committed forudsætninger (gate). Togglen er et ALMINDELIGT persisteret felt gennem
   // `ToggleField` (§3.2/§3.7) — gaten leveres som dens `commit`-override, så en ugyldig aktivering afvises uden
   // at feltbindingen eller undo/redo-fokusmetadataen falder væk.
-  const toggleRef = React.useRef<StyledToggleSwitchHandle | null>(null);
 
   const {
     checked: omregningChecked,
     effectiveEnabled: omregningAktiveret,
     decideToggle: decideOmregningToggle,
-  } = useOmregningToggle({ gate: omregningGate, tabelRef, toggleRef });
+  } = useOmregningToggle({ gate: omregningGate, tabelRef });
 
   // Fatal-gate (§1.6/§3.9): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er en RØD
   // feltfejl. Projektionen kalder da IKKE motoren (`calculation === null`), så der findes intet resultat at
@@ -150,33 +148,21 @@ export function useAarsloenViewModel() {
 
   // Dokument-download. Begge outputs deler ÉN kildekontekst, så årsløns-projektionen kun bygges én gang pr.
   // revision, uanset at siden tegner to knapper. Hele preflighten — settle, frisk capture, token-lighed, gate —
-  // ejes af definitionerne; her er kun blokerings-FEEDBACKEN tilbage (shake + flash af den fejlende celle).
+  // ejes af definitionerne; her er kun blokerings-FEEDBACKEN tilbage (flash af den fejlende celle).
   const documentContext = useMineoDocumentSourceContext();
   const aarsloenDownload = useMineoDocumentOutputWithContext(aarsloenDocumentDefinition, undefined, documentContext);
   const shDageDownload = useMineoDocumentOutputWithContext(shDageDocumentDefinition, undefined, documentContext);
 
-  const [downloadShake, setDownloadShake] = React.useState(false);
-  const downloadShakeTimeoutRef = React.useRef<number | null>(null);
-  React.useEffect(() => () => {
-    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
-  }, []);
-  const triggerDownloadShake = React.useCallback(() => {
-    setDownloadShake(true);
-    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
-    downloadShakeTimeoutRef.current = window.setTimeout(() => {
-      setDownloadShake(false);
-      downloadShakeTimeoutRef.current = null;
-    }, DOWNLOAD_SHAKE_MS);
-  }, []);
-
   const runAarsloenDownload = React.useCallback(async () => {
     const outcome = await aarsloenDownload.download(undefined);
     if (outcome.status === 'rejected' && outcome.rejection.kind === 'gate-blocked') {
-      triggerDownloadShake();
+      // Rystelsen er fjernet; celle-flashet er bevaret. Det var den del af den gamle
+      // feedback, der PEGEDE et sted hen — rystelsen fortalte kun, at noget var galt, hvilket
+      // knappens tooltip allerede sagde mere præcist.
       const firstError = tableValidation.errors[0];
       if (firstError?.kind === 'cell') tabelRef.current?.flashError(firstError);
     }
-  }, [aarsloenDownload, tableValidation.errors, triggerDownloadShake]);
+  }, [aarsloenDownload, tableValidation.errors]);
 
   const runShDageDownload = React.useCallback(async () => {
     await shDageDownload.download(undefined);
@@ -222,7 +208,6 @@ export function useAarsloenViewModel() {
     locations: LOCATIONS,
     tableLocationNav: TABLE_LOCATION_NAV,
     tabelRef,
-    toggleRef,
     values,
     tableSatser,
     // Omregning
@@ -246,7 +231,6 @@ export function useAarsloenViewModel() {
     // Dokumenter
     aarsloenDownload,
     shDageDownload,
-    downloadShake,
     downloadErrorMessage,
     runAarsloenDownload,
     runShDageDownload,

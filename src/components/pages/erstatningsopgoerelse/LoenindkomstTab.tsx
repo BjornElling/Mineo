@@ -45,7 +45,7 @@ const LoenindkomstTab = React.memo(({
     deleteTargetName,
     loentrinFinder,
     totalAnsaettelsesforhold,
-    cannotAddMore,
+    addAnsaettelsesforholdGate,
     handleAddConfirm,
     handleDeleteConfirm,
   } = vm;
@@ -102,9 +102,9 @@ const LoenindkomstTab = React.memo(({
             <FloatingActionButton
               icon={<AddIcon />}
               color="primary"
-              disabled={cannotAddMore}
-              tooltip={cannotAddMore ? 'Maksimalt 10 ansættelsesforhold' : 'Tilføj nyt ansættelsesforhold'}
-              shake={cannotAddMore}
+              disabled={addAnsaettelsesforholdGate.disabled}
+              tooltip="Tilføj nyt ansættelsesforhold"
+              disabledReason={addAnsaettelsesforholdGate.disabledReason}
               onClick={() => {
                 setAddDialogOpen(true);
               }}
@@ -131,7 +131,6 @@ const LoenindkomstTab = React.memo(({
         onAmountFieldError={loentrinFinder.handleAmountFieldError}
         onDateFieldError={loentrinFinder.handleDateFieldError}
         results={loentrinFinder.results}
-        buttonShake={loentrinFinder.buttonShake}
         headingId={loentrinFinder.headingId}
         overenskomstLabel={loentrinFinder.overenskomstLabel}
         inputAmountNumber={loentrinFinder.inputAmountNumber}

@@ -62,20 +62,6 @@ const MenberegningTab = React.memo(() => {
   const evaluation = useInputEvaluation();
   const download = useMineoDocumentOutput(varigeMenDocumentDefinition, undefined);
 
-  const [downloadShake, setDownloadShake] = React.useState(false);
-  const downloadShakeTimeoutRef = React.useRef<number | null>(null);
-  React.useEffect(() => () => {
-    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
-  }, []);
-  const triggerDownloadShake = React.useCallback(() => {
-    setDownloadShake(true);
-    if (downloadShakeTimeoutRef.current !== null) window.clearTimeout(downloadShakeTimeoutRef.current);
-    downloadShakeTimeoutRef.current = window.setTimeout(() => {
-      setDownloadShake(false);
-      downloadShakeTimeoutRef.current = null;
-    }, 500);
-  }, []);
-
   const mengradInputRef = React.useRef<HTMLInputElement>(null);
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
@@ -191,18 +177,21 @@ const MenberegningTab = React.memo(() => {
 
   /**
    * Aktivering. Hele preflighten (settle, frisk capture, token-lighed, gate) ligger i definitionen;
-   * det eneste sidespecifikke er blokerings-FEEDBACKEN — shake + fokus på det første blokerende
-   * felt — som er ren præsentation og bevidst ikke en del af definitionen (den er forskellig pr. side).
+   * det eneste sidespecifikke er blokerings-FEEDBACKEN — fokus på det første blokerende felt — som er
+   * ren præsentation og bevidst ikke en del af definitionen (den er forskellig pr. side).
+   *
+   * Rystelsen er fjernet; fokusspringet er bevaret. Rystelsen fortalte kun, AT noget var galt
+   * — det sagde knappens tooltip allerede mere præcist — mens fokusspringet fører brugeren hen til det
+   * felt, der skal rettes.
    */
   const handlePdfDownload = React.useCallback(async () => {
     const outcome = await download.download(undefined);
     if (outcome.status === 'rejected' && outcome.rejection.kind === 'gate-blocked') {
-      triggerDownloadShake();
       focusFirstBlockingField();
     }
-  }, [download, focusFirstBlockingField, triggerDownloadShake]);
+  }, [download, focusFirstBlockingField]);
 
-  // Gate-årsagen hører kun i knappens tooltip; en blokering besvares her visuelt med shake + fokus.
+  // Gate-årsagen hører kun i knappens tooltip; en blokering besvares her visuelt med fokusspring.
   const pdfErrorMessage = pageMessage(download.errorMessage);
 
   const formatSkadedato = (iso: string | undefined): string => {
@@ -398,7 +387,6 @@ const MenberegningTab = React.memo(() => {
               </Typography>
               <DocumentDownloadButton
                 onClick={() => void handlePdfDownload()}
-                shake={downloadShake}
                 dataTestId="varigemen-download"
               />
             </Box>

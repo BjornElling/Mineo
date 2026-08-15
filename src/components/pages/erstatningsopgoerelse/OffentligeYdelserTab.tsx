@@ -18,6 +18,7 @@ import { buildFieldHistoryOrigin } from '../../../inputCore/editor/fieldEditorEn
 import MultilineTextField from '../../../inputCore/react/fields/MultilineTextField';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import InlineActionButton from '../../inputs/InlineActionButton';
+import { resolveActionGate } from '../../inputs/actionGate';
 import {
   buildSygedagpengeRowsForRange,
   SygedagpengeCoverageError,
@@ -264,11 +265,21 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
     setSygedagpengeTilError((prev) => (prev === nextMessage ? prev : nextMessage));
   }, []);
 
-  const canInsertSygedagpenge =
-    Boolean(sygedagpengeFraDato)
-    && Boolean(sygedagpengeTilDato)
-    && !sygedagpengeFraError
-    && !sygedagpengeTilError;
+  /**
+   * «Indsæt»-knappens gate. Årsagen klassificeres frem for at blive skrevet i hånden, så knappen
+   * bruger programmets universelle tekster for grå knapper (§11.1) — samme to klasser og samme
+   * ordlyd som de deaktiverede downloadknapper.
+   *
+   * Rækkefølgen betyder ikke noget her; `resolveActionGate` ejer forrangen (ugyldigt slår manglende).
+   */
+  const sygedagpengeInsertGate = React.useMemo(() => resolveActionGate([
+    ...(sygedagpengeFraError || sygedagpengeTilError
+      ? [{ kind: 'invalid-input' } as const]
+      : []),
+    ...(!sygedagpengeFraDato || !sygedagpengeTilDato
+      ? [{ kind: 'missing-input' } as const]
+      : []),
+  ]), [sygedagpengeFraDato, sygedagpengeFraError, sygedagpengeTilDato, sygedagpengeTilError]);
 
   const isMidlertidigtEetFraEetSiden = values.midlertidigtEetFraEetSiden === 'Ja';
 
@@ -409,7 +420,11 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
               // Min kommer fra fra-datoen; samme udledning fra den anden side.
               bounds={derivedDateBounds('Fra-dato og til-dato i sygedagpenge-indsættelsen')}
             />
-            <InlineActionButton onClick={handleSygedagpengeInsert} disabled={!canInsertSygedagpenge}>
+            <InlineActionButton
+              onClick={handleSygedagpengeInsert}
+              disabled={sygedagpengeInsertGate.disabled}
+              disabledReason={sygedagpengeInsertGate.disabledReason}
+            >
               Indsæt
             </InlineActionButton>
           </Box>

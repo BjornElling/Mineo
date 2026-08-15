@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../../types/fieldEvents';
-import type { StyledToggleSwitchHandle } from '../../../types/handles';
 
 /**
  * Test-wrapper der simulerer korrekt controlled usage.
@@ -46,38 +45,6 @@ function renderControlledToggle(
   const toggle = screen.getByRole('checkbox');
 
   return { toggle, commitSpy };
-}
-
-/**
- * Test-wrapper med ref til at teste shake() funktionalitet.
- */
-function renderWithRef(initialChecked = false) {
-  const commitSpy = vi.fn<(event: CommitEvent<boolean>) => void>();
-  const toggleRef = React.createRef<StyledToggleSwitchHandle>();
-
-  const Wrapper = () => {
-    const [checked, setChecked] = React.useState(initialChecked);
-
-    const handleCommit = React.useCallback((e: CommitEvent<boolean>) => {
-      commitSpy(e);
-      setChecked(e.target.value);
-      return true;
-    }, []);
-
-    return (
-      <StyledToggleSwitch
-        ref={toggleRef}
-        visibleLabel="Test toggle"
-        checked={checked}
-        onCommit={handleCommit}
-      />
-    );
-  };
-
-  render(<Wrapper />);
-  const toggle = screen.getByRole('checkbox');
-
-  return { toggle, commitSpy, toggleRef };
 }
 
 describe('StyledToggleSwitch', () => {
@@ -233,41 +200,30 @@ describe('StyledToggleSwitch', () => {
   });
 
   // ===========================================================================
-  // SHAKE ANIMATION
+  // INGEN IMPERATIV FLADE
   // ===========================================================================
 
-  describe('shake() imperative handle', () => {
-    it('eksponerer shake() metode via ref', () => {
-      const { toggleRef } = renderWithRef(false);
+  describe('ingen imperativ ref-flade', () => {
+    it('eksponerer INTET handle — rystelsen og dens `shake()` er slettet', () => {
+      // Kontakten havde et `StyledToggleSwitchHandle` med præcis ét medlem, `shake()`, som
+      // omregnings-gaten kaldte ved en afvist aktivering. Rystelsen er fjernet i hele programmet
+      // (brugerbeslutning 2026-08-15), og handlet bortfaldt med den.
+      //
+      // Testen måler fraværet på den ENESTE måde, der ikke kan blive grøn af tomhed: den renderer
+      // komponenten med en ref og fastslår, at intet bliver tildelt. Ville nogen genindføre et
+      // `useImperativeHandle`, bliver `ref.current` non-null, og denne test bliver rød.
+      const ref = React.createRef<unknown>();
+      render(
+        <StyledToggleSwitch
+          checked={false}
+          onCommit={() => true}
+          ariaLabel="Test toggle"
+          {...({ ref } as Record<string, unknown>)}
+        />
+      );
 
-      expect(toggleRef.current).not.toBeNull();
-      expect(typeof toggleRef.current?.shake).toBe('function');
-    });
-
-    it('shake() er idempotent - gentagne kald ignoreres mens animation kører', () => {
-      vi.useFakeTimers();
-
-      const { toggleRef } = renderWithRef(false);
-
-      // Første shake starter animation
-      act(() => {
-        toggleRef.current?.shake();
-      });
-
-      // Gentagne kald bør ignoreres (idempotent)
-      act(() => {
-        toggleRef.current?.shake();
-        toggleRef.current?.shake();
-        toggleRef.current?.shake();
-      });
-
-      // Lad animation afslutte
-      act(() => {
-        vi.advanceTimersByTime(500);
-      });
-
-      // Ingen fejl = success (vi tester bare at det ikke crasher)
-      expect(true).toBe(true);
+      expect(screen.getByRole('checkbox', { name: 'Test toggle' })).toBeInTheDocument();
+      expect(ref.current).toBeNull();
     });
   });
 

@@ -28,6 +28,7 @@ import { deriveLoenindkomstVm } from '../../../../domain/erstatningsopgoerelse/v
 import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg } from '../../../../data/overenskomstRates';
 import { scrollTargetIntoView } from '../../../../utils/scrollTargetIntoView';
 import { useLoentrinFinder } from '../shared/useLoentrinFinder';
+import { resolveActionGate } from '../../../inputs/actionGate';
 
 type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 const MAX_ANSAETTELSESFORHOLD = 10;
@@ -161,6 +162,20 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     deleteTargetName,
     totalAnsaettelsesforhold: employments.length,
     cannotAddMore: employments.length >= MAX_ANSAETTELSESFORHOLD,
+    /**
+     * Tilføj-knappens gate, udledt ÉT sted. Både `AnsaettelsesforholdCard` og den tomme flades knap i
+     * `LoenindkomstTab` tegner samme handling; ville de hver især parre `cannotAddMore` med en
+     * håndskrevet tekst, kunne grænsen og dens forklaring drifte fra hinanden (og gjorde det: begge
+     * havde `10` skrevet i hånden ved siden af konstanten, der håndhæver grænsen).
+     */
+    addAnsaettelsesforholdGate: resolveActionGate(
+      employments.length >= MAX_ANSAETTELSESFORHOLD
+        ? [{
+          kind: 'limit',
+          message: `Maksimalt ${String(MAX_ANSAETTELSESFORHOLD)} ansættelsesforhold`,
+        }]
+        : []
+    ),
     showDeleteButton: employments.length > 0,
     handleAddConfirm,
     handleDeleteConfirm,

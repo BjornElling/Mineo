@@ -25,7 +25,6 @@ const AarsloenBeregningSection = React.memo(() => {
   const downloadButton = (
     <DocumentDownloadButton
       onClick={() => void vm.runAarsloenDownload()}
-      shake={vm.downloadShake}
       disabled={!vm.aarsloenDownload.canDownload}
       disabledReason={vm.aarsloenDownload.disabledReason}
     />

@@ -5,7 +5,6 @@ import DownloadIconButton from './DownloadIconButton';
 
 type Props = Readonly<{
   onClick?: () => void;
-  shake?: boolean;
   disabled?: boolean;
   /** Kort årsag der vises i stedet for "Download som …", når knappen er deaktiveret. */
   disabledReason?: string;
@@ -20,7 +19,7 @@ type Props = Readonly<{
  * `useAppSettings` og viser den kontrakt-krævede format-bevidste tooltip/aria-label.
  * Præsentationen deles med `DownloadIconButton`.
  */
-const DocumentDownloadButton = ({ onClick, shake = false, disabled = false, disabledReason, label, dataTestId }: Props) => {
+const DocumentDownloadButton = ({ onClick, disabled = false, disabledReason, label, dataTestId }: Props) => {
   const { settings } = useAppSettings();
   const tooltip = disabled
     ? disabledReason ?? DOWNLOAD_DISABLED_TOOLTIP
@@ -29,7 +28,6 @@ const DocumentDownloadButton = ({ onClick, shake = false, disabled = false, disa
   return (
     <DownloadIconButton
       onClick={onClick}
-      shake={shake}
       disabled={disabled}
       tooltip={tooltip}
       dataTestId={dataTestId}

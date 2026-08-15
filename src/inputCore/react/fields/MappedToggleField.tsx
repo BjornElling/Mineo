@@ -1,7 +1,6 @@
 import * as React from 'react';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../../types/fieldEvents';
-import type { StyledToggleSwitchHandle } from '../../../types/handles';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
@@ -34,9 +33,13 @@ export type MappedToggleFieldProps<TValue> = Readonly<{
   // Obligatorisk tilgængeligt navn — samme krav som ToggleField, jf. components/inputs/accessibleName.ts.
   AccessibleNameProps;
 
-const MappedToggleFieldInner = <TValue,>(
-  props: MappedToggleFieldProps<TValue>,
-  ref: React.ForwardedRef<StyledToggleSwitchHandle>
+/**
+ * Ingen ref-videreførsel: den fandtes alene for switchens `shake()`-handle, som er slettet sammen med
+ * rystelsen. Uden den er komponenten en almindelig generisk funktion og behøver hverken
+ * `forwardRef` eller den type-assertion, der før skulle genskabe generiskheden bagefter.
+ */
+const MappedToggleField = <TValue,>(
+  props: MappedToggleFieldProps<TValue>
 ): React.ReactElement => {
   const {
     field,
@@ -66,7 +69,6 @@ const MappedToggleFieldInner = <TValue,>(
 
   return (
     <StyledToggleSwitch
-      ref={ref}
       checked={checked}
       onCommit={handleCommit}
       {...selectAccessibleNameProps(props)}
@@ -78,9 +80,5 @@ const MappedToggleFieldInner = <TValue,>(
     />
   );
 };
-
-const MappedToggleField = React.forwardRef(MappedToggleFieldInner) as <TValue>(
-  props: MappedToggleFieldProps<TValue> & React.RefAttributes<StyledToggleSwitchHandle>
-) => React.ReactElement;
 
 export default MappedToggleField;

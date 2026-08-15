@@ -7,21 +7,35 @@ type FloatingActionButtonProps = {
   icon: React.ReactNode;
   color?: 'primary' | 'error';
   disabled?: boolean;
-  tooltip?: string;
-  shake?: boolean;
+  /**
+   * Knappens tilgængelige navn OG dens tooltip når handlingen er mulig.
+   *
+   * Påkrævet: knappen har kun et ikon som barn, så uden dette er den navnløs for en skærmlæser. En
+   * `<Tooltip>` udenom er IKKE et navn — MUI sætter `aria-labelledby` på popper-elementet, som kun
+   * findes mens tooltippen er åben (se `accessibilityRules.ts`). Navnet sættes derfor eksplicit på
+   * selve knappen.
+   */
+  tooltip: string;
+  /**
+   * Hvorfor knappen er grå. Vises som tooltip i stedet for `tooltip`, når `disabled` er sand —
+   * årsagens ENESTE visningskanal (§11.1). Navnet (`aria-label`) forbliver `tooltip`, så knappens
+   * identitet ikke skifter, fordi den midlertidigt er spærret.
+   */
+  disabledReason?: string;
   sx?: SxProps<Theme>;
 };
 
 /**
- * Flydende rund action-knap med tooltip og shake-effekt
+ * Flydende rund action-knap (`Tilføj`, `Flyt op`, `Flyt ned`, `Slet …` på et kort).
  *
- * @param onClick - Callback når knappen klikkes
- * @param icon - MUI ikon der vises i knappen
- * @param color - Knappens farve (default: "primary")
- * @param disabled - Om knappen er deaktiveret
- * @param tooltip - Tooltip-tekst ved hover
- * @param shake - Om knappen skal ryste ved klik når disabled
- * @param sx - Ekstra MUI styling
+ * **Deaktiveret tilstand følger den universelle regel for grå knapper** (`page-component-contract.md`
+ * §11.1): knappen bliver stående som nedtonet og reelt inaktiv, årsagen vises kun i tooltippet, og et
+ * klik er tavst.
+ *
+ * **Rystelsen er fjernet** (brugerbeslutning 2026-08-15). Knappen ryster tidligere ved klik,
+ * MENS den fremstod aktiv — den var kun visuelt dæmpet, ikke slået fra. Det gav to modstridende svar
+ * på samme klik og oplyste knappen som brugbar for en skærmlæser. Programmet har nu ÉN afvisningsmåde:
+ * knappen er ægte `disabled` med årsagen i tooltippet. Genindfør ikke en shake-prop her.
  */
 const FloatingActionButton = React.memo(({
   onClick,
@@ -29,40 +43,18 @@ const FloatingActionButton = React.memo(({
   color = 'primary',
   disabled = false,
   tooltip,
-  shake = false,
+  disabledReason,
   sx,
 }: FloatingActionButtonProps) => {
-  const [isShaking, setIsShaking] = React.useState(false);
-  const shakeTimeoutRef = React.useRef<number | null>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (shakeTimeoutRef.current !== null) {
-        window.clearTimeout(shakeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleClick = React.useCallback(() => {
-    if (disabled && shake) {
-      setIsShaking(true);
-      if (shakeTimeoutRef.current !== null) {
-        window.clearTimeout(shakeTimeoutRef.current);
-      }
-      shakeTimeoutRef.current = window.setTimeout(() => {
-        setIsShaking(false);
-        shakeTimeoutRef.current = null;
-      }, 500);
-    } else if (!disabled) {
-      onClick();
-    }
-  }, [disabled, shake, onClick]);
+  const tooltipText = disabled ? disabledReason ?? tooltip : tooltip;
 
   const button = (
     <Fab
       color={color}
-      onClick={handleClick}
-      disabled={disabled && !shake}
+      // Navnet er stabilt og følger handlingen, ikke blokeringstilstanden.
+      aria-label={tooltip}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       sx={mergeSx({
         width: 56,
         height: 56,
@@ -73,28 +65,20 @@ const FloatingActionButton = React.memo(({
           boxShadow: 12,
           transform: 'scale(1.05)',
         },
-        animation: isShaking ? 'shake 0.5s ease' : 'none',
-        '@keyframes shake': {
-          '0%, 100%': { transform: 'translateX(0)' },
-          '25%': { transform: 'translateX(-5px)' },
-          '50%': { transform: 'translateX(5px)' },
-          '75%': { transform: 'translateX(-5px)' },
-        },
       }, sx)}
     >
       {icon}
     </Fab>
   );
 
-  if (tooltip) {
-    return (
-      <Tooltip title={tooltip} arrow placement="top">
-        {button}
-      </Tooltip>
-    );
-  }
-
-  return button;
+  return (
+    <Tooltip title={tooltipText} arrow placement="top">
+      {/* En `disabled` MUI-knap udsender ingen pointer-events, så tooltippen skal ankres på en
+          wrapper. Uden den ville årsagen — knappens eneste forklaring — være uopnåelig præcis når
+          den er relevant. */}
+      <span>{button}</span>
+    </Tooltip>
+  );
 });
 
 FloatingActionButton.displayName = 'FloatingActionButton';

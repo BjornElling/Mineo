@@ -5,7 +5,6 @@ import { optionalAmountValueSchema, type AmountValue } from '../../../../schemas
 import type { ISODateString } from '../../../../types/branded';
 import { isISODateString } from '../../../../types/branded';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
-import { useShakeFlag } from '../../../../hooks/useShakeFlag';
 import { UI_STORAGE_KEYS } from '../../../../config/storageManifest';
 import {
   readOptionalSessionStorageValue,
@@ -68,7 +67,6 @@ export type UseLoentrinFinderResult = Readonly<{
   handleAmountFieldError: (errorMsg: string | undefined) => void;
   handleDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
-  buttonShake: boolean;
   headingId: string;
   overenskomstLabel: string;
   inputAmountNumber: number | undefined;
@@ -128,7 +126,7 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
   const [amountFieldError, setAmountFieldError] = React.useState<string | undefined>(undefined);
   const [dateFieldError, setDateFieldError] = React.useState<string | undefined>(undefined);
   const [results, setResults] = React.useState<ReadonlyArray<LoentrinFinderResult>>([]);
-  const { shake: buttonShake, triggerShake } = useShakeFlag();
+
   const headingId = React.useId();
 
   const open = openForKey !== null;
@@ -213,15 +211,16 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     });
 
     if (!outcome.ok) {
+      // Rystelsen er fjernet. `outcome.errors` sætter i forvejen en konkret fejl på det felt,
+      // der er årsagen — den forklarer, hvad rystelsen kun antydede.
       setErrors(outcome.errors);
       setResults([]);
-      triggerShake();
       return;
     }
 
     setErrors({});
     setResults(outcome.results);
-  }, [target?.overenskomstId, ansaettelse, beloeb, dato, amountFieldError, dateFieldError, triggerShake]);
+  }, [target?.overenskomstId, ansaettelse, beloeb, dato, amountFieldError, dateFieldError]);
 
   const inputAmountNumber = React.useMemo(() => amountValueToNumber(beloeb), [beloeb]);
 
@@ -256,7 +255,6 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     handleAmountFieldError,
     handleDateFieldError,
     results,
-    buttonShake,
     headingId,
     overenskomstLabel,
     inputAmountNumber,

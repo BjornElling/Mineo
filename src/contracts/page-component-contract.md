@@ -3,7 +3,12 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-08-14
+**Senest verificeret mod kode:** 2026-08-15 (§11.1a's universelle regel for grå knapper er målt af
+`actionGate.test.ts` og `disabledActionButtons.test.tsx`: de to generiske tekster er de SAMME
+konstanter, downloadgaten bruger, klikket er tavst på både mus og Enter, årsagen findes kun i
+tooltippet, og knappen forbliver fokusérbar med årsagen i `aria-describedby`. Forbuddet mod rystelse
+i §11.1 er verificeret ved, at hele mekanikken er slettet — `useShakeFlag` og
+`StyledToggleSwitchHandle` er håndhævede fraværspåstande i `contractReferenceLiveness.test.ts`)
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -498,8 +503,15 @@ programmet (brugerbeslutning 2026-07-31) og gælder uanset, hvornår blokeringen
   kunne se. Udfaldet `gate-blocked` bærer derfor ingen besked
   (`resolveDocumentOutcomeMessage` → `null`), og en flade skal rendere `handle.errorMessage` RÅT
   uden at lægge egen politik oven på det.
-- Et visuelt svar er stadig tilladt og ønsket, hvor det findes: shake + fokus på det første
-  blokerende felt er ikke en besked, men en pegepind til det felt, brugeren skal rette.
+- Et visuelt svar er stadig tilladt og ønsket, hvor det findes — men det skal PEGE et sted hen:
+  fokus på det første blokerende felt, eller et flash af den fejlende celle. Det er ikke en besked,
+  men en henvisning til dét, brugeren skal rette.
+- **Rystelse er forbudt.** Knapper må ikke ryste ved en blokeret aktivering (brugerbeslutning
+  2026-08-15). En rystelse siger kun «noget er galt» — hvilket tooltippet allerede har sagt mere
+  præcist — og den forvekslede to ting: en knap, der ryster, fremstår aktiv, selv om den er
+  spærret. Der er derfor ÉN afvisningsmåde i hele programmet: knappen er synligt og reelt inaktiv
+  med årsagen i tooltippet. Mekanikken er slettet (`useShakeFlag`, `StyledToggleSwitchHandle` og
+  alle `shake`-props), så en genindførelse kræver, at nogen bygger den op igen.
 - Årsagerne bevares på udfaldet som auditdata (`rejection.reasons`) og som tooltip-kilde. Ingen
   årsagsliste må være tom — men "synlig" betyder her tooltip og audit, ikke en tekstknude.
 
@@ -527,6 +539,50 @@ Prioritet ved flere årsager og den fulde klassifikationsregel står i `document
 `message` er altid den interne forklaring og må ikke antages at være brugertekst. En flade må ikke vælge
 tekst selv eller læse `blockedReasons[0].message` til visning — brug `handle.disabledReason`, som allerede er
 oversat, eller `resolveBlockedGateTooltip(gate.reasons)` for en per-række-gate.
+
+#### 11.1a Reglen gælder ENHVER grå knap — ikke kun download
+
+Alt ovenfor er formuleret om downloadknapper, fordi de var den første flade, der fik reglen. Den er
+**universel for enhver deaktiveret handling i programmet** (brugerbeslutning 2026-08-15): en grå knap
+bliver stående, forklarer sig KUN i tooltippet, og svarer tavst på et klik.
+
+Det indebærer, at en grå knap gerne må nøjes med en **generisk** årsag. Det er en bevidst afvejning:
+forudsigelighed (alle grå knapper svarer ens) over handlingsanvisning (hver knap forklarer sit eget
+særtilfælde). En knap skal altså ikke have en håndskrevet sætning som «Udfyld både fra- og til-dato».
+
+Vokabularet er DELT med downloadgaten og ligger i `components/inputs/actionGate.ts`:
+
+| Klasse | Brugertekst | Hvornår |
+|---|---|---|
+| `missing-input` | `Indtastning mangler` | noget mangler at blive udfyldt |
+| `invalid-input` | `Fejl i indtastning` | der ER indtastet noget, men det er ugyldigt |
+| `limit` | citeres ordret | en grænse er nået (fx «Maksimalt 10 ansættelsesforhold») |
+
+De to første konstanter er RE-EKSPORTER af downloadgatens egne (`DOWNLOAD_BLOCKED_*`), ikke kopier:
+en grå «Indsæt»-knap og en grå downloadknap ved siden af hinanden skal sige det samme, og to
+konstanter med samme betydning ville kunne drifte fra hinanden. `limit` er den klasse, en downloadgate
+ikke kender: der er intet felt at rette, så teksten navngiver grænsen i stedet.
+
+Forrangen ved flere samtidige årsager ejes af `resolveActionGate`, ikke af kaldsstedet: `limit` slår
+alt (der er intet input at rette), og `invalid-input` slår `missing-input` — samme forrang som
+dokumentgaten bruger. En flade må ikke vælge tekst eller rækkefølge selv.
+
+`disabled` og `disabledReason` udledes ét sted (`resolveActionGate`), så de ikke kan komme ud af
+trit: en grå knap uden årsag, eller en årsag der bliver hængende efter blokeringen er væk.
+
+**Fokusérbar, ikke bortgemt.** En grå knap, hvis eneste forklaring er en hover-tooltip, må ikke være
+utilgængelig for tastatur og berøring. `InlineActionButton` bruger derfor `aria-disabled` + et
+`aria-describedby`, der peger på årsagen, frem for `disabled`: knappen bliver i tab-rækkefølgen,
+oplyses som utilgængelig, og årsagen læses op. Klikket standses ved at undlade `onClick` — ikke med
+`pointer-events: none`, som også ville slå hover fra og dermed gøre årsagen uopnåelig.
+Ikon-/`Fab`-knapper (`FloatingActionButton`) bruger ægte `disabled` og ankrer tooltippen på en
+wrapper, fordi en disabled MUI-kontrol ikke selv udsender pointer-events.
+
+**Tooltip er ikke et navn.** En knap, hvis eneste tekst er tooltippen, er navnløs for en skærmlæser:
+MUI sætter `aria-labelledby` på popper-elementet, som kun findes mens tooltippen er åben. En
+ikon-knap skal derfor bære et eksplicit `aria-label`, og det navn skal følge HANDLINGEN og være
+stabilt — det må ikke skifte til blokeringsårsagen, når knappen bliver grå. Håndhævet af
+`a11y/interactive-control-has-accessible-name`.
 
 Grænsen er håndhævet af `document/download-tooltip-from-gate` i AST-manifestet: `.message` på et
 `reasons`-/`blockedReasons`-udtryk i `src/components/**` gør harnesset rødt. Værnet blev tilføjet, fordi

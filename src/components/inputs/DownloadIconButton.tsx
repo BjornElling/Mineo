@@ -5,7 +5,6 @@ import { Download } from '@mui/icons-material';
 type Props = Readonly<{
   onClick?: () => void;
   disabled?: boolean;
-  shake?: boolean;
   /** Tooltip-tekst; bruges også som aria-label medmindre `ariaLabel` er sat. */
   tooltip: string;
   /** Eksplicit aria-label, når den skal være mere specifik end tooltip'en (fx pr. tabelrække). */
@@ -16,14 +15,20 @@ type Props = Readonly<{
 
 /**
  * Præsentationskernen for programmets ÉNE download-ikon-affordance: en fokusérbar 32×32
- * IconButton med delt hover/active-styling, shake-feedback og format-bevidst tooltip/aria-label.
+ * IconButton med delt hover/active-styling og format-bevidst tooltip/aria-label.
  *
  * Dette er den format-neutrale kerne. Sider i hovedappen bruger normalt
  * `DocumentDownloadButton`, der resolver formatet fra `useAppSettings`; kald denne kerne direkte,
  * når formatet injiceres udefra (fx den standalone MinProcesrente-app uden AppSettingsProvider,
  * eller en CSV-download hvor dokumentformatet er irrelevant).
+ *
+ * **Ingen shake.** Knappen havde tidligere en `shake`-prop, der rystede den ved en blokeret
+ * aktivering. Rystelsen er fjernet i hele programmet (brugerbeslutning 2026-08-15), så der er
+ * ÉN afvisningsmåde: knappen er synligt inaktiv med årsagen i tooltippet. Fokusspringet til det
+ * blokerende felt er bevaret — det er den del af den gamle feedback, der faktisk pegede brugeren
+ * et sted hen. Genindfør ikke en shake-prop her.
  */
-const DownloadIconButton = ({ onClick, disabled = false, shake = false, tooltip, ariaLabel, dataTestId }: Props) => (
+const DownloadIconButton = ({ onClick, disabled = false, tooltip, ariaLabel, dataTestId }: Props) => (
   <Tooltip title={tooltip}>
     <span>
       <IconButton
@@ -37,14 +42,8 @@ const DownloadIconButton = ({ onClick, disabled = false, shake = false, tooltip,
         sx={{
           borderRadius: '6px',
           transition: 'background-color 0.2s',
-          animation: shake ? 'shake 0.5s' : 'none',
           '&:hover': disabled ? {} : { backgroundColor: 'var(--color-icon-action-hover)' },
           '&:active': disabled ? {} : { backgroundColor: 'var(--color-icon-action-active)' },
-          '@keyframes shake': {
-            '0%, 100%': { transform: 'translateX(0)' },
-            '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
-            '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
-          },
         }}
       >
         <Download sx={{ fontSize: '24px', color: disabled ? 'text.disabled' : 'primary.main' }} />

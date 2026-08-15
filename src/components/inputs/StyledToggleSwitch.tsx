@@ -1,8 +1,6 @@
 import React from 'react';
 import { Switch, FormControlLabel } from '@mui/material';
 import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
-import type { StyledToggleSwitchHandle } from '../../types/handles';
-import { useShakeFlag } from '../../hooks/useShakeFlag';
 import { accessibleNameAttributes, type AccessibleNameProps } from './accessibleName';
 
 type ToggleInputSlotProps = React.InputHTMLAttributes<HTMLInputElement> & {
@@ -70,7 +68,13 @@ type StyledToggleSwitchOwnProps = {
 
 type StyledToggleSwitchProps = StyledToggleSwitchOwnProps & AccessibleNameProps;
 
-const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledToggleSwitchProps>((props, ref) => {
+/**
+ * Kontakten har BEVIDST ingen imperativ ref-flade. Den havde tidligere et `StyledToggleSwitchHandle`
+ * med præcis ét medlem — `shake()` — som omregnings-gaten kaldte ved en afvist aktivering. Rystelsen
+ * er fjernet i hele programmet (brugerbeslutning 2026-08-15), og dermed bortfaldt hele
+ * handlet. Genindfør hverken `forwardRef` eller `useImperativeHandle` her uden et reelt medlem.
+ */
+const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
   const {
     checked,
     onCommit,
@@ -88,15 +92,6 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
   // attribut: navnet kommer fra FormControlLabel's <label>-binding nedenfor.
   const nameAttributes = accessibleNameAttributes(props, `StyledToggleSwitch(${resolvedName})`);
   const { visibleLabel } = props;
-
-  // Shake-animation via den kanoniske deklarative hook (timeout + cleanup ejes af hooken).
-  const { shake: isShaking, triggerShake } = useShakeFlag();
-
-  // Eksponér shake() metode til parent via ref (immediate-commit-kontrollers imperative handle,
-  // jf. mineo-field-pattern.md §"Instant-commit-kontroller"). Muterer ikke committed form-state.
-  React.useImperativeHandle(ref, () => ({
-    shake: triggerShake,
-  }), [triggerShake]);
 
   /**
    * Én semantisk handling: toggle committed state.
@@ -180,12 +175,6 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
       }}
       sx={{
         margin: 0,
-        animation: isShaking ? 'shake 0.5s' : 'none',
-        '@keyframes shake': {
-          '0%, 100%': { transform: 'translateX(0)' },
-          '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-4px)' },
-          '20%, 40%, 60%, 80%': { transform: 'translateX(4px)' }
-        },
         '& .MuiSwitch-switchBase.Mui-checked': {
           color: 'primary.main',
         },
@@ -228,7 +217,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
 
   // Ellers returner kun switchen
   return switchComponent;
-});
+};
 
 StyledToggleSwitch.displayName = 'StyledToggleSwitch';
 

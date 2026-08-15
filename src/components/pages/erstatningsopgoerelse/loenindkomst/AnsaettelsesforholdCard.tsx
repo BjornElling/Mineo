@@ -101,7 +101,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     satserByAfId,
     derivedCalculatorByAfId,
     totalAnsaettelsesforhold,
-    cannotAddMore,
+    addAnsaettelsesforholdGate,
     showDeleteButton,
     setAddDialogOpen,
     setDeleteDialogOpen,
@@ -760,9 +760,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           <FloatingActionButton
             icon={<AddIcon />}
             color="primary"
-            disabled={cannotAddMore}
-            tooltip={cannotAddMore ? 'Maksimalt 10 ansættelsesforhold' : 'Tilføj nyt ansættelsesforhold'}
-            shake={cannotAddMore}
+            disabled={addAnsaettelsesforholdGate.disabled}
+            tooltip="Tilføj nyt ansættelsesforhold"
+            disabledReason={addAnsaettelsesforholdGate.disabledReason}
             onClick={() => {
               setAddDialogOpen(true);
             }}

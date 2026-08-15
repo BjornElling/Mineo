@@ -11,7 +11,7 @@ import {
 import type {
   StandardLoenTableValidationSummary,
 } from '../../types/table';
-import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
+import type { StandardLoenTableHandle } from '../../types/handles';
 
 let lastDecide: ((next: boolean) => ToggleCommitDecision) | null = null;
 let lastDecision: ToggleCommitDecision | null = null;
@@ -21,7 +21,6 @@ let lastEffectiveEnabled = false;
 type Props = {
   gate?: AarsloenOmregningGate;
   tableRefMock: StandardLoenTableHandle;
-  toggleRefMock: StyledToggleSwitchHandle;
 };
 
 const Harness = ({
@@ -34,12 +33,10 @@ const Harness = ({
     validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
   },
   tableRefMock,
-  toggleRefMock,
 }: Props) => {
   const tabelRef = React.useRef(tableRefMock);
-  const toggleRef = React.useRef(toggleRefMock);
 
-  const { checked, effectiveEnabled, decideToggle } = useOmregningToggle({ gate, tabelRef, toggleRef });
+  const { checked, effectiveEnabled, decideToggle } = useOmregningToggle({ gate, tabelRef });
 
   lastDecide = decideToggle;
   lastChecked = checked;
@@ -56,7 +53,6 @@ describe('useOmregningToggle', () => {
   });
 
   it('blocks enable and shows missing-entry error', async () => {
-    const shake = vi.fn();
     const showMissingEntryError = vi.fn();
     const flashError = vi.fn();
 
@@ -82,22 +78,18 @@ describe('useOmregningToggle', () => {
           flashError,
           showNeedsPeriodHint: vi.fn(),
         }}
-        toggleRefMock={{ shake }}
       />
     );
 
     await act(async () => {
       lastDecision = lastDecide?.(true) ?? null;
     });
-
-    expect(shake).toHaveBeenCalled();
     expect(showMissingEntryError).toHaveBeenCalled();
     expect(flashError).not.toHaveBeenCalled();
     expect(lastDecision).toBe('reject');
   });
 
   it('flashes cell on input error', async () => {
-    const shake = vi.fn();
     const flashError = vi.fn();
 
     const summary: StandardLoenTableValidationSummary = {
@@ -122,7 +114,6 @@ describe('useOmregningToggle', () => {
           flashError,
           showNeedsPeriodHint: vi.fn(),
         }}
-        toggleRefMock={{ shake }}
       />
     );
 
@@ -156,7 +147,6 @@ describe('useOmregningToggle', () => {
           flashError: vi.fn(),
           showNeedsPeriodHint: vi.fn(),
         }}
-        toggleRefMock={{ shake: vi.fn() }}
       />
     );
 
@@ -167,8 +157,7 @@ describe('useOmregningToggle', () => {
     expect(lastDecision).toBe('commit');
   });
 
-  it('kalder ikke shake/showMissingEntryError/flashError ved gyldig enable', async () => {
-    const shake = vi.fn();
+  it('kalder ikke showMissingEntryError/flashError ved gyldig enable', async () => {
     const showMissingEntryError = vi.fn();
     const flashError = vi.fn();
 
@@ -187,21 +176,17 @@ describe('useOmregningToggle', () => {
           flashError,
           showNeedsPeriodHint: vi.fn(),
         }}
-        toggleRefMock={{ shake }}
       />
     );
 
     await act(async () => {
       lastDecision = lastDecide?.(true) ?? null;
     });
-
-    expect(shake).not.toHaveBeenCalled();
     expect(showMissingEntryError).not.toHaveBeenCalled();
     expect(flashError).not.toHaveBeenCalled();
   });
 
-  it('blokerer enable og ryster når perioden er utilstrækkelig uden feltfejl', async () => {
-    const shake = vi.fn();
+  it('blokerer enable og peger på periodecellen når perioden er utilstrækkelig uden feltfejl', async () => {
 
     render(
         <Harness
@@ -218,20 +203,16 @@ describe('useOmregningToggle', () => {
           flashError: vi.fn(),
           showNeedsPeriodHint: vi.fn(),
         }}
-        toggleRefMock={{ shake }}
       />
     );
 
     await act(async () => {
       lastDecision = lastDecide?.(true) ?? null;
     });
-
-    expect(shake).toHaveBeenCalled();
     expect(lastDecision).toBe('reject');
   });
 
   it('blokerer enable og peger på periodecelle når getValidationSummary ikke har firstErrorCell', async () => {
-    const shake = vi.fn();
     const showMissingEntryError = vi.fn();
     const flashError = vi.fn();
     const showNeedsPeriodHint = vi.fn();
@@ -251,7 +232,6 @@ describe('useOmregningToggle', () => {
           flashError,
           showNeedsPeriodHint,
         }}
-        toggleRefMock={{ shake }}
       />
     );
 
@@ -260,7 +240,6 @@ describe('useOmregningToggle', () => {
     });
 
     // Ryster + peger på første periodecelle (ingen konkret fejlcelle); ingen direkte celle-fejl.
-    expect(shake).toHaveBeenCalled();
     expect(showNeedsPeriodHint).toHaveBeenCalled();
     expect(showMissingEntryError).not.toHaveBeenCalled();
     expect(flashError).not.toHaveBeenCalled();
@@ -284,7 +263,6 @@ describe('useOmregningToggle', () => {
           flashError: vi.fn(),
           showNeedsPeriodHint: vi.fn(),
         }}
-        toggleRefMock={{ shake: vi.fn() }}
       />
     );
 
@@ -303,8 +281,6 @@ describe('useOmregningToggle', () => {
       showNeedsPeriodHint: vi.fn(),
     };
 
-    const toggleRefMock: StyledToggleSwitchHandle = { shake: vi.fn() };
-
     const { rerender } = render(
       <Harness
         gate={{
@@ -316,7 +292,6 @@ describe('useOmregningToggle', () => {
           validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
         }}
         tableRefMock={tableRefMock}
-        toggleRefMock={toggleRefMock}
       />
     );
 
@@ -332,7 +307,6 @@ describe('useOmregningToggle', () => {
             validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
           }}
           tableRefMock={tableRefMock}
-          toggleRefMock={toggleRefMock}
         />
       );
     });
@@ -351,8 +325,6 @@ describe('useOmregningToggle', () => {
       showNeedsPeriodHint: vi.fn(),
     };
 
-    const toggleRefMock: StyledToggleSwitchHandle = { shake: vi.fn() };
-
     const { rerender } = render(
       <Harness
         gate={{
@@ -364,7 +336,6 @@ describe('useOmregningToggle', () => {
           validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
         }}
         tableRefMock={tableRefMock}
-        toggleRefMock={toggleRefMock}
       />
     );
 
@@ -384,7 +355,6 @@ describe('useOmregningToggle', () => {
             },
           }}
           tableRefMock={tableRefMock}
-          toggleRefMock={toggleRefMock}
         />
       );
     });
@@ -403,8 +373,6 @@ describe('useOmregningToggle', () => {
       showNeedsPeriodHint: vi.fn(),
     };
 
-    const toggleRefMock: StyledToggleSwitchHandle = { shake: vi.fn() };
-
     const { rerender } = render(
       <Harness
         gate={{
@@ -420,7 +388,6 @@ describe('useOmregningToggle', () => {
           },
         }}
         tableRefMock={tableRefMock}
-        toggleRefMock={toggleRefMock}
       />
     );
 
@@ -439,7 +406,6 @@ describe('useOmregningToggle', () => {
             validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
           }}
           tableRefMock={tableRefMock}
-          toggleRefMock={toggleRefMock}
         />
       );
     });

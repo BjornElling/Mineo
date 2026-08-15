@@ -39,7 +39,6 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
             name="omregningTilFuldtAar"
             id={controlId}
             labelledBy={labelledBy}
-            ref={vm.toggleRef}
             checkedOverride={vm.omregningChecked}
             commit={vm.decideOmregningToggle}
           />
