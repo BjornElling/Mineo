@@ -85,8 +85,8 @@ describe('lag 1 — codecet bærer den erklærede fortegns-politik', () => {
   });
 
   it('heltal: politikken følger konfigurationen i begge retninger', () => {
-    expect(createIntegerFieldCodec({ allowNegative: false }).acceptsInitialKey('-')).toBe(false);
-    expect(createIntegerFieldCodec({ allowNegative: true }).acceptsInitialKey('-')).toBe(true);
+    expect(createIntegerFieldCodec({ allowNegative: false, maxDigits: 4 }).acceptsInitialKey('-')).toBe(false);
+    expect(createIntegerFieldCodec({ allowNegative: true, maxDigits: 4 }).acceptsInitialKey('-')).toBe(true);
   });
 
   it('string-backed adapter ARVER det indre codecs politik', () => {

@@ -27,6 +27,7 @@ import {
   createYearFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
+import { digitsRequiredFor } from './fieldLengthLimits';
 import type {
   CanonicalView,
   FieldAddressTemplate,
@@ -142,6 +143,10 @@ export const aarsloenOmregningTilFuldtAarField = toggle('omregningTilFuldtAar', 
 export const aarsloenFuldLoenUnderFerieField = toggle('fuldLoenUnderFerie', 'Fuld løn under ferie', true);
 export const aarsloenRetTilSjetteFerieugeField = toggle('retTilSjetteFerieuge', 'Ret til 6. ferieuge', true);
 
+// Cifferloftet UDLEDES af maksimum, så indtastningsgrænsen og talværdigrænsen ikke kan komme fra hinanden.
+const ANTAL_FERIEDAGE_MIN = 0;
+const ANTAL_FERIEDAGE_MAX = 99;
+
 // 0..99 er en afledt bounds-issue (feltvalidator), ikke codec-config: antalFeriedage forbliver canonical med et
 // rødt afledt issue uden for [0,99] (§1.6), i modsætning til et format/range-rejected råtekst-felt. Reglen er
 // KUN relevant, når omregning er valgt OG der ikke er fuld løn under ferie — udtrykt som en ren relevansregel
@@ -150,7 +155,10 @@ export const aarsloenRetTilSjetteFerieugeField = toggle('retTilSjetteFerieuge', 
 export const aarsloenAntalFeriedageField = defineStructuralField<number | undefined>({
   id: 'aarsloen.antalFeriedage',
   template: { section: 'aarsloen', path: [], field: 'antalFeriedage' },
-  codec: createIntegerFieldCodec({ allowNegative: false }),
+  codec: createIntegerFieldCodec({
+    allowNegative: false,
+    maxDigits: digitsRequiredFor(ANTAL_FERIEDAGE_MAX),
+  }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Antal feriedage (mandag-fredag) i de indtastede perioder',
@@ -164,11 +172,11 @@ export const aarsloenAntalFeriedageField = defineStructuralField<number | undefi
   validators: [
     (value) => {
       if (value === undefined) return undefined;
-      if (value < 0 || value > 99) {
+      if (value < ANTAL_FERIEDAGE_MIN || value > ANTAL_FERIEDAGE_MAX) {
         return {
           reason: 'bounds',
           code: 'aarsloen.antalFeriedage.bounds',
-          message: 'Antal feriedage skal være mellem 0 og 99.',
+          message: `Antal feriedage skal være mellem ${ANTAL_FERIEDAGE_MIN} og ${ANTAL_FERIEDAGE_MAX}.`,
         };
       }
       return undefined;

@@ -21,6 +21,7 @@ import {
   MAX_AMOUNT_RAW_LENGTH,
 } from '../utils/amountInputUtils';
 import {
+  MAX_DATE_DRAFT_LENGTH,
   parseDateDraftForCommit,
   type DateYearPolicy,
   type ParsedDateDraft,
@@ -44,7 +45,7 @@ import {
   type WeekDraftParseConfig,
   type WeekDraftParseResult,
 } from '../utils/weekDraftCore';
-import { parseYearDraftForCommit, type YearDraftParseConfig } from '../utils/yearDraftCore';
+import { MAX_YEAR_DIGITS, parseYearDraftForCommit, type YearDraftParseConfig } from '../utils/yearDraftCore';
 import {
   type FieldCodec,
   type FieldRejectDetail,
@@ -137,58 +138,59 @@ const assertNumericBounds = (
   }
 };
 
-const assertOptionalMaxLength = (codec: string, maxLength: number | undefined): void => {
-  if (maxLength === undefined) return;
+const assertRequiredMaxLength = (codec: string, maxLength: number): void => {
   if (!Number.isInteger(maxLength) || maxLength <= 0) {
     throw new Error(`${codec}: maxLength skal være et positivt heltal`);
   }
 };
 
 /** Formular- og tabeltekst bruger samme canonical trimning ved settle. Tekst kan aldrig afvises. */
-export const textFieldCodec: FieldCodec<string> = Object.freeze({
+const textFieldCodecBase: Omit<FieldCodec<string>, 'maxLength'> = Object.freeze({
   family: 'text',
-  parseForSettle: (raw) => validResolution(trimWhitespaceEdges(raw)),
-  format: (value) => value,
-  formatForEdit: (value) => value,
+  parseForSettle: (raw: string) => validResolution(trimWhitespaceEdges(raw)),
+  format: (value: string) => value,
+  formatForEdit: (value: string) => value,
   acceptsInitialKey: initialKey(/^.$/u),
 });
 
 /**
- * Factory-form af {@link textFieldCodec}, så descriptor-moduler kan læse ensartet `create*`-stil.
+ * Tekstfelt med feltets erklærede maksimale tegnlængde.
  *
- * `maxLength` er feltets erklærede maksimale tegnlængde (§2.5). Udelades den, har feltet ingen
- * længdegrænse — og det skal være et bevidst valg, ikke en forglemmelse.
+ * **`maxLength` er PÅKRÆVET.** `input-field-behavior-contract.md` §1.2 kræver, at ethvert felt, brugeren
+ * skriver i, har en effektiv længdeblokering. Så længe grænsen var valgfri, havde 28 af 31 tekstfelter
+ * ingen: «Skadelidte», «Journalnr.», «Særlige kommentarer» og alle bilagsnumre-felter tog imod en
+ * vilkårligt lang indsat tekst og gemte den i sagen. Kontrakten var overholdt præcis dér, hvor nogen
+ * huskede den — samme fejlmåde som datofelternes manglende grænser (§2.1). Et påkrævet felt i typen er
+ * det billigste værn: en ny descriptor uden grænse kan ikke kompilere.
+ *
+ * Grænsen hører på codecet og ikke på kaldsstedet, fordi BEGGE flader (formularfelt og tabelcelle) skal
+ * håndhæve den samme — se `charLengthPolicy.ts`.
  */
 export const createTextFieldCodec = (
-  options: Readonly<{ maxLength?: number }> = {}
+  options: Readonly<{ maxLength: number }>
 ): FieldCodec<string> => {
-  assertOptionalMaxLength('TextFieldCodec', options.maxLength);
-  if (options.maxLength === undefined) return textFieldCodec;
-  return Object.freeze({ ...textFieldCodec, maxLength: options.maxLength });
+  assertRequiredMaxLength('TextFieldCodec', options.maxLength);
+  return Object.freeze({ ...textFieldCodecBase, maxLength: options.maxLength });
 };
 
 /** Optional fritekst: canonical tomhed er `undefined`, ikke `''`. */
-export const optionalTextFieldCodec: FieldCodec<string | undefined> = Object.freeze({
+const optionalTextFieldCodecBase: Omit<FieldCodec<string | undefined>, 'maxLength'> = Object.freeze({
   family: 'optionalText',
-  parseForSettle: (raw) => {
+  parseForSettle: (raw: string) => {
     const trimmed = trimWhitespaceEdges(raw);
     return validResolution(trimmed === '' ? undefined : trimmed);
   },
-  format: (value) => value ?? '',
-  formatForEdit: (value) => value ?? '',
+  format: (value: string | undefined) => value ?? '',
+  formatForEdit: (value: string | undefined) => value ?? '',
   acceptsInitialKey: initialKey(/^.$/u),
 });
 
-/**
- * Factory-form af {@link optionalTextFieldCodec}, så descriptor-moduler kan læse ensartet `create*`-stil.
- * Se {@link createTextFieldCodec} om `maxLength`.
- */
+/** Se {@link createTextFieldCodec} om hvorfor `maxLength` er påkrævet. */
 export const createOptionalTextFieldCodec = (
-  options: Readonly<{ maxLength?: number }> = {}
+  options: Readonly<{ maxLength: number }>
 ): FieldCodec<string | undefined> => {
-  assertOptionalMaxLength('OptionalTextFieldCodec', options.maxLength);
-  if (options.maxLength === undefined) return optionalTextFieldCodec;
-  return Object.freeze({ ...optionalTextFieldCodec, maxLength: options.maxLength });
+  assertRequiredMaxLength('OptionalTextFieldCodec', options.maxLength);
+  return Object.freeze({ ...optionalTextFieldCodecBase, maxLength: options.maxLength });
 };
 
 /** Dropdown-/radio-valg. Tom tekst er canonical `undefined`; ukendt tekst afvises som format. */
@@ -275,6 +277,10 @@ export const booleanFieldCodec: FieldCodec<boolean> = createBooleanFieldCodec(fa
 export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: DateYearPolicy }>): FieldCodec<ISODateString | undefined> =>
   Object.freeze({
     family: 'date',
+    // Datoens rå draftlængde er en egenskab ved FORMEN `dd-mm-åååå` og hører derfor på codecet, ikke
+    // på hver flade. Den stod før som en importeret konstant både i `DateField` og i `GridDateCell` —
+    // og GridYearCell greb ved en fejl netop denne dato-konstant til et ÅRSfelt.
+    maxLength: MAX_DATE_DRAFT_LENGTH,
     parseForSettle: (raw): FieldResolution<ISODateString | undefined> => {
       const parsed = parseDateDraftForCommit(raw, options);
       // Kun reelt tom tekst er canonical tomhed; anden ikke-parsebar tekst bevares som rejected format.
@@ -291,8 +297,18 @@ export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: Dat
     normalizePaste: (raw) => normalizeDatePaste(raw),
   });
 
+/**
+ * Heltalsfelt.
+ *
+ * **`maxDigits` er PÅKRÆVET** — samme begrundelse som {@link createTextFieldCodec}. Da grænsen var
+ * valgfri, havde 8 af 12 heltalsfelter ingen: «Méngrad» (maksimum 120) og «Tilkendt for periode»
+ * (maksimum 10) tog imod 30 cifre og blev først røde bagefter. Cifferloftet er en LÆNGDEregel og
+ * blødgør ikke feltets talværdigrænse: en værdi inden for cifferantallet, men uden for `minValue`/
+ * `maxValue`, committes fortsat canonical med rød ring og konkret tooltip (§1.2/§1.6).
+ */
 export const createIntegerFieldCodec = (
-  config: IntegerDraftParseConfig & Readonly<{ minValue?: number; maxValue?: number }>
+  config: Omit<IntegerDraftParseConfig, 'maxDigits'>
+    & Readonly<{ maxDigits: number; minValue?: number; maxValue?: number }>
 ): FieldCodec<number | undefined> => {
   assertBoolean('IntegerFieldCodec', 'allowNegative', config.allowNegative);
   assertPositiveInteger('IntegerFieldCodec', 'maxDigits', config.maxDigits);
@@ -315,7 +331,7 @@ export const createIntegerFieldCodec = (
     },
     format: (value) => value === undefined ? '' : String(value),
     formatForEdit: (value) => value === undefined ? '' : String(value),
-    ...(config.maxDigits === undefined ? {} : { maxDigits: config.maxDigits }),
+    maxDigits: config.maxDigits,
     // Minus åbner kun editoren på et felt, der FÅR være negativt.
     acceptsInitialKey: (key) => /^\d$/.test(key) || (key === '-' && config.allowNegative),
     normalizePaste: (raw) => normalizeIntegerPaste(raw, {
@@ -446,6 +462,10 @@ export const createStringBackedFieldCodec = <T extends string | number>(
   // denne adapter — miste sin ikke-negative politik og få minus tilbage i tegnfilteret.
   ...(sourceCodec.signPolicy === undefined ? {} : { signPolicy: sourceCodec.signPolicy }),
   ...(sourceCodec.maxDigits === undefined ? {} : { maxDigits: sourceCodec.maxDigits }),
+  // Længdeloftet arves på samme måde som fortegn og cifre: adapteren ændrer kun canonical TOMHED til
+  // `''`, ikke hvor lang en draft feltet tager imod. Uden viderestillingen mistede ugecellerne — alle
+  // fire er string-backede — deres erklærede loft.
+  ...(sourceCodec.maxLength === undefined ? {} : { maxLength: sourceCodec.maxLength }),
   ...(sourceCodec.normalizePaste === undefined ? {} : { normalizePaste: sourceCodec.normalizePaste }),
 });
 
@@ -460,6 +480,9 @@ export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<n
   const formatOnlyConfig: YearDraftParseConfig = { ...config, minYear: undefined, maxYear: undefined };
   return Object.freeze({
     family: 'year',
+    // Årets form ER fire cifre. Tallet stod før hardkodet både i `YearField` (4) og i `GridYearCell`,
+    // hvor det ved en fejl var dato-konstanten (16). Én erklæring, begge flader læser.
+    maxDigits: MAX_YEAR_DIGITS,
     parseForSettle: (raw) => {
       const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
       // Årsgrænserne er fjernet fra `formatOnlyConfig` (bounds er en validators ansvar, §1.6), så den eneste
@@ -487,6 +510,9 @@ export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<s
   const formatOnlyConfig: WeekDraftParseConfig = { ...config, minYear: undefined, maxYear: undefined };
   return Object.freeze({
     family: 'week',
+    // Den rå draftlængde er allerede erklæret i konfigurationen; `WeekField` hardkodede sin egen kopi
+    // (8), og grid-cellen havde slet ingen. Én erklæring, begge flader læser.
+    maxLength: config.maxDraftLength,
     parseForSettle: (raw) => {
       const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
       if (parsed.ok) return validResolution(parsed.value);
@@ -511,6 +537,14 @@ export const createFractionFieldCodec = (config: FractionParseOptions): FieldCod
   assertOptionalBoolean('FractionFieldCodec', 'requireIntegerFraction', config.requireIntegerFraction);
   return Object.freeze({
     family: 'fraction',
+    // Fortegnspolitikken er DATA på samme måde som for de øvrige numeriske familier. Uden den ville
+    // `codecAllowsNegative` fail-open til `true` for brøker, som kontrakten netop forbyder fortegn i
+    // (§2.4) — og `FractionField`s hardkodede `false` ville være den eneste kilde igen.
+    signPolicy: config.allowNegative === true ? 'signed' : 'nonNegative',
+    // Ciffergrænsen er DATA på codecet, ikke en konstant i `FractionField`: kaldsstedet erklærede den
+    // allerede her, mens komponenten hardkodede sin egen kopi af samme tal — præcis den drift, som
+    // `charLengthPolicy.ts` blev oprettet for at fjerne for beløb og procent.
+    maxDigits: config.maxDigits,
     parseForSettle: (raw) => {
       // Brøken må parses strengt: alfanumerisk kanttrimning ville fx gøre `,5/2` eller `-1/2`
       // til en anden, gyldig værdi i stedet for at bevare den faktiske fejlende tekst.

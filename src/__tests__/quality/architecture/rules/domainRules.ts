@@ -372,6 +372,8 @@ export const NON_DOMAIN_CATALOG_MODULES: readonly string[] = [
   'dateOrderValidators',
   'productionCatalog',
   'fieldLocationCatalog',
+  // Rene tal-/politik-konstanter for feltlængder (§1.2). Ingen descriptorer, ingen domænekobling.
+  'fieldLengthLimits',
 ];
 
 /** Til completeness-testen: hvilke katalogmoduler kortet kender. */

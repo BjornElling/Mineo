@@ -1,8 +1,9 @@
 import React from 'react';
-import { Box, Radio, FormControlLabel, RadioGroup, FormLabel, FormControl, Tooltip, Typography } from '@mui/material';
+import { Box, Radio, FormControlLabel, RadioGroup, FormControl, Tooltip, Typography } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
 import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
+import { resolveAccessibleName } from './accessibleName';
 
 /**
  * StyledRadioButton - Moderne radio button med blå farve
@@ -34,7 +35,21 @@ interface RadioOption<TValue extends string> {
  * komponenten ikke selv har renderet.
  */
 interface StyledRadioButtonProps<TValue extends string> {
-  label?: string;
+  /**
+   * Gruppens tilgængelige navn — PÅKRÆVET.
+   *
+   * En `role="radiogroup"` uden navn efterlader en skærmlæserbruger med bare optionerne: står der tre
+   * Ja/Nej/Skjul-grupper på samme side, høres «Ja radioknap» tre gange uden at nogen af dem kan skelnes.
+   * Samtlige otte grupper i programmet stod sådan, fordi navnet var valgfrit. Det er nøjagtig samme fund
+   * som for toggles (se `accessibleName.ts`), og det lukkes på samme måde: navnet er en forudsætning,
+   * ikke noget man kan huske. `RadioField` henter det automatisk fra feltets egen label, så et
+   * felt-callsite ikke skal skrive teksten en ekstra gang.
+   *
+   * Den tidligere `label`-prop rendrede en synlig `<legend>`, men INTET kaldssted brugte den — den
+   * synlige tekst står som en søskende-`<Typography>` i rækkelayoutet. Den er derfor fjernet frem for
+   * at stå som en anden, ubrugt vej til samme navn.
+   */
+  ariaLabel: string;
   options?: readonly RadioOption<TValue>[];
   value?: TValue | undefined;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>, value: string) => void;
@@ -88,7 +103,7 @@ const RADIO_FOCUS_HALO_SX = {
 } as const;
 
 const StyledRadioButtonInner = <TValue extends string>({
-  label,
+  ariaLabel,
   options = [],
   value,
   onChange,
@@ -104,6 +119,7 @@ const StyledRadioButtonInner = <TValue extends string>({
   restoreTargetAttributes,
 }: StyledRadioButtonProps<TValue>, ref: React.ForwardedRef<HTMLDivElement>) => {
   const autoId = React.useId();
+  const resolvedAccessibleName = resolveAccessibleName({ ariaLabel }, `StyledRadioButton(${ariaLabel})`);
   const emptyValue = `__mineo_radio_empty__${autoId}`;
   const groupName = name ?? `mineo-radio-${autoId}`;
 
@@ -133,21 +149,6 @@ const StyledRadioButtonInner = <TValue extends string>({
 
   return (
     <FormControl component="fieldset" disabled={disabled} error={error} sx={{ margin: 0 }}>
-      {label && (
-        <FormLabel
-          component="legend"
-          sx={{
-            fontWeight: 500,
-            color: 'text.primary',
-            marginBottom: 1,
-            '&.Mui-focused': {
-              color: 'text.primary',
-            },
-          }}
-        >
-          {label}
-        </FormLabel>
-      )}
       <Tooltip
         title={showError ? resolvedTooltipText : ''}
         arrow
@@ -176,6 +177,7 @@ const StyledRadioButtonInner = <TValue extends string>({
           <RadioGroup
             ref={ref}
             value={resolvedValue}
+            aria-label={resolvedAccessibleName}
             aria-describedby={showError ? a11yErrorId : undefined}
             onChange={(e, nextValue) => {
               if (onCommit) {

@@ -25,9 +25,13 @@ import type { FieldWarning } from '../../fieldWarning';
 import type { FieldIssue } from '../../inputIssue';
 import type { CellSpec } from '../useCellEditor';
 import GridTextCell from './GridTextCell';
-import { fieldAllowsNegative } from './signPolicy';
-import { resolveAmountCharPolicy, resolvePercentCharPolicy } from './charLengthPolicy';
-import { MAX_DATE_DRAFT_LENGTH } from '../../../utils/dateDraftCommit';
+import {
+  resolveAmountCharPolicy,
+  resolveFormLengthPolicy,
+  resolveIntegerCharPolicy,
+  resolvePercentCharPolicy,
+  resolveYearCharPolicy,
+} from './charLengthPolicy';
 
 // Modul-konstante prædikater for de familier, hvis form ikke afhænger af descriptoren.
 const YEAR_ADMISSION = yearAdmission();
@@ -38,6 +42,14 @@ const DATE_ADMISSION = dateLikeAdmission();
 // tegn-/længdeprædikat + adornment + justering; parse/format/paste og commit-intervaller ejes af descriptorens codec
 // og feltvalidatorer.
 
+/**
+ * Fællesformen for alle celle-familier.
+ *
+ * **Hver familie SKAL videreføre `collectionRuleIssue` og `warning`.** De var erklæret her, men kun
+ * `GridPercentCell` og `GridDateCell` videresendte dem — de øvrige fem destrukturerede dem ikke og lod
+ * dem falde på gulvet. Typesystemet accepterede kaldet, så en rød kryds-række-fejl eller en gul advarsel
+ * kunne sættes på en celle og bare aldrig blive vist.
+ */
 type BaseCellProps<T> = Readonly<{
   gridCell: GridCellCoord;
   cell: CellSpec<T, unknown>;
@@ -68,7 +80,8 @@ const ExpressionIndicator = (): React.ReactElement => (
 
 /** Beløbscelle (col2–col5, fpFvShSoBeloeb, pensionBeloeb): "kr."-adornment + `fx`-udtryksmærke. */
 export const GridAmountCell = (
-  { gridCell, cell, placeholder, inputRef }: BaseCellProps<AmountValue | undefined>
+  { gridCell, cell, placeholder, collectionRuleIssue, warning, inputRef }:
+    BaseCellProps<AmountValue | undefined>
 ): React.ReactElement => {
   // Tegn- og længdepolitikken kommer fra cellens egen descriptor gennem den DELTE
   // `resolveAmountCharPolicy` — samme kilde som formularens `AmountField`. Løntabellens beløbskolonner
@@ -101,6 +114,8 @@ export const GridAmountCell = (
         <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.currency} muted={isDraftEmpty} />
       )}
       overlay={({ value }) => (value?.kind === 'expression' ? <ExpressionIndicator /> : null)}
+      {...(collectionRuleIssue === undefined ? {} : { collectionRuleIssue })}
+      {...(warning === undefined ? {} : { warning })}
       {...(inputRef === undefined ? {} : { inputRef })}
     />
   );
@@ -147,14 +162,14 @@ export const GridPercentCell = (
 
 /** Heltalscelle (col0_maaned: måned 1–12). */
 export const GridIntegerCell = <T extends string | number | undefined>(
-  { gridCell, cell, placeholder, inputRef }: BaseCellProps<T>
+  { gridCell, cell, placeholder, collectionRuleIssue, warning, inputRef }: BaseCellProps<T>
 ): React.ReactElement => {
-  // Fortegns-politikken kommer fra descriptoren. Månedscellen er et string-backed heltal 1..12, så
-  // adapterens viderestilling af politikken er det, der gør minus umuligt at taste her.
-  const allowNegative = fieldAllowsNegative(cell.field);
-  const maxDigits = cell.field.descriptor.codec.maxDigits;
+  // Fortegn OG cifferloft kommer fra descriptoren gennem den DELTE resolver — samme kilde som
+  // formularens `IntegerField`. Månedscellen er et string-backed heltal 1..12, så adapterens
+  // viderestilling af politikken er det, der gør minus umuligt at taste her.
+  const { allowNegative, maxDigits, maxDraftLength } = resolveIntegerCharPolicy(cell.field);
   const admission = React.useMemo(
-    () => integerAdmission({ allowNegative, ...(maxDigits === undefined ? {} : { maxDigits }) }),
+    () => integerAdmission({ allowNegative, maxDigits }),
     [allowNegative, maxDigits]
   );
   return (
@@ -165,14 +180,23 @@ export const GridIntegerCell = <T extends string | number | undefined>(
       {...(placeholder === undefined ? {} : { placeholder })}
       textAlign="center"
       inputMode="numeric"
+      maxDraftLength={maxDraftLength}
+      {...(collectionRuleIssue === undefined ? {} : { collectionRuleIssue })}
+      {...(warning === undefined ? {} : { warning })}
       {...(inputRef === undefined ? {} : { inputRef })}
     />
   );
 };
 
-/** År-celle (col1_maaned): formen `åååå` ejes af feltfamilien, ikke af tabellen. */
+/**
+ * År-celle (col1_maaned): formen `åååå` ejes af feltfamilien, ikke af tabellen.
+ *
+ * Loftet var her DATO-konstanten (16 tegn), mens formularens `YearField` brugte 4. Begge læser nu det
+ * cifferloft, års-codecet selv erklærer.
+ */
 export const GridYearCell = (
-  { gridCell, cell, placeholder = YEAR_FORMAT_PLACEHOLDER, inputRef }: BaseCellProps<string | undefined>
+  { gridCell, cell, placeholder = YEAR_FORMAT_PLACEHOLDER, collectionRuleIssue, warning, inputRef }:
+    BaseCellProps<string | undefined>
 ): React.ReactElement => (
   <GridTextCell<string | undefined>
     gridCell={gridCell}
@@ -181,14 +205,17 @@ export const GridYearCell = (
     placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
-    maxDraftLength={MAX_DATE_DRAFT_LENGTH}
+    maxDraftLength={resolveYearCharPolicy(cell.field).maxDraftLength}
+    {...(collectionRuleIssue === undefined ? {} : { collectionRuleIssue })}
+    {...(warning === undefined ? {} : { warning })}
     {...(inputRef === undefined ? {} : { inputRef })}
   />
 );
 
-/** Uge-celle (col0_uge/col1_uge): formen `uu/åååå`. */
+/** Uge-celle (col0_uge/col1_uge): formen `uu/åååå`. Loftet erklæres af uge-codecet — cellen havde før ingen. */
 export const GridWeekCell = (
-  { gridCell, cell, placeholder = WEEK_FORMAT_PLACEHOLDER, inputRef }: BaseCellProps<string | undefined>
+  { gridCell, cell, placeholder = WEEK_FORMAT_PLACEHOLDER, collectionRuleIssue, warning, inputRef }:
+    BaseCellProps<string | undefined>
 ): React.ReactElement => (
   <GridTextCell<string | undefined>
     gridCell={gridCell}
@@ -197,13 +224,17 @@ export const GridWeekCell = (
     placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
+    maxDraftLength={resolveFormLengthPolicy(cell.field).maxDraftLength}
+    {...(collectionRuleIssue === undefined ? {} : { collectionRuleIssue })}
+    {...(warning === undefined ? {} : { warning })}
     {...(inputRef === undefined ? {} : { inputRef })}
   />
 );
 
 /** Dato-celle (col0_dag/col1_dag): formen `dd-mm-åååå`. */
 export const GridDateCell = (
-  { gridCell, cell, placeholder = DATE_FORMAT_PLACEHOLDER, collectionRuleIssue, inputRef }: BaseCellProps<ISODateString | undefined>
+  { gridCell, cell, placeholder = DATE_FORMAT_PLACEHOLDER, collectionRuleIssue, warning, inputRef }:
+    BaseCellProps<ISODateString | undefined>
 ): React.ReactElement => (
   <GridTextCell<ISODateString | undefined>
     gridCell={gridCell}
@@ -212,8 +243,9 @@ export const GridDateCell = (
     placeholder={placeholder}
     textAlign="center"
     inputMode="numeric"
-    maxDraftLength={MAX_DATE_DRAFT_LENGTH}
+    maxDraftLength={resolveFormLengthPolicy(cell.field).maxDraftLength}
     {...(collectionRuleIssue === undefined ? {} : { collectionRuleIssue })}
+    {...(warning === undefined ? {} : { warning })}
     {...(inputRef === undefined ? {} : { inputRef })}
   />
 );

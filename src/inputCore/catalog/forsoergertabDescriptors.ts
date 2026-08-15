@@ -14,6 +14,7 @@ import { catalogCollections, catalogFields } from '../fieldCatalog';
 import type { FieldDescriptor, FieldValidator } from '../fieldDescriptor';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { integerBoundsValidator } from './boundsValidators';
+import { digitsRequiredFor } from './fieldLengthLimits';
 import {
   stamdataSkadedatoField,
 } from './stamdataDescriptors';
@@ -108,17 +109,25 @@ export const forsoergertabKoenField = defineStructuralField<Koen | undefined>({
   createEmptySection: createEmptyForsoergertabSection,
 });
 
-// 1..10 er en domænegrænse (afledt bounds-issue), ikke en codec-parseregel.
+// 1..10 er en domænegrænse (afledt bounds-issue), ikke en codec-parseregel. Cifferloftet UDLEDES af
+// maksimum, så indtastningsgrænsen og talværdigrænsen ikke kan komme fra hinanden ved en senere ændring.
+const TILKENDT_PERIODE_MIN_AAR = 1;
+const TILKENDT_PERIODE_MAX_AAR = 10;
 export const forsoergertabTilkendtForPeriodeAarField = defineStructuralField<number | undefined>({
   id: 'forsoergertab.tilkendtForPeriodeAar',
   template: { section: 'forsoergertab', path: [], field: 'tilkendtForPeriodeAar' },
-  codec: createIntegerFieldCodec({ allowNegative: false }),
+  codec: createIntegerFieldCodec({
+    allowNegative: false,
+    maxDigits: digitsRequiredFor(TILKENDT_PERIODE_MAX_AAR),
+  }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Tilkendt for periode',
   controlKind: 'text',
   createEmptySection: createEmptyForsoergertabSection,
-  validators: [integerBoundsValidator('forsoergertab.tilkendtForPeriodeAar.bounds', 1, 10)],
+  validators: [integerBoundsValidator(
+    'forsoergertab.tilkendtForPeriodeAar.bounds', TILKENDT_PERIODE_MIN_AAR, TILKENDT_PERIODE_MAX_AAR
+  )],
 });
 
 export const forsoergertabFields = catalogFields(

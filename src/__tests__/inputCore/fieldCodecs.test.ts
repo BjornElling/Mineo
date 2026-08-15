@@ -10,8 +10,8 @@ import {
   createStringBackedFieldCodec,
   createWeekFieldCodec,
   createYearFieldCodec,
-  optionalTextFieldCodec,
-  textFieldCodec,
+  createOptionalTextFieldCodec,
+  createTextFieldCodec,
 } from '../../inputCore';
 import {
   buildFieldIssueMessage,
@@ -23,8 +23,8 @@ import type { AnyFieldRef } from '../../inputCore/fieldDescriptor';
 
 describe('fieldCodecs', () => {
   it('canonicaliserer tomhed efter codecets værditype', () => {
-    expect(textFieldCodec.parseForSettle('  ')).toEqual({ status: 'valid', value: '' });
-    expect(optionalTextFieldCodec.parseForSettle('  ')).toEqual({ status: 'valid', value: undefined });
+    expect(createTextFieldCodec({ maxLength: 64 }).parseForSettle('  ')).toEqual({ status: 'valid', value: '' });
+    expect(createOptionalTextFieldCodec({ maxLength: 64 }).parseForSettle('  ')).toEqual({ status: 'valid', value: undefined });
     expect(booleanFieldCodec.parseForSettle('  ')).toEqual({ status: 'valid', value: false });
     expect(createChoiceFieldCodec(['a', 'b']).parseForSettle('  ')).toEqual({ status: 'valid', value: undefined });
     expect(createRequiredChoiceFieldCodec(['a', 'b'], 'a').parseForSettle('  '))

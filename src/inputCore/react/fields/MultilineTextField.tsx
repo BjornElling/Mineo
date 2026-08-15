@@ -8,6 +8,7 @@ import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import { useFieldLabel } from '../useFieldLabel';
+import { resolveTextCharPolicy } from './charLengthPolicy';
 
 // Flerlinjet tekst-felt (§2.4/§3.5): en TYND skal over `useFormFieldSurface` + `StyledTextAreaBase`.
 // Grid-pendanten til `TextField`, men med en <textarea>. Modtager KUN sin `field`/`location`; al
@@ -32,13 +33,13 @@ const MultilineTextField = React.forwardRef<HTMLDivElement, MultilineTextFieldPr
     const accessibleName = useFieldLabel(field);
     // Længden er erklæret på codec'en (§2.5/§3.4) og håndhæves både som `maxLength` på <textarea>
     // (tastning) og gennem surfacens paste-splice, hvor elementets eget loft ikke virker (§1.2a).
-    const maxLength = field.descriptor.codec.maxLength;
+    const { maxLength } = resolveTextCharPolicy(field);
     const surface = useFormFieldSurface(field, location, {
       disabled,
       singleStageClick,
       // Enter er indhold i et textarea; blur er fortsat den autoritative settle-grænse.
       settleOnEnter: false,
-      ...(maxLength === undefined ? {} : { maxDraftLength: maxLength }),
+      maxDraftLength: maxLength,
     });
 
     const assignInputRef = React.useCallback(
@@ -103,7 +104,7 @@ const MultilineTextField = React.forwardRef<HTMLDivElement, MultilineTextFieldPr
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
         htmlTextAreaAttributes={{
-          ...(maxLength === undefined ? {} : { maxLength }),
+          maxLength,
           readOnly: surface.readOnly,
           ...surface.restoreTargetAttributes,
         }}

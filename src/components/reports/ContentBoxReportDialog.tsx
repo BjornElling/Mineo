@@ -21,6 +21,14 @@ import {
   prepareContentBoxReport,
 } from '../../utils/bugReport';
 
+/**
+ * Rapportbeskedens maksimale længde — samme loft som programmets øvrige kommentarfelter.
+ *
+ * Feltet var helt ubegrænset, fordi `TransientTextInput` tabte `maxLength` i sin flerlinjede gren OG
+ * ingen kaldte proppen. Beskeden ender i en mailtekst, så en indsat side tekst ville gøre den ubrugelig.
+ */
+const CONTENT_BOX_REPORT_MAX_LENGTH = 512;
+
 type ContentBoxReportDialogProps = {
   open: boolean;
   onClose: () => void;
@@ -204,6 +212,7 @@ const ContentBoxReportDialog = React.memo(({
                 rows={4}
                 fullWidth
                 width="100%"
+                maxLength={CONTENT_BOX_REPORT_MAX_LENGTH}
                 placeholder="Beskriv problemet eller ønsket her..."
               />
             </Box>

@@ -30,6 +30,7 @@ import {
   createYearFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
+import { SHORT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 import type { FieldAddressTemplate, FieldControlKind, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
 import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
 import { dateBounds, systemrammeSpec } from './dateBoundsValidators';
@@ -74,7 +75,7 @@ const employmentPath: PathSegments = [{ kind: 'entity', collection: EMPLOYMENTS 
 const eoLoenPath: PathSegments = [{ kind: 'property', name: EO_LOEN_PROPERTY }];
 
 // Delte codecs for lønfelterne.
-const optionalTextCodec = createOptionalTextFieldCodec();
+const optionalTextCodec = createOptionalTextFieldCodec({ maxLength: SHORT_TEXT_MAX_LENGTH });
 const dateCodec = createDateFieldCodec({ twoDigitYearPolicy: 'infer' });
 const percentCodec = createPercentFieldCodec({ allowNegative: false, allowDecimals: true, minValue: 0, maxValue: 100 });
 const amountCodec = createAmountFieldCodec({ allowNegative: false, allowDecimals: true });

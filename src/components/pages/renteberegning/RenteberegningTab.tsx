@@ -321,7 +321,7 @@ const RenteberegningTab = React.memo(({
       {renderClearAllRow && (
         <ConfirmationDialog
           open={clearAllDialogOpen}
-          title="Slet alle indtastninger"
+          title="Slet indtastningerne på denne side"
           message={(
             <>
               Dette sletter alle de værdier, du har indtastet på denne side. Indholdet i gemte

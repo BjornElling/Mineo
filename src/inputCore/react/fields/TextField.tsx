@@ -8,6 +8,7 @@ import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import { useFieldLabel } from '../useFieldLabel';
+import { resolveTextCharPolicy } from './charLengthPolicy';
 
 // Tekst-felt (§2.4/§3.5): en TYND skal over `useFormFieldSurface`. Modtager KUN sin konkrete
 // `field`/`location` — ikke `value`, `parse`, `format`, `onCommit`, invalid-key eller error-reporter (§2.4:
@@ -34,12 +35,13 @@ const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
   ({ field, location, width, id, name, placeholder, disabled, inputType = 'text', sx, singleStageClick = false, inputRef }, ref) => {
     const accessibleName = useFieldLabel(field);
     // Længden er erklæret på codec'en (§2.5) og håndhæves BÅDE som `<input maxLength>` (tastning) og
-    // gennem surfacens paste-splice, hvor elementets eget loft ikke virker (§1.2a).
-    const maxLength = field.descriptor.codec.maxLength;
+    // gennem surfacens paste-splice, hvor elementets eget loft ikke virker (§1.2a). Resolveren KRÆVER
+    // erklæringen: en tavs `undefined` var netop det, der lod 28 tekstfelter stå helt uden grænse.
+    const { maxLength } = resolveTextCharPolicy(field);
     const surface = useFormFieldSurface(field, location, {
       disabled,
       singleStageClick,
-      ...(maxLength === undefined ? {} : { maxDraftLength: maxLength }),
+      maxDraftLength: maxLength,
     });
 
     const mergedInputRef = React.useCallback(
@@ -76,7 +78,7 @@ const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
         htmlInputAttributes={{
-          ...(maxLength === undefined ? {} : { maxLength }),
+          maxLength,
           readOnly: surface.readOnly,
           ...surface.restoreTargetAttributes,
         }}

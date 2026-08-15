@@ -10,6 +10,7 @@ import { useFieldEditor, type ImmediateCommitOverride } from '../useFieldEditor'
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
 import { useFieldLabel } from '../useFieldLabel';
+import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
 
 // Choice-felt (§1.3/§3.6): dropdown committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options som children. Den viste værdi læses fra den afsluttede
@@ -31,11 +32,16 @@ export type ChoiceFieldProps<
   getOptionLabel?: (value: TValue) => string;
   /** UI-sentinel som vises for canonical tomhed; valg af værdien rydder feltet (fx EO-filterets "ALLE"). */
   emptyUiValue?: NoInfer<TValue>;
-  /**
-   * Om det tomme placeholder-valg tilbydes (default sandt). Sæt `false` for et påkrævet valg uden tomværdi
-   * (fx en enhed-/type-dropdown med en gyldig default): så vises ingen tom-række, og feltet kan ikke ryddes
-   * til placeholderen. Feltets faktiske tomhed ejes af descriptorens `isEmpty`; denne prop styrer kun UI'et.
-   */
+/**
+ * Om det tomme placeholder-valg tilbydes.
+ *
+ * **Udledes af feltets codec.** Et `requiredChoice`-codec HAR en gyldig tomværdi ('dage', 'maaned' …) og
+ * kan derfor pr. konstruktion ikke ryddes; et `selection`-codec kan. Reglen stod før som en håndskrevet
+ * `allowEmpty={false}` pr. kaldssted, og de to kunne ikke komme fra hinanden på nogen målbar måde: en
+ * glemt prop lod brugeren rydde et påkrævet felt med Delete, og fejlen dukkede først op som et kast langt
+ * senere. Proppen kan stadig SKÆRPE et valgfrit felt (et domæne, der kræver et valg), men aldrig løsne et
+ * påkrævet — det afvises.
+ */
   allowEmpty?: boolean;
   sx?: SxProps<Theme>;
   listboxSx?: SxProps<Theme>;
@@ -59,7 +65,7 @@ const ChoiceField = <
   disabled,
   getOptionLabel,
   emptyUiValue,
-  allowEmpty = true,
+  allowEmpty,
   sx,
   listboxSx,
   optionSx,
@@ -68,6 +74,7 @@ const ChoiceField = <
   immediateCommitOverride,
 }: ChoiceFieldProps<TValue, TCanonical>): React.ReactElement => {
   const accessibleName = useFieldLabel(field);
+  const resolvedAllowEmpty = resolveChoiceAllowEmpty(field, allowEmpty, 'ChoiceField');
   const controller = useFieldEditor(field, location, undefined, undefined, immediateCommitOverride);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
 
@@ -89,7 +96,7 @@ const ChoiceField = <
   const hasError = issueText.message !== undefined;
 
   // `allowEmpty=false` kræver en defineret værdi; descriptorens tomværdi (fx 'dage') er den gyldige default.
-  if (!allowEmpty || emptyUiValue !== undefined) {
+  if (!resolvedAllowEmpty || emptyUiValue !== undefined) {
     const value = controller.value;
     if (value === undefined && emptyUiValue === undefined) {
       throw new Error(`ChoiceField(${field.descriptor.id}): allowEmpty=false kræver en defineret værdi`);

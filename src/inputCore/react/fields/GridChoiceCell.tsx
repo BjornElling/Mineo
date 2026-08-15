@@ -10,6 +10,8 @@ import { useCellEditor, type CellSpec } from '../useCellEditor';
 import type { FieldIssue } from '../../inputIssue';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
+import { useFieldLabel } from '../useFieldLabel';
+import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
 
 // Grid dropdown-celle (§2.5/§3.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
 // `ChoiceField` (form-dropdown) og den ene celle-valg-kontrol (fx rentekrav-enhed).
@@ -34,13 +36,28 @@ export type GridChoiceCellProps<
   gridCell: GridCellCoord;
   cell: CellSpec<TCanonical, TEntity>;
   children?: React.ReactNode;
-  /** Tilgængeligt navn på combobox'en (axe: formularelementer skal have etiketter). */
+  /**
+   * Tilgængeligt navn på combobox'en, når cellen har et andet navn end feltets egen label.
+   * Udelades den, kommer navnet fra feltet selv — se `useFieldLabel`.
+   */
   ariaLabel?: string;
   /**
-   * Om det tomme placeholder-valg tilbydes (default sandt). Sæt `false` for et påkrævet valg med gyldig default
-   * (fx rentekrav-enhed='dage'): så vises ingen tom-række, og cellen kan ikke ryddes til placeholderen. Feltets
-   * faktiske tomhed ejes af descriptorens `isEmpty`; denne prop styrer kun UI'et.
+   * Visningstekst for en option, hvis dens children ikke er ren tekst.
+   *
+   * Skal videreføres: uden den får en option med rig markup den tomme label `''`, og så kan hverken
+   * typeahead eller paste matche den. Formularens `ChoiceField` har altid haft proppen; cellen tabte den.
    */
+  getOptionLabel?: (value: TValue) => string;
+/**
+ * Om det tomme placeholder-valg tilbydes.
+ *
+ * **Udledes af feltets codec.** Et `requiredChoice`-codec HAR en gyldig tomværdi ('dage', 'maaned' …) og
+ * kan derfor pr. konstruktion ikke ryddes; et `selection`-codec kan. Reglen stod før som en håndskrevet
+ * `allowEmpty={false}` pr. kaldssted, og de to kunne ikke komme fra hinanden på nogen målbar måde: en
+ * glemt prop lod brugeren rydde et påkrævet felt med Delete, og fejlen dukkede først op som et kast langt
+ * senere. Proppen kan stadig SKÆRPE et valgfrit felt (et domæne, der kræver et valg), men aldrig løsne et
+ * påkrævet — det afvises.
+ */
   allowEmpty?: boolean;
   placeholder?: string;
   /**
@@ -56,9 +73,10 @@ const GridChoiceCellInner = <
   TEntity,
   TCanonical extends TValue | undefined,
 >(
-  { gridCell, cell, children, ariaLabel, allowEmpty = true, placeholder, collectionRuleIssue, sx }: GridChoiceCellProps<TValue, TEntity, TCanonical>
+  { gridCell, cell, children, ariaLabel, getOptionLabel, allowEmpty, placeholder, collectionRuleIssue, sx }: GridChoiceCellProps<TValue, TEntity, TCanonical>
 ): React.ReactElement => {
   const gridApi = useGridCoreApi();
+  const resolvedAllowEmpty = resolveChoiceAllowEmpty(cell.field, allowEmpty, 'GridChoiceCell');
   const controller = useCellEditor<TCanonical, TEntity>(cell);
   const dropdownRootRef = React.useRef<HTMLDivElement>(null);
 
@@ -71,13 +89,17 @@ const GridChoiceCellInner = <
   const hasError = issueText.message !== undefined;
   const errorMessage = issueText.message ?? '';
   const tooltipProp = issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip };
-  const accessibleName = ariaLabel ?? cell.field.descriptor.label;
+  // Feltnavnet kommer fra den ENE autoritet — `InputReader.labelOf` — præcis som i formularens
+  // `ChoiceField`. Cellen læste før `descriptor.label` direkte og gik uden om feltets `contextualLabel`,
+  // så et felt med kontekstafhængigt navn kunne hedde to ting (§3.2a).
+  const fieldLabel = useFieldLabel(cell.field);
+  const accessibleName = ariaLabel ?? fieldLabel;
 
   // En ikke-oprettet placeholder-række kan ikke "ryddes" (der er intet felt at rydde); et tom-valg dér er derfor
   // no-op. Et ikke-tomt valg promoverer rækken atomisk via `commitImmediate`'s placeholder-override (§1.11).
   const isPlaceholder = cell.kind === 'placeholder';
-  const latest = React.useRef({ controller, allowEmpty, isPlaceholder });
-  latest.current = { controller, allowEmpty, isPlaceholder };
+  const latest = React.useRef({ controller, allowEmpty: resolvedAllowEmpty, isPlaceholder });
+  latest.current = { controller, allowEmpty: resolvedAllowEmpty, isPlaceholder };
 
   const handleChange = React.useCallback((e: StyledDropdownChangeEvent<TValue | undefined>) => {
     const next = e.target.value;
@@ -153,7 +175,7 @@ const GridChoiceCellInner = <
     },
   }, sx);
 
-  if (!allowEmpty) {
+  if (!resolvedAllowEmpty) {
     const value = controller.value;
     if (value === undefined) {
       throw new Error('GridChoiceCell: allowEmpty=false kræver en defineret værdi');
@@ -166,6 +188,8 @@ const GridChoiceCellInner = <
         restoreTargetAttributes={restoreTargetAttributes}
         width="100%"
         expectedOptionValues={cell.field.descriptor.codec.options}
+      {...(getOptionLabel === undefined ? {} : { getOptionLabel })}
+        {...(getOptionLabel === undefined ? {} : { getOptionLabel })}
         value={value as TValue}
         allowEmpty={false}
         onChange={handleChange}

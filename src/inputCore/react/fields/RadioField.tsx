@@ -6,6 +6,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
+import { useFieldLabel } from '../useFieldLabel';
 
 // Radio-felt (§1.3/§3.6): radio-valg committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options. Den viste værdi læses fra den afsluttede revision gennem
@@ -20,7 +21,6 @@ export type RadioFieldProps<TValue extends string> = Readonly<{
   options: readonly RadioOption<TValue>[];
 
   name?: string;
-  label?: string;
   row?: boolean;
   disabled?: boolean;
   /** Tillad "intet valg" (committer `undefined`). Default falsk — påkrævet radio. */
@@ -33,14 +33,18 @@ const RadioField = <TValue extends string>({
   location,
   options,
   name,
-  label,
   row = false,
   disabled,
   allowEmpty = false,
   emptyLabel,
 }: RadioFieldProps<TValue>): React.ReactElement => {
+  // Gruppens navn ER feltets navn. Hentes fra den ENE autoritet, så beskeder og skærmlæser aldrig kan
+  // navngive samme felt forskelligt (§3.2a) — og så et callsite ikke skal skrive teksten to gange.
   // Radio-værdien er altid en defineret enum for et påkrævet felt; controlleren er typet på feltets værditype.
   const controller = useFieldEditor(field as FieldRef<TValue | undefined>, location);
+  // Gruppens navn ER feltets navn. Hentes fra den ENE autoritet, så beskeder og skærmlæser aldrig kan
+  // navngive samme felt forskelligt (§3.2a) — og så et callsite ikke skal skrive teksten to gange.
+  const accessibleName = useFieldLabel(field as FieldRef<TValue | undefined>);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
 
   // `StyledRadioButton` er generisk i optionernes værditype og mapper DOM-strengen tilbage til den
@@ -64,7 +68,7 @@ const RadioField = <TValue extends string>({
   return (
     <StyledRadioButton
       name={name}
-      label={label}
+      ariaLabel={accessibleName}
       options={options}
       value={controller.value}
       onCommit={handleCommit}

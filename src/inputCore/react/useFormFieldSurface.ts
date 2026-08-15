@@ -54,8 +54,6 @@ export type FormFieldSurfaceConfig = Readonly<{
    * caret-bevarende værn afledt af det SAMME prædikat (`draftAdmission.ts`).
    */
   draftAdmission?: DraftAdmission;
-  /** Sæt caret efter en åben-editor-splice-paste (dato/beløb/brøk). */
-  setPasteCaret?: boolean;
   /**
    * Feltets rå maksimale draft-længde. Håndhæves ved PASTE i en åben editor, hvor `<input>`-elementets
    * eget `maxLength` ikke virker, fordi `onPaste` kalder `preventDefault()` og selv skriver draften
@@ -114,7 +112,6 @@ export const useFormFieldSurface = <T>(
     singleStageClick = false,
     keyFilter,
     draftAdmission,
-    setPasteCaret = false,
     settleOnEnter = true,
     maxDraftLength,
   } = config;
@@ -151,7 +148,6 @@ export const useFormFieldSurface = <T>(
     config,
     keyFilter,
     draftAdmission,
-    setPasteCaret,
     disabled,
     singleStageClick,
     settleOnEnter,
@@ -162,7 +158,6 @@ export const useFormFieldSurface = <T>(
     config,
     keyFilter,
     draftAdmission,
-    setPasteCaret,
     disabled,
     singleStageClick,
     settleOnEnter,
@@ -287,7 +282,7 @@ export const useFormFieldSurface = <T>(
   }, [field]);
 
   const onPaste = React.useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
-    const { controller: ctl, setPasteCaret: caret, disabled: dis } = latest.current;
+    const { controller: ctl, disabled: dis } = latest.current;
     if (dis) return;
     const normalize = field.descriptor.codec.normalizePaste ?? ((raw: string) => raw);
     const raw = readClipboardText(e);
@@ -338,18 +333,20 @@ export const useFormFieldSurface = <T>(
     }
     ctl.changeDraft(spliced.draft);
 
-    if (caret) {
-      const nextCaret = spliced.caret;
-      requestAnimationFrame(() => {
-        const el = inputElementRef.current;
-        if (!el) return;
-        try {
-          el.setSelectionRange(nextCaret, nextCaret);
-        } catch {
-          // no-op
-        }
-      });
-    }
+    // Caret'en sættes ALTID efter det indsatte — som i grid-cellen. Det var før et opt-in (`setPasteCaret`),
+    // og kun de numeriske felter og datofeltet slog det til; i et tekstfelt sprang markøren derfor til
+    // slutningen, når brugeren indsatte midt i teksten, fordi `<input>` er styret af `displayText`. Samme
+    // handling må ikke opføre sig forskelligt afhængigt af feltfamilie (§1.2a).
+    const nextCaret = spliced.caret;
+    requestAnimationFrame(() => {
+      const el = inputElementRef.current;
+      if (!el) return;
+      try {
+        el.setSelectionRange(nextCaret, nextCaret);
+      } catch {
+        // no-op: elementtyper uden selection-API.
+      }
+    });
   }, [field]);
 
   return {

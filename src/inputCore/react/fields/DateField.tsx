@@ -10,7 +10,7 @@ import { resolveFieldIssueText } from '../fieldIssueText';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
-import { MAX_DATE_DRAFT_LENGTH } from '../../../utils/dateDraftCommit';
+import { resolveFormLengthPolicy } from './charLengthPolicy';
 import { useFieldLabel } from '../useFieldLabel';
 
 // Dato-felt (§2.4/§3.5): tynd skal over `useFormFieldSurface`. Format/parse/paste-normalisering
@@ -39,14 +39,16 @@ export type DateFieldProps = Readonly<{
 const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
   ({ field, location, name, width = 130, placeholder = DATE_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx }, ref) => {
     const accessibleName = useFieldLabel(field);
+    // Datoformens rå loft er erklæret på codecet og læses gennem den DELTE resolver — samme kilde som
+    // grid-cellen.
+    const { maxDraftLength } = resolveFormLengthPolicy(field);
     const surface = useFormFieldSurface(field, location, {
       disabled,
       singleStageClick,
       keyFilter: DATE_KEY_FILTER,
       draftAdmission: DATE_ADMISSION,
-      setPasteCaret: true,
       // Samme loft som `<input maxLength>` nedenfor; paste kan ikke bruge elementets eget loft (§1.2a).
-      maxDraftLength: MAX_DATE_DRAFT_LENGTH,
+      maxDraftLength,
     });
 
     const assignInputRef = React.useCallback(
@@ -80,7 +82,7 @@ const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
         error={hasError}
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
-        htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_DATE_DRAFT_LENGTH, readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
+        htmlInputAttributes={{ inputMode: 'numeric', maxLength: maxDraftLength, readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
         sx={mergeSx({
           '& .MuiInputBase-input': {
             textAlign: 'center',

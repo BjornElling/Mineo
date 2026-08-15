@@ -4,7 +4,12 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-14
+**Senest verificeret mod kode:** 2026-08-15 (knappernes opt-in-afgrænsning er målt mod
+`CONTAINER_FOCUSABLE_SELECTOR` og erklæret som en truffet beslutning; Escape-reglen og de to
+toggle-/checkbox-taster er verificeret mod `StyledDropdown`, `useTransientDraft`,
+`LoentrinFinderOverlay`, `StyledToggleSwitch` og `StyledCheckbox` og dækket af
+`dropdownFeedbackAndKeys.test.tsx` samt `loentrinFinder.sharedHook.test.tsx`)
+2026-08-14
 
 ---
 
@@ -35,6 +40,17 @@ Alle tastatur-navigation skal:
 
 **Undtagelser:**
 - Popup-widgets der er åbne (aria-expanded="true") – Container intercepter IKKE Tab, så widget selv kan håndtere det
+
+**Knapper er OPT-IN, og afgrænsningen er en truffet beslutning.** Container-navigationen medtager kun
+knapper, der bærer `data-mineo-focusable-button="true"` (`CONTAINER_FOCUSABLE_SELECTOR` i
+`gridCore/tableFocusHelpers.ts`). En knap uden markøren kan derfor kun betjenes med mus. Målingen
+2026-08-15 opgjorde hvad der står udenfor: sidernes faner (`PageTabs`, `SideTab`), de fire
+ansættelsesforhold-knapper (`FloatingActionButton`: Tilføj, Flyt op, Flyt ned, Slet), «Tilbage til
+toppen» (`ScrollToTopButton`), info-ikonet (`InfoTooltipIcon`) og de blå genvejslinks til Stamdata.
+Brugeren har 2026-08-15 besluttet, at Tab-rækkefølgen skal forblive **uændret**: de nævnte flader er
+bevidst mus-kun, så tastaturturen gennem en side kun rammer indtastningsfelterne. Afgrænsningen er
+altså erklæret, ikke et hul — men den skal genforelægges, hvis en handling en dag KUN kan udføres
+gennem en af dem.
 
 Konsekvens:
 - Browserens standard-tabflow må gerne undertrykkes, hvis det er nødvendigt for at opnå den normerede navigation.
@@ -84,6 +100,14 @@ Konsekvens:
 Popup-/overlay-Escape følger den konkrete widgets lukkeadfærd. Hvis en teksteditor er åben inde i en popup, skal
 editorens cancel håndteres før popupen eventuelt lukkes; én Escape-handling må ikke både committe og lukke.
 
+**En kontrol må kun SLUGE Escape, når den faktisk annullerer noget.** Reglen ovenfor har en praktisk
+konsekvens, som to flader brød: en lukket dropdown kaldte `preventDefault()` + `stopPropagation()` på en
+Escape, den ikke havde noget at gøre med, og et transient felt gjorde det samme, selv når draften var
+uændret. I begge tilfælde kunne den omgivende dialog eller overlay derfor ikke lukkes med Escape, når
+fokus stod i et af dens felter. Kontrollen skal lade tasten passere, når der intet er at annullere, så
+den næste ansvarlige flade får den. Tilsvarende må en overlay-lytter i CAPTURE-fasen ikke nå Escape før
+felterne inde i overlayet; lukningen hører i boble-fasen.
+
 ---
 
 ### Delete/Backspace
@@ -91,6 +115,19 @@ editorens cancel håndteres før popupen eventuelt lukkes; én Escape-handling m
 Når et almindeligt formularfelt eller en tabelcelle har fokus, men editoren er lukket, rydder Delete/Backspace feltet
 og committer straks uden at åbne editoren. Når editoren er åben, redigerer tasterne kun den åbne draft og committer
 først ved den normale settle-grænse.
+
+For en valg-kontrol gælder det samme skel: Delete/Backspace rydder valget på en **lukket** dropdown (når
+feltet må være tomt), mens en **åben** menu ejer tastaturet og hverken rydder eller lukker på ryddetasten
+— Escape er vejen ud. Om et felt overhovedet må ryddes, udledes af feltets codec (`requiredChoice` kan
+ikke), ikke af en prop på kaldsstedet.
+
+### Enter og mellemrum på toggles og afkrydsningsfelter
+
+En toggle og et afkrydsningsfelt aktiveres af BÅDE Enter og mellemrum, og de forbruger tasten: Enter
+flytter altså **ikke** fokus videre fra dem, som den ellers gør (`Enter` ovenfor). Det er en bevidst
+fjerde undtagelse ved siden af popup, textarea og radio — uden den ville ét Enter både skifte værdien og
+springe til næste felt. Radioknapper følger derimod hovedreglen: Enter aktiverer den fokuserede option
+gennem Container, og mellemrum gennem browserens egen radio-semantik.
 
 ### Dropdown-typeahead
 

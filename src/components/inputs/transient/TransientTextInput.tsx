@@ -59,7 +59,9 @@ const TransientTextInput = ({
         rows={rows}
         draft={value}
         onDraftChange={onChange}
-        htmlTextAreaAttributes={{}}
+        // `maxLength` faldt på gulvet i den flerlinjede gren: proppen var erklæret, men kun
+        // enkeltlinje-grenen videresendte den. Rapportfeltet var derfor helt ubegrænset i længde.
+        htmlTextAreaAttributes={maxLength === undefined ? {} : { maxLength }}
       />
     );
   }

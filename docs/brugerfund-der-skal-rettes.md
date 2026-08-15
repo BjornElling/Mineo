@@ -89,16 +89,4 @@ Ingen fund afventer reproduktion.
 | BF-056 | Indsæt dags dato bevarer fokus på den aktiverede knap på alle fem flader. |
 | BF-057 | Formularfelter og dropdowns har stabile tilgængelige navne, der følger feltets synlige label. |
 | BF-058 | To måleartefakter er fjernet: blinket aflæses nu fra en nedskrevet observation i stedet for et kapløb mod den 1,5 s transiente klasse, og animationens top/bund aflæses deterministisk frem for at afhænge af framerate. Felters totrins-indtastning er samlet i én tidsrobust helper (19 kopier i ni filer), og et AST-værn holder begge mønstre ude. |
-
-## BF-033 — Valg-dropdowns kræver forkert præcision ved paste
-
-- Type: Fejl
-- Sted: Dropdown-felter, herunder Erstatningsopgørelse → Offentlige ydelser, `Ydelsestype`, og EO oplysninger, `Helbredsforhold`
-- Sådan fremprovokeres det:
-  1. Markér eller kopier en valgmulighed, eksempelvis `Efterløn` eller `Sygemeldt`.
-  2. Paste teksten som `efterløn`/`sygemeldt` eller med indledende/afsluttende mellemrum.
-- Det sker: Paste-matchningen kræver aktuelt præcis samme store/små bogstaver og samme mellemrum som den viste label.
-- Det bør ske: Paste skal vælge ved fuldt label-match efter trimning og uden forskel på store og små bogstaver. Delvise eller ukendte labels skal fortsat give no-op uden at ændre det eksisterende valg.
-- Påvirkning: En gyldig valgmulighed fra eksempelvis en tekstkilde kan ignoreres, selv om den semantisk matcher den viste valgmulighed.
-- Prioritet: Mellem
-- Status: Ny
+| BF-033 | Bortfaldet ved efterprøvning 2026-08-15: paste-matchningen i dropdowns var allerede trimmet og case-insensitiv (`dropdownInteractionCore.ts`, dækket af `StyledDropdown.test.tsx`). Fundet beskrev en tilstand, koden ikke længere var i. |

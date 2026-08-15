@@ -17,6 +17,7 @@ import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import { defineStructuralCollection, defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { amountBoundsValidator, integerBoundsValidator } from './boundsValidators';
+import { COMMENT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 
 // Produkt-descriptors for `renteberegning`-sektionen (§3.2): to skalarfelter og samlingen
@@ -54,7 +55,7 @@ export const renteberegningBeregningsdatoField = defineStructuralField<ISODateSt
 export const renteberegningKommentarerField = defineStructuralField<string | undefined>({
   id: 'renteberegning.kommentarer',
   template: { section: 'renteberegning', path: [], field: 'kommentarer' },
-  codec: createOptionalTextFieldCodec(),
+  codec: createOptionalTextFieldCodec({ maxLength: COMMENT_TEXT_MAX_LENGTH }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Kommentarer',

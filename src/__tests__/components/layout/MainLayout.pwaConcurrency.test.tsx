@@ -149,6 +149,7 @@ describe('MainLayout (PWA concurrency)', () => {
     await dispatchPwaFileOpen();
 
     expect(loadFromFileHandleMock).toHaveBeenCalledTimes(1);
+    // Preflight-dialogen beholder sine tre fastlagte valg (persistence-contract §preflight).
     fireEvent.click(screen.getByRole('button', { name: 'Stop og gør intet' }));
 
     await screen.findByText('En anden fil er klar til at blive indlæst');
@@ -217,7 +218,7 @@ describe('MainLayout (PWA concurrency)', () => {
 
     await screen.findByText('En anden fil er klar til at blive indlæst');
     expect(screen.getByText(/Filen “Seneste\.eo”/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Ignorer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Annuller' }));
     await waitFor(() => {
       expect(pendingPwaRequest).toBeNull();
     });

@@ -17,7 +17,7 @@ import {
   createPercentFieldCodec,
   createChoiceFieldCodec,
   booleanFieldCodec,
-  optionalTextFieldCodec,
+  createOptionalTextFieldCodec,
   createRequiredChoiceFieldCodec,
   createCollectionRef,
   catalogFields,
@@ -52,7 +52,7 @@ const isUndefined = (value: unknown): boolean => value === undefined;
 export const aargangField: FieldDescriptor<number | undefined> = defineField({
   id: 'satser.aargang',
   template: { section: 'satser', path: [], field: 'aargang' },
-  codec: createIntegerFieldCodec({ allowNegative: false, minValue: 1900, maxValue: 2100 }),
+  codec: createIntegerFieldCodec({ allowNegative: false, minValue: 1900, maxValue: 2100, maxDigits: 4 }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Satsår',
@@ -89,7 +89,7 @@ export const beregningsdatoField: FieldDescriptor<ISODateString | undefined> = d
 export const kommentarerField: FieldDescriptor<string | undefined> = defineField({
   id: 'renteberegning.kommentarer',
   template: { section: 'renteberegning', path: [], field: 'kommentarer' },
-  codec: optionalTextFieldCodec,
+  codec: createOptionalTextFieldCodec({ maxLength: 512 }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Kommentarer',
@@ -154,7 +154,7 @@ export const belobField: FieldDescriptor<AmountValue | undefined> = defineField(
 export const tillaegstidField: FieldDescriptor<number | undefined> = defineField({
   id: 'renteberegning.rentekravRows.tillaegstid',
   template: { section: 'renteberegning', path: [{ kind: 'entity', collection: 'rentekravRows' }], field: 'tillaegstid' },
-  codec: createIntegerFieldCodec({ allowNegative: false, minValue: 0, maxValue: 100 }),
+  codec: createIntegerFieldCodec({ allowNegative: false, minValue: 0, maxValue: 100, maxDigits: 3 }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Tillægstid',

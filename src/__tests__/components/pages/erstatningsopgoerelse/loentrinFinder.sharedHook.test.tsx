@@ -157,6 +157,10 @@ describe('useLoentrinFinder — én hook for begge flader', () => {
     const firstAmount = within(firstDialog).getByRole('textbox', { name: 'Månedsløn' });
     await user.click(firstAmount);
     await user.keyboard('40000');
+    // Tab afslutter beløbsfeltet (commit ved blur), så værdien er gemt, FØR overlayet lukkes.
+    // Escape må ikke både annullere en åben redigering OG lukke fladen i ét tryk
+    // (`keyboard-navigation.md`): med en ændret draft annullerer første Escape kun redigeringen.
+    await user.keyboard('{Tab}');
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 

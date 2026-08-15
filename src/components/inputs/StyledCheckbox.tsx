@@ -1,6 +1,25 @@
 import React from 'react';
 import { Checkbox, FormControlLabel } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
+import { resolveAccessibleName } from './accessibleName';
+
+/**
+ * Fælles fokus-halo for afkrydsningsfelter — samme mekanik og udtryk som `StyledToggleSwitch` og
+ * `StyledRadioButton`.
+ *
+ * **Hvorfor den skal være her.** Checkboxen havde ingen fokus-styling overhovedet og faldt tilbage på
+ * MUI's default-ripple. To følger: dens tastaturfokus så anderledes ud end de to andre kontroller, og
+ * efter undo/redo fik den INGEN synlig markering — `data-mineo-undo-focused` sættes af
+ * `historyTargetRestoreLoop`, men blev ikke læst af nogen regel her, selv om `CheckboxField` leverer
+ * restore-attributterne. Brugeren blev altså ført hen til feltet uden at kunne se hvorhen.
+ */
+const CHECKBOX_FOCUS_HALO_SX = {
+  '&.Mui-focusVisible .MuiSvgIcon-root, & input[data-mineo-undo-focused] ~ .MuiSvgIcon-root': {
+    borderRadius: '4px',
+    boxShadow: (theme: Theme) => `0 0 0 6px ${theme.palette.primary.main}29`,
+  },
+} as const;
 
 type StyledCheckboxProps = Readonly<{
   checked: boolean;
@@ -40,6 +59,9 @@ const StyledCheckbox = ({
   const autoId = React.useId();
   const resolvedId = id ?? autoId;
   const resolvedName = name ?? resolvedId;
+  // Samme runtime-invariant som toggles: `label` er obligatorisk i TYPEN, men en ReactNode kan vise sig
+  // kun at rumme et ikon. Kontrollen validerede den aldrig og kunne derfor blive navnløs i tavshed.
+  resolveAccessibleName({ visibleLabel: label }, `StyledCheckbox(${resolvedId})`);
   // Et låst-til felt indgår altid og vises derfor markeret, uanset den afsluttede værdi.
   // Ellers gælder: en programinaktiv checkbox må ikke fremstå som et aktivt tilvalg. Den afsluttede
   // værdi bevares i inputkernen og vises igen, når programmet genaktiverer feltet.
@@ -90,6 +112,7 @@ const StyledCheckbox = ({
           onChange={handleChange}
           disabled={interactionDisabled}
           size={size}
+          sx={CHECKBOX_FOCUS_HALO_SX}
           slotProps={{
             // Feltidentitet i DOM: serialiseret feltadresse + editorlokation (§3.2/§3.7), sat af
             // feltfamilien og videreført her. Checkboxen er en immediate-commit widget, så restoren skal

@@ -110,6 +110,7 @@ const Indstillinger = React.memo(() => {
           <Typography className="row--text">Farvetema</Typography>
           <Box className="row--label-right-hover__content">
             <StyledRadioButton
+              ariaLabel="Farvetema"
               value={settings.themeMode}
               onCommit={(event) => {
                 const nextThemeMode = event.target.value;
@@ -187,6 +188,7 @@ const Indstillinger = React.memo(() => {
           <Typography className="row--text">Løn indtastes som:</Typography>
           <Box className="row--label-right-hover__content">
             <StyledRadioButton
+              ariaLabel="Løn indtastes som"
               value={settings.defaultLoenIndtastesSom}
               onCommit={(event) => {
                 const next = event.target.value;
@@ -285,6 +287,7 @@ const Indstillinger = React.memo(() => {
           <Typography className="row--text">Svie/smerte-sats ved delvis sygemelding</Typography>
           <Box className="row--label-right-hover__content">
             <StyledRadioButton
+              ariaLabel="Svie/smerte-sats ved delvis sygemelding"
               value={settings.defaultSvieSmerteDelvisSygemeldingSats}
               onCommit={(event) => {
                 const next = event.target.value;

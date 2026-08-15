@@ -6,6 +6,15 @@
 
 import { interpretYear } from './dateInputValidation';
 
+/**
+ * Et årstals maksimale antal cifre under indtastning.
+ *
+ * Tallet stod tidligere hardkodet i `YearField` (4) og i `GridYearCell`, hvor det ved en fejl var
+ * DATO-konstanten (16). Formen er en egenskab ved familien, ikke ved kaldsstedet, så den erklæres ét
+ * sted og læses af både codec og begge flader (`charLengthPolicy.ts`).
+ */
+export const MAX_YEAR_DIGITS = 4;
+
 export type TwoDigitYearPolicy = 'reject' | 'infer' | 'assume20xx';
 
 export type YearDraftParseConfig = Readonly<{

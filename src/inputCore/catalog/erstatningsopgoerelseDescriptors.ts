@@ -44,6 +44,11 @@ import {
   createYearFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
+import {
+  COMMENT_TEXT_MAX_LENGTH,
+  SHORT_TEXT_MAX_LENGTH,
+  UNBOUNDED_DAY_COUNT_MAX_DIGITS,
+} from './fieldLengthLimits';
 import type {
   FieldControlKind,
   FieldAddressTemplate,
@@ -97,23 +102,27 @@ const S = 'erstatningsopgoerelse' as const;
  */
 export const EO_NUMMER_MAX_LENGTH = 7;
 export const EO_LEDSAGETEKST_MAX_LENGTH = 64;
-export const EO_KOMMENTARER_MAX_LENGTH = 512;
 
 // ── Generiske top-level felt-hjælpere ────────────────────────────────────────────
 /**
  * `maxLength` er feltets erklærede maksimale tegnlængde (`input-field-behavior-contract.md` §2.5).
  * Den erklæres HER — på descriptoren — så både formularfeltet og en eventuel tabelcelle håndhæver
- * samme tal ved tastning OG paste. Udelades den, har feltet bevidst ingen længdegrænse.
+ * samme tal ved tastning OG paste.
+ *
+ * Parameteren er PÅKRÆVET. Den var valgfri, og resultatet var, at 11 af EO's 13 fritekstfelter blev
+ * oprettet uden nogen grænse: `Særlige kommentarer` og alle syv bilagsnumre-felter tog imod en
+ * vilkårligt lang indsat tekst. Det er samme fejlmåde, som `dateField` nedenfor allerede har lukket
+ * for datogrænserne — udeladelse er nu en typefejl, ikke en forglemmelse.
  */
 const optionalTextField = (
   field: string,
   label: string,
-  maxLength?: number
+  maxLength: number
 ): FieldDescriptor<string | undefined> =>
   defineStructuralField<string | undefined>({
     id: `eo.${field}`,
     template: { section: S, path: [], field },
-    codec: createOptionalTextFieldCodec(maxLength === undefined ? {} : { maxLength }),
+    codec: createOptionalTextFieldCodec({ maxLength }),
     emptyValue: undefined,
     isEmpty: isUndefined,
     label,
@@ -207,11 +216,18 @@ const amountField = (field: string, label: string): FieldDescriptor<AmountValue 
     validators: [amountBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
   });
 
+/**
+ * EO's heltalsfelter er alle «antal dage»-felter uden noget øvre domænemaksimum. Cifferloftet er derfor
+ * den fælles grænse for netop den kategori (§1.2) — ikke et tal skrevet i hånden pr. felt.
+ */
 const integerField = (field: string, label: string): FieldDescriptor<number | undefined> =>
   defineStructuralField<number | undefined>({
     id: `eo.${field}`,
     template: { section: S, path: [], field },
-    codec: createIntegerFieldCodec({ allowNegative: false }),
+    codec: createIntegerFieldCodec({
+      allowNegative: false,
+      maxDigits: UNBOUNDED_DAY_COUNT_MAX_DIGITS,
+    }),
     emptyValue: undefined,
     isEmpty: isUndefined,
     label,
@@ -403,9 +419,11 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
 export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', 'Ja');
 // §3.4: «Maksimumlængden er 512 tegn.»
 export const eoOffentligeYdelserKommentarerField = optionalTextField(
-  'offentligeYdelserKommentarer', 'Kommentarer', EO_KOMMENTARER_MAX_LENGTH
+  'offentligeYdelserKommentarer', 'Kommentarer', COMMENT_TEXT_MAX_LENGTH
 );
-export const eoSaerligeKommentarerField = optionalTextField('saerligeKommentarer', 'Særlige kommentarer');
+export const eoSaerligeKommentarerField = optionalTextField(
+  'saerligeKommentarer', 'Særlige kommentarer', COMMENT_TEXT_MAX_LENGTH
+);
 
 export const eoAfsluttesMedField = requiredChoiceField<AfsluttesMed>(
   'erstatningsopgoerelseAfsluttesMed',
@@ -536,27 +554,27 @@ export const eoTafBeregningsperiodeTilField = dateField(
 export const eoUspecificeredeFerieFridageField = integerField('uspecificeredeFerieFridage', 'Uspecificerede ferie-/fridage');
 export const eoOevrigtFravaerUdenLoenField = requiredJaNejField('oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn', 'Nej');
 export const eoOevrigeFravaersdageField = integerField('oevrigeFravaersdage', 'Øvrige fraværsdage');
-export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField('oevrigeFravaersdageBeskrivelse', 'Beskrivelse af øvrige fraværsdage');
+export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField('oevrigeFravaersdageBeskrivelse', 'Beskrivelse af øvrige fraværsdage', SHORT_TEXT_MAX_LENGTH);
 export const eoMaanedsloenenUdgoerField = amountField('maanedsloenenUdgoer', 'Månedslønnen udgør');
 export const eoDagsloenenUdgoerField = amountField('dagsloenenUdgoer', 'Dagslønnen udgør');
-export const eoAngivetMaanedsloenBaseretPaaField = optionalTextField('angivetMaanedsloenBaseretPaa', 'Angivet månedsløn baseret på');
+export const eoAngivetMaanedsloenBaseretPaaField = optionalTextField('angivetMaanedsloenBaseretPaa', 'Angivet månedsløn baseret på', SHORT_TEXT_MAX_LENGTH);
 export const eoAngivetMaanedsloenOpreguleresFraDatoField = dateField(
   'angivetMaanedsloenOpreguleresFraDato', 'Angivet månedsløn opreguleres fra', dateBounds(systemrammeSpec),
 );
-export const eoAngivetDagsloenBaseretPaaField = optionalTextField('angivetDagsloenBaseretPaa', 'Angivet dagsløn baseret på');
+export const eoAngivetDagsloenBaseretPaaField = optionalTextField('angivetDagsloenBaseretPaa', 'Angivet dagsløn baseret på', SHORT_TEXT_MAX_LENGTH);
 export const eoAngivetDagsloenOpreguleresFraDatoField = dateField(
   'angivetDagsloenOpreguleresFraDato', 'Angivet dagsløn opreguleres fra', dateBounds(systemrammeSpec),
 );
 
 // ── Bilagsnumre (skalarer) ────────────────────────────────────────────────────────
 export const eoVisBilagsnumreField = requiredJaNejField('visBilagsnumre', 'Vis bilagsnumre', 'Nej');
-export const eoBilagsnumreMenAfgoerelseField = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse');
-export const eoBilagsnumreEetAfgoerelserField = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser');
-export const eoBilagsnumreSvieSmerteDokumentationField = optionalTextField('bilagsnumreSvieSmerteDokumentation', 'Bilagsnr. svie/smerte-dokumentation');
-export const eoBilagsnumreBeregningsgrundlagTafField = optionalTextField('bilagsnumreBeregningsgrundlagTaf', 'Bilagsnr. beregningsgrundlag TAF');
-export const eoBilagsnumreLoenISygeperiodenField = optionalTextField('bilagsnumreLoenISygeperioden', 'Bilagsnr. løn i sygeperioden');
-export const eoBilagsnumreOffentligeYdelserField = optionalTextField('bilagsnumreOffentligeYdelser', 'Bilagsnr. offentlige ydelser');
-export const eoBilagsnumreOevrigeErstatningskravField = optionalTextField('bilagsnumreOevrigeErstatningskrav', 'Bilagsnr. øvrige erstatningskrav');
+export const eoBilagsnumreMenAfgoerelseField = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse', SHORT_TEXT_MAX_LENGTH);
+export const eoBilagsnumreEetAfgoerelserField = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser', SHORT_TEXT_MAX_LENGTH);
+export const eoBilagsnumreSvieSmerteDokumentationField = optionalTextField('bilagsnumreSvieSmerteDokumentation', 'Bilagsnr. svie/smerte-dokumentation', SHORT_TEXT_MAX_LENGTH);
+export const eoBilagsnumreBeregningsgrundlagTafField = optionalTextField('bilagsnumreBeregningsgrundlagTaf', 'Bilagsnr. beregningsgrundlag TAF', SHORT_TEXT_MAX_LENGTH);
+export const eoBilagsnumreLoenISygeperiodenField = optionalTextField('bilagsnumreLoenISygeperioden', 'Bilagsnr. løn i sygeperioden', SHORT_TEXT_MAX_LENGTH);
+export const eoBilagsnumreOffentligeYdelserField = optionalTextField('bilagsnumreOffentligeYdelser', 'Bilagsnr. offentlige ydelser', SHORT_TEXT_MAX_LENGTH);
+export const eoBilagsnumreOevrigeErstatningskravField = optionalTextField('bilagsnumreOevrigeErstatningskrav', 'Bilagsnr. øvrige erstatningskrav', SHORT_TEXT_MAX_LENGTH);
 
 // ── Rene top-level samlinger + rækkefelter ─────────────────────────────────────────
 const rowTemplate = (collection: string, field: string): FieldAddressTemplate => ({
@@ -649,7 +667,10 @@ export const eoTafPeriodeTilField = tafPeriodeDates.til;
 export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | undefined>({
   id: 'eo.tafPerioder.loseFeriedage',
   template: rowTemplate('tafPerioder', 'loseFeriedage'),
-  codec: createIntegerFieldCodec({ allowNegative: false }),
+  codec: createIntegerFieldCodec({
+    allowNegative: false,
+    maxDigits: UNBOUNDED_DAY_COUNT_MAX_DIGITS,
+  }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Løse feriedage',
@@ -729,7 +750,7 @@ export const eoOevrigeKravDatoField: FieldDescriptor<ISODateString | undefined> 
 export const eoOevrigeKravUdgiftTilField = defineStructuralField<string>({
   id: 'eo.oevrigeKravPerioder.udgiftTil',
   template: rowTemplate('oevrigeKravPerioder', 'udgiftTil'),
-  codec: createTextFieldCodec(),
+  codec: createTextFieldCodec({ maxLength: SHORT_TEXT_MAX_LENGTH }),
   emptyValue: '',
   isEmpty: (value) => value === '',
   label: 'Udgift til',
@@ -791,7 +812,9 @@ export const eoOffentligeYdelserTillaegField = offentligYdelseAmount('tillaeg', 
 export const eoOffentligeYdelserYdelsestypeField = defineStructuralField<string | undefined>({
   id: 'eo.offentligeYdelserRows.ydelsestype',
   template: rowTemplate('offentligeYdelserRows', 'ydelsestype'),
-  codec: createOptionalTextFieldCodec(),
+  // Værdien vælges i en dropdown og skrives canonical; længden er kun et værn mod en TASTET/indsat
+  // værdi i en fremtidig fri indtastning. Kataloget bor i data-laget (se kommentaren ovenfor).
+  codec: createOptionalTextFieldCodec({ maxLength: SHORT_TEXT_MAX_LENGTH }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Ydelsestype',
@@ -871,7 +894,8 @@ export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateStrin
 });
 export const eoSfggReferenceperiodeFravaersdageUdenLoenField = sfggField<number | undefined>(
   'sfggReferenceperiodeFravaersdageUdenLoen', 'Fraværsdage uden løn i referenceperioden',
-  createIntegerFieldCodec({ allowNegative: false }), undefined, isUndefined, 'text',
+  createIntegerFieldCodec({ allowNegative: false, maxDigits: UNBOUNDED_DAY_COUNT_MAX_DIGITS }),
+  undefined, isUndefined, 'text',
   [integerBoundsValidator('eo.sfggAnsaettelsesforhold.sfggReferenceperiodeFravaersdageUdenLoen.bounds', 0, undefined)],
 );
 export const eoSfggManuelDagssatsField = sfggField<AmountValue | undefined>(
@@ -881,7 +905,7 @@ export const eoSfggManuelDagssatsField = sfggField<AmountValue | undefined>(
 );
 export const eoSfggManuelBeloebIHenholdTilField = sfggField<string | undefined>(
   'sfggManuelBeloebIHenholdTil', 'Beløb i henhold til',
-  createOptionalTextFieldCodec(), undefined, isUndefined, 'text',
+  createOptionalTextFieldCodec({ maxLength: SHORT_TEXT_MAX_LENGTH }), undefined, isUndefined, 'text',
 );
 export const eoSfggManuelFoerstEfterSygeloenField = sfggField<JaNej>(
   'sfggManuelFoerstEfterSygeloen', 'Først efter sygeløn',

@@ -11,6 +11,7 @@ import type { CellSpec } from '../useCellEditor';
 import type { FieldIssue } from '../../inputIssue';
 import type { FieldWarning } from '../../fieldWarning';
 import { useGridCellSurface } from '../useGridCellSurface';
+import { useFieldLabel } from '../useFieldLabel';
 import { keyFilterFromAdmission, type DraftAdmission } from '../../../components/inputs/draftAdmission';
 import { resolveFieldIssueText } from '../fieldIssueText';
 
@@ -75,6 +76,12 @@ const GridTextCellInner = <T, TEntity>(
   }: GridTextCellProps<T, TEntity>
 ): React.ReactElement => {
   const gridApi = useGridCoreApi();
+  // Feltnavnet kommer fra den ENE autoritet — `InputReader.labelOf` — præcis som formularfelterne.
+  // Cellen læste før `descriptor.label` direkte og gik dermed uden om feltets `contextualLabel`, så et
+  // felt med et kontekstafhængigt navn ville hedde én ting i formularen og en anden i tabellen. Det er
+  // netop den drift, `useFieldLabel` blev oprettet for at fjerne (§3.2a).
+  const accessibleName = useFieldLabel(cell.field);
+  const cellStatusId = React.useId();
   const keyFilter = React.useMemo(
     () => (admission === undefined ? undefined : keyFilterFromAdmission(admission)),
     [admission]
@@ -138,11 +145,16 @@ const GridTextCellInner = <T, TEntity>(
             {...(resolvedEndAdornment === undefined ? {} : { endAdornment: resolvedEndAdornment })}
             placeholder={surface.isFocused && !surface.readOnly ? '' : placeholder}
             inputProps={{
-              'aria-label': cell.field.descriptor.label,
+              'aria-label': accessibleName,
               inputMode,
               ...(maxDraftLength === undefined ? {} : { maxLength: maxDraftLength }),
               readOnly: surface.readOnly,
               'aria-invalid': showError,
+              // Den skjulte fejl-/advarselstekst nedenfor skal PEGES på, ellers er den en løsrevet
+              // node, ingen skærmlæser kobler til cellen. Formularfeltet gjorde det allerede
+              // (`StyledTextFieldBase`); cellen renderede teksten uden id og uden describedby, så en
+              // skærmlæserbruger kun fik den røde ramme og aldrig beskeden.
+              ...(showError || showWarning ? { 'aria-describedby': cellStatusId } : {}),
               ...surface.restoreTargetAttributes,
             }}
             sx={{
@@ -162,8 +174,11 @@ const GridTextCellInner = <T, TEntity>(
               },
             }}
           />
-          {showError ? <span style={visuallyHiddenStyle}>{errorMessage}</span> : null}
-          {showWarning ? <span style={visuallyHiddenStyle}>{normalizedWarningText}</span> : null}
+          {showError || showWarning ? (
+            <span id={cellStatusId} style={visuallyHiddenStyle}>
+              {showError ? errorMessage : normalizedWarningText}
+            </span>
+          ) : null}
           {typeof overlay === 'function'
             ? (overlay as (info: Readonly<{ value: T | undefined }>) => React.ReactNode)({ value: surface.value })
             : overlay}

@@ -5,16 +5,13 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 import { YEAR_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
+import { resolveYearCharPolicy } from './charLengthPolicy';
 
 // år-felt (§2.4/§3.5): den tynde familie-skal over `NumericTextField` med årsfamiliens
 // tegnfilter. Parse/format/paste ejes af descriptorens år-codec; komponenten modtager derfor KUN sin
 // `field`/`location` + rendering-props — ingen `minYear`/`maxYear`/`onCommit`/`onFieldError` (§2.4). Satsårets
 // min/maxYear er efter kravændringen 2026-07-18 en canonical bounds-feltvalidator; røde bounds-fejl kommer fra
 // issue-snapshottet, og et velformet år uden for intervallet kan stadig gemmes i `.eo` (§1.6).
-
-// Admission-prædikatet accepterer højst fire cifre; DOM-loftet skal være det samme,
-// ellers ser brugeren et felt, der modtager tegn, som inputmotoren straks afviser.
-const MAX_YEAR_DRAFT_LENGTH = 4;
 
 const YEAR_ADMISSION = yearAdmission();
 
@@ -33,6 +30,8 @@ export type YearFieldProps = Readonly<{
 
 const YearField = React.forwardRef<HTMLDivElement, YearFieldProps>(
   ({ field, location, name, width = 80, placeholder = YEAR_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx }, ref) => (
+    // Cifferloftet kommer fra descriptorens codec gennem den DELTE resolver — samme kilde som
+    // grid-cellen. Tallet stod før hardkodet her (4) og i `GridYearCell` som DATO-konstanten (16).
     <NumericTextField
       ref={ref}
       field={field}
@@ -43,7 +42,7 @@ const YearField = React.forwardRef<HTMLDivElement, YearFieldProps>(
       placeholder={placeholder}
       disabled={disabled}
       singleStageClick={singleStageClick}
-      maxDraftLength={MAX_YEAR_DRAFT_LENGTH}
+      maxDraftLength={resolveYearCharPolicy(field).maxDraftLength}
       inputRef={inputRef}
       sx={sx}
     />

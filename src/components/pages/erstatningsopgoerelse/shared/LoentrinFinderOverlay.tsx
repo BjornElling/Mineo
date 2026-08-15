@@ -58,6 +58,8 @@ export type LoentrinFinderOverlayProps = Readonly<{
  * lukning gennem `useDialogFocusRestore`; `useLoentrinFinder` leverer kun restore-MÅLET (`triggerRef`),
  * fordi det er en knap uden for overlayet, og kaldes fladen fra flere kort, er der én knap pr. kort.
  */
+
+
 const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => {
   const {
     open,
@@ -123,12 +125,11 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
 
       if (!isInsideOverlay) return;
 
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        onClose();
-        return;
-      }
+      // Escape håndteres BEVIDST ikke her. Denne lytter kører i capture-fasen for at eje Tab og Enter,
+      // og den nåede derfor tasten før et åbent felt inde i overlayet: Escape lukkede hele overlayet i
+      // stedet for at annullere den redigering, brugeren stod midt i (`keyboard-navigation.md`: én
+      // Escape må ikke både committe/annullere og lukke). Lukningen ligger nu i en separat lytter i
+      // BOBLE-fasen nedenfor, som først når frem, hvis intet felt annullerede noget.
 
       if (event.key === 'Enter') {
         const isDropdownCombobox = activeElement?.getAttribute('role') === 'combobox';
@@ -235,9 +236,22 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
       tabOrder[activeIndex + 1].focus();
     };
 
+    // Escape i boble-fasen: et felt, der annullerede sin egen redigering, har kaldt `stopPropagation()`
+    // og standser hændelsen, før den når hertil. Har intet felt noget at annullere, lukker overlayet.
+    const handleEscapeAfterFields = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      const dialog = dialogRef.current;
+      const activeElement = document.activeElement as HTMLElement | null;
+      if (!(dialog && activeElement && dialog.contains(activeElement))) return;
+      event.preventDefault();
+      onClose();
+    };
+
     document.addEventListener('keydown', handleDocumentKeyDown, true);
+    document.addEventListener('keydown', handleEscapeAfterFields);
     return () => {
       document.removeEventListener('keydown', handleDocumentKeyDown, true);
+      document.removeEventListener('keydown', handleEscapeAfterFields);
     };
   }, [getTabOrder, onCalculate, onClose, open]);
 

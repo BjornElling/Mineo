@@ -619,7 +619,7 @@ describe('Katalog valideres én gang ved konstruktion (§3.2)', () => {
     const dup = defineField({
       id: 'satser.aargang',
       template: { section: 'satser', path: [], field: 'aargangDuplikat' },
-      codec: createIntegerFieldCodec({ allowNegative: false }),
+      codec: createIntegerFieldCodec({ allowNegative: false, maxDigits: 4 }),
       emptyValue: undefined,
       isEmpty: (value) => value === undefined,
       label: 'Dup',

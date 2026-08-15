@@ -96,7 +96,6 @@ const NumericTextFieldInner = <T,>(
     singleStageClick,
     keyFilter,
     draftAdmission: admission,
-    setPasteCaret: true,
     // Samme loft som `<input maxLength>` nedenfor. Paste kan ikke bruge elementets eget loft (§1.2a).
     ...(maxDraftLength === undefined ? {} : { maxDraftLength }),
   });

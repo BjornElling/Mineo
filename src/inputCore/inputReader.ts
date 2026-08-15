@@ -227,7 +227,15 @@ const createInputReader = (options: Readonly<{
       return Object.freeze({ status: 'usable', value });
     },
     labelOf: <T>(field: FieldRef<T>): string => {
-      validation.readCanonical(field); // samme grænse som `read`: ukendt/forkert bundet ref er en fejl
+      // Et feltNAVN er metadata om feltet, ikke dets værdi, og kræver derfor ikke, at feltets entity
+      // findes. Grænsen er stadig fail-closed på det, der KAN være en fejl: en ref, kataloget ikke
+      // kender. Kravet om en eksisterende entity ville derimod gøre navnet uopnåeligt netop dér, hvor
+      // det er mest nødvendigt — i en tabels placeholder-række, som pr. definition endnu ikke findes
+      // (§1.11). En eventuel `contextualLabel`-regel læser ANDRE felters canonical værdier gennem
+      // `labelView` og er upåvirket af, om denne række er oprettet.
+      if (!options.catalog.isKnownField(field)) {
+        throw new Error('InputReader.labelOf: ukendt feltreference');
+      }
       return resolveFieldLabel(field.descriptor, labelView);
     },
     listEntities: validation.listEntities,

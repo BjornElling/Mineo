@@ -3,7 +3,12 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-12 (§4.6a er dækket i alle desktopbrowsere af
+**Senest verificeret mod kode:** 2026-08-15 (§1.2's længdedel er nu håndhævet for ALLE tastede
+feltfamilier: `maxLength`/`maxDigits` er påkrævet i codec-typen, og
+`src/__tests__/inputCore/fieldCharLengthPolicy.test.ts` måler for hvert produktionsfelt, at et for langt
+paste faktisk afkortes. Målingen fandt forinden 28 af 31 tekstfelter og 8 af 12 heltalsfelter helt uden
+grænse; §2.5 og §2.8 bærer nu de brugergodkendte tal)
+2026-08-12 (§4.6a er dækket i alle desktopbrowsere af
 `e2e/svie-smerte-satsaar-button.spec.ts`; §1.2's modalitets-uafhængighed er målt i browser og dækket af
 `e2e/mobile-virtual-keyboard-limits.spec.ts`; verifikationen 2026-08-09 nedenfor målte KUN tastning og
 overså derfor, at værnet var fraværende på mobile skærmtastaturer)
@@ -297,6 +302,23 @@ brugeren skriver i, jf. §1.2:
   ikke ind i feltet. Et paste, der er længere end feltets maksimum, afkortes derfor til de tegn, der kan rummes.
 - Felter, hvor al tekst er gyldig, giver ikke rød feltfejl på grund af tekstens indhold.
 
+**Hvert tekstfelt SKAL erklære sin maksimumlængde, og erklæringen SKAL være håndhævet.** Reglen er ikke
+ny; det var bindingen, der manglede. `maxLength` var en valgfri parameter, og målingen 2026-08-15 fandt
+28 af 31 tekstfelter uden nogen grænse overhovedet — heriblandt `Skadelidte`, `Journalnr.`, `Advokat`,
+`Sagsbehandler`, `Særlige kommentarer` og alle syv bilagsnumre-felter. En indsat tekst på 50.000 tegn gik
+uændret ind i sagen og blev gemt. Det er samme fejlmåde som datofelternes manglende grænser (§2.1).
+
+- Længden erklæres på feltets codec (`createTextFieldCodec` / `createOptionalTextFieldCodec`), hvor den
+  er PÅKRÆVET: et felt uden grænse kan ikke kompilere.
+- To kategorier, brugergodkendt 2026-08-15 (`src/inputCore/catalog/fieldLengthLimits.ts`):
+  **korte enkeltlinjefelter 60 tegn** (navne, numre, referencer, korte fritekstangivelser) og
+  **flerlinjede kommentarfelter 512 tegn**. De tre felter, kontrakten allerede havde navngivet, beholder
+  deres egne tal: EO-`Nummer` 7 (§4.1), `+ evt. ledsagetekst` 64 (§4.2) og Offentlige ydelsers
+  `Kommentarer` 512 (§3.4).
+- Håndhæves af `src/__tests__/inputCore/fieldCharLengthPolicy.test.ts`, som måler ADFÆRD: for hvert felt
+  i produktionskataloget skal et for langt paste faktisk blive afkortet. En erklæring, ingen flade læser,
+  er derfor rød — ikke grøn.
+
 ### 2.6 Dropdowns
 
 - Paste vælger kun ved fuldt label-match mod en aktiv valgmulighed.
@@ -320,6 +342,26 @@ brugeren skriver i, jf. §1.2:
   radiogruppen.
 - En radiogruppe med et påkrævet valg giver samlet mangelfeedback ved manglende valg, ikke en formatfejl på en
   ikke-eksisterende tekstværdi.
+
+### 2.8 Heltalsfelter
+
+- Et heltalsfelt accepterer kun cifre og — hvor feltet er angivet som negativt tilladt — et foranstillet
+  minus. Punktum, komma, mellemrum og øvrige tegn blokeres ved tastning og springes over ved paste.
+- **Hvert heltalsfelt SKAL erklære sit cifferloft.** `maxDigits` var en valgfri parameter, og målingen
+  2026-08-15 fandt 8 af 12 heltalsfelter uden nogen grænse: `Méngrad` (hvis eget maksimum er 120) og
+  `Tilkendt for periode` (maksimum 10) tog imod 30 cifre og blev først røde bagefter. Loftet erklæres nu
+  på codec'et, hvor det er PÅKRÆVET.
+- **Cifferloftet UDLEDES af feltets eget maksimum, hvor et maksimum findes** (brugergodkendt
+  2026-08-15). `Méngrad` 1–120 giver 3 cifre, `Tilkendt for periode` 1–10 giver 2, `Antal feriedage`
+  0–99 giver 2. Udledningen er ikke kosmetisk: den gør det umuligt for indtastningsgrænsen og
+  talværdigrænsen at komme fra hinanden, hvis maksimum senere ændres.
+- **Felter uden øvre domænemaksimum — i praksis «antal dage»-felterne — har 4 cifre** (op til 9999 dage).
+  Det gælder `Uspecificerede ferie-/fridage`, `Øvrige fraværsdage`, `Løse feriedage` og `Fraværsdage uden
+  løn i referenceperioden`.
+- **Cifferloftet er en LÆNGDEregel og løsner aldrig feltets talværdigrænse.** En værdi inden for
+  cifferantallet, men uden for feltets interval, skal fortsat kunne indtastes og bevares som canonical
+  værdi med rød ring og konkret tooltip: méngrad `121` er kontraktens eksempel (§2.3), og den kan stadig
+  tastes, fordi 121 er tre cifre.
 
 ## 3. Gennemgåede felter – Offentlige ydelser
 
@@ -655,6 +697,9 @@ når adfærden implementeres:
 - Beløbsudtryk er den ene nuance i §1.2: udtrykkets enkelte talled længdebegrænses tegn for tegn, mens et
   beregnet resultat uden for `±9.999.999,99` først kan fanges ved settle og derfor bliver en canonical rød fejl
   med konkret tooltip.
+- Tekst- og heltalsfelters grænser (§2.5, §2.8) er PÅKRÆVEDE erklæringer på codec'et, ikke valgfri
+  konfiguration. De blokerer tegn og længde; feltets talværdi- og domænegrænser er uberørte og bliver
+  fortsat til canonical røde fejl.
 - Ciffergrænserne i §2.2 og §2.3 er lofter, ikke tilladelser. De løsner aldrig en strengere feltregel — færre
   cifre, lavere maksimum, forbud mod negative beløb, krav om delelighed.
 - **Beregnede værdier er ikke omfattet af nogen ciffergrænse.** Rækkesummer, årstotaler, kapitaliserede beløb

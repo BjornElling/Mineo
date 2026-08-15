@@ -5,14 +5,15 @@ import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 import { WEEK_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
+import { resolveFormLengthPolicy } from './charLengthPolicy';
 
 // Uge-felt (§2.4/§3.5): familie-skal over `NumericTextField` med ugefamiliens tegnfilter
 // (`WW-YYYY`). Parse/format/paste og uge-/år-commit-intervallet ejes af descriptorens uge-codec; komponenten
 // modtager KUN sin `field`/`location` + rendering-props (§2.4). Værditypen er den string-backede uge-repræsentation.
 
-// `WW-YYYY` + lidt slæk til eftergivende typing.
-const MAX_WEEK_DRAFT_LENGTH = 8;
-
+// Draftloftet er erklæret på uge-codecet (`maxDraftLength`) og læses gennem den DELTE resolver, så
+// formularfeltet og grid-cellen ikke kan håndhæve hver sin længde. Tallet stod før hardkodet her (8),
+// mens grid-cellen slet ingen havde.
 const WEEK_ADMISSION = weekAdmission();
 
 export type WeekFieldProps = Readonly<{
@@ -40,7 +41,7 @@ const WeekField = React.forwardRef<HTMLDivElement, WeekFieldProps>(
       placeholder={placeholder}
       disabled={disabled}
       singleStageClick={singleStageClick}
-      maxDraftLength={MAX_WEEK_DRAFT_LENGTH}
+      maxDraftLength={resolveFormLengthPolicy(field).maxDraftLength}
       inputRef={inputRef}
       sx={sx}
     />

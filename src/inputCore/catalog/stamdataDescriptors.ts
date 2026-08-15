@@ -16,6 +16,7 @@ import {
   resolveSkadestypeDatoLabel,
 } from '../../domain/policies/stamdataCalculations';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
+import { SHORT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 
 // Produkt-descriptors for `stamdata`-sektionen (§3.2). Alle felter er top-level skalarer; ingen
 // samlinger. Den tomme sektion er `{}` (alle felter optional).
@@ -26,7 +27,7 @@ const textField = (field: string, label: string): FieldDescriptor<string | undef
   defineStructuralField<string | undefined>({
     id: `stamdata.${field}`,
     template: { section: 'stamdata', path: [], field },
-    codec: createOptionalTextFieldCodec(),
+    codec: createOptionalTextFieldCodec({ maxLength: SHORT_TEXT_MAX_LENGTH }),
     emptyValue: undefined,
     isEmpty: isUndefined,
     label,

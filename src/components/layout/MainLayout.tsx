@@ -319,7 +319,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         open={pendingOverwriteApply !== null}
         title="Erstat de aktuelle indtastninger?"
         message="Der findes allerede indtastede oplysninger i Mineo. Hvis du fortsætter, bliver de erstattet af oplysningerne fra filen. Indholdet i gemte .eo-filer ændres ikke."
-        cancelText="Stop og gør intet"
+        cancelText="Annuller"
         confirmText="Erstat"
         confirmColor="error"
         onCancel={dismissPendingLoad}
@@ -334,7 +334,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
             ? `Filen “${pendingPwaConfirmation.fileName}” blev åbnet, mens en anden filhandling var i gang. Vil du indlæse den nu?`
             : ''
         }
-        cancelText="Ignorer"
+        cancelText="Annuller"
         confirmText="Indlæs fil"
         confirmColor="primary"
         onCancel={ignoreQueuedPwaFileOpen}

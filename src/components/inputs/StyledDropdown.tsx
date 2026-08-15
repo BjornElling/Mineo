@@ -12,6 +12,7 @@ import {
   normalizeDropdownLabel,
 } from './dropdownInteractionCore';
 import { resolveAccessibleName } from './accessibleName';
+import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
 /**
  * StyledDropdown (combobox-trigger + popover-listbox)
@@ -144,6 +145,20 @@ type DropdownVisualOption<TValue extends StyledDropdownValue> =
 
 type CloseReason = 'select' | 'escapeKeyDown' | 'backdropClick' | 'tab' | 'blur';
 
+/**
+ * Hvad der tæller som «brugeren klikkede på en anden kontrol» ved klik uden for en åben menu.
+ *
+ * Bevidst bredt, men holdt til de NATIVE fokuserbare elementer: enhver fokuserbar kontrol skal kunne
+ * overtage fokus i ét klik. Rammer klikket i stedet dødt område (baggrund, overskrift, tabelramme),
+ * beholder dropdownen fokus, så tastaturbrugeren ikke efterlades på <body>.
+ *
+ * Selectoren gentager bevidst IKKE popup-ARIA'en (`role="combobox"`, `aria-haspopup`): den klassifikation
+ * ejes af `popupWidgetSemantics`, og en kopi her kunne drifte fra den. En anden dropdown er alligevel
+ * dækket, fordi dens trigger ER et `<input>`.
+ */
+const INTERACTIVE_TARGET_SELECTOR =
+  'input, textarea, select, button, a[href], [tabindex]:not([tabindex="-1"])';
+
 const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   {
     value,
@@ -260,6 +275,12 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
   if (import.meta.env.DEV && hasConfigError) {
     throw new Error(configErrorMessage);
+  }
+
+  // Samme invariant som `StyledTextFieldBase`: en rød ramme UDEN besked er en fejltilstand, brugeren
+  // ikke kan handle på. Kontrollen manglede værnet, så `error` uden `helperText` gav en tavs rød ring.
+  if (import.meta.env.DEV && error && helperText.trim() === '') {
+    throw new Error('StyledDropdown: helperText er påkrævet, når error=true (undgå tavse fejltilstande)');
   }
 
   const { inputProps: userInputProps, ...outlinedInputProps } = otherProps;
@@ -421,8 +442,14 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       const inAnchor = anchorRef.current?.contains(target) ?? false;
       const inListbox = listboxRef.current?.contains(target) ?? false;
       if (inAnchor || inListbox) return;
-      event.preventDefault();
-      handleClose('backdropClick');
+      // Klikkede brugeren på en anden KONTROL, skal den have fokus — som ved klik væk fra et hvilket
+      // som helst andet felt. Handleren kaldte før altid `preventDefault()` og gav derefter fokus
+      // tilbage til dropdownen, så det første klik kun lukkede menuen og det næste ramte feltet.
+      // Kun et klik i dødt område beholder fokus på kontrollen, så tastaturet ikke havner på <body>.
+      const clickedInteractive = target instanceof Element
+        && target.closest(INTERACTIVE_TARGET_SELECTOR) !== null;
+      if (!clickedInteractive) event.preventDefault();
+      handleClose(clickedInteractive ? 'blur' : 'backdropClick');
     };
 
     document.addEventListener('mousedown', handleMouseDown, true);
@@ -608,6 +635,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
   const showError = error && helperText.trim() !== '';
   const resolvedTooltipText = tooltipText ?? helperText;
+  const errorTextId = `${resolvedId}-error`;
 
   return (
     <Tooltip
@@ -635,7 +663,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         inputRef={inputElementRef}
         // Bevidst `readOnly`: kontrollen er en combobox-trigger, ikke et fritekst-input.
         // Bemærk: `readOnly`-inputs er normalt udelukket fra app'ens tab/enter-navigation på Container-niveau.
-        // Denne dropdown medtages via en eksplicit Container-undtagelse nøglet på `input[role="combobox"]`.
+        // Denne dropdown medtages via en eksplicit Container-undtagelse nøglet på combobox-rollen.
         readOnly
         name={name}
         error={error || hasConfigError}
@@ -667,6 +695,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
             open && highlightedIndex >= 0 && isSelectableVisualIndex(highlightedIndex)
               ? `${listboxId}-option-${highlightedIndex}`
               : undefined,
+          // Fejlbeskeden skal også NÅ en skærmlæser. Kontrollen viste før udelukkende en rød ramme og
+          // en hover-tooltip, mens tekstfelterne (`StyledTextFieldBase`) altid har haft både en
+          // visuelt skjult besked og bindingen til den. Samme fejlmodel, samme formidling.
+          ...(showError ? { 'aria-describedby': errorTextId } : {}),
           tabIndex: disabled || hasConfigError ? -1 : (userInputProps?.tabIndex ?? 0),
         }}
         onKeyDown={(e) => {
@@ -713,6 +745,15 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
               return;
             }
 
+            if (isClearKey(e)) {
+              // Med åben menu ejer menuen tastaturet; Escape er vejen ud. Tasten faldt før igennem til
+              // ryddegrenen nedenfor, så Delete både ryddede valget OG lukkede menuen — i strid med
+              // `gridUxSpec.ts`, der kun giver ryddetasten til en LUKKET kontrol.
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+
             if (handleTypeahead(e)) {
               return;
             }
@@ -739,14 +780,17 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
             return;
           }
 
-          if (e.key === 'Escape') {
-            e.preventDefault();
-            e.stopPropagation();
-            handleClose('escapeKeyDown');
-          }
+          // Escape på en LUKKET dropdown har intet at lukke. Tasten blev alligevel slugt med
+          // `preventDefault()` + `stopPropagation()`, så en omgivende dialog eller et overlay aldrig
+          // så den — `keyboard-navigation.md` kræver, at Escape når præcis én handling, og her var
+          // handlingen ingenting. Lad den boble.
         }}
         sx={inputSx}
       />
+
+      {showError ? (
+        <span id={errorTextId} style={visuallyHiddenStyle}>{helperText}</span>
+      ) : null}
 
       <ArrowDropDownIcon sx={iconSxMerged} />
 

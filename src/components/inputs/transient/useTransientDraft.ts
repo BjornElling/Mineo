@@ -200,10 +200,17 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
         return;
       }
       if (e.key === 'Escape') {
+        const restoredDraft = focusSnapshotRef.current ?? latest.current.formatted;
+        const cancelsAnything = restoredDraft !== latest.current.draft
+          || (latest.current.isTwoStage && latest.current.isOpen);
+        // ÉN Escape = ÉN handling (`keyboard-navigation.md`). Feltet slugte tasten ubetinget — også når
+        // der intet var at annullere — så en omgivende dialog eller et overlay aldrig kunne lukkes med
+        // Escape, hvis fokus stod i et af dens felter. Et etttrins-felt er desuden ALTID «åbent», så
+        // Escape derfra kunne pr. konstruktion aldrig nå fladen udenom.
+        if (!cancelsAnything) return;
         e.preventDefault();
         e.stopPropagation();
         suppressNextBlurCommitRef.current = true;
-        const restoredDraft = focusSnapshotRef.current ?? latest.current.formatted;
         latest.current = { ...latest.current, draft: restoredDraft, isOpen: false };
         setDraft(restoredDraft);
         if (latest.current.isTwoStage) setIsOpen(false);

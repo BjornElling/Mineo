@@ -8,6 +8,7 @@ import { useCellEditor, type CellSpec } from '../useCellEditor';
 import { collectionOwnerEntityIds } from '../cellSpecBuilder';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
+import { useFieldLabel } from '../useFieldLabel';
 
 /**
  * Form-dropdown for et felt i en valgfri entity-række. Hvis rækken endnu ikke findes, opretter det første
@@ -24,10 +25,12 @@ export type EntityChoiceFieldProps<TValue extends StyledDropdownValue, TEntity> 
   placeholder?: string;
   width?: number | string;
   name?: string;
+  /** Visningstekst for en option med rig markup — se `GridChoiceCellProps.getOptionLabel`. */
+  getOptionLabel?: (value: TValue) => string;
   sx?: SxProps<Theme>;
 }>;
 
-export default function EntityChoiceField<TValue extends StyledDropdownValue, TEntity>({ descriptor, collection, entity, entityId, entityExists, location, children, placeholder, width, name, sx }: EntityChoiceFieldProps<TValue, TEntity>) {
+export default function EntityChoiceField<TValue extends StyledDropdownValue, TEntity>({ descriptor, collection, entity, entityId, entityExists, location, children, placeholder, width, name, getOptionLabel, sx }: EntityChoiceFieldProps<TValue, TEntity>) {
   // Én cellebinding for begge arter (§3.2): feltet bindes HÉR med hele ejerstien fra collectionen efterfulgt af
   // entityens id, så en eksisterende og en endnu ikke oprettet entity aldrig kan få forskellig adressestruktur.
   const field = React.useMemo(
@@ -45,9 +48,9 @@ export default function EntityChoiceField<TValue extends StyledDropdownValue, TE
   // fokus efter undo/redo lander på DENNE editorlokation.
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const issueText = resolveFieldIssueText(controller.issue);
-  // En placeholder-række findes entityen endnu ikke i inputaggregatet, så InputReader.labelOf ville
-  // korrekt afvise referencen. Descriptorens label er stadig den stabile brugerlabel for begge cellearter.
-  const accessibleName = field.descriptor.label;
+  // Feltnavnet kommer fra den ENE autoritet, også for en endnu ikke oprettet række: et navn er metadata
+  // om feltet, ikke dets værdi, så `labelOf` kræver ikke en eksisterende entity (§3.2a).
+  const accessibleName = useFieldLabel(field);
   return <StyledDropdown<TValue>
     ariaLabel={accessibleName}
     name={name}
@@ -63,6 +66,7 @@ export default function EntityChoiceField<TValue extends StyledDropdownValue, TE
     placeholder={placeholder}
     width={width}
     expectedOptionValues={descriptor.codec.options}
+    {...(getOptionLabel === undefined ? {} : { getOptionLabel })}
     error={issueText.message !== undefined}
     helperText={issueText.message ?? ''}
     {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}

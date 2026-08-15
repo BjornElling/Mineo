@@ -46,6 +46,8 @@ export type StyledTextAreaBaseProps = {
   /** Kortere hover-tekst end den fulde besked. Se `StyledTextFieldBaseProps.tooltipText`. */
   tooltipText?: string;
   disabled?: boolean;
+  /** Se `StyledTextFieldBaseProps.disabledAppearance` — de to baser skal se ens ud i samme tilstand. */
+  disabledAppearance?: 'default' | 'locked';
 
   rows?: number;
 
@@ -87,6 +89,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
       tooltipText,
       sx = {},
       disabled,
+      disabledAppearance = 'default',
       autoFocus,
       fullWidth,
       required,
@@ -189,6 +192,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
 
     const resolvedCursor: React.CSSProperties['cursor'] | undefined =
       disabled ? 'default' : htmlTextAreaAttributes?.readOnly ? 'pointer' : 'text';
+    const useLockedDisabledAppearance = disabledAppearance === 'locked';
 
     return (
       <Tooltip
@@ -279,9 +283,44 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
                   borderColor: 'var(--color-input-border-focus)',
                   borderWidth: '1px',
                 },
+                // Deaktiveret udseende er ordret det samme som i `StyledTextFieldBase`. De to baser
+                // løser samme concern, og et flerlinjet felt må ikke se anderledes deaktiveret ud end
+                // et enkeltlinjet — her manglede både den stiplede ramme, baggrunden og tekstfarven.
+                '&.Mui-disabled': {
+                  backgroundColor: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-locked-bg, var(--color-input-disabled-bg))'
+                    : 'var(--color-input-disabled-bg)',
+                },
+                '&.Mui-disabled:not(.Mui-error) fieldset': {
+                  borderColor: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-border, var(--color-input-border))'
+                    : 'var(--color-input-border)',
+                  borderStyle: useLockedDisabledAppearance ? 'solid' : 'dashed',
+                },
+                '&.Mui-disabled:not(.Mui-error):hover fieldset': {
+                  borderColor: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-border, var(--color-input-border))'
+                    : 'var(--color-input-border)',
+                },
                 '&.Mui-disabled .MuiInputBase-input': {
                   cursor: 'default',
+                  color: useLockedDisabledAppearance
+                    ? 'var(--mineo-color-input-disabled-locked, var(--mineo-color-input-disabled))'
+                    : 'var(--mineo-color-input-disabled)',
+                  WebkitTextFillColor: useLockedDisabledAppearance
+                    ? 'var(--mineo-color-input-disabled-locked, var(--mineo-color-input-disabled))'
+                    : 'var(--mineo-color-input-disabled)',
                 },
+              },
+              // Placeholder-politikken er også fælles: samme dæmpede farve, og placeholderen viger for
+              // markøren, når feltet redigeres. Uden de to regler havde kommentarfelterne en anden
+              // placeholder-farve end alle andre felter og beholdt teksten under skrivning.
+              '& .MuiInputBase-input::placeholder': {
+                color: 'var(--mineo-color-placeholder)',
+                opacity: 1,
+              },
+              '& .MuiOutlinedInput-root.Mui-focused .MuiInputBase-input:not([readonly])::placeholder': {
+                opacity: 0,
               },
             }, sx)}
           />
