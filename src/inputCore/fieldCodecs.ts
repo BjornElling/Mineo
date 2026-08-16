@@ -167,10 +167,14 @@ const textFieldCodecBase: Omit<FieldCodec<string>, 'maxLength'> = Object.freeze(
  * håndhæve den samme — se `charLengthPolicy.ts`.
  */
 export const createTextFieldCodec = (
-  options: Readonly<{ maxLength: number }>
+  options: Readonly<{ maxLength: number; preservesLineBreaks?: boolean }>
 ): FieldCodec<string> => {
   assertRequiredMaxLength('TextFieldCodec', options.maxLength);
-  return Object.freeze({ ...textFieldCodecBase, maxLength: options.maxLength });
+  return Object.freeze({
+    ...textFieldCodecBase,
+    maxLength: options.maxLength,
+    ...(options.preservesLineBreaks === true ? { preservesLineBreaks: true } : {}),
+  });
 };
 
 /** Optional fritekst: canonical tomhed er `undefined`, ikke `''`. */
@@ -187,10 +191,14 @@ const optionalTextFieldCodecBase: Omit<FieldCodec<string | undefined>, 'maxLengt
 
 /** Se {@link createTextFieldCodec} om hvorfor `maxLength` er påkrævet. */
 export const createOptionalTextFieldCodec = (
-  options: Readonly<{ maxLength: number }>
+  options: Readonly<{ maxLength: number; preservesLineBreaks?: boolean }>
 ): FieldCodec<string | undefined> => {
   assertRequiredMaxLength('OptionalTextFieldCodec', options.maxLength);
-  return Object.freeze({ ...optionalTextFieldCodecBase, maxLength: options.maxLength });
+  return Object.freeze({
+    ...optionalTextFieldCodecBase,
+    maxLength: options.maxLength,
+    ...(options.preservesLineBreaks === true ? { preservesLineBreaks: true } : {}),
+  });
 };
 
 /** Dropdown-/radio-valg. Tom tekst er canonical `undefined`; ukendt tekst afvises som format. */

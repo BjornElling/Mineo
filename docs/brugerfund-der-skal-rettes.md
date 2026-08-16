@@ -49,7 +49,7 @@ Ingen fund afventer reproduktion.
 | BF-009 | Manglende beløb i en udfyldt årslønsperiode markeres og blokerer korrekt. |
 | BF-010 | SH-perioder sammenlægges, pluraliseres og listeformateres korrekt. |
 | BF-011 | Forsørgertab klassificerer manglende forudsætninger korrekt og linker til Stamdata. |
-| BF-012 | Varige mén kræver beregningsdato på eller efter skadesdato. |
+| BF-012 | Varige mén kræver beregningsdato på eller efter skadedato. |
 | BF-013 | Bounds-/regelfejl viser konkret tekst; format-/schemafejl bruger generisk tekst. |
 | BF-014 | Tooltips har fælles bredde, venstrestilling og naturlig ordombrydning. |
 | BF-015 | Forsørgertabs dokumentgate og feltadvarsler følger de aftalte regler. |

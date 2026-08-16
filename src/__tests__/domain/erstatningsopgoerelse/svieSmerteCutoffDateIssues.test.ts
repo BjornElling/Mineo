@@ -67,6 +67,25 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
     });
   });
 
+  it('navngiver anmeldelsesdatoen som årsag, når et erhvervssygdomsinterval er umuligt', () => {
+    const evaluation = evaluateSvieSmertePerioder([{
+      id: 'ss-1',
+      fra: toISODateString('2020-01-01'),
+      til: toISODateString('2099-01-01'),
+      tilstand: 'sygemeldt',
+    }], {
+      skadedatoISO: toISODateString('2099-01-01'),
+      erErhvervssygdom: true,
+      menAfgoerelseDatoForTabel: undefined,
+      menAfgoerelseDato: undefined,
+      verserendeKlageMen: false,
+    }).get('ss-1');
+
+    expect(evaluation?.kind).toBe('error');
+    expect(evaluation && 'message' in evaluation ? evaluation.message : '').toContain('Anmeldelsesdato');
+    expect(evaluation && 'message' in evaluation ? evaluation.message : '').not.toContain('skadedato');
+  });
+
   it.each([
     ['verserende klage', { verserendeKlageMen: 'Ja' as const }],
     ['ingen ménafgørelse', { varigeMenAfgorelse: 'Nej' as const }],

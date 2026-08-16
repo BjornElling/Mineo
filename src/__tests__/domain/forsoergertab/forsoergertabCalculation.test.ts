@@ -527,6 +527,20 @@ describe('computeForsoergertabAslYdelser — inputvalidering (fail-closed græns
     expect(result.issues.some((i) => i.id === 'asl-aarsloen-missing')).toBe(true);
   });
 
+  it('bruger anmeldelsesdato i den manglende stamdata-dato ved erhvervssygdom', () => {
+    const result = computeForsoergertabAslYdelser({
+      ...validInput,
+      skadedato: undefined,
+      skadestype: 'Erhvervssygdom',
+    });
+
+    expect(result.issues).toContainEqual({
+      id: 'skadedato-missing',
+      severity: 'error',
+      message: 'Anmeldelsesdato er ikke udfyldt.',
+    });
+  });
+
   it('tilkendt periode over 10 år afvises (øvre grænse)', () => {
     const result = computeForsoergertabAslYdelser({ ...validInput, tilkendtForPeriodeAar: 11 });
     expect(result.computation).toBeNull();

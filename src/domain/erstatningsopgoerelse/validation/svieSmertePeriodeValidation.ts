@@ -7,6 +7,7 @@ import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../../../utils/date
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 import { formatDanishList } from '../../../utils/danishListFormatting';
 import { buildSvieSmerteCutoffErrorMessage } from './svieSmerteConstraints';
+import { resolveSkadestypeDatoLabel } from '../../../domain/policies/stamdataCalculations';
 
 /**
  * Ren (React-/kontrol-frit) blokerings-afgørelse for én svie/smerte-periode-række.
@@ -73,6 +74,9 @@ const evaluateOne = (
 
   const fraISO = periode.fra;
   const tilISO = periode.til;
+  const stamdataDatoLabel = resolveSkadestypeDatoLabel(
+    context.erErhvervssygdom ? 'Erhvervssygdom' : undefined
+  );
 
   const bounds = computeRowDateBounds({
     skadedatoMinDate: skadedatoMinRule.minDate,
@@ -87,14 +91,19 @@ const evaluateOne = (
 
   const fraNoValidRangeCause = (() => {
     const parts: string[] = [];
-    if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
+    if (skadedatoMinRule.minBoundKind) parts.push(stamdataDatoLabel);
     if (tilISO) parts.push('til-dato i samme række');
     return parts.length > 0 ? parts.join(', ') : undefined;
   })();
 
   const tilNoValidRangeCause = (() => {
     const parts: string[] = [];
-    if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
+    // Når Fra-datoen ligger før stamdata-datoens grænse, er stamdata-datoen stadig den aktive
+    // årsag til Til-datoens min. Den tidligere `!fraISO`-betingelse skjulte den og efterlod brugeren
+    // med en generisk «dags dato»-årsag ved et umuligt interval.
+    if (skadedatoMinRule.minBoundKind && (!fraISO || fraISO <= skadedatoMinRule.minDate)) {
+      parts.push(stamdataDatoLabel);
+    }
     if (fraISO) parts.push('fra-dato i samme række');
     parts.push('dags dato');
     if (!context.verserendeKlageMen && context.menAfgoerelseDatoForTabel) parts.push('dato for ménafgørelse');

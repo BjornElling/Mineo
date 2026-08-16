@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-08-13
+**Senest verificeret mod kode:** 2026-08-16
 
 ---
 
@@ -92,7 +92,7 @@ Adfærden er identisk for alle fejlgivende bounds uanset årsag (differencekrav,
 **TAF fra-dato:**
 - `< 2005-01-01`
 - `< skadedato` (ikke-erhvervssygdom)
-- `< anmeldedato − 5 år` (erhvervssygdom)
+- `< anmeldelsesdato − 5 år` (erhvervssygdom)
 - `> til-dato i samme række`
 
 **TAF til-dato:**
@@ -104,7 +104,7 @@ Adfærden er identisk for alle fejlgivende bounds uanset årsag (differencekrav,
 **Svie/smerte fra-dato:**
 - `< 2005-01-01`
 - `< skadedato` (ikke-erhvervssygdom)
-- `< anmeldedato − 5 år` (erhvervssygdom)
+- `< anmeldelsesdato − 5 år` (erhvervssygdom)
 - `> til-dato i samme række`
 
 **Svie/smerte til-dato:**
@@ -611,8 +611,8 @@ faktiske kilde:
 - Når en brugervendt tekst omtaler datoen, skal selve datoen vises bagefter i parentes i formatet
   `DD-MM-ÅÅÅÅ`, medmindre datoen mangler.
 - Hvis datoen er stamdatadatoen, skrives `skadedato(en)` kun ved `Arbejdsulykke`.
-- Ved `Erhvervssygdom` skrives altid `anmeldelsesdato(en)` for stamdatadatoen; der må ikke stå
-  `skadedato(en)` eller `skadesdato(en)` i den kontekst.
+- Ved `Erhvervssygdom` skrives altid `anmeldelsesdato(en)` for stamdatadatoen; `Skadedato` må ikke bruges
+  i den kontekst.
 - Hvis skadestype mangler, bruges arbejdsulykke-ordlyd som fallback (`skadedato(en)`), fordi
   brugeren endnu ikke har valgt, om sagen er en erhvervssygdom.
 - Hvis stamdatadatoen mangler, må datoafhængige overskrifter ikke opfinde eller vise en dato.

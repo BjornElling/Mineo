@@ -30,6 +30,23 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
   ...patch,
 });
 
+describe('collectEetAslAfgoerelseValidationIssues — stamdata-datoreference', () => {
+  it('bruger anmeldelsesdatoen i fejl på afgørelsesdatoen ved erhvervssygdom', () => {
+    const issues = collectEetAslAfgoerelseValidationIssues(
+      [buildRow({ afgoerelsesDato: toISODateString('2020-01-01') })],
+      toISODateString('2021-01-01'),
+      undefined,
+      'Erhvervssygdom',
+    );
+
+    expect(issues).toContainEqual({
+      rowId: 'r1',
+      field: 'afgoerelsesDato',
+      message: 'Der er indtastet en afgørelsesdato før anmeldelsesdatoen',
+    });
+  });
+});
+
 describe('collectIncompleteRowIssues — canonical procentgrænser', () => {
   it.each([-5, 105])('afleder et blokerende EET-issue for %s %%', (eetPct) => {
     const issues = collectIncompleteRowIssues([buildRow({

@@ -3,7 +3,9 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-15 (§2.6's og §2.7's fælles undo-regel for tastaturvalg er en
+**Senest verificeret mod kode:** 2026-08-16 (§1.2a's generelle tekst-normalisering ved paste, Stamdatas
+skadedato-/anmeldelsesdatoreference og de to korte initialfelter er implementeret og dækket af målrettede tests;
+§2.6's og §2.7's fælles undo-regel for tastaturvalg er en
 brugerbeslutning truffet samme dag og målt af `keyboardChoiceUndoSteps.test.tsx`; §1.2's længdedel er nu håndhævet for ALLE tastede
 feltfamilier: `maxLength`/`maxDigits` er påkrævet i codec-typen, og
 `src/__tests__/inputCore/fieldCharLengthPolicy.test.ts` måler for hvert produktionsfelt, at et for langt
@@ -146,6 +148,18 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
 6. Hvis paste-resultatet bliver tomt, er paste et no-op. En eksisterende værdi må ikke forsvinde, blot fordi
    clipboard-teksten kun indeholder afviste tegn eller er tom; rydning kræver den eksplicitte
    Delete/Backspace-handling, medmindre feltet er en kontrol med særskilt no-op-regel.
+
+For frie tekstfelter udføres der før denne afgrænsning en fælles, tabsfri normalisering af clipboard-teksten:
+
+- Windows- og Unix-linjeslutninger normaliseres til én intern linjeslutning. Ikke-brydende mellemrum,
+  smalle/figur-mellemrum, øvrige Unicode-mellemrum og tab bliver almindelige mellemrum.
+- Zero-width space, BOM og soft hyphen fjernes. I enkeltlinjefelter bliver linjeskift almindelige mellemrum;
+  kun de tre erklærede kommentarfelter bevarer linjeskift.
+- Gentagne almindelige mellemrum kollapses. Der trimmes ikke; indledende og afsluttende mellemrum håndteres
+  først af det konkrete felts settle-regel.
+
+Normaliseringen gælder både lukket paste og paste i en åben editor. Dato-, tal- og øvrige typed codecs beholder
+deres egne paste-regler.
 
 Et paste, der bliver afkortet, fordi den indsatte tekst er længere end feltets maksimale længde, er derfor det
 **forventede** resultat og ikke et datatab: præcis de samme tegn ville være blevet afvist ved tastning. Et
@@ -319,6 +333,9 @@ brugeren skriver i, jf. §1.2:
 - Et tekstfelt accepterer de tegn, som det konkrete felt erklærer, herunder almindelig tekst, tal, tegn, danske
   specialtegn og emoji, når feltet er angivet som frit tekstfelt.
 - Mellemrum inde i teksten bevares.
+- Ved paste normaliseres clipboard-tekst efter §1.2a: Unicode-mellemrum og tab bliver almindelige mellemrum,
+  skjulte kontroltegn fjernes, linjeskift bliver mellemrum i enkeltlinjefelter, og gentagne mellemrum kollapses.
+  Der trimmes ikke før settle.
 - Indledende og afsluttende mellemrum fjernes kun ved settle i de felter, hvor det er angivet særskilt nedenfor.
 - En fastsat maksimumslængde håndhæves tegn for tegn ved både tastning og paste: tegn ud over længden kommer
   ikke ind i feltet. Et paste, der er længere end feltets maksimum, afkortes derfor til de tegn, der kan rummes.
@@ -660,7 +677,7 @@ undo-trin». Håndhæves sammen med dropdownens ben af
 #### `Dato for endelig erhvervsevnetabsafgørelse`
 
 - Følger samme dato-, interval-, skjulings- og advarselsregler som den midlertidige afgørelsesdato.
-- Når endelig EET er aktiv, afgrænser en udfyldt endelig EET-dato TAF uanset skadesdato.
+- Når endelig EET er aktiv, afgrænser en udfyldt endelig EET-dato TAF uanset skadedato.
 
 #### `Virkningsdato (hvis forskellig fra afgørelsesdatoen)` – endelig EET
 
@@ -672,7 +689,7 @@ undo-trin». Håndhæves sammen med dropdownens ben af
 - Ja/Nej-toggle med straks-commit, standard Nej, paste/Delete/Backspace no-op, ingen rød fejl og ét undo-trin.
 - Når den står på Ja, afgrænser EET-datoerne ikke TAF, før klagesagen ikke længere er verserende.
 - Når både midlertidig og endelig EET ellers er relevante, bruges den tidligste relevante afgrænsende dato.
-  Endelig EET er afgrænsende uanset skadesdato; midlertidig EET er kun afgrænsende for skader før 16. juni 2011.
+  Endelig EET er afgrænsende uanset skadedato; midlertidig EET er kun afgrænsende for skader før 16. juni 2011.
 
 ### 4.16 `Evt. differencekrav opgjort per`
 
@@ -711,7 +728,20 @@ undo-trin». Håndhæves sammen med dropdownens ben af
 - Ved Til-dato før Fra-dato markeres begge datofelter rødt. Til-datoens tooltip viser den konkrete Fra-dato.
 - Paste og settle følger de universelle datoregler.
 
-## 6. Felter, der bevidst ikke er med endnu
+## 6. Feltspecifikke afklaringer
+
+### 6.1 Stamdata
+
+- `Advokat` og `Sagsbehandler` er enkeltlinjefelter med højst 6 tegn. `Skadelidte` følger fortsat sin egen
+  deklarerede grænse. Grænsen håndhæves ved tastning og paste, men et eksisterende længere input afkortes ikke
+  ved `.eo`-load.
+- Feltet, der internt hedder `skadedato`, vises som `Skadedato` ved Arbejdsulykke eller ukendt skadestype og
+  som `Anmeldelsesdato` ved Erhvervssygdom. Den samme reference bruges i datogrænser og fejltekster på Stamdata,
+  EO og EET.
+- Ændring af skadestype omdøber kun feltet og fejlteksterne; den indtastede dato bevares uændret.
+- Ved omvendt datofølge markeres begge felter med hver sin konkrete rettelsesvej:
+  `Der er angivet en [skadedato/anmeldelsesdato] før skadelidtes fødselsdato (dd-mm-åååå)` og
+  `Fødselsdatoen ligger efter den angivne [skadedato/anmeldelsesdato] (dd-mm-åååå)`.
 
 Denne kontrakt indeholder ikke feltspecifik adfærd for øvrige felter i Mineo eller for svie-/smerte-tabellens
 `Tilstand`-dropdown ud over den fælles række-komplethedsregel. De skal krydsforhøres og tilføjes, før deres

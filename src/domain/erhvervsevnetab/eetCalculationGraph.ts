@@ -37,6 +37,7 @@ export const computeEetDifferencekravCalculation = (
   const ealResult = computeEetEalCalculation({
     erhvervsevnetab: filteredErhvervsevnetab,
     skadedato: input.skadedato,
+    skadestype: input.skadestype,
     skadelidteFodselsdato: input.skadelidteFodselsdato,
     reguleringssats,
     erhvervsevnetabEalMax,
@@ -45,6 +46,7 @@ export const computeEetDifferencekravCalculation = (
   const kapResult = computeEetKapitaliseringCalculation({
     erhvervsevnetab: filteredErhvervsevnetab,
     skadedato: input.skadedato,
+    skadestype: input.skadestype,
     skadelidteFodselsdato: input.skadelidteFodselsdato,
   });
 
@@ -59,6 +61,7 @@ export const computeEetDifferencekravCalculation = (
           beregningsdato: dagFoerBeregningsdato,
         },
         skadedato: input.skadedato,
+        skadestype: input.skadestype,
         skadelidteFodselsdato: input.skadelidteFodselsdato,
       });
     }

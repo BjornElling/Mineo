@@ -7,7 +7,11 @@ import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { integerBoundsValidator } from './boundsValidators';
 import { digitsRequiredFor } from './fieldLengthLimits';
-import { stamdataSkadedatoField } from './stamdataDescriptors';
+import {
+  stamdataSkadedatoField,
+  resolveStamdataDatoReferenceFromView,
+  withStamdataDatoReference,
+} from './stamdataDescriptors';
 
 // Produkt-descriptors for `varigemen`-sektionen (§3.2). To top-level skalarer, ingen samlinger.
 
@@ -21,10 +25,10 @@ const beregningsdatoBoundsSpec: DateBoundsSpec = {
     const skadedato = context.view.readCanonical(stamdataSkadedatoField.bind());
     return skadedato === undefined || skadedato <= dateRanges_varigemen.beregningsdato.min
       ? undefined
-      : { minBoundKind: 'skadedato', minBoundReferenceISO: skadedato };
+      : withStamdataDatoReference(context, { minBoundKind: 'skadedato', minBoundReferenceISO: skadedato });
   },
   origin: originWhenNarrowed(
-    'Skadedato og beregningsdatoens satsdækning',
+    (context) => `${resolveStamdataDatoReferenceFromView(context.view).label} og beregningsdatoens satsdækning`,
     (context) => {
       const skadedato = context.view.readCanonical(stamdataSkadedatoField.bind());
       return skadedato !== undefined && skadedato > dateRanges_varigemen.beregningsdato.min;

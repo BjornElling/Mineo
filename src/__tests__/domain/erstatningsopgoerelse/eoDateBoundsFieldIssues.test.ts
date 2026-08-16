@@ -95,7 +95,7 @@ describe('EO’s AES-datofelter afviser datoer før skadedagen', () => {
     expect(issue?.reason).toBe('bounds');
     // Den konkrete besked — ikke en generisk «Fejl i indtastning». Den nævner datoen, brugeren skal
     // rette imod, hvilket er hele forskellen på en handlingsanvisende og en gådefuld fejl.
-    expect(issue?.message).toBe('Datoen kan ikke være før skadesdagen (01-01-2020)');
+    expect(issue?.message).toBe('Datoen kan ikke være før skadedatoen (01-01-2020)');
     // §4: `bounds` vises ORDRET i tooltippet. Blev den forkortet, ville skadedagen forsvinde.
     expect(resolveFieldIssueTooltip(issue!)).toBe(issue!.message);
   });
@@ -113,7 +113,7 @@ describe('EO’s topfelter håndhæver deres deklarerede grænser', () => {
       eoOpgørelseLavetDenField.bind(),
     );
     expect(issue?.reason).toBe('bounds');
-    expect(issue?.message).toBe('Datoen kan ikke være før skadesdagen (01-01-2020)');
+    expect(issue?.message).toBe('Datoen kan ikke være før skadedatoen (01-01-2020)');
   });
 
   it('«Differencekravsdato» før skadedagen markeres rødt', () => {
@@ -122,7 +122,7 @@ describe('EO’s topfelter håndhæver deres deklarerede grænser', () => {
       eoDifferencekravDatoField.bind(),
     );
     expect(issue?.reason).toBe('bounds');
-    expect(issue?.message).toBe('Datoen kan ikke være før skadesdagen (01-01-2020)');
+    expect(issue?.message).toBe('Datoen kan ikke være før skadedatoen (01-01-2020)');
   });
 
   it('«Vedrører periode til» efter konfigurationens maksimum markeres rødt', () => {
@@ -156,7 +156,7 @@ describe('EO-tabellernes datoceller håndhæver deres deklarerede grænser', () 
     const issue = issueAt(evaluation, eoSvieSmertePeriodeFraField.bind(row!.id));
 
     expect(issue?.reason).toBe('bounds');
-    expect(issue?.message).toBe('Datoen kan ikke være før skadesdagen (01-01-2020)');
+    expect(issue?.message).toBe('Datoen kan ikke være før skadedatoen (01-01-2020)');
   });
 
   it('TAF-rækkens fra-dato før skadedagen markeres rødt på CELLENS adresse', () => {
@@ -171,6 +171,6 @@ describe('EO-tabellernes datoceller håndhæver deres deklarerede grænser', () 
     const issue = issueAt(evaluation, eoTafPeriodeFraField.bind(row!.id));
 
     expect(issue?.reason).toBe('bounds');
-    expect(issue?.message).toBe('Datoen kan ikke være før skadesdagen (01-01-2020)');
+    expect(issue?.message).toBe('Datoen kan ikke være før skadedatoen (01-01-2020)');
   });
 });

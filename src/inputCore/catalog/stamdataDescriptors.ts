@@ -2,8 +2,9 @@ import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateRanges_skadelidteFodselsdato, dateRanges_stamdata } from '../../config/dateRanges';
 import { derivedDateBounds } from '../../utils/dateRangeErrorMessages';
+import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import { dateBounds } from './dateBoundsValidators';
-import type { DateBoundsSpec } from '../dateBoundsDeclaration';
+import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
   createChoiceFieldCodec,
   createDateFieldCodec,
@@ -13,6 +14,7 @@ import { catalogCollections, catalogFields } from '../fieldCatalog';
 import type { ContextualLabelRule, FieldDescriptor, FieldValidator } from '../fieldDescriptor';
 import {
   SKADESTYPE_DATO_LABEL_DEFAULT,
+  resolveStamdataDatoReference,
   resolveSkadestypeDatoLabel,
 } from '../../domain/policies/stamdataCalculations';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
@@ -23,17 +25,41 @@ import { SHORT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 
 const createEmptyStamdataSection = (): unknown => ({});
 
-const textField = (field: string, label: string): FieldDescriptor<string | undefined> =>
+export const INITIALER_MAX_LENGTH = 6;
+
+const textField = (
+  field: string,
+  label: string,
+  maxLength = SHORT_TEXT_MAX_LENGTH,
+): FieldDescriptor<string | undefined> =>
   defineStructuralField<string | undefined>({
     id: `stamdata.${field}`,
     template: { section: 'stamdata', path: [], field },
-    codec: createOptionalTextFieldCodec({ maxLength: SHORT_TEXT_MAX_LENGTH }),
+    codec: createOptionalTextFieldCodec({ maxLength }),
     emptyValue: undefined,
     isEmpty: isUndefined,
     label,
     controlKind: 'text',
     createEmptySection: createEmptyStamdataSection,
   });
+
+export const resolveStamdataDatoReferenceFromView = (
+  view: DateBoundsContext['view']
+) => resolveStamdataDatoReference(view.readCanonical(stamdataSkadestypeField.bind()));
+
+export const withStamdataDatoReference = (
+  context: DateBoundsContext,
+  special: DateRangeSpecialErrors | undefined
+): DateRangeSpecialErrors | undefined => {
+  if (special === undefined) return undefined;
+  const mentionsStamdataDato = special.minBoundKind === 'skadedato'
+    || special.minBoundKind === 'anmeldelsesdatoMinus5Aar'
+    || special.minBoundKind === 'fodselsdato'
+    || special.maxBoundKind === 'skadedato';
+  return mentionsStamdataDato
+    ? { ...special, stamdataDatoReference: resolveStamdataDatoReferenceFromView(context.view) }
+    : special;
+};
 
 /** Grænserne er PÅKRÆVEDE og leveres som en `dateBounds(...)`-spredning (erklæring + validator i ét). */
 const dateField = (
@@ -59,8 +85,8 @@ const dateField = (
   });
 
 export const stamdataJournalnrField = textField('journalnr', 'Journalnr.');
-export const stamdataAdvokatField = textField('advokat', 'Advokat');
-export const stamdataSagsbehandlerField = textField('sagsbehandler', 'Sagsbehandler');
+export const stamdataAdvokatField = textField('advokat', 'Advokat', INITIALER_MAX_LENGTH);
+export const stamdataSagsbehandlerField = textField('sagsbehandler', 'Sagsbehandler', INITIALER_MAX_LENGTH);
 export const stamdataSkadelidteField = textField('skadelidte', 'Skadelidtes navn');
 export const stamdataSkadelidteFodselsdatoField = dateField('skadelidteFodselsdato', 'Fødselsdato', dateBounds({
   min: () => dateRanges_skadelidteFodselsdato.min,
@@ -71,9 +97,9 @@ export const stamdataSkadelidteFodselsdatoField = dateField('skadelidteFodselsda
     const skadedato = context.view.readCanonical(stamdataSkadedatoField.bind());
     return skadedato === undefined || skadedato >= dateRanges_skadelidteFodselsdato.max
       ? undefined
-      : { maxBoundKind: 'skadedato', maxBoundReferenceISO: skadedato };
+      : withStamdataDatoReference(context, { maxBoundKind: 'skadedato', maxBoundReferenceISO: skadedato });
   },
-  origin: derivedDateBounds('Fødselsdato og Skadedato'),
+  origin: (context) => derivedDateBounds(`Fødselsdato og ${resolveStamdataDatoReferenceFromView(context.view).label}`),
 }));
 
 export const stamdataSkadestypeField = defineStructuralField<Skadestype | undefined>({
@@ -104,9 +130,9 @@ export const stamdataSkadedatoField = dateField('skadedato', SKADESTYPE_DATO_LAB
     const foedselsdato = context.view.readCanonical(stamdataSkadelidteFodselsdatoField.bind());
     return foedselsdato === undefined || foedselsdato <= dateRanges_stamdata.skadedato.min
       ? undefined
-      : { minBoundKind: 'fodselsdato', minBoundReferenceISO: foedselsdato };
+      : withStamdataDatoReference(context, { minBoundKind: 'fodselsdato', minBoundReferenceISO: foedselsdato });
   },
-  origin: derivedDateBounds('Fødselsdato og Skadedato'),
+  origin: (context) => derivedDateBounds(`Fødselsdato og ${resolveStamdataDatoReferenceFromView(context.view).label}`),
 }), (view) => resolveSkadestypeDatoLabel(view.readCanonical(stamdataSkadestypeField.bind())));
 
 export const stamdataFields = catalogFields(

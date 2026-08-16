@@ -55,7 +55,7 @@ export const renteberegningBeregningsdatoField = defineStructuralField<ISODateSt
 export const renteberegningKommentarerField = defineStructuralField<string | undefined>({
   id: 'renteberegning.kommentarer',
   template: { section: 'renteberegning', path: [], field: 'kommentarer' },
-  codec: createOptionalTextFieldCodec({ maxLength: COMMENT_TEXT_MAX_LENGTH }),
+  codec: createOptionalTextFieldCodec({ maxLength: COMMENT_TEXT_MAX_LENGTH, preservesLineBreaks: true }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Kommentarer',

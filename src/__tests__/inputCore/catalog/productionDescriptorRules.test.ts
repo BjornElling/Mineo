@@ -255,7 +255,10 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
 
     const issue = evaluate(input).reader.read(aslAfgoerelseAfgoerelsesDatoField.bind('r1'));
     expect(issue.status).toBe('error');
-    if (issue.status === 'error') expect(issue.issue.message).not.toContain('skadesdagen');
+    if (issue.status === 'error') {
+      expect(issue.issue.message).not.toContain('skadedatoen');
+      expect(issue.issue.message).not.toContain('anmeldelsesdatoen');
+    }
   });
 
   it('håndhæver den ydre minimumsgrænse, når ASL-kapitaliseringsdatoens afgørelse er tidligere', () => {

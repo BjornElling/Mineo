@@ -1,6 +1,8 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
-import { resolveSkadestypeDatoLabel } from '../../policies/stamdataCalculations';
+import {
+  resolveSkadeEllerAnmeldelsesdatoReference,
+} from '../../policies/stamdataCalculations';
 
 type Skadestype = StamdataValues['skadestype'];
 
@@ -17,20 +19,13 @@ export type EoDatoReference = Readonly<{
   labelLower: string;
 }>;
 
+export { resolveSkadeEllerAnmeldelsesdatoReference };
+
 /**
  * EO-prosaens form af skadedato-navnet. `label` er IKKE et selvstændigt navnevalg: det læses fra
  * `resolveSkadestypeDatoLabel`, som er feltets ene navneautoritet (§3.2a). Kun `kind` og den bøjede
  * `labelLower` (prosaform: «på skadedatoen») tilføjes her.
  */
-export const resolveSkadeEllerAnmeldelsesdatoReference = (
-  skadestype: Skadestype | undefined
-): EoDatoReference => {
-  const label = resolveSkadestypeDatoLabel(skadestype);
-  return label === 'Anmeldelsesdato'
-    ? { kind: 'anmeldelsesdato', label, labelLower: 'anmeldelsesdatoen' }
-    : { kind: 'skadedato', label, labelLower: 'skadedatoen' };
-};
-
 export const resolveAnvendtReguleringsdatoReference = (params: Readonly<{
   anvendtReguleringsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;

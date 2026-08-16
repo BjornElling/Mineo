@@ -180,6 +180,7 @@ const buildLoebendeYdelserProjection = (input: EetSnapshotInput): EetSnapshot['l
   return buildGatedProjection(blockingIssues, () => computeEetLoebendeYdelser({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
+    skadestype: input.stamdata?.skadestype,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
   }));
 };
@@ -200,6 +201,7 @@ const buildKapitaliseringProjection = (input: EetSnapshotInput): EetSnapshot['ka
   return buildGatedProjection(blockingIssues, () => computeEetKapitaliseringCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
+    skadestype: input.stamdata?.skadestype,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
   }));
 };
@@ -248,6 +250,7 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
   return buildGatedProjection(blockingIssues, () => computeEetEalCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
+    skadestype: input.stamdata?.skadestype,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
     reguleringssats,
     erhvervsevnetabEalMax,
@@ -304,6 +307,7 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
   return buildGatedProjection(blockingIssues, () => computeEetDifferencekravCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
+    skadestype: input.stamdata?.skadestype,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
     endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft:
       input.values.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft,

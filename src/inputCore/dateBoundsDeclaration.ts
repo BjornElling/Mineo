@@ -54,7 +54,7 @@ export type DateBoundsSpec = Readonly<{
    * får brugeren at vide, at ingen dato er gyldig, uden at få at vide hvilke felter der skal rettes.
    */
   origin: DateBoundsOriginSpec;
-  /** Domænespecifik beskedform (fx «Datoen kan ikke være før skadesdagen»). */
+  /** Domænespecifik beskedform (fx «Datoen kan ikke være før skadedatoen»). */
   special?: (context: DateBoundsContext) => DateRangeSpecialErrors | undefined;
 }>;
 

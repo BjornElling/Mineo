@@ -1,5 +1,5 @@
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
-import { afgoerelseTypeEnum } from '../../schemas/formSchemas/enumSchemas';
+import { afgoerelseTypeEnum, type Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { createRowId } from '../../utils/rowId';
@@ -9,6 +9,7 @@ import {
 } from '../aslEalAarsloen/aarsloenValidators';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
 import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 
 export const EET_ASL_MIN_VISIBLE_ROWS = 2;
 export { validateAslAarsloenBySkadesaarMax, validateAslAarsloenDivisibleBy1000 };
@@ -295,19 +296,23 @@ export type EetAslAfgoerelseValidationIssue = Readonly<{
 const validateDateNotBeforeSkadedato = (
   dateRaw: string | undefined,
   fieldLabel: string,
-  skadedato: ISODateString | undefined
+  skadedato: ISODateString | undefined,
+  skadestype: Skadestype | undefined,
 ): string | undefined => {
   if (!skadedato) return undefined;
   const dateIso = coerceToISODateString(dateRaw);
   if (dateIso === undefined) return undefined;
-  if (dateIso < skadedato) return `Der er indtastet en ${fieldLabel} før skadedatoen`;
+  if (dateIso < skadedato) {
+    return `Der er indtastet en ${fieldLabel} før ${resolveStamdataDatoReference(skadestype).labelLower}`;
+  }
   return undefined;
 };
 
 export const collectEetAslAfgoerelseValidationIssues = (
   rows: readonly AslAfgoerelseRow[],
   skadedato: ISODateString | undefined,
-  fodselsdato: ISODateString | undefined
+  fodselsdato: ISODateString | undefined,
+  skadestype?: Skadestype,
 ): EetAslAfgoerelseValidationIssue[] => {
   const issues: EetAslAfgoerelseValidationIssue[] = [];
 
@@ -318,12 +323,12 @@ export const collectEetAslAfgoerelseValidationIssues = (
       issues.push({ rowId: row.id, field: 'virkningsDato', message: duplicateError });
     }
 
-    const afgoerelsesDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.afgoerelsesDato, 'afgørelsesdato', skadedato);
+    const afgoerelsesDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.afgoerelsesDato, 'afgørelsesdato', skadedato, skadestype);
     if (afgoerelsesDatoBeforeSkadedatoError) {
       issues.push({ rowId: row.id, field: 'afgoerelsesDato', message: afgoerelsesDatoBeforeSkadedatoError });
     }
 
-    const virkningsDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.virkningsDato, 'virkningsdato', skadedato);
+    const virkningsDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.virkningsDato, 'virkningsdato', skadedato, skadestype);
     const virkningsDatoAfterTidlKapDatoError = validateVirkningsDatoByTidlKapDato(row);
     const virkningsDatoError = virkningsDatoBeforeSkadedatoError ?? virkningsDatoAfterTidlKapDatoError;
     if (virkningsDatoError) {
@@ -338,7 +343,7 @@ export const collectEetAslAfgoerelseValidationIssues = (
       issues.push({ rowId: row.id, field: 'eetPct', message: eetPctError });
     }
 
-    const kapDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.kapDato, 'kapitaliseringsdato', skadedato);
+    const kapDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.kapDato, 'kapitaliseringsdato', skadedato, skadestype);
     const kapDatoError =
       kapDatoBeforeSkadedatoError ??
       validateKapDatoByAfgoerelsestype(row, skadedato, fodselsdato) ??
@@ -355,7 +360,7 @@ export const collectEetAslAfgoerelseValidationIssues = (
       issues.push({ rowId: row.id, field: 'kapPct', message: kapPctError });
     }
 
-    const tidlKapDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.tidlKapDato, 'genoptagelsesdato', skadedato);
+    const tidlKapDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.tidlKapDato, 'genoptagelsesdato', skadedato, skadestype);
     const tidlKapDatoError = tidlKapDatoBeforeSkadedatoError ?? validateTidlKapDatoByAfgoerelsestype(row);
     if (tidlKapDatoError) {
       issues.push({ rowId: row.id, field: 'tidlKapDato', message: tidlKapDatoError });

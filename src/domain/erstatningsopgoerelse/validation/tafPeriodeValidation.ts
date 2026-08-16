@@ -6,6 +6,7 @@ import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, getToday } f
 import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../../../utils/dateOrderValidation';
 import { buildTafCutoffErrorMessage } from './tafPeriodConstraints';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
+import { resolveSkadestypeDatoLabel } from '../../policies/stamdataCalculations';
 
 /**
  * Ren (React-/kontrol-frit) blokerings-afgørelse for TAF-periode-rækker.
@@ -124,14 +125,20 @@ const evaluateOne = (
 
   const fraNoValidRangeCause = (() => {
     const parts: string[] = [];
-    if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
+    const stamdataDatoLabel = resolveSkadestypeDatoLabel(
+      context.erErhvervssygdom ? 'Erhvervssygdom' : undefined
+    ).toLowerCase();
+    if (skadedatoMinRule.minBoundKind) parts.push(stamdataDatoLabel);
     if (tilISO) parts.push('til-dato i samme række');
     return parts.length > 0 ? parts.join(', ') : undefined;
   })();
 
   const tilNoValidRangeCause = (() => {
     const parts: string[] = [];
-    if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
+    const stamdataDatoLabel = resolveSkadestypeDatoLabel(
+      context.erErhvervssygdom ? 'Erhvervssygdom' : undefined
+    ).toLowerCase();
+    if (!fraISO && skadedatoMinRule.minBoundKind) parts.push(stamdataDatoLabel);
     if (fraISO) parts.push('fra-dato i samme række');
     parts.push('dags dato');
     if (context.differencekravDato) parts.push('differencekrav-dato');

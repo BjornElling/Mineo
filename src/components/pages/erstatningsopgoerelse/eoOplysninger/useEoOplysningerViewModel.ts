@@ -85,7 +85,7 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     verserendeKlageMen: values.verserendeKlageMen === 'Ja', verserendeKlageEet: values.verserendeKlageEet === 'Ja',
     skalKomprimereIndtaegtFoerSkaden: !erDetteFoersteErstatningsopgoerelse(values.eoNummer) && values.komprimerBeregningEfterFoersteOpgoerelse === 'Ja',
     indtaegtFoerSkadenSectionTitle: `Indtægt før ${referencedato.labelLower}`,
-    angivetLoenOpreguleringLabel: `Det angivne beløb afspejler ${values.beregnesUdFra === 'Angivet månedsløn' ? 'månedsløn' : 'dagsløn'}en per dato (hvis forskellige fra skadedato)`,
+    angivetLoenOpreguleringLabel: `Det angivne beløb afspejler ${values.beregnesUdFra === 'Angivet månedsløn' ? 'månedsløn' : 'dagsløn'}en per dato (hvis forskellige fra ${referencedato.label.toLowerCase()})`,
     aktivAngivetLoenOpreguleresFraDato, visLoenudviklingFraEO, eoLoenudvikling, loentrinFinder,
     alleLoenmodtagerOrg: getAlleLoenmodtagerOrg(), alleArbejdsgiverOrg: getAlleArbejdsgiverOrg(), filteredOverenskomster,
     loenudviklingBasis, erOffentligOverenskomst,

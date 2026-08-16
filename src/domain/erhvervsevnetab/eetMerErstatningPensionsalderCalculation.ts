@@ -1,5 +1,6 @@
 import type { EetIssue } from './eetTypes';
 import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, parseISODate } from '../../types/branded';
 import { addMonths } from '../../utils/dateUtils';
@@ -26,6 +27,7 @@ import {
   toKroner,
   type MoneyOre,
 } from '../money/money';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +95,7 @@ export type MerErstatningPensionsalderInput = Readonly<{
   kapitaliseringer: readonly MerErstatningKapitaliseretAfgoerelse[];
   beregningsdato: ISODateString;
   skadedato: ISODateString;
+  skadestype?: Skadestype;
   fodselsdato: ISODateString;
   before2024Skade: boolean;
   koen: ErhvervsevnetabComposedValues['koen'];
@@ -121,6 +124,7 @@ const resolveFaktorForBekendtgoerelse = (
   args: Readonly<{
     opslagsdato: ISODateString;
     skadedato: ISODateString;
+    skadestype?: Skadestype;
     fodselsdato: ISODateString;
     koen: ErhvervsevnetabComposedValues['koen'];
     faktorMaanedsAfhaengig: boolean;
@@ -150,7 +154,7 @@ const resolveFaktorForBekendtgoerelse = (
   if (!tabelvalg) {
     issues.push(toIssue(
       `${args.issuePrefix}-tabel-missing`,
-      `Ingen kapitaliseringstabel i ${bekId} matcher skadedato og fødselsdato.`
+      `Ingen kapitaliseringstabel i ${bekId} matcher ${resolveStamdataDatoReference(args.skadestype).labelLower} og fødselsdato.`
     ));
     return null;
   }
@@ -272,6 +276,7 @@ export const computeMerErstatningPensionsalder = (
         {
           opslagsdato: event.opslagsdatoGammel,
           skadedato: input.skadedato,
+          skadestype: input.skadestype,
           fodselsdato: input.fodselsdato,
           koen: input.koen,
           faktorMaanedsAfhaengig,
@@ -283,6 +288,7 @@ export const computeMerErstatningPensionsalder = (
         {
           opslagsdato: event.opslagsdatoNy,
           skadedato: input.skadedato,
+          skadestype: input.skadestype,
           fodselsdato: input.fodselsdato,
           koen: input.koen,
           faktorMaanedsAfhaengig,

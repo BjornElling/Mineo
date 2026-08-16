@@ -1,4 +1,5 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
@@ -39,6 +40,7 @@ import type {
   EetKapitaliseringAfgoerelseComputation,
   EetKapitaliseringComputation,
 } from './eetCanonicalOutput';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 
 export type {
   EetKapitaliseringAfgoerelseComputation,
@@ -55,6 +57,7 @@ export type EetKapitaliseringCalculationResult = Readonly<{
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
+  skadestype?: Skadestype;
   skadelidteFodselsdato: ISODateString | undefined;
 }>;
 
@@ -320,6 +323,7 @@ export const computeEetKapitaliseringCalculation = (
   const issues: EetIssue[] = [];
   const values = input.erhvervsevnetab;
   const skadedato = input.skadedato;
+  const stamdataDatoReference = resolveStamdataDatoReference(input.skadestype);
   const fodselsdato = input.skadelidteFodselsdato;
   const aarsloen = amountValueToNumber(values.aslAarsloen);
 
@@ -334,7 +338,7 @@ export const computeEetKapitaliseringCalculation = (
     issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));
   }
   if (!skadedato) {
-    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt'));
+    issues.push(toIssue('skadedato-missing', `${stamdataDatoReference.label} er ikke udfyldt`));
   }
 
   const resolvedRows = collectResolvedRows(values.aslAfgoerelser, issues, skadedato, fodselsdato);
@@ -418,7 +422,7 @@ export const computeEetKapitaliseringCalculation = (
       issues.push(
         toIssue(
           'kapitaliseringstabel-missing',
-          `Ingen kapitaliseringstabel i ${controlBekId} matcher skadedato og fødselsdato på kontroltidspunktet.`
+          `Ingen kapitaliseringstabel i ${controlBekId} matcher ${stamdataDatoReference.labelLower} og fødselsdato på kontroltidspunktet.`
         )
       );
       continue;
@@ -483,7 +487,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringstabel-missing',
-            `Ingen kapitaliseringstabel i ${effectiveBekId} matcher skadedato og fødselsdato på kapitaliseringstidspunktet.`
+            `Ingen kapitaliseringstabel i ${effectiveBekId} matcher ${stamdataDatoReference.labelLower} og fødselsdato på kapitaliseringstidspunktet.`
           )
         );
         continue;

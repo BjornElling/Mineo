@@ -1,4 +1,5 @@
 import type { ISODateString } from '../../types/branded';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import {
   aarsloenAslMax,
   erhvervsevnetabEalMax,
@@ -19,6 +20,7 @@ import type { ForsoergertabEalKravResult, ForsoergertabEalPort } from './forsoer
 type Input = Readonly<{
   beregningsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
+  skadestype?: Skadestype;
   skadelidteFodselsdato: ISODateString | undefined;
   aslAarsloen: AmountValue | undefined;
   ealAarsloen: AmountValue | undefined;
@@ -37,6 +39,7 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
       ealAarsloen: input.ealAarsloen,
     },
     skadedato: input.skadedato,
+    skadestype: input.skadestype,
     skadelidteFodselsdato: input.skadelidteFodselsdato,
     reguleringssats,
     erhvervsevnetabEalMax,

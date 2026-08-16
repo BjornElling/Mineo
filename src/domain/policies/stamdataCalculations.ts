@@ -4,6 +4,12 @@ export type StamdataValues = PersistedSectionMap['stamdata'];
 
 export type SkadestypeDatoLabel = 'Anmeldelsesdato' | 'Skadedato';
 
+export type StamdataDatoReference = Readonly<{
+  kind: 'skadedato' | 'anmeldelsesdato';
+  label: SkadestypeDatoLabel;
+  labelLower: 'anmeldelsesdatoen' | 'skadedatoen';
+}>;
+
 /**
  * Feltnavnet, når skadestypen er ukendt — og dermed `stamdata.skadedato`-descriptorens kontekstfrie `label`.
  * Konstanten findes, så descriptoren og denne regel ikke kan erklære forskellige udgangspunkter.
@@ -23,6 +29,19 @@ export const resolveSkadestypeDatoLabel = (
   skadestype: StamdataValues['skadestype'] | undefined
 ): SkadestypeDatoLabel =>
   skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato';
+
+/** Samler også den bøjede form, så fejltekster ikke kan vælge et andet navn end feltets label. */
+export const resolveStamdataDatoReference = (
+  skadestype: StamdataValues['skadestype'] | undefined
+): StamdataDatoReference => {
+  const label = resolveSkadestypeDatoLabel(skadestype);
+  return label === 'Anmeldelsesdato'
+    ? { kind: 'anmeldelsesdato', label, labelLower: 'anmeldelsesdatoen' }
+    : { kind: 'skadedato', label, labelLower: 'skadedatoen' };
+};
+
+/** Navnet bruges af EO-prosa og re-eksporteres derfra for eksisterende forbrugere. */
+export const resolveSkadeEllerAnmeldelsesdatoReference = resolveStamdataDatoReference;
 
 /** Sektionsformen af {@link resolveSkadestypeDatoLabel} — for consumers, der holder hele `stamdata`. */
 export const resolveStamdataDatoLabel = (

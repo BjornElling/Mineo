@@ -31,19 +31,77 @@ describe('resolveDateRangeErrorMessage', () => {
       special: { fraTilRole: 'til', minBoundKind: 'skadedato' },
       bounds: STATIC_DATE_BOUNDS,
     });
-    expect(message).toContain('skadesdagen');
+    expect(message).toContain('skadedatoen');
   });
 
-  it('uses erhvervssygdom 5-year message when minBoundKind=anmeldedatoMinus5Aar', () => {
+  it('uses erhvervssygdom 5-year message when minBoundKind=anmeldelsesdatoMinus5Aar', () => {
     const message = resolveDateRangeErrorMessage({
       iso: iso('2010-01-01'),
       minDate: iso('2018-08-01'),
       maxDate: iso('2030-12-31'),
-      special: { minBoundKind: 'anmeldedatoMinus5Aar', minBoundReferenceISO: iso('2023-08-01') },
+      special: { minBoundKind: 'anmeldelsesdatoMinus5Aar', minBoundReferenceISO: iso('2023-08-01') },
       bounds: STATIC_DATE_BOUNDS,
     });
-    expect(message).toContain('mere end 5 år før anmeldedatoen');
+    expect(message).toContain('mere end 5 år før anmeldelsesdatoen');
     expect(message).toContain('01-08-2023');
+  });
+
+  it('bruger Anmeldelsesdato konsekvent i de kontekstuelle stamdata-beskeder', () => {
+    const reference = { label: 'Anmeldelsesdato', labelLower: 'anmeldelsesdatoen' };
+    const beforeReference = resolveDateRangeErrorMessage({
+      iso: iso('2020-01-01'),
+      minDate: iso('2024-01-01'),
+      maxDate: iso('2030-12-31'),
+      special: {
+        minBoundKind: 'skadedato',
+        minBoundReferenceISO: iso('2024-01-01'),
+        stamdataDatoReference: reference,
+      },
+      bounds: STATIC_DATE_BOUNDS,
+    });
+    const afterReference = resolveDateRangeErrorMessage({
+      iso: iso('2031-01-01'),
+      minDate: iso('1900-01-01'),
+      maxDate: iso('2024-01-01'),
+      special: {
+        maxBoundKind: 'skadedato',
+        maxBoundReferenceISO: iso('2024-01-01'),
+        stamdataDatoReference: reference,
+      },
+      bounds: STATIC_DATE_BOUNDS,
+    });
+
+    expect(beforeReference).toBe('Datoen kan ikke være før anmeldelsesdatoen (01-01-2024)');
+    expect(afterReference).toBe('Fødselsdatoen ligger efter den angivne anmeldelsesdato (01-01-2024)');
+  });
+
+  it('viser den konkrete modgående dato i begge stamdata-felters datoordensbeskeder', () => {
+    const reference = { label: 'Anmeldelsesdato', labelLower: 'anmeldelsesdatoen' };
+    const beforeBirth = resolveDateRangeErrorMessage({
+      iso: iso('2020-01-01'),
+      minDate: iso('2021-06-01'),
+      maxDate: iso('2030-12-31'),
+      special: {
+        minBoundKind: 'fodselsdato',
+        minBoundReferenceISO: iso('2021-06-01'),
+        stamdataDatoReference: reference,
+      },
+      bounds: STATIC_DATE_BOUNDS,
+    });
+    const afterBirth = resolveDateRangeErrorMessage({
+      iso: iso('2021-06-01'),
+      minDate: iso('1900-01-01'),
+      maxDate: iso('2020-01-01'),
+      special: {
+        maxBoundKind: 'skadedato',
+        maxBoundReferenceISO: iso('2020-01-01'),
+        stamdataDatoReference: reference,
+      },
+      bounds: STATIC_DATE_BOUNDS,
+    });
+
+    expect(beforeBirth).toBe('Der er angivet en anmeldelsesdato før skadelidtes fødselsdato (01-06-2021)');
+    expect(afterBirth).toBe('Fødselsdatoen ligger efter den angivne anmeldelsesdato (01-01-2020)');
   });
 
   it('prioritizes dags dato message over fra/til message when maxDate=getToday()', () => {

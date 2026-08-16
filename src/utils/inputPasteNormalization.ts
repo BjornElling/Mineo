@@ -72,6 +72,26 @@ const isWithinBounds = (value: number, minValue: number | undefined, maxValue: n
 };
 
 /**
+ * Normaliserer clipboard-tekst for fritekstfelter uden at trimme den.
+ *
+ * Paste skal ikke kunne gemme browserens forskellige whitespace-tegn eller CR-linjeslutninger i sagen.
+ * Trimning hører fortsat til det fælles settle, så en åben draft ikke ændrer brugerens ydre mellemrum.
+ */
+export const normalizeClipboardText = (
+  raw: string,
+  options: Readonly<{ preservesLineBreaks?: boolean }> = {}
+): string => {
+  const lineEndingsNormalized = raw.replace(/\r\n?/gu, '\n');
+  const whitespaceNormalized = lineEndingsNormalized
+    .replace(/[\u00a0\u202f\u2007\u2000-\u200a\t]/gu, ' ')
+    .replace(/[\u200b\ufeff\u00ad]/gu, '');
+  const lineBreaksNormalized = options.preservesLineBreaks === true
+    ? whitespaceNormalized
+    : whitespaceNormalized.replace(/\n/gu, ' ');
+  return lineBreaksNormalized.replace(/ {2,}/gu, ' ');
+};
+
+/**
  * Behandler den indsatte tekst som på hinanden følgende tastetryk fra et tomt felt.
  * Tegn, der ikke passer feltets aktuelle tekst, springes over, mens resten fortsætter.
  */

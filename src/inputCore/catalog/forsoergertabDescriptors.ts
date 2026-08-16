@@ -16,6 +16,7 @@ import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { integerBoundsValidator } from './boundsValidators';
 import { digitsRequiredFor } from './fieldLengthLimits';
 import {
+  resolveStamdataDatoReferenceFromView,
   stamdataSkadedatoField,
 } from './stamdataDescriptors';
 
@@ -77,7 +78,9 @@ export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Ber
   },
   special: () => ({ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' }),
   // Min udledes af Skadedato og Startdato for ASL-ydelse; en for sen af dem gør intervallet umuligt.
-  origin: derivedDateBounds('Skadedato og Startdato for ASL-ydelse'),
+  origin: (context) => derivedDateBounds(
+    `${resolveStamdataDatoReferenceFromView(context.view).label} og Startdato for ASL-ydelse`
+  ),
 }));
 
 // Startdato for ASL-ydelse (virkningsdato): min = skadedatoMin; max = min(dataCoverageMax, beregningsdato).
@@ -95,7 +98,9 @@ export const forsoergertabVirkningsdatoField = dateField('virkningsdato', 'Start
       : { maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' };
   },
   // Min fra Skadedato, max fra Beregningsdato: en Beregningsdato før Skadedato gør intervallet umuligt.
-  origin: derivedDateBounds('Skadedato og Beregningsdato'),
+  origin: (context) => derivedDateBounds(
+    `${resolveStamdataDatoReferenceFromView(context.view).label} og Beregningsdato`
+  ),
 }));
 
 export const forsoergertabKoenField = defineStructuralField<Koen | undefined>({

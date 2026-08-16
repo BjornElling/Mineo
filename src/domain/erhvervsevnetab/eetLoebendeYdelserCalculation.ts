@@ -1,4 +1,5 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues, JaNej } from '../../schemas/formSchemas';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { EetIssue } from './eetTypes';
 import { EET_UNDER_15_WARNING } from './eetFieldWarnings';
 import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
@@ -49,6 +50,7 @@ import {
 import { z } from 'zod';
 import { isoDateString } from '../../schemas/formSchemas/baseSchemas';
 import { eetIssueSchema } from './eetTypes';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 
 export const eetLoebendePeriodeRowSchema = z.object({
   fra: isoDateString,
@@ -126,6 +128,7 @@ export type EetLoebendeCalculationResult = z.infer<typeof eetLoebendeCalculation
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
+  skadestype?: Skadestype;
   skadelidteFodselsdato: ISODateString | undefined;
   context: Readonly<
     | { kind: 'eet_page' }
@@ -697,6 +700,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   const beregningsdato = beregningsdatoInput
     ?? (input.context.kind === 'eo_import' ? input.context.slutdato : undefined);
   const skadedato = input.skadedato;
+  const stamdataDatoReference = resolveStamdataDatoReference(input.skadestype);
   const fodselsdato = input.skadelidteFodselsdato;
 
   const aslAarsloenRaw = amountValueToNumber(input.erhvervsevnetab.aslAarsloen);
@@ -715,7 +719,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
     issues.push(MISSING_BEREGNINGSDATO_ISSUE);
   }
   if (!skadedato) {
-    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt'));
+    issues.push(toIssue('skadedato-missing', `${stamdataDatoReference.label} er ikke udfyldt`));
   }
 
   collectBlockingInputIssues(input.erhvervsevnetab.aslAfgoerelser, issues);

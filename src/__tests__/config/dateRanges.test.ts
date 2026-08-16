@@ -255,14 +255,14 @@ describe('computeSkadedatoMinRule', () => {
     expect(rule.minDate).toBe(toISODateString('2005-01-01'));
   });
 
-  it('erhvervssygdom → minBoundKind er anmeldedatoMinus5Aar', () => {
+  it('erhvervssygdom → minBoundKind er anmeldelsesdatoMinus5Aar', () => {
     const skadedato = iso('2020-06-15');
     const rule = computeSkadedatoMinRule({
       skadedatoISO: skadedato,
       erErhvervssygdom: true,
       fallbackMin,
     });
-    expect(rule.minBoundKind).toBe('anmeldedatoMinus5Aar');
+    expect(rule.minBoundKind).toBe('anmeldelsesdatoMinus5Aar');
     expect(rule.minBoundReferenceISO).toBe(toISODateString('2020-06-15'));
   });
 

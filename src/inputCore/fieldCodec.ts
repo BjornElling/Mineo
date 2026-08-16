@@ -131,6 +131,8 @@ export type FieldCodec<T> = Readonly<{
   acceptsInitialKey: (key: string) => boolean;
   /** Valgfri normalisering af indsat tekst før parse. */
   normalizePaste?: (raw: string) => string;
+  /** Tekstcodecets paste bevarer linjeskift; alle øvrige tekstfelter flader dem ud til mellemrum. */
+  preservesLineBreaks?: boolean;
 }>;
 
 export const validResolution = <T>(value: T): FieldResolution<T> =>

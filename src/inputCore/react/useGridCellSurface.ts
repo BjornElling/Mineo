@@ -150,8 +150,11 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     const { controller: ctl, locked: isLocked } = latest.current;
     if (isLocked) return;
     const raw = readClipboardText(e);
-    const normalize = cellFieldRef.current.descriptor.codec.normalizePaste ?? ((r: string) => r);
-    const normalized = normalizePasteForDraft(raw, normalize, ctl.isOpen ? ctl.displayText : '');
+    const normalized = normalizePasteForDraft(
+      raw,
+      cellFieldRef.current.descriptor.codec,
+      ctl.isOpen ? ctl.displayText : '',
+    );
     e.preventDefault();
     e.stopPropagation();
     if (!ctl.isOpen) {

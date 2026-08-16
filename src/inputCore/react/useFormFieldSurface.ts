@@ -284,10 +284,9 @@ export const useFormFieldSurface = <T>(
   const onPaste = React.useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     const { controller: ctl, disabled: dis } = latest.current;
     if (dis) return;
-    const normalize = field.descriptor.codec.normalizePaste ?? ((raw: string) => raw);
     const raw = readClipboardText(e);
     const pasteContextDraft = ctl.isOpen ? ctl.displayText : '';
-    const normalized = normalizePasteForDraft(raw, normalize, pasteContextDraft);
+    const normalized = normalizePasteForDraft(raw, field.descriptor.codec, pasteContextDraft);
     e.preventDefault();
     e.stopPropagation();
     if (!ctl.isOpen) {

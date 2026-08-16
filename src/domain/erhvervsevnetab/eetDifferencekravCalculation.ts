@@ -38,6 +38,7 @@ import {
 } from './eetMerErstatningPensionsalderCalculation';
 import { hasTextValue } from './eetAslAfgoerelser';
 import { sumMaanedsbroekForInterval } from '../dates/maanedsbroek';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import {
   clampMoneyOreToZero,
@@ -56,6 +57,7 @@ import type {
   EetDifferencekravResterendeLoebendeYdelser,
   EetDifferencekravTilbagevirkendeKraftFradrag,
 } from './eetCanonicalOutput';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 
 export type {
   EetDifferencekravComputation,
@@ -77,6 +79,7 @@ export type EetDifferencekravCalculationResult = Readonly<{
 export type EetDifferencekravInput = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
+  skadestype?: Skadestype;
   skadelidteFodselsdato: ISODateString | undefined;
   // Beregnings-valgmulighed fra differencekrav-fanen (sagsdata på erhvervsevnetab-sektionen).
   // Injiceres eksplicit som parameter — beregningslaget læser aldrig form-state direkte.
@@ -220,6 +223,7 @@ const computeProformaKapitalisering = (
     loebendeEetPct: number;
     beregningsdato: ISODateString;
     skadedato: ISODateString;
+    skadestype?: Skadestype;
     fodselsdato: ISODateString;
     grundloenOre: MoneyOre;
     erstatningsniveau: number;
@@ -230,6 +234,7 @@ const computeProformaKapitalisering = (
   issues: EetIssue[]
 ): EetDifferencekravProformaKapitalisering | null => {
   const { loebendeEetPct, beregningsdato, skadedato, fodselsdato } = args;
+  const stamdataDatoReference = resolveStamdataDatoReference(args.skadestype);
 
   if (!args.koen && beregningsdato < SKAERING_2015_03_01) {
     issues.push(toIssue('missing-koen', 'Ved beregning før 1. marts 2015 skal køn angives'));
@@ -258,7 +263,7 @@ const computeProformaKapitalisering = (
   if (!tabelvalg) {
     issues.push(toIssue(
       'proforma-kapitaliseringstabel-missing',
-      'Ingen kapitaliseringstabel matcher skadedato og fødselsdato på beregningsdatoen'
+      `Ingen kapitaliseringstabel matcher ${stamdataDatoReference.labelLower} og fødselsdato på beregningsdatoen`
     ));
     return null;
   }
@@ -649,6 +654,7 @@ export const composeEetDifferencekravCalculation = (
             loebendeEetPct,
             beregningsdato,
             skadedato,
+            skadestype: input.skadestype,
             fodselsdato,
             grundloenOre,
             erstatningsniveau,
@@ -865,6 +871,7 @@ export const composeEetDifferencekravCalculation = (
           kapitaliseringer: kapitaliseringerForMerErstatning,
           beregningsdato,
           skadedato,
+          skadestype: input.skadestype,
           fodselsdato,
           before2024Skade,
           koen: input.erhvervsevnetab.koen,

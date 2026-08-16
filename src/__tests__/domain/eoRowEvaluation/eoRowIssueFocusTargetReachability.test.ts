@@ -197,7 +197,7 @@ const ISSUE_ROWS: readonly Readonly<{ name: string; row: Partial<EoRowModel> }>[
     name: 'satser på skadestidspunktet',
     row: {
       id: 'loenindkomst.af-1.satserSkadestidspunkt',
-      label: 'Satser på skadesdatoen',
+      label: 'Satser på skadedatoen',
       displayValue: 'Fejl (Feriegodtgørelse/-tillæg er ikke udfyldt)',
       status: 'error',
     },

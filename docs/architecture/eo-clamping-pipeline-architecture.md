@@ -25,7 +25,7 @@ forstå implementeringen, ikke som selvstændig kilde til sandhed.
 2. **Semantisk validering (fejlgivende bounds):** Efter settle undersøges de afsluttede canonical
    datoer mod fejlgivende bounds (kontrakt §2.2). Violation giver et afledt issue (rød kant + tooltip) og
    blokerer relevante dokumentdefinitioner via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
-   skadedato/anmeldedato-grænse, fra > til, til < fra, til >= differencekravDato,
+   skadedato/anmeldelsesdato-grænse, fra > til, til < fra, til >= differencekravDato,
    til >= EET-virkningsdato (ikke påklaget), overlap mellem rækker.
 
    Validering sker på de afsluttede canonical rækker som sådanne — ikke først efter en
@@ -71,7 +71,7 @@ beregningsgrundlag, pre-merge placering af løse feriedage og ingen parallelle f
 2. **Semantisk validering (fejlgivende bounds):** Efter settle undersøges de afsluttede canonical
    datoer mod fejlgivende bounds (kontrakt §2.2). Violation giver et afledt issue (rød kant + tooltip) og
    blokerer relevante dokumentdefinitioner via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
-   skadedato/anmeldedato-grænse, fra > til, til < fra, til >= ménafgørelsesdato
+   skadedato/anmeldelsesdato-grænse, fra > til, til < fra, til >= ménafgørelsesdato
    (ikke påklaget), overlap mellem rækker.
 
 3. **Clamping mod fejlgivende øvre grænse:** Til-dato clampes mod

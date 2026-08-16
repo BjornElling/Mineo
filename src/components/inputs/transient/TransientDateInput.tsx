@@ -175,7 +175,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
       const draft = draftState.draft;
       const normalized = normalizePasteForDraft(
         readClipboardText(event),
-        normalizeDatePaste,
+        { family: 'date', normalizePaste: normalizeDatePaste },
         draftState.isOpen ? draft : ''
       );
       event.preventDefault();

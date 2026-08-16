@@ -7,6 +7,11 @@ import { createIntegerFieldCodec, createOptionalTextFieldCodec } from '../../inp
 import { spliceDraftWithPaste } from '../../inputCore/react/pasteSplice';
 import { isDraftWithinMaxLength } from '../../components/inputs/draftAdmission';
 import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
+import {
+  stamdataAdvokatField,
+  stamdataSagsbehandlerField,
+  stamdataSkadelidteField,
+} from '../../inputCore/catalog/stamdataDescriptors';
 
 // VÆRN: ethvert felt, brugeren TASTER i, har en erklæret og virksom tegn-/længdegrænse.
 //
@@ -126,5 +131,11 @@ describe('felter håndhæver deres erklærede tegn- og længdegrænse', () => {
     expect(limit).toBe(3);
     expect(spliceDraftWithPaste('', '121', 0, 0, limit).draft).toBe('121');
     expect(spliceDraftWithPaste('', '1210', 0, 0, limit).draft).toBe('121');
+  });
+
+  it('bruger det særskilte loft på seks tegn for Advokat og Sagsbehandler', () => {
+    expect(stamdataAdvokatField.codec.maxLength).toBe(6);
+    expect(stamdataSagsbehandlerField.codec.maxLength).toBe(6);
+    expect(stamdataAdvokatField.codec.maxLength).not.toBe(stamdataSkadelidteField.codec.maxLength);
   });
 });

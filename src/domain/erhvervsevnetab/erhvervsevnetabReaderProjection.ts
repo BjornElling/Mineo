@@ -41,6 +41,7 @@ import { forligInputFields } from '../erstatningsopgoerelse/forligInputPort';
 import {
   stamdataSkadedatoField,
   stamdataSkadelidteFodselsdatoField,
+  stamdataSkadestypeField,
 } from '../../inputCore/catalog/stamdataDescriptors';
 import {
   collectEetAslAfgoerelseValidationIssues,
@@ -105,6 +106,7 @@ const aslAarsloenRef: FieldRef<AmountValue | undefined> = faellesAarsloenAslAars
 const ealAarsloenRef: FieldRef<AmountValue | undefined> = faellesAarsloenEalAarsloenField.bind();
 const skadedatoRef: FieldRef<ISODateString | undefined> = stamdataSkadedatoField.bind();
 const skadelidteFodselsdatoRef: FieldRef<ISODateString | undefined> = stamdataSkadelidteFodselsdatoField.bind();
+const skadestypeRef = stamdataSkadestypeField.bind();
 
 const forligProcentRef: FieldRef<number | undefined> = forligInputFields.procent.bind();
 const forligBroekRef: FieldRef<string | undefined> = forligInputFields.broek.bind();
@@ -259,6 +261,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
   const ealAarsloen = readField(reader.read(ealAarsloenRef));
   const skadedato = readField(reader.read(skadedatoRef));
   const skadelidteFodselsdato = readField(reader.read(skadelidteFodselsdatoRef));
+  const skadestype = readField(reader.read(skadestypeRef));
 
   const forligProcent = readField(reader.read(forligProcentRef));
   const forligBroek = readField(reader.read(forligBroekRef));
@@ -279,7 +282,8 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
   const aslAfgoerelserRuleIssues = collectEetAslAfgoerelseValidationIssues(
     aslAfgoerelser,
     coerceToISODateString(skadedato.value),
-    coerceToISODateString(skadelidteFodselsdato.value)
+    coerceToISODateString(skadelidteFodselsdato.value),
+    skadestype.value,
   );
   const aslAfgoerelserRuleMessage = aslAfgoerelserRuleIssues[0]?.message;
   // Kryds-række-reglerne bliver STRUKTURELLE feltissues med rigtige feltadresser i stedet for en

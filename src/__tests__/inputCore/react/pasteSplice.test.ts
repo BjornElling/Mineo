@@ -1,10 +1,39 @@
-import { spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
+import { normalizePasteForDraft, spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
 import { dateLikeAdmission } from '../../../components/inputs/draftAdmission';
+import { productionInputFields } from '../../../inputCore/catalog/productionCatalog';
+import { createOptionalTextFieldCodec } from '../../../inputCore/fieldCodecs';
 
 // `input-field-behavior-contract.md` §1.2a: paste afgrænses PRÆCIS som tastning. Splicen er den vej,
 // hvor `<input maxLength>` ikke virker, fordi `onPaste` kalder `preventDefault()` og selv skriver draften.
 
 describe('spliceDraftWithPaste', () => {
+  it('normaliserer tekst både ved lukket paste og ved splice i en åben draft', () => {
+    const codec = createOptionalTextFieldCodec({ maxLength: 64 });
+    const raw = 'A\r\n\u00a0B\tC';
+
+    expect(normalizePasteForDraft(raw, codec, '')).toBe('A B C');
+    expect(normalizePasteForDraft(raw, codec, 'forudgående')).toBe('A B C');
+  });
+
+  it('bevarer linjeskift kun for codecs, der erklærer flerlinjet tekst', () => {
+    const codec = createOptionalTextFieldCodec({ maxLength: 64, preservesLineBreaks: true });
+    expect(normalizePasteForDraft('A\r\nB', codec, '')).toBe('A\nB');
+    expect(normalizePasteForDraft('A\r\nB', codec, 'A')).toBe('A\nB');
+  });
+
+  it('ændrer ikke paste-normaliseringen for nogen ikke-tekstfamilie', () => {
+    const nonTextFields = productionInputFields.filter(
+      (field) => field.codec.family !== 'text' && field.codec.family !== 'optionalText'
+    );
+    expect(nonTextFields.length).toBeGreaterThan(0);
+
+    for (const field of nonTextFields) {
+      const raw = ' 12-345/2026,7 abc ';
+      const expected = field.codec.normalizePaste?.(raw) ?? raw;
+      expect(normalizePasteForDraft(raw, field.codec, ''), field.id).toBe(expected);
+    }
+  });
+
   it('indsætter ved caret uden grænse', () => {
     expect(spliceDraftWithPaste('1234', 'AB', 2, 2)).toEqual({ draft: '12AB34', caret: 4, acceptedLength: 2 });
   });

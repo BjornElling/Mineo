@@ -32,7 +32,7 @@ describe('computeSkadedatoMinRule', () => {
     });
     // 5 years before would be 2002-06-01, but absolute floor applies.
     expect(result.minDate).toBe(iso('2005-01-01'));
-    expect(result.minBoundKind).toBe('anmeldedatoMinus5Aar');
+    expect(result.minBoundKind).toBe('anmeldelsesdatoMinus5Aar');
     expect(result.minBoundReferenceISO).toBe(iso('2007-06-01'));
   });
 
@@ -45,4 +45,3 @@ describe('computeSkadedatoMinRule', () => {
     expect(result.minDate).toBe(iso('2019-02-28'));
   });
 });
-

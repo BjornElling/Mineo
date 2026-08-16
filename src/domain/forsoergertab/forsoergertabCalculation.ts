@@ -2,6 +2,7 @@ import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../types/branded';
 import type { Koen } from '../../schemas/formSchemas';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import { computeForsoergertabAslYdelser } from './forsoergertabAslYdelser';
 import { computeForsoergertabEalKrav } from './forsoergertabEalKrav';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
@@ -9,6 +10,7 @@ import { toKroner } from '../money/money';
 
 type Input = Readonly<{
   skadedato: ISODateString | undefined;
+  skadestype?: Skadestype;
   skadelidteFodselsdato: ISODateString | undefined;
   efterladteFodselsdato: ISODateString | undefined;
   beregningsdato: ISODateString | undefined;
@@ -42,6 +44,7 @@ export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalc
     : computeForsoergertabEalKrav({
       beregningsdato: input.beregningsdato,
       skadedato: input.skadedato,
+      skadestype: input.skadestype,
       skadelidteFodselsdato: input.skadelidteFodselsdato,
       aslAarsloen: input.aslAarsloen,
       ealAarsloen: input.ealAarsloen,
@@ -50,6 +53,7 @@ export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalc
     ? { issues: [], computation: null }
     : computeForsoergertabAslYdelser({
       skadedato: input.skadedato,
+      skadestype: input.skadestype,
       beregningsdato: input.beregningsdato,
       virkningsdato: input.virkningsdato,
       efterladteFodselsdato: input.efterladteFodselsdato,

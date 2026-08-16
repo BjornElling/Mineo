@@ -46,14 +46,14 @@ sit. Beskeder, der har navnet skrevet ind i teksten, omgår mekanismen.
 at hente det fra feltet — og hvor to tekster om samme begreb bruger forskellige ord for det.
 
 - **Brugerens regel 2026-08-16 (bindende for hele programmet):** navngivningen i beskeder skal følge
-  den til enhver tid værende værdi i skadestype-feltet — «anmeldelsesdatoen» ved Erhvervssygdom,
-  ellers «skadedatoen». Ét ord pr. begreb; «skadesdagen» udgår.
+  den til enhver tid værende værdi i skadestype-feltet — «Anmeldelsesdato» ved Erhvervssygdom,
+  ellers «Skadedato». De to betegnelser er de eneste korrekte brugervendte betegnelser.
 - Fundet i: `stamdata.md` BB-002 — **accepteret, skal rettes** (implementeringsforslag i fundet).
-- Konkrete kandidatsteder: `src/utils/dateRangeErrorMessages.ts` linje 118 og 139; beskeden «Datoen
-  kan ikke være før skadesdagen (…)», som nås fra mindst seks erklæringssteder i
+- Konkrete kandidatsteder: `src/utils/dateRangeErrorMessages.ts`; den fælles besked
+  om en dato før stamdatodatoen, som nås fra mindst seks erklæringssteder i
   `erhvervsevnetabDescriptors.ts`, `varigeMenDescriptors.ts` og `config/dateRanges.ts`; teksten
   «Grænserne kommer fra Fødselsdato og Skadedato».
-- Bemærk også ordvalget: «skadedatoen» og «skadesdagen» bruges om det samme.
+- Bemærk også, at alle tekster om samme dato skal bruge den samme korrekte betegnelse.
 
 ## M-03 — Tastning og indsættelse accepterer ikke det samme
 

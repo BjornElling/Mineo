@@ -31,7 +31,7 @@ import {
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { SHORT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
-import type { FieldAddressTemplate, FieldControlKind, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
+import type { ContextualLabelRule, FieldAddressTemplate, FieldControlKind, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
 import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
 import { dateBounds, systemrammeSpec } from './dateBoundsValidators';
 import type { DateBoundsSpec } from '../dateBoundsDeclaration';
@@ -57,6 +57,7 @@ import {
   isLoenudviklingManuelProcentsatsRowEmpty,
   isLoenudviklingManuelRowEmpty,
 } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
+import { resolveStamdataDatoReferenceFromView } from './stamdataDescriptors';
 
 // Produkt-descriptors for EO's nested løntræ (§3.2): samlingen `loenindkomstAnsaettelsesforhold`
 // med skalarfelter + overenskomstFilter + tre nested tabeller, samt det singulære property-objekt
@@ -96,6 +97,7 @@ const createField = <T>(options: Readonly<{
   codec: FieldCodec<T>;
   emptyValue: T;
   isEmpty: (value: T) => boolean;
+  contextualLabel?: ContextualLabelRule;
   validators?: readonly FieldValidator<T>[];
   dateBounds?: DateBoundsSpec;
 }>): FieldDescriptor<T> => defineStructuralField<T>({
@@ -105,6 +107,7 @@ const createField = <T>(options: Readonly<{
   emptyValue: options.emptyValue,
   isEmpty: options.isEmpty,
   label: options.label,
+  ...(options.contextualLabel === undefined ? {} : { contextualLabel: options.contextualLabel }),
   controlKind: options.controlKind,
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   ...(options.validators === undefined ? {} : { validators: options.validators }),
@@ -195,7 +198,7 @@ export const eoEmploymentFields = {
   tillaegAngivesSom: reqChoiceField(EMP_ID, employmentPath, 'tillaegAngivesSom', 'Tillæg angives som', tillaegAngivesSomEnum.options, 'procent'),
   loenperiode: reqChoiceField(EMP_ID, employmentPath, 'loenperiode', 'Løn indtastes som', loenperiodeEnum.options, 'maaned'),
   fuldLoenUnderFerie: reqChoiceField(EMP_ID, employmentPath, 'fuldLoenUnderFerie', 'Fuld løn under ferie', ['Ja', 'Nej'] as const, 'Nej', 'toggle'),
-  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   anciennitetstillaegDato: empDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg'),
   anciennitetstillaegSatsAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
   anciennitetstillaegSats: emp<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, empAmountBounds('anciennitetstillaegSats')),
@@ -405,7 +408,7 @@ const eoLoenDate = (
 
 export const eoAngivetLoenFields = {
   overenskomstId: eoLoen<string>('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec),
-  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   anciennitetstillaegDato: eoLoenDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg'),
   anciennitetstillaegSatsAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
   anciennitetstillaegSats: eoLoen<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, eoLoenAmountBounds('anciennitetstillaegSats')),

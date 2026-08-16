@@ -4,6 +4,7 @@ import { validateISODateRange } from '../../../utils/isoDateHelpers';
 import { detectOverlappingPeriods } from '../engines/periodOverlapDetection';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, getToday } from '../../../config/dateRanges';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
+import { resolveSkadestypeDatoLabel } from '../../../domain/policies/stamdataCalculations';
 import {
   computeTafCombinedExtraMaxDate,
   type TafPeriodeBoundsContext,
@@ -49,6 +50,9 @@ const evaluateOne = (
 
   const fraISO = periode.fra;
   const tilISO = periode.til;
+  const stamdataDatoLabel = resolveSkadestypeDatoLabel(
+    context.erErhvervssygdom ? 'Erhvervssygdom' : undefined
+  );
   if (!fraISO || !tilISO) return { kind: 'error', message: 'Ugyldig dato' };
 
   const bounds = computeRowDateBounds({
@@ -64,14 +68,16 @@ const evaluateOne = (
 
   const fraNoValidRangeCause = (() => {
     const parts: string[] = [];
-    if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
+    if (skadedatoMinRule.minBoundKind) parts.push(stamdataDatoLabel);
     if (tilISO) parts.push('til-dato i samme række');
     return parts.length > 0 ? parts.join(', ') : undefined;
   })();
 
   const tilNoValidRangeCause = (() => {
     const parts: string[] = [];
-    if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
+    if (skadedatoMinRule.minBoundKind && (!fraISO || fraISO <= skadedatoMinRule.minDate)) {
+      parts.push(stamdataDatoLabel);
+    }
     if (fraISO) parts.push('fra-dato i samme række');
     parts.push('dags dato');
     if (context.differencekravDato) parts.push('differencekrav-dato');

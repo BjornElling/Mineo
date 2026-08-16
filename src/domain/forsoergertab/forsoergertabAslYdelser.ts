@@ -13,6 +13,7 @@ import type { ISODateString } from '../../types/branded';
 import { dateToISO } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { Koen } from '../../schemas/formSchemas';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { roundByMethod } from '../../utils/rounding';
 import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
@@ -27,9 +28,11 @@ import {
 import { ceil0, ceilNearest12, round0, round2, round3, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import type { EetIssue } from '../erhvervsevnetab/eetTypes';
 import type { AslLobendeYdelseRaekke, ForsoergertabAslComputation, ForsoergertabAslResult } from './forsoergertabTypes';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 
 type Input = Readonly<{
   skadedato: ISODateString | undefined;
+  skadestype?: Skadestype;
   beregningsdato: ISODateString | undefined;
   virkningsdato: ISODateString | undefined;
   efterladteFodselsdato: ISODateString | undefined;
@@ -44,7 +47,7 @@ type FallbackTableChoice = Readonly<{
   kvinder?: string;
 }>;
 
-const SKADESDATO_2007 = '2007-07-01' as ISODateString;
+const SKADEDATO_2007 = '2007-07-01' as ISODateString;
 const FORSOERGERTABSPROCENT = 0.3;
 
 const FORSOERGERTAB_TABLE_CHOICES_FALLBACK: Readonly<Record<string, Readonly<{
@@ -83,7 +86,7 @@ const resolveForsoergertabTableFallback = (
 ): string | null => {
   const explicit = FORSOERGERTAB_TABLE_CHOICES_FALLBACK[tabeldata.kapitaliseringsId];
   if (explicit) {
-    const bucket = skadedato >= SKADESDATO_2007 ? explicit.from2007 : explicit.before2007;
+    const bucket = skadedato >= SKADEDATO_2007 ? explicit.from2007 : explicit.before2007;
     if (!usesKoen) {
       return bucket.neutral ?? null;
     }
@@ -250,7 +253,12 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     issues.push(toIssue('asl-aarsloen-zero', 'Årsløn efter ASL skal være større end 0 kr.'));
   }
 
-  if (!input.skadedato) issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt.'));
+  if (!input.skadedato) {
+    issues.push(toIssue(
+      'skadedato-missing',
+      `${resolveStamdataDatoReference(input.skadestype).label} er ikke udfyldt.`
+    ));
+  }
   if (!input.beregningsdato) issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt.'));
   if (!input.virkningsdato) issues.push(toIssue('virkningsdato-missing', 'Virkningsdato er ikke udfyldt.'));
   if (!input.efterladteFodselsdato) {

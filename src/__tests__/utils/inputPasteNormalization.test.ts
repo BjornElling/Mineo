@@ -1,4 +1,5 @@
 import {
+  normalizeClipboardText,
   normalizeAmountPaste,
   normalizeDatePaste,
   normalizeFractionPaste,
@@ -9,6 +10,15 @@ import {
 } from '../../utils/inputPasteNormalization';
 
 describe('inputPasteNormalization', () => {
+  it('normaliserer clipboard-tekst på tværs af whitespace-varianter uden at trimme', () => {
+    expect(normalizeClipboardText('  A\r\n\u00a0B\t\u200b  C\uFEFF\u00AD ')).toBe(' A B C ');
+  });
+
+  it('bevarer linjeskift i flerlinjet tekst, men kollapser gentagne mellemrum', () => {
+    expect(normalizeClipboardText('A\r\n\u202f\tB\rC', { preservesLineBreaks: true })).toBe('A\n B\nC');
+    expect(normalizeClipboardText('A\r\nB')).toBe('A B');
+  });
+
   it('normaliserer dato efter cifferlængde og fortsætter gennem ugyldige tegn', () => {
     expect(normalizeDatePaste('adffergregs//sgd1712,56//')).toBe('17-12-56');
     expect(normalizeDatePaste('a1b2c1999')).toBe('1-2-1999');

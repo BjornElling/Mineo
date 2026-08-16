@@ -46,7 +46,11 @@ import {
   isUndefined,
 } from '../structuralDescriptors';
 import { percentBoundsValidator } from './boundsValidators';
-import { stamdataSkadedatoField } from './stamdataDescriptors';
+import {
+  resolveStamdataDatoReferenceFromView,
+  stamdataSkadedatoField,
+  withStamdataDatoReference,
+} from './stamdataDescriptors';
 import { opregulerMedAkkumuleretReguleringssats } from '../../domain/satser/opreguleringsmotorer';
 import { reguleringssats } from '../../data/lovbestemteRates';
 
@@ -71,7 +75,7 @@ const eetBeregningsdatoBoundsSpec: DateBoundsSpec = {
   max: () => dateRanges_erhvervsevnetab.beregningsdato.max,
   special: () => ({ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }),
   // Min ER skadedatoen (uden clamp), så en skadedato efter datadækningen gør intervallet umuligt.
-  origin: derivedDateBounds('Skadedato'),
+  origin: (context) => derivedDateBounds(resolveStamdataDatoReferenceFromView(context.view).label),
 };
 const eetBeregningsdatoBounds = dateBounds(eetBeregningsdatoBoundsSpec);
 
@@ -278,7 +282,7 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
           // afgørelsesdatoen blev udfyldt, og år 2100 kunne stå canonical.
           : getDayBeforeIso(afgoerelsesDato)
             ?? dateRanges_erhvervsevnetab.tabelTidlKapitaliseringsdato.fallbackMax;
-    const special: DateRangeSpecialErrors = role === 'afgoerelsesDato'
+    const rawSpecial: DateRangeSpecialErrors = role === 'afgoerelsesDato'
       ? {
         ...(skadedatoMinIsEffective
           ? { minBoundKind: 'skadedato' as const, minBoundReferenceISO: skadedato }
@@ -314,6 +318,7 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
               ? { maxBoundKind: 'dataCoverageMax' as const, maxBoundFieldLabel: 'Tidl. kap.dato' }
               : { maxBoundKind: 'foerAfgoerelsesdato' as const, maxBoundReferenceISO: afgoerelsesDato }),
           };
+    const special = withStamdataDatoReference({ view, field }, rawSpecial) ?? rawSpecial;
     if (value >= minDate && (maxDate === undefined || value <= maxDate)) return undefined;
     return {
       reason: 'bounds',
@@ -327,7 +332,9 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
         // Afgørelsesdato. Tidligere var årsagen kun sat for de to sidste — de øvrige gav derfor "ingen dato
         // er gyldig" uden at nævne, at det var Skadedato, brugeren skulle rette.
         bounds: derivedDateBounds(
-          role === 'kapDato' || role === 'tidlKapDato' ? 'Afgørelsesdato og Skadedato' : 'Skadedato'
+          role === 'kapDato' || role === 'tidlKapDato'
+            ? `Afgørelsesdato og ${resolveStamdataDatoReferenceFromView(view).label}`
+            : resolveStamdataDatoReferenceFromView(view).label
         ),
       }),
       detail: { minDate, ...(maxDate === undefined ? {} : { maxDate }) },
@@ -381,7 +388,9 @@ const aslDateContextValidator = (role: AslDateRole): FieldValidator<ISODateStrin
 const aslOuterBoundsSpec: DateBoundsSpec = {
   min: () => dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.fallbackMin,
   max: () => dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max,
-  origin: derivedDateBounds('Afgørelsesdato og Skadedato'),
+  origin: (context) => derivedDateBounds(
+    `Afgørelsesdato og ${resolveStamdataDatoReferenceFromView(context.view).label}`
+  ),
 };
 
 const aslDate = (

@@ -9,9 +9,11 @@ import { erhvervsevnetabBeregningsdatoField } from '../../inputCore/catalog/erhv
 import { faellesAarsloenAslAarsloenField } from '../../inputCore/catalog/faellesAarsloenDescriptors';
 import {
   stamdataSkadedatoField,
+  stamdataSkadestypeField,
   stamdataSkadelidteFodselsdatoField,
 } from '../../inputCore/catalog/stamdataDescriptors';
-import { STAMDATA_DATE_ORDER_ERROR_MESSAGE } from '../stamdata/stamdataDateOrder';
+import { isoToDanish } from '../../types/branded';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from './erhvervsevnetabInitialValues';
 import { readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjection';
 import { eetIssueSchema, type EetIssue } from './eetTypes';
@@ -81,6 +83,7 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
   const beregningsdatoRead = eetProjection.reader.read(erhvervsevnetabBeregningsdatoField.bind());
   const aslAarsloenRead = aarsloenProjection.reader.read(faellesAarsloenAslAarsloenField.bind());
   const skadedatoRead = stamdataProjection.reader.read(stamdataSkadedatoField.bind());
+  const skadestypeRead = stamdataProjection.reader.read(stamdataSkadestypeField.bind());
   const fodselsdatoRead = stamdataProjection.reader.read(stamdataSkadelidteFodselsdatoField.bind());
   const eetValues: ErhvervsevnetabComposedValues = {
     ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -109,10 +112,16 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
   const hasStamdataDateOrderIssue = skadedatoIssue?.code === 'stamdata.skadedato.bounds'
     && skadedatoIssue.detail?.minBoundKind === 'fodselsdato';
   if (hasStamdataDateOrderIssue) {
+    const datoReference = resolveStamdataDatoReference(
+      skadestypeRead.status === 'usable' ? skadestypeRead.value : undefined
+    );
+    const fodselsdatoDisplay = fodselsdatoRead.status === 'usable'
+      ? isoToDanish(fodselsdatoRead.value)
+      : skadedatoIssue?.detail?.minBoundReferenceISO;
     sourceIssues.push({
       id: 'midlertidigt-eet-stamdata-date-order',
       severity: 'error',
-      message: STAMDATA_DATE_ORDER_ERROR_MESSAGE,
+      message: `Der er angivet en ${datoReference.label.toLowerCase()} før skadelidtes fødselsdato (${fodselsdatoDisplay ?? 'ukendt dato'})`,
     });
   } else if (stamdataProjection.readIssues().length > 0) {
     sourceIssues.push({

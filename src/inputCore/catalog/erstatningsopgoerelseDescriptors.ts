@@ -71,7 +71,12 @@ import {
   percentBoundsValidator,
   yearBoundsValidator,
 } from './boundsValidators';
-import { stamdataSkadedatoField, stamdataSkadestypeField } from './stamdataDescriptors';
+import {
+  resolveStamdataDatoReferenceFromView,
+  stamdataSkadedatoField,
+  stamdataSkadestypeField,
+  withStamdataDatoReference,
+} from './stamdataDescriptors';
 import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import { evaluateForligAnsvarsgradRules } from '../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { evaluateForligsgrad } from '../../domain/erstatningsopgoerelse/engines/forligsgrad';
@@ -117,12 +122,13 @@ export const EO_LEDSAGETEKST_MAX_LENGTH = 64;
 const optionalTextField = (
   field: string,
   label: string,
-  maxLength: number
+  maxLength: number,
+  preservesLineBreaks = false,
 ): FieldDescriptor<string | undefined> =>
   defineStructuralField<string | undefined>({
     id: `eo.${field}`,
     template: { section: S, path: [], field },
-    codec: createOptionalTextFieldCodec({ maxLength }),
+    codec: createOptionalTextFieldCodec({ maxLength, preservesLineBreaks }),
     emptyValue: undefined,
     isEmpty: isUndefined,
     label,
@@ -165,7 +171,7 @@ const dateField = (
 // skrevet i hånden hver for sig. Byggeklodserne nedenfor gør de tre tilbagevendende grænseformer til data,
 // så et nyt EO-datofelt arver dem frem for at genopfinde dem — eller glemme dem.
 
-/** Skadedato + Skadestype → EO's tilbagevendende nedre grænse (skadesdagen, eller anmeldedato minus 5 år). */
+/** Skadedato + Skadestype → EO's tilbagevendende nedre grænse (skadedatoen, eller anmeldelsesdato minus 5 år). */
 const skadedatoMinRuleFor = (
   context: DateBoundsContext,
   fallbackMin: ISODateString
@@ -177,7 +183,7 @@ const skadedatoMinRuleFor = (
   });
 
 /**
- * Grænseformen «tidligst skadesdagen, senest <max>» — EO's mest udbredte datoregel.
+ * Grænseformen «tidligst skadedatoen, senest <max>» — EO's mest udbredte datoregel.
  *
  * Den bar tidligere kun Forligsdato og Øvrige krav, hver med sin egen håndskrevne kopi. De fem AES-datoer,
  * opgørelsesdatoen og differencekravsdatoen deklarerede nøjagtig samme regel i konfigurationen uden at
@@ -193,12 +199,15 @@ const skadedatoBoundedSpec = (
     const rule = skadedatoMinRuleFor(context, range.fallbackMin);
     return rule.minBoundKind === undefined || rule.minDate <= range.fallbackMin
       ? undefined
-      : { minBoundKind: rule.minBoundKind, minBoundReferenceISO: rule.minBoundReferenceISO };
+      : withStamdataDatoReference(context, {
+        minBoundKind: rule.minBoundKind,
+        minBoundReferenceISO: rule.minBoundReferenceISO,
+      });
   },
   // Skadedato kan i sig selv gøre intervallet umuligt (fx en skadedato efter konfigurationens max), og
   // Skadestype afgør hvilken af de to min-regler der gælder. Begge navngives derfor som årsag.
   origin: originWhenNarrowed(
-    'Skadedato og Skadestype',
+    (context) => `${resolveStamdataDatoReferenceFromView(context.view).label} og Skadestype`,
     (context) => skadedatoMinRuleFor(context, range.fallbackMin).minDate > range.fallbackMin
   ),
 });
@@ -419,10 +428,10 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
 export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', 'Ja');
 // §3.4: «Maksimumlængden er 512 tegn.»
 export const eoOffentligeYdelserKommentarerField = optionalTextField(
-  'offentligeYdelserKommentarer', 'Kommentarer', COMMENT_TEXT_MAX_LENGTH
+  'offentligeYdelserKommentarer', 'Kommentarer', COMMENT_TEXT_MAX_LENGTH, true
 );
 export const eoSaerligeKommentarerField = optionalTextField(
-  'saerligeKommentarer', 'Særlige kommentarer', COMMENT_TEXT_MAX_LENGTH
+  'saerligeKommentarer', 'Særlige kommentarer', COMMENT_TEXT_MAX_LENGTH, true
 );
 
 export const eoAfsluttesMedField = requiredChoiceField<AfsluttesMed>(
@@ -463,8 +472,8 @@ export const eoBilagSelectionSygeferiegodtgoerelseField = bilagToggle('sygeferie
 
 // ── AES afgørelser (skalarer) ─────────────────────────────────────────────────────
 export const eoVarigeMenAfgorelseField = requiredJaNejField('varigeMenAfgorelse', 'Varige mén-afgørelse', 'Nej');
-// De fem AES-datoer og differencekravsdatoen deler grænseformen «tidligst skadesdagen, senest <max>».
-// Alle seks stod uden validator, så datoer før skadedagen — og efter dags dato — kunne afsluttes canonical
+// De fem AES-datoer og differencekravsdatoen deler grænseformen «tidligst skadedatoen, senest <max>».
+// Alle seks stod uden validator, så datoer før skadedatoen — og efter dags dato — kunne afsluttes canonical
 // og nå hele vejen til en aktiv PDF-knap. Kun `max` skiller dem: afgørelsesdatoer kan ikke ligge
 // i fremtiden, mens virkningsdatoer kan række et år frem.
 export const eoMenAfgoerelseDatoField = dateField(

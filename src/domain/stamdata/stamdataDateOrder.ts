@@ -1,13 +1,12 @@
 import type { StamdataValues } from '../../schemas/formSchemas';
-import type { ISODateString } from '../../types/branded';
-
-export const STAMDATA_DATE_ORDER_ERROR_MESSAGE = 'Skadedato er før fødselsdato.';
+import { isoToDanish, type ISODateString } from '../../types/branded';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 
 export type StamdataDateOrderField = 'skadedato' | 'skadelidteFodselsdato';
 
 export type StamdataDateOrderIssue = Readonly<{
   field: StamdataDateOrderField;
-  message: typeof STAMDATA_DATE_ORDER_ERROR_MESSAGE;
+  message: string;
 }>;
 
 export type StamdataDateOrderResolution = Readonly<{
@@ -22,6 +21,7 @@ export type StamdataDateOrderResolution = Readonly<{
  */
 export const resolveStamdataDateOrder = (
   values: Pick<StamdataValues, 'skadedato' | 'skadelidteFodselsdato'>
+    & Partial<Pick<StamdataValues, 'skadestype'>>
 ): StamdataDateOrderResolution => {
   const { skadedato, skadelidteFodselsdato } = values;
   const hasIssue = skadedato !== undefined
@@ -33,8 +33,14 @@ export const resolveStamdataDateOrder = (
     skadelidteFodselsdatoMax: skadedato,
     issues: hasIssue
       ? [
-          { field: 'skadedato', message: STAMDATA_DATE_ORDER_ERROR_MESSAGE },
-          { field: 'skadelidteFodselsdato', message: STAMDATA_DATE_ORDER_ERROR_MESSAGE },
+          {
+            field: 'skadedato',
+            message: `Der er angivet en ${resolveStamdataDatoReference(values.skadestype).label.toLowerCase()} før skadelidtes fødselsdato (${isoToDanish(skadelidteFodselsdato)})`,
+          },
+          {
+            field: 'skadelidteFodselsdato',
+            message: `Fødselsdatoen ligger efter den angivne ${resolveStamdataDatoReference(values.skadestype).label.toLowerCase()} (${isoToDanish(skadedato)})`,
+          },
         ]
       : [],
   };

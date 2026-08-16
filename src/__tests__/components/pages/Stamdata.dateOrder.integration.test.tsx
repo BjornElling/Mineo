@@ -70,8 +70,8 @@ describe('Stamdata — canonical datoordensfejl', () => {
       expect(skadedato).toHaveAttribute('aria-invalid', 'true');
     });
     expect(binding.read.getIssues().all.map((issue) => issue.message)).toEqual(expect.arrayContaining([
-      'Skadedato kan ikke være før fødselsdatoen (01-01-2010)',
-      'Fødselsdato kan ikke være efter skadedatoen (31-12-2009)',
+      'Der er angivet en skadedato før skadelidtes fødselsdato (01-01-2010)',
+      'Fødselsdatoen ligger efter den angivne skadedato (31-12-2009)',
     ]));
   });
 });

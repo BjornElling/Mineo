@@ -1,4 +1,5 @@
 import type { ErhvervsevnetabComposedValues, AslAfgoerelseRow } from '../../schemas/formSchemas';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { EetIssue } from './eetTypes';
 import { EET_UNDER_15_WARNING, hasEetAslAarsloenMaxWarning } from './eetFieldWarnings';
 import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
@@ -28,6 +29,7 @@ import {
   toKroner,
 } from '../money/money';
 import type { EetEalComputation } from './eetCanonicalOutput';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 
 export type { EetEalComputation } from './eetCanonicalOutput';
 
@@ -57,6 +59,7 @@ export type EetEalInputValues = Pick<
 type Input = Readonly<{
   erhvervsevnetab: EetEalInputValues;
   skadedato: ISODateString | undefined;
+  skadestype?: Skadestype;
   skadelidteFodselsdato: ISODateString | undefined;
   reguleringssats: YearlyRate;
   erhvervsevnetabEalMax: YearlyRate;
@@ -222,6 +225,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const beregningsdato = coerceToISODateString(values.beregningsdato);
   const skadedato = input.skadedato;
+  const stamdataDatoReference = resolveStamdataDatoReference(input.skadestype);
   const fodselsdato = input.skadelidteFodselsdato;
 
   const aarsloen = resolveAarsloen(values);
@@ -258,7 +262,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     issues.push(MISSING_BEREGNINGSDATO_ISSUE);
   }
   if (!skadedato) {
-    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt'));
+    issues.push(toIssue('skadedato-missing', `${stamdataDatoReference.label} er ikke udfyldt`));
   }
 
   const hasBlockingIssues = issues.some((issue) => issue.severity === 'error');
@@ -276,7 +280,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     issues.push(
       toWarning(
         'warn-beregningsdato-foer-skadedato',
-        'Beregningsdatoen ligger før skadedatoen. Kravet opreguleres ikke — kontrollér datoerne'
+        `Beregningsdatoen ligger før ${stamdataDatoReference.labelLower}. Kravet opreguleres ikke — kontrollér datoerne`
       )
     );
   }

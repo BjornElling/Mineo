@@ -94,7 +94,7 @@ afhængigt af typen. Ingen advarsel, ingen rydning. Programmet er korrekt som de
 holder ikke ved en måling. Skadestypen styrer i dag tre ting ud over navnet:
 
 1. **Den nedre datogrænse på hele Erstatningsopgørelsen.** `computeSkadedatoMinRule`
-   ([dateRanges.ts:168-192](../../../src/config/dateRanges.ts#L168-L192)) sætter EO-datofelternes gulv til
+   (`src/config/dateRanges.ts`) sætter EO-datofelternes gulv til
    *skadedatoen* ved Arbejdsulykke, men til *anmeldelsesdatoen minus 5 år* ved Erhvervssygdom. Skiftes
    typen med datoen stående, flytter gulvet sig altså fem år — og skiftes den tilbage, kan EO-datoer,
    brugeren allerede har indtastet, blive røde uden at han har rørt dem.
@@ -104,9 +104,9 @@ holder ikke ved en måling. Skadestypen styrer i dag tre ting ud over navnet:
 
 **Brugerens svar på korrektionen (2026-08-16).** Forholdet var glemt, men afgørelsen står ved magt:
 skiftet mellem skadestyperne må fortsat ske tavst. Har brugeren fx sat Erhvervssygdom og angivet en
-svie-/smertedato før skadesdatoen, og ændres skadestypen derefter, skal selve skiftet **ikke** give en
+svie-/smertedato før skadedatoen, og ændres skadestypen derefter, skal selve skiftet **ikke** give en
 orientering. Brugeren orienteres i stedet gennem den afledte konsekvens: svie-/smerteperiodens
-startdato bliver rød med beskeden om, at datoen ligger før skadedatoen. Det er tilstrækkeligt.
+startdato bliver rød med beskeden om, at datoen ligger før den relevante stamdatodato. Det er tilstrækkeligt.
 
 **Agentens efterprøvning af, at den afledte orientering faktisk kommer.** Den holder strukturelt:
 datofelternes grænser læses på valideringstidspunktet fra den canonical view (`dateBoundsValidator`),
@@ -141,15 +141,14 @@ rettelse i en eksisterende.
   skærmen. Den anden besked navngiver oven i købet det felt, den selv sidder på, med et forkert
   navn. Det er præcis den fejlmåde, feltets kontekstuelle navn blev indført for at fjerne — navnet
   følger med i den synlige label, men de to beskeder har feltnavnet skrevet ind i teksten.
-  Sammenlign også de to ord: den ene besked siger «skadedatoen», en anden besked i samme familie
-  siger «skadesdagen».
+  De historiske tekster brugte desuden to forskellige betegnelser for samme dato.
 - **Bedre ville være:** At beskederne henter feltets navn fra feltet selv, som labelen gør, så de
   siger «Anmeldelsesdato», når det er det, feltet hedder — og at der vælges ét ord for begrebet
   overalt.
-- **Andre steder det kan gælde:** `src/utils/dateRangeErrorMessages.ts` linje 118 og 139 (de to
-  ovenstående), samt beskeden «Datoen kan ikke være før skadesdagen (…)», som bruges af mindst seks
-  erklæringssteder på Erhvervsevnetab, Varige mén og i den fælles `dateRanges`-hjælper. Alle siger
-  «skade», også når sagen er en erhvervssygdom. Den umulige-interval-besked på de to Stamdata-felter
+- **Andre steder det kan gælde:** `src/utils/dateRangeErrorMessages.ts` (de to
+  ovenstående), samt den fælles besked om en dato før stamdatodatoen, som bruges af mindst seks
+  erklæringssteder på Erhvervsevnetab, Varige mén og i den fælles `dateRanges`-hjælper. De nævner
+  arbejdsulykkens betegnelse, også når sagen er en erhvervssygdom. Den umulige-interval-besked på de to Stamdata-felter
   bærer teksten «Grænserne kommer fra Fødselsdato og Skadedato» med samme problem — den er dog i
   praksis uopnåelig her, da intervallet ikke kan blive umuligt.
 
@@ -157,48 +156,36 @@ rettelse i en eksisterende.
 i skadestype-feltet: står den på Erhvervssygdom, skal **al** tekst om datoen konsekvent kalde den
 anmeldelsesdatoen — ellers skadedatoen. Reglen gælder hele programmet, ikke kun Stamdata.
 
-**Agentens bemærkning til ordlyden.** Brugerens eksempler under BB-010 skriver «skadesdato» med
-binde-s. Feltet hedder «Skadedato» uden s, og §3.2a-reglen er netop, at beskeden bruger feltets eget
-navn. Forslaget nedenfor bruger derfor konsekvent **skadedatoen** / **anmeldelsesdatoen** og afskaffer
-samtidig den tredje variant, «skadesdagen». Vælger brugeren i stedet «skadesdato» som prosaform, skal
-selve feltlabelen ændres tilsvarende — de to må ikke sige hver sit.
+**Agentens bemærkning til ordlyden.** Brugerens præcisering er bindende: «Skadedato» og
+«Anmeldelsesdato» er de eneste korrekte betegnelser, afhængigt af skadestypen. Forslaget nedenfor
+bruger derfor konsekvent **skadedatoen** / **anmeldelsesdatoen** i alle afledte tekster.
 
 **Forslag til implementering**
 
-1. **Ét navneopslag, ikke syv.** `resolveSkadeEllerAnmeldelsesdatoReference` findes allerede
-   ([eoDateReferenceText.ts:25-32](../../../src/domain/erstatningsopgoerelse/helpers/eoDateReferenceText.ts#L25-L32))
-   og giver både `label` («Skadedato»/«Anmeldelsesdato») og den bøjede `labelLower`
-   («skadedatoen»/«anmeldelsesdatoen») — begge afledt af `resolveSkadestypeDatoLabel`, som er feltets
-   ene navneautoritet. Den skal flyttes ned til `src/domain/policies/stamdataCalculations.ts` (samme
-   modul som navneautoriteten, og det modul `inputCore/catalog` allerede må importere fra) og
-   re-eksporteres fra EO-helperen, så EO's kaldssteder er urørte.
-2. **Beskederne tager navnet som data.** Udvid `DateRangeSpecialErrors` med
-   `skadedatoNavn?: Readonly<{ label: string; labelLower: string }>`, og brug det i de tre tekster i
-   [dateRangeErrorMessages.ts](../../../src/utils/dateRangeErrorMessages.ts): linje 97
-   («før skadesdagen» → «før ${labelLower}»), linje 118 og linje 139 (se BB-010 for den nye ordlyd).
+1. **Ét navneopslag, ikke syv.** `resolveStamdataDatoReference` ligger i
+   `src/domain/policies/stamdataCalculations.ts` sammen med `resolveSkadestypeDatoLabel` og giver både
+   `label` («Skadedato»/«Anmeldelsesdato») og den bøjede `labelLower`
+   («skadedatoen»/«anmeldelsesdatoen»). EO-helperen re-eksporterer den eksisterende facade
+   `resolveSkadeEllerAnmeldelsesdatoReference`, så EO's kaldssteder ikke behøver kende policy-modulet.
+2. **Beskederne tager navnet som data.** `DateRangeSpecialErrors` har
+   `stamdataDatoReference?: Readonly<{ label: string; labelLower: string }>`, og
+   [dateRangeErrorMessages.ts](../../../src/utils/dateRangeErrorMessages.ts) bruger det i alle tre
+   stamdatarelaterede tekster (nedre grænse, fødselsdato og øvre grænse).
    Uden navnet falder teksten tilbage til «Skadedato»/«skadedatoen», så en glemt udfylder giver den
    hidtidige tekst frem for en tom streng.
-3. **Ét fabriksted, så et nyt felt ikke kan glemme navnet.** De syv steder, der i dag skriver
-   `minBoundKind: 'skadedato'`/`maxBoundKind: 'skadedato'` i hånden (`varigeMenDescriptors.ts:24`,
-   `erhvervsevnetabDescriptors.ts:284/292/302/311`, `stamdataDescriptors.ts:74`, `dateRanges.ts:180`)
-   erstattes af én hjælper i `dateBoundsValidators.ts`, fx
-   `skadedatoBound(context, referenceISO)`, som selv læser `stamdataSkadestypeField` fra
-   `context.view` og fylder både `minBoundKind`, `minBoundReferenceISO` og `skadedatoNavn`. Samme
-   struktur som `originWhenNarrowed`: reglen er data, ikke gentaget kode.
-4. **Den umulige-interval-tekst.** `derivedDateBounds('Fødselsdato og Skadedato')` i
-   `stamdataDescriptors.ts` gøres kontekstuel — `origin` accepterer allerede en funktion af konteksten
-   (`DateBoundsOriginSpec`), så det er en ren udskiftning af den faste streng med det opslåede `label`.
-5. **De to øvrige prosasteder** med samme fejlmåde: `eetAslAfgoerelser.ts:303` («Der er indtastet en
-   … før skadedatoen») og `eetEalCalculation.ts:279` («Beregningsdatoen ligger før skadedatoen»).
-   Begge skal have skadestypen med i deres kontekst; har de den ikke i dag, er det den egentlige
-   opgave i punktet.
-6. **Værn.** En tekstregel er ikke nok — den skal måles. Et guard i
-   `src/__tests__/quality/` skal fejle, hvis et brugervendt strengliteral i produktionskoden
-   indeholder «skadedato», «skadesdag» eller «anmeldelsesdato» uden for
-   `domain/policies/stamdataCalculations.ts`. Mutationstest i tre trin efter husreglen: (a) indsæt et
-   literal i et andet modul → skal blive rødt; (b) fjern navneautoritetens eksport → skal blive rødt
-   (grøn af tomhed); (c) skift skadestype i en testfixture → beskeden skal skifte ord, så testen
-   måler navnemekanikken og ikke bare en ordliste.
+3. **Ét fabriksted, så et nyt felt ikke kan glemme navnet.** Descriptorernes semantiske bounds-kind
+   bevares dér, hvor grænsen erklæres, mens `withStamdataDatoReference` i
+   `src/inputCore/catalog/stamdataDescriptors.ts` beriger de stamdatarelaterede specialfejl centralt.
+   Hjælperen læser skadestypen gennem `DateBoundsContext.view`. Den ligger ikke i
+   `dateBoundsValidators.ts`, fordi det ville skabe en afhængighed tilbage til Stamdata-descriptoren.
+4. **Den umulige-interval-tekst.** `origin` i Stamdatas to datofelter er kontekstuel og bygger nu
+   `Fødselsdato og ${label}` fra samme resolver, så også bounds-overskriften følger feltets navn.
+5. **Øvrige prosasteder.** EET, forsørgertab, TAF, svie/smerte, ferie og EO fører nu skadestypen
+   gennem deres eksisterende beregningskontekst og bruger samme dato-reference i meddelelserne.
+6. **Værn.** Et bredt AST-værn mod selve de korrekte ord er ikke valgt, fordi labels og domæneprosa
+   legitimt skal kunne indeholde dem. I stedet måler policytesten begge skadestypegrene, de konkrete
+   beskedtests dækker dato- og boundsvarianterne, og den samlede test-/kontraktkontrol sikrer, at
+   resolverens regler og brugerfladens tekster holdes i sync.
 7. **Kontrakt (sammen med rettelsen).** `error-contract.md` §3 «Feltidentitet og beskeder» udvides
    med, at et felts kontekstuelle navn også binder beskeder på *andre* sider, og
    `input-field-behavior-contract.md`'s stamdataafsnit får den nye ordlyd. Begge med opdateret
@@ -289,7 +276,7 @@ er en grænse for antal tegn eller cifre.
 2026-08-15:
 
 - **Tastning blokeres.** Værnet ligger på `onDraftChange` — den ene kanal, enhver modalitet passerer
-  ([useFormFieldSurface.ts:171-182](../../../src/inputCore/react/useFormFieldSurface.ts#L171-L182)) — og
+  (`src/inputCore/react/useFormFieldSurface.ts`) — og
   gentages som `<input maxLength>`. Tegn nummer 61 kommer aldrig ind i feltet.
 - **Grænsen er påkrævet i typen.** `createTextFieldCodec`/`createOptionalTextFieldCodec` kaster uden
   `maxLength`, og `resolveDraftLengthLimit` kaster for enhver tastet feltfamilie uden erklæring, så en
@@ -477,16 +464,15 @@ antages.
    mellemrum (så `/` og `Afd.` ikke klistrer sammen); **flerlinjede** bevarer `\n`. Gentagne
    mellemrum trykkes sammen til ét. Der trimmes ikke i enderne — det gør `parseForSettle` allerede,
    og en trimning her ville ødelægge en indsættelse midt i en eksisterende draft.
-2. **Hvor den kører.** I `normalizePasteForDraft`
-   ([pasteSplice.ts:12-16](../../../src/inputCore/react/pasteSplice.ts#L12-L16)), som **altid** —
+2. **Hvor den kører.** I `normalizePasteForDraft` i
+   `src/inputCore/react/pasteSplice.ts`, som **altid** —
    både ved lukket paste og ved splice ind i en åben draft. Bemærk forskellen fra codec'ets egen
    `normalizePaste`, som med vilje kun kører fra en tom draft; den betingelse er der, fordi
    familiespecifik normalisering kan flytte separatorer og fortegn. Tegnnormalisering har ikke den
    egenskab og skal derfor ikke arve betingelsen. Da både formular- og gridfladen går gennem denne ene
    funktion, dækkes begge flader af én ændring.
-3. **`multiline` udledes af feltet, ikke af kaldsstedet.** `MultilineTextField` er den eneste flade,
-   der bevarer linjeskift (`settleOnEnter: false`,
-   [MultilineTextField.tsx:41](../../../src/inputCore/react/fields/MultilineTextField.tsx#L41)).
+3. **`preservesLineBreaks` udledes af feltet, ikke af kaldsstedet.** Kommentarfelternes codecs er
+   de eneste, der bevarer linjeskift, mens formular- og gridfladen deler den samme paste-helper.
    Flaget hører derfor på codec'et — fx `preservesLineBreaks: true` på kommentarfelternes codec —
    efter samme begrundelse som `maxLength` og `signPolicy`: kan to flader konfigurere samme regel hver
    for sig, gør de det forskelligt.
@@ -551,7 +537,7 @@ programmets øvrige indtastninger, at 27-31 læses som 2027-2031. Fødselsdatofe
 sin egen bagudrettede regel.
 
 **Agentens efterprøvning.** Reglen er nøjagtig den, koden har i dag: `interpretYear`
-([dateInputValidation.ts:34-57](../../../src/utils/dateInputValidation.ts#L34-L57)) læser et tocifret
+(`src/utils/dateInputValidation.ts`) læser et tocifret
 årstal som 20xx, indtil det ligger mere end fem år efter indeværende kalenderår, og ellers som 19xx —
 i 2026 altså 00-31 → 2000-2031, og 32-99 → 1932-1999. Pivoten følger kalenderåret og er allerede
 markeret som en låst designbeslutning i koden; i 2027 rykker grænsen til 32. Konsekvensen — at
@@ -580,8 +566,8 @@ fundets forslag om en særregel for fødselsdato bortfalder.
 **Brugerens afgørelse.** Udløser to felters værdier tilsammen en fejl, skal der gives fejl i **begge**.
 Løsningen er forskellig i hvert af de to felter, og fejlmeddelelsen skal afspejle, hvad brugeren kan
 gøre netop dér for at fjerne fejlen. Den nuværende markering er derfor korrekt og bevares. Til gengæld
-skal tooltip-teksterne afspejle det — fx i det ene felt «Der er angivet en skadesdato før skadelidtes
-fødselsdato.» og i det andet «Fødselsdatoen ligger efter den angivne skadesdato.»
+skal tooltip-teksterne afspejle det — fx i det ene felt «Der er angivet en skadedato før skadelidtes
+fødselsdato.» og i det andet «Fødselsdatoen ligger efter den angivne skadedato.»
 
 **Agentens bemærkning.** Afgørelsen ophæver fundets forslag om kun at markere det senest ændrede felt,
 men skærper kravet til de to tekster: de skal være hinandens spejlbillede set fra hvert sit felt.
@@ -593,11 +579,11 @@ konkrete modgående dato, som `input-field-behavior-contract.md` §1.3 kræver a
 
 I [dateRangeErrorMessages.ts](../../../src/utils/dateRangeErrorMessages.ts):
 
-- linje 118 — tooltip **på datofeltet**, hvor rettelsen er at flytte datoen frem:
+- `resolveDateRangeErrorMessage`-grenen for tooltip **på datofeltet**, hvor rettelsen er at flytte datoen frem:
   `Der er angivet en ${labelLower} før skadelidtes fødselsdato (${fødselsdato})`
   → «Der er angivet en skadedato før skadelidtes fødselsdato (01-06-2021)» / «Der er angivet en
   anmeldelsesdato før skadelidtes fødselsdato (01-06-2021)».
-- linje 139 — tooltip **på fødselsdatofeltet**, hvor rettelsen er at flytte fødselsdatoen tilbage:
+- `resolveDateRangeErrorMessage`-grenen for tooltip **på fødselsdatofeltet**, hvor rettelsen er at flytte fødselsdatoen tilbage:
   `Fødselsdatoen ligger efter den angivne ${labelLower} (${skadedato})`
   → «Fødselsdatoen ligger efter den angivne skadedato (01-06-2020)» / «… den angivne anmeldelsesdato
   (01-06-2020)».

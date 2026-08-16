@@ -1,4 +1,12 @@
 import type { DraftAdmission } from '../../components/inputs/draftAdmission';
+import type { FieldCodecFamily } from '../fieldCodec';
+import { normalizeClipboardText } from '../../utils/inputPasteNormalization';
+
+type PasteCodec = Readonly<{
+  family: FieldCodecFamily;
+  normalizePaste?: (raw: string) => string;
+  preservesLineBreaks?: boolean;
+}>;
 
 /**
  * Vælger paste-normalisering efter editorens tilstand.
@@ -11,9 +19,16 @@ import type { DraftAdmission } from '../../components/inputs/draftAdmission';
  */
 export const normalizePasteForDraft = (
   raw: string,
-  normalize: (raw: string) => string,
+  codec: PasteCodec,
   existingDraft: string,
-): string => existingDraft === '' ? normalize(raw) : raw;
+): string => {
+  const genericNormalized = codec.family === 'text' || codec.family === 'optionalText'
+    ? normalizeClipboardText(raw, { preservesLineBreaks: codec.preservesLineBreaks })
+    : raw;
+  return existingDraft === ''
+    ? (codec.normalizePaste?.(genericNormalized) ?? genericNormalized)
+    : genericNormalized;
+};
 
 /**
  * Indsættelse af paste-tekst i en ÅBEN draft — den ene implementering, formular- og grid-surfacen deler.

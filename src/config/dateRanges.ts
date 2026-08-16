@@ -157,7 +157,7 @@ const subtractYearsISO = (isoDate: ISODateString, years: number): ISODateString 
   return toISODateString(result);
 };
 
-export type SkadedatoMinBoundKind = 'skadedato' | 'anmeldedatoMinus5Aar';
+export type SkadedatoMinBoundKind = 'skadedato' | 'anmeldelsesdatoMinus5Aar';
 
 export type SkadedatoMinRule = Readonly<{
   minDate: ISODateString;
@@ -186,7 +186,7 @@ export const computeSkadedatoMinRule = (args: Readonly<{
   const bounded = maxISO(maxISO(minus5Years, DATE_2005_01_01), args.fallbackMin);
   return {
     minDate: bounded,
-    minBoundKind: 'anmeldedatoMinus5Aar',
+    minBoundKind: 'anmeldelsesdatoMinus5Aar',
     minBoundReferenceISO: args.skadedatoISO,
   };
 };

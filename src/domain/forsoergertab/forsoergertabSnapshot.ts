@@ -225,6 +225,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     try {
       return computeForsoergertabCalculation({
         skadedato: coerceToISODateString(stamdata?.skadedato),
+        skadestype: stamdata?.skadestype,
         skadelidteFodselsdato: coerceToISODateString(stamdata?.skadelidteFodselsdato),
         efterladteFodselsdato: coerceToISODateString(values.efterladteFodselsdato),
         beregningsdato: coerceToISODateString(values.beregningsdato),

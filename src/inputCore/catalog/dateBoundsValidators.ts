@@ -192,7 +192,9 @@ export const dateBounds = (
  * konfigurationskonstanter, og der findes intet brugerinput at pege på.
  */
 export const originWhenNarrowed = (
-  causeInputs: string,
+  causeInputs: string | ((context: DateBoundsContext) => string),
   isNarrowed: (context: DateBoundsContext) => boolean
 ): DateBoundsOriginSpec => (context) =>
-  isNarrowed(context) ? derivedDateBounds(causeInputs) : STATIC_DATE_BOUNDS;
+  isNarrowed(context)
+    ? derivedDateBounds(typeof causeInputs === 'function' ? causeInputs(context) : causeInputs)
+    : STATIC_DATE_BOUNDS;

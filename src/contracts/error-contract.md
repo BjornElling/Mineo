@@ -150,6 +150,17 @@ Heraf følger:
 4. **Begge parter i en brudt parvis grænse markeres** (brugerbeslutning samme dag). Udvejen er forskellig i hvert
    af de to felter, og hver tekst skal derfor beskrive den rettelse, brugeren kan foretage i netop det felt.
 
+5. **Stamdata-datoreferencen er central og konsekvent.** Når skadestypen er Arbejdsulykke eller ukendt, bruges
+   `Skadedato`/`skadedatoen`; ved Erhvervssygdom bruges `Anmeldelsesdato`/`anmeldelsesdatoen`. Den samme
+   reference skal bruges i Stamdatas bounds- og datoordensissues samt i de forbrugssider, der omtaler datoen.
+   Ved brudt datofølge har dato-feltet og fødselsdato-feltet hver sin besked, og begge beskeder skal vise den
+   konkrete modgående dato.
+
+   De to betegnelser ovenfor er de eneste gyldige brugervendte betegnelser for stamdatadatoen. Enhver anden
+   stavemåde eller synonym formulering er en fejl og må ikke indføres i labels, tooltips, fejl-, warning- eller
+   dokumenttekster. Interne identifikatorer for regler og data er ikke brugerfladetekst, men deres afledte tekst
+   skal altid følge denne regel.
+
 ## 4. Prioritet og visning
 
 Hvis flere issues rammer samme felt, vælger en central deterministisk resolver højst ét aktivt feltissue.
