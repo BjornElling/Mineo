@@ -76,13 +76,13 @@ const stripComments = (text: string): string => text
 export const viewportResponsiveStylingRule = forbidTextPatterns({
   id: 'shell/viewport-responsive-styling-allowlist',
   description:
-    'Viewport-responsiv styling (@media max/min-width, MUI-breakpointnøgler) må kun findes i unsupported-device-siden, standalone-egne filer og de flader der bevidst deles med standalone.',
+    'Viewport-responsiv styling (@media max/min-width eller -height, MUI-breakpointnøgler) må kun findes i unsupported-device-siden, standalone-egne filer og de flader der bevidst deles med standalone.',
   liveTarget: sourceScope,
   allow: VIEWPORT_RESPONSIVE_ALLOWLIST,
   normalizeText: stripComments,
   patterns: [
     {
-      pattern: /@media[^{'"`]*\((?:max|min)-width\s*:/,
+      pattern: /@media[^{'"`]*\((?:max|min)-(?:width|height)\s*:/,
       message:
         'Viewport-responsiv @media uden for desktop-only-undtagelsen — Mineo er desktop-only (AGENTS.md «Desktop-only gate»). Er filen delt med standalone MinProcesrente, skal den optages i VIEWPORT_RESPONSIVE_ALLOWLIST og i app-shell-contract.md §5.3.',
     },
@@ -101,6 +101,10 @@ export const viewportResponsiveStylingRule = forbidTextPatterns({
     {
       relativePath: 'src/components/pages/x.tsx',
       code: "const sx = { '@media (max-width: 640px)': { display: 'none' } };",
+    },
+    {
+      relativePath: 'src/components/pages/x.tsx',
+      code: "const sx = { '@media (max-height: 640px)': { display: 'none' } };",
     },
     {
       relativePath: 'src/components/pages/x.tsx',

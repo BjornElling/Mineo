@@ -131,7 +131,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 2. **`enforceUnsupportedDeviceGate: false` for standalone.** Bevidst fravalg, fordi procesrenteberegneren skal kunne bruges på mobil/tablet (med egen mobil-scroll-håndtering). Re-evaluering hvis standalone en dag skal være desktop-only.
 
-3. **Viewport-responsiv styling er tilladt i en pinnet filliste — inkl. to filer delt med Mineo.** `AGENTS.md` ("Desktop-only gate") begrænser mobil/tablet-styling, fordi Mineo er desktop-only. Standalone MinProcesrente er en bevidst mobil-tilladt variant (jf. undtagelse 2), og undtagelsen dækker derfor:
+3. **Viewport-responsiv styling på begge akser er tilladt i en pinnet filliste — inkl. to filer delt med Mineo.** `AGENTS.md` ("Desktop-only gate") begrænser mobil/tablet-styling, fordi Mineo er desktop-only. Standalone MinProcesrente er en bevidst mobil-tilladt variant (jf. undtagelse 2), og undtagelsen dækker derfor:
 
    | Fil | Begrundelse |
    |---|---|
