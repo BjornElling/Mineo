@@ -26,6 +26,10 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     page.on('pageerror', (error) => runtimeErrors.push(error.message));
 
     await login(page);
+    // Om-siden har repræsentative 1200-px-indholdsbokse. Den vælges eksplicit, fordi brugerens
+    // gemte startsideindstilling ellers må afgøre den første rute i en ny browserkontekst.
+    await page.getByRole('button', { name: 'Om' }).click();
+    await expect(page.locator('.content-box').first()).toBeVisible();
     await expect(page.locator('main[data-mineo-content-scale-root="true"]')).toBeVisible();
 
     const geometry = await page.evaluate(() => {
@@ -41,6 +45,10 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
         rootZoom: getComputedStyle(document.documentElement).zoom,
         menuZoom: menu ? getComputedStyle(menu).zoom : null,
         mainMarker: main.getAttribute('data-mineo-content-scale-root'),
+        contentBoxes: Array.from(document.querySelectorAll<HTMLElement>('.content-box')).map((box) => {
+          const rect = box.getBoundingClientRect();
+          return { left: rect.left, right: rect.right };
+        }),
       };
     });
 
@@ -49,6 +57,8 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(geometry.rootZoom).toBe('1');
     expect(geometry.mainMarker).toBe('true');
     expect(geometry.menuZoom).toBe('1');
+    expect(geometry.contentBoxes.length).toBeGreaterThan(0);
+    expect(geometry.contentBoxes.every((box) => box.left >= 0 && box.right <= geometry.width)).toBe(true);
     expect(runtimeErrors).toEqual([]);
   });
 

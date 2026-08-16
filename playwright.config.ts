@@ -6,7 +6,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? defaultBaseURL;
 const useExternalWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 const allowServiceWorkers = process.env.PLAYWRIGHT_ALLOW_SERVICE_WORKERS === '1';
 // Playwrights viewportværdier er den indre CSS-viewport. Arbejdsfladen testes både ved den tidligere
-// desktopbaseline og ved de to konkrete minimumskontrakter fra ui-skalering-planen.
+// desktopbaseline og ved de to konkrete minimumskontrakter i app-shell-kontrakten.
 const minimumDesktopViewport = { width: 1536, height: 864 } as const;
 const compactMinimumDesktopViewport = { width: 1536, height: 730 } as const;
 const narrowMinimumDesktopViewport = { width: 1366, height: 620 } as const;

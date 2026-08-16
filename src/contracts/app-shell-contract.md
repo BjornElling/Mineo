@@ -104,6 +104,19 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     input-/persistence-state ved resize. Den eksisterende `Container`-scroll er den autoritative
     fallback under policyens minimumsbredde.
 
+    Den dækkede smalle grænse er en **CSS-viewport** på mindst 1358×620 px ved 100 % browserzoom,
+    ikke en fysisk skærmopløsning: En 1366×768-skærm med 125 % systemskalering kan derfor ligge
+    uden for grænsen. Under 1358 CSS-px skal skalaen fastholdes på 0,85, og arbejdsfladen skal være
+    nåbar med den eksisterende vandrette `Container`-scroll frem for mindre tekst, skjult indhold
+    eller responsivt reflow.
+
+    Skalaen er ren runtime-afledning fra `window.innerWidth`, aldrig brugerdata eller en indstilling;
+    højden indgår ikke. Policyen har kun trinene 1, 0,95, 0,9 og 0,85 og vælger det største trin,
+    der kan være i den aktuelle viewport. Hysterese må kun forsinke et skift opad, aldrig en
+    nødvendig nedskalering. De konkrete grænser ligger ét sted i `CONTENT_UI_SCALE_POLICY`, som
+    både bootstrap og runtime læser. `zoom` er valgt frem for `transform: scale`, fordi transform
+    ændrer containing block for fixed-børn og efterlader layoutet i fuld størrelse.
+
     `measureContentUiScaleRoot` måler kun den faktiske browsergeometri på skaleringsroden og giver
     neutral skala ved jsdom eller ugyldig geometri. Virtualiseret ancestor-scroll må normalisere
     egne rect-afstande gennem denne helper; global scrolllogik må ikke specialbehandles uden en

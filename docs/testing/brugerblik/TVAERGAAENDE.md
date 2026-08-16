@@ -217,22 +217,22 @@ smallere end bredden plus menuen, skæres højresiden af, og indholdet må rulle
 Beslutningen er bundet: `AGENTS.md` §Desktop-only gate forbyder viewport-responsiv styling uden for en
 pinnet filliste, så en ændring er en beslutning, ikke en fejlrettelse.
 
-**Brugerens afgørelse 2026-08-16 — mønsteret har fået en nedre grænse.** Designmålet er 1920×1080 ved
-125 % zoom, altså **1536×864 CSS-pixels, og opefter**. Under den bredde er afskæring accepteret, og
-1366×768 er ikke en understøttet skærm. Et planlagt arbejde med automatisk skalering kan senere
-udvide grænsen nedad, hvis det kan ske uden besvær.
+**Den implementerede grænse.** Designreferencen er fortsat 1536×864 CSS-px og opefter, men Mineos
+arbejdsflade skaleres nu i diskrete trin uden reflow. Den dækkede smalle grænse er 1358×620 CSS-px ved
+100 % browserzoom; den kan ikke udledes af en fysisk skærmopløsning. Under grænsen fastholdes 85 %,
+og `Container` giver bevidst vandret scroll frem for mindre tekst eller skjult indhold.
 
-**Mønsteret er derfor kun i spil på eller over 1536 px.** Målt: ved præcis 1536 er der 0 px
-overskud — indholdet passer på stregen. Der er altså ingen margen at tære på, og enhver flade, der
-lægger bare lidt mere bredde til end Om-siden, vil afskære indhold **inden for** det understøttede
-område.
+**Mønsteret gælder derfor den uforanderlige indholdsgeometri, ikke fravær af skalering.** Kun den
+navngivne arbejdsflade må zoome; menu, shell og portaler forbliver i normal størrelse. En flade, der
+lægger bredde til ud over den fælles 1200-px-indholdsboks, kan stadig kræve vandret scroll under den
+dækkede grænse og skal måles konkret.
 
 **Efterprøv, hvor:** en flade er bredere end den rene tekstboks — tabeller med mange kolonner,
-sidestillede bokse, indhold med egen minimumsbredde. Prøven er ikke «ombryder det?», men: **passer det
-inden for 1536×864, eller skæres noget væk allerede dér?**
+sidestillede bokse eller indhold med egen minimumsbredde. Prøven er: **er indholdet nåbart ved
+1536×730 og 1366×620, og fungerer den vandrette fallback under den kontraktlige breddegrænse?**
 
-- Fundet i: `om.md` BB-015 (sætninger skåret over ved 1366 px) — **afgjort: ikke en understøttet
-  bredde**.
+- Fundet i: `om.md` BB-015 (sætninger skåret over ved 1366 px) — **afgjort: arbejdsfladeskalering
+  inden for CSS-viewport-kontrakten**.
 - Kandidater, ikke efterprøvet: alle sider med tabeller. Årsløn, Erhvervsevnetab og
   Erstatningsopgørelsen er de bredeste og skal måles ved 1536×864, ikke ved 1920.
 

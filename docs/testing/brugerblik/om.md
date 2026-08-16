@@ -42,7 +42,7 @@ agentens efterprøvning af præmisserne.
 | BB-012 | **Delvist accepteret efter modpres** — de to nøgleord bevares, tre unøjagtigheder rettes. Ny ordlyd aftalt | **Gennemført** (tekst) |
 | BB-013 | **Accepteret efter modpres — og gennemført samme dag** som en generel linkregel med to primitiver, AST-værn og e2e-måling | **Gennemført** |
 | BB-014 | Accepteret som kendt og acceptabel risiko — få brugere står præcis på 1536×864, og zoom-løsningen ændrer præmissen | Nej |
-| BB-015 | Afgjort — 1536×864 og opefter er designmålet. Skaleringsplanen afgør separat, at 1366×768 kan omfattes som CSS-viewport-kontrakt | Nej (her) |
+| BB-015 | Afgjort — 1536×864 og opefter er designmålet; den implementerede shell-kontrakt dækker desuden 1358×620 CSS-px ved 100 % browserzoom | Nej (her) |
 | BB-016 | Afgjort — bevidst designvalg. Nu tillige håndhævet strukturelt via BB-013's `ExternalLink` | Nej |
 | BB-017 | Afgjort — «klik for at få svar» er et acceptabelt kompromis | Nej |
 | BB-018 | **Accepteret — skal rettes.** Brugeren har leveret brødteksten; knappen skrives «Installér» efter husstilen | **Gennemført** (tekst) |
@@ -412,16 +412,15 @@ fundet.
   liste; en ændring af tekstbreddens regel vil kræve, at listen udvides, og det er en beslutning
   brugeren skal træffe, ikke en fejlrettelse.
 
-**Brugerens afgørelse — designmålet er 1536×864 og opefter.** Skærme på 1366 px er hovedsageligt
+**Brugerens oprindelige afgørelse — designmålet er 1536×864 og opefter.** Skærme på 1366 px er hovedsageligt
 ældre budget-bærbare. Mineo henvender sig til brugere, der arbejder professionelt med området, og de
 må formodes at have nyere maskiner. Designvalget er derfor, at siden skal se rigtig ud for brugere med
 1920×1080 ved 125 % zoom (= 1536×864 CSS-pixels) og opefter — ikke for lavere opløsninger.
-1366×768 er ikke en understøttet bredde, og fundet udløser ingen rettelse i sig selv.
+Denne afgørelse blev efterfølgende udvidet af den implementerede arbejdsfladeskalering nedenfor.
 
-**Betinget åbning.** Der er et udestående punkt om en automatisk skalerende løsning netop til
+**Dengang betinget åbning.** Der var et udestående punkt om en automatisk skalerende løsning netop til
 1536×864 på bærbare. Kan den uden besvær udvides til også at rumme 1366×768, er det et acceptabelt
-kompromis. Spørgsmålet er altså ikke lukket, men bundet til den løsning — det skal ikke løses her og
-ikke som et selvstændigt stykke arbejde.
+kompromis. Spørgsmålet var altså bundet til den løsning — ikke til en selvstændig rettelse her.
 
 **Agentens efterprøvning — designmålet er opfyldt, men uden margen.** Ved 1536×864 er der ingen
 afskæring: indholdet fylder nøjagtig det, der er plads til, med 12 px til overs (målt: den rullende
@@ -435,18 +434,12 @@ luft, den er ramt på stregen. To ting følger af det, som er værd at have skre
    modpresset i BB-014: den flydende knap kan ikke stå fri af indholdssøjlen ved 1536, fordi søjlen
    går helt ud til kanten.
 
-**Rettelse af min egen note (2026-08-16).** Jeg skrev, at det udestående skaleringsarbejde ikke var
-skrevet ned nogen steder i `docs/`. Det var forkert — jeg søgte kun i `docs/*.md` og ikke i
-undermapperne. Planen ligger i [ui-skalering.md](../../implementation/ui-skalering.md), og den er
-mere fremskreden end fundet forudsatte: den **afgør**, at 1366×768 forsvarligt kan omfattes, men kun
-som en konkret CSS-viewport-kontrakt på mindst 1358×620 CSS-px ved 100 % browserzoom — ikke ud fra
-den fysiske skærmopløsning, da 1366×768 ved 125 % systemskalering giver omkring 1093 CSS-px og falder
-udenfor.
-
-Den betingede åbning ovenfor er dermed allerede besvaret dér, og fundets spørgsmål er lukket. Bemærk
-kun sammenhængen for senere gennemgange: planen skalerer **kun** arbejdsfladen, ikke shellen, og den
-lover udtrykkeligt vandret scroll frem for beskæring under grænsen. Den afskæring, fundet observerede
-ved 1366, er altså den adfærd, planen erstatter.
+**Efterfølgende implementering (2026-08-17).** Den betingede åbning er indfriet og dokumenteret i
+[app-shell-kontrakten](../../../src/contracts/app-shell-contract.md): Mineo dækker mindst
+1358×620 CSS-px ved 100 % browserzoom. Det er ikke en garanti ud fra en fysisk 1366×768-skærm; ved
+for eksempel 125 % systemskalering er den faktiske CSS-bredde lavere. Kun arbejdsfladen skaleres,
+aldrig shellen, og under grænsen er vandret scroll den bevidste, nåbare fallback frem for beskæring
+eller yderligere nedskalering.
 
 ---
 
@@ -846,9 +839,9 @@ rettelsesliste.
 
 ## Åbne spørgsmål
 
-**Ingen.** Alle tolv fund er afgjort, og de to oprindelige spørgsmål er besvaret undervejs: 1366 px
-er ikke en understøttet bredde (BB-015 — og skaleringsplanen afgør separat, at den kan omfattes som
-CSS-viewport-kontrakt), og ordlyden i «Persondata» er aftalt ordret under BB-011 og BB-012.
+**Ingen.** Alle tolv fund er afgjort, og de to oprindelige spørgsmål er besvaret undervejs:
+arbejdsfladen dækker 1358×620 CSS-px ved 100 % browserzoom (BB-015), og ordlyden i «Persondata» er
+aftalt ordret under BB-011 og BB-012.
 
 Ét forslag er fortsat udeladt, sådan som det blev stillet: **BB-017's
 alternative overskrift** til fejldialogen («Installationen skal startes fra browseren» i stedet for
