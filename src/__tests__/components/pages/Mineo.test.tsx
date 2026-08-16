@@ -139,15 +139,15 @@ describe('Mineo - License Modal Integration', () => {
     expect(licenseLink).not.toHaveAttribute('href');
   });
 
-  test('download-kontrollen er ligeledes en KNAP uden fragment-href', () => {
+  test('installationskontrollen er ligeledes en KNAP uden fragment-href', () => {
     renderMineo();
 
-    const installControl = screen.getByRole('button', { name: /download hjælpeprogram/i });
+    const installControl = screen.getByRole('button', { name: 'Installér hjælpeprogram' });
     expect(installControl).toBeVisible();
     expect(installControl).not.toHaveAttribute('href');
   });
 
-  describe('«Download hjælpeprogram» når programmet allerede er installeret', () => {
+  describe('«Installér hjælpeprogram» når programmet allerede er installeret', () => {
     beforeEach(() => {
       requestPwaInstallMock.mockReset().mockResolvedValue({
         kind: 'unavailable',
@@ -155,8 +155,8 @@ describe('Mineo - License Modal Integration', () => {
       });
     });
 
-    const clickDownload = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
-      await user.click(screen.getByRole('button', { name: /download hjælpeprogram/i }));
+    const clickInstall = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
+      await user.click(screen.getByRole('button', { name: 'Installér hjælpeprogram' }));
     };
 
     test('på hjemmesiden UDEN installation: ingen popup, den normale installation starter', async () => {
@@ -164,7 +164,7 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'completed', outcome: 'accepted' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
 
       // Den oprindelige adfærd må ikke ofres for den nye dialog.
       await waitFor(() => expect(requestPwaInstallMock).toHaveBeenCalledTimes(1));
@@ -176,7 +176,7 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'unavailable', reason: 'promptUnavailable' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
 
       const dialog = await screen.findByRole('dialog');
       expect(within(dialog).getByText('Installationsdialogen kunne ikke åbnes')).toBeInTheDocument();
@@ -189,7 +189,7 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'unavailable', reason: 'statusUnknown' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
 
       const dialog = await screen.findByRole('dialog');
       expect(within(dialog).getByText('Installationsstatus kunne ikke afgøres')).toBeInTheDocument();
@@ -201,10 +201,11 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'installed' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
 
       const dialog = await screen.findByRole('dialog');
       expect(within(dialog).getByText(/allerede installeret/i)).toBeInTheDocument();
+      expect(within(dialog).getByText(/Du behøver ikke installere det igen/)).toBeInTheDocument();
       // Detektion sker gennem samme samlede request-flow, men der startes ingen browserprompt.
       expect(requestPwaInstallMock).toHaveBeenCalledTimes(1);
     });
@@ -214,7 +215,7 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'installed' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
       const dialog = await screen.findByRole('dialog');
 
       expect(within(dialog).getByRole('link', { name: 'Åbn program' })).toBeVisible();
@@ -230,7 +231,7 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'installed' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
       const dialog = await screen.findByRole('dialog');
       await user.click(within(dialog).getByRole('button', { name: 'Annuller' }));
 
@@ -243,7 +244,7 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'installed' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
       await screen.findByRole('dialog');
       await user.keyboard('{Escape}');
 
@@ -255,10 +256,11 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'running' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
       const dialog = await screen.findByRole('dialog');
 
       expect(within(dialog).getByText(/allerede åbent/i)).toBeInTheDocument();
+      expect(within(dialog).getByText(/Du behøver ikke installere det igen/)).toBeInTheDocument();
       // Der er intet at åbne, når programmet allerede kører — så intet «Åbn program»-valg.
       expect(within(dialog).getAllByRole('button')).toHaveLength(1);
       expect(within(dialog).getByRole('button', { name: 'Luk' })).toBeVisible();
@@ -270,7 +272,7 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'running' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
       const dialog = await screen.findByRole('dialog');
       await user.click(within(dialog).getByRole('button', { name: 'Luk' }));
 
@@ -287,11 +289,11 @@ describe('Mineo - License Modal Integration', () => {
         .mockResolvedValueOnce({ kind: 'alreadyInstalled', state: 'installed' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
       await waitFor(() => expect(requestPwaInstallMock).toHaveBeenCalledTimes(1));
       expect(screen.queryByRole('dialog')).toBeNull();
 
-      await clickDownload(user);
+      await clickInstall(user);
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(requestPwaInstallMock).toHaveBeenCalledTimes(2);
@@ -302,17 +304,34 @@ describe('Mineo - License Modal Integration', () => {
       requestPwaInstallMock.mockResolvedValue({ kind: 'alreadyInstalled', state: 'installed' });
       renderMineo();
 
-      await clickDownload(user);
+      await clickInstall(user);
       await screen.findByRole('dialog');
       await user.keyboard('{Escape}');
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
-      await clickDownload(user);
+      await clickInstall(user);
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
     });
   });
 
   describe('Mineo-side indhold', () => {
+    test('viser den aftalte beskrivelse af data og hjælpeprogram', () => {
+      renderMineo();
+
+      const persondataBox = screen.getByText('Persondata').closest('.content-box');
+      expect(persondataBox).not.toBeNull();
+      expect(persondataBox).toHaveTextContent(/Der indsamles ingen persondata og ingen brugsstatistik/);
+      expect(persondataBox).toHaveTextContent(/ingen oplysninger om dig eller om din sag forlader din computer/);
+      expect(persondataBox).toHaveTextContent(/Programmet kontakter udelukkende serveren i forbindelse med, at det henter opdateringer og nødvendige ressourcer/);
+      expect(persondataBox).toHaveTextContent(/Så længe fanen er åben/);
+      expect(persondataBox).toHaveTextContent(/Brug Gem for at beholde sagen som en \.eo-fil på din computer/);
+
+      const technicalBox = screen.getByText('Teknisk').closest('.content-box');
+      expect(technicalBox).not.toBeNull();
+      expect(technicalBox).toHaveTextContent(/Det sker via linket nedenfor/);
+      expect(screen.getByRole('button', { name: 'Installér hjælpeprogram' })).toBeInTheDocument();
+    });
+
     test('viser side-titel', () => {
       renderMineo();
       expect(screen.getByText('Mineo')).toBeInTheDocument();

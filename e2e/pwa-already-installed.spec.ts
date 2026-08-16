@@ -58,8 +58,8 @@ const openMineoPage = async (page: Page): Promise<void> => {
   await expect(page.getByText('Teknisk', { exact: true })).toBeVisible();
 };
 
-const clickDownloadLink = async (page: Page): Promise<void> => {
-  await page.getByRole('button', { name: 'Download hjælpeprogram' }).click();
+const clickInstallLink = async (page: Page): Promise<void> => {
+  await page.getByRole('button', { name: 'Installér hjælpeprogram' }).click();
 };
 
 const exposeInstallPrompt = async (page: Page): Promise<void> => {
@@ -90,7 +90,7 @@ const exposeInstallPrompt = async (page: Page): Promise<void> => {
   });
 };
 
-test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er installeret', () => {
+test.describe('«Installér hjælpeprogram» når hjælpeprogrammet allerede er installeret', () => {
   test('dev-serveren leverer et origin-bundet PWA-id til desktop-browserens installationstjek', async ({ page }) => {
     await page.goto('/');
 
@@ -121,11 +121,12 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
 
     await applyScenario(page, 'installed');
     await openMineoPage(page);
-    await clickDownloadLink(page);
+    await clickInstallLink(page);
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText('Hjælpeprogrammet er allerede installeret')).toBeVisible();
+    await expect(dialog.getByText(/Du behøver ikke installere det igen/)).toBeVisible();
     await expect(dialog.getByRole('link', { name: 'Åbn program' })).toBeVisible();
     await expect(dialog.getByRole('link', { name: 'Åbn program' })).toHaveAttribute('href', 'web+mineo://open');
     await expect(dialog.getByRole('button', { name: 'Annuller' })).toBeVisible();
@@ -138,7 +139,7 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
   test('«Annuller» lukker dialogen uden at åbne et vindue', async ({ page, context }) => {
     await applyScenario(page, 'installed');
     await openMineoPage(page);
-    await clickDownloadLink(page);
+    await clickInstallLink(page);
 
     const openedPages: unknown[] = [];
     context.on('page', (newPage) => openedPages.push(newPage));
@@ -148,20 +149,20 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
     await expect(page.getByRole('dialog')).toBeHidden();
     expect(openedPages).toEqual([]);
     // Brugeren skal kunne fortsætte på siden bagefter; en efterladt modal-overlay ville blokere den.
-    await expect(page.getByRole('button', { name: 'Download hjælpeprogram' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Installér hjælpeprogram' })).toBeEnabled();
   });
 
   test('Escape lukker dialogen og fokus vender tilbage til linket', async ({ page }) => {
     await applyScenario(page, 'installed');
     await openMineoPage(page);
-    await clickDownloadLink(page);
+    await clickInstallLink(page);
     await expect(page.getByRole('dialog')).toBeVisible();
 
     await page.keyboard.press('Escape');
 
     await expect(page.getByRole('dialog')).toBeHidden();
     // Tastaturbrugeren må ikke efterlades på `body` og skulle tabbe forfra gennem hele siden.
-    await expect(page.getByRole('button', { name: 'Download hjælpeprogram' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Installér hjælpeprogram' })).toBeFocused();
   });
 
   test('inde i PWA-vinduet: dialogen siger «allerede åbent» og har kun Luk', async ({ page }) => {
@@ -172,10 +173,11 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
 
     await applyScenario(page, 'runningInPwa');
     await openMineoPage(page);
-    await clickDownloadLink(page);
+    await clickInstallLink(page);
 
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByText('Hjælpeprogrammet er allerede åbent')).toBeVisible();
+    await expect(dialog.getByText(/Du behøver ikke installere det igen/)).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Luk' })).toBeVisible();
     await expect(dialog.getByRole('link', { name: 'Åbn program' })).toBeHidden();
     await expect(dialog.getByRole('button')).toHaveCount(1);
@@ -186,7 +188,7 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
   test('inde i PWA-vinduet: «Luk» åbner ikke en dublet af vinduet', async ({ page, context }) => {
     await applyScenario(page, 'runningInPwa');
     await openMineoPage(page);
-    await clickDownloadLink(page);
+    await clickInstallLink(page);
 
     const openedPages: unknown[] = [];
     context.on('page', (newPage) => openedPages.push(newPage));
@@ -201,19 +203,19 @@ test.describe('«Download hjælpeprogram» når hjælpeprogrammet allerede er in
     await applyScenario(page, 'notInstalled');
     await openMineoPage(page);
     await exposeInstallPrompt(page);
-    await clickDownloadLink(page);
+    await clickInstallLink(page);
 
     await expect.poll(() => page.evaluate(() => (
       window as Window & { __mineoInstallPromptProbe?: { promptCalled: boolean; defaultPrevented: boolean } }
     ).__mineoInstallPromptProbe)).toEqual({ promptCalled: true, defaultPrevented: true });
     await expect(page.getByRole('dialog')).toBeHidden();
-    await expect(page.getByRole('button', { name: 'Download hjælpeprogram' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Installér hjælpeprogram' })).toBeVisible();
   });
 
   test('uden installprompt får brugeren en konkret fallback-besked', async ({ page }) => {
     await applyScenario(page, 'notInstalled');
     await openMineoPage(page);
-    await clickDownloadLink(page);
+    await clickInstallLink(page);
 
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByText('Installationsdialogen kunne ikke åbnes')).toBeVisible();

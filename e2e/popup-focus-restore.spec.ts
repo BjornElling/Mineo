@@ -71,11 +71,11 @@ test.describe('Popup-fokus-restore', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('Download hjælpeprogram åbner på både Enter og mellemrum og returnerer fokus', async ({ page }) => {
+  test('Installér hjælpeprogram åbner på både Enter og mellemrum og returnerer fokus', async ({ page }) => {
     const runtimeErrors = collectRuntimeErrors(page);
     await login(page);
 
-    const trigger = page.locator('button.icon-text-link', { hasText: 'Download hjælpeprogram' });
+    const trigger = page.locator('button.icon-text-link', { hasText: 'Installér hjælpeprogram' });
     await expect(trigger).toBeVisible();
 
     await trigger.focus();

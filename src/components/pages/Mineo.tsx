@@ -35,13 +35,13 @@ const getPwaInstallDialogCopy = (state: PwaInstallDialogState): PwaInstallDialog
     return state.state === 'running'
       ? {
         title: 'Hjælpeprogrammet er allerede åbent',
-        message: 'Du bruger det lige nu. Du behøver ikke hente det igen.',
+        message: 'Du bruger det lige nu. Du behøver ikke installere det igen.',
         confirmText: 'Luk',
         hideCancelButton: true,
       }
       : {
         title: 'Hjælpeprogrammet er allerede installeret',
-        message: 'Du behøver ikke hente det igen. Vil du åbne det nu? Første gang kan browseren bede om tilladelse til at åbne hjælpeprogrammet. Hvis det ikke åbner, kan du starte det fra computerens appmenu eller skrivebord.',
+        message: 'Du behøver ikke installere det igen. Vil du åbne det nu? Første gang kan browseren bede om tilladelse til at åbne hjælpeprogrammet. Hvis det ikke åbner, kan du starte det fra computerens appmenu eller skrivebord.',
         confirmText: 'Åbn program',
         hideCancelButton: false,
       };
@@ -182,7 +182,7 @@ const Mineo = React.memo(() => {
 
         <Typography className="row--text">
           For at kunne dobbeltklikke på lokale .eo-filer og åbne dem direkte i Mineo, skal du installere et
-          hjælpeprogram. Det kan hentes via linket nedenfor eller ved at klikke på installationsikonet yderst
+          hjælpeprogram. Det sker via linket nedenfor eller ved at klikke på installationsikonet yderst
           til højre i browserens adresselinje (Google Chrome {' '}
           <BrowserUpdatedIcon fontSize="small" sx={{ verticalAlign: 'text-bottom' }} />
           {' '} / Microsoft Edge {' '}
@@ -211,7 +211,7 @@ const Mineo = React.memo(() => {
               data-mineo-focusable-button="true"
               className="icon-text-link"
             >
-              Download hjælpeprogram
+              Installér hjælpeprogram
             </Box>
           </Box>
         </Box>
@@ -249,14 +249,15 @@ const Mineo = React.memo(() => {
         </Typography>
 
         <Typography className="row--text">
-          Programmet kommunikerer ikke med nogen server under brug, og der indsamles,
-          gemmes eller transmitteres ingen data — hverken persondata, brugsstatistik
-          eller anden information.
+          Der indsamles ingen persondata og ingen brugsstatistik, og ingen oplysninger om dig eller om din
+          sag forlader din computer. Programmet kontakter udelukkende serveren i forbindelse med, at det
+          henter opdateringer og nødvendige ressourcer.
         </Typography>
 
         <Typography className="row--text">
-          Mens programmet kører, bliver de indtastede oplysninger midlertidigt gemt
-          i browserens hukommelse, som nulstilles, når browseren lukkes.
+          Så længe fanen er åben, ligger dine indtastninger i browserens hukommelse. Lukker du fanen, er de
+          væk — også selv om browseren stadig kører. Brug <strong>Gem</strong> for at beholde sagen som en .eo-fil på din
+          computer.
         </Typography>
       </ContentBox>
 

@@ -7,10 +7,16 @@ Et mønster her er **ikke** i sig selv et fund uden for den flade, det blev obse
 hypotese med konkrete kandidatsteder. Bekræftede forekomster registreres som almindelige fund på den
 pågældende flades dokument og noteres nedenfor.
 
-**Brugerens afgørelser 2026-08-16 har ændret fire af de syv mønstre.** Et mønster, hvis udløsende fund
-er afvist, forsvinder ikke automatisk — men det skal læses med den trufne beslutning, ellers
-genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
+**Brugerens afgørelser 2026-08-16 har ændret fire af de syv første mønstre.** Et mønster, hvis
+udløsende fund er afvist, forsvinder ikke automatisk — men det skal læses med den trufne beslutning,
+ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
+
+**M-08 til M-11 er tilføjet 2026-08-16 fra Om-fladen.** De adskiller sig fra M-01–M-07 ved ikke at
+handle om indtastning: de handler om siden som helhed — tastaturets rækkevidde, vinduets bredde,
+flydende elementer og de tekster, hvor programmet udtaler sig om sig selv. **Tre af dem er skrevet om
+samme dag efter brugerens afgørelser** (M-08 afgjort for bundlinjen, M-09 har fået en nedre grænse,
+M-10 er skærpet); M-11 står uændret med to gennemførte tekstrettelser bag sig.
 
 ---
 
@@ -173,3 +179,114 @@ virkningsdatoer, kapitaliseringsdatoer, min-/maks-par.
 - Kandidater, ikke efterprøvet: alle periodetabeller med fra/til-kolonner. Bemærk især den fælles
   `DATE_ORDER_ERROR_MESSAGE`, som begge parter i et fra/til-par får i dag — samme tekst på to felter
   med hver sin udvej.
+
+## M-08 — Links er ikke med i tastaturrækkefølgen
+
+> Et link kan kun nås med mus, fordi sidens tastaturrækkefølge kun optager felter og markerede knapper.
+
+Programmet ejer selv Tab: tasten flytter fokus i en cirkulær ring, der samles af én selector. Den
+optager felter, dropdowns og de knapper, der udtrykkeligt er markeret som fokuserbare — men ingen
+`<a>`. Da programmets egen Tab-håndtering samtidig afbryder browserens, findes der ingen anden vej til
+et link end musen.
+
+**Brugerens afgørelse 2026-08-16 (gælder bundlinjen):** boksen med søskendesider — og dermed også
+kontaktadressen i den — skal **ikke** være en del af tastaturrækkefølgen, og GitHub-linket er
+undtaget specifikt. Fraværet er dér et valg.
+
+**Mønsteret er derfor omformuleret:** eksterne web-links er nu eksplicit ude af tastaturrækkefølgen
+via den fælles `ExternalLink`-primitive, mens interne links fortsat vurderes efter deres egne
+specifikke regler. Containerens selector optager stadig felter og markerede knapper og aldrig et
+`<a>`; den generelle eksterne regel gør derfor fraværet auditérbart i DOM'en på alle flader.
+
+**Efterprøv, hvor:** et link bærer noget, brugeren skal kunne handle på — retsinfo-henvisninger,
+«gå til feltet»-links i fejlbokse (verificér først, om de er links eller knapper), henvisninger
+mellem sider. Ikke hvor linket blot er en udgang til en anden hjemmeside; dét er afgjort.
+
+- Fundet i: `om.md` BB-016 (fem links, ingen af dem kan nås med Tab) — **afgjort: bevidst designvalg**.
+- Efterprøvet: Satser-sidens retsinfo-henvisninger (`satserRows.tsx`) bruger samme primitive og er
+  også ude af Tab-rækkefølgen. Interne linkflader er ikke ændret af M-08.
+- Kandidater, ikke efterprøvet: **interne** links inde i fejl- og advarselsbokse. MinProcesrentes
+  titel-link (`href="/"`) er internt og hører til den gruppe, ikke til den eksterne regel.
+
+## M-09 — Fast indholdsbredde
+
+> Indholdet er lige bredt uanset vinduet, så et smallere vindue skjuler enden af hver linje.
+
+Tekstboksene har en fast bredde på 1200 px (`--content-box-max-width` bruges som `width`). Er vinduet
+smallere end bredden plus menuen, skæres højresiden af, og indholdet må rulles frem sidelæns.
+Beslutningen er bundet: `AGENTS.md` §Desktop-only gate forbyder viewport-responsiv styling uden for en
+pinnet filliste, så en ændring er en beslutning, ikke en fejlrettelse.
+
+**Brugerens afgørelse 2026-08-16 — mønsteret har fået en nedre grænse.** Designmålet er 1920×1080 ved
+125 % zoom, altså **1536×864 CSS-pixels, og opefter**. Under den bredde er afskæring accepteret, og
+1366×768 er ikke en understøttet skærm. Et planlagt arbejde med automatisk skalering kan senere
+udvide grænsen nedad, hvis det kan ske uden besvær.
+
+**Mønsteret er derfor kun i spil på eller over 1536 px.** Målt: ved præcis 1536 er der 0 px
+overskud — indholdet passer på stregen. Der er altså ingen margen at tære på, og enhver flade, der
+lægger bare lidt mere bredde til end Om-siden, vil afskære indhold **inden for** det understøttede
+område.
+
+**Efterprøv, hvor:** en flade er bredere end den rene tekstboks — tabeller med mange kolonner,
+sidestillede bokse, indhold med egen minimumsbredde. Prøven er ikke «ombryder det?», men: **passer det
+inden for 1536×864, eller skæres noget væk allerede dér?**
+
+- Fundet i: `om.md` BB-015 (sætninger skåret over ved 1366 px) — **afgjort: ikke en understøttet
+  bredde**.
+- Kandidater, ikke efterprøvet: alle sider med tabeller. Årsløn, Erhvervsevnetab og
+  Erstatningsopgørelsen er de bredeste og skal måles ved 1536×864, ikke ved 1920.
+
+## M-10 — Flydende knapper kan dække indhold
+
+> En knap, der ligger fast i vinduets hjørne, dækker det indhold, der havner under den.
+
+Rul-til-toppen-knappen er 56 px og står 32 px fra vinduets nederste højre hjørne, uafhængigt af
+sidens indhold. Alt, hvad der lander i det hjørne, kan blive helt eller delvist dækket — og et klik
+i det dækkede område rammer knappen, ikke indholdet.
+
+**Skærpelse 2026-08-16 (fra måling, ikke fra en afgørelse).** Det afgørende er ikke, at en fast
+placeret knap *kan* dække noget. Det er, at indholdssøjlen ved designmålet 1536×864 går helt ud til
+12 px fra vinduets kant, mens knappen står 32 px inde. **Knappen ligger dermed altid inde i
+indholdssøjlen ved den understøttede bredde** — der er ingen fri margen ved siden af indholdet, den
+kan stå i. Alt, hvad en flade lægger i sit nederste højre hjørne, ligger derfor under knappen.
+
+**Efterprøv, hvor:** en flade har betjenbart indhold nederst til højre: bundlinjer, runde
+tilføj-knapper under tabeller, downloadknapper i bunden af en side. Mål ved 1536×864 — ikke ved 1920,
+hvor indholdet er smallere end vinduet og problemet forsvinder af sig selv.
+
+- Fundet i: `om.md` BB-014 (knappen dækker 19 px af det sidste søskendelink) — **accepteret risiko**;
+  den endelige afgørelse bygger på, at kun få brugere står præcis på 1536×864, og at zoom-løsningen
+  ændrer præmissen.
+- Kandidater, ikke efterprøvet: alle sider, da knappen er global. Knappen vises først, når der er
+  rullet mere end 200 px, så prøven skal gøres på en rullet side.
+
+## M-11 — Programmets egne påstande om sig selv
+
+> En tekst, der lover noget om programmets adfærd, skal måles mod adfærden — ikke læses som pynt.
+
+Hvor programmet beskriver, hvad det gør ved brugerens oplysninger — hvad der gemmes, hvor længe, hvad
+der sendes, hvad der slettes — er teksten det eneste, brugeren har at gå efter. En upræcis påstand er
+derfor ikke en sproglig detalje: den er enten en forkert forventning om, hvornår arbejdet forsvinder,
+eller et løfte, der ikke holder ved et eftersyn.
+
+**Efterprøv, hvor:** en tekst beskriver programmets egen adfærd frem for at bede om en indtastning —
+informationssider, bekræftelsesdialoger før destruktive handlinger, beskrivelser af en indstilling.
+Prøven er altid den samme: fremprovokér det, teksten beskriver, og mål udfaldet.
+
+**Bemærk fælden i dette mønster.** Begge fund blev første gang læst som indvendinger mod *adfærden* —
+og adfærden var i begge tilfælde rigtig. Skriv derfor fundet, så det er umuligt at forveksle: adfærden
+er X, teksten siger Y, og det er kun Y, der foreslås ændret. Ellers bliver et tekstfund afvist på et
+adfærdsargument, alle er enige i.
+
+**Og bemærk den anden vej.** Da modpresset blev givet, holdt kun det halve: brugeren havde ret i, at
+kritikken var sat for bredt — programmet indsamler hverken persondata eller brugsstatistik, og de to
+ord i teksten var sande. Et fund i dette mønster skal derfor pege på **den enkelte unøjagtighed**, ikke
+på afsnittet som helhed. Ellers bliver rettelsen enten afvist som overdreven eller ender i en lang,
+kringlet tekst, der er ringere end den upræcise.
+
+- Fundet i: `om.md` BB-011 (sagen forsvinder med fanen, ikke med browseren, og «Gem» nævnes ikke) og
+  BB-012 (påstanden om, at intet gemmes eller sendes, er bredere end det løfte, den skal bære) —
+  **begge afgjort 2026-08-16 efter modpres: teksten er rettet, adfærden bevares.** BB-012 blev kun
+  delvist accepteret; den aftalte ordlyd står i fundet.
+- Kandidater, ikke efterprøvet: Indstillinger-sidens beskrivelser, «Slet alt»-bekræftelsen,
+  overskrivningsadvarslen ved Hent.
