@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-15
+**Senest verificeret mod kode:** 2026-08-16
 
 ## 1. Scope
 
@@ -76,6 +76,11 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    **`clients.claim()` er forbudt; `SKIP_WAITING` er nødvendig.** De to trækker hver sin vej og skal begge være, som de er: uden `SKIP_WAITING` aktiverer en ventende worker først, når den gamle kontrollerer **nul** klienter — og en genindlæsning når aldrig nul, fordi det gamle dokument lever, indtil svarets headere er modtaget. En installeret PWA, brugeren sjældent lukker helt, ville da i praksis aldrig opdatere. Omvendt ville `clients.claim()` lade en nyaktiveret worker overtage et **andet** fanebladss levende sag. Beskeden sendes derfor kun før render, hvor der ikke findes brugerarbejde.
 
+   Før `SKIP_WAITING` spørger bootstrap den konkrete installerede worker om dens indbagte build-version. Den må
+   matche manifestets version, der udløste opdateringen; ellers aktiveres workeren ikke. Det lukker race-vinduet
+   ved delvise deploys, hvor HTML, assetmanifest og en allerede ventende worker kan komme fra forskellige origin-
+   noder. Manglende eller tidsudløbet versionssvar er fail-safe.
+
    **En `.eo`-request må aldrig gå tabt i en opdatering.** Browseren kan aflevere en fil gennem `launchQueue`, mens opstartens barriere kører; requesten lever da kun i hukommelsen, indtil IndexedDB-skrivningen er færdig. Før enhver genindlæsning afventer opstarten derfor `awaitDurablePendingPwaFileOpenHandoff()`, og kan den durable handoff **ikke** bekræftes — herunder fordi storage ikke svarer inden for loftet — genindlæses der ikke; opdateringen sker i stedet ved næste opstart. Brugerens fil vejer tungere end at komme på nyeste version med det samme.
 
    Registreringen springes **ikke** over på nogen rute, heller ikke `/open`. En session startet ved dobbeltklik på en `.eo`-fil skal have sin egen versionscache; ellers kan netop den langlivede fil-session (manifestets `launch_handler: "focus-existing"` tilskynder dem) miste sine PDF-/Word-chunks ved næste deploy.
@@ -109,7 +114,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/apps/shared/vitePreloadRecovery.test.ts` (Vite-signal er kun sidste sikkerhedsnet og må ikke genindlæse en aktiv sag uvarslet).
 - `src/__tests__/main.pwaLaunchQueue.test.ts` (Mineo-entryen leverer consumer-registrering og rehydrering til shellen i rækkefølge).
 - `src/__tests__/utils/pwaLaunchQueue.test.ts` (pending request overlever versionsskift; ny launch vinder over gammel persisted request; schema-validering, utilgængelig IndexedDB og ustabil handoff stopper ikke-sikkert reload).
-- `src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts` (uændret version renderer straks uden ventetid; ny version genindlæses først efter komplet precache OG bekræftet `activated`; installeret-men-aldrig-aktiv reloader ikke; `redundant`, timeout, offline, uskrivbar markør og fejlet registrering reloader ikke; flappende origin går i ro i stedet for at reloade i ring; ubekræftet `.eo`-handoff reloader ikke; ingen opdateringslinje-API eksporteres).
+- `src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts` (uændret version renderer straks uden ventetid; ny version genindlæses først efter komplet precache, matchende indbygget worker-version og bekræftet `activated`; installeret-men-aldrig-aktiv reloader ikke; `redundant`, timeout, offline, uskrivbar markør og fejlet registrering reloader ikke; flappende origin går i ro i stedet for at reloade i ring; ubekræftet `.eo`-handoff reloader ikke; ingen opdateringslinje-API eksporteres).
 - `src/__tests__/apps/mineo/serviceWorkerProtocol.test.ts` (workeren kræver en komplet versionscache, navngiver den efter den indbagte version, afviser et manifest fra en anden build, serverer kun immutable hashed assets, springer ikke selv ventetiden over og overtager aldrig eksisterende klienter).
 - `src/__tests__/components/system/LazyChunkRecoveryNotice.test.tsx` (lazy-recoverylinjen bruger reload-barrieren og viser ingen opdateringstekst).
 - `e2e/pwa-file-open.spec.ts` (launchQueue-consumer registreres i den fulde loginrejse i Chrome, Edge, Firefox og WebKit).

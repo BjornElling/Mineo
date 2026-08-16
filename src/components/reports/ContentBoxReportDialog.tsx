@@ -81,7 +81,11 @@ const ContentBoxReportDialog = React.memo(({
   const { overlayRootProps, requestClose } = useOverlayBehavior({
     open,
     // Under afsendelse må dialogen ikke kunne lukkes — heller ikke med tilbage-knappen.
-    onClose: () => { if (!isSending) onClose(); },
+    onClose: () => {
+      if (isSending) return false;
+      onClose();
+      return true;
+    },
     triggerRef: restoreFocusTo,
     disableEscape: true,
   });

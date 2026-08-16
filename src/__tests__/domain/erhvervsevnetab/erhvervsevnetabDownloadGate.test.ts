@@ -129,6 +129,13 @@ describe('evaluateEetFaneDownloadGate (ren sandhedstabel)', () => {
     expect(gate.reasons[0]).toEqual({ code: 'eet-efter-eal:field-error', message: 'Fejl i indtastning', kind: 'invalid-input' });
   });
 
+  it('klassificerer domænets ugyldige afgørelsesissues som fejl i indtastning', () => {
+    for (const id of ['invalid-eet-pct', 'invalid-kap-pct', 'invalid-afgoerelse-type']) {
+      const gate = evaluateEetFaneDownloadGate('loebendeYdelser', faneProjection([fieldIssue(id)], null));
+      expect(gate.reasons[0]?.kind).toBe('invalid-input');
+    }
+  });
+
   it('blokerer med missing-fields, når fanen KUN er blokeret af manglende/afledte consumer-fejl', () => {
     const gate = evaluateEetFaneDownloadGate('efterEal', faneProjection([missingIssue('eet-pct-missing')], null));
     expect(gate.canDownload).toBe(false);
@@ -176,10 +183,14 @@ describe('isEetFieldErrorIssueId', () => {
       'field-aarsloen-asl',
       'field-asl-afgoerelser',
       'stamdata-date-order:skadedato',
+      'stamdata-date-order:skadelidteFodselsdato',
       'forlig-ansvarsgrad-invalid',
       'beregningsdato-invalid',
       'eal-eet-pct-invalid',
       'asl-selected-eet-pct-invalid',
+      'invalid-eet-pct',
+      'invalid-kap-pct',
+      'invalid-afgoerelse-type',
     ]) {
       expect(isEetFieldErrorIssueId(id)).toBe(true);
     }

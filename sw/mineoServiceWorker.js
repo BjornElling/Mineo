@@ -102,6 +102,11 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('message', (event) => {
+  if (event?.data?.type === 'MINEO_GET_BUILD_VERSION') {
+    event.ports?.[0]?.postMessage({ type: 'MINEO_BUILD_VERSION', version: BUILD_VERSION });
+    return;
+  }
+
   // MÅ IKKE FJERNES. En ventende worker aktiverer af sig selv først, når den gamle kontrollerer NUL
   // klienter, og en almindelig genindlæsning når aldrig nul: det gamle dokument lever, indtil
   // svarets headere er modtaget. Uden denne besked ville en installeret PWA, som brugeren sjældent

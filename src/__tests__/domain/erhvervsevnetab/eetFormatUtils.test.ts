@@ -44,7 +44,13 @@ describe('toFieldIssue', () => {
 
 describe('resolveEetIssueNavigation', () => {
   it('router stamdata-fejl til Stamdata/Skadelidte', () => {
-    for (const id of ['skadedato-missing', 'alder-unresolved', 'skadelidte-fodselsdato-missing']) {
+    for (const id of [
+      'skadedato-missing',
+      'stamdata-date-order:skadedato',
+      'alder-unresolved',
+      'skadelidte-fodselsdato-missing',
+      'stamdata-date-order:skadelidteFodselsdato',
+    ]) {
       const nav = resolveEetIssueNavigation(id);
       expect(nav?.route).toBe(APP_ROUTES.stamdata);
       expect(nav?.sectionId).toBe('stamdata-skadelidte');

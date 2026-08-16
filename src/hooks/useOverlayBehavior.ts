@@ -34,7 +34,8 @@ export type UseOverlayBehaviorOptions<TTrigger extends HTMLElement = HTMLElement
   /** Er overlayet åbent? */
   open: boolean;
   /** Kaldes når overlayet skal lukkes. Får årsagen, så en flade kan skelne (fx logge afbrud). */
-  onClose: (cause: OverlayCloseCause) => void;
+  /** Returnér `false`, hvis overlayet midlertidigt ikke kan lukkes (fx under en afsendelse). */
+  onClose: (cause: OverlayCloseCause) => void | boolean;
   /** Den kontrol, fokus skal tilbage til ved lukning. Se `useDialogFocusRestore` for målprioriteten. */
   triggerRef?: React.RefObject<TTrigger | null>;
   /** Videreført til `useDialogFocusRestore` for popups, hvis handling kan fjerne deres egen trigger. */
@@ -89,14 +90,26 @@ export const useOverlayBehavior = <TTrigger extends HTMLElement = HTMLElement>(
   const pushedHistoryRef = React.useRef(false);
 
   const requestClose = React.useCallback((cause: OverlayCloseCause) => {
-    // Ved `history-back` har browseren allerede fjernet vores trin; at kalde `back()` igen ville
-    // sende brugeren en side for langt tilbage.
-    if (cause !== 'history-back' && pushedHistoryRef.current) {
+    if (cause === 'history-back') {
+      // Browseren har allerede forbrugt vores trin. Et travlt overlay kan afvise lukningen; i så fald
+      // genskaber vi straks sit eget trin, så et efterfølgende tilbage-tryk ikke navigerer væk fra siden.
+      pushedHistoryRef.current = false;
+      if (onCloseRef.current(cause) === false) {
+        window.history.pushState({ [OVERLAY_HISTORY_FLAG]: overlayId }, '');
+        pushedHistoryRef.current = true;
+      }
+      return;
+    }
+
+    // Spørg først fladen. Hvis den afviser, må vi ikke forbruge history-trinnet; ellers ville et
+    // travlt overlay blive stående uden sin tilbage-beskyttelse.
+    if (onCloseRef.current(cause) === false) return;
+
+    if (pushedHistoryRef.current) {
       pushedHistoryRef.current = false;
       window.history.back();
     }
-    onCloseRef.current(cause);
-  }, []);
+  }, [overlayId]);
 
   // Stak-registrering. Kun det øverste overlay reagerer på Escape og tilbage-knappen.
   React.useEffect(() => {
@@ -113,9 +126,7 @@ export const useOverlayBehavior = <TTrigger extends HTMLElement = HTMLElement>(
 
     const handlePopState = () => {
       if (!isTopmostOverlay(overlayId)) return;
-      // Trinnet er netop forbrugt af browseren; ryd flaget, så `requestClose` ikke kalder `back()` igen.
-      pushedHistoryRef.current = false;
-      onCloseRef.current('history-back');
+      requestClose('history-back');
     };
     window.addEventListener('popstate', handlePopState);
     return () => {
@@ -126,7 +137,7 @@ export const useOverlayBehavior = <TTrigger extends HTMLElement = HTMLElement>(
         window.history.back();
       }
     };
-  }, [open, overlayId]);
+  }, [open, overlayId, requestClose]);
 
   // Escape — i BOBLE-fasen med vilje: et felt inde i overlayet, der annullerer sin egen redigering,
   // kalder `stopPropagation()` og standser hændelsen først. Én Escape må ikke både annullere og lukke

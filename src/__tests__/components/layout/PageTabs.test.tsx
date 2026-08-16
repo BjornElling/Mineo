@@ -64,7 +64,24 @@ describe('PageTabs', () => {
     for (const item of ITEMS) {
       const tab = screen.getByRole('tab', { name: item.label });
       expect(tab.classList.contains('tab-item')).toBe(true);
+      expect(tab).toHaveAttribute('data-mineo-tab-navigation', 'true');
     }
+  });
+
+  it('kan navigere mellem faner med piletaster og aktivere den fokuserede fane med Enter', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderTabs({ onChange });
+
+    const firstTab = screen.getByRole('tab', { name: 'Fane A' });
+    const secondTab = screen.getByRole('tab', { name: 'Fane B' });
+    firstTab.focus();
+
+    await user.keyboard('{ArrowRight}');
+    expect(document.activeElement).toBe(secondTab);
+
+    await user.keyboard('{Enter}');
+    await waitFor(() => { expect(onChange).toHaveBeenCalledWith('b'); });
   });
 
   it('kalder onChange med den valgte fane-nøgle', async () => {

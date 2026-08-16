@@ -68,12 +68,17 @@ const mockDurableHandoff = (result: boolean): void => {
  */
 const buildServiceWorker = (
   state: ServiceWorker['state'],
-  options: { autoActivateOnSkipWaiting?: boolean } = {},
+  options: { autoActivateOnSkipWaiting?: boolean; buildVersion?: string } = {},
 ): FakeServiceWorker => {
   const listeners: StateChangeListener[] = [];
   const worker: FakeServiceWorker = {
     state,
-    postMessage: vi.fn((message: unknown) => {
+    postMessage: vi.fn((message: unknown, transfer?: readonly MessagePort[]) => {
+      const messageType = (message as { type?: unknown } | null)?.type;
+      if (messageType === 'MINEO_GET_BUILD_VERSION') {
+        transfer?.[0]?.postMessage({ type: 'MINEO_BUILD_VERSION', version: options.buildVersion ?? DEPLOYED_NEWER_VERSION });
+        return;
+      }
       const isSkipWaiting = (message as { type?: unknown } | null)?.type === 'SKIP_WAITING';
       if (!isSkipWaiting) return;
       if (options.autoActivateOnSkipWaiting === false) return;
@@ -371,11 +376,31 @@ describe('serviceWorkerBootstrap — ny session = ny version, åben session urø
       await vi.advanceTimersByTimeAsync(20000);
       await pending;
 
-      expect(waiting.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+      expect(waiting.postMessage).toHaveBeenCalledWith(
+        { type: 'MINEO_GET_BUILD_VERSION' },
+        expect.anything(),
+      );
+      expect(waiting.postMessage).not.toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
       expect(reloadSpy).not.toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('genindlæser IKKE, når den installerede worker ikke matcher manifestets version', async () => {
+    stubDeployedVersion(DEPLOYED_NEWER_VERSION);
+    const waiting = buildServiceWorker('installed', { buildVersion: '2026.08.11' });
+    buildServiceWorkerContainer(buildRegistration({ waiting }));
+
+    const { ensureLatestVersionBeforeRender } = await importBootstrap();
+    await ensureLatestVersionBeforeRender();
+
+    expect(waiting.postMessage).toHaveBeenCalledWith(
+      { type: 'MINEO_GET_BUILD_VERSION' },
+      expect.anything(),
+    );
+    expect(waiting.postMessage).not.toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+    expect(reloadSpy).not.toHaveBeenCalled();
   });
 
   it('genindlæser først EFTER at den nye worker er bekræftet aktiv', async () => {

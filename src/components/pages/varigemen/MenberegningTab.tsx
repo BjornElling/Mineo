@@ -9,7 +9,7 @@ import ContentBox from '../../layout/ContentBox';
 import { PageMessageRow } from '../../layout/PageMessageBox';
 import { pageMessage } from '../../layout/pageMessage';
 import { integerAdmission } from '../../inputs/draftAdmission';
-import { codecAllowsNegative } from '../../../inputCore/react/fields/signPolicy';
+import { resolveIntegerCharPolicy } from '../../../inputCore/react/fields/charLengthPolicy';
 import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { useNavigate } from 'react-router-dom';
@@ -46,8 +46,8 @@ import { blinkFieldAttention } from '../../../inputCore/react/fieldAttentionBlin
 // adfærd er uændrede (§5.4).
 
 const mengradRef = varigeMenMengradField.bind();
-/** Méngradens fortegns-politik fra dens eget codec — statisk, så opslaget ikke gentages pr. render. */
-const MENGRAD_ALLOWS_NEGATIVE = codecAllowsNegative(varigeMenMengradField.codec);
+/** Méngradens tegn- og længdepolitik fra dens eget codec — én erklæring for formular og grid. */
+const MENGRAD_CHAR_POLICY = resolveIntegerCharPolicy(varigeMenMengradField.bind());
 const beregningsdatoRef = varigeMenBeregningsdatoField.bind();
 const fodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
 const skadedatoRef = stamdataSkadedatoField.bind();
@@ -69,7 +69,10 @@ const MenberegningTab = React.memo(() => {
   // Politikken læses af méngrad-feltets EGET codec frem for at være hardkodet her. Svaret er det
   // samme (méngrad er 1..120), men nu er det feltets erklæring og ikke en lokal gentagelse af den.
   const mengradAdmission = React.useMemo(
-    () => integerAdmission({ allowNegative: MENGRAD_ALLOWS_NEGATIVE }),
+    () => integerAdmission({
+      allowNegative: MENGRAD_CHAR_POLICY.allowNegative,
+      maxDigits: MENGRAD_CHAR_POLICY.maxDigits,
+    }),
     []
   );
 
@@ -285,6 +288,7 @@ const MenberegningTab = React.memo(() => {
             field={mengradRef}
             location={MENGRAD_LOCATION}
             admission={mengradAdmission}
+            maxDraftLength={MENGRAD_CHAR_POLICY.maxDraftLength}
             name="mengrad"
             placeholder="0"
             width={100}

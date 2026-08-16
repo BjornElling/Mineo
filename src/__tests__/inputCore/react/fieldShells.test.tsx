@@ -234,6 +234,23 @@ describe('immediate-commit control (radio)', () => {
 
     expect(canonical(enhedField.bind('r1'))).toBe('uger');
   });
+
+  it('afviser allowEmpty på et requiredChoice-codec i selve radio-overfladen', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'dage' })), { origin: testRowOrigin() });
+
+    expect(() => renderField(
+      <RadioField<TillaegstidEnhed>
+        field={enhedField.bind('r1')}
+        location={testLocation('radio-required-empty')}
+        options={[
+          { value: 'dage', label: 'Dage' },
+          { value: 'uger', label: 'Uger' },
+          { value: 'maaneder', label: 'Måneder' },
+        ]}
+        allowEmpty
+      />
+    )).toThrow(/RadioField.*requiredChoice/);
+  });
 });
 
 describe('grid-felt', () => {

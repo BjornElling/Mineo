@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
+import { TAB_NAVIGATION_ATTRIBUTE } from './containerNavigation/navigationControlSemantics';
 
 export type SideTabProps = {
   readonly label: string;
@@ -23,6 +24,7 @@ const SideTab = React.memo(({ label, active, onClick, top }: SideTabProps) => (
     type="button"
     onClick={onClick}
     aria-pressed={active}
+    {...{ [TAB_NAVIGATION_ATTRIBUTE]: 'true' }}
     className={active ? 'tab-item side-tab active' : 'tab-item side-tab'}
     sx={{
       position: 'absolute',

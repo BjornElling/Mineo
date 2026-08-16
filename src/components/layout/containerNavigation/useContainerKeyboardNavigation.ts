@@ -4,6 +4,7 @@ import { getPopupWidgetHost, isPopupWidget, isPopupWidgetExpanded } from '../../
 import { CONTAINER_FOCUSABLE_SELECTOR } from '../../tables/gridCore/tableFocusHelpers';
 import { scrollTargetIntoView } from '../../../utils/scrollTargetIntoView';
 import { hasOpenOverlay } from '../../ui/overlayBehavior';
+import { isTabNavigationControl } from './navigationControlSemantics';
 import {
   type FocusCandidate,
   resolveCircularNeighbor,
@@ -146,10 +147,17 @@ export const useContainerKeyboardNavigation = (
       // Enter i en textarea giver newline som normalt.
       if (e.key === 'Enter' && e.target instanceof HTMLTextAreaElement) return;
 
+      const activeElement = document.activeElement;
+      const activeElementAsHtml = activeElement instanceof HTMLElement ? activeElement : null;
+
+      // Navigationsfaner ejer deres egen native tastatursemantik. Denne tidlige retur er vigtig,
+      // også når siden endnu ikke har et indholdselement i inventaret: Container må aldrig gøre
+      // Enter på en fane afhængig af, at der findes et efterfølgende felt.
+      if (e.key === 'Enter' && isTabNavigationControl(activeElementAsHtml)) return;
+
       let focusableElements = getFocusableElements();
       if (focusableElements.length === 0) return;
 
-      const activeElement = document.activeElement;
       // Det aktive elements fokus-stop slås op med PRÆCIS samme selector, som inventaret
       // indsamler med — ellers kunne de to divergere, og opslaget nedenfor ville ikke finde
       // elementet i sin egen liste.
@@ -160,7 +168,6 @@ export const useContainerKeyboardNavigation = (
       })();
 
       // Widget-detektion skal tage højde for wrappers, ikke kun rå inputs.
-      const activeElementAsHtml = activeElement instanceof HTMLElement ? activeElement : null;
       const activeWidgetIsExpanded = isPopupWidgetExpanded(activeElementAsHtml);
       const activeWidgetHasPopup = isPopupWidget(getPopupWidgetHost(activeElementAsHtml), activeWidgetIsExpanded);
 

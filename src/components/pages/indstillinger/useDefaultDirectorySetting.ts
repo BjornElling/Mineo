@@ -77,10 +77,12 @@ export const useDefaultDirectorySetting = (): DefaultDirectorySetting => {
       // ID'et kommer fra storage-laget, IKKE herfra: registreringen og settings-værdien skal
       // pege på hinanden, og kun den skrivende side kender den nøgle, den faktisk skrev.
       const handleId = await saveDefaultDirectoryHandle(directoryHandle);
-      updateSettings({ defaultDirectoryHandleId: handleId ?? undefined });
+      if (handleId !== null) {
+        updateSettings({ defaultDirectoryHandleId: handleId });
+      }
       // Ingen `setLocation` her: settings-ændringen kører effekten, som læser den registrering,
-      // der FAKTISK blev skrevet. Et optimistisk navn ville påstå et gemt valg, selv når
-      // skrivningen fejlede (`handleId === null`).
+      // der FAKTISK blev skrevet. Ved en fejlet registrering bevares et eventuelt tidligere valg;
+      // et optimistisk navn ville ellers påstå et nyt valg, selv når skrivningen fejlede.
     } catch (error: unknown) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         // Brugeren annullerede — ingen handling.

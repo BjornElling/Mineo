@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-15 (knappernes opt-in-afgrænsning er målt mod
+**Senest verificeret mod kode:** 2026-08-16 (knappernes opt-in-afgrænsning er målt mod
 `CONTAINER_FOCUSABLE_SELECTOR` og erklæret som en truffet beslutning; Escape-reglen og de to
 toggle-/checkbox-taster er verificeret mod `StyledDropdown`, `useTransientDraft`,
 `LoentrinFinderOverlay`, `StyledToggleSwitch` og `StyledCheckbox` og dækket af
@@ -13,8 +13,7 @@ alle fire browsere af `e2e/overlay-behaviour.spec.ts` — tab-fangst for BEGGE m
 tilbage-knappen, og at hver af de tre øvrige lukkeveje forbruger sit historik-trin; `Container`s
 overlay-værn er mutationstestet. §«Peg på dette felt»-markeringen er målt af
 `e2e/attention-blink-repeat.spec.ts`, som tæller `animationstart`: tre udløsninger giver tre
-genstarter, hvor den deklarative form gav én)
-2026-08-14
+genstarter, hvor den deklarative form gav én).
 
 ---
 
@@ -49,13 +48,22 @@ Alle tastatur-navigation skal:
 **Knapper er OPT-IN, og afgrænsningen er en truffet beslutning.** Container-navigationen medtager kun
 knapper, der bærer `data-mineo-focusable-button="true"` (`CONTAINER_FOCUSABLE_SELECTOR` i
 `gridCore/tableFocusHelpers.ts`). En knap uden markøren kan derfor kun betjenes med mus. Målingen
-2026-08-15 opgjorde hvad der står udenfor: sidernes faner (`PageTabs`, `SideTab`), de fire
-ansættelsesforhold-knapper (`FloatingActionButton`: Tilføj, Flyt op, Flyt ned, Slet), «Tilbage til
-toppen» (`ScrollToTopButton`), info-ikonet (`InfoTooltipIcon`) og de blå genvejslinks til Stamdata.
-Brugeren har 2026-08-15 besluttet, at Tab-rækkefølgen skal forblive **uændret**: de nævnte flader er
-bevidst mus-kun, så tastaturturen gennem en side kun rammer indtastningsfelterne. Afgrænsningen er
-altså erklæret, ikke et hul — men den skal genforelægges, hvis en handling en dag KUN kan udføres
-gennem en af dem.
+2026-08-15 opgjorde hvad der står udenfor: de almindelige handlingsknapper
+(`FloatingActionButton`: Tilføj, Flyt op, Flyt ned, Slet), «Tilbage til toppen»
+(`ScrollToTopButton`), info-ikonet (`InfoTooltipIcon`) og de blå genvejslinks til Stamdata.
+En knap uden markøren er fortsat mus-kun.
+
+`PageTabs` og `SideTab` er den eksplicitte undtagelse: de er native tastaturkontroller og bærer
+`data-mineo-tab-navigation="true"`, men står stadig uden for Containerens indholds-inventar. På en
+fokuseret `PageTabs` kan MUI's piletaster flytte mellem fanerne, og Enter aktiverer den fokuserede
+fane. En fokuseret `SideTab` aktiveres med Enter eller mellemrum.
+
+Når fokus først er inde i en sides eller en aktiv fanes indhold, består Containerens inventar kun af
+indholdets synlige fokusmål. Tab, Shift+Tab, Enter og piletaster cirkulerer derfor inden for dette
+indhold; fra sidste mål fortsættes ved første og omvendt. Ingen af disse taster må føre fokus til en
+`PageTabs`- eller `SideTab`-kontrol. Navigationskontrollerne kan kun introduceres ved, at brugeren
+allerede har sat fokus på dem gennem browserens almindelige fokusflow eller en anden eksplicit
+navigation.
 
 Konsekvens:
 - Browserens standard-tabflow må gerne undertrykkes, hvis det er nødvendigt for at opnå den normerede navigation.

@@ -8,7 +8,8 @@ import { useContainerKeyboardNavigation } from './containerNavigation/useContain
 
 /**
  * Container: sidens indholdsområde — scroll-vært, `<main>`-landmark og
- * «single owner» af fokus-traversering.
+ * «single owner» af fokus-traversering for indholdet. PageTabs/SideTab er native
+ * navigationskontroller og holdes bevidst uden for indholdssekvensen.
  *
  * Selve navigationen bor i `containerNavigation/`, ikke her:
  * - `focusRowGeometry.ts` — rene beslutninger om hvem der er nabo (rækker, tolerance, wrap).

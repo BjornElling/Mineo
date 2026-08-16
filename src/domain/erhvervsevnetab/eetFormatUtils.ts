@@ -79,6 +79,9 @@ export const isEetFieldErrorIssueId = (issueId: string): boolean =>
   issueId.startsWith('field-') ||
   issueId.startsWith('stamdata-date-order:') ||
   issueId === 'forlig-ansvarsgrad-invalid' ||
+  issueId === 'invalid-eet-pct' ||
+  issueId === 'invalid-kap-pct' ||
+  issueId === 'invalid-afgoerelse-type' ||
   issueId.endsWith('-invalid');
 
 export const NAVIGATION_SORT_ORDER: Record<string, number> = {
@@ -99,8 +102,10 @@ const NAV_STAMDATA_SKADELIDTE: EetTabNavigation = {
 const STAMDATA_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
   'skadedato-missing': stamdataSkadedatoField.bind().address,
   'field-skadedato': stamdataSkadedatoField.bind().address,
+  'stamdata-date-order:skadedato': stamdataSkadedatoField.bind().address,
   'skadelidte-fodselsdato-missing': stamdataSkadelidteFodselsdatoField.bind().address,
   'field-skadelidte-fodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
+  'stamdata-date-order:skadelidteFodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
 };
 
 const GRUNDLAEGGENDE_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
@@ -188,9 +193,11 @@ const NAV_EET_EAL: EetTabNavigation = {
 const STAMDATA_IDS = new Set([
   'skadedato-missing',
   'field-skadedato',
+  'stamdata-date-order:skadedato',
   'alder-unresolved',
   'skadelidte-fodselsdato-missing',
   'field-skadelidte-fodselsdato',
+  'stamdata-date-order:skadelidteFodselsdato',
 ]);
 
 const GRUNDLAEGGENDE_IDS = new Set([
@@ -228,6 +235,9 @@ const ASL_IDS = new Set([
   'asl-afgoerelser-empty',
   'no-asl-afgoerelser-known-at-beregningsdato',
   'asl-selected-eet-pct-invalid',
+  'invalid-eet-pct',
+  'invalid-kap-pct',
+  'invalid-afgoerelse-type',
   'missing-afgoerelsesdato',
   'missing-eet-pct',
   'missing-afgoerelseType',

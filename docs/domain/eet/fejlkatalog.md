@@ -55,6 +55,14 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Navigationslink | Stamdata → Skadelidte |
 | Betingelse | Afledt fejl: fødselsdato og skadedato begge udfyldt men alder kan alligevel ikke beregnes (datoparse-fejl). Undertrykkes hvis `skadelidte-fodselsdato-missing` eller `skadedato-missing` er aktiv. F2 og F3 bruger ikke alder og emitterer ikke denne fejl. |
 
+#### `stamdata-date-order:skadedato` og `stamdata-date-order:skadelidteFodselsdato` — "Skadedato er før fødselsdato."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F4, F5 |
+| Navigationslink | Det konkrete felt på Stamdata → Skadelidte |
+| Betingelse | Både skadedato og fødselsdato er udfyldt, men skadedatoen ligger før fødselsdatoen. Samme regel afspejles som afledt feltfejl på begge felter. |
+
 ---
 
 ### Grundlæggende oplysninger (fane 1)
@@ -335,6 +343,30 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Vises på | F4, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
 | Betingelse | Den valgte ASL-fallback-afgørelses EET % er ikke deleligt med 5 |
+
+#### `invalid-eet-pct` — "EET % er ugyldig."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | En påbegyndt ASL-afgørelsesrække har en EET-procent uden for 0–100, med decimaler eller uden delelighed med 5. |
+
+#### `invalid-kap-pct` — "Kapitaliseringsprocenten er ugyldig."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | En ASL-afgørelsesrække har en kapitaliseringsprocent uden for 0–100, med decimaler eller uden delelighed med 5. |
+
+#### `invalid-afgoerelse-type` — "En afgørelse har en ukendt afgørelsestype og kan derfor ikke beregnes sikkert."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
+| Betingelse | En direkte domænekaldssti modtager en afgørelsestype uden for det tilladte schema. Normal formularvalidering afviser værdien tidligere. |
 
 ---
 

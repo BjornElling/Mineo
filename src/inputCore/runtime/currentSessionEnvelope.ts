@@ -18,6 +18,15 @@ import {
 
 export const CURRENT_INPUT_ENVELOPE_VERSION = '2';
 
+// Den nye current-session-envelope blev introduceret sammen med persisted-data-version 3.10. Kun
+// versioner fra denne runtime-levetid må derfor komme ind her; en ukendt/fremtidig version må ikke
+// behandles som identity, selv hvis dens payload tilfældigvis ligner det aktuelle schema.
+const CURRENT_SESSION_SOURCE_VERSIONS = new Set([
+  '3.10',
+  '3.11',
+  PERSISTED_DATA_VERSION,
+]);
+
 const currentInputEnvelopeSchema = z.object({
   envelopeVersion: z.literal(CURRENT_INPUT_ENVELOPE_VERSION),
   // Versionen er kildens autoritative nøgle til den delte sektionsmigrering. Den må ikke udledes af
@@ -51,6 +60,9 @@ export const serializeCurrentEnvelope = (input: SettledInput): string => JSON.st
  */
 export const parseCurrentEnvelope = (raw: string): SettledInput => {
   const parsed = currentInputEnvelopeSchema.parse(JSON.parse(raw));
+  if (!CURRENT_SESSION_SOURCE_VERSIONS.has(parsed.persistedDataVersion)) {
+    throw new Error(`Sessionen indeholder en ukendt persisted-data-version: ${parsed.persistedDataVersion}.`);
+  }
   const rawSections = parsed.input.sections;
 
   for (const sectionKey of Object.keys(rawSections)) {

@@ -74,15 +74,10 @@ test.describe('Download-tooltip — de tre klasser', () => {
 
     await page.getByRole('button', { name: 'Varige mén' }).click();
     /**
-     * Her er blokeringen ÉT rødt felt, hvis codec leverer en konkret rettelsesvej — og så citeres den
-     * ordret frem for klasseteksten (`specific`-allowlisten, `error-contract.md` §4).
-     *
-     * Det er en tilsigtet forbedring af den tidligere adfærd: gaten testede før `bounds || rule` i hånden
-     * og sendte derfor ALLE `format`-fejl i den generiske gren, også dem hvor codec'en HAVDE noget konkret
-     * at sige. Klassifikationen genbruger nu `resolveFieldIssueTooltip`, så knappen og feltet siger det
-     * samme.
+     * Den røde dato optræder sammen med de øvrige manglende input. Downloaden må derfor ikke citere datoen
+     * og skjule, at der også mangler méngrad og beregningsdato — gate-kontrakten kræver den fælles klasse.
      */
-    await expectDisabledDownloadTooltip(download, NONEXISTENT_DAY);
+    await expectDisabledDownloadTooltip(download, INVALID_INPUT);
 
     /**
      * TO uafhængige røde felter → klasseteksten, ikke et citat. Det er lempelsens kerne: med to fejl ville
@@ -96,10 +91,10 @@ test.describe('Download-tooltip — de tre klasser', () => {
     await expect(mengrad).toHaveAttribute('aria-invalid', 'true');
     await expectDisabledDownloadTooltip(download, INVALID_INPUT);
 
-    // Rettes méngraden, er der igen kun ÉN rød fejl at citere.
+    // Rettes méngraden, er dato-fejlen stadig ledsaget af manglende input og skal fortsat bruge klasse-teksten.
     await setFieldValueAndSettle(mengrad, '10');
     await expect(mengrad).not.toHaveAttribute('aria-invalid', 'true');
-    await expectDisabledDownloadTooltip(download, NONEXISTENT_DAY);
+    await expectDisabledDownloadTooltip(download, INVALID_INPUT);
 
     // Rettes datoen, falder gaten tilbage til de øvrige tomme felter — ikke til en stale rød tilstand.
     await page.getByRole('button', { name: 'Stamdata' }).click();
@@ -109,6 +104,26 @@ test.describe('Download-tooltip — de tre klasser', () => {
     await expectDisabledDownloadTooltip(download, MISSING_INPUT);
 
     expect(runtimeErrors).toEqual([]);
+  });
+
+  test('viser den konkrete kalenderfejl, når den er den eneste blokering', async ({ page }) => {
+    await login(page);
+
+    await page.getByRole('button', { name: 'Stamdata' }).click();
+    const fodselsdato = page.locator("input[name='skadelidteFodselsdato']");
+    await setDate(fodselsdato, '01-01-1980');
+    await setDate(page.locator("input[name='skadedato']"), '01-01-2015');
+
+    await page.getByRole('button', { name: 'Varige mén' }).click();
+    await setFieldValueAndSettle(page.locator("input[name='mengrad']"), '10');
+    await setDate(page.locator("input[name='beregningsdato']"), '01-01-2020');
+
+    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await setDate(fodselsdato, '31-02-1980');
+    await expect(fodselsdato).toHaveAttribute('aria-invalid', 'true');
+
+    await page.getByRole('button', { name: 'Varige mén' }).click();
+    await expectDisabledDownloadTooltip(page.getByTestId('varigemen-download'), NONEXISTENT_DAY);
   });
 
   /**

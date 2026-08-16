@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Tab, Tabs } from '@mui/material';
 import { useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
+import { TAB_NAVIGATION_ATTRIBUTE } from './containerNavigation/navigationControlSemantics';
 
 export type PageTabItem<T extends string> = {
   readonly key: T;
@@ -113,7 +114,13 @@ function PageTabs<T extends string>({
           }}
         >
           {items.map((item) => (
-            <Tab key={item.key} className="tab-item" label={item.label} value={item.key} />
+            <Tab
+              key={item.key}
+              className="tab-item"
+              label={item.label}
+              value={item.key}
+              {...{ [TAB_NAVIGATION_ATTRIBUTE]: 'true' }}
+            />
           ))}
         </Tabs>
       </Box>

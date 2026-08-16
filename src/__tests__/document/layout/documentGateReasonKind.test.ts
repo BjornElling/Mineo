@@ -109,7 +109,8 @@ describe('resolveDocumentGateTooltip — klasse → brugertekst', () => {
  *
  * Et tidligere udkast ville udlede klassen af issue-listens LÆNGDE. Testene her pinner, hvorfor det ikke
  * holder: `runProjection` dedupper på `kind:code`, og `require` registrerer ét `missing`-issue pr. tomt
- * felt — så listens længde måler hverken antal felter eller antal årsager. Kun `field`/`row`-scope tælles.
+ * felt — så listens længde måler ikke antal felter. `specific` kræver derfor én samlet årsag, mens alle
+ * årsager stadig klassificeres af deres metadata.
  */
 describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
   const fieldIssue = (reason: FieldIssue['reason'], message: string): FieldIssue => ({
@@ -164,17 +165,17 @@ describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
   });
 
   /**
-   * Netop dette tilfælde brød længde-heuristikken: ÉT rødt felt + tre tomme felter er fire issues, men den
-   * røde fejl er stadig den ene, der kan citeres.
+   * En konkret rød fejl må ikke skjule samtidige manglende felter. Derfor skal den fælles invalid-klasse
+   * vinde, selv om kun én af årsagerne er et felt.
    */
-  it('citerer den ENE røde bounds-fejl, selv når flere felter samtidig er tomme', () => {
+  it('vælger invalid-input, når en rød fejl optræder sammen med tomme felter', () => {
     const reason = classifyBlockingCauses('c', [
       { scope: 'missing', issue: missingIssue('m1', 'Feltet Beregningsdato er ikke udfyldt') },
       { scope: 'missing', issue: missingIssue('m2', 'Feltet Skadedato er ikke udfyldt') },
       { scope: 'field', issue: fieldIssue('bounds', 'Méngrad skal være mellem 1 og 120') },
     ], 'fallback');
-    expect(reason.kind).toBe('specific');
-    expect(resolveDocumentGateTooltip(reason)).toBe('Méngrad skal være mellem 1 og 120');
+    expect(reason.kind).toBe('invalid-input');
+    expect(resolveDocumentGateTooltip(reason)).toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
   });
 
   it('giver den universelle mangel-tekst for tomme felter alene', () => {

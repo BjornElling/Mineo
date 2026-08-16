@@ -10,9 +10,13 @@ vi.mock('../../utils/fileHandleStorage', () => ({
   deletePendingPwaOpenRequestFromIndexedDB: () => deletePendingPwaOpenRequestFromIndexedDBMock(),
 }));
 
-vi.mock('../../utils/logger', () => ({
-  logWarning: (...args: unknown[]) => logWarningMock(...args),
-}));
+vi.mock('../../utils/logger', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/logger')>();
+  return {
+    ...actual,
+    logWarning: (...args: unknown[]) => logWarningMock(...args),
+  };
+});
 
 const buildFileHandle = (name = 'test.eo'): FileSystemFileHandle => ({
   kind: 'file',
@@ -402,7 +406,7 @@ describe('pwaLaunchQueue', () => {
       expect(await barrier).toBe(true);
     });
 
-    it('afviser handoff, når requesten ikke kan bekræftes i IndexedDB', async () => {
+  it('afviser handoff, når requesten ikke kan bekræftes i IndexedDB', async () => {
       const handle = buildFileHandle('sag.eo');
       savePendingPwaOpenRequestToIndexedDBMock.mockResolvedValue(false);
 
@@ -419,6 +423,28 @@ describe('pwaLaunchQueue', () => {
       // på nyeste version med det samme.
       loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue(null);
       expect(await pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff()).toBe(false);
+    });
+
+    it('logger ikke rå filnavne, når pending-requesten ikke kan persisteres', async () => {
+      const privateFilename = 'Jens Jensen 010101-1234.eo';
+      const handle = buildFileHandle(privateFilename);
+      savePendingPwaOpenRequestToIndexedDBMock.mockResolvedValue(false);
+
+      let consumer: ((params: { files: FileSystemFileHandle[] }) => Promise<void>) | null = null;
+      (window as unknown as { launchQueue: unknown }).launchQueue = {
+        setConsumer: (fn: (params: { files: FileSystemFileHandle[] }) => Promise<void>) => {
+          consumer = fn;
+        },
+      };
+      pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+      await consumer!({ files: [handle] });
+
+      const warning = logWarningMock.mock.calls.find(([message]) =>
+        message === 'Pending PWA-open request kunne ikke persisteres; fortsætter med in-memory request'
+      );
+      const data = warning?.[1]?.data as { fileName?: string } | undefined;
+      expect(data?.fileName).not.toContain(privateFilename);
+      expect(data?.fileName).toContain('navn-hash');
     });
 
     it('afviser handoff, hvis IndexedDB-læsningen hænger over timeout-loftet', async () => {

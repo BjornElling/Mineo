@@ -2,7 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-12
+**Senest verificeret mod kode:** 2026-08-16
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -273,9 +273,11 @@ Før trin 1 resolverer `.eo`-loaderen en eksplicit kildeversion fra
 `migratePersistedSectionValue(pageKey, value, sourceVersion)` i
 `src/utils/persistenceMigrations.ts`: den normaliserer (`nullToUndefinedDeep`) før
 et eksakt per-sektion `fromVersion -> current`-opslag. Manglende register-entry er
-identity; der gættes aldrig ud fra shape eller versionsrækkefølge. Trin 3 ligger i
+identity ved `.eo`-load; der gættes aldrig ud fra shape eller versionsrækkefølge. Trin 3 ligger i
 `sanitizePersistedValueForSchema()`, trin 4 hos kalderen. Denne pipeline er kun `.eo`-load; current-session-
-hydrering validerer én samlet current-format-envelope og kører aldrig per-sektionsmigratorer.
+hydrering anvender samme inbound-kæde for hver canonical sektion, men accepterer kun de eksplicit understøttede
+persisted-data-versioner fra current-sessionens levetid. En ukendt/fremtidig version fail-closer før kæden, så den
+ikke kan blive tolket som identity og få en semantisk ukendt værdi skrevet videre.
 
 Migratorer må kun mappe kendte gamle strukturer til current struktur. De må ikke gætte domæneværdier. En migrator er et extension point, ikke en generel forpligtelse til bagudkompatibilitet.
 
@@ -342,7 +344,8 @@ Se `src/contracts/app-settings.md` for den normative regel om nested merge-logik
 ```
 
 Session-hydrering læser envelope-strukturen og passerer derefter hver canonical sektion gennem præcis samme
-migrator → sanitize → schema-parse-kæde som `.eo`-load. Et strip, en ukendt sektion eller en ikke-migrerbar adresse
+migrator → sanitize → schema-parse-kæde som `.eo`-load. Den afviser desuden ukendte/fremtidige kildeversioner før
+sektionerne behandles. Et strip, en ukendt sektion eller en ikke-migrerbar adresse
 må ikke blive til en ændret session; de rå bytes bevares fail-closed efter `persistence-contract.md` §4. Rejected input
 valideres særskilt mod feltkataloget (kendt adresse + eksisterende entity + XOR). Zod-versioner og
 `stripUnknownFieldsBySchema`'s `.shape`/pipe-afhængigheder skal verificeres ved Zod-opgradering, fordi fejl her kan give

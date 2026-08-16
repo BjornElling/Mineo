@@ -50,6 +50,7 @@ const LazyChunkRecoveryNotice = ({ onReloadBlocked }: LazyChunkRecoveryNoticePro
       action={
         <Button
           color="inherit"
+          data-mineo-focusable-button="true"
           onClick={() => {
             void handleReload();
           }}

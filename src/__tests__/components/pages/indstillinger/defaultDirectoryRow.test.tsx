@@ -168,6 +168,28 @@ describe('DefaultDirectoryRow — handlinger', () => {
     expect(screen.getByText(DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME)).toBeInTheDocument();
     vi.unstubAllGlobals();
   });
+
+  it('bevarer et tidligere valg, hvis et nyt mappevalg ikke kan registreres', async () => {
+    const user = userEvent.setup();
+    const newHandle = { name: 'Ny mappe' } as unknown as FileSystemDirectoryHandle;
+    getDirectoryDisplayInfoMock.mockResolvedValue({
+      id: 'dir-gammel',
+      displayName: 'Gammel mappe',
+      savedAt: 0,
+      source: 'user',
+    });
+    saveDefaultDirectoryHandleMock.mockResolvedValue(null);
+    vi.stubGlobal('showDirectoryPicker', vi.fn(async () => newHandle));
+    renderRow('dir-gammel');
+
+    await waitFor(() => expect(screen.getByText('Gammel mappe')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Vælg mappe' }));
+
+    expect(saveDefaultDirectoryHandleMock).toHaveBeenCalledWith(newHandle);
+    expect(screen.getByText('Gammel mappe')).toBeInTheDocument();
+    expect(screen.queryByText('Ny mappe')).not.toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
 });
 
 /**
@@ -180,7 +202,7 @@ describe('DefaultDirectoryRow — «Vælg mappe» er tastaturtilgængelig', () =
   const renderMedMappevaelger = async () => {
     const directoryHandle = { name: 'Sager' } as unknown as FileSystemDirectoryHandle;
     const showDirectoryPicker = vi.fn(async () => directoryHandle);
-    saveDefaultDirectoryHandleMock.mockResolvedValue({ id: 'dir-1', displayName: 'Sager' });
+    saveDefaultDirectoryHandleMock.mockResolvedValue('dir-1');
     vi.stubGlobal('showDirectoryPicker', showDirectoryPicker);
     renderRow(undefined);
     await waitFor(() => {
@@ -249,6 +271,20 @@ describe('resolveDefaultDirectoryLocation — de tre tilstande', () => {
   it('med id uden metadata: utilgaengelig, med standardens navn', async () => {
     getDirectoryDisplayInfoMock.mockResolvedValue(null);
     expect(await resolveDefaultDirectoryLocation('dir-1')).toEqual({
+      kind: 'utilgaengelig',
+      displayName: DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME,
+    });
+  });
+
+  it('med et andet metadata-id end settings-id: utilgaengelig, ikke den forkerte mappe', async () => {
+    getDirectoryDisplayInfoMock.mockResolvedValue({
+      id: 'dir-anden',
+      displayName: 'Forkert mappe',
+      savedAt: 0,
+      source: 'user',
+    });
+
+    await expect(resolveDefaultDirectoryLocation('dir-aktuel')).resolves.toEqual({
       kind: 'utilgaengelig',
       displayName: DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME,
     });

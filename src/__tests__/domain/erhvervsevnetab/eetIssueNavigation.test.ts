@@ -70,4 +70,13 @@ describe('resolveMidlertidigtEetIssueNavigation', () => {
       focusFieldAddress: undefined,
     });
   });
+
+  it('lader en stamdata-datoordensfejl pege på siden uden at gætte ét af de to felter', () => {
+    expect(resolveMidlertidigtEetIssueNavigation({ id: 'midlertidigt-eet-stamdata-date-order' })).toEqual({
+      kind: 'stamdata-page',
+      pageName: 'Stamdata',
+      sectionTitle: 'Stamdata',
+      focusFieldAddress: undefined,
+    });
+  });
 });

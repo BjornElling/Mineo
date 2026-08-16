@@ -189,7 +189,6 @@ const GridChoiceCellInner = <
         width="100%"
         expectedOptionValues={cell.field.descriptor.codec.options}
       {...(getOptionLabel === undefined ? {} : { getOptionLabel })}
-        {...(getOptionLabel === undefined ? {} : { getOptionLabel })}
         value={value as TValue}
         allowEmpty={false}
         onChange={handleChange}

@@ -85,7 +85,10 @@ export const resolveDefaultDirectoryLocation = async (
   }
 
   const meta = await getDirectoryDisplayInfo();
-  if (meta === null) {
+  // Settings-id'et og IndexedDB-recorden er to device-lokale kilder, der skal pege på samme
+  // registrering. Et gyldigt, men andet id er ikke et gyldigt match; ellers kunne en gammel cache
+  // vise den forkerte mappe som den aktuelle.
+  if (meta === null || meta.id !== defaultDirectoryHandleId) {
     return UTILGAENGELIG;
   }
 

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -80,6 +80,18 @@ if (variant === 'mineo') {
     throw new Error(
       `Mineo-buildets service worker (${workerVersion}) og assetmanifest (${pwaAssets.version}) hører til hver sin build.`
     );
+  }
+
+  // Produktionsbuildet må ikke indeholde den DEV-/test-only introspektionsbro. Denne kontrol ligger
+  // efter bundlingen, så den aldrig kan blive falsk grøn blot fordi `dist/mineo` ikke findes i en ren
+  // testkørsel — den er en obligatorisk del af den build, som faktisk kan deployes.
+  const bundleNames = readdirSync(path.join(outDir, 'assets')).filter((name) => name.endsWith('.js'));
+  const automationBridgeKey = '__mineoAutomation';
+  const bridgeBundle = bundleNames.find((name) =>
+    readFileSync(path.join(outDir, 'assets', name), 'utf8').includes(automationBridgeKey)
+  );
+  if (bridgeBundle !== undefined) {
+    throw new Error(`Mineo-produktionsbuildet indeholder automatiseringsbroens globale nøgle i ${bridgeBundle}.`);
   }
 } else {
   for (const forbidden of ['sw.js', 'manifest.json', 'pwa-assets.json', 'icons', 'favicon-mineo.svg']) forbidPath(forbidden);

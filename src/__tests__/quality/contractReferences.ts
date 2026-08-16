@@ -184,7 +184,12 @@ export const sourceText = (): string => {
       // felter (`domainContracts`, `crossCuttingContracts`), og de findes kun dér.
       if (absolutePath.includes(`${path.sep}contracts${path.sep}`) && !absolutePath.endsWith('.json')) return;
       if (absolutePath.endsWith('.json')) {
-        chunks.push(fs.readFileSync(absolutePath, 'utf8'));
+        const json = fs.readFileSync(absolutePath, 'utf8');
+        chunks.push(
+          absolutePath.endsWith(`${path.sep}src${path.sep}contracts${path.sep}contract-topology.json`)
+            ? json
+            : stripCommentsAndStrings(json)
+        );
         return;
       }
       // Testkode udelades (se modulets hoved): et fraværsværn må hverken bekræftes af en test, der

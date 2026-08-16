@@ -137,6 +137,23 @@ describe('MenberegningTab — reader-projektion + download-gate', () => {
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
   });
 
+  it('afkorter méngradens draft ved codecets tre cifre uden at ændre bounds-reglen', async () => {
+    const user = userEvent.setup();
+    hydrate({ mengrad: 10, beregningsdato: toISODateString('2020-01-01') }, validStamdata);
+    renderTab();
+
+    const input = screen.getByPlaceholderText('0');
+    expect(input).toHaveAttribute('maxlength', '3');
+
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}{Delete}1234');
+    await user.tab();
+
+    await waitFor(() => expect(input).toHaveValue('123'));
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(slimInputStore.getState().input.sections.varigemen).toMatchObject({ mengrad: 123 });
+  });
+
   it('en byttet datoorden i stamdata blokerer download (rød feltfejl på datoerne)', async () => {
     hydrate(
       { mengrad: 10, beregningsdato: toISODateString('2020-01-01') },

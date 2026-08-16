@@ -8,6 +8,7 @@ import InlineActionButton from '../../../components/inputs/InlineActionButton';
 import InsertTodayDateButton from '../../../components/inputs/InsertTodayDateButton';
 import DownloadIconButton from '../../../components/inputs/DownloadIconButton';
 import { StandardGridTable } from '../../../components/tables/StandardGridTable';
+import SideTab from '../../../components/layout/SideTab';
 
 /**
  * Container keyboard navigation tests
@@ -69,6 +70,44 @@ describe('Container keyboard navigation', () => {
   afterAll(() => {
     restoreRects();
   });
+
+  it('aktiverer en fokuseret sidefane, men holder indholdets tastatursekvens fri for sidefanen', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <Container>
+        <SideTab label="Kontroltabel" active={false} onClick={onClick} top="125px" />
+        <input data-testid="field1" type="text" style={{ position: 'fixed' }} />
+        <input data-testid="field2" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const sideTab = screen.getByRole('button', { name: 'Kontroltabel' });
+    const field1 = screen.getByTestId('field1');
+    const field2 = screen.getByTestId('field2');
+
+    sideTab.focus();
+    await user.keyboard('{Enter}');
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(sideTab);
+
+    field1.focus();
+    await user.keyboard('{Tab}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(field2);
+
+    await user.keyboard('{Tab}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(field1);
+    expect(document.activeElement).not.toBe(sideTab);
+
+    await user.keyboard('{Shift>}{Tab}{/Shift}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(field2);
+    expect(document.activeElement).not.toBe(sideTab);
+  });
+
   it('Tab flytter fokus fremad uden at selektere indhold', async () => {
     const user = userEvent.setup();
 

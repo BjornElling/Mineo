@@ -68,10 +68,10 @@ const BugReportButton = ({
   // `isPreparing`); hooken tilføjer tilbage-knappen, stak-disciplinen og fokus-restoren.
   // `handleDialogClose` er defineret længere nede (den læser `prepared`), så lukkevejen kaldes
   // gennem en ref. Ét lukkested frem for en kopi af afbruds-logningen to steder.
-  const closeRef = React.useRef<() => void>(() => undefined);
+  const closeRef = React.useRef<() => boolean>(() => true);
   const { triggerRef, overlayRootProps, requestClose } = useOverlayBehavior<HTMLButtonElement>({
     open: dialogOpen,
-    onClose: () => { closeRef.current(); },
+    onClose: () => closeRef.current(),
     disableEscape: true,
   });
 
@@ -161,14 +161,15 @@ const BugReportButton = ({
     setSnackbar((prev) => ({ ...prev, open: false }));
   }, []);
 
-  const handleDialogClose = React.useCallback(() => {
-    if (isPreparing) return;
+  const handleDialogClose = React.useCallback((): boolean => {
+    if (isPreparing) return false;
     if (prepared && !actionTakenRef.current && import.meta.env.DEV) {
       console.info('Bug report preview aborted', {
         source: context?.source ?? 'BugReportButton',
       });
     }
     setDialogOpen(false);
+    return true;
   }, [context?.source, isPreparing, prepared]);
   closeRef.current = handleDialogClose;
 

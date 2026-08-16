@@ -7,6 +7,7 @@ import { useFieldEditor } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
 import { useFieldLabel } from '../useFieldLabel';
+import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
 
 // Radio-felt (§1.3/§3.6): radio-valg committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options. Den viste værdi læses fra den afsluttede revision gennem
@@ -46,6 +47,11 @@ const RadioField = <TValue extends string>({
   // navngive samme felt forskelligt (§3.2a) — og så et callsite ikke skal skrive teksten to gange.
   const accessibleName = useFieldLabel(field as FieldRef<TValue | undefined>);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
+  const resolvedAllowEmpty = resolveChoiceAllowEmpty(
+    field as FieldRef<TValue | undefined>,
+    allowEmpty,
+    'RadioField'
+  );
 
   // `StyledRadioButton` er generisk i optionernes værditype og mapper DOM-strengen tilbage til den
   // option, den kom fra. `next` ER derfor `TValue` — det tidligere `as TValue`-cast er unødvendigt.
@@ -74,7 +80,7 @@ const RadioField = <TValue extends string>({
       onCommit={handleCommit}
       row={row}
       disabled={disabled}
-      allowEmpty={allowEmpty}
+      allowEmpty={resolvedAllowEmpty}
       {...(emptyLabel === undefined ? {} : { emptyLabel })}
       error={hasError}
       helperText={issueText.message ?? ''}

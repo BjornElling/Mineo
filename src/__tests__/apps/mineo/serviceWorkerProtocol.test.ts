@@ -154,6 +154,24 @@ describe('service worker-opdateringsprotokol', () => {
     expect(skipWaiting).toHaveBeenCalledOnce();
   });
 
+  it('svarer med den indbagte build-version til klientens versionshåndtryk', () => {
+    const { listeners } = loadServiceWorker({ workerVersion: '2026.08.99' });
+    const responsePort = { postMessage: vi.fn() };
+    const message = listeners.get('message');
+    expect(message).toBeDefined();
+
+    message?.({
+      data: { type: 'MINEO_GET_BUILD_VERSION' },
+      ports: [responsePort],
+      waitUntil: vi.fn(),
+    } as unknown as WorkerEvent);
+
+    expect(responsePort.postMessage).toHaveBeenCalledWith({
+      type: 'MINEO_BUILD_VERSION',
+      version: '2026.08.99',
+    });
+  });
+
   it('besvarer kun cached immutable assets og lader app-shellen gå til netværket', async () => {
     const { listeners, cache, fetch } = loadServiceWorker();
     const installWaitUntil = vi.fn();

@@ -157,8 +157,10 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/domain/**', 'src/utils/**', 'src/hooks/**', 'src/rowDrafts/**', 'src/contexts/**'],
       thresholds: {
+        statements: 80,
         lines: 80,
         branches: 70,
+        functions: 80,
       },
     },
   },

@@ -14,6 +14,7 @@ import { useGridCellSurface } from '../useGridCellSurface';
 import { useFieldLabel } from '../useFieldLabel';
 import { keyFilterFromAdmission, type DraftAdmission } from '../../../components/inputs/draftAdmission';
 import { resolveFieldIssueText } from '../fieldIssueText';
+import { resolveDraftLengthLimit } from './charLengthPolicy';
 
 // Grid-celle-basis (§2.5/§3.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
 // `useGridCellSurface` (som bro-forbinder grid-core-navigation ↔ editor-motoren). Den er grid-pendanten
@@ -81,6 +82,10 @@ const GridTextCellInner = <T, TEntity>(
   // felt med et kontekstafhængigt navn ville hedde én ting i formularen og en anden i tabellen. Det er
   // netop den drift, `useFieldLabel` blev oprettet for at fjerne (§3.2a).
   const accessibleName = useFieldLabel(cell.field);
+  // En grænse, der kun sættes på et enkelt kaldssted, er ikke et værn: direkte GridTextCell-brugere
+  // skal arve codecets erklæring på samme måde som formularfelterne. En eksplicit prop kan stadig gøre
+  // grænsen strengere for en særlig overflade, men må ikke være nødvendig for korrekthed.
+  const resolvedMaxDraftLength = maxDraftLength ?? resolveDraftLengthLimit(cell.field);
   const cellStatusId = React.useId();
   const keyFilter = React.useMemo(
     () => (admission === undefined ? undefined : keyFilterFromAdmission(admission)),
@@ -89,7 +94,7 @@ const GridTextCellInner = <T, TEntity>(
   const surface = useGridCellSurface<T, TEntity>(gridCell, cell, {
     ...(keyFilter === undefined ? {} : { keyFilter }),
     ...(admission === undefined ? {} : { draftAdmission: admission }),
-    ...(maxDraftLength === undefined ? {} : { maxDraftLength }),
+    ...(resolvedMaxDraftLength === undefined ? {} : { maxDraftLength: resolvedMaxDraftLength }),
   });
 
   const assignInputRef = React.useCallback(
@@ -147,7 +152,7 @@ const GridTextCellInner = <T, TEntity>(
             inputProps={{
               'aria-label': accessibleName,
               inputMode,
-              ...(maxDraftLength === undefined ? {} : { maxLength: maxDraftLength }),
+              ...(resolvedMaxDraftLength === undefined ? {} : { maxLength: resolvedMaxDraftLength }),
               readOnly: surface.readOnly,
               'aria-invalid': showError,
               // Den skjulte fejl-/advarselstekst nedenfor skal PEGES på, ellers er den en løsrevet

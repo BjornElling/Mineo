@@ -3,10 +3,9 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-08-15 (kun én ændring: PWA-køens afbryd-valg hedder nu
-«Annuller» som i programmets øvrige dialoger, verificeret mod `MainLayout.tsx` og dækket af
-`MainLayout.pwaConcurrency.test.tsx`. Preflightens tre valg er uændrede)
-2026-08-12
+**Senest verificeret mod kode:** 2026-08-16 (PWA-køens afbryd-valg hedder «Annuller» som i programmets
+øvrige dialoger; current-sessionens kildeversioner er begrænset til eksplicit understøttede versioner, og
+device-lokal metadata valideres før visning. Verificeret mod de berørte moduler og tests.)
 
 Denne kontrakt samler de trust-kritiske regler for runtime-persistence, `.eo`, save/load og autoritative replacements.
 Der findes ingen per-sektion-storage og ingen `invalidDrafts`: sagsinput ligger i én current-session-envelope med ét

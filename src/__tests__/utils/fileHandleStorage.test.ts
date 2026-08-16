@@ -1,4 +1,16 @@
-import { verifyDirectoryHandle } from '../../utils/fileHandleStorage';
+const { readFileHandleValueResultMock } = vi.hoisted(() => ({
+  readFileHandleValueResultMock: vi.fn(),
+}));
+
+vi.mock('../../utils/file/fileHandleKvStore', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/file/fileHandleKvStore')>();
+  return {
+    ...actual,
+    readFileHandleValueResult: (...args: unknown[]) => readFileHandleValueResultMock(...args),
+  };
+});
+
+import { getDirectoryDisplayInfo, verifyDirectoryHandle } from '../../utils/fileHandleStorage';
 
 vi.mock('../../utils/logger', () => ({
   logError: vi.fn(),
@@ -41,5 +53,50 @@ describe('verifyDirectoryHandle', () => {
 
     expect(result).toBe(false);
     expect(requestPermission).toHaveBeenCalledWith({ mode: 'read' });
+  });
+});
+
+describe('getDirectoryDisplayInfo', () => {
+  beforeEach(() => {
+    readFileHandleValueResultMock.mockReset();
+  });
+
+  it('returnerer kun schema-validerede metadata', async () => {
+    readFileHandleValueResultMock.mockResolvedValue({
+      status: 'ok',
+      value: {
+        id: 'directory-1',
+        displayName: 'Sager',
+        savedAt: 1_700_000_000_000,
+        source: 'user',
+      },
+    });
+
+    await expect(getDirectoryDisplayInfo()).resolves.toEqual({
+      id: 'directory-1',
+      displayName: 'Sager',
+      savedAt: 1_700_000_000_000,
+      source: 'user',
+    });
+  });
+
+  it('afviser korrupte eller udvidede metadata uden at logge eller reparere storage', async () => {
+    readFileHandleValueResultMock.mockResolvedValue({
+      status: 'ok',
+      value: {
+        id: 'directory-1',
+        displayName: 'Sager',
+        savedAt: Number.NaN,
+        source: 'user',
+        fremmedFelt: true,
+      },
+    });
+
+    await expect(getDirectoryDisplayInfo()).resolves.toBeNull();
+    expect(readFileHandleValueResultMock).toHaveBeenCalledWith(
+      'default_directory_meta',
+      'getDirectoryDisplayInfo',
+      { silent: true },
+    );
   });
 });

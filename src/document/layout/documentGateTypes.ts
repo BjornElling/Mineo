@@ -203,22 +203,23 @@ export const classifyBlockingCauses = (
   fallbackMessage: string
 ): DocumentDownloadGateReason => {
   /**
-   * `specific` kræver at der er præcis ÉN rød årsag, OG at den har en konkret tekst.
+   * `specific` kræver at der er præcis ÉN årsag i hele listen, den skal være en felt-/rækkeårsag, OG den
+   * skal have en konkret tekst.
    *
    * Begge led er nødvendige, og de gør forskellige ting:
    *
-   *  - Kravet om ÉN rød årsag er lempelsen: er to felter røde, ville et citat af det ene udpege det som
-   *    "fejlen" og skjule det andet.
+   *  - Kravet om ÉN årsag er lempelsen: er der flere samtidige årsager, ville et citat af den ene udpege
+   *    den som "fejlen" og skjule de øvrige — også hvis de øvrige er manglende input.
    *  - Kravet om konkret tekst er allowlisten: en `format`-rejection uden `detail.tooltip` (fx en malformet
    *    dato) har intet at sige ud over feltets navn, som allerede står ved markøren.
    *
-   * Antallet måles på de RØDE årsager, ikke på hele listen: projektionerne kalder `require` pr. felt, så en
-   * halvt udfyldt formular giver mange samtidige `missing`-årsager, uden at det gør den ene røde fejl
-   * mindre citerbar. Til gengæld tælles røde årsager UDEN konkret tekst med — de er reelle, uafhængige fejl,
-   * og skal derfor kunne diskvalificere et citat, selv om de ikke selv kan citeres.
+   * Antallet måles på hele listen. En samtidig `missing`- eller aggregatårsag må ikke skjules af et citat af
+   * den ene røde feltfejl; så falder klassifikationen i stedet tilbage til den fælles invalid-/missing-
+   * prioritet nedenfor.
    */
-  const redCauses = causes.filter((cause) => cause.scope === 'field' || cause.scope === 'row');
-  const only = redCauses.length === 1 ? redCauses[0] : undefined;
+  const only = causes.length === 1 && (causes[0]?.scope === 'field' || causes[0]?.scope === 'row')
+    ? causes[0]
+    : undefined;
   if (only !== undefined) {
     const text = only.scope === 'row' ? only.message : resolveFieldIssueTooltip(only.issue);
     if (text !== FIELD_ISSUE_GENERIC_TOOLTIP) return { code, message: text, kind: 'specific' };

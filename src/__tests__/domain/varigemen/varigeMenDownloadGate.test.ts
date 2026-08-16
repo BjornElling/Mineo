@@ -94,8 +94,8 @@ describe('varigeMenDownloadGate', () => {
     );
     expect(gate.canDownload).toBe(false);
     expect(gate.reasons[0]?.code).toBe('varigemen:field-error');
-    // Ét rødt felt med en konkret bounds-besked ⇒ ordret citat, selv med et samtidigt tomt felt.
-    expect(gate.reasons[0]?.kind).toBe('specific');
+    // Flere samtidige årsager må ikke skjules af den konkrete bounds-besked.
+    expect(gate.reasons[0]?.kind).toBe('invalid-input');
   });
 
   /**

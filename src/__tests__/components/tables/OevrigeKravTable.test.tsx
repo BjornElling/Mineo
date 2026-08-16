@@ -90,6 +90,13 @@ describe('OevrigeKravTable', () => {
     expect(within(bodyRows[0]).getByDisplayValue('Medicin')).toBeInTheDocument();
   });
 
+  it('håndhæver tekstcodecets længdegrænse på den direkte grid-overflade', () => {
+    hydrate([]);
+    renderTable([]);
+
+    expect(screen.getByRole('textbox', { name: 'Udgift til' })).toHaveAttribute('maxlength', '60');
+  });
+
   it('descriptor-dato-bounds: en dato før skadedato (min) skjules af readeren og rejser en rød feltfejl (§1.6)', () => {
     // 2021 er før skadedato 2022-03-01 (arbejdsulykke → min = skadedato) → out-of-bounds.
     const reader = buildReader(

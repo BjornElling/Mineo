@@ -2,6 +2,7 @@ import { logWarning } from './logger';
 import { isRecord } from './typeGuards';
 import {
   deleteFileHandleValues,
+  directoryHandleMetaSchema,
   readFileHandleValue,
   readFileHandleValueResult,
   writeFileHandleValues,
@@ -128,8 +129,16 @@ export const saveDefaultDirectoryHandle = async (
  * DESIGN: passiv observatør — returnerer `null` hvis metadata ikke findes (ingen fallback),
  * og kalder ALDRIG `resolveDefaultDirectoryHandle`.
  */
-export const getDirectoryDisplayInfo = async (): Promise<DirectoryHandleMeta | null> =>
-  readFileHandleValue('default_directory_meta', 'getDirectoryDisplayInfo', { silent: true });
+export const getDirectoryDisplayInfo = async (): Promise<DirectoryHandleMeta | null> => {
+  const result = await readFileHandleValueResult('default_directory_meta', 'getDirectoryDisplayInfo', { silent: true });
+  if (result.status !== 'ok' || result.value === null) return null;
+
+  // Device-lokal cache kan være delvist ryddet eller stamme fra en tidligere version. En korrupt
+  // record må ikke blive til et falsk mappenavn i Indstillinger; den passive visning degraderer til
+  // den eksplicitte «utilgængelig»-tilstand uden at forsøge at reparere storage bag brugerens ryg.
+  const parsed = directoryHandleMetaSchema.safeParse(result.value);
+  return parsed.success ? parsed.data : null;
+};
 
 /** Henter standardmappens handle, eller `null`. */
 export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryHandle | null> =>

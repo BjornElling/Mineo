@@ -581,8 +581,16 @@ describe('currentSessionEnvelope', () => {
     expect(serialized.persistedDataVersion).toBe(PERSISTED_DATA_VERSION);
     expect(parseCurrentEnvelope(JSON.stringify({
       ...serialized,
-      persistedDataVersion: 'forældet-version',
+      persistedDataVersion: '3.11',
     }))).toEqual(createEmptySettledInput());
+  });
+
+  it('afviser en ukendt eller fremtidig persisted dataversion fail-closed', () => {
+    const serialized = JSON.parse(serializeCurrentEnvelope(createEmptySettledInput())) as Record<string, unknown>;
+    expect(() => parseCurrentEnvelope(JSON.stringify({
+      ...serialized,
+      persistedDataVersion: 'fremtidig-version',
+    }))).toThrow(/ukendt persisted-data-version/);
   });
 });
 
@@ -725,7 +733,7 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
   it('hydrerer en session fra en tidligere persisted dataversion uden datatab', () => {
     const raw = JSON.stringify({
       ...JSON.parse(serializeCurrentEnvelope(createEmptySettledInput())),
-      persistedDataVersion: 'forældet-version',
+      persistedDataVersion: '3.11',
     });
     sessionStorage.setItem(key, raw);
 
@@ -736,6 +744,20 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
     expect(store.getState().input).toEqual(createEmptySettledInput());
     // Hydration skriver aldrig, heller ikke når den læser en tidligere version. Den rå kilde kan
     // derfor kun erstattes atomisk af brugerens næste afsluttede inputtransaktion.
+    expect(sessionStorage.getItem(key)).toBe(raw);
+  });
+
+  it('bevarer en session med ukendt persisted dataversion og blokerer writes', () => {
+    const raw = JSON.stringify({
+      ...JSON.parse(serializeCurrentEnvelope(createEmptySettledInput())),
+      persistedDataVersion: 'fremtidig-version',
+    });
+    sessionStorage.setItem(key, raw);
+
+    const startup = initializeInputRuntime(store, catalog);
+
+    expect(startup.notice?.type).toBe('error');
+    expect(store.getState().meta.inputWritesBlocked).toBe(true);
     expect(sessionStorage.getItem(key)).toBe(raw);
   });
 });

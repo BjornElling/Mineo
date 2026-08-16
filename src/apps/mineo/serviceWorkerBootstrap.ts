@@ -41,8 +41,25 @@ import {
  */
 const UPDATE_INSTALL_TIMEOUT_MS = 15000;
 const ASSET_MANIFEST_PATH = '/pwa-assets.json';
+const WORKER_VERSION_REQUEST = 'MINEO_GET_BUILD_VERSION';
+const WORKER_VERSION_RESPONSE = 'MINEO_BUILD_VERSION';
 
 let isBootPhase = true;
+
+const settleBeforeDeadline = <T>(promise: Promise<T>, deadline: number, fallback: T): Promise<T> =>
+  new Promise<T>((resolve) => {
+    const timeoutId = window.setTimeout(() => resolve(fallback), Math.max(1, deadline - Date.now()));
+    void promise.then(
+      (value) => {
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      },
+      () => {
+        window.clearTimeout(timeoutId);
+        resolve(fallback);
+      },
+    );
+  });
 
 /**
  * Den udrullede builds version, læst uden om enhver cache.
@@ -50,15 +67,21 @@ let isBootPhase = true;
  * Fail-open: kan versionen ikke opløses, returneres `null`, og programmet kører videre uændret.
  * Et usikkert svar må aldrig udløse en genindlæsning — det ville påstå noget, vi ikke ved.
  */
-const probeDeployedVersion = async (): Promise<string | null> => {
+const probeDeployedVersion = async (deadline: number): Promise<string | null> => {
+  const remaining = Math.max(0, deadline - Date.now());
+  if (remaining === 0) return null;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), remaining);
   try {
-    const response = await fetch(ASSET_MANIFEST_PATH, { cache: 'no-store' });
+    const response = await fetch(ASSET_MANIFEST_PATH, { cache: 'no-store', signal: controller.signal });
     if (!response.ok) return null;
     const payload: unknown = await response.json();
     const version = (payload as { version?: unknown } | null)?.version;
     return typeof version === 'string' && version.trim() !== '' ? version.trim() : null;
   } catch {
     return null;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 };
 
@@ -136,6 +159,53 @@ const waitForWorkerState = (
 };
 
 /**
+ * Beviser workerens indbagte version — ikke kun registreringens query-string. Ved en delvis deploy
+ * kan `/pwa-assets.json`, HTML og en allerede installeret worker komme fra forskellige origin-noder;
+ * uden dette håndtryk kunne en gammel waiting-worker blive aktiveret og derefter servere forkert
+ * asset-cache til det nye dokument. Manglende svar er fail-closed.
+ */
+const workerMatchesDeployedVersion = async (
+  worker: ServiceWorker,
+  deployedVersion: string,
+  deadline: number,
+): Promise<boolean> => {
+  const remaining = Math.max(0, deadline - Date.now());
+  if (remaining === 0 || typeof MessageChannel === 'undefined') return false;
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const channel = new MessageChannel();
+    let timeoutId = 0;
+
+    const settle = (value: boolean): void => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      channel.port1.onmessage = null;
+      channel.port1.close();
+      channel.port2.close();
+      resolve(value);
+    };
+
+    timeoutId = window.setTimeout(() => settle(false), remaining);
+
+    channel.port1.onmessage = (event: MessageEvent<unknown>): void => {
+      const payload = event.data as { type?: unknown; version?: unknown } | null;
+      settle(
+        payload?.type === WORKER_VERSION_RESPONSE
+        && payload.version === deployedVersion
+      );
+    };
+
+    try {
+      worker.postMessage({ type: WORKER_VERSION_REQUEST }, [channel.port2]);
+    } catch {
+      settle(false);
+    }
+  });
+};
+
+/**
  * Bringer den nye build helt frem til AKTIV worker — ikke blot installeret.
  *
  * `installed` er IKKE en tilstrækkelig barriere for en genindlæsning. En installeret worker står i
@@ -147,8 +217,11 @@ const waitForWorkerState = (
  * Rækkefølgen skal derfor være: komplet install → aktivér præcis denne worker → bekræft `activated`
  * → først dér genindlæs.
  */
-const activateNewBuildWorker = async (registration: ServiceWorkerRegistration): Promise<boolean> => {
-  const deadline = Date.now() + UPDATE_INSTALL_TIMEOUT_MS;
+const activateNewBuildWorker = async (
+  registration: ServiceWorkerRegistration,
+  deployedVersion: string,
+  deadline: number,
+): Promise<boolean> => {
   const remaining = (): number => Math.max(0, deadline - Date.now());
 
   // Den konkrete worker fra dette forløb. `waiting` alene er ikke et versionsbevis, men
@@ -158,6 +231,10 @@ const activateNewBuildWorker = async (registration: ServiceWorkerRegistration): 
 
   // Trin 1: komplet precache. Workeren installeres kun, når HELE dens assetmanifest ligger i cache.
   if (!(await waitForWorkerState(pending, (state) => state === 'installed' || state === 'activated', remaining()))) {
+    return false;
+  }
+
+  if (!(await workerMatchesDeployedVersion(pending, deployedVersion, deadline))) {
     return false;
   }
 
@@ -175,17 +252,29 @@ const activateNewBuildWorker = async (registration: ServiceWorkerRegistration): 
   return waitForWorkerState(pending, (state) => state === 'activated', remaining());
 };
 
-const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
+const registerServiceWorker = async (deadline: number): Promise<ServiceWorkerRegistration | null> => {
   // Query'en er cache-buster, ikke versionskilde: workerens egen version er indbagt i dens bytes,
   // så `registration.update()` kan opdage en deploy på den SAMME URL.
   const serviceWorkerUrl = `/sw.js?v=${encodeURIComponent(VERSION)}`;
 
   try {
-    const registration = await navigator.serviceWorker.register(serviceWorkerUrl, {
-      scope: '/',
-      updateViaCache: 'none',
-    });
-    await registration.update();
+    const registration = await settleBeforeDeadline(
+      navigator.serviceWorker.register(serviceWorkerUrl, {
+        scope: '/',
+        updateViaCache: 'none',
+      }),
+      deadline,
+      null,
+    );
+    if (registration === null) return null;
+    // `update()` lover en afsluttet Promise<void>, ikke et boolsk resultat. Et separat true-svar
+    // gør timeout/failure synligt uden at forveksle den normale `undefined` med et afslag.
+    const updated = await settleBeforeDeadline(
+      registration.update().then(() => true),
+      deadline,
+      false,
+    );
+    if (!updated) return null;
     return registration;
   } catch (error) {
     console.warn('Service worker registrering/opdatering fejlede.', error);
@@ -198,9 +287,12 @@ const runBootUpdatePass = async (): Promise<void> => {
   // aktiveres, og en gate spredt ud over kaldsstederne ville før eller siden blive glemt ét af dem.
   if (!isBootPhase) return;
 
+  const deadline = Date.now() + UPDATE_INSTALL_TIMEOUT_MS;
   const hadControllerAtBoot = navigator.serviceWorker.controller !== null;
-  const registration = await registerServiceWorker();
-  const deployedVersion = await probeDeployedVersion();
+  const [registration, deployedVersion] = await Promise.all([
+    registerServiceWorker(deadline),
+    probeDeployedVersion(deadline),
+  ]);
 
   // Uopløselig version (offline/fejl) eller uændret version: den normale, hurtige vej. Ingen
   // ventetid, ingen genindlæsning.
@@ -216,7 +308,7 @@ const runBootUpdatePass = async (): Promise<void> => {
   // Der ER en ny version. Den må først tages i brug, når den er komplet precachet OG faktisk aktiv —
   // ellers har vi byttet «brugeren skal klikke» ud med «brugeren kan lande i en halv version» eller
   // i et nyt dokument under den gamle worker.
-  if (!(await activateNewBuildWorker(registration))) return;
+  if (!(await activateNewBuildWorker(registration, deployedVersion, deadline))) return;
 
   // Sidste tjek før dokumentet rives ned: en `.eo`-fil, browseren afleverede få millisekunder
   // forinden, kan stadig være undervejs til IndexedDB. Kan den durable handoff ikke bekræftes, må

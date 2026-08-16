@@ -1,6 +1,6 @@
 # Parallelt redesign-review — samlet status
 
-**Kodeverificeret pr. 2026-08-09** på `greenfield`-branchen.
+**Kodeverificeret pr. 2026-08-16** på `main` (`9ddb3943` før dette review).
 
 Dette dokument er den samlede, aktuelle vurdering af alle oprindelige redesign-punkter
 (`#1`–`#52`). Det er en status- og beslutningsoversigt, ikke en historisk arbejdsdagbog.

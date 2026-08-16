@@ -4,7 +4,7 @@ import {
   savePendingPwaOpenRequestToIndexedDB,
 } from './fileHandleStorage';
 import { isFileSystemFileHandle } from './fileSystemAccess';
-import { logWarning } from './logger';
+import { logWarning, sanitizeFilenameForLog } from './logger';
 import { pwaFileOpenRequestSchema, type PwaFileOpenRequest } from '../schemas/pwaFileOpenRequestSchema';
 
 export type { PwaFileOpenRequest } from '../schemas/pwaFileOpenRequestSchema';
@@ -101,9 +101,9 @@ const persistPendingPwaFileOpenRequestState = async (): Promise<boolean> => {
 
       const saved = await savePendingPwaOpenRequestToIndexedDB(request);
       if (!saved) {
-        logWarning('Pending PWA-open request kunne ikke persisteres; fortsætter med in-memory request', {
-          context: 'persistPendingPwaFileOpenRequestState.save',
-          data: { requestId: request.id, fileName: request.fileName },
+          logWarning('Pending PWA-open request kunne ikke persisteres; fortsætter med in-memory request', {
+            context: 'persistPendingPwaFileOpenRequestState.save',
+            data: { requestId: request.id, fileName: sanitizeFilenameForLog(request.fileName) },
         });
       }
       return saved;
@@ -112,7 +112,7 @@ const persistPendingPwaFileOpenRequestState = async (): Promise<boolean> => {
         context: 'persistPendingPwaFileOpenRequestState.save',
         data: {
           requestId: request?.id,
-          fileName: request?.fileName,
+          fileName: sanitizeFilenameForLog(request?.fileName),
           errorMessage: error instanceof Error ? error.message : String(error),
         },
       });

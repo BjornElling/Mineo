@@ -41,23 +41,29 @@ export type EetIssueNavigationTarget =
 const STAMDATA_FIELD_ADDRESS_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
   'skadedato-missing': stamdataSkadedatoField.bind().address,
   'field-skadedato': stamdataSkadedatoField.bind().address,
+  'stamdata-date-order:skadedato': stamdataSkadedatoField.bind().address,
   'skadelidte-fodselsdato-missing': stamdataSkadelidteFodselsdatoField.bind().address,
   'field-skadelidte-fodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
+  'stamdata-date-order:skadelidteFodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
 };
 
 // Issue-id'er der hører til Stamdata-siden (ikke Erhvervsevnetab-fanerne). Sættet matches mod det
 // `midlertidigt_eet_source:`-strippede id fra invarianten. De faktiske producenter er
-// `useMidlertidigtEetInsertSource` (`midlertidigt-eet-stamdata-schema-invalid`) og
+// `useMidlertidigtEetInsertSource` (`midlertidigt-eet-stamdata-schema-invalid` og
+// `midlertidigt-eet-stamdata-date-order`) og
 // `computeEetLoebendeYdelser` (`skadedato-missing`, `skadelidte-fodselsdato-missing`).
 // `field-skadedato`/`field-skadelidte-fodselsdato` produceres p.t. kun af EET-siden selv (ikke via
 // source-sporet), men beholdes defensivt, så de routes korrekt, hvis de senere flyder igennem her.
 // (`skadedato-invalid` fjernet 2026-06-30: ingen producent i kodebasen.)
 const STAMDATA_ISSUE_IDS = new Set([
   'midlertidigt-eet-stamdata-schema-invalid',
+  'midlertidigt-eet-stamdata-date-order',
   'skadedato-missing',
   'skadelidte-fodselsdato-missing',
   'field-skadedato',
   'field-skadelidte-fodselsdato',
+  'stamdata-date-order:skadedato',
+  'stamdata-date-order:skadelidteFodselsdato',
 ]);
 
 /**

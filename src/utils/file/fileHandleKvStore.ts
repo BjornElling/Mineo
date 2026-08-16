@@ -6,6 +6,7 @@ import {
   type IndexedDbSchema,
 } from '../indexedDbStore';
 import type { PwaFileOpenRequest } from '../../schemas/pwaFileOpenRequestSchema';
+import { z } from 'zod';
 
 /**
  * Det device-lokale kv-store bag fil-handles, standardmappe og afventende PWA-åbning.
@@ -35,16 +36,18 @@ const SCHEMA: IndexedDbSchema = {
 const STORE_NAME = 'handles';
 
 /** Metadata for den registrerede standardmappe (display-info cache). */
-export interface DirectoryHandleMeta {
-  /** Unikt ID for denne directory-registrering */
-  id: string;
-  /** Mappenavn (fra handle.name) */
-  displayName: string;
-  /** Tidspunkt for registrering */
-  savedAt: number;
-  /** Kilde: 'user' = brugervalgt, 'fallback-desktop' = standard/fallback */
-  source: 'user' | 'fallback-desktop';
-}
+export const directoryHandleMetaSchema = z.object({
+  /** Unikt ID for denne directory-registrering. */
+  id: z.string().min(1),
+  /** Mappenavn (fra handle.name). */
+  displayName: z.string().min(1),
+  /** Tidspunkt for registrering. */
+  savedAt: z.number().finite(),
+  /** Kilde: `user` = brugervalgt, `fallback-desktop` = standard/fallback. */
+  source: z.enum(['user', 'fallback-desktop']),
+}).strict().readonly();
+
+export type DirectoryHandleMeta = z.infer<typeof directoryHandleMetaSchema>;
 
 /**
  * De fire concerns i storet, som typede nøgler. Delte tidligere ét store med ad hoc-nøgler

@@ -334,9 +334,7 @@ const RenteberegningTab = React.memo(({
           confirmText="Ja, slet"
           cancelText="Annuller"
           confirmColor="error"
-          onConfirm={() => {
-            void handleClearAll().then(() => setClearAllDialogOpen(false));
-          }}
+          onConfirm={() => handleClearAll().then(() => setClearAllDialogOpen(false))}
           onCancel={() => setClearAllDialogOpen(false)}
         />
       )}
