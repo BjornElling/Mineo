@@ -110,6 +110,12 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     konkret browserregressionstest. Capture af en indholdsboks må, hvis browserverifikation viser
     en afvigelse, neutralisere netop denne skaleringsrod lokalt og gendanne den i `finally`.
 
+    **Sidemenuen har en permanent kompakt profil, ikke en viewport-variant.** Hamburgerknappen
+    ligger uden for menuens scroll-wrapper og skal altid kunne nås. Selve menugrupperne må først
+    få lodret scroll i korte vinduer; ved den dækkede højde på 620 CSS-px må alle punkter være
+    synlige og nåbare uden intern menuscroll, mens det sidste punkt fortsat skal kunne nås under
+    den målte minimumshøjde.
+
 ## 3. Autoritative Kilder
 
 - Device-gate-tærskel og -logik: `src/apps/shared/bootstrapClientApp.tsx` (eneste sandhed).
