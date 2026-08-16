@@ -17,6 +17,7 @@ import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
 import { setActiveTabForPage } from '../../hooks/usePersistedActiveTab';
 import { getRouteForMenuPageKey, routeToPageId, type MenuPageKey } from '../../config/pageNavigation';
 import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyRestoreTarget';
+import { useContentUiScale } from '../../hooks/useContentUiScale';
 import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
   getProductionInputRuntimeStartup,
@@ -40,6 +41,7 @@ interface MainLayoutProps {
 }
 
 const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
+  useContentUiScale();
   const diagnostics = useInputDiagnostics();
   // Maskinlæsbar udlæsning af issue-/rejected-tilstanden til e2e og den eksterne interaktionsaudit.
   // Ren read-only og elimineret af dead-code-fjernelsen i produktionsbuildet (§DEV-gate i modulet).
@@ -218,7 +220,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         onSletAlt={handleSletAlt}
         sletAltButtonRef={sletAltButtonRef}
       />
-      <Container>
+      <Container enableContentScale>
         <LazyChunkRecoveryNotice
           onReloadBlocked={() => {
             setOverlay({

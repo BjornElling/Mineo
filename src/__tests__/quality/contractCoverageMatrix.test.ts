@@ -301,6 +301,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/apps/mineo/serviceWorkerProtocol.test.ts',
       'src/__tests__/components/system/LazyChunkRecoveryNotice.test.tsx',
       'src/__tests__/settings/indexThemeBootstrap.test.ts',
+      'src/__tests__/utils/uiScale.test.ts',
+      'e2e/minimum-viewport-shell.spec.ts',
+      'e2e/content-scale.spec.ts',
       // De tre nedenfor stod i kontraktens eget §4, men manglede her — de to autoritative lister
       // over samme forhold var uenige, og ingen kontrol kunne se det.
       'src/__tests__/quality/pwaHeaders.test.ts',

@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-16
+**Senest verificeret mod kode:** 2026-08-17
 
 ## 1. Scope
 
@@ -95,6 +95,21 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 10. **Styles og build-output er variant-ejede.** Shellens fontindlæsning er fælles, mens hver entry leverer sin egen style-entry. Fælles designregler kan deles, men Mineos `body/#root`-shell må ikke indlæses i standalone. Mineo bygges fra repoets ene `index.html`; theme-bootstrap injiceres fra den kanoniske generator i `src/settings/themeBootstrap.ts`. Hvert build afsluttes med `verify-build-artifacts.mjs`, der kontrollerer entry, manifest og variantfiler, før output kan godkendes.
 
+11. **Arbejdsfladeskalering er en afgrænset Mineo-undtagelse.** `useContentUiScale` og den synkrone
+    theme-bootstrap bruger samme serialiserbare policy fra `src/utils/uiScale.ts` og sætter kun
+    `--mineo-content-scale` på `document.documentElement`. Den eneste forbruger er den navngivne
+    `<main data-mineo-content-scale-root="true">` i Mineos `Container`; sidemenu, `MainLayout`,
+    `#root`, `html`, `body` og MUI-portaler må ikke zoome. Skaleringen er kvantiseret til policyens
+    trin og falder aldrig under `0.85`. Den må ikke indføre reflow, skjule indhold eller ændre
+    input-/persistence-state ved resize. Den eksisterende `Container`-scroll er den autoritative
+    fallback under policyens minimumsbredde.
+
+    `measureContentUiScaleRoot` måler kun den faktiske browsergeometri på skaleringsroden og giver
+    neutral skala ved jsdom eller ugyldig geometri. Virtualiseret ancestor-scroll må normalisere
+    egne rect-afstande gennem denne helper; global scrolllogik må ikke specialbehandles uden en
+    konkret browserregressionstest. Capture af en indholdsboks må, hvis browserverifikation viser
+    en afvigelse, neutralisere netop denne skaleringsrod lokalt og gendanne den i `finally`.
+
 ## 3. Autoritative Kilder
 
 - Device-gate-tærskel og -logik: `src/apps/shared/bootstrapClientApp.tsx` (eneste sandhed).
@@ -124,6 +139,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/settings/indexThemeBootstrap.test.ts` (kanonisk theme-bootstrap og systemfallback ved manglende, ugyldig eller ulæselig settings-storage).
 - `scripts/verify-build-artifacts.mjs` (postbuild-værn for entries, manifest og variantfiler).
 - `src/__tests__/quality/architecture/rules/responsiveStylingRules.ts` (`shell/viewport-responsive-styling-allowlist`: pinner fillisten i §5.3, så desktop-only-undtagelsen ikke kan brede sig stiltiende).
+- `src/__tests__/utils/uiScale.test.ts` (policygrænser, hysterese, bootstrap/runtime-paritet og DOM-måling).
+- `e2e/minimum-viewport-shell.spec.ts` og `e2e/content-scale.spec.ts` (menuens minimumsgeometri, arbejdsfladeskalering og resize-state).
 
 ## 5. Kendte Undtagelser
 

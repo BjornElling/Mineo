@@ -1,3 +1,5 @@
+import { createContentUiScaleBootstrapSource } from '../utils/uiScale';
+
 export const APP_SETTINGS_LOCAL_STORAGE_KEY = 'mineo_app_settings_v1';
 
 export const THEME_COLOR_BY_MODE = {
@@ -39,5 +41,6 @@ export const createThemeBootstrapScript = (): string => {
     document.head.appendChild(meta);
   }
   meta.content = config.colors[themeMode];
+  ${createContentUiScaleBootstrapSource()}
 })();`;
 };

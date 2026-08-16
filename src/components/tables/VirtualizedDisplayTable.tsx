@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { getHtmlTableStyles, htmlTableHeaderStyles } from '../../config/tableTheme';
+import { measureNearestContentUiScale } from '../../utils/uiScale';
 
 export type VirtualizedDisplayTableColumn = Readonly<{
   /**
@@ -112,16 +113,21 @@ const VirtualizedDisplayTable = React.memo(
         if (hostEl) {
           const hostRect = hostEl.getBoundingClientRect();
           const tableRect = tableEl.getBoundingClientRect();
-          const relative = Math.max(0, hostRect.top - tableRect.top);
+          const contentScale = measureNearestContentUiScale(tableEl);
+          // Rect-afstanden er visuelle under CSS zoom, mens rowHeight er den logiske tabelværdi.
+          // Normalisér kun denne virtualiserede tabels lokale måling; global scrollTop-geometri
+          // tilhører Container og skal ikke kende arbejdsfladens skalering.
+          const relative = Math.max(0, hostRect.top - tableRect.top) / contentScale;
           setScrollTop(relative);
-          setViewportHeight(hostEl.clientHeight);
+          setViewportHeight(hostEl.clientHeight / contentScale);
           return;
         }
 
         const tableRect = tableEl.getBoundingClientRect();
-        const relative = Math.max(0, -tableRect.top);
+        const contentScale = measureNearestContentUiScale(tableEl);
+        const relative = Math.max(0, -tableRect.top) / contentScale;
         setScrollTop(relative);
-        setViewportHeight(window.innerHeight);
+        setViewportHeight(window.innerHeight / contentScale);
       });
     }, [height, scrollMode]);
 

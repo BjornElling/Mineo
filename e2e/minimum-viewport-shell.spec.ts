@@ -38,6 +38,7 @@ const readMenuGeometry = async (page: Page) => {
         return style.overflowY === 'auto' || style.overflowY === 'scroll'
           || style.overflow === 'auto' || style.overflow === 'scroll';
       })
+      .filter((node) => !node.matches('[data-mineo-menu-scroll-wrapper="true"]'))
       .map((node) => ({
         tagName: node.tagName,
         className: typeof node.className === 'string' ? node.className : '',
@@ -53,6 +54,7 @@ const readMenuGeometry = async (page: Page) => {
         right: rect.right,
       };
     });
+    const menuScrollWrapper = element.querySelector<HTMLElement>('[data-mineo-menu-scroll-wrapper="true"]');
 
     return {
       viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -65,13 +67,20 @@ const readMenuGeometry = async (page: Page) => {
         scrollHeight: element.scrollHeight,
         clientHeight: element.clientHeight,
       },
+      menuScrollWrapper: menuScrollWrapper === null
+        ? null
+        : {
+          scrollHeight: menuScrollWrapper.scrollHeight,
+          clientHeight: menuScrollWrapper.clientHeight,
+          scrollTop: menuScrollWrapper.scrollTop,
+        },
       buttons,
       internalScrollRegions,
     };
   });
 };
 
-test.describe('Mineo-shell ved minimumsviewporten 1536×864', () => {
+test.describe('Mineo-shell ved minimumsviewporter', () => {
   test('alle sidemenu- og globalhandlinger er synlige og nåbare uden intern sidemenu-scroll', async ({ page }) => {
     await login(page);
 
@@ -84,10 +93,12 @@ test.describe('Mineo-shell ved minimumsviewporten 1536×864', () => {
       }
 
       const geometry = await readMenuGeometry(page);
-      expect(geometry.viewport.width).toBeGreaterThanOrEqual(1536);
-      expect(geometry.viewport.height).toBeGreaterThanOrEqual(864);
+      expect(geometry.viewport.width).toBeGreaterThanOrEqual(1366);
+      expect(geometry.viewport.height).toBeGreaterThanOrEqual(620);
       expect(geometry.devicePixelRatio).toBeGreaterThan(0);
       expect(geometry.internalScrollRegions).toEqual([]);
+      expect(geometry.menuScrollWrapper).not.toBeNull();
+      expect(geometry.menuScrollWrapper?.scrollHeight).toBe(geometry.menuScrollWrapper?.clientHeight);
       expect(geometry.menu.scrollHeight).toBe(geometry.menu.clientHeight);
       expect(geometry.buttons.map((button) => button.name.replace(/\u00a0/g, ' ')).slice(1)).toEqual(MENU_BUTTON_NAMES);
       expect(geometry.buttons.every((button) => (
@@ -98,6 +109,26 @@ test.describe('Mineo-shell ved minimumsviewporten 1536×864', () => {
         && button.right <= geometry.menu.right
       ))).toBe(true);
     }
+  });
+
+  test('menuens sikkerheds-scroll gør sidste punkt nåbart under den målte minimumshøjde', async ({ page }) => {
+    await login(page);
+    await page.setViewportSize({ width: 1366, height: 580 });
+
+    const menuToggle = page.getByRole('button', { name: /Fold menuen/ });
+    const menu = menuToggle.locator('xpath=../..');
+    const wrapper = menu.locator('[data-mineo-menu-scroll-wrapper="true"]');
+    const before = await wrapper.evaluate((element) => ({
+      scrollHeight: element.scrollHeight,
+      clientHeight: element.clientHeight,
+      scrollTop: element.scrollTop,
+    }));
+    expect(before.scrollHeight).toBeGreaterThan(before.clientHeight);
+
+    await page.getByRole('button', { name: 'Om' }).scrollIntoViewIfNeeded();
+    const after = await wrapper.evaluate((element) => element.scrollTop);
+    expect(after).toBeGreaterThan(0);
+    await expect(page.getByRole('button', { name: 'Om' })).toBeVisible();
   });
 
   test('Tab når det sidste menupunkt, og menuen kan aktiveres med tastatur', async ({ page }) => {

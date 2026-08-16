@@ -5,9 +5,11 @@ const defaultBaseURL = 'http://127.0.0.1:4173';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? defaultBaseURL;
 const useExternalWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 const allowServiceWorkers = process.env.PLAYWRIGHT_ALLOW_SERVICE_WORKERS === '1';
-// 1536×864 CSS-pixels svarer til en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering
-// og browserzoom 100 %. Full HD køres som en særskilt kontrastviewport, ikke som minimum.
+// Playwrights viewportværdier er den indre CSS-viewport. Arbejdsfladen testes både ved den tidligere
+// desktopbaseline og ved de to konkrete minimumskontrakter fra ui-skalering-planen.
 const minimumDesktopViewport = { width: 1536, height: 864 } as const;
+const compactMinimumDesktopViewport = { width: 1536, height: 730 } as const;
+const narrowMinimumDesktopViewport = { width: 1366, height: 620 } as const;
 const fullHdDesktopViewport = { width: 1920, height: 1080 } as const;
 const largerDesktopViewport = { width: 2560, height: 1440 } as const;
 
@@ -49,7 +51,50 @@ const fullHdDesktopProjects = [
   },
 ];
 
-const desktopProjects = [...minimumDesktopProjects, ...fullHdDesktopProjects];
+const compactMinimumDesktopProjects = [
+  {
+    name: 'chrome-desktop-1536x730',
+    use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: compactMinimumDesktopViewport },
+  },
+  {
+    name: 'edge-desktop-1536x730',
+    use: { ...devices['Desktop Edge'], channel: 'msedge', viewport: compactMinimumDesktopViewport },
+  },
+  {
+    name: 'firefox-desktop-1536x730',
+    use: { ...devices['Desktop Firefox'], viewport: compactMinimumDesktopViewport },
+  },
+  {
+    name: 'safari-webkit-desktop-1536x730',
+    use: { ...devices['Desktop Safari'], viewport: compactMinimumDesktopViewport },
+  },
+];
+
+const narrowMinimumDesktopProjects = [
+  {
+    name: 'chrome-desktop-1366x620',
+    use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: narrowMinimumDesktopViewport },
+  },
+  {
+    name: 'edge-desktop-1366x620',
+    use: { ...devices['Desktop Edge'], channel: 'msedge', viewport: narrowMinimumDesktopViewport },
+  },
+  {
+    name: 'firefox-desktop-1366x620',
+    use: { ...devices['Desktop Firefox'], viewport: narrowMinimumDesktopViewport },
+  },
+  {
+    name: 'safari-webkit-desktop-1366x620',
+    use: { ...devices['Desktop Safari'], viewport: narrowMinimumDesktopViewport },
+  },
+];
+
+const desktopProjects = [
+  ...minimumDesktopProjects,
+  ...compactMinimumDesktopProjects,
+  ...narrowMinimumDesktopProjects,
+  ...fullHdDesktopProjects,
+];
 
 const projects = [
   ...desktopProjects,

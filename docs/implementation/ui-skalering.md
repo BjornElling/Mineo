@@ -1,8 +1,10 @@
 # Plan: kompakt sidemenu og afgrænset arbejdsfladeskalering
 
-Status: **PLANLAGT** 2026-08-16. Planen erstatter den tidligere retning, hvor hele Mineo-shellen
-skulle skaleres. Brugerbeslutningen gælder fortsat: kompakt sidemenu, automatisk skalering og ingen
-manuel Mineo-indstilling. Menuscroll er kun et sikkerhedsnet.
+Status: **IMPLEMENTERET I KODE** 2026-08-16. Den automatiserede verifikation i §6 er gennemført;
+manuel prøve på den konkrete browser/PWA-maskine er fortsat en releasekontrol. Planen erstatter den
+tidligere retning, hvor hele Mineo-shellen skulle skaleres. Brugerbeslutningen gælder fortsat:
+kompakt sidemenu, automatisk skalering og ingen manuel Mineo-indstilling. Menuscroll er kun et
+sikkerhedsnet.
 
 ## 1. Afgørelse
 

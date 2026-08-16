@@ -60,9 +60,10 @@ interface ContainerProps {
   children?: React.ReactNode;
   scrollSx?: SxProps<Theme>;
   contentSx?: SxProps<Theme>;
+  enableContentScale?: boolean;
 }
 
-const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps) => {
+const Container = React.memo(({ children, scrollSx, contentSx, enableContentScale = false }: ContainerProps) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const inventory = useFocusableInventory(containerRef);
   const handleKeyDown = useContainerKeyboardNavigation(containerRef, inventory);
@@ -92,7 +93,16 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
             element-skifte (div→main); layout, scroll og fokus-håndtering er uændret. */}
         <Box
           component="main"
-          sx={mergeSx({ width: '1000px', paddingLeft: '50px', paddingTop: '50px' }, contentSx)}
+          data-mineo-content-scale-root={enableContentScale ? 'true' : undefined}
+          sx={mergeSx(
+            {
+              width: '1000px',
+              paddingLeft: '50px',
+              paddingTop: '50px',
+              ...(enableContentScale ? { zoom: 'var(--mineo-content-scale, 1)' } : {}),
+            },
+            contentSx
+          )}
         >
           {children}
         </Box>

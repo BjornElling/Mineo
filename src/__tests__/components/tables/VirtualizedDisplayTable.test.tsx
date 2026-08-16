@@ -99,6 +99,69 @@ describe('VirtualizedDisplayTable', () => {
     tableRectSpy.mockRestore();
   });
 
+  it('normaliserer ancestor-virtualisering ved zoom i top, midte og bund', async () => {
+    const originalUserAgent = window.navigator.userAgent;
+    Object.defineProperty(window.navigator, 'userAgent', {
+      configurable: true,
+      value: 'Mozilla/5.0 (content-scale-browser)',
+    });
+
+    let visualTableTop = 0;
+    const { container, unmount } = render(
+      <div data-mineo-content-scale-root="true" data-testid="scale-root">
+        <div data-testid="host" data-mineo-scroll-container="true">
+          <VirtualizedDisplayTable
+            columns={[{ id: 'col:a', header: 'A', width: 80, align: 'left' }]}
+            rowCount={200}
+            rowHeight={10}
+            height={0}
+            overscan={0}
+            scrollMode="ancestor"
+            getRowKey={(rowIndex) => `row-${rowIndex}`}
+            renderCell={(rowIndex, columnIndex) => `${rowIndex}-${columnIndex}`}
+          />
+        </div>
+      </div>
+    );
+
+    const root = screen.getByTestId('scale-root');
+    const host = screen.getByTestId('host') as HTMLDivElement;
+    const table = container.querySelector('table');
+    expect(table).not.toBeNull();
+    if (!table) throw new Error('Expected table to exist');
+
+    Object.defineProperty(root, 'offsetWidth', { configurable: true, value: 1000 });
+    Object.defineProperty(host, 'clientHeight', { configurable: true, value: 100 });
+    const rootRectSpy = vi.spyOn(root, 'getBoundingClientRect').mockReturnValue(createRect(0));
+    rootRectSpy.mockReturnValue({ ...createRect(0), width: 500, right: 500 });
+    const hostRectSpy = vi.spyOn(host, 'getBoundingClientRect').mockReturnValue(createRect(0));
+    const tableRectSpy = vi.spyOn(table, 'getBoundingClientRect').mockImplementation(() => ({
+      ...createRect(visualTableTop),
+      top: visualTableTop,
+      bottom: visualTableTop + 100,
+    }));
+
+    try {
+      for (const logicalScrollTop of [0, 500, 1900]) {
+        visualTableTop = -logicalScrollTop * 0.5;
+        fireEvent.scroll(host);
+        await waitForRaf();
+
+        const expectedRow = Math.min(199, Math.floor(logicalScrollTop / 10));
+        expect(screen.getByText(`${expectedRow}-0`)).toBeInTheDocument();
+      }
+    } finally {
+      tableRectSpy.mockRestore();
+      hostRectSpy.mockRestore();
+      rootRectSpy.mockRestore();
+      unmount();
+      Object.defineProperty(window.navigator, 'userAgent', {
+        configurable: true,
+        value: originalUserAgent,
+      });
+    }
+  });
+
   it('renders no body rows when rowCount is zero', () => {
     const { container } = render(
       <VirtualizedDisplayTable

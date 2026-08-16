@@ -88,6 +88,7 @@ export const utilityItems: NavigationItem[] = [
  * - Collapsed (70px) / Expanded (250px)
  * - Active state på navigationssider
  * - Separator-linjer mellem grupper
+ * - Permanent kompakt, målt profil med sikkerheds-scroll under korte vinduer
  * - Moderne, blød styling med rundede hjørner
  * - Fast ikon-placering og knaphøjde
  */
@@ -150,7 +151,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
       }}
     >
       {/* Hamburger toggle button */}
-      <Box sx={{ py: 1, px: 1.5 }}>
+      <Box sx={{ py: 'var(--mineo-menu-toggle-padding-y)', px: 1.5 }}>
         <Button
           onClick={toggleMenu}
           startIcon={<MenuIcon />}
@@ -163,8 +164,8 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
             justifyContent: 'flex-start',
             pl: 1.5,
             pr: 1.5,
-            py: 1.2,
-            mb: 0.5,
+            py: 0,
+            mb: 'var(--mineo-menu-button-gap)',
             minWidth: 0,
             width: '44px',
             height: '44px',
@@ -187,153 +188,169 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         </Button>
       </Box>
 
-      <Divider sx={{ borderColor: 'var(--color-surface-border)', mx: isExpanded ? 4 : 3 }} />
+      <Box
+        data-mineo-menu-scroll-wrapper="true"
+        sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}
+      >
+        <Divider
+          sx={{
+            borderColor: 'var(--color-surface-border)',
+            mx: isExpanded ? 4 : 3,
+          }}
+        />
 
-      {/* Hovednavigation */}
-      <Box sx={{ py: 1, px: 1.5 }}>
-        {navigationItems.map((item) => (
-          <Tooltip
-            key={item.id}
-            title={item.label}
-            arrow
-            placement="right"
-            disableHoverListener={isExpanded}
-            disableFocusListener={isExpanded}
-            disableTouchListener={isExpanded}
-          >
-            <Button
-              fullWidth
-              onClick={() => handleNavigation(item.id)}
-              onMouseDown={handleMenuButtonMouseDown}
-              startIcon={item.icon}
-              // Tekstbarnet forsvinder, når menuen er kollapset (`{isExpanded && item.label}`), og
-              // knappen ville da stå navnløs med kun sit ikon. Tooltippen navngiver den ikke: MUI
-              // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
-              // Et fast aria-label giver samme navn i begge menutilstande.
-              aria-label={item.label}
-              aria-current={activePage === item.id ? 'page' : undefined}
-              className={activePage === item.id ? 'menu-item active' : 'menu-item'}
-            sx={{
-              justifyContent: 'flex-start',
-              pl: 1.5,
-              pr: 2,
-                py: 1.2,
-                mb: 0.5,
-                minWidth: 0,
-                height: '44px',
-                borderRadius: '12px',
-                '& .MuiButton-startIcon': {
-                  margin: '0 12px 0 0',
-                  minWidth: '24px',
-                  color: 'currentColor'
-                },
-                whiteSpace: item.id === 'varigemen' ? 'nowrap' : undefined,
-              }}
+        {/* Hovednavigation */}
+        <Box sx={{ py: 'var(--mineo-menu-section-padding-y)', px: 1.5 }}>
+          {navigationItems.map((item) => (
+            <Tooltip
+              key={item.id}
+              title={item.label}
+              arrow
+              placement="right"
+              disableHoverListener={isExpanded}
+              disableFocusListener={isExpanded}
+              disableTouchListener={isExpanded}
             >
-              {isExpanded && item.label}
-            </Button>
-          </Tooltip>
-        ))}
-      </Box>
+              <Button
+                fullWidth
+                onClick={() => handleNavigation(item.id)}
+                onMouseDown={handleMenuButtonMouseDown}
+                startIcon={item.icon}
+                // Tekstbarnet forsvinder, når menuen er kollapset (`{isExpanded && item.label}`), og
+                // knappen ville da stå navnløs med kun sit ikon. Tooltippen navngiver den ikke: MUI
+                // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
+                // Et fast aria-label giver samme navn i begge menutilstande.
+                aria-label={item.label}
+                aria-current={activePage === item.id ? 'page' : undefined}
+                className={activePage === item.id ? 'menu-item active' : 'menu-item'}
+                sx={{
+                  justifyContent: 'flex-start',
+                  pl: 1.5,
+                  pr: 2,
+                  mb: 'var(--mineo-menu-button-gap)',
+                  minWidth: 0,
+                  height: 'var(--mineo-menu-button-height)',
+                  borderRadius: '12px',
+                  '& .MuiButton-startIcon': {
+                    margin: '0 12px 0 0',
+                    minWidth: '24px',
+                    color: 'currentColor'
+                  },
+                  whiteSpace: item.id === 'varigemen' ? 'nowrap' : undefined,
+                }}
+              >
+                {isExpanded && item.label}
+              </Button>
+            </Tooltip>
+          ))}
+        </Box>
 
-      <Divider sx={{ borderColor: 'var(--color-surface-border)', my: 1, mx: isExpanded ? 4 : 3 }} />
+        <Divider
+          sx={{
+            borderColor: 'var(--color-surface-border)',
+            my: 'var(--mineo-menu-divider-margin-y)',
+            mx: isExpanded ? 4 : 3,
+          }}
+        />
 
-      {/* Fil-operationer */}
-      <Box sx={{ py: 1, px: 1.5 }}>
-        {fileOperations.map((item) => (
-          <Tooltip
-            key={item.id}
-            title={item.label}
-            arrow
-            placement="right"
-            disableHoverListener={isExpanded}
-            disableFocusListener={isExpanded}
-            disableTouchListener={isExpanded}
-          >
-            <Button
-              fullWidth
-              ref={item.buttonRef}
-              onClick={() => handleFileOperation(item)}
-              onMouseDown={handleMenuButtonMouseDown}
-              startIcon={item.icon}
-              // Tekstbarnet forsvinder, når menuen er kollapset (`{isExpanded && item.label}`), og
-              // knappen ville da stå navnløs med kun sit ikon. Tooltippen navngiver den ikke: MUI
-              // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
-              // Et fast aria-label giver samme navn i begge menutilstande.
-              aria-label={item.label}
-              className="menu-item"
-              sx={{
-                justifyContent: 'flex-start',
-                pl: 1.5,
-                pr: 2,
-                py: 1.2,
-                mb: 0.5,
-                minWidth: 0,
-                height: '44px',
-                borderRadius: '12px',
-                '& .MuiButton-startIcon': {
-                  margin: '0 12px 0 0',
-                  minWidth: '24px',
-                  color: 'currentColor'
-                }
-              }}
+        {/* Fil-operationer */}
+        <Box sx={{ py: 'var(--mineo-menu-section-padding-y)', px: 1.5 }}>
+          {fileOperations.map((item) => (
+            <Tooltip
+              key={item.id}
+              title={item.label}
+              arrow
+              placement="right"
+              disableHoverListener={isExpanded}
+              disableFocusListener={isExpanded}
+              disableTouchListener={isExpanded}
             >
-              {isExpanded && item.label}
-            </Button>
-          </Tooltip>
-        ))}
-      </Box>
+              <Button
+                fullWidth
+                ref={item.buttonRef}
+                onClick={() => handleFileOperation(item)}
+                onMouseDown={handleMenuButtonMouseDown}
+                startIcon={item.icon}
+                // Tekstbarnet forsvinder, når menuen er kollapset (`{isExpanded && item.label}`), og
+                // knappen ville da stå navnløs med kun sit ikon. Tooltippen navngiver den ikke: MUI
+                // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
+                // Et fast aria-label giver samme navn i begge menutilstande.
+                aria-label={item.label}
+                className="menu-item"
+                sx={{
+                  justifyContent: 'flex-start',
+                  pl: 1.5,
+                  pr: 2,
+                  mb: 'var(--mineo-menu-button-gap)',
+                  minWidth: 0,
+                  height: 'var(--mineo-menu-button-height)',
+                  borderRadius: '12px',
+                  '& .MuiButton-startIcon': {
+                    margin: '0 12px 0 0',
+                    minWidth: '24px',
+                    color: 'currentColor'
+                  }
+                }}
+              >
+                {isExpanded && item.label}
+              </Button>
+            </Tooltip>
+          ))}
+        </Box>
 
-      <Divider sx={{ borderColor: 'var(--color-surface-border)', my: 1, mx: isExpanded ? 4 : 3 }} />
+        <Divider
+          sx={{
+            borderColor: 'var(--color-surface-border)',
+            my: 'var(--mineo-menu-divider-margin-y)',
+            mx: isExpanded ? 4 : 3,
+          }}
+        />
 
-      {/* Utilities */}
-      <Box sx={{ py: 1, px: 1.5 }}>
-        {utilityItems.map((item) => (
-          <Tooltip
-            key={item.id}
-            title={item.label}
-            arrow
-            placement="right"
-            disableHoverListener={isExpanded}
-            disableFocusListener={isExpanded}
-            disableTouchListener={isExpanded}
-          >
-            <Button
-              fullWidth
-              onClick={() => handleNavigation(item.id)}
-              onMouseDown={handleMenuButtonMouseDown}
-              startIcon={item.icon}
-              // Tekstbarnet forsvinder, når menuen er kollapset (`{isExpanded && item.label}`), og
-              // knappen ville da stå navnløs med kun sit ikon. Tooltippen navngiver den ikke: MUI
-              // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
-              // Et fast aria-label giver samme navn i begge menutilstande.
-              aria-label={item.label}
-              aria-current={activePage === item.id ? 'page' : undefined}
-              className={activePage === item.id ? 'menu-item active' : 'menu-item'}
-              sx={{
-                justifyContent: 'flex-start',
-                pl: 1.5,
-                pr: 2,
-                py: 1.2,
-                mb: 0.5,
-                minWidth: 0,
-                height: '44px',
-                borderRadius: '12px',
-                '& .MuiButton-startIcon': {
-                  margin: '0 12px 0 0',
-                  minWidth: '24px',
-                  color: 'currentColor'
-                }
-              }}
+        {/* Utilities */}
+        <Box sx={{ py: 'var(--mineo-menu-section-padding-y)', px: 1.5 }}>
+          {utilityItems.map((item) => (
+            <Tooltip
+              key={item.id}
+              title={item.label}
+              arrow
+              placement="right"
+              disableHoverListener={isExpanded}
+              disableFocusListener={isExpanded}
+              disableTouchListener={isExpanded}
             >
-              {isExpanded && item.label}
-            </Button>
-          </Tooltip>
-        ))}
+              <Button
+                fullWidth
+                onClick={() => handleNavigation(item.id)}
+                onMouseDown={handleMenuButtonMouseDown}
+                startIcon={item.icon}
+                // Tekstbarnet forsvinder, når menuen er kollapset (`{isExpanded && item.label}`), og
+                // knappen ville da stå navnløs med kun sit ikon. Tooltippen navngiver den ikke: MUI
+                // sætter aria-labelledby på popper'en, som kun findes mens tooltippen er åben.
+                // Et fast aria-label giver samme navn i begge menutilstande.
+                aria-label={item.label}
+                aria-current={activePage === item.id ? 'page' : undefined}
+                className={activePage === item.id ? 'menu-item active' : 'menu-item'}
+                sx={{
+                  justifyContent: 'flex-start',
+                  pl: 1.5,
+                  pr: 2,
+                  mb: 'var(--mineo-menu-button-gap)',
+                  minWidth: 0,
+                  height: 'var(--mineo-menu-button-height)',
+                  borderRadius: '12px',
+                  '& .MuiButton-startIcon': {
+                    margin: '0 12px 0 0',
+                    minWidth: '24px',
+                    color: 'currentColor'
+                  }
+                }}
+              >
+                {isExpanded && item.label}
+              </Button>
+            </Tooltip>
+          ))}
+        </Box>
       </Box>
-
-      {/* Spacer til at skubbe alt til toppen */}
-      <Box sx={{ flexGrow: 1 }} />
     </Box>
   );
 });

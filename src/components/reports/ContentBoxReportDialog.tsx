@@ -20,6 +20,7 @@ import {
   openBugReportEmail,
   prepareContentBoxReport,
 } from '../../utils/bugReport';
+import { CONTENT_SCALE_ROOT_SELECTOR } from '../../utils/uiScale';
 
 /**
  * Rapportbeskedens maksimale længde — samme loft som programmets øvrige kommentarfelter.
@@ -145,13 +146,37 @@ const ContentBoxReportDialog = React.memo(({
     setIsDownloading(true);
     try {
       const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(element, {
-        // Eksport bruger bevidst hvid baggrund for deling/print uafhængigt af aktivt theme.
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
+      const scaleRoot = element.closest(CONTENT_SCALE_ROOT_SELECTOR);
+      const previousZoom = scaleRoot instanceof HTMLElement
+        ? scaleRoot.style.getPropertyValue('zoom')
+        : null;
+      let canvas: HTMLCanvasElement;
+
+      try {
+        if (scaleRoot instanceof HTMLElement) {
+          // html2canvas læser CSS-zoom som almindelig layout-størrelse og kan derfor smelte labels
+          // sammen i outputtet. Neutralisér kun den lokale content-root mens capture kører — ikke
+          // shellen eller portal-overlayet — og gendan altid den aktive skala bagefter.
+          scaleRoot.style.setProperty('zoom', '1');
+          void scaleRoot.offsetWidth;
+        }
+
+        canvas = await html2canvas(element, {
+          // Eksport bruger bevidst hvid baggrund for deling/print uafhængigt af aktivt theme.
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true,
+          logging: false,
+        });
+      } finally {
+        if (scaleRoot instanceof HTMLElement) {
+          if (previousZoom === '') {
+            scaleRoot.style.removeProperty('zoom');
+          } else {
+            scaleRoot.style.setProperty('zoom', previousZoom);
+          }
+        }
+      }
 
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob(resolve, 'image/png');
