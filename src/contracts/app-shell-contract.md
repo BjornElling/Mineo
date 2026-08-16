@@ -11,7 +11,7 @@ Det øverste runtime-lag, der binder programmet sammen, og isolationen mellem de
 
 - App-entries: `src/main.tsx` (Mineo) og `src/apps/minprocesrente/minprocesrenteMain.tsx` (standalone MinProcesrente).
 - Delt app-shell: `src/apps/shared/bootstrapClientApp.tsx` (device-gate, render-beslutning, install-prompt-politik og installation af den fælles Vite-recovery).
-- Delt PWA-display-mode-aflæsning: `src/utils/pwaDisplayMode.ts` (fælles standalone-signal for install-flow og søskendeside-links).
+- Delt PWA-display-mode-aflæsning: `src/utils/pwaDisplayMode.ts` (fælles standalone-signal for install-flowet).
 - Vite lazy-load-recovery: `src/apps/shared/vitePreloadRecovery.ts` (sidste sikkerhedsnet for et manglende lazy asset; den normale deploybeskyttelse ligger i service-workerens versionscache).
 - Service-worker-kilde: `sw/mineoServiceWorker.js` (skabelon; buildet substituerer versionen og emitterer `sw.js`).
 - Delt device-aflæsning: `src/utils/clientDevice.ts` (rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer, uden app-shell-render-beslutninger).

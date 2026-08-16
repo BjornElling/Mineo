@@ -8,8 +8,8 @@ type NavigatorWithStandalone = Navigator & {
  * Aflæser om dokumentet kører i hjælpeprogrammets eget vindue.
  *
  * `navigator.standalone` er kun relevant for iOS' hjemmeskærmsvindue. På øvrige platforme er
- * `display-mode: standalone` det kanoniske signal. Funktionen er bevidst fri for React, så både
- * install-flowet og footerens linkpolitik bruger præcis samme afgrænsning.
+ * `display-mode: standalone` det kanoniske signal. Funktionen er bevidst fri for React, så
+ * install-flowet bruger præcis samme afgrænsning overalt.
  */
 export const isRunningInsideInstalledPwa = (): boolean => {
   if (typeof window !== 'undefined' && typeof window.matchMedia === 'function'

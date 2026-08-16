@@ -4,7 +4,8 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-16 (knappernes opt-in-afgrænsning er målt mod
+**Senest verificeret mod kode:** 2026-08-16 (eksterne web-links har fælles link-primitive og er ude af
+Tab-rækkefølgen; knappernes opt-in-afgrænsning er målt mod
 `CONTAINER_FOCUSABLE_SELECTOR` og erklæret som en truffet beslutning; Escape-reglen og de to
 toggle-/checkbox-taster er verificeret mod `StyledDropdown`, `useTransientDraft`,
 `LoentrinFinderOverlay`, `StyledToggleSwitch` og `StyledCheckbox` og dækket af
@@ -64,6 +65,16 @@ indhold; fra sidste mål fortsættes ved første og omvendt. Ingen af disse tast
 `PageTabs`- eller `SideTab`-kontrol. Navigationskontrollerne kan kun introduceres ved, at brugeren
 allerede har sat fokus på dem gennem browserens almindelige fokusflow eller en anden eksplicit
 navigation.
+
+### Web-links (normativ)
+
+Links til eksterne web-sider (`http://`/`https://`) skal bruge `ExternalLink`. De åbner altid i en ny
+fane (`target="_blank"` med `rel="noopener noreferrer"`) og har `tabIndex={-1}`, så de ikke indgår i
+Tab-rækkefølgen. Links til interne web-sider skal bruge `InternalLink` og bliver i samme fane.
+
+Reglen gælder ikke `mailto:`-links eller programmets interne handlingskontroller, der navigerer med
+router/state. Eksisterende specifikke interne keyboard-regler ændres ikke af denne fælles skæring.
+Den strukturelle håndhævelse ligger i `a11y/web-link-policy-single-source`.
 
 Konsekvens:
 - Browserens standard-tabflow må gerne undertrykkes, hvis det er nødvendigt for at opnå den normerede navigation.

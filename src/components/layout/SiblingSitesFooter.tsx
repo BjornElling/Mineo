@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import { useInstalledPwaDisplayMode } from '../../hooks/useInstalledPwaDisplayMode';
+import ExternalLink from '../ui/ExternalLink';
 
 type SiblingSiteKey = 'mineo' | 'mindomssamling' | 'minparadigmesamling' | 'minprocesrente';
 
@@ -23,11 +23,6 @@ const MailIcon = (): React.ReactElement => (
 );
 
 const SiblingSitesFooter = React.memo(({ currentSite }: SiblingSitesFooterProps) => {
-  const openSiteLinksInBrowser = useInstalledPwaDisplayMode();
-  const siteLinkTargetProps = openSiteLinksInBrowser
-    ? { target: '_blank', rel: 'noopener noreferrer' }
-    : {};
-
   const renderFooterLink = (site: (typeof SIBLING_SITES)[number]) => {
     const isCurrentSite = site.key === currentSite;
     const content = (
@@ -44,15 +39,13 @@ const SiblingSitesFooter = React.memo(({ currentSite }: SiblingSitesFooterProps)
         {content}
       </Box>
     ) : (
-      <Box
+      <ExternalLink
         key={site.key}
         className="site-footer__link"
-        component="a"
         href={site.href}
-        {...siteLinkTargetProps}
       >
         {content}
-      </Box>
+      </ExternalLink>
     );
   };
 

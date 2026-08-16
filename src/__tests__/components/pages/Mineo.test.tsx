@@ -40,28 +40,9 @@ const renderMineo = () => {
   );
 };
 
-const mockDisplayModeMatchMedia = (standalone: boolean): void => {
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: query === '(display-mode: standalone)' ? standalone : false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as typeof window.matchMedia;
-};
-
 describe('Mineo - License Modal Integration', () => {
-  const originalMatchMedia = window.matchMedia;
-
   beforeEach(() => {
     writeLocalStorage(LOCAL_STORAGE_KEY, '');
-  });
-
-  afterEach(() => {
-    window.matchMedia = originalMatchMedia;
   });
 
   test('modal er lukket som standard (anti-regression)', () => {
@@ -356,16 +337,9 @@ describe('Mineo - License Modal Integration', () => {
       expect(screen.getAllByText('minEO.dk').some((element) => element.closest('[aria-current="page"]'))).toBe(true);
       const minProcesrenteLink = screen.getByRole('link', { name: 'minProcesrente.dk' });
       expect(minProcesrenteLink).toHaveAttribute('href', 'https://minprocesrente.dk');
-      expect(minProcesrenteLink).not.toHaveAttribute('target');
-    });
-
-    test('søskendeside-links åbner uden for PWA-vinduet i installeret PWA', () => {
-      mockDisplayModeMatchMedia(true);
-      renderMineo();
-
-      const minProcesrenteLink = screen.getByRole('link', { name: 'minProcesrente.dk' });
       expect(minProcesrenteLink).toHaveAttribute('target', '_blank');
       expect(minProcesrenteLink).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(minProcesrenteLink).toHaveAttribute('tabindex', '-1');
       expect(screen.getByRole('link', { name: 'Kontakt bel@fho.dk' })).not.toHaveAttribute('target');
     });
 

@@ -15,6 +15,7 @@ import {
 } from '../../../apps/minprocesrente/document/useStandaloneDocumentOutput';
 import { useUndoRedoShortcuts } from '../../../inputCore/react/useUndoRedoShortcuts';
 import SiblingSitesFooter from '../../layout/SiblingSitesFooter';
+import InternalLink from '../../ui/InternalLink';
 import { isTouchLikeDeviceWithShortestSideAtMost } from '../../../utils/clientDevice';
 
 const MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX = 599;
@@ -33,11 +34,11 @@ const STANDALONE_RENTE_GATE_REQUEST = { rowId: '' } as const;
 
 const MinProcesrenteTitle = React.memo(() => (
   <Typography className="page-title" component="h1">
-    <Box className="page-title-link" component="a" href="/" aria-label="minProcesrente.dk">
+    <InternalLink className="page-title-link" href="/" aria-label="minProcesrente.dk">
       <Box className="page-title-prefix" component="span">min</Box>
       <Box className="page-title-main" component="span">Procesrente</Box>
       <Box className="page-title-prefix" component="span">.dk</Box>
-    </Box>
+    </InternalLink>
   </Typography>
 ));
 

@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 
 import { formatAsAmount, formatKr, formatPercent } from '../../../utils/formatUtils';
 import type { RetsinfoLink } from '../../../data/retsinfoLinks';
+import ExternalLink from '../../ui/ExternalLink';
 
 /**
  * Satser-sidens delte rækkeprimitiver og formatkompositioner.
@@ -108,15 +109,12 @@ export const renderReferenceValue = (links: readonly RetsinfoLink[]): React.Reac
               {' og '}
             </Typography>
           ) : null}
-          <Typography
-            component="a"
+          <ExternalLink
             className="row--text icon-text-link"
             href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
           >
             {link.label}
-          </Typography>
+          </ExternalLink>
         </React.Fragment>
       ))}
     </Box>

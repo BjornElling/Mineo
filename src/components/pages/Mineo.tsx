@@ -10,6 +10,7 @@ import ContentBox from '../layout/ContentBox';
 import LabeledControlRow from '../layout/LabeledControlRow';
 import SiblingSitesFooter from '../layout/SiblingSitesFooter';
 import ConfirmationDialog from '../ui/ConfirmationDialog';
+import ExternalLink from '../ui/ExternalLink';
 import LicenseModal from '../ui/LicenseModal';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../types/fieldEvents';
@@ -362,15 +363,12 @@ const Mineo = React.memo(() => {
 
         <Box className="icon-text-row" sx={{ padding: '0 12px' }}>
           <GitHubIcon fontSize="small" sx={{ flexShrink: 0 }} />
-          <Typography
+          <ExternalLink
             className="row--text icon-text-link"
-            component="a"
             href="https://github.com/BjornElling/Mineo"
-            target="_blank"
-            rel="noopener noreferrer"
           >
             github.com/BjornElling/Mineo
-          </Typography>
+          </ExternalLink>
         </Box>
       </ContentBox>
 

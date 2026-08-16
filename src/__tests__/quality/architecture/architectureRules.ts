@@ -81,6 +81,7 @@ import { RESPONSIVE_STYLING_RULES } from './rules/responsiveStylingRules';
 import { FOCUS_NAVIGATION_RULES } from './rules/focusNavigationRules';
 import { ACCESSIBILITY_RULES } from './rules/accessibilityRules';
 import { TABLE_ORDER_RULES } from './rules/tableOrderRules';
+import { webLinkPolicyRule } from './rules/linkRules';
 
 /**
  * Registry for de AST-baserede arkitekturgrænser.
@@ -165,6 +166,7 @@ export const ARCHITECTURE_RULES: readonly ArchitectureRule[] = [
   rowDeleteLaneCellRule,
   choiceFieldValueTypeInferredRule,
   ...TABLE_ORDER_RULES,
+  webLinkPolicyRule,
   placeholderIdentityOwnershipRule,
   // Inputgrænser og legacy-fravær
   inputWriteBoundary,
