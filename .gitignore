@@ -51,6 +51,7 @@ desktop.ini
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/fix-it/
+!.claude/skills/brugerblik/
 
 # Vitest output
 vitest-output.txt
