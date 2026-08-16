@@ -128,6 +128,28 @@ enkelte anførselstegn i de to skabeloner, der citerer det (`invalid`, `schema`)
 advarsler" UDEN feltet foran sig, og labels indeholder selv punktummer og bindestreger
 ("Hvis genopt. - tidl. kap.dato"), som ellers løber sammen med prosaen. `quoteFieldLabel` ejer formen.
 
+### 3.1 Hvor en manglende forudsætning meldes (brugerbeslutning 2026-08-16)
+
+En `missing`-melding hører hjemme på den flade, hvor oplysningen **bruges** — aldrig på den flade, der blot
+bærer feltet.
+
+Begrundelsen er brugerens: et felt kan være forudsætning for én beregning og fuldstændig uden betydning for en
+anden. Renteberegning er fx uafhængig af skadelidtes stamdata, og en melding på Stamdata om, at noget «mangler»,
+ville derfor være direkte forkert for den bruger, der kun regner renter. Der findes ingen flade, hvor
+programmet kan vide, hvad brugeren har tænkt sig at regne — kun de enkelte beregningsflader ved det om sig selv.
+
+Heraf følger:
+
+1. **Stamdata melder aldrig manglende indtastninger.** Ingen `missing`-issues, ingen tomme-felt-markering, ingen
+   "Fejl og advarsler"-boks. Tavsheden er tilsigtet.
+2. **Forbrugssiden melder dem**, med en henvisning der både navigerer og markerer det felt, der mangler
+   (mønsteret «Mangler (angiv i Stamdata)» med `blinkFieldAttention` via feltadressen).
+3. **Afgrænsningen er `missing`, ikke `invalid`.** En værdi, brugeren faktisk har skrevet, og som er ugyldig
+   eller bryder en parvis grænse, markeres fortsat dér, hvor den er skrevet — også på en flade, der ellers ikke
+   melder noget. Det er brugerens eget input, ikke en forudsætning for en beregning, han måske aldrig laver.
+4. **Begge parter i en brudt parvis grænse markeres** (brugerbeslutning samme dag). Udvejen er forskellig i hvert
+   af de to felter, og hver tekst skal derfor beskrive den rettelse, brugeren kan foretage i netop det felt.
+
 ## 4. Prioritet og visning
 
 Hvis flere issues rammer samme felt, vælger en central deterministisk resolver højst ét aktivt feltissue.
