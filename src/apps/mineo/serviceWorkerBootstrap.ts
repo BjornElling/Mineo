@@ -324,6 +324,11 @@ const runBootUpdatePass = async (): Promise<void> => {
  * eller slet ikke sket, når brugeren ser programmet.
  */
 export const ensureLatestVersionBeforeRender = async (): Promise<void> => {
+  // E2E kører mod et immutabelt preview for at undgå Vites samtidige lazy-transformer. Playwright
+  // blokerer bevidst service workers i den normale suite, så opstartsforløbet må ikke forsøge at
+  // registrere den previewets worker, som testbrowseren netop har fravalgt. Den ægte PWA-suite
+  // bruger et almindeligt produktionsbuild og passerer derfor ikke gennem denne testtilstand.
+  if (import.meta.env.MODE === 'e2e') return;
   if (!import.meta.env.PROD) return;
   if (typeof navigator === 'undefined') return;
   if (!('serviceWorker' in navigator)) return;

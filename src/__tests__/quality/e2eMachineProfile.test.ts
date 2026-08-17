@@ -44,7 +44,7 @@ describe('deriveMachineProfile', () => {
   });
 
   it('binder parallelitet til hukommelsen — årsagen til crashede browser-targets', () => {
-    // 16 GiB: 4 GiB reserveret til OS, Node og devserveren, 2,5 GiB pr. browser-worker.
+    // 16 GiB: 4 GiB reserveret til OS, Node og E2E-serveren, 3 GiB pr. browser-worker.
     const profile = deriveMachineProfile({
       logicalCpus: 16,
       totalMemoryGiB: 16,
@@ -53,6 +53,18 @@ describe('deriveMachineProfile', () => {
 
     expect(profile.playwrightDefaultWorkers).toBe(8);
     expect(profile.workers).toBe(4);
+    expect(profile.reduced).toBe(true);
+  });
+
+  it('dæmper en 16 GiB-klasse Windows-bærbar til tre samtidige browserkontekster', () => {
+    const profile = deriveMachineProfile({
+      logicalCpus: 16,
+      // Den faktiske kapacitet ligger lidt under markedsføringsnavnet «16 GiB».
+      totalMemoryGiB: 15.7,
+      slownessFactor: 1,
+    });
+
+    expect(profile.workers).toBe(3);
     expect(profile.reduced).toBe(true);
   });
 

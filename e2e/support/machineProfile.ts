@@ -38,16 +38,15 @@ const SPEED_DEADBAND = 1.25;
 /** Loft over hvor langsom en maskine må regnes for. Beskytter mod en enkelt vildfaren måling. */
 const MAX_SLOWNESS = 3;
 
-/** Hukommelse der holdes fri til operativsystem, Node-processen og Vite-devserveren. */
+/** Hukommelse der holdes fri til operativsystem, Node-processen og den lokale E2E-server. */
 const RESERVED_MEMORY_GIB = 4;
 
 /**
- * Hukommelsesbudget pr. worker. En worker holder en browser med Mineos fulde dev-modultræ,
- * trace-opsamling og videooptagelse i live. 2,5 GiB dækker også Vites samtidige lazy-transformer;
- * to GiB lod på en 16 GiB Windows-maskine fem browsere starte samtidigt og gav sporadiske
- * lazy-import-fejl, før Playwright selv nåede at rapportere hukommelsespres.
+ * Hukommelsesbudget pr. worker. En worker holder en browser med Mineos fulde UI, trace-opsamling
+ * og videooptagelse i live. Tre GiB giver den målte 15,7 GiB Windows-bærbar tre workers; fire
+ * samtidige Firefox-kontekster fejlede sporadisk ved lukning, før Playwright rapporterede pres.
  */
-const MEMORY_PER_WORKER_GIB = 2.5;
+const MEMORY_PER_WORKER_GIB = 3;
 
 const BYTES_PER_GIB = 1024 ** 3;
 

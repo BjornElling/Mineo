@@ -114,9 +114,11 @@ reportMachineProfile(machineProfile);
 
 const scaleTimeout = (baseMs: number): number => Math.round(baseMs * machineProfile.timeoutScale);
 
-const webServerCommand = allowServiceWorkers
-  ? 'npm run build:mineo && npx vite preview --config vite.mineo.config.ts --host 127.0.0.1 --port 4173'
-  : 'npm run dev:e2e -- --port 4173';
+// Vites dev-server transformerer lazy moduler på efterspørgsel. Med flere browser-workers kan to
+// samtidige første besøg i samme route derfor få et kortvarigt mislykket modul-svar. E2E-suiten
+// skal dokumentere browseradfærd, ikke Vites transform-cacheløb, og kører derfor mod ét immutabelt
+// build-preview. Service workers er stadig som udgangspunkt blokeret i browserkonteksten nedenfor.
+const webServerCommand = 'npm run generate:build-info && npx vite build --config vite.mineo.config.ts --mode e2e && node scripts/verify-build-artifacts.mjs mineo dist/mineo --allow-automation-bridge && npx vite build --config vite.minprocesrente.config.ts --base /minprocesrente/ && node scripts/ensure-build-index.mjs dist/minprocesrente minprocesrente.html && node scripts/cleanup-minprocesrente-public.mjs dist/minprocesrente && node scripts/verify-build-artifacts.mjs minprocesrente dist/minprocesrente && node scripts/serve-e2e-builds.mjs --port 4173';
 
 export default defineConfig({
   testDir: './e2e',
@@ -141,15 +143,15 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    // Dev-E2E skal være cachefri. PWA-scenarier opt-in'er eksplicit mod et produktions-preview.
+    // Den normale E2E-suite skal være cachefri. PWA-scenarier opt-in'er eksplicit til service workers.
     serviceWorkers: allowServiceWorkers ? 'allow' : 'block',
   },
   projects,
   webServer: useExternalWebServer
     ? undefined
     : {
-      // Den ægte PWA-suite skal ramme de emitterede sw.js/pwa-assets.json-artefakter. Den almindelige
-      // suite bruger fortsat Vite-devserveren og blokerede service workers for at være cachefri.
+      // Begge app-varianter bygges først og serveres derefter fra hver sin immutable rod. Den
+      // almindelige suite blokerer service workers, mens PWA-scenarierne eksplicit tillader dem.
       command: webServerCommand,
       url: baseURL,
       // Audit- og E2E-resultater må komme fra den build/server, som testen selv starter.

@@ -88,11 +88,12 @@ export type AutomationIntrospectionApi = Readonly<{
 export const AUTOMATION_BRIDGE_KEY = '__mineoAutomation' as const;
 
 /**
- * Broen må KUN findes i DEV og test.
+ * Broen må KUN findes i DEV, test og det isolerede E2E-build.
  *
  * `import.meta.env.DEV`/`MODE` er compile-time-konstanter i Vite, så udtrykket foldes til `false` i et
  * produktionsbuild, og installationen bliver unåelig. Det er altså ikke en runtime-flag, en bruger kan slå
- * til. `MODE === 'test'` er med, fordi vitest kører uden `DEV`.
+ * til. `MODE === 'test'` er med, fordi vitest kører uden `DEV`; `MODE === 'e2e'` er det særskilte,
+ * ikke-udrullede preview, som Playwright bygger for stabil browserkontrol.
  *
  * **Verificeret, ikke antaget:** et faktisk `build:mineo` viste, at minifieren folder gaten til `()=>!1`,
  * men BEHOLDER den uåbnelige krop i bundtet. Broen kan altså ikke installere sig i produktion, men
@@ -100,7 +101,8 @@ export const AUTOMATION_BRIDGE_KEY = '__mineoAutomation' as const;
  * `import.meta.env.PROD`-tidlig-retur i hooken nedenfor OGSÅ — så fraværet er en struktur, ikke en tillid
  * til et bestemt minifier-heuristik. `automationBridge.test.ts` hævder begge dele.
  */
-const bridgeIsAllowed = (): boolean => import.meta.env.DEV || import.meta.env.MODE === 'test';
+const bridgeIsAllowed = (): boolean =>
+  import.meta.env.DEV || import.meta.env.MODE === 'test' || import.meta.env.MODE === 'e2e';
 
 /**
  * Installerer broen på `window`, så længe komponenten er mountet.
@@ -112,9 +114,9 @@ export const useAutomationIntrospectionBridge = (): void => {
   const read = useInputReadPort();
 
   React.useEffect(() => {
-    // To lag: `PROD` er den konstant, bundleren folder bort, og `bridgeIsAllowed` er den præcise
-    // DEV/test-betingelse. Uden det første lag beholdt minifieren den døde krop (se kommentaren ovenfor).
-    if (import.meta.env.PROD) return undefined;
+    // To lag: det normale produktionsbuild folder dette tidlige return bort, mens E2E-previewet er
+    // den eksplicitte undtagelse. Uden det første lag beholdt minifieren den døde krop (se ovenfor).
+    if (import.meta.env.PROD && import.meta.env.MODE !== 'e2e') return undefined;
     if (!bridgeIsAllowed()) return undefined;
 
     const readSnapshot = (): AutomationIntrospectionSnapshot => {

@@ -40,10 +40,14 @@ test.describe('fælles tooltip-ombrydning', () => {
 
     await login(page);
     await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    // Tooltippen ligger i den relevante svie/smerte-sektion og er derfor ikke med på en ren sag.
+    // Aktivér den gennem den samme synlige brugerhandling, som gør kontrollen tilgængelig i produktet.
+    await page.locator("input[name='kravPaaSvieSmerteGodtgoerelse'][value='Ja']").check();
 
-    const infoIcon = page
-      .getByText('Svie/smerte-sats ved delvis sygemelding:')
-      .locator('svg[data-testid="InfoOutlinedIcon"]');
+    // Ikonets tilgængelige navn kommer fra den tooltiptekst, brugeren får ved hover. Det er stabilt
+    // på tværs af MUI's interne SVG-markup, som ikke er en del af komponentens kontrakt.
+    const infoIcon = page.getByRole('img', { name: TOOLTIP_TEXT });
+    await expect(infoIcon).toBeVisible();
     await infoIcon.hover();
 
     const tooltip = page.getByRole('tooltip', { name: TOOLTIP_TEXT });

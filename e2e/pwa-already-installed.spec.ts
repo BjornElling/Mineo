@@ -91,7 +91,7 @@ const exposeInstallPrompt = async (page: Page): Promise<void> => {
 };
 
 test.describe('«Installér hjælpeprogram» når hjælpeprogrammet allerede er installeret', () => {
-  test('dev-serveren leverer et origin-bundet PWA-id til desktop-browserens installationstjek', async ({ page }) => {
+  test('testserveren leverer et origin-bundet PWA-id til desktop-browserens installationstjek', async ({ page }) => {
     await page.goto('/');
 
     const manifest = await page.evaluate(async () => (

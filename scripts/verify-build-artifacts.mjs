@@ -2,10 +2,14 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-const [variant, outDir] = process.argv.slice(2);
+const [variant, outDir, ...options] = process.argv.slice(2);
 if (!['mineo', 'minprocesrente'].includes(variant) || !outDir) {
-  throw new Error('Brug: node scripts/verify-build-artifacts.mjs <mineo|minprocesrente> <outDir>');
+  throw new Error('Brug: node scripts/verify-build-artifacts.mjs <mineo|minprocesrente> <outDir> [--allow-automation-bridge]');
 }
+if (options.some((option) => option !== '--allow-automation-bridge')) {
+  throw new Error(`Ukendt verify-build-artifacts-flag: ${options.join(', ')}`);
+}
+const allowAutomationBridge = options.includes('--allow-automation-bridge');
 
 const requirePath = (relativePath) => {
   if (!existsSync(path.join(outDir, relativePath))) {
@@ -24,7 +28,9 @@ requirePath('_headers');
 requirePath('.vite/manifest.json');
 
 const html = readFileSync(path.join(outDir, 'index.html'), 'utf8');
-if (/src="\/src\//.test(html) || !/src="\/assets\//.test(html)) {
+// Standalone-buildet får i E2E et afgrænset `/minprocesrente/`-basepath, så de to app-varianters
+// hashed assets ikke kan kollidere. Begge former er byggede assets; en `/src/`-reference er aldrig det.
+if (/src="\/src\//.test(html) || !/src="(?:\/[^\"]*)?\/assets\//.test(html)) {
   throw new Error(`${variant}-buildets index.html peger ikke entydigt på et bygget asset.`);
 }
 
@@ -90,7 +96,9 @@ if (variant === 'mineo') {
   const bridgeBundle = bundleNames.find((name) =>
     readFileSync(path.join(outDir, 'assets', name), 'utf8').includes(automationBridgeKey)
   );
-  if (bridgeBundle !== undefined) {
+  // Kun Playwrights eksplicitte E2E-build må bære den skrivebeskyttede introspektionsbro. Det
+  // almindelige build:mineo passerer aldrig flaget og bevarer dermed det deploybare fraværsværn.
+  if (bridgeBundle !== undefined && !allowAutomationBridge) {
     throw new Error(`Mineo-produktionsbuildet indeholder automatiseringsbroens globale nøgle i ${bridgeBundle}.`);
   }
 } else {

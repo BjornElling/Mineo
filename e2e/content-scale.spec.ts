@@ -136,6 +136,9 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
   });
 
   test('skærmprint neutraliserer kun arbejdsfladeskaleringen under capture', async ({ page }) => {
+    // Canvas-capture kan bruge længere tid i Edge på batteridrift end de øvrige browserflows. Det
+    // udvidede loft gælder kun denne filgenerering; eventet skal stadig indtræffe og filen valideres.
+    test.setTimeout(180_000);
     const captureProjects = new Set([
       'chrome-desktop-1536x730',
       'edge-desktop-1536x730',
@@ -171,9 +174,11 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     );
     const downloadPromise = page.waitForEvent('download');
     // Dialogen kan få en ufarlig state-opdatering, mens lazy-loaded capture-koden monteres.
-    // Dispatch på den allerede fundne knap undgår, at Playwrights stabilitetscheck rammer et
-    // nyt DOM-node uden at ændre den brugerrejse, der afprøves.
-    await page.getByRole('button', { name: 'Download skærmprint' }).dispatchEvent('click');
+    // Kald browserens click direkte på det fundne element; Playwrights dispatchEvent venter ellers
+    // på portalens erstattede DOM-node i stedet for at måle den brugeraktiverede capture-handler.
+    await page.getByRole('button', { name: 'Download skærmprint' }).evaluate((button) => {
+      (button as HTMLButtonElement).click();
+    });
     const download = await downloadPromise;
     const downloadPath = await download.path();
     expect(downloadPath).not.toBeNull();
