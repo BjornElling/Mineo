@@ -1,4 +1,4 @@
-import { navigationItems, utilityItems } from '../../../components/layout/SideMenu';
+import { navigationItems, utilityItems } from '../../../components/layout/sideMenuItems';
 import {
   APP_PAGE_DEFINITIONS,
   APP_SYSTEM_PAGE_DEFINITIONS,
@@ -9,7 +9,7 @@ import {
 /**
  * Sidemenuen som RUTE-INVENTAR (greenfield #43, efterslæb).
  *
- * #43 samlede appens routes ét sted, men ramte kun to af de tre lister: `SideMenu.tsx` bar sit
+ * #43 samlede appens routes ét sted, men ramte kun to af de tre lister: menuinventaret bar sit
  * eget inventar af bare strenge og importerede slet ikke kataloget. Guarden i `App.tsx`
  * sammenholder kun loader-listen med kataloget, så en omdøbt route gav en lydløst DØD menupost —
  * ingen fejl, ingen test.

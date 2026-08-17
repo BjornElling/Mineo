@@ -20,6 +20,109 @@ export const CONTENT_UI_SCALE_POLICY = Object.freeze({
 
 export type ContentUiScale = typeof CONTENT_UI_SCALE_POLICY.scaleSteps[number];
 
+export const SIDE_MENU_SCALE_POLICY = Object.freeze({
+  fullWidthPx: 250,
+  minimumWidthPx: 190,
+  minimumContentScale: 0.78,
+  fullContentScrollPaddingLeftPx: 24,
+  minimumContentScrollPaddingLeftPx: 16,
+  fullContentMainPaddingLeftPx: 50,
+  minimumContentMainPaddingLeftPx: 25,
+} as const);
+
+export const SIDE_MENU_COLLAPSED_ICON_POLICY = Object.freeze({
+  sidebarWidthPx: 70,
+  sidebarBorderWidthPx: 1,
+  buttonSizePx: 44,
+  iconSlotSizePx: 24,
+  iconSizePx: 20,
+  expandedGroupPaddingPx: 12,
+} as const);
+
+const resolveSideMenuScaleProgress = (menuContentScale: number): number => {
+  const safeMenuContentScale = Number.isFinite(menuContentScale)
+    ? Math.max(SIDE_MENU_SCALE_POLICY.minimumContentScale, Math.min(1, menuContentScale))
+    : 1;
+
+  return (
+    safeMenuContentScale - SIDE_MENU_SCALE_POLICY.minimumContentScale
+  ) / (1 - SIDE_MENU_SCALE_POLICY.minimumContentScale);
+};
+
+const interpolateSideMenuScale = (minimum: number, full: number, menuContentScale: number): number => (
+  minimum + (full - minimum) * resolveSideMenuScaleProgress(menuContentScale)
+);
+
+/**
+ * Alle sidemenuikoner — også hamburgeren — lever under den samme zoomede indholdsrod. Dermed
+ * deler de visuel størrelse, ikonflade og vandret anker i begge menutilstande.
+ */
+export const getCollapsedSideMenuIconLayout = (menuContentScale = 1) => {
+  const scale = Number.isFinite(menuContentScale)
+    ? Math.max(SIDE_MENU_SCALE_POLICY.minimumContentScale, Math.min(1, menuContentScale))
+    : 1;
+
+  return {
+    buttonSizePx: SIDE_MENU_COLLAPSED_ICON_POLICY.buttonSizePx * scale,
+    iconSizePx: SIDE_MENU_COLLAPSED_ICON_POLICY.iconSizePx * scale,
+    // Flex-contentet slutter før sidebarens 1px skillelinje. Uden at fratrække den blev udfoldede
+    // ikoner forskudt en halv px til højre i forhold til de kollapsede ved delvis zoom.
+    iconCenterPx: (
+      SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx
+      - SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarBorderWidthPx
+    ) / 2,
+    // Den udfoldede knap lever under menuens zoom. Padding beregnes derfor i layout-px, så
+    // ikonets visuelle midtpunkt altid ligger på samme akse som i den kollapsede ikonkolonne.
+    expandedButtonPaddingLeftPx: (
+      (
+        SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx
+        - SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarBorderWidthPx
+      ) / (2 * scale)
+    ) - SIDE_MENU_COLLAPSED_ICON_POLICY.expandedGroupPaddingPx
+      - SIDE_MENU_COLLAPSED_ICON_POLICY.iconSlotSizePx / 2,
+    // Hamburgeren er med vilje ikon-only også i den udfoldede menu. Den skal derfor have en
+    // kvadratisk hoverflade med ens luft omkring ikonet, men stadig dele de øvrige ikonernes akse.
+    expandedSquareButtonMarginLeftPx: (
+      (
+        SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx
+        - SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarBorderWidthPx
+      ) / (2 * scale)
+    ) - SIDE_MENU_COLLAPSED_ICON_POLICY.expandedGroupPaddingPx
+      - SIDE_MENU_COLLAPSED_ICON_POLICY.buttonSizePx / 2,
+  };
+};
+
+/**
+ * Den udfoldede sidemenu følger præcis samme forhold som dens labels: fuld labelstørrelse giver
+ * 250 px, mens mindste labelstørrelse giver 190 px. Dermed reduceres menuen ikke forskudt af
+ * teksten, men i takt med den lodrette zoom, der også former labels, ikoner og luft.
+ */
+export const getExpandedSideMenuWidth = (menuContentScale = 1): number => {
+  return interpolateSideMenuScale(
+    SIDE_MENU_SCALE_POLICY.minimumWidthPx,
+    SIDE_MENU_SCALE_POLICY.fullWidthPx,
+    menuContentScale,
+  );
+};
+
+/** Indholdsfladens venstregutter følger menuens labels, så tom plads reduceres i samme takt. */
+export const getContentScrollPaddingLeftForMenuScale = (menuContentScale = 1): number => (
+  interpolateSideMenuScale(
+    SIDE_MENU_SCALE_POLICY.minimumContentScrollPaddingLeftPx,
+    SIDE_MENU_SCALE_POLICY.fullContentScrollPaddingLeftPx,
+    menuContentScale,
+  )
+);
+
+/** Den indre startluft holder læsbar afstand til skillelinjen også ved mindste skala. */
+export const getContentMainPaddingLeftForMenuScale = (menuContentScale = 1): number => (
+  interpolateSideMenuScale(
+    SIDE_MENU_SCALE_POLICY.minimumContentMainPaddingLeftPx,
+    SIDE_MENU_SCALE_POLICY.fullContentMainPaddingLeftPx,
+    menuContentScale,
+  )
+);
+
 const isContentUiScale = (value: number): value is ContentUiScale =>
   CONTENT_UI_SCALE_POLICY.scaleSteps.some((step) => step === value);
 

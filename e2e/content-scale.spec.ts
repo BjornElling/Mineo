@@ -17,8 +17,22 @@ const expectedScaleForWidth = (width: number): string => {
   return '0.85';
 };
 
+const expectedExpandedMenuWidthForScale = (menuContentScale: string): number => {
+  const scale = Math.max(0.78, Math.min(1, Number(menuContentScale)));
+  return 190 + 60 * ((scale - 0.78) / 0.22);
+};
+
+const expectedContentGuttersForMenuScale = (menuContentScale: string) => {
+  const scale = Math.max(0.78, Math.min(1, Number(menuContentScale)));
+  const progress = (scale - 0.78) / 0.22;
+  return {
+    scrollPadding: 16 + 8 * progress,
+    mainPadding: 25 + 25 * progress,
+  };
+};
+
 test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
-  test('skalerer kun den navngivne main og holder shellen i normal størrelse', async ({ page }) => {
+  test('skalerer arbejdsfladen og frigiver tekstsikker bredde fra sidemenuen', async ({ page }) => {
     const runtimeErrors: string[] = [];
     page.on('console', (message) => {
       if (message.type() === 'error') runtimeErrors.push(message.text());
@@ -36,6 +50,8 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
       const main = document.querySelector<HTMLElement>('main[data-mineo-content-scale-root="true"]');
       const menuToggle = document.querySelector<HTMLElement>('[aria-label="Fold menuen sammen"]');
       const menu = menuToggle?.parentElement?.parentElement ?? null;
+      const menuContent = menu?.querySelector<HTMLElement>('[data-mineo-menu-content-scale-root="true"]') ?? null;
+      const container = document.querySelector<HTMLElement>('[data-mineo-scroll-container="true"]');
       if (!main) throw new Error('Mangler Mineos content-scale-root.');
 
       return {
@@ -44,6 +60,15 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
         mainZoom: getComputedStyle(main).zoom,
         rootZoom: getComputedStyle(document.documentElement).zoom,
         menuZoom: menu ? getComputedStyle(menu).zoom : null,
+        menuWidth: menu?.getBoundingClientRect().width ?? null,
+        menuContentScale: menuContent ? getComputedStyle(menuContent).zoom : null,
+        menuLabelsFit: menuContent === null
+          ? false
+          : Array.from(menuContent.querySelectorAll<HTMLButtonElement>('button[aria-label]')).every((button) => (
+            button.scrollWidth <= button.clientWidth
+          )),
+        contentScrollPaddingLeft: container ? getComputedStyle(container).paddingLeft : null,
+        contentMainPaddingLeft: getComputedStyle(main).paddingLeft,
         mainMarker: main.getAttribute('data-mineo-content-scale-root'),
         contentBoxes: Array.from(document.querySelectorAll<HTMLElement>('.content-box')).map((box) => {
           const rect = box.getBoundingClientRect();
@@ -57,6 +82,11 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(geometry.rootZoom).toBe('1');
     expect(geometry.mainMarker).toBe('true');
     expect(geometry.menuZoom).toBe('1');
+    expect(geometry.menuWidth).toBeCloseTo(expectedExpandedMenuWidthForScale(geometry.menuContentScale ?? '1'), 1);
+    expect(geometry.menuLabelsFit).toBe(true);
+    const expectedGutters = expectedContentGuttersForMenuScale(geometry.menuContentScale ?? '1');
+    expect(Number.parseFloat(geometry.contentScrollPaddingLeft ?? '')).toBeCloseTo(expectedGutters.scrollPadding, 1);
+    expect(Number.parseFloat(geometry.contentMainPaddingLeft)).toBeCloseTo(expectedGutters.mainPadding, 1);
     expect(geometry.contentBoxes.length).toBeGreaterThan(0);
     expect(geometry.contentBoxes.every((box) => box.left >= 0 && box.right <= geometry.width)).toBe(true);
     expect(runtimeErrors).toEqual([]);
@@ -132,6 +162,75 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(geometry.scrollLeft).toBeGreaterThan(0);
     // Den ekstra pixel dækker browsernes afrunding af CSS zoom uden at maskere reel beskæring.
     expect(geometry.contentBoxRight).toBeLessThanOrEqual(geometry.containerRight + 1);
+    expect(runtimeErrors).toEqual([]);
+  });
+
+  test('holder faneindikator og dropdown-popover på arbejdsfladens skala', async ({ page }) => {
+    const runtimeErrors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') runtimeErrors.push(message.text());
+    });
+    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+
+    await login(page);
+    await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+    await page.getByRole('tab', { name: 'Løbende ydelser' }).click();
+
+    // MUI skriver selv indikatorens position i et efterfølgende layout-pass. Vent på den
+    // observerbare slutgeometri frem for at måle det mellemliggende første frame efter et klik.
+    await expect.poll(() => page.evaluate(() => {
+      const tab = document.querySelector<HTMLElement>('.MuiTab-root.Mui-selected');
+      const indicator = document.querySelector<HTMLElement>('.MuiTabs-indicator');
+      if (tab === null || indicator === null) return false;
+      const tabRect = tab.getBoundingClientRect();
+      const indicatorRect = indicator.getBoundingClientRect();
+      return Math.abs(indicatorRect.left - tabRect.left) <= 0.5
+        && Math.abs(indicatorRect.right - tabRect.right) <= 0.5;
+    })).toBe(true);
+
+    await page.getByRole('button', { name: 'Indstillinger' }).click();
+    const dropdown = page.getByRole('combobox', { name: 'Download-format for dokumenter' });
+    await dropdown.click();
+    const listbox = page.getByRole('listbox');
+    await expect(listbox).toBeVisible();
+
+    const dropdownGeometry = await listbox.evaluate((listboxElement) => {
+      const paper = listboxElement.closest<HTMLElement>('.MuiPaper-root');
+      const input = document.querySelector<HTMLElement>('[aria-label="Download-format for dokumenter"]');
+      if (paper === null || input === null) throw new Error('Mangler dropdown-popover eller trigger.');
+      const paperRect = paper.getBoundingClientRect();
+      return {
+        inputLeft: input.getBoundingClientRect().left,
+        paperLeft: paperRect.left,
+        paperWidth: paperRect.width,
+        paperLayoutWidth: paper.offsetWidth,
+        listboxClientHeight: listboxElement.clientHeight,
+        listboxScrollHeight: listboxElement.scrollHeight,
+        viewportHeight: window.innerHeight,
+      };
+    });
+
+    const mainScale = Number(await page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
+      (element) => getComputedStyle(element).zoom,
+    ));
+    // Firefox afrunder portalens transformposition til hel CSS-pixel ved delvis zoom.
+    expect(Math.abs(dropdownGeometry.paperLeft - dropdownGeometry.inputLeft)).toBeLessThanOrEqual(1);
+    expect(dropdownGeometry.paperWidth / dropdownGeometry.paperLayoutWidth).toBeCloseTo(mainScale, 2);
+    expect(dropdownGeometry.listboxClientHeight).toBeLessThanOrEqual(dropdownGeometry.viewportHeight - 32);
+    expect(dropdownGeometry.listboxScrollHeight).toBeGreaterThanOrEqual(dropdownGeometry.listboxClientHeight);
+
+    await page.keyboard.press('Escape');
+    await page.getByRole('combobox', { name: 'Lønmodtager' }).click();
+    await expect(listbox).toBeVisible();
+    const longListGeometry = await listbox.evaluate((listboxElement) => ({
+      clientHeight: listboxElement.clientHeight,
+      scrollHeight: listboxElement.scrollHeight,
+      viewportHeight: window.innerHeight,
+      overflowY: getComputedStyle(listboxElement).overflowY,
+    }));
+    expect(longListGeometry.clientHeight).toBeLessThanOrEqual(longListGeometry.viewportHeight - 32);
+    expect(longListGeometry.scrollHeight).toBeGreaterThanOrEqual(longListGeometry.clientHeight);
+    expect(longListGeometry.overflowY).toBe('auto');
     expect(runtimeErrors).toEqual([]);
   });
 

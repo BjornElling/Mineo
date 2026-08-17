@@ -2,37 +2,23 @@ import React, { useState } from 'react';
 import { Box, Button, Divider, Tooltip } from '@mui/material';
 import {
   Menu as MenuIcon,
-  EventRepeat,
-  AssistWalker,
-  Payments,
-  ListAlt,
-  TrendingUp,
-  PersonalInjury,
-  Flare,
-  Person,
   BrowserUpdated,
   Save,
   DeleteForever,
-  Settings,
-  Info
 } from '@mui/icons-material';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import type { MenuPageKey } from '../../config/pageNavigation';
+import { navigationItems, utilityItems } from './sideMenuItems';
 import {
   readOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
 } from '../../utils/safeSessionStorage';
-
-// Type-definitioner
-//
-// `id` er nøglet på det kanoniske rute-inventar (`MenuPageKey`), ikke en fri streng. Menuen bar
-// tidligere sin egen liste af bare strenge uden at importere kataloget — en tredje route-liste,
-// hvor en omdøbt side gav en lydløst død menupost. Nu er samme drift en compile-fejl.
-type NavigationItem = {
-  id: MenuPageKey;
-  label: string;
-  icon: React.ReactElement;
-};
+import {
+  getCollapsedSideMenuIconLayout,
+  getExpandedSideMenuWidth,
+  SIDE_MENU_COLLAPSED_ICON_POLICY,
+  SIDE_MENU_SCALE_POLICY,
+} from '../../utils/uiScale';
 
 type FileOperationItem = {
   id: string;
@@ -49,10 +35,7 @@ type FileOperationItem = {
 };
 
 // Menu-dimensioner
-const EXPANDED_WIDTH = 250;
-const COLLAPSED_WIDTH = 70;
 const MENU_STATE_STORAGE_KEY = UI_STORAGE_KEYS.sideMenuExpanded;
-const MINIMUM_MENU_CONTENT_SCALE = 0.78;
 
 const readStoredMenuState = (): string | null => {
   return readOptionalSessionStorageValue(MENU_STATE_STORAGE_KEY);
@@ -62,25 +45,38 @@ const persistMenuState = (isExpanded: boolean): void => {
   writeOptionalSessionStorageValue(MENU_STATE_STORAGE_KEY, isExpanded ? 'true' : 'false');
 };
 
-// Hovednavigation (defineret udenfor komponenten for at undgå genskabelse).
-// Eksporteret, så completeness-testen måler DEN levende liste og ikke en kopi af den.
-export const navigationItems: NavigationItem[] = [
-  { id: 'stamdata', label: 'Stamdata', icon: <Person /> },
-  { id: 'erstatningsopgoerelse', label: 'Erstatningsopgørelse', icon: <Payments /> },
-  { id: 'erhvervsevnetab', label: 'Erhvervsevnetab', icon: <AssistWalker /> },
-  { id: 'varigemen', label: 'Varige mén', icon: <PersonalInjury /> },
-  { id: 'forsoergertab', label: 'Forsørgertab', icon: <Flare /> },
-  { id: 'aarsloen', label: 'Årslønsberegning', icon: <EventRepeat /> },
-  { id: 'renteberegning', label: 'Renteberegning', icon: <TrendingUp /> },
-  { id: 'satser', label: 'Satser', icon: <ListAlt /> }
-];
+type CollapsedIconLayout = ReturnType<typeof getCollapsedSideMenuIconLayout>;
 
-// Utilities (med active state)
-export const utilityItems: NavigationItem[] = [
-  { id: 'indstillinger', label: 'Indstillinger', icon: <Settings /> },
-  // Bevidst UX-valg: siden er internt navngivet `mineo`, men labelen i sidemenuen forbliver `Om`.
-  { id: 'mineo', label: 'Om', icon: <Info /> }
-];
+/** Alle sidemenuens ikoner deler samme akse, ikonflade og skaleringsrod. */
+const getSideMenuIconButtonSx = (
+  isExpanded: boolean,
+  collapsedIconLayout: CollapsedIconLayout,
+  hasLabel: boolean,
+  isSquareWhenExpanded = false,
+) => ({
+  textTransform: 'none',
+  justifyContent: isExpanded && !isSquareWhenExpanded ? 'flex-start' : 'center',
+  // MUI-knapper er som udgangspunkt inline-flex. Den kollapsede variant skal være en stabil
+  // enkelt række, mens menuens bredde animerer.
+  display: 'flex',
+  width: isExpanded && !isSquareWhenExpanded ? '100%' : '44px',
+  pl: isExpanded && !isSquareWhenExpanded ? `${collapsedIconLayout.expandedButtonPaddingLeftPx}px` : 0,
+  pr: isExpanded && !isSquareWhenExpanded ? 1.5 : 0,
+  ml: isExpanded && isSquareWhenExpanded
+    ? `${collapsedIconLayout.expandedSquareButtonMarginLeftPx}px`
+    : 0,
+  minWidth: 0,
+  height: '44px',
+  borderRadius: '12px',
+  '& .MuiButton-startIcon': {
+    margin: isExpanded && hasLabel ? '0 12px 0 0' : '0',
+    minWidth: `${SIDE_MENU_COLLAPSED_ICON_POLICY.iconSlotSizePx}px`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'currentColor',
+  },
+});
 
 /**
  * Sammenfoldelig sidemenu med navigation
@@ -101,27 +97,40 @@ interface SideMenuProps {
   onSletAlt: () => void;
   /** Restore-mål for `Slet alt`-bekræftelsen — se `FileOperationItem.buttonRef`. */
   sletAltButtonRef: React.RefObject<HTMLButtonElement | null>;
+  /** Samme lodrette labelskala reducerer indholdets venstregutter i `MainLayout`. */
+  onContentScaleChange?: (scale: number) => void;
 }
 
-const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAlt, sletAltButtonRef }: SideMenuProps) => {
+const SideMenu = React.memo(({
+  activePage,
+  onPageChange,
+  onGem,
+  onHent,
+  onSletAlt,
+  sletAltButtonRef,
+  onContentScaleChange,
+}: SideMenuProps) => {
   const [isExpanded, setIsExpanded] = useState(() => {
     const storedValue = readStoredMenuState();
     return storedValue === null ? true : storedValue === 'true';
   });
   const menuRef = React.useRef<HTMLDivElement | null>(null);
-  const menuHeaderRef = React.useRef<HTMLDivElement | null>(null);
   const menuContentRef = React.useRef<HTMLDivElement | null>(null);
   const menuContentScaleRef = React.useRef(1);
   const [menuContentScale, setMenuContentScale] = useState(1);
+  const collapsedIconLayout = getCollapsedSideMenuIconLayout(menuContentScale);
+
+  React.useLayoutEffect(() => {
+    onContentScaleChange?.(menuContentScale);
+  }, [menuContentScale, onContentScaleChange]);
 
   React.useLayoutEffect(() => {
     let animationFrame: number | null = null;
 
     const updateMenuContentScale = () => {
       const menu = menuRef.current;
-      const header = menuHeaderRef.current;
       const content = menuContentRef.current;
-      if (menu === null || header === null || content === null || menu.clientHeight <= 0) return;
+      if (menu === null || content === null || menu.clientHeight <= 0) return;
 
       const contentHeight = content.getBoundingClientRect().height;
       if (contentHeight <= 0) return;
@@ -130,9 +139,9 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
       // Dividering med den aktuelle zoom er nødvendig: rect'en er visuel størrelse, mens den
       // nødvendige højde skal sammenlignes med menuens uscalerede tilgængelige højde.
       const naturalContentHeight = contentHeight / menuContentScaleRef.current;
-      const availableContentHeight = Math.max(0, menu.clientHeight - header.getBoundingClientRect().height);
+      const availableContentHeight = menu.clientHeight;
       const nextScale = Math.max(
-        MINIMUM_MENU_CONTENT_SCALE,
+        SIDE_MENU_SCALE_POLICY.minimumContentScale,
         Math.min(1, availableContentHeight / naturalContentHeight),
       );
 
@@ -191,7 +200,12 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
     <Box
       ref={menuRef}
       sx={{
-        width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
+        width: isExpanded ? getExpandedSideMenuWidth(menuContentScale) : SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx,
+        // Den zoom-kompenserede indholdsrod må ikke få flex-layoutet til at udvide den faste,
+        // kollapsede ikonramme. Kun ikonernes indre placering ændres med skalaen.
+        minWidth: isExpanded ? getExpandedSideMenuWidth(menuContentScale) : SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx,
+        maxWidth: isExpanded ? getExpandedSideMenuWidth(menuContentScale) : SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx,
+        flexShrink: 0,
         height: '100vh',
         backgroundColor: 'var(--color-surface)',
         borderRight: '1px solid var(--color-surface-border)',
@@ -201,8 +215,29 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         overflow: 'hidden'
       }}
     >
+      <Box
+        ref={menuContentRef}
+        data-mineo-menu-content-scale-root="true"
+        sx={{
+          flexShrink: 0,
+          minWidth: '100%',
+          width: '100%',
+          overflow: 'visible',
+          zoom: menuContentScale,
+        }}
+      >
       {/* Hamburger toggle button */}
-      <Box ref={menuHeaderRef} sx={{ py: 1, px: 1.5, flexShrink: 0 }}>
+      <Box
+        sx={{
+          height: '64px',
+          boxSizing: 'border-box',
+          px: isExpanded ? 1.5 : 0,
+          flexShrink: 0,
+          display: 'flex',
+          justifyContent: isExpanded ? 'flex-start' : 'center',
+          alignItems: 'center',
+        }}
+      >
         <Button
           onClick={toggleMenu}
           startIcon={<MenuIcon />}
@@ -210,45 +245,17 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
           // Navnet beskriver HANDLINGEN og følger derfor menuens aktuelle tilstand.
           aria-label={isExpanded ? 'Fold menuen sammen' : 'Fold menuen ud'}
           aria-expanded={isExpanded}
+          className="menu-item"
           sx={{
-            textTransform: 'none',
-            justifyContent: 'flex-start',
-            pl: 1.5,
-            pr: 1.5,
-            py: 1.2,
-            mb: 0.5,
-            minWidth: 0,
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            color: 'var(--color-icon-muted)',
-            fontWeight: 400,
-            fontSize: '0.95rem',
-            '&:hover': {
-              backgroundColor: 'var(--color-hover)'
-            },
-            '& .MuiButton-startIcon': {
-              margin: '0',
-              minWidth: '24px',
-              color: 'var(--color-icon-muted)'
-            },
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            ...getSideMenuIconButtonSx(isExpanded, collapsedIconLayout, false, true),
+            py: 0,
+            mb: 0,
           }}
         >
           {/* Ingen tekst */}
         </Button>
       </Box>
 
-      <Box
-        ref={menuContentRef}
-        data-mineo-menu-content-scale-root="true"
-        sx={{
-          flexShrink: 0,
-          minWidth: '100%',
-          overflow: 'visible',
-          zoom: menuContentScale,
-        }}
-      >
         <Divider
           sx={{
             borderColor: 'var(--color-surface-border)',
@@ -257,7 +264,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         />
 
         {/* Hovednavigation */}
-        <Box sx={{ py: 1, px: 1.5 }}>
+        <Box sx={{ py: 1, px: isExpanded ? 1.5 : 0, display: 'flex', flexDirection: 'column', alignItems: isExpanded ? 'stretch' : 'center' }}>
           {navigationItems.map((item) => (
             <Tooltip
               key={item.id}
@@ -281,19 +288,12 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                 aria-current={activePage === item.id ? 'page' : undefined}
                 className={activePage === item.id ? 'menu-item active' : 'menu-item'}
                 sx={{
-                  justifyContent: 'flex-start',
-                  pl: 1.5,
-                  pr: 2,
+                  ...getSideMenuIconButtonSx(isExpanded, collapsedIconLayout, true),
+                  // Ved mindste labelskala mangler den længste label ellers få synlige px i
+                  // Firefox. Fire px mindre højre-padding bevarer ikonaksen og giver teksten
+                  // den nødvendige plads uden at udvide sidemenuen.
                   py: 1.2,
                   mb: 0.5,
-                  minWidth: 0,
-                  height: '44px',
-                  borderRadius: '12px',
-                  '& .MuiButton-startIcon': {
-                    margin: '0 12px 0 0',
-                    minWidth: '24px',
-                    color: 'currentColor'
-                  },
                   whiteSpace: item.id === 'varigemen' ? 'nowrap' : undefined,
                 }}
               >
@@ -312,7 +312,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         />
 
         {/* Fil-operationer */}
-        <Box sx={{ py: 1, px: 1.5 }}>
+        <Box sx={{ py: 1, px: isExpanded ? 1.5 : 0, display: 'flex', flexDirection: 'column', alignItems: isExpanded ? 'stretch' : 'center' }}>
           {fileOperations.map((item) => (
             <Tooltip
               key={item.id}
@@ -336,19 +336,9 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                 aria-label={item.label}
                 className="menu-item"
                 sx={{
-                  justifyContent: 'flex-start',
-                  pl: 1.5,
-                  pr: 2,
+                  ...getSideMenuIconButtonSx(isExpanded, collapsedIconLayout, true),
                   py: 1.2,
                   mb: 0.5,
-                  minWidth: 0,
-                  height: '44px',
-                  borderRadius: '12px',
-                  '& .MuiButton-startIcon': {
-                    margin: '0 12px 0 0',
-                    minWidth: '24px',
-                    color: 'currentColor'
-                  }
                 }}
               >
                 {isExpanded && item.label}
@@ -366,7 +356,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         />
 
         {/* Utilities */}
-        <Box sx={{ py: 1, px: 1.5 }}>
+        <Box sx={{ py: 1, px: isExpanded ? 1.5 : 0, display: 'flex', flexDirection: 'column', alignItems: isExpanded ? 'stretch' : 'center' }}>
           {utilityItems.map((item) => (
             <Tooltip
               key={item.id}
@@ -390,19 +380,9 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                 aria-current={activePage === item.id ? 'page' : undefined}
                 className={activePage === item.id ? 'menu-item active' : 'menu-item'}
                 sx={{
-                  justifyContent: 'flex-start',
-                  pl: 1.5,
-                  pr: 2,
+                  ...getSideMenuIconButtonSx(isExpanded, collapsedIconLayout, true),
                   py: 1.2,
                   mb: 0.5,
-                  minWidth: 0,
-                  height: '44px',
-                  borderRadius: '12px',
-                  '& .MuiButton-startIcon': {
-                    margin: '0 12px 0 0',
-                    minWidth: '24px',
-                    color: 'currentColor'
-                  }
                 }}
               >
                 {isExpanded && item.label}

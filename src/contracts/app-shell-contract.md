@@ -97,12 +97,18 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 11. **Arbejdsfladeskalering er en afgrænset Mineo-undtagelse.** `useContentUiScale` og den synkrone
     theme-bootstrap bruger samme serialiserbare policy fra `src/utils/uiScale.ts` og sætter kun
-    `--mineo-content-scale` på `document.documentElement`. Den eneste forbruger er den navngivne
-    `<main data-mineo-content-scale-root="true">` i Mineos `Container`; sidemenu, `MainLayout`,
-    `#root`, `html`, `body` og MUI-portaler må ikke zoome. Skaleringen er kvantiseret til policyens
-    trin og falder aldrig under `0.85`. Den må ikke indføre reflow, skjule indhold eller ændre
-    input-/persistence-state ved resize. Den eksisterende `Container`-scroll er den autoritative
-    fallback under policyens minimumsbredde.
+    `--mineo-content-scale` på `document.documentElement`. Den navngivne
+    `<main data-mineo-content-scale-root="true">` i Mineos `Container` er den eneste zoom-forbruger;
+    sidemenu, `MainLayout`, `#root`, `html`, `body` og MUI-portaler må ikke zoome. Den udfoldede
+    sidemenu må dog følge sin egen lodrette indholdsskala direkte: ved fuld tekststørrelse er den
+    250 px, og den interpolerer proportionalt med labelstørrelsen til 190 px ved mindste lodrette
+    indholdsskala. Labels, ikoner og deres indbyrdes luft har dermed samme relative forhold hele
+    vejen, indtil minimumsbredden er nået. Den ydre `Container`-gutter og den indre `<main>`-
+    indrykning følger samme labelskala fra henholdsvis 24→16 px og 50→25 px, så den tomme afstand
+    efter skillelinjen reduceres uden at indholdet lægges op ad den. Skaleringen er kvantiseret til
+    policyens trin og falder aldrig under `0.85`. Den må ikke indføre reflow,
+    skjule indhold eller ændre input-/persistence-state ved resize. Den eksisterende `Container`-
+    scroll er den autoritative fallback under policyens minimumsbredde.
 
     Den dækkede smalle grænse er en **CSS-viewport** på mindst 1358×620 px ved 100 % browserzoom,
     ikke en fysisk skærmopløsning: En 1366×768-skærm med 125 % systemskalering kan derfor ligge
@@ -124,12 +130,19 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     en afvigelse, neutralisere netop denne skaleringsrod lokalt og gendanne den i `finally`.
 
     **Sidemenuen bevarer sin luftige desktopprofil og har aldrig intern scroll.** Ved normal højde
-    har knapper, grupper og separatorer deres oprindelige afstande. Hamburgerknappen er uscaleret
-    og altid synlig; resten af menuen skaleres først ned, når den naturlige højde ellers ikke kan
+    har knapper, grupper og separatorer deres oprindelige afstande. Hamburgeren og alle kollapsede
+    menuikoner følger samme skala, kvadratiske hoverflade og vandrette midtpunkt; hvert ikon har
+    samme vandrette anker i sammenfoldet og udfoldet tilstand. Hamburgeren står lodret midt mellem
+    sidens top og den første separator og er altid synlig. Resten af menuen skaleres først ned, når den naturlige højde ellers ikke kan
     være i vinduet. Ved den dækkede højde på 620 CSS-px skal alle punkter være synlige og nåbare
     uden intern menuscroll. Under denne højde fastholdes minimumsskalaen, og eventuelt indhold
     fortsætter tavst uden for det synlige vindue frem for at komprimeres yderligere eller få en
     scrollbar.
+
+    MUI-portaler er fortsat ikke globale zoom-forbrugere. En `StyledDropdown`-liste er den snævre
+    undtagelse: den følger sin triggers lokale arbejdsfladeskala visuelt, men bevarer Popover'ens
+    ankerposition. Listen har altid en viewport-sikker maksimal højde og scroller kun internt i
+    popup'en, hvis dens valgmængde er længere.
 
 ## 3. Autoritative Kilder
 

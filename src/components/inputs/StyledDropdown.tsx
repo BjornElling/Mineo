@@ -3,6 +3,7 @@ import { Box, MenuItem, MenuList, OutlinedInput, Popover, Tooltip } from '@mui/m
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { mergeSx } from '../../utils/mergeSx';
+import { measureNearestContentUiScale } from '../../utils/uiScale';
 import { copyTextToClipboard, readClipboardText } from '../../utils/clipboardUtils';
 import { createCommitEvent, type CommitEvent } from '../../types/fieldEvents';
 import {
@@ -192,6 +193,8 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const [open, setOpen] = React.useState(false);
   const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [popoverContentScale, setPopoverContentScale] = React.useState(1);
+  const [popoverMaxHeightPx, setPopoverMaxHeightPx] = React.useState<number | null>(null);
 
   const anchorRef = React.useRef<HTMLDivElement | null>(null);
   const inputElementRef = React.useRef<HTMLInputElement | null>(null);
@@ -403,7 +406,15 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     closedTypeaheadRef.current = null;
     // Sørg for at combobox-inputtet beholder fokus ved åbning; keyboard-navigation håndteres på inputtet.
     inputElementRef.current?.focus();
-    setAnchorEl(anchorRef.current);
+    const nextAnchor = anchorRef.current;
+    setAnchorEl(nextAnchor);
+    // Popover'en er portaleret uden for den zoomede arbejdsflade. Den skal følge præcis den
+    // samme lokale skala som sin trigger, ellers står menuens tekst og rækker for stort.
+    const nextScale = measureNearestContentUiScale(nextAnchor);
+    setPopoverContentScale(nextScale);
+    // Popover måler sin rå layout før en eventuel visuel transform. Begræns derfor den rå højde
+    // til viewporten, så MUI aldrig placerer en liste delvist uden for vinduet.
+    setPopoverMaxHeightPx(Math.max(0, window.innerHeight - 32));
     setOpen(true);
     const initialHighlight = selectedIndex >= 0
       ? selectedIndex
@@ -412,6 +423,18 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         : -1;
     setHighlightedIndex(initialHighlight);
   }, [disabled, findSelectableIndex, hasConfigError, resolvedValue, selectedIndex]);
+
+  React.useEffect(() => {
+    if (!open) return;
+
+    const updatePopoverViewport = () => {
+      setPopoverMaxHeightPx(Math.max(0, window.innerHeight - 32));
+      setPopoverContentScale(measureNearestContentUiScale(anchorRef.current));
+    };
+
+    window.addEventListener('resize', updatePopoverViewport);
+    return () => window.removeEventListener('resize', updatePopoverViewport);
+  }, [open]);
 
   const handleClose = React.useCallback(
     (reason: CloseReason) => {
@@ -600,6 +623,12 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       borderColor: 'var(--color-input-border-focus)',
       borderWidth: '1px',
     },
+    // En tabelcelle kan tilføje sin egen hover-farve senere i sx-kæden. Den må aldrig overdøve
+    // en aktiv fokusramme, ellers forsvinder den blå ring netop mens musen er over feltet.
+    '&.Mui-focused:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'var(--color-input-border-focus)',
+      borderWidth: '1px',
+    },
     '&.Mui-error .MuiOutlinedInput-notchedOutline': {
       borderColor: 'var(--color-input-border-error)',
       borderWidth: '1px',
@@ -608,6 +637,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       borderColor: 'var(--color-input-border-error)',
     },
     '&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: 'var(--color-input-border-focus)',
+      borderWidth: '1px',
+    },
+    '&.Mui-error.Mui-focused:hover .MuiOutlinedInput-notchedOutline': {
       borderColor: 'var(--color-input-border-focus)',
       borderWidth: '1px',
     },
@@ -622,6 +655,8 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const listboxSxMerged = mergeSx({
     minWidth: typeof width === 'number' ? `${width}px` : width,
     outline: 'none',
+    maxHeight: popoverMaxHeightPx === null ? undefined : `${popoverMaxHeightPx}px`,
+    overflowY: 'auto',
   }, listboxSx);
 
   const iconSxMerged = mergeSx({
@@ -809,6 +844,20 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         // Slå modal scroll lock fra - vi bruger ikke backdrop, så scroll lock er unødvendigt.
         // Dette forhindrer aria-hidden manipulation på root-elementet.
         disableScrollLock
+        slotProps={{
+          paper: {
+            // `zoom` flytter en portaleret Paper mod viewportens øverste venstre hjørne.
+            // Transform bevarer Popover'ens ankerposition og skalerer kun den viste flade.
+            sx: {
+              // Popover skriver selv `transform: none` inline efter mount. `!important` er
+              // nødvendigt for at holde den lokale skala, uden at ændre dens ankerberegning.
+              transform: `scale(${popoverContentScale}) !important`,
+              transformOrigin: 'top left !important',
+              maxHeight: popoverMaxHeightPx === null ? undefined : `${popoverMaxHeightPx}px`,
+              overflow: 'hidden',
+            },
+          },
+        }}
         onClose={(_, reason) => {
           handleClose(reason === 'escapeKeyDown' ? 'escapeKeyDown' : 'backdropClick');
         }}

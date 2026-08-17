@@ -69,13 +69,15 @@ const LoenindkomstTab = React.memo(({
       >
         <Typography className="section-header">Ansættelsesforhold</Typography>
 
-        <Box className="row--label-right-hover">
-          <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
-            <Typography className="row--text">
-              Tryk på den blå knap for at indsætte et ansættelsesforhold.
-            </Typography>
+        {totalAnsaettelsesforhold === 0 ? (
+          <Box className="row--label-right-hover">
+            <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
+              <Typography className="row--text">
+                Tryk på den blå knap for at indsætte et ansættelsesforhold.
+              </Typography>
+            </Box>
           </Box>
-        </Box>
+        ) : null}
 
         {/* «Bemærk, at» + punkterne står i en egen `flow--16`-blok (samme utility som Mineo-siden
             bruger til løbende tekst): den neutraliserer `row--text`s faste rækkehøjde, så linjerne

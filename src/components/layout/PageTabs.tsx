@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Tab, Tabs } from '@mui/material';
 import { useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
+import { measureNearestContentUiScale } from '../../utils/uiScale';
 import { TAB_NAVIGATION_ATTRIBUTE } from './containerNavigation/navigationControlSemantics';
 
 export type PageTabItem<T extends string> = {
@@ -40,6 +41,61 @@ function PageTabs<T extends string>({
 }: PageTabsProps<T>): React.ReactElement {
   const criticalActions = useCriticalInputActions();
   const allowedKeys = React.useMemo(() => new Set(items.map((item) => item.key)), [items]);
+  const tabsRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useLayoutEffect(() => {
+    const syncIndicator = () => {
+      const tabsRoot = tabsRef.current;
+      const selectedTab = tabsRoot?.querySelector<HTMLElement>('.MuiTab-root.Mui-selected');
+      const indicator = tabsRoot?.querySelector<HTMLElement>('.MuiTabs-indicator');
+      const indicatorParent = indicator?.offsetParent;
+      if (tabsRoot === null || selectedTab == null || indicator == null || !(indicatorParent instanceof HTMLElement)) return;
+
+      const scale = measureNearestContentUiScale(tabsRoot);
+      const tabRect = selectedTab.getBoundingClientRect();
+      const parentRect = indicatorParent.getBoundingClientRect();
+      if (scale <= 0 || tabRect.width <= 0) return;
+
+      // MUI måler allerede den zoomede tab-rect, men skriver resultatet som uzoomede layout-px.
+      // Dividering her forhindrer, at indikatoren zoomes en ekstra gang og ender for kort.
+      const expectedLeft = (tabRect.left - parentRect.left) / scale;
+      const expectedWidth = tabRect.width / scale;
+      if (Math.abs(Number.parseFloat(indicator.style.left) - expectedLeft) > 0.01) {
+        indicator.style.setProperty('left', `${expectedLeft}px`, 'important');
+      }
+      if (Math.abs(Number.parseFloat(indicator.style.width) - expectedWidth) > 0.01) {
+        indicator.style.setProperty('width', `${expectedWidth}px`, 'important');
+      }
+    };
+
+    let frame: number | null = null;
+    const scheduleSync = () => {
+      syncIndicator();
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        syncIndicator();
+      });
+    };
+
+    scheduleSync();
+    window.addEventListener('resize', scheduleSync);
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(scheduleSync);
+    if (tabsRef.current !== null) observer?.observe(tabsRef.current);
+    const indicator = tabsRef.current?.querySelector<HTMLElement>('.MuiTabs-indicator');
+    // Tabs kan selv skrive indikatorens inline-style efter forælderens layout-effect (fx fra sin
+    // egen ResizeObserver). MutationObserveren korrigerer netop den sene skrivning, uden polling.
+    const indicatorObserver = indicator == null || typeof MutationObserver === 'undefined'
+      ? null
+      : new MutationObserver(scheduleSync);
+    if (indicator != null) indicatorObserver?.observe(indicator, { attributes: true, attributeFilter: ['style'] });
+    return () => {
+      window.removeEventListener('resize', scheduleSync);
+      observer?.disconnect();
+      indicatorObserver?.disconnect();
+      if (frame !== null) window.cancelAnimationFrame(frame);
+    };
+  }, [items, value]);
 
   /**
    * Faneskift settler selv den åbne editor.
@@ -90,6 +146,7 @@ function PageTabs<T extends string>({
       }}
     >
       <Box
+        ref={tabsRef}
         sx={{
           position: 'absolute',
           top: '-48px',

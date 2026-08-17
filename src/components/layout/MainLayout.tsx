@@ -18,6 +18,10 @@ import { setActiveTabForPage } from '../../hooks/usePersistedActiveTab';
 import { getRouteForMenuPageKey, routeToPageId, type MenuPageKey } from '../../config/pageNavigation';
 import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyRestoreTarget';
 import { useContentUiScale } from '../../hooks/useContentUiScale';
+import {
+  getContentMainPaddingLeftForMenuScale,
+  getContentScrollPaddingLeftForMenuScale,
+} from '../../utils/uiScale';
 import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
   getProductionInputRuntimeStartup,
@@ -42,6 +46,7 @@ interface MainLayoutProps {
 
 const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   useContentUiScale();
+  const [sideMenuContentScale, setSideMenuContentScale] = React.useState(1);
   const diagnostics = useInputDiagnostics();
   // Maskinlæsbar udlæsning af issue-/rejected-tilstanden til e2e og den eksterne interaktionsaudit.
   // Ren read-only og elimineret af dead-code-fjernelsen i produktionsbuildet (§DEV-gate i modulet).
@@ -219,8 +224,15 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         onHent={handleHent}
         onSletAlt={handleSletAlt}
         sletAltButtonRef={sletAltButtonRef}
+        onContentScaleChange={setSideMenuContentScale}
       />
-      <Container enableContentScale>
+      <Container
+        enableContentScale
+        // MUI fortolker numeriske padding-værdier som spacing-trin. Pixel-enheden er nødvendig,
+        // ellers bliver den skalerede gutter ganget med otte i stedet for at følge labelskalaen.
+        scrollSx={{ paddingLeft: `${getContentScrollPaddingLeftForMenuScale(sideMenuContentScale)}px` }}
+        contentSx={{ paddingLeft: `${getContentMainPaddingLeftForMenuScale(sideMenuContentScale)}px` }}
+      >
         <LazyChunkRecoveryNotice
           onReloadBlocked={() => {
             setOverlay({

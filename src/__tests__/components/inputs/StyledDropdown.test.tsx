@@ -132,6 +132,7 @@ describe('StyledDropdown', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();
     expect(input.value).toBe('Alfa');
+    expect(input).toHaveFocus();
   });
 
   it('Arrow navigation skipper divider', async () => {
