@@ -14,13 +14,6 @@
   --label-width-wide: 700px;
   --content-box-max-width: 1200px;
 
-  /* Sidemenuens permanente kompakte profil (målt, ikke viewport-responsiv). */
-  --mineo-menu-toggle-padding-y: 4px;
-  --mineo-menu-section-padding-y: 4px;
-  --mineo-menu-button-height: 36px;
-  --mineo-menu-button-gap: 2px;
-  --mineo-menu-divider-margin-y: 4px;
-
   /* Border radius */
   --border-radius-small: 10px;
   --border-radius-large: 20px;

@@ -52,6 +52,7 @@ type FileOperationItem = {
 const EXPANDED_WIDTH = 250;
 const COLLAPSED_WIDTH = 70;
 const MENU_STATE_STORAGE_KEY = UI_STORAGE_KEYS.sideMenuExpanded;
+const MINIMUM_MENU_CONTENT_SCALE = 0.78;
 
 const readStoredMenuState = (): string | null => {
   return readOptionalSessionStorageValue(MENU_STATE_STORAGE_KEY);
@@ -88,7 +89,7 @@ export const utilityItems: NavigationItem[] = [
  * - Collapsed (70px) / Expanded (250px)
  * - Active state på navigationssider
  * - Separator-linjer mellem grupper
- * - Permanent kompakt, målt profil med sikkerheds-scroll under korte vinduer
+ * - Luftig desktopprofil med højdeafhængig skalering uden scrollbar
  * - Moderne, blød styling med rundede hjørner
  * - Fast ikon-placering og knaphøjde
  */
@@ -107,6 +108,55 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
     const storedValue = readStoredMenuState();
     return storedValue === null ? true : storedValue === 'true';
   });
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
+  const menuHeaderRef = React.useRef<HTMLDivElement | null>(null);
+  const menuContentRef = React.useRef<HTMLDivElement | null>(null);
+  const menuContentScaleRef = React.useRef(1);
+  const [menuContentScale, setMenuContentScale] = useState(1);
+
+  React.useLayoutEffect(() => {
+    let animationFrame: number | null = null;
+
+    const updateMenuContentScale = () => {
+      const menu = menuRef.current;
+      const header = menuHeaderRef.current;
+      const content = menuContentRef.current;
+      if (menu === null || header === null || content === null || menu.clientHeight <= 0) return;
+
+      const contentHeight = content.getBoundingClientRect().height;
+      if (contentHeight <= 0) return;
+
+      // Genskab den luftige desktopmenu og skaler kun, når højden reelt ikke kan rumme den.
+      // Dividering med den aktuelle zoom er nødvendig: rect'en er visuel størrelse, mens den
+      // nødvendige højde skal sammenlignes med menuens uscalerede tilgængelige højde.
+      const naturalContentHeight = contentHeight / menuContentScaleRef.current;
+      const availableContentHeight = Math.max(0, menu.clientHeight - header.getBoundingClientRect().height);
+      const nextScale = Math.max(
+        MINIMUM_MENU_CONTENT_SCALE,
+        Math.min(1, availableContentHeight / naturalContentHeight),
+      );
+
+      if (Math.abs(nextScale - menuContentScaleRef.current) < 0.001) return;
+
+      menuContentScaleRef.current = nextScale;
+      setMenuContentScale(nextScale);
+    };
+
+    const scheduleScaleUpdate = () => {
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = null;
+        updateMenuContentScale();
+      });
+    };
+
+    scheduleScaleUpdate();
+    window.addEventListener('resize', scheduleScaleUpdate);
+    return () => {
+      window.removeEventListener('resize', scheduleScaleUpdate);
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+    };
+  }, []);
 
   // Fil-operationer (inkluderer callbacks, så skal forblive inde i komponenten)
   const fileOperations = React.useMemo((): FileOperationItem[] => [
@@ -139,6 +189,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
 
   return (
     <Box
+      ref={menuRef}
       sx={{
         width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
         height: '100vh',
@@ -151,7 +202,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
       }}
     >
       {/* Hamburger toggle button */}
-      <Box sx={{ py: 'var(--mineo-menu-toggle-padding-y)', px: 1.5 }}>
+      <Box ref={menuHeaderRef} sx={{ py: 1, px: 1.5, flexShrink: 0 }}>
         <Button
           onClick={toggleMenu}
           startIcon={<MenuIcon />}
@@ -164,8 +215,8 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
             justifyContent: 'flex-start',
             pl: 1.5,
             pr: 1.5,
-            py: 0,
-            mb: 'var(--mineo-menu-button-gap)',
+            py: 1.2,
+            mb: 0.5,
             minWidth: 0,
             width: '44px',
             height: '44px',
@@ -189,8 +240,14 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
       </Box>
 
       <Box
-        data-mineo-menu-scroll-wrapper="true"
-        sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}
+        ref={menuContentRef}
+        data-mineo-menu-content-scale-root="true"
+        sx={{
+          flexShrink: 0,
+          minWidth: '100%',
+          overflow: 'visible',
+          zoom: menuContentScale,
+        }}
       >
         <Divider
           sx={{
@@ -200,7 +257,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         />
 
         {/* Hovednavigation */}
-        <Box sx={{ py: 'var(--mineo-menu-section-padding-y)', px: 1.5 }}>
+        <Box sx={{ py: 1, px: 1.5 }}>
           {navigationItems.map((item) => (
             <Tooltip
               key={item.id}
@@ -227,9 +284,10 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                   justifyContent: 'flex-start',
                   pl: 1.5,
                   pr: 2,
-                  mb: 'var(--mineo-menu-button-gap)',
+                  py: 1.2,
+                  mb: 0.5,
                   minWidth: 0,
-                  height: 'var(--mineo-menu-button-height)',
+                  height: '44px',
                   borderRadius: '12px',
                   '& .MuiButton-startIcon': {
                     margin: '0 12px 0 0',
@@ -248,13 +306,13 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         <Divider
           sx={{
             borderColor: 'var(--color-surface-border)',
-            my: 'var(--mineo-menu-divider-margin-y)',
+            my: 1,
             mx: isExpanded ? 4 : 3,
           }}
         />
 
         {/* Fil-operationer */}
-        <Box sx={{ py: 'var(--mineo-menu-section-padding-y)', px: 1.5 }}>
+        <Box sx={{ py: 1, px: 1.5 }}>
           {fileOperations.map((item) => (
             <Tooltip
               key={item.id}
@@ -281,9 +339,10 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                   justifyContent: 'flex-start',
                   pl: 1.5,
                   pr: 2,
-                  mb: 'var(--mineo-menu-button-gap)',
+                  py: 1.2,
+                  mb: 0.5,
                   minWidth: 0,
-                  height: 'var(--mineo-menu-button-height)',
+                  height: '44px',
                   borderRadius: '12px',
                   '& .MuiButton-startIcon': {
                     margin: '0 12px 0 0',
@@ -301,13 +360,13 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         <Divider
           sx={{
             borderColor: 'var(--color-surface-border)',
-            my: 'var(--mineo-menu-divider-margin-y)',
+            my: 1,
             mx: isExpanded ? 4 : 3,
           }}
         />
 
         {/* Utilities */}
-        <Box sx={{ py: 'var(--mineo-menu-section-padding-y)', px: 1.5 }}>
+        <Box sx={{ py: 1, px: 1.5 }}>
           {utilityItems.map((item) => (
             <Tooltip
               key={item.id}
@@ -334,9 +393,10 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                   justifyContent: 'flex-start',
                   pl: 1.5,
                   pr: 2,
-                  mb: 'var(--mineo-menu-button-gap)',
+                  py: 1.2,
+                  mb: 0.5,
                   minWidth: 0,
-                  height: 'var(--mineo-menu-button-height)',
+                  height: '44px',
                   borderRadius: '12px',
                   '& .MuiButton-startIcon': {
                     margin: '0 12px 0 0',

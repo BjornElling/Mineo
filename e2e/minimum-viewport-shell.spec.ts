@@ -38,7 +38,6 @@ const readMenuGeometry = async (page: Page) => {
         return style.overflowY === 'auto' || style.overflowY === 'scroll'
           || style.overflow === 'auto' || style.overflow === 'scroll';
       })
-      .filter((node) => !node.matches('[data-mineo-menu-scroll-wrapper="true"]'))
       .map((node) => ({
         tagName: node.tagName,
         className: typeof node.className === 'string' ? node.className : '',
@@ -48,13 +47,15 @@ const readMenuGeometry = async (page: Page) => {
       return {
         name: button.getAttribute('aria-label') ?? '',
         visible: Boolean(button.offsetWidth || button.offsetHeight || button.getClientRects().length),
+        layoutHeight: getComputedStyle(button).height,
+        marginBottom: getComputedStyle(button).marginBottom,
         top: rect.top,
         bottom: rect.bottom,
         left: rect.left,
         right: rect.right,
       };
     });
-    const menuScrollWrapper = element.querySelector<HTMLElement>('[data-mineo-menu-scroll-wrapper="true"]');
+    const menuContent = element.querySelector<HTMLElement>('[data-mineo-menu-content-scale-root="true"]');
 
     return {
       viewport: { width: window.innerWidth, height: window.innerHeight },
@@ -67,12 +68,12 @@ const readMenuGeometry = async (page: Page) => {
         scrollHeight: element.scrollHeight,
         clientHeight: element.clientHeight,
       },
-      menuScrollWrapper: menuScrollWrapper === null
+      menuContent: menuContent === null
         ? null
         : {
-          scrollHeight: menuScrollWrapper.scrollHeight,
-          clientHeight: menuScrollWrapper.clientHeight,
-          scrollTop: menuScrollWrapper.scrollTop,
+          scale: getComputedStyle(menuContent).zoom,
+          top: menuContent.getBoundingClientRect().top,
+          bottom: menuContent.getBoundingClientRect().bottom,
         },
       buttons,
       internalScrollRegions,
@@ -97,10 +98,16 @@ test.describe('Mineo-shell ved minimumsviewporter', () => {
       expect(geometry.viewport.height).toBeGreaterThanOrEqual(620);
       expect(geometry.devicePixelRatio).toBeGreaterThan(0);
       expect(geometry.internalScrollRegions).toEqual([]);
-      expect(geometry.menuScrollWrapper).not.toBeNull();
-      expect(geometry.menuScrollWrapper?.scrollHeight).toBe(geometry.menuScrollWrapper?.clientHeight);
-      expect(geometry.menu.scrollHeight).toBe(geometry.menu.clientHeight);
+      expect(geometry.menuContent).not.toBeNull();
+      expect(Number(geometry.menuContent?.scale)).toBeGreaterThanOrEqual(0.78);
+      expect(Number(geometry.menuContent?.scale)).toBeLessThanOrEqual(1);
       expect(geometry.buttons.map((button) => button.name.replace(/\u00a0/g, ' ')).slice(1)).toEqual(MENU_BUTTON_NAMES);
+      if (geometry.viewport.height >= 864) {
+        expect(geometry.menuContent?.scale).toBe('1');
+        expect(geometry.buttons.slice(1).every((button) => (
+          button.layoutHeight === '44px' && button.marginBottom === '4px'
+        ))).toBe(true);
+      }
       expect(geometry.buttons.every((button) => (
         button.visible
         && button.top >= geometry.menu.top
@@ -111,24 +118,16 @@ test.describe('Mineo-shell ved minimumsviewporter', () => {
     }
   });
 
-  test('menuens sikkerheds-scroll gør sidste punkt nåbart under den målte minimumshøjde', async ({ page }) => {
+  test('menuen går tavst ud over vinduet under den dækkede minimumshøjde', async ({ page }) => {
     await login(page);
     await page.setViewportSize({ width: 1366, height: 580 });
 
-    const menuToggle = page.getByRole('button', { name: /Fold menuen/ });
-    const menu = menuToggle.locator('xpath=../..');
-    const wrapper = menu.locator('[data-mineo-menu-scroll-wrapper="true"]');
-    const before = await wrapper.evaluate((element) => ({
-      scrollHeight: element.scrollHeight,
-      clientHeight: element.clientHeight,
-      scrollTop: element.scrollTop,
-    }));
-    expect(before.scrollHeight).toBeGreaterThan(before.clientHeight);
-
-    await page.getByRole('button', { name: 'Om' }).scrollIntoViewIfNeeded();
-    const after = await wrapper.evaluate((element) => element.scrollTop);
-    expect(after).toBeGreaterThan(0);
-    await expect(page.getByRole('button', { name: 'Om' })).toBeVisible();
+    const geometry = await readMenuGeometry(page);
+    expect(geometry.internalScrollRegions).toEqual([]);
+    expect(Number(geometry.menuContent?.scale)).toBe(0.78);
+    const aboutButton = geometry.buttons.find((button) => button.name === 'Om');
+    expect(aboutButton).toBeDefined();
+    expect(aboutButton?.bottom).toBeGreaterThan(geometry.menu.bottom);
   });
 
   test('Tab når det sidste menupunkt, og menuen kan aktiveres med tastatur', async ({ page }) => {

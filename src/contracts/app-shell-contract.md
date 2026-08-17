@@ -123,11 +123,13 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     konkret browserregressionstest. Capture af en indholdsboks må, hvis browserverifikation viser
     en afvigelse, neutralisere netop denne skaleringsrod lokalt og gendanne den i `finally`.
 
-    **Sidemenuen har en permanent kompakt profil, ikke en viewport-variant.** Hamburgerknappen
-    ligger uden for menuens scroll-wrapper og skal altid kunne nås. Selve menugrupperne må først
-    få lodret scroll i korte vinduer; ved den dækkede højde på 620 CSS-px må alle punkter være
-    synlige og nåbare uden intern menuscroll, mens det sidste punkt fortsat skal kunne nås under
-    den målte minimumshøjde.
+    **Sidemenuen bevarer sin luftige desktopprofil og har aldrig intern scroll.** Ved normal højde
+    har knapper, grupper og separatorer deres oprindelige afstande. Hamburgerknappen er uscaleret
+    og altid synlig; resten af menuen skaleres først ned, når den naturlige højde ellers ikke kan
+    være i vinduet. Ved den dækkede højde på 620 CSS-px skal alle punkter være synlige og nåbare
+    uden intern menuscroll. Under denne højde fastholdes minimumsskalaen, og eventuelt indhold
+    fortsætter tavst uden for det synlige vindue frem for at komprimeres yderligere eller få en
+    scrollbar.
 
 ## 3. Autoritative Kilder
 
