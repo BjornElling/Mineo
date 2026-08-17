@@ -48,9 +48,10 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
 
     const geometry = await page.evaluate(() => {
       const main = document.querySelector<HTMLElement>('main[data-mineo-content-scale-root="true"]');
-      const menuToggle = document.querySelector<HTMLElement>('[aria-label="Fold menuen sammen"]');
-      const menu = menuToggle?.parentElement?.parentElement ?? null;
-      const menuContent = menu?.querySelector<HTMLElement>('[data-mineo-menu-content-scale-root="true"]') ?? null;
+      const menuContent = document.querySelector<HTMLElement>('[data-mineo-menu-content-scale-root="true"]');
+      // Hamburgerens wrapper ligger under indholdsroden. Find derfor sidemenuen via den
+      // autoritative markerede rod i stedet for at afhænge af menuens interne nesting.
+      const menu = menuContent?.parentElement ?? null;
       const container = document.querySelector<HTMLElement>('[data-mineo-scroll-container="true"]');
       if (!main) throw new Error('Mangler Mineos content-scale-root.');
 

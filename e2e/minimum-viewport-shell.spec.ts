@@ -26,8 +26,9 @@ const login = async (page: Page): Promise<void> => {
 };
 
 const readMenuGeometry = async (page: Page) => {
-  const menuToggle = page.getByRole('button', { name: /Fold menuen/ });
-  const menu = menuToggle.locator('xpath=../..');
+  // Hamburgerens wrapper ligger under indholdsroden. Forankr målingen i den eksisterende
+  // autoritative markerede rod, så en intern omlægning af menuheaderen ikke ændrer testens mål.
+  const menu = page.locator('[data-mineo-menu-content-scale-root="true"]').locator('xpath=..');
 
   return menu.evaluate((element) => {
     const menuRect = element.getBoundingClientRect();
