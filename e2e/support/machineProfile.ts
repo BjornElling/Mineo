@@ -43,10 +43,11 @@ const RESERVED_MEMORY_GIB = 4;
 
 /**
  * Hukommelsesbudget pr. worker. En worker holder en browser med Mineos fulde dev-modultræ,
- * trace-opsamling og videooptagelse i live. To GiB er målt som det punkt, hvor Chromium-targets
- * begynder at blive slået ihjel af hukommelsespres på Windows.
+ * trace-opsamling og videooptagelse i live. 2,5 GiB dækker også Vites samtidige lazy-transformer;
+ * to GiB lod på en 16 GiB Windows-maskine fem browsere starte samtidigt og gav sporadiske
+ * lazy-import-fejl, før Playwright selv nåede at rapportere hukommelsespres.
  */
-const MEMORY_PER_WORKER_GIB = 2;
+const MEMORY_PER_WORKER_GIB = 2.5;
 
 const BYTES_PER_GIB = 1024 ** 3;
 

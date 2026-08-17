@@ -24,9 +24,14 @@ const BLINK_SETTLE_MS = 1800;
 
 test('en afvist omregnings-aktivering markerer cellen ved HVERT klik', async ({ page }) => {
   await login(page);
-  await page.goto('/aarsloen');
-  // Tabellen skal være monteret, før togglen kan afvises mod den.
-  await expect(page.locator('input[role="checkbox"]').first()).toBeVisible();
+  // Brug den synlige navigation: direkte `goto` til den lazy route kunne i Firefox efterlade
+  // arbejdsfladen tom, selv om brugeren altid når tabellen gennem sidemenuen.
+  await page.getByRole('button', { name: 'Årslønsberegning' }).click();
+  await expect(page).toHaveURL(/\/aarsloen$/);
+  // Tabellen skal være monteret, før togglen kan afvises mod dens imperative handle.
+  // Togglen ligger EFTER tabellen i DOM, så dens synlighed beviser ikke, at periodens celle-ref
+  // allerede kan modtage markeringen — det var årsagen til den tværbrowser-flakiness, testen fandt.
+  await expect(page.locator('input[placeholder="mm"]').first()).toBeVisible();
 
   await page.evaluate(() => {
     (window as unknown as { __blinkStarts: number }).__blinkStarts = 0;
@@ -40,9 +45,8 @@ test('en afvist omregnings-aktivering markerer cellen ved HVERT klik', async ({ 
   const blinkStarts = () =>
     page.evaluate(() => (window as unknown as { __blinkStarts: number }).__blinkStarts);
 
-  // Togglen er den første kontakt på siden; uden gyldig periode afvises aktiveringen, og
-  // afvisningen peger på den celle, brugeren skal udfylde.
-  const toggle = page.locator('input[role="checkbox"]').first();
+  // Uden gyldig periode afvises aktiveringen, og afvisningen peger på den celle, brugeren skal udfylde.
+  const toggle = page.locator('input[name="omregningTilFuldtAar"]');
 
   for (const attempt of [1, 2, 3]) {
     await toggle.click();

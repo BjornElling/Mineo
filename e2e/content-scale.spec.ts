@@ -76,10 +76,63 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
 
     await page.setViewportSize({ width: 1536, height: 730 });
 
+    // WebKit leverer viewportændringen asynkront til næste animation-frame. Vent på den
+    // observerbare CSS-værdi frem for at gøre testen afhængig af browserens event-timing.
+    await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
+      (element) => getComputedStyle(element).zoom,
+    )).toBe('0.95');
     await expect(input).toBeFocused();
     await expect(input).toHaveValue('2027');
     await input.press('Escape');
     await expect(input).toHaveValue('2026');
+  });
+
+  test('bevarer den vandrette Container-scroll som fallback under minimumsbredden', async ({ page }) => {
+    const runtimeErrors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') runtimeErrors.push(message.text());
+    });
+    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+
+    await login(page);
+    await page.getByRole('button', { name: 'Om' }).click();
+    await expect(page.locator('.content-box').first()).toBeVisible();
+    await page.setViewportSize({ width: 1000, height: 620 });
+    await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
+      (element) => getComputedStyle(element).zoom,
+    )).toBe('0.85');
+
+    const geometry = await page.evaluate(() => {
+      const container = document.querySelector<HTMLElement>('[data-mineo-scroll-container="true"]');
+      const contentBox = document.querySelector<HTMLElement>('.content-box');
+      const main = document.querySelector<HTMLElement>('main[data-mineo-content-scale-root="true"]');
+      if (!container || !contentBox || !main) {
+        throw new Error('Mangler Container, indholdsboks eller arbejdsfladens skaleringsrod.');
+      }
+
+      const before = {
+        clientWidth: container.clientWidth,
+        scrollWidth: container.scrollWidth,
+      };
+      container.scrollLeft = container.scrollWidth;
+
+      const containerRect = container.getBoundingClientRect();
+      const contentBoxRect = contentBox.getBoundingClientRect();
+      return {
+        ...before,
+        scale: getComputedStyle(main).zoom,
+        scrollLeft: container.scrollLeft,
+        containerRight: containerRect.right,
+        contentBoxRight: contentBoxRect.right,
+      };
+    });
+
+    expect(geometry.scale).toBe('0.85');
+    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    expect(geometry.scrollLeft).toBeGreaterThan(0);
+    // Den ekstra pixel dækker browsernes afrunding af CSS zoom uden at maskere reel beskæring.
+    expect(geometry.contentBoxRight).toBeLessThanOrEqual(geometry.containerRight + 1);
+    expect(runtimeErrors).toEqual([]);
   });
 
   test('skærmprint neutraliserer kun arbejdsfladeskaleringen under capture', async ({ page }) => {

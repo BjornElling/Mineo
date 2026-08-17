@@ -44,7 +44,7 @@ describe('deriveMachineProfile', () => {
   });
 
   it('binder parallelitet til hukommelsen — årsagen til crashede browser-targets', () => {
-    // 16 GiB: 4 GiB reserveret til OS, Node og devserveren, 2 GiB pr. browser-worker.
+    // 16 GiB: 4 GiB reserveret til OS, Node og devserveren, 2,5 GiB pr. browser-worker.
     const profile = deriveMachineProfile({
       logicalCpus: 16,
       totalMemoryGiB: 16,
@@ -52,7 +52,7 @@ describe('deriveMachineProfile', () => {
     });
 
     expect(profile.playwrightDefaultWorkers).toBe(8);
-    expect(profile.workers).toBe(6);
+    expect(profile.workers).toBe(4);
     expect(profile.reduced).toBe(true);
   });
 
