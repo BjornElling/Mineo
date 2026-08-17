@@ -264,6 +264,39 @@ describe('ConfirmationDialog', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
+  it('frigiver næste selvstændige bekræftelse, når dialogen skifter confirmationKey mens den er åben', async () => {
+    const user = userEvent.setup();
+    const firstConfirm = vi.fn();
+    const secondConfirm = vi.fn();
+    const view = renderDialog({
+      open: true,
+      confirmationKey: 'preflight',
+      title: 'Første bekræftelse',
+      message: 'Besked',
+      onConfirm: firstConfirm,
+      onCancel: vi.fn(),
+    });
+
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Ja' }));
+    expect(firstConfirm).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <ThemeProvider theme={createTheme()}>
+        <ConfirmationDialog
+          open
+          confirmationKey="overskriv"
+          title="Anden bekræftelse"
+          message="Besked"
+          onConfirm={secondConfirm}
+          onCancel={vi.fn()}
+        />
+      </ThemeProvider>
+    );
+
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Ja' }));
+    expect(secondConfirm).toHaveBeenCalledTimes(1);
+  });
+
   it('frigiver bekræftelsen, når handlingen melder fejl uden at lukke dialogen', async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn(() => false);

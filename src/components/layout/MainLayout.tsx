@@ -176,6 +176,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     markSaved,
     showOverlay,
   });
+  const visiblePreflight = pendingLoadResult === null ? undefined : pendingPreflight;
 
   const {
     pendingPwaConfirmation,
@@ -245,10 +246,16 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
       </Container>
 
       <ConfirmationDialog
-        open={pendingLoadResult !== null}
-        title="Nogle felter blev sat til standardværdier"
+        // Preflight og overskrivning er to beslutninger i SAMME load-flow. Én dialoginstans bevarer
+        // overlayets history-ejerskab ved faseskiftet: to instanser kunne få den udfasende dialogs
+        // asynkrone `history.back()` til at lukke den netop åbnede overskrivelsesdialog.
+        open={pendingLoadResult !== null || pendingOverwriteApply !== null}
+        confirmationKey={pendingLoadResult !== null ? 'load-preflight' : 'load-overwrite'}
+        title={pendingLoadResult !== null
+          ? 'Nogle felter blev sat til standardværdier'
+          : 'Erstat de aktuelle indtastninger?'}
         message={
-          pendingPreflight
+          pendingLoadResult !== null
             ? (
               <Box>
                 <Typography variant="body2" sx={{ marginBottom: 1 }}>
@@ -257,41 +264,45 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
                 <Typography variant="body2" sx={{ marginBottom: 1 }}>
                   Du kan fortsætte og indlæse filen, men gennemgå gerne de berørte felter bagefter.
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Indlæst fra filen: {pendingPreflight.loadedCount}
-                  {pendingPreflight.expectedCount !== undefined ? ` af ${pendingPreflight.expectedCount}` : ''} felter
-                  {pendingPreflight.failedCount !== undefined ? ` · Sat til standardværdi: ${pendingPreflight.failedCount}` : ''}
-                </Typography>
-                <Typography variant="body2" sx={{ marginTop: 1, marginBottom: 0.5, fontWeight: 500 }}>
-                  Berørte felter:
-                </Typography>
-                <Box component="ul" sx={{ margin: 0, paddingLeft: 2 }}>
-                  {pendingPreflight.issues.slice(0, 12).map((issue) => (
-                    <li key={`${issue.path}-${issue.reason}`}>
-                      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
-                        {/* Strippede felter forklares allerede af den fælles tekst øverst → vis kun navnet.
-                            Droppede/ukendte sektioner har en reelt anden årsag → behold den. */}
-                        {issue.kind === 'strippedUnknownField' ? issue.path : `${issue.path}: ${issue.reason}`}
-                      </Typography>
-                    </li>
-                  ))}
-                  {pendingPreflight.issues.length > 12 && (
-                    <li>
-                      <Typography variant="body2">... +{pendingPreflight.issues.length - 12} flere</Typography>
-                    </li>
-                  )}
-                </Box>
+                {visiblePreflight ? (
+                  <>
+                    <Typography variant="body2" color="text.secondary">
+                      Indlæst fra filen: {visiblePreflight.loadedCount}
+                      {visiblePreflight.expectedCount !== undefined ? ` af ${visiblePreflight.expectedCount}` : ''} felter
+                      {visiblePreflight.failedCount !== undefined ? ` · Sat til standardværdi: ${visiblePreflight.failedCount}` : ''}
+                    </Typography>
+                    <Typography variant="body2" sx={{ marginTop: 1, marginBottom: 0.5, fontWeight: 500 }}>
+                      Berørte felter:
+                    </Typography>
+                    <Box component="ul" sx={{ margin: 0, paddingLeft: 2 }}>
+                      {visiblePreflight.issues.slice(0, 12).map((issue) => (
+                        <li key={`${issue.path}-${issue.reason}`}>
+                          <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                            {/* Strippede felter forklares allerede af den fælles tekst øverst → vis kun navnet.
+                                Droppede/ukendte sektioner har en reelt anden årsag → behold den. */}
+                            {issue.kind === 'strippedUnknownField' ? issue.path : `${issue.path}: ${issue.reason}`}
+                          </Typography>
+                        </li>
+                      ))}
+                      {visiblePreflight.issues.length > 12 && (
+                        <li>
+                          <Typography variant="body2">... +{visiblePreflight.issues.length - 12} flere</Typography>
+                        </li>
+                      )}
+                    </Box>
+                  </>
+                ) : 'Nogle af filens felter kunne ikke indlæses og blev sat til standardværdier.'}
               </Box>
             )
-            : 'Nogle af filens felter kunne ikke indlæses og blev sat til standardværdier.'
+            : 'Der findes allerede indtastede oplysninger i Mineo. Hvis du fortsætter, bliver de erstattet af oplysningerne fra filen. Indholdet i gemte .eo-filer ændres ikke.'
         }
-        cancelText="Stop og gør intet"
-        confirmText="Indlæs trods fejl"
-        confirmColor="primary"
+        cancelText={pendingLoadResult !== null ? 'Stop og gør intet' : 'Annuller'}
+        confirmText={pendingLoadResult !== null ? 'Indlæs trods fejl' : 'Erstat'}
+        confirmColor={pendingLoadResult !== null ? 'primary' : 'error'}
         onCancel={dismissPendingLoad}
-        onConfirm={handleLoadDespiteIssues}
+        onConfirm={pendingLoadResult !== null ? handleLoadDespiteIssues : handleConfirmOverwriteApply}
         extraActions={
-          pendingPreflightBugReportError
+          pendingLoadResult !== null && pendingPreflightBugReportError
             ? (
               <BugReportButton
                 variant="outlined"
@@ -327,17 +338,6 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         onCancel={dismissPendingReset}
         onConfirm={handleConfirmSletAlt}
         restoreFocusTo={sletAltButtonRef}
-      />
-
-      <ConfirmationDialog
-        open={pendingOverwriteApply !== null}
-        title="Erstat de aktuelle indtastninger?"
-        message="Der findes allerede indtastede oplysninger i Mineo. Hvis du fortsætter, bliver de erstattet af oplysningerne fra filen. Indholdet i gemte .eo-filer ændres ikke."
-        cancelText="Annuller"
-        confirmText="Erstat"
-        confirmColor="error"
-        onCancel={dismissPendingLoad}
-        onConfirm={handleConfirmOverwriteApply}
       />
 
       <ConfirmationDialog

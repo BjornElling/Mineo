@@ -5,6 +5,8 @@ import { useOverlayBehavior } from '../../hooks/useOverlayBehavior';
 
 type ConfirmationDialogProps = {
   open: boolean;
+  /** Skifter, når samme åbne dialog går videre til en ny, selvstændig bekræftelse. */
+  confirmationKey?: string;
   /** Returnér `false`, hvis handlingen ikke blev gennemført, så brugeren kan prøve igen. */
   onConfirm: () => void | boolean | PromiseLike<void | boolean>;
   onCancel?: () => void;
@@ -48,6 +50,7 @@ type ConfirmationDialogProps = {
  */
 const ConfirmationDialog = React.memo(({
   open,
+  confirmationKey,
   onConfirm,
   onCancel,
   title,
@@ -97,7 +100,10 @@ const ConfirmationDialog = React.memo(({
 
   React.useEffect(() => {
     if (!open) confirmStartedRef.current = false;
-  }, [open]);
+    // Én åben dialog kan repræsentere flere sekventielle beslutninger (load: preflight → overskrivning).
+    // Den første afsluttede callback må ikke holde den næste, selvstændige bekræftelse låst.
+    if (confirmationKey !== undefined) confirmStartedRef.current = false;
+  }, [confirmationKey, open]);
 
   const handleConfirmClick = React.useCallback(() => {
     // En enkelt bekræftelse må kun starte én kritisk handling, også hvis Enter eller et dobbeltklik

@@ -226,6 +226,7 @@ export const useFileSaveLoad = ({
   showOverlay,
 }: UseFileSaveLoadArgs): UseFileSaveLoadResult => {
   const [loadFlow, setLoadFlow] = React.useState<LoadFlowState>({ phase: 'idle' });
+  const loadFlowRef = React.useRef<LoadFlowState>({ phase: 'idle' });
   const [resetFlow, setResetFlow] = React.useState<ResetFlowState>({ phase: 'idle' });
   const activeFileOperationRef = React.useRef<FileOperationKind | null>(null);
   const [activeFileOperation, setActiveFileOperation] = React.useState<FileOperationKind | null>(null);
@@ -252,6 +253,17 @@ export const useFileSaveLoad = ({
     [],
   );
 
+  /**
+   * Dialogerne skifter fase i samme brugerhandling (preflight → overskriv → apply). MUI kan nå at
+   * levere bekræftelses-callbacken fra portalen, før React har erstattet callback-closuren med næste render.
+   * Ref'en opdateres derfor synkront sammen med render-state: den autoritative beslutning læser altid den
+   * aktuelle pending fil, mens `loadFlow` fortsat er den eneste kilde til, hvad UI'et viser.
+   */
+  const transitionLoadFlow = React.useCallback((next: LoadFlowState): void => {
+    loadFlowRef.current = next;
+    setLoadFlow(next);
+  }, []);
+
   // Load-apply routes gennem replacement-grænsen: `ops.file.applyLoadedSnapshot` udsteder den ene
   // autoritative `replaceCase`-command, indpakket i coordinatorens `applyReplacement` (no-settle, draften
   // kasseres først efter et succesfuldt apply, §1.4/§7).
@@ -274,7 +286,7 @@ export const useFileSaveLoad = ({
     navigateToStamdataAfterApply: boolean,
   ): Promise<'applied' | 'awaitingUser'> => {
     if (ops.file.hasAnyData()) {
-      setLoadFlow({ phase: 'overwrite', result, overlay: overlayData, navigateToStamdataAfterApply });
+      transitionLoadFlow({ phase: 'overwrite', result, overlay: overlayData, navigateToStamdataAfterApply });
       return 'awaitingUser';
     }
 
@@ -286,7 +298,7 @@ export const useFileSaveLoad = ({
       navigate(APP_ROUTES.stamdata, { replace: true });
     }
     return 'applied';
-  }, [applyLoadedSnapshot, navigate, ops.file, showOverlay]);
+  }, [applyLoadedSnapshot, navigate, ops.file, showOverlay, transitionLoadFlow]);
 
   const handleGem = React.useCallback(async () => {
     if (!beginFileOperation('save', true)) return;
@@ -416,7 +428,7 @@ export const useFileSaveLoad = ({
         return 'error';
       }
 
-      setLoadFlow({ phase: 'idle' });
+      transitionLoadFlow({ phase: 'idle' });
       const result: LoadFileResult = await source.load();
 
       if (result.status === 'cancelled') {
@@ -425,7 +437,7 @@ export const useFileSaveLoad = ({
       }
 
       if (result.status === 'preflight') {
-        setLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
+        transitionLoadFlow({ phase: 'preflight', result, navigateToStamdataAfterApply: true });
         awaitsUserDecision = true;
         return 'preflight';
       }
@@ -447,7 +459,7 @@ export const useFileSaveLoad = ({
     } finally {
       if (!awaitsUserDecision) finishFileOperation();
     }
-  }, [beginFileOperation, criticalActions, finishFileOperation, requestApplyLoadedSnapshot, showOverlay]);
+  }, [beginFileOperation, criticalActions, finishFileOperation, requestApplyLoadedSnapshot, showOverlay, transitionLoadFlow]);
 
   const handleHent = React.useCallback(async () => {
     await runLoadShell({
@@ -478,12 +490,12 @@ export const useFileSaveLoad = ({
   }, [runLoadShell]);
 
   const handleLoadDespiteIssues = React.useCallback(async () => {
-    if (loadFlow.phase !== 'preflight') return;
-    const pending = loadFlow;
+    const pending = loadFlowRef.current;
+    if (pending.phase !== 'preflight') return;
     let awaitsOverwriteDecision = false;
-    // Tilbage til idle; requestApplyLoadedSnapshot kan derefter selv føre flowet videre til
-    // overwrite-bekræftelse, hvis der allerede findes data.
-    setLoadFlow({ phase: 'idle' });
+    // Gå direkte fra preflight til overskrivning. Den fælles dialog beholder dermed sit
+    // overlay-/historik-ejerskab gennem begge brugerbeslutninger; et kort `idle` ville lukke det
+    // første overlay, hvis asynkrone history-oprydning ellers kan ramme den netop åbnede efterfølger.
 
     try {
       awaitsOverwriteDecision = (await requestApplyLoadedSnapshot(
@@ -491,7 +503,11 @@ export const useFileSaveLoad = ({
         { message: 'Filen er indlæst — nogle felter blev sat til standardværdier.', type: 'warning' },
         pending.navigateToStamdataAfterApply,
       )) === 'awaitingUser';
+      // Uden eksisterende data gennemfører requestApplyLoadedSnapshot apply direkte. Dialogen skal først
+      // lukkes EFTER den vej er fuldført; ellers kan en success-overlay stå oven på en stadig åben preflight.
+      if (!awaitsOverwriteDecision) transitionLoadFlow({ phase: 'idle' });
     } catch (error) {
+      transitionLoadFlow({ phase: 'idle' });
       console.error('Hent (trods fejl) fejlede:', error);
       showOverlay({
         message: asError(error).message || 'Kunne ikke hente fil',
@@ -500,12 +516,12 @@ export const useFileSaveLoad = ({
     } finally {
       if (!awaitsOverwriteDecision) finishFileOperation();
     }
-  }, [finishFileOperation, loadFlow, requestApplyLoadedSnapshot, showOverlay]);
+  }, [finishFileOperation, requestApplyLoadedSnapshot, showOverlay, transitionLoadFlow]);
 
   const handleConfirmOverwriteApply = React.useCallback(async () => {
-    if (loadFlow.phase !== 'overwrite') return;
-    const pending = loadFlow;
-    setLoadFlow({ phase: 'idle' });
+    const pending = loadFlowRef.current;
+    if (pending.phase !== 'overwrite') return;
+    transitionLoadFlow({ phase: 'idle' });
 
     try {
       const applyResult = await applyLoadedSnapshot(pending.result);
@@ -524,7 +540,7 @@ export const useFileSaveLoad = ({
     } finally {
       finishFileOperation();
     }
-  }, [applyLoadedSnapshot, finishFileOperation, navigate, loadFlow, showOverlay]);
+  }, [applyLoadedSnapshot, finishFileOperation, navigate, showOverlay, transitionLoadFlow]);
 
   /**
    * Åbner bekræftelsen. Handlingen er delt i to, fordi bekræftelsen er programmets egen dialog og ikke
@@ -593,8 +609,9 @@ export const useFileSaveLoad = ({
     : null;
 
   const dismissPendingLoad = React.useCallback(() => {
-    const requestId = loadFlow.phase === 'idle' ? undefined : loadFlow.result.requestId;
-    setLoadFlow({ phase: 'idle' });
+    const currentFlow = loadFlowRef.current;
+    const requestId = currentFlow.phase === 'idle' ? undefined : currentFlow.result.requestId;
+    transitionLoadFlow({ phase: 'idle' });
     finishFileOperation();
     if (requestId) {
       // Id-betinget oprydning bevarer en nyere PWA-request, som kan være ankommet,
@@ -606,7 +623,7 @@ export const useFileSaveLoad = ({
         });
       });
     }
-  }, [finishFileOperation, loadFlow]);
+  }, [finishFileOperation, transitionLoadFlow]);
 
   const pendingPreflight = loadFlow.phase === 'preflight' ? loadFlow.result.preflightWarning : undefined;
   const pendingPreflightBugReportError = React.useMemo(() => {
