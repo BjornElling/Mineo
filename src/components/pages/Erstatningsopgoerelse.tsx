@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import PageTabs from '../layout/PageTabs';
 import SideTab from '../layout/SideTab';
+import SideTabRail from '../layout/SideTabRail';
 import EOOplysningerTab from './erstatningsopgoerelse/EOOplysningerTab';
 import LoenindkomstTab from './erstatningsopgoerelse/LoenindkomstTab';
 import OffentligeYdelserTab from './erstatningsopgoerelse/OffentligeYdelserTab';
@@ -33,9 +34,11 @@ const Erstatningsopgoerelse = React.memo(() => {
 
       {/* Fane-indhold med kontrolfaner i højre side */}
       <Box sx={{ position: 'relative' }}>
-        {/* Kontrolfaner (roteret 90° til højre, placeret ved højrekanten af ContentBox) */}
+        {/* Kontrolfaner (roteret 90°, placeret UDEN FOR ContentBox' højrekant). Skinnen klipper
+            udhænget ved arbejdsfladens synlige højrekant, så de to faner hverken indgår i
+            skaleringens pladsregnskab eller kan give vandret rul. */}
         {vm.showInspektionTab && (
-          <>
+          <SideTabRail>
             <SideTab
               label="EO-kontrol"
               active={activeTab === TAB_KEYS.INSPEKTION}
@@ -48,7 +51,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               onClick={() => setActiveTab(TAB_KEYS.KONTROLTABEL)}
               top="125px"
             />
-          </>
+          </SideTabRail>
         )}
 
         {/* Indhold. Mount-reglen (altid-mountet EO-oplysninger, øvrige fra første besøg) ejes af `isTabMounted`. */}

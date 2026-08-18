@@ -143,15 +143,46 @@ describe('PageTabs', () => {
 });
 
 describe('SideTab', () => {
-  it('rendere label og placerer sig ved højrekanten via top-prop', () => {
+  it('rendere label og står på indholdsboksens højrekant via top-prop', () => {
     render(<SideTab label="EO-kontrol" active={false} onClick={vi.fn()} top="125px" />);
     const el = screen.getByText('EO-kontrol');
     expect(el.classList.contains('side-tab')).toBe(true);
     expect(el.classList.contains('active')).toBe(false);
     // Fanen roteres 90° om venstre-bund og rager derfor sin egen HØJDE (48 px) ud til højre for
-    // `left`. Den ligger derfor 48 px inde i indholdsboksen, så dens højrekant flugter med boksens
-    // — ellers stak den ud over programmets bredeste element, som skaleringens pladsregnskab bygger på.
-    expect(el).toHaveStyle({ top: '125px', left: '1152px', height: '48px' });
+    // `left`. `left` ER indholdsboksens kant, så fanen ligger HELT uden for boksen, og dens
+    // `border-bottom` — den blå streg — lander præcis på kanten. Udhænget er bevidst uden for
+    // skaleringens pladsregnskab og klippes af `SideTabRail`.
+    expect(el).toHaveStyle({ top: '125px', left: '1200px', height: '48px' });
+  });
+
+  it('bærer fane-klassen og lader CSS eje typografien', () => {
+    // Etiketten skal have PRÆCIS samme signatur som de vandrette faners, og den fælles
+    // `.tab-item`-regel er det ene sted, den kommer fra. Bærer `sx` sin egen typografi eller sin
+    // egen `border`, vinder emotion over klassen — og netop det gjorde fanerne usynlige i dark mode
+    // (`color: inherit`) og slettede den blå streg (`border: none`). Derfor hævdes fraværet her.
+    render(<SideTab label="EO-kontrol" active={false} onClick={vi.fn()} top="125px" />);
+    const el = screen.getByText('EO-kontrol');
+
+    expect(el.classList.contains('tab-item')).toBe(true);
+
+    // Målingen er en SAMMENLIGNING med en bar knap, der bærer de samme klasser og INGEN `sx`.
+    // Absolutte værdier kan ikke bruges: jsdom giver `font-size` startværdien «medium» og `color` en
+    // startfarve, uanset om nogen satte dem. Forskellen kan derimod kun komme fra `sx`.
+    const reference = document.createElement('button');
+    reference.className = 'tab-item side-tab';
+    document.body.appendChild(reference);
+
+    const tabStyle = window.getComputedStyle(el);
+    const referenceStyle = window.getComputedStyle(reference);
+    for (const property of ['color', 'font-size', 'font-family', 'font-weight', 'line-height', 'letter-spacing', 'border-bottom-style', 'border-bottom-width']) {
+      expect(tabStyle.getPropertyValue(property)).toBe(referenceStyle.getPropertyValue(property));
+    }
+
+    // Kontrolprøven, der gør sammenligningen til andet end en tautologi: `sx`'ens GEOMETRI er
+    // synlig for netop denne måling, så et typografi-`sx` ville også have været det.
+    expect(tabStyle.getPropertyValue('left')).toBe('1200px');
+    expect(referenceStyle.getPropertyValue('left')).not.toBe('1200px');
+    reference.remove();
   });
 
   it('tilføjer active-klassen når aktiv', () => {

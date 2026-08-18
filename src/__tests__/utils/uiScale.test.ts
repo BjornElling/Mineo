@@ -1,17 +1,20 @@
 // @vitest-environment jsdom
 import { createThemeBootstrapScript } from '../../settings/themeBootstrap';
 import {
+  CONTENT_BOX_WIDTH_PX,
   CONTENT_GUTTER_CSS,
   CONTENT_SCALE_CSS_VARIABLE,
   CONTENT_UI_SCALE_POLICY,
   MINIMUM_COVERED_VIEWPORT_WIDTH_PX,
   SIDE_MENU_LAYOUT_POLICY,
+  SIDE_TAB_OVERHANG_PX,
   getSideMenuIconLayout,
   getSideMenuWidth,
   measureContentUiScaleRoot,
   requiredViewportWidthForScale,
   resolveContentUiScale,
   resolveSideMenuScale,
+  resolveSideTabRailWidthPx,
 } from '../../utils/uiScale';
 
 describe('uiScale', () => {
@@ -128,6 +131,91 @@ describe('uiScale', () => {
 
     expect(document.documentElement.style.getPropertyValue(CONTENT_SCALE_CSS_VARIABLE)).toBe(String(expected));
     expect(expected).toBe(resolveContentUiScale(width));
+  });
+
+  describe('kontrolfanernes skinne', () => {
+    // Skinnens bredde er den ENE beslutning om, hvor meget af fanernes udhæng der er synligt.
+    // Geometrien herunder er arbejdsfladen ved skala 1: menu 250 + gutter 24 → skinnens venstrekant
+    // ligger 274 px inde, og indholdsboksens kant (og dermed fanens `left`) 50 + 1200 px længere.
+    const railLeftPx = 274 + 50;
+
+    it('holder udhænget uden for pladsregnskabet', () => {
+      // Værnet mod den nemmeste «rettelse»: at lægge udhænget ind i summen, så hele fladen skrumper
+      // for at gøre plads til to valgfrie kontrolfaner.
+      expect(CONTENT_UI_SCALE_POLICY.scaledShellWidthPx).toBe(250 + 24 + 50 + CONTENT_BOX_WIDTH_PX + 24);
+      expect(SIDE_TAB_OVERHANG_PX).toBe(48);
+    });
+
+    it('måler den synlige bredde og omregner til skinnens egen koordinatverden', () => {
+      // Fuld plads: hele udhænget er inden for den synlige kant.
+      expect(resolveSideTabRailWidthPx({
+        railLeftPx,
+        scrollportRightPx: 1920,
+        scrollLeftPx: 0,
+        scale: 1,
+      })).toBe(1920 - railLeftPx);
+
+      // Ved skala 0,8 er den synlige bredde målt i vinduets px, men skinnen lever inde i zoom-roden.
+      expect(resolveSideTabRailWidthPx({
+        railLeftPx: 200,
+        scrollportRightPx: 1400,
+        scrollLeftPx: 0,
+        scale: 0.8,
+      })).toBe(1500);
+    });
+
+    it('klipper udhænget, når højregutteren ikke kan rumme det', () => {
+      // Kanten ligger 20 px til højre for indholdsboksen → 20 af udhængets 48 px er synlige, og
+      // resten forsvinder tavst. Det er hele designvalget: fanen skrumper ikke arbejdsfladen.
+      const width = resolveSideTabRailWidthPx({
+        railLeftPx: 0,
+        scrollportRightPx: CONTENT_BOX_WIDTH_PX + 20,
+        scrollLeftPx: 0,
+        scale: 1,
+      });
+
+      expect(width).toBe(CONTENT_BOX_WIDTH_PX + 20);
+      expect(width).toBeLessThan(CONTENT_BOX_WIDTH_PX + SIDE_TAB_OVERHANG_PX);
+    });
+
+    it('er upåvirket af vandret rul', () => {
+      // Uden `scrollLeft` i regnestykket ville et rul mod højre afsløre mere af fanen — og dermed
+      // selv gøre scrollområdet bredere, rul efter rul.
+      const atRest = resolveSideTabRailWidthPx({
+        railLeftPx,
+        scrollportRightPx: 1500,
+        scrollLeftPx: 0,
+        scale: 1,
+      });
+      const scrolled = resolveSideTabRailWidthPx({
+        railLeftPx: railLeftPx - 300,
+        scrollportRightPx: 1500,
+        scrollLeftPx: 300,
+        scale: 1,
+      });
+
+      expect(scrolled).toBe(atRest);
+    });
+
+    it('falder tilbage til indholdsboksens bredde, når geometrien ikke kan måles', () => {
+      // Bunden gør fanerne fuldt klippede frem for at lade en umålelig geometri (jsdom, skjult
+      // flade, skala 0) give en tilfældig bredde — og den kan aldrig give vandret rul.
+      for (const scale of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+        expect(resolveSideTabRailWidthPx({
+          railLeftPx,
+          scrollportRightPx: 1920,
+          scrollLeftPx: 0,
+          scale,
+        })).toBe(CONTENT_BOX_WIDTH_PX);
+      }
+
+      expect(resolveSideTabRailWidthPx({
+        railLeftPx: 0,
+        scrollportRightPx: 0,
+        scrollLeftPx: 0,
+        scale: 1,
+      })).toBe(CONTENT_BOX_WIDTH_PX);
+    });
   });
 
   it('returnerer neutral skala for jsdom og ugyldig geometri', () => {

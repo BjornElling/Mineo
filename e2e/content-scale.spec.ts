@@ -1,4 +1,5 @@
 import { stat } from 'node:fs/promises';
+import { BROWSER_LANE_TAG } from './support/lanes';
 import { expect, login, openPage, test } from './support/mineoTest';
 
 // Pladsregnskabet fra CONTENT_UI_SCALE_POLICY gentaget uafhængigt: HELE fladen skaleres under ét —
@@ -274,10 +275,15 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('holder kontrolfanerne inden for indholdsboksens højrekant', async ({ page }) => {
-    // Fanerne roteres 90° og rager derfor deres egen HØJDE ud til højre for deres `left`. Lå de på
-    // boksens kant, ville de stikke 48 px ud over programmets bredeste element — og de 48 px indgår
-    // ikke i skaleringens pladsregnskab, så højregutteren forsvandt ved den smalleste bredde.
+  test('lader kontrolfanerne hænge uden for indholdsboksen uden at give vandret rul', { tag: BROWSER_LANE_TAG }, async ({ page, runtimeErrors }) => {
+    // Fanerne roteres 90° og rager deres egen HØJDE (48 px) ud til højre for deres `left`, som ER
+    // indholdsboksens kant. De 48 px indgår BEVIDST ikke i skaleringens pladsregnskab: to valgfrie
+    // kontrolfaner må ikke kunne skrumpe hele arbejdsfladen. Til gengæld må udhænget så heller ikke
+    // kunne give vandret rul, og det er `SideTabRail`s vandrette klipning, der holder den påstand.
+    //
+    // Testen ligger i browserbanen, fordi mekanismen ER motorafhængig: klipningen er
+    // `overflow-x: clip` sammen med `overflow-y: visible`, og den roterede fane rager 265 px nedad.
+    // En motor, der blokificerer den visible akse, ville klippe fanen på tværs i stedet.
     await login(page);
     await openPage(page, 'Indstillinger');
     const kontrolfaner = page.getByRole('checkbox', { name: 'Vis kontrolfaner på Erstatningsopgørelse-side' });
@@ -286,24 +292,194 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     await openPage(page, 'Erstatningsopgørelse');
     await expect(page.getByRole('button', { name: 'EO-kontrol' })).toBeVisible();
 
-    const geometry = await page.evaluate(() => {
-      const contentBox = document.querySelector<HTMLElement>('.content-box');
+    const readGeometry = async () => page.evaluate(() => {
       const container = document.querySelector<HTMLElement>('[data-mineo-scroll-container="true"]');
-      if (contentBox === null || container === null) throw new Error('Mangler indholdsboks eller Container.');
+      const rail = document.querySelector<HTMLElement>('[data-mineo-side-tab-rail="true"]');
+      if (container === null || rail === null) {
+        throw new Error('Mangler Container eller kontrolfanernes skinne.');
+      }
+      const railStyle = getComputedStyle(rail);
       const sideTabs = Array.from(document.querySelectorAll<HTMLElement>('.side-tab'));
       return {
-        contentBoxRight: contentBox.getBoundingClientRect().right,
-        sideTabRights: sideTabs.map((tab) => tab.getBoundingClientRect().right),
+        // Boksen i den AKTIVE fane er den synlige; skjulte faner måler nul.
+        contentBoxRight: Math.max(
+          ...Array.from(document.querySelectorAll<HTMLElement>('.content-box'))
+            .map((box) => box.getBoundingClientRect().right),
+        ),
+        scrollportRight: container.getBoundingClientRect().left + container.clientWidth,
+        railOverflowX: railStyle.overflowX,
+        railOverflowY: railStyle.overflowY,
+        railHeight: railStyle.height,
+        // Skinnens højrekant ER klipperkanten: intet af udhænget males eller tælles med længere ude.
+        railRight: rail.getBoundingClientRect().right,
+        sideTabs: sideTabs.map((tab) => {
+          const rect = tab.getBoundingClientRect();
+          return { left: rect.left, right: rect.right, width: rect.width, height: rect.height };
+        }),
         overflowPx: container.scrollWidth - container.clientWidth,
       };
     });
 
-    expect(geometry.sideTabRights.length).toBe(2);
-    for (const right of geometry.sideTabRights) {
-      // Den ekstra pixel dækker browsernes afrunding af CSS zoom.
-      expect(right).toBeLessThanOrEqual(geometry.contentBoxRight + 1);
+    const geometry = await readGeometry();
+    expect(geometry.sideTabs.length).toBe(2);
+    // Klipningen er vandret ALENE. Var den lodret med, ville fanen — der rager nedad efter
+    // rotationen — blive skåret over på tværs.
+    expect(geometry.railOverflowX).toBe('clip');
+    expect(geometry.railOverflowY).toBe('visible');
+    // Skinnen må ikke selv flytte noget i flowet.
+    expect(Number.parseFloat(geometry.railHeight)).toBe(0);
+
+    // Bredderne dækker hele policyens spænd: fuld skala med rigelig plads, fuld skala med kun
+    // scrollbar-reserven tilbage, to skalerede trin og den smalleste dækkede bredde.
+    for (const width of [1920, 1568, 1366, 1181] as const) {
+      await page.setViewportSize({ width, height: 800 });
+      await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
+        (element) => getComputedStyle(element).zoom,
+      )).toBe(expectedScaleForWidth(width));
+      const measured = await readGeometry();
+
+      for (const tab of measured.sideTabs) {
+        // Fanen står PÅ boksens kant og rager udad — den ligger ikke inde i boksen længere.
+        expect(Math.abs(tab.left - measured.contentBoxRight)).toBeLessThanOrEqual(1);
+        expect(tab.right).toBeGreaterThan(measured.contentBoxRight + 1);
+        // Rotationen gør fanens HØJDE til dens synlige bredde; etiketlængden er den lange side.
+        expect(tab.height).toBeGreaterThan(tab.width);
+      }
+      // Kernen: klipperkanten ligger ved arbejdsfladens synlige højrekant, aldrig uden for den.
+      // Hvor meget af udhænget der er plads til, afhænger af sidemenuens aktuelle bredde og af
+      // browserens scrollbar — men uanset svaret må udhænget ikke give vandret rul.
+      //
+      // Kanten aflæses som en SETTLET værdi: sidemenuen sætter sin egen bredde i sin egen
+      // layout-effect, så skinnen måler færdigt et frame efter, at zoomen er på plads.
+      await expect.poll(async () => {
+        const settled = await readGeometry();
+        return settled.railRight <= settled.scrollportRight + 1 && settled.overflowPx <= 1;
+      }, {
+        message: `Skinnen skal klippe ved arbejdsfladens synlige højrekant ved ${width} CSS-px.`,
+      }).toBe(true);
     }
-    expect(geometry.overflowPx).toBeLessThanOrEqual(1);
+
+    // Under den dækkede minimumsbredde er `Container`s vandrette rul den bevidste fallback, og
+    // indholdet overflyder selv. Fanerne må ikke lægge en eneste pixel oveni: skinnen klemmes til
+    // indholdsboksen, og fanerne forsvinder tavst.
+    await page.setViewportSize({ width: 1000, height: 800 });
+    await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
+      (element) => getComputedStyle(element).zoom,
+    )).toBe(String(MINIMUM_SCALE));
+    const belowMinimum = await readGeometry();
+
+    expect(belowMinimum.overflowPx).toBeGreaterThan(1);
+    expect(belowMinimum.railRight).toBeLessThanOrEqual(belowMinimum.contentBoxRight + 1);
+    expect(runtimeErrors).toEqual([]);
+  });
+
+  test('giver kontrolfanerne samme signatur som de vandrette faner — også i mørkt tema', async ({ page, runtimeErrors }) => {
+    // «Nøjagtig samme formatering som de øvrige fane-labels» er kravet, og den fælles
+    // `.tab-item`-regel er mekanismen. Målingen sammenholder de to fanefamiliers FAKTISKE
+    // beregnede signatur i browseren — det er den eneste måling, der kan se, om en `sx`-værdi har
+    // overtrumfet klassen igen. Netop det skete: `color: inherit` gjorde etiketten usynlig i mørkt
+    // tema, og `border: none` slettede den blå streg.
+    await login(page);
+    await openPage(page, 'Indstillinger');
+    const kontrolfaner = page.getByRole('checkbox', { name: 'Vis kontrolfaner på Erstatningsopgørelse-side' });
+    if (!(await kontrolfaner.isChecked())) await kontrolfaner.check();
+
+    for (const theme of ['Lyst', 'Mørkt'] as const) {
+      await openPage(page, 'Indstillinger');
+      await page.getByRole('radio', { name: theme }).check();
+      await openPage(page, 'Erstatningsopgørelse');
+      await expect(page.getByRole('button', { name: 'Kontroltabel' })).toBeVisible();
+
+      // Signaturen læses i TO pas, fordi de to tilstande per design ikke kan være der samtidig: er
+      // en side-fane aktiv, står `PageTabs` med `value === false` og har ingen valgt fane.
+      const readSignatures = async () => page.evaluate(() => {
+        const read = (selector: string) => {
+          const element = document.querySelector<HTMLElement>(selector);
+          if (element === null) throw new Error(`Mangler ${selector}.`);
+          const style = getComputedStyle(element);
+          return {
+            fontFamily: style.fontFamily,
+            fontSize: style.fontSize,
+            fontWeight: style.fontWeight,
+            lineHeight: style.lineHeight,
+            letterSpacing: style.letterSpacing,
+            textTransform: style.textTransform,
+            color: style.color,
+            opacity: style.opacity,
+          };
+        };
+        const indicator = document.querySelector<HTMLElement>('.MuiTabs-indicator');
+        const activeSideTab = document.querySelector<HTMLElement>('.side-tab.active');
+        const activeLine = activeSideTab === null ? null : getComputedStyle(activeSideTab, '::after');
+
+        return {
+          inactiveSideTab: read('.side-tab:not(.active)'),
+          inactiveMuiTab: document.querySelector('.MuiTab-root.tab-item:not(.Mui-selected)') === null
+            ? null
+            : read('.MuiTab-root.tab-item:not(.Mui-selected)'),
+          activeSideTab: activeSideTab === null ? null : read('.side-tab.active'),
+          selectedMuiTab: document.querySelector('.MuiTab-root.tab-item.Mui-selected') === null
+            ? null
+            : read('.MuiTab-root.tab-item.Mui-selected'),
+          indicator: indicator === null ? null : {
+            color: getComputedStyle(indicator).backgroundColor,
+            height: getComputedStyle(indicator).height,
+          },
+          activeLine: activeLine === null ? null : {
+            color: activeLine.backgroundColor,
+            height: activeLine.height,
+          },
+          // Stregen ligger på fanens bund, som efter rotationen vender ind mod indholdsboksen —
+          // altså præcis ved fanens venstrekant.
+          activeSideTabLeft: activeSideTab?.getBoundingClientRect().left ?? null,
+          contentBoxRight: Math.max(
+            ...Array.from(document.querySelectorAll<HTMLElement>('.content-box'))
+              .map((box) => box.getBoundingClientRect().right),
+          ),
+        };
+      });
+
+      // Fane-signaturen har en 0,2 s overgang på farve og gennemsigtighed — den delte `.tab-item`
+      // giver begge familier den. Måles der midt i overgangen, sammenlignes en halvfærdig farve med
+      // en færdig. Ventepunktet er den observerbare slutværdi, ikke en fast ventetid.
+      const waitForSettledOpacity = async (selector: string, expected: string) => {
+        await expect.poll(() => page.evaluate((target) => {
+          const element = document.querySelector<HTMLElement>(target);
+          return element === null ? null : getComputedStyle(element).opacity;
+        }, selector)).toBe(expected);
+      };
+
+      // Pas 1 — ingen side-fane aktiv: de inaktive side-faner mod de inaktive vandrette faner, og
+      // den valgte vandrette fanes signatur + indikatoren gemmes til pas 2. Den aktive fane er
+      // gemt på tværs af sidebesøg, så udgangspunktet sættes eksplicit frem for at blive arvet fra
+      // forrige gennemløb.
+      await page.getByRole('tab', { name: 'EO oplysninger' }).click();
+      await expect(page.getByRole('tab', { name: 'EO oplysninger' })).toHaveAttribute('aria-selected', 'true');
+      await waitForSettledOpacity('.side-tab:not(.active)', '0.7');
+      const resting = await readSignatures();
+      expect(resting.inactiveSideTab).toEqual(resting.inactiveMuiTab);
+      // Selve dark-mode-fejlen: en etiket, der arver sin farve, ender sort på mørk flade.
+      expect(resting.inactiveSideTab.color).not.toBe('rgb(0, 0, 0)');
+      expect(resting.selectedMuiTab).not.toBeNull();
+      expect(resting.indicator).not.toBeNull();
+
+      // Pas 2 — EO-kontrol aktiv.
+      await page.getByRole('button', { name: 'EO-kontrol' }).click();
+      await expect(page.getByRole('button', { name: 'EO-kontrol' })).toHaveAttribute('aria-pressed', 'true');
+      await waitForSettledOpacity('.side-tab.active', '1');
+      const active = await readSignatures();
+
+      expect(active.activeSideTab).toEqual(resting.selectedMuiTab);
+      // Den blå streg: samme farve OG samme mekanisme som de vandrette faners indikator — en 2 px
+      // malet kasse. Højden læses uzoomet, netop fordi en `border` her ville blive afrundet til 1 px
+      // ved delvis zoom, mens indikatoren forbliver 2 px × skala.
+      expect(active.activeLine?.color).toBe(resting.indicator?.color);
+      expect(active.activeLine?.height).toBe(resting.indicator?.height);
+      // Placeringen: stregen står på indholdsboksens højrekant — også når fladen er skaleret ned.
+      expect(Math.abs((active.activeSideTabLeft ?? 0) - active.contentBoxRight)).toBeLessThanOrEqual(1);
+    }
+
+    expect(runtimeErrors).toEqual([]);
   });
 
   test('viser hele arbejdsfladen uden vandret rul ved 1280 CSS-px', async ({ page, runtimeErrors }) => {

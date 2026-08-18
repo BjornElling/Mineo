@@ -19,13 +19,64 @@ export const CONTENT_SCALE_ROOT_SELECTOR = '[data-mineo-content-scale-root="true
 /**
  * Bredden på `.content-box` — arbejdsfladens bredeste element på hver eneste side og fane.
  * Værdien er målt: intet indhold rager ud over indholdsboksen, så den er den ene bredde,
- * pladsregnskabet nedenfor skal kunne rumme. Kontrolfanerne (`SideTab`) er lagt INDEN for
- * boksens højrekant netop for at holde den påstand sand.
+ * pladsregnskabet nedenfor skal kunne rumme.
  *
  * Spejler `--content-box-max-width` i `src/styles/layout.css`, som er den visuelle sandhedskilde.
  * `src/__tests__/quality/contentBoxWidthSingleSource.test.ts` fejler, hvis de to falder ud af sync.
  */
 export const CONTENT_BOX_WIDTH_PX = 1200;
+
+/**
+ * Kontrolfanernes udhæng til højre for indholdsboksen — den ENE bevidste undtagelse fra
+ * pladsregnskabet nedenfor.
+ *
+ * `SideTab` roteres 90° om venstre-bund og rager derfor sin egen HØJDE ud til højre for sin `left`.
+ * Fanerne står på indholdsboksens kant (`left = CONTENT_BOX_WIDTH_PX`) og ligger dermed HELT uden
+ * for boksen. De 48 px indgår bevidst IKKE i `scaledShellWidthPx`: fanerne er en valgfri
+ * kontrolflade (Indstillinger → «Vis kontrolfaner»), og hele arbejdsfladen må ikke skaleres ned for
+ * at gøre plads til dem. Er der plads i højregutteren, står de der; er der ikke, går de tavst ud
+ * over arbejdsfladens synlige højrekant og bliver klippet væk. Klipningen er ikke et held:
+ * `SideTabRail` måler den synlige højrekant og klipper der, så udhænget hverken kan give vandret
+ * rul eller flytte noget andet. Normativt: `src/contracts/app-shell-contract.md` §2.11.
+ */
+export const SIDE_TAB_OVERHANG_PX = 48;
+
+/**
+ * Bredden på kontrolfanernes skinne, målt i skinnens EGEN (uzoomede) koordinatverden.
+ *
+ * Skinnen klipper vandret ved sin egen højrekant, og bredden er derfor det ene sted, der afgør,
+ * hvor meget af udhænget der er synligt. Alle indgange er vinduets px (`getBoundingClientRect`,
+ * `clientWidth`, `scrollLeft`), og resultatet divideres med arbejdsfladens skala, fordi skinnen
+ * ligger inde i zoom-roden.
+ *
+ * `scrollLeft` lægges til skinnens venstrekant, så klipningen er den samme, uanset om brugeren har
+ * rullet vandret: klipperkanten er arbejdsfladens synlige højrekant ved rul 0. Uden det ville et
+ * vandret rul (fallbacken under den dækkede bredde) afsløre mere af fanen og dermed selv gøre
+ * scrollområdet bredere.
+ *
+ * Bunden er indholdsboksens bredde: en smallere skinne kan aldrig vise mere (fanerne begynder
+ * præcis ved boksens kant), og bunden holder resultatet meningsfuldt i miljøer uden layout (jsdom
+ * måler nul), hvor fanerne så blot er fuldt klippet.
+ */
+export const resolveSideTabRailWidthPx = (geometry: {
+  /** Skinnens venstrekant i vinduets koordinater. */
+  readonly railLeftPx: number;
+  /** Arbejdsfladens synlige højrekant — scrollportens kant uden den lodrette scrollbar. */
+  readonly scrollportRightPx: number;
+  /** Scrollportens aktuelle vandrette rul. */
+  readonly scrollLeftPx: number;
+  /** Arbejdsfladens skala, målt på zoom-roden. */
+  readonly scale: number;
+}): number => {
+  const { railLeftPx, scrollportRightPx, scrollLeftPx, scale } = geometry;
+  const isMeasurable = [railLeftPx, scrollportRightPx, scrollLeftPx, scale].every(Number.isFinite)
+    && scale > 0;
+  if (!isMeasurable) return CONTENT_BOX_WIDTH_PX;
+
+  const visibleWidthPx = (scrollportRightPx - (railLeftPx + scrollLeftPx)) / scale;
+  // Nedad-afrunding: en halv px for meget er en px vandret rul, en halv px for lidt er usynlig.
+  return Math.max(CONTENT_BOX_WIDTH_PX, Math.floor(visibleWidthPx));
+};
 
 /**
  * Sidemenuens uskalerede grundmål. Alle værdier er dem, menuen har ved skala 1; den faktiske
@@ -58,6 +109,8 @@ const CONTENT_INDENT_PX = 50;
  * sidemenu + venstre gutter + indrykning + indholdsboks + højre gutter. Begge gutters regnes
  * med, så indholdet aldrig fitter ved at ligge klods op ad scrollbaren i højre side. Summen
  * udledes af de navngivne layoutmål, aldrig af et hardkodet tal.
+ *
+ * `SIDE_TAB_OVERHANG_PX` er bevidst IKKE et led i summen — se dens egen forklaring ovenfor.
  *
  * Policyen er bevidst serialiserbar, fordi den samme konfiguration bruges af det synkrone
  * head-script og af runtime-hooken. Ingen del af policyen er brugerdata eller app-settings.

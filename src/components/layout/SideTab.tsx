@@ -1,13 +1,21 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import { CONTENT_BOX_WIDTH_PX } from '../../utils/uiScale';
+import { CONTENT_BOX_WIDTH_PX, SIDE_TAB_OVERHANG_PX } from '../../utils/uiScale';
 import { TAB_NAVIGATION_ATTRIBUTE } from './containerNavigation/navigationControlSemantics';
 
 /**
  * Fanens højde. Efter `rotate(90deg)` om venstre-bund er det HØJDEN, der bliver fanens vandrette
- * udstrækning — derfor er den fastlåst her og ikke overladt til indholdet.
+ * udstrækning — den er derfor det samme tal som fanens udhæng til højre for indholdsboksen, og
+ * den er fastlåst her og ikke overladt til indholdet. 48 px er MUI's egen fanehøjde
+ * (`Tabs`/`Tab` minHeight), så en side-fane er præcis så tyk som en vandret fane er høj.
  */
-const SIDE_TAB_HEIGHT_PX = 48;
+const SIDE_TAB_HEIGHT_PX = SIDE_TAB_OVERHANG_PX;
+
+/**
+ * Fanens længde langs indholdsboksens kant. Samme tal som `PageTabs`' `minTabWidth`-default, så de
+ * to fanefamilier har samme etiketbredde at arbejde i.
+ */
+const SIDE_TAB_LENGTH_PX = 140;
 
 export type SideTabProps = {
   readonly label: string;
@@ -21,9 +29,25 @@ export type SideTabProps = {
 };
 
 /**
- * Roteret 90° side-fane placeret ved ContentBox'ens højrekant (EO-kontrolfaner,
- * Stamdata-testfane). Delt så den roterede blok har ét abstraktionspunkt frem
- * for at være kopieret pr. callsite (jf. `page-component-contract.md` §10.2).
+ * Roteret 90° side-fane placeret UDEN FOR ContentBox'ens højrekant (EO-kontrolfaner). Delt så den
+ * roterede blok har ét abstraktionspunkt frem for at være kopieret pr. callsite (jf.
+ * `page-component-contract.md` §10.2).
+ *
+ * **Placeringen.** `left` er indholdsboksens højrekant, og fanen rager sin egen højde ud til højre
+ * for den. Udhænget er den ene bevidste undtagelse fra skaleringens pladsregnskab
+ * (`SIDE_TAB_OVERHANG_PX`): fanerne må ikke kunne skrumpe hele arbejdsfladen. `SideTabRail` klipper
+ * udhænget ved arbejdsfladens synlige højrekant, så det hverken giver vandret rul eller flytter
+ * noget. En fane, der ikke kan være der, forsvinder altså tavst ud over kanten.
+ *
+ * **Formateringen ejes af CSS, ikke af `sx`.** Etiketten skal have PRÆCIS samme typografi som de
+ * vandrette faners, og den fælles `.tab-item`-regel i `typography.css` er det ene sted, de to
+ * familier henter den fra — farve (også i dark mode), størrelse, vægt, spatiering og
+ * hover/aktiv-tilstand. Den blå streg er `.side-tab::after`: efter rotationen vender fanens bund ind
+ * mod indholdsboksen, så stregen lander præcis på boksens højrekant — samme rolle OG samme
+ * mekanisme som `MuiTabs-indicator` under en vandret fane. `sx` herunder må derfor kun bære
+ * GEOMETRI. Sætter man typografi eller `border` her, vinder emotion over klassen, og fanerne drifter
+ * fra de øvrige igen (senest: `color: inherit` gjorde dem usynlige i dark mode, og `border: none`
+ * slettede den blå streg).
  */
 const SideTab = React.memo(({ label, active, onClick, top }: SideTabProps) => (
   <Box
@@ -35,12 +59,7 @@ const SideTab = React.memo(({ label, active, onClick, top }: SideTabProps) => (
     className={active ? 'tab-item side-tab active' : 'tab-item side-tab'}
     sx={{
       position: 'absolute',
-      // Fanen roteres om venstre-bund og rager derfor sin egen HØJDE ud til højre for `left`.
-      // Den lå før på indholdsboksens kant (1200 px) og stak dermed 48 px ud over programmets
-      // bredeste element — de 48 px indgår ikke i skaleringens pladsregnskab, så ved den
-      // smalleste dækkede vinduesbredde åd fanen hele højregutteren og endte 2,5 px fra
-      // vindueskanten. Fanen slutter nu præcis ved boksens højrekant.
-      left: `${CONTENT_BOX_WIDTH_PX - SIDE_TAB_HEIGHT_PX}px`,
+      left: `${CONTENT_BOX_WIDTH_PX}px`,
       top,
       transform: 'rotate(90deg)',
       transformOrigin: 'left bottom',
@@ -49,22 +68,11 @@ const SideTab = React.memo(({ label, active, onClick, top }: SideTabProps) => (
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      minWidth: 140,
+      minWidth: SIDE_TAB_LENGTH_PX,
       height: `${SIDE_TAB_HEIGHT_PX}px`,
+      // Samme indre luft som MUI's `Tab`, så etiketten står ens i de to fanefamilier.
       padding: '12px 16px',
-      appearance: 'none',
-      border: 'none',
-      background: 'transparent',
-      color: 'inherit',
-      textAlign: 'center',
-      font: 'inherit',
-      fontSize: '0.875rem',
-      fontFamily: 'Montserrat, sans-serif',
-      lineHeight: 1.25,
-      letterSpacing: '0.02857em',
-      '&.active': {
-        borderBottom: '2px solid var(--color-primary)',
-      },
+      whiteSpace: 'nowrap',
     }}
   >
     {label}

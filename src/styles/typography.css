@@ -22,9 +22,18 @@
   --font-size-subheading: 15px;
   --font-size-text: 14px;
   --font-size-text-table: 13px;
+  /* Fane-etiketter. MUI's egne fanemål (`typography.button`), skrevet som variabel fordi de
+     roterede side-faner er native knapper uden MUI's tema-typografi og skal hente PRÆCIS det
+     samme sted som `MuiTab-root`. */
+  --font-size-tab-label: 0.875rem;
 
   /* Line height */
   --line-height-base: 1.4;
+  /* MUI's `typography.button`-linjehøjde. Se `--font-size-tab-label`. */
+  --line-height-tab-label: 1.75;
+
+  /* Fane-etiketternes bogstavspatiering (MUI's `typography.button`). */
+  --letter-spacing-tab-label: 0.02857em;
 
   /* Font family */
   --font-family-base: 'Montserrat', sans-serif;
@@ -293,11 +302,20 @@
 }
 
 /* ==================== Navigation tabs ==================== */
+/* ÉN typografi for begge fanefamilier: de vandrette MUI-faner (`PageTabs`) og de roterede
+   side-faner (`SideTab`). Reglen sætter hele signaturen — ikke kun det, MUI ikke selv har — fordi
+   side-fanen er en native <button> uden MUI's tema-typografi. Var listen kortere, ville de to
+   familier stå med hver sin skriftstørrelse, -farve og -linjehøjde, som de gjorde indtil
+   2026-08-18, hvor side-fanens `sx` bar sine egne håndkopierede værdier. */
 .MuiTab-root.tab-item,
 .tab-item {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-tab-label);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tab-label);
+  letter-spacing: var(--letter-spacing-tab-label);
   color: var(--mineo-color-text-secondary);
   text-transform: none;
-  font-weight: var(--font-weight-bold);
   transition: color 0.2s ease, opacity 0.2s ease;
   opacity: 0.7;
 }
@@ -314,13 +332,36 @@
   opacity: 1;
 }
 
+/* Side-fanen er en native knap: browserens egen knap-signatur (ramme, baggrund, farve, skrift) skal
+   nulstilles her, hvor fane-typografien ovenfor kan slå igennem. Nulstillingen hører netop HER og
+   ikke i komponentens `sx`: emotion vinder over klassen, så et `border: none` i `sx` slettede den
+   blå streg, og et `color: inherit` gjorde etiketten usynlig i dark mode. */
 .side-tab {
+  appearance: none;
   background-color: transparent;
-  border-bottom: 2px solid transparent;
+  border: none;
 }
 
-.side-tab.active {
-  border-bottom-color: var(--color-primary);
+/* Den blå streg.
+   Fanen roteres 90° om venstre-bund, så dens BUND vender ind mod indholdsboksen: stregen står
+   lodret præcis på boksens højrekant og har samme rolle som `MuiTabs-indicator` under en vandret
+   fane. Den er også samme SLAGS ting — en 2 px malet kasse oven på fanens bundkant, ikke en
+   `border-bottom`. Forskellen er målbar: en ramme afrundes af browseren til hele enheds-pixels og
+   bliver 1 px tynd ved delvis zoom, mens indikatoren forbliver 2 px × skala. Kassen holder de to
+   ens ved enhver skala.
+   Stregen er malet på begge tilstande og skifter kun farve, så etiketten ikke kan flytte sig. */
+.side-tab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background-color: transparent;
+}
+
+.side-tab.active::after {
+  background-color: var(--color-primary);
 }
 
 /* ==================== Links ==================== */
