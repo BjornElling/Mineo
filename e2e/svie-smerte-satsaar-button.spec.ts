@@ -1,29 +1,12 @@
-import { expect, test, type Page } from '@playwright/test';
-
-import { setVerbatimFieldValueAndSettle } from './support/mineoTest';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
+import { expect, login, openPage, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
 /** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
 const setDate = setVerbatimFieldValueAndSettle;
 
 test.describe('Svie/smerte-satsår — Indsæt årstal', () => {
-  test('indsætter satsåret fra opgørelsesdatoen, falder tilbage og er et tabstop', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('indsætter satsåret fra opgørelsesdatoen, falder tilbage og er et tabstop', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     await page.locator("input[name='kravPaaSvieSmerteGodtgoerelse'][value='Ja']").check();
 
     const opgoerelseDato = page.locator("input[name='opgørelseLavetDen']");

@@ -1,5 +1,5 @@
 import { BROWSER_LANE_TAG } from './support/lanes';
-import { expect, login, test } from './support/mineoTest';
+import { expect, login, openPage, test } from './support/mineoTest';
 
 // Browserbanen: Tab-rækkefølgen mellem faner og indhold afgøres af motorens egen traversering, og
 // den er ikke ens i Chromium, Gecko og WebKit. Grænsen skal derfor måles i alle fire.
@@ -10,7 +10,7 @@ test.describe('PageTabs og indholdets tastaturgrænse', { tag: BROWSER_LANE_TAG 
     externalRequests,
   }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Varige mén', exact: true }).click();
+    await openPage(page, 'Varige mén');
     await expect(page).toHaveURL(/\/varigemen$/);
 
     const menberegningTab = page.getByRole('tab', { name: 'Ménberegning', exact: true });

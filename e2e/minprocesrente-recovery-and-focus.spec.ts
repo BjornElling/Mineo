@@ -1,15 +1,7 @@
-import { expect, test } from '@playwright/test';
-
-import { setFieldValueAndSettle } from './support/mineoTest';
+import { expect, setFieldValueAndSettle, test } from './support/mineoTest';
 
 test.describe('MinProcesrente — recovery og fokus', () => {
-  test('rydder en afvist beregningsdato og bevarer fokus på Indsæt dags dato', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('rydder en afvist beregningsdato og bevarer fokus på Indsæt dags dato', async ({ page, runtimeErrors }) => {
     await page.goto('/minprocesrente.html');
 
     const dateInput = page.locator('input[name="beregningsdato"]');

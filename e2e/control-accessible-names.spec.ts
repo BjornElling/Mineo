@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, login, openPage, test } from './support/mineoTest';
 
 /**
  * Browser-verifikation af, at interaktive kontroller kan identificeres på deres navn.
@@ -15,15 +15,6 @@ import { expect, test, type Page } from '@playwright/test';
  *
  * Testen dækker de flader, hvor kontrollerne stod navnløse: sidemenuen, Indstillinger, Om-siden og EET.
  */
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
 
 test.describe('Tilgængelige navne på interaktive kontroller', () => {
   test('sidemenuens kontroller kan findes på deres navn', async ({ page }) => {
@@ -58,7 +49,7 @@ test.describe('Tilgængelige navne på interaktive kontroller', () => {
 
   test('Indstillinger-sidens switches kan alle findes på deres synlige tekst', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Indstillinger' }).click();
+    await openPage(page, 'Indstillinger');
 
     for (const name of [
       'Fuld løn under ferie',
@@ -77,7 +68,7 @@ test.describe('Tilgængelige navne på interaktive kontroller', () => {
 
   test('EET-valgkontrollerne kan findes på deres synlige tekst', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+    await openPage(page, 'Erhvervsevnetab');
     await page.getByRole('tab', { name: 'Differencekrav' }).click();
 
     // Den fulde tekst bærer et info-ikon; navnet må være teksten uden ikonets tooltip-forklaring.
@@ -91,15 +82,9 @@ test.describe('Tilgængelige navne på interaktive kontroller', () => {
     ).toBeVisible();
   });
 
-  test('Stamdatas tekst-, dato- og dropdownfelter kan findes på deres synlige label', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('Stamdatas tekst-, dato- og dropdownfelter kan findes på deres synlige label', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
 
     await expect(page.getByRole('textbox', { name: 'Journalnr.' })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Skadelidtes navn' })).toBeVisible();

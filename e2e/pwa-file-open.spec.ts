@@ -1,6 +1,4 @@
-import { expect, test } from '@playwright/test';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
+import { expect, TEST_PASSWORD, test } from './support/mineoTest';
 
 test.describe('PWA-filåbning', () => {
   test('registrerer launchQueue-consumeren før den synlige loginrejse er afsluttet', async ({ page }) => {

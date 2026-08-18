@@ -1,6 +1,6 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { type Locator } from '@playwright/test';
 
-import { setFieldValueAndSettle, setVerbatimFieldValueAndSettle } from './support/mineoTest';
+import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
 /**
  * Download-knappens tooltip: de tre brugerrettede klasser (brugerbeslutning 2026-08-13).
@@ -17,20 +17,11 @@ import { setFieldValueAndSettle, setVerbatimFieldValueAndSettle } from './suppor
  * blokering tavs, og så har tooltippen intet at sidde på.
  */
 
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
 const MISSING_INPUT = 'Indtastning mangler';
 const INVALID_INPUT = 'Fejl i indtastning';
 const PAGE_ERRORS = 'Opgørelse kan ikke hentes, når der er fejl ovenfor';
 /** Codec-leveret konkret tekst for en velformet, men ikke-eksisterende kalenderdato. */
 const NONEXISTENT_DAY = 'Datoen findes ikke i kalenderen';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
 
 /** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
 const setDate = setVerbatimFieldValueAndSettle;
@@ -47,15 +38,9 @@ test.describe('Download-tooltip — de tre klasser', () => {
    * Varige mén afhænger af Stamdatas fødselsdato og skadedato. Den skelnen brugeren efterspurgte — tom vs.
    * rød — afgøres af `varigeMenReaderProjection`s `require`-reads, og vises her fra brugerens side af skærmen.
    */
-  test('Varige mén skelner tom indtastning fra rød feltfejl', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('Varige mén skelner tom indtastning fra rød feltfejl', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Varige mén' }).click();
+    await openPage(page, 'Varige mén');
 
     /**
      * Knappen findes på sin RÆKKE, ikke på sit navn: navnet ER tooltippen, og den er netop det, testen
@@ -67,12 +52,12 @@ test.describe('Download-tooltip — de tre klasser', () => {
     await expectDisabledDownloadTooltip(download, MISSING_INPUT);
 
     // (b) En ugyldig fødselsdato (31-02 findes ikke i kalenderen) → rød feltfejl.
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     const fodselsdato = page.locator("input[name='skadelidteFodselsdato']");
     await setDate(fodselsdato, '31-02-1980');
     await expect(fodselsdato).toHaveAttribute('aria-invalid', 'true');
 
-    await page.getByRole('button', { name: 'Varige mén' }).click();
+    await openPage(page, 'Varige mén');
     /**
      * Den røde dato optræder sammen med de øvrige manglende input. Downloaden må derfor ikke citere datoen
      * og skjule, at der også mangler méngrad og beregningsdato — gate-kontrakten kræver den fælles klasse.
@@ -97,10 +82,10 @@ test.describe('Download-tooltip — de tre klasser', () => {
     await expectDisabledDownloadTooltip(download, INVALID_INPUT);
 
     // Rettes datoen, falder gaten tilbage til de øvrige tomme felter — ikke til en stale rød tilstand.
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     await setDate(fodselsdato, '01-01-1980');
     await expect(fodselsdato).not.toHaveAttribute('aria-invalid', 'true');
-    await page.getByRole('button', { name: 'Varige mén' }).click();
+    await openPage(page, 'Varige mén');
     await expectDisabledDownloadTooltip(download, MISSING_INPUT);
 
     expect(runtimeErrors).toEqual([]);
@@ -109,20 +94,20 @@ test.describe('Download-tooltip — de tre klasser', () => {
   test('viser den konkrete kalenderfejl, når den er den eneste blokering', async ({ page }) => {
     await login(page);
 
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     const fodselsdato = page.locator("input[name='skadelidteFodselsdato']");
     await setDate(fodselsdato, '01-01-1980');
     await setDate(page.locator("input[name='skadedato']"), '01-01-2015');
 
-    await page.getByRole('button', { name: 'Varige mén' }).click();
+    await openPage(page, 'Varige mén');
     await setFieldValueAndSettle(page.locator("input[name='mengrad']"), '10');
     await setDate(page.locator("input[name='beregningsdato']"), '01-01-2020');
 
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     await setDate(fodselsdato, '31-02-1980');
     await expect(fodselsdato).toHaveAttribute('aria-invalid', 'true');
 
-    await page.getByRole('button', { name: 'Varige mén' }).click();
+    await openPage(page, 'Varige mén');
     await expectDisabledDownloadTooltip(page.getByTestId('varigemen-download'), NONEXISTENT_DAY);
   });
 
@@ -130,15 +115,9 @@ test.describe('Download-tooltip — de tre klasser', () => {
    * (a) Erstatningsopgørelsens fire knapper. Teksten kom før fra en hardkodet ternary i `EOberegningTab`,
    * som kastede gatens svar væk; nu er den gatens klasse `page-errors`. Brugeren skal se samme tekst som før.
    */
-  test('Erstatningsopgørelse henviser til sin egen fejlboks', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('Erstatningsopgørelse henviser til sin egen fejlboks', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     await page.getByRole('tab', { name: 'Beregning' }).click();
 
     const fejlboks = page.locator('.content-box').filter({ hasText: 'Fejl og advarsler' });
@@ -162,15 +141,9 @@ test.describe('Download-tooltip — de tre klasser', () => {
    * Testen måler BEGGE retninger i samme flow — mangel, gyldig, ugyldig — så en rettelse, der blot bytter
    * om på de to tekster, ikke kan være grøn.
    */
-  test('Årslønnens løntabel skelner manglende beløb fra ugyldig celle', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('Årslønnens løntabel skelner manglende beløb fra ugyldig celle', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Årslønsberegning' }).click();
+    await openPage(page, 'Årslønsberegning');
 
     const download = page.locator('.row--label-right-hover')
       .filter({ hasText: 'Sammentælling af løn fra tabellen' })
@@ -209,29 +182,23 @@ test.describe('Download-tooltip — de tre klasser', () => {
    * beregnings- og downloadfladen forsvandt helt fra DOM'en ved en stamdatafejl). En skjult knap gør
    * blokeringen tavs — der er da ingen tooltip at læse.
    */
-  test('Årsløn og EET beholder en synlig, inaktiv downloadknap ved stamdatafejl', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('Årsløn og EET beholder en synlig, inaktiv downloadknap ved stamdatafejl', async ({ page, runtimeErrors }) => {
     await login(page);
 
     // En ugyldig skadedato gør stamdata rødt for begge sider på én gang.
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     const skadedato = page.locator("input[name='skadedato']");
     await setDate(skadedato, '31-02-2020');
     await expect(skadedato).toHaveAttribute('aria-invalid', 'true');
 
-    await page.getByRole('button', { name: 'Årslønsberegning' }).click();
+    await openPage(page, 'Årslønsberegning');
     const aarsloenRow = page.locator('.row--label-right-hover').filter({
       hasText: 'Sammentælling af løn fra tabellen',
     });
     await expect(aarsloenRow.getByRole('button')).toBeVisible();
     await expect(aarsloenRow.getByRole('button')).toBeDisabled();
 
-    await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+    await openPage(page, 'Erhvervsevnetab');
     await page.getByRole('tab', { name: 'Differencekrav' }).click();
     // `EetDocumentDownloadBox` renderes netop i den blokerede gren, så affordancen ikke forsvinder.
     const eetDownload = page.locator('.row--label-right-hover')

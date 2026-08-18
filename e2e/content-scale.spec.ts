@@ -1,14 +1,5 @@
 import { stat } from 'node:fs/promises';
-import { expect, test, type Page } from '@playwright/test';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
+import { expect, login, openPage, test } from './support/mineoTest';
 
 // Pladsregnskabet fra CONTENT_UI_SCALE_POLICY gentaget uafhængigt: HELE fladen skaleres under ét —
 // sidemenu (250) + gutter 24 + indrykning 50 + indholdsboks 1200 + gutter 24 — plus scrollbar (20).
@@ -24,17 +15,11 @@ const expectedScaleForWidth = (width: number): string => {
 };
 
 test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
-  test('skalerer arbejdsfladen og frigiver tekstsikker bredde fra sidemenuen', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('skalerer arbejdsfladen og frigiver tekstsikker bredde fra sidemenuen', async ({ page, runtimeErrors }) => {
     await login(page);
     // Om-siden har repræsentative 1200-px-indholdsbokse. Den vælges eksplicit, fordi brugerens
     // gemte startsideindstilling ellers må afgøre den første rute i en ny browserkontekst.
-    await page.getByRole('button', { name: 'Om' }).click();
+    await openPage(page, 'Om');
     await expect(page.locator('.content-box').first()).toBeVisible();
     await expect(page.locator('main[data-mineo-content-scale-root="true"]')).toBeVisible();
 
@@ -103,7 +88,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
 
   test('resize ændrer ikke en åben draft eller fokus', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Satser' }).click();
+    await openPage(page, 'Satser');
 
     const input = page.locator('input[name="aargang"]');
     await expect(input).toBeVisible();
@@ -126,15 +111,9 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     await expect(input).toHaveValue('2026');
   });
 
-  test('bevarer den vandrette Container-scroll som fallback under minimumsbredden', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('bevarer den vandrette Container-scroll som fallback under minimumsbredden', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Om' }).click();
+    await openPage(page, 'Om');
     await expect(page.locator('.content-box').first()).toBeVisible();
     await page.setViewportSize({ width: 1000, height: 620 });
     await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
@@ -174,15 +153,9 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('holder faneindikator og dropdown-popover på arbejdsfladens skala', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('holder faneindikator og dropdown-popover på arbejdsfladens skala', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+    await openPage(page, 'Erhvervsevnetab');
     await page.getByRole('tab', { name: 'Løbende ydelser' }).click();
 
     // MUI skriver selv indikatorens position i et efterfølgende layout-pass. Vent på den
@@ -197,7 +170,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
         && Math.abs(indicatorRect.right - tabRect.right) <= 0.5;
     })).toBe(true);
 
-    await page.getByRole('button', { name: 'Indstillinger' }).click();
+    await openPage(page, 'Indstillinger');
     const dropdown = page.getByRole('combobox', { name: 'Download-format for dokumenter' });
     await dropdown.click();
     const listbox = page.getByRole('listbox');
@@ -248,21 +221,15 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('lader hele popup-laget følge arbejdsfladens skala', async ({ page }) => {
+  test('lader hele popup-laget følge arbejdsfladens skala', async ({ page, runtimeErrors }) => {
     // Hjælpebobler, dialogvinduer og den flydende knap ligger uden for zoom-roden, men oven på
     // arbejdsfladen. Stod de i fuld størrelse, ville hjælpeteksten være STØRRE end den brødtekst,
     // den forklarer, så snart vinduet er smalt nok til at skalere fladen ned.
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
     await login(page);
     // Bredden vælges eksplicit, så skalaen med sikkerhed er under 1 uanset projektets viewport —
     // ellers ville testen kunne bestå på et billede, hvor der intet er at skalere.
     await page.setViewportSize({ width: 1300, height: 800 });
-    await page.getByRole('button', { name: 'Erstatningsopgørelse', exact: true }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     await expect(page.locator('.content-box').first()).toBeVisible();
     await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
       (element) => getComputedStyle(element).zoom,
@@ -312,11 +279,11 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     // boksens kant, ville de stikke 48 px ud over programmets bredeste element — og de 48 px indgår
     // ikke i skaleringens pladsregnskab, så højregutteren forsvandt ved den smalleste bredde.
     await login(page);
-    await page.getByRole('button', { name: 'Indstillinger', exact: true }).click();
+    await openPage(page, 'Indstillinger');
     const kontrolfaner = page.getByRole('checkbox', { name: 'Vis kontrolfaner på Erstatningsopgørelse-side' });
     if (!(await kontrolfaner.isChecked())) await kontrolfaner.check();
 
-    await page.getByRole('button', { name: 'Erstatningsopgørelse', exact: true }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     await expect(page.getByRole('button', { name: 'EO-kontrol' })).toBeVisible();
 
     const geometry = await page.evaluate(() => {
@@ -339,20 +306,14 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(geometry.overflowPx).toBeLessThanOrEqual(1);
   });
 
-  test('viser hele arbejdsfladen uden vandret rul ved 1280 CSS-px', async ({ page }) => {
+  test('viser hele arbejdsfladen uden vandret rul ved 1280 CSS-px', async ({ page, runtimeErrors }) => {
     // 1920×1200-skærmen ved 150 % browserzoom giver præcis 1280 CSS-px. Testen er regressionsværnet
     // for netop den opsætning: indholdet skal være der i fuld bredde — ikke klippet, ikke skjult.
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
     await login(page);
     await page.setViewportSize({ width: 1280, height: 740 });
 
     for (const pageName of ['Om', 'Erstatningsopgørelse', 'Satser'] as const) {
-      await page.getByRole('button', { name: pageName, exact: true }).click();
+      await openPage(page, pageName);
       await expect(page.locator('.content-box').first()).toBeVisible();
       await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
         (element) => getComputedStyle(element).zoom,
@@ -390,40 +351,32 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  // BASISBANEN ALENE — bevidst utagget, og den ene test i filen der har fået sit eget loft.
+  // BASISBANEN ALENE — bevidst utagget. `html2canvas` med `scale: 2` er suitens dyreste
+  // enkelthandling: den bygger en bitmap på mange titusinder af pixel i bredden og holder både
+  // klonen og lærredet i hukommelsen. Én kørsel beviser det samme om produktet — at capturen
+  // neutraliserer arbejdsfladens skala og gendanner den — og skal den efterkontrolleres i alle
+  // motorer, ligger den stadig i `test:e2e:full`.
   //
-  // `html2canvas` med `scale: 2` er suitens dyreste enkelthandling: den bygger en bitmap på mange
-  // titusinder af pixel i bredden og holder både klonen og lærredet i hukommelsen. Alene tager den
-  // under tre sekunder. Kører to eller flere kopier af den samtidig på en hukommelsesbegrænset
-  // maskine, stopper capturen i stedet med at blive færdig, og testen bruger hele sit loft på at
-  // vente på et download-event, der aldrig kommer. Det var netop den fælde, den tidligere
-  // opsætning gik i: testen var bundet til otte projekter — fire browsere × to minimumsviewporter —
-  // og kunne dermed koste op mod tyve minutter i rene, indholdsløse timeouts pr. suitekørsel.
-  //
-  // Én kørsel beviser det samme om produktet: at capturen neutraliserer arbejdsfladens skala og
-  // gendanner den. Skal den efterkontrolleres i alle motorer, ligger den stadig i `test:e2e:full`.
-  //
-  // Testen sætter BEVIDST heller ikke sin egen viewport, sådan som resten af filen gør: efter et
-  // `setViewportSize`-kald åbner rapportdialogen slet ikke i Chromium og Firefox.
-  test('skærmprint neutraliserer kun arbejdsfladeskaleringen under capture', async ({ page }) => {
-    // Loftet er rundhåndet i forhold til de målte ~3 sekunder, men lavt nok til at en stoppet
-    // capture melder sig hurtigt i stedet for at æde tre minutter af kørslen.
-    test.setTimeout(90_000);
-
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+  // HISTORIK, fordi symptomet var vildledende: testen hang i sit fulde loft med «venter på
+  // Download skærmprint», hver gang den kørte samtidig med noget andet, og var grøn alene. Det
+  // lignede — og blev først forklaret som — at capturen ikke blev færdig under hukommelsespres.
+  // Målingen viste noget andet: rapportdialogen ÅBNEDE, og forsvandt så igen et kvart sekund efter.
+  // Klikket ramte rapportknappen på den STADIG viste Indstillinger-side, fordi navigationen til
+  // Erstatningsopgørelse kun havde skiftet URL; da EO-chunken landede, blev Indstillinger unmountet
+  // og dialogen med. Se `openPage` i `support/mineoTest.ts`, som nu lukker hele den fældeklasse.
+  test('skærmprint neutraliserer kun arbejdsfladeskaleringen under capture', async ({ page, runtimeErrors }) => {
+    // Capturen måler ~3 sekunder. Loftet er rundhåndet i forhold til det, men lavt nok til at en
+    // stoppet capture melder sig hurtigt i stedet for at æde suitens fulde loft.
+    test.setTimeout(60_000);
 
     await login(page);
-    await page.getByRole('button', { name: 'Indstillinger' }).click();
+    await openPage(page, 'Indstillinger');
     const reportSetting = page.getByRole('checkbox', {
       name: 'Vis knap til at rapportere fejl og forbedringsønsker på indholdsbokse',
     });
     if (!(await reportSetting.isChecked())) await reportSetting.check();
 
-    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     const reportButton = page.getByRole('button', { name: 'Rapportér fejl eller forbedringsønske' }).first();
     await expect(reportButton).toBeVisible();
     await reportButton.click();

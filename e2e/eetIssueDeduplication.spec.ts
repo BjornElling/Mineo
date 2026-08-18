@@ -1,25 +1,11 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, login, openPage, test } from './support/mineoTest';
 
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 const MISSING_BEREGNINGSDATO_MESSAGE = 'Beregningsdato er ikke udfyldt';
 
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
-
 test.describe('EET-fejloversigt', () => {
-  test('viser manglende beregningsdato præcis én gang på Differencekrav', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('viser manglende beregningsdato præcis én gang på Differencekrav', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+    await openPage(page, 'Erhvervsevnetab');
     await page.getByRole('tab', { name: 'Differencekrav' }).click();
 
     const issueRows = page.locator('.row--label-right-hover').filter({

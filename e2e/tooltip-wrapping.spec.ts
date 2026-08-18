@@ -1,16 +1,9 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, login, openPage, test } from './support/mineoTest';
 
 import { BROWSER_LANE_TAG } from './support/lanes';
 
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 const TOOLTIP_TEXT = 'Juridisk omtvistet, men nyere retspraksis hælder mod fuld sats';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
 
 const lineWidths = async (page: Page): Promise<number[]> => page.locator('[role="tooltip"] > .MuiTooltip-tooltip').evaluate((element) => {
   const textNode = element.firstChild;
@@ -43,7 +36,7 @@ test.describe('fælles tooltip-ombrydning', { tag: BROWSER_LANE_TAG }, () => {
     page.on('pageerror', (error) => pageErrors.push(error.message));
 
     await login(page);
-    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     // Tooltippen ligger i den relevante svie/smerte-sektion og er derfor ikke med på en ren sag.
     // Aktivér den gennem den samme synlige brugerhandling, som gør kontrollen tilgængelig i produktet.
     await page.locator("input[name='kravPaaSvieSmerteGodtgoerelse'][value='Ja']").check();

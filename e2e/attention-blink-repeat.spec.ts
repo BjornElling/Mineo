@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, login, openPage, test } from './support/mineoTest';
 
 import { BROWSER_LANE_TAG } from './support/lanes';
 
@@ -12,15 +12,6 @@ import { BROWSER_LANE_TAG } from './support/lanes';
  * tiden, men animationen var spillet af. Målt før rettelsen gav tre klik 1, 1, 1; efter: 1, 2, 3.
  */
 
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
-
 /** Animationens samlede løbetid (0,5 s × 3) plus luft, så næste klik måler en ægte genstart. */
 const BLINK_SETTLE_MS = 1800;
 
@@ -31,7 +22,7 @@ test.describe('Gentagen feltmarkering', { tag: BROWSER_LANE_TAG }, () => {
     await login(page);
     // Brug den synlige navigation: direkte `goto` til den lazy route kunne i Firefox efterlade
     // arbejdsfladen tom, selv om brugeren altid når tabellen gennem sidemenuen.
-    await page.getByRole('button', { name: 'Årslønsberegning' }).click();
+    await openPage(page, 'Årslønsberegning');
     await expect(page).toHaveURL(/\/aarsloen$/);
     // Tabellen skal være monteret, før togglen kan afvises mod dens imperative handle.
     // Togglen ligger EFTER tabellen i DOM, så dens synlighed beviser ikke, at periodens celle-ref

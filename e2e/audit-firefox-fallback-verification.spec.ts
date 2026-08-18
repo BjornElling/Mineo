@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, login, openPage, test } from './support/mineoTest';
 
 import { BROWSER_LANE_TAG } from './support/lanes';
 
@@ -13,8 +14,6 @@ import { BROWSER_LANE_TAG } from './support/lanes';
  * Testene reproducerer fundenes EGNE trin så tæt, som en CLI-drevet browser kan, og asserterer det,
  * fundene beskrev som fejladfærd. Består de, er fundet reelt lukket i den flade, det blev set i.
  */
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 
 const TECHNICAL_WARNING = 'Teknisk advarsel registreret';
 const TECHNICAL_ERROR = 'Teknisk fejl registreret';
@@ -35,13 +34,6 @@ const captureConsole = (page: Page): ConsoleCapture => {
   });
   page.on('pageerror', (error) => pageErrors.push(error.message));
   return { errors, warnings, pageErrors };
-};
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
 };
 
 /**
@@ -122,7 +114,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     await login(page);
     await expectFallbackBranch(page);
 
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     const journalnr = journalnrField(page);
     await typeInto(page, journalnr, 'SAVE1');
 
@@ -157,7 +149,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     await expectFallbackBranch(page);
 
     // Gem først en reel .eo, så Hent-flowet får en gyldig fil at vælge — som i fundets starttilstand.
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     const journalnr = journalnrField(page);
     await typeInto(page, journalnr, 'ROUNDTRIP1');
 
@@ -218,14 +210,14 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     await expectFallbackBranch(page);
 
     // Fundet forudsatte en session, hvor fallback-advarslen var udløst af et Gem.
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     const journalnr = journalnrField(page);
     await typeInto(page, journalnr, 'LOENTRIN1');
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Gem' }).click();
     await downloadPromise;
 
-    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     await page.getByRole('tab', { name: /Lønindkomst/ }).click();
 
     // `Find løntrin` findes kun i den OFFENTLIGE overenskomstgren. Opsætningen følger fundets

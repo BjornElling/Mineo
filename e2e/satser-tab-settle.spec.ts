@@ -1,26 +1,9 @@
-import { expect, test } from '@playwright/test';
-
-import { setFieldValueAndSettle } from './support/mineoTest';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: import('@playwright/test').Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
+import { expect, login, openPage, setFieldValueAndSettle, test } from './support/mineoTest';
 
 test.describe('Satser — afslutning af singleton-draft med Tab', () => {
-  test('Tab og Shift+Tab afslutter Satsår og bevarer fokus på feltet', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('Tab og Shift+Tab afslutter Satsår og bevarer fokus på feltet', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Satser' }).click();
+    await openPage(page, 'Satser');
 
     const input = page.locator('input[name="aargang"]');
     const download = page.locator('main').getByRole('button');

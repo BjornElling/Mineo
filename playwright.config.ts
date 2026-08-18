@@ -110,15 +110,20 @@ const webServerCommand = 'npm run generate:build-info && npx vite build --config
 
 export default defineConfig({
   testDir: './e2e',
-  // Mineos store modultræ kan bruge over 30 sekunder på første Vite-transform på Windows,
-  // især i Firefox/WebKit. Den høje loftstid gælder hele flowet; elementforventninger får et
-  // separat loft, så en langsom lazy-load ikke registreres som et falsk browserfund.
+  // **Lofterne er sat ned fra 120 s/30 s.** Et loft er ikke gratis, selv om ingen test venter på det:
+  // det er den tid, en HÆNGENDE test koster, før kørslen kan fortælle hvad der gik galt. Suitens
+  // langsomste ægte test måler under seks sekunder — inklusive app-boot og skærmprint — så 60 s er ti
+  // gange hovedrum, og en test, der bruger dem, hænger. Det var netop den regning, der gjorde suiten
+  // uoverkommelig: ét fastlåst flow åd flere minutter pr. kørsel uden at sige noget.
   //
-  // Lofterne skaleres med maskinprofilen. Ingen test venter på sin timeout, så et højere loft gør
-  // ingen kørsel langsommere — det flytter alene skillelinjen mellem «maskinen er langsom» og
-  // «flowet hænger», så en langsom maskine ikke rapporterer sig selv som et browserfund.
-  timeout: scaleTimeout(120_000),
-  expect: { timeout: scaleTimeout(30_000) },
+  // De høje lofter blev sat, fordi Vites dev-server kunne bruge over 30 sekunder på første transform
+  // af Mineos modultræ. Suiten kører ikke længere mod dev-serveren, men mod ét færdigbygget preview,
+  // hvor den udgift ikke findes.
+  //
+  // Lofterne skaleres fortsat med maskinprofilen (op til ×3), så en svagere maskine ikke rapporterer
+  // sin egen langsomhed som et browserfund.
+  timeout: scaleTimeout(60_000),
+  expect: { timeout: scaleTimeout(15_000) },
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
@@ -136,7 +141,12 @@ export default defineConfig({
     // Tracen dækker samme behov bedre: den gemmer handlinger, DOM-snapshots og konsol for den
     // test, der faktisk fejlede. Sæt `PLAYWRIGHT_VIDEO=1`, når en fejl kun kan ses som bevægelse.
     video: process.env.PLAYWRIGHT_VIDEO === '1' ? 'retain-on-failure' : 'off',
-    // Den normale E2E-suite skal være cachefri. PWA-scenarier opt-in'er eksplicit til service workers.
+    // Den normale E2E-suite skal være cachefri: en cachet forgænger må aldrig kunne besvare den næste
+    // tests requests. Et spec, der HAR brug for service workers, åbner selv for dem i sit eget omfang
+    // med `test.use({ serviceWorkers: 'allow' })` — se `e2e/pwa-service-worker.spec.ts`. Variablen
+    // nedenfor åbner for hele kørslen på én gang og er til den brede PWA-audit mod et preview
+    // (`.agents/skills/jette-interaktionsaudit`), ikke til enkelte specs: da den var den ENESTE vej,
+    // blev PWA-specs' tests i praksis aldrig kørt.
     serviceWorkers: allowServiceWorkers ? 'allow' : 'block',
   },
   projects,

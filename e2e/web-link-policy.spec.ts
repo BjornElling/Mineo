@@ -1,5 +1,5 @@
 import { BROWSER_LANE_TAG } from './support/lanes';
-import { expect, login, test } from './support/mineoTest';
+import { expect, login, openPage, test } from './support/mineoTest';
 
 // Browserbanen: politikken hviler på to ting, motorerne håndterer forskelligt — om et link med
 // `tabindex="-1"` kan nås med Tab, og hvad `target="_blank"` gør ved den nuværende fane.
@@ -43,7 +43,7 @@ test.describe('web-link-politik', { tag: BROWSER_LANE_TAG }, () => {
 
   test('Retsinfo-henvisninger følger samme eksterne linkregel', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Satser' }).click();
+    await openPage(page, 'Satser');
 
     const referenceLink = page.locator('main a[href^="https://www.retsinformation.dk/"]').first();
     await expect(referenceLink).toBeVisible();

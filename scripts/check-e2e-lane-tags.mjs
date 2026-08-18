@@ -12,6 +12,12 @@ import process from 'node:process';
  *
  * Kilden til gyldige tags er `e2e/support/lanes.ts` — samme fil, som konfigurationen og spec-filerne
  * bruger. Vagten læser dens eksporter frem for at gentage værdierne her.
+ *
+ * **Arbejdsdelingen med `src/__tests__/quality/e2eSuiteConventions.test.ts`.** Denne vagt er
+ * PRÆ-FLIGHT: den kører fra `run-e2e.mjs` før hver eneste E2E-kørsel og skal derfor være billig og
+ * afhængighedsfri, så et fejlstavet tag melder sig med det samme frem for efter en kørsel. Den dækker
+ * kun stavemåden. De strukturelle E2E-regler — bl.a. at en motorafhængig test faktisk ligger i
+ * browserbanen — kræver et AST og bor derfor i vitest-værnet.
  */
 
 const laneModulePath = path.resolve('e2e/support/lanes.ts');

@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, login, test } from './support/mineoTest';
 
 import { BROWSER_LANE_TAG } from './support/lanes';
 
@@ -17,24 +18,6 @@ import { BROWSER_LANE_TAG } from './support/lanes';
  * og containere er ikke ens i Chromium, Gecko og WebKit. Derfor kører hele filen i browserbanen.
  */
 
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
-
-const collectRuntimeErrors = (page: Page): string[] => {
-  const runtimeErrors: string[] = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error') runtimeErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => runtimeErrors.push(error.message));
-  return runtimeErrors;
-};
-
 const openLicense = async (page: Page) => {
   const trigger = page.locator('button.icon-text-link', { hasText: 'MIT-licensen' });
   await expect(trigger).toBeVisible();
@@ -49,11 +32,10 @@ const focusIsInsideOverlay = (page: Page): Promise<boolean> =>
     && document.activeElement?.closest('[data-mineo-overlay-root="true"]') !== undefined);
 
 test.describe('Overlay: tastaturet bliver inde i vinduet', { tag: BROWSER_LANE_TAG }, () => {
-  test('Tab forlader ALDRIG licensvinduet, uanset hvor mange gange der trykkes', async ({ page }) => {
+  test('Tab forlader ALDRIG licensvinduet, uanset hvor mange gange der trykkes', async ({ page, runtimeErrors }) => {
     // Fundet: fokus vandrede ud i siden bagved. Årsagen var ikke en manglende `FocusTrap` — den var
     // monteret — men at `Container` ejer Tab for hele siden og kun gav slip på hændelser fra uden
     // for sit DOM-subtræ. Licensvinduet renderes INLINE og var derfor «indenfor».
-    const runtimeErrors = collectRuntimeErrors(page);
     await login(page);
     await openLicense(page);
 

@@ -1,4 +1,5 @@
-import { expect, test, type Locator } from '@playwright/test';
+import { type Locator } from '@playwright/test';
+import { expect, test } from './support/mineoTest';
 
 /**
  * Tegn- og længdeværnet må ikke afhænge af, HVORDAN tegnet kom ind i feltet

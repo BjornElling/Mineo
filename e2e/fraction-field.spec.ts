@@ -1,26 +1,9 @@
-import { expect, test, type Page } from '@playwright/test';
-
-import { setFieldValueAndSettle } from './support/mineoTest';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
+import { expect, login, openPage, setFieldValueAndSettle, test } from './support/mineoTest';
 
 test.describe('Brøkfeltet', () => {
-  test('normaliserer indledende nuller og viser konkret fejl ved nævner nul', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('normaliserer indledende nuller og viser konkret fejl ved nævner nul', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await openPage(page, 'Erstatningsopgørelse');
 
     const input = page.locator("input[name='forligAnsvarsgradBroek']");
     await expect(input).toBeVisible();

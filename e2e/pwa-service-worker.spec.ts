@@ -1,12 +1,18 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/mineoTest';
 
-const realServiceWorkersEnabled = process.env.PLAYWRIGHT_ALLOW_SERVICE_WORKERS === '1';
-
+/**
+ * Service workers er blokeret i resten af suiten (`playwright.config.ts`): en cachet forgænger må
+ * aldrig kunne besvare den næste tests requests. Netop denne fil har det modsatte formål, så den
+ * åbner for dem i SIT eget testomfang.
+ *
+ * Åbningen stod før i miljøvariablen `PLAYWRIGHT_ALLOW_SERVICE_WORKERS`, og fordi ingen kørsel —
+ * hverken lokalt eller i CI — satte den, blev filens to tests ALTID sprunget over. En test, der
+ * aldrig kører, beskytter ingenting; den ligner blot dækning i optællingen. `test.use` udtrykker
+ * det samme behov som en egenskab ved filen, så det ikke længere afhænger af, hvordan suiten startes.
+ */
 test.describe('Mineos ægte service-worker-forløb', () => {
-  test.skip(
-    !realServiceWorkersEnabled,
-    'Kør med PLAYWRIGHT_ALLOW_SERVICE_WORKERS=1 mod produktions-preview for ægte service-worker-kontrol.',
-  );
+  test.use({ serviceWorkers: 'allow' });
+
   test.skip(({ browserName }) => browserName !== 'chromium', 'Denne livscykluskontrol køres én gang i Chromium.');
 
   test('går fra waiting til active efter SKIP_WAITING i en rigtig service worker', async ({ page }) => {
@@ -69,60 +75,20 @@ test.describe('Mineos ægte service-worker-forløb', () => {
     });
   });
 
-  test('gendanner et bfcache-dokument uden at starte det på ny', async ({ page }) => {
-    // Mineos produktionsheader er bevidst `no-store` for at sikre ny HTML ved en ægte opstart.
-    // Chromium kan derfor vælge almindelig navigation i stedet for bfcache. Selve testen bruger
-    // stadig den rigtige app og browsermekanisme, men gør kun dokument-responsen bfcache-kompatibel
-    // for at gøre den ellers ikke-deterministiske browserbeslutning observerbar.
-    await page.route('**/*', async (route) => {
-      if (route.request().resourceType() !== 'document') {
-        await route.continue();
-        return;
-      }
-      const response = await route.fetch();
-      await route.fulfill({
-        response,
-        headers: {
-          ...response.headers(),
-          'cache-control': 'private, max-age=0',
-        },
-      });
-    });
-
-    await page.addInitScript(() => {
-      const countKey = 'mineo-e2e-bfcache-boot-count';
-      const eventsKey = 'mineo-e2e-bfcache-pageshow-events';
-      const bootCount = Number.parseInt(sessionStorage.getItem(countKey) ?? '0', 10) + 1;
-      sessionStorage.setItem(countKey, String(bootCount));
-      window.addEventListener('pageshow', (event) => {
-        const events = JSON.parse(sessionStorage.getItem(eventsKey) ?? '[]') as Array<{
-          persisted: boolean;
-          bootCount: number;
-        }>;
-        events.push({ persisted: event.persisted, bootCount });
-        sessionStorage.setItem(eventsKey, JSON.stringify(events));
-      });
-    });
-
-    await page.goto('/stamdata');
-    await page.goto('/renteberegning');
-    await page.goBack();
-    await expect(page).toHaveURL(/\/stamdata$/);
-
-    const state = await page.evaluate(() => ({
-      bootCount: Number.parseInt(sessionStorage.getItem('mineo-e2e-bfcache-boot-count') ?? '0', 10),
-      events: JSON.parse(sessionStorage.getItem('mineo-e2e-bfcache-pageshow-events') ?? '[]') as Array<{
-        persisted: boolean;
-        bootCount: number;
-      }>,
-    }));
-    const restoredFromBfcache = state.events.some((event) => event.persisted && event.bootCount === 1);
-    if (!restoredFromBfcache) {
-      // bfcache er en browserbeslutning. Hvis motoren vælger almindelig navigation trods den
-      // testvenlige header, er der ikke et bfcache-forløb at hævde noget om i denne kørsel.
-      test.skip(true, 'Browseren valgte almindelig navigation frem for bfcache i dette forløb.');
-      return;
-    }
-    expect(state.bootCount).toBe(2);
-  });
+  /*
+   * HER LÅ «gendanner et bfcache-dokument uden at starte det på ny».
+   *
+   * Testen kunne ikke lade sig gøre, og det viste den ikke: den sluttede med en `test.skip` på sin
+   * egen «browseren valgte almindelig navigation»-gren, og den gren blev ramt HVER gang. Målt her:
+   * dokumentet blev hentet igen ved tilbage-navigationen i alle kørsler — også når serveren gav en
+   * bfcache-egnet `Cache-Control` i stedet for produktionens `no-store`, og også uden den
+   * request-interception, testen ellers brugte til at sætte headeren.
+   * Årsagen er Playwright selv — Chromium lægger ikke et dokument i bfcache, mens DevTools-protokollen
+   * er tilsluttet, og den er tilsluttet i enhver Playwright-kørsel.
+   *
+   * Invarianten den skulle beskytte — at Mineo IKKE genindlæser sig selv ved en bfcache-gendannelse
+   * (`App.tsx`) — er en FRAVÆRS-påstand om vores egen kode, ikke om browserens beslutning. Den er
+   * derfor flyttet til `src/__tests__/quality/bfcacheReloadAbsence.test.ts`, hvor den faktisk kan
+   * hævdes hver gang. Genopliv ikke testen her uden først at måle, at bfcache overhovedet indtræffer.
+   */
 });

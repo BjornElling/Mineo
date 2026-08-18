@@ -1,6 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
+import { type Page } from '@playwright/test';
+import { expect, TEST_PASSWORD, test } from './support/mineoTest';
 
 /**
  * Enhedstestene beviser komponentens logik mod mocks. Denne test beviser det, mocks ikke kan:

@@ -1,12 +1,16 @@
 import { expect, type Locator, type Page, test as base } from '@playwright/test';
 
-// Delt e2e-grundlag. Findes fordi de 20 spec-filer hver især gentog det samme opstartsarbejde: 19 kopier af
-// testpasswordet, 38 linjers håndskrevet login og en runtime-signalopsamling, der kun var med i nogle af dem.
-// Duplikeringen betød i praksis, at et nyt spec kunne mangle netop den kontrol, der ville have fanget en fejl.
+// Delt e2e-grundlag — det ENE sted, et spec henter `test`, `expect` og sine helpers fra.
+//
+// Findes fordi hver spec-fil gentog det samme opstartsarbejde: sin egen kopi af testpasswordet, sit eget
+// login, sin egen runtime-signalopsamling og sin egen (som regel manglende) ventetid efter en navigation.
+// Duplikeringen betød i praksis, at et nyt spec kunne mangle netop den kontrol, der ville have fanget en
+// fejl — og at en rettelse af én tidsafhængighed kun ramte den ene kopi. Konvergensen er håndhævet af
+// `src/__tests__/quality/e2eSuiteConventions.test.ts`.
 
 /**
  * Browser-agentens dedikerede testpassword (dokumenteret i AGENTS.md, hash-verificeret i
- * `authConfig.ts`). ÉT sted, så et skift ikke kræver 19 rettelser.
+ * `authConfig.ts`). ÉT sted, så et skift ikke kræver en rettelse pr. spec-fil.
  */
 export const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 
@@ -27,7 +31,13 @@ export type AutomationSnapshot = Readonly<{
   rejectedAddresses: readonly string[];
 }>;
 
-/** Logger ind gennem den synlige formular — samme vej som brugeren, aldrig gennem en state-genvej. */
+/**
+ * Logger ind gennem den synlige formular — samme vej som brugeren, aldrig gennem en state-genvej.
+ *
+ * Ventepunktet er sidemenuen, ikke URL'en: URL'en skifter i samme øjeblik, gaten åbner, mens
+ * app-shellen er en lazy chunk, der først males bagefter. Uden ventepunktet begynder testens første
+ * handling derfor mod en tom side, og en langsom maskine får et timeout uden årsag.
+ */
 export const login = async (page: Page, path = '/'): Promise<void> => {
   await page.goto(path);
   const password = page.getByLabel('Adgangskode');
@@ -35,6 +45,54 @@ export const login = async (page: Page, path = '/'): Promise<void> => {
   await password.fill(TEST_PASSWORD);
   await page.getByRole('button', { name: 'Log ind' }).click();
   await expect(page).toHaveURL(/\/mineo$/);
+  await expect(page.getByRole('button', { name: 'Om', exact: true })).toBeVisible();
+};
+
+/**
+ * Sidemenuens navigationsmål: menuens etiket → den sidetitel, målet lander på.
+ *
+ * Etiketterne er sidemenuens (`src/components/layout/sideMenuItems.tsx`), titlerne er sidernes egne
+ * `.page-title`. De to er BEVIDST forskellige to steder — «Om» viser «Mineo», og «Satser» viser
+ * «Arbejdsskadesatser <år>» — og netop dét er grunden til, at kortet står her frem for at blive gættet
+ * på kaldsstedet.
+ */
+const MINEO_PAGE_TITLES = {
+  Stamdata: /^Stamdata$/,
+  Erstatningsopgørelse: /^Erstatningsopgørelse$/,
+  Erhvervsevnetab: /^Erhvervsevnetab$/,
+  'Varige mén': /^Varige mén$/,
+  Forsørgertab: /^Forsørgertab$/,
+  Årslønsberegning: /^Årslønsberegning$/,
+  Renteberegning: /^Renteberegning$/,
+  Satser: /^Arbejdsskadesatser\b/,
+  Indstillinger: /^Indstillinger$/,
+  Om: /^Mineo$/,
+} as const;
+
+export type MineoPageName = keyof typeof MINEO_PAGE_TITLES;
+
+/**
+ * Naviger til en side gennem sidemenuen — og vent på, at siden FAKTISK er der.
+ *
+ * **Hvorfor helperen findes.** Et bart `getByRole('button', { name: 'Erstatningsopgørelse' }).click()`
+ * skifter kun URL'en. Sidekomponenterne er lazy chunks, så den FORRIGE side bliver stående, indtil
+ * chunken er hentet og monteret. Ventes der ikke, måler den næste påstand den forrige side — og fordi
+ * de fleste påstande er generiske (`.content-box`, en knap, en dialog), er den forrige side som regel
+ * et gyldigt svar. Testen bliver dermed grøn på det forkerte grundlag, når maskinen er hurtig, og rød
+ * uden forklaring, når den er langsom.
+ *
+ * Det var ikke en teoretisk fælde: `content-scale.spec.ts` › «skærmprint …» klikkede sig til
+ * Erstatningsopgørelse, fandt rapportknappen på den STADIG viste Indstillinger-side, åbnede DENS dialog
+ * — og så forsvandt dialogen, da EO-chunken landede og Indstillinger blev unmountet. Testen brugte
+ * derefter hele sit timeout-loft på at vente på en knap i en dialog, der aldrig kom igen. Med otte
+ * samtidige workers ramte den hver gang; alene var den grøn på 2,4 s.
+ *
+ * Ventepunktet er sidens egen `.page-title`, fordi den er det første, den nye side maler — og fordi
+ * URL'en skifter FØR monteringen og derfor ikke kan bruges som signal.
+ */
+export const openPage = async (page: Page, name: MineoPageName): Promise<void> => {
+  await page.getByRole('button', { name, exact: true }).click();
+  await expect(page.locator('.page-title')).toHaveText(MINEO_PAGE_TITLES[name]);
 };
 
 const BRIDGE_MISSING_MESSAGE =
@@ -143,6 +201,7 @@ export const setVerbatimFieldValueAndSettle = async (
  */
 export const test = base.extend<{
   runtimeSignals: string[];
+  runtimeErrors: string[];
   externalRequests: string[];
 }>({
   // Fixture-argumentet hedder bevidst `provide` og ikke Playwrights sædvanlige `use`: ESLints
@@ -168,6 +227,22 @@ export const test = base.extend<{
       );
     });
     await provide(signals);
+  },
+  /**
+   * Kun de HÅRDE runtimesignaler: konsolfejl og ubehandlede undtagelser.
+   *
+   * Findes ved siden af `runtimeSignals`, fordi ti spec-filer havde hver sin håndskrevne kopi af
+   * præcis denne opsamling — og fordi de to påstande ikke er den samme: `runtimeSignals` tæller også
+   * advarsler og fejlede requests og bruges, hvor en test vil hævde, at INTET blev sagt.
+   * `runtimeErrors` bruges, hvor den almindelige brugerrejse ikke må fejle, men godt må advare.
+   */
+  runtimeErrors: async ({ page }, provide) => {
+    const errors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
+    page.on('pageerror', (error) => errors.push(error.message));
+    await provide(errors);
   },
   externalRequests: async ({ page }, provide) => {
     const allowedOrigin = new URL(process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173').origin;

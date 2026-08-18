@@ -1,8 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, login, test } from './support/mineoTest';
 
 import { VIEWPORT_LANE_TAG } from './support/lanes';
 
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 const MENU_BUTTON_NAMES = [
   'Stamdata',
   'Erstatningsopgørelse',
@@ -18,14 +18,6 @@ const MENU_BUTTON_NAMES = [
   'Indstillinger',
   'Om',
 ] as const;
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-  await expect(page.getByRole('button', { name: 'Om' })).toBeVisible();
-};
 
 const readMenuGeometry = async (page: Page) => {
   // Hamburgerens wrapper ligger under indholdsroden. Forankr målingen i den eksisterende

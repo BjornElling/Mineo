@@ -1,16 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, login, openPage, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
-import { setVerbatimFieldValueAndSettle } from './support/mineoTest';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 const CUTOFF_MESSAGE = 'Der er angivet svie/smerte efter datoen for en ménafgørelse (16-09-2024)';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
 
 /** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
 const setDate = setVerbatimFieldValueAndSettle;
@@ -25,7 +15,7 @@ test.describe('Svie/smerte efter ménafgørelse', () => {
     page.on('pageerror', (error) => pageErrors.push(error.message));
 
     await login(page);
-    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     await page.locator("input[name='kravPaaSvieSmerteGodtgoerelse'][value='Ja']").check();
     await page.getByRole('checkbox', { name: 'Truffet afgørelse om varige mén på 5 % eller derover' }).check();
     await setDate(page.locator("input[name='menAfgoerelseDato']"), '16-09-2024');

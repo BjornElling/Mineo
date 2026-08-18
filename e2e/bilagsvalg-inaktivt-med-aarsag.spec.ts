@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 
-import { setFieldValueAndSettle, setVerbatimFieldValueAndSettle } from './support/mineoTest';
+import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
 /**
  * Betingede bilagsvalg vises ALTID — inaktive og umarkerede med årsagen i tooltippet
@@ -14,17 +14,8 @@ import { setFieldValueAndSettle, setVerbatimFieldValueAndSettle } from './suppor
  * Den dækker samtidig rangordenen (§10.5, punkt 4): brugerens eget fravalg forklares FØR beregningsårsagen.
  */
 
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
 const FRAVALGT_DELTEKST = 'fravalgt nedenfor';
 const INGEN_FORHOEJELSE_DELTEKST = 'ikke forhøjet i perioden';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
 
 /** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
 const setDate = setVerbatimFieldValueAndSettle;
@@ -42,11 +33,11 @@ const setText = setFieldValueAndSettle;
  * Uden alle fem blokerer fanen og viser i stedet fallback-boksen uden bilagsvalg.
  */
 const fyldMindsteEetSag = async (page: Page): Promise<void> => {
-  await page.getByRole('button', { name: 'Stamdata' }).click();
+  await openPage(page, 'Stamdata');
   await setDate(page.locator("input[name='skadelidteFodselsdato']"), '01-01-1970');
   await setDate(page.locator("input[name='skadedato']"), '01-01-2010');
 
-  await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+  await openPage(page, 'Erhvervsevnetab');
   await page.getByRole('tab', { name: 'EET oplysninger' }).click();
 
   await setDate(page.locator("input[name='beregningsdato']"), '01-01-2025');
@@ -65,13 +56,7 @@ const fyldMindsteEetSag = async (page: Page): Promise<void> => {
 };
 
 test.describe('Bilagsvalg — inaktivt med årsag frem for skjult', () => {
-  test('Mer-erstatning-bilaget bliver stående med årsag, når der ikke er nogen forhøjelse', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('Mer-erstatning-bilaget bliver stående med årsag, når der ikke er nogen forhøjelse', async ({ page, runtimeErrors }) => {
     await login(page);
     await fyldMindsteEetSag(page);
 
@@ -92,13 +77,7 @@ test.describe('Bilagsvalg — inaktivt med årsag frem for skjult', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('Brugerens eget fravalg forklares før beregningsårsagen', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('Brugerens eget fravalg forklares før beregningsårsagen', async ({ page, runtimeErrors }) => {
     await login(page);
     await fyldMindsteEetSag(page);
 

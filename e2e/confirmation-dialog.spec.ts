@@ -1,26 +1,9 @@
-import { expect, test, type Page } from '@playwright/test';
-
-import { setFieldValue, setFieldValueAndSettle } from './support/mineoTest';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
+import { expect, login, openPage, setFieldValue, setFieldValueAndSettle, test } from './support/mineoTest';
 
 test.describe('Bekræftelsesdialog', () => {
-  test('holder fokus i dialogen, lukker med Escape og bevarer en åben draft', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('holder fokus i dialogen, lukker med Escape og bevarer en åben draft', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Renteberegning' }).click();
+    await openPage(page, 'Renteberegning');
 
     const date = page.locator("input[name='beregningsdato']");
     const deleteAll = page.getByRole('button', { name: 'Slet alle indtastninger' });
@@ -68,15 +51,9 @@ test.describe('Slet alt-bekræftelse', () => {
    * (WebKits manglende klik-fokus, Escape på dialogens container, MUI-transitionen), kræver rigtige
    * browsere for at kunne fanges.
    */
-  test('bevarer data ved Annuller og Escape, rydder ved Ja, slet, og returnerer fokus til menuknappen', async ({ page }) => {
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('bevarer data ved Annuller og Escape, rydder ved Ja, slet, og returnerer fokus til menuknappen', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
 
     // Et afsluttet felt, der skal overleve begge annulleringsveje og forsvinde ved bekræftelse.
     const navn = page.locator("input[name='skadelidte']");

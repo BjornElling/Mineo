@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 
-import { setFieldValueAndSettle } from './support/mineoTest';
+import { expect, login, openPage, setFieldValueAndSettle, test } from './support/mineoTest';
 
 /**
  * Browser-verifikation af den delte «peg på dette felt»-blinkmarkering (BF-020/BF-021).
@@ -18,7 +18,6 @@ import { setFieldValueAndSettle } from './support/mineoTest';
  * rytmemåling udtrykker selve kontrakten: rød, pulserende, forbi igen.
  */
 
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 const BLINK_CLASS = 'mineo-field-attention-blink';
 
 /** Den ENE feltidentitet i DOM (§3.2). Bruges til at skrive blinkmålets identitet ned. */
@@ -35,13 +34,6 @@ const FORM_FIELD_SELECTOR =
 
 /** Grid-cellerne bærer en entitets-sti i feltadressen; det skelner dem fra formularfelterne. */
 const GRID_CELL_SELECTOR = '[data-mineo-field-address*="entityId"]';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
 
 /** Aflæs den FAKTISK beregnede — animerede — baggrund, ikke den erklærede regel. */
 const readBackground = (page: Page, selector: string): Promise<string> =>
@@ -299,7 +291,7 @@ const expectRedPulse = (samples: readonly string[]): void => {
 /** Opretter de fejl, der driver de rigtige navigerbare links på EO's Beregning-fane. */
 const openEoErrorOverview = async (page: Page): Promise<void> => {
   await login(page);
-  await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+  await openPage(page, 'Erstatningsopgørelse');
   await page.locator("input[name='kravPaaSvieSmerteGodtgoerelse'][value='Ja']").check();
   await page.getByRole('tab', { name: 'Beregning' }).click();
   await expect(page.getByText('Fejl og advarsler', { exact: true })).toBeVisible();
@@ -350,7 +342,7 @@ const expectLinkedInputToPulse = async (
 test.describe('Blinkmarkeringen males i browseren', () => {
   test('formularfelt: pulserer rødt og forsvinder igen', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     await expect(page.locator(FORM_FIELD_SELECTOR)).toBeVisible();
 
     // Udgangspunktet er umarkeret — ellers ville en altid-rød baggrund bestå testen.
@@ -361,7 +353,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
 
   test('grid-celle: samme markering på den anden flade', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Årslønsberegning' }).click();
+    await openPage(page, 'Årslønsberegning');
     await expect(page.locator(GRID_CELL_SELECTOR).first()).toBeVisible();
 
     expect(alphaOf(await readBackground(page, GRID_CELL_SELECTOR))).toBeLessThan(0.01);
@@ -371,7 +363,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
 
   test('reduceret bevægelse: roligt statisk felt frem for et blink', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     await expect(page.locator(FORM_FIELD_SELECTOR)).toBeVisible();
     await page.emulateMedia({ reducedMotion: 'reduce' });
 
@@ -410,7 +402,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
 
   test('SFGG-fejllink blinker beregningskilden, ikke ansættelseskortet', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     await page.getByRole('tab', { name: 'Lønindkomst' }).click();
     await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Ja, tilføj' }).click();
@@ -447,7 +439,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
    */
   test('advarsel om manglende TAF-periode blinker fra-cellen i tabellens første række', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();
+    await openPage(page, 'Erstatningsopgørelse');
     await page.locator("input[name='kravPaaTabtArbejdsfortjeneste'][value='Ja']").check();
     await page.getByRole('tab', { name: 'Beregning' }).click();
 
@@ -478,7 +470,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
 
   test('EET-fejllink blinker beregningsdatoen efter et faneskift', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+    await openPage(page, 'Erhvervsevnetab');
     await page.getByRole('tab', { name: 'Differencekrav' }).click();
     const issue = page.locator('.row--label-right-hover').filter({
       hasText: 'Beregningsdato er ikke udfyldt',
@@ -494,14 +486,14 @@ test.describe('Blinkmarkeringen males i browseren', () => {
 
   test('EET-advarselslink blinker EAL-procenten efter et faneskift', async ({ page }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
     for (const [name, value] of [
       ['skadelidteFodselsdato', '01-01-1980'],
       ['skadedato', '01-01-2020'],
     ] as const) {
       await setFieldValueAndSettle(page.locator(`input[name="${name}"]`), value);
     }
-    await page.getByRole('button', { name: 'Erhvervsevnetab' }).click();
+    await openPage(page, 'Erhvervsevnetab');
     await setFieldValueAndSettle(page.locator('input[name="beregningsdato"]'), '01-01-2026');
     await setFieldValueAndSettle(page.locator('input[name="aslAarsloen"]'), '300000');
     await setFieldValueAndSettle(page.locator('input[name="ealEetPct"]'), '10');

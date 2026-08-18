@@ -1,15 +1,7 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { type Locator } from '@playwright/test';
+import { expect, login, openPage, test } from './support/mineoTest';
 
 import { BROWSER_LANE_TAG } from './support/lanes';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
 
 const openEditor = async (input: Locator): Promise<void> => {
   await input.click();
@@ -60,7 +52,7 @@ test.describe('inputgrænser for beløb og dato', { tag: BROWSER_LANE_TAG }, () 
 
     await login(page);
 
-    await page.getByRole('button', { name: 'Forsørgertab' }).click();
+    await openPage(page, 'Forsørgertab');
     const formAmount = page.locator('input[name="ealAarsloen"]');
     await expect(formAmount).toBeVisible();
 
@@ -71,9 +63,9 @@ test.describe('inputgrænser for beløb og dato', { tag: BROWSER_LANE_TAG }, () 
     await pasteText(formAmount, '99999999');
     await expect(formAmount).toHaveValue('9.999.999');
 
-    await page.getByRole('button', { name: 'Renteberegning' }).click();
-    // Den lazy-loadede destination må have erstattet den gamle side, før en locator med samme navn bruges.
-    await expect(formAmount).toBeHidden();
+    // `openPage` venter selv på, at den lazy-loadede destination har erstattet den gamle side —
+    // her stod før en lokal kopi af netop den ventetid.
+    await openPage(page, 'Renteberegning');
     const formDate = page.locator('input[name="beregningsdato"]');
     await expect(formDate).toBeVisible();
 

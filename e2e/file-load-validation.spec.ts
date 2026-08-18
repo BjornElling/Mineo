@@ -1,15 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 import { BROWSER_LANE_TAG } from './support/lanes';
-import { setVerbatimFieldValueAndSettle } from './support/mineoTest';
-
-const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
-
-const login = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
-};
+import { expect, login, openPage, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
 const buildLegacyPartialFile = async (page: Page): Promise<Buffer> => {
   const container = {
@@ -64,19 +55,19 @@ const buildLegacyPartialFile = async (page: Page): Promise<Buffer> => {
   return Buffer.from(encrypted);
 };
 
-// Browserbanen: begge tests handler om WebKit-fallbacken for filvælgeren og springer over i andre
-// motorer. Uden taget ville de kun møde basisbanens Chrome og dermed aldrig køre.
+// Browserbanen: begge tests handler om WebKit-fallbacken for filvælgeren. Uden taget ville de kun
+// møde basisbanens Chrome og dermed aldrig køre.
+//
+// Fravalget står på `describe` og ikke i den enkelte test. Playwright afgør en describe-betinget skip
+// FØR fixturerne bygges, mens et `test.skip(...)` inde i testkroppen først rammer, når browseren og
+// siden allerede er startet — seks unødvendige browserkontekster pr. kørsel for to tests, der aldrig
+// skulle have kørt der.
 test.describe('Filvalidering ved Hent', { tag: BROWSER_LANE_TAG }, () => {
-  test('viser forventelig filfejl uden teknisk fejlregistrering', async ({ page, browserName }) => {
-    // Chrome/Edge bruger den native File System Access-picker, mens WebKit gennemløber den testbare
-    // fallback-inputflade, som er den konkrete OBS-008-reproduktion.
-    test.skip(browserName !== 'webkit', 'OBS-008-fallbacken testes i WebKit');
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+  // Chrome/Edge bruger den native File System Access-picker, som Playwright ikke kan sende en fil til.
+  // WebKit gennemløber den testbare fallback-inputflade — den konkrete OBS-008-reproduktion.
+  test.skip(({ browserName }) => browserName !== 'webkit', 'Fallback-filvælgeren findes kun i WebKit');
 
+  test('viser forventelig filfejl uden teknisk fejlregistrering', async ({ page, runtimeErrors }) => {
     await login(page);
     await page.getByRole('button', { name: 'Hent' }).click();
 
@@ -93,21 +84,9 @@ test.describe('Filvalidering ved Hent', { tag: BROWSER_LANE_TAG }, () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('en ældre fil erstatter den aktive sag efter preflight og overskrivelsesbekræftelse', async ({
-    page,
-    browserName,
-  }) => {
-    // Kun WebKit bruger den testbare fallback-filvælger. Chromium-browsere bruger den native
-    // File System Access-dialog, som Playwright ikke kan sende en fil til.
-    test.skip(browserName !== 'webkit', 'Den ægte fallback-filvælger testes i WebKit');
-    const runtimeErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-
+  test('en ældre fil erstatter den aktive sag efter preflight og overskrivelsesbekræftelse', async ({ page, runtimeErrors }) => {
     await login(page);
-    await page.getByRole('button', { name: 'Stamdata' }).click();
+    await openPage(page, 'Stamdata');
 
     const nameInput = page.locator("input[name='skadelidte']");
     await setVerbatimFieldValueAndSettle(nameInput, 'Aktiv sag før indlæsning');
