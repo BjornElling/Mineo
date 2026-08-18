@@ -390,21 +390,25 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
+  // BASISBANEN ALENE — bevidst utagget, og den ene test i filen der har fået sit eget loft.
+  //
+  // `html2canvas` med `scale: 2` er suitens dyreste enkelthandling: den bygger en bitmap på mange
+  // titusinder af pixel i bredden og holder både klonen og lærredet i hukommelsen. Alene tager den
+  // under tre sekunder. Kører to eller flere kopier af den samtidig på en hukommelsesbegrænset
+  // maskine, stopper capturen i stedet med at blive færdig, og testen bruger hele sit loft på at
+  // vente på et download-event, der aldrig kommer. Det var netop den fælde, den tidligere
+  // opsætning gik i: testen var bundet til otte projekter — fire browsere × to minimumsviewporter —
+  // og kunne dermed koste op mod tyve minutter i rene, indholdsløse timeouts pr. suitekørsel.
+  //
+  // Én kørsel beviser det samme om produktet: at capturen neutraliserer arbejdsfladens skala og
+  // gendanner den. Skal den efterkontrolleres i alle motorer, ligger den stadig i `test:e2e:full`.
+  //
+  // Testen sætter BEVIDST heller ikke sin egen viewport, sådan som resten af filen gør: efter et
+  // `setViewportSize`-kald åbner rapportdialogen slet ikke i Chromium og Firefox.
   test('skærmprint neutraliserer kun arbejdsfladeskaleringen under capture', async ({ page }) => {
-    // Canvas-capture kan bruge længere tid i Edge på batteridrift end de øvrige browserflows. Det
-    // udvidede loft gælder kun denne filgenerering; eventet skal stadig indtræffe og filen valideres.
-    test.setTimeout(180_000);
-    const captureProjects = new Set([
-      'chrome-desktop-1536x730',
-      'edge-desktop-1536x730',
-      'firefox-desktop-1536x730',
-      'safari-webkit-desktop-1536x730',
-      'chrome-desktop-1366x620',
-      'edge-desktop-1366x620',
-      'firefox-desktop-1366x620',
-      'safari-webkit-desktop-1366x620',
-    ]);
-    test.skip(!captureProjects.has(test.info().project.name), 'Capture køres ved minimumsviewports.');
+    // Loftet er rundhåndet i forhold til de målte ~3 sekunder, men lavt nok til at en stoppet
+    // capture melder sig hurtigt i stedet for at æde tre minutter af kørslen.
+    test.setTimeout(90_000);
 
     const runtimeErrors: string[] = [];
     page.on('console', (message) => {

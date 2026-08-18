@@ -3,6 +3,8 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import process from 'node:process';
 
+import { IDENTITY_PATH, SERVER_IDENTITY } from './e2e-server-identity.mjs';
+
 const portArgument = process.argv.indexOf('--port');
 const port = Number(portArgument >= 0 ? process.argv[portArgument + 1] : undefined);
 if (!Number.isInteger(port) || port < 1 || port > 65_535) {
@@ -73,6 +75,18 @@ createServer((request, response) => {
   } catch {
     response.statusCode = 400;
     response.end();
+    return;
+  }
+
+  // Identitetssvar. Serveren overlever, hvis en Playwright-kørsel afbrydes midt i (fx et
+  // værktøjstimeout), og så fejler ENHVER senere kørsel med «port already used» — uden at det
+  // fremgår, at det er vores egen efterladte proces. `scripts/free-e2e-port.mjs` spørger her, så
+  // den kan skelne en efterladt Mineo-server fra en fremmed proces og kun rydde sin egen op.
+  if (pathname === IDENTITY_PATH) {
+    response.statusCode = 200;
+    response.setHeader('Content-Type', 'application/json; charset=utf-8');
+    response.setHeader('Cache-Control', 'no-store');
+    response.end(JSON.stringify({ server: SERVER_IDENTITY, pid: process.pid }));
     return;
   }
 

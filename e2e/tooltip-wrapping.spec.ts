@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { BROWSER_LANE_TAG } from './support/lanes';
+
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 const TOOLTIP_TEXT = 'Juridisk omtvistet, men nyere retspraksis hælder mod fuld sats';
 
@@ -29,7 +31,9 @@ const lineWidths = async (page: Page): Promise<number[]> => page.locator('[role=
     .map((line) => line.width);
 });
 
-test.describe('fælles tooltip-ombrydning', () => {
+// Browserbanen: ombrydningen er et tekstmål. Motorerne måler glyffer og orddelingsmuligheder
+// forskelligt, så en regel der holder i Chromium kan bryde midt i et ord i WebKit.
+test.describe('fælles tooltip-ombrydning', { tag: BROWSER_LANE_TAG }, () => {
   test('udnytter boksens bredde ved lange beskeder og bevarer hele ord', async ({ page }) => {
     const consoleErrors: string[] = [];
     const pageErrors: string[] = [];

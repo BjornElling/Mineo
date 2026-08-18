@@ -1,6 +1,9 @@
+import { BROWSER_LANE_TAG } from './support/lanes';
 import { expect, login, test } from './support/mineoTest';
 
-test.describe('web-link-politik', () => {
+// Browserbanen: politikken hviler på to ting, motorerne håndterer forskelligt — om et link med
+// `tabindex="-1"` kan nås med Tab, og hvad `target="_blank"` gør ved den nuværende fane.
+test.describe('web-link-politik', { tag: BROWSER_LANE_TAG }, () => {
   test('eksterne links åbner i ny fane og er ude af Tab-rækkefølgen', async ({ page }) => {
     await login(page);
 

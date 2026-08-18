@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { BROWSER_LANE_TAG } from './support/lanes';
 import { setVerbatimFieldValueAndSettle } from './support/mineoTest';
 
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
@@ -63,7 +64,9 @@ const buildLegacyPartialFile = async (page: Page): Promise<Buffer> => {
   return Buffer.from(encrypted);
 };
 
-test.describe('Filvalidering ved Hent', () => {
+// Browserbanen: begge tests handler om WebKit-fallbacken for filvælgeren og springer over i andre
+// motorer. Uden taget ville de kun møde basisbanens Chrome og dermed aldrig køre.
+test.describe('Filvalidering ved Hent', { tag: BROWSER_LANE_TAG }, () => {
   test('viser forventelig filfejl uden teknisk fejlregistrering', async ({ page, browserName }) => {
     // Chrome/Edge bruger den native File System Access-picker, mens WebKit gennemløber den testbare
     // fallback-inputflade, som er den konkrete OBS-008-reproduktion.

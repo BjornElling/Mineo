@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { BROWSER_LANE_TAG } from './support/lanes';
+
 /**
  * Det FÆLLES regelsæt for overlays (`keyboard-navigation.md` §Overlay-adfærd).
  *
@@ -10,6 +12,9 @@ import { expect, test, type Page } from '@playwright/test';
  *    at `FocusTrap` var monteret, men fangsten virkede ikke, fordi sidens egen navigation overtog
  *    Tab. Fangst SKAL måles her.
  *  - **Tilbage-knappen.** Kræver ægte `history`-adfærd.
+ *
+ * Begge dele er netop dét, browsermotorerne gør forskelligt — Tab-rækkefølgen mellem knapper, links
+ * og containere er ikke ens i Chromium, Gecko og WebKit. Derfor kører hele filen i browserbanen.
  */
 
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
@@ -43,7 +48,7 @@ const focusIsInsideOverlay = (page: Page): Promise<boolean> =>
   page.evaluate(() => document.activeElement?.closest('[data-mineo-overlay-root="true"]') !== null
     && document.activeElement?.closest('[data-mineo-overlay-root="true"]') !== undefined);
 
-test.describe('Overlay: tastaturet bliver inde i vinduet', () => {
+test.describe('Overlay: tastaturet bliver inde i vinduet', { tag: BROWSER_LANE_TAG }, () => {
   test('Tab forlader ALDRIG licensvinduet, uanset hvor mange gange der trykkes', async ({ page }) => {
     // Fundet: fokus vandrede ud i siden bagved. Årsagen var ikke en manglende `FocusTrap` — den var
     // monteret — men at `Container` ejer Tab for hele siden og kun gav slip på hændelser fra uden
@@ -80,7 +85,7 @@ test.describe('Overlay: tastaturet bliver inde i vinduet', () => {
   });
 });
 
-test.describe('Overlay: lukkeveje', () => {
+test.describe('Overlay: lukkeveje', { tag: BROWSER_LANE_TAG }, () => {
   test('tilbage-knappen lukker vinduet OG bliver på siden', async ({ page }) => {
     // Brugerkrav 2026-08-15. Før navigerede tilbage SIDEN væk under det åbne vindue: målt gik
     // `/mineo` → `/mineo/stamdata`, så brugeren mistede både vinduet og sin plads.

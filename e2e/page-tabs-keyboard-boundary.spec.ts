@@ -1,6 +1,9 @@
+import { BROWSER_LANE_TAG } from './support/lanes';
 import { expect, login, test } from './support/mineoTest';
 
-test.describe('PageTabs og indholdets tastaturgrænse', () => {
+// Browserbanen: Tab-rækkefølgen mellem faner og indhold afgøres af motorens egen traversering, og
+// den er ikke ens i Chromium, Gecko og WebKit. Grænsen skal derfor måles i alle fire.
+test.describe('PageTabs og indholdets tastaturgrænse', { tag: BROWSER_LANE_TAG }, () => {
   test('faner kan betjenes, mens indholdets Tab-sekvens ikke rammer fanerne', async ({
     page,
     runtimeSignals,

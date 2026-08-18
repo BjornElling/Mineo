@@ -1,5 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
+import { BROWSER_LANE_TAG } from './support/lanes';
+
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 
 const login = async (page: Page): Promise<void> => {
@@ -45,7 +47,9 @@ const closeEditor = async (input: Locator): Promise<void> => {
   await expect(input).toHaveAttribute('readonly', '');
 };
 
-test.describe('inputgrænser for beløb og dato', () => {
+// Browserbanen: værnet mødes her gennem en indsat tekst, og `clipboardData` leveres forskelligt af
+// motorerne (jf. Firefox-noten i `pasteText`). Det er præcis dén forskel, taget køber dækning for.
+test.describe('inputgrænser for beløb og dato', { tag: BROWSER_LANE_TAG }, () => {
   test('tastning og paste håndhæver grænser på formular og tabel uden runtimefejl', async ({ page }, testInfo) => {
     const runtimeErrors: string[] = [];
     const pageErrors: string[] = [];

@@ -1,110 +1,98 @@
 import { defineConfig, devices } from '@playwright/test';
 import { reportMachineProfile, resolveMachineProfile } from './e2e/support/machineProfile';
+import { BROWSER_LANE_TAG, VIEWPORT_LANE_TAG } from './e2e/support/lanes';
 
 const defaultBaseURL = 'http://127.0.0.1:4173';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? defaultBaseURL;
 const useExternalWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 const allowServiceWorkers = process.env.PLAYWRIGHT_ALLOW_SERVICE_WORKERS === '1';
-// Playwrights viewportværdier er den indre CSS-viewport. Arbejdsfladen testes både ved den tidligere
-// desktopbaseline og ved de to konkrete minimumskontrakter i app-shell-kontrakten.
-const minimumDesktopViewport = { width: 1536, height: 864 } as const;
-const compactMinimumDesktopViewport = { width: 1536, height: 730 } as const;
-const narrowMinimumDesktopViewport = { width: 1366, height: 620 } as const;
-const fullHdDesktopViewport = { width: 1920, height: 1080 } as const;
+const runFullMatrix = process.env.PLAYWRIGHT_FULL_MATRIX === '1';
+
+// Playwrights viewportværdier er den indre CSS-viewport. Basisviewporten er den tidligere
+// desktopbaseline; de to minimumsviewporter er app-shell-kontraktens konkrete grænser.
+const baselineViewport = { width: 1536, height: 864 } as const;
+const compactMinimumViewport = { width: 1536, height: 730 } as const;
+const narrowMinimumViewport = { width: 1366, height: 620 } as const;
+const fullHdViewport = { width: 1920, height: 1080 } as const;
 const largerDesktopViewport = { width: 2560, height: 1440 } as const;
 
-const minimumDesktopProjects = [
-  {
-    name: 'chrome-desktop',
-    use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: minimumDesktopViewport },
-  },
-  {
-    name: 'edge-desktop',
-    use: { ...devices['Desktop Edge'], channel: 'msedge', viewport: minimumDesktopViewport },
-  },
-  {
-    name: 'firefox-desktop',
-    use: { ...devices['Desktop Firefox'], viewport: minimumDesktopViewport },
-  },
-  {
-    name: 'safari-webkit-desktop',
-    use: { ...devices['Desktop Safari'], viewport: minimumDesktopViewport },
-  },
+/**
+ * Browsermotorerne. Navnene er uændrede, så `--project=<navn>` og CI-matrixen peger på det samme
+ * som før. Chrome står først: den er basisbanens motor.
+ */
+const engines = [
+  { key: 'chrome-desktop', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },
+  { key: 'edge-desktop', use: { ...devices['Desktop Edge'], channel: 'msedge' } },
+  { key: 'firefox-desktop', use: { ...devices['Desktop Firefox'] } },
+  { key: 'safari-webkit-desktop', use: { ...devices['Desktop Safari'] } },
+] as const;
+
+const viewports = [
+  { suffix: '', viewport: baselineViewport },
+  { suffix: '-1536x730', viewport: compactMinimumViewport },
+  { suffix: '-1366x620', viewport: narrowMinimumViewport },
+  { suffix: '-full-hd', viewport: fullHdViewport },
+] as const;
+
+type EngineDefinition = (typeof engines)[number];
+type ViewportDefinition = (typeof viewports)[number];
+
+const buildProject = (
+  engine: EngineDefinition,
+  { suffix, viewport }: ViewportDefinition,
+  laneTag?: string,
+) => ({
+  name: `${engine.key}${suffix}`,
+  use: { ...engine.use, viewport },
+  // Playwright matcher `grep` mod testens fulde titel inklusive dens tags.
+  ...(laneTag === undefined ? {} : { grep: new RegExp(`${laneTag}\\b`) }),
+});
+
+/**
+ * **Banemodellen.** Suiten kørte før hver eneste test i alle 16 kombinationer af fire browsere og
+ * fire viewporter — 1232 kørsler af 77 tests. Det tog omkring tre kvarter, og langt det meste af
+ * tiden gik til at bevise den samme browseruafhængige brugerrejse femten gange for meget. Det gjorde
+ * suiten så dyr at køre, at den i praksis ikke blev kørt, og en kørsel der bliver afbrudt beskytter
+ * ingenting.
+ *
+ * Nu vælger den enkelte test selv sin bane med et tag:
+ *
+ *  - **Ingen tag → basisbanen.** Kører én gang, i Chrome ved basisviewporten. Det er det rigtige
+ *    valg for alt, der handler om Mineos egen adfærd: felter, dialoger, beregningsflader, fejl-UI.
+ *  - **`@browsere` → browserbanen.** Kører desuden i Edge, Firefox og WebKit. Vælges når adfærden
+ *    afhænger af browsermotoren: fokus- og Tab-semantik, filvælger-fallbacks, animation, tekstmål.
+ *  - **`@viewporter` → viewportbanen.** Kører desuden ved de to minimumsviewporter. Vælges når
+ *    testen aflæser den viewport, projektet giver den, i stedet for at sætte sin egen.
+ *
+ * En test uden tag er altså ikke udækket — den er dækket ét sted. Det er et bevidst valg: en fejl,
+ * der kun findes i én motor, findes af de tests der er tagget til at lede efter netop dét, og
+ * `PLAYWRIGHT_FULL_MATRIX=1` kører fortsat hele den gamle matrix, når en bred efterkontrol er
+ * formålet. `scripts/check-e2e-lane-tags.mjs` fanger et fejlstavet tag, som ellers tavst ville
+ * betyde «kører ingen steder ekstra».
+ */
+const laneProjects = [
+  // Basisbanen: alt kører her, uanset tag.
+  buildProject(engines[0], viewports[0]),
+  // Browserbanen: samme viewport, kun de tests der beder om flere motorer.
+  ...engines.slice(1).map((engine) => buildProject(engine, viewports[0], BROWSER_LANE_TAG)),
+  // Viewportbanen: samme motor, kun de tests der aflæser projektets viewport.
+  ...viewports.slice(1, 3).map((viewport) => buildProject(engines[0], viewport, VIEWPORT_LANE_TAG)),
 ];
 
-const fullHdDesktopProjects = [
-  {
-    name: 'chrome-desktop-full-hd',
-    use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: fullHdDesktopViewport },
-  },
-  {
-    name: 'edge-desktop-full-hd',
-    use: { ...devices['Desktop Edge'], channel: 'msedge', viewport: fullHdDesktopViewport },
-  },
-  {
-    name: 'firefox-desktop-full-hd',
-    use: { ...devices['Desktop Firefox'], viewport: fullHdDesktopViewport },
-  },
-  {
-    name: 'safari-webkit-desktop-full-hd',
-    use: { ...devices['Desktop Safari'], viewport: fullHdDesktopViewport },
-  },
-];
+const fullMatrixProjects = engines.flatMap((engine) =>
+  viewports.map((viewport) => buildProject(engine, viewport)));
 
-const compactMinimumDesktopProjects = [
-  {
-    name: 'chrome-desktop-1536x730',
-    use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: compactMinimumDesktopViewport },
-  },
-  {
-    name: 'edge-desktop-1536x730',
-    use: { ...devices['Desktop Edge'], channel: 'msedge', viewport: compactMinimumDesktopViewport },
-  },
-  {
-    name: 'firefox-desktop-1536x730',
-    use: { ...devices['Desktop Firefox'], viewport: compactMinimumDesktopViewport },
-  },
-  {
-    name: 'safari-webkit-desktop-1536x730',
-    use: { ...devices['Desktop Safari'], viewport: compactMinimumDesktopViewport },
-  },
-];
-
-const narrowMinimumDesktopProjects = [
-  {
-    name: 'chrome-desktop-1366x620',
-    use: { ...devices['Desktop Chrome'], channel: 'chrome', viewport: narrowMinimumDesktopViewport },
-  },
-  {
-    name: 'edge-desktop-1366x620',
-    use: { ...devices['Desktop Edge'], channel: 'msedge', viewport: narrowMinimumDesktopViewport },
-  },
-  {
-    name: 'firefox-desktop-1366x620',
-    use: { ...devices['Desktop Firefox'], viewport: narrowMinimumDesktopViewport },
-  },
-  {
-    name: 'safari-webkit-desktop-1366x620',
-    use: { ...devices['Desktop Safari'], viewport: narrowMinimumDesktopViewport },
-  },
-];
-
-const desktopProjects = [
-  ...minimumDesktopProjects,
-  ...compactMinimumDesktopProjects,
-  ...narrowMinimumDesktopProjects,
-  ...fullHdDesktopProjects,
-];
-
-const projects = [
-  ...desktopProjects,
-  ...(process.env.PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT === '1'
-    ? desktopProjects.map((project) => ({
-      name: `${project.name}-large`,
-      use: { ...project.use, viewport: largerDesktopViewport },
-    }))
-    : []),
-];
+const projects = runFullMatrix
+  ? [
+    ...fullMatrixProjects,
+    ...(process.env.PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT === '1'
+      ? fullMatrixProjects.map((project) => ({
+        name: `${project.name}-large`,
+        use: { ...project.use, viewport: largerDesktopViewport },
+      }))
+      : []),
+  ]
+  : laneProjects;
 
 // Suiten køres både på en kraftig stationær maskine, i CI og på en svagere bærbar. Profilen måler
 // maskinens kerner, hukommelse og faktiske hastighed og skruer parallelitet og timeout-lofter
@@ -142,7 +130,12 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    // Ingen videooptagelse. `retain-on-failure` lyder billigt, men optager i praksis ALLE tests og
+    // kasserer bagefter dem der bestod — en fast CPU- og hukommelsesudgift pr. test, som på den
+    // svagere bærbar er med til at fremkalde netop de timeouts, den skulle hjælpe med at forklare.
+    // Tracen dækker samme behov bedre: den gemmer handlinger, DOM-snapshots og konsol for den
+    // test, der faktisk fejlede. Sæt `PLAYWRIGHT_VIDEO=1`, når en fejl kun kan ses som bevægelse.
+    video: process.env.PLAYWRIGHT_VIDEO === '1' ? 'retain-on-failure' : 'off',
     // Den normale E2E-suite skal være cachefri. PWA-scenarier opt-in'er eksplicit til service workers.
     serviceWorkers: allowServiceWorkers ? 'allow' : 'block',
   },

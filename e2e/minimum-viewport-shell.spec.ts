@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { VIEWPORT_LANE_TAG } from './support/lanes';
+
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 const MENU_BUTTON_NAMES = [
   'Stamdata',
@@ -92,7 +94,10 @@ const readMenuGeometry = async (page: Page) => {
   });
 };
 
-test.describe('Mineo-shell ved minimumsviewporter', () => {
+// Viewportbanen: testen måler den viewport, PROJEKTET giver den, og er derfor den ene test i
+// suiten, der ikke kan nøjes med basisviewporten. Uden taget ville minimumskontrakterne aldrig
+// blive målt ved deres egne grænser.
+test.describe('Mineo-shell ved minimumsviewporter', { tag: VIEWPORT_LANE_TAG }, () => {
   test('alle sidemenu- og globalhandlinger er synlige og nåbare uden intern sidemenu-scroll', async ({ page }) => {
     await login(page);
     let expandedIconCenters: ReadonlyMap<string, number> | null = null;

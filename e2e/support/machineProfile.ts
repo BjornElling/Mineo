@@ -42,9 +42,14 @@ const MAX_SLOWNESS = 3;
 const RESERVED_MEMORY_GIB = 4;
 
 /**
- * Hukommelsesbudget pr. worker. En worker holder en browser med Mineos fulde UI, trace-opsamling
- * og videooptagelse i live. Tre GiB giver den målte 15,7 GiB Windows-bærbar tre workers; fire
- * samtidige Firefox-kontekster fejlede sporadisk ved lukning, før Playwright rapporterede pres.
+ * Hukommelsesbudget pr. worker. En worker holder en browser med Mineos fulde UI og trace-opsamling
+ * i live. Tre GiB giver den målte 15,7 GiB Windows-bærbar tre workers; fire samtidige
+ * Firefox-kontekster fejlede sporadisk ved lukning, før Playwright rapporterede pres.
+ *
+ * Tallet er BEVIDST ikke sat ned, selv om videooptagelsen er slået fra (jf. `playwright.config.ts`).
+ * Den frigjorte hukommelse går til luft omkring den kendte crash-grænse, ikke til en fjerde worker:
+ * kørslen er allerede gjort markant kortere af banemodellen, og en genindført ressourcecrash ville
+ * koste mere end de sparede minutter.
  */
 const MEMORY_PER_WORKER_GIB = 3;
 

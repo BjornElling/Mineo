@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { BROWSER_LANE_TAG } from './support/lanes';
+
 /**
  * §Popup-fokus-restore i `keyboard-navigation.md`: lukkes en popup, vender fokus tilbage til den
  * kontrol, brugeren åbnede den med — uanset lukkevej.
@@ -29,7 +31,7 @@ const collectRuntimeErrors = (page: Page): string[] => {
   return runtimeErrors;
 };
 
-test.describe('Popup-fokus-restore', () => {
+test.describe('Popup-fokus-restore', { tag: BROWSER_LANE_TAG }, () => {
   test('licens-overlayet returnerer fokus til MIT-licensen ved Escape, X og backdrop', async ({ page }) => {
     const runtimeErrors = collectRuntimeErrors(page);
     await login(page);

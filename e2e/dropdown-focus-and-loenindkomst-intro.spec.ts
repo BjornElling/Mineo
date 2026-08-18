@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { BROWSER_LANE_TAG } from './support/lanes';
+
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 const INSERT_EMPLOYMENT_PROMPT = 'Tryk på den blå knap for at indsætte et ansættelsesforhold.';
 const EMPLOYMENT_NOTICE = 'Lønindkomst, tillæg og andre relevante oplysninger skal angives individuelt for hvert enkelt ansættelsesforhold.';
@@ -11,7 +13,9 @@ const login = async (page: Page): Promise<void> => {
   await expect(page).toHaveURL(/\/mineo$/);
 };
 
-test.describe('Dropdown-fokus og lønindkomstvejledning', () => {
+// Browserbanen: fokusrammen efter Escape afhænger af motorens `:focus-visible`-heuristik, som er
+// forskellig i Chromium, Gecko og WebKit — det er dén forskel, testen skal fange.
+test.describe('Dropdown-fokus og lønindkomstvejledning', { tag: BROWSER_LANE_TAG }, () => {
   test('en tabel-dropdown bevarer den blå fokusramme ved hover efter Escape', async ({ page }) => {
     const runtimeErrors: string[] = [];
     page.on('console', (message) => {

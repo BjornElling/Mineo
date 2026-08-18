@@ -31,9 +31,9 @@ jobs:
       - name: Install dependencies (strict)
         run: npm ci
 
-      # Den tunge release-gate uden browsermatrixen. E2E-suiten kører nedenfor som fire
-      # selvstændige, parallelle jobs — ét pr. browserprojekt — så hver browser beholder én
-      # stabil worker uden at blokere de øvrige projekter.
+      # Den tunge release-gate uden browsermatrixen. E2E-suiten kører nedenfor som selvstændige,
+      # parallelle jobs — ét pr. projekt — så hvert projekt beholder én stabil worker uden at
+      # blokere de øvrige.
       - name: Verify release
         run: npm run verify:release:core
 
@@ -48,6 +48,10 @@ jobs:
   e2e:
     name: E2E (${{ matrix.project }})
     runs-on: ubuntu-latest
+    # Projekterne er E2E-suitens baner (se `playwright.config.ts`): basisbanen i Chrome kører alle
+    # specs, de øvrige motorer kører kun det, der er tagget `@browsere`, og de to
+    # minimumsviewporter kun det, der er tagget `@viewporter`. CI kører dermed nøjagtig samme
+    # dækning som en lokal `npm run test:e2e`.
     strategy:
       fail-fast: false
       matrix:
@@ -60,6 +64,10 @@ jobs:
             browser: firefox
           - project: safari-webkit-desktop
             browser: webkit
+          - project: chrome-desktop-1536x730
+            browser: chromium
+          - project: chrome-desktop-1366x620
+            browser: chromium
 
     steps:
       - name: Checkout
