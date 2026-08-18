@@ -49,9 +49,11 @@ npm run build:all            # bygger begge apps
 
 Kvalitetstjek:
 ```bash
-npm run typecheck       # typecheck af kildekode (tsconfig.json)
-npm run typecheck:test  # typecheck af testkode (tsconfig.test.json — separat config)
-npm run check:types     # samlet typecheck af kilde-, test- og E2E-kode
+npm run check:types     # alle fire TypeScript-projekter under ét
+npm run typecheck       # kildekode (tsconfig.app.json)
+npm run typecheck:test  # testkode (tsconfig.test.json — egne globals)
+npm run typecheck:e2e   # Playwright-suiten (tsconfig.e2e.json)
+npm run typecheck:node  # vite-konfigurationerne (tsconfig.node.json)
 npm run check:commit    # samlet typecheck + lint, samme gate som pre-commit
 npm run lint            # eslint (--max-warnings 0)
 npm run test            # samlet typecheck efterfulgt af hele testsuiten (Vitest)

@@ -68,7 +68,10 @@ const PROBE_DIR = path.join(REPO_ROOT, 'src', 'document', 'definition');
  */
 const compileProbe = (source: string): readonly ts.Diagnostic[] => {
   const probePath = path.join(PROBE_DIR, '__formatGateProbe.virtual.ts');
-  const configPath = path.join(REPO_ROOT, 'tsconfig.json');
+  // `tsconfig.json` i roden er en solution-fil uden compilerOptions; applikationens rigtige
+  // indstillinger står i `tsconfig.app.json`. Proben skal måle DEM — det er hele pointen med at
+  // oversætte ind i det ægte projekt frem for mod compilerens standarder.
+  const configPath = path.join(REPO_ROOT, 'tsconfig.app.json');
   const config = ts.parseJsonConfigFileContent(
     ts.readConfigFile(configPath, ts.sys.readFile).config,
     ts.sys,

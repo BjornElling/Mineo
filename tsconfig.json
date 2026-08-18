@@ -1,46 +1,31 @@
 {
-  "compilerOptions": {
-    /* Output / runtime target */
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-
-    /* React */
-    "jsx": "react-jsx",
-    "useDefineForClassFields": true,
-
-    /* Strictness */
-    "strict": true,
-    "noImplicitAny": true,
-    "useUnknownInCatchVariables": false,
-
-    /* Performance / dev ergonomi */
-    "isolatedModules": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "incremental": false,
-
-    /* Type resolution */
-    "resolveJsonModule": true,
-    "types": ["node"],
-
-    /* Inference cost control */
-    "exactOptionalPropertyTypes": false,
-    "noUncheckedIndexedAccess": false,
-
-    /* Diagnostics noise */
-    "forceConsistentCasingInFileNames": true
-  },
-
-  "include": ["src", "playwright.config.ts"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build",
-    "coverage",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "src/test/setup.ts"
+  /*
+   * SOLUTION-FIL — den peger kun videre; den typechecker intet selv.
+   *
+   * Repoet har fire adskilte TypeScript-projekter, fordi de har forskellige globale typer:
+   * applikationen må ikke kende `describe`/`expect`, testene skal, E2E-suiten kører på Playwrights
+   * typer, og byggekonfigurationen på Nodes. Den adskillelse er bevidst og skal blive.
+   *
+   * Men adskillelsen havde en pris i editoren. VS Code (tsserver) finder et projekt ved at gå OPAD
+   * fra filen efter en `tsconfig.json` — den kender ikke `tsconfig.e2e.json` og `tsconfig.test.json`,
+   * fordi navnene ikke er standard. En fil, den ikke kan placere, havnede derfor i et «inferred
+   * project» uden vores compilerOptions, og editoren viste fejl, som ingen kommandolinje-typecheck
+   * kunne genskabe — fx «Cannot find name 'process'» i `e2e/support/mineoTest.ts` og manglende
+   * vitest-globals i `src/__tests__/`.
+   *
+   * Med `files: []` + `references` er dette en solution-fil: tsserver slår filen op i de refererede
+   * projekter og bruger DERES indstillinger. Editoren og `npm run check:types` ser nu det samme.
+   *
+   * Rækkefølgen betyder noget for filer, der matcher flere projekter: `tsconfig.app.json` står først,
+   * så almindelig kildekode får app-projektets typer og ikke testprojektets bredere globals.
+   *
+   * Typecheck kører fortsat pr. projekt (`npm run check:types`), aldrig gennem denne fil.
+   */
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.test.json" },
+    { "path": "./tsconfig.e2e.json" },
+    { "path": "./tsconfig.node.json" }
   ]
 }

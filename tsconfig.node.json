@@ -3,8 +3,17 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
 
-    "target": "ES2020",
-    "lib": ["ES2020"],
+    /*
+     * Samme target og lib som applikationen — inklusive DOM.
+     *
+     * Det ser forkert ud for byggekonfiguration, men er den ærlige beskrivelse: `vite.config.ts`
+     * importerer `src/settings/themeBootstrap`, som trækker DOM-typede moduler med ind i programmet,
+     * og `vite.mineo.config.ts` bruger `String.replaceAll` (ES2021). Med det gamle `ES2020` uden DOM
+     * kunne konfigurationen slet ikke oversættes — hvilket ingen opdagede, fordi ingen kommando kørte
+     * den. Typerne er kun tilgængelige for typecheck; de siger intet om, hvad koden kører i.
+     */
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
 
     "types": ["vitest", "node"],
 
@@ -13,8 +22,17 @@
     "noEmit": true
   },
 
+  /*
+   * KUN byggekonfigurationen. Alle tre vite-konfigurationer står her; de to app-specifikke lå før
+   * uden for ethvert projekt og blev derfor hverken typechecket eller placeret rigtigt af editoren.
+   *
+   * `src/test/setup.ts` stod her også og hører ikke hjemme: den er testinfrastruktur og dækkes
+   * allerede af `tsconfig.test.json`, som har både DOM- og vitest-typerne. At den lå her, var
+   * usynligt, indtil konfigurationen for første gang blev kørt — den havde aldrig været det.
+   */
   "include": [
     "vite.config.ts",
-    "src/test/setup.ts"
+    "vite.mineo.config.ts",
+    "vite.minprocesrente.config.ts"
   ]
 }
