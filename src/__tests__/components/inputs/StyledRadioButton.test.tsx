@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledRadioButton from '../../../components/inputs/StyledRadioButton';
 
@@ -54,7 +54,7 @@ describe('StyledRadioButton', () => {
       />
     );
 
-    screen.getByRole('radio', { name: 'Ja' }).focus();
+    act(() => screen.getByRole('radio', { name: 'Ja' }).focus());
     await user.keyboard(' ');
 
     expect(onCommit).toHaveBeenCalledTimes(1);

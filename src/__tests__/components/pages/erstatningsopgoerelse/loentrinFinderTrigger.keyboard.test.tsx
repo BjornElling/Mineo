@@ -15,7 +15,7 @@
 // Testen dækker desuden vejen TILBAGE: Escape fra overlayet skal returnere fokus til knappen
 // (keyboard-navigation.md §Popup-fokus-restore). Uden det krav endte fokus på `body`, og
 // tastaturbrugeren måtte tabbe forfra gennem siden — registreret som Q-001 i runtime-input-auditen.
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -117,7 +117,7 @@ describe('»Find løntrin« indgår i tastatur-sekvensen', () => {
     finder.style.position = 'fixed';
     if (gruppe) gruppe.style.position = 'fixed';
 
-    gruppe?.focus();
+    act(() => gruppe?.focus());
     await user.keyboard('{Tab}');
     await waitFor(() => expect(finder).toHaveFocus());
 

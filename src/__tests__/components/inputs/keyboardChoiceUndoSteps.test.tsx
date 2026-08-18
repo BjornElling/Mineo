@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { dispatchInput, ActiveEditorRegistry, type SlimInputStore } from '../../../inputCore/runtime';
 import {
@@ -99,7 +99,7 @@ const renderEnhedDropdown = () => {
 describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, brugerbeslutning)', () => {
   it('to bogstavtryk i en LUKKET dropdown giver to fortryd-trin', () => {
     const combobox = renderEnhedDropdown();
-    combobox.focus();
+    act(() => combobox.focus());
     const before = undoDepth();
 
     fireEvent.keyDown(combobox, { key: 'u' });
@@ -116,7 +116,7 @@ describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, brugerb
 
   it('et tryk, der ikke ændrer valget, giver intet trin (det er ændringen der tæller)', () => {
     const combobox = renderEnhedDropdown();
-    combobox.focus();
+    act(() => combobox.focus());
 
     fireEvent.keyDown(combobox, { key: 'u' });
     const afterFirst = undoDepth();
@@ -143,7 +143,7 @@ describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, brugerb
   it('kontrollen kan FEJLE: uden et tastedrevet valg stiger dybden ikke af sig selv', () => {
     // Uden denne kontrast kunne testene ovenfor bestå af, at dybden voksede ved enhver render.
     const combobox = renderEnhedDropdown();
-    combobox.focus();
+    act(() => combobox.focus());
     const before = undoDepth();
     fireEvent.keyDown(combobox, { key: 'z' });
     expect(undoDepth()).toBe(before);
@@ -188,12 +188,12 @@ describe('radiogruppe: hvert tastedrevet valg er sit eget undo-trin (§2.7, brug
     renderEnhedRadio();
     const before = undoDepth();
 
-    screen.getByRole('radio', { name: 'Uger' }).focus();
+    act(() => screen.getByRole('radio', { name: 'Uger' }).focus());
     await user.keyboard(' ');
     expect(canonicalEnhed()).toBe('uger');
     expect(undoDepth()).toBe(before + 1);
 
-    screen.getByRole('radio', { name: 'Måneder' }).focus();
+    act(() => screen.getByRole('radio', { name: 'Måneder' }).focus());
     await user.keyboard(' ');
     expect(canonicalEnhed()).toBe('maaneder');
     expect(
@@ -206,7 +206,7 @@ describe('radiogruppe: hvert tastedrevet valg er sit eget undo-trin (§2.7, brug
     const user = userEvent.setup();
     renderEnhedRadio();
 
-    screen.getByRole('radio', { name: 'Uger' }).focus();
+    act(() => screen.getByRole('radio', { name: 'Uger' }).focus());
     await user.keyboard(' ');
     const afterFirst = undoDepth();
 
@@ -220,7 +220,7 @@ describe('radiogruppe: hvert tastedrevet valg er sit eget undo-trin (§2.7, brug
     // Samme kontrast som for dropdownen: dybden må ikke vokse ved ren render eller fokus.
     renderEnhedRadio();
     const before = undoDepth();
-    screen.getByRole('radio', { name: 'Måneder' }).focus();
+    act(() => screen.getByRole('radio', { name: 'Måneder' }).focus());
     expect(undoDepth()).toBe(before);
   });
 });

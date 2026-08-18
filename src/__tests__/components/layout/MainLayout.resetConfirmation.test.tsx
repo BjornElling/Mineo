@@ -13,7 +13,7 @@
 //     restoren hviler derfor på den eksplicitte ref, og uden den ville fokus falde et vilkårligt sted.
 import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import React from 'react';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
@@ -172,9 +172,10 @@ describe('MainLayout — Slet alt-bekræftelse', () => {
     await clickMainLayoutAction('Slet alt');
     await screen.findByRole('dialog');
 
-    await act(async () => {
-      await user.keyboard('{Escape}');
-    });
+    // `user.keyboard` act-wrapper allerede selv. Et ekstra `await act(async () => …)` udenom gør
+    // act-kaldene indlejrede, og React melder da «testing environment is not configured to support
+    // act(...)» på stderr — uden at testen fejler. Tastetrykket sendes derfor bart.
+    await user.keyboard('{Escape}');
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).toBeNull();

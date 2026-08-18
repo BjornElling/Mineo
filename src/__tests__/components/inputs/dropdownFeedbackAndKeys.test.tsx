@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledDropdown from '../../../components/inputs/StyledDropdown';
 
@@ -70,7 +70,7 @@ describe('StyledDropdown — fejlformidling og tastesemantik', () => {
     render(<Harness onEscape={onEscape} />);
 
     const combobox = screen.getByRole('combobox');
-    combobox.focus();
+    act(() => combobox.focus());
     await user.keyboard('{Escape}');
 
     expect(onEscape).toHaveBeenCalledTimes(1);
@@ -110,7 +110,7 @@ describe('StyledDropdown — fejlformidling og tastesemantik', () => {
     render(<Harness />);
 
     const combobox = screen.getByRole('combobox');
-    combobox.focus();
+    act(() => combobox.focus());
     await user.keyboard('{Delete}');
 
     expect(combobox).toHaveValue('');

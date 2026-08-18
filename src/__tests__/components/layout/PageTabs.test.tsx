@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PageTabs from '../../../components/layout/PageTabs';
 import SideTab from '../../../components/layout/SideTab';
@@ -75,7 +75,7 @@ describe('PageTabs', () => {
 
     const firstTab = screen.getByRole('tab', { name: 'Fane A' });
     const secondTab = screen.getByRole('tab', { name: 'Fane B' });
-    firstTab.focus();
+    act(() => firstTab.focus());
 
     await user.keyboard('{ArrowRight}');
     expect(document.activeElement).toBe(secondTab);
