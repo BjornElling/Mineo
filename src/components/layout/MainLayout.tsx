@@ -19,8 +19,8 @@ import { getRouteForMenuPageKey, routeToPageId, type MenuPageKey } from '../../c
 import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyRestoreTarget';
 import { useContentUiScale } from '../../hooks/useContentUiScale';
 import {
+  getContentGutterCssForMenuScale,
   getContentMainPaddingLeftForMenuScale,
-  getContentScrollPaddingLeftForMenuScale,
 } from '../../utils/uiScale';
 import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
@@ -216,6 +216,8 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     };
   }, [handleGem]);
 
+  const contentGutter = getContentGutterCssForMenuScale(sideMenuContentScale);
+
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <SideMenu
@@ -229,9 +231,12 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
       />
       <Container
         enableContentScale
+        // Arbejdsfladens ydre luft: samme gutter i begge sider. Gutterne ligger uden for zoom-roden
+        // og ganges derfor med skalaen i CSS — det er netop de to afstande, pladsregnskabet i
+        // `CONTENT_UI_SCALE_POLICY` afsætter, og de skal reduceres i takt med indholdet selv.
+        scrollSx={{ paddingLeft: contentGutter, paddingRight: contentGutter }}
         // MUI fortolker numeriske padding-værdier som spacing-trin. Pixel-enheden er nødvendig,
-        // ellers bliver den skalerede gutter ganget med otte i stedet for at følge labelskalaen.
-        scrollSx={{ paddingLeft: `${getContentScrollPaddingLeftForMenuScale(sideMenuContentScale)}px` }}
+        // ellers bliver den skalerede indrykning ganget med otte i stedet for at følge labelskalaen.
         contentSx={{ paddingLeft: `${getContentMainPaddingLeftForMenuScale(sideMenuContentScale)}px` }}
       >
         <LazyChunkRecoveryNotice

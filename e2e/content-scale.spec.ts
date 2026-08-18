@@ -10,11 +10,16 @@ const login = async (page: Page): Promise<void> => {
   await expect(page).toHaveURL(/\/mineo$/);
 };
 
+// Pladsregnskabet fra CONTENT_UI_SCALE_POLICY gentaget uafhængigt: sidemenu (250) + skaleret
+// arbejdsflade (gutter 24 + indrykning 50 + indholdsboks 1200 + gutter 24) + scrollbar (20).
+const UNSCALED_LEFT_WIDTH = 250;
+const SCALED_WORKSPACE_WIDTH = 24 + 50 + 1200 + 24;
+const SCROLLBAR_RESERVE = 20;
+const MINIMUM_SCALE = 0.75;
+
 const expectedScaleForWidth = (width: number): string => {
-  if (width >= 1544) return '1';
-  if (width >= 1481.5) return '0.95';
-  if (width >= 1419) return '0.9';
-  return '0.85';
+  const exactFit = (width - UNSCALED_LEFT_WIDTH - SCROLLBAR_RESERVE) / SCALED_WORKSPACE_WIDTH;
+  return String(Math.min(1, Math.max(MINIMUM_SCALE, Math.floor(exactFit * 100 + 1e-9) / 100)));
 };
 
 const expectedExpandedMenuWidthForScale = (menuContentScale: string): number => {
@@ -22,11 +27,12 @@ const expectedExpandedMenuWidthForScale = (menuContentScale: string): number => 
   return 190 + 60 * ((scale - 0.78) / 0.22);
 };
 
-const expectedContentGuttersForMenuScale = (menuContentScale: string) => {
+const expectedContentGuttersForMenuScale = (menuContentScale: string, contentScale: string) => {
   const scale = Math.max(0.78, Math.min(1, Number(menuContentScale)));
   const progress = (scale - 0.78) / 0.22;
   return {
-    scrollPadding: 16 + 8 * progress,
+    // Den ydre gutter ligger uden for zoom-roden og ganges derfor med arbejdsfladens skala i CSS.
+    gutter: (16 + 8 * progress) * Number(contentScale),
     mainPadding: 25 + 25 * progress,
   };
 };
@@ -69,6 +75,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
             button.scrollWidth <= button.clientWidth
           )),
         contentScrollPaddingLeft: container ? getComputedStyle(container).paddingLeft : null,
+        contentScrollPaddingRight: container ? getComputedStyle(container).paddingRight : null,
         contentMainPaddingLeft: getComputedStyle(main).paddingLeft,
         mainMarker: main.getAttribute('data-mineo-content-scale-root'),
         contentBoxes: Array.from(document.querySelectorAll<HTMLElement>('.content-box')).map((box) => {
@@ -85,8 +92,10 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(geometry.menuZoom).toBe('1');
     expect(geometry.menuWidth).toBeCloseTo(expectedExpandedMenuWidthForScale(geometry.menuContentScale ?? '1'), 1);
     expect(geometry.menuLabelsFit).toBe(true);
-    const expectedGutters = expectedContentGuttersForMenuScale(geometry.menuContentScale ?? '1');
-    expect(Number.parseFloat(geometry.contentScrollPaddingLeft ?? '')).toBeCloseTo(expectedGutters.scrollPadding, 1);
+    const expectedGutters = expectedContentGuttersForMenuScale(geometry.menuContentScale ?? '1', geometry.scale);
+    expect(Number.parseFloat(geometry.contentScrollPaddingLeft ?? '')).toBeCloseTo(expectedGutters.gutter, 1);
+    // Arbejdsfladen har samme luft i begge sider, så indholdet aldrig lægger sig op ad scrollbaren.
+    expect(Number.parseFloat(geometry.contentScrollPaddingRight ?? '')).toBeCloseTo(expectedGutters.gutter, 1);
     expect(Number.parseFloat(geometry.contentMainPaddingLeft)).toBeCloseTo(expectedGutters.mainPadding, 1);
     expect(geometry.contentBoxes.length).toBeGreaterThan(0);
     expect(geometry.contentBoxes.every((box) => box.left >= 0 && box.right <= geometry.width)).toBe(true);
@@ -111,7 +120,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     // observerbare CSS-værdi frem for at gøre testen afhængig af browserens event-timing.
     await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
       (element) => getComputedStyle(element).zoom,
-    )).toBe('0.95');
+    )).toBe(expectedScaleForWidth(1536));
     await expect(input).toBeFocused();
     await expect(input).toHaveValue('2027');
     await input.press('Escape');
@@ -131,7 +140,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     await page.setViewportSize({ width: 1000, height: 620 });
     await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
       (element) => getComputedStyle(element).zoom,
-    )).toBe('0.85');
+    )).toBe(String(MINIMUM_SCALE));
 
     const geometry = await page.evaluate(() => {
       const container = document.querySelector<HTMLElement>('[data-mineo-scroll-container="true"]');
@@ -158,7 +167,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
       };
     });
 
-    expect(geometry.scale).toBe('0.85');
+    expect(geometry.scale).toBe(String(MINIMUM_SCALE));
     expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
     expect(geometry.scrollLeft).toBeGreaterThan(0);
     // Den ekstra pixel dækker browsernes afrunding af CSS zoom uden at maskere reel beskæring.
@@ -232,6 +241,57 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(longListGeometry.clientHeight).toBeLessThanOrEqual(longListGeometry.viewportHeight - 32);
     expect(longListGeometry.scrollHeight).toBeGreaterThanOrEqual(longListGeometry.clientHeight);
     expect(longListGeometry.overflowY).toBe('auto');
+    expect(runtimeErrors).toEqual([]);
+  });
+
+  test('viser hele arbejdsfladen uden vandret rul ved 1280 CSS-px', async ({ page }) => {
+    // 1920×1200-skærmen ved 150 % browserzoom giver præcis 1280 CSS-px. Testen er regressionsværnet
+    // for netop den opsætning: indholdet skal være der i fuld bredde — ikke klippet, ikke skjult.
+    const runtimeErrors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') runtimeErrors.push(message.text());
+    });
+    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+
+    await login(page);
+    await page.setViewportSize({ width: 1280, height: 740 });
+
+    for (const pageName of ['Om', 'Erstatningsopgørelse', 'Satser'] as const) {
+      await page.getByRole('button', { name: pageName, exact: true }).click();
+      await expect(page.locator('.content-box').first()).toBeVisible();
+      await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
+        (element) => getComputedStyle(element).zoom,
+      )).toBe(expectedScaleForWidth(1280));
+
+      const geometry = await page.evaluate(() => {
+        const container = document.querySelector<HTMLElement>('[data-mineo-scroll-container="true"]');
+        const main = document.querySelector<HTMLElement>('main[data-mineo-content-scale-root="true"]');
+        if (container === null || main === null) throw new Error('Mangler Container eller skaleringsrod.');
+        const containerRect = container.getBoundingClientRect();
+
+        return {
+          scale: Number(getComputedStyle(main).zoom),
+          clientWidth: container.clientWidth,
+          scrollWidth: container.scrollWidth,
+          containerLeft: containerRect.left,
+          contentBoxes: Array.from(document.querySelectorAll<HTMLElement>('.content-box')).map((box) => {
+            const rect = box.getBoundingClientRect();
+            return { left: rect.left, right: rect.right, width: rect.width };
+          }),
+        };
+      });
+
+      // Den ekstra pixel dækker browsernes afrunding af CSS zoom uden at maskere reel beskæring.
+      expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
+      expect(geometry.contentBoxes.length).toBeGreaterThan(0);
+      for (const box of geometry.contentBoxes) {
+        // Fuld bredde, ikke en beskåret rest: boksen måler sin egen bredde gange arbejdsfladens skala.
+        expect(box.width).toBeCloseTo(1200 * geometry.scale, 0);
+        expect(box.left).toBeGreaterThan(geometry.containerLeft);
+        expect(box.right).toBeLessThanOrEqual(geometry.containerLeft + geometry.clientWidth + 1);
+      }
+    }
+
     expect(runtimeErrors).toEqual([]);
   });
 

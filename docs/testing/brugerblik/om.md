@@ -42,7 +42,7 @@ agentens efterprøvning af præmisserne.
 | BB-012 | **Delvist accepteret efter modpres** — de to nøgleord bevares, tre unøjagtigheder rettes. Ny ordlyd aftalt | **Gennemført** (tekst) |
 | BB-013 | **Accepteret efter modpres — og gennemført samme dag** som en generel linkregel med to primitiver, AST-værn og e2e-måling | **Gennemført** |
 | BB-014 | Accepteret som kendt og acceptabel risiko — få brugere står præcis på 1536×864, og zoom-løsningen ændrer præmissen | Nej |
-| BB-015 | Afgjort — 1536×864 og opefter er designmålet; den implementerede shell-kontrakt dækker desuden 1358×620 CSS-px ved 100 % browserzoom | Nej (her) |
+| BB-015 | Afgjort — 1536×864 og opefter er designmålet; den implementerede shell-kontrakt dækker desuden 1244×620 CSS-px ved 100 % browserzoom | Nej (her) |
 | BB-016 | Afgjort — bevidst designvalg. Nu tillige håndhævet strukturelt via BB-013's `ExternalLink` | Nej |
 | BB-017 | Afgjort — «klik for at få svar» er et acceptabelt kompromis | Nej |
 | BB-018 | **Accepteret — skal rettes.** Brugeren har leveret brødteksten; knappen skrives «Installér» efter husstilen | **Gennemført** (tekst) |
@@ -436,7 +436,7 @@ luft, den er ramt på stregen. To ting følger af det, som er værd at have skre
 
 **Efterfølgende implementering (2026-08-17).** Den betingede åbning er indfriet og dokumenteret i
 [app-shell-kontrakten](../../../src/contracts/app-shell-contract.md): Mineo dækker mindst
-1358×620 CSS-px ved 100 % browserzoom. Det er ikke en garanti ud fra en fysisk 1366×768-skærm; ved
+1244×620 CSS-px ved 100 % browserzoom. Det er ikke en garanti ud fra en fysisk 1366×768-skærm; ved
 for eksempel 125 % systemskalering er den faktiske CSS-bredde lavere. Kun arbejdsfladen skaleres,
 aldrig shellen, og under grænsen er vandret scroll den bevidste, nåbare fallback frem for beskæring
 eller yderligere nedskalering.
@@ -840,7 +840,7 @@ rettelsesliste.
 ## Åbne spørgsmål
 
 **Ingen.** Alle tolv fund er afgjort, og de to oprindelige spørgsmål er besvaret undervejs:
-arbejdsfladen dækker 1358×620 CSS-px ved 100 % browserzoom (BB-015), og ordlyden i «Persondata» er
+arbejdsfladen dækker 1244×620 CSS-px ved 100 % browserzoom (BB-015), og ordlyden i «Persondata» er
 aftalt ordret under BB-011 og BB-012.
 
 Ét forslag er fortsat udeladt, sådan som det blev stillet: **BB-017's

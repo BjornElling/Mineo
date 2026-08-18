@@ -178,6 +178,11 @@ test.describe('Mineo-shell ved minimumsviewporter', () => {
     await login(page);
     await page.setViewportSize({ width: 1366, height: 580 });
 
+    // Menuens skala måles i et efterfølgende layout-pass, og WebKit leverer viewportændringen
+    // asynkront. Vent på den observerbare slutværdi frem for at måle det første frame efter
+    // resize — ellers er testen et kapløb, der kun taber under samtidig belastning.
+    await expect.poll(async () => Number((await readMenuGeometry(page)).menuContent?.scale)).toBe(0.78);
+
     const geometry = await readMenuGeometry(page);
     expect(geometry.internalScrollRegions).toEqual([]);
     expect(Number(geometry.menuContent?.scale)).toBe(0.78);

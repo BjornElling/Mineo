@@ -218,8 +218,8 @@ Beslutningen er bundet: `AGENTS.md` §Desktop-only gate forbyder viewport-respon
 pinnet filliste, så en ændring er en beslutning, ikke en fejlrettelse.
 
 **Den implementerede grænse.** Designreferencen er fortsat 1536×864 CSS-px og opefter, men Mineos
-arbejdsflade skaleres nu i diskrete trin uden reflow. Den dækkede smalle grænse er 1358×620 CSS-px ved
-100 % browserzoom; den kan ikke udledes af en fysisk skærmopløsning. Under grænsen fastholdes 85 %,
+arbejdsflade skaleres nu trinvist uden reflow. Den dækkede smalle grænse er 1244×620 CSS-px ved
+100 % browserzoom; den kan ikke udledes af en fysisk skærmopløsning. Under grænsen fastholdes 75 %,
 og `Container` giver bevidst vandret scroll frem for mindre tekst eller skjult indhold.
 
 **Mønsteret gælder derfor den uforanderlige indholdsgeometri, ikke fravær af skalering.** Kun den

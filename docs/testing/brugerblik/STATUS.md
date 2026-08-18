@@ -37,7 +37,7 @@ modpres fra agenten. Det fulde grundlag står i [om.md](om.md).
 | BB-012 | «Ingen data … eller anden information» lover bredere end det, sætningen skal bære | **Delvist accepteret efter modpres — gennemført**; nøgleordene bevares, tre unøjagtigheder rettes |
 | BB-013 | Søskendesiderne åbner i samme fane og erstatter programmet | **Accepteret efter modpres — gennemført** som generel linkregel |
 | BB-014 | Rul-til-toppen-knappen dækker 19 px af det sidste søskendelink | Accepteret risiko — få står præcis på 1536×864, og zoom-løsningen ændrer præmissen |
-| BB-015 | Fast indholdsbredde; 1366 px-skærm kræver vandret rul | Afgjort — 1536×864 er designmålet; shell-kontrakten dækker 1358×620 CSS-px ved 100 % browserzoom |
+| BB-015 | Fast indholdsbredde; 1366 px-skærm kræver vandret rul | Afgjort — 1536×864 er designmålet; shell-kontrakten dækker 1244×620 CSS-px ved 100 % browserzoom |
 | BB-016 | Sidens fem links kan ikke nås med tastaturet | Afgjort — bevidst designvalg, nu håndhævet af `ExternalLink` |
 | BB-017 | Hjælpeprogrammets tilstand vises først, når man klikker | Afgjort — acceptabelt kompromis |
 | BB-018 | Tre ord for samme handling: download, hente, installere | **Accepteret — gennemført.** Brugeren leverede brødteksten |
@@ -64,7 +64,7 @@ tekstrettelse ændrede derfor ikke denne overskrift.
 
 **Efterfølgende implementering.** Det tidligere planlagte skaleringsarbejde er gennemført og ligger
 nu som bindende regel i [app-shell-kontrakten](../../../src/contracts/app-shell-contract.md): Mineo
-dækker mindst 1358×620 CSS-px ved 100 % browserzoom. Fysisk 1366×768 alene er ikke en garanti, fordi
+dækker mindst 1244×620 CSS-px ved 100 % browserzoom. Fysisk 1366×768 alene er ikke en garanti, fordi
 systemskalering ændrer den faktiske CSS-viewport.
 
 ## Tværgående mønstre

@@ -12,6 +12,9 @@
   /* Widths */
   --label-width-default: 250px;
   --label-width-wide: 700px;
+  /* Arbejdsfladens bredeste element. Bredden er samtidig grundlaget for skaleringens
+     pladsregnskab og er spejlet som CONTENT_BOX_WIDTH_PX i src/utils/uiScale.ts;
+     contentBoxWidthSingleSource.test.ts fejler, hvis de to falder ud af sync. */
   --content-box-max-width: 1200px;
 
   /* Border radius */

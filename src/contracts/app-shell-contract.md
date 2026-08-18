@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-17
+**Senest verificeret mod kode:** 2026-08-18
 
 ## 1. Scope
 
@@ -103,25 +103,40 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     sidemenu må dog følge sin egen lodrette indholdsskala direkte: ved fuld tekststørrelse er den
     250 px, og den interpolerer proportionalt med labelstørrelsen til 190 px ved mindste lodrette
     indholdsskala. Labels, ikoner og deres indbyrdes luft har dermed samme relative forhold hele
-    vejen, indtil minimumsbredden er nået. Den ydre `Container`-gutter og den indre `<main>`-
-    indrykning følger samme labelskala fra henholdsvis 24→16 px og 50→25 px, så den tomme afstand
-    efter skillelinjen reduceres uden at indholdet lægges op ad den. Skaleringen er kvantiseret til
-    policyens trin og falder aldrig under `0.85`. Den må ikke indføre reflow,
-    skjule indhold eller ændre input-/persistence-state ved resize. Den eksisterende `Container`-
-    scroll er den autoritative fallback under policyens minimumsbredde.
+    vejen, indtil minimumsbredden er nået. Den indre `<main>`-indrykning følger samme labelskala
+    fra 50→25 px, og de to ydre `Container`-gutters fra 24→16 px. Gutterne ligger uden for
+    zoom-roden og ganges derfor **også** med arbejdsfladens skala i CSS
+    (`calc(<gutter>px * var(--mineo-content-scale, 1))`), så afstanden mellem skillelinjen og
+    teksten reduceres i takt med indholdet selv i stedet for at æde en voksende andel af et smalt
+    vindue. Venstre og højre gutter er altid ens, så indholdet aldrig fitter ved at lægge sig op
+    ad scrollbaren. Skaleringen må ikke indføre reflow, skjule indhold eller ændre
+    input-/persistence-state ved resize. Den eksisterende `Container`-scroll er den autoritative
+    fallback under policyens minimumsbredde.
 
-    Den dækkede smalle grænse er en **CSS-viewport** på mindst 1358×620 px ved 100 % browserzoom,
-    ikke en fysisk skærmopløsning: En 1366×768-skærm med 125 % systemskalering kan derfor ligge
-    uden for grænsen. Under 1358 CSS-px skal skalaen fastholdes på 0,85, og arbejdsfladen skal være
-    nåbar med den eksisterende vandrette `Container`-scroll frem for mindre tekst, skjult indhold
-    eller responsivt reflow.
+    **Pladsregnskabet er delt i præcis to dele** og udledes i `CONTENT_UI_SCALE_POLICY` af de
+    navngivne layoutmål — ikke af hardkodede summer: `unscaledLeftWidthPx` (den udfoldede sidemenu
+    ved fuld labelskala, 250 px) og `scaledWorkspaceWidthPx` (venstre gutter 24 + indrykning 50 +
+    indholdsboks 1200 + højre gutter 24). Dertil `scrollbarReservePx` (20). Indholdsboksens bredde
+    er den bredeste geometri på hver eneste side og fane; TS-konstanten `CONTENT_BOX_WIDTH_PX`
+    spejler `--content-box-max-width` i `src/styles/layout.css` og er testhåndhævet. Begge
+    faste led er værste tilfælde: en sammenfoldet eller lavere skaleret menu giver kun ekstra luft.
+
+    Den dækkede smalle grænse er en **CSS-viewport** på mindst 1244×620 px ved 100 % browserzoom,
+    ikke en fysisk skærmopløsning: en 1920×1200-skærm ved 150 % zoom giver 1280 CSS-px og er
+    dermed dækket, mens en 1366×768-skærm med 125 % systemskalering ligger uden for grænsen.
+    Under 1244 CSS-px fastholdes minimumsskalaen, og arbejdsfladen skal være nåbar med den
+    eksisterende vandrette `Container`-scroll frem for mindre tekst, skjult indhold eller
+    responsivt reflow.
 
     Skalaen er ren runtime-afledning fra `window.innerWidth`, aldrig brugerdata eller en indstilling;
-    højden indgår ikke. Policyen har kun trinene 1, 0,95, 0,9 og 0,85 og vælger det største trin,
-    der kan være i den aktuelle viewport. Hysterese må kun forsinke et skift opad, aldrig en
-    nødvendig nedskalering. De konkrete grænser ligger ét sted i `CONTENT_UI_SCALE_POLICY`, som
-    både bootstrap og runtime læser. `zoom` er valgt frem for `transform: scale`, fordi transform
-    ændrer containing block for fixed-børn og efterlader layoutet i fuld størrelse.
+    højden indgår ikke. Den er den største skala, hele arbejdsfladen kan være i — kvantiseret nedad
+    til hele hundrededele og klemt mellem `1` og `0.75`. Udledningen er **historieløs**: samme
+    vinduesbredde giver altid samme skala, uanset om vinduet kom dertil ved at vokse eller skrumpe.
+    Der er bevidst ingen hysterese, fordi skalaen ikke kan påvirke `window.innerWidth` og derfor
+    ikke kan svinge; kvantiseringen alene holder skiftene rolige og små. De konkrete grænser ligger
+    ét sted i `CONTENT_UI_SCALE_POLICY`, som både bootstrap og runtime læser. `zoom` er valgt frem
+    for `transform: scale`, fordi transform ændrer containing block for fixed-børn og efterlader
+    layoutet i fuld størrelse.
 
     `measureContentUiScaleRoot` måler kun den faktiske browsergeometri på skaleringsroden og giver
     neutral skala ved jsdom eller ugyldig geometri. Virtualiseret ancestor-scroll må normalisere
@@ -174,7 +189,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `scripts/verify-build-artifacts.mjs` (postbuild-værn for entries, manifest og variantfiler).
 - `src/__tests__/quality/architecture/rules/responsiveStylingRules.ts` (`shell/viewport-responsive-styling-allowlist`: pinner fillisten i §5.3, så desktop-only-undtagelsen ikke kan brede sig stiltiende).
 - `src/__tests__/utils/uiScale.test.ts` (policygrænser, hysterese, bootstrap/runtime-paritet og DOM-måling).
-- `e2e/minimum-viewport-shell.spec.ts` og `e2e/content-scale.spec.ts` (menuens minimumsgeometri, arbejdsfladeskalering og resize-state).
+- `e2e/minimum-viewport-shell.spec.ts` og `e2e/content-scale.spec.ts` (menuens minimumsgeometri, arbejdsfladeskalering, den ubeskårne arbejdsflade ved 1280 CSS-px og resize-state).
+- `src/__tests__/quality/contentBoxWidthSingleSource.test.ts` (indholdsboksens bredde i CSS og skaleringens pladsregnskab i TypeScript kan ikke falde ud af sync).
 
 ## 5. Kendte Undtagelser
 

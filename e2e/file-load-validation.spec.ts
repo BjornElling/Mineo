@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { setVerbatimFieldValueAndSettle } from './support/mineoTest';
 
 const TEST_PASSWORD = 'Mineo-Codex-Test-2026';
 
@@ -106,10 +107,7 @@ test.describe('Filvalidering ved Hent', () => {
     await page.getByRole('button', { name: 'Stamdata' }).click();
 
     const nameInput = page.locator("input[name='skadelidte']");
-    await nameInput.dblclick();
-    await nameInput.fill('Aktiv sag før indlæsning');
-    await nameInput.press('Tab');
-    await expect(nameInput).toHaveValue('Aktiv sag før indlæsning');
+    await setVerbatimFieldValueAndSettle(nameInput, 'Aktiv sag før indlæsning');
 
     await page.getByRole('button', { name: 'Hent' }).click();
     const fileInput = page.locator('input[type="file"]');

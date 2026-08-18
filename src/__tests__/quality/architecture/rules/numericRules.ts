@@ -45,6 +45,9 @@ const MATH_ROUND_ALLOWLIST = new Set([
   'domain/dates/shDageBeregning.ts',
   // UI-virtualisering: scroll offset i pixels — aldrig vist til bruger som beløb
   'components/tables/VirtualizedDisplayTable.tsx',
+  // Arbejdsfladeskalering: Math.floor kvantiserer skalaen til hele hundrededele.
+  // Ren layoutgeometri af vinduets bredde — intet beløb og intet domænetal.
+  'utils/uiScale.ts',
   // Binær søgning i lønopslag-tabel (indeksaritmetik)
   'data/offentligLoenLookup.ts',
   // Bug-rapport: binær søgning til tekstafkortning (ikke finansielt)
