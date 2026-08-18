@@ -7,39 +7,17 @@ import { DEFAULT_FRACTION_MAX_DIGITS, isFractionDraftAllowed } from './fraction'
 import {
   isAmountExpressionDraftAllowed,
   isPercentDraftAllowed,
+  isWeekDraftAllowed,
+  isYearDraftAllowed,
+  MAX_YEAR_DRAFT_DIGITS as MAX_YEAR_PASTE_DIGITS,
 } from './numericDraftAdmission';
-import { resolveYearFromToken, type TwoDigitYearPolicy } from './yearDraftCore';
+import { type TwoDigitYearPolicy } from './yearDraftCore';
 
-const findNextDigitIndex = (text: string, start: number): number => {
-  for (let index = Math.max(0, start); index < text.length; index += 1) {
-    const char = text[index];
-    if (char !== undefined && /\d/.test(char)) {
-      return index;
-    }
-  }
-  return -1;
-};
-
-const extractContiguousDigits = (
-  text: string,
-  start: number,
-  maxDigits: number
-): Readonly<{ value: string; nextIndex: number }> => {
-  const firstDigitIndex = findNextDigitIndex(text, start);
-  if (firstDigitIndex === -1) {
-    return { value: '', nextIndex: text.length };
-  }
-
-  let end = firstDigitIndex;
-  while (end < text.length && /\d/.test(text[end] ?? '') && end - firstDigitIndex < maxDigits) {
-    end += 1;
-  }
-
-  return {
-    value: text.slice(firstDigitIndex, end),
-    nextIndex: end,
-  };
-};
+// `findNextDigitIndex`, `extractContiguousDigits` og `isWithinBounds` er fjernet 2026-08-18. De tjente
+// UDELUKKENDE års- og uge-normaliseringernes egne fortolkere: «find den første ciffergruppe, og forkort
+// den til den passer grænserne». Den fremgangsmåde er ophævet ved brugerbeslutning (§1.2a: paste giver
+// samme resultat som tastning af de samme tegn), og hjælperne er ikke efterladt — de er byggeklodserne
+// til præcis den slags paste-only fortolker, der ikke må opstå igen.
 
 type NumericPasteOptions = Readonly<{
   allowNegative?: boolean;
@@ -64,11 +42,6 @@ const normalizeNonNegativeIntegerOption = (value: number | undefined, fallback: 
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
     ? Math.trunc(value)
     : fallback;
-};
-
-const isWithinBounds = (value: number, minValue: number | undefined, maxValue: number | undefined): boolean => {
-  return (typeof minValue !== 'number' || !Number.isFinite(minValue) || value >= minValue)
-    && (typeof maxValue !== 'number' || !Number.isFinite(maxValue) || value <= maxValue);
 };
 
 /**
@@ -225,6 +198,20 @@ export const normalizeFractionPaste = (
   );
 };
 
+/**
+ * Uge-paste (§1.2a): tegn for tegn gennem ugefeltets EGET tegnprædikat.
+ *
+ * Funktionen byggede før uge- og årssegmentet hver for sig og limede dem sammen med `/`. Det var en
+ * paste-only fortolker: den kunne danne en værdi, tastning af samme tegn aldrig ville give, og den
+ * kaldte samtidig årsfeltets tilsvarende fortolker (se {@link normalizeYearPaste}). Begge er fjernet
+ * ved brugerbeslutning 2026-08-18: paste skal give PRÆCIS samme resultat som tastning af de samme
+ * tegn, og der må ikke findes en anden fortolkningsvej nogen steder.
+ *
+ * Sammensætningen tabes ikke ved det. `weekAdmission` accepterer selv `-`, `.`, `,`, `/`, `\` og
+ * mellemrum som separator, og `parseWeekDraftForCommit` normaliserer separatoren til `/` og nulstiller
+ * ugenummeret ved settle. `17-12` bliver derfor stadig `17/12` — men nu ad præcis samme vej som
+ * tastning, i settle frem for i paste.
+ */
 export const normalizeWeekPaste = (
   text: string,
   options: Readonly<{
@@ -233,53 +220,31 @@ export const normalizeWeekPaste = (
     twoDigitYearPolicy?: TwoDigitYearPolicy;
     maxDraftLength?: number;
   }> = {}
-): string => {
-  const firstDigitIndex = findNextDigitIndex(text, 0);
-  if (firstDigitIndex === -1) return '';
+): string => filterPasteCharacters(text, isWeekDraftAllowed, options.maxDraftLength);
 
-  const firstDigit = text[firstDigitIndex] ?? '';
-  if (firstDigit === '0') return '';
-  let weekValue = firstDigit;
-  let nextIndex = firstDigitIndex + 1;
-
-  const secondChar = text[firstDigitIndex + 1];
-  if (secondChar !== undefined && /\d/.test(secondChar)) {
-    const twoDigitWeek = `${firstDigit}${secondChar}`;
-    const numericWeek = Number.parseInt(twoDigitWeek, 10);
-    if (Number.isFinite(numericWeek) && numericWeek <= 53) {
-      weekValue = twoDigitWeek;
-      nextIndex = firstDigitIndex + 2;
-    } else {
-      // Andet ciffer overskrider ugeformatets maksimum; resten af pasten afskæres.
-      return weekValue;
-    }
-  }
-
-  const year = normalizeYearPaste(text.slice(nextIndex), options);
-  const combined = year === '' ? weekValue : `${weekValue}/${year}`;
-  const maxDraftLength = normalizePositiveIntegerOption(options.maxDraftLength, combined.length);
-  const truncated = combined.slice(0, maxDraftLength);
-  return truncated.endsWith('/') ? truncated.slice(0, -1) : truncated;
-};
-
+/**
+ * Års-paste (§1.2a): tegn for tegn gennem årsfeltets tegnprædikat — højst fire cifre.
+ *
+ * **Fjernet ved brugerbeslutning 2026-08-18.** Funktionen udtrak før den første sammenhængende
+ * ciffergruppe og forkortede den derefter, indtil resultatet lå inden for feltets årsgrænser. Det gav
+ * to fejl, som brugerfundet BB-031 målte:
+ *
+ * 1. **Samme paste gav to forskellige værdier.** Normaliseringen kaldes kun, når draften er tom
+ *    (`normalizePasteForDraft`); et udfyldt felt fik den almindelige tegn-for-tegn-regel i stedet.
+ *    `2.026` blev derfor `2` → 2002 i et tomt felt, men `2026` i et udfyldt.
+ * 2. **En værdi uden for grænserne blev tavst en anden, gyldig værdi.** `2035` med maksimum 2030 blev
+ *    forkortet til `20` → 2020. Det er præcis det, §1.2a punkt 5 forbyder: et filtreret resultat, der
+ *    stadig er ugyldigt, skal bevares som fejltekst — ikke ændres til noget gyldigt.
+ *
+ * Årsgrænserne hører derfor slet ikke til her. De er bounds og ejes af feltvalidatoren (§1.6), som
+ * giver rød ring og konkret tooltip på en canonical værdi. `options` beholdes i signaturen, fordi
+ * kalderne sender feltets fulde codec-konfiguration; ingen af felterne bruges længere til filtrering.
+ */
 export const normalizeYearPaste = (
   text: string,
-  options: Readonly<{
+  _options: Readonly<{
     minYear?: number;
     maxYear?: number;
     twoDigitYearPolicy?: TwoDigitYearPolicy;
   }> = {}
-): string => {
-  const digits = extractContiguousDigits(text, 0, 4).value;
-  const policy = options.twoDigitYearPolicy ?? 'infer';
-
-  for (let length = digits.length; length >= 1; length -= 1) {
-    const candidate = digits.slice(0, length);
-    const year = resolveYearFromToken(candidate, policy);
-    if (year !== null && isWithinBounds(year, options.minYear, options.maxYear)) {
-      return candidate;
-    }
-  }
-
-  return '';
-};
+): string => filterPasteCharacters(text, isYearDraftAllowed, MAX_YEAR_PASTE_DIGITS);

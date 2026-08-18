@@ -16,8 +16,22 @@ import type { DocumentArtifact } from '../../downloadArtifact';
 type SatserData = ReturnType<typeof getSatserForYear>;
 type SatserDocumentOptions = DocumentCommonOptions;
 
-const isPositiveFiniteNumber = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value > 0;
+/**
+ * Om der FINDES en sats for året — ikke om den er større end nul.
+ *
+ * Prøven var før `value > 0`, og det var en anden prøve end sidens (`DataRow` skjuler rækken, når
+ * værdien mangler). De to var enige om alt undtagen et lovligt nul: `reguleringsprocentErhvervsevnetabFra2024`
+ * er `0.0` i 2024, så skærmen viste «Reguleringsprocent for erhvervsevnetab (fra 2024): 0 %», mens
+ * dokumentet udelod rækken helt. Brugerfund BB-030, rettet efter brugerbeslutning 2026-08-18: **0 er en
+ * oplysning, ikke et fravær** — den siger, at der ikke er reguleret siden 2024-grundlaget, og fraværet af
+ * rækken kunne lige så godt læses som «satsen er ukendt».
+ *
+ * `getSatserForYear` er fail-open og giver `null` for et år uden sats (se `lovbestemteRates.ts`); det er
+ * netop den `null`, denne prøve skal fange. `Number.isFinite` beholdes, så en beskadiget datapost
+ * (`NaN`/`Infinity`) fortsat ikke bliver en række.
+ */
+const hasRateValue = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '';
@@ -95,7 +109,7 @@ const addEalSection = (
   const rows: string[][] = [];
 
   // Godtgørelse for svie og smerte
-  if (isPositiveFiniteNumber(eal.svieSmertePrDag)) {
+  if (hasRateValue(eal.svieSmertePrDag)) {
     rows.push([
       'Godtgørelse for svie og smerte',
       formatCurrencyPerUnit(eal.svieSmertePrDag, 'sygedag', 0),
@@ -103,12 +117,12 @@ const addEalSection = (
   }
 
   // Maksimum for svie og smerte
-  if (isPositiveFiniteNumber(eal.svieSmerteMax)) {
+  if (hasRateValue(eal.svieSmerteMax)) {
     rows.push(['Maksimum for svie og smerte', formatKr(eal.svieSmerteMax, 0)]);
   }
 
   // Maksimum for erhvervsevnetabserstatning
-  if (isPositiveFiniteNumber(eal.erhvervsevnetabEalMax)) {
+  if (hasRateValue(eal.erhvervsevnetabEalMax)) {
     rows.push([
       'Maksimum for erhvervsevnetabserstatning',
       formatKr(eal.erhvervsevnetabEalMax, 0),
@@ -116,7 +130,7 @@ const addEalSection = (
   }
 
   // Mindstebeløb for forsørgertab
-  if (isPositiveFiniteNumber(eal.foersoergertabEalMin)) {
+  if (hasRateValue(eal.foersoergertabEalMin)) {
     rows.push([
       'Mindstebeløb for forsørgertab',
       formatKr(eal.foersoergertabEalMin, 0),
@@ -124,7 +138,7 @@ const addEalSection = (
   }
 
   // Vejledende udtalelse
-  if (isPositiveFiniteNumber(eal.vejledendeUdtalelseEet)) {
+  if (hasRateValue(eal.vejledendeUdtalelseEet)) {
     rows.push([
       'Vejledende udtalelse om erhvervsevnetab',
       formatKr(eal.vejledendeUdtalelseEet, 0),
@@ -146,7 +160,7 @@ const addAslSection = (
   const rows: string[][] = [];
 
   // Godtgørelse for varige mén
-  if (isPositiveFiniteNumber(asl.varigeMenPrGrad)) {
+  if (hasRateValue(asl.varigeMenPrGrad)) {
     rows.push([
       'Godtgørelse for varige mén',
       formatCurrencyPerUnit(asl.varigeMenPrGrad, 'méngrad', 0),
@@ -154,17 +168,17 @@ const addAslSection = (
   }
 
   // Maksimum årsløn
-  if (isPositiveFiniteNumber(asl.aarsloenAslMax)) {
+  if (hasRateValue(asl.aarsloenAslMax)) {
     rows.push(['Maksimum årsløn', formatKr(asl.aarsloenAslMax, 0)]);
   }
 
   // Minimum årsløn
-  if (isPositiveFiniteNumber(asl.aarsloenMin)) {
+  if (hasRateValue(asl.aarsloenMin)) {
     rows.push(['Minimum årsløn', formatKr(asl.aarsloenMin, 0)]);
   }
 
   // Minimum årsløn (skader før 1.7.2024)
-  if (isPositiveFiniteNumber(asl.aarsloenMinFoer2024)) {
+  if (hasRateValue(asl.aarsloenMinFoer2024)) {
     rows.push([
       'Minimum årsløn (skader før 1.7.2024)',
       formatKr(asl.aarsloenMinFoer2024, 0),
@@ -172,7 +186,7 @@ const addAslSection = (
   }
 
   // Minimum årsløn (skader fra 1.7.2024)
-  if (isPositiveFiniteNumber(asl.aarsloenMinFra2024)) {
+  if (hasRateValue(asl.aarsloenMinFra2024)) {
     rows.push([
       'Minimum årsløn (skader fra 1.7.2024)',
       formatKr(asl.aarsloenMinFra2024, 0),
@@ -180,12 +194,12 @@ const addAslSection = (
   }
 
   // Overgangsbeløb
-  if (isPositiveFiniteNumber(asl.overgangsbelob)) {
+  if (hasRateValue(asl.overgangsbelob)) {
     rows.push(['Overgangsbeløb', formatKr(asl.overgangsbelob, 0)]);
   }
 
   // Reguleringsprocent for erhvervsevnetab
-  if (isPositiveFiniteNumber(asl.reguleringProcentErhvervsevnetab)) {
+  if (hasRateValue(asl.reguleringProcentErhvervsevnetab)) {
     rows.push([
       'Reguleringsprocent for erhvervsevnetab',
       formatPercentage(asl.reguleringProcentErhvervsevnetab),
@@ -193,7 +207,7 @@ const addAslSection = (
   }
 
   // Reguleringsprocent for erhvervsevnetab (før 2024)
-  if (isPositiveFiniteNumber(asl.reguleringProcentErhvervsevnetabFoer2024)) {
+  if (hasRateValue(asl.reguleringProcentErhvervsevnetabFoer2024)) {
     rows.push([
       'Reguleringsprocent for erhvervsevnetab (før 2024)',
       formatPercentage(asl.reguleringProcentErhvervsevnetabFoer2024),
@@ -201,7 +215,7 @@ const addAslSection = (
   }
 
   // Reguleringsprocent for erhvervsevnetab (fra 2024)
-  if (isPositiveFiniteNumber(asl.reguleringProcentErhvervsevnetabFra2024)) {
+  if (hasRateValue(asl.reguleringProcentErhvervsevnetabFra2024)) {
     rows.push([
       'Reguleringsprocent for erhvervsevnetab (fra 2024)',
       formatPercentage(asl.reguleringProcentErhvervsevnetabFra2024),
@@ -222,24 +236,34 @@ const addDiverseSection = (
 ): void => {
   const rows: string[][] = [];
 
-  // Beløbsgrænse for fri proces
+  // Beløbsgrænse for fri proces.
+  //
+  // Linjerne vurderes HVER FOR SIG, ligesom på siden (`MultiLineDataRow` filtrerer pr. linje). Kravet
+  // var før, at alle tre beløb skulle findes, ellers udgik hele rækken. Det er samme klasse af fejl som
+  // BB-030: to steder afgør «er der noget at vise» på hver sin måde. Uenigheden er ikke udløst af de
+  // nuværende data — alle tre beløb findes for hvert dækket år — men et fremtidigt år med kun to af de
+  // tre ville have vist to linjer på skærmen og ingen række i dokumentet.
   const enlig = diverse.friProcesEnlig;
   const samlevende = diverse.friProcesSamlevende;
   const barn = diverse.friProcesBarn;
 
-  if (
-    isPositiveFiniteNumber(enlig) &&
-    isPositiveFiniteNumber(samlevende) &&
-    isPositiveFiniteNumber(barn)
-  ) {
-    const text =
-      `${formatKr(enlig, 0)} (enlig) / ${formatKr(samlevende, 0)} (samlevende)\n` +
-      `+ ${formatKr(barn, 0)} per barn under 18 år`;
-    rows.push(['Beløbsgrænse for fri proces', text]);
+  const friProcesLines: string[] = [];
+  if (hasRateValue(enlig) && hasRateValue(samlevende)) {
+    friProcesLines.push(`${formatKr(enlig, 0)} (enlig) / ${formatKr(samlevende, 0)} (samlevende)`);
+  } else if (hasRateValue(enlig)) {
+    friProcesLines.push(`${formatKr(enlig, 0)} (enlig)`);
+  } else if (hasRateValue(samlevende)) {
+    friProcesLines.push(`${formatKr(samlevende, 0)} (samlevende)`);
+  }
+  if (hasRateValue(barn)) {
+    friProcesLines.push(`+ ${formatKr(barn, 0)} per barn under 18 år`);
+  }
+  if (friProcesLines.length > 0) {
+    rows.push(['Beløbsgrænse for fri proces', friProcesLines.join('\n')]);
   }
 
   // Reguleringssats
-  if (isPositiveFiniteNumber(diverse.reguleringssats)) {
+  if (hasRateValue(diverse.reguleringssats)) {
     rows.push(['Reguleringssats', formatPercentage(diverse.reguleringssats)]);
   }
 

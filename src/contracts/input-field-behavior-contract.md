@@ -3,7 +3,12 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-16 (§1.2a's generelle tekst-normalisering ved paste, Stamdatas
+**Senest verificeret mod kode:** 2026-08-18 (§1.2a punkt 7 og §2.9 er implementeret og målt: års- og
+ugefelternes paste-only fortolkere er slettet, begge familier bruger nu det delte tegn-for-tegn-filter, og
+`inputPasteNormalization.test.ts` måler både at grænserne ikke længere afkorter teksten, og at samme paste
+giver samme resultat i et tomt og et udfyldt felt. Ugefeltets separatorsæt har fået én erklæring, som både
+tegnværnet og settle-parseren læser)
+2026-08-16 (§1.2a's generelle tekst-normalisering ved paste, Stamdatas
 skadedato-/anmeldelsesdatoreference og de to korte initialfelter er implementeret og dækket af målrettede tests;
 §2.6's og §2.7's fælles undo-regel for tastaturvalg er en
 brugerbeslutning truffet samme dag og målt af `keyboardChoiceUndoSteps.test.tsx`; §1.2's længdedel er nu håndhævet for ALLE tastede
@@ -148,6 +153,26 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
 6. Hvis paste-resultatet bliver tomt, er paste et no-op. En eksisterende værdi må ikke forsvinde, blot fordi
    clipboard-teksten kun indeholder afviste tegn eller er tom; rydning kræver den eksplicitte
    Delete/Backspace-handling, medmindre feltet er en kontrol med særskilt no-op-regel.
+7. **Reglen er modalitets- OG tilstandsuafhængig (brugerbeslutning 2026-08-18).** Resultatet af et paste må
+   ikke afhænge af, om feltet var tomt eller havde en værdi i forvejen. Der må ikke findes en anden
+   fortolkningsvej ved siden af punkt 1–4 — hverken en paste-only normalisering, der læser hele teksten på
+   én gang og udleder en værdi af den, eller en regel, der leder efter et velformet delelement (fx «find
+   årstallet i teksten»). En sådan vej giver enten et andet resultat end tastning eller to forskellige
+   resultater for samme tekst, og begge er kontraktbrud. **Enhver kode eller kontrakttekst, der fører til
+   et andet resultat end tastning af de samme tegn, er forkert og skal ændres.**
+
+   Baggrunden er brugerfundet BB-031 (`docs/testing/brugerblik/satser.md`): års- og ugefelterne havde hver
+   sin paste-only fortolker, som kun blev kaldt i et TOMT felt. `2.026` blev derfor `2` → 2002 i et tomt
+   felt, men `2026` i et udfyldt; og `2035` med maksimum 2030 blev tavst forkortet til `20` → 2020 i strid
+   med punkt 5. Begge fortolkere er fjernet; de to familier bruger nu det samme tegn-for-tegn-filter som
+   beløb, procent og brøk.
+
+   Konsekvenser, der er tilsigtede og ikke skal «rettes» tilbage:
+   - Et årsfelt, der får en dato indsat (`01-02-2026`), optager de fire første cifre (`0102` → 102) og
+     markeres rødt. Præcis som hvis brugeren havde tastet tegnene selv.
+   - Cifre samles på tværs af sprungne tegn: `2.026` bliver `2026`. Det er reglens tilsigtede virkning.
+   - Et paste kan efterlade en draft, som settle afviser. Det er det rigtige udfald efter punkt 5 — bedre
+     end en pæn værdi, brugeren ikke kunne have tastet sig frem til.
 
 For frie tekstfelter udføres der før denne afgrænsning en fælles, tabsfri normalisering af clipboard-teksten:
 
@@ -434,6 +459,42 @@ undo-trin». Håndhæves sammen med dropdownens ben af
   cifferantallet, men uden for feltets interval, skal fortsat kunne indtastes og bevares som canonical
   værdi med rød ring og konkret tooltip: méngrad `121` er kontraktens eksempel (§2.3), og den kan stadig
   tastes, fordi 121 er tre cifre.
+
+### 2.9 Års- og ugefelter
+
+Afklaret 2026-08-18 på brugerfundene BB-031/BB-030's paste-gennemgang. Begge familier var indtil da
+udtrykkeligt uafklarede i denne kontrakt og fulgte hver sin paste-only fortolker; §1.2a punkt 7 er den
+bærende regel, og nedenstående er dens feltspecifikke følger.
+
+**Årsfelter**
+
+- Et årsfelt accepterer kun cifre, højst fire. Alt andet blokeres ved tastning og springes over ved paste.
+- Tocifrede årstal fortolkes ved settle efter den ene gennemgående regel for hele programmet
+  (`interpretYear`: femårs-vinduet omkring indeværende år afgør århundredet). Et felt må ikke have sin
+  egen årsfortolkning — afgjort 2026-08-16 på BB-009.
+- **Årsgrænserne (`minYear`/`maxYear`) er bounds, ikke et tegnværn.** De må aldrig afkorte eller ændre
+  den indtastede eller indsatte tekst for at bringe den inden for intervallet. Et velformet årstal uden
+  for intervallet committes canonical og bærer et bounds-feltissue med rød ring og konkret tooltip
+  («Årstallet skal være mellem *min* og *maks*»), jf. §1.6.
+
+**Ugefelter**
+
+- Formen er uge + separator + årstal, kanonisk «UU/ÅÅÅÅ» efter settle (ugenummeret nul-polstret).
+- **De lovlige separatorer er `.` `,` `/` `\` og `-`. Mellemrum er IKKE en separator**
+  (brugerbeslutning 2026-08-18). Mellemrum var det før, og sammen med §1.2a's tegn-for-tegn-regel gjorde
+  det en almindelig indsat tekst ubrugelig: i `uge 23/2025` optog mellemrummet efter «uge»
+  separator-pladsen, hvorefter det ægte `/` blev ulovligt (kun én separator tillades), og resultatet
+  ` 2320` blev afvist. Nu springes mellemrummet som ethvert andet ulovligt tegn, og teksten bliver
+  `23/2025`.
+- Den tilsigtede pris: `23 2025` kan ikke længere tastes eller indsættes med mellemrum — cifrene løber
+  sammen til `232025` og afvises. Det samme gælder `Uge 7 2019`. Brugeren skal bruge en af de fem
+  separatorer.
+- **Separatorsættet er ÉN erklæring**, som både tegnværnet og settle-parseren læser
+  (`normalizeWeekSeparators` i `utils/numericDraftAdmission.ts`). De var før to lister med forskelligt
+  indhold: værnet tillod `,` og `\`, som settle ikke normaliserede (så `23,2025` kunne tastes men blev
+  afvist), og settle normaliserede `:`, som aldrig kunne tastes.
+- Ugenummeret 1–52/53 er en repræsenterbarhedsgrænse og forbliver `format`-rejected med konkret tooltip;
+  årsdelens grænser er bounds som for årsfelter ovenfor.
 
 ## 3. Gennemgåede felter – Offentlige ydelser
 

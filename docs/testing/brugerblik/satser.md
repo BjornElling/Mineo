@@ -60,6 +60,30 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
   beløb (enlig, samlevende, barn) findes, mens skærmen filtrerer hver linje for sig. Får et
   fremtidigt år kun to af de tre, viser skærmen to linjer og dokumentet ingen.
 
+**Tilbagemelding**
+Jeg accepterer din præmis om, at siden og dokumentet bør vise det samme. Du må gerne ændre til, at rækker, hvor værdien er indtastet, men er 0, vises begge steder.
+
+**Afgørelse og gennemførelse 2026-08-18 — accepteret, gennemført.**
+Dokumentets prøve er ændret fra «er værdien større end nul?» til «findes værdien?»
+(`isPositiveFiniteNumber` → `hasRateValue` i `satserDocument.ts`, alle 18 kaldssteder). `Number.isFinite`
+er bevaret, så en beskadiget datapost (`NaN`/`Infinity`) fortsat ikke bliver en række, og en manglende sats
+(`null` fra det fail-open `getSatserForYear`) udgår som før.
+
+Målt i browser: 2024-dokumentet indeholder nu «Reguleringsprocent for erhvervsevnetab (fra 2024): 0 %», og
+en diff mod det gamle dokument viser præcis de to tilføjede linjer og intet andet. 2026-dokumentet er
+byte-identisk med før — rettelsen tilføjer kun den række, der reelt er nul. Skærm og dokument har nu
+samme 22 rækker for 2024.
+
+**Fri proces-rækken er rettet i samme omgang** (den latente del af fundet). Dokumentet krævede, at alle
+tre beløb fandtes, ellers udgik hele rækken; skærmen filtrerer pr. linje. Dokumentet gør nu det samme.
+Uenigheden var ikke udløst af de nuværende data, men var samme fejlklasse.
+
+To regressionsværn i `satserWordContent.test.ts`: ét der kræver 0 %-rækken i det færdige Word-dokument, og
+ét der kræver, at en sats uden værdi fortsat udgår — så rettelsen ikke kan skride den anden vej og gøre
+`null` til «0 kr.». Det første værn er mutations-efterprøvet: det bliver rødt, hvis `> 0` sættes tilbage.
+Værnet asserterer desuden, at 2024-satsen faktisk ER nul, så testen ikke stille bliver grøn, hvis
+datagrundlaget ændrer sig.
+
 ### BB-031 — Samme indsatte tekst giver to forskellige årstal, alt efter om feltet var tomt
 
 - **Type:** Edge case
@@ -109,6 +133,73 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
   `col1_maaned` (`erstatningsopgoerelseLoenDescriptors.ts:296`). De to sidste er tabelceller, hvor
   et indsat regneark er den sandsynlige kilde.
 
+**Tilbagemelding**
+Det er udtryk for en fejl i selve den generelle paste-adfærden for hele programmet, hvis indsætning af 2.026 i et datofelt kan blive til 2 (som da omformes til 2002). 
+Paste skal alle steder opføre sig på samme måde, som hvis brugeren havde indtastet den pastede værdi ét tegn ad gangen startende med det første. Koden skal ikke nødvendigevis behandle paste som en serie af enkeltvise indtastninger, men resultatet skal blive som var det sket - og alle kontrakter eller koder som fører til et andet resultat, er forkerte og skal ændres.
+Paste af '2.026' i et årstalfelt vil dermed blive håndteret som 
+1) indtastning af 2 (indsættes)
+2) indtastning af punktum (datofelter ignorerer tavst)
+3) indtastning af 0 (indsættes)
+4) indtastning af 2 (indsættes)
+5) indtastning af 6 (indsættes)
+
+Altså sådan, at den pastede værdi var '2026'.
+Var der rent hypotetisk blevet pastet 2.026.4 ville derefter være sket
+6) indtastning af punktum (datofelter ignorerer tavst)
+7) indtastning af 4 (feltet er fyldt med det maksimale antal tilladte cifre, så ignoreres tavst)
+
+**Afgørelse og gennemførelse 2026-08-18 — accepteret; mit eget forslag forkastet.**
+
+Brugeren har ret, og fundets «Bedre ville være» var forkert. Mit forslag — «find det entydige firecifrede
+årstal i teksten» — ville have indført en NY fortolkningsregel oven på tastningen, altså præcis den slags
+konkurrerende vej, fundet selv klagede over. Reglen er i stedet den, brugeren beskriver: paste giver samme
+resultat, som hvis tegnene var tastet ét ad gangen. Den var i forvejen kontrakt (§1.2a) og var ikke
+opfyldt.
+
+**Det, der var i vejen, var to paste-only fortolkere.** `normalizeYearPaste` og `normalizeWeekPaste` læste
+hele teksten på én gang, tog den første ciffergruppe og forkortede den derefter, indtil resultatet lå inden
+for årsgrænserne. Begge er slettet og erstattet af det delte tegn-for-tegn-filter, som beløb, procent og
+brøk allerede brugte (`filterPasteCharacters`, hvis egen dokumentation ordret er brugerens regel). Dermed er
+der ikke længere nogen anden fortolkningsvej i programmet.
+
+To fejl faldt væk med dem:
+
+| Indsat | Før (tomt felt) | Før (udfyldt) | Nu (begge) |
+|---|---|---|---|
+| `2.026` | 2002 | 2026 | **2026** ✓ brugerens eksempel |
+| `2035` (maks 2030) | 2020 tavst | 2035 rødt | **2035 rødt** |
+| `01-02-2026` | 2001 | 102 | **102 rødt** |
+
+Den anden linje er den vigtigste: årsgrænsen forkortede før `2035` til `2020` — en tavs ændring til en
+anden gyldig værdi, som §1.2a punkt 5 udtrykkeligt forbyder. Årsgrænser er bounds og ejes af
+feltvalidatoren; de må ikke røre teksten.
+
+**Bekræftet i browser** på alle tre tekster: identisk resultat i tomt og udfyldt felt.
+
+**Sideeffekter, der blev rettet i samme omgang, fordi de var samme fejlklasse:**
+- Ugefeltets separatorsæt var erklæret **to gange med forskelligt indhold**: tegnværnet tillod `,` og `\`,
+  som settle-parseren ikke normaliserede (`23,2025` kunne tastes, men blev afvist), og parseren
+  normaliserede `:`, som aldrig kunne tastes. Nu én erklæring, som begge læser.
+- **Mellemrum er ikke længere ugeseparator** (brugerbeslutning, spørgsmål stillet undervejs). Med
+  tegn-for-tegn-reglen gjorde mellemrummet `uge 23/2025` ubrugelig — det optog separator-pladsen, så det
+  ægte `/` blev ulovligt, og ` 2320` blev afvist. Nu bliver teksten `23/2025`. Prisen er, at `23 2025` og
+  `Uge 7 2019` ikke længere kan indsættes; de kræver en af de fem separatorer.
+- Hjælperne bag de slettede fortolkere (`extractContiguousDigits`, `findNextDigitIndex`, `isWithinBounds`)
+  er fjernet, ikke efterladt: de er byggeklodserne til præcis den slags fortolker, der ikke må opstå igen.
+
+**Kontrakten er opdateret**, fordi reglen er normativ og var uopfyldt: §1.2a har fået **punkt 7**
+(modalitets- OG tilstandsuafhængighed, med brugerens sætning om at enhver kode eller kontrakt, der giver et
+andet resultat, er forkert), og der er kommet en **§2.9 om års- og ugefelter**, som var udtrykkeligt
+uafklarede indtil nu. De tre tilsigtede konsekvenser er skrevet ind, så de ikke senere «rettes» tilbage.
+
+**Bemærk den ene konsekvens, jeg gjorde brugeren opmærksom på undervejs:** `01-02-2026` giver `102` med rød
+ring — ikke en afvisning. Fire cifre parser fint som årstal, så værdien committes canonical med et
+bounds-issue. Brugeren så udfaldet og fastholdt reglen; en «det ligner en dato»-undtagelse ville genskabe
+den anden fortolkningsvej.
+
+Tests: de gamle prøver pinnede den forkerte adfærd og er skrevet om. Ny test måler ligheden mellem tomt og
+udfyldt felt direkte — det er den invariant, hele fundet handler om.
+
 ### BB-032 — Det dækkede årsinterval er kun synligt, når man har gættet forkert
 
 - **Type:** Fornuft
@@ -139,6 +230,19 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
   bruger datadækningen (til 2026), EO bruger `getCurrentYear()`. De er ens i dag, men vil skille
   sig, den dag satsdata rækker længere frem end kalenderåret.
 
+**Tilbagemelding**
+Der er ikke reelt tale om en fejl. Brugere vil i praksis aldrig søge på så gamle satser, som programmet understøtter - så det er kun et udtryk for overdreven akademisk indhu, at de indgår.
+
+**Afgjort 2026-08-18 — afvist. Ingen ændring.**
+Præmissen bag fundet var, at brugeren rammer den nedre grænse, fordi han har en gammel sag. Brugeren
+oplyser, at det i praksis ikke sker: de understøttede år rækker længere tilbage, end nogen slår op i, så
+2005-grænsen er ikke en grænse, brugere støder på. Et interval, ingen rammer, behøver ikke annonceres.
+
+Konsekvens for de øvrige flader: **«skriv det tilladte interval ved feltet» er ikke et generelt fund.**
+Foreslå det kun, hvor grænsen er en, brugeren realistisk rammer under almindeligt arbejde — ikke blot fordi
+den findes og kunne skrives. Bemærk at grænsen fortsat ER oplyst, når den faktisk rammes: feltets tooltip
+og downloadknappens tooltip siger begge «Årstallet skal være mellem 2005 og 2026».
+
 ### BB-033 — Tre steder hedder «Satser», og de tre viser satser på tre måder
 
 - **Type:** Fornuft
@@ -166,6 +270,19 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
   kan hedde noget, der siger at de er historiske oversigter, så det er tydeligt, at de ikke er
   bundet til sagens satsår.
 - **Andre steder det kan gælde:** Ingen ud over de fire nævnte.
+
+**Tilbagemelding**
+Ikke en reel fejl. Det er forskelligt fra emne-type til emne-type, hvilke supplerende informationer, brugere har behov for at se for de respektive satser, så det er programmets forskelle udtryk for.
+
+**Afgjort 2026-08-18 — afvist. Ingen ændring.**
+Fundets præmis var, at de forskellige visningsformer er en inkonsistens. Brugeren afgør, at de er et
+udtryk for et reelt fagligt behov: hvilke supplerende oplysninger en bruger har brug for, afhænger af
+satstypen, og formen følger behovet. Én-år-ad-gangen, alle-år-tabel og indtastningsfelter er derfor tre
+rigtige svar på tre forskellige spørgsmål — ikke tre inkonsistente svar på ét.
+
+Konsekvens for de øvrige flader: **et fælles navn er ikke i sig selv et fund.** A7-prøven skal stilles
+skarpere — kun hvor to flader løser *samme* opgave forskelligt, ikke hvor de deler et ord, fordi emnet er
+det samme. Rejs det ikke igen for «Satser» som overskrift.
 
 ### BB-034 — «Reguleringsprocent for erhvervsevnetab (fra 2024)» står alene og forklarer ikke sig selv
 
@@ -197,6 +314,24 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
   parentesen dog konkret (en dato, ikke et årstal), og den optræder kun, hvor der faktisk er to
   rækker — så den er ikke et fund, men den bør følge samme afgørelse.
 
+**Tilbagemelding**
+Der er tale om en juridisk teknikalitet, som alle brugere vil kende baggrunden bag. Der blev lavet en markant ændring i beregningsprincipperne i år 2024, som også førte til nogle særlige overgangsbestemmelser det pågældende år.
+
+**Afgjort 2026-08-18 — afvist. Ingen ændring.**
+Fundet hvilede på, at brugeren skal kunne læse på siden, hvilken reguleringsserie hans sag hører til.
+Brugeren oplyser, at 2024-ændringen af beregningsprincipperne og dens overgangsbestemmelser er almindeligt
+fagkendskab i målgruppen: parentesen «(fra 2024)» er ikke et forbehold, der skal forklares, men en
+henvisning til en velkendt lovændring. Etiketten er dermed tilstrækkelig, og der skal ikke tilføjes
+tooltips til reguleringsrækkerne.
+
+Det samme gælder «Minimum årsløn (skader før/fra 1.7.2024)», som fundet nævnte som følgesag — den følger
+denne afgørelse og skal ikke ændres.
+
+Konsekvens for de øvrige flader: **en fagligt velkendt lovhenvisning behøver ingen forklaring i
+brugerfladen.** Målgruppen er erfarne arbejdsskadepraktikere. Rejs kun etiket-fund, hvor betegnelsen er
+programmets EGEN konstruktion, ikke hvor den refererer til en kendt regel eller lovændring.
+
+
 ### BB-035 — Specifikationen på papir mangler grundlaget for fri proces-beløbene
 
 - **Type:** Fornuft
@@ -220,6 +355,20 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
   sit.
 - **Andre steder det kan gælde:** Alle informationsikoner, hvis indhold ikke også står i det
   dokument, rækken ender i. Ikke kortlagt; er en generel prøve for de dokumentførende flader.
+
+**Tilbagemelding**
+Ikke væsentligt. Det er grundlæggende en overflødig information til brugerne at fortælle, hvad der står i tooltip-meddelelsen. Den er der til ren akademisk interesse.
+
+**Afgjort 2026-08-18 — afvist. Ingen ændring.**
+Fundet antog, at tooltippens indhold er nødvendigt for at bruge beløbsgrænsen, og at fraværet i dokumentet
+derfor er et tab. Brugeren afgør det modsatte: indkomstgrundlaget er overflødig oplysning for målgruppen,
+og tooltippen står der af akademisk interesse — ikke som en forudsætning for at læse tallet. Så er der
+intet tab i, at dokumentet undlader den.
+
+Konsekvens for de øvrige flader: **et informationsikons indhold er ikke automatisk noget, dokumentet
+mangler.** Den generelle prøve, fundet foreslog («alle tooltips bør findes i dokumentet»), er dermed
+afvist. Rejs det kun, hvor oplysningen er nødvendig for at kunne bruge tallet — ikke hvor den er
+uddybende baggrund.
 
 ## Overvejet uden fund
 
@@ -299,6 +448,21 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
   visning og dette dokument — fx som underrubrik under Årstal; eller (b) lad det stå, fordi ordet
   «Vis» i etiketten er nok. Spørgsmålet er brugerens, fordi det handler om, hvilken forventning
   siden skal skabe.
+
+**Tilbagemelding**
+Nej, det vil være åbenlyst og velkendt for brugerne. Programmet indeholder mange individuelle værktøjer, som en erfaren praktisør vil vide, ikke har indbyrdes sammenhæng. Satser-siden er en ren informationsside, hvor brugere kan blive mindet om de gældende satser.
+
+**Afgjort 2026-08-18 — lukket. Ingen ændring.**
+Satser-siden er et **opslagsværk**, ikke en del af sagsbehandlingen. At programmet består af individuelle
+værktøjer uden indbyrdes sammenhæng er åbenlyst for en erfaren praktiker, og siden behøver derfor ikke
+oplyse, at satsåret ikke påvirker beregninger.
+
+**Dette er en generel afgørelse, ikke kun et svar om denne side.** Den slår fast, at Mineo er en samling
+selvstændige værktøjer, og at brugeren forventes at vide det. Konsekvens for de resterende flader: rejs
+ikke fund af formen «brugeren kan tro, at denne side hænger sammen med den anden» alene ud fra, at to
+flader deler et begreb. Et sådant fund kræver, at der faktisk ER en kobling, som virker anderledes end den
+ser ud — ikke at koblingen mangler.
+
 - **Bør et årstal langt fra sagens øvrige datoer give en advarsel?** Sagen har en skadedato på
   Stamdata. Vælges satsåret 2007 i en sag med skadedato 2024, er begge tal lovlige, men
   kombinationen er næsten sikkert en tastefejl eller et bevidst opslag — og programmet ved hvilke
@@ -306,3 +470,15 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
   usandsynlig **i sagens egen sammenhæng**. Om det gælder her, afhænger af svaret på spørgsmålet
   ovenfor: er satsåret et rent opslag, er der intet at advare om, og siden må gerne kunne bruges
   til at kigge på 2007 midt i en 2024-sag. Er det et sagsvalg, er afstanden et signal.
+
+**Tilbagemelding**
+Nej. Samme begrundelse som umiddelbart ovenfor. Satser-siden har ingen relation til hvad brugeren i øvrigt har indtastet andre steder i programmet. Den handler om ren information om genelle satser. Den pågældende side er et opslagsværk - ikke en del af den egentlige sagsbehandling.
+
+**Afgjort 2026-08-18 — lukket. Ingen ændring.**
+Ingen advarsel. Siden har ingen relation til sagens øvrige indtastninger, så der findes ingen «sagens egen
+sammenhæng» at måle satsåret imod. En bruger skal frit kunne slå 2007-satser op midt i en 2024-sag — det er
+netop opslagsværkets formål.
+
+Konsekvens for M-05 (`TVAERGAAENDE.md`): mønsterets skærpede form — «en advarsel kan foreslås, hvor værdien
+er usandsynlig i sagens egen sammenhæng» — gælder kun felter, der ER sagsdata i beregningsmæssig forstand.
+Et opslagsfelt har ingen sagssammenhæng at være usandsynlig i.

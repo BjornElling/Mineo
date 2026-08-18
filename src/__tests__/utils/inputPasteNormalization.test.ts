@@ -8,6 +8,8 @@ import {
   normalizeWeekPaste,
   normalizeYearPaste,
 } from '../../utils/inputPasteNormalization';
+import { yearAdmission } from '../../components/inputs/draftAdmission';
+import { spliceDraftWithPaste } from '../../inputCore/react/pasteSplice';
 
 describe('inputPasteNormalization', () => {
   it('normaliserer clipboard-tekst på tværs af whitespace-varianter uden at trimme', () => {
@@ -91,22 +93,76 @@ describe('inputPasteNormalization', () => {
     expect(normalizeFractionPaste('1./2')).toBe('1/2');
   });
 
-  it('normaliserer uge med ugegrænse og efterfølgende år', () => {
-    expect(normalizeWeekPaste('002025')).toBe('');
-    expect(normalizeWeekPaste('adffergregs//sgd1712,56//')).toBe('17/12');
-    expect(normalizeWeekPaste('abc539999')).toBe('53/9999');
-    expect(normalizeWeekPaste('abc549999')).toBe('5');
-    expect(normalizeWeekPaste('abc532035', {
-      maxYear: 2030,
-      twoDigitYearPolicy: 'infer',
-    })).toBe('53/20');
-    expect(normalizeWeekPaste('abc532025', { maxDraftLength: 4 })).toBe('53/2');
+  // ─── Uge og år: paste = tastning, tegn for tegn (§1.2a) ─────────────────────────────────────────
+  //
+  // Begge familier havde indtil 2026-08-18 hver sin paste-ONLY fortolker: «find den første ciffergruppe,
+  // og forkort den, indtil resultatet ligger inden for årsgrænserne». Testene nedenfor pinnede den
+  // adfærd og er skrevet om sammen med den. Se `TVAERGAAENDE.md` M-14 og brugerfundet BB-031.
+
+  it('uge-paste behandler tegnene som tastning og bevarer separatoren til settle', () => {
+    // Ulovlige tegn springes, og resten fortsætter — også når de står FØR tallet.
+    expect(normalizeWeekPaste('uge 23/2025')).toBe('23/2025');
+    // Enhver lovlig separator bevares som den er; settle normaliserer den til `/`.
+    expect(normalizeWeekPaste('23,2025')).toBe('23,2025');
+    expect(normalizeWeekPaste('23.2025')).toBe('23.2025');
+    expect(normalizeWeekPaste('17-12')).toBe('17-12');
+    // Mellemrum er IKKE en separator (brugerbeslutning 2026-08-18) og springes som ethvert andet
+    // ulovligt tegn. Cifrene løber derfor sammen og afvises ved settle — samme udfald som tastning.
+    expect(normalizeWeekPaste('23 2025')).toBe('23');
+    // Et tredje ugeciffer uden separator er ulovligt og springes; det afbryder ikke resten, men de
+    // følgende cifre kan så heller ikke optages. Resultatet er de to første cifre.
+    expect(normalizeWeekPaste('abc532035')).toBe('53');
+    // Længdeloftet håndhæves undervejs, ikke ved at forkorte bagefter.
+    expect(normalizeWeekPaste('abc53/2025', { maxDraftLength: 6 })).toBe('53/202');
   });
 
-  it('normaliserer år fra første sammenhængende ciffersekvens', () => {
+  it('uge-paste kan efterlade en draft, settle afviser — frem for at omtolke den', () => {
+    // `//` foran tallet gør det FØRSTE `/` til separator i en draft uden ugenummer; resten af cifrene
+    // lander derfor i årssegmentet. Draften `/1712` afvises ved settle («Ugyldigt format»), og det er
+    // det rigtige udfald: tastning af de samme tegn giver præcis samme draft. Den gamle fortolker gav
+    // her `17/12` — en pæn værdi, brugeren aldrig havde kunnet taste sig frem til.
+    expect(normalizeWeekPaste('adffergregs//sgd1712,56//')).toBe('/1712');
+  });
+
+  it('uge-paste forkorter IKKE et årstal for at få det inden for årsgrænserne', () => {
+    // Den gamle fortolker gav '53/20' her: årsgrænsen forkortede 2035 til 20 → 2020. Årsgrænser er
+    // bounds og ejes af feltvalidatoren (§1.6) — de må ikke ændre den indsatte tekst. Med separator
+    // bevares året nu uændret, så feltet kan markere det rødt.
+    expect(normalizeWeekPaste('abc53/2035', { maxYear: 2030, twoDigitYearPolicy: 'infer' }))
+      .toBe('53/2035');
+  });
+
+  it('års-paste behandler tegnene som tastning: cifre optages, alt andet springes', () => {
     expect(normalizeYearPaste('adffergregs//sgd1712,56//')).toBe('1712');
-    expect(normalizeYearPaste('abc56def2020')).toBe('56');
-    expect(normalizeYearPaste('2035', { maxYear: 2030, twoDigitYearPolicy: 'infer' })).toBe('20');
-    expect(normalizeYearPaste('2035', { maxYear: 2030, twoDigitYearPolicy: 'reject' })).toBe('');
+    expect(normalizeYearPaste('Satsår 2026 (gældende)')).toBe('2026');
+    // Cifre samles på tværs af separatorer, præcis som når brugeren taster dem selv. Det er derfor
+    // `2.026` bliver `2026` — brugerens eget arbejdseksempel for reglen.
+    expect(normalizeYearPaste('2.026')).toBe('2026');
+    // Fire cifre er loftet; resten springes uden at afbryde.
+    expect(normalizeYearPaste('99999')).toBe('9999');
+    expect(normalizeYearPaste('abc56def2020')).toBe('5620');
+    // En dato indsat i et ÅRSfelt giver de fire første cifre — ikke et årstal fisket ud af teksten.
+    // Det er tilsigtet: en «find årstallet»-regel ville være en ny fortolkningsvej ved siden af
+    // tastning, og netop to konkurrerende veje var fejlen.
+    expect(normalizeYearPaste('01-02-2026')).toBe('0102');
+  });
+
+  it('års-paste forkorter IKKE et årstal for at få det inden for årsgrænserne', () => {
+    // Begge gav før noget andet: 'infer' forkortede til '20' (→ 2020), 'reject' gav ''. Nu bevares
+    // teksten, så settle kan afvise den eller markere den rødt (§1.2a punkt 5).
+    expect(normalizeYearPaste('2035', { maxYear: 2030, twoDigitYearPolicy: 'infer' })).toBe('2035');
+    expect(normalizeYearPaste('2035', { maxYear: 2030, twoDigitYearPolicy: 'reject' })).toBe('2035');
+  });
+
+  it('samme indsatte tekst giver samme resultat i et tomt og i et udfyldt felt', () => {
+    // Kernen i BB-031. `normalizePasteForDraft` kalder KUN codecets normalisering, når draften er tom;
+    // et udfyldt felt får splice-vejens tegn-for-tegn-filter. Så længe de to læser samme prædikat, er
+    // resultatet ens — og det er præcis den lighed, denne test er sat til at bevogte.
+    const cases = ['2.026', '01-02-2026', 'Skadedato 15-03-2019', '2026\n2025', '99999', '2035', '20'];
+    for (const text of cases) {
+      const intoEmptyField = normalizeYearPaste(text, { twoDigitYearPolicy: 'infer' });
+      const intoFilledField = spliceDraftWithPaste('2015', text, 0, 4, 4, yearAdmission()).draft;
+      expect(intoFilledField, `paste af ${JSON.stringify(text)}`).toBe(intoEmptyField);
+    }
   });
 });

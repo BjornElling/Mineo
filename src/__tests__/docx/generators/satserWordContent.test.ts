@@ -21,6 +21,43 @@ describe('satser → Word-indhold', () => {
     expect(text).toMatch(/Arbejdsskadesikringsloven/i);
   });
 
+  // BB-030: dokumentet udelod en sats på 0 %, som skærmen viste. Prøven var `> 0` i dokumentet og
+  // «findes værdien» på siden, og de to var kun enige, så længe ingen sats var nul.
+  // `reguleringsprocentErhvervsevnetabFra2024` er 0,0 i 2024 — det ene nul i hele satsdatasættet.
+  it('skriver en sats på 0 % — et nul er en oplysning, ikke et fravær', async () => {
+    const year = 2024;
+    const satser = getSatserForYear(year);
+    // Sikrer, at testen stadig måler det, den blev skrevet til: bliver 2024-satsen en dag ikke-nul,
+    // skal denne test findes og flyttes til et år, der faktisk har et nul — ikke stille blive grøn.
+    expect(satser.asl.reguleringProcentErhvervsevnetabFra2024).toBe(0);
+
+    const { documentXml } = await renderWordDocument((session) =>
+      generateSatserDocument(session, year, satser, { visBrevhoved: false })
+    );
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).toContain('Reguleringsprocent for erhvervsevnetab (fra 2024)');
+    expect(text).toContain('0 %');
+    // Den anden reguleringsprocent samme år må stadig stå der; rettelsen tilføjer en række, den
+    // fjerner ingen.
+    expect(text).toContain('Reguleringsprocent for erhvervsevnetab (før 2024)');
+  });
+
+  // Rækker uden sats skal fortsat udgå. Ellers ville rettelsen ovenfor have gjort `null` til «0 kr.».
+  it('udelader en sats, der ikke findes for året', async () => {
+    const year = 2026;
+    const satser = getSatserForYear(year);
+    expect(satser.asl.aarsloenMinFoer2024).toBeNull();
+
+    const { documentXml } = await renderWordDocument((session) =>
+      generateSatserDocument(session, year, satser, { visBrevhoved: false })
+    );
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).not.toContain('Minimum årsløn (skader før 1.7.2024)');
+    expect(text).toContain('Minimum årsløn');
+  });
+
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
     const year = 2024;
     const { documentXml } = await renderWordDocument((session) => {

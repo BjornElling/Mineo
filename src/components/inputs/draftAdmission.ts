@@ -5,6 +5,8 @@ import { parseDanishNumberString } from '../../utils/numberParsing';
 import {
   isAmountExpressionDraftAllowed,
   isPercentDraftAllowed,
+  isWeekDraftAllowed,
+  isYearDraftAllowed,
 } from '../../utils/numericDraftAdmission';
 
 /**
@@ -148,8 +150,13 @@ export const isIntegerDraftAllowed = (input: string, options?: IntegerDraftConst
 export const integerAdmission = (options?: IntegerDraftConstraints): DraftAdmission =>
   (draft) => isIntegerDraftAllowed(draft, options);
 
-/** År: kun cifre, højst 4 (`YYYY`). */
-export const yearAdmission = (): DraftAdmission => (draft) => /^\d{0,4}$/.test(draft);
+/**
+ * År: kun cifre, højst 4 (`YYYY`).
+ *
+ * Prædikatet bor i `utils/numericDraftAdmission`, fordi pastens `normalizeYearPaste` skal læse præcis
+ * det samme (§1.2a: paste = tastning). Regexet stod her som en selvstændig kopi indtil 2026-08-18.
+ */
+export const yearAdmission = (): DraftAdmission => isYearDraftAllowed;
 
 /** Brøk: cifre og '/', højst én skråstreg. */
 export const fractionAdmission = (
@@ -219,8 +226,9 @@ export const percentAdmission = (
 export const dateLikeAdmission = (): DraftAdmission =>
   (draft) => isDateLikeDraftAllowed(draft, [2, 2, 4]);
 
-/** Uge: cifre + én separator, begrænset til `WW-YYYY` efter segmentlængde (2-4). */
-export const weekAdmission = (): DraftAdmission => (draft) => {
-  if (!/^[0-9.,/\\\- ]*$/.test(draft)) return false;
-  return /^\d{0,2}(?:[.,/\\\- ]\d{0,4})?$/.test(draft);
-};
+/**
+ * Uge: cifre + én separator, begrænset til `WW-YYYY` efter segmentlængde (2-4).
+ *
+ * Samme flytning som {@link yearAdmission}: prædikatet deles nu med `normalizeWeekPaste`.
+ */
+export const weekAdmission = (): DraftAdmission => isWeekDraftAllowed;

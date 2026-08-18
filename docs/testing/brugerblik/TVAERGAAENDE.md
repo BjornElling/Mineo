@@ -12,11 +12,26 @@ udløsende fund er afvist, forsvinder ikke automatisk — men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
-**M-13 og M-14 er tilføjet 2026-08-18 fra Satser-fladen.** De handler begge om, at to steder i
-programmet træffer den samme afgørelse hver for sig og bliver uenige: M-13 om skærmens og dokumentets
-prøve for «er der noget at vise», M-14 om paste-reglen i et tomt kontra et udfyldt felt. Fælles for
-dem er, at uenigheden er usynlig for brugeren, og at den kun opstår i et hjørne af datasættet —
+**M-13 og M-14 er tilføjet 2026-08-18 fra Satser-fladen og BEGGE afgjort samme dag.** De handler om, at
+to steder i programmet træffer den samme afgørelse hver for sig og bliver uenige: M-13 om skærmens og
+dokumentets prøve for «er der noget at vise», M-14 om paste-vejen i et tomt kontra et udfyldt felt.
+Fælles for dem er, at uenigheden er usynlig for brugeren, og at den kun opstår i et hjørne af datasættet —
 derfor er begge fundet ved at tælle rækker og sammenligne udgaver, ikke ved at læse koden.
+**Begge er accepteret og gennemført i kode.** M-14 er samtidig omskrevet: dens oprindelige præmis (at
+tegn-for-tegn-reglen er skadelig for positionsformer) blev afvist, og mønsteret handler nu om den
+konkurrerende fortolkningsvej — læs det i den nye form.
+
+**Fire af Satser-fladens seks fund blev afvist, og afvisningerne indsnævrer fire prøver mærkbart.** De er
+skrevet ind i `satser.md` ved hvert fund; kort her, fordi de gælder alle senere flader:
+- Et tilladt interval behøver ikke annonceres, hvis brugere i praksis aldrig rammer grænsen.
+- Fælles navn på forskellige visningsformer er ikke en inkonsistens, når formen følger et fagligt behov.
+- En fagligt velkendt lovhenvisning (fx «(fra 2024)») behøver ingen forklaring; målgruppen er erfarne
+  praktikere.
+- Et informationsikons indhold er ikke automatisk noget, dokumentet mangler.
+
+**Og en overordnet afgørelse:** Mineo er en samling **selvstændige værktøjer**, og brugeren forventes at
+vide det. Et fund af formen «brugeren kan tro, at denne side hænger sammen med den anden» kræver derfor, at
+der faktisk ER en kobling, som virker anderledes end den ser ud — ikke at koblingen mangler.
 
 **M-08 til M-11 er tilføjet 2026-08-16 fra Om-fladen.** De adskiller sig fra M-01–M-07 ved ikke at
 handle om indtastning: de handler om siden som helhed — tastaturets rækkevidde, vinduets bredde,
@@ -147,6 +162,11 @@ langt fra det sted, den blev indtastet.
   procenter indtastet som decimal; datoer årtier fra sagens øvrige datoer. **Bemærk grænsen for
   mønsteret efter afgørelserne:** en advarsel kan foreslås, hvor værdien er usandsynlig *i sagens egen
   sammenhæng* — ikke hvor den blot er usædvanlig i almindelighed.
+- **Yderligere grænse, afgjort 2026-08-18 (`satser.md`, åbent spørgsmål 2):** mønsteret gælder kun
+  felter, der er sagsdata i beregningsmæssig forstand. Et **opslagsfelt** har ingen sagssammenhæng at
+  være usandsynlig i: Satser-sidens satsår må frit sættes til 2007 i en 2024-sag, fordi det netop er
+  opslagsværkets formål. Spørg derfor først, om feltet indgår i en beregning — ikke blot om programmet
+  kender to tal, der kunne sammenlignes.
 
 ## M-06 — Usynlige tegn overlever fra indsættelse
 
@@ -381,54 +401,78 @@ altid mistænkelig; en `!== undefined`-prøve er den rigtige.
 Bemærk den skærpede form: det gælder ikke bare rækker. En `> 0`-prøve kan også afgøre, om en hel
 **kolonne** eller en hel **sektion** vises, og så forsvinder mere end én oplysning.
 
+**Afgjort af brugeren 2026-08-18: mønsteret er bekræftet og bindende.** «Rækker, hvor værdien er
+indtastet, men er 0, vises begge steder.» Præmissen — at siden og dokumentet skal vise det samme — er
+accepteret uden forbehold. Et fund i dette mønster skal derfor ikke argumenteres forfra; det skal blot
+måles og rettes.
+
 - Fundet i: `satser.md` BB-030 (skærmen viser «Reguleringsprocent for erhvervsevnetab (fra 2024):
-  0 %» for år 2024; dokumentet udelader rækken. Gælder både PDF og Word, som deler generator).
-  Der er i dag præcis ét nul i satsdatasættet, så fundet rammer ét år — men 2024 er et meget brugt
-  år.
+  0 %» for år 2024; dokumentet udelod rækken. Gjaldt både PDF og Word, som deler generator).
+  Der er i dag præcis ét nul i satsdatasættet, så fundet ramte ét år — men 2024 er et meget brugt år.
+  **Gennemført 2026-08-18:** dokumentets prøve er nu «findes værdien?», og to regressionsværn i
+  `satserWordContent.test.ts` måler både at nullet står der, og at en manglende sats fortsat udgår.
+  Satsdokumentets fri proces-række er rettet i samme omgang (den krævede alle tre beløb; nu pr. linje
+  som skærmen).
 - Konkret kandidatsted, ikke efterprøvet: `src/document/generators/eo/reguleringDocument.ts` bruger
   `sats > 0` til at afgøre, om en hel kolonne vises for otte tillægssatser plus grundlønnen. Hører
   til Erstatningsopgørelse-fladen.
-- Latent, ikke udløst i dag: satsdokumentets fri proces-række kræver, at alle tre beløb findes,
-  mens skærmen filtrerer hver linje for sig. Uenigheden opstår først, hvis et år får to af de tre.
+- Bemærk formen, den latente forekomst havde: den var **ikke** udløst af de aktuelle data (alle tre fri
+  proces-beløb findes for hvert dækket år), men den var samme fejl og blev rettet med. En uenighed mellem
+  to udgaver skal lukkes, når den findes — ikke først når datasættet udløser den.
 
-## M-14 — Indsat tekst samles af cifre uden hensyn til formens positioner
+## M-14 — En anden fortolkningsvej ved siden af tastningen
 
-> Paste springer de forbudte tegn over — og for en form med faste positioner flytter det cifrene
-> til de forkerte pladser.
+> Der findes to veje ind i feltet, og de giver ikke samme svar.
 
-Den afgjorte familieregel er, at indsat tekst behandles som tastning: forbudte tegn springes over
-frem for at fortolkes (`docs/brugerfund-der-skal-rettes.md` BF-032, BF-040, BF-041). For et beløb
-eller en procent er det harmløst — cifrenes rækkefølge og betydning er den samme, når et mellemrum
-forsvinder.
+**Mønsteret er omformuleret 2026-08-18 efter brugerens afgørelse.** Første udgave hed «indsat tekst
+samles af cifre uden hensyn til formens positioner» og byggede på, at tegn-for-tegn-reglen er *skadelig*
+for en form med faste positioner. Det er afvist: brugeren fastholder, at paste altid skal give samme
+resultat som tastning af de samme tegn, også når det betyder, at `01-02-2026` bliver `102` i et årsfelt.
+Fejlen var aldrig tegn-for-tegn-reglen. Fejlen var, at der fandtes **en anden vej ved siden af den**.
 
-For en **form med faste positioner** er reglen skadelig. Et årstal er fire pladser; en dato er
-dag-måned-år. Springes separatorerne over, glider cifrene sammen til et tal, der aldrig stod i
-teksten: `01-02-2026` bliver `0102` bliver `102`. Feltet opfinder altså en værdi frem for at afvise
-en tekst, det ikke kunne læse.
+**Brugerens regel (bindende, hele programmet):** paste skal alle steder opføre sig, som hvis brugeren
+havde tastet den indsatte værdi ét tegn ad gangen fra det første. Koden behøver ikke være implementeret
+som en serie enkelttastninger, men resultatet skal være som var det sket — og **enhver kode eller
+kontrakt, der fører til et andet resultat, er forkert og skal ændres.** Reglen står nu som §1.2a punkt 7
+i `input-field-behavior-contract.md`, og års-/ugefelterne har fået deres eget §2.9.
 
-Oven i det ligger en anden vej: paste-normaliseringen kaldes **kun**, når draften er tom. Er der en
-værdi i feltet i forvejen — også når brugeren har markeret den for at erstatte den — bruges den
-tegn-for-tegn-springende regel i stedet. Samme indsatte tekst giver derfor to forskellige værdier,
-alt efter feltets forudgående tilstand, og brugeren har ingen mulighed for at vide hvilken.
+Den anden vej har to kendetegn, og det er dem, der skal efterprøves:
 
-**Efterprøv, hvor:** et felt har en form med faste positioner — år, dato, uge, måned — og kan
-modtage indsat tekst. To prøver hver gang: (1) indsæt en tekst, hvor den rigtige værdi står
-entydigt men omgivet af separatorer eller ord; (2) gør det både i et **tomt** og i et **udfyldt**
-felt, og sammenlign de to resultater.
+1. **En paste-only fortolker.** En funktion, der læser hele clipboard-teksten på én gang og *udleder* en
+   værdi af den — «find den første ciffergruppe», «find årstallet», «gæt separatoren». Den kan altid danne
+   en værdi, brugeren ikke kunne have tastet sig frem til.
+2. **Den kaldes kun i én af feltets tilstande.** Konkret kaldes codecets `normalizePaste` kun, når
+   draften er tom (`normalizePasteForDraft`); et udfyldt felt får tegn-for-tegn-filteret. Findes der en
+   fortolker, giver samme tekst derfor to forskellige værdier, alt efter om feltet var tomt.
 
-**Bemærk fælden.** Det ser ud som en gentagelse af M-03, som er afgjort. Det er det ikke: M-03
-handler om, at indsættelse må være **mere tolerant** end tastning, når teksten uomtvisteligt kan
-opløses til én værdi — og den afgørelse er netop det argument, der gør dette til et fund. Her
-opløses teksten ikke; den stykkes sammen. Skriv derfor fundet, så det er tydeligt, at forslaget
-udvider den trufne beslutning frem for at gå imod den.
+Værst er kombinationen med en **grænse**: forkorter fortolkeren teksten, indtil resultatet ligger inden
+for feltets min/maks, ændres en ugyldig værdi tavst til en gyldig, forkert værdi. `2035` med maksimum 2030
+blev `2020`. Det er direkte i strid med §1.2a punkt 5.
 
-- Fundet i: `satser.md` BB-031 (`01-02-2026` → 102 i et udfyldt felt, → 2001 i et tomt; `2.026` →
-  2026 i et udfyldt felt, men → **2002** i et tomt, hvor det er en gyldig og forkert værdi uden
-  nogen markering).
-- Alle fire årsfelter deler codec og har derfor samme adfærd: `satser.aargang`,
+**Efterprøv, hvor:** et felt erklærer sin egen `normalizePaste`. Tre prøver: (1) indsæt samme tekst i et
+**tomt** og i et **udfyldt** felt og sammenlign; (2) indsæt en værdi uden for feltets grænser og se, om
+den bevares eller forkortes; (3) sammenlign resultatet med, hvad tegnene ville give tastet ét ad gangen.
+
+**Bemærk forholdet til M-03.** M-03 fastslog, at indsættelse gerne må være mere tolerant end tastning,
+når teksten uomtvisteligt kan opløses til én værdi. Den afgørelse gælder stadig for de familier, den blev
+truffet for — men den er **ikke** et mandat til at bygge en fortolker, der gætter. Grænsen er, at
+tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en værdi.
+
+- Fundet i: `satser.md` BB-031. **Gennemført 2026-08-18:** `normalizeYearPaste` og `normalizeWeekPaste`
+  er slettet som fortolkere og erstattet af det delte tegn-for-tegn-filter, som beløb, procent og brøk
+  allerede brugte. Hjælperne bag dem (`extractContiguousDigits`, `findNextDigitIndex`, `isWithinBounds`)
+  er fjernet med, så byggeklodserne til en ny fortolker ikke ligger og venter.
+- **Der er nu ingen paste-only fortolker tilbage i programmet** ud over datofelternes
+  `normalizeDatePaste`, som er segmentbaseret (`dd-mm-åååå`) og bevidst beholdt — den indsætter
+  separatorer, tastning ikke indsætter. **Den er ikke efterprøvet mod den nye regel og er mønsterets
+  vigtigste åbne kandidat.** Prøv den på de tre prøver ovenfor; især en dato indsat i et felt, der
+  allerede har en dato.
+- Alle fire årsfelter delte codec og er rettet i én omgang: `satser.aargang`,
   `eo.svieSmerteSatserAar`, Årslønssidens årsfelt (`aarsloenDescriptors.ts:332`) og
-  Lønindkomst-tabellens `col1_maaned` (`erstatningsopgoerelseLoenDescriptors.ts:296`). De to
-  sidste er tabelceller, hvor et indsat regneark er den sandsynlige kilde — efterprøv dem der.
-- Kandidater, ikke efterprøvet: **datofelterne** har deres egen `normalizeDatePaste` og skal måles
-  for sig; uge-felterne har egne segmentregler. Prøv især en dato indsat i et felt, der allerede
-  har en dato.
+  Lønindkomst-tabellens `col1_maaned` (`erstatningsopgoerelseLoenDescriptors.ts:296`). De to sidste er
+  tabelceller, hvor et indsat regneark er den sandsynlige kilde — den konkrete oplevelse dér er ikke set
+  og hører til Årsløn- og EO-fladerne.
+- **Sidegevinst, samme klasse:** ugefeltets separatorsæt var erklæret to gange med forskelligt indhold
+  (værnet tillod `,` og `\`, som settle ikke normaliserede; settle normaliserede `:`, som ikke kunne
+  tastes). Nu én erklæring, begge læser. Efterprøv generelt, om et felts **tegnværn** og dets
+  **settle-parser** er enige om det samme tegnsæt — to lister er to sandheder.

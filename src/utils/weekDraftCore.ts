@@ -4,6 +4,7 @@
 // `yearDraftCore` (ensartet ordlyd: "Årstallet skal være …").
 
 import { yearHas53Weeks } from './dateUtils';
+import { normalizeWeekSeparators } from './numericDraftAdmission';
 import { getYearRangeErrorMessage, resolveYearFromToken, type TwoDigitYearPolicy } from './yearDraftCore';
 
 export type WeekDraftParseConfig = Readonly<{
@@ -52,7 +53,10 @@ export const parseWeekDraftForCommit = (
   if (trimmed === '') return { ok: true, value: undefined };
   if (trimmed.length > maxDraftLength) return fail('Ugyldigt format');
 
-  const normalized = trimmed.replace(/[ .:-]/g, '/');
+  // Separatorsættet ejes af `normalizeWeekSeparators`, som feltets tegnværn læser af samme kilde.
+  // Her stod før et selvstændigt `[ .:-]`, der hverken dækkede `,` og `\` (tastbare, men afvist ved
+  // settle) eller udelod mellemrummet (ikke længere en separator, jf. brugerbeslutning 2026-08-18).
+  const normalized = normalizeWeekSeparators(trimmed);
   if (normalized.startsWith('/')) return fail('Ugyldigt format');
 
   const [weekRaw = '', yearRaw = '', ...rest] = normalized.split('/');
