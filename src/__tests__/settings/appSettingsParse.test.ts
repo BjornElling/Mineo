@@ -243,7 +243,12 @@ describe('loadInitialSettings', () => {
     expect(result).toHaveProperty('showContentBoxReportButton');
   });
 
-  it('ingen persisted settings + prefers-color-scheme mørk → default er dark', () => {
+  // Parse-laget læser IKKE længere systempræferencen. Før BB-024 skrev det maskinens aktuelle
+  // tilstand ind som en konkret default (`'light'`/`'dark'`), fordi «følg computeren» ikke fandtes
+  // som gemt værdi — og netop dét frøs automatikken fast ved første settings-skrivning. Nu er
+  // `'system'` en ægte værdi, og oversættelsen sker først dér, hvor temaet males
+  // (`resolveThemeMode`). Testen måler, at defaults holder sig fra at gætte.
+  it('ingen persisted settings → default er "system", uanset hvad computeren foretrækker', () => {
     writeLocalStorage(LOCAL_STORAGE_KEY, '');
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       matches: query === '(prefers-color-scheme: dark)',
@@ -258,10 +263,8 @@ describe('loadInitialSettings', () => {
 
     const result = loadInitialSettings();
 
-    expect(result).toEqual({
-      ...DEFAULT_APP_SETTINGS,
-      themeMode: 'dark',
-    });
+    expect(result).toEqual(DEFAULT_APP_SETTINGS);
+    expect(result.themeMode).toBe('system');
   });
 
   it('persisted dark themeMode round-tripper gennem loadInitialSettings', () => {

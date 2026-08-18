@@ -15,17 +15,17 @@ const cloneDefaultAppSettings = (): AppSettings => ({
   brevhovedIndstillinger: { ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger },
 });
 
-const readSystemThemeMode = (): AppSettings['themeMode'] => {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return DEFAULT_APP_SETTINGS.themeMode;
-  }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-};
-
-const createDefaultAppSettings = (): AppSettings => ({
-  ...cloneDefaultAppSettings(),
-  themeMode: readSystemThemeMode(),
-});
+/**
+ * Defaults, som de er — inklusive `themeMode: 'system'`.
+ *
+ * Denne funktion læste tidligere computerens præference og skrev det KONKRETE resultat
+ * (`'light'`/`'dark'`) ind som default, fordi «følg computeren» ikke fandtes som gemt værdi.
+ * Bivirkningen var, at brugeren aldrig kunne komme tilbage til automatikken: første gemte
+ * settings-skrivning frøs det øjebliksbillede fast (BB-024). Nu er `'system'` en ægte værdi, og
+ * oversættelsen til et malet tema sker ét sted — `resolveThemeMode` — på det tidspunkt, temaet
+ * bruges. Defaults må derfor ikke længere gætte på maskinens tilstand.
+ */
+const createDefaultAppSettings = (): AppSettings => cloneDefaultAppSettings();
 
 export const resolveAppSettings = (raw: unknown): AppSettings => {
   const parsed = appSettingsSchema.safeParse(raw);

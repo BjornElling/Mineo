@@ -12,6 +12,12 @@ udløsende fund er afvist, forsvinder ikke automatisk — men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**M-13 og M-14 er tilføjet 2026-08-18 fra Satser-fladen.** De handler begge om, at to steder i
+programmet træffer den samme afgørelse hver for sig og bliver uenige: M-13 om skærmens og dokumentets
+prøve for «er der noget at vise», M-14 om paste-reglen i et tomt kontra et udfyldt felt. Fælles for
+dem er, at uenigheden er usynlig for brugeren, og at den kun opstår i et hjørne af datasættet —
+derfor er begge fundet ved at tælle rækker og sammenligne udgaver, ikke ved at læse koden.
+
 **M-08 til M-11 er tilføjet 2026-08-16 fra Om-fladen.** De adskiller sig fra M-01–M-07 ved ikke at
 handle om indtastning: de handler om siden som helhed — tastaturets rækkevidde, vinduets bredde,
 flydende elementer og de tekster, hvor programmet udtaler sig om sig selv. **Tre af dem er skrevet om
@@ -288,5 +294,141 @@ kringlet tekst, der er ringere end den upræcise.
   BB-012 (påstanden om, at intet gemmes eller sendes, er bredere end det løfte, den skal bære) —
   **begge afgjort 2026-08-16 efter modpres: teksten er rettet, adfærden bevares.** BB-012 blev kun
   delvist accepteret; den aftalte ordlyd står i fundet.
-- Kandidater, ikke efterprøvet: Indstillinger-sidens beskrivelser, «Slet alt»-bekræftelsen,
-  overskrivningsadvarslen ved Hent.
+- Efterprøvet 2026-08-18: Indstillinger-siden har **ingen** beskrivende tekst overhovedet — kun
+  etiketter. Mønsteret gav derfor intet dér; det, fladen mangler, er dækket af M-12 nedenfor.
+- Kandidater, ikke efterprøvet: «Slet alt»-bekræftelsen, overskrivningsadvarslen ved Hent.
+
+## M-12 — Et valg, hvis virkning hverken kan ses nu eller findes senere
+
+> Brugeren træffer et valg, men kan hverken se, at det skete, hvornår det gælder, eller hvordan han
+> kommer tilbage.
+
+**Mønsteret er kraftigt indsnævret af brugerens afgørelser 2026-08-18. Læs indsnævringen FØR
+formuleringen — alle tre udløsende fund blev afvist.** Det oprindelige mønster samlede tre fravær og
+kaldte kombinationen et problem:
+
+1. ingen kvittering, når valget gemmes,
+2. forskudt virkning (næste nye sag, et senere dokument, en validering et andet sted),
+3. ingen vej tilbage (ikke i undo/redo, kan ikke gemmes eller hentes).
+
+**Punkt 1 og 2 er afvist som fund, og punkt 3 er afvist som en egenskab, der skal oplyses.**
+Begrundelserne er substantielle og gælder hele programmet:
+
+- **Forskudt virkning er den forventede adfærd, ikke en mangel.** «Standardværdier» betyder
+  standarder for nye sager og for tilstanden efter «Slet alt» — det er, hvad en fagperson forventer
+  af ordet. At de beregningstekniske valg omvendt slår igennem straks, er lige så forventeligt: de
+  udtrykker den tolerancegrænse, brugeren vil arbejde med lige nu. **De to forskellige tidspunkter
+  er altså ikke en inkonsistens, der skal forklares.** Forslaget om en forklarende linje pr. boks
+  blev afvist netop derfor (BB-023 og åbent spørgsmål 2).
+- **Fravær af fortrydelse er et VÆRN.** Indstillinger må kun kunne ændres ved brugerens aktive valg;
+  var de med i undo/redo, kunne ét tryk for meget ændre en indstilling, brugeren ikke havde rørt, og
+  virkningen ville ramme et andet sted end fortrydelsen. Nu normativt i `app-settings.md` (BB-027).
+- **Tab af indstillinger bæres bevidst.** De må aldrig følge `.eo`, og der skal ikke vises nogen
+  besked, når de er faldet tilbage til standard: tilstanden er for sjælden til, at meddelelsen
+  nogensinde ville blive vist. Nu normativt i `app-settings.md` (BB-025).
+
+**Hvad der er tilbage af mønsteret — og det er stadig værd at lede efter.** Ikke «brugeren fik ingen
+kvittering», men den skarpere prøve, BB-024 bestod:
+
+> **Er et valg, brugeren har truffet, blevet til en tilstand han ikke kan komme UD af igen?**
+
+Det var den ægte defekt på Indstillinger: farvetemaet læste computerens indstilling ved allerførste
+start, og i samme øjeblik brugeren valgte lyst eller mørkt, var automatikken permanent væk. Ikke
+fordi valget var uigenkaldeligt af natur, men fordi den tredje tilstand — «følg computeren» —
+fandtes i programmet uden at findes i UI'et. **Det er dét, mønsteret nu handler om: en tilstand
+programmet kan være i, men som brugeren ikke kan vælge.**
+
+**Efterprøv, hvor:** et valg har færre synlige muligheder, end programmet har tilstande — typisk
+hvor en startværdi udledes af omgivelserne (systemtema, dato, lokalitet, en anden sides værdi) og
+derefter fryses af brugerens første valg. Prøven er: *kan brugeren komme tilbage til det, programmet
+gjorde af sig selv?*
+
+**Bemærk skellet mod M-11.** M-11 handler om tekster, der siger noget forkert om programmet. M-12
+handler nu om en manglende valgmulighed — ikke om manglende forklaring. **Et fund, hvis rettelse er
+«tilføj en forklarende linje», hører efter afgørelserne ovenfor ikke længere hjemme her.**
+
+- Fundet i: `indstillinger.md` BB-024 (farvetemaet kunne ikke stilles tilbage til at følge
+  computeren) — **accepteret og gennemført 2026-08-18**: `themeMode` har nu tre værdier med
+  `'system'` som standard, og systemskift følges live. Reglen står i `app-settings.md`.
+- Afviste fund i samme mønster: BB-023, BB-025, BB-027 — se indsnævringen ovenfor. **Genåbn dem
+  ikke.**
+- Bemærk forlægget på samme flade: rækken «Placering til gemte filer» viser sin tilstand ærligt,
+  siger «(standard)» når valget er væk, og tilbyder «Nulstil», præcis når der er noget at nulstille.
+  Den er mønsterets egen løsning, fundet i programmet selv.
+- Kandidater, ikke efterprøvet: Mineo-sidens startside-toggle — men bemærk, at den har præcis to
+  tilstande og dermed **ikke** har den fælde, BB-024 havde. Led i stedet efter valg, hvis startværdi
+  kommer fra omgivelserne.
+
+## M-13 — Nul er en oplysning, ikke et fravær
+
+> Skærmen og dokumentet bruger hver sin prøve for «er der noget at vise her?», og de er kun enige,
+> så længe ingen værdi er nul.
+
+En visningsflade skjuler en række, når der ikke er nogen værdi. Et dokument skjuler den, når værdien
+ikke er **større end nul**. De to prøver ser ens ud og er ens i praksis — indtil datasættet
+indeholder et lovligt nul. Så viser skærmen «0 %» eller «0 kr.», og dokumentet udelader rækken
+uden et ord.
+
+Det gør nullet til to modsatte udsagn: på skærmen «satsen er nul», i dokumentet «satsen er ukendt».
+For en juridisk sats er det ikke det samme — 0 % siger, at der ikke er reguleret, og det er en
+oplysning, sagen kan afhænge af.
+
+**Efterprøv, hvor:** en flade og dens dokument bygger den samme række hver for sig, og hvor
+synligheden afgøres af en talprøve frem for af, om værdien findes. Prøven er: **findes der en
+lovlig nulværdi i datasættet — og hvad viser de to udgaver så?** En `> 0`-prøve på synlighed er
+altid mistænkelig; en `!== undefined`-prøve er den rigtige.
+
+Bemærk den skærpede form: det gælder ikke bare rækker. En `> 0`-prøve kan også afgøre, om en hel
+**kolonne** eller en hel **sektion** vises, og så forsvinder mere end én oplysning.
+
+- Fundet i: `satser.md` BB-030 (skærmen viser «Reguleringsprocent for erhvervsevnetab (fra 2024):
+  0 %» for år 2024; dokumentet udelader rækken. Gælder både PDF og Word, som deler generator).
+  Der er i dag præcis ét nul i satsdatasættet, så fundet rammer ét år — men 2024 er et meget brugt
+  år.
+- Konkret kandidatsted, ikke efterprøvet: `src/document/generators/eo/reguleringDocument.ts` bruger
+  `sats > 0` til at afgøre, om en hel kolonne vises for otte tillægssatser plus grundlønnen. Hører
+  til Erstatningsopgørelse-fladen.
+- Latent, ikke udløst i dag: satsdokumentets fri proces-række kræver, at alle tre beløb findes,
+  mens skærmen filtrerer hver linje for sig. Uenigheden opstår først, hvis et år får to af de tre.
+
+## M-14 — Indsat tekst samles af cifre uden hensyn til formens positioner
+
+> Paste springer de forbudte tegn over — og for en form med faste positioner flytter det cifrene
+> til de forkerte pladser.
+
+Den afgjorte familieregel er, at indsat tekst behandles som tastning: forbudte tegn springes over
+frem for at fortolkes (`docs/brugerfund-der-skal-rettes.md` BF-032, BF-040, BF-041). For et beløb
+eller en procent er det harmløst — cifrenes rækkefølge og betydning er den samme, når et mellemrum
+forsvinder.
+
+For en **form med faste positioner** er reglen skadelig. Et årstal er fire pladser; en dato er
+dag-måned-år. Springes separatorerne over, glider cifrene sammen til et tal, der aldrig stod i
+teksten: `01-02-2026` bliver `0102` bliver `102`. Feltet opfinder altså en værdi frem for at afvise
+en tekst, det ikke kunne læse.
+
+Oven i det ligger en anden vej: paste-normaliseringen kaldes **kun**, når draften er tom. Er der en
+værdi i feltet i forvejen — også når brugeren har markeret den for at erstatte den — bruges den
+tegn-for-tegn-springende regel i stedet. Samme indsatte tekst giver derfor to forskellige værdier,
+alt efter feltets forudgående tilstand, og brugeren har ingen mulighed for at vide hvilken.
+
+**Efterprøv, hvor:** et felt har en form med faste positioner — år, dato, uge, måned — og kan
+modtage indsat tekst. To prøver hver gang: (1) indsæt en tekst, hvor den rigtige værdi står
+entydigt men omgivet af separatorer eller ord; (2) gør det både i et **tomt** og i et **udfyldt**
+felt, og sammenlign de to resultater.
+
+**Bemærk fælden.** Det ser ud som en gentagelse af M-03, som er afgjort. Det er det ikke: M-03
+handler om, at indsættelse må være **mere tolerant** end tastning, når teksten uomtvisteligt kan
+opløses til én værdi — og den afgørelse er netop det argument, der gør dette til et fund. Her
+opløses teksten ikke; den stykkes sammen. Skriv derfor fundet, så det er tydeligt, at forslaget
+udvider den trufne beslutning frem for at gå imod den.
+
+- Fundet i: `satser.md` BB-031 (`01-02-2026` → 102 i et udfyldt felt, → 2001 i et tomt; `2.026` →
+  2026 i et udfyldt felt, men → **2002** i et tomt, hvor det er en gyldig og forkert værdi uden
+  nogen markering).
+- Alle fire årsfelter deler codec og har derfor samme adfærd: `satser.aargang`,
+  `eo.svieSmerteSatserAar`, Årslønssidens årsfelt (`aarsloenDescriptors.ts:332`) og
+  Lønindkomst-tabellens `col1_maaned` (`erstatningsopgoerelseLoenDescriptors.ts:296`). De to
+  sidste er tabelceller, hvor et indsat regneark er den sandsynlige kilde — efterprøv dem der.
+- Kandidater, ikke efterprøvet: **datofelterne** har deres egen `normalizeDatePaste` og skal måles
+  for sig; uge-felterne har egne segmentregler. Prøv især en dato indsat i et felt, der allerede
+  har en dato.

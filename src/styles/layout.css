@@ -145,6 +145,41 @@
   outline-offset: 2px;
 }
 
+/* ==================== Tekstknap-fokus ====================
+   En knap uden egen flade — en understreget tekst, der bærer en handling — får ellers
+   browserens standard-outline: en skarp, sort firkant tæt om bogstaverne.
+
+   Markeringen er en UDFYLDT FLADE UDEN RING, fordi det er sådan, resten af programmet markerer
+   en tilstand på et element: rækkerne toner baggrunden (`.row--label-right-hover:hover`), og
+   ikonknapperne toner deres runde flade. Ingen af dem tegner en ring.
+
+   En ring blev prøvet først (primærfarvet, som `.auth-login-button:focus-visible`) og forkastet
+   2026-08-18: login-siden står uden for app-shellen og har sit eget udtryk, så dens fokusramme er
+   ikke sidernes sprog. Inde i programmet virkede ringen påklistret — den lagde en form oven på et
+   element, der ellers ingen form har.
+
+   FARVEN er `--color-active-bg-hover` og ikke `--color-hover`. Den neutrale grå tone blev målt
+   først og var reelt usynlig: knappen ligger inde i en række, der SELV toner sig grå ved hover, så
+   grå på grå forsvandt — og en fokusmarkering, tastaturbrugeren ikke kan se, er ingen markering.
+   `--color-active-bg-hover` er programmets «dette element er aktivt nu»-tone (samme som det valgte
+   menupunkt) og findes i begge temaer.
+
+   Fladen er trukket lidt ud fra teksten med padding, så den får plads at være i; den negative
+   margin ophæver den igen, så naboerne ikke flytter sig, når fokus rammer. Hjørnerne følger
+   `--border-radius-small` præcis som rækkens egen hover-flade.
+
+   `:focus-visible` frem for `:focus`: en museklikker skal ikke se markeringen, kun tastatur-
+   brugeren. Hover håndteres separat af knappen selv (understregning + primærfarve).
+
+   Brugerfund 2026-08-18 (`docs/testing/brugerblik/indstillinger.md` BB-036, «Nulstil»-knappen). */
+.text-action-button:focus-visible {
+  outline: none;
+  background-color: var(--color-active-bg-hover);
+  border-radius: var(--border-radius-small);
+  padding: 2px 6px;
+  margin: -2px -6px;
+}
+
 /* ==================== Række-layouts ==================== */
 /* Base række-klasse - fælles egenskaber for alle rækker */
 .row {

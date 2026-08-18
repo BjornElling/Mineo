@@ -2,9 +2,10 @@
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Indstillinger (`/indstillinger`)
-- **Næste fund-ID:** BB-023
-- **Senest opdateret:** 2026-08-16 (Om-fladen færdigbehandlet: alle tolv fund afgjort efter to runder)
+- **Næste flade:** MinProcesrente (selvstændig app)
+- **Næste fund-ID:** BB-037
+- **Senest opdateret:** 2026-08-18 (Indstillinger færdigbehandlet: alle otte fund afgjort;
+  BB-024, BB-028 og BB-036 gennemført i kode)
 
 ## Flader
 
@@ -15,8 +16,8 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 |---|---|---|---|---|
 | 1 | Stamdata | Gennemgået | 10 (BB-001–BB-010) | [stamdata.md](stamdata.md) |
 | 2 | Om | Gennemgået | 12 (BB-011–BB-022) | [om.md](om.md) |
-| 3 | Indstillinger | Ikke startet | — | — |
-| 4 | Satser | Ikke startet | — | — |
+| 3 | Indstillinger | Gennemgået | 8 (BB-023–BB-029, BB-036) | [indstillinger.md](indstillinger.md) |
+| 4 | Satser | Afventer bruger | 6 (BB-030–BB-035) | [satser.md](satser.md) |
 | 5 | MinProcesrente | Ikke startet | — | — |
 | 6 | Global shell | Ikke startet | — | — |
 | 7 | Varige mén | Ikke startet | — | — |
@@ -28,8 +29,55 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 
 ## Fund der afventer brugerens beslutning
 
-**Ingen.** Om-fladens tolv fund blev besvaret i to runder og er alle afgjort; fire af dem efter
-modpres fra agenten. Det fulde grundlag står i [om.md](om.md).
+**Satser-fladens seks fund (BB-030–BB-035) afventer alle svar.** Det fulde grundlag med
+fremprovokerings-trin og forslag står i [satser.md](satser.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-030 | Satsspecifikationen udelader den sats på 0 %, skærmen viser (år 2024) | Høj |
+| BB-031 | Samme indsatte tekst giver to forskellige årstal, alt efter om feltet var tomt | Høj |
+| BB-032 | Det dækkede årsinterval 2005–2026 er kun synligt, når man har gættet forkert | Mellem |
+| BB-033 | Tre steder hedder «Satser», og de viser satser på tre forskellige måder | Lav |
+| BB-034 | «Reguleringsprocent … (fra 2024)» står alene og forklarer ikke sig selv | Lav |
+| BB-035 | Specifikationen på papir mangler grundlaget for fri proces-beløbene | Lav |
+
+To åbne spørgsmål følger med fladen; begge står sidst i [satser.md](satser.md). Det vigtigste er,
+om siden skal sige, at satsåret ikke påvirker nogen beregning — det gemmes som sagsdata og ser ud
+som et sagsvalg, men er udelukkende et opslag.
+
+**BB-030 og BB-031 er af en anden slags end fladens øvrige fund** og de tidligere fladers: de er
+ikke afvejninger om ordlyd eller synlighed, men to steder hvor programmet siger to forskellige ting
+om det samme. BB-030 kan give et ufuldstændigt satsgrundlag i sagen; BB-031 kan give et gyldigt,
+forkert årstal uden markering. Begge har et entydigt rigtigt svar og lidt at afveje.
+
+**Indstillinger er færdigbehandlet 2026-08-18. Alle otte fund er afgjort** — tre accepteret og
+gennemført, fem afvist. Det fulde grundlag står i [indstillinger.md](indstillinger.md).
+
+| ID | Kort | Afgørelse |
+|---|---|---|
+| BB-024 | Farvetemaet kunne ikke stilles tilbage til at følge computeren | **Accepteret — gennemført**; `themeMode` er tre-værdig, `'system'` er default, systemskift følges live |
+| BB-028 | Måneds-grænsen virker uafhængigt af den toggle, den står under | **Accepteret — gennemført**; rækkerne byttet om, tolerancen omformuleret selvstændigt |
+| BB-036 | «Nulstil» fik browserens sorte fokusramme (brugerens eget fund) | **Accepteret — gennemført**; ny `.text-action-button` genbruger programmets egen fokusmarkering |
+| BB-023 | «Standardværdier» slår ikke igennem på den åbne sag | Afvist — begge tidspunkter for virkning er de forventede; ingen forklarende linje |
+| BB-025 | Indstillinger forsvinder tavst, hvis browserens lagring ryddes | Afvist — bæres bevidst; forbuddet mod `.eo` er nu normativt |
+| BB-026 | Alle ni brevhoveder kan slås fra uden oplysning om konsekvensen | Afvist — brevhovedet er et tilbud, ikke en integritetsegenskab |
+| BB-027 | Ctrl+Z virker overalt i programmet undtagen på indstillinger | Afvist — fraværet er et **værn**; nu normativt |
+| BB-029 | «0 måneder» — ordlyden skulle pege det modsatte vej | Afvist — «forældet efter 0 måneder» læses naturligt som «straks» |
+
+**Begge åbne spørgsmål er lukket.** Standardværdier anvendes aldrig på en åben sag (heller ikke på
+brugerens anmodning), og de fire bokse skal ikke forklare, hvornår deres indhold virker.
+**Konsekvens for de resterende flader: «fladen bør sige hvornår en indstilling virker» er et lukket
+spor** — foreslå det ikke igen.
+
+**Gennemført i kode:** `appSettingsSchema.ts` (`themeModeEnum` + `resolveThemeMode` +
+`ResolvedThemeMode`), `appSettingsParse.ts`, `AppSettingsContext.tsx` (+`.shared.ts`),
+`themeBootstrap.ts`, `appTheme.ts`, `App.tsx`, `Indstillinger.tsx`, `DefaultDirectoryRow.tsx`,
+`layout.css`. Ny test `themeBootstrapParity.test.ts`. Kontrakten `src/contracts/app-settings.md` har
+fået tre nye normative afsnit (tema-tredelingen, `.eo`-forbuddet, undo/redo). Fuld vitest grøn:
+605 filer / 7971 tests.
+
+**Tidligere flader.** Om-fladens tolv fund blev besvaret i to runder og er alle afgjort; fire af dem
+efter modpres fra agenten. Det fulde grundlag står i [om.md](om.md).
 
 | ID | Kort | Afgørelse |
 |---|---|---|
@@ -69,7 +117,31 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 ## Tværgående mønstre
 
-Elleve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+Fjorten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+
+- **M-13** og **M-14** er tilføjet 2026-08-18 fra Satser. Begge handler om, at **to steder træffer
+  samme afgørelse hver for sig og bliver uenige**, uden at brugeren kan se det:
+  - **M-13** — *nul er en oplysning, ikke et fravær.* Skærmen skjuler en række, når værdien
+    mangler; dokumentet skjuler den, når værdien ikke er større end nul. En `> 0`-prøve på
+    synlighed er altid mistænkelig. Konkret kandidat: reguleringsbilagets kolonnevalg i
+    `reguleringDocument.ts`.
+  - **M-14** — *indsat tekst samles af cifre uden hensyn til formens positioner.* Familiereglen
+    «paste springer forbudte tegn over» er rigtig for beløb og procenter, men skadelig for år og
+    datoer, hvor positionerne er faste. Dertil kaldes feltets egen paste-normalisering kun i et
+    **tomt** felt, så samme indsætning giver to svar. Gælder alle fire årsfelter; datofelterne har
+    egen normalisering og skal måles for sig.
+
+- **M-12 er KRAFTIGT INDSNÆVRET samme dag efter brugerens afgørelser — læs den nye form, ikke den
+  oprindelige.** Mønsteret samlede oprindelig tre fravær (ingen kvittering, forskudt virkning, ingen
+  vej tilbage), og **alle tre udløsende fund blev afvist**: forskudt virkning er den forventede
+  adfærd, og fraværet af fortrydelse er et værn frem for en mangel. Tilbage står den skarpere prøve,
+  BB-024 bestod:
+  > *Er et valg blevet til en tilstand, brugeren ikke kan komme **ud** af igen?*
+
+  Det handler altså nu om **en manglende valgmulighed**, ikke om manglende forklaring — typisk hvor
+  en startværdi udledes af omgivelserne (systemtema, dato, en anden sides værdi) og fryses af
+  brugerens første valg. **Et fund, hvis rettelse er «tilføj en forklarende linje», hører ikke
+  længere hjemme her.**
 
 - **M-01 til M-07** stammer fra Stamdata og handler om indtastning. Fire er omskrevet 2026-08-16
   efter brugerens afgørelser — læs dem i deres nye form, ikke i fundenes oprindelige.
@@ -92,3 +164,19 @@ Elleve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
 - Ingen justeringer. Om var nr. 2 som planlagt og viste sig at være en mindre flade at betjene, men
   en større at bedømme end antaget: den er programmets standard-startside og det eneste sted,
   programmet udtaler sig om, hvad der sker med brugerens oplysninger.
+- Indstillinger var nr. 3 som planlagt. Fladen har tyve rækker og er dermed større end de to
+  foregående, men hver enkelt kontrol er enkel; det tunge lå i at spore, **hvor** hver indstilling
+  får virkning. Rækkefølgens præmis holdt: fundene her er generelle og vil kunne genkendes senere
+  frem for at skulle genopdages.
+- **To fund bør efterprøves igen på Erstatningsopgørelse-fladen** (nr. 12): BB-028 og BB-029 om de
+  beregningstekniske valg er bedømt fra reglerne, men den konkrete oplevelse på EO-kontrolfanen er
+  ikke set. Det samme gælder brevhovedernes virkning i et færdigt dokument (BB-026).
+- Satser var nr. 4 som planlagt og var den mindste flade indtil nu at betjene: ét felt, én knap,
+  fire rene visningssektioner. Til gengæld var den den mest udbytterige at **måle**, netop fordi
+  den er lille nok til at kunne sammenlignes række for række med sit eget dokument for hvert af de
+  22 dækkede år. Rækkefølgens præmis holdt igen: begge nye mønstre (M-13, M-14) er generelle og
+  bærer konkrete kandidatsteder ind i de store flader.
+- **Tre spor er lagt ud til senere flader:** M-13's kolonnevalg i reguleringsbilaget hører til
+  Erstatningsopgørelse (nr. 12); M-14's to tabelcelle-årsfelter hører til Årsløn (nr. 9) og
+  Erstatningsopgørelse; og Gem/Hent med et ugyldigt satsår hører til Global shell (nr. 6), fordi
+  filgemmedialogen ikke kan afprøves headless.

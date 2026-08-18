@@ -51,7 +51,9 @@ describe('DEFAULT_APP_SETTINGS', () => {
   });
 
   it('har alle forventede felter', () => {
-    expect(DEFAULT_APP_SETTINGS.themeMode).toBe('light');
+    // «Følg computeren» er standarden (BB-024): uden et aktivt valg følger Mineo maskinen — også
+    // når den skifter midt i en session.
+    expect(DEFAULT_APP_SETTINGS.themeMode).toBe('system');
     expect(typeof DEFAULT_APP_SETTINGS.defaultStartsideErStamdata).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.showContentBoxReportButton).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.showEOInspektionMenu).toBe('boolean');

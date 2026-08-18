@@ -83,10 +83,46 @@ export type AppSettingsDocumentDownloadFormatOption = DocumentDownloadFormat;
 /**
  * Kanonisk kilde for app-temaets tilstandsværdier. Zod-enum'et er sandhedskilden;
  * `AppThemeMode` udledes herfra, så tema-byggeren (`src/config/appTheme.ts`) ikke
- * vedligeholder en parallel `'light' | 'dark'`-union der kan drifte fra schemaet.
+ * vedligeholder en parallel union der kan drifte fra schemaet.
+ *
+ * **To BEGREBER, ikke ét.** Brugerens VALG kan være `'system'` — «følg computeren» — mens det
+ * tema, der faktisk males, altid er `'light'` eller `'dark'`. De to må ikke blandes sammen:
+ * `buildTheme`, CSS-attributten `data-mineo-theme` og browser-chromens `theme-color` kan ikke
+ * gøre noget fornuftigt med `'system'`, og en `'system'`-værdi, der slap igennem til dem, ville
+ * give et lyst tema uden fejlmeddelelse. Derfor er `AppThemeMode` (valget) og
+ * `ResolvedThemeMode` (udfaldet) adskilte typer, og `resolveThemeMode` nedenfor er den eneste
+ * oversættelse mellem dem.
+ *
+ * Baggrund: `'system'` var tidligere ikke en gemt værdi, men fraværet af én. Systemtemaet blev
+ * kun læst ved allerførste start, og i samme øjeblik brugeren valgte lyst eller mørkt, var
+ * automatikken permanent væk — uden nogen vej tilbage. Brugerens afgørelse 2026-08-18
+ * (`docs/testing/brugerblik/indstillinger.md` BB-024) gør «følg computeren» til et ægte,
+ * gemt valg og til standarden.
  */
-export const themeModeEnum = z.enum(['light', 'dark']);
+// Rækkefølgen er visningsrækkefølgen på Indstillinger: de to konkrete valg først, automatikken
+// sidst som den, man vender tilbage til.
+export const themeModeEnum = z.enum(['light', 'dark', 'system']);
 export type AppThemeMode = z.infer<typeof themeModeEnum>;
+
+/** Det tema, der faktisk males. Aldrig `'system'` — se `themeModeEnum`. */
+export const resolvedThemeModeEnum = z.enum(['light', 'dark']);
+export type ResolvedThemeMode = z.infer<typeof resolvedThemeModeEnum>;
+
+/**
+ * Den ENESTE oversættelse fra brugerens valg til det tema, der males.
+ *
+ * `systemPrefersDark` leveres af kaldstedet frem for at blive læst her, fordi de to kaldsteder
+ * læser den hver sin vej: runtime lytter på `matchMedia`, mens bootstrap-scriptet i
+ * `themeBootstrap.ts` er en selvstændig streng uden adgang til dette modul. Holdes reglen her,
+ * kan de to ikke nå frem til hvert sit svar for samme tilstand.
+ */
+export const resolveThemeMode = (
+  themeMode: AppThemeMode,
+  systemPrefersDark: boolean
+): ResolvedThemeMode => {
+  if (themeMode === 'system') return systemPrefersDark ? 'dark' : 'light';
+  return themeMode;
+};
 
 export const appSettingsSchema = z
   .object({
@@ -123,7 +159,9 @@ export const appSettingsSchema = z
 export type AppSettings = z.infer<typeof appSettingsSchema>;
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
-  themeMode: 'light',
+  // «Følg computeren» er standarden: uden et aktivt valg skal Mineo følge maskinens lyse/mørke
+  // indstilling, også når den skifter midt i en session (BB-024).
+  themeMode: 'system',
   defaultStartsideErStamdata: false,
   showContentBoxReportButton: false,
   showEOInspektionMenu: false,

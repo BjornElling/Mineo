@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-08-08
+**Senest verificeret mod kode:** 2026-08-18
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -24,6 +24,24 @@ Programindstillinger er **ikke** sagsdata og **må derfor aldrig**:
 
 Konsekvens:
 - Hvis en `.eo`-fil deles med en kollega eller flyttes til en anden maskine, må programindstillinger ikke “smugles med”.
+
+**Brugerens afgørelse 2026-08-18 (bindende, genåbnes ikke).** Forbuddet gælder også som svar på det
+modsatrettede hensyn: indstillinger kan gå tabt, hvis browserens lagring ryddes, og de kan hverken
+gemmes eller hentes. Det er efterprøvet og accepteret. Forslaget om at lade dem følge `.eo`-filen —
+også som et separat, valgfrit afsnit — er **afvist**. Tabet er sjældent nok til at bæres, og
+brugeren opdager det selv; det vejer ikke op mod at gøre `.eo` til andet end sagsdata.
+Der skal heller ikke vises nogen besked, når indstillinger er faldet tilbage til deres standarder:
+tilstanden er så sjælden, at meddelelsen i praksis aldrig ville blive vist.
+Baggrund: `docs/testing/brugerblik/indstillinger.md` BB-025.
+
+## Normativ regel: indstillinger er uden for undo/redo
+Ændringer på Indstillinger-siden må **aldrig** indgå i sagens fortrydelseshistorik.
+
+**Brugerens afgørelse 2026-08-18 (bindende):** valgene må kun kunne ændres ved brugerens aktive
+handling. Var de en del af undo/redo, kunne ét tryk for meget på Fortryd ændre en indstilling, som
+brugeren ikke havde rørt — og virkningen ville ramme et helt andet sted end dér, fortrydelsen skete.
+Fraværet af fortrydelse er altså et værn, ikke en mangel; det skal ikke «rettes», og der skal ikke
+vises nogen oplysning om det. Baggrund: `docs/testing/brugerblik/indstillinger.md` BB-027.
 
 ## Kontrakter (normative, ikke-forklarende)
 - **AppSettings må aldrig være skjult sagsdata.** Defaults til ny sagsdata må kun materialiseres ved oprettelse af ny sag eller ny brugerhandling, ikke under load for at gøre en gammel sag komplet.
@@ -55,6 +73,24 @@ Konsekvens:
   Nye top-level settings håndteres af den eksisterende merge-logik i `parseStoredSettings()`.
   Nye felter i nested objekter kræver eksplicit merge-logik i `src/settings/appSettingsParse.ts`.
   Nye nested objekter kræver også eksplicit merge-logik parallelt med `brevhovedIndstillinger`-mønsteret.
+- **Farvetemaet har TRE valg, men kun TO udfald — og de to begreber er adskilte typer.**
+  `themeMode` (brugerens valg) er `'light' | 'dark' | 'system'`, mens det tema, der faktisk males,
+  er `ResolvedThemeMode` = `'light' | 'dark'`. `resolveThemeMode(themeMode, systemPrefersDark)` i
+  `appSettingsSchema.ts` er den **eneste** oversættelse, og alt, der tegner — `buildTheme`,
+  `data-mineo-theme`, `THEME_COLOR_BY_MODE` — tager `ResolvedThemeMode`, så et `'system'` ikke kan
+  nå frem til dem. Uden typegrænsen ville en `'system'`-værdi give et lyst tema uden fejlmeddelelse,
+  fordi ingen palet matcher.
+  - **`'system'` er standarden og et ægte, gemt valg.** Tidligere blev systempræferencen kun læst
+    som en startværdi og skrevet ind som et konkret `'light'`/`'dark'`; første settings-skrivning
+    frøs dermed automatikken permanent, uden vej tilbage. Parse-laget må derfor **ikke** længere
+    læse systempræferencen ind i defaults — det ville genindføre netop den fejl.
+  - **Systempræferencen skal følges live.** `'system'` betyder «følg computeren», også når den
+    skifter, mens Mineo er åben; contexten abonnerer på `matchMedia` og eksponerer
+    `resolvedThemeMode`. Et enkelt opslag ved mount er ikke tilstrækkeligt.
+  - **Head-scriptet gentager reglen i ES5** og kan ikke dele kode med `resolveThemeMode`.
+    `themeBootstrapParity.test.ts` måler de to mod hinanden over krydsproduktet af alle gemte valg
+    (inkl. ugyldige) og begge systempræferencer, så første paint og runtime ikke kan divergere.
+  - Baggrund: brugerens afgørelse 2026-08-18, `docs/testing/brugerblik/indstillinger.md` BB-024.
 - **Miljøafhængige defaults** er kun tilladt for rene visuelle UI-præferencer. De må ikke bruges til sags-, PDF- eller beregningsrelevante settings.
 - **Farvemarkering af font-styles er en DEV-kontrol, ikke en semantisk indholdsfarve.** En markørfarve skal
   svare til én komplet, kanonisk typografisignatur. Tabelsignaturer skelner mindst mellem 13 px og 14 px og

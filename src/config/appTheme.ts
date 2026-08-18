@@ -1,11 +1,14 @@
 import { createTheme } from '@mui/material';
 import type { PaletteMode, Theme } from '@mui/material/styles';
-import type { AppThemeMode } from '../settings/appSettingsSchema';
+import type { ResolvedThemeMode } from '../settings/appSettingsSchema';
 import { CONTENT_SCALE_CSS_VARIABLE } from '../utils/uiScale';
 
-export type { AppThemeMode };
+export type { ResolvedThemeMode };
 
-const buildPalette = (mode: AppThemeMode) => {
+// Tager `ResolvedThemeMode` og ikke `AppThemeMode`: brugerens valg kan være `'system'`, men et
+// tema kan ikke males «som systemet». Oversættelsen sker ét sted (`resolveThemeMode`), og
+// typegrænsen her gør det til en compilerfejl at sende valget udenom den.
+const buildPalette = (mode: ResolvedThemeMode) => {
   if (mode === 'dark') {
     return {
       mode: 'dark' as PaletteMode,
@@ -41,7 +44,7 @@ const buildPalette = (mode: AppThemeMode) => {
   };
 };
 
-export const buildTheme = (mode: AppThemeMode): Theme =>
+export const buildTheme = (mode: ResolvedThemeMode): Theme =>
   createTheme({
     palette: buildPalette(mode),
     typography: {

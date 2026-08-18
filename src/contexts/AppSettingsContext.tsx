@@ -1,9 +1,9 @@
 import * as React from 'react';
-import type { AppSettings } from '../settings/appSettingsSchema';
+import { resolveThemeMode, type AppSettings } from '../settings/appSettingsSchema';
 import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../settings/appSettingsStorage';
 import { loadInitialSettings, mergeAppSettings } from '../settings/appSettingsParse';
 import { AppSettingsContext, type AppSettingsContextValue } from './AppSettingsContext.shared';
-import { THEME_COLOR_BY_MODE } from '../settings/themeBootstrap';
+import { SYSTEM_DARK_MEDIA_QUERY, THEME_COLOR_BY_MODE } from '../settings/themeBootstrap';
 
 /**
  * AppSettingsContext
@@ -17,8 +17,37 @@ import { THEME_COLOR_BY_MODE } from '../settings/themeBootstrap';
  * Se `src/contracts/app-settings.md` for normativt rationale og constraints.
  */
 
+/**
+ * Computerens aktuelle lys/mørke-præference, holdt levende.
+ *
+ * Findes som en abonnerende hook og ikke som et enkelt opslag, fordi hele pointen med
+ * `themeMode: 'system'` er, at et skift på maskinen — typisk automatisk morgen/aften — skal slå
+ * igennem MENS Mineo er åben. Et opslag ved mount ville kun give «følg computeren, som den så ud,
+ * da du åbnede programmet».
+ *
+ * `matchMedia` kan mangle i jsdom og i ældre miljøer; er den væk, svarer hooken «lyst» og
+ * abonnerer ikke. Det er samme fallback som bootstrap-scriptet og `readSystemThemeMode`.
+ */
+const useSystemPrefersDark = (): boolean => {
+  const subscribe = React.useCallback((onChange: () => void) => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
+    const query = window.matchMedia(SYSTEM_DARK_MEDIA_QUERY);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+
+  const getSnapshot = React.useCallback(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia(SYSTEM_DARK_MEDIA_QUERY).matches;
+  }, []);
+
+  return React.useSyncExternalStore(subscribe, getSnapshot, () => false);
+};
+
 export const AppSettingsProvider = ({ children }: { children: React.ReactNode }): React.ReactElement => {
   const [settings, setSettings] = React.useState(() => loadInitialSettings());
+  const systemPrefersDark = useSystemPrefersDark();
+  const resolvedThemeMode = resolveThemeMode(settings.themeMode, systemPrefersDark);
 
   const updateSettings = React.useCallback((patch: Readonly<Partial<AppSettings>>) => {
     setSettings((prev) => {
@@ -42,7 +71,9 @@ export const AppSettingsProvider = ({ children }: { children: React.ReactNode })
   }, [settings.fontStyleColorDebug]);
 
   React.useEffect(() => {
-    document.documentElement.dataset.mineoTheme = settings.themeMode;
+    // Det RESOLVEREDE tema, ikke valget: `data-mineo-theme="system"` ville ikke matche nogen
+    // CSS-regel, og `THEME_COLOR_BY_MODE` har ingen farve for «systemet».
+    document.documentElement.dataset.mineoTheme = resolvedThemeMode;
 
     let themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     if (!themeColorMeta) {
@@ -50,10 +81,13 @@ export const AppSettingsProvider = ({ children }: { children: React.ReactNode })
       themeColorMeta.name = 'theme-color';
       document.head.appendChild(themeColorMeta);
     }
-    themeColorMeta.content = THEME_COLOR_BY_MODE[settings.themeMode];
-  }, [settings.themeMode]);
+    themeColorMeta.content = THEME_COLOR_BY_MODE[resolvedThemeMode];
+  }, [resolvedThemeMode]);
 
-  const value = React.useMemo<AppSettingsContextValue>(() => ({ settings, updateSettings }), [settings, updateSettings]);
+  const value = React.useMemo<AppSettingsContextValue>(
+    () => ({ settings, updateSettings, resolvedThemeMode }),
+    [settings, updateSettings, resolvedThemeMode]
+  );
 
   return <AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>;
 };

@@ -147,8 +147,10 @@ const ThemedApp = ({
 }: {
   inputRuntimeBinding: InputRuntimeBinding;
 }) => {
-  const { settings } = useAppSettings();
-  const theme = React.useMemo(() => buildTheme(settings.themeMode), [settings.themeMode]);
+  const { settings, resolvedThemeMode } = useAppSettings();
+  // Det resolverede tema, ikke valget: `settings.themeMode` kan være `'system'`, som ingen palet
+  // svarer til. Oversættelsen ejes af `resolveThemeMode` og leveres af contexten.
+  const theme = React.useMemo(() => buildTheme(resolvedThemeMode), [resolvedThemeMode]);
 
   // Hold `EvaluationSourceToken` og det konkrete AppSettings-snapshot samlet (§3.4).
   useSettingsRevisionBridge(settings);

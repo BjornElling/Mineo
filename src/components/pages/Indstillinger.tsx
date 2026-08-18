@@ -13,6 +13,8 @@ import DefaultDirectoryRow from './indstillinger/DefaultDirectoryRow';
 import {
   APP_SETTINGS_AFSLUTTES_MED_OPTIONS,
   APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
+  themeModeEnum,
+  type AppThemeMode,
   type BrevhovedIndstillinger,
 } from '../../settings/appSettingsSchema';
 import { DOCUMENT_DOWNLOAD_FORMAT_OPTIONS, getDocumentFormatLabel } from '../../document/documentFormat';
@@ -41,6 +43,24 @@ const brevhovedKeyRows: readonly (readonly DocumentBrevhovedType[])[] = [
 const [brevhovedOptionsRow1, brevhovedOptionsRow2, brevhovedOptionsRow3] = brevhovedKeyRows.map(
   (keys): readonly BrevhovedOption[] => keys.map((key) => ({ key, label: DOCUMENT_BREVHOVED_LABELS[key] }))
 );
+
+/**
+ * Farvetemaets tre valg. Etiketterne står her, men SÆTTET er bundet til `themeModeEnum` gennem
+ * `Record<AppThemeMode, string>`: en ny tilstand i schemaet giver en compilerfejl her frem for en
+ * valgmulighed, brugeren aldrig får at se. Rækkefølgen sætter «Følg computeren» sidst, fordi de to
+ * konkrete valg er dem, brugeren typisk vælger imellem — automatikken er standarden, man vender
+ * tilbage til (BB-024).
+ */
+const THEME_MODE_LABELS: Record<AppThemeMode, string> = {
+  light: 'Lyst',
+  dark: 'Mørkt',
+  system: 'Følg computeren',
+};
+
+const themeModeOptions = themeModeEnum.options.map((value) => ({
+  value,
+  label: THEME_MODE_LABELS[value],
+}));
 
 const loenIndtastesSomOptions = LOENPERIODE_LABELS.options;
 
@@ -113,17 +133,12 @@ const Indstillinger = React.memo(() => {
               ariaLabel="Farvetema"
               value={settings.themeMode}
               onCommit={(event) => {
-                const nextThemeMode = event.target.value;
-                if (nextThemeMode === 'light' || nextThemeMode === 'dark') {
-                  return updateSettings({ themeMode: nextThemeMode });
-                }
-                return false;
+                const next = event.target.value;
+                if (next === undefined) return false;
+                return updateSettings({ themeMode: next });
               }}
               row={true}
-              options={[
-                { value: 'light', label: 'Lyst' },
-                { value: 'dark', label: 'Mørkt' },
-              ]}
+              options={themeModeOptions}
             />
           </Box>
         </Box>
@@ -352,25 +367,25 @@ const Indstillinger = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Beregningsteknisk</Typography>
 
-        <LabeledControlRow label="Tillad regulering med overenskomst, der ikke dækker hele perioden">
-          {({ labelledBy, controlId }) => (
-            <StyledToggleSwitch
-              id={controlId}
-              labelledBy={labelledBy}
-              checked={settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden}
-              onCommit={(e: CommitEvent<boolean>) =>
-                updateSettings({ allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: e.target.value })
-              }
-            />
-          )}
-        </LabeledControlRow>
+        {/*
+          RÆKKEFØLGEN ER BETYDNINGSBÆRENDE — byt den ikke tilbage.
 
+          De to rækker er UAFHÆNGIGE regler, ikke en betingelse og dens undtagelse. Måneds-grænsen
+          gælder ALTID: inden for vinduet regnes dækningen som i orden, uanset toggle'ns tilstand.
+          Først uden for vinduet træder toggle'n i kraft og afgør, om manglen er en fejl eller kun
+          en advarsel.
+
+          Stod toggle'n først (som før), læste rækkefølgen naturligt som «grænsen gælder, når jeg har
+          tilladt det» — og en bruger, der slog toggle'n fra for at få den strengeste kontrol, fik
+          den ikke inden for vinduet uden at opdage det. Tolerancen står derfor først og er
+          formuleret som en selvstændig regel. Brugerfund BB-028, accepteret 2026-08-18.
+        */}
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Efter udløb anses overenskomst for forældet efter</Typography>
+          <Typography className="row--text">Overenskomsten regnes for dækkende indtil</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDropdown
-                ariaLabel="Efter udløb anses overenskomst for forældet efter"
+                ariaLabel="Overenskomsten regnes for dækkende indtil"
                 allowEmpty={false}
                 value={settings.allowReguleringMedUdloebMedMaaneder}
                 onChange={(e) => {
@@ -385,10 +400,23 @@ const Indstillinger = React.memo(() => {
                   </MenuItem>
                 ))}
               </StyledDropdown>
-              <Typography className="row--text">måneder</Typography>
+              <Typography className="row--text">måneder efter udløb</Typography>
             </Box>
           </Box>
         </Box>
+
+        <LabeledControlRow label="Tillad regulering med overenskomst, der ikke dækker hele perioden">
+          {({ labelledBy, controlId }) => (
+            <StyledToggleSwitch
+              id={controlId}
+              labelledBy={labelledBy}
+              checked={settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden}
+              onCommit={(e: CommitEvent<boolean>) =>
+                updateSettings({ allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: e.target.value })
+              }
+            />
+          )}
+        </LabeledControlRow>
       </ContentBox>
 
       <ContentBox className="content-box">
