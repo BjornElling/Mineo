@@ -10,6 +10,7 @@ import type { ISODateString } from '../../../../types/branded';
 import { formatCurrency } from '../../../../utils/formatUtils';
 import { hasExactDisplayedAmountMatch } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { useOverlayBehavior } from '../../../../hooks/useOverlayBehavior';
+import { CONTENT_SCALE_CSS_VARIABLE } from '../../../../utils/uiScale';
 import type { LoentrinFinderErrors, LoentrinFinderResult } from './loentrinFinderCore';
 
 /**
@@ -298,7 +299,10 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
           transform: 'translate(-50%, -50%)',
           width: '90%',
           maxWidth: '700px',
-          maxHeight: '85vh',
+          // Vinduet lever inde i arbejdsfladens zoom-rod, så `vh` opløses mod det USKALEREDE
+          // vindue og bliver derefter selv skaleret: uden divisionen kunne vinduet kun bruge
+          // 64 % af skærmhøjden ved mindste skala i stedet for de 85 %, tallet lover.
+          maxHeight: `calc(85vh / var(${CONTENT_SCALE_CSS_VARIABLE}, 1))`,
           backgroundColor: 'var(--color-background-white)',
           borderRadius: '20px',
           boxShadow: '0 8px 32px var(--color-shadow)',

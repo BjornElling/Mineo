@@ -18,10 +18,7 @@ import { setActiveTabForPage } from '../../hooks/usePersistedActiveTab';
 import { getRouteForMenuPageKey, routeToPageId, type MenuPageKey } from '../../config/pageNavigation';
 import { scheduleHistoryTargetRestore } from '../../inputCore/react/historyRestoreTarget';
 import { useContentUiScale } from '../../hooks/useContentUiScale';
-import {
-  getContentGutterCssForMenuScale,
-  getContentMainPaddingLeftForMenuScale,
-} from '../../utils/uiScale';
+import { CONTENT_GUTTER_CSS, CONTENT_UI_SCALE_POLICY } from '../../utils/uiScale';
 import type { HistoryOrigin } from '../../inputCore/inputHistory';
 import {
   getProductionInputRuntimeStartup,
@@ -45,8 +42,7 @@ interface MainLayoutProps {
 }
 
 const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
-  useContentUiScale();
-  const [sideMenuContentScale, setSideMenuContentScale] = React.useState(1);
+  const contentScale = useContentUiScale();
   const diagnostics = useInputDiagnostics();
   // Maskinlæsbar udlæsning af issue-/rejected-tilstanden til e2e og den eksterne interaktionsaudit.
   // Ren read-only og elimineret af dead-code-fjernelsen i produktionsbuildet (§DEV-gate i modulet).
@@ -216,8 +212,6 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     };
   }, [handleGem]);
 
-  const contentGutter = getContentGutterCssForMenuScale(sideMenuContentScale);
-
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <SideMenu
@@ -227,17 +221,20 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         onHent={handleHent}
         onSletAlt={handleSletAlt}
         sletAltButtonRef={sletAltButtonRef}
-        onContentScaleChange={setSideMenuContentScale}
+        contentScale={contentScale}
       />
       <Container
         enableContentScale
-        // Arbejdsfladens ydre luft: samme gutter i begge sider. Gutterne ligger uden for zoom-roden
-        // og ganges derfor med skalaen i CSS — det er netop de to afstande, pladsregnskabet i
-        // `CONTENT_UI_SCALE_POLICY` afsætter, og de skal reduceres i takt med indholdet selv.
-        scrollSx={{ paddingLeft: contentGutter, paddingRight: contentGutter }}
+        // Arbejdsfladens ydre luft: samme gutter hele vejen rundt. Gutterne ligger uden for
+        // zoom-roden og ganges derfor med skalaen i CSS — det er netop de to vandrette afstande,
+        // pladsregnskabet i `CONTENT_UI_SCALE_POLICY` afsætter. Den lodrette luft skaleres med,
+        // fordi en fast luft foroven ville stå dobbelt så høj som luften i siderne ved mindste
+        // skala; Kontroltabellens klæbende tabelhoved kompenserer desuden for præcis denne
+        // værdi inde fra zoom-roden og kan kun ramme, når de to følger samme skala.
+        scrollSx={{ padding: CONTENT_GUTTER_CSS }}
         // MUI fortolker numeriske padding-værdier som spacing-trin. Pixel-enheden er nødvendig,
-        // ellers bliver den skalerede indrykning ganget med otte i stedet for at følge labelskalaen.
-        contentSx={{ paddingLeft: `${getContentMainPaddingLeftForMenuScale(sideMenuContentScale)}px` }}
+        // ellers bliver indrykningen ganget med otte. Værdien er uskaleret: `main` ER zoom-roden.
+        contentSx={{ paddingLeft: `${CONTENT_UI_SCALE_POLICY.contentIndentPx}px` }}
       >
         <LazyChunkRecoveryNotice
           onReloadBlocked={() => {

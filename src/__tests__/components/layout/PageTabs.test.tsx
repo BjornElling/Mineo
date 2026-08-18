@@ -148,7 +148,10 @@ describe('SideTab', () => {
     const el = screen.getByText('EO-kontrol');
     expect(el.classList.contains('side-tab')).toBe(true);
     expect(el.classList.contains('active')).toBe(false);
-    expect(el).toHaveStyle({ top: '125px', left: '1200px' });
+    // Fanen roteres 90° om venstre-bund og rager derfor sin egen HØJDE (48 px) ud til højre for
+    // `left`. Den ligger derfor 48 px inde i indholdsboksen, så dens højrekant flugter med boksens
+    // — ellers stak den ud over programmets bredeste element, som skaleringens pladsregnskab bygger på.
+    expect(el).toHaveStyle({ top: '125px', left: '1152px', height: '48px' });
   });
 
   it('tilføjer active-klassen når aktiv', () => {

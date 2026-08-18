@@ -20,6 +20,7 @@ import {
   openBugReportEmail,
   prepareContentBoxReport,
 } from '../../utils/bugReport';
+import { downloadBlob } from '../../utils/fileHelpers';
 import { CONTENT_SCALE_ROOT_SELECTOR } from '../../utils/uiScale';
 
 /**
@@ -186,12 +187,9 @@ const ContentBoxReportDialog = React.memo(({
         throw new Error('Kunne ikke oprette PNG.');
       }
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = buildScreenshotFilename(identity);
-      a.click();
-      URL.revokeObjectURL(url);
+      // Den kanoniske download-vej. Her lå tidligere en egen kopi, der frigav object-URL'en
+      // synkront lige efter `click()` — en race, hvor browseren kan nå at miste filen tavst.
+      downloadBlob(blob, buildScreenshotFilename(identity));
 
       setSnackbar({
         open: true,

@@ -3,7 +3,7 @@ import { Box, MenuItem, MenuList, OutlinedInput, Popover, Tooltip } from '@mui/m
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { mergeSx } from '../../utils/mergeSx';
-import { measureNearestContentUiScale } from '../../utils/uiScale';
+import { CONTENT_SCALE_CSS_VARIABLE } from '../../utils/uiScale';
 import { copyTextToClipboard, readClipboardText } from '../../utils/clipboardUtils';
 import { createCommitEvent, type CommitEvent } from '../../types/fieldEvents';
 import {
@@ -193,8 +193,6 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const [open, setOpen] = React.useState(false);
   const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
-  const [popoverContentScale, setPopoverContentScale] = React.useState(1);
-  const [popoverMaxHeightPx, setPopoverMaxHeightPx] = React.useState<number | null>(null);
 
   const anchorRef = React.useRef<HTMLDivElement | null>(null);
   const inputElementRef = React.useRef<HTMLInputElement | null>(null);
@@ -406,15 +404,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     closedTypeaheadRef.current = null;
     // Sørg for at combobox-inputtet beholder fokus ved åbning; keyboard-navigation håndteres på inputtet.
     inputElementRef.current?.focus();
-    const nextAnchor = anchorRef.current;
-    setAnchorEl(nextAnchor);
-    // Popover'en er portaleret uden for den zoomede arbejdsflade. Den skal følge præcis den
-    // samme lokale skala som sin trigger, ellers står menuens tekst og rækker for stort.
-    const nextScale = measureNearestContentUiScale(nextAnchor);
-    setPopoverContentScale(nextScale);
-    // Popover måler sin rå layout før en eventuel visuel transform. Begræns derfor den rå højde
-    // til viewporten, så MUI aldrig placerer en liste delvist uden for vinduet.
-    setPopoverMaxHeightPx(Math.max(0, window.innerHeight - 32));
+    setAnchorEl(anchorRef.current);
     setOpen(true);
     const initialHighlight = selectedIndex >= 0
       ? selectedIndex
@@ -423,18 +413,6 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         : -1;
     setHighlightedIndex(initialHighlight);
   }, [disabled, findSelectableIndex, hasConfigError, resolvedValue, selectedIndex]);
-
-  React.useEffect(() => {
-    if (!open) return;
-
-    const updatePopoverViewport = () => {
-      setPopoverMaxHeightPx(Math.max(0, window.innerHeight - 32));
-      setPopoverContentScale(measureNearestContentUiScale(anchorRef.current));
-    };
-
-    window.addEventListener('resize', updatePopoverViewport);
-    return () => window.removeEventListener('resize', updatePopoverViewport);
-  }, [open]);
 
   const handleClose = React.useCallback(
     (reason: CloseReason) => {
@@ -655,7 +633,16 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const listboxSxMerged = mergeSx({
     minWidth: typeof width === 'number' ? `${width}px` : width,
     outline: 'none',
-    maxHeight: popoverMaxHeightPx === null ? undefined : `${popoverMaxHeightPx}px`,
+    // Listen er portaleret uden for arbejdsfladens zoom-rod og skal følge dens skala, præcis som
+    // tooltips og dialogvinduer. Zoom sættes på LISTEN og ikke på Popover-papiret: papiret bærer
+    // MUI's inline `left`/`top`-forankring, som zoom ellers ville gange med, så menuen ville
+    // vandre op mod vinduets øverste venstre hjørne. Papiret måler til gengæld listens zoomede
+    // størrelse, så ankeret bliver rigtigt af sig selv.
+    zoom: `var(${CONTENT_SCALE_CSS_VARIABLE}, 1)`,
+    // Højdeloftet er udtrykt i listens EGNE (zoomede) px, så den synlige liste altid ender på
+    // vinduets højde minus lidt luft — uanset skala. Uden divisionen ville loftet selv blive
+    // skaleret, og listen kun kunne bruge 75 % af den plads, der faktisk er.
+    maxHeight: `calc((100vh - 32px) / var(${CONTENT_SCALE_CSS_VARIABLE}, 1))`,
     overflowY: 'auto',
   }, listboxSx);
 
@@ -846,16 +833,9 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         disableScrollLock
         slotProps={{
           paper: {
-            // `zoom` flytter en portaleret Paper mod viewportens øverste venstre hjørne.
-            // Transform bevarer Popover'ens ankerposition og skalerer kun den viste flade.
-            sx: {
-              // Popover skriver selv `transform: none` inline efter mount. `!important` er
-              // nødvendigt for at holde den lokale skala, uden at ændre dens ankerberegning.
-              transform: `scale(${popoverContentScale}) !important`,
-              transformOrigin: 'top left !important',
-              maxHeight: popoverMaxHeightPx === null ? undefined : `${popoverMaxHeightPx}px`,
-              overflow: 'hidden',
-            },
+            // Papiret skaleres IKKE selv — det bærer forankringen. Loftet her er den visuelle
+            // grænse, listens eget (zoomede) loft ovenfor svarer til.
+            sx: { maxHeight: 'calc(100vh - 32px)', overflow: 'hidden' },
           },
         }}
         onClose={(_, reason) => {

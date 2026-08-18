@@ -3,6 +3,7 @@ import { Box, Typography, IconButton, useTheme, Unstable_TrapFocus as FocusTrap 
 import CloseIcon from '@mui/icons-material/Close';
 import licenseText from '../../assets/LICENSE.txt?raw';
 import { useOverlayBehavior } from '../../hooks/useOverlayBehavior';
+import { CONTENT_SCALE_CSS_VARIABLE } from '../../utils/uiScale';
 
 type LicenseModalProps = {
   open: boolean;
@@ -98,7 +99,10 @@ const LicenseModal = React.memo(({ open, onClose, restoreFocusTo }: LicenseModal
           transform: 'translate(-50%, -50%)',
           width: '90%',
           maxWidth: '800px',
-          maxHeight: '80vh',
+          // Vinduet lever inde i arbejdsfladens zoom-rod, så `vh` opløses mod det USKALEREDE
+          // vindue og bliver derefter selv skaleret: uden divisionen kunne vinduet kun bruge
+          // 60 % af skærmhøjden ved mindste skala i stedet for de 80 %, tallet lover.
+          maxHeight: `calc(80vh / var(${CONTENT_SCALE_CSS_VARIABLE}, 1))`,
           backgroundColor: 'var(--color-background-white)',
           borderRadius: '20px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',

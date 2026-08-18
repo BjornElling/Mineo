@@ -80,15 +80,23 @@ function PageTabs<T extends string>({
 
     scheduleSync();
     window.addEventListener('resize', scheduleSync);
+    const tabsRoot = tabsRef.current;
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(scheduleSync);
-    if (tabsRef.current !== null) observer?.observe(tabsRef.current);
-    const indicator = tabsRef.current?.querySelector<HTMLElement>('.MuiTabs-indicator');
+    if (tabsRoot !== null) observer?.observe(tabsRoot);
     // Tabs kan selv skrive indikatorens inline-style efter forælderens layout-effect (fx fra sin
     // egen ResizeObserver). MutationObserveren korrigerer netop den sene skrivning, uden polling.
-    const indicatorObserver = indicator == null || typeof MutationObserver === 'undefined'
+    //
+    // Observeren sidder på fane-RODEN — vores egen stabile `<Box>` — og ikke på indikator-elementet.
+    // Det er ikke en detalje: React udskifter indikator-noden, når Tabs gentegnes, og en observer
+    // bundet direkte til noden endte derfor på et løsrevet element og tav for al fremtid. Symptomet
+    // var, at den blå streg blev stående i MUI's egen (forkert skalerede) bredde efter en
+    // vinduesændring, mens den var korrekt efter et faneklik.
+    const indicatorObserver = tabsRoot === null || typeof MutationObserver === 'undefined'
       ? null
       : new MutationObserver(scheduleSync);
-    if (indicator != null) indicatorObserver?.observe(indicator, { attributes: true, attributeFilter: ['style'] });
+    if (tabsRoot !== null) {
+      indicatorObserver?.observe(tabsRoot, { subtree: true, attributes: true, attributeFilter: ['style'] });
+    }
     return () => {
       window.removeEventListener('resize', scheduleSync);
       observer?.disconnect();

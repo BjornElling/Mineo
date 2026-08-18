@@ -13,6 +13,7 @@ import { getRecentLogEntries } from './logStorage';
 import type { LogEntry } from './logStorage';
 import { getTodayCopenhagenISO } from './dateUtils';
 import { formatISOToDanish, formatCopenhagenTimestampSeconds } from './dateFormatting';
+import { downloadBlob } from './fileHelpers';
 import { logError } from './logger';
 import { isSystemIssueLogData } from './systemIssueReporter';
 import { BUILD_INFO, VERSION } from '../config/buildInfo';
@@ -545,14 +546,7 @@ export async function downloadBugReport(
     (isPreparedBugReport(arg) ? arg.download.filename : arg?.filename) ??
     `Mineo-fejlrapport-v${getVersion()}-${getTodayCopenhagenISO()}.txt`;
 
-  // Opret blob og download
-  const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-
-  URL.revokeObjectURL(url);
+  // Den kanoniske download-vej. Her lå tidligere en egen kopi, der frigav object-URL'en
+  // synkront lige efter `click()` — en race, hvor browseren kan nå at miste filen tavst.
+  downloadBlob(new Blob([report], { type: 'text/plain;charset=utf-8' }), filename);
 }

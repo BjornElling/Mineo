@@ -1,6 +1,13 @@
 import React from 'react';
 import { Box } from '@mui/material';
+import { CONTENT_BOX_WIDTH_PX } from '../../utils/uiScale';
 import { TAB_NAVIGATION_ATTRIBUTE } from './containerNavigation/navigationControlSemantics';
+
+/**
+ * Fanens højde. Efter `rotate(90deg)` om venstre-bund er det HØJDEN, der bliver fanens vandrette
+ * udstrækning — derfor er den fastlåst her og ikke overladt til indholdet.
+ */
+const SIDE_TAB_HEIGHT_PX = 48;
 
 export type SideTabProps = {
   readonly label: string;
@@ -28,7 +35,12 @@ const SideTab = React.memo(({ label, active, onClick, top }: SideTabProps) => (
     className={active ? 'tab-item side-tab active' : 'tab-item side-tab'}
     sx={{
       position: 'absolute',
-      left: '1200px',
+      // Fanen roteres om venstre-bund og rager derfor sin egen HØJDE ud til højre for `left`.
+      // Den lå før på indholdsboksens kant (1200 px) og stak dermed 48 px ud over programmets
+      // bredeste element — de 48 px indgår ikke i skaleringens pladsregnskab, så ved den
+      // smalleste dækkede vinduesbredde åd fanen hele højregutteren og endte 2,5 px fra
+      // vindueskanten. Fanen slutter nu præcis ved boksens højrekant.
+      left: `${CONTENT_BOX_WIDTH_PX - SIDE_TAB_HEIGHT_PX}px`,
       top,
       transform: 'rotate(90deg)',
       transformOrigin: 'left bottom',
@@ -38,7 +50,7 @@ const SideTab = React.memo(({ label, active, onClick, top }: SideTabProps) => (
       alignItems: 'center',
       justifyContent: 'center',
       minWidth: 140,
-      minHeight: 48,
+      height: `${SIDE_TAB_HEIGHT_PX}px`,
       padding: '12px 16px',
       appearance: 'none',
       border: 'none',

@@ -1,28 +1,26 @@
 /**
  * Den fælles policy for Mineos arbejdsflade- og sidemenuskalering.
  *
- * Modulet er den ene sandhedskilde for, hvor meget arbejdsfladen skal skaleres for at kunne være
+ * Modulet er den ene sandhedskilde for, hvor meget programfladen skal skaleres for at kunne være
  * i vinduet, og for de layoutmål, den beslutning bygger på. Både det synkrone head-script
  * (før første paint) og runtime-hooken læser herfra, så de to aldrig kan komme til at regne
  * forskelligt. Normativ beskrivelse: `src/contracts/app-shell-contract.md` §2.11.
+ *
+ * **Én skala for hele fladen.** Sidemenu, gutter, indrykning og indholdsboks skaleres alle med
+ * `--mineo-content-scale`. Tidligere zoomede kun arbejdsfladen, mens sidemenuen fulgte sin egen
+ * højdestyrede skala; det gav to forskellige tekststørrelser i samme billede (menulabels i 14 px
+ * ved siden af brødtekst i 10,5 px) og et pladsregnskab, der reserverede fuld menubredde til en
+ * menu, der reelt var smallere. Menuens højdestyrede skala findes stadig, men kun som et LOFT:
+ * den kan gøre menuen mindre end arbejdsfladen, aldrig større.
  */
 export const CONTENT_SCALE_CSS_VARIABLE = '--mineo-content-scale' as const;
 export const CONTENT_SCALE_ROOT_SELECTOR = '[data-mineo-content-scale-root="true"]' as const;
 
-export const SIDE_MENU_SCALE_POLICY = Object.freeze({
-  fullWidthPx: 250,
-  minimumWidthPx: 190,
-  minimumContentScale: 0.78,
-  fullContentGutterPx: 24,
-  minimumContentGutterPx: 16,
-  fullContentMainPaddingLeftPx: 50,
-  minimumContentMainPaddingLeftPx: 25,
-} as const);
-
 /**
  * Bredden på `.content-box` — arbejdsfladens bredeste element på hver eneste side og fane.
  * Værdien er målt: intet indhold rager ud over indholdsboksen, så den er den ene bredde,
- * pladsregnskabet nedenfor skal kunne rumme.
+ * pladsregnskabet nedenfor skal kunne rumme. Kontrolfanerne (`SideTab`) er lagt INDEN for
+ * boksens højrekant netop for at holde den påstand sand.
  *
  * Spejler `--content-box-max-width` i `src/styles/layout.css`, som er den visuelle sandhedskilde.
  * `src/__tests__/quality/contentBoxWidthSingleSource.test.ts` fejler, hvis de to falder ud af sync.
@@ -30,25 +28,43 @@ export const SIDE_MENU_SCALE_POLICY = Object.freeze({
 export const CONTENT_BOX_WIDTH_PX = 1200;
 
 /**
- * Arbejdsfladens vandrette pladsregnskab.
+ * Sidemenuens uskalerede grundmål. Alle værdier er dem, menuen har ved skala 1; den faktiske
+ * geometri er værdien gange menuens skala.
+ */
+export const SIDE_MENU_LAYOUT_POLICY = Object.freeze({
+  expandedWidthPx: 250,
+  collapsedWidthPx: 70,
+  borderWidthPx: 1,
+  buttonSizePx: 44,
+  iconSlotSizePx: 24,
+  groupPaddingPx: 12,
+  /**
+   * Menuens egen højdestyrede bundgrænse. Under dette trin komprimeres menuen ikke yderligere;
+   * eventuelt overskydende indhold fortsætter tavst uden for vinduet frem for at få en scrollbar.
+   */
+  minimumHeightFitScale: 0.78,
+} as const);
+
+/** Arbejdsfladens ydre luft — samme afstand hele vejen rundt om indholdet. */
+const CONTENT_GUTTER_PX = 24;
+
+/** Den indre startluft fra skillelinjen til indholdet. */
+const CONTENT_INDENT_PX = 50;
+
+/**
+ * Programfladens vandrette pladsregnskab.
  *
- * Mineo har et fast bredt layout: sidemenu + en indholdsflade, hvis bredde er den samme uanset
- * vinduet. Skalaen er den ene knap, der får det faste layout til at passe i vinduet — og
- * regnskabet er derfor delt i præcis to dele:
- *
- * - `unscaledLeftWidthPx`: alt til venstre for skillelinjen. Sidemenuen zoomer ikke med
- *   arbejdsfladen, og bredden regnes på den udfoldede menu ved fuld labelskala (værste tilfælde).
- *   En sammenfoldet eller lavere skaleret menu giver kun ekstra luft, aldrig beskæring.
- * - `scaledWorkspaceWidthPx`: alt til højre for skillelinjen. Både gutter, indrykning og
- *   indholdsboks ganges med skalaen, så afstanden mellem skillelinjen og teksten reduceres i
- *   samme takt som indholdet selv i stedet for at æde en voksende andel af et smalt vindue.
+ * Hele rækken fra vinduets venstre kant til indholdets højre kant skaleres under ét:
+ * sidemenu + venstre gutter + indrykning + indholdsboks + højre gutter. Begge gutters regnes
+ * med, så indholdet aldrig fitter ved at ligge klods op ad scrollbaren i højre side. Summen
+ * udledes af de navngivne layoutmål, aldrig af et hardkodet tal.
  *
  * Policyen er bevidst serialiserbar, fordi den samme konfiguration bruges af det synkrone
  * head-script og af runtime-hooken. Ingen del af policyen er brugerdata eller app-settings.
  */
 export const CONTENT_UI_SCALE_POLICY = Object.freeze({
   maximumScale: 1,
-  // Under dette trin bliver den mindste tekst på arbejdsfladen for lille til at læse. Så vidt ned
+  // Under dette trin bliver den mindste tekst på fladen for lille til at læse. Så vidt ned
   // rækker skalaen — derunder overtager `Container`s vandrette scroll som den bevidste fallback.
   minimumScale: 0.75,
   // Skalaen kvantiseres til hele hundrededele. Det holder den deterministisk (samme vinduesbredde
@@ -57,13 +73,13 @@ export const CONTENT_UI_SCALE_POLICY = Object.freeze({
   // Kvantiseringen sker på et flydende tal. Uden en lille tolerance kunne en bredde, der præcis
   // svarer til et trin, lande et hundrededel under det på grund af binær afrunding.
   quantizationEpsilon: 1e-9,
-  unscaledLeftWidthPx: SIDE_MENU_SCALE_POLICY.fullWidthPx,
-  // Venstre gutter + indrykning + indholdsboks + højre gutter. Begge gutters regnes med, så
-  // indholdet aldrig fitter ved at ligge klods op ad scrollbaren i højre side.
-  scaledWorkspaceWidthPx: SIDE_MENU_SCALE_POLICY.fullContentGutterPx
-    + SIDE_MENU_SCALE_POLICY.fullContentMainPaddingLeftPx
+  contentGutterPx: CONTENT_GUTTER_PX,
+  contentIndentPx: CONTENT_INDENT_PX,
+  scaledShellWidthPx: SIDE_MENU_LAYOUT_POLICY.expandedWidthPx
+    + CONTENT_GUTTER_PX
+    + CONTENT_INDENT_PX
     + CONTENT_BOX_WIDTH_PX
-    + SIDE_MENU_SCALE_POLICY.fullContentGutterPx,
+    + CONTENT_GUTTER_PX,
   // Indholdsfladens lodrette scrollbar ligger inden for vinduet og skal derfor holdes fri.
   scrollbarReservePx: 20,
 } as const);
@@ -74,117 +90,69 @@ export const CONTENT_UI_SCALE_POLICY = Object.freeze({
  */
 export type ContentUiScale = number;
 
-export const SIDE_MENU_COLLAPSED_ICON_POLICY = Object.freeze({
-  sidebarWidthPx: 70,
-  sidebarBorderWidthPx: 1,
-  buttonSizePx: 44,
-  iconSlotSizePx: 24,
-  iconSizePx: 20,
-  expandedGroupPaddingPx: 12,
-} as const);
-
-const resolveSideMenuScaleProgress = (menuContentScale: number): number => {
-  const safeMenuContentScale = Number.isFinite(menuContentScale)
-    ? Math.max(SIDE_MENU_SCALE_POLICY.minimumContentScale, Math.min(1, menuContentScale))
-    : 1;
-
-  return (
-    safeMenuContentScale - SIDE_MENU_SCALE_POLICY.minimumContentScale
-  ) / (1 - SIDE_MENU_SCALE_POLICY.minimumContentScale);
-};
-
-const interpolateSideMenuScale = (minimum: number, full: number, menuContentScale: number): number => (
-  minimum + (full - minimum) * resolveSideMenuScaleProgress(menuContentScale)
-);
-
 /**
- * Alle sidemenuikoner — også hamburgeren — lever under den samme zoomede indholdsrod. Dermed
- * deler de visuel størrelse, ikonflade og vandret anker i begge menutilstande.
+ * Sidemenuens indbyrdes ikongeometri, målt i menuens EGEN (zoomede) koordinatverden.
+ *
+ * Hele menuen — ramme såvel som indhold — skaleres med samme faktor, så forholdene indbyrdes er
+ * konstante. Værdierne er derfor rene tal uden skala-afhængighed; det var de ikke, dengang
+ * rammen var uskaleret og indholdet zoomet, hvor hver enkelt indrykning måtte divideres med
+ * skalaen for at ramme samme lodrette akse.
  */
-export const getCollapsedSideMenuIconLayout = (menuContentScale = 1) => {
-  const scale = Number.isFinite(menuContentScale)
-    ? Math.max(SIDE_MENU_SCALE_POLICY.minimumContentScale, Math.min(1, menuContentScale))
-    : 1;
+export const getSideMenuIconLayout = () => {
+  // Flex-contentet slutter før sidebarens 1px skillelinje. Uden at fratrække den bliver udfoldede
+  // ikoner forskudt en halv px til højre i forhold til de kollapsede.
+  const iconCenterPx = (
+    SIDE_MENU_LAYOUT_POLICY.collapsedWidthPx - SIDE_MENU_LAYOUT_POLICY.borderWidthPx
+  ) / 2;
 
   return {
-    buttonSizePx: SIDE_MENU_COLLAPSED_ICON_POLICY.buttonSizePx * scale,
-    iconSizePx: SIDE_MENU_COLLAPSED_ICON_POLICY.iconSizePx * scale,
-    // Flex-contentet slutter før sidebarens 1px skillelinje. Uden at fratrække den blev udfoldede
-    // ikoner forskudt en halv px til højre i forhold til de kollapsede ved delvis zoom.
-    iconCenterPx: (
-      SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx
-      - SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarBorderWidthPx
-    ) / 2,
-    // Den udfoldede knap lever under menuens zoom. Padding beregnes derfor i layout-px, så
-    // ikonets visuelle midtpunkt altid ligger på samme akse som i den kollapsede ikonkolonne.
-    expandedButtonPaddingLeftPx: (
-      (
-        SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx
-        - SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarBorderWidthPx
-      ) / (2 * scale)
-    ) - SIDE_MENU_COLLAPSED_ICON_POLICY.expandedGroupPaddingPx
-      - SIDE_MENU_COLLAPSED_ICON_POLICY.iconSlotSizePx / 2,
-    // Hamburgeren er med vilje ikon-only også i den udfoldede menu. Den skal derfor have en
-    // kvadratisk hoverflade med ens luft omkring ikonet, men stadig dele de øvrige ikonernes akse.
-    expandedSquareButtonMarginLeftPx: (
-      (
-        SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx
-        - SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarBorderWidthPx
-      ) / (2 * scale)
-    ) - SIDE_MENU_COLLAPSED_ICON_POLICY.expandedGroupPaddingPx
-      - SIDE_MENU_COLLAPSED_ICON_POLICY.buttonSizePx / 2,
+    iconCenterPx,
+    /** Indrykning på en label-knap, så dens ikon står på den kollapsede ikonkolonnes akse. */
+    expandedButtonPaddingLeftPx: iconCenterPx
+      - SIDE_MENU_LAYOUT_POLICY.groupPaddingPx
+      - SIDE_MENU_LAYOUT_POLICY.iconSlotSizePx / 2,
+    /**
+     * Hamburgeren er med vilje ikon-only også i den udfoldede menu. Den skal derfor have en
+     * kvadratisk hoverflade med ens luft omkring ikonet, men stadig dele de øvrige ikoners akse.
+     */
+    expandedSquareButtonMarginLeftPx: iconCenterPx
+      - SIDE_MENU_LAYOUT_POLICY.groupPaddingPx
+      - SIDE_MENU_LAYOUT_POLICY.buttonSizePx / 2,
   };
 };
 
+/** Sidemenuens bredde ved en given menuskala. Rammen skaleres i takt med sit indhold. */
+export const getSideMenuWidth = (menuScale: number, isExpanded: boolean): number => (
+  (isExpanded ? SIDE_MENU_LAYOUT_POLICY.expandedWidthPx : SIDE_MENU_LAYOUT_POLICY.collapsedWidthPx)
+  * (Number.isFinite(menuScale) ? Math.max(0, menuScale) : 1)
+);
+
 /**
- * Den udfoldede sidemenu følger præcis samme forhold som dens labels: fuld labelstørrelse giver
- * 250 px, mens mindste labelstørrelse giver 190 px. Dermed reduceres menuen ikke forskudt af
- * teksten, men i takt med den lodrette zoom, der også former labels, ikoner og luft.
+ * Menuens faktiske skala: den mindste af arbejdsfladens skala og menuens egen højdetilpasning.
+ *
+ * Menuen må gerne blive mindre end arbejdsfladen (lavt vindue), men aldrig større: en menu med
+ * 14 px labels ved siden af 10,5 px brødtekst er den mest iøjnefaldende typografiske uensartethed,
+ * fladen kan have.
  */
-export const getExpandedSideMenuWidth = (menuContentScale = 1): number => {
-  return interpolateSideMenuScale(
-    SIDE_MENU_SCALE_POLICY.minimumWidthPx,
-    SIDE_MENU_SCALE_POLICY.fullWidthPx,
-    menuContentScale,
-  );
+export const resolveSideMenuScale = (contentScale: number, heightFitScale: number): number => {
+  const safeContent = Number.isFinite(contentScale) ? Math.min(1, Math.max(0, contentScale)) : 1;
+  const safeHeightFit = Number.isFinite(heightFitScale) ? Math.min(1, Math.max(0, heightFitScale)) : 1;
+  return Math.min(safeContent, safeHeightFit);
 };
 
 /**
- * Indholdsfladens ydre gutter: luften mellem skillelinjen og indholdet — og den tilsvarende luft
- * mellem indholdet og vinduets højre kant. Samme værdi i begge sider, så arbejdsfladen står
- * symmetrisk, og den følger menuens labels, så tom plads reduceres i samme takt som teksten.
- */
-export const getContentGutterForMenuScale = (menuContentScale = 1): number => (
-  interpolateSideMenuScale(
-    SIDE_MENU_SCALE_POLICY.minimumContentGutterPx,
-    SIDE_MENU_SCALE_POLICY.fullContentGutterPx,
-    menuContentScale,
-  )
-);
-
-/**
+ * Arbejdsfladens ydre gutter i CSS.
+ *
  * Gutteren hører til arbejdsfladen, men ligger uden for zoom-roden og skaleres derfor ikke af
- * `zoom`. Den ganges i stedet med skalavariablen i CSS, så afstanden mellem skillelinjen og
- * teksten reduceres i takt med indholdet i stedet for at æde en voksende andel af et smalt vindue.
- * Uden variablen (standalone-beregneren) falder udtrykket tilbage til den fulde gutter.
+ * `zoom`. Den ganges i stedet med skalavariablen i CSS. Uden variablen (standalone-beregneren)
+ * falder udtrykket tilbage til den fulde gutter.
  */
-export const getContentGutterCssForMenuScale = (menuContentScale = 1): string => (
-  `calc(${getContentGutterForMenuScale(menuContentScale)}px * var(${CONTENT_SCALE_CSS_VARIABLE}, 1))`
-);
+export const CONTENT_GUTTER_CSS =
+  `calc(${CONTENT_UI_SCALE_POLICY.contentGutterPx}px * var(${CONTENT_SCALE_CSS_VARIABLE}, 1))` as const;
 
-/** Den indre startluft holder læsbar afstand til skillelinjen også ved mindste skala. */
-export const getContentMainPaddingLeftForMenuScale = (menuContentScale = 1): number => (
-  interpolateSideMenuScale(
-    SIDE_MENU_SCALE_POLICY.minimumContentMainPaddingLeftPx,
-    SIDE_MENU_SCALE_POLICY.fullContentMainPaddingLeftPx,
-    menuContentScale,
-  )
-);
-
-/** Den mindste vinduesbredde, hvor hele arbejdsfladen kan vises ubeskåret ved den givne skala. */
+/** Den mindste vinduesbredde, hvor hele fladen kan vises ubeskåret ved den givne skala. */
 export const requiredViewportWidthForScale = (scale: ContentUiScale): number =>
-  CONTENT_UI_SCALE_POLICY.unscaledLeftWidthPx
-  + CONTENT_UI_SCALE_POLICY.scaledWorkspaceWidthPx * scale
+  CONTENT_UI_SCALE_POLICY.scaledShellWidthPx * scale
   + CONTENT_UI_SCALE_POLICY.scrollbarReservePx;
 
 /**
@@ -196,7 +164,7 @@ export const MINIMUM_COVERED_VIEWPORT_WIDTH_PX = requiredViewportWidthForScale(
 );
 
 /**
- * Den største skala, hele arbejdsfladen kan vises i uden vandret rul — kvantiseret nedad til hele
+ * Den største skala, hele fladen kan vises i uden vandret rul — kvantiseret nedad til hele
  * hundrededele og klemt ind mellem policyens minimum og 1.
  *
  * Funktionen er ren og historieløs: samme vinduesbredde giver altid samme skala, uanset om vinduet
@@ -206,10 +174,8 @@ export const MINIMUM_COVERED_VIEWPORT_WIDTH_PX = requiredViewportWidthForScale(
 export const resolveContentUiScale = (innerWidth: number): ContentUiScale => {
   const safeWidth = Number.isFinite(innerWidth) ? Math.max(0, innerWidth) : 0;
   const exactFit = (
-    safeWidth
-    - CONTENT_UI_SCALE_POLICY.unscaledLeftWidthPx
-    - CONTENT_UI_SCALE_POLICY.scrollbarReservePx
-  ) / CONTENT_UI_SCALE_POLICY.scaledWorkspaceWidthPx;
+    safeWidth - CONTENT_UI_SCALE_POLICY.scrollbarReservePx
+  ) / CONTENT_UI_SCALE_POLICY.scaledShellWidthPx;
   const quantized = Math.floor(
     exactFit * CONTENT_UI_SCALE_POLICY.scaleQuantumDivisor + CONTENT_UI_SCALE_POLICY.quantizationEpsilon,
   ) / CONTENT_UI_SCALE_POLICY.scaleQuantumDivisor;
@@ -231,8 +197,7 @@ export const createContentUiScaleBootstrapSource = (): string => {
   return `var mineoContentScalePolicy = ${serializedPolicy};
 var mineoContentScaleWidth = Number.isFinite(window.innerWidth) ? Math.max(0, window.innerWidth) : 0;
 var mineoContentScaleExactFit = (mineoContentScaleWidth
-  - mineoContentScalePolicy.unscaledLeftWidthPx
-  - mineoContentScalePolicy.scrollbarReservePx) / mineoContentScalePolicy.scaledWorkspaceWidthPx;
+  - mineoContentScalePolicy.scrollbarReservePx) / mineoContentScalePolicy.scaledShellWidthPx;
 var mineoContentScale = Math.min(
   mineoContentScalePolicy.maximumScale,
   Math.max(

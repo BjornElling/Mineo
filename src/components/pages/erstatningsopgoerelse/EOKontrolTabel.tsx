@@ -222,6 +222,16 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
     [model]
   );
 
+  /**
+   * Tabelhovedet klæber til `Container`s scrollport og skal kompensere for containerens egen
+   * øverste luft (`theme.spacing(3)` = 24 px) plus to px overlap.
+   *
+   * Værdien er uskaleret med vilje: tabellen lever inde i arbejdsfladens zoom-rod, så tallet
+   * ganges med skalaen af browseren — og `Container`s luft skaleres med den SAMME faktor
+   * (`calc(24px * var(--mineo-content-scale, 1))`). Kompensationen rammer derfor plet ved enhver
+   * skala. Gøres containerens lodrette luft en dag fast igen, holder den kobling op med at
+   * gælde, og hovedet vil klæbe forkert overalt undtagen ved fuld skala.
+   */
   const stickyHeaderTop = React.useMemo(() => -Number.parseFloat(theme.spacing(3)) - 2, [theme]);
   const canDownloadKontrolTabel = Boolean(model?.tableFra && model?.tableTil);
 

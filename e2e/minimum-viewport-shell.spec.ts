@@ -62,10 +62,13 @@ const readMenuGeometry = async (page: Page) => {
     });
     const menuContent = element.querySelector<HTMLElement>('[data-mineo-menu-content-scale-root="true"]');
     const firstDivider = menuContent?.querySelector<HTMLElement>('.MuiDivider-root');
+    const main = document.querySelector<HTMLElement>('main[data-mineo-content-scale-root="true"]');
 
     return {
       viewport: { width: window.innerWidth, height: window.innerHeight },
       devicePixelRatio: window.devicePixelRatio,
+      // Menuen må aldrig stå på en STØRRE skala end arbejdsfladen; den er den ene visuelle flade.
+      contentScale: main === null ? null : Number(getComputedStyle(main).zoom),
       menu: {
         top: menuRect.top,
         bottom: menuRect.bottom,
@@ -99,16 +102,15 @@ test.describe('Mineo-shell ved minimumsviewporter', () => {
         await expect(page.getByRole('button', { name: 'Fold menuen sammen' })).toHaveAttribute('aria-expanded', 'true');
         await expect.poll(async () => {
           const geometry = await readMenuGeometry(page);
-          const contentScale = Number(geometry.menuContent?.scale);
-          const expectedWidth = 190 + 60 * ((Math.max(0.78, Math.min(1, contentScale)) - 0.78) / 0.22);
-          return Math.abs(geometry.menu.width - expectedWidth) < 1;
+          // Rammen skaleres proportionalt med sit indhold: 250 px gange menuens skala.
+          return Math.abs(geometry.menu.width - 250 * Number(geometry.menuContent?.scale)) < 1;
         }).toBe(true);
       } else {
         await page.getByRole('button', { name: 'Fold menuen sammen' }).click();
         await expect(page.getByRole('button', { name: 'Fold menuen ud' })).toHaveAttribute('aria-expanded', 'false');
         await expect.poll(async () => {
           const geometry = await readMenuGeometry(page);
-          return Math.abs(geometry.menu.width - 70) < 1;
+          return Math.abs(geometry.menu.width - 70 * Number(geometry.menuContent?.scale)) < 1;
         }).toBe(true);
       }
 
@@ -118,19 +120,29 @@ test.describe('Mineo-shell ved minimumsviewporter', () => {
       expect(geometry.devicePixelRatio).toBeGreaterThan(0);
       expect(geometry.internalScrollRegions).toEqual([]);
       expect(geometry.menuContent).not.toBeNull();
-      expect(Number(geometry.menuContent?.scale)).toBeGreaterThanOrEqual(0.78);
-      expect(Number(geometry.menuContent?.scale)).toBeLessThanOrEqual(1);
+      expect(Number(geometry.menuContent?.scale)).toBeGreaterThanOrEqual(0.75);
+      // Menu og arbejdsflade er \u00c9N visuel flade: menuen m\u00e5 gerne v\u00e6re mindre (lavt vindue), men
+      // aldrig st\u00f8rre \u2014 ellers st\u00e5r menulabels med st\u00f8rre tekst end br\u00f8dteksten ved siden af.
+      expect(Number(geometry.menuContent?.scale)).toBeLessThanOrEqual(Number(geometry.contentScale) + 0.001);
       expect(geometry.buttons.map((button) => button.name.replace(/\u00a0/g, ' ')).slice(1)).toEqual(MENU_BUTTON_NAMES);
       if (geometry.viewport.height >= 864) {
-        expect(geometry.menuContent?.scale).toBe('1');
+        // Rigelig h\u00f8jde \u21d2 ingen h\u00f8jdenedskalering, s\u00e5 menuen st\u00e5r pr\u00e6cis p\u00e5 arbejdsfladens skala.
+        expect(Number(geometry.menuContent?.scale)).toBeCloseTo(Number(geometry.contentScale), 5);
+        // Den luftige desktopprofil m\u00e5les p\u00e5 den SYNLIGE geometri, ikke p\u00e5 `getComputedStyle`:
+        // browserne er ikke enige om, hvorvidt en nedarvet `zoom` ganges ind i den beregnede
+        // l\u00e6ngde, mens rect'en altid er den faktiske st\u00f8rrelse p\u00e5 sk\u00e6rmen.
+        const menuScale = Number(geometry.menuContent?.scale);
         expect(geometry.buttons.slice(1).every((button) => (
-          button.layoutHeight === '44px' && button.marginBottom === '4px'
+          Math.abs(button.height - 44 * menuScale) <= 0.5
         ))).toBe(true);
+        // Luften mellem to knapper i samme gruppe (Stamdata \u2192 Erstatningsopg\u00f8relse) er 4 px \u00d7 skala.
+        const [, first, second] = geometry.buttons;
+        expect(first).toBeDefined();
+        expect(second).toBeDefined();
+        expect(second.top - first.bottom).toBeCloseTo(4 * menuScale, 0);
       }
       if (expanded) {
-        const contentScale = Number(geometry.menuContent?.scale);
-        const expectedWidth = 190 + 60 * ((Math.max(0.78, Math.min(1, contentScale)) - 0.78) / 0.22);
-        expect(geometry.menu.width).toBeCloseTo(expectedWidth, 1);
+        expect(geometry.menu.width).toBeCloseTo(250 * Number(geometry.menuContent?.scale), 1);
         const hamburger = geometry.buttons[0];
         expect(hamburger).toBeDefined();
         // Hamburgeren er altid ikon-only. Også udfoldet må dens hoverflade derfor være kvadratisk
@@ -160,8 +172,10 @@ test.describe('Mineo-shell ved minimumsviewporter', () => {
           expect(button.iconCenterX).not.toBeNull();
           expect(expandedCenter).toBeDefined();
           // Ikonaksen er den samme på begge sider af foldningen. En mærkbar afvigelse her er et
-          // reelt spring; browsernes afrunding af delvis zoom må højst give en kvart px.
-          expect(Math.abs((button.iconCenterX ?? 0) - (expandedCenter ?? 0))).toBeLessThanOrEqual(0.25);
+          // reelt spring; browsernes afrunding af delvis zoom må højst give en halv px. Loftet var
+          // en kvart px, dengang menuen stod på skala 1 ved dette viewport og derfor slet ikke
+          // rundede af; WebKit kvantiserer layout i 1/64 px og lander på 17/64 ved delvis skala.
+          expect(Math.abs((button.iconCenterX ?? 0) - (expandedCenter ?? 0))).toBeLessThanOrEqual(0.5);
         }
       }
       expect(geometry.buttons.every((button) => (

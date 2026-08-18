@@ -4,6 +4,7 @@ import BugReportButton from './BugReportButton';
 import type { BugReportExtraSection } from '../../utils/bugReport';
 import type { DevtoolsIssueSnapshot } from '../../utils/devtoolsMonitor';
 import { formatCopenhagenTimestampSeconds } from '../../utils/dateFormatting';
+import { CONTENT_SCALE_CSS_VARIABLE } from '../../utils/uiScale';
 
 interface DevtoolsIssueNoticeProps {
   snapshot: DevtoolsIssueSnapshot;
@@ -59,6 +60,9 @@ const DevtoolsIssueNotice = ({
         maxWidth: 640,
         width: '100%',
         pointerEvents: 'auto',
+        // Notitsen ligger uden for arbejdsfladens zoom-rod og skal følge dens skala, så den ikke
+        // står med større tekst end siden bag den (samme regel som tooltips, dialoger og toast).
+        zoom: `var(${CONTENT_SCALE_CSS_VARIABLE}, 1)`,
       }}
     >
       <Alert

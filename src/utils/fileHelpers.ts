@@ -115,6 +115,36 @@ export const generateFilename = (data: FilenameSource | null | undefined): strin
 };
 
 /**
+ * Programmets ENE måde at aflevere en fil til browseren på.
+ *
+ * Rækkefølgen er ikke frit valgt, og et par af de tidligere kopier havde den forkert:
+ * ankeret skal ligge i dokumentet, når `click()` kaldes, og object-URL'en må først frigives
+ * EFTER at browseren har nået at starte overførslen. Frigiver man synkront lige efter
+ * `click()`, når visse browsere ikke at læse URL'en, før den er ugyldig, og filen tabes
+ * tavst — uden fejl, uden download.
+ *
+ * @param blob - Filens indhold
+ * @param filename - Filnavn inkl. extension
+ */
+export const downloadBlob = (blob: Blob, filename: string): void => {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.style.display = 'none';
+
+  document.body.appendChild(anchor);
+  anchor.click();
+
+  // Cleanup. `anchor.remove()` er en no-op hvis noden allerede er fjernet (fx ved en re-render),
+  // modsat removeChild der ville kaste.
+  setTimeout(() => {
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }, 100);
+};
+
+/**
  * Trigger fil-download i browser
  *
  * @param {string} content - Fil-indhold
@@ -123,24 +153,7 @@ export const generateFilename = (data: FilenameSource | null | undefined): strin
  */
 export const downloadFile = (content: string, filename: string, mimeType = 'application/octet-stream'): void => {
   try {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.style.display = 'none';
-
-    document.body.appendChild(a);
-    a.click();
-
-    // Cleanup. `a.remove()` er en no-op hvis noden allerede er fjernet (fx ved en re-render),
-    // modsat removeChild der ville kaste.
-    setTimeout(() => {
-      a.remove();
-      URL.revokeObjectURL(url);
-    }, 100);
-
+    downloadBlob(new Blob([content], { type: mimeType }), filename);
   } catch (error) {
     logError('Fejl ved fil-download', { context: 'downloadFile', error: error instanceof Error ? error : undefined });
     throw new Error('Kunne ikke downloade fil');

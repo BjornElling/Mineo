@@ -14,10 +14,11 @@ import {
   writeOptionalSessionStorageValue,
 } from '../../utils/safeSessionStorage';
 import {
-  getCollapsedSideMenuIconLayout,
-  getExpandedSideMenuWidth,
-  SIDE_MENU_COLLAPSED_ICON_POLICY,
-  SIDE_MENU_SCALE_POLICY,
+  CONTENT_SCALE_CSS_VARIABLE,
+  getSideMenuIconLayout,
+  getSideMenuWidth,
+  resolveSideMenuScale,
+  SIDE_MENU_LAYOUT_POLICY,
 } from '../../utils/uiScale';
 
 type FileOperationItem = {
@@ -45,12 +46,16 @@ const persistMenuState = (isExpanded: boolean): void => {
   writeOptionalSessionStorageValue(MENU_STATE_STORAGE_KEY, isExpanded ? 'true' : 'false');
 };
 
-type CollapsedIconLayout = ReturnType<typeof getCollapsedSideMenuIconLayout>;
+/**
+ * Alle sidemenuens ikoner deler samme akse og ikonflade.
+ *
+ * Målene er menuens EGNE (zoomede) px: hele menuen — ramme såvel som indhold — skaleres med
+ * samme faktor, så ingen af værdierne her skal kende skalaen.
+ */
+const ICON_LAYOUT = getSideMenuIconLayout();
 
-/** Alle sidemenuens ikoner deler samme akse, ikonflade og skaleringsrod. */
 const getSideMenuIconButtonSx = (
   isExpanded: boolean,
-  collapsedIconLayout: CollapsedIconLayout,
   hasLabel: boolean,
   isSquareWhenExpanded = false,
 ) => ({
@@ -59,18 +64,18 @@ const getSideMenuIconButtonSx = (
   // MUI-knapper er som udgangspunkt inline-flex. Den kollapsede variant skal være en stabil
   // enkelt række, mens menuens bredde animerer.
   display: 'flex',
-  width: isExpanded && !isSquareWhenExpanded ? '100%' : '44px',
-  pl: isExpanded && !isSquareWhenExpanded ? `${collapsedIconLayout.expandedButtonPaddingLeftPx}px` : 0,
+  width: isExpanded && !isSquareWhenExpanded ? '100%' : `${SIDE_MENU_LAYOUT_POLICY.buttonSizePx}px`,
+  pl: isExpanded && !isSquareWhenExpanded ? `${ICON_LAYOUT.expandedButtonPaddingLeftPx}px` : 0,
   pr: isExpanded && !isSquareWhenExpanded ? 1.5 : 0,
   ml: isExpanded && isSquareWhenExpanded
-    ? `${collapsedIconLayout.expandedSquareButtonMarginLeftPx}px`
+    ? `${ICON_LAYOUT.expandedSquareButtonMarginLeftPx}px`
     : 0,
   minWidth: 0,
-  height: '44px',
+  height: `${SIDE_MENU_LAYOUT_POLICY.buttonSizePx}px`,
   borderRadius: '12px',
   '& .MuiButton-startIcon': {
     margin: isExpanded && hasLabel ? '0 12px 0 0' : '0',
-    minWidth: `${SIDE_MENU_COLLAPSED_ICON_POLICY.iconSlotSizePx}px`,
+    minWidth: `${SIDE_MENU_LAYOUT_POLICY.iconSlotSizePx}px`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -82,12 +87,13 @@ const getSideMenuIconButtonSx = (
  * Sammenfoldelig sidemenu med navigation
  *
  * Features:
- * - Collapsed (70px) / Expanded (250px)
+ * - Sammenfoldet (70 px) / udfoldet (250 px) — begge gange menuens skala
  * - Active state på navigationssider
  * - Separator-linjer mellem grupper
- * - Luftig desktopprofil med højdeafhængig skalering uden scrollbar
+ * - Luftig desktopprofil uden scrollbar; skalaen er den mindste af arbejdsfladens skala og
+ *   menuens egen højdetilpasning, så menuen aldrig står med større tekst end indholdet
  * - Moderne, blød styling med rundede hjørner
- * - Fast ikon-placering og knaphøjde
+ * - Fast ikonakse i begge menutilstande
  */
 interface SideMenuProps {
   activePage: string;
@@ -97,8 +103,12 @@ interface SideMenuProps {
   onSletAlt: () => void;
   /** Restore-mål for `Slet alt`-bekræftelsen — se `FileOperationItem.buttonRef`. */
   sletAltButtonRef: React.RefObject<HTMLButtonElement | null>;
-  /** Samme lodrette labelskala reducerer indholdets venstregutter i `MainLayout`. */
-  onContentScaleChange?: (scale: number) => void;
+  /**
+   * Arbejdsfladens skala. Menuen bliver aldrig større end den: en menu med fuld tekststørrelse
+   * ved siden af en nedskaleret arbejdsflade er den mest iøjnefaldende typografiske uensartethed,
+   * fladen kan have. Menuen kan derimod godt blive MINDRE, når vinduets højde kræver det.
+   */
+  contentScale: number;
 }
 
 const SideMenu = React.memo(({
@@ -108,7 +118,7 @@ const SideMenu = React.memo(({
   onHent,
   onSletAlt,
   sletAltButtonRef,
-  onContentScaleChange,
+  contentScale,
 }: SideMenuProps) => {
   const [isExpanded, setIsExpanded] = useState(() => {
     const storedValue = readStoredMenuState();
@@ -116,18 +126,20 @@ const SideMenu = React.memo(({
   });
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const menuContentRef = React.useRef<HTMLDivElement | null>(null);
-  const menuContentScaleRef = React.useRef(1);
-  const [menuContentScale, setMenuContentScale] = useState(1);
-  const collapsedIconLayout = getCollapsedSideMenuIconLayout(menuContentScale);
+  // Den skala, indholdet FAKTISK er tegnet med. Målingen nedenfor skal kunne regne den visuelle
+  // rect om til menuens naturlige højde, og den kan kun gøres med den anvendte skala.
+  const appliedScaleRef = React.useRef(1);
+  const [heightFitScale, setHeightFitScale] = useState(1);
+  const menuScale = resolveSideMenuScale(contentScale, heightFitScale);
 
   React.useLayoutEffect(() => {
-    onContentScaleChange?.(menuContentScale);
-  }, [menuContentScale, onContentScaleChange]);
+    appliedScaleRef.current = menuScale;
+  }, [menuScale]);
 
   React.useLayoutEffect(() => {
     let animationFrame: number | null = null;
 
-    const updateMenuContentScale = () => {
+    const updateHeightFitScale = () => {
       const menu = menuRef.current;
       const content = menuContentRef.current;
       if (menu === null || content === null || menu.clientHeight <= 0) return;
@@ -135,27 +147,25 @@ const SideMenu = React.memo(({
       const contentHeight = content.getBoundingClientRect().height;
       if (contentHeight <= 0) return;
 
-      // Genskab den luftige desktopmenu og skaler kun, når højden reelt ikke kan rumme den.
-      // Dividering med den aktuelle zoom er nødvendig: rect'en er visuel størrelse, mens den
-      // nødvendige højde skal sammenlignes med menuens uscalerede tilgængelige højde.
-      const naturalContentHeight = contentHeight / menuContentScaleRef.current;
-      const availableContentHeight = menu.clientHeight;
-      const nextScale = Math.max(
-        SIDE_MENU_SCALE_POLICY.minimumContentScale,
-        Math.min(1, availableContentHeight / naturalContentHeight),
+      // Genskab den luftige desktopmenu og skaler kun på højden, når den reelt ikke kan rumme
+      // indholdet. Dividering med den anvendte zoom er nødvendig: rect'en er visuel størrelse,
+      // mens den nødvendige højde skal sammenlignes med menuens uskalerede tilgængelige højde.
+      const naturalContentHeight = contentHeight / appliedScaleRef.current;
+      const nextHeightFit = Math.max(
+        SIDE_MENU_LAYOUT_POLICY.minimumHeightFitScale,
+        Math.min(1, menu.clientHeight / naturalContentHeight),
       );
 
-      if (Math.abs(nextScale - menuContentScaleRef.current) < 0.001) return;
-
-      menuContentScaleRef.current = nextScale;
-      setMenuContentScale(nextScale);
+      setHeightFitScale((previous) => (
+        Math.abs(nextHeightFit - previous) < 0.001 ? previous : nextHeightFit
+      ));
     };
 
     const scheduleScaleUpdate = () => {
       if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
       animationFrame = window.requestAnimationFrame(() => {
         animationFrame = null;
-        updateMenuContentScale();
+        updateHeightFitScale();
       });
     };
 
@@ -165,7 +175,10 @@ const SideMenu = React.memo(({
       window.removeEventListener('resize', scheduleScaleUpdate);
       if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
     };
-  }, []);
+    // Ind-/udfoldning ændrer indholdets naturlige højde (labels forsvinder), og arbejdsfladens
+    // skala ændrer den tegnede højde. Begge skal udløse en ny måling — ellers bliver menuen
+    // stående på et højdeloft, der hørte til en anden tilstand.
+  }, [isExpanded, contentScale]);
 
   // Fil-operationer (inkluderer callbacks, så skal forblive inde i komponenten)
   const fileOperations = React.useMemo((): FileOperationItem[] => [
@@ -196,19 +209,36 @@ const SideMenu = React.memo(({
     event.preventDefault();
   }, []);
 
+  /**
+   * Menuens tooltips skal have MENUENS skala, ikke arbejdsfladens.
+   *
+   * Temaets `MuiTooltip`-regel zoomer enhver tooltip med `--mineo-content-scale`, fordi langt de
+   * fleste hører til arbejdsfladen. Menuens tre tooltips hører til menuen, som kan stå på en anden
+   * (mindre) skala i et lavt vindue. Variablen sættes derfor om på selve popper-elementet, så
+   * arven inde i portalen giver den rigtige værdi.
+   */
+  const menuTooltipSlotProps = React.useMemo(() => ({
+    popper: { sx: { [CONTENT_SCALE_CSS_VARIABLE]: String(menuScale) } },
+  }), [menuScale]);
+
   return (
     <Box
       ref={menuRef}
       sx={{
-        width: isExpanded ? getExpandedSideMenuWidth(menuContentScale) : SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx,
-        // Den zoom-kompenserede indholdsrod må ikke få flex-layoutet til at udvide den faste,
-        // kollapsede ikonramme. Kun ikonernes indre placering ændres med skalaen.
-        minWidth: isExpanded ? getExpandedSideMenuWidth(menuContentScale) : SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx,
-        maxWidth: isExpanded ? getExpandedSideMenuWidth(menuContentScale) : SIDE_MENU_COLLAPSED_ICON_POLICY.sidebarWidthPx,
+        // Rammen skaleres i takt med sit indhold, så menuens indbyrdes forhold — labelstørrelse,
+        // ikonakse og luft — er konstante ved enhver skala. Bredden er derfor grundmålet gange
+        // menuskalaen, ikke en selvstændig interpolation.
+        width: getSideMenuWidth(menuScale, isExpanded),
+        minWidth: getSideMenuWidth(menuScale, isExpanded),
+        maxWidth: getSideMenuWidth(menuScale, isExpanded),
         flexShrink: 0,
         height: '100vh',
         backgroundColor: 'var(--color-surface)',
-        borderRight: '1px solid var(--color-surface-border)',
+        // Skillelinjen skaleres med menuen. En fast 1 px-linje inde i en `border-box`-bredde ville
+        // gøre ikonkolonnens midte skala-afhængig, så et udfoldet og et kollapset ikon lå en
+        // brøkdel af en pixel fra hinanden ved delvis skala. Med en skaleret linje er `(70-1)/2`
+        // menuens midterakse ved enhver skala.
+        borderRight: `${SIDE_MENU_LAYOUT_POLICY.borderWidthPx * menuScale}px solid var(--color-surface-border)`,
         display: 'flex',
         flexDirection: 'column',
         transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -223,7 +253,7 @@ const SideMenu = React.memo(({
           minWidth: '100%',
           width: '100%',
           overflow: 'visible',
-          zoom: menuContentScale,
+          zoom: menuScale,
         }}
       >
       {/* Hamburger toggle button */}
@@ -247,7 +277,7 @@ const SideMenu = React.memo(({
           aria-expanded={isExpanded}
           className="menu-item"
           sx={{
-            ...getSideMenuIconButtonSx(isExpanded, collapsedIconLayout, false, true),
+            ...getSideMenuIconButtonSx(isExpanded, false, true),
             py: 0,
             mb: 0,
           }}
@@ -274,6 +304,7 @@ const SideMenu = React.memo(({
               disableHoverListener={isExpanded}
               disableFocusListener={isExpanded}
               disableTouchListener={isExpanded}
+              slotProps={menuTooltipSlotProps}
             >
               <Button
                 fullWidth
@@ -288,7 +319,7 @@ const SideMenu = React.memo(({
                 aria-current={activePage === item.id ? 'page' : undefined}
                 className={activePage === item.id ? 'menu-item active' : 'menu-item'}
                 sx={{
-                  ...getSideMenuIconButtonSx(isExpanded, collapsedIconLayout, true),
+                  ...getSideMenuIconButtonSx(isExpanded, true),
                   // Ved mindste labelskala mangler den længste label ellers få synlige px i
                   // Firefox. Fire px mindre højre-padding bevarer ikonaksen og giver teksten
                   // den nødvendige plads uden at udvide sidemenuen.
@@ -322,6 +353,7 @@ const SideMenu = React.memo(({
               disableHoverListener={isExpanded}
               disableFocusListener={isExpanded}
               disableTouchListener={isExpanded}
+              slotProps={menuTooltipSlotProps}
             >
               <Button
                 fullWidth
@@ -336,7 +368,7 @@ const SideMenu = React.memo(({
                 aria-label={item.label}
                 className="menu-item"
                 sx={{
-                  ...getSideMenuIconButtonSx(isExpanded, collapsedIconLayout, true),
+                  ...getSideMenuIconButtonSx(isExpanded, true),
                   py: 1.2,
                   mb: 0.5,
                 }}
@@ -366,6 +398,7 @@ const SideMenu = React.memo(({
               disableHoverListener={isExpanded}
               disableFocusListener={isExpanded}
               disableTouchListener={isExpanded}
+              slotProps={menuTooltipSlotProps}
             >
               <Button
                 fullWidth
@@ -380,7 +413,7 @@ const SideMenu = React.memo(({
                 aria-current={activePage === item.id ? 'page' : undefined}
                 className={activePage === item.id ? 'menu-item active' : 'menu-item'}
                 sx={{
-                  ...getSideMenuIconButtonSx(isExpanded, collapsedIconLayout, true),
+                  ...getSideMenuIconButtonSx(isExpanded, true),
                   py: 1.2,
                   mb: 0.5,
                 }}

@@ -1,8 +1,16 @@
 import React from 'react';
 import { CONTENT_SCALE_CSS_VARIABLE, resolveContentUiScale } from '../utils/uiScale';
 
-/** Holder CSS-variablen ajour med browserens indre viewport uden at røre input-state. */
-export const useContentUiScale = (): void => {
+/**
+ * Holder CSS-variablen ajour med browserens indre viewport uden at røre input-state, og
+ * returnerer den aktuelle skala til de dele af shellen, der har brug for den som tal
+ * (sidemenuens ramme kan ikke udtrykkes i CSS-variablen alene).
+ */
+export const useContentUiScale = (): number => {
+  const [scale, setScale] = React.useState<number>(() => (
+    typeof window === 'undefined' ? 1 : resolveContentUiScale(window.innerWidth)
+  ));
+
   React.useLayoutEffect(() => {
     const root = document.documentElement;
     // Skalaen er en ren funktion af bredden, så en uændret bredde ikke skal skrive i style-attributten.
@@ -13,6 +21,7 @@ export const useContentUiScale = (): void => {
       if (nextScale === appliedScale) return;
       root.style.setProperty(CONTENT_SCALE_CSS_VARIABLE, String(nextScale));
       appliedScale = nextScale;
+      setScale(nextScale);
     };
 
     applyScale();
@@ -32,4 +41,6 @@ export const useContentUiScale = (): void => {
       if (frame !== null) window.cancelAnimationFrame(frame);
     };
   }, []);
+
+  return scale;
 };

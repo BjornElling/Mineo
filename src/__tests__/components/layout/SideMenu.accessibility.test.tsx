@@ -13,6 +13,7 @@ describe('SideMenu — tastatur og aktiv side', () => {
         onHent={vi.fn()}
         onSletAlt={vi.fn()}
         sletAltButtonRef={React.createRef<HTMLButtonElement>()}
+        contentScale={1}
       />
     );
 
@@ -44,6 +45,7 @@ describe('SideMenu — tastatur og aktiv side', () => {
         onHent={vi.fn()}
         onSletAlt={vi.fn()}
         sletAltButtonRef={sletAltButtonRef}
+        contentScale={1}
       />
     );
 

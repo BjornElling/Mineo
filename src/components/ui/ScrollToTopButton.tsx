@@ -7,6 +7,7 @@ import {
   SCROLL_BUTTON_POSITION_RIGHT_PX,
   SCROLL_BUTTON_SIZE_PX,
 } from '../../config/scrollToTopConfig';
+import { CONTENT_SCALE_CSS_VARIABLE } from '../../utils/uiScale';
 
 /**
  * Flydende scroll-til-top knap der vises når brugeren har scrollet ned
@@ -83,6 +84,10 @@ const ScrollToTopButton = React.memo(() => {
           right: SCROLL_BUTTON_POSITION_RIGHT_PX,
           width: SCROLL_BUTTON_SIZE_PX,
           height: SCROLL_BUTTON_SIZE_PX,
+          // Knappen ligger uden for arbejdsfladens zoom-rod, men svæver oven på den. Uden dette
+          // bliver den stående i fuld størrelse og dominerer en nedskaleret side — den var
+          // dobbelt så stor som sidens egne runde handlingsknapper ved mindste skala.
+          zoom: `var(${CONTENT_SCALE_CSS_VARIABLE}, 1)`,
           // Smal viewport: ryk knappen tættere på hjørnet (matcher søster-siden minDomssamling).
           '@media (max-width: 640px)': { bottom: 16, right: 16 },
           // Bevidst: skjul knappen på touch-input. På touch-enheder er sidens indhold kort nok

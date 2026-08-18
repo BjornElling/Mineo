@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, IconButton, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { CONTENT_SCALE_CSS_VARIABLE } from '../../utils/uiScale';
 
 /**
  * Overlay-komponent til at vise midlertidige beskeder.
@@ -158,6 +159,11 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
         top: 20,
         right: 20,
         zIndex: 9999,
+        // Beskeden ligger uden for arbejdsfladens zoom-rod, men oven på den. Uden dette står den
+        // med større tekst end siden, den melder om, så snart vinduet er så smalt, at fladen
+        // skaleres ned. `zoom` skalerer også `top`/`right`, så afstanden til hjørnet følger
+        // arbejdsfladens gutter i stedet for at vokse relativt.
+        zoom: `var(${CONTENT_SCALE_CSS_VARIABLE}, 1)`,
         backgroundColor: colorScheme.bg,
         border: `2px solid ${colorScheme.border}`,
         borderRadius: '10px',

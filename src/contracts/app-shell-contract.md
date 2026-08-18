@@ -95,41 +95,72 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 10. **Styles og build-output er variant-ejede.** Shellens fontindlæsning er fælles, mens hver entry leverer sin egen style-entry. Fælles designregler kan deles, men Mineos `body/#root`-shell må ikke indlæses i standalone. Mineo bygges fra repoets ene `index.html`; theme-bootstrap injiceres fra den kanoniske generator i `src/settings/themeBootstrap.ts`. Hvert build afsluttes med `verify-build-artifacts.mjs`, der kontrollerer entry, manifest og variantfiler, før output kan godkendes.
 
-11. **Arbejdsfladeskalering er en afgrænset Mineo-undtagelse.** `useContentUiScale` og den synkrone
-    theme-bootstrap bruger samme serialiserbare policy fra `src/utils/uiScale.ts` og sætter kun
-    `--mineo-content-scale` på `document.documentElement`. Den navngivne
-    `<main data-mineo-content-scale-root="true">` i Mineos `Container` er den eneste zoom-forbruger;
-    sidemenu, `MainLayout`, `#root`, `html`, `body` og MUI-portaler må ikke zoome. Den udfoldede
-    sidemenu må dog følge sin egen lodrette indholdsskala direkte: ved fuld tekststørrelse er den
-    250 px, og den interpolerer proportionalt med labelstørrelsen til 190 px ved mindste lodrette
-    indholdsskala. Labels, ikoner og deres indbyrdes luft har dermed samme relative forhold hele
-    vejen, indtil minimumsbredden er nået. Den indre `<main>`-indrykning følger samme labelskala
-    fra 50→25 px, og de to ydre `Container`-gutters fra 24→16 px. Gutterne ligger uden for
-    zoom-roden og ganges derfor **også** med arbejdsfladens skala i CSS
-    (`calc(<gutter>px * var(--mineo-content-scale, 1))`), så afstanden mellem skillelinjen og
-    teksten reduceres i takt med indholdet selv i stedet for at æde en voksende andel af et smalt
-    vindue. Venstre og højre gutter er altid ens, så indholdet aldrig fitter ved at lægge sig op
-    ad scrollbaren. Skaleringen må ikke indføre reflow, skjule indhold eller ændre
-    input-/persistence-state ved resize. Den eksisterende `Container`-scroll er den autoritative
-    fallback under policyens minimumsbredde.
+11. **Programfladen har ÉN skala.** `useContentUiScale` og den synkrone theme-bootstrap bruger samme
+    serialiserbare policy fra `src/utils/uiScale.ts` og sætter kun `--mineo-content-scale` på
+    `document.documentElement`. Alt, brugeren ser, følger den skala — arbejdsflade, sidemenu og
+    popup-lag. Der findes ikke to konkurrerende tekststørrelser i samme billede.
 
-    **Pladsregnskabet er delt i præcis to dele** og udledes i `CONTENT_UI_SCALE_POLICY` af de
-    navngivne layoutmål — ikke af hardkodede summer: `unscaledLeftWidthPx` (den udfoldede sidemenu
-    ved fuld labelskala, 250 px) og `scaledWorkspaceWidthPx` (venstre gutter 24 + indrykning 50 +
-    indholdsboks 1200 + højre gutter 24). Dertil `scrollbarReservePx` (20). Indholdsboksens bredde
-    er den bredeste geometri på hver eneste side og fane; TS-konstanten `CONTENT_BOX_WIDTH_PX`
-    spejler `--content-box-max-width` i `src/styles/layout.css` og er testhåndhævet. Begge
-    faste led er værste tilfælde: en sammenfoldet eller lavere skaleret menu giver kun ekstra luft.
+    **Zoom-roden er `<main data-mineo-content-scale-root="true">`** i Mineos `Container`;
+    `MainLayout`, `#root`, `html` og `body` må ikke zoome. Sidemenuen og popup-laget zoomer
+    hver for sig (se nedenfor), fordi de ikke er efterkommere af roden.
 
-    Den dækkede smalle grænse er en **CSS-viewport** på mindst 1244×620 px ved 100 % browserzoom,
+    **Sidemenuen.** Menuen zoomer med `min(arbejdsfladens skala, menuens egen højdetilpasning)`.
+    Højdetilpasningen (bund 0,78) skrumper menuen, når dens naturlige højde ellers ikke kan være i
+    vinduet. Menuen må derfor gerne være **mindre** end arbejdsfladen (lavt vindue), men aldrig
+    **større**: en menu med 14 px labels ved siden af en brødtekst på 10,5 px er den mest
+    iøjnefaldende typografiske uensartethed, fladen kan have. Rammen skaleres proportionalt med sit
+    indhold — 250 px × skala udfoldet, 70 px × skala sammenfoldet, og skillelinjen 1 px × skala — så
+    menuens indbyrdes forhold (labelstørrelse, ikonakse, luft) er konstante ved enhver skala.
+    `getSideMenuIconLayout()` er derfor skala-uafhængig og regner i menuens egne px.
+
+    **Popup-laget følger arbejdsfladens skala gennem CSS-variablen, ikke gennem zoom-roden.**
+    Reglen ligger ét sted pr. flade, og valget af *hvilket* element der zoomer er ikke frit:
+
+    | Flade | Zoom sættes på | Hvorfor netop dér |
+    |---|---|---|
+    | Tooltip | `.MuiTooltip-tooltip` (tema) | Popper-roden bærer positionerings-`transform`, som zoom ville gange med |
+    | Dialog | `.MuiDialog-paper` (tema) | Papiret centreres af flexbox uden egne offsets; backdroppen er søskende og dækker fortsat hele vinduet |
+    | `StyledDropdown`-liste | `MenuList` | Popover-papiret bærer MUI's inline `left`/`top`-forankring; papiret måler listens zoomede størrelse |
+    | Toast (`Overlay`), `DevtoolsIssueNotice`, `ScrollToTopButton` | elementet selv | `position: fixed` — zoom skalerer også afstanden til hjørnet, som ønsket |
+
+    Sidemenuens tre tooltips overstyrer `--mineo-content-scale` på deres popper, fordi de hører til
+    menuens skala. Håndrullede vinduer (`LicenseModal`, `LoentrinFinderOverlay`) ligger **inde i**
+    zoom-roden og skalerer af sig selv; deres `vh`-lofter divideres med skalaen
+    (`calc(80vh / var(--mineo-content-scale, 1))`), fordi `vh` ellers opløses mod det uskalerede
+    vindue og derefter selv bliver skaleret — vinduet ville da kun kunne bruge 60 % af skærmhøjden i
+    stedet for de 80 %, tallet lover.
+
+    **Gutter og indrykning.** De fire `Container`-gutters er ens hele vejen rundt
+    (`calc(24px * var(--mineo-content-scale, 1))`); de ligger uden for zoom-roden og ganges derfor
+    med skalaen i CSS. Den lodrette luft er med i regnestykket: en fast luft foroven ville stå
+    dobbelt så høj som luften i siderne ved mindste skala, og Kontroltabellens klæbende tabelhoved
+    kompenserer for præcis denne værdi inde fra zoom-roden — kompensationen kan kun ramme, når de to
+    følger samme skala. Den indre `<main>`-indrykning er 50 px **uskaleret**, fordi `main` selv ER
+    zoom-roden. Skaleringen må ikke indføre reflow, skjule indhold eller ændre
+    input-/persistence-state ved resize.
+
+    **Pladsregnskabet er ét skaleret led** og udledes i `CONTENT_UI_SCALE_POLICY` af de navngivne
+    layoutmål — ikke af hardkodede summer: `scaledShellWidthPx` = sidemenu 250 + venstre gutter 24 +
+    indrykning 50 + indholdsboks 1200 + højre gutter 24, plus `scrollbarReservePx` (20).
+    Indholdsboksens bredde er den bredeste geometri på hver eneste side og fane; TS-konstanten
+    `CONTENT_BOX_WIDTH_PX` spejler `--content-box-max-width` i `src/styles/layout.css` og er
+    testhåndhævet. Påstanden holdes sand af `SideTab`: kontrolfanerne roteres 90° og rager deres egen
+    højde ud til højre for deres `left`, så de er lagt **inden for** boksens højrekant
+    (`left = 1200 − 48 px`). Lå de på kanten, stak de 48 px ud over det bredeste element, og
+    højregutteren forsvandt ved den smalleste dækkede bredde. Menubredden er værste tilfælde: en
+    sammenfoldet eller højdeskaleret menu giver kun ekstra luft.
+
+    Den dækkede smalle grænse er en **CSS-viewport** på mindst 1181×620 px ved 100 % browserzoom,
     ikke en fysisk skærmopløsning: en 1920×1200-skærm ved 150 % zoom giver 1280 CSS-px og er
-    dermed dækket, mens en 1366×768-skærm med 125 % systemskalering ligger uden for grænsen.
-    Under 1244 CSS-px fastholdes minimumsskalaen, og arbejdsfladen skal være nåbar med den
+    dermed dækket. Grænsen faldt fra 1244 til 1181, da sidemenuen kom med i det skalerede regnskab:
+    en menu, der skrumper med fladen, behøver ikke fuld bredde reserveret.
+    Under 1181 CSS-px fastholdes minimumsskalaen, og arbejdsfladen skal være nåbar med den
     eksisterende vandrette `Container`-scroll frem for mindre tekst, skjult indhold eller
     responsivt reflow.
 
     Skalaen er ren runtime-afledning fra `window.innerWidth`, aldrig brugerdata eller en indstilling;
-    højden indgår ikke. Den er den største skala, hele arbejdsfladen kan være i — kvantiseret nedad
+    højden indgår ikke (kun menuens egen højdetilpasning kender vinduets højde).
+    Den er den største skala, hele fladen kan være i — kvantiseret nedad
     til hele hundrededele og klemt mellem `1` og `0.75`. Udledningen er **historieløs**: samme
     vinduesbredde giver altid samme skala, uanset om vinduet kom dertil ved at vokse eller skrumpe.
     Der er bevidst ingen hysterese, fordi skalaen ikke kan påvirke `window.innerWidth` og derfor
@@ -144,20 +175,18 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     konkret browserregressionstest. Capture af en indholdsboks må, hvis browserverifikation viser
     en afvigelse, neutralisere netop denne skaleringsrod lokalt og gendanne den i `finally`.
 
-    **Sidemenuen bevarer sin luftige desktopprofil og har aldrig intern scroll.** Ved normal højde
-    har knapper, grupper og separatorer deres oprindelige afstande. Hamburgeren og alle kollapsede
-    menuikoner følger samme skala, kvadratiske hoverflade og vandrette midtpunkt; hvert ikon har
-    samme vandrette anker i sammenfoldet og udfoldet tilstand. Hamburgeren står lodret midt mellem
-    sidens top og den første separator og er altid synlig. Resten af menuen skaleres først ned, når den naturlige højde ellers ikke kan
-    være i vinduet. Ved den dækkede højde på 620 CSS-px skal alle punkter være synlige og nåbare
-    uden intern menuscroll. Under denne højde fastholdes minimumsskalaen, og eventuelt indhold
-    fortsætter tavst uden for det synlige vindue frem for at komprimeres yderligere eller få en
-    scrollbar.
+    **Sidemenuen bevarer sin luftige desktopprofil og har aldrig intern scroll.** Knapper, grupper og
+    separatorer har deres oprindelige indbyrdes afstande ved enhver skala. Hamburgeren og alle
+    kollapsede menuikoner deler kvadratisk hoverflade og vandret midtpunkt; hvert ikon har samme
+    vandrette anker i sammenfoldet og udfoldet tilstand. Hamburgeren står lodret midt mellem sidens
+    top og den første separator og er altid synlig. Menuens egen højdetilpasning træder først i
+    kraft, når den naturlige højde ellers ikke kan være i vinduet. Ved den dækkede højde på 620
+    CSS-px skal alle punkter være synlige og nåbare uden intern menuscroll. Under denne højde
+    fastholdes bunden 0,78, og eventuelt indhold fortsætter tavst uden for det synlige vindue frem
+    for at komprimeres yderligere eller få en scrollbar.
 
-    MUI-portaler er fortsat ikke globale zoom-forbrugere. En `StyledDropdown`-liste er den snævre
-    undtagelse: den følger sin triggers lokale arbejdsfladeskala visuelt, men bevarer Popover'ens
-    ankerposition. Listen har altid en viewport-sikker maksimal højde og scroller kun internt i
-    popup'en, hvis dens valgmængde er længere.
+    `StyledDropdown`-listen bevarer Popover'ens ankerposition og har altid en viewport-sikker
+    maksimal højde; den scroller kun internt i popup'en, hvis dens valgmængde er længere.
 
 ## 3. Autoritative Kilder
 
@@ -169,6 +198,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - PWA-filåbnings- og versionsskiftehåndtering: `src/utils/pwaLaunchQueue.ts`.
 - Service-worker-adfærd: `sw/mineoServiceWorker.js` (worker) + `src/apps/mineo/serviceWorkerBootstrap.ts` (versionssignal, klient-lifecycle/reload-gate).
 - PWA-cachepolitik: `public/_headers`.
+- Skala-policy og sidemenuens layoutmål: `src/utils/uiScale.ts` (eneste sandhed; læses af både bootstrap og runtime).
+- Popup-lagets skala: `src/config/appTheme.ts` (`MuiTooltip`/`MuiDialog`) — ét sted for hele programmet.
 
 ## 4. Testkobling
 
@@ -188,8 +219,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/settings/indexThemeBootstrap.test.ts` (kanonisk theme-bootstrap og systemfallback ved manglende, ugyldig eller ulæselig settings-storage).
 - `scripts/verify-build-artifacts.mjs` (postbuild-værn for entries, manifest og variantfiler).
 - `src/__tests__/quality/architecture/rules/responsiveStylingRules.ts` (`shell/viewport-responsive-styling-allowlist`: pinner fillisten i §5.3, så desktop-only-undtagelsen ikke kan brede sig stiltiende).
-- `src/__tests__/utils/uiScale.test.ts` (policygrænser, hysterese, bootstrap/runtime-paritet og DOM-måling).
-- `e2e/minimum-viewport-shell.spec.ts` og `e2e/content-scale.spec.ts` (menuens minimumsgeometri, arbejdsfladeskalering, den ubeskårne arbejdsflade ved 1280 CSS-px og resize-state).
+- `src/__tests__/utils/uiScale.test.ts` (policygrænser, hysterese, menuens skala som minimum af de to, ikonaksen, bootstrap/runtime-paritet og DOM-måling).
+- `e2e/minimum-viewport-shell.spec.ts` og `e2e/content-scale.spec.ts` (menuens minimumsgeometri og loft mod arbejdsfladens skala, ens gutter hele vejen rundt, popup-lagets skala, kontrolfanerne inden for indholdsboksen, den ubeskårne arbejdsflade ved 1280 CSS-px og resize-state).
 - `src/__tests__/quality/contentBoxWidthSingleSource.test.ts` (indholdsboksens bredde i CSS og skaleringens pladsregnskab i TypeScript kan ikke falde ud af sync).
 
 ## 5. Kendte Undtagelser
