@@ -7,7 +7,7 @@ import { readClipboardText } from '../../utils/clipboardUtils';
 import type { InputSelectionSnapshot } from '../../utils/inputSelectionUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
-import { normalizePasteForDraft, spliceDraftWithPaste } from './pasteSplice';
+import { normalizePasteForDraft, resolvePasteContextDraft, spliceDraftWithPaste } from './pasteSplice';
 import {
   isDraftWithinMaxLength,
   restoreDomValueAfterRejectedDraft,
@@ -285,7 +285,22 @@ export const useFormFieldSurface = <T>(
     const { controller: ctl, disabled: dis } = latest.current;
     if (dis) return;
     const raw = readClipboardText(e);
-    const pasteContextDraft = ctl.isOpen ? ctl.displayText : '';
+    // Markeringen læses FØR normaliseringen: dækker den hele draften, erstatter paste'en alt, og
+    // konteksten er tom — samme situation som et lukket felt (se `resolvePasteContextDraft`).
+    const contextInput = inputElementRef.current;
+    const contextDraftText = ctl.isOpen ? ctl.displayText : '';
+    const contextStart = typeof contextInput?.selectionStart === 'number'
+      ? contextInput.selectionStart
+      : contextDraftText.length;
+    const contextEnd = typeof contextInput?.selectionEnd === 'number'
+      ? contextInput.selectionEnd
+      : contextStart;
+    const pasteContextDraft = resolvePasteContextDraft(
+      ctl.isOpen,
+      contextDraftText,
+      contextStart,
+      contextEnd
+    );
     const normalized = normalizePasteForDraft(raw, field.descriptor.codec, pasteContextDraft);
     e.preventDefault();
     e.stopPropagation();
@@ -313,16 +328,15 @@ export const useFormFieldSurface = <T>(
     }
 
     // Åben paste: splice ind i draften på caret-positionen — afgrænset af feltets erklærede længde,
-    // fordi `<input maxLength>` ikke kan gælde her (se `spliceDraftWithPaste`).
-    const input = inputElementRef.current;
-    const draft = ctl.displayText;
-    const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-    const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+    // fordi `<input maxLength>` ikke kan gælde her (se `spliceDraftWithPaste`). Markeringen er den
+    // SAMME, konteksten ovenfor blev afgjort af; læstes den om her, kunne de to falde fra hinanden.
+    const input = contextInput;
+    const draft = contextDraftText;
     const spliced = spliceDraftWithPaste(
       draft,
       normalized,
-      start,
-      end,
+      contextStart,
+      contextEnd,
       latest.current.maxDraftLength,
       latest.current.draftAdmission
     );

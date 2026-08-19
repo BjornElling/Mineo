@@ -296,6 +296,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts',
       'src/__tests__/apps/shared/bootstrapClientApp.test.tsx',
+      'src/__tests__/apps/minprocesrente/standaloneCalculatorPage.test.tsx',
+      'src/__tests__/apps/minprocesrente/useStandaloneExitGuard.test.tsx',
       'src/__tests__/apps/shared/vitePreloadRecovery.test.ts',
       'src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts',
       'src/__tests__/apps/mineo/serviceWorkerProtocol.test.ts',

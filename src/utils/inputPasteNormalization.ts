@@ -15,9 +15,15 @@ import { type TwoDigitYearPolicy } from './yearDraftCore';
 
 // `findNextDigitIndex`, `extractContiguousDigits` og `isWithinBounds` er fjernet 2026-08-18. De tjente
 // UDELUKKENDE års- og uge-normaliseringernes egne fortolkere: «find den første ciffergruppe, og forkort
-// den til den passer grænserne». Den fremgangsmåde er ophævet ved brugerbeslutning (§1.2a: paste giver
-// samme resultat som tastning af de samme tegn), og hjælperne er ikke efterladt — de er byggeklodserne
-// til præcis den slags paste-only fortolker, der ikke må opstå igen.
+// den til den passer grænserne». Den fremgangsmåde er ophævet ved brugerbeslutning (§1.2a punkt 5: en
+// grænse må aldrig forkorte en indsat tekst — grænser er bounds og hører i feltvalidatoren), og
+// hjælperne er ikke efterladt: de er byggeklodserne til præcis den regel, der ikke må opstå igen.
+//
+// Bemærk hvad der IKKE er ophævet: `normalizeDatePaste` nedenfor fortolker fortsat en hel indsat tekst
+// og er bevaret med vilje (§1.2a punkt 7, brugerens afgørelse af BB-003: indsættelse må gerne være mere
+// tolerant end tastning). Kravet er, at samme paste giver samme resultat uanset feltets tilstand — ikke
+// at paste er identisk med tastning. Det, der var forkert i års- og ugefortolkerne, var grænse-
+// afkortningen og tilstandsafhængigheden, ikke fortolkningen af hele teksten.
 
 type NumericPasteOptions = Readonly<{
   allowNegative?: boolean;
@@ -201,11 +207,15 @@ export const normalizeFractionPaste = (
 /**
  * Uge-paste (§1.2a): tegn for tegn gennem ugefeltets EGET tegnprædikat.
  *
- * Funktionen byggede før uge- og årssegmentet hver for sig og limede dem sammen med `/`. Det var en
- * paste-only fortolker: den kunne danne en værdi, tastning af samme tegn aldrig ville give, og den
- * kaldte samtidig årsfeltets tilsvarende fortolker (se {@link normalizeYearPaste}). Begge er fjernet
- * ved brugerbeslutning 2026-08-18: paste skal give PRÆCIS samme resultat som tastning af de samme
- * tegn, og der må ikke findes en anden fortolkningsvej nogen steder.
+ * Funktionen byggede før uge- og årssegmentet hver for sig og limede dem sammen med `/`, og den kaldte
+ * samtidig årsfeltets tilsvarende fortolker (se {@link normalizeYearPaste}). Begge er fjernet ved
+ * brugerbeslutning 2026-08-18, fordi de forkortede en indsat tekst for at få den inden for
+ * årsgrænserne — og fordi de kun blev kaldt i et tomt felt, så samme paste gav to udfald.
+ *
+ * Ugefamilien har derfor bevidst INGEN egen fortolkning tilbage. Det er ikke et generelt forbud mod at
+ * fortolke en hel indsat tekst — datofamilien gør det fortsat (§1.2a punkt 7) — men her er der intet
+ * uomtvisteligt at udlede: `17-12` kan lige så godt være uge 17 i 2012 som en dato, og settle løser det
+ * bedre end paste kan.
  *
  * Sammensætningen tabes ikke ved det. `weekAdmission` accepterer selv `-`, `.`, `,`, `/`, `\` og
  * mellemrum som separator, og `parseWeekDraftForCommit` normaliserer separatoren til `/` og nulstiller

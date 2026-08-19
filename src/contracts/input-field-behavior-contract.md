@@ -3,7 +3,12 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-18 (§1.2a punkt 7 og §2.9 er implementeret og målt: års- og
+**Senest verificeret mod kode:** 2026-08-19 (§1.2a punkt 7 er PRÆCISERET og målt: tilstandsuafhængighed er
+kravet, ikke identitet med tastning. Datofamiliens segmentfordeling er bevaret, jf. brugerens afgørelse af
+BB-003, men den afgøres nu af, om paste'en efterlader noget af brugerens tekst — ikke af om editoren er
+åben. `resolvePasteContextDraft` ejer beslutningen ét sted for alle tre paste-surfaces, og
+`pasteSplice.test.ts` måler, at et tomt og et fuldt markeret felt giver samme resultat. Baggrund: BB-042)
+2026-08-18 (§1.2a punkt 7 og §2.9 er implementeret og målt: års- og
 ugefelternes paste-only fortolkere er slettet, begge familier bruger nu det delte tegn-for-tegn-filter, og
 `inputPasteNormalization.test.ts` måler både at grænserne ikke længere afkorter teksten, og at samme paste
 giver samme resultat i et tomt og et udfyldt felt. Ugefeltets separatorsæt har fået én erklæring, som både
@@ -153,13 +158,10 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
 6. Hvis paste-resultatet bliver tomt, er paste et no-op. En eksisterende værdi må ikke forsvinde, blot fordi
    clipboard-teksten kun indeholder afviste tegn eller er tom; rydning kræver den eksplicitte
    Delete/Backspace-handling, medmindre feltet er en kontrol med særskilt no-op-regel.
-7. **Reglen er modalitets- OG tilstandsuafhængig (brugerbeslutning 2026-08-18).** Resultatet af et paste må
-   ikke afhænge af, om feltet var tomt eller havde en værdi i forvejen. Der må ikke findes en anden
-   fortolkningsvej ved siden af punkt 1–4 — hverken en paste-only normalisering, der læser hele teksten på
-   én gang og udleder en værdi af den, eller en regel, der leder efter et velformet delelement (fx «find
-   årstallet i teksten»). En sådan vej giver enten et andet resultat end tastning eller to forskellige
-   resultater for samme tekst, og begge er kontraktbrud. **Enhver kode eller kontrakttekst, der fører til
-   et andet resultat end tastning af de samme tegn, er forkert og skal ændres.**
+7. **Reglen er modalitets- OG tilstandsuafhængig (brugerbeslutning 2026-08-18, præciseret 2026-08-19).**
+   Resultatet af et paste må ikke afhænge af, om feltet var tomt eller havde en værdi i forvejen, og der må
+   ikke findes en regel, der leder efter et velformet delelement i teksten (fx «find årstallet»). En sådan
+   regel giver enten et andet resultat end tastning eller to forskellige resultater for samme tekst.
 
    Baggrunden er brugerfundet BB-031 (`docs/testing/brugerblik/satser.md`): års- og ugefelterne havde hver
    sin paste-only fortolker, som kun blev kaldt i et TOMT felt. `2.026` blev derfor `2` → 2002 i et tomt
@@ -167,12 +169,39 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
    med punkt 5. Begge fortolkere er fjernet; de to familier bruger nu det samme tegn-for-tegn-filter som
    beløb, procent og brøk.
 
+   **Tilstandsuafhængighed er kravet — ikke identitet med tastning.** Punktet forbød indtil 2026-08-19
+   ENHVER paste-only normalisering, der læser hele teksten på én gang. Den formulering var for bred og
+   modsagde brugerens egen afgørelse af BB-003 samme uge (`docs/testing/brugerblik/stamdata.md`, 2026-08-16): **indsættelse må gerne
+   være mere tolerant end tastning.** Tastning må ikke begynde at tolke på det tredje ciffer — `16` kan
+   være både den 16. og den 1. juni, og en automatisk separator ville låse den usikre fortolkning fast.
+   Indsættelse kender derimod hele teksten på én gang, og kan den uomtvisteligt opløses til én sikker
+   værdi, skal programmet gøre det.
+
+   De to krav er derfor skilt:
+
+   - **Tilladt:** en familie-normalisering, der fortolker en paste, som ERSTATTER hele værdien. Datofamiliens
+     segmentfordeling (`010623` → `01-06-23`, `normalizeDatePaste`) er den ene, der findes, og den er bevaret
+     med vilje.
+   - **Forbudt:** at samme paste giver to forskellige resultater. Fortolkningen afgøres af, om paste'en
+     efterlader noget af brugerens eksisterende tekst — ikke af om editoren er åben. Et lukket felt og en åben
+     draft med hele teksten markeret (Ctrl+A) er den SAMME situation og skal give det samme resultat.
+     Beslutningen ejes af `resolvePasteContextDraft` (`inputCore/react/pasteSplice.ts`) og må ikke gentages
+     som en egen betingelse på et kaldssted.
+
+   Brugerfundet, der lukkede hullet, er BB-042 (`docs/testing/brugerblik/minprocesrente.md`, 2026-08-19): `010623` indsat i et tomt
+   «Renter fra» blev `01-06-2023`, men indsat i et udfyldt felt med alt markeret blev det `01` med rød ring.
+   «Markér alt og indsæt» er den naturlige måde at rette en dato på, og brugeren kan ikke vide, at feltets
+   tidligere indhold afgør, hvordan hans indsatte tekst læses.
+
    Konsekvenser, der er tilsigtede og ikke skal «rettes» tilbage:
    - Et årsfelt, der får en dato indsat (`01-02-2026`), optager de fire første cifre (`0102` → 102) og
      markeres rødt. Præcis som hvis brugeren havde tastet tegnene selv.
    - Cifre samles på tværs af sprungne tegn: `2.026` bliver `2026`. Det er reglens tilsigtede virkning.
    - Et paste kan efterlade en draft, som settle afviser. Det er det rigtige udfald efter punkt 5 — bedre
      end en pæn værdi, brugeren ikke kunne have tastet sig frem til.
+   - En paste, der indsættes MIDT i en draft eller erstatter kun en del af den, får ikke
+     familie-normaliseringen: der er en eksisterende kontekst at splice ind i, og en normalisering fra tom
+     draft kunne flytte en separator eller fjerne et fortegn, før admission-prædikatet vurderer kandidaten.
 
 For frie tekstfelter udføres der før denne afgrænsning en fælles, tabsfri normalisering af clipboard-teksten:
 
@@ -223,6 +252,12 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
   afvises efter den første; paste fortsætter derfor gennem dem.
 - Separatorer før det første tal ignoreres.
 - `12-2-2026` er gyldigt input og formateres først ved Enter, blur eller lukket-felt-paste til `12-02-2026`.
+- **En indsættelse, der erstatter hele værdien, fordeles i segmenterne dag/måned/år.** `010623` bliver
+  derfor draften `01-06-23` (og `01-06-2023` ved settle), mens de samme tegn TASTET bliver `01` og markeres
+  rødt. Forskellen er tilsigtet — brugerens afgørelse af BB-003, 2026-08-16 — fordi indsættelse kender hele
+  teksten på én gang, mens tastning ikke må gætte på det tredje ciffer. Fordelingen gælder både et lukket
+  felt og en åben draft, hvor alt er markeret (Ctrl+A): de to er samme situation og skal give samme resultat
+  (§1.2a punkt 7, BB-042). En indsættelse midt i en draft splices derimod ind tegn for tegn.
 - Tocifrede år fortolkes efter den fælles tocifrede-årspolitik og vises som fire cifre ved settle.
 - Tegn ud over dag-/måned-/årgrænserne blokeres ved tastning og springes over ved paste; paste stopper ikke.
   Et femte årsciffer eller et tredje dag-/månedsciffer kommer aldrig ind i feltet.

@@ -27,6 +27,7 @@ import {
   createYearFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
+import { entityIdForCollection } from '../fieldAddress';
 import { digitsRequiredFor } from './fieldLengthLimits';
 import type {
   CanonicalView,
@@ -65,11 +66,8 @@ const isAmountMode = <T>(_field: FieldRef<T>, view: CanonicalView): boolean =>
 const periodIs = <T>(period: Loenperiode): RelevanceRule<T> =>
   (_field, view) => view.readCanonical(aarsloenLoenperiodeField.bind()) === period;
 
-const rowIdOf = <T>(field: FieldRef<T>): string => {
-  const entity = field.address.path.find((segment) => segment.kind === 'entity' && segment.collection === 'tableData');
-  if (entity?.kind !== 'entity') throw new Error(`Årsløn-feltet ${field.descriptor.id} mangler tableData-entity`);
-  return entity.entityId;
-};
+const rowIdOf = <T>(field: FieldRef<T>): string =>
+  entityIdForCollection(field.address, 'tableData', field.descriptor.id);
 
 const percentField = (field: string, label: string): FieldDescriptor<number | undefined> =>
   defineStructuralField<number | undefined>({

@@ -9,7 +9,7 @@ import { gridCellKey } from '../../components/tables/gridCore/gridCoreUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { buildRestoreTargetAttributes, type RestoreTargetAttributes } from './historyRestoreTarget';
 import { serializeFieldAddress } from '../fieldAddress';
-import { normalizePasteForDraft, spliceDraftWithPaste } from './pasteSplice';
+import { normalizePasteForDraft, resolvePasteContextDraft, spliceDraftWithPaste } from './pasteSplice';
 import {
   isDraftWithinMaxLength,
   restoreDomValueAfterRejectedDraft,
@@ -150,10 +150,20 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     const { controller: ctl, locked: isLocked } = latest.current;
     if (isLocked) return;
     const raw = readClipboardText(e);
+    // Markeringen læses FØR normaliseringen: dækker den hele draften, erstatter paste'en alt, og
+    // konteksten er tom — samme situation som en lukket celle (se `resolvePasteContextDraft`).
+    const contextInput = inputElementRef.current;
+    const contextDraftText = ctl.isOpen ? ctl.displayText : '';
+    const contextStart = typeof contextInput?.selectionStart === 'number'
+      ? contextInput.selectionStart
+      : contextDraftText.length;
+    const contextEnd = typeof contextInput?.selectionEnd === 'number'
+      ? contextInput.selectionEnd
+      : contextStart;
     const normalized = normalizePasteForDraft(
       raw,
       cellFieldRef.current.descriptor.codec,
-      ctl.isOpen ? ctl.displayText : '',
+      resolvePasteContextDraft(ctl.isOpen, contextDraftText, contextStart, contextEnd),
     );
     e.preventDefault();
     e.stopPropagation();
@@ -178,16 +188,15 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     }
 
     // Afgrænset af cellens erklærede længde, fordi `<input maxLength>` ikke kan gælde her
-    // (se `spliceDraftWithPaste`).
-    const input = inputElementRef.current;
-    const draft = ctl.displayText;
-    const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-    const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
+    // (se `spliceDraftWithPaste`). Markeringen er den SAMME, konteksten ovenfor blev afgjort af;
+    // læstes den om her, kunne de to falde fra hinanden.
+    const input = contextInput;
+    const draft = contextDraftText;
     const spliced = spliceDraftWithPaste(
       draft,
       normalized,
-      start,
-      end,
+      contextStart,
+      contextEnd,
       latest.current.maxDraftLength,
       latest.current.draftAdmission
     );

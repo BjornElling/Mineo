@@ -29,7 +29,7 @@ export type DateRangeSpecialErrors = {
    * Når sat, overskriver den den generiske max-dato-fejl med "[fieldLabel] kan senest være 31. december ÅÅÅÅ".
    * Året udtrækkes fra maxDate. Bruges til EET-felter afgrænset af data-dækningsår.
    */
-  maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato' | 'foerFoersteTafFraDato' | 'skadedato';
+  maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato' | 'foerFoersteTafFraDato' | 'skadedato' | 'efterFelt';
   /** Feltlabelet brugt i maxBoundKind-fejlbeskeden, fx "Beregningsdato". */
   maxBoundFieldLabel?: string;
   /**
@@ -90,7 +90,13 @@ export const resolveDateRangeErrorMessage = (args: {
 
   // Bound-kind-beskeder skal have forrang over parrede Fra/Til-beskeder for at undgå misvisende output.
   // Eksempel: når den effektive min er "Skadedato", er den korrekte besked om Skadedato, ikke "Til < Fra".
-  if (maxDate && maxDate === getToday() && iso > maxDate) {
+  //
+  // «Dags dato» kræver, at grænsen FAKTISK er kalenderen — ikke blot at den tilfældigvis lander på i dag.
+  // Er max udledt af et andet felt (`kind: 'derived'`), navngiver `maxBoundFieldLabel`-grenen nedenfor
+  // kilden i stedet. Uden det forbehold tilskrev beskeden grænsen det forkerte ophav i netop det
+  // hyppigste tilfælde: en beregningsdato sat med «Indsæt dags dato» er dags dato, og brugeren fik at
+  // vide, at datoen lå i fremtiden, mens han i virkeligheden skulle flytte beregningsdatoen (BB-043).
+  if (bounds.kind === 'static' && maxDate && maxDate === getToday() && iso > maxDate) {
     return `Datoen er efter dags dato (${formatISOForTooltip(maxDate)})`;
   }
 
@@ -137,6 +143,15 @@ export const resolveDateRangeErrorMessage = (args: {
   if (special?.maxBoundKind === 'foerFoersteTafFraDato' && maxDate && iso > maxDate) {
     const reference = special.maxBoundReferenceISO ?? maxDate;
     return `Referenceperioden skal ligge før første TAF-periode (${formatISOForTooltip(reference)})`;
+  }
+
+  // Grænsen er et ANDET felts værdi. Beskeden navngiver kilden frem for at lade brugeren gætte, hvor
+  // tallet kommer fra — og frem for at tilskrive det kalenderen, når det tilfældigvis er dags dato
+  // (BB-043). `maxBoundFieldLabel` er feltets brugervendte navn i mundret, bestemt form.
+  if (special?.maxBoundKind === 'efterFelt' && maxDate && iso > maxDate) {
+    const reference = special.maxBoundReferenceISO ?? maxDate;
+    const label = special.maxBoundFieldLabel ?? 'den senest tilladte dato';
+    return `Datoen er efter ${label} (${formatISOForTooltip(reference)})`;
   }
 
   if (special?.maxBoundKind === 'skadedato' && maxDate && iso > maxDate) {

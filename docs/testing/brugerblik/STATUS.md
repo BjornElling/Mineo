@@ -18,7 +18,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 2 | Om | Gennemgået | 12 (BB-011–BB-022) | [om.md](om.md) |
 | 3 | Indstillinger | Gennemgået | 8 (BB-023–BB-029, BB-036) | [indstillinger.md](indstillinger.md) |
 | 4 | Satser | Gennemgået | 6 (BB-030–BB-035) | [satser.md](satser.md) |
-| 5 | MinProcesrente | Afventer bruger | 12 (BB-037–BB-048) | [minprocesrente.md](minprocesrente.md) |
+| 5 | MinProcesrente | Afgjort | 12 (BB-037–BB-048) | [minprocesrente.md](minprocesrente.md) |
 | 6 | Global shell | Ikke startet | — | — |
 | 7 | Varige mén | Ikke startet | — | — |
 | 8 | Renteberegning | Ikke startet | — | — |
@@ -27,30 +27,44 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 11 | Erhvervsevnetab | Ikke startet | — | — |
 | 12 | Erstatningsopgørelse | Ikke startet | — | — |
 
-## Fund der afventer brugerens beslutning
+## MinProcesrente — afgjort 2026-08-19
 
-**MinProcesrente — otte fund og to åbne spørgsmål.** Det fulde grundlag med målte tal står i
-[minprocesrente.md](minprocesrente.md).
+**Alle tolv fund er afgjort** — ni accepteret og gennemført, tre afvist. Det fulde grundlag med målte
+før/efter-tal står i [minprocesrente.md](minprocesrente.md).
 
-| ID | Kort | Prioritet |
+| ID | Kort | Udfald |
 |---|---|---|
-| BB-037 | Tillægstid kan skubbe rentedatoen forbi beregningsdatoen; rækken holder tavst op med at regne, og hele sidens download spærres | Høj |
-| BB-040 | Renten regnes fem år ud over de fastsatte satser; kun PDF'en advarer om, at det er hypotetisk | Høj |
-| BB-042 | Samme indsatte dato giver `01-06-2023` i et tomt felt og et rødt `01` i et udfyldt | Høj |
-| BB-038 | 0 kr. accepteres af feltet, afvises af beregningen — og spærrer downloads for de øvrige rækker | Mellem |
-| BB-041 | Et klik på en kolonneoverskrift låser tabellen i en sortering, der ikke kan slås fra og ikke kan fortrydes | Mellem |
-| BB-044 | Bekræftelsen ved «Slet alle indtastninger» taler om `.eo`-filer, som ikke findes på minprocesrente.dk | Mellem |
-| BB-046 | Tillægstiden regner videre, men er usynlig i telefonlayoutet | Mellem |
-| BB-048 | Fanen kan lukkes uden varsel, og alt arbejde er væk; Mineo advarer i samme situation | Mellem |
+| BB-037 | Tillægstid kan skubbe rentedatoen forbi beregningsdatoen; rækken holder tavst op med at regne | **Gennemført** — brugerens løsning: `rule`-validator på Tillægstid med «Beregnet rentedato kan senest være …» |
+| BB-038 | 0 kr. accepteres af feltet, afvises af beregningen | **Gennemført** — «Beløbet skal være større end 0 kr.» |
+| BB-039 | Blokeringen siger «Indtastning mangler», selv om intet mangler | **Bortfaldet** — min præmis var for bred; gatens præmis er nu SAND, fordi BB-037/038 giver røde felter |
+| BB-040 | Renten regnes fem år ud over de fastsatte satser; kun PDF'en advarer | **Afvist** — accepteret brist; jeg pressede med en enklere løsning, afvisningen fastholdt |
+| BB-041 | Sortering kan ikke slås fra og kan ikke fortrydes | **Afvist** — tilsigtet designvalg i alle tabeller |
+| BB-042 | Samme indsatte dato giver to forskellige resultater | **Gennemført** — brugerens valg: tolerancen bevaret, tilstandsafhængigheden fjernet ét sted for alle tre paste-flader |
+| BB-043 | Fejlen navngiver «dags dato» i stedet for Beregningsdato | **Gennemført** — «Datoen er efter beregningsdatoen (…)» med brugerens ordlyd |
+| BB-044 | Bekræftelsen taler om `.eo`-filer, som ikke findes i standalone | **Gennemført** — egen ordlyd pr. variant via `hasEoFiles` |
+| BB-045 | Telefonlayout i et smalt musevindue, men 1200 px indholdsboks | **Gennemført** — brugerens løsning: opstillingen låses til ENHEDEN, aldrig til vinduet |
+| BB-046 | Tillægstiden regner videre, men er usynlig i telefonlayoutet | **Gennemført** — løst af BB-045's device-lås; overgangen findes ikke længere |
+| BB-047 | «Slet alle indtastninger» kan ikke nås med tastaturet | **Gennemført** — `data-mineo-focusable-button` |
+| BB-048 | Arbejdet kan lukkes væk uden varsel | **Gennemført** — Mineos guard genbrugt; baselinen flyttes af et gennemført hent |
 
-**Fire fund er mine at afgøre og gennemføres uden forelæggelse:** BB-039 (blokeringsbeskeden siger
-«Indtastning mangler», når intet mangler — samme fejlform som BF-070, hvis præmis nu er målt
-forkert), BB-043 (fejlen på «Renter fra» navngiver «dags dato» i stedet for Beregningsdato),
-BB-045 (telefonlayout i et smalt musevindue, men 1200 px indholdsboks) og BB-047 («Slet alle
-indtastninger» mangler i Tab-rækkefølgen).
+**To brugerafklaringer traf jeg ikke selv, fordi de var reelle valg:**
 
-**To åbne spørgsmål:** skal Beregningsdato være forudfyldt med dags dato ved første besøg, og skal
-tillægstid overhovedet kunne bruges på telefon (svaret afgør, hvordan BB-046 løses).
+1. **BB-042 var en modsigelse mellem to af brugerens egne afgørelser.** BB-003 (16-08): indsættelse må
+   gerne være mere tolerant end tastning. Denne tilbagemelding (19-08): paste skal altid opføre sig som
+   tastning. Forelagt med begge udfald; brugeren valgte at bevare tolerancen og kun rette
+   tilstandsforskellen. `input-field-behavior-contract.md` §1.2a punkt 7 er rettet tilsvarende — den
+   påstod det absolutte forbud, som modsagde BB-003 fem dage før.
+2. **BB-045 krævede en definition af «mobil».** Browseren kan ikke sige «telefon» — kun «berøring» og
+   «skærmstørrelse». Brugeren valgte, at skærmens fysiske størrelse afgør, så en berøringsfølsom
+   bærbar er en desktop.
+
+**Én afvigelse fra en tilbagemelding, forelagt og bekræftet:** ved BB-037 viser downloadknappen den
+konkrete sætning i stedet for «Fejl i indtastning», fordi der kun er ÉT rødt felt — brugerens egen
+lempelse af 13-08-2026. Bekræftet beholdt 19-08.
+
+**To åbne spørgsmål står fortsat uafklarede:** skal Beregningsdato være forudfyldt med dags dato ved
+første besøg, og skal tillægstid kunne bruges på telefon. Det sidste er efter BB-046 ikke længere et
+fund, men et valg om telefonudgavens omfang.
 
 ## Satser — afgjort 2026-08-18
 
@@ -166,18 +180,24 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 Seksten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
 
-- **M-15** og **M-16** er tilføjet 2026-08-19 fra MinProcesrente og **afventer brugerens afgørelse**:
+- **M-15** og **M-16** er tilføjet 2026-08-19 fra MinProcesrente og **afgjort samme dag**:
   - **M-15 — skærmen tier, hvor dokumentet taler.** Spejlbilledet af M-13: generatoren skriver et
-    forbehold til tallet, og skærmen har ingen pendant. Alvorligere end M-13, fordi skærmen er det,
-    brugeren regner efter mens han arbejder. Kandidater: EO's dokumenter og reguleringsbilaget.
+    forbehold til tallet, og skærmen har ingen pendant. **Afvist for MinProcesrentes vedkommende**
+    (BB-040): brugerne bruger PDF'erne, og bristen er accepteret. Mønsteret står som en åben
+    kandidat for EO's dokumenter og reguleringsbilaget, hvor tallet oftere læses på skærmen.
   - **M-16 — en komplet række, programmet ikke vil regne på.** Motoren har flere afvisningsgrunde
     end feltmodellen har fejl; afvisningen kommer derfor ud som et fravær (`-`, forsvundet ikon, grå
-    knap) og spærrer hele fladens dokumenter. To rettelser hører sammen: årsagen skal ses ved
-    rækken, OG blokeringsklassen skal udledes af årsagen.
-- **M-14's sidste åbne kandidat er efterprøvet 2026-08-19 og har fejlen** (BB-042). Datofelternes
-  segmentbaserede paste kaldes kun i et tomt felt. Prøve 2 er derimod bestået: en dato uden for
-  grænsen bevares uafkortet. Selve segmentfortolkningen er en truffet beslutning (BB-003) og skal
-  ikke rulles tilbage — rettelsen går den anden vej.
+    knap) og spærrer hele fladens dokumenter. **Gennemført for rentetabellen** (BB-037, BB-038): de
+    to afvisningsgrunde er flyttet ind i feltmodellen som `rule`-validatorer. **Mønsterets anden
+    halvdel viste sig unødvendig:** jeg troede, blokeringsklassen også skulle udledes pr. tilstand
+    (BB-039), men når årsagen er et rødt felt, udleder den eksisterende gate klassen korrekt af sig
+    selv. Rettelsen hører altså i feltmodellen, ikke i gaten — det er mønsterets skarpere form.
+- **M-14's sidste åbne kandidat er efterprøvet 2026-08-19, havde fejlen og er rettet** (BB-042).
+  Datofelternes segmentbaserede paste kaldtes kun i et tomt felt. Prøve 2 var derimod bestået: en dato
+  uden for grænsen bevares uafkortet. Segmentfortolkningen er BEVARET efter brugerens valg (den er en
+  truffet beslutning, BB-003); det er tilstandsafhængigheden, der er væk. Afgørelsen tvang samtidig en
+  rettelse af `input-field-behavior-contract.md` §1.2a punkt 7, som påstod et absolut forbud mod
+  paste-only fortolkning og dermed modsagde BB-003 fem dage før.
 - **M-02 og M-09 har fået hver sin skærpelse samme dag.** M-02 rammer også beskeder, der genkender
   en grænse på dens *værdi* i stedet for dens *ophav* («Datoen er efter dags dato», når maksimum i
   virkeligheden er et andet felt). M-09: når layoutskiftet og breddefrigørelsen hviler på hvert sit
@@ -247,7 +267,8 @@ Seksten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   indgang, eget layoutspor (den eneste, der må vises på telefon) og en beregningstabel, den deler
   med Renteberegning. Rækkefølgens præmis holdt alligevel — otte af de tolv fund er generelle og
   gælder også Mineo-udgaven. **Konsekvens for flade nr. 8 (Renteberegning):** BB-037, BB-038,
-  BB-039, BB-041, BB-043 og BB-047 stammer fra den delte fane og skal ikke genopdages dér. Tilbage
+  BB-039, BB-041, BB-043 og BB-047 stammer fra den delte fane, er afgjort her og skal ikke genopdages
+  dér — rettelserne til dem virker allerede i Mineo-udgaven, fordi fanen er den samme komponent. Tilbage
   til nr. 8 står det Mineo-specifikke: brevhoved, stamdata-afhængighed, Word-formatet, fanens plads
   i sagen og samspillet med Gem/Hent.
 - **Tre spor er lagt ud til senere flader:** M-13's kolonnevalg i reguleringsbilaget hører til

@@ -96,6 +96,31 @@ export const fieldAddressesEqual = (left: FieldAddress, right: FieldAddress): bo
   serializeFieldAddress(left) === serializeFieldAddress(right);
 
 /**
+ * Rækkens (entityens) id for et felt under en navngiven collection.
+ *
+ * En cross-field-validator i en TABEL skal binde sin modpart i SAMME række, og opslaget er derfor
+ * forudsætningen for enhver rækkeintern regel. Det var indtil nu skrevet i hånden tre steder
+ * (`aarsloenDescriptors`, `erstatningsopgoerelseDescriptors`, senest rentetabellen) med hver sin
+ * fejlbesked — samme opslag, tre implementeringer. Her er det ét sted.
+ *
+ * Kaster ved et felt uden segmentet: en validator, der spørger, ER rækkescoped, og et manglende
+ * segment er derfor en katalogfejl, ikke en tom værdi at fortsætte på.
+ */
+export const entityIdForCollection = (
+  address: FieldAddress,
+  collection: string,
+  fieldId: string
+): string => {
+  const segment = address.path.find(
+    (candidate) => candidate.kind === 'entity' && candidate.collection === collection
+  );
+  if (segment?.kind !== 'entity') {
+    throw new Error(`Feltet ${fieldId} mangler ${collection}-entity i sin adresse`);
+  }
+  return segment.entityId;
+};
+
+/**
  * Afgør om feltet ligger under en konkret entity. Bruges af række-/entity-sletning, så descendant-rejections
  * fjernes i samme reducertrin uden efterfølgende reconcile (§3.8).
  */

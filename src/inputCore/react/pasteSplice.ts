@@ -9,13 +9,46 @@ type PasteCodec = Readonly<{
 }>;
 
 /**
- * Vælger paste-normalisering efter editorens tilstand.
+ * Draftkonteksten, en paste skal normaliseres imod.
  *
- * En paste i et lukket felt erstatter hele værdien og kan derfor med fordel bruge feltets
- * normalisering fra en tom draft (fx `01012024` → `01-01-2024`). I en åben draft skal teksten
- * derimod splices ind i den eksisterende kontekst; normalisering fra tom draft kan ellers fjerne
- * et fortegn eller flytte en separator, før det fælles admission-prædikat får lov at vurdere den
- * faktiske kandidat.
+ * **Hvad der afgør den.** Ikke om editoren er åben, men om paste'en efterlader noget af brugerens
+ * eksisterende tekst. Erstatter den ALT — et lukket felt, eller en åben draft hvor markeringen dækker
+ * hele teksten (Ctrl+A) — er der ingen kontekst at splice ind i, og feltets egen normalisering fra tom
+ * draft er den rigtige. Efterlader den noget, skal teksten splices ind i det, der bliver stående.
+ *
+ * **Hvorfor helperen findes.** Konteksten blev før udtrykt som `ctl.isOpen ? ctl.displayText : ''` på
+ * hvert kaldssted, altså kun på editorens tilstand. «Markér alt og indsæt» — den naturlige måde at
+ * rette en dato på — faldt derfor i splice-grenen: samme tekst `010623` blev `01-06-2023` i et tomt
+ * felt og `01` med rød ring i et udfyldt. Samme udklipsholder, samme håndbevægelse, to udfald
+ * (BB-042), i strid med `input-field-behavior-contract.md` §1.2a punkt 7, som kræver, at et pastes
+ * resultat er uafhængigt af, om feltet var tomt.
+ *
+ * Beslutningen bor her frem for i de to surfaces, fordi det ER én regel: to kaldssteder med hver sin
+ * betingelse er præcis den drift, fundet bestod i.
+ */
+export const resolvePasteContextDraft = (
+  isOpen: boolean,
+  draft: string,
+  selectionStart: number,
+  selectionEnd: number
+): string => {
+  if (!isOpen) return '';
+  const start = Math.max(0, Math.min(selectionStart, draft.length));
+  const end = Math.max(start, Math.min(selectionEnd, draft.length));
+  // Markeringen dækker hele draften ⇒ intet af brugerens tekst bliver stående ⇒ samme situation som
+  // et lukket felt. En tom draft rammer også her, uanset markering.
+  return start === 0 && end === draft.length ? '' : draft;
+};
+
+/**
+ * Vælger paste-normalisering efter, om paste'en har en eksisterende tekst at splice ind i.
+ *
+ * En paste, der erstatter hele værdien, kan med fordel bruge feltets normalisering fra en tom draft
+ * (fx `01012024` → `01-01-2024`). Bliver noget af teksten derimod stående, skal det indsatte splices
+ * ind i den eksisterende kontekst; normalisering fra tom draft kan ellers fjerne et fortegn eller
+ * flytte en separator, før det fælles admission-prædikat får lov at vurdere den faktiske kandidat.
+ *
+ * `existingDraft` skal komme fra {@link resolvePasteContextDraft}, som ejer afgørelsen af de to.
  */
 export const normalizePasteForDraft = (
   raw: string,

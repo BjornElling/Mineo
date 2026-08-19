@@ -4,7 +4,11 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-16 (eksterne web-links har fælles link-primitive og er ude af
+**Senest verificeret mod kode:** 2026-08-19 (Renteberegnings «Slet alle indtastninger» er tilføjet
+opt-in-listen og målt: knappen bærer `data-mineo-focusable-button`, og Tab-ringen rammer den —
+verificeret i browseren og af `standaloneCalculatorPage.test.tsx`. «Slet rækken» står fortsat uden for
+navigationen. Baggrund: brugerfundet BB-047)
+2026-08-16 (eksterne web-links har fælles link-primitive og er ude af
 Tab-rækkefølgen; knappernes opt-in-afgrænsning er målt mod
 `CONTAINER_FOCUSABLE_SELECTOR` og erklæret som en truffet beslutning; Escape-reglen og de to
 toggle-/checkbox-taster er verificeret mod `StyledDropdown`, `useTransientDraft`,
@@ -454,10 +458,15 @@ Det betyder:
 - CSS-selectors, fokus-hjælpefunktioner og konkrete `focus(...)`-kald er implementeringsdetaljer.
 - Hvilke elementer der indgår i tab-sekvensen, skal fortsat være eksplicit og auditérbart defineret, men ikke nødvendigvis via den samme selector-strategi som i dag.
 - Sideintegrerede handlingsknapper må kun indgå i den normale feltsekvens ved eksplicit opt-in.
-- `Indsæt dags dato`, `Find løntrin`, synlige dokumentdownload-knapper, `Vælg mappe` på Indstillinger
-  samt `MIT-licensen` og `Download hjælpeprogram` på Om-siden har dette opt-in. De skal kunne fokuseres
-  med Tab og aktiveres med native knapadfærd (`Enter` og mellemrum).
+- `Indsæt dags dato`, `Find løntrin`, synlige dokumentdownload-knapper, `Vælg mappe` på Indstillinger,
+  Renteberegnings `Slet alle indtastninger` samt `MIT-licensen` og `Download hjælpeprogram` på Om-siden
+  har dette opt-in. De skal kunne fokuseres med Tab og aktiveres med native knapadfærd
+  (`Enter` og mellemrum).
   Skjulte eller native deaktiverede knapper indgår ikke i sekvensen.
+- **`Slet alle indtastninger` kom med 2026-08-19 (BB-047).** Knappen stod i en række, der ser ud præcis
+  som `Download samlet oversigt` lige over den, men manglede markøren og indgik derfor aldrig i ringen.
+  To knapper, der er tegnet ens og står under hinanden, må ikke opføre sig forskelligt over for
+  tastaturet. Bemærk at rækkens `Slet rækken`-ikon fortsat bevidst står UDEN for navigationen.
 - **Opt-in'et er en forudsætning for `Enter`, ikke kun for Tab.** Uden markøren er knappen ikke i
   fokusinventaret, og `Enter` falder igennem til den generiske «flyt til næste felt»-vej frem for at
   ramme knap-undtagelsen. Mellemrum virker alligevel gennem native knapsemantik, så en manglende

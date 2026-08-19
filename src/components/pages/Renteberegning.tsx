@@ -32,6 +32,7 @@ const Renteberegning = React.memo(() => {
           renteOversigtDownload={vm.renteOversigtDownload}
           showOversigtBox
           documentDownloadFormat={vm.documentDownloadFormat}
+          hasEoFiles
         />
       )}
     </Box>

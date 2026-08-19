@@ -44,6 +44,7 @@ import {
   createYearFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
+import { entityIdForCollection } from '../fieldAddress';
 import {
   COMMENT_TEXT_MAX_LENGTH,
   SHORT_TEXT_MAX_LENGTH,
@@ -626,15 +627,8 @@ const rowDatePair = (
   fra: FieldDescriptor<ISODateString | undefined>;
   til: FieldDescriptor<ISODateString | undefined>;
 }> => {
-  const rowIdOf = <T>(field: FieldRef<T>): string => {
-    const entity = field.address.path.find(
-      (segment) => segment.kind === 'entity' && segment.collection === collection
-    );
-    if (entity?.kind !== 'entity') {
-      throw new Error(`EO-feltet ${field.descriptor.id} mangler ${collection}-entity`);
-    }
-    return entity.entityId;
-  };
+  const rowIdOf = <T>(field: FieldRef<T>): string =>
+    entityIdForCollection(field.address, collection, field.descriptor.id);
   const pair: DatePairBinding = {
     fra: () => fra,
     til: () => til,

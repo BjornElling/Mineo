@@ -83,6 +83,17 @@ export interface RenteberegningTabProps {
   renteOversigtDownload?: DocumentDownloadHandle<void>;
   showOversigtBox?: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
+  /**
+   * Om appen har `.eo`-filer, som bekræftelsen kan berolige brugeren om.
+   *
+   * Standalone MinProcesrente har hverken Gem, Hent eller filformat, så sætningen om `.eo`-filer
+   * skabte netop den bekymring, den skulle fjerne: en offentlig besøgende har aldrig set en `.eo`-fil
+   * og kunne kun forstå den som, at han måske havde filer, der kunne tage skade (BB-044).
+   *
+   * Egenskaben er eksplicit frem for udledt af `isMobile`: den ene er en layoutbeslutning, den anden
+   * er et spørgsmål om, hvilke begreber appen har.
+   */
+  hasEoFiles?: boolean;
 }
 
 const RenteberegningTab = React.memo(({
@@ -95,6 +106,7 @@ const RenteberegningTab = React.memo(({
   renteOversigtDownload,
   showOversigtBox = false,
   documentDownloadFormat,
+  hasEoFiles = false,
 }: RenteberegningTabProps) => {
   const dispatchSectionReset = useSectionReset();
   const evaluation = useInputEvaluation();
@@ -268,6 +280,11 @@ const RenteberegningTab = React.memo(({
                   onMouseDown={(event) => event.preventDefault()}
                   disabled={clearAllDisabled}
                   aria-label="Slet alle indtastninger"
+                  // Uden markøren var knappen ikke i Tab-ringen, mens dens nabo «Download samlet
+                  // oversigt» — tegnet ens, i samme rækkeform — var det (BB-047). Markøren er samtidig
+                  // forudsætningen for, at Enter aktiverer knappen; mellemrum virker uden den og kan
+                  // derfor skjule manglen. Bemærk at «Slet rækken» bevidst står UDEN for ringen.
+                  data-mineo-focusable-button="true"
                   size="small"
                   sx={(theme) => ({
                     width: '32px',
@@ -324,8 +341,9 @@ const RenteberegningTab = React.memo(({
           title="Slet indtastningerne på denne side"
           message={(
             <>
-              Dette sletter alle de værdier, du har indtastet på denne side. Indholdet i gemte
-              .eo-filer ændres ikke. Handlingen kan fortrydes.
+              {hasEoFiles
+                ? 'Dette sletter alle de værdier, du har indtastet på denne side. Indholdet i gemte .eo-filer ændres ikke. Handlingen kan fortrydes.'
+                : 'Dette sletter alle de værdier, du har indtastet. Du kan fortryde med Ctrl+Z.'}
               <br />
               <br />
               Bekræft venligst.

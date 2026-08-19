@@ -231,6 +231,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts` (storage-namespace sat via bivirknings-import før App-import). **Bemærk:** selve importforbuddet i §2.3 testes IKKE længere her — det er flyttet til AST-reglen nedenfor, og filen siger det selv.
 - `src/__tests__/quality/architecture/rules/documentRules.ts` (`layer/minprocesrente-standalone-import-boundary`: den strukturelle håndhævelse af §2.3's krydsimport-forbud).
 - `src/__tests__/apps/shared/bootstrapClientApp.test.tsx` (device-gate hård stop som default; standalone kan fravælge gaten).
+- `src/__tests__/apps/minprocesrente/standaloneCalculatorPage.test.tsx` (standalones opstilling følger enheden, ikke vinduet: smalt musevindue og touch-laptop får desktopopstilling, roteret telefon bliver mobil; `.eo`-sætningen udgår i standalone men bevares i Mineo; «Slet alle indtastninger» er i tastaturrækkefølgen).
+- `src/__tests__/apps/minprocesrente/useStandaloneExitGuard.test.tsx` (advarslen før fanen lukkes: armeres ved afsluttet input, ryddes af et gennemført hent, kommer tilbage ved næste rettelse og ryddes IKKE af et fejlet hent).
 - `src/__tests__/apps/shared/vitePreloadRecovery.test.ts` (Vite-signal er kun sidste sikkerhedsnet og må ikke genindlæse en aktiv sag uvarslet).
 - `src/__tests__/main.pwaLaunchQueue.test.ts` (Mineo-entryen leverer consumer-registrering og rehydrering til shellen i rækkefølge).
 - `src/__tests__/utils/pwaLaunchQueue.test.ts` (pending request overlever versionsskift; ny launch vinder over gammel persisted request; schema-validering, utilgængelig IndexedDB og ustabil handoff stopper ikke-sikkert reload).
@@ -258,9 +260,25 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 3. **Viewport-responsiv styling på begge akser er tilladt i en pinnet filliste — inkl. to filer delt med Mineo.** `AGENTS.md` ("Desktop-only gate") begrænser mobil/tablet-styling, fordi Mineo er desktop-only. Standalone MinProcesrente er en bevidst mobil-tilladt variant (jf. undtagelse 2), og undtagelsen dækker derfor:
 
+   **Standalones OPSTILLING er ikke viewport-responsiv (brugerbeslutning 2026-08-19).** Valget mellem
+   telefon- og desktopopstilling følger ENHEDEN og læses én gang ved mount:
+   `isTouchLikeDeviceWithShortestSideAtMost(599)` — samme aflæsning, som Mineos device-gate bruger, blot med
+   en lavere tærskel. Resize, rotation og browserzoom kan derfor ikke flytte fladen mellem de to
+   opstillinger; en berøringsfølsom bærbar med stor skærm er en desktop, og en roteret telefon bliver ikke
+   en desktop. Den viewport-responsive styling, der er tilbage på listen nedenfor, er derfor kun
+   *finjustering inden for* en valgt opstilling (skriftstørrelser, footer-kolonner) — aldrig valget selv.
+
+   Reglen findes, fordi de to beslutninger tidligere havde hver sit grundlag: opstillingen skiftede på
+   `useMediaQuery(down('sm'))`, mens indholdsboksens breddeoverstyring lå i `@media (pointer: coarse)`. Et
+   smalt musevindue faldt derfor ned mellem dem og fik telefonens tre kolonner med desktopbredden på 1200 px
+   — dårligere end begge de layouts, der findes (BB-045) — og skjulte samtidig tillægstid, enhed og den
+   afledte rentedato, mens renten fortsat blev regnet med tillægstiden (BB-046). **Indholdsboksens bredde
+   hører derfor til opstillingsvalget** og bor i sidens `isMobile`-blok, ikke i en `@media`-forespørgsel i
+   `minprocesrente.css`.
+
    | Fil | Begrundelse |
    |---|---|
-   | `src/components/pages/minprocesrente/MinProcesrenteCalculatorPage.tsx` | Standalone-lokal (sx). |
+   | `src/components/pages/minprocesrente/MinProcesrenteCalculatorPage.tsx` | Standalone-lokal (sx). Kun `.page-title`-størrelser; opstillingen selv er device-låst, ikke viewport-styret. |
    | `src/components/layout/StandaloneCalculatorLayout.tsx` | Standalone-lokal; kun renderet af `MinProcesrenteApp`. |
    | `src/components/layout/SiblingSitesFooter.tsx` | **Delt** (Mineos `/mineo`-side + standalone). Breakpointet betjener standalone-mobilbrugeren; på desktop tænder det aldrig. |
    | `src/components/pages/renteberegning/RenteberegningTab.tsx` | **Delt** (`Renteberegning` + standalone). Den ene breakpointregel er `overflowX: { xs: 'hidden', sm: 'auto' }`; fanens øvrige mobiladfærd kører på en eksplicit `isMobile`-prop, ikke på breakpoints. |
@@ -273,6 +291,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
    Fillisten er **håndhævet**, ikke kun beskrevet: `shell/viewport-responsive-styling-allowlist` i arkitektur-harnesset (`src/__tests__/quality/architecture/rules/responsiveStylingRules.ts`) gør en ny viewport-responsiv fil rød, og harnessets anti-rot-kontrol fjerner en post, der ikke længere udløser reglen. `.css`-filer ligger uden for kilde-grafen og er derfor kun auditeret her. Risiko: ingen for Mineo. Re-evaluering hvis standalone gøres desktop-only.
 
    `src/apps/minprocesrente/minprocesrente.css` stod på listen indtil verifikationen 2026-08-19, hvor den viste sig **forældet**: filens eneste `@media` er `(pointer: coarse)` — netop den form, afsnittet ovenfor udtrykkeligt holder uden for undtagelsen. Viewport-forespørgslen forsvandt i `13022592`, og posten overlevede sit eget mål, fordi anti-rot-kontrollen kun kan se TS/TSX. Det er den præcise pris ved, at CSS kun auditeres i prosa her: driften fanges først ved næste verifikation, ikke af harnesset.
+
+   Filens `(pointer: coarse)`-blok ejer fortsat mobilens normale sidescroll (`html`/`body`/`#root`), som er en ægte input-modalitets-affordance. Men `#root .content-box`-bredden er FLYTTET ud af den 2026-08-19 og ind i sidens `isMobile`-blok, jf. afsnittet ovenfor: bredden er en del af opstillingsvalget, og `(pointer: coarse)` er et andet grundlag end det, opstillingen vælges på. Genindfør den ikke i CSS'en.
 
 4. **Deploybeskyttelsen er stærk, men ikke absolut.** Versionscachen dækker det almindelige forløb: en åben build beholder sine egne hash-navngivne lazy chunks, også efter at origin kun har den nyeste build. To forhold ligger uden for klientens kontrol:
 

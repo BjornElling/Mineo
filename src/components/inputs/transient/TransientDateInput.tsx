@@ -11,7 +11,7 @@ import {
 } from '../draftAdmission';
 import { normalizeDatePaste } from '../../../utils/inputPasteNormalization';
 import { readClipboardText } from '../../../utils/clipboardUtils';
-import { normalizePasteForDraft, spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
+import { normalizePasteForDraft, resolvePasteContextDraft, spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
 import { assignRef } from '../../../utils/refUtils';
 import { mergeSx } from '../../../utils/mergeSx';
 import {
@@ -173,17 +173,20 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
 
     const handlePaste = React.useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
       const draft = draftState.draft;
+      // Markeringen læses FØR normaliseringen: dækker den hele draften, erstatter paste'en alt, og
+      // konteksten er tom — samme situation som et lukket felt (se `resolvePasteContextDraft`). Uden
+      // det gav «markér alt og indsæt» et andet resultat end en indsættelse i et tomt felt (BB-042).
+      const element = inputElementRef.current;
+      const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
+      const end = typeof element?.selectionEnd === 'number' ? element.selectionEnd : start;
       const normalized = normalizePasteForDraft(
         readClipboardText(event),
         { family: 'date', normalizePaste: normalizeDatePaste },
-        draftState.isOpen ? draft : ''
+        resolvePasteContextDraft(draftState.isOpen, draft, start, end)
       );
       event.preventDefault();
       event.stopPropagation();
 
-      const element = inputElementRef.current;
-      const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
-      const end = typeof element?.selectionEnd === 'number' ? element.selectionEnd : start;
       const spliced = spliceDraftWithPaste(
         draftState.isOpen ? draft : '',
         normalized,

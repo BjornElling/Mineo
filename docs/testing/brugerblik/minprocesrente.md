@@ -27,7 +27,7 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer bruger
+- **Beslutning:** **Accepteret — gennemført 2026-08-19** (brugerens løsning, ikke min)
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til dags dato (19-08-2026).
   2. Udfyld en række: Beløb `100.000`, Renter fra `01-01-2020`. Rækken viser Rentedato
@@ -53,12 +53,27 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
   Motorreglen ligger i `validateInterestCalculation`, som har fem afvisningsgrunde, hvoraf ingen
   når brugeren.
 
+**Tilbagemelding**
+Jeg anerkender præmissen i dit synspunkt, men er ikke enig i løsningen. Jeg tænker, om ikke den bedste løsning vil være en kontrol i tal-feltet med tillægstid, som giver fejl med rød ring og tooltip, hvis den beregnede rentedato er efter den seneste tilladte, fx. tooltip om "Beregnet rentedato kan senest være xx-xx-xxxx". 
+
+**Udført 2026-08-19 — din løsning, ikke min.** `rentekravTillaegstidField` har fået en
+`rule`-validator (`renteberegningDescriptors.ts`), der beregner rækkens rentedato med den samme
+`calculateInterestDate`, motoren bruger, og markerer feltet rødt med tooltippen
+«Beregnet rentedato kan senest være 19-08-2026». Målt i browseren. Reglen ligger på tillægstiden,
+fordi «Renter fra» allerede har sin egen grænse mod beregningsdatoen — en tillægstid er derfor den
+eneste vej til den umulige kombination.
+
+**Én afvigelse fra din tilbagemelding, som du har godkendt:** downloadknappen viser den konkrete
+sætning i stedet for «Fejl i indtastning». Årsagen er din egen lempelse af 13-08-2026: er der præcis
+ÉN rød feltfejl, citerer knappen den ordret. Forelagt og bekræftet 2026-08-19 — den nuværende regel
+beholdes. Ved nulbeløb (BB-038) er der to røde felter, og knappen siger da «Fejl i indtastning».
+
 ### BB-038 — Et beløb på 0 kr. accepteres af feltet, men afvises af beregningen
 
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** **Accepteret — gennemført 2026-08-19**
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til dags dato og udfyld en gyldig række (`25.000` / `01-01-2024`).
      «Download samlet oversigt» er aktiv.
@@ -77,12 +92,23 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Andre steder det kan gælde:** Enhver beløbsgrænse erklæret som `0` og senere brugt af en motor,
   der kræver et positivt tal.
 
+**Tilbagemelding**
+Jeg er enig i, at beløb-feltet ikke bør kunne udfyldes med en værdi på 0 kr. Dette bør give fejl med rød ring og tooltip om, at beløbet ikke kan være 0 kr., og som konsekvens af fejlen blokeres download med den generiske tooltip-meddelelse på download-knappen om "Fejl i indtastning"
+
+**Udført 2026-08-19.** `rentekravBelobField` har fået en `rule`-validator med tooltippen «Beløbet
+skal være større end 0 kr.», og downloadknappen svarer «Fejl i indtastning». Begge målt i browseren.
+
+Reglen er en egen validator og ikke en skarpere `amountBoundsValidator`-grænse, fordi grænsen er
+EKSKLUSIV: den fælles bounds-besked kan kun udtrykke inklusive grænser og ville påstå, at 0 er
+tilladt. Feltets `min: 0` står derfor urørt — den er stadig rigtig for de tolv andre beløbsfelter,
+der bruger den.
+
 ### BB-039 — Blokeringen siger «Indtastning mangler», selv om intet mangler
 
 - **Type:** Fejl
 - **Rækkevidde:** Lokal (men slægtning til BF-070)
 - **Prioritet:** Høj
-- **Beslutning:** Agent afgør
+- **Beslutning:** **Afvist som selvstændigt fund — bortfaldet med BB-037/BB-038**
 - **Sådan fremprovokeres det:** Som BB-037 eller BB-038. Peg på den grå «Download samlet oversigt».
 - **Det sker:** Tooltippen siger **«Indtastning mangler»**. Alle felter i rækken er udfyldt, intet er
   tomt, og intet er rødt.
@@ -98,12 +124,49 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Andre steder det kan gælde:** Samme gate bruges af Mineos Renteberegning og af mobilboksen
   «Download som PDF».
 
+**Tilbagemelding**
+Jeg er ikke enig i dein præmis, men der er en afledt situation, som bør adresseres.
+
+Der er tale om professionelle brugere af en meget simpel, åbenlys side - så de vil meget let selv kunne konstatere, hvad der mangler at blive indtastet, før download kan gennemføres. Det skal ikke præciseres.
+
+Til gengæld er det en fejl, hvis de får beskeden om "Indtastning mangler" og hvor der i virkeligheden er tale om en fejl i en indtastning, eller hvis de får en tooltip om fejl i indtastning, og ikke umiddelbart kan se på samme side, hvad årsagen skyldes, typisk gennem et felt med rød ring.
+
+I forhold til den manglende fejl med rød ring i det oprindelige indtastningsfelt, som førte til en fejl, forstår jeg din tilbagemelding sådan, at vi har addreseret alle de situationer ovenfor, hvor der mangler visuelle cues til brugeren om, hvilken indtastning, der er fejlbehæftet og skal rettes. Hvis der er nogen, vi ikke har addresseret, så sig til.
+
+**Svar 2026-08-19: du har ret, og fundet er bortfaldet — men ikke af den grund, jeg skrev.**
+
+Min præmis var forkert på ét punkt: jeg foreslog at DIFFERENTIERE «Indtastning mangler», og det er
+unødvendigt. Din regel er den rigtige: beskeden er kun forkert, når den står i stedet for en FEJL,
+eller når en fejl ikke kan ses på siden som et felt med rød ring.
+
+Efter BB-037 og BB-038 gælder præcis det. De to tilstande, der før nåede «Indtastning mangler» med
+alle felter udfyldt, bærer nu hver sit røde felt — og et rødt felt gør rækkeprojektionen `blocked`,
+hvilket er en anden gren end den, der giver «Indtastning mangler». Knappen svarer derfor «Fejl i
+indtastning» af sig selv. Ingen ændring i gaten var nødvendig; koden var rigtig, dens PRÆMIS var
+falsk, og den er nu gjort sand. Målt i browseren og fastholdt af to nye cases i
+`renteberegningProjectionMatrix.test.ts`.
+
+**Og til dit spørgsmål: nej, der er ingen uadresserede tilfælde tilbage på denne flade.** Jeg har
+gennemgået samtlige veje, der kan gøre downloadknappen grå:
+
+| Blokering | Har den et rødt felt? | Knappens tekst |
+|---|---|---|
+| Beregningsdato tom | Nej — den ER en mangel | «Indtastning mangler» ✓ |
+| Beregningsdato ugyldig råtekst | Ja, beregningsdato | «Fejl i indtastning» ✓ |
+| «Renter fra» efter beregningsdato | Ja, «Renter fra» | citeres ordret ✓ |
+| Beløb 0 kr. | Ja, Beløb (BB-038) | «Fejl i indtastning» ✓ |
+| Tillægstid skubber rentedato for langt | Ja, Tillægstid (BB-037) | citeres ordret ✓ |
+| Række med beløb men uden «Renter fra» | Nej — reelt ufuldstændig | «Indtastning mangler» ✓ |
+| Ingen rækker udfyldt | Nej — reelt ufuldstændig | «Indtastning mangler» ✓ |
+
+Hver «Indtastning mangler» i tabellen svarer nu til et tomt felt, brugeren selv kan se.
+
 ### BB-040 — Renten regnes fem år ud over de fastsatte satser; kun PDF'en advarer
 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-15--skærmen-tier-hvor-dokumentet-taler`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer bruger
+- **Beslutning:** **Afvist af brugeren 2026-08-19** — accepteret brist; PDF'en bærer forbeholdet alene
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til `31-12-2031` (accepteres uden bemærkning — det er feltets øvre grænse).
   2. Udfyld en række: Beløb `100.000`, Renter fra `01-01-2020`.
@@ -123,12 +186,20 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
   fodnote, som ikke også står på den flade, tallet kommer fra. Konkret kandidat: oversigts-PDF'ens
   samme advarsel, som heller ikke har nogen skærmpendant.
 
+**Tilbagemelding**
+Jeg anerkender synspunktet. Brugere vil dog stort set udelukkende benytte sig af PDF-dokumenterne, så det er en begrænset og acceptabel brist i denne konkrete situation. Det bliver under alle omstændigheder for besværligt at lave en enkel løsning, der kun vises for de relevante linjer.
+
+**Afvist — ingen ændring.** Jeg forelagde alligevel en enkel udgave, der ikke rører de enkelte
+linjer: samme sætning som PDF'en, vist som én linje i «Beregnet rente»-boksen, kun når
+beregningsdatoen ligger efter den sidst fastsatte sats. Du fastholdt afvisningen 2026-08-19.
+Forbeholdet står derfor fortsat kun i PDF'en. Registreret som en bevidst accepteret brist.
+
 ### BB-041 — Et klik på en kolonneoverskrift låser tabellen i en sortering, der ikke kan slås fra
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (gælder alle sorterbare tabeller)
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** **Afvist af brugeren 2026-08-19** — tilsigtet designvalg i alle tabeller
 - **Sådan fremprovokeres det:**
   1. Skriv tre rækker i den rækkefølge, sagens bilag har: `5.000` / `01-01-2024`, derefter
      `9.000` / `01-02-2024`, derefter `1.000` / `01-03-2024`.
@@ -152,12 +223,22 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Andre steder det kan gælde:** Alle tabeller, der bruger den fælles sorteringshook — Årsløn,
   Lønindkomst, Offentlige ydelser, Svie og smerte.
 
+**Tilbagemelding**
+Dette er forventet og tilsigtet adfærd, både her og i alle andre tabeller i programmet. Brugere vil ofte indtaste datoer i vilkårlig rækkefølge og derefter sortere, men har ingen interesse i at kunne genskabe denne vilkårlige intersse. Derfor er det et bevidst designvalg, at en tabel, der allerede én gang er sorteret, ikke vil kunne bringes tilbage til den oprindelige indtastningsrækkefølge.
+
+**Afvist — ingen ændring.** Jeg presser ikke igen: begrundelsen er domænekundskab om, hvordan
+brugerne faktisk arbejder, og det er dit område. Fundet er dermed lukket som tilsigtet adfærd, ikke
+som en accepteret brist. Bemærk til fremtidig reference, at afgørelsen også dækker de fire andre
+sorterbare tabeller (Årsløn, Lønindkomst, Offentlige ydelser, Svie og smerte) og de tre iagttagelser,
+der fulgte med: sorteringen skrives som sidens faktiske rækkefølge, Ctrl+Z tager den ikke tilbage,
+og en række hopper på plads, mens beløbet afsluttes.
+
 ### BB-042 — Samme indsatte dato giver to forskellige resultater, alt efter om feltet var tomt
 
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-14--en-anden-fortolkningsvej-ved-siden-af-tastningen`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer bruger
+- **Beslutning:** **Accepteret — gennemført 2026-08-19**
 - **Sådan fremprovokeres det:**
   1. Kopiér teksten `010623` fra et andet dokument.
   2. Indsæt den i et **tomt** «Renter fra»-felt og tryk Tab.
@@ -178,12 +259,36 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Andre steder det kan gælde:** Alle datofelter i programmet — det er ét delt codec. Det var
   M-14's navngivne åbne kandidat, og den er hermed bekræftet levende.
 
+**Tilbagemelding**
+Dette er et symptom på et forudbestående og større problem ved programmets paste-adfærd, som jeg troede, at vi allerede havde rettet. Hvis det ikke er tilfældet, skal det ensartet både her og alle andre steder i programmet, sådan at al paste-adfærd følger det universelle princip om altid at opføre sig på samme måde ved paste, som hvis den pastede værdi var indtastet ét tegn ad gangen, startende med det første. Der må ikke være forskel på paste i et åbent felt eller et felt, der kun har fokus.
+
+**Jeg pressede på dette, fordi din tilbagemelding modsagde din egen tidligere afgørelse.** Den
+16-08-2026 afviste du BB-003 med den modsatte begrundelse: «Indsættelse må gerne være mere tolerant
+end tastning» — netop fordi datofeltet KAN læse `010623` som en dato, mens tastning ikke skal begynde
+at gætte på tredje ciffer. Det universelle tegn-for-tegn-princip ville afskaffe den tolerance:
+`010623` indsat ville blive `01` med rød ring. Forelagt 2026-08-19 med begge udfald.
+
+**Din afgørelse: behold tolerancen, ret kun forskellen.** Gennemført.
+
+Datofamiliens segmentfordeling er bevaret. Det, der er rettet, er tilstandsafhængigheden: hvilken
+fortolkning der bruges, afgøres nu af, om paste'en efterlader noget af brugerens tekst — ikke af om
+editoren er åben. Et lukket felt og en åben draft med alt markeret (Ctrl+A) er samme situation og
+giver samme resultat. En indsættelse midt i en tekst splices fortsat ind tegn for tegn.
+
+Beslutningen ligger ét sted (`resolvePasteContextDraft` i `pasteSplice.ts`) og bruges af alle tre
+paste-flader — formularfelter, tabelceller og de transiente datofelter — så de tre ikke kan drifte fra
+hinanden igen. Det var netop tre kopier af betingelsen, fundet bestod i.
+
+`input-field-behavior-contract.md` §1.2a punkt 7 er rettet i samme ombæring: den PÅSTOD, at ingen
+paste-only fortolkning måtte findes, hvilket var i direkte modstrid med din BB-003-afgørelse fem dage
+før. Kontrakten siger nu, at tilstandsuafhængighed er kravet — ikke identitet med tastning.
+
 ### BB-043 — Fejlen på «Renter fra» navngiver «dags dato» i stedet for Beregningsdato
 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Mellem
-- **Beslutning:** Agent afgør
+- **Beslutning:** **Accepteret — gennemført 2026-08-19** (med brugerens sproglige rettelse)
 - **Sådan fremprovokeres det:**
   1. Klik «Indsæt dags dato», så Beregningsdato bliver 19-08-2026.
   2. Skriv `01-01-2027` i «Renter fra».
@@ -202,12 +307,23 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Andre steder det kan gælde:** Reglen «max er lig dags dato → skriv *dags dato*» er fælles for
   hele programmet og rammer ethvert felt, hvis udledte grænse tilfældigvis lander på i dag.
 
+**Tilbagemelding**
+Jeg er enig i din betragtning og dit forslag til rettelse, dog bør det sprogligt ændres til fx i eksemplet ovenfor at hedde "Datoen er efter beregningsdatoen (19-08-2026)", altså til en mere mundret formulering.
+
+**Udført 2026-08-19 med din ordlyd.** Feltet siger nu «Datoen er efter beregningsdatoen
+(19-08-2026)» — målt i browseren, både når beregningsdatoen er dags dato og når den er en anden dato.
+
+Rettelsen sidder to steder: «dags dato»-grenen i `dateRangeErrorMessages.ts` kræver nu, at grænsen
+FAKTISK er kalenderen (`bounds.kind === 'static'`) og ikke blot tilfældigvis lander på i dag; og
+`renterFraBoundsSpec` navngiver sin kilde, så snart skærpelsen er aktiv. De felter, hvis max ægte ER
+dags dato (fødselsdato, afgørelsesdatoer m.fl.), siger stadig «dags dato» — uændret.
+
 ### BB-044 — Bekræftelsen taler om `.eo`-filer, som ikke findes i minProcesrente
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** **Accepteret — gennemført 2026-08-19**
 - **Sådan fremprovokeres det:** Klik «Slet alle indtastninger» på minprocesrente.dk.
 - **Det sker:** Dialogen «Slet indtastningerne på denne side» siger: *«Dette sletter alle de værdier,
   du har indtastet på denne side. Indholdet i gemte .eo-filer ændres ikke. Handlingen kan
@@ -223,12 +339,22 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Andre steder det kan gælde:** Enhver tekst i den delte fane, der forudsætter Mineos begreber.
   Gennemgangen fandt ikke flere: `.eo` er den eneste.
 
+**Tilbagemelding**
+Jeg er enig i dit fund og dit forslag til rettelse.
+
+**Udført 2026-08-19.** Standalone-dialogen siger nu: «Dette sletter alle de værdier, du har
+indtastet. Du kan fortryde med Ctrl+Z.» Mineos udgave beholder sin `.eo`-sætning. Målt i browseren i
+begge apps.
+
+Fanen er delt, så teksten vælges af en eksplicit `hasEoFiles`-egenskab frem for af `isMobile`: det
+ene er en layoutbeslutning, det andet er et spørgsmål om, hvilke begreber appen har.
+
 ### BB-045 — Telefonlayoutet tændes i et smalt vindue, men indholdet bliver ved med at være 1200 px bredt
 
 - **Type:** Fejl
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-09--fast-indholdsbredde`
 - **Prioritet:** Mellem
-- **Beslutning:** Agent afgør
+- **Beslutning:** **Accepteret — gennemført 2026-08-19** (brugerens løsning: device-lås, ikke min)
 - **Sådan fremprovokeres det:** Åbn minprocesrente.dk i et almindeligt browservindue (mus, ikke
   touch), og gør vinduet smallere end 600 px — eller zoom til 250 % på en 1366 px skærm, hvilket
   giver den samme CSS-bredde.
@@ -246,12 +372,38 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
   hænge ud over det.
 - **Andre steder det kan gælde:** Kun standalone; Mineo er desktop-only og blokerer på touch.
 
+**Tilbagemelding**
+Dit fund er korrekt, men jeg er ikke enig i din løsning. Jeg vil ikke have, at mobil-visningen kan blive vist på desktop. Det er en fejl. Jeg vil have, at programmet skal entydigt identificere, om det er på mobil/tablet eller en desktop computer og herefter kontinuerligt følge adfærden for denne, uanset hvad der sker med størrelsen på vinduet - altså skal mobil/tablet blive på dennes visning både i vertikal og horisontal visning, og desktop-visningen skal fortsætte med desktop-adfærd, selvom vinduet reduceres markant, også til en størrelse, der er sædvanlig for mobil/tablet. Der er vist nok allerede en velfungerende løsning, som sorterer brugere over på 'Desværre' siden for mobilbrugere - undersøg gerne, om den kan genbruges.
+
+**Udført 2026-08-19 — din løsning, og ja, «Desværre»-sidens aflæsning kunne genbruges direkte.**
+Opstillingen vælges nu af `isTouchLikeDeviceWithShortestSideAtMost(599)` — samme funktion, device-gaten
+bruger, blot med en lavere tærskel — og læses ÉN gang ved sidens mount. Resize, rotation og
+browserzoom kan derfor ikke længere flytte fladen mellem de to opstillinger.
+
+**Én afklaring, du traf undervejs.** Browseren kan ikke entydigt sige «telefon» eller «desktop»; den
+kan kun sige «berøringsskærm» og «skærmstørrelse». En berøringsfølsom bærbar er derfor tvetydig. Du
+valgte, at skærmens fysiske størrelse afgør: en touch-laptop med stor skærm får desktopvisningen.
+
+Målt i browseren:
+
+| Situation | Før | Nu |
+|---|---|---|
+| 599 px musevindue | mobilopstilling, boks 1200 px (fundet) | desktopopstilling, alle seks kolonner |
+| Genindlæst ved 599 px | mobilopstilling | desktopopstilling |
+| Touch-laptop, 1920 px skærm | mobilopstilling under 600 px | desktopopstilling altid |
+| Telefon (412 px) | mobilopstilling, boks 380 px | uændret ✓ |
+| Telefon roteret (915×412) | kunne skifte til desktop | forbliver mobil ✓ |
+
+Indholdsboksens bredde er samtidig flyttet ind i samme beslutning. Den lå i
+`@media (pointer: coarse)` i `minprocesrente.css` — altså på et ANDET grundlag end opstillingen selv,
+og det var præcis hullet: to beslutninger truffet på hver sit signal.
+
 ### BB-046 — Tillægstiden regner videre, men er usynlig i telefonlayoutet
 
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** **Accepteret — gennemført 2026-08-19** (løst af BB-045's device-lås)
 - **Sådan fremprovokeres det:**
   1. Udfyld på en almindelig skærm: Beløb `100.000`, Renter fra `01-01-2024`, Tillægstid `30` dage.
      Rækken viser Rentedato `31-01-2024` og `27.111,89 kr.`
@@ -270,12 +422,25 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Andre steder det kan gælde:** Ingen andre — MinProcesrente er den eneste flade med to
   kolonnesæt.
 
+**Tilbagemelding**
+Dette skulle gerne være løst med den ovenstående løsning, der 'låser' visningen til mobilvisning på mobiler og desktopvisning på desktop - uanset vinduets størrelse - og dermed effektivt forhindrer skift mellem de to visninger.
+
+**Bekræftet — løst af BB-045's device-lås.** Du har ret. Fundet forudsatte, at en bruger kunne udfylde
+tillægstid i desktopopstillingen og derefter havne i mobilopstillingen med feltet skjult, mens renten
+fortsat blev regnet med det. Den overgang findes ikke længere: en desktop bliver ikke mobil, og en
+telefon har aldrig kunnet vise kolonnerne. Målt i browseren — også ved rotation, hvor skiftet før var
+muligt.
+
+Bemærk, at det åbne spørgsmål 2 nedenfor dermed står uafklaret som et selvstændigt spørgsmål: skal
+telefonen kunne bruge tillægstid overhovedet? Det er ikke længere et fund, men et valg om
+telefonudgavens omfang.
+
 ### BB-047 — «Slet alle indtastninger» kan ikke nås med tastaturet
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Agent afgør
+- **Beslutning:** **Accepteret — gennemført 2026-08-19**
 - **Sådan fremprovokeres det:** Sæt fokus i Beregningsdato og tryk Tab gentagne gange.
 - **Det sker:** Tab-ringen er: Beregningsdato → Indsæt dags dato → rækkens fire felter → rækkens
   downloadknap → næste række → Download samlet oversigt → Kommentarer → forfra. **«Slet alle
@@ -289,12 +454,23 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Andre steder det kan gælde:** Samme række findes i Mineos Renteberegning. Bemærk desuden, at
   telefonudgaven slet ikke har rækken: dér kan alle indtastninger kun ryddes felt for felt.
 
+**Tilbagemelding**
+Jeg er enig i din betragtning. Slet alt-knappen skal være fokuserbar og en del af den almindelige tab-rækkefølge.
+
+**Udført 2026-08-19.** Knappen bærer nu `data-mineo-focusable-button`, som er programmets opt-in til
+fokusinventaret. Målt i browseren: Tab-ringen indeholder «Slet alle indtastninger». `keyboard-navigation.md`
+er opdateret med knappen på opt-in-listen.
+
+Bemærk, at markøren også er forudsætningen for, at **Enter** aktiverer knappen — mellemrum virkede i
+forvejen gennem native knapsemantik og kunne derfor skjule manglen. «Slet rækken» står fortsat bevidst
+uden for navigationen, jf. dit fund.
+
 ### BB-048 — Arbejdet kan lukkes væk uden varsel
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** **Accepteret — gennemført 2026-08-19**
 - **Sådan fremprovokeres det:** Udfyld beregningsdato og et antal rentekrav. Luk fanen.
 - **Det sker:** Fanen lukker uden spørgsmål, og alt er væk. F5 og genindlæsning er derimod sikre —
   indtastningerne ligger i fanens egen sessionslagring og kommer tilbage (målt). Der er ingen Gem,
@@ -306,6 +482,19 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Bedre ville være:** Den samme advarsel som i Mineo, men kun når der er indtastninger, som ikke
   er hentet som PDF siden sidste ændring. Så generer den ikke den, der lige har hentet sit dokument.
 - **Andre steder det kan gælde:** Ingen — Mineo har allerede advarslen.
+
+**Tilbagemelding**
+Jeg er enig i din præmis og dit forslag til løsning.
+
+**Udført 2026-08-19.** Standalone viser nu browserens «vil du forlade siden?», men kun når der er
+afsluttede indtastninger, som ikke er hentet siden sidste ændring. Målt i browseren.
+
+Selve reglen «revision > baseline ⇒ advar» er GENBRUGT fra Mineos `useUnsavedChangesGuard` frem for
+skrevet igen; forskellen er alene, hvad der flytter baselinen — i Mineo en `.eo`-save, her et
+gennemført hent. Et afvist eller fejlet hent flytter den ikke: brugeren har da ikke fået sin fil.
+
+Guarden er ÉN pr. flade, ikke én pr. dokumentoutput. Med tre guards ville et hent af oversigten ikke
+rydde rækkespecifikationens baseline, og fanen ville advare om arbejde, brugeren netop havde hentet.
 
 ## Overvejet uden fund
 

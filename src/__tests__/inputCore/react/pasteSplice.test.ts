@@ -1,10 +1,66 @@
-import { normalizePasteForDraft, spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
+import {
+  normalizePasteForDraft,
+  resolvePasteContextDraft,
+  spliceDraftWithPaste,
+} from '../../../inputCore/react/pasteSplice';
 import { dateLikeAdmission } from '../../../components/inputs/draftAdmission';
 import { productionInputFields } from '../../../inputCore/catalog/productionCatalog';
-import { createOptionalTextFieldCodec } from '../../../inputCore/fieldCodecs';
+import { createDateFieldCodec, createOptionalTextFieldCodec } from '../../../inputCore/fieldCodecs';
 
 // `input-field-behavior-contract.md` §1.2a: paste afgrænses PRÆCIS som tastning. Splicen er den vej,
 // hvor `<input maxLength>` ikke virker, fordi `onPaste` kalder `preventDefault()` og selv skriver draften.
+
+describe('resolvePasteContextDraft', () => {
+  // §1.2a punkt 7: resultatet af et paste må ikke afhænge af, om feltet var tomt. Konteksten afgøres
+  // derfor af, om paste'en efterlader noget af brugerens tekst — ikke af om editoren er åben.
+  // Brugerfundet BB-042: `010623` blev `01-06-2023` i et tomt felt og `01` i et udfyldt.
+
+  it('har ingen kontekst, når feltet er lukket', () => {
+    expect(resolvePasteContextDraft(false, '01-01-2024', 0, 10)).toBe('');
+  });
+
+  it('har ingen kontekst, når markeringen dækker hele den åbne draft', () => {
+    // «Markér alt og indsæt» (Ctrl+A) er den naturlige måde at rette en dato på.
+    expect(resolvePasteContextDraft(true, '01-01-2024', 0, 10)).toBe('');
+  });
+
+  it('har ingen kontekst i en åben, tom draft', () => {
+    expect(resolvePasteContextDraft(true, '', 0, 0)).toBe('');
+  });
+
+  it('bevarer draften som kontekst, når noget af teksten bliver stående', () => {
+    expect(resolvePasteContextDraft(true, '01-01-2024', 3, 3)).toBe('01-01-2024');
+    expect(resolvePasteContextDraft(true, '01-01-2024', 0, 5)).toBe('01-01-2024');
+    expect(resolvePasteContextDraft(true, '01-01-2024', 2, 10)).toBe('01-01-2024');
+  });
+
+  it('klemmer markeringen mod draftens længde, så en urealistisk markering ikke åbner konteksten', () => {
+    // En markering ud over draften dækker stadig hele teksten og skal derfor rydde konteksten.
+    expect(resolvePasteContextDraft(true, '0101', 0, 99)).toBe('');
+    // Omvendt rækkefølge må ikke tolkes som "hele teksten".
+    expect(resolvePasteContextDraft(true, '0101', 3, 1)).toBe('0101');
+  });
+
+  it('giver samme datofortolkning i et tomt og et fuldt markeret felt (BB-042)', () => {
+    const codec = createDateFieldCodec({ twoDigitYearPolicy: 'infer' });
+    const clipboard = '010623';
+    const emptyField = normalizePasteForDraft(
+      clipboard,
+      codec,
+      resolvePasteContextDraft(false, '', 0, 0)
+    );
+    const fullySelectedField = normalizePasteForDraft(
+      clipboard,
+      codec,
+      resolvePasteContextDraft(true, '01-01-2024', 0, 10)
+    );
+
+    // Segmentfortolkningen giver draften `01-06-23`; det tocifrede år udvides først ved settle efter
+    // den fælles tocifrede-årspolitik. Det afgørende er, at de to tilstande er ENIGE.
+    expect(emptyField).toBe('01-06-23');
+    expect(fullySelectedField).toBe(emptyField);
+  });
+});
 
 describe('spliceDraftWithPaste', () => {
   it('normaliserer tekst både ved lukket paste og ved splice i en åben draft', () => {

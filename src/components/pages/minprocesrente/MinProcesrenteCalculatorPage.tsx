@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import ContentBoxFrame from '../../layout/ContentBoxFrame';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
@@ -14,6 +14,7 @@ import {
   useStandaloneDocumentSourceContext,
 } from '../../../apps/minprocesrente/document/useStandaloneDocumentOutput';
 import { useUndoRedoShortcuts } from '../../../inputCore/react/useUndoRedoShortcuts';
+import { useStandaloneExitGuard } from '../../../apps/minprocesrente/useStandaloneExitGuard';
 import SiblingSitesFooter from '../../layout/SiblingSitesFooter';
 import InternalLink from '../../ui/InternalLink';
 import { isTouchLikeDeviceWithShortestSideAtMost } from '../../../utils/clientDevice';
@@ -44,15 +45,32 @@ const MinProcesrenteTitle = React.memo(() => (
 
 MinProcesrenteTitle.displayName = 'MinProcesrenteTitle';
 
+/**
+ * Opstillingen følger ENHEDEN, ikke vinduet — og skifter aldrig igen i sessionen.
+ *
+ * Layoutet blev tidligere valgt af `vinduets bredde ELLER telefon-lignende enhed`, mens den
+ * bredde-rettelse, der hører til telefonopstillingen (`.content-box` følger viewporten), kun gjaldt
+ * berøringsenheder. De to beslutninger havde altså hver sit grundlag, og en zoomende eller
+ * vinduesformindskende bruger på en almindelig computer faldt ned mellem dem: han fik
+ * telefonopstillingen med tre kolonner, mens indholdsboksen blev stående på sine 1200 px — dårligere
+ * end begge de layouts, der findes (BB-045). Samme skift skjulte samtidig tillægstid, enhed og den
+ * afledte rentedato, mens renten fortsat blev regnet med tillægstiden (BB-046).
+ *
+ * Brugerbeslutning 2026-08-19: mobil/tablet skal blive på mobilvisningen og desktop på
+ * desktopvisningen, uanset hvad der sker med vinduets størrelse — i både lodret og vandret
+ * orientering. Aflæsningen er derfor den samme, som Mineos «Desværre»-side bruger til at sortere
+ * mobilbrugere fra (`isTouchLikeDeviceWithShortestSideAtMost`): berøring PLUS enhedens
+ * orienteringsstabile kortside. En berøringsfølsom bærbar med stor skærm er dermed en desktop.
+ *
+ * Værdien læses ÉN gang og gemmes i state, så en resize, rotation eller browserzoom ikke kan flytte
+ * fladen mellem de to opstillinger.
+ */
 const isStandalonePhoneLikeDevice = (): boolean => {
   return isTouchLikeDeviceWithShortestSideAtMost(MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX);
 };
 
 const MinProcesrenteCalculatorPage = React.memo(() => {
-  const theme = useTheme();
-  const isViewportMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [isPhoneLikeDevice] = React.useState(isStandalonePhoneLikeDevice);
-  const isMobile = isViewportMobile || isPhoneLikeDevice;
+  const [isMobile] = React.useState(isStandalonePhoneLikeDevice);
   const mobileContentFontSize = '12px';
   // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) mod den ene den ene write-grænse.
   useUndoRedoShortcuts();
@@ -62,22 +80,28 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   // delte fane. Tidligere kaldte siden `standaloneRentePdfService` direkte, uden commit-barriere
   // og uden gate.
   const documentContext = useStandaloneDocumentSourceContext();
+  // Sidens ENE exit-guard: advarer, før fanen lukkes med indtastninger, der ikke er hentet som PDF
+  // (BB-048). Trackeren gives til alle tre outputs, så et hvilket som helst gennemført hent rydder den.
+  const trackDownloadOutcome = useStandaloneExitGuard();
   // Rækkeknappernes reaktive gate kommer fra tabellens projektion, ikke fra dette handle; jf. noten
   // i Mineos `Renteberegning.tsx`.
   const renteDownload = useStandaloneDocumentOutput(
     standaloneRenteDocumentDefinition,
     STANDALONE_RENTE_GATE_REQUEST,
-    documentContext
+    documentContext,
+    trackDownloadOutcome
   );
   const renteAlleDownload = useStandaloneDocumentOutput(
     standaloneRenteAlleDocumentDefinition,
     undefined,
-    documentContext
+    documentContext,
+    trackDownloadOutcome
   );
   const renteOversigtDownload = useStandaloneDocumentOutput(
     standaloneRenteOversigtDocumentDefinition,
     undefined,
-    documentContext
+    documentContext,
+    trackDownloadOutcome
   );
 
   return (
@@ -146,10 +170,17 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
             fontSize: '15px',
             marginBottom: '8px',
           },
+          // Bredden hører til DENNE beslutning, ikke til en @media-forespørgsel. Global layout.css
+          // giver `.content-box` Mineos 1200 px, og mobilopstillingen skal i stedet følge viewporten.
+          // Reglen stod før alene i `minprocesrente.css` under `@media (pointer: coarse)` — altså på et
+          // andet grundlag end opstillingen selv, hvilket var præcis hullet i BB-045. Nu tændes de to
+          // af samme betingelse.
           '& .content-box': {
             padding: '16px 12px',
             borderRadius: 'var(--border-radius-small)',
             margin: '16px 0',
+            width: '100%',
+            maxWidth: '100%',
           },
           // Global mobil-fontstørrelse for alle row--text (inkl. beregningsdato-boksen og tabellens talværdier).
           '& .row--text': {

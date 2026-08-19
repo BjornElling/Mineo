@@ -35,10 +35,10 @@ body {
     max-width: 100%;
   }
 
-  /* Global layout.css definerer .content-box som 1200px til Mineo-desktop. Standalone-
-     mobil skal i stedet følge viewporten; #root-specificiteten vinder uanset load-rækkefølge. */
-  #root .content-box {
-    width: 100%;
-    max-width: 100%;
-  }
+  /* Indholdsboksens bredde stod her indtil 2026-08-19, hvor den flyttede til
+     `MinProcesrenteCalculatorPage`s `isMobile`-blok. Årsag: bredden er en del af selve
+     opstillingsvalget, og `@media (pointer: coarse)` er et ANDET grundlag end det, opstillingen
+     vælges på — en berøringsfølsom bærbar med desktopopstilling fik derfor mobilbredden, og et smalt
+     musevindue fik mobilopstillingen med desktopbredden (BB-045). Genindfør den ikke her: én
+     betingelse skal styre både opstilling og bredde. */
 }

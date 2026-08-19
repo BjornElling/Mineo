@@ -12,7 +12,8 @@ udløsende fund er afvist, forsvinder ikke automatisk — men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
-**M-15 og M-16 er tilføjet 2026-08-19 fra MinProcesrente og afventer brugerens afgørelse.** M-15 er
+**M-15 og M-16 er tilføjet 2026-08-19 fra MinProcesrente og afgjort samme dag** (M-15 afvist for
+MinProcesrente, M-16 gennemført for rentetabellen — se hvert mønster). M-15 er
 spejlbilledet af M-13: dokumentet bærer et forbehold, skærmen har ingen pendant. M-16 handler om
 rækker, der er komplette og fejlfri felt for felt, men som motoren afviser af en grund, feltmodellen
 ikke kender — hvorved afvisningen kommer ud som et fravær og spærrer hele fladens dokumenter.
@@ -85,6 +86,12 @@ stedet for på dens ophav**: den fælles dato-fejlregel svarer «Datoen er efter
 maksimum tilfældigvis er lig med i dag — også når maksimum i virkeligheden er et andet felts værdi.
 Brugeren får dermed en forklaring, der peger på kalenderen frem for på det felt, han skal rette. Prøven
 er: **kan beskeden skifte ophav, uden at grænsen skifter værdi?** Så er den udledt forkert.
+
+**Gennemført 2026-08-19 for dato-fejlreglen.** «Dags dato»-grenen kræver nu, at grænsen faktisk ER
+kalenderen (`bounds.kind === 'static'`), og en udledt grænse navngiver sin kilde i stedet. Konstruktionen
+var i forvejen på plads: `DateBoundsSpec.origin` VIDSTE, at grænsen kom fra Beregningsdato — beskeden
+spurgte blot ikke. Det er den generelle lære: når en besked genkender noget på en værdi, findes ophavet
+ofte allerede i erklæringen ved siden af.
 
 - **Brugerens regel 2026-08-16 (bindende for hele programmet):** navngivningen i beskeder skal følge
   den til enhver tid værende værdi i skadestype-feltet — «Anmeldelsesdato» ved Erhvervssygdom,
@@ -273,12 +280,20 @@ sidestillede bokse eller indhold med egen minimumsbredde. Prøven er: **er indho
 
 - Fundet i: `om.md` BB-015 (sætninger skåret over ved 1366 px) — **afgjort: arbejdsfladeskalering
   inden for CSS-viewport-kontrakten**.
-- Bekræftet i ny form 2026-08-19: `minprocesrente.md` BB-045. Standalone skifter til telefonlayout
-  på **vinduets bredde**, mens den tilhørende breddefrigørelse af indholdsboksen kun gælder
-  **touch-enheder**. Et smalt musevindue (eller høj browserzoom) får derfor telefonens tre kolonner
+- Bekræftet i ny form 2026-08-19: `minprocesrente.md` BB-045. Standalone skiftede til telefonlayout
+  på **vinduets bredde**, mens den tilhørende breddefrigørelse af indholdsboksen kun gjaldt
+  **touch-enheder**. Et smalt musevindue (eller høj browserzoom) fik derfor telefonens tre kolonner
   spredt over 1174 px i et 567 px felt. **Skærpelse:** når to beslutninger om samme layout hviler på
   hvert sit kriterium (viewport kontra input-modalitet), findes der altid en tilstand mellem dem —
   efterprøv den frem for at antage, at de to kriterier falder sammen.
+- **Gennemført 2026-08-19, og brugerens løsning var en anden end min.** Jeg foreslog at lade
+  breddefrigørelsen følge samme kriterium som layoutskiftet (altså også et smalt musevindue). Brugeren
+  afviste præmissen: mobilvisningen må slet ikke kunne opstå på en desktop. Opstillingen låses derfor
+  til ENHEDEN — berøring plus orienteringsstabil kortside, samme aflæsning som device-gaten — og læses
+  én gang ved mount, så resize, rotation og zoom ikke kan flytte den. **Den generelle lære er skarpere
+  end min skærpelse ovenfor:** to kriterier for samme layout skal ikke bringes til at falde sammen; der
+  skal kun være ÉT kriterium. Og når to signaler beskriver forskellige ting (vinduets størrelse kontra
+  hvilken slags maskine brugeren sidder ved), er det sidste ofte det rigtige at bygge på.
 - Kandidater, ikke efterprøvet: alle sider med tabeller. Årsløn, Erhvervsevnetab og
   Erstatningsopgørelsen er de bredeste og skal måles ved 1536×864, ikke ved 1920.
 
@@ -482,14 +497,24 @@ tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en væ
   er slettet som fortolkere og erstattet af det delte tegn-for-tegn-filter, som beløb, procent og brøk
   allerede brugte. Hjælperne bag dem (`extractContiguousDigits`, `findNextDigitIndex`, `isWithinBounds`)
   er fjernet med, så byggeklodserne til en ny fortolker ikke ligger og venter.
-- **Den sidste paste-only fortolker — datofelternes `normalizeDatePaste` — er nu efterprøvet, og den
-  har fejlen.** Målt 2026-08-19 (`minprocesrente.md` BB-042): `010623` indsat i et **tomt**
-  datofelt bliver `01-06-2023`; samme tekst indsat i et **udfyldt** felt (markér alt, indsæt) bliver
-  `01`, afvist og rødt. Prøve 2 er derimod bestået: `01-01-2045` uden for feltets grænse blev
-  bevaret uafkortet, så fortolkeren gætter ikke sig ned i et lovligt interval, som årsfelterne
-  gjorde. **Det er altså kun tilstandsafhængigheden (kendetegn 2), der står tilbage — og
-  segmentfortolkningen i sig selv er en truffet beslutning (BB-003), som ikke skal rulles tilbage.**
-  Rettelsens retning er derfor, at det udfyldte felt skal følge det tomme, ikke omvendt.
+- **Den sidste paste-only fortolker — datofelternes `normalizeDatePaste` — er efterprøvet, havde
+  fejlen og er rettet.** Målt 2026-08-19 (`minprocesrente.md` BB-042): `010623` indsat i et **tomt**
+  datofelt blev `01-06-2023`; samme tekst indsat i et **udfyldt** felt (markér alt, indsæt) blev
+  `01`, afvist og rødt. Prøve 2 var derimod bestået: `01-01-2045` uden for feltets grænse blev
+  bevaret uafkortet, så fortolkeren gætter ikke sig ned i et lovligt interval, som årsfelterne gjorde.
+
+  **Gennemført 2026-08-19 efter brugerens valg: kun tilstandsafhængigheden (kendetegn 2) er væk.**
+  Segmentfortolkningen er bevaret, fordi den ER en truffet beslutning (BB-003/M-03). Fortolkningen
+  bruges nu, når paste'en **erstatter hele værdien** — et lukket felt eller en åben draft med alt
+  markeret — og springes, når noget af brugerens tekst bliver stående. Betingelsen er samlet i
+  `resolvePasteContextDraft` (`inputCore/react/pasteSplice.ts`) og læses af alle tre paste-flader
+  (formularfelt, tabelcelle, transient datofelt); den var før skrevet tre gange som
+  `ctl.isOpen ? draft : ''`, og netop de tre kopier var fundet.
+
+  **Mønsteret har hermed en skarpere formulering.** Kendetegn 1 (en fortolker findes) er ikke i sig
+  selv fejlen — det afgjorde brugeren. Fejlen er kendetegn 2 og 3: at fortolkningen vælges på
+  editorens TILSTAND frem for på, om der er en kontekst at splice ind i, og at en grænse forkorter
+  teksten. Efterprøv fremover netop de to.
 - Alle fire årsfelter delte codec og er rettet i én omgang: `satser.aargang`,
   `eo.svieSmerteSatserAar`, Årslønssidens årsfelt (`aarsloenDescriptors.ts:332`) og
   Lønindkomst-tabellens `col1_maaned` (`erstatningsopgoerelseLoenDescriptors.ts:296`). De to sidste er
@@ -528,6 +553,13 @@ ikke om baggrund, men om **et forbehold til rigtigheden af et tal, der allerede 
   et ord; PDF'en skriver med fed skrift «Der er kun fastsat procesrente frem til 31-12-2026.
   Beregning derefter er hypotetisk!». Teksten findes, er formuleret og er dækket af to enhedstests —
   den vises bare kun i den ene kanal.
+- **Afvist for MinProcesrente 2026-08-19.** Brugeren fastholdt, at brugerne stort set udelukkende
+  benytter PDF-dokumenterne, så bristen er begrænset og accepteret på netop denne flade. Jeg forelagde
+  alligevel en enkel udgave (samme sætning som én linje i «Beregnet rente»-boksen, kun når
+  beregningsdatoen ligger efter sidst fastsatte sats); afvisningen blev fastholdt.
+- **Mønsteret er dermed ikke afvist som mønster.** Afgørelsen hviler på, at MinProcesrentes brugere
+  arbejder i PDF'en. Den præmis holder ikke nødvendigvis på de flader, hvor tallet læses og genbruges
+  på skærmen gennem et længere arbejdsforløb — dér skal mønsteret forelægges igen.
 - Kandidater, ikke efterprøvet: EO's dokumenter og reguleringsbilaget er de tekstrigeste
   generatorer og har flere tilsvarende forbehold; Forsørgertab og Varige mén skriver
   forudsætningsafsnit, som fladerne ikke gentager.
@@ -551,18 +583,31 @@ ikke svarer til en feltfejl. Konkret prøve pr. flade: **udfyld en række helt, 
 for felt, men umulig som helhed** — en afledt dato der lander efter sin grænse, et nulbeløb, en
 periode på nul dage — og se, om noget som helst på skærmen forklarer, hvorfor resultatet udeblev.
 
-To rettelser hører sammen med mønsteret, og den anden glemmes let:
-1. Årsagen skal kunne ses **ved rækken** — som feltfejl på det felt, brugeren skal ændre.
-2. Blokeringsbeskeden skal **udledes** af årsagen. Ellers arver den en klasse, der er valgt for en
-   anden tilstand — jf. BF-070, som rettede netop det andre steder i programmet.
+**Rettelsen hører ÉT sted: i feltmodellen.** Årsagen skal kunne ses **ved rækken** — som feltfejl på
+det felt, brugeren skal ændre. Det er hele mønsteret.
+
+Jeg formulerede oprindeligt mønsteret med to rettelser, hvor den anden var, at blokeringsbeskeden
+skulle udledes af årsagen pr. tilstand (jf. BF-070). **Det viste sig unødvendigt**, og forskellen er
+værd at forstå, fordi den sparer arbejde næste gang: gaten udleder i forvejen sin klasse korrekt af de
+issues, projektionen bærer. Dens præmis var bare falsk, så længe de to tilstande ikke HAVDE noget
+issue. Da feltfejlene kom, blev grenen «kun en ufuldstændig række» sand af sig selv, og teksten skiftede
+til «Fejl i indtastning» uden en linjes ændring i gaten. Rettelser i feltmodellen er altså at foretrække
+frem for rettelser i gaten: de gør en falsk præmis sand i stedet for at differentiere en besked.
 
 - Fundet i: `minprocesrente.md` BB-037 (tillægstid skubber rentedatoen forbi beregningsdatoen),
   BB-038 (beløb på 0 kr., hvor feltets grænse er «mindst 0» og motorens er «større end 0») og
   BB-039 (begge tilstande blokerer med teksten «Indtastning mangler»).
-- **Bemærk den falske præmis, fundene afdækkede.** Gatens kode begrunder sin hardkodede klasse med,
-  at grenen «pr. konstruktion kun kan være en ufuldstændig række». Det er målt forkert to gange.
-  En kommentar, der begrunder en genvej med en påstand om, hvad koden ikke kan nå, er selv en
-  kandidat: efterprøv påstanden frem for at læse den.
+- **Gennemført for rentetabellen 2026-08-19.** Begge motorafvisninger er flyttet ind i feltmodellen som
+  `rule`-validatorer på det felt, brugeren skal rette: Tillægstid får «Beregnet rentedato kan senest
+  være …», Beløb får «Beløbet skal være større end 0 kr.». BB-039 bortfaldt, jf. ovenfor. Brugerens
+  regel for beskeden er samtidig skarpere end min: «Indtastning mangler» behøver ikke differentiering —
+  den er kun forkert, når den står i stedet for en FEJL, eller når en fejl ikke kan ses som et rødt felt
+  på samme side.
+- **Bemærk den falske præmis, fundene afdækkede.** Gatens kode begrunder sin klasse med, at grenen
+  «pr. konstruktion kun kan være en ufuldstændig række». Det var målt forkert to gange. En kommentar,
+  der begrunder en genvej med en påstand om, hvad koden ikke kan nå, er selv en kandidat: efterprøv
+  påstanden frem for at læse den. Bemærk dog også, at rettelsen ikke var at fjerne påstanden, men at
+  gøre den sand.
 - Kandidater, ikke efterprøvet: `validateInterestCalculation` har fem afvisningsgrunde, hvoraf
   ingen når brugeren. Tilsvarende motorer med interne fejltyper findes i Varige mén, Forsørgertab og
   EO's rækkebyggere (`EO_ROW_BUILDERS`).

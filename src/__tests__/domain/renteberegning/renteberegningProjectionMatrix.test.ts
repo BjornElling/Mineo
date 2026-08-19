@@ -236,6 +236,36 @@ describe('Renteberegning projektionsmatrix: tomme og manglende værdier', () => 
     expect(projection.aggregateProjection.value.anyRowHasError).toBe(true);
   });
 
+  // BB-037/BB-038: de to tilstande, der før faldt i `anyRowHasError` med en TAVS blokering og teksten
+  // «Indtastning mangler», selv om alle felter var udfyldt. Nu bærer det felt, brugeren skal rette, et
+  // rødt issue — og et rødt issue gør projektionen `blocked`, hvilket er den gren, der giver «Fejl i
+  // indtastning». Det er samtidig beviset for, at `blockedByIncompleteRow`s præmis nu holder: grenen
+  // kan kun nås af en reelt ufuldstændig række.
+
+  it('et nulbeløb blokerer rækken som en FEJL, ikke som en mangel (BB-038)', () => {
+    const projection = build(
+      [createRow('r-nul', { belob: { kind: 'number', value: 0 } }), createRow('r-ok')],
+      '2024-12-31'
+    );
+
+    expect(projection.rowProjections.get('r-nul')?.status).toBe('blocked');
+    // Søsterrækken er stadig ready — blokeringen er per række (§1.10).
+    expect(projection.rowProjections.get('r-ok')?.status).toBe('ready');
+    // Aggregatet blokerer, fordi det læser alle rækker. Dermed når gaten IKKE `anyRowHasError`-grenen,
+    // og tooltippet bliver «Fejl i indtastning» frem for «Indtastning mangler».
+    expect(projection.aggregateProjection.status).toBe('blocked');
+  });
+
+  it('en tillægstid, der skubber rentedatoen forbi beregningsdatoen, blokerer rækken som en FEJL (BB-037)', () => {
+    const projection = build(
+      [createRow('r-sen', { tillaegstid: 99, enhed: 'maaneder' })],
+      '2024-12-31'
+    );
+
+    expect(projection.rowProjections.get('r-sen')?.status).toBe('blocked');
+    expect(projection.aggregateProjection.status).toBe('blocked');
+  });
+
   it('en tom række blokerer ikke en gyldig søsterrække i aggregatet', () => {
     const emptyRow: RentekravRow = {
       id: 'r-empty', belob: undefined, renterFra: undefined, tillaegstid: undefined, enhed: 'dage',
