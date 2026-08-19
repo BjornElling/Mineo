@@ -300,6 +300,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts',
       'src/__tests__/apps/mineo/serviceWorkerProtocol.test.ts',
       'src/__tests__/components/system/LazyChunkRecoveryNotice.test.tsx',
+      'src/__tests__/components/system/UnsupportedDevicePage.test.tsx',
       'src/__tests__/settings/indexThemeBootstrap.test.ts',
       'src/__tests__/utils/uiScale.test.ts',
       'src/__tests__/quality/contentBoxWidthSingleSource.test.ts',

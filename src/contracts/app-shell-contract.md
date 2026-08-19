@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-18
+**Senest verificeret mod kode:** 2026-08-19
 
 ## 1. Scope
 
@@ -243,7 +243,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/quality/pwaHeaders.test.ts` (HTML, SPA-ruter, manifest og service worker revalideres; hashed assets er immutable).
 - `src/__tests__/settings/indexThemeBootstrap.test.ts` (kanonisk theme-bootstrap og systemfallback ved manglende, ugyldig eller ulæselig settings-storage).
 - `scripts/verify-build-artifacts.mjs` (postbuild-værn for entries, manifest og variantfiler).
-- `src/__tests__/quality/architecture/rules/responsiveStylingRules.ts` (`shell/viewport-responsive-styling-allowlist`: pinner fillisten i §5.3, så desktop-only-undtagelsen ikke kan brede sig stiltiende).
+- `src/__tests__/quality/architecture/rules/responsiveStylingRules.ts` (`shell/viewport-responsive-styling-allowlist`: pinner fillisten i §5.3, så desktop-only-undtagelsen ikke kan brede sig stiltiende; `shell/unsupported-device-page-bundle-isolation`: hard-stop-siden må ikke importere MUI/Emotion, app-shellens UI-komponenter eller stylesheets, jf. §5.5).
+- `src/__tests__/components/system/UnsupportedDevicePage.test.tsx` (hard-stop-sidens brandtitel; søskendesiderne med den aktuelle side som ikke-link, `target`/`rel` på de håndsammensatte links, linkene i tastaturrækkefølgen og kontaktadressen).
 - `src/__tests__/utils/uiScale.test.ts` (policygrænser, hysterese, menuens skala som minimum af de to, ikonaksen, bootstrap/runtime-paritet og DOM-måling).
 - `e2e/minimum-viewport-shell.spec.ts` og `e2e/content-scale.spec.ts` (menuens minimumsgeometri og loft mod arbejdsfladens skala, ens gutter hele vejen rundt, popup-lagets skala, kontrolfanernes udhæng uden for indholdsboksen uden vandret rul, deres signatur mod de vandrette faners i begge temaer, den ubeskårne arbejdsflade ved 1280 CSS-px og resize-state).
 - `src/__tests__/components/layout/SideTabRail.test.tsx` (skinnens klipning: vandret alene, målt kant, upåvirket af vandret rul, aldrig smallere end indholdsboksen).
@@ -259,7 +260,6 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    | Fil | Begrundelse |
    |---|---|
-   | `src/apps/minprocesrente/minprocesrente.css` | Standalone-lokal; kun importeret af standalone-buildet. |
    | `src/components/pages/minprocesrente/MinProcesrenteCalculatorPage.tsx` | Standalone-lokal (sx). |
    | `src/components/layout/StandaloneCalculatorLayout.tsx` | Standalone-lokal; kun renderet af `MinProcesrenteApp`. |
    | `src/components/layout/SiblingSitesFooter.tsx` | **Delt** (Mineos `/mineo`-side + standalone). Breakpointet betjener standalone-mobilbrugeren; på desktop tænder det aldrig. |
@@ -272,6 +272,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    Fillisten er **håndhævet**, ikke kun beskrevet: `shell/viewport-responsive-styling-allowlist` i arkitektur-harnesset (`src/__tests__/quality/architecture/rules/responsiveStylingRules.ts`) gør en ny viewport-responsiv fil rød, og harnessets anti-rot-kontrol fjerner en post, der ikke længere udløser reglen. `.css`-filer ligger uden for kilde-grafen og er derfor kun auditeret her. Risiko: ingen for Mineo. Re-evaluering hvis standalone gøres desktop-only.
 
+   `src/apps/minprocesrente/minprocesrente.css` stod på listen indtil verifikationen 2026-08-19, hvor den viste sig **forældet**: filens eneste `@media` er `(pointer: coarse)` — netop den form, afsnittet ovenfor udtrykkeligt holder uden for undtagelsen. Viewport-forespørgslen forsvandt i `13022592`, og posten overlevede sit eget mål, fordi anti-rot-kontrollen kun kan se TS/TSX. Det er den præcise pris ved, at CSS kun auditeres i prosa her: driften fanges først ved næste verifikation, ikke af harnesset.
+
 4. **Deploybeskyttelsen er stærk, men ikke absolut.** Versionscachen dækker det almindelige forløb: en åben build beholder sine egne hash-navngivne lazy chunks, også efter at origin kun har den nyeste build. To forhold ligger uden for klientens kontrol:
 
    | Forhold | Konsekvens |
@@ -280,3 +282,20 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
    | Første installation sker offline eller fejler | Der oprettes ingen versionscache for den build, og senere lazy imports må gå til netværket. |
 
    I begge tilfælde overtager `vite:preloadError`-linjen, som gør fejlen synlig og tilbyder en input-sikret genindlæsning frem for en runtime-fejl. Det er præcis den situation, hvor linjen ER bydende nødvendig. Re-evaluering ville kræve, at origin beholdt tidligere builds assets — en deploy-beslutning, ikke en klientside-beslutning.
+
+5. **Hard-stop-siden deler DATA med app-shellen, aldrig styling.** `UnsupportedDevicePage` renderes af `bootstrapClientApp.tsx` på en sti, der bevidst ikke indlæser app-stylesheet og ikke opretter et MUI-tema (kun to Montserrat-vægte hentes). Siden er derfor **inline-stylet i sin helhed**, og dens bundle er det eneste en mobilbruger nogensinde downloader.
+
+   Da søskendeside-boksen skulle vises begge steder, blev grænsen skåret sådan:
+
+   | Deles | Deles ikke |
+   |---|---|
+   | `src/components/layout/siblingSites.ts` — den kanoniske liste over søskendesider + kontaktadresse. Rent data, ingen styling-afhængighed, så en ny søskendeside kun skal tilføjes ét sted. | `SiblingSitesFooter.tsx` — forudsætter MUI, `.content-box` og `--color-*`-variabler. Genbrugt direkte ville den både rendere ustylet på hard-stop-siden og trække hele `@mui/material` ind i mobilens entry-chunk. |
+
+   Konsekvensen er en bevidst styling-DUBLET: hard-stop-sidens søskendeboks gengiver footerens mobiludseende i inline-styling. Dubletten er accepteret, fordi alternativet (delt komponent) bryder isolationen, som er den dyrere invariant. De to flader er målt til at være geometrisk identiske (12,5 px/500, samme kolonneforskydninger, samme `rowGap`).
+
+   To ting er **håndhævet**, ikke kun beskrevet:
+
+   - `shell/unsupported-device-page-bundle-isolation` (`rules/responsiveStylingRules.ts`) gør en MUI-/Emotion-/UI-komponent-/stylesheet-import i hard-stop-siden rød.
+   - `a11y/web-link-policy-single-source` (`rules/linkRules.ts`) undtager siden fra `ExternalLink`-kravet — netop for at holde MUI ude — men kræver stadig `target="_blank"` + `rel="noopener noreferrer"` på de håndsammensatte links. `tabIndex={-1}` er bevidst udeladt: den regel findes for ikke at forurene programmets tastaturrækkefølge, og der er intet program på hard-stop-siden. Linkene er brugerens eneste vej videre og skal kunne tabbes.
+
+   Risiko: en ændring i footerens mobiludseende forplanter sig ikke automatisk. Re-evaluering hvis hard-stop-siden en dag alligevel skal indlæse app-stylesheet.

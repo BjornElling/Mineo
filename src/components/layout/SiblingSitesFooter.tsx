@@ -1,19 +1,16 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import ExternalLink from '../ui/ExternalLink';
-
-type SiblingSiteKey = 'mineo' | 'mindomssamling' | 'minparadigmesamling' | 'minprocesrente';
+import {
+  SIBLING_SITES,
+  SIBLING_SITES_CONTACT_EMAIL,
+  type SiblingSite,
+  type SiblingSiteKey,
+} from './siblingSites';
 
 type SiblingSitesFooterProps = {
   currentSite: SiblingSiteKey;
 };
-
-const SIBLING_SITES = [
-  { key: 'mineo', label: 'minEO.dk', href: 'https://mineo.dk' },
-  { key: 'mindomssamling', label: 'minDomssamling.dk', href: 'https://mindomssamling.dk' },
-  { key: 'minparadigmesamling', label: 'minParadigmesamling.dk', href: 'https://minparadigmesamling.dk' },
-  { key: 'minprocesrente', label: 'minProcesrente.dk', href: 'https://minprocesrente.dk' },
-] as const;
 
 const MailIcon = (): React.ReactElement => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -23,7 +20,7 @@ const MailIcon = (): React.ReactElement => (
 );
 
 const SiblingSitesFooter = React.memo(({ currentSite }: SiblingSitesFooterProps) => {
-  const renderFooterLink = (site: (typeof SIBLING_SITES)[number]) => {
+  const renderFooterLink = (site: SiblingSite) => {
     const isCurrentSite = site.key === currentSite;
     const content = (
       <Box component="span">{site.label}</Box>
@@ -251,13 +248,18 @@ const SiblingSitesFooter = React.memo(({ currentSite }: SiblingSitesFooterProps)
       ]}
     >
       <Box className="site-footer">
-        <Box className="site-footer__mail" component="a" href="mailto:bel@fho.dk" aria-label="Kontakt bel@fho.dk">
+        <Box
+          className="site-footer__mail"
+          component="a"
+          href={`mailto:${SIBLING_SITES_CONTACT_EMAIL}`}
+          aria-label={`Kontakt ${SIBLING_SITES_CONTACT_EMAIL}`}
+        >
           <Box className="site-footer__mail-icon" component="span" aria-hidden="true">
             <MailIcon />
           </Box>
           <Box className="site-footer__mail-text" component="span">
             <Box className="site-footer__mail-label" component="span">Kontakt</Box>
-            <Box className="site-footer__mail-value" component="span">bel@fho.dk</Box>
+            <Box className="site-footer__mail-value" component="span">{SIBLING_SITES_CONTACT_EMAIL}</Box>
           </Box>
         </Box>
 

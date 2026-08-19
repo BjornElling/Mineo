@@ -26,7 +26,7 @@
  * En `isMobile`-PROP er heller ikke omfattet: den er en eksplicit parameter fra standalone-siden,
  * ikke en skjult responsiv regel, og den kan læses på callsitet.
  */
-import { forbidTextPatterns } from '../ruleKit';
+import { forbidImports, forbidTextPatterns } from '../ruleKit';
 
 const sourceScope = {
   kind: 'scoped' as const,
@@ -139,4 +139,100 @@ export const viewportResponsiveStylingRule = forbidTextPatterns({
   ],
 });
 
-export const RESPONSIVE_STYLING_RULES = [viewportResponsiveStylingRule] as const;
+/**
+ * Hard-stop-sidens bundle-isolation.
+ *
+ * `UnsupportedDevicePage` er det FØRSTE en mobilbruger downloader — og det eneste, de nogensinde
+ * får, fordi Mineo stopper dér. Bootstrap-stien renderer den bevidst uden app-stylesheet og uden
+ * MUI-tema (`apps/shared/bootstrapClientApp.tsx` henter kun to Montserrat-vægte på den vej).
+ * Al styling på siden er derfor inline.
+ *
+ * Reglen findes, fordi isolationen indtil nu kun stod som PROSA i en kommentar på selve siden —
+ * og prosa holder ikke: da søskendeside-boksen skulle genbruges fra `SiblingSitesFooter`, var den
+ * nærliggende «genbrug» netop at importere den delte footer. Det ville have trukket hele
+ * `@mui/material` ind i mobilens entry-chunk for at vise fire links, og siden ville oven i købet
+ * rendere ustylet, fordi hverken `.content-box` eller `--color-*`-variablerne er indlæst.
+ *
+ * Grænsen er derfor: hard-stop-siden må importere RENE DATA-moduler (fx `layout/siblingSites.ts`),
+ * men ikke UI-biblioteker eller app-shellens komponenter. Det er præcis den skelnen, der gør
+ * dataen delelig uden at gøre stylingen delt.
+ */
+const UNSUPPORTED_DEVICE_PAGE = 'src/components/system/UnsupportedDevicePage.tsx';
+
+/**
+ * Mønstrene matcher RELATIVE specifiers (`../layout/SiblingSitesFooter`), ikke kun rod-relative
+ * stier — hard-stop-siden importerer altid relativt, så en `components/…`-præfiksmatch ville
+ * være inert. Harnessets fixture-selvtest fangede præcis den fejl.
+ */
+const FORBIDDEN_HARD_STOP_IMPORT_PATTERNS: readonly RegExp[] = [
+  // UI-runtime: ville følge med ind i mobilens entry-chunk.
+  /^@mui\//,
+  /^@emotion\//,
+  // App-shellens delte UI-komponenter — de forudsætter tema og/eller stylesheet.
+  /(^|\/)(?:components\/)?ui\//,
+  /(^|\/)SiblingSitesFooter$/,
+  /(^|\/)contexts\//,
+  // Stylesheets: hard-stop-siden har bevidst ingen.
+  /(^|\/)styles\//,
+  /\.css$/,
+];
+
+export const unsupportedDevicePageIsolationRule = forbidImports({
+  id: 'shell/unsupported-device-page-bundle-isolation',
+  description:
+    'Hard-stop-siden for mobil/tablet må ikke importere MUI/Emotion eller app-shellens UI-komponenter — den renderes uden tema og uden stylesheet, og dens bundle er det eneste en mobilbruger henter.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => entry.relativePath === UNSUPPORTED_DEVICE_PAGE,
+    rationale:
+      'reglen forudsætter, at hard-stop-siden stadig findes som selvstændig fil på den isolerede bootstrap-sti',
+    minimumMatches: 1,
+    requiredPaths: [UNSUPPORTED_DEVICE_PAGE],
+  },
+  appliesTo: (relativePath) => relativePath === UNSUPPORTED_DEVICE_PAGE,
+  forbidden: (ref) =>
+    FORBIDDEN_HARD_STOP_IMPORT_PATTERNS.some((pattern) => pattern.test(ref.moduleSpecifier)),
+  message: (ref) =>
+    `Hard-stop-siden importerer \`${ref.moduleSpecifier}\`. Den renderes uden MUI-tema og uden app-stylesheet, `
+    + 'så komponenten ville rendere ustylet — og importen ville trække UI-runtime ind i mobilens entry-chunk. '
+    + 'Del DATA (fx layout/siblingSites.ts) og skriv stylingen inline.',
+  violatingFixtures: [
+    {
+      relativePath: UNSUPPORTED_DEVICE_PAGE,
+      code: "import { Box } from '@mui/material';",
+    },
+    {
+      relativePath: UNSUPPORTED_DEVICE_PAGE,
+      code: "import SiblingSitesFooter from '../layout/SiblingSitesFooter';",
+    },
+    {
+      relativePath: UNSUPPORTED_DEVICE_PAGE,
+      code: "import ExternalLink from '../ui/ExternalLink';",
+    },
+    {
+      relativePath: UNSUPPORTED_DEVICE_PAGE,
+      code: "import '../../styles/layout.css';",
+    },
+  ],
+  cleanFixtures: [
+    // Rene datamoduler er hele pointen: én kanonisk søskendeside-liste uden styling-afhængighed.
+    {
+      relativePath: UNSUPPORTED_DEVICE_PAGE,
+      code: "import { SIBLING_SITES } from '../layout/siblingSites';",
+    },
+    {
+      relativePath: UNSUPPORTED_DEVICE_PAGE,
+      code: "import { VERSION } from '../../config/buildInfo';",
+    },
+    // Grænsen gælder KUN hard-stop-siden; app-shellens egne flader må bruge MUI frit.
+    {
+      relativePath: 'src/components/layout/SiblingSitesFooter.tsx',
+      code: "import { Box } from '@mui/material';",
+    },
+  ],
+});
+
+export const RESPONSIVE_STYLING_RULES = [
+  viewportResponsiveStylingRule,
+  unsupportedDevicePageIsolationRule,
+] as const;

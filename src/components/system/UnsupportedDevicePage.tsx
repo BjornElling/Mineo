@@ -1,5 +1,10 @@
 import React, { useEffect } from 'react';
 import { VERSION } from '../../config/buildInfo';
+import {
+  SIBLING_SITES,
+  SIBLING_SITES_CONTACT_EMAIL,
+  type SiblingSite,
+} from '../layout/siblingSites';
 
 const pageTitleStyle: React.CSSProperties = {
   color: 'rgba(0, 0, 0, 0.87)',
@@ -27,6 +32,198 @@ const UnsupportedDeviceTitle = () => (
 );
 
 UnsupportedDeviceTitle.displayName = 'UnsupportedDeviceTitle';
+
+/**
+ * Søskendesider + kontakt på hard-stop-siden.
+ *
+ * Den deler kun DATA med `SiblingSitesFooter` (`layout/siblingSites.ts`) — ikke styling.
+ * Grunden er sidens bevidste isolation (se noten på selve siden nedenfor): hard-stop-siden
+ * indlæser hverken app-stylesheet, MUI-tema eller CSS-variabler, så den delte footer ville
+ * rendere ustylet her. Al styling er derfor inline og selvbærende, præcis som resten af siden.
+ *
+ * Linkene er de eneste vej videre for en mobilbruger, der lige har fået at vide, at Mineo
+ * kræver en computer — derfor er de tabbare her (i modsætning til `ExternalLink`s `tabIndex={-1}`,
+ * som findes for ikke at forurene programmets egen tastaturrækkefølge; der er intet program at
+ * forurene på denne side).
+ */
+const siblingLinkStyle: React.CSSProperties = {
+  color: 'rgba(0, 0, 0, 0.87)',
+  fontSize: '12.5px',
+  fontWeight: 500,
+  lineHeight: 1.2,
+  textDecoration: 'none',
+  borderBottom: '1px solid transparent',
+  paddingBottom: '1px',
+  whiteSpace: 'nowrap',
+};
+
+const siblingCurrentStyle: React.CSSProperties = {
+  ...siblingLinkStyle,
+  color: '#1976d2',
+  borderBottomColor: '#1976d2',
+};
+
+const siblingSeparatorStyle: React.CSSProperties = {
+  width: '4px',
+  height: '4px',
+  borderRadius: '50%',
+  backgroundColor: 'rgba(0, 0, 0, 0.28)',
+  flex: '0 0 auto',
+};
+
+const siblingRowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '14px',
+  maxWidth: '100%',
+};
+
+const renderSiblingSite = (site: SiblingSite) => (
+  site.key === 'mineo' ? (
+    <span key={site.key} aria-current="page" style={siblingCurrentStyle}>
+      {site.label}
+    </span>
+  ) : (
+    <a
+      key={site.key}
+      className="unsupported-sibling-link"
+      href={site.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={siblingLinkStyle}
+    >
+      {site.label}
+    </a>
+  )
+);
+
+/**
+ * Fokusringen kan ikke sættes inline (`:focus-visible` er en pseudoklasse), og siden har bevidst
+ * intet stylesheet. Ét lokalt `<style>`-element er derfor den eneste vej til samme fokusmarkering
+ * som den delte footer — og det holder isolationen, fordi det ikke er en import.
+ */
+const siblingFocusStyles = `
+  .unsupported-sibling-link:focus-visible,
+  .unsupported-contact-link:focus-visible {
+    outline: 2px solid #1976d2;
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+`;
+
+const UnsupportedDeviceSiblingSites = () => (
+  <section
+    aria-label="Søskendesider og kontakt"
+    style={{
+      width: '100%',
+      maxWidth: '1200px',
+      backgroundColor: '#ffffff',
+      border: '1px solid rgba(0, 0, 0, 0.08)',
+      borderRadius: '10px',
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+      padding: '16px 12px',
+      margin: '16px 0 0',
+      boxSizing: 'border-box',
+    }}
+  >
+    <style>{siblingFocusStyles}</style>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: '10px',
+      }}
+    >
+      <a
+        className="unsupported-contact-link"
+        href={`mailto:${SIBLING_SITES_CONTACT_EMAIL}`}
+        aria-label={`Kontakt ${SIBLING_SITES_CONTACT_EMAIL}`}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '10px',
+          color: 'rgba(0, 0, 0, 0.87)',
+          textDecoration: 'none',
+          maxWidth: '100%',
+          alignSelf: 'flex-start',
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flex: '0 0 auto',
+            width: '35px',
+            height: '35px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0, 0, 0, 0.07)',
+            color: 'rgba(0, 0, 0, 0.6)',
+          }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            width="18"
+            height="15"
+          >
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="m3 7 9 6 9-6" />
+          </svg>
+        </span>
+        <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
+          <span
+            style={{
+              color: 'rgba(0, 0, 0, 0.6)',
+              fontSize: '11px',
+              fontWeight: 500,
+              lineHeight: 1.25,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            Kontakt
+          </span>
+          <span style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.25, marginTop: '-2px' }}>
+            {SIBLING_SITES_CONTACT_EMAIL}
+          </span>
+        </span>
+      </a>
+
+      <nav
+        aria-label="Søskendesider"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          rowGap: '3px',
+        }}
+      >
+        {/* Samme 2×2-opdeling som den delte footers mobilvisning: minEO + minParadigmesamling
+            øverst, minDomssamling + minProcesrente nederst. */}
+        <div style={siblingRowStyle}>
+          {renderSiblingSite(SIBLING_SITES[0])}
+          <span aria-hidden="true" style={siblingSeparatorStyle} />
+          {renderSiblingSite(SIBLING_SITES[2])}
+        </div>
+        <div style={siblingRowStyle}>
+          {renderSiblingSite(SIBLING_SITES[1])}
+          <span aria-hidden="true" style={siblingSeparatorStyle} />
+          {renderSiblingSite(SIBLING_SITES[3])}
+        </div>
+      </nav>
+    </div>
+  </section>
+);
+
+UnsupportedDeviceSiblingSites.displayName = 'UnsupportedDeviceSiblingSites';
 
 /**
  * NOTE (bevidst undtagelse):
@@ -150,6 +347,8 @@ const UnsupportedDevicePage = () => {
               </p>
             </div>
           </div>
+
+          <UnsupportedDeviceSiblingSites />
         </div>
       </div>
     </div>

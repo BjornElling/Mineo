@@ -157,7 +157,7 @@ Normal drift er console-tavs. `console.error`: reelle fejl (datatab, brudte inva
 
 ## Desktop-only gate
 - Appen blokeres på mobil/tablet. Den øverste capability-gate ligger i `src/apps/shared/bootstrapClientApp.tsx`, bruger touch-capability og en orienteringsstabil kortsidegrænse og kaldes fra hver app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`).
-- Ikke-understøttede enheder renderer `src/components/system/UnsupportedDevicePage.tsx` som hård stop; den holdes isoleret fra forretningslogik/state/persistence.
+- Ikke-understøttede enheder renderer `src/components/system/UnsupportedDevicePage.tsx` som hård stop; den holdes isoleret fra forretningslogik/state/persistence. Isolationen omfatter også BUNDLEN: siden renderes uden MUI-tema og uden app-stylesheet, så den må ikke importere MUI/Emotion, app-shellens UI-komponenter eller stylesheets — kun rene datamoduler (fx `components/layout/siblingSites.ts`). Håndhævet af `shell/unsupported-device-page-bundle-isolation`; jf. `app-shell-contract.md` §5.5.
 - Ingen viewport-responsiv adfærd (`@media (max|min-width)`, MUI-breakpoints) uden for den pinnede filliste i `app-shell-contract.md` §5.3 — standalone MinProcesrentes egne filer plus de få flader, der bevidst deles med den. Listen er håndhævet af `shell/viewport-responsive-styling-allowlist`; en ny responsiv fil gør harnesset rødt. Input-modalitet (`pointer: coarse`, `hover:`) er ikke omfattet.
 
 ## Normative kontrakter
