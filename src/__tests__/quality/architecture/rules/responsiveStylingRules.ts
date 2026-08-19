@@ -4,7 +4,7 @@
  * Mineo er desktop-only, og mobil/tablet-specifik styling hører derfor kun i
  * `UnsupportedDevicePage.tsx`. Standalone MinProcesrente er den ene bevidst mobil-tilladte variant.
  *
- * Reglen findes, fordi undtagelsen indtil nu kun stod som PROSA i kontrakten — og prosaen var
+ * Reglen findes, fordi undtagelsen indtil nu kun stod som PROSA i kontrakten – og prosaen var
  * allerede drevet fra koden: §5.3 navngav to filer og kaldte stylingen «variant-lokal, ikke
  * delt», mens fem TS/TSX-filer i praksis bar den, heraf to DELT med Mineo. En undtagelse, ingen
  * håndhæver, breder sig lydløst; det er præcis den vej, en responsiv variant kan opstå uden for
@@ -13,13 +13,13 @@
  * **Skæringen er bevidst per KATEGORI, ikke én flad liste**, fordi «nul hits» ellers ville dække
  * over tre forskellige begrundelser:
  *
- * 1. `VIEWPORT_RESPONSIVE_ALLOWLIST` — filer der må skifte LAYOUT efter viewport-bredde
+ * 1. `VIEWPORT_RESPONSIVE_ALLOWLIST` – filer der må skifte LAYOUT efter viewport-bredde
  *    (`max-width`/`min-width`, MUI-breakpointnøgler). Det er den egentlige desktop-only-undtagelse,
  *    og listen er derfor kort og skal forblive det: standalone-egne filer plus de to flader, der
  *    er DELT mellem Mineo og standalone, hvor breakpointet betjener standalone-mobilbrugeren og
  *    aldrig tænder på desktop.
  * 2. Input-modalitet (`pointer: coarse`, `hover: hover`/`hover: none`) er IKKE responsivt layout.
- *    Det er en affordance efter inputenhed, som rammer touch-capable desktops — en klasse
+ *    Det er en affordance efter inputenhed, som rammer touch-capable desktops – en klasse
  *    device-gaten bevidst slipper igennem. Den form er derfor tilladt overalt og skal ikke
  *    forurene viewport-allowlisten.
  *
@@ -38,7 +38,7 @@ const sourceScope = {
  * De ENESTE filer der må bære viewport-responsiv styling.
  *
  * Hver post skal kunne begrundes som enten standalone-lokal eller delt-med-standalone. Vokser
- * listen, er det en arkitekturbeslutning der skal afspejles i `app-shell-contract.md` §5.3 —
+ * listen, er det en arkitekturbeslutning der skal afspejles i `app-shell-contract.md` §5.3 –
  * ikke en stiltiende tilføjelse. Anti-rot-kontrollen i harnesset fjerner omvendt en post, der
  * ikke længere udløser reglen, så listen ikke kan overleve sit eget mål.
  */
@@ -51,7 +51,7 @@ export const VIEWPORT_RESPONSIVE_ALLOWLIST: readonly string[] = [
   'src/components/layout/SiblingSitesFooter.tsx',
   'src/components/pages/renteberegning/RenteberegningTab.tsx',
   // Mineo-lokal, men bevidst: device-gaten kræver TOUCH-lighed, så et smalt ikke-touch
-  // desktopvindue slipper igennem. Reglen flytter kun knappen tættere på hjørnet dér — den
+  // desktopvindue slipper igennem. Reglen flytter kun knappen tættere på hjørnet dér – den
   // indfører ingen mobil-variant af siden.
   'src/components/ui/ScrollToTopButton.tsx',
 ];
@@ -62,11 +62,11 @@ export const VIEWPORT_RESPONSIVE_ALLOWLIST: readonly string[] = [
  * udtale sig om CSS-filer, og fraværet af en post er ikke en stiltiende undtagelse.
  * `app-shell-contract.md` §5.3 er fortsat det sted, den fil er auditeret.
  *
- * `UnsupportedDevicePage.tsx` står heller ikke på listen — den bruger flydende bredder og
+ * `UnsupportedDevicePage.tsx` står heller ikke på listen – den bruger flydende bredder og
  * INGEN breakpoints. Stod den der, ville anti-rot-kontrollen med rette kalde posten forældet.
  */
 
-/** Kommentarer er ikke styling — en forklarende `@media`-omtale må ikke gøre reglen rød. */
+/** Kommentarer er ikke styling – en forklarende `@media`-omtale må ikke gøre reglen rød. */
 const stripComments = (text: string): string => text
   .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ' '))
   .split('\n')
@@ -84,17 +84,17 @@ export const viewportResponsiveStylingRule = forbidTextPatterns({
     {
       pattern: /@media[^{'"`]*\((?:max|min)-(?:width|height)\s*:/,
       message:
-        'Viewport-responsiv @media uden for desktop-only-undtagelsen — Mineo er desktop-only (AGENTS.md «Desktop-only gate»). Er filen delt med standalone MinProcesrente, skal den optages i VIEWPORT_RESPONSIVE_ALLOWLIST og i app-shell-contract.md §5.3.',
+        'Viewport-responsiv @media uden for desktop-only-undtagelsen – Mineo er desktop-only (AGENTS.md «Desktop-only gate»). Er filen delt med standalone MinProcesrente, skal den optages i VIEWPORT_RESPONSIVE_ALLOWLIST og i app-shell-contract.md §5.3.',
     },
     {
       pattern: /\b(?:xs|sm|md|lg|xl)\s*:\s*(?:'|"|`|\d)/,
       message:
-        'MUI-breakpointnøgle uden for desktop-only-undtagelsen — brug en fast desktop-værdi, eller optag filen i VIEWPORT_RESPONSIVE_ALLOWLIST og i app-shell-contract.md §5.3.',
+        'MUI-breakpointnøgle uden for desktop-only-undtagelsen – brug en fast desktop-værdi, eller optag filen i VIEWPORT_RESPONSIVE_ALLOWLIST og i app-shell-contract.md §5.3.',
     },
     {
       pattern: /theme\.breakpoints\.(?:up|down|between|only)\s*\(/,
       message:
-        'theme.breakpoints uden for desktop-only-undtagelsen — Mineo har ét desktop-layout; en breakpoint-forespørgsel her er en skjult responsiv variant.',
+        'theme.breakpoints uden for desktop-only-undtagelsen – Mineo har ét desktop-layout; en breakpoint-forespørgsel her er en skjult responsiv variant.',
     },
   ],
   violatingFixtures: [
@@ -142,12 +142,12 @@ export const viewportResponsiveStylingRule = forbidTextPatterns({
 /**
  * Hard-stop-sidens bundle-isolation.
  *
- * `UnsupportedDevicePage` er det FØRSTE en mobilbruger downloader — og det eneste, de nogensinde
+ * `UnsupportedDevicePage` er det FØRSTE en mobilbruger downloader – og det eneste, de nogensinde
  * får, fordi Mineo stopper dér. Bootstrap-stien renderer den bevidst uden app-stylesheet og uden
  * MUI-tema (`apps/shared/bootstrapClientApp.tsx` henter kun to Montserrat-vægte på den vej).
  * Al styling på siden er derfor inline.
  *
- * Reglen findes, fordi isolationen indtil nu kun stod som PROSA i en kommentar på selve siden —
+ * Reglen findes, fordi isolationen indtil nu kun stod som PROSA i en kommentar på selve siden –
  * og prosa holder ikke: da søskendeside-boksen skulle genbruges fra `SiblingSitesFooter`, var den
  * nærliggende «genbrug» netop at importere den delte footer. Det ville have trukket hele
  * `@mui/material` ind i mobilens entry-chunk for at vise fire links, og siden ville oven i købet
@@ -161,14 +161,14 @@ const UNSUPPORTED_DEVICE_PAGE = 'src/components/system/UnsupportedDevicePage.tsx
 
 /**
  * Mønstrene matcher RELATIVE specifiers (`../layout/SiblingSitesFooter`), ikke kun rod-relative
- * stier — hard-stop-siden importerer altid relativt, så en `components/…`-præfiksmatch ville
+ * stier – hard-stop-siden importerer altid relativt, så en `components/…`-præfiksmatch ville
  * være inert. Harnessets fixture-selvtest fangede præcis den fejl.
  */
 const FORBIDDEN_HARD_STOP_IMPORT_PATTERNS: readonly RegExp[] = [
   // UI-runtime: ville følge med ind i mobilens entry-chunk.
   /^@mui\//,
   /^@emotion\//,
-  // App-shellens delte UI-komponenter — de forudsætter tema og/eller stylesheet.
+  // App-shellens delte UI-komponenter – de forudsætter tema og/eller stylesheet.
   /(^|\/)(?:components\/)?ui\//,
   /(^|\/)SiblingSitesFooter$/,
   /(^|\/)contexts\//,
@@ -180,7 +180,7 @@ const FORBIDDEN_HARD_STOP_IMPORT_PATTERNS: readonly RegExp[] = [
 export const unsupportedDevicePageIsolationRule = forbidImports({
   id: 'shell/unsupported-device-page-bundle-isolation',
   description:
-    'Hard-stop-siden for mobil/tablet må ikke importere MUI/Emotion eller app-shellens UI-komponenter — den renderes uden tema og uden stylesheet, og dens bundle er det eneste en mobilbruger henter.',
+    'Hard-stop-siden for mobil/tablet må ikke importere MUI/Emotion eller app-shellens UI-komponenter – den renderes uden tema og uden stylesheet, og dens bundle er det eneste en mobilbruger henter.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === UNSUPPORTED_DEVICE_PAGE,
@@ -194,7 +194,7 @@ export const unsupportedDevicePageIsolationRule = forbidImports({
     FORBIDDEN_HARD_STOP_IMPORT_PATTERNS.some((pattern) => pattern.test(ref.moduleSpecifier)),
   message: (ref) =>
     `Hard-stop-siden importerer \`${ref.moduleSpecifier}\`. Den renderes uden MUI-tema og uden app-stylesheet, `
-    + 'så komponenten ville rendere ustylet — og importen ville trække UI-runtime ind i mobilens entry-chunk. '
+    + 'så komponenten ville rendere ustylet – og importen ville trække UI-runtime ind i mobilens entry-chunk. '
     + 'Del DATA (fx layout/siblingSites.ts) og skriv stylingen inline.',
   violatingFixtures: [
     {

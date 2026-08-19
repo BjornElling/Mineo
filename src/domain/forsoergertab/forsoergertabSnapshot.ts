@@ -16,8 +16,8 @@ import { allowDocumentDownload, invalidInputReason, missingInputReason, type Doc
 import { resolveStamdataDateOrder } from '../stamdata/stamdataDateOrder';
 
 /**
- * En rød feltfejls BESKED, som snapshottet skal vise ved feltet. Snapshottet bruger kun beskeden — aldrig
- * severity/source/gate-flag — så formen er bevidst minimal og domænelokal (ingen afhængighed til en global
+ * En rød feltfejls BESKED, som snapshottet skal vise ved feltet. Snapshottet bruger kun beskeden – aldrig
+ * severity/source/gate-flag – så formen er bevidst minimal og domænelokal (ingen afhængighed til en global
  * fejlmodel). Kalderen leverer den fra reader-projektionens issues (§1.8).
  */
 type FieldErrorMessage = Readonly<{ message: string }> | undefined;
@@ -37,7 +37,7 @@ export type ForsoergertabSnapshotInput = Readonly<{
 
 /**
  * De to dependency-grupper, forsørgertabsberegningen består af (§1.10). Hver gruppe navngiver PRÆCIS de
- * felter, dens motor faktisk læser — så en rød feltfejl kun blokerer den motor, der er afhængig af feltet.
+ * felter, dens motor faktisk læser – så en rød feltfejl kun blokerer den motor, der er afhængig af feltet.
  *
  * Dette er BEREGNINGS-dependencies, ikke visningsgates. `canShowAsl` kræver fx også skadelidtes
  * fødselsdato, selv om ASL-motoren ikke bruger den; den slags præsentationskrav hører ikke til her.
@@ -48,7 +48,7 @@ export type ForsoergertabSnapshotInput = Readonly<{
  *
  * Fallback-invarianten (§1.10): en rød PRIMÆRværdi må aldrig omfortolkes som tomhed, men en rød
  * FALLBACK-værdi er kun en afhængighed, hvis fallbacken faktisk nås. Har brugeren udfyldt en gyldig
- * EAL-årsløn, rører en rød ASL-årsløn derfor ikke EAL-delen — den blokerer kun ASL-delen.
+ * EAL-årsløn, rører en rød ASL-årsløn derfor ikke EAL-delen – den blokerer kun ASL-delen.
  */
 const EAL_ENGINE_DEPENDENCIES = (
   fieldErrors: ForsoergertabFieldErrors,
@@ -146,11 +146,11 @@ export type ForsoergertabSnapshot = Readonly<{
   }>;
   /**
    * Kønsfeltets synlighed. Køn kræves kun ved beregning før 1.3.2015, men når kravet er udløst og feltet er
-   * tomt, SKAL feltet også kunne ses — ellers kunne brugeren ikke rette den mangel, der blokerer.
+   * tomt, SKAL feltet også kunne ses – ellers kunne brugeren ikke rette den mangel, der blokerer.
    *
    * Dette er den ENESTE felttilstand, snapshottet eksponerer. Tidligere bar det ti `FieldUiState`s med
    * `hasError` + `helperText` ved siden af den fælles issue-model; kun kønsfeltet blev læst, og ingen
-   * `helperText` nåede nogen komponent — felterne viser deres egne reader-issues (§1.8). De ni øvrige er
+   * `helperText` nåede nogen komponent – felterne viser deres egne reader-issues (§1.8). De ni øvrige er
    * derfor en INTERN afledning nu, brugt til gates, ikke en offentlig parallel felt-model.
    */
   koenFieldHasError: boolean;
@@ -186,7 +186,7 @@ const hasIssue = (
 };
 
 /**
- * Ingen af forsørgertab-blokeringerne citeres ordret — begge beskeder er gate-interne. De skelnes til
+ * Ingen af forsørgertab-blokeringerne citeres ordret – begge beskeder er gate-interne. De skelnes til
  * gengæld på KLASSE efter brugerkravet 2026-07-30: manglende input til en PDF-klar del er `missing-input`
  * ("Indtastning mangler"), mens et rødt nødvendigt felt er `invalid-input` ("Fejl i indtastning"). `message`
  * bevares som den interne forklaring, som koder og tests skelner på.
@@ -285,13 +285,13 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   /**
    * Hvilke felter har en blokerende fejl? Rene BOOLEANS, ikke felttilstande.
    *
-   * De samme afledninger bar tidligere også en `helperText` pr. felt, som ingen komponent læste — felterne
+   * De samme afledninger bar tidligere også en `helperText` pr. felt, som ingen komponent læste – felterne
    * viser deres egne reader-issues (§1.8). Beskederne blev altså formateret ved hver beregning og kastet
    * væk, mens de samtidig lignede en aktiv præsentationskanal ved siden af den fælles issue-model.
    *
    * Den enkelte feltbesked er ikke tabt: `helperIssues` ovenfor er stadig kilden til `blocked`-siden af de
-   * dependency-specifikke gates nedenfor, og ASL-maksimum-oplysningen — den ene besked, der ikke havde nogen
-   * anden vej til brugeren — eksponeres nu som `ealAarsloenNotice`.
+   * dependency-specifikke gates nedenfor, og ASL-maksimum-oplysningen – den ene besked, der ikke havde nogen
+   * anden vej til brugeren – eksponeres nu som `ealAarsloenNotice`.
    */
   const hasError = (
     fieldError: FieldErrorMessage,

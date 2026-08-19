@@ -343,7 +343,7 @@ export const buildEOInspektionSammentaellingModel = (args: {
   canonicalOutput?: EoCanonicalOutput;
   sfggResult?: SygeferiegodtgoerelseResult;
   /** Autoritativt svie/smerte-engine-output fra EO-snapshot. Når tilstede bruges dette
-   *  direkte i stedet for et nyt kald — sikrer at sammentællingen bruger præcis
+   *  direkte i stedet for et nyt kald – sikrer at sammentællingen bruger præcis
    *  det samme resultat som beregningen. */
   svieSmerteEngine?: SvieSmerteEngineOutput;
 }): SammentaellingModel => {

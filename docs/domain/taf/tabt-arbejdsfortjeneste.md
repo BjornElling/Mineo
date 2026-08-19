@@ -4,7 +4,7 @@ Denne fil beskriver beregningslogikken for tabt arbejdsfortjeneste i erstatnings
 
 ---
 
-## Del 1 — For dig
+## Del 1 – For dig
 
 ### Hvad beregner dette modul?
 
@@ -12,7 +12,7 @@ Tabt arbejdsfortjeneste (TAF) er kompensation for den indtægtsnedgang skadelidt
 
 ### Beregningsenheden
 
-Inden alt andet fastlægges det, om TAF skal beregnes i **måneder** eller **arbejdsdage**. Valget bestemmer ikke blot kolonneoverskriften i tabellen — det styrer alle efterfølgende beregninger: periodisering af løn, fradrag af ferie og SH-dage, og opgørelse af TAF-perioden.
+Inden alt andet fastlægges det, om TAF skal beregnes i **måneder** eller **arbejdsdage**. Valget bestemmer ikke blot kolonneoverskriften i tabellen – det styrer alle efterfølgende beregninger: periodisering af løn, fradrag af ferie og SH-dage, og opgørelse af TAF-perioden.
 
 **Prioriteret beslutningstræ:**
 
@@ -24,7 +24,7 @@ Inden alt andet fastlægges det, om TAF skal beregnes i **måneder** eller **arb
 
 **Domæneprincip:** Beregningsgrundlaget (referenceperioden) og TAF-kravet følger altid samme enhed.
 
-### Måneder vs. arbejdsdage — hvad det betyder
+### Måneder vs. arbejdsdage – hvad det betyder
 
 | Aspekt | Måneder | Arbejdsdage |
 |---|---|---|
@@ -88,7 +88,7 @@ Offentlige ydelser periodiseres forskelligt:
 
 ### TAF fordelt på kalenderår
 
-Til PDF-bilag beregnes TAF fordelt pr. kalenderår. Segmenter splittes ved kalenderårsskift, fradrag prorateres via overlap med TAF-ranges, og individuelle årsbeløb afrundes. Summen af årsbeløb må maksimalt afvige 1 kr. (100 øre) fra det samlede TAF-krav — overskrides dette, returneres fejl (`afrunding_over_100`) og fordeling vises ikke.
+Til PDF-bilag beregnes TAF fordelt pr. kalenderår. Segmenter splittes ved kalenderårsskift, fradrag prorateres via overlap med TAF-ranges, og individuelle årsbeløb afrundes. Summen af årsbeløb må maksimalt afvige 1 kr. (100 øre) fra det samlede TAF-krav – overskrides dette, returneres fejl (`afrunding_over_100`) og fordeling vises ikke.
 
 ### PDF-visning af afgrænsningskilde
 
@@ -105,7 +105,7 @@ Dagen efter TAF-periodens slut beskrives med en arbejdsstatus-linje der inkluder
 
 ---
 
-## Del 2 — AI-agent: teknisk reference
+## Del 2 – AI-agent: teknisk reference
 
 ### Primære filer
 
@@ -185,7 +185,7 @@ MergedTafGroup = Readonly<{
 TafConstraintBounds = Readonly<{ minStart?: ISODateString; maxEnd?: ISODateString }>
 ```
 
-### Periodiseringsmotor — eksporterede funktioner
+### Periodiseringsmotor – eksporterede funktioner
 
 ```typescript
 // Måneds-optælling
@@ -233,9 +233,9 @@ TAF_MIDLERTIDIG_EET_SKAERINGSDATO = '2011-06-16' // skader før denne dato: midl
 
 Intern øre-aritmetik i netto-beregning og per-år-fordeling: `MoneyOre = number` (branded integer). Slutresultat `tabtArbejdsfortjenesteOre` er altid ≥ 0 via `clampMoneyOreToZero`.
 
-Per-år-fordeling: Largest-remainder-metoden (`allocateOreByWeight`) sikrer at summen af årsbeløb præcis svarer til samlet TAF. Tolerance: max 1 kr. (100 øre) — ved overskridelse returneres `kind: 'error'`.
+Per-år-fordeling: Largest-remainder-metoden (`allocateOreByWeight`) sikrer at summen af årsbeløb præcis svarer til samlet TAF. Tolerance: max 1 kr. (100 øre) – ved overskridelse returneres `kind: 'error'`.
 
-### TAF per-år-fordeling — dataflow
+### TAF per-år-fordeling – dataflow
 
 ```
 samletTafKravOre (fra PdfModel)
@@ -253,7 +253,7 @@ yearTafOre = yearIncomeOre − yearDeductionsOre  [× forligFactor hvis sat]
 afrundingOre = samletTafKravOre − Σ yearTafOre  (skal ≤ 100 øre)
 ```
 
-### Constraints — to typer clamping
+### Constraints – to typer clamping
 
 ```typescript
 // Stille clamping (ingen fejlindikation til bruger):
@@ -268,11 +268,11 @@ resolveTafFejlgivendeBounds(values): TafConstraintBounds
 //     midlertidigEetVirkningsdato−1                    // kun hvis skadedato < 2011-06-16 OG verserendeKlageEet ≠ 'Ja'
 //   )
 
-// Intern helper — ikke eksporteret:
+// Intern helper – ikke eksporteret:
 resolveMidlertidigEetDatoHvisAktiv(values): ISODateString | undefined
 // → returnerer midlertidigEETVirkningsdato ?? midlertidigEETAfgoerelseDato
 //   når midlertidigtEetAfgorelse = 'Ja' OG skadedato < 2011-06-16
-//   Checker IKKE verserendeKlageEet — det gøres af kalderne.
+//   Checker IKKE verserendeKlageEet – det gøres af kalderne.
 
 // Kombineret (bruges af kontrol og UI):
 resolveTafConstraintBounds(values): TafConstraintBounds

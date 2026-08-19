@@ -49,7 +49,7 @@ describe('amountResultBoundsValidator', () => {
     expect(validate({ kind: 'expression', expression: '5000000+4999999', value: 9_999_999 })).toBeUndefined();
   });
 
-  it('reason er `bounds`, ikke `format` — værdien skal BEVARES canonical', () => {
+  it('reason er `bounds`, ikke `format` – værdien skal BEVARES canonical', () => {
     // §1.1/§2.2: en korrekt formateret værdi uden for en grænse afvises IKKE som råtekst. Var reason
     // `format`, ville værdien blive rejected og forsvinde fra `.eo`.
     expect(validate({ kind: 'number', value: 10_000_000 })?.reason).toBe('bounds');

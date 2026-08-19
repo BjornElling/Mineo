@@ -6,7 +6,7 @@
  *   "Beregnet differencekrav (2/3 af 1.095.121 kr.)"
  * Ved intet forlig (eller 100 %) vises blot "Beregnet differencekrav".
  *
- * `foerForligFormatted` skal være det allerede formaterede fulde krav (fx "1.095.121 kr.") — denne
+ * `foerForligFormatted` skal være det allerede formaterede fulde krav (fx "1.095.121 kr.") – denne
  * funktion formaterer bevidst ikke selv beløb, så UI og PDF deler præcis samme tekst.
  */
 export const buildBeregnetDifferencekravLabel = (
@@ -27,7 +27,7 @@ export const buildBeregnetDifferencekravLabel = (
  *
  * Rækkefølgen er bevidst: brugerens eget fravalg forklares FØR beregningsårsagen. Er togglen sat til
  * Nej, er mer-erstatningen slet ikke beregnet, og "Pensionsalderen er ikke forhøjet i perioden" ville da
- * være en påstand om et regnestykke, programmet ikke har udført — altså potentielt forkert.
+ * være en påstand om et regnestykke, programmet ikke har udført – altså potentielt forkert.
  *
  * `null` betyder, at bilaget kan vælges (feltet er aktivt).
  */
@@ -45,7 +45,7 @@ export const resolveMerErstatningPensionsalderBilagDisabledReason = (
  *
  * Fradraget for det resterende erhvervsevnetab opgøres på ÉN af to måder, aldrig begge: er der mere end
  * to år til folkepensionsalderen på beregningsdatoen, proformakapitaliseres resten; ellers opgøres den som
- * resterende løbende ydelser. Der er derfor to grunde til, at bilaget ikke kan vælges — ingen rest-EET at
+ * resterende løbende ydelser. Der er derfor to grunde til, at bilaget ikke kan vælges – ingen rest-EET at
  * opgøre, eller en rest der er opgjort som løbende ydelser og altså ikke har et proformabilag.
  *
  * `null` betyder, at bilaget kan vælges (feltet er aktivt).

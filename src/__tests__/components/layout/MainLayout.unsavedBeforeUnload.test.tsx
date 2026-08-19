@@ -339,7 +339,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
   });
 
   it('completes manual load without settle even with an open editor (§1.4 replace-policy)', async () => {
-    // Rebaset §1.4: load settler ALDRIG og blokeres ALDRIG af en åben editor — draften kasseres først ved
+    // Rebaset §1.4: load settler ALDRIG og blokeres ALDRIG af en åben editor – draften kasseres først ved
     // succes. (Legacy hævdede at load blokeres; det er nu FORKERT mod §1.4.)
     const loadFromFileMock = vi.mocked(loadFromFile);
     loadFromFileMock.mockResolvedValue({

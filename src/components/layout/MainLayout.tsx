@@ -82,7 +82,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
 
   // Devtools-/bugrapport-diagnostik læser gennem den NAVNGIVNE diagnostikprojektion (§3.4). Shellen griber
   // ikke selv ned i rå `sections`: opslaget ejes af `inputDiagnosticsProjection`, som er bundet til præcis den
-  // runtime, React-træet viser. Ren read-only — der er ingen skrivevej herfra.
+  // runtime, React-træet viser. Ren read-only – der er ingen skrivevej herfra.
   const getPersistedSectionForDevtools = React.useCallback(
     (pageKey: PersistedSectionKey): unknown => diagnostics.readSection(pageKey),
     [diagnostics],
@@ -104,7 +104,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   });
 
   // Kanonisk omvendt opslag. Den håndrullede `substring(1) || 'stamdata'` duplikerede
-  // `routeToPageId` — inkl. dens startside-fallback — i en fil der allerede importerede den.
+  // `routeToPageId` – inkl. dens startside-fallback – i en fil der allerede importerede den.
   const activePage = routeToPageId(location.pathname);
   const { markSaved } = useUnsavedChangesGuard({
     combinedSectionRevision: Number(revision),
@@ -121,7 +121,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     }
 
     // Sideskift er en kritisk handling på linje med save/load (§1.4): coordinatoren settler begge flader og
-    // fortsætter navigationen — også ved et fejlende settle. Kun et fail-closed `blocked` (uventet settle-fejl)
+    // fortsætter navigationen – også ved et fejlende settle. Kun et fail-closed `blocked` (uventet settle-fejl)
     // fokuserer det aktive felt og stopper navigationen.
     try {
       const preparation = await criticalActions.prepare('navigate');
@@ -226,7 +226,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
       <Container
         enableContentScale
         // Arbejdsfladens ydre luft: samme gutter hele vejen rundt. Gutterne ligger uden for
-        // zoom-roden og ganges derfor med skalaen i CSS — det er netop de to vandrette afstande,
+        // zoom-roden og ganges derfor med skalaen i CSS – det er netop de to vandrette afstande,
         // pladsregnskabet i `CONTENT_UI_SCALE_POLICY` afsætter. Den lodrette luft skaleres med,
         // fordi en fast luft foroven ville stå dobbelt så høj som luften i siderne ved mindste
         // skala; Kontroltabellens klæbende tabelhoved kompenserer desuden for præcis denne

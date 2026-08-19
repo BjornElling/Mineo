@@ -11,13 +11,13 @@ type FloatingActionButtonProps = {
    * Knappens tilgængelige navn OG dens tooltip når handlingen er mulig.
    *
    * Påkrævet: knappen har kun et ikon som barn, så uden dette er den navnløs for en skærmlæser. En
-   * `<Tooltip>` udenom er IKKE et navn — MUI sætter `aria-labelledby` på popper-elementet, som kun
+   * `<Tooltip>` udenom er IKKE et navn – MUI sætter `aria-labelledby` på popper-elementet, som kun
    * findes mens tooltippen er åben (se `accessibilityRules.ts`). Navnet sættes derfor eksplicit på
    * selve knappen.
    */
   tooltip: string;
   /**
-   * Hvorfor knappen er grå. Vises som tooltip i stedet for `tooltip`, når `disabled` er sand —
+   * Hvorfor knappen er grå. Vises som tooltip i stedet for `tooltip`, når `disabled` er sand –
    * årsagens ENESTE visningskanal (§11.1). Navnet (`aria-label`) forbliver `tooltip`, så knappens
    * identitet ikke skifter, fordi den midlertidigt er spærret.
    */
@@ -33,7 +33,7 @@ type FloatingActionButtonProps = {
  * klik er tavst.
  *
  * **Rystelsen er fjernet** (brugerbeslutning 2026-08-15). Knappen ryster tidligere ved klik,
- * MENS den fremstod aktiv — den var kun visuelt dæmpet, ikke slået fra. Det gav to modstridende svar
+ * MENS den fremstod aktiv – den var kun visuelt dæmpet, ikke slået fra. Det gav to modstridende svar
  * på samme klik og oplyste knappen som brugbar for en skærmlæser. Programmet har nu ÉN afvisningsmåde:
  * knappen er ægte `disabled` med årsagen i tooltippet. Genindfør ikke en shake-prop her.
  */
@@ -74,7 +74,7 @@ const FloatingActionButton = React.memo(({
   return (
     <Tooltip title={tooltipText} arrow placement="top">
       {/* En `disabled` MUI-knap udsender ingen pointer-events, så tooltippen skal ankres på en
-          wrapper. Uden den ville årsagen — knappens eneste forklaring — være uopnåelig præcis når
+          wrapper. Uden den ville årsagen – knappens eneste forklaring – være uopnåelig præcis når
           den er relevant. */}
       <span>{button}</span>
     </Tooltip>

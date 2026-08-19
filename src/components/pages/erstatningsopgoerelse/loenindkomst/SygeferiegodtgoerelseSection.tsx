@@ -45,7 +45,7 @@ type Props = Readonly<{
   af: Ansaettelsesforhold;
   /**
    * Den samlede SFGG-visningsafledning fra VM'en. Tidligere kom de otte flag/etiketter
-   * herinde som otte selvstændige props, som kortet udregnede selv — dvs. domæneafledning
+   * herinde som otte selvstændige props, som kortet udregnede selv – dvs. domæneafledning
    * i et view, og den eneste grund til at netop denne sektion tog 10 props, hvor resten af
    * sektionsfamilien tager nul. Flagene er indbyrdes afhængige og hører derfor sammen som
    * ét objekt: en delmængde kan ikke give et konsistent billede.

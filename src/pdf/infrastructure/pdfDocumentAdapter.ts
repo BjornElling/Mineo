@@ -2,7 +2,7 @@
  * PDF Document Adapter
  *
  * Stabil infrastruktur-kontrakt for PDF-generering i Mineo.
- * Ingen helper eller generator må importere jsPDF direkte —
+ * Ingen helper eller generator må importere jsPDF direkte –
  * de arbejder udelukkende mod dette interface.
  *
  * Isolationspunkt: jsPDF-specifik implementering (inkl. internal.pageSize)
@@ -10,7 +10,7 @@
  *
  * VIGTIG DESIGNBESLUTNING:
  * Kontrakten er bevidst indsnævret til de features Mineo faktisk bruger.
- * Vi spejler IKKE jsPDF's fulde API — det ville genindføre coupling.
+ * Vi spejler IKKE jsPDF's fulde API – det ville genindføre coupling.
  */
 
 import type { PdfFontFamily, PdfFontStyle } from '../../document/layout/pdfConfig';

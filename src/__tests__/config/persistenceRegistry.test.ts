@@ -6,7 +6,7 @@ import { createRenteberegningInitialValues } from '../../domain/renteberegning/r
  * Den forventede sektionsmængde er skrevet UD i fuld længde med vilje. Registry'et er nu den ENE
  * kilde til hvilke persisterede sektioner der findes (`.eo`-load itererer den, og `PersistedSectionKey`
  * udledes af den), så en test der blot sammenlignede registry'et med sig selv ville være vakuøs.
- * En sektion, der forsvinder herfra, ville ellers tavst blive sprunget over ved load — dvs. datatab.
+ * En sektion, der forsvinder herfra, ville ellers tavst blive sprunget over ved load – dvs. datatab.
  */
 const EXPECTED_SECTION_KEYS = [
   'aarsloen',

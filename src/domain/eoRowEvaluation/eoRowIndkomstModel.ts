@@ -41,7 +41,7 @@ export type OffentligeYdelserStatusRow = Readonly<{
   message: string;
   summaryDisplay?: 'messageOnly';
   /**
-   * Den ydelsesRÆKKE, statusrækkens besked stammer fra — tabellens eget række-id, ikke gruppenøglen.
+   * Den ydelsesRÆKKE, statusrækkens besked stammer fra – tabellens eget række-id, ikke gruppenøglen.
    *
    * Statusrækkerne grupperer flere ydelsesrækker pr. ydelsestype, og gruppenøglen
    * (`ydelsestype-<key>`/`mangler-ydelsestype`) er derfor ikke et element i DOM. Uden den oprindelige
@@ -277,7 +277,7 @@ export const buildOffentligeYdelserStatusRows = (
     label: string;
     firstErrorMessage?: string;
     warningCount: number;
-    /** Rækken bag den FØRSTE fejl — og ellers bag den første advarsel — i gruppen. */
+    /** Rækken bag den FØRSTE fejl – og ellers bag den første advarsel – i gruppen. */
     firstErrorRowId?: string;
     firstWarningRowId?: string;
   };
@@ -322,7 +322,7 @@ export const buildOffentligeYdelserStatusRows = (
             group.firstErrorMessage = 'Ydelsestype er ikke valgt';
           } else {
             // Uopnåelig restklasse (en ikke-input-fejl kræver manglende periode eller ydelsestype,
-            // begge fanget ovenfor) — men hold teksten specifik frem for generisk, hvis den nås.
+            // begge fanget ovenfor) – men hold teksten specifik frem for generisk, hvis den nås.
             group.firstErrorMessage = 'Dato eller ydelsestype er ikke angivet';
           }
         }

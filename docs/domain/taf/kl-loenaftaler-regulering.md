@@ -1,10 +1,10 @@
-# KL-lønaftaler — regulering (særlig logik)
+# KL-lønaftaler – regulering (særlig logik)
 
 Dette er det normative dokument for, hvordan reguleringsgrundlaget **"KL-lønaftaler"**
 adskiller sig fra de øvrige reguleringsmodeller (KRL-satstabel, statistik,
 overenskomst, manuelt angivet). Reguleringsformen KL-lønaftaler har bevidst både en **alternativ
 beregningsmetode** og **alternative visninger**. Læs dette dokument før refactors,
-der rører lønudviklings-/regulerings-koden — ellers ser KL-lønaftaler-særtilfældene ud som
+der rører lønudviklings-/regulerings-koden – ellers ser KL-lønaftaler-særtilfældene ud som
 inkonsistens, der "burde" forenes med de andre modeller. Det skal de ikke.
 
 > Kortform: Reguleringsformen KL-lønaftaler regulerer **trinvist på selve lønnen**
@@ -17,7 +17,7 @@ inkonsistens, der "burde" forenes med de andre modeller. Det skal de ikke.
 
 ### 1.1 Datakilden
 KL-lønaftalerne lagres som rene **periode-reguleringssatser** `[dato, sats]` i
-[`src/data/klLoenaftaler.ts`](../../../src/data/klLoenaftaler.ts) — ikke som
+[`src/data/klLoenaftaler.ts`](../../../src/data/klLoenaftaler.ts) – ikke som
 akkumulerede indeks. Satserne er bevidst beregningsteknisk unøjagtige (afrundet til
 nærmeste 0,05 % af den procentvise fremskrivning i akkumuleret regulering) og indgår
 udelukkende for at lave en **parallel til Erstatningsnævnets (forkerte)
@@ -65,7 +65,7 @@ Et `LoenudviklingSegment` bærer `deltaPct` (regulering ift. basis) + `maanedslo
 Konsekvens: `deltaPct` er en intern repræsentation, der **tilfældigvis** er den
 akkumulerede regulering, men den vises aldrig som "akkumuleret regulering" for KL-lønaftaler.
 At nulstille `deltaPct` til 0 (og lægge lønnen i `maanedsloenOre`) ville knække SFGG
-og den tværgående segmentkontrakt — gør det ikke.
+og den tværgående segmentkontrakt – gør det ikke.
 
 ### 2.1 `reguleretLoenOre`
 Den kæde-opregulerede, afrundede enhedsløn bæres **eksplicit** på segmentet som det
@@ -87,9 +87,9 @@ tilstedeværelsen af `segment.reguleretLoenOre`. Øvrige modeller er uændrede.
 | Visning | Standardmodeller | KL-lønaftaler |
 | --- | --- | --- |
 | **Reguleringsværdier**-tabel | model-specifikke kolonner (fx KRL: reguleringsprocent) | `Fra-dato \| Regulering` (periodesats); **ingen** akkumuleret kolonne |
-| **Beregnet regulering**-tabel | `Fra-dato \| Til-dato \| Indeksberegning \| Indeks \| Lønudvikling` | `Fra-dato \| Til-dato \| Lønudvikling \| Reguleret løn` — Lønudvikling **gentager periodesatsen** (ikke akkumuleret), Reguleret løn = kæde-opreguleret |
+| **Beregnet regulering**-tabel | `Fra-dato \| Til-dato \| Indeksberegning \| Indeks \| Lønudvikling` | `Fra-dato \| Til-dato \| Lønudvikling \| Reguleret løn` – Lønudvikling **gentager periodesatsen** (ikke akkumuleret), Reguleret løn = kæde-opreguleret |
 | **Forventet indkomst**-linje (EO, TAF/år, TAF opreguleret) | `antal á basisløn kr. x (100 % + delta %)` | `antal á reguleret løn kr.` (ingen faktor-tekst) |
-| **Download-dokument** (`KL-lønaftaler`) | — | kompakt `Dato \| Regulering`-tabel (kun periodesatser) |
+| **Download-dokument** (`KL-lønaftaler`) | – | kompakt `Dato \| Regulering`-tabel (kun periodesatser) |
 
 ---
 
@@ -116,7 +116,7 @@ tilstedeværelsen af `segment.reguleretLoenOre`. Øvrige modeller er uændrede.
 ## 5. Invarianter (må ikke brydes uden at læse dette dokument)
 
 1. KL-lønaftaler viser **aldrig** akkumuleret regulering i en brugervendt tabel/linje.
-2. For KL-lønaftaler reproducerer `basisløn × (1 + deltaPct/100)` den trinvist afrundede løn —
+2. For KL-lønaftaler reproducerer `basisløn × (1 + deltaPct/100)` den trinvist afrundede løn –
    derfor er KL-lønaftalers `deltaPct` i fuld præcision (ikke afrundet til 2 decimaler som de
    øvrige modeller).
 3. `reguleretLoenOre` er kun sat for KL-lønaftaler og er den autoritative enhedsløn i

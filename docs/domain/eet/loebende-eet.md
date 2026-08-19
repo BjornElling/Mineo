@@ -1,23 +1,23 @@
-# Løbende EET — ASL (fane 2)
+# Løbende EET – ASL (fane 2)
 
 Denne fil beskriver beregningslogikken for løbende erhvervsevnetabsydelser efter Arbejdsskadesikringsloven (ASL). Beregningen udgør fane 2 på EET-siden.
 
 Se også:
-- [kapitaliseret-eet.md](./kapitaliseret-eet.md) — fane 3
-- [eal-beregning.md](./eal-beregning.md) — fane 4
-- [differencekrav.md](./differencekrav.md) — fane 5
-- [fejlkatalog.md](./fejlkatalog.md) — alle fejl og advarsler
-- [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) — særregel for ≤ 2 år til folkepensionsalderen
+- [kapitaliseret-eet.md](./kapitaliseret-eet.md) – fane 3
+- [eal-beregning.md](./eal-beregning.md) – fane 4
+- [differencekrav.md](./differencekrav.md) – fane 5
+- [fejlkatalog.md](./fejlkatalog.md) – alle fejl og advarsler
+- [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) – særregel for ≤ 2 år til folkepensionsalderen
 
 ---
 
-## Del 1 — For dig
+## Del 1 – For dig
 
 ### Hvad beregner denne fane?
 
 Fane 2 opgør, hvad skadelidte har haft ret til i løbende månedlig ydelse fra erhvervsevnetabet, fra den første afgørelses virkningsdato frem til og med beregningsdatoen. Beregningen sker per afgørelse og opdeles i kalenderårs-rækker, fordi den løbende ydelse reguleres hvert år pr. 1. januar.
 
-Resultatet bruges direkte i differencekravet (fane 5) — med den ene forskel at fane 5 beregner frem til og med dagen før beregningsdatoen i stedet for beregningsdatoen selv.
+Resultatet bruges direkte i differencekravet (fane 5) – med den ene forskel at fane 5 beregner frem til og med dagen før beregningsdatoen i stedet for beregningsdatoen selv.
 
 ### Centrale skæringsdatoer
 
@@ -32,7 +32,7 @@ Fire datoer styrer beregningsreglerne:
 
 ### Trin-for-trin beregning
 
-#### Trin 1 — Grundløn (beregnes én gang per skade)
+#### Trin 1 – Grundløn (beregnes én gang per skade)
 
 Grundlønnen omregner den faktiske årsløn til et fast niveau, så årsydelsen kan reguleres herfra. Niveauet afhænger af skadsdatoen:
 
@@ -48,7 +48,7 @@ grundløn = round0(min(årsløn_afrundet_1000, aarsloenMax[skadesår]) × (608.0
 
 Årslønnens maks-loft (`aarsloenMax[skadesår]`) er det gældende maksimum for det kalenderår skaden sker i. En årsløn over loftet bevares som canonical brugerinput, men får et afledt bounds-issue, og beregningsgaten blokerer derfor output. Beregningsmotoren gentager samme regel som et fail-closed-værn for direkte kald og producerer intet resultat, hvis reader-gaten ikke har været anvendt.
 
-#### Trin 2 — Grundydelse per afgørelse
+#### Trin 2 – Grundydelse per afgørelse
 
 Grundydelsen beregnes for hvert afgørelses-EET-procentpoint og holder sig uforandret inden for afgørelsen.
 
@@ -80,7 +80,7 @@ rest_eet_pct        = eet_pct_før_aktuel_kap − aktuel_kapitaliseringsprocent
 grundydelse_rest    = round2(grundydelse_fuld × (rest_eet_pct / eet_pct_før_aktuel_kap))
 ```
 
-En ny afgørelses EET-procent erstatter altid den forrige i sin helhed — procenter lægges ikke oven på hinanden. Kapitaliseringsprocenter fra tidligere afgørelser fratrækkes dog kumulativt, fordi de procentpoint allerede er udbetalt som engangsbeløb.
+En ny afgørelses EET-procent erstatter altid den forrige i sin helhed – procenter lægges ikke oven på hinanden. Kapitaliseringsprocenter fra tidligere afgørelser fratrækkes dog kumulativt, fordi de procentpoint allerede er udbetalt som engangsbeløb.
 
 Afgørelser sorteres efter afgørelsesdato, derefter virkningsdato og derefter række-id. En afgørelses referenceafgørelse er den umiddelbart foregående afgørelse i denne sortering.
 
@@ -110,12 +110,12 @@ Fra skæringsdatoen yder B sin fulde løbende rest-EET, og A er ophørt.
 `FS tilbageholdt EET` er et overgangsfelt på afgørelsen, der senere afløses. Når A har `FS tilbageholdt EET = Ja`, må A ikke bruges som den betalte forgænger i B's overlapberegning:
 
 - A's selvstændige periode beregnes fortsat. Ved tilbagevirkende B ophører A dog senest dagen før B's faktiske virkningsdato.
-- B's overlapdel beregnes mod en eventuel ældre, faktisk udbetalt afgørelse — ikke mod A. Findes ingen sådan forgænger, bliver der ingen synlig overlapdifference.
+- B's overlapdel beregnes mod en eventuel ældre, faktisk udbetalt afgørelse – ikke mod A. Findes ingen sådan forgænger, bliver der ingen synlig overlapdifference.
 - B's almindelige del starter fra den gældende skæringsdato eller, når der ikke er en overlapperiode, fra B's faktiske virkningsdato.
 
 Reglen gælder uanset om EET-procenten stiger, falder eller er uændret. Feltet på den sidste afgørelse har ingen beregningsmæssig effekt, fordi afgørelsen ikke afløses af en senere afgørelse. Den bindende beskrivelse findes i `src/contracts/domain-boundary-contract.md` §6.1, pkt. 7–9.
 
-#### Trin 3 — Årsydelse for et givet beregningsår
+#### Trin 3 – Årsydelse for et givet beregningsår
 
 Årsydelsen bestemmer den månedlige ydelse for et konkret kalenderår. Reguleringslogikken afhænger af grundlønsniveauet:
 
@@ -134,7 +134,7 @@ Reglen gælder uanset om EET-procenten stiger, falder eller er uændret. Feltet 
 | 2024 | `grundydelse × 1,000` |
 | ≥ 2025 | `grundydelse × (1 + reguleringsprocentErhvervsevnetabFra2024[år] / 100)` |
 
-Reguleringsopslaget er et direkte tabelopslag per kalenderår — ikke en kædeberegning som i EAL-sporet.
+Reguleringsopslaget er et direkte tabelopslag per kalenderår – ikke en kædeberegning som i EAL-sporet.
 
 Årsydelsen rundes op til nærmeste hele kronebeløb deleligt med 12:
 ```
@@ -143,7 +143,7 @@ månedlig_ydelse = årsydelse / 12
 ```
 `ceil12(x) = Math.ceil(x / 12) × 12`. Der rundes aldrig ned.
 
-#### Trin 4 — Periodeafgrænsning
+#### Trin 4 – Periodeafgrænsning
 
 **Hvad er beregningsåret (satsen)?**
 
@@ -154,7 +154,7 @@ Satsen for den første periode i en afgørelses fuld-sektion bestemmes af:
 | virkningsdato ≤ afgørelsesdato | Afgørelsesdatoens kalenderår |
 | virkningsdato > afgørelsesdato | Virkningsdatoens kalenderår |
 
-**Særregel — tilbagevirkende kraft:** Hvis virkningsdatoen ligger i et tidligere kalenderår end afgørelsesdatoen, gælder afgørelsesårets sats for hele perioden fra virkningsdatoen frem til 31-12 i afgørelsesåret. Fra 01-01 det følgende år reguleres normalt.
+**Særregel – tilbagevirkende kraft:** Hvis virkningsdatoen ligger i et tidligere kalenderår end afgørelsesdatoen, gælder afgørelsesårets sats for hele perioden fra virkningsdatoen frem til 31-12 i afgørelsesåret. Fra 01-01 det følgende år reguleres normalt.
 
 **Ophørsdato** er den tidligste af:
 1. Beregningsdatoen
@@ -183,7 +183,7 @@ Starter på kapitaliseringsdatoen og løber til den tidligste af beregningsdatoe
 
 Kapitalisering er global og datoafhængig: alle kapitaliseringer med dato på eller før en delperiodes startdato reducerer løbende rest-EET for alle afgørelser. Det gælder både fuld-ydelsesperioder og overlapsperioder.
 
-#### Trin 5 — Beregnet EET per periode-række
+#### Trin 5 – Beregnet EET per periode-række
 
 ```
 beregnet_eet = round0(måneder_præcis × månedlig_ydelse)
@@ -199,15 +199,15 @@ I alt per afgørelse: summen af alle rækker (fuld + rest sektion). Der er ingen
 
 | Situation | Metode |
 |---|---|
-| Grundløn | `round0` — halvt-væk-fra-nul til hele kr. |
-| Grundydelse | `round2` — halvt-væk-fra-nul til 2 decimaler |
-| Årsydelse | `ceil12` — op til nærmeste 12-delelige |
-| Månedlig ydelse | Ingen afrunding — altid hele kr. (`årsydelse / 12`) |
-| Beregnet EET | `round0` — halvt-væk-fra-nul til hele kr. |
+| Grundløn | `round0` – halvt-væk-fra-nul til hele kr. |
+| Grundydelse | `round2` – halvt-væk-fra-nul til 2 decimaler |
+| Årsydelse | `ceil12` – op til nærmeste 12-delelige |
+| Månedlig ydelse | Ingen afrunding – altid hele kr. (`årsydelse / 12`) |
+| Beregnet EET | `round0` – halvt-væk-fra-nul til hele kr. |
 
 ---
 
-## Del 2 — AI-agent: teknisk reference
+## Del 2 – AI-agent: teknisk reference
 
 ### Primær fil
 

@@ -46,7 +46,7 @@ export type StyledTextAreaBaseProps = {
   /** Kortere hover-tekst end den fulde besked. Se `StyledTextFieldBaseProps.tooltipText`. */
   tooltipText?: string;
   disabled?: boolean;
-  /** Se `StyledTextFieldBaseProps.disabledAppearance` — de to baser skal se ens ud i samme tilstand. */
+  /** Se `StyledTextFieldBaseProps.disabledAppearance` – de to baser skal se ens ud i samme tilstand. */
   disabledAppearance?: 'default' | 'locked';
 
   rows?: number;
@@ -230,7 +230,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
                 'aria-label': resolvedAccessibleName,
                 'aria-describedby': describedBy,
                 // Feltidentiteten i DOM er restore-target-attributterne (serialiseret feltadresse +
-                // editorlokation), som feltfamilien sender med gennem `htmlTextAreaAttributes` — samme
+                // editorlokation), som feltfamilien sender med gennem `htmlTextAreaAttributes` – samme
                 // model som StyledTextFieldBase. Basen udleder ingen egen identitet af `name` (§3.2).
                 onFocus: handleFocus,
                 onBlur: handleBlur,
@@ -285,7 +285,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
                 },
                 // Deaktiveret udseende er ordret det samme som i `StyledTextFieldBase`. De to baser
                 // løser samme concern, og et flerlinjet felt må ikke se anderledes deaktiveret ud end
-                // et enkeltlinjet — her manglede både den stiplede ramme, baggrunden og tekstfarven.
+                // et enkeltlinjet – her manglede både den stiplede ramme, baggrunden og tekstfarven.
                 '&.Mui-disabled': {
                   backgroundColor: useLockedDisabledAppearance
                     ? 'var(--color-input-disabled-locked-bg, var(--color-input-disabled-bg))'

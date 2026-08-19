@@ -19,7 +19,7 @@ const ForsoergertabBeregningSection = React.memo(() => {
   const { download } = vm;
 
   /**
-   * Beskeden udledes HER — i den flade, der aktiverer downloaden — så aktivering og visning ikke kan
+   * Beskeden udledes HER – i den flade, der aktiverer downloaden – så aktivering og visning ikke kan
    * divergere (`document/activation-shows-outcome`).
    *
    * Kilden er `download.errorMessage` råt. En gate-blokering bærer ingen besked, og det gælder også, når

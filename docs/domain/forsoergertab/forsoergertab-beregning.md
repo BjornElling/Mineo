@@ -141,7 +141,7 @@ Normativ præcisering:
 
 Ydelserne behandles som månedsvise ydelser betalt forud.
 
-Allerede udbetalte måneder beregnes som antallet af kalendermåneder fra og med virkningsdatoens måned til og med beregningsdatoens måned. Opgørelsen er kalendermånedsbaseret — dagspræcision inden for måneden er ikke relevant, fordi ydelserne anses for forfaldne pr. hel kalendermåned:
+Allerede udbetalte måneder beregnes som antallet af kalendermåneder fra og med virkningsdatoens måned til og med beregningsdatoens måned. Opgørelsen er kalendermånedsbaseret – dagspræcision inden for måneden er ikke relevant, fordi ydelserne anses for forfaldne pr. hel kalendermåned:
 
 ```text
 alleredeUdbetaltMaaneder =
@@ -152,7 +152,7 @@ alleredeUdbetaltMaaneder =
 
 Eksempel:
 
-- virkningsdato: 2023-05-15 (eller 2023-05-01 — resultatet er det samme)
+- virkningsdato: 2023-05-15 (eller 2023-05-01 – resultatet er det samme)
 - beregningsdato: 2025-08-15
 - allerede udbetalt: 28 måneder
 

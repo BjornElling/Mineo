@@ -109,7 +109,7 @@ describe('isDateLikeDraftAllowed', () => {
   // Ciffer-lofterne havde tests og blev derfor bevaret; gentagne separatorer havde ingen, og
   // afvisningen af dem forsvandt uden at noget blev rødt. Fjernes værnet igen, bliver disse røde.
 
-  // Cases er bevidst KORTE — `12-2--` frem for `12--2--2026`. En lang draft med ekstra separatorer
+  // Cases er bevidst KORTE – `12-2--` frem for `12--2--2026`. En lang draft med ekstra separatorer
   // afvises nemlig også af segment-loftet («for mange segmenter»), fordi hver separator rykker
   // segmentindekset. Den ville derfor være grøn, selv hvis afvisningen af gentagne separatorer blev
   // slettet, og målte altså en KONKURRERENDE mekanisme frem for reglen her. Målt: under en mutation,
@@ -130,7 +130,7 @@ describe('isDateLikeDraftAllowed', () => {
   });
 
   it('den fulde brugerreproduktion er afvist (uanset hvilken regel der fanger den)', () => {
-    // Brugerens oprindelige reproduktion. Her kan BEGGE regler fange, og det er fint — testen
+    // Brugerens oprindelige reproduktion. Her kan BEGGE regler fange, og det er fint – testen
     // dokumenterer udfaldet for den rapporterede draft, mens de korte cases ovenfor beviser mekanismen.
     expect(isDateLikeDraftAllowed('12-2----------2026', segments)).toBe(false);
     expect(isDateLikeDraftAllowed('12--2--2026', segments)).toBe(false);

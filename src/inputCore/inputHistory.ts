@@ -13,7 +13,7 @@ export const MAX_INPUT_HISTORY_STEPS = 50;
  *
  * Kun FELT-origins må udelade destinationen: standalone MinProcesrente-gridet er en reelt ikke-navigerbar
  * lokation, og restoren fokuserer der blot feltet uden at navigere. En STRUKTUREL rækkehandling har derimod
- * intet felt at fokusere — uden destination ville dens undo gendanne data og efterlade brugeren på en
+ * intet felt at fokusere – uden destination ville dens undo gendanne data og efterlade brugeren på en
  * vilkårlig side. Derfor kræver `CollectionHistoryOrigin` nedenfor destinationen (§3.7).
  */
 type OriginDestination =
@@ -31,7 +31,7 @@ type RequiredOriginDestination = Readonly<{
 }>;
 
 /**
- * Hvor en ændring kom fra — en DISKRIMINERET union, så de to slags commits ikke kan forveksles:
+ * Hvor en ændring kom fra – en DISKRIMINERET union, så de to slags commits ikke kan forveksles:
  *
  * - `kind: 'field'` (felt-/celle-commit) SKAL bære feltadressen. Restoren fokuserer præcis den editorlokation.
  * - `kind: 'collection'` (strukturel rækkehandling: insert/delete/reorder) har intet enkelt felt, men SKAL
@@ -46,8 +46,8 @@ export type FieldHistoryOrigin = OriginDestination & Readonly<{
 }>;
 
 /**
- * Rækkehandlingens origin. Destinationen er PÅKRÆVET i selve kernetypen — ikke kun i surface-hookens
- * `CollectionRowOrigin` — så heller ikke en direkte `dispatchInput`-kalder kan konstruere en rækkehandling
+ * Rækkehandlingens origin. Destinationen er PÅKRÆVET i selve kernetypen – ikke kun i surface-hookens
+ * `CollectionRowOrigin` – så heller ikke en direkte `dispatchInput`-kalder kan konstruere en rækkehandling
  * uden et sted at navigere hen. Uden feltadresse er route + fane det eneste, restoren har at gå efter.
  */
 export type CollectionHistoryOrigin = RequiredOriginDestination & Readonly<{

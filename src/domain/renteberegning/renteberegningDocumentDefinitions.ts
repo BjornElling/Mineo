@@ -206,7 +206,7 @@ export const renteOversigtDocumentDefinition: MineoDocumentDefinition<RenteOvers
 /**
  * Aktiveringsidentiteten for `rente`: hvilken rentekrav-række brugeren klikkede på.
  *
- * KUN identiteten — rækkens beregnede `pdfContext` bæres bevidst IKKE med. Requesten dannes ved klik,
+ * KUN identiteten – rækkens beregnede `pdfContext` bæres bevidst IKKE med. Requesten dannes ved klik,
  * altså før commit-barrieren; et medbragt resultat ville stamme fra den forrige revision. `project`
  * slår derfor `rowId` op i det FRISKE snapshot og fail-closer, hvis rækken er forsvundet eller ikke
  * længere har et gyldigt resultat.

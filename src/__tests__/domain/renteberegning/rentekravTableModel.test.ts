@@ -19,7 +19,7 @@ const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
  *
  * Disse funktioner var tidligere kun indirekte dækket via UI- og schema-tests.
  * Save/load-korrekthed afhænger af, at draft↔committed-konverteringen er tabsfri
- * for gyldigt input og fail-closed for ugyldigt — det hævdes her direkte.
+ * for gyldigt input og fail-closed for ugyldigt – det hævdes her direkte.
  */
 
 describe('ensureRentekravRows', () => {
@@ -86,7 +86,7 @@ describe('shouldAppendRentekravPlaceholder', () => {
   });
 });
 
-describe('rentekravDraftToCommittedRow — fail-closed parsing', () => {
+describe('rentekravDraftToCommittedRow – fail-closed parsing', () => {
   const baseDraft: RentekravDraftRow = {
     id: createRentekravRowId(),
     belob: '',

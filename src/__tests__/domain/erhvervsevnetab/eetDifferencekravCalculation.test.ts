@@ -124,7 +124,7 @@ describe('computeEetDifferencekravCalculation', () => {
     });
   });
 
-  describe('≤ 2 år til folkepension — scenarie 1 (afgørelsesdato > 2 år før FP)', () => {
+  describe('≤ 2 år til folkepension – scenarie 1 (afgørelsesdato > 2 år før FP)', () => {
     it('fradrager løbende ydelser og resterende løbende ydelser frem til folkepensionsdatoen', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
@@ -168,14 +168,14 @@ describe('computeEetDifferencekravCalculation', () => {
     });
   });
 
-  describe('≤ 2 år til folkepension — scenarie 2 (afgørelses­dato ≤ 2 år, virknings­dato > 2 år)', () => {
+  describe('≤ 2 år til folkepension – scenarie 2 (afgørelses­dato ≤ 2 år, virknings­dato > 2 år)', () => {
     // Afgørelsesdato 2021-10-01 er 9 måneder til FP → ≤ 2 år ✓
     // Virkningsdato 2020-01-01 er 30 måneder til FP → > 2 år ✓
     // Kapitaliseringsdato = afgørelsesdato = 2021-10-01, kapPct = 60 (hele EET)
     // Løbende ydelser beregnes fra virkningsdato til dagen før kapitaliseringsdatoen
     // Beregningsdato 2022-09-01 (efter FP)
 
-    it('fradrager løbende ydelser og kapitalbeløb — ingen proformakapitalisering', () => {
+    it('fradrager løbende ydelser og kapitalbeløb – ingen proformakapitalisering', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -210,7 +210,7 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(c.kapitaliseringerAfgoerelser[0]?.kapitaliseringspct).toBe(60);
       expect(kroner(c.kapitaliseringerAfgoerelser[0]?.kapitalbelobOre)).toBe(239221);
 
-      // Fradrag 3: ingen proforma — hele EET er kapitaliseret (loebendeEetPct = 0)
+      // Fradrag 3: ingen proforma – hele EET er kapitaliseret (loebendeEetPct = 0)
       expect(c.proformaKapitalisering).toBeNull();
 
       expect(kroner(c.differencekravOre)).toBeGreaterThan(0);
@@ -246,7 +246,7 @@ describe('computeEetDifferencekravCalculation', () => {
     });
   });
 
-  describe('≤ 2 år til folkepension — scenarie 3 (afgørelses­dato ≤ 2 år, virknings­dato ≤ 2 år)', () => {
+  describe('≤ 2 år til folkepension – scenarie 3 (afgørelses­dato ≤ 2 år, virknings­dato ≤ 2 år)', () => {
     // Virkningsdato = afgørelsesdato = 2021-10-01 (≤ 2 år til FP)
     // Ingen løbende ydelser (virkningsdato > ophørsdato for løbende)
     // Kun kapitalbeløb fradrages
@@ -701,7 +701,7 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(kroner(proforma?.aarsydelseOre)).toBeGreaterThan(kroner(proforma?.aarsydelseGrundlagOre));
   });
 
-  describe('tilbagevirkende kraft — endelig gør midlertidig endelig (toggle)', () => {
+  describe('tilbagevirkende kraft – endelig gør midlertidig endelig (toggle)', () => {
     // Brugerens eksempel: midlertidig 55 % (virkning 01-02-2019),
     // endelig 65 % (virkning 01-09-2019, afgjort 01-12-2019).
     // Skade 2015 (>= 16-06-2011), ung skadelidt → ingen ≤ 2 år til FP-komplikationer.
@@ -836,7 +836,7 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(kroner(result.computation?.fradragLoebendeYdelserOre)).toBe(311582);
     });
 
-    it('omvendt rækkefølge: midlertidig truffet efter endelig fradrages stadig (bevidst — rækkefølge gates ikke)', () => {
+    it('omvendt rækkefølge: midlertidig truffet efter endelig fradrages stadig (bevidst – rækkefølge gates ikke)', () => {
       // Bevidst designvalg (jf. review): TVK-reglen gates IKKE på, at den midlertidige er truffet
       // før den endelige. Så længe datoerne overlapper, fradrages den midlertidiges egen ydelse.
       // Fane 2 markerer sagen med en advarsel, men blokerer ikke beregningen.
@@ -929,7 +929,7 @@ describe('computeEetDifferencekravCalculation', () => {
       const on = buildFoer2011(true);
       expect(off.hasBlockingErrors).toBe(false);
       expect(on.hasBlockingErrors).toBe(false);
-      // Ingen tilbagevirkende kraft-fradrag uanset flag — midlertidig fradrages allerede via skalFradragForetages.
+      // Ingen tilbagevirkende kraft-fradrag uanset flag – midlertidig fradrages allerede via skalFradragForetages.
       expect(on.computation?.afgoerelser.every((a) => a.tilbagevirkendeKraftFradrag === null)).toBe(true);
       expect(on.computation?.fradragLoebendeYdelserOre).toBe(off.computation?.fradragLoebendeYdelserOre);
       expect(on.computation?.differencekravOre).toBe(off.computation?.differencekravOre);
@@ -937,7 +937,7 @@ describe('computeEetDifferencekravCalculation', () => {
   });
 });
 
-describe('computeEetDifferencekravCalculation — fradrag 4 (mer-erstatning ved forhøjet pensionsalder)', () => {
+describe('computeEetDifferencekravCalculation – fradrag 4 (mer-erstatning ved forhøjet pensionsalder)', () => {
   // Skade 01-01-2012 (post-2011: 83 %, 8 % AM-bidrag), kapitaliseret 25 % den 01-06-2014.
   // Beregningsdato 01-06-2017 → kun 67→68-forhøjelsen (29-12-2015) kvalificerer
   // (2020- og 2025-forhøjelserne ligger efter beregningsdatoen).
@@ -1040,7 +1040,7 @@ describe('computeEetDifferencekravCalculation — fradrag 4 (mer-erstatning ved 
   });
 });
 
-describe('computeEetDifferencekravCalculation — forlig om ansvarsgrad', () => {
+describe('computeEetDifferencekravCalculation – forlig om ansvarsgrad', () => {
   // Genbruger scenarie 1 (≤ 2 år til folkepension), hvor differencekravet uden forlig er 638.230 kr.
   const buildMedForlig = (
     forlig: { factor: number; label: string } | null | undefined,

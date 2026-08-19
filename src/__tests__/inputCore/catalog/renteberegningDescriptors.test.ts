@@ -50,7 +50,7 @@ const buildReader = (
   return createInputEvaluation({ input, catalog, sourceToken }).reader;
 };
 
-describe('rentekravBelobField — nulbeløb (BB-038)', () => {
+describe('rentekravBelobField – nulbeløb (BB-038)', () => {
   it('markerer et beløb på 0 kr. rødt med en konkret ordret tooltip', () => {
     const reader = buildReader({ belob: { kind: 'number', value: 0 } }, '2026-08-19');
     const read = reader.read(rentekravBelobField.bind(ROW_ID));
@@ -59,7 +59,7 @@ describe('rentekravBelobField — nulbeløb (BB-038)', () => {
     if (read.status !== 'error') return;
     expect(read.issue.reason).toBe('rule');
     expect(read.issue.message).toBe('Beløbet skal være større end 0 kr.');
-    // `rule` står på allowlisten af reasons, hvis fulde besked vises ordret — netop fordi den
+    // `rule` står på allowlisten af reasons, hvis fulde besked vises ordret – netop fordi den
     // fortæller HVAD rettelsen er. Bliver den generisk, skjules rettelsen dér, hvor brugeren kigger.
     expect(resolveFieldIssueTooltip(read.issue)).toBe('Beløbet skal være større end 0 kr.');
   });
@@ -69,15 +69,15 @@ describe('rentekravBelobField — nulbeløb (BB-038)', () => {
     expect(reader.read(rentekravBelobField.bind(ROW_ID)).status).toBe('usable');
   });
 
-  it('markerer ikke et tomt beløbsfelt — en mangel er ikke en fejl', () => {
+  it('markerer ikke et tomt beløbsfelt – en mangel er ikke en fejl', () => {
     const reader = buildReader({ belob: undefined }, '2026-08-19');
     expect(reader.read(rentekravBelobField.bind(ROW_ID)).status).not.toBe('error');
   });
 });
 
-describe('rentekravTillaegstidField — rentedato efter beregningsdato (BB-037)', () => {
+describe('rentekravTillaegstidField – rentedato efter beregningsdato (BB-037)', () => {
   it('markerer tillægstiden rødt og navngiver den senest mulige rentedato', () => {
-    // 99 måneder efter 01-01-2020 er 01-04-2028 — efter beregningsdatoen 19-08-2026.
+    // 99 måneder efter 01-01-2020 er 01-04-2028 – efter beregningsdatoen 19-08-2026.
     const reader = buildReader({ tillaegstid: 99, enhed: 'maaneder' }, '2026-08-19');
     const read = reader.read(rentekravTillaegstidField.bind(ROW_ID));
 
@@ -95,32 +95,32 @@ describe('rentekravTillaegstidField — rentedato efter beregningsdato (BB-037)'
       .read(rentekravTillaegstidField.bind(ROW_ID)).status).toBe('error');
   });
 
-  it('accepterer en rentedato præcis PÅ beregningsdatoen — grænsen er inklusiv', () => {
+  it('accepterer en rentedato præcis PÅ beregningsdatoen – grænsen er inklusiv', () => {
     // 31 dage efter 01-01-2020 er 01-02-2020. Renteperioden er tom, men lovlig.
     const reader = buildReader({ tillaegstid: 31, enhed: 'dage' }, '2020-02-01');
     expect(reader.read(rentekravTillaegstidField.bind(ROW_ID)).status).toBe('usable');
   });
 
-  it('tier, når beregningsdatoen mangler — grænsen findes ikke endnu', () => {
+  it('tier, når beregningsdatoen mangler – grænsen findes ikke endnu', () => {
     const reader = buildReader({ tillaegstid: 99, enhed: 'maaneder' }, undefined);
     expect(reader.read(rentekravTillaegstidField.bind(ROW_ID)).status).not.toBe('error');
   });
 
-  it('tier, når «Renter fra» mangler — det felt bærer selv sin egen mangel', () => {
+  it('tier, når «Renter fra» mangler – det felt bærer selv sin egen mangel', () => {
     const reader = buildReader({ renterFra: undefined, tillaegstid: 99, enhed: 'maaneder' }, '2026-08-19');
     expect(reader.read(rentekravTillaegstidField.bind(ROW_ID)).status).not.toBe('error');
   });
 
-  it('tier ved tillægstid 0 — enheden er da uden virkning', () => {
+  it('tier ved tillægstid 0 – enheden er da uden virkning', () => {
     const reader = buildReader({ tillaegstid: 0, enhed: 'maaneder' }, '2026-08-19');
     expect(reader.read(rentekravTillaegstidField.bind(ROW_ID)).status).toBe('usable');
   });
 });
 
-describe('rentekravRenterFraField — grænsens afsender (BB-043)', () => {
+describe('rentekravRenterFraField – grænsens afsender (BB-043)', () => {
   it('navngiver beregningsdatoen frem for at kalde grænsen «dags dato»', () => {
-    // Beskeden genkendte grænsen på dens VÆRDI: var beregningsdatoen dags dato — det hyppigste
-    // tilfælde, fordi der er en knap til det — tilskrev den grænsen kalenderen og sagde, at datoen
+    // Beskeden genkendte grænsen på dens VÆRDI: var beregningsdatoen dags dato – det hyppigste
+    // tilfælde, fordi der er en knap til det – tilskrev den grænsen kalenderen og sagde, at datoen
     // lå i fremtiden. Problemet var i virkeligheden, at beregningsdatoen skulle flyttes.
     const beregningsdato = '2026-06-30';
     const reader = buildReader({ renterFra: toISODateString('2026-07-15') }, beregningsdato);

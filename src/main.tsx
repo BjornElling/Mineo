@@ -30,7 +30,7 @@ void bootstrapClientApp({
     setupPwaLaunchQueueConsumer();
     await hydratePendingPwaFileOpenRequest();
   },
-  // En opdatering er enten helt gennemført her — før render — eller slet ikke sket. Der findes
+  // En opdatering er enten helt gennemført her – før render – eller slet ikke sket. Der findes
   // bevidst ingen `afterDesktopRenderSetup`: en åben session skifter aldrig version.
   beforeDesktopRender: ensureLatestVersionBeforeRender,
   setupPwaInstallPromptCapture,

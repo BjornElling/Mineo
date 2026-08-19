@@ -5,7 +5,7 @@
  * de koblede testfiler og topologiens stier eksisterer, og at hver kontrakt har et
  * `**Senest verificeret mod kode:**`-felt i det rigtige FORMAT. Ingen af delene siger noget om, hvorvidt
  * kontraktens egne påstande om koden er sande. En kontrakt kunne navngive en fil eller et symbol, der var
- * omdøbt for en måned siden, og hele suiten ville stå grøn — netop den fejlklasse, `acceptanceMatrix.test.ts`
+ * omdøbt for en måned siden, og hele suiten ville stå grøn – netop den fejlklasse, `acceptanceMatrix.test.ts`
  * kalder «grøn af tomhed».
  *
  * Det er ikke hypotetisk. Ved gennemgangen 2026-08-07 fandtes to levende drift-tilfælde i kontrakter, der
@@ -15,19 +15,19 @@
  *   - `satser-contract.md` navngav `satserSchema.ts`; filen hedder `satserSchemas.ts` (og var stavet
  *     rigtigt i `schema-evolution.md`, så de to kontrakter modsagde hinanden).
  *
- * Begge er ét bogstav galt i en normativ kontrakt — usynligt for typecheck, lint, arkitektur-harnesset og
+ * Begge er ét bogstav galt i en normativ kontrakt – usynligt for typecheck, lint, arkitektur-harnesset og
  * coverage-matrixen, fordi ingen af dem læser kontrakternes brødtekst.
  *
  * **Hvorfor ikke bare "enhver navngiven fil skal findes".** Kontrakterne bruger bevidst navne på ting, der
- * IKKE må findes — fraværsværn. `document-output-contract.md` skriver det eksplicit: «Der findes ingen
- * afviklende dokumentservice og ingen `documentService.ts` — navnet står her som fraværsværn.» En regel om,
+ * IKKE må findes – fraværsværn. `document-output-contract.md` skriver det eksplicit: «Der findes ingen
+ * afviklende dokumentservice og ingen `documentService.ts` – navnet står her som fraværsværn.» En regel om,
  * at alt navngivet skal eksistere, ville tvinge de værn ud af kontrakterne og dermed fjerne den eneste
  * beskrivelse af, hvad der er revet ned. Derfor har hver reference en RETNING: `present` eller `absent`.
  * Begge håndhæves, så en genopstået `documentService.ts` bliver rød på lige fod med et dødt navn.
  *
  * **Hvorfor et eksplicit register og ikke en prosaparser.** Retningen kunne i princippet udledes af den
  * omgivende danske tekst («der findes ingen …», «blev fjernet»). Det ville være et værn, hvis korrekthed
- * afhang af sprogbrug i et dokument, mennesker omskriver — og repoet har allerede lært, at dansk prosa
+ * afhang af sprogbrug i et dokument, mennesker omskriver – og repoet har allerede lært, at dansk prosa
  * bryder markørbaserede værn. Registret er derfor data: en påstand skrives ned én gang, og testen afgør,
  * om den er sand.
  */
@@ -57,7 +57,7 @@ const exists = (relativePath: string): boolean =>
 
 /**
  * Modulspecifikationer i kontrakterne står ofte uden endelse (`src/types/fieldErrors`), præcis som i en
- * import. Opslaget skal derfor prøve de endelser, en TS-import selv ville prøve — ellers ville et helt
+ * import. Opslaget skal derfor prøve de endelser, en TS-import selv ville prøve – ellers ville et helt
  * legitimt referenceformat blive rapporteret som dødt.
  */
 const MODULE_SUFFIXES = ['', '.ts', '.tsx', '.mjs', '.json', '/index.ts', '/index.tsx'] as const;
@@ -92,7 +92,7 @@ const walk = (absoluteDir: string, visit: (absolutePath: string) => void): void 
 
 let basenameCache: ReadonlySet<string> | null = null;
 
-/** Alle filnavne (uden sti) under kildemapperne — til de referencer, kontrakterne skriver bart. */
+/** Alle filnavne (uden sti) under kildemapperne – til de referencer, kontrakterne skriver bart. */
 export const sourceBasenames = (): ReadonlySet<string> => {
   if (basenameCache !== null) return basenameCache;
   const names = new Set<string>();
@@ -126,10 +126,10 @@ export const stripCommentsAndStrings = (source: string): string => {
     if (/[A-Za-z_$][\w$]*\s*:\s*$/.test(before) || /[=!]==?\s*$/.test(before)) return match;
     // `as const`-literal.
     if (/^\s*as const/.test(after)) return match;
-    // Initialiser til en navngiven konstant: `export const X = 'literal'`. Værdien ER koden — fx
+    // Initialiser til en navngiven konstant: `export const X = 'literal'`. Værdien ER koden – fx
     // storage-nøglen `mineo_app_settings_v1`, som `app-settings.md` med rette navngiver.
     if (/\b(const|let|var)\s+[A-Za-z_$][\w$]*\s*(?::[^=]*)?=\s*$/.test(before)) return match;
-    // Modulspecifikation i en import/export: `from '../utils/pwaLaunchQueue'`. Stien ER koden —
+    // Modulspecifikation i en import/export: `from '../utils/pwaLaunchQueue'`. Stien ER koden –
     // et modul, der kun nås gennem sine importstier, ville ellers se dødt ud.
     if (/\b(from|import|require\()\s*$/.test(before)) return match;
     return match[0]!.repeat(2);
@@ -145,21 +145,21 @@ let sourceTextCache: string | null = null;
 /**
  * Hele kildeteksten under `src/` og `scripts/` som ét opslag.
  *
- * Et symbolopslag her er bevidst SVAGT: det spørger kun, om navnet forekommer i kildegrafen — ikke om det
+ * Et symbolopslag her er bevidst SVAGT: det spørger kun, om navnet forekommer i kildegrafen – ikke om det
  * er en eksporteret deklaration. Det er det rigtige loft for netop denne kontrol. Kontrakterne navngiver
  * både typer, funktioner, konstanter, felter i objektliteraler, AST-regel-id'er i strenge og
  * generator-API'er som `document.writeTitle()`; en «skal være en eksporteret deklaration»-regel ville
  * afvise halvdelen af dem med falske fund. Kontrollen fanger den fejl, den er bygget til: navnet findes
  * slet ikke længere nogen steder, fordi det er omdøbt eller slettet.
  *
- * **Kun PRODUKTIONSKODE, og kun KODE — ikke kommentarer.** To udeladelser, begge load-bearing:
+ * **Kun PRODUKTIONSKODE, og kun KODE – ikke kommentarer.** To udeladelser, begge load-bearing:
  *
  *   - `src/__tests__/**` udelades, så en kontrakts påstand om koden ikke kan bekræftes af en test, der
  *     blot nævner navnet.
  *   - Kommentarer og strengliteraler strippes, fordi kodebasen bevidst NAVNGIVER slettede mekanismer i
  *     sine kommentarer for at forbyde dem igen («ingen `useGridRowPersistenceCore`, `invalidDrafts`
  *     eller fingerprint»). Uden strippet ville hvert eneste fraværsværn se sit eget forbud som et bevis
- *     på, at det forbudte lever — verificeret på `StyledDateField`, `useSliceRowDrafts` og
+ *     på, at det forbudte lever – verificeret på `StyledDateField`, `useSliceRowDrafts` og
  *     `useGridRowPersistenceCore`, der ALLE kun findes i sådanne kommentarer.
  *
  * Tilbage står den rene kodegraf, hvor «findes» betyder «bruges», ikke «omtales». Strippet er
@@ -167,7 +167,7 @@ let sourceTextCache: string | null = null;
  * fra prosa, og AST-harnesset ejer i forvejen den præcise håndhævelse af forbudte navne.
  *
  * **Undtaget fra streng-strippet: literale UNIONS-medlemmer.** Kontrakterne navngiver med rette
- * værdier som `missing_amount`, der kun findes som strengliteral — men i en TYPE (`issue: 'invalid'
+ * værdier som `missing_amount`, der kun findes som strengliteral – men i en TYPE (`issue: 'invalid'
  * | 'missing_amount'`), hvilket er ægte, levende kode og ikke prosa. Et literal, der optræder i en
  * unionstype eller som `as const`, bevares derfor.
  */
@@ -179,7 +179,7 @@ export const sourceText = (): string => {
     if (!fs.existsSync(absoluteDir)) continue;
     walk(absoluteDir, (absolutePath) => {
       if (!/\.(ts|tsx|mjs|js|json)$/.test(absolutePath)) return;
-      // Kontrakt-MARKDOWN må ikke tælle som kilde — en påstand ville kunne bekræfte sig selv. Men
+      // Kontrakt-MARKDOWN må ikke tælle som kilde – en påstand ville kunne bekræfte sig selv. Men
       // `contract-topology.json` ER maskinlæsbar kilde: kontrakterne henviser med rette til dens
       // felter (`domainContracts`, `crossCuttingContracts`), og de findes kun dér.
       if (absolutePath.includes(`${path.sep}contracts${path.sep}`) && !absolutePath.endsWith('.json')) return;
@@ -206,8 +206,8 @@ export const sourceText = (): string => {
  * Forekommer symbolnavnet som et helt ord i kildegrafen?
  *
  * Et navn, der bærer sit eget modul, tæller også som fundet, når modulfilen hedder det samme med
- * lille begyndelsesbogstav: kontrakterne skriver konceptet `EoFileCodec`, mens filen — efter husets
- * navnekonvention — hedder `eoFileCodec.ts`. Det er samme ting, ikke drift.
+ * lille begyndelsesbogstav: kontrakterne skriver konceptet `EoFileCodec`, mens filen – efter husets
+ * navnekonvention – hedder `eoFileCodec.ts`. Det er samme ting, ikke drift.
  */
 export const symbolReferenceExists = (symbol: string): boolean => {
   const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -220,7 +220,7 @@ export const symbolReferenceExists = (symbol: string): boolean => {
 export const isPathLike = (reference: string): boolean =>
   reference.includes('/') || /\.(ts|tsx|mjs|json|md)$/.test(reference);
 
-/** Er referencen sand — dvs. stemmer dens faktiske tilstand med den påstået retning? */
+/** Er referencen sand – dvs. stemmer dens faktiske tilstand med den påstået retning? */
 export const referenceHolds = (entry: ContractReference): boolean => {
   const found = isPathLike(entry.reference)
     ? pathReferenceExists(entry.reference) || sourceBasenames().has(entry.reference)

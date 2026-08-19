@@ -56,7 +56,7 @@ describe('detectOverlappingPeriods', () => {
     expect(overlap.has('c')).toBe(true);
   });
 
-  it('svie/smerte: ethvert overlap markeres — også når perioderne har samme tilstand', () => {
+  it('svie/smerte: ethvert overlap markeres – også når perioderne har samme tilstand', () => {
     // Tilstand er irrelevant for overlap-afvisning: validator og svieSmerteEngine afviser
     // ethvert overlap. detectOverlappingPeriods ser kun på fra/til, og det er den korrekte regel.
     const rows = [

@@ -24,7 +24,7 @@ describe('StyledCheckbox', () => {
 
   // `lockedOn` er den MODSATTE tilstand af `disabled`: permanent tilvalg, ikke programinaktiv.
   // Testdataene sætter derfor `checked={false}`, så et grønt resultat ikke kan forklares af, at
-  // værdien tilfældigvis var sand — kun låsningen kan give hakket.
+  // værdien tilfældigvis var sand – kun låsningen kan give hakket.
   it('viser et låst-til element markeret, selv når den afsluttede værdi er falsk', () => {
     const onCommit = vi.fn();
     render(<StyledCheckbox checked={false} lockedOn label="Opgørelse" onCommit={onCommit} />);

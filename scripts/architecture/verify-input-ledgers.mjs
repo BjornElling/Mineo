@@ -35,7 +35,7 @@ const documentCount = readConstant(consumerSource, 'EXPECTED_DOCUMENT_COUNT');
 /**
  * De testfiler validatoren SKAL køre.
  *
- * `greenfieldPhase0Inventory.test.ts` stod her indtil Fase 6's genåbning — filen var omdøbt til
+ * `greenfieldPhase0Inventory.test.ts` stod her indtil Fase 6's genåbning – filen var omdøbt til
  * `consumerInventory.test.ts`, men scriptet blev ikke fulgt med. Vitest behandler en ukendt sti som
  * "intet match" frem for en fejl, så `npm run verify:ledgers` rapporterede grønt, mens det kun kørte
  * ÉN af de to filer: schema-drift-snapshottet og consumer-registrene var slet ikke dækket.
@@ -82,9 +82,9 @@ if (result.error !== undefined) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 
 // Bekræft at kørslen faktisk DÆKKEDE begge filer. Uden dette check kan en fremtidig omdøbning igen
-// reducere validatoren til en tom, grøn kørsel — præcis den fejl Fase 6's genåbning fandt.
+// reducere validatoren til en tom, grøn kørsel – præcis den fejl Fase 6's genåbning fandt.
 if (!existsSync(reportPath)) {
-  throw new Error('Inventarkørslen efterlod ingen JSON-rapport — dækningen kan ikke verificeres.');
+  throw new Error('Inventarkørslen efterlod ingen JSON-rapport – dækningen kan ikke verificeres.');
 }
 const report = JSON.parse(readFileSync(reportPath, 'utf8'));
 rmSync(reportPath, { force: true });
@@ -92,7 +92,7 @@ rmSync(reportPath, { force: true });
 const ranFiles = (report.testResults ?? []).map((suite) => String(suite.name).replaceAll('\\', '/'));
 for (const testFile of LEDGER_TEST_FILES) {
   if (!ranFiles.some((name) => name.endsWith(testFile))) {
-    throw new Error(`Inventarvalidatoren kørte ikke ${testFile} — kørslen er ikke dækkende.`);
+    throw new Error(`Inventarvalidatoren kørte ikke ${testFile} – kørslen er ikke dækkende.`);
   }
 }
 const executedTests = report.numTotalTests ?? 0;
@@ -106,7 +106,7 @@ process.stdout.write(
   `\nInventarkørsel dækkede ${ranFiles.length} testfiler / ${executedTests} tests\n`
 );
 
-process.stdout.write('\nInputregistre — verificeret mod levende kilder\n');
+process.stdout.write('\nInputregistre – verificeret mod levende kilder\n');
 process.stdout.write(`  Datafelter:       ${fieldCount}\n`);
 process.stdout.write(`  Collections:      ${collectionCount}\n`);
 process.stdout.write(`  Beregninger:      ${calculationCount}\n`);

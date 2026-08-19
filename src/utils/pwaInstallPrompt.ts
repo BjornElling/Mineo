@@ -12,10 +12,10 @@ export type PwaInstallResult =
 /**
  * Hvor brugeren står, når hen beder om at hente hjælpeprogrammet.
  *
- * - `running`   — vi kører allerede INDE i det installerede hjælpeprogram. Der er intet at åbne.
- * - `installed` — vi står i browseren, men hjælpeprogrammet er installeret på maskinen.
- * - `notInstalled` — opslaget bekræfter, at der ikke findes en installation.
- * - `unknown` — browseren kan ikke give et sikkert svar.
+ * - `running`   – vi kører allerede INDE i det installerede hjælpeprogram. Der er intet at åbne.
+ * - `installed` – vi står i browseren, men hjælpeprogrammet er installeret på maskinen.
+ * - `notInstalled` – opslaget bekræfter, at der ikke findes en installation.
+ * - `unknown` – browseren kan ikke give et sikkert svar.
  */
 export type PwaInstallationState = 'running' | 'installed' | 'notInstalled' | 'unknown';
 
@@ -101,17 +101,17 @@ const isMineoRelatedApplication = (app: RelatedApplication): boolean => {
 };
 
 /**
- * Afgør, om hjælpeprogrammet allerede er installeret — set fra der hvor brugeren står.
+ * Afgør, om hjælpeprogrammet allerede er installeret – set fra der hvor brugeren står.
  *
  * Ingen af signalerne er alene tilstrækkelige, og de er bevidst ordnet efter faldende sikkerhed:
  *
  * 1. Kører vi i PWA-vinduet, ER den installeret; intet opslag kan modsige det.
  * 2. `appinstalled` i denne fane er ligeledes et positivt bevis (modulets `isInstalled`).
  * 3. `getInstalledRelatedApps()` er det eneste signal, der kan se en installation foretaget i en
- *    ANDEN fane eller session. Kun Chromium har den, og den kan kaste — et kast betyder «ved ikke»,
+ *    ANDEN fane eller session. Kun Chromium har den, og den kan kaste – et kast betyder «ved ikke»,
  *    ikke «ikke installeret».
  * 4. Har browseren tilbudt os en installprompt, er den beviseligt IKKE installeret. Fravær af både
- *    opslag og prompt er derimod ukendt — især Safari/Firefox kan hverken udspørges eller levere
+ *    opslag og prompt er derimod ukendt – især Safari/Firefox kan hverken udspørges eller levere
  *    `beforeinstallprompt`, så det må ikke fejlagtigt kaldes `notInstalled`.
  */
 export const detectPwaInstallationState = async (): Promise<PwaInstallationState> => {

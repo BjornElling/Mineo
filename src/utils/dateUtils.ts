@@ -36,7 +36,7 @@ export const getTodayLocalISO = (): ISODateString => {
  * Dags dato i dansk tidszone (Europe/Copenhagen) som ISODateString.
  *
  * Bruges af fejlrapport-flowet (filnavne, email-emne), så datoen altid
- * afspejler den danske kalenderdag — uafhængigt af brugerens maskine-tidszone
+ * afspejler den danske kalenderdag – uafhængigt af brugerens maskine-tidszone
  * og konsistent med rapportens danske tidsstempler.
  */
 export const getTodayCopenhagenISO = (): ISODateString => {
@@ -124,7 +124,7 @@ export const getInclusivePeriodEndByMonths = (startDate: Date, months: number): 
  *
  * Parser start-datoen, lægger N måneder til, trækker én dag fra (inklusiv slutdato) og
  * formaterer tilbage til dansk format. Returnerer `undefined` hvis start-datoen ikke kan
- * parses (fail-closed for kilde-opslag — kalderen returnerer da et udefineret interval).
+ * parses (fail-closed for kilde-opslag – kalderen returnerer da et udefineret interval).
  *
  * Ét sted for parse → +N mdr − 1 dag → format, så alle reguleringsdato-intervaller deler
  * nøjagtig samme aritmetik: KRL-satstabellen, KL-lønaftalerne og offentlig løn med `months = 6`

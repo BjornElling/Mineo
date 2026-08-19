@@ -33,7 +33,7 @@ import {
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
- * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte.
+ * på et servicekald – en strammere assertion, fordi den kræver at HELE kæden faktisk kørte.
  */
 const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
 
@@ -45,7 +45,7 @@ vi.mock('../../../../document/downloadArtifact', async (importOriginal) => ({
 /**
  * `scrollToFieldAddress` mockes, fordi jsdom hverken har layout eller scroll: den ægte funktion ville
  * køre sin rAF-retry-løkke uden nogensinde at finde en editor (Stamdata-siden er ikke mountet her).
- * Påstanden er koblingen — at fanen bruger den DELTE markeringsvej med den rigtige feltadresse.
+ * Påstanden er koblingen – at fanen bruger den DELTE markeringsvej med den rigtige feltadresse.
  */
 const mockScrollToFieldAddress = vi.hoisted(() => vi.fn());
 
@@ -92,7 +92,7 @@ const renderTab = () => render(
   </MemoryRouter>
 );
 
-describe('MenberegningTab — reader-projektion + download-gate', () => {
+describe('MenberegningTab – reader-projektion + download-gate', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
@@ -109,7 +109,7 @@ describe('MenberegningTab — reader-projektion + download-gate', () => {
 
     await user.click(downloadButton);
     await waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
-    // Journalnummeret kommer fra stamdata og indgår i filnavnet — beviser at den friske
+    // Journalnummeret kommer fra stamdata og indgår i filnavnet – beviser at den friske
     // stamdata-dependency nåede hele vejen ind i det leverede dokument.
     const artifact = mockTriggerDocumentDownload.mock.calls[0]?.[0] as { filename: string };
     expect(artifact.filename).toContain('J-2026-001');
@@ -130,7 +130,7 @@ describe('MenberegningTab — reader-projektion + download-gate', () => {
       expect(screen.getByTestId('varigemen-download')).toBeDisabled();
     });
 
-    // Værdien er committet canonical (kan gemmes i .eo) — den blev IKKE afvist af feltet.
+    // Værdien er committet canonical (kan gemmes i .eo) – den blev IKKE afvist af feltet.
     expect(slimInputStore.getState().input.sections.varigemen).toMatchObject({ mengrad: 121 });
 
     await user.click(screen.getByTestId('varigemen-download'));
@@ -189,11 +189,11 @@ describe('MenberegningTab — reader-projektion + download-gate', () => {
  *  1. teksten findes ikke som synlig tekst i dokumentet, og
  *  2. den findes som ikonets tilgængelige navn (MUI's `Tooltip` sætter `aria-label` på den disablede knap).
  *
- * Ben 1 alene ville være grønt, hvis årsagen forsvandt HELT — hvilket ville gøre blokeringen usynlig og
+ * Ben 1 alene ville være grønt, hvis årsagen forsvandt HELT – hvilket ville gøre blokeringen usynlig og
  * bryde den modsatte invariant. Ben 2 alene ville være grønt i den fejltilstand, brugeren rapporterede.
  * Sammen pinner de netop "ét sted, og det sted er tooltippet".
  */
-describe('MenberegningTab — gate-årsagen vises kun i tooltippet', () => {
+describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
@@ -206,21 +206,21 @@ describe('MenberegningTab — gate-årsagen vises kun i tooltippet', () => {
     const button = screen.getByTestId('varigemen-download');
     expect(button).toBeDisabled();
     expect(button).toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
-    // Ingen synlig tekstknude med samme besked — det var dobbeltvisningen brugeren fandt.
+    // Ingen synlig tekstknude med samme besked – det var dobbeltvisningen brugeren fandt.
     expect(screen.queryByText(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE)).toBeNull();
   });
 
   /**
-   * En méngrad uden for 1..120 er en RØD feltfejl, ikke en manglende indtastning — og efter brugerkravet
+   * En méngrad uden for 1..120 er en RØD feltfejl, ikke en manglende indtastning – og efter brugerkravet
    * 2026-07-30 skal de to blokeringer sige noget FORSKELLIGT: "Fejl i indtastning" mod "Indtastning mangler".
    * Tidligere kollapsede de til én universel tekst, så knappen svarede "Indtastning mangler" på et felt, der
-   * var udfyldt — bare forkert.
+   * var udfyldt – bare forkert.
    *
    * Testen asserter begge retninger (den viser den nye tekst OG ikke den gamle), fordi en assertion på kun
    * den nye ville være grøn, hvis begge tekster stod der. Ét-kanal-invarianten fra klassen ovenfor gælder
    * uændret: teksten må stadig kun findes som tooltip, aldrig som synlig tekst.
    */
-  it('bruger "Fejl i indtastning" for en rød feltfejl — IKKE "Indtastning mangler"', async () => {
+  it('bruger "Fejl i indtastning" for en rød feltfejl – IKKE "Indtastning mangler"', async () => {
     const user = userEvent.setup();
     hydrate({ mengrad: 10, beregningsdato: toISODateString('2020-01-01') }, validStamdata);
     renderTab();
@@ -241,7 +241,7 @@ describe('MenberegningTab — gate-årsagen vises kun i tooltippet', () => {
   });
 
   /**
-   * «Mangler (angiv i Stamdata)» skal PEGE på feltet — ikke kun skifte side.
+   * «Mangler (angiv i Stamdata)» skal PEGE på feltet – ikke kun skifte side.
    *
    * Linkene navigerede tidligere blot til Stamdata og efterlod brugeren dér uden anvisning, selv om det er
    * den reneste form for «en indtastning mangler»: feltet findes, det er blot tomt. Blokerings-feedbacken

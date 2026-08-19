@@ -3,7 +3,7 @@ import { expect, TEST_PASSWORD, test } from './support/mineoTest';
 
 /**
  * Enhedstestene beviser komponentens logik mod mocks. Denne test beviser det, mocks ikke kan:
- * at de RIGTIGE browser-signaler når frem — `getInstalledRelatedApps` og standalone-display-mode —
+ * at de RIGTIGE browser-signaler når frem – `getInstalledRelatedApps` og standalone-display-mode –
  * og at dialogen, knapperne og fokus opfører sig i en ægte browser-motor.
  *
  * Signalerne installeres via `addInitScript`, fordi ingen af dem kan fremkaldes ægte i en testbrowser:
@@ -29,7 +29,7 @@ const applyScenario = async (page: Page, scenario: InstallationScenario): Promis
       // Efterlign PWA-vinduet: kun display-mode-forespørgslen må ændre svar, alle andre
       // media queries skal fortsat besvares af den ægte motor, så layoutet ikke forvrides.
       //
-      // Det ÆGTE MediaQueryList-objekt returneres med `matches` overskrevet — det må ikke erstattes
+      // Det ÆGTE MediaQueryList-objekt returneres med `matches` overskrevet – det må ikke erstattes
       // af en objekt-kopi: `addEventListener`/`removeEventListener` ligger på prototypen, så en
       // spread ville tabe dem, og abonnementet i `useInstalledPwaDisplayMode` ville kaste.
       const nativeMatchMedia = window.matchMedia.bind(window);
@@ -166,7 +166,7 @@ test.describe('«Installér hjælpeprogram» når hjælpeprogrammet allerede er 
 
   test('inde i PWA-vinduet: dialogen siger «allerede åbent» og har kun Luk', async ({ page }) => {
     // Standalone-tilstanden fodrer appens egen display-mode-hook. Går den i stykker, render'er
-    // fejlgrænsen i stedet for siden — og en dialog-assertion alene ville ikke afsløre det.
+    // fejlgrænsen i stedet for siden – og en dialog-assertion alene ville ikke afsløre det.
     const runtimeSignals: string[] = [];
     page.on('pageerror', (error) => runtimeSignals.push(`pageerror: ${error.message}`));
 

@@ -3,8 +3,8 @@
  *
  * Al beslutning om HVILKET felt en piletast peger på er her, som funktioner over værdier
  * (rect + række-container), ikke over live DOM. Det er den halvdel af den gamle
- * `Container.tsx`-monolit, der bar den reelle logik — visuel række-gruppering med
- * tolerance, vandret sortering, cirkulær nabo-udpegning — og som kun kunne rammes
+ * `Container.tsx`-monolit, der bar den reelle logik – visuel række-gruppering med
+ * tolerance, vandret sortering, cirkulær nabo-udpegning – og som kun kunne rammes
  * gennem en fuld render med jsdom-layout.
  *
  * Modulet kender ikke React, ikke `KeyboardEvent` og ikke fokus. Det tager en liste af
@@ -12,8 +12,8 @@
  * tastetryk til kald herind og udfører fokus-effekten.
  *
  * Række-begrebet har bevidst to kilder, i denne prioritet:
- * 1. En eksplicit DOM-række-container (`CONTAINER_ROW_SELECTOR`) — sidens egen markering.
- * 2. Visuel `top`-nærhed inden for `VISUAL_ROW_TOLERANCE_PX` — for felter uden container.
+ * 1. En eksplicit DOM-række-container (`CONTAINER_ROW_SELECTOR`) – sidens egen markering.
+ * 2. Visuel `top`-nærhed inden for `VISUAL_ROW_TOLERANCE_PX` – for felter uden container.
  *
  * Blandingen er ikke et fald-tilbage, men en dokumenteret regel: et felt UDEN container
  * regnes med i en containerbaseret række, hvis det ligger på samme linje visuelt, mens et
@@ -26,7 +26,7 @@ export const VISUAL_ROW_TOLERANCE_PX = 8;
 
 /**
  * Et navigations-kandidat-felt, reduceret til de egenskaber geometrien har brug for.
- * `element` er kun en opaque identitet her — kernen læser aldrig DOM fra den.
+ * `element` er kun en opaque identitet her – kernen læser aldrig DOM fra den.
  */
 export type FocusCandidate<TElement> = Readonly<{
   element: TElement;
@@ -34,7 +34,7 @@ export type FocusCandidate<TElement> = Readonly<{
   rect: Readonly<{ left: number; top: number }>;
   /** Feltets eksplicitte række-container, hvis det har en. Identitets-sammenlignes. */
   rowContainer: unknown | null;
-  /** Række-containerens egen `top` — rækkens sorteringsnøgle, når den findes. */
+  /** Række-containerens egen `top` – rækkens sorteringsnøgle, når den findes. */
   rowContainerTop: number | null;
   /** Ligger feltet inde i et subtræ med egen tabel-navigation? */
   isInTableNavigation: boolean;

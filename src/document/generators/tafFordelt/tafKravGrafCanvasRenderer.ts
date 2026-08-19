@@ -1,8 +1,8 @@
 // Canvas-oversætteren for TAF-kravgrafens scene-model.
 //
 // Modulet indeholder BEVIDST ingen beslutninger: hvert scene-primitiv oversættes 1:1 til
-// canvas-kald. Alt hvad der bestemmer grafens udseende — koordinater, farver, skrifter,
-// rækkefølge — er afgjort i `tafKravGrafScene.ts` og dækket af test dér. Det er grunden
+// canvas-kald. Alt hvad der bestemmer grafens udseende – koordinater, farver, skrifter,
+// rækkefølge – er afgjort i `tafKravGrafScene.ts` og dækket af test dér. Det er grunden
 // til, at dette lag kan være utestet: det kan ikke træffe et forkert valg, kun oversætte
 // et allerede truffet.
 //

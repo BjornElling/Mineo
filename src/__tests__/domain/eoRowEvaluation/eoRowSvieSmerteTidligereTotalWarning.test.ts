@@ -38,7 +38,7 @@ const getTidligereTotalRow = (
   );
 };
 
-describe('buildEoSvieSmerteRows — tidligere svie-/smertebeløb', () => {
+describe('buildEoSvieSmerteRows – tidligere svie-/smertebeløb', () => {
   it.each([
     ['tomt', undefined],
     ['nul', amount(0)],
@@ -90,7 +90,7 @@ describe('buildEoSvieSmerteRows — tidligere svie-/smertebeløb', () => {
   });
 });
 
-describe('collectAllEoRows — tidligere svie-/smertebeløb', () => {
+describe('collectAllEoRows – tidligere svie-/smertebeløb', () => {
   it('viser teksten og linker til det konkrete beløbsfelt', () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),

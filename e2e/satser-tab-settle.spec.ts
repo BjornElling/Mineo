@@ -1,6 +1,6 @@
 import { expect, login, openPage, setFieldValueAndSettle, test } from './support/mineoTest';
 
-test.describe('Satser — afslutning af singleton-draft med Tab', () => {
+test.describe('Satser – afslutning af singleton-draft med Tab', () => {
   test('Tab og Shift+Tab afslutter Satsår og bevarer fokus på feltet', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Satser');

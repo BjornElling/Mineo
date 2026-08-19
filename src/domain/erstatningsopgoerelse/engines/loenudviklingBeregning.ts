@@ -52,7 +52,7 @@ export const buildTafArbejdsdageSet = (
 
 // Scanner hele sættet pr. kald (O(sæt)). Kaldes i segment-løkker, men sættet er præbygget (ikke
 // gen-materialiseret pr. segment, jf. docs/architecture/date-interval-performance-architecture.md), og
-// segmenter stammer fra regulerings-brudpunkter (få pr. år) — en amortiseret binær-søgnings-tæller
+// segmenter stammer fra regulerings-brudpunkter (få pr. år) – en amortiseret binær-søgnings-tæller
 // ville kræve threading gennem alle kaldsteder for marginal gevinst og er bevidst undladt.
 export const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateString>, fra: ISODateString, til: ISODateString): number => {
   let count = 0;
@@ -173,7 +173,7 @@ export const buildLoenudviklingModel = (
     // KL-lønaftaler regulerer trinvist med afrunding på hvert trin (jf. klLoenaftalerReguleretLoen.ts
     // og docs/domain/taf/kl-loenaftaler-regulering.md), modsat det enkelt-indeksforhold de
     // øvrige modeller bruger. For KL-lønaftaler erstattes segmentets deltaPct derfor med den akkumulerede
-    // regulering afledt af den kæde-opregulerede, afrundede løn — i fuld præcision, så
+    // regulering afledt af den kæde-opregulerede, afrundede løn – i fuld præcision, så
     // TAF-beløbet bliver præcis afrund(løn × antal). deltaPct holdes som intern repræsentation
     // (korrekt for tafPerYearDerived og sygeferiegodtgørelse); den vises aldrig som akkumuleret.
     const konsolideretForBase = strategiData.konsolideret;
@@ -187,7 +187,7 @@ export const buildLoenudviklingModel = (
       const roundedDeltaPct = klLoenaftalerReguleretLoenResolver
         ? klLoenaftalerReguleretLoenResolver.deltaPctAt(segment.fra)
         : roundReguleringDeltaPct(segment.deltaPct);
-      // KL-lønaftaler: den opregulerede, afrundede enhedsløn for perioden — bæres med på segmentet,
+      // KL-lønaftaler: den opregulerede, afrundede enhedsløn for perioden – bæres med på segmentet,
       // så indkomst-linjerne kan vise "antal á reguleret løn = beløb" uden faktor-tekst.
       const klLoenaftalerReguleretLoenOre = klLoenaftalerReguleretLoenResolver
         ? fromKroner(klLoenaftalerReguleretLoenResolver.loenAt(segment.fra))
@@ -267,7 +267,7 @@ export const buildLoenudviklingModel = (
       const alleIngen = strategiDataByIndex.every((strategiData) => strategiData.strategi === 'ingen');
       if (alleIngen || income.benefits.length > 0) {
         // Arbejdsdage-grundlaget afhænger kun af (values, tafRanges) og er dermed loop-invariant.
-        // Byg det ÉN gang frem for pr. range — ellers gen-materialiseres hele arbejdsdage-sættet
+        // Byg det ÉN gang frem for pr. range – ellers gen-materialiseres hele arbejdsdage-sættet
         // (som selv itererer alle ranges) for hver eneste range = O(ranges² × dage).
         const ingenArbejdsdageSet =
           tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER

@@ -15,13 +15,13 @@ import { deepEqual } from '../../utils/deepEqual';
  * VÆRN: en indstilling, der lover brugeren en standardværdi, SKAL ændre noget.
  *
  * Fejlklassen er tavs af natur. Indstillingssiden viste "Udkast-stempel på nye dokumenter", brugeren slog den
- * til, og hver ny sag startede alligevel på schemaets 'Nej' — uden fejl, uden advarsel, uden noget at lægge
+ * til, og hver ny sag startede alligevel på schemaets 'Nej' – uden fejl, uden advarsel, uden noget at lægge
  * mærke til før PDF'en manglede sit vandmærke. Årsagen var, at den levende sag ikke læste AppSettings; kun en
  * new-case-fabrik uden produktionskaldere gjorde.
  *
  * Testen måler derfor virkningen, ikke koblingen: for hver erklæret ny-sags-indstilling ændres værdien, og
  * enten den nye sags indhold ELLER en nytilføjet rækkes indhold skal blive et andet. Hvor virkningen sker, er
- * indstillingens eget anliggende — at den udebliver helt, er fejlen.
+ * indstillingens eget anliggende – at den udebliver helt, er fejlen.
  */
 
 const catalog = getProductionInputCatalog();
@@ -90,7 +90,7 @@ describe('ny-sags-indstillinger: hver erklæret standardværdi slår igennem et 
 
   it('måler faktisk noget (ikke grøn af tomhed)', () => {
     expect(NEW_CASE_DEFAULT_SETTINGS_KEYS.length).toBeGreaterThan(5);
-    // Begge virkningskanaler skal være i brug — ellers kunne testen bestå med kun én af dem koblet.
+    // Begge virkningskanaler skal være i brug – ellers kunne testen bestå med kun én af dem koblet.
     expect(NEW_CASE_DEFAULT_SETTINGS_KEYS.filter(affectsNewCase).length).toBeGreaterThan(0);
     expect(NEW_CASE_DEFAULT_SETTINGS_KEYS.filter(affectsNewRow).length).toBeGreaterThan(0);
   });
@@ -103,9 +103,9 @@ describe('ny-sags-indstillinger: hver erklæret standardværdi slår igennem et 
     expect(deepEqual(newEmploymentRow(DEFAULT_APP_SETTINGS), newEmploymentRow(muteret))).toBe(true);
   });
 
-  it('AppSettings slår igennem på en NY sag — de fire EO-felter, brugeren møder', () => {
+  it('AppSettings slår igennem på en NY sag – de fire EO-felter, brugeren møder', () => {
     // Den konkrete regression bag værnet: en bruger, der har vendt alle fire indstillinger, skal se sine egne
-    // valg på en ny sag — ikke schemaets.
+    // valg på en ny sag – ikke schemaets.
     const settings = appSettingsSchema.parse({
       ...DEFAULT_APP_SETTINGS,
       defaultIndsaetUdkastStempel: false,

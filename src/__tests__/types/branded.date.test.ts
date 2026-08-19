@@ -210,7 +210,7 @@ describe('branded.ts - Dato roundtrip tests', () => {
   });
 });
 
-describe('branded.ts — type guards', () => {
+describe('branded.ts – type guards', () => {
   describe('isISODateString', () => {
     it('accepterer gyldigt ISO-format', () => {
       expect(isISODateString(toISODateString('2024-06-15'))).toBe(true);
@@ -308,7 +308,7 @@ describe('branded.ts — type guards', () => {
       expect(danishDateToComparableNumber(toDanishDateString('31-12-2026'))).toBe(20261231);
     });
 
-    it('sorterer kronologisk — også over årsskifte og cifferbredder', () => {
+    it('sorterer kronologisk – også over årsskifte og cifferbredder', () => {
       const datoer = ['01-10-2026', '01-04-2005', '15-06-2024', '31-12-2005']
         .map((d) => danishDateToComparableNumber(toDanishDateString(d)));
       expect([...datoer].sort((a, b) => a - b)).toEqual([20050401, 20051231, 20240615, 20261001]);
@@ -316,7 +316,7 @@ describe('branded.ts — type guards', () => {
 
     /**
      * Den ene kopi denne form afløste, splittede strengen rå. En syntaktisk gyldig, men
-     * ugyldig dato blev derfor til et tal, som sorterede EFTER alle rigtige datoer — en tavs
+     * ugyldig dato blev derfor til et tal, som sorterede EFTER alle rigtige datoer – en tavs
      * fejlordning i stedet for en fejl.
      */
     it('kaster ved en syntaktisk gyldig, men ugyldig dato (frem for at give et for stort tal)', () => {

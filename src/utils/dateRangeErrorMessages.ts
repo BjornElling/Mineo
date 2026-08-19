@@ -42,13 +42,13 @@ export type DateRangeSpecialErrors = {
 const formatISOForTooltip = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
 
 /**
- * Hvor intervallets grænser kommer fra — og dermed om et UMULIGT interval (min > max) kan opstå.
+ * Hvor intervallets grænser kommer fra – og dermed om et UMULIGT interval (min > max) kan opstå.
  *
  * `'static'`: begge grænser er konstanter fra `dateRanges`-konfigurationen. `min > max` er da urepræsenterbart,
  * og der findes intet årsagsinput at nævne, fordi brugeren ikke har frembragt grænserne.
  *
  * `'derived'`: mindst én grænse er udledt af ANDRE felters værdier. Her KAN intervallet blive umuligt, og
- * beskeden skal navngive de inputs, brugeren skal rette — ellers får de at vide, at ingen dato er gyldig, uden
+ * beskeden skal navngive de inputs, brugeren skal rette – ellers får de at vide, at ingen dato er gyldig, uden
  * at vide hvorfor. Derfor er `causeInputs` PÅKRÆVET i netop denne arm: kravet er en TYPE, ikke en konvention,
  * så et nyt dynamisk datofelt ikke kan glemme årsagen og lydløst vise den halve besked.
  */
@@ -70,7 +70,7 @@ export const resolveDateRangeErrorMessage = (args: {
   special?: DateRangeSpecialErrors;
   /**
    * Grænsernes oprindelse. PÅKRÆVET: den afløste `noValidRangeInputs?: string` gjorde årsagen valgfri, og de
-   * fleste descriptors udelod den derfor — brugeren fik at vide, at ingen dato var gyldig, men ikke hvilke
+   * fleste descriptors udelod den derfor – brugeren fik at vide, at ingen dato var gyldig, men ikke hvilke
    * inputs der skulle rettes.
    */
   bounds: DateRangeBoundsOrigin;
@@ -91,7 +91,7 @@ export const resolveDateRangeErrorMessage = (args: {
   // Bound-kind-beskeder skal have forrang over parrede Fra/Til-beskeder for at undgå misvisende output.
   // Eksempel: når den effektive min er "Skadedato", er den korrekte besked om Skadedato, ikke "Til < Fra".
   //
-  // «Dags dato» kræver, at grænsen FAKTISK er kalenderen — ikke blot at den tilfældigvis lander på i dag.
+  // «Dags dato» kræver, at grænsen FAKTISK er kalenderen – ikke blot at den tilfældigvis lander på i dag.
   // Er max udledt af et andet felt (`kind: 'derived'`), navngiver `maxBoundFieldLabel`-grenen nedenfor
   // kilden i stedet. Uden det forbehold tilskrev beskeden grænsen det forkerte ophav i netop det
   // hyppigste tilfælde: en beregningsdato sat med «Indsæt dags dato» er dags dato, og brugeren fik at
@@ -146,7 +146,7 @@ export const resolveDateRangeErrorMessage = (args: {
   }
 
   // Grænsen er et ANDET felts værdi. Beskeden navngiver kilden frem for at lade brugeren gætte, hvor
-  // tallet kommer fra — og frem for at tilskrive det kalenderen, når det tilfældigvis er dags dato
+  // tallet kommer fra – og frem for at tilskrive det kalenderen, når det tilfældigvis er dags dato
   // (BB-043). `maxBoundFieldLabel` er feltets brugervendte navn i mundret, bestemt form.
   if (special?.maxBoundKind === 'efterFelt' && maxDate && iso > maxDate) {
     const reference = special.maxBoundReferenceISO ?? maxDate;

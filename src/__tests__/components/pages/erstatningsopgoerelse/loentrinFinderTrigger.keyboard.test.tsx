@@ -4,8 +4,8 @@
 // tab-sekvens (keyboard-navigation.md §Implementeringsfrihed), på samme måde som »Indsæt dags dato«.
 //
 // Ikonet stod tidligere med `tabIndex={-1}` og var dermed helt uden for tastaturet: musen var eneste
-// vej til løntrin-finderen. Testen måler den observerbare kontraktadfærd på den ÆGTE flade — at
-// knappen kan nås med Tab og aktiveres med både Enter og mellemrum — frem for at asserte på
+// vej til løntrin-finderen. Testen måler den observerbare kontraktadfærd på den ÆGTE flade – at
+// knappen kan nås med Tab og aktiveres med både Enter og mellemrum – frem for at asserte på
 // markør-attributten, som kunne blive inert uden at nogen test fejlede.
 //
 // Mekanikken bag Enter/mellemrum (Container lader Enter passere på knapper, så native
@@ -14,7 +14,7 @@
 //
 // Testen dækker desuden vejen TILBAGE: Escape fra overlayet skal returnere fokus til knappen
 // (keyboard-navigation.md §Popup-fokus-restore). Uden det krav endte fokus på `body`, og
-// tastaturbrugeren måtte tabbe forfra gennem siden — registreret som Q-001 i runtime-input-auditen.
+// tastaturbrugeren måtte tabbe forfra gennem siden – registreret som Q-001 i runtime-input-auditen.
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -99,7 +99,7 @@ describe('»Find løntrin« indgår i tastatur-sekvensen', () => {
   afterEach(() => sessionStorage.clear());
 
   /**
-   * Fokuserer ikonet SOM en tastaturbruger — via Tab fra feltet før — og ikke med et direkte
+   * Fokuserer ikonet SOM en tastaturbruger – via Tab fra feltet før – og ikke med et direkte
    * `focus()`-kald. Forskellen er hele pointen: `tabIndex={-1}` blokerer ikke et programmatisk
    * `focus()`, så en test der kaldte `focus()` selv ville bestå på den gamle, utilgængelige knap.
    */

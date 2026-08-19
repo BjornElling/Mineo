@@ -1,8 +1,8 @@
-# App-shell & multi-app — Mineo
+# App-shell & multi-app – Mineo
 
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
-**Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
+**Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter – men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
 **Senest verificeret mod kode:** 2026-08-19
 
 ## 1. Scope
@@ -15,7 +15,7 @@ Det øverste runtime-lag, der binder programmet sammen, og isolationen mellem de
 - Vite lazy-load-recovery: `src/apps/shared/vitePreloadRecovery.ts` (sidste sikkerhedsnet for et manglende lazy asset; den normale deploybeskyttelse ligger i service-workerens versionscache).
 - Service-worker-kilde: `sw/mineoServiceWorker.js` (skabelon; buildet substituerer versionen og emitterer `sw.js`).
 - Delt device-aflæsning: `src/utils/clientDevice.ts` (rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer, uden app-shell-render-beslutninger).
-- Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering, versionsprobe og opstartens ene opdateringsbarriere — der findes hverken opdateringsstatus eller brugerbekræftet reload, jf. §2.8).
+- Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering, versionsprobe og opstartens ene opdateringsbarriere – der findes hverken opdateringsstatus eller brugerbekræftet reload, jf. §2.8).
 - Lazy-recoverylinje: `src/components/system/LazyChunkRecoveryNotice.tsx` (sidste værn for en manglende lazy chunk; **ikke** en opdateringslinje).
 - PWA-filåbning: `src/utils/pwaLaunchQueue.ts` (launchQueue-consumer og versionssikker pending request).
 - PWA-cachepolitik: `public/_headers` (revalidering af HTML, SPA-ruter, manifest, service worker og assetmanifest; immutable hashed assets).
@@ -30,9 +30,9 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    Efter device-gaten og før app-roden returneres fra `renderApp`, initialiseres variantens ene aktive inputruntime
    præcis én gang gennem `bootstrapProductionInputRuntime()`; en entry/provider-remount må aldrig rehydrere.
-   **Entries kalder ikke `initializeInputRuntime` direkte** — den ligger bag `bootstrapProductionInputRuntime`,
+   **Entries kalder ikke `initializeInputRuntime` direkte** – den ligger bag `bootstrapProductionInputRuntime`,
    som ejer idempotens-guarden (`src/inputCore/react/productionInputRuntime.tsx`); et direkte kald ville omgå
-   netop den guard, reglen findes for. **Hver variant har præcis ÉN inputruntime** — der findes ikke og må ikke
+   netop den guard, reglen findes for. **Hver variant har præcis ÉN inputruntime** – der findes ikke og må ikke
    indføres en anden persistence-provider ved siden af den.
    Standalone-entryen binder tilsvarende sin egen runtime atomisk med surface og consumers.
    Standalone-entryens namespace-side-effect skal være etableret før enhver
@@ -40,13 +40,13 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 2. **Device-gaten ejes af app-shellen.** `isUnsupportedDevice` og `UNSUPPORTED_MAX_SHORTEST_SIDE_PX` lever kun i `bootstrapClientApp.tsx`. Rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer (`isTouchLikeDevice`, fysisk skærmkortside, viewport-kortside, `isTouchLikeDeviceWithShortestSideAtMost`) lever i `src/utils/clientDevice.ts`, så samme aflæsninger kan genbruges uden at duplikere device-logik i sidekomponenter. Ved uunderstøttet enhed renderes `UnsupportedDevicePage` som hård stop, og App-roden monteres ikke. Gaten bruger touch-enhedens stabile kortside, så rotation ikke kan åbne en ellers blokeret tablet. Gaten er **fail-closed**: kan hverken fysisk skærm eller viewport aflæses på en touch-lignende enhed, behandles enheden som uunderstøttet. En app-variant kan eksplicit fravælge gaten via `enforceUnsupportedDeviceGate: false` (kun standalone-beregneren, der bevidst skal virke på mobil).
 
-3. **Multi-app-isolation — ingen krydsimport.** Standalone-laget (`src/apps/minprocesrente/**`, `src/components/pages/minprocesrente/**` og dedikerede standalone-services) må ikke importere Mineos auth-, route-, PWA-, service-worker- eller diagnose-flow (`AuthGate`, `BrowserRouter`/`App`, `pwaLaunchQueue`, `serviceWorker*`, `systemIssueReporter`/`reportSystemIssue`). Forbuddet håndhæves strukturelt af AST-reglen `layer/minprocesrente-standalone-import-boundary`.
+3. **Multi-app-isolation – ingen krydsimport.** Standalone-laget (`src/apps/minprocesrente/**`, `src/components/pages/minprocesrente/**` og dedikerede standalone-services) må ikke importere Mineos auth-, route-, PWA-, service-worker- eller diagnose-flow (`AuthGate`, `BrowserRouter`/`App`, `pwaLaunchQueue`, `serviceWorker*`, `systemIssueReporter`/`reportSystemIssue`). Forbuddet håndhæves strukturelt af AST-reglen `layer/minprocesrente-standalone-import-boundary`.
 
-   Det delte flademateriale er derimod **ikke** begrænset til tilstandsløse moduler. Ud over de rene moduler (beregning, schemas, formatering, PDF-rendering) deler de to varianter også konkrete UI-komponenter med egen state — `RenteberegningTab.tsx`, `SiblingSitesFooter.tsx` og `StandaloneCalculatorLayout.tsx`. Det er bevidst (brugerbeslutning 2026-08-06, jf. §5.3): en split i to varianter ville give to kopier af samme flade uden synlig gevinst. Reglen er derfor et forbud mod at dele **shell-, auth-, route-, PWA- og diagnose-flow**, ikke et krav om tilstandsløshed i det delte.
+   Det delte flademateriale er derimod **ikke** begrænset til tilstandsløse moduler. Ud over de rene moduler (beregning, schemas, formatering, PDF-rendering) deler de to varianter også konkrete UI-komponenter med egen state – `RenteberegningTab.tsx`, `SiblingSitesFooter.tsx` og `StandaloneCalculatorLayout.tsx`. Det er bevidst (brugerbeslutning 2026-08-06, jf. §5.3): en split i to varianter ville give to kopier af samme flade uden synlig gevinst. Reglen er derfor et forbud mod at dele **shell-, auth-, route-, PWA- og diagnose-flow**, ikke et krav om tilstandsløshed i det delte.
 
-4. **Storage-namespace sættes før al storage-adgang og kan ikke skifte.** Hver variant kører i sit eget sessionStorage-namespace (`mineo` eller `minprocesrente`). `setStorageNamespace(...)` kaldes præcis én gang ved bootstrap, *før* noget modul kan nå at røre sessionStorage; gentagelse med samme værdi er idempotent, mens et skift fejler hårdt. Begge entries håndhæver rækkefølgen med en **bivirknings-import** som første import (`mineoStorageNamespace.ts` henholdsvis `standaloneStorageNamespace.ts`) — før App-træets import — så ES-import-hoisting ikke kan flytte App-evalueringen foran namespace-sætningen. Namespacet må aldrig sættes inline i et entrypoint efter en App-import.
+4. **Storage-namespace sættes før al storage-adgang og kan ikke skifte.** Hver variant kører i sit eget sessionStorage-namespace (`mineo` eller `minprocesrente`). `setStorageNamespace(...)` kaldes præcis én gang ved bootstrap, *før* noget modul kan nå at røre sessionStorage; gentagelse med samme værdi er idempotent, mens et skift fejler hårdt. Begge entries håndhæver rækkefølgen med en **bivirknings-import** som første import (`mineoStorageNamespace.ts` henholdsvis `standaloneStorageNamespace.ts`) – før App-træets import – så ES-import-hoisting ikke kan flytte App-evalueringen foran namespace-sætningen. Namespacet må aldrig sættes inline i et entrypoint efter en App-import.
 
-5. **Install-prompt-politik er eksplicit pr. variant.** Kun den variant der reelt er en installerbar PWA (Mineo, `capturePwaInstallPrompt: true`) capturer browserens `beforeinstallprompt`. Alle øvrige tilfælde (standalone, eller uunderstøttet enhed) suppresser prompten. Capture/suppress bruger den **kanoniske** implementering i `src/utils/pwaInstallPrompt.ts` — der må ikke findes en parallel install-prompt-håndtering i shell-laget.
+5. **Install-prompt-politik er eksplicit pr. variant.** Kun den variant der reelt er en installerbar PWA (Mineo, `capturePwaInstallPrompt: true`) capturer browserens `beforeinstallprompt`. Alle øvrige tilfælde (standalone, eller uunderstøttet enhed) suppresser prompten. Capture/suppress bruger den **kanoniske** implementering i `src/utils/pwaInstallPrompt.ts` – der må ikke findes en parallel install-prompt-håndtering i shell-laget.
 
 6. **PWA-filåbning registreres før service-worker og React.** Mineos entry leverer `setupPwaFileOpenHandling` til den fælles shell. På en understøttet desktop-enhed kalder shellen den før `beforeDesktopRender` og før app-roden renderes. Callbacken registrerer først launchQueue-consumeren og hydrerer derefter den persisterede pending request. Den persisterede record valideres med `pwaFileOpenRequestSchema`; en ukendt eller fejlet IndexedDB-læsning behandles aldrig som «ingen request». Rækkefølgen bevarer en `.eo`-fil, der blev åbnet lige før en PWA-opdatering, så den nye app-version kan fortsætte samme load-flow efter login. Ankommer en ny launchQueue-fil under hydrering eller sidste durable kontrol, vinder den nye brugerhandling over den ældre persisterede request, og reload frigives først efter en stabil generation/persistence-match. Standalone leverer aldrig callbacken.
 
@@ -54,50 +54,50 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    Tidligere versionscacher slettes ikke automatisk: når en ny worker aktiveres, kan den også tage kontrol over andre åbne klienter, som stadig kører gammel JavaScript. Hash-navne er indholdsadresserede og immutable, så det er sikkert at svare på netop en gammel hash-request, men ikke på HTML eller ruter. Retention er den bevidste pris for at gøre deployment midt i aktive og natlange sessioner sikker; browseren eller brugeren kan fortsat rydde website-data eksplicit. `scripts/verify-build-artifacts.mjs` skal afvise et Mineo-build uden et gyldigt assetmanifest, uden indbagt worker-version, med asset-stier workeren ikke kan matche, eller hvor worker og manifest bærer hver sin version.
 
-   **Beskyttelsen er stærk, men ikke absolut** (se Kendte Undtagelser 4): rydder browseren Cache Storage under lagerpres, eller fejler første installation offline, kan en gammel chunk stadig 404'e. Med kun den aktuelle build på origin kan det ikke garanteres væk klientside — dér er `vite:preloadError`-linjen sidste værn. Det er et accepteret, sjældent manuelt fallback; automatisk opdatering er fortsat standarden, når klienten kan klargøre den nye version.
+   **Beskyttelsen er stærk, men ikke absolut** (se Kendte Undtagelser 4): rydder browseren Cache Storage under lagerpres, eller fejler første installation offline, kan en gammel chunk stadig 404'e. Med kun den aktuelle build på origin kan det ikke garanteres væk klientside – dér er `vite:preloadError`-linjen sidste værn. Det er et accepteret, sjældent manuelt fallback; automatisk opdatering er fortsat standarden, når klienten kan klargøre den nye version.
 
    En ny worker kalder ikke selv `skipWaiting()` under installation, og den kalder aldrig `clients.claim()`: aktiveringen sker udelukkende, når klienten beder om den før render (§8). HTML, SPA-ruter, manifest, service worker og assetmanifest skal samtidig have no-cache/no-store headers i `public/_headers`, så browser/host-fallbacks ikke fastholder en gammel app-shell eller et gammelt versionssvar; hashed Vite-assets skal fortsat være immutable.
 
-   Workerens build-version ligger **i dens bytes**, ikke kun i registrerings-URL'ens query. Kilden er `sw/mineoServiceWorker.js` (bevidst uden for `public/`, så publicDir-kopieringen ikke overskriver det emitterede output), og `vite.mineo.config.ts` substituerer versionen ved build. Uden indbagt version ville `registration.update()` aldrig kunne opdage en deploy: query'en er den samme, så længe klienten kører den samme build, og filens bytes ville være identiske på tværs af deploys. `pwa-assets.json` bærer samme version, og workeren **afviser at installere** mod et manifest fra en anden build — ellers kunne en cache navngivet én build blive fyldt med en anden builds assets, og den kørende builds egne lazy chunks aldrig blive cachet.
+   Workerens build-version ligger **i dens bytes**, ikke kun i registrerings-URL'ens query. Kilden er `sw/mineoServiceWorker.js` (bevidst uden for `public/`, så publicDir-kopieringen ikke overskriver det emitterede output), og `vite.mineo.config.ts` substituerer versionen ved build. Uden indbagt version ville `registration.update()` aldrig kunne opdage en deploy: query'en er den samme, så længe klienten kører den samme build, og filens bytes ville være identiske på tværs af deploys. `pwa-assets.json` bærer samme version, og workeren **afviser at installere** mod et manifest fra en anden build – ellers kunne en cache navngivet én build blive fyldt med en anden builds assets, og den kørende builds egne lazy chunks aldrig blive cachet.
 
 8. **Ny session = ny version. Åben session = urørt.** Programmet har **ingen** synlig opdaterings-UI og kræver **ingen** brugerhandling for at komme på nyeste version. Én regel styrer det hele:
 
    > En ny session starter altid på den nyeste version, der kan klargøres **komplet**. En åben session skifter **aldrig** version.
 
-   **Før render** er intet brugerarbejde i fare, og hele opdateringen sker dér — som en barriere, ikke et væddeløb mod uret. `ensureLatestVersionBeforeRender` sammenligner `pwa-assets.json`'s `version` med dokumentets `VERSION`. Er de ens (langt det almindeligste), ventes der **slet ikke**. Er de forskellige, føres den nye build hele vejen frem, i denne rækkefølge: komplet precache (`installed`) → aktivering af præcis den worker (`SKIP_WAITING`) → **bekræftet `activated`** → genindlæsning.
+   **Før render** er intet brugerarbejde i fare, og hele opdateringen sker dér – som en barriere, ikke et væddeløb mod uret. `ensureLatestVersionBeforeRender` sammenligner `pwa-assets.json`'s `version` med dokumentets `VERSION`. Er de ens (langt det almindeligste), ventes der **slet ikke**. Er de forskellige, føres den nye build hele vejen frem, i denne rækkefølge: komplet precache (`installed`) → aktivering af præcis den worker (`SKIP_WAITING`) → **bekræftet `activated`** → genindlæsning.
 
-   Rækkefølgen er ufravigelig. `installed` alene er **ikke** en tilstrækkelig barriere: en installeret worker står i `waiting`, og et dokument beholder sin controller hele sin levetid. Genindlæstes der dér, ville den nye HTML køre under den **gamle** worker, det nye dokument ville se «samme version» og returnere med det samme — og den nye worker kunne blive stående ventende i det uendelige.
+   Rækkefølgen er ufravigelig. `installed` alene er **ikke** en tilstrækkelig barriere: en installeret worker står i `waiting`, og et dokument beholder sin controller hele sin levetid. Genindlæstes der dér, ville den nye HTML køre under den **gamle** worker, det nye dokument ville se «samme version» og returnere med det samme – og den nye worker kunne blive stående ventende i det uendelige.
 
-   **Efter render sker der intet.** Der er hverken periodiske tjek, `visibilitychange`-tjek, opdateringslinje eller nogen vej til at aktivere en ny worker. En åben sag kan derfor aldrig blive afbrudt af en deploy. Prisen — at en bruger kan sidde på en ældre version, indtil programmet startes igen — er **valgt**: en sag, der er åben i dagevis, må ikke skifte beregningskode under hænderne på brugeren.
+   **Efter render sker der intet.** Der er hverken periodiske tjek, `visibilitychange`-tjek, opdateringslinje eller nogen vej til at aktivere en ny worker. En åben sag kan derfor aldrig blive afbrudt af en deploy. Prisen – at en bruger kan sidde på en ældre version, indtil programmet startes igen – er **valgt**: en sag, der er åben i dagevis, må ikke skifte beregningskode under hænderne på brugeren.
 
-   **Fail-safe, ikke fail-fast.** Kan den nye version ikke klargøres komplet — offline, uopløseligt manifest, mislykket precache (`redundant`), manglende aktivering, eller et loft på ventetiden — startes den **nuværende** version uændret, uden reload og uden besked. En halv opdatering er værre end en hel, lidt ældre version.
+   **Fail-safe, ikke fail-fast.** Kan den nye version ikke klargøres komplet – offline, uopløseligt manifest, mislykket precache (`redundant`), manglende aktivering, eller et loft på ventetiden – startes den **nuværende** version uændret, uden reload og uden besked. En halv opdatering er værre end en hel, lidt ældre version.
 
-   **Løkkeværnet** er en manifest-ejet sessionnøgle, der holder **alle mål forsøgt fra denne kildeversion** (`kilde|mål|mål…`) — ikke blot «sidst sete version». En markør med kun ét mål ville blive overskrevet ved en flappende, delvis udrullet origin (V1 ser V2 → reload → stadig V1, ser V3 → reload → ser V2 igen …), så hvert svar så nyt ud og programmet reloadede i ring. Med hele forsøgsmængden forsøges hvert spring præcis én gang. Kan markøren ikke skrives, genindlæses der **ikke**.
+   **Løkkeværnet** er en manifest-ejet sessionnøgle, der holder **alle mål forsøgt fra denne kildeversion** (`kilde|mål|mål…`) – ikke blot «sidst sete version». En markør med kun ét mål ville blive overskrevet ved en flappende, delvis udrullet origin (V1 ser V2 → reload → stadig V1, ser V3 → reload → ser V2 igen …), så hvert svar så nyt ud og programmet reloadede i ring. Med hele forsøgsmængden forsøges hvert spring præcis én gang. Kan markøren ikke skrives, genindlæses der **ikke**.
 
-   **`clients.claim()` er forbudt; `SKIP_WAITING` er nødvendig.** De to trækker hver sin vej og skal begge være, som de er: uden `SKIP_WAITING` aktiverer en ventende worker først, når den gamle kontrollerer **nul** klienter — og en genindlæsning når aldrig nul, fordi det gamle dokument lever, indtil svarets headere er modtaget. En installeret PWA, brugeren sjældent lukker helt, ville da i praksis aldrig opdatere. Omvendt ville `clients.claim()` lade en nyaktiveret worker overtage et **andet** fanebladss levende sag. Beskeden sendes derfor kun før render, hvor der ikke findes brugerarbejde.
+   **`clients.claim()` er forbudt; `SKIP_WAITING` er nødvendig.** De to trækker hver sin vej og skal begge være, som de er: uden `SKIP_WAITING` aktiverer en ventende worker først, når den gamle kontrollerer **nul** klienter – og en genindlæsning når aldrig nul, fordi det gamle dokument lever, indtil svarets headere er modtaget. En installeret PWA, brugeren sjældent lukker helt, ville da i praksis aldrig opdatere. Omvendt ville `clients.claim()` lade en nyaktiveret worker overtage et **andet** fanebladss levende sag. Beskeden sendes derfor kun før render, hvor der ikke findes brugerarbejde.
 
    Før `SKIP_WAITING` spørger bootstrap den konkrete installerede worker om dens indbagte build-version. Den må
    matche manifestets version, der udløste opdateringen; ellers aktiveres workeren ikke. Det lukker race-vinduet
    ved delvise deploys, hvor HTML, assetmanifest og en allerede ventende worker kan komme fra forskellige origin-
    noder. Manglende eller tidsudløbet versionssvar er fail-safe.
 
-   **En `.eo`-request må aldrig gå tabt i en opdatering.** Browseren kan aflevere en fil gennem `launchQueue`, mens opstartens barriere kører; requesten lever da kun i hukommelsen, indtil IndexedDB-skrivningen er færdig. Før enhver genindlæsning afventer opstarten derfor `awaitDurablePendingPwaFileOpenHandoff()`, og kan den durable handoff **ikke** bekræftes — herunder fordi storage ikke svarer inden for loftet — genindlæses der ikke; opdateringen sker i stedet ved næste opstart. Brugerens fil vejer tungere end at komme på nyeste version med det samme.
+   **En `.eo`-request må aldrig gå tabt i en opdatering.** Browseren kan aflevere en fil gennem `launchQueue`, mens opstartens barriere kører; requesten lever da kun i hukommelsen, indtil IndexedDB-skrivningen er færdig. Før enhver genindlæsning afventer opstarten derfor `awaitDurablePendingPwaFileOpenHandoff()`, og kan den durable handoff **ikke** bekræftes – herunder fordi storage ikke svarer inden for loftet – genindlæses der ikke; opdateringen sker i stedet ved næste opstart. Brugerens fil vejer tungere end at komme på nyeste version med det samme.
 
    Registreringen springes **ikke** over på nogen rute, heller ikke `/open`. En session startet ved dobbeltklik på en `.eo`-fil skal have sin egen versionscache; ellers kan netop den langlivede fil-session (manifestets `launch_handler: "focus-existing"` tilskynder dem) miste sine PDF-/Word-chunks ved næste deploy.
 
    **Ingen bfcache-genindlæsning.** En gendannelse fra browserens back/forward-cache er **ikke** en ny session: brugeren vender tilbage til sit eget, igangværende arbejde. En `pageshow`-lytter, der genindlæste ved `event.persisted`, ville kunne skifte build midt i en sag og kaste en åben editors draft væk uden om `CriticalActionCoordinator`.
 
-   **Bevidst forkastet: én model for browser, en anden for PWA.** Idéen — lad browserfanen altid køre nyeste version, og lad kun den installerede PWA vente til næste opstart — blev vurderet og afvist (brugerbeslutning 2026-08-12). Tre grunde: (1) `display-mode: standalone` fortæller, hvordan vinduet blev *åbnet*, ikke om der er arbejde i gang; et browserfaneblad kan sagtens rumme en timegammel, halvfærdig erstatningsopgørelse, så en datasikkerhedsregel hængt på et *visnings*-signal er kun rigtig ved et tilfælde. (2) «Altid nyeste» i browseren betyder enten intet eller et tvunget reload midt i brugerens arbejde — altså opdateringslinjen ad bagdøren for én launch-mode. (3) To modeller fordobler edge-case-matricen for en sondring, der ikke følger det, invariantet beskytter. Det, idéen var ude efter, leverer no-store-HTML'en allerede: enhver ny fane, navigation eller genindlæsning henter nyeste HTML, så «åbne et faneblad» *er* en ny session. Grænsen er **sessionsstart**, ikke **launch-mode**.
+   **Bevidst forkastet: én model for browser, en anden for PWA.** Idéen – lad browserfanen altid køre nyeste version, og lad kun den installerede PWA vente til næste opstart – blev vurderet og afvist (brugerbeslutning 2026-08-12). Tre grunde: (1) `display-mode: standalone` fortæller, hvordan vinduet blev *åbnet*, ikke om der er arbejde i gang; et browserfaneblad kan sagtens rumme en timegammel, halvfærdig erstatningsopgørelse, så en datasikkerhedsregel hængt på et *visnings*-signal er kun rigtig ved et tilfælde. (2) «Altid nyeste» i browseren betyder enten intet eller et tvunget reload midt i brugerens arbejde – altså opdateringslinjen ad bagdøren for én launch-mode. (3) To modeller fordobler edge-case-matricen for en sondring, der ikke følger det, invariantet beskytter. Det, idéen var ude efter, leverer no-store-HTML'en allerede: enhver ny fane, navigation eller genindlæsning henter nyeste HTML, så «åbne et faneblad» *er* en ny session. Grænsen er **sessionsstart**, ikke **launch-mode**.
 
-   Vites `vite:preloadError` er alene sidste sikkerhedsnet for fejl, der ikke burde være mulige efter en komplet versionscache. Det må aldrig kalde `location.reload()` selv. Signalet undertrykkes, og `LazyChunkRecoveryNotice` tilbyder en brugerudløst reload gennem `CriticalActionCoordinator`; dermed bliver også en åben draft enten afsluttet eller eksplicit blokeret før navigation. Linjen er **ikke** en opdateringslinje — den dækker kun manglende chunks (se Kendte Undtagelser 4). Vite-recovery installeres centralt af `bootstrapClientApp` før enhver dynamisk style-, route-, renderer- eller writer-import.
+   Vites `vite:preloadError` er alene sidste sikkerhedsnet for fejl, der ikke burde være mulige efter en komplet versionscache. Det må aldrig kalde `location.reload()` selv. Signalet undertrykkes, og `LazyChunkRecoveryNotice` tilbyder en brugerudløst reload gennem `CriticalActionCoordinator`; dermed bliver også en åben draft enten afsluttet eller eksplicit blokeret før navigation. Linjen er **ikke** en opdateringslinje – den dækker kun manglende chunks (se Kendte Undtagelser 4). Vite-recovery installeres centralt af `bootstrapClientApp` før enhver dynamisk style-, route-, renderer- eller writer-import.
 
-9. **Top-level fejl fanges pr. variant.** Hver app-variant skal have en top-level error boundary mellem shell-render og hele variantroden. Mineo bruger `src/components/errors/ErrorBoundary` (med diagnose-rapportering via `systemIssueReporter`). Standalone bruger `StandaloneErrorBoundary` (bevidst **uden** diagnose-rapportering, jf. regel 3's isolationskrav — se Kendte Undtagelser). Boundarien skal ligge over providers, router og layout. Fejl før React-render (style-/bootstrap-fejl) fanges separat af shellen og giver en deterministisk dansk hard-stop frem for en blank side.
+9. **Top-level fejl fanges pr. variant.** Hver app-variant skal have en top-level error boundary mellem shell-render og hele variantroden. Mineo bruger `src/components/errors/ErrorBoundary` (med diagnose-rapportering via `systemIssueReporter`). Standalone bruger `StandaloneErrorBoundary` (bevidst **uden** diagnose-rapportering, jf. regel 3's isolationskrav – se Kendte Undtagelser). Boundarien skal ligge over providers, router og layout. Fejl før React-render (style-/bootstrap-fejl) fanges separat af shellen og giver en deterministisk dansk hard-stop frem for en blank side.
 
 10. **Styles og build-output er variant-ejede.** Shellens fontindlæsning er fælles, mens hver entry leverer sin egen style-entry. Fælles designregler kan deles, men Mineos `body/#root`-shell må ikke indlæses i standalone. Mineo bygges fra repoets ene `index.html`; theme-bootstrap injiceres fra den kanoniske generator i `src/settings/themeBootstrap.ts`. Hvert build afsluttes med `verify-build-artifacts.mjs`, der kontrollerer entry, manifest og variantfiler, før output kan godkendes.
 
 11. **Programfladen har ÉN skala.** `useContentUiScale` og den synkrone theme-bootstrap bruger samme
     serialiserbare policy fra `src/utils/uiScale.ts` og sætter kun `--mineo-content-scale` på
-    `document.documentElement`. Alt, brugeren ser, følger den skala — arbejdsflade, sidemenu og
+    `document.documentElement`. Alt, brugeren ser, følger den skala – arbejdsflade, sidemenu og
     popup-lag. Der findes ikke to konkurrerende tekststørrelser i samme billede.
 
     **Zoom-roden er `<main data-mineo-content-scale-root="true">`** i Mineos `Container`;
@@ -109,7 +109,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     vinduet. Menuen må derfor gerne være **mindre** end arbejdsfladen (lavt vindue), men aldrig
     **større**: en menu med 14 px labels ved siden af en brødtekst på 10,5 px er den mest
     iøjnefaldende typografiske uensartethed, fladen kan have. Rammen skaleres proportionalt med sit
-    indhold — 250 px × skala udfoldet, 70 px × skala sammenfoldet, og skillelinjen 1 px × skala — så
+    indhold – 250 px × skala udfoldet, 70 px × skala sammenfoldet, og skillelinjen 1 px × skala – så
     menuens indbyrdes forhold (labelstørrelse, ikonakse, luft) er konstante ved enhver skala.
     `getSideMenuIconLayout()` er derfor skala-uafhængig og regner i menuens egne px.
 
@@ -121,26 +121,26 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     | Tooltip | `.MuiTooltip-tooltip` (tema) | Popper-roden bærer positionerings-`transform`, som zoom ville gange med |
     | Dialog | `.MuiDialog-paper` (tema) | Papiret centreres af flexbox uden egne offsets; backdroppen er søskende og dækker fortsat hele vinduet |
     | `StyledDropdown`-liste | `MenuList` | Popover-papiret bærer MUI's inline `left`/`top`-forankring; papiret måler listens zoomede størrelse |
-    | Toast (`Overlay`), `DevtoolsIssueNotice`, `ScrollToTopButton` | elementet selv | `position: fixed` — zoom skalerer også afstanden til hjørnet, som ønsket |
+    | Toast (`Overlay`), `DevtoolsIssueNotice`, `ScrollToTopButton` | elementet selv | `position: fixed` – zoom skalerer også afstanden til hjørnet, som ønsket |
 
     Sidemenuens tre tooltips overstyrer `--mineo-content-scale` på deres popper, fordi de hører til
     menuens skala. Håndrullede vinduer (`LicenseModal`, `LoentrinFinderOverlay`) ligger **inde i**
     zoom-roden og skalerer af sig selv; deres `vh`-lofter divideres med skalaen
     (`calc(80vh / var(--mineo-content-scale, 1))`), fordi `vh` ellers opløses mod det uskalerede
-    vindue og derefter selv bliver skaleret — vinduet ville da kun kunne bruge 60 % af skærmhøjden i
+    vindue og derefter selv bliver skaleret – vinduet ville da kun kunne bruge 60 % af skærmhøjden i
     stedet for de 80 %, tallet lover.
 
     **Gutter og indrykning.** De fire `Container`-gutters er ens hele vejen rundt
     (`calc(24px * var(--mineo-content-scale, 1))`); de ligger uden for zoom-roden og ganges derfor
     med skalaen i CSS. Den lodrette luft er med i regnestykket: en fast luft foroven ville stå
     dobbelt så høj som luften i siderne ved mindste skala, og Kontroltabellens klæbende tabelhoved
-    kompenserer for præcis denne værdi inde fra zoom-roden — kompensationen kan kun ramme, når de to
+    kompenserer for præcis denne værdi inde fra zoom-roden – kompensationen kan kun ramme, når de to
     følger samme skala. Den indre `<main>`-indrykning er 50 px **uskaleret**, fordi `main` selv ER
     zoom-roden. Skaleringen må ikke indføre reflow, skjule indhold eller ændre
     input-/persistence-state ved resize.
 
     **Pladsregnskabet er ét skaleret led** og udledes i `CONTENT_UI_SCALE_POLICY` af de navngivne
-    layoutmål — ikke af hardkodede summer: `scaledShellWidthPx` = sidemenu 250 + venstre gutter 24 +
+    layoutmål – ikke af hardkodede summer: `scaledShellWidthPx` = sidemenu 250 + venstre gutter 24 +
     indrykning 50 + indholdsboks 1200 + højre gutter 24, plus `scrollbarReservePx` (20).
     Indholdsboksens bredde er den bredeste geometri på hver eneste side og fane; TS-konstanten
     `CONTENT_BOX_WIDTH_PX` spejler `--content-box-max-width` i `src/styles/layout.css` og er
@@ -148,29 +148,29 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
     ekstra luft.
 
     **Kontrolfanernes udhæng er den ene bevidste undtagelse fra pladsregnskabet.**
-    Erstatningsopgørelses to kontrolfaner (`SideTab`) roteres 90° og rager deres egen højde — 48 px,
-    `SIDE_TAB_OVERHANG_PX` — ud til højre for deres `left`, som ER indholdsboksens kant. De 48 px
+    Erstatningsopgørelses to kontrolfaner (`SideTab`) roteres 90° og rager deres egen højde – 48 px,
+    `SIDE_TAB_OVERHANG_PX` – ud til højre for deres `left`, som ER indholdsboksens kant. De 48 px
     indgår **ikke** i `scaledShellWidthPx`, og det er et valg, ikke en forglemmelse: fanerne er en
     valgfri kontrolflade (Indstillinger → «Vis kontrolfaner»), og hele arbejdsfladen må ikke skaleres
     ned for at gøre plads til dem. Konsekvensen er accepteret: er der plads i højregutteren, står
     fanerne der; er der ikke, går de **tavst** ud over arbejdsfladens synlige højrekant og bliver
-    klippet væk. En delvist synlig eller helt skjult kontrolfane er det rigtige svar — en mindre
+    klippet væk. En delvist synlig eller helt skjult kontrolfane er det rigtige svar – en mindre
     brødtekst på hele fladen er det ikke.
 
     Klipningen er ikke overladt til held. `SideTabRail` er skinnen, fanerne hænger i: den måler
     arbejdsfladens synlige højrekant (scrollportens `clientWidth`, uden den lodrette scrollbar) og
-    klipper vandret dér med `overflow-x: clip` — `overflow-y: visible`, fordi den roterede fane rager
+    klipper vandret dér med `overflow-x: clip` – `overflow-y: visible`, fordi den roterede fane rager
     nedad og ikke må skæres over på tværs. Uden klipningen ville udhænget give `Container` vandret
     rul, for en absolut placeret efterkommer tæller med i scrollportens scrollområde, også når den er
     roteret. Bredden **måles** frem for at regnes ud, fordi kanten afhænger af sidemenuens aktuelle
     bredde, gutteren, skalaen og browserens faktiske scrollbarbredde på én gang; et gæt for højt er
     netop den scrollbar, skinnen skal forhindre. Skinnen er aldrig smallere end indholdsboksen, så
-    under den dækkede minimumsbredde — hvor indholdet selv overflyder og den vandrette
-    `Container`-scroll er fallbacken — lægger fanerne ikke en eneste pixel oveni.
+    under den dækkede minimumsbredde – hvor indholdet selv overflyder og den vandrette
+    `Container`-scroll er fallbacken – lægger fanerne ikke en eneste pixel oveni.
 
     **Kontrolfanerne bærer de vandrette faners typografi.** Begge fanefamilier henter hele deres
-    signatur fra den fælles `.tab-item`-regel i `src/styles/typography.css` — skrift, farve (også i
-    mørkt tema), vægt, spatiering og hover/aktiv-tilstand — og den blå streg er `.side-tab::after`:
+    signatur fra den fælles `.tab-item`-regel i `src/styles/typography.css` – skrift, farve (også i
+    mørkt tema), vægt, spatiering og hover/aktiv-tilstand – og den blå streg er `.side-tab::after`:
     samme 2 px malede kasse som `MuiTabs-indicator`, placeret på fanens bund, som efter rotationen
     vender ind mod indholdsboksen. `SideTab`s `sx` må derfor kun bære geometri; en typografi- eller
     `border`-værdi dér vinder over klassen og lader familierne drifte fra hinanden igen.
@@ -185,7 +185,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
     Skalaen er ren runtime-afledning fra `window.innerWidth`, aldrig brugerdata eller en indstilling;
     højden indgår ikke (kun menuens egen højdetilpasning kender vinduets højde).
-    Den er den største skala, hele fladen kan være i — kvantiseret nedad
+    Den er den største skala, hele fladen kan være i – kvantiseret nedad
     til hele hundrededele og klemt mellem `1` og `0.75`. Udledningen er **historieløs**: samme
     vinduesbredde giver altid samme skala, uanset om vinduet kom dertil ved at vokse eller skrumpe.
     Der er bevidst ingen hysterese, fordi skalaen ikke kan påvirke `window.innerWidth` og derfor
@@ -224,11 +224,11 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - Service-worker-adfærd: `sw/mineoServiceWorker.js` (worker) + `src/apps/mineo/serviceWorkerBootstrap.ts` (versionssignal, klient-lifecycle/reload-gate).
 - PWA-cachepolitik: `public/_headers`.
 - Skala-policy og sidemenuens layoutmål: `src/utils/uiScale.ts` (eneste sandhed; læses af både bootstrap og runtime).
-- Popup-lagets skala: `src/config/appTheme.ts` (`MuiTooltip`/`MuiDialog`) — ét sted for hele programmet.
+- Popup-lagets skala: `src/config/appTheme.ts` (`MuiTooltip`/`MuiDialog`) – ét sted for hele programmet.
 
 ## 4. Testkobling
 
-- `src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts` (storage-namespace sat via bivirknings-import før App-import). **Bemærk:** selve importforbuddet i §2.3 testes IKKE længere her — det er flyttet til AST-reglen nedenfor, og filen siger det selv.
+- `src/__tests__/quality/minprocesrenteStandaloneIsolation.test.ts` (storage-namespace sat via bivirknings-import før App-import). **Bemærk:** selve importforbuddet i §2.3 testes IKKE længere her – det er flyttet til AST-reglen nedenfor, og filen siger det selv.
 - `src/__tests__/quality/architecture/rules/documentRules.ts` (`layer/minprocesrente-standalone-import-boundary`: den strukturelle håndhævelse af §2.3's krydsimport-forbud).
 - `src/__tests__/apps/shared/bootstrapClientApp.test.tsx` (device-gate hård stop som default; standalone kan fravælge gaten).
 - `src/__tests__/apps/minprocesrente/standaloneCalculatorPage.test.tsx` (standalones opstilling følger enheden, ikke vinduet: smalt musevindue og touch-laptop får desktopopstilling, roteret telefon bliver mobil; `.eo`-sætningen udgår i standalone men bevares i Mineo; «Slet alle indtastninger» er i tastaturrækkefølgen).
@@ -258,20 +258,20 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
 2. **`enforceUnsupportedDeviceGate: false` for standalone.** Bevidst fravalg, fordi procesrenteberegneren skal kunne bruges på mobil/tablet (med egen mobil-scroll-håndtering). Re-evaluering hvis standalone en dag skal være desktop-only.
 
-3. **Viewport-responsiv styling på begge akser er tilladt i en pinnet filliste — inkl. to filer delt med Mineo.** `AGENTS.md` ("Desktop-only gate") begrænser mobil/tablet-styling, fordi Mineo er desktop-only. Standalone MinProcesrente er en bevidst mobil-tilladt variant (jf. undtagelse 2), og undtagelsen dækker derfor:
+3. **Viewport-responsiv styling på begge akser er tilladt i en pinnet filliste – inkl. to filer delt med Mineo.** `AGENTS.md` ("Desktop-only gate") begrænser mobil/tablet-styling, fordi Mineo er desktop-only. Standalone MinProcesrente er en bevidst mobil-tilladt variant (jf. undtagelse 2), og undtagelsen dækker derfor:
 
    **Standalones OPSTILLING er ikke viewport-responsiv (brugerbeslutning 2026-08-19).** Valget mellem
    telefon- og desktopopstilling følger ENHEDEN og læses én gang ved mount:
-   `isTouchLikeDeviceWithShortestSideAtMost(599)` — samme aflæsning, som Mineos device-gate bruger, blot med
+   `isTouchLikeDeviceWithShortestSideAtMost(599)` – samme aflæsning, som Mineos device-gate bruger, blot med
    en lavere tærskel. Resize, rotation og browserzoom kan derfor ikke flytte fladen mellem de to
    opstillinger; en berøringsfølsom bærbar med stor skærm er en desktop, og en roteret telefon bliver ikke
    en desktop. Den viewport-responsive styling, der er tilbage på listen nedenfor, er derfor kun
-   *finjustering inden for* en valgt opstilling (skriftstørrelser, footer-kolonner) — aldrig valget selv.
+   *finjustering inden for* en valgt opstilling (skriftstørrelser, footer-kolonner) – aldrig valget selv.
 
    Reglen findes, fordi de to beslutninger tidligere havde hver sit grundlag: opstillingen skiftede på
    `useMediaQuery(down('sm'))`, mens indholdsboksens breddeoverstyring lå i `@media (pointer: coarse)`. Et
    smalt musevindue faldt derfor ned mellem dem og fik telefonens tre kolonner med desktopbredden på 1200 px
-   — dårligere end begge de layouts, der findes (BB-045) — og skjulte samtidig tillægstid, enhed og den
+   – dårligere end begge de layouts, der findes (BB-045) – og skjulte samtidig tillægstid, enhed og den
    afledte rentedato, mens renten fortsat blev regnet med tillægstiden (BB-046). **Indholdsboksens bredde
    hører derfor til opstillingsvalget** og bor i sidens `isMobile`-blok, ikke i en `@media`-forespørgsel i
    `minprocesrente.css`.
@@ -284,13 +284,13 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
    | `src/components/pages/renteberegning/RenteberegningTab.tsx` | **Delt** (`Renteberegning` + standalone). Den ene breakpointregel er `overflowX: { xs: 'hidden', sm: 'auto' }`; fanens øvrige mobiladfærd kører på en eksplicit `isMobile`-prop, ikke på breakpoints. |
    | `src/components/ui/ScrollToTopButton.tsx` | Mineo-lokal, men bevidst: device-gaten kræver **touch-lighed**, så et smalt ikke-touch desktopvindue slipper igennem. Reglen flytter kun knappen tættere på hjørnet. |
 
-   Den tidligere formulering ("variant-lokal — ikke delt/global") var **ikke længere korrekt**: to af filerne er delt med Mineo. Præmissen er korrigeret frem for at splitte fladerne i to kopier, fordi breakpointsene aldrig tænder på Mineos desktop-flade.
+   Den tidligere formulering ("variant-lokal – ikke delt/global") var **ikke længere korrekt**: to af filerne er delt med Mineo. Præmissen er korrigeret frem for at splitte fladerne i to kopier, fordi breakpointsene aldrig tænder på Mineos desktop-flade.
 
-   **Input-modalitet er ikke omfattet.** `@media (pointer: coarse)` og `@media (hover: hover|none)` er affordances efter inputenhed — de rammer touch-capable desktops, som gaten bevidst slipper igennem — og er derfor tilladt overalt.
+   **Input-modalitet er ikke omfattet.** `@media (pointer: coarse)` og `@media (hover: hover|none)` er affordances efter inputenhed – de rammer touch-capable desktops, som gaten bevidst slipper igennem – og er derfor tilladt overalt.
 
    Fillisten er **håndhævet**, ikke kun beskrevet: `shell/viewport-responsive-styling-allowlist` i arkitektur-harnesset (`src/__tests__/quality/architecture/rules/responsiveStylingRules.ts`) gør en ny viewport-responsiv fil rød, og harnessets anti-rot-kontrol fjerner en post, der ikke længere udløser reglen. `.css`-filer ligger uden for kilde-grafen og er derfor kun auditeret her. Risiko: ingen for Mineo. Re-evaluering hvis standalone gøres desktop-only.
 
-   `src/apps/minprocesrente/minprocesrente.css` stod på listen indtil verifikationen 2026-08-19, hvor den viste sig **forældet**: filens eneste `@media` er `(pointer: coarse)` — netop den form, afsnittet ovenfor udtrykkeligt holder uden for undtagelsen. Viewport-forespørgslen forsvandt i `13022592`, og posten overlevede sit eget mål, fordi anti-rot-kontrollen kun kan se TS/TSX. Det er den præcise pris ved, at CSS kun auditeres i prosa her: driften fanges først ved næste verifikation, ikke af harnesset.
+   `src/apps/minprocesrente/minprocesrente.css` stod på listen indtil verifikationen 2026-08-19, hvor den viste sig **forældet**: filens eneste `@media` er `(pointer: coarse)` – netop den form, afsnittet ovenfor udtrykkeligt holder uden for undtagelsen. Viewport-forespørgslen forsvandt i `13022592`, og posten overlevede sit eget mål, fordi anti-rot-kontrollen kun kan se TS/TSX. Det er den præcise pris ved, at CSS kun auditeres i prosa her: driften fanges først ved næste verifikation, ikke af harnesset.
 
    Filens `(pointer: coarse)`-blok ejer fortsat mobilens normale sidescroll (`html`/`body`/`#root`), som er en ægte input-modalitets-affordance. Men `#root .content-box`-bredden er FLYTTET ud af den 2026-08-19 og ind i sidens `isMobile`-blok, jf. afsnittet ovenfor: bredden er en del af opstillingsvalget, og `(pointer: coarse)` er et andet grundlag end det, opstillingen vælges på. Genindfør den ikke i CSS'en.
 
@@ -298,10 +298,10 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    | Forhold | Konsekvens |
    |---|---|
-   | Browseren rydder Cache Storage under lagerpres (eviction) | Et gammelt vindues chunks kan forsvinde, og `fetch`-fallbacket rammer et 404. Retention af tidligere build-caches øger selv kvotetrykket — det er en bevidst afvejning mod at gøre deploy midt i lange sessioner sikkert. |
+   | Browseren rydder Cache Storage under lagerpres (eviction) | Et gammelt vindues chunks kan forsvinde, og `fetch`-fallbacket rammer et 404. Retention af tidligere build-caches øger selv kvotetrykket – det er en bevidst afvejning mod at gøre deploy midt i lange sessioner sikkert. |
    | Første installation sker offline eller fejler | Der oprettes ingen versionscache for den build, og senere lazy imports må gå til netværket. |
 
-   I begge tilfælde overtager `vite:preloadError`-linjen, som gør fejlen synlig og tilbyder en input-sikret genindlæsning frem for en runtime-fejl. Det er præcis den situation, hvor linjen ER bydende nødvendig. Re-evaluering ville kræve, at origin beholdt tidligere builds assets — en deploy-beslutning, ikke en klientside-beslutning.
+   I begge tilfælde overtager `vite:preloadError`-linjen, som gør fejlen synlig og tilbyder en input-sikret genindlæsning frem for en runtime-fejl. Det er præcis den situation, hvor linjen ER bydende nødvendig. Re-evaluering ville kræve, at origin beholdt tidligere builds assets – en deploy-beslutning, ikke en klientside-beslutning.
 
 5. **Hard-stop-siden deler DATA med app-shellen, aldrig styling.** `UnsupportedDevicePage` renderes af `bootstrapClientApp.tsx` på en sti, der bevidst ikke indlæser app-stylesheet og ikke opretter et MUI-tema (kun to Montserrat-vægte hentes). Siden er derfor **inline-stylet i sin helhed**, og dens bundle er det eneste en mobilbruger nogensinde downloader.
 
@@ -309,13 +309,13 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    | Deles | Deles ikke |
    |---|---|
-   | `src/components/layout/siblingSites.ts` — den kanoniske liste over søskendesider + kontaktadresse. Rent data, ingen styling-afhængighed, så en ny søskendeside kun skal tilføjes ét sted. | `SiblingSitesFooter.tsx` — forudsætter MUI, `.content-box` og `--color-*`-variabler. Genbrugt direkte ville den både rendere ustylet på hard-stop-siden og trække hele `@mui/material` ind i mobilens entry-chunk. |
+   | `src/components/layout/siblingSites.ts` – den kanoniske liste over søskendesider + kontaktadresse. Rent data, ingen styling-afhængighed, så en ny søskendeside kun skal tilføjes ét sted. | `SiblingSitesFooter.tsx` – forudsætter MUI, `.content-box` og `--color-*`-variabler. Genbrugt direkte ville den både rendere ustylet på hard-stop-siden og trække hele `@mui/material` ind i mobilens entry-chunk. |
 
    Konsekvensen er en bevidst styling-DUBLET: hard-stop-sidens søskendeboks gengiver footerens mobiludseende i inline-styling. Dubletten er accepteret, fordi alternativet (delt komponent) bryder isolationen, som er den dyrere invariant. De to flader er målt til at være geometrisk identiske (12,5 px/500, samme kolonneforskydninger, samme `rowGap`).
 
    To ting er **håndhævet**, ikke kun beskrevet:
 
    - `shell/unsupported-device-page-bundle-isolation` (`rules/responsiveStylingRules.ts`) gør en MUI-/Emotion-/UI-komponent-/stylesheet-import i hard-stop-siden rød.
-   - `a11y/web-link-policy-single-source` (`rules/linkRules.ts`) undtager siden fra `ExternalLink`-kravet — netop for at holde MUI ude — men kræver stadig `target="_blank"` + `rel="noopener noreferrer"` på de håndsammensatte links. `tabIndex={-1}` er bevidst udeladt: den regel findes for ikke at forurene programmets tastaturrækkefølge, og der er intet program på hard-stop-siden. Linkene er brugerens eneste vej videre og skal kunne tabbes.
+   - `a11y/web-link-policy-single-source` (`rules/linkRules.ts`) undtager siden fra `ExternalLink`-kravet – netop for at holde MUI ude – men kræver stadig `target="_blank"` + `rel="noopener noreferrer"` på de håndsammensatte links. `tabIndex={-1}` er bevidst udeladt: den regel findes for ikke at forurene programmets tastaturrækkefølge, og der er intet program på hard-stop-siden. Linkene er brugerens eneste vej videre og skal kunne tabbes.
 
    Risiko: en ændring i footerens mobiludseende forplanter sig ikke automatisk. Re-evaluering hvis hard-stop-siden en dag alligevel skal indlæse app-stylesheet.

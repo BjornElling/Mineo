@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-19
 
 ---
 
@@ -22,7 +22,7 @@
 3. Beløb og afrunding følger `amount-contract.md`.
 4. Dokumentgaten skal være en typed dokumentdefinition med strukturelle dependencies og må ikke afhænge af rendererens
    interne fejl, lokale feltbooleans eller rå sektionslæsning.
-5. Et felts synlighed og dets neutralisering i beregningen udledes af **samme** relevans-prædikat (ét sandt sted) i `src/domain/policies/aarsloenPolicy.ts` — fx `erAarsloenFerieFelterRelevant`, der fodrer både `shouldShowAarsloenFerieFields` (UI) og den kanoniske beregning. Sidekomponenter må ikke gen-introducere inline synligheds-betingelser på felter, hvis relevans ejes af et prædikat. Jf. `form-contract.md` §7.
+5. Et felts synlighed og dets neutralisering i beregningen udledes af **samme** relevans-prædikat (ét sandt sted) i `src/domain/policies/aarsloenPolicy.ts` – fx `erAarsloenFerieFelterRelevant`, der fodrer både `shouldShowAarsloenFerieFields` (UI) og den kanoniske beregning. Sidekomponenter må ikke gen-introducere inline synligheds-betingelser på felter, hvis relevans ejes af et prædikat. Jf. `form-contract.md` §7.
 6. En tabelrække med komplet periode og uden noget beløb er en blokerende `missing_amount`-fejl på første
    beløbscelle. Rækken må ikke aktivere helårsomregning eller passere dokumentgaten.
 7. SH-dage-dokumentet sammenlægger overlappende/sammenhængende perioder og skriver `Periode`/`Perioder` efter
@@ -36,9 +36,9 @@
 
 - `loenperiode` → `'maaned'`, `tillaegAngivesSom` → `'procent'`, `tableData` → `[]`, `omregningTilFuldtAar` → `false`, `fuldLoenUnderFerie` → `true`, `retTilSjetteFerieuge` → `true`, `loenPaaHelligdage` → `'Almindelig løn'`.
 - Procentfelterne (`feriePct`, `fritvalgPct`, `shSoPct`, `storeBededagPct`, `pensionPct`) og `antalFeriedage` er optional; manglende værdi forbliver `undefined`.
-- `tillaegAngivesSom` bestemmer, hvordan lønindkomst-tillæg angives: `'procent'` lader programmet beregne FP/FV/SH/SO- og Arb.g. Pension-beløbene ud fra satserne, mens `'beloeb'` lader brugeren angive beløbene direkte i tabelrækkernes `fpFvShSoBeloeb`/`pensionBeloeb`-felter. De to tilstande er ligestillede; kun den aktive tilstands input fodrer beregning og dokumenter — den fravalgte tilstands persisterede input bevares, men ignoreres (samme relevans-princip som §2-regel 5). At gøre `tillaegAngivesSom` default-bærende og tilføje de to nye række-felter blev bogført som et `PERSISTED_DATA_VERSION`-bump; den aktuelle version står i `src/config/persistenceVersion.ts`.
+- `tillaegAngivesSom` bestemmer, hvordan lønindkomst-tillæg angives: `'procent'` lader programmet beregne FP/FV/SH/SO- og Arb.g. Pension-beløbene ud fra satserne, mens `'beloeb'` lader brugeren angive beløbene direkte i tabelrækkernes `fpFvShSoBeloeb`/`pensionBeloeb`-felter. De to tilstande er ligestillede; kun den aktive tilstands input fodrer beregning og dokumenter – den fravalgte tilstands persisterede input bevares, men ignoreres (samme relevans-princip som §2-regel 5). At gøre `tillaegAngivesSom` default-bærende og tilføje de to nye række-felter blev bogført som et `PERSISTED_DATA_VERSION`-bump; den aktuelle version står i `src/config/persistenceVersion.ts`.
 
-`loenperiode`-defaulten er **bevidst statisk** og ikke settings-styret: en ny sag sætter feltet fra `defaultLoenIndtastesSom` via `createAarsloenInitialValues`, men schema-defaulten rammer kun load af en fil hvor feltet helt mangler — og `persistence-contract.md` forbyder at injicere device-lokale app-settings under load. At gøre felterne default-bærende ændrer schema-fingerprintet (input-optional) og er bogført som `PERSISTED_DATA_VERSION`-bump.
+`loenperiode`-defaulten er **bevidst statisk** og ikke settings-styret: en ny sag sætter feltet fra `defaultLoenIndtastesSom` via `createAarsloenInitialValues`, men schema-defaulten rammer kun load af en fil hvor feltet helt mangler – og `persistence-contract.md` forbyder at injicere device-lokale app-settings under load. At gøre felterne default-bærende ændrer schema-fingerprintet (input-optional) og er bogført som `PERSISTED_DATA_VERSION`-bump.
 
 ---
 
@@ -47,7 +47,7 @@
 Årsløn er **bevidst ikke** snapshot-first. Den ready inputprojektion og section-lokale engine-/calculations-model i §1
 er slutarkitekturen, ikke et mellemtrin mod et snapshot.
 
-Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Årsløns engine-resultat bygges ét sted i `buildAarsloenReaderProjection`, og PDF-stien **genbruger** det allerede beregnede `beregningsData` — den genberegner ikke domæneafledninger. Der er derfor hverken duplikering eller grænse-smerte at retfærdiggøre et snapshot-lag for, jf. konvergensreglen i `AGENTS.md` (ingen abstraktioner til hypotetisk fremtidig genbrug). Et snapshot-lag her ville tilføje vægt uden at fjerne en risiko.
+Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Årsløns engine-resultat bygges ét sted i `buildAarsloenReaderProjection`, og PDF-stien **genbruger** det allerede beregnede `beregningsData` – den genberegner ikke domæneafledninger. Der er derfor hverken duplikering eller grænse-smerte at retfærdiggøre et snapshot-lag for, jf. konvergensreglen i `AGENTS.md` (ingen abstraktioner til hypotetisk fremtidig genbrug). Et snapshot-lag her ville tilføje vægt uden at fjerne en risiko.
 
 Beslutningen er truffet endeligt og er ikke et udestående. Snapshot-first er forbeholdt de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §6`.
 

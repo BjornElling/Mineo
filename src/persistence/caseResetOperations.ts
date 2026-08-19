@@ -8,7 +8,7 @@ import { deleteFileHandleFromIndexedDB } from '../utils/fileHandleStorage';
 // reset). Den routes gennem den samme replacement-grænse som load og gennem `CriticalActionCoordinator`, så
 // den åbne draft ALDRIG blokerer handlingen og først kasseres efter en vellykket apply. `clearCase` er tillige
 // den ENE command, `dispatchInput` tillader, når runtime er `writesBlocked` efter en korrupt current-session
-// (§1.12) — porten er derfor også recovery-vejen ud af en blokeret session.
+// (§1.12) – porten er derfor også recovery-vejen ud af en blokeret session.
 //
 // Porten ejer HELE reset-transaktionen: det autoritative input, den sagsnære UI-sessionstate og
 // filhåndtaget. Tidligere lå de to sidste som løse kald i shell-use-casen, hvis boolean-resultater ingen læste,
@@ -17,7 +17,7 @@ import { deleteFileHandleFromIndexedDB } from '../utils/fileHandleStorage';
 
 /** En rest efter reset: en oprydning, der ikke kunne verificeres. Bæres i resultatet, aldrig kastet. */
 export type ResetResidue = Readonly<{
-  /** Hvad der ikke kunne ryddes — `storageKey` er den konkrete manifest-nøgle, `fileHandle` det gemte håndtag. */
+  /** Hvad der ikke kunne ryddes – `storageKey` er den konkrete manifest-nøgle, `fileHandle` det gemte håndtag. */
   kind: 'sessionStorageKey' | 'fileHandle';
   /** Menneskelæsbar identifikation til fejlbeskeden (nøglenavn eller håndtagets rolle). */
   detail: string;
@@ -26,7 +26,7 @@ export type ResetResidue = Readonly<{
 export type ClearAllResult = Readonly<{
   /**
    * `cleared`: det autoritative input ER ryddet, og al tilknyttet oprydning blev verificeret.
-   * `cleared-with-residue`: inputtet er ryddet — det er den autoritative del og kan ikke rulles tilbage — men
+   * `cleared-with-residue`: inputtet er ryddet – det er den autoritative del og kan ikke rulles tilbage – men
    * mindst én tilknyttet oprydning kunne ikke verificeres. Kalderen SKAL vise resterne frem for "alt slettet".
    */
   status: 'cleared' | 'cleared-with-residue';
@@ -49,7 +49,7 @@ export type CaseResetOperations = Readonly<{
   /**
    * `Slet alt`: rydder hele sagen atomisk gennem replacement-grænsen og derefter den sagsnære sidetilstand.
    * Klargøres UDEN settle (`applyReplacement` kasserer først en eventuel åben draft efter succes). En apply,
-   * der ikke flytter `replacementGeneration`, kastes af coordinatoren — så en tavs no-op aldrig kan optræde
+   * der ikke flytter `replacementGeneration`, kastes af coordinatoren – så en tavs no-op aldrig kan optræde
    * som en clear. Rester i den efterfølgende oprydning rapporteres i resultatet.
    */
   clearAll: () => Promise<ClearAllResult>;
@@ -58,7 +58,7 @@ export type CaseResetOperations = Readonly<{
 /**
  * Rydder den sagsnære UI-sessionstate og filhåndtaget EFTER den autoritative input-clear. Rækkefølgen er
  * bevidst: inputtet er det, brugeren beder om at få slettet, og en fejlende storage-oprydning må ikke
- * forhindre den. Hver grænses resultat kontrolleres — `removeOptionalSessionStorageValue` og
+ * forhindre den. Hver grænses resultat kontrolleres – `removeOptionalSessionStorageValue` og
  * `deleteFileHandleFromIndexedDB` omsætter selv fejl til `false`, så et ukontrolleret kald er blindt.
  */
 const clearCaseScopedSideState = async (): Promise<readonly ResetResidue[]> => {

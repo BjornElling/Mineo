@@ -45,7 +45,7 @@ describe('loebendeYdelser → Word-indhold', () => {
     expect(text).toContain('Udvidet specifikation');
     expect(text).toContain('ASL årsløn');
     // Konkret beløb på den udfyldte sti: den anvendte ASL-årsløn (400.000) og grundlønnen
-    // (320.000) skal nå .docx'en — ikke bare label-overskrifterne.
+    // (320.000) skal nå .docx'en – ikke bare label-overskrifterne.
     expect(text).toContain('400.000 kr.');
     expect(text).toContain('320.000 kr.');
   });

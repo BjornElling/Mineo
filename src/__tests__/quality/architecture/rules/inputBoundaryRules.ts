@@ -35,7 +35,7 @@ import { defineRule, forbidImports, type Finding } from '../ruleKit';
  * Skrivegrænsen var tidligere et brandet vidne (`InputWriteAuthority`) oven på en fortsat OFFENTLIG
  * Zustand-`StoreApi`. Det var den forkerte rækkefølge: capabilityen `setState` blev ved med at være
  * tilgængelig, og et AST-værn skulle holde den lukket. Værnet kunne omgås af et alias, en aliaseret
- * type-assertion eller et direkte `store.setState(...)` — præcis de tre huller, reviewet påviste.
+ * type-assertion eller et direkte `store.setState(...)` – præcis de tre huller, reviewet påviste.
  *
  * Rettelsen er at fjerne muligheden i stedet for at bevogte den: `SlimInputStore` er rent læsbar,
  * mens runneren alene har de registrerede mutatorer. Zustands `StoreApi` forlader aldrig
@@ -49,7 +49,7 @@ import { defineRule, forbidImports, type Finding } from '../ruleKit';
  *      i produktionskode ville et kald være en anden samtidig sandhed om, hvilken sag der er aktiv.
  *
  * Allowlisten er tom med vilje: en undtagelse ville være en anden samtidig sandhed om, hvem der ejer
- * input — samme begrundelse som `input/deleted-legacy-architecture-import`.
+ * input – samme begrundelse som `input/deleted-legacy-architecture-import`.
  */
 /** Modulet der ejer den mutable input-store. Kun her må Zustand importeres til inputformål. */
 const INPUT_STORE_OWNER = 'src/inputCore/runtime/slimInputStore.ts';
@@ -73,7 +73,7 @@ export const inputWriteBoundary = defineRule({
       || hasAnyIdentifier(entry, ['registerSlimInputStoreInternals', 'hydrateInputStoreOnce', 'dispatchInput']),
     rationale:
       'skrivegrænsens moduler (store-ejeren + de autoritative interne skriveveje) '
-      + 'findes stadig — forsvinder de, er grænsen flyttet og reglen skal skrives om',
+      + 'findes stadig – forsvinder de, er grænsen flyttet og reglen skal skrives om',
     // Sammensat mål: BÅDE ejeren og de to autoritative skriveveje skal findes. Slettes én af dem,
     // er reglen halvt død, selvom "≥1 fil matcher" fortsat holder.
     requiredPaths: [
@@ -92,7 +92,7 @@ export const inputWriteBoundary = defineRule({
           findings.push({
             position: ref.position,
             message:
-              `Rå Zustand-store uden for ${INPUT_STORE_OWNER} — en ny mutabel store er en ny, ubevogtet `
+              `Rå Zustand-store uden for ${INPUT_STORE_OWNER} – en ny mutabel store er en ny, ubevogtet `
               + 'inputvej. Skriv gennem `dispatchInput`; læs gennem readeren/projektionen (§3.6).',
           });
         }
@@ -141,7 +141,7 @@ export const inputWriteBoundary = defineRule({
   violatingFixtures: [
     { relativePath: 'src/x.ts', code: "import { createStore } from 'zustand/vanilla';" },
     { relativePath: 'src/components/x.tsx', code: "import { create } from 'zustand';" },
-    // Også inde i inputCore — men uden for det ene modul der ejer storen.
+    // Også inde i inputCore – men uden for det ene modul der ejer storen.
     { relativePath: 'src/inputCore/react/x.ts', code: "import { createStore } from 'zustand/vanilla';" },
     {
       relativePath: 'src/components/x.tsx',
@@ -180,7 +180,7 @@ export const inputWriteBoundary = defineRule({
  *
  * Der findes præcis ét sådant opslag uden for
  * inputinfrastrukturen (shellens devtools-diagnostik), og intet hindrede det næste. Diagnostikken har
- * et legitimt behov for den rå form — en fejlrapport skal vise hvad der ER gemt — men behovet hører i
+ * et legitimt behov for den rå form – en fejlrapport skal vise hvad der ER gemt – men behovet hører i
  * en NAVNGIVEN projektion (`inputDiagnosticsProjection`), ikke i en generel undtagelse.
  */
 const RAW_SECTION_OWNERS = 'src/inputCore/';
@@ -201,16 +201,16 @@ const RAW_SECTION_SERIALIZERS: readonly string[] = [
 ];
 
 /**
- * Destrukturering, der HENTER `sections` ud af et objekt — altså `const { sections } = input`, ikke en
+ * Destrukturering, der HENTER `sections` ud af et objekt – altså `const { sections } = input`, ikke en
  * komponent-parameter, der tilfældigvis HEDDER `sections`.
  *
  * Sondringen er strukturel, ikke navnebaseret, og den er nødvendig: `sections` er også et almindeligt ord.
- * EO-inspektionens komponenter tager en prop `sections: readonly InspektionSection[]` — view-modeller uden
+ * EO-inspektionens komponenter tager en prop `sections: readonly InspektionSection[]` – view-modeller uden
  * nogen relation til `SettledInput`. Ville reglen flage dem, skulle tre uskyldige filer på allowlisten, og
  * grænsen ville blive udvandet præcis der, hvor den skal være skarp.
  *
  * Kun en `VariableDeclaration` med et INITIALISERINGSUDTRYK udtrykker en læsning: der ER et objekt, værdien
- * hentes fra. En parameter- eller catch-binding modtager derimod noget, kalderen har bygget — og hvis det
+ * hentes fra. En parameter- eller catch-binding modtager derimod noget, kalderen har bygget – og hvis det
  * kaldssted rakte ind i den rå form, flages det DÉR af member-access-benet.
  */
 const isSectionsReadFromObject = (node: ts.BindingElement): boolean => {
@@ -223,8 +223,8 @@ const isSectionsReadFromObject = (node: ts.BindingElement): boolean => {
 export const rawSectionAccessBoundary = defineRule({
   id: 'domain/raw-section-access-boundary',
   description:
-    'Rå adgang til `…input.sections` — i ENHVER form (subscript, property, reference/spread, '
-    + 'destrukturering) — hører i `src/inputCore/` (readeren + den navngivne diagnostikprojektion) og i '
+    'Rå adgang til `…input.sections` – i ENHVER form (subscript, property, reference/spread, '
+    + 'destrukturering) – hører i `src/inputCore/` (readeren + den navngivne diagnostikprojektion) og i '
     + 'de to navngivne persistensporte. Alle andre lag læser gennem `InputReader`/projektionen (§3.4), '
     + 'så en værdi bag en rød feltfejl forbliver skjult og gates blokerer korrekt.',
   liveTarget: {
@@ -235,7 +235,7 @@ export const rawSectionAccessBoundary = defineRule({
       // dette modul bærer nu flere kommentarer om den rå form, som en tekstprobe ville have accepteret).
       && hasMemberRead(entry, 'sections'),
     rationale:
-      'den rå sektionsform findes stadig i inputkernen — forsvinder `sections` fra `SettledInput`, '
+      'den rå sektionsform findes stadig i inputkernen – forsvinder `sections` fra `SettledInput`, '
       + 'er der ingen rå adgang at regulere, og reglen skal slettes',
     // Begge de navngivne rå læsere skal findes OG stadig læse rå sektioner. Flyttes/omdøbes en af
     // dem, ville undtagelsen ellers blive en tavs udvidelse af grænsen for en fremtidig fil på
@@ -250,16 +250,16 @@ export const rawSectionAccessBoundary = defineRule({
   // syntetisk kørsel viste, at `input.sections.satser` gav NUL fund, og at en reference til hele
   // `input.sections` (fx et spread) heller ikke blev set. Grænsen handler om ADGANG TIL VÆRDIEN, ikke om
   // hvilken syntaks der bruges, så alle fire former måles nu:
-  //   1. `x.sections[k]`         — element access (den oprindelige)
-  //   2. `x.sections.satser`     — property access
-  //   3. `x.sections` / `{...x.sections}` — bar reference og spread (samme member access-node)
-  //   4. `const { sections } = x` — destrukturering (en binding-pattern, ikke et adgangsudtryk)
+  //   1. `x.sections[k]`         – element access (den oprindelige)
+  //   2. `x.sections.satser`     – property access
+  //   3. `x.sections` / `{...x.sections}` – bar reference og spread (samme member access-node)
+  //   4. `const { sections } = x` – destrukturering (en binding-pattern, ikke et adgangsudtryk)
   find: (entry) => {
     if (entry.relativePath.startsWith(RAW_SECTION_OWNERS)) return [];
     if (RAW_SECTION_SERIALIZERS.includes(entry.relativePath)) return [];
 
     const message =
-      'Rå sektionsadgang uden for inputCore — læs gennem `useInputEvaluation`/en domæneprojektion, '
+      'Rå sektionsadgang uden for inputCore – læs gennem `useInputEvaluation`/en domæneprojektion, '
       + 'eller (til diagnostik) gennem `useInputDiagnostics` (§3.4).';
 
     const elementAccess = collectElementAccess(entry)
@@ -325,14 +325,14 @@ export const rawSectionAccessBoundary = defineRule({
  *
  * Reglen afløser `erstatningsopgoerelseSurfaceGuard.test.ts`, som var en RÅ TEKST-guard i begge ender: den
  * fandt inputflader med regex over kildeteksten og godkendte arkitekturvejen med `source.includes(...)`. En
- * håndrullet inputflade kunne derfor passere alene ved at NÆVNE fx `useFieldEditor` i en kommentar — en
+ * håndrullet inputflade kunne derfor passere alene ved at NÆVNE fx `useFieldEditor` i en kommentar – en
  * in-memory probe med `// useFieldEditor` foran en `<Input field={x} onChange={…} />` blev accepteret
  *. Det er samme fejlklasse, blot i et lokalt værn frem for i harnesset.
  *
  * Begge ender er nu AST:
  *  - FLADEN genkendes på JSX-attributter (`field`/`location`/`onCommit`/`onDraftChange`), der er noder.
  *  - VEJEN bevises af en faktisk IMPORT fra et autoritativt inputmodul eller af et kald til en af
- *    inputvejens hooks — ikke af at navnet forekommer i filteksten.
+ *    inputvejens hooks – ikke af at navnet forekommer i filteksten.
  */
 const EO_SURFACE_ROOTS = [
   'src/components/pages/Erstatningsopgoerelse.tsx',
@@ -342,10 +342,10 @@ const EO_SURFACE_ROOTS = [
 /** JSX-attributter, der gør en fil til en inputflade (og ikke ren visning/beregning). */
 const EO_INPUT_SURFACE_ATTRIBUTES = ['field', 'location', 'onCommit', 'onDraftChange'];
 
-/** Den autoritative inputvej som IMPORT-stier — en import er en node, en kommentar er ikke. */
+/** Den autoritative inputvej som IMPORT-stier – en import er en node, en kommentar er ikke. */
 const AUTHORITATIVE_EDITOR_MODULE = /(?:^|\/)(?:inputCore\/react(?:\/|$)|useCollectionTable|useCollectionRows)/;
 
-/** Den autoritative inputvej som KALD — samme veje, hvis de nås via en re-eksport uden matchende sti. */
+/** Den autoritative inputvej som KALD – samme veje, hvis de nås via en re-eksport uden matchende sti. */
 const AUTHORITATIVE_EDITOR_HOOKS = [
   'useFieldEditor',
   'useFormFieldSurface',
@@ -356,7 +356,7 @@ const AUTHORITATIVE_EDITOR_HOOKS = [
 
 /**
  * Den transiente familie er den ENE bevidste ikke-sagsdata-flade (overlays/dialoger), hvis værdier aldrig
- * persisteres ([[project_transient_input_family]]). Den skal netop IKKE ligge på den autoritative editorvej — at
+ * persisteres ([[project_transient_input_family]]). Den skal netop IKKE ligge på den autoritative editorvej – at
  * kræve det ville være at bede den om at skrive sagsdata. Undtagelsen gælder KUN en REN transient flade:
  * bærer filen også et persisteret felt (`field={…}`), skal den på editorvejen, så en overtrædelse ikke
  * kan gemme sig bag ét transient input. Den anden retning håndhæves af
@@ -368,14 +368,14 @@ export const eoSurfaceOnAuthoritativeEditorPath = defineRule({
   id: 'input/eo-surface-on-authoritative-editor-path',
   description:
     'Enhver EO-inputflade (JSX med field/location/onCommit/onDraftChange) skal importere eller kalde '
-    + 'inputkernens autoritative editorvej — bevist på AST-noder, ikke på tekst i filen.',
+    + 'inputkernens autoritative editorvej – bevist på AST-noder, ikke på tekst i filen.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
       EO_SURFACE_ROOTS.some((root) => entry.relativePath === root || entry.relativePath.startsWith(`${root}/`))
       && EO_INPUT_SURFACE_ATTRIBUTES.some((name) => hasJsxAttribute(entry, name)),
     rationale:
-      'EO-siden har stadig inputflader at kontrollere — forsvinder de, er der ingen overflade at holde '
+      'EO-siden har stadig inputflader at kontrollere – forsvinder de, er der ingen overflade at holde '
       + 'på den autoritative editorvej',
     // Gulvet er ikke kosmetisk: den gamle guard havde samme krav, fordi en filflytning ellers ville gøre
     // værnet trivielt grønt. Fem er antallet af flader, EO faktisk har.
@@ -446,8 +446,8 @@ export const eoSurfaceOnAuthoritativeEditorPath = defineRule({
  * feltredigering, og en celle må aldrig kunne formulere dem.
  *
  * Grænsen er primært STRUKTUREL: porten er skilt ud fra `InputEditPort`, så en editor-flade slet ikke
- * har `replaceCase` i hånden. Reglen holder PRODUCENTLISTEN lukket — hvem der overhovedet henter
- * systemporten — for ellers kunne en ny celleflade tilføje kaldet lydløst, og adskillelsen ville være
+ * har `replaceCase` i hånden. Reglen holder PRODUCENTLISTEN lukket – hvem der overhovedet henter
+ * systemporten – for ellers kunne en ny celleflade tilføje kaldet lydløst, og adskillelsen ville være
  * tilbage til en aftale.
  */
 const INTERNAL_HOOK_OWNERS: Readonly<Record<string, readonly string[]>> = {
@@ -509,7 +509,7 @@ export const internalRuntimeCapabilityBoundary = defineRule({
 /**
  * `src/components/inputs/transient/` er den ENESTE bevidste ikke-sagsdata-flade: tre overlay-/dialog-
  * felter, hvis værdier aldrig persisteres ([[project_transient_input_family]]). Det var indtil nu kun
- * en aftale — intet hindrede en af dem i at importere skrivevejen og dermed genskabe præcis den
+ * en aftale – intet hindrede en af dem i at importere skrivevejen og dermed genskabe præcis den
  * parallelle inputvej, cutoveren slettede ("genindfør ALDRIG en Styled*Field-familie").
  *
  * Reglen forbyder dem enhver sagsinput-skrivevej: dispatch, storen, feltredigeringen og
@@ -520,7 +520,7 @@ const TRANSIENT_DIR = 'src/components/inputs/transient';
 export const transientCannotWriteCaseData = forbidImports({
   id: 'input/transient-cannot-write-case-data',
   description:
-    'Transiente (ikke-sagsdata) input-controls må ikke importere en sagsinput-skrivevej — hverken '
+    'Transiente (ikke-sagsdata) input-controls må ikke importere en sagsinput-skrivevej – hverken '
     + 'dispatch, den autoritative store, felteditoren eller et descriptor-katalog.',
   liveTarget: {
     kind: 'scoped',
@@ -547,7 +547,7 @@ export const transientCannotWriteCaseData = forbidImports({
     );
   },
   message: (ref) =>
-    `Transient control importerer en sagsinput-skrivevej (${ref.moduleSpecifier}) — transiente felter `
+    `Transient control importerer en sagsinput-skrivevej (${ref.moduleSpecifier}) – transiente felter `
     + 'er pr. definition ikke sagsdata og må ikke kunne persistere.',
   violatingFixtures: [
     {
@@ -583,22 +583,22 @@ export const transientCannotWriteCaseData = forbidImports({
  * Forbudt-symbol-gaten, med listen holdt mod den faktiske kildetilstand.
  *
  * Gaten måler **identifiers fra AST'en**, ikke tekst. Det er afgørende, fordi de fleste af navnene
- * stadig optræder i produktionen — som KOMMENTARER, der forklarer hvorfor en mekanisme ikke findes
+ * stadig optræder i produktionen – som KOMMENTARER, der forklarer hvorfor en mekanisme ikke findes
  * længere. Den historik er bevidst dokumentation og skal blive ([[project_dansk_prosa_guard_markers]]);
  * en grep-baseret gate ville tvinge en oprydning af netop den prosa, der gør sletningerne forståelige.
  *
  * **`blocksSave` blev fejlagtigt udeladt og er nu tilbage på listen.**
  *
- * Begrundelsen for at udelade det — "levende navn i `eoInputIssues.ts`" — var faktuelt forkert. Navnet
+ * Begrundelsen for at udelade det – "levende navn i `eoInputIssues.ts`" – var faktuelt forkert. Navnet
  * fandtes kun i KOMMENTARER, som netop forklarede, at booleanen ER slettet, og `error-contract.md` §1.1
  * forbyder normativt et `blocksSave`-flag. Klassifikationen var lavet efter tekstsøgning frem for efter
  * den normative model, og en tekstsøgning kan ikke skelne "navnet bruges" fra "navnet omtales".
  * Gaten måler identifiers, så de forklarende kommentarer bevares uændret.
  *
- * **`fieldErrors` er fortsat UDELADT — og her holder begrundelsen.** Navnet er et LEVENDE feltnavn i
+ * **`fieldErrors` er fortsat UDELADT – og her holder begrundelsen.** Navnet er et LEVENDE feltnavn i
  * snapshot-/projektionskontrakterne (`eoErrors`/`stamdataErrors`-familien, download-gates), altså en
  * identifier produktionen retmæssigt bruger. At forbyde det ville tvinge en kosmetisk omdøbning igennem
- * uden gevinst — stik imod [[feedback_prefer_structural_unification]].
+ * uden gevinst – stik imod [[feedback_prefer_structural_unification]].
  *
  * `usePersistedForm` og `useSliceRowDrafts` er afklaret: begge har NUL identifiers
  * i produktionen (og `usePersistedForm` har ingen definition overhovedet), så de hører hjemme på listen.
@@ -627,7 +627,7 @@ export const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
   'useCellInvalidDraftChannel',
   'onFieldError',
   // `error-contract.md` §2 og `form-contract.md` §12 navngiver BEGGE denne hook som del af den slettede,
-  // forbudte feltfejl-bus — men kun `onFieldError` stod her. To normative kontrakter erklærede altså et
+  // forbudte feltfejl-bus – men kun `onFieldError` stod her. To normative kontrakter erklærede altså et
   // forbud, gaten ikke håndhævede (fundet ved kontraktverifikationen 2026-08-07). Kontrakterne havde ret;
   // det var listen, der var ufuldstændig.
   'useFormFieldErrorReporter',
@@ -637,7 +637,7 @@ export const FORBIDDEN_LEGACY_IDENTIFIERS: readonly string[] = [
   'reconcileGridRowIdentityForRestore',
   'undoAliasRowIdsByRowId',
   // Undo/redo-restorens blur-commit-undertrykkelse (slettet 2026-08-14). Modulet satte et globalt flag
-  // omkring den programmatiske `target.focus()` for at hindre, at et blur committede en forældet draft —
+  // omkring den programmatiske `target.focus()` for at hindre, at et blur committede en forældet draft –
   // men `isRestoreFocusInProgress` havde nul læsere, så undertrykkelsen var en no-op, OG tilstanden kan
   // ikke opstå: undo/redo er `noop` ved åben editor, så restore-løkken nås aldrig med en draft åben.
   // Genindføres værnet, skjuler det igen den antagelse frem for at håndhæve den.
@@ -671,7 +671,7 @@ export const forbiddenLegacyIdentifier = defineRule({
     .map((ref) => ({
       position: ref.position,
       message:
-        `Genindført legacy-symbol '${ref.text}' — mekanismen er slettet. `
+        `Genindført legacy-symbol '${ref.text}' – mekanismen er slettet. `
         + 'Brug inputCore: reader/projektion til læsning, dispatch/useFieldEditor til skrivning.',
     })),
   violatingFixtures: [
@@ -695,7 +695,7 @@ export const forbiddenLegacyIdentifier = defineRule({
     // Strengliterale (fx i et manifest eller en fejlbesked) er heller ikke identifiers.
     { relativePath: 'src/x.ts', code: 'const names = ["useRowDrafts", "invalidDrafts"];' },
     // Levende vokabular må ikke rammes: `fieldErrors` er det nuværende feltnavn i
-    // snapshot-/projektionskontrakterne. (`blocksSave` stod tidligere i denne fixture som "levende" —
+    // snapshot-/projektionskontrakterne. (`blocksSave` stod tidligere i denne fixture som "levende" –
     // det var netop en fejlklassifikation; navnet er forbudt.)
     { relativePath: 'src/x.ts', code: 'const { fieldErrors } = snapshot;' },
     // En KOMMENTAR om den slettede boolean skal fortsat bevares.
@@ -713,7 +713,7 @@ const SOURCE_SETTINGS_OWNER = 'src/settings/sourceSettings.ts';
  *
  * `DocumentRenderSettings` kom til, da gate- og render-halvdelen blev adskilt: da blev
  * render-halvdelen sin egen offentlige type, og uden et mærke var hele `AppSettings` strukturelt
- * assignable til den — altså samme tavse hul som for de to øvrige.
+ * assignable til den – altså samme tavse hul som for de to øvrige.
  */
 const BRANDED_SETTINGS_TYPE_NAMES = ['SourceSettings', 'EoRowPolicy', 'DocumentRenderSettings'] as const;
 const BRANDED_SETTINGS_TYPES: ReadonlySet<string> = new Set(BRANDED_SETTINGS_TYPE_NAMES);
@@ -737,7 +737,7 @@ const DEFINITION_FACTORY_PATTERN = /^define[A-Z]/;
  *
  * `SourceSettings` og `EoRowPolicy` er nominelle (unique-symbol-brands), og `projectSourceSettings`/
  * `projectEoRowPolicy` er deres eneste konstruktører. Derfor kan hele `AppSettings` ikke længere
- * flyde ind i evaluering, rækkepolitik eller dokumentcapture — netop hullet her: en læsning
+ * flyde ind i evaluering, rækkepolitik eller dokumentcapture – netop hullet her: en læsning
  * af en nøgle UDEN FOR `SOURCE_SETTINGS_KEYS` ville indføre en source-afhængighed, der ikke gør et
  * optaget `EvaluationSourceToken` stale, så en download godkendt under den gamle regel kunne
  * overleve et regelskift.
@@ -750,12 +750,12 @@ const DEFINITION_FACTORY_PATTERN = /^define[A-Z]/;
  * **Ingen ejer-undtagelse.** Reglen gælder ALLE filer, også `sourceSettings.ts` selv. Det er muligt,
  * fordi mærkerne er ægte runtime-symboler: projektorerne SÆTTER egenskaben og behøver derfor intet
  * cast. En bred `appliesTo`-undtagelse for ejerfilen ville have gjort netop det sted, hvor mærket
- * fremstilles, usynligt for værnet — og dermed friholdt en ny usikker eksport dér.
+ * fremstilles, usynligt for værnet – og dermed friholdt en ny usikker eksport dér.
  *
  * **Reglen ser ikke kun det skrevne typenavn.** Tre omveje lukkes ud over den direkte assertion:
  *   1. **Lokale type-aliaser** (`type S = SourceSettings; x as S`). Aliaser opsamles pr. fil, så
  *      assertionens target opløses til rodnavnet. Fanget uanset kædelængde.
- *   2. **Kvalificerede navne** (`Settings.SourceSettings`) — sidste led sammenlignes også.
+ *   2. **Kvalificerede navne** (`Settings.SourceSettings`) – sidste led sammenlignes også.
  *   3. **Generisk coercion** (`forge<EoRowPolicy>(x)` hvor hjælperen internt caster til sin egen
  *      typeparameter). Kaldet bærer den brandede type som eksplicit type-argument, og det er ikke
  *      til at skelne fra en assertion i konsekvens, så et type-argument til et KALD flages.
@@ -772,17 +772,17 @@ export const sourceSettingsProjectionBoundary = defineRule({
     'Source-settings-snapshottet og EO-rækkepolitikken konstrueres KUN af deres projektorer i '
     + `${SOURCE_SETTINGS_OWNER}. Grænsen er STRUKTUREL: begge typer er nominelle, så hele `
     + '`AppSettings` ikke kan flyde ind i evaluering, rækkepolitik eller dokumentcapture. Reglen '
-    + 'dækker resten — en type-assertion, der stempler mærket uden om projektoren.',
+    + 'dækker resten – en type-assertion, der stempler mærket uden om projektoren.',
   liveTarget: {
     kind: 'precondition',
     // Proben måler IDENTIFIERS, ikke filtekst. En tekstprobe (og en ren sti-match på ejerfilen) ville
-    // bestå, selv om typen og projektoren var slettet og kun historik-kommentaren stod tilbage —
+    // bestå, selv om typen og projektoren var slettet og kun historik-kommentaren stod tilbage –
     // altså præcis den tomhed, `liveTarget` findes for at udelukke.
     probe: (entry) => BRANDED_SETTINGS_TYPE_NAMES.some((name) => hasIdentifier(entry, name))
       || PROJECTOR_NAMES.some((name) => hasIdentifier(entry, name)),
     rationale:
       'de nominelle settings-snapshots og deres projektorer findes stadig som IDENTIFIERS, og der '
-      + 'findes consumers, der kunne forsøge at fremstille dem uden om projektoren — forsvinder '
+      + 'findes consumers, der kunne forsøge at fremstille dem uden om projektoren – forsvinder '
       + 'typerne, er grænsen flyttet og reglen skal skrives om',
     // Sammensat mål: BÅDE ejeren og de tre consumer-lag (evaluering, rækkeevaluering, dokumentcapture)
     // skal findes. Slettes ét af dem, er reglen halvt død, selvom "≥1 fil matcher" fortsat holder.
@@ -814,23 +814,23 @@ export const sourceSettingsProjectionBoundary = defineRule({
       findings.push({
         position: ref.position,
         message:
-          `Type-assertion til '${target}' uden om projektoren — mærket skal komme fra `
+          `Type-assertion til '${target}' uden om projektoren – mærket skal komme fra `
           + '`projectSourceSettings`/`projectEoRowPolicy`, ellers er indsnævringen til '
           + '`SOURCE_SETTINGS_KEYS` ikke sket, og en nøgle uden for sættet kan ændre en gate uden at '
           + 'gøre et optaget `EvaluationSourceToken` stale.',
       });
     }
 
-    // Et eksplicit type-argument på et kald flages KUN, når kaldet ser ud som en coercion — altså en
+    // Et eksplicit type-argument på et kald flages KUN, når kaldet ser ud som en coercion – altså en
     // hjælper, der PRODUCERER en værdi af den brandede type. Det er nødvendigt at skelne: de
     // legitime `define*`-fabrikker parametriserer en DEFINITION med settings-typen (fx
     // `defineDocumentAction<Request, SourceSettings, Brevhoved>`), hvilket er hele deres formål og
     // ikke fremstiller nogen værdi. Første udgave af reglen manglede den sondring og flagede
-    // `reguleringDocumentAction` — et ægte falsk positiv, fanget ved at køre værnet mod produktionen.
+    // `reguleringDocumentAction` – et ægte falsk positiv, fanget ved at køre værnet mod produktionen.
     //
     // Sondringen er navnebaseret og derfor ikke vandtæt; det er bevidst. Grænsens primære bevis er
     // strukturen (mærket + den cast-frie projektor). En hjælper, der hverken heder `define*` og
-    // alligevel kun beskriver en type, vil give et falsk positiv, som skal afgøres eksplicit her —
+    // alligevel kun beskriver en type, vil give et falsk positiv, som skal afgøres eksplicit her –
     // hvilket er den rigtige retning for et sekundært værn.
     for (const ref of collectCallTypeArguments(entry)) {
       const target = resolveTarget(ref.typeText);
@@ -839,7 +839,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
       findings.push({
         position: ref.position,
         message:
-          `'${target}' gives som eksplicit type-argument til \`${ref.calleeText}\` — en generisk `
+          `'${target}' gives som eksplicit type-argument til \`${ref.calleeText}\` – en generisk `
           + 'hjælper, der producerer den brandede type, er en assertion flyttet én funktion væk. Byg '
           + 'værdien med `projectSourceSettings`/`projectEoRowPolicy`.',
       });
@@ -857,7 +857,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
         findings.push({
           position: ref.position,
           message:
-            `Test-fabrikken \`${binding}\` må ikke bruges i produktionskode — den bygger et snapshot `
+            `Test-fabrikken \`${binding}\` må ikke bruges i produktionskode – den bygger et snapshot `
             + 'fra en vilkårlig override og uden om settings-revisionsbroen. Produktionen skal '
             + 'projicere det committede `AppSettings`.',
         });
@@ -872,15 +872,15 @@ export const sourceSettingsProjectionBoundary = defineRule({
     { relativePath: 'src/x.ts', code: 'const s = appSettings as unknown as SourceSettings;' },
     // Omvej 1: lokalt type-alias. Uden aliasopløsningen var dette en gratis omgåelse.
     { relativePath: 'src/x.ts', code: 'type S = SourceSettings;\nconst s = appSettings as unknown as S;' },
-    // Aliaskæde — opslaget er transitivt.
+    // Aliaskæde – opslaget er transitivt.
     { relativePath: 'src/x.ts', code: 'type A = EoRowPolicy;\ntype B = A;\nconst p = x as B;' },
     // Omvej 2: kvalificeret navn via namespace-import.
     { relativePath: 'src/x.ts', code: 'const s = x as Settings.SourceSettings;' },
-    // Omvej 3: generisk coercion — hjælperen caster internt til sin egen typeparameter.
+    // Omvej 3: generisk coercion – hjælperen caster internt til sin egen typeparameter.
     { relativePath: 'src/x.ts', code: 'const p = forge<EoRowPolicy>(appSettings);' },
     // Gammel vinkel-syntaks er også en assertion.
     { relativePath: 'src/x.ts', code: 'const s = <SourceSettings><unknown>appSettings;' },
-    // Produktionsbrug af testfabrikkerne — også under et alias.
+    // Produktionsbrug af testfabrikkerne – også under et alias.
     { relativePath: 'src/x.ts', code: "import { __createTestSourceSettings } from '../settings/sourceSettings';" },
     { relativePath: 'src/components/x.tsx', code: "import { __createTestEoRowPolicy as mk } from '../../settings/sourceSettings';" },
   ],
@@ -892,10 +892,10 @@ export const sourceSettingsProjectionBoundary = defineRule({
     { relativePath: 'src/x.ts', code: 'const s: SourceSettings = projectSourceSettings(settings);' },
     { relativePath: 'src/x.ts', code: 'export const f = (policy: EoRowPolicy): void => { void policy; };' },
     // VIGTIG negativ fixture: et type-argument i en TYPE-position er den sædvanlige, legitime brug og
-    // må ikke rammes — kun type-argumenter på KALD flages.
+    // må ikke rammes – kun type-argumenter på KALD flages.
     { relativePath: 'src/x.ts', code: 'type Ctx = DocumentSourceContext<SourceSettings>;' },
     { relativePath: 'src/x.ts', code: 'export const g = (c: DocumentSourceContext<SourceSettings>): void => { void c; };' },
-    // En assertion til en ANDEN type er ikke reglens anliggende — heller ikke via alias.
+    // En assertion til en ANDEN type er ikke reglens anliggende – heller ikke via alias.
     { relativePath: 'src/x.ts', code: 'const s = value as AppSettings;' },
     { relativePath: 'src/x.ts', code: 'type T = AppSettings;\nconst s = value as T;' },
     // Historik-prosa med præcis mønsteret må ikke flages (kommentarer er ikke AST-noder).
@@ -903,7 +903,7 @@ export const sourceSettingsProjectionBoundary = defineRule({
     // De NORMALE eksporter fra samme modul er naturligvis fri.
     { relativePath: 'src/x.ts', code: "import { projectEoRowPolicy, DEFAULT_EO_ROW_POLICY } from '../settings/sourceSettings';" },
     // `define*`-fabrikker parametriseres MED settings-typen og producerer ingen værdi af den. Uden
-    // denne undtagelse flagede reglen `reguleringDocumentAction` — et ægte falsk positiv.
+    // denne undtagelse flagede reglen `reguleringDocumentAction` – et ægte falsk positiv.
     { relativePath: 'src/x.ts', code: 'export const a = defineDocumentAction<Req, SourceSettings, Brevhoved>({ id: "x" });' },
     { relativePath: 'src/x.ts', code: 'export const d = defineMineoDocument<void, In, SourceSettings, Key>({ id: "y" });' },
   ],
@@ -922,27 +922,27 @@ const TABLE_SURFACE_DIR = 'src/components/tables';
  * et ubundet descriptor + ét række-id. Reglen dækker den rest, typen ikke kan udtale sig om.
  *
  * En tabel kan fortsat kalde `descriptor.bind(rowId)` SELV og lægge resultatet i celle-spec'et. Typen
- * er tilfreds — `bind` returnerer en gyldig `FieldRef` — men ejer-id'erne mangler, og adresseariteten
+ * er tilfreds – `bind` returnerer en gyldig `FieldRef` – men ejer-id'erne mangler, og adresseariteten
  * kaster først under render i en NESTED collection. Præcis den fejl ramte EO's løntabel under et
  * ansættelsesforhold: fem tabeller havde hver sin kopi af bindingsreglen, og kun de top-level
  * varianter var dækket af integrationstests, så et manglende ejer-id var usynligt.
  *
- * Den fælles `buildCollectionCellSpec` udleder ejer-id'erne af `collection.path` — den SAMME sti,
- * `insertEntity` og readeren bruger — så ejeren ikke kan glemmes. Reglen holder tabelfladerne på den vej.
+ * Den fælles `buildCollectionCellSpec` udleder ejer-id'erne af `collection.path` – den SAMME sti,
+ * `insertEntity` og readeren bruger – så ejeren ikke kan glemmes. Reglen holder tabelfladerne på den vej.
  */
 export const cellBindingSingleSource = defineRule({
   id: 'input/cell-binding-single-source',
   description:
     'Tabelflader må ikke selv binde en celles dataidentitet med `descriptor.bind(...)`. Cellebindingen '
     + 'ejes af `buildCollectionCellSpec`/`useCollectionCellSpecBuilder`, som udleder ejer-id\'erne af '
-    + 'collectionens sti (§3.2) — ellers kan en nested tabel binde med for få entity-led og kaste under render.',
+    + 'collectionens sti (§3.2) – ellers kan en nested tabel binde med for få entity-led og kaste under render.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === CELL_BINDING_OWNER
       // AST-signal, ikke tekst.
       || (entry.relativePath.startsWith(`${TABLE_SURFACE_DIR}/`) && hasIdentifier(entry, 'buildCellSpec')),
     rationale:
-      'bindingsejeren OG mindst én tabelflade, der bygger celle-specs, findes stadig — forsvinder '
+      'bindingsejeren OG mindst én tabelflade, der bygger celle-specs, findes stadig – forsvinder '
       + 'ejeren, er bindingen flyttet og reglen skal skrives om',
     requiredPaths: [
       CELL_BINDING_OWNER,
@@ -963,7 +963,7 @@ export const cellBindingSingleSource = defineRule({
         message:
           `\`${call.calleeText}(...)\` binder en celles dataidentitet lokalt. Brug `
           + '`useCollectionCellSpecBuilder`/`buildCollectionCellSpec`, som udleder ejer-id\'erne af '
-          + 'collectionens sti — en lokal binding kan glemme ejeren i en nested collection (§3.2).',
+          + 'collectionens sti – en lokal binding kan glemme ejeren i en nested collection (§3.2).',
       });
     }
     return findings;
@@ -996,7 +996,7 @@ const TODAY_DATE_BUTTON = 'src/components/inputs/InsertTodayDateButton.tsx';
 
 /**
  * Ligger noden inde i en `onCommit={...}`-JSX-attributs udtryk? Går op gennem forældrekæden frem for at
- * matche tekst, så scopet er attributtens faktiske subtree — et lovligt `commitImmediate` i en anden
+ * matche tekst, så scopet er attributtens faktiske subtree – et lovligt `commitImmediate` i en anden
  * handler i samme fil rammes derfor ikke.
  */
 const isInsideOnCommitAttribute = (node: ts.Node): boolean => {
@@ -1010,7 +1010,7 @@ const isInsideOnCommitAttribute = (node: ts.Node): boolean => {
 
 /**
  * `commitImmediate` bygger `setImmediateField`, som reduceren KUN tillader for choice/toggle. Et datofelt er
- * et text-control, så et `commitImmediate(today)` kaster en uncaught systemfejl i brugerens ansigt — præcis
+ * et text-control, så et `commitImmediate(today)` kaster en uncaught systemfejl i brugerens ansigt – præcis
  * Fejlformen er den samme forkerte kommando kopieret til alle fem dags-dato-knapper.
  *
  * Den rigtige vej er `settleValue`, som sender værdien gennem feltets codec og den normale settle-motor.
@@ -1018,7 +1018,7 @@ const isInsideOnCommitAttribute = (node: ts.Node): boolean => {
  * Reglen kan IKKE formuleres som "sider må ikke kalde commitImmediate": Årslønssidens omregnings-toggle er et
  * lovligt choice/toggle-immediate-commit, og et blankt forbud ville forbyde en korrekt brug. Den kan heller
  * ikke formuleres som en typegrænse uden at føre `controlKind` ind i `FieldRef<T>`s type og dermed røre 236
- * referencer — en pris, der ikke svarer til gevinsten, når reduceren allerede fejler fail-fast.
+ * referencer – en pris, der ikke svarer til gevinsten, når reduceren allerede fejler fail-fast.
  *
  * Reglen rammer derfor præcis den påviste fejlform: en `commitImmediate` INDE I den callback, der modtager en
  * programmatisk dato. Ligger kaldet dér, er argumentet en dato, feltet er et text-control, og fejlen er sikker.
@@ -1036,7 +1036,7 @@ export const programmaticFieldCommitUsesSettle = defineRule({
     probe: (entry) => entry.relativePath === TODAY_DATE_BUTTON
       || hasJsxAttribute(entry, 'onCommit'),
     rationale:
-      'knappen med den programmatiske `onCommit` findes stadig, og mindst én side bruger den — forsvinder '
+      'knappen med den programmatiske `onCommit` findes stadig, og mindst én side bruger den – forsvinder '
       + 'knappen, er den programmatiske commit-vej væk, og reglen skal skrives om',
     requiredPaths: [TODAY_DATE_BUTTON],
     minimumMatches: 2,
@@ -1068,7 +1068,7 @@ export const programmaticFieldCommitUsesSettle = defineRule({
       relativePath: 'src/components/pages/X.tsx',
       code: 'const C = () => <InsertTodayDateButton onCommit={(today) => { ctrl.commitImmediate(today); }} />;',
     },
-    // Uden krøller om kroppen — samme fejl.
+    // Uden krøller om kroppen – samme fejl.
     {
       relativePath: 'src/components/pages/X.tsx',
       code: 'const C = () => <InsertTodayDateButton onCommit={(t) => editor.commitImmediate(t)} />;',
@@ -1085,13 +1085,13 @@ export const programmaticFieldCommitUsesSettle = defineRule({
       relativePath: 'src/components/pages/X.tsx',
       code: 'const C = () => <InsertTodayDateButton onCommit={(today) => { ctrl.settleValue(today); }} />;',
     },
-    // Et LOVLIGT immediate-commit uden for en `onCommit` (choice/toggle) må ikke rammes — ellers ville
+    // Et LOVLIGT immediate-commit uden for en `onCommit` (choice/toggle) må ikke rammes – ellers ville
     // reglen forbyde Årslønssidens omregnings-toggle, som er korrekt.
     {
       relativePath: 'src/components/pages/X.tsx',
       code: 'const C = () => { const h = (enabled) => { ctrl.commitImmediate(enabled); }; return <Toggle onChange={h} />; };',
     },
-    // Feltfamiliens egne choice/toggle-controls committer immediate — deres onChange er ikke en onCommit.
+    // Feltfamiliens egne choice/toggle-controls committer immediate – deres onChange er ikke en onCommit.
     {
       relativePath: 'src/inputCore/react/fields/ChoiceField.tsx',
       code: 'const h = (next) => { controller.commitImmediate(next); };',
@@ -1115,7 +1115,7 @@ export const programmaticFieldCommitUsesSettle = defineRule({
  * skal derfor være en GRÆNSE, ikke en konvention.
  *
  * Grænsen er primært STRUKTUREL: `fieldIssues` er FJERNET fra den offentlige reader, så det brede
- * snapshot slet ikke er i hånden — et genindført sektionsfilter er nu en typefejl. Reglen lukker resten:
+ * snapshot slet ikke er i hånden – et genindført sektionsfilter er nu en typefejl. Reglen lukker resten:
  * `issues.all` må ikke nås uden for inputkernen og de navngivne ejere. Den findes, fordi
  * `InputEvaluation.issues` fortsat bærer snapshottet (dokumentlivscyklussen skal have tokenet), og
  * `.all` derfra ville genåbne hullet UDEN en typefejl.
@@ -1140,12 +1140,12 @@ export const issueSnapshotCapabilityBoundary = defineRule({
   id: 'input/issue-snapshot-capability-boundary',
   description:
     'Det brede feltissue-snapshot (`issues.all`) læses kun i inputkernen. Consumers uden for kernen '
-    + 'blokerer på konkrete reads — `reader.read(field)` eller `createTrackedInputReader` — så en gate ikke kan blokere bredere end sine '
+    + 'blokerer på konkrete reads – `reader.read(field)` eller `createTrackedInputReader` – så en gate ikke kan blokere bredere end sine '
     + 'faktiske dependencies (§1.10, §3.4).',
   liveTarget: {
     kind: 'precondition',
     // Reglen hviler på TRE forudsætninger, og hver af dem skal kunne konstateres i kildegrafen. Proben
-    // genkender derfor hver fil på SIT eget mærke — ellers ville `requiredPaths` (som kræver, at hver
+    // genkender derfor hver fil på SIT eget mærke – ellers ville `requiredPaths` (som kræver, at hver
     // forudsat fil selv matcher proben) være selvmodsigende, og reglen kunne stå halvt død.
     probe: (entry) => {
       // Alle tre signaler er AST-noder, ikke tekst: et `FieldIssueSet`-medlem, en erklæret
@@ -1156,7 +1156,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
         return hasDeclaredMember(entry, 'all');
       }
       // 2) Den navngivne, smalle erstatning findes. Uden den ville reglen forbyde den brede vej uden at
-      //    efterlade en lovlig vej — og den næste consumer ville omgå grænsen i stedet.
+      //    efterlade en lovlig vej – og den næste consumer ville omgå grænsen i stedet.
       if (entry.relativePath === 'src/inputCore/inputReader.ts') {
         return hasIdentifier(entry, 'createTrackedInputReader');
       }
@@ -1167,7 +1167,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
     rationale:
       'reglen forudsætter BÅDE det brede `all` på `FieldIssueSet`, den smalle '
       + '`createTrackedInputReader`-erstatning OG at præsentationsundtagelsen stadig aftager et helt sæt '
-      + '— falder en af dem væk, skal reglen omskrives eller slettes',
+      + '– falder en af dem væk, skal reglen omskrives eller slettes',
     minimumMatches: 3,
     requiredPaths: [
       'src/inputCore/inputIssue.ts',
@@ -1187,7 +1187,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
       findings.push({
         position: ref.position,
         message:
-          'Bred issue-adgang uden for inputCore — blokér på konkrete reads via `reader.read(field)`, '
+          'Bred issue-adgang uden for inputCore – blokér på konkrete reads via `reader.read(field)`, '
           + 'og saml flerfeltsissues med `createTrackedInputReader` (§1.10).',
       });
     }
@@ -1246,7 +1246,7 @@ export const issueSnapshotCapabilityBoundary = defineRule({
  * Dette værn erstatter et tekstbaseret forbud, der var GRØNT AF TOMHED: dets fire mønstre
  * (`setValues(`, `setFormValues(`, `replaceFormValues(`, `onAnsaettelsesforholdChange(`) var alle
  * legacy-funktionsnavne, som ikke længere fandtes nogen steder i kildegrafen, og dets allowlist-markør
- * fandtes heller ikke i den fil, den fritog. Reglen kunne derfor ikke fejle — heller ikke på den effect,
+ * fandtes heller ikke i den fil, den fritog. Reglen kunne derfor ikke fejle – heller ikke på den effect,
  * den var skrevet for at bevogte.
  *
  * Reglen måler nu den AKTUELLE skrivevej: et `edit.dispatch(...)`/`dispatchInput(...)`-kald inde i et
@@ -1257,7 +1257,7 @@ const DISPATCH_CALLEES: readonly string[] = ['dispatch', 'dispatchInput'];
 
 /** Moduler der legitimt dispatcher fra en effect: shell-bootstrap og hel-sags-replacement, ikke feltafledning. */
 const EFFECT_DISPATCH_OWNERS: readonly string[] = [
-  // Preflight/PWA-load afslutter en HEL-SAGS-erstatning, som brugeren selv startede uden for React —
+  // Preflight/PWA-load afslutter en HEL-SAGS-erstatning, som brugeren selv startede uden for React –
   // den er ikke en feltafledning og har ingen anden mulig placering end en effect.
   'src/hooks/useFileSaveLoad.ts',
 ];
@@ -1299,7 +1299,7 @@ export const derivedValuesNotWrittenFromEffects = defineRule({
         position: call.position,
         message:
           `\`${call.calleeText}(...)\` skriver sagsinput fra en React-effect. Er værdien AFLEDT af andre `
-          + 'felter, skal den udledes i consumerens typed domæneprojektion — ellers bliver afledt state '
+          + 'felter, skal den udledes i consumerens typed domæneprojektion – ellers bliver afledt state '
           + 'fejlagtigt til persisteret brugerinput og et selvstændigt history-trin.',
       });
     }
@@ -1311,7 +1311,7 @@ export const derivedValuesNotWrittenFromEffects = defineRule({
       relativePath: 'src/components/pages/erstatningsopgoerelse/loenindkomst/useX.ts',
       code: 'const f = () => { React.useEffect(() => { edit.dispatch(inputTransaction(steps)); }, [x]); };',
     },
-    // Uden React-præfiks — samme fejl.
+    // Uden React-præfiks – samme fejl.
     {
       relativePath: 'src/hooks/useY.ts',
       code: 'const f = () => { useEffect(() => { if (n) edit.dispatch(cmd); }, [n]); };',
@@ -1323,7 +1323,7 @@ export const derivedValuesNotWrittenFromEffects = defineRule({
     },
   ],
   cleanFixtures: [
-    // En dispatch fra en brugerudløst handler er hele pointen — den må ikke rammes.
+    // En dispatch fra en brugerudløst handler er hele pointen – den må ikke rammes.
     {
       relativePath: 'src/components/pages/X.tsx',
       code: 'const f = () => { const h = () => { edit.dispatch(cmd); }; return h; };',
@@ -1370,7 +1370,7 @@ const KEY_FILTER_OWNERS: readonly string[] = [
  * UDE: den har ingen `signPolicy`, og dens fortegn er en egenskab ved brøk-formatet.
  *
  * BEGGE former står her med vilje. Kaldsstederne erklærer nu deres politik gennem `*Admission`-fabrikkerne,
- * men `filter*KeyDown` er stadig en offentlig, kaldbar vej — udelades den, ville et nyt callsite kunne
+ * men `filter*KeyDown` er stadig en offentlig, kaldbar vej – udelades den, ville et nyt callsite kunne
  * hardkode `allowNegative` ad præcis den vej, reglen blev skrevet for at lukke.
  */
 const SIGN_SENSITIVE_KEY_FILTERS = new Set<string>([
@@ -1386,7 +1386,7 @@ const SIGN_SENSITIVE_KEY_FILTERS = new Set<string>([
  * Er `allowNegative` sat til en LITERAL (`true`/`false`) i dette objekt-argument?
  *
  * En literal er netop den fejlform, fundet handlede om: komponenten svarer på feltets vegne. En variabel,
- * en property-adgang eller et kald er tilladt — de kan bære politikken fra descriptoren.
+ * en property-adgang eller et kald er tilladt – de kan bære politikken fra descriptoren.
  */
 const hasLiteralAllowNegative = (argument: ts.Expression): ts.Node | undefined => {
   if (!ts.isObjectLiteralExpression(argument)) return undefined;
@@ -1406,13 +1406,13 @@ const hasLiteralAllowNegative = (argument: ts.Expression): ts.Node | undefined =
  * Et felts FORTEGNS-politik ejes af dens descriptor, ikke af den komponent der tegner den.
  *
  * **Fejlformen, reglen forhindrer.** `allowNegative` var erklæret på hvert numerisk codec i
- * produktionskataloget — og honoreret af INGENTING. Hver feltkomponent hardkodede sit eget svar, og de var
+ * produktionskataloget – og honoreret af INGENTING. Hver feltkomponent hardkodede sit eget svar, og de var
  * indbyrdes uenige for de SAMME descriptorer: `GridPercentCell` blokerede minus, `PercentField` tillod det.
  * Brugeren kunne derfor taste et minustegn i et procentfelt, der ikke må være negativt.
  *
  * Typen kan ikke lukke resten: `allowNegative` er en almindelig `boolean` i filter-optionerne, så en literal
- * `true` kompilerer fint. Reglen holder derfor callsitene på den fælles vej — `fieldAllowsNegative(field)` /
- * `codecAllowsNegative(descriptor.codec)` — så en NY numerisk feltkomponent ikke kan vælge selv.
+ * `true` kompilerer fint. Reglen holder derfor callsitene på den fælles vej – `fieldAllowsNegative(field)` /
+ * `codecAllowsNegative(descriptor.codec)` – så en NY numerisk feltkomponent ikke kan vælge selv.
  *
  * Scopet er bevidst bredt (hele `src/`, ikke kun feltmapperne): drifterne stod netop i en sidekomponent
  * (`MenberegningTab`) og en tabel (`BeregnetRenteTable`), ikke i den fælles feltfamilie.
@@ -1420,16 +1420,16 @@ const hasLiteralAllowNegative = (argument: ts.Expression): ts.Node | undefined =
 export const fieldSignPolicyFromDescriptor = defineRule({
   id: 'input/sign-policy-from-descriptor',
   description:
-    'Et tegn-/længdeværns `allowNegative` må ikke være en hardkodet literal i en komponent — hverken i '
+    'Et tegn-/længdeværns `allowNegative` må ikke være en hardkodet literal i en komponent – hverken i '
     + 'et `filter*KeyDown` eller i en `*Admission`-fabrik. Fortegns-politikken '
     + 'erklæres på feltets codec og læses med `fieldAllowsNegative(field)` / `codecAllowsNegative(codec)` '
-    + '— ellers kan to flader af samme feltfamilie svare forskelligt for den samme descriptor.',
+    + '– ellers kan to flader af samme feltfamilie svare forskelligt for den samme descriptor.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === SIGN_POLICY_OWNER
       || collectCalls(entry).some((ref) => SIGN_SENSITIVE_KEY_FILTERS.has(ref.calleeName)),
     rationale:
-      'politik-opslaget OG mindst ét fortegns-følsomt værn-callsite findes stadig — forsvinder '
+      'politik-opslaget OG mindst ét fortegns-følsomt værn-callsite findes stadig – forsvinder '
       + 'opslaget, er politikken flyttet og reglen skal skrives om',
     requiredPaths: [
       SIGN_POLICY_OWNER,
@@ -1454,7 +1454,7 @@ export const fieldSignPolicyFromDescriptor = defineRule({
           position: { line: line + 1, column: character + 1 },
           message:
             `\`${call.calleeName}\` får en hardkodet \`allowNegative\`-literal. Fortegns-politikken ejes af `
-            + 'feltets codec — brug `fieldAllowsNegative(field)` eller `codecAllowsNegative(descriptor.codec)`, '
+            + 'feltets codec – brug `fieldAllowsNegative(field)` eller `codecAllowsNegative(descriptor.codec)`, '
             + 'så formular og grid ikke kan svare forskelligt for samme descriptor.',
         });
       }
@@ -1476,7 +1476,7 @@ export const fieldSignPolicyFromDescriptor = defineRule({
       relativePath: 'src/components/tables/X.tsx',
       code: 'const f = (e) => filterAmountExpressionKeyDown(e, { allowNegative: true, allowDecimals: true });',
     },
-    // Samme forbud gælder prædikat-fabrikkerne — det er DEM kaldsstederne bruger nu.
+    // Samme forbud gælder prædikat-fabrikkerne – det er DEM kaldsstederne bruger nu.
     {
       relativePath: 'src/inputCore/react/fields/X.tsx',
       code: 'const a = percentAdmission({ allowNegative: true, allowDecimals: true });',

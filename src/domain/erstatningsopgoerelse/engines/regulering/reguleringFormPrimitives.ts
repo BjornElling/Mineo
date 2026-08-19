@@ -13,7 +13,7 @@ import type { KildeReguleringsInterval, LoenreguleringsSegment, LoenudviklingAf 
 
 // Delte primitiver for reguleringsform-modulerne. Flyttet fra loenudviklingBeregning.ts uden
 // ændring, så flere form-moduler kan dele dem uden en fjerde kopi (jf. R1/R7). Rører kun
-// struktur/placering — matematik og fejl-semantik er byte-identisk.
+// struktur/placering – matematik og fejl-semantik er byte-identisk.
 
 export const buildSegmentsFromStartDates = (
   range: IsoRange,
@@ -107,7 +107,7 @@ export const assertUniform = (
   }
 };
 
-// Feltspecifikke throw-beskeder (fail-closed) — beregningsstien må aldrig degradere til
+// Feltspecifikke throw-beskeder (fail-closed) – beregningsstien må aldrig degradere til
 // zero-delta ved manglende/ugyldig indplacering. Mapper den delte parsers `reason` til de
 // hidtidige beskeder, så adfærd og ordlyd er uændret.
 const OFFENTLIG_LOEN_SELECTION_THROW_MESSAGE: Readonly<Record<OffentligLoenSelectionFailure, string>> = {

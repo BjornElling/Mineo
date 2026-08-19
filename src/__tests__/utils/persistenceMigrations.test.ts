@@ -49,7 +49,7 @@ describe('migratePersistedSectionValue', () => {
     });
   });
 
-  // Den LEVENDE registrerede migration — ikke en fixture-registry. Slås entryen fra, bliver slottet i
+  // Den LEVENDE registrerede migration – ikke en fixture-registry. Slås entryen fra, bliver slottet i
   // stedet et strippet ukendt felt, og preflight ville rapportere en genudledt sats som tabt indtastning.
   describe('et afledt Store Bededag-slot i en ældre .eo tælles ikke som tabt indtastning', () => {
     const employment = (extra: Record<string, unknown> = {}) => ({
@@ -71,7 +71,7 @@ describe('migratePersistedSectionValue', () => {
       }
     });
 
-    it('rører intet andet end slottet — også når sektionen har flere ansættelsesforhold', () => {
+    it('rører intet andet end slottet – også når sektionen har flere ansættelsesforhold', () => {
       const { value } = migratePersistedSectionValue(
         'erstatningsopgoerelse',
         {
@@ -95,7 +95,7 @@ describe('migratePersistedSectionValue', () => {
       const { value } = migratePersistedSectionValue('erstatningsopgoerelse', section, '2.9');
       const rows = (value as { loenindkomstAnsaettelsesforhold: Record<string, unknown>[] })
         .loenindkomstAnsaettelsesforhold;
-      // Slottet står stadig — det fjernes senere af strip-trinnet, som rapporterer det.
+      // Slottet står stadig – det fjernes senere af strip-trinnet, som rapporterer det.
       expect(Object.hasOwn(rows[0] ?? {}, 'storeBededagPct')).toBe(true);
     });
 

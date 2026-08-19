@@ -5,7 +5,7 @@ import ContentBox from './ContentBox';
 import { hasPageMessage, type PageMessage } from './pageMessage';
 
 /**
- * De to render-veje for en {@link PageMessage} — og de ENESTE.
+ * De to render-veje for en {@link PageMessage} – og de ENESTE.
  *
  * Værnet "vis kun, hvis der ER en besked" ligger HER, i én implementation, frem for håndrullet pr. side. Det er
  * hele grunden til at komponenterne findes: Årsløns tomme "Kritisk Fejl"-boks var en side, der formulerede sit
@@ -14,7 +14,7 @@ import { hasPageMessage, type PageMessage } from './pageMessage';
  *
  * Fordi input er en `PageMessage`, kan kaldere ikke ramme den forveksling: en tilstedeværende variant BÆRER
  * garanteret ikke-tom tekst, og der findes ingen truthiness-vurdering tilbage at gøre forkert. En tom boks kan
- * ikke længere opstå — heller ikke hvis en fremtidig viewmodel skriver en forkert fallback, for `[]` er ikke en
+ * ikke længere opstå – heller ikke hvis en fremtidig viewmodel skriver en forkert fallback, for `[]` er ikke en
  * `PageMessage` og bliver afvist af typen ved kildens grænse.
  *
  * Markup i begge veje er ORDRET den, siderne havde før, så samlingen er en ren struktur-ændring uden visuel
@@ -31,7 +31,7 @@ type PageMessageBoxProps = Readonly<{
 
 /**
  * En SELVSTÆNDIG meddelelsesboks med overskrift. Renderer intet (ikke engang en tom ramme), når der ingen
- * besked er — modsat en tom `ContentBox`, som ville optage plads og påstå en fejl uden at navngive den.
+ * besked er – modsat en tom `ContentBox`, som ville optage plads og påstå en fejl uden at navngive den.
  */
 export const PageMessageBox = React.memo(({ title, message, isError = true }: PageMessageBoxProps) => {
   if (!hasPageMessage(message)) return null;

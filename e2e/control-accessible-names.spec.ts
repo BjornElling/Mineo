@@ -5,13 +5,13 @@ import { expect, login, openPage, test } from './support/mineoTest';
  *
  * **Hvorfor denne test findes ud over enheds- og arkitekturtestene.** De to øvrige lag beviser hver
  * sin halvdel: typerne og komponenttestene viser, at navnet SÆTTES, og arkitekturreglen viser, at
- * ingen kildefil udelader det. Ingen af dem kan se det, denne test hævder — at navnet faktisk ANKOMMER
+ * ingen kildefil udelader det. Ingen af dem kan se det, denne test hævder – at navnet faktisk ANKOMMER
  * i browserens accessibility-træ på den rigtige kontrol.
  *
  * Forskellen er reel. Navnet leveres på tre forskellige måder (`aria-labelledby` til en søskende-tekst,
  * `aria-label`, og en `<label htmlFor>`-binding), og hver af dem afhænger af, at `id`-parringen holder
  * gennem MUI's slot-videresendelse. En brudt parring giver stadig grønne enhedstests og en tavs
- * arkitekturregel, men en navnløs kontrol hos brugeren — nøjagtig den tilstand fladerne kom fra.
+ * arkitekturregel, men en navnløs kontrol hos brugeren – nøjagtig den tilstand fladerne kom fra.
  *
  * Testen dækker de flader, hvor kontrollerne stod navnløse: sidemenuen, Indstillinger, Om-siden og EET.
  */

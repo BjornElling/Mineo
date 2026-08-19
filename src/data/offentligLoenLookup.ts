@@ -26,7 +26,7 @@ import { rltnLoenSatser } from './RLTN/rltnLoenSatser';
 // ===== HELPER FUNKTIONER =====
 
 /**
- * Sorteringsretningen for de offentlige lønsatsserier — ét sted, delt af load-guarden og
+ * Sorteringsretningen for de offentlige lønsatsserier – ét sted, delt af load-guarden og
  * af det positionelle dæknings-opslag.
  */
 const OFFENTLIG_LOEN_SERIE_ORDER: DanishDateOrder = 'descending';
@@ -56,7 +56,7 @@ const lookupEntry = (lookup: EntryLookup, loentrin: Loentrin): OffentligLoenEntr
 
 /**
  * Fail-closed ved modul-load: en tom løntabel ville få alle opslag til at returnere
- * undefined (ingen regulering) og et udefineret dæknings-interval — dvs. tavs
+ * undefined (ingen regulering) og et udefineret dæknings-interval – dvs. tavs
  * under-regulering uden en synlig fejl. En genereret KL/RLTN-tabel skal altid have
  * mindst én regulering. Tal-neutral (fyrer kun hvis den genererede tabel er tom).
  */

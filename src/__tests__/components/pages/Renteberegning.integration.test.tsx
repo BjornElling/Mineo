@@ -24,7 +24,7 @@ import { toISODateString } from '../../../types/branded';
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
- * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte. Begge
+ * på et servicekald – en strammere assertion, fordi den kræver at HELE kæden faktisk kørte. Begge
  * rente-outputs går gennem samme handling, så tælleren dækker dem tilsammen.
  */
 const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
@@ -80,7 +80,7 @@ const renderRenteberegning = () => render(
   </MemoryRouter>
 );
 
-describe('Renteberegning — download-gate mod afsluttet input', () => {
+describe('Renteberegning – download-gate mod afsluttet input', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
@@ -168,7 +168,7 @@ describe('Renteberegning — download-gate mod afsluttet input', () => {
   });
 });
 
-describe('Renteberegning — Evt. tillægstid', () => {
+describe('Renteberegning – Evt. tillægstid', () => {
   beforeEach(() => {
     sessionStorage.clear();
   });
@@ -210,7 +210,7 @@ describe('Renteberegning — Evt. tillægstid', () => {
 
   // Kontraktændring 2026-08-09 (`input-field-behavior-contract.md` §1.2/§1.2a): paste afgrænses
   // nu PRÆCIS som tastning. Testen krævede før, at et indsat `987` overlevede i fuld længde og blev en rød
-  // fejl ved settle — det byggede på det ophævede princip om, at paste aldrig måtte afkortes. Nu er det
+  // fejl ved settle – det byggede på det ophævede princip om, at paste aldrig måtte afkortes. Nu er det
   // tredje ciffer blokeret ved indgangen, ligesom det er ved tastning, så `98` er den ØNSKEDE værdi og
   // feltet er gyldigt. Et allerede indlæst canonical tal er en separat read-side-situation og bevares
   // derfor fortsat med sit afledte bounds-issue, som testen ovenfor hævder.

@@ -7,7 +7,7 @@
  *   - hardkodede route-strenge i domæne-lokale navigation-objekter
  * En ny side eller en omdøbt route skulle dermed rettes flere steder. Her er der ÉT sted.
  *
- * Bemærk: `faellesAarsloen` har bevidst INGEN egen route — det er en delt sektion der
+ * Bemærk: `faellesAarsloen` har bevidst INGEN egen route – det er en delt sektion der
  * renderes under enten Erhvervsevnetab eller Forsørgertab afhængigt af kontekst. Den
  * kontekst-afhængige rutning bevares hos kalderen; dette modul dækker kun det 1:1-mappbare.
  */
@@ -73,7 +73,7 @@ export const PAGE_DEFAULT_TAB = {
  *
  * `APP_PAGE_DEFINITIONS` er bevidst nøglet på `PersistedSectionKey`, fordi den bærer
  * sektion↔route-oversættelsen for undo/redo-destinationer og feltlokationer. Disse tre sider
- * har ingen sagsdata og hører derfor ikke i det kort — men de ER stadig routes, og de skal
+ * har ingen sagsdata og hører derfor ikke i det kort – men de ER stadig routes, og de skal
  * ikke stå hardkodet i `App.tsx` ved siden af.
  *
  * - `/open`: PWA-filåbnings-landingen (ikke i sidemenuen).
@@ -93,7 +93,7 @@ export type AppSystemPageKey = keyof typeof APP_SYSTEM_PAGE_DEFINITIONS;
  *
  * `App.tsx` deriverer sine `<Route>`-elementer HERFRA i stedet for at gentage
  * pathstrengene. Før stod de 8 sagssider listet både her og i `App.tsx` (med hardkodede
- * strenge, uden at importere `APP_ROUTES`), mens de 3 systemsider kun fandtes i `App.tsx` —
+ * strenge, uden at importere `APP_ROUTES`), mens de 3 systemsider kun fandtes i `App.tsx` –
  * altså to lister med to forskellige nøglebegreber, som kunne drifte fra hinanden uden at
  * nogen test bemærkede det.
  */
@@ -103,17 +103,17 @@ export const ALL_APP_PAGE_ROUTES: readonly string[] = Object.freeze([
 ]);
 
 /**
- * De sider sidemenuen kan navigere til — altså alle routes MINUS `/open`, som er PWA-
+ * De sider sidemenuen kan navigere til – altså alle routes MINUS `/open`, som er PWA-
  * filåbnings-landingen og bevidst ikke står i menuen.
  *
  * Findes fordi sidemenuen indtil nu bar sit EGET inventar: `SideMenu.tsx` hardkodede de otte
  * sagssider og de to systemsider som bare strenge og importerede slet ikke dette modul. Det var
- * dermed en TREDJE liste ved siden af kataloget og `App.tsx` — den ene `App.tsx`-guarden ikke
- * kigger på — så en omdøbt route gav en lydløst død menupost i stedet for en fejl.
+ * dermed en TREDJE liste ved siden af kataloget og `App.tsx` – den ene `App.tsx`-guarden ikke
+ * kigger på – så en omdøbt route gav en lydløst død menupost i stedet for en fejl.
  *
  * Typen er værnet: menuens poster er nu nøglet på `MenuPageKey`, så en omdøbt eller slettet side
  * bliver en COMPILE-fejl i menuen. Det slår en AST-regel her, fordi grænsen kan udtrykkes som en
- * type — men bemærk dens loft: typen fanger drift i NØGLERNE, ikke at menuen faktisk viser alle
+ * type – men bemærk dens loft: typen fanger drift i NØGLERNE, ikke at menuen faktisk viser alle
  * sider. Completeness dækkes derfor af `SideMenu.test.tsx`.
  */
 export type MenuPageKey = RoutedPageKey | Exclude<AppSystemPageKey, 'openEo'>;

@@ -147,7 +147,7 @@ const ANTAL_FERIEDAGE_MAX = 99;
 
 // 0..99 er en afledt bounds-issue (feltvalidator), ikke codec-config: antalFeriedage forbliver canonical med et
 // rødt afledt issue uden for [0,99] (§1.6), i modsætning til et format/range-rejected råtekst-felt. Reglen er
-// KUN relevant, når omregning er valgt OG der ikke er fuld løn under ferie — udtrykt som en ren relevansregel
+// KUN relevant, når omregning er valgt OG der ikke er fuld løn under ferie – udtrykt som en ren relevansregel
 // over de canonical toggle-felter (§3.1: relevans må aldrig afhænge af mounted state/settings). Et skjult/
 // irrelevant felt overblokerer ikke (§1.9).
 export const aarsloenAntalFeriedageField = defineStructuralField<number | undefined>({
@@ -210,7 +210,7 @@ const dateBoundsSpecFor = (role: 'fra' | 'til'): DateBoundsSpec => ({
   max: () => role === 'fra'
     ? dateRanges_aarsloen.tabelAarsloenFra.fallbackMax
     : dateRanges_aarsloen.tabelAarsloenTil.max,
-  // Til-datoen kan ikke ligge før rækkens fra-dato — og omvendt.
+  // Til-datoen kan ikke ligge før rækkens fra-dato – og omvendt.
   ...(role === 'til'
     ? { narrowMin: (context: DateBoundsContext) => counterpartOf(context, 'til') }
     : { narrowMax: (context: DateBoundsContext) => counterpartOf(context, 'fra') }),
@@ -313,7 +313,7 @@ const rowAmount = (
   });
 
 // Årsløn og EO-lønindkomst viser SAMME tabel med samme overskrifter, men har hvert sit descriptor-sæt.
-// Navnene kommer derfor fra det neutrale `STANDARD_LOEN_COLUMN_LABELS` (§3.2a) — ellers kunne samme kolonne
+// Navnene kommer derfor fra det neutrale `STANDARD_LOEN_COLUMN_LABELS` (§3.2a) – ellers kunne samme kolonne
 // hedde to ting afhængigt af hvilken side, brugeren stod på.
 const stdLabel = STANDARD_LOEN_COLUMN_LABELS;
 
@@ -344,7 +344,7 @@ export const aarsloenTableCol1UgeField = rowString(
   [weekYearBoundsValidator('aarsloen.tableData.col1_uge.bounds', MIN_YEAR, getCurrentYear), weekOrderValidator('til')],
 );
 // Årsløn og EO-lønindkomst har hver sit descriptor-sæt, men viser SAMME tabel med samme overskrifter.
-// Navnene tages derfor fra det ene sted, `STANDARD_LOEN_COLUMN_LABELS` udleder overskrifterne fra — ellers
+// Navnene tages derfor fra det ene sted, `STANDARD_LOEN_COLUMN_LABELS` udleder overskrifterne fra – ellers
 // kunne samme kolonne hedde to ting afhængigt af hvilken side, brugeren stod på.
 export const aarsloenTableCol2Field = rowAmount('col2', stdLabel.col2);
 export const aarsloenTableCol3Field = rowAmount('col3', stdLabel.col3);

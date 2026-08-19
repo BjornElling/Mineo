@@ -224,7 +224,7 @@ describe('createDocxWriter', () => {
     }
 
     // Mindst én relation skal findes, og hver relation skal pege på en lokal fil
-    // i pakken — aldrig en http(s)-URL. (Schema-namespace/Type-URI'er indeholder
+    // i pakken – aldrig en http(s)-URL. (Schema-namespace/Type-URI'er indeholder
     // http:// men er ikke targets.)
     expect(allTargets.length).toBeGreaterThan(0);
     for (const target of allTargets) {
@@ -326,12 +326,12 @@ describe('createDocxWriter', () => {
     expect(headerXml).toContain('rotation:315');
     expect(headerXml).toMatch(/string="UDKAST"/);
     // Words native vandmærke-udseende: halvgennemsigtig sølvgrå (fillcolor="silver" +
-    // <v:fill opacity=".5"/>) og o:allowincell="f" — ufordrejet og pænt i Word.
+    // <v:fill opacity=".5"/>) og o:allowincell="f" – ufordrejet og pænt i Word.
     expect(headerXml).toContain('fillcolor="silver"');
     expect(headerXml).toContain('<v:fill opacity=".5"/>');
     expect(headerXml).toContain('o:allowincell="f"');
     // Værn: ImportedXmlComponent.fromXmlString pakker fragmentet i et navnløst
-    // rod-element, der ellers serialiseres som <undefined>…</undefined> — ugyldig
+    // rod-element, der ellers serialiseres som <undefined>…</undefined> – ugyldig
     // WordprocessingML, som Word afviser/reparerer. Wrapperen skal være fjernet,
     // så <w:pict> ligger direkte i <w:r> i <w:p>.
     expect(headerXml).not.toContain('<undefined>');
@@ -648,7 +648,7 @@ describe('createDocxWriter', () => {
     const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
 
     expect(documentXml).toContain('I alt');
-    // Præcis ÉN sort topkant (size 4 / color 000000) — kun fra sum-linjen.
+    // Præcis ÉN sort topkant (size 4 / color 000000) – kun fra sum-linjen.
     const sumBorders = documentXml.match(/<w:top w:val="single"[^>]*w:color="000000"/g) ?? [];
     expect(sumBorders.length).toBe(1);
   });

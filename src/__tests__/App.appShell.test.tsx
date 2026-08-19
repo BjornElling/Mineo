@@ -13,11 +13,11 @@ import { DEFAULT_APP_SETTINGS } from '../settings/appSettingsSchema';
  * Tæller hvor mange gange shellen er MOUNTET.
  *
  * Vigtig præcisering af hvad denne test beviser: den hævder at layoutet MONTERES ÉN GANG og
- * bevares på tværs af navigation. Det er en egenskab, der skal blive ved med at holde — men
+ * bevares på tværs af navigation. Det er en egenskab, der skal blive ved med at holde – men
  * den var også opfyldt før layout-routen, fordi React reconciler samme komponenttype på tværs
  * af søskende-routes. Testen er derfor et VÆRN mod en fremtidig ændring der bryder det (fx et
  * `key` på shell-elementet, en betinget wrapper eller en shell flyttet ind i den enkelte side)
- * — ikke dokumentation for en rettet remount-fejl.
+ * – ikke dokumentation for en rettet remount-fejl.
  */
 let shellMountCount = 0;
 
@@ -133,7 +133,7 @@ describe('App-shell', () => {
     expect(ALL_APP_PAGE_ROUTES).toContain('/indstillinger');
     expect(ALL_APP_PAGE_ROUTES).toContain('/mineo');
     expect(ALL_APP_PAGE_ROUTES).toContain(APP_ROUTES.stamdata);
-    // Ingen dubletter — to katalogkilder må ikke kunne producere samme route.
+    // Ingen dubletter – to katalogkilder må ikke kunne producere samme route.
     expect(new Set(ALL_APP_PAGE_ROUTES).size).toBe(ALL_APP_PAGE_ROUTES.length);
   });
 });

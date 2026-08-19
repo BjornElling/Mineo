@@ -49,7 +49,7 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
     };
   }
 
-  // fail_closed routes altid til fejlvisning — uanset om inspektionSnapshot er tilstede.
+  // fail_closed routes altid til fejlvisning – uanset om inspektionSnapshot er tilstede.
   if (snapshot.status === 'fail_closed') {
     return {
       kind: 'blocked',

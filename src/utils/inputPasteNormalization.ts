@@ -16,12 +16,12 @@ import { type TwoDigitYearPolicy } from './yearDraftCore';
 // `findNextDigitIndex`, `extractContiguousDigits` og `isWithinBounds` er fjernet 2026-08-18. De tjente
 // UDELUKKENDE års- og uge-normaliseringernes egne fortolkere: «find den første ciffergruppe, og forkort
 // den til den passer grænserne». Den fremgangsmåde er ophævet ved brugerbeslutning (§1.2a punkt 5: en
-// grænse må aldrig forkorte en indsat tekst — grænser er bounds og hører i feltvalidatoren), og
+// grænse må aldrig forkorte en indsat tekst – grænser er bounds og hører i feltvalidatoren), og
 // hjælperne er ikke efterladt: de er byggeklodserne til præcis den regel, der ikke må opstå igen.
 //
 // Bemærk hvad der IKKE er ophævet: `normalizeDatePaste` nedenfor fortolker fortsat en hel indsat tekst
 // og er bevaret med vilje (§1.2a punkt 7, brugerens afgørelse af BB-003: indsættelse må gerne være mere
-// tolerant end tastning). Kravet er, at samme paste giver samme resultat uanset feltets tilstand — ikke
+// tolerant end tastning). Kravet er, at samme paste giver samme resultat uanset feltets tilstand – ikke
 // at paste er identisk med tastning. Det, der var forkert i års- og ugefortolkerne, var grænse-
 // afkortningen og tilstandsafhængigheden, ikke fortolkningen af hele teksten.
 
@@ -90,7 +90,7 @@ const filterPasteCharacters = (
 };
 
 /**
- * Filtrerer dato-paste efter cifferlængde og tegnfølge — aldrig efter kalender-værdi.
+ * Filtrerer dato-paste efter cifferlængde og tegnfølge – aldrig efter kalender-værdi.
  *
  * Et ciffer, der overskrider dag/måned/år-segmentets længde, springes over, men afbryder ikke resten af
  * pasten. Det er vigtigt, at fx `32-12-2020` når frem til settle som netop den ugyldige dato, så en
@@ -210,16 +210,16 @@ export const normalizeFractionPaste = (
  * Funktionen byggede før uge- og årssegmentet hver for sig og limede dem sammen med `/`, og den kaldte
  * samtidig årsfeltets tilsvarende fortolker (se {@link normalizeYearPaste}). Begge er fjernet ved
  * brugerbeslutning 2026-08-18, fordi de forkortede en indsat tekst for at få den inden for
- * årsgrænserne — og fordi de kun blev kaldt i et tomt felt, så samme paste gav to udfald.
+ * årsgrænserne – og fordi de kun blev kaldt i et tomt felt, så samme paste gav to udfald.
  *
  * Ugefamilien har derfor bevidst INGEN egen fortolkning tilbage. Det er ikke et generelt forbud mod at
- * fortolke en hel indsat tekst — datofamilien gør det fortsat (§1.2a punkt 7) — men her er der intet
+ * fortolke en hel indsat tekst – datofamilien gør det fortsat (§1.2a punkt 7) – men her er der intet
  * uomtvisteligt at udlede: `17-12` kan lige så godt være uge 17 i 2012 som en dato, og settle løser det
  * bedre end paste kan.
  *
  * Sammensætningen tabes ikke ved det. `weekAdmission` accepterer selv `-`, `.`, `,`, `/`, `\` og
  * mellemrum som separator, og `parseWeekDraftForCommit` normaliserer separatoren til `/` og nulstiller
- * ugenummeret ved settle. `17-12` bliver derfor stadig `17/12` — men nu ad præcis samme vej som
+ * ugenummeret ved settle. `17-12` bliver derfor stadig `17/12` – men nu ad præcis samme vej som
  * tastning, i settle frem for i paste.
  */
 export const normalizeWeekPaste = (
@@ -233,7 +233,7 @@ export const normalizeWeekPaste = (
 ): string => filterPasteCharacters(text, isWeekDraftAllowed, options.maxDraftLength);
 
 /**
- * Års-paste (§1.2a): tegn for tegn gennem årsfeltets tegnprædikat — højst fire cifre.
+ * Års-paste (§1.2a): tegn for tegn gennem årsfeltets tegnprædikat – højst fire cifre.
  *
  * **Fjernet ved brugerbeslutning 2026-08-18.** Funktionen udtrak før den første sammenhængende
  * ciffergruppe og forkortede den derefter, indtil resultatet lå inden for feltets årsgrænser. Det gav
@@ -244,7 +244,7 @@ export const normalizeWeekPaste = (
  *    `2.026` blev derfor `2` → 2002 i et tomt felt, men `2026` i et udfyldt.
  * 2. **En værdi uden for grænserne blev tavst en anden, gyldig værdi.** `2035` med maksimum 2030 blev
  *    forkortet til `20` → 2020. Det er præcis det, §1.2a punkt 5 forbyder: et filtreret resultat, der
- *    stadig er ugyldigt, skal bevares som fejltekst — ikke ændres til noget gyldigt.
+ *    stadig er ugyldigt, skal bevares som fejltekst – ikke ændres til noget gyldigt.
  *
  * Årsgrænserne hører derfor slet ikke til her. De er bounds og ejes af feltvalidatoren (§1.6), som
  * giver rød ring og konkret tooltip på en canonical værdi. `options` beholdes i signaturen, fordi

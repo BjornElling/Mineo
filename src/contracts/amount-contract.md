@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` for draft/settle-semantik; overordnet arkitekturdokumenter ved konflikt.
-**Senest verificeret mod kode:** 2026-08-09 (§3 er implementeret og verificeret: `MAX_AMOUNT_INPUT_INTEGER_DIGITS`
+**Senest verificeret mod kode:** 2026-08-19 (§3 er implementeret og verificeret: `MAX_AMOUNT_INPUT_INTEGER_DIGITS`
 = 7 gælder indtastning, mens `MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS` = 20 og binary64-værnet fortsat ejer
 schema-/load-vejen)
 
@@ -71,8 +71,8 @@ brugerinput; den kan kun rammes af en tolerant `.eo`-load eller et beregnet mell
 og den forbliver den autoritative fail-closed-grænse for netop de veje.
 
 **Omvendt begrænser feltets 7 cifre ikke beregnede beløb.** Ciffergrænsen gælder kun det,
-brugeren taster eller indsætter. Et beregnet beløb — en rækkesum, en årstotal, et
-kapitaliseret beløb, en rente — må frit overstige `9.999.999,99`, og det er den forventede
+brugeren taster eller indsætter. Et beregnet beløb – en rækkesum, en årstotal, et
+kapitaliseret beløb, en rente – må frit overstige `9.999.999,99`, og det er den forventede
 adfærd, når brugeren indtaster flere beløb tæt på grænsen. For beregnede værdier er det
 alene binary64-værnet ovenfor, der gælder. En beregnet total må derfor hverken afkortes,
 afvises eller markeres rødt, fordi den er længere end det inputfelt, den stammer fra.

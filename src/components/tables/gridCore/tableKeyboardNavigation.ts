@@ -28,7 +28,7 @@ import {
 // ikke fra den celle der aktuelt har fokus ved Enter-tryk.
 type TabAnchor = CellLocator;
 
-// Modul-lokal gestus-/navigations-state. BEMÆRK: ingen af disse spejler controller-state — de er
+// Modul-lokal gestus-/navigations-state. BEMÆRK: ingen af disse spejler controller-state – de er
 // rene UI-gestus-/traversals-data, der ikke har nogen pendant i `GridCoreController`:
 // - `tabAnchorByTable`: "first-Tab-wins"-ankeret for Enter-vertikal-navigation.
 // - `pendingRecoveryByTable`: transient RAF-fokus-recovery efter en nav-flytning.
@@ -63,13 +63,13 @@ const isComposing = (e: React.KeyboardEvent): boolean => {
   return native.isComposing === true;
 };
 
-// Popup-semantik (åben/lukket dropdown m.v.) ejes af `popupWidgetSemantics` — ét sted for både
+// Popup-semantik (åben/lukket dropdown m.v.) ejes af `popupWidgetSemantics` – ét sted for både
 // Container og grid-navigationen. Grid'et har derfor INGEN egen dropdown-klassifikation længere.
 
 /**
  * Elementer, hvis pointer-interaktion IKKE er grid'ets: en popup-kontrol åbner/lukker selv sin menu, og
  * slet-række-knappen ligger uden for celle-navigationen. Grid'et må derfor ikke føre to-trins-
- * redigeringsbogføring (arm/openEditing) for dem — det ville åbne en "editor" for en kontrol, der ikke
+ * redigeringsbogføring (arm/openEditing) for dem – det ville åbne en "editor" for en kontrol, der ikke
  * har nogen. Samme klassifikation som Enter-grenen, så en dropdown ikke behandles forskelligt
  * afhængigt af eventtype.
  */
@@ -287,7 +287,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   const isEditing = core && activeCell ? isSameCell(core.getEditingCell(), activeCell) : false;
 
   // En LUKKET popup-kontrol i en celle ejer selv sin aktiveringstast: Enter skal åbne menuen, ikke
-  // flytte cellefokus. Klassifikationen er kontrollens ARIA-semantik (§keyboard-navigation.md) —
+  // flytte cellefokus. Klassifikationen er kontrollens ARIA-semantik (§keyboard-navigation.md) –
   // ikke et komponentnavn eller en privat markør-attribut.
   const isClosedPopupTarget = isInClosedPopupWidget(target);
   if (isClosedPopupTarget && key === 'Enter') return;
@@ -305,7 +305,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   }
 
   // Popup-celle: kun navigations- og delete-taster ejes af grid'et (Delete rydder når `allowEmpty`).
-  // Printbare taster åbner IKKE en tekst-editor på en dropdown — kontrollen har ingen fritekst.
+  // Printbare taster åbner IKKE en tekst-editor på en dropdown – kontrollen har ingen fritekst.
   if (isClosedPopupTarget) {
     if (!isNavigationKey && !isDeleteKey) return;
   }
@@ -372,8 +372,8 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
 
   if (key === 'ArrowUp' || key === 'ArrowDown') {
     const deltaRows = key === 'ArrowUp' ? -1 : 1;
-    // Søg uden wrap efter næste række med en valgbar (ikke-låst) celle. Findes ingen — enten fordi
-    // vi er ved tabellens kant, eller fordi de resterende rækker i retningen kun har låste celler —
+    // Søg uden wrap efter næste række med en valgbar (ikke-låst) celle. Findes ingen – enten fordi
+    // vi er ved tabellens kant, eller fordi de resterende rækker i retningen kun har låste celler –
     // frigives eventet, så Container fortsætter navigation uden for tabellen.
     const result = pickVerticalTarget(grid, activePos, deltaRows, core, false);
 
@@ -456,7 +456,7 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
   // `immediateEditing` (data-attribut) er touch-aktiveringen for grid-CELLER (tabel-inputs).
   // Den frie inputs uden for grid'et (beregningsdato-felt, kommentar-textarea) bruger i stedet
   // `singleStageClick` i useTwoStageInputActivation. Begge drives af samme isMobile-flag og dækker
-  // samme UX-mål (åbn editor ved første tap), men ad to forskellige infrastrukturer — ret dem samlet.
+  // samme UX-mål (åbn editor ved første tap), men ad to forskellige infrastrukturer – ret dem samlet.
   const immediateEditing = table.dataset.mineoImmediateEditing === 'true';
   if (immediateEditing) {
     if (!isSameCell(editing, cell)) {
@@ -474,7 +474,7 @@ export const handleTableClickCapture = (e: React.MouseEvent<HTMLTableElement>) =
   const focusedCellAtPointerDown = pointerDownFocusedCellByTable.get(table);
   pointerDownFocusedCellByTable.delete(table);
 
-  // immediateEditing: openEditing er allerede kaldt i pointerDown — klik-eventet skal ikke åbne igen.
+  // immediateEditing: openEditing er allerede kaldt i pointerDown – klik-eventet skal ikke åbne igen.
   // Denne guard er nødvendig fordi React state-opdateringen fra openEditing kan være asynkron,
   // så getEditingCell() nedenfor ikke nødvendigvis returnerer den nye celle endnu.
   if (table.dataset.mineoImmediateEditing === 'true') return;

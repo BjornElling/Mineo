@@ -3,7 +3,7 @@ import manifest from '../../../public/manifest.json';
 
 /**
  * jsdom har hverken `matchMedia` eller `getInstalledRelatedApps`. Testene sætter derfor selv de
- * signaler, detektionen læser, og rydder op bagefter — ellers lækker en «installeret»-tilstand
+ * signaler, detektionen læser, og rydder op bagefter – ellers lækker en «installeret»-tilstand
  * videre til næste test og gør den grøn af den forkerte grund.
  */
 const setStandaloneDisplayMode = (standalone: boolean): void => {
@@ -122,7 +122,7 @@ describe('pwaInstallPrompt', () => {
       await expect(detectPwaInstallationState()).resolves.toBe('installed');
     });
 
-    it('melder «installed» efter appinstalled i denne fane — også uden opslag', async () => {
+    it('melder «installed» efter appinstalled i denne fane – også uden opslag', async () => {
       const { detectPwaInstallationState, setupPwaInstallPromptCapture } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
       setupPwaInstallPromptCapture();
@@ -141,7 +141,7 @@ describe('pwaInstallPrompt', () => {
       await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
     });
 
-    it('melder «unknown» når opslaget kaster — et fejlende opslag er ikke bevis for fravær', async () => {
+    it('melder «unknown» når opslaget kaster – et fejlende opslag er ikke bevis for fravær', async () => {
       const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
       setInstalledRelatedApps(new Error('NotAllowedError'));

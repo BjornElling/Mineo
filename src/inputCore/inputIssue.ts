@@ -4,7 +4,7 @@ import type { EvaluationSourceToken } from './evaluationSource';
 
 // Inputkernen (§3.4/§1.6): issue-modellen skelner mellem feltfejl, consumerfejl og warning. Der lagres
 // INGEN `blocksSave`/`blocksProjection`-booleans. Konsekvensen udledes STRUKTURELT af kind + placering +
-// consumerens faktiske reads — ikke af et konfigurerbart flag. Save-blokering følger `rejectedInputs`, ikke
+// consumerens faktiske reads – ikke af et konfigurerbart flag. Save-blokering følger `rejectedInputs`, ikke
 // issuefarve (§1.6): kun rejected råtekst blokerer `.eo`; en canonical bounds/rule-feltfejl kan gemmes.
 // Selve save-projektionen ligger ved persistence-grænsen, ikke i issue-modellen.
 
@@ -47,7 +47,7 @@ export type ConsumerIssue = Readonly<{
 /**
  * Kernen har INGEN warning-variant.
  *
- * §1.7's regel — *en warning blokerer aldrig beregning, dokument eller `.eo`* — er fortsat normativ, men
+ * §1.7's regel – *en warning blokerer aldrig beregning, dokument eller `.eo`* – er fortsat normativ, men
  * den håndhæves DÉR, hvor advarsler faktisk dannes: i domænernes egne typer (`EetIssue.severity`,
  * `EoRowStatus`, `IntegrityIssue.severity`). Kernen bar tidligere en generisk `Warning` plus en
  * `ProjectionCollector.warn` og et `ProjectionResult.warnings`-felt. Ingen af de tre havde en
@@ -55,7 +55,7 @@ export type ConsumerIssue = Readonly<{
  * kernen, og `warnings`-feltet blev kun ført videre af `mapReadyProjection` til ingen.
  *
  * En kanal, intet skriver til og intet læser fra, er ikke en capability men en gren, ingen tilstand kan
- * nå — og den ville have inviteret næste læser til at tro, at kernen ejede advarselsmodellen. Den er
+ * nå – og den ville have inviteret næste læser til at tro, at kernen ejede advarselsmodellen. Den er
  * derfor slettet frem for bevaret; genindføres et behov for advarsler i kernen, skal både producent og
  * læser komme til i samme ændring.
  */
@@ -105,7 +105,7 @@ export const quoteFieldLabel = (label: string): string => `'${label}'`;
 
 /**
  * Den generiske tooltiptekst for en feltfejl, hvis fulde besked ikke tilføjer noget ved feltet: `format`
- * (råteksten kunne slet ikke parses — fx en delvist indtastet dato) uden en eksplicit codec-detalje og `schema`
+ * (råteksten kunne slet ikke parses – fx en delvist indtastet dato) uden en eksplicit codec-detalje og `schema`
  * (en gemt værdi, der ikke længere validerer). Begge deres fulde beskeder siger normalt kun "dette felt er forkert"
  * plus feltets eget navn, og navnet står allerede ved markøren.
  */
@@ -123,16 +123,16 @@ const REASONS_WITH_SPECIFIC_TOOLTIP: ReadonlySet<FieldIssueReason> = new Set<Fie
 ]);
 
 /**
- * Feltets TOOLTIP-tekst — det ENE sted, `reason` oversættes til hover-tekst (brugerkrav 2026-07-30).
+ * Feltets TOOLTIP-tekst – det ENE sted, `reason` oversættes til hover-tekst (brugerkrav 2026-07-30).
  *
  * Tooltippet og "Fejl og advarsler" viste tidligere samme streng, fordi begge læste `issue.message`. Boksen
  * læses uden feltet foran sig og skal blive ved med at vise den fulde besked; tooltippet står ved markøren i et
- * felt, brugeren netop har rørt, og behøver kun at sige at DETTE felt er forkert — medmindre beskeden forklarer
+ * felt, brugeren netop har rørt, og behøver kun at sige at DETTE felt er forkert – medmindre beskeden forklarer
  * hvad rettelsen er (`bounds`/`rule`).
  *
  * Beslutningen ligger på issuet frem for i hver skal, fordi shell-laget (`StyledTextFieldBase` m.fl.) kun
  * modtager `error: boolean` + `helperText: string` og derfor umuligt kan skelne reasons. Havde hvert render-sted
- * valgt selv, ville det kun kunne gøre det ved strengmatch på beskedteksten — samme drift, som
+ * valgt selv, ville det kun kunne gøre det ved strengmatch på beskedteksten – samme drift, som
  * `DocumentDownloadGateReasonKind` blev indført for at undgå.
  */
 export const resolveFieldIssueTooltip = (issue: FieldIssue): string => {

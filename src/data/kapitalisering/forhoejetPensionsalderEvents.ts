@@ -9,8 +9,8 @@ import { toISODateString } from '../../types/branded';
 //
 // Hver forhøjelse afspejles i kapitaliseringstabellerne ved, at en ny bekendtgørelse/vejledning
 // flytter fødselsårgangene til tabeller med højere folkepensionsalder. Mer-erstatningen beregnes
-// ved at køre den almindelige kapitaliseringsberegning to gange — én gang under bekendtgørelsen
-// før forhøjelsen og én gang under bekendtgørelsen fra forhøjelsen — og tage differencen.
+// ved at køre den almindelige kapitaliseringsberegning to gange – én gang under bekendtgørelsen
+// før forhøjelsen og én gang under bekendtgørelsen fra forhøjelsen – og tage differencen.
 //
 // Struktur:
 //   - forhoejelsesdato: forhøjelsens ikrafttrædelsesdato. Alt beregnes på denne dato (alder, sats).

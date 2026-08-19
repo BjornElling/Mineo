@@ -6,7 +6,7 @@ import { fnv1a32 } from './fnv1a32';
  * fange schema-ændringer der mangler et `PERSISTED_DATA_VERSION`-bump (kontrakt §7 / schema-evolution Del 4A).
  *
  * Begrænsning: `toJSONSchema(..., { unrepresentable: 'any' })` kollapser ikke-repræsenterbare schemas
- * (fx `z.custom`, visse `z.transform`-outputs) til samme tomme form — to strukturelt forskellige felter
+ * (fx `z.custom`, visse `z.transform`-outputs) til samme tomme form – to strukturelt forskellige felter
  * af den slags ville give samme fingerprint. Persisted registry-schemas må derfor ikke indeholde
  * `unrepresentable`-felter uden et manuelt versionsbump; introduceres sådanne, skal denne gate revurderes.
  */

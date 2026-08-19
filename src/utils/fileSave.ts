@@ -104,7 +104,7 @@ const throwIfVerificationFailed = (
  * @param resolvedDirectory - Optional resolved directory fra resolveDefaultDirectoryHandle
  * @param isSourceStillCurrent - Valgfri friskheds-kontrol, der kaldes UMIDDELBART efter gem-målet er resolvet
  *   (fil-pickeren er en async-grænse, hvor brugeren kan ændre sagen) og FØR nogen skrivning. Returnerer den
- *   `false`, afbrydes gemningen fail-closed som `stale` uden at røre disken — critical-action-kontrakten §5.
+ *   `false`, afbrydes gemningen fail-closed som `stale` uden at røre disken – critical-action-kontrakten §5.
  * @returns {Promise<SaveFileResult>} `saved` (med filnavn/statistik), `cancelled` eller `stale`
  * @throws {Error} Hvis gemning fejler (validering, integritet eller ubrugelig fil)
  */
@@ -132,7 +132,7 @@ export const saveToFile = async (
     // Her er BEVIDST ingen "er sagen tom?"-gate. Spørgsmålet kan ikke besvares her: dette lag ser kun det
     // schema-parsede snapshot og kender ikke ny-sags-baselinen, så det kan ikke skelne "intet indtastet" fra
     // "standardværdierne er bevidst valgt". Et tidligere `hasRealData()`-tjek forsøgte det ved at tælle
-    // udfyldte felter og regnede hver `false` og hvert standardtal som brugerdata — derfor gemte en helt tom
+    // udfyldte felter og regnede hver `false` og hvert standardtal som brugerdata – derfor gemte en helt tom
     // standardsag som et tilsyneladende rigtigt sagsartefakt. Gaten ejes nu af `hasAnyData()` i save-shellen,
     // som måler mod netop den baseline.
     //
@@ -155,7 +155,7 @@ export const saveToFile = async (
 
     // 6b. FRISKHEDSKONTROL (critical-action-kontrakten §5). Fil-pickeren ovenfor er en async-grænse: brugeren kan
     //     have redigeret sagen eller ændret en dokumentrelevant indstilling, mens dialogen var åben. Kontrollen
-    //     ligger derfor HER — efter al target-/picker-resolution og umiddelbart før den første skrivning — ikke
+    //     ligger derfor HER – efter al target-/picker-resolution og umiddelbart før den første skrivning – ikke
     //     før kaldet. Fail-closed: intet røres på disken, og kalderen beder brugeren gemme igen.
     if (isSourceStillCurrent !== undefined && !isSourceStillCurrent()) {
       return { status: 'stale' };

@@ -2,13 +2,13 @@
  * Katalog-completeness for de 21 dokumentoutputs.
  *
  * Kontraktens §A2a kræver ét kanonisk outputkatalog, hvor hvert katalogiseret output har præcis én
- * definition — inklusive standalone MinProcesrente, som historisk stod helt uden for kataloget.
+ * definition – inklusive standalone MinProcesrente, som historisk stod helt uden for kataloget.
  *
  * Denne test er completeness-kilden. Den importerer bevidst ALLE definitionsmoduler: det er en
  * TEST, ikke en runtime-chunk, så den må gerne samle hele domænegrafen. Produktionen komponerer
  * derimod pr. side (jf. `documentCatalog.ts`), netop for at bevare route-opdelingen.
  *
- * Målestokken er `documentOutputId.ts` — det afhængighedsfrie ID-inventar — og ikke en optælling af
+ * Målestokken er `documentOutputId.ts` – det afhængighedsfrie ID-inventar – og ikke en optælling af
  * exports i et enkelt modul. Den tidligere målestok (en regex over `documentService.ts`) kunne kun
  * fungere, så længe alle outputs lå i ét modul; definitionerne bor nu ved deres domænegrænser.
  */
@@ -57,7 +57,7 @@ import { CONSUMER_DOCUMENT_OUTPUTS } from '../../config/consumerInventory';
 /**
  * `TRequest`/`TInput`/`TSettings`/`TBrevhovedKey` er forskellige pr. definition; listen holdes
  * derfor på den bredeste fælles form. Testen rører kun `id`, `brevhoved`, `labels` og `loadRenderer`
- * — de fire felter, hvis form er ens for alle 21.
+ * – de fire felter, hvis form er ens for alle 21.
  */
 type AnyDefinition = DocumentDefinition<never, unknown, never, string>;
 
@@ -93,7 +93,7 @@ const ALL_DEFINITIONS = [...MINEO_DEFINITIONS, ...STANDALONE_DEFINITIONS];
 const idsOf = (definitions: readonly AnyDefinition[]): DocumentOutputId[] =>
   definitions.map((definition) => definition.id).sort();
 
-describe('dokumentkatalog — completeness (§A2a)', () => {
+describe('dokumentkatalog – completeness (§A2a)', () => {
   it('hovedappen har præcis én definition pr. katalogiseret id', () => {
     expect(idsOf(MINEO_DEFINITIONS)).toEqual([...MINEO_DOCUMENT_OUTPUT_IDS].sort());
   });
@@ -109,7 +109,7 @@ describe('dokumentkatalog — completeness (§A2a)', () => {
 
   /**
    * Inventaret må ikke kunne påstå et id, definitionen ikke har. En ren listesammenligning ville
-   * kun bevise, at de to lister indeholder de samme STRENGE — ikke at posten `{module, symbol}`
+   * kun bevise, at de to lister indeholder de samme STRENGE – ikke at posten `{module, symbol}`
    * faktisk eksporterer en definition med netop det `id`. Her importeres modulet og symbolet slås
    * op, så bindingen er maskinel.
    */

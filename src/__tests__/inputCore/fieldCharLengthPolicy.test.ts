@@ -22,7 +22,7 @@ import {
 //
 //   - 28 af 31 tekstfelter uden nogen grænse (bl.a. `Skadelidte`, `Journalnr.`, `Særlige kommentarer`
 //     og alle syv bilagsnumre-felter). En indsat tekst på 50.000 tegn gik uændret ind i sagen.
-//   - 8 af 12 heltalsfelter uden ciffergrænse — heriblandt `Méngrad`, hvis eget maksimum er 120.
+//   - 8 af 12 heltalsfelter uden ciffergrænse – heriblandt `Méngrad`, hvis eget maksimum er 120.
 //   - Brøk-, år- og ugefelternes grænse skrevet i hånden i komponenten frem for læst fra codecet;
 //     `GridYearCell` greb ved en fejl DATO-konstanten (16 tegn) til et årsfelt, mens `YearField` brugte 4.
 //
@@ -42,7 +42,7 @@ const bindWithSyntheticRows = (field: FieldDescriptor<unknown>): FieldRef<unknow
  * Et loft, ingen indtastningsgrænse i programmet med rimelighed kan overstige.
  *
  * Kontrollen er bevidst grov: den skal fange et felt, der «erklærer» en grænse så høj, at den i praksis er
- * ingen grænse — ikke afgøre om 60 eller 100 er det rigtige tal. Beløbsudtryk har det højeste lovlige
+ * ingen grænse – ikke afgøre om 60 eller 100 er det rigtige tal. Beløbsudtryk har det højeste lovlige
  * loft (512 rå tegn, §2.2), og kommentarfelterne det samme.
  */
 const ABSURD_LIMIT = 512;
@@ -62,7 +62,7 @@ describe('felter håndhæver deres erklærede tegn- og længdegrænse', () => {
     '%s erklærer en grænse, der faktisk afkorter et for langt paste',
     (_id, field) => {
       const ref = bindWithSyntheticRows(field);
-      // Resolveren KASTER, hvis erklæringen mangler — det er selve værnet.
+      // Resolveren KASTER, hvis erklæringen mangler – det er selve værnet.
       const limit = resolveDraftLengthLimit(ref);
 
       expect(
@@ -95,7 +95,7 @@ describe('felter håndhæver deres erklærede tegn- og længdegrænse', () => {
 
   it('kontrollen kan FEJLE: et felt uden erklæring afvises af resolveren', () => {
     // Mutationstesten. Uden den ville testene ovenfor kunne være grønne af, at `resolveDraftLengthLimit`
-    // altid svarede med et tal — og så ville en manglende erklæring aldrig blive fanget.
+    // altid svarede med et tal – og så ville en manglende erklæring aldrig blive fanget.
     const codecUdenGraense = {
       ...createOptionalTextFieldCodec({ maxLength: 10 }),
       maxLength: undefined,
@@ -116,7 +116,7 @@ describe('felter håndhæver deres erklærede tegn- og længdegrænse', () => {
 
   it('kontrollen måler den RIGTIGE mekanisme: uden grænse afkortes ingenting', () => {
     // Skelner måleopstillingen fra en konkurrerende forklaring? Samme splice UDEN grænse skal give hele
-    // teksten igennem — ellers ville testen ovenfor kunne bestå af en helt anden begrænsning.
+    // teksten igennem – ellers ville testen ovenfor kunne bestå af en helt anden begrænsning.
     const spliced = spliceDraftWithPaste('', 'x'.repeat(300), 0, 0, undefined);
     expect(spliced.draft.length).toBe(300);
   });

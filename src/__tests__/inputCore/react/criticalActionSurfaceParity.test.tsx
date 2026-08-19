@@ -6,17 +6,17 @@
  * dokumentlivscyklussens "åben draft"-cases castede instrumenterede resultater ind frem for at åbne en
  * editor. Der fandtes ingen grid-integration for de kritiske handlinger overhovedet. Konsekvensen: et brud
  * i `useFieldEditor`-registreringen, i adapterens settle/discard-livscyklus eller i grid-specifik
- * eventorden kunne passere, selv om den syntetiske coordinator-test var grøn — og udfaldet ville være en
+ * eventorden kunne passere, selv om den syntetiske coordinator-test var grøn – og udfaldet ville være en
  * tabt draft, et stale save eller en forkert kassering ved load.
  *
  * **Hvad denne suite tilføjer, og hvad den IKKE erstatter.** De syntetiske tests beviser MEKANISMEN
  * (serialisering, fail-closed, fault-injection) og bliver stående: de kan injicere fejl, en ægte editor
- * ikke kan fremprovokere. Denne suite beviser INTEGRATIONEN — at de ægte adaptere registrerer sig, at
+ * ikke kan fremprovokere. Denne suite beviser INTEGRATIONEN – at de ægte adaptere registrerer sig, at
  * coordinatorens settle faktisk lander deres transaktion, og at BEGGE surfaces opfører sig ens. Det er
  * §7.5's eksplicitte form/grid-paritetskrav, som en unit-test pr. konstruktion ikke kan bære.
  *
  * **Paritetslisten er ÉN funktion pr. handling, kørt for begge surfaces.** To lister, der tilfældigvis
- * hævdede det samme, ville kunne drifte fra hinanden — hvilket er præcis, hvordan dækningen så ud, da
+ * hævdede det samme, ville kunne drifte fra hinanden – hvilket er præcis, hvordan dækningen så ud, da
  * fundet blev skrevet.
  */
 import * as React from 'react';
@@ -107,7 +107,7 @@ type MountedSurface<T> = Readonly<{
 }>;
 
 /**
- * Monterer en ægte editor gennem et RIGTIGT komponenttræ og provider — ikke en `renderHook`-attrap uden
+ * Monterer en ægte editor gennem et RIGTIGT komponenttræ og provider – ikke en `renderHook`-attrap uden
  * DOM. Det er den kæde, fundet påpegede som utestet: registrering + livscyklus + settle gennem
  * coordinatoren.
  */
@@ -149,7 +149,7 @@ const seedRow = (): void => {
 const fieldFor = (kind: SurfaceKind): FieldRef<unknown> =>
   (kind === 'form' ? aargangField.bind() : belobField.bind(ROW)) as FieldRef<unknown>;
 
-/** En gyldig og en ugyldig råtekst pr. surface — hver families egen form. */
+/** En gyldig og en ugyldig råtekst pr. surface – hver families egen form. */
 const rawFor = (kind: SurfaceKind) => kind === 'form'
   ? { valid: '2024', invalid: 'abc' }
   : { valid: '1000', invalid: 'abc' };
@@ -157,10 +157,10 @@ const rawFor = (kind: SurfaceKind) => kind === 'form'
 const SURFACES: readonly SurfaceKind[] = ['form', 'grid'];
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
-// §7.5's handlinger — samme assertions for begge surfaces
+// §7.5's handlinger – samme assertions for begge surfaces
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontrakt', () => {
+describe('§7.5 kritiske handlinger – ægte form- OG grid-editor, samme kontrakt', () => {
   describe.each(SURFACES)('surface: %s', (surface) => {
     const raw = () => rawFor(surface);
 
@@ -193,7 +193,7 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
       await act(async () => { result = await coordinator.prepare('save'); });
 
       expect(result.status).toBe('committed');
-      // Værdien LANDEDE — den syntetiske coordinator-test kan ikke vise dette, fordi dens editor kun
+      // Værdien LANDEDE – den syntetiske coordinator-test kan ikke vise dette, fordi dens editor kun
       // registrerer, at `settle()` blev kaldt.
       expect(canonical(field)).not.toBeUndefined();
       expect(mounted.controller().isOpen).toBe(false);
@@ -202,7 +202,7 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
       expect(result.token.inputRevision).toBe(store.getState().revision);
     });
 
-    it('download settler ligesom save — samme editorbehandling for begge handlinger', async () => {
+    it('download settler ligesom save – samme editorbehandling for begge handlinger', async () => {
       seedRow();
       const field = fieldFor(surface);
       const mounted = mountSurface(surface, field);
@@ -215,7 +215,7 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
       expect(mounted.controller().isOpen).toBe(false);
     });
 
-    it('navigation settler den åbne editor og fortsætter — også når settlet FEJLER', async () => {
+    it('navigation settler den åbne editor og fortsætter – også når settlet FEJLER', async () => {
       seedRow();
       const field = fieldFor(surface);
       const mounted = mountSurface(surface, field);
@@ -233,7 +233,7 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
       expect(mounted.controller().isOpen).toBe(false);
     });
 
-    it('undo/redo er no-op, mens den ÆGTE editor er åben — draften bevares urørt', async () => {
+    it('undo/redo er no-op, mens den ÆGTE editor er åben – draften bevares urørt', async () => {
       seedRow();
       const field = fieldFor(surface);
       dispatchInput(store, catalog, settleField(field, raw().valid));
@@ -256,7 +256,7 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
       expect(canonical(field)).not.toBeUndefined();
     });
 
-    it('load kasserer draften ved succes og bevarer den ved fejl — uden at settle den', async () => {
+    it('load kasserer draften ved succes og bevarer den ved fejl – uden at settle den', async () => {
       seedRow();
       const field = fieldFor(surface);
       const mounted = mountSurface(surface, field);
@@ -272,7 +272,7 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
         })).rejects.toThrow('load fejlede');
       });
       expect(mounted.controller().isOpen, `${surface}: draften blev kasseret ved en FEJLENDE load`).toBe(true);
-      // Og INTET blev settlet — det er `load`s hele forskel fra save/navigate (§1.4).
+      // Og INTET blev settlet – det er `load`s hele forskel fra save/navigate (§1.4).
       expect(canonical(field)).toBeUndefined();
 
       // (2) VELLYKKET apply: draften kasseres.
@@ -298,7 +298,7 @@ describe('§7.5 kritiske handlinger — ægte form- OG grid-editor, samme kontra
       act(() => mounted.unmount());
 
       // En efterladt registrering ville gøre ENHVER senere kritisk handling til en no-op eller få den
-      // til at settle en editor, der ikke findes — begge er tabt arbejde for brugeren.
+      // til at settle en editor, der ikke findes – begge er tabt arbejde for brugeren.
       expect(registry.getEditing()).toBeNull();
       const result = await coordinator.prepare('save');
       expect(result.status).toBe('committed');

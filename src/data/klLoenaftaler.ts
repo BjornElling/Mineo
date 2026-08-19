@@ -1,7 +1,7 @@
 /**
  * KL-lønaftaler – periodevise reguleringssatser fra de kommunale lønaftaler.
  *
- * SÆRLIG KL-LØNAFTALER-LOGIK — denne model regulerer trinvist på selve lønnen og har andre
+ * SÆRLIG KL-LØNAFTALER-LOGIK – denne model regulerer trinvist på selve lønnen og har andre
  * visninger end de øvrige reguleringsmodeller. Normativt overblik:
  * docs/domain/taf/kl-loenaftaler-regulering.md
  *
@@ -20,13 +20,13 @@
  *    akkumuleret regulering og afrunde til nærmeste 0,05 %.
  *  - Værdierne er derfor beregningsteknisk unøjagtige. De indgår bevidst alligevel,
  *    fordi formålet er at lave en parallel til Erstatningsnævnets (forkerte)
- *    reguleringssatser — ikke at ramme den matematisk korrekte lønudvikling.
+ *    reguleringssatser – ikke at ramme den matematisk korrekte lønudvikling.
  *
  * Nye rækker tilføjes kronologisk (ældste først) som [dato, periode-procent].
  * ─────────────────────────────────────────────────────────────────────────────
  *
  * Beregning i Mineo kan kun foretages fra 1. januar 2005, så serien starter ved
- * 1. april 2005, der fungerer som basisdato (0,00 % — intet akkumuleret indeks
+ * 1. april 2005, der fungerer som basisdato (0,00 % – intet akkumuleret indeks
  * fremført fra før 2005).
  */
 
@@ -50,7 +50,7 @@ export interface KlLoenaftalerRow {
 export type KlLoenaftalerReguleringsDatoInterval = CoverageInterval;
 
 /**
- * Sorteringsretningen for KL-lønaftalernes serie — ét sted, delt af load-guarden og af det
+ * Sorteringsretningen for KL-lønaftalernes serie – ét sted, delt af load-guarden og af det
  * positionelle dæknings-opslag. Modsat KRL og de offentlige lønsatser er denne serie
  * ældste-først (den trinvise kæde læses kronologisk).
  */
@@ -124,7 +124,7 @@ export const klLoenaftalerRaekker: ReadonlyArray<KlLoenaftalerRow> = klRegulerin
  * KL-lønaftaler-formen regulerer trinvist på lønnen: kæde-resolveren anvender hver
  * reguleringsdato sekventielt (`buildKlLoenaftalerReguleretLoenResolver`), og
  * `getReguleringsDatoIntervalForKlLoenaftaler` udleder row-gatens dæknings-interval
- * positionelt via `resolveSeriesCoverageInterval` med `KL_LOENAFTALER_SERIE_ORDER` — samme
+ * positionelt via `resolveSeriesCoverageInterval` med `KL_LOENAFTALER_SERIE_ORDER` – samme
  * retning som guarden nedenfor håndhæver. Tre latente antagelser skal håndhæves, for at det
  * er sikkert:
  *
@@ -134,7 +134,7 @@ export const klLoenaftalerRaekker: ReadonlyArray<KlLoenaftalerRow> = klRegulerin
  *     på rækkefølgen; en mis-sorteret eller duplikeret dato ville give et forkert
  *     dæknings-interval (row-gatens `min`/`max`, der gater S1/S6) og kunne maskere et
  *     tabt trin. (Kæde-resolveren sorterer selv defensivt, men interval-udledningen gør
- *     ikke — derfor håndhæves rækkefølgen her ved kilden.)
+ *     ikke – derfor håndhæves rækkefølgen her ved kilden.)
  * (3) **Finit periodesats pr. række.** En ikke-finit sats ville få kæde-resolveren til
  *     at fail-close (`runtime_exception`) i stedet for en synlig dæknings-/datafejl;
  *     her fanges den allerede ved load som en målrettet datafejl.

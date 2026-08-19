@@ -17,7 +17,7 @@ describe('buildOffentligeYdelserUdviklingModel regulering', () => {
   it('runder den akkumulerede reguleringsprocent til 2 decimaler før både beløb og visning', () => {
     // Akkumuleret regulering over et årsskifte har typisk >2 decimaler. Segmentets deltaPct (som
     // vises som faktor "+ X,XX %") skal være den 2-decimal-afrundede værdi, og beløbet skal regnes
-    // med netop den — så brugeren kan efterregne beløbet fra den viste faktor (samme princip som løn).
+    // med netop den – så brugeren kan efterregne beløbet fra den viste faktor (samme princip som løn).
     const income: IncomePeriodResult = {
       employers: [],
       benefits: [{ typeKey: 'dagpenge', label: 'Dagpenge', amount: 12000 }],
@@ -68,7 +68,7 @@ describe('buildOffentligeYdelserReguleringTableData', () => {
   };
 
   it('viser den rå per-år-sats i "Regulering"-kolonnen via den delte gateway', () => {
-    // Tabellens "Regulering"-kolonne skal være den enkelte års reguleringssats — netop den
+    // Tabellens "Regulering"-kolonne skal være den enkelte års reguleringssats – netop den
     // værdi den delte fail-closed gateway (resolveReguleringssatsForAar) leverer, så beregning
     // og visning trækker på ét og samme opslag (ingen parallel rå reguleringssats[year]-sti).
     const model = buildModel('2022-01-01', '2024-12-31', '2022-01-01');

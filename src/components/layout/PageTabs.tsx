@@ -86,7 +86,7 @@ function PageTabs<T extends string>({
     // Tabs kan selv skrive indikatorens inline-style efter forælderens layout-effect (fx fra sin
     // egen ResizeObserver). MutationObserveren korrigerer netop den sene skrivning, uden polling.
     //
-    // Observeren sidder på fane-RODEN — vores egen stabile `<Box>` — og ikke på indikator-elementet.
+    // Observeren sidder på fane-RODEN – vores egen stabile `<Box>` – og ikke på indikator-elementet.
     // Det er ikke en detalje: React udskifter indikator-noden, når Tabs gentegnes, og en observer
     // bundet direkte til noden endte derfor på et løsrevet element og tav for al fremtid. Symptomet
     // var, at den blå streg blev stående i MUI's egen (forkert skalerede) bredde efter en
@@ -109,16 +109,16 @@ function PageTabs<T extends string>({
    * Faneskift settler selv den åbne editor.
    *
    * Før byggede skiftet på en bivirkning: klikker man på en fane med MUSEN, forlader musen først
-   * feltet, og blur'en committede det indtastede. Skiftet gjorde altså intet selv — det var
+   * feltet, og blur'en committede det indtastede. Skiftet gjorde altså intet selv – det var
    * heldigt stillet. Da fanerne bevidst ikke kan nås med tastaturet, kunne det ikke fremprovokeres,
    * men sikringen manglede: bliver fanerne en dag tastaturtilgængelige, eller udløser programmet
    * selv et skift, ville en igangværende indtastning gå tabt uden varsel.
    *
    * `'navigate'` er den rigtige handlingsklasse og ikke en ny: et faneskift har præcis samme policy
-   * som sidenavigation — settle og fortsæt, også ved et fejlende settle (`critical-action-contract.md`
+   * som sidenavigation – settle og fortsæt, også ved et fejlende settle (`critical-action-contract.md`
    * §3). Et sideskift og et faneskift må ikke kunne drifte fra hinanden.
    *
-   * Ved et fail-closed `blocked` fokuseres det aktive felt, og skiftet stopper — samme svar som
+   * Ved et fail-closed `blocked` fokuseres det aktive felt, og skiftet stopper – samme svar som
    * sidemenuens navigation giver.
    */
   const handleChange = React.useCallback(

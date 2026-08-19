@@ -12,13 +12,13 @@ type PasteCodec = Readonly<{
  * Draftkonteksten, en paste skal normaliseres imod.
  *
  * **Hvad der afgør den.** Ikke om editoren er åben, men om paste'en efterlader noget af brugerens
- * eksisterende tekst. Erstatter den ALT — et lukket felt, eller en åben draft hvor markeringen dækker
- * hele teksten (Ctrl+A) — er der ingen kontekst at splice ind i, og feltets egen normalisering fra tom
+ * eksisterende tekst. Erstatter den ALT – et lukket felt, eller en åben draft hvor markeringen dækker
+ * hele teksten (Ctrl+A) – er der ingen kontekst at splice ind i, og feltets egen normalisering fra tom
  * draft er den rigtige. Efterlader den noget, skal teksten splices ind i det, der bliver stående.
  *
  * **Hvorfor helperen findes.** Konteksten blev før udtrykt som `ctl.isOpen ? ctl.displayText : ''` på
- * hvert kaldssted, altså kun på editorens tilstand. «Markér alt og indsæt» — den naturlige måde at
- * rette en dato på — faldt derfor i splice-grenen: samme tekst `010623` blev `01-06-2023` i et tomt
+ * hvert kaldssted, altså kun på editorens tilstand. «Markér alt og indsæt» – den naturlige måde at
+ * rette en dato på – faldt derfor i splice-grenen: samme tekst `010623` blev `01-06-2023` i et tomt
  * felt og `01` med rød ring i et udfyldt. Samme udklipsholder, samme håndbevægelse, to udfald
  * (BB-042), i strid med `input-field-behavior-contract.md` §1.2a punkt 7, som kræver, at et pastes
  * resultat er uafhængigt af, om feltet var tomt.
@@ -64,17 +64,17 @@ export const normalizePasteForDraft = (
 };
 
 /**
- * Indsættelse af paste-tekst i en ÅBEN draft — den ene implementering, formular- og grid-surfacen deler.
+ * Indsættelse af paste-tekst i en ÅBEN draft – den ene implementering, formular- og grid-surfacen deler.
  *
  * **Hvorfor længden skal håndhæves her.** Feltets rå længdeloft er i dag udtrykt som `maxLength` på
  * `<input>`-elementet, og det virker kun for TASTNING: `onPaste` kalder `e.preventDefault()`, før den
  * selv skriver draften, så browseren aldrig får lov at anvende sit eget loft. Splicen kunne derfor
- * skubbe draften vilkårligt langt forbi den grænse, feltet erklærede — også når hvert enkelt tastetryk
+ * skubbe draften vilkårligt langt forbi den grænse, feltet erklærede – også når hvert enkelt tastetryk
  * ville være blevet afvist. Det er præcis det, `input-field-behavior-contract.md` §1.2a forbyder:
  * paste skal behandles som om brugeren havde tastet den indsatte tekst ét tegn ad gangen.
  *
  * Afkortningen er derfor det FORVENTEDE resultat og ikke et datatab (§1.2a): de samme tegn ville være
- * blevet afvist ved tastning. Den er tavs — der opstår ingen fejltilstand, fordi tegnene aldrig blev
+ * blevet afvist ved tastning. Den er tavs – der opstår ingen fejltilstand, fordi tegnene aldrig blev
  * en del af værdien.
  */
 export const spliceDraftWithPaste = (
@@ -96,7 +96,7 @@ export const spliceDraftWithPaste = (
 
   // Præfiks og suffiks er brugerens EGEN eksisterende værdi og afkortes ikke: kun det indsatte
   // beskæres til den plads, der faktisk er tilbage. Ellers kunne et paste slette tegn, brugeren
-  // allerede havde stående — og §1.2a forbyder, at paste ændrer en værdi inden for feltets grænser.
+  // allerede havde stående – og §1.2a forbyder, at paste ændrer en værdi inden for feltets grænser.
   let accepted = '';
   for (const character of pasted) {
     const candidate = prefix + accepted + character + suffix;

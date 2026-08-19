@@ -96,7 +96,7 @@ export class CriticalActionCoordinator {
    * Ved annullering eller apply-fejl skal kalderen undlade dette kald eller kaste; begge dele bevarer draften.
    *
    * `apply` skal være SYNKRON. Draft-discard rammer præcis den editor, der var åben, da handlingen
-   * begyndte — jf. `discardReplacedDraft` — og en asynkron apply ville lade brugeren åbne en NY editor i den
+   * begyndte – jf. `discardReplacedDraft` – og en asynkron apply ville lade brugeren åbne en NY editor i den
    * netop erstattede sag, hvis draft så blev kasseret bagefter. Metadata-/filhåndtags-synkronisering hører
    * derfor uden for barrieren; den ejer ikke replacement-transaktionen.
    */
@@ -158,7 +158,7 @@ export class CriticalActionCoordinator {
    * Kasserer PRÆCIS den draft, handlingen erstattede. Et registry-opslag EFTER apply er ikke en stabil
    * identitet: var der ingen editor åben, da handlingen begyndte, findes der ingen draft at kassere, og en editor,
    * brugeren har åbnet imens, tilhører den NYE sag. `getEditing()` kaldes igen for at bekræfte, at editoren stadig
-   * er den registrerede og fortsat redigerer — er den unmountet eller udskiftet, er der intet at kassere.
+   * er den registrerede og fortsat redigerer – er den unmountet eller udskiftet, er der intet at kassere.
    */
   private discardReplacedDraft(editorBefore: ActiveEditor | null): void {
     if (editorBefore === null) return;
@@ -189,7 +189,7 @@ export class CriticalActionCoordinator {
 
   /**
    * Afslutter editoren gennem dens egen settle. Et fejlende settle er IKKE en blokering (§1.4: fejlen bevares og
-   * handlingen fortsætter) — kun en uventet exception/afvist promise er fail-closed (contract §2), fordi vi da
+   * handlingen fortsætter) – kun en uventet exception/afvist promise er fail-closed (contract §2), fordi vi da
    * ikke kan garantere, at editoren blev finaliseret. Returnerer `null` ved succes, ellers et `blocked`-resultat.
    */
   private async settleEditor(editor: ActiveEditor): Promise<CriticalActionPreparationResult | null> {

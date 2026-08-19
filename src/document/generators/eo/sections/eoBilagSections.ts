@@ -7,7 +7,7 @@
  * den almindelige EO-PDF og "TAF opreguleret til beregningsåret"-PDF'en.
  *
  * Gating på `selectedElements` og datagrundlag er identisk med den oprindelige
- * inline-implementering — outputtet skal være bit-for-bit det samme.
+ * inline-implementering – outputtet skal være bit-for-bit det samme.
  */
 
 import type { DocumentComposer, DocumentLabelValueOptions } from '../../../model/documentModel';
@@ -466,7 +466,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       safeAddWrappedText('Ingen regulering i den relevante periode.');
     }
     // Selve udregningen af de regulerede offentlige ydelser (per-ydelse segmentlinjer + I alt)
-    // vises IKKE her — den fremgår alene på selve erstatningsopgørelsen under "Forventet
+    // vises IKKE her – den fremgår alene på selve erstatningsopgørelsen under "Forventet
     // indkomst". Dette bilag dokumenterer kun reguleringsværdierne (tabellen ovenfor) og
     // reguleringsprincippet (teksten nedenfor). Afstanden tabel → tekst (én addSectionSpacer)
     // matcher bevidst "Regulering"-bilagets afslutning (tabel → addSectionSpacer → tekst).

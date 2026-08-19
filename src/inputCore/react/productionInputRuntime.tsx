@@ -32,7 +32,7 @@ import {
 // **Feltvalidering (inputkernen, slicevis):** `getIssues` optager nu et STABILT kildesnapshot (§3.4) og udleder det
 // faktiske tokenbundne feltissue-snapshot via `captureStableInputEvaluation`. Rejected råtekst (format) og
 // canonical-validatorer på de migrerede sektioner giver derfor ægte røde feltfejl. Sektioner uden migrerede
-// validatorer bidrager ikke med issues endnu — Satser-årets min/maxYear-bounds er efter kravændringen 2026-07-18
+// validatorer bidrager ikke med issues endnu – Satser-årets min/maxYear-bounds er efter kravændringen 2026-07-18
 // en canonical bounds-feltvalidator på descriptoren (ikke længere codec-`range`), så et out-of-bounds-satsår
 // committes canonical med et rødt bounds-issue og kan gemmes i `.eo`. Snapshottet caches pr.
 // `EvaluationSourceToken`, så `getIssues` er billig at kalde under render (én gang pr. revision/settingsrevision).
@@ -44,7 +44,7 @@ import {
  * værdi, ellers kan de drive fra hinanden. Tidligere var dette hele `AppSettings`, og fordi
  * `SourceSettings` var en ren strukturel type, kunne enhver evalueringsafhængig kodesti læse en
  * nøgle UDEN FOR sættet. En sådan læsning ville indføre en source-afhængighed, som IKKE bumper
- * settingsrevisionen — så en download, der blev godkendt under den gamle regel, kunne overleve et
+ * settingsrevisionen – så en download, der blev godkendt under den gamle regel, kunne overleve et
  * regelskift. Fejlklassen var tavs.
  *
  * Nu er typen nominel og `projectSourceSettings` dens eneste konstruktør, så evalueringen ikke KAN
@@ -116,7 +116,7 @@ export const getProductionInputEvaluation = (): InputEvaluation => readProductio
  * Kritisk: dette er en FUNKTION, ikke en værdi. `publishedSettings` sættes i samme layout-fase som
  * settingsrevisionen hæves (`useSettingsRevisionBridge`), så en læsning på capture-tidspunktet er atomisk
  * med det token, capturen bærer. Fanges settings derimod ved React-render og gemmes i en closure, kan et
- * NYERE settingsrevision-token blive parret med et ÆLDRE settingsobjekt — og så består alle senere
+ * NYERE settingsrevision-token blive parret med et ÆLDRE settingsobjekt – og så består alle senere
  * friskhedschecks, mens dokumentet renderes efter en forældet regel, et forældet format eller et forældet
  * brevhoved. Netop den kombination er usynlig for et tokencheck, fordi tokenet er aktuelt.
  *
@@ -158,7 +158,7 @@ export const bootstrapProductionInputRuntime = (): Readonly<{
 }> => {
   if (bootstrappedProductionRuntime !== null) return bootstrappedProductionRuntime;
   const catalog = getProductionInputCatalog();
-  // En frisk sag seedes med domænets ny-sags-defaults (§1.12) — kun når der ikke findes en aktiv session.
+  // En frisk sag seedes med domænets ny-sags-defaults (§1.12) – kun når der ikke findes en aktiv session.
   // Indstillingerne læses fra samme kilde, `AppSettingsProvider` selv monterer på; bootstrap sker før render,
   // så der er endnu ingen context at læse fra, og de to kan ikke nå at være uenige.
   const startup = initializeInputRuntime(slimInputStore, catalog, {
@@ -189,7 +189,7 @@ export const useSettingsRevisionBridge = (settings: AppSettings): void => {
   const previousFingerprintRef = React.useRef(evaluationSettingsFingerprint(publishedSettings));
   React.useLayoutEffect(() => {
     // Broen er det ENESTE sted, hvor den brede `AppSettings` skæres ned til source-snapshottet.
-    // Alt nedstrøms — evaluering, fingerprint, dokumentcapture — ser kun resultatet.
+    // Alt nedstrøms – evaluering, fingerprint, dokumentcapture – ser kun resultatet.
     const sourceSettings = projectSourceSettings(settings);
     const committedFingerprint = evaluationSettingsFingerprint(sourceSettings);
     const changed = previousFingerprintRef.current !== committedFingerprint;

@@ -22,7 +22,7 @@ export type InputRuntimeStartup = Readonly<{
 
 /**
  * Valgfri engangs-seed af en HELT NY sag (§1.12). Anvendes KUN, når der ikke findes en aktiv session (`raw ===
- * null`) — aldrig oven på en indlæst eller korrupt kilde. Domænet leverer den; kernen er domæneneutral og
+ * null`) – aldrig oven på en indlæst eller korrupt kilde. Domænet leverer den; kernen er domæneneutral og
  * bruger kun resultatet som den hydrerede baseline (ingen ekstra revision eller history-frame).
  *
  * Typen og konstruktionen ejes af `src/inputCore/newCaseSections.ts`, fordi den SAMME seed også afgør, hvad

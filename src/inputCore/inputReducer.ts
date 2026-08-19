@@ -67,7 +67,7 @@ export type InputTransactionStep = Readonly<{
 }>;
 /**
  * En transaktion, hvis trin ALLE er feltændringer. Type-synligt adskilt fra den strukturelle variant, så
- * dispatch-porten kan kræve en destination for den ene og ikke for den anden — uden at skulle se ind i
+ * dispatch-porten kan kræve en destination for den ene og ikke for den anden – uden at skulle se ind i
  * trinnenes closures.
  */
 export type FieldTransactionCommand = Readonly<{
@@ -129,7 +129,7 @@ export type ReplaceCaseCommand = Readonly<{ kind: 'replaceCase'; input: SettledI
  * Commanden bærer ny-sags-seeden frem for at rydde til bar `null`. "Slet alt" er brugerens måde at starte
  * forfra på, og en ny sag er ikke det samme som en tom en: den bærer de standardværdier, brugerens
  * programindstillinger og domænet erklærer for en ny sag (§1.12). Uden seeden ville de defaults, en
- * nybootstrappet sag har, forsvinde permanent efter et `Slet alt` — samme sag, to forskellige udgangspunkter.
+ * nybootstrappet sag har, forsvinde permanent efter et `Slet alt` – samme sag, to forskellige udgangspunkter.
  *
  * Seeden er en funktion, ikke en færdig sagsværdi: commanden kan derfor ikke misbruges til at indsætte en
  * vilkårlig sag uden om `replaceCase`, og reduceren forbliver domæneneutral.
@@ -189,7 +189,7 @@ export const inputTransactionStep = <TField, TEntity>(
           catalog.removeEmptyOwningEntity(input, command.field),
       }
     : {}),
-  // Klassifikationen udledes HER, hvor commanden endnu er synlig — derefter er den lukket inde i `reduce`.
+  // Klassifikationen udledes HER, hvor commanden endnu er synlig – derefter er den lukket inde i `reduce`.
   structural: isStructuralInputCommand(command),
 });
 /**
@@ -306,19 +306,19 @@ const removeRejectedBelowEntity = (
  * §3.6: et styrende valg committer sit eget felt og rydder ÉN snæver klasse af felter med det.
  *
  * **Hovedreglen (§7.5):** et valg må ikke slette brugerens indtastninger. Kun eksplicit slettende
- * kontroller — `Slet række`, `Slet alt`, Delete/Backspace på et fokuseret felt — fjerner data, og de er
+ * kontroller – `Slet række`, `Slet alt`, Delete/Backspace på et fokuseret felt – fjerner data, og de er
  * alle navngivet som netop det over for brugeren. Et valg, der skjuler et felt, ændrer derfor kun
  * VURDERINGEN af det: værdien består, dens issues genudledes fra det nye snapshot, og den kommer uændret
  * til syne igen, hvis valget skiftes tilbage.
  *
  * **Undtagelsen (§7.5 pkt. 2):** bar feltet en AKTIV RØD FEJL i før-snapshottet, og gør valget det
- * irrelevant (= skjult, §7.3), ryddes feltet tavst i samme transaktion — ét history-trin. Begrundelsen er
+ * irrelevant (= skjult, §7.3), ryddes feltet tavst i samme transaktion – ét history-trin. Begrundelsen er
  * ikke, at reglen ikke længere gælder; den er, at en rød fejl brugeren ikke kan SE, ikke kan rettes.
  * Uden rydningen kunne en ugyldig indtastning blokere `.eo`-save fra et skjult felt, og brugeren ville
  * hverken kunne finde eller fikse den. Rydningen gælder BEGGE fejlformer:
  *
- *   - rejected råtekst (formatfejl) — blokerer save globalt (§8), og
- *   - en canonical out-of-bounds-/rule-værdi — blokerer afhængige beregninger og dokumenter.
+ *   - rejected råtekst (formatfejl) – blokerer save globalt (§8), og
+ *   - en canonical out-of-bounds-/rule-værdi – blokerer afhængige beregninger og dokumenter.
  *
  * Afgrænsningen er snæver med vilje: et skjult felt UDEN rød fejl bevares altid (§7.6). Rydningen rammer
  * altså netop overgangen `synlig+rød → skjult`, ikke skjulte værdier i almindelighed. Undo gendanner
@@ -365,7 +365,7 @@ const reduceImmediateChoice = <T>(
     if (activeFieldIssue(beforeIssues, key) === undefined) continue;
     // Rydningen fjerner BÅDE den canonical værdi OG en eventuel rejected råtekst: `withCanonicalValue`
     // dropper adressens rejected-post som del af samme skrivning. Blev råteksten efterladt, ville den
-    // blokere `.eo`-save globalt (§8) fra et skjult felt — præcis den usynlige blokering, undtagelsen
+    // blokere `.eo`-save globalt (§8) fra et skjult felt – præcis den usynlige blokering, undtagelsen
     // findes for at forhindre.
     candidate = withCanonicalValue(candidate, beforeField, beforeField.descriptor.emptyValue);
   }

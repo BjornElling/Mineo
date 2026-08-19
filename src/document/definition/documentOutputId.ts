@@ -4,7 +4,7 @@
  * Ligger i sit eget modul UDEN afhængigheder, fordi det er completeness-kilden: både Mineos og
  * standalone-appens runtime-kataloger måles mod dette sæt, og en test kræver præcis én definition
  * pr. id på tværs af de to kataloger. Lå inventaret i `documentCatalog.ts`, ville completeness-testen
- * skulle importere hele kompositionen — og dermed hele domænegrafen — for at læse en liste af
+ * skulle importere hele kompositionen – og dermed hele domænegrafen – for at læse en liste af
  * strenge.
  *
  * Opdelingen mellem `MINEO_*` og `STANDALONE_*` er ikke kosmetik: de to apps har hver sit
@@ -36,7 +36,7 @@ export const MINEO_DOCUMENT_OUTPUT_IDS = [
 
 /**
  * Standalone MinProcesrente. Kontraktens §A2a kræver udtrykkeligt, at også standalone er
- * katalogiseret — den har historisk stået helt uden gate.
+ * katalogiseret – den har historisk stået helt uden gate.
  */
 export const STANDALONE_DOCUMENT_OUTPUT_IDS = [
   'standalone-rente',

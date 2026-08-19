@@ -59,7 +59,7 @@ const buildAllocationDates = (
     // Fald-tilbage (jf. periodisering-contract.md §3A): en lønperiode uden periodiseringsdage
     // (fx hel ferie) fordeles på fald-tilbage-dage, så beløbet fanges i kontroltabellen PRÆCIS
     // som i beregningen (buildIncomeForRanges bruger samme motor-helper). Dag-kolonnerne
-    // (arbejdsdag/TAF-dag) markerer dem stadig som ikke-arbejdsdage — kun beløbet fordeles her.
+    // (arbejdsdag/TAF-dag) markerer dem stadig som ikke-arbejdsdage – kun beløbet fordeles her.
     const fraISO = dateToISO(interval.start);
     const tilISO = dateToISO(interval.end);
     if (fraISO && tilISO) {
@@ -103,7 +103,7 @@ export const buildTafDayStatusValues = (args: Readonly<{
   for (let i = 0; i < dates.length; i += 1) {
     const iso = dates[i];
     // EO-perioden (vedroererPeriode) er en *valgfri* stille clamp (jf. eo-snapshot-contract.md §2.1):
-    // når den ikke er angivet, afgrænses TAF-dage alene af de autoritative `tafDates` — præcis
+    // når den ikke er angivet, afgrænses TAF-dage alene af de autoritative `tafDates` – præcis
     // som beregnings-engine'n (computeTafArbejdsdageAggregation/buildTafRanges) gør. Uden dette
     // fald-tilbage ville tabellen vise 0 TAF-dage mens snapshot beregner et reelt TAF-tal, hvilket
     // udløser en falsk control:sammentaelling_mismatch. `tafDates` er allerede clampet mod EO-perioden, når
@@ -141,7 +141,7 @@ export const buildTafDayStatusValues = (args: Readonly<{
   return dates.map((iso, rowIndex) => {
     const code = tafStatus[rowIndex];
     // En dag i TAF-perioden (tafDates), en TAF-dag/endeligt-EET-markør (code !== 0) eller en dag
-    // i beregningsperioden er altid i scope og skal vises — også når der ikke er angivet en
+    // i beregningsperioden er altid i scope og skal vises – også når der ikke er angivet en
     // erstatningsperiode. Når EO-perioden findes, gælder `tafDates ⊆ erstatningsRange`, så de
     // ekstra led medfører `isWithinErstatningsByIndex` og ændrer derfor intet i det tilfælde.
     const isVisibleScope =

@@ -6,7 +6,7 @@ const INSERT_EMPLOYMENT_PROMPT = 'Tryk på den blå knap for at indsætte et ans
 const EMPLOYMENT_NOTICE = 'Lønindkomst, tillæg og andre relevante oplysninger skal angives individuelt for hvert enkelt ansættelsesforhold.';
 
 // Browserbanen: fokusrammen efter Escape afhænger af motorens `:focus-visible`-heuristik, som er
-// forskellig i Chromium, Gecko og WebKit — det er dén forskel, testen skal fange.
+// forskellig i Chromium, Gecko og WebKit – det er dén forskel, testen skal fange.
 test.describe('Dropdown-fokus og lønindkomstvejledning', { tag: BROWSER_LANE_TAG }, () => {
   test('en tabel-dropdown bevarer den blå fokusramme ved hover efter Escape', async ({ page, runtimeErrors }) => {
     await login(page);

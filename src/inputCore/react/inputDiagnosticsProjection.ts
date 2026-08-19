@@ -7,7 +7,7 @@ import {
 } from './inputRuntimeContext';
 
 // Input-diagnostik: devtools-/bugrapport-fladen har et LEGITIMT behov for at se den
-// rå persisterede sektionsform — det er hele pointen med en fejlrapport. Men behovet er en NAVNGIVET
+// rå persisterede sektionsform – det er hele pointen med en fejlrapport. Men behovet er en NAVNGIVET
 // projektion, ikke en generel undtagelse fra §3.4's læsegrænse.
 //
 // Tidligere greb shellen selv ned i `getSettled().input.sections[pageKey]`. Det var det eneste rå
@@ -17,7 +17,7 @@ import {
 
 /**
  * Én sides diagnostiske øjebliksbillede: den persisterede sektionsform og de feltissues, der hører til
- * sektionen. Bevidst `unknown` for sektionen — en fejlrapport skal vise formen SOM DEN ER, ikke en type,
+ * sektionen. Bevidst `unknown` for sektionen – en fejlrapport skal vise formen SOM DEN ER, ikke en type,
  * rapporten selv har fortolket.
  */
 export type SectionDiagnostics = Readonly<{
@@ -36,7 +36,7 @@ export type InputDiagnosticsProjection = Readonly<{
  * Diagnostikprojektionen bundet til den runtime, React-træet faktisk viser.
  *
  * Bevidst bundet til bindingen frem for produktions-singletonen: en fejlrapport, der viser en anden sag end
- * den, brugeren ser, er værre end ingen rapport. Ren læsning — der er ingen skrivevej herfra.
+ * den, brugeren ser, er værre end ingen rapport. Ren læsning – der er ingen skrivevej herfra.
  */
 export const useInputDiagnostics = (): InputDiagnosticsProjection => {
   const read = useInputReadPort();

@@ -1,10 +1,10 @@
 /**
- * `collectAllEoRows` — den AUTORITATIVE EO-række-evaluerings-aggregator (jf. B9).
+ * `collectAllEoRows` – den AUTORITATIVE EO-række-evaluerings-aggregator (jf. B9).
  *
  * Samler alle status-rækker fra builder-registret, tilføjer navigation-metadata, anvender
  * relevans-filtrering (`isRowRelevantForEoValues`) + dependency-suppression, og grupperer efter
  * status (error/warning). Dens `error`-rækker DRIVER produktions-PDF-download-gaten i
- * `useEoBeregningViewModel` — dette er derfor trust-kritisk produktions-validering, ikke "bare kontrol".
+ * `useEoBeregningViewModel` – dette er derfor trust-kritisk produktions-validering, ikke "bare kontrol".
  *
  * Derfor bor modulet i `src/domain/eoRowEvaluation/` (autoritativt, kontrol-frit), ikke i
  * `src/domain/eoInspektion/`. DEV-kontrolsiden er nedstrøms: den konsumerer de samme row-buildere til visning,
@@ -236,7 +236,7 @@ const isRowRelevantForEoValues = (
   // blokere, når den tilhørende beregning faktisk kræves. 'Arbejdssituation' (tafArbejdsstatus)
   // indgår udelukkende i TAF-fremstillingen; 'Helbredsforhold' (svieSmerteHelbredsstatus) kun i
   // svie/smerte. Tidligere blokerede de PDF-download uanset relevans, fordi deres id'er ikke matcher
-  // de prefiks-baserede regler nedenfor — fx blokerede tom Arbejdssituation selv med TAF='Nej'.
+  // de prefiks-baserede regler nedenfor – fx blokerede tom Arbejdssituation selv med TAF='Nej'.
   if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja' && row.id === 'erstatningsopgoerelse.arbejdsstatus') {
     return false;
   }
@@ -296,7 +296,7 @@ const isRowRelevantForEoValues = (
  * @param pdfModelOverride - Præsentationsmodellen fra snapshot. SKAL gives, så de SFGG-rækker
  *   der afhænger af det beregnede resultat (fx `sfgg.dagssats.*`/`sfgg.referencesats.*`-fejl) også
  *   evalueres af download-gaten. Uden den var gaten blind for de samme fejl, DEV-kontrolfanen viste
- *   som blokerende — en fail-open-asymmetri (jf. eoSnapshotToInspektionView, der altid sætter pdfModel).
+ *   som blokerende – en fail-open-asymmetri (jf. eoSnapshotToInspektionView, der altid sætter pdfModel).
  * @returns Grupperet efter status (errors, warnings)
  */
 export const collectAllEoRows = (

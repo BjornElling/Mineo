@@ -347,7 +347,7 @@ const buildSsCoverage = (
   erstatningsTil: ISODateString | undefined,
   menStopDato: ISODateString | undefined,
   /** Clampede svie/smerte-perioder fra engine. Når leveret bruges disse direkte
-   *  i stedet for at genimplementere clamping fra values — sikrer at tabellen
+   *  i stedet for at genimplementere clamping fra values – sikrer at tabellen
    *  afspejler præcis de perioder der indgik i beregningen. */
   constrainedPeriods?: readonly SvieSmerteConstrainedPeriod[]
 ): { statusByIndex: readonly string[]; stopAfterMenByIndex: readonly boolean[] } => {
@@ -382,7 +382,7 @@ const buildSsCoverage = (
     }
   } else {
     // Fallback: validerings-fejl-sti og standalone/test-brug.
-    // Genimplementerer clamping fra values — samme logik som engine, men selvstændig.
+    // Genimplementerer clamping fra values – samme logik som engine, men selvstændig.
     const hasSsMax = maxSsDato !== undefined;
     const perioder: readonly SvieSmertePeriodeRow[] = values.svieSmertePerioder ?? [];
     for (const periode of perioder) {
@@ -446,7 +446,7 @@ export const buildEOInspektionModel = (
     tafRanges?: readonly IsoRange[];
     skadedatoISO?: ISODateString;
     /** Clampede svie/smerte-perioder fra engine. Når leveret afspejler kontroltabellen
-     *  præcist de perioder der indgik i beregningen — ikke de rå committede datoer. */
+     *  præcist de perioder der indgik i beregningen – ikke de rå committede datoer. */
     svieSmerteConstrainedPeriods?: readonly SvieSmerteConstrainedPeriod[];
   }> = {}
 ): EOInspektionModel => {
@@ -473,14 +473,14 @@ export const buildEOInspektionModel = (
     options.svieSmerteConstrainedPeriods
   );
 
-  // Brug clampede tafRanges hvis de er leveret (fra engines — altid præfereret).
+  // Brug clampede tafRanges hvis de er leveret (fra engines – altid præfereret).
   // Fallback bruger den kanoniske buildTafRanges-sti til standalone/test-brug.
   // Snapshot-pipelinen skal fortsat levere tafRanges for fuld parity med den konkrete beregning.
   const resolvedTafRanges: readonly IsoRange[] = options.tafRanges
     ?? buildTafRanges(values, { skadedatoISO: options.skadedatoISO });
   // TAF-perioderne skal indgå som datokilde, så tabellen altid dækker præcis de dage,
   // beregnings-engine'n beregner TAF over. Uden dette kunne en TAF-periode, der ligger uden
-  // for løn-/ydelses-/erstatningsperiode-intervallerne, falde helt uden for tabellen — og så
+  // for løn-/ydelses-/erstatningsperiode-intervallerne, falde helt uden for tabellen – og så
   // ville kontroltabellen vise 0 TAF-dage mens snapshot beregner et reelt tal (falsk
   // control:sammentaelling_mismatch). Når en erstatningsperiode findes, er tafRanges allerede clampet
   // ind i den, så denne kilde udvider intet i det tilfælde.

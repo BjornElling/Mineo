@@ -11,12 +11,12 @@ export type StandardLoenTableColumnKey =
   | 'pensionBeloeb';
 
 /**
- * KOLONNENAVNENE — ét sandt sted (§3.2a).
+ * KOLONNENAVNENE – ét sandt sted (§3.2a).
  *
  * Standard-løn-tabellen vises af BÅDE Årsløn og EO-lønindkomst, som har hvert sit descriptor-katalog.
  * Navnene bor derfor her, i det neutrale type-lag, og forbruges tre steder: de to descriptor-kataloger
  * sætter dem som `label`, og `standardLoenTableColumns.ts` bygger gridoverskrifterne af dem. Ellers ville
- * samme kolonne kunne hedde én ting på skærmen og en anden i en fejlbesked om cellen — `col4` hed
+ * samme kolonne kunne hedde én ting på skærmen og en anden i en fejlbesked om cellen – `col4` hed
  * «Ikke-pensionsgivende løn» i overskriften og «Løn (3)» i beskeden.
  *
  * Navnene står UDEN linjeskift. Overskriftens ombrydning er ren layout og tilføjes i

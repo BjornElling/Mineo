@@ -89,7 +89,7 @@ const processDecryptedContainer = (args: {
   );
 
   // Felter/sektioner, hvor gemt brugerdata IKKE kunne indlæses og derfor er sat til standardværdier.
-  // Disse rapporteres til brugeren via preflight — stille datatab er uacceptabelt (AGENTS.md save/load,
+  // Disse rapporteres til brugeren via preflight – stille datatab er uacceptabelt (AGENTS.md save/load,
   // persistence-contract §6.3 "Rapportér tab eller strip via preflight").
   const dataLossIssues: LoadIssue[] = [];
   // Antal udfyldte felter fra filen der gik tabt (strippet, droppet sektion eller ukendt sektion).
@@ -105,7 +105,7 @@ const processDecryptedContainer = (args: {
 
     // Den trust-kritiske inbound-kæde (migrator → sanitize → schema-parse) deles med session-hydrering
     // via parseInboundPersistedSection, så samme rå sektionsdata aldrig kan transformeres forskelligt
-    // afhængigt af kilden. En migrator flytter/omsætter kendte gamle felter til current struktur — det er
+    // afhængigt af kilden. En migrator flytter/omsætter kendte gamle felter til current struktur – det er
     // en vellykket indlæsning (data bevares), ikke et tab, og tælles/vises derfor ikke i preflight.
     const parsedSection = parseInboundPersistedSection(
       sectionKey,
@@ -271,7 +271,7 @@ export const loadFromFileHandle = async (
     }
     if (error instanceof DOMException && error.name === 'NotFoundError') {
       logWarning('Hent (handle) fejlede: filen blev ikke fundet', { context: 'loadFromFileHandle.notFound' });
-      throw new FileHandleAccessError('Filen blev ikke fundet — den er måske flyttet eller slettet. Vælg filen igen via Hent.', { cause: error });
+      throw new FileHandleAccessError('Filen blev ikke fundet – den er måske flyttet eller slettet. Vælg filen igen via Hent.', { cause: error });
     }
 
     return mapGenericLoadError(error, 'loadFromFileHandle');

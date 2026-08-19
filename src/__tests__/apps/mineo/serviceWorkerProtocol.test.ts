@@ -54,7 +54,7 @@ const loadServiceWorker = (options: {
     clients: { claim },
   };
   // Kilden er en skabelon; buildet substituerer versionen. Testen gør præcis det samme, så den
-  // måler den worker, der faktisk deployes — ikke en variant, der kun findes i testen.
+  // måler den worker, der faktisk deployes – ikke en variant, der kun findes i testen.
   const template = readFileSync(path.resolve(process.cwd(), 'sw/mineoServiceWorker.js'), 'utf8');
   expect(template).toContain('__MINEO_BUILD_VERSION__');
   const source = template.replaceAll('__MINEO_BUILD_VERSION__', options.workerVersion ?? BUILD_VERSION);
@@ -104,7 +104,7 @@ describe('service worker-opdateringsprotokol', () => {
   it('afviser installationen, hvis manifestet hører til en anden build end workeren', async () => {
     // Kapløbet: en deploy lander mellem workerens hentning og manifestets. Uden dette værn ville en
     // cache NAVNGIVET denne build blive fyldt med den næste builds assets, og denne builds egne
-    // lazy chunks aldrig blive cachet — fejlen ville først vise sig ved et senere download.
+    // lazy chunks aldrig blive cachet – fejlen ville først vise sig ved et senere download.
     const { listeners, cache } = loadServiceWorker({ manifestVersion: '2026.08.13' });
     const waitUntil = vi.fn();
     listeners.get('install')?.({ waitUntil });

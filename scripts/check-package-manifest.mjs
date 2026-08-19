@@ -177,7 +177,7 @@ const main = () => {
     process.exitCode = 1;
     return;
   }
-  console.log('check:package-manifest — package.json, package-lock.json, .nvmrc og allowScripts stemmer.');
+  console.log('check:package-manifest – package.json, package-lock.json, .nvmrc og allowScripts stemmer.');
 };
 
 const isMain = process.argv[1] !== undefined

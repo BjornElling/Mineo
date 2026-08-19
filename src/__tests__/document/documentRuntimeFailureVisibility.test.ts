@@ -8,12 +8,12 @@
  * `reportFailure`/systemfejl-sinken.
  *
  * Men skellet er kun FORMELT, hvis `runtime`-klassen ender i en sink, ingen bruger ser. Kæden er fem moduler lang
- * — `reportDocumentRuntimeFailure` → `reportSystemIssue` → `logError` → `console.error` → devtools-monitorens
- * console-patch → `subscribeDevtoolsIssues` → `DevtoolsIssueNotice` i `MainLayout` — og hvert led kunne ændres,
+ * – `reportDocumentRuntimeFailure` → `reportSystemIssue` → `logError` → `console.error` → devtools-monitorens
+ * console-patch → `subscribeDevtoolsIssues` → `DevtoolsIssueNotice` i `MainLayout` – og hvert led kunne ændres,
  * uden at nogen test bemærkede, at signalet var forsvundet. Denne fil pinner kæden.
  *
  * Testen måler bevidst gennem den ÆGTE monitor og den ÆGTE reporter frem for at mocke dem: en mock ville bevise,
- * at kaldet sker, ikke at signalet kommer FREM — og det er netop forskellen, der afgør, om brugeren ser fejlen.
+ * at kaldet sker, ikke at signalet kommer FREM – og det er netop forskellen, der afgør, om brugeren ser fejlen.
  */
 import { subscribeDevtoolsIssues, startDevtoolsMonitor, resetDevtoolsMonitor } from '../../utils/devtoolsMonitor';
 import { reportDocumentRuntimeFailure } from '../../document/service/documentRuntimeFailure';
@@ -48,7 +48,7 @@ describe('dokument-runtimefejl når en brugervendt overflade (§A5)', () => {
 
     unsubscribe();
 
-    // Beskeden skal kunne henføres til dokumentet — ellers kan brugeren ikke se, HVAD der fejlede.
+    // Beskeden skal kunne henføres til dokumentet – ellers kan brugeren ikke se, HVAD der fejlede.
     expect(seen.join('\n')).toContain('Dokumentet kunne ikke genereres');
   });
 
@@ -58,7 +58,7 @@ describe('dokument-runtimefejl når en brugervendt overflade (§A5)', () => {
       seen.push(issue.message);
     });
 
-    // Gate-blokering og stale-afbrud er `rejected`, ikke `failed` — de har deres egen lokale, synlige besked og
+    // Gate-blokering og stale-afbrud er `rejected`, ikke `failed` – de har deres egen lokale, synlige besked og
     // må ikke støje på systemfejl-fladen. Modstykket til benet ovenfor: uden det ville en regression, der
     // rapporterede ALT, bestå.
     reportDocumentRuntimeFailure({ kind: 'dev-server-unavailable', phase: 'renderer-load' }, diagnostics);

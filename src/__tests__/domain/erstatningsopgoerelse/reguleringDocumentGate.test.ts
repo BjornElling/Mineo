@@ -7,7 +7,7 @@
  *    bevidst ved grundlagsskift (`loenindkomstStateCleanup.ts`), så et tomt løntrin fra et tidligere
  *    valgt offentligt overenskomst-grundlag må ALDRIG blokere et Statistik-, KRL- eller
  *    KL-dokument, som slet ikke bruger løntrinnet.
- * 2. **Inden for Overenskomst er reglen den strenge:** et løntrin, opslaget ikke kender, blokerer —
+ * 2. **Inden for Overenskomst er reglen den strenge:** et løntrin, opslaget ikke kender, blokerer –
  *    på BEGGE scopes. Et sagsniveau, der kun ser efter, at feltet er et tal, er ikke tilstrækkeligt.
  */
 import {
@@ -72,13 +72,13 @@ const contextOf = (input: SettledInput) => {
 
 /**
  * Et konkret offentligt overenskomst-id. Listen over offentlige overenskomster er modul-privat i
- * `overenskomstRates.ts`, så id'et navngives her — men testen VERIFICERER mod den offentlige
+ * `overenskomstRates.ts`, så id'et navngives her – men testen VERIFICERER mod den offentlige
  * `isOffentligOverenskomstId`, at forudsætningen holder, i stedet for at antage det. Forsvinder
  * id'et fra datagrundlaget, fejler testen med en forklarende besked frem for at blive tavst tom.
  */
 const OFFENTLIG_OVERENSKOMST_ID = 'kl-overenskomst';
 
-describe('reguleringssats-gaten — offentlig-løn-tjekket er bundet til grundlaget', () => {
+describe('reguleringssats-gaten – offentlig-løn-tjekket er bundet til grundlaget', () => {
   it('testforudsætning: det valgte id ER en offentlig overenskomst', () => {
     expect(isOffentligOverenskomstId(OFFENTLIG_OVERENSKOMST_ID)).toBe(true);
   });
@@ -132,9 +132,9 @@ describe('reguleringssats-gaten — offentlig-løn-tjekket er bundet til grundla
     expect(result.reasons[0].code).toBe('regulering:offentlig-loen-incomplete');
   });
 
-  it('ved Overenskomst blokerer et løntrin UDEN FOR 1..55 — det afvises allerede af feltet', () => {
+  it('ved Overenskomst blokerer et løntrin UDEN FOR 1..55 – det afvises allerede af feltet', () => {
     // §1.6: bounds-validatoren afviser værdien, så den når aldrig `values`; gaten ser et manglende
-    // løntrin. Det er DEN kæde, der beskytter opslaget — ikke `toLoentrin`-kaldet i gaten, som har
+    // løntrin. Det er DEN kæde, der beskytter opslaget – ikke `toLoentrin`-kaldet i gaten, som har
     // præcis samme 1..55-grænse og derfor aldrig kan afvise en værdi, der slap forbi feltet.
     let input = dispatch(empty(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
     input = dispatch(input, settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), 'Overenskomst'));

@@ -57,7 +57,7 @@ if (variant === 'mineo') {
   }
   // Samme mønster som service-workerens `ASSET_PATH_PATTERN`. Skiftede `chunkFileNames` en dag til
   // en nested sti (`assets/js/...`), ville workerens interception holde op med at matche noget som
-  // helst — og hele deploybeskyttelsen forsvinde tavst. Værnet skal fange det her, i buildet.
+  // helst – og hele deploybeskyttelsen forsvinde tavst. Værnet skal fange det her, i buildet.
   const ASSET_PATH_PATTERN = /^assets\/[A-Za-z0-9._-]+$/;
   const invalidAsset = pwaAssets.assets.find(
     (asset) => typeof asset !== 'string' || !ASSET_PATH_PATTERN.test(asset)
@@ -69,7 +69,7 @@ if (variant === 'mineo') {
   }
 
   // Worker og assetmanifest skal bære SAMME version. Workeren afviser at installere mod et manifest
-  // fra en anden build, så et par ude af trit ville give et build helt uden versionscache — og
+  // fra en anden build, så et par ude af trit ville give et build helt uden versionscache – og
   // dermed uden beskyttelse mod at en åben session mister sine lazy chunks efter næste deploy.
   const serviceWorkerSource = readFileSync(path.join(outDir, 'sw.js'), 'utf8');
   if (serviceWorkerSource.includes('__MINEO_BUILD_VERSION__')) {
@@ -90,7 +90,7 @@ if (variant === 'mineo') {
 
   // Produktionsbuildet må ikke indeholde den DEV-/test-only introspektionsbro. Denne kontrol ligger
   // efter bundlingen, så den aldrig kan blive falsk grøn blot fordi `dist/mineo` ikke findes i en ren
-  // testkørsel — den er en obligatorisk del af den build, som faktisk kan deployes.
+  // testkørsel – den er en obligatorisk del af den build, som faktisk kan deployes.
   const bundleNames = readdirSync(path.join(outDir, 'assets')).filter((name) => name.endsWith('.js'));
   const automationBridgeKey = '__mineoAutomation';
   const bridgeBundle = bundleNames.find((name) =>

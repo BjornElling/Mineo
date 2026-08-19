@@ -18,7 +18,7 @@ export type TafPerYearDocument = Readonly<{
  * "Beregningsgrundlag" ikke beregnelig. Dokument-laget ville ellers udskrive en teknisk
  * "Fejl (...)"-tekst i et tillidskritisk dokument. Vi blokerer i stedet download (A2/A5), så
  * skadelidte aldrig ser en fejlkode. Kun "TAF opreguleret til beregningsåret" udskriver denne værdi
- * (via Beregningsgrundlag-sektionen), så guarden anvendes kun dér — ikke i dette base-dokument, der
+ * (via Beregningsgrundlag-sektionen), så guarden anvendes kun dér – ikke i dette base-dokument, der
  * ikke udskriver måneds-/dagsløn-værdien direkte.
  */
 export const tafBeregningsgrundlagAngivetLoenMangler = (model: EoModel): boolean => {
@@ -56,7 +56,7 @@ export const eoSnapshotToTafPerYearDocument = (snapshot: EoSnapshot): TafPerYear
     };
   }
 
-  // Bloker download når der ikke er TAF fordelt på år — på linje med "Visuel graf over
+  // Bloker download når der ikke er TAF fordelt på år – på linje med "Visuel graf over
   // indtægtsniveau". Skeln årsagen: uden TAF-perioder beregnes der slet ingen tabt
   // arbejdsfortjeneste (hyppigste tilfælde), modsat at en faktisk TAF-beregning ikke kan fordeles.
   const presentation = snapshot.data.engines.tafPerYear;
@@ -67,7 +67,7 @@ export const eoSnapshotToTafPerYearDocument = (snapshot: EoSnapshot): TafPerYear
     return { kind: 'blocked', message, invariants: [] };
   }
 
-  // pdfModel er bygget og caches i computeEoSnapshot — konsistens mod totals er garanteret
+  // pdfModel er bygget og caches i computeEoSnapshot – konsistens mod totals er garanteret
   // af snapshot-pipelinen og kan ikke afvige.
   return {
     kind: 'ok',

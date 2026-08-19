@@ -7,7 +7,7 @@ import {
 import type { CriticalActionCoordinator } from '../runtime/criticalActionCoordinator';
 
 // React-laget (§3.4/inputkernen): den ENE læse-grænse, en side/consumer bruger til at køre en ren projektion
-// mod den offentlige `InputReader`. Consumeren læser ALDRIG rå sektioner (§3.4/§5.4) — kun gennem
+// mod den offentlige `InputReader`. Consumeren læser ALDRIG rå sektioner (§3.4/§5.4) – kun gennem
 // `evaluation.reader`, så en værdi bag en aktiv rød feltfejl er skjult, og projektionen blokerer korrekt.
 //
 // Abonnementet dækker BÅDE input- OG settingsrevision (§3.4): et settings-bump gør evalueringen stale på samme

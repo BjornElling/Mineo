@@ -9,12 +9,12 @@ import { BROWSER_LANE_TAG } from './support/lanes';
  * Testene kører i rigtige browsere, fordi netop de to ting, de måler, ikke kan måles i JSDOM:
  *
  *  - **Tab-fangst.** JSDOM implementerer ikke browserens tab-traversering. En jsdom-test kan derfor
- *    være grøn, mens fokus i praksis vandrer ud af vinduet — det skete: en jsdom-test bekræftede,
+ *    være grøn, mens fokus i praksis vandrer ud af vinduet – det skete: en jsdom-test bekræftede,
  *    at `FocusTrap` var monteret, men fangsten virkede ikke, fordi sidens egen navigation overtog
  *    Tab. Fangst SKAL måles her.
  *  - **Tilbage-knappen.** Kræver ægte `history`-adfærd.
  *
- * Begge dele er netop dét, browsermotorerne gør forskelligt — Tab-rækkefølgen mellem knapper, links
+ * Begge dele er netop dét, browsermotorerne gør forskelligt – Tab-rækkefølgen mellem knapper, links
  * og containere er ikke ens i Chromium, Gecko og WebKit. Derfor kører hele filen i browserbanen.
  */
 
@@ -33,8 +33,8 @@ const focusIsInsideOverlay = (page: Page): Promise<boolean> =>
 
 test.describe('Overlay: tastaturet bliver inde i vinduet', { tag: BROWSER_LANE_TAG }, () => {
   test('Tab forlader ALDRIG licensvinduet, uanset hvor mange gange der trykkes', async ({ page, runtimeErrors }) => {
-    // Fundet: fokus vandrede ud i siden bagved. Årsagen var ikke en manglende `FocusTrap` — den var
-    // monteret — men at `Container` ejer Tab for hele siden og kun gav slip på hændelser fra uden
+    // Fundet: fokus vandrede ud i siden bagved. Årsagen var ikke en manglende `FocusTrap` – den var
+    // monteret – men at `Container` ejer Tab for hele siden og kun gav slip på hændelser fra uden
     // for sit DOM-subtræ. Licensvinduet renderes INLINE og var derfor «indenfor».
     await login(page);
     await openLicense(page);
@@ -55,7 +55,7 @@ test.describe('Overlay: tastaturet bliver inde i vinduet', { tag: BROWSER_LANE_T
 
   test('bekræftelsesdialogen holder også tastaturet inde', async ({ page }) => {
     // Modprøven på den anden monteringsform: en PORTALERET MUI-dialog. Begge former skal opføre sig
-    // ens — det er hele pointen med ét fælles regelsæt.
+    // ens – det er hele pointen med ét fælles regelsæt.
     await login(page);
     await page.getByRole('button', { name: /Slet alt/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
@@ -79,21 +79,21 @@ test.describe('Overlay: lukkeveje', { tag: BROWSER_LANE_TAG }, () => {
 
     await expect(page.getByRole('dialog')).toBeHidden();
     expect(new URL(page.url()).pathname).toBe(urlBefore);
-    // Fokus skal tilbage til den knap, vinduet blev åbnet med — samme regel som de øvrige lukkeveje.
+    // Fokus skal tilbage til den knap, vinduet blev åbnet med – samme regel som de øvrige lukkeveje.
     await expect(trigger).toBeFocused();
   });
 
   /**
-   * Lukkes overlayet ad en anden vej end tilbage-knappen, skal dets historik-trin FORBRUGES — ellers
+   * Lukkes overlayet ad en anden vej end tilbage-knappen, skal dets historik-trin FORBRUGES – ellers
    * ville det næste tilbage-tryk ramme et dødt trin og se ud som om, tilbage-knappen ikke virkede.
    *
    * Prøven er derfor funktionel: efter lukningen skal ét tilbage-tryk føre til den FORRIGE SIDE.
    * Testen bygger selv den historik op (`/mineo/stamdata` → `/mineo`), så målet er entydigt.
    *
    * To tidligere udkast målte det forkerte og er værd at nævne, fordi begge så rigtige ud:
-   *  - «efterfølgende goBack forlader siden» — browser-specifikt, hvad der ligger under `/mineo`,
+   *  - «efterfølgende goBack forlader siden» – browser-specifikt, hvad der ligger under `/mineo`,
    *    så testen målte browserens historik-seed.
-   *  - «history.length er tilbage på sin oprindelige værdi» — `history.back()` flytter POINTEREN
+   *  - «history.length er tilbage på sin oprindelige værdi» – `history.back()` flytter POINTEREN
    *    og afkorter ikke stakken, så længden ændrer sig aldrig. Assertionen kunne pr. konstruktion
    *    ikke blive grøn, uanset om koden var rigtig.
    */
@@ -120,7 +120,7 @@ test.describe('Overlay: lukkeveje', { tag: BROWSER_LANE_TAG }, () => {
       // Lukningen må ikke i sig selv have navigeret væk.
       expect(new URL(page.url()).pathname).toBe(urlBefore);
 
-      // Ét tilbage-tryk skal nu føre til den forrige SIDE — ikke forbruge overlayets døde trin.
+      // Ét tilbage-tryk skal nu føre til den forrige SIDE – ikke forbruge overlayets døde trin.
       await page.goBack();
       await expect.poll(() => new URL(page.url()).pathname, { timeout: 4000 })
         .toBe('/mineo/stamdata');

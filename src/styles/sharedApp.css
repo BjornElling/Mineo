@@ -19,7 +19,7 @@ body {
 /*
  * Den delte «peg på dette felt»-blinkmarkering.
  *
- * Animationen bor her — ikke i en enkelt tabels egen <style> — fordi markeringen skal kunne lægges på
+ * Animationen bor her – ikke i en enkelt tabels egen <style> – fordi markeringen skal kunne lægges på
  * ethvert inputfelt og enhver celle i programmet. Klassen sættes/fjernes af `fieldAttentionBlink.ts`;
  * løbetiden dér (FIELD_ATTENTION_BLINK_DURATION_MS) skal matche 0,5 s × 3 gennemløb herunder.
  *

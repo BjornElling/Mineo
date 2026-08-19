@@ -68,7 +68,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
   it('afstemmer TAF beregnet/tabel når der er TAF-perioder men ingen erstatningsperiode', () => {
     // Regression: snapshot-engine'n beregner TAF ud fra TAF-perioderne uden at kræve en
     // erstatningsperiode (vedroererPeriode er kun en valgfri stille clamp). Kontroltabellen må
-    // generere TAF-dage efter præcis samme kriterier — ellers opstår en falsk
+    // generere TAF-dage efter præcis samme kriterier – ellers opstår en falsk
     // control:sammentaelling_mismatch ("beregnet=N, tabel=-").
     const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),

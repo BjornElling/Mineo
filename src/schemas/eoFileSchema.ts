@@ -16,7 +16,7 @@ import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
  * Rod-datastruktur inde i den dekrypterede `.eo`-fil.
  *
  * Nøglesæt OG per-sektion-schema udledes fra `persistenceSchemas` (ÉN sandhedskilde,
- * jf. `PersistedSectionKey`), så `.eo`-payloaden aldrig kan drive fra de persisterede sektioner —
+ * jf. `PersistedSectionKey`), så `.eo`-payloaden aldrig kan drive fra de persisterede sektioner –
  * en ny/fjernet sektion forplanter sig automatisk hertil. Hver sektion er `.optional()`
  * (delvis import understøttes), og objektet er `.strict()`.
  */
@@ -82,7 +82,7 @@ export type EoFileContainer = z.infer<typeof eoFileContainerSchema>;
  * Top-level container skal stadig have korrekt struktur, men `data` er permissiv så
  * kendte sektioner kan valideres enkeltvis.
  *
- * NOTE: `.strict()` på container-niveau er bevidst — container-strukturen er fast og
+ * NOTE: `.strict()` på container-niveau er bevidst – container-strukturen er fast og
  * versionsstyret. Nye top-level felter kræver en bevidst migrering af dette schema.
  * Permissiviteten er afgrænset til `data`-sektionen og `_metadata`-felternes indhold.
  */

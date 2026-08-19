@@ -32,7 +32,7 @@ export type InboundPersistedSectionResult<K extends PersistedSectionKey> = Reado
  *
  * Kilderne er `.eo`-load (`fileLoad.ts`) og current-session-hydreringen (`initializeInputRuntime.ts`).
  * Rapporteringen omkring dem er bevidst forskellig (preflight med felt-baseret tabsoptælling vs. coarse
- * korrupt/inkompatibel-kategorisering), men selve transformen MÅ aldrig afvige mellem kilderne — ellers
+ * korrupt/inkompatibel-kategorisering), men selve transformen MÅ aldrig afvige mellem kilderne – ellers
  * kunne samme rå sektionsdata blive behandlet forskelligt afhængigt af, om den kom fra en fil eller fra
  * sessionStorage. Den deles derfor her.
  *

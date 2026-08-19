@@ -29,7 +29,7 @@ const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
       }
 
       // Navigationshandlingen kan unmount'e denne boks ved route-skift. Retryforskydningen må derfor
-      // være en selvstændig, begrænset DOM-operation — ikke en hook, hvis cleanup afbryder den før
+      // være en selvstændig, begrænset DOM-operation – ikke en hook, hvis cleanup afbryder den før
       // destinationens editor når at mounte. Et konkret felt vinder; dernæst den tomme
       // indtastningsrækkes celle, når issuet efterspørger en række, brugeren ikke har oprettet endnu;
       // sektionen bruges kun ved regler med flere mulige årsagsfelter eller ved systemdata, der ikke

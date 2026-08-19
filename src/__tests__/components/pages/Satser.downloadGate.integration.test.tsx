@@ -3,7 +3,7 @@ import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 //
 // Satser-siden (§2.4): sidens `aargang` er et `YearField` over den ene
 // input-runtime. Denne integrationstest kører gennem den RIGTIGE migrerede side + den ægte produktions-runtime
-// (`ProductionInputRuntimeProvider` mod `slimInputStore`/`criticalActionCoordinator`) — den beviser den
+// (`ProductionInputRuntimeProvider` mod `slimInputStore`/`criticalActionCoordinator`) – den beviser den
 // virkelige sti felt → settle → reader-projektion → download-gate (§1.5/§1.6/§3.9), uden legacy
 // `invalidDrafts`/`FormPersistenceProvider`.
 import { render, screen, waitFor } from '@testing-library/react';
@@ -23,8 +23,8 @@ import {
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem
- * for på et servicekald. Det er en strammere assertion: den beviser, at hele kæden — barriere,
- * frisk capture, token-lighed, gate, lazy-load, friskheds-recheck, rendering — faktisk kørte til
+ * for på et servicekald. Det er en strammere assertion: den beviser, at hele kæden – barriere,
+ * frisk capture, token-lighed, gate, lazy-load, friskheds-recheck, rendering – faktisk kørte til
  * ende, ikke bare at en funktion blev kaldt.
  */
 const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
@@ -71,7 +71,7 @@ const getYearInput = () => screen.getByRole('textbox') as HTMLInputElement;
 // den er deaktiveret, så vi adresserer den strukturelt frem for på "download"-teksten.
 const getDownloadButton = () => screen.getByRole('button');
 
-describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download', () => {
+describe('Satser download-gate – afsluttet ugyldigt årstal blokerer download', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
@@ -97,7 +97,7 @@ describe('Satser download-gate — afsluttet ugyldigt årstal blokerer download'
     await user.type(input, '123');
     await user.tab();
 
-    // Den rå ugyldige streng er nu afsluttet input (rejected), og gaten blokerer download — den tidligere gyldige
+    // Den rå ugyldige streng er nu afsluttet input (rejected), og gaten blokerer download – den tidligere gyldige
     // canonical årgang er FJERNET fra current state (§1.5) og når hverken visning eller gate.
     expect(input).toHaveValue('123');
     expect(getDownloadButton()).toBeDisabled();

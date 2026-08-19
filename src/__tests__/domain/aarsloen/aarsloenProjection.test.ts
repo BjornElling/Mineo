@@ -146,7 +146,7 @@ describe('buildAarsloenReaderProjection', () => {
   });
 
   // §3.9: motoren kaldes KUN i ready-grenen. En rød feltfejl på et beregningskritisk input skjuler værdien i
-  // readeren; et resultat beregnet på den skjulte tomværdi ville være misvisende — derfor findes der INTET.
+  // readeren; et resultat beregnet på den skjulte tomværdi ville være misvisende – derfor findes der INTET.
   it('blokeret gate → ingen beregning (motoren kaldes ikke)', () => {
     const input = dispatch(empty(), settle(feriePctRef, '150'));
     const projection = buildAarsloenReaderProjection(reader(input));
@@ -181,7 +181,7 @@ describe('buildAarsloenReaderProjection', () => {
    *
    * Scenariet er fundets egen runtime-probe: to rækker, hvor kun den anden har en ugyldig `col2`. Readeren
    * skjuler den røde celle bag sin tomværdi, så motoren fik tidligere KUN række 1's 1.000 og siden viste
-   * "1.000 kr." som Beregnet årsløn — en deltotal, der stille udelod række 2.
+   * "1.000 kr." som Beregnet årsløn – en deltotal, der stille udelod række 2.
    */
   it('ugyldig celle i en medregnet række blokerer det samlede resultat', () => {
     let input = dispatch(empty(), settle(feriePctRef, '12'));
@@ -197,7 +197,7 @@ describe('buildAarsloenReaderProjection', () => {
     expect(projection.tableValidation.errors).toEqual(
       expect.arrayContaining([expect.objectContaining({ kind: 'cell', issue: 'invalid', rowId: 'r2' })])
     );
-    // De beregningskritiske SKALARER er fejlfrie — gaten må derfor ikke hvile på `fieldIssues` alene.
+    // De beregningskritiske SKALARER er fejlfrie – gaten må derfor ikke hvile på `fieldIssues` alene.
     expect(projection.fieldIssues).toHaveLength(0);
     expect(projection.calculation).toBeNull();
   });
@@ -217,7 +217,7 @@ describe('buildAarsloenReaderProjection', () => {
   /**
    * En UFULDSTÆNDIG periode er bevidst IKKE en blokering af totalen.
    *
-   * `tableValidation` klassificerer en række med beløb men uden komplet periode som `partial_period` — en helt
+   * `tableValidation` klassificerer en række med beløb men uden komplet periode som `partial_period` – en helt
    * almindelig mellemtilstand, mens brugeren skriver rækken færdig. At skjule totalen der ville være en langt
    * bredere adfærdsændring end den godkendte, som handler om en RØD celle med ukendt værdi.
    */

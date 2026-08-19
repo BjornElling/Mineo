@@ -15,12 +15,12 @@ import {
 } from '../../../utils/amountInputUtils';
 
 // Transient beløbsfelt (§3.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor beløbet kun lever
-// i komponentens egen state — fx løntrin-finderens ekstra grundløn. Deler beløbs-/udtryks-parse-kernen
+// i komponentens egen state – fx løntrin-finderens ekstra grundløn. Deler beløbs-/udtryks-parse-kernen
 // (`parseAmountInput`) og tegnfilteret med de persisterede beløbsfelter, så indtastningsreglerne er ens;
 // men den har hverken feltadresse, issue-snapshot, history eller persistens.
 //
 // **Totrins-aktivering som alle andre felter.** Feltet var tidligere ETTRINS: ét klik åbnede
-// editoren med det samme, mens `TransientDateInput` ved siden af — i samme lille vindue — krævede to.
+// editoren med det samme, mens `TransientDateInput` ved siden af – i samme lille vindue – krævede to.
 // To felter side om side opførte sig altså forskelligt. Forskellen havde desuden en konsekvens for
 // Escape: et ettrins-felt er ALTID «åbent», så `useTransientDraft` fandt altid noget at annullere, og
 // Escape derfra kunne pr. konstruktion aldrig nå det omgivende overlay. Med totrins gælder XOR-reglen
@@ -158,7 +158,7 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
       const end = typeof element?.selectionEnd === 'number' ? element.selectionEnd : start;
       const spliced = spliceDraftWithPaste(
-        // Lukket felt: paste ERSTATTER værdien i stedet for at splejse ind i den viste tekst — samme
+        // Lukket felt: paste ERSTATTER værdien i stedet for at splejse ind i den viste tekst – samme
         // regel som `TransientDateInput` og de ordinære felter.
         draftState.isOpen ? draft : '',
         readClipboardText(event),

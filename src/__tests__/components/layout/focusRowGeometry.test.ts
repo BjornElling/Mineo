@@ -12,7 +12,7 @@ import {
  * Det VARIGE net under `Container`s pil-navigation (#26).
  *
  * Værdien ligger i at geometrien nu er en ren funktion: før omlægningen kunne disse regler
- * kun rammes gennem en fuld render, hvor jsdom ikke har layout — alle rects var 0×0, så
+ * kun rammes gennem en fuld render, hvor jsdom ikke har layout – alle rects var 0×0, så
  * række-tolerancen, den vandrette sortering og prioriteten mellem DOM-række og visuel linje
  * var i praksis udækkede. Her er de tabelsatte, med præcise koordinater.
  *
@@ -53,7 +53,7 @@ describe('resolveCircularNeighbor', () => {
     expect(resolveCircularNeighbor(['a'], 'a', 1)).toBe('a');
   });
 
-  it('returnerer null når det aktive element ikke er i listen — kalderen skal lade tasten passere', () => {
+  it('returnerer null når det aktive element ikke er i listen – kalderen skal lade tasten passere', () => {
     expect(resolveCircularNeighbor(['a', 'b'], 'x', 1)).toBeNull();
     expect(resolveCircularNeighbor([], 'a', 1)).toBeNull();
   });

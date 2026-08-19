@@ -7,7 +7,7 @@ import TransientDateInput from '../../../../components/inputs/transient/Transien
 import type { AmountValue } from '../../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../../types/branded';
 
-// Transient input (§3.1-undtagelsen): de FÅ flader, hvor et input ikke er sagsdata — overlay-/dialog-scratchfelter.
+// Transient input (§3.1-undtagelsen): de FÅ flader, hvor et input ikke er sagsdata – overlay-/dialog-scratchfelter.
 // De har hverken feltadresse, issue-snapshot, rejectedInputs, history eller persistens, men de skal bevare den
 // Mineo-velkendte blur-/Enter-commit-mekanik, så de føles som rigtige felter.
 //
@@ -46,7 +46,7 @@ const amount = (value: number): AmountValue => ({ kind: 'number', value });
 /**
  * Åbner et lukket totrins-felts editor med musen: første klik fokuserer, andet klik åbner.
  *
- * Begge transiente felter er totrins — samme model som de persisterede felter. Uden en åben editor er
+ * Begge transiente felter er totrins – samme model som de persisterede felter. Uden en åben editor er
  * feltet `readOnly`, og hverken tastning eller Enter gør noget; en test, der blot klikkede én gang,
  * ville derfor måle den lukkede tilstand og bevise noget andet, end den påstår.
  */
@@ -85,7 +85,7 @@ describe('transient input: commit-mekanik', () => {
     expect(screen.getByTestId('committed')).toHaveTextContent('5000');
   });
 
-  it('Escape fortryder — og det EFTERFØLGENDE blur må ikke committe den forkastede draft', async () => {
+  it('Escape fortryder – og det EFTERFØLGENDE blur må ikke committe den forkastede draft', async () => {
     // Kerne-invarianten. Uden `suppressNextBlurCommitRef` ville blur'et efter Escape committe den tekst,
     // brugeren netop har fortrudt.
     const user = userEvent.setup();
@@ -167,8 +167,8 @@ describe('transient input: commit-mekanik', () => {
     expect(screen.getByTestId('committed')).toHaveTextContent('1234');
   });
 
-  it('er LUKKET ved ét klik og åbnes først ved det andet — samme totrins-model som datofeltet', async () => {
-    // Beløbsfeltet var tidligere ETTRINS, mens datofeltet ved siden af — i samme overlay — var totrins.
+  it('er LUKKET ved ét klik og åbnes først ved det andet – samme totrins-model som datofeltet', async () => {
+    // Beløbsfeltet var tidligere ETTRINS, mens datofeltet ved siden af – i samme overlay – var totrins.
     // De to felter tog altså imod på hver sin måde. Testen måler den lukkede tilstand direkte gennem
     // `readOnly`, så den ikke kan blive grøn af, at en tastning tilfældigvis ikke nåede frem.
     const user = userEvent.setup();
@@ -271,7 +271,7 @@ describe('transient input: ekstern resync', () => {
 
   it('trækker ALDRIG brugerens indtastning væk, når en EKSTERN ændring sker under fokus', async () => {
     // Uden fokus-guarden ville den eksterne opdatering overskrive draften under fingrene.
-    // ⚠️ Testen SKAL faktisk udløse den eksterne ændring, mens feltet har fokus — ellers beviser den intet.
+    // ⚠️ Testen SKAL faktisk udløse den eksterne ændring, mens feltet har fokus – ellers beviser den intet.
     const user = userEvent.setup();
     render(<ResyncHarness />);
 
@@ -285,7 +285,7 @@ describe('transient input: ekstern resync', () => {
     expect(document.activeElement).toBe(input);
     fireEvent.click(screen.getByRole('button', { name: 'ekstern' }));
 
-    // Draften er urørt — brugeren mister ikke sin indtastning.
+    // Draften er urørt – brugeren mister ikke sin indtastning.
     expect(document.activeElement).toBe(input);
     expect(input).toHaveValue('42');
 
@@ -345,7 +345,7 @@ describe('TransientDateInput', () => {
 
   it('afviser en dato uden for de angivne grænser', async () => {
     // Regressionsværn for bounds-stien: `resolveDateRangeErrorMessage` melder "ingen fejl" med en TOM STRENG.
-    // En `!== undefined`-test afviste derfor tidligere ENHVER dato — også de gyldige — med en tom besked.
+    // En `!== undefined`-test afviste derfor tidligere ENHVER dato – også de gyldige – med en tom besked.
     const user = userEvent.setup();
     render(<BoundedHarness />);
 

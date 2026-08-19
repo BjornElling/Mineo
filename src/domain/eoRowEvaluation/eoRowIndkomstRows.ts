@@ -368,11 +368,11 @@ export const buildEoIndkomstRows = (
         .every(isManuelAngivetRowDatoUdfyldt);
 
       // Supplement-konsistens: bruges et tillæg (feriepenge/SH-SO/fritvalg/AG-pension) på nogle
-      // aktive rækker, kræves det udfyldt på ALLE aktive rækker — ellers markeres rækken rød.
+      // aktive rækker, kræves det udfyldt på ALLE aktive rækker – ellers markeres rækken rød.
       // BEVIDST strengere end validatoren og motoren (som tolker et blankt tillæg som 0 / base-
       // fallback): brugerens beslutning 2026-07-04 (regulering-review G13-1) er, at et tomt tillæg
       // ikke må falde stille tilbage til basissatsen uden en synlig markering. Fjern ikke dette som
-      // "unødig" streng-hed — asymmetrien er tilsigtet, ikke drift.
+      // "unødig" streng-hed – asymmetrien er tilsigtet, ikke drift.
       const usedSupplements = MANUEL_ANGIVET_SUPPLEMENT_FELTER.filter((field) =>
         aktiveRows.some((row) => hasFinitePct(row[field]))
       );
@@ -413,8 +413,8 @@ export const buildEoIndkomstRows = (
 
     const reguleringsRange = (() => {
       // Interval-baserede kilder (Overenskomst/Statistik/KRL/KL) deler én autoritativ coverage-opslag
-      // — samme kilde-`fraDato`/`tilDato` som note-laget (reguleringsPresentation) og validatoren
-      // bruger — så start/slut-dækning og note ikke kan komme i utakt.
+      // – samme kilde-`fraDato`/`tilDato` som note-laget (reguleringsPresentation) og validatoren
+      // bruger – så start/slut-dækning og note ikke kan komme i utakt.
       const kildeInterval = resolveKildeReguleringsIntervalIso(ansaettelsesforhold);
       if (kildeInterval) {
         return { min: kildeInterval.fraIso, max: kildeInterval.tilIso };
@@ -468,7 +468,7 @@ export const buildEoIndkomstRows = (
         // Grace-vinduet er BEVIDST form-agnostisk: en TAF-slutdato kort efter sidste sats vises 'ok',
         // fordi de carry-forward-former (overenskomst/KRL/KL/statistik-DST) legitimt viderefører sidste
         // sats inden for vinduet. For former der ALDRIG carry-forwarder (statistik ASL: motoren kaster
-        // efter sidste indeksår) er denne 'ok' en display-tolerance — den autoritative, blokerende fejl
+        // efter sidste indeksår) er denne 'ok' en display-tolerance – den autoritative, blokerende fejl
         // for det tilfælde leveres af validatoren (`validateLoenudviklingDataCoverage` → "ASL-maks-sats
         // mangler for {år}", testet i regulering-4). Nettoresultatet er derfor fail-closed (download
         // blokeres med synlig fejl); rækkens 'ok' er en bevidst, sikker asymmetri, ikke tavs
@@ -539,7 +539,7 @@ export const buildEoIndkomstRows = (
           rows.push({
             id: `${loenudviklingRowPrefix}.daekningAdvarsel`,
             label: 'Advarsel',
-            displayValue: `Advarsel (Der er ikke reguleringsværdier for hele TAF-perioden — ${detaljer.join(' og ')}.)`,
+            displayValue: `Advarsel (Der er ikke reguleringsværdier for hele TAF-perioden – ${detaljer.join(' og ')}.)`,
             status: 'warning',
             summaryDisplay: 'messageOnly',
             dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],

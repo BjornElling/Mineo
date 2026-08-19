@@ -387,7 +387,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     if (resolvedValue === undefined) return '';
     if (getOptionLabel) return getOptionLabel(resolvedValue);
     // Et valgfrit felt kan kortvarigt eller efter tolerant load indeholde en værdi, som ikke længere findes
-    // blandt options. Det skal vises som placeholder og kunne ryddes — ikke vælte hele React-træet i DEV.
+    // blandt options. Det skal vises som placeholder og kunne ryddes – ikke vælte hele React-træet i DEV.
     if (selectedVisualOption === null) return '';
 
     const label = selectedVisualOption.children;
@@ -443,7 +443,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       const inAnchor = anchorRef.current?.contains(target) ?? false;
       const inListbox = listboxRef.current?.contains(target) ?? false;
       if (inAnchor || inListbox) return;
-      // Klikkede brugeren på en anden KONTROL, skal den have fokus — som ved klik væk fra et hvilket
+      // Klikkede brugeren på en anden KONTROL, skal den have fokus – som ved klik væk fra et hvilket
       // som helst andet felt. Handleren kaldte før altid `preventDefault()` og gav derefter fokus
       // tilbage til dropdownen, så det første klik kun lukkede menuen og det næste ramte feltet.
       // Kun et klik i dødt område beholder fokus på kontrollen, så tastaturet ikke havner på <body>.
@@ -524,7 +524,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       const normalizedKey = trimmedKey.toLocaleLowerCase('da-DK');
       const closedTypeahead = closedTypeaheadRef.current;
       // Første tast i en lukket sekvens starter altid fra menuens begyndelse. Kun en fortsat sekvens
-      // med samme bogstav tager udgangspunkt i det seneste typeahead-match — aldrig i feltets oprindelige valg.
+      // med samme bogstav tager udgangspunkt i det seneste typeahead-match – aldrig i feltets oprindelige valg.
       const currentIndex = open
         ? (highlightedIndex >= 0 ? highlightedIndex : selectedIndex)
         : closedTypeahead?.key === normalizedKey
@@ -640,7 +640,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     // størrelse, så ankeret bliver rigtigt af sig selv.
     zoom: `var(${CONTENT_SCALE_CSS_VARIABLE}, 1)`,
     // Højdeloftet er udtrykt i listens EGNE (zoomede) px, så den synlige liste altid ender på
-    // vinduets højde minus lidt luft — uanset skala. Uden divisionen ville loftet selv blive
+    // vinduets højde minus lidt luft – uanset skala. Uden divisionen ville loftet selv blive
     // skaleret, og listen kun kunne bruge 75 % af den plads, der faktisk er.
     maxHeight: `calc((100vh - 32px) / var(${CONTENT_SCALE_CSS_VARIABLE}, 1))`,
     overflowY: 'auto',
@@ -769,7 +769,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
             if (isClearKey(e)) {
               // Med åben menu ejer menuen tastaturet; Escape er vejen ud. Tasten faldt før igennem til
-              // ryddegrenen nedenfor, så Delete både ryddede valget OG lukkede menuen — i strid med
+              // ryddegrenen nedenfor, så Delete både ryddede valget OG lukkede menuen – i strid med
               // `gridUxSpec.ts`, der kun giver ryddetasten til en LUKKET kontrol.
               e.preventDefault();
               e.stopPropagation();
@@ -804,7 +804,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
           // Escape på en LUKKET dropdown har intet at lukke. Tasten blev alligevel slugt med
           // `preventDefault()` + `stopPropagation()`, så en omgivende dialog eller et overlay aldrig
-          // så den — `keyboard-navigation.md` kræver, at Escape når præcis én handling, og her var
+          // så den – `keyboard-navigation.md` kræver, at Escape når præcis én handling, og her var
           // handlingen ingenting. Lad den boble.
         }}
         sx={inputSx}
@@ -833,7 +833,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         disableScrollLock
         slotProps={{
           paper: {
-            // Papiret skaleres IKKE selv — det bærer forankringen. Loftet her er den visuelle
+            // Papiret skaleres IKKE selv – det bærer forankringen. Loftet her er den visuelle
             // grænse, listens eget (zoomede) loft ovenfor svarer til.
             sx: { maxHeight: 'calc(100vh - 32px)', overflow: 'hidden' },
           },

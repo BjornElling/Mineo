@@ -50,7 +50,7 @@ export type LoenudviklingManuelTableProps = Readonly<{
   /**
    * route + tabKey er eksplicit navigation-metadata (§3.7). Tabellen renderes i to fane-kontekster
    * (Lønindkomst under et ansættelsesforhold og EO-oplysninger under "Indtægt før skaden"), så
-   * kalderen leverer den korrekte fane — den kan ikke udledes af `locationPrefix`.
+   * kalderen leverer den korrekte fane – den kan ikke udledes af `locationPrefix`.
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>;
@@ -102,7 +102,7 @@ export default function LoenudviklingManuelTable({
     },
   });
   // Basisrækken er programstyret og ankres først; resten følger sorteringen. Den orden er
-  // tabellens visningsorden, og render-modellen bygges af den ÉT sted (`buildRenderRows`) —
+  // tabellens visningsorden, og render-modellen bygges af den ÉT sted (`buildRenderRows`) –
   // ikke ved at permutere en færdigbygget model på plads bagefter.
   const orderedRows = React.useMemo(() => {
     const existing = baseRowId === undefined

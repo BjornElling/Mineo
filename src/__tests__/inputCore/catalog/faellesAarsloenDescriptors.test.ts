@@ -34,7 +34,7 @@ const settle = <T>(input: SettledInput, field: FieldRef<T>, raw: string): Settle
 
 const evaluate = (input: SettledInput) => createInputEvaluation({ input, catalog, sourceToken });
 
-describe('faellesAarsloen-descriptors — årsafhængigt ASL-maksimum', () => {
+describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
   it('bevarer fallback-loftet, når EET-beregningsdato mangler', () => {
     const input = settle(empty(), faellesAarsloenAslAarsloenField.bind(), '9999000');
     const read = evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind());

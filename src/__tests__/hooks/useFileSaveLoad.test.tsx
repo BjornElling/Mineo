@@ -7,7 +7,7 @@ import type { LoadFileResult, LoadPreflightWarning, SaveFileResult } from '../..
 // ─── I/O-grænse-mocks ───────────────────────────────────────────────────────
 // useFileSaveLoad ejer orkestreringen (preflight-gating, atomisk apply, fokus-restore,
 // markSaved-bogføring). Selve fil-I/O og persistence-apply mockes på modulgrænsen, så
-// testene hævder hookens invarianter — ikke de underliggende utils' implementering.
+// testene hævder hookens invarianter – ikke de underliggende utils' implementering.
 //
 // Hooken forbruger de rene case-porte (`ops`) + den
 // `CriticalActionCoordinator` (`criticalActions`) i stedet for det legacy args-interface
@@ -15,11 +15,11 @@ import type { LoadFileResult, LoadPreflightWarning, SaveFileResult } from '../..
 // Save/hent-tilstand drives derfor gennem den ægte produktions-runtime:
 //  - "ugyldige felter blokerer save" → et REJECTED format-råinput settles på et rigtigt felt.
 //  - "åbent felt kan ikke committes" → en åben editor i `activeEditorRegistry`, hvis settle KASTER
-//    (fail-closed `blocked`, §1.4). Bemærk: åben editor blokerer KUN save/navigate — load er
+//    (fail-closed `blocked`, §1.4). Bemærk: åben editor blokerer KUN save/navigate – load er
 //    `replace`-policy og settler/blokeres ALDRIG (§1.4), så "hent"-testen hævder nu det modsatte.
 //  - Load-apply er delt i to mockede halvdele: den SYNKRONE
 //    `applyAuthoritativeLoadSnapshot` (kalder den injicerede `applySnapshot`, så den ægte `replaceCase` kører og
-//    hæver `replacementGeneration` — coordinatorens apply-guard, §7) og den asynkrone `synchronizeLoadMetadata`.
+//    hæver `replacementGeneration` – coordinatorens apply-guard, §7) og den asynkrone `synchronizeLoadMetadata`.
 
 const saveToFileMock = vi.fn<(...args: unknown[]) => Promise<SaveFileResult>>();
 const loadFromFileMock = vi.fn<(...args: unknown[]) => Promise<LoadFileResult>>();
@@ -230,7 +230,7 @@ describe('useFileSaveLoad', () => {
       );
     });
 
-    it('gemmer ikke en urørt sag — tomheds-gaten måler mod ny-sags-baseline, ikke feltoptælling', async () => {
+    it('gemmer ikke en urørt sag – tomheds-gaten måler mod ny-sags-baseline, ikke feltoptælling', async () => {
       // En helt ny/nulstillet sag må ikke gemmes som et rigtigt sagsartefakt. Fælden er, at
       // gaten lå i `fileSave.ts` som en feltoptælling (`hasRealData`), der regnede hver `false` og hvert
       // standardtal (satsår, lønperiode, bilagsvalg) som brugerdata. Gaten ejes nu af `hasAnyData()`, som
@@ -339,7 +339,7 @@ describe('useFileSaveLoad', () => {
     });
   });
 
-  describe('handleHent — atomisk preflight-gating', () => {
+  describe('handleHent – atomisk preflight-gating', () => {
     it('viser filvalideringsfejl uden teknisk console.error', async () => {
       const handles = renderHook();
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -372,7 +372,7 @@ describe('useFileSaveLoad', () => {
     });
 
     it('gennemfører hent uden settle selv med en åben editor (load er replace-policy, §1.4)', async () => {
-      // Rebaset §1.4: en åben editor blokerer ALDRIG load — coordinatorens `prepare("load")` er
+      // Rebaset §1.4: en åben editor blokerer ALDRIG load – coordinatorens `prepare("load")` er
       // replace-policy (settler ikke). Load gennemføres, og draften kasseres først ved succes.
       const handles = renderHook({ openEditorFailsSettle: true });
       loadFromFileMock.mockResolvedValue(successfulLoad());
@@ -480,14 +480,14 @@ describe('useFileSaveLoad', () => {
       await act(async () => {
         await handles.api?.handleHent();
       });
-      // Fase 1: kun preflight-dialogen — de to states er gensidigt udelukkende.
+      // Fase 1: kun preflight-dialogen – de to states er gensidigt udelukkende.
       expect(handles.api?.pendingLoadResult).not.toBeNull();
       expect(handles.api?.pendingOverwriteApply).toBeNull();
 
       await act(async () => {
         await handles.api?.handleLoadDespiteIssues();
       });
-      // Fase 2: preflight lukket, overskriv-bekræftelse åben — stadig kun én ad gangen, ingen apply endnu.
+      // Fase 2: preflight lukket, overskriv-bekræftelse åben – stadig kun én ad gangen, ingen apply endnu.
       expect(handles.api?.pendingLoadResult).toBeNull();
       expect(handles.api?.pendingOverwriteApply).not.toBeNull();
       expect(applyAuthoritativeLoadSnapshotMock).not.toHaveBeenCalled();
@@ -568,11 +568,11 @@ describe('useFileSaveLoad', () => {
     });
   });
 
-  describe('handleSletAlt — hel-sags-clear', () => {
+  describe('handleSletAlt – hel-sags-clear', () => {
     /**
      * Bekræftelsen er programmets egen `ConfirmationDialog`, ikke en native `window.confirm`. Handlingen
      * er derfor delt i to: `handleSletAlt()` åbner kun bekræftelsen, og `handleConfirmSletAlt()`
-     * gennemfører den. Testene driver de to trin eksplicit — der er ingen confirm at mocke.
+     * gennemfører den. Testene driver de to trin eksplicit – der er ingen confirm at mocke.
      */
     it('åbner kun bekræftelsen og rører hverken input, filhåndtag eller navigation', async () => {
       const handles = renderHook({ hasData: true });
@@ -612,7 +612,7 @@ describe('useFileSaveLoad', () => {
       // Uafhængig UI-præference består bevidst (reset-policyens `deviceScoped`).
       expect(sessionStorage.getItem(UI_STORAGE_KEYS.sideMenuExpanded)).toBe('true');
       expect(deleteFileHandleFromIndexedDBMock).toHaveBeenCalledTimes(1);
-      // Samme afslutning som load — navigation inde i appen, besked vist direkte.
+      // Samme afslutning som load – navigation inde i appen, besked vist direkte.
       expect(handles.navigate).toHaveBeenCalledWith('/stamdata', { replace: true });
       expect(handles.showOverlay).toHaveBeenCalledWith({ message: 'Alle indtastninger slettet', type: 'info' });
     });

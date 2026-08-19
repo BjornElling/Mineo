@@ -5,14 +5,14 @@
  * frigive aktiveringstaster til en popup-kontrol, så kontrollen selv kan åbne/lukke sin menu.
  * Tidligere havde de to flader hver sin kopi af opslaget, og grid'et brugte desuden en PRIVAT
  * markør-attribut (`data-mineo-table-dropdown`) fra en slettet komponent til at genkende dropdowns
- * i celler. Klassifikationen hører til kontrollens semantik, ikke til den flade den står på —
+ * i celler. Klassifikationen hører til kontrollens semantik, ikke til den flade den står på –
  * derfor er den her, ved dropdownen selv, og måles udelukkende på ARIA:
  *
  * - `role="combobox"` eller `aria-haspopup` ⇒ popup-kontrol.
  * - `aria-controls` alene er for bredt (bruges også af rene labels/beskrivelser) og tælles kun
  *   som widget-signal, når kontrollen samtidig er åben.
- * - Åben måles på `aria-expanded="true"`, eller — for widgets der holder expanded-tilstanden på en
- *   søsker/wrapper — på at det `aria-controls`-udpegede element faktisk er synligt.
+ * - Åben måles på `aria-expanded="true"`, eller – for widgets der holder expanded-tilstanden på en
+ *   søsker/wrapper – på at det `aria-controls`-udpegede element faktisk er synligt.
  *
  * `StyledDropdown` er den ene popup-kontrol i appen og eksponerer alle tre attributter, i både
  * form- og celle-varianten (`ChoiceField` / `GridChoiceCell`). En ny popup-kontrol med korrekt

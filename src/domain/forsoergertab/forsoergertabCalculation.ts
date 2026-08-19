@@ -24,7 +24,7 @@ type Input = Readonly<{
    * afhængigheder har en rød feltfejl, og gruppens motor må derfor IKKE kaldes.
    *
    * Uden gaten ville readerens maskering af en rød værdi til `undefined` få motoren til at regne på et
-   * FALSK input — konkret kan en rød `ealAarsloen` ellers falde tilbage til `aslAarsloen`
+   * FALSK input – konkret kan en rød `ealAarsloen` ellers falde tilbage til `aslAarsloen`
    * (`eetEalCalculation.ts:184-193`) og rapportere `source: 'asl'`, som om brugeren havde ladet feltet tomt.
    * Grupperne gates hver for sig, så en rød ASL-afhængighed bevarer EAL-delen og omvendt.
    *
@@ -38,7 +38,7 @@ type Input = Readonly<{
 const BLOCKED_EAL: ForsoergertabCalculationResult['ealComputation'] = null;
 
 export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalculationResult => {
-  // Motoren kaldes KUN, når dens egen dependency-gruppe er ready — aldrig med et maskeret input.
+  // Motoren kaldes KUN, når dens egen dependency-gruppe er ready – aldrig med et maskeret input.
   const ealResult = input.ealBlocked
     ? { issues: [], computation: BLOCKED_EAL, foersoergertabEalMinSatsOre: null, foersoergertabForhoejtetTilMin: false }
     : computeForsoergertabEalKrav({

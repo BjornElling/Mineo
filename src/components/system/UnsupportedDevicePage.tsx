@@ -36,19 +36,19 @@ UnsupportedDeviceTitle.displayName = 'UnsupportedDeviceTitle';
 /**
  * Søskendesider + kontakt på hard-stop-siden.
  *
- * Den deler kun DATA med `SiblingSitesFooter` (`layout/siblingSites.ts`) — ikke styling.
+ * Den deler kun DATA med `SiblingSitesFooter` (`layout/siblingSites.ts`) – ikke styling.
  * Grunden er sidens bevidste isolation (se noten på selve siden nedenfor): hard-stop-siden
  * indlæser hverken app-stylesheet, MUI-tema eller CSS-variabler, så den delte footer ville
  * rendere ustylet her. Al styling er derfor inline og selvbærende, præcis som resten af siden.
  *
  * Linkene er de eneste vej videre for en mobilbruger, der lige har fået at vide, at Mineo
- * kræver en computer — derfor er de tabbare her (i modsætning til `ExternalLink`s `tabIndex={-1}`,
+ * kræver en computer – derfor er de tabbare her (i modsætning til `ExternalLink`s `tabIndex={-1}`,
  * som findes for ikke at forurene programmets egen tastaturrækkefølge; der er intet program at
  * forurene på denne side).
  *
  * Fordi stylingen er en DUBLET og ikke et genbrug, er de tal, der bærer geometrien, låst mod
  * footerens mobilværdier af `quality/unsupportedDeviceFooterParity`. Den test findes, fordi
- * dubletten første gang blev afleveret med prosaen «målt til at være geometrisk identisk» — og tre
+ * dubletten første gang blev afleveret med prosaen «målt til at være geometrisk identisk» – og tre
  * højdeerklæringer var aldrig kommet med, så boksen stod 26 px lavere end søskendesidens. En
  * måling foretaget én gang er ikke et værn; testen er.
  */
@@ -70,7 +70,7 @@ const siblingLinkStyle: React.CSSProperties = {
   // `border-box` er ikke kosmetik her. Footeren arver MUI'ens globale `box-sizing: border-box`,
   // så dens `minHeight: 28px` ER rækkens ydre højde med padding inkluderet. Denne side har intet
   // stylesheet og dermed browserens `content-box`, hvor de samme to erklæringer i stedet giver
-  // 28+2+2 = 32 px — fire pixel pr. række, otte i boksen.
+  // 28+2+2 = 32 px – fire pixel pr. række, otte i boksen.
   boxSizing: 'border-box',
   color: 'rgba(0, 0, 0, 0.87)',
   fontSize: '12.5px',
@@ -133,7 +133,7 @@ const renderSiblingSite = (site: SiblingSite) => (
 /**
  * Fokusringen kan ikke sættes inline (`:focus-visible` er en pseudoklasse), og siden har bevidst
  * intet stylesheet. Ét lokalt `<style>`-element er derfor den eneste vej til samme fokusmarkering
- * som den delte footer — og det holder isolationen, fordi det ikke er en import.
+ * som den delte footer – og det holder isolationen, fordi det ikke er en import.
  */
 const siblingFocusStyles = `
   .unsupported-sibling-link:focus-visible,
@@ -155,7 +155,7 @@ const UnsupportedDeviceSiblingSites = () => (
       borderRadius: '10px',
       boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
       padding: '16px 12px',
-      // Samme `margin: 16px 0` som indholdsboksen ovenfor — det er dén værdi minProcesrentes
+      // Samme `margin: 16px 0` som indholdsboksen ovenfor – det er dén værdi minProcesrentes
       // mobile `.content-box` giver footeren, og den nedre halvdel må ikke falde væk her.
       margin: '16px 0',
       boxSizing: 'border-box',
@@ -184,7 +184,7 @@ const UnsupportedDeviceSiblingSites = () => (
           maxWidth: '100%',
           // Ingen `alignSelf: 'flex-start'`: footerens `.site-footer__mail` er `flex: 0 0 auto` i
           // en `align-items: stretch`-kolonne og fylder derfor rækkens fulde bredde. Indholdet
-          // ligger venstrestillet i begge, så forskellen er usynlig — men den fulde bredde ER
+          // ligger venstrestillet i begge, så forskellen er usynlig – men den fulde bredde ER
           // trykfladen, og på en touch-only side skal målet være det samme som på søskendesiden.
           overflowWrap: 'anywhere',
         }}

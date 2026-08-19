@@ -21,7 +21,7 @@ import { assertPathExists } from './testUtils';
 const SRC_ROOT = path.resolve(process.cwd(), 'src');
 /**
  * EO's specialimport er delt i to: React-adapteren (hook'en) og den rene builder i
- * domænelaget, så ikke-React-konsumenter — fx EO's dokumentdefinition — kan bruge builderen uden at
+ * domænelaget, så ikke-React-konsumenter – fx EO's dokumentdefinition – kan bruge builderen uden at
  * trække React ind.
  *
  * Værnet skal derfor dække BEGGE filer. Den samlede kilde tjekkes for de påkrævede reader-markører
@@ -55,7 +55,7 @@ describe('domainBoundaryIsolation', () => {
     const combined = sources.join('\n');
 
     // Reader-stien skal findes ét af de to steder: hook'en holder `useInputEvaluation`, porten læser
-    // gennem en SPORET reader. Sporingen er pointen — importen må kun blokere på de refs, den faktisk
+    // gennem en SPORET reader. Sporingen er pointen – importen må kun blokere på de refs, den faktisk
     // læser, ikke på en hel sektions issue-pose. Begge markører skal være til stede i specialimporten.
     expect(combined).toContain('useInputEvaluation');
     expect(combined).toContain('createTrackedInputReader');

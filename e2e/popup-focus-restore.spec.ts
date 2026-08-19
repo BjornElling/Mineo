@@ -4,7 +4,7 @@ import { BROWSER_LANE_TAG } from './support/lanes';
 
 /**
  * §Popup-fokus-restore i `keyboard-navigation.md`: lukkes en popup, vender fokus tilbage til den
- * kontrol, brugeren åbnede den med — uanset lukkevej.
+ * kontrol, brugeren åbnede den med – uanset lukkevej.
  *
  * Testen kører i rigtige browsere, fordi netop de fælder, reglen findes for, ikke kan måles i
  * JSDOM: WebKit fokuserer ikke `<button>` ved klik, WebKit flytter ved `Escape` fokus til
@@ -64,7 +64,7 @@ test.describe('Popup-fokus-restore', { tag: BROWSER_LANE_TAG }, () => {
     await trigger.press('Enter');
 
     // I Chromium uden installations-prompt svarer klikket med en status-dialog. Kan browseren
-    // ikke afgøre status, vises «Installationsstatus kunne ikke afgøres» — begge er en popup,
+    // ikke afgøre status, vises «Installationsstatus kunne ikke afgøres» – begge er en popup,
     // og begge skal returnere fokus til linket.
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

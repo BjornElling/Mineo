@@ -3,7 +3,7 @@
 // `Slet alt` bekræftes gennem programmets egen `ConfirmationDialog`, ikke en native `window.confirm`.
 // Skiftet er ikke kosmetisk, og testene her hævder præcis det, den native dialog ikke kunne garantere:
 //
-//  1. Bekræftelsen er SYNLIG i appen (kan læses, tabbes og lukkes af testen — en `window.confirm` kan
+//  1. Bekræftelsen er SYNLIG i appen (kan læses, tabbes og lukkes af testen – en `window.confirm` kan
 //     ingen af de ting, og derfor kunne auditens påstand om «reset-dialogens fokus-/Tab-/Escape-adfærd»
 //     i `docs/testing/runtime-input-audit/STATUS.md` aldrig efterprøves).
 //  2. Annullering og Escape bevarer sagen fuldstændigt (`critical-action-contract.md` §7).
@@ -99,7 +99,7 @@ const DIALOG_TITLE = 'Slet alle indtastninger';
  */
 const SLET_ALT_BUTTON_NAME = /^Slet\salt$/;
 
-describe('MainLayout — Slet alt-bekræftelse', () => {
+describe('MainLayout – Slet alt-bekræftelse', () => {
   const RouteProbe = () => {
     const location = useLocation();
     return <div data-testid="pathname">{location.pathname}</div>;
@@ -134,7 +134,7 @@ describe('MainLayout — Slet alt-bekræftelse', () => {
 
     await clickMainLayoutAction('Slet alt');
 
-    // Dialogen er programmets egen — den kan findes i DOM med sin danske titel og advarselstekst.
+    // Dialogen er programmets egen – den kan findes i DOM med sin danske titel og advarselstekst.
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(screen.getByText(DIALOG_TITLE)).toBeInTheDocument();
@@ -174,7 +174,7 @@ describe('MainLayout — Slet alt-bekræftelse', () => {
 
     // `user.keyboard` act-wrapper allerede selv. Et ekstra `await act(async () => …)` udenom gør
     // act-kaldene indlejrede, og React melder da «testing environment is not configured to support
-    // act(...)» på stderr — uden at testen fejler. Tastetrykket sendes derfor bart.
+    // act(...)» på stderr – uden at testen fejler. Tastetrykket sendes derfor bart.
     await user.keyboard('{Escape}');
 
     await waitFor(() => {

@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 /**
- * Rækken «synlig tekst til venstre, kontrol til højre» — med teksten bundet til kontrollen.
+ * Rækken «synlig tekst til venstre, kontrol til højre» – med teksten bundet til kontrollen.
  *
  * **Hvorfor komponenten findes.** Mønsteret blev tidligere håndrullet på hver enkelt flade:
  *
@@ -16,13 +16,13 @@ import type { SxProps, Theme } from '@mui/material/styles';
  *
  * Visuelt korrekt, men `<Typography>` renderes som `<p>` og var kun et SØSKENDE-element til
  * kontrollen. Der var ingen semantisk forbindelse, så kontrollen stod uden tilgængeligt navn i
- * accessibility-træet — brugeren kunne fokusere og aktivere en switch uden at få at vide, hvad den
+ * accessibility-træet – brugeren kunne fokusere og aktivere en switch uden at få at vide, hvad den
  * ændrede. Mønsteret var gentaget på tværs af hele programmet, så en punktvis rettelse pr. flade
  * ville have efterladt langt de fleste kontroller navnløse.
  *
  * Komponenten gør bindingen til rækkens egen egenskab: teksten får et stabilt `id`, som kontrollen
  * refererer via `labelledBy`, og den renderes som `<label htmlFor>`, så et klik på teksten aktiverer
- * kontrollen. Layoutet er uændret — teksten bliver liggende præcis hvor den lå, og de eksisterende
+ * kontrollen. Layoutet er uændret – teksten bliver liggende præcis hvor den lå, og de eksisterende
  * `row--*`-klasser bærer stadig al styling.
  *
  * **Hvorfor `labelledBy` og ikke bare en label inde i kontrollen.** MUI's `FormControlLabel` ville
@@ -31,7 +31,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
  */
 type LabeledControlRowProps = Readonly<{
   /**
-   * Den synlige tekst. Rig markup er tilladt (interpolation, `InfoTooltipIcon`) — kontrollens
+   * Den synlige tekst. Rig markup er tilladt (interpolation, `InfoTooltipIcon`) – kontrollens
    * oplæste navn udledes af tekstindholdet, ikke af ikonerne.
    */
   label: React.ReactNode;

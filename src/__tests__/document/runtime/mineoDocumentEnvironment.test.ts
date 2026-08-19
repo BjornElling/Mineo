@@ -5,10 +5,10 @@
  * som React-hooken havde fanget ved render, mens `captureEvaluationSource()` blev læst friskt efter settle,
  * kunne et click-preflight parre et NYERE settingsrevision-token med et ÆLDRE format-, brevhoved- eller
  * EO-regelobjekt. Tokenet ville være aktuelt, så ingen af de senere friskhedschecks kunne fange
- * kombinationen — og dokumentet kunne gates eller renderes efter en forældet indstilling.
+ * kombinationen – og dokumentet kunne gates eller renderes efter en forældet indstilling.
  *
  * Testen måler netop det vindue: settings ændres MELLEM miljøets konstruktion og `captureSource()`. Den
- * fanger ikke en typefejl — den fanger, hvilken VÆRDI capturen leverer.
+ * fanger ikke en typefejl – den fanger, hvilken VÆRDI capturen leverer.
  */
 import { createMineoDocumentEnvironment } from '../../../document/runtime/mineoDocumentEnvironment';
 import type { DocumentInputAccess } from '../../../inputCore/react/inputRuntimeContext';
@@ -45,7 +45,7 @@ const pdfSettings = (): SourceSettings =>
 const wordSettings = (): SourceSettings =>
   projectSourceSettings({ ...DEFAULT_APP_SETTINGS, documentDownloadFormat: 'word' });
 
-describe('createMineoDocumentEnvironment — kildesnapshottets friskhed', () => {
+describe('createMineoDocumentEnvironment – kildesnapshottets friskhed', () => {
   it('læser settings på CAPTURE-tidspunktet, ikke ved konstruktionen', () => {
     // Den publicerede værdi ligger i en mutabel celle, præcis som `publishedSettings` i
     // produktions-runtimen: den sættes i samme layout-fase, som settingsrevisionen hæves.
@@ -63,7 +63,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed', () => 
     // Første capture ser den værdi, der gælder nu.
     expect(environment.captureSource().renderSettings.documentDownloadFormat).toBe('pdf');
 
-    // Brugeren skifter indstilling: settingsrevisionen hæves OG den publicerede værdi udskiftes — samme
+    // Brugeren skifter indstilling: settingsrevisionen hæves OG den publicerede værdi udskiftes – samme
     // layout-fase, som `useSettingsRevisionBridge` gør det.
     published = wordSettings();
     settingsRevision = 2;
@@ -86,7 +86,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed', () => 
 
     published = wordSettings();
 
-    // Formatet afgøres af capturens settings — ikke af en værdi fra miljøets konstruktion.
+    // Formatet afgøres af capturens settings – ikke af en værdi fra miljøets konstruktion.
     expect(environment.resolveFormat(environment.captureSource().renderSettings)).toBe('word');
   });
 
@@ -158,7 +158,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed', () => 
 
     environment.captureSource();
 
-    // Begge halvdele læses ved HVERT capture — ingen af dem er en holdt værdi.
+    // Begge halvdele læses ved HVERT capture – ingen af dem er en holdt værdi.
     expect(captureOrder).toEqual(['evaluation', 'settings']);
 
     published = wordSettings();
@@ -171,7 +171,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed', () => 
    *
    * Snapshottet har TO settings-halvdele (`gateSettings` + `renderSettings`), og hver af dem
    * projiceres af sin egen funktion. Blev de projiceret fra to `readSourceSettings()`-kald, kunne de
-   * stamme fra hver sin revision — samme divergens som mellem evaluering og settings, blot internt
+   * stamme fra hver sin revision – samme divergens som mellem evaluering og settings, blot internt
    * mellem gaten og renderingen. Da begge halvdele er nominelle, kan ingen assertion sammenligne dem
    * direkte; det målbare er, at læsningen sker ÉN gang pr. capture.
    */
@@ -191,7 +191,7 @@ describe('createMineoDocumentEnvironment — kildesnapshottets friskhed', () => 
     const captured = environment.captureSource();
 
     expect(reads, 'begge halvdele skal komme fra samme læsning').toBe(1);
-    // Og halvdelene er faktisk begge udfyldt fra det ene læs — ikke den ene på bekostning af den anden.
+    // Og halvdelene er faktisk begge udfyldt fra det ene læs – ikke den ene på bekostning af den anden.
     expect(captured.renderSettings.documentDownloadFormat).toBe('pdf');
     expect(captured.gateSettings.allowReguleringMedUdloebMedMaaneder)
       .toBe(published.allowReguleringMedUdloebMedMaaneder);

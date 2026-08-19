@@ -153,14 +153,14 @@ const addIndtaegtsoplysningerTable = (
   const columnCount = headerLabels.length;
 
   // Data-justering: to centrerede periode-kolonner + syv højrejusterede tal-kolonner.
-  // Alle headere er derimod centrerede — derfor eksplicit celle-override på header-rækken.
+  // Alle headere er derimod centrerede – derfor eksplicit celle-override på header-rækken.
   const columns: readonly ColumnSpec[] = headerLabels.map((_, index) => ({
     width: { kind: 'flex' },
     align: index < 2 ? 'center' : 'right',
   }));
 
   const dataRows: RowSpec[] = filteredData.map((row) => {
-    // Periode-kolonner (fra/til) via den delte resolver — dag-perioden formateres
+    // Periode-kolonner (fra/til) via den delte resolver – dag-perioden formateres
     // til dansk DD-MM-ÅÅÅÅ dér, så ISO-datoer aldrig lækker ud i tabellen.
     const [col0Val, col1Val] = resolveStandardLoenPeriodColumns(row, loenperiode);
     const derived = calculateStandardLoenRowDerived(row, {
@@ -415,7 +415,7 @@ const addBeregningSection = (
 
     } else if (loenperiode === 'dag') {
       if (beregningsData.antalHeleKalendermaaneder !== null) {
-        // Hele kalendermåneder — vis måneds-omregning som ved månedsløn
+        // Hele kalendermåneder – vis måneds-omregning som ved månedsløn
         const n = beregningsData.antalHeleKalendermaaneder;
         rows.push({
           label: 'Antal måneder i indtastede perioder',

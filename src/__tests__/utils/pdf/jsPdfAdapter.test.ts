@@ -40,7 +40,7 @@ describe('createJsPdfAdapter', () => {
     const doc = makeDoc();
     const adapter = createJsPdfAdapter(doc);
     adapter.addPage();
-    // Verificer at setPage ikke kaster — jsPDF har ingen public "currentPage" getter
+    // Verificer at setPage ikke kaster – jsPDF har ingen public "currentPage" getter
     expect(() => adapter.setPage(1)).not.toThrow();
     expect(() => adapter.setPage(2)).not.toThrow();
   });

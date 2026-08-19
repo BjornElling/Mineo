@@ -12,7 +12,7 @@ import {
  * Etiket-tabellerne skal være FULDT dækkende og følge enummets egen rækkefølge.
  *
  * Grunden til at det testes: etiketterne stod tidligere skrevet i hånden på hver flade der
- * viste enummet — for svie/smerte-satsen også i rækkeevaluerings-laget, hvor teksten ender i
+ * viste enummet – for svie/smerte-satsen også i rækkeevaluerings-laget, hvor teksten ender i
  * et bilag. Typen fanger en manglende NØGLE, men ikke at en flades liste er ude af trit med
  * enummets rækkefølge, og heller ikke at en label er tom.
  */
@@ -42,7 +42,7 @@ describe('enum-etiketter er fuldt dækkende', () => {
     expect(allLabels.filter((label) => label.trim() === '')).toEqual([]);
   });
 
-  it('«dag» hedder Dato for brugeren — etiketten er ikke afledelig af værdien', () => {
+  it('«dag» hedder Dato for brugeren – etiketten er ikke afledelig af værdien', () => {
     // Præcis den slags gør tabellen nødvendig: en generisk «kapitalisér værdien»-regel ville
     // give «Dag», og den forkerte etiket ville have set rimelig ud i et review.
     expect(LOENPERIODE_LABELS.labels.dag).toBe('Dato');

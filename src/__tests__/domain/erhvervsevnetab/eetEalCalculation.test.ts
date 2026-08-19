@@ -501,7 +501,7 @@ describe('computeEetEalCalculation', () => {
   });
 });
 
-describe('computeEetEalCalculation — delegering til opreguleringsmotor (akkumuleret reguleringssats)', () => {
+describe('computeEetEalCalculation – delegering til opreguleringsmotor (akkumuleret reguleringssats)', () => {
   // Den tidligere inline-løkke (faktor *= 1 + sats/100 over [skadeår+1, beregningsår])
   // blev erstattet af opregulerMedAkkumuleretReguleringssats. Disse tests låser
   // (a) at den anvendte reguleringsprocent er numerisk identisk med det eksplicitte
@@ -550,7 +550,7 @@ describe('computeEetEalCalculation — delegering til opreguleringsmotor (akkumu
     ).toBe(true);
   });
 
-  it('fail-closer også når kun startårets (skadeårets) reguleringssats mangler — motorens dækningskrav', () => {
+  it('fail-closer også når kun startårets (skadeårets) reguleringssats mangler – motorens dækningskrav', () => {
     // Motoren kræver dækning for startåret selv om det ikke multipliceres ind i faktoren.
     // Den gamle inline-løkke flaggede IKKE skadeåret; dette er en bevidst udvidelse af
     // fail-closed (synlig feltfejl frem for tavs sti). I praksis dækker reguleringssats
@@ -568,7 +568,7 @@ describe('computeEetEalCalculation — delegering til opreguleringsmotor (akkumu
   });
 });
 
-describe('computeEetEalCalculation — aldersreduktionsprocent (invarianter)', () => {
+describe('computeEetEalCalculation – aldersreduktionsprocent (invarianter)', () => {
   // Aldersreduktionsformlen: 0 ved alder <= 29, (alder - 29) ved 30-54,
   // (alder - 29) + (alder - 54) x 2 ved alder > 54, cappet til 70 %.
   // Vi sætter skadeår = beregningsår for at fjerne regulering og isolere procenten.

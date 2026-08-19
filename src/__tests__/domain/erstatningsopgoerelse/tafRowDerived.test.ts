@@ -126,7 +126,7 @@ describe('buildTafDerived', () => {
   describe('arbejdsdage-baseret ("Angivet dagsløn")', () => {
     it('5 hverdage for man-fre uge', () => {
       // 2024-01-01 = mandag, 2024-01-05 = fredag (men nytårsdag 01-01 er SH-dag)
-      // Helligdagen tæller i buildTafDerived ved kind: 'taf' — se tafCalculations
+      // Helligdagen tæller i buildTafDerived ved kind: 'taf' – se tafCalculations
       const result = buildTafDerived({
         values: makeValues({ beregnesUdFra: 'Angivet dagsløn' }),
         tafPerioder: [makeTafRow('r1', toISODateString('2024-01-02'), toISODateString('2024-01-05'))],

@@ -43,7 +43,7 @@ const FULDE_SATSER: StandardLoenSatserInput = {
   pensionPct: 8.15,
 };
 
-describe('calculateStandardLoenDerivedFromAmounts — Beløb-tilstand', () => {
+describe('calculateStandardLoenDerivedFromAmounts – Beløb-tilstand', () => {
   const amounts: StandardLoenAmounts = {
     loen: 25000,
     loen2: 2500,
@@ -88,7 +88,7 @@ describe('calculateStandardLoenDerivedFromAmounts — Beløb-tilstand', () => {
   });
 });
 
-describe('calculateStandardLoenRowDerived — Beløb-tilstand', () => {
+describe('calculateStandardLoenRowDerived – Beløb-tilstand', () => {
   it('Samlet = rækkesum og afhænger kun af Beløb-felterne', () => {
     const row = createRow({ col2: 30000, col3: 0, col4: 1000, col5: 300, fpFvShSoBeloeb: 5000, pensionBeloeb: 2000 });
     const result = calculateStandardLoenRowDerived(row, FULDE_SATSER, { mode: 'beloeb' });
@@ -109,7 +109,7 @@ describe('calculateStandardLoenRowDerived — Beløb-tilstand', () => {
   });
 });
 
-describe('calculateStandardLoenProjectedAmounts — Beløb-tilstand', () => {
+describe('calculateStandardLoenProjectedAmounts – Beløb-tilstand', () => {
   it('Samlet bevares som rækkesum efter dag-for-dag-projektion', () => {
     const row = createRow({ col0_maaned: '1', col1_maaned: '2024', col2: 31000, fpFvShSoBeloeb: 4000, pensionBeloeb: 2500 });
     const allocationDates = [

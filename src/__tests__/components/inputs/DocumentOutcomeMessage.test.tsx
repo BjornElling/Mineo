@@ -8,7 +8,7 @@
 // Komponenten er det ene sted, rækken nu bygges.
 //
 // Den modsatte grænse er lige så vigtig og pinnes nedenfor: en GATE-blokering må ikke nå rækken. En
-// deaktiveret knap svarer aldrig med tekst — tooltippet ejer årsagen (brugerbeslutning 2026-07-31).
+// deaktiveret knap svarer aldrig med tekst – tooltippet ejer årsagen (brugerbeslutning 2026-07-31).
 import { render, screen } from '@testing-library/react';
 import DocumentOutcomeMessage from '../../../components/inputs/DocumentOutcomeMessage';
 import { resolveDocumentOutcomeMessage } from '../../../document/definition/documentMessages';
@@ -23,7 +23,7 @@ describe('DocumentOutcomeMessage', () => {
     expect(screen.getByText('Downloaden blev afbrudt.')).toBeInTheDocument();
   });
 
-  it('renderer INTET ved null, undefined og tom streng — ingen tom fejlrække', () => {
+  it('renderer INTET ved null, undefined og tom streng – ingen tom fejlrække', () => {
     const { container: nullContainer } = render(<DocumentOutcomeMessage message={null} />);
     expect(nullContainer).toBeEmptyDOMElement();
 
@@ -64,14 +64,14 @@ describe('DocumentOutcomeMessage', () => {
 
   /**
    * Den universelle regel (brugerbeslutning 2026-07-31): en deaktiveret download-knap svarer ALDRIG med
-   * tekst. Gate-årsagen har én kanal — knappens tooltip ved hover.
+   * tekst. Gate-årsagen har én kanal – knappens tooltip ved hover.
    *
    * Værnet ligger på beskedlaget frem for på en enkelt flade, fordi det er dér, reglen er ét sted:
    * returnerer `resolveDocumentOutcomeMessage` `null`, kan ingen af de tolv callsites vise noget, uanset
    * hvordan de renderer. Testen dækker BEGGE årsagsklasser: den universelle `missing-input` og en
-   * `specific`, der ellers citeres ordret til tooltippet — netop den, der er farligst at slippe igennem.
+   * `specific`, der ellers citeres ordret til tooltippet – netop den, der er farligst at slippe igennem.
    */
-  it('en gate-blokering bærer INGEN besked — hverken universel eller ordret citeret årsag', () => {
+  it('en gate-blokering bærer INGEN besked – hverken universel eller ordret citeret årsag', () => {
     const universel = resolveDocumentOutcomeMessage(
       documentRejected({
         kind: 'gate-blocked',

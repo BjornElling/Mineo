@@ -14,7 +14,7 @@ import {
  * Renteberegnings ene kanoniske viewmodel (`page-component-contract.md` §4.4).
  *
  * Siden læser stamdata + kommentarer gennem den offentlige `InputReader`, og dokument-download går gennem de to
- * typede definitioner — modellen komponerer dem mod hovedappens miljø og leverer de færdige handles til den
+ * typede definitioner – modellen komponerer dem mod hovedappens miljø og leverer de færdige handles til den
  * delte fane, som også standalone MinProcesrente bruger.
  */
 

@@ -29,7 +29,7 @@ export type EetIssueNavigationTarget =
       sectionTitle: 'Stamdata';
       /**
        * Konkret felt at føre brugeren til på Stamdata-siden, hvis issuet peger på ét bestemt felt.
-       * KANONISK feltadresse (§3.2) — samme identitet som EO-rækkernes fokusmål, undo/redo og
+       * KANONISK feltadresse (§3.2) – samme identitet som EO-rækkernes fokusmål, undo/redo og
        * save-blokeringens fokus bruger, så der ikke findes en parallel navnestreng-model.
        */
       focusFieldAddress?: FieldAddress;
@@ -67,7 +67,7 @@ const STAMDATA_ISSUE_IDS = new Set([
 ]);
 
 /**
- * Sektionen på EET-oplysningerfanen pr. issue-id — rene `data-section-id`-strenge.
+ * Sektionen på EET-oplysningerfanen pr. issue-id – rene `data-section-id`-strenge.
  *
  * Bevidst en selvstændig tabel og ikke et opslag i `eetFormatUtils`: dette modul forbruges af EO's
  * Beregning-fane, og en import derfra ville koble EO til EET's og faellesAarsloens feltdescriptorer og
@@ -124,7 +124,7 @@ export const resolveMidlertidigtEetIssueNavigation = (
   // EO's afhængighedsgraf gennem bagdøren.
   //
   // Sektions-id'et er derimod en ren streng uden descriptor-kobling, og det er nok til at føre brugeren
-  // til det rigtige sted PÅ fanen med den delte sektionsmarkering — frem for at lande øverst på siden
+  // til det rigtige sted PÅ fanen med den delte sektionsmarkering – frem for at lande øverst på siden
   // uden nogen anvisning, som før.
   return {
     kind: 'erhvervsevnetab-tab',

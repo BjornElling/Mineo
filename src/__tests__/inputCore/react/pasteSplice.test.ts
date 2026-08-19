@@ -12,7 +12,7 @@ import { createDateFieldCodec, createOptionalTextFieldCodec } from '../../../inp
 
 describe('resolvePasteContextDraft', () => {
   // §1.2a punkt 7: resultatet af et paste må ikke afhænge af, om feltet var tomt. Konteksten afgøres
-  // derfor af, om paste'en efterlader noget af brugerens tekst — ikke af om editoren er åben.
+  // derfor af, om paste'en efterlader noget af brugerens tekst – ikke af om editoren er åben.
   // Brugerfundet BB-042: `010623` blev `01-06-2023` i et tomt felt og `01` i et udfyldt.
 
   it('har ingen kontekst, når feltet er lukket', () => {
@@ -110,7 +110,7 @@ describe('spliceDraftWithPaste', () => {
   it('sletter ALDRIG brugerens eksisterende tegn for at gøre plads', () => {
     // Den vigtigste invariant: §1.2a forbyder, at paste ændrer en værdi, der ligger inden for feltets
     // grænser. Var afkortningen lagt på hele RESULTATET (`(prefix+pasted+suffix).slice(0, max)`) frem for
-    // kun på det indsatte, ville dette paste have givet `ABC12` — altså overskrevet to tegn, brugeren
+    // kun på det indsatte, ville dette paste have givet `ABC12` – altså overskrevet to tegn, brugeren
     // selv havde skrevet. Derfor er den forkerte adfærd navngivet her, ikke kun den rigtige.
     const result = spliceDraftWithPaste('12345', 'ABC', 0, 0, 5);
     expect(result.draft).toBe('12345');

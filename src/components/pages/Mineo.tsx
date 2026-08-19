@@ -90,19 +90,19 @@ const Mineo = React.memo(() => {
   // Begge kontroller bærer `data-mineo-focusable-button="true"`: uden markøren er de ikke i
   // Containerens fokusinventar, og Enter faldt derfor igennem til den generiske «flyt til næste
   // felt»-vej frem for at ramme knap-undtagelsen. Mellemrum virkede (native knapsemantik), men
-  // Enter flyttede fokus videre uden at åbne popupen — en popup-åbnende knap skal kunne aktiveres
+  // Enter flyttede fokus videre uden at åbne popupen – en popup-åbnende knap skal kunne aktiveres
   // med begge taster (jf. keyboard-navigation.md §Implementeringsfrihed og §Popup-fokus-restore).
   //
-  // Begge kontroller UDFØRER en handling på siden (åbner en dialog / starter PWA-installationen) — de
+  // Begge kontroller UDFØRER en handling på siden (åbner en dialog / starter PWA-installationen) – de
   // navigerer ikke. De er derfor `<button>`, ikke `<a href="#">`. Et bart fragment-href gjorde to skader:
   // det løj om semantikken over for skærmlæsere, OG det nulstillede browserens sekventielle
   // fokus-udgangspunkt til dokumentets top, så næste `Tab` sprang tilbage til startside-togglen længere
   // OPPE på siden i stedet for videre til næste link. Ingen `preventDefault` kan reparere det,
-  // fordi det er href'et selv — ikke default-handlingen — der flytter fokus-origoen.
+  // fordi det er href'et selv – ikke default-handlingen – der flytter fokus-origoen.
 
   // Installations-tilstanden aflæses ved KLIKKET, ikke ved render. En bruger, der installerer
   // hjælpeprogrammet fra adresselinjen og derefter klikker på linket, skal møde den aktuelle
-  // sandhed — ikke en tilstand, der blev målt da siden blev åbnet.
+  // sandhed – ikke en tilstand, der blev målt da siden blev åbnet.
   const installRequestInFlightRef = React.useRef(false);
   const handleInstallClick = React.useCallback(() => {
     if (installRequestInFlightRef.current) return;
@@ -220,7 +220,7 @@ const Mineo = React.memo(() => {
           Bemærk, at hjælpeprogrammet kun kan installeres, hvis du benytter Google Chrome eller Microsoft Edge.
         </Typography>
 
-        {/* Bevidst UX-beslutning: denne toggle er placeret på Mineo-siden — ikke på
+        {/* Bevidst UX-beslutning: denne toggle er placeret på Mineo-siden – ikke på
             Indstillinger-siden. Mineo-siden er den første side nye brugere møder, og
             det giver kontekst til valget: brugeren ser programbeskrivelsen og kan
             derfra beslutte, om Stamdata skal være standardstart. */}
@@ -256,7 +256,7 @@ const Mineo = React.memo(() => {
 
         <Typography className="row--text">
           Så længe fanen er åben, ligger dine indtastninger i browserens hukommelse. Lukker du fanen, er de
-          væk — også selv om browseren stadig kører. Brug <strong>Gem</strong> for at beholde sagen som en .eo-fil på din
+          væk – også selv om browseren stadig kører. Brug <strong>Gem</strong> for at beholde sagen som en .eo-fil på din
           computer.
         </Typography>
       </ContentBox>
@@ -290,7 +290,7 @@ const Mineo = React.memo(() => {
           <Box className="numbered-list-item">
             <Typography className="row--text">1)</Typography>
             <Typography className="row--text">
-              Du kan bruge programmet frit — også til kommercielle formål.
+              Du kan bruge programmet frit – også til kommercielle formål.
             </Typography>
           </Box>
 

@@ -7,7 +7,7 @@ import ts from 'typescript';
  * Værn mod de måleartefakter, der har kostet E2E-suiten mest tid.
  *
  * Fælles for dem alle: testen måler noget ANDET end det, den påstår at måle. Den er derfor grøn på en
- * hurtig maskine og rød på en langsom — uden at produktet har ændret sig. Det er netop den slags fund,
+ * hurtig maskine og rød på en langsom – uden at produktet har ændret sig. Det er netop den slags fund,
  * der bruger et fuldt timeout-loft og ligner en produktfejl uden at være det.
  *
  *  1. **Kapløb mod en transient klasse.** Blinkmarkeringen står i 1,5 s og fjernes så af
@@ -23,7 +23,7 @@ import ts from 'typescript';
  *
  *  3. **Sidemenu-navigation uden ventepunkt.** Et klik på en menuknap skifter kun URL'en; siderne er
  *     lazy chunks, så den FORRIGE side bliver stående, indtil chunken er hentet og monteret. Måler den
- *     næste påstand på noget generisk — en `.content-box`, en knap, en dialog — er den forrige side som
+ *     næste påstand på noget generisk – en `.content-box`, en knap, en dialog – er den forrige side som
  *     regel et gyldigt svar, og testen bliver grøn på det forkerte grundlag. Det er ikke teoretisk:
  *     `content-scale.spec.ts` › «skærmprint …» åbnede rapportdialogen på den stadig viste
  *     Indstillinger-side og brugte derefter 90 s på at vente på en knap i en dialog, som forsvandt igen,
@@ -34,7 +34,7 @@ import ts from 'typescript';
  *     første handling mod en tom side.
  *
  *  5. **Motorafhængig forgrening uden browserbane.** En test, der springer sig selv over i alt andet
- *     end Firefox eller WebKit, kører KUN et sted, hvis dens `describe` bærer `@browsere` — ellers
+ *     end Firefox eller WebKit, kører KUN et sted, hvis dens `describe` bærer `@browsere` – ellers
  *     ligger den i basisbanen (Chrome) og springer sig selv over hver eneste gang. Den ser grøn ud i
  *     optællingen og hævder intet.
  *
@@ -49,7 +49,7 @@ const BLINK_CLASS = 'mineo-field-attention-blink';
 const SHARED_HELPERS = ['setFieldValue', 'setFieldValueAndSettle'] as const;
 
 /**
- * Sidemenuens etiketter — samme mængde som `MINEO_PAGE_TITLES` i `e2e/support/mineoTest.ts`.
+ * Sidemenuens etiketter – samme mængde som `MINEO_PAGE_TITLES` i `e2e/support/mineoTest.ts`.
  *
  * Listen står her frem for at blive importeret, fordi værnet skal kunne fejle, hvis helperen selv
  * forsvinder. En import ville gøre værnet grønt af tomhed i netop det tilfælde; parret holdes i stedet
@@ -97,7 +97,7 @@ const parse = (filePath: string): ts.SourceFile =>
 const lineOf = (source: ts.SourceFile, node: ts.Node): number =>
   source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 
-/** `x.dblclick()` som et FAKTISK kald — ikke ordet «dblclick» i en kommentar eller en streng. */
+/** `x.dblclick()` som et FAKTISK kald – ikke ordet «dblclick» i en kommentar eller en streng. */
 const findBareDoubleClickCalls = (source: ts.SourceFile): readonly ts.Node[] => {
   const found: ts.Node[] = [];
   const visit = (node: ts.Node): void => {
@@ -115,7 +115,7 @@ const findBareDoubleClickCalls = (source: ts.SourceFile): readonly ts.Node[] => 
 };
 
 /**
- * `expect(...).toHaveClass(...)` hvor argumentet nævner blinkklassen — altså en påstand, der venter på
+ * `expect(...).toHaveClass(...)` hvor argumentet nævner blinkklassen – altså en påstand, der venter på
  * den transiente markering i den levende DOM.
  */
 const findLiveBlinkClassAssertions = (source: ts.SourceFile): readonly ts.Node[] => {
@@ -141,11 +141,11 @@ const findLiveBlinkClassAssertions = (source: ts.SourceFile): readonly ts.Node[]
 /**
  * `page.getByRole('button', { name: '<sidemenu-etiket>' }).click()` som et faktisk kald.
  *
- * Mønsteret genkendes på kæden — `getByRole(...)` et sted inde i modtageren af `.click()` — så både
+ * Mønsteret genkendes på kæden – `getByRole(...)` et sted inde i modtageren af `.click()` – så både
  * `page.getByRole(...).click()` og `page.getByRole(...).first().click()` fanges.
  *
  * **Reglens loft, sagt højt:** navnet skal stå som en LITERAL. En løkke over sidenavne i en variabel
- * (`{ name: pageName }`) fanges ikke. Alternativet — at flage ethvert variabelnavn — ville ramme de
+ * (`{ name: pageName }`) fanges ikke. Alternativet – at flage ethvert variabelnavn – ville ramme de
  * tests, der med vilje aflæser menuknapperne UDEN at navigere (fx `minimum-viewport-shell`), og en regel
  * med falske positive bliver slået fra. Literal-formen er den, 63 kaldsteder faktisk brugte.
  */
@@ -183,7 +183,7 @@ const findUnsettledMenuNavigation = (source: ts.SourceFile): readonly ts.Node[] 
   return found;
 };
 
-/** Testpasswordet eller en egen `login`-definition i et spec — begge er kopier af det delte grundlag. */
+/** Testpasswordet eller en egen `login`-definition i et spec – begge er kopier af det delte grundlag. */
 const findLocalLoginDuplication = (source: ts.SourceFile): readonly ts.Node[] => {
   const found: ts.Node[] = [];
   const visit = (node: ts.Node): void => {
@@ -257,8 +257,8 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
     expect(
       violations,
       'Blinkmarkeringen varer 1,5 s. En toHaveClass-påstand på den levende DOM er et kapløb mod den '
-      + 'timer — brug den nedskrevne observation fra startBlinkSampling/readBlinkObservation i stedet.\n'
-      + violations.map((v) => `  ${v.file}:${v.line} — ${v.detail}`).join('\n'),
+      + 'timer – brug den nedskrevne observation fra startBlinkSampling/readBlinkObservation i stedet.\n'
+      + violations.map((v) => `  ${v.file}:${v.line} – ${v.detail}`).join('\n'),
     ).toEqual([]);
   });
 
@@ -279,7 +279,7 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
       violations,
       'Et bart dblclick() antager, at feltet er interaktivt, og at de to klik når inden for browserens '
       + `dobbeltklik-interval. Brug ${SHARED_HELPERS.join('/')} fra e2e/support/mineoTest.ts.\n`
-      + violations.map((v) => `  ${v.file}:${v.line} — ${v.detail}`).join('\n'),
+      + violations.map((v) => `  ${v.file}:${v.line} – ${v.detail}`).join('\n'),
     ).toEqual([]);
   });
 
@@ -301,7 +301,7 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
       'Et klik på en menuknap skifter kun URL\'en; sidens chunk monteres bagefter, så den næste påstand '
       + 'kan måle den FORRIGE side. Brug openPage(page, \'<side>\') fra e2e/support/mineoTest.ts, som '
       + 'venter på destinationens egen sidetitel.\n'
-      + violations.map((v) => `  ${v.file}:${v.line} — ${v.detail}`).join('\n'),
+      + violations.map((v) => `  ${v.file}:${v.line} – ${v.detail}`).join('\n'),
     ).toEqual([]);
   });
 
@@ -322,7 +322,7 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
       violations,
       'Testpasswordet og login-rejsen hører ét sted til: TEST_PASSWORD og login i '
       + 'e2e/support/mineoTest.ts. En lokal kopi mister helperens ventepunkt for app-shellen.\n'
-      + violations.map((v) => `  ${v.file}:${v.line} — ${v.detail}`).join('\n'),
+      + violations.map((v) => `  ${v.file}:${v.line} – ${v.detail}`).join('\n'),
     ).toEqual([]);
   });
 
@@ -343,16 +343,16 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
     expect(
       violations,
       'Testen forgrener på en motor, basisbanen ikke kører, men dens describe mangler BROWSER_LANE_TAG. '
-      + 'Uden taget kører den kun i Chrome og springer sig selv over hver gang — grøn i optællingen, '
+      + 'Uden taget kører den kun i Chrome og springer sig selv over hver gang – grøn i optællingen, '
       + 'uden at hævde noget.\n'
-      + violations.map((v) => `  ${v.file}:${v.line} — ${v.detail}`).join('\n'),
+      + violations.map((v) => `  ${v.file}:${v.line} – ${v.detail}`).join('\n'),
     ).toEqual([]);
   });
 
   /**
    * Selv-test (jf. guard-selvtest-princippet): et værn, der er grønt fordi det ikke måler noget, er
-   * værdiløst. Her bevises hver detektor på en fixture, der INDEHOLDER overtrædelsen — at den ikke
-   * udløses af de samme ord i en kommentar eller en streng — og at målet stadig FINDES.
+   * værdiløst. Her bevises hver detektor på en fixture, der INDEHOLDER overtrædelsen – at den ikke
+   * udløses af de samme ord i en kommentar eller en streng – og at målet stadig FINDES.
    */
   describe('værnet kan faktisk fejle', () => {
     const fixture = (body: string): ts.SourceFile =>
@@ -368,7 +368,7 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
       expect(findLiveBlinkClassAssertions(source)).toHaveLength(1);
     });
 
-    it('fanger et bart menuklik — også bag et led som .first()', () => {
+    it('fanger et bart menuklik – også bag et led som .first()', () => {
       expect(findUnsettledMenuNavigation(fixture(
         "await page.getByRole('button', { name: 'Erstatningsopgørelse' }).click();",
       ))).toHaveLength(1);
@@ -391,7 +391,7 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
       ))).toHaveLength(2);
     });
 
-    it('fanger en forgrening på en motor uden for basisbanen — men ikke på chromium', () => {
+    it('fanger en forgrening på en motor uden for basisbanen – men ikke på chromium', () => {
       expect(findNonBaselineEngineBranches(fixture(
         "test.skip(browserName !== 'webkit', 'kun WebKit');",
       ))).toHaveLength(1);

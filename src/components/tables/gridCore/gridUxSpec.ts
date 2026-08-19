@@ -20,7 +20,7 @@ export const GRID_UX_SPEC = {
      *   kan fortsætte navigation uden for tabellen.
      * - ArrowLeft/ArrowRight: horisontal flytning i samme række med wrap ved rækkekanter.
      * - Tab / Shift+Tab: ejes IKKE af grid-kernen. Den naturlige fokus-rækkefølge (Container-niveau) bærer
-     *   Tab på tværs af tabel-celler OG videre ud af tabellen til de øvrige felter — fokus er bevidst IKKE
+     *   Tab på tværs af tabel-celler OG videre ud af tabellen til de øvrige felter – fokus er bevidst IKKE
      *   trapped. Grid-kernen aflæser kun den startcelle (anchor), Enter-vertikal-navigation tager udgangspunkt i.
      *
      * (Tidligere blev Tab trappet og brugt til horisontal traversering; "ny samlet tabel-navigation"
@@ -67,7 +67,7 @@ export const GRID_UX_SPEC = {
      * - Printbare taster åbner INGEN tekst-editor (kontrollen har ingen fritekst)
      *
      * Kontrakten klassificerer kontrollen på dens ARIA-semantik gennem `popupWidgetSemantics`
-     * (`role="combobox"` / `aria-haspopup`) — ikke på et komponentnavn eller en privat
+     * (`role="combobox"` / `aria-haspopup`) – ikke på et komponentnavn eller en privat
      * markør-attribut. Samme klassifikation bruges af Container og af grid'ets pointer-veje.
      */
     dropdownContract: true,

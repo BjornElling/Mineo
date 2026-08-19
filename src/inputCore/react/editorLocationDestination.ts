@@ -8,7 +8,7 @@ import type { FieldAddressTemplate } from '../fieldDescriptor';
 //
 // Den afløste model afbildede en feltadresse til route + fane gennem fem
 // globale kort, sektionsdefaults og særregler for brugerens aktuelle route. Kortene måtte kompensere, hver gang
-// et felt blev redigeret på mere end ét sted — `faellesAarsloen` uden egen route, de tre forligsfelter på både
+// et felt blev redigeret på mere end ét sted – `faellesAarsloen` uden egen route, de tre forligsfelter på både
 // EO-oplysninger og EETs Differencekrav, `eoBilagSelection` hvis felter HEDDER som andre faners felter. Hver
 // særregel var evidens for det samme: dataidentiteten kan ikke afgøre, hvor feltet redigeres.
 //
@@ -44,7 +44,7 @@ const attrEquals = (attr: string, value: string): string => `[${attr}=${JSON.str
  * Lokationens erklærede destination, læst af elementet selv.
  *
  * `EditorLocation.route` er PÅKRÆVET, så en inputsurface sætter altid attributten. Guarden mod en
- * manglende/tom værdi er derfor ikke et "ikke navigerbar"-begreb — det er defensiv DOM-læsning: finder vi et
+ * manglende/tom værdi er derfor ikke et "ikke navigerbar"-begreb – det er defensiv DOM-læsning: finder vi et
  * element, der bærer feltadressen UDEN en route (et fremmed element med samme attribut, eller en surface, der
  * ikke er gået gennem `buildRestoreTargetAttributes`), er "jeg ved det ikke" det sande svar. Vi behandler det
  * som ukendt frem for at gætte en route.
@@ -60,7 +60,7 @@ const readDeclaredDestination = (element: HTMLElement): EditorLocationDestinatio
  * Find den editor, der viser feltet på `serializedAddress`, og hvad den siger om sin egen placering.
  *
  * En SYNLIG editor vinder altid: kan feltet rettes, hvor brugeren står, bliver brugeren dér. Ellers bruges en mountet, men skjult editors egen destination. Er flere spejlede editorer
- * mountet og skjulte, vælges den første i dokumentrækkefølge — vilkårligt, men entydigt, og enhver af dem er en
+ * mountet og skjulte, vælges den første i dokumentrækkefølge – vilkårligt, men entydigt, og enhver af dem er en
  * gyldig flade for feltet.
  */
 export const lookupEditorLocation = (serializedAddress: string): EditorLocationLookup => {
@@ -81,18 +81,18 @@ export const lookupEditorLocation = (serializedAddress: string): EditorLocationL
 };
 
 /**
- * Find den FØRSTE synlige editor for et felt, hvor rækkeleddet er UBUNDET — feltet udpeges af sin
+ * Find den FØRSTE synlige editor for et felt, hvor rækkeleddet er UBUNDET – feltet udpeges af sin
  * adressetemplate (collection + feltnavn) frem for af en konkret adresse.
  *
  * Findes til den advarsel, der handler om en indtastning, brugeren ENDNU IKKE HAR OPRETTET: er der ingen
  * TAF-periode, findes der intet række-id, og `lookupEditorLocation` har dermed ingen adresse at slå op. Men
  * tabellen viser altid en tom indtastningsrække (`useCollectionTable`), og dens celler bærer en fuldt bundet
- * feltadresse. Opslaget matcher derfor på adressens STRUKTUR — samme sektion, samme sti bortset fra
- * entity-id'erne, samme feltnavn — og lader placeholderens runtime-id være det ene, der må variere.
+ * feltadresse. Opslaget matcher derfor på adressens STRUKTUR – samme sektion, samme sti bortset fra
+ * entity-id'erne, samme feltnavn – og lader placeholderens runtime-id være det ene, der må variere.
  *
  * Der indføres INGEN ny feltidentitet i DOM: attributten, der læses, er den samme `data-mineo-field-address`,
  * som alle andre fokusveje bruger. Vi deserialiserer den og sammenligner strukturelt frem for at
- * strengmatche et præfiks — en præfiksmatch ville ramme et vilkårligt felt, hvis navnet indgår i et andet
+ * strengmatche et præfiks – en præfiksmatch ville ramme et vilkårligt felt, hvis navnet indgår i et andet
  * felts serialisering.
  *
  * Første i dokumentrækkefølge vinder: i en tabel er det tabellens øverste række, som også er den, brugeren

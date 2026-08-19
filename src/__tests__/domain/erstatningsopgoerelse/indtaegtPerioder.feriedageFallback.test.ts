@@ -3,7 +3,7 @@
  *
  * Scenarie (brugerens formulering): en indtægt angives for en periode i beregningsperioden, hvor
  * SAMTLIGE dage er feriedage (fx hel ferie i juli). På arbejdsdags-sporet har perioden ingen
- * arbejdsdage at periodisere på. Indkomsten må ikke bare udgå — den fordeles på fald-tilbage-dage,
+ * arbejdsdage at periodisere på. Indkomsten må ikke bare udgå – den fordeles på fald-tilbage-dage,
  * så beløbet medregnes. Dagene tælles dog ALDRIG som arbejdsdage.
  */
 
@@ -45,13 +45,13 @@ const julyLoenRow = () => ({
   col2: asAmount(10000),
 });
 
-describe('buildIncomeForRanges — feriedage-fald-tilbage (lønindkomst)', () => {
+describe('buildIncomeForRanges – feriedage-fald-tilbage (lønindkomst)', () => {
   it('medregner løn for en periode hvor alle dage er feriedage (ellers ville beløbet forsvinde)', () => {
     const { values, af } = makeArbejdsdageSporValues();
     af.indtaegtsoplysningerTableData = [julyLoenRow()];
     values.ferieperioder = [{ id: 'ferie-juli', fra: iso('2024-07-01'), til: iso('2024-07-31') }];
 
-    // Kontrol: perioden har reelt ingen arbejdsdage — så dagene tælles ikke som arbejdsdage.
+    // Kontrol: perioden har reelt ingen arbejdsdage – så dagene tælles ikke som arbejdsdage.
     expect(buildLoenArbejdsdageSet({ fra: iso('2024-07-01'), til: iso('2024-07-31') }, values.ferieperioder).size).toBe(0);
 
     const result = buildIncomeForRanges(values, [{ fra: iso('2024-07-01'), til: iso('2024-07-31') }]);
@@ -72,7 +72,7 @@ describe('buildIncomeForRanges — feriedage-fald-tilbage (lønindkomst)', () =>
   });
 });
 
-describe('buildIncomeForRanges — fald-tilbage for arbejdsdags-ydelse i ren weekend-periode', () => {
+describe('buildIncomeForRanges – fald-tilbage for arbejdsdags-ydelse i ren weekend-periode', () => {
   it('medregner sygedagpenge angivet for en ren weekend (ellers ville beløbet forsvinde)', () => {
     const { values } = makeArbejdsdageSporValues();
     const weekendRow: OffentligeYdelserRow = {

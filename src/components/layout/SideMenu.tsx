@@ -49,7 +49,7 @@ const persistMenuState = (isExpanded: boolean): void => {
 /**
  * Alle sidemenuens ikoner deler samme akse og ikonflade.
  *
- * Målene er menuens EGNE (zoomede) px: hele menuen — ramme såvel som indhold — skaleres med
+ * Målene er menuens EGNE (zoomede) px: hele menuen – ramme såvel som indhold – skaleres med
  * samme faktor, så ingen af værdierne her skal kende skalaen.
  */
 const ICON_LAYOUT = getSideMenuIconLayout();
@@ -87,7 +87,7 @@ const getSideMenuIconButtonSx = (
  * Sammenfoldelig sidemenu med navigation
  *
  * Features:
- * - Sammenfoldet (70 px) / udfoldet (250 px) — begge gange menuens skala
+ * - Sammenfoldet (70 px) / udfoldet (250 px) – begge gange menuens skala
  * - Active state på navigationssider
  * - Separator-linjer mellem grupper
  * - Luftig desktopprofil uden scrollbar; skalaen er den mindste af arbejdsfladens skala og
@@ -101,7 +101,7 @@ interface SideMenuProps {
   onGem: () => void;
   onHent: () => void;
   onSletAlt: () => void;
-  /** Restore-mål for `Slet alt`-bekræftelsen — se `FileOperationItem.buttonRef`. */
+  /** Restore-mål for `Slet alt`-bekræftelsen – se `FileOperationItem.buttonRef`. */
   sletAltButtonRef: React.RefObject<HTMLButtonElement | null>;
   /**
    * Arbejdsfladens skala. Menuen bliver aldrig større end den: en menu med fuld tekststørrelse
@@ -176,7 +176,7 @@ const SideMenu = React.memo(({
       if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
     };
     // Ind-/udfoldning ændrer indholdets naturlige højde (labels forsvinder), og arbejdsfladens
-    // skala ændrer den tegnede højde. Begge skal udløse en ny måling — ellers bliver menuen
+    // skala ændrer den tegnede højde. Begge skal udløse en ny måling – ellers bliver menuen
     // stående på et højdeloft, der hørte til en anden tilstand.
   }, [isExpanded, contentScale]);
 
@@ -225,8 +225,8 @@ const SideMenu = React.memo(({
     <Box
       ref={menuRef}
       sx={{
-        // Rammen skaleres i takt med sit indhold, så menuens indbyrdes forhold — labelstørrelse,
-        // ikonakse og luft — er konstante ved enhver skala. Bredden er derfor grundmålet gange
+        // Rammen skaleres i takt med sit indhold, så menuens indbyrdes forhold – labelstørrelse,
+        // ikonakse og luft – er konstante ved enhver skala. Bredden er derfor grundmålet gange
         // menuskalaen, ikke en selvstændig interpolation.
         width: getSideMenuWidth(menuScale, isExpanded),
         minWidth: getSideMenuWidth(menuScale, isExpanded),

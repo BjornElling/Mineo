@@ -162,7 +162,7 @@ import { collectSvieSmerteCutoffDateIssues } from './svieSmerteCutoffDateIssues'
 //
 // Modsat de mindre slices har EO's snapshot-motor (`computeEoSnapshot`) sin egen `erstatningsopgoerelseValidator`,
 // der re-validerer ALLE bounds/regler PÅ VÆRDIERNE (ikke på et fieldErrors-map). Blokeringen kommer derfor fra
-// værdierne — ikke fra de to fieldErrors-maps, som motoren kun videregiver uændret til inspektion-snapshottet.
+// værdierne – ikke fra de to fieldErrors-maps, som motoren kun videregiver uændret til inspektion-snapshottet.
 // Vi følger derfor Satser-/EET-/Forsørgertab-doktrinen (§3.4/§5.4):
 //  - VALUE-REKONSTRUKTION: hvert felt læses gennem readeren og falder tilbage til sin canonical tomværdi, når
 //    readeren skjuler en rød feltfejl (rejected format/range) ELLER en null-sektion giver `undefined` for et felt,
@@ -538,7 +538,7 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   // EO-dokumenterne læser `stamdataValues`, mens blokeringen sker gennem snapshottets strukturelle
   // stamdata-invarianter. Projektionen må ikke bære en ekstra, ulæst `documentStamdata`-projektion,
   // fordi den ville ligne en dependency-erklæring uden faktisk at gate outputtet.
-  /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
+  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
 

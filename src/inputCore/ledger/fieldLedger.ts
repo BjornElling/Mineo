@@ -1,6 +1,6 @@
 import type { CodecFamily, ControlKind, SectionKey } from './ledgerTypes';
 
-// Midlertidigt fase-0-inventar (§6.1): én dataidentitet pr. persisteret felt (IKKE pr. Zod-leaf — en AmountValue er ÉT
+// Midlertidigt fase-0-inventar (§6.1): én dataidentitet pr. persisteret felt (IKKE pr. Zod-leaf – en AmountValue er ÉT
 // felt, selv om schemaet har `kind`/`value`/`expression`; entity-id'er er strukturelle, ikke felter).
 //
 // Feltidentiteterne + baseline-count udledes MASKINELT fra de levende Zod-schemas i completeness-testen, så
@@ -32,7 +32,7 @@ const tog = (codec: CodecFamily = 'boolean'): FieldCodecAnnotation => ({ codec, 
 
 /**
  * Codec-/kontroltype pr. TOP-LEVEL datafelt (ikke collection-børn). Completeness-testen håndhæver, at nøglerne
- * er nøjagtig de top-level datafelter, de levende schemas producerer — en manglende eller overflødig nøgle
+ * er nøjagtig de top-level datafelter, de levende schemas producerer – en manglende eller overflødig nøgle
  * fejler testen, så transskriptionsfejl fanges.
  */
 export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record<string, FieldCodecAnnotation>>>> = {
@@ -129,5 +129,5 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
   },
 };
 
-/** Baseline-count (§6). Låst mod de levende schemas i completeness-testen — ingen placeholder. */
+/** Baseline-count (§6). Låst mod de levende schemas i completeness-testen – ingen placeholder. */
 export const EXPECTED_FIELD_REF_COUNT = 238;

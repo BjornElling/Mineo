@@ -175,7 +175,7 @@ describe('renderBrevhoved', () => {
 
     renderBrevhoved(mockDoc, data);
 
-    // Kun dato-linjen — ingen J.nr.-linje
+    // Kun dato-linjen – ingen J.nr.-linje
     expect(mockDoc.text).toHaveBeenCalledTimes(1);
     const [[firstText]] = mockDoc.text.mock.calls as [string, ...unknown[]][];
     expect(String(firstText)).not.toContain('J.nr.');
@@ -192,7 +192,7 @@ describe('renderBrevhoved', () => {
 
     renderBrevhoved(mockDoc, data);
 
-    // Ingen suffix — kun journalnr
+    // Ingen suffix – kun journalnr
     expect(mockDoc.text).toHaveBeenCalledWith(
       'J.nr. SAG-999',
       expect.any(Number),

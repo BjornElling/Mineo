@@ -25,7 +25,7 @@ import {
 const ref = (entries: ReadonlyArray<{ date: string; pct: number }>): RateEntry[] =>
   entries.map((e) => ({ effectiveDate: toISODateString(e.date), ratePct: e.pct }));
 
-describe('calculateProcessInterestWithRates — uafhængigt orakel', () => {
+describe('calculateProcessInterestWithRates – uafhængigt orakel', () => {
   it('én dag i skudår bruger 366 årsdage (håndberegnet konstant)', () => {
     // 10000 · 10% · 1 / 366 = 2,732240...
     const result = calculateProcessInterestWithRates(
@@ -52,7 +52,7 @@ describe('calculateProcessInterestWithRates — uafhængigt orakel', () => {
 
   it('skudårs-dag (29. feb) tæller med i dagantallet', () => {
     // 2024-02-28..2024-03-01 = 3 dage (28., 29., 1.) i skudår.
-    // 2025-02-28..2025-03-01 = 2 dage (28., 1.) — ingen 29. feb.
+    // 2025-02-28..2025-03-01 = 2 dage (28., 1.) – ingen 29. feb.
     const leap = calculateProcessInterestWithRates(
       1000000,
       toISODateString('2024-02-28'),
@@ -88,7 +88,7 @@ describe('calculateProcessInterestWithRates — uafhængigt orakel', () => {
   });
 });
 
-describe('calculateProcessInterestBreakdownWithRates — halvårsskift og satsbestemmelse', () => {
+describe('calculateProcessInterestBreakdownWithRates – halvårsskift og satsbestemmelse', () => {
   it('referencesats-skift ved 1. juli opdeler i to perioder med hver sin sats', () => {
     // ref 2% til 30/6, 4% fra 1/7. sur 8% hele vejen.
     // Periode A: 2020-06-01..2020-06-30 (30 dage), total 10%.

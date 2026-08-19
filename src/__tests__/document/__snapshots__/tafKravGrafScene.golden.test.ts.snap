@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`tafKravGrafScene — golden (pixel-troskab) > fastfryser hele scenen for det fulde dokument 1`] = `
+exports[`tafKravGrafScene – golden (pixel-troskab) > fastfryser hele scenen for det fulde dokument 1`] = `
 {
   "background": "#FFFFFF",
   "commands": [
@@ -1030,7 +1030,7 @@ exports[`tafKravGrafScene — golden (pixel-troskab) > fastfryser hele scenen fo
 }
 `;
 
-exports[`tafKravGrafScene — golden (pixel-troskab) > fastfryser hele scenen for det minimale dokument 1`] = `
+exports[`tafKravGrafScene – golden (pixel-troskab) > fastfryser hele scenen for det minimale dokument 1`] = `
 {
   "background": "#FFFFFF",
   "commands": [

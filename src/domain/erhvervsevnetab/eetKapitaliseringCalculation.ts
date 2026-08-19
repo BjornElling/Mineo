@@ -517,7 +517,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringsalder-under-minimum',
-            `Ingen kapitaliseringsfaktor indtastet for alder (${formatAgeForIssue(ageForFactor)}) — tabellen starter ved ${minAge} år.`
+            `Ingen kapitaliseringsfaktor indtastet for alder (${formatAgeForIssue(ageForFactor)}) – tabellen starter ved ${minAge} år.`
           )
         );
         continue;

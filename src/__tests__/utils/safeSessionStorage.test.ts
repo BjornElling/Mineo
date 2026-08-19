@@ -11,7 +11,7 @@ import type { ManifestStorageKey } from '../../config/storageManifest';
 
 /**
  * Denne suite tester storage-MEKANIKKEN (fejlhåndtering, fallbacks), ikke nøglens proveniens.
- * Syntetiske testnøgler brandes derfor eksplicit her. Produktionskode må ALDRIG gøre dette —
+ * Syntetiske testnøgler brandes derfor eksplicit her. Produktionskode må ALDRIG gøre dette –
  * dér er hele pointen, at kun `storageManifest` kan producere en skrivbar nøgle.
  */
 const testKey = (key: string): ManifestStorageKey => key as ManifestStorageKey;
@@ -19,7 +19,7 @@ const testKey = (key: string): ManifestStorageKey => key as ManifestStorageKey;
 /**
  * Skrivegrænsen håndhæves af TYPESYSTEMET, ikke ved runtime. Assertionen er derfor
  * `@ts-expect-error`-markørerne selv: `typecheck:test` fejler, hvis en af dem holder op med at være
- * en fejl — dvs. hvis brandingen bliver blødt op, så en vilkårlig streng igen kan skrives.
+ * en fejl – dvs. hvis brandingen bliver blødt op, så en vilkårlig streng igen kan skrives.
  * Funktionerne kaldes bevidst IKKE her; der er intet runtime-kast at fange.
  */
 const _writeBoundaryIsCompilerEnforced = (): void => {
@@ -27,7 +27,7 @@ const _writeBoundaryIsCompilerEnforced = (): void => {
   writeSessionStorageValue('mineo_invalidDrafts', 'x');
   // @ts-expect-error gælder også den optional-variant, produktionskoden faktisk bruger
   writeOptionalSessionStorageValue('mineo_stamdata', 'x');
-  // @ts-expect-error og enhver anden vilkårlig streng — også når den kommer via en variabel,
+  // @ts-expect-error og enhver anden vilkårlig streng – også når den kommer via en variabel,
   // hvor en AST-regel principielt er blind
   writeOptionalSessionStorageValue(String('mineo_input'), 'x');
 };

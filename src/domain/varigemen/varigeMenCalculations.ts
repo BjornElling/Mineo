@@ -121,7 +121,7 @@ export function beregnVarigeMenGodtgoerelseWithRates(
   if (!skadestidspunktISO) return null;
 
   // --- Rate lookup (beregningsdato) ---
-  // beregningsdato persisteres som ISO (optionalIsoDateString). Parse den direkte som ISO —
+  // beregningsdato persisteres som ISO (optionalIsoDateString). Parse den direkte som ISO –
   // samme sti som resolveMenSatsForBeregningsdato og PDF-flowet bruger. (Tidligere gik den
   // unødigt via ISO→dansk→Date, hvilket var en konvergens-afvigelse for samme felt.)
   const beregningsdatoISO = coerceToISODateString(beregningsdatoRaw);

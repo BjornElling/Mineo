@@ -5,7 +5,7 @@ import { isAuthenticated } from './auth';
 import type { InputRuntimeBinding } from '../inputCore/react';
 
 /**
- * Permanent UX-gate mod utilsigtet adgang. Bevidst svag — ikke en sikkerhedsgrænse.
+ * Permanent UX-gate mod utilsigtet adgang. Bevidst svag – ikke en sikkerhedsgrænse.
  * Bindende regler: src/contracts/auth-gate-contract.md (uddybning: docs/architecture/auth-gate-architecture.md).
  */
 const AuthGate = ({

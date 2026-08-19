@@ -12,7 +12,7 @@ type LazyChunkRecoveryNoticeProps = Readonly<{
 }>;
 
 /**
- * Sidste værn for en manglende lazy chunk — IKKE en opdateringslinje.
+ * Sidste værn for en manglende lazy chunk – IKKE en opdateringslinje.
  *
  * Programmet har ingen synlig opdaterings-UI: en ny version installeres komplet før render ved næste
  * opstart, og en åben session skifter aldrig version (`serviceWorkerBootstrap`). Denne linje dækker

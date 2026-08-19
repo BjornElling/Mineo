@@ -3,8 +3,8 @@ import { usePersistedActiveTab } from '../../../hooks/usePersistedActiveTab';
 /**
  * Varige méns ene kanoniske viewmodel (`page-component-contract.md` §4.4).
  *
- * Modellen er tynd, fordi sidens ansvar naturligt ER tynd: siden ejer ingen input-state — `MenberegningTab`
- * læser og skriver selv gennem inputCore — så det eneste page-niveau-ansvar er faneorkestreringen. Den er
+ * Modellen er tynd, fordi sidens ansvar naturligt ER tynd: siden ejer ingen input-state – `MenberegningTab`
+ * læser og skriver selv gennem inputCore – så det eneste page-niveau-ansvar er faneorkestreringen. Den er
  * **bevidst bevaret for ensartning** (§4.4's anti-refactor-back): svaret på "hvor bor en §2.1-sides afledte
  * state og handlers" skal være det samme for alle otte sider. Inlin den ikke.
  */

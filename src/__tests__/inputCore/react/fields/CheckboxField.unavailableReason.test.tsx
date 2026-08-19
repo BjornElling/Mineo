@@ -26,7 +26,7 @@ import {
 import { createTestCatalog, omregningField, testLocation } from '../../testCatalog';
 
 // Betinget afkrydsningsfelt (page-component-contract.md §10.5): et valg, hvis forudsætning mangler,
-// SKJULES ikke — det vises inaktivt og umarkeret med årsagen i tooltippet, og den afsluttede værdi
+// SKJULES ikke – det vises inaktivt og umarkeret med årsagen i tooltippet, og den afsluttede værdi
 // bevares uændret imens.
 
 let catalog: InputCatalog;
@@ -86,7 +86,7 @@ const renderCheckbox = (unavailableReason: string | null) =>
 const checkbox = (): HTMLInputElement =>
   screen.getByRole('checkbox', { name: 'Mer-erstatning forhøjet folkepension' });
 
-describe('CheckboxField — unavailableReason (§10.5 betinget afkrydsningsfelt)', () => {
+describe('CheckboxField – unavailableReason (§10.5 betinget afkrydsningsfelt)', () => {
   it('viser feltet inaktivt og umarkeret, når forudsætningen mangler', () => {
     dispatchInput(store, catalog, settleField(field, 'true'));
     renderCheckbox('Der sker ingen forhøjelse i perioden');
@@ -95,7 +95,7 @@ describe('CheckboxField — unavailableReason (§10.5 betinget afkrydsningsfelt)
     expect(checkbox().checked).toBe(false);
   });
 
-  it('skjuler ikke feltet — labelen bliver stående, så valget stadig kan ses', () => {
+  it('skjuler ikke feltet – labelen bliver stående, så valget stadig kan ses', () => {
     renderCheckbox('Der sker ingen forhøjelse i perioden');
     expect(screen.getByText('Mer-erstatning forhøjet folkepension')).toBeInTheDocument();
   });
@@ -117,7 +117,7 @@ describe('CheckboxField — unavailableReason (§10.5 betinget afkrydsningsfelt)
     dispatchInput(store, catalog, settleField(field, 'true'));
     renderCheckbox('Der sker ingen forhøjelse i perioden');
 
-    // `user-event` afviser selv at klikke på et felt uden pointer-events — netop den tilstand er
+    // `user-event` afviser selv at klikke på et felt uden pointer-events – netop den tilstand er
     // beviset for, at feltet ikke kan aktiveres. Afvisningen hævdes derfor eksplicit, hvorefter et
     // rå klik forbi pointer-værnet bekræfter, at heller ikke DET committer noget.
     await expect(userEvent.click(checkbox())).rejects.toThrow(/pointer-events: none/);
@@ -140,7 +140,7 @@ describe('CheckboxField — unavailableReason (§10.5 betinget afkrydsningsfelt)
     expect(checkbox().checked).toBe(false);
   });
 
-  it('viser årsagen som tooltip ved hover — den eneste visningskanal', async () => {
+  it('viser årsagen som tooltip ved hover – den eneste visningskanal', async () => {
     renderCheckbox('Der sker ingen forhøjelse i perioden');
 
     // Årsagen må ikke stå som tekstknude i fladen, før brugeren hoverer.

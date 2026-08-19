@@ -93,7 +93,7 @@ describe('persistenceLoadSanitization', () => {
   // - rename: beregnesTabtArbejdsfortjeneste → kravPaaTabtArbejdsfortjeneste (jaNej → jaNejSkjul)
   // - fjernet: allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden + allowReguleringMedUdloebMedMaaneder
   //   (flyttet til device-lokale appSettings)
-  // Kontrakt: schema-evolution.md §3.1a — gammel værdi tabes bevidst (ingen migrator),
+  // Kontrakt: schema-evolution.md §3.1a – gammel værdi tabes bevidst (ingen migrator),
   // de gamle feltnavne strippes som ukendte, og de nye tre-tilstands-felter loades med default 'Ja'.
   it('strippper omdøbte og fjernede EO-felter fra 2026-06-03-bumpet og loader nye felter med default', () => {
     const init = createErstatningsopgoerelseInitialValues() as Record<string, unknown>;

@@ -79,7 +79,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
     )!.command, {});
     const revisionEfterCommit = store.getState().revision;
 
-    // Åbn igen og tast — intet må ændre sig i runtime.
+    // Åbn igen og tast – intet må ændre sig i runtime.
     let editor = openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision);
     editor = changeDraft(editor, '9999');
     editor = changeDraft(editor, 'abc');
@@ -112,7 +112,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
   });
 
   it('gyldigt settle skriver canonical og fjerner rejected; ugyldigt settle er XOR (§1.5)', () => {
-    // ugyldigt settle — '9x9' er ikke-parsebart format (interiør bogstav), ikke blot out-of-bounds.
+    // ugyldigt settle – '9x9' er ikke-parsebart format (interiør bogstav), ikke blot out-of-bounds.
     dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '9x9')));
     let view = viewOf(aargangRef);
     expect(view.kind).toBe('rejected');
@@ -142,7 +142,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
   });
 
   // Escape skal dække alle TRE udgangspunkter. Kun det gyldige var
-  // dækket. De to andre er ikke symmetrisk pynt — de rammer hver sin invariant, som en Escape-fejl kan bryde
+  // dækket. De to andre er ikke symmetrisk pynt – de rammer hver sin invariant, som en Escape-fejl kan bryde
   // usynligt: fra TOMT må Escape ikke fabrikere et felt (§1.7 "tomhed giver aldrig rød feltfejl"), og fra
   // FEJLENDE må den ikke tavst rydde den afviste råtekst, brugeren skal vende tilbage til (§1.3 sidste led).
 
@@ -160,7 +160,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
     expect(settled.intent.kind).toBe('none');
     dispatchSettle(settled);
 
-    // Ingen revision, ingen canonical værdi, ingen rejected råtekst — og ingen rød fejl på et tomt felt.
+    // Ingen revision, ingen canonical værdi, ingen rejected råtekst – og ingen rød fejl på et tomt felt.
     expect(store.getState().revision).toBe(revisionFoer);
     expect(aargangRef.descriptor.readCanonical(store.getState().input.sections, aargangRef.address)).toBeUndefined();
     expect(store.getState().input.rejectedInputs[serializeFieldAddress(aargangRef.address)]).toBeUndefined();
@@ -189,7 +189,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
     expect(settled.intent.kind).toBe('none');
     dispatchSettle(settled);
 
-    // Den fejlende tilstand står uændret — Escape rettede ikke, men ryddede heller ikke.
+    // Den fejlende tilstand står uændret – Escape rettede ikke, men ryddede heller ikke.
     expect(store.getState().revision).toBe(revisionEfter);
     expect(store.getState().input.rejectedInputs[serializeFieldAddress(aargangRef.address)]).toEqual(rejectedFoer);
     expect(evaluate().reader.read(aargangRef).status).toBe('error');
@@ -221,7 +221,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
     const issueFoer = activeFieldIssueFor(evaluate().issues, aargangRef);
     expect(issueFoer?.reason).toBe('format');
 
-    // åbn og tast en gyldig værdi — issue må IKKE forsvinde, før settle
+    // åbn og tast en gyldig værdi – issue må IKKE forsvinde, før settle
     openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision);
     const issueUnderRedigering = activeFieldIssueFor(evaluate().issues, aargangRef);
     expect(issueUnderRedigering?.reason).toBe('format');
@@ -232,7 +232,7 @@ describe('felt-editor-state-machine (§3.5, §1.2, §1.3)', () => {
   });
 });
 
-describe('felt-editor-engine — visning, issues og immediate commit', () => {
+describe('felt-editor-engine – visning, issues og immediate commit', () => {
   it('formatSettledFieldText viser rejected råtekst ordret og canonical via codec.format', () => {
     dispatchSettle(settleEditor(changeDraft(openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().revision), '2010')));
     expect(formatSettledFieldText(aargangRef, viewOf(aargangRef))).toBe('2010');
@@ -262,7 +262,7 @@ describe('felt-editor-engine — visning, issues og immediate commit', () => {
     expect(enhed.descriptor.readCanonical(store.getState().input.sections, enhed.address)).toBe('uger');
     expect(origin.editorLocationId).toBe('form:test');
     // Invariant: et FELT-commit bærer ALTID sin feltadresse. `HistoryOrigin.field` er valgfri udelukkende for
-    // strukturelle rækkehandlinger (insert/delete/reorder), som ikke har ét felt — aldrig for et feltcommit.
+    // strukturelle rækkehandlinger (insert/delete/reorder), som ikke har ét felt – aldrig for et feltcommit.
     expect(origin.kind).toBe('field');
     if (origin.kind !== 'field') throw new Error('feltcommit skal give en field-origin');
     expect(origin.field).toEqual(enhed.address);
@@ -328,7 +328,7 @@ describe('felt-editor-engine — visning, issues og immediate commit', () => {
   });
 });
 
-describe('felt-editor i dynamisk række — placeholder-first-invalid overlever (§1.11)', () => {
+describe('felt-editor i dynamisk række – placeholder-first-invalid overlever (§1.11)', () => {
   it('første fejlende settle i en ny række promoverer rækken og bevarer den rå tekst', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('row-a')), { origin: testRowOrigin() });
     const belob = belobField.bind('row-a');

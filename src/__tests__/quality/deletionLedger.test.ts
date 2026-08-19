@@ -61,7 +61,7 @@ const DELETION_LEDGER: readonly DeletedPath[] = [
 
 /**
  * Den forkastede parallelle inputmodel i `src/input/`. Mappen skal enten være helt væk eller kun
- * indeholde levende moduler — aldrig den forkastede model. Navnene her er dens kendetegnende moduler.
+ * indeholde levende moduler – aldrig den forkastede model. Navnene her er dens kendetegnende moduler.
  */
 const REJECTED_PARALLEL_INPUT_MODEL: readonly string[] = [
   'src/input/fieldAddress.ts',
@@ -91,7 +91,7 @@ describe('slettelisterne er tomme (fraværsgate)', () => {
    *
    * En håndskrevet ledger driver fra den autoritative liste og kommer til at mangle poster. Roden er
    * duplikering: arkitekturværnet `input/deleted-legacy-architecture-import` fører allerede den
-   * autoritative liste over slettede legacy-moduler — men det måler IMPORTER, ikke fysisk eksistens.
+   * autoritative liste over slettede legacy-moduler – men det måler IMPORTER, ikke fysisk eksistens.
    * De to kontroller er komplementære og skal derfor dele kilde, ikke liste hver sit udsnit. Her læses
    * den ene liste, så en fremtidig tilføjelse ét sted automatisk dækkes af begge.
    *
@@ -114,7 +114,7 @@ describe('slettelisterne er tomme (fraværsgate)', () => {
     // Blev listen tømt, ville kontrollen ovenfor være grøn uden at måle noget. Gulvet er den målte
     // størrelse, så en utilsigtet tømning ses.
     expect(LEGACY_MODULE_PATH_SELFTEST.paths.length).toBeGreaterThanOrEqual(30);
-    // Og de otte `Styled*Field` ER faktisk i manifestet — de er den post, en håndskrevet ledger
+    // Og de otte `Styled*Field` ER faktisk i manifestet – de er den post, en håndskrevet ledger
     // lettest kommer til at mangle.
     for (const name of ['Text', 'Amount', 'Date', 'Integer', 'Percent', 'Fraction', 'Week', 'Year']) {
       expect(
@@ -127,7 +127,7 @@ describe('slettelisterne er tomme (fraværsgate)', () => {
   /**
    * Selvtest: en eksistens-kontrol, der ikke kan finde noget, ville rapportere grønt
    * for en vilkårlig liste. Kontrollen prøves derfor i modsat retning mod en fil, der beviseligt
-   * FINDES — kan prædikatet ikke se den, er reglen selv i stykker, ikke træet rent.
+   * FINDES – kan prædikatet ikke se den, er reglen selv i stykker, ikke træet rent.
    */
   it('eksistens-prædikatet virker i begge retninger (ikke vakuøst)', () => {
     expect(exists('src/__tests__/quality/deletionLedger.test.ts')).toBe(true);

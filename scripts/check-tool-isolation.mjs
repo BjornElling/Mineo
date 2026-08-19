@@ -5,7 +5,7 @@
  *
  * Baggrund: `@playwright/cli` og `@playwright/mcp` pinner en anden Playwright-runtime end
  * `@playwright/test`. Da begge familier deklarerer kommandoen `playwright`, kan npm kun hejse
- * den ene til `node_modules/.bin/playwright` — og valget er ikke synligt nogen steder. Ramte
+ * den ene til `node_modules/.bin/playwright` – og valget er ikke synligt nogen steder. Ramte
  * slottet CLI/MCP-familien, kørte `npx playwright test` testfilerne med en anden runner-instans
  * end den, filerne importerer, og hver eneste E2E-fil fejlede med «did not expect test.describe()
  * to be called here», før den overhovedet blev kørt.
@@ -39,7 +39,7 @@ const readJson = (filePath) => JSON.parse(readFileSync(filePath, 'utf8'));
 
 const readOptionalJson = (filePath) => (existsSync(filePath) ? readJson(filePath) : null);
 
-/** Top-level pakker er dem npm hejser til `node_modules/<navn>` — kun de kæmper om `.bin`-slottet. */
+/** Top-level pakker er dem npm hejser til `node_modules/<navn>` – kun de kæmper om `.bin`-slottet. */
 const topLevelLockEntries = (lockPackages) => Object.entries(lockPackages)
   .filter(([lockPath]) => /^node_modules\/(@[^/]+\/)?[^/]+$/.test(lockPath))
   .map(([lockPath, entry]) => ({ name: lockPath.slice('node_modules/'.length), entry }));
@@ -91,12 +91,12 @@ const packageNameFromBinTarget = (target) => {
  *
  * npm bruger to forskellige mekanismer, og kontrollen skal kunne læse dem begge:
  *   - POSIX (bl.a. CI's ubuntu-runner): et ægte symlink, hvis MÅL er pakkestien. Filens
- *     indhold er den pegede-på fil, så det skal læses med readlink — ikke readFileSync,
+ *     indhold er den pegede-på fil, så det skal læses med readlink – ikke readFileSync,
  *     der følger linket og udleverer selve CLI-kildekoden.
  *   - Windows: en cmd-/sh-shim, dvs. en almindelig fil hvis INDHOLD nævner pakkestien.
  *
  * Kan ejeren ikke afgøres, rapporteres det som `undetermined` frem for som en forkert ejer.
- * Ellers ville en ulæselig shim ligne en ægte konflikt — præcis den fejl, denne kontrol
+ * Ellers ville en ulæselig shim ligne en ægte konflikt – præcis den fejl, denne kontrol
  * selv fejlede med i CI, hvor symlinket blev læst som «et ukendt sted».
  */
 const resolveInstalledCommandOwner = (repoRoot, command) => {
@@ -230,7 +230,7 @@ const main = () => {
     process.exitCode = 1;
     return;
   }
-  console.log('check:tool-isolation — kommandonavnene har én ejer, og agentværktøjerne bor i deres eget træ.');
+  console.log('check:tool-isolation – kommandonavnene har én ejer, og agentværktøjerne bor i deres eget træ.');
 };
 
 const isMain = process.argv[1] !== undefined

@@ -20,7 +20,7 @@ import {
 //
 // **Skrivegrænsen er STRUKTUREL, ikke bevogtet.** Zustands `StoreApi` forlader aldrig dette
 // modul: `setState`/`replace` findes ikke på den eksporterede type. Et nyt modul, der importerer storen, kan
-// derfor slet ikke formulere et uvalideret write — hverken direkte, gennem et alias eller gennem en
+// derfor slet ikke formulere et uvalideret write – hverken direkte, gennem et alias eller gennem en
 // type-assertion. Det er den forskel [[project_typed_write_boundary_over_ast_guard]] efterspørger: grænsen er
 // fjernet som mulighed frem for at blive holdt lukket af et AST-værn oven på en åben capability.
 
@@ -41,7 +41,7 @@ export type SlimInputCommit = Readonly<{
 }>;
 
 /**
- * Den observerbare runtimetilstand. Ren DATA — mutatorerne bor på handlen, ikke i state.
+ * Den observerbare runtimetilstand. Ren DATA – mutatorerne bor på handlen, ikke i state.
  *
  * Tidligere lå `applyCommit`/`hydrate` som felter i selve state-objektet. Det var det, der tvang `StoreApi`
  * ud i det offentlige: en kalder skulle have `getState()` for at nå en mutator, og fik dermed `setState` med.
@@ -60,7 +60,7 @@ export type SlimInputStoreState = Readonly<{
 /**
  * Handlen til den autoritative runtime.
  *
- * Den eksponerer PRÆCIS de operationer, runtime har brug for — og ingen generel mutation. `applyCommit`,
+ * Den eksponerer PRÆCIS de operationer, runtime har brug for – og ingen generel mutation. `applyCommit`,
  * `hydrate` og `restore` er de tre skriveveje, og de er navngivne, validerede transaktioner. Der findes
  * ingen `setState`: det er derfor ikke længere muligt at skrive input uden at gå gennem `dispatchInput`s
  * serialisering, storage-verifikation, history og revisionsfremskrivning.

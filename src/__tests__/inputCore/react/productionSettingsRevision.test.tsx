@@ -9,7 +9,7 @@ import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../../settings/appSettingsSchema';
 import { SOURCE_SETTINGS_KEYS, projectSourceSettings } from '../../../settings/sourceSettings';
 
-describe('production runtime — settingssnapshot', () => {
+describe('production runtime – settingssnapshot', () => {
   it('publicerer det PROJEKTEREDE snapshot og revisionen som én frisk evalueringskilde', () => {
     const initial: AppSettings = { ...DEFAULT_APP_SETTINGS };
     const { rerender } = renderHook(
@@ -17,7 +17,7 @@ describe('production runtime — settingssnapshot', () => {
       { initialProps: { settings: initial } }
     );
     const before = captureProductionEvaluationSource();
-    // Testen sammenlignede tidligere med `toBe(initial)` — altså identitet med hele `AppSettings`.
+    // Testen sammenlignede tidligere med `toBe(initial)` – altså identitet med hele `AppSettings`.
     // Broen publicerer det projekterede snapshot, og DET er pointen: den brede værdi må
     // ikke nå evalueringen. Vi pinner derfor både at snapshottet svarer til det committede input, OG
     // at det ikke bærer nøgler uden for sættet.

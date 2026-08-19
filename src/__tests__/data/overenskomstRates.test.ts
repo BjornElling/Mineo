@@ -407,7 +407,7 @@ describe('assertValidSfggPolicy (vacuous-pass-værn)', () => {
  * Den KANONISKE overenskomst-etiket: navn OG parter, ét sted.
  *
  * Formlen stod før udskrevet i hånden seks steder, mens de to EO-PDF-sektioner og sagsniveauet viste
- * navnet ALENE — så samme overenskomst hed to forskellige ting i dokumentet og på skærmen.
+ * navnet ALENE – så samme overenskomst hed to forskellige ting i dokumentet og på skærmen.
  * Brugerbeslutning 2026-07-31 ensartede dem; testen pinner den ene formel, alle nu deler.
  */
 describe('resolveOverenskomstDisplay', () => {
@@ -417,7 +417,7 @@ describe('resolveOverenskomstDisplay', () => {
     expect(resolveOverenskomstDisplay('   ')).toBe('-');
   });
 
-  it('respekterer en egen fallback-tekst — UI-fladerne bruger "Ingen valgt"', () => {
+  it('respekterer en egen fallback-tekst – UI-fladerne bruger "Ingen valgt"', () => {
     expect(resolveOverenskomstDisplay(undefined, 'Ingen valgt')).toBe('Ingen valgt');
     expect(resolveOverenskomstDisplay('  ', 'Ingen valgt')).toBe('Ingen valgt');
   });
@@ -428,7 +428,7 @@ describe('resolveOverenskomstDisplay', () => {
 
   it('viser kun den FØRSTE part pr. side, selv når kilden har flere', () => {
     // `bygge-anlaeg` har to arbejdsgiverparter (Dansk Industri, Dansk Byggeri). Etiketten skal være
-    // læsbar i en dropdown og på en dokumentlinje, ikke udtømmende — så kun den første vises.
+    // læsbar i en dropdown og på en dokumentlinje, ikke udtømmende – så kun den første vises.
     const meta = getOverenskomstMetaById('bygge-anlaeg');
     expect(meta?.arbejdsgiverOrg.length).toBeGreaterThan(1);
     expect(resolveOverenskomstDisplay('bygge-anlaeg')).not.toContain('Dansk Byggeri');
@@ -1028,7 +1028,7 @@ describe('resolveOverenskomstRef', () => {
   });
 
   it('ukendt men velformet ID → returnerer ref (ren strukturel parse, ingen validering)', () => {
-    // resolveOverenskomstRef validerer IKKE om ID'et eksisterer — den parser kun strukturen.
+    // resolveOverenskomstRef validerer IKKE om ID'et eksisterer – den parser kun strukturen.
     // Brug getOverenskomstMetaById for eksistens-check.
     const ref = resolveOverenskomstRef('nonexistent-xyz');
     expect(ref).toBeDefined();

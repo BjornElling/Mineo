@@ -3,16 +3,16 @@
 Denne fil beskriver beregningslogikken for differencekravet. Beregningen udgør fane 5 på EET-siden.
 
 Se også:
-- [loebende-eet.md](./loebende-eet.md) — fane 2
-- [kapitaliseret-eet.md](./kapitaliseret-eet.md) — fane 3
-- [eal-beregning.md](./eal-beregning.md) — fane 4
-- [mer-erstatning-pensionsalder.md](./mer-erstatning-pensionsalder.md) — fradrag 4: mer-erstatning ved forhøjet folkepensionsalder
-- [fejlkatalog.md](./fejlkatalog.md) — alle fejl og advarsler
-- [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) — særregel for ≤ 2 år til folkepensionsalderen
+- [loebende-eet.md](./loebende-eet.md) – fane 2
+- [kapitaliseret-eet.md](./kapitaliseret-eet.md) – fane 3
+- [eal-beregning.md](./eal-beregning.md) – fane 4
+- [mer-erstatning-pensionsalder.md](./mer-erstatning-pensionsalder.md) – fradrag 4: mer-erstatning ved forhøjet folkepensionsalder
+- [fejlkatalog.md](./fejlkatalog.md) – alle fejl og advarsler
+- [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) – særregel for ≤ 2 år til folkepensionsalderen
 
 ---
 
-## Del 1 — For dig
+## Del 1 – For dig
 
 ### Hvad er differencekravet?
 
@@ -44,9 +44,9 @@ Fane 5 beregner ikke nye ASL- eller EAL-typer. Den trækker de øvrige faners re
 | **Kapitaliseret EET (fane 3)** | Kørsel af `computeEetKapitaliseringCalculation` |
 | **Løbende ydelser (fane 2)** | Kørsel af `computeEetLoebendeYdelser` med `beregningsdato = dagFørBeregningsdato` |
 
-Begge indgangspunkter i `eetLoebendeYdelserCalculation.ts` kalder den samme kerne (`computeEetLoebendeYdelserForContext`) og adskiller sig kun ved konteksten: fane 5 bruger `computeEetLoebendeYdelser` (kontekst `eet_page`), mens `computeEetLoebendeYdelserForEoImport` er Erstatningsopgørelsens importport (kontekst `eo_import` med en eksplicit `slutdato`). Importporten indgår ikke i differencekravets dataflow — den er en selvstændig aftager af den samme beregning, kaldt fra `eetImportPort.ts`.
+Begge indgangspunkter i `eetLoebendeYdelserCalculation.ts` kalder den samme kerne (`computeEetLoebendeYdelserForContext`) og adskiller sig kun ved konteksten: fane 5 bruger `computeEetLoebendeYdelser` (kontekst `eet_page`), mens `computeEetLoebendeYdelserForEoImport` er Erstatningsopgørelsens importport (kontekst `eo_import` med en eksplicit `slutdato`). Importporten indgår ikke i differencekravets dataflow – den er en selvstændig aftager af den samme beregning, kaldt fra `eetImportPort.ts`.
 
-### Fradrag 1 — Løbende ydelser
+### Fradrag 1 – Løbende ydelser
 
 Fradrag 1 beregnes med samme grundmodel som fane 2, men altid kun til og med dagen før beregningsdatoen.
 
@@ -69,7 +69,7 @@ Ved særreglen for ≤ 2 år til folkepension gælder derudover:
 - Hvis der er truffet `Endelig` afgørelse inden for eller præcis 2 år før folkepensionsalderen, og virkningsdatoen ligger på eller efter 2-årsgrænsen, fratrækkes ingen løbende ydelser.
 - Hvis der er truffet `Endelig` afgørelse mere end 2 år før folkepension, eller afgørelsen ikke er endelig, fratrækkes løbende ydelser til og med den faktiske sidste dag, som ydelsen er beregnet til, dog aldrig efter dagen før folkepensionsdatoen.
 
-#### Tilbagevirkende kraft — endelig afgørelse gør midlertidig ydelse endelig (toggle)
+#### Tilbagevirkende kraft – endelig afgørelse gør midlertidig ydelse endelig (toggle)
 
 Denne regel styres af valgmuligheden `endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft` på differencekrav-fanen (fane 5, sektion "Valgmuligheder"). Valget er **sagsdata** på erhvervsevnetab-sektionen, gemmes i `.eo` og følger med sagen. Default for nye sager er `true`; ældre `.eo`-filer uden feltet får `true` ved load. Reglen påvirker **kun** differencekravet (fane 5), ikke fane 2.
 
@@ -80,13 +80,13 @@ Denne regel styres af valgmuligheden `endeligEetGoerMidlertidigEndeligMedTilbage
 Hovedreglen er, at midlertidigt EET ikke fradrages i differencekravet for skader fra 16-06-2011 og frem. Denne regel bryder med det princip i ét tilfælde:
 
 - Hvis en `Endelig` afgørelses virkningsdato ligger inden i den periode, hvor der beregnes løbende ydelse for en `Midlertidig` afgørelse (dvs. inden for `[midlertidigs virkningsdato, midlertidigs ophørsdato]`), så bliver den midlertidige ydelse endelig med tilbagevirkende kraft fra den endelige virkningsdato.
-- Der foretages derfor fradrag i differencekravet for den midlertidige afgørelses **egen** løbende ydelse — beregnet med den midlertidiges egen rest-EET-procent og egen sats, præcis som fane 2 har beregnet den — for delperioden fra den endelige afgørelses virkningsdato til den midlertidiges normale ophør.
+- Der foretages derfor fradrag i differencekravet for den midlertidige afgørelses **egen** løbende ydelse – beregnet med den midlertidiges egen rest-EET-procent og egen sats, præcis som fane 2 har beregnet den – for delperioden fra den endelige afgørelses virkningsdato til den midlertidiges normale ophør.
 
 Beløbet beregnes ved at genbruge den midlertidiges allerede beregnede periode-rækker: rækker der starter på eller efter den endelige virkningsdato medregnes fuldt, og en eventuel række der krydser den endelige virkningsdato recomputes for delperioden med samme regel som kilden (`round0(måneder × månedlig ydelse)`).
 
 **Gating:** Reglen er en no-op for skader før 16-06-2011, fordi midlertidige ydelser her allerede fradrages 100 % efter hovedreglen. Den tidligste endelige afgørelses virkningsdato er den, der udløser reglen.
 
-### Fradrag 2 — Kapitaliseret EET
+### Fradrag 2 – Kapitaliseret EET
 
 Det samlede kapitaliserede beløb hentes fra fane 3. Kun kapitaliseringer med kapitaliseringsdato på eller før beregningsdatoen medregnes.
 
@@ -94,7 +94,7 @@ Ved særreglen er dette især relevant i to situationer:
 - `Endelig` inden for eller præcis 2 år før folkepension: hele kapitalbeløbet fratrækkes.
 - `Delvist endelig` inden for eller præcis 2 år før folkepension: kun den faktisk kapitaliserede andel fratrækkes.
 
-### Fradrag 3 — Tilbageværende EET
+### Fradrag 3 – Tilbageværende EET
 
 Fradrag 3 dækker den del af EET, der fortsat består som løbende ydelse på beregningsdatoen.
 
@@ -166,7 +166,7 @@ I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedregle
 
 ---
 
-## Del 2 — AI-agent: teknisk reference
+## Del 2 – AI-agent: teknisk reference
 
 ### Primær fil
 

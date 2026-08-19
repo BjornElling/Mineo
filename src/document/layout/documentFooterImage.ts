@@ -44,7 +44,7 @@ export const buildDocumentFooterText = (): string => `${getDocumentFooterBrand()
 
 /**
  * Bygger (eller henter fra cache) versions-footeren som roteret JPEG-billede.
- * Returnerer null, hvis canvas ikke er tilgængeligt (fx server/test uden DOM) —
+ * Returnerer null, hvis canvas ikke er tilgængeligt (fx server/test uden DOM) –
  * kalderen falder da tilbage til en tekst-footer.
  */
 export const getDocumentFooterImage = (footerText: string): DocumentFooterImage | null => {

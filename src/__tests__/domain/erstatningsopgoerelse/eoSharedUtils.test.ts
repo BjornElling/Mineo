@@ -308,7 +308,7 @@ describe('eoSharedUtils', () => {
       expect(hasPctSourceOrInput(0.129, undefined)).toBe(true);
     });
 
-    it('er false når overenskomstsats er 0 — 0 fra overenskomst er "ingen sats" ligesom undefined', () => {
+    it('er false når overenskomstsats er 0 – 0 fra overenskomst er "ingen sats" ligesom undefined', () => {
       expect(hasPctSourceOrInput(0, undefined)).toBe(false);
     });
 

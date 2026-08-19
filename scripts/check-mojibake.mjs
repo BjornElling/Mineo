@@ -69,6 +69,31 @@ const FORBIDDEN_PATTERNS = [
   },
 ];
 
+// Tankestregspolitik (AGENTS.md § Sprogpolitik): em-dash må ikke bruges som tankestreg.
+// Kun de former, der reelt ER tegnsætning, afvises – pladsholder-«—» og em-dash-som-inputdata
+// er bevidste undtagelser, så gaten fanger nye fejl uden at kræve, at undtagelserne omskrives.
+const EM_DASH = '—';
+
+// Filer hvor em-dash er det, koden handler om (tegnklasser, ASCII-fallbacktabeller).
+const EM_DASH_DATA_FILES = new Set([
+  'src/utils/draftNormalization.ts',
+  'src/__tests__/utils/draftNormalization.test.ts',
+  'src/document/layout/pdfTextUtils.ts',
+]);
+
+// Tankestreg-formerne: mellemrum på begge sider, i slutningen af en linje med indhold,
+// eller først på en linje/streng-fortsættelse efterfulgt af tekst. Det sidste mønster fanger
+// tankestreg klemt direkte mellem to ord – bevidst afgrænset til bogstav/ciffer
+// på begge sider (inkl. æøå), så pladsholderen «—» og `'—'` ikke rammes af, at citationstegnene
+// selv er \S.
+const EM_DASH_PROSE_PATTERNS = [
+  new RegExp(` ${EM_DASH} `, 'g'),
+  new RegExp(`\\S ${EM_DASH}$`, 'gm'),
+  new RegExp(`^${EM_DASH} \\S`, 'gm'),
+  new RegExp(`['"«]${EM_DASH} \\S`, 'g'),
+  new RegExp(`[\\p{L}\\p{N}]${EM_DASH}[\\p{L}\\p{N}]`, 'gu'),
+];
+
 const indexToLineColumn = (text, index) => {
   let line = 1;
   let column = 1;
@@ -82,6 +107,25 @@ const indexToLineColumn = (text, index) => {
     }
   }
   return { line, column };
+};
+
+const findEmDashHits = (text, relativePath) => {
+  if (EM_DASH_DATA_FILES.has(relativePath)) return [];
+  const hits = [];
+  for (const regex of EM_DASH_PROSE_PATTERNS) {
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      const { line, column } = indexToLineColumn(text, match.index);
+      hits.push({
+        file: relativePath,
+        line,
+        column,
+        token: match[0],
+        reason: 'Em-dash brugt som tankestreg – brug en-dash med mellemrum omkring (jf. AGENTS.md)',
+      });
+    }
+  }
+  return hits;
 };
 
 const listTrackedTextFiles = () => {
@@ -191,6 +235,7 @@ const main = () => {
     }
 
     failures.push(...findTokenHits(text, relativePath));
+    failures.push(...findEmDashHits(text, relativePath));
   }
 
   if (failures.length > 0) {

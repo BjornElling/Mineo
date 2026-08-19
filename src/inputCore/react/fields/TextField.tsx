@@ -11,7 +11,7 @@ import { useFieldLabel } from '../useFieldLabel';
 import { resolveTextCharPolicy } from './charLengthPolicy';
 
 // Tekst-felt (§2.4/§3.5): en TYND skal over `useFormFieldSurface`. Modtager KUN sin konkrete
-// `field`/`location` — ikke `value`, `parse`, `format`, `onCommit`, invalid-key eller error-reporter (§2.4:
+// `field`/`location` – ikke `value`, `parse`, `format`, `onCommit`, invalid-key eller error-reporter (§2.4:
 // "et callsite er først migreret, når det kun modtager sin ref/editorlocation"). Al datamodel-logik ligger i
 // codec'et + editor-engine + runner; komponenten ejer kun rendering, hit-area og navigation.
 

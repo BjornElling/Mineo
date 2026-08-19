@@ -64,7 +64,7 @@ describe('writeRenteOversigtDocumentContent', () => {
     expect(build().blocks).not.toContainEqual(expect.objectContaining({ text: expect.stringContaining('Beregning derefter er hypotetisk!') }));
   });
 
-  it('kalder ikke addFooter eller save — det er kalderens ansvar', () => {
+  it('kalder ikke addFooter eller save – det er kalderens ansvar', () => {
     const writer = createPdfChannelWriter();
     const { composer, build } = createDocumentComposer();
     const saveSpy = vi.spyOn(writer, 'build');

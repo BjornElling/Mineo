@@ -37,10 +37,10 @@ import type { CollectionRef } from '../../inputCore/fieldAddress';
 
 // Øvrige krav-tabel: Rækkeinfrastruktur, celleværdier og celle-
 // redigering går udelukkende gennem inputCore, som BeregnetRenteTable/StandardLoenTable:
-//  - `useCollectionRows(eoOevrigeKravPerioderCollection)` ejer rækkernes id'er + insert/delete/reorder (§3.8) —
+//  - `useCollectionRows(eoOevrigeKravPerioderCollection)` ejer rækkernes id'er + insert/delete/reorder (§3.8) –
 //    ingen draftkopi, fingerprint, invalidDrafts-reconcile eller persistence-effect.
 //  - hver celle er en `Grid*Cell` over `useCellEditor`. Datoens dynamiske grænser er nu en descriptor-
-//    bounds-validator (§1.6), så cellen selv viser den røde fejl — ingen minDate/maxDate/specialRangeErrors-props.
+//    bounds-validator (§1.6), så cellen selv viser den røde fejl – ingen minDate/maxDate/specialRangeErrors-props.
 //  - en trailing PLACEHOLDER-række promoverer atomisk ved første ikke-tomme settle (§1.11).
 // De committede rækker læses reader-afledt af forælderen, så der ikke er en konkurrerende celle-værdikopi (§3.8).
 

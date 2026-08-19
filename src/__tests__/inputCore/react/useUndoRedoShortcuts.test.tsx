@@ -15,7 +15,7 @@ import { createTestCatalog, aargangField } from '../testCatalog';
 import type { HistoryOrigin } from '../../../inputCore/inputHistory';
 
 // Shell-kontrakten for undo/redo-fokusrestore. Hooken kalder `onRestore` med det gendannede frames origin
-// EFTER en gennemført undo/redo — og ALDRIG for en no-op restore. Kører mod den ægte runtime-binding + coordinator
+// EFTER en gennemført undo/redo – og ALDRIG for en no-op restore. Kører mod den ægte runtime-binding + coordinator
 // (samme som produktionen), driver Ctrl+Z på window, og observerer callbacket. MainLayout leverer i produktionen
 // et `onRestore`, der navigerer + fokuserer; her verificeres selve kontrakten mod hooken.
 
@@ -60,7 +60,7 @@ const pressUndo = () => {
   });
 };
 
-describe('useUndoRedoShortcuts — onRestore-kontrakt (§3.7)', () => {
+describe('useUndoRedoShortcuts – onRestore-kontrakt (§3.7)', () => {
   it('kalder onRestore med det gendannede frames origin efter en gennemført undo', async () => {
     // To ændringer MED origin, så past-stakken bærer et frame med origin at gendanne.
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1, origin: origin() });

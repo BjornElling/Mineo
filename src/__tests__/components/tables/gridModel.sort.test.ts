@@ -65,7 +65,7 @@ describe('sortGridRows', () => {
   });
 
   it('sekundær sortering bruges ved tie på primær', () => {
-    // To Alice-rækker med amount 10 og 5 — sekundær sort på amount asc giver 5 før 10
+    // To Alice-rækker med amount 10 og 5 – sekundær sort på amount asc giver 5 før 10
     const sortState: GridSortState = {
       primary: { colId: 'name', dir: 'asc' },
       secondary: { colId: 'amount', dir: 'asc' },

@@ -21,10 +21,10 @@ export type RowDeleteButtonProps = Readonly<{
  *
  * Synligheds-reglen ligger bevidst i `StandardGridTable`/`StandardLooseTable` (selektoren
  * `tbody tr:hover .mineo-row-delete-slot`), så hover-reveal er ét fælles sted for begge
- * tabel-familier. Knappen placeres i rækkens sidste celle, som SKAL bære lane-kontrakten —
+ * tabel-familier. Knappen placeres i rækkens sidste celle, som SKAL bære lane-kontrakten –
  * brug `RowDeleteLaneCell` (løs tabel) eller `rowDeleteLaneStyle` (`<td>`), aldrig en håndskrevet
  * `position: relative` + `paddingRight` (håndhævet af `form/row-delete-lane-cell-single-source`).
- * Den svæver ved cellens højre kant og fanger kun klik på selve ikonet — wrapperen har
+ * Den svæver ved cellens højre kant og fanger kun klik på selve ikonet – wrapperen har
  * `pointer-events: none`, indtil rækken er hovered, så resten af cellen forbliver interaktiv,
  * og et klik i højre kant af en ikke-hovered række kan ikke ramme et usynligt ikon.
  *
@@ -104,8 +104,8 @@ export const ROW_DELETE_LANE_WIDTH_PX = 28;
 
 /**
  * Cellekontrakten `RowDeleteButton` afhænger af: knappen er `position: absolute`, så dens
- * celle SKAL være `position: relative` (ellers finder den nærmeste positionerede forfader —
- * typisk tabellens container — og ikonet lander i tabellens hjørne i stedet for i rækken),
+ * celle SKAL være `position: relative` (ellers finder den nærmeste positionerede forfader –
+ * typisk tabellens container – og ikonet lander i tabellens hjørne i stedet for i rækken),
  * og cellen skal reservere banen med `paddingRight`.
  *
  * Kontrakten var tidligere skrevet i hånden på hvert kaldsted i fire forskellige stavemåder

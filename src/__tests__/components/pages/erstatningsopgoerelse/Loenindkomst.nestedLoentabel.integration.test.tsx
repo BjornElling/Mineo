@@ -27,8 +27,8 @@ import { eoEmploymentFields } from '../../../../inputCore/catalog/erstatningsopg
 import { serializeFieldAddress } from '../../../../inputCore/fieldAddress';
 import { toISODateString, type ISODateString } from '../../../../types/branded';
 
-// Den nested løntabel under et ansættelsesforhold (§1.11, §3.2). Kravet: hele kortet — inklusive løntabellens
-// placeholder-række OG dens committede rækker — kan renderes. Cellernes dataidentitet er nested (ejerens id +
+// Den nested løntabel under et ansættelsesforhold (§1.11, §3.2). Kravet: hele kortet – inklusive løntabellens
+// placeholder-række OG dens committede rækker – kan renderes. Cellernes dataidentitet er nested (ejerens id +
 // rækkens id), og hver synlig celle kunne være første fejlsted, hvis en surface bandt med for få entity-led.
 //
 // Denne test findes, fordi den fælles StandardLoenTable tidligere KUN blev integrationsdækket i sin top-level
@@ -53,7 +53,7 @@ type HydrateOptions = Readonly<{
 }>;
 
 /**
- * Bygger den afviste råtekst, som feltets EGET codec ville have frembragt — inklusive den maskinlæsbare
+ * Bygger den afviste råtekst, som feltets EGET codec ville have frembragt – inklusive den maskinlæsbare
  * `detail`, en konkret parse-årsag bærer. Skrives detaljen i hånden, beskriver fixturen en tilstand, brugeren
  * ikke kan nå, og `validateSettledInput` afviser den med rette.
  */
@@ -95,7 +95,7 @@ const hydrate = (rows: readonly StandardLoenTableRow[], options: HydrateOptions 
     },
     // Den afviste råtekst SKAL bære præcis den `detail`, feltets eget codec ville give den: kataloget
     // reparser og afviser en uenighed (`validateSettledInputCandidate`). Detaljen udledes derfor af codec'en
-    // frem for at blive skrevet i hånden — ellers ville fixturen påstå en anden tilstand end den, en
+    // frem for at blive skrevet i hånden – ellers ville fixturen påstå en anden tilstand end den, en
     // rigtig indtastning frembringer.
     rejectedInputs: options.rejectedSaerligFraDatoRegulering === undefined
       ? {}
@@ -115,7 +115,7 @@ const renderLoenindkomst = () => render(
   </MemoryRouter>
 );
 
-describe('EO-lønindkomst — nested løntabel under et ansættelsesforhold', () => {
+describe('EO-lønindkomst – nested løntabel under et ansættelsesforhold', () => {
   beforeEach(() => {
     sessionStorage.clear();
     sessionStorage.setItem(createActiveTabStorageKey('erstatningsopgoerelse'), EO_TAB_KEYS.LOENINDKOMST);

@@ -102,5 +102,5 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `check:github-actions-runtime — ${workflowFiles.length} workflow(s) bruger kun godkendte Node ${projectNodeMajor}-actions.`
+  `check:github-actions-runtime – ${workflowFiles.length} workflow(s) bruger kun godkendte Node ${projectNodeMajor}-actions.`
 );

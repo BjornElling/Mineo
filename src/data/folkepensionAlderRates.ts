@@ -11,8 +11,8 @@ import { getDayBeforeIso } from '../utils/isoDateHelpers';
  */
 
 export type FolkepensionAlderEntry = Readonly<{
-  foedselsdatoFra: ISODateString | null;  // Inklusiv — null = ingen nedre grænse
-  foedselsdatoTil: ISODateString | null;  // Inklusiv — null = ingen øvre grænse
+  foedselsdatoFra: ISODateString | null;  // Inklusiv – null = ingen nedre grænse
+  foedselsdatoTil: ISODateString | null;  // Inklusiv – null = ingen øvre grænse
   alderMaaneder: number;
   alderLabel: string;
 }>;
@@ -24,7 +24,7 @@ export type ResolvedFolkepensionAlder = Readonly<{
 
 export type FolkepensionAlderPeriode = Readonly<{
   opslagsdatoFra: ISODateString;          // Inklusiv
-  opslagsdatoTil: ISODateString | null;   // Inklusiv — null = gælder frem til næste lovændring
+  opslagsdatoTil: ISODateString | null;   // Inklusiv – null = gælder frem til næste lovændring
   entries: readonly FolkepensionAlderEntry[];
 }>;
 
@@ -39,7 +39,7 @@ type FpAlderRaekke = readonly [
 ];
 
 // Validér dato-literals ved modul-load (kaster ved fejl) frem for usikre `as`-casts,
-// så en tastefejl i tabellen fanges med det samme — samme mønster som de øvrige
+// så en tastefejl i tabellen fanges med det samme – samme mønster som de øvrige
 // data-filer (interestRates, kapitaliseringsbekendtgoerelser).
 const fp = (rows: readonly FpAlderRaekke[]): readonly FolkepensionAlderEntry[] =>
   rows.map(([fra, til, maaneder, label]) => ({

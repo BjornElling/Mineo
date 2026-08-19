@@ -22,7 +22,7 @@ describe('inputUnit', () => {
       expect(appendInputUnitSuffix('', INPUT_UNIT_SUFFIX.currency)).toBe('');
     });
 
-    it('er idempotent — en streng der allerede ender på enheden røres ikke', () => {
+    it('er idempotent – en streng der allerede ender på enheden røres ikke', () => {
       expect(appendInputUnitSuffix('12.500 kr.', INPUT_UNIT_SUFFIX.currency)).toBe('12.500 kr.');
       expect(appendInputUnitSuffix('12,5 %', INPUT_UNIT_SUFFIX.percent)).toBe('12,5 %');
     });

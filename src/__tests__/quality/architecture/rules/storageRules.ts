@@ -31,11 +31,11 @@ export const localStorageBoundary = forbidMemberAccess({
     // den ville opfylde en tekstprobe, mens evaluatoren korrekt ikke flager den. Proben kunne dermed
     // erklære grænsen levende, efter at mekanismen var slettet.
     probe: (entry) => hasIdentifier(entry, 'localStorage'),
-    rationale: 'mindst én fil rører localStorage — ellers har grænsen ingen trafik at regulere',
+    rationale: 'mindst én fil rører localStorage – ellers har grænsen ingen trafik at regulere',
   },
   allow: ['src/utils/safeLocalStorage.ts'],
   forbidden: (ref) => isDirectLocalStorageAccess(ref.chainText, ref.rootName),
-  message: (ref) => `Rå localStorage-adgang (${ref.chainText}) — brug safeLocalStorage-wrapperen.`,
+  message: (ref) => `Rå localStorage-adgang (${ref.chainText}) – brug safeLocalStorage-wrapperen.`,
   violatingFixtures: [
     { relativePath: 'src/x.ts', code: 'const x = localStorage.getItem("k");' },
     { relativePath: 'src/x.ts', code: 'window.localStorage.setItem("k", "v");' },
@@ -55,7 +55,7 @@ export const sessionStorageBoundary = forbidMemberAccess({
     kind: 'precondition',
     // AST-signal, ikke tekst (samme fejlform som localStorage-reglens fixture).
     probe: (entry) => hasIdentifier(entry, 'sessionStorage'),
-    rationale: 'mindst én fil rører sessionStorage — ellers har grænsen ingen trafik at regulere',
+    rationale: 'mindst én fil rører sessionStorage – ellers har grænsen ingen trafik at regulere',
   },
   // Kun den kanoniske helper tilbage: de øvrige poster var stale efter greenfield-cutoveren (filerne er
   // slettet, eller de rører ikke længere sessionStorage direkte). Anti-rot-testen håndhæver, at hver post
@@ -84,7 +84,7 @@ export const sessionStorageBoundary = forbidMemberAccess({
  * producere. Det fanger også ikke-literale nøgler (`const k = 'mineo_invalidDrafts'`), som en
  * AST-regel principielt ikke kan se.
  *
- * Reglen bevares som SEKUNDÆR diagnostik med en præcis fejlbesked, og dækker begge skriveveje —
+ * Reglen bevares som SEKUNDÆR diagnostik med en præcis fejlbesked, og dækker begge skriveveje –
  * ikke kun den rå. En regel, der udelukkende matchede `sessionStorage.setItem`, ville være inert,
  * fordi `storage/session-storage-boundary` allerede forbyder den vej uden for helperen.
  */
@@ -96,7 +96,7 @@ const SESSION_STORAGE_WRITE_HELPERS = new Set([
 export const sessionStorageManifestKey = forbidCalls({
   id: 'storage/session-storage-manifest-key',
   description:
-    'sessionStorage-skrivning må kun ske til en manifest-registreret literal storage-key — både rå og via safeSessionStorage-helperne.',
+    'sessionStorage-skrivning må kun ske til en manifest-registreret literal storage-key – både rå og via safeSessionStorage-helperne.',
   // Sekundært værn (primærværnet er `ManifestStorageKey`-typen), men ikke en fraværsregel: den
   // kontrollerer ægte skrive-callsites, og forsvinder de, er reglen uden mål.
   liveTarget: {
@@ -125,7 +125,7 @@ export const sessionStorageManifestKey = forbidCalls({
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_stamdata", v);' },
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_invalidDrafts", v);' },
     { relativePath: 'src/x.ts', code: 'sessionStorage.setItem("mineo_input", v);' },
-    // Helper-vejen — den ENESTE vej produktionskoden faktisk må bruge, og derfor den, en genindført
+    // Helper-vejen – den ENESTE vej produktionskoden faktisk må bruge, og derfor den, en genindført
     // legacy-nøgle ville komme ind ad.
     { relativePath: 'src/x.ts', code: 'writeSessionStorageValue("mineo_invalidDrafts", v);' },
     { relativePath: 'src/x.ts', code: 'writeOptionalSessionStorageValue("mineo_stamdata", v);' },
@@ -152,7 +152,7 @@ export const sessionStorageManifestKey = forbidCalls({
  * `ClearAllResult`s rest-rapportering.
  *
  * Reglen er en forudsætningsregel, ikke en fraværsregel: den ÉNE lovlige kalder skal findes. Slettes
- * porten, eller mister den sit kald, er reglen uden mål — og `requiredPaths` gør det til en fejl.
+ * porten, eller mister den sit kald, er reglen uden mål – og `requiredPaths` gør det til en fejl.
  */
 export const caseResetPolicyOwnership = forbidCalls({
   id: 'storage/case-reset-policy-single-owner',
@@ -161,13 +161,13 @@ export const caseResetPolicyOwnership = forbidCalls({
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => collectCalls(entry).some((ref) => ref.calleeName === 'getCaseScopedSessionStorageKeys'),
-    rationale: 'reset-porten enumererer stadig reset-policyen — ellers rydder `Slet alt` intet',
+    rationale: 'reset-porten enumererer stadig reset-policyen – ellers rydder `Slet alt` intet',
     requiredPaths: ['src/persistence/caseResetOperations.ts'],
   },
   allow: ['src/persistence/caseResetOperations.ts'],
   forbidden: (ref) => ref.calleeName === 'getCaseScopedSessionStorageKeys',
   message: () =>
-    'getCaseScopedSessionStorageKeys uden for CaseResetOperations — en parallel reset-vej rapporterer ikke rester.',
+    'getCaseScopedSessionStorageKeys uden for CaseResetOperations – en parallel reset-vej rapporterer ikke rester.',
   violatingFixtures: [
     { relativePath: 'src/hooks/x.ts', code: 'for (const k of getCaseScopedSessionStorageKeys()) remove(k);' },
     { relativePath: 'src/components/x.tsx', code: 'const keys = getCaseScopedSessionStorageKeys();' },
@@ -183,7 +183,7 @@ export const caseResetPolicyOwnership = forbidCalls({
  *
  * Den fulde `window.location`-genindlæsning er fjernet: load og hel-sags-clear bruger samme
  * autoritative replacement-grænse og skal ikke ende to forskellige steder. Reglen er en
- * fraværsregel — nul hits ER målet — og dækker hele shell-/side-laget, fordi en genindført reload
+ * fraværsregel – nul hits ER målet – og dækker hele shell-/side-laget, fordi en genindført reload
  * ville se ud som en uskyldig navigation, mens den i praksis kaster den kørende runtime væk (og med
  * den history, unsaved-baseline og den åbne draft, replacement-grænsen netop har gjort konsistent).
  *
@@ -199,7 +199,7 @@ export const noFullPageReloadInShell = forbidMemberAccess({
   liveTarget: {
     kind: 'scoped',
     roots: ['src/hooks', 'src/components/layout', 'src/components/pages'],
-    rationale: 'shell-, hook- og sidelaget findes — det er dér en genindført reload ville komme ind',
+    rationale: 'shell-, hook- og sidelaget findes – det er dér en genindført reload ville komme ind',
   },
   appliesTo: (relativePath) =>
     relativePath.startsWith('src/hooks/')
@@ -207,7 +207,7 @@ export const noFullPageReloadInShell = forbidMemberAccess({
     || relativePath.startsWith('src/components/pages/'),
   forbidden: (ref) => FULL_PAGE_RELOAD_ACCESS.test(ref.chainText),
   message: (ref) =>
-    `Fuld sidegenindlæsning (${ref.chainText}) i shell-/sidelaget — hel-sags-handlinger afsluttes inde i appen.`,
+    `Fuld sidegenindlæsning (${ref.chainText}) i shell-/sidelaget – hel-sags-handlinger afsluttes inde i appen.`,
   violatingFixtures: [
     { relativePath: 'src/hooks/x.ts', code: 'window.location.href = "/stamdata";' },
     { relativePath: 'src/components/layout/x.tsx', code: 'window.location.reload();' },
@@ -231,7 +231,7 @@ const DEFAULT_DIRECTORY_LOCATION_MODULE = 'src/utils/file/defaultDirectoryLocati
  * Fundet var netop, at det stod to steder i to filer med to FORSKELLIGE strenge: `'Skrivebord'` i
  * `fileHelpers.ts` (fil-lagets `ResolvedDirectory.displayName`, som ingen læste) og
  * `'Skrivebord (standard)'` fire steder i `Indstillinger.tsx`. Samme brugersynlige begreb, to
- * sandheder — og fordi den ene ikke havde nogen forbruger, kunne de drive fra hinanden uden at
+ * sandheder – og fordi den ene ikke havde nogen forbruger, kunne de drive fra hinanden uden at
  * noget nogensinde ville vise forskellen.
  *
  * Reglen ser på STRING-LITERALER i AST'en, ikke på filteksten. Repoet har en kendt fejlklasse, hvor
@@ -248,7 +248,7 @@ export const defaultDirectoryNameSingleSource = defineRule({
     kind: 'precondition',
     // Proben rammer BÅDE det kanoniske modul og dets forbrugere. Uden forbrugerne ville reglen være
     // opfyldt af modulet alene og dermed grøn af tomhed, præcis som `requiredPaths` er der for at
-    // forhindre. Og proben må ikke pinnes til den form, migreringen fjernede — den ville gå inert i
+    // forhindre. Og proben må ikke pinnes til den form, migreringen fjernede – den ville gå inert i
     // samme øjeblik, den havde virket.
     probe: (entry) => entry.relativePath === DEFAULT_DIRECTORY_LOCATION_MODULE
       || hasIdentifier(entry, 'DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME')
@@ -272,7 +272,7 @@ export const defaultDirectoryNameSingleSource = defineRule({
         findings.push({
           position: { line: line + 1, column: character + 1 },
           message:
-            `Standardplaceringens navn staves i hånden ("${node.text}") — importér `
+            `Standardplaceringens navn staves i hånden ("${node.text}") – importér `
             + 'DEFAULT_DIRECTORY_FALLBACK_NAME/DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME fra defaultDirectoryLocation.ts.',
         });
       }
@@ -309,13 +309,13 @@ const DELETED_LEGACY_INPUT_MODULES =
   /(?:stores\/(?:formPersistenceStore|formPersistenceReadModel|inputRuntimeStore|undoRedoStore)|contexts\/(?:FormPersistenceContext(?:\.shared|\.internal)?|useFormPersistence)|hooks\/(?:useFormPersistence|useFormPersistenceSelectors|useFormFieldErrors|usePersistedForm|useDraftField|useStyledFieldAdapter|useTwoStageInputActivation|useUndoRedo(?:Shortcuts)?)|hooks\/fieldState\/|hooks\/tableInput|input\/(?:inputTransactionRunner|legacyInputCompatibility|legacyGridTransactionBridge)|criticalActions\/|rowDrafts\/|types\/fieldErrors|utils\/(?:invalidDraftsStorage|saveBlockedFocus|historyTargetRestore)|components\/inputs\/table\/Table|components\/inputs\/Styled(?:Text|Amount|Date|Integer|Percent|Fraction|Week|Year)Field$)/;
 
 /**
- * De konkrete modul-STIER regexen ovenfor forbyder — eksplicit opregnet, fordi et regex ikke kan
+ * De konkrete modul-STIER regexen ovenfor forbyder – eksplicit opregnet, fordi et regex ikke kan
  * opremse sig selv.
  *
  * En fraværsregel kan ikke bevise sin egen liveness ved at ramme noget (nul hits ER målet).
  * I stedet beviser `deletedLegacyAbsence.test.ts`, at hver af disse stier faktisk ER fraværende i
  * kilde-grafen. Uden det kunne reglen stille skifte fra "forbyder noget, der findes" til "forbyder
- * en stavefejl" — og fremstå som dækning, mens den rigtige fil lever videre ved siden af.
+ * en stavefejl" – og fremstå som dækning, mens den rigtige fil lever videre ved siden af.
  * `LEGACY_MODULE_PATH_SELFTEST` nedenfor pinner, at listen og regexen beskriver samme mængde.
  */
 const DELETED_LEGACY_INPUT_MODULE_PATHS: readonly string[] = [
@@ -358,7 +358,7 @@ const DELETED_LEGACY_INPUT_MODULE_PATHS: readonly string[] = [
 
 /**
  * Selvtest-data: hver sti ovenfor SKAL matche regexen. Fanger den ene måde listen og regexen kan
- * drifte fra hinanden på — at nogen tilføjer et forbud ét sted og glemmer det andet.
+ * drifte fra hinanden på – at nogen tilføjer et forbud ét sted og glemmer det andet.
  */
 export const LEGACY_MODULE_PATH_SELFTEST = {
   paths: DELETED_LEGACY_INPUT_MODULE_PATHS,
@@ -369,7 +369,7 @@ export const LEGACY_MODULE_PATH_SELFTEST = {
  * Den slettede legacy-inputarkitektur må ikke genopstå.
  *
  * Efter greenfield-cutoveren findes der ÉN autoritativ inputtilstand (§3.1), ÉN editor (§3.5) og ÉN
- * write-grænse (§3.6). Den gamle store-/editor-/fejl-/command-klynge er slettet — ikke deaktiveret. Denne regel
+ * write-grænse (§3.6). Den gamle store-/editor-/fejl-/command-klynge er slettet – ikke deaktiveret. Denne regel
  * forbyder ethvert import af dens moduler, så en ny feature ikke kan genindføre en parallel inputvej (heller
  * ikke ved at genskabe en fil med samme navn). Der er BEVIDST ingen allowlist: en undtagelse ville være en
  * anden samtidig sandhed.
@@ -386,10 +386,10 @@ export const deletedLegacyInputArchitectureImport = forbidImports({
     rationale: 'nul hits ER målet: modulerne er slettet',
     // Fraværet af et MODUL bevises på to måder: filen findes ikke i grafen, og ingen fil importerer
     // stien. Anden retning (harnesset kalder samme prædikat på en syntetisk importfil) beviser, at
-    // regexen faktisk matcher stien — et forbud mod en forkert stavet sti er vakuøst.
+    // regexen faktisk matcher stien – et forbud mod en forkert stavet sti er vakuøst.
     verifyAbsent: (modulePath, entries) => {
       // En MODULsti er fraværende, når hverken modulfilen selv eller en fil under en forbudt MAPPE
-      // findes. Sammenligningen sker på hele stisegmenter — ellers ville `StyledTextField` "findes"
+      // findes. Sammenligningen sker på hele stisegmenter – ellers ville `StyledTextField` "findes"
       // på grund af `StyledTextFieldBase.tsx`, som er en bevidst bevaret UI-primitiv, og fraværet
       // ville rapportere en overtrædelse, der ikke er der.
       const isDirectory = modulePath.endsWith('/');

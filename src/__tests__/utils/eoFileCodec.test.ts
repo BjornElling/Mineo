@@ -56,7 +56,7 @@ describe('eoFileCodec', () => {
     });
   });
 
-  describe('decodeEoFile — fejl-semantik', () => {
+  describe('decodeEoFile – fejl-semantik', () => {
     it('mapper dekrypteringsfejl (ikke-.eo-indhold) til CalculationError FILE_LOAD_FAILED', async () => {
       await expect(decodeEoFile('ikke en gyldig krypteret streng')).rejects.toBeInstanceOf(CalculationError);
       await expect(decodeEoFile('ikke en gyldig krypteret streng')).rejects.toMatchObject({

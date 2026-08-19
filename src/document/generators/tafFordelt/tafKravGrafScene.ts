@@ -2,7 +2,7 @@
 //
 // Modulet indeholder ALT det, der bestemmer hvordan grafen ser ud: layout, sampling,
 // akse-ticks, kurve-interpolation, farver, skrifter, tekster og koordinater. Resultatet
-// er en ren værdi — en ordnet liste af tegneprimitiver — uden nogen canvas-afhængighed.
+// er en ren værdi – en ordnet liste af tegneprimitiver – uden nogen canvas-afhængighed.
 //
 // Grunden til opdelingen: canvas-tegningen kan ikke køres i test (jsdom har intet
 // 2D-API), så al logik der bor sammen med `ctx`-kaldene er reelt utestbar. Ved at flytte
@@ -80,7 +80,7 @@ export type SceneCommand =
     }>
   /**
    * Én eller flere uafhængige linjestykker, hver med sin egen sti. Bruges hvor stregerne
-   * ikke hænger sammen — fx tick-mærker og gridlinjer. For en stiplet streg er det
+   * ikke hænger sammen – fx tick-mærker og gridlinjer. For en stiplet streg er det
    * betydende: dash-mønsteret starter forfra på hvert stykke.
    */
   | Readonly<{ kind: 'strokeLines'; lines: readonly (readonly [ScenePoint, ScenePoint])[]; stroke: SceneStroke }>
@@ -377,7 +377,7 @@ const buildWindowSamples = (
       if (!beforeValues) continue;
       const afterValues = buildValuesAtIso(document, iso);
       // Der tilføjes KUN en kolonne, hvor en serie starter (0→beløb) eller ophører
-      // (beløb→0) — dét er de skarpe lodrette kanter, der skal bevares. Et rent
+      // (beløb→0) – dét er de skarpe lodrette kanter, der skal bevares. Et rent
       // niveauskift (begge sider > 0) må IKKE give en kolonne på grænsedatoen: en
       // sådan grænse-kolonne har samme værdi som månedens midtpunkt og skabte et
       // fladt "plateau" pr. måned med kun afrundede skuldre. I stedet bæres
@@ -434,14 +434,14 @@ const maxStackedTotalOre = (samples: readonly WindowSamples[]): number => {
 // Kurven buer *igennem* datapunkterne frem for at følge den rette forbindelse tæt.
 // Det giver runde buer ved ændringer i indtægtsgrundlaget i stedet for de spidse,
 // abrupte savtakker, en monoton (overshoot-fri) kurve gav. Kurven rammer ALTID
-// datapunkterne, så høje peaks og lave lavpunkter bevares i fuld højde — der
+// datapunkterne, så høje peaks og lave lavpunkter bevares i fuld højde – der
 // udglattes ingen ekstremer. Nabopunkter bruges kun til at bestemme tangenternes
 // retning, ikke til at ændre det enkelte punkts værdi.
 //
 // Et lodret spring (to på hinanden følgende punkter med samme x, forskellig y) er en
 // skarp kant, hvor en ydelse starter eller ophører, og MÅ ikke afrundes. Sådanne
 // spring bryder splinen i selvstændige strækninger, der forbindes med en ret,
-// lodret linje — kanten forbliver dermed knivskarp.
+// lodret linje – kanten forbliver dermed knivskarp.
 
 // Overshoot tillades bevidst (det er dét, der giver den runde bue), men dæmpes, så et
 // enkelt ekstremt udsving ikke får tangenten til at slå så voldsomt ud, at stablede
@@ -726,7 +726,7 @@ const buildLegendRow = (
   return commands;
 };
 
-/** Tonet firkant med stiplet ramme — signaturen for beregningsperiode og ferie. */
+/** Tonet firkant med stiplet ramme – signaturen for beregningsperiode og ferie. */
 const tintedSwatch = (fill: string, border: string) => (x: number, y: number): SceneCommand[] => [
   {
     kind: 'fillRect',
@@ -864,7 +864,7 @@ const buildXAxisLabels = (
 
 /**
  * Bygger den fulde scene for TAF-kravgrafen. Rent deterministisk givet `document` og
- * `measureText` — ingen canvas, ingen globaler, ingen dato-læsning.
+ * `measureText` – ingen canvas, ingen globaler, ingen dato-læsning.
  */
 export const buildTafKravGrafScene = (
   document: TafKravGrafDocument,

@@ -12,8 +12,8 @@ import { toISODateString } from '../../../types/branded';
  * status='fail_closed', failClosedReason='runtime_exception', data=null, en
  * blokerende system-invariant, og at fejlen rapporteres via systemIssueReporter.
  *
- * computeTafNettoBeregning kaldes præcis ét sted — inde i try-blokken (eoSnapshot.ts:316)
- * — så et kast derfra rammer garanteret catch-stien (og ikke en tidligere gren).
+ * computeTafNettoBeregning kaldes præcis ét sted – inde i try-blokken (eoSnapshot.ts:316)
+ * – så et kast derfra rammer garanteret catch-stien (og ikke en tidligere gren).
  */
 
 const { reportSystemIssueMock } = vi.hoisted(() => ({
@@ -30,7 +30,7 @@ vi.mock('../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning', () =>
   },
 }));
 
-describe('computeEoSnapshot — runtime_exception fail-closed', () => {
+describe('computeEoSnapshot – runtime_exception fail-closed', () => {
   beforeEach(() => {
     reportSystemIssueMock.mockReset();
   });

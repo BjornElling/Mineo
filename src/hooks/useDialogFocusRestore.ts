@@ -8,7 +8,7 @@ import { focusElementWithoutScroll } from '../utils/focusUtils';
  * Hver popup har præcis én åbnende kontrol, så målet er entydigt og behøver ingen heuristik.
  *
  * Hvorfor hooken findes frem for et `element.focus()` pr. popup: den naive form virker ikke.
- * Tre konkrete forhold gjorde tidligere hver sin popup til sin egen løsning — eller til ingen:
+ * Tre konkrete forhold gjorde tidligere hver sin popup til sin egen løsning – eller til ingen:
  *
  * 1. **WebKit fokuserer ikke `<button>` ved klik.** Der er derfor intet `document.activeElement`
  *    at huske ved åbning, og en restore baseret alene på «hvad var aktivt» lander på sidens
@@ -18,10 +18,10 @@ import { focusElementWithoutScroll } from '../utils/focusUtils';
  *    egen container, som først forsvinder ved unmount af portalen. Et frakoblet eller stadig
  *    popup-ejet element tæller derfor som «fokus er tabt», præcis som `body` gør.
  * 3. **Lukningen er ikke ét tidspunkt.** MUI's transition slutter FØR portalen er unmountet, og
- *    WebKit nulstiller fokus til `body`, når den fokuserede popup-node forsvinder — altså EFTER
+ *    WebKit nulstiller fokus til `body`, når den fokuserede popup-node forsvinder – altså EFTER
  *    vores genoprettelse. Derfor efterses restoren én gang på næste frame.
  * 4. **MUI genopretter selv fokus.** En `Dialog` fører sin egen restore til det element, der var
- *    aktivt ved åbningen, og den kører SIDST — så den overskriver vores mål, uden at noget fejler.
+ *    aktivt ved åbningen, og den kører SIDST – så den overskriver vores mål, uden at noget fejler.
  *    En popup bygget på MUI skal derfor sætte `disableRestoreFocus` (se `ConfirmationDialog`), ellers
  *    er der to restore-veje, og den, der ikke kender kontraktens målprioritet, vinder.
  *
@@ -43,7 +43,7 @@ export type UseDialogFocusRestoreOptions<TTrigger extends HTMLElement = HTMLElem
    * Tillad at falde tilbage til sidens første fokusbare element, hvis triggeren er
    * forsvundet fra DOM'en.
    *
-   * Kun for popups, hvis bekræftelse kan fjerne selve triggeren — fx en «Slet»-bekræftelse,
+   * Kun for popups, hvis bekræftelse kan fjerne selve triggeren – fx en «Slet»-bekræftelse,
    * der fjerner rækken med sletteknappen. Uden fallback ville fokus lande på `body`. For
    * popups, der ikke kan fjerne deres egen trigger, er fallbacket uønsket: det ville skjule
    * en reel fejl bag et vilkårligt fokusmål.
@@ -107,7 +107,7 @@ export const useDialogFocusRestore = <TTrigger extends HTMLElement = HTMLElement
   const wasOpenRef = React.useRef(false);
   const justClosedRef = React.useRef(false);
 
-  // Husk det aktive element ved åbning som fallback for kontroller uden `triggerRef` — fx en
+  // Husk det aktive element ved åbning som fallback for kontroller uden `triggerRef` – fx en
   // kontrol i en tabelcelle, der ikke kan føre en stabil ref. Læses i layout-effekten, fordi
   // en almindelig effekt først kører efter popupens egen mount-fokus har flyttet `activeElement`.
   React.useLayoutEffect(() => {
@@ -124,7 +124,7 @@ export const useDialogFocusRestore = <TTrigger extends HTMLElement = HTMLElement
 
   const restoreFocus = React.useCallback(() => {
     const restoreTarget = (): void => {
-      // Prioritet: (1) den eksplicit udpegede trigger — sand også i browsere, hvor et klik ikke
+      // Prioritet: (1) den eksplicit udpegede trigger – sand også i browsere, hvor et klik ikke
       // efterlader kontrollen som `activeElement`; (2) det huskede aktive element, som dækker
       // popups uden trigger (fx en PWA-filåbning, der afbryder brugeren midt i et felt);
       // (3) kun med opt-in: sidens første fokusbare element, når triggeren blev slettet.

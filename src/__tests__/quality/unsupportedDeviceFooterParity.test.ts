@@ -8,18 +8,18 @@ import { fileURLToPath } from 'node:url';
  *
  * De to flader viser med vilje det samme for brugeren: mobilbrugeren, der får at vide at Mineo
  * kræver en computer, skal møde præcis den boks, de kender fra minProcesrente. Men de kan ikke
- * dele kode: `shell/unsupported-device-page-bundle-isolation` forbyder — af gode grunde —
+ * dele kode: `shell/unsupported-device-page-bundle-isolation` forbyder – af gode grunde –
  * hard-stop-siden at importere den MUI-byggede footer, så stylingen ER duplikeret, inline.
  *
  * Dubletten blev oprindeligt afleveret med prosaen «målt til at være geometrisk identisk». Den
  * påstand holdt ikke: tre af footerens mobile højdeerklæringer var aldrig kommet med over
  * (`.site-footer__link`s `minHeight: 28px` + `padding: 2px 0`, `.site-footer__mail`s
  * `minHeight: 39px`) og boksens nedre `margin` var halveret. Boksen blev 26 px lavere end
- * footerens, og linkrækkerne sad synligt tættere — netop det, brugeren så og påtalte.
+ * footerens, og linkrækkerne sad synligt tættere – netop det, brugeren så og påtalte.
  *
  * Lærestykket er, at en måling foretaget ÉN gang ikke er et værn. Denne test er værnet: den
  * læser de tal, der bærer geometrien, ud af BEGGE kilder og kræver, at de er de samme. En
- * ændring i footerens mobilvisning, der ikke følges op i dubletten, bliver rød her — i stedet
+ * ændring i footerens mobilvisning, der ikke følges op i dubletten, bliver rød her – i stedet
  * for at blive opdaget af en bruger, der kigger på to skærme.
  *
  * Testen låser bevidst kun de erklæringer, der bestemmer GEOMETRIEN (højder, padding, margin,
@@ -49,7 +49,7 @@ const footerMobileBlock = (): string => {
   return rest.slice(0, end);
 };
 
-/** Erklæringer uden for mediablokken — de gælder også på mobil, medmindre blokken overskriver dem. */
+/** Erklæringer uden for mediablokken – de gælder også på mobil, medmindre blokken overskriver dem. */
 const footerBaseBlock = (): string => footerSource.slice(0, footerSource.indexOf("'@media (max-width: 640px)'"));
 
 const declaredPx = (source: string, selector: string, property: string): number => {
@@ -173,7 +173,7 @@ describe('unsupportedDeviceFooterParity', () => {
     /**
      * Footerens egne `marginTop: 40px` / `marginBottom: 0` er DESKTOPværdier. På mobil vinder
      * minProcesrente-sidens `& .content-box`-override med `margin: 16px 0`, og det er den
-     * værdi, hard-stop-siden skal spejle — ikke footerkomponentens egen erklæring.
+     * værdi, hard-stop-siden skal spejle – ikke footerkomponentens egen erklæring.
      */
     it('holder boksens margin identisk med den mobile .content-box, i begge ender', () => {
       const pagePath = join(
@@ -190,7 +190,7 @@ describe('unsupportedDeviceFooterParity', () => {
       expect(margin).toBe('16px 0');
       expect(padding).toBe('16px 12px');
 
-      // Begge bokse på hard-stop-siden — indholdsboksen og søskendeboksen — bærer de samme tal.
+      // Begge bokse på hard-stop-siden – indholdsboksen og søskendeboksen – bærer de samme tal.
       const occurrences = hardStopSource.match(/margin: '16px 0'/g) ?? [];
       expect(occurrences).toHaveLength(2);
       expect(hardStopSource.match(/padding: '16px 12px'/g) ?? []).toHaveLength(2);

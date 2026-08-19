@@ -29,9 +29,9 @@ import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState'
  * Hele siden kører på inputCore: de fem forsoergertab-felter + de delte ASL/EAL-årsløn skriver/læser gennem den
  * offentlige `InputReader` + den ene write-grænse, og de tværsektionelle stamdata-datoer læses gennem samme
  * reader. Den ENE reader-afledte projektion driver både beregningsvisning og download-gaten; den kører
- * `computeForsoergertabSnapshot` UÆNDRET (§5.4 — ingen talændring).
+ * `computeForsoergertabSnapshot` UÆNDRET (§5.4 – ingen talændring).
  *
- * Snapshottet ejer den dependency-specifikke panel-/gate-logik (§1.10) — det gates derfor ikke bag en global
+ * Snapshottet ejer den dependency-specifikke panel-/gate-logik (§1.10) – det gates derfor ikke bag en global
  * blocked-tilstand: en fejl på fx virkningsdato blokerer ASL + download, men bevarer EAL-panelet.
  *
  * Format-/bounds-feltfejl vises inline på felterne fra det tokenbundne issue-snapshot; domæne-/manglende-felt-
@@ -51,7 +51,7 @@ const skadedatoRef = stamdataSkadedatoField.bind();
 /**
  * route er eksplicit navigation-metadata (§3.7); Forsørgertab er en side uden faner (tabKey: null). De to
  * faellesAarsloen-lokationer (aslAarsloen/ealAarsloen) deler feltadresse med Erhvervsevnetab, men MED route
- * `/forsoergertab` — det er route (ikke feltadresse/section), der disambiguerer, hvilken side undo/redo lander på.
+ * `/forsoergertab` – det er route (ikke feltadresse/section), der disambiguerer, hvilken side undo/redo lander på.
  */
 const loc = (field: string): EditorLocation =>
   ({ locationId: `forsoergertab:${field}`, route: APP_ROUTES.forsoergertab, tabKey: null });
@@ -107,7 +107,7 @@ export function useForsoergertabViewModel() {
   /**
    * «Mangler (angiv i Stamdata)»-linket: naviger OG peg på det felt, der mangler.
    *
-   * Linket navigerede tidligere kun til siden og efterlod brugeren dér uden anvisning — selv om det er den
+   * Linket navigerede tidligere kun til siden og efterlod brugeren dér uden anvisning – selv om det er den
    * reneste form for «en indtastning mangler»: feltet FINDES, det er blot tomt, og dets descriptor er
    * allerede bundet her. Markeringen er den delte `blinkFieldAttention` via `scrollToFieldAddress`, altså
    * samme adfærd som fejl- og advarselslinkene; ingen parallel vej.
@@ -140,7 +140,7 @@ export function useForsoergertabViewModel() {
     locations: LOCATIONS,
     settleBeregningsdato,
     /**
-     * Handlet gives ubearbejdet videre. UdfaldsBESKEDEN udledes i den sektion, der AKTIVERER downloaden —
+     * Handlet gives ubearbejdet videre. UdfaldsBESKEDEN udledes i den sektion, der AKTIVERER downloaden –
      * ikke her: `document/activation-shows-outcome` måler pr. fil, at den flade, der klikker, også kan vise
      * udfaldet. Udledtes beskeden her, ville aktiveringen strukturelt være adskilt fra sin visning, og
      * ellers sammenblandes et forventeligt gate-afslag med en systemfejl.

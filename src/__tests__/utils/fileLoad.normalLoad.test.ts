@@ -222,7 +222,7 @@ describe('fileLoad – normalLoadFlow', () => {
 
   it('stripper ukendt felt i kendt sektion, loader resten og rapporterer tabet via preflight', async () => {
     // Et felt der findes i filen men ikke i current schema er gemt brugerdata, som ikke kan indlæses.
-    // Feltet strippes (sættes til standardværdi) og resten loades — men tabet rapporteres til brugeren
+    // Feltet strippes (sættes til standardværdi) og resten loades – men tabet rapporteres til brugeren
     // via preflight. Stille datatab er uacceptabelt (AGENTS.md save/load, persistence-contract §6.3).
     const content = await encryptLoadContainer({
       stamdata: {

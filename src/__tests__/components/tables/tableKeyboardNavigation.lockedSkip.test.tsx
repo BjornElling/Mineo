@@ -6,7 +6,7 @@ import { useGridCoreApi } from '../../../components/tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 
 /**
- * En skrivebeskyttet (låst) celle der — som LoenudviklingManuel-basisrækken — er tab-fokuserbar
+ * En skrivebeskyttet (låst) celle der – som LoenudviklingManuel-basisrækken – er tab-fokuserbar
  * (readOnly, men IKKE tabindex=-1) og registrerer en låst editor-handle hos GridCore.
  */
 const LockedCell = ({ rowId, colIndex, testId }: { rowId: string; colIndex: number; testId: string }) => {

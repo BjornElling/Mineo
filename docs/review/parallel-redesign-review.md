@@ -1,4 +1,4 @@
-# Parallelt redesign-review — samlet status
+# Parallelt redesign-review – samlet status
 
 **Kodeverificeret pr. 2026-08-16** på `main` (`9ddb3943` før dette review).
 
@@ -115,7 +115,7 @@ statusoversigten til at se fuldt gennemført ud.
 
 ## 2. Punktvis vurdering
 
-### #1 — `AnsaettelsesforholdCard` → sektioner
+### #1 – `AnsaettelsesforholdCard` → sektioner
 
 **Status: ◐ Delvist gennemført.**
 
@@ -144,7 +144,7 @@ Lønudviklingen skal fortsat bruge den eksisterende `LoenudviklingFields`- og
 Bevar rækkefølge, labels, focus-flow og beregningsadfærd; der skal ikke indføres et nyt
 generisk sections-framework eller en parallel bindingsmodel.
 
-### #2 — `documentService` → deklarativt download-register
+### #2 – `documentService` → deklarativt download-register
 
 **Status: ↪ Overflødiggjort.**
 
@@ -157,7 +157,7 @@ download-register. Et globalt register ville samle alle dokumenter i kernelaget 
 ødelægge lazy-load- og appvariantgrænserne. Punktet skal ikke genoplives; nye problemer skal
 formuleres mod den aktuelle definition-/lifecycle-model.
 
-### #3 — `fileHandleStorage` → generisk IndexedDB-primitiv
+### #3 – `fileHandleStorage` → generisk IndexedDB-primitiv
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -175,7 +175,7 @@ skrivninger.
 de to forskellige persistence-modeller ikke er tvangsforenet for at spare en database-
 definition. Det er den rigtige balance mellem konsolidering og klarhed.
 
-### #4 — Residual parallel-helper-oprydning
+### #4 – Residual parallel-helper-oprydning
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -191,7 +191,7 @@ hver sit hjem, fordi deres concerns fortsat er forskellige og har reelle forbrug
 den flytter ikke kode bare for at få færre filer, men fjerner den kode, der faktisk ikke havde
 en produktionsrolle. Der er intet verificeret restarbejde fra den oprindelige kandidat.
 
-### #5 — Ensartet viewmodel-mønster på persisted fagsider
+### #5 – Ensartet viewmodel-mønster på persisted fagsider
 
 **Status: ✅ Afsluttet.**
 
@@ -208,7 +208,7 @@ En universel `useXxxViewModel(form)`-signatur eller et krav om provider på alle
 være ceremoniel ensretning. VM’en orkestrerer; beregningskernen og inputkernen forbliver andre
 lag.
 
-### #6 — `Aarsloen.tsx` → VM + sektioner
+### #6 – `Aarsloen.tsx` → VM + sektioner
 
 **Status: ✅ Afsluttet.**
 
@@ -220,7 +220,7 @@ holde hooks, handlers og den dybe metode-/periode-rendering samlet.
 beregning ind i UI-komponenter. Den er derfor en reel ansvarsomlægning og ikke blot en fil,
 der er flyttet et niveau ned. Der er ikke et dokumenteret restproblem for punktet.
 
-### #7 — Headless `StyledDropdown`
+### #7 – Headless `StyledDropdown`
 
 **Status: ◐ Delvist gennemført.**
 
@@ -246,7 +246,7 @@ som kræver en ny abstraktion. Bevar `mergeSx` og den eksisterende keyboard-/typ
 Genåbn kun punktet, hvis en dokumenteret duplikering eller en konkret regressionsrisiko viser,
 at netop en ren interaktionskerne vil fjerne kompleksitet; filstørrelsen alene er ikke nok.
 
-### #8 — Delt fane-scaffolding og `SideTab`
+### #8 – Delt fane-scaffolding og `SideTab`
 
 **Status: ✅ Afsluttet.**
 
@@ -258,7 +258,7 @@ for en kontrolfane er eksplicitte API-egenskaber.
 scaffolding uden at gøre sidernes domænespecifikke tabvalg til et globalt register. Det er
 greenfield-korrekt og kræver ikke yderligere arbejde.
 
-### #9 — `DocumentDownloadButton`-konsolidering
+### #9 – `DocumentDownloadButton`-konsolidering
 
 **Status: ✅ Afsluttet.**
 
@@ -271,7 +271,7 @@ adfærd er fælles, mens settings- og dokumentlivscyklus er kontekstafhængig. F
 tooltip, disabled-state og keyboard-adfærd er samlet uden at presse standalone ind i Mineos
 providers.
 
-### #10 — `Forsoergertab.tsx` → VM + sektioner
+### #10 – `Forsoergertab.tsx` → VM + sektioner
 
 **Status: ✅ Afsluttet.**
 
@@ -283,7 +283,7 @@ dokumentflow ligger i VM’en.
 UI’et til en alternativ beregningsvej. Den er derfor mere end kosmetisk filopdeling og er
 tilstrækkelig for punktets mål.
 
-### #11 — `defineDocument`-generator-factory
+### #11 – `defineDocument`-generator-factory
 
 **Status: ✅ Afsluttet.**
 
@@ -296,7 +296,7 @@ et globalt download-service-lag. Den nyere `DocumentDefinition`-/catalog-model e
 udbygning, ikke en konkurrerende løsning. Der er ingen grund til at genindføre den gamle
 filnavns- eller formatkæde.
 
-### #12 — Fælles visual/range-fejl-seam
+### #12 – Fælles visual/range-fejl-seam
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -313,7 +313,7 @@ parallel state ikke er bevaret af hensyn til historien. Den aktuelle kontrakt ha
 fraværsværn mod de slettede navne. Punktet er afsluttet gennem en bedre løsning end den
 oprindelige.
 
-### #13 — `schemaFingerprint` → `persistedDataVersion`
+### #13 – `schemaFingerprint` → `persistedDataVersion`
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -325,7 +325,7 @@ versionen beskriver persisted data, mens fingerprintet opdager schema-drift unde
 versionsbegrebet videre uden at genintroducere den gamle persistence-store. Punktet er derfor
 ikke kun historisk gennemført; dets semantik lever i slutproduktet på den rigtige grænse.
 
-### #14 — Filnavnssanitering og ASCII-slug
+### #14 – Filnavnssanitering og ASCII-slug
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -342,7 +342,7 @@ translitteration (`ø` → `oe`, `æ` → `ae`, `å` → `aa`) er testet mod eks
 det faktiske concern uden at ændre dokumentfilnavnenes semantik. Den synlige ændring i
 skærmprint-navne er en korrektion af tabte danske tegn, ikke en ny UI-beslutning.
 
-### #15 — `TableSpec`
+### #15 – `TableSpec`
 
 **Status: ✅ Afsluttet.**
 
@@ -354,7 +354,7 @@ af golden-tests for både standalone-generatorer og EO-sektioner.
 blandet PDF- og Word-mekanik, mens en ren `TableSpec` giver én struktur og to kanalnære
 projektioner. Den tidligere tabelbro er fjernet frem for at blive vedligeholdt parallelt.
 
-### #16 — Split af regulering og sygeferiegodtgørelse
+### #16 – Split af regulering og sygeferiegodtgørelse
 
 **Status: ✅ Afsluttet.**
 
@@ -367,7 +367,7 @@ og øre-restfordeling.
 er ikke flyttet ind i beregningsmotoren, og warnings er ikke gjort til en skjult alternativ
 resultatmodel. Det er en reel greenfield-konsolidering.
 
-### #17 — Kanonisk dag-set-algebra
+### #17 – Kanonisk dag-set-algebra
 
 **Status: ✅ Afsluttet.**
 
@@ -379,7 +379,7 @@ parallel kopi af ferie-/SH-daglogikken.
 Ferie- og TAF-dag-sæt indeholder EO-politik og hører derfor i EO-motoren. Kun den reelt
 neutrale primitive er flyttet. Golden-ækvivalens dækker ændringen.
 
-### #18 — `EetDifferencekravTab` og delt forligseditor
+### #18 – `EetDifferencekravTab` og delt forligseditor
 
 **Status: ◐ Delvist gennemført og bevidst beskåret.**
 
@@ -402,7 +402,7 @@ Den lille resterende duplikering er ikke tilstrækkelig til at retfærdiggøre e
 komponent. Hvis den senere vokser mærkbart, må der højst udtrækkes en neutral præsentations-
 primitive, der kun modtager eksplicitte porte og ikke kender EO- eller EET-descriptors.
 
-### #19 — Generisk keyed-slice store-factory
+### #19 – Generisk keyed-slice store-factory
 
 **Status: ↪ Overflødiggjort af den nye inputkerne.**
 
@@ -414,7 +414,7 @@ runtime-storet udtrykker nu aggregate, rejected input og revision samlet.
 legacy-model, men stadig den forkerte slutarkitektur. At slette hele parallelmodellen er mere
 greenfield end at konsolidere dens interne boilerplate. Punktet har intet restarbejde.
 
-### #20 — EO-inspektion: regex-id’er og struktureret metadata
+### #20 – EO-inspektion: regex-id’er og struktureret metadata
 
 **Status: ✅ Afsluttet.**
 
@@ -429,7 +429,7 @@ ikke en række, der kan bære id’et. Den er dokumenteret som en anden datamode
 ren outputprojektion. Det er netop den rigtige retning. Serialiseringsformatet er separat
 testdækket, så outputændringer ikke kan gemme sig i de øvrige goldens.
 
-### #21 — `Indstillinger.tsx` → deklarativt settings-register
+### #21 – `Indstillinger.tsx` → deklarativt settings-register
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -446,7 +446,7 @@ storage-flow og ikke en almindelig settings-række.
 deklarativt register, der kun ser ensartet ud på overfladen. Den faktiske fælles metadata har
 fået ét hjem; resten er ikke kunstigt abstraheret.
 
-### #22 — `IndtaegtFoerSkadenSection` → undersektioner
+### #22 – `IndtaegtFoerSkadenSection` → undersektioner
 
 **Status: ◐ Delvist gennemført.**
 
@@ -470,7 +470,7 @@ lønudvikling/basisdato og den tilhørende opslagshandling. Bevar den eksisteren
 rækkefølge. Opdelingen skal være en ren strukturændring uden ny inputmodel, prop-boring eller
 ændring af validering, beregning, labels eller tooltips.
 
-### #23 — Regulering → kanonisk forløb
+### #23 – Regulering → kanonisk forløb
 
 **Status: ✅ Afsluttet.**
 
@@ -485,7 +485,7 @@ union; de bruger deres egne kanoniske formel-/opslagsprimitiver.
 er samlet, hvor der findes en reel serie, og domæneforskelle er bevaret, hvor de er reelle.
 Golden-nettet beskytter tallene og teksten.
 
-### #24 — Deklarativt dokument-IR
+### #24 – Deklarativt dokument-IR
 
 **Status: ✅ Afsluttet.**
 
@@ -498,7 +498,7 @@ ikke kanal, cursor eller råt dokumentobjekt.
 som intern render-target-adapter, hvor den hører hjemme, i stedet for at lade generatorerne
 bruge den direkte. AST-værn og modeltests gør grænsen håndhævet, ikke kun beskrevet.
 
-### #25 — Samlet felt-state-kerne
+### #25 – Samlet felt-state-kerne
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -511,7 +511,7 @@ forskelle som flag og skabt en ny kompleksitet. Den nuværende løsning deler in
 ikke ansvar, der reelt hører til forskellige surfaces. Den er verificeret med transitions-
 tests og form-/grid-kontraktnet.
 
-### #26 — `Container` → headless keyboard-navigation
+### #26 – `Container` → headless keyboard-navigation
 
 **Status: ✅ Afsluttet.**
 
@@ -523,7 +523,7 @@ testbar uden at stole på jsdom-layout, hvor DOM-rects ellers er nul.
 linjer. Refaktoreringen bevarede den eksisterende keyboard-kontrakt og blandede ikke grid-
 navigation ind i den generelle containerlogik.
 
-### #27 — Samlet række-persistering
+### #27 – Samlet række-persistering
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -537,7 +537,7 @@ modeller. Draften hører til cellens inputsurface, mens aggregate og row command
 inputkernen. Forskellen mellem løse tabeller og grid-tabeller er nu styling-/renderings-
 variation, ikke en anden persistence-model.
 
-### #28 — Persistence-læse-sti-lagstak
+### #28 – Persistence-læse-sti-lagstak
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -549,7 +549,7 @@ læsegrænse. Pages og beregninger læser ikke rå aggregate-sektioner.
 gør det strukturelt vanskeligere at læse den forkerte stateform. Det ville være forkert at
 genindføre gamle selectors/context blot for at bevare kandidatens historiske filnavne.
 
-### #29 — `dateRanges.ts` og read-time `TODAY`
+### #29 – `dateRanges.ts` og read-time `TODAY`
 
 **Status: ◐ Delvist gennemført.**
 
@@ -575,7 +575,7 @@ autoritet. Bevar read-time-getterne og de eksisterende midnat-/årsskiftetests. 
 ændring kræver et konkret nyt grænseproblem og golden-/kontrakt-tests for at bevise identiske
 grænser.
 
-### #30 — Konsolider validerings-ejerskab
+### #30 – Konsolider validerings-ejerskab
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -588,7 +588,7 @@ og konvergerer i fælles issue-/invariant-formater, hvor lagene mødes.
 forskellige autoriteter og er afgrænset af kontrakter og værn. En yderligere “konsolidering”
 til ét modul ville blande field, domain og system concerns og være et dårligere slutprodukt.
 
-### #31 — PDF/Word-paritet som struktur
+### #31 – PDF/Word-paritet som struktur
 
 **Status: ✅ Afsluttet.**
 
@@ -600,7 +600,7 @@ PDF-goldens er bevaret, mens Word-output har et eksplicit golden-net for den god
 renderingsmekanik er stadig separat. Det er mere robust end fælles lavniveau-layoutkode og
 undgår at Word simulerer PDF’ens cursor.
 
-### #32 — EO-sektioner → rene `Block[]`-funktioner
+### #32 – EO-sektioner → rene `Block[]`-funktioner
 
 **Status: ◐ Delvist gennemført og omformet.**
 
@@ -622,12 +622,12 @@ var fejldiagnosticeret.
 
 Der skal ikke gennemføres en mekanisk omlægning til funktioner, der returnerer bogstavelige
 `DocumentBlock[]`. `DocumentComposer` er den bindende, kanalneutrale kompositionsgrænse, og
-`void`-returen betyder her, at sektionen føjer blokke til den modelbygger — ikke at den skriver
+`void`-returen betyder her, at sektionen føjer blokke til den modelbygger – ikke at den skriver
 direkte til en PDF- eller Word-writer. De nuværende context-objekter er eksplicitte og kan
 bevares som testseams. Kun en senere, navngiven intern ansvarssøm med dokumenteret gevinst bør
 føre til en lokal funktionsopdeling, og den skal i så fald golden-verificeres.
 
-### #33 — Atomisk mutationsprimitiv i `FormPersistenceContext`
+### #33 – Atomisk mutationsprimitiv i `FormPersistenceContext`
 
 **Status: ↪ Overflødiggjort af inputkernen.**
 
@@ -639,7 +639,7 @@ replacement-commands og coordinatoren.
 den gamle model, men den er ikke slutpunktet. Den nye løsning har færre stateformer og én
 systemport, så en genindførelse af context-primitiven ville være tilbageskridt.
 
-### #34 — EO-schema-variant-dedup
+### #34 – EO-schema-variant-dedup
 
 **Status: ↪ Overflødiggjort.**
 
@@ -650,7 +650,7 @@ grænseproblem ville være ændring for ændringens skyld.
 **Arkitektonisk vurdering:** Korrekt lukket som ikke-kandidat. Der skal ikke oprettes en ny
 abstraktion for at gøre et historisk punkt “synligt”.
 
-### #35 — Carry-forward-serieopslag
+### #35 – Carry-forward-serieopslag
 
 **Status: ✅ Omformet og afsluttet efter korrigeret skæring.**
 
@@ -666,7 +666,7 @@ dato-/coverage-model er ikke presset ind i carry-forward-typen.
 `carryForwardSeries<T>`. Den samler identisk semantik og bevarer domænemæssigt forskellige
 datamodeller. Lookupens sorteringsretning og coverage-værn er de vigtige invariants.
 
-### #36 — EET på `MoneyOre` og canonical spine
+### #36 – EET på `MoneyOre` og canonical spine
 
 **Status: ✅ Afsluttet.**
 
@@ -679,7 +679,7 @@ en typed import-context. Højpræcisionsprocenter og faktorer er ikke fejlagtigt
 pengeenheder er lukkede, mens mellemregninger beholder den præcision de faktisk kræver.
 Golden-værdier før/efter er afgørende og er en del af afslutningen.
 
-### #37 — Branded `MoneyOre` og lukket pengealgebra
+### #37 – Branded `MoneyOre` og lukket pengealgebra
 
 **Status: ✅ Afsluttet.**
 
@@ -691,7 +691,7 @@ flere domæner, men ikke gjort til en generel “tal-wrapper”. Konvertering ti
 en eksplicit port tæt på den relevante grænse. Det er en passende balance mellem type-sikkerhed
 og læsbar domænekode.
 
-### #38 — Eksplicit dokumentgenereringssession
+### #38 – Eksplicit dokumentgenereringssession
 
 **Status: ✅ Afsluttet.**
 
@@ -703,7 +703,7 @@ friskhedschecks.
 den gamle globale writer. Den gør samtidige downloads og PDF/Word-routing eksplicitte og
 testbare. Den skal bevares som fundament for #24 og #31.
 
-### #39 — Persistence initialiseres før React-render
+### #39 – Persistence initialiseres før React-render
 
 **Status: ✅ Afsluttet.**
 
@@ -715,7 +715,7 @@ input. Storage-namespace etableres før standalone-appens øvrige imports.
 distribuerer en færdig binding, men ejer ikke initialisering. Dermed kan rendering, remount og
 test-wiring ikke skabe en ny persistence-sandhed.
 
-### #40 — Explicit critical-action-/commit-barriere
+### #40 – Explicit critical-action-/commit-barriere
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -728,7 +728,7 @@ settle; replacement-flowet anvender no-settle-policy og kasserer først draften 
 ind i samme workflow. Den beskytter både brugerens åbne editor og den autoritative
 replacement-semantik. Kontrakten og overgangstests er vigtigere end et bestemt klassenavn.
 
-### #41 — Typed save/load og tilstandsmaskine
+### #41 – Typed save/load og tilstandsmaskine
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -741,7 +741,7 @@ transaktionsplan, fordi persistence ikke længere har en parallel state-model. `
 er den eneste læseport, og replacement-porten er den eneste hel-sags-skriveport. Det er
 greenfield-korrekt for en trust-kritisk client-side app.
 
-### #42 — Versionsbåret schema-evolution i `.eo`
+### #42 – Versionsbåret schema-evolution i `.eo`
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -754,7 +754,7 @@ blokkerer. Runtime-state og `.eo`-filen har dermed forskellige, tydelige version
 men fail-closed over for datatab og korruption i den aktuelle version. En generel “gør filen
 komplet med app-defaults”-sti ville være forkert og er ikke indført.
 
-### #43 — Page-manifest og persistent app-shell
+### #43 – Page-manifest og persistent app-shell
 
 **Status: ✅ Afsluttet.**
 
@@ -770,7 +770,7 @@ ikke en rettelse af en allerede observeret remount-fejl.
 import-/type-/testtid. Den ændrer ikke en brugerrejse i sig selv og undgår at begrunde
 arkitektur med en upræcis React-antagelse.
 
-### #44 — Feature-slicede EO-viewmodels
+### #44 – Feature-slicede EO-viewmodels
 
 **Status: ◐ Delvist gennemført.**
 
@@ -795,7 +795,7 @@ den aktuelle side-/tab-struktur følger netop den regel. Eventuel fremtidig deko
 ske under de konkrete ansvarssømme i #1, #18 eller #22 og ikke som et parallelt initiativ under
 #44. Den generiske rest bør derfor lukkes uden kodeændring.
 
-### #45 — Deklarativ `GridSpec`
+### #45 – Deklarativ `GridSpec`
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -811,7 +811,7 @@ og `useCollectionTable` samler desuden celleidentitet og placeholder-livscyklus.
 duplikering uden at opfinde et falsk fælles visuelt tabelformat. En senere fælles kolonnespec
 kræver et nyt konkret behov og skal ikke genintroduceres fra den gamle kandidattekst.
 
-### #46 — Variant-ejede styles og build-assets
+### #46 – Variant-ejede styles og build-assets
 
 **Status: ⛔ Bevidst ikke gennemført.**
 
@@ -825,7 +825,7 @@ postbehandling sletter/omskriver variantfiler. Punktet skal ikke åbnes igen ude
 konkret beslutning. Det eneste aktive UI-spørgsmål i nærheden er den tidligere forelagte
 enhedsadfærd for Anciennitetstillæg; det er ikke en del af #46.
 
-### #47 — Ét verificeret release-artefakt
+### #47 – Ét verificeret release-artefakt
 
 **Status: ✅ Afsluttet.**
 
@@ -839,7 +839,7 @@ og den er opfyldt. Den historiske beskrivelse af fjernede dependencies eller pr�
 skal ikke gentages som aktuel status; release-gaten skal vurderes på sin nuværende kommando-
 og CI-kæde.
 
-### #48 — AST-baseret arkitekturgrænse-harness
+### #48 – AST-baseret arkitekturgrænse-harness
 
 **Status: ✅ Afsluttet.**
 
@@ -852,7 +852,7 @@ har en eksplicit distinction mellem import-/adgangsgrænser og positive wiring-/
 invarianter, som fortsat må have dedikerede guards. Mutation-/liveness-værnene reducerer
 risikoen for grønne regler uden mål.
 
-### #49 — Neutral måneds-/intervalalgebra
+### #49 – Neutral måneds-/intervalalgebra
 
 **Status: ✅ Afsluttet.**
 
@@ -864,7 +864,7 @@ only wrapper er fjernet.
 mens domænepolitik ikke skjules i et “neutralt” modul. Golden-værdier for månedsgrænser,
 skudår og floating-point-identitet beskytter mod taldrift.
 
-### #50 — TAF-graf → ren scene-model og renderer
+### #50 – TAF-graf → ren scene-model og renderer
 
 **Status: ✅ Afsluttet.**
 
@@ -878,7 +878,7 @@ meningsfuldt Canvas-API. Rendererens ansvar er nu mekanisk. Den aftalte pixel-tr
 at farver, størrelser og placeringer ikke må ændres som smag; kun dokumenterede reelle
 tegnefejl kan ændres efter særskilt forelæggelse.
 
-### #51 — Typed beregningsdatakatalog og provenance
+### #51 – Typed beregningsdatakatalog og provenance
 
 **Status: ✅ Afsluttet.**
 
@@ -891,7 +891,7 @@ standalone-bundlen ikke får Mineos beregningsdata uden grund.
 alle datakilder ind i samme payload-shape. At beholde kilde-specifikke datafiler er her bedre
 end at skabe mange generiske aliasmoduler for en låst featureflade.
 
-### #52 — Normative kontrakter: invariant-kerne vs. implementeringskort
+### #52 – Normative kontrakter: invariant-kerne vs. implementeringskort
 
 **Status: ✅ Omformet og afsluttet.**
 
@@ -941,8 +941,8 @@ De syv delvise punkter er reelle ydre lagrester:
 6. den dybere featureopdeling af viewmodels (`#44`).
 
 De skal ikke behandles som en samlet ny refaktorering. Hvert punkt har forskellig risiko og
-skal først have en konkret skæring, karakterisering og — hvor brugeroplevelse eller tal kan
-ændres — forudgående forelæggelse.
+skal først have en konkret skæring, karakterisering og – hvor brugeroplevelse eller tal kan
+ændres – forudgående forelæggelse.
 
 ### Bevidste afslutninger uden yderligere arbejde
 
@@ -968,11 +968,11 @@ Reviewet er udført ved at sammenholde:
 
 Kørte kontroller på den aktuelle arbejdsmappe:
 
-- `npm run typecheck` — grøn.
-- `npm run typecheck:test` — grøn.
-- `npm run lint` — grøn.
+- `npm run typecheck` – grøn.
+- `npm run typecheck:test` – grøn.
+- `npm run lint` – grøn.
 - Målrettet Vitest-run af inputcore, dokumenter, architecture guards, tabeller, dato-ranges,
-  ASCII-slug og IndexedDB — **74 testfiler / 1.136 tests grønne**.
+  ASCII-slug og IndexedDB – **74 testfiler / 1.136 tests grønne**.
 
 Der er ikke kørt en fuld release/build/E2E-gate, fordi denne ændring kun omskriver dette
 reviewdokument og ikke ændrer produktkode, buildkonfiguration eller brugerrejser.

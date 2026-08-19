@@ -100,7 +100,7 @@ const assertSameAsReference = (input: FerieInput, fra: ISODateString, til: ISODa
   expect(sortedArr(actual)).toEqual(sortedArr(reference));
 };
 
-// Deterministisk PRNG (mulberry32) — ingen Math.random, så batteriet er reproducerbart.
+// Deterministisk PRNG (mulberry32) – ingen Math.random, så batteriet er reproducerbart.
 const makePrng = (seed: number): (() => number) => {
   let a = seed >>> 0;
   return () => {
@@ -111,7 +111,7 @@ const makePrng = (seed: number): (() => number) => {
   };
 };
 
-describe('buildFerieDageSetForPeriode — ækvivalens med tidligere kontrol-lag-implementering', () => {
+describe('buildFerieDageSetForPeriode – ækvivalens med tidligere kontrol-lag-implementering', () => {
   it('matcher referencen på håndplukkede kant-scenarier', () => {
     // Enkelt-dag, weekend, SH (nytår + jul), store bededag før/efter afskaffelse,
     // skudår-februar, DST-skift, år-krydsning, overlap, over-kapacitet, flere kilder.

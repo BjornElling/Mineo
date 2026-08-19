@@ -6,7 +6,7 @@ import {
 } from '../../../components/layout/pageMessage';
 
 /**
- * `PageMessage` — typen der gør en besked-boks' TILSTEDEVÆRELSE eksplicit.
+ * `PageMessage` – typen der gør en besked-boks' TILSTEDEVÆRELSE eksplicit.
  *
  * Fejlklassen den lukker: Årsløns "Kritisk Fejl"-boks stod permanent og TOM øverst på siden, fordi
  * viewmodellen skrev `?? []` på et `string | null`-felt. Et tomt array er truthy, så boksens håndrullede
@@ -38,11 +38,11 @@ describe('pageMessage', () => {
     expect(hasPageMessage(pageMessage('noget gik galt'))).toBe(true);
   });
 
-  it('NO_MESSAGE er TRUTHY — derfor er `hasPageMessage` den eneste gyldige kontrol', () => {
+  it('NO_MESSAGE er TRUTHY – derfor er `hasPageMessage` den eneste gyldige kontrol', () => {
     // Denne test dokumenterer, HVORFOR typen findes. `NO_MESSAGE` er et objekt og dermed truthy, præcis som
     // det tomme array der forårsagede den tomme boks. Havde værnet været `if (!message)`, ville et fravær
     // igen slippe igennem. Fejler denne test, er `NO_MESSAGE` blevet falsy, og så er `hasPageMessage`-kravet
-    // i `PageMessageBox` ikke længere load-bearing — værnet skal da gentænkes, ikke bare rettes.
+    // i `PageMessageBox` ikke længere load-bearing – værnet skal da gentænkes, ikke bare rettes.
     expect(Boolean(NO_MESSAGE)).toBe(true);
     expect(hasPageMessage(NO_MESSAGE)).toBe(false);
   });

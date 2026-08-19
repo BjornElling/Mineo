@@ -90,12 +90,12 @@ if (hasDomEnvironment) {
    * samme grund: under coverage-instrumentering tager en integrationsfil 11–25 s, og et asynkront
    * dokument-download-flow overskrider da 1 sekund, selv om intet hænger.
    *
-   * Symptomet var falske, VANDRENDE fejl i coverage-gaten — «expected vi.fn() to be called 1 times, but
+   * Symptomet var falske, VANDRENDE fejl i coverage-gaten – «expected vi.fn() to be called 1 times, but
    * got 0 times» i skiftende integrationsfiler fra kørsel til kørsel, mens den samme kommando kunne stå
    * grøn minuttet efter. Grænsen sættes centralt frem for pr. kaldsted, så den følger den begrundelse,
    * der allerede er skrevet ned for `testTimeout`, og ikke skal gentages i hver ny test.
    *
-   * Den bevarer ægte fejl: et flow, der aldrig fuldfører, fejler stadig — blot på testTimeout.
+   * Den bevarer ægte fejl: et flow, der aldrig fuldfører, fejler stadig – blot på testTimeout.
    */
   configure({ asyncUtilTimeout: 5_000 });
 

@@ -164,7 +164,7 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
   });
 
   it('strukturelle felter er stabile (ikke ID-baserede felter)', () => {
-    // Row-IDs genereres tilfældigt — verificer kun stabile felter
+    // Row-IDs genereres tilfældigt – verificer kun stabile felter
     const settings = { ...DEFAULT_APP_SETTINGS };
     const v1 = createErstatningsopgoerelseInitialValues(settings);
     const v2 = createErstatningsopgoerelseInitialValues(settings);

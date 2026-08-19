@@ -90,7 +90,7 @@ export const EO_BILAG_DYNAMIC_SELECTION_KEYS = [
 export type EoBilagDynamicSelectionKey = (typeof EO_BILAG_DYNAMIC_SELECTION_KEYS)[number];
 
 /**
- * Om ét dynamisk bilagsvalg kan vælges — og hvis ikke, hvorfor.
+ * Om ét dynamisk bilagsvalg kan vælges – og hvis ikke, hvorfor.
  *
  * Bevidst en discriminated union og ikke `{ enabled: boolean; disabledReason?: string }`: et utilgængeligt
  * bilagsvalg skjules ikke, men vises inaktivt med årsagen i tooltippet, og en manglende årsag ville derfor
@@ -240,7 +240,7 @@ export const getEoBilagAvailability = (params: Readonly<{
 
   // Uden TAF-krav findes der ingen erstatningsperiode at filtrere bilag efter, og alle disse
   // bilag dokumenterer alene TAF-beregningen. Når bilag samtidig er sat til "Perioden", er der
-  // derfor intet relevant at vise — så alle dynamiske valg deaktiveres. Bevidst kun for "Perioden":
+  // derfor intet relevant at vise – så alle dynamiske valg deaktiveres. Bevidst kun for "Perioden":
   // "Alle" medtager oplysningerne uafhængigt af perioden, jf. brugervalgt afgrænsning.
   if (eoBilagMode === 'Perioden' && eoValues.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
     const disabled: EoBilagAvailabilityState = { enabled: false, disabledReason: EO_BILAG_INGEN_TAF_KRAV_REASON };

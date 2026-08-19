@@ -48,7 +48,7 @@ const toUtcDateStr = (d: Date) =>
 
 // ─── Lønperiode: maaned ───────────────────────────────────────────────────
 
-describe('parseAarsloenRowInterval — maaned', () => {
+describe('parseAarsloenRowInterval – maaned', () => {
   it('returnerer null for tomme felter', () => {
     expect(parseAarsloenRowInterval(maanedRow('', ''), 'maaned')).toBeNull();
   });
@@ -131,7 +131,7 @@ describe('parseAarsloenRowInterval — maaned', () => {
 
 // ─── Lønperiode: uge ──────────────────────────────────────────────────────
 
-describe('parseAarsloenRowInterval — uge', () => {
+describe('parseAarsloenRowInterval – uge', () => {
   it('returnerer null for tomme felter', () => {
     expect(parseAarsloenRowInterval(ugeRow('', ''), 'uge')).toBeNull();
   });
@@ -170,7 +170,7 @@ describe('parseAarsloenRowInterval — uge', () => {
 
 // ─── Lønperiode: dag ──────────────────────────────────────────────────────
 
-describe('parseAarsloenRowInterval — dag', () => {
+describe('parseAarsloenRowInterval – dag', () => {
   it('returnerer null for tomme felter', () => {
     expect(parseAarsloenRowInterval(dagRow('', ''), 'dag')).toBeNull();
   });

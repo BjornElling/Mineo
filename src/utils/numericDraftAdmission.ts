@@ -109,7 +109,7 @@ export const isPercentDraftAllowed = (
  * Flyttet hertil fra `components/inputs/draftAdmission.ts` 2026-08-18, så BÅDE tastningens
  * `yearAdmission` og pastens `normalizeYearPaste` kan læse det samme prædikat. Modulet
  * `inputPasteNormalization` ligger i `utils` og må ikke importere fra `components`; lå prædikatet
- * fortsat kun dér, ville paste have været nødt til at kopiere regexet — og en kopi er præcis den
+ * fortsat kun dér, ville paste have været nødt til at kopiere regexet – og en kopi er præcis den
  * drift mellem to parallelle værn, `draftAdmission.ts`' egen header advarer om.
  */
 export const MAX_YEAR_DRAFT_DIGITS = 4;
@@ -127,8 +127,8 @@ export const isYearDraftAllowed = (draft: string): boolean =>
  * §1.2a's regel «paste = tastning tegn for tegn» gjorde det en almindelig indsat tekst ubrugelig: i
  * `uge 23/2025` optog mellemrummet efter «uge» separator-pladsen, hvorefter det ægte `/` blev ulovligt
  * (kun én separator er tilladt), og resultatet ` 2320` blev afvist som «Ugyldigt format». Nu er
- * mellemrummet et ulovligt tegn på lige fod med bogstaverne og springes derfor — ved både tastning og
- * paste — så teksten bliver `23/2025`. Prisen er, at `23 2025` ikke længere kan tastes med mellemrum.
+ * mellemrummet et ulovligt tegn på lige fod med bogstaverne og springes derfor – ved både tastning og
+ * paste – så teksten bliver `23/2025`. Prisen er, at `23 2025` ikke længere kan tastes med mellemrum.
  */
 /**
  * De lovlige ugeseparatorer, ét sted. `-` står sidst i tegnklassen, så den ikke læses som et interval.

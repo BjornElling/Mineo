@@ -12,7 +12,7 @@ vi.mock('../../../utils/systemIssueReporter', () => ({
 }));
 
 // Vi mocker KUN buildErstatningsopgoerelsePdfModelFromComputed til at kaste. Den kaldes i
-// computeEoSnapshot's try-blok EFTER inspektionSnapshot allerede er bygget — derved rammer vi præcist
+// computeEoSnapshot's try-blok EFTER inspektionSnapshot allerede er bygget – derved rammer vi præcist
 // den sti hvor en delvist bygget inspektionSnapshot eksisterer, når runtime-exception fail-close indtræffer.
 // Alle øvrige exports (bl.a. buildEoPdfPresentation, som kaldes før inspektionSnapshot) bevares uændret.
 vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel', async (importOriginal) => {
@@ -40,7 +40,7 @@ const buildValidEoValues = () => {
   return eoValues;
 };
 
-describe('computeEoSnapshot — runtime_exception fail-close', () => {
+describe('computeEoSnapshot – runtime_exception fail-close', () => {
   afterEach(() => {
     pdfModelThrowFlag.shouldThrow = false;
     reportSystemIssueMock.mockReset();
@@ -68,7 +68,7 @@ describe('computeEoSnapshot — runtime_exception fail-close', () => {
     expect(snapshot.status).toBe('fail_closed');
     expect(snapshot.failClosedReason).toBe('runtime_exception');
     expect(snapshot.data).toBeNull();
-    // Kontrakt §2.4: inspektionSnapshot er null i fail_closed — også selvom den nåede at blive bygget.
+    // Kontrakt §2.4: inspektionSnapshot er null i fail_closed – også selvom den nåede at blive bygget.
     expect(snapshot.inspektionSnapshot).toBeNull();
     expect(snapshot.invariants.some((invariant) => invariant.id === 'runtime_exception')).toBe(true);
     expect(reportSystemIssueMock).toHaveBeenCalledWith(

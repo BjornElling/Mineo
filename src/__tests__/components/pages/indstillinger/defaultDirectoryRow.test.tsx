@@ -44,7 +44,7 @@ const renderRow = (defaultDirectoryHandleId: string | undefined) => {
   );
 };
 
-/** Elementet der viser placeringens navn — slås op på selve det viste navn. */
+/** Elementet der viser placeringens navn – slås op på selve det viste navn. */
 const navnElement = (visetNavn: string): HTMLElement => screen.getByText(visetNavn);
 
 beforeEach(() => {
@@ -52,7 +52,7 @@ beforeEach(() => {
   deleteDefaultDirectoryHandleMock.mockResolvedValue(true);
 });
 
-describe('DefaultDirectoryRow — navn og udseende har én kilde', () => {
+describe('DefaultDirectoryRow – navn og udseende har én kilde', () => {
   it('uden valgt mappe vises standardnavnet i kursiv og uden Nulstil', async () => {
     renderRow(undefined);
 
@@ -81,10 +81,10 @@ describe('DefaultDirectoryRow — navn og udseende har én kilde', () => {
 
   /**
    * KERNEN. Id'et overlevede sin registrering (IndexedDB ryddet, localStorage ikke). Før havde
-   * rækken to kilder, så den viste standardens NAVN med brugervalgets UDSEENDE — en påstand om en
+   * rækken to kilder, så den viste standardens NAVN med brugervalgets UDSEENDE – en påstand om en
    * valgt mappe, gem-vejen samtidig ikke kunne indfri.
    */
-  it('overlever id\'et sin registrering, vises standarden som standard — men Nulstil bevares', async () => {
+  it('overlever id\'et sin registrering, vises standarden som standard – men Nulstil bevares', async () => {
     getDirectoryDisplayInfoMock.mockResolvedValue(null);
     renderRow('dir-forsvundet');
 
@@ -98,7 +98,7 @@ describe('DefaultDirectoryRow — navn og udseende har én kilde', () => {
   });
 });
 
-describe('DefaultDirectoryRow — handlinger', () => {
+describe('DefaultDirectoryRow – handlinger', () => {
   it('Nulstil sletter registreringen og rydder settings-id\'et', async () => {
     const user = userEvent.setup();
     getDirectoryDisplayInfoMock.mockResolvedValue({
@@ -195,10 +195,10 @@ describe('DefaultDirectoryRow — handlinger', () => {
 /**
  * Mappevalget var kun klikbart: knappen bar ikke Container'ens opt-in-markør, så den lå uden for
  * feltsekvensen og kunne ikke nås med Tab. Aktivering med Enter/mellemrum måles på selve
- * handlingen — ikke på attributten — så testen ville fange en senere ændring til fx et <span>,
+ * handlingen – ikke på attributten – så testen ville fange en senere ændring til fx et <span>,
  * der beholdt markøren men mistede den native knapadfærd.
  */
-describe('DefaultDirectoryRow — «Vælg mappe» er tastaturtilgængelig', () => {
+describe('DefaultDirectoryRow – «Vælg mappe» er tastaturtilgængelig', () => {
   const renderMedMappevaelger = async () => {
     const directoryHandle = { name: 'Sager' } as unknown as FileSystemDirectoryHandle;
     const showDirectoryPicker = vi.fn(async () => directoryHandle);
@@ -248,7 +248,7 @@ describe('DefaultDirectoryRow — «Vælg mappe» er tastaturtilgængelig', () =
   });
 });
 
-describe('resolveDefaultDirectoryLocation — de tre tilstande', () => {
+describe('resolveDefaultDirectoryLocation – de tre tilstande', () => {
   it('uden id: standard, uden opslag i storet', async () => {
     const result = await resolveDefaultDirectoryLocation(undefined);
     expect(result).toEqual({ kind: 'standard', displayName: DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME });

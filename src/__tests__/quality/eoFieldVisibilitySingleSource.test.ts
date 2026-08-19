@@ -8,7 +8,7 @@ import path from 'node:path';
  * eoInputRelevance.ts, som BÅDE UI (vis/skjul) og beregning (neutralisering) læser fra.
  *
  * Forbuddet mod inline synligheds-gates på governed felter håndhæves nu STRUKTURELT af
- * den AST-baserede regel `domain/eo-field-visibility-single-source` (greenfield #48) —
+ * den AST-baserede regel `domain/eo-field-visibility-single-source` (greenfield #48) –
  * den flager `getChecked(values.X) && …` / `values.X === '…' && …` strukturelt (fanger
  * multi-line og negation), mens kontrol-bindinger er tilladt. Tilbage her står den
  * POSITIVE assertion: at sektionerne faktisk importerer og bruger prædikaterne.

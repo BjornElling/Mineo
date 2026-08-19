@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-09 (§8.2a er implementeret og verificeret: længdepolitikken erklæres
+**Senest verificeret mod kode:** 2026-08-19 (§8.2a er implementeret og verificeret: længdepolitikken erklæres
 på codecet/`charLengthPolicy.ts` og læses af både formular- og gridfladen; paste afgrænses i `spliceDraftWithPaste`)
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
@@ -81,7 +81,7 @@ type SettledInput = Readonly<{
   rejectedInputs: Readonly<Record<SerializedFieldAddress, RejectedInput>>;
 }>;
 
-// src/inputCore/runtime/slimInputStore.ts — ud over de to felter nedenfor bærer
+// src/inputCore/runtime/slimInputStore.ts – ud over de to felter nedenfor bærer
 // storen også history, settingsRevision, replacementGeneration og meta.
 type SlimInputStoreState = Readonly<{
   input: SettledInput;
@@ -112,8 +112,8 @@ Hvert persisteret felt har én typed `FieldRef<T>` = `{ address, descriptor }`, 
 - feltets codec,
 - brugervendt label,
 - kontroltype,
-- feltets `validators` — kanalen der producerer bounds-/rule-issues (§8, `src/inputCore/catalog/boundsValidators.ts`),
-- feltets `relevance` — synligheds- og beregningsrelevans-prædikatet (§7 punkt 3).
+- feltets `validators` – kanalen der producerer bounds-/rule-issues (§8, `src/inputCore/catalog/boundsValidators.ts`),
+- feltets `relevance` – synligheds- og beregningsrelevans-prædikatet (§7 punkt 3).
 
 Den type-udviskede variant `AnyFieldRef` er den, `FieldIssue.field` bærer.
 
@@ -149,7 +149,7 @@ Blur og Enter bruger samme feltmotor og samme `settleField`-transaktion:
 
 1. codec parser den aktuelle rå tekst,
 2. gyldigt resultat skriver canonical værdi og fjerner en eventuel rejection,
-3. ugyldigt resultat rydder canonical slot til feltets tomværdi og skriver den rå tekst som rejection — atomisk og
+3. ugyldigt resultat rydder canonical slot til feltets tomværdi og skriver den rå tekst som rejection – atomisk og
    gensidigt udelukkende (XOR); der bevares ingen maskeret recovery-værdi,
 4. storage, aggregate, history og revision ændres som én transaktion.
 
@@ -214,15 +214,15 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
 3. Synlighed og beregningsrelevans udledes af samme domæneprædikat.
 4. Skjult canonical input bevares gennem F5 og `.eo`, medmindre brugeren eksplicit sletter det.
 5. **Hovedregel: et brugervalg sletter aldrig brugerens indtastninger.** Kun kontroller, der over for
-   brugeren er udtrykkeligt navngivet som slettende — `Slet alt`, `Slet række`, Delete/Backspace på et
-   fokuseret felt — fjerner indtastet data. Et valg, der gør et andet felt irrelevant (fx Afgørelsestype
+   brugeren er udtrykkeligt navngivet som slettende – `Slet alt`, `Slet række`, Delete/Backspace på et
+   fokuseret felt – fjerner indtastet data. Et valg, der gør et andet felt irrelevant (fx Afgørelsestype
    `Endelig` → `Midlertidig`, `Tillæg angives som` procent → beløb, en skiftet Lønperiode), ændrer derfor
    **kun vurderingen** af det felt: en **gyldig** værdi består uændret, feltets issues genudledes rent fra
    det nye snapshot, og skiftes valget tilbage, kommer værdien uændret til syne igen. Et valg må ikke være
    en skjult sletteknap.
 
-   **Undtagelse — den usynlige røde fejl:** bar feltet en **aktiv rød feltfejl**, og gør valget feltet
-   irrelevant (= skjult, punkt 3), ryddes feltet **tavst** i samme transaktion som valget — én typed
+   **Undtagelse – den usynlige røde fejl:** bar feltet en **aktiv rød feltfejl**, og gør valget feltet
+   irrelevant (= skjult, punkt 3), ryddes feltet **tavst** i samme transaktion som valget – én typed
    domænecommand, ét history-trin. Undtagelsen gælder begge fejlformer: rejected råtekst (format) såvel som
    en canonical out-of-bounds-/rule-værdi.
 
@@ -231,16 +231,16 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    `.eo`-save (§8) eller en afhængig beregning fra et felt, brugeren hverken kan finde eller fikse. Undo
    gendanner både valget og den ryddede værdi som ét trin, så handlingen er fuldt reversibel.
 
-   Afgrænsningen er snæver med vilje. Rydningen rammer netop overgangen **synlig + rød → skjult** — ikke
+   Afgrænsningen er snæver med vilje. Rydningen rammer netop overgangen **synlig + rød → skjult** – ikke
    gyldige værdier, og ikke skjulte værdier i almindelighed.
 
-6. **Et skjult felt UDEN aktiv rød feltfejl bevares altid** — gennem F5 og `.eo`. Bliver det relevant igen,
+6. **Et skjult felt UDEN aktiv rød feltfejl bevares altid** – gennem F5 og `.eo`. Bliver det relevant igen,
    vises den samme værdi. Sammen med punkt 5 giver det én konsistent regel: skjult og gyldigt bevares;
    skjult og rødt ryddes.
 
    Derfor bærer et irrelevant felt **aldrig** et aktivt issue (§1.9, §10). Det er ikke en undertrykkelse af
-   en fejl, der stadig findes: det skjulte felt er tavst, **fordi** det er ryddet. De to halvdele —
-   rydningen i punkt 5 og tavsheden her — skal derfor ændres sammen, aldrig hver for sig. Håndhæves af
+   en fejl, der stadig findes: det skjulte felt er tavst, **fordi** det er ryddet. De to halvdele –
+   rydningen i punkt 5 og tavsheden her – skal derfor ændres sammen, aldrig hver for sig. Håndhæves af
    relevans-invarianten i `validateSettledInput`, som afviser en færdig tilstand med rejected råtekst i et
    skjult felt.
 
@@ -269,8 +269,8 @@ blokerer dokumentet, herunder range/bounds. Se `document-output-contract.md`.
 
 ### 8.1 Placeholderen beskriver kun værdiens form
 
-En placeholder er **formvejledning og intet andet**. Den viser den forventede værdis FORM — `mm`, `åååå`,
-`uu/åååå`, `dd-mm-åååå`, `0,00` — og må ALDRIG bære
+En placeholder er **formvejledning og intet andet**. Den viser den forventede værdis FORM – `mm`, `åååå`,
+`uu/åååå`, `dd-mm-åååå`, `0,00` – og må ALDRIG bære
 
 - en min-/maxgrænse eller anden valideringsbegrænsning,
 - en manglende-værdi- eller statusbesked, eller
@@ -284,10 +284,10 @@ kanal.
 Den rene form ejes af den semantiske **feltfamilie**, ikke af den tabel eller side, feltet står på:
 `src/utils/fieldFormatPlaceholders.ts` (år, uge, dato, måned, dag), `src/utils/amountInputUtils.ts`
 (`DEFAULT_AMOUNT_PLACEHOLDER`, `INTEGER_AMOUNT_PLACEHOLDER`) og `src/utils/percentInputUtils.ts`
-(`DEFAULT_PERCENT_PLACEHOLDER` og `TWO_DECIMAL_PERCENT_PLACEHOLDER` — begge, da procentfamilien har to
+(`DEFAULT_PERCENT_PLACEHOLDER` og `TWO_DECIMAL_PERCENT_PLACEHOLDER` – begge, da procentfamilien har to
 formrepræsentationer efter feltets decimalpolitik, jf. §8.3). En
-callsite må kun override en placeholder, når feltets domæne har en reelt anden FORMATREPRÆSENTATION — fx
-månedens `mm` i en periodekolonne — aldrig for at vise bounds, validering eller status.
+callsite må kun override en placeholder, når feltets domæne har en reelt anden FORMATREPRÆSENTATION – fx
+månedens `mm` i en periodekolonne – aldrig for at vise bounds, validering eller status.
 
 ### 8.2 Fortegns-politikken ejes af feltets codec
 
@@ -297,7 +297,7 @@ Politikken erklæres på codecet som `FieldCodec.signPolicy`, som codec-factory'
 gennem `fieldAllowsNegative(field)` / `codecAllowsNegative(codec)`.
 
 En feltkomponent, en tabelcelle eller en side må **ikke** sende en hardkodet `allowNegative`-literal til et
-tegnfilter — heller ikke en korrekt en. En literal er en anden samtidig sandhed om feltet, og præcis den lod
+tegnfilter – heller ikke en korrekt en. En literal er en anden samtidig sandhed om feltet, og præcis den lod
 `PercentField` svare `true`, mens `GridPercentCell` svarede `false` for de SAMME descriptorer, så et minustegn
 kunne tastes i et felt, der ikke må være negativt. Håndhævet af
 `input/sign-policy-from-descriptor`.
@@ -313,20 +313,20 @@ beløbsfelt tillader tegnet og blokerer kun det **unære** minus.
 ### 8.2a Længdepolitikken ejes af feltets codec
 
 Fortegnet er ét tilfælde af den generelle regel: **et tegn, feltet ikke kan rumme, kommer ikke ind i feltet.**
-Det gælder både tegnsæt og længde — maksimalt antal tegn, heltalscifre og decimaler — og det gælder tastning og
+Det gælder både tegnsæt og længde – maksimalt antal tegn, heltalscifre og decimaler – og det gælder tastning og
 paste ens, jf. `input-field-behavior-contract.md` §1.2. Grænserne erklæres på codecet og læses af begge flader;
 en feltkomponent eller tabelcelle må ikke bære sin egen længdeliteral, af samme grund som den ikke må bære sin
 egen `allowNegative`-literal.
 
 Blokeringen omfatter ikke **talværdi**. Et felts min/max, kronologi og øvrige domænegrænser er rene
 validatorer/projektioner efter §7 i `mineo-field-pattern.md`: en korrekt formateret værdi inden for
-længdegrænsen bliver canonical og får sit røde bounds-issue. Beløbsudtryk er nuancen — udtrykkets enkelte
+længdegrænsen bliver canonical og får sit røde bounds-issue. Beløbsudtryk er nuancen – udtrykkets enkelte
 talled længdebegrænses tegn for tegn, mens et beregnet resultat uden for feltets beløbsgrænse først kan fanges
 ved settle og derfor bliver et canonical issue.
 
 Blokeringen gælder desuden kun **den skrivende overflade**: et felt, brugeren taster eller indsætter i. Den er
-ikke en grænse for programmets beregninger. Afledte og sammentalte værdier — rækkesummer, totaler, projektioner
-og motoroutput — må frit have flere cifre end det inputfelt, de stammer fra, og en read-only celle eller
+ikke en grænse for programmets beregninger. Afledte og sammentalte værdier – rækkesummer, totaler, projektioner
+og motoroutput – må frit have flere cifre end det inputfelt, de stammer fra, og en read-only celle eller
 resultatvisning skal vise det fulde beregnede tal uden afkortning eller rød markering. Længdepolitikken
 erklæres derfor på inputfeltets codec og læses af de skrivende flader; den følger ikke med en afledt værdi ud i
 visningen.
@@ -403,7 +403,7 @@ Særligt for dokument-download:
 
 ## 12. Der findes kun én inputmodel
 
-Der findes ingen parallel inputklynge ved siden af den model, denne kontrakt beskriver — hverken som kopi, som
+Der findes ingen parallel inputklynge ved siden af den model, denne kontrakt beskriver – hverken som kopi, som
 "midlertidig" undtagelse eller under et nyt navn. To AST-regler håndhæver det, og de rammer hver sin flade:
 
 - **`input/deleted-legacy-architecture-import`** forbyder *importstier* til den fjernede klynge, uden allowlist.
@@ -412,19 +412,19 @@ Der findes ingen parallel inputklynge ved siden af den model, denne kontrakt bes
   (som dækker `useTableInputCore` og `useRowDrafts`) og de otte
   `Styled<type>Field`-komponenter (`StyledTextField`, `StyledDateField`, `StyledAmountField`,
   `StyledIntegerField`, `StyledPercentField`, `StyledFractionField`, `StyledWeekField`, `StyledYearField`).
-- **`legacy/forbidden-identifier`** forbyder *navne*, uanset hvor de importeres fra — herunder
+- **`legacy/forbidden-identifier`** forbyder *navne*, uanset hvor de importeres fra – herunder
   `executeLegacyInputTransaction`, `useDraftLifecycle`, `legacyGridTransactionBridge`, `useSliceRowDrafts`,
   `useFormFieldErrorReporter`, `onFieldError`, `InputWriteAuthority` og `claimInputWriteAuthority`.
 
 De persisterede felter tegnes i dag af felt-familien i `src/inputCore/react/fields/` (`TextField`, `DateField`,
 `AmountField`, `IntegerField`, `PercentField`, `ChoiceField` m.fl. samt grid-varianterne). De deler de bevarede
 præsentationsskaller `StyledTextFieldBase` og `StyledTextAreaBase`, og kontrollerne `StyledDropdown`,
-`StyledCheckbox`, `StyledRadioButton` og `StyledToggleSwitch` er fortsat i brug — `Styled*`-præfikset i sig selv
+`StyledCheckbox`, `StyledRadioButton` og `StyledToggleSwitch` er fortsat i brug – `Styled*`-præfikset i sig selv
 er altså ikke forbudt, kun de otte felt-komponenter ovenfor.
 
 **`fieldErrors` er ikke et forbudt navn.** Den centrale skrivbare feltfejl-bus er væk (`src/types/fieldErrors`,
 `useFormFieldErrorReporter`, `onFieldError`, tabeltrackerne), men `fieldErrors` lever videre som et helt
-almindeligt feltnavn i domænesnapshots — fx `EetSnapshot.fieldErrors` og `EOInspektionSnapshot.fieldErrors`.
+almindeligt feltnavn i domænesnapshots – fx `EetSnapshot.fieldErrors` og `EOInspektionSnapshot.fieldErrors`.
 AST-værnet undtager derfor navnet bevidst.
 
 Den ENE dokumenterede undtagelse fra den autoritative inputtilstand er `components/inputs/transient/`: tre flader

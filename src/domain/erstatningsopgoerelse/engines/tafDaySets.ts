@@ -95,8 +95,8 @@ type FerieDageForPeriodeInput = Readonly<{
  * (hverdage minus SH) plus løse feriedage fra TAF-/beregningsperiode-kilder,
  * placeret som de første ledige hverdage i kilde-rækkefølge.
  *
- * Tynd komposition over de kanoniske produktions-primitiver — {@link buildFerieDageSet}
- * for den eksplicitte ferie og {@link placeLoseFeriedage} for de løse feriedage — så
+ * Tynd komposition over de kanoniske produktions-primitiver – {@link buildFerieDageSet}
+ * for den eksplicitte ferie og {@link placeLoseFeriedage} for de løse feriedage – så
  * kontrol-/sammentællingslaget (`eoInspektion`) kører nøjagtig samme dag-set-logik som
  * selve erstatningsberegningen frem for en parallel kopi. SH-sættet beregnes internt
  * over samme interval; det er bevisligt identisk med et injiceret
@@ -306,7 +306,7 @@ export const buildTafArbejdsdageSetFromRows = (
   options: Readonly<{ authoritativeRanges?: readonly IsoRange[] }> = {}
 ): ReadonlySet<ISODateString> => {
   // undefined = ikke leveret (brug rå TAF-rækker som basis).
-  // [] = leveret men tom (ingen TAF-dage i perioden — returner tomt sæt straks).
+  // [] = leveret men tom (ingen TAF-dage i perioden – returner tomt sæt straks).
   const authoritativeRanges = options.authoritativeRanges;
   if (authoritativeRanges !== undefined && authoritativeRanges.length === 0) {
     return new Set<ISODateString>();

@@ -1,6 +1,6 @@
 # Implementeringsplan: Autofill-suggest i StandardGridTable
 
-Status: **PLANLAGT** — arbejdet er ikke begyndt. Der findes ingen `autofillSuggest*`-moduler i koden.
+Status: **PLANLAGT** – arbejdet er ikke begyndt. Der findes ingen `autofillSuggest*`-moduler i koden.
 
 > **Gendannet 2026-08-14.** Filen blev slettet ved dokumentationsoprydningen efter draft/commit-omlægningen
 > (`83b1de11`, 2026-07-31) og er her genskabt uændret fra commit'ens forgænger. Planen er **ikke** implementeret.
@@ -10,12 +10,12 @@ Status: **PLANLAGT** — arbejdet er ikke begyndt. Der findes ingen `autofillSug
 > `src/inputCore/react/fields/*Field.tsx` (`DateField`, `IntegerField`, `AmountField`, `YearField`,
 > `WeekField`, `PercentField`, `TextField`), og felttypen bæres nu af `FieldCodec.family`
 > (`src/inputCore/fieldCodecs.ts`). Mønstergenkendelsen, kolonnekoblingerne, ghost-overlayet og
-> stadieinddelingen er upåvirkede — kun fil- og integrationspunkterne skal kortlægges om.
+> stadieinddelingen er upåvirkede – kun fil- og integrationspunkterne skal kortlægges om.
 > `StandardGridTable.tsx`, `gridCore/tableKeyboardNavigation.ts` og `StandardLooseTable.tsx` findes fortsat.
 
 ## Overblik
 
-Autofill-suggest er en inline ghost-text-funktion i StandardGridTable. Når en kolonne indeholder et genkendeligt mønster i mindst to udfyldte rækker, vises en nedtonet suggest-værdi i næste tomme celle i kolonnen — eller oven i det brugeren skriver, hvis cellen ikke er tom. Brugeren accepterer med Enter; al anden navigation forbliver uændret.
+Autofill-suggest er en inline ghost-text-funktion i StandardGridTable. Når en kolonne indeholder et genkendeligt mønster i mindst to udfyldte rækker, vises en nedtonet suggest-værdi i næste tomme celle i kolonnen – eller oven i det brugeren skriver, hvis cellen ikke er tom. Brugeren accepterer med Enter; al anden navigation forbliver uændret.
 
 Funktionen implementeres udelukkende i StandardGridTable. LooseGridTable-kompatibilitet designes ind fra starten, men aktiveres ikke.
 
@@ -30,7 +30,7 @@ Funktionen implementeres udelukkende i StandardGridTable. LooseGridTable-kompati
 | Minimum rækker for aktivering | 2 udfyldte rækker i samme kolonne |
 | Aktiveringstidspunkt | Straks ved fokus, opdateres dynamisk mens brugeren skriver |
 | Ghost-tekst placering | Inline efter det brugeren har skrevet (ghost input-overlay) |
-| Aktivering | Opt-out per default — alle understøttede felttyper får suggest |
+| Aktivering | Opt-out per default – alle understøttede felttyper får suggest |
 | Kolonnekoblinger | Deklareres eksplicit per tabel via `columnLinks`-prop |
 | Enter-adfærd | Accepter suggest hvis aktiv; ellers naviger ned (eksisterende adfærd) |
 | Fokus efter accept | Cellen beholder fokus (ingen navigation videre) |
@@ -58,7 +58,7 @@ Understøttede mønstre (alle målt på den parsede dato):
 
 Hvis intet mønster genkendes: ingen suggest.
 
-### Integer (`TableIntegerInput`) — selvstændig kolonne
+### Integer (`TableIntegerInput`) – selvstændig kolonne
 
 | Mønster | Betingelse | Suggest |
 |---|---|---|
@@ -79,7 +79,7 @@ Månedskolonner behandles anderledes end almindelige integers:
 - Behold samme årstal, så længe måneden ikke er wrappet.
 - Når måneden wrapper (12 → 1): årstal + 1.
 
-### `TableYearInput` — selvstændig (ingen månedskoblet kolonne)
+### `TableYearInput` – selvstændig (ingen månedskoblet kolonne)
 
 Samme logik som integer, men begrænset til fornuftige årstal (1900–2100).
 
@@ -95,7 +95,7 @@ Beløbsmønstre er tilsigtet mere forsigtige:
 |---|---|---|
 | Ens beløb | rad1 = rad2 | Samme beløb |
 | Stigning ved årsskifte | Beløb stiger fra rad1 til rad2, og en koblet dato/måned-kolonne har krydset et årsskifte | Suggest det nye (højere) beløb i resten af det år |
-| Ellers | — | Ingen suggest (vent på klarere mønster) |
+| Ellers | – | Ingen suggest (vent på klarere mønster) |
 
 Udtryksværdier (`expression`): Suggest viser den **numeriske** værdi, ikke det originale udtryk.
 
@@ -127,7 +127,7 @@ type StandardGridTableProps = {
 };
 ```
 
-Koblinger bruges udelukkende af mønstergenkendelseslogikken — de påvirker ikke rendering, navigation eller validering.
+Koblinger bruges udelukkende af mønstergenkendelseslogikken – de påvirker ikke rendering, navigation eller validering.
 
 ---
 
@@ -154,7 +154,7 @@ ENTER-badge:  inline-block, border: 1px solid rgba(0,0,0,0.25), border-radius: 3
               color: rgba(0,0,0,0.35), vertical-align: middle
 ```
 
-Input-feltet renderes med `color: transparent` og `caret-color: <normal>`, så brugerens egne tegn er usynlige i selve inputtet — men carettet forbliver synligt. Ghost-span'et viser både brugerens tegn og ghost-teksten i samme font. Dette er det klassiske "ghost input"-mønster og undgår problemer med z-index, pointer-events og selektion.
+Input-feltet renderes med `color: transparent` og `caret-color: <normal>`, så brugerens egne tegn er usynlige i selve inputtet – men carettet forbliver synligt. Ghost-span'et viser både brugerens tegn og ghost-teksten i samme font. Dette er det klassiske "ghost input"-mønster og undgår problemer med z-index, pointer-events og selektion.
 
 Input-feltet forbliver ovenpå ghost-span'et i DOM-rækkefølge og fanger alle pointer-events normalt.
 
@@ -166,29 +166,29 @@ Input-feltet forbliver ovenpå ghost-span'et i DOM-rækkefølge og fanger alle p
 
 ```
 src/components/tables/autofillSuggest/
-  autofillSuggestTypes.ts       — typer: ColumnLink, SuggestResult, FieldRole
-  autofillSuggestEngine.ts      — ren mønstergenkendelse (ingen React, ingen side-effects)
-  useAutofillSuggest.ts         — React-hook: beregner suggest for én celle
-  AutofillGhostOverlay.tsx      — ghost-span + ENTER-badge (præsentationskomponent)
+  autofillSuggestTypes.ts       – typer: ColumnLink, SuggestResult, FieldRole
+  autofillSuggestEngine.ts      – ren mønstergenkendelse (ingen React, ingen side-effects)
+  useAutofillSuggest.ts         – React-hook: beregner suggest for én celle
+  AutofillGhostOverlay.tsx      – ghost-span + ENTER-badge (præsentationskomponent)
 ```
 
 ### Ændrede filer
 
 ```
 src/components/tables/StandardGridTable.tsx
-  — tilføj columnLinks-prop
-  — send columnLinks ned via ny AutofillSuggestContext
+  – tilføj columnLinks-prop
+  – send columnLinks ned via ny AutofillSuggestContext
 
 src/components/tables/gridCore/tableKeyboardNavigation.ts
-  — modificér Enter-handling: tjek autofill-suggest-callback før nedadnavigation
+  – modificér Enter-handling: tjek autofill-suggest-callback før nedadnavigation
 
-src/components/inputs/table/TableDateInput.tsx      — integrer AutofillGhostOverlay
-src/components/inputs/table/TableIntegerInput.tsx   — integrer AutofillGhostOverlay
-src/components/inputs/table/TableAmountInput.tsx    — integrer AutofillGhostOverlay
-src/components/inputs/table/TableYearInput.tsx      — integrer AutofillGhostOverlay
-src/components/inputs/table/TableWeekInput.tsx      — integrer AutofillGhostOverlay
-src/components/inputs/table/TablePercentInput.tsx   — integrer AutofillGhostOverlay
-src/components/inputs/table/TableTextInput.tsx      — integrer AutofillGhostOverlay
+src/components/inputs/table/TableDateInput.tsx      – integrer AutofillGhostOverlay
+src/components/inputs/table/TableIntegerInput.tsx   – integrer AutofillGhostOverlay
+src/components/inputs/table/TableAmountInput.tsx    – integrer AutofillGhostOverlay
+src/components/inputs/table/TableYearInput.tsx      – integrer AutofillGhostOverlay
+src/components/inputs/table/TableWeekInput.tsx      – integrer AutofillGhostOverlay
+src/components/inputs/table/TablePercentInput.tsx   – integrer AutofillGhostOverlay
+src/components/inputs/table/TableTextInput.tsx      – integrer AutofillGhostOverlay
 ```
 
 ### Ny context til suggest-data
@@ -237,7 +237,7 @@ Eksisterende Enter-navigation (ingen suggest) er upåvirket.
 
 ## Stadier
 
-### Stadie 1 — Fundament og engine (ingen UI-ændringer)
+### Stadie 1 – Fundament og engine (ingen UI-ændringer)
 
 **Mål:** Mønstergenkendelseslogikken er implementeret og testet isoleret.
 
@@ -248,11 +248,11 @@ Eksisterende Enter-navigation (ingen suggest) er upåvirket.
 **Ingen React-kode i dette stadie. Ingen UI-ændringer.**
 
 Forudsætning: ingen.
-Risiko: lav — ren logik, ingen side-effects.
+Risiko: lav – ren logik, ingen side-effects.
 
 ---
 
-### Stadie 2 — Context og hook
+### Stadie 2 – Context og hook
 
 **Mål:** Suggest-data er tilgængeligt fra input-komponenterne via context.
 
@@ -264,11 +264,11 @@ Risiko: lav — ren logik, ingen side-effects.
 **Ingen synlig UI-ændring.**
 
 Forudsætning: Stadie 1 færdigt.
-Risiko: lav — context er passiv, ingen adfærdsændring.
+Risiko: lav – context er passiv, ingen adfærdsændring.
 
 ---
 
-### Stadie 3 — Kobling af engine til hook
+### Stadie 3 – Kobling af engine til hook
 
 **Mål:** Hook returnerer korrekte suggest-værdier baseret på tabeldata.
 
@@ -278,11 +278,11 @@ Risiko: lav — context er passiv, ingen adfærdsændring.
 **Ingen synlig UI-ændring endnu (ingen overlay).**
 
 Forudsætning: Stadie 2 færdigt.
-Risiko: medium — her opdages fejl i engine eller data-mapping.
+Risiko: medium – her opdages fejl i engine eller data-mapping.
 
 ---
 
-### Stadie 4 — Ghost overlay og visning
+### Stadie 4 – Ghost overlay og visning
 
 **Mål:** Suggest-værdien vises visuelt i understøttede input-typer.
 
@@ -295,11 +295,11 @@ Risiko: medium — her opdages fejl i engine eller data-mapping.
 **Første synlige UI-ændring.**
 
 Forudsætning: Stadie 3 færdigt.
-Risiko: medium — styling-koordination mellem input og overlay kan kræve justering.
+Risiko: medium – styling-koordination mellem input og overlay kan kræve justering.
 
 ---
 
-### Stadie 5 — Enter-accept og fokushåndtering
+### Stadie 5 – Enter-accept og fokushåndtering
 
 **Mål:** Enter accepterer suggest og fokus forbliver i cellen.
 
@@ -311,7 +311,7 @@ Risiko: medium — styling-koordination mellem input og overlay kan kræve juste
 6. Test: Tab med suggest → navigation (suggest forkastes, uændret adfærd).
 
 Forudsætning: Stadie 4 færdigt.
-Risiko: lav — isoleret til onKeyDown-handler i input-komponenter.
+Risiko: lav – isoleret til onKeyDown-handler i input-komponenter.
 
 ---
 
@@ -362,7 +362,7 @@ Disse testes manuelt: ghost-tekst vises korrekt, ENTER-badge er synlig, Enter-ac
 
 Arkitekturen er designet til dette fra starten:
 
-- `AutofillSuggestContext` er tabel-agnostisk — leveres også af `StandardLooseTable`.
+- `AutofillSuggestContext` er tabel-agnostisk – leveres også af `StandardLooseTable`.
 - `AutofillGhostOverlay` er en ren præsentationskomponent uden binding til tabeltype.
 - `useAutofillSuggest`-hook er uafhængig af tabeltype.
 - Enter-interceptering i input-komponenterne virker uanset omgivende tabel.
@@ -374,7 +374,7 @@ Aktivering i LooseGridTable kræver: (1) tilføj `columnLinks`-prop til `Standar
 ## Afgrænsninger
 
 - `TableDropdown` understøttes ikke.
-- Suggest virker ikke på tværs af rækker der er sorterede/filtrerede anderledes end DOM-rækkefølge — rækkefølge bestemmes af DOM-order.
+- Suggest virker ikke på tværs af rækker der er sorterede/filtrerede anderledes end DOM-rækkefølge – rækkefølge bestemmes af DOM-order.
 - Suggest tager ikke højde for låste celler (`getIsLocked`): overlay vises ikke i låste celler.
 - Der gemmes ingen suggest-historik eller bruger-præferencer.
 - Ingen server-side kald, ingen telemetri, ingen nye runtime-dependencies.

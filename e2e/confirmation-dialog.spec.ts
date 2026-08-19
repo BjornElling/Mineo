@@ -45,7 +45,7 @@ test.describe('Bekræftelsesdialog', () => {
 test.describe('Slet alt-bekræftelse', () => {
   /**
    * `Slet alt` brugte tidligere en native `window.confirm`. Den kunne ikke måles fra Playwright uden en
-   * `page.on('dialog')`-handler, så den globale sletning stod helt uden browserdækning — og auditens
+   * `page.on('dialog')`-handler, så den globale sletning stod helt uden browserdækning – og auditens
    * påstande om «reset-dialogens fokus-/Tab-/Escape-adfærd» kunne ikke efterprøves. Med programmets egen
    * dialog er flowet en almindelig brugerrejse, og netop de tre fælder, §Popup-fokus-restore findes for
    * (WebKits manglende klik-fokus, Escape på dialogens container, MUI-transitionen), kræver rigtige

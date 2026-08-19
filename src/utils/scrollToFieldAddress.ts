@@ -21,11 +21,11 @@ export const findVisibleFieldEditor = (address: FieldAddress): HTMLElement | nul
 };
 
 /**
- * Scroll til og markér feltet i den FØRSTE række af en collection — feltet udpeget af sin adressetemplate.
+ * Scroll til og markér feltet i den FØRSTE række af en collection – feltet udpeget af sin adressetemplate.
  *
  * Bruges når issuet handler om en indtastning, brugeren endnu ikke har OPRETTET: der findes ingen konkret
  * feltadresse, men tabellen viser altid en tom indtastningsrække. Adfærden er ellers identisk med
- * `scrollToFieldAddress` — samme retry-løkke og PRÆCIS samme blinkmarkering, så der ikke opstår en
+ * `scrollToFieldAddress` – samme retry-løkke og PRÆCIS samme blinkmarkering, så der ikke opstår en
  * parallel «peg på feltet»-vej.
  */
 export const scrollToCollectionFieldTemplate = (

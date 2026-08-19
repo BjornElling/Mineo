@@ -27,7 +27,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/form-contract.md',
     requiredTestPaths: [
       // Effect-write-grænsen håndhæves af AST-reglen `input/derived-writes-materialize-in-reduction`
-      // i arkitektur-harnesset — ikke af et tekstbaseret værn her, som bliver grønt af tomhed, så
+      // i arkitektur-harnesset – ikke af et tekstbaseret værn her, som bliver grønt af tomhed, så
       // snart de navne, det leder efter, forsvinder fra kildegrafen.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
       // Feltkontrakten dækkes af editor-/surface-kontrakttestene, ikke af implementeringstests pr.
@@ -122,7 +122,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       // Formatvalget sker i miljøet EFTER gaten, og outputnavne må ikke bære et formatsuffiks.
       // Begge dele måles her.
       'src/__tests__/document/documentCatalogCompleteness.test.ts',
-      // Formatet vælger writer, ikke DÆKNING — verificeret generisk over alle 18
+      // Formatet vælger writer, ikke DÆKNING – verificeret generisk over alle 18
       // hovedapp-outputs, så ingen gate kan blive formatafhængig.
       'src/__tests__/document/documentGateFormatInvariance.test.ts',
     ],
@@ -285,7 +285,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/auth/auth.test.ts',
       // Gaten forbliver lukket ved afvist/fejlende login og mounter først appen efter gyldigt flag.
-      // Stod i kontraktens eget §4, men manglede her — de to lister var uenige.
+      // Stod i kontraktens eget §4, men manglede her – de to lister var uenige.
       'src/__tests__/auth/LoginPage.test.tsx',
       'src/__tests__/auth/AuthGate.test.tsx',
       'src/__tests__/quality/authGateContractIsolation.test.ts',
@@ -309,7 +309,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/components/layout/SideTabRail.test.tsx',
       'e2e/minimum-viewport-shell.spec.ts',
       'e2e/content-scale.spec.ts',
-      // De tre nedenfor stod i kontraktens eget §4, men manglede her — de to autoritative lister
+      // De tre nedenfor stod i kontraktens eget §4, men manglede her – de to autoritative lister
       // over samme forhold var uenige, og ingen kontrol kunne se det.
       'src/__tests__/quality/pwaHeaders.test.ts',
       'src/__tests__/quality/architecture/rules/responsiveStylingRules.ts',
@@ -445,16 +445,16 @@ describe('contract linkage matrix', () => {
    * FIL-completeness er ikke HIERARKI-completeness.
    *
    * Testen ovenfor kontrollerer, at hver underordnelses-reference er en klassificeret kontraktfil.
-   * Den kan ikke se den modsatte fejl — at en tværgående kontrakt MANGLER i listen. Det er en reel
+   * Den kan ikke se den modsatte fejl – at en tværgående kontrakt MANGLER i listen. Det er en reel
    * fejlform: `page-component-contract.md` er ifølge både AGENTS.md's kontrakthierarki og sin egen
    * prioritetslinje underordnet SAMTLIGE tværgående kontrakter, men topologien udelod
    * `snapshot-contract.md` og `auth-gate-contract.md`. To autoritative beskrivelser gav dermed
-   * forskellig kontraktprioritet, og den maskinlæsbare — den, en læser og et værktøj slår op i — var
+   * forskellig kontraktprioritet, og den maskinlæsbare – den, en læser og et værktøj slår op i – var
    * den ufuldstændige.
    *
    * Invarianten er derfor LIGHED og ikke inklusion: listen skal være hele det tværgående sæt, hverken
    * mere eller mindre. Listen bevares som eksplicit data frem for at blive udledt i JSON'en (hvad et
-   * JSON-dokument ikke kan), så den fortsat er læsbar og reviewbar — men en glemt tilføjelse er nu en
+   * JSON-dokument ikke kan), så den fortsat er læsbar og reviewbar – men en glemt tilføjelse er nu en
    * rød test frem for en tavs uenighed.
    */
   it('page-component-kontrakten er underordnet PRÆCIS alle tværgående kontrakter', () => {
@@ -474,17 +474,17 @@ describe('contract linkage matrix', () => {
   /**
    * To autoritative lister over samme forhold skal stemme overens.
    *
-   * Fem kontrakter har et eget `Testkobling`-afsnit, som navngiver deres testsuiter — samtidig med at
+   * Fem kontrakter har et eget `Testkobling`-afsnit, som navngiver deres testsuiter – samtidig med at
    * `COVERAGE_MATRIX` her gør præcis det samme. Ingen kontrol sammenholdt dem, og de var faktisk
    * uenige: `app-shell-contract.md` §4 navngav tre suiter (`pwaHeaders.test.ts`,
    * `responsiveStylingRules.ts`, `verify-build-artifacts.mjs`), som matrixen ikke kendte;
-   * `auth-gate-contract.md` og `calculation-data-contract.md` hver én. Alle filerne fandtes — så
+   * `auth-gate-contract.md` og `calculation-data-contract.md` hver én. Alle filerne fandtes – så
    * uenigheden var ikke en død reference, men det værre tilfælde: to lister, en læser kunne slå op i og
    * få forskellige svar. Det er samme fejlklasse, som når topologien og AGENTS.md giver
    * forskellig kontraktprioritet.
    *
    * Retningen er INKLUSION, ikke lighed: matrixen er registret og skal kende hver suite, kontrakten
-   * påberåber sig. Omvendt må matrixen gerne føre suiter, kontrakten ikke opremser — kontraktens
+   * påberåber sig. Omvendt må matrixen gerne føre suiter, kontrakten ikke opremser – kontraktens
    * afsnit er prosa for en læser, matrixen er den maskinelt håndhævede liste.
    */
   it('hver testsuite, en kontrakt selv navngiver i sit Testkobling-afsnit, står også i matrixen', () => {
@@ -505,7 +505,7 @@ describe('contract linkage matrix', () => {
 
       // Afsnittet løber fra sin egen overskrift til næste `##`-overskrift.
       // Ankret i begge ender: uden `$` matchede mønsteret også en OMDØBT overskrift
-      // (`## 4. Testkobling-omdoebt`), så mutationstesten «fjern afsnittet» overlevede — parseren
+      // (`## 4. Testkobling-omdoebt`), så mutationstesten «fjern afsnittet» overlevede – parseren
       // troede stadig, den så et Testkobling-afsnit.
       //
       // Nummeret må bære et afsnitsbogstav (`## C2. Testkobling`): en kontrakt, der er delt i
@@ -533,7 +533,7 @@ describe('contract linkage matrix', () => {
     }
 
     /**
-     * Værn mod grøn-af-tomhed — og det skal være en EKSAKT liste, ikke et gulv.
+     * Værn mod grøn-af-tomhed – og det skal være en EKSAKT liste, ikke et gulv.
      *
      * Første udgave brugte `toBeGreaterThanOrEqual(5)`. Mutationstesten viste, at den var ubrugelig:
      * omdøbes tre af afsnitsoverskrifterne, faldt antallet fra 6 til … 5, og testen forblev grøn,
@@ -541,11 +541,11 @@ describe('contract linkage matrix', () => {
      * lig virkeligheden, kan per konstruktion ikke se et tab. Den eksakte liste kan.
      *
      * Får en kontrakt med rette et nyt Testkobling-afsnit, er den røde test her netop stedet, hvor
-     * beslutningen registreres — ikke en fejl at slå fra.
+     * beslutningen registreres – ikke en fejl at slå fra.
      */
     expect(
       contractsWithSection.sort(),
-      'sættet af kontrakter med et Testkobling-afsnit har ændret sig — er et afsnit fjernet/omdøbt, '
+      'sættet af kontrakter med et Testkobling-afsnit har ændret sig – er et afsnit fjernet/omdøbt, '
         + 'eller er parseren holdt op med at genkende det?'
     ).toEqual([
       'src/contracts/app-shell-contract.md',
@@ -555,13 +555,13 @@ describe('contract linkage matrix', () => {
       'src/contracts/indskudte-loentillaeg-contract.md',
     ]);
     // Og afsnittene skal faktisk indeholde stier: en tom liste ville gøre sammenligningen vakuøs.
-    expect(declaredTotal, 'ingen teststier blev udtrukket af afsnittene — mønsteret matcher intet').toBeGreaterThanOrEqual(20);
+    expect(declaredTotal, 'ingen teststier blev udtrukket af afsnittene – mønsteret matcher intet').toBeGreaterThanOrEqual(20);
     expect(problems, problems.join('\n')).toEqual([]);
   });
 
   it('ingen anden kontrakt end page-component-kontrakten erklærer en underordnelsesliste', () => {
     // Gulvet gør en ny nøgle synlig: hierarkiet i AGENTS.md har præcis én underordnet kontrakt, og en
-    // ny relation er en arkitekturbeslutning, der skal begrundes — ikke noget der kan glide ind.
+    // ny relation er en arkitekturbeslutning, der skal begrundes – ikke noget der kan glide ind.
     expect(Object.keys(getContractTopology().subordinateContracts))
       .toEqual(['src/contracts/page-component-contract.md']);
   });

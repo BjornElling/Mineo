@@ -225,7 +225,7 @@ describe('renderDocumentTable adaptive column widths', () => {
   it('bevarer fuld tabelbredde efter residual-omfordeling af distribuerede kolonner', async () => {
     // Når deficit/donor-passet efterlader et lille residual (fx pga. afrunding),
     // skal residual-grenen lægge resten på en distribueret kolonne, så summen
-    // præcist rammer tabelbredden igen — ingen kolonne ender under sit krav.
+    // præcist rammer tabelbredden igen – ingen kolonne ender under sit krav.
     const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
       await import('../../../pdf/infrastructure/pdfDocumentTableRenderer');
 
@@ -337,7 +337,7 @@ describe('renderDocumentTable adaptive column widths', () => {
     const styles = call?.columnStyles as Record<number, { cellWidth: number }>;
     const totalWidth = Object.values(styles).reduce((sum, style) => sum + style.cellWidth, 0);
 
-    // Indeksberegning (grow-kolonnen) er bredest — bredere end alle øvrige kolonner.
+    // Indeksberegning (grow-kolonnen) er bredest – bredere end alle øvrige kolonner.
     expect(styles[2]?.cellWidth).toBeGreaterThan(styles[0]?.cellWidth);
     expect(styles[2]?.cellWidth).toBeGreaterThan(styles[1]?.cellWidth);
     expect(styles[2]?.cellWidth).toBeGreaterThan(styles[3]?.cellWidth);
@@ -383,7 +383,7 @@ describe('renderDocumentTable adaptive column widths', () => {
     const totalWidth = widths.reduce((sum, width) => sum + width, 0);
 
     // Alt indhold er kort; overskuddet fordeles ligeligt, så differencen mellem
-    // bredeste og smalleste kolonne kun skyldes de smalle indholds-min-bredder —
+    // bredeste og smalleste kolonne kun skyldes de smalle indholds-min-bredder –
     // ingen kolonne sluger hele overskuddet.
     const min = Math.min(...widths);
     const max = Math.max(...widths);

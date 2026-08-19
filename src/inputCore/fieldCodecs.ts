@@ -58,7 +58,7 @@ import {
 // `../utils/*`. Normaliserings-, infer-, præcisions- og paste-regler er UÆNDREDE (§11). Efter kravændringen
 // 2026-07-18 afviser et codec KUN ugyldigt format/schema-urepræsenterbarhed; en schema-gyldig værdi uden for
 // feltets aktive min/max committes canonical og bærer et afledt bounds-issue fra en feltvalidator (§1.6).
-// Paste-normaliseringen beholder sin min/max-clamp — kun commit-tidens range-afvisning er fjernet.
+// Paste-normaliseringen beholder sin min/max-clamp – kun commit-tidens range-afvisning er fjernet.
 
 const initialKey = (pattern: RegExp): ((key: string) => boolean) => (key) => pattern.test(key);
 
@@ -68,8 +68,8 @@ const initialKey = (pattern: RegExp): ((key: string) => boolean) => (key) => pat
  *
  * **Hvorfor den findes.** Dato-, årstals- og ugekernerne beregnede allerede præcise beskeder
  * («Årstallet skal være mellem 1900 og 2100», «Uge skal være mellem 1 og 53»), men codec'erne SMED dem væk
- * med et bart `rejectedResolution('format')`. Resultatet var, at tre vidt forskellige fejl — et
- * urepræsenterbart årstal, en ikke-eksisterende kalenderdag og ren volapyk — alle nåede brugeren som den
+ * med et bart `rejectedResolution('format')`. Resultatet var, at tre vidt forskellige fejl – et
+ * urepræsenterbart årstal, en ikke-eksisterende kalenderdag og ren volapyk – alle nåede brugeren som den
  * samme generiske «Fejl i indtastning». Fordi tabet skete i codec-laget, ramte det ENHVER flade på én gang:
  * formular, gridcelle, a11y-tekst og download-tooltip.
  *
@@ -83,15 +83,15 @@ const tooltipDetail = (tooltip: string): FieldRejectDetail => ({ tooltip });
  *
  * **Et datofelt taler om DATOER, ikke om årstalsintervaller.** Parse-kernen kan konstatere, at et årstal
  * ligger uden for det repræsenterbare domæne (1900..2100), men den grænse er en egenskab ved
- * `ISODateString` — ikke feltets regel. Ville codec'en selv sige «Årstallet skal være mellem 1900 og 2100»,
+ * `ISODateString` – ikke feltets regel. Ville codec'en selv sige «Årstallet skal være mellem 1900 og 2100»,
  * ville beskeden modsige feltets faktiske grænse: Fødselsdato slutter ved DAGS DATO, ikke ved år 2100.
  * Derfor videregives kun den maskinlæsbare ÅRSAG (`dateInvalidKind`), og selve teksten formuleres af
- * `resolveDateFormatIssueText` ud fra feltets egen `dateBounds`-erklæring — med konkrete datoer.
+ * `resolveDateFormatIssueText` ud fra feltets egen `dateBounds`-erklæring – med konkrete datoer.
  * Årstals-ordlyden hører hjemme i årstalsFELTER (`year`-familien), hvor et årstal er selve værdien.
  *
  * `malformed` dækker delvist indtastet og uparsebar tekst («15-», «abc»). Den har bevidst INGEN detalje:
  * den eneste sande besked ville være "dette er ikke en dato", og feltets navn står allerede ved markøren.
- * Den falder derfor i den generiske gren, præcis som `error-contract.md` §4 foreskriver — og som §4 pkt. 1
+ * Den falder derfor i den generiske gren, præcis som `error-contract.md` §4 foreskriver – og som §4 pkt. 1
  * udtrykkeligt nævner for netop en delvist indtastet dato.
  */
 const resolveDateTooltipDetail = (
@@ -160,11 +160,11 @@ const textFieldCodecBase: Omit<FieldCodec<string>, 'maxLength'> = Object.freeze(
  * skriver i, har en effektiv længdeblokering. Så længe grænsen var valgfri, havde 28 af 31 tekstfelter
  * ingen: «Skadelidte», «Journalnr.», «Særlige kommentarer» og alle bilagsnumre-felter tog imod en
  * vilkårligt lang indsat tekst og gemte den i sagen. Kontrakten var overholdt præcis dér, hvor nogen
- * huskede den — samme fejlmåde som datofelternes manglende grænser (§2.1). Et påkrævet felt i typen er
+ * huskede den – samme fejlmåde som datofelternes manglende grænser (§2.1). Et påkrævet felt i typen er
  * det billigste værn: en ny descriptor uden grænse kan ikke kompilere.
  *
  * Grænsen hører på codecet og ikke på kaldsstedet, fordi BEGGE flader (formularfelt og tabelcelle) skal
- * håndhæve den samme — se `charLengthPolicy.ts`.
+ * håndhæve den samme – se `charLengthPolicy.ts`.
  */
 export const createTextFieldCodec = (
   options: Readonly<{ maxLength: number; preservesLineBreaks?: boolean }>
@@ -286,7 +286,7 @@ export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: Dat
   Object.freeze({
     family: 'date',
     // Datoens rå draftlængde er en egenskab ved FORMEN `dd-mm-åååå` og hører derfor på codecet, ikke
-    // på hver flade. Den stod før som en importeret konstant både i `DateField` og i `GridDateCell` —
+    // på hver flade. Den stod før som en importeret konstant både i `DateField` og i `GridDateCell` –
     // og GridYearCell greb ved en fejl netop denne dato-konstant til et ÅRSfelt.
     maxLength: MAX_DATE_DRAFT_LENGTH,
     parseForSettle: (raw): FieldResolution<ISODateString | undefined> => {
@@ -308,7 +308,7 @@ export const createDateFieldCodec = (options: Readonly<{ twoDigitYearPolicy: Dat
 /**
  * Heltalsfelt.
  *
- * **`maxDigits` er PÅKRÆVET** — samme begrundelse som {@link createTextFieldCodec}. Da grænsen var
+ * **`maxDigits` er PÅKRÆVET** – samme begrundelse som {@link createTextFieldCodec}. Da grænsen var
  * valgfri, havde 8 af 12 heltalsfelter ingen: «Méngrad» (maksimum 120) og «Tilkendt for periode»
  * (maksimum 10) tog imod 30 cifre og blev først røde bagefter. Cifferloftet er en LÆNGDEregel og
  * blødgør ikke feltets talværdigrænse: en værdi inden for cifferantallet, men uden for `minValue`/
@@ -387,7 +387,7 @@ export const createAmountFieldCodec = (options: Readonly<{
     },
     format: (value) => amountValueToDisplayString(value, displayPrecision),
     formatForEdit: (value) => amountValueToDraftString(value, displayPrecision),
-    // Et komma må kun åbne editoren i et felt, der faktisk kan rumme decimaler — ellers ville
+    // Et komma må kun åbne editoren i et felt, der faktisk kan rumme decimaler – ellers ville
     // tastetrykket starte en redigering, som tegnfilteret straks blokerer.
     //
     // Et ikke-negativt felt må stadig bruge minus som SUBTRAKTION i et åbent udtryk ("5000-200"),
@@ -435,7 +435,7 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
     format: (value) => formatPercentDisplay(value, config.allowDecimals),
     formatForEdit: (value) => formatPercentDisplay(value, config.allowDecimals),
     // Minus åbner kun editoren, hvis feltet FÅR være negativt. En procent har ingen udtryks-syntaks,
-    // så her er minus utvetydigt et fortegn — modsat beløbsfeltets subtraktion.
+    // så her er minus utvetydigt et fortegn – modsat beløbsfeltets subtraktion.
     acceptsInitialKey: (key) => {
       if (key === '-') return config.allowNegative;
       return (config.allowDecimals ? /^[0-9,]$/ : /^[0-9]$/).test(key);
@@ -466,13 +466,13 @@ export const createStringBackedFieldCodec = <T extends string | number>(
   formatForEdit: (value) => value ?? '',
   acceptsInitialKey: sourceCodec.acceptsInitialKey,
   // Fortegns-politikken ARVES fra det indre codec: adapteren ændrer kun canonical TOMHED til `''`,
-  // ikke hvad der er et lovligt fortegn. Uden viderestillingen ville månedscellen — et heltal 1..12 gennem
-  // denne adapter — miste sin ikke-negative politik og få minus tilbage i tegnfilteret.
+  // ikke hvad der er et lovligt fortegn. Uden viderestillingen ville månedscellen – et heltal 1..12 gennem
+  // denne adapter – miste sin ikke-negative politik og få minus tilbage i tegnfilteret.
   ...(sourceCodec.signPolicy === undefined ? {} : { signPolicy: sourceCodec.signPolicy }),
   ...(sourceCodec.maxDigits === undefined ? {} : { maxDigits: sourceCodec.maxDigits }),
   // Længdeloftet arves på samme måde som fortegn og cifre: adapteren ændrer kun canonical TOMHED til
-  // `''`, ikke hvor lang en draft feltet tager imod. Uden viderestillingen mistede ugecellerne — alle
-  // fire er string-backede — deres erklærede loft.
+  // `''`, ikke hvor lang en draft feltet tager imod. Uden viderestillingen mistede ugecellerne – alle
+  // fire er string-backede – deres erklærede loft.
   ...(sourceCodec.maxLength === undefined ? {} : { maxLength: sourceCodec.maxLength }),
   ...(sourceCodec.normalizePaste === undefined ? {} : { normalizePaste: sourceCodec.normalizePaste }),
 });
@@ -494,7 +494,7 @@ export const createYearFieldCodec = (config: YearDraftParseConfig): FieldCodec<n
     parseForSettle: (raw) => {
       const parsed = parseYearDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
       // Årsgrænserne er fjernet fra `formatOnlyConfig` (bounds er en validators ansvar, §1.6), så den eneste
-      // fejl, kernen kan melde her, er «Ugyldigt årstal» — en besked, der ikke siger mere end feltets navn.
+      // fejl, kernen kan melde her, er «Ugyldigt årstal» – en besked, der ikke siger mere end feltets navn.
       // Den falder derfor bevidst i den generiske gren frem for at blive en støjende tooltip.
       return parsed.ok ? validResolution(parsed.value) : rejectedResolution('format');
     },
@@ -524,7 +524,7 @@ export const createWeekFieldCodec = (config: WeekDraftParseConfig): FieldCodec<s
     parseForSettle: (raw) => {
       const parsed = parseWeekDraftForCommit(trimToAlphanumericEdges(raw), formatOnlyConfig);
       if (parsed.ok) return validResolution(parsed.value);
-      // UGE-nummeret er en repræsenterbarhedsgrænse (se ovenfor) og forbliver derfor `format` — men
+      // UGE-nummeret er en repræsenterbarhedsgrænse (se ovenfor) og forbliver derfor `format` – men
       // «Uge skal være mellem 1 og 53» fortæller præcis, hvad rettelsen er, og er dermed netop den slags
       // besked, `detail.tooltip` findes til. De rent formmæssige beskeder («Ugyldigt format»,
       // «Ugyldigt årstal») siger derimod ikke mere end feltets navn og forbliver generiske.
@@ -547,10 +547,10 @@ export const createFractionFieldCodec = (config: FractionParseOptions): FieldCod
     family: 'fraction',
     // Fortegnspolitikken er DATA på samme måde som for de øvrige numeriske familier. Uden den ville
     // `codecAllowsNegative` fail-open til `true` for brøker, som kontrakten netop forbyder fortegn i
-    // (§2.4) — og `FractionField`s hardkodede `false` ville være den eneste kilde igen.
+    // (§2.4) – og `FractionField`s hardkodede `false` ville være den eneste kilde igen.
     signPolicy: config.allowNegative === true ? 'signed' : 'nonNegative',
     // Ciffergrænsen er DATA på codecet, ikke en konstant i `FractionField`: kaldsstedet erklærede den
-    // allerede her, mens komponenten hardkodede sin egen kopi af samme tal — præcis den drift, som
+    // allerede her, mens komponenten hardkodede sin egen kopi af samme tal – præcis den drift, som
     // `charLengthPolicy.ts` blev oprettet for at fjerne for beløb og procent.
     maxDigits: config.maxDigits,
     parseForSettle: (raw) => {

@@ -13,7 +13,7 @@
  *
  *  2. Akkumuleret reguleringssats  (`opregulerMedAkkumuleretReguleringssats`)
  *     - Faktor = ∏_{y=kildeår+1}^{målår} (1 + sats[y] / 100), hvor sats er
- *       `reguleringssats` (EAL § 15 / ASL § 25 — i praksis "tilpasningsprocenten
+ *       `reguleringssats` (EAL § 15 / ASL § 25 – i praksis "tilpasningsprocenten
  *       plus to procent", den almene statslige regulering per 1. januar).
  *     - Bruges hvor opregulering følger den AKKUMULEREDE REGULERINGSSATS for de
  *       mellemliggende år (fx fremskrivning af årsløn ved EET efter EAL, regulering
@@ -32,7 +32,7 @@
  * slut- OG alle mellemliggende år), fordi manglende satsdata skal give en synlig
  * feltfejl frem for en tavs "ingen regulering"-sti. For den akkumulerede metode er
  * mellemårs-dækningen matematisk nødvendig (produktet multiplicerer hvert års sats
- * ind); for ASL-ratioen er den bevidst ensartet snarere end nødvendig — se
+ * ind); for ASL-ratioen er den bevidst ensartet snarere end nødvendig – se
  * `opregulerMedAslAarsloensmaksimum`.
  */
 
@@ -80,14 +80,14 @@ const nonIntegerYears = (kildeAar: number, maalAar: number): number[] => {
 };
 
 /**
- * Kanonisk opslag af den årlige reguleringssats (EAL § 15 / ASL § 25 — "tilpasnings-
+ * Kanonisk opslag af den årlige reguleringssats (EAL § 15 / ASL § 25 – "tilpasnings-
  * procenten plus to procent") for ét år. Returnerer satsen hvis året er dækket af en
  * finit sats, ellers `undefined`.
  *
- * Dette er ÉN fail-closed-opslagsadfærd for reguleringssats — parallelt med
+ * Dette er ÉN fail-closed-opslagsadfærd for reguleringssats – parallelt med
  * `resolveAslAarsloensmaksimumForAar`. Den akkumulerede motors dæknings-check deler
  * den med det RÅ per-år-satsdisplay (offentlige ydelsers reguleringstabel, der viser
- * den enkelte års-sats i "Regulering"-kolonnen — et andet concern end motorens
+ * den enkelte års-sats i "Regulering"-kolonnen – et andet concern end motorens
  * akkumulerede faktor, men samme datakilde-opslag). Så et manglende års-sats behandles
  * identisk fail-closed, uanset om det rammer beregningen eller visningen, og der findes
  * ingen parallel rå `reguleringssats[year]`-opslagssti udenfor dette modul.
@@ -105,12 +105,12 @@ export const resolveReguleringssatsForAar = (
 };
 
 /**
- * Metode 1 — ASL-årslønsmaksimum-indeks.
+ * Metode 1 – ASL-årslønsmaksimum-indeks.
  *
  * Faktor = idx[målår] / idx[kildeår] (idx = `aarsloenAslMax`).
  *
  * DÆKNINGSTJEK: matematisk afhænger ratioen KUN af de to endepunkter, men motoren
- * tjekker bevidst HVERT år i intervallet [min(kildeår,målår); max(...)] for dækning —
+ * tjekker bevidst HVERT år i intervallet [min(kildeår,målår); max(...)] for dækning –
  * præcis samme fremgangsmåde som den akkumulerede motor (metode 2), så de to motorer
  * ikke har hver sit dæknings-krav. Dette er en **processuel forenkling, ikke en
  * matematisk nødvendighed** (bruger-beslutning 2026-07-07): det holder dæknings-logikken
@@ -121,7 +121,7 @@ export const resolveReguleringssatsForAar = (
  * mellem to gyldige endepunkter. Kun et endepunkt UDEN FOR tabellen udløser `manglendeAar`,
  * og selve ratioen (endepunkt/endepunkt) er uændret. Eneste observerbare forskel vs. det
  * tidligere endepunkts-kun-tjek er, at `manglendeAar` for et out-of-range-interval nu kan
- * liste de mellemliggende år op til grænsen — en fail-closed-detalje, ikke et produceret tal.
+ * liste de mellemliggende år op til grænsen – en fail-closed-detalje, ikke et produceret tal.
  *
  * MÅ IKKE "optimeres" tilbage til et endepunkts-kun-opslag: det ville genindføre den
  * afvigende gren, denne forening netop fjernede.
@@ -138,7 +138,7 @@ export const opregulerMedAslAarsloensmaksimum = (
   // positiv-finit-semantik som grænse-valideringen); kun ratio-matematikken bor her.
   const kildeIndeks = resolveAslAarsloensmaksimumForAar(kildeAar, indeks);
   const maalIndeks = resolveAslAarsloensmaksimumForAar(maalAar, indeks);
-  // Dæknings-tjek af hele intervallet (jf. doc ovenfor) — ensartet med metode 2.
+  // Dæknings-tjek af hele intervallet (jf. doc ovenfor) – ensartet med metode 2.
   const manglendeAar: number[] = [];
   const fraAar = Math.min(kildeAar, maalAar);
   const tilAar = Math.max(kildeAar, maalAar);
@@ -156,7 +156,7 @@ export const opregulerMedAslAarsloensmaksimum = (
 };
 
 /**
- * Metode 2 — akkumuleret reguleringssats ("tilpasningsprocenten plus to procent").
+ * Metode 2 – akkumuleret reguleringssats ("tilpasningsprocenten plus to procent").
  *
  * Faktor = ∏_{y=kildeår+1}^{målår} (1 + sats[y] / 100) (sats = `reguleringssats`).
  * Mangler en sats for et af de mellemliggende år, returneres `manglendeAar`.

@@ -484,7 +484,7 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
   // Et udtryksresultat skal kunne REPRÆSENTERES canonical, ellers kaster beløbsschemaet senere.
   // Grænsen måles mod `DEFAULT_AMOUNT_PRECISION` og IKKE mod feltets egen `options.precision`:
   // `amountValueSchema` validerer altid ved 2 decimaler, mens et heltalsfelt parser ved 0. Ved
-  // precision 0 er den sikre grænse 2^53, ved precision 2 er den 2^46 — et heltals-beløbsfelt kunne
+  // precision 0 er den sikre grænse 2^53, ved precision 2 er den 2^46 – et heltals-beløbsfelt kunne
   // derfor parse `9999999*9999999` = 99.999.980.000.001 som gyldigt og først fejle inde i schemaet
   // med en uncaught ZodError. Tal-grenen havde længe sit `canonicalValueIsSafe`-værn;
   // udtryks-grenen manglede det tilsvarende.

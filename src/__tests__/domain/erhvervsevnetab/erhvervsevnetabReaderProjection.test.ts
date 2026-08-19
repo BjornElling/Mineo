@@ -24,7 +24,7 @@ import {
 import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { APP_ROUTES } from '../../../config/pageNavigation';
 
-/** De celler, kryds-række-reglerne kan placere et issue på — samme sæt som tabellen renderer. */
+/** De celler, kryds-række-reglerne kan placere et issue på – samme sæt som tabellen renderer. */
 const ASL_RULE_CELL_DESCRIPTORS = [
   aslAfgoerelseAfgoerelsesDatoField,
   aslAfgoerelseVirkningsDatoField,
@@ -148,7 +148,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
 
   it('fører en canonical bounds-feltfejl på ealEetPct ind på EET efter EAL og differencekrav', () => {
     // ealEetPct=150 er over bounds → readeren skjuler værdien og rejser en rød feltfejl. Kun EAL-fanen aftager
-    // ealEetPct, så field-eal-eet-pct-issuet må KUN optræde dér — de øvrige faner er upåvirkede af feltet (§1.10).
+    // ealEetPct, så field-eal-eet-pct-issuet må KUN optræde dér – de øvrige faner er upåvirkede af feltet (§1.10).
     // (Løbende ydelser bærer for dette midlertidige-afgørelses-fixture kun en warning; det påvises separat.)
     const reader = buildReader(
       { ...validErhvervsevnetab, ealEetPct: 150 },
@@ -163,7 +163,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(false);
     expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'field-eal-eet-pct')).toBe(true);
     expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(true);
-    // Løbende ydelser er ikke blokeret af ealEetPct — kun en (uændret) EET-warning fra 2024-fixturet.
+    // Løbende ydelser er ikke blokeret af ealEetPct – kun en (uændret) EET-warning fra 2024-fixturet.
     expect(projection.snapshot.loebendeYdelser.hasBlockingErrors).toBe(false);
   });
 
@@ -224,7 +224,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     const projection = buildErhvervsevnetabReaderProjection(reader);
     expect(projection.snapshot.loebendeYdelser.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
     expect(projection.snapshot.kapitalisering.issues.some((i) => i.id === 'field-asl-afgoerelser')).toBe(true);
-    // Kryds-række-reglerne er STRUKTURELLE feltissues med rigtige feltadresser — ikke en parallel
+    // Kryds-række-reglerne er STRUKTURELLE feltissues med rigtige feltadresser – ikke en parallel
     // `${rowId}|${field}`-strengnøgle. Adressen er den, cellen og fokusnavigationen selv slår op på.
     const ruleIssues = projection.aslAfgoerelserRuleIssues.all;
     expect(ruleIssues.length).toBeGreaterThan(0);
@@ -232,7 +232,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       expect(issue.kind).toBe('field');
       expect(issue.reason).toBe('rule');
       expect(issue.field.address.section).toBe('erhvervsevnetab');
-      // Adressen peger på RÆKKEN i collectionen — ikke på et top-level felt.
+      // Adressen peger på RÆKKEN i collectionen – ikke på et top-level felt.
       expect(issue.field.address.path).toEqual([
         { kind: 'entity', collection: 'aslAfgoerelser', entityId: 'eet_asl_endelig' },
       ]);
@@ -242,7 +242,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     }
 
     // AFGØRENDE for at brugeren faktisk SER fejlen: tabellen slår issuet op på den adresse,
-    // `buildCollectionCellSpec` binder — ikke på projektionens egen binding. Divergerede de to, ville
+    // `buildCollectionCellSpec` binder – ikke på projektionens egen binding. Divergerede de to, ville
     // markeringen forsvinde lydløst. Her hævdes, at de er identiske for netop denne collection.
     // Descriptorerne har forskellige værdityper (dato/procent/valg); adressen afhænger ikke af `T`, så de
     // behandles her som `FieldDescriptor<unknown>` udelukkende for at kunne slås op i én tabel.
@@ -277,11 +277,11 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     //     feltet SKJULT (en `relevance`-regel på descriptoren), og kapitaliseringsfelterne forbliver
     //     synlige ved `Midlertidig`. Fejlen kan derfor ses og rettes, og så skal data blive stående.
     //  2. Fejlvurderingen FØLGER valget. Kapitaliseringsreglerne er afgørelsestype-afhængige, så de
-    //     genudledes rent fra det nye snapshot — ikke fra det gamle.
+    //     genudledes rent fra det nye snapshot – ikke fra det gamle.
     //
     // Det var netop punkt 2, auditten så: rækken blev stående med to røde kapitaliseringsfelter. Den røde
     // markering er efter reglerne KORREKT (en midlertidig afgørelse må ikke bære kapitaliseringsdata), og
-    // beskeden siger præcis det. Testen pinner derfor, at fejlen er den NYE regels — og at den forsvinder
+    // beskeden siger præcis det. Testen pinner derfor, at fejlen er den NYE regels – og at den forsvinder
     // igen, når typen skifter tilbage.
     const rowWithType = (afgoerelseType: 'Endelig' | 'Midlertidig') => ({
       ...validErhvervsevnetab,
@@ -306,7 +306,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       const projection = buildErhvervsevnetabReaderProjection(
         buildReader(rowWithType(afgoerelseType), validFaellesAarsloen, validStamdata)
       );
-      // Værdierne står uændret i BEGGE tilstande — det er hele punkt 1.
+      // Værdierne står uændret i BEGGE tilstande – det er hele punkt 1.
       const row = projection.aslAfgoerelserCommittedRows[0];
       expect(row?.kapDato).toBe(toISODateString('2024-08-01'));
       expect(row?.kapPct).toBe(50);
@@ -322,7 +322,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       'Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.'
     );
 
-    // Midlertidig med de SAMME bevarede værdier: nu gælder de to regler, så fejlene opstår — af den nye
+    // Midlertidig med de SAMME bevarede værdier: nu gælder de to regler, så fejlene opstår – af den nye
     // afgørelsestype, ikke som en rest fra den gamle.
     const midlertidigMessages = messagesFor('Midlertidig');
     expect(midlertidigMessages).toContain(

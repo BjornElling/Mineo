@@ -115,7 +115,7 @@ export const stamdataSkadestypeField = defineStructuralField<Skadestype | undefi
 
 /**
  * Feltets navn er KONTEKSTUELT (§3.2a): «Skadedato» ved Arbejdsulykke og ukendt skadestype,
- * «Anmeldelsesdato» ved Erhvervssygdom. Reglen er erklæret HER — på feltet — så både den synlige label og
+ * «Anmeldelsesdato» ved Erhvervssygdom. Reglen er erklæret HER – på feltet – så både den synlige label og
  * enhver besked om feltet navngiver det ens.
  *
  * Selve navnevalget er en domæneregel og bliver derfor læst fra `resolveSkadestypeDatoLabel`, ikke skrevet

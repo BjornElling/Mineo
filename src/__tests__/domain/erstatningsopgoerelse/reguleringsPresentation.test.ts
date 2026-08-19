@@ -145,7 +145,7 @@ describe('reguleringsPresentation', () => {
     });
   });
 
-  describe('overenskomst — vist reguleringsindeks matcher det udbetalte (anciennitetstillæg efter reguleringsdatoen)', () => {
+  describe('overenskomst – vist reguleringsindeks matcher det udbetalte (anciennitetstillæg efter reguleringsdatoen)', () => {
     // Anciennitetstillæg må kun dateres efter anvendt reguleringsdato. Det er derfor aldrig en
     // del af referenceniveauet (indeks 100), men et almindeligt brudpunkt i reguleringsforløbet.
     // Testen binder motor og præsentation: for hvert vist indeks skal der findes et motorsegment
@@ -192,7 +192,7 @@ describe('reguleringsPresentation', () => {
       });
 
       // Distinkte indeksværdier på hver side (præsentationen fletter nabosegmenter med samme
-      // beregning, så distinkte mængder — ikke rækker 1:1 — er det korrekte sammenligningsgrundlag).
+      // beregning, så distinkte mængder – ikke rækker 1:1 – er det korrekte sammenligningsgrundlag).
       const motorIndeks = new Set(model.beregnedeSegmenter.map((s) => (100 + s.deltaPct).toFixed(2)));
       const vistIndeks = new Set(
         indexRows
@@ -342,7 +342,7 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     expect(table?.rows.length).toBeGreaterThan(0);
-    // Ingen syntetisk række på reguleringsdatoen (01-01-2020) — den opgivne "referencerække" er fjernet.
+    // Ingen syntetisk række på reguleringsdatoen (01-01-2020) – den opgivne "referencerække" er fjernet.
     expect(table?.rows.some((row) => row[0] === '01-01-2020')).toBe(false);
     // Første række er laasesmedeoverenskomstens tidligste faktiske satsdato.
     // Hvis overenskomstdata ændres, skal denne forventning opdateres.
@@ -587,8 +587,8 @@ describe('reguleringsPresentation', () => {
 
   it('viser basisrækken med sin rå satsdato (ikke reguleringsdatoen) når satsen ændrede sig mellem reguleringsdato og vinduets start', () => {
     // Reguleringsdatoen (24-05-2023) ligger før reguleringsvinduets start (01-06-2023), og
-    // bygge-anlaeg har en satsændring 01-06-2023. Basisrækken — satsen i kraft PÅ reguleringsdatoen,
-    // som "Beregnet regulering" dividerer med — skal derfor vises. Den dateres med sin RÅ satsdato
+    // bygge-anlaeg har en satsændring 01-06-2023. Basisrækken – satsen i kraft PÅ reguleringsdatoen,
+    // som "Beregnet regulering" dividerer med – skal derfor vises. Den dateres med sin RÅ satsdato
     // (01-03-2023, den overenskomstsats der var i kraft 24-05-2023), IKKE med reguleringsdatoen selv:
     // der injiceres aldrig en syntetisk række dateret 24-05-2023.
     const values = cloneInitialValues();
@@ -776,7 +776,7 @@ describe('reguleringsPresentation', () => {
     // Motoren sætter reguleretLoenOre = den kæde-opregulerede, afrundede enhedsløn (autoritativ,
     // samme værdi indkomst-linjerne viser). deltaPct er den intern afledte akkumulerede regulering.
     // Her sættes reguleretLoenOre BEVIDST til en værdi, som IKKE stemmer med basisløn × (1 + deltaPct/100),
-    // så testen beviser at "Reguleret løn"-kolonnen læser reguleretLoenOre — ikke genberegner fra deltaPct.
+    // så testen beviser at "Reguleret løn"-kolonnen læser reguleretLoenOre – ikke genberegner fra deltaPct.
     const segments: LoenudviklingSegment[] = [
       {
         kind: 'maaneder',
@@ -786,7 +786,7 @@ describe('reguleringsPresentation', () => {
         maanedsloenOre: moneyOre(3_000_000),
         deltaPct: 0,
         amountOre: moneyOre(18_000_000),
-        // deltaPct-genberegning ville give 30.000,00 — den autoritative kilde siger 31.234,56.
+        // deltaPct-genberegning ville give 30.000,00 – den autoritative kilde siger 31.234,56.
         reguleretLoenOre: moneyOre(3_123_456),
       },
     ];
@@ -1104,7 +1104,7 @@ describe('reguleringsPresentation', () => {
   });
 
   it('skjuler manuel Fritvalg-kolonne når alle rækker har fritvalg = 0', () => {
-    // Regression: fritvalg = 0 betragtes som "ingen sats" ligesom undefined — kolonnen vises ikke
+    // Regression: fritvalg = 0 betragtes som "ingen sats" ligesom undefined – kolonnen vises ikke
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
@@ -1378,9 +1378,9 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows.map((row) => row[0])).toEqual(['26-01-2024', '01-03-2024']);
   });
 
-  it('viser basisrækken på reference-datoen — rækker dateret før reguleringsdatoen ignoreres', () => {
+  it('viser basisrækken på reference-datoen – rækker dateret før reguleringsdatoen ignoreres', () => {
     // 2026-07-02 (brugerbeslutning): rækker med dato før den anvendte reguleringsdato indgår ikke
-    // i reguleringen (de udløser en advarsel i række-evalueringen). Basis er altid basisrækken —
+    // i reguleringen (de udløser en advarsel i række-evalueringen). Basis er altid basisrækken –
     // spejler buildLoenudviklingFromManual i motoren.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -1645,7 +1645,7 @@ describe('reguleringsPresentation', () => {
     expect(rows.some((row) => row.fraDato === '01-01-2024')).toBe(true);
   });
 
-  it('bruger basisrækken som indeksbasis — rækker dateret før reguleringsdatoen ignoreres', () => {
+  it('bruger basisrækken som indeksbasis – rækker dateret før reguleringsdatoen ignoreres', () => {
     // 2026-07-02 (brugerbeslutning): rækken pr. 2024-04-01 (før reguleringsdatoen 2024-05-01)
     // indgår ikke; indeksbasis er basisrækken (100), og rækken pr. 2024-06-01 giver indeks 120.
     const values = cloneInitialValues();
@@ -1920,8 +1920,8 @@ describe('reguleringsPresentation', () => {
 
   it('viser basisrækken (satsen på reguleringsdatoen) og sætter IKKE note når KRL-kilden har satser før reguleringsdatoen, selv om TAF starter senere', () => {
     // Reguleringsdato 01-01-2020 (KTO kommuner har satser her + tilbage til 2001), men TAF-perioden
-    // starter i Q2/Q3 2020. Basisrækken — reguleringsprocenten i kraft PÅ reguleringsdatoen, som
-    // "Beregnet regulering" dividerer med — skal vises, fordi satsen ændrede sig (01-04-2020) mellem
+    // starter i Q2/Q3 2020. Basisrækken – reguleringsprocenten i kraft PÅ reguleringsdatoen, som
+    // "Beregnet regulering" dividerer med – skal vises, fordi satsen ændrede sig (01-04-2020) mellem
     // reguleringsdatoen og TAF-start. Basisrækken dateres med sin rå satsdato (01-01-2020), og den
     // TAF-relevante række (01-04-2020) vises fortsat. Noten fyrer IKKE: kilden HAR satser på/før
     // reguleringsdatoen, så den "ingen satser før X"-note ville være falsk.

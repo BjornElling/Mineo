@@ -37,12 +37,12 @@ import { resolveSkadeEllerAnmeldelsesdatoReference } from '../helpers/eoDateRefe
  * Ren (React-fri) afledning for Loenindkomst-fanen.
  *
  * Hele "given committed input → flad afledt model" bor her, så den kan unit-testes uden
- * React-render (jf. arkitektur-kandidat A1 — view-model-lagets primære gevinst: afledning testbar
+ * React-render (jf. arkitektur-kandidat A1 – view-model-lagets primære gevinst: afledning testbar
  * uden render). `useLoenindkomstViewModel` ejer kun React-state/effekter/handlers og kalder denne
  * funktion inde i en `useMemo`. Modstykket til den allerede udskilte rene sats-validering i
  * `validation/loenindkomstSatsAssessment.ts`.
  *
- * Adfærdsbevarende: hver afledning er flyttet uændret ud af hooken/kortet — samme tal, samme
+ * Adfærdsbevarende: hver afledning er flyttet uændret ud af hooken/kortet – samme tal, samme
  * synlighed, samme fejl-ordlyd.
  */
 
@@ -81,7 +81,7 @@ export type LoenindkomstDerivationInput = Readonly<{
 /**
  * Den flade afledte model som Loenindkomst-fanen og dens kort forbruger. Per-af-opslag eksponeres
  * som rene funktioner/maps, så kortene aldrig behøver rå committed EO-state (`eoValues`) for at
- * udlede deres visning (jf. A1 — ingen rå committed state gennem konteksten).
+ * udlede deres visning (jf. A1 – ingen rå committed state gennem konteksten).
  */
 export type LoenindkomstFlatModel = Readonly<{
   satserByAfId: ReadonlyMap<string, StandardLoenTableSatser>;
@@ -110,7 +110,7 @@ export type LoenindkomstFlatModel = Readonly<{
   /**
    * Hele SFGG-sektionens synlighed og etiketter for ét ansættelsesforhold.
    *
-   * Lå tidligere som 10 løse booleans/labels inde i `AnsaettelsesforholdCard` — altså
+   * Lå tidligere som 10 løse booleans/labels inde i `AnsaettelsesforholdCard` – altså
    * domæneafledning i et view, og den ENESTE grund til at `SygeferiegodtgoerelseSection`
    * skulle tage 10 props, mens resten af sektionsfamilien tager nul. Samlet her, fordi
    * flagene er indbyrdes afhængige (kilde × overenskomst × satsmodel) og kun giver et
@@ -138,7 +138,7 @@ export type SfggPresentation = Readonly<{
  * Ren afledning: bygger hele den flade view-model ud fra committed input.
  *
  * Funktionerne i den returnerede model er afledning over committed input og holder ikke state.
- * `eoValues` modtages her, men eksponeres aldrig rå tilbage — kun afledte tal/flags.
+ * `eoValues` modtages her, men eksponeres aldrig rå tilbage – kun afledte tal/flags.
  */
 export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): LoenindkomstFlatModel {
   const {

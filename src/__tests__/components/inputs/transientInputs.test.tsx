@@ -10,7 +10,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../types/branded';
 
 // Transiente felter (§3.1-undtagelse: IKKE sagsdata). De har ingen feltadresse, issue-snapshot, history eller
-// persistens — men de SKAL bevare den Mineo-velkendte commit-mekanik, så et scratchfelt føles som et rigtigt
+// persistens – men de SKAL bevare den Mineo-velkendte commit-mekanik, så et scratchfelt føles som et rigtigt
 // felt: commit på blur og Enter, Escape fortryder til det man begyndte at redigere, og en afvist draft
 // rapporteres til kalderen i stedet for at blive stiltiende rullet tilbage.
 

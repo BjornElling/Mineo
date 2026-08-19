@@ -14,7 +14,7 @@ import { stamdataSkadedatoField } from './stamdataDescriptors';
 
 // Produkt-descriptors for `faellesAarsloen`-sektionen (ASL/EAL-årsløn, §3.2). Sektionen har ingen
 // egen route; den redigeres i flere domænekontekster (EET, Forsørgertab, EO). Beløbene er heltal med et hårdt
-// gulv på 1000 og et fallback-loft på 9999999 — altid som en afledt canonical bounds-feltvalidator (§1.6),
+// gulv på 1000 og et fallback-loft på 9999999 – altid som en afledt canonical bounds-feltvalidator (§1.6),
 // ikke som en codec-afvisning. ASL-feltets loft skærpes til skadesårets kanoniske ASL-maksimum, når skadedatoen findes.
 // En værdi under gulvet committes canonical med et rødt bounds-issue og kan gemmes i `.eo`. Fortegn ikke tilladt.
 

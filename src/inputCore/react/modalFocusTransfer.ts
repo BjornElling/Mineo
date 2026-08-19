@@ -20,7 +20,7 @@ const isInsideConfirmationDialog = (target: EventTarget | null): boolean => {
  *
  * `relatedTarget` er den autoritative overgang i browsere, der udfylder feltet. Nogle browser-/portalforløb
  * leverer imidlertid ikke altid `relatedTarget` på den første blur; i så fald bruges det aktuelle aktive
- * element som samme konkrete fokusmål. Der læses aldrig efter dialoger eller handlinger — kun efter den
+ * element som samme konkrete fokusmål. Der læses aldrig efter dialoger eller handlinger – kun efter den
  * allerede kendte eventdestination.
  */
 export const isFocusTransferIntoConfirmationDialog = (relatedTarget: EventTarget | null): boolean => {

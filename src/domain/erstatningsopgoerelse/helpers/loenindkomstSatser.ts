@@ -80,7 +80,7 @@ const resolveManualPercentValue = (
  * Carry-forward-opslag i de manuelle lønudviklings-rækker: seneste række med
  * `startDato <= isoDate` gælder frem til næste.
  *
- * Semantikken ejes af `reguleringSeriesLookup` — også sorterings-invarianten, der får et
+ * Semantikken ejes af `reguleringSeriesLookup` – også sorterings-invarianten, der får et
  * usorteret input til at kaste frem for tavst at give et forkert sats-sæt. Et lokalt
  * `[...rows].reverse().find(...)` ville miste netop den invariant.
  * Feltet heder `startDato` her, derfor nøglevælger-formen frem for et felt-omdøb i skemaet.
@@ -138,7 +138,7 @@ const resolveOverenskomstSatsBindingsForAnvendtReguleringsdato = (
   af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
   anvendtReguleringsdato: ISODateString | undefined
 ): OverenskomstSatsBindings => {
-  // Aktiv-prædikatet ejes af `resolveAktivOverenskomst` (§ét sandt sted) — ikke stavet i hånden her.
+  // Aktiv-prædikatet ejes af `resolveAktivOverenskomst` (§ét sandt sted) – ikke stavet i hånden her.
   const aktiv = resolveAktivOverenskomst(af);
   if (!aktiv.aktiv || !anvendtReguleringsdato) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
   const overenskomstId = aktiv.overenskomstId;

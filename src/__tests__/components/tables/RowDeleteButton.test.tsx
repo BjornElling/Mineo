@@ -123,7 +123,7 @@ describe('slet-banens cellekontrakt', () => {
     const computed = window.getComputedStyle(cell);
     expect(computed.position).toBe('relative');
     expect(computed.paddingRight).toBe(`${ROW_DELETE_LANE_WIDTH_PX}px`);
-    // Kaldstedets ØVRIGE styling overlever — kontrakten er additiv, ikke en nulstilling.
+    // Kaldstedets ØVRIGE styling overlever – kontrakten er additiv, ikke en nulstilling.
     expect(computed.width).toBe('120px');
   });
 });

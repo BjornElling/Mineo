@@ -15,7 +15,7 @@ import {
  * forkerte nabo; en tastefejl giver den forkerte handling. Blandet i én komponent kunne
  * ingen af dem rammes uden at gå gennem alle tre.
  *
- * Selectorerne ejes af `tableFocusHelpers` og deles med grid-navigationen — de defineres
+ * Selectorerne ejes af `tableFocusHelpers` og deles med grid-navigationen – de defineres
  * IKKE her. Kontraktens krav om at tab-sekvensen skal være «eksplicit og auditérbart
  * defineret» (`keyboard-navigation.md` §Implementeringsfrihed) er dermed uændret opfyldt.
  */
@@ -24,7 +24,7 @@ export type FocusableElement = HTMLInputElement | HTMLSelectElement | HTMLTextAr
 
 /**
  * En radiogruppe er ÉT tabstop (WAI-ARIA). Vi beholder den checkede knap, ellers den
- * første — så Tab lander på gruppens aktive valg, mens pil-navigation inde i gruppen
+ * første – så Tab lander på gruppens aktive valg, mens pil-navigation inde i gruppen
  * håndteres separat af tastelaget.
  */
 const normalizeRadioGroupTabStops = (elements: readonly FocusableElement[]): FocusableElement[] => {
@@ -59,7 +59,7 @@ const normalizeRadioGroupTabStops = (elements: readonly FocusableElement[]): Foc
  * Er elementet synligt og dermed fokuserbart?
  *
  * `offsetParent === null` betyder normalt skjult, men også `position: fixed`, `<body>`
- * selv og `display: contents` på en forælder — derfor faldet til computed style i netop
+ * selv og `display: contents` på en forælder – derfor faldet til computed style i netop
  * den gren. `getComputedStyle` er dyrt og undgås i den hurtige vej.
  */
 export const isFocusableElementVisible = (el: HTMLElement): boolean => {
@@ -104,7 +104,7 @@ export type FocusableInventory = Readonly<{
 /**
  * Cache-strategien: MutationObserver invaliderer ved DOM-ændringer, og hver læsning
  * efterfiltrerer for synlighed, fordi et felt kan skjules af en style-ændring, observeren
- * ikke rammer. Det er bevidst konservativt — en for stor liste ville sende fokus til et
+ * ikke rammer. Det er bevidst konservativt – en for stor liste ville sende fokus til et
  * skjult felt.
  */
 export const useFocusableInventory = (

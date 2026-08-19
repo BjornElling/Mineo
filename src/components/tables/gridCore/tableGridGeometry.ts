@@ -6,7 +6,7 @@ import { isTableElementVisible, TABLE_FOCUSABLE_SELECTOR } from './tableFocusHel
  * Rene geometri-/target-picker-funktioner for grid-tabel-navigation.
  *
  * Adskilt fra `tableKeyboardNavigation.ts` (event-handlerne + den modul-globale fokus-state):
- * intet her rører WeakMap-state, focus eller events — funktionerne bygger en grid-model af
+ * intet her rører WeakMap-state, focus eller events – funktionerne bygger en grid-model af
  * DOM'en og udvælger navigationsmål deterministisk ud fra den. Det holder den store
  * handler-fil fokuseret på event-flow og gør target-pickerne enheds-testbare i isolation.
  */

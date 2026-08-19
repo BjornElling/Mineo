@@ -22,7 +22,7 @@ import type { ErstatningsopgoerelseValues, StandardLoenTableRow } from '../../..
 
 // Greenfield EO StandardLoen-feltsæt (§2.4/§2.5 trin 8): beviser at feltsættet binder den NESTED løntabel-collection
 // + celle-descriptorerne til ét ansættelsesforhold-id, rekonstruerer rækkerne fra readeren og udleder den samme rene
-// valideringssummary som Årsløn — så den delte StandardLoenTable kan drives af EO's nested tabel ved tab-cutoveren.
+// valideringssummary som Årsløn – så den delte StandardLoenTable kan drives af EO's nested tabel ved tab-cutoveren.
 
 const catalog = getProductionInputCatalog();
 const asAmount = (value: number) => ({ kind: 'number' as const, value });

@@ -125,7 +125,7 @@ describe('beregnFejlmeddelelser', () => {
 
     it('feriePct = 12 uden fuld løn → ingen FEJL 2 (grænseværdi)', () => {
       const errors = beregnFejlmeddelelser(12, 0, false, false, 'Almindelig løn');
-      // FEJL 2 kræver > 0 og < 12.0 — 12.0 er præcis grænsen
+      // FEJL 2 kræver > 0 og < 12.0 – 12.0 er præcis grænsen
       const fejl2 = errors.filter(e => e.includes('fuld løn under ferie'));
       expect(fejl2).toHaveLength(0);
     });

@@ -7,7 +7,7 @@ import {
 } from '../../config/pageNavigation';
 import { PERSISTED_SECTION_KEYS, type PersistedSectionKey } from '../../config/persistenceRegistry';
 
-describe('pageNavigation — kanonisk route/fane-kilde', () => {
+describe('pageNavigation – kanonisk route/fane-kilde', () => {
   describe('APP_ROUTES', () => {
     it('navngiver hver route som "/<pageKey>" (ingen afvigende stier)', () => {
       for (const [pageKey, route] of Object.entries(APP_ROUTES)) {

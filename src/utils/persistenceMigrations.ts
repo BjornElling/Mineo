@@ -49,7 +49,7 @@ export const createPersistenceMigrator = (
  * Fjerner det afledte `storeBededagPct`-slot fra hvert persisteret ansættelsesforhold.
  *
  * Satsen er en funktion af dato og "Løn på helligdage" og udledes af reader-projektionen før første
- * consumer-read. Ældre `.eo`-filer bærer den materialiserede værdi. Den fjernes HER — i migratoren — og
+ * consumer-read. Ældre `.eo`-filer bærer den materialiserede værdi. Den fjernes HER – i migratoren – og
  * ikke som et strippet ukendt felt, fordi et strip rapporteres til brugeren som tabt indtastning. Værdien
  * går ikke tabt: den genudledes. Migratoren rører kun det kendte slot og gætter ingen domæneværdier.
  */
@@ -77,7 +77,7 @@ const stripDerivedStoreBededagPct = (value: unknown): PersistenceMigrationResult
  * 3.10 plus de uversionerede filer fra før containeren bar `persistedDataVersion`.
  *
  * Listen er EKSPLICIT, fordi `schema-evolution.md` §3.1a kræver et eksakt `fromVersion -> current`-opslag
- * og forbyder gæt ud fra shape eller versionsrækkefølge. En ukendt kildeversion får derfor identity —
+ * og forbyder gæt ud fra shape eller versionsrækkefølge. En ukendt kildeversion får derfor identity –
  * slottet fjernes da af `stripUnknownFieldsBySchema` og rapporteres i preflight. Det er den tilsigtede
  * fail-safe: filen indlæses fuldt ud, og kun tabsformuleringen er konservativ.
  */
@@ -105,7 +105,7 @@ const PERSISTENCE_MIGRATIONS = {
  * Kontrakt-rækkefølge (schema-evolution.md §3.1a): nullToUndefinedDeep → migrator →
  * stripUnknownFieldsBySchema → schema.safeParse. Vi anvender derfor `nullToUndefinedDeep`
  * her, FØR en eventuel sektion-migrator kører, så fremtidige migratorer altid får
- * input på den kontrakt-lovede normaliserede form — uanset om kalderen (fil-load vs.
+ * input på den kontrakt-lovede normaliserede form – uanset om kalderen (fil-load vs.
  * session-hydrering) selv har normaliseret. Dette gør de to load-stier konsistente.
  *
  * Migratorer må kun mappe KENDTE gamle strukturer til aktuel struktur; de må ikke gætte

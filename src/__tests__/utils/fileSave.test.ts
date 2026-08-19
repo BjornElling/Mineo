@@ -543,11 +543,11 @@ describe('fileSave', () => {
       expect(mockedDownloadFile).not.toHaveBeenCalled();
     });
 
-    it('ejer ikke en tomheds-gate — et default-only snapshot afvises IKKE her', async () => {
+    it('ejer ikke en tomheds-gate – et default-only snapshot afvises IKKE her', async () => {
       // "Er sagen tom?" kan IKKE besvares på dette lag: her ses kun det schema-parsede snapshot, ikke
       // ny-sags-baselinen, så "intet indtastet" og "standardværdierne er bevidst valgt" ser ens ud. Den
       // tidligere `hasRealData()`-gate gættede via feltoptælling og regnede hver `false` og hvert
-      // standardtal som brugerdata — derfor kunne en tom standardsag gemmes. Gaten ejes nu af
+      // standardtal som brugerdata – derfor kunne en tom standardsag gemmes. Gaten ejes nu af
       // `hasAnyData()` i save-shellen; se `useFileSaveLoad`-testen «gemmer ikke en urørt sag».
       //
       // Testen her pinner den NYE grænse: et snapshot, som kun bærer standardværdier, går igennem dette lag

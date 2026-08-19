@@ -18,7 +18,7 @@ import { toKroner } from '../money/money';
  * Delt præsentationsmodel for kapitaliserings-afgørelsesblokken.
  *
  * UI-fanen (`EetKapitaliseringTab`) og dokument-generatoren (`kapitaliseringDocument`) viste tidligere
- * den SAMME sekvens af rækker — felt-udvælgelse, rækkefølge og betinget synlighed — hver for sig. Det
+ * den SAMME sekvens af rækker – felt-udvælgelse, rækkefølge og betinget synlighed – hver for sig. Det
  * er den faktiske drift-risiko: tilføjer man et felt eller ændrer en betingelse, skal det huskes to
  * steder. Denne builder ejer nu sekvensen ét sted; hver forbruger renderer rækkerne i sit eget idiom
  * (React label/value-hover-rækker vs. `writeLeftRightText` med højre-justeret beløbskolonne).
@@ -51,9 +51,9 @@ export type KapitaliseringRowOptions = Readonly<{
    * `'whenPresent'`: kun når køn faktisk er sat (dokument).
    */
   koenRowMode: 'always' | 'whenPresent';
-  /** Særfaktor-etiketten — UI bruger `<`, dokumentet bruger `≤` (bevidst bevaret). */
+  /** Særfaktor-etiketten – UI bruger `<`, dokumentet bruger `≤` (bevidst bevaret). */
   saerfaktorLabel: string;
-  /** Formaterer datoen i reguleringsprocent-etiketten — UI lang form, dokument kort dansk form. */
+  /** Formaterer datoen i reguleringsprocent-etiketten – UI lang form, dokument kort dansk form. */
   formatReguleringsdato: (iso: ISODateString) => string;
 }>;
 

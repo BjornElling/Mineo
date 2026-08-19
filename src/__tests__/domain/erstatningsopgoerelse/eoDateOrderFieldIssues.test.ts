@@ -43,7 +43,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 // Kronologireglen for et dato-par skal give en STRUKTUREL feltfejl på BEGGE felter.
 //
 // Reglen fandtes før kun i række-evaluerings-motoren som `{ message, field: 'fra' | 'til' }`. Et kolonne-hint
-// er ikke en feltadresse, og rød ring/tooltip kræver et `FieldIssue` med en strukturel `FieldRef` — derfor
+// er ikke en feltadresse, og rød ring/tooltip kræver et `FieldIssue` med en strukturel `FieldRef` – derfor
 // kunne fejlen stå i "Fejl og advarsler", scrolle til det rigtige felt og ALLIGEVEL efterlade feltet neutralt.
 //
 // Testen måler dét, de eksisterende suiter ikke gjorde: ikke at reglen findes i ét lag, men at den når HELE
@@ -103,7 +103,7 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     // Hver tooltip navngiver den MODGÅENDE dato, ikke feltets egen.
     expect(fra?.message).toBe('Fra-dato skal være før til-dato (01-01-2025)');
     expect(til?.message).toBe('Til-dato skal være efter fra-dato (01-01-2026)');
-    // `rule` vises ORDRET i tooltippet (§4) — ellers ville netop modpartsdatoen forsvinde.
+    // `rule` vises ORDRET i tooltippet (§4) – ellers ville netop modpartsdatoen forsvinde.
     expect(resolveFieldIssueTooltip(fra!)).toBe(fra!.message);
     expect(resolveFieldIssueTooltip(til!)).toBe(til!.message);
   });
@@ -138,7 +138,7 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     expect(issueAt(evaluation, eoVedroererPeriodeTilField.bind())).toBeUndefined();
   });
 
-  it('rækkedato-par markeres pr. række — og kun den fejlbehæftede række', () => {
+  it('rækkedato-par markeres pr. række – og kun den fejlbehæftede række', () => {
     const evaluation = buildReader({
       ...baseEo(),
       offentligeYdelserRows: [
@@ -174,7 +174,7 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
 
   it('dækker alle fem rækkekollektioner med dato-par', () => {
     // Fabrikken `rowDatePair` er det ene sted, parret dannes. Registreres en kollektion uden den,
-    // er kronologien tavs igen præcis dér — derfor dækkes hver af de fem konkrete kollektioner.
+    // er kronologien tavs igen præcis dér – derfor dækkes hver af de fem konkrete kollektioner.
     const evaluation = buildReader({
       ...baseEo(),
       tafPerioder: [
@@ -251,7 +251,7 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     // De to ægte kronologifejl står tilbage.
     expect(failed.filter((i) => i.id.startsWith('reader_field:eo.tafPerioder'))).toHaveLength(2);
     // Undertrykkelsen skal være SMAL: den urelaterede legacy-fejl må IKKE ryge med. Uden denne
-    // kontrolgruppe ville en mutation, der swallowede ENHVER legacy-besked, bestå testen — grøn af
+    // kontrolgruppe ville en mutation, der swallowede ENHVER legacy-besked, bestå testen – grøn af
     // tomhed frem for grøn af bevis. Assertionen går på BESKEDEN, fordi id'et for netop denne fejl
     // omskrives til `beregningsperiode:…` og derfor ikke kan skelne kilden.
     expect(failed.some((i) => i.message.includes('Uspecificerede ferie-/feriefridage overstiger'))).toBe(true);
@@ -263,8 +263,8 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
   });
 
   it('en ÆGTE tom dato giver stadig sin «mangler»-besked', () => {
-    // Undertrykkelsen må kun ramme den maskerings-inducerede halvdel. Er feltet reelt tomt — uden nogen
-    // feltfejl at maskere — er «mangler» den rigtige og eneste besked.
+    // Undertrykkelsen må kun ramme den maskerings-inducerede halvdel. Er feltet reelt tomt – uden nogen
+    // feltfejl at maskere – er «mangler» den rigtige og eneste besked.
     const evaluation = buildReader({
       ...baseEo(),
       kravPaaTabtArbejdsfortjeneste: 'Ja',
@@ -283,7 +283,7 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
   it('dækker også beregningsperioden, SFGG-referenceperioden og indtægtstabellens dato-par', () => {
     // De tre par lå uden for den første rettelse. Beregningsperioden og SFGG er skalar-/rækkepar, mens
     // indtægtstabellens rækker er NESTET under et ansættelsesforhold og derfor skal bindes med begge
-    // entity-id'er — glemmes ejeren, rammer opslaget en anden ansættelses række.
+    // entity-id'er – glemmes ejeren, rammer opslaget en anden ansættelses række.
     const evaluation = buildReader({
       ...baseEo(),
       beregnesUdFra: 'Beregningsperiode',

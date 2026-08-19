@@ -5,10 +5,10 @@
  * **Hvorfor kriteriet har brug for sin EGEN kilde.** De nærliggende tests måler hver især noget andet:
  * arkitekturharnesset beviser, at ingen komponent SKRIVER ind i issue-snapshottet, og de enkelte
  * surface-tests beviser, at et lukket felt ikke holder en lokal kopi. Ingen af dem sammenligner det
- * FAKTISKE udfald med og uden et komponenttræ — og det er præcis den påstand, kriteriet gør.
+ * FAKTISKE udfald med og uden et komponenttræ – og det er præcis den påstand, kriteriet gør.
  *
  * **Hvad testen gør.** Den bygger ét afsluttet input gennem den ægte runtime og evaluerer derefter tre
- * lag — feltissues, en domæneprojektion og en dokumentgate — på to måder:
+ * lag – feltissues, en domæneprojektion og en dokumentgate – på to måder:
  *
  *   1. HELT uden React: ingen `render`, intet provider-træ, ingen hook.
  *   2. Med et monteret komponenttræ, der aktivt LÆSER de samme felter gennem den ægte inputbinding.
@@ -148,7 +148,7 @@ const makeBinding = (): InputRuntimeBinding =>
   });
 
 /**
- * En side, der LÆSER de samme felter gennem produktionens egen feltflade. Den skriver intet — pointen er
+ * En side, der LÆSER de samme felter gennem produktionens egen feltflade. Den skriver intet – pointen er
  * netop, at en ren LÆSER heller ikke må flytte noget.
  */
 const ReadingPage = (): React.ReactElement => {
@@ -171,7 +171,7 @@ const mountPage = () => render(
   <InputRuntimeProvider binding={makeBinding()}><ReadingPage /></InputRuntimeProvider>
 );
 
-/** En sag med ét gyldigt felt, ét bounds-fejlende felt og ét rejected felt — alle tre issue-arter. */
+/** En sag med ét gyldigt felt, ét bounds-fejlende felt og ét rejected felt – alle tre issue-arter. */
 const buildMixedCase = (): SettledInput => {
   dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow(ROW)), { origin: testRowOrigin() });
   dispatchInput(store, catalog, settleField(aargangField.bind(), '2024'));
@@ -183,7 +183,7 @@ const buildMixedCase = (): SettledInput => {
   return store.getState().input;
 };
 
-describe('§10-kriterium 22 — issues, beregninger og gates afhænger ikke af component mount', () => {
+describe('§10-kriterium 22 – issues, beregninger og gates afhænger ikke af component mount', () => {
   it('issues, projektion og dokumentgate er identiske med og uden et monteret komponenttræ', () => {
     const input = buildMixedCase();
 
@@ -195,7 +195,7 @@ describe('§10-kriterium 22 — issues, beregninger og gates afhænger ikke af c
     expect(headless.issues.length, 'fixturen har ingen issues at sammenligne').toBeGreaterThanOrEqual(2);
     expect(headless.projectionStatus).toBe('blocked'); // bounds-fejlen blokerer beregningen
     expect(headless.eoSaveGate).toBe('blocked'); // rejected råtekst blokerer .eo
-    expect(headless.documentGate).toBe('ready'); // beløbet er gyldigt — ingen overblokering
+    expect(headless.documentGate).toBe('ready'); // beløbet er gyldigt – ingen overblokering
 
     // (2) Med et monteret træ, der aktivt læser de samme felter.
     const view = mountPage();
@@ -221,7 +221,7 @@ describe('§10-kriterium 22 — issues, beregninger og gates afhænger ikke af c
     expect(store.getState().input).toEqual(input);
   });
 
-  it('et REMOUNT giver samme udfald — der seedes intet ved mount', () => {
+  it('et REMOUNT giver samme udfald – der seedes intet ved mount', () => {
     buildMixedCase();
     const first = observe(store.getState().input);
     const revisionBefore = store.getState().revision;
@@ -244,7 +244,7 @@ describe('§10-kriterium 22 — issues, beregninger og gates afhænger ikke af c
    * Sondringen er ikke akademisk. Første udgave af denne suite havde kun mount→evaluering-retningen, og
    * en mutation, der gjorde bindingens issue-cache STICKY (returnér altid det første snapshot), forblev
    * GRØN: en stale cache flytter ikke den headless evaluering, den ændrer kun hvad DOM viser. Et felt
-   * ville da bære en rød markering, brugeren havde rettet — mount-afhængighed i den retning kriteriet
+   * ville da bære en rød markering, brugeren havde rettet – mount-afhængighed i den retning kriteriet
    * også dækker. Testen sammenligner derfor DOM mod den headless sandhed EFTER en revisionsændring.
    */
   it('det monterede træ viser den AKTUELLE sandhed, ikke den det fangede ved mount', () => {

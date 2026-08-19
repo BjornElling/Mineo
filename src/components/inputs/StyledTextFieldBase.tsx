@@ -75,7 +75,7 @@ export type StyledTextFieldBaseProps = {
    * "Fejl i indtastning" for `format`/`schema`). Udelades den, viser tooltippet `helperText` uændret.
    *
    * Kun tooltippet forkortes. Den visuelt skjulte a11y-tekst bliver ved med at være `helperText`, så en
-   * skærmlæserbruger får den fulde besked — den kan ikke "se feltet ved markøren", som forkortelsen bygger på.
+   * skærmlæserbruger får den fulde besked – den kan ikke "se feltet ved markøren", som forkortelsen bygger på.
    */
   tooltipText?: string;
   /**

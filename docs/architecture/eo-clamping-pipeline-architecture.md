@@ -1,7 +1,7 @@
 # EO TAF-/svie-smerte clamping- og behandlingsrækkefølge (informativ)
 
 **Status:** Informativ arkitektur-dokumentation (ikke normativ)
-**Relaterer til:** `src/contracts/eo-snapshot-contract.md` (normativ — ejer invarianterne)
+**Relaterer til:** `src/contracts/eo-snapshot-contract.md` (normativ – ejer invarianterne)
 
 ---
 
@@ -9,9 +9,9 @@ Dette dokument beskriver **målarkitekturens behandlingsrækkefølge** for afslu
 svie/smerte-perioder i `computeEoSnapshot`. Det er en informativ pipeline-beskrivelse, der
 udfolder rækkefølgen og trinene bag de normative invarianter i `eo-snapshot-contract.md`.
 
-De **bindende** regler — clampingmodellen (stille vs. fejlgivende clamping, §2.1/§2.2),
+De **bindende** regler – clampingmodellen (stille vs. fejlgivende clamping, §2.1/§2.2),
 clampinggarantien (§2.4), invariant-klassificeringen (§3) og kravet om én autoritativ
-beregningskilde uden parallelle totaler (§1) — ligger i kontrakten. Hvis denne pipeline-doc
+beregningskilde uden parallelle totaler (§1) – ligger i kontrakten. Hvis denne pipeline-doc
 og kontrakten er uenige, **vinder kontrakten**. Denne doc holdes opdateret som hjælp til at
 forstå implementeringen, ikke som selvstændig kilde til sandhed.
 
@@ -28,7 +28,7 @@ forstå implementeringen, ikke som selvstændig kilde til sandhed.
    skadedato/anmeldelsesdato-grænse, fra > til, til < fra, til >= differencekravDato,
    til >= EET-virkningsdato (ikke påklaget), overlap mellem rækker.
 
-   Validering sker på de afsluttede canonical rækker som sådanne — ikke først efter en
+   Validering sker på de afsluttede canonical rækker som sådanne – ikke først efter en
    relevansvurdering mod de autoritative, clampede ranges. En ugyldig TAF-række bliver
    derfor ikke "reddet" af, at den senere ville være uden betydning for det autoritative
    beregningsinterval.
@@ -96,7 +96,7 @@ De domænespecifikke constraint-resolvers (`SvieSmerteConstraintBounds`,
 `resolveSvieSmerteFejlgivendeBounds`, `resolveSvieSmerteEoPeriodeBounds`) kan fortsat ligge samlet i
 `svieSmerteConstraints.ts`; issueprojektionen er den fælles consumergrænse.
 
-> **Bemærk om overlap (svie/smerte):** Ethvert overlap mellem svie/smerte-perioder afvises —
+> **Bemærk om overlap (svie/smerte):** Ethvert overlap mellem svie/smerte-perioder afvises –
 > også overlap mellem perioder med samme tilstand. Validator og `svieSmerteEngine` afviser
 > ethvert overlap (engine returnerer `null` ved `overlap.size > 0`), og tabel-/kontrollaget
 > markerer ethvert overlap rødt, så fejlen er synlig før gem. Der findes ikke længere en

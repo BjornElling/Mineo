@@ -9,7 +9,7 @@ import { normalizeTextForDocument } from '../../document/layout/pdfTextUtils';
  * Håndhæver dokument-output-kontraktens datoformat-regel: en rå ISO-dato (ÅÅÅÅ-MM-DD)
  * må aldrig nå et brugersynligt dokument. Det centrale værn (documentDateGuard) fanger
  * og omformaterer den til dansk DD-MM-ÅÅÅÅ. Testen beviser også, at mønsteret ikke er
- * inert — ellers ville en brudt regex lade lækager passere vakuøst (jf. arkitekturharnessets datoregler).
+ * inert – ellers ville en brudt regex lade lækager passere vakuøst (jf. arkitekturharnessets datoregler).
  */
 describe('document-date-format guard', () => {
   describe('reformatStrayIsoDates', () => {

@@ -478,7 +478,7 @@ describe('midlertidigt EET transient injection', () => {
     const income = buildIncomeForRanges({ ...eoValues, offentligeYdelserRows: [...rows] }, tafRanges);
     const raw = income.benefits.find((b) => b.typeKey === 'midlertidigt_eet')?.amount ?? 0;
     expect(roundHeleKroner(raw)).toBe(42790);
-    // Divergensen er reel — derfor må fradraget bruge den kanoniske kilde, ikke råvejen.
+    // Divergensen er reel – derfor må fradraget bruge den kanoniske kilde, ikke råvejen.
     expect(sumMidlertidigtEetBeregnetEetKronerForTafRanges(groups, tafRanges)).not.toBe(roundHeleKroner(raw));
   });
 

@@ -120,7 +120,7 @@ export const ydelsestypeKeys = Object.keys(ydelsestyperLiteral) as YdelsestypeKe
  * ------------------------------------------------------------------------------------- */
 
 /**
- * De supplerende posteringer — dem under stregen. Feriepenge, midlertidigt EET og «Andet» er
+ * De supplerende posteringer – dem under stregen. Feriepenge, midlertidigt EET og «Andet» er
  * ikke offentlige ydelser i egen ret, men posteringer, der indgår samme sted i opgørelsen.
  */
 const SUPPLERENDE_YDELSESTYPE_KEYS = ['feriepenge', 'midlertidigt_eet', 'andet'] as const satisfies readonly YdelsestypeKey[];

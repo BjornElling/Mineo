@@ -17,7 +17,7 @@ import { createDocumentComposer, renderDocumentModel } from '../../../document/m
 /**
  * Optagende fake-writer der kun implementerer de metoder `documentGeneratorSetup` faktisk kalder
  * (`DocumentGenerationSession` → setProperties; `writeLabelValueRows` →
- * writeLeftRightText). Vi tester dette moduls kontrakt — ikke jsPDF.
+ * writeLeftRightText). Vi tester dette moduls kontrakt – ikke jsPDF.
  *
  * Objekt-literalen type-tjekkes mod de RIGTIGE DocumentWriter-signaturer via `satisfies Pick<…>`, så
  * en signatur-drift i de tre kaldte metoder fanges af typecheck i stedet for at gemmes bag et bredt

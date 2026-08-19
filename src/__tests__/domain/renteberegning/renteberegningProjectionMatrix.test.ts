@@ -22,7 +22,7 @@ import {
 } from '../../../inputCore/evaluationSource';
 
 // Den FULDE projektionsmatrix for Renteberegning (§1.10/§3.9). Suiten dækkede tidligere kun tre nominelle/tomme
-// cases; den beviste derfor ikke `blocked`-grenene — hverken at et rejected råinput blokerer, at blokeringen er
+// cases; den beviste derfor ikke `blocked`-grenene – hverken at et rejected råinput blokerer, at blokeringen er
 // PER RÆKKE, eller at motoren ikke kaldes i en blokeret projektion.
 //
 // Matrixen her er: {gyldig, rejected råtekst, tom} × {rækkefelt, tværgående beregningsdato} × {række, aggregat}.
@@ -73,7 +73,7 @@ const build = (
   surchargeRates,
 });
 
-// XOR-invarianten (§1.5): et rejected felt har ALTID en tom canonical værdi — råteksten og en canonical værdi
+// XOR-invarianten (§1.5): et rejected felt har ALTID en tom canonical værdi – råteksten og en canonical værdi
 // kan ikke eksistere samtidig. Fixtures skal derfor rydde feltet, når de injicerer et rejected råinput;
 // `validateSettledInput` afviser ellers inputtet, og det er netop den invariant, vi bygger på.
 const REJECTED_BELOB = (rowId: string): RejectedSpec => ({
@@ -82,7 +82,7 @@ const REJECTED_BELOB = (rowId: string): RejectedSpec => ({
 });
 
 describe('Renteberegning projektionsmatrix: rejected råinput blokerer', () => {
-  it('et rejected rækkefelt blokerer NETOP den række — søsterrækken forbliver ready', () => {
+  it('et rejected rækkefelt blokerer NETOP den række – søsterrækken forbliver ready', () => {
     // §1.10: blokeringen følger de refs, projektionen faktisk læser. Række r2's projektion læser ikke r1's felter.
     const projection = build(
       [createRow('r1', { belob: undefined }), createRow('r2')],
@@ -207,7 +207,7 @@ describe('Renteberegning projektionsmatrix: tomme og manglende værdier', () => 
   });
 
   it('en manglende beregningsdato holder projektionen ready (feltet er optional)', () => {
-    // `beregningsdato` læses med `optional`, så tomhed er ikke en blokering — kun rejected råtekst er.
+    // `beregningsdato` læses med `optional`, så tomhed er ikke en blokering – kun rejected råtekst er.
     // Testen fastholder den afgrænsning, så en fremtidig ændring til `require` ikke sker ubemærket.
     const projection = build([createRow('r1')], undefined);
 
@@ -238,7 +238,7 @@ describe('Renteberegning projektionsmatrix: tomme og manglende værdier', () => 
 
   // BB-037/BB-038: de to tilstande, der før faldt i `anyRowHasError` med en TAVS blokering og teksten
   // «Indtastning mangler», selv om alle felter var udfyldt. Nu bærer det felt, brugeren skal rette, et
-  // rødt issue — og et rødt issue gør projektionen `blocked`, hvilket er den gren, der giver «Fejl i
+  // rødt issue – og et rødt issue gør projektionen `blocked`, hvilket er den gren, der giver «Fejl i
   // indtastning». Det er samtidig beviset for, at `blockedByIncompleteRow`s præmis nu holder: grenen
   // kan kun nås af en reelt ufuldstændig række.
 
@@ -249,7 +249,7 @@ describe('Renteberegning projektionsmatrix: tomme og manglende værdier', () => 
     );
 
     expect(projection.rowProjections.get('r-nul')?.status).toBe('blocked');
-    // Søsterrækken er stadig ready — blokeringen er per række (§1.10).
+    // Søsterrækken er stadig ready – blokeringen er per række (§1.10).
     expect(projection.rowProjections.get('r-ok')?.status).toBe('ready');
     // Aggregatet blokerer, fordi det læser alle rækker. Dermed når gaten IKKE `anyRowHasError`-grenen,
     // og tooltippet bliver «Fejl i indtastning» frem for «Indtastning mangler».

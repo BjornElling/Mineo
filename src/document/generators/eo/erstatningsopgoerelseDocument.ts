@@ -26,7 +26,7 @@ const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
  * Options for erstatningsopgørelse PDF
  *
  * Udvider DocumentCommonOptions for visBrevhoved-kontrakten.
- * stamdata fra DocumentCommonOptions bruges ikke — brevhoved-data hentes fra model.brevhoved.
+ * stamdata fra DocumentCommonOptions bruges ikke – brevhoved-data hentes fra model.brevhoved.
  */
 interface ErstatningsopgoerelseDocumentOptions extends DocumentCommonOptions {
   erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje' | 'Ingen';

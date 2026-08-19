@@ -3,7 +3,7 @@
  *
  * Programmet har tre veje, der fører brugeren hen til en indtastning, som kræver opmærksomhed:
  * undo/redo-fokusrestoren, save-blokeringens fokus og de interne fejl-/advarselslinks. Alle tre
- * lokaliserer målet gennem den ENE feltidentitet i DOM (`data-mineo-field-address`, §3.2) — men kun
+ * lokaliserer målet gennem den ENE feltidentitet i DOM (`data-mineo-field-address`, §3.2) – men kun
  * Årslønssidens løntabel havde en visuel markering, og den var privat for netop den tabel: en lokal
  * `flashCell`-state, et lokalt `@keyframes errorFlash` og et cellekoordinat (`rowId` + `colIdx`), som
  * ingen anden flade kan tale.
@@ -15,7 +15,7 @@
  * sætter.
  *
  * Markeringen er RENT visuel: den ændrer ingen værdi, sætter ingen feltfejl (§1.7) og blokerer intet.
- * Den siger «her» — ikke «dette er forkert». Derfor bruges den både til ægte fejl og til en manglende
+ * Den siger «her» – ikke «dette er forkert». Derfor bruges den både til ægte fejl og til en manglende
  * indtastning, der endnu ikke er en fejl.
  */
 
@@ -26,7 +26,7 @@ export const FIELD_ATTENTION_BLINK_CLASS = 'mineo-field-attention-blink';
 
 /**
  * Hvor længe markeringen står. Skal matche animationens samlede løbetid i `sharedApp.css`
- * (0,5 s × 3 gennemløb), så klassen fjernes, når animationen faktisk er slut — ikke før, hvor den ville
+ * (0,5 s × 3 gennemløb), så klassen fjernes, når animationen faktisk er slut – ikke før, hvor den ville
  * blive klippet af, og ikke længe efter, hvor et nyt blink på samme element ville blive slugt.
  */
 export const FIELD_ATTENTION_BLINK_DURATION_MS = 1500;
@@ -38,7 +38,7 @@ const pendingClears = new WeakMap<HTMLElement, number>();
  * Den fokuserbare editor er ikke altid den flade, brugeren ser som feltet.
  *
  * MUIs tekst- og dropdownfelter lægger feltadressen på deres indre `<input>`, mens den hvide, synlige
- * baggrund — inklusive dropdownens reserverede område under pilen — ejes af den omgivende
+ * baggrund – inklusive dropdownens reserverede område under pilen – ejes af den omgivende
  * `MuiInputBase-root`. Blinkede vi inputtet direkte, blev kun tekstområdet rødt, og et link kunne derfor
  * se ud til ikke at have peget på feltet. Tabellenes celler og øvrige ikke-MUI-mål er allerede deres egen
  * synlige flade og falder bevidst tilbage til sig selv.
@@ -49,7 +49,7 @@ const resolveAttentionSurface = (element: HTMLElement): HTMLElement =>
 /**
  * Lad et element blinke for at pege brugeren på det.
  *
- * Kaldes med det element, opslaget allerede har fundet — modulet slår ikke selv op og navigerer ikke.
+ * Kaldes med det element, opslaget allerede har fundet – modulet slår ikke selv op og navigerer ikke.
  * Ansvarsdelingen er bevidst: navigation og «hvilket felt» ejes af de eksisterende fokusveje
  * (`lookupEditorLocation`, `findRestoreTarget`), mens dette modul kun ejer det visuelle svar.
  *
@@ -81,7 +81,7 @@ export const blinkFieldAttention = (element: HTMLElement | null | undefined): vo
 };
 
 /**
- * Blink det element, der bærer en given serialiseret feltadresse — uanset hvilken flade det hører til.
+ * Blink det element, der bærer en given serialiseret feltadresse – uanset hvilken flade det hører til.
  *
  * Bruges af de fokusveje, der har adressen men ikke elementet. Findes flere spejlede editorer for samme
  * felt, blinker den FØRSTE i dokumentrækkefølge; det er samme vilkårlige-men-entydige valg, som

@@ -22,7 +22,7 @@ import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 //
 //  1. `GridCoreController` (via StandardGridTable + `tableKeyboardNavigation`, capture-fase) ejer NAVIGATION og
 //     edit-ÅBNING: pile/Enter/Tab-celle-nav, to-trins-klik, printbar-tast→edit, Delete-ryd-i-celle og
-//     klik-udenfor-commit. Det er en bevidst bevaret surface-mekanik (§2.5 — grid-adapteren ejer navigation),
+//     klik-udenfor-commit. Det er en bevidst bevaret surface-mekanik (§2.5 – grid-adapteren ejer navigation),
 //     som opererer på DOM + en per-celle `GridCellEditorHandle`.
 //  2. `useCellEditor` (den ENE editor-motoren) ejer DRAFT/COMMIT: åben draft, settle→command, cancel,
 //     immediate-clear, rejected-visning og det tokenbundne feltissue (§3.5/§1.8).
@@ -40,7 +40,7 @@ export type GridCellSurfaceConfig = Readonly<{
   keyFilter?: GridCellKeyFilter;
   /**
    * Cellefamiliens tegn- og længdeprædikat (§1.2). Håndhæves i `onDraftChange` og er derved uafhængigt af
-   * indtastningsmodaliteten — se `draftAdmission.ts` for hvorfor `keyFilter` alene ikke rakte (mobile
+   * indtastningsmodaliteten – se `draftAdmission.ts` for hvorfor `keyFilter` alene ikke rakte (mobile
    * skærmtastaturer skriver i `<input>` uden en brugbar `keydown`).
    */
   draftAdmission?: DraftAdmission;
@@ -151,7 +151,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     if (isLocked) return;
     const raw = readClipboardText(e);
     // Markeringen læses FØR normaliseringen: dækker den hele draften, erstatter paste'en alt, og
-    // konteksten er tom — samme situation som en lukket celle (se `resolvePasteContextDraft`).
+    // konteksten er tom – samme situation som en lukket celle (se `resolvePasteContextDraft`).
     const contextInput = inputElementRef.current;
     const contextDraftText = ctl.isOpen ? ctl.displayText : '';
     const contextStart = typeof contextInput?.selectionStart === 'number'
@@ -231,7 +231,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
       if (latest.current.locked) return true;
       // Et settle er altid "succesfuldt" ud fra editorens synspunkt: gyldigt/tomt/rejected settle
       // afslutter alle redigeringen (§1.3). En storagefejl holder editoren åben (motoren guarder), men den
-      // returnerer ikke et fejlsignal her — grid-core-commit betragtes som gennemført, og en evt. fejl vises
+      // returnerer ikke et fejlsignal her – grid-core-commit betragtes som gennemført, og en evt. fejl vises
       // via systemfejl-overfladen. Returnér true, så grid-core lukker editingen.
       latest.current.controller.settle();
       gridApi.closeEditing();

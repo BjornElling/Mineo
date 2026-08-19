@@ -13,7 +13,7 @@ import {
 // Parametrisering af den delte StandardLoenTable: hvert domæne ejer sine konkrete DESCRIPTORER + sin
 // collection, mens rekonstruktionen og cellefejl-indsamlingen er FÆLLES.
 //
-// Tidligere implementerede hvert domæne også `readRows` og `resolveValidation` — to næsten identiske
+// Tidligere implementerede hvert domæne også `readRows` og `resolveValidation` – to næsten identiske
 // reader-adaptere (Årsløn + EO), hvis eneste forskel var, om cellen bindes med `(rowId)` eller
 // `(ejerId, rowId)`. Forskellen er unødvendig: ejer-id'erne står i collectionens egen sti, præcis
 // som `cellSpecBuilder` udleder dem. Begge afledninger er derfor nu generiske over feltsættet, og der findes
@@ -39,10 +39,10 @@ export type StandardLoenTableFieldSet = Readonly<{
 }>;
 
 /**
- * Binder en celle gennem den DELTE `bindCollectionCell` — samme regel, celleditoren bruger.
+ * Binder en celle gennem den DELTE `bindCollectionCell` – samme regel, celleditoren bruger.
  *
  * At de to deler udtryk er ikke kosmetik: cellen skal LÆSES på præcis den adresse, den REDIGERES på.
- * Divergerede de, ville brugeren skrive i en celle, hvis værdi rekonstruktionen aldrig fandt — en lydløst
+ * Divergerede de, ville brugeren skrive i en celle, hvis værdi rekonstruktionen aldrig fandt – en lydløst
  * tom celle. Det er også grunden til, at de to reader-adaptere kunne samles: en top-level
  * collection giver `[]` ejere → `bind(rowId)`, en nested giver `[ejerId]` → `bind(ejerId, rowId)`.
  */

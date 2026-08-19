@@ -5,7 +5,7 @@ import type { DocumentArtifact } from '../../../document/downloadArtifact';
 
 // Fælles harness for per-generator Word-indholdstests (jf.
 // document-format-contract.md §4). Kører en RIGTIG generator gennem
-// Word-backenden — generatoren modtager en eksplicit session med DocxWriter —
+// Word-backenden – generatoren modtager en eksplicit session med DocxWriter –
 // fanger den returnerede .docx-blob og
 // pakker word/document.xml ud, så testen kan assert'e semantisk indhold.
 //

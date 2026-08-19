@@ -198,7 +198,7 @@ export const foersoergertabEalMin: YearlyRate = {
 };
 
 // Vejledende udtalelse om erhvervsevnetab (§ 10)
-// NB: Værdierne er IKKE en glat årlig fremskrivning. Der er bevidste spring i kilden —
+// NB: Værdierne er IKKE en glat årlig fremskrivning. Der er bevidste spring i kilden –
 // bl.a. 2016 (8.600) → 2017 (23.040) og 2020 (24.690) → 2021 (20.120). Tallene er
 // verificeret korrekte; ret dem ikke til at "se mere ensartede ud".
 export const vejledendeUdtalelseEet: YearlyRate = {
@@ -344,7 +344,7 @@ export const aarsloenAslMax: YearlyRate = {
  *
  * BEMÆRK: gælder KUN maksimum-tabellen. `aarsloenAslMin` udelader bevidst 2024 (se
  * nedenfor) og må ikke kontinuitets-tjekkes. Guarden ser kun på år-nøglens tilstedeværelse
- * (et hul), ikke på om værdien er positiv — den værn (positiv-finit) bor i
+ * (et hul), ikke på om værdien er positiv – den værn (positiv-finit) bor i
  * `resolveAslAarsloensmaksimumForAar`.
  */
 export const assertAarsloenAslMaxKontinuitet = (indeks: YearlyRate = aarsloenAslMax): void => {
@@ -953,7 +953,7 @@ export const satserAngivAarYearBounds: YearBounds = (() => {
 /**
  * DISPLAY-ONLY, FAIL-OPEN. Returnerer alle satser for et bestemt år som en visnings-snapshot.
  *
- * Robust over for manglende år: mangler et opslag, returneres `null` (tal) eller `''` (tekst) —
+ * Robust over for manglende år: mangler et opslag, returneres `null` (tal) eller `''` (tekst) –
  * fail-open, så en satsside/-dokument kan vise "-" frem for at fejle. Denne fail-open-semantik må
  * ALDRIG lække ind i en reguleringsberegning: en beregningssti skal fail-close (kaste/blokere) på
  * manglende sats, ikke stille regne videre med `null`. Beregningslaget bruger derfor de fail-closed

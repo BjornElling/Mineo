@@ -60,7 +60,7 @@ export type EOInspektionPageViewModel = Readonly<{
 
 // Tilhørsforholdet læses nu fra rækkens EGET `employmentId`-felt (sat af builderen), ikke ved
 // at regex-parse id-navnekonventionen. Reguleringsrækker genkendes fortsat på id-segmentet
-// `.regulering.`, fordi det er en rækkeKATEGORI og ikke et tilhørsforhold — se noten nedenfor.
+// `.regulering.`, fordi det er en rækkeKATEGORI og ikke et tilhørsforhold – se noten nedenfor.
 const isLoenindkomstRegulationRow = (row: EoRowModel): boolean => row.id.includes('.regulering.');
 
 const buildLoenindkomstSections = (rows: readonly EoRowModel[]) => {
@@ -104,7 +104,7 @@ const buildLoenindkomstSections = (rows: readonly EoRowModel[]) => {
  *
  * Denne er bevaret som id-parsing, fordi kilden er en `RegulationInspektionSection` (en
  * SEKTION med et konstrueret `regulation.<id>`-navn) og ikke en `EoRowModel`. Sektionen har
- * ikke et rækkefelt at bære id'et i, og præfikset er ét fast led — modsat de tidligere
+ * ikke et rækkefelt at bære id'et i, og præfikset er ét fast led – modsat de tidligere
  * række-regexes, hvor id-formen varierede pr. rækketype. Får sektionsmodellen på et tidspunkt
  * sit eget `employmentId`, hører denne helper også væk.
  */
@@ -118,7 +118,7 @@ const getRegulationEmploymentId = (section: RegulationInspektionSection): string
  *
  * Tidligere PARSEDE denne funktion rækkens formatterede `displayValue`: split på `\n` og `|`,
  * kolonneantal udledt af indholdet, og totalrækken genkendt ved at strengmatche celleteksten
- * «I alt». Det var en skjult serialiseringsaftale mellem row-builderen og præsentationen —
+ * «I alt». Det var en skjult serialiseringsaftale mellem row-builderen og præsentationen –
  * builderen kunne ændre et mellemrum eller en etiket og lydløst ødelægge tabellen her.
  * Nu bærer `EoRowModel.table` strukturen, og builderen serialiserer TIL `displayValue` i
  * stedet for at være dens eneste kilde.
@@ -154,7 +154,7 @@ const buildSfggSections = (
       order.push(employmentId);
     }
     // Rækker der BÆRER en tabel projiceres som tabel; øvrige rækker vises som label/værdi.
-    // Betingelsen er nu rækkens egen struktur — ikke et id-præfiks-gæt.
+    // Betingelsen er nu rækkens egen struktur – ikke et id-præfiks-gæt.
     if (row.table) {
       const projected = projectSfggTable(row);
       if (projected) {
@@ -178,7 +178,7 @@ export const buildEOInspektionPageViewModel = (
   appSettings: AppSettings
 ): EOInspektionPageViewModel => {
   const { erstatningsopgoerelseValues, rowsBySection, regulationSections, stamdataValues } = view;
-  // 'Nej' og 'Skjul' har begge ingen beregning — kontrollaget viser kun emnet ved 'Ja'.
+  // 'Nej' og 'Skjul' har begge ingen beregning – kontrollaget viser kun emnet ved 'Ja'.
   const viserSvieSmerte = erstatningsopgoerelseValues.kravPaaSvieSmerteGodtgoerelse === 'Ja';
   const viserTabtArbejdsfortjeneste = erstatningsopgoerelseValues.kravPaaTabtArbejdsfortjeneste === 'Ja';
   const viserOevrigeKrav = erstatningsopgoerelseValues.kravPaaOevrigeErstatningskrav === 'Ja';

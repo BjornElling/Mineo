@@ -31,7 +31,7 @@ const pasteText = async (input: Locator, text: string): Promise<void> => {
  *
  * Escape annullerer draften (§1.1), og et efterfølgende paste er derfor et LUKKET-felt-paste, som
  * committer straks. Uden ventetiden her kunne pasten i Firefox ramme feltet, mens editoren stadig var
- * ved at lukke, så den blev spliced ind i en draft, der straks blev annulleret — og feltet stod tomt.
+ * ved at lukke, så den blev spliced ind i en draft, der straks blev annulleret – og feltet stod tomt.
  * Assertionen på den committede værdi blev da flaky af en grund, der intet havde med ciffergrænsen at gøre.
  */
 const closeEditor = async (input: Locator): Promise<void> => {
@@ -63,7 +63,7 @@ test.describe('inputgrænser for beløb og dato', { tag: BROWSER_LANE_TAG }, () 
     await pasteText(formAmount, '99999999');
     await expect(formAmount).toHaveValue('9.999.999');
 
-    // `openPage` venter selv på, at den lazy-loadede destination har erstattet den gamle side —
+    // `openPage` venter selv på, at den lazy-loadede destination har erstattet den gamle side –
     // her stod før en lokal kopi af netop den ventetid.
     await openPage(page, 'Renteberegning');
     const formDate = page.locator('input[name="beregningsdato"]');

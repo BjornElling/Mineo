@@ -142,14 +142,14 @@ const LOENGRUPPE_RANGE_ERROR_MESSAGE = 'Løngruppe skal være mellem 0 og 4';
 /**
  * Feltplacering + besked for hver måde, en offentlig løn-indplacering kan være ufuldstændig på.
  *
- * Nøglerne er `OffentligLoenSelectionFailure` — motorens EGEN udfaldstype. Tilføjes en ny årsag
+ * Nøglerne er `OffentligLoenSelectionFailure` – motorens EGEN udfaldstype. Tilføjes en ny årsag
  * dér, fejler dette record typecheck, indtil den også har en synlig validatorfejl. Det er værnet
  * mod at motoren igen kan kaste på et input, validatoren fandt gyldigt (`trin-mangler` var netop
  * sådan et hul: intervallet blev tjekket, men ikke tilstedeværelsen).
  *
  * De to `-ugyldig`-årsager deler beskeds-konstant med `validateLoenudviklingCanonicalRanges`, som
  * allerede dækker interval-overtrædelser på de samme feltstier. De står her udelukkende for at
- * holde nøgle-udtømmeligheden — derfor konstanter frem for gentagne strengliteraler, så de to
+ * holde nøgle-udtømmeligheden – derfor konstanter frem for gentagne strengliteraler, så de to
  * producenter ikke kan drive fra hinanden i ordlyd.
  */
 const OFFENTLIG_LOEN_SELECTION_VALIDATION_ISSUE: Readonly<
@@ -460,7 +460,7 @@ function validateSvieSmerteRowCompleteness(
     errors.push({ path: `${prefix}.tilstand`, message: 'Tilstand mangler', severity: 'error' });
   }
 
-  // Dato-interval validering. isISODateString-guards er type narrowing — ikke format-validering.
+  // Dato-interval validering. isISODateString-guards er type narrowing – ikke format-validering.
   // Format er garanteret af Zod-schema (validateParsed modtager kun schema-validerede værdier).
   if (hasFra && hasTil && isISODateString(row.fra) && isISODateString(row.til)) {
     if (hasDateOrderError(row.fra, row.til)) {
@@ -468,7 +468,7 @@ function validateSvieSmerteRowCompleteness(
     } else {
       // Fejlgivende bound: til-dato >= menAfgoerelseDato når afgørelse er truffet og ikke påklaget.
       // Gælder uanset skadestype (jf. eo-snapshot-contract.md §2.2 og form-contract.md §13.2).
-      // Stille clamping mod vedroererPeriodeTil sker i engineen — det er ikke en feltfejl.
+      // Stille clamping mod vedroererPeriodeTil sker i engineen – det er ikke en feltfejl.
       const menAfgoerelseDato = isISODateString(values.menAfgoerelseDato) ? values.menAfgoerelseDato : undefined;
       const menBoundActive =
         values.varigeMenAfgorelse === 'Ja' &&
@@ -648,11 +648,11 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 
     if (row.sfggBeregningskilde === 'Ingen') return;
 
-    // Rut kildeforståelsen gennem den kanoniske resolveSfggSource — samme opløsning som motoren.
+    // Rut kildeforståelsen gennem den kanoniske resolveSfggSource – samme opløsning som motoren.
     // Slå kun overenskomstens direkte-sats-policy op, når kilden faktisk lander i det direkte
     // overenskomstspor (resolveSfggSource kræver bl.a. harOverenskomst). At genudlede policyen
-    // uafhængigt her gav tidligere selvmodsigende valideringsbeskeder — krav om satsvalg og
-    // sprunget referenceperiode — når et privat overenskomst-ID blev hængende efter at
+    // uafhængigt her gav tidligere selvmodsigende valideringsbeskeder – krav om satsvalg og
+    // sprunget referenceperiode – når et privat overenskomst-ID blev hængende efter at
     // harOverenskomst var slået fra, hvor motoren behandler sporet som ferielov.
     const source = resolveSfggSource(row, employment);
     const overenskomstDirekteSatsPolicy =
@@ -669,7 +669,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
       });
     }
 
-    // Aktiv-prædikatet er ét sted (`harAktivOverenskomst`) — ikke stavet i hånden her, hvor en
+    // Aktiv-prædikatet er ét sted (`harAktivOverenskomst`) – ikke stavet i hånden her, hvor en
     // manglende `.trim()` ellers ville lade et blankt id tælle som en valgt overenskomst.
     if (row.sfggBeregningskilde === 'Overenskomst' && !(employment && harAktivOverenskomst(employment))) {
       errors.push({
@@ -869,7 +869,7 @@ function validateFerieperiodeRowCompleteness(
     errors.push({ path: `${prefix}.til`, message: 'Til-dato mangler', severity: 'error' });
   }
 
-  // isISODateString-guards er type narrowing — format er garanteret af Zod-schema.
+  // isISODateString-guards er type narrowing – format er garanteret af Zod-schema.
   if (hasFra && hasTil && isISODateString(row.fra) && isISODateString(row.til)) {
     if (row.fra > row.til) {
       errors.push({ path: `${prefix}.fra`, message: DATE_ORDER_ERROR_MESSAGE, severity: 'error' });
@@ -999,7 +999,7 @@ function validateLoenudviklingsKravForAktivKilde(
       ? undefined
       : `Datoen skal være senere end datoen i den låste første række (${isoToDanish(manualBasisdato) ?? manualBasisdato})`;
 
-    // Enhver AKTIV reguleringsform regulerer en løn — uden indtastede lønoplysninger findes der
+    // Enhver AKTIV reguleringsform regulerer en løn – uden indtastede lønoplysninger findes der
     // intet at regulere, og motoren fail-closer ("mangler beregningsgrundlag"). Kravet hører til
     // her, hvor brugeren kan se hvilket felt der mangler, i stedet for i en defensiv invariant.
     // Gælder alle grundlag undtagen 'Ingen', som netop udtrykker "der reguleres ikke".
@@ -1023,7 +1023,7 @@ function validateLoenudviklingsKravForAktivKilde(
         errors.push({ path: path('overenskomstId'), message: 'Overenskomst skal vælges', severity: 'error' });
       } else if (harModstridendeOverenskomstValg(af)) {
         // Id valgt, men togglen slået fra. Satsopslaget falder tilbage til ULÅST, så
-        // overenskomstens SH/SO- og pensionssatser IKKE udledes — tidligere skete det tavst,
+        // overenskomstens SH/SO- og pensionssatser IKKE udledes – tidligere skete det tavst,
         // med et snapshot der meldte `ok` og regnede videre på ufuldstændige satser.
         errors.push({
           path: path('harOverenskomst'),
@@ -1069,7 +1069,7 @@ function validateLoenudviklingsKravForAktivKilde(
       }
       // Ingen "Løn på helligdage skal vælges"-regel: feltet er required-with-default i det persisterede
       // schema for BEGGE lønkilder (ansættelsesforhold og EO-angivet løn), så `undefined` ikke kan nå hertil.
-      // Reglen stod her som et værn, der aldrig kunne fyre — og den skjulte samtidig, at angivet løn manglede
+      // Reglen stod her som et værn, der aldrig kunne fyre – og den skjulte samtidig, at angivet løn manglede
       // en default og derfor fail-closede som systemfejl i stedet.
       // Offentlig overenskomst kræver en fuld løn-indplacering (løntype + løntrin + gruppe).
       // Validatoren afgør det med SAMME parser som motoren (`parseOffentligLoenSelection`), så de to
@@ -1227,7 +1227,7 @@ const validateLoenudviklingDataCoverage = (
   if (!anvendtReguleringsdato) return [];
 
   // Kildens dæknings-interval hentes via den delte, autoritative opslag
-  // (resolveKildeReguleringsIntervalIso) — samme kilde som row-gaten og note-laget bruger — så
+  // (resolveKildeReguleringsIntervalIso) – samme kilde som row-gaten og note-laget bruger – så
   // validatorens "efter sidste sats"-grænse ikke kan drive fra dem (R4: ét sted for
   // dæknings-intervallet, én grundlags→interval-dispatch). Grundlags-filteret ovenfor (kun
   // Statistik/KRL/KL) er bevaret; Overenskomst gates bevidst ikke her, selvom resolveren også

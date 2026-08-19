@@ -153,7 +153,7 @@ const scenarios: readonly Scenario[] = [
 //
 // NB efter B8: de tre beløbs-totaler (`svieSmerteOre`, `tabtArbejdsfortjenesteFoerForligOre`,
 // `oevrigeKravFoerForligOre`) hentes nu i PDF-modellen direkte fra canonical (`EoComputedTotals`)
-// — sektion-præsentationstyperne har `Omit`'et dem væk, så en re-derivation er en compile-fejl.
+// – sektion-præsentationstyperne har `Omit`'et dem væk, så en re-derivation er en compile-fejl.
 // For DE felter er sammenligningen herunder derfor en *forwarding-/wiring-guard* (fanger hvis
 // PDF-modellen holder op med at viderebringe canonical-tallet), ikke en uafhængig krydsudledning.
 // De strukturelle felter (`svieSmerte.maxApplied`, `taf.*`, `periodiseringer`, `regulering.*`)

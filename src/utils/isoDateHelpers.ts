@@ -136,7 +136,7 @@ export const sortIsoDates = (values: Iterable<ISODateString>): ISODateString[] =
  * Dette er den ENESTE kanoniske dag-for-dag-iterator i domænet (jf. date-contract §"Kanonisk
  * dag-iteration"). Materialiserere og ISO-iteratorer nedenfor er udtrykt via denne, så der kun
  * findes ét sted hvor en kalenderdag-løkke faktisk inkrementeres. `onDate` modtager den samme
- * muterede `Date`-instans hver gang og må derfor ikke beholde referencen — læs værdien straks.
+ * muterede `Date`-instans hver gang og må derfor ikke beholde referencen – læs værdien straks.
  */
 export const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => unknown): void => {
   const current = new Date(start.getTime());
@@ -153,7 +153,7 @@ export const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Dat
  * Returnerer uden at gøre noget hvis en grænse er ugyldig eller `fra > til` (fail-closed).
  *
  * Foretræk denne frem for at materialisere et helt array/Set, når du kun skal læse hver dag
- * én gang (fx tælle eller akkumulere) — den allokerer O(1) i stedet for O(dage).
+ * én gang (fx tælle eller akkumulere) – den allokerer O(1) i stedet for O(dage).
  */
 export const iterateIsoDatesInclusive = (
   fra: ISODateString,

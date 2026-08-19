@@ -53,10 +53,10 @@ Dette matcher implementeringsretningen i:
 
 ## Forbudt i tabelfiler
 
-- **Folkepensionsalder** — brug ikke `folkepensionsalderAar`, `ophoersalderAarLabel` eller tilsvarende felter i tabelfiler. Folkepensionsalder er tværdomæne og håndteres udelukkende via `src/data/folkepensionAlderRates.ts` (`getFolkepensionAlder`, `getFolkepensionsdato`, `getDagenFoerFolkepensionsdato`). Filen ligger bevidst i `src/data/` og ikke under `src/data/kapitalisering/` — den er ikke kapitaliseringsspecifik.
-- **Afledte aldersbegreber** — ophoersalder, pensionsdato og lign. må ikke udledes eller hardkodes i tabelfiler. Disse beregnes altid dynamisk via ovenstående centrale kilde.
-- **Forsørgertabstabeller for restperioden** — tabellerne med efterladtes alder × resterende erstatningsperiode er en obligatorisk del af Forsørgertab-sidens kapitalisering og skal altid udtrækkes.
-- **Legacy-tabeller for afløsningsbeløb** — særskilte tabeller med »Værdi af afløsningsbeløb ved det fyldte 65./67. år« er tillæg for bestemte afgørelser efter ældre arbejdsskadelove. De er ikke de tabeller, der omsætter den almindelige resterende ASL-ydelse. Mineo accepterer sager fra 1. januar 2005, mens disse tillæg vedrører ældre ordninger, og de indgår derfor ikke i programmets understøttede sagsflade. Dataene bevares i original-PDF'en, men udtrækkes ikke som ubrugte TypeScript-exports.
+- **Folkepensionsalder** – brug ikke `folkepensionsalderAar`, `ophoersalderAarLabel` eller tilsvarende felter i tabelfiler. Folkepensionsalder er tværdomæne og håndteres udelukkende via `src/data/folkepensionAlderRates.ts` (`getFolkepensionAlder`, `getFolkepensionsdato`, `getDagenFoerFolkepensionsdato`). Filen ligger bevidst i `src/data/` og ikke under `src/data/kapitalisering/` – den er ikke kapitaliseringsspecifik.
+- **Afledte aldersbegreber** – ophoersalder, pensionsdato og lign. må ikke udledes eller hardkodes i tabelfiler. Disse beregnes altid dynamisk via ovenstående centrale kilde.
+- **Forsørgertabstabeller for restperioden** – tabellerne med efterladtes alder × resterende erstatningsperiode er en obligatorisk del af Forsørgertab-sidens kapitalisering og skal altid udtrækkes.
+- **Legacy-tabeller for afløsningsbeløb** – særskilte tabeller med »Værdi af afløsningsbeløb ved det fyldte 65./67. år« er tillæg for bestemte afgørelser efter ældre arbejdsskadelove. De er ikke de tabeller, der omsætter den almindelige resterende ASL-ydelse. Mineo accepterer sager fra 1. januar 2005, mens disse tillæg vedrører ældre ordninger, og de indgår derfor ikke i programmets understøttede sagsflade. Dataene bevares i original-PDF'en, men udtrækkes ikke som ubrugte TypeScript-exports.
 
 ## Kendte undtagelser der skal dokumenteres i filerne
 

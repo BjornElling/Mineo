@@ -4,12 +4,12 @@
  * Hook'en er den ENESTE vej fra en side til et dokumentoutput, og den leverer begge sider af
  * kontraktens §A2 fra samme katalogpost:
  *
- *   - `canDownload`/`blockedReasons` — den reaktive knap-gate, udledt af render-tidens
+ *   - `canDownload`/`blockedReasons` – den reaktive knap-gate, udledt af render-tidens
  *     `InputEvaluation`, så knappen er både visuelt og funktionelt disabled ved blokering.
- *   - `download(request)` — click-preflighten, som settler editoren og evaluerer et FRISKT snapshot.
+ *   - `download(request)` – click-preflighten, som settler editoren og evaluerer et FRISKT snapshot.
  *
  * Fordi begge kalder samme definition med samme `request`, kan de ikke drifte fra hinanden (§10
- * acceptkriterie 27). Tidligere var dette to selvstændige udtryk pr. side — og for
+ * acceptkriterie 27). Tidligere var dette to selvstændige udtryk pr. side – og for
  * regulering/KRL/KL-lønaftaler endda to forskellige formler i to komponenter.
  *
  * **Miljøet injiceres.** Hook'en hardkodede oprindeligt hovedappens kildeoptagelse og krævede
@@ -38,12 +38,12 @@ export const useDocumentSourceContext = <TGateSettings>(
 
 export type DocumentDownloadHandle<TRequest> = Readonly<{
   /**
-   * Den reaktive gate for en VILKÅRLIG request — samme `project`, samme kontekst og samme
+   * Den reaktive gate for en VILKÅRLIG request – samme `project`, samme kontekst og samme
    * definition som `download(request)` bruger.
    *
    * Findes for rækkebaserede outputs, hvor ét handle ikke kan repræsentere N rækkers knaptilstand.
    * Uden den ville en tabel udlede rækkeknapperne af sin egen projektion, mens klikket gik gennem
-   * definitionen — to udtryk for samme regel, som kan drifte. Det er præcis det, §A2's krav om
+   * definitionen – to udtryk for samme regel, som kan drifte. Det er præcis det, §A2's krav om
    * "samme definition OG samme request" forbyder.
    */
   gateFor: (request: TRequest) => DocumentGateSnapshot;
@@ -67,7 +67,7 @@ export type DocumentDownloadHandle<TRequest> = Readonly<{
    * Den brugerrettede besked for det seneste udfald, eller `null` når der intet er at vise.
    * Siden viser den; den formulerer den ikke.
    *
-   * `null` dækker succes, en gate-blokering (tooltippet ejer årsagen — se `resolveDocumentOutcomeMessage`)
+   * `null` dækker succes, en gate-blokering (tooltippet ejer årsagen – se `resolveDocumentOutcomeMessage`)
    * og et blokeret felt, der selv bærer sin røde markering. Feltet er derfor allerede filtreret: en flade
    * skal rendere det RÅT og må ikke lægge egen politik oven på det.
    */

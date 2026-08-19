@@ -67,7 +67,7 @@ export type TafKravGrafDocument = Readonly<{
   skadeMarker: TafKravGrafMarker | null;
   // Ferieperioder uden indtastet indkomst af mindst 3 sammenhængende arbejdsdages
   // varighed (weekend/SH bryder ikke sammenhængen). Markeres med et tonet bånd, og
-  // der bygges bevidst IKKE bro over dem (jf. bridgeZeroWorkdayGaps) — dykket vises.
+  // der bygges bevidst IKKE bro over dem (jf. bridgeZeroWorkdayGaps) – dykket vises.
   ferieAbsenceMarkers: readonly TafKravGrafTimeWindow[];
 }>;
 
@@ -236,13 +236,13 @@ const resolveUnitDivisor = (
 // Bygger bro over interne huller mellem to på hinanden følgende segmenter, når
 // hullet UDELUKKENDE består af ikke-arbejdsdage (weekend/helligdag/ferie/fravær).
 // Dagslønnen er en rate pr. arbejdsdag og er per definition uændret af en sådan dag,
-// så et hul ville være et falsk visuelt dyk — det gælder både en hel ferie-måned og
+// så et hul ville være et falsk visuelt dyk – det gælder både en hel ferie-måned og
 // en enkelt søndag, der isoleres som et dag-fragment på en måneds-/segmentgrænse.
 // Den foregående periodes rate holdes hen over hullet.
 //
 // Kun for arbejdsdags-grundlaget: månedsløn har aldrig nul-divisor. Et ægte
 // indkomsthul (dage MED arbejdsdage, men uden ansættelse) har arbejdsdage > 0 og
-// bygges der bevidst IKKE bro over — det er et reelt dyk. Broen begrænses til ét
+// bygges der bevidst IKKE bro over – det er et reelt dyk. Broen begrænses til ét
 // tidsvindue ad gangen, så akse-brud aldrig overskrides, og strækker sig aldrig før
 // første eller efter sidste segment (kun mellem to faktiske segmenter).
 const bridgeZeroWorkdayGaps = (
@@ -323,7 +323,7 @@ const buildFerieAbsenceMarkers = (
   };
 
   // En tilstødende dag hører med i båndet, hvis den er en weekend- eller SH-dag uden
-  // indkomst — så dykket markeres fra arbejdsophør til arbejdets genoptagelse. En
+  // indkomst – så dykket markeres fra arbejdsophør til arbejdets genoptagelse. En
   // arbejdsdag (med eller uden indkomst) eller en indkomstdag stopper udvidelsen.
   const isWeekendOrShWithoutIncome = (iso: ISODateString): boolean => {
     const date = parseISODate(iso);
@@ -443,7 +443,7 @@ export const eoSnapshotToTafKravGrafDocument = (
   snapshot: EoSnapshot
 ): TafKravGrafDocumentProjection => {
   // Bevidst delt gate: Visuel graf over indtægtsniveau visualiserer netop TAF-per-år-dataene, så den
-  // deler blokerings-target med taf_per_year_pdf — er TAF ikke kan fordeles på år, kan grafen heller
+  // deler blokerings-target med taf_per_year_pdf – er TAF ikke kan fordeles på år, kan grafen heller
   // ikke genereres. Derfor intet særskilt 'taf_krav_graf_pdf'-target (jf. eo-snapshot-contract.md).
   const blockingInvariants = getBlockingInvariantsForOutput(snapshot.invariants, 'taf_per_year_pdf');
   const blockedMessage = buildBlockingMessageForOutput(
@@ -567,7 +567,7 @@ export const eoSnapshotToTafKravGrafDocument = (
   const firstWindow = timeWindows[0];
   const lastWindow = timeWindows.at(-1);
   const skadeMarker = skadeIso && firstWindow && lastWindow && skadeIso >= firstWindow.fra && skadeIso <= lastWindow.til
-    // Navnet er FÆRDIGT på modellen (§3.2a) — det må ikke genskabes ved at læse `skadestypeLinje`s prosa.
+    // Navnet er FÆRDIGT på modellen (§3.2a) – det må ikke genskabes ved at læse `skadestypeLinje`s prosa.
     ? { date: skadeIso, label: model.skadedatoLabel }
     : null;
 

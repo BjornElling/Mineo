@@ -30,7 +30,7 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
   ...patch,
 });
 
-describe('collectEetAslAfgoerelseValidationIssues — stamdata-datoreference', () => {
+describe('collectEetAslAfgoerelseValidationIssues – stamdata-datoreference', () => {
   it('bruger anmeldelsesdatoen i fejl på afgørelsesdatoen ved erhvervssygdom', () => {
     const issues = collectEetAslAfgoerelseValidationIssues(
       [buildRow({ afgoerelsesDato: toISODateString('2020-01-01') })],
@@ -47,7 +47,7 @@ describe('collectEetAslAfgoerelseValidationIssues — stamdata-datoreference', (
   });
 });
 
-describe('collectIncompleteRowIssues — canonical procentgrænser', () => {
+describe('collectIncompleteRowIssues – canonical procentgrænser', () => {
   it.each([-5, 105])('afleder et blokerende EET-issue for %s %%', (eetPct) => {
     const issues = collectIncompleteRowIssues([buildRow({
       afgoerelsesDato: toISODateString('2025-01-01'),

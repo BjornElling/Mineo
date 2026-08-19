@@ -14,7 +14,7 @@ import { useAarsloenVm } from './aarsloenContext';
  * Satser: lønperiode, tillægsform og de fem procentsatser.
  *
  * Procentfelternes 0–100-grænser er canonical bounds-feltvalidatorer, ikke props; et input uden for intervallet
- * er en rød feltfejl, som gater beregningen (§1.6). Procentblokken skjules i Beløb-tilstand — værdierne bevares,
+ * er en rød feltfejl, som gater beregningen (§1.6). Procentblokken skjules i Beløb-tilstand – værdierne bevares,
  * men ignoreres af beregningen.
  */
 const AarsloenSatserSection = React.memo(() => {

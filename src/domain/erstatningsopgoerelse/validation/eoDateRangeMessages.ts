@@ -4,7 +4,7 @@ import { isoToDanish } from '../../../types/branded';
 /**
  * Neutrale dato-/streng-validerings-helpers, så den autoritative række-evaluerings-motor
  * (`domain/eoRowEvaluation/`, jf. B9) og dens delte periode-/sats-evaluatorer deler præcis samme
- * besked-konstruktion — ÉN sandhedskilde for ordlyden.
+ * besked-konstruktion – ÉN sandhedskilde for ordlyden.
  *
  * Oprindeligt udskilt af motor-helperen `eoRowCommon.ts` (som re-eksporterer herfra), så
  * domæne-validering ikke afhænger af det nedstrøms DEV-kontrollag (`domain/eoInspektion/`).

@@ -13,7 +13,7 @@
  * almindelige erstatningsopgørelse-PDF (gated på de samme valgte elementer).
  *
  * Opreguleringen følger den akkumulerede reguleringssats ("tilpasningsprocenten
- * plus to procent") — samme metode som fremskrivning af årsløn til EET efter EAL
+ * plus to procent") – samme metode som fremskrivning af årsløn til EET efter EAL
  * og regulering af offentlige ydelser.
  *
  * Dokumentet genererer kun fra et præ-projiceret snapshot-dokument.
@@ -122,7 +122,7 @@ export const generateTafOpreguleretPaaAarDocument = (
     });
   };
   // Beregningsgrundlag-lønnen er gated fail-closed i snapshot-projektionen
-  // (tafBeregningsgrundlagAngivetLoenMangler) — den er altid 'ok', når vi når hertil.
+  // (tafBeregningsgrundlagAngivetLoenMangler) – den er altid 'ok', når vi når hertil.
   // Skulle den mod forventning ikke være det, kaster vi (systemfejl routes via A5) frem for
   // at udskrive en teknisk fejlkode i et tillidskritisk dokument.
   const renderMoneyWithKrOrError = (value: Calculable<MoneyOre>): string => {
@@ -223,7 +223,7 @@ export const generateTafOpreguleretPaaAarDocument = (
       stamdataValues,
     });
     // Løn- og offentlige-ydelser-sætningerne (adskilt af \n) skrives som separate afsnit,
-    // så de får samme normale afsnits-linjeafstand (B5.2) som ferie-/fravær-linjen nedenfor —
+    // så de får samme normale afsnits-linjeafstand (B5.2) som ferie-/fravær-linjen nedenfor –
     // ens med EO-opgørelsens "Forventet indkomst".
     writer.writeBoldSubheader('Forventet indkomst');
     for (const afsnit of introTekst.split('\n')) {
@@ -292,7 +292,7 @@ export const generateTafOpreguleretPaaAarDocument = (
 
     // Beregnet krav for året (fuld udregningslinje, som i den almindelige EO-PDF).
     // Indtægterne i erstatningsperioden indgår som ÉN sammentalt fradragsværdi (svarende til
-    // "I alt"-linjen ovenfor) — ikke som separate fradrags-led pr. post. Ensartet med den
+    // "I alt"-linjen ovenfor) – ikke som separate fradrags-led pr. post. Ensartet med den
     // almindelige erstatningsopgørelse (renderOpgorelseSection, "Beregnet krav"), hvor kun
     // forventet-indkomst-totalen og indtægts-totalen vises. Fradraget udelades helt når summen
     // er 0, så et "- 0,00"-led aldrig optræder.

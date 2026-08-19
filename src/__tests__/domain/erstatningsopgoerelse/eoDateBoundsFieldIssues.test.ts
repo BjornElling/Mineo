@@ -26,14 +26,14 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 
 // EO's DEKLAREREDE datogrænser skal håndhæves.
 //
-// Fundene var, at datoer før skadedagen — og efter konfigurationens maksimum — kunne AFSLUTTES canonical
+// Fundene var, at datoer før skadedagen – og efter konfigurationens maksimum – kunne AFSLUTTES canonical
 // med `aria-invalid=false`, uden feltfejl, uden tooltip og uden at blokere PDF-gaten. Årsagen var ikke
 // lokal for de tre observerede felter: `dateRanges.ts` deklarerede grænserne, men intet bandt
 // deklarationen til en validator, så 31 af 54 datofelter havde ingen grænser overhovedet.
 //
 // Testen måler den brugersynlige ende af rettelsen: at et afsluttet input uden for grænserne producerer
 // et `bounds`-issue på FELTETS adresse (den, UI'et tegner den røde ring på) med den KONKRETE besked.
-// `dateFieldsDeclareBounds.test.ts` dækker bredden — hvert eneste datofelt; denne fil dækker dybden for
+// `dateFieldsDeclareBounds.test.ts` dækker bredden – hvert eneste datofelt; denne fil dækker dybden for
 // de scenarier, auditten faktisk observerede i browseren.
 
 const catalog = getProductionInputCatalog();
@@ -74,12 +74,12 @@ const issueAt = (
   field: { address: Parameters<typeof serializeFieldAddress>[0] }
 ) => evaluation.issues.get(serializeFieldAddress(field.address));
 
-/** Dagen før skadedagen — en værdi der ikke må accepteres canonical. */
+/** Dagen før skadedagen – en værdi der ikke må accepteres canonical. */
 const DAGEN_FOER_SKADEN = toISODateString('2019-12-31');
 
 describe('EO’s AES-datofelter afviser datoer før skadedagen', () => {
-  // Auditten afsluttede alle fem som canonical med `aria-invalid=false`, mens Forligsdato — det ENE
-  // felt med en håndskrevet validator — afviste samme værdi. Kontrasten var beviset for, at manglen
+  // Auditten afsluttede alle fem som canonical med `aria-invalid=false`, mens Forligsdato – det ENE
+  // felt med en håndskrevet validator – afviste samme værdi. Kontrasten var beviset for, at manglen
   // lå i bindingen og ikke i reglen.
   const aesFelter = [
     ['Mén-afgørelsesdato', eoMenAfgoerelseDatoField, { menAfgoerelseDato: DAGEN_FOER_SKADEN }],
@@ -93,7 +93,7 @@ describe('EO’s AES-datofelter afviser datoer før skadedagen', () => {
     const issue = issueAt(buildReader({ ...baseEo(), ...patch }), field.bind());
 
     expect(issue?.reason).toBe('bounds');
-    // Den konkrete besked — ikke en generisk «Fejl i indtastning». Den nævner datoen, brugeren skal
+    // Den konkrete besked – ikke en generisk «Fejl i indtastning». Den nævner datoen, brugeren skal
     // rette imod, hvilket er hele forskellen på en handlingsanvisende og en gådefuld fejl.
     expect(issue?.message).toBe('Datoen kan ikke være før skadedatoen (01-01-2020)');
     // §4: `bounds` vises ORDRET i tooltippet. Blev den forkortet, ville skadedagen forsvinde.

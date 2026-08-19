@@ -51,7 +51,7 @@ Kvalitetstjek:
 ```bash
 npm run check:types     # alle fire TypeScript-projekter under ét
 npm run typecheck       # kildekode (tsconfig.app.json)
-npm run typecheck:test  # testkode (tsconfig.test.json — egne globals)
+npm run typecheck:test  # testkode (tsconfig.test.json – egne globals)
 npm run typecheck:e2e   # Playwright-suiten (tsconfig.e2e.json)
 npm run typecheck:node  # vite-konfigurationerne (tsconfig.node.json)
 npm run check:commit    # samlet typecheck + lint, samme gate som pre-commit

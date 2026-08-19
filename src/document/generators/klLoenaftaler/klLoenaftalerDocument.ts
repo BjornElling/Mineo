@@ -5,10 +5,10 @@
  * fra 2005 og frem. To kolonner: Dato | Regulering (periode-procent, fx 1,40 %).
  *
  * Modsat KRL-dokumentet (fire satstabel-kolonner) er dette en enkelt serie. Der
- * vises bevidst ingen akkumuleret regulering — erstatningsberegningen kæder
+ * vises bevidst ingen akkumuleret regulering – erstatningsberegningen kæder
  * periodesatserne på lønnen.
  *
- * SÆRLIG KL-LØNAFTALER-LOGIK — se docs/domain/taf/kl-loenaftaler-regulering.md.
+ * SÆRLIG KL-LØNAFTALER-LOGIK – se docs/domain/taf/kl-loenaftaler-regulering.md.
  */
 
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';

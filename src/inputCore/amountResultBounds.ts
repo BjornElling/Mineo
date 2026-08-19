@@ -17,7 +17,7 @@ export const MIN_AMOUNT_INPUT_VALUE = -9_999_999.99;
  * 8. heltalsciffer tegn for tegn. Den kan ikke fange et gyldigt UDTRYK, der regner sig forbi grænsen:
  * i `9999999*2` er intet talled for langt, men resultatet er 19.999.998. §2.2 og §8 foreskriver netop
  * derfor, at et sådant resultat bevares canonical med rød ring og konkret tooltip og blokerer de
- * beregninger og dokumenter, hvor beløbet indgår — det kan ikke blokeres ved indtastningen.
+ * beregninger og dokumenter, hvor beløbet indgår – det kan ikke blokeres ved indtastningen.
  *
  * `reason` er `bounds`, fordi `resolveFieldIssueTooltip` viser `bounds`-beskeder ORDRET; den generiske
  * «Fejl i indtastning» ville skjule netop den grænse, der gør fejlen forståelig

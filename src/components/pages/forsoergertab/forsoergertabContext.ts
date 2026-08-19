@@ -4,7 +4,7 @@ import { useForsoergertabViewModel } from './useForsoergertabViewModel';
 /**
  * Forsørgertab-sidens viewmodel, delt med sektion-komponenterne (`page-component-contract.md` §4.4).
  *
- * Modellen eksponerer bundne field-refs, editorlokationer, det færdige snapshot-resultat og dokumenthandlet —
+ * Modellen eksponerer bundne field-refs, editorlokationer, det færdige snapshot-resultat og dokumenthandlet –
  * ingen form-settere og ingen rå sektioner.
  */
 export type ForsoergertabVm = ReturnType<typeof useForsoergertabViewModel>;

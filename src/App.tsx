@@ -22,7 +22,7 @@ type PageComponent = React.ComponentType<Record<string, never>>;
 
 /**
  * Route → lazy-loader. Nøglen er selve pathen, og den valideres mod rute-inventaret i
- * `pageNavigation.ts` nedenfor — så en ny side ikke kan tilføjes her uden at være i
+ * `pageNavigation.ts` nedenfor – så en ny side ikke kan tilføjes her uden at være i
  * kataloget (eller omvendt).
  */
 const routeModuleLoaders = {
@@ -41,7 +41,7 @@ const routeModuleLoaders = {
 
 /**
  * Rute-inventaret er ÉT sted (`pageNavigation.ts`). Denne guard fejler ved modulets import,
- * hvis de to lister driver fra hinanden — tidligere stod pathstrengene hardkodet her ved
+ * hvis de to lister driver fra hinanden – tidligere stod pathstrengene hardkodet her ved
  * siden af kataloget, uden at nogen test sammenlignede dem.
  */
 const assertRouteInventoryMatchesCatalog = (): void => {
@@ -70,7 +70,7 @@ const lazyPageByRoute: Readonly<Record<string, PageComponent>> = Object.freeze(
  *
  * De er bevidst IKKE statiske imports. Målt på buildet fylder jsPDF, docx og html2canvas ca. 1,1 MB
  * ukomprimeret; som opstartsimports ville de lægge parse- og eval-arbejde i den kritiske vej for
- * ENHVER session — også de mange, der aldrig danner et dokument. Hentet her, efter første render,
+ * ENHVER session – også de mange, der aldrig danner et dokument. Hentet her, efter første render,
  * har en åben session alligevel alt liggende, længe før brugeren når at trykke på en downloadknap.
  *
  * Selve fejlsikkerheden kommer ikke herfra, men fra service-workerens precache, som dækker hele
@@ -112,7 +112,7 @@ const scheduleDeferredModulePreload = () => {
  * Præcisering, så en senere læser ikke tror der lå en remount-fejl: den gamle form
  * remountede IKKE shellen ved navigation. React reconciler samme komponenttype på tværs af
  * søskende-routes, så `MainLayout` (og dermed `Container`s focus-cache og MutationObserver)
- * blev bevaret i begge former — verificeret med en mount-tælling på begge varianter.
+ * blev bevaret i begge former – verificeret med en mount-tælling på begge varianter.
  * Gevinsten her er strukturel: ét autoritativt layout-/route-flow, ikke en adfærdsrettelse.
  *
  * `ErrorBoundary` og `Suspense` ligger inde i shellen, så en fejl eller en indlæsning i én
@@ -202,7 +202,7 @@ function App({
    *
    * Her lå tidligere en `pageshow`-lytter, der ubetinget kaldte `location.reload()`, når dokumentet
    * blev gendannet fra browserens back/forward-cache. Den bryder invariantet «en åben session skifter
-   * aldrig version»: en gendannelse fra bfcache er IKKE en ny session — brugeren vender tilbage til
+   * aldrig version»: en gendannelse fra bfcache er IKKE en ny session – brugeren vender tilbage til
    * sit eget, igangværende arbejde. Et reload dér ville uvarslet kunne skifte build midt i en sag og
    * kaste en åben editors draft væk, uden om `CriticalActionCoordinator`.
    *

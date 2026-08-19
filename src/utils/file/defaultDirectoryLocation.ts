@@ -10,9 +10,9 @@ import { getDirectoryDisplayInfo } from '../fileHandleStorage';
  * |---|---|---|
  * | `resolveDefaultDirectoryHandle` (gem/hent) | `default_directory_handle` + permission | `'Skrivebord'` |
  * | `Indstillinger.tsx` (visning) | `default_directory_meta` (cache) | `'Skrivebord (standard)'` |
- * | `saveDefaultDirectoryHandle` (skrivning) | `directoryHandle.name` | — |
+ * | `saveDefaultDirectoryHandle` (skrivning) | `directoryHandle.name` | – |
  *
- * Samme brugersynlige begreb, to forskellige strenge — og `ResolvedDirectory.displayName` blev
+ * Samme brugersynlige begreb, to forskellige strenge – og `ResolvedDirectory.displayName` blev
  * i praksis aldrig læst af nogen (kun `handle`/`wellKnown`/`isFallback` havde forbrugere), så
  * fil-lagets navn var en anden mening, ingen hørte.
  *
@@ -20,7 +20,7 @@ import { getDirectoryDisplayInfo } from '../fileHandleStorage';
  * IndexedDB, men om der overhovedet ER valgt en mappe (kursivering + «Nulstil»-linket) af
  * `settings.defaultDirectoryHandleId` i localStorage. De to ligger i hver sit lager, og et
  * browser-lager kan ryddes uden det andet. Overlever id'et sin metadata, viste siden
- * «Skrivebord (standard)» stylet som et brugervalg, med et Nulstil-link — altså en påstand om en
+ * «Skrivebord (standard)» stylet som et brugervalg, med et Nulstil-link – altså en påstand om en
  * valgt mappe og navnet på standarden, i samme linje. Gem-vejen faldt samtidig tavst tilbage.
  *
  * Derfor er staten her ÉN diskrimineret union udledt af begge kilder samtidig, ikke to felter der
@@ -28,7 +28,7 @@ import { getDirectoryDisplayInfo } from '../fileHandleStorage';
  * udtrykke.
  */
 
-/** Navnet på standardplaceringen. Ét sted — det var før stavet på to måder i to filer. */
+/** Navnet på standardplaceringen. Ét sted – det var før stavet på to måder i to filer. */
 export const DEFAULT_DIRECTORY_FALLBACK_NAME = 'Skrivebord';
 
 /** Visningsnavnet når ingen mappe er valgt: standarden, markeret som netop standard. */
@@ -49,7 +49,7 @@ export type DefaultDirectoryLocation = Readonly<
       /**
        * Der ER registreret et valg i settings, men mappens registrering findes ikke længere
        * (device-lokal cache ryddet, andet lager, anden browserprofil). Gem-vejen falder tilbage
-       * til skrivebordet, og fladen skal sige det — ikke pynte det som et intakt valg.
+       * til skrivebordet, og fladen skal sige det – ikke pynte det som et intakt valg.
        */
       kind: 'utilgaengelig';
       displayName: typeof DEFAULT_DIRECTORY_FALLBACK_DISPLAY_NAME;
@@ -75,7 +75,7 @@ const UTILGAENGELIG: DefaultDirectoryLocation = {
  *
  * `resolveDefaultDirectoryHandle` er den ANDEN, bevidst adskilte vej: den bruges af gem/hent,
  * må requestere permissions og svarer på «hvilket handle skal pickeren starte i». De to er ikke
- * slået sammen, fordi netop permission-adfærden skiller dem — men navnet stammer nu ét sted fra.
+ * slået sammen, fordi netop permission-adfærden skiller dem – men navnet stammer nu ét sted fra.
  */
 export const resolveDefaultDirectoryLocation = async (
   defaultDirectoryHandleId: string | undefined

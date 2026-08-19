@@ -7,7 +7,7 @@ import type {
 import type { PersistedInputSections } from './settledInput';
 
 // Inputkernen (§3.2): generiske strukturelle accessorer, der navigerer en FieldAddress/CollectionRef
-// direkte over det almindelige sektionsobjekt. De gør descriptor-katalogets read/write mekaniske — en
+// direkte over det almindelige sektionsobjekt. De gør descriptor-katalogets read/write mekaniske – en
 // descriptor behøver ikke en håndskrevet per-felt-lukning, kun sin strukturelle template.
 //
 // Adressen ER den kanoniske sti: `property`-led er objektnøgler, `entity`-led er et array-opslag på
@@ -64,7 +64,7 @@ const sectionRoot = (sections: PersistedInputSections, section: SectionKey): unk
 
 /**
  * Læser feltets canonical værdi. Snapshottet er allerede isoleret af kataloget; funktionen muterer intet og
- * returnerer den navigerede værdi (eller `undefined`, hvis en container mangler — fx et endnu ikke oprettet felt).
+ * returnerer den navigerede værdi (eller `undefined`, hvis en container mangler – fx et endnu ikke oprettet felt).
  */
 export const readCanonicalAtAddress = (
   sections: PersistedInputSections,

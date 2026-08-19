@@ -45,7 +45,7 @@ Der findes tre hovedmodeller:
 
 Dette er et bærende, ufravigeligt princip for hele SFGG-beregningen.
 
-Når sygeferiegodtgørelse **ikke** udgør en overenskomstbestemt eller en manuelt angivet sats — altså når den i stedet beregnes som en **procentdel af den ferieberettigede løn** — er den anvendte feriepengeprocent **altid 12,5 %**.
+Når sygeferiegodtgørelse **ikke** udgør en overenskomstbestemt eller en manuelt angivet sats – altså når den i stedet beregnes som en **procentdel af den ferieberettigede løn** – er den anvendte feriepengeprocent **altid 12,5 %**.
 
 Konkret betyder det:
 - Den feriepengesats, brugeren har indtastet for lønindkomsten i ansættelsesforholdet (`feriePct`), bruges **aldrig** til at beregne sygeferiegodtgørelse. Den indtastede sats er ofte overenskomstforhøjet (fx 14,5 %) og dækker tillæg, der ikke indgår i SFGG.
@@ -80,7 +80,7 @@ referencesats = (loenPlusLoen2PlusIkkePensLoen i referenceperioden x FP-sats) / 
 Kun den almindelige feriepengeprocent (`FP-sats`) indgår i referencesatsen.
 Andre tillæg som fritvalg, SH/SO og Store Bededag indgår ikke i referencesatsen.
 
-`FP-sats` er her **altid de lovbestemte 12,5 %** — se det beregningstekniske princip i afsnit 2.0 nedenfor.
+`FP-sats` er her **altid de lovbestemte 12,5 %** – se det beregningstekniske princip i afsnit 2.0 nedenfor.
 
 #### 2.2. Relevante dage i referenceperioden
 
@@ -240,7 +240,7 @@ feriepenge modtaget i perioden (+ AG-pension) = sum(dagens fradrag)
 Kun den almindelige feriepengeprocent indgår i dette fradrag.
 Fritvalg, SH/SO og Store Bededag indgår ikke.
 
-`FP-sats` i både referencesatsen og dette fradrag er altid de lovbestemte 12,5 % — aldrig den feriepengesats, brugeren har indtastet for lønindkomsten (jf. afsnit 2.0).
+`FP-sats` i både referencesatsen og dette fradrag er altid de lovbestemte 12,5 % – aldrig den feriepengesats, brugeren har indtastet for lønindkomsten (jf. afsnit 2.0).
 
 Pension må kun beregnes af feriepengebeløbet i fradragslinjen, ikke af den underliggende løn endnu en gang.
 Hvis pensionssatsen ændrer sig i SFGG-perioden, skal hver dag beregnes med den pensionssats, der gælder netop den dag.
@@ -436,7 +436,7 @@ Der skal være en `I alt`-række, når tabellen indeholder mere end én datalinj
 De efterfølgende fradrag hører til nettoopgørelsen efter tabellen og må ikke indbygges i tabellens `Samlet`.
 
 Ved skader før `1. januar 2015` dokumenteres 4-månedersgrænsen med en forklaringslinje (jf. §9.2)
-og — i EO-kontrol — med rækkerne "Varighedsbegrænset" og "Ophør af 4-måneders begrænsning". Der vises
+og – i EO-kontrol – med rækkerne "Varighedsbegrænset" og "Ophør af 4-måneders begrænsning". Der vises
 ikke en særskilt tabel over de perioder, der tælles op mod de 4 måneder; forklaringslinjen med den
 konkrete ophørsdato er tilstrækkelig.
 

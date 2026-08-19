@@ -6,9 +6,9 @@ import { resolveSvieSmerteCutoffDate } from './svieSmerteConstraints';
 
 /**
  * Afledning af de dato-/afgørelses-grænser som periode-blokeringen (svie/smerte, TAF, ferie)
- * afhænger af — ud fra committed stamdata + EO-input. React-/visnings-fri, så den autoritative
+ * afhænger af – ud fra committed stamdata + EO-input. React-/visnings-fri, så den autoritative
  * række-evaluerings-motor (`domain/eoRowEvaluation/`, jf. B9) og dens periode-evaluatorer deler
- * samme afledning — ÉN sandhedskilde.
+ * samme afledning – ÉN sandhedskilde.
  *
  * Genbruges direkte af den autoritative række-evaluerings-motors periode-buildere.
  */

@@ -15,7 +15,7 @@ type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelses
  * interval; de manuelle modeller (`Manuelt angivet` / `Manuel procentsats`) og `Ingen` har intet
  * kilde-interval og returnerer `undefined` (håndteres lokalt af kaldstederne).
  *
- * Bevidst afgrænsning: `fraIso` er kildens *tidligste registrerede sats* — den korrekte værdi til
+ * Bevidst afgrænsning: `fraIso` er kildens *tidligste registrerede sats* – den korrekte værdi til
  * "reguleringsgrundlaget indeholder ingen satser før X"-noten og til start/slut-dæknings-checket.
  * Brug ALDRIG en TAF-vindue-scopet delmængde (fx `relevantRealDates[0]` i reguleringsPresentation)
  * til dette; det var netop kilden til den falske note, hvor en satsændring mellem reguleringsdatoen

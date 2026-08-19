@@ -222,7 +222,7 @@ describe('getSatserForYear', () => {
 
   describe('manglende år → null (for tal) og tom streng (for tekst)', () => {
     it('asl.aarsloenMin er null for 2024 (bevidst udeladt)', () => {
-      // aarsloenMin er bevidst ikke sat for 2024 — erstattet af aarsloenMinFoer2024/Fra2024
+      // aarsloenMin er bevidst ikke sat for 2024 – erstattet af aarsloenMinFoer2024/Fra2024
       const satser = getSatserForYear(2024);
       expect(satser.asl.aarsloenMin).toBeNull();
     });

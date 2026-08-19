@@ -1,8 +1,8 @@
 /**
  * De tre reguleringssats-outputs.
  *
- * Knappen "Tilgængelige reguleringssatser" findes to steder — EO's Oplysninger-fane (sagsniveau, ét
- * `eoAngivetLoenLoenudvikling`-objekt) og hvert ansættelsesforhold på Lønindkomst-fanen — og den
+ * Knappen "Tilgængelige reguleringssatser" findes to steder – EO's Oplysninger-fane (sagsniveau, ét
+ * `eoAngivetLoenLoenudvikling`-objekt) og hvert ansættelsesforhold på Lønindkomst-fanen – og den
  * dispatcher til TRE forskellige dokumenter afhængigt af `loenudviklingBeregningsgrundlag`:
  * `regulering` (Overenskomst/Statistik), `krl` (KRL satstabel) og `kl-loenaftaler` (KL-lønaftaler).
  *
@@ -12,8 +12,8 @@
  *
  * **Hvorfor de tre outputs deler modul.** De deler aktiveringsidentitet, gate-regel og
  * kilde-læsning; kun `loenudviklingBeregningsgrundlag` afgør hvilket af de tre dokumenter der
- * gælder. Valget sker i `resolveReguleringDocumentAction` — EFTER commit-barrieren, på det friske
- * snapshot — fordi `loenudviklingBeregningsgrundlag` selv er en almindelig committed indtastning,
+ * gælder. Valget sker i `resolveReguleringDocumentAction` – EFTER commit-barrieren, på det friske
+ * snapshot – fordi `loenudviklingBeregningsgrundlag` selv er en almindelig committed indtastning,
  * som et settle kan ændre. Læste callsiten den ved klik (som i dag), kunne det leverede dokument
  * tilhøre et andet output end det, den friske revision peger på.
  *
@@ -59,7 +59,7 @@ export const REGULERING_DOCUMENT_CONSUMER_ID = 'document.regulering';
  * ansættelsesforhold udpeget ved sit `af.id`.
  *
  * Callsiten sender i dag `interval`, `overenskomstId`, labels og satsvalg med i klikket. Alle de
- * værdier er læst FØR commit-barrieren og genlæses derfor friskt i `project` — requesten bærer dem
+ * værdier er læst FØR commit-barrieren og genlæses derfor friskt i `project` – requesten bærer dem
  * ikke. Findes ansættelsesforholdet ikke længere efter settle, fail-closer `project`.
  */
 export type ReguleringDocumentRequest =
@@ -86,7 +86,7 @@ type LoenudviklingSource = Readonly<{
   offentligLoenTrin: number | undefined;
   offentligLoenGruppe: number | undefined;
   offentligLoenEkstraGrundloen: AmountValue | undefined;
-  /** Etiketten for det valgte overenskomst-id. Bevidst scope-specifik — se `resolveCaseOverenskomstLabel`. */
+  /** Etiketten for det valgte overenskomst-id. Bevidst scope-specifik – se `resolveCaseOverenskomstLabel`. */
   overenskomstLabel: string;
 }>;
 
@@ -101,7 +101,7 @@ const readOptional = <T>(reader: InputReader, ref: ReturnType<FieldDescriptor<T>
  *
  * Viste tidligere KUN `meta.navn`, mens ansættelsesforholdet viste `navn (lønmodtager / arbejdsgiver)`.
  * Forskellen var eksisterende dokumentindhold og afventede derfor en brugerbeslutning (§5.4's hårde stop).
- * Beslutningen faldt 2026-07-31: navn OG parter, alle steder. De to etiketter er nu samme funktion —
+ * Beslutningen faldt 2026-07-31: navn OG parter, alle steder. De to etiketter er nu samme funktion –
  * kun fallback-teksten for et manglende ID skiller dem.
  */
 const resolveCaseOverenskomstLabel = (overenskomstId: string | undefined): string =>
@@ -158,7 +158,7 @@ const readEmploymentSource = (reader: InputReader, employmentId: string): Loenud
  * grundlagsskift BEVARES skjulte felter bevidst (`loenudviklingStateCleanup.ts`), og hele det øvrige
  * system gater derfor eksplicit på `loenudviklingBeregningsgrundlag` frem for at rydde dem. Kaldte
  * gaten her ubetinget, ville et tomt løntrin fra et tidligere valgt offentligt overenskomst-grundlag
- * blokere et efterfølgende KL-dokument, som slet ikke bruger løntrinnet — en blokering på et
+ * blokere et efterfølgende KL-dokument, som slet ikke bruger løntrinnet – en blokering på et
  * irrelevant felt. Kaldsstedet nedenfor må derfor aldrig gøre kaldet ubetinget igen.
  *
  * Inden for Overenskomst-grundlaget kræves den strenge `isOffentligLoenSelectionReady`-regel:
@@ -167,7 +167,7 @@ const readEmploymentSource = (reader: InputReader, employmentId: string): Loenud
  * Den reelle forskel er `offentligLoenType`-enumtjekket. `toLoentrin`-kaldet er derimod defensivt og
  * kan i praksis ikke afvise noget: descriptoren bounder allerede feltet til 1..55 med præcis samme
  * grænse, så en værdi uden for intervallet afvises af FELTET (§1.6) og læses tilbage som
- * `undefined` — den fanges altså af `typeof !== 'number'` ovenfor. Kaldet bevares som værn mod, at
+ * `undefined` – den fanges altså af `typeof !== 'number'` ovenfor. Kaldet bevares som værn mod, at
  * de to grænser en dag driver fra hinanden, men det er ikke den kæde, der beskytter opslaget.
  */
 const isOffentligSelectionComplete = (source: LoenudviklingSource): boolean => {
@@ -238,7 +238,7 @@ const readSharedReguleringSource = (
  * SUPERtype (dens entity-segmenter mangler `entityId`), og et cast ville derfor skjule, at netop
  * denne samling ligger i sektionens rod uden entity-forfædre. Antagelsen kontrolleres eksplicit, så
  * en fremtidig indlejring af samlingen fejler ved modulindlæsning frem for at give en tavst tom
- * entitetsliste — og dermed en tavst blokeret download.
+ * entitetsliste – og dermed en tavst blokeret download.
  */
 const employmentCollection = (() => {
   const { section, path, collection } = eoLoenindkomstAnsaettelsesforholdCollection.template;
@@ -425,7 +425,7 @@ export const reguleringDocumentDefinition: MineoDocumentDefinition<ReguleringDoc
 
 /**
  * KRL og KL-lønaftaler renderer rene moduldata-tabeller og har derfor ingen andre dependencies end
- * stamdata (til brevhovedet). Gaten er alligevel den fulde fælles gate — dækningsintervallet skal
+ * stamdata (til brevhovedet). Gaten er alligevel den fulde fælles gate – dækningsintervallet skal
  * findes, før knappen må være aktiv, præcis som for `regulering`.
  */
 export type ReguleringSatstabelDocumentInput = ReguleringCommonInput;
@@ -480,7 +480,7 @@ export const klLoenaftalerDocumentDefinition: MineoDocumentDefinition<Regulering
  * Hvilket af de tre outputs ét klik på "Tilgængelige reguleringssatser" hører til.
  *
  * Bruges BÅDE af den reaktive knap-gate (mod render-tidens kontekst) og af click-preflighten (mod
- * det friske snapshot efter settle). Fordi den er en ren funktion af kilden, kan de to ikke drifte —
+ * det friske snapshot efter settle). Fordi den er en ren funktion af kilden, kan de to ikke drifte –
  * og fordi preflighten kalder den EFTER barrieren, kan et settle, der ændrer
  * `loenudviklingBeregningsgrundlag`, ikke længere levere det forrige grundlags dokument.
  */

@@ -18,8 +18,8 @@ import { resolveSkadestypeDatoLabel } from '../../../domain/policies/stamdataCal
  * udskillelse var de kun håndhævet inde i en builders display-formattering.
  *
  * Den autoritative række-evaluerings-motors periode-builder (`buildEoSvieSmerteRows`)
- * delegerer hertil, så blokerings-afgørelsen er ÉN sandhedskilde og dens `error`-rækker — der
- * gater produktions-PDF-download — ikke kan flyttes af display-formattering. Beskeder er bevidst
+ * delegerer hertil, så blokerings-afgørelsen er ÉN sandhedskilde og dens `error`-rækker – der
+ * gater produktions-PDF-download – ikke kan flyttes af display-formattering. Beskeder er bevidst
  * de samme strenge som builderen producerede før udskillelsen (adfærdsbevarende).
  */
 
@@ -40,7 +40,7 @@ export type SvieSmertePeriodeBoundsContext = Readonly<{
 }>;
 
 export type SvieSmertePeriodeEvaluation =
-  /** Helt tom række — springes over (ingen fejl, ingen visning). */
+  /** Helt tom række – springes over (ingen fejl, ingen visning). */
   | Readonly<{ kind: 'skip' }>
   /** Gyldig række. */
   | Readonly<{ kind: 'ok' }>

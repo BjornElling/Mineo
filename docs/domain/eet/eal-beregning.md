@@ -3,18 +3,18 @@
 Denne fil beskriver beregningslogikken for erhvervsevnetab efter Erstatningsansvarsloven (EAL). Beregningen udgør fane 4 på EET-siden og danner udgangspunktet for differencekravet.
 
 Se også:
-- [loebende-eet.md](./loebende-eet.md) — fane 2
-- [kapitaliseret-eet.md](./kapitaliseret-eet.md) — fane 3
-- [differencekrav.md](./differencekrav.md) — fane 5
-- [fejlkatalog.md](./fejlkatalog.md) — alle fejl og advarsler
+- [loebende-eet.md](./loebende-eet.md) – fane 2
+- [kapitaliseret-eet.md](./kapitaliseret-eet.md) – fane 3
+- [differencekrav.md](./differencekrav.md) – fane 5
+- [fejlkatalog.md](./fejlkatalog.md) – alle fejl og advarsler
 
 ---
 
-## Del 1 — For dig
+## Del 1 – For dig
 
 ### Hvad beregner denne fane?
 
-Fane 4 beregner det fulde kapitaliserede EET-krav efter EAL. EAL-beregningen er principielt anderledes end ASL-beregningen: der er ingen løbende ydelse — resultatet er altid et kapitaliseret engangsbeløb. Kapitaliseringsfaktoren er fastsat til **10** ved lov og varierer aldrig.
+Fane 4 beregner det fulde kapitaliserede EET-krav efter EAL. EAL-beregningen er principielt anderledes end ASL-beregningen: der er ingen løbende ydelse – resultatet er altid et kapitaliseret engangsbeløb. Kapitaliseringsfaktoren er fastsat til **10** ved lov og varierer aldrig.
 
 EAL-beregningen er fuldstændig adskilt fra ASL-beregningen. Ingen satser, tabeller eller mellemresultater fra ASL indgår.
 
@@ -33,7 +33,7 @@ EAL-beregningen er fuldstændig adskilt fra ASL-beregningen. Ingen satser, tabel
 
 ### Trin-for-trin beregning
 
-#### Trin 1 — Regulering af årsløn
+#### Trin 1 – Regulering af årsløn
 
 Årslønen reguleres fra skadesår til beregningsår med kæde-opregning:
 
@@ -55,9 +55,9 @@ Reguleret årsløn:
 reguleret_årsløn = round500(årsløn × reguleringsfaktorRounded4)
 ```
 
-`round500` = afrunding til nærmeste 500 kr. Hvis skadesår = beregningsår sker ingen regulering — reguleringslinjen vises ikke i output.
+`round500` = afrunding til nærmeste 500 kr. Hvis skadesår = beregningsår sker ingen regulering – reguleringslinjen vises ikke i output.
 
-#### Trin 2 — Beregning af EET-beløb
+#### Trin 2 – Beregning af EET-beløb
 
 ```
 eet_beregnet = round0(reguleret_årsløn × 10 × (eet_pct / 100))
@@ -74,7 +74,7 @@ eet_maks = erhvervsevnetabMax[beregningsår]
 
 `eet_anvendt` er den valgte værdi.
 
-#### Trin 3 — Aldersreduktion
+#### Trin 3 – Aldersreduktion
 
 Alderen opgøres i **hele opnåede år** på skadedatoen (måneder og dage ignoreres):
 
@@ -105,7 +105,7 @@ Det naturlige loft på 70 % fremkommer automatisk via `min(alder, 69)`. Eksemple
 aldersreduktion_beløb = round0(eet_anvendt × (reduktion_pct / 100))
 ```
 
-#### Trin 4 — EAL-krav
+#### Trin 4 – EAL-krav
 
 ```
 eal_krav = max(0, round0(eet_anvendt − aldersreduktion_beløb))
@@ -140,7 +140,7 @@ der holdes i sync med koden.
 
 ---
 
-## Del 2 — AI-agent: teknisk reference
+## Del 2 – AI-agent: teknisk reference
 
 ### Primær fil
 
@@ -152,12 +152,12 @@ der holdes i sync med koden.
 computeEetEalCalculation(input: Input): EetEalCalculationResult
 ```
 
-`Input` indeholder `erhvervsevnetab`, `skadedato`, `fodselsdato`, samt tre rate-tabeller: `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax` — alle af typen `YearlyRate` fra `lovbestemteRates.ts`. Fane 4 injicerer disse direkte fra `lovbestemteRates`; fane 5 gør det samme.
+`Input` indeholder `erhvervsevnetab`, `skadedato`, `fodselsdato`, samt tre rate-tabeller: `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax` – alle af typen `YearlyRate` fra `lovbestemteRates.ts`. Fane 4 injicerer disse direkte fra `lovbestemteRates`; fane 5 gør det samme.
 
 ### Nøgletyper
 
 `EetEalComputation` er **Zod-udledt** (`z.infer`) af `eetEalComputationSchema` og bor i
-`src/domain/erhvervsevnetab/eetCanonicalOutput.ts` — ikke i `eetEalCalculation.ts`, som blot
+`src/domain/erhvervsevnetab/eetCanonicalOutput.ts` – ikke i `eetEalCalculation.ts`, som blot
 re-eksporterer typen. Skemaet er `.strict().readonly()`, og alle beløbsfelter bærer
 `moneyOreSchema` og dermed `Ore`-suffikset:
 
@@ -173,13 +173,13 @@ EetEalComputation = {
   reguleringsPctRounded4: number,
   reguleretAarsloenOre: MoneyOre,
   eetPct: number, eetPctSource: 'eal' | 'asl',
-  kapitaliseringsfaktor: 10,      // z.literal(10) — altid 10, aldrig andet
+  kapitaliseringsfaktor: 10,      // z.literal(10) – altid 10, aldrig andet
   eetBeregnetOre: MoneyOre,
   eetMaksOre: MoneyOre,
   eetAnvendtOre: MoneyOre,
   eetReduceretTilMaks: boolean,
   alderVedSkade: number,          // hele opnåede år på skadedatoen
-  alderVedSkadeCapped: number,    // min(alderVedSkade, 69) — capværdien bag reduktionsformlen
+  alderVedSkadeCapped: number,    // min(alderVedSkade, 69) – capværdien bag reduktionsformlen
   aldersreduktionPct: number,
   aldersreduktionBeloebOre: MoneyOre,
   ealKravOre: MoneyOre
@@ -212,7 +212,7 @@ const round500 = (value: number): number =>
 
 Afrundingerne er uændrede af øre-brandingen: `round500`, `round0` og `round4` anvendes fortsat på
 **kronebeløb**, og først derefter brandes resultatet til `MoneyOre` med `fromKroner`. Hvor et allerede
-brandet beløb skal indgå i en kroneafrunding, konverteres det tilbage med `toKroner` først — de
+brandet beløb skal indgå i en kroneafrunding, konverteres det tilbage med `toKroner` først – de
 lovbestemte grænser og afrundinger ligger dermed uændret i kroner.
 
 ### Afhængigheder

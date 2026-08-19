@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-08-16
+**Senest verificeret mod kode:** 2026-08-19
 
 ---
 
@@ -48,15 +48,15 @@ Alle afsluttede, canonical TAF- og svie/smerte-perioder gennemgår clamping i `b
 `computeSvieSmerteEngine` inden engines kører. Clamping ændrer aldrig inputaggregatet.
 
 Clamping kan resultere i, at en periode reduceres til ingenting (tom range). Dette er
-**normal og forventelig adfærd** — ikke en fejl. Det sker fx når brugeren har indtastet en
+**normal og forventelig adfærd** – ikke en fejl. Det sker fx når brugeren har indtastet en
 TAF-periode der slet ikke falder inden for EO-perioden. I dette tilfælde er der ingen
 TAF-perioder at vise, og både erstatningsopgørelse-PDF og TAF fordelt på år-PDF skal stadig
-kunne dannes. Den relevante PDF-sektion viser i stedet teksten 'Ingen' — præcis som når
+kunne dannes. Den relevante PDF-sektion viser i stedet teksten 'Ingen' – præcis som når
 brugeren via toggleswitch har angivet, at der ikke beregnes TAF. Samme princip gælder
 svie/smerte i erstatningsopgørelse-PDF: hvis der ikke er nogen perioder at vise, dannes
 PDF'en stadig, og sektionen viser 'Ingen'.
 
-### 2.1 Stille clamping (ingen fejlindikation — udtømmende liste)
+### 2.1 Stille clamping (ingen fejlindikation – udtømmende liste)
 
 Stille clamping er en **eksplicit og udtømmende undtagelse** fra det generelle princip om at
 out-of-range værdier giver fejlmeddelelse.
@@ -82,7 +82,7 @@ uden diagnostisk betydning.
 ### 2.2 Fejlgivende bounds (fejl i felt + EOberegningTab + blokerer download)
 
 Følgende bounds-violations giver fejlindikation og blokerer download.
-Snapshot beregnes stadig på de clampede værdier — clamping sker altid, også for fejlgivende bounds.
+Snapshot beregnes stadig på de clampede værdier – clamping sker altid, også for fejlgivende bounds.
 
 Mekanismen er: bounds-issues afledes fra den afsluttede inputprojektion, vises som rød kant + tooltip i
 TAFPeriodeTable/SvieSmerteTable og gengives på EOberegningTab. De blokerer de dokumentdefinitioner, der afhænger af
@@ -128,19 +128,19 @@ Den fulde, trinvise behandlingsrækkefølge er udfoldet informativt i
 invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
 
 1. **Validering før relevansvurdering.** Semantisk validering (fejlgivende bounds, §2.2) sker
-   på de afsluttede canonical rækker som sådanne — ikke først efter en relevansvurdering mod de
+   på de afsluttede canonical rækker som sådanne – ikke først efter en relevansvurdering mod de
    clampede ranges. En ugyldig periode bliver ikke "reddet" af, at den senere ville være uden
    betydning for beregningsintervallet.
 
 2. **Fejlgivende clamping FØR stille EO-periode-clamping.** Til-dato clampes mod de
    fejlgivende øvre grænser (TAF: strengeste af `differencekravDato − 1`, `endelig
-   EET-virkningsdato − 1` og — ved skadedato < 2011-06-16 — `midlertidig EET-virkningsdato − 1`,
+   EET-virkningsdato − 1` og – ved skadedato < 2011-06-16 – `midlertidig EET-virkningsdato − 1`,
    alle ophævet ved `verserendeKlageEet = 'Ja'`; svie/smerte: `menAfgoerelseDato − 1` når
    ménafgørelsen er endelig) **før** den stille clamping mod EO-perioden. Rækkefølgen sikrer,
    at et bounds-issue ikke skjules af, at EO-perioden forinden har afkortet perioden.
 
 3. **Løse feriedage er række-bundne pre-merge.** `loseFeriedage` på en TAF-række knyttes til
-   den oprindelige indtastede række og placeres pre-merge — merge ændrer ikke placeringen.
+   den oprindelige indtastede række og placeres pre-merge – merge ændrer ikke placeringen.
 
 4. **Merge er centraliseret.** Overlappende og tilstødende ranges slås sammen via den
    kanoniske `mergeIsoDateRanges(...)` / `mergeDateRanges(...)` i
@@ -148,7 +148,7 @@ invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
    ad hoc merge-implementeringer i TAF-, svie/smerte-, ferie- eller SFGG-flow er arkitektonisk
    fejl, medmindre en kontrakt udtrykkeligt kræver afvigende merge-semantik.
 
-5. **Ethvert svie/smerte-overlap afvises** — også overlap mellem perioder med samme tilstand.
+5. **Ethvert svie/smerte-overlap afvises** – også overlap mellem perioder med samme tilstand.
    Validator og `svieSmerteEngine` afviser ethvert overlap, og tabel-/kontrollaget markerer det
    synligt før gem. Der findes ingen "samme tilstand er tilladt"-undtagelse.
 
@@ -159,7 +159,7 @@ invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
 ### 2.4 Clampinggaranti
 
 Clamping sker pre-snapshot i `computeEoSnapshot`. Engines arbejder **altid** på clampede
-værdier — også når der vises fejl for fejlgivende bounds (§2.2).
+værdier – også når der vises fejl for fejlgivende bounds (§2.2).
 
 `inspektionSnapshot` bygges eksplicit med de clampede ranges efter `buildTafRanges` er kaldt i
 `computeEoSnapshot`, så EOInspektion aldrig viser TAF-dage der ikke indgik i beregningen.
@@ -222,7 +222,7 @@ opregulerings-specifik fejl kun blokerer den opregulerede PDF:
 - Manglende reguleringssats for opregulering
   (`taf_per_year_opreguleret:manglende_reguleringssats`, bygget af
   `buildTafPerYearOpreguleretManglendeReguleringssatsInvariant`) blokerer **kun**:
-  `['taf_per_year_opreguleret_pdf']` — den påvirker ikke EO-PDF eller den ikke-opregulerede
+  `['taf_per_year_opreguleret_pdf']` – den påvirker ikke EO-PDF eller den ikke-opregulerede
   TAF-per-år-PDF.
 
 **Visuel graf over indtægtsniveau** har bevidst *ikke* et eget projektions-target. Grafen
@@ -232,7 +232,7 @@ med `taf_per_year_pdf`: kan TAF ikke fordeles på år, kan grafen heller ikke ge
 
 ### 3.3 Afhængighedsopdeling: hvilken gren blokerer en rød feltfejl?
 
-En rød reader-feltfejl blokerer **kun den beregningsgren, der faktisk læser feltet** — dependency-præcis
+En rød reader-feltfejl blokerer **kun den beregningsgren, der faktisk læser feltet** – dependency-præcis
 blokering pr. `form-contract.md` §2.3, som er den normative kilde. Hver gren bygger sit input gennem en
 egen typed projektion med `createTrackedInputReader`. `blockedDependencies` afledes direkte af disse
 projektioners issue-sæt for `svieSmerte`, `forlig`, `taf`, `oevrigeKrav` og aggregatnoden `aggregate`.
@@ -245,39 +245,39 @@ må ikke bruges som beregningsgate.
 
 Der er bevidst ingen `regulering`-gren: reguleringsforløbet har ingen egne felter, og en ugyldig manuel
 reguleringscelle bor i lønudviklingens rækkesamlinger og blokerer derfor TAF-grenen, som er den, der læser
-den. `oevrigeKrav` blokerer aggregatet, men ingen motorgren — cellerne evalueres i `EO_ROW_BUILDERS` med deres
+den. `oevrigeKrav` blokerer aggregatet, men ingen motorgren – cellerne evalueres i `EO_ROW_BUILDERS` med deres
 egen download-gate.
 
 **Forliget er en delvis S/S-afhængighed.** `computeSvieSmerteEngine` læser selv forligsgraden og skalerer
 dagssats, maksimum og total med faktoren. Forligsfelterne ligger derfor **ikke** i S/S-gruppen: en rød
 forligsprocent neutraliserer kun EFTER-forlig-felterne (`satserPerDagOre`, `satserMaxOre`, `forligFactor`,
-`totalOre`), mens før-forlig-grundlaget består — brugerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at
+`totalOre`), mens før-forlig-grundlaget består – brugerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at
 før-forlig-resultater bevares. Motorens egen operationsrækkefølge er uændret; kun hvilke af dens beregnede
 felter der eksponeres, ændres.
 
 Reglen har to lige alvorlige fejlretninger:
 
 - **For smal gruppe → falske tal.** Readeren maskerer en rød værdi til `undefined`. Kaldes motoren alligevel,
-  regner den videre på et falsk input — fx en forligsprocent på 150 læst som "intet forlig" (100 %), eller
+  regner den videre på et falsk input – fx en forligsprocent på 150 læst som "intet forlig" (100 %), eller
   et "Beregnet svie/smerte" udregnet som om tidligere udbetalt var 0.
 - **For bred gruppe → overblokering.** Et ugyldigt svie/smerte-satsår må **ikke** fjerne den gyldige
   TAF-visning eller reguleringsforløbet. Overblokering er ikke en "sikker" fejl.
 
 **Aggregatet er alt-eller-intet.** `totals.samletTotalOre`, `canonicalOutput` og `pdfModel` er krydsgående:
-de summerer eller sammenstiller flere grene. De bygges derfor kun, når INGEN gren er blokeret — en sum af et
+de summerer eller sammenstiller flere grene. De bygges derfor kun, når INGEN gren er blokeret – en sum af et
 ukendt led er ukendt, og et dokument med et manglende afsnit er ikke autoritativt. `data` er `null` i den
 situation, og det autoritative output har ingen halv-tilstand.
 
 **De gyldige grene eksponeres gennem `readyBranches`, ikke kun `inspektionSnapshot`.** Snapshottet bærer på den
 blokerede sti de grene, der stadig kunne beregnes sikkert (`svieSmerte`, `tafPerioder`; `undefined` =
 "blokeret af sin egen røde afhængighed"). `eoSnapshotToBeregningView` falder tilbage til dem, så
-Beregning-fanen fortsat viser den GYLDIGE TAF-periodisering, når et svie/smerte-felt er rødt — netop
+Beregning-fanen fortsat viser den GYLDIGE TAF-periodisering, når et svie/smerte-felt er rødt – netop
 brugerbeslutning 2 (2026-07-25). Fanen læser kun snapshottet og ser ikke `inspektionSnapshot`, så et krav om,
 at den delvise visning "lever i inspektionSnapshot", ville i praksis fjerne gyldige data fra brugeren.
 `canonicalOutput` har bevidst **intet** fald-tilbage: det ER det krydsgående aggregat.
 
 Fail-closed-backstoppet er aggregatnoden `blockedDependencies.aggregate`: ENHVER rød feltfejl gør aggregatet
-ikke-autoritativt — også en, ingen gren genkender. En ukendt fejl må hverken forsvinde lydløst ud af gatingen
+ikke-autoritativt – også en, ingen gren genkender. En ukendt fejl må hverken forsvinde lydløst ud af gatingen
 eller gættes ind i en vilkårlig gren.
 
 ### 3.4 Engine-throws er forbudt som primær fejlmåde
@@ -288,7 +288,7 @@ Regler:
 - Engines skal returnere nul-output via `buildZeroOutput` for kendte fejltilstande.
 - Uventede engine-throws routes til `fail_closed` med `failClosedReason: 'runtime_exception'`.
 - Alle forventelige brugerinputfejl skal opdages og rapporteres i validator eller som
-  snapshot-invariants — ikke via engine-throws.
+  snapshot-invariants – ikke via engine-throws.
 
 ---
 
@@ -310,7 +310,7 @@ Projektioner må ikke gætte på statusnavn alene. De skal også respektere `dat
 
 ## 5. Snapshot-livscyklus og friskhed
 
-Snapshot er bundet til et afsluttet `EvaluationSourceToken` — dvs. både den afsluttede inputrevision OG den relevante
+Snapshot er bundet til et afsluttet `EvaluationSourceToken` – dvs. både den afsluttede inputrevision OG den relevante
 settingsrevision (jf. `form-contract.md` §3 og `snapshot-contract.md` §10). En ændring i AppSettings gør snapshottet
 stale på samme måde som en ændring i input.
 
@@ -329,7 +329,7 @@ input, ellers risikerer systemet at blokere på baggrund af forældede mellemres
 
 ---
 
-## 6. EOInspektion og EOKontrolTabel — altid-kan-dannes garanti
+## 6. EOInspektion og EOKontrolTabel – altid-kan-dannes garanti
 
 EOInspektion og EOKontrolTabel **kan altid dannes** fra snapshot-data.
 
@@ -338,7 +338,7 @@ TAF/svie-smerte-rækker betyder blot, at brugeren endnu ikke har udfyldt dem. De
 ikke en systemfejl. EOInspektion viser de clampede værdier korrekt. Ingen `BugReportButton`
 vises i EOInspektion eller EOKontrolTabel.
 
-Validator og snapshot-invariants klassificerer manglende datoer som fejl — det sker
+Validator og snapshot-invariants klassificerer manglende datoer som fejl – det sker
 i EOberegningTab, ikke i EOInspektion-visningen.
 
 Hvis `inspektionSnapshot` er `null` (ved `fail_closed` før engines kørte), vises en passende
@@ -359,7 +359,7 @@ Tom afsluttet canonical værdi (`undefined`) for `tidligereModtagetTaf` repræse
 normaliseres til numerisk `0` (MoneyOre). `null` eller `undefined` må ikke propagere som
 resultat af at feltet er tomt.
 
-Rationale: Tomt felt er et tilladt og neutralt brugervalg — brugeren har ikke modtaget
+Rationale: Tomt felt er et tilladt og neutralt brugervalg – brugeren har ikke modtaget
 tidligere TAF-udbetalinger, eller beløbet er ikke oplyst. Begge tolkes som `0 kr.` fradrag.
 Der er ingen semantisk forskel på "0" og "tomt" for dette felt.
 
@@ -438,7 +438,7 @@ EO-specifik feltklassificering, fejlgivende bounds og stille clamping er normati
 ## 13. Typed EET-importport og transient injection
 
 Når togglen `midlertidigtEetFraEetSiden` på *Offentlige ydelser*-fanen er aktiveret (`'Ja'`),
-injiceres rækker fra EET-siden transient i EO-beregningen — uden at de skrives til inputaggregatet. Dette afsnit er
+injiceres rækker fra EET-siden transient i EO-beregningen – uden at de skrives til inputaggregatet. Dette afsnit er
 normativt for, hvordan injectionen indvirker på snapshot-modellen.
 EET-sidens tilsvarende kontrakt er `src/contracts/eet-snapshot-contract.md` §5; ændringer i
 EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
@@ -461,7 +461,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 
 **Substitution af effektive rækker:**
 - Når togglen er `'Ja'`, bygges en effektiv `offentligeYdelserRows` ved at:
-  1. Filtrere eksisterende `midlertidigt_eet`-rækker væk fra den originale canonical inputprojektion — defensiv håndhævelse af §13's *Single source of truth*-invariant, så en importeret række aldrig kan optræde både canonical og virtuelt.
+  1. Filtrere eksisterende `midlertidigt_eet`-rækker væk fra den originale canonical inputprojektion – defensiv håndhævelse af §13's *Single source of truth*-invariant, så en importeret række aldrig kan optræde både canonical og virtuelt.
   2. Tilføje de virtuelle rækker, som den canonical EO-adapter bygger fra import-contextens grupper.
 - Engines, inspektions-snapshot, presentation-model og PDF-model bygges på den effektive værdi.
 - Snapshotets audit-projektion indeholder altid det oprindelige afsluttede canonical input (uden virtuelle rækker), så
@@ -473,7 +473,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   på erhvervsevnetab-siden, bruger EO-importen TAF-periodens clampede slutdato (capped af
   EO-periodens slutdato, `vedroererPeriodeTil`) *også* som beregningsdato, så manglende
   EET-beregningsdato ikke blokerer importen. Fallback'en leveres teknisk via
-  EET-importportens eksplicitte `eo_import`-context og gælder udelukkende EO-importen —
+  EET-importportens eksplicitte `eo_import`-context og gælder udelukkende EO-importen –
   erhvervsevnetab-siden og differencekrav-grafen bruger side-contexten, så
   beregningsdatoen forbliver påkrævet dér. Findes der ingen TAF-periode (ingen fallback-slutdato),
   fail-closer importen fortsat på manglende beregningsdato.
@@ -514,7 +514,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   som snapshot-laget og viser EET-issues (errors og warnings) i "Fejl og advarsler" med link
   til Erhvervsevnetab-siden. Errors blokerer download af **alle fire** Beregning-fane-dokumenter
   (erstatningsopgørelse, TAF fordelt på år, TAF opreguleret til beregningsåret og Visuel graf over
-  indtægtsniveau) via gatens `hasBlockingRows` — samme adfærd som det øvrige `errors`-array fra
+  indtægtsniveau) via gatens `hasBlockingRows` – samme adfærd som det øvrige `errors`-array fra
   rækkeevalueringen. Blokeringen får klassen `page-errors`, fordi fejlen allerede står i "Fejl og
   advarsler" (`document-output-contract.md` §A5.1).
 - Når togglen er `'Nej'`, vises EET-issues ikke (de er irrelevante for EO-beregningen, fordi
@@ -527,8 +527,8 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 - **To bevidste undtagelser fra den ukritiske propagation:**
   1. *Manglende EET-beregningsdato* blokerer ikke længere, fordi EO-importen falder tilbage på
      TAF-slutdatoen som beregningsdato (se beregningsdato-fallback ovenfor).
-  2. *De beregningsdato-relative advarsler* — afgørelsesdato/virkningsdato/kapitaliseringsdato
-     efter beregningsdatoen — undertrykkes i EO-konteksten. På EO-siden er "beregningsdatoen"
+  2. *De beregningsdato-relative advarsler* – afgørelsesdato/virkningsdato/kapitaliseringsdato
+     efter beregningsdatoen – undertrykkes i EO-konteksten. På EO-siden er "beregningsdatoen"
      blot TAF-slutdatoen, og en EET-afgørelse med virkning efter erstatningsperiodens udløb er
      helt normal (fx en opgørelse lavet før EET-afgørelsen). Filtreringen sker ved
      EO-importgrænsens adapter via den eksporterede konstant
@@ -558,7 +558,7 @@ presentation-model og PDF-model bygges. Afsnittet er normativt.
 **Princip:** Et felt eller en række er *relevant*, hvis den er synlig i UI'en, fordi den
 indgår i den konkrete opgørelse. Synlighed defineres af relevans-predikaterne i
 `eoInputRelevance.ts`, som er den **eneste** autoritative kilde og deles med UI'ens
-conditional rendering — "skjult i UI" og "ignoreret i beregning" må ikke kunne divergere.
+conditional rendering – "skjult i UI" og "ignoreret i beregning" må ikke kunne divergere.
 Irrelevante inputs neutraliseres til deres tomme værdi (`undefined` / `[]`), så ingen motor
 kan læse en forældet skjult værdi (fail-closed). Committed form-state mutateres ikke;
 `snapshot.input.erstatningsopgoerelse` bevarer den oprindelige værdi (som §13).
@@ -574,7 +574,7 @@ kan læse en forældet skjult værdi (fail-closed). Committed form-state mutater
 - Kun rækker med faktisk indhold blankes; tomme placeholder-rækker bevares (de påvirker
   ikke beregning).
 
-**Bevidst undtagelse — komprimering ved EO 2+:** Når
+**Bevidst undtagelse – komprimering ved EO 2+:** Når
 `komprimerBeregningEfterFoersteOpgoerelse === 'Ja'` fra og med 2. opgørelse, skjules
 løn-/beregningsgrundlags-felterne (`beregnesUdFra`, beregningsperiode, fravær, angivet løn,
 lønindkomst, lønudvikling, anciennitet) i UI'en, men de forbliver **aktive** input: tabt

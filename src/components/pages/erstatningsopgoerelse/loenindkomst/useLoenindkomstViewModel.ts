@@ -37,7 +37,7 @@ const sfggCollection = eoSfggAnsaettelsesforholdCollection.template as Collectio
 
 /**
  * Ansættelsesforholdenes lokation. ÉT sted, fordi både hookens rækkehandlinger og den direkte
- * slette-transaktion nedenfor skal give SAMME destination — ellers ville en undo af "tilføj" og en undo af
+ * slette-transaktion nedenfor skal give SAMME destination – ellers ville en undo af "tilføj" og en undo af
  * "slet" navigere forskelligt (§3.7).
  */
 const EMPLOYMENT_ROW_ORIGIN: CollectionRowOrigin = {
@@ -74,8 +74,8 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   /**
    * Satsvurderingens fund som STRUKTURELLE feltissues.
    *
-   * Reglen er en kryds-felt-regel — feriegodtgørelsens relevans afhænger af reguleringsformen og af, om der
-   * er indtastet lønoplysninger — og kan derfor ikke bo i descriptorens egen validator, som kun ser sin egen
+   * Reglen er en kryds-felt-regel – feriegodtgørelsens relevans afhænger af reguleringsformen og af, om der
+   * er indtastet lønoplysninger – og kan derfor ikke bo i descriptorens egen validator, som kun ser sin egen
    * celles værdi. RESULTATET er til gengæld kanoniske `FieldIssue`s med rigtige feltadresser, så rød
    * markering, tooltip, fokusnavigation og consumerblokering læser ÉN repræsentation i stedet for en fri
    * fejltekst uden feltidentitet. `reason: 'rule'` er §1.6-klassifikationen for en feltplaceret domæneregel.

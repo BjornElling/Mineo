@@ -4,7 +4,7 @@
  * Begge deler ÉN `buildAarsloenReaderProjection` gennem `context.shared`, så årslønsmotoren kun kaldes
  * én gang pr. kildekontekst, selvom siden tegner to download-knapper.
  *
- * Gate-reglerne ligger i `aarsloenDownloadGate.ts` — flyttet fra `src/hooks/useAarsloenDocumentGates.ts`
+ * Gate-reglerne ligger i `aarsloenDownloadGate.ts` – flyttet fra `src/hooks/useAarsloenDocumentGates.ts`
  * og ensartet til at læse projektionen frem for et komponent-samlet snapshot (se modulets egen
  * forklaring). Reglerne er uændrede.
  */
@@ -149,7 +149,7 @@ export const aarsloenDocumentDefinition: MineoDocumentDefinition<AarsloenDocumen
 
 export type ShDageDocumentInput = Readonly<{
   /**
-   * `PeriodeResult['perioder']` direkte — ikke en parallel `readonly SHDagePeriod[]`. Generatorens
+   * `PeriodeResult['perioder']` direkte – ikke en parallel `readonly SHDagePeriod[]`. Generatorens
    * `defineDocument`-parametertype er `DateInterval[]`, og et `readonly`-array kan ikke tildeles den;
    * at genbruge kildens egen type er både korrekt og ét sted mindre at holde i sync.
    */

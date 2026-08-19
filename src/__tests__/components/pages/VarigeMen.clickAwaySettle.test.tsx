@@ -4,7 +4,7 @@
 //
 // §1.3 opregner fire settle-udløsere: "Blur, Enter, klik uden for feltet og almindelig
 // side-/fanenavigation". Blur og Enter var dækket i `useFormFieldSurface.test.tsx`, men gennem DIREKTE
-// kald af `onBlur`/`onKeyDown` — ikke gennem en faktisk brugerhandling. Side- og fanenavigation har
+// kald af `onBlur`/`onKeyDown` – ikke gennem en faktisk brugerhandling. Side- og fanenavigation har
 // hver sin test. "Klik uden for feltet" havde ingen.
 //
 // Registret citerede i stedet en Escape-test som evidens, hvilket re-reviewet korrekt afviste: Escape
@@ -54,7 +54,7 @@ const renderPage = () => render(
 const settledMengrad = (): unknown =>
   (slimInputStore.getState().input.sections.varigemen as { mengrad?: unknown } | null)?.mengrad;
 
-describe('VarigeMen — klik uden for feltet settler den åbne editor (§1.3)', () => {
+describe('VarigeMen – klik uden for feltet settler den åbne editor (§1.3)', () => {
   beforeEach(() => {
     sessionStorage.clear();
     hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
@@ -74,7 +74,7 @@ describe('VarigeMen — klik uden for feltet settler den åbne editor (§1.3)', 
     // §1.2: endnu intet afsluttet.
     expect(settledMengrad()).toBeUndefined();
 
-    // Klik på sidens titel — et rigtigt element uden for feltet, IKKE en fane og ikke et andet input,
+    // Klik på sidens titel – et rigtigt element uden for feltet, IKKE en fane og ikke et andet input,
     // så hverken fane-skiftet eller en anden editors åbning kan forklare et settle.
     await user.click(screen.getByText('Varige mén'));
 

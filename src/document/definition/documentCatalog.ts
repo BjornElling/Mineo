@@ -51,12 +51,12 @@ export type DocumentOutput<TRequest, TGateSettings, TRenderSettings> = Readonly<
    * Den brugerrettede besked for et udfald, eller `null` når der intet er at vise.
    *
    * Ligger på katalogposten frem for hos konsumenten, fordi beskeden kræver BÅDE definitionens
-   * `labels` og miljøets formatpolitik — to ting, en side hverken bør kende eller kunne komme til at
+   * `labels` og miljøets formatpolitik – to ting, en side hverken bør kende eller kunne komme til at
    * kombinere forkert. Tidligere skrev hver side sin egen "Kunne ikke generere …"-tekst, og
    * servicelaget omskrev den bagefter med en global `/PDF/g`-substitution.
    *
    * `settings` er kaldertidens RENDER-settings (render-tidens kontekst). Formatet i beskeden er
-   * altså det, brugeren ville få NU — hvilket er det rigtige, fordi beskeden vises efter aktiveringen
+   * altså det, brugeren ville få NU – hvilket er det rigtige, fordi beskeden vises efter aktiveringen
    * og beskriver, hvad der ville ske ved et nyt forsøg. Den er bevidst render-halvdelen og ikke
    * gate-halvdelen: beskeden navngiver netop formatet.
    */
@@ -65,7 +65,7 @@ export type DocumentOutput<TRequest, TGateSettings, TRenderSettings> = Readonly<
 
 /**
  * Binder én definition til ét miljø. Kaldes kun af en apps katalog-komposition, så en katalogpost
- * altid bærer det miljø, den hører til — en Mineo-definition kan ikke afvikles med standalones
+ * altid bærer det miljø, den hører til – en Mineo-definition kan ikke afvikles med standalones
  * runtimepolitik eller omvendt.
  */
 export const closeDocumentDefinition = <TRequest, TInput, TGateSettings, TRenderSettings, TBrevhovedKey extends string>(

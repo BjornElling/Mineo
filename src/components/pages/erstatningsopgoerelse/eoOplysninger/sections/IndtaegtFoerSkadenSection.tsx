@@ -125,7 +125,7 @@ export default function IndtaegtFoerSkadenSection() {
 
   /**
    * Bindingen til den delte Lønudvikling-flade. «Angivet løn» har én forekomst pr. sag, så
-   * adresserne er statiske — modsat Lønindkomst, der binder pr. ansættelsesforhold.
+   * adresserne er statiske – modsat Lønindkomst, der binder pr. ansættelsesforhold.
    */
   const loenudviklingBinding = {
     loenudviklingBeregningsgrundlag: {
@@ -223,7 +223,7 @@ export default function IndtaegtFoerSkadenSection() {
                 {/*
                   «Offentlige ydelser i beregningsperioden reguleres» stod tidligere her, men hører
                   sagligt til de offentlige ydelser og bor nu på Offentlige ydelser-fanen.
-                  Feltet selv er uændret — kun editorlokationen er flyttet, og dermed den fane
+                  Feltet selv er uændret – kun editorlokationen er flyttet, og dermed den fane
                   fokusnavigationen fører brugeren til (§3.2).
                 */}
 
@@ -459,7 +459,7 @@ export default function IndtaegtFoerSkadenSection() {
                 /*
                   Forklaringen bag basisdatoen manglede tidligere på DENNE overflade, selv om VM'en
                   allerede beregnede `loenudviklingBaseDateReferenceText`. Tabellen viste derfor
-                  låst basisdato uden at kunne forklare hvor datoen kom fra — modsat Lønindkomst.
+                  låst basisdato uden at kunne forklare hvor datoen kom fra – modsat Lønindkomst.
                 */
                 baseDateInfoTooltipText={
                   loenudviklingBaseDateDisplay === '' || loenudviklingBaseDateReferenceText === ''
@@ -474,7 +474,7 @@ export default function IndtaegtFoerSkadenSection() {
                 hasManualPercentBaseRow={eoLoenudvikling.loenudviklingManuelProcentsatsTableData.length > 0}
                 /*
                   «Angivet løn» har ingen satsfelter over tabellen, så basisrækkens procentfelter
-                  er altid brugerens egne — der er intet at spejle og intet at låse.
+                  er altid brugerens egne – der er intet at spejle og intet at låse.
                 */
                 readOnlyBaseRowPercentFields={false}
                 baseRowPercentErrors={undefined}

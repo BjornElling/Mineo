@@ -78,7 +78,7 @@ describe('parseDateDraftForCommit', () => {
    *
    * Kernen melder ÅRSAGEN, ikke den endelige tekst: teksten formuleres af feltet, som kender sine egne
    * grænser (`resolveDateFormatIssueText`). Kernens egen besked er kun fald-tilbage for flader uden en
-   * grænse-erklæring, og den taler derfor om DATOEN — aldrig om et årsinterval, feltet ikke har.
+   * grænse-erklæring, og den taler derfor om DATOEN – aldrig om et årsinterval, feltet ikke har.
    */
   describe('afvisningsårsagen er maskinlæsbar', () => {
     it('årstal under det repræsenterbare domæne får sin egen årsag', () => {
@@ -123,7 +123,7 @@ describe('parseDateDraftForCommit', () => {
 
     /**
      * Årstallet vurderes FØR kalenderdagen: når året alligevel er umuligt, er det den fejl brugeren skal
-     * rette først — uanset hvilken dag der står foran.
+     * rette først – uanset hvilken dag der står foran.
      */
     it('et umuligt årstal vinder over en umulig dag', () => {
       expect(commit('31-02-1899')).toMatchObject({ invalidKind: 'yearOutOfRepresentableRange' });
@@ -145,7 +145,7 @@ describe('parseDateDraftForCommit', () => {
       expect(isISODateString(pad(MAX_REPRESENTABLE_DATE_YEAR))).toBe(true);
       expect(isISODateString(pad(MIN_REPRESENTABLE_DATE_YEAR - 1))).toBe(false);
       expect(isISODateString(pad(MAX_REPRESENTABLE_DATE_YEAR + 1))).toBe(false);
-      // Konstanterne styrer, hvornår årsagen udløses — netop på domænets kant.
+      // Konstanterne styrer, hvornår årsagen udløses – netop på domænets kant.
       expect(commit(`31-12-${MIN_REPRESENTABLE_DATE_YEAR - 1}`))
         .toMatchObject({ invalidKind: 'yearOutOfRepresentableRange' });
       expect(commit(`01-01-${MAX_REPRESENTABLE_DATE_YEAR + 1}`))

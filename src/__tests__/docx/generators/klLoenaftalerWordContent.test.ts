@@ -5,7 +5,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 // Word-indholdstest for KL-lønaftaler: kører den rigtige generator gennem
 // Word-backenden og verificerer, at titel og periode-reguleringssatser faktisk
-// når .docx'en — og at der (modsat KRL) ikke skrives en kilde-linje.
+// når .docx'en – og at der (modsat KRL) ikke skrives en kilde-linje.
 describe('kl → Word-indhold', () => {
   it('skriver titel og periode-reguleringssatser til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument((session) => {

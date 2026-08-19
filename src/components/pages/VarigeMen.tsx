@@ -6,7 +6,7 @@ import SatserTab from './varigemen/SatserTab';
 import { VARIGE_MEN_TAB_KEYS, useVarigeMenViewModel } from './varigemen/useVarigeMenViewModel';
 
 // Siden er ren fane-komposition (`page-component-contract.md` §4.4): faneorkestreringen bor i
-// `useVarigeMenViewModel`. Siden ejer ingen input-state — `MenberegningTab` læser/skriver selv gennem inputCore.
+// `useVarigeMenViewModel`. Siden ejer ingen input-state – `MenberegningTab` læser/skriver selv gennem inputCore.
 
 const VarigeMen = React.memo(() => {
   const { activeTab, setActiveTab, tabItems } = useVarigeMenViewModel();

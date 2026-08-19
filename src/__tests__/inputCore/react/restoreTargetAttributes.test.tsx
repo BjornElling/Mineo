@@ -87,7 +87,7 @@ describe('restore-target-attributter på det fokuserbare element (§3.7)', () =>
     expectRestoreAttrs(combobox!, serializeFieldAddress(enhedField.bind('r1').address), 'loc-choice');
   });
 
-  it('radio (RadioField) — den valgte radio bærer attributterne', () => {
+  it('radio (RadioField) – den valgte radio bærer attributterne', () => {
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1', { enhed: 'uger' })), { origin: testRowOrigin() });
     renderField(
       <RadioField<TillaegstidEnhed>

@@ -35,7 +35,7 @@ import {
   testRowOrigin, testLocation } from '../testCatalog';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
-// Grid-adapteren (§2.5/§3.8, §7.1) — rækkeinfrastruktur + celleeditor — mod syntetiske issue-
+// Grid-adapteren (§2.5/§3.8, §7.1) – rækkeinfrastruktur + celleeditor – mod syntetiske issue-
 // snapshots. Rækkeinfrastrukturen ejer KUN id'er/rækkefølge/add/delete/reorder; celleværdier bor i
 // inputaggregaten (ingen konkurrerende værdikopi, §3.8). Placeholder-promotion (§1.11) tester vi eksplicit.
 
@@ -96,7 +96,7 @@ const belobRef = (rowId: string) => belobField.bind(rowId);
 // Rækkehandlingers destination er obligatorisk (§3.7); testene bruger én fælles lokation.
 const TEST_ROW_ORIGIN = { locationId: 'test.rentekrav', route: '/renteberegning', tabKey: null } as const;
 
-describe('useCollectionRows — §3.8 rækkeinfrastruktur', () => {
+describe('useCollectionRows – §3.8 rækkeinfrastruktur', () => {
   it('lister aktuelle entity-id\'er fra den afsluttede revision', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { origin: testRowOrigin() });
@@ -138,7 +138,7 @@ describe('useCollectionRows — §3.8 rækkeinfrastruktur', () => {
 const renderCell = <T,>(cell: CellSpec<T, unknown>, binding: InputRuntimeBinding) =>
   renderHook(() => useCellEditor<T>(cell), { wrapper: wrapper(binding) });
 
-describe('useCellEditor — eksisterende-række-celle (§7.1 identisk med formularfelt)', () => {
+describe('useCellEditor – eksisterende-række-celle (§7.1 identisk med formularfelt)', () => {
   it('gyldigt settle skriver cellens canonical værdi', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { origin: testRowOrigin() });
     const binding = makeBinding();
@@ -187,7 +187,7 @@ describe('useCellEditor — eksisterende-række-celle (§7.1 identisk med formul
   });
 });
 
-describe('useCellEditor — placeholder-promotion (§1.11)', () => {
+describe('useCellEditor – placeholder-promotion (§1.11)', () => {
   const placeholderCell = (): CellSpec<import('../../../schemas/amountExpressionSchema').AmountValue | undefined, unknown> => ({
     kind: 'placeholder',
     field: belobField.bind('new-1'),
@@ -205,7 +205,7 @@ describe('useCellEditor — placeholder-promotion (§1.11)', () => {
     act(() => result.current.changeDraft('2500'));
     act(() => result.current.settle());
 
-    // Præcis én række oprettet OG cellen skrevet — ét history-trin.
+    // Præcis én række oprettet OG cellen skrevet – ét history-trin.
     expect(catalog.listEntityIds(store.getState().input.sections, rentekravRowsRef())).toEqual(['new-1']);
     expect(canonical(belobRef('new-1'))).toMatchObject({ value: 2500 });
     expect(store.getState().revision).not.toBe(revBefore);
@@ -250,7 +250,7 @@ describe('useCellEditor — placeholder-promotion (§1.11)', () => {
 
   it('et immediate-commit-VALG på en placeholder promoverer rækken atomisk og bevarer valget (§1.11)', () => {
     // Bruger-krav: at vælge enhed på en tom række må ALDRIG tabe valget. Placeholder-immediate-override opretter
-    // rækken og skriver valget i én transaktion — enhed nulstilles ikke til rækkefaktorens default.
+    // rækken og skriver valget i én transaktion – enhed nulstilles ikke til rækkefaktorens default.
     const binding = makeBinding();
     const revBefore = store.getState().revision;
     const enhedPlaceholder: CellSpec<TillaegstidEnhed, unknown> = {
@@ -271,7 +271,7 @@ describe('useCellEditor — placeholder-promotion (§1.11)', () => {
   });
 });
 
-describe('grid-adapter — §7.2 statekæde: række med fejl → slet række → undo → redo', () => {
+describe('grid-adapter – §7.2 statekæde: række med fejl → slet række → undo → redo', () => {
   it('gendanner/fjerner rækken, fejlende råinput og gates som én tilstand', () => {
     const binding = makeBinding();
 
@@ -309,7 +309,7 @@ describe('grid-adapter — §7.2 statekæde: række med fejl → slet række →
   });
 });
 
-describe('grid-adapter — irrelevant-felt-oprydning ved styrende valg (§1.9/§3.6)', () => {
+describe('grid-adapter – irrelevant-felt-oprydning ved styrende valg (§1.9/§3.6)', () => {
   it('promoverer en række og bevarer at tillaegstid er relevant, når enhed ≠ uger', () => {
     // Sanity: enhedField default 'dage' → tillaegstid relevant. Vi verificerer at cellen kan skrives.
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1', { enhed: 'dage' })), { origin: testRowOrigin() });

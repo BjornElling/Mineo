@@ -282,7 +282,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const indkomstLinjer = getTextsBetween(texts, 'Forventet indkomst', 'Indtægter i erstatningsperioden');
 
     // Basisperioden vises med den uregulerede løn, efterfølgende periode med den
-    // kæde-opregulerede løn (30.000 × 1,013 = 30.390,00) — begge uden faktor-tekst.
+    // kæde-opregulerede løn (30.000 × 1,013 = 30.390,00) – begge uden faktor-tekst.
     expect(indkomstLinjer.some((linje) => linje.includes('á ') && linje.includes('30.000,00') && linje.trimEnd().endsWith('='))).toBe(true);
     expect(indkomstLinjer.some((linje) => linje.includes('á ') && linje.includes('30.390,00') && linje.trimEnd().endsWith('='))).toBe(true);
     // Ingen "x (100 % + d %)"-faktor for KL-lønaftaler.
@@ -506,7 +506,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(krForekomsterFoerLigmed).toBe(1);
   });
 
-  it('viser kun én samlet "I alt" i forventet indkomst — ingen subtotal per ansættelsesforhold', () => {
+  it('viser kun én samlet "I alt" i forventet indkomst – ingen subtotal per ansættelsesforhold', () => {
     const { stamdata, eo } = buildBaseInput();
     stamdata.skadedato = iso('2023-07-01');
     eo.vedroererPeriodeFra = iso('2023-07-01');
@@ -692,11 +692,11 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(loenudviklingBlock).toContain('Dagpenge');
     expect(loenudviklingBlock).toContain('Sygedagpenge');
     // Her har løn-kilden ingen segmentlinjer (kun beskrivende tekst), så den får ingen
-    // navn-underoverskrift — en overskrift uden efterfølgende indhold ville være forkert (B4).
+    // navn-underoverskrift – en overskrift uden efterfølgende indhold ville være forkert (B4).
     expect(loenudviklingBlock).not.toContain('AAB');
     expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. arbejdsdag'))).toBe(false);
     expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. måned'))).toBe(false);
-    // Forventet indkomst har præcis ÉN samlet "I alt"-linje til sidst — ingen per-kilde delsummer.
+    // Forventet indkomst har præcis ÉN samlet "I alt"-linje til sidst – ingen per-kilde delsummer.
     expect(loenudviklingBlock.some((text) => text.startsWith('I alt Dagpenge'))).toBe(false);
     expect(loenudviklingBlock.some((text) => text.startsWith('I alt Sygedagpenge'))).toBe(false);
     expect(loenudviklingBlock).not.toContain('Samlet offentlige ydelser (hypotetisk)');
@@ -720,7 +720,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const { stamdata, eo } = buildBaseInput();
     // Én indtægtskilde (ét ansættelsesforhold) reguleret via overenskomst over flere år,
     // så lønudviklingen splittes i flere segmenter (regulering per 1. januar) og en samlet
-    // "I alt"-linje fortsat vises — men uden tom linje før, da der kun er én kilde.
+    // "I alt"-linje fortsat vises – men uden tom linje før, da der kun er én kilde.
     stamdata.skadedato = iso('2023-07-01');
     eo.vedroererPeriodeFra = iso('2023-07-01');
     eo.vedroererPeriodeTil = iso('2025-12-31');
@@ -776,7 +776,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
   it('indsætter præcis én tom linje mellem "Beregnes som ..."-introteksten og første indkomstsegment', () => {
     // Samme scenarie som ovenfor: én indtægtskilde reguleret via overenskomst → introteksten
     // ("Beregnes som ... tillagt efterfølgende lønstigninger.") efterfølges direkte af
-    // segmentlinjer (ingen underoverskrift). Der skal være nøjagtig én tom linje imellem —
+    // segmentlinjer (ingen underoverskrift). Der skal være nøjagtig én tom linje imellem –
     // hverken nul (som før) eller to.
     const { stamdata, eo } = buildBaseInput();
     stamdata.skadedato = iso('2023-07-01');
@@ -827,7 +827,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(gap).toBeLessThan(MIN_AFSTAND_MED_TOM_LINJE + PDF_BASE_LINE_HEIGHT_MM - 0.001);
   });
 
-  it('viser kun reguleringsværdier og princip-tekst i bilaget for regulering af offentlige ydelser — ikke selve ydelses-udregningen', () => {
+  it('viser kun reguleringsværdier og princip-tekst i bilaget for regulering af offentlige ydelser – ikke selve ydelses-udregningen', () => {
     const { stamdata, eo } = buildBaseInput();
     stamdata.skadelidte = 'Testi Testesen';
     eo.vedroererPeriodeFra = iso('2024-12-01');
@@ -881,7 +881,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     // Skadelidtes navn udelades bevidst i regulerings-bilaget (fremgår af brevhovedet).
     expect(bilagBlock).not.toContain('Skadelidte');
     expect(bilagBlock).not.toContain('Testi Testesen');
-    // Selve udregningen af de regulerede ydelser vises IKKE her — kun reguleringsværdierne
+    // Selve udregningen af de regulerede ydelser vises IKKE her – kun reguleringsværdierne
     // og princip-teksten. Per-ydelse underoverskrifter ("Dagpenge"/"Sygedagpenge"),
     // segmentlinjer og "I alt"-totalen fremgår alene på selve erstatningsopgørelsen.
     expect(bilagBlock).not.toContain('Dagpenge');

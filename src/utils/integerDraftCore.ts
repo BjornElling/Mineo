@@ -1,4 +1,4 @@
-// Delt commit-parse-kerne for HELTALS-inputs — brugt af BÅDE formularfeltet (`IntegerField`)
+// Delt commit-parse-kerne for HELTALS-inputs – brugt af BÅDE formularfeltet (`IntegerField`)
 // og tabel-cellen (`integerAdapter`). Tidligere var den identiske format-validering kopieret i begge
 // familier med divergerende fejltekster ("Ugyldigt heltal" vs "Ugyldigt format"); A2 samler den her,
 // med ÉN ensartet ordlyd.
@@ -21,7 +21,7 @@ export type IntegerDraftParseResult =
 /**
  * Format-parser et heltals-draft til commit. Tom (efter trim) → `value: undefined`.
  *
- * Bemærk: udfører IKKE interval-validering — kalderen anvender `getIntegerRangeErrorMessage` efter behov.
+ * Bemærk: udfører IKKE interval-validering – kalderen anvender `getIntegerRangeErrorMessage` efter behov.
  */
 export const parseIntegerDraftForCommit = (
   rawValue: string,

@@ -22,13 +22,13 @@ import { defineRule, forbidCalls, forbidImports } from '../ruleKit';
  * autoritativ tilstand undervejs, men skal danne dokumentet ud fra det ÉNE snapshot, gaten godkendte.
  * Da de gamle `download*Dokument`-entrypoints forsvandt, kunne reglens forudsætning ikke opfyldes af
  * nogen fil, og dødt-værn-detektoren rapporterede den som inert. Den blev derfor RETARGETET frem for
- * slettet — intentionen var uændret gyldig, målet havde blot skiftet navn. Det er den generelle
+ * slettet – intentionen var uændret gyldig, målet havde blot skiftet navn. Det er den generelle
  * fremgangsmåde: et inert værn med et levende mål skal pege det rigtige sted hen, ikke fjernes.
  *
  * De nuværende trigger-punkter er katalogets React-flade (`useMineoDocument*`) og handlings-hooket
  * `useReguleringDocumentAction`. Den forbudte læsning er tilsvarende skiftet fra de afskaffede
  * `usePersistedSection`/`getPersistedData` til den ene escape hatch, der faktisk findes i greenfield:
- * `slimInputStore.getState()` — en ugated, ikke-tokenbundet læsning af den autoritative store.
+ * `slimInputStore.getState()` – en ugated, ikke-tokenbundet læsning af den autoritative store.
  */
 const DOCUMENT_TRIGGER_CALLEES = new Set<string>([
   'useMineoDocumentOutput',
@@ -43,7 +43,7 @@ const DOCUMENT_TRIGGER_CALLEES = new Set<string>([
 /**
  * De afskaffede persisterede sektionsopslag. Beholdt i forbuddet, selv om de ikke findes i grafen
  * længere: skulle nogen genindføre et af dem, ville en download-triggende fil være det værste sted at
- * gøre det. Reglens LIVENESS hviler ikke på dem — den hviler på trigger-siden (`liveTarget` nedenfor).
+ * gøre det. Reglens LIVENESS hviler ikke på dem – den hviler på trigger-siden (`liveTarget` nedenfor).
  */
 const PERSISTED_READ_CALLEES = new Set<string>(['usePersistedSection', 'getPersistedData']);
 
@@ -56,14 +56,14 @@ export const pdfDownloadCommittedState = defineRule({
   id: 'document/download-committed-state',
   description:
     'En fil, der udløser en dokument-download, må ikke samtidig læse autoritativ inputtilstand ugated '
-    + '(slimInputStore.getState()) — dokumentet skal dannes fra det snapshot, gaten godkendte '
+    + '(slimInputStore.getState()) – dokumentet skal dannes fra det snapshot, gaten godkendte '
     + '(build-once/render-from-argument-invarianten).',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
       collectCalls(entry).some((ref) => DOCUMENT_TRIGGER_CALLEES.has(ref.calleeName)),
     rationale:
-      'mindst én fil udløser en dokument-download gennem livscyklussens entrypoints — reglens '
+      'mindst én fil udløser en dokument-download gennem livscyklussens entrypoints – reglens '
       + 'forudsætning findes altså stadig',
   },
   find: (entry) => {
@@ -77,7 +77,7 @@ export const pdfDownloadCommittedState = defineRule({
         position: ref.position,
         message:
           `Ugated læsning af autoritativ tilstand (${ref.calleeText}) i en fil, der udløser en `
-          + 'dokument-download — dokumentet skal dannes fra det gatede snapshot, ikke fra live state.',
+          + 'dokument-download – dokumentet skal dannes fra det gatede snapshot, ikke fra live state.',
       }));
   },
   violatingFixtures: [
@@ -89,7 +89,7 @@ export const pdfDownloadCommittedState = defineRule({
     { relativePath: 'src/x.ts', code: "useMineoDocumentActionOutput(e); getPersistedData('stamdata');" },
   ],
   cleanFixtures: [
-    // Download uden ugated læsning — den normale, korrekte form.
+    // Download uden ugated læsning – den normale, korrekte form.
     { relativePath: 'src/x.ts', code: 'const out = useMineoDocumentOutput(entry); const v = out.snapshot;' },
     // Ugated læsning uden nogen download-trigger er en anden regels ansvar.
     { relativePath: 'src/x.ts', code: 'const s = slimInputStore.getState();' },
@@ -103,25 +103,25 @@ export const pdfDownloadCommittedState = defineRule({
 /**
  * En flade, der AKTIVERER en download, skal også kunne VISE dens udfald.
  *
- * `DocumentDownloadHandle` leverede korrekt en dansk besked for de udfald, brugeren selv kan handle på —
- * et stale-afbrud, fordi sagen ændrede sig undervejs, eller en død DEV-server — men intet håndhævede, at
+ * `DocumentDownloadHandle` leverede korrekt en dansk besked for de udfald, brugeren selv kan handle på –
+ * et stale-afbrud, fordi sagen ændrede sig undervejs, eller en død DEV-server – men intet håndhævede, at
  * callsiten renderede den. Otte flader gjorde det ikke: brugeren klikkede på en aktiv knap, fik ingen fil
  * og ingen forklaring. Reguleringshooket udledte endda beskeden, som BEGGE dens callsites ignorerede.
  *
  * Reglen måler netop DE udfald: et stale-afbrud og en død DEV-server. En GATE-blokering hører ikke til
- * dem — den bærer ingen besked, fordi knappen var synligt inaktiv og tooltippet ejer årsagen
+ * dem – den bærer ingen besked, fordi knappen var synligt inaktiv og tooltippet ejer årsagen
  * (brugerbeslutning 2026-07-31). De forventelige udfald routes bevidst ikke til den centrale
  * systemfejlflade (§A5), så uden en visning her ville de være lydløse.
  *
  * Reglen er en LOKAL strukturel kontrol pr. fil: aktiverer filen en download (`.download(...)` på et
  * handle), skal den samme fil også nævne en udfaldsvisning. Filer, der kun VIDEREGIVER et handle som
  * prop (fx `Erhvervsevnetab.tsx`, der komponerer fire handles til sine faner), aktiverer ikke selv og
- * rammes derfor ikke — fanen, der klikker, er den, der skal vise.
+ * rammes derfor ikke – fanen, der klikker, er den, der skal vise.
  */
 /**
  * Navnene, der udgør en udfaldsvisning. Kontrollen sker på AST'et (identifiers, JSX-tags og
  * property-adgange) og IKKE på filens tekst: en kommentar, der blot NÆVNER `errorMessage`, må ikke kunne
- * bære reglen. Netop det hul havde den første udgave af denne regel — en mutation, der fjernede visningen
+ * bære reglen. Netop det hul havde den første udgave af denne regel – en mutation, der fjernede visningen
  * men efterlod dens forklarende kommentar, forblev grøn.
  */
 const DOCUMENT_OUTCOME_VIEWS: readonly string[] = [
@@ -160,14 +160,14 @@ export const documentActivationShowsOutcome = defineRule({
   description:
     'En flade, der aktiverer en dokument-download, skal også vise dens udfald. Ellers kan '
     + 'et stale-afbrud eller en utilgængelig DEV-server give brugeren en aktiv knap, ingen fil og ingen '
-    + 'forklaring. Brug `DocumentOutcomeMessage` med `handle.errorMessage` råt — hook\'en har allerede '
+    + 'forklaring. Brug `DocumentOutcomeMessage` med `handle.errorMessage` råt – hook\'en har allerede '
     + 'filtreret gate-blokeringer væk, som bevidst er tavse.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === DOCUMENT_OUTCOME_VIEW_OWNER
       || collectCalls(entry).some((ref) => ref.calleeName === 'download'),
     rationale:
-      'den kanoniske udfaldsvisning OG mindst én flade, der aktiverer en download, findes stadig — '
+      'den kanoniske udfaldsvisning OG mindst én flade, der aktiverer en download, findes stadig – '
       + 'forsvinder visningen, er mønsteret flyttet og reglen skal skrives om',
     // Ankrene er de flader, der faktisk AKTIVERER en download plus visningens ejer. Satser-ankeret peger på
     // sektion-komponenten frem for `Satser.tsx`: med VM-laget er siden ren komposition, og
@@ -183,7 +183,7 @@ export const documentActivationShowsOutcome = defineRule({
   allow: [],
   find: (entry) => {
     const calls = collectCalls(entry);
-    // `x.download(...)` — aktiveringen af et dokumenthandle. Et bart `download(...)` tælles ikke: det
+    // `x.download(...)` – aktiveringen af et dokumenthandle. Et bart `download(...)` tælles ikke: det
     // er typisk en lokal helper, og filen med selve handlet er den, reglen skal måle.
     const activations = calls.filter((ref) => ref.calleeName === 'download' && ref.calleeText.includes('.'));
     if (activations.length === 0) return [];
@@ -218,7 +218,7 @@ export const documentActivationShowsOutcome = defineRule({
     },
   ],
   cleanFixtures: [
-    // Den ønskede — og nu eneste — vej: aktivering + kanonisk visning af `errorMessage` råt.
+    // Den ønskede – og nu eneste – vej: aktivering + kanonisk visning af `errorMessage` råt.
     {
       relativePath: 'src/components/pages/X.tsx',
       code: 'const C = () => <><Button onClick={() => void d.download(undefined)} />'
@@ -246,16 +246,16 @@ export const documentActivationShowsOutcome = defineRule({
  * indtastning» på en lønrække med komplet periode og INTET beløb. Årsagen var strukturel og ikke lokal:
  * gaten kollapsede hele `tableValidation.errors` til ét `blockDocumentDownloadForInvalidInput`-kald, selv
  * om `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`. Samme form fandtes
- * på Renteberegning, hvor `anyRowHasError` — som pr. konstruktion kun kan være sand for en UFULDSTÆNDIG
- * række — også svarede «Fejl i indtastning».
+ * på Renteberegning, hvor `anyRowHasError` – som pr. konstruktion kun kan være sand for en UFULDSTÆNDIG
+ * række – også svarede «Fejl i indtastning».
  *
  * Fælles for begge: en aggregeret boolean over flere tilstande fik påklistret én klasse, funktionen umuligt
- * kunne efterprøve. `document-output-contract.md` §A5.1 forbød det allerede i ord — der var blot intet værn.
+ * kunne efterprøve. `document-output-contract.md` §A5.1 forbød det allerede i ord – der var blot intet værn.
  *
  * **Hvorfor en allowlist og ikke et totalforbud.** Der findes legitime kaldssteder, hvor grenen er
  * BEVISELIGT ét-klasset: EET klassificerer pr. issue-id gennem `isEetFieldErrorIssueId`, og Forsørgertab
  * pusher én årsag pr. konkret betingelse. De to er auditerede undtagelser, og harnessets anti-rot-kontrol
- * kræver, at hver af dem stadig udløser reglen — så en undtagelse ikke kan overleve sit kaldssted.
+ * kræver, at hver af dem stadig udløser reglen – så en undtagelse ikke kan overleve sit kaldssted.
  *
  * Den kanoniske vej er `blockDocumentDownloadFromCauses`/`blockedProjectionFromCauses`, hvor hver årsag
  * bærer sin egen klasse og `classifyBlockingCause` afgør udfaldet ét sted.
@@ -288,7 +288,7 @@ export const documentGateClassHardcodedInvalidInput = forbidCalls({
         DERIVED_GATE_CONSTRUCTORS.has(ref.calleeName)
         || HARDCODED_INVALID_INPUT_CONSTRUCTORS.has(ref.calleeName)),
     rationale:
-      'mindst én gate bygger stadig et blokerings-resultat — reglens forudsætning findes altså; '
+      'mindst én gate bygger stadig et blokerings-resultat – reglens forudsætning findes altså; '
       + 'forsvinder gate-konstruktørerne, er klassifikationen flyttet og reglen skal skrives om',
     // Sammensat mål: BEGGE de auditerede undtagelser skal stadig findes og stadig bygge en gate. En
     // slettet undtagelse skal opdages her frem for at efterlade en allowlist-post uden dækning.
@@ -336,7 +336,7 @@ export const documentGateClassHardcodedInvalidInput = forbidCalls({
       relativePath: 'src/domain/x/y.ts',
       code: "const c = { scope: 'aggregate', kind: 'invalid-input', message: 'm' };",
     },
-    // En mangel-blokering er uberørt — reglen handler kun om den hardkodede FEJL-klasse.
+    // En mangel-blokering er uberørt – reglen handler kun om den hardkodede FEJL-klasse.
     {
       relativePath: 'src/domain/x/y.ts',
       code: "const g = blockDocumentDownload({ code: 'a', message: 'b' });",
@@ -435,7 +435,7 @@ export const documentHeaderlessPseudoTableRule = defineRule({
     visit(entry.ast);
     return findings.map((position) => ({
       position,
-      message: 'Headerløs pseudo-tabel — brug writeLeftRightText eller en anden semantisk composer-blok.',
+      message: 'Headerløs pseudo-tabel – brug writeLeftRightText eller en anden semantisk composer-blok.',
     }));
   },
   violatingFixtures: [{
@@ -451,7 +451,7 @@ export const documentHeaderlessPseudoTableRule = defineRule({
 // --- Download-tooltippen kommer fra gaten, ikke fra en rå `message` ------------
 
 /**
- * `DocumentDownloadGateReason.message` er den INTERNE forklaring — aldrig brugertekst.
+ * `DocumentDownloadGateReason.message` er den INTERNE forklaring – aldrig brugertekst.
  *
  * Brugerteksten afgøres af `reason.kind` og produceres af `resolveDocumentGateTooltip` /
  * `resolveBlockedGateTooltip`; en flade skal bruge `handle.disabledReason`, som allerede er oversat
@@ -523,7 +523,7 @@ export const documentDownloadTooltipFromGate = defineRule({
       relativePath: 'src/components/pages/X.tsx',
       code: 'const t = (g) => resolveBlockedGateTooltip(g.reasons);',
     },
-    // `message` på noget, der IKKE er gatens årsagsliste, er uberørt — fejlbokse og snapshot-issues
+    // `message` på noget, der IKKE er gatens årsagsliste, er uberørt – fejlbokse og snapshot-issues
     // bruger samme feltnavn i vidt omfang.
     {
       relativePath: 'src/components/pages/X.tsx',

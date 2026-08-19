@@ -113,7 +113,7 @@ describe('computePackageValuePct', () => {
     const args = {
       grundloen: 1000, feriePct: 12, shSoPct: 0, fritvalgPct: 0, pensionPct: 10, storeBededagPct: 0,
     };
-    // 1000 × 1,12 × 1,10 = 1232 — identisk med computeFormulaValue(baseValue: 1000, …)
+    // 1000 × 1,12 × 1,10 = 1232 – identisk med computeFormulaValue(baseValue: 1000, …)
     expect(computePackageValuePct(args)).toBeCloseTo(1232, 6);
     expect(computePackageValuePct(args)).toBe(
       computeFormulaValue({

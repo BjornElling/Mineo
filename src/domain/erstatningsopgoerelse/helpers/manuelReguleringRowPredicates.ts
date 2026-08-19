@@ -19,7 +19,7 @@ export const isManualRegulationDateOnOrBeforeBasis = (
  * Motorens compute-drop (`manuelProcentsatsRegulering`/`buildLoenudviklingFromManual`), den
  * pre-compute-validator (`erstatningsopgoerelseValidator`) og row-evaluerings-gaten
  * (`eoRowIndkomstRows`) SKAL dele disse prædikater, så en "aktiv" men ufuldstændig række altid
- * gates blokerende samme sted som motoren stille dropper den — ellers opstår tavs
+ * gates blokerende samme sted som motoren stille dropper den – ellers opstår tavs
  * underregulering. En fælles prædikatdefinition hindrer, at gate og motor driver fra hinanden.
  *
  * Note om dato-checket: committed `dato` er (via `tableIsoDateCellString`) altid enten en gyldig

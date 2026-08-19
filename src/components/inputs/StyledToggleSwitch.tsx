@@ -31,7 +31,7 @@ type ToggleInputSlotProps = React.InputHTMLAttributes<HTMLInputElement> & {
  *
  * Tilgængeligt navn (obligatorisk):
  * - Switchen renderes med `role="checkbox"` og SKAL kunne identificeres af skærmlæsere og
- *   rolle-/navn-navigation. Navnet er derfor et krav i typen, ikke en valgfri prop — se
+ *   rolle-/navn-navigation. Navnet er derfor et krav i typen, ikke en valgfri prop – se
  *   `accessibleName.ts` for hvorfor de to tidligere valgfrie props efterlod 34 af 35
  *   callsites navnløse.
  * - Normalvejen er `visibleLabel`: teksten renderes som kontrollens egen `<label>`, så det viste og
@@ -70,7 +70,7 @@ type StyledToggleSwitchProps = StyledToggleSwitchOwnProps & AccessibleNameProps;
 
 /**
  * Kontakten har BEVIDST ingen imperativ ref-flade. Den havde tidligere et `StyledToggleSwitchHandle`
- * med præcis ét medlem — `shake()` — som omregnings-gaten kaldte ved en afvist aktivering. Rystelsen
+ * med præcis ét medlem – `shake()` – som omregnings-gaten kaldte ved en afvist aktivering. Rystelsen
  * er fjernet i hele programmet (brugerbeslutning 2026-08-15), og dermed bortfaldt hele
  * handlet. Genindfør hverken `forwardRef` eller `useImperativeHandle` her uden et reelt medlem.
  */
@@ -189,7 +189,7 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
         // Synlig fokus-halo bag thumb'en. Dækker BÅDE tab-fokus (.Mui-focusVisible) og
         // undo/redo-restore (data-mineo-undo-focused), så de to tilstande ser ens ud.
         // Nødvendigt fordi MUI's default focus-ripple IKKE udløses af programmatisk focus()
-        // (undo/redo) — se historyTargetRestore.ts.
+        // (undo/redo) – se historyTargetRestore.ts.
         '& .MuiSwitch-switchBase.Mui-focusVisible .MuiSwitch-thumb, & .MuiSwitch-switchBase:has(.MuiSwitch-input[data-mineo-undo-focused]) .MuiSwitch-thumb': {
           boxShadow: (theme) => `0 0 0 8px ${theme.palette.primary.main}29`,
         },
@@ -199,7 +199,7 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
 
   // Synlig label: FormControlLabel binder <label> til input'et (htmlFor/id), så teksten BÅDE er
   // kontrollens accessible name og et klikbart mål. Uden binding var teksten kun et søskende-element,
-  // og switchen stod navnløs — se accessibleName.ts.
+  // og switchen stod navnløs – se accessibleName.ts.
   if (visibleLabel !== undefined) {
     return (
       <FormControlLabel

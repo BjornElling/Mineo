@@ -222,7 +222,7 @@ describe('buildEoIndkomstRows regulering details', () => {
 
     expect(daekningRow).toBeDefined();
     expect(daekningRow?.status).toBe('warning');
-    expect(daekningRow?.displayValue).toMatch(/Der er ikke reguleringsværdier for hele TAF-perioden — først fra /);
+    expect(daekningRow?.displayValue).toMatch(/Der er ikke reguleringsværdier for hele TAF-perioden – først fra /);
     expect(daekningRow?.displayValue).not.toMatch(/kun til og med/);
   });
 
@@ -265,7 +265,7 @@ describe('buildEoIndkomstRows regulering details', () => {
 
     expect(daekningRow).toBeDefined();
     expect(daekningRow?.status).toBe('warning');
-    expect(daekningRow?.displayValue).toMatch(/Der er ikke reguleringsværdier for hele TAF-perioden — kun til og med /);
+    expect(daekningRow?.displayValue).toMatch(/Der er ikke reguleringsværdier for hele TAF-perioden – kun til og med /);
     expect(daekningRow?.displayValue).not.toMatch(/først fra/);
   });
 
@@ -303,7 +303,7 @@ describe('buildEoIndkomstRows regulering details', () => {
  * `reguleringsvaerdi`-row står for sig selv, og den samlede fejl-/advarselsboks viser dem
  * alle. Denne test beviser, at af A (fuld dækning → ok) ikke maskerer af B's hul (→ error).
  */
-describe('buildEoIndkomstRows multi-ansættelse — af A maskerer ikke af B (U2)', () => {
+describe('buildEoIndkomstRows multi-ansættelse – af A maskerer ikke af B (U2)', () => {
   const buildTwoAfValues = () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),
@@ -345,13 +345,13 @@ describe('buildEoIndkomstRows multi-ansættelse — af A maskerer ikke af B (U2)
 });
 
 /**
- * Escape-hatch (`allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden`) — G3:
+ * Escape-hatch (`allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden`) – G3:
  * må KUN sænke strenghed (error → warning), aldrig ændre den viste (beregnede) værdi.
  * Beregningsmotoren (`buildLoenudviklingModel`) modtager slet ikke app-settings, så tallene
  * kan strukturelt ikke afhænge af flaget; her bindes row-lagets kontrakt: samme `displayValue`,
  * kun `status` flipper.
  */
-describe('buildEoIndkomstRows escape-hatch — flipper kun severity, ikke værdi (G3)', () => {
+describe('buildEoIndkomstRows escape-hatch – flipper kun severity, ikke værdi (G3)', () => {
   const buildOverenskomstHulValues = () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
@@ -380,7 +380,7 @@ describe('buildEoIndkomstRows escape-hatch — flipper kun severity, ikke værdi
 
     expect(startError?.status).toBe('error');
     expect(startWarn?.status).toBe('warning');
-    // Den viste (beregnede) værdi er uændret — kun severity flytter sig.
+    // Den viste (beregnede) værdi er uændret – kun severity flytter sig.
     expect(startWarn?.displayValue).toBe(startError?.displayValue);
   });
 });
@@ -388,7 +388,7 @@ describe('buildEoIndkomstRows escape-hatch — flipper kun severity, ikke værdi
 /**
  * `alleVaerdier`-row-domæneforskel og dobbelt-signalering.
  */
-describe('buildEoIndkomstRows alleVaerdier — manuel-form-domæneforskel (U6)', () => {
+describe('buildEoIndkomstRows alleVaerdier – manuel-form-domæneforskel (U6)', () => {
   const buildManualValues = (basis: 'Manuel procentsats' | 'Manuelt angivet') => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
@@ -398,7 +398,7 @@ describe('buildEoIndkomstRows alleVaerdier — manuel-form-domæneforskel (U6)',
     return values;
   };
 
-  it('nul aktive rækker: procentsats → ok (base = indeks 100), angivet → error (grundløn kræves) — bevidst domæneforskel', () => {
+  it('nul aktive rækker: procentsats → ok (base = indeks 100), angivet → error (grundløn kræves) – bevidst domæneforskel', () => {
     const procentsatsValues = buildManualValues('Manuel procentsats');
     const afP = procentsatsValues.loenindkomstAnsaettelsesforhold[0];
     afP.loenudviklingManuelProcentsatsTableData = [{ id: 'base', dato: undefined, procent: 0 }];

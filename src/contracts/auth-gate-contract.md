@@ -1,9 +1,9 @@
-# Auth-gate — Mineo
+# Auth-gate – Mineo
 
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt. Underordner ikke andre kontrakter og er ikke underordnet `page-component-contract.md` (login-gaten ligger uden for sidekomponent-laget; den wrappes om hele `App` i app-shell-laget, før sider monteres). Berører ikke beregnings-, form- eller persistence-concerns og overlapper derfor ikke de øvrige tværgående kontrakter.
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-19
 
 ## 1. Scope
 
@@ -17,11 +17,11 @@ Den informative uddybning (trusselsmodel, migrations-triggere) ligger i `docs/ar
 
 ## 2. Normative Regler
 
-1. **Auth-gaten er en permanent UX-barriere, ikke en sikkerhedsgrænse.** Den beskytter mod utilsigtet "klik-ind"-adgang på en delt enhed uden kendskab til den delte adgangskode. Den beskytter ikke mod DevTools, `localStorage`-manipulation eller reverse engineering — og må aldrig behandles eller beskrives som om den gør.
+1. **Auth-gaten er en permanent UX-barriere, ikke en sikkerhedsgrænse.** Den beskytter mod utilsigtet "klik-ind"-adgang på en delt enhed uden kendskab til den delte adgangskode. Den beskytter ikke mod DevTools, `localStorage`-manipulation eller reverse engineering – og må aldrig behandles eller beskrives som om den gør.
 2. **Kommunikationsreglen (bindende):** Al kode, JSDoc og dokumentation skal omtale mekanismen som en *UX-gate* og **ikke** som sikkerhed, og **ikke** som midlertidig. Den svage styrke er et bevidst, permanent designvalg.
 3. **100 % client-side (jf. `AGENTS.md`).** Auth-flowet må aldrig indføre serverkald, eksterne API'er, telemetri eller ekstern logging. Adgangskode-verifikation sker lokalt via Web Crypto (`crypto.subtle.digest('SHA-256', …)`) efter case-neutral normalisering til lower-case; kun hex-hashes sammenlignes, og kun mod de hardcodede `SHARED_PASSWORD_HASHES`. Klartekst-adgangskoder må aldrig persisteres eller logges af auth-laget. Det dedikerede browser-testpassword må stå i `AGENTS.md`, fordi det skal være tilgængeligt i nye agent-sessioner og ikke er en brugerhemmelighed.
 4. **Hver aktiv adgangskode-hash skal have en beskrivende tekst i `src/auth/authConfig.ts`.** Beskrivelsen bruges kun til intern audit af, hvad/hvem hashen vedrører, og må ikke vises i login-UI'et eller anden brugervendt UI.
-5. **Login-flaget er kun et bekvemmelighedsflag.** Den autentificerede tilstand persisteres som `localStorage[AUTH_STORAGE_KEY] === AUTH_STORAGE_VALUE`. Flaget må aldrig betragtes som troværdigt input til beregning, persistence eller anden tillidskritisk logik — dets eneste rolle er at vælge mellem `App` og `LoginPage`.
+5. **Login-flaget er kun et bekvemmelighedsflag.** Den autentificerede tilstand persisteres som `localStorage[AUTH_STORAGE_KEY] === AUTH_STORAGE_VALUE`. Flaget må aldrig betragtes som troværdigt input til beregning, persistence eller anden tillidskritisk logik – dets eneste rolle er at vælge mellem `App` og `LoginPage`.
 6. **Fail-safe og fail-closed.** Kan adgangskontrol ikke gennemføres (manglende `crypto.subtle`), kastes en deterministisk, brugervendt dansk fejl, og adgang gives ikke. Auth må kun bruge browserens vedvarende `localStorage` og må aldrig acceptere den generelle in-memory fallback som et gemt loginflag. Kan login-flaget ikke læses, nægtes adgang uden at vælte renderingen. Kan storage ikke tilgås, login-flaget ikke skrives eller skrivningen ikke læses tilbage med den forventede værdi, kastes en deterministisk fejl frem for stille at åbne gaten. Fejl ved verifikation og skrivning vises i `LoginPage` som brugervendt besked.
 7. **Isoleret fra forretningslogik.** Auth-laget må ikke importere domæne-, persistence- eller beregningsmoduler ud over det, der kræves for selve gaten. `.eo`-sagsdata og app-settings er fuldstændig adskilt fra auth-tilstanden; auth-flaget må aldrig gemmes i sessionStorage-manifestet eller `.eo`-filer.
 8. **Browser-testadgang.** `AGENTS.md` er den autoritative klartekst-kilde til browser-agentens dedikerede testpassword; `src/auth/authConfig.ts` indeholder kun den tilsvarende hash og en auditbeskrivelse. Browser-tests logger ind gennem den synlige loginformular og må ikke afhænge af en tidligere browsersessions login-flag.
@@ -37,7 +37,7 @@ Den informative uddybning (trusselsmodel, migrations-triggere) ligger i `docs/ar
 
 - `src/__tests__/auth/auth.test.ts` (verifikation, persistens af flag, deterministisk fejl ved manglende `crypto.subtle` og ved skrivefejl).
 - `src/__tests__/auth/LoginPage.test.tsx` (gaten forbliver lukket ved tomt input, forkert adgangskode og ved en loginskrivning, der ikke kan gemmes; åbnes først når både verifikation og persistering er lykkedes).
-- `src/__tests__/auth/AuthGate.test.tsx` (mounter kun appen ved gyldigt flag eller efter en fuldført loginsekvens). Filen mocker bevidst `LoginPage` væk og dækker derfor IKKE afvist login — den dækning bor i `LoginPage.test.tsx` ovenfor.
+- `src/__tests__/auth/AuthGate.test.tsx` (mounter kun appen ved gyldigt flag eller efter en fuldført loginsekvens). Filen mocker bevidst `LoginPage` væk og dækker derfor IKKE afvist login – den dækning bor i `LoginPage.test.tsx` ovenfor.
 - `src/__tests__/quality/authGateContractIsolation.test.ts` (auth-flaget holdes ude af sessionStorage-manifestet og `.eo`-save-schemaet; ingen klartekst-persistens i auth-laget).
 
 ## 5. Kendte Undtagelser

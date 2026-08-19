@@ -450,10 +450,10 @@ describe('TAF validering', () => {
 });
 
 // =============================================================================
-// REGULERING AF OFFENTLIGE YDELSER — SATSDÆKNING (fail-closed)
+// REGULERING AF OFFENTLIGE YDELSER – SATSDÆKNING (fail-closed)
 // =============================================================================
 
-describe('regulering af offentlige ydelser — satsdækning', () => {
+describe('regulering af offentlige ydelser – satsdækning', () => {
   const makeRegulerValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues =>
     makeValues({
       beregnesUdFra: 'Beregningsperiode',
@@ -787,7 +787,7 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
   });
 
   // Her stod en test af reglen "Løn på helligdage skal vælges". Den kunne kun blive grøn, fordi
-  // fixturen satte feltet til `undefined` — en tilstand schemaet nu ikke kan producere. Reglen er derfor
+  // fixturen satte feltet til `undefined` – en tilstand schemaet nu ikke kan producere. Reglen er derfor
   // fjernet sammen med testen; kontrakten er i stedet, at feltet ALTID bærer en konkret sats.
   it('angivet løn med overenskomstregulering har altid en konkret sats for løn på helligdage', () => {
     const angivetLoen = createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling;
@@ -890,7 +890,7 @@ describe('standalone regler (vedroererPeriode)', () => {
 // SVIE/SMERTE EKSTRA CASES
 // =============================================================================
 
-describe('svie/smerte — ekstra valideringscases', () => {
+describe('svie/smerte – ekstra valideringscases', () => {
   it('springer validering over når kravPaaSvieSmerteGodtgoerelse = Nej', () => {
     const values = makeValues({
       kravPaaSvieSmerteGodtgoerelse: 'Nej',
@@ -898,7 +898,7 @@ describe('svie/smerte — ekstra valideringscases', () => {
         { id: '1', fra: iso('2024-01-10'), til: iso('2024-01-01'), tilstand: 'sygemeldt' },
       ],
     });
-    // Fra > til i perioden burde give fejl — men kun hvis beregning er aktiv
+    // Fra > til i perioden burde give fejl – men kun hvis beregning er aktiv
     expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(false);
   });
 
@@ -910,7 +910,7 @@ describe('svie/smerte — ekstra valideringscases', () => {
         { id: '1', fra: undefined, til: undefined, tilstand: undefined },
       ],
     });
-    // Perioden er ufuldstændig — men validering springes over ved tidligereSsMax=Ja
+    // Perioden er ufuldstændig – men validering springes over ved tidligereSsMax=Ja
     expect(hasError(values, 'Fra-dato mangler')).toBe(false);
   });
 
@@ -942,7 +942,7 @@ describe('svie/smerte — ekstra valideringscases', () => {
   });
 });
 
-describe('TAF — clampede feriedage', () => {
+describe('TAF – clampede feriedage', () => {
   it('validerer løse feriedage mod den clampede TAF-periode', () => {
     const values = makeValues({
       vedroererPeriodeFra: iso('2024-01-01'),
@@ -1047,10 +1047,10 @@ describe('TAF — clampede feriedage', () => {
 });
 
 // =============================================================================
-// TAF — EKSTRA CASES
+// TAF – EKSTRA CASES
 // =============================================================================
 
-describe('TAF — fanger manglende fra-dato alene', () => {
+describe('TAF – fanger manglende fra-dato alene', () => {
   it('fanger manglende fra-dato med til-dato til stede', () => {
     const values = makeValues({
       tafPerioder: [
@@ -1190,7 +1190,7 @@ describe('validateLoenudviklingKonsistens', () => {
 // LØNUDVIKLING KRAV FOR AKTIV KILDE (validateLoenudviklingsKravForAktivKilde)
 // =============================================================================
 
-describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
+describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
   it('fanger manglende statistikmodel ved grundlag=Statistik', () => {
     const values = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
@@ -1245,7 +1245,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
   it('fanger ASL-årslønsmaksimum-regulering efter sidste tilgængelige indeksår', () => {
     // Modstykke til før-første-år-testen: en TAF-periode i året efter ASL-tabellens
     // sidste år har intet indeks. Motoren slår eksakt år op (ingen carry-forward), så
-    // det SKAL fanges af den blokerende dæknings-validering — ikke ende som en tavs
+    // det SKAL fanges af den blokerende dæknings-validering – ikke ende som en tavs
     // runtime_exception i compute-motoren.
     const maxYear = Math.max(...Object.keys(aarsloenAslMax).map(Number));
     const efterMax = maxYear + 1;
@@ -1496,7 +1496,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     });
 
     // Række med grundløn men uden dato ville ellers blive droppet stille af motoren
-    // (reguleringen udebliver) — den SKAL blokeres.
+    // (reguleringen udebliver) – den SKAL blokeres.
     expect(hasError(
       makeManualMedRaekke({ id: 'no-date', dato: undefined, grundloen: asAmount(32000), feriepenge: undefined, shSoSats: undefined, fritvalg: undefined, agPension: undefined }),
       'Dato skal udfyldes på alle manuelle reguleringsrækker'
@@ -1615,10 +1615,10 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
 });
 
 // =============================================================================
-// ØVRIGE KRAV — EKSTRA CASES
+// ØVRIGE KRAV – EKSTRA CASES
 // =============================================================================
 
-describe('øvrige krav — ekstra valideringscases', () => {
+describe('øvrige krav – ekstra valideringscases', () => {
   it('fanger manglende dato med udgiftTil og beloeb til stede', () => {
     const values = makeValues({
       oevrigeKravPerioder: [

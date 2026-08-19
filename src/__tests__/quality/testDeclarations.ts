@@ -4,15 +4,15 @@
  * Modulet er udskilt, fordi to uafhængige kvalitetsværn har brug for præcis samme parser:
  * `acceptanceMatrix.test.ts` (registret citerer leaf-tests, ikke suiter) og
  * `testNamingConvention.test.ts` (aktive navne må ikke beskrive omlægningen frem for invarianten). En
- * kopi pr. konsument ville være to udgaver af den samme svære sondring — netop den drift, begge værn
+ * kopi pr. konsument ville være to udgaver af den samme svære sondring – netop den drift, begge værn
  * findes for at fange.
  *
  * **Hvorfor ikke `content.includes(navn)`**: en substring-søgning beviser kun, at teksten forekommer et
- * vilkårligt sted i filen — den kunne matche et importnavn eller en kommentar.
+ * vilkårligt sted i filen – den kunne matche et importnavn eller en kommentar.
  *
  * **Hvorfor ikke en regex over råteksten**: den var falsk-grøn på to måder, verificeret ved probe:
  *
- *   - `describe.skip('suite', () => { it('navn', …) })` — den INDLEJREDE `it` består sit eget
+ *   - `describe.skip('suite', () => { it('navn', …) })` – den INDLEJREDE `it` består sit eget
  *     linje-filter, selv om hele suiten er skippet. Skip arves ned gennem hierarkiet; et linjefilter
  *     kan per konstruktion ikke se det.
  *   - `// it('navn', …)` i en kommentar blev medtaget som en levende deklaration.

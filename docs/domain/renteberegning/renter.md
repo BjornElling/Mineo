@@ -4,7 +4,7 @@ Denne fil beskriver beregningslogikken for procesrenter i erstatningsopgørelsen
 
 ---
 
-## Del 1 — For dig
+## Del 1 – For dig
 
 ### Hvad beregner dette modul?
 
@@ -13,7 +13,7 @@ Modulet beregner procesrenter efter renteloven for hvert rentekrav i listen. Ren
 ### Principper
 
 1. Rente beregnes i henhold til renteloven.
-2. Beregningsprincip: 365 rentedage pr. år — 366 i skudår.
+2. Beregningsprincip: 365 rentedage pr. år – 366 i skudår.
 3. Rentesatsen udgør nationalbankens udlånsrente + 8 % (ved forfaldsdato før 01-03-2013 dog + 7 %)
 4. Der beregnes ikke renters rente.
 
@@ -99,25 +99,25 @@ Opfyldes betingelserne ikke, returneres `calculatedInterest: null` for den påg�
 
 ---
 
-## Del 2 — AI-agent: teknisk reference
+## Del 2 – AI-agent: teknisk reference
 
 ### Primære filer
 
 | Fil | Ansvar |
 |---|---|
 | `src/domain/renteberegning/renteberegningEngine.ts` | Autoritativ engine; `computeRenteberegning`, `computeRentekravRow` |
-| `src/domain/renteberegning/procesrenteCalculator.ts` | Renteberegningsmotor; `calculateProcessInterestWithRates` (samlet rentebeløb), `calculateProcessInterestBreakdownWithRates` (samme beregning, men returnerer hele periodeopdelingen bag beløbet), `findLatestReferenceRatePeriodEnd` (sidste dato referencesats-tabellen dækker — udgangen af det halvår den nyeste sats hører til) |
+| `src/domain/renteberegning/procesrenteCalculator.ts` | Renteberegningsmotor; `calculateProcessInterestWithRates` (samlet rentebeløb), `calculateProcessInterestBreakdownWithRates` (samme beregning, men returnerer hele periodeopdelingen bag beløbet), `findLatestReferenceRatePeriodEnd` (sidste dato referencesats-tabellen dækker – udgangen af det halvår den nyeste sats hører til) |
 | `src/domain/renteberegning/rentekravValidation.ts` | Domænefunktioner: `calculateInterestDate`, `validateInterestCalculation` |
 | `src/data/interestRates.ts` | Satser: `referenceRates`, `surchargeRates`, `MIN_INTEREST_DATE` |
-| `src/domain/renteberegning/renteCalculationPrinciples.ts` | `RENTE_CALCULATION_PRINCIPLES` — de fire principper som array af strings |
+| `src/domain/renteberegning/renteCalculationPrinciples.ts` | `RENTE_CALCULATION_PRINCIPLES` – de fire principper som array af strings |
 
 ### Engine
 
 Der er én autoritativ engine i `renteberegningEngine.ts` med to indgangspunkter:
 
-**`computeRenteberegning`** — aggregeret beregning for alle rækker i et snapshot. Satser injiceres eksplicit som input. Bruges af snapshot-systemet.
+**`computeRenteberegning`** – aggregeret beregning for alle rækker i et snapshot. Satser injiceres eksplicit som input. Bruges af snapshot-systemet.
 
-**`computeRentekravRow`** — per-række beregning til tabel-rendering. Bruger de globale produktionssatser. Returnerer `RentekravRowResult` inkl. `pdfContext` til PDF-download.
+**`computeRentekravRow`** – per-række beregning til tabel-rendering. Bruger de globale produktionssatser. Returnerer `RentekravRowResult` inkl. `pdfContext` til PDF-download.
 
 ### Indgangspunkter
 
@@ -188,7 +188,7 @@ InterestDateInput = {
 }
 ```
 
-`tillaegstid ≤ 0` → returner `kravetDato` direkte (enhed ignoreres). Månedstillæg bruger den kanoniske `addMonths` fra `src/utils/dateUtils.ts`, som **clamper til sidste dag i mål-måneden**: 31. januar + 1 måned bliver 28/29. februar — ikke en rollover til marts. Det er ét sandt sted for "læg X måneder til en dato" i kodebasen; rå `setUTCMonth`-rollover bruges ikke. Dags- og ugetillæg lægges til med `setUTCDate` (uger = `tillaegstid × 7`).
+`tillaegstid ≤ 0` → returner `kravetDato` direkte (enhed ignoreres). Månedstillæg bruger den kanoniske `addMonths` fra `src/utils/dateUtils.ts`, som **clamper til sidste dag i mål-måneden**: 31. januar + 1 måned bliver 28/29. februar – ikke en rollover til marts. Det er ét sandt sted for "læg X måneder til en dato" i kodebasen; rå `setUTCMonth`-rollover bruges ikke. Dags- og ugetillæg lægges til med `setUTCDate` (uger = `tillaegstid × 7`).
 
 ### Validering af renteberegning
 
@@ -205,7 +205,7 @@ Fejltyper: `MISSING_KRAVET_DATO`, `INVALID_AMOUNT`, `MISSING_RENTEDATO`, `MISSIN
 
 Beregning kørers kun ved succesfuld validering (rentedato ≤ beregningsdato).
 
-### Motorslogik — halvårlig periodeopdeling
+### Motorslogik – halvårlig periodeopdeling
 
 ```
 halvårsskift: 30. juni og 31. december
@@ -226,7 +226,7 @@ for hvert år i perioden:
 ### Satskildens grænser
 
 ```typescript
-MIN_INTEREST_DATE: ISODateString  // '2005-01-01' — tidligste mulige rentedato
+MIN_INTEREST_DATE: ISODateString  // '2005-01-01' – tidligste mulige rentedato
 findLatestReferenceRatePeriodEnd(referenceRates): Date | null  // sidste dækkede halvår
 ```
 

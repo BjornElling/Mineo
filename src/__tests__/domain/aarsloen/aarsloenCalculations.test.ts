@@ -81,9 +81,9 @@ describe('beregnMetode', () => {
   });
 });
 
-// ─── beregnOmregnetAarsloen — null periodeData ─────────────────────────────
+// ─── beregnOmregnetAarsloen – null periodeData ─────────────────────────────
 
-describe('beregnOmregnetAarsloen — ingen periodeData', () => {
+describe('beregnOmregnetAarsloen – ingen periodeData', () => {
   it('returnerer metode=ingen og erEtAar=false når periodeData er null', () => {
     const result = beregnOmregnetAarsloen({
       periodeData: null,
@@ -100,9 +100,9 @@ describe('beregnOmregnetAarsloen — ingen periodeData', () => {
   });
 });
 
-// ─── beregnOmregnetAarsloen — Metode C (maaned) ───────────────────────────
+// ─── beregnOmregnetAarsloen – Metode C (maaned) ───────────────────────────
 
-describe('beregnOmregnetAarsloen — Metode C (maaned)', () => {
+describe('beregnOmregnetAarsloen – Metode C (maaned)', () => {
   it('12 måneder → erEtAar = true, omregnetAarsloen = beregnetAarsloen', () => {
     const periodeData = buildPeriodeResult('maaned', 12);
     const result = beregnOmregnetAarsloen({
@@ -182,9 +182,9 @@ describe('beregnOmregnetAarsloen — Metode C (maaned)', () => {
   });
 });
 
-// ─── beregnOmregnetAarsloen — Metode C (uge) ──────────────────────────────
+// ─── beregnOmregnetAarsloen – Metode C (uge) ──────────────────────────────
 
-describe('beregnOmregnetAarsloen — Metode C (uge)', () => {
+describe('beregnOmregnetAarsloen – Metode C (uge)', () => {
   it('STANDARD_UGER_PAA_AAR = 52.14 bruges som divisor', () => {
     const periodeData = buildPeriodeResult('uge', 26); // 26 uger = et halvt år
     const result = beregnOmregnetAarsloen({
@@ -234,9 +234,9 @@ describe('beregnOmregnetAarsloen — Metode C (uge)', () => {
   });
 });
 
-// ─── beregnOmregnetAarsloen — Metode A ────────────────────────────────────
+// ─── beregnOmregnetAarsloen – Metode A ────────────────────────────────────
 
-describe('beregnOmregnetAarsloen — Metode A', () => {
+describe('beregnOmregnetAarsloen – Metode A', () => {
   const weekdays = build10WeekdayDates(); // 50 hverdage
 
   it('Ingen lønPaaHelligdage → metode = A', () => {
@@ -391,9 +391,9 @@ describe('beregnOmregnetAarsloen — Metode A', () => {
   });
 });
 
-// ─── beregnOmregnetAarsloen — Metode B ────────────────────────────────────
+// ─── beregnOmregnetAarsloen – Metode B ────────────────────────────────────
 
-describe('beregnOmregnetAarsloen — Metode B', () => {
+describe('beregnOmregnetAarsloen – Metode B', () => {
   const weekdays = build10WeekdayDates(); // 50 hverdage
 
   it('Ikke fuld løn + Almindelig løn → metode = B', () => {
@@ -439,9 +439,9 @@ describe('beregnOmregnetAarsloen — Metode B', () => {
   });
 });
 
-// ─── beregnOmregnetAarsloen — Metode C (dag) ──────────────────────────────
+// ─── beregnOmregnetAarsloen – Metode C (dag) ──────────────────────────────
 
-describe('beregnOmregnetAarsloen — Metode C (dag)', () => {
+describe('beregnOmregnetAarsloen – Metode C (dag)', () => {
   const weekdays = build10WeekdayDates();
 
   it('Fuld løn + Almindelig løn + dag → metode = C', () => {
@@ -483,7 +483,7 @@ describe('beregnOmregnetAarsloen — Metode C (dag)', () => {
 
 // ─── Edge cases ───────────────────────────────────────────────────────────
 
-describe('beregnOmregnetAarsloen — edge cases', () => {
+describe('beregnOmregnetAarsloen – edge cases', () => {
   const weekdays = build10WeekdayDates(); // 50 hverdage
 
   it('shDageAntal > hverdageIPeriode → arbejdsdageIPeriode negativ → omregnetAarsloen = 0', () => {
@@ -547,7 +547,7 @@ describe('beregnOmregnetAarsloen — edge cases', () => {
 
 // ─── Determinisme ─────────────────────────────────────────────────────────
 
-describe('beregnOmregnetAarsloen — determinisme', () => {
+describe('beregnOmregnetAarsloen – determinisme', () => {
   it('er deterministisk for identisk input', () => {
     const periodeData = buildPeriodeResult('maaned', 12);
     const params = {

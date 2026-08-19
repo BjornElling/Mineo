@@ -9,7 +9,7 @@
  * nul inde i den færdige fil.
  *
  * Kortlægningen fandt 17 steder i `src/document/`, hvor en pladsholder KAN skrives. Men en
- * pladsholder, der ikke kan NÅS — fordi download-gaten allerede blokerer på samme tilstand — er
+ * pladsholder, der ikke kan NÅS – fordi download-gaten allerede blokerer på samme tilstand – er
  * død kode, ikke en risiko. Forskellen kan kun afgøres empirisk, og denne fil afgør den: for hver
  * mistænkt tilstand bygges en sag, der forsøger at fremkalde den, og gaten spørges.
  *
@@ -91,7 +91,7 @@ const errorRowsFor = (eo: ErstatningsopgoerelseValues): string[] => {
   );
 };
 
-/** Sag med TAF beregnet ud fra en manuelt angivet månedsløn — grundlaget for de to første prøver. */
+/** Sag med TAF beregnet ud fra en manuelt angivet månedsløn – grundlaget for de to første prøver. */
 const buildAngivetMaanedsloenCase = (
   maanedsloen: ErstatningsopgoerelseValues['maanedsloenenUdgoer']
 ): ErstatningsopgoerelseValues => {
@@ -120,11 +120,11 @@ describe('nåbarhed: «Fejl (…)» i Beregningsgrundlag (kortlægningens A1)', 
     const blocked = gatesFor(buildAngivetMaanedsloenCase(undefined));
 
     expect(blocked.erstatningsopgoerelse.canDownload).toBe(false);
-    // Blokeringen skal bære en konkret, brugervendt årsag — aldrig en tavs blokering.
+    // Blokeringen skal bære en konkret, brugervendt årsag – aldrig en tavs blokering.
     expect(blocked.erstatningsopgoerelse.reasons[0]?.message ?? '').toBeTruthy();
 
     // Gaten rapporterer kun ÉN årsag, så den kan ikke i sig selv vise, om lønnen er dækket eller
-    // blot maskeret af en anden blokering. Rækkemotoren — samme kilde som «Fejl og advarsler» —
+    // blot maskeret af en anden blokering. Rækkemotoren – samme kilde som «Fejl og advarsler» –
     // spørges derfor direkte: findes der en fejlrække, som KUN opstår uden lønnen?
     const errorsWithout = errorRowsFor(buildAngivetMaanedsloenCase(undefined));
     const errorsWith = new Set(errorRowsFor(buildAngivetMaanedsloenCase(asAmount(42_500))));
@@ -152,7 +152,7 @@ describe('nåbarhed: «—» som Beregnet krav og som «I alt» (kortlægningens
    *
    * Motoren dokumenterer selv, at det ikke kan ske (`tafNettoBeregning.ts:244-248`): alle tre
    * totaler bygges med `asCalculable` eller kaster en fail-closed invariant. Grenene er derfor
-   * defensiv narrowing, ikke nåbare tilstande. Denne prøve holder producenterne fast på det —
+   * defensiv narrowing, ikke nåbare tilstande. Denne prøve holder producenterne fast på det –
    * introducerer en fremtidig motor `not_calculable` uden at opdatere TAF-formlen, fejler den her
    * frem for at udskrive en tankestreg som hovedtal i et tillidskritisk dokument.
    */
@@ -180,7 +180,7 @@ describe('nåbarhed: «—» som Beregnet krav og som «I alt» (kortlægningens
     // er unåbar OG det sidste forsvar, hvis en fremtidig motor bryder den.
     const engine = readSource('domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts');
     expect(engine).toContain('er altid asCalculable');
-    // Det defensive narrowing skal stadig findes — det er dét, der forhindrer, at en brudt
+    // Det defensive narrowing skal stadig findes – det er dét, der forhindrer, at en brudt
     // invariant udskriver en tankestreg som hovedtal frem for at fejle.
     expect(engine).toMatch(/indtaegterTotal\.status !== 'ok'/);
   });
@@ -188,12 +188,12 @@ describe('nåbarhed: «—» som Beregnet krav og som «I alt» (kortlægningens
 
 describe('nåbarhed: droppet øvrige-krav-række vs. totalen (kortlægningens A12)', () => {
   /**
-   * `buildOevrigeKrav` springer en række over, hvis dato ELLER beskrivelse er tom — men
+   * `buildOevrigeKrav` springer en række over, hvis dato ELLER beskrivelse er tom – men
    * `parsed.totalOre` summerer ALLE rækker. En droppet række efterlader derfor en «I alt», der
    * ikke kan afstemmes med posterne ovenfor.
    *
    * Manglende BESKRIVELSE er en fejl og blokerer download. Manglende DATO er derimod kun en
-   * ADVARSEL (`eoRowOevrigeKravRows.ts:98-103`) — så den sag kan hentes. Denne prøve afgør, om
+   * ADVARSEL (`eoRowOevrigeKravRows.ts:98-103`) – så den sag kan hentes. Denne prøve afgør, om
    * beløbet dermed forsvinder fra listen men bliver i totalen.
    */
   const buildOevrigeKravCase = (dato: string | undefined): ErstatningsopgoerelseValues => {
@@ -228,7 +228,7 @@ describe('nåbarhed: droppet øvrige-krav-række vs. totalen (kortlægningens A1
     // aldrig droppes fra en DANNET fil, og totalen kan ikke komme i utakt med posterne.
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
     expect(gates.erstatningsopgoerelse.reasons[0]?.message).toBe('Dato mangler');
-    // Kontrast: datoen er dét, der gør forskellen — ellers ville prøven være grøn af tomhed.
+    // Kontrast: datoen er dét, der gør forskellen – ellers ville prøven være grøn af tomhed.
     expect(withDate.erstatningsopgoerelse.canDownload).toBe(true);
   });
 });
@@ -236,10 +236,10 @@ describe('nåbarhed: droppet øvrige-krav-række vs. totalen (kortlægningens A1
 describe('nåbarhed: det slugende catch i regulerings-bilaget (kortlægningens A6)', () => {
   /**
    * `eoBilagSections` fanger ALT fra `buildOffentligeYdelserReguleringTableData` og skriver
-   * «…fordi en nødvendig reguleringssats mangler» — en gættet diagnose, der kasserer den
+   * «…fordi en nødvendig reguleringssats mangler» – en gættet diagnose, der kasserer den
    * faktiske fejl uden at rapportere den.
    *
-   * Men den ENESTE tilstand, der reelt kan udløse den — en manglende reguleringssats — kaster
+   * Men den ENESTE tilstand, der reelt kan udløse den – en manglende reguleringssats – kaster
    * allerede på BEREGNINGS-stien (`offentligeYdelserUdviklingBeregning.ts:47`), længe før
    * bilaget renderes. Den fejl fail-closer hele snapshottet, blokerer alle fem outputs og
    * rapporteres centralt. Dokumentet kan derfor ikke nå bilaget med den tilstand.
@@ -275,7 +275,7 @@ describe('nåbarhed: substitueret nul i «Samlet»-kolonnen (kortlægningens A7)
   /**
    * `amountValueToNumber` returnerer `undefined` BÅDE for et tomt felt og for et beløbsudtryk,
    * hvis værdi ikke er finit. I offentligeYdelserSection bliver det til `?? 0` og lægges sammen i
-   * «Samlet» — altså et forkert tal, der ser rigtigt ud. Spørgsmålet er, om en ikke-finit værdi
+   * «Samlet» – altså et forkert tal, der ser rigtigt ud. Spørgsmålet er, om en ikke-finit værdi
    * overhovedet kan nå frem gennem det persisterede schema, eller om den afvises før.
    */
   it('dokumenterer om en ikke-finit beløbsværdi kan passere schema-valideringen', () => {

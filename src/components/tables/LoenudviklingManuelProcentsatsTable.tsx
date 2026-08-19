@@ -38,7 +38,7 @@ export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   /**
    * route + tabKey er eksplicit navigation-metadata (§3.7). Tabellen renderes i to fane-kontekster
    * (Lønindkomst under et ansættelsesforhold og EO-oplysninger under "Indtægt før skaden"), så
-   * kalderen leverer den korrekte fane — den kan ikke udledes af `locationPrefix`.
+   * kalderen leverer den korrekte fane – den kan ikke udledes af `locationPrefix`.
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>;
@@ -56,7 +56,7 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
   ], [baseDateISO, baseRowId, entryById]);
   const sort = useTableSort({ rows: committedRows, getRowId: (row) => row.id, isRowEmpty: (row) => row.id === baseRowId ? false : isLoenudviklingManuelProcentsatsRowEmpty(row), columns, onSortedRowsChange: (next) => table.reorderRows((baseRowId === undefined ? next : [committedRows[0], ...next.filter((row) => row.id !== baseRowId)]).filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined).map((row) => row.id)) });
   // Basisrækken er programstyret og ankres først; resten følger sorteringen. Den orden er
-  // tabellens visningsorden, og render-modellen bygges af den ÉT sted (`buildRenderRows`) —
+  // tabellens visningsorden, og render-modellen bygges af den ÉT sted (`buildRenderRows`) –
   // ikke ved at permutere en færdigbygget model på plads bagefter.
   const existing = baseRowId === undefined ? sort.sortedRows : [committedRows[0], ...sort.sortedRows.filter((row) => row.id !== baseRowId)].filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined);
   const renderRows = table.buildRenderRows(existing);

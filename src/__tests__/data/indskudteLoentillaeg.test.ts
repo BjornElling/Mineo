@@ -38,7 +38,7 @@ describe('indskudteLoentillaeg', () => {
       expect(eksporter.filter((navn) => /FERIETILLAEG/i.test(navn))).toEqual([]);
     });
 
-    it('har præcis ÉT indskudt tillæg — Store Bededag', () => {
+    it('har præcis ÉT indskudt tillæg – Store Bededag', () => {
       const satstrapper = Object.keys(indskudteLoentillaeg).filter((navn) => navn.endsWith('_SATSTRAPPE'));
       expect(satstrapper).toEqual(['STORE_BEDEDAG_SATSTRAPPE']);
     });
@@ -56,7 +56,7 @@ describe('indskudteLoentillaeg', () => {
 
     it('vælger det seneste gældende trin i en flertrins-trappe', () => {
       // Flertrins-dækningen brugte før ferietillæggets satstrappe som fixture. Funktionen understøtter
-      // stadig flere trin (kontraktens §2.4), så dækningen bevares med en LOKAL trappe — testdata, ikke
+      // stadig flere trin (kontraktens §2.4), så dækningen bevares med en LOKAL trappe – testdata, ikke
       // domænedata, så den ikke kan misforstås som en sats programmet bruger.
       const trappe: readonly IndskudtLoentillaegSatstrin[] = [
         { fraOgMed: iso('2010-01-01'), procentpoint: 1 },

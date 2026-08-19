@@ -67,15 +67,15 @@ const MASKING_INDUCED_MISSING_MESSAGES: ReadonlySet<string> = new Set([
  * Fjerner de "mangler"-invarianter, som en STRUKTUREL feltfejl på samme felt allerede har dækket.
  *
  * Baggrunden er en direkte konsekvens af readerens maskering (§1.5): en værdi bag en rød feltfejl er
- * `undefined` for enhver consumer. Det er rigtigt over for MOTORERNE — de må ikke regne på en værdi, brugeren
- * har fået markeret som forkert — men legacy-validatoren læser samme maskerede værdier og konkluderer da, at
+ * `undefined` for enhver consumer. Det er rigtigt over for MOTORERNE – de må ikke regne på en værdi, brugeren
+ * har fået markeret som forkert – men legacy-validatoren læser samme maskerede værdier og konkluderer da, at
  * feltet er TOMT. Brugeren, der har indtastet en til-dato før fra-datoen, fik derfor fire beskeder om én fejl:
  * to sande kronologifejl plus to usande «Fra-dato mangler»/«Til-dato mangler» om datoer, der tydeligvis står i
  * felterne. Den usande halvdel er værst, fordi den peger brugeren mod en handling (udfyld feltet), som ikke
  * kan løse noget.
  *
  * Undertrykkelsen sker HER frem for i validatoren, fordi det er her de to lister mødes, og fordi kriteriet er
- * en egenskab ved PARRET af lister — ikke ved nogen af dem alene. Validatoren kan ikke selv vide, om en tom
+ * en egenskab ved PARRET af lister – ikke ved nogen af dem alene. Validatoren kan ikke selv vide, om en tom
  * værdi er brugerens tomhed eller readerens maskering; det kan kun den, der også kender feltissue-sættet.
  *
  * Matchningen går på felt-IDENTITET, ikke på tekst: `reader_field:eo.tafPerioder.fra#taf-1` og
@@ -131,13 +131,13 @@ export const suppressMaskedMissingInvariants = (
  *
  * Tidligere gik `eoErrors` KUN til inspektionsvisningen, mens motorerne blev kaldt bagefter på readerens
  * MASKEREDE værdier (en rød værdi er `undefined` for motoren). Resultatet var falske tal bag en rød
- * feltmarkering — fx en forligsprocent på 150, der blev regnet som "intet forlig", dvs. 100 %.
+ * feltmarkering – fx en forligsprocent på 150, der blev regnet som "intet forlig", dvs. 100 %.
  *
  * Invarianterne er den eksisterende, strukturelle blokerings-mekanisme i EO-snapshottet, og de bærer
  * `blocksOutputs` pr. output. Reader-fejl føres derfor ind ad samme vej som validator-invarianterne i
  * stedet for gennem en ny parallel sidekanal.
  *
- * Alle strukturelle feltissues blokerer deres afhængige consumer — inklusive `bounds`, jf.
+ * Alle strukturelle feltissues blokerer deres afhængige consumer – inklusive `bounds`, jf.
  * `error-contract.md` §1.1's normative matrix: en bounds-værdi må GEMMES, men må ikke fodre en motor.
  * Samme kanoniske `FieldIssueSet` bærer både EO- og stamdataissues, inklusive nested rækkeceller.
  */

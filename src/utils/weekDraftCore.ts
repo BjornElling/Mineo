@@ -1,4 +1,4 @@
-// Delt commit-parse-kerne for UGE-inputs (uge/år-par) — brugt af BÅDE formularfeltet (`WeekField`)
+// Delt commit-parse-kerne for UGE-inputs (uge/år-par) – brugt af BÅDE formularfeltet (`WeekField`)
 // og tabel-cellen (`weekAdapter`). Tidligere var den identiske uge-/år-parsing kopieret i begge familier;
 // A2 samler den her. Årsdelens fortolkning og interval-besked deles yderligere med årstalsfeltet via
 // `yearDraftCore` (ensartet ordlyd: "Årstallet skal være …").
@@ -19,15 +19,15 @@ export type WeekDraftParseConfig = Readonly<{
 }>;
 
 /**
- * HVORFOR et ugedraft blev afvist — maskinlæsbart, så en LÆSER kan skelne uden at matche på beskedteksten.
+ * HVORFOR et ugedraft blev afvist – maskinlæsbart, så en LÆSER kan skelne uden at matche på beskedteksten.
  *
- * - `malformed` — teksten er ikke et uge/år-par (forkert længde, ikke-cifre, manglende del). Beskeden kan
+ * - `malformed` – teksten er ikke et uge/år-par (forkert længde, ikke-cifre, manglende del). Beskeden kan
  *   ikke sige mere end feltets navn.
- * - `weekNumber` — uge/år-parret er velformet, men ugenummeret findes ikke i det år («Uge skal være mellem
+ * - `weekNumber` – uge/år-parret er velformet, men ugenummeret findes ikke i det år («Uge skal være mellem
  *   1 og 53»). Her ER der en konkret rettelse at vise brugeren.
  *
  * Skellet er en TYPE og ikke en strengsammenligning, fordi `error-contract.md` §4 udtrykkeligt forbyder
- * skaller at udlede issue-klassen af beskedteksten — det er præcis den drift, `detail`-nøglen findes for.
+ * skaller at udlede issue-klassen af beskedteksten – det er præcis den drift, `detail`-nøglen findes for.
  */
 export type WeekDraftInvalidKind = 'malformed' | 'weekNumber';
 

@@ -31,7 +31,7 @@ export type ForligAnsvarsgradRuleEvaluation = Readonly<{
  *  1. Procent og brøk må ikke begge være udfyldt.
  *  2. En forligsdato kræver, at ansvarsgrad er angivet som procent eller brøk.
  *
- * Ren funktion — bruger kun committed input (draft-state må ikke indgå, jf. form-contract.md).
+ * Ren funktion – bruger kun committed input (draft-state må ikke indgå, jf. form-contract.md).
  */
 export const evaluateForligAnsvarsgradRules = (
   values: ForligAnsvarsgradFields

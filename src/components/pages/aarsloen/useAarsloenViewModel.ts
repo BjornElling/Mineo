@@ -47,7 +47,7 @@ import { firstPageMessage, pageMessage, withPageMessages } from '../../layout/pa
  * `values` til calc/render læses via reader-projektionen, og løntabellens valideringssummary er reader-afledt, så
  * omregning-gaten og dokumentgaten deler præcis samme sandhed som cellernes røde issues.
  *
- * Modellen orkestrerer — den genberegner ikke: beregningskernen ligger i `buildAarsloenReaderProjection`.
+ * Modellen orkestrerer – den genberegner ikke: beregningskernen ligger i `buildAarsloenReaderProjection`.
  */
 
 // Stabile felt-refs + editorlokationer (§3.2): locationId er editor-metadata, ikke dataidentitet.
@@ -100,7 +100,7 @@ const LOCATIONS = Object.freeze({
   omregningTilFuldtAar: loc('omregningTilFuldtAar'),
 });
 
-/** Løntabellens navigationslokation — tabellen bygger selv sine celle-lokationer af den. */
+/** Løntabellens navigationslokation – tabellen bygger selv sine celle-lokationer af den. */
 const TABLE_LOCATION_NAV = Object.freeze({ route: APP_ROUTES.aarsloen, tabKey: null });
 
 
@@ -117,7 +117,7 @@ export function useAarsloenViewModel() {
 
   // Omregning-toggle: den persisterede canonical værdi + den centrale gate. Toggle-visning og skjult indhold
   // reagerer på samme committed forudsætninger (gate). Togglen er et ALMINDELIGT persisteret felt gennem
-  // `ToggleField` (§3.2/§3.7) — gaten leveres som dens `commit`-override, så en ugyldig aktivering afvises uden
+  // `ToggleField` (§3.2/§3.7) – gaten leveres som dens `commit`-override, så en ugyldig aktivering afvises uden
   // at feltbindingen eller undo/redo-fokusmetadataen falder væk.
 
   const {
@@ -128,7 +128,7 @@ export function useAarsloenViewModel() {
 
   // Fatal-gate (§1.6/§3.9): et satsinput uden for 0–100 (eller antalFeriedage uden for 0–99) er en RØD
   // feltfejl. Projektionen kalder da IKKE motoren (`calculation === null`), så der findes intet resultat at
-  // vise — en beregning på den skjulte tomværdi ville være misvisende.
+  // vise – en beregning på den skjulte tomværdi ville være misvisende.
   const { calculation } = readerProjection;
   const harFatalBeregningsFejl = calculation === null || calculation.harFatalBeregningsFejl;
 
@@ -136,18 +136,18 @@ export function useAarsloenViewModel() {
   const periodeData = calculation?.periodeData ?? null;
   const shDageAntal = calculation?.shDageAntal ?? null;
   const beregnetAarsloen = calculation?.beregnetAarsloen ?? 0;
-  // `metode: 'ingen'` er modellens kanoniske "ingen beregning" — samme variant motoren selv returnerer, når
+  // `metode: 'ingen'` er modellens kanoniske "ingen beregning" – samme variant motoren selv returnerer, når
   // input ikke rækker til en metode. Ingen opdigtede tal.
   const beregningsData = calculation?.beregningsData ?? AARSLOEN_BEREGNING_INGEN;
   const fejlmeddelelser = calculation?.fejlmeddelelser ?? [];
   // Den kritiske beregningsfejl som `PageMessage`, ikke som rå streng: boksen må ikke kunne vises uden indhold.
-  // Her stod tidligere `?? []` på et `string | null`-felt — et tomt array er truthy, så "Kritisk Fejl"-boksen
+  // Her stod tidligere `?? []` på et `string | null`-felt – et tomt array er truthy, så "Kritisk Fejl"-boksen
   // stod permanent øverst på siden UDEN tekst. `pageMessage()` normaliserer null/tom/whitespace til ÉN
   // fraværs-variant, og `PageMessageBox` ejer værnet. Se `components/layout/pageMessage.ts` for fejlklassen.
   const beregningsFejl = pageMessage(calculation?.beregningsFejl);
 
   // Dokument-download. Begge outputs deler ÉN kildekontekst, så årsløns-projektionen kun bygges én gang pr.
-  // revision, uanset at siden tegner to knapper. Hele preflighten — settle, frisk capture, token-lighed, gate —
+  // revision, uanset at siden tegner to knapper. Hele preflighten – settle, frisk capture, token-lighed, gate –
   // ejes af definitionerne; her er kun blokerings-FEEDBACKEN tilbage (flash af den fejlende celle).
   const documentContext = useMineoDocumentSourceContext();
   const aarsloenDownload = useMineoDocumentOutputWithContext(aarsloenDocumentDefinition, undefined, documentContext);
@@ -157,7 +157,7 @@ export function useAarsloenViewModel() {
     const outcome = await aarsloenDownload.download(undefined);
     if (outcome.status === 'rejected' && outcome.rejection.kind === 'gate-blocked') {
       // Rystelsen er fjernet; celle-flashet er bevaret. Det var den del af den gamle
-      // feedback, der PEGEDE et sted hen — rystelsen fortalte kun, at noget var galt, hvilket
+      // feedback, der PEGEDE et sted hen – rystelsen fortalte kun, at noget var galt, hvilket
       // knappens tooltip allerede sagde mere præcist.
       const firstError = tableValidation.errors[0];
       if (firstError?.kind === 'cell') tabelRef.current?.flashError(firstError);
@@ -191,7 +191,7 @@ export function useAarsloenViewModel() {
     [beregningsData, periodeData, values.loenperiode, values.tableData]
   );
 
-  /** Løntabellens satser — samme afsluttede procenter, som beregningen bruger. */
+  /** Løntabellens satser – samme afsluttede procenter, som beregningen bruger. */
   const tableSatser = React.useMemo(
     () => ({
       ferie: values.feriePct,
@@ -239,6 +239,6 @@ export function useAarsloenViewModel() {
     // type. Det er den grænse, den tomme "Kritisk Fejl"-boks manglede: uden den er sidens context-type
     // inferensen selv, og en forkert typet besked har intet at afvige fra. Et efterstillet `satisfies
     // PageMessageFields<…>` ville derimod indsnævre literalen til KUN besked-felterne, så `fields`/`locations`
-    // blev excess-property-fejl — constrainten er det rigtige sted for kontrollen.
+    // blev excess-property-fejl – constrainten er det rigtige sted for kontrollen.
   });
 }

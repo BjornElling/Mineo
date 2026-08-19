@@ -90,7 +90,7 @@ describe('isAmountValueStrict', () => {
   });
 
   it('objekt med ukendt kind → kaster i DEV (invariant)', () => {
-    // isAmountValueStrict kaster i DEV-mode ved ukendt kind — det er intentionelt (fail-loud)
+    // isAmountValueStrict kaster i DEV-mode ved ukendt kind – det er intentionelt (fail-loud)
     expect(() => isAmountValueStrict({})).toThrow();
   });
 

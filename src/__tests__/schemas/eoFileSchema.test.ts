@@ -20,7 +20,7 @@ describe('eoFileDataSchema', () => {
   it('null → fejler (nullToUndefinedDeep gør null til undefined, og objekt-schemaet kræver et objekt)', () => {
     // `nullToUndefinedDeep(null)` returnerer `undefined`; det indre `z.object(...).strict()`
     // er ikke optional, så `undefined` afvises. Tidligere asserterede testen kun at resultatet
-    // var en boolean (altid sandt) — en false-green der ikke fangede nogen adfærd.
+    // var en boolean (altid sandt) – en false-green der ikke fangede nogen adfærd.
     const result = eoFileDataSchema.safeParse(null);
     expect(result.success).toBe(false);
   });
@@ -31,7 +31,7 @@ describe('eoFileDataSchema', () => {
   });
 
   it('afledt/ukendt felt INDE i en sektion → fejler (derived-not-persisted, fail-closed)', () => {
-    // Kontrakt: en `.eo`-fil må kun indeholde schema-defineret brugerinput — aldrig afledte
+    // Kontrakt: en `.eo`-fil må kun indeholde schema-defineret brugerinput – aldrig afledte
     // værdier (genberegnes efter load). Save-schemaet er strict også PR. SEKTION, så et felt
     // der ligner et afledt resultat (her `derivedTotalOre`) afvises med `unrecognized_keys`
     // frem for at blive gemt. Det er den strukturelle garanti mod stille persistering af

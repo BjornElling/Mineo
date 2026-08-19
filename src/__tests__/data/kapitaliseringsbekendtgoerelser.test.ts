@@ -28,7 +28,7 @@ const readKapitaliseringsTabelFilnavne = (): string[] => {
 };
 
 describe('kapitaliseringsbekendtgørelser', () => {
-  it('max-dato dækker mindst indeværende kalenderår — fejler hvis data ikke opdateres årligt', () => {
+  it('max-dato dækker mindst indeværende kalenderår – fejler hvis data ikke opdateres årligt', () => {
     const currentYear = new Date().getFullYear();
     expect(eetKapitaliseringsDatoMaxFraBekendtgoerelser >= `${currentYear}-01-01`).toBe(true);
   });

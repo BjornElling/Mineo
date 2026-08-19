@@ -10,15 +10,15 @@ import type {
 
 // INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5, design §1.10/§3.9): en beregningsmotor må
 // ALDRIG kaldes, når en af DENS EGNE afhængigheder har en rød feltfejl. Readeren maskerer en rød værdi til
-// `undefined`, så et motorkald ville regne på et FALSK input — fx kan en rød EAL-årsløn ellers falde tilbage
+// `undefined`, så et motorkald ville regne på et FALSK input – fx kan en rød EAL-årsløn ellers falde tilbage
 // til ASL-årslønnen (`eetEalCalculation.ts:184-193`) og rapportere `source: 'asl'`, som om feltet var tomt.
 //
 // Testene spionerer på de FAKTISKE motorer i stedet for kun at tjekke outputtet. Et `computation: null` kan
-// nemlig også opstå, fordi motoren kørte og selv gav op — det ville ikke bevise gaten. `not.toHaveBeenCalled()`
+// nemlig også opstå, fordi motoren kørte og selv gav op – det ville ikke bevise gaten. `not.toHaveBeenCalled()`
 // beviser den strukturelt.
 //
 // Lige så vigtigt: gaten må ikke OVERBLOKERE. Hver test parres derfor med, at den UAFHÆNGIGE gruppes motor
-// stadig kaldes præcis én gang (§1.10 — uafhængige consumers fortsætter).
+// stadig kaldes præcis én gang (§1.10 – uafhængige consumers fortsætter).
 
 const asAmount = (value: number) => ({ kind: 'number' as const, value });
 

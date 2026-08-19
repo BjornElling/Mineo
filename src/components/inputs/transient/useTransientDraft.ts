@@ -43,7 +43,7 @@ export type UseTransientDraftConfig<T> = Readonly<{
   }>;
   /**
    * Feltfamiliens tegn- og længdeprædikat (§1.2). Håndhæves i `onDraftChange` og er derved uafhængigt af
-   * indtastningsmodaliteten — et keydown-filter alene virker ikke på mobile skærmtastaturer, som skriver
+   * indtastningsmodaliteten – et keydown-filter alene virker ikke på mobile skærmtastaturer, som skriver
    * direkte i `<input>` uden en brugbar `keydown` (se `draftAdmission.ts`). Den transiente families
    * redigeringsflade følger BEVIDST det ordinære felts regler, så værnet skal også findes her.
    */
@@ -69,7 +69,7 @@ export type TransientDraftState = Readonly<{
 /**
  * Draft/commit-mekanik for et transient felt: draften ejes lokalt, committer på blur og Enter, og
  * Escape fortryder tilbage til den værdi, redigeringen startede fra. Mens feltet er fokuseret,
- * overskrives draften ikke af en ny `value` — ellers ville brugerens indtastning kunne blive
+ * overskrives draften ikke af en ny `value` – ellers ville brugerens indtastning kunne blive
  * trukket væk under fingrene.
  */
 export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): TransientDraftState => {
@@ -92,7 +92,7 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
   }
 
   // Den råtekst, der sidst blev forsøgt committet. Bruges til no-op-detektion, så en gentagen blur/Enter på en
-  // uændret draft ikke committer igen — uden at gøre den FØRSTE commit til en falsk no-op.
+  // uændret draft ikke committer igen – uden at gøre den FØRSTE commit til en falsk no-op.
   const draftAtLastCommitRef = React.useRef<string | null>(null);
 
   const latest = React.useRef({ draft, formatted, parse, onCommit, onReject, twoStageActivation, isOpen, isTwoStage, admission });
@@ -123,7 +123,7 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
     }
     doReject?.(raw, result.message);
     if (closeEditor && latest.current.isTwoStage) {
-      // Rejected tekst er den lukkede visning efter et ugyldigt settle — samme synlige regel som et
+      // Rejected tekst er den lukkede visning efter et ugyldigt settle – samme synlige regel som et
       // persisteret datofelt. Den må ikke erstattes af den forrige canonical værdi.
       latest.current = { ...latest.current, draft: raw, isOpen: false };
       setDraft(raw);
@@ -203,8 +203,8 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
         const restoredDraft = focusSnapshotRef.current ?? latest.current.formatted;
         const cancelsAnything = restoredDraft !== latest.current.draft
           || (latest.current.isTwoStage && latest.current.isOpen);
-        // ÉN Escape = ÉN handling (`keyboard-navigation.md`). Feltet slugte tasten ubetinget — også når
-        // der intet var at annullere — så en omgivende dialog eller et overlay aldrig kunne lukkes med
+        // ÉN Escape = ÉN handling (`keyboard-navigation.md`). Feltet slugte tasten ubetinget – også når
+        // der intet var at annullere – så en omgivende dialog eller et overlay aldrig kunne lukkes med
         // Escape, hvis fokus stod i et af dens felter. Et etttrins-felt er desuden ALTID «åbent», så
         // Escape derfra kunne pr. konstruktion aldrig nå fladen udenom.
         if (!cancelsAnything) return;

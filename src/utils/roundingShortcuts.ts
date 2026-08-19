@@ -25,6 +25,6 @@ export const ceil0 = (v: number): number => roundByMethod(v, 0, 'ceil');
  *
  * Semantik: ceil(v / 12) × 12. Garantier:
  * - -0-normalisering via roundByMethod (undgår -0 ved v = 0 eller v negativ nær 0)
- * - Konsistent med øvrige shortcuts — ingen direkte Math.ceil
+ * - Konsistent med øvrige shortcuts – ingen direkte Math.ceil
  */
 export const ceilNearest12 = (v: number): number => roundByMethod(v / 12, 0, 'ceil') * 12;

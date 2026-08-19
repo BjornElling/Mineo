@@ -21,7 +21,7 @@ const InterestRatesTable = React.memo(({ rows, dateColumnHeader = 'Rentedato', r
         ]}
         rows={rows.map((row, idx) => ({
           // Index-præfiks sikrer unikke keys selv hvis kilden indeholder to rækker med samme dato+sats
-          // (rækkerne er en statisk, positionel visningsliste — ingen add/remove/sort).
+          // (rækkerne er en statisk, positionel visningsliste – ingen add/remove/sort).
           key: `${idx}-${row.effectiveDate}`,
           cells: [row.effectiveDate, formatPercent(row.ratePct).replace('-', '- ')],
         }))}

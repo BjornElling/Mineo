@@ -13,9 +13,9 @@ export const millisecondDayCountRule = forbidTextPatterns({
   liveTarget: SOURCE_SCOPE,
   allow: ['src/utils/utcDayMath.ts'],
   patterns: [
-    { pattern: /\/\s*86400000\b/, message: 'Millisekunddivision til dagoptælling — brug countInclusiveUtcDays eller en anden kanonisk UTC-daghjælper.' },
-    { pattern: /\/\s*\(\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000\s*\)/, message: 'Millisekunddivision til dagoptælling — brug countInclusiveUtcDays eller en anden kanonisk UTC-daghjælper.' },
-    { pattern: /\/\s*\(\s*1000\s*\*\s*60\s*\*\s*60\s*\*\s*24\s*\)/, message: 'Millisekunddivision til dagoptælling — brug countInclusiveUtcDays eller en anden kanonisk UTC-daghjælper.' },
+    { pattern: /\/\s*86400000\b/, message: 'Millisekunddivision til dagoptælling – brug countInclusiveUtcDays eller en anden kanonisk UTC-daghjælper.' },
+    { pattern: /\/\s*\(\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000\s*\)/, message: 'Millisekunddivision til dagoptælling – brug countInclusiveUtcDays eller en anden kanonisk UTC-daghjælper.' },
+    { pattern: /\/\s*\(\s*1000\s*\*\s*60\s*\*\s*60\s*\*\s*24\s*\)/, message: 'Millisekunddivision til dagoptælling – brug countInclusiveUtcDays eller en anden kanonisk UTC-daghjælper.' },
   ],
   violatingFixtures: [
     { relativePath: 'src/domain/x.ts', code: 'const days = diffMs / 86400000;' },
@@ -31,8 +31,8 @@ export const materializedDayCountRule = forbidTextPatterns({
   description: 'Et helt ISO-datointerval må ikke materialiseres alene for at tælle dagene.',
   liveTarget: SOURCE_SCOPE,
   patterns: [
-    { pattern: /collectIsoDatesInclusive\([^)]*\)\.length/, message: 'Materialiseret datointerval bruges kun til optælling — brug den kanoniske dagtæller.' },
-    { pattern: /buildIsoDateSetInclusive\([^)]*\)\.size/, message: 'Materialiseret datosæt bruges kun til optælling — brug den kanoniske dagtæller.' },
+    { pattern: /collectIsoDatesInclusive\([^)]*\)\.length/, message: 'Materialiseret datointerval bruges kun til optælling – brug den kanoniske dagtæller.' },
+    { pattern: /buildIsoDateSetInclusive\([^)]*\)\.size/, message: 'Materialiseret datosæt bruges kun til optælling – brug den kanoniske dagtæller.' },
   ],
   violatingFixtures: [
     { relativePath: 'src/domain/x.ts', code: 'const days = collectIsoDatesInclusive(from, to).length;' },
@@ -49,7 +49,7 @@ export const manualDayLoopRule = forbidTextPatterns({
   allow: ['src/utils/isoDateHelpers.ts'],
   patterns: [{
     pattern: /while\s*\([^)]*(?:<=|<)[^)]*\)\s*{[\s\S]{0,1200}\.setUTCDate\([^)]*\.getUTCDate\(\)\s*\+\s*1\s*\)/,
-    message: 'Håndskrevet dag-for-dag-løkke — brug iterateDatesInclusive eller en anden kanonisk datohjælper.',
+    message: 'Håndskrevet dag-for-dag-løkke – brug iterateDatesInclusive eller en anden kanonisk datohjælper.',
   }],
   violatingFixtures: [{
     relativePath: 'src/domain/x.ts',

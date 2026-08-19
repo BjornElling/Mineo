@@ -5,7 +5,7 @@
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
 **Senest verificeret mod kode:** 2026-08-19 (§1.2a punkt 7 er PRÆCISERET og målt: tilstandsuafhængighed er
 kravet, ikke identitet med tastning. Datofamiliens segmentfordeling er bevaret, jf. brugerens afgørelse af
-BB-003, men den afgøres nu af, om paste'en efterlader noget af brugerens tekst — ikke af om editoren er
+BB-003, men den afgøres nu af, om paste'en efterlader noget af brugerens tekst – ikke af om editoren er
 åben. `resolvePasteContextDraft` ejer beslutningen ét sted for alle tre paste-surfaces, og
 `pasteSplice.test.ts` måler, at et tomt og et fuldt markeret felt giver samme resultat. Baggrund: BB-042)
 2026-08-18 (§1.2a punkt 7 og §2.9 er implementeret og målt: års- og
@@ -22,7 +22,7 @@ feltfamilier: `maxLength`/`maxDigits` er påkrævet i codec-typen, og
 paste faktisk afkortes. Målingen fandt forinden 28 af 31 tekstfelter og 8 af 12 heltalsfelter helt uden
 grænse; §2.5 og §2.8 bærer nu de brugergodkendte tal. §1.1a's totrins-krav for de TRANSIENTE felter er
 målt af `useTransientDraft.test.tsx`: et lukket felt er `readOnly` ved første klik og åbnes først ved
-det andet, et lovligt starttegn erstatter værdien, og Escape-XOR'en er målt fra begge sider — lukket
+det andet, et lovligt starttegn erstatter værdien, og Escape-XOR'en er målt fra begge sider – lukket
 felt lader tasten passere til den omgivende dialog, åben editor annullerer indtastningen)
 2026-08-12 (§4.6a er dækket i alle desktopbrowsere af
 `e2e/svie-smerte-satsaar-button.spec.ts`; §1.2's modalitets-uafhængighed er målt i browser og dækket af
@@ -39,18 +39,18 @@ feltspecifik regel fra dette dokument.
 De kendte afvigelser mellem denne kontrakt og den aktuelle implementering er registreret i
 `docs/brugerfund-der-skal-rettes.md`.
 
-**Ændring 2026-08-09 — tegn- og længdeblokering afløser det tidligere fulde-længde-princip.** Kontrakten
+**Ændring 2026-08-09 – tegn- og længdeblokering afløser det tidligere fulde-længde-princip.** Kontrakten
 byggede tidligere på, at enhver værdi skulle kunne indtastes og indsættes i sin fulde længde, og at en
 afkortning derfor var et datatab. Det princip er ophævet. Et felt skal nu effektivt blokere tegn og længde, der
 ikke passer feltets grænser, og paste skal behandles præcis som tastning med identisk afgrænsning. Ændringen
 har tre konkrete følger, som er indarbejdet nedenfor:
 
 1. Beløbsfelter rummer højst 7 heltalscifre og 2 decimaler (`±9.999.999,99`), jf. §2.2.
-2. Procentfelter rummer højst 3 heltalscifre og — hvor feltet tillader decimaler — 2 decimaler, jf. §2.3.
+2. Procentfelter rummer højst 3 heltalscifre og – hvor feltet tillader decimaler – 2 decimaler, jf. §2.3.
 3. Særreglen om, at `Forlig om ansvarsgrad → Procent` blokerede indtastning over 100 %, er ophævet; feltet
    følger nu hovedreglen, jf. §4.10 og §8.
 
-Blokeringen omfatter tegnsæt og længde — ikke talværdi. Range-, kronologi- og domænegrænser bevares fortsat som
+Blokeringen omfatter tegnsæt og længde – ikke talværdi. Range-, kronologi- og domænegrænser bevares fortsat som
 canonical værdi med rød ring, konkret tooltip og blokeret download, præcis som hidtil.
 
 Ciffergrænserne er **lofter, ikke tilladelser**: et felt med færre cifre, et lavere maksimum, forbud mod
@@ -58,11 +58,11 @@ negative beløb eller krav om fx delelighed med 1.000 beholder sin strengere reg
 
 **Reglen gælder KUN felter, brugeren skriver i.** Den begrænser indtastning, ikke programmets efterfølgende
 beregninger. Indtaster brugeren lønbeløb tæt på 7-ciffergrænsen i flere rækker, er den beregnede sum større end
-ethvert enkeltbeløb — det er korrekt og accepteret. Beregnede, afledte og sammentalte værdier er ikke omfattet
+ethvert enkeltbeløb – det er korrekt og accepteret. Beregnede, afledte og sammentalte værdier er ikke omfattet
 af nogen ciffergrænse i denne kontrakt, jf. §1.2.
 
 For procent gælder desuden en **formodningsregel**: et procent-inputfelt har maksimum 100 %, medmindre feltet
-udtrykkeligt angiver andet. Formodningen kan fraviges i begge retninger — méngrad går til 120 % — men den
+udtrykkeligt angiver andet. Formodningen kan fraviges i begge retninger – méngrad går til 120 % – men den
 ændrer aldrig antallet af tilladte cifre, som altid er højst 3 før kommaet og 2 efter. Beregnede procenter, fx
 indeksværdier ved regulering af TAF, kan lovligt overstige 100 % og er slet ikke omfattet.
 
@@ -81,12 +81,12 @@ indeksværdier ved regulering af TAF, kan lovligt overstige 100 % og er slet ikk
 - Manglende værdi er ikke automatisk en rød feltfejl. Om tomhed giver en samlet fejl, en gul advarsel eller ingen
   feedback, afgøres af det konkrete felt og den consumer, der kræver værdien.
 
-### 1.1a Totrins-aktivering — universelt, også for transiente felter
+### 1.1a Totrins-aktivering – universelt, også for transiente felter
 
 Et felt åbnes i **to trin**: første klik fokuserer feltet, andet klik (eller et lovligt starttegn, eller
 Delete/Backspace) åbner editoren. Et lukket felt er `readOnly`, viser ingen caret og bruger peger-markør.
 
-Reglen gælder **alle** redigerbare felter — også de transiente (overlay-/dialog-scratchfelter, som ikke
+Reglen gælder **alle** redigerbare felter – også de transiente (overlay-/dialog-scratchfelter, som ikke
 er sagsdata). Transiensen angår, hvor værdien lever, ikke hvordan feltet tager imod: to felter side om
 side i samme lille vindue må ikke opføre sig forskelligt. `TransientAmountInput` var som det eneste
 ettrins og stod netop ved siden af et totrins `TransientDateInput` i «Find løntrin».
@@ -109,15 +109,15 @@ med feltets erklærede tegnsæt og maksimale længde:
 `input`-event, og den `keydown`, der eventuelt følger, bærer `key === 'Unidentified'`, som et tegnfilter skal
 lade passere for ikke at forstyrre IME/composition. Det var den faktiske tilstand indtil 2026-08-10: hele
 tegn- og længdeværnet var fraværende på mobil, og `21-1111111-2026` kunne stå i et datofelt, som desktop
-afviste. Værnet skal derfor ligge på draft-ændringen (`onDraftChange`) — den ene kanal, enhver modalitet
-passerer — med feltfamiliens prædikat som kilde; et keydown-filter må kun være et EKSTRA, caret-bevarende
+afviste. Værnet skal derfor ligge på draft-ændringen (`onDraftChange`) – den ene kanal, enhver modalitet
+passerer – med feltfamiliens prædikat som kilde; et keydown-filter må kun være et EKSTRA, caret-bevarende
 værn afledt af samme prædikat. Prædikaterne bor i `src/components/inputs/draftAdmission.ts`.
 
 1. Et tegn, som feltets tegnsæt ikke tillader, kommer ikke ind i feltet. Det gælder både tastning og paste.
 2. Et tegn ud over feltets maksimale antal tegn, cifre eller decimaler kommer ikke ind i feltet. Det gælder
    både tastning og paste.
 3. Blokeringen er tavs: den afviste tastning giver ingen rød ring, ingen fejltekst og ingen tooltip, fordi der
-   ikke er opstået nogen fejltilstand — tegnet blev aldrig en del af værdien.
+   ikke er opstået nogen fejltilstand – tegnet blev aldrig en del af værdien.
 4. Reglen gælder **kun felter, brugeren skriver i**. Den er en grænse for indtastning, ikke for programmets
    efterfølgende beregninger.
 
@@ -126,7 +126,7 @@ længdegrænse, der bryder en aktiv range-, kronologi- eller anden domænegræns
 indtastningen: den bevares som canonical værdi og markeres rødt med konkret tooltip efter §1.1. En méngrad på
 `121` eller en dato uden for feltets grænser skal fortsat kunne indtastes og fortsat give en synlig rød fejl.
 
-**Ciffergrænserne gælder brugerens indtastning — ikke programmets beregninger.** Det er den vigtigste
+**Ciffergrænserne gælder brugerens indtastning – ikke programmets beregninger.** Det er den vigtigste
 afgrænsning af hele reglen, og den skal læses med i hver enkelt ciffergrænse i §2. En beregnet, afledt,
 sammenlagt eller opreguleret værdi må frit overskride den grænse, der gælder for det felt, den stammer fra:
 
@@ -169,10 +169,10 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
    med punkt 5. Begge fortolkere er fjernet; de to familier bruger nu det samme tegn-for-tegn-filter som
    beløb, procent og brøk.
 
-   **Tilstandsuafhængighed er kravet — ikke identitet med tastning.** Punktet forbød indtil 2026-08-19
+   **Tilstandsuafhængighed er kravet – ikke identitet med tastning.** Punktet forbød indtil 2026-08-19
    ENHVER paste-only normalisering, der læser hele teksten på én gang. Den formulering var for bred og
    modsagde brugerens egen afgørelse af BB-003 samme uge (`docs/testing/brugerblik/stamdata.md`, 2026-08-16): **indsættelse må gerne
-   være mere tolerant end tastning.** Tastning må ikke begynde at tolke på det tredje ciffer — `16` kan
+   være mere tolerant end tastning.** Tastning må ikke begynde at tolke på det tredje ciffer – `16` kan
    være både den 16. og den 1. juni, og en automatisk separator ville låse den usikre fortolkning fast.
    Indsættelse kender derimod hele teksten på én gang, og kan den uomtvisteligt opløses til én sikker
    værdi, skal programmet gøre det.
@@ -183,7 +183,7 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
      segmentfordeling (`010623` → `01-06-23`, `normalizeDatePaste`) er den ene, der findes, og den er bevaret
      med vilje.
    - **Forbudt:** at samme paste giver to forskellige resultater. Fortolkningen afgøres af, om paste'en
-     efterlader noget af brugerens eksisterende tekst — ikke af om editoren er åben. Et lukket felt og en åben
+     efterlader noget af brugerens eksisterende tekst – ikke af om editoren er åben. Et lukket felt og en åben
      draft med hele teksten markeret (Ctrl+A) er den SAMME situation og skal give det samme resultat.
      Beslutningen ejes af `resolvePasteContextDraft` (`inputCore/react/pasteSplice.ts`) og må ikke gentages
      som en egen betingelse på et kaldssted.
@@ -197,7 +197,7 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
    - Et årsfelt, der får en dato indsat (`01-02-2026`), optager de fire første cifre (`0102` → 102) og
      markeres rødt. Præcis som hvis brugeren havde tastet tegnene selv.
    - Cifre samles på tværs af sprungne tegn: `2.026` bliver `2026`. Det er reglens tilsigtede virkning.
-   - Et paste kan efterlade en draft, som settle afviser. Det er det rigtige udfald efter punkt 5 — bedre
+   - Et paste kan efterlade en draft, som settle afviser. Det er det rigtige udfald efter punkt 5 – bedre
      end en pæn værdi, brugeren ikke kunne have tastet sig frem til.
    - En paste, der indsættes MIDT i en draft eller erstatter kun en del af den, får ikke
      familie-normaliseringen: der er en eksisterende kontekst at splice ind i, og en normalisering fra tom
@@ -254,7 +254,7 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 - `12-2-2026` er gyldigt input og formateres først ved Enter, blur eller lukket-felt-paste til `12-02-2026`.
 - **En indsættelse, der erstatter hele værdien, fordeles i segmenterne dag/måned/år.** `010623` bliver
   derfor draften `01-06-23` (og `01-06-2023` ved settle), mens de samme tegn TASTET bliver `01` og markeres
-  rødt. Forskellen er tilsigtet — brugerens afgørelse af BB-003, 2026-08-16 — fordi indsættelse kender hele
+  rødt. Forskellen er tilsigtet – brugerens afgørelse af BB-003, 2026-08-16 – fordi indsættelse kender hele
   teksten på én gang, mens tastning ikke må gætte på det tredje ciffer. Fordelingen gælder både et lukket
   felt og en åben draft, hvor alt er markeret (Ctrl+A): de to er samme situation og skal give samme resultat
   (§1.2a punkt 7, BB-042). En indsættelse midt i en draft splices derimod ind tegn for tegn.
@@ -268,7 +268,7 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 
 **Hvert datofelt SKAL erklære sine grænser, og erklæringen SKAL være håndhævet.** Reglen ovenfor er ikke ny;
 det var bindingen, der manglede. `src/config/dateRanges.ts` deklarerede grænser, mens hver validator blev
-skrevet i hånden på sin egen descriptor — så et felt havde grænser præcis hvis nogen huskede dem. Målingen
+skrevet i hånden på sin egen descriptor – så et felt havde grænser præcis hvis nogen huskede dem. Målingen
 2026-08-09 fandt 31 af 54 datofelter, der accepterede både år 1900 og år 2100 uden ét issue.
 
 - Grænserne erklæres som `dateBounds(spec)` (`src/inputCore/catalog/dateBoundsValidators.ts`), der leverer
@@ -278,7 +278,7 @@ skrevet i hånden på sin egen descriptor — så et felt havde grænser præcis
 - Et felt uden reelle grænser skal fravælges AKTIVT med `unconstrainedDateBounds('<begrundelse>')`.
 - Håndhæves af `src/__tests__/inputCore/dateFieldsDeclareBounds.test.ts`, som måler ADFÆRD: hvert datofelt
   i produktionskataloget skal faktisk afvise en dato uden for sine egne erklærede grænser. En erklæring,
-  ingen validator læser, er derfor rød — ikke grøn.
+  ingen validator læser, er derfor rød – ikke grøn.
 
 ### 2.2 Beløbsfelter og beløbsudtryk
 
@@ -300,7 +300,7 @@ For de gennemgåede beløbsfelter er følgende regler bindende:
 
 **Beløbsgrænsen: højst 7 heltalscifre og 2 decimaler.**
 
-- Et beløbsfelt kan rumme højst 7 heltalscifre og — hvor feltet tillader decimaler — derudover 2 decimaler.
+- Et beløbsfelt kan rumme højst 7 heltalscifre og – hvor feltet tillader decimaler – derudover 2 decimaler.
   Største beløb er dermed `9.999.999,99`. Et negativt beløbsfelt skal have plads til den tilsvarende negative
   værdi, altså de samme 9 cifre plus et foranstillet minustegn: mindste beløb er `-9.999.999,99`.
 - Grænsen håndhæves som en **længderegel pr. talled**: det 8. heltalsciffer og den 3. decimal i et talled
@@ -334,7 +334,7 @@ aldrig en grænse, feltet allerede har:
 
 - Procentfelter accepterer cifre og dansk komma. Punktum, mellemrum, procenttegn og øvrige ikke-tilladte tegn
   blokeres ved tastning og springes over tegn for tegn ved paste.
-- Et procentfelt kan rumme højst 3 heltalscifre og — hvor feltet tillader decimaler — derudover 2 decimaler.
+- Et procentfelt kan rumme højst 3 heltalscifre og – hvor feltet tillader decimaler – derudover 2 decimaler.
   Det 4. heltalsciffer og den 3. decimal kommer ikke ind i feltet, hverken ved tastning eller paste.
 - Et afsluttende komma færdiggøres ved settle med to decimaler; afsluttede procentværdier vises med to decimaler,
   når feltet bruger decimalrepræsentation.
@@ -359,7 +359,7 @@ den har betydning for resultatet.
   `varigemen-contract.md` §5–6, som ejer reglen. `121` committes canonical med rød range-markering og blokerer
   engine og PDF.
 - **Formodningen ændrer aldrig antallet af tilladte cifre.** Et procent-inputfelt rummer altid højst 3
-  heltalscifre og — hvor decimaler er tilladt — 2 decimaler, uanset om feltets maksimum er 100, 120 eller
+  heltalscifre og – hvor decimaler er tilladt – 2 decimaler, uanset om feltets maksimum er 100, 120 eller
   lavere. Et lavere maksimum giver ikke færre cifre, og en fravigelse opad giver ikke flere. De to regler er
   uafhængige: cifrene er en længdeblokering ved indtastningen, maksimum er en talværdigrænse, der bliver til
   en canonical rød fejl.
@@ -403,7 +403,7 @@ brugeren skriver i, jf. §1.2:
 
 **Hvert tekstfelt SKAL erklære sin maksimumlængde, og erklæringen SKAL være håndhævet.** Reglen er ikke
 ny; det var bindingen, der manglede. `maxLength` var en valgfri parameter, og målingen 2026-08-15 fandt
-28 af 31 tekstfelter uden nogen grænse overhovedet — heriblandt `Skadelidte`, `Journalnr.`, `Advokat`,
+28 af 31 tekstfelter uden nogen grænse overhovedet – heriblandt `Skadelidte`, `Journalnr.`, `Advokat`,
 `Sagsbehandler`, `Særlige kommentarer` og alle syv bilagsnumre-felter. En indsat tekst på 50.000 tegn gik
 uændret ind i sagen og blev gemt. Det er samme fejlmåde som datofelternes manglende grænser (§2.1).
 
@@ -416,7 +416,7 @@ uændret ind i sagen og blev gemt. Det er samme fejlmåde som datofelternes mang
   `Kommentarer` 512 (§3.4).
 - Håndhæves af `src/__tests__/inputCore/fieldCharLengthPolicy.test.ts`, som måler ADFÆRD: for hvert felt
   i produktionskataloget skal et for langt paste faktisk blive afkortet. En erklæring, ingen flade læser,
-  er derfor rød — ikke grøn.
+  er derfor rød – ikke grøn.
 
 ### 2.6 Dropdowns
 
@@ -435,7 +435,7 @@ uændret ind i sagen og blev gemt. Det er samme fejlmåde som datofelternes mang
 
 Reglen præciserer punktet ovenfor for den ene situation, hvor den ellers kunne læses på to måder: når
 brugeren bladrer med bogstavtasten i en LUKKET dropdown. `Arbejdssituation` har fire valgmuligheder, der
-begynder med F, og fire tryk på `f` giver derfor fire fortryd-trin — ikke ét. Det ER den ønskede adfærd:
+begynder med F, og fire tryk på `f` giver derfor fire fortryd-trin – ikke ét. Det ER den ønskede adfærd:
 hvert tryk sætter en ny, fuldgyldig værdi på feltet, og brugeren skal kunne gå tilbage til hver enkelt af
 dem. «Bladringen» er ikke én sammensat handling med et mellemresultat; den er en række selvstændige valg.
 
@@ -466,7 +466,7 @@ history-trin for en bogstav-cykling. Samme regel gælder radiogrupper, se §2.7.
 **Hvert tastetryk, der ændrer det valgte i en radiogruppe, er sin egen handling i undo/redo**
 (brugerbeslutning 2026-08-15). Det er ordret samme regel som for dropdowns, §2.6, og den gælder uanset
 hvilken tast der udløste valget: pil, Enter eller mellemrum. Flytter brugeren med piletasten gennem en
-gruppe med tre valgmuligheder, opstår der tre fortryd-trin — ikke ét. Hvert tryk sætter en ny, fuldgyldig
+gruppe med tre valgmuligheder, opstår der tre fortryd-trin – ikke ét. Hvert tryk sætter en ny, fuldgyldig
 værdi på feltet, og brugeren skal kunne gå tilbage til hver enkelt af dem.
 
 Afgrænsningerne fra §2.6 gælder uændret: det er ÆNDRINGEN og ikke tastetrykket, der tæller, så en tast,
@@ -477,7 +477,7 @@ undo-trin». Håndhæves sammen med dropdownens ben af
 
 ### 2.8 Heltalsfelter
 
-- Et heltalsfelt accepterer kun cifre og — hvor feltet er angivet som negativt tilladt — et foranstillet
+- Et heltalsfelt accepterer kun cifre og – hvor feltet er angivet som negativt tilladt – et foranstillet
   minus. Punktum, komma, mellemrum og øvrige tegn blokeres ved tastning og springes over ved paste.
 - **Hvert heltalsfelt SKAL erklære sit cifferloft.** `maxDigits` var en valgfri parameter, og målingen
   2026-08-15 fandt 8 af 12 heltalsfelter uden nogen grænse: `Méngrad` (hvis eget maksimum er 120) og
@@ -487,7 +487,7 @@ undo-trin». Håndhæves sammen med dropdownens ben af
   2026-08-15). `Méngrad` 1–120 giver 3 cifre, `Tilkendt for periode` 1–10 giver 2, `Antal feriedage`
   0–99 giver 2. Udledningen er ikke kosmetisk: den gør det umuligt for indtastningsgrænsen og
   talværdigrænsen at komme fra hinanden, hvis maksimum senere ændres.
-- **Felter uden øvre domænemaksimum — i praksis «antal dage»-felterne — har 4 cifre** (op til 9999 dage).
+- **Felter uden øvre domænemaksimum – i praksis «antal dage»-felterne – har 4 cifre** (op til 9999 dage).
   Det gælder `Uspecificerede ferie-/fridage`, `Øvrige fraværsdage`, `Løse feriedage` og `Fraværsdage uden
   løn i referenceperioden`.
 - **Cifferloftet er en LÆNGDEregel og løsner aldrig feltets talværdigrænse.** En værdi inden for
@@ -506,7 +506,7 @@ bærende regel, og nedenstående er dens feltspecifikke følger.
 - Et årsfelt accepterer kun cifre, højst fire. Alt andet blokeres ved tastning og springes over ved paste.
 - Tocifrede årstal fortolkes ved settle efter den ene gennemgående regel for hele programmet
   (`interpretYear`: femårs-vinduet omkring indeværende år afgør århundredet). Et felt må ikke have sin
-  egen årsfortolkning — afgjort 2026-08-16 på BB-009.
+  egen årsfortolkning – afgjort 2026-08-16 på BB-009.
 - **Årsgrænserne (`minYear`/`maxYear`) er bounds, ikke et tegnværn.** De må aldrig afkorte eller ændre
   den indtastede eller indsatte tekst for at bringe den inden for intervallet. Et velformet årstal uden
   for intervallet committes canonical og bærer et bounds-feltissue med rød ring og konkret tooltip
@@ -521,7 +521,7 @@ bærende regel, og nedenstående er dens feltspecifikke følger.
   separator-pladsen, hvorefter det ægte `/` blev ulovligt (kun én separator tillades), og resultatet
   ` 2320` blev afvist. Nu springes mellemrummet som ethvert andet ulovligt tegn, og teksten bliver
   `23/2025`.
-- Den tilsigtede pris: `23 2025` kan ikke længere tastes eller indsættes med mellemrum — cifrene løber
+- Den tilsigtede pris: `23 2025` kan ikke længere tastes eller indsættes med mellemrum – cifrene løber
   sammen til `232025` og afvises. Det samme gælder `Uge 7 2019`. Brugeren skal bruge en af de fem
   separatorer.
 - **Separatorsættet er ÉN erklæring**, som både tegnværnet og settle-parseren læser
@@ -872,7 +872,7 @@ når adfærden implementeres:
   gyldig periode.
 - Tegn- og længdeblokeringen i §1.2 er ikke en undtagelse fra fejlmodellen, men dens forudsætning: fordi et
   ulovligt eller overskydende tegn aldrig kommer ind i feltet, kan det heller ikke give en fejltilstand. Alle
-  intervalgrænser — også procentfelters — bevares derimod som canonical værdi med rød fejl. Der er ingen
+  intervalgrænser – også procentfelters – bevares derimod som canonical værdi med rød fejl. Der er ingen
   felter med indtastningsblokering på talværdi; den tidligere særregel for `Forlig om ansvarsgrad → Procent`
   er ophævet.
 - Beløbsudtryk er den ene nuance i §1.2: udtrykkets enkelte talled længdebegrænses tegn for tegn, mens et
@@ -881,7 +881,7 @@ når adfærden implementeres:
 - Tekst- og heltalsfelters grænser (§2.5, §2.8) er PÅKRÆVEDE erklæringer på codec'et, ikke valgfri
   konfiguration. De blokerer tegn og længde; feltets talværdi- og domænegrænser er uberørte og bliver
   fortsat til canonical røde fejl.
-- Ciffergrænserne i §2.2 og §2.3 er lofter, ikke tilladelser. De løsner aldrig en strengere feltregel — færre
+- Ciffergrænserne i §2.2 og §2.3 er lofter, ikke tilladelser. De løsner aldrig en strengere feltregel – færre
   cifre, lavere maksimum, forbud mod negative beløb, krav om delelighed.
 - **Beregnede værdier er ikke omfattet af nogen ciffergrænse.** Rækkesummer, årstotaler, kapitaliserede beløb
   og opregulerede satser må frit overskride det inputfelt, de stammer fra. Grænsen for et beregnet beløb er

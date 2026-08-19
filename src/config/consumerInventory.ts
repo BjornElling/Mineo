@@ -2,18 +2,18 @@
  * Maskinlæsbart COVERAGE-REGISTER over appens låste makro-entrypoints: beregningsentries, sagsfilstier og
  * dokumentoutputs.
  *
- * **Registret er levende og load-bearing — det er ikke et migrationsinventar.** Det blev oprettet
+ * **Registret er levende og load-bearing – det er ikke et migrationsinventar.** Det blev oprettet
  * som et midlertidigt backstop under omlægningen og var beskrevet som noget, der skulle slettes bagefter. Det
  * blev det ikke, og skal det ikke: `npm run verify:ledgers` er en del af `verify:release`, og registret er det
  * ENESTE sted, hvor "alle 18 dokumentoutputs" og "alle 8 beregningsentries" findes som en opregnelig mængde.
  * `documentGatePreflightParity`, `documentCatalogCompleteness` og acceptregistret måler dækning MOD den mængde.
- * Slettes registret som "midlertidigt", forsvinder dermed completeness-kravet — ikke kun en note.
+ * Slettes registret som "midlertidigt", forsvinder dermed completeness-kravet – ikke kun en note.
  *
  * Dets levende formål er drift-detektion: et nyt entrypoint, der ikke registreres, gør gaten rød, og et
  * registreret symbol, der forsvinder, ligeså.
  *
  * Registret er ikke en runtime-router og må ikke blive en parallel autoritet for beregning eller dokumenter:
- * det opregner, hvad der findes — det afgør ikke, hvad der sker.
+ * det opregner, hvad der findes – det afgør ikke, hvad der sker.
  */
 export type InventoryEntry = Readonly<{
   id: string;
@@ -26,7 +26,7 @@ export type ConsumedInventoryEntry = InventoryEntry & Readonly<{
 }>;
 
 /**
- * Consumeren er den fil, der FAKTISK kalder entrypointet — nu er det fagsidens ene kanoniske
+ * Consumeren er den fil, der FAKTISK kalder entrypointet – nu er det fagsidens ene kanoniske
  * viewmodel (`page-component-contract.md` §4.4), ikke page-komponenten, som nu er ren sektions-komposition.
  * Renteberegning og Varige mén pegede allerede på deres fane, fordi beregningen bor dér; formen er den samme.
  * Et anker på page-filen ville være rødt af den forkerte grund og skjule, hvor kaldet er.
@@ -103,7 +103,7 @@ export const CONSUMER_CASE_FILE_PATHS = [
     consumers: ['src/hooks/useFileSaveLoad.ts'],
   },
   // Load-apply er nu delt i to funktioner, men er fortsat ÉN sagsfil-vej. Inventaret peger på
-  // den AUTORITATIVE halvdel — den, der erstatter sagen inde i replacement-barrieren. Den asynkrone
+  // den AUTORITATIVE halvdel – den, der erstatter sagen inde i replacement-barrieren. Den asynkrone
   // `synchronizeLoadMetadata` er ikke en sagsfil-vej men en efterfølgende metadata-synkronisering, og at
   // give den en femte post ville sige, at der findes fem veje til sagsfilen. Dens eneste consumer er
   // dækket af `useFileSaveLoad`s egne tests og af typegrænsen (den er ikke valgfri på load-stien).
@@ -120,7 +120,7 @@ export const CONSUMER_CASE_FILE_PATHS = [
  *
  * Tidligere pegede hver post på en `download*Dokument`-funktion i `documentService.ts`. Det modul
  * findes ikke længere: dokument-livscyklussen er ét objekt pr. output, og definitionen bor ved sin
- * domænegrænse (`document-output-contract.md` §A1.2/§A7.1). Symbolet her er derfor definitionen —
+ * domænegrænse (`document-output-contract.md` §A1.2/§A7.1). Symbolet her er derfor definitionen –
  * det ene sted, hvor outputtets dependencies, gate og generatorkald er samlet.
  *
  * Standalone MinProcesrentes tre outputs står bevidst IKKE her: dette inventar dækker hovedappen.

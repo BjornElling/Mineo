@@ -60,11 +60,11 @@ const buildLegacyPartialFile = async (page: Page): Promise<Buffer> => {
 //
 // Fravalget står på `describe` og ikke i den enkelte test. Playwright afgør en describe-betinget skip
 // FØR fixturerne bygges, mens et `test.skip(...)` inde i testkroppen først rammer, når browseren og
-// siden allerede er startet — seks unødvendige browserkontekster pr. kørsel for to tests, der aldrig
+// siden allerede er startet – seks unødvendige browserkontekster pr. kørsel for to tests, der aldrig
 // skulle have kørt der.
 test.describe('Filvalidering ved Hent', { tag: BROWSER_LANE_TAG }, () => {
   // Chrome/Edge bruger den native File System Access-picker, som Playwright ikke kan sende en fil til.
-  // WebKit gennemløber den testbare fallback-inputflade — den konkrete OBS-008-reproduktion.
+  // WebKit gennemløber den testbare fallback-inputflade – den konkrete OBS-008-reproduktion.
   test.skip(({ browserName }) => browserName !== 'webkit', 'Fallback-filvælgeren findes kun i WebKit');
 
   test('viser forventelig filfejl uden teknisk fejlregistrering', async ({ page, runtimeErrors }) => {
@@ -107,7 +107,7 @@ test.describe('Filvalidering ved Hent', { tag: BROWSER_LANE_TAG }, () => {
     await preflightDialog.getByRole('button', { name: 'Indlæs trods fejl' }).click();
 
     // Preflight er ikke i sig selv en erstatning. Den aktive sag må først ændres efter den anden,
-    // særskilte bekræftelse — det er præcis den kombination, der tidligere blev meldt som usikker.
+    // særskilte bekræftelse – det er præcis den kombination, der tidligere blev meldt som usikker.
     const overwriteDialog = page.getByRole('dialog').filter({
       hasText: 'Erstat de aktuelle indtastninger?',
     });
@@ -122,7 +122,7 @@ test.describe('Filvalidering ved Hent', { tag: BROWSER_LANE_TAG }, () => {
     await expect.poll(() => runtimeErrors).toEqual([]);
     await expect(page).toHaveURL(/\/stamdata$/);
     await expect(nameInput).toHaveValue('Indlæst fra ældre fil');
-    await expect(page.getByText('Filen er indlæst — nogle felter blev sat til standardværdier.')).toBeVisible();
+    await expect(page.getByText('Filen er indlæst – nogle felter blev sat til standardværdier.')).toBeVisible();
     expect(runtimeErrors).toEqual([]);
   });
 });

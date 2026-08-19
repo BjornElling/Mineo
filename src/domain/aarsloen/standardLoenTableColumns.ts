@@ -13,12 +13,12 @@ import { formatISOToDanish } from '../../utils/dateFormatting';
 // den celle bad brugeren rette «Løn (3)». Samme fejlklasse, blot mellem gridoverskrift og
 // feltfejl frem for mellem formularlabel og feltfejl.
 //
-// Linjeskiftene i overskrifterne er REN LAYOUT — de ombryder et langt navn i en smal kolonne og tilføjes
+// Linjeskiftene i overskrifterne er REN LAYOUT – de ombryder et langt navn i en smal kolonne og tilføjes
 // oven på navnet i `withHeaderLineBreak`. De er derfor aldrig en del af navnet.
 
 /**
  * Kolonner, hvis navn ombrydes i tabeloverskriften. Nøglen er kolonnen; værdien er navnet med et `\n`
- * indsat — og det SKAL være samme tegn i samme rækkefølge som navnet, kun med et linjeskift tilføjet.
+ * indsat – og det SKAL være samme tegn i samme rækkefølge som navnet, kun med et linjeskift tilføjet.
  * `standardLoenHeaderLineBreaksArePresentationOnly.test.ts` beviser det ved at strippe skiftene og
  * sammenligne med descriptor-labelen.
  */
@@ -39,7 +39,7 @@ export const STANDARD_LOEN_COL4_LABEL = withHeaderLineBreak('col4');
 export const STANDARD_LOEN_COL5_LABEL = withHeaderLineBreak('col5');
 export const STANDARD_LOEN_FPFVSHSO_LABEL = withHeaderLineBreak('fpFvShSoBeloeb');
 export const STANDARD_LOEN_PENSION_LABEL = withHeaderLineBreak('pensionBeloeb');
-/** Beregnet kolonne uden redigerbart felt — og derfor uden descriptor at hente navnet fra. */
+/** Beregnet kolonne uden redigerbart felt – og derfor uden descriptor at hente navnet fra. */
 export const STANDARD_LOEN_SAMLET_LABEL = 'Samlet løn';
 
 const PERIOD_HEADERS: Record<Loenperiode, readonly [string, string]> = {
@@ -73,7 +73,7 @@ export const resolveStandardLoenPeriodColumns = (
 };
 
 /**
- * Kolonnens navn i BESKEDER — uden overskriftens layout-linjeskift. Det er samme navn som feltets
+ * Kolonnens navn i BESKEDER – uden overskriftens layout-linjeskift. Det er samme navn som feltets
  * descriptor-label og dermed samme navn, en feltfejl på cellen bruger (§3.2a).
  */
 export const resolveStandardLoenColumnLabel = (colKey: StandardLoenTableColumnKey): string =>
@@ -94,7 +94,7 @@ export const getStandardLoenTableHeaders = (loenperiode: Loenperiode): readonly 
 
 /**
  * Returnerer indekset for en given label i arrayet fra getStandardLoenTableHeaders.
- * Fejler hårdt (invariant) hvis labelen ikke findes — det indikerer et array-strukturbrud.
+ * Fejler hårdt (invariant) hvis labelen ikke findes – det indikerer et array-strukturbrud.
  *
  * Bruges i stedet for hardkodede integer-konstanter, der tavst ville give forkerte
  * kolonne-lookup ved fremtidige array-ændringer.

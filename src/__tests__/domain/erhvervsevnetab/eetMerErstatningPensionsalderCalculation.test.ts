@@ -16,7 +16,7 @@ import { fromKroner } from '../../../domain/money/money';
 
 const iso = (v: string) => toISODateString(v);
 
-describe('computeMerErstatningPensionsalder — autoritativt eksempel (67→68, 4.431 kr.)', () => {
+describe('computeMerErstatningPensionsalder – autoritativt eksempel (67→68, 4.431 kr.)', () => {
   const run = () => {
     const issues: EetIssue[] = [];
     const computation = computeMerErstatningPensionsalder(
@@ -81,7 +81,7 @@ describe('computeMerErstatningPensionsalder — autoritativt eksempel (67→68, 
   });
 });
 
-describe('computeMerErstatningPensionsalder — betingelser', () => {
+describe('computeMerErstatningPensionsalder – betingelser', () => {
   const base = {
     beregningsdato: iso('2026-06-01'),
     skadedato: iso('2004-01-01'),
@@ -146,7 +146,7 @@ describe('computeMerErstatningPensionsalder — betingelser', () => {
   });
 });
 
-describe('computeMerErstatningPensionsalder — autoritativt eksempel (67→68, skade fra 2011, 22.641 kr.)', () => {
+describe('computeMerErstatningPensionsalder – autoritativt eksempel (67→68, skade fra 2011, 22.641 kr.)', () => {
   // Skade 01-01-2011 → erstatningsniveau 83 % og AM-bidrag 8 % (giver 0,92-faktoren i kæden, som
   // fane 3 anvender for skade fra 2011), bekendtgørelsesspor 199/2015 → 1663/2015.
   // Grundløn 216.019 kr. er den allerede reguleret grundløn fra fane 3 (279.000 × 367.000/474.000).

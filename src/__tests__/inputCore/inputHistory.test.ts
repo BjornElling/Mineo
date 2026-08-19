@@ -27,7 +27,7 @@ const origin: HistoryOrigin = {
 const inputA: SettledInput = createEmptySettledInput();
 const inputB: SettledInput = createEmptySettledInput();
 
-describe('inputHistory — origin-bevaring (§3.7)', () => {
+describe('inputHistory – origin-bevaring (§3.7)', () => {
   it('bevarer originen symmetrisk gennem undo → redo', () => {
     // Push et før-snapshot (inputA) MED origin; current er nu inputB.
     const history = pushInputHistory(createInputHistory(), inputA, origin);
@@ -61,10 +61,10 @@ describe('inputHistory — origin-bevaring (§3.7)', () => {
 });
 
 // Destinationen skal være påkrævet i KERNETYPEN, ikke kun i surface-hookens `CollectionRowOrigin`.
-// Ellers kan en direkte `dispatchInput`-kalder lave en rækkehandling uden et sted at navigere hen — og en
+// Ellers kan en direkte `dispatchInput`-kalder lave en rækkehandling uden et sted at navigere hen – og en
 // rækkehandling har ingen feltadresse at falde tilbage på. Testen er compile-time: `@ts-expect-error` FEJLER,
 // hvis typen igen bliver eftergivende, så en opblødning ikke kan slippe gennem en grøn suite.
-describe('CollectionHistoryOrigin — destinationen er påkrævet i kernetypen (§3.7)', () => {
+describe('CollectionHistoryOrigin – destinationen er påkrævet i kernetypen (§3.7)', () => {
   it('accepterer et origin med fuld destination', () => {
     const origin: CollectionHistoryOrigin = {
       kind: 'collection',
@@ -77,7 +77,7 @@ describe('CollectionHistoryOrigin — destinationen er påkrævet i kernetypen (
   });
 
   it('afviser et origin uden route og uden tabKey (compile-time)', () => {
-    // @ts-expect-error — `route` mangler: rækkehandlingen ville få en origin uden destination.
+    // @ts-expect-error – `route` mangler: rækkehandlingen ville få en origin uden destination.
     const utenRoute: CollectionHistoryOrigin = {
       kind: 'collection',
       collection: 'oevrigeKravPerioder',
@@ -85,7 +85,7 @@ describe('CollectionHistoryOrigin — destinationen er påkrævet i kernetypen (
       tabKey: null,
     };
 
-    // @ts-expect-error — `tabKey` mangler: udeladelse er ikke en lovlig måde at sige "ingen faner" på.
+    // @ts-expect-error – `tabKey` mangler: udeladelse er ikke en lovlig måde at sige "ingen faner" på.
     const utenTabKey: CollectionHistoryOrigin = {
       kind: 'collection',
       collection: 'oevrigeKravPerioder',
@@ -101,7 +101,7 @@ describe('CollectionHistoryOrigin — destinationen er påkrævet i kernetypen (
 // Destinationen er ALT-eller-INTET. En `tabKey` uden `route` er lydløst
 // inert, fordi restoren kun aktiverer fanen inde i `route !== undefined`-grenen (`MainLayout`). Typen gør den
 // inkohærens urepræsenterbar, i stedet for at lade et runtime-værn fange den bagefter.
-describe('FieldHistoryOrigin — destinationen er alt-eller-intet (§3.7)', () => {
+describe('FieldHistoryOrigin – destinationen er alt-eller-intet (§3.7)', () => {
   const renteAddress = createFieldAddress({ section: 'renteberegning', path: [], field: 'beregningsdato' });
 
   it('accepterer et anker HELT UDEN destination (standalone er ikke-navigerbar)', () => {
@@ -125,7 +125,7 @@ describe('FieldHistoryOrigin — destinationen er alt-eller-intet (§3.7)', () =
   });
 
   it('afviser en tabKey UDEN route (compile-time)', () => {
-    // @ts-expect-error — `tabKey` uden `route`: fanen ville aldrig blive aktiveret af restoren.
+    // @ts-expect-error – `tabKey` uden `route`: fanen ville aldrig blive aktiveret af restoren.
     const kunTabKey: FieldHistoryOrigin = {
       kind: 'field',
       field: renteAddress,
@@ -133,7 +133,7 @@ describe('FieldHistoryOrigin — destinationen er alt-eller-intet (§3.7)', () =
       tabKey: 'calculation',
     };
 
-    // @ts-expect-error — `route` uden `tabKey`: udeladelse er ikke en lovlig måde at sige "ingen faner" på.
+    // @ts-expect-error – `route` uden `tabKey`: udeladelse er ikke en lovlig måde at sige "ingen faner" på.
     const kunRoute: FieldHistoryOrigin = {
       kind: 'field',
       field: renteAddress,

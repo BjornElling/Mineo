@@ -67,18 +67,18 @@ import type { StamdataValues } from '../../schemas/formSchemas';
 //
 //  - Alle inputs læses gennem readeren: erhvervsevnetab-skalarer + bilagsvalg, den fulde `aslAfgoerelser`-collection
 //    (rekonstrueret række for række i afsluttet rækkefølge), de delte faellesAarsloen-beløb, de tværsektionelle
-//    stamdata-datoer og de EO-delte forligs-felter. En rød feltfejl (rejected format ELLER canonical bounds — her
+//    stamdata-datoer og de EO-delte forligs-felter. En rød feltfejl (rejected format ELLER canonical bounds – her
 //    procent-bounds på ealEetPct + hver rækkes eetPct/kapPct) skjules af readeren: værdien bliver `undefined`, og
 //    feltets røde besked føres ind i snapshottets `fieldErrors`.
 //  - `computeEetSnapshot` køres UÆNDRET (§5.4 hårdt stop mod talændring) på de reader-læste værdier. Snapshottet
 //    ejer allerede den DEPENDENCY-SPECIFIKKE per-fane-blokering (§1.10): fx blokerer en ealEetPct-fejl kun EET-efter-
-//    EAL-fanen, mens de øvrige faner bevares. Derfor gates hele projektionen IKKE bag en global `blocked`-projektion —
+//    EAL-fanen, mens de øvrige faner bevares. Derfor gates hele projektionen IKKE bag en global `blocked`-projektion –
 //    den er altid `ready` og bærer snapshottet; det er snapshottets egne per-fane-`issues`/`pdfGate`, der afgør
 //    konsekvenserne; fanernes egne issue-id'er er den eneste klassifikationskilde.
 //  - Tre felt-placerede DOMÆNEREGLER føres SLICE-LOKALT ind i snapshottets `fieldErrors`. Grunden er permanent:
 //    reglerne afhænger af en KONTEKST, feltet selv ikke kender (skadesår, de øvrige rækker), og de to første
 //    hænger på en DELT descriptor, som mere end én slice læser. En descriptor-validator måtte da gælde ens for
-//    alle læsere eller kende deres kontekst — ingen af de to er rigtige:
+//    alle læsere eller kende deres kontekst – ingen af de to er rigtige:
 //      * ASL-årsløns-reglen (delelig 1.000 / maks i skadesår) → `fieldErrors.faellesAarsloen.aslAarsloen`. Samme
 //        regel bæres af Forsørgertab-slicen af samme grund; `faellesAarsloen.aslAarsloen` er delt mellem dem.
 //      * ASL-afgørelsesrækkernes indbyrdes valideringsfejl (`collectEetAslAfgoerelseValidationIssues`) → snapshottet
@@ -114,7 +114,7 @@ const forligDatoRef: FieldRef<ISODateString | undefined> = forligInputFields.dat
 
 /**
  * Descriptoren pr. kryds-række-valideringsfelt. Bindingen sker på rækkens id, så issuet får den SAMME
- * feltadresse, cellen selv bruger — det er den adresse, fokusnavigationen og feltvisningen slår op på.
+ * feltadresse, cellen selv bruger – det er den adresse, fokusnavigationen og feltvisningen slår op på.
  */
 const ASL_RULE_FIELD_DESCRIPTORS = {
   afgoerelsesDato: aslAfgoerelseAfgoerelsesDatoField,
@@ -131,12 +131,12 @@ const ASL_RULE_FIELD_DESCRIPTORS = {
  *
  * Reglerne KAN ikke bo i descriptor-validatorerne: de er kryds-række-regler (dublet-afgørelser,
  * virkningsdato mod tidligere kapitaliseringsdato, EET % mod summen af forudgående kap. %), og en
- * descriptor-validator ser kun sin egen celles værdi. Afledningen sker derfor samlet her — men RESULTATET
+ * descriptor-validator ser kun sin egen celles værdi. Afledningen sker derfor samlet her – men RESULTATET
  * er strukturelt og bærer samme adresse, prioritet og konsekvensvej som ethvert andet rødt felt, i stedet
  * for en fri fejltekst uden feltidentitet.
  *
  * `reason: 'rule'` er den korrekte klassifikation efter §1.6: en feltplaceret domæneregel. Højst ét aktivt
- * issue pr. adresse (§1.8) sikres af `buildFieldIssueSet`, som beholder det højest prioriterede — samme
+ * issue pr. adresse (§1.8) sikres af `buildFieldIssueSet`, som beholder det højest prioriterede – samme
  * afgrænsning som den tidligere "første besked pr. celle".
  */
 const buildAslAfgoerelseRuleFieldIssues = (
@@ -156,7 +156,7 @@ const buildAslAfgoerelseRuleFieldIssues = (
 export type ErhvervsevnetabReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver sidevisningen for alle fem tabs + download-gates. */
   snapshot: EetSnapshot;
-  /** De committede ASL-afgørelsesrækker i afsluttet rækkefølge (reader-læst) — til tabellens sort. */
+  /** De committede ASL-afgørelsesrækker i afsluttet rækkefølge (reader-læst) – til tabellens sort. */
   aslAfgoerelserCommittedRows: readonly AslAfgoerelseRow[];
   /**
    * ASL-afgørelsernes KRYDS-RÆKKE-domæneregler som STRUKTURELLE feltissues. Descriptorernes egne
@@ -181,7 +181,7 @@ export type ErhvervsevnetabReaderProjection = Readonly<{
   }>;
   /** Fælles dokumentmetadata-projektion; samme resultat indgår i reaktiv gate og click-preflight. */
   documentStamdata: ProjectionResult<StamdataValues>;
-  /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
+  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
 
@@ -202,7 +202,7 @@ const readBoolean = (read: ReadFieldResult<boolean>, fallback: boolean): boolean
 
 /**
  * Rekonstruerer én committed ASL-afgørelsesrække fra readeren. En celle med rød feltfejl (eetPct/kapPct-bounds)
- * skjules til `undefined`, præcis som readeren gør — rækkevaliderings-collectoren (der udleder de indbyrdes
+ * skjules til `undefined`, præcis som readeren gør – rækkevaliderings-collectoren (der udleder de indbyrdes
  * regler) ser derfor samme værdier som beregningen. `fsTilbageholdtEet` er required-choice (tomværdi 'Nej').
  */
 const readCommittedAslRow = (
@@ -275,7 +275,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
 
   // ASL-årslønnens felt-placerede domæneregel (delelig med 1.000 / maks i skadesåret) er KANONISK i
   // descriptoren (`faellesAarsloenAslAarsloenField`) og kommer derfor ind som en almindelig rød reader-feltfejl
-  // i `aslAarsloen.errorMessage`. Den genberegnes IKKE her — ét sandt sted for reglen (§1.6).
+  // i `aslAarsloen.errorMessage`. Den genberegnes IKKE her – ét sandt sted for reglen (§1.6).
 
   // ASL-afgørelsesrækkernes indbyrdes (kryds-række) valideringsfejl. Snapshottet aftager KUN den første (uændret
   // afgrænsning), mens tabellen viser dem alle inline pr. celle via `aslAfgoerelserValidationMessageByCell`.
@@ -288,7 +288,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
   const aslAfgoerelserRuleMessage = aslAfgoerelserRuleIssues[0]?.message;
   // Kryds-række-reglerne bliver STRUKTURELLE feltissues med rigtige feltadresser i stedet for en
   // parallel `${rowId}|${field}`-strengnøgle. Rød markering, tooltip, fokusnavigation og consumerblokering
-  // læser derfor samme repræsentation som alle andre røde felter (§1.8) — og cellen behøver ingen fri
+  // læser derfor samme repræsentation som alle andre røde felter (§1.8) – og cellen behøver ingen fri
   // fejltekst-prop ved siden af sit eget issue.
   const aslAfgoerelserRuleFieldIssues = buildAslAfgoerelseRuleFieldIssues(aslAfgoerelserRuleIssues);
 

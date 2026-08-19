@@ -241,7 +241,7 @@ export const computeTafNettoBeregning = (
         tabtArbejdsfortjenesteOre,
       };
     }
-    // Invariant: loenudviklingTotal og tafIndtaegter.total er altid asCalculable —
+    // Invariant: loenudviklingTotal og tafIndtaegter.total er altid asCalculable –
     // buildLoenudviklingModel, buildOffentligeYdelserUdviklingModel og buildTafIndtaegterModel
     // returnerer enten en model med status 'ok' eller kaster en fail-closed invariant-fejl.
     // Status-checks bevares som defensive narrowing, hvis en fremtidig motor introducerer

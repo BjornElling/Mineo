@@ -4,19 +4,19 @@
  * **Hvad fundet var.** Kun to af de otte kæder havde et egentligt undo/redo-forløb. `ugyldig X → ugyldig Y`
  * og `ugyldig → gyldig` var samlet i én test UDEN undo/redo, og kæderne med tom værdi, bounds-fejl, skjult
  * gyldig værdi og skjult fejl fandtes slet ikke som komplette forløb. Dertil hævdede de eksisterende tests
- * primært canonical/rejected — ikke §7.2's krav om, at *hvert trin* hævder alle ni aspekter.
+ * primært canonical/rejected – ikke §7.2's krav om, at *hvert trin* hævder alle ni aspekter.
  *
  * **Hvorfor en matrix og ikke otte håndskrevne tests.** Fejlen, kæderne findes for at fange, opstår i
  * SAMSPILLET mellem lagene: en undo kan gendanne canonical korrekt og samtidig efterlade et stale issue,
  * en forældet consumerstatus eller en gate, der stadig blokerer. Otte uafhængige tests ville hver hævde
  * det, deres forfatter huskede at hævde. Matricen tager derimod ét SAMLET snapshot af alle ni aspekter
- * efter hvert trin og sammenligner med den forventede tilstand — så et aspekt, ingen tænkte på, ikke kan
+ * efter hvert trin og sammenligner med den forventede tilstand – så et aspekt, ingen tænkte på, ikke kan
  * falde ud. Tilføjes et tiende aspekt, kommer det med i alle otte kæder på én gang.
  *
  * **De ni aspekter** (§7.2, ordret): current canonical slot, rejected råtekst, visning, feltissue,
  * consumerstatus, `.eo`-gate, dokumentgate, revision og history.
  *
- * `visning` måles som `formatSettledFieldText` — feltets egen visningsudledning, altså det brugeren SER —
+ * `visning` måles som `formatSettledFieldText` – feltets egen visningsudledning, altså det brugeren SER –
  * og ikke som en re-formatering af canonical. De to kan divergere netop ved rejected råtekst, hvor visningen
  * er den rå tekst ordret, og det er den divergens, aspektet findes for at pinne.
  *
@@ -117,11 +117,11 @@ const redo = (state: State): State => {
  *
  * `revision`/`historyDepth` er relative tal, fordi de er MONOTONI-påstande, ikke absolutte værdier: en
  * kæde skal kunne indsættes med et andet antal opsætningstrin foran uden at hvert forventet tal skal
- * skrives om. Det absolutte krav — at hver reel handling giver præcis én ny revision — hævdes af
+ * skrives om. Det absolutte krav – at hver reel handling giver præcis én ny revision – hævdes af
  * `commandInvariants.test.ts` pr. command-kind.
  */
 type Aspects = Readonly<{
-  /** `'slettet-adresse'`, når feltets række ikke findes — se `snapshot` nedenfor. */
+  /** `'slettet-adresse'`, når feltets række ikke findes – se `snapshot` nedenfor. */
   canonical: unknown;
   rejectedRaw: string | undefined;
   display: string;
@@ -140,7 +140,7 @@ type Aspects = Readonly<{
  * række (`ValidationReader: ukendt, slettet eller forkert bundet feltreference`), fordi en tavs
  * `undefined` ville gøre en ref til en forsvundet adresse til et lovligt read og dermed lade en
  * consumer regne videre på et felt, der ikke findes. Kæden "række med fejl → slet række" hævder derfor,
- * at adressen er UTILGÆNGELIG efter delete og TILGÆNGELIG igen efter undo — en stærkere påstand end
+ * at adressen er UTILGÆNGELIG efter delete og TILGÆNGELIG igen efter undo – en stærkere påstand end
  * "canonical er tom".
  */
 const DELETED_ADDRESS = 'slettet-adresse' as const;
@@ -150,12 +150,12 @@ const CONSUMER_ID = 'statekaede-consumer';
 /**
  * En type-udslettet feltreference, som matricen kan holde heterogent.
  *
- * `FieldRef<T>` er INVARIANT i `T` — dens codec både konsumerer OG producerer `T` — så hverken
+ * `FieldRef<T>` er INVARIANT i `T` – dens codec både konsumerer OG producerer `T` – så hverken
  * `FieldRef<unknown>` eller `FieldRef<never>` er en fælles form for `FieldRef<number | undefined>` og
  * `FieldRef<ISODateString | undefined>`. Begge forsøg er compilerfejl (TS2352/TS2345, verificeret ved
  * probe), og typen har ret: en `unknown`-værdi må ikke kunne gives til et codec, der kræver et årstal.
  *
- * Matricen har intet brug for værditypen — den LÆSER gennem readeren og sammenligner udfaldet som data.
+ * Matricen har intet brug for værditypen – den LÆSER gennem readeren og sammenligner udfaldet som data.
  * Udslettelsen sker derfor ét sted og eksplicit, gennem `unknown`, frem for spredt ud i `as never`-cast
  * pr. kæde. `Aspects.canonical` er `unknown` af samme grund.
  */
@@ -170,7 +170,7 @@ const erase = <T>(field: FieldRef<T>): ErasedFieldRef => field as unknown as Era
  * `dependsOn` er de felter, den simulerede consumer/dokumentgate LÆSER. Consumerstatus og dokumentgate er
  * dependency-specifikke (§1.10): en gate, der læste alt, ville overblokere og gøre kæderne blinde over for
  * netop den fejl. Consumeren læser derfor præcis kædens felt, mens dokumentgaten læser samme felt gennem
- * sin egen projektion — to uafhængige consumers over samme read, som produktionen har.
+ * sin egen projektion – to uafhængige consumers over samme read, som produktionen har.
  */
 const snapshot = <T>(
   state: State,
@@ -213,7 +213,7 @@ const snapshot = <T>(
     fieldIssue: evaluation.issues.get(address)?.reason,
     consumerStatus: runConsumer(CONSUMER_ID),
     eoSaveGate: projectEoSave(state.input, catalog).status === 'ready' ? 'ready' : 'blocked',
-    // Dokumentgaten er en ANDEN consumer over samme reads — netop for at kunne se, hvis de divergerer.
+    // Dokumentgaten er en ANDEN consumer over samme reads – netop for at kunne se, hvis de divergerer.
     documentGate: runConsumer('statekaede-dokument'),
     revision: state.revision,
     history: { past: state.history.past.length, future: state.history.future.length },
@@ -231,7 +231,7 @@ type Step = Readonly<{ label: string; run: (state: State) => State; expected: As
 /**
  * Kæden er typet på , ikke generisk pr. kæde: matricen LÆSER kun feltet gennem
  * readeren og sammenligner udfaldet som data. En generisk parameter ville have tvunget hver kæde til at
- * bære sin egen værditype uden at gøre en enkelt assertion stærkere — de ni aspekter er alle
+ * bære sin egen værditype uden at gøre en enkelt assertion stærkere – de ni aspekter er alle
  * type-udslettede i sammenligningen.
  */
 type Chain = Readonly<{
@@ -360,7 +360,7 @@ const CHAINS: readonly Chain[] = [
     setup: () => apply(start(), settleField(aargangField.bind(), '2020')),
     steps: [
       {
-        // Tomhed giver INGEN rød feltfejl og blokerer IKKE `.eo` (§10-kriterium 11) — men en consumer,
+        // Tomhed giver INGEN rød feltfejl og blokerer IKKE `.eo` (§10-kriterium 11) – men en consumer,
         // der KRÆVER feltet, får en missing-consumerfejl (§10-kriterium 12). De to ben er forskellige,
         // og netop den sondring er det, aspekterne skiller.
         label: 'tom',
@@ -386,7 +386,7 @@ const CHAINS: readonly Chain[] = [
     steps: [
       {
         // Bounds er §1.6's ANDEN repræsentation: værdien BLIVER canonical, issuet er rødt, consumeren
-        // blokeres — men `.eo` kan gemmes (§10-kriterium 10). Visningen viser den canonical værdi, ikke
+        // blokeres – men `.eo` kan gemmes (§10-kriterium 10). Visningen viser den canonical værdi, ikke
         // en råtekst, fordi codec'et accepterede den.
         label: 'bounds-fejl B',
         run: (state) => apply(state, settleField(beregningsdatoField.bind(), '01-01-1999')),
@@ -415,15 +415,15 @@ const CHAINS: readonly Chain[] = [
          * `enhed = 'uger'` gør tillaegstid irrelevant. Værdien BEVARES (§5-kriterium 14):
          * canonical, visning og fravær af issue står UÆNDRET på tværs af skjulningen.
          *
-         * **Consumerstatus er bevidst `ready` her, ikke `blocked`.** Readeren gater ikke på relevans —
+         * **Consumerstatus er bevidst `ready` her, ikke `blocked`.** Readeren gater ikke på relevans –
          * en irrelevant men gyldig værdi er læsbar, og det er den enkelte consumers ansvar at afgøre,
          * om den er relevant for netop dens beregning ([[project_field_visibility_single_source]]). En
          * kerne, der skjulte værdien for ALLE consumers, ville gøre det umuligt for en consumer med en
-         * anden relevansregel end feltets visningsregel at læse den — og ville dermed være §1.10's
+         * anden relevansregel end feltets visningsregel at læse den – og ville dermed være §1.10's
          * overblokering i kernen.
          *
          * Relevansen har ÉN konsekvens for en GYLDIG værdi, og det er ingen: den består urørt. Bar feltet
-         * derimod en aktiv RØD fejl, ryddes det tavst med valget (§7.5 pkt. 2) — se næste kæde. Grunden er
+         * derimod en aktiv RØD fejl, ryddes det tavst med valget (§7.5 pkt. 2) – se næste kæde. Grunden er
          * ikke, at reglen ophører, men at en rød fejl brugeren ikke kan SE, ikke kan rettes; efterlod vi
          * den, kunne den blokere `.eo`-save eller en beregning fra et usynligt felt. Derfor bærer et
          * irrelevant felt aldrig et aktivt issue: det skjulte er tavst, FORDI det er ryddet.
@@ -435,7 +435,7 @@ const CHAINS: readonly Chain[] = [
       {
         label: 'vis igen (enhed → dage)',
         run: (state) => apply(state, setImmediateField(enhedField.bind(ROW), 'dage')),
-        // Værdien er der stadig — den blev bevaret, ikke genskabt.
+        // Værdien er der stadig – den blev bevaret, ikke genskabt.
         expected: aspects(12, undefined, '12', undefined, 'alle-ready', 5, 3, 0),
       },
       {
@@ -460,10 +460,10 @@ const CHAINS: readonly Chain[] = [
       {
         /*
          * Skjules feltet, RYDDES den fejlende værdi atomisk med det styrende valg (§5-kriterium 14, §7.5
-         * pkt. 2) — modsat den GYLDIGE værdi i kæden ovenfor, som bevares. Forskellen er hele reglen: en
+         * pkt. 2) – modsat den GYLDIGE værdi i kæden ovenfor, som bevares. Forskellen er hele reglen: en
          * rød fejl, brugeren ikke kan SE, kan ikke rettes og må derfor ikke blive stående og blokere.
          *
-         * Feltissuet forsvinder med værdien. Consumeren er derimod fortsat blokeret — men nu af `missing`
+         * Feltissuet forsvinder med værdien. Consumeren er derimod fortsat blokeret – men nu af `missing`
          * (den KRÆVER feltet), ikke af en usynlig rød fejl. Det er den rigtige blokering: den peger på et
          * manglende krav, som brugeren kan opfylde, i stedet for på en fejl i et felt, der ikke kan ses.
          */
@@ -496,7 +496,7 @@ const CHAINS: readonly Chain[] = [
       },
       {
         // Row-delete fjerner rækkens rejected descendants ATOMISK (§10-kriterium 19): `.eo` kan gemmes
-        // igen, fordi den rå tekst gik med rækken. Adressen findes ikke længere — se `DELETED_ADDRESS`.
+        // igen, fordi den rå tekst gik med rækken. Adressen findes ikke længere – se `DELETED_ADDRESS`.
         label: 'slet række',
         run: (state) => {
           // `reduceInputCommand` er den rene reducer og tager ingen origin; origin er dispatch-portens
@@ -535,7 +535,7 @@ const CHAINS: readonly Chain[] = [
 
 /**
  * §7.2's kædeliste, ORDRET fra designet. Uden denne binding kunne en kæde blive omdøbt eller falde ud af
- * matricen uden at nogen kontrol blev rød — samme fejlklasse som acceptregistrets §10-binding.
+ * matricen uden at nogen kontrol blev rød – samme fejlklasse som acceptregistrets §10-binding.
  */
 const NORMATIVE_CHAIN_NAMES: readonly string[] = [
   'gyldig A → ugyldig X → undo → redo',
@@ -548,7 +548,7 @@ const NORMATIVE_CHAIN_NAMES: readonly string[] = [
   'række med fejl → slet række → undo → redo',
 ];
 
-describe('Obligatoriske statekæder (§7.2) — alle otte, alle ni aspekter pr. trin', () => {
+describe('Obligatoriske statekæder (§7.2) – alle otte, alle ni aspekter pr. trin', () => {
   it('matricen dækker præcis designets otte kæder', () => {
     expect(CHAINS.map((chain) => chain.name)).toEqual(NORMATIVE_CHAIN_NAMES);
   });
@@ -560,7 +560,7 @@ describe('Obligatoriske statekæder (§7.2) — alle otte, alle ni aspekter pr. 
      * §10-acceptregistret citerer udelukkende LEAF-tests som evidens, og et dynamisk leaf-navn
      * (`it(chain.name + …)`) kan pr. konstruktion ikke citeres: registrets AST-parser ser kun statiske
      * navnedele, og en interpolation er en per-case-værdi, ingen registerpost kan kende. Kædenavnene er
-     * derfor bundet et STÆRKERE sted end et testnavn — i `NORMATIVE_CHAIN_NAMES`, som
+     * derfor bundet et STÆRKERE sted end et testnavn – i `NORMATIVE_CHAIN_NAMES`, som
      * completeness-testen nedenfor sammenligner ordret med designets §7.2-liste. Forsvinder en kæde,
      * bliver den test rød med kædens navn; et testnavn ville blot være forsvundet.
      *
@@ -584,14 +584,14 @@ describe('Obligatoriske statekæder (§7.2) — alle otte, alle ni aspekter pr. 
 
   /**
    * Snapshottet skal kunne FEJLE på hvert enkelt aspekt. Et snapshot, hvis felter alle var konstante
-   * eller udledt af hinanden, ville bestå enhver kæde og måle intet — så matricen ville se ud som ni
+   * eller udledt af hinanden, ville bestå enhver kæde og måle intet – så matricen ville se ud som ni
    * aspekter og reelt være ét.
    *
    * Kontrollen er derfor: der findes for HVERT aspekt to tilstande i matricens egne kæder, hvor netop
    * det aspekt er forskelligt. Er et aspekt konstant på tværs af alle otte kæders alle trin, er det
    * ikke evidens for noget.
    */
-  it('hvert af de ni aspekter varierer et sted i matricen — ingen er en konstant', () => {
+  it('hvert af de ni aspekter varierer et sted i matricen – ingen er en konstant', () => {
     const allExpected = CHAINS.flatMap((chain) => chain.steps.map((step) => step.expected));
     const aspectKeys = [
       'canonical', 'rejectedRaw', 'display', 'fieldIssue',

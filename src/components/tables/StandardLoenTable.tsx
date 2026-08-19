@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 // Kun månedens FORM (`mm`) hentes her; de øvrige periodecellers form ejes af deres egen feltfamilie, og
-// årscellens tidligere `åååå (≤CURRENT_YEAR)` er væk — grænsen hører i feltets issue/tooltip.
+// årscellens tidligere `åååå (≤CURRENT_YEAR)` er væk – grænsen hører i feltets issue/tooltip.
 import { MONTH_FORMAT_PLACEHOLDER } from '../../utils/fieldFormatPlaceholders';
 import type { StandardLoenTableRow, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import { formatKr } from '../../utils/formatUtils';
@@ -56,9 +56,9 @@ import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 //    Celle-specs bygges af den FÆLLES `buildCollectionCellSpec`: begge cellearter bærer en fuldt bundet `FieldRef`,
 //    hvor ejer-id'erne udledes af collectionens sti (§3.2). En trailing PLACEHOLDER-række promoverer atomisk ved
 //    første ikke-tomme settle (§1.11).
-//  - de committede rækker læses read-only via `fieldSet.readRows(reader)` — KUN til sortering, afledte kolonner
+//  - de committede rækker læses read-only via `fieldSet.readRows(reader)` – KUN til sortering, afledte kolonner
 //    (col6/7/8) og tomheds-vurdering.
-//  - valideringssummaryen er REN og reader-afledt (`fieldSet.resolveValidation`) — ikke et imperativt celle-fejl-
+//  - valideringssummaryen er REN og reader-afledt (`fieldSet.resolveValidation`) – ikke et imperativt celle-fejl-
 //    handle. Det imperative handle bærer KUN visuel feedback (blink/scroll/missing-hint), og selve blinket er
 //    den DELTE `blinkFieldAttention`, ikke en tabel-lokal animation.
 
@@ -76,7 +76,7 @@ export type StandardLoenTableProps = {
   /**
    * Eksplicit navigation-metadata for cellernes editorlokationer (§3.7): route + fane for den side/fane, tabellen
    * bor på. Tabellen renderes i flere kontekster (Årsløn vs. EO-lønindkomst), så route/fane kan ikke udledes af
-   * `collection` — kalderen leverer den. Udeladt route = ikke-navigerbar lokation (restoren navigerer da ikke).
+   * `collection` – kalderen leverer den. Udeladt route = ikke-navigerbar lokation (restoren navigerer da ikke).
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 };
@@ -110,7 +110,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       []
     );
 
-    // Committede rækker læses read-only fra readeren — til sortering, afledte kolonner og tomheds-vurdering.
+    // Committede rækker læses read-only fra readeren – til sortering, afledte kolonner og tomheds-vurdering.
     // Celleværdien bor kun i inputaggregaten; dette er ingen konkurrerende værdikopi (§3.8).
     const committedRows = React.useMemo(
       () => readStandardLoenTableRows(fieldSet, evaluation.reader),
@@ -120,7 +120,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     // kanoniske `collectionLocationPrefix`, som bærer ejer-id'erne med: EO renderer én løntabel pr.
     // ansættelsesforhold, og det tidligere `standardLoen:${section}.${collection}` udelod dem, så to
     // kort delte ÉN editorlokation for deres rækkehandlinger. Celle-bindingen brugte allerede den
-    // kanoniske form — de to var altså uenige om samme tabels lokation.
+    // kanoniske form – de to var altså uenige om samme tabels lokation.
     //
     // Tomme rækker persisteres ikke; `minimumVisibleRows` er den rene VISNINGSregel (§1.11).
     const table = useCollectionTable<StandardLoenTableRow>({
@@ -238,7 +238,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     // Den tidligere `missingCell`-state satte blink-KLASSEN deklarativt for at lade markeringen «blive
     // stående, indtil værdien er indtastet». Den begrundelse holdt ikke: klassens animation løber
     // 0,5 s × 3 og efterlader derefter en helt gennemsigtig celle (målt), så der var ingen vedvarende
-    // markering at vinde — kun en genstart at tabe. Et gentaget klik satte samme state igen, React
+    // markering at vinde – kun en genstart at tabe. Et gentaget klik satte samme state igen, React
     // bailede ud, og brugeren fik INTET svar anden gang. Det var netop den fejl, en afvist
     // omregnings-aktivering viste: kun det første klik blinkede.
     const isVisibleColKey = React.useCallback(
@@ -265,14 +265,14 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
      * "Indtastning mangler" bruger SAMME visuelle idiom som en fejlflash frem for at overtage
      * placeholderens semantiske ansvar: cellen scrolles ind og blinker rødt, mens placeholderen
      * fortsat kun viser værdiens FORM (`mm`/`åååå`/`uu/åååå`/`dd-mm-åååå`). Markeringen er ikke en
-     * feltfejl (§1.7) — den gør ikke feltet rødt og blokerer intet; den lokaliserer blot cellen.
+     * feltfejl (§1.7) – den gør ikke feltet rødt og blokerer intet; den lokaliserer blot cellen.
      */
     const pointAtCell = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey): void => {
       if (!isVisibleColKey(colKey)) return;
       const el = cellRefsByCellKeyRef.current[`${rowId}:${resolveColIdxFromKey(colKey)}`];
       if (!el) return;
       scrollTargetIntoView(el, { force: true });
-      // Den delte markering: samme mekanisme, som fejllinks, save-blokeringen og undo/redo bruger —
+      // Den delte markering: samme mekanisme, som fejllinks, save-blokeringen og undo/redo bruger –
       // og den ENESTE, der genstarter animationen ved en gentagen peg-handling.
       blinkFieldAttention(el);
     }, [isVisibleColKey, resolveColIdxFromKey]);
@@ -288,7 +288,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           pointAtCell(error.rowId, error.colKey);
         },
         showNeedsPeriodHint: () => {
-          // Den FØRSTE viste række, uanset om den er committet eller en placeholder — altså render-
+          // Den FØRSTE viste række, uanset om den er committet eller en placeholder – altså render-
           // modellens første række, ikke to separate opslag der kan blive uenige.
           const firstRowId = renderRows[0]?.rowId;
           if (firstRowId === undefined) return;
@@ -409,7 +409,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   </td>
                 ))}
 
-                {/* FP/FV/SH/SO/St.B. — redigerbar i Beløb, afledt i Procent */}
+                {/* FP/FV/SH/SO/St.B. – redigerbar i Beløb, afledt i Procent */}
                 {beloebMode ? (
                   <td style={getStandardGridCellStyle({ align: 'right' })}>
                     <GridAmountCell
@@ -424,7 +424,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   </td>
                 )}
 
-                {/* Arb.g. Pension — redigerbar i Beløb, afledt i Procent */}
+                {/* Arb.g. Pension – redigerbar i Beløb, afledt i Procent */}
                 {beloebMode ? (
                   <td style={getStandardGridCellStyle({ align: 'right' })}>
                     <GridAmountCell

@@ -58,7 +58,7 @@ export const resolveAslReguleringRateForAar = (
 
 /**
  * Reguleringsrate for kapitaliseringsberegninger (fane 3 og 5).
- * Issue-ID er 'reguleringssats-missing' (uden år-suffiks) — samme issue for alle år.
+ * Issue-ID er 'reguleringssats-missing' (uden år-suffiks) – samme issue for alle år.
  */
 export const resolveAslReguleringRateForKapAar = (
   kapitaliseringsaar: number,
@@ -69,7 +69,7 @@ export const resolveAslReguleringRateForKapAar = (
 
 /**
  * Reguleringsrate for løbende ydelsesberegninger (fane 2).
- * Issue-ID er 'reguleringssats-missing-${year}' (med år-suffiks) — hvert år har sit eget blokerende issue,
+ * Issue-ID er 'reguleringssats-missing-${year}' (med år-suffiks) – hvert år har sit eget blokerende issue,
  * så beregningen kan rapportere præcist hvilket år der mangler sats for.
  */
 export const resolveAslReguleringRateForSatsAar = (

@@ -28,13 +28,13 @@ import {
  * widening, siden selv indførte ved at annotere sine handlere `StyledDropdownChangeEvent<string>`:
  * `StyledDropdown` er generisk, så uden annotationen inferes literal-unionen, og guarden har intet
  * at lave. Guardens `as readonly string[]`-cast kastede netop den type væk, den bagefter påstod at
- * etablere — et run-time-tjek sat i stedet for et compile-time-tjek, der allerede var muligt.
+ * etablere – et run-time-tjek sat i stedet for et compile-time-tjek, der allerede var muligt.
  *
  * TYPENS MÅLTE LOFT er grunden til, at denne fil findes. `TValue` inferes fra `value`-proppen
- * ALENE — ikke fra de rendrede `MenuItem`-børn (MUI typer `value` bredt). Målt i begge retninger:
+ * ALENE – ikke fra de rendrede `MenuItem`-børn (MUI typer `value` bredt). Målt i begge retninger:
  * en `value`-prop udvidet til `string` giver TS2322, mens en `MenuItem` med en værdi uden for
  * unionen typechecker GRØNT. Compileren kan altså sikre, at det COMMITTEDE er en gyldig værdi,
- * men ikke at brugeren rent faktisk kan VÆLGE dem alle — eller kun dem.
+ * men ikke at brugeren rent faktisk kan VÆLGE dem alle – eller kun dem.
  *
  * Testen måler derfor det, typen ikke kan se: hver kontrols faktisk rendrede valgmuligheder er
  * PRÆCIS sit schema-univers, i begge retninger. En glemt værdi (brugeren kan ikke vælge en gyldig
@@ -77,7 +77,7 @@ const openDropdownOptions = async (comboboxIndex: number): Promise<readonly stri
     .map((option) => option.textContent ?? '');
 };
 
-describe('Indstillinger — hver valgkontrols valgmuligheder er præcis sit schema-univers', () => {
+describe('Indstillinger – hver valgkontrols valgmuligheder er præcis sit schema-univers', () => {
   it('«Download-format for dokumenter» tilbyder præcis DOCUMENT_DOWNLOAD_FORMAT_OPTIONS', async () => {
     await renderIndstillinger();
     const rendered = await openDropdownOptions(0);
@@ -122,7 +122,7 @@ describe('Indstillinger — hver valgkontrols valgmuligheder er præcis sit sche
   });
 });
 
-describe('Indstillinger — et valg committes med sin egen type', () => {
+describe('Indstillinger – et valg committes med sin egen type', () => {
   it('valg i «Opgørelse afsluttes med» skriver den valgte værdi til settings', async () => {
     const user = userEvent.setup();
     await renderIndstillinger();

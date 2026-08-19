@@ -6,13 +6,13 @@
 Dette dokument er et arbejdsredskab for ændringer i EO-række-evaluering og EO-kontrol. Bindende fejl-/diagnostikregler ligger i `src/contracts/error-contract.md` og EO-regler i `src/contracts/eo-snapshot-contract.md`.
 
 > **Inputgrænsen er omlagt og gennemført (senest verificeret 2026-07-29).** Række-evalueringen modtager ÉN
-> revisionskonsistent, ready reader-projektion med afledte strukturelle issues (`FieldIssueSet`) —
+> revisionskonsistent, ready reader-projektion med afledte strukturelle issues (`FieldIssueSet`) –
 > `fieldErrors`-stores, rå canonical sektioner og fallback til skjulte recovery-værdier findes ikke, og de er
 > forbudte som inputporte. Settingsafhængigheden er indsnævret til `EoRowPolicy` (de to
 > regulerings-toggles), som samtidig er dokumentgatens gate-settings, så beregning og gate deler præcis
 > samme politik. Bindende regler: `src/contracts/eo-snapshot-contract.md` og `src/contracts/error-contract.md`.
 
-> **Lagfordeling — læs dette først.** Række-evaluerings-motoren (builder-registry + alle `buildEo…Rows` + aggregator + delte typer/helpers) ligger i den autoritative placering **`src/domain/eoRowEvaluation/`**, fordi den driver den trust-kritiske download-gate og derfor ikke må ligge i et nominelt "DEV"-lag. Dette er resultatet af arkitektur-kandidat B9 (2026-06-25), der flyttede motoren ud af det tidligere `src/domain/debug/`-lag og omdøbte symbolerne `eoDebug…`→`eoRow…` (fx `collectAllDebugRows`→`collectAllEoRows`, `DebugRowModel`→`EoRowModel`, `EO_DEBUG_BUILDERS`→`EO_ROW_BUILDERS`). I **`src/domain/eoInspektion/`** ligger det rene kontrollag (page-/regulerings-viewmodel, CSV, integritet, parity, sammentælling) — det importerer motoren, aldrig omvendt. Den sproglige oprydning (2026-07-02) omdøbte dette lag fra `debug` til `eoInspektion` og dets brugervendte faner til "EO-kontrol" og "Kontroltabel", fordi de er inspektions-/kontrolvisninger, ikke fejlsøgningsværktøjer. Generiske række-format-helpere i motoren bærer ikke længere et `Debug`-suffiks (fx `RowDay`, `RowCellValue`, `parseDanishToIso`); den private exception-isolerings-helper hedder `executeEoRowBuilderEntry`, og fallback-rækkens id er `eo.rowBuilder.<section>.exception`.
+> **Lagfordeling – læs dette først.** Række-evaluerings-motoren (builder-registry + alle `buildEo…Rows` + aggregator + delte typer/helpers) ligger i den autoritative placering **`src/domain/eoRowEvaluation/`**, fordi den driver den trust-kritiske download-gate og derfor ikke må ligge i et nominelt "DEV"-lag. Dette er resultatet af arkitektur-kandidat B9 (2026-06-25), der flyttede motoren ud af det tidligere `src/domain/debug/`-lag og omdøbte symbolerne `eoDebug…`→`eoRow…` (fx `collectAllDebugRows`→`collectAllEoRows`, `DebugRowModel`→`EoRowModel`, `EO_DEBUG_BUILDERS`→`EO_ROW_BUILDERS`). I **`src/domain/eoInspektion/`** ligger det rene kontrollag (page-/regulerings-viewmodel, CSV, integritet, parity, sammentælling) – det importerer motoren, aldrig omvendt. Den sproglige oprydning (2026-07-02) omdøbte dette lag fra `debug` til `eoInspektion` og dets brugervendte faner til "EO-kontrol" og "Kontroltabel", fordi de er inspektions-/kontrolvisninger, ikke fejlsøgningsværktøjer. Generiske række-format-helpere i motoren bærer ikke længere et `Debug`-suffiks (fx `RowDay`, `RowCellValue`, `parseDanishToIso`); den private exception-isolerings-helper hedder `executeEoRowBuilderEntry`, og fallback-rækkens id er `eo.rowBuilder.<section>.exception`.
 
 ---
 
@@ -133,7 +133,7 @@ type EoRowEvaluationContext = {
   eoValues: ErstatningsopgoerelseValues;
   eoErrors: ErstatningsopgoerelseFieldIssues;   // = FieldIssueSet
   loenindkomstManuelReguleringInputErrors: LoenindkomstManuelReguleringInputErrors;
-  rowPolicy: EoRowPolicy;                       // IKKE AppSettings — se noten under tabellen
+  rowPolicy: EoRowPolicy;                       // IKKE AppSettings – se noten under tabellen
   canonicalOutput?: EoCanonicalOutput;
   pdfModel?: EoModel;
 };
@@ -167,8 +167,8 @@ Dette følges konsekvent i registry og i Beregning-fanen.
 - per-builder exception-isolation via den private `executeEoRowBuilderEntry`
 
 Registryet eksponerer to udførelsesfunktioner:
-- `executeEoRowBuilderEntries` — flat `EoRowModel[]`, bruges af Beregning-fanen
-- `executeEoRowBuilderEntriesBySection` — `Map<SectionId, EoRowModel[]>`, bruges af EO-kontrol-siden
+- `executeEoRowBuilderEntries` – flat `EoRowModel[]`, bruges af Beregning-fanen
+- `executeEoRowBuilderEntriesBySection` – `Map<SectionId, EoRowModel[]>`, bruges af EO-kontrol-siden
 
 Registryet ejer ikke:
 - reguleringssektioner
@@ -286,13 +286,13 @@ Det er forkert, hvis en delmængde af disse overenskomster i virkeligheden bruge
 
 ## 10. SFGG-builderen: læs det autoritative output frem for at kalde motoren
 
-`buildEoSygeferiegodtgoerelseRows` er det bedste eksempel på §7-reglen — den bedste gating er den, der slet
+`buildEoSygeferiegodtgoerelseRows` er det bedste eksempel på §7-reglen – den bedste gating er den, der slet
 ikke er nødvendig.
 
 Builderen kalder **ikke** `buildLoenudviklingModel(...)` eller `computeSygeferiegodtgoerelse(...)`. Den tager
 `(values, stamdata, canonicalOutput?, pdfModel?)` og læser resultatet dér, hvor det allerede er beregnet:
-`pdfModel.tabtArbejdsfortjeneste.sygeferiegodtgoerelse`. De to motorer kaldes i dag kun ét sted —
-`src/domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts` — altså i den autoritative beregning, ikke i
+`pdfModel.tabtArbejdsfortjeneste.sygeferiegodtgoerelse`. De to motorer kaldes i dag kun ét sted –
+`src/domain/erstatningsopgoerelse/engines/tafNettoBeregning.ts` – altså i den autoritative beregning, ikke i
 kontrollaget.
 
 Det er stærkere end en korrekt gating, fordi hele klassen af fejl forsvinder: en builder, der ikke kalder en
@@ -375,7 +375,7 @@ Beregning-fanens domænelag gør følgende:
 
 ### Konsekvens
 
-Builders producerer rå række-data. Hver consumer laver sin relevante post-processing. Det er to distinkte lag med forskellig semantik — de bør ikke forveksles.
+Builders producerer rå række-data. Hver consumer laver sin relevante post-processing. Det er to distinkte lag med forskellig semantik – de bør ikke forveksles.
 
 ---
 
@@ -396,7 +396,7 @@ Builders producerer rå række-data. Hver consumer laver sin relevante post-proc
 ### Det der ikke er fuldt konsistent
 
 - regulerings-kontrol ligger uden for builder-registryet og er ikke en `EoRowModel`-sektion
-- `eoInspektionPageViewModel.ts` parser ansættelsesforhold-id via regex på row-ids — det er en skjult string-kontrakt uden typesikring
+- `eoInspektionPageViewModel.ts` parser ansættelsesforhold-id via regex på row-ids – det er en skjult string-kontrakt uden typesikring
 - registry er single source of truth for selve række-rækkerne, men ikke for hele EO-kontrolvisningen (regulerings-sektioner, viewmodel-sammensætning og navigation ligger udenfor); en ny builder-sektion kræver derfor typisk ændringer flere steder (jf. §14–§15)
 
 ---

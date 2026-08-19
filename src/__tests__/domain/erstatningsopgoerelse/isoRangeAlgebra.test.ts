@@ -57,12 +57,12 @@ describe('mergeIsoDateRanges', () => {
       { fra: iso('2024-01-01'), til: iso('2024-01-10') },
     ];
     const merged = mergeIsoDateRanges(ranges);
-    // Begge starter samme dag — slår sammen til det største interval
+    // Begge starter samme dag – slår sammen til det største interval
     expect(merged).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-01-20') }]);
   });
 
   it('nested range (next.til <= current.til) udvider ikke grænsen', () => {
-    // [Jan 1–20] indeholder [Jan 5–15] — resultatet er stadig [Jan 1–20]
+    // [Jan 1–20] indeholder [Jan 5–15] – resultatet er stadig [Jan 1–20]
     const ranges = [
       { fra: iso('2024-01-01'), til: iso('2024-01-20') },
       { fra: iso('2024-01-05'), til: iso('2024-01-15') },

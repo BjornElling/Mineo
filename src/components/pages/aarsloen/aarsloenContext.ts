@@ -4,7 +4,7 @@ import { useAarsloenViewModel } from './useAarsloenViewModel';
 /**
  * Årsløn-sidens viewmodel, delt med sektion-komponenterne (`page-component-contract.md` §4.4).
  *
- * Modellen eksponerer bundne field-refs, editorlokationer, det færdige beregningsresultat og dokumenthandles —
+ * Modellen eksponerer bundne field-refs, editorlokationer, det færdige beregningsresultat og dokumenthandles –
  * ingen form-settere. Sektionerne kan derfor ikke skrive uden om feltfamilien.
  */
 export type AarsloenVm = ReturnType<typeof useAarsloenViewModel>;

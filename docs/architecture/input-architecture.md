@@ -7,7 +7,7 @@ vinder kontrakten.
 
 **Ét afsnit har en maskinel binding.** §5's 30 acceptkriterier læses ordret af
 `src/__tests__/quality/acceptanceMatrix.test.ts`. En omformulering eller en ændring i antallet gør registret
-rødt — kriterierne skal derfor ændres sammen med testen, ikke i den ene ende alene.
+rødt – kriterierne skal derfor ændres sammen med testen, ikke i den ene ende alene.
 
 **Scope:** Persisterede sagsinput i formularer og tabeller, feltfejl, beregningsprojektioner, dokument-output,
 `.eo`-save/load, `sessionStorage`, undo/redo og kritiske handlinger.
@@ -16,11 +16,11 @@ rødt — kriterierne skal derfor ændres sammen med testen, ikke i den ene ende
 
 | Afsnit | Indhold |
 |---|---|
-| §1 | Den godkendte produktadfærd — de tre semantiske niveauer og reglerne for dem. |
+| §1 | Den godkendte produktadfærd – de tre semantiske niveauer og reglerne for dem. |
 | §2 | Arkitekturens form: inputaggregatet, felt-editoren, issue-modellen og projektionerne. |
 | §3 | Coverage-registrene, der holder katalog og schema i sync. |
 | §4 | Testmodellen. |
-| §5 | Acceptkriterierne. **Maskinelt bundet** — se ovenfor. |
+| §5 | Acceptkriterierne. **Maskinelt bundet** – se ovenfor. |
 | §6 | Ikke-mål. Gældende afgrænsning. |
 
 ---
@@ -174,31 +174,31 @@ når flere input kan være årsagen. Begge veje afslutter med den samme visuelle
   dét valg, der gør den generelt tilgængelig: den kan lægges på ethvert element, en feltadresse peger på, uden at
   feltkomponenten kender til den, holder state eller opter ind. Et nyt felt eller en ny tabel arver markeringen
   alene ved at bære feltadressen, som surfacen allerede sætter.
-- Animationen bor ét sted (`sharedApp.css`). Den tidligere tabel-lokale `errorFlash` — privat for Årslønssidens
-  løntabel og nøglet på et cellekoordinat, ingen anden flade kunne tale — er væk.
+- Animationen bor ét sted (`sharedApp.css`). Den tidligere tabel-lokale `errorFlash` – privat for Årslønssidens
+  løntabel og nøglet på et cellekoordinat, ingen anden flade kunne tale – er væk.
 - Markeringen er **rent visuel**: den ændrer ingen værdi, sætter ingen feltfejl (§1.7) og blokerer intet. Den
   siger «her», ikke «dette er forkert», og bruges derfor både til ægte fejl og til en manglende indtastning, der
   endnu ikke er en fejl.
-- Har en fejl intet enkelt ansvarligt felt (fx et overlap mellem to rækker), markeres rækkeankeret — det grovere,
+- Har en fejl intet enkelt ansvarligt felt (fx et overlap mellem to rækker), markeres rækkeankeret – det grovere,
   men stadig sande mål.
 
 **Hvor en regel skal bo, for at feltet kan blive rødt** (BF-028/BF-031). Rød ring og tooltip kan kun tegnes af et
 `FieldIssue`, og det bærer en strukturel `FieldRef`. En regel, der udtrykker sit mål som noget ANDET end en
-feltadresse — et tekst-path (`"svieSmertePerioder[0].fra"`) eller et kolonne-hint (`'fra' | 'til'`) — kan derfor
+feltadresse – et tekst-path (`"svieSmertePerioder[0].fra"`) eller et kolonne-hint (`'fra' | 'til'`) – kan derfor
 aldrig markere feltet, uanset hvor korrekt den er. Den kan stadig vise sin tekst i "Fejl og advarsler" og endda
 navigere til feltet, og netop dét gør fejlmåden svær at få øje på: alt ser ud til at virke undtagen ringen.
 
 Placeringen følger, om fejlen entydigt tilhører ét felt:
 
-- **Descriptor-validator** — når reglen kan afgøres af feltet plus dets kontekst, som en `CanonicalView` kan læse
+- **Descriptor-validator** – når reglen kan afgøres af feltet plus dets kontekst, som en `CanonicalView` kan læse
   (fx kronologien i et dato-par, hvor modparten står i samme række). Dette er standardvalget.
-- **Projekteret `FieldIssue` fra et domænemodul**, leveret via `crossFieldIssue`/`collectionRuleIssue` — når reglen
+- **Projekteret `FieldIssue` fra et domænemodul**, leveret via `crossFieldIssue`/`collectionRuleIssue` – når reglen
   kræver BEREGNEDE værdier, som ikke er canonical input. Modulet binder selv den rigtige adresse
   (`manualRegulationDateIssues` og `tafCutoffDateIssues` er mønstret). Alternativet ville trække beregning ind i
-  valideringslaget. Et sådant modul skal hente sit grundlag fra SAMME resolver som beregningen — `tafCutoffDateIssues`
-  bruger `resolveTafCutoffDates`, netop den kilde motorens clamping læser — så fejlen aldrig kan navngive en anden
+  valideringslaget. Et sådant modul skal hente sit grundlag fra SAMME resolver som beregningen – `tafCutoffDateIssues`
+  bruger `resolveTafCutoffDates`, netop den kilde motorens clamping læser – så fejlen aldrig kan navngive en anden
   grænse end den, der faktisk anvendes.
-- **Række-/consumerissue uden ring** — når fejlen ikke har ét ansvarligt felt (overlap mellem rækker), eller når
+- **Række-/consumerissue uden ring** – når fejlen ikke har ét ansvarligt felt (overlap mellem rækker), eller når
   den er tomhed (`missing`, §1.7). At farve den ene af to lovlige datoer ville udpege et vilkårligt offer.
 
 Der bygges **ikke** en oversætter fra tekst-path til feltadresse. En sådan bro ville gøre strengen til en de facto
@@ -210,7 +210,7 @@ rækkefølgereglen, beskeden skifter til en intervaltekst, og hvad brugeren ser 
 fra/til-parret dannes som ÉN enhed, så en kollektion ikke kan registreres med kun den halve markering.
 
 **Maskeringens bagside.** Readeren skjuler en værdi bag en rød feltfejl (§1.5). Det er rigtigt over for
-motorerne, men enhver ANDEN læser af de samme værdier — herunder legacy-validatoren — ser da et TOMT felt og kan
+motorerne, men enhver ANDEN læser af de samme værdier – herunder legacy-validatoren – ser da et TOMT felt og kan
 konkludere, at værdien mangler. Resultatet er en dublet: den sande feltfejl plus en usand «mangler»-besked om et
 felt, brugeren tydeligvis har udfyldt. `suppressMaskedMissingInvariants` fjerner den usande halvdel, og den
 ligger dér, hvor de to lister mødes, fordi kriteriet er en egenskab ved PARRET: en validator kan ikke selv vide,
@@ -229,7 +229,7 @@ valget:
 
 Universel dataintegritetsregel: Programmet må aldrig automatisk slette eller overskrive gyldigt brugerinput på grund af
 navigation, visibility, defaults, rerender eller intern synkronisering. Kun en eksplicit brugerhandling, som faktisk
-anmoder om sletning eller erstatning—felt-rydning, række-sletning, reset, `Slet alt`, load eller undo/redo—må gøre det.
+anmoder om sletning eller erstatning – felt-rydning, række-sletning, reset, `Slet alt`, load eller undo/redo – må gøre det.
 
 ### 1.10 Afhængighedsspecifik blokering
 
@@ -256,7 +256,7 @@ anmoder om sletning eller erstatning—felt-rydning, række-sletning, reset, `Sl
 ### 1.12 Session, `.eo` og historisk kompatibilitet
 
 - Åben draft persisteres ikke og tabes ved F5.
-- Alt afsluttet input—også fejlende rå tekst—overlever F5 i den aktuelle programversion.
+- Alt afsluttet input – også fejlende rå tekst – overlever F5 i den aktuelle programversion.
 - `.eo` indeholder kun schema-gyldigt canonical brugerinput og aldrig fejlende rå tekst.
 - `.eo`-save blokeres, før fil-I/O, hvis der findes aktivt relevant rejected input.
 - Manglende felter og warnings blokerer ikke `.eo`.
@@ -456,8 +456,8 @@ For hver command:
 9. Rul storage og runtime tilbage til før-snapshottet ved uventet fejl.
 
 **Afledte felter.** Et felt, hvis kanoniske værdi er en funktion af andre afsluttede felter, er ikke brugerinput
-men en konsekvens af det. Sådanne felter erklæres som `DerivedInputWrite` på kataloget — id, den ene sektion
-reglen må skrive i, og en ren, idempotent `materialize` — og materialiseres i trin 4, altså inde i samme
+men en konsekvens af det. Sådanne felter erklæres som `DerivedInputWrite` på kataloget – id, den ene sektion
+reglen må skrive i, og en ren, idempotent `materialize` – og materialiseres i trin 4, altså inde i samme
 kandidat som årsagen. Årsag og konsekvens hører dermed til samme revision og samme history-trin.
 
 En React-effect må aldrig skrive en afledt værdi. Den ville gøre konsekvensen til en selvstændig autoritativ
@@ -469,7 +469,7 @@ Kataloget afviser ved commit en regel, der skriver uden for sin erklærede sekti
 idempotent. Idempotenskravet er load-bearing: en svingende regel ville skrive noget nyt ved næste command uden
 nogen brugerhandling.
 
-Fordi reglerne kører på hver command — også `replaceCase` fra en indlæst `.eo` — kan et afledt felt ikke stå
+Fordi reglerne kører på hver command – også `replaceCase` fra en indlæst `.eo` – kan et afledt felt ikke stå
 ude af trit med sin kilde i nogen tilstand, en consumer kan observere. Det er en STRUKTUREL garanti, ikke en
 konvention, og en separat "afviger værdien?"-validering af et afledt felt er derfor en gren, ingen tilstand kan
 nå.
@@ -539,7 +539,7 @@ bruges af reaktiv gate og click-preflight. Generatoren modtager kun et kilde-tok
 - den eksisterende centrale systemfejl-/noticeoverflade viser startupfejl og brugerrettede operationsfejl.
 
 Ingen af portene må både eksponere reads, raw writes, UI-notices og persistence. En port læser ALTID gennem
-bindingens READ-ONLY kildeport `captureStableSource(): { input, token }` — aldrig produktions-singletonen direkte
+bindingens READ-ONLY kildeport `captureStableSource(): { input, token }` – aldrig produktions-singletonen direkte
 (ellers kunne en alternativ binding vise én sag, mens porten læste og gemte en anden), og aldrig gennem den rå
 store: en `StoreApi` på bindingen ville give enhver adapter `setState` og dermed en generel bypass af typed
 commands, history og storage-grænsen.
@@ -553,7 +553,7 @@ En sektion får sin første værdi ét af to steder, og begge er levende:
 
 1. **Ny-sags-seeden.** `src/inputCore/newCaseSections.ts` ejer typen og sammenfletningen; `createNewCaseInput`
    bygger den færdige sag. Domænet leverer seeds pr. slice, og `src/domain/newCaseSeed.ts` komponerer dem.
-   Seeden er stedet for krav om "sådan starter en ny sag", som det persisterede schema ikke KAN udtrykke —
+   Seeden er stedet for krav om "sådan starter en ny sag", som det persisterede schema ikke KAN udtrykke –
    enten fordi værdien kommer fra brugerens programindstillinger, eller fordi schemaets egen default bevidst
    tjener load-tolerance for ældre `.eo`-filer frem for en ny sag.
 2. **`createEmpty<Sektion>Section` + schemaets defaults**, som reduceren materialiserer, første gang brugeren
@@ -561,7 +561,7 @@ En sektion får sin første værdi ét af to steder, og begge er levende:
 
 **En ny sag er ikke en tom sag.** Den samme konstruktion bruges tre steder, og de tre SKAL svare ens:
 bootstrap-hydrationen (`initializeInputRuntime`, når der ikke findes en aktiv session), `Slet alt`
-(`clearCase` bærer seeden), og overwrite-gatens `hasAnyData`, som måler brugerdata imod netop den baseline —
+(`clearCase` bærer seeden), og overwrite-gatens `hasAnyData`, som måler brugerdata imod netop den baseline –
 ikke imod tomhed. Ville de tre kunne svare forskelligt, ville sagens udgangspunkt afhænge af, hvordan den blev
 født, og et program uden en eneste indtastning ville advare brugeren om at overskrive "sine data".
 
@@ -576,7 +576,7 @@ Fire regler følger, og alle fire er håndhævet:
    defaults, og hvilken domænet ser, afhænger af, om sektionen tilfældigvis er materialiseret endnu.
    Håndhæves af `freshSectionDefaults.test.ts` for alle statiske felter i alle sektioner.
 2. **Ét brugervalg på en ny sag må aldrig udløse en systemfejl.** En systemfejl er en påstand om, at
-   programmet er i stykker — ikke en fejl, brugeren kan rette. `freshCaseChoiceSweep.test.ts` fejer hvert
+   programmet er i stykker – ikke en fejl, brugeren kan rette. `freshCaseChoiceSweep.test.ts` fejer hvert
    statisk valg-/kontaktfelt gennem hver af sine valgmuligheder fra præcis den tilstand, `initializeInputRuntime`
    giver en ny sag, og kører hele domænets læsesti på resultatet. Valgmængden hentes fra feltets eget codec
    (`FieldCodec.options`), så nye felter og nye enum-værdier dækkes uden at nogen husker det.
@@ -584,12 +584,12 @@ Fire regler følger, og alle fire er håndhævet:
    ældre `create<Sektion>InitialValues`-fabrikker kun afviger fra den levende sag på erklærede punkter. Efter
    at ny-sags-defaults har fået ét sandt sted, er den eneste erklærede afvigelse tabellernes pladsholderrækker.
 4. **En indstilling, der lover en standardværdi, skal ændre noget.** `newCaseSettingsDefaults.test.ts` måler
-   virkningen — ikke koblingen: for hver nøgle i `NEW_CASE_DEFAULT_SETTINGS_KEYS` skal en ændret værdi ændre
+   virkningen – ikke koblingen: for hver nøgle i `NEW_CASE_DEFAULT_SETTINGS_KEYS` skal en ændret værdi ændre
    enten den nye sags indhold eller en nytilføjet rækkes indhold. Listen er samtidig fuldstændighedstjekket, så
    en ny `default*`-indstilling ikke kan tilføjes uden enten at blive koblet på eller erklæret som ikke-sagsdata.
 
 Baggrunden er BF-025: `eoAngivetLoenLoenudvikling.loenPaaHelligdage` var valgfri i schemaet, havde ingen editor
-og fik derfor aldrig en værdi — mens EO-motoren erklærede `undefined` umulig og fail-closede med en systemfejl.
+og fik derfor aldrig en værdi – mens EO-motoren erklærede `undefined` umulig og fail-closede med en systemfejl.
 Fejlen ramte enhver ny sag ved første valg i "Beregnes ud fra", og ingen test kunne se den, fordi suitens fixture
 kom fra en fabrik, produktionen ikke bruger. Samme fabrik-uden-kaldere var årsagen til, at AppSettings' kategori
 "standardværdier til ny sagsdata" aldrig slog igennem på en ny sag: den var kun koblet i fabrikken.
@@ -597,13 +597,13 @@ kom fra en fabrik, produktionen ikke bruger. Samme fabrik-uden-kaldere var årsa
 ## 3. Coverage-registrene (`src/inputCore/ledger/`)
 
 Registrene er en **permanent release-gate**: `verify:ledgers` kører som del af `verify:release`, og registrene
-er den opregnelige mængde, completeness-testene måler dækning imod — herunder "alle 18 dokumentoutputs" og
+er den opregnelige mængde, completeness-testene måler dækning imod – herunder "alle 18 dokumentoutputs" og
 "alle 8 beregningsentries". Fjernes de, forsvinder completeness-KRAVET, ikke kun en note.
 
 Det levende ansvar er **schema-/consumerdrift**: et nyt felt, en ny collection eller et nyt entrypoint kan ikke
 glide ind uregistreret, og et registreret symbol kan ikke forsvinde ubemærket.
 
-Registrene har én dataidentitet pr. felt, collection eller makro-consumer — ikke pr. schema-leaf og ikke pr.
+Registrene har én dataidentitet pr. felt, collection eller makro-consumer – ikke pr. schema-leaf og ikke pr.
 rendersted. De er coverage-backstops og må ikke blive en parallel runtime-autoritet: de data, runtime har brug
 for, bor i descriptors og projektioner, ikke i et register ved siden af.
 
@@ -649,7 +649,7 @@ inventoryrapporten og fejler ved uregistrerede, dublerede eller forældreløse e
 
 **En fælde værd at kende.** En `.transform()` på et persisteret sektionsschema blinder udledningen: Zod udsender
 da et uigennemsigtigt output-schema, så `z.toJSONSchema` ikke længere kan se det nestede træ, og feltantallet
-falder — uden at noget bliver rødt, fordi også schema-fingerprintet beregnes på det blindede schema. Stripning
+falder – uden at noget bliver rødt, fordi også schema-fingerprintet beregnes på det blindede schema. Stripning
 og lignende omformninger hører derfor i sektionsmigratoren, ikke på schemaet. Optællingstestene kan ikke fange
 det alene, fordi en blinding fulgt af en nedjusteret baseline står grøn.
 

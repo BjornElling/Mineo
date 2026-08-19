@@ -4,14 +4,14 @@ Denne fil beskriver beregningslogikken for mer-erstatning ved forhøjet folkepen
 Beregningen er et fradrag (fradrag 4) i differencekravet på fane 5.
 
 Se også:
-- [differencekrav.md](./differencekrav.md) — fane 5, hovedberegning
-- [kapitaliseret-eet.md](./kapitaliseret-eet.md) — fane 3, den kapitaliseringslogik der genbruges her
-- [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) — særregel for ≤ 2 år til folkepensionsalderen
-- [fejlkatalog.md](./fejlkatalog.md) — alle fejl og advarsler
+- [differencekrav.md](./differencekrav.md) – fane 5, hovedberegning
+- [kapitaliseret-eet.md](./kapitaliseret-eet.md) – fane 3, den kapitaliseringslogik der genbruges her
+- [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) – særregel for ≤ 2 år til folkepensionsalderen
+- [fejlkatalog.md](./fejlkatalog.md) – alle fejl og advarsler
 
 ---
 
-## Del 1 — For dig
+## Del 1 – For dig
 
 ### Hvad er mer-erstatning ved forhøjet folkepensionsalder?
 
@@ -37,7 +37,7 @@ får `true` ved load.
 For hver kapitaliseret EET-afgørelse vurderes hver kendt folkepensionsalder-forhøjelse. En forhøjelse
 udløser mer-erstatning for den pågældende kapitalisering, når **alle** følgende er opfyldt:
 
-1. Forhøjelsesdatoen ligger **efter** kapitaliseringsdatoen (datosammenligning — også hvis det er
+1. Forhøjelsesdatoen ligger **efter** kapitaliseringsdatoen (datosammenligning – også hvis det er
    samme kalenderår).
 2. Forhøjelsesdatoen ligger **på eller før** beregningsdatoen.
 3. Forhøjelsen hæver den folkepensionsalder, kapitaliseringstabellerne regner med (den gamle
@@ -48,7 +48,7 @@ Er valgmuligheden slået fra, beregnes og vises ingen mer-erstatning.
 ### Hvordan beregnes beløbet?
 
 Mer-erstatningen for én forhøjelse er forskellen mellem to kapitalværdier af den **samme**
-løbende ydelse — én opgjort til den nye (forhøjede) folkepensionsalder og én til den hidtidige:
+løbende ydelse – én opgjort til den nye (forhøjede) folkepensionsalder og én til den hidtidige:
 
 ```
 mer-erstatning = kapitalværdi(ny folkepensionsalder) − kapitalværdi(hidtidig folkepensionsalder)
@@ -57,8 +57,8 @@ mer-erstatning = kapitalværdi(ny folkepensionsalder) − kapitalværdi(hidtidig
 Begge kapitalværdier beregnes:
 - på forhøjelsens **forhøjelsesdato**,
 - med **samme kapitaliseringsprocent** som den faktiske kapitalisering (fra fane 3),
-- med **samme løbende ydelse** (årsydelse). Kun kapitaliseringsfaktoren — og dermed
-  kapitalværdien — er forskellig, fordi den nye og den gamle bekendtgørelse henfører skadelidte
+- med **samme løbende ydelse** (årsydelse). Kun kapitaliseringsfaktoren – og dermed
+  kapitalværdien – er forskellig, fordi den nye og den gamle bekendtgørelse henfører skadelidte
   til hver sin tabel med hver sin folkepensionsalder.
 
 Den løbende ydelse (årsydelsen) reguleres til satsåret, der er **kalenderåret 1 måned efter
@@ -108,23 +108,23 @@ forkert.
 ### Afrunding
 
 - Den løbende årsydelse afrundes til 2 decimaler (som fane 3).
-- Hver kapitalværdi beregnes som `round2(årsydelse × kapitaliseringsfaktor)` — altså med 2
+- Hver kapitalværdi beregnes som `round2(årsydelse × kapitaliseringsfaktor)` – altså med 2
   decimaler, **ikke** `ceil0` til hel krone som ved et almindeligt kapitalbeløb i fane 3. Det er
   her differencen, der er kravet, og eksemplet viser kapitalværdierne med 2 decimaler.
 - Mer-erstatningen pr. forhøjelse afrundes til hel krone: `round0(ny − gammel)`.
 
 ---
 
-## Del 2 — AI-agent: teknisk reference
+## Del 2 – AI-agent: teknisk reference
 
 ### Primære filer
 
 | Fil | Ansvar |
 |---|---|
 | `src/data/kapitalisering/forhoejetPensionsalderEvents.ts` | Eksplicit datatabel over forhøjelser: forhøjelsesdato, opslagsdato for gammel/ny bekendtgørelse, alderslabels. |
-| `src/domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation.ts` | `computeMerErstatningPensionsalder()` — beregner mer-erstatningen pr. kapitalisering pr. forhøjelse. |
-| `src/domain/erhvervsevnetab/eetCalculationGraph.ts` | `computeEetDifferencekravCalculation` — orkestrerer fradrag 4 og trækker `samletMerErstatning` fra differencekravet. |
-| `src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts` | `composeEetDifferencekravCalculation` — selve sammensætningen af differencekravet. |
+| `src/domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation.ts` | `computeMerErstatningPensionsalder()` – beregner mer-erstatningen pr. kapitalisering pr. forhøjelse. |
+| `src/domain/erhvervsevnetab/eetCalculationGraph.ts` | `computeEetDifferencekravCalculation` – orkestrerer fradrag 4 og trækker `samletMerErstatning` fra differencekravet. |
+| `src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts` | `composeEetDifferencekravCalculation` – selve sammensætningen af differencekravet. |
 | `src/document/generators/differencekrav/differencekravDocument.ts` | Hoved-side-fradragslinje og valgfrit bilag. |
 | `src/components/pages/erhvervsevnetab/EetDifferencekravTab.tsx` | Specifikationssektion, bilagsvalg og detaljeret visningsboks. |
 
@@ -134,7 +134,7 @@ forkert.
    kapitaliserede afgørelser med kapitaliseringsdato ≤ beregningsdato.
 2. Hvis valgmuligheden er slået til, kaldes `computeMerErstatningPensionsalder` med disse
    kapitaliseringer (rowId, afgørelsesdato, kapitaliseringsdato, kapitaliseringspct, grundløn,
-   erstatningsniveau, AM-bidrag — alle hentet fra fane 3's computation).
+   erstatningsniveau, AM-bidrag – alle hentet fra fane 3's computation).
 3. For hver kapitalisering × hver forhøjelse:
    - betingelse 1 (forhøjelsesdato > kapitaliseringsdato) og 2 (≤ beregningsdato) tjekkes,
    - kapitaliseringsfaktoren opslås for både `opslagsdatoGammel` og `opslagsdatoNy` via

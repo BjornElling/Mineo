@@ -106,21 +106,21 @@ describe('beregnSHDage', () => {
   });
 
   it('nytårsdag 2024 (mandag) tælles med', () => {
-    // 1. januar 2024 er mandag — skal tælle som SH-dag
+    // 1. januar 2024 er mandag – skal tælle som SH-dag
     const fra = createDate(2024, 0, 1);
     const til = createDate(2024, 0, 1);
     expect(beregnSHDage(fra, til)).toBe(1);
   });
 
   it('juledag 2024 (onsdag) tælles med', () => {
-    // 25. december 2024 er onsdag — skal tælle
+    // 25. december 2024 er onsdag – skal tælle
     const fra = createDate(2024, 11, 25);
     const til = createDate(2024, 11, 25);
     expect(beregnSHDage(fra, til)).toBe(1);
   });
 
   it('anden juledag 2021 (søndag) tælles IKKE', () => {
-    // 26. december 2021 er søndag — weekend, tælles ikke
+    // 26. december 2021 er søndag – weekend, tælles ikke
     const fra = createDate(2021, 11, 26);
     const til = createDate(2021, 11, 26);
     expect(beregnSHDage(fra, til)).toBe(0);
@@ -139,7 +139,7 @@ describe('beregnSHDage', () => {
   });
 
   it('store bededag 2023 (fredag) tælles som SH-dag, men 2026 gør det ikke', () => {
-    // Store bededag 2023 var den 5. maj (fredag) — fjernet fra 2024
+    // Store bededag 2023 var den 5. maj (fredag) – fjernet fra 2024
     const stBededag2023 = createDate(2023, 4, 5); // 5. maj 2023
     expect(beregnSHDage(stBededag2023, stBededag2023)).toBe(1);
 
@@ -172,7 +172,7 @@ describe('beregnSHDageForDatoSet', () => {
   });
 
   it('ikke-helligdag dato → 0', () => {
-    const datoSet = new Set([toISODateString('2024-01-15')]); // Mandag 15. jan — alm. hverdag
+    const datoSet = new Set([toISODateString('2024-01-15')]); // Mandag 15. jan – alm. hverdag
     expect(beregnSHDageForDatoSet(datoSet)).toBe(0);
   });
 
@@ -309,7 +309,7 @@ describe('erHverdagUtc', () => {
 
 // ─── Påskedag-facit (absolut korrekthed, ikke kun intern konsistens) ───────────
 
-describe('beregnHelligdageMedNavn — påskedag mod kendt facit', () => {
+describe('beregnHelligdageMedNavn – påskedag mod kendt facit', () => {
   // Kendte gregorianske påskedage. Verificerer Meeus/Jones/Butcher-computus mod
   // en uafhængig facit, så testen beviser absolut korrekthed (ikke kun at to
   // implementeringer er enige med hinanden).

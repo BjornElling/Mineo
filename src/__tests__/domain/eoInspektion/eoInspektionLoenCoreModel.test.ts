@@ -48,7 +48,7 @@ const makeEOValues = (
       pensionPct: undefined,
       loenperiode: 'maaned',
       indtaegtsoplysningerTableData: [],
-      fuldLoenUnderFerie: 'Nej', // Bevidst testvalg — system-default er 'Ja'
+      fuldLoenUnderFerie: 'Nej', // Bevidst testvalg – system-default er 'Ja'
       loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
       saerligFraDatoRegulering: undefined,
       loenudviklingBeregningsgrundlag: 'Ingen',
@@ -190,7 +190,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
 
 // ─── Offentlig løn-path (KL-overenskomst) ────────────────────────────────────
 
-describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
+describe('buildLoenTimeline – offentlig løn-path (KL)', () => {
   const makeKLInput = (
     inspektionDays: RowDay[],
     overrides: Partial<ErstatningsopgoerelseValues> = {}
@@ -221,7 +221,7 @@ describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
   });
 
   it('bygger loendag via offentlig løn-opslag (KL, løntrin 20, gruppe 0)', () => {
-    // 2024-03-04 er mandag — en normal arbejdsdag
+    // 2024-03-04 er mandag – en normal arbejdsdag
     const inspektionDays = [makeRowDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(makeKLInput(inspektionDays));
     expect(result.loenDays).toHaveLength(1);

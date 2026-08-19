@@ -1,8 +1,8 @@
-# Skema-evolution og load-kompatibilitet — Mineo
+# Skema-evolution og load-kompatibilitet – Mineo
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-16
+**Senest verificeret mod kode:** 2026-08-19
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -18,11 +18,11 @@ Tværgående save/load-regler er normativt samlet i `src/contracts/persistence-c
 
 `FILE_FORMAT_VERSION` og `PERSISTED_DATA_VERSION` er forskellige versionsbegreber, jf. `persistence-contract.md` §9. Denne kontrakt ejer reglerne for persisted sektionsschemas, kildeversions-resolution, migration og load-sanitization.
 
-Load-mekanismen kører sanitization og derefter `schema.safeParse(data)` pr. sektion. Hvis parse fejler, droppes **hele sektionen** — ikke bare det enkelte felt. Det er den nuværende fail-closed model og skal forklares i preflight.
+Load-mekanismen kører sanitization og derefter `schema.safeParse(data)` pr. sektion. Hvis parse fejler, droppes **hele sektionen** – ikke bare det enkelte felt. Det er den nuværende fail-closed model og skal forklares i preflight.
 
 ---
 
-## Del 0: Første beslutning — er det et sagsfelt eller et UI-hjælpefelt?
+## Del 0: Første beslutning – er det et sagsfelt eller et UI-hjælpefelt?
 
 Ikke alle nye felter på skærmen er nye felter i sags-skemaet. Før implementering skal man klassificere feltet korrekt:
 
@@ -65,7 +65,7 @@ Kort sagt:
 
 ---
 
-## Del 1: Load-kompatibilitet — hvad der kræves i skemaet
+## Del 1: Load-kompatibilitet – hvad der kræves i skemaet
 
 ### Regel 1.1: Alle nye felter efter version 1.0 skal have `.optional()` eller `.default(…)`
 
@@ -73,7 +73,7 @@ Når et felt tilføjes efter schema-version `1.0`, og der derfor kan eksistere g
 
 **`JaNej`-toggle:**
 ```ts
-// Forkert — parser fejler hvis feltet mangler i gammel fil
+// Forkert – parser fejler hvis feltet mangler i gammel fil
 visBilagsnumre: jaNejEnum,
 
 // Korrekt
@@ -101,7 +101,7 @@ minTabel: z.array(rowSchema).default([]),
 ```
 
 **`optionalString`, `optionalIsoDateString`, `amountValue`, `decimalNumber` og `wholeNumber`:**
-Disse er allerede `.optional()` og håndterer manglende felter korrekt — ingen yderligere ændring nødvendig.
+Disse er allerede `.optional()` og håndterer manglende felter korrekt – ingen yderligere ændring nødvendig.
 
 De numeriske combinators validerer kun canonical syntaks og præcis repræsentation. Fortegn, min/max,
 procentinterval, datoordensregler og øvrige domæneregler må ikke ligge i persistence-schemaet; de afledes som issues
@@ -110,17 +110,17 @@ gennem save/load uden at blive muteret eller få hele sektionen droppet.
 
 ### Regel 1.2: Vælg skema-default konservativt
 
-Skema-default bestemmer hvad et felt får, når en gammel fil ikke har det. Den skal altid repræsentere den **sikre, passive** tilstand — typisk `'Nej'`, `false`, `[]` eller `undefined`. Den behøver ikke matche AppSettings-default (se Del 2, Regel 2.3).
+Skema-default bestemmer hvad et felt får, når en gammel fil ikke har det. Den skal altid repræsentere den **sikre, passive** tilstand – typisk `'Nej'`, `false`, `[]` eller `undefined`. Den behøver ikke matche AppSettings-default (se Del 2, Regel 2.3).
 
 ### Regel 1.3: `.strict()` slår i begge retninger
 
 Alle sub-skemaer bruger `.strict()`. Det betyder:
-- Felter der er i filen men **ikke i skemaet** bliver strippet af `stripUnknownFieldsBySchema()` og rapporteret som "Feltet findes ikke i denne version" — dette er korrekt opførsel for fremtids-filer.
-- Felter der er **påkrævede i skemaet men mangler i filen** medfører at hele sektionen fejler — dette er den fejl vi undgår med Regel 1.1.
+- Felter der er i filen men **ikke i skemaet** bliver strippet af `stripUnknownFieldsBySchema()` og rapporteret som "Feltet findes ikke i denne version" – dette er korrekt opførsel for fremtids-filer.
+- Felter der er **påkrævede i skemaet men mangler i filen** medfører at hele sektionen fejler – dette er den fejl vi undgår med Regel 1.1.
 
 ---
 
-## Del 2: Komplet tjekliste — generel skabelon og domænestier
+## Del 2: Komplet tjekliste – generel skabelon og domænestier
 
 ### 2.1 Generel tjeklisteskabelon
 
@@ -184,20 +184,20 @@ Brug denne tabel til at instantiere skabelonen ovenfor med de rigtige filer:
 | `satser` | `src/schemas/formSchemas/sections/satserSchemas.ts` | `src/domain/satser/satserInitialValues.ts` | `src/components/pages/Satser.tsx` | `src/components/pages/satser/` |
 | `renteberegning` | `src/schemas/formSchemas/sections/renteberegningSchemas.ts` | `src/domain/renteberegning/renteberegningInitialValues.ts` | `src/components/pages/Renteberegning.tsx` | `src/components/pages/renteberegning/` |
 
-Feltarbejde på en side sker gennem sidens `useXxxViewModel` og dens sektionskomponenter i undermappen — ikke
+Feltarbejde på en side sker gennem sidens `useXxxViewModel` og dens sektionskomponenter i undermappen – ikke
 inline i page-filen. `page-component-contract.md` §4.4 ejer den regel. Kolonnen «Primær page» navngiver derfor
 sidens indgang, ikke stedet felterne bindes; sidste kolonne er der, arbejdet faktisk foregår.
 
 `faellesAarsloen` er den eneste sektion, der deles af to sider: den bærer den fælles årsløn, som både EET og
-forsørgertab regner på. Et felt dér skal derfor gennemgås for **begge** forbrugere — en ændring, der kun følges
+forsørgertab regner på. Et felt dér skal derfor gennemgås for **begge** forbrugere – en ændring, der kun følges
 til ende på den ene side, er den forudsigelige fejl i netop den række.
 
 `minProcesrente` er ikke en `.eo`-sagssektion, medmindre den registreres i `persistenceRegistry`.
 
 `persistenceRegistry.ts` er teknisk autoritet for persisted sektionskeys, og tabellen ovenfor skal dække præcis
 de samme nøgler. Det er ikke en henstilling: `schemaEvolutionDomainTable.test.ts` parser tabellen og sammenligner
-nøglesættet med `PERSISTED_SECTION_KEYS`, så en ny persisted sektion uden en række — eller en række uden en
-sektion — gør testen rød. Står et domæne ikke i tabellen, må schema-arbejdet ikke fortsætte, før både registry
+nøglesættet med `PERSISTED_SECTION_KEYS`, så en ny persisted sektion uden en række – eller en række uden en
+sektion – gør testen rød. Står et domæne ikke i tabellen, må schema-arbejdet ikke fortsætte, før både registry
 og kontrakt er opdateret.
 
 Tabellens **stier** er dækket af `contractReferenceLiveness.test.ts`, der kræver, at hver navngiven fil og mappe
@@ -228,14 +228,14 @@ Typiske fejlsymptomer hvis EO-opdateringer glemmes:
 ### 3.1 fieldCount og load-advarslernes tal
 
 `countFilledFields()` i `src/utils/dataCollection.ts` tæller rekursivt alle ikke-tomme værdier. Definitionen af "fyldt" er:
-- `boolean` og `number`: **altid talt** — også `false` og `0`
-- `string`: talt hvis `.trim().length > 0` — dvs. `'Nej'` tæller, `''` tæller ikke
+- `boolean` og `number`: **altid talt** – også `false` og `0`
+- `string`: talt hvis `.trim().length > 0` – dvs. `'Nej'` tæller, `''` tæller ikke
 - `undefined`/`null`: tæller ikke
 - `array`: tæller hvis mindst ét element er meningsfuldt
 
 **Konsekvens:** Et nyt `JaNej`-felt med default `'Nej'` øger `fieldCount` med 1 i alle nygemte filer. Ældre filer har ikke dette felt og rapporterer dermed et lavere `expectedCount`. Count-mismatch er ikke alene en fejlklassifikation. Brugervendt alvorlighed skal styres af issue-kategorier, ikke kun af expected/loaded tal.
 
-**Preflight-tallene skal gå op for brugeren:** `indlæst-fra-fil + sat-til-standard = felter-i-fil`. Derfor opgøres `loadedCount`/`failedCount` i preflight **felt-baseret** ud fra hvad der faktisk lå i filen — IKKE som rå `countFilledFields(snapshot)`, der også tæller schema-defaults der udfylder huller i en gammel fil (et tal der ellers kan være ≥ `expectedCount` trods reelt tab). `failedCount` er antallet af udfyldte filfelter der gik tabt (strippet/droppet/ukendt sektion), opgjort via `countMeaningfulFields()`; `loadedCount = expectedCount − failedCount`. Migreringer bevarer data og tæller ikke som tab. (Bemærk: top-level `LoadFileResult.fieldCount` er fortsat `countFilledFields(snapshot)` til success-beskeden — det er et andet, ikke-reconcilierende tal.)
+**Preflight-tallene skal gå op for brugeren:** `indlæst-fra-fil + sat-til-standard = felter-i-fil`. Derfor opgøres `loadedCount`/`failedCount` i preflight **felt-baseret** ud fra hvad der faktisk lå i filen – IKKE som rå `countFilledFields(snapshot)`, der også tæller schema-defaults der udfylder huller i en gammel fil (et tal der ellers kan være ≥ `expectedCount` trods reelt tab). `failedCount` er antallet af udfyldte filfelter der gik tabt (strippet/droppet/ukendt sektion), opgjort via `countMeaningfulFields()`; `loadedCount = expectedCount − failedCount`. Migreringer bevarer data og tæller ikke som tab. (Bemærk: top-level `LoadFileResult.fieldCount` er fortsat `countFilledFields(snapshot)` til success-beskeden – det er et andet, ikke-reconcilierende tal.)
 
 Issue-kategorier (`LoadIssueKind` i `src/types/fileOperations.ts`):
 
@@ -245,8 +245,8 @@ Issue-kategorier (`LoadIssueKind` i `src/types/fileOperations.ts`):
 - `migratedField`: eksplicit migrator har flyttet eller omsat et felt. Data bevares → **vises ikke** (vellykket indlæsning, ikke et tab) og tæller ikke som fejl.
 
 **Skel mellem tavs og rapporteret:**
-- Felter der *manglede* i filen og blev udfyldt via schema-default eller optional **rapporteres tavst** — det er harmløs forward-tolerance og må aldrig udløse advarsel (AGENTS.md save/load: "Nye schema-felter der mangler i en ældre fil må aldrig blokere load eller udløse advarsel").
-- Felter der *var i filen* men ikke kunne indlæses (`strippedUnknownField`/`sectionDropped`/`unknownSection`) **rapporteres via preflight**. Stille datatab er uacceptabelt (AGENTS.md save/load; persistence-contract §6.3 "Rapportér tab eller strip via preflight i stedet for at gætte"). Framingen er neutral/pædagogisk ("sat til standardværdier"), ikke en teknisk fejl, og må ikke ende som en `logWarning`/console-advarsel (den udløser DevtoolsIssueNotice — "Teknisk advarsel registreret" — hvilket er forkert kanal for forventet schema-evolution).
+- Felter der *manglede* i filen og blev udfyldt via schema-default eller optional **rapporteres tavst** – det er harmløs forward-tolerance og må aldrig udløse advarsel (AGENTS.md save/load: "Nye schema-felter der mangler i en ældre fil må aldrig blokere load eller udløse advarsel").
+- Felter der *var i filen* men ikke kunne indlæses (`strippedUnknownField`/`sectionDropped`/`unknownSection`) **rapporteres via preflight**. Stille datatab er uacceptabelt (AGENTS.md save/load; persistence-contract §6.3 "Rapportér tab eller strip via preflight i stedet for at gætte"). Framingen er neutral/pædagogisk ("sat til standardværdier"), ikke en teknisk fejl, og må ikke ende som en `logWarning`/console-advarsel (den udløser DevtoolsIssueNotice – "Teknisk advarsel registreret" – hvilket er forkert kanal for forventet schema-evolution).
 
 ### 3.1a Breaking schema-ændringer
 
@@ -293,11 +293,11 @@ Sub-skemaerne er defineret med `.strict()` individuelt, men det er det endelige 
 
 **Bemærk hvilket af de to skemaer der gælder hvor.** Filen eksporterer både `erstatningsopgoerelseSchema` (formens fulde værdiform, som `erstatningsopgoerelseInitialValues.ts` parser mod, jf. §3.3) og `persistedErstatningsopgoerelseSchema`. Det er sidstnævnte, der er registreret i `persistenceRegistry.ts`, og dermed dét, `.eo`-load faktisk `safeParse`r mod. Ved spørgsmål om load-adfærd er den persisterede variant den autoritative.
 
-Et felt må dog kun defineres i ét sub-skema — hvis det ved en fejl ender i to, vinder det sidst-mergede.
+Et felt må dog kun defineres i ét sub-skema – hvis det ved en fejl ender i to, vinder det sidst-mergede.
 
 ### 3.3 `erstatningsopgoerelseSchema.parse({…})` fejler hårdt
 
-I `erstatningsopgoerelseInitialValues.ts` bruges `.parse()` (ikke `.safeParse()`). Det betyder at en glemt eller forkert feltværdi i initial values kaster en uncaught exception og crasher sags-oprettelsen. Der er ingen graceful fallback her — korrekthed er påkrævet.
+I `erstatningsopgoerelseInitialValues.ts` bruges `.parse()` (ikke `.safeParse()`). Det betyder at en glemt eller forkert feltværdi i initial values kaster en uncaught exception og crasher sags-oprettelsen. Der er ingen graceful fallback her – korrekthed er påkrævet.
 
 ### 3.4 Row-generatorer for tabel-felter
 
@@ -326,7 +326,7 @@ Se `src/contracts/app-settings.md` for den normative regel om nested merge-logik
 
 ---
 
-## Del 4: Flowdiagram — hvad sker der ved load
+## Del 4: Flowdiagram – hvad sker der ved load
 
 ```
 .eo-fil

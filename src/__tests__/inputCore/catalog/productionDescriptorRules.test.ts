@@ -77,7 +77,7 @@ const evaluate = (input: SettledInput) => createInputEvaluation({ input, catalog
 
 const tableRef = createCollectionRef({ section: 'aarsloen', path: [], collection: 'tableData' });
 
-describe('produktdescriptors — dato-, periode- og relevansregler', () => {
+describe('produktdescriptors – dato-, periode- og relevansregler', () => {
   it('bruger den aktuelle kontekstuelle label i rejected datofejl', () => {
     let input = dispatch(empty(), resetSection('stamdata', { skadestype: 'Erhvervssygdom' }));
     input = dispatch(input, settleField(stamdataSkadedatoField.bind(), '31-02-2020'));
@@ -159,7 +159,7 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
   });
 
   it('BEVARER en gyldig celle, når samme periodeskift gør den irrelevant (§7.5 hovedregel)', () => {
-    // Kontrasttesten til ovenstående, og den der beviser, at rydningen er betinget af den RØDE FEJL — ikke
+    // Kontrasttesten til ovenstående, og den der beviser, at rydningen er betinget af den RØDE FEJL – ikke
     // blot af at cellen bliver skjult. Uden denne kunne rydningen udvides til alle skjulte celler, uden at
     // nogen test blev rød.
     let input = dispatch(empty(), insertRow(tableRef, createEmptyStandardLoenRow('r1')));
@@ -376,12 +376,12 @@ describe('produktdescriptors — dato-, periode- og relevansregler', () => {
 //
 // Fundets reproduktion: sæt `stamdata.skadedato` til 2099-01-01. Skadedatoen bliver da EO-datofelternes nedre
 // grænse og ligger efter deres konfigurerede øvre grænse, så intet er gyldigt. Beskeden viste før rettelsen de
-// faktiske grænser, men ikke hvilke inputs der frembragte dem — brugeren fik at vide, at ingen dato var mulig,
+// faktiske grænser, men ikke hvilke inputs der frembragte dem – brugeren fik at vide, at ingen dato var mulig,
 // uden at vide hvad de skulle rette.
 //
 // Testen måler `issue.message` frem for blot `status`, fordi det er BESKEDEN, fundet handler om. En status-only
 // assertion havde været grøn hele vejen igennem.
-describe('produktdescriptors — umuligt datointerval navngiver sine årsagsinputs', () => {
+describe('produktdescriptors – umuligt datointerval navngiver sine årsagsinputs', () => {
   const withSkadedatoAfterCoverage = (): SettledInput =>
     dispatch(empty(), resetSection('stamdata', { skadedato: toISODateString('2099-01-01') }));
 
@@ -410,7 +410,7 @@ describe('produktdescriptors — umuligt datointerval navngiver sine årsagsinpu
     expect(read.issue.message).toContain('Grænserne kommer fra Skadedato og Skadestype.');
   });
 
-  it('EETs beregningsdato nævner Skadedato — en flade, der FØR rettelsen udelod årsagen helt', () => {
+  it('EETs beregningsdato nævner Skadedato – en flade, der FØR rettelsen udelod årsagen helt', () => {
     // De to EO-felter ovenfor og denne var alle tavse om årsagen; EET-rækkernes kapitaliseringsdatoer var de
     // ENESTE, der navngav den. Netop asymmetrien var beviset for, at et valgfrit felt bliver udeladt.
     let input = withSkadedatoAfterCoverage();

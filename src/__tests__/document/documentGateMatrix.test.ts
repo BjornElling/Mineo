@@ -3,19 +3,19 @@
  *
  * De fire input-klasser er per-definition og kan derfor ikke testes generisk:
  *
- *   - relevant ugyldigt FORMAT (`reason: 'invalid'`) — uparselig råtekst
- *   - relevant BOUNDS-/range-fejl — parselig værdi uden for descriptorens interval
- *   - relevant MISSING-fejl — outputtet har et required input, der ikke er udfyldt
- *   - relevant WARNING — må ALDRIG blokere
- *   - IKKE-relevant fejl — en fejl i en sektion, outputtet ikke afhænger af, må ALDRIG blokere
+ *   - relevant ugyldigt FORMAT (`reason: 'invalid'`) – uparselig råtekst
+ *   - relevant BOUNDS-/range-fejl – parselig værdi uden for descriptorens interval
+ *   - relevant MISSING-fejl – outputtet har et required input, der ikke er udfyldt
+ *   - relevant WARNING – må ALDRIG blokere
+ *   - IKKE-relevant fejl – en fejl i en sektion, outputtet ikke afhænger af, må ALDRIG blokere
  *
- * **`invalid` og `bounds` holdes som SEPARATE klasser** (§A2a). De ligner hinanden i UI'et — begge
- * giver et rødt felt — men de opstår i hver sit lag: `invalid` er codec'ets afvisning af råteksten,
+ * **`invalid` og `bounds` holdes som SEPARATE klasser** (§A2a). De ligner hinanden i UI'et – begge
+ * giver et rødt felt – men de opstår i hver sit lag: `invalid` er codec'ets afvisning af råteksten,
  * `bounds` er en descriptor-validator på en værdi, codec'et accepterede. En test, der kun dækkede
  * den ene, ville ikke opdage, hvis den anden holdt op med at blokere.
  *
  * De fem definitionsUAFHÆNGIGE cases (settle, revisionsskift, programmatisk aktivering, ingen
- * fil-I/O ved blokering) ligger i `documentLifecycleMatrix.test.ts` — se noten dér for hvorfor de
+ * fil-I/O ved blokering) ligger i `documentLifecycleMatrix.test.ts` – se noten dér for hvorfor de
  * ikke gentages 21 gange.
  */
 import {
@@ -67,12 +67,12 @@ import { insertRow } from '../../inputCore/inputReducer';
 const catalog = getProductionInputCatalog();
 
 // Bygges gennem projektoren, ikke som objektliteral: gate-settings er nominel, så et snapshot ikke
-// kan fremstilles uden om projektoren. Nøglesættet kommer fra typen — override er
-// `Partial<EoRowPolicyPayload>` — så en ny gate-relevant regel fejler her frem for at blive skjult
+// kan fremstilles uden om projektoren. Nøglesættet kommer fra typen – override er
+// `Partial<EoRowPolicyPayload>` – så en ny gate-relevant regel fejler her frem for at blive skjult
 // bag et `as`.
 //
 // **Ingen brevhoved-flags og intet format:** de er render-settings og findes ikke i
-// projektionskonteksten. Suiten kan derfor slet ikke pinne et format — der er intet at binde.
+// projektionskonteksten. Suiten kan derfor slet ikke pinne et format – der er intet at binde.
 const GATE_SETTINGS: MineoDocumentGateSettings = __createTestEoRowPolicy({
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,
@@ -126,7 +126,7 @@ const withStamdata = (input: SettledInput): SettledInput => {
 };
 
 // ---------------------------------------------------------------------------------------------
-// satser — årstal er et required, gate-bærende input
+// satser – årstal er et required, gate-bærende input
 // ---------------------------------------------------------------------------------------------
 
 describe('gate-matrix: satser', () => {
@@ -142,7 +142,7 @@ describe('gate-matrix: satser', () => {
     expectBlocked(gateOf(satserDocumentDefinition, input), 'satser/invalid');
   });
 
-  it('klasse BOUNDS: et parseligt årstal uden for satshorisonten blokerer — en ANDEN klasse end invalid', () => {
+  it('klasse BOUNDS: et parseligt årstal uden for satshorisonten blokerer – en ANDEN klasse end invalid', () => {
     // '1800' er et gyldigt HELTAL (codec'et accepterer det); det er bounds-validatoren der afviser.
     const input = dispatch(withStamdata(empty()), settle(satserAargangField.bind(), '1800'));
     expectBlocked(gateOf(satserDocumentDefinition, input), 'satser/bounds');
@@ -160,7 +160,7 @@ describe('gate-matrix: satser', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// varige mén — méngrad + beregningsdato er required; stamdata-datoer er en relevant dependency
+// varige mén – méngrad + beregningsdato er required; stamdata-datoer er en relevant dependency
 // ---------------------------------------------------------------------------------------------
 
 describe('gate-matrix: varigemen', () => {
@@ -189,7 +189,7 @@ describe('gate-matrix: varigemen', () => {
   });
 
   it('klasse RELEVANT-KRYDSSEKTION: byttet datoorden i stamdata blokerer', () => {
-    // Stamdata er en relevant dependency her — modsat satser-casen ovenfor.
+    // Stamdata er en relevant dependency her – modsat satser-casen ovenfor.
     let input = dispatch(ready(), settle(stamdataSkadelidteFodselsdatoField.bind(), '02-01-2020'));
     input = dispatch(input, settle(stamdataSkadedatoField.bind(), '01-01-2020'));
     expectBlocked(gateOf(varigeMenDocumentDefinition, input), 'varigemen/krydssektion');
@@ -202,7 +202,7 @@ describe('gate-matrix: varigemen', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// forsørgertab — tilkendt periode har både format- og bounds-grænse
+// forsørgertab – tilkendt periode har både format- og bounds-grænse
 // ---------------------------------------------------------------------------------------------
 
 describe('gate-matrix: forsoergertab', () => {
@@ -222,7 +222,7 @@ describe('gate-matrix: forsoergertab', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// rente-oversigt — beregningsdato + mindst én gyldig række
+// rente-oversigt – beregningsdato + mindst én gyldig række
 // ---------------------------------------------------------------------------------------------
 
 describe('gate-matrix: rente-oversigt', () => {
@@ -242,7 +242,7 @@ describe('gate-matrix: rente-oversigt', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// Warnings blokerer aldrig — på tværs af outputs
+// Warnings blokerer aldrig – på tværs af outputs
 // ---------------------------------------------------------------------------------------------
 
 /** En reader over et afsluttet input; samme konstruktion som produktionens evaluering. */
@@ -257,7 +257,7 @@ const ASL_ROW_ID = 'eet_asl_warning_row';
 /**
  * En komplet, gyldig EET-sag hvis ENESTE afvigelse er en ægte advarsel: et erhvervsevnetab på 10 %
  * udløser `warn-asl-eet-under-15` i løbende-ydelser-beregningen. Ingen feltfejl, ingen manglende
- * required-felter — netop derfor kan testen skelne "warning blokerer ikke" fra "der var intet at
+ * required-felter – netop derfor kan testen skelne "warning blokerer ikke" fra "der var intet at
  * blokere på".
  */
 const eetCaseWithUnderFifteenPercent = (): SettledInput => {
@@ -283,22 +283,22 @@ const eetCaseWithUnderFifteenPercent = (): SettledInput => {
 describe('gate-matrix: warnings blokerer intet (§7.3, §10-kriterium 13)', () => {
   /**
    * **Warning-benet kræver en ÆGTE warning.** En fixture, der committer en bounds-fejl (fx på
-   * `varigeMenMengrad`), skaber ingen warning — den måler §7.3's IKKE-RELEVANT-dimension, som allerede
+   * `varigeMenMengrad`), skaber ingen warning – den måler §7.3's IKKE-RELEVANT-dimension, som allerede
    * er dækket af `klasse IKKE-RELEVANT`-benene ovenfor. Med en sådan fixture er warning-benet falsk
    * dækket: en regression, hvor warnings begynder at blokere, ville bestå den deklarerede matrix.
    *
-   * **Hvor warnings faktisk findes.** Warnings dannes i domænernes egne typer — `EetIssue.severity`,
-   * `EoRowStatus`, `IntegrityIssue.severity` — og det er derfor DEM, invarianten måles på. En
+   * **Hvor warnings faktisk findes.** Warnings dannes i domænernes egne typer – `EetIssue.severity`,
+   * `EoRowStatus`, `IntegrityIssue.severity` – og det er derfor DEM, invarianten måles på. En
    * syntetisk `collector.warn`-fixture ville måle en kanal, ingen produktionskode bruger, og dermed
    * være grøn uden at dække noget.
    *
    * De to tests nedenfor dækker de tre konsekvenskanaler, en ægte warning kan nå: beregningen
-   * (bliver den udført?), dokumentgaten (blokerer den?) og `.eo` (kan sagen gemmes?). Den fjerde —
-   * UI'et — hører til feltets egen visning og ejes af feltkontrakten.
+   * (bliver den udført?), dokumentgaten (blokerer den?) og `.eo` (kan sagen gemmes?). Den fjerde –
+   * UI'et – hører til feltets egen visning og ejes af feltkontrakten.
    */
   it('en ÆGTE domæne-warning blokerer hverken beregning, dokumentgate eller .eo', () => {
     // EET under 15 % udløser den ægte advarsel `warn-asl-eet-under-15` i eetLoebendeYdelser-
-    // beregningen. Sagen er i øvrigt komplet og gyldig — advarslen er den ENESTE afvigelse.
+    // beregningen. Sagen er i øvrigt komplet og gyldig – advarslen er den ENESTE afvigelse.
     const input = eetCaseWithUnderFifteenPercent();
     const { snapshot } = buildErhvervsevnetabReaderProjection(readerFor(input));
 
@@ -322,7 +322,7 @@ describe('gate-matrix: warnings blokerer intet (§7.3, §10-kriterium 13)', () =
 
   /**
    * §7.3's sidste punkt som sin egen assertion: *beregningsmotor kaldes aldrig fra en blocked
-   * projektion.* Uden en eksplicit spy-assertion på netop den invariant —
+   * projektion.* Uden en eksplicit spy-assertion på netop den invariant –
    * kun tests, der målte at RESULTATET var fraværende. Forskellen er load-bearing: en motor, der
    * kaldes og hvis resultat kastes væk, ville bestå en resultat-assertion, men kunne kaste,
    * mutere eller regne på et maskeret input.
@@ -341,7 +341,7 @@ describe('gate-matrix: warnings blokerer intet (§7.3, §10-kriterium 13)', () =
     expect(blocked.status).toBe('blocked');
     expect(engine, 'motoren blev kaldt fra en blocked projektion').not.toHaveBeenCalled();
 
-    // Kontrol i modsat retning: ved ready KALDES motoren — ellers målte assertionen ovenfor blot,
+    // Kontrol i modsat retning: ved ready KALDES motoren – ellers målte assertionen ovenfor blot,
     // at helperen aldrig kalder noget.
     const ready = mapReadyProjection(
       runProjection(

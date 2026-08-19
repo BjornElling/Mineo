@@ -4,7 +4,7 @@ import type React from 'react';
  * Interaktions-primitiver for dropdownens tastatur-adfærd: typeahead-matchningsalgoritmen
  * (første-bogstav, dansk locale, cirkulær wrap) og de to tastatur-prædikater.
  *
- * `StyledDropdown` er den ene dropdown-implementering — både formularvarianten (`ChoiceField`) og
+ * `StyledDropdown` er den ene dropdown-implementering – både formularvarianten (`ChoiceField`) og
  * cellevarianten (`GridChoiceCell`) renderer den. Primitiverne er rene/stateless funktioner, så typeahead-reglen kan
  * testes uden at mounte kontrollen. Popup-KLASSIFIKATIONEN (er dette en popup, er den åben?) ligger i
  * `popupWidgetSemantics`, som Container og grid-navigationen deler.
@@ -13,7 +13,7 @@ import type React from 'react';
 /**
  * Finder næste option-indeks hvis første bogstav matcher `key` (dansk locale), med cirkulær wrap fra
  * `currentIndex`. `labels` er en parallel-array hvor ikke-matchbare pladser (dividers, disabled,
- * tomme) gives som tom streng — de springes over. Returnerer -1 hvis intet matcher.
+ * tomme) gives som tom streng – de springes over. Returnerer -1 hvis intet matcher.
  *
  * Algoritmen er `StyledDropdown`s ene typeahead-regel, udtrykt som en ren funktion.
  */
@@ -54,7 +54,7 @@ export const normalizeDropdownLabel = (label: string): string =>
   label.trim().replace(/\s+/gu, ' ').toLocaleLowerCase('da-DK');
 
 /**
- * Sandt hvis tastetrykket er et enkelt skrivbart tegn uden modifikator — kandidat til typeahead.
+ * Sandt hvis tastetrykket er et enkelt skrivbart tegn uden modifikator – kandidat til typeahead.
  * (Modifier-kombinationer og ikke-tegn-taster som piletaster/Enter springes over.)
  */
 export const isTypeaheadCharKey = (event: React.KeyboardEvent<HTMLElement>): boolean => {

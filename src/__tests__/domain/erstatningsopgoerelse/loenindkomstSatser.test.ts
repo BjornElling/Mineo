@@ -79,9 +79,9 @@ describe('resolveAutoStoreBededagPct', () => {
   });
 });
 
-// ─── applyAutoSatsFields — Store Bededag ─────────────────────────────────────
+// ─── applyAutoSatsFields – Store Bededag ─────────────────────────────────────
 
-describe('applyAutoSatsFields — Store Bededag', () => {
+describe('applyAutoSatsFields – Store Bededag', () => {
   // `storeBededagPct` er ikke et persisteret slot; helperen udleder den på RUNTIME-modellen. Fixturen
   // tilføjer derfor slottet eksplicit, præcis som reader-projektionen gør før kaldet.
   const base = () => ({
@@ -153,7 +153,7 @@ describe('applyAutoSatsFields — Store Bededag', () => {
   });
 
   it('beholder bededagssats korrekt når overenskomst fravælges (harOverenskomst: false)', () => {
-    // storeBededagPct styres af loenPaaHelligdage + dato — ikke af harOverenskomst
+    // storeBededagPct styres af loenPaaHelligdage + dato – ikke af harOverenskomst
     const autoSynced = applyAutoSatsFields({
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       storeBededagPct: 0,
@@ -172,9 +172,9 @@ describe('applyAutoSatsFields — Store Bededag', () => {
   });
 });
 
-// ─── applyAutoSatsFields — overenskomstsatser ─────────────────────────────────
+// ─── applyAutoSatsFields – overenskomstsatser ─────────────────────────────────
 
-describe('applyAutoSatsFields — overenskomstsatser', () => {
+describe('applyAutoSatsFields – overenskomstsatser', () => {
   it('bevarer brugerens frie satser ved ulåst offentlig overenskomst (KL)', () => {
     const result = applyAutoSatsFields({
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -270,7 +270,7 @@ describe('isOverenskomstSatsFieldLocked', () => {
 
 // ─── buildLoenindkomstRateSegments ────────────────────────────────────────────
 
-describe('buildLoenindkomstRateSegments — Store Bededag', () => {
+describe('buildLoenindkomstRateSegments – Store Bededag', () => {
   it('ingen overenskomst: udleder bededagssats direkte fra segmentdatoen uden upstream auto-sync', () => {
     // Tester den svagt koblede sti (ingen overenskomst, ikke manuelt) i loenindkomstSatser.ts
     // Her hentes storeBededagPct via resolveStoreBededagPct(af, segment.startDato), ikke fra af.storeBededagPct
@@ -310,7 +310,7 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
     expect(segments[0]?.satser.storeBededagPct).toBe(0);
   });
 
-  it('manuelt angivet: segmentgrænse ved dato-rækker inden for interval — bededag sættes fra segmentdato', () => {
+  it('manuelt angivet: segmentgrænse ved dato-rækker inden for interval – bededag sættes fra segmentdato', () => {
     // dato-feltet i loenudviklingManuelTableData forventes som ISODateString inden for [fra, til]
     // 2024-01-01 er inden for [2023-10-01, 2024-03-31] → splitter her
     const segments = buildLoenindkomstRateSegments({
@@ -453,10 +453,10 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
  * `resolveLatestManualRowForDate` havde ingen egen dækning, før den blev ruttet gennem
  * `reguleringSeriesLookup`s nøglevælger-form. Den gamle udgave var et
  * `[...rows].reverse().find(...)` UDEN sorterings-invariant, så en usorteret liste gav
- * tavst et forkert satssæt. Testene her hævder carry-forward-semantikken selv — hvilken
- * række der gælder for et segment — frem for bededagssatsen, som de øvrige cases dækker.
+ * tavst et forkert satssæt. Testene her hævder carry-forward-semantikken selv – hvilken
+ * række der gælder for et segment – frem for bededagssatsen, som de øvrige cases dækker.
  */
-describe('buildLoenindkomstRateSegments — manuel carry-forward', () => {
+describe('buildLoenindkomstRateSegments – manuel carry-forward', () => {
   const manualAf = (rows: LoenudviklingManuelRow[]) => ({
     ...createDefaultLoenindkomstAnsaettelsesforhold(),
     harOverenskomst: false,
@@ -520,7 +520,7 @@ describe('buildLoenindkomstRateSegments — manuel carry-forward', () => {
 
   it('er upåvirket af rækkernes DOM-rækkefølge: usorteret input giver samme resultat', () => {
     // Callsitet sorterer selv før opslaget, så den nye sorterings-invariant må ikke kaste
-    // på brugerens indtastningsrækkefølge — den skal beskytte mod at et FREMTIDIGT
+    // på brugerens indtastningsrækkefølge – den skal beskytte mod at et FREMTIDIGT
     // callsite glemmer sorteringen.
     const rows = [
       { id: 'r2', dato: toISODateString('2024-03-01'), feriepenge: 20, shSoSats: 20, fritvalg: 20, agPension: 20 },

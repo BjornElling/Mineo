@@ -4,7 +4,7 @@
  * Listen bor for sig selv, fordi den nu har TO forbrugere med uforenelige styling-forudsætninger:
  * `SiblingSitesFooter` (MUI + `.content-box` + CSS-variabler) og `UnsupportedDevicePage`
  * (hard-stop-siden, som bevidst kører uden app-stylesheet, uden MUI-tema og uden CSS-variabler).
- * Kun DATAEN kan deles mellem dem — gjorde vi footeren selv fælles, ville hard-stop-sidens
+ * Kun DATAEN kan deles mellem dem – gjorde vi footeren selv fælles, ville hard-stop-sidens
  * isolation være brudt. Den delte liste sikrer til gengæld, at en ny søskendeside kun skal
  * tilføjes ét sted for at optræde begge steder.
  */

@@ -1,7 +1,7 @@
 /**
  * KL-lønaftaler: trinvis (kæde-)opregulering af løn med afrunding på hvert trin.
  *
- * SÆRLIG KL-LØNAFTALER-LOGIK — se det normative overblik i
+ * SÆRLIG KL-LØNAFTALER-LOGIK – se det normative overblik i
  * docs/domain/taf/kl-loenaftaler-regulering.md (forklarer hvorfor denne
  * reguleringsform har en anden beregningsmetode og andre visninger end de øvrige
  * reguleringsmodeller).
@@ -42,7 +42,7 @@ export type KlLoenaftalerReguleretLoenResolver = Readonly<{
 /**
  * Bygger en KL-lønaftaler-kæde-resolver fra en basisløn (på reguleringsdatoen) og frem over
  * KL-lønaftalernes reguleringsdatoer. Reguleringsdatoer på eller før selve
- * reguleringsdatoen springes over — basislønnen afspejler allerede lønniveauet dér.
+ * reguleringsdatoen springes over – basislønnen afspejler allerede lønniveauet dér.
  */
 export const buildKlLoenaftalerReguleretLoenResolver = (
   baseLoenRounded: number,
@@ -55,7 +55,7 @@ export const buildKlLoenaftalerReguleretLoenResolver = (
     .map((entry) => {
       const iso = parseDanishToIso(entry.fraDato);
       // Fail-closed: en KL-lønaftaler-række med uparsbar dato må aldrig stille springes
-      // over — det ville tabe et reguleringstrin (tavs under-regulering). Alle kilde-datoer
+      // over – det ville tabe et reguleringstrin (tavs under-regulering). Alle kilde-datoer
       // er valide danske datoer (jf. data/klLoenaftaler.ts + test), så dette er en defensiv
       // invariant, der fanges som runtime_exception (jf. loenudviklingBeregning.ts:63–70).
       if (!iso) {
@@ -71,7 +71,7 @@ export const buildKlLoenaftalerReguleretLoenResolver = (
   ];
   let current = baseLoenRounded;
   for (const { iso, pct } of klLoenaftalerTrinAsc) {
-    // Reguleringsdatoer på/før selve reguleringsdatoen springes bevidst over — basislønnen
+    // Reguleringsdatoer på/før selve reguleringsdatoen springes bevidst over – basislønnen
     // afspejler allerede lønniveauet dér.
     if (iso <= reguleringsdatoIso) continue;
     // Fail-closed: en ikke-finit periodesats må aldrig stille springes over (samme

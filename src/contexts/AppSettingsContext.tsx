@@ -21,7 +21,7 @@ import { SYSTEM_DARK_MEDIA_QUERY, THEME_COLOR_BY_MODE } from '../settings/themeB
  * Computerens aktuelle lys/mørke-præference, holdt levende.
  *
  * Findes som en abonnerende hook og ikke som et enkelt opslag, fordi hele pointen med
- * `themeMode: 'system'` er, at et skift på maskinen — typisk automatisk morgen/aften — skal slå
+ * `themeMode: 'system'` er, at et skift på maskinen – typisk automatisk morgen/aften – skal slå
  * igennem MENS Mineo er åben. Et opslag ved mount ville kun give «følg computeren, som den så ud,
  * da du åbnede programmet».
  *

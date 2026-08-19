@@ -1,6 +1,6 @@
 import { expect, setFieldValueAndSettle, test } from './support/mineoTest';
 
-test.describe('MinProcesrente — recovery og fokus', () => {
+test.describe('MinProcesrente – recovery og fokus', () => {
   test('rydder en afvist beregningsdato og bevarer fokus på Indsæt dags dato', async ({ page, runtimeErrors }) => {
     await page.goto('/minprocesrente.html');
 

@@ -25,7 +25,7 @@ type Props = Readonly<{
  * **Ingen shake.** Knappen havde tidligere en `shake`-prop, der rystede den ved en blokeret
  * aktivering. Rystelsen er fjernet i hele programmet (brugerbeslutning 2026-08-15), så der er
  * ÉN afvisningsmåde: knappen er synligt inaktiv med årsagen i tooltippet. Fokusspringet til det
- * blokerende felt er bevaret — det er den del af den gamle feedback, der faktisk pegede brugeren
+ * blokerende felt er bevaret – det er den del af den gamle feedback, der faktisk pegede brugeren
  * et sted hen. Genindfør ikke en shake-prop her.
  */
 const DownloadIconButton = ({ onClick, disabled = false, tooltip, ariaLabel, dataTestId }: Props) => (

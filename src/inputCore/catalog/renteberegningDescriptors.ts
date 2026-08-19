@@ -101,7 +101,7 @@ const rowTemplate = (field: string) => ({
  * Feltets nedre grænse var erklæret som 0 (den fælles beløbsregel: ikke-negativ), mens
  * `validateInterestCalculation` kræver `> 0`. De to var uenige, og uenigheden ramte brugeren som en
  * tavs blokering: `0` blev canonical og grønt, rækken mistede sin beregning, og hele sidens
- * download blev grå med «Indtastning mangler» — også for de øvrige, gyldige rækker (BB-038).
+ * download blev grå med «Indtastning mangler» – også for de øvrige, gyldige rækker (BB-038).
  *
  * Reglen står her frem for som en skarpere `amountBoundsValidator`-grænse, fordi grænsen er
  * EKSKLUSIV: den fælles bounds-besked («Værdi skal være 0 eller højere») kan kun udtrykke
@@ -152,14 +152,14 @@ export const rentekravRenterFraField = defineStructuralField<ISODateString | und
  * Ligger den efter beregningsdatoen, findes der ingen renteperiode, og `validateInterestCalculation`
  * afviser rækken med `INVALID_DATE_ORDER`. Den afvisning nåede aldrig brugeren: motoren kaster fejlen
  * væk, rækkens «Beregnet rente» blev bare `-`, rækkens downloadikon forsvandt, og hele sidens
- * download blev grå — uden ét rødt felt og uden besked nogen steder (BB-037).
+ * download blev grå – uden ét rødt felt og uden besked nogen steder (BB-037).
  *
  * Reglen ligger på TILLÆGSTID, fordi det er det felt, der flyttede datoen. «Renter fra» har allerede
  * sin egen grænse mod beregningsdatoen (`renterFraBoundsSpec`), så en tillægstid er den eneste vej
- * til den umulige kombination — og dermed det felt, brugeren skal rette.
+ * til den umulige kombination – og dermed det felt, brugeren skal rette.
  *
  * Beskeden navngiver den senest mulige rentedato frem for et maksimalt antal enheder: tallet, brugeren
- * skal ramme, afhænger af enheden, mens datoen er den samme grænse uanset enhed — og det er den, der
+ * skal ramme, afhænger af enheden, mens datoen er den samme grænse uanset enhed – og det er den, der
  * gør det klart, hvorfor rækken ikke kan regnes.
  */
 const rentekravRentedatoValidator: FieldValidator<number | undefined> = (value, field, view) => {
@@ -200,7 +200,7 @@ export const rentekravTillaegstidField = defineStructuralField<number | undefine
   ],
 });
 
-// `enhed` er en required enum med canonical default `'dage'` (rowEmpty.ts) — aldrig tom, aldrig rød.
+// `enhed` er en required enum med canonical default `'dage'` (rowEmpty.ts) – aldrig tom, aldrig rød.
 export const rentekravEnhedField = defineStructuralField<TillaegstidEnhed>({
   id: 'renteberegning.rentekravRows.enhed',
   template: rowTemplate('enhed'),

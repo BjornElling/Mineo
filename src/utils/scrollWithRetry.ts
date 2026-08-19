@@ -10,7 +10,7 @@ export type ScrollWithRetryOptions = Readonly<{
   behavior?: ScrollBehavior;
   /**
    * Kaldes med det element, loopet fandt. Elementet gives med, fordi kalderen ellers måtte gentage
-   * `findTarget`-opslaget for at kunne gøre noget ved målet (fx den delte blinkmarkering) — og et
+   * `findTarget`-opslaget for at kunne gøre noget ved målet (fx den delte blinkmarkering) – og et
    * gentaget opslag kunne ramme et andet element end det, der lige blev scrollet til.
    */
   onSuccess?: (target: HTMLElement) => void;

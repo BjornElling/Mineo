@@ -15,7 +15,7 @@ export type ForligAnsvarsgradInput = Pick<
 >;
 
 /**
- * Rig evaluering af forlig om ansvarsgrad — skelner bevidst mellem "intet forlig" (empty),
+ * Rig evaluering af forlig om ansvarsgrad – skelner bevidst mellem "intet forlig" (empty),
  * "gyldigt forlig" (valid) og "ugyldigt forlig" (invalid). Bruges på differencekrav-fanen, hvor
  * et ugyldigt forlig skal blokere beregningen, mens `parseForligsgrad` (uændret) blot returnerer
  * `null` i begge ikke-gyldige tilfælde til de eksisterende EO-forbrugere.
@@ -62,13 +62,13 @@ export const evaluateForligsgrad = (values: ForligAnsvarsgradInput): Forligsgrad
     return { status: 'invalid', forlig: null, reason: 'broek', message: 'Brøk skal angives som fx "1/3" og kan ikke overstige 1' };
   }
 
-  // En procent uden for det gyldige interval (fx 0) uden brøk betragtes som "intet forlig" — ingen
+  // En procent uden for det gyldige interval (fx 0) uden brøk betragtes som "intet forlig" – ingen
   // reduktion. Spejler at EO-validatoren ikke flagger procent=0 som fejl.
   return { status: 'empty', forlig: null };
 };
 
 /**
- * Kanonisk prosa-sætning om at der er indgået forlig — delt mellem erstatningsopgørelse-PDF'en og
+ * Kanonisk prosa-sætning om at der er indgået forlig – delt mellem erstatningsopgørelse-PDF'en og
  * differencekrav-PDF/docx/UI, så formuleringen kun findes ét sted.
  *
  * `datoLang` er den allerede formaterede dato (lang form, uden "den"-præfiks) eller `null`, når der

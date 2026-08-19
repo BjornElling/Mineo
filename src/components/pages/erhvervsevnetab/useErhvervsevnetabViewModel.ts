@@ -22,7 +22,7 @@ import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation'
  * Erhvervsevnetabs ene kanoniske viewmodel (`page-component-contract.md` §4.4).
  *
  * Siden ejer ingen sektionsstate og ingen error-bus: ÉN tokenbundet reader-projektion driver alle fem faner,
- * deres resultater, rækkevisning og dokumentgates. Modellen orkestrerer — den genberegner ikke.
+ * deres resultater, rækkevisning og dokumentgates. Modellen orkestrerer – den genberegner ikke.
  */
 
 const EET_TAB_ITEMS: readonly Readonly<{ key: ErhvervsevnetabTabKey; label: string }>[] = [
@@ -43,7 +43,7 @@ export function useErhvervsevnetabViewModel() {
   );
 
   // ÉN kildekontekst for alle fire dokumentoutputs. Definitionerne deler EET-projektionen og gate-sættet gennem
-  // `context.shared`, så de fire knapper tilsammen kun betaler for én evaluering pr. revision — ikke fire.
+  // `context.shared`, så de fire knapper tilsammen kun betaler for én evaluering pr. revision – ikke fire.
   const documentContext = useMineoDocumentSourceContext();
   const loebendeYdelserDownload = useMineoDocumentOutputWithContext(loebendeYdelserDocumentDefinition, undefined, documentContext);
   const kapitaliseringDownload = useMineoDocumentOutputWithContext(kapitaliseringDocumentDefinition, undefined, documentContext);

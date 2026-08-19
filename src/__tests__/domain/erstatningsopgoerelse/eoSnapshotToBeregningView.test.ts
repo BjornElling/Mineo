@@ -39,7 +39,7 @@ describe('eoSnapshotToBeregningView', () => {
     expect(view.authoritativeBlockingInvariants.map((invariant) => invariant.id)).toEqual(['validation:block']);
   });
 
-  // Fanen læser KUN snapshottet — den ser aldrig `inspektionSnapshot`. Fald-tilbaget
+  // Fanen læser KUN snapshottet – den ser aldrig `inspektionSnapshot`. Fald-tilbaget
   // til `readyBranches` er derfor det, der realiserer brugerbeslutning 2. Grænserne for fald-tilbaget:
   describe('fald-tilbage til readyBranches (§1.10)', () => {
     const baseSnapshot = {

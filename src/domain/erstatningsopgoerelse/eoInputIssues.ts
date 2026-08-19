@@ -32,7 +32,7 @@ export const topLevelFieldIssue = (
  *
  * Opslaget sker mod produktionens EGET descriptor-katalog frem for en håndskrevet id→felt-tabel, så et
  * omdøbt felt ikke kan efterlade en tabel, der stille peger på ingenting. Sti-former, kataloget ikke
- * kender — nested rækker (`tafPerioder[0].fra`), indekser, sammensatte regler — giver `undefined`: så
+ * kender – nested rækker (`tafPerioder[0].fra`), indekser, sammensatte regler – giver `undefined`: så
  * bevarer nettet sin nuværende, sande adfærd (tekst uden link) frem for at gætte et felt.
  */
 export const resolveEoValidationPathAddress = (

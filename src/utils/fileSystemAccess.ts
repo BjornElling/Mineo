@@ -10,7 +10,7 @@ export const isFileSystemAccessSupported = (): boolean => {
 
 /**
  * Kastet når en gemt fil-handle (typisk fra en PWA-fil-åbning efter app-genstart) ikke længere
- * har læse-tilladelse — eller filen er flyttet/slettet. Bærer en handlingsanvisende dansk besked,
+ * har læse-tilladelse – eller filen er flyttet/slettet. Bærer en handlingsanvisende dansk besked,
  * så indlæsningslaget kan vise den direkte i stedet for en kryptisk DOMException.
  */
 export class FileHandleAccessError extends Error {

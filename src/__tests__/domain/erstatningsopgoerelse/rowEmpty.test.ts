@@ -42,7 +42,7 @@ describe('isSvieSmerteRowEmpty', () => {
     expect(isSvieSmerteRowEmpty({ ...emptyRow(), tilstand: 'sygemeldt' })).toBe(false);
   });
 
-  it('id ignoreres — kun id sat, resten undefined → tom', () => {
+  it('id ignoreres – kun id sat, resten undefined → tom', () => {
     const row: SvieSmertePeriodeRow = { id: 'andet-id', fra: undefined, til: undefined, tilstand: undefined };
     expect(isSvieSmerteRowEmpty(row)).toBe(true);
   });
@@ -79,7 +79,7 @@ describe('isTafRowEmpty', () => {
     expect(isTafRowEmpty({ ...emptyRow(), loseFeriedage: 0 })).toBe(false);
   });
 
-  it('id ignoreres — alle non-id undefined → tom', () => {
+  it('id ignoreres – alle non-id undefined → tom', () => {
     const row: TafPeriodeRow = { id: 'andet-id', fra: undefined, til: undefined, loseFeriedage: undefined };
     expect(isTafRowEmpty(row)).toBe(true);
   });
@@ -106,7 +106,7 @@ describe('isFerieRowEmpty', () => {
     expect(isFerieRowEmpty({ ...emptyRow(), til: iso('2024-12-31') })).toBe(false);
   });
 
-  it('id ignoreres — begge undefined → tom', () => {
+  it('id ignoreres – begge undefined → tom', () => {
     const row: FerieperiodeRow = { id: 'anden-id', fra: undefined, til: undefined };
     expect(isFerieRowEmpty(row)).toBe(true);
   });
@@ -138,7 +138,7 @@ describe('isOevrigeKravRowEmpty', () => {
     expect(isOevrigeKravRowEmpty({ ...emptyRow(), beloeb: { kind: 'number', value: 5000 } })).toBe(false);
   });
 
-  it('id ignoreres — alle non-id undefined → tom', () => {
+  it('id ignoreres – alle non-id undefined → tom', () => {
     const row: OevrigeKravRow = { id: 'andet-id', dato: undefined, udgiftTil: undefined, beloeb: undefined };
     expect(isOevrigeKravRowEmpty(row)).toBe(true);
   });

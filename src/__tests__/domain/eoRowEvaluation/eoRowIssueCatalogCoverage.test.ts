@@ -22,9 +22,9 @@ import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
  * Systematik-værn for EO-fejl/advarselstekster (jf. error-contract.md).
  *
  * Formålet er at sikre, at hver fejlkilde i Beregning-fanen har en KORT, SPECIFIK og SELVSTÆNDIG
- * tekst — uden generiske catch-all-fraser og uden label-præfiks (det højrestillede link angiver
+ * tekst – uden generiske catch-all-fraser og uden label-præfiks (det højrestillede link angiver
  * placeringen). Tabellen nedenfor er den autoritative liste over de tekster, der vises i dag, og
- * binder samtidig fejl til det korrekte fokusfelt — udtrykt som produktionens egen descriptor, så
+ * binder samtidig fejl til det korrekte fokusfelt – udtrykt som produktionens egen descriptor, så
  * forventningen er den adresse, feltet faktisk bærer i DOM.
  */
 
@@ -59,7 +59,7 @@ type Case = Readonly<{
   expectedSummary: string;
   /**
    * Det felt, fejlens link skal føre til. Angives som produktionens egen DESCRIPTOR plus rækkens id, så
-   * forventningen er den samme kanoniske adresse cellen redigeres på (§3.2) — ikke en DOM-strengkonvention,
+   * forventningen er den samme kanoniske adresse cellen redigeres på (§3.2) – ikke en DOM-strengkonvention,
    * der kan være sand i testen og uopnåelig i produktionen.
    */
   expectedFocus?: RowFieldFocus;
@@ -139,7 +139,7 @@ const CASES: readonly Case[] = [
   },
   // Hintet er AUTORITATIVT over ordlyden. Denne case er den ENESTE, hvor de to er UENIGE: beskeden
   // navngiver ingen til-dato, så ordlyd-heuristikken ville vælge fra-feltet, men row-builderen VED at
-  // fejlen sidder på til-datoen. Uden en uenig case er hintets forrang ubevist — enhver anden hint-case
+  // fejlen sidder på til-datoen. Uden en uenig case er hintets forrang ubevist – enhver anden hint-case
   // ville også bestå med ren ordlyd-gætning.
   {
     name: 'TAF – hintet vinder over ordlyden, når de er uenige',
@@ -272,7 +272,7 @@ describe('eoRowIssueCatalog – systematisk dækning', () => {
   /**
    * De bevidst SAMLEDE fokusmål: rækker uden ét ansvarligt felt forankres til en flade, brugeren kan se.
    *
-   * Forventningen er ankerets EGEN id — ansættelsesforholdets kort (`af.id`) — og ikke rækkens id. Testen
+   * Forventningen er ankerets EGEN id – ansættelsesforholdets kort (`af.id`) – og ikke rækkens id. Testen
    * hævdede tidligere `rowId === row.id`, altså den punkterede rækkesti, og var derfor i overensstemmelse
    * med koden og alligevel blind: `data-mineo-row-id` sættes kun på virkelige collection-rækker og kort,
    * så de mål kunne aldrig findes, og linkene blinkede intet. Se

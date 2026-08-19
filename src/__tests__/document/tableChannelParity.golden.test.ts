@@ -4,8 +4,8 @@
 /**
  * Golden-value-net for tabel-kanal-paritet (#15 TableSpec-udredning).
  *
- * Fastfryser den resolved presentation hver STANDALONE-generator producerer — i BEGGE
- * kanaler — FØR TableSpec-refaktoreringen. Hver migreringsstage skal efterlade disse
+ * Fastfryser den resolved presentation hver STANDALONE-generator producerer – i BEGGE
+ * kanaler – FØR TableSpec-refaktoreringen. Hver migreringsstage skal efterlade disse
  * snapshots byte-uændrede (migreringen kompilerer TableSpec ned til præcis de params
  * `renderDocumentTable` allerede modtager → identitet ved konstruktion).
  *
@@ -52,7 +52,7 @@ import { generateForsoergertabDocument } from '../../document/generators/forsoer
 type CapturedCall = { doc: unknown; options: unknown };
 
 // MockJsPDF defineres i vi.hoisted, så klassen findes når jspdf-mock-factoryen kører
-// (den kører under de statiske generator-imports, FØR modul-kroppen udføres — en
+// (den kører under de statiske generator-imports, FØR modul-kroppen udføres – en
 // top-level `class` ville stadig ligge i temporal dead zone og factoryen ville ellers
 // falde tilbage til den ægte jsPDF, der skriver til disk).
 const { autoTableMock, captured, MockJsPDF } = vi.hoisted(() => {
@@ -84,7 +84,7 @@ const { autoTableMock, captured, MockJsPDF } = vi.hoisted(() => {
     setProperties = vi.fn();
     splitTextToSize = vi.fn((text: string) => [text]);
     // Deterministisk måling (samme mønster som aarsloenPdf.tableLayout.test): tal med
-    // tusindtalsseparator er bredere pr. tegn. Kun determinisme kræves — snapshottet
+    // tusindtalsseparator er bredere pr. tegn. Kun determinisme kræves – snapshottet
     // låser hvad end denne funktion producerer.
     getTextWidth = vi.fn((text: string) => {
       if (/^\d{1,3}(?:\.\d{3})+,\d{2}$/.test(text)) {
@@ -176,7 +176,7 @@ const loebendeComputation = {
   amBidragPct: 8,
   reguleringFoer2024Pct: 0,
   // Én syntetisk afgørelse med én periode, så den auto-brede ydelses-tabel (7 kolonner,
-  // summeret total, total-streg) faktisk renderes — en tom `afgoerelser` giver kun tekst.
+  // summeret total, total-streg) faktisk renderes – en tom `afgoerelser` giver kun tekst.
   afgoerelser: [
     {
       rowId: 'a-1',

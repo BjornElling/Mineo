@@ -93,10 +93,10 @@ describe('formatAsAmount', () => {
     expect(formatAsAmount(-500, 0)).toBe('-500');
   });
 
-  it('Infinity → roundByMethod behandler det (ikke tom streng — isNaN(Infinity)=false)', () => {
+  it('Infinity → roundByMethod behandler det (ikke tom streng – isNaN(Infinity)=false)', () => {
     // DOKUMENTATION: formatAsAmount tjekker kun isNaN, ikke !isFinite.
     // Infinity passerer isNaN-tjekket og behandles af roundByMethod.
-    // Dette er den faktiske adfærd — ikke nødvendigvis tilsigtet.
+    // Dette er den faktiske adfærd – ikke nødvendigvis tilsigtet.
     const result = formatAsAmount(Infinity);
     expect(typeof result).toBe('string');
   });

@@ -2,8 +2,8 @@ import { stat } from 'node:fs/promises';
 import { BROWSER_LANE_TAG } from './support/lanes';
 import { expect, login, openPage, test } from './support/mineoTest';
 
-// Pladsregnskabet fra CONTENT_UI_SCALE_POLICY gentaget uafhængigt: HELE fladen skaleres under ét —
-// sidemenu (250) + gutter 24 + indrykning 50 + indholdsboks 1200 + gutter 24 — plus scrollbar (20).
+// Pladsregnskabet fra CONTENT_UI_SCALE_POLICY gentaget uafhængigt: HELE fladen skaleres under ét –
+// sidemenu (250) + gutter 24 + indrykning 50 + indholdsboks 1200 + gutter 24 – plus scrollbar (20).
 const SCALED_SHELL_WIDTH = 250 + 24 + 50 + 1200 + 24;
 const SCROLLBAR_RESERVE = 20;
 const MINIMUM_SCALE = 0.75;
@@ -64,7 +64,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(geometry.rootZoom).toBe('1');
     expect(geometry.mainMarker).toBe('true');
     expect(geometry.menuZoom).toBe('1');
-    // Menuen bliver aldrig større end arbejdsfladen — det er hele pointen med den ene skala.
+    // Menuen bliver aldrig større end arbejdsfladen – det er hele pointen med den ene skala.
     expect(Number(geometry.menuContentScale)).toBeLessThanOrEqual(Number(geometry.scale) + 0.001);
     expect(geometry.menuWidth).toBeCloseTo(250 * Number(geometry.menuContentScale ?? '1'), 1);
     expect(geometry.menuLabelsFit).toBe(true);
@@ -227,7 +227,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     // arbejdsfladen. Stod de i fuld størrelse, ville hjælpeteksten være STØRRE end den brødtekst,
     // den forklarer, så snart vinduet er smalt nok til at skalere fladen ned.
     await login(page);
-    // Bredden vælges eksplicit, så skalaen med sikkerhed er under 1 uanset projektets viewport —
+    // Bredden vælges eksplicit, så skalaen med sikkerhed er under 1 uanset projektets viewport –
     // ellers ville testen kunne bestå på et billede, hvor der intet er at skalere.
     await page.setViewportSize({ width: 1300, height: 800 });
     await openPage(page, 'Erstatningsopgørelse');
@@ -322,8 +322,8 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
 
     const geometry = await readGeometry();
     expect(geometry.sideTabs.length).toBe(2);
-    // Klipningen er vandret ALENE. Var den lodret med, ville fanen — der rager nedad efter
-    // rotationen — blive skåret over på tværs.
+    // Klipningen er vandret ALENE. Var den lodret med, ville fanen – der rager nedad efter
+    // rotationen – blive skåret over på tværs.
     expect(geometry.railOverflowX).toBe('clip');
     expect(geometry.railOverflowY).toBe('visible');
     // Skinnen må ikke selv flytte noget i flowet.
@@ -339,7 +339,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
       const measured = await readGeometry();
 
       for (const tab of measured.sideTabs) {
-        // Fanen står PÅ boksens kant og rager udad — den ligger ikke inde i boksen længere.
+        // Fanen står PÅ boksens kant og rager udad – den ligger ikke inde i boksen længere.
         expect(Math.abs(tab.left - measured.contentBoxRight)).toBeLessThanOrEqual(1);
         expect(tab.right).toBeGreaterThan(measured.contentBoxRight + 1);
         // Rotationen gør fanens HØJDE til dens synlige bredde; etiketlængden er den lange side.
@@ -347,7 +347,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
       }
       // Kernen: klipperkanten ligger ved arbejdsfladens synlige højrekant, aldrig uden for den.
       // Hvor meget af udhænget der er plads til, afhænger af sidemenuens aktuelle bredde og af
-      // browserens scrollbar — men uanset svaret må udhænget ikke give vandret rul.
+      // browserens scrollbar – men uanset svaret må udhænget ikke give vandret rul.
       //
       // Kanten aflæses som en SETTLET værdi: sidemenuen sætter sin egen bredde i sin egen
       // layout-effect, så skinnen måler færdigt et frame efter, at zoomen er på plads.
@@ -363,7 +363,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     // indholdet overflyder selv. Fanerne må ikke lægge en eneste pixel oveni: skinnen klemmes til
     // indholdsboksen, og fanerne forsvinder tavst.
     //
-    // Kanten aflæses SETTLET, ligesom i løkken ovenfor — og her er det ikke til at undvære: skalaen
+    // Kanten aflæses SETTLET, ligesom i løkken ovenfor – og her er det ikke til at undvære: skalaen
     // er ALLEREDE på minimum ved 1181 px, så zoom-værdien er uændret hen over vinduesskiftet og kan
     // ikke tjene som ventepunkt. En enkelt aflæsning ville derfor kunne ramme frame'et FØR skinnen
     // har målt sin nye kant og se den forrige bredes kant i stedet.
@@ -380,10 +380,10 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('giver kontrolfanerne samme signatur som de vandrette faner — også i mørkt tema', async ({ page, runtimeErrors }) => {
+  test('giver kontrolfanerne samme signatur som de vandrette faner – også i mørkt tema', async ({ page, runtimeErrors }) => {
     // «Nøjagtig samme formatering som de øvrige fane-labels» er kravet, og den fælles
     // `.tab-item`-regel er mekanismen. Målingen sammenholder de to fanefamiliers FAKTISKE
-    // beregnede signatur i browseren — det er den eneste måling, der kan se, om en `sx`-værdi har
+    // beregnede signatur i browseren – det er den eneste måling, der kan se, om en `sx`-værdi har
     // overtrumfet klassen igen. Netop det skete: `color: inherit` gjorde etiketten usynlig i mørkt
     // tema, og `border: none` slettede den blå streg.
     await login(page);
@@ -436,7 +436,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
             color: activeLine.backgroundColor,
             height: activeLine.height,
           },
-          // Stregen ligger på fanens bund, som efter rotationen vender ind mod indholdsboksen —
+          // Stregen ligger på fanens bund, som efter rotationen vender ind mod indholdsboksen –
           // altså præcis ved fanens venstrekant.
           activeSideTabLeft: activeSideTab?.getBoundingClientRect().left ?? null,
           contentBoxRight: Math.max(
@@ -446,7 +446,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
         };
       });
 
-      // Fane-signaturen har en 0,2 s overgang på farve og gennemsigtighed — den delte `.tab-item`
+      // Fane-signaturen har en 0,2 s overgang på farve og gennemsigtighed – den delte `.tab-item`
       // giver begge familier den. Måles der midt i overgangen, sammenlignes en halvfærdig farve med
       // en færdig. Ventepunktet er den observerbare slutværdi, ikke en fast ventetid.
       const waitForSettledOpacity = async (selector: string, expected: string) => {
@@ -456,7 +456,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
         }, selector)).toBe(expected);
       };
 
-      // Pas 1 — ingen side-fane aktiv: de inaktive side-faner mod de inaktive vandrette faner, og
+      // Pas 1 – ingen side-fane aktiv: de inaktive side-faner mod de inaktive vandrette faner, og
       // den valgte vandrette fanes signatur + indikatoren gemmes til pas 2. Den aktive fane er
       // gemt på tværs af sidebesøg, så udgangspunktet sættes eksplicit frem for at blive arvet fra
       // forrige gennemløb.
@@ -470,19 +470,19 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
       expect(resting.selectedMuiTab).not.toBeNull();
       expect(resting.indicator).not.toBeNull();
 
-      // Pas 2 — EO-kontrol aktiv.
+      // Pas 2 – EO-kontrol aktiv.
       await page.getByRole('button', { name: 'EO-kontrol' }).click();
       await expect(page.getByRole('button', { name: 'EO-kontrol' })).toHaveAttribute('aria-pressed', 'true');
       await waitForSettledOpacity('.side-tab.active', '1');
       const active = await readSignatures();
 
       expect(active.activeSideTab).toEqual(resting.selectedMuiTab);
-      // Den blå streg: samme farve OG samme mekanisme som de vandrette faners indikator — en 2 px
+      // Den blå streg: samme farve OG samme mekanisme som de vandrette faners indikator – en 2 px
       // malet kasse. Højden læses uzoomet, netop fordi en `border` her ville blive afrundet til 1 px
       // ved delvis zoom, mens indikatoren forbliver 2 px × skala.
       expect(active.activeLine?.color).toBe(resting.indicator?.color);
       expect(active.activeLine?.height).toBe(resting.indicator?.height);
-      // Placeringen: stregen står på indholdsboksens højrekant — også når fladen er skaleret ned.
+      // Placeringen: stregen står på indholdsboksens højrekant – også når fladen er skaleret ned.
       expect(Math.abs((active.activeSideTabLeft ?? 0) - active.contentBoxRight)).toBeLessThanOrEqual(1);
     }
 
@@ -491,7 +491,7 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
 
   test('viser hele arbejdsfladen uden vandret rul ved 1280 CSS-px', async ({ page, runtimeErrors }) => {
     // 1920×1200-skærmen ved 150 % browserzoom giver præcis 1280 CSS-px. Testen er regressionsværnet
-    // for netop den opsætning: indholdet skal være der i fuld bredde — ikke klippet, ikke skjult.
+    // for netop den opsætning: indholdet skal være der i fuld bredde – ikke klippet, ikke skjult.
     await login(page);
     await page.setViewportSize({ width: 1280, height: 740 });
 
@@ -534,15 +534,15 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  // BASISBANEN ALENE — bevidst utagget. `html2canvas` med `scale: 2` er suitens dyreste
+  // BASISBANEN ALENE – bevidst utagget. `html2canvas` med `scale: 2` er suitens dyreste
   // enkelthandling: den bygger en bitmap på mange titusinder af pixel i bredden og holder både
-  // klonen og lærredet i hukommelsen. Én kørsel beviser det samme om produktet — at capturen
-  // neutraliserer arbejdsfladens skala og gendanner den — og skal den efterkontrolleres i alle
+  // klonen og lærredet i hukommelsen. Én kørsel beviser det samme om produktet – at capturen
+  // neutraliserer arbejdsfladens skala og gendanner den – og skal den efterkontrolleres i alle
   // motorer, ligger den stadig i `test:e2e:full`.
   //
   // HISTORIK, fordi symptomet var vildledende: testen hang i sit fulde loft med «venter på
   // Download skærmprint», hver gang den kørte samtidig med noget andet, og var grøn alene. Det
-  // lignede — og blev først forklaret som — at capturen ikke blev færdig under hukommelsespres.
+  // lignede – og blev først forklaret som – at capturen ikke blev færdig under hukommelsespres.
   // Målingen viste noget andet: rapportdialogen ÅBNEDE, og forsvandt så igen et kvart sekund efter.
   // Klikket ramte rapportknappen på den STADIG viste Indstillinger-side, fordi navigationen til
   // Erstatningsopgørelse kun havde skiftet URL; da EO-chunken landede, blev Indstillinger unmountet

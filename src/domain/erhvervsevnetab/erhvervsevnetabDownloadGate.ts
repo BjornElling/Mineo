@@ -99,7 +99,7 @@ export const evaluateErhvervsevnetabDownloadGates = (
   const { snapshot } = projection;
   if (projection.documentStamdata.status === 'blocked') {
     // Brevhoved-stamdata kan kun blokere på en RØD feltfejl (kun `optional`-reads), så klassen var
-    // korrekt — men hardkodet, og kunne derfor ikke citere en enkeltstående bounds-/rule-grænse.
+    // korrekt – men hardkodet, og kunne derfor ikke citere en enkeltstående bounds-/rule-grænse.
     const stamdataGate = blockDocumentDownloadFromCauses(
       'eet:stamdata-field-error',
       toBlockingCauses(projection.documentStamdata.issues),

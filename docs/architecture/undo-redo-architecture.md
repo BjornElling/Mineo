@@ -47,7 +47,7 @@ samme transaktion som inputtet.
 Et frame indeholder kun:
 
 - `SettledInput` med canonical sektioner og rejected inputs,
-- en `HistoryOrigin` — en DISKRIMINERET union med både datamålet og navigationsdestinationen.
+- en `HistoryOrigin` – en DISKRIMINERET union med både datamålet og navigationsdestinationen.
 
 Frame indeholder ikke revision, åbne drafts, issues, gates, beregninger, runtimefejl eller UI-settings. Den aktuelle
 runtime-revision er monoton og skabes på ny ved restore.
@@ -80,7 +80,7 @@ fra den nye revision efter succes.
 ## Fokus og feltidentitet
 
 **Origin har to dele, og de ejes af hver sit lag.** Datamålet er commandens egen strukturelle `FieldAddress`; en
-tabelcelle identificeres af collection, entity og felt — ikke af kolonneindeks eller en sammenkædet DOM-string.
+tabelcelle identificeres af collection, entity og felt – ikke af kolonneindeks eller en sammenkædet DOM-string.
 Navigationsdestinationen er `editorLocationId` + `route` + `tabKey`, altså den EDITOR, ændringen kom fra:
 
 ```ts
@@ -96,9 +96,9 @@ forbliver mountet efter første besøg.
 
 To ting er urepræsenterbare frem for bevogtede:
 
-- **En `tabKey` uden `route`** — unionen tillader ikke kombinationen, fordi restoren kun aktiverer fanen inde i
+- **En `tabKey` uden `route`** – unionen tillader ikke kombinationen, fordi restoren kun aktiverer fanen inde i
   `route !== undefined`-grenen, så en fane uden route ville være lydløst inert.
-- **En strukturel rækkehandling uden destination** — `CollectionHistoryOrigin` KRÆVER route + fane i selve
+- **En strukturel rækkehandling uden destination** – `CollectionHistoryOrigin` KRÆVER route + fane i selve
   kernetypen, ikke kun i surface-hooken. Uden en feltadresse er destinationen det eneste, restoren har at gå
   efter, og en undo, der gendannede data og efterlod brugeren på en vilkårlig side, ville være ubrugelig.
 
@@ -106,7 +106,7 @@ Route-/fane-rendering kan kræve en begrænset retry efter restore, men retryen 
 strukturelt mål; den gætter ikke origin fra `document.activeElement`.
 
 Et persisted row-id ændres aldrig for at redde fokus. En placeholders identitet BEVARES derimod, når rækken
-promoveres, så den genindtræder, hvis rækken fjernes igen (`placeholderSlots.ts`) — dataidentitet, beregning og
+promoveres, så den genindtræder, hvis rækken fjernes igen (`placeholderSlots.ts`) – dataidentitet, beregning og
 persistence er upåvirkede.
 
 ## Dynamiske tabeller

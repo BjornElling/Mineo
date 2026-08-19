@@ -50,7 +50,7 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 // BeregnetRenteTable: Rækkeinfrastruktur, celleværdier og
 // celleredigering går nu udelukkende gennem inputCore, som StandardLoenTable:
-//  - `useCollectionRows(rentekravRowsCollection)` ejer rækkernes id'er + insert/delete/reorder (§3.8) — ingen
+//  - `useCollectionRows(rentekravRowsCollection)` ejer rækkernes id'er + insert/delete/reorder (§3.8) – ingen
 //    `useSliceRowDrafts`, draftkopi, fingerprint eller persistence-effect.
 //  - hver redigerbar celle er en `Grid*Cell`/`GridChoiceCell` over `useCellEditor`, bro-
 //    forbundet til grid-core-navigationen. En trailing PLACEHOLDER-række promoverer atomisk ved første ikke-tomme
@@ -73,7 +73,7 @@ const COL = { belob: 0, renterFra: 1, tillaegstid: 2, enhed: 3 } as const;
 /**
  * Tillægstidens fortegns-politik, læst af feltets EGET codec.
  *
- * Modulniveau, fordi politikken er en statisk egenskab ved descriptoren og ikke afhænger af rækken — så
+ * Modulniveau, fordi politikken er en statisk egenskab ved descriptoren og ikke afhænger af rækken – så
  * opslaget ikke gentages pr. celle-render. Cellen bruger `GridTextCell` direkte (den er 50 px bred og
  * centreret) og får derfor ikke `GridIntegerCell`'s automatiske opslag.
  */
@@ -95,7 +95,7 @@ export type BeregnetRenteTableProps = Readonly<{
   documentDownloadFormat: DocumentDownloadFormat;
   /**
    * Rækkens download-gate, spurgt hos SAMME definition som klikket aktiverer (§A2: samme definition
-   * OG samme request). Tabellen udleder ikke selv knaptilstanden — gjorde den det, ville den reaktive
+   * OG samme request). Tabellen udleder ikke selv knaptilstanden – gjorde den det, ville den reaktive
    * gate og click-preflighten være to udtryk for samme regel og kunne drifte.
    */
   resolveDownloadGate: (rowId: string) => Readonly<{ canDownload: boolean; disabledReason?: string }>;

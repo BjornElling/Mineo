@@ -16,16 +16,16 @@ import { deepEqual } from '../../utils/deepEqual';
  *
  * En sektion får sin første værdi ét af to steder:
  *  1. NY-SAGS-SEEDEN, som `createNewCaseInput` anvender ved bootstrap og `Slet alt`. Den ejer de krav om "sådan
- *     starter en ny sag", der ikke kan udtrykkes i det persisterede schema — bl.a. brugerens programindstillinger.
+ *     starter en ny sag", der ikke kan udtrykkes i det persisterede schema – bl.a. brugerens programindstillinger.
  *  2. `createEmpty<Sektion>Section` + schemaets defaults, som reduceren materialiserer, første gang brugeren
  *     rører et felt på en side, hvis sektion ikke er seedet.
  *
- * Begge er LEVENDE. Ved siden af dem står `create<Sektion>InitialValues` — fabrikker, ingen produktionssti
+ * Begge er LEVENDE. Ved siden af dem står `create<Sektion>InitialValues` – fabrikker, ingen produktionssti
  * kalder, men som ~110 testfiler bygger deres fixture med. Hvor fabrikken og den levende sag er uenige, tester
  * suiten en tilstand, produktionen aldrig er i, og produktionen er i en tilstand, ingen test måler. Det var
  * præcis den fælde.
  *
- * Testen forbyder ikke uenighed — den kræver, at hver afvigelse står EKSPLICIT nedenfor med sin begrundelse,
+ * Testen forbyder ikke uenighed – den kræver, at hver afvigelse står EKSPLICIT nedenfor med sin begrundelse,
  * så den er set og valgt frem for opstået.
  */
 
@@ -48,7 +48,7 @@ const materializeLiveSection = (section: SectionKey): Record<string, unknown> =>
   return value as Record<string, unknown>;
 };
 
-/** Sektionen som brugeren møder den på en helt ny sag — seedet, hvis den er det; ellers først-berørt. */
+/** Sektionen som brugeren møder den på en helt ny sag – seedet, hvis den er det; ellers først-berørt. */
 const liveSection = (section: SectionKey): Record<string, unknown> => {
   const seeded = (newCaseInput.sections as Record<string, unknown>)[section];
   if (seeded !== null && typeof seeded === 'object') return seeded as Record<string, unknown>;
@@ -58,8 +58,8 @@ const liveSection = (section: SectionKey): Record<string, unknown> => {
 /**
  * Sammenligningen sker på den PERSISTEREDE form. Den levende sag er round-trippet gennem envelopen (som enhver
  * commit er det), hvor JSON dropper `undefined`-nøgler; fabrikkens `schema.parse` beholder dem, når input
- * nævnte dem eksplicit. Forskellen er ikke en uenighed om værdier — kun om en fraværende værdi staves
- * "mangler nøgle" eller "nøgle med undefined" — og den ville drukne de ægte fund.
+ * nævnte dem eksplicit. Forskellen er ikke en uenighed om værdier – kun om en fraværende værdi staves
+ * "mangler nøgle" eller "nøgle med undefined" – og den ville drukne de ægte fund.
  */
 const asPersisted = (value: Record<string, unknown>): Record<string, unknown> =>
   JSON.parse(JSON.stringify(value)) as Record<string, unknown>;

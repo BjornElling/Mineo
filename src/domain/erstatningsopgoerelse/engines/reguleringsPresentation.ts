@@ -75,7 +75,7 @@ export type ReguleringIndexRow = Readonly<{
   indeks: string;
   loenudvikling: string;
   // KL-lønaftaler: den kæde-opregulerede, afrundede måneds-/dagsløn for perioden.
-  // Kun udfyldt for KL-lønaftaler — øvrige modeller lader den være undefined.
+  // Kun udfyldt for KL-lønaftaler – øvrige modeller lader den være undefined.
   reguleretLoen?: string;
 }>;
 
@@ -83,9 +83,9 @@ export type ReguleringValuesTableData = Readonly<{
   columns: readonly string[];
   /**
    * Rækkerne dækker de satser, der indgår i reguleringen: basisrækken (satsen i kraft på den anvendte
-   * reguleringsdato — formlens nævner i "Beregnet regulering"), satsen ved reguleringsvinduets start
+   * reguleringsdato – formlens nævner i "Beregnet regulering"), satsen ved reguleringsvinduets start
    * og hver satsændring frem til slut. Basisrækken vises kun, når dens værdier ikke i forvejen fremgår
-   * af de øvrige rækker, og dateres med sin RÅ satsdato fra reguleringsgrundlaget — aldrig med selve
+   * af de øvrige rækker, og dateres med sin RÅ satsdato fra reguleringsgrundlaget – aldrig med selve
    * reguleringsdatoen (ingen syntetisk reguleringsdato-række). Mellemliggende satsændringer mellem
    * basis og vinduet, som ingen beregning bruger, medtages ikke (jf. "vist = beregnet").
    */
@@ -241,7 +241,7 @@ const KRL_REGULERING_PCT_DECIMALS = 4;
 
 const formatManuelProcentsatsAkkumuleretPct = (value: number): string => {
   const sign = value >= 0 ? '+ ' : '- ';
-  // Altid to decimaler (også ",00") — procentværdierne i Reguleringsværdier-tabellen vises fast med to decimaler.
+  // Altid to decimaler (også ",00") – procentværdierne i Reguleringsværdier-tabellen vises fast med to decimaler.
   return `${sign}${formatAsAmount(Math.abs(value), 2)} %`;
 };
 
@@ -320,7 +320,7 @@ const REGULERINGSVAERDIER_PENSION_HEADER = 'AG pens. bidrag';
 /**
  * Afgør, om Reguleringsværdier-tabellen skal ledsages af en note om, at kilden ikke har satser
  * på/før reguleringsdatoen. Noten sættes kun, når kildens tidligste registrerede sats først gælder
- * EFTER reguleringsdatoen — dvs. reguleringen tager afsæt i en senere sats, fordi der ingen findes
+ * EFTER reguleringsdatoen – dvs. reguleringen tager afsæt i en senere sats, fordi der ingen findes
  * på reguleringsdatoen.
  *
  * VIGTIGT: `kildeTidligsteSatsIso` SKAL være kildens reelle, *uscopede* tidligste satsdato (kildens
@@ -351,12 +351,12 @@ const resolveRelevantRealDatesForTafScope = (
   tafFra: ISODateString,
   tafTil: ISODateString,
   // Basisanker: den anvendte reguleringsdato. Når sat, medtages ekstra den sats, der var i kraft
-  // PÅ reguleringsdatoen (seneste satsdato på/før ankeret) — dvs. selve reguleringsgrundlaget, som
+  // PÅ reguleringsdatoen (seneste satsdato på/før ankeret) – dvs. selve reguleringsgrundlaget, som
   // "Beregnet regulering" dividerer med (indeks-100-niveauet). Uden den mangler basisrækken i
   // tabellen, når satsen ændrede sig mellem reguleringsdatoen og reguleringsvinduets start, og
   // læseren kan ikke genfinde formlens nævner. Ligger den i kraft værende sats allerede i det
   // viste vindue (samme satsdato som `firstRelevant` eller inde i [tafFra, tafTil]), tilføjer den
-  // intet — dubletter fjernes af filteret nedenfor, og en identisk nabo flettes af
+  // intet – dubletter fjernes af filteret nedenfor, og en identisk nabo flettes af
   // `mergeConsecutiveValueRows`. Satsrækken dateres med sin RÅ satsdato fra reguleringsgrundlaget,
   // ikke med reguleringsdatoen (ingen syntetisk reguleringsdato-række).
   baseAnchorIso?: ISODateString
@@ -667,8 +667,8 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       );
       if (relevantRealDates.length === 0) return null;
       // Tabellen viser den sats, der gælder ved reguleringsvinduets start (seneste sats på/før
-      // start via resolveRelevantRealDatesForTafScope) plus hver satsændring frem til slut, samt —
-      // via basisankeret ovenfor — den sats der var i kraft på reguleringsdatoen (formlens nævner),
+      // start via resolveRelevantRealDatesForTafScope) plus hver satsændring frem til slut, samt –
+      // via basisankeret ovenfor – den sats der var i kraft på reguleringsdatoen (formlens nævner),
       // hvis den ikke allerede indgår. Der injiceres bevidst ingen syntetisk række dateret selve
       // reguleringsdatoen; basisrækken bærer sin egen rå satsdato. Findes der ingen sats på/før
       // reguleringsdatoen, viser tabellen den tidligste faktiske sats og ledsages af en note.
@@ -774,7 +774,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     );
     if (relevantRealDates.length === 0) return null;
     // Basisankeret (anvendtReguleringsdato) sikrer, at den sats der var i kraft på reguleringsdatoen
-    // — formlens nævner — vises med sin rå satsdato, hvis den ikke allerede indgår i vinduet. Ingen
+    // – formlens nævner – vises med sin rå satsdato, hvis den ikke allerede indgår i vinduet. Ingen
     // syntetisk reguleringsdato-række (jf. den offentlige gren). Store Bededag-grænsen før
     // overenskomstdækning bevares som placeholder. Note-vurderingen bygger på kildens uscopede
     // coverage-start (overenskomstCoverageStartIso), ikke på tabellens (TAF-scopede) rækker.
@@ -994,7 +994,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
 
   if (grundlag === 'KL-lønaftaler') {
     // KL-lønaftaler vises som periode-reguleringssats (kilde-værdien). Der vises bevidst
-    // ingen akkumuleret regulering — KL-lønaftaler-modellen kender ikke akkumuleret regulering;
+    // ingen akkumuleret regulering – KL-lønaftaler-modellen kender ikke akkumuleret regulering;
     // reguleringen sker trinvist på lønnen (jf. "Beregnet regulering"-tabellen og
     // docs/domain/taf/kl-loenaftaler-regulering.md).
     const formatKlPct = (value: number): string =>
@@ -1037,7 +1037,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   anvendtReguleringsdato: ISODateString | undefined;
   tafBeregningsenhed: TafBeregningsenhed;
-  // R2 — motor-emitteret autoritativt forløb; se buildReguleringsvaerdierTableData.
+  // R2 – motor-emitteret autoritativt forløb; se buildReguleringsvaerdierTableData.
   forloeb?: ReguleringForloeb;
 }>): readonly ReguleringIndexRow[] => {
   const { segments, ansaettelsesforhold, anvendtReguleringsdato, tafBeregningsenhed, forloeb } = params;
@@ -1071,7 +1071,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
   if (isKlLoenaftaler) {
     // KL-lønaftaler: trinvis kæde-opregulering med afrunding på hvert trin (se
     // docs/domain/taf/kl-loenaftaler-regulering.md). KL-lønaftaler kender ikke akkumuleret
-    // regulering — "Lønudvikling"-kolonnen gentager periodens
+    // regulering – "Lønudvikling"-kolonnen gentager periodens
     // reguleringssats (som i reguleringsværdi-tabellen), og "Reguleret løn" er den
     // forudgående regulerede løn forhøjet med periodens sats og afrundet til to
     // decimaler. Segmentets deltaPct ER den akkumulerede regulering afledt af den
@@ -1083,17 +1083,17 @@ export const buildReguleringIndexRows = (params: Readonly<{
     const klRows: IndexRowWithIso[] = segments.map((segment) => {
       // Single source of truth: den kæde-opregulerede, afrundede enhedsløn bæres autoritativt på
       // segmentet som reguleretLoenOre (nøjagtig samme værdi som indkomst-linjerne viser via
-      // reguleretLoenOre — jf. tafOpreguleretPaaAarDocument / opgoerelseSection). Vi må derfor IKKE
+      // reguleretLoenOre – jf. tafOpreguleretPaaAarDocument / opgoerelseSection). Vi må derfor IKKE
       // genberegne den fra deltaPct her, da det ville være en anden kilde til samme værdi (U8).
       // Defensiv fallback: skulle et KL-lønaftaler-segment mod forventning mangle reguleretLoenOre,
       // reproducerer basisløn × (1 + deltaPct/100) den trinvist afrundede løn tal-identisk (jf.
-      // docs/domain/taf/kl-loenaftaler-regulering.md §2 — deltaPct er i fuld præcision netop for det).
+      // docs/domain/taf/kl-loenaftaler-regulering.md §2 – deltaPct er i fuld præcision netop for det).
       const unitLoenOre = segment.kind === 'maaneder' ? segment.maanedsloenOre : segment.dagsloenOre;
       const reguleretLoen = segment.reguleretLoenOre !== undefined
         ? segment.reguleretLoenOre / 100
         : roundByMethod((unitLoenOre / 100) * (1 + segment.deltaPct / 100), 2, 'halfAwayFromZero');
       const reguleretLoenDisplay = formatAsAmount(reguleretLoen, 2);
-      // Periodens reguleringssats — kun på regulerende datoer efter reguleringsdatoen
+      // Periodens reguleringssats – kun på regulerende datoer efter reguleringsdatoen
       // (basisperioden har ingen sats).
       const periodePct =
         (!anvendtReguleringsdato || segment.fra > anvendtReguleringsdato)

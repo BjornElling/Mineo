@@ -278,7 +278,7 @@ export const buildTabtArbejdsfortjenesteModel = (
       endeligtEetReferenceDato = values.endeligEETAfgoerelseDato;
     } else {
       // Uden dato kan afgørelsen ikke afgrænse TAF (ingen referencedato), men den ER truffet
-      // og skal derfor stadig oplyses — ellers påstår dokumentet det modsatte.
+      // og skal derfor stadig oplyses – ellers påstår dokumentet det modsatte.
       const tekst = 'Der er truffet endelig afgørelse om erhvervsevnetab med 15 % eller derover.';
       endeligtEetLinje = values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst;
     }
@@ -415,7 +415,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     sygeferiegodtgoerelse: tafMonetary.sygeferiegodtgoerelse,
     // TAF-totalerne (FoerForlig + post-forlig) ejes udelukkende af canonical (buildEoComputedTotals)
     // og injiceres i PDF-modellen af buildErstatningsopgoerelsePdfModelFromComputed. Section-byggeren
-    // bærer dem derfor IKKE — returtypen er TabtArbejdsfortjenesteSectionPresentation (Omit), så et
+    // bærer dem derfor IKKE – returtypen er TabtArbejdsfortjenesteSectionPresentation (Omit), så et
     // section-afledt total ikke kan lække til output (B8, jf. eo-snapshot-contract.md §1).
   };
 };

@@ -46,7 +46,7 @@ const settle = <TField, TEntity>(
 ): void => {
   // Strukturelle rækkecommands kræver en origin (§3.7): fixturen seeder rækker og har ingen brugerhandling at
   // pege på, men skal levere en gyldig origin ligesom produktionen. Helperen tager den brede commandunion, så
-  // origin sendes altid med — den ignoreres for de ikke-strukturelle arter.
+  // origin sendes altid med – den ignoreres for de ikke-strukturelle arter.
   const dispatchAny = dispatchInput as (
     store: SlimInputStore,
     testCatalog: InputCatalog,

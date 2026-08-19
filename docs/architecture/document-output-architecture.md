@@ -70,7 +70,7 @@ Ved aktivering:
 3. der læses en ny `InputReader`,
 4. dokumentdefinitionen evalueres igen,
 5. blokering stopper før lazy-load, generator og fil-I/O,
-6. kun et revisionsbundet `PreparedDocument` går videre — modulprivat i `documentLifecycle.ts` og reelt
+6. kun et revisionsbundet `PreparedDocument` går videre – modulprivat i `documentLifecycle.ts` og reelt
    parametriseret som `PreparedDocument<TRenderSettings, TBrevhovedKey>`; `<T>` bruges her og i diagrammet
    som kortform.
 
@@ -78,17 +78,17 @@ Pointer-blur når normalt at gøre knappen disabled før click, men korrektheden
 Tastatur/programmatisk aktivering og et allerede leveret click følger samme preflight. Ved et ugyldigt settle fokuseres
 feltet og den eksisterende danske advarsel vises kun som sidste sikkerhedsværn.
 
-**Friskheden kontrolleres ved HVER asynkron grænse** — ikke kun én gang efter lazy-load.
+**Friskheden kontrolleres ved HVER asynkron grænse** – ikke kun én gang efter lazy-load.
 `src/document/definition/documentLifecycle.ts` sammenligner det optagne token mod miljøets autoritative
 `readCurrentSourceToken()` på fem punkter: ved afviklingens indgang, efter dev-server-preflighten, efter
 generator-modulets lazy-load, efter writer-modulets lazy-load og **efter selve renderingen, umiddelbart før
 fil-I/O**. Dertil kommer et sjette, andetartet check i `prepareDocument`, hvor barrierens token sammenlignes
-med snapshottets (fase `capture`) — det lukker vinduet mellem settle og capture. Det sidste check er load-bearing: generatoren
+med snapshottets (fase `capture`) – det lukker vinduet mellem settle og capture. Det sidste check er load-bearing: generatoren
 awaiter kanal-renderingen, så inputtet kan ændre sig undervejs, og downloaden er den irreversible handling
 (`critical-action-contract.md` §5). En stale kilde afvises som `stale-source` med den fase, den blev opdaget i.
 
-Entry-checket ligger bevidst UDEN FOR dev-server-grenen, så et miljø uden dev-server — fx standalone
-MinProcesrente — også verificeres mellem gate og modul-load.
+Entry-checket ligger bevidst UDEN FOR dev-server-grenen, så et miljø uden dev-server – fx standalone
+MinProcesrente – også verificeres mellem gate og modul-load.
 
 ## Domæne- og livscykluslag
 
@@ -103,8 +103,8 @@ callbacks med skjult domænepolicy, dependencies eller gates; formatvalget komme
 **Settings er delt i to disjunkte halvdele, og gaten kan ikke se formatet.** Kildesnapshottet bærer
 `gateSettings` (i hovedappen EO-rækkepolitikken) og `renderSettings` (format + brevhoved-flag). Kun
 `gateSettings` er typen på den `DocumentSourceContext`, en definitions `project` modtager; `renderSettings`
-læses alene af miljøet, og først efter gaten har svaret `ready`. Reglen bag delingen — **formatet vælger
-writer, ikke dækning** — kan ikke bæres af et værn, fordi den reaktive gate og click-preflighten kalder samme
+læses alene af miljøet, og først efter gaten har svaret `ready`. Reglen bag delingen – **formatet vælger
+writer, ikke dækning** – kan ikke bæres af et værn, fordi den reaktive gate og click-preflighten kalder samme
 `project` og derfor ville se den samme skæve gate i begge kanaler. Den er derfor en typegrænse: et forsøg på at
 læse `documentDownloadFormat` i en gate kompilerer ikke. Begge halvdele projiceres fra ét `captureSource`-læs,
 så de ikke kan stamme fra to revisioner. Normativt i `document-output-contract.md` §A2.1.
@@ -138,7 +138,7 @@ maksimal højde. Generatoren beregner ikke dokumentbredde eller Y-position.
 sessionen. Vandmærke og footer er eksplicitte blokke. Kun `documentLifecycle.ts` starter browserdownload
 (`triggerDocumentDownload`), og først efter det sidste friskhedscheck.
 
-Formatvalg ligger efter den fælles gate. Et dokument, som er blokeret, er blokeret for både PDF og Word — og
+Formatvalg ligger efter den fælles gate. Et dokument, som er blokeret, er blokeret for både PDF og Word – og
 det kan ikke være anderledes, fordi gaten strukturelt ikke kan se formatet (se settings-afsnittet ovenfor).
 
 ## Verifikation

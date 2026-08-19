@@ -11,14 +11,14 @@ import {
  *
  * #43 samlede appens routes ét sted, men ramte kun to af de tre lister: menuinventaret bar sit
  * eget inventar af bare strenge og importerede slet ikke kataloget. Guarden i `App.tsx`
- * sammenholder kun loader-listen med kataloget, så en omdøbt route gav en lydløst DØD menupost —
+ * sammenholder kun loader-listen med kataloget, så en omdøbt route gav en lydløst DØD menupost –
  * ingen fejl, ingen test.
  *
  * Nøgle-driften er nu lukket af TYPEN (`MenuPageKey`), og den grænse er mutationsbevist: et
- * forkert id er en compile-fejl. Men typen har et loft — den kan ikke se, at en post MANGLER,
+ * forkert id er en compile-fejl. Men typen har et loft – den kan ikke se, at en post MANGLER,
  * fordi en kortere liste stadig typechecker. Denne test dækker præcis det hul.
  */
-describe('SideMenu — rute-inventar', () => {
+describe('SideMenu – rute-inventar', () => {
   const menuKeys = [...navigationItems, ...utilityItems].map((item) => item.id);
 
   it('dækker hver navigerbar side præcis én gang', () => {

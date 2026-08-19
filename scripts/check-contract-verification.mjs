@@ -2,22 +2,22 @@
 /**
  * Kontrollerer, at kontrakternes `**Senest verificeret mod kode:**`-stempel faktisk BETYDER noget.
  *
- * **Hullet, dette lukker.** `contractCoverageMatrix.test.ts` håndhæver feltet — men kun dets FORMAT: en
+ * **Hullet, dette lukker.** `contractCoverageMatrix.test.ts` håndhæver feltet – men kun dets FORMAT: en
  * regex kræver `YYYY-MM-DD`, og intet mere. Datoens indhold kontrolleres ikke. En kontrakt kan derfor
  * bære et friskt stempel og en forældet beskrivelse, og hele suiten står grøn. `contract-topology-procedure.md`
  * kalder feltet det ene håndhævede krav i skabelonen, så stemplet bærer i praksis hele vægten af påstanden
- * «kontrakten er stadig sand» — uden at nogen kontrol kan se, om den er indfriet.
+ * «kontrakten er stadig sand» – uden at nogen kontrol kan se, om den er indfriet.
  *
  * **Det var ikke teoretisk.** Ved gennemgangen 2026-08-07 havde SEKS kontrakter et stempel, der lå FØR deres
  * egen seneste redigering: `amount-contract.md`, `app-shell-contract.md`, `auth-gate-contract.md`,
  * `error-contract.md`, `form-contract.md` og `periodisering-contract.md`. `auth-gate-contract.md` er det
  * tydeligste tilfælde: stemplet sagde 2026-07-28, mens filen selv blev ændret 2026-08-01. Nogen havde altså
- * redigeret kontraktens tekst uden at forny påstanden om, at teksten er sand — og feltets eneste kontrol
+ * redigeret kontraktens tekst uden at forny påstanden om, at teksten er sand – og feltets eneste kontrol
  * kunne per konstruktion ikke se det. Dertil delte 14 filer ét og samme bulk-stempel (2026-08-01), hvilket
  * er signaturen på en dato, der sættes som ritual frem for efter en reel verifikation.
  *
  * **Reglen.** Stemplet må ikke være ældre end den seneste commit, der ændrede kontraktfilen. Det er den
- * svageste regel, der fanger fejlen — og bevidst svagere end «stemplet skal være friskt»: en kontrakt, som
+ * svageste regel, der fanger fejlen – og bevidst svagere end «stemplet skal være friskt»: en kontrakt, som
  * ingen har rørt i et halvt år, er ikke af den grund forældet, og en tidsbaseret udløbsdato ville producere
  * rød farve uden ny information og dermed lære læseren at rulle forbi.
  *
@@ -78,7 +78,7 @@ const today = () => {
 };
 
 /**
- * Datoen for den seneste commit, der ændrede filen — i commit-datoens egen tidszone, så en dag ikke
+ * Datoen for den seneste commit, der ændrede filen – i commit-datoens egen tidszone, så en dag ikke
  * forskydes af, hvor kontrollen tilfældigvis kører.
  */
 const lastCommitDate = (relativePath) => {
@@ -126,7 +126,7 @@ const collectHistoricalProblems = () => {
   const files = contractFiles();
 
   if (files.length === 0) {
-    console.error('check:contract-verification: fandt ingen kontraktfiler — kontrollen ville være tom.');
+    console.error('check:contract-verification: fandt ingen kontraktfiler – kontrollen ville være tom.');
     process.exit(1);
   }
 
@@ -163,7 +163,7 @@ const main = () => {
   if (!hasGitHistory()) {
     // Eksplicit «ikke målt» frem for et tavst grønt udfald: uden historik kan kontrollen ikke svare,
     // og et grønt svar ville da bære en påstand, ingen har efterprøvet.
-    console.error('check:contract-verification: ingen git-historik tilgængelig — kontrollen kunne IKKE køres.');
+    console.error('check:contract-verification: ingen git-historik tilgængelig – kontrollen kunne IKKE køres.');
     process.exit(1);
   }
 

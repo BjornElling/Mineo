@@ -17,8 +17,8 @@ import { toDanishDateString, toISODateString } from '../../../types/branded';
  * dansk dato og hver `reguleringPct` finit (jf. klLoenaftaler.test.ts), så de to
  * fail-closed-guards er defensive invarianter der IKKE kan rammes af valide data.
  *
- * Her injicerer vi (via en mock af datamodulet) en korrupt række — som ville kunne opstå
- * ved en fremtidig datafejl — og hævder, at kæden IKKE stille springer reguleringstrinnet
+ * Her injicerer vi (via en mock af datamodulet) en korrupt række – som ville kunne opstå
+ * ved en fremtidig datafejl – og hævder, at kæden IKKE stille springer reguleringstrinnet
  * over (tavs under-regulering), men KASTER. Kastet propagerer gennem `buildLoenudviklingModel`
  * og bliver i `computeEoSnapshot` til fail_closed med `runtime_exception` (jf. invariant-noten
  * i loenudviklingBeregning.ts:63–70). Uden guarden ville et `continue`/silent-filter give en
@@ -65,7 +65,7 @@ afterEach(() => {
   mockState.raekker = null;
 });
 
-describe('KL-lønaftaler — kæden fail-closer ved korrupt kildedata (S4)', () => {
+describe('KL-lønaftaler – kæden fail-closer ved korrupt kildedata (S4)', () => {
   it('en ikke-finit periodesats KASTER (degraderer IKKE til et stille sprunget trin)', () => {
     mockState.raekker = [
       { fraDato: toDanishDateString('01-04-2024'), reguleringPct: 0 },

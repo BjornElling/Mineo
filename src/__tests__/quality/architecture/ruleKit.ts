@@ -19,7 +19,7 @@ import {
  * En {@link ArchitectureRule} er en ren funktion fra kilde-grafen til en liste af
  * {@link Violation}s med præcis fil:linje:kolonne-diagnostik. Hver regel bærer sine
  * egne positive/negative fixtures, så `architectureRules.test.ts` kan bevise
- * strukturelt at reglen ikke er inert (vacuous-pass-værnet) — i stedet for at hver
+ * strukturelt at reglen ikke er inert (vacuous-pass-værnet) – i stedet for at hver
  * guard håndruller sin egen selvtest.
  */
 
@@ -54,7 +54,7 @@ export type LiveTarget =
   /**
    * FORUDSÆTNINGSREGEL: reglen kigger kun på filer, der gør noget bestemt (udløser en download,
    * renderer et felt, tilgår en sektion). Findes den slags fil ikke længere, er reglen inert.
-   * `probe` svarer på "har grafen stadig en fil, jeg ville KONTROLLERE?" — uafhængigt af, om
+   * `probe` svarer på "har grafen stadig en fil, jeg ville KONTROLLERE?" – uafhængigt af, om
    * filen overtræder.
    *
    * `minimumMatches` og `requiredPaths` lukker de to huller en ren "≥1 hit"-kontrol havde:
@@ -81,7 +81,7 @@ export type LiveTarget =
    * HVERT navn. Kontrollen er nu generisk og obligatorisk: tidligere lå den i en separat testfil,
    * der kun kendte nogle af arterne, så et forkert stavet navn ("useRowDraftz") kunne "bevises
    * fraværende" lige så nemt som det rigtige. Nu skal reglen selv kunne svare på, hvordan et navn
-   * eftervises — og et navn, der ikke KAN findes i nogen form, er en fejl i reglen, ikke et bevis.
+   * eftervises – og et navn, der ikke KAN findes i nogen form, er en fejl i reglen, ikke et bevis.
    */
   | Readonly<{
     kind: 'absence';
@@ -89,7 +89,7 @@ export type LiveTarget =
     rationale: string;
     /**
      * Findes navnet stadig i grafen i den form, reglen forbyder? Skal returnere `false` for hvert
-     * navn i `forbids` — ellers ER der en overtrædelse, som `evaluate` burde have fanget.
+     * navn i `forbids` – ellers ER der en overtrædelse, som `evaluate` burde have fanget.
      *
      * Harnesset kører desuden en MODSAT kontrol: navnet skal kunne findes i en syntetisk fil, der
      * bruger det. Ellers er prædikatet (eller stavemåden) forkert, og fraværet er vakuøst.
@@ -106,7 +106,7 @@ export type LiveTarget =
    * reglen et mål; forsvinder roden, er reglen død. Kontrolleres af scan-rod-kontrollen,
    * som samtidig fanger mappeflytninger, der ellers tavst indsnævrer et scope.
    *
-   * ALLE rødder skal findes — ikke bare én. En regel med to rødder, hvor den ene er slettet,
+   * ALLE rødder skal findes – ikke bare én. En regel med to rødder, hvor den ene er slettet,
    * scanner halvt så meget som konfigurationen påstår.
    */
   | Readonly<{ kind: 'scoped'; roots: readonly string[]; rationale: string }>;
@@ -118,7 +118,7 @@ export type ArchitectureRule = Readonly<{
   liveTarget: LiveTarget;
   /** Producerer alle overtrædelser over hele kilde-grafen. */
   evaluate: (entries: readonly SourceEntry[]) => readonly Violation[];
-  /** Rå fund i én fil UDEN at anvende allow/scope — bruges af anti-rot-selvtesten. */
+  /** Rå fund i én fil UDEN at anvende allow/scope – bruges af anti-rot-selvtesten. */
   findInFile: (entry: SourceEntry) => readonly Finding[];
   /** Repo-relative stier der er eksplicit undtaget (auditerede undtagelser). */
   allow: readonly string[];
@@ -134,7 +134,7 @@ export type ArchitectureRule = Readonly<{
 }>;
 
 const formatViolation = (v: Violation): string =>
-  `${v.relativePath}:${v.position.line}:${v.position.column} — ${v.message}`;
+  `${v.relativePath}:${v.position.line}:${v.position.column} – ${v.message}`;
 
 export const formatViolations = (violations: readonly Violation[]): string =>
   violations.map(formatViolation).join('\n');
@@ -153,7 +153,7 @@ type RuleConfig = Readonly<{
    * `graph` er HELE kilde-grafen, når reglen evalueres over produktionen, og kun fixture-filen selv
    * under fixture-selvtesten. En regel, hvis grænse afhænger af importGRAFEN (transitiv kobling,
    * facade-stier), bruger den; en rent lokal regel ignorerer den. Uden den kunne en grænse omgås ved
-   * at flytte koblingen ét modul væk — reglen ville se en ren fil og være tavs.
+   * at flytte koblingen ét modul væk – reglen ville se en ren fil og være tavs.
    */
   find: (entry: SourceEntry, graph: readonly SourceEntry[]) => readonly Finding[];
   violatingFixtures: readonly RuleFixture[];
@@ -258,7 +258,7 @@ type ImportRuleConfig = Readonly<{
   allow?: readonly string[];
   /**
    * Sand for imports der er forbudt (uden for `allow`). `fromRelativePath` er den
-   * importerende fils repo-relative sti — nødvendig for at opløse relative specifiers
+   * importerende fils repo-relative sti – nødvendig for at opløse relative specifiers
    * (lag-grænse-regler).
    */
   forbidden: (ref: ImportRef, fromRelativePath: string) => boolean;

@@ -14,7 +14,7 @@ import { createFieldWarning } from '../../../inputCore/fieldWarning';
 /**
  * Grundlæggende oplysninger: de tværsektionelle stamdata-datoer, køn og de to årslønsfelter.
  *
- * Skadelidtes fødselsdato er READ-ONLY her — den ejes af Stamdata. Kan den ikke bruges (rød feltfejl eller tom),
+ * Skadelidtes fødselsdato er READ-ONLY her – den ejes af Stamdata. Kan den ikke bruges (rød feltfejl eller tom),
  * vises årsagen med et link til den side, hvor den kan rettes, frem for en tom celle.
  *
  * Køn-feltet vises, når kapitaliseringen efterspørger det (`visKoenValg`) ELLER når feltet selv har en aktiv

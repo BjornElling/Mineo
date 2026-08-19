@@ -118,7 +118,7 @@ const measurePdfTextWidthMm = (
 
 // Bygger en `ColumnTextMeasurer` oven på jsPDF-doc'et til den rene `resolveColumnWidths`.
 // Returnerer `null`, når teksten ikke kan måles (en degraderet jsPDF)
-// — da falder bredde-fordelingen fail-closed tilbage til de statiske bredder.
+// – da falder bredde-fordelingen fail-closed tilbage til de statiske bredder.
 const createPdfTextMeasurer = (doc: jsPDF): ColumnTextMeasurer | null => {
   if (!canMeasurePdfText(doc)) return null;
   return (text, options) =>
@@ -339,7 +339,7 @@ export const renderDocumentTable = (params: Readonly<{
   // rendere en blank tabel i et tillidskritisk dokument ville skjule fejlen. Kast hellere,
   // så download-stien router fejlen via reportSystemIssue (jf. document-output-contract A5).
   if (body.length === 0) {
-    throw new Error('renderDocumentTable kaldt med tom body — tabellen skulle være undertrykt eller have en eksplicit tom-tilstandsrække i kalderen.');
+    throw new Error('renderDocumentTable kaldt med tom body – tabellen skulle være undertrykt eller have en eksplicit tom-tilstandsrække i kalderen.');
   }
 
   const transparentSet = new Set(transparentRowIndices);
@@ -362,7 +362,7 @@ export const renderDocumentTable = (params: Readonly<{
   // De endeligt fordelte kolonnebredder (i mm) gøres tilgængelige for kalderens
   // didParseCell-hook, så fx en højre-indrykning kan skaleres efter den bredde, en
   // kolonne faktisk får i dokumentet. Kun numeriske bredder tages med (autos springes
-  // over — der er ingen kendt mm-bredde at skalere efter).
+  // over – der er ingen kendt mm-bredde at skalere efter).
   const resolvedColumnWidths = new Map<number, number>();
   for (const [rawIndex, style] of Object.entries(resolvedColumnStyles ?? {})) {
     const cellWidth = (style as PdfColumnStyle | undefined)?.cellWidth;

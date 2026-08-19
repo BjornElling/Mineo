@@ -14,7 +14,7 @@ import type { TableSaveOrderPath } from '../../../utils/tableSaveOrderRegistry';
  * render-rækkefølge, save-order-registrering) hævdes her ÉT sted.
  *
  * Grunden til at de skal testes sammen: de var skrevet i hånden pr. tabel, og en tabel kunne
- * få tre af fire rigtigt. Særligt save-order/render-order-koblingen fejler tavst — brugeren
+ * få tre af fire rigtigt. Særligt save-order/render-order-koblingen fejler tavst – brugeren
  * ser én rækkefølge, den gemte fil får en anden, og hverken typecheck eller en render-test
  * bemærker det.
  */
@@ -135,14 +135,14 @@ describe('useSortedCollectionTable', () => {
       screen.getByTestId('sort-navn').click();
     });
 
-    // Både det viste og det registrerede skal have flyttet sig — ikke kun det viste.
+    // Både det viste og det registrerede skal have flyttet sig – ikke kun det viste.
     expect(screen.getByTestId('render-ids').textContent).toBe('a,b,c,placeholder-1');
     expect(readRegisteredOrder()).toEqual(['a', 'b', 'c']);
   });
 
   it('leverer RÆKKEFØLGEN og bygger ikke selv render-rækker', () => {
     // Hooken leverer `sortedRows`; render-modellen bygges ét sted af `useCollectionTable`.
-    // Beviser at hookens resultat ikke igen begynder at bære sin egen render-model — så ville
+    // Beviser at hookens resultat ikke igen begynder at bære sin egen render-model – så ville
     // der være to konstruktioner at holde i sync, hvilket er hele fejlklassen her.
     let captured: Record<string, unknown> | undefined;
     const Probe = () => {
@@ -180,7 +180,7 @@ describe('useSortedCollectionTable', () => {
 
 describe('bindSortableHeader', () => {
   it('binder onClick/sortRole/sortDirection til ét og samme colId', async () => {
-    // Beviser at den frie funktion — som de base-række-ankrede tabeller bruger — giver samme
+    // Beviser at den frie funktion – som de base-række-ankrede tabeller bruger – giver samme
     // binding som hookens `sortableHeader`. Ellers kunne de to drive fra hinanden.
     const Direct = () => {
       const memoColumns = React.useMemo(() => columns, []);

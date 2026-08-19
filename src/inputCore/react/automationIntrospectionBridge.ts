@@ -15,7 +15,7 @@ import {
 // Baggrunden er konkret. Auditworkerens driftslog viste, at næsten al spildt tid gik med at GÆTTE
 // tilstanden gennem DOM'en: accessible names kolliderer (`Årsløn` findes to steder, `Regulering` matcher
 // også `Tillad regulering`), snapshot-refs invalideres af enhver re-render, og en rød feltkant kan i
-// DOM'en ikke skelne rejected råtekst fra en canonical bounds-fejl — netop den skelnen, save-gaten
+// DOM'en ikke skelne rejected råtekst fra en canonical bounds-fejl – netop den skelnen, save-gaten
 // afhænger af (§1.6). Den viden FINDES i evalueringen; den var bare ikke tilgængelig udefra.
 //
 // Broen er derfor bevidst afgrænset:
@@ -24,25 +24,25 @@ import {
 //     skal fremkalde en ændring gennem den samme brugerflade som mennesket, ellers ville testen bevise
 //     noget om broen frem for om programmet.
 //   - Ingen ny læsegrænse. Alt hentes gennem den eksisterende `InputReadPort` (§3.4) og de attributter,
-//     `historyRestoreTarget` allerede ejer. Broen tilføjer ikke en parallel feltidentitet — den eksponerer
+//     `historyRestoreTarget` allerede ejer. Broen tilføjer ikke en parallel feltidentitet – den eksponerer
 //     den ENE, `input/single-field-identity-in-dom` allerede håndhæver.
 //   - Ingen canonical værdiudlæsning. `InputReader.read` er bevidst `FieldRef`-baseret og kan ikke drives
 //     af en løs adressestreng; en adresse→værdi-vej her ville være præcis det parallelle opslag, kernen
-//     undgår. Broen eksponerer derfor issue- og rejected-tilstanden — det, orakelarbejdet mangler — og
+//     undgår. Broen eksponerer derfor issue- og rejected-tilstanden – det, orakelarbejdet mangler – og
 //     lader værdien blive aflæst i feltet, hvor brugeren også ser den.
 //   - Kun DEV/test. Se `bridgeIsAllowed`.
 
 /** Ét felts maskinlæsbare issue-tilstand, nøglet på samme adresse som DOM-attributten. */
 export type AutomationFieldState = Readonly<{
-  /** Den serialiserede feltadresse — samme streng som DOM-attributten, så udlæsning og målretning matcher. */
+  /** Den serialiserede feltadresse – samme streng som DOM-attributten, så udlæsning og målretning matcher. */
   address: string;
   /** Feltets stabile descriptor-id. */
   fieldId: string;
-  /** Feltets brugervendte navn, kontekstuelt opløst — det navn, brugeren faktisk ser. */
+  /** Feltets brugervendte navn, kontekstuelt opløst – det navn, brugeren faktisk ser. */
   label: string;
   /**
    * `true` når feltets aktuelle repræsentation er rejected råtekst. Det er DENNE tilstand, der blokerer
-   * `.eo`-save (§1.6) — ikke issuets farve. En canonical bounds-/rule-fejl er `false` og kan gemmes.
+   * `.eo`-save (§1.6) – ikke issuets farve. En canonical bounds-/rule-fejl er `false` og kan gemmes.
    */
   rejected: boolean;
   /** Det aktive røde issue. */
@@ -51,7 +51,7 @@ export type AutomationFieldState = Readonly<{
 
 /**
  * Den samlede udlæsning. `revision` gør ventetid deterministisk: en automatisering kan vente på, at
- * revisionen ændrer sig, i stedet for at sove et gæt på antal millisekunder — den hyppigste kilde til
+ * revisionen ændrer sig, i stedet for at sove et gæt på antal millisekunder – den hyppigste kilde til
  * flaksende e2e-tests.
  */
 export type AutomationIntrospectionSnapshot = Readonly<{
@@ -59,7 +59,7 @@ export type AutomationIntrospectionSnapshot = Readonly<{
   /** Alle felter med et aktivt rødt issue. */
   fields: readonly AutomationFieldState[];
   /**
-   * Adresserne på felter, hvis repræsentation er rejected råtekst — præcis den mængde, save-gaten læser
+   * Adresserne på felter, hvis repræsentation er rejected råtekst – præcis den mængde, save-gaten læser
    * strukturelt. Eksponeret, så en test kan hævde gaten frem for at aflæse en farve.
    */
   rejectedAddresses: readonly string[];
@@ -98,7 +98,7 @@ export const AUTOMATION_BRIDGE_KEY = '__mineoAutomation' as const;
  * **Verificeret, ikke antaget:** et faktisk `build:mineo` viste, at minifieren folder gaten til `()=>!1`,
  * men BEHOLDER den uåbnelige krop i bundtet. Broen kan altså ikke installere sig i produktion, men
  * `__mineoAutomation` ville stadig optræde som død streng. Derfor er hele effekten pakket i en eksplicit
- * `import.meta.env.PROD`-tidlig-retur i hooken nedenfor OGSÅ — så fraværet er en struktur, ikke en tillid
+ * `import.meta.env.PROD`-tidlig-retur i hooken nedenfor OGSÅ – så fraværet er en struktur, ikke en tillid
  * til et bestemt minifier-heuristik. `automationBridge.test.ts` hævder begge dele.
  */
 const bridgeIsAllowed = (): boolean =>

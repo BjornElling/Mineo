@@ -1,14 +1,14 @@
 /**
  * Kanoniske enheds-etiketter for numeriske indtastningsfelter ("kr." og "%").
  *
- * Disse er rent visuelle: enheden vises efter den committede værdi, når feltet ikke redigeres —
+ * Disse er rent visuelle: enheden vises efter den committede værdi, når feltet ikke redigeres –
  * men den har ingen parse-, commit- eller beregningsbetydning. I redigerbare felter rendres enheden
  * som et adornment (uden for selve `input.value`), så markør, kopiering og bredde er upåvirkede, og
  * enheden skjules under indtastning. I rene read-only visninger (fx en låst tabelcelle) tilføjes den
  * direkte som tekst via `appendInputUnitSuffix`/`withInputUnitPlaceholderSuffix`.
  *
  * Dette er ENESTE sted enheds-suffikser for input defineres. Tilføj ikke parallelle inline-strenge
- * (" kr." / " %") i felter, adaptere eller callsites — referér disse konstanter og helpers.
+ * (" kr." / " %") i felter, adaptere eller callsites – referér disse konstanter og helpers.
  */
 export const INPUT_UNIT_SUFFIX = {
   /** Beløbsfelter (kr.). */

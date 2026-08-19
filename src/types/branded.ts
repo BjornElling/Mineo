@@ -265,7 +265,7 @@ export function parseDanishDate(danishDate: DanishDateString | string | undefine
  * lønreguleringer, "seneste sats ≤ dato"-scanninger) og et heltal både er billigere og fri
  * for Date/timezone-kanttilfælde. To datamoduler bar hver sin private kopi: den ene
  * splittede strengen rå, så en syntaktisk gyldig men ugyldig dato ("32-13-2024") blev til et
- * tal, der sorterede *efter* alle rigtige datoer — en tavs fejlordning frem for en fejl.
+ * tal, der sorterede *efter* alle rigtige datoer – en tavs fejlordning frem for en fejl.
  * Denne kanoniske form validerer via `parseDanishDate` og kaster, så en korrupt datodato
  * fejler synligt ved kilden.
  *
@@ -275,7 +275,7 @@ export function parseDanishDate(danishDate: DanishDateString | string | undefine
 export function danishDateToComparableNumber(dato: DanishDateString): number {
   const parsed = parseDanishDate(dato);
   if (!parsed) {
-    throw new Error(`Ugyldig dato: ${dato} — kunne ikke parse dansk dato.`);
+    throw new Error(`Ugyldig dato: ${dato} – kunne ikke parse dansk dato.`);
   }
   return parsed.getUTCFullYear() * 10000 + (parsed.getUTCMonth() + 1) * 100 + parsed.getUTCDate();
 }

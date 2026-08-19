@@ -14,7 +14,7 @@ import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import type { ISODateString } from '../../types/branded';
 
 // Et DATOfelt taler om DATOER. Grænsen 1900..2100 er en repræsentationsdetalje ved `ISODateString` og må
-// aldrig nå brugeren: hvert felt har sin egen, ofte smallere grænse — Fødselsdato slutter ved DAGS DATO —
+// aldrig nå brugeren: hvert felt har sin egen, ofte smallere grænse – Fødselsdato slutter ved DAGS DATO –
 // og en besked om «Årstallet skal være mellem 1900 og 2100» ville direkte modsige den. Codec'et videregiver
 // derfor kun en maskinlæsbar årsag, og teksten formuleres her, hvor feltets `dateBounds` er kendt.
 
@@ -45,7 +45,7 @@ const tooltipForRejectedRaw = (
 };
 
 describe('datofelters format-fejl formuleres med konkrete datoer', () => {
-  it('nævner feltets EGNE grænser — ikke det repræsenterbare årsinterval', () => {
+  it('nævner feltets EGNE grænser – ikke det repræsenterbare årsinterval', () => {
     const tooltip = tooltipForRejectedRaw(stamdataSkadelidteFodselsdatoField, '31-12-1899');
     expect(tooltip).toBe(`Dato skal være mellem 01-01-1900 og ${isoToDanish(getToday())}`);
     expect(tooltip).not.toMatch(/årstal/i);
@@ -54,7 +54,7 @@ describe('datofelters format-fejl formuleres med konkrete datoer', () => {
 
   /**
    * Kernen i brugerkravet: Fødselsdato slutter ved dags dato. Nævnte fejlen år 2100, ville den påstå et
-   * loft, feltet ikke har — og modsige den besked, en dato efter i dag rent faktisk får.
+   * loft, feltet ikke har – og modsige den besked, en dato efter i dag rent faktisk får.
    */
   it('viser dags dato som Fødselsdatoens øvre grænse, ikke år 2100', () => {
     const tooltip = tooltipForRejectedRaw(stamdataSkadelidteFodselsdatoField, '01-01-2101');

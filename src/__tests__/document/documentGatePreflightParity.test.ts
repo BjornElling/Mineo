@@ -1,11 +1,11 @@
 /**
  * §10-kriterium 27 / kontraktens §A2a: *alle 18 dokumentoutputs bruger samme definition til reaktiv gate
- * og click-preflight* — målt for ALLE atten.
+ * og click-preflight* – målt for ALLE atten.
  *
  * **Hvorfor alle atten.** `document-output-contract.md` §A2a lover, at hver dokumentdefinition særskilt
  * beviser begge fejlklasser (rejected format og canonical bounds) for BÅDE den reaktive gate og en direkte
  * aktivering. Måler man kun fire definitioner, hviler påstanden for de øvrige fjorten på en STRUKTUREL
- * læsning: begge kanaler kalder `action.resolve`, som kalder `definition.project`. Læsningen er rigtig —
+ * læsning: begge kanaler kalder `action.resolve`, som kalder `definition.project`. Læsningen er rigtig –
  * men en påstand om atten outputs, der kun er efterprøvet for fire, er falsk fuldstændighed.
  *
  * **Hvad denne test måler.** For hver af de 18 definitioner, på tre inputtilstande, sammenlignes
@@ -17,13 +17,13 @@
  * forskellige begrundelser ville give brugeren én tekst i tooltippet og en anden i beskeden.
  *
  * **Hvorfor ikke 18 × 4 gate-cases.** De fire INPUTKLASSER (format/bounds/missing/ikke-relevant) er
- * per-definition og kan ikke konstrueres generisk — det står i `documentGateMatrix.test.ts`' egen note, og
+ * per-definition og kan ikke konstrueres generisk – det står i `documentGateMatrix.test.ts`' egen note, og
  * det er stadig sandt. Denne test måler den anden akse: at de to KANALER er enige, hvad end klassen er. De
  * to suiter dækker derfor hver sin dimension af §A2a frem for at duplikere hinanden.
  *
  * **Blokerings-invarianten hører med:** en blokeret gate må ALDRIG nå lazy-load, generator eller fil-I/O.
  * Den er målt generisk mod kernen i `documentLifecycleMatrix.test.ts`; her hævdes dens forudsætning for
- * alle atten — at `project` bliver kaldt PRÆCIS én gang pr. kanal, så ingen definition kan have en
+ * alle atten – at `project` bliver kaldt PRÆCIS én gang pr. kanal, så ingen definition kan have en
  * sidekanal, der projicerer to gange med forskelligt resultat.
  */
 import {
@@ -144,7 +144,7 @@ const contextFor = (input: SettledInput) => createDocumentSourceContext(
  * begge kanaler er `documentActionFromDefinition(...).resolve`, og `evaluateGate` er en tynd
  * `status`→`canDownload`-oversættelse af netop dens resultat (`documentCatalog.ts:89-94`). Testen kalder
  * derfor `resolve` for begge kanaler og gengiver gate-kanalen gennem SAMME oversættelse, som
- * katalogposten laver — så sammenligningen måler definitionen og ikke en attrap-oversættelse.
+ * katalogposten laver – så sammenligningen måler definitionen og ikke en attrap-oversættelse.
  */
 type ChannelVerdict = Readonly<{
   canDownload: boolean;
@@ -152,7 +152,7 @@ type ChannelVerdict = Readonly<{
   projectCalls: number;
 }>;
 
-/** Tæller `project`-kald ved at indpakke definitionen — uden at ændre dens adfærd. */
+/** Tæller `project`-kald ved at indpakke definitionen – uden at ændre dens adfærd. */
 const instrument = (definition: AnyMineoDefinition): {
   definition: AnyMineoDefinition;
   calls: () => number;
@@ -185,7 +185,7 @@ const reactiveGate = (
 /**
  * Click-preflighten. `executeDocumentDownload` kalder `action.resolve` på et FRISKT snapshot efter
  * commit-barrieren; barrieren og lazy-loadet er dækket generisk i `documentLifecycleMatrix.test.ts`.
- * Her måles det trin, der afgør VERDICTET — resolve mod det friske snapshot — for alle atten.
+ * Her måles det trin, der afgør VERDICTET – resolve mod det friske snapshot – for alle atten.
  */
 const clickPreflight = (
   definition: AnyMineoDefinition,
@@ -194,7 +194,7 @@ const clickPreflight = (
 ): ChannelVerdict => {
   const { definition: probed, calls } = instrument(definition);
   const action = documentActionFromDefinition(probed);
-  // Et FRISKT snapshot, som miljøets `captureSource()` ville levere — ikke gate-kanalens genbrugte.
+  // Et FRISKT snapshot, som miljøets `captureSource()` ville levere – ikke gate-kanalens genbrugte.
   const resolved = action.resolve(contextFor(input), request);
   return {
     canDownload: resolved.status === 'ready',
@@ -235,7 +235,7 @@ const INPUTS: readonly (readonly [string, () => SettledInput])[] = [
 ];
 
 describe('gate = preflight for ALLE 18 hovedapp-outputs (§A2a, §10-kriterium 27)', () => {
-  it('dækker alle 18 katalogiserede hovedapp-outputs — listen kan ikke blive ufuldstændig', () => {
+  it('dækker alle 18 katalogiserede hovedapp-outputs – listen kan ikke blive ufuldstændig', () => {
     // Uden denne binding kunne en ny definition tilføjes til kataloget UDEN at blive paritetsmålt,
     // mens testen forblev grøn.
     expect(DEFINITIONS.map(([definition]) => definition.id).sort())
@@ -268,7 +268,7 @@ describe('gate = preflight for ALLE 18 hovedapp-outputs (§A2a, §10-kriterium 2
     expect(divergences).toEqual([]);
   });
 
-  it('hver kanal projicerer PRÆCIS én gang — ingen definition har en projicerende sidekanal', () => {
+  it('hver kanal projicerer PRÆCIS én gang – ingen definition har en projicerende sidekanal', () => {
     const input = INPUTS[1][1]();
     for (const [definition, request] of DEFINITIONS) {
       expect(
@@ -282,7 +282,7 @@ describe('gate = preflight for ALLE 18 hovedapp-outputs (§A2a, §10-kriterium 2
     }
   });
 
-  it('en blokering bærer ALTID mindst én synlig årsag — i begge kanaler, for alle 18', () => {
+  it('en blokering bærer ALTID mindst én synlig årsag – i begge kanaler, for alle 18', () => {
     // "Ingen usynlig blokering" ([[project_download_gate_visible_error_invariant]]) for hele kataloget,
     // ikke kun for de fire domæner, gate-matrixen dækker.
     for (const [inputName, buildInput] of INPUTS) {
@@ -309,7 +309,7 @@ describe('gate = preflight for ALLE 18 hovedapp-outputs (§A2a, §10-kriterium 2
 
   /**
    * Kontrollen skal kunne FEJLE. Sammenligner den to identiske kald af samme funktion, ville den bestå,
-   * uanset hvad definitionerne gjorde. Beviset er, at fixturerne faktisk producerer BEGGE verdicts —
+   * uanset hvad definitionerne gjorde. Beviset er, at fixturerne faktisk producerer BEGGE verdicts –
    * altså at der er noget at være enige om.
    */
   it('målingen er ikke vakuøs: fixturerne producerer både ready og blocked på tværs af kataloget', () => {
@@ -323,7 +323,7 @@ describe('gate = preflight for ALLE 18 hovedapp-outputs (§A2a, §10-kriterium 2
         if (!gate.canDownload && gate.reasons.length > 0) blockedWithReasons += 1;
       }
     }
-    expect(verdicts, 'fixturerne gav kun ét verdict — pariteten måler intet').toEqual(new Set([true, false]));
+    expect(verdicts, 'fixturerne gav kun ét verdict – pariteten måler intet').toEqual(new Set([true, false]));
     expect(blockedWithReasons).toBeGreaterThanOrEqual(18);
   });
 });

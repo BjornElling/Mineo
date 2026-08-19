@@ -38,7 +38,7 @@ const sortSet = (values: Iterable<string>): string[] => [...new Set(values)].sor
 const fullCollectionPath = (entry: (typeof INPUT_COLLECTION_LEDGER)[number]): string =>
   entry.path === '' ? entry.collection : `${entry.path}.${entry.collection}`;
 
-// Reconciliationen sker mod det LEVENDE inputCore-produktionskatalog — det katalog produktionen faktisk kører
+// Reconciliationen sker mod det LEVENDE inputCore-produktionskatalog – det katalog produktionen faktisk kører
 // på. (Tidligere blev der reconcileret mod de gamle `src/input`-manifester; de er slettet med legacy-klyngen,
 // og en ledger, der kun stemte med en død kilde, ville ikke bevise noget om produktionen.)
 type TemplatePath = readonly Readonly<
@@ -72,7 +72,7 @@ describe('de persisterede schemas er gennemsigtige for den maskinelle udledning'
   /**
    * Hele ledger-coveragen, consumerinventaret OG schema-fingerprintet udledes gennem `z.toJSONSchema`.
    * Den udledning kan BLINDES: sætter man en `.transform()`/`.pipe()` på et objekt- eller array-schema,
-   * udsender Zod et uigennemsigtigt output-schema — i praksis `items: {}` for et array — og hvert felt
+   * udsender Zod et uigennemsigtigt output-schema – i praksis `items: {}` for et array – og hvert felt
    * bag den grænse forsvinder lydløst ud af samtlige værn.
    *
    * Optællings-testene nedenfor kan IKKE fange det alene: de sammenligner to tal, og en blinding, der
@@ -80,7 +80,7 @@ describe('de persisterede schemas er gennemsigtige for den maskinelle udledning'
    * gennemsigtigheden DIREKTE: hver collection, ledgeren kender, skal have synlige properties i det
    * udledte JSON-schema.
    */
-  it('udsender ingen tom collection-node — en transform må ikke skjule et nested felttræ', () => {
+  it('udsender ingen tom collection-node – en transform må ikke skjule et nested felttræ', () => {
     const opaque: string[] = [];
     for (const section of sections) {
       const { collections } = collectSectionSchemaPaths(section);
@@ -93,7 +93,7 @@ describe('de persisterede schemas er gennemsigtige for den maskinelle udledning'
     expect(opaque).toEqual([]);
   });
 
-  it('kender mindst én collection pr. sektion, der har en — ellers måler værnet ingenting', () => {
+  it('kender mindst én collection pr. sektion, der har en – ellers måler værnet ingenting', () => {
     // Selv-test mod grøn-af-tomhed: findes der slet ingen collections at måle, beviser testen ovenfor intet.
     expect(countAllCollections()).toBeGreaterThan(0);
   });

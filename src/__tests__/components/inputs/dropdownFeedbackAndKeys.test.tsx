@@ -9,12 +9,12 @@ import StyledDropdown from '../../../components/inputs/StyledDropdown';
 // resten af programmet:
 //
 //   1. Fejlbeskeden nåede kun ØJET. Kontrollen viste rød ramme + hover-tooltip, men havde hverken en
-//      visuelt skjult besked eller `aria-describedby` — begge dele har tekstfelterne haft hele tiden
+//      visuelt skjult besked eller `aria-describedby` – begge dele har tekstfelterne haft hele tiden
 //      (`StyledTextFieldBase`). En skærmlæserbruger fik altså at vide AT feltet var forkert, aldrig hvad.
 //   2. Escape på en LUKKET dropdown blev slugt (`preventDefault` + `stopPropagation`), selv om der
 //      intet var at lukke. En omgivende dialog kunne derfor ikke lukkes med Escape, hvis fokus stod i
 //      en af dens dropdowns.
-//   3. Delete/Backspace med ÅBEN menu ryddede valget OG lukkede menuen i ét tryk — `gridUxSpec.ts`
+//   3. Delete/Backspace med ÅBEN menu ryddede valget OG lukkede menuen i ét tryk – `gridUxSpec.ts`
 //      giver kun ryddetasten til en LUKKET kontrol.
 
 type DemoValue = 'A' | 'B';
@@ -48,7 +48,7 @@ const Harness = ({
   );
 };
 
-describe('StyledDropdown — fejlformidling og tastesemantik', () => {
+describe('StyledDropdown – fejlformidling og tastesemantik', () => {
   it('binder fejlbeskeden til kontrollen, så den også når en skærmlæser', () => {
     render(<Harness error />);
     const combobox = screen.getByRole('combobox');

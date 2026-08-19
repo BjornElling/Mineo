@@ -12,7 +12,7 @@ import { isRecord } from './typeGuards';
  * ADVARSEL: Verificeret mod Zod 4.4.3. Bruger Zod's offentlige `.def`-felt (`type`, `in`, `out`) for at
  * traversere pipe-wrappere (z.preprocess / z.transform). Hvis Zod ændrer
  * sin `.def`-struktur for pipes, returnerer funktionen det umodificerede schema
- * lydløst — hvilket medfører at ukendte felter *ikke* strippes.
+ * lydløst – hvilket medfører at ukendte felter *ikke* strippes.
  * Verificer mod Zod-changelog ved opgradering.
  */
 const unwrapSchema = (schema: ZodSchema): ZodSchema => {

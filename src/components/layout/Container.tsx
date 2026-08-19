@@ -7,17 +7,17 @@ import { useFocusableInventory } from './containerNavigation/useFocusableInvento
 import { useContainerKeyboardNavigation } from './containerNavigation/useContainerKeyboardNavigation';
 
 /**
- * Container: sidens indholdsområde — scroll-vært, `<main>`-landmark og
+ * Container: sidens indholdsområde – scroll-vært, `<main>`-landmark og
  * «single owner» af fokus-traversering for indholdet. PageTabs/SideTab er native
  * navigationskontroller og holdes bevidst uden for indholdssekvensen.
  *
  * Selve navigationen bor i `containerNavigation/`, ikke her:
- * - `focusRowGeometry.ts` — rene beslutninger om hvem der er nabo (rækker, tolerance, wrap).
- * - `useFocusableInventory.ts` — hvilke felter der findes, og cachen bag dem.
- * - `useContainerKeyboardNavigation.ts` — oversættelsen fra tastetryk til fokus-flytning.
+ * - `focusRowGeometry.ts` – rene beslutninger om hvem der er nabo (rækker, tolerance, wrap).
+ * - `useFocusableInventory.ts` – hvilke felter der findes, og cachen bag dem.
+ * - `useContainerKeyboardNavigation.ts` – oversættelsen fra tastetryk til fokus-flytning.
  *
  * Opdelingen er lavet, fordi navigationen udgjorde ~440 af filens 584 linjer og kun kunne
- * rammes gennem en fuld render: geometrien — den del der reelt bærer logikken — var låst
+ * rammes gennem en fuld render: geometrien – den del der reelt bærer logikken – var låst
  * bag jsdom-layout. Kontraktens §Implementeringsfrihed tillader eksplicit omlægningen, så
  * længe adfærden bevares.
  *
@@ -88,8 +88,8 @@ const Container = React.memo(({ children, scrollSx, contentSx, enableContentScal
       >
         {/* component="main" giver siden dens primære landmark (axe/optimale løsninger:
             "Dokumentet har ikke et primært landmark"). Container rendres præcis én gang pr.
-            side i begge apps — Mineo (MainLayout: SideMenu + ét Container) og standalone
-            MinProcesrente — så der er altid nøjagtig ét <main>. Det er kun et semantisk
+            side i begge apps – Mineo (MainLayout: SideMenu + ét Container) og standalone
+            MinProcesrente – så der er altid nøjagtig ét <main>. Det er kun et semantisk
             element-skifte (div→main); layout, scroll og fokus-håndtering er uændret. */}
         <Box
           component="main"

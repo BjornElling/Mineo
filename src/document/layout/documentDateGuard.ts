@@ -5,7 +5,7 @@
  * "d. mmmm åååå"). Datoer formateres altid ved kilden via de kanoniske formattere
  * (`formatDateShort`/`formatDateLong` ≈ `formatISOToDanish`/`formatIsoDateLong`).
  *
- * Dette modul er IKKE den primære formatering — det er et centralt sikkerhedsnet,
+ * Dette modul er IKKE den primære formatering – det er et centralt sikkerhedsnet,
  * der fanger en rå ISO-dato (ÅÅÅÅ-MM-DD), hvis en generator ved en fejl sender en
  * uformateret dato videre til writer- eller tabel-laget. Begge dokumentkanaler (PDF
  * og Word) router deres tekst gennem dette værn, så en ISO-dato aldrig kan nå frem
@@ -37,7 +37,7 @@ const ISO_DATE_TOKEN = /(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)/g;
  * Returnerer den omformaterede streng plus de fundne ISO-datoer (tom = ingen lækage).
  *
  * Et token der matcher mønsteret, men ikke er en reel dato (fx "1234-56-78"), lades
- * urørt — `isISODateString` validerer interval og kalendergyldighed.
+ * urørt – `isISODateString` validerer interval og kalendergyldighed.
  */
 export const reformatStrayIsoDates = (value: string): Readonly<{ text: string; found: readonly string[] }> => {
   const found: string[] = [];
@@ -59,8 +59,8 @@ export const containsRawIsoDate = (value: string): boolean => {
 
 /**
  * Centralt værn: kald på al brugersynlig dokumenttekst, lige før den når en kanal.
- * Lader almindelig tekst (uden bar ISO-dato) passere uændret — herunder danske datoer,
- * beløb, uge-/årstal og overskrifter — og omformaterer kun en stray ISO-dato.
+ * Lader almindelig tekst (uden bar ISO-dato) passere uændret – herunder danske datoer,
+ * beløb, uge-/årstal og overskrifter – og omformaterer kun en stray ISO-dato.
  */
 export const guardDocumentDateText = (value: string): string => {
   // Hurtig udvej: kun strenge med bindestreg kan rumme en ISO-dato.

@@ -9,7 +9,7 @@ import { toISODateString } from '../../../types/branded';
 // Kanonisk fælles fundament: coverage-opløsningen som
 // alle overenskomst-baserede former deler. Vi tester den observerbare kontrakt
 // (undefined-håndtering, interval-parsing, `>`-clamp), ikke datatabellens
-// konkrete tal — coverage-startdatoen udledes derfor dynamisk fra datakilden.
+// konkrete tal – coverage-startdatoen udledes derfor dynamisk fra datakilden.
 
 const KNOWN_OVERENSKOMST_ID = 'bygge-anlaeg';
 

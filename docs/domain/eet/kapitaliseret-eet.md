@@ -1,17 +1,17 @@
-# Kapitaliseret EET — ASL (fane 3)
+# Kapitaliseret EET – ASL (fane 3)
 
 Denne fil beskriver beregningslogikken for kapitalisering af erhvervsevnetab efter Arbejdsskadesikringsloven (ASL). Beregningen udgør fane 3 på EET-siden.
 
 Se også:
-- [loebende-eet.md](./loebende-eet.md) — fane 2
-- [eal-beregning.md](./eal-beregning.md) — fane 4
-- [differencekrav.md](./differencekrav.md) — fane 5
-- [fejlkatalog.md](./fejlkatalog.md) — alle fejl og advarsler
-- [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) — særregel for ≤ 2 år til folkepensionsalderen
+- [loebende-eet.md](./loebende-eet.md) – fane 2
+- [eal-beregning.md](./eal-beregning.md) – fane 4
+- [differencekrav.md](./differencekrav.md) – fane 5
+- [fejlkatalog.md](./fejlkatalog.md) – alle fejl og advarsler
+- [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) – særregel for ≤ 2 år til folkepensionsalderen
 
 ---
 
-## Del 1 — For dig
+## Del 1 – For dig
 
 ### Hvad beregner denne fane?
 
@@ -42,7 +42,7 @@ Single point of truth for folkepensionsalder. Kapitaliseringsberegningen henter 
 
 ### Trin-for-trin beregning
 
-#### Trin 0 — Forhåndsvurdering: er skadelidte ≤ 2 år fra folkepensionsalderen?
+#### Trin 0 – Forhåndsvurdering: er skadelidte ≤ 2 år fra folkepensionsalderen?
 
 Inden det ordinære tabelopslag vurderes om skadelidte er ≤ 2 år fra sin folkepensionsalder på kontroltidspunktet:
 - normalt: afgørelsesdatoen
@@ -62,7 +62,7 @@ Denne vurdering siger kun noget om faktoren. Om der overhovedet skal ske kapital
 - `Endelig` mere end 2 år før folkepension: de almindelige kapitaliseringsregler gælder fortsat.
 - `Delvist endelig`: kun den indtastede andel kapitaliseres.
 
-#### Trin 1 — Valg af bekendtgørelse
+#### Trin 1 – Valg af bekendtgørelse
 
 Opslagsgrundlaget bestemmes af:
 1. tidligere kapitaliseringsdato ved genoptagelse
@@ -70,13 +70,13 @@ Opslagsgrundlaget bestemmes af:
 
 Ved genoptagelse foretages bekendtgørelsesvalg, tabelvalg og faktorberegning som om kapitaliseringen skete på den tidligere kapitaliseringsdato. Regulering sker dog til kalenderåret for den nye kapitaliseringsdato.
 
-#### Trin 2 — Valg af tabel og folkepensionsalder
+#### Trin 2 – Valg af tabel og folkepensionsalder
 
 Inden for den fundne bekendtgørelse opslås tabel på baggrund af skadedato og fødselsdato. Folkepensionsalderen beregnes derefter centralt i `src/data/folkepensionAlderRates.ts` med fødselsdato og den relevante kontrol-/kapitaliseringsdato.
 
 For bekendtgørelser før 2015-03-01 er tabellerne kønsopdelte. Her skal køn være angivet.
 
-#### Trin 3 — Grundydelse og regulering
+#### Trin 3 – Grundydelse og regulering
 
 Grundydelsen beregner årsydelsen for de kapitaliserede procentpoint:
 
@@ -92,7 +92,7 @@ Regulering til kapitaliseringstidspunktet er et direkte tabelopslag:
 
 Årsydelsen afrundes til 2 decimaler. Der sker ikke `ceil12`-oprunding som ved løbende ydelser.
 
-#### Trin 4 — Kapitaliseringsfaktor
+#### Trin 4 – Kapitaliseringsfaktor
 
 Faktoren bestemmes af skadelidtes alder på kapitaliseringstidspunktet og afhænger af om skaden er før eller efter 01-07-2007.
 
@@ -105,7 +105,7 @@ Eksempel: Hvis tabellen slutter ved 64 år, er `64 år, 2 måneder` ikke lig fak
 
 Kapitaliseringsfaktoren afrundes til 3 decimaler.
 
-#### Trin 5 — Kapitalbeløb
+#### Trin 5 – Kapitalbeløb
 
 ```
 kapitalbeløb = ceil0(årsydelse × kapitaliseringsfaktor)
@@ -119,7 +119,7 @@ Når en `Endelig` afgørelse er inden for eller præcis 2 år før folkepension,
 
 ---
 
-## Del 2 — AI-agent: teknisk reference
+## Del 2 – AI-agent: teknisk reference
 
 ### Primær fil
 

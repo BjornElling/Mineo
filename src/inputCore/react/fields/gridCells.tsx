@@ -46,7 +46,7 @@ const DATE_ADMISSION = dateLikeAdmission();
  * Fællesformen for alle celle-familier.
  *
  * **Hver familie SKAL videreføre `collectionRuleIssue` og `warning`.** De var erklæret her, men kun
- * `GridPercentCell` og `GridDateCell` videresendte dem — de øvrige fem destrukturerede dem ikke og lod
+ * `GridPercentCell` og `GridDateCell` videresendte dem – de øvrige fem destrukturerede dem ikke og lod
  * dem falde på gulvet. Typesystemet accepterede kaldet, så en rød kryds-række-fejl eller en gul advarsel
  * kunne sættes på en celle og bare aldrig blive vist.
  */
@@ -84,7 +84,7 @@ export const GridAmountCell = (
     BaseCellProps<AmountValue | undefined>
 ): React.ReactElement => {
   // Tegn- og længdepolitikken kommer fra cellens egen descriptor gennem den DELTE
-  // `resolveAmountCharPolicy` — samme kilde som formularens `AmountField`. Løntabellens beløbskolonner
+  // `resolveAmountCharPolicy` – samme kilde som formularens `AmountField`. Løntabellens beløbskolonner
   // ER fortegnede, mens fx et 0-og-op-beløb i en anden tabel ikke er, og cellen deler kode; men INGEN af
   // grænserne må længere være et lokalt valg her, for det var netop dét, der lod celle og formular
   // håndhæve forskellige decimal- og længdegrænser på samme felt.
@@ -130,7 +130,7 @@ export const GridPercentCell = (
   { gridCell, cell, placeholder, collectionRuleIssue, warning, inputRef }:
     BaseCellProps<number | undefined>
 ): React.ReactElement => {
-  // Politikken læses nu af descriptoren. Cellen svarede før hardkodet `false` — tilfældigvis RIGTIGT
+  // Politikken læses nu af descriptoren. Cellen svarede før hardkodet `false` – tilfældigvis RIGTIGT
   // for alle nuværende procent-descriptorer, men uden nogen forbindelse til det, de erklærede. Netop derfor
   // kunne formular-pendanten svare `true` på samme felter, uden at noget blev rødt.
   const { allowNegative, allowDecimals, maxIntegerDigits, maxDraftLength } =
@@ -164,7 +164,7 @@ export const GridPercentCell = (
 export const GridIntegerCell = <T extends string | number | undefined>(
   { gridCell, cell, placeholder, collectionRuleIssue, warning, inputRef }: BaseCellProps<T>
 ): React.ReactElement => {
-  // Fortegn OG cifferloft kommer fra descriptoren gennem den DELTE resolver — samme kilde som
+  // Fortegn OG cifferloft kommer fra descriptoren gennem den DELTE resolver – samme kilde som
   // formularens `IntegerField`. Månedscellen er et string-backed heltal 1..12, så adapterens
   // viderestilling af politikken er det, der gør minus umuligt at taste her.
   const { allowNegative, maxDigits, maxDraftLength } = resolveIntegerCharPolicy(cell.field);
@@ -212,7 +212,7 @@ export const GridYearCell = (
   />
 );
 
-/** Uge-celle (col0_uge/col1_uge): formen `uu/åååå`. Loftet erklæres af uge-codecet — cellen havde før ingen. */
+/** Uge-celle (col0_uge/col1_uge): formen `uu/åååå`. Loftet erklæres af uge-codecet – cellen havde før ingen. */
 export const GridWeekCell = (
   { gridCell, cell, placeholder = WEEK_FORMAT_PLACEHOLDER, collectionRuleIssue, warning, inputRef }:
     BaseCellProps<string | undefined>

@@ -13,11 +13,11 @@ import { useDialogFocusRestore } from './useDialogFocusRestore';
  *
  * **Hvad hooken ejer**
  *
- *  1. **Escape lukker** — men kun det ØVERSTE overlay, så to lag ikke lukker på ét tryk.
+ *  1. **Escape lukker** – men kun det ØVERSTE overlay, så to lag ikke lukker på ét tryk.
  *  2. **Musens/browserens tilbage-knap lukker** (brugerkrav 2026-08-15). Uden dette navigerede
  *     tilbage-knappen SIDEN væk under et åbent vindue: målt gik `/mineo` → `/mineo/stamdata` med
  *     licensvinduet åbent, så brugeren mistede både vinduet og sin plads.
- *  3. **Fokus-restore ved lukning** — videredelegeret til `useDialogFocusRestore`, som fortsat er den
+ *  3. **Fokus-restore ved lukning** – videredelegeret til `useDialogFocusRestore`, som fortsat er den
  *     ene implementering (`keyboard-navigation.md` §Popup-fokus-restore). Hooken erstatter den ikke;
  *     den samler den med resten, så en flade kun har ét sted at hente hele adfærden.
  *
@@ -41,7 +41,7 @@ export type UseOverlayBehaviorOptions<TTrigger extends HTMLElement = HTMLElement
   /** Videreført til `useDialogFocusRestore` for popups, hvis handling kan fjerne deres egen trigger. */
   allowFirstFocusableFallback?: boolean;
   /**
-   * Slå Escape fra. KUN for flader, hvor Escape allerede har en anden ejer i samme overlay — fx
+   * Slå Escape fra. KUN for flader, hvor Escape allerede har en anden ejer i samme overlay – fx
    * `LoentrinFinderOverlay`, hvis felter selv annullerer deres redigering først (én Escape = én
    * handling). Fladen skal da selv kalde `onClose('escape')`, når intet felt annullerede noget.
    */
@@ -51,7 +51,7 @@ export type UseOverlayBehaviorOptions<TTrigger extends HTMLElement = HTMLElement
 export type OverlayBehavior<TTrigger extends HTMLElement = HTMLElement> = Readonly<{
   /**
    * Spredes på overlayets ROD-node. Bærer markøren, som `Container` læser for at holde fingrene væk
-   * fra Tab — den erstatter den skrøbelige «ligger noden uden for containerens DOM-subtræ?»-udledning.
+   * fra Tab – den erstatter den skrøbelige «ligger noden uden for containerens DOM-subtræ?»-udledning.
    */
   overlayRootProps: Readonly<Record<string, string>>;
   triggerRef: React.RefObject<TTrigger | null>;
@@ -60,7 +60,7 @@ export type OverlayBehavior<TTrigger extends HTMLElement = HTMLElement> = Readon
   /**
    * Videreført fra `useDialogFocusRestore`. Gives til MUI's `onTransitionExited`, hvor portalen
    * unmountes EFTER transitionen. Videreføres frem for at lade fladen kalde hooken en ekstra gang:
-   * to kald ville være to restore-veje med hver sin bogføring — præcis det,
+   * to kald ville være to restore-veje med hver sin bogføring – præcis det,
    * `keyboard-navigation.md` §Popup-fokus-restore forbyder.
    */
   restoreFocus: () => void;
@@ -82,7 +82,7 @@ export const useOverlayBehavior = <TTrigger extends HTMLElement = HTMLElement>(
   });
 
   // `onClose` i en ref: lytterne må kun afhænge af `open`, ellers ville en ny inline-callback pr.
-  // render af- og gentilmelde dem — og history-trinnet ville blive skubbet igen.
+  // render af- og gentilmelde dem – og history-trinnet ville blive skubbet igen.
   const onCloseRef = React.useRef(onClose);
   React.useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
@@ -139,7 +139,7 @@ export const useOverlayBehavior = <TTrigger extends HTMLElement = HTMLElement>(
     };
   }, [open, overlayId, requestClose]);
 
-  // Escape — i BOBLE-fasen med vilje: et felt inde i overlayet, der annullerer sin egen redigering,
+  // Escape – i BOBLE-fasen med vilje: et felt inde i overlayet, der annullerer sin egen redigering,
   // kalder `stopPropagation()` og standser hændelsen først. Én Escape må ikke både annullere og lukke
   // (`keyboard-navigation.md` §Escape).
   React.useEffect(() => {

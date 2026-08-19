@@ -18,7 +18,7 @@ vi.mock('../../../apps/shared/vitePreloadRecovery', () => ({
 }));
 
 /**
- * Linjen er sidste værn for en MANGLENDE lazy chunk — ikke en opdateringslinje. Programmet har
+ * Linjen er sidste værn for en MANGLENDE lazy chunk – ikke en opdateringslinje. Programmet har
  * bevidst ingen synlig opdaterings-UI: en ny version installeres komplet før render ved næste
  * opstart, og en åben session skifter aldrig version.
  */
@@ -62,7 +62,7 @@ describe('LazyChunkRecoveryNotice', () => {
     expect(reloadAfterVitePreloadRecoveryMock).not.toHaveBeenCalled();
   });
 
-  it('viser ingen opdateringstekst — der findes ingen opdateringslinje længere', () => {
+  it('viser ingen opdateringstekst – der findes ingen opdateringslinje længere', () => {
     isVitePreloadRecoveryPendingMock.mockReturnValue(true);
 
     render(<LazyChunkRecoveryNotice onReloadBlocked={vi.fn()} />);

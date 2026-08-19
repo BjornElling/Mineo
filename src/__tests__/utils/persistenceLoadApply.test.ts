@@ -10,7 +10,7 @@ import type { ApplicableLoadFileResult } from '../../types/fileOperations';
 import { toISODateString } from '../../types/branded';
 
 // Load-apply har TO entrypoints, og opdelingen er selve pointen: kun
-// `applyAuthoritativeLoadSnapshot` er autoritativ og SYNKRON — den hører inde i coordinatorens
+// `applyAuthoritativeLoadSnapshot` er autoritativ og SYNKRON – den hører inde i coordinatorens
 // `applyReplacement`, hvor draft-discard sker. `synchronizeLoadMetadata` er den asynkrone filnavns-/handle-/
 // PWA-fase (§4.1); den ejer ikke sagsinput og må derfor ikke holde replacement-barrieren åben, mens brugeren
 // kan begynde at redigere den netop indlæste sag.
@@ -42,7 +42,7 @@ beforeEach(() => {
   deleteFileHandleFromIndexedDBMock.mockResolvedValue(true);
 });
 
-describe('applyAuthoritativeLoadSnapshot — den synkrone, autoritative fase', () => {
+describe('applyAuthoritativeLoadSnapshot – den synkrone, autoritative fase', () => {
   it('bygger et fuldt replace-snapshot over alle persisterede sektioner', () => {
     const applySnapshot = vi.fn();
 
@@ -75,7 +75,7 @@ describe('applyAuthoritativeLoadSnapshot — den synkrone, autoritative fase', (
     }
   });
 
-  it('rører INGEN metadata-grænse — den er en selvstændig, senere fase', () => {
+  it('rører INGEN metadata-grænse – den er en selvstændig, senere fase', () => {
     applyAuthoritativeLoadSnapshot({
       result: {
         status: 'loaded',
@@ -125,7 +125,7 @@ describe('applyAuthoritativeLoadSnapshot — den synkrone, autoritative fase', (
   });
 });
 
-describe('synchronizeLoadMetadata — den asynkrone metadatafase', () => {
+describe('synchronizeLoadMetadata – den asynkrone metadatafase', () => {
   it.each([
     ['gemme', () => saveFileHandleToIndexedDBMock, { fileHandle: { name: 'sag.eo' } as FileSystemFileHandle }],
     ['rydde', () => deleteFileHandleFromIndexedDBMock, {}],

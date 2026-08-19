@@ -2,7 +2,7 @@ import type { ISODateString } from '../types/branded';
 import { toISODateString } from '../types/branded';
 
 /**
- * Indskudte lønregulerings-tillæg — Mineo
+ * Indskudte lønregulerings-tillæg – Mineo
  *
  * Single source of truth for de tillæg, der ved lønregulering skal **indskydes udefra**
  * i lønpakken, fordi de ikke følger af overenskomstens egne satstabeller. Hvert tillæg er

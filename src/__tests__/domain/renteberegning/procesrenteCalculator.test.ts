@@ -7,7 +7,7 @@ import {
 import { getDaysInYear } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 
-// ─── calculateProcessInterestWithRates — null-paths og edge cases ────────────
+// ─── calculateProcessInterestWithRates – null-paths og edge cases ────────────
 
 const buildMinimalRates = (): { ref: RateEntry[]; sur: RateEntry[] } => ({
   ref: [{ effectiveDate: toISODateString('2010-01-01'), ratePct: 2 }],
@@ -28,11 +28,11 @@ const buildExpectedInterest = (amount: number, start: string, end: string, rateP
   return (amount * ratePct / 100 * days) / getDaysInYear(startDate.getUTCFullYear());
 };
 
-// Omgå branded-type-validering for null-path tests — calculateProcessInterestWithRates
+// Omgå branded-type-validering for null-path tests – calculateProcessInterestWithRates
 // tager ISODateString; vi caster en ugyldig streng for at teste null-paths.
 const badDate = 'not-a-date' as unknown as Parameters<typeof calculateProcessInterestWithRates>[1];
 
-describe('calculateProcessInterestWithRates — null-paths', () => {
+describe('calculateProcessInterestWithRates – null-paths', () => {
   it.each([
     ['2024-01-01', '2024-06-30'],
     ['2024-07-01', '2024-12-31'],

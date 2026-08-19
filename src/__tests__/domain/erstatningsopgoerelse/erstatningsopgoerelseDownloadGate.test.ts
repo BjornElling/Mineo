@@ -18,7 +18,7 @@ import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 
 // EO's download-gate (§3.9): beviser at gaten for de fire EO-dokumenter afledes af den
-// ENE reader-projektion og blokerer på præcis de samme rækker/invarianter som den nuværende view-model — men uden
+// ENE reader-projektion og blokerer på præcis de samme rækker/invarianter som den nuværende view-model – men uden
 // live store-reads. Genbruger reader-projektionens rekonstruktion, så gaten ser byte-identiske gate-inputs.
 
 const catalog = getProductionInputCatalog();
@@ -31,7 +31,7 @@ const validStamdata: StamdataValues = {
 };
 
 /**
- * En sag hvor Erstatningsopgørelse-dokumentet kan hentes (ingen blokerende rækker), men uden TAF-beregning — så
+ * En sag hvor Erstatningsopgørelse-dokumentet kan hentes (ingen blokerende rækker), men uden TAF-beregning – så
  * de tre TAF-dokumenter er per-dokument-blokeret (§1.10). Bevidst valgt frem for en kunstig "alle-grønne"-sag,
  * der ville kræve et fuldt indbyrdes konsistent TAF-/SFGG-grundlag.
  */
@@ -103,7 +103,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
 
     expect(gates.erstatningsopgoerelse.canDownload).toBe(true);
     expect(gates.erstatningsopgoerelse.reasons).toEqual([]);
-    // Uden TAF-beregning blokeres de tre TAF-dokumenter af deres egen projektion — uafhængigt af EO-dokumentet.
+    // Uden TAF-beregning blokeres de tre TAF-dokumenter af deres egen projektion – uafhængigt af EO-dokumentet.
     expect(gates.tafFordeltPaaAar.canDownload).toBe(false);
     expect(gates.tafOpreguleret.canDownload).toBe(false);
     expect(gates.tafKravGraf.canDownload).toBe(false);

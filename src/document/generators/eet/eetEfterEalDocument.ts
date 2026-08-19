@@ -78,7 +78,7 @@ export const renderEfterEalBody = (
 
   writer.writeLeftRightText(
     'Kapitaliseringsfaktor',
-    // EAL-faktoren er altid 10 (fast ved lov) — vises som heltal uden decimaler
+    // EAL-faktoren er altid 10 (fast ved lov) – vises som heltal uden decimaler
     formatAsAmount(computation.kapitaliseringsfaktor, 0),
     rowOpts
   );

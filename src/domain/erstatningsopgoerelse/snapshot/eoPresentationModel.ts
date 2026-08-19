@@ -42,7 +42,7 @@ export type EoPdfPresentation = Readonly<{
   /**
    * Skadedato-feltets navn i sagens kontekst (§3.2a). Modellen bærer det FÆRDIGT, fordi den er det sidste
    * sted, skadestypen findes som en værdi: en downstream-generator kunne ellers kun genskabe navnet ved at
-   * læse `skadestypeLinje`s prosa-præfiks — og en ændret formulering ville da tavst give feltet det forkerte
+   * læse `skadestypeLinje`s prosa-præfiks – og en ændret formulering ville da tavst give feltet det forkerte
    * navn i grafen.
    */
   skadedatoLabel: SkadestypeDatoLabel;
@@ -114,7 +114,7 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
   // ("Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller kontrollag").
   totals: EoComputedTotals;
 }>): EoModel => {
-  // Alle section-totaler injiceres fra canonical (`args.totals`) — section-inputtet bærer dem ikke.
+  // Alle section-totaler injiceres fra canonical (`args.totals`) – section-inputtet bærer dem ikke.
   const svieSmerte = {
     ...args.svieSmerte,
     totalOre: args.totals.svieSmerteOre,

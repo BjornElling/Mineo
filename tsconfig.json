@@ -1,16 +1,16 @@
 {
   /*
-   * SOLUTION-FIL — den peger kun videre; den typechecker intet selv.
+   * SOLUTION-FIL – den peger kun videre; den typechecker intet selv.
    *
    * Repoet har fire adskilte TypeScript-projekter, fordi de har forskellige globale typer:
    * applikationen må ikke kende `describe`/`expect`, testene skal, E2E-suiten kører på Playwrights
    * typer, og byggekonfigurationen på Nodes. Den adskillelse er bevidst og skal blive.
    *
    * Men adskillelsen havde en pris i editoren. VS Code (tsserver) finder et projekt ved at gå OPAD
-   * fra filen efter en `tsconfig.json` — den kender ikke `tsconfig.e2e.json` og `tsconfig.test.json`,
+   * fra filen efter en `tsconfig.json` – den kender ikke `tsconfig.e2e.json` og `tsconfig.test.json`,
    * fordi navnene ikke er standard. En fil, den ikke kan placere, havnede derfor i et «inferred
    * project» uden vores compilerOptions, og editoren viste fejl, som ingen kommandolinje-typecheck
-   * kunne genskabe — fx «Cannot find name 'process'» i `e2e/support/mineoTest.ts` og manglende
+   * kunne genskabe – fx «Cannot find name 'process'» i `e2e/support/mineoTest.ts` og manglende
    * vitest-globals i `src/__tests__/`.
    *
    * Med `files: []` + `references` er dette en solution-fil: tsserver slår filen op i de refererede

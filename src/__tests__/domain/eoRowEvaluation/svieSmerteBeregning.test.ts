@@ -408,7 +408,7 @@ describe('Svie/smerte beregning', () => {
       expect(beregnetPeriode?.status).toBe('error');
       expect(beregnetPeriode?.displayValue).toContain('Fejl (Der er overlappende perioder)');
       expect(overlapPeriode?.label).toBe('Periode (22-06-2023 - 31-07-2024)');
-      // Fejludfaldet er en færdig besked, ikke en periodeliste — `lines` skal være tom, så
+      // Fejludfaldet er en færdig besked, ikke en periodeliste – `lines` skal være tom, så
       // Beregning-fanen ikke tæller fejlteksten som «én periode».
       expect(beregnetPeriode?.lines).toEqual([]);
     });
@@ -418,11 +418,11 @@ describe('Svie/smerte beregning', () => {
    * Rækkens strukturerede `lines` er kilden; `displayValue` er dens serialisering.
    *
    * Værnet findes, fordi Beregning-fanen tidligere SPLITTEDE `displayValue` på `\n` for at få
-   * listen tilbage — en skjult aftale mellem builder og præsentation, som en ren
+   * listen tilbage – en skjult aftale mellem builder og præsentation, som en ren
    * formatteringsændring kunne bryde lydløst, og som driver synlig UI-forgrening (linjeantallet
    * afgør ental/flertal i etiketten «Svie/smerte-periode(r)»).
    */
-  describe('beregnetPeriode — struktureret linjeliste', () => {
+  describe('beregnetPeriode – struktureret linjeliste', () => {
     const contextFor = (skadedato: string) => ({
       skadedatoISO: iso(skadedato),
       erErhvervssygdom: false,
@@ -450,7 +450,7 @@ describe('Svie/smerte beregning', () => {
         '10-01-2024 - 10-02-2024',
         '01-05-2024 - 01-06-2024 (delvist syg)',
       ]);
-      // Serialiseringen er kontrakten mod dokumentgeneratorerne — den må ikke drive fra listen.
+      // Serialiseringen er kontrakten mod dokumentgeneratorerne – den må ikke drive fra listen.
       expect(row?.displayValue).toBe(row?.lines?.join('\n'));
     });
 

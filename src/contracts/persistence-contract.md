@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-08-16 (PWA-køens afbryd-valg hedder «Annuller» som i programmets
+**Senest verificeret mod kode:** 2026-08-19 (PWA-køens afbryd-valg hedder «Annuller» som i programmets
 øvrige dialoger; current-sessionens kildeversioner er begrænset til eksplicit understøttede versioner, og
 device-lokal metadata valideres før visning. Verificeret mod de berørte moduler og tests.)
 
@@ -65,7 +65,7 @@ udsteder typed commands; consumers får read-only `InputReader` eller godkendte 
 Aktiv sagsinput lagres under én namespace-aware Mineo-nøgle:
 
 ```ts
-// src/inputCore/runtime/currentSessionEnvelope.ts — udledt af currentInputEnvelopeSchema.
+// src/inputCore/runtime/currentSessionEnvelope.ts – udledt af currentInputEnvelopeSchema.
 type CurrentInputEnvelope = Readonly<{
   envelopeVersion: typeof CURRENT_INPUT_ENVELOPE_VERSION;   // z.literal, ikke string
   persistedDataVersion: string;                              // autoritativ kildeversion til sektionsmigrering
@@ -100,7 +100,7 @@ Storage keys ejes af `src/config/storageManifest.ts`. Rename/fjernelse kræver e
 
 **Skrivegrænsen er typet, ikke kun bevogtet.** `safeSessionStorage`s skrivefunktioner tager en branded
 `ManifestStorageKey`, som kun manifestet selv kan producere. En nøgle uden for manifestet afvises derfor af
-COMPILEREN — også når den kommer ind som en variabel, hvor en AST-regel principielt er blind. Det er grunden
+COMPILEREN – også når den kommer ind som en variabel, hvor en AST-regel principielt er blind. Det er grunden
 til, at §10's forbud ikke kan omgås ad en indirekte vej. `storage/session-storage-manifest-key` bevares som
 sekundær diagnostik og dækker begge skriveveje.
 
@@ -109,10 +109,10 @@ sekundær diagnostik og dækker begge skriveveje.
 Reset-policyen er en egenskab ved NØGLEN, ikke ved den use-case der kalder `Slet alt`. Den bor derfor i
 manifestet (`SESSION_RESET_POLICY`), hvor hver UI-nøgle er klassificeret som præcis én af:
 
-- **`caseScoped`** — sagsnær tilstand: brugerindtastede hjælpeværdier og filnavns-/filhåndtags-metadata, der
+- **`caseScoped`** – sagsnær tilstand: brugerindtastede hjælpeværdier og filnavns-/filhåndtags-metadata, der
   hører til den sag, der slettes. `Slet alt` SKAL rydde dem; overlever de en bekræftet hel-sags-clear, kan de
   hydrere ind i den næste, tomme sag og påvirke den.
-- **`deviceScoped`** — uafhængig UI-præference eller devtools-tilstand, som ikke beskriver sagen. `Slet alt`
+- **`deviceScoped`** – uafhængig UI-præference eller devtools-tilstand, som ikke beskriver sagen. `Slet alt`
   rydder dem bevidst IKKE: §3.7 holder dem uden for inputenvelopen, og en bruger, der sletter sin sag, har
   ikke bedt om at få sidemenuen foldet sammen.
 
@@ -177,7 +177,7 @@ property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter
 filen. Et afledt rødt range-/bounds-/rule-issue på en ellers schema-gyldig canonical værdi blokerer ikke save; værdien
 gemmes uændret. `missing` og warnings blokerer heller aldrig save (se `form-contract.md` §8).
 
-Sektionsschemas validerer canonical syntaks, shape og sikker numerisk repræsentation — ikke feltets fortegn, min/max,
+Sektionsschemas validerer canonical syntaks, shape og sikker numerisk repræsentation – ikke feltets fortegn, min/max,
 tværfeltsrelationer eller øvrige domæneregler. Sådanne regler afledes som issues fra samme canonical snapshot og må
 ikke gøre værdien urepræsenterbar eller få en loadbar sektion droppet.
 

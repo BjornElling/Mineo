@@ -14,23 +14,23 @@ import {
  *
  * **Hvorfor dette modul findes.** Værnet var indtil nu udelukkende et `keydown`-filter: `filterDateLikeKeyDown`
  * og dens søskende beregnede den kommende draft ud fra `e.key` og kaldte `preventDefault()`. Det virker på et
- * fysisk tastatur, hvor hvert tegn har en `keydown` med et brugbart `key` — og KUN dér.
+ * fysisk tastatur, hvor hvert tegn har en `keydown` med et brugbart `key` – og KUN dér.
  *
  * Et mobilt skærmtastatur (Android/GBoard er det målte tilfælde) skriver derimod tegnet direkte i `<input>` og
  * fyrer et `input`-event. Den `keydown`, der eventuelt følger med, bærer `key === 'Unidentified'`, som filtrenes
- * `isBypassKeyEvent` med vilje lader passere — IME/composition må ikke forstyrres. Resultatet var, at HELE
+ * `isBypassKeyEvent` med vilje lader passere – IME/composition må ikke forstyrres. Resultatet var, at HELE
  * tegn- og længdeværnet var fraværende på mobil: brugerens fund `21-1111111-2026` i et datofelt er præcis den
  * form, `isDateLikeDraftAllowed` afviser ved tastning på desktop. Målt i en mobil-emuleret browser gik strengen
  * uændret ind i feltet.
  *
- * **Derfor er PRÆDIKATET primært, og keydown-filteret afledt.** Værnet flyttes til `onDraftChange` — den ene
+ * **Derfor er PRÆDIKATET primært, og keydown-filteret afledt.** Værnet flyttes til `onDraftChange` – den ene
  * kanal, ENHVER indtastningsmodalitet passerer (tastatur, skærmtastatur, autofyld, stemmeinput, IME-commit).
  * Et keydown-filter kan aldrig blive udtømmende, fordi det forudsætter en tast; et draft-prædikat forudsætter
  * kun, at draften ændrer sig.
  *
  * `keyFilterFromAdmission` bevarer keydown-benet, fordi det stadig har en egen værdi: det forhindrer tegnet i
  * overhovedet at nå DOM'en, så caret'en ikke flytter sig og springer tilbage. Men de to kan ikke længere drifte
- * fra hinanden, for de læser det SAMME prædikat — og det var netop drift mellem to parallelle værn, der lod
+ * fra hinanden, for de læser det SAMME prædikat – og det var netop drift mellem to parallelle værn, der lod
  * fejlen opstå.
  *
  * **Grænsen for prædikatet er uændret §1.2:** tegnsæt og længde, ikke talværdi. En værdi, der bryder en range-,
@@ -96,11 +96,11 @@ export const keyFilterFromAdmission = (admits: DraftAdmission) => (e: KeyDownEve
  * Skriver den senest ACCEPTEREDE draft tilbage i `<input>` efter en afvist ændring.
  *
  * Nødvendigt fordi elementet er styret af surfacens `displayText`: afviser vi ændringen, er den rendrede
- * værdi uændret, og React skriver derfor ikke elementet tilbage — det afviste tegn ville blive stående i
+ * værdi uændret, og React skriver derfor ikke elementet tilbage – det afviste tegn ville blive stående i
  * DOM'en med en draft i motoren, der ikke indeholdt det. Altså to samtidige sandheder om feltets indhold.
  *
  * Caret'en sættes til den position, browseren allerede havde flyttet den til, MINUS de tegn, der ikke kom
- * med. Ellers ville markøren hoppe til feltets slutning ved hvert afvist tegn — netop den adfærd,
+ * med. Ellers ville markøren hoppe til feltets slutning ved hvert afvist tegn – netop den adfærd,
  * keydown-filteret undgår ved at blokere før DOM'en.
  */
 export const restoreDomValueAfterRejectedDraft = (
@@ -220,7 +220,7 @@ export const percentAdmission = (
 /**
  * Dato: cifre og separatortegn med segmentværnet `DD`-`MM`-`YYYY` (2-2-4).
  *
- * Tilladte separatorer: ethvert ikke-alfanumerisk tegn. Gentagne separatorer afvises efter den første —
+ * Tilladte separatorer: ethvert ikke-alfanumerisk tegn. Gentagne separatorer afvises efter den første –
  * det er PRÆCIS den regel, mobilbrugeren kunne omgå, fordi den kun blev håndhævet på keydown.
  */
 export const dateLikeAdmission = (): DraftAdmission =>

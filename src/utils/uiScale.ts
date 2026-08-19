@@ -17,7 +17,7 @@ export const CONTENT_SCALE_CSS_VARIABLE = '--mineo-content-scale' as const;
 export const CONTENT_SCALE_ROOT_SELECTOR = '[data-mineo-content-scale-root="true"]' as const;
 
 /**
- * Bredden på `.content-box` — arbejdsfladens bredeste element på hver eneste side og fane.
+ * Bredden på `.content-box` – arbejdsfladens bredeste element på hver eneste side og fane.
  * Værdien er målt: intet indhold rager ud over indholdsboksen, så den er den ene bredde,
  * pladsregnskabet nedenfor skal kunne rumme.
  *
@@ -27,7 +27,7 @@ export const CONTENT_SCALE_ROOT_SELECTOR = '[data-mineo-content-scale-root="true
 export const CONTENT_BOX_WIDTH_PX = 1200;
 
 /**
- * Kontrolfanernes udhæng til højre for indholdsboksen — den ENE bevidste undtagelse fra
+ * Kontrolfanernes udhæng til højre for indholdsboksen – den ENE bevidste undtagelse fra
  * pladsregnskabet nedenfor.
  *
  * `SideTab` roteres 90° om venstre-bund og rager derfor sin egen HØJDE ud til højre for sin `left`.
@@ -61,7 +61,7 @@ export const SIDE_TAB_OVERHANG_PX = 48;
 export const resolveSideTabRailWidthPx = (geometry: {
   /** Skinnens venstrekant i vinduets koordinater. */
   readonly railLeftPx: number;
-  /** Arbejdsfladens synlige højrekant — scrollportens kant uden den lodrette scrollbar. */
+  /** Arbejdsfladens synlige højrekant – scrollportens kant uden den lodrette scrollbar. */
   readonly scrollportRightPx: number;
   /** Scrollportens aktuelle vandrette rul. */
   readonly scrollLeftPx: number;
@@ -96,7 +96,7 @@ export const SIDE_MENU_LAYOUT_POLICY = Object.freeze({
   minimumHeightFitScale: 0.78,
 } as const);
 
-/** Arbejdsfladens ydre luft — samme afstand hele vejen rundt om indholdet. */
+/** Arbejdsfladens ydre luft – samme afstand hele vejen rundt om indholdet. */
 const CONTENT_GUTTER_PX = 24;
 
 /** Den indre startluft fra skillelinjen til indholdet. */
@@ -110,7 +110,7 @@ const CONTENT_INDENT_PX = 50;
  * med, så indholdet aldrig fitter ved at ligge klods op ad scrollbaren i højre side. Summen
  * udledes af de navngivne layoutmål, aldrig af et hardkodet tal.
  *
- * `SIDE_TAB_OVERHANG_PX` er bevidst IKKE et led i summen — se dens egen forklaring ovenfor.
+ * `SIDE_TAB_OVERHANG_PX` er bevidst IKKE et led i summen – se dens egen forklaring ovenfor.
  *
  * Policyen er bevidst serialiserbar, fordi den samme konfiguration bruges af det synkrone
  * head-script og af runtime-hooken. Ingen del af policyen er brugerdata eller app-settings.
@@ -118,7 +118,7 @@ const CONTENT_INDENT_PX = 50;
 export const CONTENT_UI_SCALE_POLICY = Object.freeze({
   maximumScale: 1,
   // Under dette trin bliver den mindste tekst på fladen for lille til at læse. Så vidt ned
-  // rækker skalaen — derunder overtager `Container`s vandrette scroll som den bevidste fallback.
+  // rækker skalaen – derunder overtager `Container`s vandrette scroll som den bevidste fallback.
   minimumScale: 0.75,
   // Skalaen kvantiseres til hele hundrededele. Det holder den deterministisk (samme vinduesbredde
   // giver altid samme skala) og gør trinnet så lille, at et skift ikke ses som et spring.
@@ -146,7 +146,7 @@ export type ContentUiScale = number;
 /**
  * Sidemenuens indbyrdes ikongeometri, målt i menuens EGEN (zoomede) koordinatverden.
  *
- * Hele menuen — ramme såvel som indhold — skaleres med samme faktor, så forholdene indbyrdes er
+ * Hele menuen – ramme såvel som indhold – skaleres med samme faktor, så forholdene indbyrdes er
  * konstante. Værdierne er derfor rene tal uden skala-afhængighed; det var de ikke, dengang
  * rammen var uskaleret og indholdet zoomet, hvor hver enkelt indrykning måtte divideres med
  * skalaen for at ramme samme lodrette akse.
@@ -217,7 +217,7 @@ export const MINIMUM_COVERED_VIEWPORT_WIDTH_PX = requiredViewportWidthForScale(
 );
 
 /**
- * Den største skala, hele fladen kan vises i uden vandret rul — kvantiseret nedad til hele
+ * Den største skala, hele fladen kan vises i uden vandret rul – kvantiseret nedad til hele
  * hundrededele og klemt ind mellem policyens minimum og 1.
  *
  * Funktionen er ren og historieløs: samme vinduesbredde giver altid samme skala, uanset om vinduet

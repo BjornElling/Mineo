@@ -85,7 +85,7 @@ export type AppSettingsDocumentDownloadFormatOption = DocumentDownloadFormat;
  * `AppThemeMode` udledes herfra, så tema-byggeren (`src/config/appTheme.ts`) ikke
  * vedligeholder en parallel union der kan drifte fra schemaet.
  *
- * **To BEGREBER, ikke ét.** Brugerens VALG kan være `'system'` — «følg computeren» — mens det
+ * **To BEGREBER, ikke ét.** Brugerens VALG kan være `'system'` – «følg computeren» – mens det
  * tema, der faktisk males, altid er `'light'` eller `'dark'`. De to må ikke blandes sammen:
  * `buildTheme`, CSS-attributten `data-mineo-theme` og browser-chromens `theme-color` kan ikke
  * gøre noget fornuftigt med `'system'`, og en `'system'`-værdi, der slap igennem til dem, ville
@@ -95,7 +95,7 @@ export type AppSettingsDocumentDownloadFormatOption = DocumentDownloadFormat;
  *
  * Baggrund: `'system'` var tidligere ikke en gemt værdi, men fraværet af én. Systemtemaet blev
  * kun læst ved allerførste start, og i samme øjeblik brugeren valgte lyst eller mørkt, var
- * automatikken permanent væk — uden nogen vej tilbage. Brugerens afgørelse 2026-08-18
+ * automatikken permanent væk – uden nogen vej tilbage. Brugerens afgørelse 2026-08-18
  * (`docs/testing/brugerblik/indstillinger.md` BB-024) gør «følg computeren» til et ægte,
  * gemt valg og til standarden.
  */
@@ -104,7 +104,7 @@ export type AppSettingsDocumentDownloadFormatOption = DocumentDownloadFormat;
 export const themeModeEnum = z.enum(['light', 'dark', 'system']);
 export type AppThemeMode = z.infer<typeof themeModeEnum>;
 
-/** Det tema, der faktisk males. Aldrig `'system'` — se `themeModeEnum`. */
+/** Det tema, der faktisk males. Aldrig `'system'` – se `themeModeEnum`. */
 export const resolvedThemeModeEnum = z.enum(['light', 'dark']);
 export type ResolvedThemeMode = z.infer<typeof resolvedThemeModeEnum>;
 
@@ -188,7 +188,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 /**
  * Kategori 2 i `src/contracts/app-settings.md`: de indstillinger, der er STANDARDVÆRDIER TIL NY SAGSDATA.
  *
- * Listen er ikke dokumentation — den er et værn. Hver nøgle her skal beviseligt ændre enten den nye sags
+ * Listen er ikke dokumentation – den er et værn. Hver nøgle her skal beviseligt ændre enten den nye sags
  * indhold (ny-sags-seeden) eller den række, brugeren tilføjer (rækkefabrikkerne). En indstilling, der lover
  * brugeren en standardværdi uden at ændre noget, er værre end ingen indstilling: den fejler tavst.
  * `newCaseSettingsDefaults.test.ts` håndhæver både beviset og listens fuldstændighed.

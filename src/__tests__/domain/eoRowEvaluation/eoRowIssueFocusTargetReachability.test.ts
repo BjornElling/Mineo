@@ -5,12 +5,12 @@
  * en indtastning, brugeren endnu ikke havde OPRETTET («Der er ikke angivet nogen TAF-periode i
  * EO-perioden»), var ingen af dem sande: der findes ingen feltadresse, fordi rækken ikke findes, så målet
  * blev et rækkeanker på advarslens EGET id. Men `data-mineo-row-id` bæres kun af virkelige
- * collection-rækker — aldrig af en synthetisk statusrække — så opslaget i `scrollToEoRow` returnerede
+ * collection-rækker – aldrig af en synthetisk statusrække – så opslaget i `scrollToEoRow` returnerede
  * null ved hvert retry, løkken løb tør, og linket skiftede fane uden at blinke noget.
  *
  * Den eksisterende dækningstest hævdede `toEqual({ kind: 'rowId', rowId })` for netop de rækker. Den var
  * altså i overensstemmelse med koden og alligevel blind for fejlen, fordi den kun spurgte HVILKET mål der
- * blev valgt — ikke om målet kunne findes. Derfor spørger dette værn om det modsatte: er målet en form,
+ * blev valgt – ikke om målet kunne findes. Derfor spørger dette værn om det modsatte: er målet en form,
  * en produktionsflade faktisk kan bære?
  *
  * Reglen er strukturel og derfor billig at holde: et `rowId`-mål skal være et BART entity-id (et
@@ -237,7 +237,7 @@ const ISSUE_ROWS: readonly Readonly<{ name: string; row: Partial<EoRowModel> }>[
     row: {
       id: 'loenindkomst.af-1.regulering.daekningAdvarsel',
       label: 'Advarsel',
-      displayValue: 'Advarsel (Der er ikke reguleringsværdier for hele TAF-perioden — først fra 01-01-2024.)',
+      displayValue: 'Advarsel (Der er ikke reguleringsværdier for hele TAF-perioden – først fra 01-01-2024.)',
       status: 'warning',
       summaryDisplay: 'messageOnly',
     },
@@ -247,7 +247,7 @@ const ISSUE_ROWS: readonly Readonly<{ name: string; row: Partial<EoRowModel> }>[
     row: {
       id: 'taf.beregningsgrundlag.loenudvikling.angivet.daekningAdvarsel',
       label: 'Advarsel',
-      displayValue: 'Advarsel (Der er ikke reguleringsværdier for hele TAF-perioden — først fra 01-01-2024.)',
+      displayValue: 'Advarsel (Der er ikke reguleringsværdier for hele TAF-perioden – først fra 01-01-2024.)',
       status: 'warning',
       summaryDisplay: 'messageOnly',
     },
@@ -283,7 +283,7 @@ const ISSUE_ROWS: readonly Readonly<{ name: string; row: Partial<EoRowModel> }>[
   },
   // ── Offentlige ydelser: gruppe-statusrækker ───────────────────────────────────────────────────
   // Gruppenøglen er ikke et element i DOM. Builderen sætter derfor selv målet fra den ydelsesrække,
-  // beskeden stammer fra — her udtrykt som det målet ender som.
+  // beskeden stammer fra – her udtrykt som det målet ender som.
   {
     name: 'offentlige ydelser: uspecificeret gruppe',
     row: {
@@ -301,7 +301,7 @@ const ISSUE_ROWS: readonly Readonly<{ name: string; row: Partial<EoRowModel> }>[
 const isBareEntityId = (value: string): boolean => value.length > 0 && !value.includes('.');
 
 /**
- * Collectionen bag en felt-template. Den ligger i templatens `entity`-led — templaten har ingen
+ * Collectionen bag en felt-template. Den ligger i templatens `entity`-led – templaten har ingen
  * `collection`-egenskab i sig selv, fordi stien kan indeholde både property- og entity-led.
  */
 const templateCollection = (template: FieldAddressTemplate): string =>

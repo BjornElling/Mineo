@@ -13,7 +13,7 @@ describe('resolveDocumentFileName', () => {
     );
   });
 
-  // Konvergens-værn: resolveDocumentArtifactFileName må ikke have sin egen filnavnsregel — den er en tynd
+  // Konvergens-værn: resolveDocumentArtifactFileName må ikke have sin egen filnavnsregel – den er en tynd
   // wrapper om den fælles regel med format='pdf'. Holder kontrakt §4.4 (fælles regel, kun
   // endelsen adskiller) sand i koden og forhindrer at de to implementeringer driver fra hinanden.
   it('resolveDocumentArtifactFileName er identisk med den fælles regel for pdf-format', () => {

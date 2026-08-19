@@ -172,7 +172,7 @@ export const computeSfggForAnsaettelsesforhold = (
   });
 
   // Perioden bygges af én navngiven pipeline med fast, betydningsbærende rækkefølge (G3-G5);
-  // se buildSfggPeriode. Læse-siden formatterer de strukturerede afkortninger — den genudleder dem ikke.
+  // se buildSfggPeriode. Læse-siden formatterer de strukturerede afkortninger – den genudleder dem ikke.
   const periode = buildSfggPeriode({
     tafRanges,
     firstExcludedDate,
@@ -187,7 +187,7 @@ export const computeSfggForAnsaettelsesforhold = (
   const eligibleRanges = periode.eligibleRanges;
   const afterEmployerSickPayExcludedAny = periode.afkortninger.some((afkortning) => afkortning.aarsag === 'sygeloen');
   // Præsentations-afkortningerne (kun loft/ophør bæres med verbum + dato i bilaget) udledes af
-  // pipelinens strukturerede liste — der er højst én, jf. gensidig udelukkelse i buildSfggPeriode.
+  // pipelinens strukturerede liste – der er højst én, jf. gensidig udelukkelse i buildSfggPeriode.
   const sfggAfkortninger: SfggAfkortning[] = periode.afkortninger.flatMap((afkortning) =>
     afkortning.aarsag === 'cap4mdr' || afkortning.aarsag === 'ansaettelsesophoer'
       ? [{
@@ -204,7 +204,7 @@ export const computeSfggForAnsaettelsesforhold = (
   const sfggDirectRateLabel = getSfggKildeSpec(sfggSource.kind).rateModel === 'per_periode_overenskomst'
     ? resolveSfggDifferentieretSatsLabel(sfggRow?.sfggSatsvalg)
     : null;
-  // Afledt af pipelinens strukturerede afkortninger — samme mønster som sygeløn (sygeloen) og
+  // Afledt af pipelinens strukturerede afkortninger – samme mønster som sygeløn (sygeloen) og
   // loft/ophør (cap4mdr/ansaettelsesophoer): læse-siden formatterer det, motoren genudleder det ikke.
   // (foersteSygedag pushes præcis når employmentHadFirstExcludedDate er sand, jf. buildSfggPeriode.)
   const sfggFirstTafDayExcludedText = periode.afkortninger.some((afkortning) => afkortning.aarsag === 'foersteSygedag')
@@ -342,7 +342,7 @@ export const computeSfggForAnsaettelsesforhold = (
     const alreadyPaidSegmentOre = allocatedAlreadyPaid.get(key) ?? zeroMoneyOre();
     // feriepengeAfSygeloenOre vises som "Feriepenge modtaget i perioden" og indgår i ligningen:
     // gross - feriepengeAfSygeloen - alleredeBetalt = beregnetSfggoere
-    // Fradraget kan ikke overstige gross (minus allerede betalt) — cap sikrer at
+    // Fradraget kan ikke overstige gross (minus allerede betalt) – cap sikrer at
     // sum(feriepengeAfSygeloenOre) + sum(beregnetSfggoereOre) = sum(grossOre) holder præcist.
     const availableAfterAlreadyPaidOre = clampMoneyOreToZero(
       subtractMoneyOre(grossOre, alreadyPaidSegmentOre)

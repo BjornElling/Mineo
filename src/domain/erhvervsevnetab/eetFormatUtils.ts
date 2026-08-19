@@ -34,7 +34,7 @@ export type EetTabNavigation = Readonly<{
    *
    * Der findes ingen feltadresse at pege på, før rækken findes, og et sektionsanker blinker hele
    * ContentBoxen uden at vise HVOR indtastningen hører. Tabellen viser til gengæld altid sin tomme
-   * indtastningsrække, hvis celler bærer en fuldt bundet feltadresse — templaten navngiver den celle
+   * indtastningsrække, hvis celler bærer en fuldt bundet feltadresse – templaten navngiver den celle
    * uden at foregive at kende placeholderens runtime-id. Samme model som EO's `collectionField`-mål.
    */
   focusFirstRowField?: FieldAddressTemplate;
@@ -89,7 +89,7 @@ export const NAVIGATION_SORT_ORDER: Record<string, number> = {
   'eet-oplysninger-grundlaeggende': 1,
   'eet-oplysninger-asl': 2,
   'eet-oplysninger-eal': 3,
-  // 99 bruges implicit for issues uden navigation — her dokumenteret eksplicit
+  // 99 bruges implicit for issues uden navigation – her dokumenteret eksplicit
 };
 
 const NAV_STAMDATA_SKADELIDTE: EetTabNavigation = {
@@ -135,12 +135,12 @@ const ASL_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
 };
 
 /**
- * ASL-issues, hvor den efterspurgte indtastning IKKE FINDES ENDNU — enten fordi der slet ikke er nogen
+ * ASL-issues, hvor den efterspurgte indtastning IKKE FINDES ENDNU – enten fordi der slet ikke er nogen
  * afgørelsesrække, eller fordi en påkrævet celle i en række står tom. Målet er cellen i tabellens første
  * række; den findes altid, fordi tabellen viser en tom indtastningsrække.
  *
  * Uden disse mål faldt issuet igennem til `scrollToSection`, som blinker hele ContentBoxen. For et issue,
- * der beder brugeren om at OPRETTE en afgørelse, gav det ingen anvisning på hvor indtastningen hører — det
+ * der beder brugeren om at OPRETTE en afgørelse, gav det ingen anvisning på hvor indtastningen hører – det
  * er samme fejlform som EO's «Der er ikke angivet nogen TAF-periode».
  */
 const ASL_FIRST_ROW_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddressTemplate>> = {

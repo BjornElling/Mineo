@@ -9,7 +9,7 @@ import { resolveFieldIssueText } from '../fieldIssueText';
 import { useFieldLabel } from '../useFieldLabel';
 import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
 
-// Radio-felt (§1.3/§3.6): radio-valg committer STRAKS via `commitImmediate` — ingen draft/settle-fase.
+// Radio-felt (§1.3/§3.6): radio-valg committer STRAKS via `commitImmediate` – ingen draft/settle-fase.
 // Modtager kun sin `field`/`location` og sine options. Den viste værdi læses fra den afsluttede revision gennem
 // editor-controlleren; valget dispatcher `setImmediateField` (som kører den styrende-valg-oprydning atomisk, §3.6).
 // Værditypen er en streng-enum; en påkrævet radio (uden tomværdi) er default (`allowEmpty=false`).
@@ -24,7 +24,7 @@ export type RadioFieldProps<TValue extends string> = Readonly<{
   name?: string;
   row?: boolean;
   disabled?: boolean;
-  /** Tillad "intet valg" (committer `undefined`). Default falsk — påkrævet radio. */
+  /** Tillad "intet valg" (committer `undefined`). Default falsk – påkrævet radio. */
   allowEmpty?: boolean;
   emptyLabel?: string;
 }>;
@@ -40,11 +40,11 @@ const RadioField = <TValue extends string>({
   emptyLabel,
 }: RadioFieldProps<TValue>): React.ReactElement => {
   // Gruppens navn ER feltets navn. Hentes fra den ENE autoritet, så beskeder og skærmlæser aldrig kan
-  // navngive samme felt forskelligt (§3.2a) — og så et callsite ikke skal skrive teksten to gange.
+  // navngive samme felt forskelligt (§3.2a) – og så et callsite ikke skal skrive teksten to gange.
   // Radio-værdien er altid en defineret enum for et påkrævet felt; controlleren er typet på feltets værditype.
   const controller = useFieldEditor(field as FieldRef<TValue | undefined>, location);
   // Gruppens navn ER feltets navn. Hentes fra den ENE autoritet, så beskeder og skærmlæser aldrig kan
-  // navngive samme felt forskelligt (§3.2a) — og så et callsite ikke skal skrive teksten to gange.
+  // navngive samme felt forskelligt (§3.2a) – og så et callsite ikke skal skrive teksten to gange.
   const accessibleName = useFieldLabel(field as FieldRef<TValue | undefined>);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const resolvedAllowEmpty = resolveChoiceAllowEmpty(
@@ -54,7 +54,7 @@ const RadioField = <TValue extends string>({
   );
 
   // `StyledRadioButton` er generisk i optionernes værditype og mapper DOM-strengen tilbage til den
-  // option, den kom fra. `next` ER derfor `TValue` — det tidligere `as TValue`-cast er unødvendigt.
+  // option, den kom fra. `next` ER derfor `TValue` – det tidligere `as TValue`-cast er unødvendigt.
   const handleCommit = React.useCallback(
     (e: CommitEvent<TValue | undefined>): boolean => {
       const next = e.target.value;

@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-16
+**Senest verificeret mod kode:** 2026-08-19
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -30,20 +30,20 @@ Der findes tre issue-klasser:
 
 Normative årsager:
 
-- `invalid` — feltets afsluttede input er rejected, fordi råteksten ikke opfylder feltformatet eller ikke kan omsættes
+- `invalid` – feltets afsluttede input er rejected, fordi råteksten ikke opfylder feltformatet eller ikke kan omsættes
   til en værdi i det persisterede Zod-schema; altid en **feltfejl**,
-- `range`/`bounds` — canonical værdi ligger uden for konkrete grænser; en **feltfejl**,
-- `schema` — runtime-schema kan ikke opfyldes; en **feltfejl**,
-- `rule` — en feltplaceret domæneregel er brudt; en **feltfejl** (en output-/tværgående regel kan i stedet være en
+- `range`/`bounds` – canonical værdi ligger uden for konkrete grænser; en **feltfejl**,
+- `schema` – runtime-schema kan ikke opfyldes; en **feltfejl**,
+- `rule` – en feltplaceret domæneregel er brudt; en **feltfejl** (en output-/tværgående regel kan i stedet være en
   consumerfejl),
-- `missing` — en consumer kræver et tomt canonical felt; altid en **consumerfejl**, aldrig en rød feltfejl og aldrig
+- `missing` – en consumer kræver et tomt canonical felt; altid en **consumerfejl**, aldrig en rød feltfejl og aldrig
   save-blokerende.
 
 Tekniske runtimefejl er ikke inputissues og følger §8.
 
 ### 1.1 Konsekvensmatrix (normativ)
 
-Konsekvensen er deterministisk og følger af klassen — ikke af et flag:
+Konsekvensen er deterministisk og følger af klassen – ikke af et flag:
 
 | Tilstand | Rød feltmarkering | Blokerer `.eo` globalt | Blokerer afhængig beregning/dokument | Blokerer uafhængig consumer |
 |---|---:|---:|---:|---:|
@@ -88,7 +88,7 @@ sandhedskilde.
 
 Bemærk at **navnet** `fieldErrors` ikke er forbudt. Det lever videre som et almindeligt feltnavn i
 domænesnapshots (`EetSnapshot.fieldErrors`, `EOInspektionSnapshot.fieldErrors`), hvor det betegner en ren
-issueprojektion — ikke en skrivbar kanal. Navnet står derfor bevidst uden for `legacy/forbidden-identifier`s
+issueprojektion – ikke en skrivbar kanal. Navnet står derfor bevidst uden for `legacy/forbidden-identifier`s
 forbudsliste; der findes ingen allowlist-mekanik at undtage det fra, og forbuddet rammer de konkrete
 legacy-symboler (`useFormFieldErrorReporter`, `onFieldError`, `collectPresentFieldErrors`), ikke feltnavnet.
 
@@ -120,7 +120,7 @@ De godkendte beskedskabeloner er:
 Skabelonerne for `schema` og `range`/`bounds` produceres af `src/inputCore/catalog/boundsValidators.ts`, som
 ejer de syv bounds-validatorer (`integerBoundsValidator`, `integerStringBoundsValidator`,
 `percentBoundsValidator`, `amountBoundsValidator`, `yearBoundsValidator`, `yearStringBoundsValidator`,
-`weekYearBoundsValidator`) og er eneste producent af `reason: 'schema'` — sidstnævnte gennem modulets
+`weekYearBoundsValidator`) og er eneste producent af `reason: 'schema'` – sidstnævnte gennem modulets
 ottende eksport, `canonicalStringCodecValidator`, som netop IKKE er en bounds-validator.
 
 Kontroltype og label kommer fra feltdescriptoren. Et bart `<felt> mangler` er forbudt. Feltnavnet står i
@@ -130,13 +130,13 @@ advarsler" UDEN feltet foran sig, og labels indeholder selv punktummer og bindes
 
 ### 3.1 Hvor en manglende forudsætning meldes (brugerbeslutning 2026-08-16)
 
-En `missing`-melding hører hjemme på den flade, hvor oplysningen **bruges** — aldrig på den flade, der blot
+En `missing`-melding hører hjemme på den flade, hvor oplysningen **bruges** – aldrig på den flade, der blot
 bærer feltet.
 
 Begrundelsen er brugerens: et felt kan være forudsætning for én beregning og fuldstændig uden betydning for en
 anden. Renteberegning er fx uafhængig af skadelidtes stamdata, og en melding på Stamdata om, at noget «mangler»,
 ville derfor være direkte forkert for den bruger, der kun regner renter. Der findes ingen flade, hvor
-programmet kan vide, hvad brugeren har tænkt sig at regne — kun de enkelte beregningsflader ved det om sig selv.
+programmet kan vide, hvad brugeren har tænkt sig at regne – kun de enkelte beregningsflader ved det om sig selv.
 
 Heraf følger:
 
@@ -145,7 +145,7 @@ Heraf følger:
 2. **Forbrugssiden melder dem**, med en henvisning der både navigerer og markerer det felt, der mangler
    (mønsteret «Mangler (angiv i Stamdata)» med `blinkFieldAttention` via feltadressen).
 3. **Afgrænsningen er `missing`, ikke `invalid`.** En værdi, brugeren faktisk har skrevet, og som er ugyldig
-   eller bryder en parvis grænse, markeres fortsat dér, hvor den er skrevet — også på en flade, der ellers ikke
+   eller bryder en parvis grænse, markeres fortsat dér, hvor den er skrevet – også på en flade, der ellers ikke
    melder noget. Det er brugerens eget input, ikke en forudsætning for en beregning, han måske aldrig laver.
 4. **Begge parter i en brudt parvis grænse markeres** (brugerbeslutning samme dag). Udvejen er forskellig i hvert
    af de to felter, og hver tekst skal derfor beskrive den rettelse, brugeren kan foretage i netop det felt.
@@ -166,7 +166,7 @@ Heraf følger:
 Hvis flere issues rammer samme felt, vælger en central deterministisk resolver højst ét aktivt feltissue.
 Prioriteten er `compareFieldIssues` (`src/inputCore/inputIssue.ts`) og følger denne rækkefølge:
 
-1. **`format`** vinder altid. En afvist råtekst må aldrig skjules af en regel om den canonical værdi — fx skal en
+1. **`format`** vinder altid. En afvist råtekst må aldrig skjules af en regel om den canonical værdi – fx skal en
    delvist indtastet dato fortsat vise `Fejl i indtastning`.
 2. **`priority: 'context'`** vinder derefter. Den bruges kun af en feltplaceret regel, der afgør, at feltets
    canonical værdi ikke er meningsfuld i den valgte kontekst, fx kapitaliseringsdato ved en midlertidig afgørelse
@@ -182,7 +182,7 @@ Et `context`-issue gør ikke en schema-repræsenterbar canonical værdi rejected
 så et skift mellem synlige afgørelsestyper ikke sletter brugerinput; den domæneprojektion, der ejer kontekstreglen,
 viser issuet og blokerer sin egen afhængighed.
 
-**Hverken `source` eller `severity` indgår.** Der findes ingen `source`-dimension — §11 forbyder source-registre —
+**Hverken `source` eller `severity` indgår.** Der findes ingen `source`-dimension – §11 forbyder source-registre –
 og `severity` er på et `FieldIssue`/`ConsumerIssue` den ENESTE literal `'error'`: et kerneissue er per definition
 blokerende, og advarsler dannes i domænernes egne typer (`EetIssue.severity`, `EoRowStatus`,
 `IntegrityIssue.severity`). En feltbundet domæneadvarsel repræsenteres særskilt som `FieldWarning`
@@ -197,8 +197,8 @@ Ingen inline-valideringstekst vises under feltet. Range- og
 datotooltips skal vise konkrete grænser. Hvis `min > max`, forklarer tooltippen, at ingen gyldige værdier findes, viser
 begge grænser og navngiver de brugervendte input, der skabte dem.
 
-**«Fejl i indtastning» vs. «Indtastning mangler» — programmets generelle princip (brugerkrav 2026-08-15).**
-Skelnen er den samme overalt, hvor programmet forklarer en blokering, og den følger brugerens tilstand — ikke
+**«Fejl i indtastning» vs. «Indtastning mangler» – programmets generelle princip (brugerkrav 2026-08-15).**
+Skelnen er den samme overalt, hvor programmet forklarer en blokering, og den følger brugerens tilstand – ikke
 den flade, der forklarer:
 
 - **«Fejl i indtastning»** bruges, når der ER indtastet noget, men indtastningen er forkert, altså dér hvor
@@ -209,7 +209,7 @@ Princippet gælder feltets eget tooltip (`FIELD_ISSUE_GENERIC_TOOLTIP`, tabellen
 handlingsknap (`ACTION_BLOCKED_*` i `src/components/inputs/actionGate.ts`) og enhver deaktiveret
 downloadknap (`DOWNLOAD_BLOCKED_*`). De tre flader deler konstanterne frem for at kopiere dem.
 
-Konsekvensen for en gate er, at klassen skal **udledes af de data, der kender svaret** — ikke hardkodes for
+Konsekvensen for en gate er, at klassen skal **udledes af de data, der kender svaret** – ikke hardkodes for
 en betingelse, der dækker begge tilstande. `document-output-contract.md` §A5.1 ejer den regel, dens
 årsagsform→klasse-tabel og dens håndhævelse.
 
@@ -234,14 +234,14 @@ besked også i download-tooltippen. Det krav er lempet, fordi en downloadknap ka
 uafhængige input på én gang, hvor feltet altid er blokeret af præcis sit eget:
 
 > En download-tooltip citerer kun en konkret besked, når gate-producenten eksplicit har angivet **præcis én**
-> blokerende årsag med scope `field` eller `row` — inkl. feltets issue eller en stabil rækkeidentitet. Er
+> blokerende årsag med scope `field` eller `row` – inkl. feltets issue eller en stabil rækkeidentitet. Er
 > årsagen aggregat-, multi-felt-, multi-række-, system- eller uklassificeret, bruges klasseteksten for
 > årsagens `kind`.
 
 Kravet er et **typekrav på producenten** (`DocumentBlockingCause` i `document/layout/documentGateTypes.ts`),
 ikke en slutning fra beskedtekst eller fra issue-listens længde. Længden kan ikke bruges: `runProjection`
 dedupper på `kind:code`, `require` registrerer ét `missing`-issue pr. tomt felt, og `buildFieldIssueSet`
-beholder højst ét issue pr. feltadresse — så listens længde måler hverken antal felter eller antal årsager.
+beholder højst ét issue pr. feltadresse – så listens længde måler hverken antal felter eller antal årsager.
 
 Begrundelsen er igen informationsværdi: en tooltip på "Download samlet oversigt", der citerer én tilfældig
 rækkes datogrænse, får brugeren til at tro, det er den eneste fejl. De røde felter bærer selv deres konkrete
@@ -254,7 +254,7 @@ Begrundelsen er informationsværdi, ikke længde: `bounds`/`rule` fortæller HVA
 og 100", "skal ligge efter skadedatoen"), og det er den eneste brugbare del i et tooltip. `format`/`schema`
 tilføjer derimod kun feltets eget navn, som allerede står ved markøren. Skallerne
 (`StyledTextFieldBase` m.fl.) modtager kun `error: boolean` + `helperText`/`tooltipText` og må derfor ALDRIG
-udlede klassen af beskedteksten. Den visuelt skjulte a11y-tekst er fortsat den FULDE besked — en
+udlede klassen af beskedteksten. Den visuelt skjulte a11y-tekst er fortsat den FULDE besked – en
 skærmlæserbruger kan ikke se feltet, forkortelsen bygger på.
 
 Kontrolvisninger må gruppere alle relevante issues, men må ikke gætte fra beskedtekst. Links skal bruge issueets
@@ -268,13 +268,13 @@ læsbar besked. En boks med overskrift og tom brødtekst er værre end ingen bok
 navngive, og brugeren har intet at handle på.
 
 Tilstedeværelse afgøres derfor af typen, ikke af truthiness. Boksens indhold er en `PageMessage`
-(`src/components/layout/pageMessage.ts`) — en diskrimineret union, hvor fravær er den eksplicitte variant
+(`src/components/layout/pageMessage.ts`) – en diskrimineret union, hvor fravær er den eksplicitte variant
 `NO_MESSAGE`, og hvor `pageMessage()` normaliserer `null`/`undefined`/tom/whitespace til netop den. En
 tilstedeværende variant bærer altid ikke-tom, trimmet tekst.
 
 - Render KUN gennem `PageMessageBox` (selvstændig boks med overskrift) eller `PageMessageRow` (linje i en
-  eksisterende `ContentBox`) — begge i `src/components/layout/PageMessageBox.tsx`. De ejer værnet —
-  `hasPageMessage` — så en side ikke håndruller sit eget.
+  eksisterende `ContentBox`) – begge i `src/components/layout/PageMessageBox.tsx`. De ejer værnet –
+  `hasPageMessage` – så en side ikke håndruller sit eget.
 - Et `??`-fallback på et besked-felt skal have besked-typen. Viewmodeller pinder deres besked-felter med
   `withPageMessages<'…'>()`, så en forkert typet værdi bliver en compile-fejl frem for en tom boks.
 - Flere kilder til samme boks prioriteres med `firstPageMessage(...)`, ikke med `??`: `'' ?? b` giver `''`.
@@ -282,7 +282,7 @@ tilstedeværende variant bærer altid ikke-tom, trimmet tekst.
 Baggrund: Årsløns "Kritisk Fejl"-boks stod permanent og tom øverst på siden. Viewmodellen skrev `?? []` på et
 `string | null`-felt; et tomt array er truthy, så boksens håndrullede værn (`if (!beregningsFejl)`) slap
 igennem, og `{[]}` renderede lovligt til ingenting, fordi `string[]` er en gyldig `ReactNode`. Ingen af de tre
-lag — `??`, den inferede viewmodel-returtype eller truthiness-værnet — kunne se fejlen alene.
+lag – `??`, den inferede viewmodel-returtype eller truthiness-værnet – kunne se fejlen alene.
 Grænsen håndhæves af `ui/message-box-guarded-by-page-message` i AST-manifestet.
 
 ## 5. Konsekvens for save, beregning og dokumenter

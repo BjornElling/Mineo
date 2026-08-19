@@ -39,7 +39,7 @@ export type DateFieldProps = Readonly<{
 const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
   ({ field, location, name, width = 130, placeholder = DATE_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx }, ref) => {
     const accessibleName = useFieldLabel(field);
-    // Datoformens rå loft er erklæret på codecet og læses gennem den DELTE resolver — samme kilde som
+    // Datoformens rå loft er erklæret på codecet og læses gennem den DELTE resolver – samme kilde som
     // grid-cellen.
     const { maxDraftLength } = resolveFormLengthPolicy(field);
     const surface = useFormFieldSurface(field, location, {

@@ -174,7 +174,7 @@ describe('eoCanonicalOutput', () => {
   });
 });
 
-describe('eoCanonicalOutput — fail-closed drift-guard (schema-invariant)', () => {
+describe('eoCanonicalOutput – fail-closed drift-guard (schema-invariant)', () => {
   // `buildEoCanonicalOutputFromComputed` konverterer enhver schema-afvigelse til en kastet
   // fejl ("EO canonical output invariant failed (...)"). Det er hele fail-closed-kontrakten:
   // driver et engine-output fra schemaet (omdøbt/ekstra felt, ikke-heltals-øre), skal det
@@ -226,11 +226,11 @@ describe('eoCanonicalOutput — fail-closed drift-guard (schema-invariant)', () 
   });
 });
 
-describe('eoCanonicalOutput — determinisme over JSON-round-trip (genberegning efter load)', () => {
+describe('eoCanonicalOutput – determinisme over JSON-round-trip (genberegning efter load)', () => {
   // Save/load persisterer kun brugerinput; afledte værdier genberegnes efter load.
   // Branded ISO-datoer og diskriminerede unions kan i princippet ændres subtilt af en
   // JSON-serialisering. Denne test beviser at canonical output er bit-identisk når input
-  // køres gennem en JSON-round-trip — dvs. genberegning efter load giver samme tal.
+  // køres gennem en JSON-round-trip – dvs. genberegning efter load giver samme tal.
   it('giver deep-equal canonical output for input før og efter JSON.parse(JSON.stringify)', () => {
     const initial = createErstatningsopgoerelseInitialValues();
     const eoValues = {

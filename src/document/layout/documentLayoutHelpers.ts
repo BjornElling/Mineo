@@ -3,7 +3,7 @@
  *
  * Rene, kanal-neutrale helpers brugt af generatorer og den fælles tabel-renderer:
  * brevhoved-datatype, beløbs-/procentformattering, section-end-Y-udledning og
- * brand-metadata. Ingen jsPDF/adapter-afhængighed — den lever i PDF-kanalens
+ * brand-metadata. Ingen jsPDF/adapter-afhængighed – den lever i PDF-kanalens
  * `src/pdf/pdfRenderHelpers.ts`.
  */
 
@@ -57,6 +57,6 @@ export const formatPercent = (percent: number | null | undefined): string => {
   return formatPercentUtil(percent);
 };
 
-// Re-eksporterede konfigurationskonstanter — beholdt her for at undgå at alle
+// Re-eksporterede konfigurationskonstanter – beholdt her for at undgå at alle
 // importerende generatorer skal ændre deres importsti fra pdfHelpers til pdfConfig.
 export { PDF_BASE_LINE_HEIGHT_MM, PDF_TITLE_BOTTOM_SPACING_MM } from './pdfConfig';

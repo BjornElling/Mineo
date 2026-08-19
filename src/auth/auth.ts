@@ -8,7 +8,7 @@ import { getPersistentLocalStorage } from '../utils/safeLocalStorage';
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 
-// SHA-256 hex output er altid 64 tegn — length-tjekket er en invariant, ikke et timing-leak.
+// SHA-256 hex output er altid 64 tegn – length-tjekket er en invariant, ikke et timing-leak.
 const hexEqual = (left: string, right: string): boolean => {
   if (left.length !== right.length) {
     return false;

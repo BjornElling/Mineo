@@ -1,7 +1,7 @@
 /**
  * Scroll + fokus til det input, et navigerbart EO-issue peger på.
  *
- * Fokusmålet er en KANONISK feltadresse (§3.2) og slås op med `lookupEditorLocation` — præcis den
+ * Fokusmålet er en KANONISK feltadresse (§3.2) og slås op med `lookupEditorLocation` – præcis den
  * mekanisme undo/redo (`findRestoreTarget`) og save-blokeringens fokus bruger. Der findes derfor kun ÉT
  * identitetssystem for "hvilket felt skal brugeren se": adressen, som feltet selv bærer i DOM
  * (`data-mineo-field-address`), sat af form-/grid-surfacen for hver editorlokation.
@@ -109,7 +109,7 @@ export const scrollToEoRow = (
     onSuccess: (target) => {
       // Den delte blinkmarkering: når linket har ført brugeren hen til indtastningen, peger
       // markeringen på PRÆCIS det element, der blev scrollet til. Faldt vi tilbage til rækkeankeret,
-      // blinker rækken — det grovere, men stadig sande mål for en fejl uden ét ansvarligt felt.
+      // blinker rækken – det grovere, men stadig sande mål for en fejl uden ét ansvarligt felt.
       blinkFieldAttention(target);
       onSuccess?.();
     },

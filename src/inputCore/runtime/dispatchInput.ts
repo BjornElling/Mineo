@@ -97,8 +97,8 @@ export const __hydrateInputStoreForTest = (
   requireStoreInternals(store).hydrate(input, options);
 };
 
-// Input-runtime (§3.6): den ENE autoritative write-grænse. Alle inputændringer — felt, række, system og
-// history — går gennem `dispatchInput`. Den bygger kandidaten med den rene reducer/history, serialiserer den ene
+// Input-runtime (§3.6): den ENE autoritative write-grænse. Alle inputændringer – felt, række, system og
+// history – går gennem `dispatchInput`. Den bygger kandidaten med den rene reducer/history, serialiserer den ene
 // current-only envelope, skriver med byte-verificeret read-back, opdaterer store + revision + history i ét
 // store-write og ruller BÅDE storage og store tilbage til før-snapshot ved enhver fejl. Der er ingen anden vej ind.
 
@@ -118,7 +118,7 @@ export type DispatchInputOptions = Readonly<{
  * Options for en STRUKTUREL rækkecommand: origin er PÅKRÆVET.
  *
  * Uden kravet kan history gemme `undefined`, så undo gendanner en række uden et sted at navigere til.
- * Kravet er derfor "der SKAL være en origin" — ikke
+ * Kravet er derfor "der SKAL være en origin" – ikke
  * "originen skal være af arten `collection`".
  *
  * ⚠️ Originens ART beskriver handlingens restore-anker og er bevidst fri:
@@ -126,7 +126,7 @@ export type DispatchInputOptions = Readonly<{
  *   hvis route + fane er påkrævede i typen.
  * - En række-PROMOVERING (første settle i en placeholder-celle) er kontraktligt et FELT-settle
  *   (`form-contract.md` §3.8) og bærer et `FieldHistoryOrigin`, så undo fokuserer præcis den celle, brugeren
- *   skrev i. Det er den mest brugbare destination — at kræve en collection-origin dér ville tvinge en
+ *   skrev i. Det er den mest brugbare destination – at kræve en collection-origin dér ville tvinge en
  *   dårligere restore frem.
  */
 export type StructuralDispatchInputOptions = Readonly<{
@@ -136,7 +136,7 @@ export type StructuralDispatchInputOptions = Readonly<{
 
 /**
  * De commandarter, der ændrer en collections rækkestruktur. `transaction` er med, fordi en transaktion KAN
- * indeholde et strukturelt trin — den konservative type kræver derfor origin for enhver transaktion, mens
+ * indeholde et strukturelt trin – den konservative type kræver derfor origin for enhver transaktion, mens
  * runtime-værnet er præcist og kun kræver det, når et trin faktisk er strukturelt.
  */
 export type { StructuralCommandKind };
@@ -147,7 +147,7 @@ export type StructuralInputCommand<TField = unknown, TEntity = unknown> = Extrac
 >;
 
 /**
- * En brugbar anker-streng: ikke-tom OG uden omgivende whitespace — samme standard som `addressPartSchema`
+ * En brugbar anker-streng: ikke-tom OG uden omgivende whitespace – samme standard som `addressPartSchema`
  * i `fieldAddress.ts`, så et anker ikke kan bestå med `' '` (som `!== ''` ville godtage) og efterlade
  * restoren med et locationId/route, der ikke matcher nogen faktisk lokation.
  */
@@ -156,17 +156,17 @@ const isUsableAnchorString = (value: unknown): boolean =>
 
 /**
  * Er dette en fuldt brugbar feltadresse? Ankeret gemmes i history og serialiseres senere af restoren, så en
- * halv adresse ville først fejle DÉR — langt fra fejlkilden.
+ * halv adresse ville først fejle DÉR – langt fra fejlkilden.
  *
  * Validerer mod `fieldAddressSchema`, som er den KANONISKE adresseform (samme skema `serializeFieldAddress`
  * parser med). En håndrullet tjek-liste ville drifte: en tidligere udgave godtog fx `path: [{}]`, fordi den
- * kun tjekkede at `path` var et array — ikke segmenternes form.
+ * kun tjekkede at `path` var et array – ikke segmenternes form.
  */
 const isUsableFieldAddress = (address: unknown): boolean =>
   fieldAddressSchema.safeParse(address).success;
 
 /**
- * Afviser en strukturel rækkecommand uden brugbart restore-anker — før nogen observerbar mutation.
+ * Afviser en strukturel rækkecommand uden brugbart restore-anker – før nogen observerbar mutation.
  *
  * Validerer originens diskriminator OG hvert obligatorisk felts faktiske brugbarhed, så hverken et castet
  * `{}`, et delvist origin, en ukendt `kind` eller et whitespace-anker slipper igennem fra utypet kode.
@@ -176,13 +176,13 @@ const assertStructuralOrigin = (
   origin: HistoryOrigin | undefined
 ): void => {
   if (!isStructuralInputCommand(command)) return;
-  // Tjekker TYPEN og BEGGE diskriminatorer eksplicit — ikke blot `!== ''` og en else-gren. Et delvist origin
+  // Tjekker TYPEN og BEGGE diskriminatorer eksplicit – ikke blot `!== ''` og en else-gren. Et delvist origin
   // som `{ kind: 'collection' }` har `undefined` i sine felter (og `undefined !== ''` er sandt), og en
   // ukendt `kind` ville falde ned i rækkehandlings-grenen og passere som noget, den ikke er.
   const valid = origin !== undefined
     && isUsableAnchorString(origin.editorLocationId)
     // En destination må UDELADES HELT (standalone er en reelt ikke-navigerbar lokation), men er `route`
-    // ANGIVET, skal den være brugbar OG følges af en eksplicit `tabKey` — en `tabKey` uden `route` er
+    // ANGIVET, skal den være brugbar OG følges af en eksplicit `tabKey` – en `tabKey` uden `route` er
     // lydløst inert, fordi restoren kun aktiverer fanen inde i `route !== undefined`-grenen.
     // `OriginDestination` er en alt-eller-intet-union, så dette værn dækker kun castede kald.
     && (origin.route === undefined
@@ -211,7 +211,7 @@ export type DispatchInputResult = Readonly<{
   /**
    * Kun sat efter en SUCCESFULD undo/redo (§3.7): origin for det gendannede history-frame, så shellen kan navigere
    * til den rette route/fane og fokusere det felt, ændringen kom fra. Fraværende for alle andre commands, for en
-   * no-op undo/redo og hvis det gendannede frame ingen origin havde — så en mislykket/tom restore aldrig navigerer.
+   * no-op undo/redo og hvis det gendannede frame ingen origin havde – så en mislykket/tom restore aldrig navigerer.
    */
   restoredOrigin?: HistoryOrigin;
 }>;
@@ -222,7 +222,7 @@ const isAuthoritativeReplacement = (command: Readonly<{ kind: string }>): boolea
 
 /**
  * Serialiserer kandidaten, genlæser den byte-for-byte og opdaterer store atomisk. Runtime-sandheden er den
- * round-trippede/katalog-validerede form — nøjagtig det, F5 ville genindlæse — så no-op-detektion og persistens
+ * round-trippede/katalog-validerede form – nøjagtig det, F5 ville genindlæse – så no-op-detektion og persistens
  * aldrig kan drifte fra hinanden (JSON dropper fx `undefined`-nøgler). Ruller storage OG store tilbage ved fejl.
  */
 const commitCandidate = (
@@ -309,7 +309,7 @@ const commitCandidate = (
  *
  * STRUKTURELLE rækkecommands (insert/delete/reorder/settle-i-ny-række, og en transaktion der indeholder
  * mindst ét sådant trin) kræver en origin, så undo/redo har et restore-anker. Den ENE generiske signatur med
- * betinget options-type håndhæver det på typeniveau — en permissiv overload ved siden af ville gøre origin
+ * betinget options-type håndhæver det på typeniveau – en permissiv overload ved siden af ville gøre origin
  * valgfri igen for samme command. `assertStructuralOrigin` håndhæver det også på runtime, så et cast eller et
  * utypet kald ikke kan omgå det.
  */

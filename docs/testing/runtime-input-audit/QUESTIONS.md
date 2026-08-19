@@ -1,4 +1,4 @@
-# Mineo robustheds- og adfærdsaudit — uafklarede spørgsmål om korrekt adfærd
+# Mineo robustheds- og adfærdsaudit – uafklarede spørgsmål om korrekt adfærd
 
 Registrér kun spørgsmål, hvor korrekt brugeradfærd ikke kan udledes sikkert af bindende kontrakter eller entydig kodeadfærd. Gæt ikke. Uafklarede spørgsmål må ikke skjule et allerede observeret kontraktbrud eller en runtimefejl; link i så fald også det relevante fund.
 
@@ -6,18 +6,18 @@ Registrér kun spørgsmål, hvor korrekt brugeradfærd ikke kan udledes sikkert 
 
 | ID | Kort spørgsmål | Flade | Afventende rækker | Status | Først set |
 |---|---|---|---|---|---|
-| — | Ingen uafklarede spørgsmål | — | — | — | — |
+| – | Ingen uafklarede spørgsmål | – | – | – | – |
 
 ## Postskabelon
 
-### Q-NNN — Kort spørgsmål om korrekt adfærd
+### Q-NNN – Kort spørgsmål om korrekt adfærd
 
 - Status: Afventer svar / Besvaret / Indarbejdet / Dublet
 - Først set: YYYY-MM-DD HH:mm Europe/Copenhagen
-- Commit/build: —
+- Commit/build: –
 - Berørte flader/scenarier: SURF-/EDGE-/CUT-id
-- Afventende dækningsrækker: —
-- Relaterede fund: —
+- Afventende dækningsrækker: –
+- Relaterede fund: –
 
 **Starttilstand og handling**
 
@@ -25,8 +25,8 @@ Registrér kun spørgsmål, hvor korrekt brugeradfærd ikke kan udledes sikkert 
 
 **Observerede eller mulige alternativer**
 
-- Alternativ A: —
-- Alternativ B: —
+- Alternativ A: –
+- Alternativ B: –
 
 **Kildegrundlag**
 

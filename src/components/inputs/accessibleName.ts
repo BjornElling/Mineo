@@ -1,24 +1,24 @@
 /**
- * Accessible name for interaktive kontroller — én kanonisk kilde.
+ * Accessible name for interaktive kontroller – én kanonisk kilde.
  *
  * **Problemet reglen lukker.** Kontroller uden accessible name er usynlige for skærmlæsere og for
  * enhver rolle-/navn-baseret navigation: kontrollen kan fokuseres og aktiveres, men brugeren får
- * aldrig at vide, HVAD den gør. Problemet viste sig på flere indbyrdes uafhængige flader —
- * sidemenuen, Indstillinger, Om-siden og EET — men havde overalt samme rod: `StyledToggleSwitch`
+ * aldrig at vide, HVAD den gør. Problemet viste sig på flere indbyrdes uafhængige flader –
+ * sidemenuen, Indstillinger, Om-siden og EET – men havde overalt samme rod: `StyledToggleSwitch`
  * gjorde både `label` og `ariaLabel` valgfrie uden fallback, mens `StyledCheckbox` altid krævede
  * `label`. Af 35 toggle-callsites var 34 navnløse, og den eneste navngivne var en tilfældig
  * undtagelse.
  *
- * At rette de enkelte observerede steder ville have efterladt alle de øvrige — og intet ville have
+ * At rette de enkelte observerede steder ville have efterladt alle de øvrige – og intet ville have
  * forhindret det næste. Derfor er navnet flyttet fra «noget man kan huske at sætte» til en
  * **strukturel forudsætning**, håndhævet i tre uafhængige lag:
  *
- * 1. **Typesystemet** — {@link AccessibleNameProps} er et union, hvor mindst ét navnegivende felt
+ * 1. **Typesystemet** – {@link AccessibleNameProps} er et union, hvor mindst ét navnegivende felt
  *    SKAL angives. En navnløs kontrol kan ikke type-checke; det er ikke en advarsel man kan overse.
- * 2. **Arkitekturreglen** `a11y/interactive-control-has-accessible-name` — fanger de rå
+ * 2. **Arkitekturreglen** `a11y/interactive-control-has-accessible-name` – fanger de rå
  *    DOM-/MUI-kontroller (`<button>`, `IconButton`, `Fab`), som typesystemet ikke kan nå, fordi de
  *    ikke går gennem vores egne komponenter.
- * 3. **Runtime-invarianten** {@link resolveAccessibleName} — kaster i udvikling og test, hvis et navn
+ * 3. **Runtime-invarianten** {@link resolveAccessibleName} – kaster i udvikling og test, hvis et navn
  *    alligevel ender tomt (fx en ReactNode-label, der viser sig kun at indeholde et ikon). I
  *    produktion degraderer den tavst, så en manglende label aldrig kan tage programmet ned for en
  *    bruger midt i en sag.
@@ -27,7 +27,7 @@
  * et søskende-element (`<Typography className="row--text">`). Ved at binde NAVNET til præcis den
  * tekst kan de to ikke glide fra hinanden: retter man den viste tekst, følger skærmlæserens
  * oplæsning automatisk med. Et frit `ariaLabel` ville have været en andenudgave af samme tekst, som
- * ingen opdaterer sammen med den første — jf. konvergensprincippet om ikke at løse samme problem to
+ * ingen opdaterer sammen med den første – jf. konvergensprincippet om ikke at løse samme problem to
  * gange.
  */
 import * as React from 'react';
@@ -35,7 +35,7 @@ import * as React from 'react';
 /**
  * Navnegivende props for en interaktiv kontrol. Mindst ét felt er obligatorisk.
  *
- * Unionen — ikke to valgfrie felter — er hele pointen: TypeScript afviser en kontrol uden navn ved
+ * Unionen – ikke to valgfrie felter – er hele pointen: TypeScript afviser en kontrol uden navn ved
  * callsitet, i stedet for at lade den slippe igennem til brugerfladen.
  */
 export type AccessibleNameProps =
@@ -73,7 +73,7 @@ export const selectAccessibleNameProps = (props: AccessibleNameProps): Accessibl
  * Trækker den rene tekst ud af en ReactNode-label.
  *
  * Rekursionen findes, fordi labels i praksis er sammensatte: `<>{`${summary.label}:`}<InfoTooltipIcon/></>`.
- * Vi vil have brugerens ord — ikke ikonet og ikke dets tooltip-tekst, som er en uddybning og ikke
+ * Vi vil have brugerens ord – ikke ikonet og ikke dets tooltip-tekst, som er en uddybning og ikke
  * kontrollens navn. Elementer springes derfor over frem for at blive læst rekursivt: et ikon har
  * ingen tekstbørn, og et `InfoTooltipIcon` bærer sin forklaring i en prop, ikke som barn.
  */
@@ -103,7 +103,7 @@ export const normalizeAccessibleName = (raw: string): string =>
  * Den effektive accessible name for en kontrol, som den vil fremstå i accessibility-træet.
  *
  * Returnerer `undefined` for `labelledBy`, hvor navnet ejes af det refererede element og derfor ikke
- * kan afgøres her — bindingen kontrolleres i stedet af arkitekturreglen og af komponenttesten.
+ * kan afgøres her – bindingen kontrolleres i stedet af arkitekturreglen og af komponenttesten.
  */
 export const resolveAccessibleName = (props: AccessibleNameProps, controlHint: string): string | undefined => {
   if (props.labelledBy !== undefined) return undefined;
@@ -112,7 +112,7 @@ export const resolveAccessibleName = (props: AccessibleNameProps, controlHint: s
   const name = normalizeAccessibleName(raw);
 
   if (name === '') {
-    // Typesystemet garanterer, at et navnefelt ER angivet — ikke at det har tekstindhold. En
+    // Typesystemet garanterer, at et navnefelt ER angivet – ikke at det har tekstindhold. En
     // ReactNode-label kan fx vise sig kun at rumme et ikon. Fail-closed i udvikling/test, hvor det
     // skal opdages; tavs degradering i produktion, hvor et kast ville koste brugeren sin sag.
     if (import.meta.env.DEV || import.meta.env.MODE === 'test') {

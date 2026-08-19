@@ -36,7 +36,7 @@ const makeInput = (editorLocationId: string): HTMLInputElement => {
   return input;
 };
 
-describe('findRestoreTarget — feltadresse + editorlokation (§3.7)', () => {
+describe('findRestoreTarget – feltadresse + editorlokation (§3.7)', () => {
   beforeEach(() => { document.body.innerHTML = ''; });
 
   it('finder KUN elementet, der bærer BÅDE feltadresse OG editorlokation', () => {
@@ -61,7 +61,7 @@ describe('findRestoreTarget — feltadresse + editorlokation (§3.7)', () => {
 
   // En STRUKTUREL rækkehandling (insert/delete/reorder) har ingen feltadresse: der findes intet enkelt felt at
   // fokusere. Origin bærer stadig route + fane, så shellen kan navigere til den tabel, ændringen kom fra.
-  // Unionens `kind` gør forskellen type-synlig — en `collection`-origin KAN ikke bære en feltadresse.
+  // Unionens `kind` gør forskellen type-synlig – en `collection`-origin KAN ikke bære en feltadresse.
   it('har intet fokusmål for en rækkehandlings-origin (kind: collection)', () => {
     makeInput('eo.oevrigeKrav:rows:oevrigeKravPerioder');
     const rowOrigin: HistoryOrigin = {
@@ -79,7 +79,7 @@ describe('findRestoreTarget — feltadresse + editorlokation (§3.7)', () => {
   });
 });
 
-describe('scheduleHistoryTargetRestore — fokus/scroll/fokus-ring + retry (§3.7)', () => {
+describe('scheduleHistoryTargetRestore – fokus/scroll/fokus-ring + retry (§3.7)', () => {
   const originalRaf = globalThis.requestAnimationFrame;
   const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
   let rafQueue: FrameRequestCallback[] = [];
@@ -123,7 +123,7 @@ describe('scheduleHistoryTargetRestore — fokus/scroll/fokus-ring + retry (§3.
   /**
    * Et mål, der aldrig dukker op, er en BRUDT INVARIANT (undo-redo-contract §5): efter en gennemført restore er
    * originens tilstand aktuel igen, så dens editorlokation skal findes i DOM. Klassen var usynlig, netop fordi
-   * løkken opgav tavst — brugeren så blot, at fokus ikke flyttede sig, og fejlen kunne leve i månedsvis.
+   * løkken opgav tavst – brugeren så blot, at fokus ikke flyttede sig, og fejlen kunne leve i månedsvis.
    * Diagnostikken skal derfor navngive BEGGE halvdele af identiteten, for et brud sidder typisk i
    * editorlokationen og ikke i feltadressen.
    */

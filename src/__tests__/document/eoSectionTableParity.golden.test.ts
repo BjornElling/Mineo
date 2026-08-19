@@ -10,7 +10,7 @@
  * renderes af ctx-baserede sektion-renderers (loenindkomst, offentlige ydelser + midlertidig
  * EET, regulering, regulering af offentlige ydelser, SH-dage og sygeferiegodtgørelse).
  *
- * Nettet fastfryser den resolved presentation hver sektion producerer — i BEGGE kanaler —
+ * Nettet fastfryser den resolved presentation hver sektion producerer – i BEGGE kanaler –
  * så TableSpec-migreringen af sektionerne kan bevises byte-identisk: migreringen kompilerer
  * TableSpec ned til præcis de params `renderDocumentTable` allerede modtager → identitet ved
  * konstruktion. Et uændret snapshot = uændret output.

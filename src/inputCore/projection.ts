@@ -12,7 +12,7 @@ import type { EvaluationSourceToken } from './evaluationSource';
 
 /**
  * Der er bevidst INTET `warnings`-felt. Feltet fandtes, blev fyldt af en
- * `collector.warn`, ingen kaldte, og læst af ingen consumer — advarsler dannes i domænernes egne typer.
+ * `collector.warn`, ingen kaldte, og læst af ingen consumer – advarsler dannes i domænernes egne typer.
  * Se noten i `inputIssue.ts`.
  */
 export type ProjectionResult<T> =
@@ -36,7 +36,7 @@ export type ProjectionReadResult<T> =
 export type ProjectionCollector = Readonly<{
   /**
    * Læser et PÅKRÆVET felt. `usable` udelukker `undefined` i TYPEN, fordi `require` allerede har afvist
-   * tomhed som en `missing`-consumerfejl — ellers skulle hver kaldssted gentage en undefined-guard, som
+   * tomhed som en `missing`-consumerfejl – ellers skulle hver kaldssted gentage en undefined-guard, som
    * kroppen kunne glemme at udvide, når et nyt read tilføjes.
    *
    * Indsnævringen er kun sand for felter, hvis tomværdi ER `undefined`. Et felt med en ikke-undefined
@@ -49,7 +49,7 @@ export type ProjectionCollector = Readonly<{
 }>;
 
 /**
- * `label` kommer fra readerens `labelOf` — feltets navn i den AKTUELLE kontekst (§3.2a), ikke descriptorens
+ * `label` kommer fra readerens `labelOf` – feltets navn i den AKTUELLE kontekst (§3.2a), ikke descriptorens
  * kontekstfrie form. Ellers ville en `missing`-besked navngive feltet anderledes end den røde feltfejl på
  * samme felt, og anderledes end den label brugeren ser.
  */
@@ -147,17 +147,17 @@ export const runProjection = <T>(
  * Kontrakten er utvetydig: kun en `ready` projektion må fodre en beregningsmotor
  * (`form-contract.md` §2.3), og en projektion kalder ikke motoren, hvis et afhængigt issue gør input
  * uanvendeligt (`error-contract.md` §5). Denne helper udtrykker netop den overgang for de projektioner, der
- * returnerer et `ProjectionResult` — og den bevarer projektionsformen, fordi consumers skal kende både
+ * returnerer et `ProjectionResult` – og den bevarer projektionsformen, fordi consumers skal kende både
  * resultatet OG blokeringen uden selv at samle et `ProjectionResult` (hvor et forkert `status`-felt let
  * ville snige sig ind).
  *
- * Konsekvensen af `blocked` er, at motoren ikke kaldes — ikke at den kaldes med en tomværdi. En maskeret
+ * Konsekvensen af `blocked` er, at motoren ikke kaldes – ikke at den kaldes med en tomværdi. En maskeret
  * tomværdi ville lade motoren regne videre på et falsk input, og det er præcis det brud, denne primitiv
  * findes for at gøre urepræsenterbart.
  *
  * ⚠️ Den er IKKE den eneste vej til et gatet motorkald i kodebasen, og påstår det ikke. Domæneslices, der
  * ikke bygger på `ProjectionResult` (Forsørgertab, EET og EO), gater i stedet pr. dependency-gruppe med
- * påkrævede gate-flag/blocking-issues — se `forsoergertabCalculation.ts`, `eetSnapshot.ts`
+ * påkrævede gate-flag/blocking-issues – se `forsoergertabCalculation.ts`, `eetSnapshot.ts`
  * (`buildGatedProjection`) og `eoSnapshot.ts`. At tvinge dem gennem denne signatur ville kræve, at deres
  * panel-specifikke gates blev ensartet, og det er reelt forskellige concerns (AGENTS.md "Konvergens").
  */

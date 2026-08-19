@@ -27,7 +27,7 @@ import type { KonsolideretOverenskomst, OverenskomstSegmentContext } from './ove
  *
  * U4-clamp: basen clampes til dækningsstart via `max(reguleringsdato, dækningsstart)`
  * (`resolveOverenskomstEffectiveStartIso`). Bevidst adskilt fra den offentlige grens base-
- * fallback — foren dem ikke. Kun Store Bededag må give regulering før første dækkede satsdato.
+ * fallback – foren dem ikke. Kun Store Bededag må give regulering før første dækkede satsdato.
  */
 export const buildPrivatOverenskomstSegmenter = (
   konsolideret: KonsolideretOverenskomst,
@@ -41,7 +41,7 @@ export const buildPrivatOverenskomstSegmenter = (
   // Privat overenskomst clamper basen til dækningsstart via max(reguleringsdato, dækningsstart).
   // Bevidst adskilt fra den offentlige grens clamp (resolveOffentligEffectiveBase), der har sin
   // egen base-fallback til første dækkede interval (proxy-sats før dækning for Store Bededag).
-  // To forskellige clamp-mekanismer for hver sin datamodel — foren dem ikke (jf. U4).
+  // To forskellige clamp-mekanismer for hver sin datamodel – foren dem ikke (jf. U4).
   const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(
     konsolideret.overenskomstId,
     reguleringsdatoIso

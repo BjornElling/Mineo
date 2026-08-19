@@ -35,7 +35,7 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // Opdateret 2026-06-03: nyt felt kravPaaOevrigeErstatningskrav (Ja/Nej/Skjul) på erstatningsopgoerelse-sektionen,
 // magen til de to ovenstående. PERSISTED_DATA_VERSION bumpet til 3.1 (reel persisted schema-ændring).
 // Opdateret 2026-06-03: nyt felt offentligeYdelserKommentarer (optionalString) på erstatningsopgoerelse-sektionen
-// — kommentarfelt på Offentlige ydelser-siden. PERSISTED_DATA_VERSION bumpet til 3.2 (reel persisted schema-ændring).
+// – kommentarfelt på Offentlige ydelser-siden. PERSISTED_DATA_VERSION bumpet til 3.2 (reel persisted schema-ændring).
 // Opdateret 2026-06-03: afsluttesMedEnum udvidet med 'Ingen' (udelader godkendelses-afsnittet fra EO-PDF'en).
 // PERSISTED_DATA_VERSION bumpet til 3.3 (reel persisted schema-ændring; enum-værdimængde ændret).
 // Opdateret 2026-06-10: defaults tilføjet på aarsloen-sektionens påkrævede felter (loenperiode='maaned',
@@ -66,15 +66,15 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // løntræ forsvandt ud af både fingerprintet og ledgerens felt-/collection-udledninger. Fjernelsen sker
 // derfor i migratoren, og fingerprintet dækker igen hvert persisteret felt.
 // Opdateret 2026-08-07: `eoAngivetLoenLoenudvikling.loenPaaHelligdage` var valgfri, mens
-// ansættelsesforholdets tvilling var påkrævet — samme logiske felt med to forskellige kontrakter. Feltet er
+// ansættelsesforholdets tvilling var påkrævet – samme logiske felt med to forskellige kontrakter. Feltet er
 // nu required-with-default ('Almindelig løn') for BEGGE ejere, præcis som årslønssektionen fik det i 3.4.
 // Load-tolerancen består (ældre `.eo` uden feltet får defaulten), men `undefined` kan ikke længere
-// repræsenteres — og dermed heller ikke nå motorens fail-closed-sti.
+// repræsenteres – og dermed heller ikke nå motorens fail-closed-sti.
 // PERSISTED_DATA_VERSION bumpet til 3.12 (reel persisted schema-/parse-semantikændring).
 const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-c1dbceee';
 
 describe('persistenceVersionDrift', () => {
-  it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {
+  it('schema fingerprint matcher snapshot – ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {
     const current = computeSchemaFingerprint(persistenceSchemas);
     expect(current).toBe(SCHEMA_FINGERPRINT_SNAPSHOT);
   });

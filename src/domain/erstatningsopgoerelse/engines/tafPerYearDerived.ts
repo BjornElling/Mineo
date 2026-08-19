@@ -99,7 +99,7 @@ export type TafYearEntry = Readonly<{
   year: number;
   segments: readonly TafYearSegment[];
   // Kun indtægter i erstatningsperioden (løn, ydelser, sygeferiegodtgørelse). "Allerede betalt TAF"
-  // indgår IKKE her — den trækkes fra UDEN FOR forlig-faktoren og bæres separat i
+  // indgår IKKE her – den trækkes fra UDEN FOR forlig-faktoren og bæres separat i
   // `yearTidligereModtagetTafOre`, så "Beregnet krav"-ligningen er aritmetisk korrekt.
   deductions: readonly TafYearDeduction[];
   yearIncomeOre: MoneyOre;

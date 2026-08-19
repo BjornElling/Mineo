@@ -25,7 +25,7 @@ export type EntityChoiceFieldProps<TValue extends StyledDropdownValue, TEntity> 
   placeholder?: string;
   width?: number | string;
   name?: string;
-  /** Visningstekst for en option med rig markup — se `GridChoiceCellProps.getOptionLabel`. */
+  /** Visningstekst for en option med rig markup – se `GridChoiceCellProps.getOptionLabel`. */
   getOptionLabel?: (value: TValue) => string;
   sx?: SxProps<Theme>;
 }>;

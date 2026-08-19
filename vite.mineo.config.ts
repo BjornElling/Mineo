@@ -76,7 +76,7 @@ const SERVICE_WORKER_VERSION_PLACEHOLDER = '__MINEO_BUILD_VERSION__';
 /**
  * Build-versionen kommer fra `.env.build-info.local` (genereret af `scripts/generate-build-info.mjs`)
  * og eksponeres til app-koden som `import.meta.env.VITE_APP_VERSION` i `vite.config.ts`. Node-siden
- * af buildet kan ikke læse `src/config/buildInfo.ts` — det er app-kode — så versionen læses her fra
+ * af buildet kan ikke læse `src/config/buildInfo.ts` – det er app-kode – så versionen læses her fra
  * samme `define`, som app-koden selv får sin fra. Én kilde, to forbrugere.
  */
 const resolveBuildVersion = (define: Record<string, unknown> | undefined): string => {
@@ -95,7 +95,7 @@ const resolveBuildVersion = (define: Record<string, unknown> | undefined): strin
  * Emitterer buildets to PWA-artefakter som ét sammenhængende par:
  *
  * - `sw.js` med build-versionen indbagt i sine bytes. Det er dét, der gør `registration.update()`
- *   i stand til at opdage en deploy i en åben session — registrerings-URL'ens query ændrer sig jo
+ *   i stand til at opdage en deploy i en åben session – registrerings-URL'ens query ændrer sig jo
  *   ikke, så længe klienten kører den samme build.
  * - `pwa-assets.json` med `version` OG `assets`. Versionsfeltet har to forbrugere: workeren afviser
  *   at installere mod et manifest fra en anden build, og klienten bruger det som det autoritative
@@ -144,7 +144,7 @@ export default defineConfig(
     plugins: [mineoPwaArtifacts(), mineoDevPwaManifest()],
     server: {
       // Mineos modultræ er stort, og den første transform af det koster over 30 sekunder på
-      // Windows. Uden opvarmning betales den regning først når browserne forbinder — og under en
+      // Windows. Uden opvarmning betales den regning først når browserne forbinder – og under en
       // E2E-kørsel rammer alle workers devserveren samtidig i netop det øjeblik. Opvarmningen
       // flytter kaskaden til serverens opstart, hvor den overlapper med browserstarten i stedet
       // for at konkurrere med den.

@@ -14,7 +14,7 @@ import type {
   showNeedsPeriodHint: () => void;
 }
 
-// Bemærk: `OffentligeYdelserTableHandle` er slettet. Interfacet havde INGEN implementer og INGEN consumer —
+// Bemærk: `OffentligeYdelserTableHandle` er slettet. Interfacet havde INGEN implementer og INGEN consumer –
 // tabellen eksponerer intet imperativt handle, og valideringen læses reader-afledt gennem
 // `offentligeYdelserTableValidation`. Et interface uden begge ender lignede en kontrakt, der bandt tabellen
 //. De to typer, det brugte, er fortsat i brug af netop den validering.

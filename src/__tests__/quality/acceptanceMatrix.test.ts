@@ -1,5 +1,5 @@
 /**
- * Acceptregistret for §5's 30 acceptkriterier — det maskinelt kontrollerede register.
+ * Acceptregistret for §5's 30 acceptkriterier – det maskinelt kontrollerede register.
  *
  * **Hvorfor dette register findes, og hvorfor det ikke er en manuel afkrydsning.**
  *
@@ -13,13 +13,13 @@
  * arkitekturen holder; en acceptflade, der i stedet grupperer forløb ("blur, Enter, klik væk og
  * navigation"), kan stå fuldstændigt grøn, mens et §5-kriterium slet ikke har en dækningskilde.
  *
- * **Registret skal selv kunne fejle.** Et værn, hvis mål er slettet, bliver grønt af tomhed — og et
+ * **Registret skal selv kunne fejle.** Et værn, hvis mål er slettet, bliver grønt af tomhed – og et
  * register, der kun kontrollerer at en FIL findes, har præcis den svaghed: testfilen kan overleve,
  * mens netop den `it(...)`, punktet hvilede på, er væk. Derfor verificeres hvert punkt på TESTNAVN,
  * og navnet skal tilhøre en AKTIV deklaration i den angivne fil.
  *
  * **En suite er ikke evidens i sig selv.** Et `describe`-navn kan bestå, efter at hver `it` under det
- * er slettet — så punktet ville stå grønt uden en eneste udførende assertion. Registret citerer derfor
+ * er slettet – så punktet ville stå grønt uden en eneste udførende assertion. Registret citerer derfor
  * kun LEAF-tests (`it`/`test`), og parseren kender forskellen strukturelt: en `describe`, der bærer et
  * citeret navn, afvises med en fejl, der siger hvorfor.
  *
@@ -37,7 +37,7 @@ type CoverageSource = Readonly<{
   /**
    * Navne på AKTIVE LEAF-tests (`it`/`test`) i filen, som bærer kriteriet. Matches som substring MOD DE
    * PARSEDE deklarationsnavne (ikke mod filens råtekst), så en omformulering af halen ikke er en falsk
-   * fejl — men en slettet ELLER skippet test er. Et `describe`-navn er IKKE gyldig evidens: se filens
+   * fejl – men en slettet ELLER skippet test er. Et `describe`-navn er IKKE gyldig evidens: se filens
    * hoved og `leafTestNames` nedenfor.
    */
   tests: readonly string[];
@@ -52,8 +52,8 @@ type AcceptanceCriterion = Readonly<{
   /**
    * En KENDT begrænsning i kriteriets dækning, med det dokument der sporer den.
    *
-   * Et kriterium må ikke fremstå fuldt dækket, når dets dækning beviseligt har et hul. Alternativet —
-   * at lade kriteriet stå uden note — er netop den falske fuldstændighed, hele registret er bygget for
+   * Et kriterium må ikke fremstå fuldt dækket, når dets dækning beviseligt har et hul. Alternativet –
+   * at lade kriteriet stå uden note – er netop den falske fuldstændighed, hele registret er bygget for
    * at udelukke. Feltet er derfor en del af registrets kontrakt, ikke en kommentar: testen nedenfor
    * kræver, at filen i `trackedIn` FINDES, så et hul ikke kan dokumenteres væk med en henvisning til
    * en opfølgning, ingen har oprettet.
@@ -273,7 +273,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
     sources: [
       {
         // ÆGTE warning-fixtures over alle fire konsekvenskanaler. En fixture, der committer en
-        // bounds-FEJL, måler kriterium 15's dimension og skaber slet ingen warning — warnings dannes
+        // bounds-FEJL, måler kriterium 15's dimension og skaber slet ingen warning – warnings dannes
         // i domænerne, og det er dér, invarianten skal måles.
         file: 'src/__tests__/document/documentGateMatrix.test.ts',
         tests: [
@@ -535,7 +535,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
     criterion: 27,
     title: 'Alle 18 dokumentoutputs bruger samme definition til reaktiv gate og click-preflight.',
     // Kriteriet har ingen `knownLimitation`: formatet er ikke synligt i projektionskonteksten, så
-    // spørgsmålet "nåede fixturen ready-grenen?" er irrelevant. En gate KAN ikke læse formatet — det
+    // spørgsmålet "nåede fixturen ready-grenen?" er irrelevant. En gate KAN ikke læse formatet – det
     // er en compilerfejl, bevist af en rigtig oversættelse af en virtuel definition mod det ægte
     // program.
     sources: [
@@ -560,7 +560,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
         tests: [
           'en gate, der læser downloadformatet, kan ikke kompilere',
           'kontrolprøve: samme definition UDEN formatlæsning kompilerer rent',
-          'gate-settings bærer KUN rækkepolitikken — hverken format eller brevhoved',
+          'gate-settings bærer KUN rækkepolitikken – hverken format eller brevhoved',
           'formatet når fortsat writer-valget gennem render-settings',
         ],
       },
@@ -630,7 +630,7 @@ const DESIGN_DOC = 'docs/architecture/input-architecture.md';
  *
  * Registrets titler er ikke dekoration: de er den påstand, hvert kriterium dækker. Uden denne kobling
  * kunne §5 omformuleres eller udvides, mens registret uforstyrret blev ved med at måle en anden liste
- * — et register over den forkerte flade, blot et niveau højere end en enkelt forkert dækningskilde.
+ * – et register over den forkerte flade, blot et niveau højere end en enkelt forkert dækningskilde.
  */
 const parseDesignCriteria = (): ReadonlyMap<number, string> => {
   const lines = readFile(DESIGN_DOC).split(/\r?\n/);
@@ -671,7 +671,7 @@ describe('§5-acceptregister (målarkitekturens 30 kriterier)', () => {
    * over MÅLARKITEKTUREN og ikke over sin egen liste: udvides §5 til 31 kriterier, eller omformuleres
    * et kriterium, bliver denne test rød med nummeret.
    */
-  it('hvert kriterium citerer designets §5 ordret — registret kan ikke drifte fra sin kilde', () => {
+  it('hvert kriterium citerer designets §5 ordret – registret kan ikke drifte fra sin kilde', () => {
     const design = parseDesignCriteria();
     expect(
       [...design.keys()].sort((left, right) => left - right),
@@ -703,7 +703,7 @@ describe('§5-acceptregister (målarkitekturens 30 kriterier)', () => {
 
   /**
    * En kendt begrænsning skal spores i et dokument, der FINDES. Ellers kunne et dækningshul erklæres
-   * "håndteret" med en henvisning til en opfølgning, ingen har oprettet — en påstand uden dækning,
+   * "håndteret" med en henvisning til en opfølgning, ingen har oprettet – en påstand uden dækning,
    * hvilket er samme fejlklasse som resten af registret værner mod.
    */
   it('hver kendt begrænsning peger på et sporingsdokument, der findes', () => {
@@ -734,10 +734,10 @@ describe('§5-acceptregister (målarkitekturens 30 kriterier)', () => {
 // AST-parseren for aktive testdeklarationer bor i `./testDeclarations`, fordi `testNamingConvention.test.ts`
 // har brug for PRÆCIS samme sondringer (arvet skip, leaf vs. suite, dynamiske navne). En kopi pr. konsument
 // ville være to udgaver af den samme svære sondring.
-describe('§5-acceptregister — kilde-verifikation', () => {
+describe('§5-acceptregister – kilde-verifikation', () => {
   /**
    * Kernekontrollen. En ren fil-eksistens-check ville bestå, selv om netop den test, kriteriet hviler
-   * på, var slettet — filen kan sagtens overleve sin relevante `it(...)`. Derfor kontrolleres, at
+   * på, var slettet – filen kan sagtens overleve sin relevante `it(...)`. Derfor kontrolleres, at
    * navnet hører til en AKTIV LEAF-test.
    */
   it('hver angivet test findes som en aktiv LEAF-test (registret kan ikke blive grønt af tomhed)', () => {
@@ -760,7 +760,7 @@ describe('§5-acceptregister — kilde-verifikation', () => {
             asSuite
               ? `kriterium ${entry.criterion} (${entry.title}): "${testName}" i ${source.file} er en SUITE, `
                 + 'ikke en leaf-test. Et suitenavn overlever sletningen af hver test under det og er '
-                + 'derfor ikke evidens — citér den konkrete it(...).'
+                + 'derfor ikke evidens – citér den konkrete it(...).'
               : `kriterium ${entry.criterion} (${entry.title}): ingen AKTIV leaf-test i ${source.file} hedder `
                 + `noget, der indeholder "${testName}". Er testen omdøbt, opdatér registret; er den slettet `
                 + 'eller skippet, er kriteriet UDÆKKET.'
@@ -774,12 +774,12 @@ describe('§5-acceptregister — kilde-verifikation', () => {
    * Modsat retning: kontrollen skal kunne FEJLE. Et prædikat, der ikke kan afvise et navn, som
    * beviseligt IKKE er deklareret, ville bestå alt.
    */
-  it('kontrollen afviser et navn, der ikke er en aktiv deklaration — prædikatet er ikke vakuøst', () => {
+  it('kontrollen afviser et navn, der ikke er en aktiv deklaration – prædikatet er ikke vakuøst', () => {
     const file = 'src/__tests__/inputCore/editor/fieldEditor.test.ts';
     const leaves = leafTestNames(readFile(file), file);
     // Et navn, der IKKE findes, afvises.
     expect(leaves.some((name) => name.includes('dette testnavn findes bevisligt ikke'))).toBe(false);
-    // Et navn, der findes, genkendes — ellers var prædikatet blot altid falsk.
+    // Et navn, der findes, genkendes – ellers var prædikatet blot altid falsk.
     expect(leaves.some((name) => name.includes('Escape lukker uden command'))).toBe(true);
     // Og en SUITE i samme fil er ikke en leaf: det er præcis den form, registret afviser som evidens.
     expect(leaves.some((name) => name.includes('felt-editor-state-machine'))).toBe(false);
@@ -813,7 +813,7 @@ describe('§5-acceptregister — kilde-verifikation', () => {
       'it(`${x}: dynamisk navn med statisk hale`, () => {});',
       'it.skip(`${x}: skippet dynamisk navn`, () => {});',
       // En TØMT suite: navnet lever, men der er ingen udførende assertion under det. Det er præcis den
-      // form — og som registret ikke kan citere.
+      // form – og som registret ikke kan citere.
       "describe('tømt suite uden tests', () => {});",
     ].join('\n');
 
@@ -833,7 +833,7 @@ describe('§5-acceptregister — kilde-verifikation', () => {
     expect(leaves).not.toContain('navn i linjekommentar');
     expect(leaves).not.toContain('navn i strengliteral');
 
-    // Suitenavne er IKKE leaf-evidens — hverken den aktive eller den tømte.
+    // Suitenavne er IKKE leaf-evidens – hverken den aktive eller den tømte.
     expect(leaves).not.toContain('aktiv suite');
     expect(leaves).not.toContain('tømt suite uden tests');
     expect(suites).toContain('aktiv suite');

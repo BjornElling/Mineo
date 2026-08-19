@@ -79,7 +79,7 @@ createServer((request, response) => {
   }
 
   // Identitetssvar. Serveren overlever, hvis en Playwright-kørsel afbrydes midt i (fx et
-  // værktøjstimeout), og så fejler ENHVER senere kørsel med «port already used» — uden at det
+  // værktøjstimeout), og så fejler ENHVER senere kørsel med «port already used» – uden at det
   // fremgår, at det er vores egen efterladte proces. `scripts/free-e2e-port.mjs` spørger her, så
   // den kan skelne en efterladt Mineo-server fra en fremmed proces og kun rydde sin egen op.
   if (pathname === IDENTITY_PATH) {

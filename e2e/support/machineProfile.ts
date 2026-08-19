@@ -7,13 +7,13 @@ import os from 'node:os';
  * men fejlede på en svagere bærbar med `browserContext.newPage: Target crashed` i otte samtidige
  * Chromium-workers samt spredte timeouts. Playwrights standard vælger workers alene ud fra
  * kernetal. Den kender hverken maskinens hukommelse eller dens faktiske hastighed, så en bærbar
- * med lige så mange logiske kerner — men langsommere kerner og halvt så meget RAM — får præcis
+ * med lige så mange logiske kerner – men langsommere kerner og halvt så meget RAM – får præcis
  * samme parallelitet som referencemaskinen og løber tør for begge dele.
  *
  * Profilen måler de tre størrelser, der reelt afgør hvor meget maskinen kan bære, og oversætter
  * dem til et worker-antal og en timeout-faktor. Den er bevidst asymmetrisk: den kan kun gøre
- * kørslen mere tålmodig og mindre parallel, aldrig mere aggressiv. På referencemaskinen — og på
- * alt hurtigere — producerer den nøjagtig de tal, konfigurationen havde i forvejen, så hverken
+ * kørslen mere tålmodig og mindre parallel, aldrig mere aggressiv. På referencemaskinen – og på
+ * alt hurtigere – producerer den nøjagtig de tal, konfigurationen havde i forvejen, så hverken
  * den stationære maskine eller CI ændrer adfærd.
  *
  * Timeout-faktoren hæver kun lofter. Ingen test venter på sin timeout, så en højere grænse gør
@@ -24,7 +24,7 @@ import os from 'node:os';
 /**
  * Referencemålingen fra den maskine, hvor suiten er kalibreret og grøn (AMD Ryzen 7 7700X,
  * 16 logiske kerner, 32 GiB). Målingen er stabil inden for ±5 % på tværs af kørsler, og alt
- * hurtigere end referencen klemmes til faktor 1 — konstanten kan derfor kun gøre langsommere
+ * hurtigere end referencen klemmes til faktor 1 – konstanten kan derfor kun gøre langsommere
  * maskiner mere tålmodige, ikke referencemaskinen mindre.
  */
 export const REFERENCE_PROBE_MS = 31;
@@ -65,9 +65,9 @@ export interface MachineCapacity {
 }
 
 export interface MachineProfileOverrides {
-  /** `PLAYWRIGHT_WORKERS` — eksplicit worker-antal, fx til at reproducere en konkret kørsel. */
+  /** `PLAYWRIGHT_WORKERS` – eksplicit worker-antal, fx til at reproducere en konkret kørsel. */
   readonly workers?: number | undefined;
-  /** `PLAYWRIGHT_TIMEOUT_SCALE` — eksplicit timeout-faktor. */
+  /** `PLAYWRIGHT_TIMEOUT_SCALE` – eksplicit timeout-faktor. */
   readonly timeoutScale?: number | undefined;
 }
 
@@ -93,7 +93,7 @@ export const parsePositiveNumberEnv = (raw: string | undefined): number | undefi
 };
 
 /**
- * Oversætter en målt maskinkapacitet til worker-antal og timeout-faktor. Ren funktion — al måling
+ * Oversætter en målt maskinkapacitet til worker-antal og timeout-faktor. Ren funktion – al måling
  * og miljølæsning ligger uden for, så reglerne kan testes uden en bestemt maskine.
  */
 export const deriveMachineProfile = (
@@ -114,7 +114,7 @@ export const deriveMachineProfile = (
   );
 
   // Langsomme kerner dæmpes med kvadratroden, ikke lineært: CPU-hastighed er ikke det, der får en
-  // browser-target til at crashe — det er hukommelsen, og den har sit eget hårde loft ovenfor.
+  // browser-target til at crashe – det er hukommelsen, og den har sit eget hårde loft ovenfor.
   // En langsom maskine skal have mindre samtidighedspres, men ikke betale for det med en kørsel,
   // der tager fire gange så lang tid.
   const bySpeed = Math.max(1, Math.round(byCpu / Math.sqrt(slowness)));
@@ -137,7 +137,7 @@ export const deriveMachineProfile = (
 
 /**
  * Fast CPU-arbejde, hvis varighed sammenlignes med referencemaskinens. Resultatet forbruges til
- * sidst, fordi en løkke uden observerbart resultat kan optimeres helt væk af JIT'en — så ville
+ * sidst, fordi en løkke uden observerbart resultat kan optimeres helt væk af JIT'en – så ville
  * proben måle nul og gøre enhver maskine «hurtig».
  */
 const PROBE_ITERATIONS = 3_000_000;
@@ -184,7 +184,7 @@ const resolveProbeMs = (): number => {
 };
 
 export const measureMachineCapacity = (): MachineCapacity => ({
-  // `os.cpus().length` — ikke `availableParallelism()` — fordi Playwrights egen standard («50 %»)
+  // `os.cpus().length` – ikke `availableParallelism()` – fordi Playwrights egen standard («50 %»)
   // regner på netop dét tal. Samme kilde er det, der gør profilen til en ægte no-op på en maskine,
   // som ikke er svagere end referencen.
   logicalCpus: os.cpus().length,

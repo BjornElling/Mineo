@@ -3,12 +3,12 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-08-13 (regel 8–10 er implementeret og verificeret: ciffergrænser pr.
+**Senest verificeret mod kode:** 2026-08-19 (regel 8–10 er implementeret og verificeret: ciffergrænser pr.
 talled for beløb/procent, erklæret `maxLength` for tekstfelter, paste-afgrænsning i `spliceDraftWithPaste` og
 afvisning af gentagne dato-separatorer samt fælles tilgængelige navne)
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
-implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den — se §10 og
+implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den – se §10 og
 `form-contract.md` §12.
 
 ## 1. Begreber
@@ -21,7 +21,7 @@ implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den
 
 ## 2. Lagdeling
 
-### Lag A — UI-base
+### Lag A – UI-base
 
 UI-basen ejer render, styling, a11y og videresendelse af input-, fokus- og keyboard-events.
 
@@ -44,7 +44,7 @@ felter i en eksisterende familie automatisk følger reglen. Grid-celler bruger d
 placeholder-række hvor en endnu ikke eksisterende entity ikke kan læses af `InputReader`. Transiente eller
 indstillingskontroller uden `FieldRef` skal levere en eksplicit dansk label.
 
-### Lag B — fælles felt-editor
+### Lag B – fælles felt-editor
 
 Én reducer/editor ejer for både formular og grid kun den åbne editors rå draft og lifecycle. Lukket visning er ikke
 lokal state, men afledes direkte af `SettledFieldView`:
@@ -59,7 +59,7 @@ Der findes ingen lukket draftkopi, touched-kopi af input, pending-prop-guard, fi
 autoritativ replacement kan ikke passere commit-barrieren, mens editoren er åben. Editorlaget kalder kun den fælles
 inputtransaktion og må ikke kende et konkret domæne eller have surface-specifik parsing.
 
-### Lag C — feltdescriptor og codec
+### Lag C – feltdescriptor og codec
 
 Hver inputfamilie har ét `FieldCodec<T>` (`src/inputCore/fieldCodec.ts`):
 
@@ -87,7 +87,7 @@ er fortegns-politikken; `form-contract.md` §8.2 ejer reglen om den.
 Krav:
 
 1. `parseForSettle` returnerer enten canonical værdi eller deterministisk ugyldighed. `FieldRejectReason` har
-   præcis én værdi, `'format'` — en anden afvisningsgrund er urepræsenterbar, og det er dét, der gør krav 7
+   præcis én værdi, `'format'` – en anden afvisningsgrund er urepræsenterbar, og det er dét, der gør krav 7
    og `form-contract.md` §8 sande i typesystemet frem for kun i prosa.
 2. Tom tekst mapper til feltets canonical tomme værdi.
 3. `format` er deterministisk og bruges kun for den lukkede visning af afsluttede gyldige værdier.
@@ -102,7 +102,7 @@ Krav:
    tegnsæt og et tegn ud over feltets maksimale antal tegn, cifre eller decimaler kommer ikke ind i feltet.
    Blokeringen omfatter tegnsæt og længde, ikke talværdi: en korrekt formateret værdi inden for længdegrænsen,
    der bryder feltets min/max, bliver canonical og får sit afledte bounds-issue efter regel 7. Blokeringen
-   gælder kun brugerens indtastning i feltet — ikke afledte eller beregnede værdier, som frit må have flere
+   gælder kun brugerens indtastning i feltet – ikke afledte eller beregnede værdier, som frit må have flere
    cifre end det inputfelt, de stammer fra.
 
    **Grænsen erklæres ét sted og håndhæves ad tre veje.** Politikken er DATA på codecet
@@ -110,13 +110,13 @@ Krav:
    `charLengthPolicy.ts`; den må ikke være et lokalt valg på kaldsstedet. Håndhævelsen sker i
    tegnfilteret (tastning), i `codec.normalizePaste` + `spliceDraftWithPaste` (paste) og i
    `codec.parseForSettle` (settle). Fordelingen er ikke frivillig: formular- og tabelfladen SKAL læse
-   samme erklæring, for da de konfigurerede hver sit filter i hånden, blev de uenige om samme felt —
+   samme erklæring, for da de konfigurerede hver sit filter i hånden, blev de uenige om samme felt –
    tabelcellen blokerede den 3. decimal, formularen gjorde ikke, og ingen grid-celle havde et
    længdeloft overhovedet.
 9. Paste er ikke en selvstændig indgang. Paste behandles tegn for tegn som almindelig tastning fra samme
    startposition, med identisk afgrænsning: et tegn, som codecet ville afvise ved tastning, springes over, men
    paste fortsætter med næste tegn. Præcision-, ciffer- og længdegrænser håndhæves undervejs; overskydende tegn
-   springes over. Et paste, der afkortes af feltets længdegrænse, er derfor det forventede resultat — præcis de
+   springes over. Et paste, der afkortes af feltets længdegrænse, er derfor det forventede resultat – præcis de
    samme tegn ville være blevet afvist ved tastning. Et resultat, der stadig er formatmæssigt ugyldigt, bevares
    som rejected råtekst ved settle i stedet for tavst at blive ændret til en anden gyldig værdi. Samme regel
    bruges på formular- og tabeloverfladen.
@@ -125,7 +125,7 @@ Krav:
     Kronologiske min/max-datobounds er derimod talværdi og må ikke afskære hverken tastning eller paste; de
     forbliver afledte issues efter settle, mens formatmæssigt ugyldige kalenderdatoer bevares som rejected råtekst.
 
-### Lag D — surface-adaptere
+### Lag D – surface-adaptere
 
 Form- og grid-adaptere må kun tilføje:
 
@@ -140,7 +140,7 @@ De må ikke parse, skrive persistence, eje history, oprette fingerprints eller h
 ## 3. Feltdescriptor, reference og adresse
 
 ```ts
-// src/inputCore/fieldDescriptor.ts — udsnit; descriptoren bærer også id, template,
+// src/inputCore/fieldDescriptor.ts – udsnit; descriptoren bærer også id, template,
 // emptyValue, isEmpty, readCanonical, writeCanonical, relevance?, validators? og bind.
 type FieldDescriptor<T> = Readonly<{
   codec: FieldCodec<T>;
@@ -172,7 +172,7 @@ Regler:
    `HistoryOrigin` er en **diskrimineret union** på `kind`, ikke én type med et valgfrit felt:
    `FieldHistoryOrigin` bærer en PÅKRÆVET `field: FieldAddress`, mens `CollectionHistoryOrigin` slet
    ikke har feltet, men i stedet en påkrævet `collection` og en påkrævet destination. En strukturel
-   rækkehandling har ikke ét felt — men et feltcommit må heller ikke kunne sendes uden adresse, og
+   rækkehandling har ikke ét felt – men et feltcommit må heller ikke kunne sendes uden adresse, og
    netop den fejl gør unionen urepræsenterbar. Route og fane følger altid med.
 
 ## 4. Settle-kontrakt
@@ -181,7 +181,7 @@ Regler:
 - Blur og Enter udløser samme `settle`.
 - Escape gendanner præcis tilstanden ved editorens åbning og committer aldrig.
 - Et succesfuldt settle skriver canonical værdi og fjerner tidligere rejection atomisk.
-- Et ugyldigt settle rydder feltets canonical slot til tomværdien og skriver rejected rå tekst atomisk — gensidigt
+- Et ugyldigt settle rydder feltets canonical slot til tomværdien og skriver rejected rå tekst atomisk – gensidigt
   udelukkende (XOR). Der maskeres ingen tidligere canonical værdi; en afløst gyldig værdi findes kun i undo-historikken.
 - Et no-op-settle skriver hverken storage eller history og stiger ikke revisionen.
 - Kritiske handlinger bruger samme settle-handle; der findes ingen særskilt preflight-parser.
@@ -249,10 +249,10 @@ et fast pivotår. Eksempel: `30` fortolkes som 1930 i 2024, men som 2030 fra og 
 Den normative reference er denne kontrakt sammen med `form-contract.md`.
 
 Feltidentitet er den strukturelle `FieldRef`/feltadresse. Der findes ingen parallel draft-kanal, ingen
-fingerprints og ingen `rowId:colIndex` som persistent identitet — genindfør dem ikke.
+fingerprints og ingen `rowId:colIndex` som persistent identitet – genindfør dem ikke.
 
-De slettede modulstier og symboler — herunder `useDraftField`, `useTableInputCore`, `useRowDrafts`,
-`useCellInvalidDraftChannel` og `onFieldError` — er dækket af `input/deleted-legacy-architecture-import` og
+De slettede modulstier og symboler – herunder `useDraftField`, `useTableInputCore`, `useRowDrafts`,
+`useCellInvalidDraftChannel` og `onFieldError` – er dækket af `input/deleted-legacy-architecture-import` og
 `legacy/forbidden-identifier` (se `form-contract.md` §12). Navneværnet supplerer de ansvarsbaserede grænser;
 det er ikke i sig selv inputarkitekturens bevis.
 

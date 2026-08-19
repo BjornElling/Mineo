@@ -46,7 +46,7 @@ const REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM = 6;
 // inset, udelades i Word).
 const MANUEL_PROCENTSATS_NUMBER_INSET_MM = 13;
 const MANUEL_PROCENTSATS_NUMBER_HEADERS = new Set(['procent', 'indeks', 'akkumuleret']);
-// "Beregnet regulering": Indeksberegnings-kolonnen rummer meget varierende indhold — fra et
+// "Beregnet regulering": Indeksberegnings-kolonnen rummer meget varierende indhold – fra et
 // enkelt indekstal til lange, ombrudte formler. Den behandles derfor som "grow-kolonne": de øvrige
 // kolonner garanteres kun deres indholdsbestemte min-bredde, og Indeksberegning får al den resterende
 // plads (med ligelig fordeling af et evt. overskud mellem alle kolonner). Når kolonnen udelades
@@ -138,7 +138,7 @@ const isPopulatedReguleringsCell = (value: string | undefined): boolean => {
 };
 
 // Tomme celler vises som bindestreg, så reguleringstabellerne ikke fremstår med visuelle "huller"
-// (fx den første periodes tomme Lønudvikling-celle). Rent visuelt — påvirker ikke beregning eller
+// (fx den første periodes tomme Lønudvikling-celle). Rent visuelt – påvirker ikke beregning eller
 // kolonne-filtreringen, der behandler både '' og '-' som ikke-udfyldt.
 const cellOrDash = (value: string | undefined): string => {
   const normalized = (value ?? '').trim();
@@ -481,7 +481,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     // Overenskomst-sporet havde tidligere sin EGEN navn-kun-visning her, så samme overenskomst hed
     // `Industriens overenskomst` i dokumentet og `Industriens overenskomst (3F / DI)` i EO-inspektionen.
-    // `resolveValgtReguleringDisplay` bærer nu begge steder — navn OG parter (brugerbeslutning 2026-07-31).
+    // `resolveValgtReguleringDisplay` bærer nu begge steder – navn OG parter (brugerbeslutning 2026-07-31).
     const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
     const anvendtReguleringsdato = resolveAnvendtReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
     const skadedatoIso = parseOptionalIsoDate(stamdataValues.skadedato);

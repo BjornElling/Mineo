@@ -79,7 +79,7 @@ const countWrites = (target: SlimInputStore): { count: () => number; stop: () =>
   return { count: () => writes, stop: unsub };
 };
 
-describe('dispatchInput — transaktionsinvarianter (§7.4)', () => {
+describe('dispatchInput – transaktionsinvarianter (§7.4)', () => {
   it('afviser en ukendt/slettet feltreference FØR nogen observerbar mutation', () => {
     const before = store.getState();
     expect(() => dispatchInput(store, catalog, settleField(tillaegstidField.bind('findes-ikke'), '5')))
@@ -218,7 +218,7 @@ describe('dispatchInput — transaktionsinvarianter (§7.4)', () => {
   });
 });
 
-describe('dispatchInput — undo/redo (§3.6/§7.2)', () => {
+describe('dispatchInput – undo/redo (§3.6/§7.2)', () => {
   it('gyldig A → ugyldig X → undo → redo gendanner hele tilstandene, hver med en ny revision', () => {
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });
     dispatchInput(store, catalog, settleField(aargangField.bind(), 'abc'), { now: 2 });
@@ -273,7 +273,7 @@ describe('dispatchInput — undo/redo (§3.6/§7.2)', () => {
   });
 });
 
-describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/redo (§3.7)', () => {
+describe('dispatchInput – restoredOrigin surfaces kun ved en gennemført undo/redo (§3.7)', () => {
   const originFor = <T>(field: FieldRef<T>) => ({
     kind: 'field' as const,
     field: field.address,
@@ -326,7 +326,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
   });
 
   // En STRUKTUREL rækkecommand skal have en origin, så undo/redo altid har et
-  // restore-anker. Kernetypen krævede route+fane, men PORTEN tillod at udelade origin HELT — history gemte da
+  // restore-anker. Kernetypen krævede route+fane, men PORTEN tillod at udelade origin HELT – history gemte da
   // `undefined`, og en undo kunne gendanne en række uden noget sted at navigere til.
   //
   // Kravet er "origin SKAL være der", ikke "origin skal være af arten collection": en række-PROMOVERING er
@@ -352,7 +352,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
         const before = store.getState();
         const storedBefore = sessionStorage.getItem(key);
 
-        // @ts-expect-error — origin er PÅKRÆVET for en strukturel command; castet efterligner utypet kode.
+        // @ts-expect-error – origin er PÅKRÆVET for en strukturel command; castet efterligner utypet kode.
         expect(() => dispatchInput(store, catalog, command(), {})).toThrow(/kræver en history-origin/);
 
         const after = store.getState();
@@ -363,7 +363,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
       });
     }
 
-    // Runtime-værnet findes præcis for de kald, der omgår typerne — så det skal afvise et DELVIST origin, ikke
+    // Runtime-værnet findes præcis for de kald, der omgår typerne – så det skal afvise et DELVIST origin, ikke
     // kun et helt tomt. `{ kind: 'collection' }` har `undefined` i sine felter, og `undefined !== ''` er sandt:
     // en ren tomstrengs-sammenligning ville lade et ubrugeligt anker passere.
     const invalidOrigins: ReadonlyArray<readonly [string, unknown]> = [
@@ -379,12 +379,12 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
       ['ukendt kind med collection-felter', {
         kind: 'bogus', collection: 'rentekravRows', editorLocationId: 'x', route: '/r', tabKey: null,
       }],
-      // ...og et feltanker med en HALV adresse fejlede først ved serialisering i restoren — langt fra fejlkilden.
+      // ...og et feltanker med en HALV adresse fejlede først ved serialisering i restoren – langt fra fejlkilden.
       ['field med halv adresse', { kind: 'field', editorLocationId: 'x', field: { section: 'renteberegning' } }],
       ['field med adresse uden path', {
         kind: 'field', editorLocationId: 'x', field: { section: 'renteberegning', field: 'belob' },
       }],
-      // Verifikationsrunde: et array er ikke nok — SEGMENTERNES form skal også være gyldig, ellers fejler
+      // Verifikationsrunde: et array er ikke nok – SEGMENTERNES form skal også være gyldig, ellers fejler
       // først `serializeFieldAddress` inde i restoren. Valideres nu mod det kanoniske `fieldAddressSchema`.
       ['field med tomt path-segment', {
         kind: 'field',
@@ -417,7 +417,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
         kind: 'collection', collection: 'rentekravRows', editorLocationId: 'x ', route: '/r', tabKey: null,
       }],
       // Et FELT-anker må udelade destinationen (standalone er ikke-navigerbar), men er den ANGIVET, skal den
-      // være brugbar — ellers sendes restoren efter en route/fane, der ikke findes.
+      // være brugbar – ellers sendes restoren efter en route/fane, der ikke findes.
       ['field med whitespace-route', {
         kind: 'field',
         editorLocationId: 'x',
@@ -466,7 +466,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
       expect(result.changed).toBe(true);
     });
 
-    it('ACCEPTERER en promovering med FELTORIGIN — undo fokuserer den skrevne celle', () => {
+    it('ACCEPTERER en promovering med FELTORIGIN – undo fokuserer den skrevne celle', () => {
       // Promoveringen er et felt-settle (§3.8). Et krav om collection-origin dér ville give en DÅRLIGERE
       // restore: brugeren ville blot landes på tabellen i stedet for i cellen.
       const fieldOrigin = {
@@ -490,7 +490,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
       expect(undo.restoredOrigin?.kind).toBe('field');
     });
 
-    it('en ren felttransaktion kræver INGEN origin — den er ikke strukturel', () => {
+    it('en ren felttransaktion kræver INGEN origin – den er ikke strukturel', () => {
       // Modstykket: kravet må ikke blive så bredt, at en feltransaktion skal opfinde en rækkeorigin.
       expect(() => dispatchInput(
         store,
@@ -539,7 +539,7 @@ describe('dispatchInput — restoredOrigin surfaces kun ved en gennemført undo/
   });
 });
 
-describe('dispatchInput — styrende valg rydder skjult+rødt som ét trin (§1.9/§3.6/§7.5)', () => {
+describe('dispatchInput – styrende valg rydder skjult+rødt som ét trin (§1.9/§3.6/§7.5)', () => {
   it('setImmediateField der gør et felt med aktiv bounds-fejl skjult rydder canonical som ét trin; bevarer gyldigt nabofelt', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
     dispatchInput(store, catalog, settleField(belobField.bind('r1'), '500'), { now: 2 });
@@ -551,7 +551,7 @@ describe('dispatchInput — styrende valg rydder skjult+rødt som ét trin (§1.
     dispatchInput(store, catalog, setImmediateField(enhedField.bind('r1'), 'uger'), { now: 4 });
 
     const input = store.getState().input;
-    // §7.5 pkt. 2: en canonical bounds-værdi, brugeren ikke længere kan SE, ryddes til tomværdien — ellers
+    // §7.5 pkt. 2: en canonical bounds-værdi, brugeren ikke længere kan SE, ryddes til tomværdien – ellers
     // blokerede den en afhængig beregning fra et skjult felt. Et gyldigt nabofelt bevares.
     expect(canonical(input, tillaegstidField.bind('r1'))).toBeUndefined();
     expect(rejectedAt(input, tillaegstidField.bind('r1'))).toBeUndefined();
@@ -594,7 +594,7 @@ describe('currentSessionEnvelope', () => {
   });
 });
 
-describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', () => {
+describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', () => {
   it('uden en aktiv session starter tomt med writes tilladt', () => {
     const startup = initializeInputRuntime(store, catalog);
     expect(startup.notice).toBeNull();
@@ -657,7 +657,7 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
     expect(fresh.getState().meta.inputWritesBlocked).toBeUndefined();
     expect(fresh.getState().input).toEqual(persisted);
 
-    // Fejlen er intakt efter reload — den blev ikke tavst renset til et tomt felt.
+    // Fejlen er intakt efter reload – den blev ikke tavst renset til et tomt felt.
     expect(rejectedAt(fresh.getState().input, aargangField.bind())?.raw).toBe('abc');
     expect(captureStableInputEvaluation(fresh, catalog).reader
       .read(aargangField.bind()).status).toBe('error');
@@ -678,12 +678,12 @@ describe('initializeInputRuntime — hydration og fail-closed (§1.12/§3.10)', 
       .read(aargangField.bind()).status).toBe('error');
   });
 
-  it('envelopen har kun de to afsluttede kanaler — der findes ingen draft-kanal at persistere i (punkt 10)', () => {
+  it('envelopen har kun de to afsluttede kanaler – der findes ingen draft-kanal at persistere i (punkt 10)', () => {
     // Den STRUKTURELLE halvdel af punkt 10's draft-ben: envelopen kan kun bære `sections` +
     // `rejectedInputs`, så der findes ikke et sted, en åben draft KUNNE gemmes.
     //
     // NB: denne test hed tidligere "en åben draft overlever IKKE
-    // reload", men den åbnede aldrig en editor — navnet påstod mere end assertionen bar. Den ADFÆRDSMÆSSIGE
+    // reload", men den åbnede aldrig en editor – navnet påstod mere end assertionen bar. Den ADFÆRDSMÆSSIGE
     // halvdel (en rigtig åben draft, der ikke genopstår efter reload) ligger nu i
     // `react/useFieldEditor.openDraftNotPersisted.test.tsx`, hvor en editor faktisk kan åbnes.
     dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1 });

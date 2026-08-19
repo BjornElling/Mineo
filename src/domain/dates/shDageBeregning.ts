@@ -64,7 +64,7 @@ export const beregnHelligdageMedNavn = (year: number): NavngivetHelligdag[] => {
     { date: createDate(year, 11, 26), navn: 'Anden juledag' },
   ];
 
-  // Store bededag (fjerde fredag efter påske) — kun til og med 2023, jf. afskaffelsen.
+  // Store bededag (fjerde fredag efter påske) – kun til og med 2023, jf. afskaffelsen.
   if (year <= SIDSTE_AAR_MED_STORE_BEDEDAG) {
     helligdage.push({ date: addDays(paaske, 26), navn: 'Store bededag' });
   }
@@ -127,7 +127,7 @@ export const buildSHDageSetForDatoSet = (
  * intervallet ville være spildt arbejde (O(dage) frem for O(år)).
  *
  * Intervalgrænsen tjekkes leksikografisk på ISO-strenge (`yyyy-mm-dd`), hvilket er
- * identisk med kronologisk sammenligning af UTC-dage — derfor er outputtet bevisligt
+ * identisk med kronologisk sammenligning af UTC-dage – derfor er outputtet bevisligt
  * det samme som ved at filtrere et fuldt dag-sæt.
  */
 export const buildSHDageSetForIsoRange = (
@@ -135,7 +135,7 @@ export const buildSHDageSetForIsoRange = (
   til: ISODateString
 ): ReadonlySet<ISODateString> => {
   // Fail-closed mod ikke-validerede strenge der måtte være castet til ISODateString,
-  // samt mod omvendt rækkefølge — bevarer den oprindelige guards adfærd.
+  // samt mod omvendt rækkefølge – bevarer den oprindelige guards adfærd.
   const fraDato = parseISODate(fra);
   const tilDato = parseISODate(til);
   if (!fraDato || !tilDato || fraDato > tilDato) {

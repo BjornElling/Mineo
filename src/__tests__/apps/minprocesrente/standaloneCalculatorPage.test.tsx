@@ -36,7 +36,7 @@ const renderMineo = () => render(
   </MemoryRouter>
 );
 
-describe('MinProcesrente — «Slet alle indtastninger»-bekræftelsen (BB-044)', () => {
+describe('MinProcesrente – «Slet alle indtastninger»-bekræftelsen (BB-044)', () => {
   beforeEach(() => {
     sessionStorage.clear();
   });
@@ -81,7 +81,7 @@ describe('MinProcesrente — «Slet alle indtastninger»-bekræftelsen (BB-044)'
 
 // BB-045/BB-046: opstillingen skiftede på VINDUETS bredde, mens den bredde-rettelse, der hører til
 // telefonopstillingen, kun gjaldt berøringsenheder. En zoomende bruger på en almindelig computer fik
-// derfor telefonens tre kolonner med desktopbredden — og mistede samtidig tillægstid, enhed og den
+// derfor telefonens tre kolonner med desktopbredden – og mistede samtidig tillægstid, enhed og den
 // afledte rentedato, mens renten fortsat blev regnet med tillægstiden.
 //
 // Brugerbeslutning 2026-08-19: visningen låses til enhedstypen og skifter aldrig med vinduet.
@@ -118,7 +118,7 @@ const configureDevice = (options: Readonly<{
 const hasDesktopColumns = (): boolean =>
   screen.queryAllByText('Evt. tillægstid').length > 0 && screen.queryAllByText('Rentedato').length > 0;
 
-describe('MinProcesrente — opstillingen følger enheden, ikke vinduet (BB-045/BB-046)', () => {
+describe('MinProcesrente – opstillingen følger enheden, ikke vinduet (BB-045/BB-046)', () => {
   const originalMatchMedia = window.matchMedia;
 
   beforeEach(() => {
@@ -129,7 +129,7 @@ describe('MinProcesrente — opstillingen følger enheden, ikke vinduet (BB-045/
     window.matchMedia = originalMatchMedia;
   });
 
-  it('giver desktopopstilling i et SMALT musevindue — vinduets bredde afgør ikke', () => {
+  it('giver desktopopstilling i et SMALT musevindue – vinduets bredde afgør ikke', () => {
     // Præcis fundet: 599 px bredt vindue, ingen berøring. Før faldt fladen i telefonopstillingen.
     configureDevice({ touch: false, screenWidth: 1366, screenHeight: 768, viewportWidth: 599 });
     renderStandalone();
@@ -145,7 +145,7 @@ describe('MinProcesrente — opstillingen følger enheden, ikke vinduet (BB-045/
     expect(hasDesktopColumns()).toBe(true);
   });
 
-  it('giver mobilopstilling på en telefon — også i vandret orientering med bredt viewport', () => {
+  it('giver mobilopstilling på en telefon – også i vandret orientering med bredt viewport', () => {
     // Kortsiden er orienteringsstabil, så en roteret telefon bliver ikke en desktop.
     configureDevice({ touch: true, screenWidth: 915, screenHeight: 412, viewportWidth: 915 });
     renderStandalone();
@@ -162,8 +162,8 @@ describe('«Slet alle indtastninger» i tastaturrækkefølgen (BB-047)', () => {
   it('bærer fokusmarkøren, så knappen er i Tab-ringen som sin nabo', () => {
     renderMineo();
 
-    // Uden markøren var knappen ikke fokusérbar, mens «Download samlet oversigt» — tegnet ens, i samme
-    // rækkeform lige over — var det. Markøren er samtidig forudsætningen for, at Enter aktiverer knappen.
+    // Uden markøren var knappen ikke fokusérbar, mens «Download samlet oversigt» – tegnet ens, i samme
+    // rækkeform lige over – var det. Markøren er samtidig forudsætningen for, at Enter aktiverer knappen.
     expect(screen.getByRole('button', { name: 'Slet alle indtastninger' }))
       .toHaveAttribute('data-mineo-focusable-button', 'true');
     expect(screen.getByRole('button', { name: 'Download samlet oversigt' }))

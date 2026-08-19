@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PERSISTED_SECTION_KEYS } from '../config/persistenceRegistry';
 
-// Inputkernen (§3.2): en feltadresse er REN struktur — sektion, properties, stabile entity-id'er og
+// Inputkernen (§3.2): en feltadresse er REN struktur – sektion, properties, stabile entity-id'er og
 // feltnavn. Den indeholder aldrig kolonneindeks, DOM-id, route eller formatteret string-key, og har
 // bevidst INGEN versions-envelope (§3.7: sessionen har ingen `fieldAddressVersion`-bro).
 
@@ -101,7 +101,7 @@ export const fieldAddressesEqual = (left: FieldAddress, right: FieldAddress): bo
  * En cross-field-validator i en TABEL skal binde sin modpart i SAMME række, og opslaget er derfor
  * forudsætningen for enhver rækkeintern regel. Det var indtil nu skrevet i hånden tre steder
  * (`aarsloenDescriptors`, `erstatningsopgoerelseDescriptors`, senest rentetabellen) med hver sin
- * fejlbesked — samme opslag, tre implementeringer. Her er det ét sted.
+ * fejlbesked – samme opslag, tre implementeringer. Her er det ét sted.
  *
  * Kaster ved et felt uden segmentet: en validator, der spørger, ER rækkescoped, og et manglende
  * segment er derfor en katalogfejl, ikke en tom værdi at fortsætte på.

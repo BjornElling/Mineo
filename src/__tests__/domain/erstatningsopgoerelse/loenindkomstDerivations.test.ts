@@ -9,7 +9,7 @@ import {
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 
-// Isolations-tests for det rene Loenindkomst-afledningslag (uden React-render) — jf. arkitektur-kandidat A1.
+// Isolations-tests for det rene Loenindkomst-afledningslag (uden React-render) – jf. arkitektur-kandidat A1.
 // Modstykket til loenindkomstSatsAssessment.test.ts.
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
@@ -241,7 +241,7 @@ describe('deriveLoenindkomstVm', () => {
         pensionPct: 12,
       };
       const model = deriveLoenindkomstVm(buildInput([af]));
-      // Posten findes (selv hvis der ikke er nogen celle-fejl) — afledningen kører for manuelt-sporet.
+      // Posten findes (selv hvis der ikke er nogen celle-fejl) – afledningen kører for manuelt-sporet.
       expect(Object.prototype.hasOwnProperty.call(model.manualBaseRowErrorsByAfId, af.id)).toBe(true);
     });
 

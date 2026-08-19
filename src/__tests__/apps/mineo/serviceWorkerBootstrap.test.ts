@@ -42,7 +42,7 @@ const stubDeployedVersion = (deployedVersion: string | null): ReturnType<typeof 
   return fetchMock;
 };
 
-/** Manifest-svar der skifter version pr. kald — modellerer en delvis udrullet/flappende origin. */
+/** Manifest-svar der skifter version pr. kald – modellerer en delvis udrullet/flappende origin. */
 const stubFlappingDeployedVersions = (versions: readonly string[]): void => {
   let callIndex = 0;
   vi.stubGlobal('fetch', vi.fn(async () => {
@@ -63,7 +63,7 @@ const mockDurableHandoff = (result: boolean): void => {
 
 /**
  * `autoActivateOnSkipWaiting` modellerer browserens virkelige adfærd: en ventende worker bliver
- * `activated`, når `skipWaiting()` er kaldt. Sættes den til `false`, kan testen måle det modsatte —
+ * `activated`, når `skipWaiting()` er kaldt. Sættes den til `false`, kan testen måle det modsatte –
  * at en worker, der ALDRIG bliver aktiv, heller aldrig må udløse en genindlæsning.
  */
 const buildServiceWorker = (
@@ -128,7 +128,7 @@ const buildServiceWorkerContainer = (
 
 /**
  * jsdom's `sessionStorage` er en proxy, som `vi.spyOn` ikke kan gribe. Hele objektet erstattes
- * derfor, når en skrivefejl skal simuleres — værnet skal netop bevise, at et ikke-skrivbart lager
+ * derfor, når en skrivefejl skal simuleres – værnet skal netop bevise, at et ikke-skrivbart lager
  * stopper genindlæsningen.
  */
 const withUnwritableSessionStorage = (): (() => void) => {
@@ -151,7 +151,7 @@ const withUnwritableSessionStorage = (): (() => void) => {
   };
 };
 
-describe('serviceWorkerBootstrap — ny session = ny version, åben session urørt', () => {
+describe('serviceWorkerBootstrap – ny session = ny version, åben session urørt', () => {
   let reloadSpy: ReturnType<typeof vi.fn>;
   let resetBootstrap: () => void;
   let restoreSessionStorage: (() => void) | null = null;
@@ -363,7 +363,7 @@ describe('serviceWorkerBootstrap — ny session = ny version, åben session urø
 
   it('genindlæser IKKE, når den nye worker er installeret men aldrig bliver aktiv', async () => {
     // Kernefundet: `installed` er IKKE en tilstrækkelig barriere. Et dokument beholder sin controller
-    // hele sin levetid, så en genindlæsning her ville starte den NYE build under den GAMLE worker —
+    // hele sin levetid, så en genindlæsning her ville starte den NYE build under den GAMLE worker –
     // hvorefter det nye dokument ser «samme version» og aldrig fuldfører skiftet.
     vi.useFakeTimers();
     try {
@@ -448,7 +448,7 @@ describe('serviceWorkerBootstrap — ny session = ny version, åben session urø
   it('genindlæser IKKE ved første besøg uden controller', async () => {
     // Uden en controller er der ingen GAMMEL worker at fortrænge: dokumentet kører allerede den HTML,
     // origin lige leverede. Et reload ville hverken skifte kode eller vinde en versionscache for
-    // netop dette dokument — kun koste brugeren en ekstra opstart.
+    // netop dette dokument – kun koste brugeren en ekstra opstart.
     stubDeployedVersion(DEPLOYED_NEWER_VERSION);
     buildServiceWorkerContainer(
       buildRegistration({ waiting: buildServiceWorker('installed') }),

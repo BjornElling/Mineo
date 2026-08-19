@@ -15,7 +15,7 @@ import { ingenForm } from './forms/ingenForm';
 
 /**
  * Ét statisk, exhaustivt register over reguleringsformerne, keyet på enum-værdien. `Record`-typen
- * håndhæver at hver form er dækket — det er en compile-fejl at glemme en. Dispatch sker ét sted:
+ * håndhæver at hver form er dækket – det er en compile-fejl at glemme en. Dispatch sker ét sted:
  * motoren, coverage-laget osv. slår formen op her frem for at gentage en switch (jf. R1).
  */
 export const FORM_REGISTRY: Readonly<Record<LoenudviklingBeregningsgrundlag, ReguleringForm>> = {

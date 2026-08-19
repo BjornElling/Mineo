@@ -9,7 +9,7 @@ import TransientTextInput from '../../../components/inputs/transient/TransientTe
 import { toISODateString } from '../../../types/branded';
 
 /**
- * Container keyboard-navigation — dækning af punkter der tidligere kun var i den
+ * Container keyboard-navigation – dækning af punkter der tidligere kun var i den
  * manuelle QA-tjekliste (nu migreret til automatiske tests; jf. `src/contracts/keyboard-navigation.md`).
  *
  * Disse tests dækker de punkter, der KAN verificeres i JSDOM:
@@ -26,7 +26,7 @@ import { toISODateString } from '../../../types/branded';
  * layout-bokse i JSDOM-synligheds-selektorerne.
  */
 
-describe('Container keyboard navigation — tjekliste-huller', () => {
+describe('Container keyboard navigation – tjekliste-huller', () => {
   const getRectsSpy = vi.spyOn(HTMLElement.prototype, 'getClientRects');
 
   const mockVisibleRects = () => {
@@ -50,8 +50,8 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
    *
    * Problemet: MUI's Popover åbner via en Grow-transition, hvis afsluttende `onEntered`-callback
    * fyrer på en efterfølgende macrotask (setTimeout, ~0 ms i JSDOM hvor `transitionDuration="auto"`
-   * giver duration 0). `findByRole('listbox')` resolver allerede når listboxen mountes — dvs. ved
-   * transitionens START — så den efterslæbende state-opdatering kan lande EFTER testens act-vindue
+   * giver duration 0). `findByRole('listbox')` resolver allerede når listboxen mountes – dvs. ved
+   * transitionens START – så den efterslæbende state-opdatering kan lande EFTER testens act-vindue
    * under tung parallel CI-belastning, hvor event-loopet er optaget ("update ... not wrapped in act").
    * Ved at vente på en efterfølgende macrotask inde i act() trækkes den allerede planlagte
    * transition-timer (FIFO før vores egen) ind i et act-vindue, så advarslen ikke kan opstå.
@@ -139,7 +139,7 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
     field1.focus();
     expect(document.activeElement).toBe(field1);
 
-    // Et klik må lande fokus præcis på det klikkede felt — IKKE på Containers
+    // Et klik må lande fokus præcis på det klikkede felt – IKKE på Containers
     // tab-rækkefølge (ville være et tegn på at Container kaprer klik).
     await user.click(field3);
     await waitForSelectionClear();

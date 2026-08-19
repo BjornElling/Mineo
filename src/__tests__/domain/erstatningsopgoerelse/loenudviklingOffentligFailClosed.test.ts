@@ -10,12 +10,12 @@ import { toISODateString } from '../../../types/branded';
  * Trust-binding for den OFFENTLIGE overenskomst-gren.
  *
  * `getOffentligLoenForDato` kaster ved en manglende løntrin INDEN FOR dækning (og
- * giver kun `undefined` FØR dækningen — det er den gatede zero-delta-sti, S3). Med
+ * giver kun `undefined` FØR dækningen – det er den gatede zero-delta-sti, S3). Med
  * de faktiske KL/RLTN-tabeller er alle løntrin (1–55, «55+») komplette i hver
  * regulering, så kastet er en defensiv data-integritets-invariant. Her simulerer vi
  * en ufuldstændig tabel (som ville kunne opstå ved en generator-/datafejl) og
  * hævder, at et sådant kast IKKE sluges til et stiltiende `deltaPct 0`, men
- * propagerer som en throw — der i `computeEoSnapshot` bliver til fail_closed med
+ * propagerer som en throw – der i `computeEoSnapshot` bliver til fail_closed med
  * `runtime_exception` (jf. invariant-noten i loenudviklingBeregning.ts og
  * eoSnapshotRuntimeException.test.ts).
  */
@@ -43,7 +43,7 @@ vi.mock('../../../data/offentligLoenLookup', async (importActual) => {
   };
 });
 
-describe('Overenskomst offentlig — manglende løntrin inden for dækning fail-closer', () => {
+describe('Overenskomst offentlig – manglende løntrin inden for dækning fail-closer', () => {
   it('kaster (degraderer IKKE til zero-delta) når et dækket segments løntrin mangler', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';

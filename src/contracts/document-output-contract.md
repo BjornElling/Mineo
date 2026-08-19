@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-08-16
+**Senest verificeret mod kode:** 2026-08-19
 
 ## Scope
 
@@ -22,15 +22,15 @@ state; formatvalget reguleres af `document-format-contract.md`.
 
 Kontrakten er opdelt i tre afsnit, og henvisninger bruger afsnitsbogstavet: §A2a, §B5.1, §C1.
 
-- **Afsnit A — Data, gate og guards (kanal-neutral):** hvilke data og guards output må bygge på. Gælder fuldt for begge kanaler.
-- **Afsnit B — Komposition og render-target-API:** hvordan generatorer komponerer via `DocumentComposer`, og hvordan den centrale modelrenderer afspiller blokke mod det interne writer-target. Layoutreglerne er dobbeltkanal, fordi både PDF- og Word-targetet opfylder samme interne grænseflade.
-- **Afsnit C — Kilder, testkobling og undtagelser:** hvor sandheden står i koden, hvilke suiter der holder kontrakten, og hvad der bevidst afviger.
+- **Afsnit A – Data, gate og guards (kanal-neutral):** hvilke data og guards output må bygge på. Gælder fuldt for begge kanaler.
+- **Afsnit B – Komposition og render-target-API:** hvordan generatorer komponerer via `DocumentComposer`, og hvordan den centrale modelrenderer afspiller blokke mod det interne writer-target. Layoutreglerne er dobbeltkanal, fordi både PDF- og Word-targetet opfylder samme interne grænseflade.
+- **Afsnit C – Kilder, testkobling og undtagelser:** hvor sandheden står i koden, hvilke suiter der holder kontrakten, og hvad der bevidst afviger.
 
 Domænespecifikke snapshot-kontrakter må gerne specificere egne projektioner, men de må ikke afvige fra reglerne her.
 
 ---
 
-# Afsnit A — Data, gate og guards (kanal-neutral)
+# Afsnit A – Data, gate og guards (kanal-neutral)
 
 Reglerne i dette afsnit er uafhængige af outputkanal. De gælder uændret for både PDF (jsPDF) og Word (docx), fordi begge kanaler forsynes med den samme autoritative model og afvikles gennem den samme download-sti.
 
@@ -56,7 +56,7 @@ Download er blokeret, hvis mindst én af følgende er sand:
 2. Den autoritative beregning/projektion kan ikke dannes. Snapshot-first-domæner bruger deres typed snapshotprojektion;
    øvrige domæner leverer et typed gate-/preflight-resultat med samme semantik.
 3. Output-specifikke invariants eller guards er brudt.
-4. Den godkendte projektion er stale i forhold til det aktuelle `EvaluationSourceToken` — dvs. hvis enten inputrevisionen
+4. Den godkendte projektion er stale i forhold til det aktuelle `EvaluationSourceToken` – dvs. hvis enten inputrevisionen
    eller den relevante settingsrevision har ændret sig siden optagelsen.
 
 Konsekvens:
@@ -71,8 +71,8 @@ Gate-definitionen er kanal-neutral: et dokument der er blokeret for PDF, er ogs�
 
 ### A2a. Udtømmende håndhævelse på tværs af outputkataloget
 
-Det maskinelt inventariserede outputkatalog er komplethedskilden for dokumentgaten. Hvert katalogiseret output — også
-standalone MinProcesrente — skal have præcis én typed dokumentdefinition og være dækket af samme centrale gate- og
+Det maskinelt inventariserede outputkatalog er komplethedskilden for dokumentgaten. Hvert katalogiseret output – også
+standalone MinProcesrente – skal have præcis én typed dokumentdefinition og være dækket af samme centrale gate- og
 preflight-infrastruktur. Et UI-entrypoint, servicekald eller standalone-flow må ikke kunne starte dokumentarbejde uden
 denne definition.
 
@@ -108,7 +108,7 @@ fælles preflight, så lokale gates ikke kan genindføre forskellen mellem forma
 frisk kildeoptagelse, token-lighed, gate, lazy-load, friskheds-recheck ved hver asynkron grænse, formatvalg,
 generatorkald, fil-I/O og fejlrouting. `executeDocumentDownload` er dens eneste eksporterede indgang; afvikleren og
 dens godkendte input (`PreparedDocument`) er modulprivate og nominale, så et ugated input ikke kan nå afviklingen.
-Livscyklussen ejer rækkefølgen, ikke domænepolitik eller gate — dem ejer definitionen.
+Livscyklussen ejer rækkefølgen, ikke domænepolitik eller gate – dem ejer definitionen.
 
 App-specifik runtimepolitik (kildeport, formatvalg, brevhoved-opslag, session, failure-sink) injiceres som et
 `DocumentExecutionEnvironment`, komponeret i hver apps composition root. Kernen kender hverken `AppSettings`,
@@ -124,7 +124,7 @@ Word-formatet eller `reportSystemIssue`.
 
 Reglen bag delingen: **formatet vælger writer, ikke dækning.** Et output SKAL have samme
 `ready`/`blocked` for PDF og Word for samme input. Kravet kan ikke opfyldes af et værn, fordi begge
-kanaler i §A2a's paritet ville se den samme skæve gate; det er derfor en TYPEGRÆNSE — en `project`, der
+kanaler i §A2a's paritet ville se den samme skæve gate; det er derfor en TYPEGRÆNSE – en `project`, der
 læser `documentDownloadFormat`, kompilerer ikke. Begge halvdele projiceres fra ÉT `captureSource`-læs,
 så gate og rendering ikke kan stamme fra to revisioner (samme atomicitetskrav som §A2.1's friskhed).
 
@@ -146,7 +146,7 @@ Acceptable mønstre:
 
 Det er ikke acceptabelt at indføre parallel masking eller skjult data-mutation i entry-pointet kun for dokument-output.
 
-Manglende guard er en kritisk fejl, fordi stale værdier ellers kan udskrives i et tillidskritisk dokument — uanset kanal.
+Manglende guard er en kritisk fejl, fordi stale værdier ellers kan udskrives i et tillidskritisk dokument – uanset kanal.
 
 ## A4. Semantisk fravalg
 
@@ -173,7 +173,7 @@ tilstand: et stale-afbrud og DEV-specifik dev-server-nedetid. Uventede runtime-f
 download er systemfejl.
 
 En GATE-blokering er udtrykkeligt IKKE en lokal fejlbesked. En deaktiveret download-knap svarer aldrig
-med tekst — årsagen har én kanal, knappens tooltip ved hover — og det gælder også, når blokeringen først
+med tekst – årsagen har én kanal, knappens tooltip ved hover – og det gælder også, når blokeringen først
 opdages under aktiveringen. Se `page-component-contract.md` §11.1, som ejer reglen.
 
 ### A5.1 Gate-årsagens fire klasser (normativ)
@@ -190,7 +190,7 @@ forklaring) og aldrig af den flade, der tegner knappen. `resolveDocumentGateTool
 
 **Prioritet ved flere årsager:** `page-errors` → `invalid-input` → `missing-input` → `specific`.
 
-- `page-errors` vinder alt: er fejlen synlig i boksen, er henvisningen dertil det, brugeren skal læse —
+- `page-errors` vinder alt: er fejlen synlig i boksen, er henvisningen dertil det, brugeren skal læse –
   også når en af de underliggende fejl kunne navngives (brugerbeslutning 2026-08-13: forudsigelighed over
   handlingsanvisning). Klassen må KUN bruges, når fejlen faktisk gengives på siden; en snapshot- eller
   invariantblokering uden garanteret fejlrække må den ikke dække.
@@ -200,7 +200,7 @@ forklaring) og aldrig af den flade, der tegner knappen. `resolveDocumentGateTool
 
 Klassen skal **udledes** af producentens `DocumentBlockingCause`-liste gennem `classifyBlockingCauses` /
 `blockDocumentDownloadFromCauses`, når årsagerne kan opregnes. En gate må ikke hardkode en klasse, den kunne
-have udledt — en hardkodet klasse er den fejlkilde, der giver «Indtastning mangler» på et felt, som ER
+have udledt – en hardkodet klasse er den fejlkilde, der giver «Indtastning mangler» på et felt, som ER
 udfyldt, blot ugyldigt. Se `error-contract.md` §4 for `specific`-allowlisten og hvorfor issue-listens LÆNGDE
 ikke er et gyldigt mål.
 
@@ -209,21 +209,21 @@ view-models filtrerede visningsliste, men af gatens egen rene projektion.
 
 #### Årsagens form bestemmer klassen (`classifyBlockingCause`)
 
-Skelnen er brugerens, formuleret 2026-08-15 og gældende for HELE programmet — ikke kun for downloadknapper:
+Skelnen er brugerens, formuleret 2026-08-15 og gældende for HELE programmet – ikke kun for downloadknapper:
 «Fejl i indtastning» bruges, når der ER indtastet noget, men indtastningen er forkert (feltet får rød ring,
 uanset om årsagen er format eller en grænse); «Indtastning mangler», når en indtastning mangler.
 
 `classifyBlockingCause` (`src/document/layout/documentGateTypes.ts`) er den ENE oversættelse fra
-årsagsform til klasse, og switchen er udtømmende — en ny `scope` giver en compile-fejl frem for at arve en
+årsagsform til klasse, og switchen er udtømmende – en ny `scope` giver en compile-fejl frem for at arve en
 default:
 
 | `scope` | Klasse | Hvorfor |
 |---|---|---|
-| `field` | `invalid-input` | En `FieldIssue` er afsluttet input, der blev afvist (§1.6) — der ER indtastet noget |
+| `field` | `invalid-input` | En `FieldIssue` er afsluttet input, der blev afvist (§1.6) – der ER indtastet noget |
 | `row` | `invalid-input` | Rækkeækvivalenten til `field`; bærer samme røde markering |
 | `missing` | `missing-input` | Et tomt påkrævet felt |
 | `unavailable-calculation` | `missing-input` | Input er komplet og gyldigt, men beregningen kan ikke dannes; brugerens handling er at udfylde mere |
-| `aggregate` | `kind` på årsagen | Formen alene siger intet — producenten SKAL angive klassen |
+| `aggregate` | `kind` på årsagen | Formen alene siger intet – producenten SKAL angive klassen |
 
 `aggregate` er den eneste form, hvis klasse ikke følger af formen: «tabellen har fejl» siger intet om,
 hvorvidt cellerne er udfyldt forkert eller slet ikke udfyldt. `kind` er derfor et påkrævet felt, og et
@@ -254,21 +254,21 @@ genvej.
 ## A7. Autoritative kilder og lag-topologi
 
 1. `src/document/` er den **kanoniske**, format-agnostiske dokument-kerne og opdelt i:
-   - `src/document/model/` — blokalgebra, `DocumentComposer` og central modelrenderer.
-   - `src/document/writer/` — intern render-target-grænse; må ikke importeres af generatorer.
-   - `src/document/layout/` — kanalneutral tabelmodel (`tableSpec.ts`), tekst-/format-utils, fælles layoutværdier, helpers, brevhoved-mapping, gate-typer og dokument-options. Mappen må ikke indeholde en Word↔PDF-bro eller importere en konkret tabelkanal.
-   - `src/document/generators/` — én generator (+ evt. `sections/`) pr. domæne (`*Document.ts`).
-   - `src/document/definition/` — dokument-livscyklussens kerne: `DocumentDefinition`-kontrakten, katalogfabrikken,
+   - `src/document/model/` – blokalgebra, `DocumentComposer` og central modelrenderer.
+   - `src/document/writer/` – intern render-target-grænse; må ikke importeres af generatorer.
+   - `src/document/layout/` – kanalneutral tabelmodel (`tableSpec.ts`), tekst-/format-utils, fælles layoutværdier, helpers, brevhoved-mapping, gate-typer og dokument-options. Mappen må ikke indeholde en Word↔PDF-bro eller importere en konkret tabelkanal.
+   - `src/document/generators/` – én generator (+ evt. `sections/`) pr. domæne (`*Document.ts`).
+   - `src/document/definition/` – dokument-livscyklussens kerne: `DocumentDefinition`-kontrakten, katalogfabrikken,
      resultat-algebraen, beskedlaget og den ene afvikling (`documentLifecycle.ts`). Indeholder INGEN definitioner og
      kender ingen apps settings.
-   - `src/document/runtime/` — hovedappens composition root (`DocumentExecutionEnvironment` + React-grænsen).
+   - `src/document/runtime/` – hovedappens composition root (`DocumentExecutionEnvironment` + React-grænsen).
      Standalone MinProcesrente komponerer sit eget i `src/apps/minprocesrente/document/`.
-   - `src/document/service/` — runtime-fejlporte (`documentRuntimeFailure.ts`). Lazy-loading ejes af den
+   - `src/document/service/` – runtime-fejlporte (`documentRuntimeFailure.ts`). Lazy-loading ejes af den
      enkelte definitions `loadRenderer`, så der findes ingen parallel loader-registrering. Laget ejer IKKE
      afviklingen; den ligger i `definition/documentLifecycle.ts`.
    - Dokumentdefinitioner placeres ved deres domæne-/generatorgrænse og er eneste ejer af inputdependencies, gate og
      den godkendte inputmodel; de må ikke reduceres til utypede callbacks i service-laget. Kataloget komponeres pr.
-     app/route — aldrig som en global `Map` i kernelaget, da det ville kollapse rutens chunkgrænser.
+     app/route – aldrig som en global `Map` i kernelaget, da det ville kollapse rutens chunkgrænser.
 2. De **to kanaler** er rene infrastruktur-implementeringer af `DocumentWriter` og ligger uden for kernen:
    - **PDF-kanalen** i `src/pdf/` (jsPDF): adapter, writer-fabrik, brevhoved-renderer, den direkte `TableSpec`-renderer (`pdfTableRenderer.ts` + `pdfDocumentTableRenderer.ts`) og render-helpers. Kanalen indeholder ingen download-service: også standalone MinProcesrentes tre outputs går gennem den fælles livscyklus.
    - **Word-kanalen** i `src/docx/` (writer + understøttende infrastruktur). Begge kanaler indeholder ingen domænegeneratorer: PDF og Word genbruger den samme `DocumentModel`, som generatorerne bygger gennem `DocumentComposer` (jf. afsnit B).
@@ -288,7 +288,7 @@ genvej.
 
 1. Alle brugersynlige datoer i dokument-output SKAL vises i dansk format: enten kort
    `DD-MM-ÅÅÅÅ` eller langt `d. mmmm åååå`. En rå ISO-dato (`ÅÅÅÅ-MM-DD`) må aldrig nå
-   et brugersynligt dokument — i nogen kanal.
+   et brugersynligt dokument – i nogen kanal.
 2. Datoer formateres ved kilden via de kanoniske formattere (`formatDateShort`/`formatDateLong`,
    dvs. `formatISOToDanish`/`formatIsoDateLong` i `src/utils/dateFormatting.ts`). En generator
    må aldrig skrive en `ISODateString` eller en uformateret dato-streng direkte til en celle
@@ -305,24 +305,41 @@ genvej.
    så en utestet lækage-sti aldrig viser brugeren en ISO-dato. Værnet er en ren
    string→string-ombytning uden `Date`/tidszone (samme kalenderdag).
 
+## A9. Stregtegn i output (kanal-neutralt)
+
+1. **Tankestreg er en-dash `–` (U+2013) med mellemrum på begge sider.** Em-dash `—` (U+2014)
+   må ikke bruges som tegnsætning i dokumenttekst – jf. AGENTS.md § Sprogpolitik, som er den
+   generelle kilde til reglen. Håndhæves repo-bredt af `npm run check:mojibake`.
+2. **Pladsholderen for «ingen værdi» er em-dash `—` og forbliver em-dash.** Her er tegnet ikke
+   tegnsætning, men et grafisk mærke for en celle/linje uden beløb, og bredden er en del af det
+   visuelle udtryk. Kanoniske steder: `eoMoneyText.ts` (`formatEoMoney*`) og
+   `sections/opgoerelseSection.ts` («Beregnet krav ..... —», «I alt ..... —»).
+   Pladsholderen må ikke bruges til at skjule en ubrugelig værdi, der skulle have blokeret
+   download – den grænse ejes af A2/A5.1 og er dækket af
+   `src/__tests__/domain/erstatningsopgoerelse/eoDocumentPlaceholderReachability.test.ts`.
+3. I PDF-kanalen mapper `PDF_ASCII_FALLBACKS` (`src/document/layout/pdfTextUtils.ts`) både `–`
+   og `—` til ASCII `-`, fordi kanalens standardfont ikke bærer stregtegnene. Skiftet fra
+   em-dash til en-dash i prosa er derfor visuelt neutralt i PDF, mens Word-kanalen viser
+   tegnene som skrevet.
+
 ---
 
-# Afsnit B — Komposition og render-target-API
+# Afsnit B – Komposition og render-target-API
 
 Dette afsnit fastlægger den visuelle og strukturelle standard for Mineos dokument-output, så dokumenterne fremstår ensartede og uden utilsigtede lokale layoutafvigelser.
 
 **Blokmodellen er dobbeltkanal.** `DocumentComposer` bygger én `DocumentModel`; sessionens
 renderer afspiller modellen mod én af to interne kanal-targets:
 
-- `createPdfChannelWriter` (`src/pdf/infrastructure/pdfWriter.ts`) — PDF via jsPDF.
-- `createDocxWriter` (`src/docx/infrastructure/docxWriter.ts`) — Word via docx.
+- `createPdfChannelWriter` (`src/pdf/infrastructure/pdfWriter.ts`) – PDF via jsPDF.
+- `createDocxWriter` (`src/docx/infrastructure/docxWriter.ts`) – Word via docx.
 
 `defineDocument(...)` bygger hele modellen før sessionen opretter kanal-targetet. Reglerne
 gælder derfor begge kanaler, og en kompositionsfejl kan ikke efterlade et delvist renderet
 dokument. Generator-entrypointet returnerer et `DocumentArtifact`; kun livscyklussen
 (`definition/documentLifecycle.ts`) starter browser-downloaden, og først efter det sidste
 friskheds-recheck. Et UI-lag må hverken importere en generator, livscyklussen eller
-`triggerDocumentDownload` — håndhævet af AST-reglen `document/lifecycle-single-entrypoint`.
+`triggerDocumentDownload` – håndhævet af AST-reglen `document/lifecycle-single-entrypoint`.
 
 Alle generator-entrypoints defineres med `defineDocument(...)` i
 `src/document/generators/documentGeneratorSetup.ts`. Factoryen ejer den faste lifecycle:
@@ -373,7 +390,7 @@ Generatorer må ikke indføre lokale mellemformer eller pseudo-underoverskrifter
 
 Generatorer må ikke opfinde ekstra lokale tekstkategorier for de samme formål.
 
-> **Bemærkning:** `writeNormalThenBoldLine()` er en variant af brødtekst (type 4), der skriver normal tekst efterfulgt af fed tekst på samme linje. Den er kanonisk og hører under brødtekst-kategorien — ikke en selvstændig type.
+> **Bemærkning:** `writeNormalThenBoldLine()` er en variant af brødtekst (type 4), der skriver normal tekst efterfulgt af fed tekst på samme linje. Den er kanonisk og hører under brødtekst-kategorien – ikke en selvstændig type.
 
 ## B3. Kanoniske composer-/render-target-API'er
 
@@ -555,29 +572,29 @@ Reglerne i afsnit B er ikke en tjekliste, en generator skal gennemgås mod. De e
 delene der bærer hver regel, så en fremtidig ændring ikke svækker et værn i den tro, at en manuel
 audit fanger resten.
 
-**Uudtrykkelige — båret af `DocumentComposer`s form.** `DocumentComposer`
+**Uudtrykkelige – båret af `DocumentComposer`s form.** `DocumentComposer`
 (`src/document/model/documentModel.ts`) eksponerer udelukkende navngivne semantiske blokke. Der findes
 ingen font-, cursor- eller `advanceY`-metode, ingen spacer der tager en højde, og intet
 `DocumentWriter`- eller kanalobjekt. En generator har derfor ingen syntaks for:
 
 1. en overskrift uden for de kanoniske metoder (§B3),
 2. manuel top-/bundafstand omkring en underoverskrift (§B5.1),
-3. forskellig spacing/sidebrydning for de to underoverskriftstyper — begge afvikles af samme
+3. forskellig spacing/sidebrydning for de to underoverskriftstyper – begge afvikles af samme
    blokintention i modelrendereren (§B4, pkt. 2),
 4. en underoverskrift uden efterfølgende indhold: `writeBoldSubheaderIfContent` tilføjer ingen blok,
    når `hasContent` er falsk, og modelrendereren udleder gaten igen ved render (§B4, pkt. 2),
-5. lokal kompensation efter en tabel — generatoren modtager ingen cursor (§B5.4),
+5. lokal kompensation efter en tabel – generatoren modtager ingen cursor (§B5.4),
 6. fri sektionsafstand: `addSectionSpacer()` tager ingen argumenter (§B5.3, §B6).
 
-**Maskinelt håndhævede — båret af AST-regler i `src/__tests__/quality/architecture/`.**
+**Maskinelt håndhævede – båret af AST-regler i `src/__tests__/quality/architecture/`.**
 
 | Regel-id | Håndhæver |
 |---|---|
 | `document/generator-writer-import-boundary` | Ingen import af `DocumentWriter`, en kanal (`src/pdf/`, `src/docx/`), `renderDocumentModel` eller sessionsfabrikken fra `src/document/generators/**` (§B8). |
 | `document/generator-cursor-access-boundary` | Ingen medlemsadgang til cursor-/målprimitiver (`getDoc`, `getY`, `setY`, `advanceY`, `ensureSpace`, `getTextWidth`, `getPageWidth` m.fl.) i generatorlaget. |
 | `document/generator-cursor-element-access-boundary` | Samme grænse via bracket-notation, så `writer['getDoc']()` ikke er en sidevej. |
-| `document/no-headerless-pseudo-table` | Ingen `hasHeaderRow: false` i generatorlaget — headerløse opstillinger skal komponeres som tekst (§B7). |
-| `document/lifecycle-single-entrypoint` | Kun kataloget må importere livscyklus-kernen, og kun livscyklussen må importere fil-I/O — så en download ikke kan startes uden om gaten (afsnit B, indledningen). |
+| `document/no-headerless-pseudo-table` | Ingen `hasHeaderRow: false` i generatorlaget – headerløse opstillinger skal komponeres som tekst (§B7). |
+| `document/lifecycle-single-entrypoint` | Kun kataloget må importere livscyklus-kernen, og kun livscyklussen må importere fil-I/O – så en download ikke kan startes uden om gaten (afsnit B, indledningen). |
 | `document/generator-import-boundary` | Kun en dokumentdefinition må importere en generator; et UI-lag kan ikke nå den uden om definitionens `loadRenderer`. |
 
 **Den ene regel uden mekanisme.** §B3's krav om, at flerlinjede højrekolonner håndteres centralt og
@@ -587,14 +604,14 @@ afsnitsopdeling af brødtekst. Den centrale adfærd ligger i `writeLeftRightText
 kontraktovertrædelse, der kun fanges ved læsning. Splitter en generator derimod en **brødtekst** i
 afsnit, som hver skrives med `writeWrappedText`, er det kanonisk brug og ikke en afvigelse: det er
 måden at få §B5.2's normale afsnitsafstand. Forskellen er hvilket API værdien lander i, og den bør
-noteres ved callsite — ikke som en §B9-undtagelse, men så den næste læser ikke forveksler de to.
+noteres ved callsite – ikke som en §B9-undtagelse, men så den næste læser ikke forveksler de to.
 
 Ved review af en ny eller ændret generator er det derfor kun to ting, der kræver øjne: den nævnte
 `split('\n')`-skelnen, og §B4's semantiske valg af teksttype. Alt øvrigt fejler af sig selv.
 
 ---
 
-# Afsnit C — Kilder, testkobling og undtagelser
+# Afsnit C – Kilder, testkobling og undtagelser
 
 ## C1. Autoritative kilder
 
@@ -607,9 +624,9 @@ Ved review af en ny eller ændret generator er det derfor kun to ting, der kræv
 - Word-typografier (navngivne styles): `src/docx/infrastructure/docxStyles.ts`.
 - Kanalneutral tabelmodel: `src/document/layout/tableSpec.ts`.
 - PDF-tabelrenderer: `src/pdf/infrastructure/pdfTableRenderer.ts` og `pdfDocumentTableRenderer.ts`.
-- Word-tabelrenderer: den modulprivate `createDocxTable` i `src/docx/infrastructure/docxWriter.ts` (bevidst ikke eksporteret — kun writeren selv renderer tabeller).
+- Word-tabelrenderer: den modulprivate `createDocxTable` i `src/docx/infrastructure/docxWriter.ts` (bevidst ikke eksporteret – kun writeren selv renderer tabeller).
 - Word-vandmærke: `src/docx/infrastructure/docxWatermark.ts`.
-- Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). Der findes ingen afviklende dokumentservice og ingen `documentService.ts` — navnet står her som fraværsværn. `src/document/service/` rummer alene runtime-fejlporte og ejer ikke afviklingen (§A7.1).
+- Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). Der findes ingen afviklende dokumentservice og ingen `documentService.ts` – navnet står her som fraværsværn. `src/document/service/` rummer alene runtime-fejlporte og ejer ikke afviklingen (§A7.1).
 - Layout-konstanter: `src/document/layout/pdfConfig.ts`.
 
 ## C2. Testkobling
@@ -668,4 +685,4 @@ Hvis kode og kontrakt divergerer, er det en arkitekturfejl, ikke en stilforskel.
   totalstreg fortolkes direkte af begge kanalrenderere. Fysiske millimetermål er fælles
   layoutintentioner, ikke PDF-only hints. EO-sektionernes store composer-/formatter-contexts er fortsat
   domænelokale og bevidst ikke sammenlagt: en sammenlægning ville kræve byte-identitetsbevis pr. output.
-- `satserDocument.ts` inkluderer bevidst ikke journalnr i filnavnet — satser er årsspecifikke og sagsagnostiske.
+- `satserDocument.ts` inkluderer bevidst ikke journalnr i filnavnet – satser er årsspecifikke og sagsagnostiske.

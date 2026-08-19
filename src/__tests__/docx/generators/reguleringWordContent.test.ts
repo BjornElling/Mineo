@@ -11,7 +11,7 @@ import type { DanishDateString } from '../../../types/branded';
 // trækker direkte fra aarsloenAslMax og ikke kræver offentlig-løn-lookup-input.
 //
 // Generatoren forventer interval allerede resolvet til { fraDato, tilDato }
-// (DD-MM-YYYY danske datostrenge) — jf. downloadReguleringDokument i pdfService.ts,
+// (DD-MM-YYYY danske datostrenge) – jf. downloadReguleringDokument i pdfService.ts,
 // der spreder input + resolveReguleringInterval(...) + common-kontekst.
 describe('regulering → Word-indhold', () => {
   const interval = {

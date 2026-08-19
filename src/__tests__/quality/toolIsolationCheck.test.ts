@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// @ts-expect-error — kontrollen er et .mjs-script uden typedeklarationer.
+// @ts-expect-error – kontrollen er et .mjs-script uden typedeklarationer.
 import { packageNameFromBinTarget, resolveInstalledCommandOwner } from '../../../scripts/check-tool-isolation.mjs';
 
 /**
@@ -21,7 +21,7 @@ import { packageNameFromBinTarget, resolveInstalledCommandOwner } from '../../..
  * platformbestemt og usynligt i koden: en shim-FIL på Windows, hvis indhold nævner pakkestien,
  * og et SYMLINK på POSIX (herunder CI's ubuntu-runner), hvis mål er pakkestien. Kontrollen læste
  * oprindeligt kun filindholdet; på Linux fulgte `readFileSync` symlinket og læste Playwrights egen
- * `cli.js`, hvor regexen intet fandt — så CI meldte «peger på et ukendt sted», selv om
+ * `cli.js`, hvor regexen intet fandt – så CI meldte «peger på et ukendt sted», selv om
  * afhængighedsgrafen var i orden. Testene var grønne, fordi fixturen kun kunne skrive shim-filer.
  * Derfor er linkformen nu en eksplicit dimension: enhver ny påstand om `.bin` skal holde i begge.
  */
@@ -34,7 +34,7 @@ type LockEntry = {
 
 /**
  * De to måder npm kan besætte `node_modules/.bin/<kommando>` på. Formen er platformbestemt,
- * så kontrollen skal kunne læse dem begge — uanset hvilken platform testen selv kører på.
+ * så kontrollen skal kunne læse dem begge – uanset hvilken platform testen selv kører på.
  */
 type BinLinkStyle = 'shim-fil' | 'symlink';
 
@@ -107,7 +107,7 @@ const writeFixture = (fixture: Fixture): string => {
   if (fixture.binShimTarget !== null) {
     // Målpakken skal findes på disk, så et symlink peger på en rigtig fil. Indholdet nævner
     // bevidst IKKE pakkestien: følger kontrollen symlinket i stedet for at læse dets mål,
-    // finder den intet — præcis som mod Playwrights egen cli.js i CI.
+    // finder den intet – præcis som mod Playwrights egen cli.js i CI.
     const targetDirectory = join(fixtureRoot, 'node_modules', ...fixture.binShimTarget.split('/'));
     mkdirSync(targetDirectory, { recursive: true });
     writeFileSync(join(targetDirectory, 'cli.js'), '#!/usr/bin/env node\n// ingen pakkesti i indholdet\n');
@@ -127,7 +127,7 @@ const writeFixture = (fixture: Fixture): string => {
 
 /**
  * Windows kræver Developer Mode eller administrator for at lave fil-symlinks. Kan maskinen det
- * ikke, kan symlink-fixturen ikke skrives — og så må testen ikke bare være «grøn af tomhed».
+ * ikke, kan symlink-fixturen ikke skrives – og så må testen ikke bare være «grøn af tomhed».
  * Derfor er dette en KAPACITETS-test, ikke en platform-test: CI (ubuntu) kan altid, og der
  * håndhæves fuld dækning nedenfor. Lokalt uden rettigheden falder kun filsystem-varianten bort;
  * selve udledningen af ejeren dækkes stadig af enhedstestene, som ikke rører filsystemet.
@@ -252,7 +252,7 @@ describe('check-tool-isolation', () => {
 
     itUnlessSkipped('måler det installerede træ særskilt fra lockfilen', () => {
       // Lockfilen er ren; kun den faktiske .bin-indgang er forkert. Fanger kontrollen det, måler
-      // den installationen — ikke bare manifestet.
+      // den installationen – ikke bare manifestet.
       const wrongOwner = { ...makeFixture(), binLinkStyle, binShimTarget: 'playwright' };
       withFixture(wrongOwner, (result) => {
         expect(result.status).toBe(1);
@@ -278,7 +278,7 @@ describe('check-tool-isolation', () => {
   });
 
   it.runIf(canCreateFileSymlinks)('skriver symlink-fixturen som et ægte symlink, ikke som en kopieret fil', () => {
-    // Uden denne kontrol kunne symlink-varianten stille og roligt degenerere til en filkopi —
+    // Uden denne kontrol kunne symlink-varianten stille og roligt degenerere til en filkopi –
     // og så ville testene ovenfor være grønne af tomhed, ikke af dækning.
     const fixtureRoot = writeFixture({ ...makeFixture(), binLinkStyle: 'symlink' });
     try {
@@ -294,7 +294,7 @@ describe('check-tool-isolation', () => {
 
   it('lader ikke symlink-dækningen forsvinde i CI', () => {
     // Fejlen slap netop igennem, fordi CI's platform var udækket. At springe symlink-varianten
-    // over er en lokal Windows-indrømmelse — sker det i CI, er dækningen tavst væk igen.
+    // over er en lokal Windows-indrømmelse – sker det i CI, er dækningen tavst væk igen.
     if (process.env.CI !== undefined) {
       expect(canCreateFileSymlinks).toBe(true);
       return;
@@ -324,7 +324,7 @@ describe('check-tool-isolation', () => {
 
 /**
  * Udledningen af pakkenavnet er den del, der svigtede i CI, og den kan prøves uden filsystem.
- * Derfor dækker disse tests symlink-formen på ENHVER platform — også der hvor fixturen ovenfor
+ * Derfor dækker disse tests symlink-formen på ENHVER platform – også der hvor fixturen ovenfor
  * ikke må skrive et rigtigt symlink.
  */
 describe('packageNameFromBinTarget', () => {

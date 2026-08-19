@@ -30,7 +30,7 @@ export const formatCurrency = (num: number | undefined | null): string => {
 };
 
 /**
- * Kanonisk visning af et beløb som tekst MED enheden "kr." — det read-only-modstykke til det
+ * Kanonisk visning af et beløb som tekst MED enheden "kr." – det read-only-modstykke til det
  * adornment, redigerbare beløbsfelter viser (jf. `InputUnitAdornment`). Enheden hentes fra det ene
  * sande sted (`INPUT_UNIT_SUFFIX.currency`), ikke en parallel inline-streng, så alle beløbsvisninger
  * (PDF, Word og afledte grid-celler) deler præcis samme enhed. Brug denne i afledte/read-only
@@ -89,7 +89,7 @@ export const formatPercent = (num: number | null | undefined): string => {
 
 /**
  * Formaterer et procentpoint-tal med op til 4 decimaler (afrundet halfAwayFromZero) og
- * trimmede trailing nuller. Tilføjer IKKE selv "%"-suffiks — kalderen styrer enhedsvisningen.
+ * trimmede trailing nuller. Tilføjer IKKE selv "%"-suffiks – kalderen styrer enhedsvisningen.
  * Bruges af EET-aldersreduktion/EAL og forsørgertab til kompakt procentvisning.
  */
 export const formatPercentTrimmedFromRounded4 = (value: number): string => {

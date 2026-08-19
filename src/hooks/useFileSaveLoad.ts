@@ -74,7 +74,7 @@ type LoadFlowState =
 /**
  * `Slet alt`-bekræftelsens tilstand. Skilt fra `LoadFlowState`, fordi de to flows har hver sin
  * livscyklus: load reserverer filoperationslåsen FØR sin dialog (filen er allerede læst og skal ikke
- * kunne krydses), mens reset først reserverer den ved bekræftelsen — der er intet at beskytte, så længe
+ * kunne krydses), mens reset først reserverer den ved bekræftelsen – der er intet at beskytte, så længe
  * brugeren blot bliver spurgt. De kan derfor ikke slås sammen til én fase uden at give den ene flows
  * låseregel til den anden. At begge er åbne samtidig er umuligt: `Slet alt` afvises, mens en filhandling
  * kører (`beginFileOperation`), og PWA-køen holdes tilbage, mens bekræftelsen står åben.
@@ -123,7 +123,7 @@ type UseFileSaveLoadResult = {
   pendingPreflightBugReportError: Error | null;
   handleGem: () => Promise<void>;
   handleHent: () => Promise<void>;
-  /** Åbner `Slet alt`-bekræftelsen. Sletter intet selv — bekræftelsen sker i `handleConfirmSletAlt`. */
+  /** Åbner `Slet alt`-bekræftelsen. Sletter intet selv – bekræftelsen sker i `handleConfirmSletAlt`. */
   handleSletAlt: () => void;
   /** Er `Slet alt`-bekræftelsen åben? Driver dialogen og holder PWA-køen tilbage. */
   pendingResetConfirmation: boolean;
@@ -194,7 +194,7 @@ const buildPreflightBugReportError = (result: PreflightFileResult): Error => {
 
 /**
  * Beskeden ved en `Slet alt`, hvor sagsinputtet ER ryddet, men en tilknyttet oprydning ikke kunne verificeres.
- * Den skal sige begge dele: hvad der bevisligt er slettet, og hvad der kan bestå — appen må ikke
+ * Den skal sige begge dele: hvad der bevisligt er slettet, og hvad der kan bestå – appen må ikke
  * love "alt data slettet", når en rest kan hydrere ind i den næste sag.
  */
 const buildResetResidueMessage = (residue: readonly ResetResidue[]): string => {
@@ -271,7 +271,7 @@ export const useFileSaveLoad = ({
   // De to faser er BEVIDST adskilt: kun den synkrone apply ligger inde i replacement-barrieren, hvor
   // draft-discard hører til. Metadata-/filhåndtags-/PWA-synkroniseringen (§4.1) er asynkron og ejer ikke
   // sagsinput; lå den inde i barrieren, kunne brugeren åbne og redigere et felt i den netop indlæste sag,
-  // mens dens awaits kørte — og den nye draft blev derefter kasseret.
+  // mens dens awaits kørte – og den nye draft blev derefter kasseret.
   const applyLoadedSnapshot = React.useCallback(async (result: ApplicableLoadFileResult): Promise<PersistenceLoadApplyResult> => {
     await criticalActions.applyReplacement(() => applyAuthoritativeLoadSnapshot({
       result,
@@ -317,7 +317,7 @@ export const useFileSaveLoad = ({
       }
 
       // En helt urørt sag gemmes ikke. Målestokken er den ENE data-presence-forespørgsel, `hasAnyData()`
-      // (`settledInputHasAnyData`), som måler mod NY-SAGS-baseline — ikke mod tomhed. En ny sag er nemlig
+      // (`settledInputHasAnyData`), som måler mod NY-SAGS-baseline – ikke mod tomhed. En ny sag er nemlig
       // ikke tom: den bærer domænets og brugerens erklærede standardværdier (satsår, lønperiode, bilagsvalg,
       // udkast-stempel), og de er programmets svar, ikke brugerens.
       //
@@ -353,7 +353,7 @@ export const useFileSaveLoad = ({
 
       // Critical-action-kontrakten §5: friskheds-kontrollen skal ligge efter AL target-/picker-resolution og
       // umiddelbart før den første skrivning. Fil-pickeren ligger inde i `saveToFile`, så kontrollen injiceres
-      // dér som callback — ikke her før kaldet, hvor den ville kunne omgås af netop pickeren.
+      // dér som callback – ikke her før kaldet, hvor den ville kunne omgås af netop pickeren.
       const result: SaveFileResult = await saveToFile(
         snapshot,
         resolvedDirectory,
@@ -407,7 +407,7 @@ export const useFileSaveLoad = ({
    * Den ENE load-shell-procedure. Manuel filvælger og PWA-launch er to sagligt forskellige KILDER,
    * ikke to loadflows: busy-start, `prepare('load')`, dialog-nulstilling, kildeindlæsning, preflight-forgrening,
    * apply, fejlvisning og cleanup er den samme kæde og lå før i to kopier. Kun det, der faktisk adskiller de to
-   * — `LoadShellSource` — er en parameter; udfaldet returneres i PWA-fladens sprog, som den manuelle flade
+   * – `LoadShellSource` – er en parameter; udfaldet returneres i PWA-fladens sprog, som den manuelle flade
    * blot ignorerer.
    */
   const runLoadShell = React.useCallback(async (source: LoadShellSource): Promise<PwaLoadOutcome> => {
@@ -416,7 +416,7 @@ export const useFileSaveLoad = ({
     const focusBeforeAction = captureActiveElement();
 
     try {
-      // §1.4: load settler ALDRIG og blokerer aldrig — den åbne draft kasseres først, hvis apply lykkes.
+      // §1.4: load settler ALDRIG og blokerer aldrig – den åbne draft kasseres først, hvis apply lykkes.
       // Coordinatorens `prepare('load')` er `replace`-policy; et uventet fail-closed `blocked` fokuserer målet.
       const preparation = await criticalActions.prepare('load');
       if (preparation.status === 'blocked') {
@@ -500,7 +500,7 @@ export const useFileSaveLoad = ({
     try {
       awaitsOverwriteDecision = (await requestApplyLoadedSnapshot(
         pending.result,
-        { message: 'Filen er indlæst — nogle felter blev sat til standardværdier.', type: 'warning' },
+        { message: 'Filen er indlæst – nogle felter blev sat til standardværdier.', type: 'warning' },
         pending.navigateToStamdataAfterApply,
       )) === 'awaitingUser';
       // Uden eksisterende data gennemfører requestApplyLoadedSnapshot apply direkte. Dialogen skal først
@@ -545,7 +545,7 @@ export const useFileSaveLoad = ({
   /**
    * Åbner bekræftelsen. Handlingen er delt i to, fordi bekræftelsen er programmets egen dialog og ikke
    * længere en native `window.confirm`: den blokerede JS-tråden og kunne derfor spørge midt i kaldet.
-   * Skiftet er ikke kosmetisk — `ConfirmationDialog` bærer `CONFIRMATION_DIALOG_FOCUS_MARKER`, som holder
+   * Skiftet er ikke kosmetisk – `ConfirmationDialog` bærer `CONFIRMATION_DIALOG_FOCUS_MARKER`, som holder
    * en åben felteditor fra at settle, mens brugeren svarer (`critical-action-contract.md` §7: `Slet alt`
    * gennemføres UDEN settle, og draften kasseres først ved en vellykket apply).
    *
@@ -570,11 +570,11 @@ export const useFileSaveLoad = ({
 
     try {
       // §7/§1.12: `Slet alt` gennem replacement-grænsen (no-settle; draften kasseres først ved
-      // succes) — dette er også recovery-vejen ud af en `writesBlocked` current-session. Porten ejer HELE
+      // succes) – dette er også recovery-vejen ud af en `writesBlocked` current-session. Porten ejer HELE
       // transaktionen: input, sagsnær UI-sessionstate og filhåndtag, og rapporterer eventuelle rester.
       const clearResult = await ops.reset.clearAll();
 
-      // Handlingen afsluttes INDE i appen, som fil-load — samme autoritative
+      // Handlingen afsluttes INDE i appen, som fil-load – samme autoritative
       // replacement-grænse skal ikke ende to forskellige steder. Den fulde `window.location`-genindlæsning er
       // fjernet, og med den behovet for at bære beskeden gennem sessionStorage og for at undertrykke
       // unsaved-guardens beforeunload-advarsel (den nulstiller selv sin baseline på `replacementGeneration`).

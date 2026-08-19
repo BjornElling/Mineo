@@ -36,7 +36,7 @@ import type { GridCellCoord, GridCoreStateStore } from '../../../../components/t
 // Fundet 2026-08-15: `BaseCellProps` erklærede BÅDE `warning` og `collectionRuleIssue`, men kun to af de
 // syv celle-familier destrukturerede og videresendte dem. `GridAmountCell`, `GridIntegerCell`,
 // `GridYearCell` og `GridWeekCell` lod dem falde på gulvet. Typesystemet accepterede kaldet, så en rød
-// kryds-række-fejl eller en gul advarsel kunne sættes på en celle og bare aldrig blive vist — uden at
+// kryds-række-fejl eller en gul advarsel kunne sættes på en celle og bare aldrig blive vist – uden at
 // noget blev rødt nogen steder.
 //
 // Værnet måler ADFÆRD: propsene sættes, og cellens synlige tilstand aflæses.

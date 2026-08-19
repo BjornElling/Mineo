@@ -7,7 +7,7 @@
  * håndtering skal gælde alle 21 outputs.
  *
  * Modulet er hovedappens implementering af to porte på `DocumentExecutionEnvironment`
- * (`checkDevServerAvailability` og `reportFailure`) — ikke et lag, livscyklussen kalder direkte.
+ * (`checkDevServerAvailability` og `reportFailure`) – ikke et lag, livscyklussen kalder direkte.
  * Standalone MinProcesrente leverer sine egne porte og importerer bevidst IKKE dette modul, fordi
  * `reportSystemIssue` er hovedapp-infrastruktur, som isolations-værnet holder ude af standalone.
  *
@@ -30,7 +30,7 @@ const DEV_SERVER_PING_MAX_ATTEMPTS = 2;
 // kan ændre sig mellem browser-versioner. Vi accepterer skrøbeligheden fordi:
 //   1) Detektionen er kun en heuristik til forbedret fejltekst; den er ikke korrekthedskritisk.
 //   2) Primær dev-server-nedetidsdetektion sker via `isDevServerReachable`-ping, ikke via disse markers.
-// Hvis en ny browser-version ændrer teksten, vil brugeren stadig se en generisk fejl — ikke datatab.
+// Hvis en ny browser-version ændrer teksten, vil brugeren stadig se en generisk fejl – ikke datatab.
 // Revurder listen, hvis PDF-downloads begynder at fejle stille uden dev-server-guidance.
 const DYNAMIC_IMPORT_FETCH_ERROR_MARKERS = [
   'Failed to fetch dynamically imported module',
@@ -166,7 +166,7 @@ export const ensureDevServerAvailableForDocumentDownload = async (
  * forventelige afvisninger (gate, stale, settle) og dev-server-nedetid når aldrig hertil (§A5).
  *
  * DEV-heuristikken for dynamic-import-fejl bevares, men den kan ikke længere ændre det udfald,
- * brugeren ser — den beriger kun diagnostikken. Tidligere kunne den omklassificere en runtimefejl til
+ * brugeren ser – den beriger kun diagnostikken. Tidligere kunne den omklassificere en runtimefejl til
  * "dev-server nede" EFTER at fejlteksten var valgt, hvilket gav to forskellige beskeder for samme
  * tilstand afhængigt af timing.
  */

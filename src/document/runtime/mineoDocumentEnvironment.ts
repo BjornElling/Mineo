@@ -1,7 +1,7 @@
 /**
  * Hovedappens `DocumentExecutionEnvironment`.
  *
- * Dette er Mineos composition root for dokument-download: her — og kun her — møder den
+ * Dette er Mineos composition root for dokument-download: her – og kun her – møder den
  * app-uafhængige livscyklus hovedappens konkrete politik: `AppSettings` som kildesettings, PDF/Word
  * efter brugerindstilling, brevhoved slået op i `brevhovedIndstillinger`, DEV-server-detektion, og
  * `reportSystemIssue` som failure-sink.
@@ -44,17 +44,17 @@ const createSession = async (format: DocumentDownloadFormat): Promise<DocumentGe
  * Ingen af de to settings-halvdele er `AppSettings`. Det er ikke en forenkling, men den eneste
  * korrekte binding: `DocumentSourceContext` er KONTRAvariant i sin gate-settings (den optræder som
  * parameter i `evaluateGate`), så et miljø, der lovede hele `AppSettings`, ville kræve, at hver
- * konsument også havde hele `AppSettings` — og definitionerne lover kun at læse det source-relevante
+ * konsument også havde hele `AppSettings` – og definitionerne lover kun at læse det source-relevante
  * snapshot. `projectSourceSettings` skærer capturens `AppSettings` ned til netop det.
  *
- * **De to halvdele er DISJUNKTE.** `gateSettings` er rækkepolitikken — det eneste settings,
- * en definitions `project` kan se — og `renderSettings` er format + brevhoved, som kun dette miljø
+ * **De to halvdele er DISJUNKTE.** `gateSettings` er rækkepolitikken – det eneste settings,
+ * en definitions `project` kan se – og `renderSettings` er format + brevhoved, som kun dette miljø
  * læser, og først efter gaten har sagt ready. Formatet vælger writer, ikke dækning; opdelingen gør
  * normen til en typegrænse frem for en regel, et værn skal overvåge.
  *
  * **`readSourceSettings` er en FUNKTION, ikke en værdi.** Begge halvdele af kildesnapshottet skal
  * optages på SAMME tidspunkt. Tog miljøet imod et færdigt `SourceSettings`-objekt, ville det uundgåeligt
- * være fanget ved React-render, mens `captureEvaluationSource()` læser friskt efter settle — og et nyere
+ * være fanget ved React-render, mens `captureEvaluationSource()` læser friskt efter settle – og et nyere
  * settingsrevision-token kunne dermed parres med et ældre format-, brevhoved- eller EO-regelobjekt.
  * Tokenet ville se aktuelt ud, så intet friskhedscheck kunne fange det. Signaturen udelukker fejlen: der
  * findes ikke længere en værdi at holde fast på. Opdelingen i to halvdele ændrer det ikke: begge

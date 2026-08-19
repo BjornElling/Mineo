@@ -3,14 +3,14 @@ import type { ManifestStorageKey } from '../config/storageManifest';
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>;
 
 /**
- * SKRIVNING kræver en `ManifestStorageKey` — en nøgle, der bevisligt er produceret af
+ * SKRIVNING kræver en `ManifestStorageKey` – en nøgle, der bevisligt er produceret af
  * `storageManifest`. Det gør "kun registrerede nøgler må skrives" til en COMPILER-invariant i
  * stedet for en AST-regel, der kun kan se strengliteraler og derfor kunne omgås med en variabel.
  * De slettede legacy-nøgler (`mineo_invalidDrafts`, per-sektion-nøglerne) kan dermed ikke
  * genindføres ad nogen vej.
  *
  * LÆSNING og SLETNING tager bevidst `string`: at rydde op efter en ukendt/forældet nøgle er
- * lovligt og nødvendigt — det er kun at skabe ny persisteret tilstand, der er begrænset.
+ * lovligt og nødvendigt – det er kun at skabe ny persisteret tilstand, der er begrænset.
  */
 
 const getSessionStorageInstance = (): StorageLike => {

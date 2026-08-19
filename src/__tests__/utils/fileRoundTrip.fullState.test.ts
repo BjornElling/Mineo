@@ -26,13 +26,13 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erh
  * Ende-til-ende save→load-round-trip på FULDT populeret tilstand.
  *
  * De eksisterende tests dækker save og load hver for sig (med mocket kryptering) plus
- * encrypt/decrypt isoleret. Ingen test kørte HELE kæden — alle sektioner gennem ægte
- * kryptering, dekryptering og schema-valideret load — og hævdede streng round-trip-lighed.
+ * encrypt/decrypt isoleret. Ingen test kørte HELE kæden – alle sektioner gennem ægte
+ * kryptering, dekryptering og schema-valideret load – og hævdede streng round-trip-lighed.
  * Det er præcis den "stille datatab"-risiko AGENTS.md kalder uacceptabel (et felt der
  * tabes i serialiseringen ville passere de stykvise tests).
  *
  * Sandhedsgrundlaget for "hvad der gemmes" er `eoFileDataSchema.parse(buildAllDataRawFromSnapshot(...))`
- * — den kanoniske save-repræsentation. Efter ægte kryptering → fil → ægte load skal det loadede
+ * – den kanoniske save-repræsentation. Efter ægte kryptering → fil → ægte load skal det loadede
  * snapshot deep-equal den kanoniske save pr. sektion. Kun fil-picker-I/O mockes (som i de øvrige tests).
  */
 

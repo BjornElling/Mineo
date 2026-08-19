@@ -5,7 +5,7 @@
  * (`triggerDocumentDownload`), er en stram ende-til-ende-assertion, men en SVAG wiring-assertion. Den
  * forskel er ikke teoretisk: den kan slippe en kritisk fejl igennem.
  *
- * Fejlformen: to generatorer i SAMME domæne med hver sit datoformat — den ene tager `dd-mm-åååå` og
+ * Fejlformen: to generatorer i SAMME domæne med hver sit datoformat – den ene tager `dd-mm-åååå` og
  * parser med `parseDanishDate`, den anden canonical `ISODateString`. Sender definitionerne ISO til
  * begge, kaster hver eneste enkeltrente-download "Ugyldige datoer for renteberegning" i begge apps.
  * En integrationstest fanger det ikke, hvis den kun aktiverer det ene output, altså netop den af de
@@ -77,7 +77,7 @@ describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
     await expect(render(fakeSession(), input, { visBrevhoved: false })).resolves.toBeDefined();
   });
 
-  it('standalone: samme ISO-kontrakt — begge apps deler generatorens kontrakt', async () => {
+  it('standalone: samme ISO-kontrakt – begge apps deler generatorens kontrakt', async () => {
     const standaloneInput: StandaloneRenteDocumentInput = {
       beloeb: input.beloeb,
       actualInterestDate: input.actualInterestDate,
@@ -95,7 +95,7 @@ describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
     // Uden dette ben kunne begge kontrakter være grønne, og testen ville ikke sige noget om, hvilket
     // format generatoren faktisk kræver.
     //
-    // Generatoren validerer datoerne SYNKRONT, før den returnerer sit promise — derfor `toThrow` på selve
+    // Generatoren validerer datoerne SYNKRONT, før den returnerer sit promise – derfor `toThrow` på selve
     // kaldet og ikke `rejects`. Castet er nødvendigt, fordi typen nu udelukker den forkerte form.
     const { generateRenteDocument } = await import('../../document/generators/renteberegning/renteDocument');
     expect(() => generateRenteDocument(
@@ -108,7 +108,7 @@ describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
     )).toThrow('Ugyldige datoer for renteberegning');
   });
 
-  it('BEGGE rente-outputs deler nu ét datoformat — pin det, så en divergens ikke genopstår', () => {
+  it('BEGGE rente-outputs deler nu ét datoformat – pin det, så en divergens ikke genopstår', () => {
     // Divergensen er lukket ved roden (generatorens signatur), så testen pinner enigheden: begge
     // definitioner bærer ISO, og ingen af dem må bære dansk format.
     expect(input.actualInterestDate).toMatch(ISO_DATE);

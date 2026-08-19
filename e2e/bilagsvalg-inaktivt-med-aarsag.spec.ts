@@ -3,12 +3,12 @@ import { type Page } from '@playwright/test';
 import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
 /**
- * Betingede bilagsvalg vises ALTID — inaktive og umarkerede med årsagen i tooltippet
+ * Betingede bilagsvalg vises ALTID – inaktive og umarkerede med årsagen i tooltippet
  * (`page-component-contract.md` §10.5).
  *
  * Testen findes, fordi de to bilagsvalg på Differencekrav-fanen tidligere blev SKJULT, når bilaget ikke
  * fandtes i beregningen. Et valg, der forsvinder, efterlader brugeren i tvivl om, hvorvidt muligheden
- * findes i programmet — og en unit-test kan ikke se det: den kan hævde resolverens tekst, men ikke at
+ * findes i programmet – og en unit-test kan ikke se det: den kan hævde resolverens tekst, men ikke at
  * feltet faktisk står på skærmen med den tekst i et tooltip, brugeren kan hovere frem.
  *
  * Den dækker samtidig rangordenen (§10.5, punkt 4): brugerens eget fravalg forklares FØR beregningsårsagen.
@@ -55,7 +55,7 @@ const fyldMindsteEetSag = async (page: Page): Promise<void> => {
   await expect(afgoerelsestype).toHaveValue('Endelig');
 };
 
-test.describe('Bilagsvalg — inaktivt med årsag frem for skjult', () => {
+test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
   test('Mer-erstatning-bilaget bliver stående med årsag, når der ikke er nogen forhøjelse', async ({ page, runtimeErrors }) => {
     await login(page);
     await fyldMindsteEetSag(page);
@@ -64,7 +64,7 @@ test.describe('Bilagsvalg — inaktivt med årsag frem for skjult', () => {
 
     const bilag = page.getByRole('checkbox', { name: 'Mer-erstatning forhøjet folkepension' });
 
-    // Kernen: valget er SYNLIGT, men inaktivt og umarkeret — ikke væk.
+    // Kernen: valget er SYNLIGT, men inaktivt og umarkeret – ikke væk.
     await expect(bilag).toBeVisible();
     await expect(bilag).toBeDisabled();
     await expect(bilag).not.toBeChecked();
@@ -94,7 +94,7 @@ test.describe('Bilagsvalg — inaktivt med årsag frem for skjult', () => {
     const tooltip = page.getByRole('tooltip');
 
     // Rangordenen: fravalget nævnes, og beregningsårsagen holdes tilbage. Ellers ville brugeren få at
-    // vide, at pensionsalderen ikke er forhøjet — uden at programmet har efterprøvet det.
+    // vide, at pensionsalderen ikke er forhøjet – uden at programmet har efterprøvet det.
     await expect(tooltip).toContainText(FRAVALGT_DELTEKST);
     await expect(tooltip).not.toContainText(INGEN_FORHOEJELSE_DELTEKST);
 

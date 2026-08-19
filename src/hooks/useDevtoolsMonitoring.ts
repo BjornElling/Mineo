@@ -81,7 +81,7 @@ export const useDevtoolsMonitoring = ({
   }, [clearPendingDevtoolsNoticeTimer]);
 
   /**
-   * ENESTE vej fra en devtools-issue til notifikations-state — altid udskudt, aldrig synkron.
+   * ENESTE vej fra en devtools-issue til notifikations-state – altid udskudt, aldrig synkron.
    *
    * En issue kan opstå MENS en anden komponent renderer: `computeEoSnapshot` fail-closer under
    * `Erstatningsopgoerelse`s render og kalder `reportSystemIssue`, som via den patchede
@@ -90,7 +90,7 @@ export const useDevtoolsMonitoring = ({
    * Notifikationen er ren UI-feedback uden ordensgaranti, så udskydelsen koster intet.
    *
    * Timeren coalescer også en byge af issues til ét flush, og `flushPendingDevtoolsNotice` ejer
-   * dismissal-filteret — derfor må kaldere IKKE forfiltrere eller skrive state selv.
+   * dismissal-filteret – derfor må kaldere IKKE forfiltrere eller skrive state selv.
    */
   const queuePendingDevtoolsNotice = React.useCallback((snapshot: DevtoolsIssueSnapshot) => {
     pendingDevtoolsSnapshotRef.current = snapshot;

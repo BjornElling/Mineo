@@ -15,7 +15,7 @@ import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
 
 // Grid dropdown-celle (§2.5/§3.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
 // `ChoiceField` (form-dropdown) og den ene celle-valg-kontrol (fx rentekrav-enhed).
-// Menuvalget committer STRAKS gennem `useCellEditor().commitImmediate` — der er aldrig en åben draft at settle, så
+// Menuvalget committer STRAKS gennem `useCellEditor().commitImmediate` – der er aldrig en åben draft at settle, så
 // grid-core-navigationens `commitCurrent` er altid en no-op-success. Den viste værdi + røde issue læses fra den
 // afsluttede revision gennem controlleren; der er ingen konkurrerende celle-værdikopi (§3.8).
 //
@@ -38,7 +38,7 @@ export type GridChoiceCellProps<
   children?: React.ReactNode;
   /**
    * Tilgængeligt navn på combobox'en, når cellen har et andet navn end feltets egen label.
-   * Udelades den, kommer navnet fra feltet selv — se `useFieldLabel`.
+   * Udelades den, kommer navnet fra feltet selv – se `useFieldLabel`.
    */
   ariaLabel?: string;
   /**
@@ -56,12 +56,12 @@ export type GridChoiceCellProps<
  * `allowEmpty={false}` pr. kaldssted, og de to kunne ikke komme fra hinanden på nogen målbar måde: en
  * glemt prop lod brugeren rydde et påkrævet felt med Delete, og fejlen dukkede først op som et kast langt
  * senere. Proppen kan stadig SKÆRPE et valgfrit felt (et domæne, der kræver et valg), men aldrig løsne et
- * påkrævet — det afvises.
+ * påkrævet – det afvises.
  */
   allowEmpty?: boolean;
   placeholder?: string;
   /**
-   * Collection-afledt feltissue (fx identiske afgørelser) med rigtig feltadresse — ikke en fri fejltekst
+   * Collection-afledt feltissue (fx identiske afgørelser) med rigtig feltadresse – ikke en fri fejltekst
    * Descriptorens eget issue har forrang (§1.8).
    */
   collectionRuleIssue?: FieldIssue;
@@ -89,7 +89,7 @@ const GridChoiceCellInner = <
   const hasError = issueText.message !== undefined;
   const errorMessage = issueText.message ?? '';
   const tooltipProp = issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip };
-  // Feltnavnet kommer fra den ENE autoritet — `InputReader.labelOf` — præcis som i formularens
+  // Feltnavnet kommer fra den ENE autoritet – `InputReader.labelOf` – præcis som i formularens
   // `ChoiceField`. Cellen læste før `descriptor.label` direkte og gik uden om feltets `contextualLabel`,
   // så et felt med kontekstafhængigt navn kunne hedde to ting (§3.2a).
   const fieldLabel = useFieldLabel(cell.field);

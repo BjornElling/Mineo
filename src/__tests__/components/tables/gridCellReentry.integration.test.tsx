@@ -32,7 +32,7 @@ import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas'
 // Det centrale er BROEN mellem de to redigerings-autoriteter (`useGridCellSurface`):
 //   1. grid-core ejer navigation og edit-ÅBNING (to-trins-klik, printbar tast, Enter/Escape i capture-fasen),
 //   2. `useCellEditor` ejer draft/commit.
-// Et hul i broen ser ud som "cellen kan ikke redigeres igen efter blur" — netop den to-trins-genindtræden, som
+// Et hul i broen ser ud som "cellen kan ikke redigeres igen efter blur" – netop den to-trins-genindtræden, som
 // ikke var erstattet efter sletningen.
 
 let catalog: InputCatalog;
@@ -130,7 +130,7 @@ const renderGrid = () => {
 const amountInput = () => screen.getByRole('textbox') as HTMLInputElement;
 
 /**
- * Driver cellen gennem den registrerede `GridCellEditorHandle` — PRÆCIS de kald,
+ * Driver cellen gennem den registrerede `GridCellEditorHandle` – PRÆCIS de kald,
  * `tableKeyboardNavigation` foretager i capture-fasen (`tableKeyboardNavigation.ts:331-351`).
  *
  * Bevidst valg: vi går ikke gennem rå `keyDown` på tabellen her, fordi navigationens celleopslag filtrerer på
@@ -156,7 +156,7 @@ const openByKey = async (cell: GridCellCoord, key: string): Promise<boolean> => 
 };
 
 describe('grid-celle: to-trins-genindtræden efter commit', () => {
-  it('kan redigeres, committes, og redigeres IGEN — cellen bliver ikke "død"', async () => {
+  it('kan redigeres, committes, og redigeres IGEN – cellen bliver ikke "død"', async () => {
     // Regressionsværnet for broen: efter commit lukker grid-core editingen og editoren lukker sin draft.
     // Er de to lifecycles ude af trit, forbliver cellen readOnly, og en ny tast åbner den ikke igen.
     renderGrid();
@@ -173,7 +173,7 @@ describe('grid-celle: to-trins-genindtræden efter commit', () => {
     expect(canonical(belobField.bind('r1'))).toMatchObject({ value: 1000 });
     expect(amountInput().readOnly).toBe(true);
 
-    // ANDEN redigering af SAMME celle — det, der gik tabt med de slettede suiter.
+    // ANDEN redigering af SAMME celle – det, der gik tabt med de slettede suiter.
     expect(await openByKey(AMOUNT_CELL, '2')).toBe(true);
     expect(amountInput().readOnly).toBe(false);
 
@@ -318,7 +318,7 @@ describe('grid dropdown-celle', () => {
     expect(combobox).not.toBeNull();
     expect(screen.queryByRole('listbox')).toBeNull();
 
-    // Åbn menuen via combobox'ens egen klik-kontrakt (`StyledDropdown` — onClick={handleOpen}).
+    // Åbn menuen via combobox'ens egen klik-kontrakt (`StyledDropdown` – onClick={handleOpen}).
     // Navigationen lader popup-celler beholde deres egen tastatur-/pointer-kontrakt (klassificeret af
     // `popupWidgetSemantics`), så cellen åbnes ikke gennem grid-core's edit-lifecycle. Selve
     // tastaturkontrakten er dækket af `popupWidgetKeyboardContract.integration.test.tsx`.
@@ -340,7 +340,7 @@ describe('grid dropdown-celle', () => {
 
   it('commitCurrent er en no-op-success, fordi et valg allerede er committet', async () => {
     // Grid-core kalder `commitCurrent` ved navigation væk fra cellen. En dropdown har aldrig en åben draft,
-    // så kaldet skal lykkes uden at ændre noget — ellers ville navigation kunne overskrive et valg.
+    // så kaldet skal lykkes uden at ændre noget – ellers ville navigation kunne overskrive et valg.
     renderGrid();
 
     await act(async () => {

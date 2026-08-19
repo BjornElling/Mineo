@@ -1,4 +1,4 @@
-# AGENTS.md — Testpolitik for Mineo
+# AGENTS.md – Testpolitik for Mineo
 
 Dette dokument er den autoritative teststandard for Mineo.
 Alle tests under `src/__tests__/` skal følge disse regler.
@@ -149,10 +149,10 @@ Guard-tests må gerne læse kildefiler og fejle ved mønsterbrud.
 ### 2.5.1 Ét harness, ikke én walker pr. regel
 
 Grænse-regler hører i regelmanifestet under `src/__tests__/quality/architecture/`, ikke i en ny håndskrevet
-scanner. En regel, der medbringer sit eget filglob, får også sit eget liveness-gulv ved siden af harnessets —
+scanner. En regel, der medbringer sit eget filglob, får også sit eget liveness-gulv ved siden af harnessets –
 og så er det harnessets dækning, der ikke længere gælder for den.
 
-### 2.5.2 Et værn skal kunne fejle — bevis det
+### 2.5.2 Et værn skal kunne fejle – bevis det
 
 Et grønt værn er ikke evidens. Før du stoler på et, skal tre ting være vist:
 
@@ -163,7 +163,7 @@ Et grønt værn er ikke evidens. Før du stoler på et, skal tre ting være vist
    efterprøve stadig eksisterer.
 3. **Testdataene kan skelne mekanismerne.** To mekanismer, der er enige på alle prøvede inputs, er utestede.
    Skal en forrang bevises (fx at et eksplicit hint slår en tekst-heuristik), så skal der findes en case, hvor
-   de peger hver sin vej — ellers består værnet en mutation, det burde fange.
+   de peger hver sin vej – ellers består værnet en mutation, det burde fange.
 
 Et sidebemærk fra samme fejlklasse: en `hasIdentifier`-probe forbliver sand ved et alias-import
 (`import { x as y }`), fordi navnet stadig står i import-clausen. Mål et faktisk **kald**.
@@ -171,7 +171,7 @@ Et sidebemærk fra samme fejlklasse: en `hasIdentifier`-probe forbliver sand ved
 ### 2.5.3 Kan grænsen udtrykkes i typesystemet, så gør det
 
 En typegrænse slår en AST-regel, fordi den også lukker de indirekte veje. `safeSessionStorage`s branded
-`ManifestStorageKey` afviser en ikke-manifesteret nøgle i COMPILEREN — også når den kommer ind som en
+`ManifestStorageKey` afviser en ikke-manifesteret nøgle i COMPILEREN – også når den kommer ind som en
 variabel, hvor en AST-regel principielt er blind.
 
 Brandede typer har dog et loft: `{} as Brand` kompilerer. En smal AST-regel skal derfor lukke
@@ -182,7 +182,7 @@ KAN afhænge af det, er der ingen regel tilbage at overtræde.
 
 ### 2.5.4 Værn mod ansvaret, ikke kun mod navnet
 
-En regel, der opremser historiske fil- og symbolnavne, værner mod *det, vi kom fra* — ikke mod *det ansvar, de
+En regel, der opremser historiske fil- og symbolnavne, værner mod *det, vi kom fra* – ikke mod *det ansvar, de
 havde*. En ny fil, der genopfinder samme parallelle model under et andet navn, passerer. Navnelister er
 nyttige, men de er et supplement til en ansvarsbaseret grænse, ikke en erstatning.
 
@@ -341,10 +341,10 @@ Alt andet er sekundært.
 
 Tests for komponent-adfærd skal verificere kontrakterne i:
 
-- `src/contracts/form-contract.md` — commit/draft-semantik
-- `src/contracts/keyboard-navigation.md` — tastatur-navigation
-- `src/contracts/mineo-field-pattern.md` — felt-mønster
-- `src/contracts/date-contract.md` — dato-invarianter
-- `src/contracts/domain-boundary-contract.md` — domæneisolation
+- `src/contracts/form-contract.md` – commit/draft-semantik
+- `src/contracts/keyboard-navigation.md` – tastatur-navigation
+- `src/contracts/mineo-field-pattern.md` – felt-mønster
+- `src/contracts/date-contract.md` – dato-invarianter
+- `src/contracts/domain-boundary-contract.md` – domæneisolation
 
 Hvis en test verificerer en kontrakt-invariant, bør den referere til kontrakten i en kommentar.

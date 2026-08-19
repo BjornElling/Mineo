@@ -8,7 +8,7 @@
  *
  * Reglen findes, fordi den gamle form voksede organisk til det modsatte: ~440 af 584
  * linjer var fokus-logik i en fil, der hed «Container». Intet forhindrede den vækst, og
- * intet ville forhindre den igen — en enkelt `querySelectorAll(CONTAINER_FOCUSABLE_SELECTOR)`
+ * intet ville forhindre den igen – en enkelt `querySelectorAll(CONTAINER_FOCUSABLE_SELECTOR)`
  * i en layout-komponent er nok til at starte forfra med en andenudgave af traverseringen
  * ved siden af den kanoniske.
  *
@@ -23,7 +23,7 @@ import { collectCalls, hasAnyIdentifier, hasIdentifier } from '../astQueries';
 import type { SourceEntry } from '../sourceGraph';
 
 /**
- * Modulerne der ejer traverseringen. Kun disse — og selectorernes eget hjem — må
+ * Modulerne der ejer traverseringen. Kun disse – og selectorernes eget hjem – må
  * forbruge fokus-traverserings-primitiverne.
  */
 const FOCUS_TRAVERSAL_OWNERS: readonly string[] = [
@@ -54,17 +54,17 @@ const TRAVERSAL_PRIMITIVES: ReadonlySet<string> = new Set(TRAVERSAL_PRIMITIVE_NA
 export const focusTraversalOwnershipRule = forbidImports({
   id: 'layout/focus-traversal-owned-by-container-navigation',
   description:
-    'Fokus-traverserings-primitiverne (CONTAINER_FOCUSABLE_SELECTOR, CONTAINER_ROW_SELECTOR, tabel-kant-flaget) må kun forbruges af containerNavigation/ og grid-navigationen — ikke af layout- eller sidekomponenter.',
+    'Fokus-traverserings-primitiverne (CONTAINER_FOCUSABLE_SELECTOR, CONTAINER_ROW_SELECTOR, tabel-kant-flaget) må kun forbruges af containerNavigation/ og grid-navigationen – ikke af layout- eller sidekomponenter.',
   liveTarget: {
     kind: 'precondition',
     // AST-baseret, ikke tekst: ellers kunne en kommentar, der blot OMTALER selectoren,
-    // holde reglen kunstigt levende — hvilket harnessens liveness-selvtest fanger.
+    // holde reglen kunstigt levende – hvilket harnessens liveness-selvtest fanger.
     probe: (entry) => hasAnyIdentifier(entry, TRAVERSAL_PRIMITIVE_NAMES),
     rationale:
       'reglen forudsætter, at traverserings-primitiverne stadig findes og forbruges; forsvinder de, er der ingen grænse at håndhæve',
     // Selectorerne bor ét sted og forbruges af begge autoriteter: definitionsfilen plus
     // mindst inventaret og grid-navigationen. Gulvet gør det synligt, hvis vejen skrumper
-    // til én rest — fx hvis nogen inlinede selectoren igen.
+    // til én rest – fx hvis nogen inlinede selectoren igen.
     minimumMatches: 3,
     requiredPaths: [
       'src/components/tables/gridCore/tableFocusHelpers.ts',
@@ -77,7 +77,7 @@ export const focusTraversalOwnershipRule = forbidImports({
     ref.moduleSpecifier.includes('tableFocusHelpers') &&
     ref.namedBindings.some((name) => TRAVERSAL_PRIMITIVES.has(name)),
   message: (ref) =>
-    `Fokus-traverserings-primitiv importeret uden for containerNavigation/ (${ref.namedBindings.filter((name) => TRAVERSAL_PRIMITIVES.has(name)).join(', ')}). Sidens fokus-traversering ejes af src/components/layout/containerNavigation/ — byg ikke en parallel traversering. Se keyboard-navigation.md §Cross-cutting contract.`,
+    `Fokus-traverserings-primitiv importeret uden for containerNavigation/ (${ref.namedBindings.filter((name) => TRAVERSAL_PRIMITIVES.has(name)).join(', ')}). Sidens fokus-traversering ejes af src/components/layout/containerNavigation/ – byg ikke en parallel traversering. Se keyboard-navigation.md §Cross-cutting contract.`,
   violatingFixtures: [
     {
       relativePath: 'src/components/layout/Container.tsx',
@@ -110,13 +110,13 @@ export const focusTraversalOwnershipRule = forbidImports({
  * Popup-fokus-restore har ÉN implementering (`keyboard-navigation.md` §Popup-fokus-restore).
  *
  * Regel: lukkes en popup, vender fokus tilbage til den kontrol, brugeren åbnede den med.
- * Reglen her håndhæver ikke selve adfærden — den håndhæver, at adfærden kun findes ÉT sted.
+ * Reglen her håndhæver ikke selve adfærden – den håndhæver, at adfærden kun findes ÉT sted.
  *
  * Hvorfor et værn: den naive form ser rigtig ud og virker næsten. Et `element.focus()` i en
  * lukkehandler dækker Chrome, men fejler i WebKit (klik fokuserer ikke `<button>`, så der er
  * intet husket mål), ved `Escape` (fokus står på popupens egen container, ikke `body`) og ved
  * MUI's transition (portalen unmountes EFTER transitionen, så fokus falder til `body` bagefter).
- * Præcis de tre fælder blev løst én gang inde i `ConfirmationDialog` — og de tre håndrullede
+ * Præcis de tre fælder blev løst én gang inde i `ConfirmationDialog` – og de tre håndrullede
  * overlays havde derefter hver sin egen mangel, fordi løsningen ikke var genbrugelig.
  *
  * Skæringen er på `focus()`-kald i en fil, der SELV ejer en popup (renderer en `Dialog`/`Modal`
@@ -132,7 +132,7 @@ const OVERLAY_BEHAVIOR_HOOK = 'useOverlayBehavior';
  * Der er bevidst INGEN allowlist. Undtagelsen er indbygget i selve prædikatet: aftager filen
  * `useDialogFocusRestore`, ejer den ikke sin egen restore-vej, og dens øvrige `focus()`-kald
  * (fx fokus IND i overlayet ved åbning) er lovlige. En allowlist ville derfor bestå af poster,
- * der aldrig kan udløse reglen — præcis det harnessens anti-rot-kontrol med rette afviser.
+ * der aldrig kan udløse reglen – præcis det harnessens anti-rot-kontrol med rette afviser.
  */
 
 /** Markører for «denne fil ejer en popup-flade». */
@@ -142,8 +142,8 @@ const POPUP_OWNER_MARKERS = ['Dialog', 'Modal'] as const;
  * Renderer filen en JSX-attribut `role="dialog"`?
  *
  * AST-baseret og IKKE `entry.text.includes('role="dialog"')`. Tekstformen kan ikke skelne kode fra
- * kommentar: en kommentar, der FORKLARER reglen — fx navigationens note om, at et inline
- * `role="dialog"`-overlay er en DOM-efterkommer — gjorde filen til en «popup-ejer» og udløste reglen
+ * kommentar: en kommentar, der FORKLARER reglen – fx navigationens note om, at et inline
+ * `role="dialog"`-overlay er en DOM-efterkommer – gjorde filen til en «popup-ejer» og udløste reglen
  * på dens almindelige `element.focus()`-kald. Prosa må ikke kunne ændre, hvad et værn måler.
  */
 const rendersDialogRoleAttribute = (entry: SourceEntry): boolean => {
@@ -174,7 +174,7 @@ const ownsPopupSurface = (entry: SourceEntry): boolean => {
  * `useOverlayBehavior`, som selv kalder den indeni og videregiver dens `restoreFocus`.
  *
  * Begge tæller, fordi garantien er den samme: der er ÉN implementering af restoren. Da overlays blev
- * samlet om det fælles regelsæt, flyttede indgangen — ikke mekanismen. En probe, der kun kendte det
+ * samlet om det fælles regelsæt, flyttede indgangen – ikke mekanismen. En probe, der kun kendte det
  * gamle navn, ville erklære reglen inert, selv om den beskyttede præcis lige så meget som før.
  */
 const consumesSharedFocusRestore = (entry: SourceEntry): boolean =>
@@ -191,7 +191,7 @@ const findUnownedPopupFocusRestore = (entry: SourceEntry): readonly Finding[] =>
       position: ref.position,
       message:
         `Popup-flade kalder selv \`${ref.calleeText}()\`. Fokus-restore ved lukning ejes af `
-        + '`useDialogFocusRestore` (keyboard-navigation.md §Popup-fokus-restore) — byg ikke en '
+        + '`useDialogFocusRestore` (keyboard-navigation.md §Popup-fokus-restore) – byg ikke en '
         + 'parallel vej: et bart focus()-kald fejler i WebKit, ved Escape og ved MUI-transitionen.',
     }));
 };
@@ -205,7 +205,7 @@ export const popupFocusRestoreSingleSourceRule = defineRule({
     // AST-baseret: en kommentar der blot OMTALER hooken må ikke holde reglen kunstigt levende.
     probe: consumesSharedFocusRestore,
     rationale:
-      'reglen forudsætter, at den fælles restore-vej findes og aftages — direkte eller gennem `useOverlayBehavior`; forsvinder den, er der ingen enkeltkilde at håndhæve',
+      'reglen forudsætter, at den fælles restore-vej findes og aftages – direkte eller gennem `useOverlayBehavior`; forsvinder den, er der ingen enkeltkilde at håndhæve',
     // Hooken, det fælles overlay-lag, plus de flader der aftager dem.
     minimumMatches: 4,
     requiredPaths: [
@@ -227,7 +227,7 @@ export const popupFocusRestoreSingleSourceRule = defineRule({
     },
   ],
   cleanFixtures: [
-    // Aftager den fælles hook — lovligt, uanset at filen også ejer en popup.
+    // Aftager den fælles hook – lovligt, uanset at filen også ejer en popup.
     {
       relativePath: 'src/components/ui/GoodOverlay.tsx',
       code: 'const O = () => { const { triggerRef } = useDialogFocusRestore({ open }); return <Dialog ref={triggerRef} />; };',
@@ -246,20 +246,20 @@ export const popupFocusRestoreSingleSourceRule = defineRule({
  * **Hvorfor reglen findes ved siden af `popup-focus-restore-single-source`.** Den regel fanger den
  * SYNLIGE parallelle vej: et `focus()`-kald i en fil, der ejer en popup uden at aftage den fælles
  * hook. Den er blind for den USYNLIGE: en `<Dialog>`, der aftager hooken korrekt, men glemmer
- * `disableRestoreFocus`. Dér er den konkurrerende vej ikke kode i filen — den er MUI's default.
+ * `disableRestoreFocus`. Dér er den konkurrerende vej ikke kode i filen – den er MUI's default.
  *
  * Det er værre end den synlige variant, netop fordi intet ser forkert ud: hooken er kaldt, kontrakten
  * ser overholdt ud, og MUI's restore kører SIDST og overskriver målet uden at noget fejler. Tre
  * dialoger stod i præcis den tilstand (fejlrapport fra indholdsbokse, fejlrapport-knappen og
- * ErrorFallbacks genindlæsningsbekræftelse), mens `ConfirmationDialog` — den ene, nogen havde
- * fejlsøgt — bar flaget.
+ * ErrorFallbacks genindlæsningsbekræftelse), mens `ConfirmationDialog` – den ene, nogen havde
+ * fejlsøgt – bar flaget.
  *
  * Kontrakten krævede det i forvejen (`keyboard-navigation.md` §Popup-fokus-restore: «En MUI-baseret
  * popup skal sætte `disableRestoreFocus`»), men intet målte det.
  *
  * **Skæringen** er snæver med vilje: kun filer, der BÅDE renderer et `<Dialog>` OG aftager
  * `useDialogFocusRestore`. En dialog uden egen restore har ingen konkurrerende vej, og MUI's default
- * er da det rigtige svar — den skal ikke tvinges til at slå den fra.
+ * er da det rigtige svar – den skal ikke tvinges til at slå den fra.
  */
 const findMuiDialogWithoutRestoreOptOut = (entry: SourceEntry): readonly Finding[] => {
   if (!/\.tsx$/.test(entry.relativePath)) return [];
@@ -283,7 +283,7 @@ const findMuiDialogWithoutRestoreOptOut = (entry: SourceEntry): readonly Finding
           message:
             'MUI `<Dialog>` i en fil, der selv fører fokus-restore gennem `useDialogFocusRestore`, mangler '
             + '`disableRestoreFocus`. MUI genopretter da SELV fokus til det element, der var aktivt ved '
-            + 'åbningen, og den kører sidst — så den overskriver kontraktens målprioritet uden at noget '
+            + 'åbningen, og den kører sidst – så den overskriver kontraktens målprioritet uden at noget '
             + 'fejler (`keyboard-navigation.md` §Popup-fokus-restore). Se `ConfirmationDialog`.',
         });
       }
@@ -302,7 +302,7 @@ export const muiDialogRestoreOptOutRule = defineRule({
     kind: 'precondition',
     probe: consumesSharedFocusRestore,
     rationale:
-      'reglen forudsætter, at den fælles restore-vej findes og aftages af MUI-baserede dialoger — '
+      'reglen forudsætter, at den fælles restore-vej findes og aftages af MUI-baserede dialoger – '
       + 'direkte eller gennem `useOverlayBehavior`; forsvinder den, er der ingen konkurrerende vej at lukke',
     minimumMatches: 4,
     requiredPaths: ['src/components/ui/ConfirmationDialog.tsx'],
@@ -338,7 +338,7 @@ export const muiDialogRestoreOptOutRule = defineRule({
  * ud og alligevel mangle en lukkevej, uden at noget fejlede.
  *
  * Værre: forskellen mellem en PORTALERET og en INLINE monteret popup afgjorde, om sidens
- * tastaturnavigation overtog Tab inde i vinduet — og den forskel var tilfældig, ikke valgt.
+ * tastaturnavigation overtog Tab inde i vinduet – og den forskel var tilfældig, ikke valgt.
  * `useOverlayBehavior` gør åbenhed til noget overlayet SIGER (markøren), så begge monteringsformer
  * opfører sig ens.
  *
@@ -375,7 +375,7 @@ const findOverlayWithoutSharedBehavior = (entry: SourceEntry): readonly Finding[
       'Overlay-flade uden `useOverlayBehavior`. Programmets overlays deler ÉT regelsæt for tastatur og '
       + 'lukkeveje (`keyboard-navigation.md` §Overlay-adfærd): Escape, backdrop, lukkeknap OG browserens/'
       + 'musens tilbage-knap, plus stak-disciplin når overlays ligger oven på hinanden. En flade må ikke '
-      + 'implementere sin egen delmængde — det var netop sådan, tilbage-knappen manglede overalt og Tab '
+      + 'implementere sin egen delmængde – det var netop sådan, tilbage-knappen manglede overalt og Tab '
       + 'kunne slippe ud af et inline-monteret vindue.',
   }];
 };
@@ -423,16 +423,16 @@ export const overlaySharedBehaviorRule = defineRule({
 });
 
 /**
- * Blink-markeringen sættes KUN af `blinkFieldAttention` — aldrig deklarativt fra React-state.
+ * Blink-markeringen sættes KUN af `blinkFieldAttention` – aldrig deklarativt fra React-state.
  *
  * **Hvorfor det er en regel og ikke bare en konvention.** En «peg på dette felt»-markering er en
  * TRANSIENT respons: den skal komme igen, hver gang brugeren udløser den. Sættes klassen derimod
- * deklarativt ud fra state, dør gentagelsen lydløst — anden gang skrives den SAMME værdi, React
+ * deklarativt ud fra state, dør gentagelsen lydløst – anden gang skrives den SAMME værdi, React
  * bailer ud af re-renderen, og der sker intet synligt. Ingen test fejler; brugeren tror bare, at
  * programmet ignorerer dem.
  *
  * Præcis det skete i løntabellen: en afvist «Omregning til fuldt år» blinkede kun ved FØRSTE klik.
- * Målt med `animationstart` gav tre klik 1, 1, 1 — efter rettelsen 1, 2, 3.
+ * Målt med `animationstart` gav tre klik 1, 1, 1 – efter rettelsen 1, 2, 3.
  *
  * Helperen ejer genstarten (fjern klasse → tving reflow → sæt igen) og oprydningen. Den er
  * desuden det ene sted, varigheden og `prefers-reduced-motion`-hensynet kan ændres.
@@ -445,7 +445,7 @@ const BLINK_HELPER_MODULE = 'src/inputCore/react/fieldAttentionBlink.ts';
 
 const findDeclarativeBlinkClassUse = (entry: SourceEntry): readonly Finding[] => {
   if (!/\.tsx?$/.test(entry.relativePath)) return [];
-  // Helper-modulet DEFINERER klassen og sætter den — det er hele pointen med det.
+  // Helper-modulet DEFINERER klassen og sætter den – det er hele pointen med det.
   if (entry.relativePath === BLINK_HELPER_MODULE) return [];
 
   const findings: Finding[] = [];

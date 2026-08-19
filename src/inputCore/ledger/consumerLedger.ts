@@ -4,12 +4,12 @@ import {
   CONSUMER_DOCUMENT_OUTPUTS,
 } from '../../config/consumerInventory';
 
-// Midlertidigt fase-0-inventar (§6.3): én entry pr. makro-consumer — beregning, sagsfil eller dokumentoutput. Bygger PÅ det
+// Midlertidigt fase-0-inventar (§6.3): én entry pr. makro-consumer – beregning, sagsfil eller dokumentoutput. Bygger PÅ det
 // eksisterende maskinlåste `consumerInventory.ts` (som allerede peger på faktiske exports/callsites og
 // er dækket af sin coverage-test) frem for at oprette en parallel autoritet. Her tilføjes consumer-klassen og
-// — for dokumenter — hvilken beregning outputtet projekterer fra. De rene projektioner, missing-regler,
+// – for dokumenter – hvilken beregning outputtet projekterer fra. De rene projektioner, missing-regler,
 // output-invariants og prioriterede editorlokationer pr. navigerbart issue bor i dokumentdefinitionerne og i
-// issue-kataloget — ikke her. Registret opregner consumere; det ejer ikke deres regler.
+// issue-kataloget – ikke her. Registret opregner consumere; det ejer ikke deres regler.
 
 export type ConsumerType = 'beregning' | 'casefile' | 'document';
 

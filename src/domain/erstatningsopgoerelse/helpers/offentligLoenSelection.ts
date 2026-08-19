@@ -2,10 +2,10 @@
  * Delt, ren parsing af den offentlige løn-indplacering (løntype + løntrin + gruppe) fra
  * et ansættelsesforholds rå input.
  *
- * Baggrund (U3): den samme validering fandtes i tre parallelle kopier — beregningsmotoren
+ * Baggrund (U3): den samme validering fandtes i tre parallelle kopier – beregningsmotoren
  * (`loenudviklingBeregning.ts`, der KASTER med feltspecifikke beskeder) og to inspektions-/
  * visnings-varianter (`eoInspektionRegulationCore.ts` / `eoInspektionLoenCoreModel.ts`, der
- * returnerer `null`). Kernen — parsning af løntype, løntrin og gruppe — er identisk; kun
+ * returnerer `null`). Kernen – parsning af løntype, løntrin og gruppe – er identisk; kun
  * fejl-semantikken (throw vs. null) er bevidst forskellig.
  *
  * Denne helper ejer den rene parsning og returnerer et diskrimineret resultat. Kaldere
@@ -47,7 +47,7 @@ export type OffentligLoenSelectionResult =
 
 /**
  * Parser den offentlige løn-indplacering fra rå felter. `offentligType` skal allerede være
- * opløst (offentlig-grenen bekræftet) af kalderen — denne helper afgør ikke, om der er tale
+ * opløst (offentlig-grenen bekræftet) af kalderen – denne helper afgør ikke, om der er tale
  * om en offentlig overenskomst.
  */
 export const parseOffentligLoenSelection = (params: Readonly<{

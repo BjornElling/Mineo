@@ -15,13 +15,13 @@ import {
   productionInputFields,
 } from '../../../inputCore/catalog/productionCatalog';
 
-// Greenfield save-blocking focus (§1.6/§3.2/§3.9): målet lokaliseres via den FULDE serialiserede feltadresse —
+// Greenfield save-blocking focus (§1.6/§3.2/§3.9): målet lokaliseres via den FULDE serialiserede feltadresse –
 // samme identitet som undo/redo-restoren. Adressen reduceres ALDRIG til et feltnavn: to celler i forskellige
 // rækker deler feltnavn, så en navnebaseret søgning kunne fokusere den forkerte celle.
 //
 // DESTINATIONEN ejes af editorlokationen (§3.2). Der findes ikke længere en global feltadresse→fane-
 // afbildning: den mounted editor bærer sin egen route + fane i DOM. Testene nedenfor er skrevet mod netop det
-// skift — særligt "hidden mounted editor vinder over sektionens side" og "et spejlet felt følger den editor,
+// skift – særligt "hidden mounted editor vinder over sektionens side" og "et spejlet felt følger den editor,
 // brugeren står ved", som den globale model kun kunne ramme med route-særregler.
 
 vi.mock('../../../hooks/usePersistedActiveTab', () => ({ setActiveTabForPage: vi.fn() }));
@@ -70,7 +70,7 @@ const mountFieldAt = (address: FieldAddress, options: MountOptions = {}): HTMLIn
   return input;
 };
 
-describe('lookupEditorLocation — destinationen ejes af editorlokationen', () => {
+describe('lookupEditorLocation – destinationen ejes af editorlokationen', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     vi.spyOn(HTMLElement.prototype, 'getClientRects').mockReturnValue(
@@ -184,9 +184,9 @@ describe('focusFirstBlockingRejectedField', () => {
   });
 
   // Kernen: fanen kommer fra editoren, ikke fra et globalt adresse→fane-kort. Feltet her er en
-  // øvrige-krav-celle, hvis editor selv erklærer Beregning-fanen — den globale model havde nøglet dens
+  // øvrige-krav-celle, hvis editor selv erklærer Beregning-fanen – den globale model havde nøglet dens
   // collection til EO-oplysninger og var derfor uenig med den flade, feltet faktisk står på.
-  it('aktiverer den fane, DEN MOUNTEDE editor erklærer — ikke en fane udledt af adressen', async () => {
+  it('aktiverer den fane, DEN MOUNTEDE editor erklærer – ikke en fane udledt af adressen', async () => {
     window.history.replaceState(null, '', '/erstatningsopgoerelse');
     mountFieldAt(oevrigeKravRow('row-9', 'belob'), {
       route: '/erstatningsopgoerelse',
@@ -229,7 +229,7 @@ describe('focusFirstBlockingRejectedField', () => {
   });
 
   // Det kontekst-delte forligsfelt. Den globale model måtte kende feltnavnet OG brugerens route for at holde
-  // brugeren på Differencekrav. Her følger vi blot den synlige editor — ingen særregel findes.
+  // brugeren på Differencekrav. Her følger vi blot den synlige editor – ingen særregel findes.
   it('holder brugeren ved den SYNLIGE spejling af et delt felt uden en kontekst-særregel', async () => {
     mountFieldAt(forligDato, { route: '/erstatningsopgoerelse', tabKey: 'eo_oplysninger', hidden: true });
     const onEet = mountFieldAt(forligDato, { route: '/erhvervsevnetab', tabKey: 'differencekrav' });

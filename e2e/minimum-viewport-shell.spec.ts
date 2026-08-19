@@ -119,7 +119,7 @@ test.describe('Mineo-shell ved minimumsviewporter', { tag: VIEWPORT_LANE_TAG }, 
       expect(geometry.menuContent).not.toBeNull();
       expect(Number(geometry.menuContent?.scale)).toBeGreaterThanOrEqual(0.75);
       // Menu og arbejdsflade er \u00c9N visuel flade: menuen m\u00e5 gerne v\u00e6re mindre (lavt vindue), men
-      // aldrig st\u00f8rre \u2014 ellers st\u00e5r menulabels med st\u00f8rre tekst end br\u00f8dteksten ved siden af.
+      // aldrig st\u00f8rre \u2013 ellers st\u00e5r menulabels med st\u00f8rre tekst end br\u00f8dteksten ved siden af.
       expect(Number(geometry.menuContent?.scale)).toBeLessThanOrEqual(Number(geometry.contentScale) + 0.001);
       expect(geometry.buttons.map((button) => button.name.replace(/\u00a0/g, ' ')).slice(1)).toEqual(MENU_BUTTON_NAMES);
       if (geometry.viewport.height >= 864) {
@@ -191,7 +191,7 @@ test.describe('Mineo-shell ved minimumsviewporter', { tag: VIEWPORT_LANE_TAG }, 
 
     // Menuens skala måles i et efterfølgende layout-pass, og WebKit leverer viewportændringen
     // asynkront. Vent på den observerbare slutværdi frem for at måle det første frame efter
-    // resize — ellers er testen et kapløb, der kun taber under samtidig belastning.
+    // resize – ellers er testen et kapløb, der kun taber under samtidig belastning.
     await expect.poll(async () => Number((await readMenuGeometry(page)).menuContent?.scale)).toBe(0.78);
 
     const geometry = await readMenuGeometry(page);

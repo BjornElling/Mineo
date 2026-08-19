@@ -11,7 +11,7 @@ import { toISODateString } from '../../../types/branded';
 // INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5, design §1.10/§3.9): hvert EET-panel kalder KUN
 // sin motor, når panelets EGNE afhængigheder er ready.
 //
-// Testene spionerer på de faktiske motormoduler. Et `computation: null` alene beviser intet — motoren kan
+// Testene spionerer på de faktiske motormoduler. Et `computation: null` alene beviser intet – motoren kan
 // være kørt og selv have givet op. `not.toHaveBeenCalled()` beviser gaten strukturelt.
 //
 // Hver test kontrollerer BEGGE retninger: at det afhængige panel blokeres, OG at et uafhængigt panel stadig
@@ -92,7 +92,7 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
     compute(NO_FIELD_ERRORS);
 
     // Bemærk: løbende/EAL/kapitalisering kaldes MERE end én gang, fordi differencekravets graf bevidst kører
-    // søstermotorerne igen med ANDET input — ASL-rækker filtreret til beregningsdatoen og `dagFoerBeregningsdato`
+    // søstermotorerne igen med ANDET input – ASL-rækker filtreret til beregningsdatoen og `dagFoerBeregningsdato`
     // (`eetCalculationGraph.ts:25-77`). De ekstra kald er derfor ikke duplikeret arbejde, og de må IKKE erstattes
     // af de gatede søsterresultater: det ville ændre differencekravets tal. Gaten sikrer kun, at graf-kaldene
     // slet ikke sker, når differencekravets egne afhængigheder er røde (se testene nedenfor).
@@ -160,7 +160,7 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
     expect(spies.eal).toHaveBeenCalledTimes(1);
   });
 
-  it('rød ASL-årsløn med TOM EAL-årsløn blokerer Efter-EAL — fallbacken nås', () => {
+  it('rød ASL-årsløn med TOM EAL-årsløn blokerer Efter-EAL – fallbacken nås', () => {
     // Den anden retning af fallback-invarianten: her LÆSER motoren ASL-årslønnen, så en rød ASL-værdi må ikke
     // maskeres til tomhed og fodre beregningen.
     compute(
@@ -184,7 +184,7 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
     expect(spies.eal).toHaveBeenCalledTimes(1);
   });
 
-  it('en rød ASL-rækkecelle med TOM EAL-% blokerer Efter-EAL — eetPct-fallbacken nås', () => {
+  it('en rød ASL-rækkecelle med TOM EAL-% blokerer Efter-EAL – eetPct-fallbacken nås', () => {
     compute(
       { ...NO_FIELD_ERRORS, erhvervsevnetab: { aslAfgoerelser: FIELD_ERROR } },
       { values: createValues({ ealEetPct: undefined }) }
@@ -205,7 +205,7 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
 
   it('et ugyldigt forlig blokerer KUN differencekravet', () => {
     // Uden gaten ville motoren regne videre med `forligFactor: null`, dvs. som om der slet ikke var et forlig
-    // — et falsk 100 %-resultat bag en rød markering.
+    // – et falsk 100 %-resultat bag en rød markering.
     const snapshot = compute(NO_FIELD_ERRORS, {
       forlig: {
         values: { forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: '1/2' },

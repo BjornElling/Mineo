@@ -255,13 +255,13 @@ export type OevrigeKravModel = Readonly<{
 }>;
 
 /**
- * B8 — tvungen grænse mellem section-præsentation og canonical-totaler.
+ * B8 – tvungen grænse mellem section-præsentation og canonical-totaler.
  *
  * `buildErstatningsopgoerelsePdfModelFromComputed` modtager section-modellerne via disse
  * `Omit`-typer, der har fjernet de autoritative beløbs-totaler. Totalerne ejes udelukkende af
  * `EoComputedTotals` (eoCanonicalOutput.ts) og injiceres i PDF-modellen fra canonical.
  * Fordi præsentations-inputtet ikke længere *har* total-felterne, er det en compile-fejl at
- * forwarde et section-afledt total ind i den rendrede model — en re-derivation kan ikke længere
+ * forwarde et section-afledt total ind i den rendrede model – en re-derivation kan ikke længere
  * lække til PDF/Word-output uden at TypeScript fanger det (jf. eo-snapshot-contract.md §1:
  * "Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller kontrollag").
  */

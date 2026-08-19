@@ -48,7 +48,7 @@ const byggResultat = (
     throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
   }
 
-  // R2 — samme delte akkumulerings-serie som formen emitterer som forløb og præsentationen læser
+  // R2 – samme delte akkumulerings-serie som formen emitterer som forløb og præsentationen læser
   // (buildManuelProcentsatsEntries): bygges ÉN gang her og bæres både som segment-basis og som
   // autoritativt forløb, så det viste indeks = den motoren afleder deltaPct fra.
   const entries = buildManuelProcentsatsEntries({
@@ -82,7 +82,7 @@ const byggResultat = (
   return { segmenter: segments, forloeb: { kind: 'manuelProcentsats', entries } };
 };
 
-// De manuelle modeller har intet kilde-interval — dækningen afhænger af reguleringsdatoen og
+// De manuelle modeller har intet kilde-interval – dækningen afhænger af reguleringsdatoen og
 // de indtastede rækker (håndteres lokalt af row-gaten).
 const coverageInterval = (): KildeReguleringsInterval | undefined => undefined;
 

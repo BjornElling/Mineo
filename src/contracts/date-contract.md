@@ -3,14 +3,14 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Tværgående; supplerer `form-contract.md §8` (form/feltcodec ejer parsing/coercion frem til valideret instans, denne kontrakt ejer kalendermatematik derefter).
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-08-19
 
 ## Scope
 - Al logik der tæller kalenderdage eller udleder dag-baserede perioder.
 - Al logik der beregner rentedage, svie/smerte-dage, TAF-dage eller periodedage.
 - Persistence-/form-laget ejer `ISODateString`; denne kontrakt ejer kalendermatematikken, efter værdien er valideret eller normaliseret.
 - Parsing og coercion af `ISODateString` fra brugerinput eller persistering hører til `form-contract.md` §8. Denne kontrakt gælder fra og med en valideret UTC-dato-instans.
-- **Uden for scope:** instant-tidsstempler med klokkeslæt (fx logs/fejlrapport). De lagres som UTC og *præsenteres* i dansk tidszone (Europe/Copenhagen) — se `error-contract.md` §10. UTC-getter-reglerne nedenfor gælder dato-kun-matematik, ikke disse tidszone-bevidste formateringer (`formatCopenhagenTimestampSeconds` / `formatCopenhagenISODate`).
+- **Uden for scope:** instant-tidsstempler med klokkeslæt (fx logs/fejlrapport). De lagres som UTC og *præsenteres* i dansk tidszone (Europe/Copenhagen) – se `error-contract.md` §10. UTC-getter-reglerne nedenfor gælder dato-kun-matematik, ikke disse tidszone-bevidste formateringer (`formatCopenhagenTimestampSeconds` / `formatCopenhagenISODate`).
 
 ## Regler
 - Alle dato-kun `Date`-instanser SKAL behandles som UTC-kalenderdage.
@@ -37,19 +37,19 @@
 ## Kanonisk dag-iteration og materialisering
 - Der findes ÉN dag-for-dag-løkke i domænet: `iterateDatesInclusive(start, end, onDate)` i
   `src/utils/isoDateHelpers.ts`. Skriv ALDRIG en ny `while (current <= end) { …; setUTCDate/addDays }`
-  i forretningslogik — udtryk per-dag-arbejde via denne primitiv (eller en af dens afledte nedenfor).
+  i forretningslogik – udtryk per-dag-arbejde via denne primitiv (eller en af dens afledte nedenfor).
   `onDate` modtager den samme muterede `Date`-instans hver gang; behold aldrig referencen.
   Returnér `false` fra callbacken for at stoppe iterationen tidligt.
 - Løkker der springer direkte mellem år, halve år, kapitaliserings-/satsperioder eller andre
   allerede-aggregerede perioder er ikke dag-for-dag-iteration. De må blive domænelokale, når de ikke
   materialiserer eller vurderer hver kalenderdag.
 - Afledte ISO-helpers (samme fil), alle udtrykt via primitiven:
-  - `iterateIsoDatesInclusive(fra, til, onIso)` — iterér ISO-strenge uden at materialisere (O(1) hukommelse).
-  - `collectIsoDatesInclusive(fra, til)` / `buildIsoDateSetInclusive(fra, til)` — materialisér et
+  - `iterateIsoDatesInclusive(fra, til, onIso)` – iterér ISO-strenge uden at materialisere (O(1) hukommelse).
+  - `collectIsoDatesInclusive(fra, til)` / `buildIsoDateSetInclusive(fra, til)` – materialisér et
     array/Set af ALLE dage. Brug KUN når du reelt skal bruge alle dage (én række pr. dag, eller
     `.has`-medlemskab gentagne gange).
 - **Materialisér ikke for at tælle.** Skal du blot kende antallet af dage, brug `countInclusiveUtcDays`
-  (O(1)) — byg aldrig et array/Set kun for at læse `.length`/`.size`.
+  (O(1)) – byg aldrig et array/Set kun for at læse `.length`/`.size`.
 - **Hejs loop-invariant arbejde ud af løkker.** Byg dag-/arbejdsdage-sæt og slå satser/regulering op
   pr. periode/segment, ikke pr. dag eller pr. iteration over de samme argumenter. En materialisering
   hvis input er konstant gennem en løkke SKAL bygges én gang før løkken.
@@ -69,5 +69,5 @@ De maskin-tjekbare forbud håndhæves af dato-reglerne i det fælles arkitekturh
 - Hvis iteration bruges, SKAL funktionens JSDoc angive inklusivitet (om både start- og slutdag itereres) og hvorfor iteration er nødvendig.
 - Sortering med `getTime()` er kun tilladt til ordning, aldrig til dag-tællinger.
 - Ingen ny håndskrevet `while (current <= end)`-dag-løkke: brug `iterateDatesInclusive` eller en afledt helper.
-- Intet array/Set materialiseret kun for at læse `.length`/`.size` — brug `countInclusiveUtcDays`.
+- Intet array/Set materialiseret kun for at læse `.length`/`.size` – brug `countInclusiveUtcDays`.
 - Loop-invariant materialiseringer og sats-/regulerings-opslag bygges/foretages før løkken, ikke pr. iteration.

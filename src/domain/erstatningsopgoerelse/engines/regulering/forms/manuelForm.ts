@@ -18,7 +18,7 @@ import type {
 } from '../reguleringForm';
 
 // Pct-/ferie-parsing deler nu de KANONISKE parsere (parsePercentInput / resolveFeriePctForFormula i
-// reguleringFormulaUtils), som præsentationens manuelle indeks-tabel også bruger — så motor og
+// reguleringFormulaUtils), som præsentationens manuelle indeks-tabel også bruger – så motor og
 // visning kan ikke drive fra hinanden (samme "vist = beregnet"-garanti som R2 giver de migrerede
 // former, her opnået ved delt primitiv frem for et forløb, da 'Manuelt angivet' ikke bærer en
 // periodeserie). De tidligere lokale kopier (parseManualPercentToPct/resolveManualFeriePctPct) var
@@ -175,7 +175,7 @@ const byggResultat = (
   return { segmenter: segments };
 };
 
-// De manuelle modeller har intet kilde-interval — dækningen afhænger af reguleringsdatoen og
+// De manuelle modeller har intet kilde-interval – dækningen afhænger af reguleringsdatoen og
 // de indtastede rækker (håndteres lokalt af row-gaten).
 const coverageInterval = (): KildeReguleringsInterval | undefined => undefined;
 

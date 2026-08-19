@@ -14,13 +14,13 @@ export type SideTabRailProps = {
 };
 
 /**
- * Skinnen, kontrolfanerne (`SideTab`) hænger i — og det ene sted, deres udhæng bliver klippet.
+ * Skinnen, kontrolfanerne (`SideTab`) hænger i – og det ene sted, deres udhæng bliver klippet.
  *
  * **Hvorfor den findes.** Fanerne står uden for indholdsboksens højrekant og rager 48 px længere ud
  * end programmets bredeste element. De 48 px er bevidst holdt uden for skaleringens pladsregnskab
  * (`SIDE_TAB_OVERHANG_PX`), fordi en valgfri kontrolflade ikke må kunne skrumpe hele arbejdsfladen.
  * Men et udhæng, der ikke er regnet med, ville uden videre give `Container` vandret rul: en
- * absolut-placeret efterkommer tæller med i scrollportens scrollområde — også når den er roteret.
+ * absolut-placeret efterkommer tæller med i scrollportens scrollområde – også når den er roteret.
  * Resultatet var en vandret scrollbar på Erstatningsopgørelse alene, fordi to kontrolfaner var
  * synlige. Skinnen gør udhænget til ren visning: den er præcis så bred som arbejdsfladens SYNLIGE
  * bredde og klipper vandret ved sin egen kant, så alt uden for kanten hverken males eller tælles
@@ -63,7 +63,7 @@ const SideTabRail = React.memo(({ children }: SideTabRailProps) => {
     // den samme: sidemenuen sætter sin egen skala og dermed sin bredde i sin EGEN layout-effect, og
     // en vinduesændring, der ændrer BÅDE bredde og højde, flytter derfor skinnens venstrekant efter,
     // at vores første måling er kørt. Uden gentagelsen blev skinnen målt mod en kant, der lige skulle
-    // flytte sig — målt i WebKit som 8 px for bred, altså en vandret scrollbar.
+    // flytte sig – målt i WebKit som 8 px for bred, altså en vandret scrollbar.
     let frame: number | null = null;
     const scheduleMeasure = () => {
       measure();

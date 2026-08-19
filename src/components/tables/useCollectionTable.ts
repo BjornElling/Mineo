@@ -14,10 +14,10 @@ export type RenderRow = CollectionRenderRow;
 /**
  * Fælles række-/placeholderbinding for dynamiske tabeller. Hooken holder kun UI-identiteten for den tomme
  * placeholder; alle eksisterende række-id'er og celleværdier kommer fra inputaggregatet. Cellernes dataidentitet
- * bygges af den fælles `buildCollectionCellSpec` (§3.2), som selv udleder ejer-id'erne af collectionens sti — så
+ * bygges af den fælles `buildCollectionCellSpec` (§3.2), som selv udleder ejer-id'erne af collectionens sti – så
  * en nested tabel ikke kan binde med for få entity-led.
  *
- * Render-modellen har ÉN konstruktion: `buildRenderRows(displayRows)` — de viste rækker i den orden,
+ * Render-modellen har ÉN konstruktion: `buildRenderRows(displayRows)` – de viste rækker i den orden,
  * de skal vises i, plus placeholderne sidst. Det var tidligere to konkurrerende konstruktioner, der
  * gav samme resultat ad hver sin vej: hooken byggede modellen af den USORTEREDE `committedRows` og
  * lod `useSortedCollectionTable` permutere den tilbage på plads bagefter, mens fire tabeller
@@ -27,7 +27,7 @@ export type RenderRow = CollectionRenderRow;
  * Reconciliation-vejen bar desuden en defekt, som «byg af den viste orden» ikke kan have: den
  * genfandt placeholderen med `.find(kind === 'placeholder')` og tog altså kun den FØRSTE. En tabel
  * med `minimumVisibleRows > 1` ville tavst tabe sine øvrige tomme rækker. Det ramte ikke produktionen,
- * fordi netop de to tabeller, der viser flere tomme rækker, var blandt dem der gik uden om hooken —
+ * fordi netop de to tabeller, der viser flere tomme rækker, var blandt dem der gik uden om hooken –
  * altså præcis den «tre af fire rigtigt»-fejlmåde, hele rækkefølge-laget findes for at forhindre.
  *
  * `buildRenderRows` er en FUNKTION og ikke en `displayRows`-parameter, fordi rækkefølge-laget
@@ -53,7 +53,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   locationPrefix: string;
   /**
    * Mindste antal rækker, tabellen viser i alt (committede + tomme). Default 1 = altid præcis én trailing tom
-   * række. Et højere tal er en ren VISNINGSregel og påvirker aldrig, hvad der persisteres — tomme rækker
+   * række. Et højere tal er en ren VISNINGSregel og påvirker aldrig, hvad der persisteres – tomme rækker
    * gemmes ikke. Parameteren findes, fordi antalsreglen er den eneste saglige forskel mellem tabellerne; den
    * begrunder ikke en egen kopi af identitets- og bindingsalgoritmen.
    */
@@ -62,13 +62,13 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    * Tæller en committet række allerede som tabellens tomme indtastningsrække?
    *
    * Standardsvaret er nej: en committet række er data, og tabellen får sin egen tomme række
-   * ovenpå. Rentekrav-tabellen er undtagelsen — dér er «kun enhed valgt» stadig semantisk tomt,
+   * ovenpå. Rentekrav-tabellen er undtagelsen – dér er «kun enhed valgt» stadig semantisk tomt,
    * og den række ER indtastningsrækken, så en placeholder oveni ville give to tomme rækker.
    *
    * Udtrykt som et prædikat på den committede MÆNGDE og ikke som et `boolean` fra kaldstedet,
    * fordi det er samme slags visningsregel som `minimumVisibleRows`: den bestemmer HVOR MANGE
    * tomme rækker der vises, ikke hvordan de bygges. Lå den ude ved kaldstedet, ville tabellen
-   * skulle bygge render-modellen selv for at anvende den — og dermed være tilbage ved sin egen
+   * skulle bygge render-modellen selv for at anvende den – og dermed være tilbage ved sin egen
    * kopi af identitetskæden.
    */
   countsAsEmptyEntryRow?: (row: TRow) => boolean;
@@ -76,14 +76,14 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    * Eksplicit navigation-metadata for cellernes editorlokationer (§3.7): route + fane for den side/fane, tabellen
    * bor på. Kalderen leverer den, fordi tabellen ikke kan udlede route af `locationPrefix`.
    *
-   * PÅKRÆVET — både feltet og `route`. Var de valgfrie, kunne en ny tabel lydløst få rækkehandlinger uden
+   * PÅKRÆVET – både feltet og `route`. Var de valgfrie, kunne en ny tabel lydløst få rækkehandlinger uden
    * destination: dataene ville blive gendannet ved undo, men brugeren ville blive efterladt på en vilkårlig side
    * (§3.7). `tabKey: null` udtrykker eksplicit "siden har ingen faner"; udeladelse er ikke længere lovlig.
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>) => {
   // KUN rækkekommandoerne: rækkerne kommer fra slice-projektionens `committedRows` (den kanoniske read-grænse),
-  // så tabellen må ikke også abonnere på collectionens aggregat-id-liste — det ville være to reaktive
+  // så tabellen må ikke også abonnere på collectionens aggregat-id-liste – det ville være to reaktive
   // rækkekilder for samme collection. Kommandoerne bærer tabellens origin, så undo/redo af en rækkehandling
   // navigerer til den rette side/fane (§3.7).
   const rows = useCollectionRowCommands<TRow>(collection, {
@@ -93,12 +93,12 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   });
   const committedIdSet = React.useMemo(() => new Set(committedRows.map((row) => row.id)), [committedRows]);
   // Altid mindst én tom indtastningsrække, og nok til at nå `minimumVisibleRows`. Tæller en committet
-  // række allerede som den tomme indtastningsrække, er bunden 0 i stedet for 1 — ellers ville tabellen
+  // række allerede som den tomme indtastningsrække, er bunden 0 i stedet for 1 – ellers ville tabellen
   // vise to tomme rækker.
   const hasEmptyEntryRow = countsAsEmptyEntryRow !== undefined && committedRows.some(countsAsEmptyEntryRow);
   const placeholderCount = Math.max(hasEmptyEntryRow ? 0 : 1, minimumVisibleRows - committedRows.length);
   // Den ENE placeholder-identitets-livscyklus (§1.11/§3.7): puljen BEVARER et promoveret id, så det kan
-  // genindtræde, hvis rækken forsvinder ved et undo — ellers findes der intet element, fokusrestoren kan
+  // genindtræde, hvis rækken forsvinder ved et undo – ellers findes der intet element, fokusrestoren kan
   // matche på, og fokus forlader lydløst tabellen.
   const placeholderIds = usePlaceholderSlotIds(committedIdSet, placeholderCount, createRowId);
 
@@ -108,7 +108,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    * sorteres ind mellem de udfyldte rækker.
    *
    * `displayRows` er som regel `sortedRows` fra `useSortedCollectionTable`, men enhver orden af de
-   * committede rækker er lovlig — fx de base-række-ankrede tabellers «basisrække først, resten
+   * committede rækker er lovlig – fx de base-række-ankrede tabellers «basisrække først, resten
    * sorteret». Det er bevidst RÆKKEFØLGEN alene: placeholder-identiteten udledes af MÆNGDEN af
    * committede id'er ovenfor, aldrig af den viste orden. Ellers kunne en sortering flytte den
    * tomme rækkes identitet, og en history-origin fra før sorteringen ville ikke længere kunne

@@ -103,7 +103,7 @@ const S = 'erstatningsopgoerelse' as const;
 
 /**
  * Erklærede tegnlængder for EO's fritekstfelter (`input-field-behavior-contract.md` §3.4, §4.1, §4.2).
- * De står som navngivne konstanter, fordi kontrakten angiver dem præcist — et bart tal på kaldsstedet
+ * De står som navngivne konstanter, fordi kontrakten angiver dem præcist – et bart tal på kaldsstedet
  * ville ikke kunne spores tilbage til den regel, det stammer fra.
  */
 export const EO_NUMMER_MAX_LENGTH = 7;
@@ -112,13 +112,13 @@ export const EO_LEDSAGETEKST_MAX_LENGTH = 64;
 // ── Generiske top-level felt-hjælpere ────────────────────────────────────────────
 /**
  * `maxLength` er feltets erklærede maksimale tegnlængde (`input-field-behavior-contract.md` §2.5).
- * Den erklæres HER — på descriptoren — så både formularfeltet og en eventuel tabelcelle håndhæver
+ * Den erklæres HER – på descriptoren – så både formularfeltet og en eventuel tabelcelle håndhæver
  * samme tal ved tastning OG paste.
  *
  * Parameteren er PÅKRÆVET. Den var valgfri, og resultatet var, at 11 af EO's 13 fritekstfelter blev
  * oprettet uden nogen grænse: `Særlige kommentarer` og alle syv bilagsnumre-felter tog imod en
  * vilkårligt lang indsat tekst. Det er samme fejlmåde, som `dateField` nedenfor allerede har lukket
- * for datogrænserne — udeladelse er nu en typefejl, ikke en forglemmelse.
+ * for datogrænserne – udeladelse er nu en typefejl, ikke en forglemmelse.
  */
 const optionalTextField = (
   field: string,
@@ -170,7 +170,7 @@ const dateField = (
 // deklarerede grænser for periodefelterne, de fem AES-datoer, differencekravsdatoen og alle tabellernes
 // dato-par, men INGEN af dem havde en bounds-validator. Kun Forligsdato og Øvrige krav havde én, og de var
 // skrevet i hånden hver for sig. Byggeklodserne nedenfor gør de tre tilbagevendende grænseformer til data,
-// så et nyt EO-datofelt arver dem frem for at genopfinde dem — eller glemme dem.
+// så et nyt EO-datofelt arver dem frem for at genopfinde dem – eller glemme dem.
 
 /** Skadedato + Skadestype → EO's tilbagevendende nedre grænse (skadedatoen, eller anmeldelsesdato minus 5 år). */
 const skadedatoMinRuleFor = (
@@ -184,7 +184,7 @@ const skadedatoMinRuleFor = (
   });
 
 /**
- * Grænseformen «tidligst skadedatoen, senest <max>» — EO's mest udbredte datoregel.
+ * Grænseformen «tidligst skadedatoen, senest <max>» – EO's mest udbredte datoregel.
  *
  * Den bar tidligere kun Forligsdato og Øvrige krav, hver med sin egen håndskrevne kopi. De fem AES-datoer,
  * opgørelsesdatoen og differencekravsdatoen deklarerede nøjagtig samme regel i konfigurationen uden at
@@ -228,7 +228,7 @@ const amountField = (field: string, label: string): FieldDescriptor<AmountValue 
 
 /**
  * EO's heltalsfelter er alle «antal dage»-felter uden noget øvre domænemaksimum. Cifferloftet er derfor
- * den fælles grænse for netop den kategori (§1.2) — ikke et tal skrevet i hånden pr. felt.
+ * den fælles grænse for netop den kategori (§1.2) – ikke et tal skrevet i hånden pr. felt.
  */
 const integerField = (field: string, label: string): FieldDescriptor<number | undefined> =>
   defineStructuralField<number | undefined>({
@@ -304,7 +304,7 @@ export const eoOpgørelseLavetDenField = dateField(
 export const eoIndsaetUdkastStempelField = requiredJaNejField('indsaetUdkastStempel', 'Indsæt udkast-stempel', 'Nej');
 // «Vedrører perioden» er et skalar-dato-par. Kronologien lå KUN i legacy-validatoren som en
 // `ValidationError` med et tekst-path, og rækkeoversigten (`buildEoErstatningsopgoerelseRows`) læser
-// udelukkende core-feltissues — så fra > til kunne stå med normal formatering i oversigten, mens fejlen
+// udelukkende core-feltissues – så fra > til kunne stå med normal formatering i oversigten, mens fejlen
 // kun nåede frem som en generel invariant på Beregning-fanen. Reglen bor nu på descriptoren som alle andre.
 const vedroererPeriodePair: DatePairBinding = {
   fra: () => eoVedroererPeriodeFraField,
@@ -474,7 +474,7 @@ export const eoBilagSelectionSygeferiegodtgoerelseField = bilagToggle('sygeferie
 // ── AES afgørelser (skalarer) ─────────────────────────────────────────────────────
 export const eoVarigeMenAfgorelseField = requiredJaNejField('varigeMenAfgorelse', 'Varige mén-afgørelse', 'Nej');
 // De fem AES-datoer og differencekravsdatoen deler grænseformen «tidligst skadedatoen, senest <max>».
-// Alle seks stod uden validator, så datoer før skadedatoen — og efter dags dato — kunne afsluttes canonical
+// Alle seks stod uden validator, så datoer før skadedatoen – og efter dags dato – kunne afsluttes canonical
 // og nå hele vejen til en aktiv PDF-knap. Kun `max` skiller dem: afgørelsesdatoer kan ikke ligge
 // i fremtiden, mens virkningsdatoer kan række et år frem.
 export const eoMenAfgoerelseDatoField = dateField(
@@ -613,7 +613,7 @@ const rowDate = (
  * Bygger fra/til-parret for en rækkekollektion som ÉN enhed.
  *
  * Parret dannes samlet, fordi de to halvdele refererer hinanden: registreres de hver for sig, kan et
- * kaldssted glemme den ene validator, og kronologien ville da kun være markeret fra den ene side —
+ * kaldssted glemme den ene validator, og kronologien ville da kun være markeret fra den ene side –
  * præcis den halve dækning, fundet handler om. `rowIdOf` binder modparten i SAMME række.
  */
 const rowDatePair = (
@@ -653,7 +653,7 @@ const topLevelCollection = <TEntity extends Readonly<Record<string, unknown>>>(
 // tafPerioder
 export const eoTafPerioderCollection = topLevelCollection<TafPeriodeRow>('tafPerioder', isTafRowEmpty);
 // TAF-perioderne deklarerede min = skadedato i konfigurationen, men håndhævede den kun i
-// rækkeevaluerings-motoren, som producerer et kolonne-hint uden feltadresse — teksten kunne stå i
+// rækkeevaluerings-motoren, som producerer et kolonne-hint uden feltadresse – teksten kunne stå i
 // "Fejl og advarsler", mens cellen aldrig blev rød. Grænsen bor nu på descriptoren.
 const tafPeriodeDates = rowDatePair('tafPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: skadedatoBoundedSpec({
@@ -685,7 +685,7 @@ export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | und
 // ferieperioder
 export const eoFerieperioderCollection = topLevelCollection<FerieperiodeRow>('ferieperioder', isFerieRowEmpty);
 // Ferieperioderne er erklæret `unconstrained` i konfigurationen (optjeningsår kan ligge før skaden), så de
-// får systemets ydre ramme frem for en skadedato-grænse — nok til at fange et forkert århundrede.
+// får systemets ydre ramme frem for en skadedato-grænse – nok til at fange et forkert århundrede.
 const ferieperiodeDates = rowDatePair('ferieperioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: systemrammeSpec,
   til: systemrammeSpec,
@@ -737,7 +737,7 @@ export const eoOevrigeKravPerioderCollection = topLevelCollection<OevrigeKravRow
 );
 // Datoens dynamiske grænser (min=skadedatoMinRule / max=i dag) er en canonical
 // bounds-feltvalidator (§1.6). Den krydslæser skadedato og
-// skadestype via `view.readCanonical` (ingen recursion — validators læser canonical, ikke issues).
+// skadestype via `view.readCanonical` (ingen recursion – validators læser canonical, ikke issues).
 export const eoOevrigeKravDatoField: FieldDescriptor<ISODateString | undefined> = defineStructuralField<ISODateString | undefined>({
   id: 'eo.oevrigeKravPerioder.dato',
   template: rowTemplate('oevrigeKravPerioder', 'dato'),
@@ -779,7 +779,7 @@ export const eoOffentligeYdelserRowsCollection = topLevelCollection<OffentligeYd
 );
 // Offentlige ydelser har sin EGEN ramme: satsdækningen for sygedagpenge og ATP, ikke skadedatoen.
 // Grænserne stod hidtil kun som `minDate`/`maxDate`-props på inputkomponenten i `OffentligeYdelserTab.tsx`
-// — altså som en visuel hjælp uden et issue bag, så en dato uden for satsdækningen blev afsluttet
+// – altså som en visuel hjælp uden et issue bag, så en dato uden for satsdækningen blev afsluttet
 // canonical uden fejl. Konfigurationen er nu den håndhævede kilde.
 const offentligeYdelserDates = rowDatePair(
   'offentligeYdelserRows', 'fraDato', 'tilDato', 'Fra dato', 'Til dato',
@@ -825,7 +825,7 @@ export const eoOffentligeYdelserYdelsestypeField = defineStructuralField<string 
   createEmptySection: createEmptyErstatningsopgoerelseSection,
 });
 
-// sfggAnsaettelsesforhold — samling med custom entity-id (`ansaettelsesforholdId`).
+// sfggAnsaettelsesforhold – samling med custom entity-id (`ansaettelsesforholdId`).
 const SFGG = 'sfggAnsaettelsesforhold';
 const sfggEntityIdProps = { [SFGG]: 'ansaettelsesforholdId' } as const;
 

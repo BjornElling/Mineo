@@ -1,4 +1,4 @@
-# Mineo robustheds- og adfærdsaudit — adfærds- og øvrige fund
+# Mineo robustheds- og adfærdsaudit – adfærds- og øvrige fund
 
 Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel eller afvigende logik, mistænkelig beregningsadfærd og manglende eller uforudsigelig feedback. Registrér ikke en klar, forventet valideringsreaktion som fund.
 
@@ -9,17 +9,17 @@ Registrér ikke-crashende afvigelser, datatabsmistanke, kontraktdrift, parallel 
 
 ## Postskabelon
 
-### OBS-NNN — Kort, observerbar titel
+### OBS-NNN – Kort, observerbar titel
 
 - Status: Ny / Bekræftet / Ustabil / Dublet / Kræver afklaring
 - Kategori: Inkonsistens / Dataintegritet / Kontraktdrift / Parallel logik / UX / Beregningsobservation / Browserforskel / Andet
 - Alvor: Blokerende / Høj / Mellem / Lav
 - Først set: YYYY-MM-DD HH:mm Europe/Copenhagen
-- Commit/build: —
-- Dirty-state: —
-- Browser/viewport: —
+- Commit/build: –
+- Dirty-state: –
+- Browser/viewport: –
 - Flade/scenarie: SURF-/EDGE-/CUT-id
-- Relaterede fund/spørgsmål: —
+- Relaterede fund/spørgsmål: –
 
 **Starttilstand og reproduktion**
 
@@ -43,6 +43,6 @@ Beskriv risikoen eller det nødvendige bruger-/udviklervalg uden at foreslå en 
 
 **Evidens**
 
-- Screenshot/trace/kildereference: —
-- Reproducerbarhed: —
-- Andre browsere/viewports: —
+- Screenshot/trace/kildereference: –
+- Reproducerbarhed: –
+- Andre browsere/viewports: –

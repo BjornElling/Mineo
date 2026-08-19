@@ -2491,7 +2491,7 @@ describe('eoPdfModel', () => {
     expect(indkomst?.samletBeregningsgrundlagOre).toBe(2484900);
 
     // Invariant: "I alt" skal være summen af de VISTE (afrundede) komponentlinjer, så brugeren kan
-    // efterregne den — ikke round(præcis sum). Guard mod regression.
+    // efterregne den – ikke round(præcis sum). Guard mod regression.
     for (const arbejdssted of indkomst?.arbejdssteder ?? []) {
       const b = arbejdssted.breakdown;
       expect(b.samletOre).toBe(b.loenPlusLoen2PlusIkkePensLoenOre + b.fpFvShSoOre + b.pensionOre + b.atpOre);

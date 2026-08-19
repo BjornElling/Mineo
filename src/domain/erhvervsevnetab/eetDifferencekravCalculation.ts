@@ -82,7 +82,7 @@ export type EetDifferencekravInput = Readonly<{
   skadestype?: Skadestype;
   skadelidteFodselsdato: ISODateString | undefined;
   // Beregnings-valgmulighed fra differencekrav-fanen (sagsdata på erhvervsevnetab-sektionen).
-  // Injiceres eksplicit som parameter — beregningslaget læser aldrig form-state direkte.
+  // Injiceres eksplicit som parameter – beregningslaget læser aldrig form-state direkte.
   endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: boolean;
   // Beregnings-valgmulighed fra differencekrav-fanen (sagsdata). Når true fratrækkes
   // mer-erstatning ved forhøjet folkepensionsalder (fradrag 4) i differencekravet.
@@ -91,7 +91,7 @@ export type EetDifferencekravInput = Readonly<{
   // reduceres det endelige differencekrav med faktoren. `null`/udeladt = intet forlig / 100 % =
   // ingen reduktion. Ugyldigt forlig håndteres som blokerende fejl i eetSnapshot (ikke her).
   forlig?: Forligsgrad;
-  // Forligsdato (delt kilde med EO) — kun til prosa-sætningen. Udeladt/undefined = ingen dato.
+  // Forligsdato (delt kilde med EO) – kun til prosa-sætningen. Udeladt/undefined = ingen dato.
   forligDato?: ISODateString;
   dependencies: Readonly<{
     filteredErhvervsevnetab: ErhvervsevnetabComposedValues;
@@ -308,7 +308,7 @@ const computeProformaKapitalisering = (
     if (minAge === undefined || age.years < minAge) {
       issues.push(toIssue(
         'proforma-kapitaliseringsalder-under-minimum',
-        `Ingen kapitaliseringsfaktor for alder (${age.years} år, ${age.months} mdr.) — tabellen starter ved ${minAge} år.`
+        `Ingen kapitaliseringsfaktor for alder (${age.years} år, ${age.months} mdr.) – tabellen starter ved ${minAge} år.`
       ));
       return null;
     }
@@ -459,7 +459,7 @@ const resolveLoebendeEetPct = (
     afgoerelsesdato: ISODateString;
     virkningsdato: ISODateString;
   }[],
-  // Kapitaliseringsdata fra råinput — filtreret på kap.dato <= beregningsdato,
+  // Kapitaliseringsdata fra råinput – filtreret på kap.dato <= beregningsdato,
   // så fremtidige kapitaliseringer ikke medregnes i rest-EET.
   kapitaliseringer: readonly { kapPct: number }[]
 ): number => {
@@ -540,7 +540,7 @@ const computeTilbagevirkendeKraftFradrag = (
       beloebParts.push(row.beregnetEetOre);
       continue;
     }
-    // Rækken krydser den endelige virkningsdato — medregn kun delen fra og med den dato.
+    // Rækken krydser den endelige virkningsdato – medregn kun delen fra og med den dato.
     const maaneder = sumMaanedsbroekForInterval(endeligVirkningsdato, row.til);
     beloebParts.push(fromKroner(round0(maaneder * toKroner(row.maanedligYdelseOre))));
   }
@@ -596,7 +596,7 @@ export const composeEetDifferencekravCalculation = (
   }
 
   // ─── Fradrag 3: rest-EET (issues indgår i blocking-evaluering) ───────────────
-  // Rest-EET-beregningen kræver eal-computation og alle stamdata — kør kun hvis
+  // Rest-EET-beregningen kræver eal-computation og alle stamdata – kør kun hvis
   // disse forudsætninger er til stede, så vi undgår fejl-stacking ovenpå allerede
   // kendte blokerende fejl.
   const fradrag3Issues: EetIssue[] = [];
@@ -745,7 +745,7 @@ export const composeEetDifferencekravCalculation = (
     // allerede 100 %, så reglen ville være en no-op/dobbelttælling og deaktiveres derfor.
     const tilbagevirkendeKraftAktiv =
       input.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft && skadedato >= SKAERING_2011_06_16;
-    // Tidligste endelige afgørelses virkningsdato — det er denne der kan gøre tidligere
+    // Tidligste endelige afgørelses virkningsdato – det er denne der kan gøre tidligere
     // midlertidige ydelser endelige med tilbagevirkende kraft.
     const tidligsteEndeligVirkningsdato = tilbagevirkendeKraftAktiv
       ? loebendeComputation.afgoerelser
@@ -916,7 +916,7 @@ export const composeEetDifferencekravCalculation = (
   const forligDato = reducerer ? (input.forligDato ?? null) : null;
   // BEVIDST afvigelse fra EO's forlig-skalering: EET afrunder det forligsreducerede differencekrav
   // til hele KRONER (round0), fordi det matcher den pre-MoneyOre-migrations juridiske afrunding 1:1.
-  // Erstat IKKE dette med `scaleMoneyOre(x, factor)` (der afrunder til hele ØRE) for symmetri med EO —
+  // Erstat IKKE dette med `scaleMoneyOre(x, factor)` (der afrunder til hele ØRE) for symmetri med EO –
   // det ville ændre erstatningsbeløbet (op til ~1 kr.). Divergensen er domænebestemt, ikke en
   // utilsigtet parallel; se reviewkandidat #36.
   const differencekravOre = forligFactor !== null

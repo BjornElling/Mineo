@@ -51,7 +51,7 @@ writeFileSync(
     '',
     '## Værktøj',
     '',
-    '- [minProcesrente.dk](https://minprocesrente.dk): Beregn procesrente online — angiv beløb, rentedato og beregningsdato og få rente og specifikation som PDF.',
+    '- [minProcesrente.dk](https://minprocesrente.dk): Beregn procesrente online – angiv beløb, rentedato og beregningsdato og få rente og specifikation som PDF.',
     '',
     '## Relaterede sider',
     '',

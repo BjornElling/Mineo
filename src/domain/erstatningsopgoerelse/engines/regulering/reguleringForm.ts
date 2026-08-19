@@ -8,11 +8,11 @@ import type { LoenudviklingBeregningsgrundlag } from '../../../../schemas/formSc
 import type { ReguleringForloeb } from '../reguleringForloeb';
 
 // =============================================================================
-// R1 — Reguleringsform som selvindeholdt strategi-modul.
+// R1 – Reguleringsform som selvindeholdt strategi-modul.
 //
-// Kontrakten samler de tre steder en reguleringsform tidligere var *defineret* —
+// Kontrakten samler de tre steder en reguleringsform tidligere var *defineret* –
 // konsolidering (resolveReguleringsStrategi-grenen), segment-byggeri
-// (buildLoenudviklingFrom*) og dæknings-interval (resolveKildeReguleringsIntervalIso) —
+// (buildLoenudviklingFrom*) og dæknings-interval (resolveKildeReguleringsIntervalIso) –
 // i ét modul pr. form. Dispatch sker ét sted (FORM_REGISTRY, keyet på enum-værdien),
 // så en ændring i en eksisterende form rører dens modul frem for parallelle grene i
 // motor/coverage. Feature-fladen er låst: registeret er et statisk, exhaustivt register
@@ -116,7 +116,7 @@ export type FormKonsoliderContext = Readonly<{
 
 /**
  * Kildens reguleringsdato-interval i ISO. `fraIso` er kildens *reelle, tidligste* registrerede
- * satsdato — uafhængigt af TAF-perioden — og `tilIso` kildens seneste dækkede dato. De manuelle
+ * satsdato – uafhængigt af TAF-perioden – og `tilIso` kildens seneste dækkede dato. De manuelle
  * modeller har intet kilde-interval og returnerer `undefined` (håndteres af kaldstederne).
  */
 export type KildeReguleringsInterval = Readonly<{
@@ -125,8 +125,8 @@ export type KildeReguleringsInterval = Readonly<{
 }>;
 
 /**
- * Formens beregnings-resultat: de relative deltaPct-segmenter TAF-beregningen bruger, og — for de
- * former der bærer en tidsserie (R2) — det autoritative visnings-`forloeb`. Begge udspringer af
+ * Formens beregnings-resultat: de relative deltaPct-segmenter TAF-beregningen bruger, og – for de
+ * former der bærer en tidsserie (R2) – det autoritative visnings-`forloeb`. Begge udspringer af
  * SAMME kilde-entries i ét kald, så motoren ikke dispatcher formen igen for at re-bygge forløbet
  * (afløser den tidligere parallelle `switch(strategi)`-IIFE i orkestratoren). Former uden
  * migreret forløb (overenskomst/manuel/ASL) udelader `forloeb` (undefined).

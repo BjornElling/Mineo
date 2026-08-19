@@ -65,7 +65,7 @@ const byggResultat = (
   // Store Bededag indgår derfor ikke som separat breakpoint i denne strategi.
 
   // R2: samme delte periodeserie som formen emitterer som forløb og præsentationen læser
-  // (buildKrlIndexEntries) — bygges ÉN gang her og bæres både som segment-basis og som
+  // (buildKrlIndexEntries) – bygges ÉN gang her og bæres både som segment-basis og som
   // autoritativt forløb, så vist reguleringsprocent = den motoren afleder deltaPct fra.
   const periodStarts = buildKrlIndexEntries(konsolideret.krlSatstabelId);
 

@@ -1,4 +1,4 @@
-# Mineo robustheds- og adfærdsaudit — runtime- og systemfund
+# Mineo robustheds- og adfærdsaudit – runtime- og systemfund
 
 Kun uventede systemsignaler registreres her. Forventet feltvalidering uden systemsignal hører ikke til. Usynlige systemsignaler registreres også, selv om appen tilsyneladende fortsætter.
 
@@ -15,16 +15,16 @@ er gjort idempotent, og efterkontrollen blev først bevist at fejle mod den geni
 
 ## Postskabelon
 
-### CRASH-NNN — Kort, observerbar titel
+### CRASH-NNN – Kort, observerbar titel
 
 - Status: Ny / Bekræftet / Ustabil / Dublet
 - Alvor: Blokerende / Høj / Mellem / Lav
 - Først set: YYYY-MM-DD HH:mm Europe/Copenhagen
-- Commit/build: —
-- Dirty-state: —
-- Browser/viewport: —
+- Commit/build: –
+- Dirty-state: –
+- Browser/viewport: –
 - Flade/scenarie: SURF-/EDGE-/CUT-id
-- Relaterede fund/spørgsmål: —
+- Relaterede fund/spørgsmål: –
 
 **Starttilstand**
 
@@ -37,25 +37,25 @@ Beskriv ren sag eller alle nødvendige syntetiske værdier.
 
 **Udløsende input og settle**
 
-- Felt/handling: —
-- Præcis værdi: —
+- Felt/handling: –
+- Præcis værdi: –
 - Metode: typing / paste / dropdown / toggle / tastatur / navigation
 - Settle: blur / Enter / Tab / navigation / straks
 
 **Observeret systemsignal**
 
-- Første signal: —
-- Synlig adfærd: —
-- Fejltekst: —
-- Relevant stacktop: —
-- Console/pageerror/rejection: —
+- Første signal: –
+- Synlig adfærd: –
+- Fejltekst: –
+- Relevant stacktop: –
+- Console/pageerror/rejection: –
 
 **Reproducerbarhed og kontrast**
 
 - Rate: 0/0
-- Gentaget fra ren tilstand: —
-- Nærmeste ikke-fejlende kontrast: —
-- Andre browsere/viewports: —
+- Gentaget fra ren tilstand: –
+- Nærmeste ikke-fejlende kontrast: –
+- Andre browsere/viewports: –
 
 **Påvirkning og rækkevidde**
 
@@ -63,5 +63,5 @@ Beskriv konkret brugerens tabte funktion eller datarisiko uden løsningsforslag.
 
 **Evidens**
 
-- Screenshot/trace: —
-- Supplerende noter: —
+- Screenshot/trace: –
+- Supplerende noter: –

@@ -199,7 +199,7 @@ const buildManualEntries = (args: Readonly<{
   // `reguleringSeriesLookup`, som filen også bruger til de øvrige reguleringsformer.
   //
   // Tie-break ved FLERE rækker på samme dato: den FØRSTE i brugerens rækkefølge gælder.
-  // Reglen er kodet eksplicit — de lige-daterede rækker vendes om, så det baglæns scan i
+  // Reglen er kodet eksplicit – de lige-daterede rækker vendes om, så det baglæns scan i
   // den stigende liste lander på den første. Uden omvendingen ville det være den sidste,
   // og hvilket satssæt en dobbelt-dateret række giver, ville afhænge af en
   // implementeringsdetalje i opslaget frem for af en valgt regel.
@@ -519,7 +519,7 @@ const buildEntryForDate = (args: {
   };
 };
 
-// Anciennitetstillæg for kontrol-indekset — samme delte resolver som motor og bilag. Kontrol-
+// Anciennitetstillæg for kontrol-indekset – samme delte resolver som motor og bilag. Kontrol-
 // lagets timeline spænder EO-perioden (`eoRange`) frem for TAF-ranges.
 const resolveInspektionAnciennitet = (args: Readonly<{
   af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];

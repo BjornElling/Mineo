@@ -6,18 +6,18 @@ import ts from 'typescript';
 import { toRepoRelativePath } from './testUtils';
 
 /**
- * Værn mod platform-antagelser i `scripts/` — den ene mappe, hvis fejl først viser sig i CI.
+ * Værn mod platform-antagelser i `scripts/` – den ene mappe, hvis fejl først viser sig i CI.
  *
  * Baggrund: `check-tool-isolation.mjs` læste `node_modules/.bin/playwright` med `readFileSync`.
  * På Windows er den indgang en shim-FIL, hvis indhold nævner pakkestien, så alt så rigtigt ud
- * lokalt. På Linux — CI's platform — er den samme indgang et SYMLINK; `readFileSync` fulgte det
+ * lokalt. På Linux – CI's platform – er den samme indgang et SYMLINK; `readFileSync` fulgte det
  * og læste Playwrights egen `cli.js`, hvor mønsteret intet fandt. Resultatet var en rød CI med
  * «peger på et ukendt sted», selv om afhængighedsgrafen var fuldstændig i orden.
  *
  * Hele `verify:release:core` køres lokalt kun på Windows, så den slags divergens er usynlig
  * indtil push. Reglen her gør den strukturel: rører et script `node_modules/.bin`, skal det
  * også forholde sig til, at indgangen kan være et symlink (`lstatSync`/`readlinkSync`/`realpathSync`).
- * Den erstatter ikke testene af den enkelte kontrol — den fanger *klassen*, så det næste script
+ * Den erstatter ikke testene af den enkelte kontrol – den fanger *klassen*, så det næste script
  * ikke kan genindføre den samme blindhed på en ny måde.
  */
 
@@ -33,7 +33,7 @@ const LINK_AWARE_CALLS = new Set(['lstatSync', 'lstat', 'readlinkSync', 'readlin
 type ScriptEntry = Readonly<{ relativePath: string; text: string; ast: ts.SourceFile }>;
 
 /**
- * Egen walk, fordi den delte `collectSourceFiles` kun ser `.ts`/`.tsx` — og scripts-mappen
+ * Egen walk, fordi den delte `collectSourceFiles` kun ser `.ts`/`.tsx` – og scripts-mappen
  * er netop `.mjs`. Reglen skal måle de filer, der faktisk kører i CI.
  */
 const collectScriptFiles = (root: string): readonly string[] => {
@@ -81,7 +81,7 @@ const calledFunctionNames = (source: ts.SourceFile): ReadonlySet<string> => {
   return names;
 };
 
-/** Scripts der overhovedet rører `.bin` — kun de kan ramme symlink-fælden. */
+/** Scripts der overhovedet rører `.bin` – kun de kan ramme symlink-fælden. */
 const scriptsTouchingBinDirectory = scriptFiles.filter(({ text }) => text.includes("'.bin'")
   || text.includes('".bin"')
   || text.includes('node_modules/.bin'));
@@ -96,7 +96,7 @@ describe('platform-antagelser i scripts/', () => {
   });
 
   it('måler faktisk det script, hvor CI-fejlen opstod', () => {
-    // Den konkrete sag skal blive ved med at være dækket af reglen — ikke bare klassen.
+    // Den konkrete sag skal blive ved med at være dækket af reglen – ikke bare klassen.
     expect(scriptsTouchingBinDirectory.map((entry) => entry.relativePath))
       .toContain('scripts/check-tool-isolation.mjs');
   });

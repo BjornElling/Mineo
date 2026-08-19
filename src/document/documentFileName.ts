@@ -12,7 +12,7 @@ const replaceControlChars = (value: string): string => {
 
 /**
  * Saniterer en filnavns-bestanddel for Windows-ulovlige tegn (`< > : " / \ | ? *`)
- * og kontroltegn, kollapser whitespace og trimmer. Format-agnostisk — bruges af
+ * og kontroltegn, kollapser whitespace og trimmer. Format-agnostisk – bruges af
  * både PDF- og Word-filnavne via den fælles `resolveDocumentFileName`.
  */
 export const sanitizeFilenamePart = (value: string): string => {

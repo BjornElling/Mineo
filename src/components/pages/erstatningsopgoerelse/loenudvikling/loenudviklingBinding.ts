@@ -9,9 +9,9 @@ import type { ManualBindings } from '../../../../inputCore/catalog/erstatningsop
  *
  * De to overflader adresserer de samme logiske felter på hver sin måde:
  *
- * - **Lønindkomst** binder pr. ansættelsesforhold — `field(eoEmploymentFields.X)` med et
+ * - **Lønindkomst** binder pr. ansættelsesforhold – `field(eoEmploymentFields.X)` med et
  *   entity-led for `af.id`, og en `locationId` der er feltnavnet alene.
- * - **EO-oplysninger** binder «angivet løn» statisk — `eoAngivetLoenFields.X.bind()` med
+ * - **EO-oplysninger** binder «angivet løn» statisk – `eoAngivetLoenFields.X.bind()` med
  *   en fuldt kvalificeret `locationId`.
  *
  * Fladen må ikke kende den forskel, og den må ikke gætte adresserne ud fra strenge.
@@ -23,7 +23,7 @@ import type { ManualBindings } from '../../../../inputCore/catalog/erstatningsop
  * reelt forskellige værditypér (`string`, `number`, `AmountValue`), så en fælles accessor
  * ville kræve en type-assertion, der ikke er beviseligt sikker. Recorden giver i stedet
  * fuld typecheck pr. felt, og en manglende binding er en compile-fejl i den overflade der
- * mangler den — ikke en runtime-overraskelse.
+ * mangler den – ikke en runtime-overraskelse.
  */
 
 /** Navigation-metadata (§3.7). Feltets fane kan ikke udledes af adressen. */
@@ -48,7 +48,7 @@ export type BoundField<T> = Readonly<{
  * (codec'en både formatterer og parser), så en widening til `string` er ikke type-sikker
  * og afvises af compileren. Overfladerne har desuden hver sin union (fx har «angivet løn»
  * ikke nødvendigvis samme grundlagsmenu som et ansættelsesforhold), så en fast union her
- * ville binde de to overflader til hinandens domæne. Fladen læser aldrig værdierne selv —
+ * ville binde de to overflader til hinandens domæne. Fladen læser aldrig værdierne selv –
  * den videregiver kun ref'en til det typede feltkomponent.
  */
 export type LoenudviklingBinding<
@@ -76,7 +76,7 @@ export type LoenudviklingBinding<
  *
  * Modsat `LoenudviklingBinding` er felterne her IKKE generiske. Det er ikke en inkonsekvens:
  * valg-felterne dér bærer hver sin literal-union pr. overflade, mens begge overflader her
- * bruger nøjagtig samme typer (`ISODateString` og `AmountValue`) — og `DateField` fikserer i
+ * bruger nøjagtig samme typer (`ISODateString` og `AmountValue`) – og `DateField` fikserer i
  * forvejen sin `field`-prop til `ISODateString`. En typeparameter ville derfor ikke kunne
  * instantieres med noget andet og ville kun sløre, hvad bindingen faktisk kræver.
  */

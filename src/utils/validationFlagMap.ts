@@ -2,7 +2,7 @@
  * Opdaterer et fejlflag-map for en tabel-række-id på en måde der bevarer reference-
  * identitet, når intet ændres. Når flaget allerede har den ønskede tilstand returneres
  * `prev` uændret (samme objekt-reference), så React kan bailout på setState og undgå
- * unødige re-renders. `as`-castet stripper kun `Readonly` — `prev` muteres aldrig.
+ * unødige re-renders. `as`-castet stripper kun `Readonly` – `prev` muteres aldrig.
  */
 export const updateValidationFlagById = (
   prev: Readonly<Record<string, true>>,

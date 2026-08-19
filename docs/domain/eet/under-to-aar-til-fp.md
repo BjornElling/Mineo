@@ -3,9 +3,9 @@
 Denne fil samler forretningslogikken for sager, hvor skadelidte er inden for eller præcis 2 år fra sin folkepensionsalder på et relevant kontroltidspunkt. Reglerne berører fane 2 (løbende ydelser), fane 3 (kapitalisering) og fane 5 (differencekrav).
 
 Se også:
-- [loebende-eet.md](./loebende-eet.md) — fane 2
-- [kapitaliseret-eet.md](./kapitaliseret-eet.md) — fane 3
-- [differencekrav.md](./differencekrav.md) — fane 5
+- [loebende-eet.md](./loebende-eet.md) – fane 2
+- [kapitaliseret-eet.md](./kapitaliseret-eet.md) – fane 3
+- [differencekrav.md](./differencekrav.md) – fane 5
 
 ---
 
@@ -37,7 +37,7 @@ Disse regler gælder generelt, også uden for særreglen:
 
 ---
 
-## Fane 2 — Løbende ydelser
+## Fane 2 – Løbende ydelser
 
 ### Kontroltidspunkt
 
@@ -75,7 +75,7 @@ Den resterende løbende del af en `Delvist endelig` afgørelse behandles i alle 
 
 ---
 
-## Fane 3 — Kapitalisering
+## Fane 3 – Kapitalisering
 
 ### Kontroltidspunkt
 
@@ -109,7 +109,7 @@ Når en `Endelig` afgørelse er inden for eller præcis 2 år før folkepension,
 
 ---
 
-## Fane 5 — Differencekrav
+## Fane 5 – Differencekrav
 
 ### Kontroltidspunkt for fradrag 3
 

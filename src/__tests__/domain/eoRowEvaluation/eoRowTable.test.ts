@@ -4,7 +4,7 @@ describe('serializeEoRowTable', () => {
   /*
     `displayValue` er et OUTPUTFORMAT: dokumentgeneratorerne læser den formatterede streng
     direkte. Serialiseringen skal derfor være byte-identisk med den form, row-builderne
-    tidligere byggede i hånden. Disse tests fastholder præcis den form — inklusive de tomme
+    tidligere byggede i hånden. Disse tests fastholder præcis den form – inklusive de tomme
     celler i totalrækken, der giver `"I alt |  |  | …"` med DOBBELT mellemrum.
   */
   it('adskiller celler med " | " og rækker med linjeskift', () => {
@@ -40,7 +40,7 @@ describe('serializeEoRowTable', () => {
     expect(serializeEoRowTable({ columns: ['A', 'B'], rows: [] })).toBe('A | B');
   });
 
-  describe('strukturen er kilden — ikke strengen', () => {
+  describe('strukturen er kilden – ikke strengen', () => {
     it('bærer totalmarkering som et flag, ikke som celletekst', () => {
       // Tidligere blev en totalrække genkendt ved at strengmatche `cells[0] === 'I alt'`.
       // Etiketten er nu uden betydning for klassifikationen.
@@ -62,7 +62,7 @@ describe('serializeEoRowTable', () => {
     });
 
     it('kolonneantallet læses fra columns, ikke gættes ud af indholdet', () => {
-      // En tom celle i sidste kolonne må ikke ændre det opfattede kolonneantal — den gamle
+      // En tom celle i sidste kolonne må ikke ændre det opfattede kolonneantal – den gamle
       // parser filtrerede tomme header-celler væk og kunne derfor tabe en kolonne.
       const table: EoRowTable = {
         columns: ['A', 'B', 'C'],

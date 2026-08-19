@@ -106,7 +106,7 @@ describe('buildEoForligRows visibility', () => {
   it('viser blokerende fejl-række når procent-feltet har en rød, ikke-committbar værdi', () => {
     // Invarianten: et rødt felt (rød ring) eksponeres som en blokerende feltissue.
     // buildEoForligRows skal derfor lave en error-række, så den vises i
-    // EOberegning-boksen (med link) og gater download — også selvom ingen værdi er committet.
+    // EOberegning-boksen (med link) og gater download – også selvom ingen værdi er committet.
     const values = createErstatningsopgoerelseInitialValues();
 
     const rows = buildEoForligRows(

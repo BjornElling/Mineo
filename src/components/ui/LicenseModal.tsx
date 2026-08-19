@@ -9,7 +9,7 @@ type LicenseModalProps = {
   open: boolean;
   onClose: () => void;
   /**
-   * Elementet, fokus skal vende tilbage til ved lukning — knappen der åbnede modalen
+   * Elementet, fokus skal vende tilbage til ved lukning – knappen der åbnede modalen
    * (jf. `keyboard-navigation.md` §Popup-fokus-restore).
    */
   restoreFocusTo: React.RefObject<HTMLElement | null>;
@@ -18,7 +18,7 @@ type LicenseModalProps = {
 /**
  * Modal til visning af LICENSE-tekst
  *
- * **Tastaturet bliver i vinduet.** Modalen er et håndrullet overlay — den bygger ikke på MUI
+ * **Tastaturet bliver i vinduet.** Modalen er et håndrullet overlay – den bygger ikke på MUI
  * `Dialog` og arvede derfor heller ikke dens `FocusTrap`. Tab vandrede ud i siden bagved, selv om
  * vinduet dækkede skærmen og erklærede sig `aria-modal="true"`. Fangsten kommer nu fra den SAMME
  * primitiv, MUI `Dialog` selv bruger, frem for en fjerde håndrullet fokusmekanisme
@@ -78,7 +78,7 @@ const LicenseModal = React.memo(({ open, onClose, restoreFocusTo }: LicenseModal
       {/* Modal indhold. `FocusTrap` holder Tab inde i vinduet, så længe det er åbent.
           `disableAutoFocus`: mount-fokus sættes allerede eksplicit på lukkeknappen ovenfor, og to
           konkurrerende mount-fokus ville gøre landingspunktet uforudsigeligt.
-          `disableRestoreFocus`: restoren ved lukning ejes af `useDialogFocusRestore` — præcis den
+          `disableRestoreFocus`: restoren ved lukning ejes af `useDialogFocusRestore` – præcis den
           konkurrerende MUI-vej, som §Popup-fokus-restore forbyder. */}
       <FocusTrap open disableAutoFocus disableRestoreFocus>
       <Box
@@ -86,7 +86,7 @@ const LicenseModal = React.memo(({ open, onClose, restoreFocusTo }: LicenseModal
         aria-modal="true"
         aria-labelledby={headingId}
         // Markøren gør vinduet synligt for `Container`s tastaturnavigation, så den giver slip på Tab.
-        // Uden den overtager sidens navigation Tab og kører forbi `FocusTrap`s vagtposter — vinduet er
+        // Uden den overtager sidens navigation Tab og kører forbi `FocusTrap`s vagtposter – vinduet er
         // en INLINE DOM-efterkommer af containeren og slipper derfor ikke igennem portal-undtagelsen.
         {...overlayRootProps}
         // FocusTrap kræver et fokusérbart barn for at kunne holde fokus, når indholdet i øvrigt

@@ -9,7 +9,7 @@ import type { FieldRef } from '../../../../inputCore/fieldDescriptor';
 //
 // Reglen stod som `allowEmpty={false}` på 23 kaldssteder, mens descriptoren allerede VIDSTE det:
 // et `requiredChoice`-codec oversætter tom tekst til en gyldig default og har derfor ingen tom tilstand.
-// Intet bandt de to sammen, så en glemt prop lod brugeren rydde et påkrævet felt med Delete — og fejlen
+// Intet bandt de to sammen, så en glemt prop lod brugeren rydde et påkrævet felt med Delete – og fejlen
 // viste sig først som et kast et helt andet sted, når værdien faktisk blev `undefined`.
 
 const refWithCodec = (codec: unknown, id: string): FieldRef<string> =>
@@ -19,7 +19,7 @@ const requiredRef = refWithCodec(createRequiredChoiceFieldCodec(['dage', 'uger']
 const optionalRef = refWithCodec(createChoiceFieldCodec(['a', 'b']), 'test.valgfrit');
 
 describe('resolveChoiceAllowEmpty', () => {
-  it('et requiredChoice-felt kan ikke tilbyde et tomt valg — heller ikke uden prop', () => {
+  it('et requiredChoice-felt kan ikke tilbyde et tomt valg – heller ikke uden prop', () => {
     expect(resolveChoiceAllowEmpty(requiredRef, undefined, 'ChoiceField')).toBe(false);
     expect(resolveChoiceAllowEmpty(requiredRef, false, 'ChoiceField')).toBe(false);
   });

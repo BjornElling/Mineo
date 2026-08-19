@@ -6,7 +6,7 @@ import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRang
 // prioritere imellem, så `collectPresentFieldErrors` og source-prioriteten er væk sammen med registret.
 //
 // De neutrale tekst-helpers bor i domænets validerings-lag. Modulet re-eksporterer dem IKKE længere (det var en
-// bevidst compatibility-facade, så gamle importstier kunne blive stående) — hver konsument importerer dem
+// bevidst compatibility-facade, så gamle importstier kunne blive stående) – hver konsument importerer dem
 // direkte fra `validation/eoDateRangeMessages`, så der kun findes én vej til hver funktion.
 
 /** Har feltet et issue med en visbar besked? Ét issue pr. felt, så der er intet at vælge imellem. */
@@ -18,7 +18,7 @@ const presentIssue = (issue: FieldIssue | undefined): FieldIssue | null =>
  * forligs procent/brøk).
  *
  * Det er den ene legitime grund til at holde issues i en liste. Tidligere kom listen fra `collectPresentFieldErrors`
- * over ét felts source-register — altså fra en dimension, der ikke fandtes. Nu kommer den fra de felter,
+ * over ét felts source-register – altså fra en dimension, der ikke fandtes. Nu kommer den fra de felter,
  * rækken faktisk kombinerer, og kaldet siger hvilke.
  */
 export const presentIssuesForRow = (

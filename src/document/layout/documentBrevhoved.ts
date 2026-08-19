@@ -12,7 +12,7 @@
  *   peger UI → dokument: `appSettingsSchema` verificerer sit brevhoved-nøglesæt mod
  *   `DocumentBrevhovedType` (jf. `satisfies` dér), ikke omvendt.
  * - Beslutningen om visBrevhoved tages af dokumentmiljøets `resolveVisBrevhoved`, som slår
- *   `DocumentBrevhovedPolicy` op i det tokenbundne `renderSettings` — altså EFTER gaten.
+ *   `DocumentBrevhovedPolicy` op i det tokenbundne `renderSettings` – altså EFTER gaten.
  *
  * Brevhovedopslaget bor i `mineoDocumentEnvironment`. Det tager mærkede render-settings, så hele
  * `AppSettings` ikke strukturelt kan passere som en smallere dokumentindstilling.
@@ -23,7 +23,7 @@
  * Dette er dokument-lagets EGEN sandhedskilde. `brevhovedIndstillingerSchema` i
  * `appSettingsSchema.ts` verificerer sin nøglemængde mod dette sæt via `satisfies`,
  * så en ny/fjernet type giver compile-fejl ét sted, og UI-laget afhænger af
- * dokument-laget — ikke omvendt.
+ * dokument-laget – ikke omvendt.
  */
 export const DOCUMENT_BREVHOVED_TYPES = [
   'erstatningsopgoerelse',

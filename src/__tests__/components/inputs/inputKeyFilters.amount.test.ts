@@ -107,7 +107,7 @@ describe('filterAmountExpressionKeyDown', () => {
   });
 
   it('regner decimaler uden for heltalsgrænsen', () => {
-    // `9999999,99` har 9 cifre i alt, men kun 7 heltalscifre — det er kontraktens maksimum og skal
+    // `9999999,99` har 9 cifre i alt, men kun 7 heltalscifre – det er kontraktens maksimum og skal
     // kunne tastes fuldt ud.
     expect(isBlockedInsertion('9999999,9', '9', undefined, { maxIntegerDigits: SEVEN })).toBe(false);
     expect(isBlockedInsertion('9999999,99', '9', undefined, { maxIntegerDigits: SEVEN })).toBe(true);

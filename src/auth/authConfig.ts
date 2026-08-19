@@ -21,7 +21,7 @@ const defineSharedPasswordHashes = (
 /**
  * Beslutningsnote (normativ, jf. src/contracts/auth-gate-contract.md):
  * - Denne gate er en permanent UX-barriere mod utilsigtet adgang. Det er et bevidst designvalg.
- * - Den er bevidst svag og er ikke en sikkerhedsgrænse — dette er acceptabelt og intentionelt.
+ * - Den er bevidst svag og er ikke en sikkerhedsgrænse – dette er acceptabelt og intentionelt.
  * - Kan omgås via DevTools/localStorage og beskytter ikke mod målrettet adgang.
  * Re-evaluering:
  * - Erstattes kun hvis der opstår krav om reel adgangskontrol pr. bruger, revisionsspor,

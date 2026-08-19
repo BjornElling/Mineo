@@ -125,7 +125,7 @@ describe('Mineo - License Modal Integration', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  test('licens-kontrollen er en KNAP, ikke et link — den udfører en handling', () => {
+  test('licens-kontrollen er en KNAP, ikke et link – den udfører en handling', () => {
     renderMineo();
 
     // Semantikken er load-bearing, ikke kosmetik: kontrollen åbner en dialog og navigerer ikke, så den skal
@@ -135,7 +135,7 @@ describe('Mineo - License Modal Integration', () => {
     const licenseLink = screen.getByRole('button', { name: /mit-licensen/i });
     expect(licenseLink).toBeInTheDocument();
     expect(licenseLink).toBeVisible();
-    // Intet fragment-href må komme tilbage — det er præcis det, der flyttede fokus-origoen.
+    // Intet fragment-href må komme tilbage – det er præcis det, der flyttede fokus-origoen.
     expect(licenseLink).not.toHaveAttribute('href');
   });
 
@@ -261,7 +261,7 @@ describe('Mineo - License Modal Integration', () => {
 
       expect(within(dialog).getByText(/allerede åbent/i)).toBeInTheDocument();
       expect(within(dialog).getByText(/Du behøver ikke installere det igen/)).toBeInTheDocument();
-      // Der er intet at åbne, når programmet allerede kører — så intet «Åbn program»-valg.
+      // Der er intet at åbne, når programmet allerede kører – så intet «Åbn program»-valg.
       expect(within(dialog).getAllByRole('button')).toHaveLength(1);
       expect(within(dialog).getByRole('button', { name: 'Luk' })).toBeVisible();
       expect(within(dialog).queryByRole('button', { name: 'Åbn program' })).toBeNull();

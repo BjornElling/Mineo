@@ -46,7 +46,7 @@ describe('overlay-stak: hvem ejer Escape og tilbage-knappen', () => {
   });
 
   it('er robust over for en lukning i uventet rækkefølge', () => {
-    // Et overlay kan unmountes, mens et andet ligger ovenpå — fx hvis den underliggende side
+    // Et overlay kan unmountes, mens et andet ligger ovenpå – fx hvis den underliggende side
     // navigeres væk. Stakken må ikke efterlade en forkert ejer.
     pushOverlay('a');
     pushOverlay('b');

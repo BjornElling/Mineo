@@ -149,7 +149,7 @@ describe('buildSummedTotalRowSpec', () => {
   });
 });
 
-describe('buildFormattedTotalRowSpec — invariant-guards', () => {
+describe('buildFormattedTotalRowSpec – invariant-guards', () => {
   // De fail-closed guards må aldrig producere en stille
   // forkert total-række i et tillidskritisk dokument; de skal kaste.
 

@@ -3,8 +3,8 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Underordnet form-, persistence- og dokument-output-kontrakterne for deres dataregler.
-**Senest verificeret mod kode:** 2026-08-15 (§3's nye faneskift-række er målt af `PageTabs.test.tsx`:
-en RIGTIG editor registreres i coordinatorens registry, og testen kræver, at settle sker FØR skiftet —
+**Senest verificeret mod kode:** 2026-08-19 (§3's nye faneskift-række er målt af `PageTabs.test.tsx`:
+en RIGTIG editor registreres i coordinatorens registry, og testen kræver, at settle sker FØR skiftet –
 rækkefølgen er mutationstestet. En modprøve uden åben editor sikrer, at barrieren ikke blokerer et
 almindeligt faneskift)
 
@@ -108,7 +108,7 @@ input- eller settingsrevisionen ændret, evalueres preflight på ny, eller handl
 - Dokumentdefinitionen ejer gate/preflight; dokumentservicen er mekanisk afvikling.
 
 Deltager-registreringen sker ét sted: `useFieldEditor`, som både form-fladen (`useFormFieldSurface`) og
-grid-fladen (`useGridCellSurface`) bygger på. Navnet er en implementering, ikke et normativt API-navn —
+grid-fladen (`useGridCellSurface`) bygger på. Navnet er en implementering, ikke et normativt API-navn –
 kontrakten binder deltager-ROLLEN, ikke hooket.
 
 De to navne `useStyledFieldAdapter` og `useGridRowPersistenceCore` er slettede forgængere og må ikke
@@ -119,11 +119,11 @@ Forveksl ikke `useGridRowPersistenceCore` (slettet) med `useGridCoreController`
 fokus-/edit-celle-autoritet og aftages af `StandardGridTable` og `StandardLooseTable`. Navnene ligner
 hinanden, men kun det første er en forgænger.
 
-## 7. Reset, `Slet alt` og load — ingen settle
+## 7. Reset, `Slet alt` og load – ingen settle
 
 Load, reset og `Slet alt` følger den samme regel (jf. §3): de gennemføres uden settle, den åbne draft blokerer aldrig
 handlingen, og draften kasseres først ved en vellykket apply. Det er korrekt netop fordi en gennemført handling under
-alle omstændigheder erstatter eller sletter det input, draften kunne være blevet til — commit-klargøring har derfor ingen
+alle omstændigheder erstatter eller sletter det input, draften kunne være blevet til – commit-klargøring har derfor ingen
 databevarende funktion. Annullering (eller apply-fejl) bevarer både afsluttet input og åben draft og genskaber fokus.
 
 Reset/`Slet alt` ejes af `CaseResetOperations`-porten og routes gennem den samme replacement-command som load.

@@ -42,17 +42,17 @@ describe('asciiSlug', () => {
 
   describe('separator', () => {
     it('bruger bindestreg som default og kollapser løb af øvrige tegn', () => {
-      expect(asciiSlug('Erstatningsopgørelse — bilag 3')).toBe('erstatningsopgoerelse-bilag-3');
+      expect(asciiSlug('Erstatningsopgørelse – bilag 3')).toBe('erstatningsopgoerelse-bilag-3');
     });
 
     it('respekterer en eksplicit separator', () => {
-      // safeCompute-fejlkoderne bruger '_' — formatet er load-bearing.
+      // safeCompute-fejlkoderne bruger '_' – formatet er load-bearing.
       expect(asciiSlug('aarsloenBeregning.periodeBeregning', { separator: '_' }))
         .toBe('aarsloenberegning_periodeberegning');
     });
 
     it('trimmer separatorer fra begge ender', () => {
-      expect(asciiSlug('  — hej —  ')).toBe('hej');
+      expect(asciiSlug('  – hej –  ')).toBe('hej');
       expect(asciiSlug('...test...', { separator: '_' })).toBe('test');
     });
   });
@@ -76,7 +76,7 @@ describe('asciiSlug', () => {
 
   describe('dokumenteret ikke-injektivitet', () => {
     it('kollapser etiketter der kun adskiller sig uden for [a-z0-9]', () => {
-      // Bevidst egenskab — se modulets doc. Testen fastholder den som et VALG,
+      // Bevidst egenskab – se modulets doc. Testen fastholder den som et VALG,
       // så en fremtidig læser ikke tror det er en utilsigtet kollision.
       expect(asciiSlug('Løn')).toBe(asciiSlug('Loen'));
       expect(asciiSlug('A B')).toBe(asciiSlug('A-B'));

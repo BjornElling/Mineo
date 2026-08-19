@@ -88,7 +88,7 @@ const validateLoentrinFinderInput = (
 
 /**
  * Kerneberegning: inputvalidering + satstabel-opslag + resultatbygning/-sortering (top-5).
- * Ren funktion uden side-effekter — kalderen mapper udfaldet til React-state og shake.
+ * Ren funktion uden side-effekter – kalderen mapper udfaldet til React-state og shake.
  */
 export const calculateLoentrinFinderResults = (
   input: LoentrinFinderCalculationInput

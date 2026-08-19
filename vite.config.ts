@@ -147,7 +147,7 @@ export default defineConfig({
     //
     // 15 sekunder rakte til den almindelige suite, men ikke til `test:coverage`: under v8-instrumentering koster
     // de tsc-/træscannende kvalitetstests 23-42 sekunder på en belastet maskine, mens de samme filer kører på ~10
-    // sekunder tilsammen isoleret. Det gav vandrende timeouts i release-gaten — skiftende filer fra kørsel til
+    // sekunder tilsammen isoleret. Det gav vandrende timeouts i release-gaten – skiftende filer fra kørsel til
     // kørsel, aldrig de samme to gange, og grønt igen ved en isoleret kørsel af netop de filer.
     //
     // 60 sekunder er sat efter den målte værste kørsel (42 s) med luft til en langsommere CI-runner. Grænsen er

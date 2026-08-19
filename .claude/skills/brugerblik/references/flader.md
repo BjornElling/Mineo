@@ -2,12 +2,12 @@
 
 Rækkefølgen går fra de mindste og enkleste flader til de største og mest sammensatte.
 
-**Hvorfor.** De fleste uhensigtsmæssigheder er ikke enestående — de er ét udslag af en vane, der
+**Hvorfor.** De fleste uhensigtsmæssigheder er ikke enestående – de er ét udslag af en vane, der
 går igen overalt i programmet. På en lille flade er vanen let at få øje på, let at bedømme og let
 at beskrive, fordi der ikke er noget at forveksle den med. Bliver den fundet og afklaret dér, kan
 de store flader senere gennemgås med et færdigt sæt principper i hånden i stedet for at genopdage
 det samme mønster ti gange under ti forskellige navne. Den omvendte rækkefølge ville betyde, at det
-sværeste blev bedømt først — på det tidspunkt, hvor mindst var afklaret.
+sværeste blev bedømt først – på det tidspunkt, hvor mindst var afklaret.
 
 Rækkefølgen følges, medmindre brugeren peger på en bestemt flade. Den kan justeres, hvis en flade
 viser sig at være væsentligt større eller mindre end antaget; en justering noteres i `STATUS.md`.

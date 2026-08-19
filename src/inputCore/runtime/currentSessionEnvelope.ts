@@ -55,7 +55,7 @@ export const serializeCurrentEnvelope = (input: SettledInput): string => JSON.st
  * Parser og normaliserer envelopen. Hver canonical sektion går gennem den fælles kæde
  * migrator → sanitize → schema-parse med envelope-versionens `persistedDataVersion`. Et input, som ikke kan
  * migreres helt uden at strippe en brugeroplysning, afvises fail-closed; bootstrap bevarer da de rå bytes i
- * stedet for at overskrive dem. Returnerer et dybtfrossent `SettledInput` uden katalog-XOR — det udfører
+ * stedet for at overskrive dem. Returnerer et dybtfrossent `SettledInput` uden katalog-XOR – det udfører
  * `catalog.validateSettledInput` i hydration/dispatch.
  */
 export const parseCurrentEnvelope = (raw: string): SettledInput => {

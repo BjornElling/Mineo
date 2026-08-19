@@ -8,8 +8,8 @@ import { collectSourceFiles, toRepoRelativePath } from '../testUtils';
  *
  * Motivet (greenfield #48): de gamle quality-guards genopfandt hver især en
  * directory-walk + `fs.readFileSync` + regex/substring-scan. Denne modul ejer ÉN
- * cache af alle produktions-kildefiler under `src/` — læst præcis én gang og AST-parset
- * højst én gang pr. fil ved første strukturelle adgang — som både AST-regler og de få bevidst
+ * cache af alle produktions-kildefiler under `src/` – læst præcis én gang og AST-parset
+ * højst én gang pr. fil ved første strukturelle adgang – som både AST-regler og de få bevidst
  * tekstbaserede kontraktværn forbruger. AST'en gør grænserne strukturelle
  * (fanger aliasing, destrukturering og bracket-notation), mens `text` bevarer
  * den præcise kildeform til regler hvor selve tekstformen er kontrakten.
@@ -74,7 +74,7 @@ export const getSourceGraph = (): readonly SourceEntry[] => {
   return entries;
 };
 
-/** Bygger en syntetisk `SourceEntry` fra en kildestreng — bruges af regel-selvtests. */
+/** Bygger en syntetisk `SourceEntry` fra en kildestreng – bruges af regel-selvtests. */
 export const makeSyntheticEntry = (relativePath: string, text: string): SourceEntry =>
   createSourceEntry(path.resolve(process.cwd(), relativePath), relativePath, text);
 

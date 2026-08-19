@@ -7,11 +7,11 @@ import { expect, login, openPage, setFieldValueAndSettle, test } from './support
  *
  * **Hvorfor denne test findes ud over integrationstestene.** Suitens integrationstests beviser, at
  * blink-KLASSEN lander på det rigtige element. Det er en anden påstand end den, brugeren mærker:
- * at markeringen faktisk MALES — i den rigtige farve, med den rigtige rytme, og på begge de flader
+ * at markeringen faktisk MALES – i den rigtige farve, med den rigtige rytme, og på begge de flader
  * markeringen skal kunne bruges på. jsdom har hverken layout- eller animationsmotor og kan derfor
  * ikke se forskel på en klasse, der virker, og en, hvis CSS aldrig blev indlæst eller blev slået af
  * MUI's egne baggrundsregler. Den strid er præcis dét, `!important` i `sharedApp.css` findes for at
- * afgøre — og kun en rigtig browser kan afgøre, om den vandt.
+ * afgøre – og kun en rigtig browser kan afgøre, om den vandt.
  *
  * Testen måler den BEREGNEDE baggrund over tid frem for at sammenligne screenshots. En pixel-baseline
  * ville knække på enhver urelateret layout- eller temaændring og sige intet om hvorfor; en farve- og
@@ -35,7 +35,7 @@ const FORM_FIELD_SELECTOR =
 /** Grid-cellerne bærer en entitets-sti i feltadressen; det skelner dem fra formularfelterne. */
 const GRID_CELL_SELECTOR = '[data-mineo-field-address*="entityId"]';
 
-/** Aflæs den FAKTISK beregnede — animerede — baggrund, ikke den erklærede regel. */
+/** Aflæs den FAKTISK beregnede – animerede – baggrund, ikke den erklærede regel. */
 const readBackground = (page: Page, selector: string): Promise<string> =>
   page.evaluate(
     (sel) => getComputedStyle(document.querySelector(sel) as HTMLElement).backgroundColor,
@@ -45,7 +45,7 @@ const readBackground = (page: Page, selector: string): Promise<string> =>
 /**
  * Browserne serialiserer `color-mix()` forskelligt: Chromium bruger typisk `oklab`, mens Firefox
  * bruger `color(srgb)`, og WebKit kan variere afrundingen. Testen skal hævde den røde blanding og
- * animationens kontrakt — ikke én motors interne tekstformat.
+ * animationens kontrakt – ikke én motors interne tekstformat.
  */
 const containsErrorRed = (color: string): boolean => {
   const numbers = color.match(/-?\d*\.\d+|-?\d+/g)?.map(Number) ?? [];
@@ -100,17 +100,17 @@ const sampleBlink = async (page: Page, selector: string): Promise<readonly strin
  *
  * **Observationen er samtidig testens ENESTE kilde til HVILKET element der blinkede.** Blinket er en
  * transient tilstand: klassen står i 1,5 s og fjernes så af `fieldAttentionBlink.ts`. En påstand, der
- * spørger den LEVENDE DOM «bærer feltet klassen?», er derfor et kapløb mod den timer — grøn på en hurtig
+ * spørger den LEVENDE DOM «bærer feltet klassen?», er derfor et kapløb mod den timer – grøn på en hurtig
  * maskine, og på en langsom maskine et 30 s-loft brugt på at vente på en tilstand, der aldrig kommer
  * tilbage. Sampleren skriver derfor målets identitet ned, mens klassen er der, og
- * påstandene læser den nedskrevne observation bagefter — uafhængigt af hvornår testprocessen når frem.
+ * påstandene læser den nedskrevne observation bagefter – uafhængigt af hvornår testprocessen når frem.
  */
 const startBlinkSampling = (page: Page): Promise<void> => page.evaluate(
   ([className, addressAttribute]) => {
     type BlinkSamplingState = {
       samples: string[];
       complete: boolean;
-      /** Feltadressen på det element, der faktisk blinkede — nedskrevet mens klassen stod der. */
+      /** Feltadressen på det element, der faktisk blinkede – nedskrevet mens klassen stod der. */
       targetAddress: string | null;
       /** `name`-attributten på målets eget input, så en påstand kan pege på det konkrete felt. */
       targetInputName: string | null;
@@ -179,7 +179,7 @@ const startBlinkSampling = (page: Page): Promise<void> => page.evaluate(
          * rAF-sampling måler kun de øjeblikke, browseren tilfældigvis nåede at tegne. Under
          * hukommelses- og CPU-pres tegner WebKit så få frames, at samtlige prøver kan lande i
          * animationens lave faser: målt maxAlpha 0,006–0,105 mod et krav på 0,12, selv om blinket
-         * FAKTISK blev malet — en måleartefakt, ikke en produktfejl.
+         * FAKTISK blev malet – en måleartefakt, ikke en produktfejl.
          *
          * Web Animations API'et kender animationen uafhængigt af tegningen. Ved at spole til et
          * kendt tidspunkt (0,25 s = første pulstop, 0,5 s = bund) aflæses de to yderpunkter, som
@@ -236,7 +236,7 @@ type BlinkObservation = Readonly<{
 /**
  * Vent på, at blinket er kørt HELT færdigt, og aflever den nedskrevne observation.
  *
- * Ventetiden er bundet til at animationen er slut — ikke til at en klasse tilfældigvis stadig står.
+ * Ventetiden er bundet til at animationen er slut – ikke til at en klasse tilfældigvis stadig står.
  * Derfor er den lige robust på en hurtig og en langsom maskine.
  */
 const readBlinkObservation = async (page: Page): Promise<BlinkObservation> => {
@@ -271,7 +271,7 @@ const alphaOf = (color: string): number => {
 
 /**
  * Fælles påstand for begge flader: markeringen males i fejlrød, når en tydelig top, og er nede igen
- * imellem — altså et BLINK og ikke en konstant baggrund.
+ * imellem – altså et BLINK og ikke en konstant baggrund.
  */
 const expectRedPulse = (samples: readonly string[]): void => {
   // Nogle motorer afleverer MUI-skallens hvide normalbaggrund i den FØRSTE rAF efter klasseændringen.
@@ -317,7 +317,7 @@ const expectLinkedDropdownToPulse = async (
   await expect(page.locator(`input[name="${inputName}"]`)).toBeVisible();
 
   const observed = await observation;
-  // Blinket ramte netop dette felt — aflæst da klassen stod der, ikke gættet på bagefter.
+  // Blinket ramte netop dette felt – aflæst da klassen stod der, ikke gættet på bagefter.
   expect(observed.targetInputName).toBe(inputName);
   expect(observed.targetClassName).toContain(BLINK_CLASS);
   // Pilen lå inden for den blinkende flade, så markeringen dækkede også dropdownens pileområde.
@@ -345,7 +345,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await openPage(page, 'Stamdata');
     await expect(page.locator(FORM_FIELD_SELECTOR)).toBeVisible();
 
-    // Udgangspunktet er umarkeret — ellers ville en altid-rød baggrund bestå testen.
+    // Udgangspunktet er umarkeret – ellers ville en altid-rød baggrund bestå testen.
     expect(alphaOf(await readBackground(page, FORM_FIELD_SELECTOR))).toBeLessThan(0.01);
 
     expectRedPulse(await sampleBlink(page, FORM_FIELD_SELECTOR));
@@ -374,7 +374,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     );
     const background = await readBackground(page, FORM_FIELD_SELECTOR);
 
-    // Ingen animation — men markeringen forsvinder IKKE: brugeren skal stadig kunne se hvilket felt.
+    // Ingen animation – men markeringen forsvinder IKKE: brugeren skal stadig kunne se hvilket felt.
     expect(animationName).toBe('none');
     expect(background).toContain(ERROR_RED_SRGB);
     expect(alphaOf(background)).toBeCloseTo(0.2, 2);
@@ -422,7 +422,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     expect(inputName).not.toBeNull();
 
     const observed = await readBlinkObservation(page);
-    // Blinket ramte beregningskilden — ikke ansættelseskortet. Den negative påstand aflæses på den
+    // Blinket ramte beregningskilden – ikke ansættelseskortet. Den negative påstand aflæses på den
     // NEDSKREVNE observation: kortet kan ikke «holde op med» at blinke sig fri af en levende kontrol.
     expect(observed.targetInputName).toBe(inputName);
     await expectLinkedDropdownToPulse(page, inputName!, Promise.resolve(observed));
@@ -434,7 +434,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
    * «Der er ikke angivet nogen TAF-periode i EO-perioden» handler om en række, brugeren ikke har
    * oprettet. Advarslen bar tidligere et rækkeanker på sit eget synthetiske id, og da
    * `data-mineo-row-id` kun sættes på virkelige tabelrækker, kunne opslaget ikke finde noget: linket
-   * skiftede fane og blinkede intet. Testen hævder den adfærd, brugeren skal opleve — at fra-cellen i
+   * skiftede fane og blinkede intet. Testen hævder den adfærd, brugeren skal opleve – at fra-cellen i
    * TAF-tabellens første (tomme) række markeres.
    */
   test('advarsel om manglende TAF-periode blinker fra-cellen i tabellens første række', async ({ page }) => {
@@ -461,7 +461,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
 
     const observed = await readBlinkObservation(page);
     expect(observed.targetClassName).toContain(BLINK_CLASS);
-    // Den blinkede adresse ER TAF-tabellens fra-celle — aflæst fra observationen, ikke fra en klasse,
+    // Den blinkede adresse ER TAF-tabellens fra-celle – aflæst fra observationen, ikke fra en klasse,
     // der forlængst kan være fjernet igen på en langsom maskine.
     expect(observed.targetAddress).toContain('tafPerioder');
     expect(observed.targetAddress).toContain('"field":"fra"');

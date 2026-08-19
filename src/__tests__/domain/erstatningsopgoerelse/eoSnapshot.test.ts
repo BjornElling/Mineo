@@ -166,7 +166,7 @@ describe('computeEoSnapshot', () => {
   it('TAF-periode clampes mod differencekrav: feltfejl i UI, snapshot beregnes på clampet værdi (korrekt adfærd)', () => {
     // KONTRAKTSTATUS (eo-snapshot-contract.md §2.2): TAF til-dato >= differencekravDato er en fejlgivende bound.
     // Korrekt adfærd: feltfejl (rød kant + tooltip) i TAFPeriodeTable + EOBeregningTab blokerer download.
-    // Snapshot producerer ingen invariant for dette — snapshot beregnes på den clampede værdi med data tilgængeligt.
+    // Snapshot producerer ingen invariant for dette – snapshot beregnes på den clampede værdi med data tilgængeligt.
     // Dette er den korrekte og tilstrækkelige mekanisme; feltfejl-tilgangen er ikke et udestående.
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
@@ -214,7 +214,7 @@ describe('computeEoSnapshot', () => {
   });
 
   it('TAF-periode inden for differencekrav-grænse (stille clamping mod vedroererPeriodeTil) giver ok', () => {
-    // TAF til-dato <= vedroererPeriodeTil er stille clamping — ingen fejl
+    // TAF til-dato <= vedroererPeriodeTil er stille clamping – ingen fejl
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
     eoValues.vedroererPeriodeTil = toISODateString('2024-06-30');
@@ -697,7 +697,7 @@ describe('computeEoSnapshot', () => {
 
     expect(nejSnapshot.status).toBe('ok');
     expect(skjulSnapshot.status).toBe('ok');
-    // Beregnede totaler er identiske mellem Nej og Skjul — ingen beregningsforskel.
+    // Beregnede totaler er identiske mellem Nej og Skjul – ingen beregningsforskel.
     expect(skjulSnapshot.data?.totals).toEqual(nejSnapshot.data?.totals);
     expect(skjulSnapshot.data?.canonicalOutput.totals).toEqual(nejSnapshot.data?.canonicalOutput.totals);
     // Begge ekskluderer øvrige-krav-rækken fra summen (kravPaa... ≠ 'Ja' ⇒ intet beregnes).

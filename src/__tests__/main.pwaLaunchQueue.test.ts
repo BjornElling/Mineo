@@ -40,7 +40,7 @@ type BootstrapOptions = Readonly<{
   setupPwaFileOpenHandling?: () => Promise<void>;
 }>;
 
-describe('Mineos app-entry — PWA-filåbning', () => {
+describe('Mineos app-entry – PWA-filåbning', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();

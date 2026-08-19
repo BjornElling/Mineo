@@ -25,7 +25,7 @@ const iso = (value: string) => toISODateString(value);
 // samlet 15.000 spredt ligeligt over jan (31) + feb (29) = 60 dage, sliced til jan 1-15.
 const GENNEMSNIT_WRONG_JAN_1_15 = 15000 * (15 / 60); // = 3750
 
-describe('buildIncomeForRanges — per-række/per-måned-periodisering (lønindkomst)', () => {
+describe('buildIncomeForRanges – per-række/per-måned-periodisering (lønindkomst)', () => {
   const makeValuesWithTwoMonthlyLoenRows = () => {
     const values = createErstatningsopgoerelseInitialValues();
     // 'Angivet månedsløn' ⇒ beregningsenhed = Måneder ⇒ løn periodiseres på kalenderdage.
@@ -102,7 +102,7 @@ describe('buildIncomeForRanges — per-række/per-måned-periodisering (lønindk
   });
 });
 
-describe('buildIncomeForRanges — per-række/per-måned-periodisering (offentlige ydelser)', () => {
+describe('buildIncomeForRanges – per-række/per-måned-periodisering (offentlige ydelser)', () => {
   // Kontanthjælp periodiseres på kalenderdage (jf. ydelsestyper.ts).
   const makeValuesWithTwoMonthlyBenefitRows = () => {
     const values = createErstatningsopgoerelseInitialValues();

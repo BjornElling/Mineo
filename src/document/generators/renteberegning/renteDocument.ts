@@ -164,7 +164,7 @@ export const addCalculationPrinciples = (
 
 /**
  * Skriver én rente-specifikation-sektion til en eksisterende DocumentComposer.
- * Kalder ikke addFooter eller save — det er kalderens ansvar.
+ * Kalder ikke addFooter eller save – det er kalderens ansvar.
  */
 export const writeRenteDocumentContent = (
   writer: DocumentComposer,
@@ -199,7 +199,7 @@ export const writeRenteDocumentContent = (
 /**
  * Generer og download PDF for procesrenteberegning
  *
- * Datoerne er CANONICAL ISO — samme kontrakt som `generateRenteOversigtDocument` og som resten af
+ * Datoerne er CANONICAL ISO – samme kontrakt som `generateRenteOversigtDocument` og som resten af
  * systemet. Dansk formatering er præsentation og sker inde i generatoren.
  *
  * @param {number} amount - Hovedstol

@@ -23,12 +23,12 @@ describe('satser → Word-indhold', () => {
 
   // BB-030: dokumentet udelod en sats på 0 %, som skærmen viste. Prøven var `> 0` i dokumentet og
   // «findes værdien» på siden, og de to var kun enige, så længe ingen sats var nul.
-  // `reguleringsprocentErhvervsevnetabFra2024` er 0,0 i 2024 — det ene nul i hele satsdatasættet.
-  it('skriver en sats på 0 % — et nul er en oplysning, ikke et fravær', async () => {
+  // `reguleringsprocentErhvervsevnetabFra2024` er 0,0 i 2024 – det ene nul i hele satsdatasættet.
+  it('skriver en sats på 0 % – et nul er en oplysning, ikke et fravær', async () => {
     const year = 2024;
     const satser = getSatserForYear(year);
     // Sikrer, at testen stadig måler det, den blev skrevet til: bliver 2024-satsen en dag ikke-nul,
-    // skal denne test findes og flyttes til et år, der faktisk har et nul — ikke stille blive grøn.
+    // skal denne test findes og flyttes til et år, der faktisk har et nul – ikke stille blive grøn.
     expect(satser.asl.reguleringProcentErhvervsevnetabFra2024).toBe(0);
 
     const { documentXml } = await renderWordDocument((session) =>

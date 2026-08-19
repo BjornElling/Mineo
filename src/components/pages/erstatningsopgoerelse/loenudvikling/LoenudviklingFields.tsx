@@ -20,8 +20,8 @@ import type { ReguleringDocumentAction } from '../../../../domain/erstatningsopg
 /**
  * Den fælles Lønudvikling-flade.
  *
- * Fladen findes på to overflader — pr. ansættelsesforhold på Lønindkomstfanen og for
- * «angivet løn» på EO-oplysningerfanen — og var tidligere kopieret ordret mellem
+ * Fladen findes på to overflader – pr. ansættelsesforhold på Lønindkomstfanen og for
+ * «angivet løn» på EO-oplysningerfanen – og var tidligere kopieret ordret mellem
  * `AnsaettelsesforholdCard.tsx` og `IndtaegtFoerSkadenSection.tsx` (~290 linjer hver).
  * Kopierne var allerede drevet fra hinanden på tre punkter, som ingen havde besluttet:
  * feltbredden på «Navn på reguleringsform» (350 vs. 300), den manglende
@@ -55,14 +55,14 @@ export type LoenudviklingFieldsProps<
   manualRuleIssues: FieldIssueSet;
   manualLocationPrefix: string;
   manualPercentLocationPrefix: string;
-  /** Navigation-metadata (§3.7) for de to tabeller — fanen adskiller overfladerne. */
+  /** Navigation-metadata (§3.7) for de to tabeller – fanen adskiller overfladerne. */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 
   /** Det aktive beregningsgrundlag; styrer hvilke undergrene der vises. */
   loenudviklingBasis: string | undefined;
   erOffentligOverenskomst: boolean;
 
-  /** Indholdet af «Overenskomst»-rækken — se komponentens doc. */
+  /** Indholdet af «Overenskomst»-rækken – se komponentens doc. */
   overenskomstSlot: ReactNode;
 
   offentligLoenEkstraGrundloenSuffix: string;
@@ -78,7 +78,7 @@ export type LoenudviklingFieldsProps<
   baseDateISO: string | undefined;
   baseDateErrorMessage: string | undefined;
   /**
-   * Forklaringen bag basisdatoen. Påkrævet — ikke optional — fordi den tidligere var
+   * Forklaringen bag basisdatoen. Påkrævet – ikke optional – fordi den tidligere var
    * optional og derfor stiltiende manglede på EO-oplysningerfanen, selv om VM'en
    * allerede beregnede teksten. Send `undefined` eksplicit, hvis den ikke findes.
    */
@@ -90,10 +90,10 @@ export type LoenudviklingFieldsProps<
   /** Reguleringssats-intervallet og dets download. */
   shouldShowReguleringsDatoInterval: boolean;
   reguleringsDatoIntervalDisplay: string;
-  /** Den fælles resolver — ikke en lokalt genskabt form, så gate-reglen kun findes ét sted. */
+  /** Den fælles resolver – ikke en lokalt genskabt form, så gate-reglen kun findes ét sted. */
   reguleringDocument: ReguleringDocumentAction;
 
-  /** Har den manuelle tabel en basisrække — styrer commit-override'et. */
+  /** Har den manuelle tabel en basisrække – styrer commit-override'et. */
   hasManualBaseRow: boolean;
   hasManualPercentBaseRow: boolean;
   /** Procentfelterne i basisrækken er read-only når tillæg angives som procent. */
@@ -220,7 +220,7 @@ export default function LoenudviklingFields<
                   {/* Eksplicit opt-in i Containerens tab-sekvens (jf. keyboard-navigation.md
                       §Implementeringsfrihed), samme tilgang som `Indsæt dags dato`. Container
                       lader Enter passere på knapper, så native button-semantik dækker både
-                      Enter og mellemrum — der skal ingen egen keydown-vej til. Refen bærer
+                      Enter og mellemrum – der skal ingen egen keydown-vej til. Refen bærer
                       overlayets fokus-restore-mål (§Popup-fokus-restore): fokus skal tilbage
                       hertil ved lukning, uanset om brugeren lukkede med Escape, X eller backdrop. */}
                   <IconButton
@@ -372,11 +372,11 @@ export default function LoenudviklingFields<
                 {/*
                   Knaptilstand OG outputvalg kommer fra `reguleringDocument`. De tidligere
                   side-lokale `canDownload`-IIFE'er (skrevet med hver sin formel) og
-                  `loenudviklingBasis`-switchen ved KLIK — altså før commit-barrieren — er
+                  `loenudviklingBasis`-switchen ved KLIK – altså før commit-barrieren – er
                   erstattet af den fælles resolver, som vælger efter settle på et frisk snapshot.
                 */}
                 {/*
-                  Er intervallet ukendt, vises INTET — hverken tekst eller pladsholdertegn.
+                  Er intervallet ukendt, vises INTET – hverken tekst eller pladsholdertegn.
                   Bindestregen her var et levn fra en fjernet inline-tekst; erstatningen skulle have
                   været ingenting, og et bart `-` på linjen ligner en værdi, der ikke findes.
                 */}
@@ -396,7 +396,7 @@ export default function LoenudviklingFields<
             </Box>
           </Box>
           {/*
-            Gate-årsagen findes her KUN i knappens tooltip, så beskeden vises rå — ellers ville en
+            Gate-årsagen findes her KUN i knappens tooltip, så beskeden vises rå – ellers ville en
             blokeret aktivering være helt usynlig for brugeren.
           */}
           <DocumentOutcomeMessage message={reguleringDocument.errorMessage} />

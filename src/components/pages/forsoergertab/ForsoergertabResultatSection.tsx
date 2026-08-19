@@ -8,7 +8,7 @@ import { useForsoergertabVm } from './forsoergertabContext';
 /**
  * Beregnet forsørgertab: nettokravet og de tre led, det er sammensat af.
  *
- * Vises kun når snapshottet har et resultat (`canShowResult`) — der findes ingen visningsvej, der kunne vise et
+ * Vises kun når snapshottet har et resultat (`canShowResult`) – der findes ingen visningsvej, der kunne vise et
  * delresultat fra en blokeret beregning (§1.10).
  */
 const ForsoergertabResultatSection = React.memo(() => {

@@ -176,7 +176,7 @@ describe('buildTafPerYearOpreguleretBuildOutcome', () => {
 
   it('blokerer et helt krav hvis ét ikke-nul år mangler sats, selv når et 0-beløbs-år er fint', () => {
     // Multi-år: 0-beløbs-året (1999) er undtaget, men det ikke-nul år (2000) mangler stadig
-    // sats og skal fail-close hele opgørelsen — ingen delvis/tavs opregulering.
+    // sats og skal fail-close hele opgørelsen – ingen delvis/tavs opregulering.
     const result = makeResult([makeYear(1999, 0), makeYear(2000, 5_000_00)]);
     const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-03-03'));
     expect(outcome.kind).toBe('error');

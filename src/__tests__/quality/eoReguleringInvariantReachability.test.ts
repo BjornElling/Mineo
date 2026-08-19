@@ -15,13 +15,13 @@ import {
  *
  * `loenudviklingBeregning.ts` erklærer i sin modulnote, at alle dens `throw new Error()` er
  * defensive invarianter, som "kun kan nås hvis erstatningsopgoerelseValidator har fejlet i at
- * afvise input". Den præmis var UBEVIST — og den holdt ikke: en offentlig overenskomst uden
+ * afvise input". Den præmis var UBEVIST – og den holdt ikke: en offentlig overenskomst uden
  * løntrin/gruppe passerede validatoren og kastede i motoren, hvilket brugeren mødte som
  * `eo_snapshot:runtime_exception` ("Uventet runtimefejl i EO-snapshot") i stedet for en
  * feltplaceret fejl, han kunne rette.
  *
  * Testen fejer inputrummet for reguleringsopsætningen igennem og kræver, at en ufuldstændig
- * opsætning altid ender som en SYNLIG valideringsfejl — aldrig som fail-closed runtime-exception.
+ * opsætning altid ender som en SYNLIG valideringsfejl – aldrig som fail-closed runtime-exception.
  * Den er bevidst adfærdsmæssig og ikke strukturel: en regex over throw-sites ville hverken kunne
  * se, om en gren er nåelig, eller om validatoren rent faktisk dækker den.
  */
@@ -68,7 +68,7 @@ const buildValues = (employment: ReturnType<typeof buildEmployment>) => {
   eo.beregnesUdFra = 'Beregningsperiode';
   eo.tafBeregningsperiodeFra = toISODateString('2021-06-01');
   eo.tafBeregningsperiodeTil = toISODateString('2022-05-31');
-  // SFGG er ikke det, der testes her — den delte helper låser kravet om et eksplicit
+  // SFGG er ikke det, der testes her – den delte helper låser kravet om et eksplicit
   // SFGG-beregningsgrundlag op uden at ændre beregnede tal (jf. sfggTestSupport).
   return withSfggIngenForEmployments({ ...eo, loenindkomstAnsaettelsesforhold: [employment] });
 };
@@ -89,7 +89,7 @@ const runSnapshot = (label: string, employment: ReturnType<typeof buildEmploymen
  * SKAL både undgå `runtime_exception` og give brugeren mindst én blokerende fejl at rette.
  *
  * Lovligt tomme opsætninger (fx manuel procentsats uden rækker = 0 % regulering) hører ikke til
- * her — de har deres egen test nedenfor, hvor kravet alene er, at motoren ikke kaster.
+ * her – de har deres egen test nedenfor, hvor kravet alene er, at motoren ikke kaster.
  */
 const UFULDSTAENDIGE_OPSAETNINGER: ReadonlyArray<Readonly<{
   navn: string;
@@ -188,7 +188,7 @@ describe('regulering: defensive motor-invarianter er ikke nåelige gennem UI-inp
 
   it('manuel procentsats uden rækker er lovligt tom (0 % regulering) og må ikke kaste', () => {
     // Basisindekset syntetiseres fra reguleringsdatoen, så en tom tabel har en veldefineret
-    // betydning. Kravet er derfor KUN, at motoren ikke fail-closer — ikke at brugeren blokeres.
+    // betydning. Kravet er derfor KUN, at motoren ikke fail-closer – ikke at brugeren blokeres.
     const snapshot = runSnapshot('manuel-procentsats-tom', buildEmployment({
       loenudviklingBeregningsgrundlag: 'Manuel procentsats',
     }));
@@ -227,12 +227,12 @@ describe('regulering: defensive motor-invarianter er ikke nåelige gennem UI-inp
   it('hvert udfald i parserens fejl-union har en synlig validator-besked', () => {
     // Parserens `reason`-union ER motorens kontrakt: kaster motoren på en årsag, skal validatoren
     // have afvist den først. Selve runtime_exception-friheden for disse konfigurationer er allerede
-    // dækket af fejningen ovenfor — her pinnes udelukkende, at ingen årsag mangler en besked.
+    // dækket af fejningen ovenfor – her pinnes udelukkende, at ingen årsag mangler en besked.
     const reasons: readonly OffentligLoenSelectionFailure[] = [
       'loentype-mangler', 'trin-mangler', 'trin-ugyldig', 'gruppe-mangler', 'gruppe-ugyldig',
     ];
 
-    // Fixturene beviser, at årsagerne er nåelige fra realistisk input — ikke blot deklareret.
+    // Fixturene beviser, at årsagerne er nåelige fra realistisk input – ikke blot deklareret.
     const naaedeAarsager = ([
       { offentligLoenType: undefined, offentligLoenTrin: undefined, offentligLoenGruppe: undefined },
       { offentligLoenType: 'Månedsløn', offentligLoenTrin: undefined, offentligLoenGruppe: undefined },

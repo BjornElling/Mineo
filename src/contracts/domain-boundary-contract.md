@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; constrainer `page-component-contract.md`.
-**Senest verificeret mod kode:** 2026-08-11
+**Senest verificeret mod kode:** 2026-08-19
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 
@@ -116,7 +116,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 8. Har to eller flere afgørelser samme afgørelsesdato og forskellige virkningsdatoer, sorteres de efter virkningsdato. Hver afgørelse giver alene løbende ydelse fra sin egen virkningsdato til dagen før den næste virkningsdato i gruppen. Reglen gælder uden undtagelse for afgørelsestyper og `FS tilbageholdt EET`.
 9. En senere afgørelse med tilbagevirkende virkning beregnes i sin overlapperiode mod den faktisk aktive, tidligere afgørelse for hver delperiode. Er den tidligere afgørelse ikke tilbageholdt, gives kun merudbetalingen; er den tilbageholdt, gives den senere afgørelses fulde løbende ydelse. Efter den senere afgørelses almindelige overlap-skæringsdato gives alene den senere afgørelses løbende ydelse.
 10. En midlertidig eller delvist endelig afgørelse efter en endelig afgørelse giver en ikke-blokerende advarsel. Det gælder både ved en strengt senere afgørelsesdato og ved samme afgørelsesdato, når den midlertidige eller delvist endelige afgørelse har den senere virkningsdato. Advarslen navngiver kun de typer, der faktisk forekommer, og forbinder dem med `og`, når begge forekommer.
-11. Folkepensionsalder må kun beregnes via `src/data/folkepensionAlderRates.ts` — herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Kapitaliseringstabellerne må ikke være kilde til alder i måneder, labels eller folkepensionsdato. Filen ligger i `src/data/` (ikke under `src/data/kapitalisering/`) fordi den er tværdomæne og ikke kapitaliseringsspecifik.
+11. Folkepensionsalder må kun beregnes via `src/data/folkepensionAlderRates.ts` – herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Kapitaliseringstabellerne må ikke være kilde til alder i måneder, labels eller folkepensionsdato. Filen ligger i `src/data/` (ikke under `src/data/kapitalisering/`) fordi den er tværdomæne og ikke kapitaliseringsspecifik.
 
 ### 6.2 Forsørgertab
 
@@ -126,7 +126,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 4. `computeForsoergertabSnapshot(...)` er den autoritative beregnings-entry for side- og PDF-projektioner i Forsørgertab-domænet.
    Den følger `snapshot-contract.md` og den domænespecifikke `forsoergertab-snapshot-contract.md`.
 5. UI-komponenter og PDF-flow må ikke lave parallelle Forsørgertab-beregninger uden om snapshot-projektionen.
-6. ASL-beregningen må kun bruge `src/data/folkepensionAlderRates.ts` til folkepensionsalder — herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Forsørgertabstabeller og kapitaliseringstabeller må ikke duplikere folkepensionsalderdata.
+6. ASL-beregningen må kun bruge `src/data/folkepensionAlderRates.ts` til folkepensionsalder – herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Forsørgertabstabeller og kapitaliseringstabeller må ikke duplikere folkepensionsalderdata.
 
 ### 6.3 Varige mén
 
@@ -191,7 +191,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    EET-rækker".
    Importens feltissues bindes til de konkrete top-level- og rækkerefs, importprojektionen læser; en bred
    sektionsscan eller et parallelt inventar af tekst-id'er er ikke en gyldig dependency-grænse.
-10. Virtuelle rækker injiceres aldrig i inputaggregatet. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en — så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
+10. Virtuelle rækker injiceres aldrig i inputaggregatet. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en – så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
 
 ---
 
@@ -201,7 +201,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    `erstatningsopgoerelse`-sektionen, men er som eksplicit undtagelse **delt kilde** med
    `Erhvervsevnetab -> Differencekrav`-fanen.
 2. `Erhvervsevnetab`-siden (og dens differencekrav-fane) må derfor både **læse og skrive**
-   `erstatningsopgoerelse`-sektionen — men kun for disse tre forligs-felter. Bindingen sker via
+   `erstatningsopgoerelse`-sektionen – men kun for disse tre forligs-felter. Bindingen sker via
    samme globale store-slice, så ændringer slår igennem begge steder.
 3. Undtagelsen er bevidst bidirektionel (til forskel fra §9, der er read-only): forligsgraden
    redigeres ligeværdigt fra begge faner. Settings-afledte initialværdier på `Erhvervsevnetab`-siden

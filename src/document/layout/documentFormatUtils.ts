@@ -13,7 +13,7 @@ import type { DocumentDownloadFormat } from '../documentFormat';
 /**
  * Hårdt mellemrum mellem tal og enhed, så en PDF-/Word-linjeombrydning aldrig river
  * «1.234 kr.» over to linjer. Eksporteret, fordi EO-generatoren tidligere holdt sin egen
- * kopi — en divergens der ville være usynlig indtil ombrydningen.
+ * kopi – en divergens der ville være usynlig indtil ombrydningen.
  */
 export const NBSP = '\u00A0';
 
@@ -132,7 +132,7 @@ export { DOCUMENT_MAANEDER_DECIMALS };
  *
  * Fortegnet vælges ud fra den *afrundede* størrelse, ikke den rå værdi: en lille
  * negativ værdi der afrundes til 0 (fx -0,00001) skal vises som "+ 0 %", ikke
- * "- 0 %" — et negativt fortegn på nul er misvisende i et tillidskritisk dokument.
+ * "- 0 %" – et negativt fortegn på nul er misvisende i et tillidskritisk dokument.
  */
 export const formatReguleringPct = (value: number): string => {
   const rounded = round4(Math.abs(value));
@@ -143,5 +143,5 @@ export const formatReguleringPct = (value: number): string => {
 
 export { isSingularCount } from '../../utils/formatUtils';
 export { formatCountWithUnit } from '../../utils/formatUtils';
-/** Kanonisk kr.-formatering (0 som standard) — genbruges fra UI-laget for at undgå dobbelt sandhed. */
+/** Kanonisk kr.-formatering (0 som standard) – genbruges fra UI-laget for at undgå dobbelt sandhed. */
 export { formatKr } from '../../utils/formatUtils';

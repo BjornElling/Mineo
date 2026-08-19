@@ -13,7 +13,7 @@ import { aarsloenTableDataCollectionRef } from '../../../domain/aarsloen/aarsloe
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 
 // Den fælles cellebindingskontrakt (§3.2, §1.11). Kernekravet: en celles dataidentitet er descriptoren bundet til
-// HELE ejerstien — og den er den SAMME for en eksisterende række og for dens placeholder. Kunne de to arter få
+// HELE ejerstien – og den er den SAMME for en eksisterende række og for dens placeholder. Kunne de to arter få
 // forskellig adressestruktur, ville en nested tabel (EO's løntabel under ét ansættelsesforhold) binde med for få
 // entity-led, og adresseariteten i `FieldDescriptor.bind` ville kaste under render.
 
@@ -39,7 +39,7 @@ const placeholder = (rowId: string): CollectionRenderRow => ({ rowId, kind: 'pla
 const entityIdsOf = (path: FieldAddress['path']): readonly string[] =>
   path.flatMap((segment) => segment.kind === 'entity' ? [segment.entityId] : []);
 
-describe('collectionOwnerEntityIds — ejer-id\'erne udledes af collectionens egen sti', () => {
+describe('collectionOwnerEntityIds – ejer-id\'erne udledes af collectionens egen sti', () => {
   it('en top-level collection har ingen ejere', () => {
     expect(collectionOwnerEntityIds(aarsloenTableDataCollectionRef)).toEqual([]);
   });
@@ -61,7 +61,7 @@ describe('collectionOwnerEntityIds — ejer-id\'erne udledes af collectionens eg
   });
 });
 
-describe('buildCollectionCellSpec — samme adressestruktur for begge cellearter', () => {
+describe('buildCollectionCellSpec – samme adressestruktur for begge cellearter', () => {
   it('top-level: adressen har præcis rækkens entity-id', () => {
     const b = binding(aarsloenTableDataCollectionRef);
     const cell = buildCollectionCellSpec(b, existing('row-1'), aarsloenTableCol0MaanedField, 0);
@@ -76,7 +76,7 @@ describe('buildCollectionCellSpec — samme adressestruktur for begge cellearter
     expect(entityIdsOf(cell.field.address.path)).toEqual(['af-1', 'row-1']);
   });
 
-  it('NESTED placeholder: samme fulde ejersti som en eksisterende celle — og den kaster ikke', () => {
+  it('NESTED placeholder: samme fulde ejersti som en eksisterende celle – og den kaster ikke', () => {
     const b = binding(eoStandardLoenCollectionRef('af-1'));
     const cell = buildCollectionCellSpec(b, placeholder('row-new'), eoStandardRowFields.col0_maaned, 0);
     expect(cell.kind).toBe('placeholder');
@@ -104,7 +104,7 @@ describe('buildCollectionCellSpec — samme adressestruktur for begge cellearter
     //
     // Kolonnerne har forskellige værdityper, og `FieldDescriptor<T>` er invariant i `T` (T optræder både i
     // read- og write-position). Hver descriptor bindes derfor gennem sin egen typeparameter via `probe`, og
-    // listen er EKSPLICIT — så en ny kolonne i feltsættet skal tilføjes her, frem for at et `Object.entries`
+    // listen er EKSPLICIT – så en ny kolonne i feltsættet skal tilføjes her, frem for at et `Object.entries`
     // lydløst udvidede dækningen til noget, typen ikke kunne udtale sig om.
     const b = binding(eoStandardLoenCollectionRef('af-1'));
     const probe = <T,>(name: string, descriptor: FieldDescriptor<T>): void => {
@@ -126,12 +126,12 @@ describe('buildCollectionCellSpec — samme adressestruktur for begge cellearter
     probe('fpFvShSoBeloeb', eoStandardRowFields.fpFvShSoBeloeb);
     probe('pensionBeloeb', eoStandardRowFields.pensionBeloeb);
 
-    // Hele feltsættet er dækket — ingen kolonne kan glide udenom listen ubemærket.
+    // Hele feltsættet er dækket – ingen kolonne kan glide udenom listen ubemærket.
     expect(Object.keys(eoStandardRowFields)).toHaveLength(12);
   });
 });
 
-describe('collectionLocationPrefix — to instanser af samme collection kolliderer ikke', () => {
+describe('collectionLocationPrefix – to instanser af samme collection kolliderer ikke', () => {
   it('nested instanser under forskellige ejere får forskellige editorlokationer (§3.7)', () => {
     const a = buildCollectionCellSpec(binding(eoStandardLoenCollectionRef('af-1')), existing('row-1'), eoStandardRowFields.col2, 2);
     const b = buildCollectionCellSpec(binding(eoStandardLoenCollectionRef('af-2')), existing('row-1'), eoStandardRowFields.col2, 2);

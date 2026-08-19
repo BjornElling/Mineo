@@ -45,7 +45,7 @@ import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
  *   - Derefter fratrækkes løse feriedage og øvrigt fravær efter kontekst.
  * - Fald-tilbage når en indkomstpost ingen periodiseringsdage har (jf. periodisering-contract.md §3A):
  *   - En indkomstpost (løn på arbejdsdags-sporet eller en arbejdsdags-periodiseret offentlig ydelse),
- *     hvis periode udelukkende består af feriedage — eller for ydelser en ren weekend-/helligdagsperiode —
+ *     hvis periode udelukkende består af feriedage – eller for ydelser en ren weekend-/helligdagsperiode –
  *     har intet naturligt periodiseringsdag-sæt. Indkomsten må ALDRIG bare forsvinde.
  *   - I det tilfælde fordeles beløbet på fald-tilbage-dage via {@link buildFallbackAllocationDaysForInterval}:
  *     periodens hverdage (man-fre) minus helligdage ("som om ferien ikke var markeret"); er der ingen
@@ -100,7 +100,7 @@ export const buildLoenArbejdsdageSet = (
 /**
  * Fald-tilbage-fordelingsdage for en indkomstpost, hvis naturlige periodiseringsdag-sæt er tomt
  * (jf. periodisering-contract.md §3A). Reglen er ufravigelig:
- *   1) periodens hverdage (man-fre) minus helligdage — "som om ferien ikke var markeret"
+ *   1) periodens hverdage (man-fre) minus helligdage – "som om ferien ikke var markeret"
  *   2) er der ingen hverdage (fx en ren weekend- eller helligdagsperiode): alle kalenderdage
  *
  * VIGTIGT: Sættet bruges UDELUKKENDE til at fordele et beløb, så indkomsten fanges. Dagene må
@@ -198,7 +198,7 @@ export type OffentligYdelsePeriodiseringsGrundlag = Readonly<{
    * Sat KUN når en arbejdsdags-periodiseret ydelse ellers ikke havde nogen periodiseringsdage
    * (ren weekend-/helligdagsperiode) og beløbet i stedet fordeles på fald-tilbage-dage, så
    * indkomsten ikke forsvinder (jf. {@link buildFallbackAllocationDaysForInterval}). Når sat,
-   * afgør dette sæt hvilke dage der tæller ved beløbsfordelingen — ikke datoprædikatet.
+   * afgør dette sæt hvilke dage der tæller ved beløbsfordelingen – ikke datoprædikatet.
    */
   fallbackAllocationDays?: ReadonlySet<ISODateString>;
 }>;

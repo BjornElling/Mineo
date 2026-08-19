@@ -141,8 +141,8 @@ describe('resolveTafConstraintBounds', () => {
 
   describe('midlertidigtEETAfgorelse (skadedato < 2011-06-16)', () => {
     const skadedatoFoer = iso('2011-06-15'); // én dag før skæringsdato
-    const skadedatoPaa  = iso('2011-06-16'); // præcis skæringsdato — ingen afgrænsning
-    const skadedatoEfter = iso('2015-01-01'); // efter skæringsdato — ingen afgrænsning
+    const skadedatoPaa  = iso('2011-06-16'); // præcis skæringsdato – ingen afgrænsning
+    const skadedatoEfter = iso('2015-01-01'); // efter skæringsdato – ingen afgrænsning
 
     it('midlertidigtEETAfgorelse = Nej → ingen midlertidig EET-begrænsning', () => {
       const bounds = resolveTafConstraintBounds({
@@ -402,7 +402,7 @@ describe('buildClampedTafRanges', () => {
     expect(buildClampedTafRanges(rows, {})).toHaveLength(0);
   });
 
-  it('blandede rækker — kun gyldige returneres', () => {
+  it('blandede rækker – kun gyldige returneres', () => {
     const rows = [
       makeRow(toISODateString('2024-01-01'), toISODateString('2024-06-30')),
       makeRow(undefined, toISODateString('2024-12-31')),  // ugyldig

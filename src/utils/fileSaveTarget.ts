@@ -26,7 +26,7 @@ import { readOptionalSessionStorageValue } from './safeSessionStorage';
  * `saveToFile` havde tidligere en stor forgrenet blok, der blandede to concerns: (1) hvilket mål der
  * skal skrives til (genbrug persisteret handle, åbn picker, eller fallback-download) og (2) selve
  * skrivning + verifikation. Denne port ejer KUN målresolutionen og returnerer en diskrimineret værdi
- * — `fileHandle` (read-back-sink), `download` (in-memory-verificér-før-sink) eller `cancelled`
+ * – `fileHandle` (read-back-sink), `download` (in-memory-verificér-før-sink) eller `cancelled`
  * (brugeren lukkede pickeren / afviste tilladelses-prompten). Skrivning + verifikation ejes fortsat af
  * `saveToFile`, som blot forgrener på `target.kind`.
  */
@@ -46,7 +46,7 @@ const hasFilenameBasisChanged = (
   previousBasis: unknown,
   nextStamdata: unknown
 ): boolean => {
-  // Et manglende eller korrupt basis er ukendt — aldrig et bevis for lighed. Ellers kan et
+  // Et manglende eller korrupt basis er ukendt – aldrig et bevis for lighed. Ellers kan et
   // gammelt handle genbruges til en anden sag, fordi den defensive sammenligning fejlagtigt
   // fortolker metadata-hullet som "uændret".
   if (!isKnownSavedFilenameBasis(previousBasis)) return true;
@@ -112,7 +112,7 @@ export const resolveSaveTarget = async (
     let fallbackWarning: string | undefined;
 
     if (fileHandle && savedFilePath) {
-      // Vi har et gemt handle — valider det, men kun hvis filnavns-relevant stamdata er uændret.
+      // Vi har et gemt handle – valider det, men kun hvis filnavns-relevant stamdata er uændret.
       if (!stamdataChanged) {
         const handleVerification = await verifyFileHandleDetailed(fileHandle, {
           allowRequestPermission: true,
@@ -144,7 +144,7 @@ export const resolveSaveTarget = async (
           fileHandle = null;
         }
       } else {
-        // Stamdata ændret — åbn picker med nyt foreslået filnavn i stedet for at overskrive.
+        // Stamdata ændret – åbn picker med nyt foreslået filnavn i stedet for at overskrive.
         const deleted = await deleteFileHandleFromIndexedDB();
         if (!deleted) {
           // Samme fail-closed-regel gælder ved en bevidst ny fil: et gammelt handle må ikke kunne
@@ -170,7 +170,7 @@ export const resolveSaveTarget = async (
     }
 
     if (shouldUseExistingHandle && fileHandle) {
-      // Handle er gyldigt — browseren håndterer overskrivning; intet nyt at persistere.
+      // Handle er gyldigt – browseren håndterer overskrivning; intet nyt at persistere.
       return { kind: 'fileHandle', fileHandle, persistHandleAfterSuccess: false };
     }
 

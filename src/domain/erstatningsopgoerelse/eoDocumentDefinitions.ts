@@ -8,7 +8,7 @@
  * er blevet dependencies på outputtet.
  *
  * Alle fire deler ÉN projektion og ÉT gate-sæt gennem `context.shared`, så den dyre
- * `collectAllEoRows`-aggregering kører én gang pr. kildekontekst — ikke fire.
+ * `collectAllEoRows`-aggregering kører én gang pr. kildekontekst – ikke fire.
  */
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
@@ -87,7 +87,7 @@ const readSharedEoSource = (context: DocumentSourceContext<MineoDocumentGateSett
   return {
     // Gate-settings ER rækkepolitikken: konteksten bar før hele `SourceSettings`, og
     // projektionen skulle derfor selv skære den ned. Nu leverer miljøet præcis den halvdel, gaten må
-    // se, og indsnævringen sker ét sted — i `captureSource` — frem for i hver definition.
+    // se, og indsnævringen sker ét sted – i `captureSource` – frem for i hver definition.
     projection,
     gates: evaluateErstatningsopgoerelseDownloadGates(projection, context.settings),
   };
@@ -110,7 +110,7 @@ const resolveBilagSelection = (projection: ErstatningsopgoerelseReaderProjection
     if (!availability[key].enabled) selection[key] = false;
   }
   // Opgørelsen er ikke et valg: fladen viser den låst til (`lockedOn`), og generatoren kaster, hvis den
-  // mangler. En sag gemt før låsningen — eller en håndredigeret .eo-fil — kan bære `opgoerelse: false`,
+  // mangler. En sag gemt før låsningen – eller en håndredigeret .eo-fil – kan bære `opgoerelse: false`,
   // og uden dette ville et felt, brugeren ikke kan røre, blokere dokumentet. Låsningen gælder derfor
   // begge veje: visningen OG kilden.
   selection.opgoerelse = true;
@@ -119,7 +119,7 @@ const resolveBilagSelection = (projection: ErstatningsopgoerelseReaderProjection
 
 /**
  * Test-adgang til bilagsvalget. Reglen «opgørelsen er altid valgt» er en invariant mellem fladen og
- * generatoren, og den skal kunne prøves direkte — ikke kun gennem en fuld dokumentkørsel.
+ * generatoren, og den skal kunne prøves direkte – ikke kun gennem en fuld dokumentkørsel.
  */
 export const __testResolveBilagSelection = resolveBilagSelection;
 
@@ -145,7 +145,7 @@ const blockedFromGate = <T>(gate: DocumentDownloadGateResult): DocumentProjectio
 
 /**
  * EO-projektionens egen blokering. Beskeden er `specific`: den kommer fra dokumentprojektionen og
- * navngiver den konkrete række/det konkrete felt, der skal rettes — samme familie som `eoDocumentDownloadGate`s
+ * navngiver den konkrete række/det konkrete felt, der skal rettes – samme familie som `eoDocumentDownloadGate`s
  * årsag, og lige så værd at citere ordret.
  */
 const blockedFromProjection = blockedProjectionWithSpecificReason;

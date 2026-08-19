@@ -71,7 +71,7 @@ export const buildTheme = (mode: ResolvedThemeMode): Theme =>
             wordBreak: 'normal',
             // Tooltippen er portaleret uden for arbejdsfladens zoom-rod, men hører visuelt til det,
             // den forklarer. Uden dette står hjælpeteksten i 11 px ved siden af en brødtekst, der
-            // er skaleret ned til 10,5 px — altså STØRRE end det, den beskriver — og boksen bliver
+            // er skaleret ned til 10,5 px – altså STØRRE end det, den beskriver – og boksen bliver
             // en tredjedel for bred. Zoom sættes på selve tooltipboksen og ikke på popper-roden:
             // roden bærer Poppers positionerings-`transform`, som zoom ellers ville gange med.
             // Poppers måling af popper-roden ser den zoomede størrelse, så ankeret forbliver rigtigt.

@@ -8,14 +8,14 @@ import { useDefaultDirectorySetting } from './useDefaultDirectorySetting';
  *
  * Rækken har ÉN kilde til både navn og udseende: `location.kind`. Tidligere kom navnet fra
  * IndexedDB-metadata, mens kursivering og «Nulstil»-linket kom fra `settings.defaultDirectoryHandleId`
- * i localStorage — to lagre, der kan ryddes hver for sig, så rækken kunne vise standardens navn
+ * i localStorage – to lagre, der kan ryddes hver for sig, så rækken kunne vise standardens navn
  * stylet som et brugervalg. Se `defaultDirectoryLocation.ts`.
  */
 const DefaultDirectoryRow = React.memo(() => {
   const { location, chooseDirectory, resetToDefault } = useDefaultDirectorySetting();
 
   // Kun `valgt` er en intakt brugervalgt mappe. `utilgaengelig` peger på skrivebordet præcis som
-  // `standard` gør, og skal derfor se sådan ud — men beholder Nulstil, så det døde valg kan ryddes.
+  // `standard` gør, og skal derfor se sådan ud – men beholder Nulstil, så det døde valg kan ryddes.
   const harValgtMappe = location?.kind === 'valgt';
 
   return (
@@ -44,7 +44,7 @@ const DefaultDirectoryRow = React.memo(() => {
                 Opt-in til Container'ens feltsekvens (§Implementeringsfrihed i
                 `keyboard-navigation.md`): uden markøren er mappevalget kun tilgængeligt for musen,
                 fordi CONTAINER_FOCUSABLE_SELECTOR bevidst kun medtager knapper, der beder om det.
-                Aktivering med Enter/mellemrum følger af det native <button> — ingen egen keydown.
+                Aktivering med Enter/mellemrum følger af det native <button> – ingen egen keydown.
               */
               data-mineo-focusable-button="true"
               size="small"
@@ -71,7 +71,7 @@ const DefaultDirectoryRow = React.memo(() => {
                 // fokusinventar, præcis som «Vælg mappe» (§keyboard-navigation.md).
                 data-mineo-focusable-button="true"
                 // Uden klassen får knappen browserens skarpe, sorte standard-outline tæt om
-                // teksten — fremmed for både naboknappen og programmets øvrige fokusmarkering.
+                // teksten – fremmed for både naboknappen og programmets øvrige fokusmarkering.
                 // Se `.text-action-button` i `layout.css`.
                 className="text-action-button"
                 sx={{

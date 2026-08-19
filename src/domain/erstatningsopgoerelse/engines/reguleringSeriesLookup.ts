@@ -4,21 +4,21 @@ import type { ISODateString } from '../../../types/branded';
  * Deler ét carry-forward-opslag i en dato-sorteret reguleringsserie.
  *
  * Alle reguleringsformer der bærer en tidsserie af satser/indeks (statistik, KRL, KL,
- * manuel procentsats — i motor, præsentation og inspektion) skal finde "den gældende
+ * manuel procentsats – i motor, præsentation og inspektion) skal finde "den gældende
  * værdi på en given dato". Semantikken er **carry-forward, on-or-before**: den seneste
  * post hvis `startIso <= date` gælder frem til næste post; falder datoen før første post,
- * findes ingen dækning (`undefined` — kaldstedet afgør fallback, fx basisrækken).
+ * findes ingen dækning (`undefined` – kaldstedet afgør fallback, fx basisrækken).
  *
- * Tidligere fandtes samme opslag som mindst fem parallelle udgaver — reverse-scan i motoren,
+ * Tidligere fandtes samme opslag som mindst fem parallelle udgaver – reverse-scan i motoren,
  * `.filter(<=).at(-1)` tre steder i præsentationen, og `.filter(<=).sort(desc)[0]` i
- * inspektionen — hvoraf de fire re-derivationer manglede sorterings-invarianten. Konsolideret
+ * inspektionen – hvoraf de fire re-derivationer manglede sorterings-invarianten. Konsolideret
  * til ét sted (regulering-redesign R3), så carry-forward-politikken og "interiort hul umuligt"-
  * beviset kun findes ét sted og ikke kan drive fra hinanden.
  *
  * Bevidst afgrænsning: dette dækker udelukkende `ISODateString`-serier med
  * carry-forward-semantik. Datalagets `DanishDateString`-opslag (privat/offentlig overenskomst)
  * og de bevidst carry-forward-FRIE modeller (ASL/lovbestemte pr.-år-eksakt, sygedagpenge lukkede
- * intervaller) hører ikke til her — deres afvigelse er en domænesandhed, ikke drift.
+ * intervaller) hører ikke til her – deres afvigelse er en domænesandhed, ikke drift.
  *
  * **Feltnavnet er ikke en del af aftalen.** Serier med samme semantik men et
  * andet datofeltnavn skal bruge `findLatestByDateKeyInSortedList` med en nøglevælger frem for

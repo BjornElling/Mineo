@@ -6,11 +6,11 @@
 // gennem samme settle-sti." Side-benet er dækket af `MainLayout.navigationCommitGuard.test.tsx`. Fane-benet var
 // UDÆKKET, og hullet er ikke kosmetisk: et fane-skift UNMOUNTER fanens indhold
 // (`VarigeMen.tsx`: `activeTab === SATSER ? <SatserTab/> : <MenberegningTab/>`), og `useFieldEditor`s
-// unmount-effect AFMELDER kun editoren fra registret (`useFieldEditor.ts:235`) — den settler ikke. Settler
+// unmount-effect AFMELDER kun editoren fra registret (`useFieldEditor.ts:235`) – den settler ikke. Settler
 // draften ikke FØR unmount, forsvinder brugerens indtastning tavst.
 //
 // Testen måler gennem den ÆGTE side, den ægte `PageTabs` og den ægte produktions-runtime, og assertionen læses
-// fra det AUTORITATIVE afsluttede input — ikke fra DOM'en.
+// fra det AUTORITATIVE afsluttede input – ikke fra DOM'en.
 //
 // **HVILKEN settle-sti beviser testen? (Antagelsen er bevidst.)**
 //
@@ -22,8 +22,8 @@
 // Svaret er nej, og grunden er, at der IKKE findes en produktionssti, som skifter fane med en uafsluttet
 // draft. Fane-skift kan kun ske på to måder:
 //
-//   (a) Brugerklik på `<Tab>` — MUI flytter fokus, så blur går forud. Det er stien her.
-//   (b) Programmatisk `setActiveTabForPage(...)` — kun to callsites, og begge settler først:
+//   (a) Brugerklik på `<Tab>` – MUI flytter fokus, så blur går forud. Det er stien her.
+//   (b) Programmatisk `setActiveTabForPage(...)` – kun to callsites, og begge settler først:
 //       `saveBlockedFocus` kaldes fra `useFileSaveLoad.ts` EFTER `criticalActions.prepare('save')`, og
 //       `useEoBeregningViewModel` kaldes fra et klik på et issue-link, som selv blurrer feltet.
 //
@@ -31,7 +31,7 @@
 // side-/fanenavigation afslutter editoren gennem SAMME settle-sti"). En test, der undertrykte blur for at
 // isolere et "rent" fane-skift, ville derfor måle en tilstand, produktionen ikke kan nå. Skulle et
 // fremtidigt fane-skift omgå fokus (fx en tastaturgenvej eller en programmatisk rute uden coordinator),
-// er DENNE antagelse den, der skal genbesøges — og så skal fane-navigationen have sin egen
+// er DENNE antagelse den, der skal genbesøges – og så skal fane-navigationen have sin egen
 // `prepare()`-guard på linje med side-navigationen.
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -71,11 +71,11 @@ const renderPage = () => render(
   </MemoryRouter>
 );
 
-/** Læser méngraden fra det AUTORITATIVE afsluttede input — ikke fra DOM'en. */
+/** Læser méngraden fra det AUTORITATIVE afsluttede input – ikke fra DOM'en. */
 const settledMengrad = (): unknown =>
   (slimInputStore.getState().input.sections.varigemen as { mengrad?: unknown } | null)?.mengrad;
 
-describe('VarigeMen — fanenavigation settler den åbne editor (§1.3)', () => {
+describe('VarigeMen – fanenavigation settler den åbne editor (§1.3)', () => {
   beforeEach(() => {
     sessionStorage.clear();
     hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
@@ -114,7 +114,7 @@ describe('VarigeMen — fanenavigation settler den åbne editor (§1.3)', () => 
 
     await user.click(screen.getByRole('tab', { name: 'Satser' }));
 
-    // Navigationen gennemføres — et fejlende settle blokerer den IKKE.
+    // Navigationen gennemføres – et fejlende settle blokerer den IKKE.
     await waitFor(() => {
       expect(screen.queryByPlaceholderText('0')).toBeNull();
     });

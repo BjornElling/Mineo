@@ -23,7 +23,7 @@ describe('Overlay', () => {
   it('lukker success-overlay efter sin varighed selv når forælderen re-renderer med en ny onClose-reference', () => {
     const onClose = vi.fn();
 
-    // En wrapper der re-renderer Overlay med en frisk inline-onClose-arrow ved hver render —
+    // En wrapper der re-renderer Overlay med en frisk inline-onClose-arrow ved hver render –
     // det mønster der tidligere genstartede auto-close-timeren på hver re-render.
     const Wrapper = () => {
       const [, setTick] = React.useState(0);
@@ -38,7 +38,7 @@ describe('Overlay', () => {
     render(<Wrapper />);
 
     // Success-varighed er 3000 ms. Lad re-renders ske undervejs, og bekræft at lukningen
-    // ikke skubbes — onClose kaldes præcis når den oprindelige nedtælling udløber.
+    // ikke skubbes – onClose kaldes præcis når den oprindelige nedtælling udløber.
     act(() => {
       vi.advanceTimersByTime(2999);
     });
@@ -62,7 +62,7 @@ describe('Overlay', () => {
 });
 
 // Fejlbeskeden bliver stående, indtil brugeren lukker den. Den kunne tidligere KUN lukkes med et
-// museklik på selve boksen: ingen synlig lukkeknap, ingen Escape, ingen plads i tab-rækkefølgen — og
+// museklik på selve boksen: ingen synlig lukkeknap, ingen Escape, ingen plads i tab-rækkefølgen – og
 // museteksten «Klik for at lukke» som eneste vejledning.
 describe('Overlay: fejlbeskeden kan lukkes uden mus', () => {
   beforeEach(() => { vi.useFakeTimers(); });
@@ -130,14 +130,14 @@ describe('Overlay: de auto-lukkende varianter er uændrede', () => {
     vi.useRealTimers();
   });
 
-  it('har INGEN lukkeknap — de forsvinder selv', () => {
+  it('har INGEN lukkeknap – de forsvinder selv', () => {
     render(<Overlay message="Gemt" type="success" onClose={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Luk besked' })).not.toBeInTheDocument();
   });
 
   it('reagerer ikke på Escape, så tasten forbliver dialogens og feltets', () => {
     // En Escape-lytter på en besked, der lukker af sig selv, ville stjæle tasten fra en åben dialog
-    // eller en igangværende feltredigering — én Escape må kun gøre én ting.
+    // eller en igangværende feltredigering – én Escape må kun gøre én ting.
     const onClose = vi.fn();
     render(<Overlay message="Gemt" type="success" onClose={onClose} />);
 

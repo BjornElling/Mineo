@@ -45,7 +45,7 @@ vi.mock('../../../utils/logger', () => ({
   logError: vi.fn(),
 }));
 
-describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
+describe('erstatningsopgoerelsePdf – Skjul udelader emner', () => {
   beforeEach(async () => {
     pdfSession = await createPdfDocumentSessionForTest();
   });
@@ -120,7 +120,7 @@ describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
     expect(skjulTexts).not.toContain('Øvrige krav');
   });
 
-  it('skjuler kun det valgte emne — de andre emner vises stadig', () => {
+  it('skjuler kun det valgte emne – de andre emner vises stadig', () => {
     const stamdata = structuredClone(STAMDATA_INITIAL_VALUES);
 
     const texts = render(stamdata, buildEo('Skjul', 'Nej', 'Nej'));

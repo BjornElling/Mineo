@@ -1,9 +1,9 @@
 /**
- * B9 — empirisk katalog + golden-master baseline.
+ * B9 – empirisk katalog + golden-master baseline.
  *
  * Formål: låse PRÆCIST hvad række-evalueringsmotoren gater UNIKT (cases hvor snapshot-
- * projektionen er `ok`, men `collectAllEoRows` — kørt uden felt-fejl og med
- * snapshotets canonical/pdfModel — alligevel
+ * projektionen er `ok`, men `collectAllEoRows` – kørt uden felt-fejl og med
+ * snapshotets canonical/pdfModel – alligevel
  * producerer `status:'error'`). Det er den autoritative, reachability-rene liste over
  * de værdi-afledte EO-rækker der fortsat skal blokere download, selv når snapshot-
  * projektionen isoleret set er ok.
@@ -13,8 +13,8 @@
  * bliver en rød test, ikke en accept.
  *
  * Determinisme: korpusset bruger faste række-id'er og 2024-datoer. Perturbationerne er
- * altid NEDRE-grænse (fra < skadedato) eller cutoff-baserede (faste datoer) — aldrig
- * øvre-grænse-mod-dags-dato — så SÆTTET af fejl-id'er er uafhængigt af den faktiske dato.
+ * altid NEDRE-grænse (fra < skadedato) eller cutoff-baserede (faste datoer) – aldrig
+ * øvre-grænse-mod-dags-dato – så SÆTTET af fejl-id'er er uafhængigt af den faktiske dato.
  * Beskeder kan indlejre en dags-dato-afhængig øvre grænse; derfor normaliseres alle
  * dato-tokens til ⟨dato⟩ før sammenligning.
  */
@@ -274,7 +274,7 @@ describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden maste
   it('en nominelt gyldig TAF-basissag bærer INGEN EO-række-gate', () => {
     // Denne sag bar tidligere en satser-fejl: Store Bededagstillægget stod på et default-AF's nulværdi,
     // mens den anvendte reguleringsdato lå efter lovens ikrafttræden, og satsvurderingen kaldte det en
-    // afvigelse. Fejlen var reel for netop DENNE fixture, som konstruerer værdierne direkte — men den kunne
+    // afvigelse. Fejlen var reel for netop DENNE fixture, som konstruerer værdierne direkte – men den kunne
     // ikke opstå i produktionen: reader-projektionen udleder satsen fra den aktuelle lovregel, før
     // beregning og dokumenter læser modellen.
     //

@@ -128,7 +128,7 @@ describe('collectAllEoRows integration', () => {
 
   it('gater resultat-afhængig SFGG-dagssats-fejl KUN når pdfModel sendes med (G1: ingen fail-open)', () => {
     // Scenarie: direkte overenskomstsats kan ikke fastsættes i TAF-perioden. Fejlrækken
-    // `sfgg.dagssats.*` produceres kun, når SFGG-resultatet (pdfModel) er tilgængeligt — snapshot
+    // `sfgg.dagssats.*` produceres kun, når SFGG-resultatet (pdfModel) er tilgængeligt – snapshot
     // er IKKE fail_closed her, så det eneste der kan blokere download er række-evaluerings-gaten.
     // Uden pdfModel var gaten blind for fejlen (fail-open). Med pdfModel skal den blokere.
     const stamdataValues = {
@@ -175,7 +175,7 @@ describe('collectAllEoRows integration', () => {
       stamdataValues,
       eoValues,
     });
-    // Snapshot må ikke være fail_closed — ellers ville en anden gate-lag fange fejlen, og denne
+    // Snapshot må ikke være fail_closed – ellers ville en anden gate-lag fange fejlen, og denne
     // test ville ikke bevise at række-gaten er load-bearing.
     expect(snapshot.data).not.toBeNull();
     const dagssatsRowId = `sfgg.dagssats.${employment.id}`;

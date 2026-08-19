@@ -3,7 +3,7 @@
  *
  * Dette er den trust-kritiske sammenlignings-semantik som snapshot-invarianten
  * `control:sammentaelling_mismatch` afhænger af (gater produktions-output). Den bor bevidst i
- * domæne-/produktionslaget — IKKE i `domain/eoInspektion` — så `eoSnapshot.ts` ikke importerer
+ * domæne-/produktionslaget – IKKE i `domain/eoInspektion` – så `eoSnapshot.ts` ikke importerer
  * sin gate-logik fra kontrollaget (jf. arkitektur-kandidat "adskil produktions-kontrol-model
  * fra domain/eoInspektion").
  *

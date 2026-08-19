@@ -25,7 +25,7 @@ export type DraftParseResult<TModel> =
 
 // Parse afledes altid på commit (onBlur/onPersist). Der findes bevidst INGEN typing-mode:
 // form-kernereglen forbyder afledt feedback fra igangværende indtastning ("Ingen live preview"),
-// så draft-parse har kun ét formål — at afgøre om en committet råstreng er gyldig.
+// så draft-parse har kun ét formål – at afgøre om en committet råstreng er gyldig.
 export type DraftParse<TModel> = (draft: string) => DraftParseResult<TModel>;
 
 export const createDraftChangeEvent = (value: string): DraftChangeEvent => ({

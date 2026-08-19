@@ -2,20 +2,20 @@ import * as React from 'react';
 import { InputAdornment } from '@mui/material';
 
 /**
- * Fælles enheds-adornment ("kr." / "%") for numeriske indtastningsfelter — både formular- og
+ * Fælles enheds-adornment ("kr." / "%") for numeriske indtastningsfelter – både formular- og
  * tabelfelter. Enheden er rent visuel og ligger uden for selve `input.value`, så markør, kopiering
  * og feltbredde er upåvirkede.
  *
- * Enheden vises altid — også mens feltet redigeres — så feltets udtryk er roligt og forudsigeligt.
+ * Enheden vises altid – også mens feltet redigeres – så feltets udtryk er roligt og forudsigeligt.
  * Når feltet er tomt, dæmpes farven til placeholder-niveau, så enheden ikke fremstår som indtastet
  * indhold. `pointerEvents: none` lader klik passere igennem til feltet, så hele feltet (inkl. enheden)
  * åbner editoren.
  *
- * `unitSuffix` indeholder det ledende mellemrum (fx " kr." / " %") — referér `INPUT_UNIT_SUFFIX`.
+ * `unitSuffix` indeholder det ledende mellemrum (fx " kr." / " %") – referér `INPUT_UNIT_SUFFIX`.
  */
 export type InputUnitAdornmentProps = Readonly<{
   unitSuffix: string;
-  /** Dæmp farven til placeholder-niveau — typisk når feltet er tomt. */
+  /** Dæmp farven til placeholder-niveau – typisk når feltet er tomt. */
   muted: boolean;
 }>;
 

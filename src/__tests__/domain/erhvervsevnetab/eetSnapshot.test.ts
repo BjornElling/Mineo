@@ -162,13 +162,13 @@ describe('computeEetSnapshot', () => {
     }]);
   });
 
-  it('et blokeret panel har ALTID computation null — motoren må ikke have kørt på et maskeret input', () => {
+  it('et blokeret panel har ALTID computation null – motoren må ikke have kørt på et maskeret input', () => {
     // INVARIANT (`form-contract.md` §2.3, `error-contract.md` §5): kun en ready projektion må fodre motoren.
     //
     // Denne test hed tidligere "hasBlockingErrors er true men computation er ikke null" og dokumenterede
     // dermed netop det brud, den nu udelukker: motorerne kørte med readerens MASKEREDE værdier (en rød værdi
     // er `undefined` for motoren), hvorefter resultatet kun blev skjult af UI-laget. Et resultat udregnet på
-    // et falsk input må ikke eksistere i snapshottet — heller ikke bag en UI-guard.
+    // et falsk input må ikke eksistere i snapshottet – heller ikke bag en UI-guard.
     const snapshot = computeEetSnapshot({
       values: createValues(),
       stamdata: createStamdata(),
@@ -187,7 +187,7 @@ describe('computeEetSnapshot', () => {
     }
   });
 
-  it('kapitalisering påvirkes ikke af beregningsdato-feltfejl — feltet er ikke i kapitaliseringens projektion', () => {
+  it('kapitalisering påvirkes ikke af beregningsdato-feltfejl – feltet er ikke i kapitaliseringens projektion', () => {
     const snapshot = computeEetSnapshot({
       values: createValues(),
       stamdata: createStamdata(),

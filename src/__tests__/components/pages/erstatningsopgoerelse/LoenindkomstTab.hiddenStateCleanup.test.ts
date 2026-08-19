@@ -95,7 +95,7 @@ describe('LoenindkomstTab hidden state cleanup', () => {
         sfggReferenceperiodeTil: toISODateString('2024-01-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 2,
         sfggManuelDagssats: { kind: 'number', value: 100 },
-        sfggManuelBeloebIHenholdTil: 'Overenskomstens tabel 3.2', // fritekstfelt — ingen enum
+        sfggManuelBeloebIHenholdTil: 'Overenskomstens tabel 3.2', // fritekstfelt – ingen enum
         sfggManuelFoerstEfterSygeloen: 'Ja',
         sfggSatsvalg: 'Faglaert-Koebenhavn',
         sfggAlleredeBetaltBeloeb: { kind: 'number', value: 200 },

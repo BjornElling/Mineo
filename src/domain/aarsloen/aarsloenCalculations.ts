@@ -75,7 +75,7 @@ export const beregnOmregnetAarsloen = ({
   const datoSet = periodeData.datoSet;
   const unikkeEnheder = periodeData.unikkeEnheder;
 
-  // Tjek for 1 år data. Hvis erEtAar === true, springes mellemregningen over i UI og PDF —
+  // Tjek for 1 år data. Hvis erEtAar === true, springes mellemregningen over i UI og PDF –
   // beregnet årsløn er da identisk med summen fra tabellen. Ingen særskilt brugeradvarsel
   // vises, da brugeren selv har valgt at indtaste data for et fuldt år og forventes at
   // genkende dette. erEtAar eksponeres i resultatet, så forbrugere kan tilpasse visning.
@@ -84,7 +84,7 @@ export const beregnOmregnetAarsloen = ({
   // Beregn hverdage i indtastede perioder
   const hverdageIPeriode = beregnAntalHverdage(datoSet);
 
-  // Math.trunc for at sikre heltal — feltet er integer-valideret i UI, men defensivt her
+  // Math.trunc for at sikre heltal – feltet er integer-valideret i UI, men defensivt her
   const feriedageFraInput = Number.isFinite(antalFeriedage)
     ? Math.trunc(antalFeriedage as number)
     : 0;
@@ -102,7 +102,7 @@ export const beregnOmregnetAarsloen = ({
 
   if (metode === 'A') {
     // METODE A: Arbejdsdage
-    // VIGTIGT: shDageAntal kan være null (beregningsfejl) — behandl som 0
+    // VIGTIGT: shDageAntal kan være null (beregningsfejl) – behandl som 0
     const shDage = shDageAntal ?? 0;
 
     arbejdsdageIPeriode = fuldLoenUnderFerie
@@ -110,7 +110,7 @@ export const beregnOmregnetAarsloen = ({
       : hverdageIPeriode - feriedageFraInput - shDage;
 
     // STANDARD_SH_DAGE_PAA_AAR bruges intentionelt som normtal frem for det faktisk
-    // beregnede SH-dage-antal for perioden — analogt til STANDARD_HVERDAGE_PAA_AAR.
+    // beregnede SH-dage-antal for perioden – analogt til STANDARD_HVERDAGE_PAA_AAR.
     arbejdsdagePaaAar = fuldLoenUnderFerie
       ? STANDARD_HVERDAGE_PAA_AAR - STANDARD_SH_DAGE_PAA_AAR
       : STANDARD_HVERDAGE_PAA_AAR - feriedagePaaAar - STANDARD_SH_DAGE_PAA_AAR;
@@ -143,7 +143,7 @@ export const beregnOmregnetAarsloen = ({
       const heleKalendermaaneder = erHeleKalendermaaneder(periodeData.perioder);
 
       if (heleKalendermaaneder !== null) {
-        // Alle perioder svarer til hele kalendermåneder — måneds-omregning som ved LOENPERIODE.MAANED
+        // Alle perioder svarer til hele kalendermåneder – måneds-omregning som ved LOENPERIODE.MAANED
         if (heleKalendermaaneder > 0) {
           omregnetAarsloen = (beregnetAarsloen / heleKalendermaaneder) * 12;
         }
@@ -157,7 +157,7 @@ export const beregnOmregnetAarsloen = ({
       }
 
       // Metode C dag-fallback: Når de indtastede perioder IKKE svarer til hele
-      // kalendermåneder, beregnes årsløn vha. hverdage — identisk med Metode B.
+      // kalendermåneder, beregnes årsløn vha. hverdage – identisk med Metode B.
       // Dette er et bevidst domænevalg: brugeren forventes at indtaste hele måneder
       // som datoer, hvis måneds-omregning er ønsket. Gør de det ikke, er
       // hverdagsomregning den korrekte tilgang for dag-lønnere.

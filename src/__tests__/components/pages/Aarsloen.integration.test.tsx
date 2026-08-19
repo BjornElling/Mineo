@@ -34,7 +34,7 @@ vi.mock('../../../utils/logger', async (importOriginal) => ({
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
- * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte.
+ * på et servicekald – en strammere assertion, fordi den kræver at HELE kæden faktisk kørte.
  */
 const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
 vi.mock('../../../document/downloadArtifact', async (importOriginal) => ({
@@ -78,7 +78,7 @@ const getDataRowCells = (rowIndex: number): HTMLElement[] => {
   return within(rows[rowIndex + 1]).getAllByRole('cell');
 };
 
-describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
+describe('Årsløn – siden og løntabellen over grid-adapteren', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
@@ -101,7 +101,7 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
     renderAarsloen();
     expect(screen.getByText('Årslønsberegning')).toBeInTheDocument();
     expect(screen.getByText('Indtægtsoplysninger')).toBeInTheDocument();
-    // Månedstabellens kolonneoverskrifter (default loenperiode = 'maaned') — scoped til tabellens header,
+    // Månedstabellens kolonneoverskrifter (default loenperiode = 'maaned') – scoped til tabellens header,
     // så "Måned"/"År" ikke forveksles med radio-optionen "Løn indtastes som".
     const columnHeaders = screen.getAllByRole('columnheader').map((th) => th.textContent);
     expect(columnHeaders).toContain('Måned');
@@ -163,7 +163,7 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
   //
   // Begge retninger måles, og det er bevidst: en test der kun tjekker "boksen er væk på en ren sag" ville
   // også være grøn, hvis boksen aldrig kunne vises. Den anden retning beviser, at overskriften stadig HAR en
-  // levende vej — ellers var værnet grønt af tomhed.
+  // levende vej – ellers var værnet grønt af tomhed.
   const kritiskFejlBox = (): HTMLElement | null => screen.queryByText('Kritisk Fejl');
 
   it('viser INGEN "Kritisk Fejl"-boks på en sag uden beregningsfejl', () => {
@@ -191,7 +191,7 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
     // Det er en pointe i sig selv. `computeAarsloenBeregning` sætter også `beregningsFejl` fra
     // `resolveAarsloenCanonicalRangeIssues` (out-of-range sats), men den gren er UNÅELIG fra siden: projektionens
     // `resolveAarsloenFieldErrorGate` kontrollerer de samme felter under de samme betingelser og kalder da slet
-    // ikke motoren (`calculation === null`). Derfor kan et out-of-range input ikke fylde boksen — fatal-gate-testen
+    // ikke motoren (`calculation === null`). Derfor kan et out-of-range input ikke fylde boksen – fatal-gate-testen
     // ovenfor dækker den vej, og den viser '—', ikke en fejlboks.
     //
     // Testen fodrer derfor den vej, der ER tilbage: en kastende periodeberegning. Uden dette ville boksen ikke
@@ -214,7 +214,7 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
 
       const header = kritiskFejlBox();
       expect(header).not.toBeNull();
-      // Boksens brødtekst — ikke overskriften selv — skal have synligt indhold. En boks med overskrift og intet
+      // Boksens brødtekst – ikke overskriften selv – skal have synligt indhold. En boks med overskrift og intet
       // indhold er værre end ingen boks: den påstår en fejl uden at kunne navngive den.
       const boxText = header?.parentElement?.textContent?.replace('Kritisk Fejl', '').trim() ?? '';
       expect(boxText.length).toBeGreaterThan(0);
@@ -302,7 +302,7 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
      *
      * Testen fandt før knappen på `/Fødselsdato|Skadedato/`, fordi gaten citerede stamdata-issuet ordret.
      * Efter lempelsen 2026-08-13 (`error-contract.md` §4) citeres kun præcis ÉN felt-/rækkefejl, og en
-     * kronologifejl er en regel over TO felter — et citat ville udpege ét af dem som "fejlen". Felterne
+     * kronologifejl er en regel over TO felter – et citat ville udpege ét af dem som "fejlen". Felterne
      * bærer selv den fulde besked i deres egne tooltips.
      *
      * Det væsentlige for gaten er uændret: knappen er disabled, og aktivering starter intet dokumentarbejde.
@@ -315,15 +315,15 @@ describe('Årsløn — siden og løntabellen over grid-adapteren', () => {
 });
 
 // En placeholder beskriver UDELUKKENDE værdiens form. Årsløns månedstabel viste
-// `åååå (≤2026)` — en valideringsgrænse i formvejledningens kanal, som desuden ændrede sig med
+// `åååå (≤2026)` – en valideringsgrænse i formvejledningens kanal, som desuden ændrede sig med
 // kalenderåret. Formen ejes nu af feltfamilien (`utils/fieldFormatPlaceholders.ts`), og tabellen
 // override'er kun, hvor domænets FORMAT reelt er en anden (månedens `mm`).
 //
 // Testen kører gennem den ÆGTE side og den ægte runtime, fordi det netop var visningslaget, der koblede
 // grænsen på: en unittest af feltfamilien ville have været grøn hele tiden.
-describe('Årsløn — placeholders viser kun værdiens FORM', () => {
+describe('Årsløn – placeholders viser kun værdiens FORM', () => {
   // Missing-markeringen scroller cellen ind (`scrollTargetIntoView`); jsdom implementerer slet ikke
-  // `scrollIntoView` (den kan derfor ikke spy'es — den skal defineres). Vi stubber den, fordi det er
+  // `scrollIntoView` (den kan derfor ikke spy'es – den skal defineres). Vi stubber den, fordi det er
   // scroll-BIVIRKNINGEN vi ikke måler her; markeringen (selve rettelsen) læses fra cellens style nedenfor.
   const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
   beforeAll(() => {
@@ -345,7 +345,7 @@ describe('Årsløn — placeholders viser kun værdiens FORM', () => {
     return [from.placeholder, to.placeholder];
   };
 
-  it('månedstabellen viser `mm` og `åååå` — uden årstal eller grænsesymboler', () => {
+  it('månedstabellen viser `mm` og `åååå` – uden årstal eller grænsesymboler', () => {
     hydrateAarsloen({ loenperiode: 'maaned', tableData: [] });
     renderAarsloen();
 
@@ -381,7 +381,7 @@ describe('Årsløn — placeholders viser kun værdiens FORM', () => {
 
   it('«Indtastning mangler» overtager IKKE placeholderen; cellen markeres i stedet visuelt', async () => {
     // Brugergodkendt 2026-07-28: manglende-værdi-feedbacken bruger samme visuelle idiom
-    // som en fejlflash — cellen scrolles ind og blinker rødt — i stedet for at erstatte formvejledningen.
+    // som en fejlflash – cellen scrolles ind og blinker rødt – i stedet for at erstatte formvejledningen.
     // Kæden er den ÆGTE: omregnings-toggle uden gyldig periode → tabellens imperative handle → markering.
     const user = userEvent.setup();
     hydrateAarsloen({ loenperiode: 'maaned', omregningTilFuldtAar: false, tableData: [] });
@@ -395,7 +395,7 @@ describe('Årsløn — placeholders viser kun værdiens FORM', () => {
     await user.click(screen.getAllByRole('checkbox')[0]);
 
     await waitFor(() => {
-      // Markeringen er den DELTE blink-klasse — ikke en ny placeholdertekst og ikke en tabel-lokal
+      // Markeringen er den DELTE blink-klasse – ikke en ny placeholdertekst og ikke en tabel-lokal
       // animation. Klassen sættes af `blinkFieldAttention` på feltets SYNLIGE flade (MUI-skallen),
       // så opslaget går på cellens undertræ frem for på `<td>` selv.
       expect(monthCell.querySelector(`.${FIELD_ATTENTION_BLINK_CLASS}`)).not.toBeNull();

@@ -83,7 +83,7 @@ export const buildIndkomstSkadestidspunkt = (
 
     if (periodeTilBeregning) {
       // Beregningsperiode-indkomsten opgøres med de satser der gælder på reguleringsdato (af.pensionPct m.fl.),
-      // ikke med historisk segmentering — derfor sendes skadedato ikke med her.
+      // ikke med historisk segmentering – derfor sendes skadedato ikke med her.
       const incomeForBeregningsperiode =
         options?.incomeForBeregningsperiode
         ?? buildIncomeForRanges(values, [periodeTilBeregning], undefined, undefined);
@@ -189,7 +189,7 @@ export const buildIndkomstSkadestidspunkt = (
 
         // "I alt:" skal kunne efterregnes fra de viste komponentlinjer. Summér derfor de
         // AFRUNDEDE komponent-ører (samme værdier som vises), i stedet for at runde den præcise
-        // sum én gang — ellers kan Σ(viste linjer) afvige fra "I alt:" med nogle få øre.
+        // sum én gang – ellers kan Σ(viste linjer) afvige fra "I alt:" med nogle få øre.
         const loenPlusLoen2PlusIkkePensLoenOre = fromKroner(roundKroner(entry.breakdown.loenPlusLoen2PlusIkkePensLoen));
         const fpFvShSoOre = fromKroner(roundKroner(recalculatedBreakdown.fpFvShSo));
         const pensionOre = fromKroner(roundKroner(recalculatedBreakdown.pension));

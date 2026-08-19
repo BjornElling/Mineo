@@ -10,9 +10,9 @@ import { resolveActionGate } from '../../../components/inputs/actionGate';
 // Den universelle regel for GRÅ KNAPPER (`page-component-contract.md` §11.1, generaliseret fra de
 // deaktiverede downloadknapper ved brugerbeslutning 2026-08-15):
 //
-//   1. knappen bliver stående som nedtonet og inaktiv — den forsvinder ikke,
+//   1. knappen bliver stående som nedtonet og inaktiv – den forsvinder ikke,
 //   2. årsagen har ÉN visningskanal: tooltippet, og kun ved hover,
-//   3. et klik er TAVST — ingen besked, ingen tekstknude.
+//   3. et klik er TAVST – ingen besked, ingen tekstknude.
 //
 // Fundet, dette dækker: en grå knap uden nogen forklaring overhovedet, som samtidig kunne Tab'es til
 // og Enter-aktiveres, uden at der skete noget.
@@ -31,7 +31,7 @@ describe('InlineActionButton: deaktiveret', () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
-  it('kalder ikke onClick ved Enter — tastaturvejen er lukket på samme måde som musen', async () => {
+  it('kalder ikke onClick ved Enter – tastaturvejen er lukket på samme måde som musen', async () => {
     // Præcis hullet i fundet: knappen kunne Tab'es til og Enter-aktiveres, og «der sker bare
     // ingenting, uden forklaring».
     const user = userEvent.setup();
@@ -47,7 +47,7 @@ describe('InlineActionButton: deaktiveret', () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
-  it('svarer TAVST på et klik — årsagen bliver ikke til en tekstknude', async () => {
+  it('svarer TAVST på et klik – årsagen bliver ikke til en tekstknude', async () => {
     // §11.1: årsagen må ikke renderes som tekst nogen steder. Kun tooltippet bærer den.
     const user = userEvent.setup();
     render(
@@ -113,7 +113,7 @@ describe('InlineActionButton: deaktiveret', () => {
 });
 
 describe('FloatingActionButton: deaktiveret ved en maksimumgrænse', () => {
-  it('er reelt slået fra — ikke blot visuelt dæmpet', async () => {
+  it('er reelt slået fra – ikke blot visuelt dæmpet', async () => {
     // Fundet: knappen ryster og fremstod stadig som en AKTIV knap. En skærmlæser oplyste den som
     // almindelig og brugbar. Nu er den ægte `disabled`.
     const user = userEvent.setup();
@@ -136,7 +136,7 @@ describe('FloatingActionButton: deaktiveret ved en maksimumgrænse', () => {
 
   it('har et STABILT navn, der ikke skifter med blokeringstilstanden', () => {
     // De fire runde knapper hentede tidligere deres navn udelukkende fra tooltippen, og tooltippen
-    // skiftede tekst ved blokering — så knappens identitet skiftede med den. Navnet følger nu
+    // skiftede tekst ved blokering – så knappens identitet skiftede med den. Navnet følger nu
     // handlingen; kun tooltippen bærer årsagen.
     const { rerender } = render(
       <FloatingActionButton
@@ -168,7 +168,7 @@ describe('FloatingActionButton: deaktiveret ved en maksimumgrænse', () => {
     expect(screen.getByRole('button', { name: 'Slet ansættelsesforhold' })).toBeInTheDocument();
   });
 
-  it('ryster ikke — der findes ingen shake-affordance tilbage', async () => {
+  it('ryster ikke – der findes ingen shake-affordance tilbage', async () => {
     // Rystelsen er fjernet i hele programmet. Testen måler fraværet på DOM'en, så en genindført
     // animation gør den rød.
     const user = userEvent.setup();

@@ -2,7 +2,7 @@ import { mapSelectionThroughDraftNormalization } from '../../utils/inputSelectio
 
 /**
  * Testet adfærd er caret-mapningen, ikke en konkret beløbsnormalisering. Derfor
- * bruges en lokal, minimal normalisator der kun fjerner tusindpunktum — det er
+ * bruges en lokal, minimal normalisator der kun fjerner tusindpunktum – det er
  * netop den tegn-fjernelse caret'en skal forskydes henover. Tidligere blev
  * `sanitizePastedAmount` lånt hertil, hvilket koblede testen til en funktion
  * uden produktionsbrug.

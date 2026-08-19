@@ -6,7 +6,7 @@ import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
  * ÉN sats-vurdering for et lønindkomst-ansættelsesforhold.
  *
  * Tidligere blev de samme satser vurderet af to aktive regelsæt: ét producerede de røde feltfejl i
- * brugerfladen, og ét gatede beregning og dokumentdownload. Reglerne var faktisk forskellige — feltvejen
+ * brugerfladen, og ét gatede beregning og dokumentdownload. Reglerne var faktisk forskellige – feltvejen
  * krævede feriegodtgørelse ved enhver reguleringsform, gatevejen kun ved `Overenskomst` og
  * `Manuelt angivet`. Et felt kunne derfor stå rødt, mens beregningen kørte videre uden at betragte værdien
  * som påkrævet. Dette modul er nu den ENE kilde, som både feltvisningen og gaten aftager; ét
@@ -15,7 +15,7 @@ import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
  * Feriegodtgørelsens relevans følger den godkendte relevansmatrix: den er kun påkrævet, når den valgte
  * reguleringsform faktisk læser den (`Overenskomst`/`Manuelt angivet`). Ved `Statistik`, `KRL satstabel`,
  * `KL-lønaftaler`, `Manuel procentsats` og `Ingen` er et tomt felt hverken rødt eller blokerende. En tom
- * reguleringsform blokerer fortsat som et manglende reguleringsvalg — det er dét valg, der markeres og
+ * reguleringsform blokerer fortsat som et manglende reguleringsvalg – det er dét valg, der markeres og
  * blokerer, ikke satsen. Relevansen afgøres af den AKTUELT valgte form, så et skift begge veje slår
  * markeringen til og fra i samme øjeblik.
  *
@@ -29,7 +29,7 @@ import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
 /** Det ene satsfelt, vurderingen kan udpege. Feltnavnet er nøglen under ansættelsesforholdet. */
 export type SatsField = 'feriePct';
 
-/** Feltets label, som den vises i brugerfladen — bruges i "Fejl og advarsler"-boksens egen besked. */
+/** Feltets label, som den vises i brugerfladen – bruges i "Fejl og advarsler"-boksens egen besked. */
 export const SATS_FIELD_LABELS: Readonly<Record<SatsField, string>> = Object.freeze({
   feriePct: 'Feriegodtgørelse/-tillæg',
 });
@@ -62,7 +62,7 @@ type FeriePctRelevanceInput = Pick<
  * basis-satserne i første tabelrække, så de skjulte top-satsfelter må ikke kunne markere eller blokere der.
  *
  * Prædikatet er delt af feltmarkeringen, række-evalueringen og `erstatningsopgoerelseValidator`. Drev de
- * betingelsen hver for sig, kunne download blive blokeret uden en synlig fejl i boksen — eller et felt stå
+ * betingelsen hver for sig, kunne download blive blokeret uden en synlig fejl i boksen – eller et felt stå
  * rødt, uden at noget faktisk var blokeret.
  */
 export const isFeriePctRelevant = (
@@ -115,7 +115,7 @@ export const assessLoenindkomstSatser = (
  * række-evaluerings-motor (jf. B9), hvis `error`-rækker gater produktions-download.
  *
  * Blokeringen udledes af samme vurdering som feltmarkeringen ovenfor. Var det to vurderinger, kunne
- * download blive blokeret uden en synlig besked i boksen — eller et felt stå rødt uden at blokere noget.
+ * download blive blokeret uden en synlig besked i boksen – eller et felt stå rødt uden at blokere noget.
  */
 export type SatserError = Readonly<{
   field: string;

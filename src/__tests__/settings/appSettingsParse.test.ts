@@ -148,8 +148,8 @@ describe('parseStoredSettings', () => {
 
   it('gamle gemte settings uden regulerings-felterne loader med defaults (bagudkompatibel injicering)', () => {
     // Simulerer en localStorage-blob gemt før reguleringsindstillingerne blev (gen)indført
-    // som device-lokale appSettings. De manglende felter må udfyldes af defaults — ikke
-    // bryde parse — så øvrige gemte præferencer bevares.
+    // som device-lokale appSettings. De manglende felter må udfyldes af defaults – ikke
+    // bryde parse – så øvrige gemte præferencer bevares.
     const {
       allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden,
       allowReguleringMedUdloebMedMaaneder,
@@ -245,7 +245,7 @@ describe('loadInitialSettings', () => {
 
   // Parse-laget læser IKKE længere systempræferencen. Før BB-024 skrev det maskinens aktuelle
   // tilstand ind som en konkret default (`'light'`/`'dark'`), fordi «følg computeren» ikke fandtes
-  // som gemt værdi — og netop dét frøs automatikken fast ved første settings-skrivning. Nu er
+  // som gemt værdi – og netop dét frøs automatikken fast ved første settings-skrivning. Nu er
   // `'system'` en ægte værdi, og oversættelsen sker først dér, hvor temaet males
   // (`resolveThemeMode`). Testen måler, at defaults holder sig fra at gætte.
   it('ingen persisted settings → default er "system", uanset hvad computeren foretrækker', () => {

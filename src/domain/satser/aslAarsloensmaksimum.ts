@@ -1,5 +1,5 @@
 /**
- * ASL-årslønsmaksimum — kanonisk opslags-gateway (§ 24).
+ * ASL-årslønsmaksimum – kanonisk opslags-gateway (§ 24).
  *
  * `aarsloenAslMax` er en *datakilde* (år → maksimal årsløn), ikke en beregning.
  * Den blev tidligere slået op rå (`aarsloenAslMax[year]`) ~10 forskellige steder,
@@ -7,14 +7,14 @@
  * sin egen brugervendte "mangler"-besked (mindst fem afvigende ordlyde). Denne fil
  * er det ENESTE opslagspunkt:
  *
- *  - `resolveAslAarsloensmaksimumForAar(aar)` — slå beløbet op for ét år, eller
+ *  - `resolveAslAarsloensmaksimumForAar(aar)` – slå beløbet op for ét år, eller
  *    `undefined` hvis året ikke er dækket (manglende/ikke-positiv/ikke-finit/ikke-
  *    heltal). Erstatter både grænse-validering og opreguleringsmotorens indeks-læsning.
- *  - `formatAslAarsloensmaksimumMissing*` — ÉN brugervendt ordlyd for "sats mangler",
+ *  - `formatAslAarsloensmaksimumMissing*` – ÉN brugervendt ordlyd for "sats mangler",
  *    så samme situation læses ens uanset fane (årsløn, EET, forsørgertab, EO-regulering).
  *
  * Bemærk: selve opreguleringen (idx[målår]/idx[kildeår] og akkumuleret reguleringssats)
- * forbliver i `opreguleringsmotorer.ts` — de to motorer løser forskellige matematiske
+ * forbliver i `opreguleringsmotorer.ts` – de to motorer løser forskellige matematiske
  * problemer. Det er kun *opslaget af tabellen* der konsolideres her.
  */
 
@@ -44,7 +44,7 @@ export const resolveAslAarsloensmaksimumForAar = (
 };
 
 /**
- * Dækningsgrænse-suffiks: `" (satser findes kun for A–B)"` — én kilde til den oplysning.
+ * Dækningsgrænse-suffiks: `" (satser findes kun for A–B)"` – én kilde til den oplysning.
  * Tom streng hvis tabellen er tom (fail-open på selve hjælpeteksten, ikke på værnet).
  */
 export const aslAarsloensmaksimumBoundsSuffix = (indeks: YearlyRate = aarsloenAslMax): string => {

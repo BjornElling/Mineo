@@ -1,19 +1,19 @@
 /**
- * `EoFileCodec` — grænsen mellem en `.eo`-fils bytes (krypteret streng) og den validerede
+ * `EoFileCodec` – grænsen mellem en `.eo`-fils bytes (krypteret streng) og den validerede
  * container-model. Al load-inbound-afkodning af en `.eo`-fil går gennem dette modul.
  *
  * - `buildEoFileContainer` + `encodeEoFile` er outbound-siden (save): stempl metadata → krypter.
  * - `decodeEoFile` er inbound-siden (load): dekrypter → versionstjek → load-tolerant validering.
  *
  * Bemærk: save-sidens read-back-verifikation (`verifyAfterSave` i `fileSaveInternals.ts`) er en
- * SEPARAT, bevidst strikt integritetskontrol — den dekrypterer de skrevne bytes og re-parser mod
+ * SEPARAT, bevidst strikt integritetskontrol – den dekrypterer de skrevne bytes og re-parser mod
  * det STRIKTE container-schema for at bevise, at artefaktet tro koder den kanoniske save-data.
  * Den kører med vilje IKKE denne load-tolerante/migrerende afkodning (som netop transformerer på
  * tværs af versioner). De to concerns deler ikke grænse.
  *
  * `decodeEoFile` blev tidligere håndrullet identisk i både `loadFromFile` og `loadFromFileHandle`
  * (decrypt-try/catch + `normalizeDecryptedContainer`). Samme rå bytes skal altid afkodes ens,
- * uanset om kilden er en manuel picker eller en persisteret PWA-handle — derfor er afkodningen
+ * uanset om kilden er en manuel picker eller en persisteret PWA-handle – derfor er afkodningen
  * samlet her. Selve per-sektions-parsingen + preflight ejes stadig af load-use-casen (`fileLoad.ts`),
  * ikke af codec'en: codec'en leverer den validerede container, ikke det anvendte snapshot.
  */

@@ -11,13 +11,13 @@ import type { SectionKey } from '../../inputCore/fieldAddress';
  *
  * En sektion er `null`, indtil brugeren rører sit første felt på siden; først dér oprettes den fra
  * `createEmpty<Sektion>Section` og sanereres gennem det persisterede schema. Alt, hvad sektionen har i det
- * øjeblik, er altså schemaets defaults — ikke descriptorens.
+ * øjeblik, er altså schemaets defaults – ikke descriptorens.
  *
  * Descriptorens `emptyValue` er samtidig den værdi, readerprojektionerne falder tilbage til (`readOrEmpty`),
  * og den værdi et `clearField` skriver. Er de to uenige, har feltet TO forskellige defaults, og hvilken en
  * domænet ser, afhænger af, om sektionen tilfældigvis er materialiseret endnu. Det var præcis den split:
  * `eoAngivetLoenLoenudvikling.loenPaaHelligdage` lovede i sin ansættelses-tvilling 'Almindelig løn', men gav
- * en nyoprettet sag `undefined` — en tilstand EO-motoren erklærede umulig og fail-closede på.
+ * en nyoprettet sag `undefined` – en tilstand EO-motoren erklærede umulig og fail-closede på.
  *
  * Testen dækker de STATISKE felter (ingen entity-led i adressen). Rækkefelter har ikke en "fersk sektion"
  * at blive målt imod: deres defaults kommer fra rækkefabrikkerne ved indsættelse.

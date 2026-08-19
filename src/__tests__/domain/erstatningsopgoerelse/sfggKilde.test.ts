@@ -96,7 +96,7 @@ describe('resolveSfggSource', () => {
   });
 
   it('behandler Overenskomst som ferielov-spor når harOverenskomst er slået fra, selv med hængende direkte-sats-ID', () => {
-    // Motorens grænse: uden aktiv overenskomst slås policyen ikke op — et hængende privat
+    // Motorens grænse: uden aktiv overenskomst slås policyen ikke op – et hængende privat
     // direkte-sats-ID må ikke ændre sporet til overenskomst_direkte.
     const source = resolveSfggSource(
       makeRow('Overenskomst'),

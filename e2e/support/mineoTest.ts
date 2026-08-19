@@ -1,11 +1,11 @@
 import { expect, type Locator, type Page, test as base } from '@playwright/test';
 
-// Delt e2e-grundlag — det ENE sted, et spec henter `test`, `expect` og sine helpers fra.
+// Delt e2e-grundlag – det ENE sted, et spec henter `test`, `expect` og sine helpers fra.
 //
 // Findes fordi hver spec-fil gentog det samme opstartsarbejde: sin egen kopi af testpasswordet, sit eget
 // login, sin egen runtime-signalopsamling og sin egen (som regel manglende) ventetid efter en navigation.
 // Duplikeringen betød i praksis, at et nyt spec kunne mangle netop den kontrol, der ville have fanget en
-// fejl — og at en rettelse af én tidsafhængighed kun ramte den ene kopi. Konvergensen er håndhævet af
+// fejl – og at en rettelse af én tidsafhængighed kun ramte den ene kopi. Konvergensen er håndhævet af
 // `src/__tests__/quality/e2eSuiteConventions.test.ts`.
 
 /**
@@ -32,7 +32,7 @@ export type AutomationSnapshot = Readonly<{
 }>;
 
 /**
- * Logger ind gennem den synlige formular — samme vej som brugeren, aldrig gennem en state-genvej.
+ * Logger ind gennem den synlige formular – samme vej som brugeren, aldrig gennem en state-genvej.
  *
  * Ventepunktet er sidemenuen, ikke URL'en: URL'en skifter i samme øjeblik, gaten åbner, mens
  * app-shellen er en lazy chunk, der først males bagefter. Uden ventepunktet begynder testens første
@@ -52,8 +52,8 @@ export const login = async (page: Page, path = '/'): Promise<void> => {
  * Sidemenuens navigationsmål: menuens etiket → den sidetitel, målet lander på.
  *
  * Etiketterne er sidemenuens (`src/components/layout/sideMenuItems.tsx`), titlerne er sidernes egne
- * `.page-title`. De to er BEVIDST forskellige to steder — «Om» viser «Mineo», og «Satser» viser
- * «Arbejdsskadesatser <år>» — og netop dét er grunden til, at kortet står her frem for at blive gættet
+ * `.page-title`. De to er BEVIDST forskellige to steder – «Om» viser «Mineo», og «Satser» viser
+ * «Arbejdsskadesatser <år>» – og netop dét er grunden til, at kortet står her frem for at blive gættet
  * på kaldsstedet.
  */
 const MINEO_PAGE_TITLES = {
@@ -72,22 +72,22 @@ const MINEO_PAGE_TITLES = {
 export type MineoPageName = keyof typeof MINEO_PAGE_TITLES;
 
 /**
- * Naviger til en side gennem sidemenuen — og vent på, at siden FAKTISK er der.
+ * Naviger til en side gennem sidemenuen – og vent på, at siden FAKTISK er der.
  *
  * **Hvorfor helperen findes.** Et bart `getByRole('button', { name: 'Erstatningsopgørelse' }).click()`
  * skifter kun URL'en. Sidekomponenterne er lazy chunks, så den FORRIGE side bliver stående, indtil
- * chunken er hentet og monteret. Ventes der ikke, måler den næste påstand den forrige side — og fordi
+ * chunken er hentet og monteret. Ventes der ikke, måler den næste påstand den forrige side – og fordi
  * de fleste påstande er generiske (`.content-box`, en knap, en dialog), er den forrige side som regel
  * et gyldigt svar. Testen bliver dermed grøn på det forkerte grundlag, når maskinen er hurtig, og rød
  * uden forklaring, når den er langsom.
  *
  * Det var ikke en teoretisk fælde: `content-scale.spec.ts` › «skærmprint …» klikkede sig til
  * Erstatningsopgørelse, fandt rapportknappen på den STADIG viste Indstillinger-side, åbnede DENS dialog
- * — og så forsvandt dialogen, da EO-chunken landede og Indstillinger blev unmountet. Testen brugte
+ * – og så forsvandt dialogen, da EO-chunken landede og Indstillinger blev unmountet. Testen brugte
  * derefter hele sit timeout-loft på at vente på en knap i en dialog, der aldrig kom igen. Med otte
  * samtidige workers ramte den hver gang; alene var den grøn på 2,4 s.
  *
- * Ventepunktet er sidens egen `.page-title`, fordi den er det første, den nye side maler — og fordi
+ * Ventepunktet er sidens egen `.page-title`, fordi den er det første, den nye side maler – og fordi
  * URL'en skifter FØR monteringen og derfor ikke kan bruges som signal.
  */
 export const openPage = async (page: Page, name: MineoPageName): Promise<void> => {
@@ -96,7 +96,7 @@ export const openPage = async (page: Page, name: MineoPageName): Promise<void> =
 };
 
 const BRIDGE_MISSING_MESSAGE =
-  'Automatiseringsbroen blev aldrig installeret. Den findes kun i DEV/test — kører testen mod et produktionsbuild?';
+  'Automatiseringsbroen blev aldrig installeret. Den findes kun i DEV/test – kører testen mod et produktionsbuild?';
 
 const evaluateBridgeSnapshot = async (page: Page): Promise<unknown> => page.evaluate((key) => {
   const api = (window as unknown as Record<string, { readSnapshot: () => unknown } | undefined>)[key];
@@ -111,7 +111,7 @@ const evaluateBridgeSnapshot = async (page: Page): Promise<unknown> => page.eval
  *
  * Aflæsningen venter på, at broen findes. Den installeres i en effect i app-shellen, og shellen ligger
  * bag en lazy chunk: URL-skiftet efter login sker FØR broen er der. En enkelt aflæsning er derfor et
- * kapløb, som kun den hurtigste browser vinder — og en `waitForTimeout` ville bytte kapløbet ud med et
+ * kapløb, som kun den hurtigste browser vinder – og en `waitForTimeout` ville bytte kapløbet ud med et
  * gæt. Findes broen aldrig, fejler ventetiden med den samme forklaring som før.
  */
 export const readAutomationSnapshot = async (page: Page): Promise<AutomationSnapshot> => {
@@ -145,7 +145,7 @@ export const waitForSettledChange = async (page: Page, previousRevision: number)
  * hver kopi bar den samme tidsafhængighed: dobbeltklikket åbner redigeringstilstanden, men kun hvis
  * feltet allerede er interaktivt, OG kun hvis browserens to klik falder inden for dens dobbeltklik-
  * interval. På en langsom, hukommelsespresset maskine kan begge dele glippe. `fill()` rammer så et felt,
- * der ikke redigerer, og testen bruger hele sit timeout-loft på et klik uden virkning — uden at
+ * der ikke redigerer, og testen bruger hele sit timeout-loft på et klik uden virkning – uden at
  * produktet fejler.
  *
  * Helperen venter på interaktivitet og bekræfter, at værdien faktisk landede; ramte dobbeltklikket
@@ -170,7 +170,7 @@ export const setFieldValue = async (input: Locator, value: string): Promise<void
  * normalisere sin visning: et beløbsfelt viser `300.000` for den indtastede `300000`, en brøk
  * reducerer `02/04` til `2/4`. En efterkontrol på den RÅ streng ville derfor være falsk for hele
  * beløbs- og brøkfamilien. Kontrollen af, at indtastningen landede, hører hjemme i `setFieldValue`,
- * hvor feltet stadig viser den rå tekst — og den er allerede sket, når vi når hertil. Skal en test
+ * hvor feltet stadig viser den rå tekst – og den er allerede sket, når vi når hertil. Skal en test
  * hævde den formaterede visning, gør den det eksplicit på sit eget sted, hvor den rigtige forventede
  * tekst er kendt.
  */
@@ -180,7 +180,7 @@ export const setFieldValueAndSettle = async (input: Locator, value: string): Pro
 };
 
 /**
- * Som `setFieldValueAndSettle`, men for felter hvor settle IKKE omformaterer visningen — datoer og fri
+ * Som `setFieldValueAndSettle`, men for felter hvor settle IKKE omformaterer visningen – datoer og fri
  * tekst. Her er den settlede visning lig den indtastede streng, og efterkontrollen er derfor både
  * gyldig og værdifuld: den fanger et felt, der tavst kasserede eller normaliserede indtastningen.
  * Brug den IKKE til beløb eller brøker (`300000` → `300.000`, `02/04` → `2/4`).
@@ -197,7 +197,7 @@ export const setVerbatimFieldValueAndSettle = async (
  * Test-fixture med runtime-orakler slået til fra FØR første navigation.
  *
  * `runtimeSignals` og `externalRequests` opsamles altid; et spec, der ikke hævder på dem, mister dermed
- * ikke opsamlingen — den er der, når fejlen skal forklares.
+ * ikke opsamlingen – den er der, når fejlen skal forklares.
  */
 export const test = base.extend<{
   runtimeSignals: string[];
@@ -232,7 +232,7 @@ export const test = base.extend<{
    * Kun de HÅRDE runtimesignaler: konsolfejl og ubehandlede undtagelser.
    *
    * Findes ved siden af `runtimeSignals`, fordi ti spec-filer havde hver sin håndskrevne kopi af
-   * præcis denne opsamling — og fordi de to påstande ikke er den samme: `runtimeSignals` tæller også
+   * præcis denne opsamling – og fordi de to påstande ikke er den samme: `runtimeSignals` tæller også
    * advarsler og fejlede requests og bruges, hvor en test vil hævde, at INTET blev sagt.
    * `runtimeErrors` bruges, hvor den almindelige brugerrejse ikke må fejle, men godt må advare.
    */

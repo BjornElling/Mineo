@@ -52,7 +52,7 @@ const toProjectionStatus = (
 ): EoDownloadProjectionStatus => projection;
 
 /**
- * Den samlede række-/EET-blokerings-tilstand, som gaten forbruger — udledt af reader-projektionens rekonstruerede
+ * Den samlede række-/EET-blokerings-tilstand, som gaten forbruger – udledt af reader-projektionens rekonstruerede
  * værdier og error-maps. Spejler `useEoBeregningViewModel`s `firstBlockingEoRowErrorMessage`/`hasBlockingEoRowErrors`.
  */
 type EoRowBlockingState = Readonly<{ blockingRowMessage: string | null; hasBlockingRows: boolean }>;
@@ -63,7 +63,7 @@ const resolveEoRowBlockingState = (
 ): EoRowBlockingState => {
   // BEVIDST: ingen `isActive`-guard som view-modellen (der springer collectAllEoRows over på en inaktiv fane
   // for at spare render-arbejde). Gaten er en ren funktion af inputtet og må ikke afhænge af component mount/fane
-  // (§3.4/§3.9 + acceptkriterie §10 pkt. 22) — den afspejler altid den sande blokerings-tilstand.
+  // (§3.4/§3.9 + acceptkriterie §10 pkt. 22) – den afspejler altid den sande blokerings-tilstand.
   const { snapshot, eoValues, stamdataValues, eoErrors, stamdataErrors } = projection;
 
   // EET-kilde-fejl (kun ved aktiv midlertidigt-EET-import) læses fra snapshot-invarianterne, som view-modellen.

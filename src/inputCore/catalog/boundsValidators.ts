@@ -8,7 +8,7 @@ import type { FieldCodec } from '../fieldCodec';
 import { quoteFieldLabel } from '../inputIssue';
 
 // Kravændringen 2026-07-18 (§1.6): en schema-repræsenterbar værdi uden for feltets aktive min/max er IKKE
-// længere rejected råtekst — den committes canonical og bærer et afledt `bounds`-issue fra en feltvalidator.
+// længere rejected råtekst – den committes canonical og bærer et afledt `bounds`-issue fra en feltvalidator.
 // Tidligere afviste codecet værdien som `range`; disse helpers flytter min/max-vurderingen til den canonical
 // feltvalidator OG genbruger de eksisterende message-buildere, så den røde beskedtekst er byte-uændret.
 
@@ -28,7 +28,7 @@ const boundsDetail = (
  *
  * Thunk-formen findes for de grænser der afhænger af DAGS DATO (typisk `getCurrentYear`).
  * Blev sådan en grænse indfanget som et tal, når descriptor-kataloget bygges ved modulets
- * import, ville en session der står åben over midnat — eller over et årsskifte — validere
+ * import, ville en session der står åben over midnat – eller over et årsskifte – validere
  * mod det GAMLE år, og brugeren kunne ikke indtaste det aktuelle årstal uden at genindlæse.
  * Statiske grænser (fx `MIN_YEAR`) skal fortsat sendes som tal.
  */

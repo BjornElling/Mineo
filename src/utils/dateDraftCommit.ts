@@ -10,11 +10,11 @@ export type DateYearPolicy = 'reject' | 'infer' | 'assume20xx';
  * HVORFOR et datodraft ikke kunne parses. Årsagen er MASKINLÆSBAR, fordi de tre udfald ikke er lige
  * informative for brugeren:
  *
- * - `malformed` — teksten er slet ikke en dato (bogstaver, for få/mange felter, delvist indtastet). Der er
+ * - `malformed` – teksten er slet ikke en dato (bogstaver, for få/mange felter, delvist indtastet). Der er
  *   intet konkret at fortælle ud over "dette er ikke en dato"; feltets eget navn står allerede ved markøren.
- * - `nonexistentDay` — dag/måned/år er hver for sig velformede, men kombinationen findes ikke i kalenderen
+ * - `nonexistentDay` – dag/måned/år er hver for sig velformede, men kombinationen findes ikke i kalenderen
  *   (`31-02-2026`, `29-02-2023`). Her ER der noget konkret at sige.
- * - `yearOutOfRepresentableRange` — en fuldt gyldig kalenderdato, hvis ÅRSTAL ligger uden for det domæne,
+ * - `yearOutOfRepresentableRange` – en fuldt gyldig kalenderdato, hvis ÅRSTAL ligger uden for det domæne,
  *   `ISODateString` overhovedet kan repræsentere ({@link MIN_REPRESENTABLE_DATE_YEAR}..{@link MAX_REPRESENTABLE_DATE_YEAR}).
  *   Udfaldet har sin egen årsag, fordi et årstal som `1899` ALDRIG kan nå frem til en bounds-validator:
  *   værdien er urepræsenterbar, så feltet afviser den som `format`, og `format` viser pr.
@@ -34,7 +34,7 @@ export const MAX_DATE_DRAFT_LENGTH = 16;
 
 /**
  * Det årsinterval, en {@link ISODateString} kan repræsentere. Spejler `isISODateString` (`types/branded.ts`)
- * — den ENE kilde til, hvad der er en gyldig ISO-dato. Konstanterne står her, fordi det er her, et draft
+ * – den ENE kilde til, hvad der er en gyldig ISO-dato. Konstanterne står her, fordi det er her, et draft
  * afvises på grund af dem.
  *
  * De er en REPRÆSENTATIONSgrænse, ikke en brugerregel, og må derfor ikke lække til brugerteksten: hvert
@@ -46,7 +46,7 @@ export const MAX_REPRESENTABLE_DATE_YEAR = 2100;
 
 /**
  * Fald-tilbage-teksten for et urepræsenterbart årstal på en flade UDEN en feltgrænse-erklæring (den
- * transiente dato-overlay). Den taler bevidst om DATOEN og ikke om et årsinterval — se konstanterne ovenfor.
+ * transiente dato-overlay). Den taler bevidst om DATOEN og ikke om et årsinterval – se konstanterne ovenfor.
  */
 export const DATE_YEAR_OUT_OF_RANGE_MESSAGE = 'Datoen ligger uden for det gyldige interval';
 
@@ -54,7 +54,7 @@ export const DATE_YEAR_OUT_OF_RANGE_MESSAGE = 'Datoen ligger uden for det gyldig
 export const NONEXISTENT_DAY_MESSAGE = 'Datoen findes ikke i kalenderen';
 
 // Parse afledes altid på commit (form-kernereglen forbyder typing-feedback), så et ufuldstændigt
-// input er en egentlig fejl — ikke en "endnu ikke færdig"-tilstand.
+// input er en egentlig fejl – ikke en "endnu ikke færdig"-tilstand.
 const INVALID_DATE: ParsedDateDraft = {
   ok: false,
   kind: 'invalid',
@@ -129,7 +129,7 @@ export const parseDateDraftForCommit = (
     return invalidDate('yearOutOfRepresentableRange', DATE_YEAR_OUT_OF_RANGE_MESSAGE);
   }
 
-  // Kanonisk dag-i-måned-validering (skudår mv.) — én sand kilde i isValidDate,
+  // Kanonisk dag-i-måned-validering (skudår mv.) – én sand kilde i isValidDate,
   // frem for ad hoc Date.UTC(...,0)-konstruktion her.
   if (!isValidDate(dayNum, monthNum, resolvedYear)) {
     return invalidDate('nonexistentDay', NONEXISTENT_DAY_MESSAGE);

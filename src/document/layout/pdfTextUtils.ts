@@ -2,7 +2,7 @@
  * PDF Tekst-hjælpefunktioner
  *
  * Pure string-transformationer til PDF-rendering.
- * Ingen jsPDF-afhængighed — kan importeres frit af sektioner og generatorer.
+ * Ingen jsPDF-afhængighed – kan importeres frit af sektioner og generatorer.
  */
 
 import { guardDocumentDateText } from './documentDateGuard';
@@ -36,7 +36,7 @@ const replacePdfUnsafeUnicode = (value: string): string => {
 
 /**
  * Indsætter ikke-brydende mellemrum (NBSP) mellem et tal og efterfølgende "kr.",
- * uanset om adskillelsen er mellemrum, tab eller linjeskift — forhindrer linjebrud
+ * uanset om adskillelsen er mellemrum, tab eller linjeskift – forhindrer linjebrud
  * midt i et beløb i PDF-output. En eventuel adskillelse på flere whitespace-tegn
  * normaliseres til ét NBSP.
  */

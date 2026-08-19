@@ -31,7 +31,7 @@ import type { DocumentDiagnostics, DocumentFailure } from './documentOutcome';
  * **Hvorfor TO halvdele.** Snapshottet bar før ét `settings`-objekt, som både gik ind i
  * definitionens `project` OG blev brugt til formatvalg og brevhoved efter gaten. Fordi hovedappens
  * objekt var hele `SourceSettings`, kunne enhver definition lovligt læse `documentDownloadFormat` i
- * sin gate — altså gøre samme sag `ready` som PDF og `blocked` som Word. Det ville ikke blive fanget
+ * sin gate – altså gøre samme sag `ready` som PDF og `blocked` som Word. Det ville ikke blive fanget
  * af §A2a's "samme definition til reaktiv gate og click-preflight", fordi BEGGE kanaler ville se den
  * samme skæve gate. Normen er entydig: **formatet vælger writer, ikke dækning.**
  *
@@ -65,13 +65,13 @@ export type DocumentBrevhovedPolicy<TBrevhovedKey extends string> =
  *
  * `readCurrentSourceToken` er trust-kritisk: den er den AUTORITATIVE friskhedskilde. Før den aktuelle implementering
  * stolede afvikleren på en friskheds-closure, der blev leveret sammen med det godkendte
- * input — altså kunne den, der leverede inputtet, også levere sin egen definition af "frisk". Nu
+ * input – altså kunne den, der leverede inputtet, også levere sin egen definition af "frisk". Nu
  * læser afvikleren tokenet fra miljøet og sammenligner selv.
  */
 export type DocumentExecutionEnvironment<TGateSettings, TRenderSettings, TBrevhovedKey extends string> = Readonly<{
   /** Optager ét friskt, stabilt kildesnapshot. Bevidst en funktion, så intet forældet snapshot kan holdes. */
   captureSource: () => DocumentSourceSnapshot<TGateSettings, TRenderSettings>;
-  /** Den autoritative, aktuelle revision. Afvikleren sammenligner mod denne — ikke mod en closure. */
+  /** Den autoritative, aktuelle revision. Afvikleren sammenligner mod denne – ikke mod en closure. */
   readCurrentSourceToken: () => EvaluationSourceToken;
   /** Commit-barrieren, der settler en åben editor før preflight. */
   criticalActions: CriticalActionCoordinator;
@@ -92,7 +92,7 @@ export type DocumentExecutionEnvironment<TGateSettings, TRenderSettings, TBrevho
    */
   checkDevServerAvailability?: (diagnostics: DocumentDiagnostics) => Promise<DocumentFailure | null>;
   /**
-   * Hvor UVENTEDE fejl rapporteres. Kun `kind: 'runtime'` når hertil — forventelige afvisninger og
+   * Hvor UVENTEDE fejl rapporteres. Kun `kind: 'runtime'` når hertil – forventelige afvisninger og
    * dev-server-nedetid rapporteres bevidst IKKE som systemfejl (§A5).
    */
   reportFailure: (failure: DocumentFailure, diagnostics: DocumentDiagnostics) => void;

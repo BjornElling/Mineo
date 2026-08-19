@@ -2,7 +2,7 @@
  * Golden-capture-hjælper til tabel-kanal-paritet (#15 TableSpec-udredning).
  *
  * Formål: fastfryse den "resolved presentation" som `renderDocumentTable` producerer
- * for hver rigtig tabel, FØR TableSpec-refaktoreringen — så hver migreringsstage kan
+ * for hver rigtig tabel, FØR TableSpec-refaktoreringen – så hver migreringsstage kan
  * bevise byte-identitet (resolved kolonnebredder + hook-effekter på hver celle +
  * tegnede total-streger). Migreringen kompilerer `TableSpec` ned til præcis de params
  * `renderDocumentTable` allerede modtager, så et uændret snapshot = uændret output.
@@ -11,7 +11,7 @@
  * hvor `options.columnStyles`/`options.body` er de færdigfordelte værdier, og
  * `options.didParseCell`/`options.didDrawCell` er renderDocumentTables interne wrappere
  * (som selv kalder call-sitets hooks). Vi afspiller dem mod syntetiseret celle-geometri
- * — samme teknik som `reguleringSection.test.ts` — så striping, muted rows, total-fyld,
+ * – samme teknik som `reguleringSection.test.ts` – så striping, muted rows, total-fyld,
  * højre-inset og total-streger alle indgår i snapshottet. `doc` er den samme jsPDF-mock,
  * `didDrawCell`-closuren tegner på, så total-streger fanges via `doc.line`-kaldene.
  *
@@ -59,7 +59,7 @@ type DrawnLine = Readonly<{ cell: string; x1: number; x2: number }>;
 export type TablePresentation = Readonly<{
   startY?: number;
   tableWidth?: number;
-  // KUN kolonnebredder (i mm / 'auto') — kolonne-halign udelades bevidst: den er
+  // KUN kolonnebredder (i mm / 'auto') – kolonne-halign udelades bevidst: den er
   // kilde-repræsentation, ikke synligt output. Den EFFEKTIVE justering pr. celle
   // (kolonne-fallback + celle-override + didParseCell) fanges i `cellStyles`, så
   // snapshottet er robust over for at flytte justering fra kolonne til celle (#15's
@@ -68,7 +68,7 @@ export type TablePresentation = Readonly<{
   body: readonly (readonly ResolvedCell[])[];
   // Cellernes EFFEKTIVE styles: kolonne-halign-fallback + celle-egne styles, derefter
   // didParseCell (striping/muted/total/inset). Keyed "row:col". Dette er det synlige
-  // resultat, autotable ville rendere — uafhængigt af hvor justeringen stammer fra.
+  // resultat, autotable ville rendere – uafhængigt af hvor justeringen stammer fra.
   cellStyles: Record<string, Record<string, unknown>>;
   drawnLines: readonly DrawnLine[];
 }>;

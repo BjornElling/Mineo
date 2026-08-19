@@ -12,7 +12,7 @@
 //
 // Her åbnes en faktisk editor, draften ændres UDEN settle, og en frisk runtime hydreres fra den ægte
 // sessionStorage-envelope. Invarianten (§1.2, §10-kriterium 4): den åbne draft er ikke en fjerde
-// inputkanal — efter reload findes kun det senest AFSLUTTEDE input.
+// inputkanal – efter reload findes kun det senest AFSLUTTEDE input.
 import * as React from 'react';
 import { renderHook, act } from '@testing-library/react';
 
@@ -90,7 +90,7 @@ const canonicalIn = (target: SlimInputStore): unknown =>
   createValidationReader(target.getState().input, catalog).readCanonical(field);
 
 describe('åben draft persisteres ikke over en reload (§1.2)', () => {
-  it('en ændret, IKKE-settlet draft findes ikke efter hydration — kun afsluttet input genopstår', () => {
+  it('en ændret, IKKE-settlet draft findes ikke efter hydration – kun afsluttet input genopstår', () => {
     // Afsluttet udgangspunkt: 2020.
     dispatchInput(store, catalog, settleField(field, '2020'), { now: 1 });
     const revisionEfterSettle = store.getState().revision;

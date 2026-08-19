@@ -12,7 +12,7 @@ import {
  */
 
 const REFERENCE_MACHINE: MachineCapacity = {
-  // AMD Ryzen 7 7700X, 16 logiske kerner, 32 GiB — maskinen konstanten er kalibreret mod.
+  // AMD Ryzen 7 7700X, 16 logiske kerner, 32 GiB – maskinen konstanten er kalibreret mod.
   logicalCpus: 16,
   totalMemoryGiB: 31.1,
   slownessFactor: 1,
@@ -43,7 +43,7 @@ describe('deriveMachineProfile', () => {
     expect(profile.timeoutScale).toBe(1);
   });
 
-  it('binder parallelitet til hukommelsen — årsagen til crashede browser-targets', () => {
+  it('binder parallelitet til hukommelsen – årsagen til crashede browser-targets', () => {
     // 16 GiB: 4 GiB reserveret til OS, Node og E2E-serveren, 3 GiB pr. browser-worker.
     const profile = deriveMachineProfile({
       logicalCpus: 16,

@@ -183,7 +183,7 @@ export const enhedField: FieldDescriptor<TillaegstidEnhed> = defineField({
 });
 
 /**
- * `renterFra` — datofamiliens RÆKKE-repræsentant.
+ * `renterFra` – datofamiliens RÆKKE-repræsentant.
  *
  * §7.1's fælles feltkontrakt skal køres mod BÅDE form- og grid-adapteren for
  * hver codecfamilie, og `date` havde kun et formularfelt i testkataloget. Uden en celle-udgave kunne
@@ -241,7 +241,7 @@ export const omregningField: FieldDescriptor<boolean> = defineStructuralField<bo
   createEmptySection: createEmptyAarsloenSection,
 });
 
-/** `selection`-familien (optional choice — tom tekst er canonical `undefined`). */
+/** `selection`-familien (optional choice – tom tekst er canonical `undefined`). */
 export const skadestypeField: FieldDescriptor<Skadestype | undefined> = defineStructuralField<Skadestype | undefined>({
   id: 'stamdata.skadestype',
   template: { section: 'stamdata', path: [], field: 'skadestype' },
@@ -292,7 +292,7 @@ export const rentekravRowsRef = () => createCollectionRef({ section: 'rentebereg
  * Rækkeorigin til test-fixtures, der SEEDER rækker via `dispatchInput` (§3.7).
  *
  * Strukturelle rækkecommands kræver en origin, så en undo altid har et restore-anker. En test, der blot
- * opsætter en baseline-række, har ingen brugerhandling at pege på — men den skal levere en gyldig origin
+ * opsætter en baseline-række, har ingen brugerhandling at pege på – men den skal levere en gyldig origin
  * ligesom produktionen. ÉT delt fixture-origin, så en opblødning af kravet ikke kan gemme sig i en test, der
  * opfandt sin egen halve origin.
  */
@@ -310,10 +310,10 @@ export const testRowOrigin = (collection = 'rentekravRows'): CollectionHistoryOr
  * sin egen halve lokation.
  *
  * Lokationen er NAVIGERBAR som produktionens, og det er ikke en bekvemmelighed: en placeholder-celle promoverer
- * sin række med `settleFieldInNewRow` — en STRUKTUREL command, hvis origin kræver en rigtig route (§3.7,
+ * sin række med `settleFieldInNewRow` – en STRUKTUREL command, hvis origin kræver en rigtig route (§3.7,
  * `assertStructuralOrigin`). Et første forsøg gav fixturet en tom "ikke navigerbar" route; det gjorde fire
  * placeholder-tests røde, og runtime havde ret. Fixturet efterligner derfor produktionen frem for at opfinde en
- * svagere variant — præcis grunden til at der kun findes ÉT.
+ * svagere variant – præcis grunden til at der kun findes ÉT.
  */
 export const testLocation = (locationId: string): EditorLocation => Object.freeze({
   locationId,

@@ -251,7 +251,7 @@ const collectResolvedAfgoerelser = (
  * De er kun meningsfulde på erhvervsevnetab-siden, hvor beregningsdatoen er den dato, brugeren
  * bevidst beregner EET *til*. I erstatningsopgørelsens midlertidigt EET-import er "beregningsdatoen"
  * blot TAF-slutdatoen, og en EET-afgørelse med virkning efter erstatningsperiodens udløb er helt
- * normal (fx en opgørelse lavet — evt. revideret — før EET-afgørelsen er truffet). Derfor
+ * normal (fx en opgørelse lavet – evt. revideret – før EET-afgørelsen er truffet). Derfor
  * undertrykkes netop disse advarsler i EO-import-konteksten. Filtreringen sker ved EO-import-grænsen
  * (`buildMidlertidigtEetSourceResult`), så erhvervsevnetab-sidens egen visning er upåvirket.
  * Se `eo-snapshot-contract.md` §13.
@@ -1042,7 +1042,7 @@ export const shouldShowLoebende2024ConversionBlock = (
  *
  * Kanonisk kilde for hvilke under-afsnit der vises (2003-niveau vs. 2024-niveau, rest-sektion),
  * så UI-fanen (`EetLoebendeYdelserTab`) og PDF/Word-generatoren (`loebendeYdelserDocument`) ikke
- * kan drive fra hinanden — samme visningssemantik ét sted, jf. konvergens-/periodiseringsreglerne.
+ * kan drive fra hinanden – samme visningssemantik ét sted, jf. konvergens-/periodiseringsreglerne.
  */
 export type LoebendeAfgoerelseRestVisning = Readonly<{
   show2024ConversionBlock: boolean;

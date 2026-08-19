@@ -134,7 +134,7 @@ const pasteEvent = (raw: string): React.ClipboardEvent<HTMLInputElement> => ({
   stopPropagation: () => undefined,
 }) as unknown as React.ClipboardEvent<HTMLInputElement>;
 
-describe('useFormFieldSurface — §7.1 aktivering + settle', () => {
+describe('useFormFieldSurface – §7.1 aktivering + settle', () => {
   it('lukket felt er readOnly og viser canonical fra revisionen', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     const { result } = renderSurface(field);
@@ -320,7 +320,7 @@ describe('useFormFieldSurface — §7.1 aktivering + settle', () => {
   });
 });
 
-describe('useFormFieldSurface — issue-visning (§1.2/§1.8)', () => {
+describe('useFormFieldSurface – issue-visning (§1.2/§1.8)', () => {
   it('viser feltets aktive issue fra snapshottet', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     issues = [Object.freeze({
@@ -370,7 +370,7 @@ describe('useFormFieldSurface — issue-visning (§1.2/§1.8)', () => {
   });
 });
 
-describe('useFormFieldSurface — registrering', () => {
+describe('useFormFieldSurface – registrering', () => {
   it('registrerer editoren mens den er åben og afmelder ved settle', () => {
     const { result } = renderSurface(field);
     expect(registry.getEditing()).toBeNull();

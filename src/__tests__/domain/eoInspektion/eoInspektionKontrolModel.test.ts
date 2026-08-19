@@ -13,7 +13,7 @@ const base = () => ({
 
 // ─── Tom model (ingen datoer sat) ─────────────────────────────────────────────
 
-describe('buildEOInspektionModel — tom input (ingen datoer)', () => {
+describe('buildEOInspektionModel – tom input (ingen datoer)', () => {
   it('returnerer rowCount=0 og tomme kolonner/rækker når ingen datoer er sat', () => {
     const model = buildEOInspektionModel(base());
     expect(model.rowCount).toBe(0);
@@ -35,7 +35,7 @@ describe('buildEOInspektionModel — tom input (ingen datoer)', () => {
 
 // ─── Kilde-bounds (sources) ────────────────────────────────────────────────────
 
-describe('buildEOInspektionModel — kilde-bounds (sources)', () => {
+describe('buildEOInspektionModel – kilde-bounds (sources)', () => {
   it('indeholder altid 6 kilde-entries', () => {
     const model = buildEOInspektionModel({
       ...base(),
@@ -134,7 +134,7 @@ describe('buildEOInspektionModel — kilde-bounds (sources)', () => {
 
 // ─── Table-range (summaryTable) ────────────────────────────────────────────────
 
-describe('buildEOInspektionModel — summaryTableFra/Til (månedsgrænser)', () => {
+describe('buildEOInspektionModel – summaryTableFra/Til (månedsgrænser)', () => {
   it('summaryTableFra er første dag i måneden for combinedMinFra', () => {
     const model = buildEOInspektionModel({
       ...base(),
@@ -178,7 +178,7 @@ describe('buildEOInspektionModel — summaryTableFra/Til (månedsgrænser)', () 
 
 // ─── Rækkegenerering ──────────────────────────────────────────────────────────
 
-describe('buildEOInspektionModel — rækkegenerering', () => {
+describe('buildEOInspektionModel – rækkegenerering', () => {
   it('rowCount matcher antallet af dage i tabelperioden', () => {
     const model = buildEOInspektionModel({
       ...base(),
@@ -222,7 +222,7 @@ describe('buildEOInspektionModel — rækkegenerering', () => {
 
 // ─── Basiskolonner ────────────────────────────────────────────────────────────
 
-describe('buildEOInspektionModel — basiskolonner', () => {
+describe('buildEOInspektionModel – basiskolonner', () => {
   const withJanuary = () => buildEOInspektionModel({
     ...base(),
     vedroererPeriodeFra: toISODateString('2024-01-01') as never,
@@ -262,7 +262,7 @@ describe('buildEOInspektionModel — basiskolonner', () => {
 
 // ─── Ferie-set ────────────────────────────────────────────────────────────────
 
-describe('buildEOInspektionModel — ferie-set', () => {
+describe('buildEOInspektionModel – ferie-set', () => {
   it('ferieperiode-dag markeres som feriedag og ikke som arbejdsdag (ved Arbejdsdage)', () => {
     const model = buildEOInspektionModel({
       ...base(),
@@ -302,7 +302,7 @@ describe('buildEOInspektionModel — ferie-set', () => {
   });
 });
 
-describe('buildEOInspektionModel — TAF fallback', () => {
+describe('buildEOInspektionModel – TAF fallback', () => {
   it('bruger skadedatoISO ved fallback-beregning af TAF-ranges', () => {
     const model = buildEOInspektionModel({
       ...base(),
@@ -326,7 +326,7 @@ describe('buildEOInspektionModel — TAF fallback', () => {
 
 // ─── SS-coverage ──────────────────────────────────────────────────────────────
 
-describe('buildEOInspektionModel — SS-dag (svie/smerte)', () => {
+describe('buildEOInspektionModel – SS-dag (svie/smerte)', () => {
   it('sygemeldt-periode → Ja i S/S-kolonnen for dage indenfor erstatningsperioden', () => {
     const model = buildEOInspektionModel({
       ...base(),
@@ -367,7 +367,7 @@ describe('buildEOInspektionModel — SS-dag (svie/smerte)', () => {
 
 // ─── getCell ──────────────────────────────────────────────────────────────────
 
-describe('buildEOInspektionModel — getCell', () => {
+describe('buildEOInspektionModel – getCell', () => {
   it('getCell returnerer tom streng for ukendt kolonne-id', () => {
     const model = buildEOInspektionModel({
       ...base(),
@@ -405,7 +405,7 @@ describe('buildEOInspektionModel — getCell', () => {
 
 // ─── columnRawValues ──────────────────────────────────────────────────────────
 
-describe('buildEOInspektionModel — columnRawValues', () => {
+describe('buildEOInspektionModel – columnRawValues', () => {
   it('returnerer et Map-objekt (evt. tomt)', () => {
     const model = buildEOInspektionModel({
       ...base(),
@@ -418,7 +418,7 @@ describe('buildEOInspektionModel — columnRawValues', () => {
 
 // ─── Loen/offentligeydelser kolonner (smoke-tests) ────────────────────────────
 
-describe('buildEOInspektionModel — loenindkomst og offentligeydelser kolonner (smoke)', () => {
+describe('buildEOInspektionModel – loenindkomst og offentligeydelser kolonner (smoke)', () => {
   it('viser kun én fælles TAF dag-kolonne selv ved flere ansættelsesforhold', () => {
     const model = buildEOInspektionModel({
       ...base(),

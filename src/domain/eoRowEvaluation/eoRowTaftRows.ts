@@ -185,7 +185,7 @@ export const buildEoTaftRows = (
 
   // 1) Periode-rækker fra tabellen.
   // Blokering (komplethed, dato-grænser, cutoff, overlap, rækkefølge) afgøres af den delte,
-  // autoritative TAF-periode-validering i domænets validerings-lag (`tafPeriodeValidation`) — ÉN
+  // autoritative TAF-periode-validering i domænets validerings-lag (`tafPeriodeValidation`) – ÉN
   // sandhedskilde (jf. B9). Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF.
   const tafEvaluations = evaluateTafPerioder(perioder, {
     skadedatoISO: context.skadedatoISO,
@@ -205,7 +205,7 @@ export const buildEoTaftRows = (
     if (evaluation.kind === 'skip') return;
 
     // Visnings-label bruger de clampede datoer (falder tilbage til den rene label, fx for
-    // ufuldstændige rækker uden gyldig clamp — så error-rækkernes label er uændret).
+    // ufuldstændige rækker uden gyldig clamp – så error-rækkernes label er uændret).
     const clamped = clampedTafById.get(periode.id);
     const displayFra = clamped?.fra;
     const displayTil = clamped?.til;

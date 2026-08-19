@@ -10,7 +10,7 @@ import {
 } from '../../../inputCore/runtime';
 
 // Coordinatoren (§1.4/§2.2, critical-action-contract §3/§5/§7) afsluttes gennem den
-// rebasede handlingsmatrix — INGEN `block`-policy. Navigation/save/download settler; load bevarer draften frem til
+// rebasede handlingsmatrix – INGEN `block`-policy. Navigation/save/download settler; load bevarer draften frem til
 // vellykket replacement; undo/redo er no-op. Testene driver en syntetisk editor uden React/DOM.
 
 let store: SlimInputStore;
@@ -44,7 +44,7 @@ const makeEditor = (options?: Partial<ActiveEditor> & { throwOnSettle?: boolean 
 };
 
 const SETTLE_ACTIONS: CriticalAction[] = ['save', 'download', 'navigate', 'reload'];
-describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
+describe('CriticalActionCoordinator – den rebasede §1.4-matrix', () => {
   it('afviser async apply ved typegrænsen', () => {
     const typeBoundary = () => {
       // @ts-expect-error En kritisk mutation må ikke fortsætte efter callbackens retur.
@@ -126,7 +126,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
   });
 
   // Discard skal ramme den draft, handlingen ERSTATTEDE. Et registry-opslag efter apply er ikke en
-  // stabil identitet — den editor, opslaget finder, kan være åbnet af brugeren i den NYE sag.
+  // stabil identitet – den editor, opslaget finder, kan være åbnet af brugeren i den NYE sag.
   it('kasserer ikke en editor, der er registreret EFTER replacement', async () => {
     const discardBefore = vi.fn();
     const discardAfter = vi.fn();
@@ -206,7 +206,7 @@ describe('CriticalActionCoordinator — den rebasede §1.4-matrix', () => {
   });
 });
 
-describe('CriticalActionCoordinator — fail-closed og serialisering', () => {
+describe('CriticalActionCoordinator – fail-closed og serialisering', () => {
   it('blokerer fail-closed, hvis settle kaster (contract §2)', async () => {
     const focus = { focus: () => undefined };
     const { editor } = makeEditor({ throwOnSettle: true, getFocusTarget: () => focus });
@@ -261,7 +261,7 @@ describe('CriticalActionCoordinator — fail-closed og serialisering', () => {
   });
 });
 
-describe('ActiveEditorRegistry — højst én aktiv editor (§3.5)', () => {
+describe('ActiveEditorRegistry – højst én aktiv editor (§3.5)', () => {
   it('afviser en anden samtidig registrering', () => {
     const a = makeEditor({ id: 'a' });
     const b = makeEditor({ id: 'b' });

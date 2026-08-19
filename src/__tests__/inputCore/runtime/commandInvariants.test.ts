@@ -4,19 +4,19 @@
  *
  * **Hvad fundet var.** Runtime-unionen omfatter 12 mutationsarter plus `undo`/`redo`, men de fulde
  * assertions for write, revision, history og rollback blev kun kørt for `settleField`. De øvrige commands
- * havde spredte adfærdstests — "gør denne command det rigtige ved værdien?" — men ikke §7.4's SAMLEDE
+ * havde spredte adfærdstests – "gør denne command det rigtige ved værdien?" – men ikke §7.4's SAMLEDE
  * invariantsuite: én session-write, ét store-write, én monoton revision, højst ét history-trin, no-op uden
  * nogen af de tre, og rollback ved fejl. `resetSection` blev slet ikke dispatchet gennem runtime i den
  * suite, og `structuralTransaction` optrådte primært som en origin-afvisning.
  *
  * **Hvorfor et typebundet register.** Kataloget nedenfor er
  * `satisfies Record<RuntimeInputCommand['kind'], …>`. Tilføjes en trettende command-art til unionen, er
- * det en COMPILERFEJL her, indtil den har en case — invarianten kan altså ikke udvides uden dækning. Det
+ * det en COMPILERFEJL her, indtil den har en case – invarianten kan altså ikke udvides uden dækning. Det
  * er den samme mekanik, `STRUCTURAL_KIND_SET` bruger i produktionen, og den er valgt frem for en
  * hånd-vedligeholdt liste netop fordi fundet handlede om en dækning, der stille faldt bagud.
  *
  * **Hvad hver case skal levere.** En `mutate` (en reel ændring), et `noop` (samme command igen eller en
- * ækvivalent, der intet ændrer) og — hvor det er meningsfuldt — en `reject` (en command, kataloget skal
+ * ækvivalent, der intet ændrer) og – hvor det er meningsfuldt – en `reject` (en command, kataloget skal
  * afvise FØR nogen observerbar mutation). Undo/redo har ingen `reject`; deres tomme-history-tilfælde ER
  * no-op'et.
  *
@@ -94,7 +94,7 @@ const cmd = (command: unknown): AnyCommand => command as AnyCommand;
 type CommandCase = Readonly<{
   /**
    * Bringer runtimen i den tilstand, casen kræver (fx en committet række at slette). Kører gennem den
-   * ÆGTE dispatch-port, ikke ved at plante state — ellers ville opsætningen kunne omgå de invarianter,
+   * ÆGTE dispatch-port, ikke ved at plante state – ellers ville opsætningen kunne omgå de invarianter,
    * testen måler.
    */
   arrange?: () => void;
@@ -108,7 +108,7 @@ type CommandCase = Readonly<{
   options?: () => Readonly<{ origin?: ReturnType<typeof testRowOrigin> }>;
   /**
    * Rydder denne command-art history? Kun hel-sags-replacement gør (§3.7), og det er en POLICY, ikke en
-   * bivirkning — derfor er den erklæret pr. case frem for udledt.
+   * bivirkning – derfor er den erklæret pr. case frem for udledt.
    */
   clearsHistory?: true;
   /**
@@ -157,7 +157,7 @@ const COMMAND_CASES = {
   },
   insertRow: {
     mutate: () => cmd(insertRow(rentekravRowsRef(), makeRow(ROW_A))),
-    // Samme række-id igen: kataloget afviser en dublet, så "no-op" for insert er en ANDEN form —
+    // Samme række-id igen: kataloget afviser en dublet, så "no-op" for insert er en ANDEN form –
     // en indsættelse af den række, der allerede står, ville være en fejl, ikke en no-op. Arten har
     // derfor ingen semantisk no-op, og `noop` peger på den ækvivalente reorder af én række.
     noop: () => cmd(reorderRows(rentekravRowsRef(), [ROW_A])),
@@ -168,7 +168,7 @@ const COMMAND_CASES = {
     arrange: () => seedRow(),
     mutate: () => cmd(deleteRow(rentekravRowsRef(), ROW_A)),
     // Sletning af en ALLEREDE slettet række er ikke en no-op men en AFVISNING: kataloget kaster
-    // ("entity til sletning findes ikke"), og det er den rigtige adfærd — en tavs no-op ville lade en
+    // ("entity til sletning findes ikke"), og det er den rigtige adfærd – en tavs no-op ville lade en
     // consumer tro, at rækken var væk, fordi netop dens kommando fjernede den. No-op-benet bruger
     // derfor en ækvivalent, der intet ændrer, og afvisnings-benet bærer den gentagne delete.
     noop: () => cmd(reorderRows(rentekravRowsRef(), [])),
@@ -198,7 +198,7 @@ const COMMAND_CASES = {
   transaction: {
     arrange: () => seedRow(),
     // FLERE feltændringer i ÉT trin: §7.4's "højst ét history-trin" er netop det, en transaktion
-    // findes for — to writes ville være to undo-trin for én brugerhandling.
+    // findes for – to writes ville være to undo-trin for én brugerhandling.
     mutate: () => cmd(inputTransaction([
       inputTransactionStep(settleField(aargangField.bind(), '2024')),
       inputTransactionStep(settleField(tillaegstidField.bind(ROW_A), '7')),
@@ -238,7 +238,7 @@ const COMMAND_CASES = {
       seedRow();
     },
     mutate: () => cmd(replaceCase(createEmptySettledInput())),
-    // Hel-sags-replacement skriver ALTID (§3.7) — også når indholdet er identisk. "No-op" findes
+    // Hel-sags-replacement skriver ALTID (§3.7) – også når indholdet er identisk. "No-op" findes
     // derfor ikke for arten, og casen bruger en ægte no-op til det ben: efter replacement er
     // `renteberegning` allerede `null`, så en reset til `null` ændrer intet.
     noop: () => cmd(resetSection('renteberegning', null)),
@@ -278,7 +278,7 @@ const COMMAND_CASES = {
 
 const CASE_KINDS = Object.keys(COMMAND_CASES) as readonly (keyof typeof COMMAND_CASES)[];
 
-describe('§7.4 transaktionsinvarianter — exhaustivt pr. command-kind', () => {
+describe('§7.4 transaktionsinvarianter – exhaustivt pr. command-kind', () => {
   it('registret dækker hver runtime-command-kind (typebundet, så en ny art er en compilerfejl)', () => {
     // Runtime-spejlet af `satisfies`: de 14 arter er navngivet, og listen er ikke tom af tomhed.
     expect(CASE_KINDS).toHaveLength(14);
@@ -294,7 +294,7 @@ describe('§7.4 transaktionsinvarianter — exhaustivt pr. command-kind', () => 
   describe.each(CASE_KINDS)('%s', (kind) => {
     const testCase: CommandCase = COMMAND_CASES[kind];
 
-    it('giver ÉN monoton revision og HØJST ét history-trin — samt ét session- og ét store-write', () => {
+    it('giver ÉN monoton revision og HØJST ét history-trin – samt ét session- og ét store-write', () => {
       testCase.arrange?.();
       const before = store.getState();
       const options = testCase.options?.() ?? {};
@@ -303,7 +303,7 @@ describe('§7.4 transaktionsinvarianter — exhaustivt pr. command-kind', () => 
       const result = dispatchInput(store, catalog, testCase.mutate(), options);
       writes.stop();
 
-      expect(result.changed, `${kind}: mutate ændrede intet — casen måler ikke en reel handling`).toBe(true);
+      expect(result.changed, `${kind}: mutate ændrede intet – casen måler ikke en reel handling`).toBe(true);
       // ÉN monoton revision.
       expect(result.revision).toBe(before.revision + 1);
       expect(store.getState().revision).toBe(before.revision + 1);
@@ -312,7 +312,7 @@ describe('§7.4 transaktionsinvarianter — exhaustivt pr. command-kind', () => 
       // ÉT session-write, byte-konsistent med runtime (samme form F5 ville genindlæse).
       const stored = sessionStorage.getItem(key);
       expect(stored, `${kind}: intet session-write`).not.toBeNull();
-      // HØJST ét history-trin — og præcis nul, hvis arten rydder history efter policy.
+      // HØJST ét history-trin – og præcis nul, hvis arten rydder history efter policy.
       const past = store.getState().history.past.length;
       if (testCase.clearsHistory === true) {
         expect(past, `${kind}: hel-sags-replacement skal rydde history (§3.7)`).toBe(0);
@@ -351,7 +351,7 @@ describe('§7.4 transaktionsinvarianter — exhaustivt pr. command-kind', () => 
   });
 
   /**
-   * Afvisning FØR observerbar mutation. Kørt kun for de arter, der HAR en afviselig form — hvilket
+   * Afvisning FØR observerbar mutation. Kørt kun for de arter, der HAR en afviselig form – hvilket
    * registret erklærer eksplicit frem for at lade en manglende case se ud som en dækket.
    */
   const REJECTING_KINDS = CASE_KINDS.filter((kind) => COMMAND_CASES[kind].reject !== null);
@@ -361,7 +361,7 @@ describe('§7.4 transaktionsinvarianter — exhaustivt pr. command-kind', () => 
     expect(REJECTING_KINDS.length).toBeGreaterThanOrEqual(7);
   });
 
-  describe.each(REJECTING_KINDS)('%s — afvisning', (kind) => {
+  describe.each(REJECTING_KINDS)('%s – afvisning', (kind) => {
     it('afvises FØR nogen observerbar mutation af input, revision, history eller storage', () => {
       const testCase: CommandCase = COMMAND_CASES[kind];
       testCase.arrange?.();

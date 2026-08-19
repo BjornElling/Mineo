@@ -70,7 +70,7 @@ describe('insertOffentligeYdelserRowsBeforeTrailingEmpty', () => {
   });
 
   // Uniqueness-invariant: indsættelse må aldrig kunne danne to rækker med samme id (datakorruption).
-  // Helperen flytter kun rækker rundt — den genererer ikke id'er — så hvis input er unikt, er output unikt.
+  // Helperen flytter kun rækker rundt – den genererer ikke id'er – så hvis input er unikt, er output unikt.
   it('bevarer id-unikhed for enhver kombination af eksisterende og indsatte rækker', () => {
     const existingRows = [
       makeRow('filled-1', { ydelsestype: 'dagpenge' }),

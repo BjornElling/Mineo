@@ -25,7 +25,7 @@ import { CriticalActionCoordinator } from '../runtime/criticalActionCoordinator'
 /**
  * Origin-argumentet som en BETINGET tuple.
  *
- * En strukturel rækkecommand kræver en origin — argumentet er obligatorisk. Alt andet beholder det valgfrie.
+ * En strukturel rækkecommand kræver en origin – argumentet er obligatorisk. Alt andet beholder det valgfrie.
  * ARTEN er fri: en brugerudløst rækkehandling giver `CollectionHistoryOrigin`, mens en række-promovering via
  * celle-commit giver `FieldHistoryOrigin`, så undo fokuserer den celle, brugeren skrev i (§3.8).
  *
@@ -43,7 +43,7 @@ type OriginArgs<TKind extends string> = TKind extends StructuralCommandKind
 // React-laget (§3.5/§3.10): den ENE binding, React-adapterne læser fra. Den eksponerer hverken rå sektioner,
 // rejected-input-map, et skrivbart feltfejlsregister eller skrivbare hel-sektionshooks. Den giver kun:
 // (1) den aktuelle afsluttede revision (input + revisionsnummer), (2) det
-// tokenbundne feltissue-snapshot (§1.8 — komponenter rapporterer ALDRIG ind i det; de læser det), (3) én
+// tokenbundne feltissue-snapshot (§1.8 – komponenter rapporterer ALDRIG ind i det; de læser det), (3) én
 // typed `dispatch`, og (4) editorregistret. Feltvalidatorerne leverer issue-snapshottet i produktionen; test
 // kan injicere et syntetisk snapshot for at isolere en enkelt issue-tilstand.
 
@@ -56,10 +56,10 @@ export type SettledSnapshot = Readonly<{
 type InternalSettledSnapshot = SettledSnapshot & Readonly<{ input: SettledInput }>;
 
 /**
- * **READ** — alt hvad en visning, en projektion eller et dokument må gøre med sagsinput (§3.5/§3.10).
+ * **READ** – alt hvad en visning, en projektion eller et dokument må gøre med sagsinput (§3.5/§3.10).
  *
  * Porten er bevidst rent læsende OG tokenbundet: der er ingen vej fra en read-consumer til en mutation, og
- * ingen vej til rå `sections` uden om `InputReader`. Adskillelsen er strukturel frem for kommenteret —
+ * ingen vej til rå `sections` uden om `InputReader`. Adskillelsen er strukturel frem for kommenteret –
  * tidligere lå læsning, redigering og systemoperationer som felter på ét objekt, så enhver consumer, der
  * blot skulle vise en værdi, også fik hel-sags-replacement og history i hånden.
  */
@@ -82,10 +82,10 @@ export type InputReadPort = Readonly<{
 }>;
 
 /**
- * **EDIT** — feltniveau-redigering (§3.6). Den capability, en felt-/celleadapter har brug for, og intet mere.
+ * **EDIT** – feltniveau-redigering (§3.6). Den capability, en felt-/celleadapter har brug for, og intet mere.
  *
  * En editor-flade kan udstede felt- og rækkecommands og registrere sig som aktiv editor. Den kan IKKE
- * nulstille en sektion, erstatte hele sagen eller udføre undo/redo — de operationer hører til systemporten,
+ * nulstille en sektion, erstatte hele sagen eller udføre undo/redo – de operationer hører til systemporten,
  * så en celle aldrig kan formulere en hel-sagsmutation.
  */
 export type InputEditPort = Readonly<{
@@ -93,7 +93,7 @@ export type InputEditPort = Readonly<{
    * Den ENE write-grænse (§3.6). Feltadapteren udsteder kun felt-scopede commands.
    *
    * En STRUKTUREL rækkecommand (insert/delete/reorder/settle-i-ny-række samt en strukturel transaktion)
-   * kræver en origin — ellers kunne undo/redo gendanne en række uden noget restore-anker. ARTEN er fri; se `OriginArgs`. `dispatchInput` håndhæver kravet også på runtime.
+   * kræver en origin – ellers kunne undo/redo gendanne en række uden noget restore-anker. ARTEN er fri; se `OriginArgs`. `dispatchInput` håndhæver kravet også på runtime.
    */
   dispatch: <TField, TEntity, TKind extends InputSurfaceCommand<TField, TEntity>['kind']>(
     command: InputSurfaceCommand<TField, TEntity> & { kind: TKind },
@@ -103,7 +103,7 @@ export type InputEditPort = Readonly<{
 }>;
 
 /**
- * **SYSTEM** — operationer på HELE sagen (§3.6/§3.10): sektionsreset, replacement, history og kritiske
+ * **SYSTEM** – operationer på HELE sagen (§3.6/§3.10): sektionsreset, replacement, history og kritiske
  * handlinger.
  *
  * Porten er forbeholdt composition roots: case-/persistence-porten (`useCaseOperations`), shellens
@@ -172,7 +172,7 @@ const useInternals = (): InputRuntimeInternals => {
  * Dokumentlagets capability (§5.4): et frisk tokenbundet kildesnapshot + den kritiske handlingsbarriere.
  *
  * Bevidst en NAVNGIVEN, eksplicit port frem for et `Pick<>` af hele bindingen. Dokumentmiljøet skal kunne
- * optage kilden og settle en åben editor før download — men det må hverken dispatche, nulstille en sektion
+ * optage kilden og settle en åben editor før download – men det må hverken dispatche, nulstille en sektion
  * eller erstatte sagen. En `Pick` over ét fladt objekt beskrev det samme, men uden at nogen grænse forhindrede
  * den næste udvidelse i at tage mere med.
  */
@@ -357,7 +357,7 @@ export type InputRuntimeProviderProps = Readonly<{
 }>;
 
 /**
- * Leverer bindingen til React-træet. Provideren hydrerer ALDRIG og overskriver aldrig input (§3.10) — begge
+ * Leverer bindingen til React-træet. Provideren hydrerer ALDRIG og overskriver aldrig input (§3.10) – begge
  * app-entrypoints initialiserer den samme runtime FØR render, og provideren distribuerer kun den færdige binding.
  */
 export const InputRuntimeProvider = ({ binding, children }: InputRuntimeProviderProps): React.ReactElement => (

@@ -50,7 +50,7 @@ export type EetImportSource = Readonly<{
  * Importmotorens typed inputprojektion.
  *
  * Gaten var tidligere sektionsvis: ethvert rødt issue i `erhvervsevnetab`, `faellesAarsloen` eller `stamdata`
- * blokerede importen. Det var en overblokering — og overblokering er lige så forkert som falske tal (§1.10):
+ * blokerede importen. Det var en overblokering – og overblokering er lige så forkert som falske tal (§1.10):
  * en bounds-fejl på fx `erhvervsevnetab.ealEetPct`, som `computeEetLoebendeYdelserForEoImport` aldrig læser,
  * fjernede hele den midlertidige EET-import og dens grupper fra Erstatningsopgørelsen.
  *
@@ -58,14 +58,14 @@ export type EetImportSource = Readonly<{
  * → `computeEetLoebendeYdelserForContext` + `eetAslAfgoerelser.ts`):
  *
  * - `erhvervsevnetab.beregningsdato`: EET-beregningsdatoen (falder tilbage til TAF-slutdatoen, men læses).
- * - `erhvervsevnetab.aslAfgoerelser.*`: hele afgørelsesrækken — datoer, procenter, type og
- *   `fsTilbageholdtEet` — er periodiseringens og beløbenes grundlag.
+ * - `erhvervsevnetab.aslAfgoerelser.*`: hele afgørelsesrækken – datoer, procenter, type og
+ *   `fsTilbageholdtEet` – er periodiseringens og beløbenes grundlag.
  * - `faellesAarsloen.aslAarsloen`: `grundloen` ganges ind i HVERT periodebeløb, og feltet giver selv
  *   `aarsloen-missing`/`aarsloen-zero`. En maskeret værdi ville give et falsk beløb.
  * - `stamdata.skadedato` + `stamdata.skadelidteFodselsdato`: skadesår, 2011-/2024-grænserne og
  *   folkepensionsafgrænsningen af den løbende ydelse.
  *
- * BEVIDST UDE — læst, men uden talvirkning eller slet ikke læst:
+ * BEVIDST UDE – læst, men uden talvirkning eller slet ikke læst:
  * - `faellesAarsloen.ealAarsloen`: læses ikke af EO-importen. EAL-årslønnen hører til EET-sidens
  *   EAL-beregning og er ikke en del af importens typed read-set.
  * - `erhvervsevnetab.ealEetPct`, `koen`, `bilag*`-toggles og de to differencekrav-toggles: ikke læst på

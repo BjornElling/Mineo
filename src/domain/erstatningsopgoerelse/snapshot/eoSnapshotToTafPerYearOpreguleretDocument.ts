@@ -46,7 +46,7 @@ export const eoSnapshotToTafPerYearOpreguleretDocument = (
     };
   }
 
-  // Bloker download når der ikke er TAF fordelt på år — på linje med "Visuel graf over
+  // Bloker download når der ikke er TAF fordelt på år – på linje med "Visuel graf over
   // indtægtsniveau" og "TAF-krav fordelt på kalenderår".
   const presentation = snapshot.data.engines.tafPerYear;
   if (!presentation || presentation.years.length === 0) {
@@ -66,7 +66,7 @@ export const eoSnapshotToTafPerYearOpreguleretDocument = (
     };
   }
 
-  // pdfModel og engine-resultater er bygget og caches i computeEoSnapshot —
+  // pdfModel og engine-resultater er bygget og caches i computeEoSnapshot –
   // konsistens mod totals er garanteret af snapshot-pipelinen.
   return {
     kind: 'ok',

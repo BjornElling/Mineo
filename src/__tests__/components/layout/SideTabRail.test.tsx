@@ -8,7 +8,7 @@ import SideTabRail from '../../../components/layout/SideTabRail';
 import { CONTENT_BOX_WIDTH_PX } from '../../../utils/uiScale';
 
 /**
- * Skinnen er det ene sted, kontrolfanernes udhæng bliver klippet — og dermed det ene sted, der
+ * Skinnen er det ene sted, kontrolfanernes udhæng bliver klippet – og dermed det ene sted, der
  * afgør, at to synlige kontrolfaner ikke kan give arbejdsfladen vandret rul.
  *
  * jsdom laver ikke layout, så geometrien stilles op eksplicit: scrollportens synlige højrekant og
@@ -64,7 +64,7 @@ describe('SideTabRail', () => {
     // `overflow-y: visible` er bærende: den roterede fane rager ~265 px NEDAD fra skinnen og må
     // ikke beskæres. Kun den vandrette akse klippes.
     expect(rail).toHaveStyle({ 'overflow-x': 'clip', 'overflow-y': 'visible', height: '0px' });
-    // Skinnen må ikke flytte noget i flowet — fanerne er absolut placerede oven i den.
+    // Skinnen må ikke flytte noget i flowet – fanerne er absolut placerede oven i den.
     expect(screen.getByRole('button', { name: 'EO-kontrol' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Kontroltabel' })).toBeInTheDocument();
   });
@@ -96,7 +96,7 @@ describe('SideTabRail', () => {
     stubGeometry({ scrollportRightPx: 1920, scrollLeftPx: 300 });
     act(() => { window.dispatchEvent(new Event('resize')); });
 
-    // Uden rullet med i regnestykket ville skinnen blive 300 px bredere for hvert rul mod højre —
+    // Uden rullet med i regnestykket ville skinnen blive 300 px bredere for hvert rul mod højre –
     // og dermed selv gøre scrollområdet bredere, rul efter rul.
     expect(document.querySelector('[data-mineo-side-tab-rail="true"]')).toHaveStyle({ width: '1596px' });
   });
@@ -104,7 +104,7 @@ describe('SideTabRail', () => {
   it('klipper fanerne helt væk, når den synlige kant ligger inden for indholdsboksen', () => {
     renderRail();
     // Under den dækkede minimumsbredde overtager `Container`s vandrette rul, og fanerne skal blot
-    // forsvinde tavst — de må ikke gøre det scrollområde bredere, end indholdet selv kræver.
+    // forsvinde tavst – de må ikke gøre det scrollområde bredere, end indholdet selv kræver.
     stubGeometry({ scrollportRightPx: 1000 });
 
     act(() => { window.dispatchEvent(new Event('resize')); });

@@ -63,7 +63,7 @@ export const formatUtcDateLong = (date: Date | undefined): string => {
 
 /**
  * Dansk tidszone. ALT brugersynligt/udvikler-rettet tids-output (fejlrapport,
- * DevTools-notits, filnavne, email-emne) formateres i denne zone — uafhængigt
+ * DevTools-notits, filnavne, email-emne) formateres i denne zone – uafhængigt
  * af UTC-lagringen og af hvilken tidszone brugerens maskine er sat til.
  */
 export const COPENHAGEN_TIME_ZONE = 'Europe/Copenhagen' as const;
@@ -93,7 +93,7 @@ const getCopenhagenParts = (date: Date): Record<string, string> => {
 /**
  * Formaterer et instant til dansk tidszone som "ÅÅÅÅ-MM-DD TT:MM:SS".
  * Bruges til fejlrapportens hændelses-tidsstempler, så udvikleren ser
- * brugerens danske klokkeslæt — ikke UTC.
+ * brugerens danske klokkeslæt – ikke UTC.
  */
 export const formatCopenhagenTimestampSeconds = (date: Date): string => {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {

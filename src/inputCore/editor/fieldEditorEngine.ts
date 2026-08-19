@@ -32,7 +32,7 @@ export type EditorDispatch<T> = Readonly<{
 }>;
 
 // Editor-bindingen (§3.5/§3.6): rene, framework-frie hjælpere, der oversætter mellem den afsluttede
-// revision og editor-state-machinen. De rører ikke React, DOM eller storage — de læser et immutabelt
+// revision og editor-state-machinen. De rører ikke React, DOM eller storage – de læser et immutabelt
 // `SettledInput`-snapshot og udsteder de commands, runtime-bindingen sender til `dispatchInput`.
 
 /**
@@ -70,9 +70,9 @@ export const activeFieldIssueFor = <T>(
   field: FieldRef<T>
 ): FieldIssue | undefined => activeFieldIssue(issues, serializeFieldAddress(field.address));
 
-// Felteditorens origin er ALTID en feltorigin — også for de to promoveringsveje (`settleFieldInNewRow` og
+// Felteditorens origin er ALTID en feltorigin – også for de to promoveringsveje (`settleFieldInNewRow` og
 // `insertRow` fra et immediate-commit-valg). En promovering er kontraktligt et FELT-settle (§3.8), og undo
-// skal derfor fokusere den celle, brugeren skrev i — ikke blot navigere til tabellen.
+// skal derfor fokusere den celle, brugeren skrev i – ikke blot navigere til tabellen.
 export const buildFieldHistoryOrigin = <T>(
   location: EditorLocation,
   field: FieldRef<T>
@@ -82,7 +82,7 @@ export const buildFieldHistoryOrigin = <T>(
   editorLocationId: location.locationId,
   // Route/fane bæres videre som eksplicit navigation-metadata (§3.7), så undo/redo-restoren kan finde tilbage
   // til den rette side/fane. Begge er PÅKRÆVEDE på `EditorLocation`, så destinationen er altid
-  // komplet — den tidligere `route === undefined`-gren dækkede en tilstand, typen ikke længere tillader.
+  // komplet – den tidligere `route === undefined`-gren dækkede en tilstand, typen ikke længere tillader.
   route: location.route,
   tabKey: location.tabKey,
 });
@@ -107,7 +107,7 @@ export const settleIntentToCommand = <T>(intent: EditorSettleIntent<T>): EditorD
 /**
  * Placeholder-promotion (§1.11): oversætter et settle-intent på en IKKE-eksisterende række-placeholder til én
  * atomisk `settleFieldInNewRow`-command, der opretter rækken og skriver feltet i samme transaktion. Et tomt
- * settle på placeholderen er `null` (no-op — et rent fokus+blur på en tom placeholder opretter ingen række).
+ * settle på placeholderen er `null` (no-op – et rent fokus+blur på en tom placeholder opretter ingen række).
  *
  * `field` er den FÆRDIGT bundne cellereference for den nye række (bundet til placeholderens entity-id), og
  * `entity` er den fulde placeholder-entity, `insertRow`-siden af transaktionen indsætter. Reduceren verificerer,
@@ -160,7 +160,7 @@ export const promoteRowImmediateCommitToCommand = <TEntity, TField>(
 
 /**
  * Delete/Backspace på et lukket, fokuseret felt (§1.3): rydder og committer straks til tomværdien. Guardet på
- * feltets aktuelle view, så et allerede tomt felt uden rejected råinput er `null` (ingen command) — ellers
+ * feltets aktuelle view, så et allerede tomt felt uden rejected råinput er `null` (ingen command) – ellers
  * ville et strukturelt tom-write (fx `null`-sektion → `{}`) give en overflødig undo-frame (§3.6).
  * Rydningen sker kun, når der faktisk er en ikke-tom værdi eller en rejected råtekst.
  */

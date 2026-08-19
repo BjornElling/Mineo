@@ -6,7 +6,7 @@ import type { SourceEntry } from './sourceGraph';
  * Rene AST-forespørgsler over en {@link SourceEntry}. Reglerne i
  * `architectureRules.ts` komponeres udelukkende af disse primitiver, så
  * grænse-håndhævelsen er strukturel (ikke tekstuel) og fri for de silent-pass-huller
- * — aliasing, destrukturering, bracket-notation — som de gamle regex-scannere selv
+ * – aliasing, destrukturering, bracket-notation – som de gamle regex-scannere selv
  * dokumenterede.
  */
 
@@ -20,7 +20,7 @@ export type ImportRef = Readonly<{
   /** Er importen ren type-position (`import type` / `import { type X }`)? */
   typeOnly: boolean;
   /**
-   * Eksporterede navne i en named import/export (`{ a, b as c }` → `['a', 'b']`) —
+   * Eksporterede navne i en named import/export (`{ a, b as c }` → `['a', 'b']`) –
    * det ORIGINALE eksport-navn, ikke aliaset. Tom for default/namespace/side-effect
    * og for dynamiske/`require`-imports.
    */
@@ -36,7 +36,7 @@ export type CallRef = Readonly<{
   calleeText: string;
   /** Første string-literal-argumenter (kun direkte literaler; ikke variabler). */
   stringArgs: readonly string[];
-  /** Første argument, hvis det er en string-literal — ellers `null` (positionelt præcist). */
+  /** Første argument, hvis det er en string-literal – ellers `null` (positionelt præcist). */
   firstArgStringLiteral: string | null;
   node: ts.CallExpression;
   position: CodePosition;
@@ -342,7 +342,7 @@ export type IdentifierRef = Readonly<{
 }>;
 
 /**
- * Alle identifiers i filen — den kanoniske kilde til "bruges dette navn?".
+ * Alle identifiers i filen – den kanoniske kilde til "bruges dette navn?".
  *
  * Bevidst AST-baseret: kommentarer er ikke noder, så en historik-kommentar om en slettet mekanisme
  * kan pr. konstruktion ikke flages ([[project_dansk_prosa_guard_markers]]). Strengliteraler er heller
@@ -378,7 +378,7 @@ export type DestructuredPropertyRef = Readonly<{
  * `collectMemberAccess`/`collectElementAccess` ser ikke destrukturering, så en regel bygget kun på dem
  * kan omgås med én linje (`const { sections } = input`).
  *
- * `propertyName` er kildens navn, ikke det lokale alias — en omdøbning må ikke kunne skjule adgangen.
+ * `propertyName` er kildens navn, ikke det lokale alias – en omdøbning må ikke kunne skjule adgangen.
  */
 export const collectDestructuredProperties = (entry: SourceEntry): readonly DestructuredPropertyRef[] => {
   const cache = getQueryCache(entry);
@@ -415,7 +415,7 @@ export const hasIdentifier = (entry: SourceEntry, name: string): boolean =>
  *
  * `liveTarget`-probernes kanoniske signal. En probe bygget på `entry.text.includes(...)` eller et regex
  * over hele filteksten lader en KOMMENTAR opfylde liveness, selv når det levende AST-mål er slettet:
- * storage-reglens rene fixture (`// merge af settings fra localStorage`) er netop den form — evaluatoren
+ * storage-reglens rene fixture (`// merge af settings fra localStorage`) er netop den form – evaluatoren
  * flager den ikke, men en tekstprobe ville sige "levende". Et værn kunne dermed fremstå load-bearing,
  * efter at mekanismen faktisk var væk.
  *
@@ -429,7 +429,7 @@ export const hasAnyIdentifier = (entry: SourceEntry, names: readonly string[]): 
 /**
  * Optræder typenavnet i en TYPE-position (annotation, type-argument, assertion, heritage)?
  *
- * Skilt fra `hasIdentifier`, fordi et typenavn ofte KUN findes i typepositioner — `MoneyOre` importeres som
+ * Skilt fra `hasIdentifier`, fordi et typenavn ofte KUN findes i typepositioner – `MoneyOre` importeres som
  * type og bruges i annotationer, aldrig som værdi. En tekstprobe ville derimod også ramme navnet i en
  * kommentar og dermed holde reglen kunstigt levende.
  */
@@ -560,7 +560,7 @@ export type TypeArgumentRef = Readonly<{
  * Eksplicitte type-argumenter på KALD (`forge<EoRowPolicy>(x)`), ikke i type-positioner.
  *
  * Skelnen er vigtig: `DocumentSourceContext<SourceSettings>` er en legitim type-annotation, mens
- * `forge<SourceSettings>(x)` beder en hjælper om at PRODUCERE værdien — i konsekvens det samme som en
+ * `forge<SourceSettings>(x)` beder en hjælper om at PRODUCERE værdien – i konsekvens det samme som en
  * assertion, blot flyttet en funktion væk. Derfor opsamles kun kaldenes type-argumenter.
  */
 export const collectCallTypeArguments = (entry: SourceEntry): readonly TypeArgumentRef[] => {
@@ -590,7 +590,7 @@ export const collectCallTypeArguments = (entry: SourceEntry): readonly TypeArgum
 /**
  * Opløser en relativ import-specifier til en repo-relativ posix-sti (uden extension),
  * fx (`src/domain/x/y.ts`, `../../eoInspektion/z`) → `src/domain/eoInspektion/z`.
- * Returnerer `null` for ikke-relative (bare/alias) specifiers — de matches på segment i stedet.
+ * Returnerer `null` for ikke-relative (bare/alias) specifiers – de matches på segment i stedet.
  */
 export const resolveRelativeImport = (
   fromRelativePath: string,

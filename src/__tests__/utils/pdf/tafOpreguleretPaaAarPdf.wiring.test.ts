@@ -267,9 +267,9 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
     expect(texts.some((t) => t.startsWith('50% x ('))).toBe(true);
   });
 
-  it('viser indtægterne i beregnet-krav-formlen som ÉN sammentalt fradragsværdi — ikke pr. post', () => {
+  it('viser indtægterne i beregnet-krav-formlen som ÉN sammentalt fradragsværdi – ikke pr. post', () => {
     // To fradrag (444,28 + 236.926,00 = 237.370,28). Formlen skal vise totalen, ikke de
-    // enkelte poster — ensartet med den almindelige erstatningsopgørelse.
+    // enkelte poster – ensartet med den almindelige erstatningsopgørelse.
     const yearMedFlereFradrag = makeYearEntry(2024, moneyOre(26716669), {
       segments: [
         {

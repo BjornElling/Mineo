@@ -399,7 +399,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
                 location={{ locationId: 'erstatningsopgoerelse.eoBilagSelection.opgoerelse', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.BEREGNING }}
                 name="eo-bilag-opgoerelse"
                 // Opgørelsen indgår ALTID. Feltet var før kun `disabled`, men en programinaktiv checkbox
-                // vises bevidst UMARKERET — så en sag gemt eller indlæst med `opgoerelse: false` viste et
+                // vises bevidst UMARKERET – så en sag gemt eller indlæst med `opgoerelse: false` viste et
                 // låst, tomt felt, brugeren hverken kunne forklare eller rette, og dokumentgenereringen
                 // kastede «Dokumentgenerering kræver, at elementet "Opgørelse" er valgt.». `lockedOn` er
                 // den modsatte tilstand: altid markeret, aldrig redigerbar. `resolveBilagSelection` tvinger

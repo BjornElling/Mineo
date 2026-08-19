@@ -1,7 +1,7 @@
 /**
  * Den udtømmende matrix, del 1: livscyklussens egne cases.
  *
- * Kontrakten kræver ni cases pr. output. Fem af dem er DEFINITIONSUAFHÆNGIGE af konstruktion — de
+ * Kontrakten kræver ni cases pr. output. Fem af dem er DEFINITIONSUAFHÆNGIGE af konstruktion – de
  * afhænger kun af `documentLifecycle.ts`' rækkefølge, ikke af hvad definitionen projicerer:
  *
  *   - åben draft, som settler gyldigt
@@ -10,7 +10,7 @@
  *   - direkte programmatisk aktivering
  *   - "for blokerede cases sker der ikke lazy-load, generatorimport eller fil-I/O"
  *
- * Havde hvert output sin egen kopi af livscyklussen, ville de fem være per-output — og en kopi kunne
+ * Havde hvert output sin egen kopi af livscyklussen, ville de fem være per-output – og en kopi kunne
  * mangle et trin, uden at nogen anden kopi blev rød. Den duplikering findes ikke: der er ét
  * `executeDocumentDownload`, og alle 21 outputs går gennem det. At teste de fem cases 21 gange ville
  * derfor teste den samme kodesti 21 gange og give falsk tryghed om, at dækningen var per-output.
@@ -19,7 +19,7 @@
  * og renderer er fuldt instrumenterede. Det er strengere end en per-output-test kunne være: en ægte
  * definition kan ikke fortælle om dens `loadRenderer` blev kaldt.
  *
- * Del 2 — de fire GATE-cases (ugyldigt format, bounds, missing, warning, ikke-relevant fejl) — er
+ * Del 2 – de fire GATE-cases (ugyldigt format, bounds, missing, warning, ikke-relevant fejl) – er
  * per-definition og ligger i `documentGateMatrix.test.ts`.
  */
 import type { CriticalActionCoordinator } from '../../inputCore/runtime/criticalActionCoordinator';
@@ -154,7 +154,7 @@ const createHarness = (options: Readonly<{
 const run = async (harness: ReturnType<typeof createHarness>) =>
   executeDocumentDownload(documentActionFromDefinition(harness.definition), undefined, harness.environment);
 
-describe('dokument-livscyklus — matrix (definitionsuafhængige cases)', () => {
+describe('dokument-livscyklus – matrix (definitionsuafhængige cases)', () => {
   beforeEach(() => triggerMock.mockClear());
 
   it('case: åben draft der settler GYLDIGT → hele kæden kører og leverer filen', async () => {
@@ -239,7 +239,7 @@ describe('dokument-livscyklus — matrix (definitionsuafhængige cases)', () => 
     const outcome = await run(harness);
 
     expect(outcome).toMatchObject({ status: 'rejected', rejection: { kind: 'stale-source', phase: 'render' } });
-    // Dokumentet BLEV renderet — og blev derefter kasseret. Det er hele pointen med
+    // Dokumentet BLEV renderet – og blev derefter kasseret. Det er hele pointen med
     // post-render-checket: uden det ville et forældet dokument være blevet leveret.
     expect(harness.calls.render).toBe(1);
     expect(triggerMock).not.toHaveBeenCalled();
@@ -274,7 +274,7 @@ describe('dokument-livscyklus — matrix (definitionsuafhængige cases)', () => 
     const outcome = await run(harness);
 
     expect(outcome).toMatchObject({ status: 'failed', failure: { kind: 'runtime' } });
-    // §A5: kun `runtime` når systemfejl-sinken — afvisninger gør ikke.
+    // §A5: kun `runtime` når systemfejl-sinken – afvisninger gør ikke.
     expect(harness.calls.reportFailure).toHaveLength(1);
     expect(harness.calls.reportFailure[0]?.kind).toBe('runtime');
     expect(triggerMock).not.toHaveBeenCalled();
@@ -302,7 +302,7 @@ describe('dokument-livscyklus — matrix (definitionsuafhængige cases)', () => 
   });
 
   it('case: `noop` fra barrieren er et INVARIANTBRUD, ikke en tavs afvisning', async () => {
-    // Download settler altid pr. §1.4-matricen. Nås grenen, er det en programfejl — og den skal
+    // Download settler altid pr. §1.4-matricen. Nås grenen, er det en programfejl – og den skal
     // rapporteres som sådan frem for at ligne en normal brugerafvisning.
     const harness = createHarness({ preparation: { status: 'noop' } });
     const outcome = await run(harness);

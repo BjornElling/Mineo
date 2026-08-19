@@ -141,7 +141,7 @@ describe('computeRowDateBounds', () => {
         tilExtraMaxDate: extraMax,
         useTilExtraMaxDate: false,
       });
-      // Reglen er fravalgt — tilMax = tilFallbackMax
+      // Reglen er fravalgt – tilMax = tilFallbackMax
       expect(bounds.til.max).toBe(TIL_FALLBACK_MAX);
     });
   });

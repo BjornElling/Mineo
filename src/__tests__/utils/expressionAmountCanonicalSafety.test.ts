@@ -2,12 +2,12 @@ import { amountValueSchema } from '../../schemas/amountExpressionSchema';
 import { parseAmountInput } from '../../utils/expressionAmount';
 
 // Settle må ALDRIG kaste en uncaught ZodError. Et udtryksresultat, som beløbsschemaet ikke kan
-// gemme præcist, skal derfor afvises af PARSEREN — så bliver det afsluttet rejected råtekst med rød
+// gemme præcist, skal derfor afvises af PARSEREN – så bliver det afsluttet rejected råtekst med rød
 // feltfejl (§1.6) i stedet for en teknisk fejladvarsel.
 //
 // Fejlen kunne kun ramme et HELTALS-beløbsfelt: parseren målte repræsentationsgrænsen mod feltets egen
 // `precision`, mens `amountValueSchema` altid validerer ved 2 decimaler. Ved precision 0 er den sikre
-// grænse 2^53, ved precision 2 er den 2^46 — et gab på tre størrelsesordener, hvor parseren sagde ja og
+// grænse 2^53, ved precision 2 er den 2^46 – et gab på tre størrelsesordener, hvor parseren sagde ja og
 // schemaet kastede.
 
 const parseIntegerAmount = (raw: string) => parseAmountInput(raw, {
@@ -40,7 +40,7 @@ describe('beløbsparserens canonical repræsentationsgrænse', () => {
 
   it('et resultat over FELTETS grænse men inden for canonical repræsentation accepteres fortsat', () => {
     // `9999999*2` = 19.999.998 er over `±9.999.999,99`, men kan gemmes præcist. Den skal committes
-    // canonical og markeres rødt af `amountResultBoundsValidator` — ikke afvises som format her.
+    // canonical og markeres rødt af `amountResultBoundsValidator` – ikke afvises som format her.
     const parsed = parseIntegerAmount('9999999*2');
     expect(parsed.ok).toBe(true);
     if (parsed.ok) expect(parsed.value?.value).toBe(19_999_998);

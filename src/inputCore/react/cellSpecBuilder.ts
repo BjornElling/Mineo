@@ -6,7 +6,7 @@ import type { CellSpec } from './useCellEditor';
 /**
  * Den ENE cellebindingsmodel for alle dynamiske tabeller (§1.11, §3.2).
  *
- * Problemet den løser: en celles dataidentitet er `descriptor` bundet til HELE ejerstien — for en top-level
+ * Problemet den løser: en celles dataidentitet er `descriptor` bundet til HELE ejerstien – for en top-level
  * collection kun rækkens entity-id, for en nested collection (fx EO's løntabel under ét ansættelsesforhold)
  * ejerens id FØRST og derefter rækkens. Da hver tabel tidligere byggede sit eget celle-spec, kunne hver af dem
  * vælge sin egen bindingsmodel, og en nested tabel kunne binde med for få entity-led. Adresseariteten er
@@ -33,7 +33,7 @@ export type CollectionCellBinding<TEntity> = Readonly<{
 export type CollectionRenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
 
 /**
- * Ejer-id'erne før rækkens eget id, udledt af collectionens egen sti — ikke af en separat prop.
+ * Ejer-id'erne før rækkens eget id, udledt af collectionens egen sti – ikke af en separat prop.
  *
  * Det er dét, der gør en forkert arity umulig at indføre lokalt: den samme sti, `insertEntity` og readeren
  * bruger, er også den, cellen bindes fra. En nested collection giver automatisk `[ejerId]`, en top-level `[]`.
@@ -45,7 +45,7 @@ export const collectionOwnerEntityIds = (collection: CollectionRef): readonly st
  * Den ENE bindingsregel for en celle i en collection: ejerstien fra collectionen, derefter rækkens id.
  *
  * Udtrykket er eksporteret, fordi der er TO legitime aftagere: celle-spec-byggeren nedenfor (redigering) og
- * den fælles løntabel-reader-adapter (rekonstruktion + cellefejl). Begge skal binde IDENTISK — kunne de
+ * den fælles løntabel-reader-adapter (rekonstruktion + cellefejl). Begge skal binde IDENTISK – kunne de
  * divergere, ville en celle blive redigeret på én adresse og læst på en anden, og fejlen ville vise sig som
  * en lydløst tom celle. Derfor er reglen ét udtryk og ikke en gentaget `bind(...)`-linje.
  */

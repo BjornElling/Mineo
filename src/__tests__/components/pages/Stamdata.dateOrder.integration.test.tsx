@@ -39,7 +39,7 @@ const inputForRow = (label: string): HTMLInputElement => {
   return within(row).getByRole('textbox') as HTMLInputElement;
 };
 
-describe('Stamdata — canonical datoordensfejl', () => {
+describe('Stamdata – canonical datoordensfejl', () => {
   it('bevarer begge datoer canonical og viser samme afledte issue på felterne', async () => {
     const user = userEvent.setup();
     const { binding } = renderPage();

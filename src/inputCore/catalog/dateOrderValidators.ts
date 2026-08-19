@@ -8,7 +8,7 @@ import { hasDateOrderError } from '../../utils/dateOrderValidation';
 // (`validation/tafPeriodeValidation.ts` m.fl.), som producerer `{ message, field: 'fra' | 'til' }`. Et
 // kolonne-hint er ikke en feltadresse, og en rød ring kræver et fuldt `FieldIssue` med en strukturel
 // `FieldRef` (§1.8). Derfor kunne rækkefølgefejlen vises i "Fejl og advarsler" og endda scrolle til det
-// rigtige felt — uden at feltet nogensinde blev rødt.
+// rigtige felt – uden at feltet nogensinde blev rødt.
 //
 // Reglen hører til på descriptoren, fordi den kan afgøres af feltet plus dets søskendefelt alene.
 // Overlap mellem rækker og cutoff mod BEREGNEDE datoer kan den derimod ikke afgøre; de forbliver
@@ -22,7 +22,7 @@ import { hasDateOrderError } from '../../utils/dateOrderValidation';
  * forkerte". Modpartens dato står i beskeden, fordi tooltippet læses ved markøren i ét felt, mens fejlen
  * kun giver mening som et forhold mellem to.
  *
- * `reason: 'rule'` — ikke `'bounds'`. Konsekvensen er synlig for brugeren: `resolveFieldIssueTooltip`
+ * `reason: 'rule'` – ikke `'bounds'`. Konsekvensen er synlig for brugeren: `resolveFieldIssueTooltip`
  * viser `rule`-beskeder ORDRET (§4), mens en generisk «Fejl i indtastning» ville skjule netop den
  * modgående dato, der gør fejlen forståelig.
  */
@@ -63,7 +63,7 @@ const readCounterpart = <T>(
  * Kronologivalidatoren for den ene halvdel af et dato-par.
  *
  * Sammenligningen er STRENG (`fra > til`): et éndags-interval, hvor fra og til er samme dag, er lovligt
- * og bruges i praksis. Grænserne clampes bevidst IKKE her — clamping mod modpartens dato hører til i
+ * og bruges i praksis. Grænserne clampes bevidst IKKE her – clamping mod modpartens dato hører til i
  * motoren. Lod validatoren `til.min` clampe mod `fra`, ville bounds-reglen spise kronologireglen, og
  * beskeden ville skifte til en intervaltekst, der ikke nævner det egentlige problem. Præcis den
  * indbyrdes maskering gjorde fejlen ustabil.

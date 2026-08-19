@@ -46,7 +46,7 @@ export interface KRLSatstabel {
 export type KRLReguleringsDatoInterval = CoverageInterval;
 
 /**
- * Sorteringsretningen for KRL-serierne — ét sted, delt af load-guarden og af det
+ * Sorteringsretningen for KRL-serierne – ét sted, delt af load-guarden og af det
  * positionelle dæknings-opslag, så de to ikke kan stå med hver sin retning.
  */
 const KRL_SERIE_ORDER: DanishDateOrder = 'descending';
@@ -152,7 +152,7 @@ const KRL_IDS: ReadonlyArray<{ id: KRLSatstabelId; colIndex: 1 | 2 | 3 | 4 }> = 
  * carry-forwarder derfor den seneste kendte procent. To latente antagelser skal
  * håndhæves, for at det er sikkert:
  *
- * (1) **Rækkefølge — strengt nyeste-først (`KRL_SERIE_ORDER`).** Både
+ * (1) **Rækkefølge – strengt nyeste-først (`KRL_SERIE_ORDER`).** Både
  *     `getReguleringsDatoIntervalForKRL` (der læser enderne positionelt via
  *     `resolveSeriesCoverageInterval` med samme retningskonstant) og null-prefiks-kontrollen
  *     nedenfor forudsætter denne rækkefølge. En mis-sorteret tabel ville give et
@@ -163,7 +163,7 @@ const KRL_IDS: ReadonlyArray<{ id: KRLSatstabelId; colIndex: 1 | 2 | 3 | 4 }> = 
  * (2) **Ingen interiort hul pr. kolonne.** `buildSatstabelFromCombined` frafiltrerer
  *     null-felter. Et hul *midt* i en kolonnes serie (en manglende procent mellem to
  *     definerede datoer) ville derfor forsvinde lydløst: motoren ville videreføre den
- *     forrige — lavere — akkumulerede procent i det manglende trins segment i stedet
+ *     forrige – lavere – akkumulerede procent i det manglende trins segment i stedet
  *     for at fejle. Det er en tavs under-regulering (jf. silent-path S6, interiort
  *     hul). Null må derfor kun optræde som en sammenhængende *prefiks* i de ældste
  *     datoer (før en organisations serie starter); når en kolonne først er defineret,
@@ -232,7 +232,7 @@ const buildSatstabelFromCombined = (
       vaerdier.push({ fraDato: d(row[0]), reguleringsPct: pct });
     }
   }
-  // Den AFLEDTE delserie er den, dæknings-opslaget faktisk læser positionelt — ikke den
+  // Den AFLEDTE delserie er den, dæknings-opslaget faktisk læser positionelt – ikke den
   // samlede tabel, guarden ovenfor dækker. At delserien arver sorteringen er i dag en
   // to-trins slutning (kombineret tabel sorteret + null kun som ældste-prefiks), som intet
   // værn kontrollerer for det afledte resultat. Guarden gentages derfor her, hvor serien

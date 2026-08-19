@@ -15,11 +15,11 @@ import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatnings
  * Enheden er per side: de eksisterende tab-niveau-under-viewmodels (`useEoOplysningerViewModel`,
  * `useLoenindkomstViewModel`, `useEoBeregningViewModel`) er feature-slicede subviews og bevares uændret. Denne
  * model ejer det, der hører til SIDEN: den ene tokenbundne reader-projektion, fanetilladelser og -besøg, og
- * navigationen mellem faner. Beregningskernen (`computeEoSnapshot`) er urørt — modellen orkestrerer, den
+ * navigationen mellem faner. Beregningskernen (`computeEoSnapshot`) er urørt – modellen orkestrerer, den
  * genberegner ikke.
  */
 
-// `EoTabKey` importeres fra `config/eoTabKeys` — den kanoniske kilde. En lokal genudledning af samme udtryk
+// `EoTabKey` importeres fra `config/eoTabKeys` – den kanoniske kilde. En lokal genudledning af samme udtryk
 // ville være to offentlige navne for ét begreb, altså præcis den parallelle model dette review lukker.
 
 const EO_MAIN_TAB_ITEMS: readonly Readonly<{ key: EoTabKey; label: string }>[] = [

@@ -8,7 +8,7 @@ import baseConfig from './vite.config';
 // via en dynamisk import() af standalone-rente-PDF-tjenesten (jf. MinProcesrenteCalculatorPage).
 // Base-configens `manualChunks` tvinger dem ellers ind i navngivne vendor-chunks, hvilket gør
 // dem til *initiale* chunks (modulepreload i HTML) selv når intet i entry-grafen importerer dem
-// statisk — så jsPDF (~400 KiB) hentes på first load uden at blive brugt. Ved at lade dem falde
+// statisk – så jsPDF (~400 KiB) hentes på first load uden at blive brugt. Ved at lade dem falde
 // naturligt ud i den dynamiske chunk bliver de først hentet når brugeren downloader.
 // Mineo-buildet er urørt og beholder sin vendor-splitting.
 const minprocesrenteManualChunks = (id: string): string | undefined => {

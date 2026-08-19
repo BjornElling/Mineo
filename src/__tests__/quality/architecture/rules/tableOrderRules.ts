@@ -3,8 +3,8 @@
  *
  * Fire ting skal altid følges, når brugeren sorterer: den nye orden persisteres i samme
  * event, render-rækkefølgen følger med, save-order-registret ser præcis den orden brugeren
- * ser, og header-cellen viser sin sorteringspil. De var skrevet i hånden pr. tabel — ordret
- * ens i 7-8 af de 10 — så en ny tabel kunne få tre af fire rigtigt. Fejlen ville først vise
+ * ser, og header-cellen viser sin sorteringspil. De var skrevet i hånden pr. tabel – ordret
+ * ens i 7-8 af de 10 – så en ny tabel kunne få tre af fire rigtigt. Fejlen ville først vise
  * sig som en gemt fil med en anden rækkefølge end skærmen: ingen typefejl, ingen exception.
  *
  * Reglen håndhæver derfor, at en tabel der sorterer og har en save-order-sti, får sin
@@ -44,7 +44,7 @@ const SORTED_ORDER_OWNED_TABLES = [
 export const tableSortOrderOwnershipRule = defineRule({
   id: 'form/table-sort-order-owned-by-hook',
   description:
-    'En sorterbar tabel må ikke kalde useRegisterTableSaveOrder selv — rækkefølgen (sortering, reorder-persistering, render-orden, save-order) ejes af useSortedCollectionTable.',
+    'En sorterbar tabel må ikke kalde useRegisterTableSaveOrder selv – rækkefølgen (sortering, reorder-persistering, render-orden, save-order) ejes af useSortedCollectionTable.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => collectCalls(entry).some((call) => call.calleeName === 'useSortedCollectionTable'),

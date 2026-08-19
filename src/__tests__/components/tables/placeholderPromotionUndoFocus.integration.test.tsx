@@ -159,7 +159,7 @@ const renderTable = (minimumVisibleRows?: number) => render(
 const committedRowIds = (): readonly string[] =>
   (store.getState().input.sections.renteberegning?.rentekravRows ?? []).map((row) => row.id);
 
-/** Det seneste history-frames origin — det, en undo vil forsøge at restore fokus til. */
+/** Det seneste history-frames origin – det, en undo vil forsøge at restore fokus til. */
 const latestOrigin = () => {
   const frames = store.getState().history.past;
   return frames[frames.length - 1]?.origin;
@@ -192,7 +192,7 @@ describe('placeholder-promotion → undo → fokus', () => {
     //    kastet væk, den viste placeholder havde et nyt id, og `findRestoreTarget` returnerede null.
     const target = origin === undefined ? null : findRestoreTarget(origin);
     expect(target).not.toBeNull();
-    // Og det er cellen i den nu tomme indtastningsrække — samme identitet, brugeren skrev i.
+    // Og det er cellen i den nu tomme indtastningsrække – samme identitet, brugeren skrev i.
     expect(target).toHaveAttribute('data-mineo-editor-location-id', expect.stringContaining(promotedId!));
   });
 
@@ -201,7 +201,7 @@ describe('placeholder-promotion → undo → fokus', () => {
     renderTable();
 
     // Et valg i placeholder-rækkens dropdown promoverer rækken og BEVARER valget. Cellen er MUI's combobox
-    // (readonly input + listbox), ikke et native `<select>`, så menuen åbnes gennem dens egen klik-kontrakt —
+    // (readonly input + listbox), ikke et native `<select>`, så menuen åbnes gennem dens egen klik-kontrakt –
     // navigationen lader dropdown-celler beholde deres egen tastaturkontrakt.
     const combobox = screen.getAllByRole('combobox')[0]!;
     await act(async () => {
@@ -306,7 +306,7 @@ describe('placeholder-promotion → undo → fokus', () => {
 
   /**
    * Det ANDET symptom: brugeren rapporterede, at når først fokus var gået tabt, blev en række ikke slettet,
-   * når alle dens indtastninger blev fortrudt. Rækkeoprettelsen er promoveringen, og undo er LIFO — derfor SKAL
+   * når alle dens indtastninger blev fortrudt. Rækkeoprettelsen er promoveringen, og undo er LIFO – derfor SKAL
    * det sidste undo i en række altid fjerne selve rækken, også efter en fuld undo/redo-rundtur. Testen pinner
    * den invariant på en række med FLERE indtastninger, så et manglende eller ekstra history-trin ville efterlade
    * en committet, tom række og gøre testen rød.

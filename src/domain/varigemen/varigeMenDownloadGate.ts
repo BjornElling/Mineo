@@ -28,7 +28,7 @@ export const evaluateVarigeMenDownloadGate = (
 ): DocumentDownloadGateResult => {
   if (projection.status === 'blocked') {
     // HELE issue-listen sendes til klassifikationen. Gaten valgte før ÉT feltissue med `.find()` og citerede
-    // det — så to samtidige røde felter så ud som én fejl, og tooltippen udpegede det ene som "fejlen".
+    // det – så to samtidige røde felter så ud som én fejl, og tooltippen udpegede det ene som "fejlen".
     // Rød-før-tom-forrangen (den tidligere `beregningsFejl` → `manglendeFelter`) ligger nu i
     // `classifyBlockingCauses`, som stadig lader en feltfejl vinde over en `missing`-consumerfejl.
     return blockDocumentDownloadFromCauses(

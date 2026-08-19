@@ -2,7 +2,7 @@
  * Central konfiguration af faste reguleringsrelaterede konstanter.
  *
  * BEMÆRK: Indskudte lønregulerings-tillæg (Store Bededagstillæg) bor i
- * `src/data/indskudteLoentillaeg.ts` — ikke her.
+ * `src/data/indskudteLoentillaeg.ts` – ikke her.
  */
 
 // Standardfaktor til konvertering mellem time- og månedssats

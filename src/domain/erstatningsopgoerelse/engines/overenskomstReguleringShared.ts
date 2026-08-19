@@ -15,15 +15,15 @@ import { convertAnciennitetSats, parseDanishToIso, resolvePctPointFromSatsOrInpu
 import type { FormulaComponents } from './reguleringFormulaUtils';
 
 // =============================================================================
-// Anciennitetstillæg i reguleringsforløb — ét fælles opslag delt af motor, præsentation og kontrol.
+// Anciennitetstillæg i reguleringsforløb – ét fælles opslag delt af motor, præsentation og kontrol.
 //
 // Tillægget (og dets gate-datoer) blev tidligere udledt tre gange uafhængigt: motorens
-// `overenskomstSegmentContext`, præsentationens reguleringsindeks-tabel og — implicit ved
-// FRAVÆR — kontrol-laget (`eoInspektionRegulationCore`), som slet ikke medtog tillægget og
+// `overenskomstSegmentContext`, præsentationens reguleringsindeks-tabel og – implicit ved
+// FRAVÆR – kontrol-laget (`eoInspektionRegulationCore`), som slet ikke medtog tillægget og
 // derfor kunne vise et forkert kontrol-indeks (falsk `control:sammentaelling_mismatch`).
 // Resolveren nedenfor er den ENESTE kilde til tillæggets kroneværdi og aktiveringsdato.
 // Selve indeks-/pakkeberegningen forbliver pr. lag (motorens pct-point-formel vs.
-// kontrol-lagets decimal-konvention, jf. B9) — kun resolutionen af user-input deles.
+// kontrol-lagets decimal-konvention, jf. B9) – kun resolutionen af user-input deles.
 // =============================================================================
 
 /**
@@ -165,12 +165,12 @@ export const resolvePrivateOverenskomstBaseContext = (
 /**
  * Bygger `FormulaComponents` for den OFFENTLIGE overenskomst-gren (løntrin). Samler den samling
  * motoren (`overenskomstOffentligSegmenter`) og præsentationens reguleringsindeks-tabel før byggede
- * hver for sig — begge i pct-point-konvention med `resolvePctPointFromSatsOrInput` — så vist indeks
+ * hver for sig – begge i pct-point-konvention med `resolvePctPointFromSatsOrInput` – så vist indeks
  * = den motoren afleder deltaPct fra (én formel-samling, ingen drift). Spejler den private
  * `buildPrivateOverenskomstFormulaComponents`.
  *
  * BEVIDST afgrænsning: kun selve samlingen deles. Base-/sats-UDVÆLGELSEN forbliver pr. lag
- * (motorens U4-clamp + interval-fallback vs. præsentationens effective-base + deltaPct-fallback) —
+ * (motorens U4-clamp + interval-fallback vs. præsentationens effective-base + deltaPct-fallback) –
  * de er to forskellige, bevidst adskilte mekanismer (jf. U4). `grundloen` er allerede summeret af
  * kaldstedet (løn + ekstra grundløn + evt. anciennitetstillæg). Inspektionslaget deles IKKE herfra:
  * det bruger decimal-konvention (`computePackageValueDecimal`) og er B9-isoleret kontrol.

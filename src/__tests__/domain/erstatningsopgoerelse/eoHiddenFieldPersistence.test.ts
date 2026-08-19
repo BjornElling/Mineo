@@ -24,7 +24,7 @@ const amount = (value: number): AmountValue => ({ kind: 'number', value });
  * Kæden bar tidligere et ekstra `serializeFormValues`-trin (undefined→null), som produktionen IKKE
  * udfører: `encodeEoFile`/current-session-envelopen stringify'er den schema-parsede sektion direkte, og
  * `JSON.stringify` DROPPER `undefined`-nøgler frem for at nulle dem. Et ekstra normaliseringstrin her
- * ville gøre round-trippen lettere end virkeligheden — et felt, hvis schema kun tolererer `null` men
+ * ville gøre round-trippen lettere end virkeligheden – et felt, hvis schema kun tolererer `null` men
  * ikke fravær, ville bestå her og fejle i produktionen.
  */
 const roundTripSaveLoad = (values: ErstatningsopgoerelseValues): ErstatningsopgoerelseValues => {
@@ -34,7 +34,7 @@ const roundTripSaveLoad = (values: ErstatningsopgoerelseValues): Erstatningsopgo
 };
 
 /**
- * Alle synligheds-toggles står i den tilstand, der SKJULER deres afhængige felter — men
+ * Alle synligheds-toggles står i den tilstand, der SKJULER deres afhængige felter – men
  * felterne er udfyldt. En korrekt persistens må bevare dem alle.
  */
 const makeAllHiddenButFilled = (): ErstatningsopgoerelseValues => ({
@@ -84,7 +84,7 @@ const makeAllHiddenButFilled = (): ErstatningsopgoerelseValues => ({
 });
 
 describe('EO skjulte felters persistens (krav 1) vs. beregnings-neutralisering (krav 2)', () => {
-  describe('krav 1 — save/load + F5 bevarer skjulte felters værdier', () => {
+  describe('krav 1 – save/load + F5 bevarer skjulte felters værdier', () => {
     it('bevarer ALLE skjulte felter gennem save→load-round-trip', () => {
       const original = makeAllHiddenButFilled();
       const restored = roundTripSaveLoad(original);
@@ -141,7 +141,7 @@ describe('EO skjulte felters persistens (krav 1) vs. beregnings-neutralisering (
     });
   });
 
-  describe('krav 2 — beregningen neutraliserer de samme skjulte felter (save-stien er upåvirket)', () => {
+  describe('krav 2 – beregningen neutraliserer de samme skjulte felter (save-stien er upåvirket)', () => {
     it('neutralizeIrrelevantEoInputs blanker talfødende skjulte felter, men muterer ikke originalen', () => {
       const original = makeAllHiddenButFilled();
       const effective = neutralizeIrrelevantEoInputs(original);

@@ -5,8 +5,8 @@
  * `AarsloenDocumentSnapshot`, som komponenten samlede af ni felter. Under migreringen var de dækket
  * af en midlertidig ækvivalens-test, der kørte gammel og ny implementering side om side; den havde
  * kun værdi så længe BEGGE fandtes, og er slettet sammen med hooken. Denne test er den blivende
- * dækning: den kører gaten mod ægte, committede input gennem den kanoniske projektion — ikke mod et
- * håndbygget snapshot — og pinner hver blokerings-årsag med kode og besked.
+ * dækning: den kører gaten mod ægte, committede input gennem den kanoniske projektion – ikke mod et
+ * håndbygget snapshot – og pinner hver blokerings-årsag med kode og besked.
  *
  * `calculation === null` er projektionens måde at sige "feltgaten er rød, så motoren blev ikke
  * kaldt" (§3.9). Det er derfor en selvstændig blokeringsgren, ikke en manglende værdi.
@@ -94,7 +94,7 @@ const withValidStamdata = (input: SettledInput): SettledInput => {
 };
 
 /**
- * Stamdata med en RØD feltfejl. Bemærk at stamdata-dependencyen ikke blokerer på FRAVÆR — alle
+ * Stamdata med en RØD feltfejl. Bemærk at stamdata-dependencyen ikke blokerer på FRAVÆR – alle
  * felter er valgfri, så en tom stamdata-sektion er `ready`. Den blokerer på en feltfejl, og her
  * bruges datoorden-validatoren (fødselsdato efter skadedato), som gør begge datoer røde.
  */
@@ -103,7 +103,7 @@ const withBlockedStamdata = (input: SettledInput): SettledInput => {
   return dispatch(next, settle(stamdataSkadedatoField.bind(), '01-01-2020'));
 };
 
-/** Én gyldig månedsrække med et beløb — nok til at motoren kan beregne en årsløn. */
+/** Én gyldig månedsrække med et beløb – nok til at motoren kan beregne en årsløn. */
 const withOneValidMonthRow = (input: SettledInput): SettledInput => {
   let next = dispatch(input, insert(emptyRow('r1')));
   next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind('r1'), '1'));
@@ -124,7 +124,7 @@ const expectBlocked = (
 
 describe('evaluateAarsloenDownloadGate', () => {
   it('blokerer på en RØD stamdata-feltfejl, og stamdata rammer FØR alle andre grene', () => {
-    // Tabellen er gyldig, så kun stamdata kan blokere — det pinner samtidig rækkefølgen.
+    // Tabellen er gyldig, så kun stamdata kan blokere – det pinner samtidig rækkefølgen.
     const input = withBlockedStamdata(withOneValidMonthRow(empty()));
     expectBlocked(evaluateAarsloenDownloadGate(project(input)), 'aarsloen:stamdata-blocked');
   });
@@ -148,7 +148,7 @@ describe('evaluateAarsloenDownloadGate', () => {
 
     // Værdien afvises af bounds-validatoren og er derfor et rødt feltissue; den når IKKE
     // `values.feriePct`, som forbliver `undefined`. Derfor ser `resolveAarsloenCanonicalRangeIssues`
-    // ingen out-of-range-værdi — i stedet kalder projektionen slet ikke motoren (`calculation ===
+    // ingen out-of-range-værdi – i stedet kalder projektionen slet ikke motoren (`calculation ===
     // null`), og gaten blokerer med `fatal-calculation-error`.
     //
     // Denne test pinner netop den kæde: begge udfald er en synlig blokering, men det er
@@ -182,18 +182,18 @@ describe('evaluateAarsloenDownloadGate', () => {
  * Brugerfundet 2026-08-15 og dets klasse.
  *
  * Fundet: en lønrække med komplet periode (`11`/`2012`) og INTET beløb blokerede downloaden med
- * «Fejl i indtastning». Det er en ren MANGEL — brugeren blev sendt ud at lede efter en ugyldig værdi,
+ * «Fejl i indtastning». Det er en ren MANGEL – brugeren blev sendt ud at lede efter en ugyldig værdi,
  * der ikke fandtes.
  *
  * Årsagen var strukturel: gaten kollapsede HELE `tableValidation.errors` til én hardkodet klasse, selv
  * om `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`. Testene her
- * måler derfor hver art for sig OG deres samspil — ikke kun den ene tilstand, fundet beskrev.
+ * måler derfor hver art for sig OG deres samspil – ikke kun den ene tilstand, fundet beskrev.
  *
  * Assertionerne går på den TEKST brugeren læser (`resolveBlockedGateTooltip`), ikke kun på `kind`: det er
  * teksten, fundet handlede om, og en sammenlægning af de to konstanter ville ellers kunne gøre begge
  * retninger grønne samtidig.
  */
-describe('evaluateAarsloenDownloadGate — manglende vs. ugyldig indtastning i løntabellen', () => {
+describe('evaluateAarsloenDownloadGate – manglende vs. ugyldig indtastning i løntabellen', () => {
   /** Måned + år udfyldt, men ingen beløb → `missing_amount`. Præcis brugerfundets tilstand. */
   const withCompletePeriodWithoutAmount = (input: SettledInput, id: string, maaned: string): SettledInput => {
     let next = dispatch(input, insert(emptyRow(id)));
@@ -210,7 +210,7 @@ describe('evaluateAarsloenDownloadGate — manglende vs. ugyldig indtastning i l
 
   /**
    * En AFVIST celleværdi → `invalid`. Måned 13 findes ikke, så feltvalidatoren gør cellen rød.
-   * Testen efterprøver selv, at cellen faktisk ER rød — ellers ville den måle en anden gren end tiltænkt.
+   * Testen efterprøver selv, at cellen faktisk ER rød – ellers ville den måle en anden gren end tiltænkt.
    */
   const withInvalidCell = (input: SettledInput, id: string): SettledInput => {
     let next = dispatch(input, insert(emptyRow(id)));
@@ -255,7 +255,7 @@ describe('evaluateAarsloenDownloadGate — manglende vs. ugyldig indtastning i l
     const input = withInvalidCell(withValidStamdata(empty()), 'r1');
     const projection = project(input);
     // Uden denne kontrol kunne testen være grøn, fordi måned 13 blev accepteret og rækken i stedet
-    // blokerede som en mangel — altså den modsatte klasse af den, testen påstår at måle.
+    // blokerede som en mangel – altså den modsatte klasse af den, testen påstår at måle.
     expect(projection.tableValidation.errors.some((e) => e.kind === 'cell' && e.issue === 'invalid')).toBe(true);
 
     const gate = evaluateAarsloenDownloadGate(projection);
@@ -288,7 +288,7 @@ describe('evaluateAarsloenDownloadGate — manglende vs. ugyldig indtastning i l
 
   /**
    * De to universelle tekster SKAL være forskellige. Uden denne kontrol ville en sammenlægning af
-   * konstanterne gøre alle testene ovenfor grønne på én gang — og fundet ville kunne genopstå usynligt.
+   * konstanterne gøre alle testene ovenfor grønne på én gang – og fundet ville kunne genopstå usynligt.
    */
   it('holder de to brugertekster adskilt', () => {
     expect(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE).not.toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);

@@ -93,7 +93,7 @@ type GenerateVarigeMenDocumentParams = DocumentCommonOptions & Readonly<{
   mengrad: number;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
-  /** Feltets navn i sagens kontekst — afgjort af `resolveSkadestypeDatoLabel`, ikke af generatoren. */
+  /** Feltets navn i sagens kontekst – afgjort af `resolveSkadestypeDatoLabel`, ikke af generatoren. */
   skadedatoLabel: SkadestypeDatoLabel;
 }>;
 

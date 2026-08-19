@@ -1,4 +1,4 @@
-# `docs/implementation/` — planer for arbejde, der IKKE er udført
+# `docs/implementation/` – planer for arbejde, der IKKE er udført
 
 Denne mappe har præcis ét formål: at samle **implementeringsplaner for arbejde, der endnu ikke er
 begyndt eller er ufærdigt**. En plan her er en åben hensigt, ikke dokumentation af programmet.
@@ -8,7 +8,7 @@ begyndt eller er ufærdigt**. En plan her er en åben hensigt, ikke dokumentatio
 1. **Kun ikke-udført arbejde.** Hver plan bærer en statuslinje umiddelbart efter titlen:
    `Status: **PLANLAGT**` eller `Status: **UDSKUDT**` (evt. med dato og en kort tilføjelse).
 2. **En implementeret plan bliver ikke liggende.** Når arbejdet er færdigt, flyttes det varige indhold
-   — invarianter, forkastede alternativer, bevidste konsekvenser — ind i den relevante kontrakt i
+   – invarianter, forkastede alternativer, bevidste konsekvenser – ind i den relevante kontrakt i
    `src/contracts/` eller et dokument i `docs/architecture/`, og **planfilen slettes**. En plan, der
    beskriver noget, koden allerede gør, er en dublet af kontrakten og bliver før eller siden usand.
 3. **Planer ligger her, ikke løst i `docs/`.** `docs/`-roden er til stående dokumenter (arbejdsliste,
@@ -29,9 +29,9 @@ Begge fejlretninger er sket i praksis:
 
 Statuslinjen er derfor **håndhævet**, ikke blot beskrevet:
 `src/__tests__/quality/implementationPlanFolder.test.ts` gør det rødt, hvis en plan her mangler sin
-statuslinje, hvis en plan erklærer sig `IMPLEMENTERET` (så er den udtjent — absorbér og slet), eller
+statuslinje, hvis en plan erklærer sig `IMPLEMENTERET` (så er den udtjent – absorbér og slet), eller
 hvis en `plan-*.md` lægges løst i `docs/`-roden.
 
 Reglens formål er ikke ryddelighed for ryddelighedens skyld. En mappe, hvor færdige og ufærdige planer
-blandes, tvinger den næste oprydning til at gætte — og et gæt er præcis det, der kostede
+blandes, tvinger den næste oprydning til at gætte – og et gæt er præcis det, der kostede
 `autofill-suggest.md` første gang.

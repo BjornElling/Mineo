@@ -24,7 +24,7 @@ import { referenceRates, surchargeRates } from '../../data/interestRates';
  * systemfejl.
  *
  * Den konkrete fælde var netop den handling: åbn programmet, gå til EO-oplysninger, sæt "Beregnes ud fra" til
- * "Angivet månedsløn" — og mød `eo_snapshot:hidden_angivet_loen_state_invalid`. Årsagen var, at et skjult
+ * "Angivet månedsløn" – og mød `eo_snapshot:hidden_angivet_loen_state_invalid`. Årsagen var, at et skjult
  * felt manglede en default, men KLASSEN er større: en systemfejl er per definition en tilstand, koden
  * erklærer umulig, og et brugervalg på en tom sag må aldrig kunne nå den. En systemfejl er ikke en
  * feltfejl brugeren kan rette; den er en påstand om, at programmet er i stykker.
@@ -33,7 +33,7 @@ import { referenceRates, surchargeRates } from '../../data/interestRates';
  * hvert felts eget codec (`FieldCodec.options`), så et nyt valgfelt eller en ny enum-værdi automatisk er
  * dækket, uden at nogen husker at tilføje en case. De tidligere værn på samme klasse
  * (`eoReguleringInvariantReachability`) byggede deres fixture med `createErstatningsopgoerelseInitialValues`
- * — en fabrik produktionen IKKE bruger, og som netop udfyldte det felt, der manglede. Den var derfor
+ * – en fabrik produktionen IKKE bruger, og som netop udfyldte det felt, der manglede. Den var derfor
  * strukturelt ude af stand til at se fejlen. Denne fejning starter fra præcis den tilstand
  * `initializeInputRuntime` giver en ny sag.
  *
@@ -67,7 +67,7 @@ const staticChoiceFields = (productionInputFields as readonly AnyDescriptor[])
 const hasEnumerableOptions = (descriptor: AnyDescriptor): boolean =>
   descriptor.codec.options !== undefined && descriptor.codec.options.length > 0;
 
-/** Alle statiske felter med en OPREGNELIG valgmængde — det fejningen kan udtømme. */
+/** Alle statiske felter med en OPREGNELIG valgmængde – det fejningen kan udtømme. */
 const sweepableFields = staticChoiceFields
   .filter(hasEnumerableOptions)
   .flatMap((descriptor) => (descriptor.codec.options ?? []).map((value) => ({ descriptor, value })));
@@ -78,7 +78,7 @@ const sweepableFields = staticChoiceFields
  *
  * Listen er EKSPLICIT frem for stiltiende, så et nyt valgfelt uden opregnelig mængde bliver et bevidst valg
  * i stedet for et hul, fejningen tier om. Et felt hører kun hjemme her, hvis dets valgmængde beviseligt er
- * datadrevet — ikke fordi det er besværligt at opregne.
+ * datadrevet – ikke fordi det er besværligt at opregne.
  */
 const OPEN_ENDED_CHOICE_FIELD_IDS: readonly string[] = [
   'eo.eoAngivetLoenLoenudvikling.overenskomstId',
@@ -93,7 +93,7 @@ const reportedSystemIssues = (): readonly string[] =>
     return `${payload?.code ?? '?'}: ${payload?.userMessage ?? '?'}`;
   });
 
-/** Kører HELE domænets læsesti, som siderne gør det — enhver uventet exception ender som en systemfejl. */
+/** Kører HELE domænets læsesti, som siderne gør det – enhver uventet exception ender som en systemfejl. */
 const runAllDomainProjections = (input: SettledInput): void => {
   const evaluation = createInputEvaluation({
     input,
@@ -147,7 +147,7 @@ describe('tom sag: ét brugervalg må aldrig udløse en systemfejl', () => {
     const felter = new Set(sweepableFields.map(({ descriptor }) => descriptor.id));
     expect(felter.size).toBeGreaterThan(20);
     expect(sweepableFields.length).toBeGreaterThan(50);
-    // Feltet fra reproduktionen skal være med — ellers måler fejningen ikke den handling, den findes for.
+    // Feltet fra reproduktionen skal være med – ellers måler fejningen ikke den handling, den findes for.
     expect(felter).toContain('eo.beregnesUdFra');
   });
 

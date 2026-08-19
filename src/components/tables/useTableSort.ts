@@ -34,7 +34,7 @@ export type UseTableSortResult<TRow> = Readonly<{
  * Binder en header-celles sorterings-props ud fra ÉT `colId`.
  *
  * Uden den skrives kolonne-id'et tre gange pr. header-celle (`onClick`, `sortRole`,
- * `sortDirection`). To af de tre kan stave forkert, uden at noget fejler — kolonnen holder
+ * `sortDirection`). To af de tre kan stave forkert, uden at noget fejler – kolonnen holder
  * blot op med at vise sin sorteringspil, mens klikket stadig virker. Det er en fejl, hverken
  * typecheck eller en render-test fanger, fordi alle tre argumenter er `string`.
  */

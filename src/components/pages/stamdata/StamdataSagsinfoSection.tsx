@@ -8,7 +8,7 @@ import { useStamdataVm } from './stamdataContext';
 /**
  * Sagsinfo: journalnummer og advokat/sagsbehandler-initialer.
  *
- * Hvert felt modtager KUN sin konkrete `field` (descriptor.bind()) og `location` (stabilt locationId) — ingen
+ * Hvert felt modtager KUN sin konkrete `field` (descriptor.bind()) og `location` (stabilt locationId) – ingen
  * `value`/`onCommit`/`parse`/`format`/`min`/`max`. Bindingerne kommer fra sidens viewmodel (§4.4).
  */
 const StamdataSagsinfoSection = React.memo(() => {

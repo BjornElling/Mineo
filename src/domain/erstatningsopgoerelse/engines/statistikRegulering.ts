@@ -4,7 +4,7 @@ import { createDate } from '../../../utils/dateUtils';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
 import { detectDecimalPlaces } from '../helpers/eoSharedUtils';
 
-// R2 — det autoritative statistik-visnings-forløb: modellens kvartals-indeksserie, keyet på
+// R2 – det autoritative statistik-visnings-forløb: modellens kvartals-indeksserie, keyet på
 // kvartalets ISO-startdato. Dette er præcis den liste motorens statistikForm.byggSegmenter
 // afleder deltaPct fra (basisindeks + carry-forward pr. segment), og som præsentationen tre
 // steder (kilde-satstabel, base-indeks, periode-indeks) byggede uafhængigt. Ved at motoren
@@ -21,7 +21,7 @@ export type StatistikIndexEntry = Readonly<{
  * Deler ét sted den kvartal→startdato-parsing + sortering motor og præsentation tidligere
  * gentog; den stigende sortering matcher `findLatestByDateInSortedList`s carry-forward-invariant.
  * Returnerer tom liste hvis modellen mangler eller ingen kvartaler kan parses (kaldstedet
- * afgør fallback/null — jf. de eksisterende guards i motor og præsentation).
+ * afgør fallback/null – jf. de eksisterende guards i motor og præsentation).
  */
 export const buildStatistikIndexEntries = (modelId: StatistiskLoenudviklingId): readonly StatistikIndexEntry[] => {
   const model = getStatistiskLoenudvikling(modelId);

@@ -25,7 +25,7 @@ import {
 export const failOpenDisplayLookupImport = forbidImports({
   id: 'satser/fail-open-display-lookup-import',
   description:
-    'Det fail-open getSatserForYear (lovbestemteRates) må kun importeres af display-/dokument-lag — aldrig en beregningssti.',
+    'Det fail-open getSatserForYear (lovbestemteRates) må kun importeres af display-/dokument-lag – aldrig en beregningssti.',
   liveTarget: {
     kind: 'precondition',
     // AST-signal, ikke tekst: en kommentar, der nævner opslaget, må ikke holde reglen levende.
@@ -63,11 +63,11 @@ export const aslAarsloensmaksimumRawSubscript = forbidElementAccess({
     probe: (entry) => hasIdentifier(entry, 'aarsloenAslMax'),
     rationale: 'datatabellen `aarsloenAslMax` findes stadig og kan subscriptes',
   },
-  // Kun datakilden tilbage: gateway'en (`aslAarsloensmaksimum.ts`) subscripter ikke længere selv — den går
-  // gennem `YearlyRate`-helperne — så dens allowlist-post var død konfiguration.
+  // Kun datakilden tilbage: gateway'en (`aslAarsloensmaksimum.ts`) subscripter ikke længere selv – den går
+  // gennem `YearlyRate`-helperne – så dens allowlist-post var død konfiguration.
   allow: ['src/data/lovbestemteRates.ts'],
   forbidden: (ref) => ref.objectName === 'aarsloenAslMax',
-  message: (ref) => `Rå ASL-maks-opslag (${ref.chainText}) — brug resolveAslAarsloensmaksimumForAar().`,
+  message: (ref) => `Rå ASL-maks-opslag (${ref.chainText}) – brug resolveAslAarsloensmaksimumForAar().`,
   violatingFixtures: [
     { relativePath: 'src/foo.ts', code: 'const v = aarsloenAslMax[year];' },
     { relativePath: 'src/foo.ts', code: 'const v = aarsloenAslMax[skadesaar];' },
@@ -87,21 +87,21 @@ export const aslAarsloensmaksimumRawSubscript = forbidElementAccess({
  * `serie[0]` / `serie[serie.length - 1]`-opslag genindfører den fejlmåde, primitivet findes
  * for: retningen står da kun som en kommentar ved siden af opslaget, mens den håndhævede
  * sortering er konfigureret et andet sted, og de to kan drive fra hinanden uden at noget
- * fejler — resultatet er et spejlvendt interval, altså en falsk dæknings-gate.
+ * fejler – resultatet er et spejlvendt interval, altså en falsk dæknings-gate.
  *
  * Reglen rammer kun `src/data/`, og kun filer der FAKTISK bygger et dæknings-interval
  * (kendetegnet ved kaldet til `getInclusivePeriodEndDanishDate`). En positionel læsning et
- * andet sted i datalaget — fx `satser[0]` i et carry-forward-opslag — er ikke omfattet:
+ * andet sted i datalaget – fx `satser[0]` i et carry-forward-opslag – er ikke omfattet:
  * dér er "første element" seriens semantik, ikke en påstand om, hvilken ende det er.
  */
 const COVERAGE_INTERVAL_PRIMITIVE = 'src/data/rateSeriesIntegrity.ts';
 
 /**
- * "Denne fil bygger et dæknings-interval" — enten via en af primitiverne (den korrekte form)
+ * "Denne fil bygger et dæknings-interval" – enten via en af primitiverne (den korrekte form)
  * eller ved selv at kalde periode-slut-aritmetikken (den håndrullede form, reglen findes for).
  *
  * Begge grene er nødvendige, og det er ikke redundans: kigger proben KUN efter det rå kald, går
- * reglen inert i samme øjeblik den har virket (alle forbrugere migreret) — hvilket den gjorde
+ * reglen inert i samme øjeblik den har virket (alle forbrugere migreret) – hvilket den gjorde
  * ved første kørsel. Kigger den kun efter primitiv-kaldet, ser den ikke en ny fil, der bygger
  * intervallet i hånden, og som netop derfor SKAL kontrolleres.
  */
@@ -115,7 +115,7 @@ const buildsCoverageInterval = (entry: SourceEntry): boolean =>
   collectCalls(entry).some((ref) => COVERAGE_BUILDING_CALLS.has(ref.calleeText));
 
 /**
- * Nærmeste omsluttende funktion for en node — reglens EGENTLIGE enhed.
+ * Nærmeste omsluttende funktion for en node – reglens EGENTLIGE enhed.
  *
  * Filen er den forkerte granularitet: en datafil indeholder både dæknings-opslaget og en masse
  * urelateret indeksering (`row[0]` for en kolonne, `a[0]` i en sammenligner,
@@ -138,7 +138,7 @@ const enclosingFunction = (node: ts.Node): ts.Node | undefined => {
   return undefined;
 };
 
-/** `serie[0]` eller `serie[serie.length - 1]` — de to positionelle ende-former. */
+/** `serie[0]` eller `serie[serie.length - 1]` – de to positionelle ende-former. */
 const isPositionalEndpointRead = (chainText: string): boolean =>
   /\[\s*0\s*\]$/.test(chainText) || /\[\s*[A-Za-z_$][\w$.]*\.length\s*-\s*1\s*\]$/.test(chainText);
 
@@ -169,7 +169,7 @@ export const seriesCoverageEndpointsViaPrimitive = defineRule({
   allow: [COVERAGE_INTERVAL_PRIMITIVE],
   find: (entry) => {
     // Funktionerne der bygger et dæknings-interval. En positionel ende-læsning tæller kun,
-    // hvis den står i en af DEM — ikke blot et andet sted i samme fil.
+    // hvis den står i en af DEM – ikke blot et andet sted i samme fil.
     const coverageFunctions = new Set(
       collectCalls(entry)
         .filter((ref) => COVERAGE_BUILDING_CALLS.has(ref.calleeText))
@@ -187,7 +187,7 @@ export const seriesCoverageEndpointsViaPrimitive = defineRule({
       .map((ref) => ({
         position: ref.position,
         message:
-          `Positionel læsning af satsseriens ende (${ref.chainText}) i et dæknings-interval — `
+          `Positionel læsning af satsseriens ende (${ref.chainText}) i et dæknings-interval – `
           + 'brug resolveSeriesCoverageInterval({ series, getDato, order, periodeMaaneder }).',
       }));
   },
@@ -212,7 +212,7 @@ export const seriesCoverageEndpointsViaPrimitive = defineRule({
       code: 'const f = () => resolveUnorderedSeriesCoverageInterval({ series: v, getSortKey: k, getStartDato: s, periodeMaaneder: 12 });',
     },
     // Positionel læsning UDEN for et dæknings-interval er seriens egen semantik, ikke en
-    // påstand om hvilken ende det er — reglen må ikke ramme carry-forward-opslag.
+    // påstand om hvilken ende det er – reglen må ikke ramme carry-forward-opslag.
     { relativePath: 'src/data/x.ts', code: 'const g = () => satser[0];' },
     // Samme FIL, men en anden FUNKTION: fil-scope ville have flaget `row[0]` her, selvom den
     // ikke udtaler sig om nogen ende. Det er grænsen ved funktionen, der gør reglen brugbar.
@@ -286,7 +286,7 @@ export const inspektionLayerImport = forbidImports({
 // kun som devtools-monitoreringens callback (`useDevtoolsMonitoring.ts`), som ikke er en sektionsadgang.
 // Reglen var altså grøn af tomhed.
 //
-// Intentionen — EET må ikke kobles til af et fremmed domæne — er IKKE opgivet: den håndhæves nu af
+// Intentionen – EET må ikke kobles til af et fremmed domæne – er IKKE opgivet: den håndhæves nu af
 // `domain/page-section-access-boundary`, som måler den kobling, koden faktisk har
 // (hvilket descriptor-katalog en side importerer), mod den samme autorisationstabel. Det er en STÆRKERE
 // kontrol end den slettede, fordi den dækker alle sektioner og ikke kun literal-argumenter.
@@ -306,7 +306,7 @@ export const moneyOreTypeAssertion = forbidTypeAssertions({
   },
   forbidden: (ref) => /(?:^|\.)MoneyOre$/.test(ref.typeText),
   message: (ref) =>
-    `Type-assertion til ${ref.typeText} omgår MoneyOre-valideringen — brug domain/money.`,
+    `Type-assertion til ${ref.typeText} omgår MoneyOre-valideringen – brug domain/money.`,
   violatingFixtures: [
     { relativePath: 'src/x.ts', code: 'const x = 100 as MoneyOre;' },
     { relativePath: 'src/x.ts', code: 'const x = <MoneyOre>100;' },
@@ -327,11 +327,11 @@ export const moneyOreTypeAssertion = forbidTypeAssertions({
  * til sektions-hooks (`usePersistedForm('aarsloen')` …). Dødt-værn-detektoren afslørede, at ALLE de
  * hooks er væk efter greenfield-cutoveren: `usePersistedSection`/`commitSection` har nul forekomster,
  * og de øvrige lever kun som historik-kommentarer i page-filerne. Reglen kontrollerede altså en
- * adgangsform, produktionen ikke længere har — grøn af tomhed, mens den fremstod som §9/§10-dækning.
+ * adgangsform, produktionen ikke længere har – grøn af tomhed, mens den fremstod som §9/§10-dækning.
  *
  * Greenfield kobler en side til et domæne ét sted: ved at importere domænets FELTDESCRIPTORER fra
  * `src/inputCore/catalog/`. Descriptoren bærer selv sin `section`, og uden en descriptor kan siden
- * hverken læse eller skrive sektionen. Import af kataloget ER derfor koblingen — og i modsætning til
+ * hverken læse eller skrive sektionen. Import af kataloget ER derfor koblingen – og i modsætning til
  * literal-argumenter kan den ikke omgås ved at føre sektionsnavnet gennem en variabel.
  *
  * Autorisationstabellen (`PAGE_BOUNDARY_RULES`) er UÆNDRET: det er domain-boundary-contract §9/§10's
@@ -354,7 +354,7 @@ const DESCRIPTOR_CATALOG_SECTIONS: ReadonlyMap<string, PersistedSectionKey> = ne
 /**
  * Descriptor-katalogets mappe. Eksporteret, så `deletedLegacyAbsence.test.ts` kan bevise, at
  * `DESCRIPTOR_CATALOG_SECTIONS` dækker HVERT katalogmodul: et nyt domænekatalog, der ikke står i
- * kortet, ville ellers være usynligt for page-grænsen — reglen ville se en uovervåget kobling som
+ * kortet, ville ellers være usynligt for page-grænsen – reglen ville se en uovervåget kobling som
  * "ingen kobling" og være tavs, altså grøn af tomhed frem for grøn af bevis.
  */
 export const CATALOG_DIR = 'src/inputCore/catalog';
@@ -379,7 +379,7 @@ export const NON_DOMAIN_CATALOG_MODULES: readonly string[] = [
 /** Til completeness-testen: hvilke katalogmoduler kortet kender. */
 export const DESCRIPTOR_CATALOG_MODULE_NAMES: readonly string[] = [...DESCRIPTOR_CATALOG_SECTIONS.keys()];
 
-/** Descriptor-katalogets sektion, hvis importen peger på ét — ellers null. */
+/** Descriptor-katalogets sektion, hvis importen peger på ét – ellers null. */
 const catalogSectionForImport = (moduleSpecifier: string): PersistedSectionKey | null => {
   const normalized = moduleSpecifier.replaceAll('\\', '/');
   const match = /(?:^|\/)inputCore\/catalog\/([A-Za-z]+)$/.exec(normalized);
@@ -403,7 +403,7 @@ export type PageBoundaryRule = Readonly<{
 /**
  * Domain-boundary-contract §9/§10: hvilke persisterede sektioner hver page-rod må
  * tilgå. Erstatningsopgørelse/Erhvervsevnetab har autoriserede cross-domain-læsninger
- * (delt forligsgrad + midlertidigt EET) — resten er strengt eget domæne + stamdata.
+ * (delt forligsgrad + midlertidigt EET) – resten er strengt eget domæne + stamdata.
  */
 export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
   { label: 'Årslønsberegning', root: 'src/components/pages/Aarsloen.tsx', allowedSections: ['aarsloen', 'stamdata'] },
@@ -433,7 +433,7 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     // `erhvervsevnetab`/`faellesAarsloen` er med, fordi Beregning-fanen bærer "midlertidigt EET fra
     // EET-siden": dokumentdefinitionerne læser EET's reader-projektion for at injicere de virtuelle
     // rækker (`domain-boundary-contract.md` §9). Koblingen er TRANSITIV og var derfor usynlig, indtil
-    // reglen begyndte at følge importgrafen — den er den samme autorisation, `Erstatningsopgoerelse.tsx`
+    // reglen begyndte at følge importgrafen – den er den samme autorisation, `Erstatningsopgoerelse.tsx`
     // allerede havde, og listerne er nu ens for side og faner.
     allowedSections: ['erstatningsopgoerelse', 'stamdata'],
   },
@@ -453,7 +453,7 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     // `renteberegning`-sektionen.
     // `stamdata` er med: sidens viewmodel bor her og komponerer de to rente-dokument-
     // definitioner, som læser brevhovedets stamdata. Autorisationen er dermed identisk med
-    // `Renteberegning.tsx`' egen — koblingen er den samme, kun filen er flyttet.
+    // `Renteberegning.tsx`' egen – koblingen er den samme, kun filen er flyttet.
     label: 'Renteberegning-faner',
     root: 'src/components/pages/renteberegning',
     allowedSections: ['renteberegning', 'stamdata'],
@@ -480,13 +480,13 @@ export const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
 /**
  * ANSVARSGRÆNSE: en beregningsmotor kaldes KUN af sin egen reader-projektion.
  *
- * §7.3: motoren fodres kun fra en `ready`-projektion. Grænsen kan holde i praksis — nul callsites uden for
- * projektionerne — og alligevel være UBEVOGTET: uden denne regel ville intet fange en side, en
+ * §7.3: motoren fodres kun fra en `ready`-projektion. Grænsen kan holde i praksis – nul callsites uden for
+ * projektionerne – og alligevel være UBEVOGTET: uden denne regel ville intet fange en side, en
  * dokumentdefinition eller en komponent, der greb direkte efter motoren og dermed omgik gaten. Værnet
  * håndhæver derfor ANSVARET (hvem må kalde en motor) frem for bestemte NAVNE.
  *
  * Kortet er 1:1 og udtømmende pr. slice, så det ikke kan udvandes: hver motor har præcis ÉN lovlig kalder.
- * En syvende slice, hvis motor får en anden kalder, skal registreres her — og en motor, hvis navn forsvinder,
+ * En syvende slice, hvis motor får en anden kalder, skal registreres her – og en motor, hvis navn forsvinder,
  * gør liveness-kontrollen rød frem for at efterlade reglen grøn af tomhed.
  */
 const ENGINE_ENTRYPOINT_OWNERS: ReadonlyMap<string, string> = new Map([
@@ -549,7 +549,7 @@ export const engineCallOwnedByProjectionRule = defineRule({
       relativePath: 'src/components/pages/Forsoergertab.tsx',
       code: 'const snapshot = computeForsoergertabSnapshot({ values });',
     },
-    // En dokumentdefinition ville have samme virkning — outputtet ville bære et ugatet tal.
+    // En dokumentdefinition ville have samme virkning – outputtet ville bære et ugatet tal.
     {
       relativePath: 'src/domain/forsoergertab/forsoergertabDocumentDefinition.ts',
       code: 'const s = computeForsoergertabSnapshot(input);',
@@ -600,8 +600,8 @@ type SectionAccess = Readonly<{
  * importerer descriptor-katalogerne. `Erhvervsevnetab.tsx` → `erhvervsevnetabReaderProjection.ts` →
  * fire sektioners kataloger var derfor helt usynlig for grænsen, mens reglen fremstod som dækning.
  *
- * Nu følger målingen importgrafen. En kobling gennem en projektion er stadig en kobling — det er
- * netop hvad §9/§10's autorisationstabel handler om — men diagnostikken viser KÆDEN, så et fund kan
+ * Nu følger målingen importgrafen. En kobling gennem en projektion er stadig en kobling – det er
+ * netop hvad §9/§10's autorisationstabel handler om – men diagnostikken viser KÆDEN, så et fund kan
  * læses: "siden kobler til `satser` gennem `xReaderProjection`".
  *
  * Grænsen er bevidst sat ved page-filens transitive lukning frem for ved dens direkte imports, fordi
@@ -630,7 +630,7 @@ const collectSectionAccessesDeep = (
       const section = catalogSectionForImport(ref.moduleSpecifier);
       if (section !== null) {
         // Positionen er ALTID i page-filen selv (det første led), så fundet peger på den import,
-        // udvikleren kan gøre noget ved — ikke på en linje dybt inde i domænet.
+        // udvikleren kan gøre noget ved – ikke på en linje dybt inde i domænet.
         accesses.push({
           section,
           position: frame.rootPosition ?? ref.position,
@@ -678,7 +678,7 @@ export const pageSectionAccessBoundary = defineRule({
     probe: (entry) =>
       entry.relativePath.startsWith(`${PAGES_ROOT}/`) && collectSectionAccesses(entry).length > 0,
     rationale:
-      'mindst én page-fil importerer et descriptor-katalog — dvs. koblingen, reglen regulerer, findes '
+      'mindst én page-fil importerer et descriptor-katalog – dvs. koblingen, reglen regulerer, findes '
       + 'stadig i den form, greenfield bruger',
   },
   appliesTo: (relativePath) => relativePath.startsWith(`${PAGES_ROOT}/`),
@@ -695,7 +695,7 @@ export const pageSectionAccessBoundary = defineRule({
       // Coverage-completeness: en page-fil med domænekobling uden en regel-rod er uovervåget.
       return accesses.map((access) => ({
         position: access.position,
-        message: `Uovervåget page-fil med domænekobling (${access.section}) — tilføj en PAGE_BOUNDARY_RULE-rod.`,
+        message: `Uovervåget page-fil med domænekobling (${access.section}) – tilføj en PAGE_BOUNDARY_RULE-rod.`,
       }));
     }
 
@@ -869,7 +869,7 @@ export const crossDomainDescriptorPort = forbidImports({
       || (fromEo && /inputCore\/catalog\/erhvervsevnetabDescriptors$/.test(specifier));
   },
   message: (ref) =>
-    `Direkte cross-domain descriptorimport (${ref.moduleSpecifier}) — brug forligInputPort/eetImportPort.`,
+    `Direkte cross-domain descriptorimport (${ref.moduleSpecifier}) – brug forligInputPort/eetImportPort.`,
   violatingFixtures: [
     {
       relativePath: 'src/domain/erhvervsevnetab/x.ts',
@@ -895,16 +895,16 @@ export const crossDomainDescriptorPort = forbidImports({
 // derfor ikke havde ét eneste mål tilbage: `grep '<Styled[A-Za-z]*Field'` under `src/components/pages/`
 // giver nul træffere.
 //
-// Invarianten — "et persisteret parse-felt må ikke fejle åbent" — er ikke opgivet; den er blevet
+// Invarianten – "et persisteret parse-felt må ikke fejle åbent" – er ikke opgivet; den er blevet
 // STRUKTUREL og kan derfor ikke længere brydes af en udeladt prop:
 //
 //   - Greenfield-feltvejen (`src/inputCore/react/fields/`) tager `field: FieldRef<T>` og
 //     `location: EditorLocation` som PÅKRÆVEDE props. Uden dem kompilerer feltet ikke.
 //   - Fejlvisningen afledes af `useFormFieldSurface`/`useGridCellSurface` fra det tokenbundne
-//     issue-snapshot (§1.8) — ikke af en valgfri callback. Der er intet `onFieldError` at udelade;
+//     issue-snapshot (§1.8) – ikke af en valgfri callback. Der er intet `onFieldError` at udelade;
 //     et felt kan ikke opt-out af sin egen fejltilstand.
 //
 // Kravet "persisted controls kræver konkrete refs" er opfyldt af TYPEN frem for af en
-// regel — samme rangorden som `ManifestStorageKey` etablerede
+// regel – samme rangorden som `ManifestStorageKey` etablerede
 // ([[project_typed_write_boundary_over_ast_guard]]). En pro forma-regel oven på en compiler-håndhævet
 // invariant ville være regel-antal uden dækning, og ville selv være det næste døde værn.

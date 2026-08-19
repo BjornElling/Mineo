@@ -186,7 +186,7 @@ const buildInvariantDiagnostics = (
  *
  * Ejer al afledt visningstilstand: kontrol-rækker med navigation, snapshot-projektioner og
  * download-gates, system-/EET-issue-rækker, bilag-valg, opsummeringslinjer og PDF-download-handlers.
- * Returnerer én flad model; fanen beholder kun præsentations-render-helpers + selve JSX'en — jf.
+ * Returnerer én flad model; fanen beholder kun præsentations-render-helpers + selve JSX'en – jf.
  * arkitektur-kandidat A1 (view-model-lag under fagsiderne). Adfærdsbevarende: logikken er flyttet
  * uændret ud af `EOberegningTab`.
  */
@@ -304,7 +304,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
                 navigate(APP_ROUTES.erhvervsevnetab);
                 // Markér sektionen, så linket ikke bare skifter fane og efterlader brugeren øverst på
                 // siden uden anvisning. Et konkret felt ville kræve EET's feltdescriptorer, og dem må
-                // EO-siden ikke koble til (domain-boundary-contract §9/§10) — sektionen er den præcision,
+                // EO-siden ikke koble til (domain-boundary-contract §9/§10) – sektionen er den præcision,
                 // grænsen tillader, og den bruger samme delte markering som alle andre links.
                 if (navigation.sectionId) {
                   scrollToSection(navigation.sectionId, { attention: true });
@@ -354,8 +354,8 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
    */
 
   /**
-   * De fire EO-dokumentoutputs. Hele preflighten — settle, frisk capture, token-lighed,
-   * projektion, gate — ligger nu i definitionerne, som deler ÉN kildekontekst: `collectAllEoRows` og
+   * De fire EO-dokumentoutputs. Hele preflighten – settle, frisk capture, token-lighed,
+   * projektion, gate – ligger nu i definitionerne, som deler ÉN kildekontekst: `collectAllEoRows` og
    * gate-sættet køres derfor én gang pr. revision, ikke fire. Bilagsudvælgelsen og den valgfri
    * `midlertidigtEetGroups` er flyttet ind i definitionerne, hvor de hører til: de er dokumentets
    * input, ikke sidens.
@@ -392,8 +392,8 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
   const reportedSystemInvariantKeysRef = React.useRef<Set<string>>(new Set());
   /**
-   * Den fælles fejlboks for de fire outputs. Gate-blokeringer bærer ingen besked — knappens tooltip
-   * ejer årsagen — så boksen viser kun et stale-afbrud eller en død DEV-server. Hvert output bidrager
+   * Den fælles fejlboks for de fire outputs. Gate-blokeringer bærer ingen besked – knappens tooltip
+   * ejer årsagen – så boksen viser kun et stale-afbrud eller en død DEV-server. Hvert output bidrager
    * kun med sin egen besked, så en gammel besked ikke overlever et nyt klik på et andet output.
    */
   const pdfDownloadErrorMessage =
@@ -449,7 +449,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
           // Neutral fejlbesked uden BugReportButton for deterministiske fail_closed-tilstande.
           pushIssue({
             id: 'snapshot-fail-closed',
-            message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres — ret manglende eller ugyldige felter',
+            message: eoSnapshot.invariants[0]?.message ?? 'Beregningen kan ikke gennemføres – ret manglende eller ugyldige felter',
           });
           break;
       }
@@ -486,7 +486,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     // SIKKERHEDSNET (garanti: download må ALDRIG blokeres uden en synlig fejl i "Fejl og advarsler").
     // En autoritativt-blokerende validerings-invariant blokerer download. Den forventes normalt
     // reproduceret som en synlig række af `collectAllEoRows`, men hvis en row-builder ikke dækker
-    // reglen — eller `eoSnapshot.data` er null, så en resultat-afhængig række ikke kan dannes — ville
+    // reglen – eller `eoSnapshot.data` er null, så en resultat-afhængig række ikke kan dannes – ville
     // download ellers være blokeret med en tom fejlboks. Vises kun når boksen ellers er tom for
     // error-niveau-indhold, så dette aldrig dublerer en allerede vist, målrettet fejl. Beskeden er
     // validatorens egen brugervendte tekst.
@@ -505,7 +505,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
           // Nettet dækker per definition regler, INGEN row-builder har dannet en række for, så der er
           // intet række-id at route fra. Invarianten bærer til gengæld validatorens egen felt-sti som
           // evidence; navngiver den ét top-level EO-felt, kan rækken få samme link og blinkmarkering som
-          // enhver anden fejl. Kan stien ikke opløses, forbliver rækken tekst uden link — bevidst, frem
+          // enhver anden fejl. Kan stien ikke opløses, forbliver rækken tekst uden link – bevidst, frem
           // for at sende brugeren til et gættet felt.
           const address = resolveEoValidationPathAddress(invariant.evidence?.[0]);
           pushIssue({
@@ -654,7 +654,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     if (!beregnesSvieSmerte) return [];
     if (svieSmerteRow?.status === 'error') return ['Fejl'];
     // Rækkens strukturerede `lines` er kilden. Tidligere blev `displayValue` splittet på `\n`
-    // her — en skjult aftale med row-builderen, som en formatteringsændring kunne bryde lydløst,
+    // her – en skjult aftale med row-builderen, som en formatteringsændring kunne bryde lydløst,
     // og som driver synlig UI-forgrening (antal linjer afgør ental/flertal i etiketten).
     return svieSmerteRow?.lines ?? [];
   }, [beregnesSvieSmerte, svieSmerteRow]);

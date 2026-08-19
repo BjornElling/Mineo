@@ -18,7 +18,7 @@ export type TafConstraintSource = Readonly<{
   midlertidigEETVirkningsdato?: ISODateString | undefined;
   midlertidigEETAfgoerelseDato?: ISODateString | undefined;
   verserendeKlageEet?: 'Ja' | 'Nej' | undefined;
-  /** Skadedato fra stamdata — bruges til at afgøre om midlertidig EET afgrænser TAF. */
+  /** Skadedato fra stamdata – bruges til at afgøre om midlertidig EET afgrænser TAF. */
   skadedatoISO?: ISODateString | undefined;
 }>;
 
@@ -48,7 +48,7 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
  * - `midlertidigtEETAfgorelse = 'Ja'`
  * - Skadedato er angivet og ligger **før** TAF_MIDLERTIDIG_EET_SKAERINGSDATO (2011-06-16)
  *
- * Checker IKKE `verserendeKlageEet` — det er kalderens ansvar at udelade resultatet ved aktiv klage.
+ * Checker IKKE `verserendeKlageEet` – det er kalderens ansvar at udelade resultatet ved aktiv klage.
  *
  * Hvis blot én betingelse mangler, returneres undefined (ingen afgrænsning).
  */
@@ -61,7 +61,7 @@ export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource):
 /**
  * De AKTIVE cutoff-datoer (ikke grænserne, men selve skæringsdatoerne) i én opslag.
  *
- * `buildTafCutoffErrorMessage` skal have præcis de datoer, der er aktive lige nu — inkl. klage-suspensionen
+ * `buildTafCutoffErrorMessage` skal have præcis de datoer, der er aktive lige nu – inkl. klage-suspensionen
  * og 2011-skæringsdatoen. Kalderne udledte dem tidligere hver for sig, hvilket er nøjagtig den duplikering,
  * der lader to steder svare forskelligt på samme spørgsmål. Ét opslag, én sandhed.
  */
@@ -126,7 +126,7 @@ export const buildTafCutoffErrorMessage = (args: Readonly<{
  * endelig EET-virkningsdato−1 og (ved skadedato < 2011-06-16) midlertidig EET-virkningsdato−1
  * (jf. eo-snapshot-contract.md §2.2).
  *
- * Korrekt adfærd: til-dato >= disse grænser er fejlgivende bounds — feltfejl (rød kant +
+ * Korrekt adfærd: til-dato >= disse grænser er fejlgivende bounds – feltfejl (rød kant +
  * tooltip) vises i TAFPeriodeTable og fejlen gengives på EOBeregningTab, der blokerer download.
  * Engineen clamper stadig til den beregnede maxEnd for at producere korrekte resultater.
  */
@@ -172,7 +172,7 @@ export const resolveTafConstraintBounds = (
 /**
  * Clamper en TAF-range til bounds. Returnerer null hvis perioden reduceres til ingenting.
  *
- * Denne funktion er bounds-agnostisk — den kender ikke forskel på stille og fejlgivende clamping.
+ * Denne funktion er bounds-agnostisk – den kender ikke forskel på stille og fejlgivende clamping.
  * Kalderen er ansvarlig for at anvende korrekte bounds i korrekt rækkefølge
  * (jf. eo-snapshot-contract.md §2.3 og buildTafRanges i indtaegtPerioder.ts).
  */

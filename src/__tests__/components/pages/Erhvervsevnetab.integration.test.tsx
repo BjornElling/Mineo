@@ -19,7 +19,7 @@ import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
- * på fire servicekald — en strammere assertion, fordi den kræver at HELE kæden faktisk kørte. Alle
+ * på fire servicekald – en strammere assertion, fordi den kræver at HELE kæden faktisk kørte. Alle
  * fire EET-outputs går gennem samme handling.
  */
 const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
@@ -82,7 +82,7 @@ const renderPage = () => render(
   </MemoryRouter>
 );
 
-describe('Erhvervsevnetab — samlet surface og reader-projektion', () => {
+describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
@@ -178,7 +178,7 @@ describe('Erhvervsevnetab — samlet surface og reader-projektion', () => {
     expect(download).toBeEnabled();
     await user.click(download);
     await waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
-    // Journalnummeret kommer fra stamdata og indgår i filnavnet — beviser at den friske
+    // Journalnummeret kommer fra stamdata og indgår i filnavnet – beviser at den friske
     // stamdata-dependency nåede hele vejen ind i det leverede dokument.
     const artifact = mockTriggerDocumentDownload.mock.calls[0]?.[0] as { filename: string };
     expect(artifact.filename).toContain('J-2026-003');

@@ -13,7 +13,7 @@ import { parseCurrentEnvelope, serializeCurrentEnvelope } from './currentSession
  *
  * Resultatet er ROUND-TRIPPET gennem envelope-serialiseringen, præcis som `dispatchInput` gør det for enhver
  * commit. Det er ikke kosmetik: JSON dropper `undefined`-nøgler, så en ikke-round-trippet baseline ville være
- * strukturelt forskellig fra den samme sag efter et `Slet alt` eller en F5 — og enhver sammenligning mod
+ * strukturelt forskellig fra den samme sag efter et `Slet alt` eller en F5 – og enhver sammenligning mod
  * baselinen ville svare "der er brugerdata" på en urørt sag.
  */
 export const createNewCaseInput = (catalog: InputCatalog, seed?: NewCaseSeed): SettledInput => {

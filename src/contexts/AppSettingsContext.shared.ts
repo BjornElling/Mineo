@@ -7,7 +7,7 @@ export type AppSettingsContextValue = Readonly<{
   settings: AppSettings;
   updateSettings: (patch: Readonly<Partial<AppSettings>>) => boolean;
   /**
-   * Det tema, der faktisk males — `settings.themeMode` oversat gennem computerens præference.
+   * Det tema, der faktisk males – `settings.themeMode` oversat gennem computerens præference.
    * Forbrugere, der skal TEGNE noget, skal læse denne og aldrig `settings.themeMode`, som kan
    * være `'system'`. Se `resolveThemeMode` i `appSettingsSchema.ts`.
    */

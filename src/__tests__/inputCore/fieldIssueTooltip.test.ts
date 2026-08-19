@@ -32,7 +32,7 @@ const issueWithDetail = (detail: Readonly<Record<string, string | number | boole
   detail,
 });
 
-describe('resolveFieldIssueTooltip — reason afgør tooltipteksten', () => {
+describe('resolveFieldIssueTooltip – reason afgør tooltipteksten', () => {
   it('forkorter `format` til den generiske tekst', () => {
     expect(resolveFieldIssueTooltip(issue('format', 'Der er udfyldt en ugyldig værdi i feltet \'Beløb\'')))
       .toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
@@ -52,7 +52,7 @@ describe('resolveFieldIssueTooltip — reason afgør tooltipteksten', () => {
    * Kernen i beslutningen: `bounds`/`rule`-beskeden fortæller HVAD der skal rettes, og det er den eneste
    * brugbare del i et tooltip. Forkortes de, skjules rettelsen præcis dér, hvor brugeren kigger efter den.
    */
-  it('citerer `bounds` ordret — grænserne er hele informationen', () => {
+  it('citerer `bounds` ordret – grænserne er hele informationen', () => {
     const message = 'Procenten skal være mellem 0 og 100';
     expect(resolveFieldIssueTooltip(issue('bounds', message))).toBe(message);
   });
@@ -88,7 +88,7 @@ describe('feltnavn i anførselstegn', () => {
   });
 });
 
-describe('resolveFieldIssueText — de to tekster ved siden af hinanden', () => {
+describe('resolveFieldIssueText – de to tekster ved siden af hinanden', () => {
   it('giver fuld besked + generisk tooltip for et format-issue', () => {
     const full = 'Der er udfyldt en ugyldig værdi i feltet \'Beløb\'';
     expect(resolveFieldIssueText(issue('format', full))).toEqual({
@@ -113,7 +113,7 @@ describe('resolveFieldIssueText — de to tekster ved siden af hinanden', () => 
     expect(resolveFieldIssueText(own, external).message).toBe('egen besked');
   });
 
-  it('bruger det eksterne issue, når feltet ikke selv har et — MED dets egen tooltipklasse', () => {
+  it('bruger det eksterne issue, når feltet ikke selv har et – MED dets egen tooltipklasse', () => {
     const external = issue('rule', 'Datoen er en dublet');
     expect(resolveFieldIssueText(undefined, external)).toEqual({
       message: 'Datoen er en dublet',

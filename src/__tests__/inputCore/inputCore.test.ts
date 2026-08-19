@@ -145,7 +145,7 @@ describe('SettledInput XOR-invariant (§1.5, §2.1)', () => {
       rejectedInputs: { [address]: { raw: 'abc', reason: 'format' } },
     })).toThrow(/ikke relevant/);
 
-    // Reducerens egen før/efter-læsning har brug for præcis den mellemtilstand, invarianten afviser —
+    // Reducerens egen før/efter-læsning har brug for præcis den mellemtilstand, invarianten afviser –
     // derfor den ene undtagelsesvej. Ingen anden kalder må bruge den.
     const intermediate = catalog.validateSettledInputBeforeRelevanceCleanup({
       sections,
@@ -157,7 +157,7 @@ describe('SettledInput XOR-invariant (§1.5, §2.1)', () => {
     expect(activeFieldIssue(issues, address)).toBeUndefined();
   });
 
-  it('ugyldigt settle af tom tekst er umuligt — codec resolver tom som canonical tomværdi', () => {
+  it('ugyldigt settle af tom tekst er umuligt – codec resolver tom som canonical tomværdi', () => {
     const cleared = apply(apply(start(), settleField(aargangField.bind(), '2020')), settleField(aargangField.bind(), '   '));
     expect(rejectedAt(cleared.input, aargangField.bind())).toBeUndefined();
     expect(createValidationReader(cleared.input, catalog).readCanonical(aargangField.bind())).toBeUndefined();
@@ -342,13 +342,13 @@ describe('Automatisk rydning af tomme tabelrækker (§9)', () => {
 });
 
 describe('Styrende valg: gyldigt bevares, skjult+rødt ryddes (§1.9, §3.6, §7.5)', () => {
-  // §7.5's todelte regel. Hovedreglen: et valg er ikke en sletteknap — en GYLDIG værdi består, også når
+  // §7.5's todelte regel. Hovedreglen: et valg er ikke en sletteknap – en GYLDIG værdi består, også når
   // valget skjuler feltet. Undtagelsen: bar feltet en aktiv RØD fejl, og skjuler valget det, ryddes feltet
-  // tavst, fordi en rød fejl brugeren ikke kan SE, ikke kan rettes — og ellers kunne blokere `.eo`-save
+  // tavst, fordi en rød fejl brugeren ikke kan SE, ikke kan rettes – og ellers kunne blokere `.eo`-save
   // eller en beregning fra et usynligt felt.
   //
   // '999' > max 100 er efter kravændringen 2026-07-18 IKKE rejected: værdien committes canonical (999) og
-  // bærer en rød bounds-feltfejl (§1.6). Undtagelsen dækker BEGGE fejlformer — canonical bounds/rule OG
+  // bærer en rød bounds-feltfejl (§1.6). Undtagelsen dækker BEGGE fejlformer – canonical bounds/rule OG
   // rejected råtekst.
   const seedRowWithBoundsTillaegstid = (): State => {
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
@@ -376,7 +376,7 @@ describe('Styrende valg: gyldigt bevares, skjult+rødt ryddes (§1.9, §3.6, §7
     // Den røde værdi er ryddet: brugeren kunne ikke have set eller rettet fejlen bag et skjult felt.
     expect(validation.readCanonical(tillaegstidField.bind('r1'))).toBeUndefined();
     expect(rejectedAt(chosen.input, tillaegstidField.bind('r1'))).toBeUndefined();
-    // Nabofeltet er GYLDIGT og bevares — rydningen rammer kun det røde felt.
+    // Nabofeltet er GYLDIGT og bevares – rydningen rammer kun det røde felt.
     expect(validation.readCanonical(belobField.bind('r1'))).toBeDefined();
     expect(validation.readCanonical(enhedField.bind('r1'))).toBe('uger');
   });
@@ -397,7 +397,7 @@ describe('Styrende valg: gyldigt bevares, skjult+rødt ryddes (§1.9, §3.6, §7
     let state = apply(start(), insertRow(rentekravRowsRef(), makeRow('r1')));
     state = apply(state, settleField(tillaegstidField.bind('r1'), 'abc')); // format-rejected råtekst
     expect(rejectedAt(state.input, tillaegstidField.bind('r1'))?.raw).toBe('abc');
-    // Råtekst blokerer `.eo`-save globalt — FØR valget er den synlig og kan rettes.
+    // Råtekst blokerer `.eo`-save globalt – FØR valget er den synlig og kan rettes.
     expect(projectEoSave(state.input, catalog).status).toBe('blocked');
 
     const chosen = apply(state, setImmediateField(enhedField.bind('r1'), 'uger'));
@@ -408,7 +408,7 @@ describe('Styrende valg: gyldigt bevares, skjult+rødt ryddes (§1.9, §3.6, §7
     expect(projectEoSave(chosen.input, catalog).status).not.toBe('blocked');
   });
 
-  it('undo gendanner den tavst ryddede værdi som ÉT trin — rydningen er fuldt reversibel', () => {
+  it('undo gendanner den tavst ryddede værdi som ÉT trin – rydningen er fuldt reversibel', () => {
     // Afgørende for at rydningen er acceptabel: den er tavs, men ikke uigenkaldelig. Valget og rydningen er
     // ét history-trin, så én Ctrl+Z bringer BÅDE enheden og den røde værdi tilbage.
     const seeded = seedRowWithBoundsTillaegstid();

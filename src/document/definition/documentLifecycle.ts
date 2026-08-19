@@ -4,7 +4,7 @@
  * Preflight og afvikling ligger i SAMME modul, så afviklingen ikke kan kaldes med håndbygget,
  * ugated input:
  *   1. `PreparedDocument` er nominal (privat brand) OG modulprivat. Den eksporteres ikke.
- *   2. Afvikleren eksporteres ikke. Kun `executeDocumentDownload` — preflight+afvikling i ét — er
+ *   2. Afvikleren eksporteres ikke. Kun `executeDocumentDownload` – preflight+afvikling i ét – er
  *      offentlig, så der findes ingen indgang til afviklingen ved siden af gaten.
  *   3. Friskheden verificeres mod miljøets AUTORITATIVE `readCurrentSourceToken`, ikke mod en
  *      en friskheds-closure leveret sammen med inputtet.
@@ -16,7 +16,7 @@
  *   3. Token-lighed mellem barrierens token og det optagne snapshots token.
  *   4. Definitionens `project` med den friskt genopslåede request: dependencies, projektion, invariants.
  *
- * Og i afviklingen re-tjekkes friskheden ved HVER asynkron grænse — inklusive efter rendering,
+ * Og i afviklingen re-tjekkes friskheden ved HVER asynkron grænse – inklusive efter rendering,
  * umiddelbart før fil-I/O. Uden det sidste check kan input ændres under selve renderingen, så et
  * forældet dokument leveres. `critical-action-contract.md` §5 kræver recheck umiddelbart før den irreversible
  * handling, og browser-downloaden ER den irreversible handling.
@@ -39,7 +39,7 @@ import { createDocumentSourceContext } from './documentSourceContext';
 /**
  * Brandet er en RIGTIG modul-lokal `symbol`, ikke en `declare const`.
  *
- * Den oprindelige form var `declare const preparedBrand: unique symbol` — en ren typeerklæring, som
+ * Den oprindelige form var `declare const preparedBrand: unique symbol` – en ren typeerklæring, som
  * ikke emitterer noget. Den fik typesiden til at se korrekt nominal ud, men enhver kørsel af
  * `prepareDocument` kastede `ReferenceError: preparedBrand is not defined`, fordi objektliteralen
  * refererede et symbol, der ikke fandtes ved runtime. Fejlen kunne ikke ses af typecheckeren og blev
@@ -64,7 +64,7 @@ type PreparedDocument<TRenderSettings, TBrevhovedKey extends string> = Readonly<
 
 /**
  * Verificerer, at kilden stadig er den, gaten godkendte. Kaldes ved hver async-grænse.
- * Samlet i én funktion, så en ny `await`-fase ikke kræver håndkopieret fejllogik — det var netop
+ * Samlet i én funktion, så en ny `await`-fase ikke kræver håndkopieret fejllogik – det var netop
  * sådan post-render-checket blev glemt.
  */
 const requireCurrentSource = <TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
@@ -77,11 +77,11 @@ const requireCurrentSource = <TGateSettings, TRenderSettings, TBrevhovedKey exte
     : documentRejected({ kind: 'stale-source', phase });
 
 /**
- * Det ENE dokument-download-entrypoint. Alle 21 outputs — hovedapp og standalone, knapklik,
- * tastatur og programmatisk aktivering — går gennem denne funktion.
+ * Det ENE dokument-download-entrypoint. Alle 21 outputs – hovedapp og standalone, knapklik,
+ * tastatur og programmatisk aktivering – går gennem denne funktion.
  *
  * `request` er aktiveringsidentiteten. Den bæres UÆNDRET gennem barrieren og genopslås friskt i
- * `project` efter settle, så et klik på række 3 altid vurderes mod række 3's aktuelle tilstand — ikke
+ * `project` efter settle, så et klik på række 3 altid vurderes mod række 3's aktuelle tilstand – ikke
  * mod den tilstand, rækken havde da knappen blev tegnet.
  */
 export const executeDocumentDownload = async <TRequest, TGateSettings, TRenderSettings, TBrevhovedKey extends string>(
@@ -152,7 +152,7 @@ const prepareDocument = async <TRequest, TGateSettings, TRenderSettings, TBrevho
     return reject(documentRejected({ kind: 'stale-source', phase: 'capture' }));
   }
 
-  // 4. Definitionens dependencies, projektion og invariants — samme funktion og samme request som
+  // 4. Definitionens dependencies, projektion og invariants – samme funktion og samme request som
   //    den reaktive knap-gate, men på det friske snapshot.
   //    Konteksten får KUN gate-halvdelen af snapshottet; format og brevhoved ligger i
   //    `source.renderSettings` og anvendes først i afviklingen nedenfor.
@@ -191,7 +191,7 @@ const runPreparedDocument = async <TGateSettings, TRenderSettings, TBrevhovedKey
   try {
     // Entry-check. Ligger UDEN FOR dev-server-grenen nedenfor med vilje: gaten kørte i en
     // forudgående async-funktion, så der ER gået mikrotasks siden godkendelsen. Lå checket kun inde i
-    // `if (checkDevServerAvailability)`, ville et miljø uden dev-server-port — fx standalone — slet
+    // `if (checkDevServerAvailability)`, ville et miljø uden dev-server-port – fx standalone – slet
     // ikke blive verificeret mellem gate og modul-load.
     phase.current = 'gate';
     const atEntry = stale('gate');

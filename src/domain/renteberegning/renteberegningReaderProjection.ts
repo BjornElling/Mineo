@@ -53,7 +53,7 @@ const readRow = (collector: ProjectionCollector, rowId: string): RentekravRow | 
 };
 
 /**
- * Motorinputtet for én række — INGEN motorkald. `runProjection`-kroppen udføres, FØR collectorens status er
+ * Motorinputtet for én række – INGEN motorkald. `runProjection`-kroppen udføres, FØR collectorens status er
  * afgjort (`inputCore/projection.ts`), så et motorkald her ville køre, selv når projektionen ender `blocked`.
  * Beregningen sker derfor bagefter gennem `mapReadyProjection`.
  */
@@ -92,7 +92,7 @@ export const readRentekravCommittedRows = (reader: InputReader): RentekravRow[] 
   });
 
 /**
- * Om rentetabellen indeholder afsluttet brugerinput — også rejected råtekst.
+ * Om rentetabellen indeholder afsluttet brugerinput – også rejected råtekst.
  *
  * En `RentekravRow` er en beregningsprojektion og skjuler med vilje rejected felter som `undefined`.
  * Den må derfor ikke bruges til at afgøre, om den destruktive «Slet alle»-handling skal være aktiv; ellers

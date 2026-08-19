@@ -236,7 +236,7 @@ describe('periodiseringsMotor', () => {
   });
 
   it('isOffentligYdelseDatoMedregnet: arbejdsdage-periodisering ekskluderer SH-dag (ikke-sygedagpenge)', () => {
-    // Nytårsdag 2024 (mandag) — SH-dag
+    // Nytårsdag 2024 (mandag) – SH-dag
     const shDays = new Set<ISODateString>([iso('2024-01-01')]);
     const result = isOffentligYdelseDatoMedregnet({
       iso: iso('2024-01-01'),
@@ -405,7 +405,7 @@ describe('buildFallbackAllocationDaysForInterval', () => {
   });
 });
 
-describe('buildOffentligYdelsePeriodiseringsGrundlag — fald-tilbage for arbejdsdags-ydelse uden arbejdsdage', () => {
+describe('buildOffentligYdelsePeriodiseringsGrundlag – fald-tilbage for arbejdsdags-ydelse uden arbejdsdage', () => {
   it('bruger fald-tilbage-dage så en ren weekend-ydelse ikke forsvinder', () => {
     // Sygedagpenge (arbejdsdage) for lør+søn: ingen arbejdsdage → fald tilbage til kalenderdage.
     const grundlag = buildOffentligYdelsePeriodiseringsGrundlag({

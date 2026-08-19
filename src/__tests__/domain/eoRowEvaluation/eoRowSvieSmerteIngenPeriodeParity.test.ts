@@ -21,7 +21,7 @@ const noErrors = EMPTY_FIELD_ISSUE_SET;
 // Parallelt til `taf.ingenTafIEoPerioden`: når der slet ikke er angivet svie/smerte-perioder i
 // EO-perioden (og svie/smerte kræves), vises en særskilt advarsel, der undertrykker den sekundære
 // "Ikke rejst svie/smerte-krav for hele perioden"-advarsel på `sviesmerte.ophoerSkyldes`.
-describe('buildEoSvieSmerteRows — ingen svie/smerte-perioder i EO-perioden', () => {
+describe('buildEoSvieSmerteRows – ingen svie/smerte-perioder i EO-perioden', () => {
   it('emitterer den særskilte advarsel når ingen perioder er angivet', () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),
@@ -85,7 +85,7 @@ describe('buildEoSvieSmerteRows — ingen svie/smerte-perioder i EO-perioden', (
   });
 });
 
-describe('collectAllEoRows — suppression af sekundær svie/smerte-advarsel', () => {
+describe('collectAllEoRows – suppression af sekundær svie/smerte-advarsel', () => {
   it('undertrykker "Ikke rejst svie/smerte-krav for hele perioden" når den særskilte advarsel er aktiv', () => {
     const eoValues = {
       ...createErstatningsopgoerelseInitialValues(),

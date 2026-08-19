@@ -18,7 +18,7 @@
  * **Hvad værnet IKKE kan.** Reglen om, at planer ikke må ligge løst i `docs/`-roden, måles på filnavnet
  * (`plan-*.md`). En plan, der navngives uden præfikset, slipper igennem. Det er bevidst det svageste
  * kriterium, der fanger den fejl, vi faktisk har set (`plan-opdateringsmodel.md`, `plan-ui-skalering.md`),
- * frem for en prosaparser, der skulle gætte et dokuments genre — og repoet har allerede lært, at dansk
+ * frem for en prosaparser, der skulle gætte et dokuments genre – og repoet har allerede lært, at dansk
  * prosa bryder markørbaserede værn.
  *
  * Mappen kan legitimt være tom, når alt planlagt arbejde er udført og absorberet. Derfor hævder de
@@ -32,7 +32,7 @@ const repoRoot = resolve(process.cwd());
 const planDirectory = join(repoRoot, 'docs', 'implementation');
 const docsRoot = join(repoRoot, 'docs');
 
-/** Statuslinjen skal stå tæt på titlen, hvor den læses — ikke begravet i et afsnit langt nede. */
+/** Statuslinjen skal stå tæt på titlen, hvor den læses – ikke begravet i et afsnit langt nede. */
 const STATUS_SEARCH_LINES = 10;
 const OPEN_STATUS_PATTERN = /^Status: \*\*(PLANLAGT|UDSKUDT)\*\*/m;
 const CLOSED_STATUS_PATTERN = /^Status: \*\*IMPLEMENTERET\*\*/m;
@@ -60,7 +60,7 @@ describe('docs/implementation-mappen', () => {
     expect(
       withoutOpenStatus,
       'En plan i docs/implementation/ skal bære «Status: **PLANLAGT**» eller «Status: **UDSKUDT**» '
-        + `inden for de første ${STATUS_SEARCH_LINES} linjer — ellers kan en oprydning ikke se, om `
+        + `inden for de første ${STATUS_SEARCH_LINES} linjer – ellers kan en oprydning ikke se, om `
         + 'arbejdet er udført. Er planen indfriet, skal dens varige indhold absorberes i en kontrakt '
         + 'eller docs/architecture/, og filen slettes.'
     ).toEqual([]);
@@ -95,7 +95,7 @@ describe('docs/implementation-mappen', () => {
 
 /**
  * Selv-test af mønsteret: uden den ville de tre kontroller ovenfor være grønne, hvis regexerne holdt op
- * med at matche noget som helst — netop den «grøn af tomhed», mappen selv er et eksempel på.
+ * med at matche noget som helst – netop den «grøn af tomhed», mappen selv er et eksempel på.
  */
 describe('statusmønsteret', () => {
   it('afviser en plan uden statuslinje', () => {
@@ -111,7 +111,7 @@ describe('statusmønsteret', () => {
 
   it('genkender begge åbne statusværdier og fanger den implementerede', () => {
     expect(OPEN_STATUS_PATTERN.test('Status: **PLANLAGT** 2026-08-14. Brugerbeslutning foreligger.')).toBe(true);
-    expect(OPEN_STATUS_PATTERN.test('Status: **UDSKUDT** — afventer satsdata.')).toBe(true);
+    expect(OPEN_STATUS_PATTERN.test('Status: **UDSKUDT** – afventer satsdata.')).toBe(true);
     expect(CLOSED_STATUS_PATTERN.test('Status: **IMPLEMENTERET** 2026-08-12, efter review.')).toBe(true);
     expect(OPEN_STATUS_PATTERN.test('Status: **IMPLEMENTERET** 2026-08-12, efter review.')).toBe(false);
   });

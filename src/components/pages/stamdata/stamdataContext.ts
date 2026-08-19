@@ -4,7 +4,7 @@ import { useStamdataViewModel } from './useStamdataViewModel';
 /**
  * Stamdata-sidens viewmodel, delt med sektion-komponenterne (`page-component-contract.md` §4.4).
  *
- * Modellen eksponerer kun bundne field-refs, editorlokationer og afledte labels — ingen rå `values` og ingen
+ * Modellen eksponerer kun bundne field-refs, editorlokationer og afledte labels – ingen rå `values` og ingen
  * form-settere. Sektionerne kan derfor pr. konstruktion ikke skrive uden om feltfamilien.
  */
 export type StamdataVm = ReturnType<typeof useStamdataViewModel>;

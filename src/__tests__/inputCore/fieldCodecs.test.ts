@@ -121,7 +121,7 @@ describe('fieldCodecs', () => {
 
   /**
    * Et beløbsfelt, der ikke tager imod et komma, må heller ikke VISE et. Før denne binding hardkodede
-   * amount-codec'en præcision 2 i både `format` og `formatForEdit`, så et heltalsfelt viste "450.000,00" —
+   * amount-codec'en præcision 2 i både `format` og `formatForEdit`, så et heltalsfelt viste "450.000,00" –
    * en decimalhale brugeren hverken kunne skrive eller rette. Testen holder de to sider af samme
    * `allowDecimals`-flag sammen, og kontrasten til `allowDecimals: true` sikrer, at den måler netop
    * flaget og ikke blot "formatterer uden komma altid".
@@ -134,14 +134,14 @@ describe('fieldCodecs', () => {
 
     expect(integerOnly.format(value)).toBe('450.000');
     expect(integerOnly.formatForEdit(value)).toBe('450.000');
-    // Kontrasten: samme værdi, samme codec-familie — kun flaget adskiller dem.
+    // Kontrasten: samme værdi, samme codec-familie – kun flaget adskiller dem.
     expect(withDecimals.format(value)).toBe('450.000,00');
     expect(withDecimals.formatForEdit(value)).toBe('450.000,00');
 
     // Et komma må ikke åbne editoren i et felt, hvor tegnfilteret straks ville blokere det.
     expect(integerOnly.acceptsInitialKey(',')).toBe(false);
     expect(withDecimals.acceptsInitialKey(',')).toBe(true);
-    // Cifre åbner stadig editoren i begge — reglen rammer kommaet, ikke al indtastning.
+    // Cifre åbner stadig editoren i begge – reglen rammer kommaet, ikke al indtastning.
     expect(integerOnly.acceptsInitialKey('5')).toBe(true);
     expect(integerOnly.decimalPolicy).toBe('integerOnly');
     expect(withDecimals.decimalPolicy).toBe('decimal');
@@ -170,7 +170,7 @@ describe('fieldCodecs', () => {
     /**
      * Datofeltet videregiver ÅRSAGEN, ikke en færdig tekst. Et codec kender ikke feltet, og en generisk
      * årstalsbesked ville modsige feltets faktiske grænse (Fødselsdato slutter ved dags dato, ikke år 2100).
-     * Teksten dannes derfor af `resolveDateFormatIssueText` — se `dateFormatIssueText.test.ts`.
+     * Teksten dannes derfor af `resolveDateFormatIssueText` – se `dateFormatIssueText.test.ts`.
      */
     it('datoens urepræsenterbare årstal videregives som en maskinlæsbar årsag', () => {
       expect(date.parseForSettle('31-12-1899')).toEqual({
@@ -210,7 +210,7 @@ describe('fieldCodecs', () => {
 
     it('ugenummeret uden for årets uger bærer den konkrete grænse', () => {
       const week = createWeekFieldCodec({ twoDigitYearPolicy: 'infer', maxDraftLength: 9 });
-      // 2021 har 52 uger, 2020 har 53 — grænsen er årsafhængig og skal stå konkret i tooltippen.
+      // 2021 har 52 uger, 2020 har 53 – grænsen er årsafhængig og skal stå konkret i tooltippen.
       expect(week.parseForSettle('53/2021'))
         .toMatchObject({ detail: { tooltip: 'Uge skal være mellem 1 og 52' } });
       expect(week.parseForSettle('53/2020')).toEqual({ status: 'valid', value: '53/2020' });
@@ -219,7 +219,7 @@ describe('fieldCodecs', () => {
       expect(week.parseForSettle('xx')).toEqual({ status: 'rejected', reason: 'format' });
     });
 
-    /** Hele vejen til den tekst, brugeren faktisk ser ved markøren — for de UGE-fejl, codec'et selv ejer. */
+    /** Hele vejen til den tekst, brugeren faktisk ser ved markøren – for de UGE-fejl, codec'et selv ejer. */
     it('viser den konkrete tekst som feltets tooltip', () => {
       const week = createWeekFieldCodec({ twoDigitYearPolicy: 'infer', maxDraftLength: 9 });
       const field = { descriptor: { label: 'Uge' }, address: {} } as unknown as AnyFieldRef;
@@ -239,7 +239,7 @@ describe('fieldCodecs', () => {
 
       expect(resolveFieldIssueTooltip(asIssue('53/2021'))).toBe('Uge skal være mellem 1 og 52');
       expect(resolveFieldIssueTooltip(asIssue('xx'))).toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
-      // "Fejl og advarsler" viser fortsat den FULDE besked med feltnavnet — tooltippet er den korte kanal.
+      // "Fejl og advarsler" viser fortsat den FULDE besked med feltnavnet – tooltippet er den korte kanal.
       expect(asIssue('53/2021').message)
         .toBe('Der er udfyldt en ugyldig værdi i feltet \'Uge\'');
     });

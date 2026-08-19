@@ -3,13 +3,13 @@
  *
  * Ét sted for "lav en maskinlæsbar ASCII-nøgle ud af en dansk brugervendt tekst".
  * Bruges til interne id'er (fx graf-serie-id), fejlkode-suffikser og ASCII-sikre
- * filnavnsdele — dvs. steder hvor resultatet skal bestå af `[a-z0-9]` plus en
+ * filnavnsdele – dvs. steder hvor resultatet skal bestå af `[a-z0-9]` plus en
  * separator, uanset hvilke danske tegn kilden indeholder.
  *
  * Hvorfor ikke bare `NFKD` + `[^a-z0-9]`? Det var den tidligere form på tre
  * forskellige callsites, og den er forkert for dansk: `NFKD` dekomponerer `Å`→`a`
  * og `Ä`→`a`, men `ø` har INGEN dekomposition og blev derfor spist som separator.
- * `Årsløn` blev `arsl-n` og `Ærø` blev `a-r-` — begge tabte betydningsbærende tegn
+ * `Årsløn` blev `arsl-n` og `Ærø` blev `a-r-` – begge tabte betydningsbærende tegn
  * og kunne kollidere med en anden etiket. Derfor translittereres de danske
  * særtegn eksplicit (`ø`→`oe`, `æ`→`ae`, `å`→`aa`) FØR `NFKD` rydder resten af
  * de diakritiske tegn.
@@ -21,7 +21,7 @@
  *
  * Sluggen er bevidst IKKE injektiv: to etiketter der kun adskiller sig ved tegn
  * uden for `[a-z0-9]`, giver samme slug (`"Løn"` og `"Loen"` → `loen`). Brug den
- * derfor ikke som eneste nøgle, hvor kollision ville tabe data — de nuværende
+ * derfor ikke som eneste nøgle, hvor kollision ville tabe data – de nuværende
  * forbrug (graf-serie-id ved siden af en selvstændig `label`, fejlkode-suffiks,
  * filnavnsdel) tåler det alle.
  */
@@ -31,7 +31,7 @@
  * og skal derfor translittereres eksplicit. Rækkefølgen er uden betydning, da alle
  * nøgler er enkelttegn.
  *
- * Konventionen er `ø`→`oe`, `æ`→`ae`, `å`→`aa` — den samme som kodebasens egne
+ * Konventionen er `ø`→`oe`, `æ`→`ae`, `å`→`aa` – den samme som kodebasens egne
  * identifikatorer bruger overalt (`aarsloen`, `opgoerelse`, `loenindkomst`,
  * `foersoergertab`). Vælg ikke den kortere `ø`→`o`-form her: den ville give slugs
  * der afviger fra de modul- og feltnavne, samme domænebegreb har i resten af koden.

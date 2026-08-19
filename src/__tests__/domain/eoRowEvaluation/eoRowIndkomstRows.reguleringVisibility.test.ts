@@ -52,7 +52,7 @@ describe('buildEoIndkomstRows regulering visibility', () => {
   });
 });
 
-describe('buildEoIndkomstRows — manuelle reguleringsrækkers udfyldningskrav', () => {
+describe('buildEoIndkomstRows – manuelle reguleringsrækkers udfyldningskrav', () => {
   const asAmount = (value: number) => ({ kind: 'number', value } as const);
 
   const setupBeregningsperiode = () => {

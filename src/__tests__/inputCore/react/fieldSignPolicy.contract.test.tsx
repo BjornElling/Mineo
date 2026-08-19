@@ -23,18 +23,18 @@ import { dispatchInput } from '../../../inputCore/runtime';
 import { createCollectionRef } from '../../../inputCore/fieldAddress';
 
 /**
- * Et felts FORTEGNS-politik kommer fra dens descriptor — ét sted, samme svar på alle flader.
+ * Et felts FORTEGNS-politik kommer fra dens descriptor – ét sted, samme svar på alle flader.
  *
  * **Fundet.** Brugeren kunne taste et minustegn som første tegn i et procentfelt, der ikke må være negativt.
  * Årsagen var ikke en manglende `false` på ét callsite: `allowNegative` var erklæret på hvert numerisk codec i
- * produktionskataloget og honoreret af INGENTING. Hver komponent hardkodede sit eget svar, og de var uenige —
+ * produktionskataloget og honoreret af INGENTING. Hver komponent hardkodede sit eget svar, og de var uenige –
  * `GridPercentCell` blokerede minus, `PercentField` tillod det, for de SAMME descriptorer.
  *
  * Testene måler derfor tre lag, fordi en rettelse kun i ét af dem ville efterlade fejlen et andet sted:
  *
- *  1. **codec-laget** — `signPolicy` og `acceptsInitialKey` afspejler den erklærede regel,
- *  2. **katalog-laget** — hvert numerisk produktionsfelt HAR en politik (ellers ville laget 3 måle ingenting),
- *  3. **surface-laget** — den ægte komponent blokerer tastetrykket i en åben editor.
+ *  1. **codec-laget** – `signPolicy` og `acceptsInitialKey` afspejler den erklærede regel,
+ *  2. **katalog-laget** – hvert numerisk produktionsfelt HAR en politik (ellers ville laget 3 måle ingenting),
+ *  3. **surface-laget** – den ægte komponent blokerer tastetrykket i en åben editor.
  *
  * Og de pinner den bevidste AFGRÆNSNING: parse/settle er fortsat fortegns-blind (§1.6), så en negativ værdi
  * fra en indlæst `.eo`-fil stadig committes canonical og bærer sit røde bounds-issue frem for at blive
@@ -66,7 +66,7 @@ const renderField = (node: React.ReactNode) => {
   return render(<InputRuntimeProvider binding={binding}>{node}</InputRuntimeProvider>);
 };
 
-describe('lag 1 — codecet bærer den erklærede fortegns-politik', () => {
+describe('lag 1 – codecet bærer den erklærede fortegns-politik', () => {
   it('procent: allowNegative:false giver nonNegative og afviser minus som åbningstast', () => {
     const codec = createPercentFieldCodec({ allowNegative: false, allowDecimals: true, minValue: 0, maxValue: 100 });
     expect(codec.signPolicy).toBe('nonNegative');
@@ -91,7 +91,7 @@ describe('lag 1 — codecet bærer den erklærede fortegns-politik', () => {
 
   it('string-backed adapter ARVER det indre codecs politik', () => {
     // Månedscellen (1..12) går gennem denne adapter. Uden viderestillingen ville den miste sin politik og
-    // dermed få minus tilbage — netop den slags hul, en adapter let skaber.
+    // dermed få minus tilbage – netop den slags hul, en adapter let skaber.
     const inner = createIntegerFieldCodec({ allowNegative: false, maxDigits: 2, minValue: 1, maxValue: 12 });
     const adapted = createStringBackedFieldCodec(inner);
     expect(adapted.signPolicy).toBe('nonNegative');
@@ -105,14 +105,14 @@ describe('lag 1 — codecet bærer den erklærede fortegns-politik', () => {
   });
 
   it('AFGRÆNSNING: parse/settle er fortsat fortegns-blind (§1.6)', () => {
-    // En negativ værdi fra en indlæst .eo-fil skal committes canonical og bære sit røde bounds-issue — ikke
+    // En negativ værdi fra en indlæst .eo-fil skal committes canonical og bære sit røde bounds-issue – ikke
     // blive afvist som råtekst. Fjernedes denne egenskab, ville data kunne gå tabt ved load.
     const codec = createPercentFieldCodec({ allowNegative: false, allowDecimals: true, minValue: 0, maxValue: 100 });
     expect(codec.parseForSettle('-5')).toEqual({ status: 'valid', value: -5 });
   });
 });
 
-describe('lag 2 — hvert numerisk produktionsfelt ERKLÆRER en politik', () => {
+describe('lag 2 – hvert numerisk produktionsfelt ERKLÆRER en politik', () => {
   /**
    * Uden dette ben kunne surface-testene være grønne, mens et produktionsfelt manglede sin politik og derfor
    * fail-open'ede til "minus tilladt". Det er samtidig værnet mod et NYT numerisk felt uden politik: laget
@@ -136,7 +136,7 @@ describe('lag 2 — hvert numerisk produktionsfelt ERKLÆRER en politik', () => 
 
   it('de fortegnede felter er UDELUKKENDE beløbsfelter (ankeret mod "alt er nonNegative")', () => {
     // Var alt `nonNegative`, ville testen ovenfor bestå trivielt. Dette ben beviser, at politikken faktisk
-    // VARIERER i produktionen — og at variationen kun findes i beløbsfamilien.
+    // VARIERER i produktionen – og at variationen kun findes i beløbsfamilien.
     const signed = productionInputFields
       .filter((field) => NUMERIC_FAMILIES.has(field.codec.family) && field.codec.signPolicy === 'signed');
     expect(signed.length).toBeGreaterThan(0);
@@ -144,17 +144,17 @@ describe('lag 2 — hvert numerisk produktionsfelt ERKLÆRER en politik', () => 
   });
 });
 
-describe('lag 3 — den ægte komponent blokerer tastetrykket', () => {
+describe('lag 3 – den ægte komponent blokerer tastetrykket', () => {
   /**
    * Åbner editoren og returnerer inputtet. Et lukket greenfield-felt er `readOnly`, og dets tegnfilter er
-   * ikke tilkoblet — en test, der taster på et LUKKET felt, ville derfor være grøn uanset politikken. Det var
+   * ikke tilkoblet – en test, der taster på et LUKKET felt, ville derfor være grøn uanset politikken. Det var
    * netop den fælde, den første reproduktion af dette fund faldt i.
    */
   const openEditor = (): HTMLInputElement => {
     const input = screen.getByRole('textbox') as HTMLInputElement;
     // Et ciffer er en accepteret åbningstast for alle tre familier (§1.3). Vi åbner MED et ciffer frem for
     // med minus, så testen nedenfor måler tegnfilteret i en ÅBEN editor og ikke bare `acceptsInitialKey`
-    // (som lag 1 allerede dækker) — de to mekanismer skal begge holde.
+    // (som lag 1 allerede dækker) – de to mekanismer skal begge holde.
     fireEvent.keyDown(input, { key: '1' });
     fireEvent.change(input, { target: { value: '1' } });
     expect(input.readOnly, 'editoren skulle være åben, ellers måler testen ingenting').toBe(false);
@@ -162,11 +162,11 @@ describe('lag 3 — den ægte komponent blokerer tastetrykket', () => {
   };
 
   /**
-   * `fireEvent.keyDown` returnerer `false`, når en handler kaldte `preventDefault()` — altså blokerede.
+   * `fireEvent.keyDown` returnerer `false`, når en handler kaldte `preventDefault()` – altså blokerede.
    *
    * **Caret'en flyttes til 0 først, og det er afgørende.** Tegnfilteret vurderer den RESULTERENDE tekst: et
    * minus efter et ciffer giver `"1-"`, som mønsteret afviser uanset fortegns-politikken. En test, der tastede
-   * minus dér, ville derfor være grøn, selv med politikken slået fra — netop den fælde, den første udgave af
+   * minus dér, ville derfor være grøn, selv med politikken slået fra – netop den fælde, den første udgave af
    * denne test faldt i, og som en mutationstest af `PercentField` afslørede. Ved caret 0 er resultatet `"-1"`,
    * som ALENE afgøres af politikken.
    */
@@ -195,7 +195,7 @@ describe('lag 3 — den ægte komponent blokerer tastetrykket', () => {
   /**
    * Ankeret på surface-laget: `AmountField` LÆSER politikken frem for at blokere minus generelt.
    *
-   * Feltet er et PRODUKTIONSFELT — en af årslønstabellens beløbskolonner, som er de eneste fortegnede felter
+   * Feltet er et PRODUKTIONSFELT – en af årslønstabellens beløbskolonner, som er de eneste fortegnede felter
    * i kataloget (jf. lag 2). Testkatalogets eget `belobField` er `allowNegative: false` og kunne derfor ikke
    * bære denne case; det opdagede netop denne test, da den blev mutationstestet.
    */

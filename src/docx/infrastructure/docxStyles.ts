@@ -5,13 +5,13 @@ import { AlignmentType, LineRuleType, XmlAttributeComponent, XmlComponent, type 
  *
  * ENESTE sted hvor Word-dokumenternes udseende defineres. Generatoren
  * (`docxWriter.ts`) må IKKE sætte inline font/størrelse/spacing på de enkelte
- * afsnit og runs — den refererer udelukkende til de navngivne typografier herfra
+ * afsnit og runs – den refererer udelukkende til de navngivne typografier herfra
  * via `DOCX_STYLE`. Det betyder:
  *
  *  1. Al tekst arver et navngivet Word-typografi (Normal, Overskrift osv.), så
  *     dokumentet kan redigeres centralt i Word og slå igennem overalt.
  *  2. Enhver fremtidig justering af udseendet sker HER (eller i Words egne
- *     typografi-definitioner) — bevidst, ét sted, aldrig spredt inline i koden.
+ *     typografi-definitioner) – bevidst, ét sted, aldrig spredt inline i koden.
  *
  * Enheder (OOXML-konvention):
  *  - `run.size`            : halve points (22 = 11 pt)
@@ -38,7 +38,7 @@ const NORMAL_PARAGRAPH_AFTER_DXA = 40; // 2 pt
 
 /**
  * Rækkefølge i hurtigtypografi-galleriet. Lavere `uiPriority` står først. Kun
- * disse typografier får `quickFormat` og indgår dermed i galleriet — i præcis
+ * disse typografier får `quickFormat` og indgår dermed i galleriet – i præcis
  * denne rækkefølge. Word oversætter de indbyggede navne til dansk (Normal →
  * "Normal", Title → "Titel", Heading 1 → "Overskrift 1", No Spacing →
  * "Ingen linjeafstand").
@@ -53,27 +53,27 @@ const GALLERY_UI_PRIORITY = {
 } as const;
 
 /**
- * Navngivne typografi-id'er. Generatoren refererer KUN til disse — aldrig til
+ * Navngivne typografi-id'er. Generatoren refererer KUN til disse – aldrig til
  * rå font/størrelse/spacing-værdier.
  */
 export const DOCX_STYLE = {
-  /** Brødtekst — Words indbyggede "Normal". Alt andet er baseret på denne. */
+  /** Brødtekst – Words indbyggede "Normal". Alt andet er baseret på denne. */
   normal: 'Normal',
   /** Dokumenttitel (øverst). */
   title: 'Title',
   /** Sektionsoverskrift (Overskrift 1). */
   sectionHeader: 'Heading1',
-  /** Fed PDF-underoverskrift — Word-typografien "Overskrift 2". */
+  /** Fed PDF-underoverskrift – Word-typografien "Overskrift 2". */
   subheaderBold: 'Heading2',
-  /** Understreget PDF-underoverskrift — Word-typografien "Overskrift 3". */
+  /** Understreget PDF-underoverskrift – Word-typografien "Overskrift 3". */
   subheaderUnderlined: 'Heading3',
-  /** Datatabel — Words indbyggede "Table Paragraph". */
+  /** Datatabel – Words indbyggede "Table Paragraph". */
   tableCell: 'TableParagraph',
-  /** Kantfri layout-tabel og tomme afstands-afsnit — Words indbyggede "No Spacing". */
+  /** Kantfri layout-tabel og tomme afstands-afsnit – Words indbyggede "No Spacing". */
   noSpacing: 'NoSpacing',
-  /** Sidefod — Words indbyggede "Footer". */
+  /** Sidefod – Words indbyggede "Footer". */
   footer: 'Footer',
-  /** Brevhoved — Words indbyggede "Header". */
+  /** Brevhoved – Words indbyggede "Header". */
   header: 'Header',
 } as const;
 

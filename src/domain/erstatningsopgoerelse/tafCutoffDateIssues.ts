@@ -19,7 +19,7 @@ import {
 //
 // Derfor samme mønster som `manualRegulationDateIssues`: domænet udleder issuet OG binder selv den rigtige
 // feltadresse, og UI'et leverer det til cellen via `collectionRuleIssue`. Reglen bliver et ægte `FieldIssue`
-// og deler dermed adresse med rød ring, tooltip, navigation og blokering — ét sprog, ikke fire.
+// og deler dermed adresse med rød ring, tooltip, navigation og blokering – ét sprog, ikke fire.
 //
 // Datogrundlaget kommer fra `resolveTafCutoffDates`, som er den SAMME kilde, motorens clamping bruger.
 // Det er den centrale pointe: en cutoff-fejl må aldrig kunne sige noget andet end den grænse, beregningen
@@ -52,7 +52,7 @@ const cutoffIssueFor = (
  * Udleder cutoff-feltfejlene for alle TAF-perioderækker.
  *
  * BEGGE datoer prøves mod cutoffen, ikke kun til-datoen. En cutoff er en øvre grænse, og en fra-dato efter
- * skæringsdatoen er lige så ulovlig som en til-dato — perioden ligger da HELT efter grænsen. Markeres kun
+ * skæringsdatoen er lige så ulovlig som en til-dato – perioden ligger da HELT efter grænsen. Markeres kun
  * til-datoen i det tilfælde, peger programmet på det felt, brugeren ikke behøver at rette. Hver dato bærer
  * altså sin egen fejl, og en periode, der overskrider grænsen i begge ender, markeres i begge ender.
  *

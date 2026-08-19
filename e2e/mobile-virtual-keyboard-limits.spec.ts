@@ -7,13 +7,13 @@ import { expect, test } from './support/mineoTest';
  *
  * **Fejlen testen er skrevet efter (brugerfund, mobil).** Værnet var udelukkende et `keydown`-filter:
  * `filterDateLikeKeyDown` beregnede den kommende draft ud fra `e.key` og kaldte `preventDefault()`. Det
- * forudsætter en tast med et brugbart `key` — og et mobilt skærmtastatur leverer ikke det. Det skriver
+ * forudsætter en tast med et brugbart `key` – og et mobilt skærmtastatur leverer ikke det. Det skriver
  * tegnet direkte i `<input>` og fyrer et `input`-event; den `keydown`, der eventuelt følger, bærer
  * `key === 'Unidentified'`, som filteret med vilje lader passere for ikke at forstyrre IME/composition.
  * Hele værnet var derfor fraværende på mobil, og `21-1111111-2026` kunne stå i et datofelt, selv om
  * desktop afviste præcis samme form.
  *
- * Rettelsen flyttede værnet til `onDraftChange` — den ene kanal, ENHVER modalitet passerer — med
+ * Rettelsen flyttede værnet til `onDraftChange` – den ene kanal, ENHVER modalitet passerer – med
  * feltfamiliernes prædikater i `src/components/inputs/draftAdmission.ts` som fælles kilde for både
  * draft-værnet og det afledte keydown-filter.
  *
@@ -27,7 +27,7 @@ const typeLikeMobileKeyboard = async (input: Locator, text: string): Promise<voi
     await input.evaluate((element, value) => {
       const el = element as HTMLInputElement;
       // Den native value-setter omgår Reacts egen property-descriptor, så `input`-eventet ser den nye
-      // tekst — præcis som når browseren selv skriver tegnet efter et tryk på skærmtastaturet.
+      // tekst – præcis som når browseren selv skriver tegnet efter et tryk på skærmtastaturet.
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
       const start = el.selectionStart ?? el.value.length;
       const end = el.selectionEnd ?? start;
@@ -69,7 +69,7 @@ test.describe('indtastning uden brugbar keydown (skærmtastatur)', () => {
     await typeLikeMobileKeyboard(formDate, '21--------11--------2026');
     await expect(formDate).toHaveValue('21-11-2026');
 
-    // 2. Blandede separatortegn følger samme regel — separatorsættet er ethvert ikke-alfanumerisk tegn.
+    // 2. Blandede separatortegn følger samme regel – separatorsættet er ethvert ikke-alfanumerisk tegn.
     await reopenEditor(formDate);
     await typeLikeMobileKeyboard(formDate, '5.,/@3...8');
     await expect(formDate).toHaveValue('5.3.8');
@@ -86,7 +86,7 @@ test.describe('indtastning uden brugbar keydown (skærmtastatur)', () => {
     await expect(formDate).toHaveValue('12-34-2026');
 
     // 5. Draften committer korrekt bagefter. Værnet må ikke have efterladt DOM og motor uenige om
-    //    indholdet — ellers ville feltet vise ét og gemme noget andet.
+    //    indholdet – ellers ville feltet vise ét og gemme noget andet.
     await formDate.press('Enter');
     await expect(formDate).toHaveValue('12-34-2026');
     await expect(formDate).toHaveAttribute('aria-invalid', 'true');
@@ -98,7 +98,7 @@ test.describe('indtastning uden brugbar keydown (skærmtastatur)', () => {
     await typeLikeMobileKeyboard(cellDate, '21--------11--------2026');
     await expect(cellDate).toHaveValue('21-11-2026');
 
-    // Kun én editor må være åben ad gangen (§3.5) — luk datocellen, før beløbscellen åbnes.
+    // Kun én editor må være åben ad gangen (§3.5) – luk datocellen, før beløbscellen åbnes.
     await cellDate.press('Escape');
     await expect(cellDate).toHaveAttribute('readonly', '');
 

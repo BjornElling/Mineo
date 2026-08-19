@@ -16,13 +16,13 @@ describe('UnsupportedDevicePage', () => {
   });
 
   describe('søskendesider', () => {
-    it('viser hver søskendeside — den aktuelle side som ikke-link, resten som eksterne links', () => {
+    it('viser hver søskendeside – den aktuelle side som ikke-link, resten som eksterne links', () => {
       render(<UnsupportedDevicePage />);
 
       const nav = screen.getByRole('navigation', { name: 'Søskendesider' });
 
-      // minEO ER hard-stop-siden; den skal ikke kunne linke til sig selv. Teksten ligger — som i
-      // den delte footer — i et indre span, så understregningen kan sidde tæt under skriften i
+      // minEO ER hard-stop-siden; den skal ikke kunne linke til sig selv. Teksten ligger – som i
+      // den delte footer – i et indre span, så understregningen kan sidde tæt under skriften i
       // stedet for langs hele den 28 px høje række; markeringen hører derfor på forælderen.
       const currentText = within(nav).getByText('minEO.dk');
       const current = currentText.closest('[aria-current]');
@@ -43,7 +43,7 @@ describe('UnsupportedDevicePage', () => {
       }
     });
 
-    it('holder søskendelinkene i tastaturrækkefølgen — de er brugerens eneste vej videre', () => {
+    it('holder søskendelinkene i tastaturrækkefølgen – de er brugerens eneste vej videre', () => {
       render(<UnsupportedDevicePage />);
 
       const nav = screen.getByRole('navigation', { name: 'Søskendesider' });

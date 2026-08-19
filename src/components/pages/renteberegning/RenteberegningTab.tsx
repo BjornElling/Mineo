@@ -63,7 +63,7 @@ const KOMMENTARER_LOCATION = { locationId: 'renteberegning:kommentarer', route: 
  * gør ikke.
  *
  * Tidligere modtog fanen i stedet tre `onDownload*`-callbacks og skrev SELV hele preflighten
- * (settle → capture → token-lighed → gate) — fire gange, én pr. handler plus de reaktive gates.
+ * (settle → capture → token-lighed → gate) – fire gange, én pr. handler plus de reaktive gates.
  * Alt det ligger nu i definitionerne.
  */
 export interface RenteberegningTabProps {
@@ -116,7 +116,7 @@ const RenteberegningTab = React.memo(({
 
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
 
-  // Den ENE reader-afledte projektion (§3.4/§5.4) — tabeloutput og download-gates deler præcis samme sandhed.
+  // Den ENE reader-afledte projektion (§3.4/§5.4) – tabeloutput og download-gates deler præcis samme sandhed.
   const projection = React.useMemo(
     () => buildRenteberegningReaderProjection({
       reader: evaluation.reader,
@@ -133,13 +133,13 @@ const RenteberegningTab = React.memo(({
   const kommentarer = kommentarerRead.status === 'usable' ? kommentarerRead.value : undefined;
 
   // Preflighten (settle → frisk capture → token-lighed → gate) ejes af definitionerne. Det eneste,
-  // der er tilbage her, er "vis en spinner mens det samlede dokument bygges" — ren præsentation.
+  // der er tilbage her, er "vis en spinner mens det samlede dokument bygges" – ren præsentation.
   const handleDownloadRow = React.useCallback(async (rowId: string) => {
     await renteDownload.download({ rowId });
   }, [renteDownload]);
 
   /**
-   * Rækkens gate fra definitionen selv — samme `project`, samme kontekst, samme request som klikket.
+   * Rækkens gate fra definitionen selv – samme `project`, samme kontekst, samme request som klikket.
    *
    * Teksten SKAL gennem `resolveBlockedGateTooltip`. Her stod før `gate.reasons[0].message`, hvilket omgik
    * både prioriteringen mellem årsager og klasse→tekst-oversættelsen: rækkeknapperne viste derfor gatens
@@ -259,7 +259,7 @@ const RenteberegningTab = React.memo(({
                     disabled={oversigtDownloadDisabled}
                     // Gatens egen årsag frem for den generiske default: oversigten kan blokere af flere
                     // grunde (manglende beregningsdato, ingen gyldige rentelinjer), og knappen læste dem
-                    // slet ikke — den svarede altid "Indtastning mangler".
+                    // slet ikke – den svarede altid "Indtastning mangler".
                     tooltip={oversigtDownloadDisabled
                       ? (renteOversigtDownload?.disabledReason ?? DOWNLOAD_DISABLED_TOOLTIP)
                       : `Download som ${getDocumentFormatLabel(documentDownloadFormat)}`}
@@ -281,7 +281,7 @@ const RenteberegningTab = React.memo(({
                   disabled={clearAllDisabled}
                   aria-label="Slet alle indtastninger"
                   // Uden markøren var knappen ikke i Tab-ringen, mens dens nabo «Download samlet
-                  // oversigt» — tegnet ens, i samme rækkeform — var det (BB-047). Markøren er samtidig
+                  // oversigt» – tegnet ens, i samme rækkeform – var det (BB-047). Markøren er samtidig
                   // forudsætningen for, at Enter aktiverer knappen; mellemrum virker uden den og kan
                   // derfor skjule manglen. Bemærk at «Slet rækken» bevidst står UDEN for ringen.
                   data-mineo-focusable-button="true"
@@ -295,7 +295,7 @@ const RenteberegningTab = React.memo(({
                     },
                   })}
                 >
-                  {/* Bevidst dæmpet rød — blødere signal for en destruktiv, men sjælden handling. */}
+                  {/* Bevidst dæmpet rød – blødere signal for en destruktiv, men sjælden handling. */}
                   <Delete sx={{ fontSize: '24px', color: clearAllDisabled ? 'action.disabled' : '#c25555' }} />
                 </IconButton>
               </Box>

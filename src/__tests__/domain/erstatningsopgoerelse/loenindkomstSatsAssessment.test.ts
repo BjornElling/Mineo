@@ -21,7 +21,7 @@ type Grundlag = LoenindkomstAnsaettelsesforhold['loenudviklingBeregningsgrundlag
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
-/** Et ansættelsesforhold med indtastede lønoplysninger — forudsætningen for, at satsen kan være påkrævet. */
+/** Et ansættelsesforhold med indtastede lønoplysninger – forudsætningen for, at satsen kan være påkrævet. */
 const employment = (overrides: Partial<LoenindkomstAnsaettelsesforhold> = {}): LoenindkomstAnsaettelsesforhold => ({
   ...createDefaultLoenindkomstAnsaettelsesforhold(),
   tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
@@ -40,7 +40,7 @@ const ctx = (
 /** De to former, hvis opregulering faktisk læser feriegodtgørelsen. */
 const KRAEVENDE_FORMER: readonly Grundlag[] = ['Overenskomst', 'Manuelt angivet'];
 
-describe('isFeriePctRelevant — den godkendte relevansmatrix', () => {
+describe('isFeriePctRelevant – den godkendte relevansmatrix', () => {
   it.each(loenudviklingBeregningsgrundlagEnum.options)(
     'afgør relevansen korrekt for reguleringsformen %s',
     (grundlag) => {
@@ -50,7 +50,7 @@ describe('isFeriePctRelevant — den godkendte relevansmatrix', () => {
   );
 
   it('kræver ikke satsen, mens reguleringsformen er tom', () => {
-    // En tom form blokerer i stedet som et manglende reguleringsvalg — det valg markeres, ikke satsen.
+    // En tom form blokerer i stedet som et manglende reguleringsvalg – det valg markeres, ikke satsen.
     const af = employment({ loenudviklingBeregningsgrundlag: undefined });
     expect(isFeriePctRelevant(af, 'Beregningsperiode')).toBe(false);
   });
@@ -109,7 +109,7 @@ describe('assessLoenindkomstSatser', () => {
     expect(assessLoenindkomstSatser({ ...base, loenudviklingBeregningsgrundlag: 'Ingen' }, ctx())).toEqual([]);
   });
 
-  it('vejleder om satsens størrelse, når den er udfyldt men under 12 % — uanset reguleringsform', () => {
+  it('vejleder om satsens størrelse, når den er udfyldt men under 12 % – uanset reguleringsform', () => {
     // Vejledningen hænger ikke på relevansen: har brugeren SELV skrevet en værdi, er den for lav uanset form.
     for (const grundlag of loenudviklingBeregningsgrundlagEnum.options) {
       const findings = assessLoenindkomstSatser(
@@ -151,7 +151,7 @@ describe('assessLoenindkomstSatser', () => {
   });
 });
 
-describe('resolveSatserErrorField — samme vurdering, boksens formulering', () => {
+describe('resolveSatserErrorField – samme vurdering, boksens formulering', () => {
   it('siger "ikke udfyldt" om en manglende værdi, ikke "forkert indtastet"', () => {
     const error = resolveSatserErrorField(
       employment({ loenudviklingBeregningsgrundlag: 'Overenskomst' }),
@@ -173,7 +173,7 @@ describe('resolveSatserErrorField — samme vurdering, boksens formulering', () 
     expect(error?.message).toBe('Forkert værdi indtastet i Feriegodtgørelse/-tillæg');
   });
 
-  it('blokerer ikke, hvor vurderingen ikke markerer — feltmarkering og blokering kan ikke drifte', () => {
+  it('blokerer ikke, hvor vurderingen ikke markerer – feltmarkering og blokering kan ikke drifte', () => {
     // Dette er fundets kerne: de to sider læser NU samme vurdering, så en tom liste og en null-blokering
     // følges altid. Krævede gaten mere eller mindre end markeringen, ville netop denne løkke fange det.
     for (const grundlag of loenudviklingBeregningsgrundlagEnum.options) {

@@ -73,7 +73,7 @@ export const createSfggIngenRow = (ansaettelsesforholdId: string): SfggRow => ({
  *
  * Baggrund: SFGG-inputfejl er fail-closed/blokerende (jf. eo-snapshot-contract §3.1). Når SFGG er
  * relevant (`kravPaaTabtArbejdsfortjeneste === 'Ja'` + `ansatPaaSkadestidspunktet`), skal et
- * fixture — ligesom en rigtig bruger — eksplicit vælge et SFGG-beregningsgrundlag, ellers blokeres
+ * fixture – ligesom en rigtig bruger – eksplicit vælge et SFGG-beregningsgrundlag, ellers blokeres
  * den autoritative beregning ("Beregningsgrundlag for SFGG ikke valgt"). 'Ingen' er det neutrale
  * valg, der ikke ændrer beregnede tal, men låser kravet om en eksplicit beslutning op.
  *

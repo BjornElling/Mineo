@@ -70,7 +70,7 @@ describe('uiScale', () => {
     expect(CONTENT_GUTTER_CSS).toBe(`calc(24px * var(${CONTENT_SCALE_CSS_VARIABLE}, 1))`);
   });
 
-  it('regner hele fladen — sidemenu inklusive — som ét skaleret pladsregnskab', () => {
+  it('regner hele fladen – sidemenu inklusive – som ét skaleret pladsregnskab', () => {
     expect(CONTENT_UI_SCALE_POLICY.scaledShellWidthPx).toBe(250 + 24 + 50 + 1200 + 24);
     expect(requiredViewportWidthForScale(1)).toBe(
       CONTENT_UI_SCALE_POLICY.scaledShellWidthPx + CONTENT_UI_SCALE_POLICY.scrollbarReservePx
@@ -111,7 +111,7 @@ describe('uiScale', () => {
       + layout.expandedButtonPaddingLeftPx
       + SIDE_MENU_LAYOUT_POLICY.iconSlotSizePx / 2,
     ).toBeCloseTo(axis, 10);
-    // Hamburgeren er kvadratisk og centrerer sit ikon i knappen — samme akse.
+    // Hamburgeren er kvadratisk og centrerer sit ikon i knappen – samme akse.
     expect(
       SIDE_MENU_LAYOUT_POLICY.groupPaddingPx
       + layout.expandedSquareButtonMarginLeftPx
@@ -179,7 +179,7 @@ describe('uiScale', () => {
     });
 
     it('er upåvirket af vandret rul', () => {
-      // Uden `scrollLeft` i regnestykket ville et rul mod højre afsløre mere af fanen — og dermed
+      // Uden `scrollLeft` i regnestykket ville et rul mod højre afsløre mere af fanen – og dermed
       // selv gøre scrollområdet bredere, rul efter rul.
       const atRest = resolveSideTabRailWidthPx({
         railLeftPx,
@@ -199,7 +199,7 @@ describe('uiScale', () => {
 
     it('falder tilbage til indholdsboksens bredde, når geometrien ikke kan måles', () => {
       // Bunden gør fanerne fuldt klippede frem for at lade en umålelig geometri (jsdom, skjult
-      // flade, skala 0) give en tilfældig bredde — og den kan aldrig give vandret rul.
+      // flade, skala 0) give en tilfældig bredde – og den kan aldrig give vandret rul.
       for (const scale of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
         expect(resolveSideTabRailWidthPx({
           railLeftPx,

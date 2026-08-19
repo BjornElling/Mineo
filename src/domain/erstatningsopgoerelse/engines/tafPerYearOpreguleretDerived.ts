@@ -10,7 +10,7 @@
  * PRINCIP:
  *   For hvert år Y opreguleres med den AKKUMULEREDE REGULERINGSSATS for de
  *   mellemliggende år (∏(1 + sats/100)), dvs. "tilpasningsprocenten plus to
- *   procent" — samme metode som ved fremskrivning af årsløn til EET efter EAL og
+ *   procent" – samme metode som ved fremskrivning af årsløn til EET efter EAL og
  *   ved regulering af offentlige ydelser. Selve beregningen ligger i den fælles
  *   motor `opregulerMedAkkumuleretReguleringssats`.
  *
@@ -78,7 +78,7 @@ export type TafPerYearOpreguleretBuildOutcome =
  * Opregulerer det per-år fordelte TAF-krav til beregningsårets prisniveau.
  *
  * Bruger den fælles motor `opregulerMedAkkumuleretReguleringssats` (akkumuleret
- * reguleringssats / "tilpasningsprocenten plus to procent") — samme metode som
+ * reguleringssats / "tilpasningsprocenten plus to procent") – samme metode som
  * fremskrivning af årsløn til EET efter EAL og regulering af offentlige ydelser.
  *
  * @param tafPerYear  Resultatet fra buildTafPerYearBuildOutcome (kind 'ok').

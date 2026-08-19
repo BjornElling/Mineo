@@ -2,7 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import { parseDanishToIso } from '../helpers/eoSharedUtils';
 
-// R2 — det autoritative KL-lønaftaler-visnings-forløb: kildens periodeserie af
+// R2 – det autoritative KL-lønaftaler-visnings-forløb: kildens periodeserie af
 // reguleringsprocenter, keyet på periodens ISO-startdato. Motorens klLoenaftalerForm.byggSegmenter
 // bruger listen til at placere brudpunkter, og præsentationens reguleringsværdi-tabel viste den
 // samme serie ved at bygge den uafhængigt (parse + sort af klLoenaftalerRaekker). Ved at motoren
@@ -10,7 +10,7 @@ import { parseDanishToIso } from '../helpers/eoSharedUtils';
 // brudpunkter beløbet bygger på (jf. reviewkandidat #23).
 //
 // BEMÆRK: KL-lønaftaler viser bevidst periode-satsen (ikke akkumuleret) og kæder den trinvist på
-// lønnen (reguleretLoenOre på segmentet er beregningssandheden for beløbet) — forløbet her er
+// lønnen (reguleretLoenOre på segmentet er beregningssandheden for beløbet) – forløbet her er
 // kildens satsserie, ikke et indeksforhold (jf. docs/domain/taf/kl-loenaftaler-regulering.md).
 export type KlLoenaftalerIndexEntry = Readonly<{
   startIso: ISODateString;

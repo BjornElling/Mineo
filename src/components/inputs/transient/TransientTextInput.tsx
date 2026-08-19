@@ -4,7 +4,7 @@ import StyledTextFieldBase from '../StyledTextFieldBase';
 import StyledTextAreaBase from '../StyledTextAreaBase';
 
 // Transient tekstfelt (§3.1-undtagelse: IKKE sagsdata). Bruges hvor teksten kun lever i komponentens egen
-// state — fx rapport-dialogens beskedfelt. Fri tekst har intet parse-/commit-begreb, så feltet er styret
+// state – fx rapport-dialogens beskedfelt. Fri tekst har intet parse-/commit-begreb, så feltet er styret
 // direkte på draften: hver tastning ER værdien. Derfor bruger den ikke `useTransientDraft` (som findes for
 // de felter, der har en parse-/commit-grænse).
 

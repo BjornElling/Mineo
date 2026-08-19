@@ -222,7 +222,7 @@ describe('buildFerieDageSet', () => {
       ],
       datoSet
     );
-    // 2024-01-02 er tirsdag, 2024-01-03 er onsdag — begge hverdage
+    // 2024-01-02 er tirsdag, 2024-01-03 er onsdag – begge hverdage
     expect(result.size).toBe(2);
   });
 
@@ -303,7 +303,7 @@ describe('buildShDageSet', () => {
   });
 
   it('Store Bededag 2024: er IKKE helligdag (år >= 2024)', () => {
-    // Store Bededag 2024 ville have været 26. april 2024 (fredag) — men den er afskaffet
+    // Store Bededag 2024 ville have været 26. april 2024 (fredag) – men den er afskaffet
     const fraDate = isoDateToDate(iso('2024-04-26'));
     const tilDate = isoDateToDate(iso('2024-04-26'));
     const datoSet = buildDatoSetInclusive(iso('2024-04-26'), iso('2024-04-26'));
@@ -482,7 +482,7 @@ describe('placeLoseFeriedage', () => {
   });
 
   it('placerer ikke flere end tilgængelige hverdage', () => {
-    // 2024-01-01 er mandag — kun 5 hverdage i ugen (01-05). Vi beder om 10.
+    // 2024-01-01 er mandag – kun 5 hverdage i ugen (01-05). Vi beder om 10.
     const result = placeLoseFeriedage(iso('2024-01-01'), iso('2024-01-05'), 10, new Set());
     // Kun 5 hverdage i perioden (men 01-01 er nytårsdag, ikke blokeret af buildShDageSet)
     expect(result.size).toBe(5);

@@ -21,7 +21,7 @@ export const applyLoenudviklingBeregningsgrundlagChange = <
   // Skjulte lønudvikling-felter (statistikModel, KRL-satstabel, manuelNavn, manuelTableData)
   // er fortsat committed brugerinput og skal bevares i runtime-state, sessionStorage og
   // .eo-save/load. Beregningsmotoren og validatoren gater eksplicit på
-  // loenudviklingBeregningsgrundlag — stale værdier fra ikke-aktive grundlag ignoreres der,
+  // loenudviklingBeregningsgrundlag – stale værdier fra ikke-aktive grundlag ignoreres der,
   // ikke her.
   ...current,
   loenudviklingBeregningsgrundlag: nextBeregningsgrundlag,
@@ -34,7 +34,7 @@ export const applySfggBeregningskildeChange = (
   // Skjulte SFGG-felter er fortsat committed brugerinput og skal derfor bevares i
   // runtime-state, sessionStorage og .eo-save/load. Beregningsmotoren gater eksplicit
   // på sfggSource.kind (se sfggAnsaettelsesforhold.ts: `if (sfggSource.kind === 'ingen')`
-  // og resolveSfggSegmentRateForDate) og validatoren gater tilsvarende — stale værdier
+  // og resolveSfggSegmentRateForDate) og validatoren gater tilsvarende – stale værdier
   // fra ikke-aktive beregningskilder ignoreres der, ikke her.
   ...current,
   sfggBeregningskilde: nextBeregningskilde,

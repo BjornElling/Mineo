@@ -4,7 +4,7 @@ Denne fil beskriver beregningslogikken for godtgørelse for varige mén.
 
 ---
 
-## Del 1 — For dig
+## Del 1 – For dig
 
 ### Hvad beregner dette modul?
 
@@ -12,7 +12,7 @@ Godtgørelse for varige mén (ASL § 18) er en éngangsydelse til skadelidte for
 
 ### Trin-for-trin beregning
 
-#### Trin 1 — Grundbeløb (sats pr. méngrad)
+#### Trin 1 – Grundbeløb (sats pr. méngrad)
 
 Grundbeløbet opslagtes på `beregningsåret` (året i den angivne beregningsdato):
 
@@ -23,21 +23,21 @@ grundbeløb_ved_100_pct = sats_pr_méngrad × 100
 
 Eksempel 2026: sats pr. méngrad = 11.035 kr., grundbeløb ved 100 % = 1.103.500 kr.
 
-#### Trin 2 — Beløb uden aldersfradrag
+#### Trin 2 – Beløb uden aldersfradrag
 
 ```
 beløb_uden_reduktion = sats_pr_méngrad × méngrad
 ```
 
-Méngradsprocenten bruges direkte som heltal — der foretages ingen afrunding af méngradsprocenten.
+Méngradsprocenten bruges direkte som heltal – der foretages ingen afrunding af méngradsprocenten.
 
 **Bevidst designbeslutning:** Méngraden må være fra 1 til og med 120 %. Procenter over
 100 % beregnes efter samme formel og er ikke en fejl. Procenter over 120 % er derimod
 en blokerende indtastningsfejl og bruges ikke i beregningen.
 
-#### Trin 3 — Aldersfradrag
+#### Trin 3 – Aldersfradrag
 
-Alderen opgøres i **hele opnåede år** på skadestidspunktet (år, måned og dag sammenholdes — endnu ikke fyldt fødselsdag i skadeåret tæller ikke):
+Alderen opgøres i **hele opnåede år** på skadestidspunktet (år, måned og dag sammenholdes – endnu ikke fyldt fødselsdag i skadeåret tæller ikke):
 
 | Alder ved skade | Basis (1 % pr. år over 39) | Ekstra (1 % pr. år over 59) | Total |
 |---|---|---|---|
@@ -48,9 +48,9 @@ Alderen opgøres i **hele opnåede år** på skadestidspunktet (år, måned og d
 | 69 | 30 % | 10 % | **40 %** |
 | > 69 | 30 % (cap) | 10 % (cap) | **40 %** |
 
-Maksimumsreduktion er 40 % og opnås ved alder 69 år — yderligere alder øger ikke fradraget.
+Maksimumsreduktion er 40 % og opnås ved alder 69 år – yderligere alder øger ikke fradraget.
 
-#### Trin 4 — Godtgørelse
+#### Trin 4 – Godtgørelse
 
 ```
 godtgørelse = beløb_uden_reduktion × (1 − aldersfradrag_pct / 100)
@@ -74,7 +74,7 @@ Beregningen returnerer `null` (ingen resultat) hvis:
 - Skadestidspunkt mangler
 - Beregningsåret ikke findes i satsnøglen `varigeMenPrGrad`
 
-Der er ingen fejlmeddelelser — manglende input giver stiltiende `null`.
+Der er ingen fejlmeddelelser – manglende input giver stiltiende `null`.
 
 ### Eksempel
 
@@ -88,7 +88,7 @@ Der er ingen fejlmeddelelser — manglende input giver stiltiende `null`.
 
 ---
 
-## Del 2 — AI-agent: teknisk reference
+## Del 2 – AI-agent: teknisk reference
 
 ### Primære filer
 
@@ -159,7 +159,7 @@ Begge komponenter capper ved alder 69: `min(30, ...)` og `min(10, ...)`. Alder o
 const roundMenAmount = (value: number): number => roundByMethod(value, 0, 'ceil');
 ```
 
-Afrunding sker via den kanoniske `roundByMethod` fra `src/utils/rounding.ts` med 0 decimaler og metoden `'ceil'` — altså altid op til nærmeste hele krone. Modulet indfører ingen ad hoc-afrunding.
+Afrunding sker via den kanoniske `roundByMethod` fra `src/utils/rounding.ts` med 0 decimaler og metoden `'ceil'` – altså altid op til nærmeste hele krone. Modulet indfører ingen ad hoc-afrunding.
 
 ### Satsnøgle
 
@@ -173,11 +173,11 @@ export const varigeMenPrGrad: YearlyRate = {
 };
 ```
 
-Satserne injiceres i engine-inputtet (`rates: YearlyRate`) og passes videre til beregningsfunktionen. Engine-laget importerer ikke `varigeMenPrGrad` direkte — den modtager satserne udefra.
+Satserne injiceres i engine-inputtet (`rates: YearlyRate`) og passes videre til beregningsfunktionen. Engine-laget importerer ikke `varigeMenPrGrad` direkte – den modtager satserne udefra.
 
 ### Domænebeslutning ved null
 
-`null`-resultater er en bevidst domænebeslutning, ikke en fejlsituation. Enginen eksponerer ikke issues/fejlmeddelelser — UI-laget er ansvarligt for at vise passende feedback ved manglende input.
+`null`-resultater er en bevidst domænebeslutning, ikke en fejlsituation. Enginen eksponerer ikke issues/fejlmeddelelser – UI-laget er ansvarligt for at vise passende feedback ved manglende input.
 
 ### Afhængigheder
 

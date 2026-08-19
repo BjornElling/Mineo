@@ -2,15 +2,15 @@
  * Standalone MinProcesrentes tre dokumentdefinitioner.
  *
  * De tre outputs er `standalone-rente` (én rentekrav-række), `standalone-rente-alle` (alle rækkers
- * specifikationer samlet i ÉT dokument — kun mobil) og `standalone-rente-oversigt` (oversigtstabellen).
+ * specifikationer samlet i ÉT dokument – kun mobil) og `standalone-rente-oversigt` (oversigtstabellen).
  *
  * Alle tre går gennem den fælles commit-, gate- og friskhedslivscyklus. Standalones miljø afviger
  * kun ved at have fast PDF-format, intet brevhoved og en lokal fejlsink.
  *
  * **Hvorfor projektionen genlæses her og ikke genbruges fra hovedappens definitioner.** Mineos
  * `renteberegningDocumentDefinitions.ts` kræver `SourceSettings` og en `stamdata`-dependency,
- * som standalone hverken har eller må importere. Domænelogikken deles hvor det tæller — samme
- * `buildRenteberegningReaderProjection`, samme `evaluateOversigtDownloadGate`, samme generatorer — men
+ * som standalone hverken har eller må importere. Domænelogikken deles hvor det tæller – samme
+ * `buildRenteberegningReaderProjection`, samme `evaluateOversigtDownloadGate`, samme generatorer – men
  * settings-bindingen kan ikke deles, og skal ikke være det.
  */
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
@@ -37,7 +37,7 @@ import {
 import type { ISODateString } from '../../../types/branded';
 
 /**
- * Standalones definitionsform. `TSettings = void` og `TBrevhovedKey = never` — se
+ * Standalones definitionsform. `TSettings = void` og `TBrevhovedKey = never` – se
  * `standaloneDocumentEnvironment.ts` for hvorfor de to ikke er dummy-værdier.
  */
 type StandaloneDocumentDefinition<TInput, TRequest = void> = DocumentDefinition<TRequest, TInput, void, never>;
@@ -167,7 +167,7 @@ export const standaloneRenteDocumentDefinition: StandaloneDocumentDefinition<
   },
   /**
    * Datoerne gives videre CANONICAL: begge rente-generatorer tager nu `ISODateString`, så
-   * konverteringen til dansk format — og dens fail-closed-guard — er faldet væk her.
+   * konverteringen til dansk format – og dens fail-closed-guard – er faldet væk her.
    */
   loadRenderer: async () => {
     const { generateRenteDocument } = await import('../../../document/generators/renteberegning/renteDocument');
@@ -261,8 +261,8 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
     },
     /**
      * Det ene output, der komponerer flere dokumenter i ÉN artifact frem for at kalde én generator.
-     * `DocumentRenderer` kræver kun en `DocumentArtifact` tilbage, så kompositionen hører hjemme her —
-     * i definitionen, sammen med den tunge import — og ikke i kernen.
+     * `DocumentRenderer` kræver kun en `DocumentArtifact` tilbage, så kompositionen hører hjemme her –
+     * i definitionen, sammen med den tunge import – og ikke i kernen.
      */
     loadRenderer: async () => {
       const [{ buildRenteDocumentBaseTitle, writeRenteDocumentContent }, { resolveDocumentArtifactFileName }, { getDocumentCreatorBrand }, { parseISODate }] =
@@ -280,7 +280,7 @@ export const standaloneRenteAlleDocumentDefinition: StandaloneDocumentDefinition
           if (index > 0) composer.addPage();
 
           // Canonical ISO parses DIREKTE. Vejen gik tidligere ISO → dansk streng → `Date`, altså
-          // to formatskift for at nå den samme dato — og et `?? ''`, der gjorde en manglende konvertering til
+          // to formatskift for at nå den samme dato – og et `?? ''`, der gjorde en manglende konvertering til
           // en "ugyldig dato" frem for til en typefejl.
           const startDate = parseISODate(row.actualInterestDate);
           const endDate = parseISODate(row.beregningsdato);

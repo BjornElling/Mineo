@@ -108,7 +108,7 @@ describe('resolveDefaultDirectoryHandle', () => {
       allowRequestPermission: true,
     });
     expect(result.isFallback).toBe(false);
-    // Målet er, at det VERIFICEREDE handle bæres igennem — ikke blot at et fallback undgås.
+    // Målet er, at det VERIFICEREDE handle bæres igennem – ikke blot at et fallback undgås.
     expect(result.handle).toBe(directoryHandle);
   });
 });

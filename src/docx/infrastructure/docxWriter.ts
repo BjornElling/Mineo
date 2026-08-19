@@ -113,7 +113,7 @@ const splitLines = (text: string): string[] => {
 };
 
 // Bygger et afsnit, der ENTYDIGT styres af en navngiven typografi (jf. docxStyles).
-// Font, størrelse og spacing kommer FRA typografien — aldrig inline her. De eneste
+// Font, størrelse og spacing kommer FRA typografien – aldrig inline her. De eneste
 // per-instans-egenskaber er strukturelle eller konkrete tekstfremhævninger:
 //   - `alignment`: kun nødvendigt for kolonne-/celle-justering i tabeller, hvor den
 //     samme typografi bruges på celler med forskellig justering.
@@ -405,7 +405,7 @@ const createLeftRightTable = (
   }>
 ): Table => {
   const showSumLine = options?.separatorAboveValue !== undefined;
-  // Venstre kolonne reserverer kun den plads, dens tekst faktisk har brug for — op til det
+  // Venstre kolonne reserverer kun den plads, dens tekst faktisk har brug for – op til det
   // hidtidige maksimum (12,5 cm). Korte venstrelabels (fx "Overenskomst") frigiver dermed
   // resten til højre kolonne, så lang højretekst (fx "Bygge-/anlægsoverenskomsten") ikke
   // ombrydes unødigt. Lange venstrelabels får stadig fuld bredde. Det spejler PDF-kanalen,
@@ -415,7 +415,7 @@ const createLeftRightTable = (
   // ud fra tegnantal × en konservativ gennemsnits-glyfbredde i DXA ved brødtekststørrelsen.
   // Estimatet bruges KUN til at vælge kolonnefordeling (layout), aldrig til indhold/tal; et
   // for lavt estimat lader blot Word ombryde venstreteksten, et for højt giver blot lidt
-  // ekstra venstreplads — begge er visuelt acceptable og kan ikke tabe data.
+  // ekstra venstreplads – begge er visuelt acceptable og kan ikke tabe data.
   // På sum-/I alt-linjer bevares den faste venstrebredde, mens selve separatoren
   // får sin eksplicitte semantiske bredde inde i højrecellen.
   const estimatedLeftWidthDxa = Math.ceil(leftText.length * LEFT_RIGHT_AVG_GLYPH_DXA);
@@ -424,7 +424,7 @@ const createLeftRightTable = (
   // teksten ikke-triviel (fx "217,20 kr./arbejdsdag"), ville en ren venstre-prioritering
   // klemme højre kolonne så smal, at beløbsteksten ombrydes. Vi reserverer derfor højre
   // kolonne mindst dens estimerede tekstbredde (samme konservative glyf-heuristik som
-  // venstre) og giver venstre resten — dog aldrig under halvdelen af det hidtidige
+  // venstre) og giver venstre resten – dog aldrig under halvdelen af det hidtidige
   // venstre-maksimum, så et ekstremt langt højrefelt ikke omvendt udsulter venstre.
   // Estimatet bruges KUN til layout (kolonnefordeling), aldrig til indhold/tal.
   const estimatedRightWidthDxa = Math.max(
@@ -626,7 +626,7 @@ const emuFromMm = (mm: number): number => roundByMethod(mm * EMU_PER_MM, 0, 'hal
 // (documentFooterImage.ts), så "<brand> // <version>" står med samme lysegrå farve,
 // skrift, lodrette orientering og placering i begge kanaler. Billedet floates frit,
 // forankret til SIDEN, så højre kant følger PDF_FOOTER_RIGHT_MARGIN_MM og bundkanten
-// følger PDF_FOOTER_MARGIN_MM — identisk med PDF'ens addImage-placering. Footeren gentages
+// følger PDF_FOOTER_MARGIN_MM – identisk med PDF'ens addImage-placering. Footeren gentages
 // automatisk på alle sider, fordi den ligger i sektionens footer-slot.
 const buildVersionFooter = (pageWidthDxa: number, pageHeightDxa: number): Footer => {
   const footerText = buildDocumentFooterText();
@@ -689,7 +689,7 @@ export const createDocxWriter = (params?: Readonly<{
   // eller flere efterfølgende spacers til ÉN. I PDF afsættes tabel-slutafstanden via
   // PDF-tabellens slutlayout har sin egen afstand, så Word-rendereren lægger en trailing
   // spacer; en efterfølgende addSectionSpacer i generatoren ville derfor give to tomme linjer
-  // under tabellen. Kollaps holder det på én tom linje — ren Word-side, uden PDF-effekt.
+  // under tabellen. Kollaps holder det på én tom linje – ren Word-side, uden PDF-effekt.
   const spacerHeights = new WeakMap<FileChild, number>();
   const pushSpacer = (heightMm = PDF_BASE_LINE_HEIGHT_MM): void => {
     const spacer = spacerParagraph(heightMm);
@@ -705,7 +705,7 @@ export const createDocxWriter = (params?: Readonly<{
   // ordinære blok, så Words åbne-caret lander i den første rigtige tekstlinje
   // (typisk titlen) frem for inde i den side-forankrede tekstrude. Brevhovedet er
   // forankret til SIDEN (FrameAnchorType.PAGE), så dets plads i tekstflowet er
-  // visuelt ligegyldig — det skal blot blive liggende på side 1, hvilket det gør
+  // visuelt ligegyldig – det skal blot blive liggende på side 1, hvilket det gør
   // som blok nr. 2.
   // Kollaps på hinanden følgende afstands-afsnit til ét, så fx en tabels trailing spacer plus
   // en generators efterfølgende addSectionSpacer kun giver én tom linje (jf. spacerBlocks).

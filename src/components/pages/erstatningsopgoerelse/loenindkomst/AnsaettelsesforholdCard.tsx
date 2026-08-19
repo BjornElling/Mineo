@@ -78,7 +78,7 @@ type Props = Readonly<{
 
 /**
  * Ét ansættelsesforhold-kort på Loenindkomst-fanen. Forbruger den delte view-model via
- * `useLoenindkomstVm()` (jf. A1 — ingen prop-boring); kun de per-række-værdier `af` og `index`
+ * `useLoenindkomstVm()` (jf. A1 – ingen prop-boring); kun de per-række-værdier `af` og `index`
  * gives som props. Adfærdsbevarende: markup'en er flyttet uændret ud af `LoenindkomstTab`'s
  * tidligere inline-`.map`-krop.
  */
@@ -117,7 +117,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
 
   /**
    * Reguleringssats-downloaden for NETOP dette ansættelsesforhold. Requesten er ren
-   * identitet (`af.id`); alle værdier — grundlag, overenskomst, satsvalg, interval — genlæses friskt
+   * identitet (`af.id`); alle værdier – grundlag, overenskomst, satsvalg, interval – genlæses friskt
    * i definitionen efter commit-barrieren. Tidligere læste kortet dem ved klik og sendte dem med,
    * så en åben, ikke-settlet editor gav et dokument på de gamle tal.
    */
@@ -239,14 +239,14 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   /**
    * Satsfelt der er BRUGERINPUT når det er frit, og AFLEDT når overenskomsten låser det.
    *
-   * Den låste gren læser `af[satsField]` — altså reader-projektionen, som allerede har kørt
+   * Den låste gren læser `af[satsField]` – altså reader-projektionen, som allerede har kørt
    * `applyAutoSatsFields` og dermed bærer overenskomstens sats. Præcis samme vej som
    * `storeBededagPct`, der hele tiden var koblet rigtigt.
    *
    * Fejlen dette lukker: kortet brugte låsningen KUN til `disabled` og lod `PercentField` hente
    * værdien gennem sin `FieldRef`, dvs. fra input-readeren, hvor brugerens (tomme) input står.
    * Feltet stod derfor blankt og låst, mens beregningen kørte på overenskomstens sats (SH/SO 7 %,
-   * pension 10,15 %) — to kilder til ét tal, hvor kun den forkerte var synlig. Et låst felt må
+   * pension 10,15 %) – to kilder til ét tal, hvor kun den forkerte var synlig. Et låst felt må
    * aldrig bindes til readeren; det er projektionen der ejer værdien.
    */
   const renderSatsField = (satsField: OverenskomstSatsField) => {
@@ -725,7 +725,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           referenceText={anvendtReguleringsdatoReferenceText}
           satsPerTekst={anciennitetSatsPerTekst}
           // Kun Lønindkomst lader brugeren vælge enheden; EO-oplysninger udleder den. Se
-          // `AnciennitetstillaegFields`' doc — forskellen er bevaret, ikke ensrettet.
+          // `AnciennitetstillaegFields`' doc – forskellen er bevaret, ikke ensrettet.
           satsEnhedSlot={
             <Box className="row--label-right-hover">
               <Typography className="row--text">Satsen angives per</Typography>

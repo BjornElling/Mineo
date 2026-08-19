@@ -16,13 +16,13 @@ const cloneDefaultAppSettings = (): AppSettings => ({
 });
 
 /**
- * Defaults, som de er — inklusive `themeMode: 'system'`.
+ * Defaults, som de er – inklusive `themeMode: 'system'`.
  *
  * Denne funktion læste tidligere computerens præference og skrev det KONKRETE resultat
  * (`'light'`/`'dark'`) ind som default, fordi «følg computeren» ikke fandtes som gemt værdi.
  * Bivirkningen var, at brugeren aldrig kunne komme tilbage til automatikken: første gemte
  * settings-skrivning frøs det øjebliksbillede fast (BB-024). Nu er `'system'` en ægte værdi, og
- * oversættelsen til et malet tema sker ét sted — `resolveThemeMode` — på det tidspunkt, temaet
+ * oversættelsen til et malet tema sker ét sted – `resolveThemeMode` – på det tidspunkt, temaet
  * bruges. Defaults må derfor ikke længere gætte på maskinens tilstand.
  */
 const createDefaultAppSettings = (): AppSettings => cloneDefaultAppSettings();

@@ -58,7 +58,7 @@ describe('writeLocalStorage', () => {
     const key = 'test_wls_empty';
     writeLocalStorage(key, '');
     // Tom streng → undefined (implementation returnerer null → undefined for tomme strenge)
-    // Eller tom streng direkte — afhænger af implementation
+    // Eller tom streng direkte – afhænger af implementation
     const result = readLocalStorage(key);
     // Verificer blot at der ikke kastes, og at resultatet er string eller undefined
     expect(result === '' || result === undefined).toBe(true);

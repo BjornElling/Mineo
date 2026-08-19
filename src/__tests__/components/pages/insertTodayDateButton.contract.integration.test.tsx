@@ -3,13 +3,13 @@
 // ÉN fælles kontrakttest for »Indsæt dags dato« på ALLE fem flader.
 //
 // Fejlen var, at hver af de fem knapper kaldte `commitImmediate(today)`. Den command er `setImmediateField`,
-// som reduceren kun tillader for choice/toggle — alle datofelter er text-controls, så et klik kastede
+// som reduceren kun tillader for choice/toggle – alle datofelter er text-controls, så et klik kastede
 // `InputReducer: setImmediateField er kun tilladt for choice/toggle` som en uncaught systemfejl.
 //
 // Testen er BEVIDST tabeldrevet over de fem sider frem for fem næsten identiske tests: fejlen var netop, at
 // den samme forkerte kommando var kopieret fem steder, og en per-side-test ville lade en sjette flade opstå
 // udækket. Hver side renderes med den ÆGTE produktions-runtime, og klikket måles på det autoritative
-// afsluttede input — ikke på et hook-kald.
+// afsluttede input – ikke på et hook-kald.
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -54,13 +54,13 @@ const hydrateEmpty = (): void => {
 
 /**
  * Læser feltets afsluttede canonical værdi gennem feltets EGEN descriptor. Det autoritative afsluttede input
- * er kilden — ikke DOM'en, så en ren visningsopdatering uden et commit ikke kan bære testen — og descriptoren
+ * er kilden – ikke DOM'en, så en ren visningsopdatering uden et commit ikke kan bære testen – og descriptoren
  * er adressen, så testen ikke bærer en håndskrevet kopi af hver sektions nøgle.
  */
 const readCommitted = (field: FieldRef<ISODateString | undefined>): string | undefined =>
   field.descriptor.readCanonical(slimInputStore.getState().input.sections, field.address);
 
-/** De fem flader, der bærer knappen — den ene liste, begge kontrakttests kører over. */
+/** De fem flader, der bærer knappen – den ene liste, begge kontrakttests kører over. */
 const SURFACES: readonly Readonly<{
   name: string;
   route: string;
@@ -111,7 +111,7 @@ const renderSurface = (surface: (typeof SURFACES)[number]) => render(
   </MemoryRouter>
 );
 
-describe('»Indsæt dags dato« — fælles kommandokontrakt på alle fem flader', () => {
+describe('»Indsæt dags dato« – fælles kommandokontrakt på alle fem flader', () => {
   beforeEach(() => {
     sessionStorage.clear();
     hydrateEmpty();

@@ -253,7 +253,7 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
       expect(result?.beregnetGodtgoerelse).toBe(6800);
     });
 
-    it('alder 69 år: 40% fradrag (max) — 30 basis + 10 ekstra', () => {
+    it('alder 69 år: 40% fradrag (max) – 30 basis + 10 ekstra', () => {
       const result = beregn(toISODateString('1955-01-01'));
       expect(result?.aldersreduktionPct).toBe(40);
       // 10000 * (1 - 0.40) = 6000

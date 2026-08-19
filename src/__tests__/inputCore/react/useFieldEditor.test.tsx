@@ -35,7 +35,7 @@ import { createTestCatalog, aargangField, testLocation } from '../testCatalog';
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
 
 // Den fælles felt-editor (§2.3/§3.5, §7.1) mod syntetiske immutable issue-snapshots.
-// Adapteren parser/persisterer/holder ingen fejlstate — den driver kun state-machinen + engine + runner.
+// Adapteren parser/persisterer/holder ingen fejlstate – den driver kun state-machinen + engine + runner.
 
 let catalog: InputCatalog;
 let store: SlimInputStore;
@@ -96,7 +96,7 @@ const rejectedRaw = <T,>(field: FieldRef<T>): string | undefined =>
 
 const field = aargangField.bind();
 
-describe('useFieldEditor — §7.1 feltkontrakt (form-surface)', () => {
+describe('useFieldEditor – §7.1 feltkontrakt (form-surface)', () => {
   it('viser lukket canonical værdi fra revisionen', () => {
     dispatchInput(store, catalog, settleField(field, '2020'));
     const { result } = renderEditor(field);
@@ -235,9 +235,9 @@ describe('useFieldEditor — §7.1 feltkontrakt (form-surface)', () => {
 });
 
 // En handlingsknap ved siden af et TEKSTFELT (»Indsæt dags dato«) skal afslutte feltet gennem
-// den normale settle-vej. `commitImmediate` er forbeholdt choice/toggle, og reduceren kaster på et tekstfelt —
+// den normale settle-vej. `commitImmediate` er forbeholdt choice/toggle, og reduceren kaster på et tekstfelt –
 // derfor er `settleValue` den ene lovlige programmatiske afslutning for et text-control.
-describe('useFieldEditor — programmatisk settle af en leveret værdi (§1.3)', () => {
+describe('useFieldEditor – programmatisk settle af en leveret værdi (§1.3)', () => {
   it('settleValue på et tekstfelt committer canonical og kaster ikke', () => {
     const { result } = renderEditor(field);
     act(() => result.current.settleValue(2024));
@@ -247,7 +247,7 @@ describe('useFieldEditor — programmatisk settle af en leveret værdi (§1.3)',
     expect(result.current.displayText).toBe('2024');
   });
 
-  it('commitImmediate på samme tekstfelt afvises af reduceren — settleValue er den lovlige vej', () => {
+  it('commitImmediate på samme tekstfelt afvises af reduceren – settleValue er den lovlige vej', () => {
     const { result } = renderEditor(field);
     expect(() => act(() => result.current.commitImmediate(2024)))
       .toThrow('setImmediateField er kun tilladt for choice/toggle');
@@ -266,7 +266,7 @@ describe('useFieldEditor — programmatisk settle af en leveret værdi (§1.3)',
     expect(origin).toMatchObject({ editorLocationId: 'loc-1' });
   });
 
-  it('værdien går gennem feltets codec — samme parse som en tastet værdi', () => {
+  it('værdien går gennem feltets codec – samme parse som en tastet værdi', () => {
     const { result } = renderEditor(field);
     // Aargang-codecet resolver via `formatForEdit` → `parseForSettle`; en værdi uden for codecets
     // format ville derfor blive rejected råtekst præcis som en tastet værdi (§1.5), ikke skrevet canonical.
@@ -316,7 +316,7 @@ describe('useFieldEditor — programmatisk settle af en leveret værdi (§1.3)',
   });
 });
 
-describe('useFieldEditor — registrering + kritisk handling', () => {
+describe('useFieldEditor – registrering + kritisk handling', () => {
   it('registrerer editoren, mens den er åben, og afmelder ved luk', () => {
     const { result } = renderEditor(field);
     expect(registry.getEditing()).toBeNull();

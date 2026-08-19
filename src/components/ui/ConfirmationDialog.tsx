@@ -68,14 +68,14 @@ const ConfirmationDialog = React.memo(({
   const confirmStartedRef = React.useRef(false);
 
   // Den fælles overlay-adfærd. MUI `Dialog` bidrager med fokusfangst, Escape og backdrop-klik;
-  // hooken tilføjer resten af det fælles regelsæt — tilbage-knappen, stak-disciplinen og
+  // hooken tilføjer resten af det fælles regelsæt – tilbage-knappen, stak-disciplinen og
   // fokus-restoren (som fortsat er `useDialogFocusRestore` indeni).
   //
   // `disableEscape`: MUI ejer allerede Escape gennem sin `onClose`. To lyttere ville lukke to lag
-  // på ét tryk, når en dialog ligger oven på en anden — netop det, stakken findes for at forhindre.
+  // på ét tryk, når en dialog ligger oven på en anden – netop det, stakken findes for at forhindre.
   //
   // Bekræftelsesdialoger tillader fallback til sidens første fokusbare element, fordi en bekræftet
-  // handling kan fjerne selve triggeren — fx «Slet ansættelsesforhold», hvor hele kortet med
+  // handling kan fjerne selve triggeren – fx «Slet ansættelsesforhold», hvor hele kortet med
   // sletteknappen forsvinder.
   const { overlayRootProps, requestClose, restoreFocus } = useOverlayBehavior({
     open,
@@ -135,7 +135,7 @@ const ConfirmationDialog = React.memo(({
     <Dialog
       open={open}
       // MUI leverer selv Escape og backdrop-klik hertil. Begge routes gennem `requestClose`, så
-      // ALLE lukkeveje — også dem MUI ejer — rydder overlayets historik-trin op. Ellers ville et
+      // ALLE lukkeveje – også dem MUI ejer – rydder overlayets historik-trin op. Ellers ville et
       // Escape efterlade et dødt trin, og næste tilbage-tryk ville ikke gøre det, brugeren forventer.
       onClose={(_event, reason) => {
         requestClose(reason === 'backdropClick' ? 'backdrop' : 'escape');
@@ -145,11 +145,11 @@ const ConfirmationDialog = React.memo(({
       onTransitionExited={restoreFocus}
       maxWidth="sm"
       fullWidth
-      // MUI genopretter som standard selv fokus ved unmount — til det element, der var aktivt da
+      // MUI genopretter som standard selv fokus ved unmount – til det element, der var aktivt da
       // dialogen åbnede. Det er en KONKURRERENDE restore-vej, og den vinder, fordi den kører sidst:
       // vores egen genoprettelse lykkedes (knappen fik fokus), hvorefter MUI flyttede det tilbage til
       // feltet. Restoren ejes af `useDialogFocusRestore`, som følger kontraktens målprioritet
-      // (`keyboard-navigation.md` §Popup-fokus-restore) — MUI's gæt gør ikke. Bekræftet i chrome-desktop
+      // (`keyboard-navigation.md` §Popup-fokus-restore) – MUI's gæt gør ikke. Bekræftet i chrome-desktop
       // med `Slet alt`, hvor fokus endte på `Fødselsdato` i stedet for på menuknappen.
       disableRestoreFocus
       {...{ [CONFIRMATION_DIALOG_FOCUS_MARKER]: 'true' }}

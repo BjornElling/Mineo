@@ -20,13 +20,13 @@ import type { VarigeMenBeregningResult } from './varigeMenCalculations';
 // dokumentgaten.
 //
 //  - Alle beregningsinputs (méngrad, beregningsdato, samt de tværsektionelle skadedato/fødselsdato fra stamdata)
-//    læses gennem readeren. En rød feltfejl (rejected format ELLER canonical bounds — méngrad 1..120,
+//    læses gennem readeren. En rød feltfejl (rejected format ELLER canonical bounds – méngrad 1..120,
 //    dato-orden/-range) skjules af readeren og bliver til en blokerende issue via `require`.
 //  - Datoordenen (skadedato ≥ fødselsdato) er allerede en feltvalidator på begge stamdata-datoer, så
 //    en byttet orden giver en rød feltfejl på skadedato/fødselsdato → projektionen blokerer uden en separat
 //    `resolveStamdataDateOrder`-relation her.
 //  - `require` på méngrad/beregningsdato/skadedato/fødselsdato giver en `missing`-consumerfejl, når feltet er tomt
-//    (§1.7) — vises i contentboxen, blokerer kun denne consumer, ingen rød feltmarkering.
+//    (§1.7) – vises i contentboxen, blokerer kun denne consumer, ingen rød feltmarkering.
 //  - `computeVarigeMenEngine` køres UÆNDRET på de reader-læste værdier → nul talændring (§5.4 hårdt stop). Et
 //    gyldigt input uden lovsats for beregningsåret giver `beregningsResultat: null` inden for en `ready`
 //    projektion (ingen rød fejl, ingen missing), så visningen bliver tom.
@@ -39,7 +39,7 @@ const fodselsdatoRef: FieldRef<ISODateString | undefined> = stamdataSkadelidteFo
 /**
  * Motorens typede input. At det er en NAVNGIVEN type frem for fire lokale variabler er hele pointen: den
  * gør `ready`-overgangen til en typegrænse. Kan et fremtidigt read ikke leveres, findes typen ikke, og
- * motorkaldet kompilerer ikke — modsat en lokal `if`-guard, som skal huskes udvidet.
+ * motorkaldet kompilerer ikke – modsat en lokal `if`-guard, som skal huskes udvidet.
  */
 type VarigeMenEngineInput = Readonly<{
   mengrad: number;

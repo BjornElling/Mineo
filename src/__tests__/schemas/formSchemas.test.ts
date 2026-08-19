@@ -219,7 +219,7 @@ describe('erstatningsopgoerelseSchema', () => {
 
   it('materialiserer fulde objekt-defaults når eoBilagSelection og eoAngivetLoenLoenudvikling helt mangler', () => {
     // Zod 4 .default() returnerer default-værdien direkte uden at re-parse den. Defaulten på disse
-    // to objekt-felter udledes derfor via underschemaets egne parse({})-defaults — IKKE en tom .default({}),
+    // to objekt-felter udledes derfor via underschemaets egne parse({})-defaults – IKKE en tom .default({}),
     // som ville give et tomt objekt og dermed stiltiende tabe alle underfelter ved load af en fil der
     // mangler feltet. Denne test fanger den regression.
     const {
@@ -537,7 +537,7 @@ describe('satserSchema', () => {
   });
 
   it('manglende aargang er tilladt (optional)', () => {
-    // Heltalssyntaksen er optional — manglende felt er gyldigt.
+    // Heltalssyntaksen er optional – manglende felt er gyldigt.
     const result = satserSchema.safeParse({});
     expect(result.success).toBe(true);
     if (result.success) {

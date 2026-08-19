@@ -33,7 +33,7 @@ describe('beregningsperiodeTafOverlap', () => {
   });
 });
 
-describe('computeTafOverlapWithBeregningsperiode — edge cases', () => {
+describe('computeTafOverlapWithBeregningsperiode – edge cases', () => {
   it('tom tafPerioder → ingen overlap', () => {
     const result = computeTafOverlapWithBeregningsperiode({
       beregningsperiode: { fra: toISODateString('2024-01-01'), til: toISODateString('2024-12-31') },

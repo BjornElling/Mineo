@@ -1668,7 +1668,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     // Manglende satsvalg for en differentieret direkte overenskomstsats er nu en blokerende
     // valideringsfejl ("Satsvalg mangler"), så den autoritative beregning standses (snapshot.data
     // = null). EO-kontrol viser derfor satsvalg-fejlrækken (den handlingsanvisende rod-årsag), mens
-    // den tidligere afledte "Dagssats kunne ikke fastsættes"-række ikke længere produceres — den
+    // den tidligere afledte "Dagssats kunne ikke fastsættes"-række ikke længere produceres – den
     // forudsatte et beregnet SFGG-resultat, som blokeringen forhindrer. Jf. SFGG-fail-closed (4.13).
     const values = createValues();
     values.eoNummer = '2';

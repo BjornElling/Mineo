@@ -5,8 +5,8 @@
  * Dette sikrer type-safety og forhindrer typos ved gem/hent operationer.
  *
  * Namespace-isolation: Alle keys får et variant-prefix (default `mineo`). MinProcesrente-
- * standalone-buildet kalder `setStorageNamespace('minprocesrente')` ved bootstrap — FØR
- * nogen storage-adgang sker — så de to varianter aldrig deler sessionStorage-keys, selv
+ * standalone-buildet kalder `setStorageNamespace('minprocesrente')` ved bootstrap – FØR
+ * nogen storage-adgang sker – så de to varianter aldrig deler sessionStorage-keys, selv
  * hvis de en dag serveres fra samme origin (lokal dev, preview, sti-baseret deploy).
  * Mineo beholder de uændrede `mineo_*`-keys, så eksisterende data bevares.
  *
@@ -18,8 +18,8 @@
  * En sessionStorage-nøgle, der BEVISLIGT stammer fra dette manifest.
  *
  * Branden er strukturel, ikke kosmetisk: `safeSessionStorage`-skrivefunktionerne tager kun denne
- * type, og den kan udelukkende produceres her. En vilkårlig streng — fx en genindført
- * `'mineo_invalidDrafts'` — kan derfor ikke skrives, og compileren fanger det ved DEFINITIONEN
+ * type, og den kan udelukkende produceres her. En vilkårlig streng – fx en genindført
+ * `'mineo_invalidDrafts'` – kan derfor ikke skrives, og compileren fanger det ved DEFINITIONEN
  * frem for ved en AST-regel, der kun ser literaler (og dermed kunne omgås med en variabel).
  * Læsning/sletning tager fortsat `string`: at rydde op efter en ukendt nøgle er lovligt,
  * at skabe ny persisteret tilstand under den er ikke.
@@ -71,16 +71,16 @@ const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
 
 /**
  * Reset-policyen: hvilke manifest-ejede UI-nøgler `Slet alt` skal
- * rydde. Klassifikationen bor HER, i manifestet, fordi den er en egenskab ved nøglen — ikke ved den use-case,
+ * rydde. Klassifikationen bor HER, i manifestet, fordi den er en egenskab ved nøglen – ikke ved den use-case,
  * der tilfældigvis kalder `Slet alt`. En ny nøgle tvinges til at vælge side af `SESSION_RESET_POLICY`, og
  * `Slet alt` enumererer klassifikationen frem for at gentage en håndskrevet liste.
  *
- * `caseScoped`: sagsnær tilstand — brugerindtastede hjælpeværdier og filnavns-/filhåndtags-metadata, der hører
+ * `caseScoped`: sagsnær tilstand – brugerindtastede hjælpeværdier og filnavns-/filhåndtags-metadata, der hører
  * til PRÆCIS den sag, der slettes. Overlever den ikke en bekræftet hel-sags-clear, kan den hydrere ind i den
  * næste, tomme sag og påvirke den (fundets konkrete symptom).
  *
  * `deviceScoped`: uafhængig UI-præference eller devtools-tilstand, som ikke beskriver sagen. Ryddes bevidst
- * IKKE — kontraktens §3.7 holder den uden for inputenvelopen, og en bruger, der sletter sin sag, har ikke
+ * IKKE – kontraktens §3.7 holder den uden for inputenvelopen, og en bruger, der sletter sin sag, har ikke
  * bedt om at få sidemenuen foldet sammen.
  */
 const SESSION_RESET_POLICY = {
@@ -93,7 +93,7 @@ const SESSION_RESET_POLICY = {
 } as const satisfies { readonly [K in keyof typeof UI_STORAGE_KEY_SUFFIXES]: 'caseScoped' | 'deviceScoped' };
 
 /**
- * De sagsnære nøgler, `Slet alt` skal rydde — i deklarationsrækkefølge, resolveret mod det AKTUELLE namespace.
+ * De sagsnære nøgler, `Slet alt` skal rydde – i deklarationsrækkefølge, resolveret mod det AKTUELLE namespace.
  * En aktiv fane beskriver den aktuelle sag, selv om den ikke er en del af sagsinputtet: efter `Slet alt` skal
  * hver fagside derfor starte på sin standardfane. Familie-medlemmerne udledes af `PAGE_DEFAULT_TAB`, så en ny
  * side med persisteret fanevalg automatisk bliver omfattet af reset-policyen.
@@ -122,7 +122,7 @@ const CURRENT_INPUT_ENVELOPE_SUFFIX = 'input_v2';
  * version, der SIDST udløste et automatisk reload i denne session.
  *
  * Værnet er ikke pyntelig defensivitet: opstarten genindlæser, når den udrullede build afviger fra
- * dokumentets egen. Er den observerede version allerede noteret her, må der ikke reloades igen —
+ * dokumentets egen. Er den observerede version allerede noteret her, må der ikke reloades igen –
  * ellers ville en fejlagtig eller uophørligt skiftende versionsangivelse sende programmet i en
  * genindlæsningsløkke, som er værre end den forældede kode, den skulle rette.
  *

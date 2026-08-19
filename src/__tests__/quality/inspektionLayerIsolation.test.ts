@@ -5,13 +5,13 @@ import path from 'node:path';
  * Wiring-assertioner for grænsen mellem den AUTORITATIVE EO-række-evaluerings-motor og
  * inspektions-/kontrollaget (arkitektur-kandidat B9).
  *
- * De GENERELLE import-forbud — "ingen domæne-fil uden for de to sanktionerede broer må
+ * De GENERELLE import-forbud – "ingen domæne-fil uden for de to sanktionerede broer må
  * importere `src/domain/eoInspektion`" (dækker også `eoRowEvaluation`, `eoCanonicalOutput`
- * og `eoControlMismatch`) — er migreret til det AST-baserede arkitektur-harness som reglen
+ * og `eoControlMismatch`) – er migreret til det AST-baserede arkitektur-harness som reglen
  * `layer/inspektion-import-boundary` (se `architecture/architectureRules.ts`), inkl. anti-rot
  * på bro-filerne.
  *
- * Tilbage her: de POSITIVE, fil-specifikke wiring-checks, som en generel lag-scan ikke udtrykker —
+ * Tilbage her: de POSITIVE, fil-specifikke wiring-checks, som en generel lag-scan ikke udtrykker –
  * (1) at snapshot-invarianten henter kontrol-mismatch fra den produktions-ejede kontrol-kerne, og
  * (2) at download-gaten i view-modellen (components-laget, uden for domæne-scopet) konsumerer den
  * autoritative motor og er inspektionsfri.
@@ -25,7 +25,7 @@ const BEREGNING_VM_PATH = path.resolve(
   SRC_ROOT,
   'components/pages/erstatningsopgoerelse/eoBeregning/useEoBeregningViewModel.ts'
 );
-/** Dokument-gatens ejer — definitionen ved EO's domænegrænse. */
+/** Dokument-gatens ejer – definitionen ved EO's domænegrænse. */
 const EO_DOCUMENT_DEFINITIONS_PATH = path.resolve(
   DOMAIN_ROOT,
   'erstatningsopgoerelse/eoDocumentDefinitions.ts'
@@ -50,8 +50,8 @@ const findInspektionImports = (source: string, fromDir: string): string[] => {
   return hits;
 };
 
-describe('inspektionLayerIsolation — wiring', () => {
-  it('snapshot-invarianten henter kontrol-mismatch fra produktion — ikke fra inspektionslaget', () => {
+describe('inspektionLayerIsolation – wiring', () => {
+  it('snapshot-invarianten henter kontrol-mismatch fra produktion – ikke fra inspektionslaget', () => {
     const source = fs.readFileSync(EO_SNAPSHOT_PATH, 'utf8');
     expect(source).toContain(
       "import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch'"
@@ -64,7 +64,7 @@ describe('inspektionLayerIsolation — wiring', () => {
    * midlertidigt-EET-kilden) bor i `eoDocumentDefinitions.ts`. Guarden måler derfor gaten dér: at
    * den konsumerer den autoritative motor og er inspektionsfri.
    */
-  it('C: download-gaten konsumerer den AUTORITATIVE motor — ikke inspektions-/kontrollaget', () => {
+  it('C: download-gaten konsumerer den AUTORITATIVE motor – ikke inspektions-/kontrollaget', () => {
     const source = fs.readFileSync(EO_DOCUMENT_DEFINITIONS_PATH, 'utf8');
 
     expect(findInspektionImports(source, path.dirname(EO_DOCUMENT_DEFINITIONS_PATH))).toEqual([]);
@@ -73,7 +73,7 @@ describe('inspektionLayerIsolation — wiring', () => {
   });
 
   /**
-   * View-modellen må hverken bygge EO-projektionen eller evaluere gaten selv — så ville den være en
+   * View-modellen må hverken bygge EO-projektionen eller evaluere gaten selv – så ville den være en
    * anden sandhed ved siden af definitionens. Den konsumerer den autoritative rækkemotor til
    * issue-listerne, og den skal være inspektionsfri.
    */
@@ -86,7 +86,7 @@ describe('inspektionLayerIsolation — wiring', () => {
     expect(findInspektionImports(source, path.dirname(BEREGNING_VM_PATH))).toEqual([]);
     // Rækkemotoren skal fortsat KALDES her (issue-listerne til "Fejl og advarsler" er view-modellens
     // ansvar). Tidligere pinnede testen navnet `hasBlockingEoRowErrors`, men den variabel var page-lokal
-    // gate-logik, som er flyttet til `eoDocumentDownloadGate` (klassen `page-errors`) — et `toContain` på
+    // gate-logik, som er flyttet til `eoDocumentDownloadGate` (klassen `page-errors`) – et `toContain` på
     // et navn, der nu kun står i en forklarende kommentar, ville bestå af den forkerte grund.
     expect(source).toContain('collectAllEoRows(');
     expect(source).not.toContain('evaluateErstatningsopgoerelseDownloadGates');

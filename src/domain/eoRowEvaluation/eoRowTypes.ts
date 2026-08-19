@@ -112,7 +112,7 @@ export type DependencySpec =
 /**
  * Fokusmålet for et navigerbart EO-issue.
  *
- * Målet er en KANONISK feltadresse (§3.2) — den samme dataidentitet undo/redo (`findRestoreTarget`) og
+ * Målet er en KANONISK feltadresse (§3.2) – den samme dataidentitet undo/redo (`findRestoreTarget`) og
  * save-blokeringens fokus (`lookupEditorLocation`) bruger. Adressen bindes af issue-kataloget fra
  * produktionens egne felt-descriptorer, så et omdøbt felt bliver en compilerfejl frem for et link, der
  * lydløst falder tilbage til rækkeankeret.
@@ -122,10 +122,10 @@ export type DependencySpec =
  *
  * `collectionField` løser den TREDJE situation, de to første ikke kan udtrykke sandt: advarslen handler om en
  * indtastning, der IKKE FINDES ENDNU («Der er ikke angivet nogen TAF-periode i EO-perioden»). Der er intet
- * række-id at pege på, fordi brugeren ikke har oprettet rækken — men tabellen viser altid en tom
+ * række-id at pege på, fordi brugeren ikke har oprettet rækken – men tabellen viser altid en tom
  * indtastningsrække, hvis celler bærer en fuldt bundet feltadresse. Målet navngiver derfor feltet gennem
  * descriptorens `template` (collection + feltnavn UDEN entity-id) og lader opslaget finde den FØRSTE editor
- * for netop det felt. Det er samme feltidentitet som `fieldAddress` — kun med rækkeleddet ubundet, fordi
+ * for netop det felt. Det er samme feltidentitet som `fieldAddress` – kun med rækkeleddet ubundet, fordi
  * placeholderens id dannes i UI'et (`usePlaceholderSlotIds`) og derfor ikke kan kendes i domænet.
  */
 export type EoIssueFocusTarget =
@@ -136,7 +136,7 @@ export type EoIssueFocusTarget =
 /**
  * Hvilket konkret input i en periode-/tabelrække en fejl er forankret til. Sættes af row-builderne
  * ud fra valideringsresultatet og bruges af issue-kataloget til at vælge den korrekte celle som
- * primært fokus-mål — i stedet for at gætte kolonnen ud fra fejlbeskedens ordlyd (som ikke kan
+ * primært fokus-mål – i stedet for at gætte kolonnen ud fra fejlbeskedens ordlyd (som ikke kan
  * skelne fx en fra-dato efter en cutoff fra en til-dato-fejl).
  */
 export type EoIssueFieldHint = 'fra' | 'til' | 'tilstand';
@@ -145,7 +145,7 @@ export type EoIssueFieldHint = 'fra' | 'til' | 'tilstand';
  * Struktureret tabel på en række, når rækkens værdi ER en tabel.
  *
  * Findes fordi `displayValue` ellers måtte bære tabellen som en formatteret multiline-streng
- * (`"…|…|…\n…"`), som forbrugeren skulle splitte på `\n` og `|` — en skjult
+ * (`"…|…|…\n…"`), som forbrugeren skulle splitte på `\n` og `|` – en skjult
  * serialiseringsaftale mellem builder og præsentation. Den aftale var dobbelt skjult, fordi
  * kolonneantallet varierede med indholdet, og totalrækken kun kunne genkendes ved at
  * strengmatche celleteksten «I alt».
@@ -161,7 +161,7 @@ export type EoRowTable = Readonly<{
 export type EoRowTableRow = Readonly<{
   cells: readonly string[];
   /**
-   * Sand for en sammentællingsrække. Eksplicit flag frem for at genkende «I alt» i celle 0 —
+   * Sand for en sammentællingsrække. Eksplicit flag frem for at genkende «I alt» i celle 0 –
    * en etiketændring må ikke kunne ændre, hvad der er en totalrække.
    */
   isTotal?: boolean;
@@ -173,7 +173,7 @@ export type EoRowTableRow = Readonly<{
  *
  * Formen er BEVIDST byte-identisk med den, builderne tidligere byggede i hånden, fordi
  * dokumentgeneratorerne læser `displayValue` direkte. Ændr den ikke uden at opdatere
- * dokument-goldens — strengen er et outputformat, ikke et internt mellemled.
+ * dokument-goldens – strengen er et outputformat, ikke et internt mellemled.
  */
 export const serializeEoRowTable = (table: EoRowTable): string =>
   [
@@ -186,7 +186,7 @@ export const serializeEoRowTable = (table: EoRowTable): string =>
  *
  * Samme aftale som {@link serializeEoRowTable}, men for rækker hvis værdi er en LISTE og ikke en
  * tabel: strukturen er kilden, strengen er outputtet. Uden den måtte forbrugeren splitte
- * `displayValue` på `\n` igen for at få listen tilbage — en skjult serialiseringsaftale, der
+ * `displayValue` på `\n` igen for at få listen tilbage – en skjult serialiseringsaftale, der
  * driver synlig UI-forgrening (antal linjer afgør ental/flertal i etiketten), og som en ren
  * formatteringsændring i builderen kunne bryde lydløst.
  */
@@ -207,7 +207,7 @@ export type EoRowModel = {
    * Ansættelsesforholdet rækken hører til, når den er per-ansættelsesforhold.
    *
    * Eksplicit felt, fordi forbrugerne ellers måtte udlede tilhørsforholdet ved at regex-parse
-   * `id` (`/^loenindkomst\.([^.]+)\./`, `/^sfgg\.[^.]+\.([^.]+)(?:\.|$)/` m.fl.) — altså
+   * `id` (`/^loenindkomst\.([^.]+)\./`, `/^sfgg\.[^.]+\.([^.]+)(?:\.|$)/` m.fl.) – altså
    * gætte struktur ud af en id-navnekonvention, som builderne kunne ændre uden at nogen
    * opdagede det. Builderen HAR id'et i hånden; den skal aflevere det frem for at kode det
    * ind i en streng, forbrugeren pakker ud igen.

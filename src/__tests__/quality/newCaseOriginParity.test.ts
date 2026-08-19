@@ -9,12 +9,12 @@ import { DEFAULT_APP_SETTINGS, appSettingsSchema } from '../../settings/appSetti
  * VÆRN: en ny sag skal se ens ud, uanset HVORDAN den blev født.
  *
  * En sag kan opstå to steder: ved bootstrap af en frisk session, og ved brugerens `Slet alt`. Kun den første
- * havde tidligere en seed, så `Slet alt` ryddede til bar `null` — og de standardværdier, brugeren netop havde
+ * havde tidligere en seed, så `Slet alt` ryddede til bar `null` – og de standardværdier, brugeren netop havde
  * fået, forsvandt permanent for resten af sessionen. Ingen fejl, ingen advarsel; blot to forskellige
  * udgangspunkter for det, brugeren opfatter som den samme handling.
  *
  * Sammenligningen sker på den PERSISTEREDE form: bootstrap-sagen er round-trippet gennem envelopen, og det er
- * enhver commit — herunder `Slet alt` — også. Reduceren alene er det ikke, så begge sider normaliseres.
+ * enhver commit – herunder `Slet alt` – også. Reduceren alene er det ikke, så begge sider normaliseres.
  */
 
 const catalog = getProductionInputCatalog();
@@ -56,7 +56,7 @@ describe('ny sag: bootstrap og "Slet alt" giver samme udgangspunkt', () => {
     expect(asPersisted(clearedSections(seed))).not.toEqual(asPersisted(clearedSections(() => undefined)));
   });
 
-  it('sagen ER ryddet — brugerdata overlever ikke (ikke grøn af tomhed)', () => {
+  it('sagen ER ryddet – brugerdata overlever ikke (ikke grøn af tomhed)', () => {
     const seed = createProductionNewCaseSeed(DEFAULT_APP_SETTINGS);
     const eo = (clearedSections(seed) as Record<string, unknown>).erstatningsopgoerelse as Record<string, unknown>;
     expect(eo.eoNummer).toBeUndefined();

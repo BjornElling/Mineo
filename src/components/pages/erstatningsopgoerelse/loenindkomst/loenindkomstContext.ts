@@ -6,7 +6,7 @@ import type { FieldIssueSet } from '../../../../inputCore/inputIssue';
 /**
  * Den flade view-model + de få side-niveau-værdier som Loenindkomst-fanen og dens
  * ansættelsesforhold-kort deler. Kortet forbruger modellen via `useLoenindkomstVm()` i stedet for
- * at modtage et stort antal props (jf. A1 — ingen prop-boring). De per-række-værdier (`af`, `index`)
+ * at modtage et stort antal props (jf. A1 – ingen prop-boring). De per-række-værdier (`af`, `index`)
  * gives fortsat som almindelige props, da de varierer pr. iteration.
  */
 export type LoenindkomstVm = ReturnType<typeof useLoenindkomstViewModel> & Readonly<{

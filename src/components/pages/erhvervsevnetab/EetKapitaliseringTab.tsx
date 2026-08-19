@@ -28,7 +28,7 @@ type Props = Readonly<{
  * Renderer de delte kapitaliserings-rækker i UI-idiomet (label-venstre/værdi-højre hover-rækker).
  * Sekvensen/synligheden ejes af `buildKapitaliseringAfgoerelseRows`; her oversættes hver række-`kind`
  * til JSX. Den første underoverskrift ("Grundydelse og regulering") har bevidst ingen top-margen,
- * modsat de efterfølgende — bevaret fra den oprindelige inline-JSX.
+ * modsat de efterfølgende – bevaret fra den oprindelige inline-JSX.
  */
 const renderKapitaliseringRows = (rows: readonly KapitaliseringRow[]): React.ReactNode => {
   let seenSubheading = false;
@@ -128,7 +128,7 @@ const EetKapitaliseringTab = ({ onGoToEetOplysninger, projection, download }: Pr
             </Typography>
 
             {/* Beregningsdato stammer fra de løse formværdier (ikke fra afgørelses-beregningen) og er
-                bevidst kun i UI'en — derfor uden for den delte præsentationsmodel. */}
+                bevidst kun i UI'en – derfor uden for den delte præsentationsmodel. */}
             <Box className="row--label-right-hover">
               <Typography className="row--text">Beregningsdato</Typography>
               <Box className="row--label-right-hover__content">

@@ -30,7 +30,7 @@ type BrevhovedOption = Readonly<{
 }>;
 
 /**
- * Kun RÆKKE-OPDELINGEN er sidens egen — hvilke checkbokse der står på hvilken linje er et
+ * Kun RÆKKE-OPDELINGEN er sidens egen – hvilke checkbokse der står på hvilken linje er et
  * layoutvalg her. Etiketterne kommer fra dokument-laget (`DOCUMENT_BREVHOVED_LABELS`), så
  * siden ikke kan kalde et dokument noget andet, end dokumentet kalder sig selv.
  */
@@ -48,7 +48,7 @@ const [brevhovedOptionsRow1, brevhovedOptionsRow2, brevhovedOptionsRow3] = brevh
  * Farvetemaets tre valg. Etiketterne står her, men SÆTTET er bundet til `themeModeEnum` gennem
  * `Record<AppThemeMode, string>`: en ny tilstand i schemaet giver en compilerfejl her frem for en
  * valgmulighed, brugeren aldrig får at se. Rækkefølgen sætter «Følg computeren» sidst, fordi de to
- * konkrete valg er dem, brugeren typisk vælger imellem — automatikken er standarden, man vender
+ * konkrete valg er dem, brugeren typisk vælger imellem – automatikken er standarden, man vender
  * tilbage til (BB-024).
  */
 const THEME_MODE_LABELS: Record<AppThemeMode, string> = {
@@ -368,7 +368,7 @@ const Indstillinger = React.memo(() => {
         <Typography className="section-header">Beregningsteknisk</Typography>
 
         {/*
-          RÆKKEFØLGEN ER BETYDNINGSBÆRENDE — byt den ikke tilbage.
+          RÆKKEFØLGEN ER BETYDNINGSBÆRENDE – byt den ikke tilbage.
 
           De to rækker er UAFHÆNGIGE regler, ikke en betingelse og dens undtagelse. Måneds-grænsen
           gælder ALTID: inden for vinduet regnes dækningen som i orden, uanset toggle'ns tilstand.
@@ -376,7 +376,7 @@ const Indstillinger = React.memo(() => {
           en advarsel.
 
           Stod toggle'n først (som før), læste rækkefølgen naturligt som «grænsen gælder, når jeg har
-          tilladt det» — og en bruger, der slog toggle'n fra for at få den strengeste kontrol, fik
+          tilladt det» – og en bruger, der slog toggle'n fra for at få den strengeste kontrol, fik
           den ikke inden for vinduet uden at opdage det. Tolerancen står derfor først og er
           formuleret som en selvstændig regel. Brugerfund BB-028, accepteret 2026-08-18.
         */}

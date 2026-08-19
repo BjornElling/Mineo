@@ -1,11 +1,11 @@
 /* Service worker til PWA-installation og versionssikre lazy assets.
  *
- * KILDEFIL — ikke et deploybart asset. `__MINEO_BUILD_VERSION__` substitueres af
+ * KILDEFIL – ikke et deploybart asset. `__MINEO_BUILD_VERSION__` substitueres af
  * `mineoServiceWorkerBundle`-pluginet i `vite.mineo.config.ts`, som emitterer den færdige
  * `sw.js`. Filen ligger derfor bevidst UDEN for `public/`: lå den der, ville publicDir-kopieringen
  * overskrive det emitterede output med den usubstituerede kilde.
  *
- * Versionen er indbagt i selve filens bytes — ikke kun i registrerings-URL'ens query. Det er
+ * Versionen er indbagt i selve filens bytes – ikke kun i registrerings-URL'ens query. Det er
  * forskellen på, om `registration.update()` overhovedet kan opdage en deploy: query'en er den
  * samme, så længe klienten kører den samme build, mens bytes ændrer sig ved hver ny build.
  *
@@ -38,7 +38,7 @@ const getAssetUrls = async () => {
   }
 
   // Manifestet hentes fra origin, mens versionen er indbagt i workeren. Lander en deploy mellem
-  // de to, ville en cache NAVNGIVET denne build blive fyldt med den NÆSTE builds assets — og denne
+  // de to, ville en cache NAVNGIVET denne build blive fyldt med den NÆSTE builds assets – og denne
   // builds egne lazy chunks ville aldrig blive cachet. Fejlen ville først vise sig ved et senere
   // download. Derfor fail-closed her, på samme linje som en ufuldstændig cache.
   if (payload.version !== BUILD_VERSION) {

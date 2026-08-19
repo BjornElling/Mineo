@@ -4,11 +4,11 @@ import * as React from 'react';
  * Den ENE placeholder-identitets-livscyklus for alle dynamiske tabeller (§1.11, §3.7).
  *
  * En dynamisk tabel viser de committede rækker plus mindst én tom indtastningsrække. Den tomme række har en
- * UI-identitet — et række-id — som cellernes feltadresser og editorlokationer bygges af. Ved første ikke-tomme
+ * UI-identitet – et række-id – som cellernes feltadresser og editorlokationer bygges af. Ved første ikke-tomme
  * settle promoveres netop det id atomisk til en persisteret række (§1.11), og history-frame'et får en
  * felt-origin, der peger på DEN adresse og DEN editorlokation.
  *
- * DERFOR er identiteten nødt til at være en REN FUNKTION af den aktuelle committede tilstand — ikke af den vej,
+ * DERFOR er identiteten nødt til at være en REN FUNKTION af den aktuelle committede tilstand – ikke af den vej,
  * brugeren tog derhen. Undo/redo er en tidsmaskine over inputtet: samme committede tilstand kan nås forfra
  * (redigering), bagfra (undo) og forfra igen (redo). Peger en history-origin på et placeholder-id, findes det
  * kun, hvis tabellen viser SAMME identitet, hver gang den samme tilstand er aktuel. Ellers finder
@@ -20,7 +20,7 @@ import * as React from 'react';
  *                               som ikke aktuelt er committede.
  *
  * Sekvensen er APPEND-ONLY og doven: `at(index)` mønter id'et, første gang indekset bruges, og returnerer
- * derefter altid det samme. Der findes INGEN operation, der fjerner et id — det er hele pointen, og det er
+ * derefter altid det samme. Der findes INGEN operation, der fjerner et id – det er hele pointen, og det er
  * udtrykt i typen frem for i en regel, man kan glemme. Et tidligere `state.ids.length = cursor`-trim gjorde
  * netop dét: efter et undo helt tilbage faldt de senere slots bag markøren og blev kastet væk, og et
  * efterfølgende redo møntede et NYT id til den plads. Fra da af pegede alle history-origins fra den oprindelige
@@ -55,7 +55,7 @@ export const createPlaceholderIdSequence = (mintId: () => string): PlaceholderId
 /**
  * De synlige placeholder-id'er for én render: de første `slotCount` sekvensmedlemmer, der ikke er committede.
  *
- * REN i forhold til (sekvens, committede id'er, slotCount) — den eneste mutation er sekvensens dovne møntning,
+ * REN i forhold til (sekvens, committede id'er, slotCount) – den eneste mutation er sekvensens dovne møntning,
  * som per konstruktion ikke kan ændre et allerede udleveret id. Derfor gælder invarianten: samme committede
  * tilstand → samme synlige id'er, uanset hvornår og i hvilken rækkefølge tilstanden opstod.
  *
@@ -70,7 +70,7 @@ export const resolvePlaceholderSlotIds = (
 ): readonly string[] => {
   const visible: string[] = [];
   // Højst `committedIds.size` medlemmer kan springes over, så loftet er nået, netop når sekvensen mønter
-  // dubletter — umuligt for en unik id-fabrik, men et defekt loft er at foretrække frem for en uendelig løkke.
+  // dubletter – umuligt for en unik id-fabrik, men et defekt loft er at foretrække frem for en uendelig løkke.
   const maxIndex = committedIds.size + slotCount;
   for (let index = 0; visible.length < slotCount && index < maxIndex; index += 1) {
     const id = sequence.at(index);

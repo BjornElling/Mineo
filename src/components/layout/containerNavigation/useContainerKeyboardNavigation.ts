@@ -21,7 +21,7 @@ import {
  * Tasteoversættelsen for `Container`: fra tastetryk til «hvilket felt skal have fokus».
  *
  * Laget ejer PRÆCIS de beslutninger, der afhænger af tasten og af den aktive kontrols
- * semantik — undtagelserne i `keyboard-navigation.md`. Hvor målfeltet afhænger af
+ * semantik – undtagelserne i `keyboard-navigation.md`. Hvor målfeltet afhænger af
  * geometri, spørger det `focusRowGeometry`; hvor det afhænger af DOM, spørger det
  * inventaret. Selve fokus-effekten (`focusOnly`) er den ene bivirkning laget udfører.
  *
@@ -42,7 +42,7 @@ const isTextEditingInput = (element: Element): element is HTMLInputElement | HTM
  *
  * Normativt krav: keyboard-fokus må ALDRIG efterlade markeret indhold
  * (`keyboard-navigation.md`). Nogle MUI-widgets selekterer selv ved fokus, så
- * neutraliseringen skal ske EFTER dem — derfor kaldes den fra en `requestAnimationFrame`.
+ * neutraliseringen skal ske EFTER dem – derfor kaldes den fra en `requestAnimationFrame`.
  */
 const collapseSelection = (element: Element | null): void => {
   if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return;
@@ -126,14 +126,14 @@ export const useContainerKeyboardNavigation = (
       const targetNode = e.target instanceof Node ? e.target : null;
       if (targetNode && !container.contains(targetNode)) return;
 
-      // Er der et overlay åbent, ejer overlayet tastaturet — ikke siden bagved.
+      // Er der et overlay åbent, ejer overlayet tastaturet – ikke siden bagved.
       //
       // Denne prøve kan IKKE erstattes af DOM-indeslutningen ovenfor. Et portaleret overlay (MUI
       // `Dialog`) ligger under `document.body` og slipper igennem der; et INLINE overlay
       // (`role="dialog"` renderet i sidens træ) er derimod en ægte efterkommer af containeren, så
       // prøven ovenfor siger «indenfor», og navigationen overtog Tab inde i vinduet. Præcis det skete
       // i licensvinduet: fokus vandrede ud i siden bagved, selv om vinduet havde en korrekt monteret
-      // `FocusTrap` — sidens navigation kørte simpelthen forbi trap'ens vagtposter.
+      // `FocusTrap` – sidens navigation kørte simpelthen forbi trap'ens vagtposter.
       //
       // Åbenhed aflæses derfor på overlayets EGEN markør (`overlayBehavior`), ikke på hvor
       // komponenten tilfældigvis er monteret. `hasOpenOverlay()` frem for «er målet inde i et
@@ -159,7 +159,7 @@ export const useContainerKeyboardNavigation = (
       if (focusableElements.length === 0) return;
 
       // Det aktive elements fokus-stop slås op med PRÆCIS samme selector, som inventaret
-      // indsamler med — ellers kunne de to divergere, og opslaget nedenfor ville ikke finde
+      // indsamler med – ellers kunne de to divergere, og opslaget nedenfor ville ikke finde
       // elementet i sin egen liste.
       const activeFocusable: FocusableElement | null = (() => {
         if (!(activeElement instanceof HTMLElement)) return null;
@@ -240,7 +240,7 @@ export const useContainerKeyboardNavigation = (
         if (activeFocusable instanceof HTMLButtonElement) return;
       } else if (activeWidgetIsExpanded) {
         // Tab i en ÅBEN popup lades til browseren, men selection på næste felt skal stadig
-        // neutraliseres — derfor efter næste frame, når fokus er flyttet.
+        // neutraliseres – derfor efter næste frame, når fokus er flyttet.
         // Lukkede combobox-kontroller indgår normalt i den cirkulære Tab-rækkefølge.
         requestAnimationFrame(() => collapseSelection(document.activeElement));
         return;

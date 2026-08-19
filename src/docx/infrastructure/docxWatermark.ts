@@ -3,7 +3,7 @@ import { ImportedXmlComponent, Paragraph, type ParagraphChild } from 'docx';
 // `ImportedXmlComponent.fromXmlString` parser fragmentet med xml-js og pakker
 // resultatet i et rod-element UDEN navn (xml-js' dokument-rod har ingen `name`).
 // docx serialiserer derfor wrapperen som <undefined>…</undefined>, hvilket er
-// ugyldig WordprocessingML — Word afviser/reparerer filen (LibreOffice er mere
+// ugyldig WordprocessingML – Word afviser/reparerer filen (LibreOffice er mere
 // tolerant). Vi henter derfor det reelle (navngivne) barn ud af wrapperen, så
 // fragmentet indsættes direkte som fx <w:r>…</w:r> uden <undefined>-wrapper.
 //
@@ -30,20 +30,20 @@ const importXmlFragmentChild = (xml: string): ParagraphChild => {
 // Diagonalt "UDKAST"-vandmærke til Word-dokumenter.
 //
 // `docx` har ingen indbygget vandmærke-API, så vi bygger det som rå VML inde i et
-// `<w:pict>` — præcis samme konstruktion Microsoft Word selv genererer, når man
+// `<w:pict>` – præcis samme konstruktion Microsoft Word selv genererer, når man
 // indsætter et tekst-vandmærke (Design → Vandmærke → Brugerdefineret). Det gør
 // outputtet bredt kompatibelt med Word og LibreOffice frem for en skrøbelig
 // hjemmestrikket variant.
 //
 // Vandmærket lægges i sidens header, så det gentages på hver side og ligger bag
 // brødteksten (`o:allowincell="t"` + `style="position:absolute"`). 100 % lokalt:
-// ingen eksterne relationer, billeder eller fontlinks — kun ren VML-tekst.
+// ingen eksterne relationer, billeder eller fontlinks – kun ren VML-tekst.
 
 // Word's eget tekst-vandmærke (Design → Vandmærke → Brugerdefineret) genereres som en
 // VML text-path-figur i et <w:pict>. Vi gengiver Words native output 1:1, så vandmærket
 // renderes pænt og ufordrejet i Word (og bredt kompatibelt i LibreOffice):
 //   - fillcolor="silver" + <v:fill opacity=".5"/> (samme halvgennemsigtige grå som Word)
-//   - størrelses-forhold ~2,5:1 (bredde:højde) som Words standard — et for bredt forhold
+//   - størrelses-forhold ~2,5:1 (bredde:højde) som Words standard – et for bredt forhold
 //     (tidligere 4,5:1) strakte teksten tynd og forvrænget
 //   - o:allowincell="f", rotation 315° og margin-centrering, præcis som Words native shape
 const WATERMARK_FILL_COLOR = 'silver';

@@ -1,11 +1,11 @@
 export const DEFAULT_AMOUNT_PLACEHOLDER = '0,00';
 /**
  * Placeholder for beløbsfelter, der ikke tillader decimaler. Et felt, hvor kommaet er blokeret, må ikke
- * love en decimalhale i sin placeholder — vælg denne ud fra `allowDecimals`, ikke i hånden pr. kaldssted.
+ * love en decimalhale i sin placeholder – vælg denne ud fra `allowDecimals`, ikke i hånden pr. kaldssted.
  */
 export const INTEGER_AMOUNT_PLACEHOLDER = '0';
 export const DEFAULT_AMOUNT_PRECISION = 2;
-// Gælder hele det rå input — også flerleddede udtryk (fx "12345,67 + 89012,34 - …").
+// Gælder hele det rå input – også flerleddede udtryk (fx "12345,67 + 89012,34 - …").
 // 64 var dimensioneret til ét enkelt beløb og afviste gyldige udtryk med ~6+ led
 // (10-15 led løber let op i 100-200 tegn). 512 rummer rigeligt mange led og holder
 // stadig et loft mod patologisk input.
@@ -16,13 +16,13 @@ export const MAX_AMOUNT_RAW_LENGTH = 512;
  * sammen med de 2 decimaler (`input-field-behavior-contract.md` §2.2).
  *
  * Grænsen er en LÆNGDEREGEL pr. talled og håndhæves ved indgangen: det 8. heltalsciffer kommer ikke
- * ind i feltet, hverken ved tastning eller paste (§1.2). Den er tavs — et afvist tegn giver ingen rød
+ * ind i feltet, hverken ved tastning eller paste (§1.2). Den er tavs – et afvist tegn giver ingen rød
  * ring, fordi det aldrig blev en del af værdien.
  *
  * **Den gælder KUN indtastning.** Beregnede, afledte, sammentalte og opregulerede beløb er ikke
  * omfattet: en rækkesum af flere beløb tæt på grænsen ER større end grænsen, og det er korrekt
  * (§1.2, `amount-contract.md` §3). Brug derfor ALDRIG denne konstant på et beregnet beløb, i et
- * schema eller på load-vejen — dertil hører {@link MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS}.
+ * schema eller på load-vejen – dertil hører {@link MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS}.
  *
  * Erstatter den tidligere fælles grænse på 20 cifre, som blev brugt af BÅDE indtastning og schema.
  * Delingen er selve pointen: så længe de to veje delte ét tal, kunne en stramning af inputgrænsen
@@ -31,7 +31,7 @@ export const MAX_AMOUNT_RAW_LENGTH = 512;
 export const MAX_AMOUNT_INPUT_INTEGER_DIGITS = 7;
 
 /**
- * Heltalscifre et beløb må have for at kunne REPRÆSENTERES og gemmes præcist — schema-, load- og
+ * Heltalscifre et beløb må have for at kunne REPRÆSENTERES og gemmes præcist – schema-, load- og
  * beregningsgrænsen, ikke feltets.
  *
  * Den bindende regel er binary64-værnet i `amount-contract.md` §3 (eksklusivt `2^46`, altså

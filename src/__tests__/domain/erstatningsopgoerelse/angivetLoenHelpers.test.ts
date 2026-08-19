@@ -63,10 +63,10 @@ describe('resolveLoenudviklingKilde', () => {
   });
 
   // Her lå et kast på `loenPaaHelligdage === undefined`. Testen var grøn, fordi fixturen SATTE
-  // feltet til undefined — mens produktionen nåede samme gren uden at nogen satte noget, netop fordi feltet
+  // feltet til undefined – mens produktionen nåede samme gren uden at nogen satte noget, netop fordi feltet
   // var valgfrit og manglede en editor. Kontrakten er nu, at en tom, nyoprettet sag bærer en konkret sats
   // gennem hele lønudviklings-kilden uden at kaste.
-  it('en tom, nyoprettet sag giver en lønudviklings-kilde med konkret sats — uden at kaste', () => {
+  it('en tom, nyoprettet sag giver en lønudviklings-kilde med konkret sats – uden at kaste', () => {
     const values = erstatningsopgoerelseSchema.parse({ loenindkomstAnsaettelsesforhold: [] });
     values.beregnesUdFra = 'Angivet dagsløn';
 

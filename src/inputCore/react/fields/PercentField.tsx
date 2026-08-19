@@ -17,7 +17,7 @@ import { mergeSx } from '../../../utils/mergeSx';
 // Procent-felt (§2.4/§3.5): familie-skal over `NumericTextField` med procent-tegnfilteret,
 // den delte "%"-enheds-adornment (muted når tom) og højrestillet tabular-nums-visning. Parse/format og
 // commit-intervallet ejes af descriptorens procent-codec (§samlet input-enhed). Komponenten modtager KUN sin
-// `field`/`location` + rendering-props — ingen `minValue`/`maxValue`/`onCommit`/`onFieldError`/`enforceRange` (§2.4).
+// `field`/`location` + rendering-props – ingen `minValue`/`maxValue`/`onCommit`/`onFieldError`/`enforceRange` (§2.4).
 
 export type PercentFieldProps = Readonly<{
   field: FieldRef<number | undefined>;
@@ -53,7 +53,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
     ref
   ) => {
     // Tegn- og længdepolitikken kommer fra descriptorens codec gennem den DELTE `resolvePercentCharPolicy`
-    // — samme kilde som grid-cellen. Alle procent-descriptorer er ikke-negative, og komponenten svarede
+    // – samme kilde som grid-cellen. Alle procent-descriptorer er ikke-negative, og komponenten svarede
     // tidligere `true` i strid med dem, så et minus kunne tastes som første tegn.
     const { allowNegative, allowDecimals, maxIntegerDigits, maxDraftLength } =
       resolvePercentCharPolicy(field);
@@ -63,7 +63,7 @@ const PercentField = React.forwardRef<HTMLDivElement, PercentFieldProps>(
     );
 
     // Adornmentet mutes, når draften er tom. Muted-flaget kommer fra `NumericTextField`s
-    // ÉNE editor-controller via render-prop — vi opretter aldrig en anden surface/controller for samme felt.
+    // ÉNE editor-controller via render-prop – vi opretter aldrig en anden surface/controller for samme felt.
     return (
       <NumericTextField
         ref={ref}

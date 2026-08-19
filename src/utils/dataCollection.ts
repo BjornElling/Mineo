@@ -83,7 +83,7 @@ const countFieldsRecursive = (data: unknown, depth: number = 0): number => {
 };
 
 /**
- * Tæller meningsfulde felter i en vilkårlig værdi — også når værdien selv er en
+ * Tæller meningsfulde felter i en vilkårlig værdi – også når værdien selv er en
  * primitiv (et enkelt blad).
  *
  * `countFilledFields()` returnerer 0 for primitiver (den forventer et top-level
@@ -129,5 +129,5 @@ export const countFilledFields = (data: unknown): number => {
 //
 // Den tidligere `hasRealData()` (= `countFilledFields(data) > 0`) var et konkurrerende svar: den regnede
 // hver `false` og hvert standardtal som brugerdata og lod derfor en helt tom standardsag gemme som et
-// tilsyneladende rigtigt sagsartefakt. Genindfør den ikke — funktionerne nedenfor/ovenfor tæller felter til
+// tilsyneladende rigtigt sagsartefakt. Genindfør den ikke – funktionerne nedenfor/ovenfor tæller felter til
 // PREFLIGHT-RAPPORTERING, og et feltantal er ikke et svar på, om brugeren har indtastet noget.

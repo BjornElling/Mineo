@@ -3,7 +3,7 @@ import { expect, login, openPage, setVerbatimFieldValueAndSettle, test } from '.
 /** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
 const setDate = setVerbatimFieldValueAndSettle;
 
-test.describe('Svie/smerte-satsår — Indsæt årstal', () => {
+test.describe('Svie/smerte-satsår – Indsæt årstal', () => {
   test('indsætter satsåret fra opgørelsesdatoen, falder tilbage og er et tabstop', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Erstatningsopgørelse');

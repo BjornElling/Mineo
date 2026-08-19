@@ -12,14 +12,14 @@ import { getSourceGraph } from './sourceGraph';
  * Fraværsreglernes modstykke.
  *
  * En forbudsregel kan ikke bevise sin egen relevans ved at ramme noget: nul hits ER den ønskede
- * tilstand. Det efterlader et hul, som `architectureRules.test.ts`' fixture-selvtest ikke kan lukke —
+ * tilstand. Det efterlader et hul, som `architectureRules.test.ts`' fixture-selvtest ikke kan lukke –
  * reglen består sine fixtures, uanset om det, den forbyder, faktisk er væk, og uanset om navnet er
  * stavet rigtigt. En regel, der forbyder `useRowDraftz`, ville se lige så grøn ud som en, der forbyder
  * `useRowDrafts`, mens den rigtige fil levede videre ved siden af.
  *
  * Denne fil er den omvendte kontrol: for hvert forbudt modul/navn BEVISES det, at navnet er
  * fraværende i den levende kilde-graf. Det er den maskinelle erstatning for en manuel gennemlæsning
- * af slettelister — og modsat gennemlæsningen kan den køres igen.
+ * af slettelister – og modsat gennemlæsningen kan den køres igen.
  */
 
 describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', () => {
@@ -30,7 +30,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
 
     expect(
       unmatched,
-      'Disse stier står på forbudslisten, men fanges ikke af DELETED_LEGACY_INPUT_MODULES — '
+      'Disse stier står på forbudslisten, men fanges ikke af DELETED_LEGACY_INPUT_MODULES – '
         + 'listen og regexen beskriver ikke længere samme mængde.'
     ).toEqual([]);
   });
@@ -73,7 +73,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
     );
 
     // Manifestet selv NÆVNER navnene som strengliteraler (det er dets data). Strengliteraler er ikke
-    // identifiers, så de rammes ikke — men filen udelades alligevel, så testen ikke afhænger af den
+    // identifiers, så de rammes ikke – men filen udelades alligevel, så testen ikke afhænger af den
     // finesse for at give mening.
     const production = entries.filter(
       (entry) => !entry.relativePath.startsWith('src/__tests__/')
@@ -85,7 +85,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
       const visit = (node: ts.Node): void => {
         if (ts.isIdentifier(node) && forbidden.has(node.text)) {
           const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-          alive.push(`${entry.relativePath}:${line + 1} — ${node.text}`);
+          alive.push(`${entry.relativePath}:${line + 1} – ${node.text}`);
         }
         ts.forEachChild(node, visit);
       };
@@ -111,7 +111,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
     expect(
       uncovered,
       'Et descriptor-katalog mangler i DESCRIPTOR_CATALOG_SECTIONS. `domain/page-section-access-boundary` '
-        + 'ville da læse en kobling til dét domæne som "ingen kobling" og tie — værnet ville være tavst, '
+        + 'ville da læse en kobling til dét domæne som "ingen kobling" og tie – værnet ville være tavst, '
         + 'ikke grønt. Tilføj modulet til kortet (eller til NON_DOMAIN_CATALOG_MODULES, hvis det ikke er '
         + 'et domæne).'
     ).toEqual([]);
@@ -126,15 +126,15 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
 
       // (a) @deprecated i produktionskoden: exitkriterie 1 forbyder en bevaret, udfaset vej.
       if (/@deprecated\b/.test(entry.text)) {
-        facades.push(`${entry.relativePath} — @deprecated`);
+        facades.push(`${entry.relativePath} – @deprecated`);
       }
 
       // (b) Et EKSPORTERET symbol, hvis navn erklærer sig som legacy eller compat. Kommentarer og
       //     interne hjælpere rammes ikke: kun eksportfladen er en facade, andre kan gribe fat i.
       //
       //     `Fallback` er BEVIDST udeladt af mønsteret. Ordet bruges i domænet om ægte, ønsket
-      //     ADFÆRD — fald-tilbage-dage ved ren ferie/weekend
-      //     ([[project_feriedage_indkomst_fald_tilbage]]) og fokusmål efter en slettet række — ikke om
+      //     ADFÆRD – fald-tilbage-dage ved ren ferie/weekend
+      //     ([[project_feriedage_indkomst_fald_tilbage]]) og fokusmål efter en slettet række – ikke om
       //     en dual-read-facade. Exitkriterie 1's "fallback" handler om en bevaret gammel læsevej ved
       //     siden af den nye; den fanges af @deprecated-kontrollen og af legacy-modulkontrollen ovenfor.
       //     At forbyde ordet ville tvinge en omdøbning af korrekt domænesprog.
@@ -150,7 +150,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
               : [];
           for (const name of declared) {
             if (/(?:^|[a-z])(?:Legacy|Compat)(?:[A-Z]|$)/.test(name) || /^legacy/.test(name)) {
-              facades.push(`${entry.relativePath} — eksporteret '${name}'`);
+              facades.push(`${entry.relativePath} – eksporteret '${name}'`);
             }
           }
         }
@@ -174,7 +174,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
    * men eksporterede neutralt navngivne symboler videre fra det kanoniske modul.
    *
    * Denne kontrol måler STRUKTUREN i stedet for navnet: en ikke-barrel-fil, hvis hele offentlige flade
-   * består af `export … from`, tilføjer ingen betydning — den holder kun gamle importstier i live.
+   * består af `export … from`, tilføjer ingen betydning – den holder kun gamle importstier i live.
    *
    * BEVIDST undtaget er ægte pakke-/barrel-grænser: `index.ts` og de navngivne `*Descriptors`-/
    * katalog-barrels er MENINGSFULDE offentlige flader, hvor viderelevering ER opgaven.

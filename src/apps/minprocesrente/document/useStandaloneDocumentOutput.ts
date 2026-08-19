@@ -4,7 +4,7 @@
  * Spejler hovedappens `useMineoDocumentOutput`, men mod standalones eget miljø. De to hooks er
  * bevidst adskilte og ikke generaliseret til én: hovedappens version læser `AppSettings` gennem
  * `useAppSettings`, som standalone hverken monterer eller må importere (AST-reglen
- * `layer/minprocesrente-standalone-import-boundary`). Fællesmængden er allerede delt — det er
+ * `layer/minprocesrente-standalone-import-boundary`). Fællesmængden er allerede delt – det er
  * `useDocumentDownload` og `closeDocumentDefinition` i kernen.
  */
 import React from 'react';
@@ -34,7 +34,7 @@ export const useStandaloneDocumentOutput = <TInput, TRequest>(
   context: DocumentSourceContext<void>,
   /**
    * Sidens exit-guard, der skal vide, at arbejdet nu ER hentet (BB-048). Leveres af siden, fordi
-   * guarden er én pr. flade — se `useStandaloneExitGuard`.
+   * guarden er én pr. flade – se `useStandaloneExitGuard`.
    */
   onDownloadOutcome: StandaloneDownloadTracker
 ): DocumentDownloadHandle<TRequest> => {
@@ -52,7 +52,7 @@ export const useStandaloneDocumentOutput = <TInput, TRequest>(
   const handle = useDocumentDownload(output, context, gateRequest, undefined);
 
   // Indpakningen ligger HER frem for på siden, så ingen af standalones outputs kan glemme at melde sit
-  // udfald til guarden — heller ikke et fremtidigt fjerde.
+  // udfald til guarden – heller ikke et fremtidigt fjerde.
   const download = React.useCallback(async (request: TRequest) => {
     const outcome = await handle.download(request);
     onDownloadOutcome(outcome);

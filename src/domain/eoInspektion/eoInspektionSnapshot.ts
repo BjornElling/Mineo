@@ -60,7 +60,7 @@ export const buildEOInspektionSnapshot = (args: {
   stamdataErrors: FieldIssueSet;
   eoErrors: FieldIssueSet;
   /** Clampede TAF-ranges fra engines. Når disse er leveret afspejler kontroltabellen
-   *  præcis de perioder der indgik i beregningen — ikke de rå committede datoer. */
+   *  præcis de perioder der indgik i beregningen – ikke de rå committede datoer. */
   tafRanges?: readonly IsoRange[];
   /** Autoritativt svie/smerte-engine-output fra EO-snapshot-pipelinen. */
   svieSmerteEngine?: SvieSmerteEngineOutput;

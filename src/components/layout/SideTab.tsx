@@ -5,7 +5,7 @@ import { TAB_NAVIGATION_ATTRIBUTE } from './containerNavigation/navigationContro
 
 /**
  * Fanens højde. Efter `rotate(90deg)` om venstre-bund er det HØJDEN, der bliver fanens vandrette
- * udstrækning — den er derfor det samme tal som fanens udhæng til højre for indholdsboksen, og
+ * udstrækning – den er derfor det samme tal som fanens udhæng til højre for indholdsboksen, og
  * den er fastlåst her og ikke overladt til indholdet. 48 px er MUI's egen fanehøjde
  * (`Tabs`/`Tab` minHeight), så en side-fane er præcis så tyk som en vandret fane er høj.
  */
@@ -41,9 +41,9 @@ export type SideTabProps = {
  *
  * **Formateringen ejes af CSS, ikke af `sx`.** Etiketten skal have PRÆCIS samme typografi som de
  * vandrette faners, og den fælles `.tab-item`-regel i `typography.css` er det ene sted, de to
- * familier henter den fra — farve (også i dark mode), størrelse, vægt, spatiering og
+ * familier henter den fra – farve (også i dark mode), størrelse, vægt, spatiering og
  * hover/aktiv-tilstand. Den blå streg er `.side-tab::after`: efter rotationen vender fanens bund ind
- * mod indholdsboksen, så stregen lander præcis på boksens højrekant — samme rolle OG samme
+ * mod indholdsboksen, så stregen lander præcis på boksens højrekant – samme rolle OG samme
  * mekanisme som `MuiTabs-indicator` under en vandret fane. `sx` herunder må derfor kun bære
  * GEOMETRI. Sætter man typografi eller `border` her, vinder emotion over klassen, og fanerne drifter
  * fra de øvrige igen (senest: `color: inherit` gjorde dem usynlige i dark mode, og `border: none`

@@ -5,12 +5,12 @@ import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 import { resolveAccessibleName } from './accessibleName';
 
 /**
- * Fælles fokus-halo for afkrydsningsfelter — samme mekanik og udtryk som `StyledToggleSwitch` og
+ * Fælles fokus-halo for afkrydsningsfelter – samme mekanik og udtryk som `StyledToggleSwitch` og
  * `StyledRadioButton`.
  *
  * **Hvorfor den skal være her.** Checkboxen havde ingen fokus-styling overhovedet og faldt tilbage på
  * MUI's default-ripple. To følger: dens tastaturfokus så anderledes ud end de to andre kontroller, og
- * efter undo/redo fik den INGEN synlig markering — `data-mineo-undo-focused` sættes af
+ * efter undo/redo fik den INGEN synlig markering – `data-mineo-undo-focused` sættes af
  * `historyTargetRestoreLoop`, men blev ikke læst af nogen regel her, selv om `CheckboxField` leverer
  * restore-attributterne. Brugeren blev altså ført hen til feltet uden at kunne se hvorhen.
  */
@@ -29,7 +29,7 @@ type StyledCheckboxProps = Readonly<{
   name?: string;
   disabled?: boolean;
   /**
-   * Permanent tilvalg: feltet er ikke redigerbart, men er — modsat `disabled` — ALTID markeret.
+   * Permanent tilvalg: feltet er ikke redigerbart, men er – modsat `disabled` – ALTID markeret.
    * `disabled` betyder «programinaktiv», og et programinaktivt felt vises bevidst umarkeret (se
    * `visibleChecked`). Et element, der pr. definition altid indgår, er den modsatte tilstand og kan
    * derfor ikke udtrykkes med `disabled` alene. Låst-til er en ren visning: den committer aldrig, så
@@ -116,7 +116,7 @@ const StyledCheckbox = ({
           slotProps={{
             // Feltidentitet i DOM: serialiseret feltadresse + editorlokation (§3.2/§3.7), sat af
             // feltfamilien og videreført her. Checkboxen er en immediate-commit widget, så restoren skal
-            // kunne finde den uden forudgående fokus — men identiteten er adressen, ikke `name`.
+            // kunne finde den uden forudgående fokus – men identiteten er adressen, ikke `name`.
             // Transiente checkboxes (fx app-settings på Indstillinger) har ingen feltadresse og deltager
             // ikke i restoren. Cast som StyledRadioButton: MUI's slotProps-type tillader ikke
             // data-attributter direkte.

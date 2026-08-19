@@ -31,7 +31,7 @@ export const STANDARD_UGER_PAA_AAR = 52.14;
  *
  * Det præcise antal varierer fra år til år (påsken rykker, Kristi Himmelfartsdag
  * er altid torsdag osv.), men 8 er det anerkendte normtal der benyttes ved
- * omregning af lønperioder til årsløn — analogt til STANDARD_HVERDAGE_PAA_AAR.
+ * omregning af lønperioder til årsløn – analogt til STANDARD_HVERDAGE_PAA_AAR.
  * Intentionelt ikke udledt af den faktiske SH-dagsberegning for den konkrete periode.
  */
 export const STANDARD_SH_DAGE_PAA_AAR = 8;
@@ -253,7 +253,7 @@ export const beregnUgePeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
       if (fraData && tilData) {
         // Fail-closed mod omvendt interval (fra-uge efter til-uge): uden denne guard
         // ville uger-Set'et akkumulere inkonsistent (tomme/forkerte løkker) mens
-        // datoSet'et stille blev tomt — to ud-af-sync afledte resultater. Spring rækken over.
+        // datoSet'et stille blev tomt – to ud-af-sync afledte resultater. Spring rækken over.
         if (fraData.start > tilData.end) {
           return;
         }

@@ -9,9 +9,9 @@ import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
  * Direkte unit-test af reguleringsrate-opslaget.
  *
  * Tidligere var disse funktioner kun dækket integrationstest gennem
- * kapitaliserings- og løbende-ydelses-beregningerne. Den centrale invariant —
+ * kapitaliserings- og løbende-ydelses-beregningerne. Den centrale invariant –
  * at år 2024 KUN special-behandles (faktor 1) for skader før 2024-07-01, og
- * ellers slår op i Fra2024-tabellen — testes her isoleret.
+ * ellers slår op i Fra2024-tabellen – testes her isoleret.
  *
  * Værdierne stammer fra `reguleringsprocentErhvervsevnetab` (≤2023) og
  * `reguleringsprocentErhvervsevnetabFra2024` (≥2024) i lovbestemteRates.ts.
@@ -61,7 +61,7 @@ describe('resolveAslReguleringRateForAar', () => {
   });
 
   describe('skade fra 2024-07-01 (before2024Skade = false)', () => {
-    it('år 2024 special-behandles IKKE — slår op i Fra2024 (0,0 %)', () => {
+    it('år 2024 special-behandles IKKE – slår op i Fra2024 (0,0 %)', () => {
       const issues: EetIssue[] = [];
       const result = resolveAslReguleringRateForAar(2024, false, issues, 'id');
       // Fra2024[2024] = 0,0 → faktor 1, men reguleringPct = 0 fra TABELLEN, ikke referenceårs-reglen.
@@ -96,7 +96,7 @@ describe('resolveAslReguleringRateForAar', () => {
 
   it('ukendt/ikke-heltalligt år fail-closer med blokerende issue og null', () => {
     // Defensivt: et år uden dækning (uanset skade-flag) må aldrig degradere til en tavs
-    // "ingen regulering"-faktor 1 — det skal give en blokerende feltfejl.
+    // "ingen regulering"-faktor 1 – det skal give en blokerende feltfejl.
     const iUkendt: EetIssue[] = [];
     expect(resolveAslReguleringRateForAar(2099, false, iUkendt, 'id')).toBeNull();
     expect(iUkendt).toHaveLength(1);

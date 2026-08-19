@@ -80,7 +80,7 @@ export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandl
 /**
  * Sletter det gemte file handle.
  *
- * `false` betyder "kunne ikke verificere sletningen" — ikke "der var intet at slette".
+ * `false` betyder "kunne ikke verificere sletningen" – ikke "der var intet at slette".
  * Findes IndexedDB slet ikke, kan der ikke ligge et håndtag, så det er en verificeret tom
  * tilstand og returnerer `true`.
  */
@@ -95,7 +95,7 @@ export const deleteFileHandleFromIndexedDB = async (): Promise<boolean> => {
 /**
  * Gemmer standardmappen og dens metadata og returnerer et unikt ID.
  *
- * VIGTIGT: ID'et genereres og returneres af denne funktion. UI-laget skal bruge dette ID —
+ * VIGTIGT: ID'et genereres og returneres af denne funktion. UI-laget skal bruge dette ID –
  * IKKE generere sit eget.
  *
  * Handle og metadata skrives i SAMME transaction, så de to nøgler ikke kan komme ud af sync
@@ -104,7 +104,7 @@ export const deleteFileHandleFromIndexedDB = async (): Promise<boolean> => {
 export const saveDefaultDirectoryHandle = async (
   directoryHandle: FileSystemDirectoryHandle
 ): Promise<string | null> => {
-  // Opaque UUID — semantisk neutralt og fremtidssikret.
+  // Opaque UUID – semantisk neutralt og fremtidssikret.
   const id = crypto.randomUUID();
   const meta: DirectoryHandleMeta = {
     id,
@@ -126,7 +126,7 @@ export const saveDefaultDirectoryHandle = async (
  * VIGTIGT: Designet til UI-brug (fx `Indstillinger.tsx`). Den foretager INGEN
  * permission-requests og er derfor sikker at kalde ved mount og re-render.
  *
- * DESIGN: passiv observatør — returnerer `null` hvis metadata ikke findes (ingen fallback),
+ * DESIGN: passiv observatør – returnerer `null` hvis metadata ikke findes (ingen fallback),
  * og kalder ALDRIG `resolveDefaultDirectoryHandle`.
  */
 export const getDirectoryDisplayInfo = async (): Promise<DirectoryHandleMeta | null> => {

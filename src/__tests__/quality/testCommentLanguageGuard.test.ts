@@ -1,14 +1,14 @@
 /**
- * Testtræets kommentarer beskriver programmet, som det ER — ikke rejsen dertil.
+ * Testtræets kommentarer beskriver programmet, som det ER – ikke rejsen dertil.
  *
  * `productionLanguageGuard` håndhæver allerede dette for produktionskode og kontrakter, men den
  * udelader bevidst `src/__tests__/**` (den måler produktionssprog). I det hul kan der samle sig
  * kommentarer, som forankrer ægte begrundelser i lukkede arbejdsdokumenter: work-item-numre,
  * fund-id'er, faser, etaper og runder. Dokumenterne findes ikke, så en læser kan ikke følge
- * henvisningen — og den WHY, kommentaren faktisk bar, er dermed gjort uopslåelig.
+ * henvisningen – og den WHY, kommentaren faktisk bar, er dermed gjort uopslåelig.
  *
  * Værnet er ikke kosmetik. En kommentar, der udskyder et kendt dækningshul til et nummereret
- * arbejdsdokument, ligner et SPORET forhold — men findes dokumentet ikke, er hullet reelt
+ * arbejdsdokument, ligner et SPORET forhold – men findes dokumentet ikke, er hullet reelt
  * utrackéret. Det er samme fejlklasse, som resten af kvalitetsværnene findes for at udelukke: en
  * påstand uden dækning.
  *
@@ -92,7 +92,7 @@ const commentsByFile = new Map(
 );
 
 describe('testtræets kommentarer beskriver sluttilstanden', () => {
-  it('testfladen findes — værnet kan ikke være grønt af tomhed', () => {
+  it('testfladen findes – værnet kan ikke være grønt af tomhed', () => {
     // Uden gulvet ville en flyttet eller omdøbt testrod gøre hele reglen tavs grøn.
     expect(files.length, `ingen testfiler fundet under ${TEST_ROOT}`).toBeGreaterThan(400);
   });
@@ -116,7 +116,7 @@ describe('testtræets kommentarer beskriver sluttilstanden', () => {
    * Selvtestens ANDET ben: udtrækket skal holde på en RIGTIG fil, ikke kun på en kort probe.
    *
    * En kommentarlæser kan bestå probet ovenfor og alligevel tabe langt de fleste kommentarer i en
-   * rigtig kildefil — kommentarer er trivia, og en implementering, der forventer dem som selvstændige
+   * rigtig kildefil – kommentarer er trivia, og en implementering, der forventer dem som selvstændige
    * tokens, finder kun de få, der tilfældigvis står, hvor den kigger. Et sådant værn er tavst grønt.
    * Gulvet her er derfor målt mod en fil, hvis kommentartæthed er kendt og høj.
    */
@@ -125,7 +125,7 @@ describe('testtræets kommentarer beskriver sluttilstanden', () => {
     const content = fs.readFileSync(path.resolve(process.cwd(), realFile), 'utf8');
     const found = sourceComments(content, realFile);
 
-    expect(found.length, `${realFile} har mange kommentarer — udtrækket fandt kun ${found.length}`)
+    expect(found.length, `${realFile} har mange kommentarer – udtrækket fandt kun ${found.length}`)
       .toBeGreaterThan(80);
     // Og de skal være PROSA, ikke tomme strenge fra et forkert strip.
     expect(found.filter((comment) => comment.text.trim().length > 20).length).toBeGreaterThan(40);
@@ -139,11 +139,11 @@ describe('testtræets kommentarer beskriver sluttilstanden', () => {
         if (ALLOWED.some((entry) => comment.text.includes(entry.fragment))) continue;
         // HVER ramt linje rapporteres, ikke kun den første i blokken. En JSDoc-blok kan bære flere
         // henvisninger, og et fund pr. blok ville få de øvrige til at se rettede ud, så snart den
-        // første var væk — værnet ville dermed under-rapportere præcis dér, hvor der er mest at rydde op i.
+        // første var væk – værnet ville dermed under-rapportere præcis dér, hvor der er mest at rydde op i.
         comment.text.split(/\r?\n/).forEach((candidate, offset) => {
           const marker = CLOSED_WORKSTREAM_MARKERS.find((pattern) => pattern.test(candidate));
           if (marker === undefined) return;
-          findings.push(`${file}:${comment.line + offset}  ${candidate.trim()}  — rammer ${marker.source}`);
+          findings.push(`${file}:${comment.line + offset}  ${candidate.trim()}  – rammer ${marker.source}`);
         });
       }
     }
@@ -161,6 +161,6 @@ describe('testtræets kommentarer beskriver sluttilstanden', () => {
     const dead = ALLOWED
       .filter((entry) => !live.some((text) => text.includes(entry.fragment)))
       .map((entry) => entry.fragment);
-    expect(dead, 'undtagelser uden en levende kommentar — fjern dem').toEqual([]);
+    expect(dead, 'undtagelser uden en levende kommentar – fjern dem').toEqual([]);
   });
 });

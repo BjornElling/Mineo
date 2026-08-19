@@ -66,7 +66,7 @@ const createEmptyErhvervsevnetabSection = (): unknown =>
 // Grænserne kommer fra `dateRanges_erhvervsevnetab`; Skadedato krydslæses via `view.readCanonical`,
 // fordi den canonical dato bestemmer minimumsgrænsen.
 /**
- * Gulvet ER skadedatoen — bemærk at det sættes via `min`, ikke `narrowMin`. `narrowMin` clamper med
+ * Gulvet ER skadedatoen – bemærk at det sættes via `min`, ikke `narrowMin`. `narrowMin` clamper med
  * `maxISO` og kan kun HÆVE gulvet; her skal en skadedato FØR 2005 tværtimod sænke det tilsvarende.
  */
 const eetBeregningsdatoBoundsSpec: DateBoundsSpec = {
@@ -277,7 +277,7 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
         : role === 'kapDato'
           ? dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max
           // Uden rækkens afgørelsesdato findes der ingen "dagen før"-grænse. Konfigurationens
-          // `fallbackMax` (EET-datadækningen) gælder da — den er netop erklæret til dette tilfælde.
+          // `fallbackMax` (EET-datadækningen) gælder da – den er netop erklæret til dette tilfælde.
           // Faldt loftet i stedet ud som `undefined`, var feltet HELT uden øvre grænse, indtil
           // afgørelsesdatoen blev udfyldt, og år 2100 kunne stå canonical.
           : getDayBeforeIso(afgoerelsesDato)
@@ -329,7 +329,7 @@ const aslDateBoundsValidator = (role: AslDateRole): FieldValidator<ISODateString
         maxDate,
         special,
         // ALLE fire roller udleder min af Skadedato, og de to kapitaliseringsroller desuden af rækkens
-        // Afgørelsesdato. Tidligere var årsagen kun sat for de to sidste — de øvrige gav derfor "ingen dato
+        // Afgørelsesdato. Tidligere var årsagen kun sat for de to sidste – de øvrige gav derfor "ingen dato
         // er gyldig" uden at nævne, at det var Skadedato, brugeren skulle rette.
         bounds: derivedDateBounds(
           role === 'kapDato' || role === 'tidlKapDato'
@@ -381,7 +381,7 @@ const aslDateContextValidator = (role: AslDateRole): FieldValidator<ISODateStrin
  * FØR rækkens afgørelsesdato). Presset ned i `DateBoundsSpec`s min/max/narrow-form ville reglen skulle
  * skrives om, og en omskrivning her risikerer at flytte en besked uden at nogen opdager det.
  *
- * Erklæringen gengiver derfor den YDRE ramme, som gælder uanset rolle og rækkeindhold — den er sand og
+ * Erklæringen gengiver derfor den YDRE ramme, som gælder uanset rolle og rækkeindhold – den er sand og
  * håndhævet. Værnet `dateFieldsDeclareBounds.test.ts` måler adfærd, ikke erklæringen, så feltet skal
  * stadig faktisk afvise datoer uden for rammen for at bestå.
  */

@@ -210,7 +210,7 @@ describe('buildLoenudviklingModel', () => {
 
     // Effektiv base = ældste sats 01-04-2001 (4,0662). Segmentet før basen er zero-delta;
     // fra og med basen beregnes deltaPct mod 4,0662. (Denne stille clamp gates blokerende
-    // i række-laget — se reguleringSilentPathAlignment.test.ts, S1-blok.)
+    // i række-laget – se reguleringSilentPathAlignment.test.ts, S1-blok.)
     const deltaFor = (fra: string) =>
       model.beregnedeSegmenter.find((s) => s.fra === iso(fra))?.deltaPct;
     expect(deltaFor('2000-01-01')).toBe(0);   // før basen → zero-delta
@@ -246,7 +246,7 @@ describe('buildLoenudviklingModel', () => {
     );
 
     // Sidste segment starter 01-04-2026 (sidste KRL-sats 65,3378) og løber ubrudt til
-    // 2027-12-31 — sidste sats videreføres uden throw. Den øvre-grænse-gate (row-lagets
+    // 2027-12-31 – sidste sats videreføres uden throw. Den øvre-grænse-gate (row-lagets
     // endDate: nyeste + 6 mdr − 1 dag = 30-09-2026) ejes af punkt 12/13.
     const sidste = model.beregnedeSegmenter[model.beregnedeSegmenter.length - 1];
     expect(sidste?.fra).toBe(iso('2026-04-01'));
@@ -462,7 +462,7 @@ describe('buildLoenudviklingModel', () => {
       { fra: iso('2026-01-01'), deltaPct: 21 },
     ]);
 
-    // R2 — motoren emitterer det autoritative visnings-forløb (top-level ved angivet løn), byte-
+    // R2 – motoren emitterer det autoritative visnings-forløb (top-level ved angivet løn), byte-
     // identisk med den delte builder, så præsentation/inspektion kan formattere uden re-derivation.
     expect(model.forloeb).toEqual({
       kind: 'manuelProcentsats',
@@ -498,7 +498,7 @@ describe('buildLoenudviklingModel', () => {
       { tafRanges: [{ fra: iso('2015-01-01'), til: iso('2018-12-31') }] }
     );
 
-    // Forløbet er den delte KRL-periodeserie motoren afleder deltaPct fra — samme kilde som
+    // Forløbet er den delte KRL-periodeserie motoren afleder deltaPct fra – samme kilde som
     // præsentationen læser (ingen re-derivation → ingen drift).
     expect(model.forloeb).toEqual({ kind: 'krl', entries: buildKrlIndexEntries('KTO (kommuner)') });
     const entries = model.forloeb?.kind === 'krl' ? model.forloeb.entries : [];
@@ -532,7 +532,7 @@ describe('buildLoenudviklingModel', () => {
 
     const modelId = resolveStatistikModelId('ILON12 (Danmarks Statistik)');
     expect(modelId).toBeDefined();
-    // Forløbet er den delte statistik-kvartalsserie motoren afleder deltaPct fra — samme kilde som
+    // Forløbet er den delte statistik-kvartalsserie motoren afleder deltaPct fra – samme kilde som
     // præsentationen læser (ingen re-derivation → ingen drift).
     expect(model.forloeb).toEqual(buildStatistikForloeb(modelId!));
     const entries = model.forloeb?.kind === 'statistik' ? model.forloeb.entries : [];
@@ -564,7 +564,7 @@ describe('buildLoenudviklingModel', () => {
       { tafRanges: [{ fra: iso('2024-04-01'), til: iso('2025-12-31') }] }
     );
 
-    // Forløbet er den delte KL-periodeserie motoren afleder brudpunkterne fra — samme kilde som
+    // Forløbet er den delte KL-periodeserie motoren afleder brudpunkterne fra – samme kilde som
     // reguleringsværdi-tabellen viser (ingen re-derivation → ingen drift).
     expect(model.forloeb).toEqual({ kind: 'klLoenaftaler', entries: buildKlLoenaftalerIndexEntries() });
     const entries = model.forloeb?.kind === 'klLoenaftaler' ? model.forloeb.entries : [];
@@ -614,7 +614,7 @@ describe('buildLoenudviklingModel', () => {
     expect(segment2023?.deltaPct).toBe(-0.45);
     expect(segment2024?.deltaPct).toBe(0);
 
-    // R2 — 'Manuelt angivet' er ikke migreret (kun manuel procentsats, KRL, statistik non-ASL); den bærer intet forløb.
+    // R2 – 'Manuelt angivet' er ikke migreret (kun manuel procentsats, KRL, statistik non-ASL); den bærer intet forløb.
     expect(model.forloeb).toBeUndefined();
   });
 
@@ -691,7 +691,7 @@ describe('buildLoenudviklingModel', () => {
   // (eksakt år-opslag, IKKE "seneste ≤ dato"-carry-forward som DST-kvartalsindeks).
   // deltaPct[år] = (idx[år] / idx[basisår] − 1) × 100 via den fælles opreguleringsmotor.
   // Fordi opslaget er eksakt-år, fail-closer et manglende år (interiort hul ELLER efter
-  // sidste år) hårdt i motoren — der findes derfor ingen tavs under-regulering her.
+  // sidste år) hårdt i motoren – der findes derfor ingen tavs under-regulering her.
   const buildAslModel = (regDato: string, range: { fra: string; til: string }) => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -756,7 +756,7 @@ describe('buildLoenudviklingModel', () => {
   //
   // Privat overenskomst har ingen realistisk throw-sti for valid input: basen opløses
   // altid (fallback til overenskomstens første sats via resolvePrivateOverenskomstBaseContext),
-  // og `getSatserForDatoFromList` carry-forwarder den seneste sats ≤ dato — så et interiort
+  // og `getSatserForDatoFromList` carry-forwarder den seneste sats ≤ dato – så et interiort
   // hul er umuligt, og en TAF-periode UD OVER sidste sats giver carry-forward (ikke throw).
   // De eneste zero-delta-stier er "før dækning"/"før basis", der er gated i row-laget (S2).
   it('privat overenskomst: TAF-periode ud over sidste sats carry-forwarder uden at kaste (ingen tavs runtime_exception)', () => {
@@ -820,7 +820,7 @@ describe('buildLoenudviklingModel', () => {
   const statistikDeltas = (model: string, regDato: string, range: { fra: string; til: string }) =>
     buildStatistikModel(model, regDato, range).beregnedeSegmenter.map((s) => ({ fra: s.fra, deltaPct: s.deltaPct }));
 
-  it('Statistik (ILON12): normal beregning — deltaPct = idx[segment]/idx[base] − 1', () => {
+  it('Statistik (ILON12): normal beregning – deltaPct = idx[segment]/idx[base] − 1', () => {
     // Base = 2020K1 (140,1). 2021K1=142,9 → +2,00 %; 2022K1=146,1 → +4,28 %.
     expect(statistikDeltas('ILON12 (Danmarks Statistik)', '2020-06-01', { fra: '2020-06-01', til: '2022-12-31' })).toEqual([
       { fra: iso('2020-06-01'), deltaPct: 0 },
@@ -829,11 +829,11 @@ describe('buildLoenudviklingModel', () => {
     ]);
   });
 
-  it('Statistik (ILON12): base-clamp — reguleringsdato før første kvartal → zero-delta før basen (S1)', () => {
+  it('Statistik (ILON12): base-clamp – reguleringsdato før første kvartal → zero-delta før basen (S1)', () => {
     // reguleringsdato 2004-06-01 ligger før ILON12's første kvartal (2005K1).
     // Motoren ankrer basen til ældste kvartal (2005K1 = 100) og giver zero-delta for
     // segmentet før basen. På produkt-niveau blokeres dette af en synlig, blokerende
-    // reguleringsvaerdi-row-error (eoRowIndkomstRows.ts:472), aligned med basen — jf.
+    // reguleringsvaerdi-row-error (eoRowIndkomstRows.ts:472), aligned med basen – jf.
     // punkt 1's S1-afgørelse (bekræftet korrekt, gated). Her verificeres motor-adfærden.
     expect(statistikDeltas('ILON12 (Danmarks Statistik)', '2004-06-01', { fra: '2004-06-01', til: '2006-12-31' })).toEqual([
       { fra: iso('2004-06-01'), deltaPct: 0 }, // før effektiv base (2005K1) → zero-delta
@@ -842,7 +842,7 @@ describe('buildLoenudviklingModel', () => {
     ]);
   });
 
-  it('Statistik (ILON12): efter sidste kvartal — sidste indeks videreføres inden for dæknings-vinduet (S6-endepunkt)', () => {
+  it('Statistik (ILON12): efter sidste kvartal – sidste indeks videreføres inden for dæknings-vinduet (S6-endepunkt)', () => {
     // Base = 2024K1 (156,1). 2025K1=161,5 → +3,46 %. Sidste kvartal er 2025K4 (165,2);
     // dets indeks videreføres for segmentet der rækker ind i 2026 (+5,83 %). Dette er
     // bevidst carry-forward inden for det 12-måneders dæknings-vindue (tilDato =
@@ -855,7 +855,7 @@ describe('buildLoenudviklingModel', () => {
     ]);
   });
 
-  it('Statistik: hul midt i serien er umuligt — assertStatistikAarKontinuitet fail-closer ved modul-load (S6-interiort)', () => {
+  it('Statistik: hul midt i serien er umuligt – assertStatistikAarKontinuitet fail-closer ved modul-load (S6-interiort)', () => {
     // Et interiort hul (helt manglende kalenderår) ville få motorens
     // findLatestByDateInSortedList til stiltiende at videreføre det forrige års indeks.
     // Det gøres umuligt af kontinuitets-guarden i statistiskeRates.ts, der kaster ved
@@ -893,8 +893,8 @@ describe('buildLoenudviklingModel', () => {
   });
 });
 
-describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg regulerer)', () => {
-  // Tillægslaget indgår i reguleringen i BEGGE tillægs-tilstande (Procent og Beløb) — for manuel
+describe('buildLoenudviklingModel – Manuelt angivet i Beløb-tilstand (tillæg regulerer)', () => {
+  // Tillægslaget indgår i reguleringen i BEGGE tillægs-tilstande (Procent og Beløb) – for manuel
   // regulering via de manuelle rækkers tillægsprocenter, så deltaPct afspejler hele pakkeværdien.
   //
   // Beregningsperioden slutter 2022-12-31 (= anvendt reguleringsdato); TAF-perioden ligger efter.
@@ -932,7 +932,7 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
       id: 'af-beloeb',
       tillaegAngivesSom,
       // Sæt af-satserne til ikke-nul for at bevise, at deltaPct drives af de MANUELLE rækkers
-      // procenter — ikke af satsfelterne ovenfor.
+      // procenter – ikke af satsfelterne ovenfor.
       feriePct: tillaegAngivesSom === 'beloeb' ? 99 : 0,
       fritvalgPct: tillaegAngivesSom === 'beloeb' ? 99 : undefined,
       shSoPct: tillaegAngivesSom === 'beloeb' ? 99 : undefined,
@@ -980,7 +980,7 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
     return model.beregnedeSegmenter.find((segment) => segment.fra === iso(fra))?.deltaPct;
   };
 
-  it('inkluderer Store Bededag i Beløb-tilstand — som Procent-tilstand (deltaPct = +0,45 fra 2024)', () => {
+  it('inkluderer Store Bededag i Beløb-tilstand – som Procent-tilstand (deltaPct = +0,45 fra 2024)', () => {
     // Basispakken evalueres pr. reguleringsdatoen (2022-12-31, før Store Bededag-tillæggets
     // ikrafttræden) og bærer derfor ikke tillægget; segmentet fra 2024-01-01 gør → deltaPct = +0,45 %.
     expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2023-01-01')).toBe(0);
@@ -1011,7 +1011,7 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
   it('ignorerer manuelle rækker dateret før den anvendte reguleringsdato', () => {
     // Rækken pr. 2022-06-01 ligger før reguleringsdatoen (2022-12-31) og er i konflikt med
     // basisrækken (som repræsenterer lønniveauet pr. reguleringsdatoen). Den ignoreres i
-    // beregningen (og rapporteres som advarsel i række-evalueringen) — deltaPct forbliver 0.
+    // beregningen (og rapporteres som advarsel i række-evalueringen) – deltaPct forbliver 0.
     const values = buildManualBeregningsperiode('beloeb', {
       loenPaaHelligdage: 'Ingen',
       rows: [
@@ -1105,8 +1105,8 @@ describe('buildLoenudviklingModel — Manuelt angivet i Beløb-tilstand (tillæg
   it('carry-forwarder seneste dateret række til efterfølgende segmenter (intet interiort hul, ingen efter-sidste-nulstilling)', () => {
     // Tre daterede rækker; 'Ingen' løn på helligdage isolerer carry-forward fra Store Bededag-split.
     // Hvert segment bruger seneste dateret række <= segment.fra (findLatestByDateInSortedList):
-    //   [reg..2023-05-31] = basis (delta 0); [2023-06-01..2023-12-31] = 1100 (delta 10) — mellem to
-    //   rækker; [2024-01-01..TAF-slut 2024-09-30] = 1210 (delta 21) — videreført forbi sidste række.
+    //   [reg..2023-05-31] = basis (delta 0); [2023-06-01..2023-12-31] = 1100 (delta 10) – mellem to
+    //   rækker; [2024-01-01..TAF-slut 2024-09-30] = 1210 (delta 21) – videreført forbi sidste række.
     // Beviser at et interiort segment aldrig falder tilbage til basis, og at reguleringen efter sidste
     // række hverken nulstilles eller kaster.
     const values = buildManualBeregningsperiode('beloeb', {
@@ -1297,7 +1297,7 @@ const buildParityTafNettoBeregning = (values: ErstatningsopgoerelseValues) => {
 };
 
 // ---------------------------------------------------------------------------
-// Regulering — Form: Ingen
+// Regulering – Form: Ingen
 //
 // Invarianterne for den regulerings-form:
 //   (a) alle-Ingen → strategi 'ingen' → ÆGTE nul-regulering: deltaPct 0 på hvert
@@ -1307,7 +1307,7 @@ const buildParityTafNettoBeregning = (values: ErstatningsopgoerelseValues) => {
 //       → 'Ingen'-forholdet maskerer/fortrænger IKKE reguleringen på det aktive
 //       ansættelsesforhold; hver af reguleres uafhængigt og summeres.
 // ---------------------------------------------------------------------------
-describe('buildLoenudviklingModel — Form: Ingen', () => {
+describe('buildLoenudviklingModel – Form: Ingen', () => {
   const buildMaanedIndkomstRow = (id: string) => ({
     id,
     col0_maaned: '1',
@@ -1350,14 +1350,14 @@ describe('buildLoenudviklingModel — Form: Ingen', () => {
     expect(model.beregnedeSegmenter.every((segment) => segment.deltaPct === 0)).toBe(true);
     // Ægte nul-regulering: basisløn (30.000 kr = 3.000.000 øre) bæres uændret på hvert segment.
     expect(model.beregnedeSegmenter.every((segment) => segment.kind === 'maaneder' && segment.maanedsloenOre === 3_000_000)).toBe(true);
-    // ...og totalen er dermed den fulde ikke-regulerede løn — IKKE nul.
+    // ...og totalen er dermed den fulde ikke-regulerede løn – IKKE nul.
     expect(model.loenudviklingTotal.status).toBe('ok');
     if (model.loenudviklingTotal.status === 'ok') {
       expect(model.loenudviklingTotal.value).toBeGreaterThan(0);
     }
   });
 
-  it('(b) uvalgt strategi (intet beregningsgrundlag) fail-closer med throw — ikke stiltiende nul', () => {
+  it('(b) uvalgt strategi (intet beregningsgrundlag) fail-closer med throw – ikke stiltiende nul', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.maanedsloenenUdgoer = asAmount(30000);
@@ -1457,7 +1457,7 @@ describe('buildLoenudviklingModel — Form: Ingen', () => {
 });
 
 /**
- * Form: Overenskomst — offentlig (KL/RLTN).
+ * Form: Overenskomst – offentlig (KL/RLTN).
  *
  * Den offentlige gren i `buildLoenudviklingFromOverenskomst` slår grundlønnen op i
  * KL/RLTN-løntabellerne via `getOffentligLoenForDato` (carry-forward: nyeste
@@ -1466,7 +1466,7 @@ describe('buildLoenudviklingModel — Form: Ingen', () => {
  * loenPaaHelligdage = 'Ingen', reduceres lønpakken til den rene månedsløn, så
  * `deltaPct = (segment-månedsløn / basis-månedsløn − 1) × 100`.
  */
-describe('buildLoenudviklingModel — Overenskomst offentlig (KL)', () => {
+describe('buildLoenudviklingModel – Overenskomst offentlig (KL)', () => {
   const byggOffentligModel = (regDatoIso: string, tafFra: string, tafTil: string) => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -1534,7 +1534,7 @@ describe('buildLoenudviklingModel — Overenskomst offentlig (KL)', () => {
   it('S3 / før dækning: reguleringsdato før ældste KL-sats (01-01-2012) → kun zero-delta-segmenter, ingen throw', () => {
     // Reguleringsdato + TAF før KL-dækningens start. Motoren falder tilbage til
     // ældste sats som effektiv base (start = 01-01-2012), og alle segmenter før
-    // basen sættes til zero-delta. INGEN throw — den blokerende fejl leveres i
+    // basen sættes til zero-delta. INGEN throw – den blokerende fejl leveres i
     // stedet af reguleringsvaerdi-row-gaten (se reguleringSilentPathAlignment S3).
     const model = byggOffentligModel('1900-01-01', '1900-01-01', '1900-12-31');
     expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);

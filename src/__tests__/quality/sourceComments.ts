@@ -1,11 +1,11 @@
 /**
- * KOMMENTARER læst af TypeScripts AST — ikke af et linjefilter.
+ * KOMMENTARER læst af TypeScripts AST – ikke af et linjefilter.
  *
  * Modulet findes, fordi et værn over kommentarprosa har præcis det modsatte behov af
  * `productionLanguageGuard`s linjescan: i testtræet er de forbudte ord LEGITIME som kode. To værn
  * bærer deres mønstre som regex-literaler, `deletionLedger` bærer slettede stinavne som data, og
  * fraværsreglerne bærer forbudte symbolnavne som allowlists. Et tekstfilter kan per konstruktion ikke
- * skelne den kode fra en kommentar, der omtaler et lukket arbejdsforløb — og et værn, der ikke kan
+ * skelne den kode fra en kommentar, der omtaler et lukket arbejdsforløb – og et værn, der ikke kan
  * skelne, tvinger enten falske fund igennem eller får en filundtagelse, som gør det tavst netop dér,
  * hvor overtrædelserne kan gemme sig ([[project_structural_questions_need_ast]]).
  *
@@ -38,7 +38,7 @@ const stripCommentSyntax = (raw: string): string => raw
 /**
  * Hver kommentar i filen, én post pr. sammenhængende kommentarblok.
  *
- * Kommentarer er TRIVIA og hænger på det efterfølgende (eller foregående) TOKEN — ikke på en node.
+ * Kommentarer er TRIVIA og hænger på det efterfølgende (eller foregående) TOKEN – ikke på en node.
  * Derfor gås hvert token i træet igennem, og både dets leading og trailing trivia opsamles;
  * positionerne dedupliceres, fordi den samme kommentar kan være trailing for ét token og leading for
  * det næste. Filens allerførste kommentar hentes særskilt fra offset 0, og EOF-tokenet bærer en
@@ -47,7 +47,7 @@ const stripCommentSyntax = (raw: string): string => raw
  * **Ikke `ts.createScanner`.** En rå scanner ser ud til at virke på en kort fil, men taber i praksis
  * langt de fleste kommentarer i en rigtig kildefil (målt: 14 fundet mod AST-trivias 119 i samme fil),
  * fordi kommentarer konsumeres som trivia foran det næste token frem for at blive udstedt som egne
- * tokens. Et værn bygget på den vej ville være tavst grønt — netop den fejlklasse, kvalitetsværnene
+ * tokens. Et værn bygget på den vej ville være tavst grønt – netop den fejlklasse, kvalitetsværnene
  * findes for at udelukke ([[project_guard_selftest_principle]]).
  *
  * Trivia-vejen giver samtidig den ønskede sondring: et regex-literal, en streng og et identifier er

@@ -46,7 +46,7 @@ export type LoentrinFinderTarget = Readonly<{
    * Nøglen, indtastningen huskes under i sessionStorage. Udelades den, huskes intet.
    *
    * Lønindkomst husker per ansættelsesforhold (`af.id`), fordi samme side kan have flere kort med hver
-   * sin løn — dét gør genåbning til en reel bekvemmelighed. EO-oplysninger har kun ét sæt felter, og
+   * sin løn – dét gør genåbning til en reel bekvemmelighed. EO-oplysninger har kun ét sæt felter, og
    * fladen huskede bevidst ikke; forskellen er UX, ikke teknik, og er derfor et argument, ikke to hooks.
    */
   sessionKey?: string;
@@ -78,7 +78,7 @@ export type UseLoentrinFinderResult = Readonly<{
   closeFinder: () => void;
   handleCalculate: () => void;
   /**
-   * Den knap, overlayet skal returnere fokus til ved lukning — sat ved åbning til NETOP den trigger,
+   * Den knap, overlayet skal returnere fokus til ved lukning – sat ved åbning til NETOP den trigger,
    * brugeren brugte. Gives til `LoentrinFinderOverlay`, der ejer restoren gennem `useDialogFocusRestore`
    * (§Popup-fokus-restore kræver én implementering, og den ligger dér, hvor popupen bor).
    */
@@ -103,7 +103,7 @@ const SINGLE_TARGET_KEY = 'single';
  *
  * De to flader havde tidligere hver sin hook, ~95 % ordret identiske, med kun `open`-udtrykket og
  * sessionStorage-roundtrippet til forskel. Duplikeringen var reel: den samme keyboard-effekt og de
- * samme seks state-felter stod to steder og skulle rettes to steder — fx blev fokus-restoren
+ * samme seks state-felter stod to steder og skulle rettes to steder – fx blev fokus-restoren
  * (§Popup-fokus-restore) tilføjet i begge, mens fejlen med den delte trigger-ref kun fandtes i den ene.
  * Forskellene er nu argumenter (`sessionKey`, åbne-nøgle), ikke kopier.
  *
@@ -113,7 +113,7 @@ const SINGLE_TARGET_KEY = 'single';
  *
  * Al FOKUSADFÆRD ejes af `LoentrinFinderOverlay`: både tastaturnavigationen inde i popupen og
  * restoren ved lukning (`useDialogFocusRestore`), som `keyboard-navigation.md` foreskriver. Denne hook
- * ejer state og beregning og bærer kun `activeTriggerRef` — pegepinden til det restore-mål, overlayet
+ * ejer state og beregning og bærer kun `activeTriggerRef` – pegepinden til det restore-mål, overlayet
  * skal bruge.
  */
 export const useLoentrinFinder = (): UseLoentrinFinderResult => {
@@ -172,7 +172,7 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
   const openFinder = React.useCallback((nextTarget: LoentrinFinderTarget) => {
     resetTransientState();
     const key = nextTarget.sessionKey ?? SINGLE_TARGET_KEY;
-    // Peg restore-målet på den knap, der åbnede — FØR overlayet monterer og flytter fokus.
+    // Peg restore-målet på den knap, der åbnede – FØR overlayet monterer og flytter fokus.
     activeTriggerRef.current = triggerRefs.current.get(key)?.current ?? null;
 
     const persistedEntry = nextTarget.sessionKey === undefined
@@ -212,7 +212,7 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
 
     if (!outcome.ok) {
       // Rystelsen er fjernet. `outcome.errors` sætter i forvejen en konkret fejl på det felt,
-      // der er årsagen — den forklarer, hvad rystelsen kun antydede.
+      // der er årsagen – den forklarer, hvad rystelsen kun antydede.
       setErrors(outcome.errors);
       setResults([]);
       return;

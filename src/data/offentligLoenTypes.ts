@@ -37,7 +37,7 @@ export type Loengruppe = 0 | 1 | 2 | 3 | 4;
  *
  * Branded type sikrer at kun validerede værdier bruges i domænet.
  * Brug toLoentrin() til at oprette validerede værdier.
- * Brandet er required — almindelige numbers kan ikke bruges direkte.
+ * Brandet er required – almindelige numbers kan ikke bruges direkte.
  */
 export type Loentrin = (number & { readonly __brand: 'Loentrin' }) | '55+';
 
@@ -56,7 +56,7 @@ export const toLoentrin = (value: number | string): Loentrin => {
   throw new Error(`Ugyldigt løntrin: ${JSON.stringify(value)}. Skal være heltal 1-55 eller '55+'.`);
 };
 
-/** Én række i løntabellen — nøglebaseret, ikke positionsbaseret */
+/** Én række i løntabellen – nøglebaseret, ikke positionsbaseret */
 export interface OffentligLoenEntry {
   readonly loentrin: Loentrin;
   readonly maanedsLoen: Readonly<Record<Loengruppe, number>>;

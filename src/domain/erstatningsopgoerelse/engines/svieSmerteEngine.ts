@@ -81,7 +81,7 @@ export type SvieSmerteCalculationValues = Pick<
 /**
  * Filtrerer svie/smerte-perioder til gyldige, komplete og ikke-overlappende rækker.
  * Returnerer null hvis input er ugyldigt på en måde der forhindrer beregning
- * (overlap, ufuldstændige rækker, ugyldige datoer). Kaster ikke — fejl rapporteres
+ * (overlap, ufuldstændige rækker, ugyldige datoer). Kaster ikke – fejl rapporteres
  * via validator/invariants.
  */
 const filterValidSvieSmertePerioder = (
@@ -99,7 +99,7 @@ const filterValidSvieSmertePerioder = (
     if (!hasFra || !hasTil || !hasTilstand) return null;
   }
 
-  // Tjek for overlap — ved overlap kan perioder ikke aggregeres korrekt
+  // Tjek for overlap – ved overlap kan perioder ikke aggregeres korrekt
   const overlapIds = detectOverlappingPeriods(nonEmpty);
   if (overlapIds.size > 0) return null;
 
@@ -109,7 +109,7 @@ const filterValidSvieSmertePerioder = (
 /**
  * Returnerer en nul-output for svie/smerte-engine.
  * Bruges når perioder er ugyldige/ufuldstændige/overlappende eller satser mangler.
- * Fejl rapporteres via validator/invariants — engineen kaster ikke.
+ * Fejl rapporteres via validator/invariants – engineen kaster ikke.
  */
 const buildZeroOutput = (values: DeepReadonly<SvieSmerteCalculationValues>): SvieSmerteEngineOutput => {
   const parsedForlig = parseForligsgrad(values);
@@ -144,7 +144,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
   const periodeSynlig = values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
 
   // filterValidSvieSmertePerioder returnerer null ved overlap/ufuldstændige rækker/ugyldige datoer.
-  // I disse tilfælde er perioderne ikke brugbare til beregning — vi behandler det som ingen perioder.
+  // I disse tilfælde er perioderne ikke brugbare til beregning – vi behandler det som ingen perioder.
   // Fejl rapporteres via validator/invariants, ikke via throws.
   const filteredPerioder = periodeSynlig ? filterValidSvieSmertePerioder(values) : [];
   const perioder = filteredPerioder ?? [];
@@ -172,7 +172,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
   }
 
   // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
-  // 1. Clamp mod fejlgivende øvre grænse (menAfgoerelseDato) — validator rapporterer violation
+  // 1. Clamp mod fejlgivende øvre grænse (menAfgoerelseDato) – validator rapporterer violation
   // 2. Merge overlappende og tilstødende ranges via den kanoniske EO-helper
   //    i isoRangeAlgebra.ts. Type-split mellem sygemeldt og delvist-sygemeldt
   //    sker før kaldet, så merge fortsat kun sker inden for samme type.

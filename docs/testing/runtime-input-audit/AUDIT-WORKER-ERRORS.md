@@ -6,13 +6,13 @@ Produktfund hører hjemme i `CRASHES.md`, `OBSERVATIONS.md` eller `QUESTIONS.md`
 Format: én append-only post pr. fejl. En fejl må ikke slettes eller overskrives
 under en senere auditpass.
 
-> **2026-08-14 — løst i skillen.** En gennemgang af posterne nedenfor viste seks
+> **2026-08-14 – løst i skillen.** En gennemgang af posterne nedenfor viste seks
 > gennemgående årsager, som tilsammen dækker langt de fleste poster: locator-fejl
 > (rå CSS med accessible name, strict-mode, stale snapshot-refs), `beforeunload`-modal
 > ved navigation, read-only-felter der kræver `dblclick` før `fill`, ikke-eksisterende
 > CLI-kommandoer/-optioner, PowerShell-quoting i inline `run-code` og fejlslagen
 > skjult serverstart. Alle seks er nu adresseret i `jette-interaktionsaudit`-skillen
-> med et nyt bindende afsnit «Browsermekanik: de faste greb» — herunder en fast
+> med et nyt bindende afsnit «Browsermekanik: de faste greb» – herunder en fast
 > locator-rækkefølge med `data-mineo-field-address` som primær identitet. Samtidig er
 > registreringsreglen strammet, så kendt og dokumenteret mekanik ikke længere
 > registreres som driftsfejl. Posterne nedenfor bevares som append-only historik.
@@ -166,7 +166,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: CLI-kommandoen fejlede, fordi press-argumentet blev fortolket som to argumenter; fill lykkedes, og handlingen blev gentaget med separat korrekt syntaks.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T18:55:24.132Z
 - Type: tool
@@ -176,7 +176,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: pdftotext er ikke installeret i auditmiljøet; PDF-downloaden lykkedes, og filen kontrolleres med den tilgængelige Python PDF-læser.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T18:56:09.828Z
 - Type: tool
@@ -186,7 +186,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: CLI-kommandoen brugte det ugyldige niveau 'warn'; korrekt niveau er 'warning'. Den efterfølgende kontrol blev kørt med den korrekte syntaks.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T18:56:18.213Z
 - Type: tool
@@ -196,7 +196,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: Denne playwright-cli-version har ingen pageerrors-kommando; console.error og console warning blev kontrolleret, og browserens tilgængelige CLI-output viste ingen registrerede fejl eller advarsler.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T18:56:41.988Z
 - Type: tool
@@ -206,7 +206,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: CLI-versionen fortolkede filstien som en locator og fejlede på tom CSS-selector; screenshot blev gentaget med CLI'ens standard-output.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T18:58:30.257Z
 - Type: server
@@ -216,7 +216,7 @@ under en senere auditpass.
 - Browser/viewport: alle / 1920x1080
 - Kan genoptages: --message
 - Fejl: Skjult Vite-server var ikke synlig på port 4173 efter 2 sekunder (start-PID 17516); processen og den valgte startmåde kontrolleres, før auditpasset fortsætter.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T18:59:10.060Z
 - Type: server
@@ -226,7 +226,7 @@ under en senere auditpass.
 - Browser/viewport: alle / 1920x1080
 - Kan genoptages: --message
 - Fejl: Gentaget skjult Vite-start med eksplicit arbejdsmappe åbnede heller ikke port 4173 efter 5 sekunder (start-PID 23636); startkommandoen inspiceres og skiftes til projektets dokumenterede dev:e2e-kommando uden --open.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:00:38.479Z
 - Type: tool
@@ -236,7 +236,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: En samlet CLI-kæde manglede den aktive sessions -s=chrome-option og fejlede med 'browser default is not open'; samme handling blev gentaget i chrome-sessionen.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:02:30.026Z
 - Type: browser
@@ -246,7 +246,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: Headless reload ventede 60 sekunder på navigation, fordi beforeunload-dialogen holdt reload-kaldet åbent; dialogen accepteres og tilstanden kontrolleres efterfølgende.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:04:08.222Z
 - Type: tool
@@ -256,7 +256,7 @@ under en senere auditpass.
 - Browser/viewport: alle / 1920x1080
 - Kan genoptages: --message
 - Fejl: Kontraktnavnet blev slået op med forkert suffiks; filen findes som app-settings.md og blev læst efterfølgende.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:05:59.457Z
 - Type: tool
@@ -266,7 +266,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: Efter valg af SH-udbetaling ændrede re-renderen alle refs; stale ref e569 kunne ikke bruges. Den næste dropdown blev åbnet med navngiven rolle-locator.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:07:30.259Z
 - Type: tool
@@ -276,7 +276,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: En CLI-handling manglede session-optionen og ramte ikke browserens aktive snapshot; handlingen blev gentaget med navngiven locator i chrome-sessionen.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:07:46.795Z
 - Type: tool
@@ -286,7 +286,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: En dialoghandling manglede session-optionen; den aktive bekræftelsesdialog blev håndteret med navngiven locator i chrome-sessionen.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:10:28.051Z
 - Type: tool
@@ -296,7 +296,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: Et internt værktøjskald brugte et ikke-eksisterende nested-tools.exec-navn; ingen browserhandling blev udført, og auditten fortsatte med den korrekte shell/browser-kæde.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:12:23.213Z
 - Type: browser
@@ -306,7 +306,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: Klik på Download hjælpeprogram gav ingen Playwright-download-event inden for 30 sekunder; siden og netværkslisten kontrolleres, og der konkluderes ikke produktfejl uden en reproducerbar filhandling.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:14:09.575Z
 - Type: server
@@ -316,7 +316,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: Cleanup-checkens forudkendte PID var forkert; port 4173 ejedes i stedet af PID 10564. Processens commandline verificeres før præcis stop, så ingen urelateret proces rammes.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:15:03.864Z
 - Type: tool
@@ -326,7 +326,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: Login-handlingen blev sendt før første snapshot og brugte refs fra en tidligere browserkontekst; begge handlinger fejlede uden at ændre state og blev gentaget efter det aktuelle snapshot.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:15:17.316Z
 - Type: tool
@@ -336,7 +336,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: Det aktuelle snapshot brugte refs med f2-prefix, så e1e17/e1e18 var også stale refs. Login fortsættes med navngivne locators.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:22:14.515Z
 - Type: tool
@@ -346,7 +346,7 @@ under en senere auditpass.
 - Browser/viewport: chrome / 1920x1080
 - Kan genoptages: --message
 - Fejl: CLI-korttargeten 'Stamdata' kunne ikke matches; den aktive navigation blev gentaget med navngiven rolle-locator.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:28:39.262Z
 - Type: tool
@@ -356,7 +356,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: playwright-cli afviste en ukendt --viewport-size-option ved headless browserstart; browseren blev ikke startet med denne kommando.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:29:01.374Z
 - Type: tool
@@ -366,7 +366,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Den første adgangskode-selector matchede ikke loginfeltet; snapshot viste textbox med accessible name Adgangskode.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:29:21.563Z
 - Type: tool
@@ -376,7 +376,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: run-code blev kaldt med forkert CLI-syntaks og gav SyntaxError; ingen produktkode blev kørt.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:30:37.185Z
 - Type: tool
@@ -396,7 +396,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Den generiske CSS-selector til Fra o.m. matchede tre periodefelter og gav strict-mode violation; bruger en tabelafgrænset locator i næste forsøg.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:33:31.362Z
 - Type: tool
@@ -406,7 +406,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Tab-selectorens syntaks var forkert og matchede ikke Beregning-fanen; den efterfølgende statekontrol viste fortsat EO oplysninger uden produktfejl.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:35:12.881Z
 - Type: browser
@@ -416,7 +416,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Navigation fra Erstatningsopgørelse til Stamdata og retur timeoutede uden CLI-output; browser/session skal kontrolleres med snapshot før genoptagelse.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:35:23.090Z
 - Type: browser
@@ -436,7 +436,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: playwright-cli har ingen wait-for-time-kommando; forsøget returnerede CLI-hjælp, mens efterfølgende snapshot fortsatte normalt.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:37:46.119Z
 - Type: server
@@ -446,7 +446,7 @@ under en senere auditpass.
 - Browser/viewport: ukendt / ukendt
 - Kan genoptages: true
 - Fejl: Skjult serverstart med kombineret PowerShell-kommando blev afvist af shell-policy før kommandoen kørte; ingen produktproces blev startet.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:39:09.908Z
 - Type: tool
@@ -456,7 +456,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Stamdatafelterne startede i read-only-fokusmode; direkte fill timeoutede for Journalnr., Advokat, Sagsbehandler og Skadelidtes navn, og kommandoen sluttede med timeout. Efterfølgende datoeditorer blev åbnet med dblclick.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:39:56.174Z
 - Type: tool
@@ -466,7 +466,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Baseline-scriptet ramte strict-mode violation, fordi accessible name Årsløn også findes for EAL-feltet; Beregningsdato var allerede behandlet, resten blev ikke kørt.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:40:20.356Z
 - Type: tool
@@ -476,7 +476,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Afgørelsestype-selectoren matchede begge tabelrækker og gav strict-mode violation; første række afgrænses eksplicit i næste forsøg.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:41:04.873Z
 - Type: tool
@@ -486,7 +486,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Row-filteret fandt ikke første afgørelsestype inden timeout; næste forsøg bruger tabellocatorens første række direkte.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:41:57.369Z
 - Type: tool
@@ -496,7 +496,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Valgscriptet for Endelig timeoutede uden output efter option-locator; browserens modal/snapshot-state kontrolleres før genoptagelse.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:42:48.364Z
 - Type: tool
@@ -506,7 +506,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Eftervalg-scriptet timeoutede; den efterfølgende snapshot skal afgøre om valget faktisk blev committet eller om readback-locator var forkert.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:46:23.859Z
 - Type: tool
@@ -516,7 +516,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / ukendt
 - Kan genoptages: true
 - Fejl: Loginselectoren input[type=password] matchede ikke i denne session; snapshot viste textbox med accessible name Adgangskode, som nu bruges eksplicit.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:46:37.373Z
 - Type: tool
@@ -526,7 +526,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / ukendt
 - Kan genoptages: true
 - Fejl: Loginfeltet havde ikke aria-label-attribut i DOM'en selv om accessible name er Adgangskode; første fallback-selector matchede derfor ikke.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:47:12.215Z
 - Type: tool
@@ -536,7 +536,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Generisk checkbox-selector matchede omregningskontrollen og to disabled afhængige kontroller; omregning kontrolleres nu med accessible name.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:48:46.747Z
 - Type: tool
@@ -546,7 +546,7 @@ under en senere auditpass.
 - Browser/viewport: ukendt / ukendt
 - Kan genoptages: true
 - Fejl: Heartbeat-kaldets orkestrering havde en syntaksfejl i værktøjskaldet før audit-session-scriptet blev startet; korrekt heartbeat køres straks efter.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:52:32.200Z
 - Type: tool
@@ -556,7 +556,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Generiske tab-CSS-selectorer matchede ikke MUI-fanerne; direkte statekontrol viste dog, at begge rækker og beregningsdato fortsat var bevaret.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:55:06.317Z
 - Type: tool
@@ -566,7 +566,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Baseline-scriptet stoppede ved Kap.dato, fordi accessible-name-locator matchede både Kap.dato og Hvis genopt. - tidl. kap.dato; tidligere felter i række 1 var allerede committed.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T19:56:15.876Z
 - Type: browser
@@ -576,7 +576,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Række 2's Slet rækken-knap var synlig men blev dækket af en tabelcelle ved pointer-click; passet genoptages med samme knap efter eksplicit scroll/force-click.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:05:26.816Z
 - Type: tool
@@ -586,7 +586,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Settings-scriptet stoppede ved Regulering, fordi accessible name også matchede den beregningstekniske kontrol Tillad regulering; Mørkt, Satser og SH-dage var allerede sat.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:05:52.728Z
 - Type: tool
@@ -596,7 +596,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Settings-readback matchede tre checked radiofelter (tema, lønperiode, svie/smerte); Word-valget var allerede foretaget, men readback-scriptet stoppede ved den tvetydige selector.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:07:46.750Z
 - Type: tool
@@ -606,7 +606,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Snapshot-kommandoet blev kaldt med -s=chrome to gange, så CLI'en forsøgte at åbne sessionen chrome,chrome; ingen produktændring.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:09:34.333Z
 - Type: script
@@ -616,7 +616,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: audit-session-scriptet accepterer ikke --help; hjælpekommandoen returnerede exit 1 og angav at syntaksen fås med help.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:10:53.056Z
 - Type: browser
@@ -626,7 +626,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Login-scriptet brugte de sammensmeltede snapshot-referencer e3e17/e3e18 i stedet for de faktiske e17/e18; ingen produktændring, gentages med accessible locators.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:11:01.358Z
 - Type: browser
@@ -636,7 +636,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: CLI fill/click-kommandoet fortolkede den synlige accessible name som en selector og fandt ikke felterne; login gentages med run-code.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:12:11.145Z
 - Type: tool
@@ -646,7 +646,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: CLI'en har ingen wait-for-time-kommando; snapshot blev kørt umiddelbart efter navigation og viste siden korrekt.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:12:39.823Z
 - Type: tool
@@ -656,7 +656,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Save-picker-readback brugte window i run-code-omgivelserne i stedet for page.evaluate og gav ReferenceError; ingen brugerrejse blev ændret.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:14:30.235Z
 - Type: browser
@@ -676,7 +676,7 @@ under en senere auditpass.
 - Browser/viewport: WebKit / 1920x1080
 - Kan genoptages: true
 - Fejl: CLI-click på overlay-knappen Erstat fandt ikke knappen via den korte tekstselector; efterfølgende settings-readback timede ud, fordi preflight-dialogen stadig var åben. Gentages med exact accessible locator.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:22:35.249Z
 - Type: browser
@@ -686,7 +686,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Repetitionsscriptet antog at dialogen stadig var åben efter første Escape-resultat; ved næste run-code var dialogen allerede lukket, så Annuller-locatoren timede ud. Kontrollens faktiske første måling viste dialogCount=1 umiddelbart efter Escape.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:25:39.864Z
 - Type: browser
@@ -696,7 +696,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Navigationstestet nåede ikke readback: produktets beforeunload-dialog stod fortsat i modal state trods page.on('dialog')-handler. Dialogen accepteres via CLI og readback gentages.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:25:45.711Z
 - Type: tool
@@ -706,7 +706,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Efter den foregående navigation var modal state allerede væk, så dialog-accept returnerede exit 1; siden stod igen på Stamdata.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:27:51.818Z
 - Type: browser
@@ -716,7 +716,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: F5-readback blev afbrudt af beforeunload-dialogens modal state; page.on('dialog') håndterede den ikke i CLI-omgivelserne. Den browserbaserede gendannelse var allerede verificeret før reload.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:30:30.448Z
 - Type: browser
@@ -726,7 +726,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Reload af rejected state timede ud efter 60 sekunder, selv om browseren fortsatte til reload-forløbet; der tages snapshot og readback efterfølgende for at verificere om state overlevede.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:30:41.336Z
 - Type: tool
@@ -736,7 +736,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Snapshot blev kaldt mens beforeunload-dialogen stadig var aktiv og kunne derfor ikke udføres; dialogen accepteres før readback.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:32:42.095Z
 - Type: tool
@@ -746,7 +746,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Restore-scriptet blev splittet af PowerShell, fordi run-code-koden indeholdt en forkert escaped indre double-quote; ingen sidehandling blev gennemført.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:33:22.256Z
 - Type: browser
@@ -756,7 +756,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1280x720
 - Kan genoptages: true
 - Fejl: Den åbne CLI-session stod på standardviewport 1280x720, selv om arbejdsenheden er planlagt til 1920x1080; screenshot blev derfor ikke brugt som 1920-evidens. Viewporten sættes eksplicit til 1920x1080 og kontrollen gentages.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:35:53.490Z
 - Type: tool
@@ -766,7 +766,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Valid-til-rejected-scriptet blev splittet af PowerShell på grund af en forkert escaped indre double-quote; ingen sidehandling blev gennemført.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:36:50.170Z
 - Type: tool
@@ -776,7 +776,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Restore-scriptet forsøgte at læse Stamdata-dato-locatoren efter navigation til EO, hvor elementet ikke længere var mounted; navigation og restore var udført, men readback-scriptet timede ud.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:40:51.656Z
 - Type: browser
@@ -786,7 +786,7 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Samlet setup-script timede ud ved settings-format-locator efter login; sessionen stod fortsat på Stamdata, så setup gentages i mindre trin med friske locators.
-- Detaljer: —
+- Detaljer: –
 
 ## 2026-08-14T20:42:06.407Z
 - Type: browser
@@ -796,4 +796,4 @@ under en senere auditpass.
 - Browser/viewport: Chrome / 1920x1080
 - Kan genoptages: true
 - Fejl: Reload af valid EO/Word-state timede ud på 60 sekunder ved beforeunload-forløbet; dialogen håndteres og state aflæses bagefter.
-- Detaljer: —
+- Detaljer: –

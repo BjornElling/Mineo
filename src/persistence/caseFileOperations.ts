@@ -28,7 +28,7 @@ export type CaseRuntimeAccess = Readonly<{
    * En HELT NY sag, bygget af den samme ny-sags-konstruktion som bootstrap og `Slet alt` (§1.12).
    *
    * Injiceres frem for at bygges her, fordi den afhænger af brugerens programindstillinger, og porten skal
-   * forblive framework-fri. Den er `hasAnyData`s målestok — ikke "tom", men "urørt".
+   * forblive framework-fri. Den er `hasAnyData`s målestok – ikke "tom", men "urørt".
    */
   getNewCaseInput: () => SettledInput;
   /**
@@ -74,7 +74,7 @@ export type CaseFileOperations = Readonly<{
   evaluateSave: () => EoSaveOutcome;
   /**
    * Er `token` fortsat den aktuelle kilde? Skal kaldes UMIDDELBART før den irreversible fil-skrivning, hvis
-   * evalueringen er adskilt fra skrivningen af en async-grænse (fx en directory-/fil-picker) — critical-action-
+   * evalueringen er adskilt fra skrivningen af en async-grænse (fx en directory-/fil-picker) – critical-action-
    * kontrakten §5: hele tokenet genlæses og sammenlignes, og handlingen stoppes fail-closed ved enhver ændring.
    *
    * Både input- OG settingsrevision indgår, fordi begge kan ændre det, der ville blive skrevet.
@@ -107,7 +107,7 @@ export const createCaseFileOperations = (runtime: CaseRuntimeAccess): CaseFileOp
 });
 
 /**
- * Afgør om sagen indeholder BRUGERDATA — altså om den afviger fra en helt ny sag.
+ * Afgør om sagen indeholder BRUGERDATA – altså om den afviger fra en helt ny sag.
  *
  * Målestokken er `newCase`, ikke tomhed. En ny sag er ikke tom: den bærer domænets og brugerens erklærede
  * standardværdier (satsår, udkast-stempel, lønperiode …), og de er programmets svar, ikke brugerens.
@@ -123,7 +123,7 @@ export const settledInputHasAnyData = (input: SettledInput, newCase: SettledInpu
   Object.keys(input.rejectedInputs).length > 0
   || PERSISTED_SECTION_KEYS.some((section) => {
     const value = input.sections[section];
-    // En urørt sektion er `null` og indeholder per definition ingenting — uanset hvad en ny sag ville have
+    // En urørt sektion er `null` og indeholder per definition ingenting – uanset hvad en ny sag ville have
     // givet den. Ellers ville "endnu ikke oprettet" tælle som brugerdata, blot fordi seeden ER en værdi.
     return value !== null && !deepEqual(value, newCase.sections[section]);
   });

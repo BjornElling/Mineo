@@ -2,7 +2,7 @@
  * Varige mén-dokumentdefinitionen.
  *
  * Genbruger `buildVarigeMenReaderProjection` + `evaluateVarigeMenDownloadGate` uændret (§5.4).
- * Stamdata-projektionen bliver — som for Forsørgertab — en dependency på outputtet frem for en
+ * Stamdata-projektionen bliver – som for Forsørgertab – en dependency på outputtet frem for en
  * stille `return` i click-handleren.
  *
  * Sidens shake- og fokus-feedback ved en blokeret aktivering er ren præsentation og bliver
@@ -56,7 +56,7 @@ export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocum
       }
 
       // Brevhoved-stamdata læses kun med `collector.optional`, så projektionen kan aldrig blokere på
-      // TOMHED — kun på en rød feltfejl. Klassen `invalid-input` var derfor korrekt, men den var hardkodet
+      // TOMHED – kun på en rød feltfejl. Klassen `invalid-input` var derfor korrekt, men den var hardkodet
       // og mistede dermed muligheden for at citere grænsen, når præcis ét felt har en bounds-/rule-fejl.
       // Klassifikationen udleder nu begge dele (§3.1).
       const stamdata = projectStamdataForDocument(context.evaluation.reader, VARIGEMEN_DOCUMENT_CONSUMER_ID);

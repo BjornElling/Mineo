@@ -7,11 +7,11 @@ import { isFerieRowEmpty, isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowE
  *
  * BAGGRUND: Synligheden af felter og rækker i EO-UI'en styres af betingelser
  * (sektions-toggles, "tidligere beregnet S/S til max", første-opgørelse osv.).
- * Beregningsmotorerne læste tidligere nogle af disse felter ubetinget — fx blev
+ * Beregningsmotorerne læste tidligere nogle af disse felter ubetinget – fx blev
  * `svieSmerteTidligereTotal` trukket fra svie/smerte-loftet selv ved FØRSTE opgørelse,
  * hvor feltet er skjult i UI'en. Dermed kunne en skjult (irrelevant) indtastning sænke
- * det beregnede krav. Synlighed var i praksis defineret to gange — i UI'en og spejlet i
- * hånden inde i hver motor — og de to definitioner kunne divergere.
+ * det beregnede krav. Synlighed var i praksis defineret to gange – i UI'en og spejlet i
+ * hånden inde i hver motor – og de to definitioner kunne divergere.
  *
  * Dette modul er den ENESTE autoritative kilde til "hvilke input er relevante givet de
  * aktuelle valg". Prædikaterne har to roller:
@@ -24,10 +24,10 @@ import { isFerieRowEmpty, isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowE
  * Fordi UI og beregning læser samme prædikat, kan "skjult i UI" og "ignoreret i beregning"
  * ikke divergere. Predikater der kun gater rene visnings-/dokumentfelter (datoer, klage,
  * bilagsnumre) bruges af UI/PDF-laget; de neutraliseres ikke her, fordi de ikke indgår i
- * noget beregnet tal — neutralisering forbeholdes talfødende input (fail-closed-garantien
+ * noget beregnet tal – neutralisering forbeholdes talfødende input (fail-closed-garantien
  * gælder netop tallene).
  *
- * BEVIDST UNDTAGELSE — komprimering ved EO 2+: Når
+ * BEVIDST UNDTAGELSE – komprimering ved EO 2+: Når
  * `komprimerBeregningEfterFoersteOpgoerelse === 'Ja'` fra og med 2. opgørelse, skjules
  * løn-/beregningsgrundlags-felterne (`beregnesUdFra`, beregningsperiode, fravær, angivet
  * løn, lønindkomst, lønudvikling, anciennitet) i UI'en, MEN de forbliver aktive input:
@@ -35,7 +35,7 @@ import { isFerieRowEmpty, isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowE
  * tidligere erstatningsopgørelse beregnet til X". Disse felter neutraliseres derfor IKKE
  * her. Mode-gating af beregningsgrundlaget (hvilket løn-felt der er aktivt afhængigt af
  * `beregnesUdFra`) ejes fortsat af indkomst-motoren, fordi den aktive mode altid er et
- * relevant input — også når UI'en er komprimeret.
+ * relevant input – også når UI'en er komprimeret.
  */
 
 /** Svie/smerte-sektionen er aktiv (krav medregnes). */
@@ -51,7 +51,7 @@ export const erSvieSmertePeriodeInputRelevant = (values: ErstatningsopgoerelseVa
 
 /**
  * "Svie/smerte-krav i tidligere erstatningsopgørelser" er relevant.
- * Ud over periode-relevansen kræver det, at dette IKKE er første opgørelse — der findes
+ * Ud over periode-relevansen kræver det, at dette IKKE er første opgørelse – der findes
  * ingen tidligere opgørelse at fradrage ved første opgørelse. Dette er kernen i fejlen:
  * UI'en skjuler feltet ved første opgørelse, men motoren fradrog det alligevel.
  */
@@ -76,7 +76,7 @@ export const erOevrigeKravSektionAktiv = (values: ErstatningsopgoerelseValues): 
  *
  * Prædikatet fik sit eget navn her, da togglen flyttede fane. Betingelsen stod tidligere
  * kun som en JSX-condition på EO oplysninger-fanen, og et flyttet felt måtte ikke risikere at få en
- * anden — bredere — synlighed end den, beregningen faktisk har.
+ * anden – bredere – synlighed end den, beregningen faktisk har.
  */
 export const erOffentligeYdelserReguleringRelevant = (values: ErstatningsopgoerelseValues): boolean =>
   erTabtArbejdsfortjenesteSektionAktiv(values) && values.beregnesUdFra === 'Beregningsperiode';
@@ -117,7 +117,7 @@ export const erBilagsnumreRelevant = (values: ErstatningsopgoerelseValues): bool
 /**
  * Returnerer en kopi af EO-værdierne, hvor alle input i skjulte/irrelevante felter og
  * rækker er neutraliseret til deres tomme værdi (undefined / []). Committed brugerinput
- * mutateres ikke — kun den effektive beregningskopi.
+ * mutateres ikke – kun den effektive beregningskopi.
  *
  * Bruges af `computeEoSnapshot` til at danne `effectiveEoValues`, som alle motorer,
  * præsentation og kontrollaget læser fra. Se moduldokumentationen for den bevidste
@@ -147,7 +147,7 @@ export const neutralizeIrrelevantEoInputs = (
   }
 
   // Tabt arbejdsfortjeneste: perioder, ferieperioder og "tidligere modtaget TAF" (kun
-  // sektions-niveau — beregningsgrundlaget undtages bevidst, jf. komprimerings-undtagelsen ovenfor)
+  // sektions-niveau – beregningsgrundlaget undtages bevidst, jf. komprimerings-undtagelsen ovenfor)
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) {
     if (harIndhold(values.tafPerioder, isTafRowEmpty)) patch.tafPerioder = [];
     if (harIndhold(values.ferieperioder, isFerieRowEmpty)) patch.ferieperioder = [];

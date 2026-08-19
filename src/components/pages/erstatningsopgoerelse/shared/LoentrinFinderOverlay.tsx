@@ -20,7 +20,7 @@ import type { LoentrinFinderErrors, LoentrinFinderResult } from './loentrinFinde
  *
  * Bemærk: `onAmountFieldError`/`onDateFieldError` modtages som allerede-indpakkede callbacks, så de
  * to kaldssteder opfører sig byte-identisk. Felterne er transiente (`Transient*Input`), så en afvist
- * draft rapporteres som en almindelig besked-streng — der findes ingen feltissue-kanal for et felt,
+ * draft rapporteres som en almindelig besked-streng – der findes ingen feltissue-kanal for et felt,
  * der ikke er sagsdata.
  */
 export type LoentrinFinderOverlayProps = Readonly<{
@@ -41,7 +41,7 @@ export type LoentrinFinderOverlayProps = Readonly<{
   inputAmountNumber: number | undefined;
   /**
    * Den `Find løntrin`-knap, fokus skal vende tilbage til ved lukning. Sættes af `useLoentrinFinder` ved
-   * åbning til NETOP den trigger, brugeren brugte — Lønindkomst har én pr. ansættelsesforhold.
+   * åbning til NETOP den trigger, brugeren brugte – Lønindkomst har én pr. ansættelsesforhold.
    */
   triggerRef: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
@@ -84,7 +84,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
 
   // Fokus tilbage til den `Find løntrin`-knap, der åbnede overlayet (jf. `keyboard-navigation.md`
   // §Popup-fokus-restore). Uden den blev fokus efterladt på overlayets forsvindende felt og faldt til
-  // `body` — bekræftet i Chrome, Edge, Firefox og WebKit i AUDIT-2026-08-14-21. Restoren bor her, hvor
+  // `body` – bekræftet i Chrome, Edge, Firefox og WebKit i AUDIT-2026-08-14-21. Restoren bor her, hvor
   // popupen bor, så overlayets øvrige `focus()`-kald (tastaturnavigationen nedenfor) ikke er en
   // konkurrerende restore-vej.
   // Den fælles overlay-adfærd: tilbage-knappen, stak-disciplinen og fokus-restoren.
@@ -100,7 +100,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
   });
 
   // Refs til overlayets egen tastaturnavigation. De hørte tidligere i de kaldende hooks og blev sendt ind
-  // som otte props — men de bruges KUN her, og kontrakten placerer focus-trap'en i overlayet
+  // som otte props – men de bruges KUN her, og kontrakten placerer focus-trap'en i overlayet
   // (`keyboard-navigation.md` §Løntrin-finder: «Overlayets interne focus-trap ejes af overlay-komponenten
   // selv»). `loentrinFinder`-præfikset er beskrivende: overlayet er ét af de tre eksplicit navngivne
   // ikke-sagsdata-callsites i `input/persisted-controls-use-field-family`.
@@ -288,7 +288,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
         aria-modal="true"
         aria-labelledby={headingId}
         // Markøren gør overlayet synligt for `Container`s tastaturnavigation. Overlayet vandt
-        // tidligere kun sin Tab-kamp, fordi dets capture-lytter nåede tasten FØR sidens navigation —
+        // tidligere kun sin Tab-kamp, fordi dets capture-lytter nåede tasten FØR sidens navigation –
         // en tredje mekanisme, der skulle ramme rigtigt hver gang. Nu giver siden aktivt slip.
         {...overlayRootProps}
         ref={dialogRef}
@@ -358,7 +358,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                 value={ansaettelse}
                 allowEmpty={false}
                 onChange={(event) => {
-                  // `value`-proppen er `OffentligLoenTypeLabel`, så `TValue` inferes til den —
+                  // `value`-proppen er `OffentligLoenTypeLabel`, så `TValue` inferes til den –
                   // ingen annotation, ingen runtime-reparation af en type der ikke blev kastet væk.
                   setAnsaettelse(event.target.value);
                 }}

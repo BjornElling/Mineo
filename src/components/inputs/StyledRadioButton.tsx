@@ -22,21 +22,21 @@ interface RadioOption<TValue extends string> {
 }
 
 /**
- * Komponenten er generisk i optionernes værdi-type, og det er en TYPEGRÆNSE — ikke bekvemmelighed.
+ * Komponenten er generisk i optionernes værdi-type, og det er en TYPEGRÆNSE – ikke bekvemmelighed.
  *
  * DOM'en kan kun bære strenge, så `RadioGroup.onChange` afleverer altid en bar `string`. Var propsene
- * typet på `string`, ville hvert kaldsted selv skulle bevise, at strengen er en af DETS options —
+ * typet på `string`, ville hvert kaldsted selv skulle bevise, at strengen er en af DETS options –
  * hvilket de gjorde med håndskrevne `is…Option`-typeguards (og `RadioField` med et `as TValue`-cast).
  * Guarden/castet var kun nødvendigt, fordi typen var smidt væk ét lag længere inde.
  *
  * Her mappes den rå streng i stedet TILBAGE til den option, den kom fra (`options.find`), så
  * `onCommit` modtager `TValue` med den type, kaldstedet allerede har erklæret. Er strengen ikke en
- * kendt option, er der intet at committe, og hændelsen droppes — den kan kun opstå ved en DOM-værdi,
+ * kendt option, er der intet at committe, og hændelsen droppes – den kan kun opstå ved en DOM-værdi,
  * komponenten ikke selv har renderet.
  */
 interface StyledRadioButtonProps<TValue extends string> {
   /**
-   * Gruppens tilgængelige navn — PÅKRÆVET.
+   * Gruppens tilgængelige navn – PÅKRÆVET.
    *
    * En `role="radiogroup"` uden navn efterlader en skærmlæserbruger med bare optionerne: står der tre
    * Ja/Nej/Skjul-grupper på samme side, høres «Ja radioknap» tre gange uden at nogen af dem kan skelnes.
@@ -45,7 +45,7 @@ interface StyledRadioButtonProps<TValue extends string> {
    * ikke noget man kan huske. `RadioField` henter det automatisk fra feltets egen label, så et
    * felt-callsite ikke skal skrive teksten en ekstra gang.
    *
-   * Den tidligere `label`-prop rendrede en synlig `<legend>`, men INTET kaldssted brugte den — den
+   * Den tidligere `label`-prop rendrede en synlig `<legend>`, men INTET kaldssted brugte den – den
    * synlige tekst står som en søskende-`<Typography>` i rækkelayoutet. Den er derfor fjernet frem for
    * at stå som en anden, ubrugt vej til samme navn.
    */
@@ -86,7 +86,7 @@ interface StyledRadioButtonProps<TValue extends string> {
  * Fælles fokus-halo for radio-knapper. Dækker BÅDE tab-fokus (`.Mui-focusVisible`) og
  * undo/redo-restore (`[data-mineo-undo-focused]` sættes på `<input>` af historyTargetRestore),
  * så de to tilstande ser ens ud. Nødvendigt fordi MUI's default focus-ripple IKKE udløses af
- * programmatisk `focus()` (undo/redo) — se `historyTargetRestore.ts` og StyledToggleSwitch.
+ * programmatisk `focus()` (undo/redo) – se `historyTargetRestore.ts` og StyledToggleSwitch.
  */
 const RADIO_FOCUS_HALO_SX = {
   padding: '4px',
@@ -218,7 +218,7 @@ const StyledRadioButtonInner = <TValue extends string>({
                     size="small"
                     // Undo/redo-fokus: bær feltidentiteten på den tomme radio når den er valgt
                     // (committed = undefined), så historyTargetRestore kan finde gruppen efter
-                    // undo/redo — symmetrisk med de øvrige options nedenfor.
+                    // undo/redo – symmetrisk med de øvrige options nedenfor.
                     slotProps={resolvedValue === emptyValue ? selectedInputSlotProps : undefined}
                     sx={RADIO_FOCUS_HALO_SX}
                   />
@@ -256,7 +256,7 @@ const StyledRadioButtonInner = <TValue extends string>({
 
 /**
  * `React.forwardRef` kan ikke bære en typeparameter gennem sin egen signatur, så den generiske
- * komponent castes til en kaldbar type, der KAN. Castet ændrer intet ved implementeringen — det
+ * komponent castes til en kaldbar type, der KAN. Castet ændrer intet ved implementeringen – det
  * genetablerer kun `TValue` udadtil, så kaldstedet får sin egen option-type tilbage i `onCommit`.
  */
 const StyledRadioButton = React.forwardRef(StyledRadioButtonInner) as <TValue extends string>(

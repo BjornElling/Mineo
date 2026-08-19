@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domæne-/sagsglobal kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `persistence-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-07
+**Senest verificeret mod kode:** 2026-08-19
 
 ---
 
@@ -22,12 +22,12 @@ lander i en frisk sag, og `SATSER_INITIAL_VALUES` (`satserInitialValues.ts`), de
 et **øjebliksbillede ved app-load** for at holde objektets referenceidentitet stabil på tværs af renders.
 Ved uenighed er ny-sags-seeden autoritativ for hvad en sag faktisk får; grænsen for hvad brugeren MÅ
 indtaste er live og ejes af feltvalidatorerne, ikke af nogen af de to defaults. Opregulering fra ét år til et
-andet — den to-metoders sats-anvendelse, der er fundamentet for de øvrige domæners reguleringer — ejes af de **to
+andet – den to-metoders sats-anvendelse, der er fundamentet for de øvrige domæners reguleringer – ejes af de **to
 kanoniske opregulerings-motorer** i `src/domain/satser/opreguleringsmotorer.ts`
 (`opregulerMedAslAarsloensmaksimum` og `opregulerMedAkkumuleretReguleringssats`). Ingen anden opreguleringssti må
 indføres; alle domæner der opregulerer beløb skal kalde disse motorer.
 
-**Fail-closed for manglende satsdækning:** Begge motorer returnerer `manglendeAar` (de år hvor nødvendigt indeks/sats mangler). Er listen ikke-tom, er `faktor`/`deltaPct` **ikke** pålidelige, og kalderen skal fail-close (synligt issue frem for et tavst "ingen regulering"-resultat). Den akkumulerede reguleringssats kræver satsdækning for start-, slut- **og** alle mellemår, også når start-årets sats ikke multipliceres ind i selve faktoren — datadækningen er en selvstændig invariant.
+**Fail-closed for manglende satsdækning:** Begge motorer returnerer `manglendeAar` (de år hvor nødvendigt indeks/sats mangler). Er listen ikke-tom, er `faktor`/`deltaPct` **ikke** pålidelige, og kalderen skal fail-close (synligt issue frem for et tavst "ingen regulering"-resultat). Den akkumulerede reguleringssats kræver satsdækning for start-, slut- **og** alle mellemår, også når start-årets sats ikke multipliceres ind i selve faktoren – datadækningen er en selvstændig invariant.
 
 De lovbestemte årsserier valideres desuden ved modul-load: serien skal være ikke-tom, alle
 repræsenterede år skal have finite værdier, og intervallet mellem første og sidste år må ikke
@@ -65,4 +65,4 @@ Tests skal dække:
 3. at andre domæner læser satser via en autoriseret, `EvaluationSourceToken`-bundet inputprojektion,
 4. at satser-PDF følger samme kildehierarki,
 5. at rejected og øvrige dokumentrelevante fejlissues blokerer samme definition i reaktiv gate og click-preflight,
-6. at begge opregulerings-motorer fail-closer med ikke-tom `manglendeAar` ved manglende indeks/sats — herunder at akkumuleret reguleringssats kræver dækning for start-, slut- og mellemår (`src/__tests__/domain/satser/opreguleringsmotorer.test.ts`).
+6. at begge opregulerings-motorer fail-closer med ikke-tom `manglendeAar` ved manglende indeks/sats – herunder at akkumuleret reguleringssats kræver dækning for start-, slut- og mellemår (`src/__tests__/domain/satser/opreguleringsmotorer.test.ts`).

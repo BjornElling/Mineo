@@ -1,8 +1,8 @@
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 
 // Den ENE undo/redo-fokusrestore-løkke (§3.7). Runtime-neutral: kalderen leverer KUN `findTarget`, der
-// lokaliserer det synlige fokusmål. Den fælles adfærd — vent-på-mount over faneskift, scroll-hvis-ikke-synlig,
-// fokus-ring-markør og AFBRYDELSE hvis brugeren imens flytter fokus til et andet brugbart felt — bor ÉT sted.
+// lokaliserer det synlige fokusmål. Den fælles adfærd – vent-på-mount over faneskift, scroll-hvis-ikke-synlig,
+// fokus-ring-markør og AFBRYDELSE hvis brugeren imens flytter fokus til et andet brugbart felt – bor ÉT sted.
 //
 // Målopslaget selv ejes af `historyRestoreTarget` (feltadresse + editorlokation). Der findes ingen anden
 // restore-vej og ingen anden feltidentitet i DOM; grænsen håndhæves af `input/single-field-identity-in-dom`.
@@ -58,7 +58,7 @@ const focusRestoredField = (target: HTMLElement): boolean => {
   // `isRestoreFocusInProgress`) mod en FORÆLDET draft: `target.focus()` udløser synkront et blur på det
   // tidligere fokuserede felt, hvis blur-commit så ville lande en draft fra før resync. Værnet er slettet,
   // fordi den tilstand ikke kan opstå: undo/redo er `noop` ved åben editor
-  // (`criticalActionCoordinator`s EDITOR_HANDLING), så `history.undo()` — og dermed denne løkke — nås
+  // (`criticalActionCoordinator`s EDITOR_HANDLING), så `history.undo()` – og dermed denne løkke – nås
   // aldrig, mens en draft er åben. Setteren fandtes desuden uden nogen læser, så undertrykkelsen var
   // alligevel en no-op. Genindfør den ikke uden først at ændre den noop-politik.
   try {
@@ -88,7 +88,7 @@ const isSameFocusScope = (activeElement: HTMLElement, originalActiveElement: Ele
 };
 
 /**
- * En felt-origin, hvis fokusmål ALDRIG dukker op, er en brudt invariant — ikke en tolerabel hændelse.
+ * En felt-origin, hvis fokusmål ALDRIG dukker op, er en brudt invariant – ikke en tolerabel hændelse.
  *
  * Undo/redo-kontrakten §5 siger, at en felt-origin identificerer den editorlokation, ændringen kom fra. Efter en
  * gennemført restore er den tilstand aktuel igen, og lokationen skal derfor findes i DOM. Sker det ikke, peger
@@ -97,7 +97,7 @@ const isSameFocusScope = (activeElement: HTMLElement, originalActiveElement: Ele
  * ikke blev navigeret til.
  *
  * Klassen var usynlig, fordi løkken opgav TAVST: brugeren så blot, at fokus ikke flyttede sig. Værnet gør den
- * opdagelig efter husets console-politik — høj-lydt i udvikling (hvor devtools-monitoren opsamler det), tavs i
+ * opdagelig efter husets console-politik – høj-lydt i udvikling (hvor devtools-monitoren opsamler det), tavs i
  * produktion, hvor manglende fokus er en skavank og ikke må blive til en fejlskærm.
  */
 const reportUnreachableRestoreTarget = (describeTarget?: () => string): void => {
@@ -112,9 +112,9 @@ const reportUnreachableRestoreTarget = (describeTarget?: () => string): void => 
 
 /**
  * Den delte rAF-retry-restore-løkke (§3.7). Runtime-agnostisk: kalderen leverer KUN `findTarget`, der lokaliserer
- * det synlige fokusmål (feltadresse + editorlokation, jf. `historyRestoreTarget`). Den fælles adfærd —
+ * det synlige fokusmål (feltadresse + editorlokation, jf. `historyRestoreTarget`). Den fælles adfærd –
  * vent-på-mount over faneskift, scroll-hvis-ikke-synlig, fokus-ring-markør og AFBRYDELSE hvis brugeren imens
- * flytter fokus til et andet brugbart felt — bor ÉT sted.
+ * flytter fokus til et andet brugbart felt – bor ÉT sted.
  *
  * `describeTarget` bruges KUN i diagnostikken, når målet aldrig dukker op. Den er en funktion, så en serialisering
  * af originen ikke betales, når restoren lykkes (det normale forløb).
@@ -148,7 +148,7 @@ export const runHistoryTargetRestoreLoop = (
       requestAnimationFrame(tick);
       return;
     }
-    // Opbrugte forsøg — og brugeren har IKKE selv flyttet fokus væk (det tilfælde returnerer ovenfor).
+    // Opbrugte forsøg – og brugeren har IKKE selv flyttet fokus væk (det tilfælde returnerer ovenfor).
     // Målet findes altså ikke, og det er en brudt invariant frem for et normalt udfald.
     reportUnreachableRestoreTarget(describeTarget);
   };

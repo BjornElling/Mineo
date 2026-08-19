@@ -52,7 +52,7 @@ export const buildEoSvieSmerteRows = (
   const perioder = periodeErSynlig ? (values.svieSmertePerioder ?? []) : [];
   const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til || p.tilstand);
   // Periode-blokering (komplethed, dato-grænser, overlap, rækkefølge) afgøres af den delte,
-  // autoritative validering i domænets validerings-lag (`svieSmertePeriodeValidation`) — ÉN
+  // autoritative validering i domænets validerings-lag (`svieSmertePeriodeValidation`) – ÉN
   // sandhedskilde. Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF-download
   // (jf. B9). Overlap afvises altid (også samme tilstand), jf. periodisering-contract §7.
   const periodeEvaluations = evaluateSvieSmertePerioder(perioder, {
@@ -151,7 +151,7 @@ export const buildEoSvieSmerteRows = (
   const harPeriodeFejl = periodeFejlBeskeder.length > 0;
 
   // 2b) Særskilt advarsel når der slet ikke er angivet svie/smerte-perioder i EO-perioden.
-  // Parallelt til `taf.ingenTafIEoPerioden`: den erstatter — og undertrykker via kataloget — den
+  // Parallelt til `taf.ingenTafIEoPerioden`: den erstatter – og undertrykker via kataloget – den
   // sekundære "Ikke rejst svie/smerte-krav for hele perioden"-advarsel på `sviesmerte.ophoerSkyldes`,
   // så brugeren ikke får to sprogligt overlappende advarsler for samme rod-tilfælde. Vises kun når
   // svie/smerte faktisk kræves ('Ja'), periode-tabellen er synlig (tidligereSsMax = 'Nej') og
@@ -301,7 +301,7 @@ export const buildEoSvieSmerteRows = (
     ],
   });
 
-  // 4) Svie/smerte-krav i tidligere erstatningsopgørelser — kun ved ikke-første opgørelse.
+  // 4) Svie/smerte-krav i tidligere erstatningsopgørelser – kun ved ikke-første opgørelse.
   if (!erFoersteOpgoerelse) {
     const tidligereTotalAmount = amountValueToNumber(values.svieSmerteTidligereTotal);
     const tidligereTotalResolved = resolveEoRowDisplay({
@@ -489,12 +489,12 @@ export const buildEoSvieSmerteRows = (
   })();
 
   // Perioderne er rækkens egentlige værdi; `displayValue` er OUTPUTTET af dem, ikke omvendt.
-  // Uden `lines` måtte Beregning-fanen splitte strengen på `\n` igen for at tælle perioder —
+  // Uden `lines` måtte Beregning-fanen splitte strengen på `\n` igen for at tælle perioder –
   // og en ren formatteringsændring her ville lydløst flippe etikettens ental/flertal.
   //
   // Kun de udfald der FAKTISK er en periodeliste bærer `lines`. De øvrige grene er
   // fejl-/tomme-beskeder (fx «Fejl (Der er overlappende perioder)»), som er færdige strenge og
-  // ikke en liste — de beholder derfor deres `displayValue` uændret og får en tom `lines`.
+  // ikke en liste – de beholder derfor deres `displayValue` uændret og får en tom `lines`.
   const beregnetPeriodeDisplay = 'lines' in beregnetPeriodeResult
     ? {
         displayValue: beregnetPeriodeResult.lines.length === 0

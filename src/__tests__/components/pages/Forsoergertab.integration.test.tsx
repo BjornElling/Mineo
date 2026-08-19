@@ -31,7 +31,7 @@ import {
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
- * på et servicekald — en strammere assertion, fordi den kræver at HELE kæden (barriere, frisk
+ * på et servicekald – en strammere assertion, fordi den kræver at HELE kæden (barriere, frisk
  * capture, token-lighed, gate, lazy-load, friskheds-recheck, rendering) faktisk kørte.
  */
 const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
@@ -44,7 +44,7 @@ vi.mock('../../../document/downloadArtifact', async (importOriginal) => ({
 /**
  * `scrollToFieldAddress` mockes, fordi jsdom hverken har layout eller scroll, og Stamdata-siden ikke er
  * mountet her: den ægte funktion ville køre sin rAF-retry-løkke uden at finde en editor. Påstanden er
- * koblingen — at siden bruger den DELTE markeringsvej med den rigtige feltadresse.
+ * koblingen – at siden bruger den DELTE markeringsvej med den rigtige feltadresse.
  */
 const mockScrollToFieldAddress = vi.hoisted(() => vi.fn());
 
@@ -106,7 +106,7 @@ const renderPage = () => render(
   </MemoryRouter>
 );
 
-describe('Forsoergertab — reader-projektion + download-gate', () => {
+describe('Forsoergertab – reader-projektion + download-gate', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
@@ -114,11 +114,11 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
   });
 
   /**
-   * «Mangler (angiv i Stamdata)» skal PEGE på feltet — ikke kun skifte side.
+   * «Mangler (angiv i Stamdata)» skal PEGE på feltet – ikke kun skifte side.
    *
    * Linkene navigerede tidligere blot til Stamdata og efterlod brugeren dér uden anvisning, selv om det er
    * den reneste form for «en indtastning mangler»: feltet findes, det er blot tomt, og dets descriptor er
-   * allerede bundet i viewmodellen. Begge rækker har hver SIT felt, så testen dækker dem hver for sig —
+   * allerede bundet i viewmodellen. Begge rækker har hver SIT felt, så testen dækker dem hver for sig –
    * ellers kunne ét fælles mål bestå for den forkerte række.
    */
   it.each([
@@ -150,7 +150,7 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
 
     await user.click(downloadButton);
     await waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
-    // Journalnummeret kommer fra stamdata og indgår i filnavnet — beviser at den friske
+    // Journalnummeret kommer fra stamdata og indgår i filnavnet – beviser at den friske
     // stamdata-dependency nåede hele vejen ind i det leverede dokument.
     const artifact = mockTriggerDocumentDownload.mock.calls[0]?.[0] as { filename: string };
     expect(artifact.filename).toContain('J-2026-002');
@@ -180,7 +180,7 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
     await waitFor(() => {
       expect(input).toHaveAttribute('aria-invalid', 'true');
     });
-    // Værdien er committet canonical (kan gemmes i .eo) — den blev IKKE afvist af feltet.
+    // Værdien er committet canonical (kan gemmes i .eo) – den blev IKKE afvist af feltet.
     expect(slimInputStore.getState().input.sections.forsoergertab).toMatchObject({ tilkendtForPeriodeAar: 11 });
 
     const downloadButton = screen.getByTestId('forsoergertab-download');
@@ -208,7 +208,7 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
   /**
    * Oplysningen om ASL-maksimum skal NÅ brugeren.
    *
-   * Beskeden blev udledt i snapshottet før rettelsen, men ingen komponent læste den — derfor er det netop
+   * Beskeden blev udledt i snapshottet før rettelsen, men ingen komponent læste den – derfor er det netop
    * en test gennem den ægte side, der er beviset. En snapshot-unittest kunne ikke skelne "udledt" fra "vist".
    */
   const ASL_MAX_NOTICE = 'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.';
@@ -237,20 +237,20 @@ describe('Forsoergertab — reader-projektion + download-gate', () => {
 });
 
 /**
- * Gate-årsagen står KUN i tooltippet — også når blokeringen rammer selve aktiveringen.
+ * Gate-årsagen står KUN i tooltippet – også når blokeringen rammer selve aktiveringen.
  *
  * Brugertestens symptom på denne side var den lange gate-interne besked "Der er ikke beregnet en PDF-klar
  * EAL- eller ASL-del.", vist BÅDE som tekst og som tooltip. Tre ting skal derfor gælde samtidig:
  *
  *  1. den lange interne besked er væk fra brugerfladen (den lever videre som `message` til koder/tests),
  *  2. tooltippet er den universelle tekst, og
- *  3. et KLIK på den inaktive knap giver INGEN besked — hverken under knappen eller i rækken.
+ *  3. et KLIK på den inaktive knap giver INGEN besked – hverken under knappen eller i rækken.
  *
  * Punkt 3 er brugerbeslutningen 2026-07-31, gjort universel for hele programmet: en deaktiveret
  * download-knap svarer aldrig med tekst. Knappen var synligt inaktiv, og brugeren har haft tooltippet;
  * en besked oveni ville forklare det, brugeren allerede kunne se.
  */
-describe('Forsoergertab — gate-årsagen vises kun i tooltippet', () => {
+describe('Forsoergertab – gate-årsagen vises kun i tooltippet', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
@@ -259,7 +259,7 @@ describe('Forsoergertab — gate-årsagen vises kun i tooltippet', () => {
   const GATE_INTERNAL_MESSAGE = 'Der er ikke beregnet en PDF-klar EAL- eller ASL-del.';
 
   it('viser den universelle tekst som tooltip, og den lange interne besked står ingen steder', async () => {
-    // Tom sag: ingen PDF-klar EAL/ASL-del — netop den blokering, brugeren rapporterede.
+    // Tom sag: ingen PDF-klar EAL/ASL-del – netop den blokering, brugeren rapporterede.
     hydrate({}, { aslAarsloen: undefined, ealAarsloen: undefined }, validStamdata);
     renderPage();
 
@@ -278,13 +278,13 @@ describe('Forsoergertab — gate-årsagen vises kun i tooltippet', () => {
    *
    * Det er præcis den sti, der tidligere producerede en besked i udfaldsrækken. Under den universelle regel
    * skal også DEN være tavs: `gate-blocked` bærer ingen brugerbesked, uanset hvornår den opdages. Testen er
-   * det eneste sted, der kan fremkalde stien — den skriver en ugyldig værdi i det åbne felt og klikker
+   * det eneste sted, der kan fremkalde stien – den skriver en ugyldig værdi i det åbne felt og klikker
    * DIREKTE på den (stadig aktiverede) knap, så settlet og gaten sker i samme aktivering.
    *
    * Bemærk hvad testen IKKE hævder: at brugeren står uden signal. Downloaden stoppes (ingen fil), knappen
    * bliver disabled på den nye revision, og feltet bærer selv sin røde markering.
    */
-  it('en blokering opdaget under aktiveringen er tavs — ingen besked i udfaldsrækken', async () => {
+  it('en blokering opdaget under aktiveringen er tavs – ingen besked i udfaldsrækken', async () => {
     const user = userEvent.setup();
     hydrate(validForsoergertab, validFaellesAarsloen, validStamdata);
     renderPage();
@@ -309,7 +309,7 @@ describe('Forsoergertab — gate-årsagen vises kun i tooltippet', () => {
     // Aktiveringen blev stoppet: ingen fil.
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
     // ... og den blev stoppet TAVST. Knappen er nu disabled på den nye revision, hvilket beviser at
-    // gaten faktisk afviste — så assertionen nedenfor ikke kan være grøn, fordi intet skete.
+    // gaten faktisk afviste – så assertionen nedenfor ikke kan være grøn, fordi intet skete.
     await waitFor(() => expect(button).toBeDisabled());
     expect(screen.queryByTestId('document-outcome-message')).toBeNull();
     expect(screen.queryByText(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE)).toBeNull();

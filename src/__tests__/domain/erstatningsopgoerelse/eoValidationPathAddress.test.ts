@@ -2,7 +2,7 @@
  * Værn for sikkerhedsnettets fejllink i "Fejl og advarsler".
  *
  * Sikkerhedsnettet (`blocking-invariant:*`) findes for de autoritativt blokerende validerings-invarianter,
- * som INGEN row-builder har dannet en EO-række for — garantien er, at download aldrig blokeres uden en
+ * som INGEN row-builder har dannet en EO-række for – garantien er, at download aldrig blokeres uden en
  * synlig fejl. Men netop fordi der ikke findes en række, fandtes der heller intet fokusmål: rækkerne blev
  * vist som ren tekst uden link, og brugeren fik ingen anvisning på hvor indtastningen hører.
  *

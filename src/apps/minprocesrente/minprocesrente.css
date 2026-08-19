@@ -38,7 +38,7 @@ body {
   /* Indholdsboksens bredde stod her indtil 2026-08-19, hvor den flyttede til
      `MinProcesrenteCalculatorPage`s `isMobile`-blok. Årsag: bredden er en del af selve
      opstillingsvalget, og `@media (pointer: coarse)` er et ANDET grundlag end det, opstillingen
-     vælges på — en berøringsfølsom bærbar med desktopopstilling fik derfor mobilbredden, og et smalt
+     vælges på – en berøringsfølsom bærbar med desktopopstilling fik derfor mobilbredden, og et smalt
      musevindue fik mobilopstillingen med desktopbredden (BB-045). Genindfør den ikke her: én
      betingelse skal styre både opstilling og bredde. */
 }

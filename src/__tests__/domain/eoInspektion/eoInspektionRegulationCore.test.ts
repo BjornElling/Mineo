@@ -170,7 +170,7 @@ describe('buildRegulationTimeline - Index model', () => {
 
 // ─── Indeks-beregning ─────────────────────────────────────────────────────────
 
-describe('buildRegulationTimeline — indeks-beregning', () => {
+describe('buildRegulationTimeline – indeks-beregning', () => {
   it('første entry har packageValue > 0', () => {
     const input = makeInput();
     const result = buildRegulationTimeline(input);
@@ -393,7 +393,7 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     // Da det manuelle rækkeopslag blev ruttet gennem `reguleringSeriesLookup`, skiftede
     // sorteringen fra descending-`[0]` til et baglæns scan i en stigende liste. De to former
     // udpeger MODSATTE rækker ved lige datoer, så tie-break'et er bevaret eksplicit i koden.
-    // Ingen fixture havde dobbelt-daterede rækker, så skiftet ville ellers været usynligt —
+    // Ingen fixture havde dobbelt-daterede rækker, så skiftet ville ellers været usynligt –
     // og et tillidskritisk satssæt kunne have flyttet sig lydløst.
     const input = makeInput();
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
@@ -465,8 +465,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(entries.every((entry) => entry.index === 100)).toBe(true);
   });
 
-  it('inkluderer manuelle tillægsprocenter i Beløb-tilstand (neutraliserer IKKE — lockstep med motoren)', () => {
-    // Tillægslaget indgår i reguleringen i begge tillægs-tilstande — for manuel regulering via de
+  it('inkluderer manuelle tillægsprocenter i Beløb-tilstand (neutraliserer IKKE – lockstep med motoren)', () => {
+    // Tillægslaget indgår i reguleringen i begge tillægs-tilstande – for manuel regulering via de
     // manuelle rækkers tillægsprocenter. Var det neutraliseret, ville feriePct være 0 og
     // packageValue == grundløn. 'Ingen' løn på helligdage isolerer feriepenge-bidraget fra Store Bededag.
     const input = makeInput();
@@ -648,7 +648,7 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
 
 // ─── Anciennitetstillæg i kontrol-indekset ────────────────────────────────────
 
-describe('buildRegulationTimeline — anciennitetstillæg efter anvendt regulering', () => {
+describe('buildRegulationTimeline – anciennitetstillæg efter anvendt regulering', () => {
   it('holder anciennitetstillæg ude af basis og medtager det fra aktiveringsdatoen (privat overenskomst)', () => {
     const withAnc = makeInput();
     const af = withAnc.eoValues.loenindkomstAnsaettelsesforhold[0];
@@ -685,7 +685,7 @@ describe('buildRegulationTimeline — anciennitetstillæg efter anvendt reguleri
 
     const firstWith = withResult.ansaettelser[0]?.entries[0];
     const firstWithout = withoutResult.ansaettelser[0]?.entries[0];
-    // Basis (første entry på reguleringsdatoen) er uændret — tillægget gælder endnu ikke.
+    // Basis (første entry på reguleringsdatoen) er uændret – tillægget gælder endnu ikke.
     expect(firstWith!.grundloen).toBeCloseTo(firstWithout!.grundloen, 6);
 
     // Anciennitetsdatoen er indsat som brudpunkt.
@@ -723,7 +723,7 @@ describe('buildRegulationTimeline — anciennitetstillæg efter anvendt reguleri
 
 // ─── Periode-overgange ────────────────────────────────────────────────────────
 
-describe('buildRegulationTimeline — periode-overgange', () => {
+describe('buildRegulationTimeline – periode-overgange', () => {
   it('to reguleringsperioder i EO-perioden → mindst 2 entries', () => {
     // EO-periode 2023-01-01 → 2024-12-31 dækker typisk 2+ reguleringsdatoer for bygge-anlaeg
     const input = makeInput();
@@ -773,7 +773,7 @@ describe('buildRegulationTimeline — periode-overgange', () => {
 
 // ─── Offentlig løn-path (KL) ─────────────────────────────────────────────────
 
-describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
+describe('buildRegulationTimeline – offentlig løn-path (KL)', () => {
   const makeKLInput = (): ReturnType<typeof makeInput> => ({
     eoValues: ({
       ...createErstatningsopgoerelseInitialValues(),

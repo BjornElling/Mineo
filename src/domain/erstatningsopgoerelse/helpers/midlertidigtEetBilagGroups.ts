@@ -25,7 +25,7 @@ const clampIsoRange = (range: IsoRange, fra: ISODateString, til: ISODateString):
 };
 
 /**
- * Bygger de rækker der vises i bilaget "Midlertidig EET" — og som samtidig er den
+ * Bygger de rækker der vises i bilaget "Midlertidig EET" – og som samtidig er den
  * KANONISKE kilde til midlertidigt EET-fradraget i TAF-beregningen.
  *
  * Hver (afgørelses-periode × TAF-range)-clamp afrundes til hele kroner PR. PERIODE
@@ -70,7 +70,7 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
         if (!Number.isFinite(rawBeregnetEet) || rawBeregnetEet <= 0) continue;
 
         const roundedBeregnetEet = roundHeleKroner(rawBeregnetEet);
-        // Skip rækker der runder til 0 — de bidrager intet til bilagets total og ville ellers
+        // Skip rækker der runder til 0 – de bidrager intet til bilagets total og ville ellers
         // indgå i delta-justeringen som en "modtager" der ikke kan bære delta uden at gå negativ.
         if (roundedBeregnetEet <= 0) continue;
         pendingRows.push({

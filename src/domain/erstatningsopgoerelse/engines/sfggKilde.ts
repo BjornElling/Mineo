@@ -14,8 +14,8 @@ import { harAktivOverenskomst, resolveAktivOverenskomst } from '../helpers/aktiv
  *
  * Baggrund: Kildens adfærd var tidligere udsmurt som parallelle gren-tests
  * (`kind === 'ferielov' || ...`)
- * i ~8 motor-funktioner og genudledt i validator og kontrol-lag. Den samme partition — "hvilke
- * kilder beregnes via en referenceperiode?" — var restated uafhængigt fem steder og kunne drive
+ * i ~8 motor-funktioner og genudledt i validator og kontrol-lag. Den samme partition – "hvilke
+ * kilder beregnes via en referenceperiode?" – var restated uafhængigt fem steder og kunne drive
  * fra hinanden. Registeret her er den ENESTE sandhedskilde for den partition: en kilde er ét
  * exhaustivt opslag, ikke en gren i hver funktion.
  *
@@ -67,7 +67,7 @@ export const getSfggKildeSpec = (kind: SfggSourceKind): SfggKildeSpec => SFGG_KI
 
 /**
  * true kun for de kilder, hvor SFGG beregnes som en procentdel af lønnen i en referenceperiode
- * (ferielov + overenskomst-efter-ferielov). Præcis disse kilder — og kun disse — opgøres på
+ * (ferielov + overenskomst-efter-ferielov). Præcis disse kilder – og kun disse – opgøres på
  * kalenderdage ved måneds-TAF, reguleres med lønudviklingens segmenter/reguleringsdatoer, og
  * markeres i bilaget som "beregnes som procent af løn". Partitionen bor kun her.
  */
@@ -86,7 +86,7 @@ export const hasSfggSelectedOverenskomst = (
  * Finessen: `'Overenskomst'` splittes til `overenskomst_direkte` vs. `overenskomst_ferielov`
  * afhængigt af, om overenskomsten er en offentlig type, og af overenskomstens SFGG-policy-model.
  * Når `harOverenskomst` er falsk (eller intet/offentligt overenskomst-ID), behandles "Overenskomst"
- * bevidst som et ferielov-spor uden policy-opslag — et hængende privat overenskomst-ID må ikke
+ * bevidst som et ferielov-spor uden policy-opslag – et hængende privat overenskomst-ID må ikke
  * ændre sporet.
  */
 export const resolveSfggSource = (

@@ -15,7 +15,7 @@ import type {
 // Forsørgertabs reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen (a) kører den
 // EKSISTERENDE `computeForsoergertabSnapshot` byte-identisk på reader-læste værdier (§5.4 hårdt stop mod talændring),
 // (b) fører en canonical bounds-feltfejl (§1.6) ind i snapshottets gate, og (c) bevarer den DEPENDENCY-SPECIFIKKE
-// panel-visning (§1.10): en fejl på virkningsdato blokerer ASL + download, men bevarer EAL-panelet — som legacy.
+// panel-visning (§1.10): en fejl på virkningsdato blokerer ASL + download, men bevarer EAL-panelet – som legacy.
 
 const catalog = getProductionInputCatalog();
 
@@ -128,7 +128,7 @@ describe('buildForsoergertabReaderProjection', () => {
 
   // ASL-årslønsreglen (delelig med 1.000) er KANONISK i descriptoren (`faellesAarsloenAslAarsloenField`), så den
   // kommer ind som en almindelig rød reader-feltfejl. Projektionen må derfor IKKE genberegne reglen slice-lokalt
-  // — ét sandt sted for regelen (§1.6). Denne test beviser at reglen stadig gater, uden den lokale genberegning.
+  // – ét sandt sted for regelen (§1.6). Denne test beviser at reglen stadig gater, uden den lokale genberegning.
   it('en ASL-årsløn der ikke er delelig med 1.000 gater gennem descriptor-validatoren', () => {
     const reader = buildReader(
       validForsoergertab,

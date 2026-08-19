@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
-**Senest verificeret mod kode:** 2026-08-11
+**Senest verificeret mod kode:** 2026-08-19
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
@@ -93,7 +93,7 @@ Ved lønperiodisering:
 ## 3A. Indkomst må aldrig forsvinde (fald-tilbage-fordeling)
 
 En sjælden, men lovlig situation: en indkomstpost angives for en periode i beregningsperioden,
-hvor der ingen periodiseringsdage er efter postens normale regel — fx en lønperiode (arbejdsdags-
+hvor der ingen periodiseringsdage er efter postens normale regel – fx en lønperiode (arbejdsdags-
 sporet) der udelukkende består af feriedage, eller en arbejdsdags-periodiseret offentlig ydelse i en
 ren weekend-/helligdagsperiode. Al indkomst i beregningsperioden skal indgå i "løn før skaden";
 indkomsten må derfor **aldrig** bare udgå, forsvinde eller undlades i tællingen.
@@ -113,7 +113,7 @@ Bindende regel:
    grundlaget, TAF-indtægter, sygeferiegodtgørelsens referenceløn og EO-inspektionens kontroltabel
    skal alle fange beløbet på samme fald-tilbage-dage (så "vist = beregnet"-invarianten holder).
 4. Situationen er ikke en fejl. Den udløser derfor **ingen** blokerende fejl og spærrer ikke for
-   download — kun en ikke-blokerende advarsel.
+   download – kun en ikke-blokerende advarsel.
 
 For sygeferiegodtgørelse gælder særligt: fald-tilbage-dagene indgår i referencelønnen (per-dag-
 satsens tæller), men da de er feriedage, indgår de aldrig i den dag-baserede feriepengeudbetaling
@@ -132,7 +132,7 @@ Callsites må ikke hardcode egne periodiseringsregler for en ydelsestype, medmin
 
 Samme modul ejer også ydelsestypernes **valgrækkefølge** i dropdownen (`primaereYdelsestypeKeys` og
 `supplerendeYdelsestypeKeys`): to grupper adskilt af en streg, hver sorteret alfabetisk efter den viste label
-med dansk kollation. Callsites må ikke opbygge deres egen liste eller gruppering — objektliteralens
+med dansk kollation. Callsites må ikke opbygge deres egen liste eller gruppering – objektliteralens
 nøglerækkefølge er ikke visningsrækkefølgen, da nøgler og labels sorterer forskelligt.
 
 ---

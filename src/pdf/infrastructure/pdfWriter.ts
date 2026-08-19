@@ -303,7 +303,7 @@ const createPdfCursor = (params: Readonly<{
     writeStyledWrappedText(text, { maxWidth, x });
   };
 
-  // Som writeWrappedText, men uden afsluttende spacing — bruges når næste kald
+  // Som writeWrappedText, men uden afsluttende spacing – bruges når næste kald
   // er en fortsættelse af samme logiske linje (fx writeLeftRightText i en formel).
   const writeWrappedTextContinued = (
     text: string,
@@ -655,7 +655,7 @@ export const createPdfWriter = (params: Readonly<{
   let previousBlockWasSectionHeader = false;
   // Bruges kun til spacing-logik: positiv manuel Y-flytning må ikke akkumulere før første content-blok på siden.
   let hasRenderedContent = false;
-  // Tracker kun eksplicit addSpacer/advanceY-spacing — ikke trailing line-spacing.
+  // Tracker kun eksplicit addSpacer/advanceY-spacing – ikke trailing line-spacing.
   // Bruges af writeBoldSubheader til at undgå dobbelt spacing fra addSpacer-kald.
   let explicitSpacingSinceLastContent = 0;
   const canonicalSubheaderTopSpacing = PDF_SUBHEADER_TOP_SPACING_MM;

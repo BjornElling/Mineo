@@ -9,7 +9,7 @@ import {
  * Den afgørende invariant er ikke "genbrug id'er hvis muligt", men: de synlige placeholder-id'er er en REN
  * FUNKTION af de aktuelt committede rækker. Undo/redo er en tidsmaskine over inputtet, så den samme committede
  * tilstand kan nås forfra, bagfra og forfra igen. Fokusrestoren efter et promotion-undo kræver et eksakt match
- * på både feltadresse og editorlokation, og begge bygges af rækkens id — så identiteten skal være den samme,
+ * på både feltadresse og editorlokation, og begge bygges af rækkens id – så identiteten skal være den samme,
  * hver gang den samme tilstand er aktuel. Ellers findes der intet element at fokusere, og fokus forlader
  * lydløst tabellen.
  *
@@ -49,7 +49,7 @@ describe('resolvePlaceholderSlotIds', () => {
 
   /**
    * KERNEN. Efter promoveringen af p1 viser tabellen p2. Et undo fjerner p1 fra de committede rækker,
-   * og DA skal p1 genindtræde som placeholder — med præcis den identitet, history-originen peger på.
+   * og DA skal p1 genindtræde som placeholder – med præcis den identitet, history-originen peger på.
    */
   it('lader et promoveret id GENINDTRÆDE som placeholder efter undo', () => {
     const sequence = newSequence();
@@ -79,7 +79,7 @@ describe('resolvePlaceholderSlotIds', () => {
    *
    * Det er præcis her, en hukommelsesbaseret pulje svigtede: undo'et helt tilbage skubbede de senere slots bag
    * markøren, hvor de blev trimmet væk, og redo'et møntede derfor et NYT id til pladsen. Fra da af pegede
-   * history-originen fra den oprindelige promotion på et id, tabellen aldrig ville vise igen — fokus forsvandt
+   * history-originen fra den oprindelige promotion på et id, tabellen aldrig ville vise igen – fokus forsvandt
    * lydløst, og fejlen var permanent for resten af sessionen.
    */
   it('bevarer identiteten gennem undo HELT tilbage og redo HELT frem', () => {
@@ -97,7 +97,7 @@ describe('resolvePlaceholderSlotIds', () => {
     expect(resolvePlaceholderSlotIds(sequence, ids('p1'), 1)).toEqual(['p2']);
     expect(resolvePlaceholderSlotIds(sequence, ids('p1', 'p2'), 1)).toEqual(['p3']);
 
-    // Og det afgørende undo bagefter: p2 genindtræder — ikke et nyt, fjerde id.
+    // Og det afgørende undo bagefter: p2 genindtræder – ikke et nyt, fjerde id.
     expect(resolvePlaceholderSlotIds(sequence, ids('p1'), 1)).toEqual(['p2']);
   });
 
@@ -135,7 +135,7 @@ describe('resolvePlaceholderSlotIds', () => {
       }
     }
 
-    // Vandringen skal reelt have besøgt de samme tilstande igen — ellers måler testen ingenting.
+    // Vandringen skal reelt have besøgt de samme tilstande igen – ellers måler testen ingenting.
     expect(seen.size).toBeLessThan(200);
   });
 
@@ -151,7 +151,7 @@ describe('resolvePlaceholderSlotIds', () => {
     const sequence = newSequence();
 
     resolvePlaceholderSlotIds(sequence, ids(), 3); // p1, p2, p3
-    // p2 promoveres (brugeren skrev i den midterste tomme række). De to øvrige slots må BEHOLDE deres id —
+    // p2 promoveres (brugeren skrev i den midterste tomme række). De to øvrige slots må BEHOLDE deres id –
     // ellers ville en åben editor i p1 eller p3 skifte identitet, fordi naboen blev committet.
     const after = resolvePlaceholderSlotIds(sequence, ids('p2'), 3);
     expect(after).toContain('p1');
@@ -163,10 +163,10 @@ describe('resolvePlaceholderSlotIds', () => {
 
   /**
    * Sekvensen er append-only, men den vokser ikke ubegrænset: der møntes kun et nyt id, når alle tidligere
-   * medlemmer er committede. Færre synlige slots mønter derfor ingenting — og de tidligere møntede id'er
+   * medlemmer er committede. Færre synlige slots mønter derfor ingenting – og de tidligere møntede id'er
    * BEVARES, fordi en history-origin fra dengang stadig kan pege på dem.
    */
-  it('mønter ikke nye id, når antallet af synlige slots falder — og glemmer ikke de gamle', () => {
+  it('mønter ikke nye id, når antallet af synlige slots falder – og glemmer ikke de gamle', () => {
     let calls = 0;
     const sequence = createPlaceholderIdSequence(() => {
       calls += 1;

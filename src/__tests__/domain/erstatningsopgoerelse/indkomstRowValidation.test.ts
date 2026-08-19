@@ -155,9 +155,9 @@ describe('buildStandardLoenCellErrors', () => {
     it('ingen fejl for uge 53 (gyldig)', () => {
       const errors = buildStandardLoenCellErrors([ugeRow('r1', '1/2024', '53/2024')], 'uge');
       // Uge 53 er gyldig, men parseWeekString skal returnere et resultat
-      // Uge 53 i 2024 kan muligvis ikke eksistere — vi tester bare format-validering
+      // Uge 53 i 2024 kan muligvis ikke eksistere – vi tester bare format-validering
       // Faktisk returnerer parseWeekString null for uger der ikke eksisterer, så 53/2024 kan fejle
-      // Det er ok — vi tester at formatet accepteres strukturelt
+      // Det er ok – vi tester at formatet accepteres strukturelt
       expect(typeof errors).toBe('object');
     });
 

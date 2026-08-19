@@ -78,7 +78,7 @@ describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig b
 
     const section = buildIndkomstSectionStatuses(values)[0];
     expect(section?.satserStatus).toBe('error');
-    // "er ikke udfyldt" — IKKE "Forkert værdi indtastet" (intet er indtastet).
+    // "er ikke udfyldt" – IKKE "Forkert værdi indtastet" (intet er indtastet).
     expect(section?.satserMessage).toBe('Feriegodtgørelse/-tillæg er ikke udfyldt');
   });
 

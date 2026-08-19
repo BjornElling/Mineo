@@ -10,7 +10,7 @@ import type { PdfDocumentAdapter } from '../../../pdf/infrastructure/pdfDocument
  * er tilgængelige direkte uden casts i test-filer.
  *
  * vi.fn() er parameterannoteret mod PdfDocumentAdapter-signaturer
- * så TypeScript fejler ved kontraktbrud — ikke kun ved runtime.
+ * så TypeScript fejler ved kontraktbrud – ikke kun ved runtime.
  */
 export const createMockPdfDocumentAdapter = (): Mocked<PdfDocumentAdapter> => ({
   text: vi.fn<PdfDocumentAdapter['text']>(),

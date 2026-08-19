@@ -27,17 +27,17 @@ import { computeForsoergertabSnapshot, type ForsoergertabSnapshot } from './fors
 // både sidevisning og download-gaten.
 //
 //  - Alle inputs (forsoergertab-felter, de delte faellesAarsloen-beløb, samt de tværsektionelle stamdata-datoer)
-//    læses gennem readeren. En rød feltfejl (rejected format ELLER canonical bounds — dato-range/-orden,
+//    læses gennem readeren. En rød feltfejl (rejected format ELLER canonical bounds – dato-range/-orden,
 //    beløbsgulv/loft, tilkendt-periode 1..10) skjules af readeren: værdien bliver `undefined` i beregningen, og
 //    feltets røde besked føres ind i snapshottets `fieldErrors`.
 //  - `computeForsoergertabSnapshot` køres UÆNDRET (§5.4 hårdt stop) på de reader-læste værdier. Den har allerede
 //    den DEPENDENCY-SPECIFIKKE panel-/gate-logik (§1.10): en fejl på fx virkningsdato/ASL-årsløn blokerer ASL-
 //    delen og download, men bevarer EAL-panelet. Derfor gates hele snapshottet IKKE bag en
-//    global `blocked`-projektion — projektionen er altid `ready` og bærer snapshottet; det er snapshottets egen
+//    global `blocked`-projektion – projektionen er altid `ready` og bærer snapshottet; det er snapshottets egen
 //    `pdfGate`/`canShow*`, der afgør konsekvenserne uden en parallel klassifikations-sidekanal.
 //  - ASL-årslønnens felt-placerede domæneregel (delelig med 1.000 / maks i skadesåret) holdes SLICE-LOKAL her.
 //    Grunden er permanent, ikke en mellemtilstand: `faellesAarsloen.aslAarsloen` er en DELT descriptor, som både
-//    denne slice og Erhvervsevnetab læser, og reglen afhænger af `skadedato` — altså af en kontekst, feltet selv
+//    denne slice og Erhvervsevnetab læser, og reglen afhænger af `skadedato` – altså af en kontekst, feltet selv
 //    ikke kender. En descriptor-validator ville derfor skulle gælde ens for begge slices eller kende deres
 //    kontekst; ingen af de to er rigtige. Reglen udledes i stedet af de reader-læste aslAarsloen + skadedato og
 //    føres ind i snapshottets `fieldErrors.faellesAarsloen.aslAarsloen`, hvor `canShowAsl`/`pdfGate` blokerer.
@@ -57,7 +57,7 @@ const skadelidteFodselsdatoRef: FieldRef<ISODateString | undefined> = stamdataSk
 export type ForsoergertabReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver både sidevisning og download-gaten. */
   snapshot: ForsoergertabSnapshot;
-  /** Kildesnapshottets token — issue-snapshot og reader stammer fra samme evaluering (§3.4). */
+  /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
 
@@ -108,7 +108,7 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
     // De røde feltfejl ejes af readeren og føres ind her, så snapshottets dependency-specifikke `canShow*` og
     // `pdfGate` blokerer præcist (§1.10): fx blokerer en virkningsdato-fejl ASL + download, men bevarer
     // EAL-panelet. ASL-årsløns-reglen (delelig med 1.000 / maks i skadesåret) er KANONISK i descriptoren, så den
-    // kommer ind ad samme vej som enhver anden rød feltfejl — den genberegnes IKKE her (ét sandt sted, §1.6).
+    // kommer ind ad samme vej som enhver anden rød feltfejl – den genberegnes IKKE her (ét sandt sted, §1.6).
     fieldErrors: {
       forsoergertab: {
         beregningsdato: asFieldError(beregningsdato.errorMessage),

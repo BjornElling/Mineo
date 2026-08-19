@@ -46,7 +46,7 @@ describe('scrollToEoRow', () => {
   });
 
   // Uden for en Mineo-scroll-container (som i disse jsdom-tests) falder scrollTargetIntoView
-  // tilbage til native scrollIntoView med block:'nearest' — dvs. "scroll kun hvis nødvendigt".
+  // tilbage til native scrollIntoView med block:'nearest' – dvs. "scroll kun hvis nødvendigt".
   it('scrolls to matching row id for suffix-based række-id', () => {
     document.body.innerHTML = '<div data-mineo-row-id="row-1"></div>';
 
@@ -84,9 +84,9 @@ describe('scrollToEoRow', () => {
   // ── Fokusmålet er en kanonisk feltadresse ───────────────────────────────────────────────────────
   //
   // Fejlformen: en `tableId:rowScope:rowId:colIndex`-streng svarer ikke til nogen produktionsflades
-  // identitet i DOM, så opslaget falder tavst igennem til rækkeankeret — og en testsuite, der aldrig
+  // identitet i DOM, så opslaget falder tavst igennem til rækkeankeret – og en testsuite, der aldrig
   // giver et `focusTarget`, opdager det ikke. Disse tests dækker netop den gren og hævder, at målet er
-  // det element, der bærer feltets serialiserede adresse — samme identitet undo/redo bruger.
+  // det element, der bærer feltets serialiserede adresse – samme identitet undo/redo bruger.
 
   /** Byg et fokuserbart element med præcis de attributter, form-/grid-surfacen sætter. */
   const mountFieldEditor = (
@@ -180,7 +180,7 @@ describe('scrollToEoRow', () => {
 
   it('blinkmarkerer rækkeankeret, når fejlen ikke har ét ansvarligt felt', () => {
     // En rækkefejl uden feltadresse (fx et overlap mellem to rækker) kan kun forankres til rækken;
-    // markeringen skal da pege på det grovere — men stadig sande — mål.
+    // markeringen skal da pege på det grovere – men stadig sande – mål.
     const anchor = document.createElement('div');
     anchor.setAttribute('data-mineo-row-id', 'taf-1');
     document.body.appendChild(anchor);
@@ -218,7 +218,7 @@ describe('scrollToEoRow', () => {
   // gengæld altid sin tomme indtastningsrække, hvis celler bærer en fuldt bundet feltadresse.
 
   it('blinker den tomme indtastningsrækkes celle, når rækken endnu ikke findes', () => {
-    // Placeholderens række-id dannes i UI'et og kan ikke kendes i domænet — her et vilkårligt slot-id.
+    // Placeholderens række-id dannes i UI'et og kan ikke kendes i domænet – her et vilkårligt slot-id.
     const placeholder = mountFieldEditor(eoTafPeriodeFraField.bind('placeholder-slot-1').address);
 
     scrollToEoRow('taf.ingenTafIEoPerioden', {
@@ -240,7 +240,7 @@ describe('scrollToEoRow', () => {
     expect(scrollIntoViewMock.mock.instances[0]).toBe(first);
   });
 
-  it('rammer kun det navngivne felt — ikke en naboKOLONNE i samme collection', () => {
+  it('rammer kun det navngivne felt – ikke en naboKOLONNE i samme collection', () => {
     // Til-cellen står FØRST i DOM, så en template-match, der kun så på collectionen, ville tage den.
     mountFieldEditor(eoTafPeriodeTilField.bind('taf-1').address);
     const fraEditor = mountFieldEditor(eoTafPeriodeFraField.bind('taf-1').address);
@@ -252,7 +252,7 @@ describe('scrollToEoRow', () => {
     expect(scrollIntoViewMock.mock.instances[0]).toBe(fraEditor);
   });
 
-  it('rammer kun den navngivne COLLECTION — ikke en anden tabels felt med samme feltnavn', () => {
+  it('rammer kun den navngivne COLLECTION – ikke en anden tabels felt med samme feltnavn', () => {
     // Ferie- og TAF-perioderne har begge et `fra`-felt; kun sektionen og collectionen skiller dem.
     mountFieldEditor(eoFerieperiodeFraField.bind('f-1').address);
     const tafEditor = mountFieldEditor(eoTafPeriodeFraField.bind('taf-1').address);

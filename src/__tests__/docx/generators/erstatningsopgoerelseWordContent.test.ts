@@ -273,7 +273,7 @@ describe('erstatningsopgørelse → Word-indhold', () => {
 
     // Den kæde-opregulerede, afrundede månedsløn (base 30.000 fra 01-04-2024):
     //   01-10-2024 (+1,30 %) → 30.390,00 ; 01-11-2025 (+0,75 %) → 30.709,78.
-    // Værdierne skal optræde i BÅDE Forventet indkomst-linjen og Beregnet regulering-tabellen —
+    // Værdierne skal optræde i BÅDE Forventet indkomst-linjen og Beregnet regulering-tabellen –
     // dvs. mindst to forekomster hver, hvilket beviser at ingen af de to nedstrøms-led taber værdien.
     const countOccurrences = (needle: string): number => text.split(needle).length - 1;
     expect(countOccurrences('30.390,00')).toBeGreaterThanOrEqual(2);

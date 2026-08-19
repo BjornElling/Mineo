@@ -20,7 +20,7 @@ type DocumentRenderSettingsPayload = Readonly<{
 /**
  * Nominelt mærke på render-settings. Samme begrundelse som `eoRowPolicyBrand` nedenfor: uden mærket
  * ville hele `AppSettings` være strukturelt assignable, og `resolveFormat`/`resolveVisBrevhoved`
- * kunne modtage det brede objekt og læse en nøgle uden for `SOURCE_SETTINGS_KEYS` — altså indføre en
+ * kunne modtage det brede objekt og læse en nøgle uden for `SOURCE_SETTINGS_KEYS` – altså indføre en
  * afhængighed, der ikke bumper settingsrevisionen og derfor ikke gør et optaget token stale.
  *
  * Runtime-symbol af samme grund som de to øvrige mærker: et `declare const`-brand ville kræve et
@@ -33,7 +33,7 @@ const documentRenderSettingsBrand: unique symbol = Symbol('mineo.documentRenderS
  *
  * **Ingen af de to må nå en gate.** Normen er, at formatet vælger writer og ikke dækning; en
  * definition, der forgrenede sin `project` på formatet, kunne gøre samme sag `ready` som PDF og
- * `blocked` som Word, uden at §A2a's paritet mellem reaktiv gate og click-preflight fangede det —
+ * `blocked` som Word, uden at §A2a's paritet mellem reaktiv gate og click-preflight fangede det –
  * begge kanaler ville se den samme skæve gate. Adskillelsen er derfor en TYPEGRÆNSE:
  * `DocumentSourceContext` bærer `EoRowPolicy` (gate-halvdelen), mens denne type kun findes i miljøets
  * `renderSettings`. Et forsøg på at læse formatet i en gate er en compilerfejl.
@@ -72,7 +72,7 @@ export type EoRowPolicy = EoRowPolicyPayload & {
  * Uden mærket var `SourceSettings` en ren STRUKTUREL type, og fordi `AppSettings` indeholder alle
  * sættets nøgler, var hele `AppSettings` assignable til den overalt. Hver `SourceSettings`-parameter
  * var derfor en dokumentationsgrænse, ikke en håndhævet grænse: evaluering, rækkepolitik og
- * dokumentcapture kunne alle modtage det brede objekt og læse en nøgle UDEN FOR sættet — altså
+ * dokumentcapture kunne alle modtage det brede objekt og læse en nøgle UDEN FOR sættet – altså
  * indføre en source-afhængighed, der ikke gør et `EvaluationSourceToken` stale. Fejlklassen var
  * tavs, og et regelskift kunne dermed overleves af en download, der blev godkendt under den gamle
  * regel.
@@ -82,7 +82,7 @@ export type EoRowPolicy = EoRowPolicyPayload & {
  * at bevogte den syntaktisk.
  *
  * **Symbolet er et RUNTIME-symbol, ikke `declare const`.** Et `declare const x: unique symbol`
- * emitterer intet, så projektoren ville være nødt til at stemple mærket med et `as` — og et cast
+ * emitterer intet, så projektoren ville være nødt til at stemple mærket med et `as` – og et cast
  * omgår netop den completeness-kontrol, mærket skal beskytte: tilføjes en ny payload-nøgle, som
  * projektoren glemmer at kopiere, skjuler castet fejlen, og fingerprintet læser `undefined`. Med et
  * ægte symbol kan projektoren sætte egenskaben, så objektet opfylder typen UDEN cast, og hver nøgle
@@ -92,7 +92,7 @@ const sourceSettingsBrand: unique symbol = Symbol('mineo.sourceSettings');
 
 /**
  * Snapshottets DATAFLADE uden mærker. Completeness-checket nedenfor måler denne type og ikke
- * `SourceSettings`, fordi mærket ellers selv ville tælle som en udækket nøgle — og et check, der
+ * `SourceSettings`, fordi mærket ellers selv ville tælle som en udækket nøgle – og et check, der
  * skal have en undtagelse for sit eget mærke, kan lige så godt komme til at undtage en rigtig nøgle.
  */
 type SourceSettingsPayload = DocumentRenderSettingsPayload & EoRowPolicyPayload;
@@ -122,7 +122,7 @@ const allSourceSettingsKeysDeclared: MissingSourceSettingsKeys extends never ? t
 void allSourceSettingsKeysDeclared;
 
 /**
- * Hver source-relevant nøgle skal også findes i `AppSettings` — ellers ville fingerprintet i
+ * Hver source-relevant nøgle skal også findes i `AppSettings` – ellers ville fingerprintet i
  * `productionInputRuntime` slå en nøgle op, der ikke findes, og altid læse `undefined`.
  */
 type SourceSettingsKeysNotInAppSettings = Exclude<keyof SourceSettingsPayload, keyof AppSettings>;
@@ -135,7 +135,7 @@ void allSourceSettingsKeysExistInAppSettings;
  * netop de nøgler, der indgår i settingsrevisionen.
  *
  * Parameteren er `AppSettings` og ikke `SourceSettings`: tidligere tog projektoren den smalle type,
- * hvilket gjorde den ubrugelig som indsnævringsgrænse — den modtog en værdi, der (strukturelt) lige
+ * hvilket gjorde den ubrugelig som indsnævringsgrænse – den modtog en værdi, der (strukturelt) lige
  * så godt kunne være hele `AppSettings`, og kunne ikke afvise en bredere værdi. Nu er retningen
  * entydig: bredt ind, smalt ud, og det smalle resultat kan ikke fremstilles ad andre veje.
  *
@@ -145,7 +145,7 @@ void allSourceSettingsKeysExistInAppSettings;
  *
  * **Ingen `as`.** Mærket sættes som en ægte egenskab, så returværdien opfylder `SourceSettings`
  * strukturelt og compileren kontrollerer HVER nøgle. Med et cast ville en glemt nøgle i denne
- * funktion være usynlig — listen og `AppSettings`-checket kunne være opdateret, mens projektionen
+ * funktion være usynlig – listen og `AppSettings`-checket kunne være opdateret, mens projektionen
  * tabte værdien, og fingerprintet ville læse `undefined`.
  */
 export const projectSourceSettings = (settings: AppSettings): SourceSettings => Object.freeze({
@@ -178,7 +178,7 @@ export const projectEoRowPolicy = (settings: SourceSettings): EoRowPolicy => Obj
  *
  * Tager `SourceSettings` af samme grund som `projectEoRowPolicy`: render-settings er en DELMÆNGDE af
  * det snapshot, der driver settingsrevisionen. Ved at udlede den herfra kan der ikke opstå en
- * render-settings, hvis nøgler ikke også er med i fingerprintet — så et formatskifte fortsat bumper
+ * render-settings, hvis nøgler ikke også er med i fingerprintet – så et formatskifte fortsat bumper
  * revisionen og gør et optaget `EvaluationSourceToken` stale.
  *
  * De to projektorer deler bevidst ÉN kilde og deler den i to disjunkte halvdele. Det er hele
@@ -203,7 +203,7 @@ export const DEFAULT_EO_ROW_POLICY: EoRowPolicy =
 /**
  * Test-support: bygger et source-settings-snapshot fra en DELVIS override af de source-relevante
  * nøgler. Navnet bærer `__test`, så en søgning viser præcis hvilke steder der fremstiller et
- * snapshot uden om produktionsbroen — samme konvention som inputkernens `__createSlimInputTestStore`.
+ * snapshot uden om produktionsbroen – samme konvention som inputkernens `__createSlimInputTestStore`.
  *
  * Overriden er typet `Partial<SourceSettingsPayload>` og ikke `Partial<AppSettings>`: en test må
  * gerne vælge en anden dokumentformat- eller reguleringspolitik, men ikke ad den vej indføre en

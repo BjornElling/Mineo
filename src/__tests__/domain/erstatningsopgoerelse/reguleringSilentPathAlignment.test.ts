@@ -26,7 +26,7 @@ type ReguleringsGrundlagFelter = Pick<
 const REG_DATO_FOER_FOERSTE_SATS = '1900-01-01';
 
 // TAF-perioden lander i en dækket periode, så motoren rent faktisk producerer
-// regulerede segmenter oven på den (forkerte) fallback-base — netop den stille
+// regulerede segmenter oven på den (forkerte) fallback-base – netop den stille
 // under-regulering S1 beskriver.
 const TAF_FRA = '2020-01-01';
 const TAF_TIL = '2020-12-31';
@@ -88,7 +88,7 @@ const byggReguleringsvaerdiRowStatus = (konfigurer: (m: ReguleringsGrundlagFelte
 };
 
 /**
- * S1 — kobling mellem motorens stille fallback og den synlige row-gate.
+ * S1 – kobling mellem motorens stille fallback og den synlige row-gate.
  *
  * Motoren (`resolveEffectiveBaseEntry`) og row-gaten (`eoRowIndkomstRows`
  * reguleringsvaerdi-row) beregner uafhængigt af hinanden "reguleringsdato < første
@@ -98,7 +98,7 @@ const byggReguleringsvaerdiRowStatus = (konfigurer: (m: ReguleringsGrundlagFelte
  * **ugated** zone: motoren ankrer stille til ældste sats (tavs under-regulering),
  * mens row-gaten ikke fyrer. Denne test binder de to sider, så en sådan drift fanges.
  */
-describe('regulering S1 — motorens fallback er altid gated af en synlig row-error', () => {
+describe('regulering S1 – motorens fallback er altid gated af en synlig row-error', () => {
   for (const form of FORMER) {
     it(`${form.navn}: reguleringsdato før første sats → motor falder stille tilbage OG row-gate fyrer error`, () => {
       // Motor-siden: fallback → ingen throw, model produceres (stille base-skift).
@@ -113,7 +113,7 @@ describe('regulering S1 — motorens fallback er altid gated af en synlig row-er
 });
 
 /**
- * S2 — privat overenskomst: reguleringsdato før dækning.
+ * S2 – privat overenskomst: reguleringsdato før dækning.
  *
  * Modsat S1 (statistik/KRL, der ankrer til ældste sats) bruger overenskomst-motoren
  * `max(reguleringsdato, dækningsstart)`: ligger reguleringsdatoen før overenskomstens
@@ -124,7 +124,7 @@ describe('regulering S1 — motorens fallback er altid gated af en synlig row-er
  * overenskomstens `interval.fraDato`. Denne test binder de to sider for privat
  * overenskomst (Bygge-/anlæg), så en fremtidig drift fanges.
  */
-describe('regulering S2 — privat overenskomst før dækning er gated af en synlig row-error', () => {
+describe('regulering S2 – privat overenskomst før dækning er gated af en synlig row-error', () => {
   const REG_DATO_FOER_DAEKNING = '1900-01-01';
 
   const konfigurerOverenskomst = (
@@ -173,12 +173,12 @@ describe('regulering S2 — privat overenskomst før dækning er gated af en syn
 });
 
 /**
- * S3 — offentlig overenskomst (KL/RLTN): reguleringsdato før dækning.
+ * S3 – offentlig overenskomst (KL/RLTN): reguleringsdato før dækning.
  *
  * Den offentlige gren slår grundlønnen op via `getOffentligLoenForDato`, der
  * carry-forwarder (nyeste regulering ≤ dato) og kun giver `undefined` FØR ældste
  * KL/RLTN-regulering (01-01-2012). Et interiort hul kan derfor ikke ramme et
- * segment (og en manglende løntrin INDEN FOR dækning kaster — degraderer ikke til
+ * segment (og en manglende løntrin INDEN FOR dækning kaster – degraderer ikke til
  * zero-delta). Ligger reguleringsdatoen før dækningen, falder motoren stille
  * tilbage til ældste sats som effektiv base, og alle TAF-segmenter før basen
  * sættes til zero-delta. Den stille zero-delta MÅ være gated af den samme
@@ -186,7 +186,7 @@ describe('regulering S2 — privat overenskomst før dækning er gated af en syn
  * `getReguleringsDatoIntervalForOverenskomst(...).fraDato` = ældste KL-sats =
  * motorens fallback-base-start. Denne test binder de to sider (analog til S2).
  */
-describe('regulering S3 — offentlig overenskomst før dækning er gated af en synlig row-error', () => {
+describe('regulering S3 – offentlig overenskomst før dækning er gated af en synlig row-error', () => {
   const REG_DATO_FOER_DAEKNING = '1900-01-01';
 
   const konfigurerOffentlig = (
@@ -246,12 +246,12 @@ describe('regulering S3 — offentlig overenskomst før dækning er gated af en 
 });
 
 /**
- * Manuelt angivet — før-basis-rækker.
+ * Manuelt angivet – før-basis-rækker.
  *
  * Basisrækken repræsenterer niveauet på reguleringsdatoen. Rækker på eller før dette anker er
  * feltplacerede fejl i reader-projektionen; motorens drop er defense-in-depth og skal være tal-neutralt.
  */
-describe('regulering (manuel) — før-basis-rækker droppes tal-neutralt', () => {
+describe('regulering (manuel) – før-basis-rækker droppes tal-neutralt', () => {
   const REG = '2023-01-01';
 
   const buildManualValues = (medFoerBasisRaekke: boolean) => {
@@ -291,15 +291,15 @@ describe('regulering (manuel) — før-basis-rækker droppes tal-neutralt', () =
 });
 
 /**
- * S5 — Manuel procentsats: uparsbar/ufuldstændig pct-række droppes stille i motoren.
+ * S5 – Manuel procentsats: uparsbar/ufuldstændig pct-række droppes stille i motoren.
  *
  * `buildManuelProcentsatsEntries` filtrerer rækker fra, hvor `dato` ikke er en gyldig ISO-dato
  * ELLER `procent` ikke er et finit tal (`manuelProcentsatsRegulering.ts:56-59`). Pga. Zod-schemaet
  * (`percentageDecimal` = `preprocess(coerceToNumberOrUndefined, z.number().min(0).max(100).optional())`)
- * kan committed `procent` KUN være et finit tal i [0;100] eller `undefined` — en NaN/Infinity/
+ * kan committed `procent` KUN være et finit tal i [0;100] eller `undefined` – en NaN/Infinity/
  * uparsbar/out-of-range værdi fejler Zod-valideringen og kan ikke eksistere i committed state.
  * Det stille drop rammer derfor kun en TOM celle (`undefined`). En sådan ufuldstændig, men
- * betydningsbærende, række (dato uden procent — eller omvendt) er en potentiel tavs under-regulering:
+ * betydningsbærende, række (dato uden procent – eller omvendt) er en potentiel tavs under-regulering:
  * motoren springer akkumuleringstrinnet over uden at kaste. Trust-invarianten kræver, at det er
  * GATED af en synlig blokerende fejl. Både validatoren (`erstatningsopgoerelseValidator.ts:892-909`)
  * og row-laget (`eoRowIndkomstRows.ts:295-308`, `alleVaerdier`-row) markerer enhver "aktiv" række
@@ -307,11 +307,11 @@ describe('regulering (manuel) — før-basis-rækker droppes tal-neutralt', () =
  * fremtidigt drop, der IKKE længere er gated, fanges. (Parallel til S2/S3, men her er gaten
  * `alleVaerdier`, ikke `reguleringsvaerdi`.)
  */
-describe('regulering S5 — manuel procentsats: ufuldstændig pct-række droppes stille MEN gates af en synlig row-error', () => {
+describe('regulering S5 – manuel procentsats: ufuldstændig pct-række droppes stille MEN gates af en synlig row-error', () => {
   const REG = '2023-01-01';
   const TAF_SLUT = '2026-12-31';
 
-  it('motoren dropper stille en dato-uden-procent-række (intet akkumuleringstrin) — tavs under-regulering hvis ugated', () => {
+  it('motoren dropper stille en dato-uden-procent-række (intet akkumuleringstrin) – tavs under-regulering hvis ugated', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.maanedsloenenUdgoer = asAmount(30000);
@@ -334,13 +334,13 @@ describe('regulering S5 — manuel procentsats: ufuldstændig pct-række droppes
       null,
       { tafRanges: [{ fra: iso(REG), til: iso(TAF_SLUT) }] }
     );
-    // Den ufuldstændige række gav intet segment-brudpunkt (dropped) — kun basis (0 %) og 2026-trinnet (10 %).
+    // Den ufuldstændige række gav intet segment-brudpunkt (dropped) – kun basis (0 %) og 2026-trinnet (10 %).
     const segmenter = model.beregnedeSegmenter.map((s) => ({ fra: s.fra, deltaPct: s.deltaPct }));
     expect(segmenter).toEqual([
       { fra: iso(REG), deltaPct: 0 },
       { fra: iso('2026-01-01'), deltaPct: 10 },
     ]);
-    // Ingen boundary på 2025-01-01 — netop det stille drop.
+    // Ingen boundary på 2025-01-01 – netop det stille drop.
     expect(segmenter.some((s) => s.fra === iso('2025-01-01'))).toBe(false);
   });
 
@@ -382,7 +382,7 @@ describe('regulering S5 — manuel procentsats: ufuldstændig pct-række droppes
     expect(gateRow?.status).toBe('error');
   });
 
-  it('en helt tom række (hverken dato eller procent) er ikke "aktiv" — ingen error, intet regulering tabt', () => {
+  it('en helt tom række (hverken dato eller procent) er ikke "aktiv" – ingen error, intet regulering tabt', () => {
     const rowValues = {
       ...createErstatningsopgoerelseInitialValues(),
       loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
@@ -404,10 +404,10 @@ describe('regulering S5 — manuel procentsats: ufuldstændig pct-række droppes
 });
 
 /**
- * S6 — KL-lønaftaler: TAF-periode der rækker ud over sidste KL-sats.
+ * S6 – KL-lønaftaler: TAF-periode der rækker ud over sidste KL-sats.
  *
  * KL-lønaftaler-kæde-resolveren (`buildKlLoenaftalerReguleretLoenResolver.loenAt`) viderefører
- * den sidst regulerede løn for enhver dato efter sidste KL-dato (01-10-2026) — en bevidst
+ * den sidst regulerede løn for enhver dato efter sidste KL-dato (01-10-2026) – en bevidst
  * carry-forward UDEN throw i selve resolveren. Den staleness-risiko MÅ være gated af den
  * synlige `slutvaerdi`-row: row-gatens `reguleringsRange.max` =
  * `getReguleringsDatoIntervalForKlLoenaftaler().tilDato` = 31-03-2027 (nyeste + 6 mdr − 1 dag),
@@ -415,7 +415,7 @@ describe('regulering S5 — manuel procentsats: ufuldstændig pct-række droppes
  * efter dét markeres blokerende `error`. Denne test binder motorens stille carry-forward til den
  * blokerende row-gate (analog til S1/S2/S3 for før-dækning; her for efter-sidste-sats).
  */
-describe('regulering S6 — KL-lønaftaler efter sidste sats: motor carry-forwarder stille MEN row-gate fyrer error', () => {
+describe('regulering S6 – KL-lønaftaler efter sidste sats: motor carry-forwarder stille MEN row-gate fyrer error', () => {
   const REG_DATO = '2024-04-01';
   const TAF_FRA_KL = '2024-04-01';
   // Langt efter KL-dækningens tilDato (31-03-2027) + 6-mdr-vinduet → blokerende error.

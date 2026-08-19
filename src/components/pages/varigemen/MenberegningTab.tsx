@@ -46,7 +46,7 @@ import { blinkFieldAttention } from '../../../inputCore/react/fieldAttentionBlin
 // adfærd er uændrede (§5.4).
 
 const mengradRef = varigeMenMengradField.bind();
-/** Méngradens tegn- og længdepolitik fra dens eget codec — én erklæring for formular og grid. */
+/** Méngradens tegn- og længdepolitik fra dens eget codec – én erklæring for formular og grid. */
 const MENGRAD_CHAR_POLICY = resolveIntegerCharPolicy(varigeMenMengradField.bind());
 const beregningsdatoRef = varigeMenBeregningsdatoField.bind();
 const fodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
@@ -76,7 +76,7 @@ const MenberegningTab = React.memo(() => {
     []
   );
 
-  // Den ENE reader-afledte projektion (§3.4/§5.4) — beregningsvisning og download-gate deler præcis samme sandhed.
+  // Den ENE reader-afledte projektion (§3.4/§5.4) – beregningsvisning og download-gate deler præcis samme sandhed.
   const projection = React.useMemo(
     () => buildVarigeMenReaderProjection(evaluation.reader),
     [evaluation]
@@ -100,7 +100,7 @@ const MenberegningTab = React.memo(() => {
   const beregningsdatoError = beregningsdatoRead.status === 'error' ? beregningsdatoRead.issue.message : undefined;
 
   // Alder og sats vises uafhængigt af méngrad: alderen så snart begge datoer er gyldige, satsen så
-  // snart beregningsdatoen har en lovsats for sit år — også når méngrad mangler og projektionen derfor er blokeret.
+  // snart beregningsdatoen har en lovsats for sit år – også når méngrad mangler og projektionen derfor er blokeret.
   const alderVedSkade = React.useMemo(() => {
     if (fodselsdato === undefined || skadedato === undefined) return undefined;
     const f = parseISODate(coerceToISODateString(fodselsdato) ?? undefined);
@@ -122,7 +122,7 @@ const MenberegningTab = React.memo(() => {
    * Naviger til Stamdata OG markér det felt, der mangler.
    *
    * Bruges både af «Mangler (angiv i Stamdata)»-linkene og af blokerings-feedbacken nedenfor. Markeringen
-   * er den DELTE `blinkFieldAttention` via `scrollToFieldAddress` — samme adfærd som fejl- og
+   * er den DELTE `blinkFieldAttention` via `scrollToFieldAddress` – samme adfærd som fejl- og
    * advarselslinkene i resten af programmet, så der ikke findes en side-lokal «peg på feltet»-vej.
    */
   const goToStamdataField = React.useCallback(
@@ -145,7 +145,7 @@ const MenberegningTab = React.memo(() => {
   // Prioritet: Fødselsdato → Skadedato → Méngrad → Beregningsdato.
   //
   // Stamdata-felterne føres nu HELT frem: tidligere navigerede fødselsdato-grenen til Stamdata uden at pege
-  // på feltet, og skadedato-grenen returnerede uden at gøre NOGET som helst — brugeren fik en shake på
+  // på feltet, og skadedato-grenen returnerede uden at gøre NOGET som helst – brugeren fik en shake på
   // knappen og ingen anvisning. Begge bruger nu samme markering som sidens egne felter.
   const focusFirstBlockingField = React.useCallback(() => {
     if (fodselsdatoError !== undefined || fodselsdato === undefined) {
@@ -180,11 +180,11 @@ const MenberegningTab = React.memo(() => {
 
   /**
    * Aktivering. Hele preflighten (settle, frisk capture, token-lighed, gate) ligger i definitionen;
-   * det eneste sidespecifikke er blokerings-FEEDBACKEN — fokus på det første blokerende felt — som er
+   * det eneste sidespecifikke er blokerings-FEEDBACKEN – fokus på det første blokerende felt – som er
    * ren præsentation og bevidst ikke en del af definitionen (den er forskellig pr. side).
    *
    * Rystelsen er fjernet; fokusspringet er bevaret. Rystelsen fortalte kun, AT noget var galt
-   * — det sagde knappens tooltip allerede mere præcist — mens fokusspringet fører brugeren hen til det
+   * – det sagde knappens tooltip allerede mere præcist – mens fokusspringet fører brugeren hen til det
    * felt, der skal rettes.
    */
   const handlePdfDownload = React.useCallback(async () => {
@@ -375,7 +375,7 @@ const MenberegningTab = React.memo(() => {
         <Typography className="row--text">Beregnet méngodtgørelse</Typography>
         <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
           {!download.canDownload ? (
-            // Download-ikonet vises altid sammen med sin tekstlinje — her nedtonet/inaktivt, fordi beregningen
+            // Download-ikonet vises altid sammen med sin tekstlinje – her nedtonet/inaktivt, fordi beregningen
             // (og dermed download) er blokeret. Årsagen står KUN i ikonets tooltip: den stod tidligere
             // også som nedtonet tekst i værdikolonnen, så brugeren læste den samme besked to gange.
             <DocumentDownloadButton

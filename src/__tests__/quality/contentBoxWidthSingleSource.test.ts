@@ -10,7 +10,7 @@ import { CONTENT_BOX_WIDTH_PX } from '../../utils/uiScale';
  * `.content-box` er det bredeste element på hver eneste side, og `CONTENT_UI_SCALE_POLICY` afgør
  * ud fra netop den bredde, hvor meget arbejdsfladen skal skaleres for at kunne være i vinduet.
  * Bredden bor i CSS (den visuelle regel) og spejles i TypeScript (regnestykket). Ændres den ene
- * uden den anden, vil skaleringen enten klippe indholdet eller efterlade unødigt tom plads —
+ * uden den anden, vil skaleringen enten klippe indholdet eller efterlade unødigt tom plads –
  * begge dele uden at nogen anden test bliver rød.
  */
 

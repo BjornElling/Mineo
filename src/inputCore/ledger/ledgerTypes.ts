@@ -4,7 +4,7 @@ import type { SectionKey } from '../fieldAddress';
 //
 // **Levende og load-bearing.** Registrene er en release-gate: `verify:ledgers` kører som del af
 // `verify:release`, og completeness-testene måler dækning imod deres opregnelige mængde.
-// Deres levende ansvar er SCHEMA-/CONSUMERDRIFT — at et nyt felt, en ny collection eller et nyt entrypoint
+// Deres levende ansvar er SCHEMA-/CONSUMERDRIFT – at et nyt felt, en ny collection eller et nyt entrypoint
 // ikke kan glide ind uregistreret, og at et registreret symbol ikke kan forsvinde ubemærket.
 //
 // De er coverage-registre og ikke runtime-routere: de opregner, hvad der findes, og afgør intet om, hvad der

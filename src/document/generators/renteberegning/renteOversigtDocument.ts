@@ -97,7 +97,7 @@ const addOversigtTable = (
 
 /**
  * Skriver oversigts-indholdet til en eksisterende DocumentComposer.
- * Kalder ikke addFooter eller save — det er kalderens ansvar.
+ * Kalder ikke addFooter eller save – det er kalderens ansvar.
  */
 export const writeRenteOversigtDocumentContent = (
   writer: DocumentComposer,

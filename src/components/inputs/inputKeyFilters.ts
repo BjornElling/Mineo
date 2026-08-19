@@ -18,7 +18,7 @@ export { isIntegerDraftAllowed } from './draftAdmission';
 
 // Tastaturfiltrene er nu AFLEDT af feltfamiliernes draft-prædikater i `draftAdmission.ts`, som også er
 // det, `onDraftChange` håndhæver. Før havde keydown-vejen sin egen kopi af hver regel, og den kopi var
-// samtidig det ENESTE værn — derfor forsvandt hele tegn- og længdekontrollen på mobile skærmtastaturer,
+// samtidig det ENESTE værn – derfor forsvandt hele tegn- og længdekontrollen på mobile skærmtastaturer,
 // som skriver direkte i `<input>` uden en brugbar `keydown`. Filteret er nu et ekstra, caret-bevarende
 // værn oven på prædikatet, ikke en parallel sandhed om hvad feltet tillader.
 
@@ -72,7 +72,7 @@ export const filterFractionKeyDown = (
 };
 
 /**
- * Beløbsudtryk: tillad cifre, ét komma og operatorer/parenteser — og håndhæv
+ * Beløbsudtryk: tillad cifre, ét komma og operatorer/parenteser – og håndhæv
  * ciffergrænsen pr. talled (§2.2: højst 7 heltalscifre og 2 decimaler).
  */
 export const filterAmountExpressionKeyDown = (

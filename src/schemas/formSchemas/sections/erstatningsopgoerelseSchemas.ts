@@ -137,7 +137,7 @@ const aesAfgoerelserSchema = z.object({
 const svieSmerteSchema = z.object({
   // Breaking rename fra `beregnesSvieSmerteGodtgoerelse` (JaNej-toggle) til tre-tilstands-valg.
   // Gamle .eo-filer mister bevidst den tidligere værdi (strippes som ukendt felt) og loades
-  // med default 'Ja' — jf. brugerbeslutning og schema-evolution.md §3.1a (bevidst tab af gammel værdi).
+  // med default 'Ja' – jf. brugerbeslutning og schema-evolution.md §3.1a (bevidst tab af gammel værdi).
   kravPaaSvieSmerteGodtgoerelse: jaNejSkjulEnum.default('Ja'),
   svieSmerteHelbredsstatus: z.preprocess(normalizeEmptyToUndefined, helbredsstatusEnum.optional()),
   tidligereSsMax: jaNejEnum.default('Nej'),
@@ -240,8 +240,8 @@ const overenskomstFilterSchema = z.object({
 // Fælles lønudviklingsfelter for de to persisted ejere (ansættelsesforhold og EO-angivet løn).
 //
 // ⚠️ `loenPaaHelligdage` var tidligere PARAMETRISERET, så EO-angivet løn kunne loades uden feltet, mens
-// ansættelsesforholdet krævede det. Den parametrisering er selve fælden: den gør `undefined` — en værdi,
-// motoren erklærer umulig — til den tilstand en nyoprettet sag altid har. Load-tolerance og "må mangle" er
+// ansættelsesforholdet krævede det. Den parametrisering er selve fælden: den gør `undefined` – en værdi,
+// motoren erklærer umulig – til den tilstand en nyoprettet sag altid har. Load-tolerance og "må mangle" er
 // ikke det samme krav: en `.default()` giver ældre `.eo`-filer uden feltet en gyldig værdi OG holder typen
 // påkrævet, så den umulige tilstand ikke kan repræsenteres. Genindfør ikke `.optional()` her.
 const loenudviklingOgSatserShape = {
@@ -314,7 +314,7 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
  * Slottet fjernes af sektionsmigratoren (`persistenceMigrations.ts`), IKKE af en `.transform()` på schemaet.
  * En transform ville gøre schemaet uigennemsigtigt for `z.toJSONSchema`: Zod ville udsende en tom
  * `items: {}` for ansættelses-arrayet, og hele det nestede løntræ ville forsvinde ud af de maskinelle
- * felt-/collection-udledninger (ledger-coverage, consumerinventar og schema-fingerprint) — værn, der
+ * felt-/collection-udledninger (ledger-coverage, consumerinventar og schema-fingerprint) – værn, der
  * netop skal kunne SE hvert persisteret felt, ville da stå grønne af tomhed.
  */
 const persistedLoenindkomstAnsaettelsesforholdSchema = z.object(

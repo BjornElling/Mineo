@@ -9,10 +9,10 @@ description: Brug kun efter brugerens udtrykkelige anmodning om netop en Mineo-i
 
 Skillen har to adskilte betingelser:
 
-1. **Aktivering:** Brug kun skillen, når brugeren udtrykkeligt beder om at få udført eller genoptaget netop en Mineo-interaktionsaudit. Aktivér den aldrig af egen drift, og brug den aldrig til andre formål — heller ikke fordi en anden opgave involverer browseradfærd, test, robusthed, fejlsøgning, review eller gennemgang af Mineo. En generel anmodning om test, review eller browserkontrol er ikke tilstrækkelig; anmodningen skal tydeligt omfatte denne specifikke, systematiske interaktionsaudit.
+1. **Aktivering:** Brug kun skillen, når brugeren udtrykkeligt beder om at få udført eller genoptaget netop en Mineo-interaktionsaudit. Aktivér den aldrig af egen drift, og brug den aldrig til andre formål – heller ikke fordi en anden opgave involverer browseradfærd, test, robusthed, fejlsøgning, review eller gennemgang af Mineo. En generel anmodning om test, review eller browserkontrol er ikke tilstrækkelig; anmodningen skal tydeligt omfatte denne specifikke, systematiske interaktionsaudit.
 2. **Kørsel efter aktivering:** Når brugeren har aktiveret skillen som beskrevet ovenfor, skal auditten køre autonomt og vedvarende uden løbende bekræftelser fra brugeren. Reglerne om at fortsætte uden nyt brugerinput gælder kun for den allerede aktiverede audit og må aldrig fortolkes som tilladelse til selv at starte en ny audit i en senere eller anden opgave.
 
-Arbejd autonomt, reproducerbart og checkpointet. Målet er den bedst mulige systematiske dækning af hele den brugerobserverbare adfærd og dens afhængigheder — ikke en påstand om, at en endelig kørsel kan bevise fravær af enhver fremtidig fejl.
+Arbejd autonomt, reproducerbart og checkpointet. Målet er den bedst mulige systematiske dækning af hele den brugerobserverbare adfærd og dens afhængigheder – ikke en påstand om, at en endelig kørsel kan bevise fravær af enhver fremtidig fejl.
 
 Auditten har tre ligeværdige produkter:
 
@@ -22,7 +22,7 @@ Auditten har tre ligeværdige produkter:
 
 Derudover fører auditworkerens egen kørsel en separat, append-only driftslog i
 `docs/testing/runtime-input-audit/AUDIT-WORKER-ERRORS.md`. Den log må kun indeholde fejl
-i auditten, browser-/serverstyringen eller de lokale auditværktøjer — ikke Mineo-fund.
+i auditten, browser-/serverstyringen eller de lokale auditværktøjer – ikke Mineo-fund.
 Opret den ved opstart via `init-audit-workspace.mjs`, og registrér enhver fejl i selve
 arbejdskørslen løbende med:
 
@@ -41,7 +41,7 @@ arbejdsenhed.
 
 Loggen er derimod ikke et sted for **kendt og dokumenteret mekanik**. Følgende registreres
 IKKE, fordi den korrekte fremgangsmåde står i afsnittet «Browsermekanik: de faste greb» og
-et forkert greb derfor er en instruktion, der ikke blev fulgt — ikke et driftsforhold:
+et forkert greb derfor er en instruktion, der ikke blev fulgt – ikke et driftsforhold:
 
 - read-only-felt der kræver `dblclick` før `fill`;
 - forventet `beforeunload`-timeout i det foreskrevne `reload` → `dialog-accept` → `snapshot`-forløb;
@@ -70,7 +70,7 @@ Versionsreglen er eksplicit:
 
 - Sammenlign først en pakke med dens egen `package.json`/`package-lock.json`-kilde. Mangler pakken eller er den bagud i forhold til lockfilen, opdateres/installeres den.
 - En allerede installeret højere version beholdes. Brug aldrig `npm ci`, en eksplicit ældre versionsspecifikation eller anden handling, der nedgraderer en forudgående version for at få et andet værktøj til at ligne den.
-- `@playwright/test` er Mineos E2E-familie og bor i projektets eget `node_modules`. `@playwright/cli` og `@playwright/mcp` er CLI/MCP-familien og bor i deres eget træ under `.agents/tools`, fordi de pinner en anden Playwright-runtime. De to træer må aldrig slås sammen: begge familier deklarerer kommandoen `playwright`, og deler de node_modules, kan npm kun give den ene kommandoen — så kører `npx playwright test` e2e-filerne med en anden runner-instans, end filerne importerer, og hver fil fejler med «did not expect test.describe() to be called here». `npm run check:tool-isolation` håndhæver adskillelsen.
+- `@playwright/test` er Mineos E2E-familie og bor i projektets eget `node_modules`. `@playwright/cli` og `@playwright/mcp` er CLI/MCP-familien og bor i deres eget træ under `.agents/tools`, fordi de pinner en anden Playwright-runtime. De to træer må aldrig slås sammen: begge familier deklarerer kommandoen `playwright`, og deler de node_modules, kan npm kun give den ene kommandoen – så kører `npx playwright test` e2e-filerne med en anden runner-instans, end filerne importerer, og hver fil fejler med «did not expect test.describe() to be called here». `npm run check:tool-isolation` håndhæver adskillelsen.
 - CLI/MCP-familien skal afstemmes indbyrdes, men må ikke afstemmes ved at nedgradere E2E-familien. Hvis CLI/MCP-familien er splittet, opdateres den bagudstående pakke til den seneste kompatible udgave; hvis den ikke kan afstemmes uden nedgradering, registreres den konkrete blokering.
 - Browserbinærer fjernes aldrig som led i reparationen. Hvis den aktuelle Playwright-runtime mangler sin krævede revision, installeres revisionen side om side; en nyere eksisterende revision beholdes.
 - En reparerbar versionsforskel er en miljøhandling, ikke et auditfund. Kun en forskel, der består efter helperens reparation eller konkret påvirker auditdækningen, registreres som dækningshul.
@@ -139,11 +139,11 @@ En endelig auditpass er ikke en garanti om, at alle fremtidige sekvenser er afpr
 
 ## Ufravigelig autonom fortsættelse
 
-Auditten er en åben, langvarig arbejdsopgave — ikke en enkelt leverance med et selvvalgt slutpunkt. Følg disse regler uden undtagelse:
+Auditten er en åben, langvarig arbejdsopgave – ikke en enkelt leverance med et selvvalgt slutpunkt. Følg disse regler uden undtagelse:
 
 - Afslut aldrig arbejdet på eget initiativ efter en batch, et checkpoint, en testkørsel, en fundregistrering, en grøn smoke, en afsluttet auditpass, en tom fundbatch, en delvis dækning eller en statusopsummering.
 - En normal turn-grænse, værktøjsgrænse, timeout, browser-/servergenstart, midlertidig fejl eller behov for oprydning er ikke en tilladelse til at stoppe. Bevar checkpointet og fortsæt straks med næste sikre arbejdsenhed gennem den tilgængelige fortsættelsesmekanisme.
-- Send ikke en afsluttende handoff-besked, mens auditten er aktiv. En statusbesked skal være kort, ikke-blokerende og efterfølges af fortsat audit — den må ikke overlade næste skridt til brugeren.
+- Send ikke en afsluttende handoff-besked, mens auditten er aktiv. En statusbesked skal være kort, ikke-blokerende og efterfølges af fortsat audit – den må ikke overlade næste skridt til brugeren.
 - Spørg aldrig brugeren, om du skal fortsætte, og vent ikke på bekræftelse af næste scenarie. Vælg næste række i den faste rækkefølge og fortsæt autonomt.
 - En brugerbesked om status, fund eller fremdrift er ikke en stopbesked. Besvar den kort med den aktuelle status og genoptag derefter straks auditten.
 - Kun en entydig, udtrykkelig brugerbesked om at stoppe eller pause auditten må afslutte den vedvarende sløjfe. Formuleringer som `stop audit`, `pause audit`, `afslut audit` eller tilsvarende tæller; almindelig stilhed, turnslut eller manglende nye fund tæller ikke.
@@ -161,10 +161,10 @@ Auditten er en åben, langvarig arbejdsopgave — ikke en enkelt leverance med e
 6. Kontrollér `git status --short`, aktuel commit og buildversion. Behandl eksisterende ændringer som brugerens og rør dem ikke.
 7. Kør `node .agents/skills/jette-interaktionsaudit/scripts/audit-session.mjs status --repo .`. Hvis der ikke findes en lease, oprettes den med `STATUS.md`'s registrerede næste scenarie og starttilstand. Ved en frisk opstart med `ready` lease startes den registrerede næste arbejdsenhed; ved `active` lease fortsættes kun, hvis heartbeat stadig er aktuelt og der ikke findes en anden levende audit-worker. Ellers køres `recover` og `resume`, hvorefter hele den aktive arbejdsenhed gentages fra ren tilstand.
 8. Hvis en række står `I gang`, gentag hele dens senest beskrevne arbejdsenhed fra en kendt ren tilstand. Tag ellers næste række i fast rækkefølge: global shell, sider i navigationens rækkefølge, faner og felter i synlig rækkefølge, derefter tværgående flows.
-9. Dæk browserne Chrome, Edge, Firefox og Safari/WebKit med både den almindelige Full-HD-CSS-viewport 1920×1080 og den bindende minimums-CSS-viewport 1536×864. Sidstnævnte svarer til en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering, når browserens zoom står på 100 %. Playwright styrer CSS-viewporten og simulerer ikke selve operativsystemets fysiske skalering; registrér derfor altid både CSS-viewport og `window.devicePixelRatio`, og registrér et eventuelt hul i ægte OS-/headed-verifikation særskilt. Brug mindst én større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige — spring den ikke stiltiende over.
+9. Dæk browserne Chrome, Edge, Firefox og Safari/WebKit med både den almindelige Full-HD-CSS-viewport 1920×1080 og den bindende minimums-CSS-viewport 1536×864. Sidstnævnte svarer til en fysisk 1920×1080-skærm ved 125 % Windows-visningsskalering, når browserens zoom står på 100 %. Playwright styrer CSS-viewporten og simulerer ikke selve operativsystemets fysiske skalering; registrér derfor altid både CSS-viewport og `window.devicePixelRatio`, og registrér et eventuelt hul i ægte OS-/headed-verifikation særskilt. Brug mindst én større repræsentativ desktop-viewport. Hvis en browser eller viewport ikke kan køres, registrér det som et dækningshul og fortsæt med de øvrige – spring den ikke stiltiende over.
    - Før browserstyring: kør `ensure-audit-environment.mjs` som beskrevet ovenfor. Kontrollér derefter `node .agents/tools/playwright-cli.mjs --version`, `npx playwright --version` og `npx playwright install --list`. De to kommandoer rammer hver sin familie, fordi CLI/MCP-familien bor i `.agents/tools` og `npx playwright` derfor entydigt er Mineos E2E-motor. Helperen installerer manglende Firefox/WebKit/Chromium-revisioner, bevarer nyere revisioner og registrerer manglende Chrome-/Edge-channel eksplicit som dækningshul.
    - Kør alle browserkørsler headless. `playwright-cli` er headless som standard, så brug aldrig `--headed`, `npm run test:e2e:headed`, `show --annotate`, `--open` eller en synlig browser-attach under auditten. Snapshots, screenshots, traces og video kan stadig optages headless. Det holder browseren fra skærmen og fra operativsystemets input-/dvaleinteraktion.
-   - Brug de navngivne sessioner `chrome`, `edge`, `firefox` og `webkit`, og luk dem med `node .agents/tools/playwright-cli.mjs close-all` efter batchen. En session må ikke genbruges, før dens browser, viewport og rene starttilstand er verificeret. E2E-smoke og andre testkørsler køres via `npm run test:e2e` eller `npx playwright test` — de to CLI-familier har hver sit træ og må ikke blandes sammen.
+   - Brug de navngivne sessioner `chrome`, `edge`, `firefox` og `webkit`, og luk dem med `node .agents/tools/playwright-cli.mjs close-all` efter batchen. En session må ikke genbruges, før dens browser, viewport og rene starttilstand er verificeret. E2E-smoke og andre testkørsler køres via `npm run test:e2e` eller `npx playwright test` – de to CLI-familier har hver sit træ og må ikke blandes sammen.
    - Platformdialoger, der kun kan åbnes af en synlig browser eller operativsystemet, kan ikke afprøves i den headless audit. Registrér dem som et konkret dækningshul og fortsæt med uafhængige arbejdsenheder; skift ikke automatisk til headed. En synlig kørsel kræver en udtrykkelig brugerbesked.
    - Kør den automatiske browser-smoke med `npm run test:e2e` før den brede udforskning. Den lokale Playwright-konfiguration skal køre de fire motorer ved både 1536×864 og 1920×1080; til den større viewport sættes `PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT=1` før samme kommando (i PowerShell: `$env:PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT='1'; npm run test:e2e`).
    - Almindelige flows køres mod Vite-devserveren. Service-worker-, PWA- og launch-queue-flows køres separat mod et produktions-preview: `npm run build:mineo`, derefter `npm run preview:e2e` på port 4174. Brug ikke devserverens manglende service-worker som evidens for et PWA-resultat. Ved automatiseret kontrol mod preview sættes i PowerShell `$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:4174'; $env:PLAYWRIGHT_SKIP_WEBSERVER='1'; $env:PLAYWRIGHT_ALLOW_SERVICE_WORKERS='1'` før `npm run test:e2e`. PWA-rækkerne gentages ved 1536×864 og 1920×1080; kontrollér også at installeret/standalone-vinduets shell, navigation og dokumentflows ikke mister indhold.
@@ -219,7 +219,7 @@ Ved 1536×864 skal alle globale handlinger og alle sidemenuens punkter kunne nå
 
 - at sidemenuens sidste synlige punkt og alle globale handlinger har en faktisk tilgængelig fokus-/klikgeometri;
 - at ingen side-menu-wrapper, sidemenu-scrollregion eller skjult `overflow` gør et punkt utilgængeligt;
-- at sidemenuen ikke får en egen intern lodret scrollfunktion. Hvis hele siden kræver lodret plads, skal den almindelige app-/dokument-scroll eller en anden eksplicit, brugerforståelig shell-adfærd bære det — ikke en separat scrollbar i sidemenuen;
+- at sidemenuen ikke får en egen intern lodret scrollfunktion. Hvis hele siden kræver lodret plads, skal den almindelige app-/dokument-scroll eller en anden eksplicit, brugerforståelig shell-adfærd bære det – ikke en separat scrollbar i sidemenuen;
 - at fokus på sidste menupunkt, `Tab`/`Shift+Tab`, `Enter` og navigation til sidste route fungerer, og at fokus ikke flyttes til et clipped element;
 - at eventuel tættere spacing, mindre typografi eller anden komprimering ved lav højde registreres som synlig UI-/adfærdsændring og forelægges før produktimplementering, hvis den ikke allerede er en entydig genskabelse af dokumenteret adfærd.
 
@@ -264,15 +264,15 @@ CLI'ens 60-sekunders timeout rammer, og derefter afvises `snapshot`, `run-code` 
 `page.on('dialog')` inde i `run-code` fanger den ikke. Kør derfor altid navigation som:
 
 ```powershell
-node .agents/tools/playwright-cli.mjs -s=chrome reload      # rammer dialogen og timeouter — forventet
+node .agents/tools/playwright-cli.mjs -s=chrome reload      # rammer dialogen og timeouter – forventet
 node .agents/tools/playwright-cli.mjs -s=chrome dialog-accept
 node .agents/tools/playwright-cli.mjs -s=chrome snapshot
 ```
 
 Timeout i dette forløb er forventet mekanik og registreres ikke som fejl. `dialog-accept` uden aktiv dialog
-giver exit 1 — kontrollér med `snapshot`, om dialogen allerede er væk, før accept gentages.
+giver exit 1 – kontrollér med `snapshot`, om dialogen allerede er væk, før accept gentages.
 
-**Kommandofladen er den, `--help` viser — ikke den forventede.** Kontrollér `node .agents/tools/playwright-cli.mjs
+**Kommandofladen er den, `--help` viser – ikke den forventede.** Kontrollér `node .agents/tools/playwright-cli.mjs
 --help <kommando>` før en ukendt kommando bruges. Konkret fra loggen:
 
 - Der findes ingen `wait-for-time` og ingen `pageerrors`. Brug `snapshot` (som venter selv) og `console`.
@@ -297,7 +297,7 @@ Hold desuden `run-code`-scripts korte. Et samlet setup-script, der fejler på lo
 halvt etableret tilstand, som ikke kan bruges som baseline; små trin med frisk locator pr. trin er hurtigere
 i praksis.
 
-**Serverstart.** Start aldrig Vite via `node vite.js` eller sammensatte `Start-Process`-kommandoer — begge
+**Serverstart.** Start aldrig Vite via `node vite.js` eller sammensatte `Start-Process`-kommandoer – begge
 fejlede gentagne gange i loggen. Brug projektets egne scripts, som allerede er `--open`-fri, og vent på at
 porten faktisk svarer, før browserarbejdet begynder:
 
@@ -391,7 +391,7 @@ node $lease complete --repo . --next-scenario NEXT-ID --next-start-state 'Konkre
 
 En række er kun `Dækket`, når den relevante brugeradfærd, kontrakt-/kodeafstemning, branches, afhængighedskanter, downstream-forbrugere og browser-/viewportvariationer er håndteret. En række, der kræver svar på et spørgsmål, står `Afventer afklaring` og tæller ikke som dækket.
 
-Bevar beståede forhold kompakt som scenarie-, partitions- og evidensreferencer, så status kan genoptages. Brug detaljeret plads på reproducerbare fund, uafklarede spørgsmål og konkrete dækningshuller — ikke på gentagen historik om hver bestået handling.
+Bevar beståede forhold kompakt som scenarie-, partitions- og evidensreferencer, så status kan genoptages. Brug detaljeret plads på reproducerbare fund, uafklarede spørgsmål og konkrete dækningshuller – ikke på gentagen historik om hver bestået handling.
 
 Når brugeren beder om status, pause eller stop, skal alle åbne `QUESTIONS.md`-poster fremhæves og forelægges. Hvis brugeren senere besvarer et spørgsmål, registrér svaret i posten, opdatér de berørte rækker og genkør de arbejdsenheder, som svaret ændrer.
 
@@ -401,4 +401,4 @@ Ved ukontrolleret afbrydelse er en række `I gang` ikke pålidelig deldækning: 
 
 Markér først den aktuelle auditpass afsluttet, når inventaret er afstemt mod både brugerflade, kontrakter og kildekode, ingen række står `Ikke startet`, `I gang` eller `Blokeret`, alle identificerede branches, skæringer, afhængighedskanter og browserdækninger har evidens, fund er reproduceret eller markeret som ustabile, og den fulde navigation-/stateful smoke er kørt uden nye systemfejl.
 
-Åbne spørgsmål og resterende modelrisiko skal beskrives. En afsluttet auditpass afslutter kun den aktuelle pass — begynd næste pass efter den vedvarende arbejdssløjfe, indtil brugeren specifikt stopper eller pauser.
+Åbne spørgsmål og resterende modelrisiko skal beskrives. En afsluttet auditpass afslutter kun den aktuelle pass – begynd næste pass efter den vedvarende arbejdssløjfe, indtil brugeren specifikt stopper eller pauser.

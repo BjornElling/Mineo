@@ -51,7 +51,7 @@ const createRow = (overrides: StandardLoenTestRowOverrides = {}): StandardLoenTa
   };
 };
 
-describe('calculateStandardLoenRowDerived — Store Bededag', () => {
+describe('calculateStandardLoenRowDerived – Store Bededag', () => {
   it('storeBededagPct indgår i fpFvShSo-grundlaget (beregnes af løn inkl. ikke-pens.giv.)', () => {
     // Verificerer at 0,45 % tillæg tilskrives korrekt:
     // loenPlusLoen2 = 30000, ikkePensionsgivende = 0, ferie = 12,5 %, bededag = 0,45 %
@@ -232,7 +232,7 @@ describe('calculateStandardLoenRowDerived med rateSegments', () => {
     // fpFvShSo = (31000 * 15/31 * 0.02) + (31000 * 16/31 * 0.069)
     //          = (15000 * 0.02) + (16000 * 0.069)
     //          = 300 + 1104 = 1404
-    // Råsummen er et præcist heltal her, så afrundingen ændrer intet —
+    // Råsummen er et præcist heltal her, så afrundingen ændrer intet –
     // men vi asserter med toBe for at håndhæve at output altid er afrundet til 2 decimaler.
     const expectedFpFvShSo = roundStandardLoenAmountToTwoDecimals(
       (31000 * (15 / 31)) * 0.02 + (31000 * (16 / 31)) * 0.069

@@ -274,13 +274,13 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const beregningsaar = isoYear(beregningsdato);
 
   // Datoorden-værn: beregningsdato bør aldrig ligge før skadedato. Sker det (typisk tastefejl),
-  // giver opreguleringskæden faktor 1 (ingen opregulering) — et tvivlsomt, uopreguleret krav.
+  // giver opreguleringskæden faktor 1 (ingen opregulering) – et tvivlsomt, uopreguleret krav.
   // ISO-datoer (YYYY-MM-DD) kan sammenlignes leksikografisk = kronologisk. Ikke-blokerende advarsel.
   if (beregningsdato < skadedato) {
     issues.push(
       toWarning(
         'warn-beregningsdato-foer-skadedato',
-        `Beregningsdatoen ligger før ${stamdataDatoReference.labelLower}. Kravet opreguleres ikke — kontrollér datoerne`
+        `Beregningsdatoen ligger før ${stamdataDatoReference.labelLower}. Kravet opreguleres ikke – kontrollér datoerne`
       )
     );
   }
@@ -324,7 +324,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const ealAarsloenInput = amountValueToNumber(values.ealAarsloen);
   const maxAarsloenForSkadesaar = resolveAslAarsloensmaksimumForAar(skadesaar, input.aarsloenAslMax);
   const maxAarsloenWarningMessage =
-    'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL';
+    'Skadelidtes fulde årsløn skal indtastes for EAL – ikke maks. årslønnen efter ASL';
   const isSkadeFraJuli2024EllerSenere = skadedato >= SKAERING_2024_07_01;
 
   if (

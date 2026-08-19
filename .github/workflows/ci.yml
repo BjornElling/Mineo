@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       # Den tunge release-gate uden browsermatrixen. E2E-suiten kører nedenfor som selvstændige,
-      # parallelle jobs — ét pr. projekt — så hvert projekt beholder én stabil worker uden at
+      # parallelle jobs – ét pr. projekt – så hvert projekt beholder én stabil worker uden at
       # blokere de øvrige.
       - name: Verify release
         run: npm run verify:release:core

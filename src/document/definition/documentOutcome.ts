@@ -5,9 +5,9 @@
  * beskedvalg. Reglen er: **tilstanden bestemmer beskeden; fasen bestemmer kun diagnostikken.**
  *
  * Taksonomien skelner tre ting, som §A5 kræver holdt adskilt:
- *   - `rejected` — forventelig, brugerrettelig eller transient. Rapporteres IKKE som systemfejl.
- *   - `failed` med `kind: 'dev-server-unavailable'` — kun DEV; miljøproblem, ikke en programfejl.
- *   - `failed` med `kind: 'runtime'` — uventet. Den ENESTE klasse der hører til systemfejl-sinken.
+ *   - `rejected` – forventelig, brugerrettelig eller transient. Rapporteres IKKE som systemfejl.
+ *   - `failed` med `kind: 'dev-server-unavailable'` – kun DEV; miljøproblem, ikke en programfejl.
+ *   - `failed` med `kind: 'runtime'` – uventet. Den ENESTE klasse der hører til systemfejl-sinken.
  */
 import {
   classifyBlockingCauses,
@@ -35,7 +35,7 @@ export type DocumentLifecyclePhase =
 
 /**
  * Mindst én årsag. En blokering uden årsag er et invariantbrud: kontrakten kræver, at en blokeret
- * download ALTID har en auditerbar grund, og en tom liste ville gøre knappens tooltip tomt — den ENE
+ * download ALTID har en auditerbar grund, og en tom liste ville gøre knappens tooltip tomt – den ENE
  * kanal, årsagen har til brugeren (`page-component-contract.md` §11.1).
  */
 export type DocumentGateReasons = readonly [DocumentDownloadGateReason, ...DocumentDownloadGateReason[]];
@@ -49,7 +49,7 @@ export const isNonEmptyReasons = (
  *
  * De eksisterende `evaluate*DownloadGate`-funktioner returnerer `readonly Reason[]`, og en blokering
  * med tom liste ville derfor kunne slippe igennem som en knap, der er disabled uden nogen grund i
- * tooltippet — og uden noget at auditere. `fallback` er derfor påkrævet og fungerer som sikkerhedsnet:
+ * tooltippet – og uden noget at auditere. `fallback` er derfor påkrævet og fungerer som sikkerhedsnet:
  * hellere en generisk grund end ingen.
  */
 export const toGateReasons = (
@@ -68,18 +68,18 @@ export type BlockedProjection = Readonly<{ status: 'blocked'; reasons: DocumentG
 /**
  * Den ENE måde en projektion udtrykker "blokeret" med præcis én årsag.
  *
- * Projektionernes fail-closed sikkerhedsnet — "Beregning kan ikke dannes", "Rentelinjen findes ikke længere"
- * — beskriver en TILSTAND i gaten, ikke en handling brugeren kan udføre. De er derfor `missing-input`, så
+ * Projektionernes fail-closed sikkerhedsnet – "Beregning kan ikke dannes", "Rentelinjen findes ikke længere"
+ * – beskriver en TILSTAND i gaten, ikke en handling brugeren kan udføre. De er derfor `missing-input`, så
  * brugeren møder den universelle tekst. Er blokeringen derimod et RØDT FELT, er
- * {@link blockedProjectionFromCauses} den rigtige — den UDLEDER klassen af issuene frem for at hardkode
+ * {@link blockedProjectionFromCauses} den rigtige – den UDLEDER klassen af issuene frem for at hardkode
  * den; har projektionen undtagelsesvist en konkret, brugerrettet besked, er det
  * `blockedProjectionWithSpecificReason`.
  *
  * Helperen findes, fordi de ni definitionsfiler før byggede `{status:'blocked', reasons:[{code,message}]}`
- * i hånden — en parallel vej, der omgik gate-konstruktørerne og derfor kunne glemme klassifikationen.
+ * i hånden – en parallel vej, der omgik gate-konstruktørerne og derfor kunne glemme klassifikationen.
  *
  * Der fandtes tidligere en `blockedProjectionForInvalidInput`-tvilling, som hardkodede `invalid-input`.
- * Ingen definitionsfil kaldte den — den var en åben, uafprøvet vej til præcis den fejlklasse, brugerfundet
+ * Ingen definitionsfil kaldte den – den var en åben, uafprøvet vej til præcis den fejlklasse, brugerfundet
  * 2026-08-15 afdækkede to andre steder (en hardkodet klasse over en betingelse, der dækker begge klasser).
  * Den er derfor slettet frem for bevaret, og `document/gate-class-hardcoded-invalid-input` holder den ude.
  */
@@ -102,7 +102,7 @@ export const blockedProjectionWithSpecificReason = (
  *
  *  1. En `missing`-consumerfejl blev citeret ("Feltet Skadedato er ikke udfyldt") frem for at give den
  *     universelle "Indtastning mangler", som issuets egen klasse foreskriver.
- *  2. Et vilkårligt FØRSTE issue blev fremhævet, også når projektionen bar flere — så brugeren kunne tro,
+ *  2. Et vilkårligt FØRSTE issue blev fremhævet, også når projektionen bar flere – så brugeren kunne tro,
  *     den citerede fejl var den eneste (lempelsen §2).
  *
  * `fallbackMessage` bruges kun, når listen er tom (eller kun rummer aggregat-årsager uden besked).
@@ -120,7 +120,7 @@ export const blockedProjectionFromCauses = (
  * En forventelig afvisning. Ingen af disse er programfejl, og ingen af dem må nå
  * systemfejl-overfladen.
  *
- * - `gate-blocked` er brugerrettelig og bærer definitionens egne årsager — HELE listen — som AUDITDATA.
+ * - `gate-blocked` er brugerrettelig og bærer definitionens egne årsager – HELE listen – som AUDITDATA.
  *   Den producerer bevidst ingen brugerbesked: knappen var synligt inaktiv, og tooltippet ejer årsagen
  *   (`page-component-contract.md` §11.1).
  * - `stale-source` er transient og har samme betydning i ALLE faser (deraf `phase` som data).

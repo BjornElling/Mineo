@@ -8,13 +8,13 @@ import LabeledControlRow from '../../../layout/LabeledControlRow';
 /**
  * Den fælles Anciennitetstillæg-blok.
  *
- * Blokken sad ordret to gange — `AnsaettelsesforholdCard.tsx` (61 l.) og
- * `IndtaegtFoerSkadenSection.tsx` (47 l.) — umiddelbart efter `LoenudviklingFields` på begge
+ * Blokken sad ordret to gange – `AnsaettelsesforholdCard.tsx` (61 l.) og
+ * `IndtaegtFoerSkadenSection.tsx` (47 l.) – umiddelbart efter `LoenudviklingFields` på begge
  * overflader. Den slap gennem #1/#22, fordi den ligger UDEN for Lønudvikling-fladen selv, men
  * det er samme duplikering af samme grund, og derfor samme løsning: ét sted, med bindingen
  * injiceret af ejeren.
  *
- * **`satsEnhedSlot` er en bevidst slot og ikke en prop-flag** — af samme grund som
+ * **`satsEnhedSlot` er en bevidst slot og ikke en prop-flag** – af samme grund som
  * `overenskomstSlot` i `LoenudviklingFields`. De to overflader afgør satsens enhed
  * FORSKELLIGT, og det er en reel funktionsforskel, ikke drift:
  *
@@ -34,16 +34,16 @@ export type AnciennitetstillaegFieldsProps = Readonly<{
    *
    * Kaldes med rækkens navnebinding, fordi ETIKETTEN hører til her (den interpolerer `referenceText`),
    * mens KONTROLLEN ejes af callsitet. Uden bindingen måtte hvert callsite gentage etiketteksten som
-   * et `ariaLabel` — to kopier af samme streng, der kan glide fra hinanden.
+   * et `ariaLabel` – to kopier af samme streng, der kan glide fra hinanden.
    */
   toggleSlot: (binding: Readonly<{ labelledBy: string; controlId: string }>) => ReactNode;
   /** Sand når toggle'en er slået til; styrer om detaljerne vises. */
   harAnciennitetstillaeg: boolean;
   /** Referenceteksten i toggle-rækkens etiket (fx «efter reguleringsdatoen …»). */
   referenceText: string;
-  /** «Sats per {enhed}» — enheden er allerede opløst af ejeren. */
+  /** «Sats per {enhed}» – enheden er allerede opløst af ejeren. */
   satsPerTekst: string;
-  /** Rækken der vælger satsens enhed. `null` når overfladen udleder enheden — se komponentens doc. */
+  /** Rækken der vælger satsens enhed. `null` når overfladen udleder enheden – se komponentens doc. */
   satsEnhedSlot: ReactNode;
   /** Suffiks på feltnavne, så to kort på samme side ikke deler `name`. */
   fieldNamePrefix: string;

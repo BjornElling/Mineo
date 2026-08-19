@@ -30,7 +30,7 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
   const eetResult = computeEetEalCalculation({
     // EAL-beregningen aftager kun de fem felter, den faktisk læser (EetEalInputValues).
     // Beslutningsnote: skadelidteFodselsdato sendes via toplevel-parameteren (ikke via
-    // erhvervsevnetab), hvilket er intentionelt — aldersreduktionen beregnes korrekt herfra.
+    // erhvervsevnetab), hvilket er intentionelt – aldersreduktionen beregnes korrekt herfra.
     erhvervsevnetab: {
       beregningsdato: input.beregningsdato,
       aslAfgoerelser: [],
@@ -58,7 +58,7 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
   const minSats = foersoergertabEalMin[beregningsaar];
   if (!Number.isFinite(minSats)) {
     // Fail-closed: forsørgertabets EAL-minimum mangler for beregningsåret. Et forsørgertabskrav
-    // må ikke beregnes uden minimumsgaranti (stille gæt) — rapportér eksplicit i stedet.
+    // må ikke beregnes uden minimumsgaranti (stille gæt) – rapportér eksplicit i stedet.
     // Uopnåelig med nuværende datadækning (getSatserCompleteYearBounds inkluderer min-satsen),
     // men hærdet for at undgå en tavs gren ved fremtidige datahuller. Jf. 4.5-review.
     return {

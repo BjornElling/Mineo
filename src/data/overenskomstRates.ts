@@ -107,7 +107,7 @@ export interface Overenskomst {
 export type ReguleringsDatoInterval = CoverageInterval;
 
 /**
- * Sorteringsretningen for overenskomsternes satsserier — ét sted, delt af load-guarden
+ * Sorteringsretningen for overenskomsternes satsserier – ét sted, delt af load-guarden
  * (`assertOverenskomstSatserNyesteFoerst`), af carry-forward-opslaget
  * (`getSatserForDatoFromList` returnerer den første sats med `fraDato ≤ dato`) og af det
  * positionelle dæknings-opslag.
@@ -1436,7 +1436,7 @@ const inferFravigerFerielovFromPolicy = (policy: OverenskomstSfggPolicy): boolea
 /**
  * Fail-closed dæknings-guard for en overenskomsts SFGG-policy (SFGG-redesign S5, guardrail G8).
  *
- * SFGG-fravigelsen er en eksplicit boolean pr. overenskomst — aldrig en dynamisk formel — og
+ * SFGG-fravigelsen er en eksplicit boolean pr. overenskomst – aldrig en dynamisk formel – og
  * `sfggPolicy` er et obligatorisk felt på `OverenskomstMeta`, så en manglende policy er en
  * compile-fejl. Denne guard håndhæver dertil ved modul-load, at den deklarerede policy er
  * *internt konsistent* (fravigelse følger af model/bortfald/referenceperiode) og *matcher
@@ -1486,12 +1486,12 @@ offentligeOverenskomster.forEach((meta) =>
  * Integritets-guard for en overenskomsts satsserie (fail-closed ved ægte datafejl).
  *
  * `getSatserForDatoFromList` returnerer den FØRSTE sats i array-rækkefølge hvor
- * `fraDato ≤ dato` — dvs. den forudsætter strengt nyeste-først sortering for at
+ * `fraDato ≤ dato` – dvs. den forudsætter strengt nyeste-først sortering for at
  * carry-forwarde den korrekte (nyeste gældende) sats. En mis-sorteret serie ville få
  * opslaget til at returnere en ældre sats for en dato, hvor en nyere gælder → tavs
  * forkert regulering. Desuden udleder `getReguleringsDatoIntervalForOverenskomst`
  * dæknings-intervallet positionelt via `resolveSeriesCoverageInterval` med
- * `OVERENSKOMST_SERIE_ORDER` — samme retning som denne guard håndhæver — og det gater S1/S6
+ * `OVERENSKOMST_SERIE_ORDER` – samme retning som denne guard håndhæver – og det gater S1/S6
  * i række-laget. Vi håndhæver derfor ved kilden: ikke-tom serie, strengt nyeste-først
  * (faldende), og unikke, parsbare datoer.
  *
@@ -1546,12 +1546,12 @@ export const getOverenskomstMetaById = (id: string): OverenskomstMeta | undefine
  * Overenskomstens KANONISKE etiket: navn efterfulgt af de to overenskomstparter.
  *
  * Ét sandt sted for formlen `navn (lønmodtagerpart / arbejdsgiverpart)`. Den stod før udskrevet i hånden
- * seks steder — to dropdowns (`getOptionLabel` + `MenuItem`) på hver af de to sider, viewmodellen og
- * reguleringsdefinitionen — mens de to EO-PDF-sektioner og sagsniveauet i stedet viste NAVNET ALENE. Den
+ * seks steder – to dropdowns (`getOptionLabel` + `MenuItem`) på hver af de to sider, viewmodellen og
+ * reguleringsdefinitionen – mens de to EO-PDF-sektioner og sagsniveauet i stedet viste NAVNET ALENE. Den
  * uensartethed var synlig for brugeren: samme overenskomst hed to forskellige ting i dokumentet og på
  * skærmen. Brugerbeslutning 2026-07-31: navn OG parter, alle steder.
  *
- * Kun den FØRSTE part pr. side vises, selv om begge lister kan have flere. Det er bevidst — etiketten skal
+ * Kun den FØRSTE part pr. side vises, selv om begge lister kan have flere. Det er bevidst – etiketten skal
  * være læsbar i en dropdown og på en dokumentlinje, ikke udtømmende.
  *
  * `fallback` er teksten for et tomt/manglende ID. De to eksisterende ordlyde bevares, fordi de betyder

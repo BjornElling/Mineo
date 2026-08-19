@@ -25,7 +25,7 @@ export type EntityRef = Readonly<{ collection: CollectionRef; entityId: string }
 // ── §3.4 pkt. 1: ValidationReader ──────────────────────────────────────────────────────────────────
 // Læser afsluttet canonical/rejected input og dependencies UDEN at anvende feltissues. Kun
 // input-/valideringsinfrastrukturen må bruge den. Den er grundlaget for både relevans, feltvalidatorer
-// og den offentlige reader — så feltvurderingen aldrig bliver cirkulær.
+// og den offentlige reader – så feltvurderingen aldrig bliver cirkulær.
 
 export type ValidationReader = Readonly<{
   input: SettledInput;
@@ -77,7 +77,7 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
  *
  * Irrelevante (= skjulte, §7.3) felter giver aldrig et aktivt issue (§1.9): en rød markering, brugeren ikke
  * kan se, kan hverken rettes eller retfærdiggøres. Det gælder BEGGE fejlformer, og det er netop derfor
- * `reduceImmediateChoice` RYDDER et felt, som et valg skjuler, mens det bar en rød fejl (§7.5 pkt. 2) —
+ * `reduceImmediateChoice` RYDDER et felt, som et valg skjuler, mens det bar en rød fejl (§7.5 pkt. 2) –
  * ellers ville en skjult rejection blokere `.eo`-save globalt (§8) uden et felt at pege på. Rydningen og
  * denne tavshed er to halvdele af samme regel: det skjulte er tavst, FORDI det er ryddet.
  */
@@ -170,7 +170,7 @@ export type InputReader = Readonly<{
   read: <T>(field: FieldRef<T>) => ReadFieldResult<T>;
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
   /**
-   * Feltets brugervendte navn i den aktuelle kontekst (§3.2a) — det navn brugeren SER stå ved feltet.
+   * Feltets brugervendte navn i den aktuelle kontekst (§3.2a) – det navn brugeren SER stå ved feltet.
    *
    * Kanalen er bevidst SMAL: readeren navngiver et felt, den udleverer ikke canonical værdier. En
    * kontekstuel labelregel læser andre felters canonical værdier, men gør det INDE i readeren, hvor
@@ -178,7 +178,7 @@ export type InputReader = Readonly<{
    * for at kunne navngive et felt, var issue-grænsen (§1.5: ingen consumer ser værdien bag en rød
    * feltfejl) åben for enhver læser, der bare kaldte sig en labelopløser.
    *
-   * Navngivning er tilladt på et felt med en rød fejl — det er netop DA, navnet skal være rigtigt.
+   * Navngivning er tilladt på et felt med en rød fejl – det er netop DA, navnet skal være rigtigt.
    */
   labelOf: <T>(field: FieldRef<T>) => string;
 }>;
@@ -230,7 +230,7 @@ const createInputReader = (options: Readonly<{
       // Et feltNAVN er metadata om feltet, ikke dets værdi, og kræver derfor ikke, at feltets entity
       // findes. Grænsen er stadig fail-closed på det, der KAN være en fejl: en ref, kataloget ikke
       // kender. Kravet om en eksisterende entity ville derimod gøre navnet uopnåeligt netop dér, hvor
-      // det er mest nødvendigt — i en tabels placeholder-række, som pr. definition endnu ikke findes
+      // det er mest nødvendigt – i en tabels placeholder-række, som pr. definition endnu ikke findes
       // (§1.11). En eventuel `contextualLabel`-regel læser ANDRE felters canonical værdier gennem
       // `labelView` og er upåvirket af, om denne række er oprettet.
       if (!options.catalog.isKnownField(field)) {
@@ -252,20 +252,20 @@ export type InputEvaluation = Readonly<{
  * issue-snapshot sammen med et nyt input/token og eksponere en bounds-fejlende canonical værdi.
  *
  * **Tager ikke `settings`.** Factoryen havde tidligere en generisk `settings: TSettings` plus en
- * valgfri `deriveSettingsFieldIssues`-hook. Ingen produktionskaldssted leverede nogensinde hooken —
- * dens eneste eksercerer var en test af mekanismen selv — så `settings` blev udelukkende dybfrosset
+ * valgfri `deriveSettingsFieldIssues`-hook. Ingen produktionskaldssted leverede nogensinde hooken –
+ * dens eneste eksercerer var en test af mekanismen selv – så `settings` blev udelukkende dybfrosset
  * og kastet væk. Den frie typeparameter var samtidig den sidste vej, ad hvilken hele `AppSettings`
  * kunne nå evalueringen. En fremtidig settings-læsning her ville derfor kunne
  * ændre et issue uden at indgå i `SOURCE_SETTINGS_KEYS` og altså uden at gøre et optaget
  * `EvaluationSourceToken` stale.
  *
- * Capabilityen er derfor FJERNET frem for bevogtet — samme afgørelse som inputkernens skrivegrænse.
+ * Capabilityen er derfor FJERNET frem for bevogtet – samme afgørelse som inputkernens skrivegrænse.
  *
  * **Hvis der senere OPSTÅR behov for en settingsafhængig feltissue:** den kan ikke blot lægges i en
  * eksisterende validator. Descriptor-validatorer modtager i dag ikke `SourceSettings`, og
  * consumer-issues bliver ikke til kernens feltissues (og dermed ikke til et rødt standardfelt). En
  * sådan regel kræver altså en NY, eksplicit auditeret grænse, hvor kilden er det projekterede
- * snapshot og nøglen indgår i `SOURCE_SETTINGS_KEYS` — ikke en genindførelse af en fri
+ * snapshot og nøglen indgår i `SOURCE_SETTINGS_KEYS` – ikke en genindførelse af en fri
  * typeparameter her. Ingen aktuel regel har behovet.
  */
 export const createInputEvaluation = (options: Readonly<{

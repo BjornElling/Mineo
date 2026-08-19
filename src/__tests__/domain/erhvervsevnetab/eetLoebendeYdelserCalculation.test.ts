@@ -1559,14 +1559,14 @@ describe('computeEetLoebendeYdelser', () => {
     const steps = buildLoebendeAarsydelseReguleringSteps(afgoerelse);
     expect(steps).toEqual([]);
     // Afgørelsen ophører dagen inden virkningsdatoen (kapitaliseringsdato = virkningsdato),
-    // så perioder er tomme — 2024-konverteringsblokken skal IKKE vises.
+    // så perioder er tomme – 2024-konverteringsblokken skal IKKE vises.
     expect(shouldShowLoebende2024ConversionBlock(afgoerelse)).toBe(false);
   });
 
   it('stopper løbende ydelse ved folkepensionsdato når endelig afgørelse er mere end 2 år før FP', () => {
     // Skadedato 2019-04-01, fødselsdato 1955-07-01.
     // Bekendtgørelsen giver FP = 67 år → folkepensionsdato = 2022-07-01.
-    // Afgørelsesdato 2019-06-01: 37 måneder til FP — klart > 2 år.
+    // Afgørelsesdato 2019-06-01: 37 måneder til FP – klart > 2 år.
     // folkepensionsDagFoer = 2022-06-30.
     // Beregningsdato 2023-12-31 (efter FP).
     // Ingen tvungen kapitalisering gælder i dette scenarie; ophørskandidaten er folkepensionsdagen før.

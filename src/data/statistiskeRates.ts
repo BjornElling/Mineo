@@ -78,7 +78,7 @@ export interface StatistiskLoenudvikling {
    * Kvartals-indeksværdier. Rækkefølgen er IKKE en invariant og må ikke bygges på:
    * beregningsstien (`buildStatistikIndexEntries`) sorterer eksplicit før brug, og
    * dæknings-intervallet scanner enderne. Modsat KRL/KL/overenskomst/offentlig løn er der
-   * derfor bevidst intet sorterings-værn på denne serie — der er intet opslag, en forkert
+   * derfor bevidst intet sorterings-værn på denne serie – der er intet opslag, en forkert
    * rækkefølge kunne føre bag lyset.
    */
   readonly indeksvaerdier: ReadonlyArray<StatistiskIndeksVaerdi>;
@@ -139,7 +139,7 @@ const indeksFromTable = (
 export const statistiskLoenudvikling: ReadonlyArray<StatistiskLoenudvikling> = [
   // ILON12 - Implicit lønindeks.
   // OBS: ILON12 er ophørt efter 2025K4 (sidste offentliggjorte kvartal). Indekset
-  // opdateres derfor ikke yderligere — der kommer ingen nye kvartaler efter 2025K4.
+  // opdateres derfor ikke yderligere – der kommer ingen nye kvartaler efter 2025K4.
   {
     meta: {
       id:           toStatistiskLoenudviklingId('ILON12'),
@@ -212,7 +212,7 @@ for (const model of statistiskLoenudvikling) {
  * repræsenteret med (mindst) ét kvartal (typisk K1), og et ekstra kvartal i det
  * seneste år er tilladt (fx ILON12 med både 2025K1 og 2025K4). Segment-opslaget i
  * lønudviklingsmotoren bruger "seneste indeks ≤ dato"
- * (`findLatestByDateInSortedList`) — hvis et helt kalenderår mangler midt i serien,
+ * (`findLatestByDateInSortedList`) – hvis et helt kalenderår mangler midt i serien,
  * ville motoren stiltiende videreføre det forrige års indeks i det manglende års
  * segment i stedet for at fejle. Det er en tavs under-regulering (jf. silent-path
  * S6, interiort hul).

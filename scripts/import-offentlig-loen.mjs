@@ -152,7 +152,7 @@ const ReguleringSchema = z.object({
  *    [Løntrin | Årsløn×5 | gap | Løntrin | Månedsløn×5]
  *    → Returnerer maanedCols, timeCols=null, aarsLoenCols (til beregning af timeløn)
  *
- * Gruppekolonner (0-4) scannes eksplicit — ingen antagelse om konsekutive kolonner.
+ * Gruppekolonner (0-4) scannes eksplicit – ingen antagelse om konsekutive kolonner.
  */
 function detectColumns(sheet, filePath) {
   const ref = sheet['!ref'];
@@ -335,13 +335,13 @@ function detectColumns(sheet, filePath) {
   }
 
   if (!hasTimeLoen && !aarsLoenCols) {
-    throw new Error(`Filen mangler både Timeløn og Årsløn — kan ikke beregne timelønssatser (${filePath}).`);
+    throw new Error(`Filen mangler både Timeløn og Årsløn – kan ikke beregne timelønssatser (${filePath}).`);
   }
 
   // 6) Find løntrin-kolonnen
   // Håndterer to skrivemåder:
   //   a) "Løntrin" i én celle (nyere ark)
-  //   b) "Løn-" stablet over "trin" i to lodrette celler (langt de fleste ark) —
+  //   b) "Løn-" stablet over "trin" i to lodrette celler (langt de fleste ark) –
   //      sammenstilles til "løntrin" når cellen nedenunder er "trin".
   const loentrinCandidates = [];
   for (let r = range.s.r; r <= Math.min(gruppeRow, headerMaxRow); r++) {

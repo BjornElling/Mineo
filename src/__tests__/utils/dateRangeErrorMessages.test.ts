@@ -146,12 +146,12 @@ describe('resolveDateRangeErrorMessage', () => {
 
 // Årsagsinputtene er en PÅKRÆVET del af kontrakten, ikke en valgfri ekstra.
 //
-// Fundet var ikke, at helperen manglede evnen — den kunne allerede tilføje årsagen gennem
+// Fundet var ikke, at helperen manglede evnen – den kunne allerede tilføje årsagen gennem
 // `noValidRangeInputs`. Fejlen var, at feltet var VALGFRIT, så de fleste descriptors udelod det: brugeren fik at
 // vide, at ingen dato var gyldig, men ikke hvilke inputs der skulle rettes. Kravet er derfor flyttet til TYPEN
 // (`bounds: DateRangeBoundsOrigin`), hvor `derived` tvinger et årsagsnavn frem. Et nyt dynamisk datofelt kan
 // dermed ikke længere glemme årsagen uden en compilerfejl.
-describe('resolveDateRangeErrorMessage — årsagsinputs i det umulige interval', () => {
+describe('resolveDateRangeErrorMessage – årsagsinputs i det umulige interval', () => {
   const impossible = (bounds: Parameters<typeof resolveDateRangeErrorMessage>[0]['bounds']) =>
     resolveDateRangeErrorMessage({
       iso: iso('2024-06-15'),
@@ -172,7 +172,7 @@ describe('resolveDateRangeErrorMessage — årsagsinputs i det umulige interval'
     expect(message).toContain('Grænserne kommer fra Skadedato og Skadestype.');
   });
 
-  it('nævner ingen årsag for et STATISK interval — der findes intet brugerinput at rette', () => {
+  it('nævner ingen årsag for et STATISK interval – der findes intet brugerinput at rette', () => {
     // Et statisk interval kan pr. konstruktion ikke være umuligt; nås grenen alligevel, er det en
     // konfigurationsfejl. At pege på et vilkårligt felt ville da være misvisende.
     const message = impossible(STATIC_DATE_BOUNDS);

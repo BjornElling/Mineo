@@ -35,7 +35,7 @@ export type GridTextCellProps<T, TEntity = unknown> = Readonly<{
    * Et COLLECTION-afledt feltissue på cellen: en kryds-række-domæneregel (dublet-datoer, identiske
    * afgørelser), som en descriptor-validator ikke kan udtrykke, fordi den kun ser sin egen celles værdi.
    *
-   * Det er et rigtigt `FieldIssue` med feltadresse — ikke en fri fejltekst — så rød markering,
+   * Det er et rigtigt `FieldIssue` med feltadresse – ikke en fri fejltekst – så rød markering,
    * tooltip, fokusnavigation og consumerblokering læser én og samme repræsentation. Descriptorens eget
    * issue (format/bounds/rule) har forrang (§1.8: den mest direkte fejl vises).
    */
@@ -77,7 +77,7 @@ const GridTextCellInner = <T, TEntity>(
   }: GridTextCellProps<T, TEntity>
 ): React.ReactElement => {
   const gridApi = useGridCoreApi();
-  // Feltnavnet kommer fra den ENE autoritet — `InputReader.labelOf` — præcis som formularfelterne.
+  // Feltnavnet kommer fra den ENE autoritet – `InputReader.labelOf` – præcis som formularfelterne.
   // Cellen læste før `descriptor.label` direkte og gik dermed uden om feltets `contextualLabel`, så et
   // felt med et kontekstafhængigt navn ville hedde én ting i formularen og en anden i tabellen. Det er
   // netop den drift, `useFieldLabel` blev oprettet for at fjerne (§3.2a).
@@ -122,7 +122,7 @@ const GridTextCellInner = <T, TEntity>(
     : endAdornment;
 
   // Klik uden for selve <input> (på adornment/padding) skal fokusere inputtet, så grid-core-aktiveringen kan
-  // åbne editoren — ligesom et klik direkte på inputtet.
+  // åbne editoren – ligesom et klik direkte på inputtet.
   const inputEl = surface.inputElementRef;
   const handleFieldMouseDown = React.useCallback(
     (e: React.MouseEvent) => {

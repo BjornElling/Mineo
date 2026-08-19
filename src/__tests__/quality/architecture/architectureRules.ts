@@ -86,7 +86,7 @@ import { webLinkPolicyRule } from './rules/linkRules';
 /**
  * Registry for de AST-baserede arkitekturgrænser.
  *
- * Reglerne selv bor i `rules/`, opdelt efter KONCERN — storage, domæne, dokument, form og
+ * Reglerne selv bor i `rules/`, opdelt efter KONCERN – storage, domæne, dokument, form og
  * inputgrænser. Denne fil samler dem til den ene liste, `architectureRules.test.ts` kører:
  * nul overtrædelser i kilde-grafen, ingen inert regel (fixtures + dødt-værn-detektoren) og
  * generisk anti-rot på hver allowlist.
@@ -94,7 +94,7 @@ import { webLinkPolicyRule } from './rules/linkRules';
  * **Hvorfor opdelt pr. koncern:** som én fil voksede manifestet til godt 2.000 linjer, hvor storage-,
  * input-, domæne-, UI- og dokumentregler lå mellem hinanden. Det gør filen hverken læsbar som helhed
  * eller navigerbar pr. koncern, og to naboregler kan have intet med hinanden at gøre. Opdelingen
- * flytter kun regler, den ændrer ingen — og registryet nedenfor er fortsat ét sted at se dem alle.
+ * flytter kun regler, den ændrer ingen – og registryet nedenfor er fortsat ét sted at se dem alle.
  *
  * Grænserne måles som AST og ikke med directory-walk + regex/substring-scannere: en tekstscanner har
  * silent-pass-huller ved aliasing, destrukturering og bracket-notation, som AST'en lukker strukturelt.

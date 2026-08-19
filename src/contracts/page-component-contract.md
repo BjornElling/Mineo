@@ -3,11 +3,11 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-08-15 (§11.1a's universelle regel for grå knapper er målt af
+**Senest verificeret mod kode:** 2026-08-19 (§11.1a's universelle regel for grå knapper er målt af
 `actionGate.test.ts` og `disabledActionButtons.test.tsx`: de to generiske tekster er de SAMME
 konstanter, downloadgaten bruger, klikket er tavst på både mus og Enter, årsagen findes kun i
 tooltippet, og knappen forbliver fokusérbar med årsagen i `aria-describedby`. Forbuddet mod rystelse
-i §11.1 er verificeret ved, at hele mekanikken er slettet — `useShakeFlag` og
+i §11.1 er verificeret ved, at hele mekanikken er slettet – `useShakeFlag` og
 `StyledToggleSwitchHandle` er håndhævede fraværspåstande i `contractReferenceLiveness.test.ts`)
 
 Dette dokument er **normativt**.
@@ -90,18 +90,18 @@ Ruter med et snævert flowansvar, som ikke er almindelige fagsider.
 
 Aktuelle eksempler:
 
-- `OpenEo` — PWA-filindlæsningsfejl-flow (`src/components/system/`)
-- `UnsupportedDevicePage` — hard-stop ved uunderstøttet enhed (renderet af `apps/shared/bootstrapClientApp.tsx`)
+- `OpenEo` – PWA-filindlæsningsfejl-flow (`src/components/system/`)
+- `UnsupportedDevicePage` – hard-stop ved uunderstøttet enhed (renderet af `apps/shared/bootstrapClientApp.tsx`)
 
 Disse komponenter bor **ikke** i `src/components/pages/`. `pages/`-mappen er reserveret til kategori 2.1–2.3 samt standalone-appens egen side (`pages/minprocesrente/MinProcesrenteCalculatorPage.tsx`, jf. `app-shell-contract.md`). Hjælpe-/systemruter placeres i `src/components/system/` (route-monterede) eller renderes direkte fra app-shellen (`apps/shared/bootstrapClientApp.tsx`, hard-stop).
 
 ### 2.5 Auth-gate-renderede komponenter
 
-Komponenter, der renderes af `AuthGate` som et gate foran hele app-roden — ikke via routing og ikke som device-hard-stop fra app-shellen.
+Komponenter, der renderes af `AuthGate` som et gate foran hele app-roden – ikke via routing og ikke som device-hard-stop fra app-shellen.
 
 Aktuelt eksempel:
 
-- `LoginPage` — renderes af `AuthGate`, når brugeren ikke er låst op; app-træet (med `MainLayout` og routede sider) monteres først efter unlock.
+- `LoginPage` – renderes af `AuthGate`, når brugeren ikke er låst op; app-træet (med `MainLayout` og routede sider) monteres først efter unlock.
 
 Denne kategori falder uden for §1-niveauerne: `LoginPage` er hverken routet fra `App.tsx` (§1 app-/route-niveau) eller et device-hard-stop renderet af `bootstrapClientApp.tsx` (§2.4). Den sidder mellem app-entry/-shell (§3.1) og routing (§3.2): app-entryen vælger `AuthGate` som app-rod, og gaten beslutter at vise `LoginPage` i stedet for app-træet.
 
@@ -126,7 +126,7 @@ Kontrakten skal derfor altid være eksplicit om, hvilke regler der gælder for h
 
 Hver app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`) er tynd og delegerer top-level runtime-opstart til den delte app-shell `apps/shared/bootstrapClientApp.tsx`. App-shellen ejer device gating, initial render-beslutning mellem app og hard-stop side, og install-prompt-politik. Hver app-entry vælger app-roden (fx `AuthGate` for Mineo) og leverer PWA-/service-worker-opstart som callbacks til shellen.
 
-Mobil/tablet-blokering renderes som et separat hard-stop (`UnsupportedDevicePage`) af `bootstrapClientApp.tsx` — ikke i den enkelte app-entry.
+Mobil/tablet-blokering renderes som et separat hard-stop (`UnsupportedDevicePage`) af `bootstrapClientApp.tsx` – ikke i den enkelte app-entry.
 
 ### 3.2 `App.tsx`
 
@@ -208,11 +208,11 @@ under-VM'er (feature-slicede) er tilladt og ønskede, hvor en tab er et substant
 ikke et selvstændigt krav for hver tab.
 
 **Bevidst uden for reglen:** system-/indstillingssider (§2.2) og informationssider (§2.3). En VM er
-her ikke påkrævet — at kræve mønstret universelt ville være den tomme ceremoni, §12 og §13 advarer
+her ikke påkrævet – at kræve mønstret universelt ville være den tomme ceremoni, §12 og §13 advarer
 imod. En sådan side må frit bruge en VM, hvis den reelt har afledt state at huse, men skal ikke.
 
 **Anti-refactor-back:** når en §2.1-sides VM er tynd, fordi siden har lidt logik, skal VM'en bære en
-kort rationale-kommentar — *"naturlig arkitektur"* eller *"bevidst bevaret for ensartning"* — så en
+kort rationale-kommentar – *"naturlig arkitektur"* eller *"bevidst bevaret for ensartning"* – så en
 senere oprydning ikke inliner den i den tro, at den er overflødig. Ensartning på tværs af §2.1 er et
 gyldigt, bevidst designvalg og ikke en fejl, der skal "forenkles" væk.
 
@@ -248,7 +248,7 @@ inputinfrastrukturen. Page-laget må ikke skrive defaults ind ved mount eller re
 
 Inline initial values er kun acceptable, når værdien er afledt af settings ved oprettelse af ny sag. Alle otte
 persisterede fagsider har i dag et navngivet initial-values-modul, så en inline default er en bevidst undtagelse
-med begrundelse — aldrig standardmålet.
+med begrundelse – aldrig standardmålet.
 
 ### 5.3 Read-only adgang til andre sektioner
 
@@ -333,7 +333,7 @@ Memoisering er et implementeringsvalg; den bindende regel er én revisionskonsis
 
 **Én projektion betyder ikke nødvendigvis ét `ProjectionResult`.** Forsørgertab, EET og EO gater bevidst pr.
 dependency-gruppe i stedet for at samle hele siden i én `ready | blocked`: en enkelt rød celle ville ellers
-neutralisere gyldige, uafhængige grene. Kravet om revisionskonsistens og fravær af bypass er det samme —
+neutralisere gyldige, uafhængige grene. Kravet om revisionskonsistens og fravær af bypass er det samme –
 grenene læser samme `InputReader`-revision. Se `domain-boundary-contract.md` og `src/inputCore/projection.ts`.
 
 ---
@@ -389,7 +389,7 @@ Kontrakten er konsistens i brugeroplevelse og struktur, ikke pixel-identisk kopi
 Tabs på tværs af fagsider bør visuelt følge samme familieskab.
 Men stylingdetaljer må ikke bindes til én specifik fil som arkitektonisk sandhedskilde.
 
-Skal tab-styling gøres fuldt ens, sker det ved at flytte den til ét fælles abstraktionspunkt — ikke ved at
+Skal tab-styling gøres fuldt ens, sker det ved at flytte den til ét fælles abstraktionspunkt – ikke ved at
 kopiere `sx`-objekter mellem filer. Kontrakten er:
 
 - samme visuelle principper
@@ -429,15 +429,15 @@ Regler:
 1. **Inaktivering og årsag er uadskillelige.** `CheckboxField` modtager dem som ÉN prop
    (`unavailableReason: string | null`); `null` betyder, at valget er muligt. Et inaktivt betinget felt uden
    årsag efterlader brugeren uden forklaring, og en årsag uden inaktivering beskriver en tilstand, feltet ikke
-   er i — begge er umulige at konstruere gennem prop'en. Bærer en domænemodel tilgængeligheden, gør den samme
+   er i – begge er umulige at konstruere gennem prop'en. Bærer en domænemodel tilgængeligheden, gør den samme
    invariant strukturel (discriminated union på `enabled`), så en årsagsløs inaktiv tilstand ikke kan opstå.
-2. **Årsagen har ÉN visningskanal: tooltippet — og kun ved hover.** Som gate-årsagen i §11 må ingen flade
+2. **Årsagen har ÉN visningskanal: tooltippet – og kun ved hover.** Som gate-årsagen i §11 må ingen flade
    rendere den som en tekstknude ved eller under feltet.
 3. **Årsagen er kort og præcis:** ÉN kort sætning på brugerens sprog, der navngiver den manglende
-   forudsætning — fx «Pensionsalderen er ikke forhøjet i perioden» eller «Mer-erstatning er fravalgt
+   forudsætning – fx «Pensionsalderen er ikke forhøjet i perioden» eller «Mer-erstatning er fravalgt
    nedenfor». Ingen udbygget begrundelse, ingen gentagelse af feltets egen label, og ingen redegørelse for
    regelgrundlaget eller for hvad brugeren så skal gøre; et tooltip læses i forbifarten (brugerbeslutning
-   2026-08-14). Men den skal stadig navngive forudsætningen — ikke et indholdsløst "ikke tilgængelig".
+   2026-08-14). Men den skal stadig navngive forudsætningen – ikke et indholdsløst "ikke tilgængelig".
 4. **Rangorden når flere forudsætninger mangler:** brugerens eget fravalg forklares FØR en beregningsårsag.
    Har brugeren fravalgt indholdet, er beregningen ikke udført, og en beregningsårsag ville da være en påstand
    om et regnestykke, programmet ikke har lavet.
@@ -449,7 +449,7 @@ Regler:
    Fladen sætter kun gruppeklassen `disabled-hover-checkbox-group`, der bærer nedtoningen og hover-kontrasten.
 
 Afgrænsning: synlighedsreglen gælder alle individuelle afkrydsningsfelter. Den ændrer ikke inputfelter,
-der skjules af et **Ja/Nej-svar på samme formular** (fx datofelterne under en ménafgørelse) — der er
+der skjules af et **Ja/Nej-svar på samme formular** (fx datofelterne under en ménafgørelse) – der er
 skjulningen selve formularens forgrening, og felterne er dækket af
 `input-field-behavior-contract.md`'s regler om skjulte værdier. Et element, der pr. definition ALTID indgår,
 bruger `lockedOn` (altid markeret), ikke `disabled` (altid umarkeret).
@@ -483,44 +483,44 @@ den reaktive gate og click-preflight. Aktivering finaliserer eventuel åben edit
 generator, lazy-load og fil-I/O starter aldrig ved blokering.
 
 Download-ikonet skal altid vises sammen med sin tekstlinje. Når den tekstlinje/label, som
-download-ikonet hører til, er synlig, skal ikonet også være synligt — men som **nedtonet,
+download-ikonet hører til, er synlig, skal ikonet også være synligt – men som **nedtonet,
 inaktivt** ikon (`disabled`), når download er blokeret, med blokerings-årsagen i tooltip
 (`disabledReason`, udledt af download-gatens `reasons`). Ikonet må aldrig helt forsvinde,
 mens dets label bliver stående (det efterlader en tom plads, hvor brugeren forventer ikonet).
-Er hele rækken (label + ikon) skjult sammen — fx fordi sektionen ikke er relevant — er det
+Er hele rækken (label + ikon) skjult sammen – fx fordi sektionen ikke er relevant – er det
 konsistent og tilladt. Undtagelse: tabelceller med en etableret "ingen værdi"-markør (fx
 `-` pr. række) beholder markøren frem for et nedtonet ikon.
 
-**Gate-årsagen har ÉN visningskanal: tooltippet — og kun ved hover.** En deaktiveret download-knap
+**Gate-årsagen har ÉN visningskanal: tooltippet – og kun ved hover.** En deaktiveret download-knap
 giver brugeren INGEN besked, hverken under knappen eller i rækken. Reglen er universel for hele
 programmet (brugerbeslutning 2026-07-31) og gælder uanset, hvornår blokeringen opdages:
 
 - Ingen flade må rendere `disabledReason` (eller en gate-`reason.message`) som en tekstknude.
 - Et KLIK på en inaktiv knap besvares ikke med tekst. Det gælder også, når blokeringen først
-  opdages under AKTIVERINGEN — preflighten gater efter commit-barrieren, så et klik med en åben
+  opdages under AKTIVERINGEN – preflighten gater efter commit-barrieren, så et klik med en åben
   editor kan blokere, fordi settlet gjorde værdien ugyldig. Knappen var synligt inaktiv, og
   brugeren har haft tooltippet til rådighed; en besked oveni ville forklare det, brugeren allerede
   kunne se. Udfaldet `gate-blocked` bærer derfor ingen besked
   (`resolveDocumentOutcomeMessage` → `null`), og en flade skal rendere `handle.errorMessage` RÅT
   uden at lægge egen politik oven på det.
-- Et visuelt svar er stadig tilladt og ønsket, hvor det findes — men det skal PEGE et sted hen:
+- Et visuelt svar er stadig tilladt og ønsket, hvor det findes – men det skal PEGE et sted hen:
   fokus på det første blokerende felt, eller et flash af den fejlende celle. Det er ikke en besked,
   men en henvisning til dét, brugeren skal rette.
 - **Rystelse er forbudt.** Knapper må ikke ryste ved en blokeret aktivering (brugerbeslutning
-  2026-08-15). En rystelse siger kun «noget er galt» — hvilket tooltippet allerede har sagt mere
-  præcist — og den forvekslede to ting: en knap, der ryster, fremstår aktiv, selv om den er
+  2026-08-15). En rystelse siger kun «noget er galt» – hvilket tooltippet allerede har sagt mere
+  præcist – og den forvekslede to ting: en knap, der ryster, fremstår aktiv, selv om den er
   spærret. Der er derfor ÉN afvisningsmåde i hele programmet: knappen er synligt og reelt inaktiv
   med årsagen i tooltippet. Mekanikken er slettet (`useShakeFlag`, `StyledToggleSwitchHandle` og
   alle `shake`-props), så en genindførelse kræver, at nogen bygger den op igen.
 - Årsagerne bevares på udfaldet som auditdata (`rejection.reasons`) og som tooltip-kilde. Ingen
-  årsagsliste må være tom — men "synlig" betyder her tooltip og audit, ikke en tekstknude.
+  årsagsliste må være tom – men "synlig" betyder her tooltip og audit, ikke en tekstknude.
 
 Udfaldsrækken viser derfor kun de udfald, knappens tilstand IKKE kunne forudse: et stale-afbrud
 (sagen ændrede sig undervejs) og en utilgængelig DEV-server.
 
 Udfaldsrækken/-boksen bæres af en `PageMessage` og renderes af `PageMessageBox`/`PageMessageRow`, så den
 ikke kan blive synlig uden læsbart indhold. Viewmodellen pinder sine besked-felter med
-`withPageMessages<'…'>()` — nødvendigt, fordi sidens context-type er `ReturnType<typeof useXxxViewModel>`,
+`withPageMessages<'…'>()` – nødvendigt, fordi sidens context-type er `ReturnType<typeof useXxxViewModel>`,
 altså inferensen selv, og en forkert typet besked derfor ikke har noget at afvige fra. Se
 `error-contract.md` §4 for invarianten og dens baggrund.
 
@@ -529,7 +529,7 @@ hvad brugeren læser:
 
 | `kind` | Brugertekst |
 |---|---|
-| `page-errors` | `DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE` ("Opgørelse kan ikke hentes, når der er fejl ovenfor") — når siden selv viser fejlen i sin fejl-/advarselsboks |
+| `page-errors` | `DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE` ("Opgørelse kan ikke hentes, når der er fejl ovenfor") – når siden selv viser fejlen i sin fejl-/advarselsboks |
 | `invalid-input` | den universelle `DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE` ("Fejl i indtastning") |
 | `missing-input` | den universelle `DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE` ("Indtastning mangler") |
 | `specific` | citeres ordret; reserveret til PRÆCIS ÉN felt-/rækkenavngiven fejl (se `error-contract.md` §4) |
@@ -537,10 +537,10 @@ hvad brugeren læser:
 Prioritet ved flere årsager og den fulde klassifikationsregel står i `document-output-contract.md` §A5.1.
 
 `message` er altid den interne forklaring og må ikke antages at være brugertekst. En flade må ikke vælge
-tekst selv eller læse `blockedReasons[0].message` til visning — brug `handle.disabledReason`, som allerede er
+tekst selv eller læse `blockedReasons[0].message` til visning – brug `handle.disabledReason`, som allerede er
 oversat, eller `resolveBlockedGateTooltip(gate.reasons)` for en per-række-gate.
 
-#### 11.1a Reglen gælder ENHVER grå knap — ikke kun download
+#### 11.1a Reglen gælder ENHVER grå knap – ikke kun download
 
 Alt ovenfor er formuleret om downloadknapper, fordi de var den første flade, der fik reglen. Den er
 **universel for enhver deaktiveret handling i programmet** (brugerbeslutning 2026-08-15): en grå knap
@@ -564,7 +564,7 @@ konstanter med samme betydning ville kunne drifte fra hinanden. `limit` er den k
 ikke kender: der er intet felt at rette, så teksten navngiver grænsen i stedet.
 
 Forrangen ved flere samtidige årsager ejes af `resolveActionGate`, ikke af kaldsstedet: `limit` slår
-alt (der er intet input at rette), og `invalid-input` slår `missing-input` — samme forrang som
+alt (der er intet input at rette), og `invalid-input` slår `missing-input` – samme forrang som
 dokumentgaten bruger. En flade må ikke vælge tekst eller rækkefølge selv.
 
 `disabled` og `disabledReason` udledes ét sted (`resolveActionGate`), så de ikke kan komme ud af
@@ -573,7 +573,7 @@ trit: en grå knap uden årsag, eller en årsag der bliver hængende efter bloke
 **Fokusérbar, ikke bortgemt.** En grå knap, hvis eneste forklaring er en hover-tooltip, må ikke være
 utilgængelig for tastatur og berøring. `InlineActionButton` bruger derfor `aria-disabled` + et
 `aria-describedby`, der peger på årsagen, frem for `disabled`: knappen bliver i tab-rækkefølgen,
-oplyses som utilgængelig, og årsagen læses op. Klikket standses ved at undlade `onClick` — ikke med
+oplyses som utilgængelig, og årsagen læses op. Klikket standses ved at undlade `onClick` – ikke med
 `pointer-events: none`, som også ville slå hover fra og dermed gøre årsagen uopnåelig.
 Ikon-/`Fab`-knapper (`FloatingActionButton`) bruger ægte `disabled` og ankrer tooltippen på en
 wrapper, fordi en disabled MUI-kontrol ikke selv udsender pointer-events.
@@ -581,13 +581,13 @@ wrapper, fordi en disabled MUI-kontrol ikke selv udsender pointer-events.
 **Tooltip er ikke et navn.** En knap, hvis eneste tekst er tooltippen, er navnløs for en skærmlæser:
 MUI sætter `aria-labelledby` på popper-elementet, som kun findes mens tooltippen er åben. En
 ikon-knap skal derfor bære et eksplicit `aria-label`, og det navn skal følge HANDLINGEN og være
-stabilt — det må ikke skifte til blokeringsårsagen, når knappen bliver grå. Håndhævet af
+stabilt – det må ikke skifte til blokeringsårsagen, når knappen bliver grå. Håndhævet af
 `a11y/interactive-control-has-accessible-name`.
 
 Grænsen er håndhævet af `document/download-tooltip-from-gate` i AST-manifestet: `.message` på et
 `reasons`-/`blockedReasons`-udtryk i `src/components/**` gør harnesset rødt. Værnet blev tilføjet, fordi
 Renteberegnings rækkeknapper viste gate-interne strenge ("Rentelinjen findes ikke længere") direkte til
-brugeren — kontrakten forbød det i forvejen, men intet målte det.
+brugeren – kontrakten forbød det i forvejen, men intet målte det.
 
 En flade må heller ikke lægge sin egen `??`-fallback eller ternary oven på gatens svar. EO's fire knapper
 gjorde netop det og kastede gatens årsag væk for en hardkodet streng; den beslutning hører i gaten (klassen

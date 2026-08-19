@@ -34,7 +34,7 @@ describe('manuelReguleringRowPredicates', () => {
     });
   });
 
-  describe('Manuel procentsats — tal-/adfærds-identitet med de tidligere inline-udtryk', () => {
+  describe('Manuel procentsats – tal-/adfærds-identitet med de tidligere inline-udtryk', () => {
     // De bogstavelige udtryk der lå i validator (:894-895/:886/:892) og row-lag (:295-300)
     // FØR konsolideringen. Denne test beviser at helperne er byte-ækvivalente på committed-domænet
     // (vacuous-pass-værn: matrixen indeholder både aktive, komplette og ufuldstændige rækker).
@@ -75,7 +75,7 @@ describe('manuelReguleringRowPredicates', () => {
     });
   });
 
-  describe('Manuel angivet — tal-/adfærds-identitet med de tidligere inline-udtryk', () => {
+  describe('Manuel angivet – tal-/adfærds-identitet med de tidligere inline-udtryk', () => {
     const hasManualPercentValue = (value: number | undefined): boolean =>
       typeof value === 'number' && Number.isFinite(value);
     // Row-lagets tidligere aktiv-udtryk brugte (row.dato ?? '').trim() !== ''; validatoren

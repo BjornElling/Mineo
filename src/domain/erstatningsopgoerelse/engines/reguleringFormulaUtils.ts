@@ -33,7 +33,7 @@ export type FormulaVisibility = Readonly<{
  *
  * Samlet ét sted som en NAVNGIVEN politik frem for spredte magiske `roundByMethod(x, 2, ...)`-kald,
  * så decimalantallet ikke kan drive til en forkert konvention ved en fremtidig ændring. (KL-lønaftaler
- * afviger bevidst: dens deltaPct afledes af den trinvist afrundede kædeløn i fuld præcision — den
+ * afviger bevidst: dens deltaPct afledes af den trinvist afrundede kædeløn i fuld præcision – den
  * bruger IKKE denne politik. TAF-opreguleret bruger 4 decimaler, en separat, bevidst kontekst.)
  */
 export const roundReguleringDeltaPct = (deltaPct: number): number =>
@@ -112,7 +112,7 @@ export const computeFormulaValue = (components: FormulaComponents): number => {
  * Tynd adapter over den kanoniske `computeFormulaValue`: mapper domænenavnet
  * `grundloen` → `baseValue` og deler dermed præcis samme matematik og finite-semantik
  * som privat overenskomst-grenen (der kalder `computeFormulaValue` direkte). Tidligere var
- * dette en parallel kopi af samme formel — konsolideret så der kun er ét sted for
+ * dette en parallel kopi af samme formel – konsolideret så der kun er ét sted for
  * lønpakke-formlen (jf. reguleringsreview U5). Bor sammen med `computeFormulaValue`, så
  * de to indgange til samme formel ikke igen driver fra hinanden (regulering-redesign R7).
  *

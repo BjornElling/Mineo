@@ -25,7 +25,7 @@ describe('opreguleringsmotorer', () => {
       // Samme-år uden dækning: kun det ene år mangler.
       expect(opregulerMedAslAarsloensmaksimum({ kildeAar: 1999, maalAar: 1999 }).manglendeAar).toEqual([1999]);
       // Bagud med et endepunkt uden for tabellen: motoren tjekker hele intervallet (ensartet
-      // med den akkumulerede metode), så alle udækkede år op til grænsen listes — ikke kun
+      // med den akkumulerede metode), så alle udækkede år op til grænsen listes – ikke kun
       // endepunktet. Tal-neutralt (kun fail-closed-listen ændres, ikke et produceret tal).
       const bagud = opregulerMedAslAarsloensmaksimum({ kildeAar: 2026, maalAar: 1999 });
       const forventetBagud: number[] = [];
@@ -66,7 +66,7 @@ describe('opreguleringsmotorer', () => {
       expect(decimal.manglendeAar).toEqual([2022.5]);
     });
 
-    it('tjekker HVERT år i intervallet for dækning — ensartet med den akkumulerede metode', () => {
+    it('tjekker HVERT år i intervallet for dækning – ensartet med den akkumulerede metode', () => {
       // Bevidst forening (bruger-beslutning 2026-07-07): ratioen afhænger matematisk kun af
       // de to endepunkter, men dæknings-tjekket dækker hele intervallet, så de to motorer
       // deler præcis samme fremgangsmåde. Et sparsomt map uden mellemårene fail-closer nu.
@@ -263,7 +263,7 @@ describe('opreguleringsmotorer', () => {
       const akk = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2000, maalAar: 2026 });
       expect(asl.manglendeAar.length).toBeGreaterThan(0);
       expect(akk.manglendeAar.length).toBeGreaterThan(0);
-      // Begge fail-closer til faktor 1 (ikke-pålidelig — kalderen skal afvise).
+      // Begge fail-closer til faktor 1 (ikke-pålidelig – kalderen skal afvise).
       expect(asl.faktor).toBe(1);
       expect(akk.faktor).toBe(1);
     });

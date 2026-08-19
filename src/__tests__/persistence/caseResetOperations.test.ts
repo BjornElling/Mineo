@@ -9,7 +9,7 @@ import {
   type SlimInputStore,
 } from '../../inputCore/runtime';
 
-// Porten ejer HELE reset-transaktionen — input, sagsnær UI-sessionstate og filhåndtag — og rapporterer
+// Porten ejer HELE reset-transaktionen – input, sagsnær UI-sessionstate og filhåndtag – og rapporterer
 // rester frem for at lade dem forsvinde i en ubetinget succes. Filhåndtagsgrænsen mockes, fordi dens
 // `false`-ben er selve fundet; sessionStorage er jsdom's ægte.
 const deleteFileHandleFromIndexedDBMock = vi.fn<() => Promise<boolean>>();
@@ -84,7 +84,7 @@ describe('caseResetOperations.clearAll', () => {
   });
 });
 
-describe('caseResetOperations.clearAll — reset-policyen', () => {
+describe('caseResetOperations.clearAll – reset-policyen', () => {
   it('rydder hver sagsnær manifestnøgle og lader de device-scopede bestå', async () => {
     const caseScoped = getCaseScopedSessionStorageKeys();
     expect(caseScoped.length).toBeGreaterThan(0);
@@ -134,7 +134,7 @@ describe('caseResetOperations.clearAll — reset-policyen', () => {
 
   it('rapporterer hver sessionnøgle, der ikke kunne fjernes', async () => {
     // jsdom's `sessionStorage` er en Proxy, så en `vi.spyOn`-metode på instansen aldrig kaldes; hele objektet
-    // udskiftes derfor. Kun `removeItem` fejler: den autoritative input-clear SKRIVER (og skal lykkes — ellers
+    // udskiftes derfor. Kun `removeItem` fejler: den autoritative input-clear SKRIVER (og skal lykkes – ellers
     // fail-closer transaktionen selv, hvilket er en anden, allerede dækket sti), mens den efterfølgende
     // oprydning af de sagsnære nøgler ikke kan verificeres. Præcis det ben skal give en rest.
     const realSessionStorage = window.sessionStorage;
@@ -162,9 +162,9 @@ describe('caseResetOperations.clearAll — reset-policyen', () => {
     }
   });
 
-  it('rydder også, når filhåndtagsgrænsen kaster? — nej: en kastende grænse er ikke en rest, men en fejl', async () => {
+  it('rydder også, når filhåndtagsgrænsen kaster? – nej: en kastende grænse er ikke en rest, men en fejl', async () => {
     // Bevidst afgrænsning: `deleteFileHandleFromIndexedDB` fanger selv sine fejl og returnerer boolean. Kaster
-    // den alligevel, er det en programmeringsfejl i grænsen — den skal boble til use-casens catch og vise
+    // den alligevel, er det en programmeringsfejl i grænsen – den skal boble til use-casens catch og vise
     // "Kunne ikke slette data", ikke maskeres som en delvis succes.
     deleteFileHandleFromIndexedDBMock.mockRejectedValue(new Error('uventet'));
     const store = __createSlimInputTestStore();

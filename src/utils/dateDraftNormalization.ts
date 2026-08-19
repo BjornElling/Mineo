@@ -22,7 +22,7 @@ export const normalizeDateDraftOnCommit = (draft: string): string => draft.trim(
 /**
  * Om en dato-draft må EKSISTERE under indtastning (`input-field-behavior-contract.md` §2.1).
  *
- * Reglen har tre dele, og de tre er bevidst forskellige — de skal ikke ensrettes:
+ * Reglen har tre dele, og de tre er bevidst forskellige – de skal ikke ensrettes:
  *
  * 1. **Ciffer-lofter pr. segment.** Dag og måned må have højst to cifre, år højst fire
  *    (`segmentMaxLengths = [2, 2, 4]`). Det tredje dag-/månedsciffer og det femte årsciffer kommer
@@ -33,7 +33,7 @@ export const normalizeDateDraftOnCommit = (draft: string): string => draft.trim(
  *    åbner ikke et segment; de springes bare over.
  *
  * **Hvorfor ikke bare rulle den gamle regex tilbage.** Indtil `5c864afe` (2026-04-23) var reglen en
- * segment-regex, som håndhævede pkt. 1 og 2 korrekt. Den blev udskiftet, og pkt. 2 forsvandt med den —
+ * segment-regex, som håndhævede pkt. 1 og 2 korrekt. Den blev udskiftet, og pkt. 2 forsvandt med den –
  * uden at nogen test blev rød, fordi ingen test nogensinde dækkede gentagne separatorer. Men den gamle
  * regex tillod kun separatorsættet `[.,/\- ]`, og kontrakten kræver nu ETHVERT ikke-alfanumerisk tegn:
  * `1,1@28` skal kunne tastes og blive `01-01-2028`. Et verbatim tilbagerul ville derfor genindføre én
@@ -44,7 +44,7 @@ export const normalizeDateDraftOnCommit = (draft: string): string => draft.trim(
  * **Paste følger en ANDEN vej, med vilje.** §2.1 siger, at gentagne bindestreger «afvises efter den
  * første; paste fortsætter derfor gennem dem». Tastning BLOKERER den anden separator; paste SPRINGER
  * den over og fortsætter med resten (§1.2a pkt. 3: et ulovligt tegn må aldrig afbryde pasten).
- * `normalizeDatePaste` ejer den vej — kald ikke denne funktion derfra.
+ * `normalizeDatePaste` ejer den vej – kald ikke denne funktion derfra.
  */
 export const isDateLikeDraftAllowed = (
   draft: string,

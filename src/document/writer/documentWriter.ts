@@ -1,5 +1,5 @@
 /**
- * DocumentWriter — fælles, format-agnostisk skrive-API for alt dokument-output
+ * DocumentWriter – fælles, format-agnostisk skrive-API for alt dokument-output
  *
  * Generatorer skriver mod denne grænseflade uden at vide, om output bliver PDF
  * (jsPDF) eller Word (.docx). To fabrikker opfylder den: PDF-kanalens
@@ -33,7 +33,7 @@ export type DocumentWriter = {
   writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
   /**
    * Kanonisk valg til alle linjer med venstre/højre-kolonne.
-   * Venstretekst wrapper altid til næste linje ved pladsmangel — ingen trunkering.
+   * Venstretekst wrapper altid til næste linje ved pladsmangel – ingen trunkering.
    */
   writeLeftRightText: (
     leftText: string,

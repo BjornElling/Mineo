@@ -47,7 +47,7 @@
 
     Hver markør er en `--mineo-color-*`-wrapper der i OFF-tilstand peger på
     den rigtige programfarve (i `layout.css`), og i ON-tilstand erstattes af
-    en markørfarve. Wrapperne defineres KUN her — aldrig i `layout.css` —
+    en markørfarve. Wrapperne defineres KUN her – aldrig i `layout.css` –
     så de ikke kolliderer med temablokkene (`[data-mineo-theme='dark']`),
     der har samme specificitet og indlæses efter denne fil.
 
@@ -303,7 +303,7 @@
 
 /* ==================== Navigation tabs ==================== */
 /* ÉN typografi for begge fanefamilier: de vandrette MUI-faner (`PageTabs`) og de roterede
-   side-faner (`SideTab`). Reglen sætter hele signaturen — ikke kun det, MUI ikke selv har — fordi
+   side-faner (`SideTab`). Reglen sætter hele signaturen – ikke kun det, MUI ikke selv har – fordi
    side-fanen er en native <button> uden MUI's tema-typografi. Var listen kortere, ville de to
    familier stå med hver sin skriftstørrelse, -farve og -linjehøjde, som de gjorde indtil
    2026-08-18, hvor side-fanens `sx` bar sine egne håndkopierede værdier. */
@@ -345,7 +345,7 @@
 /* Den blå streg.
    Fanen roteres 90° om venstre-bund, så dens BUND vender ind mod indholdsboksen: stregen står
    lodret præcis på boksens højrekant og har samme rolle som `MuiTabs-indicator` under en vandret
-   fane. Den er også samme SLAGS ting — en 2 px malet kasse oven på fanens bundkant, ikke en
+   fane. Den er også samme SLAGS ting – en 2 px malet kasse oven på fanens bundkant, ikke en
    `border-bottom`. Forskellen er målbar: en ramme afrundes af browseren til hele enheds-pixels og
    bliver 1 px tynd ved delvis zoom, mens indikatoren forbliver 2 px × skala. Kassen holder de to
    ens ved enhver skala.
@@ -366,7 +366,7 @@
 
 /* ==================== Links ==================== */
 /* Klassen bruges på BÅDE `<a>` (ægte navigation) og `<button>` (kontroller, der udfører en handling på
-   siden — fx åbner licensdialogen eller starter PWA-installationen). En handling skal semantisk være en
+   siden – fx åbner licensdialogen eller starter PWA-installationen). En handling skal semantisk være en
    knap, ikke et `<a href="#">`: fragment-href'et løj om semantikken og nulstillede browserens sekventielle
    fokus-udgangspunkt, så næste Tab sprang tilbage mod dokumentets top.
 

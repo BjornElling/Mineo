@@ -10,8 +10,8 @@ import process from 'node:process';
  * bash-syntaks og virker ikke, når npm kører scripts gennem cmd.exe på Windows.
  *
  * Trinene før kørslen:
- *  1. `check-e2e-lane-tags.mjs` — et fejlstavet bane-tag betyder tavst «kører ingen steder ekstra».
- *  2. `free-e2e-port.mjs` — en afbrudt kørsel efterlader buildserveren på porten, og uden
+ *  1. `check-e2e-lane-tags.mjs` – et fejlstavet bane-tag betyder tavst «kører ingen steder ekstra».
+ *  2. `free-e2e-port.mjs` – en afbrudt kørsel efterlader buildserveren på porten, og uden
  *     oprydning fejler den næste kørsel øjeblikkeligt med «port already used».
  *
  * Ukendte argumenter sendes videre til Playwright, så `npm run test:e2e -- --project=firefox-desktop`
@@ -43,7 +43,7 @@ if (runFullMatrix) {
 }
 
 // Playwrights egen CLI køres direkte med Node frem for gennem `npx`. På Windows er `npx` en
-// .cmd-fil, og Node nægter siden 20.x at starte den uden `shell: true` — og en shell ville til
+// .cmd-fil, og Node nægter siden 20.x at starte den uden `shell: true` – og en shell ville til
 // gengæld gøre videresendte argumenter afhængige af cmd.exe's citationsregler.
 const playwrightCli = createRequire(import.meta.url).resolve('@playwright/test/cli');
 

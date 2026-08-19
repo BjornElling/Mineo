@@ -1,6 +1,6 @@
 import type { ValidationError, ValidationResult, FormValidator, FieldPath, ValidationSeverity } from '../../types/validation';
 
-// Note: validation.ts eksporterer kun typer — ingen runtime-funktioner at teste.
+// Note: validation.ts eksporterer kun typer – ingen runtime-funktioner at teste.
 // Disse tests er strukturelle kontrakter der sikrer typernes form.
 
 describe('ValidationError', () => {

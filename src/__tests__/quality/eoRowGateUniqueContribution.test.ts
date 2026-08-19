@@ -1,5 +1,5 @@
 /**
- * AFKLARINGS-TEST (B9 — række-evaluerings-gate).
+ * AFKLARINGS-TEST (B9 – række-evaluerings-gate).
  *
  * Spørgsmål: Bidrager række-evalueringsmotoren noget UNIKT til produktions-PDF-gaten, eller er
  * `hasBlockingEoRowErrors` redundant med (snapshot-projektionen ∪ felt-fejl)?
@@ -127,7 +127,7 @@ describe('B9 afklaring: række-evalueringens unikke bidrag til PDF-gaten', () =>
     const values = buildValidSvieSmerteOnlyValues();
     // Helbredsforhold er tomt OG svie/smerte beregnes (kravPaaSvieSmerteGodtgoerelse='Ja'), så
     // feltet er relevant og gater PDF. Efter over-block-fixet (§2D) gater krævede felter kun, når
-    // den tilhørende beregning faktisk kræves — derfor bruges her det relevante felt.
+    // den tilhørende beregning faktisk kræves – derfor bruges her det relevante felt.
     values.svieSmerteHelbredsstatus = undefined;
 
     expect(project(values)).toBe('ok');

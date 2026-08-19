@@ -15,7 +15,7 @@ export const THEME_COLOR_BY_MODE = {
  *
  * Scriptet er en selvstændig streng uden adgang til moduler og kan derfor ikke kalde
  * `resolveThemeMode`. Reglen er i stedet gentaget her i ES5, og `themeBootstrapParity.test.ts`
- * måler de to mod hinanden for hver kombination af gemt valg og systempræference — så en
+ * måler de to mod hinanden for hver kombination af gemt valg og systempræference – så en
  * ændret regel ét sted ikke kan efterlade det andet sted med den gamle.
  *
  * `'system'` og fraværet af en gemt værdi giver samme udfald: følg maskinen. Forskellen er, at

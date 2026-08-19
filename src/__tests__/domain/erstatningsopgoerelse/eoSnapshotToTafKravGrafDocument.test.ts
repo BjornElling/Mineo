@@ -227,7 +227,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     const originalCtx = ctxMock.getMockImplementation();
     const originalIncome = incomeMock.getMockImplementation();
 
-    // Arbejdsdage i alle måneder af 2024 undtagen juli — juli efterligner en hel
+    // Arbejdsdage i alle måneder af 2024 undtagen juli – juli efterligner en hel
     // måned dækket af ferie/fravær (0 arbejdsdage → divisor 0 → springes normalt over).
     const arbejdsdageSet = new Set(
       Array.from({ length: 12 }, (_, monthIndex) => monthIndex + 1)

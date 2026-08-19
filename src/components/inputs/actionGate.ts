@@ -1,10 +1,10 @@
 /**
- * Den delte grammatik for en DEAKTIVERET HANDLING — programmets ene svar på «hvorfor er knappen grå?».
+ * Den delte grammatik for en DEAKTIVERET HANDLING – programmets ene svar på «hvorfor er knappen grå?».
  *
  * **Hvorfor modulet findes.** Reglen fandtes i forvejen, men kun for ÉN knaptype: de deaktiverede
  * downloadknapper (`page-component-contract.md` §11.1). Den regel siger tre ting på én gang:
  *
- *  1. Knappen forsvinder ikke — den bliver stående som nedtonet og inaktiv.
+ *  1. Knappen forsvinder ikke – den bliver stående som nedtonet og inaktiv.
  *  2. Årsagen har ÉN visningskanal: tooltippet, og kun ved hover.
  *  3. Et klik på en inaktiv knap er TAVST. Ingen besked, ingen tekstknude, intet visuelt svar.
  *
@@ -16,13 +16,13 @@
  * **Hvorfor teksterne genbruges frem for at blive opfundet.** `DOWNLOAD_BLOCKED_*`-konstanterne i
  * `document/layout/documentGateTypes.ts` bærer allerede præcis de to klasser, en almindelig knap har
  * brug for, og de er brugertestet ordlyd. En parallel konstant med samme betydning ville være to
- * sandheder om ét begreb — netop den drift, dette modul findes for at undgå. Modulet re-eksporterer
+ * sandheder om ét begreb – netop den drift, dette modul findes for at undgå. Modulet re-eksporterer
  * dem derfor under handlings-neutrale navne i stedet for at kopiere strengene.
  *
  * **Afgrænsning.** Dokument-download har sin egen rigere gate (`DocumentDownloadGateReason` med fire
  * klasser, herunder `page-errors` og ordret citerede `specific`-årsager). Den er IKKE erstattet af
  * dette modul; den er den mest udbyggede forbruger af samme idé. Dette modul dækker den simple
- * knap, der ikke har en dokumentgate bag sig — hjælpeknapper som «Indsæt» og handlingsknapper med
+ * knap, der ikke har en dokumentgate bag sig – hjælpeknapper som «Indsæt» og handlingsknapper med
  * en maksimumgrænse.
  */
 import {
@@ -32,12 +32,12 @@ import {
 
 /**
  * Hvorfor en handling er spærret. Bevidst de SAMME to klasser, downloadgaten skelner mellem
- * (`missing-input` / `invalid-input`) — brugerkravet 2026-07-30: «der mangler noget» og «noget er
+ * (`missing-input` / `invalid-input`) – brugerkravet 2026-07-30: «der mangler noget» og «noget er
  * forkert» sender brugeren to forskellige steder hen.
  *
  * `limit` er den tredje klasse, en almindelig knap har brug for, og som en downloadgate ikke kender:
  * handlingen er umulig, fordi en grænse er nået (fx 10 ansættelsesforhold). Den er hverken et
- * manglende eller et ugyldigt input — brugeren har ikke gjort noget forkert, og der er intet felt at
+ * manglende eller et ugyldigt input – brugeren har ikke gjort noget forkert, og der er intet felt at
  * rette. Derfor bærer den sin egen, konkrete tekst.
  */
 export type ActionBlockedReason =
@@ -81,7 +81,7 @@ export const resolveActionBlockedTooltip = (reason: ActionBlockedReason): string
  * Vælger den årsag, brugeren skal læse, når flere gælder samtidig.
  *
  * Samme forrang som dokumentgatens (`documentGateTypes.ts`): `invalid-input` slår `missing-input`,
- * fordi noget FORKERT er mere akut end noget uudfyldt — det tomme felt udfyldes ofte i samme
+ * fordi noget FORKERT er mere akut end noget uudfyldt – det tomme felt udfyldes ofte i samme
  * arbejdsgang, mens en afvist værdi kræver, at brugeren opsøger og retter den.
  *
  * `limit` står først: er grænsen nået, er der ingen indtastning at rette, og en tekst om manglende
@@ -98,7 +98,7 @@ export const resolveActionBlockedReason = (
 
 /**
  * Knappens samlede tilstand, udledt ét sted. En flade kalder denne frem for selv at parre et
- * `disabled`-flag med en tooltip-streng; dermed kan de to ikke komme ud af trit — fx en knap der er
+ * `disabled`-flag med en tooltip-streng; dermed kan de to ikke komme ud af trit – fx en knap der er
  * grå uden årsag, eller en årsag der bliver hængende, efter blokeringen er væk.
  */
 export type ActionGateState = Readonly<{

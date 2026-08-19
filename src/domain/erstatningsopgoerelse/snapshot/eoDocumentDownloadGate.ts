@@ -11,8 +11,8 @@ import type { EoSnapshot } from './eoSnapshot';
  * Ét autoritativt output-gate-resultat pr. EO-dokument (arkitektur-kandidat A5).
  *
  * Download-gaten for de fire EO-dokumenter var tidligere sammensat ad hoc i `useEoBeregningViewModel`
- * (per-dokument `disabledReason`-memo + `createPdfGate`) OG re-tjekket separat — kun på dokument-
- * projektionen — i `documentService`. Service-grænsen var derfor IKKE selv fail-closed mod række-
+ * (per-dokument `disabledReason`-memo + `createPdfGate`) OG re-tjekket separat – kun på dokument-
+ * projektionen – i `documentService`. Service-grænsen var derfor IKKE selv fail-closed mod række-
  * niveau-fejlene fra `collectAllEoRows` (fx resultat-afhængige SFGG-fejlrækker): de gatede knappen
  * upstream, men ikke selve dokument-genereringen.
  *
@@ -31,7 +31,7 @@ export type EoDownloadProjectionStatus =
 export type EvaluateEoDocumentDownloadGateInput = Readonly<{
   /** Snapshottet (null før første build). */
   snapshot: EoSnapshot | null;
-  /** Dokumentets egen projektion (ok/blocked) — kun `kind` + `message` aflæses. */
+  /** Dokumentets egen projektion (ok/blocked) – kun `kind` + `message` aflæses. */
   projection: EoDownloadProjectionStatus;
   /** De autoritativt-blokerende invarianter (blocksAuthoritativeComputation). */
   authoritativeBlockingInvariants: readonly EoInvariant[];
@@ -47,7 +47,7 @@ export type EvaluateEoDocumentDownloadGateInput = Readonly<{
 
 /**
  * Den interne forklaring på blokeringen. Efter brugerbeslutningen 2026-08-13 er den IKKE længere
- * brugerteksten for en rækkeblokering — men den bevares som `message`, så koder, tests og logs stadig kan
+ * brugerteksten for en rækkeblokering – men den bevares som `message`, så koder, tests og logs stadig kan
  * skelne to blokeringer, der deler samme tooltip.
  */
 const resolveDisabledReason = (input: EvaluateEoDocumentDownloadGateInput): string | null => {
@@ -85,7 +85,7 @@ export const evaluateEoDocumentDownloadGate = (
   // for netop denne tilstand. Beslutningen hører i gaten, ikke i den flade der tegner knappen.
   //
   // BEVIDST fane-uafhængig: `hasBlockingRows` afledes af gatens egen `collectAllEoRows`-kørsel uden
-  // viewmodellens `isActive`-guard (§A2.1 — en gate må ikke afhænge af mount/fane). Viewmodellens guard er
+  // viewmodellens `isActive`-guard (§A2.1 – en gate må ikke afhænge af mount/fane). Viewmodellens guard er
   // ren render-optimering; begge kalder samme funktion på samme projektion, så teksten kan ikke drifte.
   if (input.hasBlockingRows) {
     return blockDocumentDownloadForPageErrors({ code: 'erstatningsopgoerelse:pdf-blocked-by-rows', message });

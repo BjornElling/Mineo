@@ -30,7 +30,7 @@ export const CONTAINER_FOCUSABLE_SELECTOR =
 
 // Række-container-selector på Container-niveau. Bruges til at gruppere fokuserbare
 // felter i visuelle rækker, både af Container'ens pil-navigation og af tabellens
-// `moveFocusOutsideTable`. Eneste sandhedskilde — hold de to konsumenter på linje.
+// `moveFocusOutsideTable`. Eneste sandhedskilde – hold de to konsumenter på linje.
 export const CONTAINER_ROW_SELECTOR =
   '.row--label-right-hover,.row--label-right,.row--label-offset,.row,[class*="row--label-right"],[class*="row--label-offset"],[class*="hover-row"]';
 

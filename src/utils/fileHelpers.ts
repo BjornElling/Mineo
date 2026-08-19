@@ -121,7 +121,7 @@ export const generateFilename = (data: FilenameSource | null | undefined): strin
  * ankeret skal ligge i dokumentet, når `click()` kaldes, og object-URL'en må først frigives
  * EFTER at browseren har nået at starte overførslen. Frigiver man synkront lige efter
  * `click()`, når visse browsere ikke at læse URL'en, før den er ugyldig, og filen tabes
- * tavst — uden fejl, uden download.
+ * tavst – uden fejl, uden download.
  *
  * @param blob - Filens indhold
  * @param filename - Filnavn inkl. extension
@@ -261,7 +261,7 @@ export interface ResolvedDirectory {
  * svarer på hvert sit spørgsmål: denne må requestere permissions og skal derfor kun kaldes fra
  * en brugerhandling, mens visningen kaldes ved mount og re-render og skal være passiv.
  *
- * Typen bar tidligere også et `displayName` — «til UI» ifølge sin egen kommentar, men uden en
+ * Typen bar tidligere også et `displayName` – «til UI» ifølge sin egen kommentar, men uden en
  * eneste læser i produktionskoden. Det gjorde fil-laget til en anden, tavs mening om et
  * brugersynligt navn, som fladen samtidig stavede anderledes. Navnet bor nu ét sted.
  *

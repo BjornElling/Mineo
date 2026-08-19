@@ -16,7 +16,7 @@ import { seedSatserNewCase } from './satser/satserNewCaseSeed';
 /**
  * Bygger produktionens ny-sags-seed ud fra de aktuelle programindstillinger.
  *
- * Seeden EVALUERES først, når sagen faktisk oprettes — ikke her. En session, der står åben over et årsskifte,
+ * Seeden EVALUERES først, når sagen faktisk oprettes – ikke her. En session, der står åben over et årsskifte,
  * skal seede det nye år i den næste nye sag.
  */
 export const createProductionNewCaseSeed = (settings?: AppSettings): NewCaseSeed => composeNewCaseSeeds(

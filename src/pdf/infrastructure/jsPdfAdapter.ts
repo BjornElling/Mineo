@@ -2,7 +2,7 @@
  * jsPDF Concrete Adapter
  *
  * Konkret jsPDF-implementering af PdfDocumentAdapter. Alle helpers og generatorer
- * modtager PdfDocumentAdapter — ikke jsPDF. Sidegeometrien (internal.pageSize)
+ * modtager PdfDocumentAdapter – ikke jsPDF. Sidegeometrien (internal.pageSize)
  * læses via det fælles isolationspunkt `getJsPdfPageSize` i dokument-kernen.
  */
 
@@ -35,7 +35,7 @@ export const createJsPdfAdapter = (doc: jsPDF): PdfDocumentAdapter => {
     addPage: () => { doc.addPage(); },
     setPage: (n: number) => { doc.setPage(n); },
     getNumberOfPages: () => doc.getNumberOfPages(),
-    // Slår pageSize op pr. kald — undgår stale cached reference ved dynamiske sideskift
+    // Slår pageSize op pr. kald – undgår stale cached reference ved dynamiske sideskift
     getPageWidth: () => getPageSize(doc).width,
     getPageHeight: () => getPageSize(doc).height,
   };

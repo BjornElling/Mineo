@@ -50,7 +50,7 @@ const buildProject = (
 
 /**
  * **Banemodellen.** Suiten kørte før hver eneste test i alle 16 kombinationer af fire browsere og
- * fire viewporter — 1232 kørsler af 77 tests. Det tog omkring tre kvarter, og langt det meste af
+ * fire viewporter – 1232 kørsler af 77 tests. Det tog omkring tre kvarter, og langt det meste af
  * tiden gik til at bevise den samme browseruafhængige brugerrejse femten gange for meget. Det gjorde
  * suiten så dyr at køre, at den i praksis ikke blev kørt, og en kørsel der bliver afbrudt beskytter
  * ingenting.
@@ -64,7 +64,7 @@ const buildProject = (
  *  - **`@viewporter` → viewportbanen.** Kører desuden ved de to minimumsviewporter. Vælges når
  *    testen aflæser den viewport, projektet giver den, i stedet for at sætte sin egen.
  *
- * En test uden tag er altså ikke udækket — den er dækket ét sted. Det er et bevidst valg: en fejl,
+ * En test uden tag er altså ikke udækket – den er dækket ét sted. Det er et bevidst valg: en fejl,
  * der kun findes i én motor, findes af de tests der er tagget til at lede efter netop dét, og
  * `PLAYWRIGHT_FULL_MATRIX=1` kører fortsat hele den gamle matrix, når en bred efterkontrol er
  * formålet. `scripts/check-e2e-lane-tags.mjs` fanger et fejlstavet tag, som ellers tavst ville
@@ -112,7 +112,7 @@ export default defineConfig({
   testDir: './e2e',
   // **Lofterne er sat ned fra 120 s/30 s.** Et loft er ikke gratis, selv om ingen test venter på det:
   // det er den tid, en HÆNGENDE test koster, før kørslen kan fortælle hvad der gik galt. Suitens
-  // langsomste ægte test måler under seks sekunder — inklusive app-boot og skærmprint — så 60 s er ti
+  // langsomste ægte test måler under seks sekunder – inklusive app-boot og skærmprint – så 60 s er ti
   // gange hovedrum, og en test, der bruger dem, hænger. Det var netop den regning, der gjorde suiten
   // uoverkommelig: ét fastlåst flow åd flere minutter pr. kørsel uden at sige noget.
   //
@@ -128,7 +128,7 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   // Ingen lokale retries: en flaky test skal ses som flaky, ikke skjules af et genforsøg. Det er
-  // parallelitetsloftet — ikke retries — der holder en svagere maskine fri af ressourcecrashes.
+  // parallelitetsloftet – ikke retries – der holder en svagere maskine fri af ressourcecrashes.
   workers: process.env.CI ? 1 : machineProfile.workers,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
@@ -136,14 +136,14 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     // Ingen videooptagelse. `retain-on-failure` lyder billigt, men optager i praksis ALLE tests og
-    // kasserer bagefter dem der bestod — en fast CPU- og hukommelsesudgift pr. test, som på den
+    // kasserer bagefter dem der bestod – en fast CPU- og hukommelsesudgift pr. test, som på den
     // svagere bærbar er med til at fremkalde netop de timeouts, den skulle hjælpe med at forklare.
     // Tracen dækker samme behov bedre: den gemmer handlinger, DOM-snapshots og konsol for den
     // test, der faktisk fejlede. Sæt `PLAYWRIGHT_VIDEO=1`, når en fejl kun kan ses som bevægelse.
     video: process.env.PLAYWRIGHT_VIDEO === '1' ? 'retain-on-failure' : 'off',
     // Den normale E2E-suite skal være cachefri: en cachet forgænger må aldrig kunne besvare den næste
     // tests requests. Et spec, der HAR brug for service workers, åbner selv for dem i sit eget omfang
-    // med `test.use({ serviceWorkers: 'allow' })` — se `e2e/pwa-service-worker.spec.ts`. Variablen
+    // med `test.use({ serviceWorkers: 'allow' })` – se `e2e/pwa-service-worker.spec.ts`. Variablen
     // nedenfor åbner for hele kørslen på én gang og er til den brede PWA-audit mod et preview
     // (`.agents/skills/jette-interaktionsaudit`), ikke til enkelte specs: da den var den ENESTE vej,
     // blev PWA-specs' tests i praksis aldrig kørt.

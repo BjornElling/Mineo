@@ -24,7 +24,7 @@ describe('UI_STORAGE_KEYS', () => {
 
 /**
  * Reset-policyen. At HVER nøgle er klassificeret håndhæves af compileren (`satisfies`); det, en test
- * kan tilføje, er at klassifikationen faktisk deler mængden — begge sider er ikke-tomme, og en nøgle kan ikke
+ * kan tilføje, er at klassifikationen faktisk deler mængden – begge sider er ikke-tomme, og en nøgle kan ikke
  * være begge steder. En tom `caseScoped`-side ville gøre `Slet alt`s oprydning til en no-op, der ser grøn ud.
  */
 describe('reset-policyen (getCaseScopedSessionStorageKeys)', () => {
@@ -102,7 +102,7 @@ describe('isValidStorageKey', () => {
   /**
    * De slettede legacy-nøgler må ikke kunne skrives igen. Skrivevagten i AST-harnessen bruger
    * `isValidStorageKey` som sit hvidlistetjek, så en genindført per-sektion-nøgle eller
-   * `invalidDrafts`-kanal skal fejle her — modellen er slettet, ikke udskudt.
+   * `invalidDrafts`-kanal skal fejle her – modellen er slettet, ikke udskudt.
    */
   it('afviser de slettede per-sektion- og invalidDrafts-nøgler', () => {
     for (const deleted of [
@@ -158,7 +158,7 @@ describe('storage namespace isolation', () => {
     await import('../../apps/minprocesrente/standaloneStorageNamespace');
     const standaloneManifest = await import('../../config/storageManifest');
     expect(standaloneManifest.isValidStorageKey('minprocesrente_input_v2')).toBe(true);
-    // Mineos key er ikke gyldig i standalone-namespace — netop pointen med isolationen.
+    // Mineos key er ikke gyldig i standalone-namespace – netop pointen med isolationen.
     expect(standaloneManifest.isValidStorageKey('mineo_input_v2')).toBe(false);
   });
 

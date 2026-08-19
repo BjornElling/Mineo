@@ -227,7 +227,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
    * øverste luft (`theme.spacing(3)` = 24 px) plus to px overlap.
    *
    * Værdien er uskaleret med vilje: tabellen lever inde i arbejdsfladens zoom-rod, så tallet
-   * ganges med skalaen af browseren — og `Container`s luft skaleres med den SAMME faktor
+   * ganges med skalaen af browseren – og `Container`s luft skaleres med den SAMME faktor
    * (`calc(24px * var(--mineo-content-scale, 1))`). Kompensationen rammer derfor plet ved enhver
    * skala. Gøres containerens lodrette luft en dag fast igen, holder den kobling op med at
    * gælde, og hovedet vil klæbe forkert overalt undtagen ved fuld skala.

@@ -128,8 +128,8 @@ const optField = <T>(
 /**
  * Et datofelt under lønindkomst-træet. Grænserne er PÅKRÆVEDE og påføres HER, ikke af kaldsstedet.
  *
- * Otte af træets datofelter — sidste arbejdsdag, de to anciennitetsdatoer, de to særlige
- * reguleringsdatoer og lønudviklingstabellernes datoer — stod uden nogen validator, fordi de blev bygget
+ * Otte af træets datofelter – sidste arbejdsdag, de to anciennitetsdatoer, de to særlige
+ * reguleringsdatoer og lønudviklingstabellernes datoer – stod uden nogen validator, fordi de blev bygget
  * med den generiske `optField`, hvor grænser er en glemsom ekstraparameter. Helperen fjerner det valg:
  * et datofelt her kan ikke opstå uden erklærede grænser.
  */
@@ -260,7 +260,7 @@ const stdDate = (
 
 /**
  * Indtægtstabellens «Dato fra»/«Dato til». Rækkerne ligger NESTET under et
- * ansættelsesforhold, så modparten skal bindes med BEGGE entity-id'er — ansættelsesforholdet og rækken —
+ * ansættelsesforhold, så modparten skal bindes med BEGGE entity-id'er – ansættelsesforholdet og rækken –
  * i den rækkefølge, adressen har dem.
  */
 const stdRowIds = <T,>(field: FieldRef<T>): readonly string[] =>
@@ -400,7 +400,7 @@ const eoLoen = <T>(
 const eoLoenAmountBounds = (field: string): readonly FieldValidator<AmountValue | undefined>[] =>
   [amountBoundsValidator(`${EO_LOEN_ID}.${field}.bounds`, 0, undefined)];
 
-/** Datofelt på det singulære eoLoen-objekt — tvillingen til {@link empDate}. */
+/** Datofelt på det singulære eoLoen-objekt – tvillingen til {@link empDate}. */
 const eoLoenDate = (
   field: string, label: string, spec: DateBoundsSpec = systemrammeSpec,
 ): FieldDescriptor<ISODateString | undefined> =>
@@ -414,7 +414,7 @@ export const eoAngivetLoenFields = {
   anciennitetstillaegSats: eoLoen<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, eoLoenAmountBounds('anciennitetstillaegSats')),
   feriePct: eoLoen<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, [percentBoundsValidator(`${EO_LOEN_ID}.feriePct.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
   // Samme required-choice-kontrakt som ansættelsesforholdets tvilling (`eoEmploymentFields.loenPaaHelligdage`).
-  // Feltet har ingen editor under angivet løn, så dets værdi ER tomværdien — og en tomværdi på `undefined`
+  // Feltet har ingen editor under angivet løn, så dets værdi ER tomværdien – og en tomværdi på `undefined`
   // ville føde motoren en tilstand, den erklærer umulig. Descriptorens tomværdi skal derfor være den
   // samme konkrete sats, som schemaets `.default()` giver.
   loenPaaHelligdage: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),

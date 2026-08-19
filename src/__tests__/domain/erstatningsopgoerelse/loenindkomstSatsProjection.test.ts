@@ -68,7 +68,7 @@ describe('projectLoenindkomstSatser', () => {
   });
 
   it('fjerner et historisk Store Bededag-slot inbound UDEN at rapportere det som tabt data', () => {
-    // Stripningen ejes af sektionsmigratoren — IKKE af en `.transform()` på schemaet. En transform ville
+    // Stripningen ejes af sektionsmigratoren – IKKE af en `.transform()` på schemaet. En transform ville
     // gøre ansættelses-arrayet uigennemsigtigt for `z.toJSONSchema` og dermed usynligt for ledger-,
     // inventar- og fingerprint-værnene. Migratorvejen bevarer samtidig tabsrapporteringens betydning:
     // satsen genudledes, så den må ikke tælles som en tabt indtastning.

@@ -21,12 +21,12 @@ import {
   type DateRangeSpecialErrors,
 } from '../../../utils/dateRangeErrorMessages';
 import { useTransientDraft } from './useTransientDraft';
-// Transient input er IKKE sagsdata, men datoens FORM er den samme for brugeren — så formvejledningen
+// Transient input er IKKE sagsdata, men datoens FORM er den samme for brugeren – så formvejledningen
 // læses fra den ene kilde frem for at være en fjerde kopi af strengen.
 import { DATE_FORMAT_PLACEHOLDER } from '../../../utils/fieldFormatPlaceholders';
 
 // Transient datofelt (§3.1-undtagelse: IKKE sagsdata). Bruges i overlays/dialoger, hvor datoen kun lever i
-// komponentens egen state — fx løntrin-finderens opslagsdato. Scratch-værdien har ingen feltadresse, history
+// komponentens egen state – fx løntrin-finderens opslagsdato. Scratch-værdien har ingen feltadresse, history
 // eller persistens, men dens redigeringsflade følger BEVIDST det ordinære datofelt: samme to-trins-aktivering,
 // tegnfilter, paste-normalisering, længerestriksning og bounds-tilstand. Ellers ville den samme dato have to
 // brugerregler afhængigt af, om den tilfældigvis indgik i en sag.
@@ -45,7 +45,7 @@ export type TransientDateInputProps = Readonly<{
   minDate?: ISODateString;
   maxDate?: ISODateString;
   /**
-   * Grænsernes oprindelse. Udledes en grænse af et ANDET felt — fx det andet felt i et fra/til-par —
+   * Grænsernes oprindelse. Udledes en grænse af et ANDET felt – fx det andet felt i et fra/til-par –
    * skal kalderen navngive årsagsinputtene med `derivedDateBounds(...)`, så en umulig kombination fortæller
    * brugeren HVAD der skal rettes. Udelades kun når begge grænser er konstanter (eller helt fraværende).
    */
@@ -162,7 +162,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
     }, [draftState]);
 
     // `<input>` er styret af draften. Afviser prædikatet en ændring, er den rendrede draft uændret, og
-    // React skriver derfor ikke elementet tilbage — det afviste tegn ville blive stående i DOM'en.
+    // React skriver derfor ikke elementet tilbage – det afviste tegn ville blive stående i DOM'en.
     const handleDraftChange = React.useCallback((next: string) => {
       if (!DATE_ADMISSION(next)) {
         restoreDomValueAfterRejectedDraft(inputElementRef.current, draftState.draft);
@@ -174,7 +174,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
     const handlePaste = React.useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
       const draft = draftState.draft;
       // Markeringen læses FØR normaliseringen: dækker den hele draften, erstatter paste'en alt, og
-      // konteksten er tom — samme situation som et lukket felt (se `resolvePasteContextDraft`). Uden
+      // konteksten er tom – samme situation som et lukket felt (se `resolvePasteContextDraft`). Uden
       // det gav «markér alt og indsæt» et andet resultat end en indsættelse i et tomt felt (BB-042).
       const element = inputElementRef.current;
       const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
@@ -202,7 +202,7 @@ const TransientDateInput = React.forwardRef<HTMLDivElement, TransientDateInputPr
         return;
       }
       if (!draftState.isOpen) {
-        // Lukket paste erstatter værdien og afslutter straks — præcis som et ordinært datofelt.
+        // Lukket paste erstatter værdien og afslutter straks – præcis som et ordinært datofelt.
         draftState.commitDraft(spliced.draft, true);
         return;
       }

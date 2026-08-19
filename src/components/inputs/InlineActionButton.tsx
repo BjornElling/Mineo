@@ -8,7 +8,7 @@ type InlineActionButtonProps = Readonly<{
   onClick: () => void;
   disabled?: boolean;
   /**
-   * Hvorfor knappen er grå. Vises som tooltip — den ENESTE visningskanal (§11.1). Udled den med
+   * Hvorfor knappen er grå. Vises som tooltip – den ENESTE visningskanal (§11.1). Udled den med
    * `resolveActionGate` frem for at skrive en streng i hånden, så to grå knapper ikke taler hver sit
    * sprog.
    */
@@ -23,12 +23,12 @@ type InlineActionButtonProps = Readonly<{
  * **Deaktiveret tilstand følger den universelle regel for grå knapper** (`page-component-contract.md`
  * §11.1, generaliseret fra downloadknapperne ved brugerbeslutning 2026-08-15):
  *
- *  - Knappen bliver stående som nedtonet og inaktiv — den forsvinder ikke.
+ *  - Knappen bliver stående som nedtonet og inaktiv – den forsvinder ikke.
  *  - Årsagen vises KUN i tooltippet, kun ved hover.
  *  - Et klik er TAVST. Ingen besked, ingen tekstknude.
  *
  * `aria-disabled` frem for `disabled`: en `disabled` knap kan ikke fokuseres, og brugeren ville da
- * hverken kunne Tab'e til den eller — på en berøringsflade uden hover — nå årsagen. Med
+ * hverken kunne Tab'e til den eller – på en berøringsflade uden hover – nå årsagen. Med
  * `aria-disabled` bliver knappen i tab-sekvensen og oplyses som utilgængelig, mens `aria-describedby`
  * knytter årsagen til den, så en skærmlæser læser den op. Det lukker det hul, at knappen
  * kunne Tab'es til og Enter-aktiveres, uden at NOGET forklarede, hvorfor der ikke skete noget.
@@ -86,8 +86,8 @@ const InlineActionButton = React.memo(({
           background: 'var(--color-input-bg)',
           borderColor: 'var(--color-input-border)',
           cursor: 'default',
-          // `pointerEvents: 'none'` ville også slå HOVER fra, og tooltippet — årsagens eneste
-          // visningskanal — ville aldrig kunne åbnes. Klikket standses i stedet ved at undlade
+          // `pointerEvents: 'none'` ville også slå HOVER fra, og tooltippet – årsagens eneste
+          // visningskanal – ville aldrig kunne åbnes. Klikket standses i stedet ved at undlade
           // `onClick`, så knappen forbliver hover-bar og dermed forklarlig.
         },
       }, sx)}

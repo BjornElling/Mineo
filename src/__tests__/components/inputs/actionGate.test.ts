@@ -12,7 +12,7 @@ import {
 
 // Den delte grammatik for en DEAKTIVERET HANDLING. Reglen fandtes i forvejen for de deaktiverede
 // downloadknapper (`page-component-contract.md` §11.1); brugerbeslutningen 2026-08-15 gjorde den
-// universel for enhver grå knap — herunder at en generisk årsag er god nok.
+// universel for enhver grå knap – herunder at en generisk årsag er god nok.
 
 describe('actionGate: teksterne er DELT med downloadgaten, ikke kopieret', () => {
   it('bruger nøjagtig samme strenge som downloadknappernes to universelle klasser', () => {
@@ -23,7 +23,7 @@ describe('actionGate: teksterne er DELT med downloadgaten, ikke kopieret', () =>
     expect(ACTION_BLOCKED_INVALID_INPUT_MESSAGE).toBe(DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE);
   });
 
-  it('de to klasser er FORSKELLIGE tekster — «mangler» og «forkert» kollapser ikke til én', () => {
+  it('de to klasser er FORSKELLIGE tekster – «mangler» og «forkert» kollapser ikke til én', () => {
     // Skelnen er et brugerkrav (2026-07-30): de sender brugeren to forskellige steder hen.
     expect(ACTION_BLOCKED_MISSING_INPUT_MESSAGE).not.toBe(ACTION_BLOCKED_INVALID_INPUT_MESSAGE);
   });
@@ -37,7 +37,7 @@ describe('actionGate: oversættelse af årsag til tooltiptekst', () => {
       .toBe(ACTION_BLOCKED_INVALID_INPUT_MESSAGE);
   });
 
-  it('citerer `limit` ordret — grænsen skal navngives konkret', () => {
+  it('citerer `limit` ordret – grænsen skal navngives konkret', () => {
     // `limit` er den ene klasse, hvor der IKKE er et felt at rette. En generisk «indtastning mangler»
     // ville sende brugeren efter et felt, der ikke findes.
     expect(resolveActionBlockedTooltip({ kind: 'limit', message: 'Maksimalt 10 ansættelsesforhold' }))
@@ -54,7 +54,7 @@ describe('actionGate: forrang ved flere samtidige årsager', () => {
 
   it('er uafhængig af den rækkefølge, kalderen tilfældigvis pusher årsagerne i', () => {
     // Ville forrangen afhænge af rækkefølgen, var den ikke en egenskab ved klassifikationen, men ved
-    // kaldsstedet — og så kunne to flader vise hver sin tekst for samme tilstand.
+    // kaldsstedet – og så kunne to flader vise hver sin tekst for samme tilstand.
     expect(resolveActionBlockedReason([{ kind: 'invalid-input' }, { kind: 'missing-input' }]))
       .toEqual(resolveActionBlockedReason([{ kind: 'missing-input' }, { kind: 'invalid-input' }]));
   });
@@ -88,7 +88,7 @@ describe('actionGate: knappens samlede tilstand', () => {
   });
 
   it('parrer aldrig `disabled` med en tom årsag', () => {
-    // Værnet mod den tavse grå knap — præcis den tilstand, fundet beskrev.
+    // Værnet mod den tavse grå knap – præcis den tilstand, fundet beskrev.
     for (const reasons of [
       [{ kind: 'missing-input' } as const],
       [{ kind: 'invalid-input' } as const],

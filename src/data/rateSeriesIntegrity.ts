@@ -15,7 +15,7 @@ import type { DanishDateString } from '../types/branded';
  * Integritets-primitiverne er tal-neutrale: de kaster kun ved korrupt data og aldrig for
  * valide serier. Kilde-specifik integritet, der kun findes ét sted (KRL's per-kolonne
  * interiort null-hul, sygedagpenges lukkede-interval-kontinuitet), bevidst IKKE trukket
- * herind — der er ingen duplikering at fjerne, og en abstraktion for én bruger ville sløre
+ * herind – der er ingen duplikering at fjerne, og en abstraktion for én bruger ville sløre
  * logikken.
  *
  * Modulet ejer desuden `resolveSeriesCoverageInterval`, der udleder kildens dæknings-interval
@@ -49,7 +49,7 @@ export type CoverageInterval = Readonly<{
  * array-rækkefølge hvor `fraDato ≤ dato`), og KL-lønaftaler er ældste-først (`ascending`,
  * den trinvise kæde). Et brud på sorteringen ville få carry-forward-opslaget til at
  * returnere en forkert (ældre/nyere) sats eller få et positionelt udledt dæknings-interval
- * til at pege forkert — begge dele en tavs forkert regulering.
+ * til at pege forkert – begge dele en tavs forkert regulering.
  *
  * Serien forudsættes ikke-tom-tjekket separat af kalderen (tom serie er vacuøst sorteret).
  */
@@ -87,7 +87,7 @@ export const assertStrictlyMonotonicByDanishDate = <T>(
 
 /**
  * Håndhæver at hvert kalenderår fra ældste til nyeste er repræsenteret i en årlig
- * satsserie — et helt manglende år midt i serien (interiort hul) ville få et
+ * satsserie – et helt manglende år midt i serien (interiort hul) ville få et
  * "seneste indeks ≤ dato"-opslag til stiltiende at videreføre forrige års sats i det
  * manglende års segment (tavs under-regulering, silent-path S6).
  *
@@ -123,13 +123,13 @@ export const assertNoInteriorYearGap = (opts: {
  * Fire carry-forward-kilder (KRL-satstabel, KL-lønaftaler, offentlige lønsatser,
  * privat overenskomst) udledte hver sin kopi af det samme interval ved at læse
  * `serie[0]` og `serie[serie.length - 1]` positionelt. Det er kun korrekt, hvis serien
- * er sorteret i netop den retning, kilden antager — og den antagelse stod udelukkende
+ * er sorteret i netop den retning, kilden antager – og den antagelse stod udelukkende
  * som en kommentar ved siden af opslaget, mens den håndhævede sortering var
  * konfigureret et andet sted (`assertStrictlyMonotonicByDanishDate` ved modul-load).
  * De to kunne derfor drive fra hinanden: vendes en kildes sortering, ville guarden
  * fange det, men vendes BÅDE sorteringen og guardens `order` (den nærliggende
  * "rettelse"), ville de positionelle opslag tavst bytte om på `fraDato` og `tilDato`
- * og give et spejlvendt dæknings-interval — dvs. en falsk "uden for dækning"-gate på
+ * og give et spejlvendt dæknings-interval – dvs. en falsk "uden for dækning"-gate på
  * hele det reelle interval og ingen gate uden for det.
  *
  * Her er retningen derfor et argument til DENNE funktion, som udleder begge ender af
@@ -169,7 +169,7 @@ export const resolveSeriesCoverageInterval = <T>(opts: {
  * modsatte forudsætninger, og en fælles "find enderne"-funktion ville skjule hvilken der
  * gælder. Den statistiske indeksserie er den ene forbruger: dens `kvartal`-nøgle er ikke en
  * dansk dato (og kan derfor ikke sammenlignes med de andres dato-primitiv), og
- * beregningsstien (`buildStatistikIndexEntries`) sorterer selv eksplicit før brug — så
+ * beregningsstien (`buildStatistikIndexEntries`) sorterer selv eksplicit før brug – så
  * serien har ingen håndhævet lagringsrækkefølge, et positionelt opslag kunne bygge på.
  *
  * `getSortKey` skal være strengt voksende i tid (fx ÅÅÅÅK-kvartalstallet), og `getStartDato`

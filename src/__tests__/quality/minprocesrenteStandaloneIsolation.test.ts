@@ -9,7 +9,7 @@ const standaloneRoots = [
 /**
  * AL standalone-specifik kode ligger under de to rødder ovenfor: dokument-miljøet, de tre
  * definitioner og deres React-grænse bor i `src/apps/minprocesrente/document/`. Listen er derfor
- * tom — der findes ingen standalone-fil uden for rødderne.
+ * tom – der findes ingen standalone-fil uden for rødderne.
  */
 const standaloneFiles: readonly string[] = [];
 
@@ -50,7 +50,7 @@ describe('MinProcesrente standalone isolation', () => {
       path.join(repoRoot, 'src/apps/minprocesrente/minprocesrenteMain.tsx'),
       'utf8'
     );
-    // Selve namespacet må IKKE sættes inline i entrypointet — det ville køre efter App-importen
+    // Selve namespacet må IKKE sættes inline i entrypointet – det ville køre efter App-importen
     // pga. import-hoisting. Det skal i stedet importeres som bivirkning.
     expect(entrypoint).not.toMatch(/setStorageNamespace\(/);
     expect(entrypoint).toMatch(/import\s+['"]\.\/standaloneStorageNamespace['"]/);
@@ -94,7 +94,7 @@ describe('MinProcesrente standalone isolation', () => {
     const source = readStandaloneSource();
 
     // Positivt brugerdata-forbud: standalone må ikke LÆSE Mineos øvrige sektioner (stamdata/indstillinger).
-    // Dette er en section-read-grænse, ikke en import-grænse — de rene import-forbud (useAppSettings,
+    // Dette er en section-read-grænse, ikke en import-grænse – de rene import-forbud (useAppSettings,
     // systemIssueReporter, BugReportButton, logStorage m.fl.) håndhæves nu strukturelt af
     // `layer/minprocesrente-standalone-import-boundary` (greenfield #48) og gentages derfor ikke her.
     // PDF-adapterens enhedstest kontrollerer separat at PDF-kaldet sendes videre uden stamdata og settings.

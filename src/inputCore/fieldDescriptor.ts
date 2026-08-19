@@ -13,7 +13,7 @@ import type { PersistedInputSections } from './settledInput';
 import { amountResultBoundsValidator } from './amountResultBounds';
 
 // Inputkernen (§3.2): hvert persisteret brugerfelt har ÉN immutable beskrivelse med kun de egenskaber,
-// der bruges nu. Kataloget er et almindeligt statisk readonly katalog, som valideres én gang — ingen
+// der bruges nu. Kataloget er et almindeligt statisk readonly katalog, som valideres én gang – ingen
 // stateful klasse, runtime-registrering, seal-lifecycle, factory-brands eller WeakSet-autorisering.
 
 export type FieldControlKind = 'text' | 'choice' | 'toggle';
@@ -47,7 +47,7 @@ export type CanonicalWrite<T> = (
 
 /**
  * Ren canonical-læsning uden issues (§3.4 pkt. 1). Relevansregler og feltvalidatorer læser HER, aldrig
- * gennem den offentlige reader — så feltvurderingen ikke bliver cirkulær.
+ * gennem den offentlige reader – så feltvurderingen ikke bliver cirkulær.
  */
 export type CanonicalView = Readonly<{
   readCanonical: <V>(field: FieldRef<V>) => V;
@@ -78,16 +78,16 @@ export type FieldValidator<T> = (
 ) => FieldIssueSpec | undefined;
 
 export type FieldDescriptorConfig<T> = Readonly<{
-  /** Stabil, menneskelæsbar id — den ene dataidentitet for feltet (§6.1), uafhængig af editorlokation. */
+  /** Stabil, menneskelæsbar id – den ene dataidentitet for feltet (§6.1), uafhængig af editorlokation. */
   id: string;
   template: FieldAddressTemplate;
   codec: FieldCodec<T>;
-  /** Canonical tomværdi/clear-operation — obligatorisk del af hvert felt (§3.1 pkt. 3). */
+  /** Canonical tomværdi/clear-operation – obligatorisk del af hvert felt (§3.1 pkt. 3). */
   emptyValue: T;
   /** Semantisk tomhed er eksplicit; gyldige defaults som `false` eller `'dage'` må ikke gættes som missing. */
   isEmpty: (value: T) => boolean;
   /**
-   * Feltets brugervendte navn — det navn brugeren SER, og det eneste navn beskeder må bruge.
+   * Feltets brugervendte navn – det navn brugeren SER, og det eneste navn beskeder må bruge.
    *
    * Er navnet kontekstafhængigt, erklæres reglen i {@link FieldDescriptorConfig.contextualLabel}, og `label`
    * er da den kontekstfrie form (bruges når konteksten er ukendt/utilgængelig). Ét felt har ALDRIG to
@@ -98,7 +98,7 @@ export type FieldDescriptorConfig<T> = Readonly<{
    * Kontekstuel labelregel (§3.2a). Udeladt = `label` er navnet i alle kontekster.
    *
    * Erklæres den, SKAL `label` være den kontekstfrie form af samme navn, og hver mulig returværdi skal være
-   * et navn, brugeren faktisk kan se stå ved feltet. Rendersiden må ikke skrive labelen selv — den læser
+   * et navn, brugeren faktisk kan se stå ved feltet. Rendersiden må ikke skrive labelen selv – den læser
    * `resolveFieldLabel`, så synligt navn og beskednavn ikke kan drifte.
    */
   contextualLabel?: ContextualLabelRule;
@@ -110,7 +110,7 @@ export type FieldDescriptorConfig<T> = Readonly<{
   /** Canonical-værdi-validatorer (bounds/rule). Format/range håndteres af codecet, ikke her. */
   validators?: readonly FieldValidator<T>[];
   /**
-   * Datofelters erklærede grænser (§1.6a). PÅKRÆVET for hvert felt med codec-familien `date` — håndhævet af
+   * Datofelters erklærede grænser (§1.6a). PÅKRÆVET for hvert felt med codec-familien `date` – håndhævet af
    * `dateFieldsDeclareBounds.test.ts` og `defineField`-runtimeværnet. Typesystemet kan ikke håndhæve det,
    * fordi `FieldDescriptorConfig` er generisk over `T` og ikke kan se codec-familien.
    *
@@ -140,7 +140,7 @@ export type AnyFieldRef = Readonly<{
 
 /**
  * Kontekstuel labelregel (§3.2a): feltets brugervendte navn som en REN funktion af andre felters canonical
- * værdier — samme form som {@link RelevanceRule} og {@link FieldValidator}, og derfor med samme garantier
+ * værdier – samme form som {@link RelevanceRule} og {@link FieldValidator}, og derfor med samme garantier
  * (ingen mounted componentstate, ingen AppSettings, ingen cirkularitet).
  *
  * Findes fordi et felts synlige navn kan afhænge af konteksten: `stamdata.skadedato` hedder «Skadedato» ved
@@ -148,7 +148,7 @@ export type AnyFieldRef = Readonly<{
  * der navngav feltet i BESKEDER, mens den synlige label blev skrevet i hånden på rendersiden. Intet bandt de
  * to, så feltet kunne hedde «Anmeldelsesdato» på skærmen, mens fejlen bad brugeren rette «Skadedato».
  *
- * Reglen returnerer den FULDE label — ikke et suffiks eller en delstreng — så der aldrig findes en
+ * Reglen returnerer den FULDE label – ikke et suffiks eller en delstreng – så der aldrig findes en
  * halvfærdig label, et kaldssted skal samle færdig.
  */
 export type ContextualLabelRule = (view: CanonicalView) => string;
@@ -220,13 +220,13 @@ export const defineField = <T>(config: FieldDescriptorConfig<T>): FieldDescripto
   }
 
   // Beløbsfeltets RESULTAT-grænse er DERIVERET, ikke erklæret pr. felt (§2.2). Ciffergrænsen blokerer
-  // det 8. heltalsciffer tegn for tegn, men et gyldigt UDTRYK kan regne sig forbi grænsen — `9999999*2`
+  // det 8. heltalsciffer tegn for tegn, men et gyldigt UDTRYK kan regne sig forbi grænsen – `9999999*2`
   // giver 19.999.998 uden at noget enkelt talled er for langt. Den fejl kan først fanges ved settle, og
   // så skal den være en canonical rød feltfejl med konkret tooltip.
   //
   // Validatoren tilføjes derfor HER, hvor hvert eneste felt passerer, i stedet for at blive skrevet på
   // hver af de ~15 beløbsdescriptorer. Ellers ville et nyt beløbsfelt være uden grænse, indtil nogen
-  // huskede den — præcis den fejlklasse, `dateFieldsDeclareBounds` blev bygget for at lukke for datoer.
+  // huskede den – præcis den fejlklasse, `dateFieldsDeclareBounds` blev bygget for at lukke for datoer.
   // Feltets EGNE, skarpere min/max-validators står før i listen og har derfor forrang (§1.8).
   const derivedValidators = config.codec.family === 'amount'
     ? [
@@ -259,7 +259,7 @@ export const defineField = <T>(config: FieldDescriptorConfig<T>): FieldDescripto
 };
 
 /**
- * Feltets navn i den GIVNE kontekst — den ENE autoritet for feltnavne, både i beskeder og på skærmen.
+ * Feltets navn i den GIVNE kontekst – den ENE autoritet for feltnavne, både i beskeder og på skærmen.
  *
  * For statiske labels er `view` valgfri. En kontekstuel label kræver derimod en `view`: uden den kan navnet
  * ikke opløses sikkert, og en stiltiende brug af descriptorens standardlabel ville kunne give samme drift som
@@ -280,7 +280,7 @@ export const resolveFieldLabel = <T>(
 
 /**
  * Type-udslettet ref til issue-laget med et FÆRDIGOPLØST navn. Findes for de producenter, der får navnet
- * gennem `InputReader.labelOf` frem for en rå `CanonicalView` — de skal kunne bygge samme ref uden at
+ * gennem `InputReader.labelOf` frem for en rå `CanonicalView` – de skal kunne bygge samme ref uden at
  * håndrulle objektformen (og dermed uden at kunne glemme et led).
  */
 export const toAnyFieldRefWithLabel = <T>(field: FieldRef<T>, label: string): AnyFieldRef => Object.freeze({

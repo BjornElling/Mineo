@@ -24,7 +24,7 @@ import { downloadBlob } from '../../utils/fileHelpers';
 import { CONTENT_SCALE_ROOT_SELECTOR } from '../../utils/uiScale';
 
 /**
- * Rapportbeskedens maksimale længde — samme loft som programmets øvrige kommentarfelter.
+ * Rapportbeskedens maksimale længde – samme loft som programmets øvrige kommentarfelter.
  *
  * Feltet var helt ubegrænset, fordi `TransientTextInput` tabte `maxLength` i sin flerlinjede gren OG
  * ingen kaldte proppen. Beskeden ender i en mailtekst, så en indsat side tekst ville gøre den ubrugelig.
@@ -82,7 +82,7 @@ const ContentBoxReportDialog = React.memo(({
   // stak-disciplinen og fokus-restoren). Placeret EFTER `isSending`, som lukkevejen læser.
   const { overlayRootProps, requestClose } = useOverlayBehavior({
     open,
-    // Under afsendelse må dialogen ikke kunne lukkes — heller ikke med tilbage-knappen.
+    // Under afsendelse må dialogen ikke kunne lukkes – heller ikke med tilbage-knappen.
     onClose: () => {
       if (isSending) return false;
       onClose();
@@ -156,8 +156,8 @@ const ContentBoxReportDialog = React.memo(({
       try {
         if (scaleRoot instanceof HTMLElement) {
           // html2canvas læser CSS-zoom som almindelig layout-størrelse og kan derfor smelte labels
-          // sammen i outputtet. Neutralisér kun den lokale content-root mens capture kører — ikke
-          // shellen eller portal-overlayet — og gendan altid den aktive skala bagefter.
+          // sammen i outputtet. Neutralisér kun den lokale content-root mens capture kører – ikke
+          // shellen eller portal-overlayet – og gendan altid den aktive skala bagefter.
           scaleRoot.style.setProperty('zoom', '1');
           void scaleRoot.offsetWidth;
         }
@@ -188,7 +188,7 @@ const ContentBoxReportDialog = React.memo(({
       }
 
       // Den kanoniske download-vej. Her lå tidligere en egen kopi, der frigav object-URL'en
-      // synkront lige efter `click()` — en race, hvor browseren kan nå at miste filen tavst.
+      // synkront lige efter `click()` – en race, hvor browseren kan nå at miste filen tavst.
       downloadBlob(blob, buildScreenshotFilename(identity));
 
       setSnackbar({
@@ -217,8 +217,8 @@ const ContentBoxReportDialog = React.memo(({
         }}
         maxWidth="md"
         fullWidth
-        // MUI genopretter ellers SELV fokus ved unmount — til det element, der var aktivt ved
-        // åbningen — og den kører sidst, så den overskriver `useDialogFocusRestore` ovenfor uden at
+        // MUI genopretter ellers SELV fokus ved unmount – til det element, der var aktivt ved
+        // åbningen – og den kører sidst, så den overskriver `useDialogFocusRestore` ovenfor uden at
         // noget fejler. To restore-veje, hvor kun den ene kender kontraktens målprioritet
         // (`keyboard-navigation.md` §Popup-fokus-restore). Se `ConfirmationDialog` for samme værn.
         disableRestoreFocus

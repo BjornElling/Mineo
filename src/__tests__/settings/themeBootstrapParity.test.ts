@@ -6,7 +6,7 @@ import {
 import { resolveThemeMode, themeModeEnum, type AppThemeMode } from '../../settings/appSettingsSchema';
 
 /**
- * Bootstrap-scriptet og `resolveThemeMode` afgør det samme spørgsmål — «hvilket tema skal males?» —
+ * Bootstrap-scriptet og `resolveThemeMode` afgør det samme spørgsmål – «hvilket tema skal males?» –
  * men kan ikke dele kode: scriptet er en selvstændig ES5-streng, der køres i `<head>` før nogen
  * modulgraf findes. Reglen er derfor skrevet to gange, og uden denne test kunne den ene ændre sig
  * uden den anden.
@@ -35,7 +35,7 @@ describe('tema-bootstrap: paritet mellem head-script og resolveThemeMode', () =>
     })) as typeof window.matchMedia;
   };
 
-  /** Det tema, head-scriptet faktisk maler — aflæst som DOM-tilstand, ikke som returværdi. */
+  /** Det tema, head-scriptet faktisk maler – aflæst som DOM-tilstand, ikke som returværdi. */
   const runBootstrapAndReadTheme = (): 'light' | 'dark' => {
     new Function(bootstrapScript)();
     return document.documentElement.dataset.mineoTheme === 'dark' ? 'dark' : 'light';
@@ -106,7 +106,7 @@ describe('tema-bootstrap: paritet mellem head-script og resolveThemeMode', () =>
   });
 
   // Selv-test af testen: uden den kunne begge veje returnere den samme konstant og bestå ovenstående
-  // uden at måle noget. Kræver, at systempræferencen FAKTISK flytter udfaldet ved 'system' — og
+  // uden at måle noget. Kræver, at systempræferencen FAKTISK flytter udfaldet ved 'system' – og
   // lige så vigtigt, at den IKKE gør det ved et konkret valg.
   it('systempræferencen flytter kun udfaldet for "system"', () => {
     expect(resolveThemeMode('system', true)).toBe('dark');

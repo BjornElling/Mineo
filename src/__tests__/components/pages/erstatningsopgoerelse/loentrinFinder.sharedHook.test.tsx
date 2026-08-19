@@ -5,7 +5,7 @@
 //
 //   Alle ansættelsesforhold-kort bandt den SAMME trigger-ref, så React efterlod den på det sidst monterede
 //   kort. Åbnede brugeren finderen fra et andet kort end det nederste, vendte fokus ved lukning tilbage til
-//   det NEDERSTE korts «Find løntrin»-knap — et brud på `keyboard-navigation.md` §Popup-fokus-restore, der
+//   det NEDERSTE korts «Find løntrin»-knap – et brud på `keyboard-navigation.md` §Popup-fokus-restore, der
 //   kræver fokus tilbage til «den kontrol, brugeren åbnede den med».
 //
 // Fejlen var usynlig for den eksisterende dækning, fordi `loentrinFinderTrigger.keyboard.test.tsx` kun kører
@@ -58,7 +58,7 @@ const employmentWithFinder = (id: string, navn: string) => {
   };
 };
 
-/** To ansættelsesforhold — netop det, en enkelt delt trigger-ref ikke kan holde adskilt. */
+/** To ansættelsesforhold – netop det, en enkelt delt trigger-ref ikke kan holde adskilt. */
 const hydrateTwoEmployments = (): void => {
   const catalog = getProductionInputCatalog();
   hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
@@ -92,7 +92,7 @@ const renderSurface = () => render(
   </MemoryRouter>
 );
 
-describe('useLoentrinFinder — én hook for begge flader', () => {
+describe('useLoentrinFinder – én hook for begge flader', () => {
   beforeEach(() => {
     sessionStorage.clear();
   });

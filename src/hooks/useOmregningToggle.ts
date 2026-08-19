@@ -14,7 +14,7 @@ interface UseOmregningToggleReturn {
   /**
    * Gatens afgørelse som feltadapterens {@link ToggleCommitOverride} (§1.11): `'reject'` ved en ugyldig
    * aktivering, hvorved adapteren IKKE skriver og togglen bliver stående, ellers `'commit'`, hvorved adapteren
-   * skriver gennem sin normale write-grænse. Bivirkningen — fejlcelle-guidningen — hører til
+   * skriver gennem sin normale write-grænse. Bivirkningen – fejlcelle-guidningen – hører til
    * afvisningen og sker derfor her.
    *
    * Hooken skriver ikke selv: gaten er en afslutningsPOLITIK, ikke en grund til at
@@ -32,8 +32,8 @@ interface UseOmregningToggleReturn {
  * - Manuel enable blokeres tidligt ved ugyldige forhold (→ fokus/markering på første fejl)
  *
  * Rystelsen af togglen er fjernet (brugerbeslutning 2026-08-15). Hver afvisningsgren peger i
- * forvejen brugeren på en KONKRET celle — fejlcellen, den manglende indtastning eller første
- * periodecelle — og det er den vejvisning, der havde værdi. Rystelsen tilføjede kun «noget er galt».
+ * forvejen brugeren på en KONKRET celle – fejlcellen, den manglende indtastning eller første
+ * periodecelle – og det er den vejvisning, der havde værdi. Rystelsen tilføjede kun «noget er galt».
  */
 export const useOmregningToggle = ({
   gate,

@@ -12,7 +12,7 @@ import { useAarsloenVm } from './aarsloenContext';
  * kritiske fejl står ØVERST (før Satser), mens advarsler og dokument-fejl står mellem Beregningsprincipper og
  * Beregning. En samlet komponent kunne ikke gengive den placering uden at flytte noget synligt.
  *
- * De to fejlbokse ejer IKKE deres eget synlighedsværn — det ligger i `PageMessageBox`. Den kritiske boks stod
+ * De to fejlbokse ejer IKKE deres eget synlighedsværn – det ligger i `PageMessageBox`. Den kritiske boks stod
  * tidligere permanent og tom øverst på siden, fordi den håndrullede værnet (`if (!beregningsFejl)`) på en værdi,
  * hvor truthiness ikke betød "har indhold"; se `components/layout/pageMessage.ts`.
  */

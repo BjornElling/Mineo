@@ -45,7 +45,7 @@ type EetInputIssues = Readonly<{
 // reader-feltfejl bæres separat, fordi den er en selvstændig dokumentdependency.
 export type EetForligInput = Readonly<{
   values: ForligAnsvarsgradInput;
-  // Forligsdato (delt kilde med EO) — kun til prosa-sætningen i specifikationen. Udeladt = ingen dato.
+  // Forligsdato (delt kilde med EO) – kun til prosa-sætningen i specifikationen. Udeladt = ingen dato.
   dato?: ISODateString;
   datoErrorMessage?: string;
   hasRejectedInput: boolean;
@@ -128,7 +128,7 @@ const createFieldIssues = (
  * Kontraktkravet er, at kun en `ready` projektion må fodre en beregningsmotor (`form-contract.md` §2.3), og
  * at en projektion ikke kalder motoren, hvis et afhængigt issue gør input uanvendeligt
  * (`error-contract.md` §5). Panelets egne field-/forlig-/datoordensissues afgøres derfor FØR `calculate`
- * kaldes — ikke bagefter, som tidligere.
+ * kaldes – ikke bagefter, som tidligere.
  *
  * Hvorfor det er mere end en formalitet: readeren maskerer en rød værdi til `undefined`, så motoren ville
  * ellers regne på et FALSK input. Konkret kan en maskeret EAL-% eller EAL-årsløn falde tilbage til
@@ -187,7 +187,7 @@ const buildLoebendeYdelserProjection = (input: EetSnapshotInput): EetSnapshot['l
 
 const buildKapitaliseringProjection = (input: EetSnapshotInput): EetSnapshot['kapitalisering'] => {
   // Bemærk: beregningsdato er BEVIDST ikke en kapitaliserings-afhængighed. Derfor bevares dette panel, når
-  // beregningsdatoen er rød — den dependency-specifikke opdeling i §1.10 i praksis.
+  // beregningsdatoen er rød – den dependency-specifikke opdeling i §1.10 i praksis.
   const blockingIssues = [
     ...createFieldIssues(input.fieldErrors, [
       { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
@@ -210,7 +210,7 @@ const buildKapitaliseringProjection = (input: EetSnapshotInput): EetSnapshot['ka
  * Spejler EAL-motorens egne fallback-betingelser, så gaten ikke kan drifte fra den motor, den gater:
  *  - `resolveAarsloen` (`eetEalCalculation.ts:184-193`): EAL-årslønnen bruges, når den er et finit tal > 0.
  *  - `resolveEetPct` (`eetEalCalculation.ts:169`): EAL-% bruges, når den er defineret og ikke 0.
- * Er primærværdien ikke brugbar, læser motoren ASL-siden — og først dér er ASL en afhængighed.
+ * Er primærværdien ikke brugbar, læser motoren ASL-siden – og først dér er ASL en afhængighed.
  */
 const isUsableAmount = (amount: EetSnapshotInput['values']['ealAarsloen']): boolean => {
   const value = amount?.value;
@@ -223,7 +223,7 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
   // EAL-motoren har TO fallbacks: EAL-% → ASL-rækkernes eetPct, og EAL-årsløn → ASL-årsløn
   // (`eetEalCalculation.ts:158-193`). Begge primærfelter er derfor altid afhængigheder.
   //
-  // ASL-siden er en BETINGET afhængighed: den indgår KUN, når fallbacken faktisk nås — altså når primærværdien
+  // ASL-siden er en BETINGET afhængighed: den indgår KUN, når fallbacken faktisk nås – altså når primærværdien
   // er reelt tom. Uden det ville en rød ASL-værdi overblokere et panel, der har en gyldig EAL-primærværdi og
   // dermed slet ikke læser ASL. Med den bevares fallback-invarianten i den anden retning: en rød ASL-værdi må
   // ikke maskeres til tomhed og fodre motoren, når EAL-primærværdien er tom og fallbacken derfor bruges.
@@ -258,8 +258,8 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
   }));
 };
 
-// Forlig om ansvarsgrad-fejl (delt kilde med EO-fanen). Et ugyldigt forlig — "begge udfyldt",
-// en brøk over 1, eller et ikke-committbart rå draft — skal blokere hele differencekrav-outputtet.
+// Forlig om ansvarsgrad-fejl (delt kilde med EO-fanen). Et ugyldigt forlig – "begge udfyldt",
+// en brøk over 1, eller et ikke-committbart rå draft – skal blokere hele differencekrav-outputtet.
 const resolveForligBlocking = (forlig: EetForligInput | undefined): Readonly<{
   forligFactor: Parameters<typeof computeEetDifferencekravCalculation>[0]['forlig'];
   issue: EetIssue | null;
@@ -286,7 +286,7 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
   const forligDatoIssue = toFieldIssue('field-forlig-dato', input.forlig?.datoErrorMessage);
 
   // Differencekravet er en JOIN: det læser hele EAL- og ASL-siden PLUS forliget. Derfor er dens
-  // afhængighedsliste unionen af søsterpanelernes — et rødt felt i enten EAL- eller ASL-grenen blokerer den.
+  // afhængighedsliste unionen af søsterpanelernes – et rødt felt i enten EAL- eller ASL-grenen blokerer den.
   // Et ugyldigt forlig (eller en ugyldig forligsdato) er ligeledes en afhængighed, ikke et efterfølgende filter:
   // uden gaten ville motoren regne videre med `forligFactor: null`, dvs. som om der slet ikke var et forlig.
   const blockingIssues = [

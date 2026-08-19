@@ -33,7 +33,7 @@ export const eoSnapshotToEoDocument = (snapshot: EoSnapshot): EoDocumentProjecti
     };
   }
 
-  // pdfModel er bygget og caches i computeEoSnapshot — konsistens mod totals er garanteret
+  // pdfModel er bygget og caches i computeEoSnapshot – konsistens mod totals er garanteret
   // af snapshot-pipelinen og kan ikke afvige.
   return {
     kind: 'ok',

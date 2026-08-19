@@ -19,7 +19,7 @@ export type DateBoundsContext = Readonly<{
  * En grænse er enten en fast ISO-dato, en thunk (dags dato-afhængige grænser) eller en funktion af feltets
  * egen kontekst (grænser, der krydslæser ANDRE felter, fx skadedato eller rækkens modpart).
  *
- * `undefined` fra en kontekstfunktion betyder "ingen skærpelse fra denne kilde" — spec'ens ydre grænse
+ * `undefined` fra en kontekstfunktion betyder "ingen skærpelse fra denne kilde" – spec'ens ydre grænse
  * gælder da. Det er netop situationen, hvor brugeren endnu ikke har udfyldt det felt, grænsen udledes af.
  */
 export type DateBoundResolver =
@@ -35,7 +35,7 @@ export type DateBoundsOriginSpec =
 /**
  * Et datofelts erklærede grænser.
  *
- * `min`/`max` er den YDRE ramme (typisk fra `dateRanges`-konfigurationen) og er PÅKRÆVET — det er dem, der
+ * `min`/`max` er den YDRE ramme (typisk fra `dateRanges`-konfigurationen) og er PÅKRÆVET – det er dem, der
  * fanger år 1900 og år 2100. `narrowMin`/`narrowMax` er valgfrie skærpelser udledt af andre felters værdier;
  * de kan kun gøre intervallet SMALLERE, aldrig bredere, så et tomt afhængighedsfelt aldrig kan åbne rammen.
  */
@@ -50,7 +50,7 @@ export type DateBoundsSpec = Readonly<{
   narrowMax?: (context: DateBoundsContext) => ISODateString | undefined;
   /**
    * Beskedens oprindelse. `STATIC_DATE_BOUNDS` når begge grænser er konfigurationskonstanter;
-   * `derivedDateBounds('<Felt A> og <Felt B>')` så snart en skærpelse kan gøre intervallet umuligt — ellers
+   * `derivedDateBounds('<Felt A> og <Felt B>')` så snart en skærpelse kan gøre intervallet umuligt – ellers
    * får brugeren at vide, at ingen dato er gyldig, uden at få at vide hvilke felter der skal rettes.
    */
   origin: DateBoundsOriginSpec;

@@ -36,7 +36,7 @@ const createStandalonePdfSession = async (format: DocumentDownloadFormat): Promi
 
 /**
  * Standalones fejl-sink. Kun `kind: 'runtime'` når hertil (kernen filtrerer), og standalone har
- * ingen central systemfejls-overflade at rapportere til — `console.error` er den reelle fejl-log,
+ * ingen central systemfejls-overflade at rapportere til – `console.error` er den reelle fejl-log,
  * jf. den eksisterende note i `standaloneRentePdfService.ts`.
  */
 const reportStandaloneFailure = (failure: DocumentFailure, diagnostics: DocumentDiagnostics): void => {

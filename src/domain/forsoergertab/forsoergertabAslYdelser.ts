@@ -159,7 +159,7 @@ const interpolateKapitalfaktor = (
 // måneds-segment. Date.UTC(year, month, 0) udnytter at "dag 0" = sidste dag i den FOREGÅENDE
 // 0-indekserede måned: med 1-indekseret input peger month derfor på den 0-indekserede MÅNED-EFTER,
 // og dag 0 dér giver præcis sidste dag i den ønskede måned. De to off-by-one-forskydninger
-// ophæver hinanden — ret IKKE month til month-1, det ville give forrige måneds dage.
+// ophæver hinanden – ret IKKE month til month-1, det ville give forrige måneds dage.
 const daysInMonth = (year: number, month: number): number => new Date(Date.UTC(year, month, 0)).getUTCDate();
 
 const computeLobendeYdelser = (
@@ -195,13 +195,13 @@ const computeLobendeYdelser = (
       const aarligYdelseSkadesaar = ceilNearest12(FORSOERGERTABSPROCENT * benyttetAarsloen);
       maanedligYdelse = aarligYdelseSkadesaar / 12;
     } else {
-      // OPREGULERINGSMETODE: ASL-årslønsmaksimum (idx[år] / idx[skadeår]) — jf.
+      // OPREGULERINGSMETODE: ASL-årslønsmaksimum (idx[år] / idx[skadeår]) – jf.
       // `opregulerMedAslAarsloensmaksimum`. Beregnes direkte her, fordi løbende
       // ydelser også kan ligge FØR skadeåret (de-regulering med faktor < 1),
       // hvilket motorens "kun frem i tid"-clamp ikke dækker.
       const aarsloenMaxYear = resolveAslAarsloensmaksimumForAar(year);
       if (aarsloenMaxYear === undefined) {
-        throw new Error(`INVARIANT: aarsloenAslMax mangler for år ${year} — burde være pre-valideret`);
+        throw new Error(`INVARIANT: aarsloenAslMax mangler for år ${year} – burde være pre-valideret`);
       }
       const opreguleretAarligYdelseForAar = ceilNearest12(FORSOERGERTABSPROCENT * benyttetAarsloen * (aarsloenMaxYear / aarsloenMaxSkadesaar));
       maanedligYdelse = opreguleretAarligYdelseForAar / 12;

@@ -89,7 +89,7 @@ const byggResultat = (
     // tjekker hvert år i basisår→segmentår for dækning (ensartet med den akkumulerede motor,
     // jf. `opregulerMedAslAarsloensmaksimum`); tal-neutralt via interiort-hul-load-guarden.
     // Det tidligere per-segment-opslag + to-års-injektion var netop den endepunkts-kun-gren,
-    // foreningen fjernede — genindfør den ikke.
+    // foreningen fjernede – genindfør den ikke.
     const aslSegments = buildAslReguleringsSegments(konsolideret.tafRanges)
       .map<LoenreguleringsSegment>((segment) => {
         if (segment.year < baseYear) {
@@ -98,7 +98,7 @@ const byggResultat = (
         return { fra: segment.fra, til: segment.til, deltaPct: aslIndeksTilSegmentDelta(baseYear, segment.year) };
       });
     // ASL bruger et per-år-opslag (resolveAslAarsloensmaksimumForAar), ikke en kvartals-
-    // indeksserie — der er ingen periodeserie at emittere som forløb (forloeb udelades →
+    // indeksserie – der er ingen periodeserie at emittere som forløb (forloeb udelades →
     // præsentationen re-deriverer det direkte data-opslag uændret).
     return { segmenter: aslSegments };
   }
@@ -109,7 +109,7 @@ const byggResultat = (
     throw new Error('Loenudvikling kan ikke beregnes: ukendt statistikmodel');
   }
 
-  // R2 — samme delte kvartals-indeksserie som formen emitterer som forløb og præsentationen
+  // R2 – samme delte kvartals-indeksserie som formen emitterer som forløb og præsentationen
   // læser (buildStatistikIndexEntries): bygges ÉN gang her og bæres både som segment-basis og
   // som autoritativt forløb, så vist indeksværdi = den motoren afleder deltaPct fra.
   // Segment-byggeriet bruger kun startIso + indeksvaerdi (kvartal ignoreres her).

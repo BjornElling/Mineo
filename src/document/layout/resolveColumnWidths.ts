@@ -5,7 +5,7 @@
  * jsPDF-runtime-afhængighed: tekstmåling injiceres som `ColumnTextMeasurer` (PDF-kanalen
  * wrapper jsPDF's `getTextWidth`; en degraderet jsPDF sender `null` → statisk fordeling).
  * Semantikken er bevaret 1:1 fra den tidligere `resolveAdaptiveDistributedColumnStyles`
- * + `resolveGrowColumnStyles` + omfordelings-hjælperen — bevist byte-identisk af
+ * + `resolveGrowColumnStyles` + omfordelings-hjælperen – bevist byte-identisk af
  * `pdfTableRenderer.layout.test.ts` og tabel-kanal-paritet-golden-nettet.
  *
  * Kolonne-intentionen (fixed/flex/grow) bæres af `PDF_COLUMN_LAYOUT_META`, som
@@ -59,7 +59,7 @@ type CellStyles = Readonly<{
 }>;
 
 // Generisk celle-padding for alle Mineo-tabeller. Samme kilde som renderer-laget
-// (pdfConfig) — indgår i min-bredde-estimatet, så den SKAL matche renderingen 1:1.
+// (pdfConfig) – indgår i min-bredde-estimatet, så den SKAL matche renderingen 1:1.
 const TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
 const TABLE_FONT_SIZE = DOCUMENT_TABLE_FONT_SIZE_PT;
 const PDF_TEXT_MEASUREMENT_BUFFER_MM = 0.8;
@@ -177,7 +177,7 @@ const resolvePdfColumnRedistributionTargetIndex = (
 // fordeles overskuddet ligeligt mellem alle kolonner. Bevarer eventuelle halign-styles
 // og tabellens samlede bredde. Falder fail-closed tilbage til de originale styles, hvis
 // de øvrige kolonners min-bredder alene overstiger tabelbredden (grow-kolonnen ville da
-// få ≤ 0 mm — vi gætter hellere ikke en fordeling end at rendere en umulig tabel).
+// få ≤ 0 mm – vi gætter hellere ikke en fordeling end at rendere en umulig tabel).
 const resolveGrowColumnStyles = (
   columnStyles: PdfColumnStyleMap,
   layoutMeta: PdfDistributedColumnLayoutMeta,
@@ -193,7 +193,7 @@ const resolveGrowColumnStyles = (
   const othersRequiredTotal = otherIndices.reduce((sum, index) => sum + (requiredWidths.get(index) ?? 0), 0);
   const remainingForGrow = layoutMeta.tableWidth - othersRequiredTotal;
   if (remainingForGrow <= PDF_WIDTH_EPSILON) {
-    // De øvrige kolonners indhold fylder alene hele tabelbredden — ingen meningsfuld
+    // De øvrige kolonners indhold fylder alene hele tabelbredden – ingen meningsfuld
     // plads at give grow-kolonnen. Behold de statiske styles.
     return columnStyles;
   }
@@ -208,7 +208,7 @@ const resolveGrowColumnStyles = (
     }
     resolvedWidths.set(growColumnIndex, growRequired + share);
   } else {
-    // Grow-kolonnens indhold er bredere end den ledige plads — den får al resten og
+    // Grow-kolonnens indhold er bredere end den ledige plads – den får al resten og
     // ombryder inde i kolonnen; de øvrige holdes på deres min-bredde.
     for (const index of otherIndices) {
       resolvedWidths.set(index, requiredWidths.get(index) ?? 0);

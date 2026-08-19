@@ -8,7 +8,7 @@ import { BROWSER_LANE_TAG } from './support/lanes';
  *
  * Testen kører i rigtige browsere og tæller `animationstart`, fordi det er den ENESTE måde at se en
  * GENSTART. Både «klassen er til stede» og et skærmbillede ville se ens ud, uanset om animationen
- * faktisk kørte igen — og det var netop forskellen mellem fejlen og rettelsen: klassen stod der hele
+ * faktisk kørte igen – og det var netop forskellen mellem fejlen og rettelsen: klassen stod der hele
  * tiden, men animationen var spillet af. Målt før rettelsen gav tre klik 1, 1, 1; efter: 1, 2, 3.
  */
 
@@ -26,7 +26,7 @@ test.describe('Gentagen feltmarkering', { tag: BROWSER_LANE_TAG }, () => {
     await expect(page).toHaveURL(/\/aarsloen$/);
     // Tabellen skal være monteret, før togglen kan afvises mod dens imperative handle.
     // Togglen ligger EFTER tabellen i DOM, så dens synlighed beviser ikke, at periodens celle-ref
-    // allerede kan modtage markeringen — det var årsagen til den tværbrowser-flakiness, testen fandt.
+    // allerede kan modtage markeringen – det var årsagen til den tværbrowser-flakiness, testen fandt.
     await expect(page.locator('input[placeholder="mm"]').first()).toBeVisible();
 
     await page.evaluate(() => {

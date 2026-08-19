@@ -6,7 +6,7 @@ import ts from 'typescript';
 /**
  * Fraværsværn: Mineo genindlæser sig ALDRIG selv, når browseren gendanner dokumentet fra bfcache.
  *
- * **Invarianten.** En bfcache-gendannelse er ikke en ny session — brugeren vender tilbage til sit
+ * **Invarianten.** En bfcache-gendannelse er ikke en ny session – brugeren vender tilbage til sit
  * eget, igangværende arbejde. Her lå tidligere en `pageshow`-lytter, der ubetinget kaldte
  * `location.reload()`. Den brød invarianten «en åben session skifter aldrig version»: den kunne skifte
  * build midt i en sag og kaste en åben editors draft væk uden om `CriticalActionCoordinator`. Se
@@ -14,11 +14,11 @@ import ts from 'typescript';
  *
  * **Hvorfor et fraværsværn og ikke en E2E-test.** Påstanden blev før forsøgt bevist i browseren
  * (`e2e/pwa-service-worker.spec.ts`), men den test kunne ikke lade sig gøre: Chromium lægger ikke et
- * dokument i bfcache, mens DevTools-protokollen er tilsluttet — og den er tilsluttet i enhver
+ * dokument i bfcache, mens DevTools-protokollen er tilsluttet – og den er tilsluttet i enhver
  * Playwright-kørsel. Testen sprang derfor sig selv over hver eneste gang og hævdede intet.
  *
  * Det, der faktisk er VORES, er ikke browserens beslutning om at bfcache, men om vi reagerer på
- * gendannelsen. Netop dét er en fraværspåstand om egen kode — og den kan hævdes hver gang.
+ * gendannelsen. Netop dét er en fraværspåstand om egen kode – og den kan hævdes hver gang.
  *
  * Værnet er en AST-kontrol, ikke en tekstsøgning: ordet `pageshow` står med vilje i beslutningsnoten i
  * `App.tsx` og i denne kommentar, og en regex kan ikke skelne den omtale fra en genindført lytter.
@@ -45,7 +45,7 @@ const parse = (filePath: string): ts.SourceFile =>
     ts.ScriptKind.TS,
   );
 
-/** `addEventListener('pageshow', …)` som et FAKTISK kald — uanset hvad der lyttes på. */
+/** `addEventListener('pageshow', …)` som et FAKTISK kald – uanset hvad der lyttes på. */
 export const findPageShowListeners = (source: ts.SourceFile): readonly ts.Node[] => {
   const found: ts.Node[] = [];
   const visit = (node: ts.Node): void => {
@@ -105,8 +105,8 @@ describe('bfcache-gendannelse udløser ingen genindlæsning', () => {
     });
 
     it('måler et levende mål: beslutningsnoten står stadig i App.tsx', () => {
-      // Grøn-af-tomhed-kontrollen. Forsvinder noten, er invarianten enten ophævet — og så skal dette
-      // værn med — eller flyttet, og så peger fejlmeldingen forkert.
+      // Grøn-af-tomhed-kontrollen. Forsvinder noten, er invarianten enten ophævet – og så skal dette
+      // værn med – eller flyttet, og så peger fejlmeldingen forkert.
       expect(fs.readFileSync(APP_MODULE, 'utf8')).toContain('BEVIDST INGEN bfcache-genindlæsning');
     });
 

@@ -82,7 +82,7 @@ const LoenindkomstTab = React.memo(({
         {/* «Bemærk, at» + punkterne står i en egen `flow--16`-blok (samme utility som Mineo-siden
             bruger til løbende tekst): den neutraliserer `row--text`s faste rækkehøjde, så linjerne
             står tæt sammen i stedet for at fylde en hoverrække hver. Wrapperen ligger på blokken
-            alene — ikke på hele `content-box` — så section-headeren og knap-rækken beholder
+            alene – ikke på hele `content-box` – så section-headeren og knap-rækken beholder
             sidens normale rækkeafstand. */}
         <Box className="flow--16">
           <Typography className="row--text">Bemærk, at</Typography>

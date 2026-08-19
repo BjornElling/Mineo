@@ -20,7 +20,7 @@ import { CONTENT_SCALE_CSS_VARIABLE } from '../../utils/uiScale';
  *
  * De auto-lukkende varianter (success/info/warning) beholder deres adfærd: de forsvinder af sig selv
  * og har derfor ikke brug for en lukkeaffordance. De bærer `role="status"`, som er den høflige
- * pendant — den afbryder ikke oplæsningen midt i en sætning.
+ * pendant – den afbryder ikke oplæsningen midt i en sætning.
  *
  * @param {Object} props
  * @param {string} props.message - Besked der skal vises
@@ -151,7 +151,7 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
 
   return (
     <Box
-      // `alert` afbryder og oplyser straks — rigtigt for den blivende fejl, brugeren skal reagere på.
+      // `alert` afbryder og oplyser straks – rigtigt for den blivende fejl, brugeren skal reagere på.
       // `status` er den høflige pendant til de beskeder, der forsvinder af sig selv.
       role={isDismissible ? 'alert' : 'status'}
       sx={{
@@ -205,7 +205,7 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
           size="small"
           // Boksen ejer selv et klik-til-luk; uden dette ville knappens klik boble op og kalde
           // `dismiss` to gange. Den anden ville være en no-op, men afhængigheden af det ville være
-          // uskreven — så den stoppes eksplicit.
+          // uskreven – så den stoppes eksplicit.
           onClick={(event) => {
             event.stopPropagation();
             dismiss();

@@ -232,7 +232,7 @@ export const setupPwaLaunchQueueConsumer = (): void => {
  *
  * Opstartens opdateringsbarriere kan genindlæse dokumentet. En `.eo`-request, browseren afleverede
  * få millisekunder forinden, lever på det tidspunkt kun i hukommelsen, mens skrivningen er undervejs
- * — og en genindlæsning ville tabe den. Boot skal derfor kunne vente på den durable handoff, FØR den
+ * – og en genindlæsning ville tabe den. Boot skal derfor kunne vente på den durable handoff, FØR den
  * river dokumentet ned.
  *
  * Returnerer `false`, hvis der findes en pending request, som ikke kunne bekræftes persisteret. Da

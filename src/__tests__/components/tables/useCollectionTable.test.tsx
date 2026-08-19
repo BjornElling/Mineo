@@ -20,7 +20,7 @@ import { useCollectionTable } from '../../../components/tables/useCollectionTabl
  *    identitet, og en history-origin fra før sorteringen ville miste sit element (§1.11/§3.7).
  *  - HVOR MANGE tomme rækker der vises, afgøres af `minimumVisibleRows` og
  *    `countsAsEmptyEntryRow`. Sidstnævnte var før et `shouldAppendRentekravPlaceholder`-kald
- *    ude i tabellen, hvor den kun var dækket som ren funktion — aldrig som vist tabel.
+ *    ude i tabellen, hvor den kun var dækket som ren funktion – aldrig som vist tabel.
  */
 
 type Row = Readonly<{ id: string; navn: string }>;
@@ -115,7 +115,7 @@ describe('useCollectionTable.buildRenderRows', () => {
     expect(usorteret.at(-1)!.rowId).toBe(sorteret.at(-1)!.rowId);
   });
 
-  it('viser flere tomme rækker op til `minimumVisibleRows` — alle sammen', () => {
+  it('viser flere tomme rækker op til `minimumVisibleRows` – alle sammen', () => {
     // Den tidligere reconciliation genfandt placeholderen med `.find` og tog kun den FØRSTE, så
     // en tabel med flere tomme rækker tabte resten tavst. Her skal alle tre komme med.
     const model = renderModel({ committedRows: [], minimumVisibleRows: 3 });
@@ -150,7 +150,7 @@ describe('useCollectionTable.buildRenderRows', () => {
     expect(model.map((r) => r.rowId)).toEqual(['a', 'b', 'ph-1']);
   });
 
-  it('`countsAsEmptyEntryRow` sænker kun BUNDEN — minimumVisibleRows gælder stadig', () => {
+  it('`countsAsEmptyEntryRow` sænker kun BUNDEN – minimumVisibleRows gælder stadig', () => {
     // De to regler er uafhængige: den ene siger «mindst så mange rækker i alt», den anden «en
     // committet tom række tæller som indtastningsrækken». Slås de sammen ét sted, skal begge
     // stadig kunne ses hver for sig.

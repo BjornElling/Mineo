@@ -46,7 +46,7 @@ describe('formatISOToDanish', () => {
 // ─── formatCopenhagenTimestampSeconds ──────────────────────────────────────
 // Fejlrapportens tidsstempler SKAL vises i dansk tidszone (Europe/Copenhagen),
 // ikke UTC. Testene fikserer et kendt UTC-instant og verificerer det danske
-// vægur — uafhængigt af maskinens egen tidszone.
+// vægur – uafhængigt af maskinens egen tidszone.
 
 describe('formatCopenhagenTimestampSeconds', () => {
   it('sommertid (CEST = UTC+2): 12:00Z → 14:00 dansk', () => {

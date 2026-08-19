@@ -42,7 +42,7 @@ export type ApplyLoadedSnapshot = (snapshot: PersistedSectionsSnapshot) => void;
 /**
  * Den SYNKRONE, autoritative halvdel af et load-apply. Skal køre inde i
  * `CriticalActionCoordinator.applyReplacement`, så replacement-transaktionen og draft-discard er atomiske.
- * Kaster ved schema-/katalogafvisning, så apply-fejl aldrig efterlader en delvist erstattet sag —
+ * Kaster ved schema-/katalogafvisning, så apply-fejl aldrig efterlader en delvist erstattet sag –
  * og fordi den kaster INDE i barrieren, bevares den åbne draft.
  */
 export const applyAuthoritativeLoadSnapshot = (args: {

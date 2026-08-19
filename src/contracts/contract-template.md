@@ -1,10 +1,10 @@
 # <Kontraktnavn>
 
-> **Skabelonens status:** Metadata-feltet **Senest verificeret mod kode** er *obligatorisk*. Formatet håndhæves af `contractCoverageMatrix.test.ts`, og `check:contract-verification` (i `verify:release`) kræver desuden, at datoen ikke er ældre end den seneste commit, der ændrede kontrakten — ændrer du teksten, verificerer du mod koden og opdaterer stemplet i SAMME commit.
+> **Skabelonens status:** Metadata-feltet **Senest verificeret mod kode** er *obligatorisk*. Formatet håndhæves af `contractCoverageMatrix.test.ts`, og `check:contract-verification` (i `verify:release`) kræver desuden, at datoen ikke er ældre end den seneste commit, der ændrede kontrakten – ændrer du teksten, verificerer du mod koden og opdaterer stemplet i SAMME commit.
 >
-> De øvrige felter og afsnit nedenfor er en *anbefalet* struktur — kontrakter må have en anden, veludviklet form, så længe den dækker de samme dimensioner (scope, regler, kilder, testkobling, undtagelser). Skabelonen er en støtte, ikke en tvangstrøje.
+> De øvrige felter og afsnit nedenfor er en *anbefalet* struktur – kontrakter må have en anden, veludviklet form, så længe den dækker de samme dimensioner (scope, regler, kilder, testkobling, undtagelser). Skabelonen er en støtte, ikke en tvangstrøje.
 >
-> **Til gengæld håndhæves kontrakternes indhold.** `contractReferenceLiveness.test.ts` kræver, at hver navngiven fil, sti og hvert symbol i en kontrakt findes i koden — og at de navne, en kontrakt udpeger som fraværsværn, faktisk forbliver væk. Har du brug for at navngive noget, der bevidst ikke findes, tilføj en `absent`-post med begrundelse i `REFERENCE_EXCEPTIONS`; det er en påstand, testen holder dig til, ikke en undertrykkelse. Fører kontrakten et `Testkobling`-afsnit, skal hver suite dér også stå i `COVERAGE_MATRIX`.
+> **Til gengæld håndhæves kontrakternes indhold.** `contractReferenceLiveness.test.ts` kræver, at hver navngiven fil, sti og hvert symbol i en kontrakt findes i koden – og at de navne, en kontrakt udpeger som fraværsværn, faktisk forbliver væk. Har du brug for at navngive noget, der bevidst ikke findes, tilføj en `absent`-post med begrundelse i `REFERENCE_EXCEPTIONS`; det er en påstand, testen holder dig til, ikke en undertrykkelse. Fører kontrakten et `Testkobling`-afsnit, skal hver suite dér også stå i `COVERAGE_MATRIX`.
 
 **Status:** Gældende arkitektur (normativ)
 **Type:** <Tværgående kontrakt | Domænekontrakt>

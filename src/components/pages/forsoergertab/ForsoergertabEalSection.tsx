@@ -11,7 +11,7 @@ import { useForsoergertabVm } from './forsoergertabContext';
  * EAL-kravets mellemregninger: årsløn, regulering, erhvervsevnetab, minimumsniveau og aldersreduktion.
  *
  * Teksterne er BEVIDST udførlige formler: brugeren skal kunne efterprøve tallet uden at åbne dokumentet.
- * Panelet bevares, selv når ASL-siden er blokeret — panel-gates er dependency-specifikke (§1.10).
+ * Panelet bevares, selv når ASL-siden er blokeret – panel-gates er dependency-specifikke (§1.10).
  */
 const ForsoergertabEalSection = React.memo(() => {
   const { canShowEal, ealComputation, foersoergertabEalMinSatsOre, foersoergertabForhoejtetTilMin } =

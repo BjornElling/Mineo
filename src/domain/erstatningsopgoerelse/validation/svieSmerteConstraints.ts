@@ -29,7 +29,7 @@ export const resolveSvieSmerteCutoffDate = (
  * Den fælles brugerbesked for svie/smerte efter ménafgørelsen.
  *
  * Den bruges både af række-evalueringen og den strukturelle feltissue-projektion. Hvis de to steder bygger
- * teksten hver for sig, får brugeren igen én besked ved feltet og en anden på Beregning-siden — netop den
+ * teksten hver for sig, får brugeren igen én besked ved feltet og en anden på Beregning-siden – netop den
  * drift som den konkrete fejl afslørede.
  */
 export const buildSvieSmerteCutoffErrorMessage = (args: Readonly<{
@@ -49,7 +49,7 @@ export const buildSvieSmerteCutoffErrorMessage = (args: Readonly<{
  * varigeMenAfgorelse ≠ 'Ja').
  *
  * Korrekt adfærd (jf. eo-snapshot-contract.md §2.2): til-dato >= menAfgoerelseDato er en
- * fejlgivende bound — feltfejl (rød kant + tooltip) vises i SvieSmerteTable og fejlen
+ * fejlgivende bound – feltfejl (rød kant + tooltip) vises i SvieSmerteTable og fejlen
  * gengives på EOBeregningTab, der blokerer download.
  * Engineen clamper stadig til dayBeforeMen for at producere korrekte beregningsresultater.
  */
@@ -74,7 +74,7 @@ export const resolveSvieSmerteEoPeriodeBounds = (
 
 /**
  * Clamper en svie/smerte-IsoRange til bounds.
- * Returnerer null hvis perioden reduceres til ingenting (fra > til) — dette er
+ * Returnerer null hvis perioden reduceres til ingenting (fra > til) – dette er
  * normal og forventelig adfærd (jf. eo-snapshot-contract.md §2).
  */
 export const clampSvieSmerteRange = (

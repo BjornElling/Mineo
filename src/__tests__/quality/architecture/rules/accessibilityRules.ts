@@ -1,11 +1,11 @@
 /**
  * Tilgængeligt navn på interaktive kontroller.
  *
- * **Hvad reglen dækker — og hvorfor den findes ved siden af typesystemet.** Navnekravet håndhæves
+ * **Hvad reglen dækker – og hvorfor den findes ved siden af typesystemet.** Navnekravet håndhæves
  * primært af typerne: `StyledToggleSwitch`, `ToggleField` og `MappedToggleField` tager et
  * `AccessibleNameProps`-union, så en navnløs toggle ikke kan type-checke. Typerne rækker imidlertid
  * kun til VORES egne komponenter. En rå `<button>`, en MUI `<IconButton>` eller en `<Fab>` med kun
- * et ikon som barn er ægte JSX uden vores props — dér ville en navnløs kontrol slippe igennem
+ * et ikon som barn er ægte JSX uden vores props – dér ville en navnløs kontrol slippe igennem
  * præcis som før.
  *
  * Netop den art fandtes i sidemenuen: hamburger-knappen var en `<Button>` med et `MenuIcon` og en
@@ -18,11 +18,11 @@
  *
  * Et `<Tooltip>` udenom TÆLLER IKKE som navn: MUI sætter `aria-labelledby` på selve popper-elementet,
  * som kun eksisterer mens tooltippen er åben. En skærmlæser, der lander på knappen uden at hovere,
- * får derfor intet navn — hvilket er nøjagtig den fejl, auditen observerede på flere ikon-knapper.
+ * får derfor intet navn – hvilket er nøjagtig den fejl, auditen observerede på flere ikon-knapper.
  *
  * Reglen er bevidst KONSERVATIV: den flager kun kontroller, hvor der hverken direkte eller i et
- * indlejret barn findes tekst eller en navngivende prop. Så snart der er tekst i spil — eller navnet
- * kommer fra et udtryk, reglen ikke kan evaluere statisk — er den tavs. Formålet er at fange den
+ * indlejret barn findes tekst eller en navngivende prop. Så snart der er tekst i spil – eller navnet
+ * kommer fra et udtryk, reglen ikke kan evaluere statisk – er den tavs. Formålet er at fange den
  * navnløse ikonknap uden at støje på hver almindelig tekstknap.
  */
 import ts from 'typescript';
@@ -63,7 +63,7 @@ const NAME_ATTRIBUTES: ReadonlySet<string> = new Set([
 const jsxTagName = (node: ts.JsxOpeningElement | ts.JsxSelfClosingElement): string => {
   const { tagName } = node;
   if (ts.isIdentifier(tagName)) return tagName.text;
-  // `<Foo.Bar>` — brug det sidste led, så et namespaced MUI-alias stadig matcher.
+  // `<Foo.Bar>` – brug det sidste led, så et namespaced MUI-alias stadig matcher.
   if (ts.isPropertyAccessExpression(tagName)) return tagName.name.text;
   return '';
 };
@@ -84,7 +84,7 @@ const hasNamingAttribute = (attributes: ts.JsxAttributes): boolean =>
  *
  * Søgningen går REKURSIVT ned i børnene, fordi et navn lige så gyldigt kan ligge i et indlejret
  * element som direkte i knappen. `ScrollToTopButton` bruger netop den form: et `aria-hidden` ikon
- * plus en visuelt skjult `<span>` med teksten — bevidst valgt frem for `aria-label`, som browseren
+ * plus en visuelt skjult `<span>` med teksten – bevidst valgt frem for `aria-label`, som browseren
  * ville vise som en hover-tooltip. En ikke-rekursiv kontrol ville flage den knap som navnløs, selv om
  * den er korrekt navngivet, og reglen ville presse en ellers rigtig løsning væk.
  *
@@ -107,7 +107,7 @@ const hasTextContent = (children: ts.NodeArray<ts.JsxChild>): boolean =>
   children.some((child) => {
     if (ts.isJsxText(child)) return child.text.trim() !== '';
     if (ts.isJsxExpression(child)) {
-      // `{/* kommentar */}` er et tomt udtryk — netop formen sidemenuens navnløse knap havde.
+      // `{/* kommentar */}` er et tomt udtryk – netop formen sidemenuens navnløse knap havde.
       return child.expression !== undefined;
     }
     if (ts.isJsxElement(child)) {
@@ -152,7 +152,7 @@ const findUnnamedControls = (entry: SourceEntry): readonly Finding[] => {
       message:
         `<${tag}> er en interaktiv kontrol uden tilgængeligt navn: den har hverken aria-label, ` +
         'aria-labelledby, title eller et tekstbarn. En skærmlæser og rolle-/navn-navigation kan ikke ' +
-        'identificere den. Et <Tooltip> udenom tæller ikke — MUI sætter kun aria-labelledby på ' +
+        'identificere den. Et <Tooltip> udenom tæller ikke – MUI sætter kun aria-labelledby på ' +
         'popper\'en, mens tooltippen er åben. Tilføj aria-label, eller brug LabeledControlRow. ' +
         'Se src/components/inputs/accessibleName.ts.',
     });
@@ -185,11 +185,11 @@ const findUnnamedControls = (entry: SourceEntry): readonly Finding[] => {
 export const interactiveControlHasAccessibleNameRule = defineRule({
   id: 'a11y/interactive-control-has-accessible-name',
   description:
-    'Interaktive kontroller (button, IconButton, Fab, Switch, Checkbox, Radio) skal have et tilgængeligt navn — aria-label, aria-labelledby, title eller et tekstbarn. Et Tooltip udenom er ikke et navn.',
+    'Interaktive kontroller (button, IconButton, Fab, Switch, Checkbox, Radio) skal have et tilgængeligt navn – aria-label, aria-labelledby, title eller et tekstbarn. Et Tooltip udenom er ikke et navn.',
   liveTarget: {
     kind: 'precondition',
     // Reglen forudsætter, at der stadig RENDERES interaktive kontroller. Forsvinder de, er den inert.
-    // AST-baseret, ikke tekst: en udkommenteret fil må ikke kunne holde reglen kunstigt levende —
+    // AST-baseret, ikke tekst: en udkommenteret fil må ikke kunne holde reglen kunstigt levende –
     // harnessets liveness-selvtest kontrollerer netop det.
     probe: (entry) => hasInteractiveControlElement(entry),
     rationale:
@@ -211,7 +211,7 @@ export const interactiveControlHasAccessibleNameRule = defineRule({
       code: 'const M = () => <Button onClick={toggle} startIcon={<MenuIcon />}>{/* Ingen tekst */}</Button>;',
     },
     {
-      // Tooltip udenom er ikke et navn — knappen selv er stadig navnløs.
+      // Tooltip udenom er ikke et navn – knappen selv er stadig navnløs.
       relativePath: 'src/components/pages/indstillinger/DefaultDirectoryRow.tsx',
       code: 'const R = () => <Tooltip title="Vælg mappe"><IconButton onClick={pick}><FolderOpenIcon /></IconButton></Tooltip>;',
     },
@@ -231,7 +231,7 @@ export const interactiveControlHasAccessibleNameRule = defineRule({
       code: 'const L = () => <button type="submit">Log ind</button>;',
     },
     {
-      // Dynamisk tekst kan reglen ikke evaluere statisk — den skal være tavs, ikke gætte.
+      // Dynamisk tekst kan reglen ikke evaluere statisk – den skal være tavs, ikke gætte.
       relativePath: 'src/components/pages/erhvervsevnetab/EetIssuesBox.tsx',
       code: 'const N = () => <Button onClick={go}>{navigation.sectionName}</Button>;',
     },
@@ -240,7 +240,7 @@ export const interactiveControlHasAccessibleNameRule = defineRule({
       code: 'const D = () => <IconButton aria-label={tooltip}><DownloadIcon /></IconButton>;',
     },
     {
-      // Visuelt skjult tekst er et fuldgyldigt navn — og er her et BEVIDST valg frem for aria-label,
+      // Visuelt skjult tekst er et fuldgyldigt navn – og er her et BEVIDST valg frem for aria-label,
       // fordi browseren ville vise et aria-label som hover-tooltip. Reglen må ikke presse den væk.
       relativePath: 'src/components/ui/ScrollToTopButton.tsx',
       code: 'const S = () => <Fab onClick={up}><Box component="svg" aria-hidden="true" /><Box component="span" sx={visuallyHidden}>Scroll til toppen</Box></Fab>;',

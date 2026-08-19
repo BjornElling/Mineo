@@ -38,7 +38,7 @@ describe('format-placeholders pr. feltfamilie', () => {
     }
   });
 
-  it('INGEN indeholder et konkret årstal — teksten må ikke ændre sig med kalenderen', () => {
+  it('INGEN indeholder et konkret årstal – teksten må ikke ændre sig med kalenderen', () => {
     for (const placeholder of ALL_FORMAT_PLACEHOLDERS) {
       expect(placeholder).not.toMatch(/\d{4}/);
     }

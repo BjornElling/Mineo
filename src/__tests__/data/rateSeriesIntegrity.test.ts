@@ -17,7 +17,7 @@ import { assertOverenskomstSatserNyesteFoerst } from '../../data/overenskomstRat
 import { assertOffentligLoenDataIntegritet } from '../../data/offentligLoenLookup';
 import { assertSygedagpengeRatesIntegritet } from '../../data/sygedagpengeRates';
 
-describe('rateSeriesIntegrity — delte integritets-primitiver', () => {
+describe('rateSeriesIntegrity – delte integritets-primitiver', () => {
   describe('assertStrictlyMonotonicByDanishDate', () => {
     const asItems = (...datoer: string[]) => datoer.map((fraDato) => ({ fraDato }));
     const opts = (order: 'ascending' | 'descending') => ({
@@ -55,7 +55,7 @@ describe('rateSeriesIntegrity — delte integritets-primitiver', () => {
       expect(() => assertStrictlyMonotonicByDanishDate(items, opts('ascending'))).toThrow(/rækkefølgen/);
     });
 
-    it('kaster ved duplikeret dato (ikke strengt monotont) — begge retninger', () => {
+    it('kaster ved duplikeret dato (ikke strengt monotont) – begge retninger', () => {
       const items = asItems('01-04-2020', '01-04-2020');
       expect(() => assertStrictlyMonotonicByDanishDate(items, opts('ascending'))).toThrow(/rækkefølgen/);
       expect(() => assertStrictlyMonotonicByDanishDate(items, opts('descending'))).toThrow(/rækkefølgen/);
@@ -161,7 +161,7 @@ describe('rateSeriesIntegrity — delte integritets-primitiver', () => {
     /**
      * Selve grunden til at retningen er et ARGUMENT og ikke en kommentar: samme serie læst med
      * den forkerte retning giver et spejlvendt, meningsløst interval. Testen måler præcis den
-     * mekanisme — ikke bare "funktionen returnerer noget".
+     * mekanisme – ikke bare "funktionen returnerer noget".
      */
     it('giver et spejlvendt interval hvis retningen ikke matcher seriens sortering', () => {
       const nyesteFoerst = asSeries('01-04-2021', '01-10-2020', '01-04-2020');
@@ -172,7 +172,7 @@ describe('rateSeriesIntegrity — delte integritets-primitiver', () => {
         series: nyesteFoerst, getDato, order: 'ascending', periodeMaaneder: 6,
       });
       expect(korrekt).toEqual({ fraDato: '01-04-2020', tilDato: '30-09-2021' });
-      // fraDato er nu seriens NYESTE og tilDato afledt af dens ÆLDSTE — intervallet dækker intet.
+      // fraDato er nu seriens NYESTE og tilDato afledt af dens ÆLDSTE – intervallet dækker intet.
       expect(forkert).toEqual({ fraDato: '01-04-2021', tilDato: '30-09-2020' });
       expect(forkert).not.toEqual(korrekt);
     });
@@ -228,7 +228,7 @@ describe('rateSeriesIntegrity — delte integritets-primitiver', () => {
     });
 
     it('vælger enderne efter sorteringsnøglen, ikke efter positionen', () => {
-      // Den ældste står i MIDTEN og den nyeste FØRST — begge positionelle opslag ville fejle.
+      // Den ældste står i MIDTEN og den nyeste FØRST – begge positionelle opslag ville fejle.
       const rodet: readonly Kvartal[] = [
         { key: 20224, start: '01-10-2022' },
         { key: 20191, start: '01-01-2019' },
@@ -263,7 +263,7 @@ describe('rateSeriesIntegrity — delte integritets-primitiver', () => {
   });
 });
 
-describe('reguleringssatskilder — komplet load-guard-dækning', () => {
+describe('reguleringssatskilder – komplet load-guard-dækning', () => {
   // Kanonisk liste over ALLE reguleringssatskilder og deres load-guard. Formålet er
   // R5's "ingen kilde kan mangle et værn": tilføjes en ny reguleringssatskilde, SKAL den
   // både have en load-guard (der kaldes ved modul-load i datafilen) og en post her.

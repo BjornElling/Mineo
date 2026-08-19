@@ -1929,7 +1929,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const entry = result.perAnsaettelsesforhold[0];
     expect(entry?.sfggReferencesats.status).toBe('ok');
-    // Identisk med resultatet ved feriePct: 12.5 — beviser at den indtastede 14,5 % ikke bruges.
+    // Identisk med resultatet ved feriePct: 12.5 – beviser at den indtastede 14,5 % ikke bruges.
     expect(entry?.sfggReferencesats.status === 'ok' ? entry.sfggReferencesats.value : null).toBe(5682);
     expect(entry?.sfggReferencesatsFormula?.feriePctDecimal).toBe(0.125);
     expect(entry?.sfggReferencesatsFormula?.feriepengeKroner).toBe(1250);
@@ -1978,7 +1978,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     });
 
     const entry = result.perAnsaettelsesforhold[0];
-    // Identisk med feriePct: 12.5-tilfældet (5682) — den indtastede 14,5 % bruges ikke.
+    // Identisk med feriePct: 12.5-tilfældet (5682) – den indtastede 14,5 % bruges ikke.
     expect(entry?.segments[0]?.feriepengeAfSygeloenOre).toBe(5682);
     expect(entry?.segments[0]?.beregnetSfggoereOre).toBe(4318);
     // Manuel sats er ikke "beregnet som procentdel af lønnen", så noten vises ikke.
@@ -2028,7 +2028,7 @@ describe('computeSygeferiegodtgoerelse', () => {
   });
 });
 
-describe('computeSygeferiegodtgoerelse — feriepenge-fradrag og øre-invariant', () => {
+describe('computeSygeferiegodtgoerelse – feriepenge-fradrag og øre-invariant', () => {
   const janIncomeRow = (id: string, beloeb: number) => ({
     id,
     col0_maaned: '1',
@@ -2181,7 +2181,7 @@ describe('computeSygeferiegodtgoerelse — feriepenge-fradrag og øre-invariant'
   });
 });
 
-describe('computeSygeferiegodtgoerelse — ansættelsesrelevans', () => {
+describe('computeSygeferiegodtgoerelse – ansættelsesrelevans', () => {
   it('producerer 0 SFGG for ansættelsesforhold med ansatPaaSkadestidspunktet: false', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
@@ -2226,7 +2226,7 @@ describe('computeSygeferiegodtgoerelse — ansættelsesrelevans', () => {
   });
 });
 
-describe('computeSygeferiegodtgoerelse — komplet flerårsresultat', () => {
+describe('computeSygeferiegodtgoerelse – komplet flerårsresultat', () => {
   it('karakteriserer hele resultatkontrakten for flere ansættelsesforhold og år', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';

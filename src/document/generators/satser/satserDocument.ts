@@ -17,13 +17,13 @@ type SatserData = ReturnType<typeof getSatserForYear>;
 type SatserDocumentOptions = DocumentCommonOptions;
 
 /**
- * Om der FINDES en sats for året — ikke om den er større end nul.
+ * Om der FINDES en sats for året – ikke om den er større end nul.
  *
  * Prøven var før `value > 0`, og det var en anden prøve end sidens (`DataRow` skjuler rækken, når
  * værdien mangler). De to var enige om alt undtagen et lovligt nul: `reguleringsprocentErhvervsevnetabFra2024`
  * er `0.0` i 2024, så skærmen viste «Reguleringsprocent for erhvervsevnetab (fra 2024): 0 %», mens
  * dokumentet udelod rækken helt. Brugerfund BB-030, rettet efter brugerbeslutning 2026-08-18: **0 er en
- * oplysning, ikke et fravær** — den siger, at der ikke er reguleret siden 2024-grundlaget, og fraværet af
+ * oplysning, ikke et fravær** – den siger, at der ikke er reguleret siden 2024-grundlaget, og fraværet af
  * rækken kunne lige så godt læses som «satsen er ukendt».
  *
  * `getSatserForYear` er fail-open og giver `null` for et år uden sats (se `lovbestemteRates.ts`); det er
@@ -241,7 +241,7 @@ const addDiverseSection = (
   // Linjerne vurderes HVER FOR SIG, ligesom på siden (`MultiLineDataRow` filtrerer pr. linje). Kravet
   // var før, at alle tre beløb skulle findes, ellers udgik hele rækken. Det er samme klasse af fejl som
   // BB-030: to steder afgør «er der noget at vise» på hver sin måde. Uenigheden er ikke udløst af de
-  // nuværende data — alle tre beløb findes for hvert dækket år — men et fremtidigt år med kun to af de
+  // nuværende data – alle tre beløb findes for hvert dækket år – men et fremtidigt år med kun to af de
   // tre ville have vist to linjer på skærmen og ingen række i dokumentet.
   const enlig = diverse.friProcesEnlig;
   const samlevende = diverse.friProcesSamlevende;

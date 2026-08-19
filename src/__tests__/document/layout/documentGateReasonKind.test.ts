@@ -32,9 +32,9 @@ import { varigeMenMengradField } from '../../../inputCore/catalog/varigeMenDescr
 
 // Brugerkravet 2026-07-30 tilføjede `invalid-input` som tredje klasse. Før den kollapsede "der mangler noget"
 // og "noget er forkert" til ÉN brugertekst, så en download-knap kunne svare "Indtastning mangler" på et felt,
-// der var udfyldt — bare ugyldigt. Testene pinner både oversættelsen og forrangen mellem klasserne.
+// der var udfyldt – bare ugyldigt. Testene pinner både oversættelsen og forrangen mellem klasserne.
 
-describe('resolveDocumentGateTooltip — klasse → brugertekst', () => {
+describe('resolveDocumentGateTooltip – klasse → brugertekst', () => {
   it('erstatter en missing-input-årsag med den universelle mangel-tekst', () => {
     const gate = blockDocumentDownload({ code: 'x:missing', message: 'Intern forklaring' });
     expect(resolveDocumentGateTooltip(gate.reasons[0]!)).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
@@ -64,7 +64,7 @@ describe('resolveDocumentGateTooltip — klasse → brugertekst', () => {
   });
 
   /**
-   * De to universelle tekster skal være FORSKELLIGE — det er hele kravet. En sammenlægning (fx ved en
+   * De to universelle tekster skal være FORSKELLIGE – det er hele kravet. En sammenlægning (fx ved en
    * copy-paste af konstanten) ville ellers gøre alle testene ovenfor grønne samtidig.
    */
   it('har et udfald for hver klasse i typen', () => {
@@ -92,7 +92,7 @@ describe('resolveDocumentGateTooltip — klasse → brugertekst', () => {
   });
 
   /**
-   * Knappen og feltet skal sige DET SAMME om «der er indtastet noget forkert» — ikke bare i dag, men
+   * Knappen og feltet skal sige DET SAMME om «der er indtastet noget forkert» – ikke bare i dag, men
    * uanset senere omformuleringer. Konstanten er derfor et alias for feltets generiske tooltip, og denne
    * test måler identiteten frem for at gentage strengen (som ville acceptere en drift, hvis begge ændres
    * hver for sig). Handlingsgatens `ACTION_BLOCKED_*` re-eksporterer i forvejen downloadgatens to.
@@ -109,10 +109,10 @@ describe('resolveDocumentGateTooltip — klasse → brugertekst', () => {
  *
  * Et tidligere udkast ville udlede klassen af issue-listens LÆNGDE. Testene her pinner, hvorfor det ikke
  * holder: `runProjection` dedupper på `kind:code`, og `require` registrerer ét `missing`-issue pr. tomt
- * felt — så listens længde måler ikke antal felter. `specific` kræver derfor én samlet årsag, mens alle
+ * felt – så listens længde måler ikke antal felter. `specific` kræver derfor én samlet årsag, mens alle
  * årsager stadig klassificeres af deres metadata.
  */
-describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
+describe('classifyBlockingCauses – klasse udledt af årsagsmetadata', () => {
   const fieldIssue = (reason: FieldIssue['reason'], message: string): FieldIssue => ({
     kind: 'field',
     severity: 'error',
@@ -139,7 +139,7 @@ describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
     expect(resolveDocumentGateTooltip(reason)).toBe('Méngrad skal være mellem 1 og 120');
   });
 
-  it('citerer IKKE, når to felter er røde — så ingen fejl fremstår som den eneste', () => {
+  it('citerer IKKE, når to felter er røde – så ingen fejl fremstår som den eneste', () => {
     const reason = classifyBlockingCauses('c', [
       { scope: 'field', issue: fieldIssue('bounds', 'Méngrad skal være mellem 1 og 120') },
       { scope: 'field', issue: fieldIssue('rule', 'Datoen skal ligge efter skadedatoen') },
@@ -210,7 +210,7 @@ describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
 
   /**
    * En consumerplaceret domæneregel er IKKE samme tilstand som et tomt felt (`error-contract.md` §1.1).
-   * Faldt den i `missing`-grenen, ville et udfyldt felt få "Indtastning mangler" — og indtil 2026-08-15
+   * Faldt den i `missing`-grenen, ville et udfyldt felt få "Indtastning mangler" – og indtil 2026-08-15
    * fik det den tekst ALLIGEVEL, fordi `aggregate` var klasseløst og faldt igennem til mangel-grenen.
    * Klassen står nu PÅ årsagen, så påstanden i kommentaren og kodens udfald er den samme.
    */
@@ -234,13 +234,13 @@ describe('classifyBlockingCauses — klasse udledt af årsagsmetadata', () => {
 });
 
 /**
- * `classifyBlockingCause` — den ENE oversættelse fra en årsags FORM til brugerens to klasser.
+ * `classifyBlockingCause` – den ENE oversættelse fra en årsags FORM til brugerens to klasser.
  *
  * Brugerens princip (2026-08-15): «Fejl i indtastning» når der ER indtastet noget forkert (rød ring),
  * «Indtastning mangler» når en indtastning mangler. Testene her måler hver enkelt årsagsform mod det
  * princip, så en ny form ikke kan arve en tilfældig default.
  */
-describe('classifyBlockingCause — årsagens form → brugerens klasse', () => {
+describe('classifyBlockingCause – årsagens form → brugerens klasse', () => {
   const fieldIssue: FieldIssue = {
     kind: 'field',
     severity: 'error',
@@ -259,7 +259,7 @@ describe('classifyBlockingCause — årsagens form → brugerens klasse', () => 
   };
 
   /**
-   * ALLE former er opregnet her — ikke et udvalg. Listen er typet som `DocumentBlockingCause`, så en ny
+   * ALLE former er opregnet her – ikke et udvalg. Listen er typet som `DocumentBlockingCause`, så en ny
    * `scope` uden en post her giver en compile-fejl i selve testen, ikke blot i produktionskoden.
    */
   const CASES: ReadonlyArray<readonly [string, DocumentBlockingCause, 'invalid-input' | 'missing-input']> = [
@@ -296,7 +296,7 @@ describe('classifyBlockingCause — årsagens form → brugerens klasse', () => 
    * Forrangen skal komme fra KLASSEN, ikke fra årsagens form eller listens rækkefølge. Et aggregat, der
    * siger «ugyldigt», skal slå et tomt felt lige så sikkert som en feltfejl gør.
    */
-  it('lader et invalid-klassificeret aggregat vinde over et tomt felt — uanset rækkefølge', () => {
+  it('lader et invalid-klassificeret aggregat vinde over et tomt felt – uanset rækkefølge', () => {
     const invalid: DocumentBlockingCause = { scope: 'aggregate', kind: 'invalid-input', message: 'Ugyldig celle' };
     const missing: DocumentBlockingCause = { scope: 'missing', issue: consumerMissing };
     expect(classifyBlockingCauses('c', [missing, invalid], 'fallback').kind).toBe('invalid-input');
@@ -313,7 +313,7 @@ describe('classifyBlockingCause — årsagens form → brugerens klasse', () => 
   });
 });
 
-describe('resolvePrimaryGateReason — forrang mellem klasser', () => {
+describe('resolvePrimaryGateReason – forrang mellem klasser', () => {
   /**
    * Forsørgertab pusher `no-pdf-projection` (missing) FØR `blocking-input-error` (invalid). Valget må derfor
    * ikke afhænge af rækkefølgen: en ugyldig indtastning er mere akut end en manglende.
@@ -347,7 +347,7 @@ describe('resolvePrimaryGateReason — forrang mellem klasser', () => {
 
   /**
    * `page-errors` vinder ALT: står fejlen allerede i sidens fejlboks, er henvisningen dertil det, brugeren
-   * skal læse — uanset om en af de underliggende fejl kunne navngives.
+   * skal læse – uanset om en af de underliggende fejl kunne navngives.
    */
   it('lader page-errors vinde over alle øvrige klasser', () => {
     const reasons = [
@@ -370,7 +370,7 @@ describe('resolvePrimaryGateReason — forrang mellem klasser', () => {
   });
 });
 
-describe('resolveBlockedGateTooltip — det ene kald, en flade skal bruge', () => {
+describe('resolveBlockedGateTooltip – det ene kald, en flade skal bruge', () => {
   it('oversætter den primære årsag i en flerårsags-blokering', () => {
     const reasons = [
       missingInputReason('forsoergertab:no-pdf-projection', 'Der er ikke beregnet en PDF-klar del.'),

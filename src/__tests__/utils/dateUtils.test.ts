@@ -201,7 +201,7 @@ describe('dateUtils', () => {
     });
 
     it('årsovergang: 15-12-2024 + 1 måned = 15-01-2025', () => {
-      // December + 1 måned ruller til næste år — identisk under clamp og rollover.
+      // December + 1 måned ruller til næste år – identisk under clamp og rollover.
       // Pinner B11-begrundelsen for getYearAfterAddingOneMonth (året er uafhængigt af dag-clamp).
       const start = parseDanishDate('15-12-2024');
       expect(start).toBeDefined();

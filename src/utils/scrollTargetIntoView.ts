@@ -33,7 +33,7 @@ const resolveScrollContainer = (target: HTMLElement): HTMLElement | null => {
 
 export type ScrollTargetIntoViewOptions = Readonly<{
   /**
-   * Tving scroll selv hvis målet allerede er synligt. Bruges sjældent — default er
+   * Tving scroll selv hvis målet allerede er synligt. Bruges sjældent – default er
    * "scroll kun hvis nødvendigt", som er den ønskede adfærd alle steder.
    */
   force?: boolean;

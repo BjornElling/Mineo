@@ -17,7 +17,7 @@ import type { CommitEvent } from '../../../types/fieldEvents';
 /**
  * Navnekravet for interaktive kontroller.
  *
- * Testene hævder den brugerobserverbare invariant — «kontrollen kan findes på det, brugeren ser» —
+ * Testene hævder den brugerobserverbare invariant – «kontrollen kan findes på det, brugeren ser» –
  * og ikke hvilken ARIA-attribut der tilfældigvis bærer navnet. Det er netop skiftet fra `aria-label`
  * til `aria-labelledby`, der ellers ville have brudt en implementeringsnær test uden at ændre noget
  * for brugeren.
@@ -67,7 +67,7 @@ describe('accessibleName', () => {
     });
 
     it('kaster i test/udvikling, når en label er angivet men uden tekstindhold', () => {
-      // Typesystemet garanterer, at et navnefelt ER sat — ikke at det bærer tekst. En label, der kun
+      // Typesystemet garanterer, at et navnefelt ER sat – ikke at det bærer tekst. En label, der kun
       // rummer et ikon, ville ellers give en tavst navnløs kontrol i brugerfladen.
       expect(() => resolveAccessibleName({ visibleLabel: <InfoTooltipIcon title="kun ikon" /> }, 'Toggle(x)'))
         .toThrow(/tomt tilgængeligt navn/);
@@ -87,7 +87,7 @@ describe('accessibleName', () => {
       });
     });
 
-    it('sætter INGEN attribut for visibleLabel — navnet kommer fra label-bindingen', () => {
+    it('sætter INGEN attribut for visibleLabel – navnet kommer fra label-bindingen', () => {
       // Et aria-label oveni ville overskrive den synlige tekst og genindføre dobbeltheden.
       expect(accessibleNameAttributes({ visibleLabel: 'Fuld løn under ferie' }, 'test')).toEqual({});
     });
@@ -102,7 +102,7 @@ describe('accessibleName', () => {
   });
 });
 
-describe('StyledToggleSwitch — tilgængeligt navn', () => {
+describe('StyledToggleSwitch – tilgængeligt navn', () => {
   const noop = (): boolean => true;
 
   it('kan findes på sin synlige tekst, når den gives som visibleLabel', () => {

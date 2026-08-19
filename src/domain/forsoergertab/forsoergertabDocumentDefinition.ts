@@ -39,7 +39,7 @@ export const forsoergertabDocumentDefinition: MineoDocumentDefinition<Forsoerger
       }
 
       // Se noten i `varigeMenDocumentDefinition`: brevhoved-stamdata kan kun blokere på en RØD feltfejl
-      // (kun `optional`-reads), så klassen var korrekt — men hardkodet, og dermed ude af stand til at
+      // (kun `optional`-reads), så klassen var korrekt – men hardkodet, og dermed ude af stand til at
       // citere en enkeltstående bounds-/rule-grænse.
       const stamdata = projectStamdataForDocument(context.evaluation.reader, FORSOERGERTAB_DOCUMENT_CONSUMER_ID);
       if (stamdata.status !== 'ready') {

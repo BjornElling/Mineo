@@ -359,7 +359,7 @@ describe('pwaLaunchQueue', () => {
 
   describe('durable handoff-barriere før opstartens genindlæsning', () => {
     // Opstartens opdateringsbarriere kan genindlæse dokumentet. En `.eo`-request, browseren afleverede
-    // få millisekunder forinden, lever da kun i hukommelsen, mens IndexedDB-skrivningen er undervejs —
+    // få millisekunder forinden, lever da kun i hukommelsen, mens IndexedDB-skrivningen er undervejs –
     // en genindlæsning ville tabe brugerens fil. Boot skal derfor kunne vente på den durable handoff.
 
     it('bekræfter handoff, når der slet ingen pending request er', async () => {

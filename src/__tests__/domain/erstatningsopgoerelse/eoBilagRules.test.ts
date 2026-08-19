@@ -14,7 +14,7 @@ import type { LoenudviklingModel, OffentligeYdelserUdviklingModel } from '../../
 
 /**
  * Læser årsagen ud af en inaktiv tilgængelighedstilstand. Tilstanden er en discriminated union, netop
- * fordi et inaktivt bilagsvalg ALTID skal have en årsag at vise i tooltippet — narrowingen her hævder
+ * fordi et inaktivt bilagsvalg ALTID skal have en årsag at vise i tooltippet – narrowingen her hævder
  * derfor invarianten frem for at omgå den med en assertion.
  */
 const disabledReasonOf = (state: EoBilagAvailabilityState): string => {
@@ -483,7 +483,7 @@ describe('getEoBilagAvailability', () => {
         eoValues: makeValues({
           kravPaaTabtArbejdsfortjeneste,
           eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Perioden',
-          // Datagrundlag der ellers ville aktivere de enkelte bilag — skal ignoreres uden TAF-krav.
+          // Datagrundlag der ellers ville aktivere de enkelte bilag – skal ignoreres uden TAF-krav.
           beregnesUdFra: 'Angivet dagsløn',
           midlertidigtEetFraEetSiden: 'Ja',
           tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-02-29'), loseFeriedage: 0 }],

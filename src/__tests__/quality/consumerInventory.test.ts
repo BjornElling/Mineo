@@ -33,7 +33,7 @@ describe('konsument- og schema-registre', () => {
    * Schema-drift-detektor.
    *
    * Snapshottet hed før `greenfield-phase-0-persisted-input-inventory.json` og lå i
-   * `docs/architecture/`, hvor det lignede et engangsartefakt — hvilket
+   * `docs/architecture/`, hvor det lignede et engangsartefakt – hvilket
    * bad derfor om at FJERNE det, "når slutkatalogerne selv giver udtømmende coverage".
    *
    * Præmissen er vendt om: filen er ikke et frosset inventar. Den GENERERES ved hver kørsel af
@@ -42,7 +42,7 @@ describe('konsument- og schema-registre', () => {
    * testen fejler. At slette den ville altså fjerne LEVENDE dækning i legacy-oprydningens navn.
    *
    * Den er derfor flyttet til `__snapshots__/` og omdøbt efter sin FUNKTION frem for sin oprindelse.
-   * Indholdet er byte-identisk med den flyttede fil — flytningen skjuler ingen drift.
+   * Indholdet er byte-identisk med den flyttede fil – flytningen skjuler ingen drift.
    */
   it('fastholder alle persisted felt- og collection-stier maskinelt fra Zod-schemas', async () => {
     const inventory = Object.fromEntries(PERSISTED_SECTION_KEYS.map((section) => [
@@ -65,7 +65,7 @@ describe('konsument- og schema-registre', () => {
   /**
    * Completeness for dokumentoutputs.
    *
-   * Målestokken var før "alle `download*Dokument`-exports i `documentService.ts`" — en regex over ÉT
+   * Målestokken var før "alle `download*Dokument`-exports i `documentService.ts`" – en regex over ÉT
    * modul. Det modul findes ikke længere: hvert output ejes af en definition ved sin egen
    * domænegrænse, spredt over otte moduler. Den kanoniske kilde er derfor
    * `MINEO_DOCUMENT_OUTPUT_IDS`, som er uafhængig af hvor definitionerne bor, og som også

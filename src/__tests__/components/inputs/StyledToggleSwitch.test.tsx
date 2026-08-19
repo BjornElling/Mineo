@@ -32,7 +32,7 @@ function renderControlledToggle(
     return (
       <StyledToggleSwitch
         // Navnet er obligatorisk. `withLabel` vælger nu mellem SYNLIG tekst og et rent
-        // accessibility-navn — ikke mellem navn og intet navn, som ikke længere er en mulig tilstand.
+        // accessibility-navn – ikke mellem navn og intet navn, som ikke længere er en mulig tilstand.
         {...(withLabel ? { visibleLabel: 'Test toggle' } : { ariaLabel: 'Test toggle' })}
         checked={checked}
         disabled={disabled}
@@ -204,7 +204,7 @@ describe('StyledToggleSwitch', () => {
   // ===========================================================================
 
   describe('ingen imperativ ref-flade', () => {
-    it('eksponerer INTET handle — rystelsen og dens `shake()` er slettet', () => {
+    it('eksponerer INTET handle – rystelsen og dens `shake()` er slettet', () => {
       // Kontakten havde et `StyledToggleSwitchHandle` med præcis ét medlem, `shake()`, som
       // omregnings-gaten kaldte ved en afvist aktivering. Rystelsen er fjernet i hele programmet
       // (brugerbeslutning 2026-08-15), og handlet bortfaldt med den.

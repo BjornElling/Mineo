@@ -74,7 +74,7 @@ describe('statistiskLoenudvikling – dataintegritet', () => {
       if (vaerdi.kvartal === '2005K1') {
         expect(vaerdi.indeksvaerdi).toBe(100.0);
       } else {
-        // Lønindeks stiger generelt over tid — alle andre år er > 100
+        // Lønindeks stiger generelt over tid – alle andre år er > 100
         expect(vaerdi.indeksvaerdi).toBeGreaterThan(100);
       }
     }
@@ -172,7 +172,7 @@ describe('assertStatistikAarKontinuitet', () => {
     expect(() => assertStatistikAarKontinuitet(model)).not.toThrow();
   });
 
-  it('flere kvartaler i samme år (fx K1 + K4) er tilladt — året er repræsenteret', () => {
+  it('flere kvartaler i samme år (fx K1 + K4) er tilladt – året er repræsenteret', () => {
     // Spejler ILON12's faktiske form: 2025 optræder som både K1 og K4.
     const model = makeModel('X', [
       ['2024K1', 156.1],

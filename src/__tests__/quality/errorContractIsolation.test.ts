@@ -30,7 +30,7 @@ describe('error-kontrakt isolation', () => {
 
 /**
  * Koden prioriterer format/context → reason → code → message. Der findes ingen `source`-dimension (§11 forbyder
- * source-registre), og `severity` er en enkelt-værdi-literal (`'error'`), som ikke kan sortere noget —
+ * source-registre), og `severity` er en enkelt-værdi-literal (`'error'`), som ikke kan sortere noget –
  * så en kontrakttekst, der taler om prioritet "efter severity og reason/source", beskriver noget andet
  * end koden.
  *
@@ -44,7 +44,7 @@ describe('error-kontraktens feltprioritet er bundet til compareFieldIssues (§4)
   /**
    * Udtrækker `reason`-rangordenen ud af kontraktens §4-punkt 1, som skriver den som en pilekæde:
    * `` `format` → `bounds` → `rule` → `schema` ``. Parseren er bevidst snæver: findes kæden ikke i den
-   * form, fejler testen med sin egen forklaring frem for at falde tilbage på en hardkodet liste — en
+   * form, fejler testen med sin egen forklaring frem for at falde tilbage på en hardkodet liste – en
    * fallback ville netop gøre bindingen til kontrakten illusorisk.
    */
   const contractReasonOrder = (): readonly string[] => {
@@ -86,7 +86,7 @@ describe('error-kontraktens feltprioritet er bundet til compareFieldIssues (§4)
       issueWith('bounds', 'a-code', 'zzz besked'),
     ].sort(compareFieldIssues);
 
-    // `a-code` vinder, SELV om dens besked sorterer sidst — altså er `code` det stærkere led.
+    // `a-code` vinder, SELV om dens besked sorterer sidst – altså er `code` det stærkere led.
     expect(sorted.map((issue) => issue.code)).toEqual(['a-code', 'b-code']);
 
     const byMessage = [

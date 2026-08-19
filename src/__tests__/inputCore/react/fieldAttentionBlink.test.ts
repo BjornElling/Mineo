@@ -16,7 +16,7 @@ import { eoTafPeriodeFraField } from '../../../inputCore/catalog/erstatningsopgo
  * den generelt tilgængelig: at den kan lægges på et vilkårligt element, at den kan findes gennem den
  * kanoniske feltadresse (så enhver flade arver den uden at opte ind), og at den rydder op efter sig.
  */
-describe('fieldAttentionBlink — den delte «peg på dette felt»-markering', () => {
+describe('fieldAttentionBlink – den delte «peg på dette felt»-markering', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     vi.useFakeTimers();
@@ -33,7 +33,7 @@ describe('fieldAttentionBlink — den delte «peg på dette felt»-markering', (
     blinkFieldAttention(element);
     expect(element.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
 
-    // Stadig markeret lige før løbetiden er omme — ellers ville animationen blive klippet af.
+    // Stadig markeret lige før løbetiden er omme – ellers ville animationen blive klippet af.
     vi.advanceTimersByTime(FIELD_ATTENTION_BLINK_DURATION_MS - 1);
     expect(element.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(true);
 
@@ -71,7 +71,7 @@ describe('fieldAttentionBlink — den delte «peg på dette felt»-markering', (
     expect(element.classList.contains(FIELD_ATTENTION_BLINK_CLASS)).toBe(false);
   });
 
-  it('er en no-op uden mål — hverken for en ukendt adresse eller et manglende element', () => {
+  it('er en no-op uden mål – hverken for en ukendt adresse eller et manglende element', () => {
     const unknownAddress = serializeFieldAddress(eoTafPeriodeFraField.bind('findes-ikke').address);
     expect(blinkFieldAttentionByAddress(unknownAddress)).toBe(false);
     expect(() => blinkFieldAttention(null)).not.toThrow();

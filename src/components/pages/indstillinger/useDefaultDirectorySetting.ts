@@ -13,8 +13,8 @@ import { logWarning } from '../../../utils/logger';
  *
  * Dette var sidens største enkeltansvar (~143 af 605 linjer) og lå inline i sidekroppen som to
  * `useState`, en `useEffect` med tre fallback-grene, to async-handlere og en JSX-blok, der
- * udledte sin styling af en ANDEN kilde end sit navn. Rækken er device-lokal filplacering — ikke
- * en indstillingsværdi som sidens øvrige rækker — og hører derfor i sit eget modul frem for at
+ * udledte sin styling af en ANDEN kilde end sit navn. Rækken er device-lokal filplacering – ikke
+ * en indstillingsværdi som sidens øvrige rækker – og hører derfor i sit eget modul frem for at
  * fylde halvdelen af en side, hvis øvrige rækker er ét felt hver.
  *
  * Tilstanden er ÉN `DefaultDirectoryLocation` frem for `displayName` + `defaultDirectoryHandleId`
@@ -85,7 +85,7 @@ export const useDefaultDirectorySetting = (): DefaultDirectorySetting => {
       // et optimistisk navn ville ellers påstå et nyt valg, selv når skrivningen fejlede.
     } catch (error: unknown) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        // Brugeren annullerede — ingen handling.
+        // Brugeren annullerede – ingen handling.
         return;
       }
       logWarning('Fejl ved valg af standardplacering', {

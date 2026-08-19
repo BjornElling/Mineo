@@ -86,7 +86,7 @@ describe('collectTafCutoffDateIssues', () => {
       }),
       SKADEDATO_EFTER_2011
     );
-    // Virkningsdatoen (02-2016) — ikke afgørelsesdatoen (05-2016) — er grænsen.
+    // Virkningsdatoen (02-2016) – ikke afgørelsesdatoen (05-2016) – er grænsen.
     expect(issues[0]?.message).toContain('(01-02-2016)');
   });
 

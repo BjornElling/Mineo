@@ -75,7 +75,7 @@ describe('ensureRowsWithTrailingEmpty', () => {
     it('tom midt i liste filtreres ud', () => {
       const rows: TestRow[] = [
         { id: 'r1', value: 10 },
-        { id: 'e1' }, // tom — filtreres ud
+        { id: 'e1' }, // tom – filtreres ud
         { id: 'r2', value: 20 },
         { id: 'e2' }, // trailing tom
       ];

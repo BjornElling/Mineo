@@ -106,7 +106,7 @@ export const buildOffentligeYdelserReguleringTableData = (
   const rows: string[][] = [];
   for (let year = baseYear + 1; year <= sidsteYear; year += 1) {
     // Rå per-år-sats til "Regulering"-kolonnen (et andet concern end den akkumulerede
-    // faktor) — men samme fail-closed opslag som motorens dæknings-check via den delte
+    // faktor) – men samme fail-closed opslag som motorens dæknings-check via den delte
     // gateway, så et manglende års-sats behandles identisk i beregning og visning.
     const sats = resolveReguleringssatsForAar(year);
     if (sats === undefined) {

@@ -80,7 +80,7 @@ describe('computeSchemaFingerprint', () => {
 
   // Load-bearing invariant (jf. schema-evolution-kontrakt §): fingerprintet bygger KUN på
   // toJSONSchema({io:'input'}). Runtime-only-ændringer (.refine/.superRefine/.preprocess) ændrer
-  // ikke input-JSON-skemaet og må derfor IKKE flytte fingerprintet — ellers ville en ren
+  // ikke input-JSON-skemaet og må derfor IKKE flytte fingerprintet – ellers ville en ren
   // valideringstilføjelse fejlagtigt kræve et PERSISTED_DATA_VERSION-bump. Hvis disse tests
   // begynder at fejle efter en Zod-opgradering, er drift-antagelsen brudt og skal revurderes.
   it('.refine ændrer ikke fingerprintet (runtime-only validering)', () => {

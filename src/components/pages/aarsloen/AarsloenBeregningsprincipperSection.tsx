@@ -14,7 +14,7 @@ import { useAarsloenVm } from './aarsloenContext';
 /**
  * Beregningsprincipper: omregning til fuldt år og de felter, den låser op.
  *
- * Omregning-togglen er et ALMINDELIGT persisteret felt gennem `ToggleField` (§3.2/§3.7) — gaten leveres som dens
+ * Omregning-togglen er et ALMINDELIGT persisteret felt gennem `ToggleField` (§3.2/§3.7) – gaten leveres som dens
  * `commit`-override, så en ugyldig aktivering afvises uden at feltbindingen eller undo/redo-fokusmetadataen
  * falder væk. `checkedOverride` er nødvendig, fordi den VISTE tilstand kommer fra gaten frem for direkte fra
  * feltets afsluttede værdi.
@@ -30,7 +30,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
     <ContentBox className="content-box">
       <Typography className="section-header">Beregningsprincipper</Typography>
 
-      {/* Omregning til fuldt år — GATET immediate-commit (checked = persisted input, ikke effectiveEnabled). */}
+      {/* Omregning til fuldt år – GATET immediate-commit (checked = persisted input, ikke effectiveEnabled). */}
       <LabeledControlRow label="Omregning til fuldt år:">
         {({ labelledBy, controlId }) => (
           <ToggleField
@@ -64,7 +64,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
           )}
         </LabeledControlRow>
 
-        {/* Ret til 6. ferieuge — kun synlig hvis IKKE fuld løn under ferie */}
+        {/* Ret til 6. ferieuge – kun synlig hvis IKKE fuld løn under ferie */}
         <Box sx={{ display: vm.shouldShowFerieFields ? 'block' : 'none' }}>
           <LabeledControlRow label="Ret til 6. ferieuge:">
             {({ labelledBy, controlId }) => (
@@ -80,7 +80,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
           </LabeledControlRow>
         </Box>
 
-        {/* Antal feriedage — kun synlig hvis IKKE fuld løn under ferie */}
+        {/* Antal feriedage – kun synlig hvis IKKE fuld løn under ferie */}
         <Box sx={{ display: vm.shouldShowFerieFields ? 'block' : 'none' }}>
           <Box className="row--label-right-hover">
             <Typography className="row--text">Antal feriedage (mandag-fredag) i de indtastede perioder:</Typography>
@@ -115,7 +115,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
           </Box>
         </Box>
 
-        {/* SH-dage — kun synlig hvis dropdown er 'SH-udbetaling' eller 'Ingen' */}
+        {/* SH-dage – kun synlig hvis dropdown er 'SH-udbetaling' eller 'Ingen' */}
         <Box sx={{ display: vm.shouldShowShDageFields ? 'block' : 'none' }}>
           <Box className="row--label-right-hover">
             <Typography className="row--text">Antal SH-dage i de indtastede perioder:</Typography>

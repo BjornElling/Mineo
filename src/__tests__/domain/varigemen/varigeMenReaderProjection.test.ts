@@ -100,7 +100,7 @@ describe('buildVarigeMenReaderProjection', () => {
    * Motoren må ALDRIG kaldes i en blokeret projektion (§3.9).
    *
    * ÆRLIG AFGRÆNSNING af hvad denne test beviser. Med de fire aktuelle dependencies kommer ENHVER blokering
-   * fra en `unavailable`-læsning, som den gamle form også standsede på — den gamle og den nye form er derfor
+   * fra en `unavailable`-læsning, som den gamle form også standsede på – den gamle og den nye form er derfor
    * runtime-ækvivalente i dag, præcis som fundet selv konstaterede. Denne test er altså ikke det, der
    * skelner dem; den pinner invarianten mod en FREMTIDIG blokeringskilde (fx `collector.warn`-baseret eller
    * en kryds-felt-regel), hvor et kald inde i kroppen ville køre trods `blocked`.
@@ -122,7 +122,7 @@ describe('buildVarigeMenReaderProjection', () => {
       buildVarigeMenReaderProjection(buildReader(validVarigeMen, null));
       expect(spy).not.toHaveBeenCalled();
 
-      // Ankeret: samme spion SER motoren, når projektionen er ready — ellers kunne testen være tom, fordi
+      // Ankeret: samme spion SER motoren, når projektionen er ready – ellers kunne testen være tom, fordi
       // spionen slet ikke var koblet til den kaldte reference.
       buildVarigeMenReaderProjection(buildReader(validVarigeMen, validStamdata));
       expect(spy).toHaveBeenCalledTimes(1);

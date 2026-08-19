@@ -6,8 +6,8 @@ import { IDENTITY_PATH, SERVER_IDENTITY } from './e2e-server-identity.mjs';
 /**
  * Rydder en efterladt E2E-buildserver væk, før Playwright starter en ny.
  *
- * Baggrunden er en konkret fælde: afbrydes en kørsel undervejs — et værktøjstimeout, Ctrl+C, en
- * lukket terminal — dør Playwright, men buildserveren bliver siddende på porten. Den NÆSTE kørsel
+ * Baggrunden er en konkret fælde: afbrydes en kørsel undervejs – et værktøjstimeout, Ctrl+C, en
+ * lukket terminal – dør Playwright, men buildserveren bliver siddende på porten. Den NÆSTE kørsel
  * fejler så øjeblikkeligt med «http://127.0.0.1:4173 is already used», hvilket ligner et
  * konfigurationsproblem og ikke det, det er. Uden oprydning kan man ikke køre suiten igen uden
  * manuelt at finde og dræbe en proces.
@@ -29,12 +29,12 @@ const identify = async () => {
   try {
     response = await fetch(new URL(IDENTITY_PATH, baseURL), { signal: AbortSignal.timeout(2_000) });
   } catch {
-    // Ingen forbindelse: porten er fri. Også et timeout lander her — en port, der ikke svarer
+    // Ingen forbindelse: porten er fri. Også et timeout lander her – en port, der ikke svarer
     // inden for to sekunder, kan vi alligevel ikke identificere som vores egen.
     return { state: 'free' };
   }
 
-  // Der ER noget på porten. Svarer det ikke med vores egen markør, er det ikke vores at lukke —
+  // Der ER noget på porten. Svarer det ikke med vores egen markør, er det ikke vores at lukke –
   // heller ikke selv om det svarer med en HTML-side, som en ældre udgave af serveren ville gøre.
   if (!response.ok) return { state: 'foreign' };
   try {

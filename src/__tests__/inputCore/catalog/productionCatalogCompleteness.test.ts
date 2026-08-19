@@ -18,7 +18,7 @@ import { deepEqual } from '../../../utils/deepEqual';
 
 // Det ene produkt-descriptor-katalog dækker NØJAGTIG de persisterede datafelter og
 // collections, som de levende Zod-schemas producerer (samme autoritet som ledger-baselinen 239/16). Testen
-// reconcilerer descriptor-templates mod schemas — ikke mod de (snart slettede) legacy-bindings.
+// reconcilerer descriptor-templates mod schemas – ikke mod de (snart slettede) legacy-bindings.
 
 const sections = PERSISTED_SECTION_KEYS as SectionKey[];
 const sortSet = (values: Iterable<string>): string[] => [...new Set(values)].sort((a, b) => a.localeCompare(b, 'da'));

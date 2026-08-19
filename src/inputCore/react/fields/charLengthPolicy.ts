@@ -13,12 +13,12 @@ import { fieldAllowsNegative } from './signPolicy';
 import { fieldAllowsDecimals } from './decimalPolicy';
 
 /**
- * Feltets tegn- og længdepolitik, udledt af descriptorens codec — ÉT sted, begge flader læser.
+ * Feltets tegn- og længdepolitik, udledt af descriptorens codec – ÉT sted, begge flader læser.
  *
  * **Hvorfor dette modul findes.** Ciffergrænsen skal håndhæves ens i formularfeltet og i tabelcellen,
  * men de to flader konfigurerede hver sit tegnfilter i hånden på hvert kaldssted. Resultatet var målt
  * uenighed om samme felt-familie: `GridAmountCell` sendte `maxDecimalDigits`, `AmountField` gjorde
- * ikke — så den 3. decimal kunne tastes i en formular, men ikke i en celle. `maxDraftLength` var
+ * ikke – så den 3. decimal kunne tastes i en formular, men ikke i en celle. `maxDraftLength` var
  * spejlbilledet: `AmountField` sendte 512, og INGEN grid-celle sendte noget.
  *
  * Politikken hører derfor her, hvor begge flader henter den samme værdi, i stedet for at blive gentaget.
@@ -36,7 +36,7 @@ import { fieldAllowsDecimals } from './decimalPolicy';
  *
  * Fail-closed er bevidst og er selve pointen: en familie, hvis længde ER en egenskab ved formen (dato,
  * uge) eller ved feltet (tekst), skal erklære den på codecet. Faldt vi i stedet tavst tilbage til «ingen
- * grænse», ville et nyt felt uden erklæring se ud til at virke — og det var præcis den tilstand, 28
+ * grænse», ville et nyt felt uden erklæring se ud til at virke – og det var præcis den tilstand, 28
  * tekstfelter og 8 heltalsfelter befandt sig i.
  */
 const requireCodecMaxLength = <T>(field: FieldRef<T>): number => {
@@ -98,7 +98,7 @@ export const resolveTextCharPolicy = <T>(field: FieldRef<T>): Readonly<{ maxLeng
  * Brøkfelt: cifferloft pr. del fra codecet.
  *
  * Det rå loft rummer to dele à `maxDigits` heltalscifre + komma + `maxDigits` decimaler samt skråstregen.
- * `FractionField` hardkodede før både cifferloftet og manglede loftet helt — begge dele stammer nu fra
+ * `FractionField` hardkodede før både cifferloftet og manglede loftet helt – begge dele stammer nu fra
  * den ENE erklæring på codecet.
  */
 export const resolveFractionCharPolicy = <T>(field: FieldRef<T>): Readonly<{
@@ -131,11 +131,11 @@ export const isTypedDraftFamily = (family: FieldCodecFamily): boolean =>
   (TYPED_DRAFT_FAMILIES as readonly string[]).includes(family);
 
 /**
- * Feltets rå draft-loft, som de to flader faktisk håndhæver det — ÉN indgang for alle familier.
+ * Feltets rå draft-loft, som de to flader faktisk håndhæver det – ÉN indgang for alle familier.
  *
  * Findes for at gøre kravet MÅLBART på tværs af hele produktionskataloget: uden en fælles indgang kunne
  * et harness kun kontrollere de familier, nogen huskede at nævne. Kaster for et felt i en tastet familie
- * uden erklæring, hvilket er selve værnet — se `requireCodecMaxLength`.
+ * uden erklæring, hvilket er selve værnet – se `requireCodecMaxLength`.
  */
 export const resolveDraftLengthLimit = <T>(field: FieldRef<T>): number | undefined => {
   const family = field.descriptor.codec.family;
@@ -159,7 +159,7 @@ export const resolveDraftLengthLimit = <T>(field: FieldRef<T>): number | undefin
     case 'stringBacked':
       // Adapteren bærer det indre codecs erklæring videre; hvilken celle der renderer den (uge, år
       // eller heltal) afgøres af kolonnen, ikke af descriptoren. Her returneres derfor den RÅ
-      // erklæring — det er dens tilstedeværelse, værnet måler.
+      // erklæring – det er dens tilstedeværelse, værnet måler.
       return field.descriptor.codec.maxLength ?? field.descriptor.codec.maxDigits;
     default:
       return undefined;
@@ -179,7 +179,7 @@ export const resolveAmountCharPolicy = <T>(field: FieldRef<T>): Readonly<{
     allowNegative: fieldAllowsNegative(field),
     allowDecimals,
     maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
-    // Et felt uden decimaler har grænsen 0 — ikke «ingen grænse». Ellers ville et heltalsfelt
+    // Et felt uden decimaler har grænsen 0 – ikke «ingen grænse». Ellers ville et heltalsfelt
     // acceptere en decimalhale, som codec'en hverken viser eller kan rumme.
     maxDecimalDigits: allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0,
     maxDraftLength: MAX_AMOUNT_RAW_LENGTH,

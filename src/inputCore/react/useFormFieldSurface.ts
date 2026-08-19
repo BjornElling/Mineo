@@ -21,7 +21,7 @@ import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 // caret-genetablering og blur-settle. Denne hook parser ALDRIG, persisterer ALDRIG og holder ingen fejlstate;
 // al den logik ligger i codec'et, editor-engine og runner (§2.4).
 //
-// Én sandhed for "redigeres nu": editorens `isOpen`. Der er INGEN konkurrerende to-trins-open-flag (§3.5 —
+// Én sandhed for "redigeres nu": editorens `isOpen`. Der er INGEN konkurrerende to-trins-open-flag (§3.5 –
 // intet lukket draftkopi/epoch/resync). `readOnly = !isOpen` styrer det redigerbare element.
 
 /** Én-tegns tastfilter delegeret til codec'et: må denne tast åbne editoren som første tegn (§1.3)? */
@@ -47,7 +47,7 @@ export type FormFieldSurfaceConfig = Readonly<{
    * indtastningsmodaliteten.
    *
    * `keyFilter` alene var utilstrækkeligt: et mobilt skærmtastatur skriver tegnet direkte i `<input>` og
-   * fyrer kun et `input`-event — den eventuelle `keydown` bærer `key === 'Unidentified'`, som filteret med
+   * fyrer kun et `input`-event – den eventuelle `keydown` bærer `key === 'Unidentified'`, som filteret med
    * vilje lader passere for ikke at forstyrre IME/composition. Hele tegnværnet var derfor fraværende på
    * mobil (målt: `21-1111111-2026` gik uændret ind i et datofelt). `onDraftChange` er den ene kanal,
    * ENHVER modalitet passerer, og er derfor det bærende værn; `keyFilter` bevares som et ekstra,
@@ -57,7 +57,7 @@ export type FormFieldSurfaceConfig = Readonly<{
   /**
    * Feltets rå maksimale draft-længde. Håndhæves ved PASTE i en åben editor, hvor `<input>`-elementets
    * eget `maxLength` ikke virker, fordi `onPaste` kalder `preventDefault()` og selv skriver draften
-   * (§1.2a — paste skal afgrænses som tastning). Skal være det SAMME tal, kaldsstedet giver
+   * (§1.2a – paste skal afgrænses som tastning). Skal være det SAMME tal, kaldsstedet giver
    * `<input>` som `maxLength`, ellers har feltet to forskellige lofter.
    */
   maxDraftLength?: number;
@@ -82,7 +82,7 @@ export type FormFieldSurface<T> = Readonly<{
   /**
    * DOM-attributter, det redigerbare `<input>` SKAL bære, så undo/redo-fokusrestoren kan lokalisere præcis denne
    * editorlokation (§3.7). Feltkomponenten spreder dem på inputtet (via `htmlInputAttributes`). Alle felt-
-   * kommitterende feltfamilier skal videreføre dem — en arkitekturtest håndhæver det.
+   * kommitterende feltfamilier skal videreføre dem – en arkitekturtest håndhæver det.
    */
   restoreTargetAttributes: RestoreTargetAttributes;
 
@@ -94,7 +94,7 @@ export type FormFieldSurface<T> = Readonly<{
   onClick: (e: React.MouseEvent<HTMLElement>) => void;
   onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => void;
 
-  /** Den underliggende editor-controller — til immediate-commit-controls (dropdown/toggle) og imperativ brug. */
+  /** Den underliggende editor-controller – til immediate-commit-controls (dropdown/toggle) og imperativ brug. */
   controller: FieldEditorController<T>;
 }>;
 
@@ -166,22 +166,22 @@ export const useFormFieldSurface = <T>(
 
   // Draft-ændring er ren draft-mutation (§1.2): ingen normalisering under redigering, så browserens egen caret
   // holder. Feltfamilier, der normaliserer draften løbende (fx beløbs-tusindpunktummer), tilføjer den mapping
-  // i deres egen codec/adapter ved migreringen — den generiske surface holder ingen caret-genskabelse, som
+  // i deres egen codec/adapter ved migreringen – den generiske surface holder ingen caret-genskabelse, som
   // ellers ville kunne genskabe en forældet caret ved en senere ekstern revisionsændring.
   const onDraftChange = React.useCallback((nextDraft: string, _selection?: InputSelectionSnapshot) => {
     const { controller: ctl, draftAdmission: admits, maxDraftLength } = latest.current;
     if (!isDraftWithinMaxLength(nextDraft, maxDraftLength) || (admits !== undefined && !admits(nextDraft))) {
-      // §1.2: tegnet blev aldrig en del af værdien. Blokeringen er TAVS — ingen rød ring, ingen fejltekst.
+      // §1.2: tegnet blev aldrig en del af værdien. Blokeringen er TAVS – ingen rød ring, ingen fejltekst.
       // `<input>` er styret af `displayText`, men React skriver ikke elementet tilbage, når den rendrede
       // værdi er uændret. Uden denne linje ville et afvist tegn blive stående i DOM'en, mens draften i
-      // motoren var uden det — altså to forskellige sandheder om hvad feltet indeholder.
+      // motoren var uden det – altså to forskellige sandheder om hvad feltet indeholder.
       restoreDomValueAfterRejectedDraft(inputElementRef.current, ctl.displayText);
       return;
     }
     ctl.changeDraft(nextDraft);
   }, []);
 
-  // ⚠️ FJERN IKKE — caret-limbo-fixet. Ved editor-åbning på et
+  // ⚠️ FJERN IKKE – caret-limbo-fixet. Ved editor-åbning på et
   // ALLEREDE-fokuseret element etablerer visse browsere (specifikt <textarea>, men vi gør det ensartet)
   // ikke en redigerbar caret. Et programmatisk blur()+focus() tvinger caret'en frem. `ignoreBlurRef`
   // undertrykker det tilhørende blur, så feltet ikke fejlagtigt settler.
@@ -286,7 +286,7 @@ export const useFormFieldSurface = <T>(
     if (dis) return;
     const raw = readClipboardText(e);
     // Markeringen læses FØR normaliseringen: dækker den hele draften, erstatter paste'en alt, og
-    // konteksten er tom — samme situation som et lukket felt (se `resolvePasteContextDraft`).
+    // konteksten er tom – samme situation som et lukket felt (se `resolvePasteContextDraft`).
     const contextInput = inputElementRef.current;
     const contextDraftText = ctl.isOpen ? ctl.displayText : '';
     const contextStart = typeof contextInput?.selectionStart === 'number'
@@ -309,7 +309,7 @@ export const useFormFieldSurface = <T>(
       // Editorens åbne draft må ikke efterlades som en skjult mellemtilstand efter clipboard-handlingen.
       //
       // Længden afkortes også her. Et lukket paste erstatter hele værdien, så der er ingen eksisterende
-      // tekst at gøre plads til — men uden afkortningen ville en for lang indsættelse blive committet i
+      // tekst at gøre plads til – men uden afkortningen ville en for lang indsættelse blive committet i
       // fuld længde ad netop denne vej, mens tastning og åben paste afviste de samme tegn (§1.2a).
       const spliced = spliceDraftWithPaste(
         '',
@@ -327,7 +327,7 @@ export const useFormFieldSurface = <T>(
       return;
     }
 
-    // Åben paste: splice ind i draften på caret-positionen — afgrænset af feltets erklærede længde,
+    // Åben paste: splice ind i draften på caret-positionen – afgrænset af feltets erklærede længde,
     // fordi `<input maxLength>` ikke kan gælde her (se `spliceDraftWithPaste`). Markeringen er den
     // SAMME, konteksten ovenfor blev afgjort af; læstes den om her, kunne de to falde fra hinanden.
     const input = contextInput;
@@ -346,7 +346,7 @@ export const useFormFieldSurface = <T>(
     }
     ctl.changeDraft(spliced.draft);
 
-    // Caret'en sættes ALTID efter det indsatte — som i grid-cellen. Det var før et opt-in (`setPasteCaret`),
+    // Caret'en sættes ALTID efter det indsatte – som i grid-cellen. Det var før et opt-in (`setPasteCaret`),
     // og kun de numeriske felter og datofeltet slog det til; i et tekstfelt sprang markøren derfor til
     // slutningen, når brugeren indsatte midt i teksten, fordi `<input>` er styret af `displayText`. Samme
     // handling må ikke opføre sig forskelligt afhængigt af feltfamilie (§1.2a).

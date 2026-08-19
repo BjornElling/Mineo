@@ -128,7 +128,7 @@ describe('felt-skaller navngiver de faktiske interaktive kontroller', () => {
 // Disse tests findes, fordi `inputKeyFilters.amount.test.ts` kalder filteret DIREKTE og derfor ikke kan
 // se, om de virkelige komponenter faktisk sender grænsen med. Målt: en mutation, der satte
 // `maxIntegerDigits: 99` i `charLengthPolicy`, lod alle 775 øvrige inputtests være grønne. Formular og
-// grid prøves hver for sig — det var netop en form/grid-uenighed, der lod den 3. decimal passere i en
+// grid prøves hver for sig – det var netop en form/grid-uenighed, der lod den 3. decimal passere i en
 // formular, men ikke i en celle.
 
 /**
@@ -138,7 +138,7 @@ describe('felt-skaller navngiver de faktiske interaktive kontroller', () => {
  * efterligner browserens indsættelse, ville måle vores egen testkode i stedet for filteret.
  *
  * Editoren SKAL være åben først. På et lukket felt kalder `useFormFieldSurface.onKeyDown` selv
- * `preventDefault` for enhver tast, codec'en accepterer som første tegn (tast-initieret åbning, §1.3) —
+ * `preventDefault` for enhver tast, codec'en accepterer som første tegn (tast-initieret åbning, §1.3) –
  * en tidligere version af denne helper målte derfor editor-åbningen og ikke ciffergrænsen.
  */
 const isKeyBlockedByField = (input: HTMLInputElement, seed: string, key: string): boolean => {
@@ -156,7 +156,7 @@ describe('beløbsfelters ciffergrænse er koblet til komponenterne', () => {
   // Testkatalogets `belobField` har `maxValue: 1_000_000`. Cifrene måles derfor med et talled i et
   // UDTRYK: `filterAmountExpressionKeyDown` vurderer kun ciffer-LÆNGDEN pr. talled, mens en talværdi-
   // grænse hører til feltvalidatoren på den committede værdi (§1.6). Uden det ville testen måle
-  // feltets maksimum i stedet for ciffergrænsen — to konkurrerende mekanismer.
+  // feltets maksimum i stedet for ciffergrænsen – to konkurrerende mekanismer.
 
   it('AmountField (formular) blokerer det 8. heltalsciffer i et talled', () => {
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
@@ -176,7 +176,7 @@ describe('beløbsfelters ciffergrænse er koblet til komponenterne', () => {
   });
 
   it('AmountField (formular) blokerer den 3. decimal', () => {
-    // Formularen sendte tidligere INTET decimalloft, mens grid-cellen sendte 2 — samme felt-familie,
+    // Formularen sendte tidligere INTET decimalloft, mens grid-cellen sendte 2 – samme felt-familie,
     // to adfærd. Denne test er den, der ville være blevet rød dengang.
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
     renderField(<AmountField field={belobField.bind('r1')} location={testLocation('amt-3')} name="belob" singleStageClick />);

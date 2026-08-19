@@ -25,12 +25,12 @@ export type MappedToggleFieldProps<TValue> = Readonly<{
   name?: string;
   id?: string;
   /**
-   * Callsite-ejet afslutning (§1.11) — se {@link ToggleCommitOverride}. Kaldes med den MAPPEDE canonical værdi,
+   * Callsite-ejet afslutning (§1.11) – se {@link ToggleCommitOverride}. Kaldes med den MAPPEDE canonical værdi,
    * ikke med boolean, så callsitet arbejder i feltets eget domæne. Udelades for en almindelig ét-felts-toggle.
    */
   commit?: ToggleCommitOverride<NoInfer<TValue>>;
 }> &
-  // Obligatorisk tilgængeligt navn — samme krav som ToggleField, jf. components/inputs/accessibleName.ts.
+  // Obligatorisk tilgængeligt navn – samme krav som ToggleField, jf. components/inputs/accessibleName.ts.
   AccessibleNameProps;
 
 /**

@@ -30,7 +30,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 //
 // Testen kører derfor gennem de ÆGTE sider og den ÆGTE produktions-runtime og hævder de to ting, en type ikke
 // kan: at et faktisk klik skaber en history-origin med feltets adresse OG editorlokation, og at
-// `findRestoreTarget` — den funktion, undo/redo selv bruger — kan finde kontrollen igen bagefter.
+// `findRestoreTarget` – den funktion, undo/redo selv bruger – kan finde kontrollen igen bagefter.
 //
 // Den tredje assertion (`lookupEditorLocation`) dækker destinationen fra samme vinkel: togglen skal også oplyse sin
 // EGEN destination, ellers kan save-blokeringens fokus ikke sende brugeren til dens fane.
@@ -67,7 +67,7 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() });
 });
 
-/** Det seneste history-frames origin — det, en undo vil forsøge at restore fokus til. */
+/** Det seneste history-frames origin – det, en undo vil forsøge at restore fokus til. */
 const latestOrigin = () => {
   const frames = slimInputStore.getState().history.past;
   return frames[frames.length - 1]?.origin;
@@ -92,12 +92,12 @@ describe('persisterede specialtoggles → klik → undo-fokusmål', () => {
     renderPage(<Aarsloen />, '/aarsloen');
 
     // Togglen har ingen aria-label (etiketten står som en søsterlinje i layoutet), så den vælges på sit
-    // `name` — samme identitet, som DOM-attributterne hænger på.
+    // `name` – samme identitet, som DOM-attributterne hænger på.
     const toggle = document.querySelector<HTMLInputElement>('input[name="omregningTilFuldtAar"]');
     expect(toggle).not.toBeNull();
     if (toggle === null) return;
 
-    // ET ÆGTE KLIK gennem kontrollen — ikke et direkte dispatch. Kun så måles callsitets binding.
+    // ET ÆGTE KLIK gennem kontrollen – ikke et direkte dispatch. Kun så måles callsitets binding.
     act(() => { fireEvent.click(toggle); });
 
     // Committen landede som brugerens ene handling.
@@ -135,7 +135,7 @@ describe('persisterede specialtoggles → klik → undo-fokusmål', () => {
 
     act(() => { fireEvent.click(toggle); });
 
-    // Transaktionen skrev BEGGE felter — togglen og bilag-checkboxen — som ét trin.
+    // Transaktionen skrev BEGGE felter – togglen og bilag-checkboxen – som ét trin.
     const sections = slimInputStore.getState().input.sections;
     expect(sections.erstatningsopgoerelse?.midlertidigtEetFraEetSiden).toBe('Ja');
     expect(sections.erstatningsopgoerelse?.eoBilagSelection?.midlertidigEet).toBe(true);

@@ -41,7 +41,7 @@ const EOInspektionGroupedRowsSection = React.memo<{
   title: string;
   sections: readonly GroupedRowsSection[];
 }>(({ title, sections }) => {
-  // Behold en sektion når den har rækker ELLER tabeller — samme gating som EOInspektionRowsSection,
+  // Behold en sektion når den har rækker ELLER tabeller – samme gating som EOInspektionRowsSection,
   // så sektioner der kun består af tabeller (uden rækker) ikke fejlagtigt skjules.
   const visibleSections = sections.filter(
     (section) => section.rows.length > 0 || (section.tables?.length ?? 0) > 0

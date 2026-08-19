@@ -5,7 +5,7 @@ import { GridCoreApiReactContext, GridCoreStoreReactContext } from './gridCoreCo
 export type { GridCoreTableKind, GridCoreStateContextValue, GridCoreApiContextValue, GridCoreContextValue, GridCoreProviderValue } from './gridCoreContext.shared';
 
 /**
- * GridCore — kanoniske import-stier:
+ * GridCore – kanoniske import-stier:
  *   Provider:  import { GridCoreProvider } from './gridCoreContext'
  *   Hooks:     import { useGridCellFocus, useGridCellEditing, useGridCoreApi } from './useGridCore'
  *   Typer:     import type { ... } from './gridCoreContext.shared'  (eller via re-exports herfra)

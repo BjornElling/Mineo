@@ -125,7 +125,7 @@ const extractStatusMessage = (row: Pick<EoRowModel, 'status' | 'displayValue' | 
  * hvis den består af to eller flere ord (indeholder mindst ét mellemrum). Uden det kan et
  * flerords-label læse sammen med frasen til én uklar sætning ("Vedrører perioden er ikke angivet"
  * → "'Vedrører perioden' er ikke angivet"). Enkeltords-labels ("Skadestype") lades urørt.
- * Reglen gælder kun her — forhåndsskrevne katalog-`summaryText`-sætninger rammes aldrig.
+ * Reglen gælder kun her – forhåndsskrevne katalog-`summaryText`-sætninger rammes aldrig.
  */
 const quoteLabelIfMultiWord = (label: string): string =>
   label.includes(' ') ? `'${label}'` : label;
@@ -154,7 +154,7 @@ const rowTarget = (rowId: string): EoIssueFocusTarget => ({ kind: 'rowId', rowId
  * Handler beskeden om, at brugeren mangler at OPRETTE en række («Der er ikke angivet nogen TAF-periode i
  * EO-perioden»), findes der intet række-id at pege på. Et `rowTarget` på advarslens eget id kunne ikke
  * ramme noget: `data-mineo-row-id` bæres kun af virkelige collection-rækker, aldrig af en synthetisk
- * statusrække — så linket førte brugeren til fanen og lod hende selv finde feltet.
+ * statusrække – så linket førte brugeren til fanen og lod hende selv finde feltet.
  *
  * Her navngives i stedet den CELLE, brugeren skal udfylde først, gennem descriptorens template. Feltet
  * bindes altså af produktionens egen descriptor som ved alle andre mål; kun rækkeleddet er ubundet, fordi
@@ -175,7 +175,7 @@ const inferDateField = <T>(
 /**
  * Vælg fra-/til-feltet ud fra rækkens strukturelle felt-hint (sat af row-builderen fra
  * valideringsresultatet). Hintet er autoritativt, fordi det ved præcis hvilket input fejlen
- * vedrører — fx en fra-dato efter en cutoff, som et rent ordlyd-baseret gæt ville henføre til
+ * vedrører – fx en fra-dato efter en cutoff, som et rent ordlyd-baseret gæt ville henføre til
  * til-feltet. Uden hint falder vi tilbage til ordlyd-heuristikken.
  */
 const dateFieldFromHint = <T>(
@@ -221,7 +221,7 @@ const exactFieldTargets: Readonly<Record<string, EoIssueFocusTarget>> = {
   'sviesmerte.satserAar': target(eoSvieSmerteSatserAarField.bind()),
   // «Ingen satser for år N»: satsårsvalget ER indtastningen, der skal ændres. Rækken har egne
   // `dependsOn`-forældre, men de er `ok` netop i dette tilfælde (året er gyldigt indtastet, tabellen
-  // mangler blot året), så uden et eget mål var rækken den ene, der kunne nå frem UDEN fokusmål — og
+  // mangler blot året), så uden et eget mål var rækken den ene, der kunne nå frem UDEN fokusmål – og
   // et manglende mål er en hård fejl i `requireIssueFocusTarget`, ikke bare et link uden blink.
   'sviesmerte.satserPerDagMax': target(eoSvieSmerteSatserAarField.bind()),
   // De to beregnede EET-startdatoer er afledt af afgørelses- OG virkningsdato. Virkningsdatoen er den,
@@ -272,7 +272,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
   if (sfggManuelDagssatsEmploymentId) {
     if (message === 'Dagssats kunne ikke fastsættes for den valgte overenskomst i TAF-perioden') {
       // Den valgte overenskomst og TAF-perioden ejer resultatet sammen; en manuel sats ville være
-      // et falsk fokusmål. Ankeret er ansættelsesforholdets KORT — det er `af.id`, DOM faktisk bærer
+      // et falsk fokusmål. Ankeret er ansættelsesforholdets KORT – det er `af.id`, DOM faktisk bærer
       // (`AnsaettelsesforholdCard`), ikke det sammensatte rækkenavn.
       return rowTarget(sfggManuelDagssatsEmploymentId);
     }
@@ -290,7 +290,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
   }
   if (sfggReferencesatsEmploymentId) {
     // Referencesatsen er en afledt værdi fra flere løn- og periodesfelter. En enkelt af dem ville
-    // være et falsk fokusmål, så målet er ansættelsesforholdets kort — forankret på `af.id`, som DOM
+    // være et falsk fokusmål, så målet er ansættelsesforholdets kort – forankret på `af.id`, som DOM
     // bærer, frem for det sammensatte rækkenavn, intet element kan matche.
     return rowTarget(sfggReferencesatsEmploymentId);
   }
@@ -320,7 +320,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
 
   // Reguleringsdækningen er afledt af en kilde (manuel tabel, procentsats-tabel eller satstabel) og kan
   // kræve flere samtidige rettelser; ingen enkelt celle er sandfærdigt årsagen. Målet er derfor det
-  // GROVERE anker — men det skal være et anker, DOM faktisk bærer. For lønindkomstens rækker er det
+  // GROVERE anker – men det skal være et anker, DOM faktisk bærer. For lønindkomstens rækker er det
   // ansættelsesforholdets kort (`af.id`); det sammensatte rækkenavn kunne aldrig matche noget element.
   const loenindkomstReguleringDaekning = row.id.match(
     /^loenindkomst\.([^.]+)\.regulering\.(?:alleVaerdier|reguleringsvaerdi|startvaerdi|slutvaerdi|daekningAdvarsel)$/
@@ -329,7 +329,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     return rowTarget(loenindkomstReguleringDaekning[1]!);
   }
   if (/^taf\.beregningsgrundlag\.loenudvikling\.[^.]+\.(?:alleVaerdier|reguleringsvaerdi|startvaerdi|slutvaerdi|daekningAdvarsel)$/.test(row.id)) {
-    // TAF-varianten har intet ansættelseskort at forankre til — reguleringen hører til den ANGIVNE løns
+    // TAF-varianten har intet ansættelseskort at forankre til – reguleringen hører til den ANGIVNE løns
     // eget grundlagsvalg, og det er det felt, brugeren går gennem for at nå kilden.
     return target(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind());
   }
@@ -338,7 +338,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     // Statusrækkerne grupperer flere brugerindtastede ydelser pr. ydelsestype, og gruppenøglen er
     // hverken et felt-id eller et element i DOM. Builderen sætter derfor målet direkte fra den
     // ydelsesRÆKKE, beskeden stammer fra (`sourceRowId`), og den vej vinder i `resolveEoRowPresentation`.
-    // Nås dette fallback, kender vi ikke rækken — så peg på tabellens første indtastningsrække frem for
+    // Nås dette fallback, kender vi ikke rækken – så peg på tabellens første indtastningsrække frem for
     // et anker, ingen flade bærer.
     return firstRowTarget(eoOffentligeYdelserFraDatoField);
   }
@@ -347,7 +347,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     return target(eoMidlertidigtEETAfgorelseField.bind());
   }
   if (row.id === 'midlertidigtEetKonsistens.afgorelseUdenYdelser') {
-    // Der findes ingen ydelsesrække endnu — netop derfor advarslen. Tabellen viser altid sin tomme
+    // Der findes ingen ydelsesrække endnu – netop derfor advarslen. Tabellen viser altid sin tomme
     // indtastningsrække, og dens fra-dato er den indtastning, advarslen efterspørger. Tidligere pegede
     // rækken på sit eget synthetiske id, som intet element bærer, så linket blinkede intet.
     return firstRowTarget(eoOffentligeYdelserFraDatoField);
@@ -418,7 +418,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
   if (beregningsFerieRowId) {
     // `…ferie.empty` er IKKE et række-id, men builderens sentinel for «der findes ingen ferierækker».
     // Den kan bære advarslen «Ingen ferie i beregningsperiode på > 6 måneder forekommer tvivlsomt», og et
-    // `bind('empty')` ville derfor adressere en række, der aldrig har eksisteret — linket kunne ikke
+    // `bind('empty')` ville derfor adressere en række, der aldrig har eksisteret – linket kunne ikke
     // ramme noget. Advarslen efterspørger netop en ny ferierække, så målet er den tomme rækkes fra-celle.
     if (beregningsFerieRowId === 'empty') return firstRowTarget(eoFravaerPeriodeFraField);
     return target(dateFieldFromHint(
@@ -454,14 +454,14 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
 
   if (row.id === 'taf.perioder.clampedAway') {
     // Alle indtastede perioder ligger uden for EO-perioden. Der ER indtastede rækker her, men ingen
-    // ENKELT af dem er årsagen — modsætningen mellem tabellen og EO-perioden er det. Fra-cellen i
+    // ENKELT af dem er årsagen – modsætningen mellem tabellen og EO-perioden er det. Fra-cellen i
     // tabellens første række fører brugeren til den ene af de to størrelser, der kan rettes rækkevis.
     return firstRowTarget(eoTafPeriodeFraField);
   }
 
   if (row.id === 'sviesmerte.ophoerSkyldes' || row.id === 'taf.ophoerSkyldes') {
     // Advarslen «Der er ikke rejst … krav for hele EO-perioden» betyder, at perioderne slutter FØR
-    // EO-periodens udløb. Den indtastning, brugeren forlænger, er til-datoen i periodetabellen — ikke
+    // EO-periodens udløb. Den indtastning, brugeren forlænger, er til-datoen i periodetabellen – ikke
     // den afledte ophørsrække, som ingen kan redigere. Første rækkes til-celle er indgangen til tabellen.
     return firstRowTarget(
       row.id === 'taf.ophoerSkyldes' ? eoTafPeriodeTilField : eoSvieSmertePeriodeTilField

@@ -31,7 +31,7 @@ type OffentligLoenSelection = NonNullable<KonsolideretOverenskomst['offentlig']>
  *
  * U4-clamp: base-fallback til overenskomstens første dækkede interval (`resolveOffentligEffective-
  * Base`), med proxy-sats før dækning for Store Bededag. Bevidst adskilt fra den private grens
- * `max(reguleringsdato, dækningsstart)`-clamp — foren dem ikke.
+ * `max(reguleringsdato, dækningsstart)`-clamp – foren dem ikke.
  */
 export const buildOffentligOverenskomstSegmenter = (
   konsolideret: KonsolideretOverenskomst,

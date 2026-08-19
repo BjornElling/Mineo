@@ -9,7 +9,7 @@
  *
  * `creator` slås altid op via `getDocumentCreatorBrand()`. Tidligere hardkodede de
  * fleste generatorer literalen `'mineo.dk'`, mens kun rente-dokumenterne brugte
- * brandet — det var en latent drift: et brand-override (standalone MinProcesrente
+ * brandet – det var en latent drift: et brand-override (standalone MinProcesrente
  * via `setDocumentBrand`) ville have slået igennem på rente-PDF'erne, men efterladt
  * et forældet brand på alle øvrige. Nu er feltet ensartet.
  *

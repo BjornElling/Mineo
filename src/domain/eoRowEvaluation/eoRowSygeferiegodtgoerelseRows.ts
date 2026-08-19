@@ -29,7 +29,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
   const sfgg = pdfModel?.tabtArbejdsfortjeneste.sygeferiegodtgoerelse;
-  // Læs seksmåneders-advarslen fra motorens autoritative resultat via den kanoniske helper —
+  // Læs seksmåneders-advarslen fra motorens autoritative resultat via den kanoniske helper –
   // samme funktion som snapshottet bruger til den inline-advarsel på Lønindkomst-fanen, så
   // kontrollen og den inline-visning ikke kan drive fra hinanden. Uden et resultat (kontrol
   // uden fuld pdfModel) er der intet beregnet forløb at advare om.
@@ -132,8 +132,8 @@ export const buildEoSygeferiegodtgoerelseRows = (
       continue;
     }
 
-    // Læs motorens autoritative resultat, når det findes (vist = beregnet); ellers — når kontrol
-    // køres uden fuld pdfModel — genudledes værdien fra samme input, så standalone-visningen bevares.
+    // Læs motorens autoritative resultat, når det findes (vist = beregnet); ellers – når kontrol
+    // køres uden fuld pdfModel – genudledes værdien fra samme input, så standalone-visningen bevares.
     const foerstEfterSygeloen = result?.foerstEfterSygeloen ?? resolveSfggFoerstEfterSygeloen({
       sfggSourceKind: sfggSource.kind,
       manualFoerstEfterSygeloen: row?.sfggManuelFoerstEfterSygeloen === 'Ja',
@@ -313,7 +313,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       /*
         Tabellen bygges ÉN gang som struktureret data og serialiseres derefter til
         `displayValue`. Tidligere blev kun strengen bygget, og viewmodellen splittede den op
-        igen på `\n` og `|` — med kolonneantallet udledt af indholdet og totalrækken genkendt
+        igen på `\n` og `|` – med kolonneantallet udledt af indholdet og totalrækken genkendt
         ved at strengmatche «I alt». Nu er strukturen kilden, og strengen er projektionen.
       */
       const columns = hasReguleringsindeks

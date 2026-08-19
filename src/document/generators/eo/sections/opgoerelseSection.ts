@@ -420,7 +420,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     // Præcis ÉN linjeafstand efter "Forventet indkomst"-introteksten, uanset hvad der følger.
     // Spacer'en udskydes: den udløses først af det første egentlige indhold (en segmentlinje
-    // eller en fejltekst), mens en mellemkommende underoverskrift annullerer den — underoverskrifter
+    // eller en fejltekst), mens en mellemkommende underoverskrift annullerer den – underoverskrifter
     // bærer selv deres øvre afstand (en manuel spacer oveni ville give dobbelt luft i Word).
     // Sådan opstår der altid nøjagtig én afstand, og aldrig to.
     let forventetIndkomstSpacerPending = true;
@@ -435,7 +435,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     if (loenudvikling) {
       // Renderer kun selve segmentlinjerne for én indkomstkilde. Delsummer ("I alt" per
-      // ansættelsesforhold / ydelse) udelades bevidst — Forventet indkomst har præcis ÉN
+      // ansættelsesforhold / ydelse) udelades bevidst – Forventet indkomst har præcis ÉN
       // samlet "I alt"-linje til sidst (se nedenfor), uanset antallet af indkomstkilder.
       // Returnerer antallet af viste segmenter, så den samlede total kun vises når der
       // reelt er noget at summere (>1 segment på tværs af kilder).
@@ -508,7 +508,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         }
       } else {
         // Når der indgår flere indtægtskilder (her: ét ansættelsesforhold + offentlige ydelser),
-        // får løn-kilden også en underoverskrift med ansættelsesforholdets navn — symmetrisk med
+        // får løn-kilden også en underoverskrift med ansættelsesforholdets navn – symmetrisk med
         // ydelses-overskrifterne (fx "Dagpenge"). Kun når løn-kilden faktisk har segmentlinjer at
         // vise (ellers ville overskriften stå uden meningsbærende indhold, jf. B4); og er løn den
         // eneste kilde, udelades overskriften helt.
@@ -540,7 +540,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       // Vises kun når der er mere end ét segment at summere; ved præcis ét segment er
       // totalen identisk med segmentlinjen og linjen ville være redundant. Hvis en
       // tilstedeværende kilde ikke kan beregnes, udelades totalen helt (en delsum ville
-      // være vildledende) — fejlteksten er allerede vist ud for den pågældende kilde.
+      // være vildledende) – fejlteksten er allerede vist ud for den pågældende kilde.
       const harYdelser = Boolean(offentligeYdelserUdvikling && offentligeYdelserUdvikling.entries.length > 0);
       const loenOk = loenudvikling.loenudviklingTotal.status === 'ok';
       const ydelserOk = !harYdelser || offentligeYdelserUdvikling!.total.status === 'ok';
@@ -629,7 +629,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       renderSubheader('Beregnet krav');
 
       // Forventet indkomst indgår i krav-formlen som ÉN sammentalt værdi (løn + offentlige
-      // ydelser) — svarende til "I alt"-linjen under Forventet indkomst — ikke som separate
+      // ydelser) – svarende til "I alt"-linjen under Forventet indkomst – ikke som separate
       // kilde-led. Selve resultatet er uændret; kun udtrykkets venstreside vises samlet.
       const forventetIndkomstOre = addMoneyOre(
         loenudviklingTotal.value,

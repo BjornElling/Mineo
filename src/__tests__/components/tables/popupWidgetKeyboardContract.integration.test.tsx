@@ -26,7 +26,7 @@ import {
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas';
 
-// En dropdown i en tabel skal åbne sin menu på Enter — ikke flytte cellefokus én række ned.
+// En dropdown i en tabel skal åbne sin menu på Enter – ikke flytte cellefokus én række ned.
 //
 // Det kontraktkryds, ingen test dækkede, er "LUKKET popup-kontrol + tabellens capture-handler + Enter".
 // Grid'et fritog tidligere kun dropdowns, der bar en PRIVAT markør-attribut fra en slettet komponent
@@ -34,8 +34,8 @@ import type { TillaegstidEnhed } from '../../../schemas/formSchemas/enumSchemas'
 // kapret af grid-navigationen. Klassifikationen ligger nu i `popupWidgetSemantics` og måler kontrollens
 // ARIA-semantik, som BEGGE flader (Container og grid) deler.
 //
-// Testen kører derfor samme popup-kontrakt mod BEGGE surfaces — form-varianten (`ChoiceField`) og
-// celle-varianten (`GridChoiceCell`) — så semantikken ikke igen kan divergere mellem dem.
+// Testen kører derfor samme popup-kontrakt mod BEGGE surfaces – form-varianten (`ChoiceField`) og
+// celle-varianten (`GridChoiceCell`) – så semantikken ikke igen kan divergere mellem dem.
 
 let catalog: InputCatalog;
 let store: SlimInputStore;
@@ -134,7 +134,7 @@ const renderGrid = () => {
 };
 
 /**
- * Comboboxen i rækken `rowId` — dropdownens fokuserbare trigger.
+ * Comboboxen i rækken `rowId` – dropdownens fokuserbare trigger.
  *
  * Slås op på `aria-label` med en DOM-query frem for `getByRole`: når menuen er åben, sætter MUI's Popover
  * `aria-hidden` på resten af siden, så triggeren ikke længere er tilgængelig VIA ROLLE. Elementet er det
@@ -205,7 +205,7 @@ describe('popup-kontrakt: LUKKET dropdown ejer selv sin aktiveringstast', () => 
     await pressKey(combobox, 'Enter');
     await screen.findByRole('listbox');
 
-    // Fremhæv næste option og vælg den — dropdownens egen åbne-kontrakt.
+    // Fremhæv næste option og vælg den – dropdownens egen åbne-kontrakt.
     await pressKey(comboboxFor('r1'), 'ArrowDown');
     await pressKey(comboboxFor('r1'), 'Enter');
 
@@ -221,7 +221,7 @@ describe('popup-kontrakt: LUKKET dropdown ejer selv sin aktiveringstast', () => 
     //
     // ÆRLIG AFGRÆNSNING: dette ben skelner IKKE den nye klassifikation fra den gamle. Dropdownens
     // `prepareEditFromKey` returnerer også false, så grid'ets printbare gren ville alligevel frigive
-    // tasten uden `preventDefault`. Popup-grenen er dermed defense-in-depth her — testen pinner
+    // tasten uden `preventDefault`. Popup-grenen er dermed defense-in-depth her – testen pinner
     // invarianten (typeahead virker i en celle), ikke rettelsens mekanisme.
     renderGrid();
     const combobox = comboboxFor('r1');
@@ -255,7 +255,7 @@ describe('popup-kontrakt: LUKKET dropdown ejer selv sin aktiveringstast', () => 
   it('Delete forbliver grid-ejet og følger allowEmpty-reglen uden at åbne menuen', async () => {
     // Delete er bevidst IKKE frigivet til kontrollen: grid-kontrakten (`gridUxSpec.dropdownContract`)
     // giver grid'et ryd-tasten, mens `allowEmpty` afgør, om der ryddes. Her er valget påkrævet
-    // (`allowEmpty={false}`), så `clearAndCommit` er en no-op — men grid'et forbruger tasten,
+    // (`allowEmpty={false}`), så `clearAndCommit` er en no-op – men grid'et forbruger tasten,
     // og menuen må ikke åbne. Dette ben er derfor uændret af popup-klassifikationen; det pinner
     // afgrænsningen af, hvad frigivelsen omfatter.
     renderGrid();

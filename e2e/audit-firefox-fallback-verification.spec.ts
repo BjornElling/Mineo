@@ -39,7 +39,7 @@ const captureConsole = (page: Page): ConsoleCapture => {
 /**
  * `Journalnr.`-feltet har ingen tilgængeligt navn på selve inputtet; labelen står som et separat
  * afsnit ved siden af. Feltet lokaliseres derfor strukturelt ud fra sin label i stedet for med
- * `getByLabel`. (At navnet mangler, er en selvstændig a11y-observation — ikke en del af disse fund.)
+ * `getByLabel`. (At navnet mangler, er en selvstændig a11y-observation – ikke en del af disse fund.)
  */
 const journalnrField = (page: Page) => page.locator('input[name="journalnr"]');
 
@@ -59,7 +59,7 @@ const typeInto = async (page: Page, locator: ReturnType<typeof journalnrField>, 
  * som Firefox' rigtige dialog kan give, og som CRASH-001 opstod i.
  *
  * Playwright kan ikke selv levere begge events, så `cancel` sendes manuelt på det `<input>`, som
- * appens eget `selectFile` netop har oprettet. Det er stadig produktionskoden, der rydder op —
+ * appens eget `selectFile` netop har oprettet. Det er stadig produktionskoden, der rydder op –
  * testen efterligner kun browserens eventmønster, ikke oprydningen.
  */
 const runDoubleCleanupOnRealPicker = async (page: Page): Promise<void> => {
@@ -69,7 +69,7 @@ const runDoubleCleanupOnRealPicker = async (page: Page): Promise<void> => {
   const chooser = await chooserPromise;
 
   // Referencen skal holdes FØR `change`: oprydningen fjerner elementet fra DOM'en, så en senere
-  // `querySelector` ville ikke finde noget at sende `cancel` til — og testen ville bestå tomt.
+  // `querySelector` ville ikke finde noget at sende `cancel` til – og testen ville bestå tomt.
   await page.evaluate(() => {
     (window as unknown as { __mineoAuditPicker?: Element | null }).__mineoAuditPicker =
       document.querySelector('input[type="file"]');
@@ -85,7 +85,7 @@ const runDoubleCleanupOnRealPicker = async (page: Page): Promise<void> => {
 };
 
 /**
- * Bekræfter, at browseren under testen faktisk MANGLER File System Access API — altså at vi står i
+ * Bekræfter, at browseren under testen faktisk MANGLER File System Access API – altså at vi står i
  * netop den fallback-gren, OBS-005 blev fundet i. Uden dette tjek kunne testen bestå, blot fordi
  * fallbacken aldrig blev nået, og så ville den ikke bevise noget om fundet.
  */
@@ -148,7 +148,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     await login(page);
     await expectFallbackBranch(page);
 
-    // Gem først en reel .eo, så Hent-flowet får en gyldig fil at vælge — som i fundets starttilstand.
+    // Gem først en reel .eo, så Hent-flowet får en gyldig fil at vælge – som i fundets starttilstand.
     await openPage(page, 'Stamdata');
     const journalnr = journalnrField(page);
     await typeInto(page, journalnr, 'ROUNDTRIP1');
@@ -159,7 +159,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     const savedPath = await download.path();
     expect(savedPath).toBeTruthy();
 
-    // Hent samme fil gennem den synlige filvælger — det trin, der kastede.
+    // Hent samme fil gennem den synlige filvælger – det trin, der kastede.
     //
     // `selectFile` opretter sit `<input type="file">` FØRST ved klik og fjerner det igen i
     // oprydningen. Filen skal derfor leveres gennem browserens filechooser-event, præcis som en
@@ -185,7 +185,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     await expect(page.getByText(TECHNICAL_WARNING, { exact: true })).toHaveCount(0);
 
     // Ovenstående alene er IKKE bevis. Playwrights `setFiles` leverer kun `change`, aldrig `cancel`,
-    // så den DOBBELTE oprydning — fundets egentlige årsag — indtræffer ikke af sig selv i CLI.
+    // så den DOBBELTE oprydning – fundets egentlige årsag – indtræffer ikke af sig selv i CLI.
     // (Netop derfor stod fundet med «real brugerfilvælger uafklaret».) Kontrolleret nedenfor:
     // det er PRODUKTIONENS eget `selectFile`, der køres, og `cancel` fremtvinges oven på `change`
     // for at efterligne Firefox' dobbeltlevering. Med det oprindelige ubetingede `removeChild`

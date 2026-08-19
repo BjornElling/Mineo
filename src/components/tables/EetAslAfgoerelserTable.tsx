@@ -41,8 +41,8 @@ import type { ISODateString } from '../../types/branded';
 import { resolveEetUnder15Warning } from '../../domain/erhvervsevnetab/eetFieldWarnings';
 
 // EetAslAfgoerelserTable: Rækkeinfrastruktur, celleværdier
-// og celleredigering går nu udelukkende gennem inputCore — som StandardLoenTable/BeregnetRenteTable:
-//  - `useCollectionRows(aslAfgoerelser)` ejer rækkernes id'er + insert/delete/reorder (§3.8) — ingen
+// og celleredigering går nu udelukkende gennem inputCore – som StandardLoenTable/BeregnetRenteTable:
+//  - `useCollectionRows(aslAfgoerelser)` ejer rækkernes id'er + insert/delete/reorder (§3.8) – ingen
 //    `useGridRowPersistenceCore`, `internalTableData`, `invalidDrafts`, fingerprint eller persistence-effect.
 //  - hver redigerbar celle er en `Grid*Cell` over `useCellEditor`, bro-forbundet til grid-core-
 //    navigationen. Descriptorernes codecs + bounds-validatorer ejer parse/format/paste + celle-bounds (§1.6);
@@ -78,11 +78,11 @@ const COL = {
 } as const;
 
 export type EetAslAfgoerelserTableProps = Readonly<{
-  /** De committede rækker (reader-afledt af forælderen), i afsluttet rækkefølge — til sort + kryds-validering. */
+  /** De committede rækker (reader-afledt af forælderen), i afsluttet rækkefølge – til sort + kryds-validering. */
   committedRows: readonly AslAfgoerelseRow[];
   /**
    * Kryds-række-domænereglerne som STRUKTURELLE feltissues, reader-afledt af forælderen. Cellen slår
-   * sit eget issue op på sin FELTADRESSE — ikke på en parallel `${rowId}|${field}`-strengnøgle — så rød
+   * sit eget issue op på sin FELTADRESSE – ikke på en parallel `${rowId}|${field}`-strengnøgle – så rød
    * markering, tooltip og fokusnavigation deler repræsentation med alle andre røde felter.
    */
   ruleIssues: FieldIssueSet;
@@ -106,7 +106,7 @@ const EetAslAfgoerelserRow = React.memo(
     const rowId = renderRow.rowId;
     const gc = (colIndex: number) => ({ rowId, colIndex });
 
-    // Opslaget sker på den FÆRDIGT BUNDNE cellereference, editoren selv driver (`CellSpec.field`) — ikke på en
+    // Opslaget sker på den FÆRDIGT BUNDNE cellereference, editoren selv driver (`CellSpec.field`) – ikke på en
     // ny lokal binding og ikke på en parallel `${rowId}|${field}`-strengnøgle. Dermed findes der kun
     // ÉN bindingsvej: kunne de to divergere, ville fejlen forsvinde lydløst fra cellen.
     const ruleIssueFor = <T,>(cell: CellSpec<T, AslAfgoerelseRow>) => {

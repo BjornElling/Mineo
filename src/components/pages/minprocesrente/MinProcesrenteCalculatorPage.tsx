@@ -46,18 +46,18 @@ const MinProcesrenteTitle = React.memo(() => (
 MinProcesrenteTitle.displayName = 'MinProcesrenteTitle';
 
 /**
- * Opstillingen følger ENHEDEN, ikke vinduet — og skifter aldrig igen i sessionen.
+ * Opstillingen følger ENHEDEN, ikke vinduet – og skifter aldrig igen i sessionen.
  *
  * Layoutet blev tidligere valgt af `vinduets bredde ELLER telefon-lignende enhed`, mens den
  * bredde-rettelse, der hører til telefonopstillingen (`.content-box` følger viewporten), kun gjaldt
  * berøringsenheder. De to beslutninger havde altså hver sit grundlag, og en zoomende eller
  * vinduesformindskende bruger på en almindelig computer faldt ned mellem dem: han fik
- * telefonopstillingen med tre kolonner, mens indholdsboksen blev stående på sine 1200 px — dårligere
+ * telefonopstillingen med tre kolonner, mens indholdsboksen blev stående på sine 1200 px – dårligere
  * end begge de layouts, der findes (BB-045). Samme skift skjulte samtidig tillægstid, enhed og den
  * afledte rentedato, mens renten fortsat blev regnet med tillægstiden (BB-046).
  *
  * Brugerbeslutning 2026-08-19: mobil/tablet skal blive på mobilvisningen og desktop på
- * desktopvisningen, uanset hvad der sker med vinduets størrelse — i både lodret og vandret
+ * desktopvisningen, uanset hvad der sker med vinduets størrelse – i både lodret og vandret
  * orientering. Aflæsningen er derfor den samme, som Mineos «Desværre»-side bruger til at sortere
  * mobilbrugere fra (`isTouchLikeDeviceWithShortestSideAtMost`): berøring PLUS enhedens
  * orienteringsstabile kortside. En berøringsfølsom bærbar med stor skærm er dermed en desktop.
@@ -110,10 +110,10 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         // BEVIDST UNDTAGELSE fra desktop-only-stylingreglen (AGENTS.md "Desktop-only gate":
         // mobil/tablet-styling hører normalt kun til UnsupportedDevicePage.tsx). Standalone
         // MinProcesrente er bevidst mobil-tilladt (egen entry, `enforceUnsupportedDeviceGate:
-        // false`), så denne @media-styling er variant-lokal og kun aktiv i standalone-buildet —
+        // false`), så denne @media-styling er variant-lokal og kun aktiv i standalone-buildet –
         // den rammer aldrig Mineos desktop-only-flade. Jf. app-shell-contract.md §5.
         // Re-evaluering hvis standalone en dag gøres desktop-only.
-        // Kun desktop-neutrale regler her — mobilens .content-box-bredde ejes af
+        // Kun desktop-neutrale regler her – mobilens .content-box-bredde ejes af
         // minprocesrente.css, så den kan vinde deterministisk over global layout.css.
         // page-title: sm/md-størrelser fra designet (overrider global 34px)
         '& .page-title': {
@@ -135,7 +135,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         // holdes med lav kontrast for at trække fokus til selve ordet "Procesrente".
         // Mønsteret går igen på tværs af familien af søskendesider (minEO.dk,
         // minDomssamling.dk, minParadigmesamling.dk). Lighthouse/axe rapporterer derfor
-        // bevidst en kontrast-advarsel for `.page-title-prefix` — den er forventet og
+        // bevidst en kontrast-advarsel for `.page-title-prefix` – den er forventet og
         // accepteret og skal IKKE afhjælpes ved at hæve kontrasten.
         '& .page-title-prefix': {
           color: 'rgba(0, 0, 0, 0.42)',
@@ -172,7 +172,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
           },
           // Bredden hører til DENNE beslutning, ikke til en @media-forespørgsel. Global layout.css
           // giver `.content-box` Mineos 1200 px, og mobilopstillingen skal i stedet følge viewporten.
-          // Reglen stod før alene i `minprocesrente.css` under `@media (pointer: coarse)` — altså på et
+          // Reglen stod før alene i `minprocesrente.css` under `@media (pointer: coarse)` – altså på et
           // andet grundlag end opstillingen selv, hvilket var præcis hullet i BB-045. Nu tændes de to
           // af samme betingelse.
           '& .content-box': {

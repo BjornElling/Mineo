@@ -2,7 +2,7 @@ import type { Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/
 import type { MoneyOre } from '../../../domain/money/money';
 import { formatCurrencyFromOre, formatCurrencyFromOreTrimmed, NBSP } from '../../layout/documentFormatUtils';
 
-// Beløbstekst for EO-dokumentet, hvor værdierne er `Calculable` — de kan være
+// Beløbstekst for EO-dokumentet, hvor værdierne er `Calculable` – de kan være
 // uberegnelige, og dokumentet skal så vise en tankestreg (eller en eksplicit fejl)
 // frem for et tal. De rene `MoneyOre`-formattere bor i documentFormatUtils; dette er
 // det Calculable-bevidste lag ovenpå.

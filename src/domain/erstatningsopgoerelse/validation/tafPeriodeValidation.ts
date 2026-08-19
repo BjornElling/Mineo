@@ -12,14 +12,14 @@ import { resolveSkadestypeDatoLabel } from '../../policies/stamdataCalculations'
  * Ren (React-/kontrol-frit) blokerings-afgørelse for TAF-periode-rækker.
  *
  * AUTORITATIV kilde til om en TAF-periode blokerer (komplethed, dato-grænser, cutoff efter
- * differencekrav/EET-afgørelse, overlap, rækkefølge) og med hvilken besked — jf. B9. Tjekkene
+ * differencekrav/EET-afgørelse, overlap, rækkefølge) og med hvilken besked – jf. B9. Tjekkene
  * findes IKKE i `erstatningsopgoerelseValidator` (kun komplethed/rækkefølge/overlap), så uden
  * denne udskillelse var dato-grænse- og cutoff-blokeringen kun håndhævet inde i en builders
  * display-formattering.
  *
  * Den autoritative række-evaluerings-motors TAF-periode-builder (`buildEoTaftRows`) delegerer
- * hertil, så blokerings-afgørelsen er ÉN sandhedskilde og dens `error`-rækker — der gater
- * produktions-PDF-download — ikke kan flyttes af display-formattering (adfærdsbevarende relokering).
+ * hertil, så blokerings-afgørelsen er ÉN sandhedskilde og dens `error`-rækker – der gater
+ * produktions-PDF-download – ikke kan flyttes af display-formattering (adfærdsbevarende relokering).
  */
 
 export type TafPeriodeRowInput = Readonly<{

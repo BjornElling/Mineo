@@ -43,7 +43,7 @@ export type AslLobendeYdelseRaekke = Readonly<{
   fraDato: ISODateString;
   tilDato: ISODateString;
   maaneder: number;        // 4 decimaler (round4)
-  maanedligYdelse: number; // heltal — garanteret fordi ceilNearest12 altid giver et beløb deleligt med 12
+  maanedligYdelse: number; // heltal – garanteret fordi ceilNearest12 altid giver et beløb deleligt med 12
   ydelseIAlt: number;      // heltal (round0)
 }>;
 

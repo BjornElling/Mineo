@@ -87,11 +87,11 @@ describe('evaluateEoDocumentDownloadGate (A5: ét autoritativt output-gate pr. d
  * BRUGERTEKSTEN, ikke den interne `message`.
  *
  * Testene ovenfor hævder `reasons[0].message`, som bevidst er den INTERNE forklaring (koder, tests, logs).
- * Ingen af dem så, hvad brugeren faktisk læste — og netop derfor kunne EO's gate klassificere ALLE sine
+ * Ingen af dem så, hvad brugeren faktisk læste – og netop derfor kunne EO's gate klassificere ALLE sine
  * blokeringer som `specific` (ordret citat), mens `EOberegningTab` i praksis overstyrede tooltippen med en
  * hardkodet streng. To kilder til samme afgørelse, ingen test imellem.
  */
-describe('evaluateEoDocumentDownloadGate — brugerrettet tooltip', () => {
+describe('evaluateEoDocumentDownloadGate – brugerrettet tooltip', () => {
   it('henviser til fejlboksen ved en rækkeblokering frem for at citere rækken', () => {
     const gate = evaluateEoDocumentDownloadGate({
       ...baseInput,

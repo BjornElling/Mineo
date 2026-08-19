@@ -44,7 +44,7 @@ describe('buildKlLoenaftalerReguleretLoenResolver', () => {
   it('springer reguleringsdatoer på/før reguleringsdatoen over (basisløn afspejler niveauet)', () => {
     const resolver = buildKlLoenaftalerReguleretLoenResolver(BASE, REG);
     // 01-04-2024 er ikke en KL-dato; nærmeste tidligere sats (01-10-2023, 01-04-2024
-    // findes ikke) må ikke anvendes — basislønnen gælder indtil første KL-dato > REG.
+    // findes ikke) må ikke anvendes – basislønnen gælder indtil første KL-dato > REG.
     expect(resolver.loenAt(iso('2024-04-01'))).toBe(BASE);
     expect(resolver.loenAt(iso('2024-09-30'))).toBe(BASE);
     expect(resolver.deltaPctAt(iso('2024-09-30'))).toBe(0);
@@ -73,11 +73,11 @@ describe('buildKlLoenaftalerReguleretLoenResolver', () => {
     }
   });
 
-  it('efter sidste KL-sats videreføres den sidst regulerede løn (carry-forward — gated nedstrøms, jf. S6)', () => {
+  it('efter sidste KL-sats videreføres den sidst regulerede løn (carry-forward – gated nedstrøms, jf. S6)', () => {
     const resolver = buildKlLoenaftalerReguleretLoenResolver(BASE, REG);
     const sidsteLoen = resolver.loenAt(iso('2026-10-01'));
     // Ingen throw i selve resolveren: den bevidste carry-forward gates af slutvaerdi-row
-    // (eoRowIndkomstRows) — se reguleringSilentPathAlignment.test.ts (S6).
+    // (eoRowIndkomstRows) – se reguleringSilentPathAlignment.test.ts (S6).
     expect(resolver.loenAt(iso('2027-06-01'))).toBe(sidsteLoen);
     expect(resolver.loenAt(iso('2030-01-01'))).toBe(sidsteLoen);
   });

@@ -21,7 +21,7 @@ const amount = (value: number) => ({ kind: 'number' as const, value });
 
 const buildEvaluation = (options?: Readonly<{
   eetPct?: number;
-  /** Procenten på selve ASL-afgørelsesrækken — i modsætning til `eetPct` ER den en importafhængighed. */
+  /** Procenten på selve ASL-afgørelsesrækken – i modsætning til `eetPct` ER den en importafhængighed. */
   afgoerelseEetPct?: number;
   aslAarsloen?: number;
   foedselsdato?: string;
@@ -79,13 +79,13 @@ describe('buildMidlertidigtEetInsertSource', () => {
   });
 
   // En sektionsvis gate ville blokere importen ved ETHVERT rødt felt i `erhvervsevnetab`.
-  // `ealEetPct` læses ikke af `computeEetLoebendeYdelserForEoImport` — kun af EET-siden selv og
+  // `ealEetPct` læses ikke af `computeEetLoebendeYdelserForEoImport` – kun af EET-siden selv og
   // EET-efter-EAL. En bounds-fejl her fjernede altså importen og dens grupper fra Erstatningsopgørelsen
   // uden at røre noget tal i importen. Overblokering er lige så forkert som falske tal (§1.10).
   it('blokerer IKKE importen ved et rødt felt, importberegningen ikke læser', () => {
     const source = buildMidlertidigtEetInsertSource(buildEvaluation({ eetPct: 101 }));
 
-    // Readeren maskerer fortsat den røde værdi — men den er ikke en importafhængighed.
+    // Readeren maskerer fortsat den røde værdi – men den er ikke en importafhængighed.
     expect(source.eetValues.ealEetPct).toBeUndefined();
     expect(source.issues).toBeUndefined();
   });
@@ -98,7 +98,7 @@ describe('buildMidlertidigtEetInsertSource', () => {
     expect(source.issues?.map((issue) => issue.id)).toContain('midlertidigt-eet-source-schema-invalid');
   });
 
-  it('fail-closer ved en rød ASL-årsløn — grundlønnen ganges ind i hvert periodebeløb', () => {
+  it('fail-closer ved en rød ASL-årsløn – grundlønnen ganges ind i hvert periodebeløb', () => {
     const source = buildMidlertidigtEetInsertSource(buildEvaluation({ aslAarsloen: -5 }));
 
     expect(source.issues?.map((issue) => issue.id))

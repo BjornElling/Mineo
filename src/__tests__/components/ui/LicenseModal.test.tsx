@@ -14,7 +14,7 @@ vi.mock('../../../assets/LICENSE.txt?raw', () => ({
  * Helper til at rendere LicenseModal med MUI theme.
  *
  * Triggeren («MIT-licensen»-knappen) rendereres med, fordi den er modalens fokus-restore-mål
- * (jf. `keyboard-navigation.md` §Popup-fokus-restore) — uden den kan lukkeadfærden ikke måles.
+ * (jf. `keyboard-navigation.md` §Popup-fokus-restore) – uden den kan lukkeadfærden ikke måles.
  */
 const renderLicenseModal = (props: { open: boolean; onClose: () => void }) => {
   const theme = createTheme({
@@ -153,7 +153,7 @@ describe('LicenseModal', () => {
     /**
      * Tab-FANGSTEN måles bevidst IKKE her, men i `e2e/overlay-behaviour.spec.ts`.
      *
-     * En tidligere jsdom-test her påstod at måle den og var grøn — mens fokus i den rigtige browser
+     * En tidligere jsdom-test her påstod at måle den og var grøn – mens fokus i den rigtige browser
      * vandrede ud af vinduet ved hvert eneste Tab. JSDOM implementerer ikke browserens
      * tab-traversering, så testen kunne kun bekræfte, at `FocusTrap` var MONTERET; den kunne ikke se,
      * at sidens egen navigation overtog tasten og kørte forbi trap'ens vagtposter. En test, der ikke
@@ -162,7 +162,7 @@ describe('LicenseModal', () => {
 
     test('fokus vender tilbage til MIT-licensen-knappen ved lukning', async () => {
       // Kontraktkrav (§Popup-fokus-restore): fokus må ikke efterlades på den forsvindende
-      // X-knap og falde til body — brugeren skal kunne fortsætte fra knappen, de åbnede med.
+      // X-knap og falde til body – brugeren skal kunne fortsætte fra knappen, de åbnede med.
       const user = userEvent.setup();
       const theme = createTheme();
       const Harness = () => {

@@ -18,7 +18,7 @@ export const ASL_AFGOERELSE_ROW_ID_PREFIX = 'eet_asl';
 
 export const createAslAfgoerelseRowId = (): string => createRowId(ASL_AFGOERELSE_ROW_ID_PREFIX);
 
-/** Tom rækkes felter UDEN id — id sættes af caller (random ved defaults, deterministisk ved normalisering). */
+/** Tom rækkes felter UDEN id – id sættes af caller (random ved defaults, deterministisk ved normalisering). */
 export const emptyAslAfgoerelseRowFields: Omit<AslAfgoerelseRow, 'id'> = {
   afgoerelsesDato: undefined,
   virkningsDato: undefined,
@@ -471,7 +471,7 @@ export const validatePercentDivisibleBy5FromValue = (
  *   5. Kap.dato uden kap. % er ikke tilladt
  *   6. Kap. % uden kap.dato er ikke tilladt
  *
- * IDs er stabile konstanter — brug dem i filter-sæt fremfor at generere fra message-tekst.
+ * IDs er stabile konstanter – brug dem i filter-sæt fremfor at generere fra message-tekst.
  *
  * Bemærkning: 'delvist-endelig-missing-kapitalisering' er bevidst ikke inkluderet her.
  * Den emitteres selvstændigt af eetKapitaliseringCalculation og eetLoebendeYdelserCalculation,

@@ -18,7 +18,7 @@ export type FractionFieldProps = Readonly<{
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
-  /** Åbn editoren ved første klik uden forudgående fokus (touch/mobil) — som de øvrige feltfamilier. */
+  /** Åbn editoren ved første klik uden forudgående fokus (touch/mobil) – som de øvrige feltfamilier. */
   singleStageClick?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;

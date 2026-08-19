@@ -3,13 +3,13 @@ import { toISODateString } from '../../types/branded';
 import { endOfYearIso, isoYear, maxISO, minISO } from '../../utils/isoDateHelpers';
 
 // Oversigt over kapitaliseringsbekendtgørelser og -vejledninger.
-// Manuelt vedligeholdt — opdateres årligt når nye bekendtgørelser/vejledninger udstedes.
+// Manuelt vedligeholdt – opdateres årligt når nye bekendtgørelser/vejledninger udstedes.
 //
 // Struktur:
 //   - skadedatoFra: første skadedato (inklusiv) dette interval gælder for
 //   - kapitaliseringer: liste af kapitaliseringsdato-intervaller med tilhørende bekendtgørelse
 //     - kapitaliseringsdatoFra: første kapitaliseringsdato (inklusiv) dette interval gælder for
-//     - id: bekendtgørelsens nummer/årstal — bruges til opslag i kapitaliseringstabeller
+//     - id: bekendtgørelsens nummer/årstal – bruges til opslag i kapitaliseringstabeller
 //
 // Opslagslogik: find seneste skadedatoFra ≤ skadedato, og inden for det interval
 // seneste kapitaliseringsdatoFra ≤ kapitaliseringsdato.

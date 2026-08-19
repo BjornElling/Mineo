@@ -43,8 +43,8 @@ export type NumericTextFieldProps<T> = Readonly<{
   /** Højrestil tabular-nums til beløbs-/procentfelter. Sættes automatisk ved `textAlign='right'`. */
   tabularNums?: boolean;
   /**
-   * Enheds-adornment (kr./%) — den delte `InputUnitAdornment`. En funktion modtager draftens tomhed OG den
-   * committede canonical værdi, så adornmentet kan mutes ved tomt felt og fx vise et beløbs-`fx`-udtryksmærke —
+   * Enheds-adornment (kr./%) – den delte `InputUnitAdornment`. En funktion modtager draftens tomhed OG den
+   * committede canonical værdi, så adornmentet kan mutes ved tomt felt og fx vise et beløbs-`fx`-udtryksmærke –
    * alt sammen fra `NumericTextField`s ÉNE editor-controller (aldrig en anden controller for feltet).
    */
   endAdornment?:

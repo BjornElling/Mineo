@@ -39,7 +39,7 @@ export const validateAslAarsloenBySkadesaarMax = (
   if (maxAarsloen === undefined) {
     // Fail-closed: en manglende maks-sats for skadesåret må ikke stiltiende acceptere årslønnen.
     // Det rammer fx en skade i et år uden offentliggjort sats (før 2005 eller et fremtidigt år).
-    // Kanonisk ordlyd via gateway'en — samme besked som de øvrige faner.
+    // Kanonisk ordlyd via gateway'en – samme besked som de øvrige faner.
     return formatAslAarsloensmaksimumMissing(skadesaar);
   }
   if (aarsloen <= maxAarsloen) return undefined;

@@ -113,7 +113,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
 
   const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
 
-  // Bemærk: midlertidigt_eet-rækker filtreres IKKE fra her — det er tilsigtet.
+  // Bemærk: midlertidigt_eet-rækker filtreres IKKE fra her – det er tilsigtet.
   // Offentlige ydelser viser de faktiske beløb som brugeren har importeret (rå EET-beløb pr. periode),
   // mens renderMidlertidigtEetSection viser beregningsprincipperne (grundydelse, regulering, mdr., osv.).
   // De to sektioner er komplementære og tjener forskelligt formål i bilagets dokumentation.

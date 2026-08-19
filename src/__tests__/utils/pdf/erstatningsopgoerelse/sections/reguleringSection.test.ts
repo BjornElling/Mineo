@@ -755,7 +755,7 @@ describe('renderReguleringSection – KL-lønaftaler Beregnet regulering', () =>
     expect(widths).toHaveLength(4);
     expect(new Set(widths).size).toBe(1);
     // TableSpec-æraen bærer justeringen på cellerne (asserted ovenfor), ikke længere på
-    // columnStyles.halign — så begge kanaler læser samme kilde. columnStyles holder kun bredde.
+    // columnStyles.halign – så begge kanaler læser samme kilde. columnStyles holder kun bredde.
     expect(Object.values(columnStyles ?? {}).every((style) => style.halign === undefined)).toBe(true);
   });
 
@@ -869,7 +869,7 @@ describe('renderReguleringSection – Beregnet regulering kolonnefordeling', () 
     expect(widths).toHaveLength(5);
     // Indeksberegning (index 2) er grow-kolonnen: den er bredest, mens de øvrige fire deler
     // resten ligeligt. (Denne test-harness kan ikke måle tekst, så den statiske grow-baseline
-    // bruges — den indholdsbestemte omfordeling verificeres i pdfTableRenderer.layout-testen.)
+    // bruges – den indholdsbestemte omfordeling verificeres i pdfTableRenderer.layout-testen.)
     const others = [widths[0], widths[1], widths[3], widths[4]].map((width) => width ?? 0);
     expect(widths[2] ?? 0).toBeGreaterThan(Math.max(...others));
     expect(new Set(others).size).toBe(1); // de fire øvrige er lige brede

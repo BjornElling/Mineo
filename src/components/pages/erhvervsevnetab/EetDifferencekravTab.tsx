@@ -160,7 +160,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   {/*
-                    Begge bilagsvalg vises ALTID — også når bilaget ikke findes i den aktuelle beregning.
+                    Begge bilagsvalg vises ALTID – også når bilaget ikke findes i den aktuelle beregning.
                     De gøres da inaktive og umarkerede med årsagen i tooltippet, frem for at forsvinde fra
                     rækken (jf. page-component-contract.md §"Bilagsvalg og andre betingede
                     afkrydsningsfelter"). Et valg der forsvinder, efterlader brugeren i tvivl om, hvorvidt

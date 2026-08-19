@@ -46,7 +46,7 @@ const makeBinding = (): InputRuntimeBinding =>
 /**
  * Fanerne er en kritisk-handlings-flade: et faneskift settler den åbne editor gennem
  * `CriticalActionCoordinator`, præcis som sidenavigation gør. Komponenten kræver derfor et
- * input-runtime omkring sig — den kan ikke længere renderes som ren præsentation.
+ * input-runtime omkring sig – den kan ikke længere renderes som ren præsentation.
  */
 const renderTabs = (props: Partial<React.ComponentProps<typeof PageTabs<Key>>> = {}) => render(
   <InputRuntimeProvider binding={makeBinding()}>
@@ -105,11 +105,11 @@ describe('PageTabs', () => {
     }
   });
 
-  it('settler den ÅBNE editor FØR faneskiftet — ikke som en bivirkning af museklikket', async () => {
+  it('settler den ÅBNE editor FØR faneskiftet – ikke som en bivirkning af museklikket', async () => {
     // Kernen i fundet: skiftet byggede på, at musen forlod feltet først, så blur'en committede det
     // indtastede. Skiftet gjorde intet selv.
     //
-    // Testen registrerer en RIGTIG editor i det registry, coordinatoren bruger — ikke en mock af
+    // Testen registrerer en RIGTIG editor i det registry, coordinatoren bruger – ikke en mock af
     // coordinatoren. Den måler dermed den faktiske settle-vej og ikke, at komponenten kaldte en
     // funktion, vi selv havde stillet frem.
     const order: string[] = [];
@@ -150,7 +150,7 @@ describe('SideTab', () => {
     expect(el.classList.contains('active')).toBe(false);
     // Fanen roteres 90° om venstre-bund og rager derfor sin egen HØJDE (48 px) ud til højre for
     // `left`. `left` ER indholdsboksens kant, så fanen ligger HELT uden for boksen, og dens
-    // `border-bottom` — den blå streg — lander præcis på kanten. Udhænget er bevidst uden for
+    // `border-bottom` – den blå streg – lander præcis på kanten. Udhænget er bevidst uden for
     // skaleringens pladsregnskab og klippes af `SideTabRail`.
     expect(el).toHaveStyle({ top: '125px', left: '1200px', height: '48px' });
   });
@@ -158,7 +158,7 @@ describe('SideTab', () => {
   it('bærer fane-klassen og lader CSS eje typografien', () => {
     // Etiketten skal have PRÆCIS samme signatur som de vandrette faners, og den fælles
     // `.tab-item`-regel er det ene sted, den kommer fra. Bærer `sx` sin egen typografi eller sin
-    // egen `border`, vinder emotion over klassen — og netop det gjorde fanerne usynlige i dark mode
+    // egen `border`, vinder emotion over klassen – og netop det gjorde fanerne usynlige i dark mode
     // (`color: inherit`) og slettede den blå streg (`border: none`). Derfor hævdes fraværet her.
     render(<SideTab label="EO-kontrol" active={false} onClick={vi.fn()} top="125px" />);
     const el = screen.getByText('EO-kontrol');

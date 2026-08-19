@@ -42,7 +42,7 @@ describe('computeForsoergertabCalculation', () => {
     expect(computation.opreguleretAarligYdelse).toBe(expectedOpreguleretAarligYdelse);
     // Delegerings-identitet: faktoren skal være tal-identisk med den fælles motors
     // output (ikke kun den manuelt reproducerede formel). Låser at callsite og motor
-    // ikke kan drive fra hinanden — fx hvis motorens afrunding ændres.
+    // ikke kan drive fra hinanden – fx hvis motorens afrunding ændres.
     expect(computation.opreguleringsfaktor).toBe(
       opregulerMedAslAarsloensmaksimum({ kildeAar: 2020, maalAar: 2026 }).faktor
     );
@@ -421,7 +421,7 @@ describe('computeForsoergertabAslYdelser', () => {
   });
 });
 
-describe('computeForsoergertabAslYdelser — de-regulering af løbende ydelser før skadeår', () => {
+describe('computeForsoergertabAslYdelser – de-regulering af løbende ydelser før skadeår', () => {
   // De løbende ydelser opreguleres direkte (idx[år] / idx[skadeår]) og IKKE via
   // opreguleringsmotorens "kun frem i tid"-clamp, netop fordi et ydelsesår kan
   // ligge FØR skadeåret. I så fald er faktoren < 1 (de-regulering). Denne test
@@ -452,14 +452,14 @@ describe('computeForsoergertabAslYdelser — de-regulering af løbende ydelser f
     const forventetMaanedlig = ceilNearest12(0.3 * benyttetAarsloen * deRegFaktor) / 12;
     expect(raekke2021!.maanedligYdelse).toBe(forventetMaanedlig);
 
-    // Skadeårets række bruger den u-regulerede grundydelse — bekræfter at 2021-rækken er lavere.
+    // Skadeårets række bruger den u-regulerede grundydelse – bekræfter at 2021-rækken er lavere.
     const raekke2023 = ydelser.find((r) => r.fraDato.startsWith('2023'));
     expect(raekke2023).toBeDefined();
     expect(raekke2021!.maanedligYdelse).toBeLessThan(raekke2023!.maanedligYdelse);
   });
 });
 
-describe('computeForsoergertabCalculation — minimumssats', () => {
+describe('computeForsoergertabCalculation – minimumssats', () => {
   it('forhøjer EAL-krav til minimumssats når beregnet forsørgertab er under minimumsbeløbet', () => {
     // Med ealAarsloen=100000 og kapitaliseringsfaktor ~3 bliver eetBeregnet langt under
     // foersoergertabEalMin[2026]=1239000, så forhøjelse skal ske.
@@ -487,7 +487,7 @@ describe('computeForsoergertabCalculation — minimumssats', () => {
   });
 });
 
-describe('computeForsoergertabAslYdelser — inputvalidering (fail-closed grænser)', () => {
+describe('computeForsoergertabAslYdelser – inputvalidering (fail-closed grænser)', () => {
   const validInput = {
     skadedato: toISODateString('2020-05-01'),
     beregningsdato: toISODateString('2026-03-19'),
@@ -609,11 +609,11 @@ describe('computeForsoergertabAslYdelser — inputvalidering (fail-closed græns
   });
 });
 
-describe('computeForsoergertabAslYdelser — fail-closed på manglende mellemår-årslønsmaksimum', () => {
+describe('computeForsoergertabAslYdelser – fail-closed på manglende mellemår-årslønsmaksimum', () => {
   // De løbende ydelser opreguleres pr. kalenderår mellem virknings- og beregningsår med
   // idx[år]/idx[skadeår]. Mangler ASL-maksimum for et MELLEMLIGGENDE år (hverken skade- eller
   // beregningsår), skal beregningen fejle lukket FØR opreguleringsdivisionen rammer det manglende
-  // år — ikke kaste en runtime-invariant. Dette låser dækningstjekket i pre-valideringsloopen.
+  // år – ikke kaste en runtime-invariant. Dette låser dækningstjekket i pre-valideringsloopen.
   it('rapporterer manglende ASL-maksimum for et mellemliggende løbende-ydelses-år', () => {
     const original = aarsloenAslMax[2024];
     // Sæt 2024 ugyldig: skadeår 2023 og beregningsår 2025 har stadig dækning, men 2024 ligger

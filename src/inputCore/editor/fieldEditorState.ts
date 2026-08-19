@@ -2,7 +2,7 @@ import type { FieldRef } from '../fieldDescriptor';
 import type { RejectedInput } from '../settledInput';
 
 // Inputkernen (§3.5, mineo-field-pattern Lag B): ÉN felt-editor-state-machine for både formular og
-// grid. Den er ren og framework-fri — ingen React, DOM, storage eller dispatch. Den ejer KUN den åbne editors
+// grid. Den er ren og framework-fri – ingen React, DOM, storage eller dispatch. Den ejer KUN den åbne editors
 // rå draft og lifecycle. Lukket visning er ikke state her; den afledes direkte af den afsluttede revision
 // (§3.5). Der findes ingen lukket draftkopi, touched-kopi, pending-prop-guard, fingerprint eller epoch-resync.
 //
@@ -15,7 +15,7 @@ import type { RejectedInput } from '../settledInput';
  * Lokationen EJER sin destination. `route` + `tabKey` er PÅKRÆVEDE, fordi de er det eneste sted, der ved hvor
  * feltet redigeres: samme datafelt kan have flere editorer (`faellesAarsloen` uden egen route, forligsfelterne
  * på to sider), og både undo/redo-restoren (§3.7) og save-blokeringens fokus (§1.4) navigerer efter dem. Var de
- * valgfri, ville en glemt destination gøre lokationen uopnåelig UDEN at nogen type eller test fejlede — og et
+ * valgfri, ville en glemt destination gøre lokationen uopnåelig UDEN at nogen type eller test fejlede – og et
  * globalt feltadresse→fane-kort måtte kompensere og skabe en parallel destinationsmodel.
  *
  * `tabKey: null` udtrykker eksplicit "siden har ingen faner". Der findes bevidst INGEN "ikke navigerbar"-værdi:
@@ -134,12 +134,12 @@ export const settleEditor = <T>(
 };
 
 /**
- * Afslutter editoren med en PROGRAMMATISK LEVERET værdi (§1.3): en handlingsknap ved siden af feltet — fx
- * »Indsæt dags dato« — udtrykker den samme afslutning som Enter, blot med en tekst, brugeren ikke har tastet.
+ * Afslutter editoren med en PROGRAMMATISK LEVERET værdi (§1.3): en handlingsknap ved siden af feltet – fx
+ * »Indsæt dags dato« – udtrykker den samme afslutning som Enter, blot med en tekst, brugeren ikke har tastet.
  *
  * Den leverede tekst ERSTATTER en eventuel åben draft. Knappen er en eksplicit afslutningshandling, så den
  * halvskrevne draft er netop det, brugeren beder om at få overskrevet; at settle draften i stedet ville
- * ignorere handlingen. Editoren lukkes uanset om den var åben, og intentet er identisk med et tastet settle —
+ * ignorere handlingen. Editoren lukkes uanset om den var åben, og intentet er identisk med et tastet settle –
  * så råteksten går gennem feltets codec, XOR-invarianten og history på præcis samme vej (§1.5/§3.6).
  *
  * Bemærk, at der IKKE er en immediate-vej her: værdien skal parses af codecet, ikke skrives direkte som
@@ -155,7 +155,7 @@ export const settleEditorWithText = <T>(
 
 /**
  * Escape/cancel (§1.3): lukker editoren UDEN command, så den uændrede afsluttede tilstand vises igen. Et
- * efterfølgende blur må ikke settle — det garanteres af, at editoren nu er lukket (settle på lukket = `none`).
+ * efterfølgende blur må ikke settle – det garanteres af, at editoren nu er lukket (settle på lukket = `none`).
  */
 export const cancelEditor = <T>(state: FieldEditorState<T>): FieldEditorState<T> =>
   createClosedEditor(state.field, state.location);

@@ -222,7 +222,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
   });
 
   describe('allRanges ignoreres i Perioden-mode', () => {
-    it('allRanges bruges ikke — output afhænger af eoValues alene', () => {
+    it('allRanges bruges ikke – output afhænger af eoValues alene', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
         beregnesUdFra: 'Beregningsperiode',
@@ -335,7 +335,7 @@ describe('splitIsoRangeByCalendarYearsInclusive', () => {
     }
   });
 
-  it('kaster ved omvendt interval (fra > til) — fail-closed', () => {
+  it('kaster ved omvendt interval (fra > til) – fail-closed', () => {
     expect(() => splitIsoRangeByCalendarYearsInclusive(iso('2024-12-31'), iso('2024-01-01'))).toThrow();
   });
 });

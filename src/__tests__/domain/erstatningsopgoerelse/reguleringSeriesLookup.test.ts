@@ -84,12 +84,12 @@ describe('findLatestByDateKeyInSortedList', () => {
     expect(findLatestByDateKeyInSortedList([], iso('2024-01-01'), getStartDato, 'test')).toBeUndefined();
   });
 
-  it('vælger den sidst placerede post ved lige datoer — samme tie-break som startIso-formen', () => {
+  it('vælger den sidst placerede post ved lige datoer – samme tie-break som startIso-formen', () => {
     const withDuplicate = [keyed('2024-01-01', 100), keyed('2024-01-01', 105)];
     expect(findLatestByDateKeyInSortedList(withDuplicate, iso('2024-01-01'), getStartDato, 'test')?.value).toBe(105);
   });
 
-  it('kaster på usorteret serie — invarianten følger med til nøglevælger-formen', () => {
+  it('kaster på usorteret serie – invarianten følger med til nøglevælger-formen', () => {
     const unsorted = [keyed('2025-01-01', 30), keyed('2023-01-01', 10)];
     expect(() => findLatestByDateKeyInSortedList(unsorted, iso('2024-06-01'), getStartDato, 'usorteret')).toThrow(
       /usorteret startdato-liste \(usorteret\)/
@@ -97,7 +97,7 @@ describe('findLatestByDateKeyInSortedList', () => {
   });
 
   it('giver samme svar som startIso-formen for den samme serie', () => {
-    // Beviser at den ergonomiske form ER kernen med en fast nøglevælger — ikke en
+    // Beviser at den ergonomiske form ER kernen med en fast nøglevælger – ikke en
     // parallel implementering der kan drive fra den.
     const dates = ['2022-12-31', '2023-01-01', '2023-06-15', '2024-01-01', '2031-01-01'];
     for (const date of dates) {

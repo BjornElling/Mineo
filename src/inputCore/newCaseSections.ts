@@ -5,7 +5,7 @@ import { createEmptyPersistedInputSections, type SettledInputCandidate } from '.
 // En sektion er `null`, indtil noget giver den en værdi. To ting kan gøre det: brugerens første berøring af et
 // felt på siden (reduceren materialiserer sektionen fra `createEmpty<Sektion>Section` + schemaets defaults),
 // eller en NY-SAGS-SEED. Seeden er stedet, hvor et krav om "sådan starter en ny sag" hører hjemme, når kravet
-// IKKE kan udtrykkes i det persisterede schema — fordi det afhænger af brugerens programindstillinger, eller
+// IKKE kan udtrykkes i det persisterede schema – fordi det afhænger af brugerens programindstillinger, eller
 // fordi schemaets egen default bevidst tjener load-tolerance for ældre `.eo`-filer frem for en ny sag.
 //
 // Kernen er domæneneutral: den kender hverken AppSettings eller det enkelte felt. Domænet leverer seeds, og
@@ -16,7 +16,7 @@ type MutableSections = { -readonly [K in keyof SeededSections]: SeededSections[K
 
 /**
  * Hvad én seed ønsker sat. Nøglerne er sektioner; værdien er sektionens INPUT-form, så en seed kun behøver
- * angive sektionens påkrævede felter plus dem, den faktisk bestemmer — schemaet udfylder resten med sine
+ * angive sektionens påkrævede felter plus dem, den faktisk bestemmer – schemaet udfylder resten med sine
  * egne defaults.
  *
  * Signaturen giver bevidst IKKE domænet den rå `SettledInput`: en seed skal kunne sige HVAD der seedes, ikke
@@ -25,7 +25,7 @@ type MutableSections = { -readonly [K in keyof SeededSections]: SeededSections[K
  */
 export type NewCaseSeedSections = { -readonly [K in keyof SeededSections]?: SeededSections[K] };
 
-/** En seed evalueres på det tidspunkt, sagen faktisk oprettes — aldrig ved modulets import. */
+/** En seed evalueres på det tidspunkt, sagen faktisk oprettes – aldrig ved modulets import. */
 export type NewCaseSeed = () => NewCaseSeedSections | undefined;
 
 /** Kopierer én sektionsværdi med bevaret nøgle-/værditype; uden helperen kollapser nøglen til en union. */
@@ -82,7 +82,7 @@ export const composeNewCaseSeeds = (...seeds: readonly NewCaseSeed[]): NewCaseSe
  * Bygger sektions-mappet for en ny sag: den tomme baseline med seedens sektioner lagt oveni.
  *
  * Kernen ejer konstruktionen, så en seed hverken kan fjerne en sektion, tilføje en ukendt nøgle eller røre
- * `rejectedInputs`. Resultatet er en KANDIDAT — den validerende grænse (`catalog.validateSettledInput`)
+ * `rejectedInputs`. Resultatet er en KANDIDAT – den validerende grænse (`catalog.validateSettledInput`)
  * materialiserer schemaets defaults og håndhæver envelope-invarianterne.
  */
 export const buildNewCaseSections = (seed?: NewCaseSeed): SeededSections => {

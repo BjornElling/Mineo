@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Prioritet:** Specialiseres af `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og
 `forsoergertab-snapshot-contract.md`.
-**Senest verificeret mod kode:** 2026-07-31
+**Senest verificeret mod kode:** 2026-08-19
 
 ## 1. Formål
 
@@ -100,7 +100,7 @@ brugerens input. EO's midlertidigt-EET-injection er referenceeksemplet.
 
 ## 10. Friskhed
 
-- Snapshottet bindes til det `EvaluationSourceToken`, beregningen brugte — dvs. både inputrevisionen og den relevante
+- Snapshottet bindes til det `EvaluationSourceToken`, beregningen brugte – dvs. både inputrevisionen og den relevante
   settingsrevision. En ændring i AppSettings gør snapshottet stale på samme måde som en ændring i input.
 - Et stale snapshot må ikke bruges til gate, invariant eller dokument.
 - En ny inputtransaktion eller settingsændring udsteder et nyt token; snapshottet genberegnes eller consumeren fail-closer.

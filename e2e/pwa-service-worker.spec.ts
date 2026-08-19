@@ -5,8 +5,8 @@ import { expect, test } from './support/mineoTest';
  * aldrig kunne besvare den næste tests requests. Netop denne fil har det modsatte formål, så den
  * åbner for dem i SIT eget testomfang.
  *
- * Åbningen stod før i miljøvariablen `PLAYWRIGHT_ALLOW_SERVICE_WORKERS`, og fordi ingen kørsel —
- * hverken lokalt eller i CI — satte den, blev filens to tests ALTID sprunget over. En test, der
+ * Åbningen stod før i miljøvariablen `PLAYWRIGHT_ALLOW_SERVICE_WORKERS`, og fordi ingen kørsel –
+ * hverken lokalt eller i CI – satte den, blev filens to tests ALTID sprunget over. En test, der
  * aldrig kører, beskytter ingenting; den ligner blot dækning i optællingen. `test.use` udtrykker
  * det samme behov som en egenskab ved filen, så det ikke længere afhænger af, hvordan suiten startes.
  */
@@ -80,14 +80,14 @@ test.describe('Mineos ægte service-worker-forløb', () => {
    *
    * Testen kunne ikke lade sig gøre, og det viste den ikke: den sluttede med en `test.skip` på sin
    * egen «browseren valgte almindelig navigation»-gren, og den gren blev ramt HVER gang. Målt her:
-   * dokumentet blev hentet igen ved tilbage-navigationen i alle kørsler — også når serveren gav en
+   * dokumentet blev hentet igen ved tilbage-navigationen i alle kørsler – også når serveren gav en
    * bfcache-egnet `Cache-Control` i stedet for produktionens `no-store`, og også uden den
    * request-interception, testen ellers brugte til at sætte headeren.
-   * Årsagen er Playwright selv — Chromium lægger ikke et dokument i bfcache, mens DevTools-protokollen
+   * Årsagen er Playwright selv – Chromium lægger ikke et dokument i bfcache, mens DevTools-protokollen
    * er tilsluttet, og den er tilsluttet i enhver Playwright-kørsel.
    *
-   * Invarianten den skulle beskytte — at Mineo IKKE genindlæser sig selv ved en bfcache-gendannelse
-   * (`App.tsx`) — er en FRAVÆRS-påstand om vores egen kode, ikke om browserens beslutning. Den er
+   * Invarianten den skulle beskytte – at Mineo IKKE genindlæser sig selv ved en bfcache-gendannelse
+   * (`App.tsx`) – er en FRAVÆRS-påstand om vores egen kode, ikke om browserens beslutning. Den er
    * derfor flyttet til `src/__tests__/quality/bfcacheReloadAbsence.test.ts`, hvor den faktisk kan
    * hævdes hver gang. Genopliv ikke testen her uden først at måle, at bfcache overhovedet indtræffer.
    */

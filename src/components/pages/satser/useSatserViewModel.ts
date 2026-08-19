@@ -15,8 +15,8 @@ import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState'
  * out-of-bounds eller tomt år giver `blocked` → satser skjules OG download blokeres; der findes ikke en
  * separat visningsvej, der kunne vise satser for et fallback-år.
  *
- * Download-livscyklussen — barriere, frisk capture, token-lighed, gate, lazy-load, friskheds-recheck og
- * fejlrouting — ejes af definitionen (§A2). Modellen konfigurerer den ikke; den aktiverer den.
+ * Download-livscyklussen – barriere, frisk capture, token-lighed, gate, lazy-load, friskheds-recheck og
+ * fejlrouting – ejes af definitionen (§A2). Modellen konfigurerer den ikke; den aktiverer den.
  */
 
 // Stabil felt-ref + editorlokation (§3.2): locationId er editor-metadata, ikke datafeltets identitet.

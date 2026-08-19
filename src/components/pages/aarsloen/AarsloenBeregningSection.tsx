@@ -9,7 +9,7 @@ import { LOENPERIODE } from '../../../types/loen';
 import { useAarsloenVm } from './aarsloenContext';
 
 /**
- * Beregning: sammentællingen og — når omregning er aktiv — omregningens mellemregninger pr. metode.
+ * Beregning: sammentællingen og – når omregning er aktiv – omregningens mellemregninger pr. metode.
  *
  * Teksterne er BEVIDST udførlige mellemregninger: brugeren skal kunne efterprøve tallet uden at åbne
  * dokumentet. Formlerne er urørte; sektionen viser kun det, `beregningsData` allerede indeholder.

@@ -229,7 +229,7 @@ describe('buildIncomeCalculationContext', () => {
       loenindkomstAnsaettelsesforhold: [],
       offentligeYdelserRows: [],
     });
-    // Selv med en range — ingen data til at fastlægge bounds
+    // Selv med en range – ingen data til at fastlægge bounds
     const result = buildIncomeCalculationContext(eo, [
       { fra: iso('2023-01-01'), til: iso('2023-12-31') },
     ]);
@@ -240,7 +240,7 @@ describe('buildIncomeCalculationContext', () => {
       expect(result.boundsFra).toBeDefined();
       expect(result.boundsTil).toBeDefined();
     }
-    // Enten null eller context — begge er acceptable
+    // Enten null eller context – begge er acceptable
   });
 
   it('returnerer context med korrekte bounds baseret på ranges', () => {
@@ -279,7 +279,7 @@ describe('buildIncomeCalculationContext', () => {
   });
 
   it('merger overlappende input-ranges inden bounds-beregning', () => {
-    // Overlappende ranges merges — boundsFra = min, boundsTil = max
+    // Overlappende ranges merges – boundsFra = min, boundsTil = max
     const eo = makeEo({
       loenindkomstAnsaettelsesforhold: [],
       offentligeYdelserRows: [],

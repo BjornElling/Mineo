@@ -12,7 +12,7 @@ import type { VarigeMenBeregningResult } from '../../../domain/varigemen/varigeM
 //   - projektion ready men beregningsResultat=null → varigemen:no-result,
 //   - projektion ready med resultat → tilladt.
 // Datoordenen (skadedato < fødselsdato) er nu en rød feltfejl på stamdata-datoerne (jf. stamdataDescriptors), så
-// den byttede orden manifesterer sig som `field-error` — ikke længere en separat gate-kode.
+// den byttede orden manifesterer sig som `field-error` – ikke længere en separat gate-kode.
 
 const TOKEN: EvaluationSourceToken = {
   inputRevision: createInputRevision(1),
@@ -102,7 +102,7 @@ describe('varigeMenDownloadGate', () => {
    * TO røde felter ⇒ klasseteksten, ikke et citat af det ene.
    *
    * Gaten valgte før ÉT feltissue med `.find()` og citerede det, så to samtidige røde felter fremstod som
-   * én fejl — brugeren fik at vide, at méngraden var problemet, mens også datoen var rød. Fejlen blev fanget
+   * én fejl – brugeren fik at vide, at méngraden var problemet, mens også datoen var rød. Fejlen blev fanget
    * af browsertesten (`e2e/download-tooltip-classes.spec.ts`), ikke af unit-testene, fordi den kun var
    * synlig i den færdige tooltip.
    */
@@ -119,7 +119,7 @@ describe('varigeMenDownloadGate', () => {
 
   /**
    * Sondringen ligger nu i `kind`, ikke i to forskellige koder: gaten sender HELE issue-listen til
-   * `classifyBlockingCauses` under én kode, og klassen — som afgør brugerteksten — udledes derfra.
+   * `classifyBlockingCauses` under én kode, og klassen – som afgør brugerteksten – udledes derfra.
    * Tidligere valgte gaten selv mellem `field-error` og `missing-fields`, og kunne derfor kun se ÉT
    * feltissue ad gangen.
    */

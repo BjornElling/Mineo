@@ -77,7 +77,7 @@ export type EoSnapshotComputedData = Readonly<{
   midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[];
   /** Id'er på de ansættelsesforhold, hvor sygeferiegodtgørelsen løber mere end 6
    *  måneder efter sidste indkomst. Beregnet her som eneste kilde (fra den autoritative
-   *  SFGG-result), så UI'et kun skal surface listen — ikke genberegne SFGG. */
+   *  SFGG-result), så UI'et kun skal surface listen – ikke genberegne SFGG. */
   sfggSixMonthWarningEmploymentIds: readonly string[];
   /** Færdigbygget PDF-dokumentmodel. Caches i snapshot for at undgå dobbeltkald
    *  fra eoSnapshotToEoDocument og eoSnapshotToTafPerYearDocument. */
@@ -86,7 +86,7 @@ export type EoSnapshotComputedData = Readonly<{
 
 /**
  * En uafhængig grens resultat på den blokerede sti: `undefined` betyder "grenen er blokeret af sin EGEN
- * røde afhængighed" — ikke "ingen data". Bevidst ikke en diskrimineret union: `undefined` er allerede den
+ * røde afhængighed" – ikke "ingen data". Bevidst ikke en diskrimineret union: `undefined` er allerede den
  * entydige "ikke beregnet"-repræsentation gennem hele EO-snapshottet (jf. `svieSmerteEngine` i
  * `inspektionSnapshot`), og en parallel wrapper-form ville give to måder at udtrykke det samme.
  */
@@ -94,7 +94,7 @@ export type EoReadyBranches = Readonly<{
   /**
    * S/S-motorens output, når S/S-grenens egne felter er grønne.
    *
-   * Samme værdi føres OGSÅ ind i `inspektionSnapshot`, som Kontrol-fanen bygger sin visning af — men den
+   * Samme værdi føres OGSÅ ind i `inspektionSnapshot`, som Kontrol-fanen bygger sin visning af – men den
    * eksponerer den kun gennem sin færdigbyggede model, ikke som et læsbart engine-output. Feltet her er
    * derfor den ENE typede adgang til "kunne S/S beregnes trods den blokerede sti?", og det er den, gate-
    * invarianttestene måler S2's før/efter-forlig-adskillelse på.
@@ -123,7 +123,7 @@ export type EoSnapshot = Readonly<{
    * Findes KUN på den blokerede sti; på den grønne sti er `data` autoritativ og bærer alt. Formålet er
    * brugerbeslutning 2: et rødt svie/smerte-felt må ikke fjerne den GYLDIGE TAF-periodisering fra
    * Beregning-fanen. Fanen læste tidligere udelukkende `data`, som er `null` her, så de gyldige grene
-   * kunne slet ikke nå frem — de levede alene i `inspektionSnapshot`, som Beregning-fanen ikke ser.
+   * kunne slet ikke nå frem – de levede alene i `inspektionSnapshot`, som Beregning-fanen ikke ser.
    *
    * ⚠️ Grenene er IKKE autoritative: de indgår ikke i nogen sum, intet `canonicalOutput` og ingen PDF.
    * Det krydsgående aggregat forbliver alt-eller-intet (`data: null`), fordi en samlet total eller et
@@ -202,12 +202,12 @@ const buildInspektionSnapshotForComputed = (args: Readonly<{
  *
  * `computeSvieSmerteEngine` læser selv forligsgraden (`svieSmerteEngine.ts:234`) og skalerer dagssats,
  * maksimum og total med faktoren (`:251-254`). En rød forligsprocent maskeres af readeren til `undefined`
- * og ville derfor blive regnet som "intet forlig", dvs. 100 % — et falsk tal bag en rød feltmarkering.
+ * og ville derfor blive regnet som "intet forlig", dvs. 100 % – et falsk tal bag en rød feltmarkering.
  *
  * Grundlaget består: brugerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at "før-forlig-resultater består".
  * Vi nulstiller derfor KUN de skalerede felter og lader `satserPerDagFoerForligOre`/`satserMaxFoerForligOre`,
  * dagene og de indtastede beløb stå. `totalOre` er skaleret og bliver `null`-ækvivalenten nul, fordi typen
- * ikke er nullable — consumeren læser `forligFactor === null` sammen med `blockedDependencies.forlig`.
+ * ikke er nullable – consumeren læser `forligFactor === null` sammen med `blockedDependencies.forlig`.
  *
  * ⚠️ Motorens egen operationsrækkefølge er UÆNDRET (§5.4): vi rører ikke beregningen, kun hvilke af dens
  * allerede beregnede felter der eksponeres. Der beregnes intet nyt her.
@@ -240,7 +240,7 @@ export const computeEoSnapshot = (args: Readonly<{
   /**
    * Optional EET-import-source. Bruges udelukkende, når toggle
    * `midlertidigtEetFraEetSiden === 'Ja'`, til at injicere virtuelle midlertidigt
-   * EET-rækker transient i beregningen. Rækkerne persisteres aldrig — input
+   * EET-rækker transient i beregningen. Rækkerne persisteres aldrig – input
    * (`snapshot.input.erstatningsopgoerelse`) bevarer den oprindelige committed
    * form-state. Se `domain-boundary-contract.md` §9 og `eo-snapshot-contract.md`.
    */
@@ -284,7 +284,7 @@ export const computeEoSnapshot = (args: Readonly<{
   // Transient EET-injection: når togglen er 'Ja', erstattes offentligeYdelserRows med en
   // effektiv version, hvor manuelle midlertidigt_eet-rækker er filtreret væk og virtuelle
   // rækker fra EET-siden er tilføjet. Original committed input bevares uændret i
-  // snapshot.input.erstatningsopgoerelse — kontraktundtagelsen i domain-boundary-contract.md §9
+  // snapshot.input.erstatningsopgoerelse – kontraktundtagelsen i domain-boundary-contract.md §9
   // dækker den read-only kobling.
   const midlertidigtEetSourceResult = parsedEo.data.midlertidigtEetFraEetSiden === 'Ja'
     ? buildMidlertidigtEetSourceResult(args.midlertidigtEetImportContext)
@@ -334,7 +334,7 @@ export const computeEoSnapshot = (args: Readonly<{
   // Her stod tidligere en `invariant_guard` for `eoAngivetLoenLoenudvikling.loenPaaHelligdage === undefined`
   // (systemfejl `eo_snapshot:hidden_angivet_loen_state_invalid`). Den er fjernet, fordi tilstanden ikke
   // længere kan repræsenteres: feltet er required-with-default i BÅDE schemaet og descriptoren, så hverken
-  // en nyoprettet sektion, en ældre `.eo` eller readerens tomværdi kan give `undefined` —
+  // en nyoprettet sektion, en ældre `.eo` eller readerens tomværdi kan give `undefined` –
   // gaten var ikke et værn mod en umulig tilstand, men den eneste udgang fra den tilstand, en HELT NY sag
   // altid startede i. Genindfør den ikke; genindfør i stedet ikke den valgfrihed, den vogtede over.
 
@@ -376,13 +376,13 @@ export const computeEoSnapshot = (args: Readonly<{
     //
     // BEVIDST UDELADT (brugerbeslutning, reviewkandidat #23): reguleringsforløbet vises IKKE i denne
     // fejl-tilstand. Efter #23 er det viste reguleringsforløb udelukkende den kanoniske serie fra det
-    // autoritative pdfModel (ingen re-derivation) — som netop ikke bygges her. Kontrolfanen fail-closer
+    // autoritative pdfModel (ingen re-derivation) – som netop ikke bygges her. Kontrolfanen fail-closer
     // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt
     // frem for at genindføre en separat serie-beregning (der ville kunne vise en tabel, som ikke svarer
     // til nogen autoritativ beregning). Genindfør IKKE et fejl-tilstands-forløb uden en ny beslutning.
     // ⚠️ F2 (R1): en motor må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
     // værdi til `undefined`, så et ugatet kald her viste fx et "Beregnet svie/smerte"-beløb regnet som om
-    // "tidligere udbetalt" var 0 — præcis det falske tal, brugerbeslutningen 2026-07-25 kræver erstattet af `-`.
+    // "tidligere udbetalt" var 0 – præcis det falske tal, brugerbeslutningen 2026-07-25 kræver erstattet af `-`.
     //
     // Gaten er dependency-specifik: en rød TAF-afhængighed rører ikke
     // S/S-visningen, og en rød S/S-afhængighed rører ikke TAF-ranges. Kun grenens egne felter gater grenen.
@@ -399,7 +399,7 @@ export const computeEoSnapshot = (args: Readonly<{
       );
     // TAF-ranges er periodiseringen, ikke en beløbsberegning, men den læser TAF-grenens datofelter: en rød
     // TAF-dato ville ellers give en periodisering udledt af en maskeret tomværdi (brugerbeslutning 2 kræver
-    // omvendt, at en GYLDIG TAF-visning overlever en S/S-fejl — ikke at en ugyldig vises).
+    // omvendt, at en GYLDIG TAF-visning overlever en S/S-fejl – ikke at en ugyldig vises).
     const tafRangesForInspektion = blockedDependencies.taf
       ? undefined
       : buildTafRanges(projectedTafValues, { skadedatoISO: projectedTafStamdata.skadedato });
@@ -418,7 +418,7 @@ export const computeEoSnapshot = (args: Readonly<{
       invariants: validationInvariants,
       // Det AUTORITATIVE aggregat (samlet total + canonicalOutput + pdfModel) forbliver `null`: en sum eller
       // et fuldt dokument kan ikke være autoritativt, når bare ét led er blokeret.
-      // De uafhængige grene, der STADIG kan beregnes, eksponeres gennem `inspektionSnapshot` ovenfor — det er
+      // De uafhængige grene, der STADIG kan beregnes, eksponeres gennem `inspektionSnapshot` ovenfor – det er
       // dér brugerbeslutning 2 realiseres: en rød S/S-afhængighed fjerner ikke den gyldige TAF-visning.
       data: null,
       blockedDependencies,
@@ -513,7 +513,7 @@ export const computeEoSnapshot = (args: Readonly<{
     // Den krydstjekker autoritative engine-outputs mod den committede EO-kontrol-tabel-projektion,
     // så den afhænger af kontrol-infrastruktur efter design frem for at være et rent engine-til-engine-check.
     // Invariant: inspektionSnapshot er altid non-null her, da den sættes tidligt i try-blokken inden engine-kald.
-    if (!inspektionSnapshot) throw new Error('inspektionSnapshot mangler ved kontrol-mismatch-check — invariant brudt');
+    if (!inspektionSnapshot) throw new Error('inspektionSnapshot mangler ved kontrol-mismatch-check – invariant brudt');
     const controlMismatchMessages = collectSammentaellingControlMismatchMessages(inspektionSnapshot.sammentaellingRows);
     if (controlMismatchMessages.length > 0) {
       invariants.push(buildControlMismatchInvariant(controlMismatchMessages));
@@ -608,7 +608,7 @@ export const computeEoSnapshot = (args: Readonly<{
       data: null,
       // Kontrakt eo-snapshot-contract.md §2.4: i fail_closed-stien (uventet runtime-exception)
       // er inspektionSnapshot null. En delvist bygget kontrol-snapshot fra en kørsel der efterfølgende
-      // kastede, må ikke eksponeres som et gyldigt beregningsgrundlag — også selvom
+      // kastede, må ikke eksponeres som et gyldigt beregningsgrundlag – også selvom
       // eoSnapshotToInspektionView allerede router fail_closed til en blokeret tilstand uafhængigt af
       // inspektionSnapshot. Fail-closed = ingen semi-autoritativ kontrolvisning.
       inspektionSnapshot: null,

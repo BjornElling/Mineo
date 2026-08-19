@@ -66,7 +66,7 @@ export type IncomePeriodResult = Readonly<{
 /**
  * Kanonisk visningsnavn for et ansættelsesforhold: det indtastede arbejdsstednavn,
  * eller fallback "Arbejdssted N" (1-indekseret) når der ikke er indtastet et navn.
- * `navn` må gerne være utrimmet eller allerede trimmet — funktionen er idempotent.
+ * `navn` må gerne være utrimmet eller allerede trimmet – funktionen er idempotent.
  */
 export const resolveArbejdsstedDisplayName = (navn: string | undefined, index: number): string =>
   (navn ?? '').trim() || `Arbejdssted ${index + 1}`;
@@ -90,7 +90,7 @@ type RowEligibility = 'empty' | 'invalid' | 'valid';
  *
  * VIGTIGT: Denne funktion runder den urundede TOTALSUM én gang og bruges kun på de RÅ stier
  * (EO-inspektionens sammentælling/kontroltabel og beregningsperiode-projektionen). Det
- * AUTORITATIVE midlertidigt EET-FRADRAG bruger IKKE denne funktion — det hentes fra den
+ * AUTORITATIVE midlertidigt EET-FRADRAG bruger IKKE denne funktion – det hentes fra den
  * kanoniske, pr.-periode-afrundede bilagskilde via
  * `sumMidlertidigtEetBeregnetEetKronerForTafRanges`, så fradraget matcher "Midlertidig EET"-
  * bilagets sammentælling bit for bit (jf. `midlertidigtEetBilagGroups.ts`). Bland ikke de to:
@@ -150,7 +150,7 @@ export const buildTafRanges = (
 ): IsoRange[] => {
   // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
   // 1. Clamp mod fejlgivende øvre grænser (differencekrav, endelig EET, og ved skader
-  //    opstået før 2011-06-16 tillige midlertidig EET) — validator rapporterer violation
+  //    opstået før 2011-06-16 tillige midlertidig EET) – validator rapporterer violation
   const constraintSource = { ...values, skadedatoISO: options?.skadedatoISO };
   const fejlgivendeBounds = resolveTafFejlgivendeBounds(constraintSource);
   const afterFejlgivende = buildClampedTafRanges(values.tafPerioder ?? [], fejlgivendeBounds);
@@ -347,7 +347,7 @@ export const buildIncomeForRanges = (
     });
     if (allocationDates.length === 0 && beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
       // Fald-tilbage: en lønperiode der udelukkende består af feriedage har ingen arbejdsdage at
-      // fordele på. Indkomsten må ikke forsvinde — fordel på fald-tilbage-dage, så beløbet fanges.
+      // fordele på. Indkomsten må ikke forsvinde – fordel på fald-tilbage-dage, så beløbet fanges.
       // Dagene tælles ALDRIG som arbejdsdage (nævneren `arbejdsdageSet` er uændret; denne fald-tilbage
       // gælder kun beløbsfordelingen for netop denne post). Jf. periodisering-contract.md §3A.
       const fraISO = dateToISO(interval.start);

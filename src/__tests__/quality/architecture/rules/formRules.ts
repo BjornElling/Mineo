@@ -76,7 +76,7 @@ const referencesTrackedCommittedSource = (
 };
 
 /**
- * Reglen er rettet mod den faktiske læse-grænse — ikke mod et bestemt hook-navn.
+ * Reglen er rettet mod den faktiske læse-grænse – ikke mod et bestemt hook-navn.
  *
  * Mekanikken: spor en variabel fra den committede kilde, og flag den, hvis den flyder ind i en
  * `useState`-initializer eller en setter i en `useEffect`. Peger KILDERNE på hooks, der ikke længere
@@ -93,7 +93,7 @@ const COMMITTED_MEMBER = 'reader';
 const READER_PROJECTION_BUILDER = /^build[A-Za-z]*(?:Reader)?Projection$/;
 
 /**
- * Bruger filen overhovedet en committed kilde — evalueringen eller en reader-projektion?
+ * Bruger filen overhovedet en committed kilde – evalueringen eller en reader-projektion?
  *
  * AST-baseret og ikke en tekstsøgning: ellers kunne en kommentar, der forklarer committed-grænsen,
  * alene opfylde både `liveTarget` og denne forport til analysen.
@@ -114,7 +114,7 @@ const findCommittedMirrorViolations = (entry: SourceEntry): Finding[] => {
 
   const collect = (node: ts.Node): void => {
     if (ts.isVariableDeclaration(node) && node.initializer) {
-      // `const p = buildXReaderProjection(reader)` — projektionen ER den committede afledning.
+      // `const p = buildXReaderProjection(reader)` – projektionen ER den committede afledning.
       if (
         ts.isCallExpression(node.initializer) &&
         ts.isIdentifier(node.initializer.expression) &&
@@ -231,14 +231,14 @@ const findCommittedMirrorViolations = (entry: SourceEntry): Finding[] => {
 export const persistenceCommittedMirror = defineRule({
   id: 'persistence/committed-section-mirror',
   description:
-    'Ingen lokal React-state (useState-initializer eller useEffect-setter) må spejle en committed persisteret sektion i pages/hooks — committed state er den ene kilde.',
+    'Ingen lokal React-state (useState-initializer eller useEffect-setter) må spejle en committed persisteret sektion i pages/hooks – committed state er den ene kilde.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
       (entry.relativePath.startsWith('src/components/pages/') || entry.relativePath.startsWith('src/hooks/'))
       && usesCommittedSource(entry),
     rationale:
-      'mindst én page/hook læser committed state gennem greenfields læse-grænse — kilden, der kan '
+      'mindst én page/hook læser committed state gennem greenfields læse-grænse – kilden, der kan '
       + 'spejles, findes altså stadig',
   },
   appliesTo: (relativePath) =>
@@ -259,7 +259,7 @@ export const persistenceCommittedMirror = defineRule({
     },
   ],
   cleanFixtures: [
-    // Afledning via useMemo er den ØNSKEDE form — ingen spejling.
+    // Afledning via useMemo er den ØNSKEDE form – ingen spejling.
     {
       relativePath: 'src/components/pages/X.tsx',
       code: 'const p = buildStamdataReaderProjection(r); const derived = useMemo(() => p.x, [p]);',
@@ -278,7 +278,7 @@ export const persistenceCommittedMirror = defineRule({
 // `src/rowDrafts/` og `src/criticalActions/` står IKKE på listen: begge mapper er slettet
 // i greenfield-cutoveren, så de var død konfiguration, der stille ville udvide grænsen igen, hvis en fil
 // med samme sti nogensinde opstod. Greenfields egen barriere ligger i `src/inputCore/runtime/`, som er
-// tilføjet i stedet — den er commit-sensitiv i præcis den forstand, reglen handler om.
+// tilføjet i stedet – den er commit-sensitiv i præcis den forstand, reglen handler om.
 const COMMIT_SENSITIVE_PREFIXES = [
   'src/components/',
   'src/hooks/',
@@ -315,7 +315,7 @@ const isMicrotaskTick = (node: ts.CallExpression): boolean => {
   if (node.arguments.length !== 0) return false;
   const parent = node.parent;
   if (ts.isAwaitExpression(parent)) return true;
-  // Promise.resolve().then(...) — resolve()'s parent er property-access `.then`.
+  // Promise.resolve().then(...) – resolve()'s parent er property-access `.then`.
   return ts.isPropertyAccessExpression(parent) && parent.name.text === 'then';
 };
 
@@ -348,14 +348,14 @@ export const promiseTickBoundary = forbidCalls({
 
 /**
  * critical-action-contract.md §2 lover normativt, at deltagere ALDRIG opdages via DOM-scanning, og
- * at klargøring aldrig venter Promise-ticks, animation frames eller timeouts — barrieren afventer kun
+ * at klargøring aldrig venter Promise-ticks, animation frames eller timeouts – barrieren afventer kun
  * deltagernes eksplicitte commit-/persistence-promises. Promise-tick + queueMicrotask er allerede
  * dækket af de commit-sensitive regler (nu inkl. `src/criticalActions/`); denne regel lukker
  * resten af §2's løfte, så en fremtidig regression ikke kan genindføre det gamle timing-baserede
  * mønster inde i selve barrieren. `document.activeElement` (fokus-mål-capture, ikke deltager-
  * opdagelse) er en property-access og rammes derfor ikke.
  */
-// Scopet var `src/criticalActions/` — en mappe, der er slettet. Dødt-værn-
+// Scopet var `src/criticalActions/` – en mappe, der er slettet. Dødt-værn-
 // detektorens scan-rod-kontrol fangede det: reglen scannede en tom rod og var inert, selv om dens
 // fixtures (som lå på syntetiske `src/criticalActions/`-stier) blev ved med at bestå. Barrieren bor nu
 // i `criticalActionCoordinator.ts` under greenfield-runtimen, og kontrakt §2's løfte gælder den.
@@ -367,7 +367,7 @@ const isCriticalActionModule = (relativePath: string): boolean =>
 export const criticalActionNoDomScanOrFrameWait = forbidCalls({
   id: 'criticalAction/no-dom-scan-or-frame-wait',
   description:
-    'critical-action-barrieren må ikke DOM-scanne (querySelector*/getElementsBy*) eller vente på frames/timeouts (requestAnimationFrame/setTimeout/setInterval) — den afventer kun eksplicitte deltager-promises (kontrakt §2).',
+    'critical-action-barrieren må ikke DOM-scanne (querySelector*/getElementsBy*) eller vente på frames/timeouts (requestAnimationFrame/setTimeout/setInterval) – den afventer kun eksplicitte deltager-promises (kontrakt §2).',
   liveTarget: {
     kind: 'scoped',
     roots: [CRITICAL_ACTION_MODULE],
@@ -384,7 +384,7 @@ export const criticalActionNoDomScanOrFrameWait = forbidCalls({
     ref.calleeName === 'getElementsByClassName' ||
     ref.calleeName === 'getElementsByTagName',
   message: (ref) =>
-    `${ref.calleeText} i critical-action-barrieren — DOM-scanning/frame-venten er forbudt (kontrakt §2); afvent eksplicitte deltager-promises.`,
+    `${ref.calleeText} i critical-action-barrieren – DOM-scanning/frame-venten er forbudt (kontrakt §2); afvent eksplicitte deltager-promises.`,
   violatingFixtures: [
     { relativePath: CRITICAL_ACTION_MODULE, code: 'requestAnimationFrame(() => flush());' },
     { relativePath: CRITICAL_ACTION_MODULE, code: 'setTimeout(commit, 0);' },
@@ -403,7 +403,7 @@ export const criticalActionNoDomScanOrFrameWait = forbidCalls({
 /**
  * Felter hvis synlighed OG beregnings-relevans ejes af et relevans-prædikat i
  * eoInputRelevance.ts (ét sandt sted). En inline render-gate på et sådant felt lader
- * "skjult i UI" og "ignoreret i beregning" divergere igen — derfor forbudt. Kontrol-
+ * "skjult i UI" og "ignoreret i beregning" divergere igen – derfor forbudt. Kontrol-
  * bindinger (`checked={getChecked(values.X)}` / `value={values.X}`) er tilladt, fordi
  * feltet dér ikke gater andet indhold.
  */
@@ -435,7 +435,7 @@ const governedValuesFieldName = (node: ts.Node): string | null => {
 
 /**
  * Klatrer op gennem parenteser og `!` for at se, om `node` (evt. negeret/parenteseret)
- * er en operand i en logisk (`&&`/`||` hvis `allowOr`, ellers kun `&&`) binær-udtryk —
+ * er en operand i en logisk (`&&`/`||` hvis `allowOr`, ellers kun `&&`) binær-udtryk –
  * dvs. fungerer som en render-gate. Stopper ved alt andet (JSX-attribut, tildeling …).
  */
 const isLogicalGateOperand = (node: ts.Node, allowOr: boolean): boolean => {
@@ -477,7 +477,7 @@ const findEoFieldVisibilityGates = (entry: SourceEntry): Finding[] => {
       if (field !== null && isLogicalGateOperand(node, /* allowOr */ true)) {
         findings.push({
           position: positionOf(node),
-          message: `Inline synligheds-gate på values.${field} — brug relevans-prædikatet ${GOVERNED_VISIBILITY_FIELDS.get(field)} fra eoInputRelevance.ts.`,
+          message: `Inline synligheds-gate på values.${field} – brug relevans-prædikatet ${GOVERNED_VISIBILITY_FIELDS.get(field)} fra eoInputRelevance.ts.`,
         });
       }
     }
@@ -491,7 +491,7 @@ const findEoFieldVisibilityGates = (entry: SourceEntry): Finding[] => {
         if (field !== null && ts.isStringLiteralLike(otherSide) && isLogicalGateOperand(node, /* allowOr */ false)) {
           findings.push({
             position: positionOf(node),
-            message: `Inline synligheds-gate på values.${field} — brug relevans-prædikatet ${GOVERNED_VISIBILITY_FIELDS.get(field)} fra eoInputRelevance.ts.`,
+            message: `Inline synligheds-gate på values.${field} – brug relevans-prædikatet ${GOVERNED_VISIBILITY_FIELDS.get(field)} fra eoInputRelevance.ts.`,
           });
         }
       }
@@ -506,7 +506,7 @@ const findEoFieldVisibilityGates = (entry: SourceEntry): Finding[] => {
 export const eoFieldVisibilitySingleSource = defineRule({
   id: 'domain/eo-field-visibility-single-source',
   description:
-    'Governed EO-input-felter (synlighed ejet af eoInputRelevance-prædikater) må ikke bruges i inline render-gates i eoOplysninger-sektionerne — ellers kan UI-synlighed og beregnings-neutralisering divergere.',
+    'Governed EO-input-felter (synlighed ejet af eoInputRelevance-prædikater) må ikke bruges i inline render-gates i eoOplysninger-sektionerne – ellers kan UI-synlighed og beregnings-neutralisering divergere.',
   liveTarget: {
     kind: 'scoped',
     roots: [EO_OPLYSNINGER_SECTIONS_DIR],
@@ -565,7 +565,7 @@ export const reguleringCanonicalForloebBoundary = forbidImports({
     return (!ref.typeOnly && ref.namedBindings.length === 0)
       || ref.namedBindings.some((binding) => RAW_REGULERING_SERIES_BINDINGS.has(binding));
   },
-  message: (ref) => `Direkte import af reguleringsserie (${ref.moduleSpecifier}) — brug ReguleringForloeb fra motor-modellen.`,
+  message: (ref) => `Direkte import af reguleringsserie (${ref.moduleSpecifier}) – brug ReguleringForloeb fra motor-modellen.`,
   violatingFixtures: [
     {
       relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
@@ -617,7 +617,7 @@ export const eetDifferencekravCompositionBoundary = forbidImports({
     || binding === 'computeEetEalCalculation'
   ),
   message: (ref) =>
-    `Skjult EET-søsterberegning (${ref.namedBindings.join(', ')}) — komponér i eetCalculationGraph.`,
+    `Skjult EET-søsterberegning (${ref.namedBindings.join(', ')}) – komponér i eetCalculationGraph.`,
   violatingFixtures: [{
     relativePath: 'src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts',
     code: "import { computeEetEalCalculation as runEal } from './eetEalCalculation';",
@@ -726,7 +726,7 @@ export const sfggWarningsImportBoundary = forbidImports({
  * Strukturel håndhævelse: dokument-livscyklussen er den ENE vej til et dokument.
  *
  * Lå livscyklussen spredt over tre lag pr. output, ville hvert af de 18 outputs have sin
- * egen kopi af spredningen — hvorfor fem af dem manglede mindst ét trin (commit-barriere, frisk
+ * egen kopi af spredningen – hvorfor fem af dem manglede mindst ét trin (commit-barriere, frisk
  * kildeoptagelse, token-lighed, friskheds-recheck). Nu ejer definitionen rækkefølgen, men det
  * holder kun, hvis ingen kan gå udenom. Derfor:
  *
@@ -734,13 +734,13 @@ export const sfggWarningsImportBoundary = forbidImports({
  *     definitionens `loadRenderer`, som kernen først kalder EFTER gaten har sagt ready. Importerede
  *     en side generatoren selv, ville den kunne danne et dokument uden gate.
  *   - En UI-fil må ikke importere `triggerDocumentDownload`. Det er livscyklussens IRREVERSIBLE
- *     handling, og den skal ske efter det sidste friskheds-recheck — ikke fra en callsite.
+ *     handling, og den skal ske efter det sidste friskheds-recheck – ikke fra en callsite.
  *   - En UI-fil må ikke importere kernens interne livscyklus-modul. `executeDocumentDownload` er
  *     ganske vist det eneste eksporterede navn dér, men en direkte import ville omgå katalogets
  *     binding af definition til miljø.
  *
  * **Reglen er AUTORITETSbaseret, ikke sti-baseret.** Første udgave gjaldt kun `src/components/` og
- * kunne derfor omgås ved at lægge callsite-logik et andet sted — fx i `domain/**\/react/`, hvor
+ * kunne derfor omgås ved at lægge callsite-logik et andet sted – fx i `domain/**\/react/`, hvor
  * `useReguleringDocumentAction` bor. Nu gælder forbuddet HELE repoet, og i stedet erklæres de få
  * moduler, der HAR autoriteten, eksplicit i `allow`. Det gør listen til en beslutning man kan læse,
  * frem for en konsekvens af hvor filerne tilfældigvis ligger.
@@ -787,11 +787,11 @@ export const documentLifecycleBypass = forbidImports({
     return importsLifecycle || importsFileIo;
   },
   message: (ref) =>
-    `Uautoriseret omgåelse af dokument-livscyklussen (${ref.moduleSpecifier}) — aktivér outputtet gennem kataloget.`,
+    `Uautoriseret omgåelse af dokument-livscyklussen (${ref.moduleSpecifier}) – aktivér outputtet gennem kataloget.`,
   violatingFixtures: [
     { relativePath: 'src/components/pages/X.tsx', code: "import { triggerDocumentDownload } from '../../document/downloadArtifact';" },
     { relativePath: 'src/components/pages/X.tsx', code: "import { executeDocumentDownload } from '../../document/definition/documentLifecycle';" },
-    // Uden for components-laget gælder forbuddet nu OGSÅ — det var hullet i første udgave.
+    // Uden for components-laget gælder forbuddet nu OGSÅ – det var hullet i første udgave.
     { relativePath: 'src/domain/x/react/useXAction.ts', code: "import { executeDocumentDownload } from '../../../document/definition/documentLifecycle';" },
   ],
   cleanFixtures: [
@@ -811,7 +811,7 @@ export const documentGeneratorImportBoundary = forbidImports({
   },
   allow: DOCUMENT_GENERATOR_AUTHORITIES,
   forbidden: (ref) => !ref.typeOnly && ref.moduleSpecifier.replaceAll('\\', '/').includes('document/generators/'),
-  message: (ref) => `Uautoriseret generatorimport (${ref.moduleSpecifier}) — generatoren skal ligge bag definitionens loadRenderer.`,
+  message: (ref) => `Uautoriseret generatorimport (${ref.moduleSpecifier}) – generatoren skal ligge bag definitionens loadRenderer.`,
   violatingFixtures: [
     { relativePath: 'src/components/pages/X.tsx', code: "import { generateRenteDocument } from '../../document/generators/renteberegning/renteDocument';" },
     { relativePath: 'src/document/definition/x.ts', code: "const g = await import('../../document/generators/satser/satserDocument');" },
@@ -850,7 +850,7 @@ export const documentGeneratorWriterImport = forbidImports({
       );
     return importsWriter || importsChannel || importsImperativeRenderer || createsOwnSession;
   },
-  message: (ref) => `Import af intern dokumentrendering (${ref.moduleSpecifier}) — byg kun via DocumentComposer og den modtagne session.`,
+  message: (ref) => `Import af intern dokumentrendering (${ref.moduleSpecifier}) – byg kun via DocumentComposer og den modtagne session.`,
   violatingFixtures: [
     { relativePath: 'src/document/generators/x/xDocument.ts', code: "import type { DocumentWriter } from '../../writer/index';" },
     { relativePath: 'src/document/generators/x/xDocument.ts', code: "import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';" },
@@ -876,7 +876,7 @@ export const documentGeneratorCursorAccess = forbidMemberAccess({
   },
   appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
   forbidden: (ref) => DOCUMENT_GENERATOR_CURSOR_MEMBERS.has(ref.chainText.split('.').at(-1) ?? ''),
-  message: (ref) => `Imperativ dokumentadgang (${ref.chainText}) — brug en deklarativ DocumentBlock.`,
+  message: (ref) => `Imperativ dokumentadgang (${ref.chainText}) – brug en deklarativ DocumentBlock.`,
   violatingFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'const y = writer.getY();' }],
   cleanFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'document.addTable(spec);' }],
 });
@@ -891,25 +891,25 @@ export const documentGeneratorCursorElementAccess = forbidElementAccess({
   },
   appliesTo: (relativePath) => relativePath.startsWith('src/document/generators/'),
   forbidden: (ref) => Array.from(DOCUMENT_GENERATOR_CURSOR_MEMBERS).some((member) => ref.chainText.endsWith(`["${member}"]`) || ref.chainText.endsWith(`['${member}']`)),
-  message: (ref) => `Imperativ dokumentadgang (${ref.chainText}) — brug en deklarativ DocumentBlock.`,
+  message: (ref) => `Imperativ dokumentadgang (${ref.chainText}) – brug en deklarativ DocumentBlock.`,
   violatingFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'writer["getDoc"]();' }],
   cleanFixtures: [{ relativePath: 'src/document/generators/x/xDocument.ts', code: 'const value = data["value"];' }],
 });
 
 // --- Kommitterende felt-familier skal bære undo/redo-restore-target-attributterne ---------------
 //
-// En feltfamilie, der renderer sit EGET fokuserbare element — enten via en surface-hook
+// En feltfamilie, der renderer sit EGET fokuserbare element – enten via en surface-hook
 // (`useFormFieldSurface`/`useGridCellSurface`) eller ved at rendere en fokuserbar `Styled*`-kontrol
-// (toggle/checkbox/radio/dropdown) — SKAL føre restore-target-attributterne igennem, så undo/redo kan re-fokusere
+// (toggle/checkbox/radio/dropdown) – SKAL føre restore-target-attributterne igennem, så undo/redo kan re-fokusere
 // PRÆCIS den editorlokation, ændringen kom fra (§3.7). De tynde preset-skaller (Integer/Percent/Amount/…), der blot
 // videresender `field`/`location` til en anden feltkomponent, har intet eget fokuserbart element og er
-// derfor rene UDEN attributterne — reglen flager dem ikke, fordi de hverken bruger en surface-hook eller en Styled*-kontrol.
+// derfor rene UDEN attributterne – reglen flager dem ikke, fordi de hverken bruger en surface-hook eller en Styled*-kontrol.
 //
 // Scopet er HELE feltmappen (ikke et navnepræfiks): et nyt felt i mappen er dækket automatisk, og reglen kan
 // ikke stille blive inert af en omdøbning.
 const FIELDS_DIR = 'src/inputCore/react/fields';
 // Navnene måles som IDENTIFIERS, ikke som tekst. Reglen var før et rent tekst-værn i BEGGE ender, så en
-// kommentar kunne både gøre den levende og — værre — få en manglende gennemføring til at se opfyldt ud:
+// kommentar kunne både gøre den levende og – værre – få en manglende gennemføring til at se opfyldt ud:
 // forklarende prosa om `restoreTargetAttributes` var nok til at gøre en overtrædelse grøn.
 const RESTORE_ATTR_NAMES = ['useRestoreTargetAttributes', 'restoreTargetAttributes'];
 // De fokuserbare primitiver, en feltfamilie renderer direkte, når den ejer sit eget input-element.
@@ -946,7 +946,7 @@ export const restoreTargetAttributesRule = defineRule({
       position: { line: 1, column: 1 },
       message:
         'Feltfamilien renderer et fokuserbart element, men fører ikke restore-target-attributterne igennem '
-        + '(useRestoreTargetAttributes/restoreTargetAttributes) — undo/redo kan da ikke re-fokusere feltet (§3.7).',
+        + '(useRestoreTargetAttributes/restoreTargetAttributes) – undo/redo kan da ikke re-fokusere feltet (§3.7).',
     }];
   },
   violatingFixtures: [
@@ -981,7 +981,7 @@ const ROW_COMMAND_HOOKS = new Set(['useCollectionRows', 'useCollectionRowCommand
  * En rækkehandling (insert/delete/reorder) skal kunne navigeres tilbage til efter undo/redo.
  *
  * PRIMÆRT VÆRN er typen: `CollectionRowOrigin.route`/`tabKey` er PÅKRÆVEDE, så compileren afviser et origin
- * uden destination — også når det videreføres som en variabel. Denne AST-regel er et SEKUNDÆRT værn, der
+ * uden destination – også når det videreføres som en variabel. Denne AST-regel er et SEKUNDÆRT værn, der
  * fanger den ene ting typen ikke udtrykker: et literal-origin, hvor `route` er udeladt helt, giver en
  * type-fejl, men reglen giver en præcis, domænesproget besked ved det rette callsite i stedet for en generisk
  * "property missing". Den læser bevidst kun literal-argumenter; variable origins er typedækkede.
@@ -1011,7 +1011,7 @@ export const rowCommandDestinationRule = defineRule({
       if (originArgument === undefined) {
         findings.push({
           position: call.position,
-          message: `${call.calleeName} kaldt uden origin — rækkehandlingen får ingen destination (§3.7).`,
+          message: `${call.calleeName} kaldt uden origin – rækkehandlingen får ingen destination (§3.7).`,
         });
         continue;
       }
@@ -1029,7 +1029,7 @@ export const rowCommandDestinationRule = defineRule({
       findings.push({
         position: call.position,
         message:
-          `${call.calleeName} kaldt med et origin uden 'route' — undo/redo af insert/delete/reorder ville `
+          `${call.calleeName} kaldt med et origin uden 'route' – undo/redo af insert/delete/reorder ville `
           + 'gendanne data, men efterlade brugeren på en vilkårlig side (§3.7).',
       });
     }
@@ -1078,7 +1078,7 @@ export const rowCommandDestinationRule = defineRule({
  * Reglen har to ben, fordi kun ét af dem alene kunne bæres:
  * 1. FRAVÆR: en privat popup-markør-attribut må ikke genindføres nogen steder i interaktionsfladerne.
  * 2. LOKAL KOPI: en navigationsflade må ikke selv slå ARIA-popup-semantikken op (`role="combobox"` /
- *    `aria-haspopup` i en selector). Den slags kopi var netop den drift, fundet beskrev — og den ville
+ *    `aria-haspopup` i en selector). Den slags kopi var netop den drift, fundet beskrev – og den ville
  *    ikke blive fanget af ben 1, fordi den ikke bruger nogen markør.
  *
  * `liveTarget` er en precondition med `requiredPaths`: BEGGE konsumenter skal stadig importere modulet.
@@ -1088,13 +1088,13 @@ export const rowCommandDestinationRule = defineRule({
 const POPUP_SEMANTICS_MODULE = 'src/components/inputs/popupWidgetSemantics.ts';
 const POPUP_SEMANTICS_CONSUMERS = [
   // Sidens navigationsflade. Var `layout/Container.tsx` indtil greenfield #26 flyttede
-  // tasteoversættelsen — og dermed popup-undtagelserne — ud i containerNavigation/.
+  // tasteoversættelsen – og dermed popup-undtagelserne – ud i containerNavigation/.
   // Grænsen er den samme; kun filen der repræsenterer fladen er flyttet.
   'src/components/layout/containerNavigation/useContainerKeyboardNavigation.ts',
   'src/components/tables/gridCore/tableKeyboardNavigation.ts',
 ] as const;
 const POPUP_SEMANTICS_IMPORT = /popupWidgetSemantics$/;
-/** Privat markør-attribut som popup-KLASSIFIKATION — den fejlform, fundet handlede om. */
+/** Privat markør-attribut som popup-KLASSIFIKATION – den fejlform, fundet handlede om. */
 const PRIVATE_POPUP_MARKER = /data-mineo-[a-z-]*dropdown/;
 /**
  * Rå ARIA-popup-opslag i en selector: en lokal kopi af den delte klassifikation.
@@ -1108,13 +1108,13 @@ const LOCAL_ARIA_POPUP_LOOKUP = /\[\s*(?:role\s*=\s*\\?["']combobox|aria-haspopu
 export const popupSemanticsSingleSourceRule = defineRule({
   id: 'input/popup-semantics-single-source',
   description:
-    'Navigationsflader skal klassificere popup-kontroller gennem popupWidgetSemantics — ikke med en privat '
+    'Navigationsflader skal klassificere popup-kontroller gennem popupWidgetSemantics – ikke med en privat '
     + 'markør-attribut eller en lokal kopi af ARIA-opslaget.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
       POPUP_SEMANTICS_CONSUMERS.includes(entry.relativePath as (typeof POPUP_SEMANTICS_CONSUMERS)[number])
-      // Importen måles som en AST-node, ikke som tekst — en kommentar, der citerer importlinjen,
+      // Importen måles som en AST-node, ikke som tekst – en kommentar, der citerer importlinjen,
       // må ikke kunne holde grænsen levende.
       && hasImportFrom(entry, POPUP_SEMANTICS_IMPORT),
     rationale:
@@ -1145,7 +1145,7 @@ export const popupSemanticsSingleSourceRule = defineRule({
           position,
           message:
             'Popup-kontroller klassificeres med en privat markør-attribut. Det var netop den fejlform, der gjorde '
-            + 'grid\'ets dropdown-fritagelse inert — brug popupWidgetSemantics i stedet.',
+            + 'grid\'ets dropdown-fritagelse inert – brug popupWidgetSemantics i stedet.',
         });
       }
       if (LOCAL_ARIA_POPUP_LOOKUP.test(withoutComment)) {
@@ -1153,7 +1153,7 @@ export const popupSemanticsSingleSourceRule = defineRule({
           position,
           message:
             'Lokalt ARIA-popup-opslag (role="combobox"/aria-haspopup) i en selector. Klassifikationen ejes af '
-            + 'popupWidgetSemantics — en kopi her kan drifte fra den anden flade uden en typefejl.',
+            + 'popupWidgetSemantics – en kopi her kan drifte fra den anden flade uden en typefejl.',
         });
       }
     });
@@ -1161,13 +1161,13 @@ export const popupSemanticsSingleSourceRule = defineRule({
   },
   allow: [
     // Fokuserbarheds-selectorerne: de opregner ALLE fokuserbare elementarter (input/select/textarea/button/
-    // combobox/haspopup) til Tab-traversering. Det er en anden concern end popup-KLASSIFIKATION — de svarer
+    // combobox/haspopup) til Tab-traversering. Det er en anden concern end popup-KLASSIFIKATION – de svarer
     // "kan dette fokuseres?", ikke "er dette en popup, og er den åben?". Holdt bevidst ét sted her.
     'src/components/tables/gridCore/tableFocusHelpers.ts',
     // Bemærk: `StyledDropdown` behøver INGEN undtagelse. Den SÆTTER sin ARIA-semantik som JSX-props
-    // (`'aria-haspopup': 'listbox'`), og reglen måler attribut-SELECTORER — altså opslag i fremmed DOM.
+    // (`'aria-haspopup': 'listbox'`), og reglen måler attribut-SELECTORER – altså opslag i fremmed DOM.
     // Producenten af semantikken og forbrugeren af klassifikationen er dermed strukturelt adskilt.
-    // Cellens dropdown-handle henter sit eget input-element via `input[role="combobox"]` — et opslag i
+    // Cellens dropdown-handle henter sit eget input-element via `input[role="combobox"]` – et opslag i
     // KOMPONENTENS EGET subtree, ikke en klassifikation af en fremmed kontrol.
     'src/inputCore/react/fields/GridChoiceCell.tsx',
   ],
@@ -1187,7 +1187,7 @@ export const popupSemanticsSingleSourceRule = defineRule({
       code: "import { isInClosedPopupWidget } from '../../inputs/popupWidgetSemantics';\nconst isPopup = isInClosedPopupWidget(target);",
     },
     // En KOMMENTAR, der forklarer den gamle fejlform, må ikke gøre reglen rød (og må omvendt heller ikke
-    // kunne bære den — derfor måles kun kode).
+    // kunne bære den – derfor måles kun kode).
     {
       relativePath: 'src/components/tables/gridCore/nyNav2.ts',
       code: "// Tidligere klassificerede vi på data-mineo-table-dropdown; det er nu popupWidgetSemantics.\nconst x = 1;",
@@ -1203,15 +1203,15 @@ export const popupSemanticsSingleSourceRule = defineRule({
 // --- Fokusmålets ejerskab: lokationen, ikke feltadressen ----------------------
 
 /**
- * Fokusnavigationens grænser. De tre regler nedenfor lukker hvert sit hul i SAMME mekanisme — hvem der
- * ejer et fokusmål — og de er skrevet, fordi ingen af hullerne kan fanges af en type:
+ * Fokusnavigationens grænser. De tre regler nedenfor lukker hvert sit hul i SAMME mekanisme – hvem der
+ * ejer et fokusmål – og de er skrevet, fordi ingen af hullerne kan fanges af en type:
  *
- * 1. `input/persisted-controls-use-field-family` — det beslægtede værn
+ * 1. `input/persisted-controls-use-field-family` – det beslægtede værn
  *    (`form/restore-target-attributes`) gælder kun `src/inputCore/react/fields/**` og er derfor grønt,
  *    selv når et produktions-callsite uden for den mappe omgår feltfamilien.
- * 2. `input/focus-destination-owned-by-location` — typen sikrer, at en lokation HAR en destination,
+ * 2. `input/focus-destination-owned-by-location` – typen sikrer, at en lokation HAR en destination,
  *    men ikke at ingen UDLEDER en destination af dataadressen i stedet.
- * 3. `input/restore-attributes-carry-destination` — den nye DOM-kontrakt. En surface, der glemmer at
+ * 3. `input/restore-attributes-carry-destination` – den nye DOM-kontrakt. En surface, der glemmer at
  *    sætte route/fane-attributterne, gør fokusnavigationen inert, uden at nogen type eller test fejler.
  */
 
@@ -1224,7 +1224,7 @@ const RAW_INTERACTIVE_CONTROLS: readonly string[] = [
 ];
 
 /**
- * Feltfamiliens adaptere — ét pr. rå primitiv, plus de tre dropdown-varianter. Reglens live-target kræver dem
+ * Feltfamiliens adaptere – ét pr. rå primitiv, plus de tre dropdown-varianter. Reglens live-target kræver dem
  * ALLE: forsvinder én, findes den grænse, reglen henviser callsites til, ikke længere for netop dens
  * control-art, og reglen skal skrives om frem for at stå grøn (jf. ruleKit's `requiredPaths`-begrundelse om det
  * SAMMENSATTE mål, der var opfyldt så snart ÉN fil matchede).
@@ -1267,7 +1267,7 @@ const collectRawControlTags = (entry: SourceEntry): readonly Finding[] => {
           `<${node.tagName.text}> renderes direkte uden for feltfamilien. En persisteret control skal gå `
           + 'gennem sin typede adapter (ToggleField/MappedToggleField/CheckboxField/RadioField/ChoiceField), '
           + 'som binder FieldRef, commitvej OG undo/redo-fokusmetadata sammen. Har fladen et '
-          + 'særligt afslutningsbehov — en gate eller en atomisk flerfelts-transaktion — brug adapterens '
+          + 'særligt afslutningsbehov – en gate eller en atomisk flerfelts-transaktion – brug adapterens '
           + '`commit`-override (ToggleCommitDecision) frem for at forbinde editoren manuelt. Er værdien '
           + 'IKKE sagsdata, tilføj fladen til NON_CASE_DATA_CONTROL_SURFACES med en begrundelse.',
       });
@@ -1287,7 +1287,7 @@ export const persistedControlsUseFieldFamilyRule = defineRule({
   liveTarget: {
     kind: 'precondition',
     // Målet er feltfamiliens adaptere: findes de ikke længere, er der intet at henvise callsites til, og
-    // reglen skal skrives om frem for at stå grøn. Vi kræver dem ALLE fem — et sammensat mål er ikke
+    // reglen skal skrives om frem for at stå grøn. Vi kræver dem ALLE fem – et sammensat mål er ikke
     // opfyldt, fordi én overlevede (jf. ruleKit's `requiredPaths`-begrundelse).
     probe: (entry) => FIELD_FAMILY_ADAPTERS.includes(entry.relativePath as (typeof FIELD_FAMILY_ADAPTERS)[number])
       && collectRawControlTags(entry).length > 0,
@@ -1325,7 +1325,7 @@ export const persistedControlsUseFieldFamilyRule = defineRule({
     },
   ],
   cleanFixtures: [
-    // Den typede adapter med gate-override — den godkendte løsning.
+    // Den typede adapter med gate-override – den godkendte løsning.
     {
       relativePath: 'src/components/pages/Aarsloen.tsx',
       code: 'const C = () => <ToggleField field={ref} location={loc} commit={decide} />;',
@@ -1364,7 +1364,7 @@ const FOCUS_NAVIGATION_SURFACES: readonly string[] = [
 
 /**
  * De navne, en destinations-udledning fra DATAADRESSEN ville bruge. `PAGE_DEFAULT_TAB` og de to fane-nøglekort
- * er ikke forbudte i sig selv — de er legitime for en side, der viser sine egne faner — men i en FOKUS-flade er
+ * er ikke forbudte i sig selv – de er legitime for en side, der viser sine egne faner – men i en FOKUS-flade er
  * de netop den globale afbildning, reglen udelukker: fanen kan kun kendes af den editor, feltet redigeres i.
  */
 const ADDRESS_DERIVED_DESTINATION_NAMES: readonly string[] = [
@@ -1383,7 +1383,7 @@ const collectAddressDerivedDestinationUses = (entry: SourceEntry): readonly Find
         position: { line: line + 1, column: character + 1 },
         message:
           `Fokus-fladen bruger ${node.text} til at udlede en destination af feltets dataadresse. Det var `
-          + 'præcis den udelukkede model: dataidentiteten kan ikke afgøre, HVOR et felt redigeres — et '
+          + 'præcis den udelukkede model: dataidentiteten kan ikke afgøre, HVOR et felt redigeres – et '
           + 'felt kan have flere editorer (faellesAarsloen, forligsfelterne), og afbildningen måtte da '
           + 'kompensere med særregler for brugerens aktuelle route. Spørg i stedet den mountede editor via '
           + '`lookupEditorLocation`; destinationen står på lokationen (§3.2).',
@@ -1474,11 +1474,11 @@ const REQUIRED_RESTORE_ATTRS: readonly string[] = [
  * droppede de to destinationsattributter fra det PRODUCEREDE objekt, ville typechecke lige så godt, mens
  * fokusnavigationen blev inert.
  *
- * ⚠️ Målingen sker udelukkende inde i BUILDERENS returnerede objekt-literal — ikke over hele filen. Den første
+ * ⚠️ Målingen sker udelukkende inde i BUILDERENS returnerede objekt-literal – ikke over hele filen. Den første
  * udgave af denne regel talte enhver computed property i filen, og `RestoreTargetAttributes`-TYPENS fire
  * computed keys opfyldte den derfor på egen hånd: en mutation, der fjernede
  * `[EDITOR_ROUTE_ATTR]`/`[EDITOR_TAB_ATTR]` fra builderens objekt, forblev GRØN. Netop den fejlform er
- * Grundreglen igen — et grønt værn er ikke evidens for noget, før mutationen er
+ * Grundreglen igen – et grønt værn er ikke evidens for noget, før mutationen er
  * prøvet mod den LEVENDE kilde og ikke kun mod fixtures.
  */
 const RESTORE_ATTR_BUILDER = 'buildRestoreTargetAttributes';
@@ -1552,7 +1552,7 @@ export const restoreAttributesCarryDestinationRule = defineRule({
       relativePath: 'src/inputCore/react/historyRestoreTarget.ts',
       code: 'export const buildRestoreTargetAttributes = (a: string, b: string) => Object.freeze({ [FIELD_ADDRESS_ATTR]: a, [EDITOR_LOCATION_ATTR]: b });',
     },
-    // Kun fanen droppet — et felt på en ikke-standard fane bliver da uopnåeligt.
+    // Kun fanen droppet – et felt på en ikke-standard fane bliver da uopnåeligt.
     {
       relativePath: 'src/inputCore/react/historyRestoreTarget.ts',
       code: 'export const buildRestoreTargetAttributes = (a: string, b: string, r: string) => Object.freeze({ [FIELD_ADDRESS_ATTR]: a, [EDITOR_LOCATION_ATTR]: b, [EDITOR_ROUTE_ATTR]: r });',
@@ -1579,7 +1579,7 @@ export const restoreAttributesCarryDestinationRule = defineRule({
  * viewmodel-indgangspunkt, `useXxxViewModel`, og page-komponenten skal være reduceret til sektions-komposition.
  *
  * Reglen er KATEGORISK, ikke størrelses-gated: der er ingen LOC-tærskel. Det er netop derfor værnet ikke måler
- * filstørrelse — en tærskel ville acceptere syv kontraktbrud, så længe filerne var små nok, og ville samtidig
+ * filstørrelse – en tærskel ville acceptere syv kontraktbrud, så længe filerne var små nok, og ville samtidig
  * presse mod en kunstig opsplitning, når en side voksede. Værnet måler i stedet EKSISTENSEN af VM-indgangen.
  *
  * **Sidelisten er DERIVERET, ikke erklæret.** Den udledes af `APP_PAGE_DEFINITIONS` i
@@ -1590,7 +1590,7 @@ const PAGE_NAVIGATION_MODULE = 'src/config/pageNavigation.ts';
 
 type PageDefinition = Readonly<{ routeKey: string; componentFile: string }>;
 
-/** Læs page-definitionerne ud som AST — ikke som tekst. */
+/** Læs page-definitionerne ud som AST – ikke som tekst. */
 const collectAppPageDefinitions = (entry: SourceEntry): readonly PageDefinition[] => {
   const definitions: PageDefinition[] = [];
   const visit = (node: ts.Node): void => {
@@ -1764,12 +1764,12 @@ export const persistedPageHasViewModelRule = defineRule({
  * editorlokations-id'et. Det er den identitet undo/redo (`findRestoreTarget`), save-blokeringens fokus og
  * EO's fejllinks (`scrollToFieldAddress`) alle slår op på.
  *
- * To PARALLELLE, streng-baserede identiteter ved siden af hinanden — `data-mineo-field-path` og
- * `data-mineo-undo-field-path`, hvis værdi var et bart feltNAVN — eller for EO's rækkemål en
+ * To PARALLELLE, streng-baserede identiteter ved siden af hinanden – `data-mineo-field-path` og
+ * `data-mineo-undo-field-path`, hvis værdi var et bart feltNAVN – eller for EO's rækkemål en
  * `tableId:rowScope:rowId:colIndex`-konvention. Det var ikke blot en dublet, men en BRUDT dublet:
  * grid-cellerne satte slet ikke attributterne, så hvert celle-præcist EO-fejllink faldt lydløst tilbage til
  * rækkeankeret, og ingen test kunne se det. Ved omlægningen havde BEGGE attributter i øvrigt nul
- * læsere tilbage og kun producenter — den endelige evidens for at modellen var en rest.
+ * læsere tilbage og kun producenter – den endelige evidens for at modellen var en rest.
  *
  * Reglen måler alle tre former, attributterne faktisk optrådte i: en JSX-attribut (`StyledTextAreaBase`), en
  * quoted property i et slotProps-objekt eller en proptype (de fire immediate-commit-widgets) og en
@@ -1815,7 +1815,7 @@ const collectForbiddenFieldIdentityAttrs = (entry: SourceEntry): readonly Findin
       position: { line: line + 1, column: character + 1 },
       message:
         `${form} bruger '${attr}' som feltidentitet i DOM. Feltidentiteten er den serialiserede feltadresse `
-        + '(data-mineo-field-address) plus editorlokations-id — ÉT system, som undo/redo, save-fokus og '
+        + '(data-mineo-field-address) plus editorlokations-id – ÉT system, som undo/redo, save-fokus og '
         + 'EO-fejllinks deler (§3.2). En navne- eller kolonnestreng ved siden af er den parallelle model, '
         + 'den er en parallel model og bevisligt uopnåelig for grid-celler.',
     });
@@ -1861,7 +1861,7 @@ export const singleFieldIdentityInDomRule = defineRule({
   id: 'input/single-field-identity-in-dom',
   description:
     'Der findes ÉN feltidentitet i DOM: den serialiserede feltadresse plus editorlokations-id. De afløste '
-    + 'navnestreng-attributter (data-mineo-field-path, data-mineo-undo-field-path) må ikke genindføres — de '
+    + 'navnestreng-attributter (data-mineo-field-path, data-mineo-undo-field-path) må ikke genindføres – de '
     + 'var en parallel model, og for grid-celler var de bevisligt uopnåelige.',
   liveTarget: {
     kind: 'precondition',
@@ -1870,7 +1870,7 @@ export const singleFieldIdentityInDomRule = defineRule({
     //
     // ⚠️ EO-halvdelen måler et faktisk KALD, ikke blot at navnet nævnes. En `hasIdentifier`-probe var for svag:
     // et alias-import (`lookupEditorLocation as lookupMoved`) efterlader navnet i import-clausen, så proben
-    // forblev sand, selv om opslaget var flyttet. Mutationen mod den levende kilde afslørede det —
+    // forblev sand, selv om opslaget var flyttet. Mutationen mod den levende kilde afslørede det –
     // samme fejlklasse som når en types computed keys opfylder et attribut-værn på egen hånd.
     probe: (entry) => {
       if (entry.relativePath === CANONICAL_FIELD_IDENTITY_MODULE) {
@@ -1951,7 +1951,7 @@ const PAGE_MESSAGE_COMPONENTS: readonly string[] = ['PageMessageBox', 'PageMessa
 
 /**
  * Klasserne der KENDETEGNER en besked-/fejllinje i en ContentBox. Kombinationen er signaturen: en
- * `row--text`-Typography, hvis farve er `error.main`, ER en fejllinje — uanset hvad variablen bagved hedder.
+ * `row--text`-Typography, hvis farve er `error.main`, ER en fejllinje – uanset hvad variablen bagved hedder.
  */
 const MESSAGE_ROW_CLASS = 'row--text';
 const ERROR_COLOR_TOKEN = 'error.main';
@@ -1960,7 +1960,7 @@ const ERROR_COLOR_TOKEN = 'error.main';
  * Er noden en JSX-struktur, der tegner en RØD besked-linje?
  *
  * Måles på AST'et: en JSX-attribut `className="row--text"` i samme element-undertræ som strengen `error.main`.
- * En kommentar, der blot nævner klasserne, kan derfor ikke bære — eller udløse — reglen.
+ * En kommentar, der blot nævner klasserne, kan derfor ikke bære – eller udløse – reglen.
  */
 const containsRedMessageRow = (node: ts.Node): boolean => {
   let hasMessageClass = false;
@@ -2020,7 +2020,7 @@ export const messageBoxGuardedByPageMessageRule = defineRule({
   },
   appliesTo: (relativePath) => relativePath.startsWith('src/components/pages/'),
   // Ingen undtagelser. EO's "Fejl og advarsler"-boks tegner sin download-fejllinje med en ikon-celle frem for
-  // `error.main` og falder derfor uden for reglens signatur — den skal IKKE stå her som allowlist-post, for
+  // `error.main` og falder derfor uden for reglens signatur – den skal IKKE stå her som allowlist-post, for
   // anti-rot-kontrollen kræver at hver post faktisk stadig udløser reglen. Det var netop den kontrol, der
   // afviste en først-antaget undtagelse her.
   allow: [],
@@ -2059,7 +2059,7 @@ export const messageBoxGuardedByPageMessageRule = defineRule({
       code: 'const C = () => <>{err && (<Box className="row--label-right-hover">'
         + '<Typography className="row--text" sx={{ color: "error.main" }}>{err}</Typography></Box>)}</>;',
     },
-    // Samme fejl uden den ydre Box — klassen + farven ER signaturen.
+    // Samme fejl uden den ydre Box – klassen + farven ER signaturen.
     {
       relativePath: 'src/components/pages/y/YTab.tsx',
       code: 'const C = () => <>{msg && <Typography className="row--text" sx={{ color: "error.main" }}>{msg}</Typography>}</>;',
@@ -2143,7 +2143,7 @@ export const deletableCollectionTableOwnershipRule = defineRule({
     if (calls.has('useCollectionTable') || calls.has('useCollectionRows')) return [];
     return deleteButtons.map(({ position }) => ({
       position,
-      message: 'Sletbar collectiontabel uden useCollectionTable/useCollectionRows — rækkeidentitet og undo/redo mangler én autoritativ ejer.',
+      message: 'Sletbar collectiontabel uden useCollectionTable/useCollectionRows – rækkeidentitet og undo/redo mangler én autoritativ ejer.',
     }));
   },
   violatingFixtures: [{
@@ -2158,8 +2158,8 @@ export const deletableCollectionTableOwnershipRule = defineRule({
 
 /**
  * Cellen omkring `RowDeleteButton` er en KONTRAKT, ikke en stilart: knappen er `position: absolute`,
- * så mangler cellen `position: relative`, finder den nærmeste positionerede forfader — tabellens
- * container — og ikonet lander i tabellens hjørne i stedet for i rækken. Uden `paddingRight` ligger
+ * så mangler cellen `position: relative`, finder den nærmeste positionerede forfader – tabellens
+ * container – og ikonet lander i tabellens hjørne i stedet for i rækken. Uden `paddingRight` ligger
  * det oven på celleindholdet.
  *
  * Kontrakten var hardkodet på hvert af de ti kaldsteder i fire stavemåder og var derfor lige så let
@@ -2202,7 +2202,7 @@ const enclosingCellUsesLaneHelper = (node: ts.Node): boolean => {
 export const rowDeleteLaneCellRule = defineRule({
   id: 'form/row-delete-lane-cell-single-source',
   description:
-    'RowDeleteButton skal stå i en lane-celle (RowDeleteLaneCell/rowDeleteLaneStyle) — cellekontrakten må ikke håndrulles.',
+    'RowDeleteButton skal stå i en lane-celle (RowDeleteLaneCell/rowDeleteLaneStyle) – cellekontrakten må ikke håndrulles.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => jsxTagPositions(entry, 'RowDeleteButton').length > 0,
@@ -2225,7 +2225,7 @@ export const rowDeleteLaneCellRule = defineRule({
           findings.push({
             position: { line: line + 1, column: character + 1 },
             message:
-              'RowDeleteButton uden lane-celle — brug <RowDeleteLaneCell> (løs tabel) eller rowDeleteLaneStyle(...) (<td>), '
+              'RowDeleteButton uden lane-celle – brug <RowDeleteLaneCell> (løs tabel) eller rowDeleteLaneStyle(...) (<td>), '
               + 'så position: relative og den reserverede bane ikke kan glemmes halvt.',
           });
         }
@@ -2241,7 +2241,7 @@ export const rowDeleteLaneCellRule = defineRule({
       relativePath: `${TABLE_SCOPE}XTable.tsx`,
       code: 'const X = () => <TableCell sx={{ position: "relative", paddingRight: "28px" }}><RowDeleteButton onDelete={d} /></TableCell>;',
     },
-    // Halvt glemt kontrakt (ingen position) — ikonet ville lande i tabellens hjørne.
+    // Halvt glemt kontrakt (ingen position) – ikonet ville lande i tabellens hjørne.
     {
       relativePath: `${TABLE_SCOPE}XTable.tsx`,
       code: 'const X = () => <td style={{ paddingRight: 28 }}><RowDeleteButton onDelete={d} /></td>;',
@@ -2302,10 +2302,10 @@ export const placeholderIdentityOwnershipRule = defineRule({
       .filter((identifier) => LOCAL_PLACEHOLDER_POOL_NAMES.has(identifier.text))
       .map((identifier) => ({
         position: identifier.position,
-        message: `Lokal placeholder-pulje (${identifier.text}) — brug useCollectionTable som eneste ejer.`,
+        message: `Lokal placeholder-pulje (${identifier.text}) – brug useCollectionTable som eneste ejer.`,
       }));
 
-    // Kalder tabellen selv `usePlaceholderSlotIds`, ejer den halvdelen af identitetskæden igen — og
+    // Kalder tabellen selv `usePlaceholderSlotIds`, ejer den halvdelen af identitetskæden igen – og
     // så skal den også bygge render-modellen selv. Det var netop den vej, fire tabeller havde taget.
     for (const call of collectCalls(entry)) {
       if (call.calleeName !== 'usePlaceholderSlotIds') continue;
@@ -2340,7 +2340,7 @@ export const placeholderIdentityOwnershipRule = defineRule({
  *
  * `StyledDropdown` og `StyledRadioButton` er begge generiske i optionernes værditype. Skriver et
  * kaldsted `onChange={(e: StyledDropdownChangeEvent<string>) => …}`, låser annotationen `TValue`
- * til `string` — den brede type vinder over den inferede literal-union. Kaldstedet har dermed selv
+ * til `string` – den brede type vinder over den inferede literal-union. Kaldstedet har dermed selv
  * kastet typen væk og skal nu bevise, hvad compileren lige kunne have sagt. Præcis det skete på
  * Indstillinger-siden: fem håndskrevne `is…Option`-typeguards med kroppen
  * `(OPTIONS as readonly string[]).includes(value)`, hvor `as readonly string[]`-castet igen kaster
@@ -2352,7 +2352,7 @@ export const placeholderIdentityOwnershipRule = defineRule({
  * VIGTIGT om reglens rækkevidde (målt, ikke antaget): `TValue` inferes fra `value`-proppen ALENE,
  * ikke fra de rendrede `MenuItem`-børn. Compileren kan derfor sikre, at det COMMITTEDE er en gyldig
  * værdi, men IKKE at kontrollen tilbyder præcis unionens værdier. Det hul måles af
- * `Indstillinger.optionCoverage.test.tsx` — typen og testen dækker hvert sit hul, og begge skal
+ * `Indstillinger.optionCoverage.test.tsx` – typen og testen dækker hvert sit hul, og begge skal
  * bruges.
  */
 const CHOICE_HANDLER_EVENT_TYPES = new Set(['StyledDropdownChangeEvent', 'CommitEvent']);
@@ -2366,7 +2366,7 @@ const WIDENING_TYPE_ARGUMENTS = new Set([
 export const choiceFieldValueTypeInferredRule = defineRule({
   id: 'form/choice-field-value-type-inferred',
   description:
-    'En dropdown-/radio-handler må ikke annoteres med en bred værditype (StyledDropdownChangeEvent<string> o.l.) — literal-unionen skal inferes.',
+    'En dropdown-/radio-handler må ikke annoteres med en bred værditype (StyledDropdownChangeEvent<string> o.l.) – literal-unionen skal inferes.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => hasAnyIdentifier(entry, ['StyledDropdown', 'StyledRadioButton']),
@@ -2394,7 +2394,7 @@ export const choiceFieldValueTypeInferredRule = defineRule({
             position: { line: line + 1, column: character + 1 },
             message:
               `${type.typeName.text}<string|number> som parameter-annotation låser feltets værditype til den brede form `
-              + 'og ophæver inferensen af optionernes literal-union. Fjern annotationen — så er der intet at typeguarde.',
+              + 'og ophæver inferensen af optionernes literal-union. Fjern annotationen – så er der intet at typeguarde.',
           });
         }
       }
@@ -2426,7 +2426,7 @@ export const choiceFieldValueTypeInferredRule = defineRule({
       relativePath: 'src/components/pages/XPage.tsx',
       code: 'const X = () => <StyledDropdown value={v} onChange={(e) => set(e.target.value)} />;',
     },
-    // En SMAL typeargument er ikke reglens ærinde — den ophæver ingen inferens.
+    // En SMAL typeargument er ikke reglens ærinde – den ophæver ingen inferens.
     {
       relativePath: 'src/components/pages/XPage.tsx',
       code: 'const X = () => <StyledDropdown value={v} onChange={(e: StyledDropdownChangeEvent<Loenperiode>) => set(e.target.value)} />;',
@@ -2443,15 +2443,15 @@ export const choiceFieldValueTypeInferredRule = defineRule({
 
 /**
  * Modulet, der EJER navnevalget for skadedato-feltets kontekstafhængige navn (§3.2a). Det ene sted, hvor
- * begge navne må stå i samme udtryk. Alle andre — også `eoDateReferenceText.ts`, som bøjer navnet til
- * EO-prosa — skal KALDE `resolveSkadestypeDatoLabel` frem for at gentage valget.
+ * begge navne må stå i samme udtryk. Alle andre – også `eoDateReferenceText.ts`, som bøjer navnet til
+ * EO-prosa – skal KALDE `resolveSkadestypeDatoLabel` frem for at gentage valget.
  */
 const CONTEXTUAL_LABEL_AUTHORITIES: readonly string[] = [
   'src/domain/policies/stamdataCalculations.ts',
 ];
 
 /**
- * De to navne, skadedato-feltet kan bære. Står de begge i SAMME udtryk, er det et navnevalg — uanset om
+ * De to navne, skadedato-feltet kan bære. Står de begge i SAMME udtryk, er det et navnevalg – uanset om
  * det er skrevet som en ternary, en `if`/`return` eller et opslag.
  */
 const SKADESTYPE_LABEL_LITERALS: readonly string[] = ['Skadedato', 'Anmeldelsesdato'];
@@ -2461,11 +2461,11 @@ const SKADESTYPE_LABEL_LITERALS: readonly string[] = ['Skadedato', 'Anmeldelsesd
  *
  * Kriteriet er bevidst «begge navne i samme sætning» frem for «indeholder ordet Anmeldelsesdato»: et enkelt
  * navn kan stå legitimt i en overskrift eller en dokumenttekst, mens BEGGE navne i samme udtryk kun kan
- * betyde, at koden gentager navnevalget. Det var netop den gentagelse — fire kopier af samme ternary — der
+ * betyde, at koden gentager navnevalget. Det var netop den gentagelse – fire kopier af samme ternary – der
  * gjorde det muligt for feltets synlige navn og dets fejlbesked at drive fra hinanden.
  *
  * Kun rigtige string-literals i KODE tæller. En kommentar, der nævner begge navne (som denne), er ikke et
- * navnevalg, og AST'en kan skelne dem — det kunne en tekstsøgning ikke.
+ * navnevalg, og AST'en kan skelne dem – det kunne en tekstsøgning ikke.
  */
 const collectSkadestypeLabelChoices = (entry: SourceEntry): readonly Finding[] => {
   const findings: Finding[] = [];
@@ -2473,7 +2473,7 @@ const collectSkadestypeLabelChoices = (entry: SourceEntry): readonly Finding[] =
   const literalsIn = (node: ts.Node): ReadonlySet<string> => {
     const found = new Set<string>();
     const visit = (current: ts.Node): void => {
-      // En literal-union i TYPE-position (`'Skadedato' | 'Anmeldelsesdato'`) er ikke et navnevalg — den
+      // En literal-union i TYPE-position (`'Skadedato' | 'Anmeldelsesdato'`) er ikke et navnevalg – den
       // BEGRÆNSER hvilke navne en værdi må have, og selve valget sker et andet sted. `SkadestypeDatoLabel`
       // er den navngivne form af netop den type.
       if (ts.isLiteralTypeNode(current) || ts.isUnionTypeNode(current)) return;
@@ -2508,11 +2508,11 @@ const collectSkadestypeLabelChoices = (entry: SourceEntry): readonly Finding[] =
           'Her vælges der mellem feltets to navne («Skadedato»/«Anmeldelsesdato»). Navnevalget er feltets '
           + 'eget (§3.2a) og bor i `resolveSkadestypeDatoLabel`; `stamdata.skadedato`-descriptorens '
           + '`contextualLabel` læser det, og både den synlige label og enhver besked om feltet får det '
-          + 'derfra. Gentages valget her, kan de to drive fra hinanden — feltet hed «Anmeldelsesdato» på '
+          + 'derfra. Gentages valget her, kan de to drive fra hinanden – feltet hed «Anmeldelsesdato» på '
           + 'skærmen, mens fejlen bad brugeren rette «Skadedato». Kald funktionen i stedet, og '
           + 'hent den SYNLIGE label i en komponent med `useFieldLabel(field)`.',
       });
-      return; // ét fund pr. valg — ikke ét pr. omsluttende knude
+      return; // ét fund pr. valg – ikke ét pr. omsluttende knude
     }
     ts.forEachChild(node, visit);
   };
@@ -2590,7 +2590,7 @@ export const contextualFieldLabelSingleAuthorityRule = defineRule({
       relativePath: 'src/components/pages/varigemen/MenberegningTab.tsx',
       code: "const label = skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato';",
     },
-    // Samme valg skrevet som en funktion med to returns — en ternary-regel alene ville være blind for den.
+    // Samme valg skrevet som en funktion med to returns – en ternary-regel alene ville være blind for den.
     {
       relativePath: 'src/domain/eoRowEvaluation/eoRowStamdataModel.ts',
       code: "function navn(t: string) {\n  if (t === 'Erhvervssygdom') return 'Anmeldelsesdato';\n  return 'Skadedato';\n}",
@@ -2617,7 +2617,7 @@ export const contextualFieldLabelSingleAuthorityRule = defineRule({
       relativePath: 'src/components/pages/stamdata/useStamdataViewModel.ts',
       code: 'const datoLabel = useFieldLabel(skadedatoRef);',
     },
-    // ÉT af navnene alene er ikke et navnevalg — en dokumentoverskrift må gerne skrive det.
+    // ÉT af navnene alene er ikke et navnevalg – en dokumentoverskrift må gerne skrive det.
     {
       relativePath: 'src/document/generators/eo/sections/x.ts',
       code: "const overskrift = 'Skadedato';",
@@ -2720,7 +2720,7 @@ const STANDARD_LOEN_LABEL_CONSUMERS: readonly string[] = [
 
 /**
  * Kolonnenavne, der ville afsløre en gen-indført parallel navneliste. `col4`/`col5`-navnene er de to, der
- * FAKTISK drev fra hinanden — descriptoren sagde «Løn (3)», overskriften «Ikke-pensionsgivende løn» — og de
+ * FAKTISK drev fra hinanden – descriptoren sagde «Løn (3)», overskriften «Ikke-pensionsgivende løn» – og de
  * øvrige er med, fordi en ny kopi typisk gentager hele listen.
  */
 const STANDARD_LOEN_LABEL_LITERALS: readonly string[] = [
@@ -2750,7 +2750,7 @@ const collectStandardLoenLabelLiterals = (entry: SourceEntry): readonly Finding[
           + `har ÉN kilde (\`STANDARD_LOEN_COLUMN_LABELS\` i ${STANDARD_LOEN_LABEL_OWNER}, §3.2a): de to `
           + 'descriptor-kataloger sætter dem som `label`, og `standardLoenTableColumns.ts` bygger '
           + 'gridoverskrifterne af dem. Skrives navnet igen her, kan overskriften og en fejlbesked om samme '
-          + 'celle navngive kolonnen forskelligt — `col4` hed «Ikke-pensionsgivende løn» i overskriften og '
+          + 'celle navngive kolonnen forskelligt – `col4` hed «Ikke-pensionsgivende løn» i overskriften og '
           + '«Løn (3)» i beskeden. Læs fra `STANDARD_LOEN_COLUMN_LABELS` i stedet.',
       });
     }
@@ -2803,7 +2803,7 @@ export const standardLoenColumnLabelsSingleSourceRule = defineRule({
       relativePath: 'src/inputCore/catalog/erstatningsopgoerelseLoenDescriptors.ts',
       code: "const f = stdAmount('col4', STANDARD_LOEN_COLUMN_LABELS.col4);",
     },
-    // Overskriftens LAYOUT-ombrydning er ikke navnet — linjeskiftet gør strengen til en anden tekst.
+    // Overskriftens LAYOUT-ombrydning er ikke navnet – linjeskiftet gør strengen til en anden tekst.
     {
       relativePath: 'src/domain/aarsloen/standardLoenTableColumns.ts',
       code: "const H = { col4: 'Ikke-pensions-\ngivende løn' };",

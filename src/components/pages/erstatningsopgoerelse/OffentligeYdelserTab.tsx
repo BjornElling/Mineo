@@ -79,7 +79,7 @@ const MIDLERTIDIGT_EET_LOCATION: EditorLocation = {
 
 /**
  * Reguleringstogglens editorlokation (§3.2). Feltet blev flyttet hertil fra EO oplysninger-fanen
- *; `locationId` er uændret, fordi det navngiver FELTETS editorlokation og ikke fanen — men
+ *; `locationId` er uændret, fordi det navngiver FELTETS editorlokation og ikke fanen – men
  * `tabKey` peger nu på Offentlige ydelser, så fokusnavigationen lander det rigtige sted.
  */
 const REGULER_OFFENTLIGE_YDELSER_LOCATION: EditorLocation = {
@@ -217,7 +217,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
     if (generatedRows === null) return;
     if (generatedRows.length === 0) {
       // Defensivt: en fuldt dækket periode bør altid give mindst én række. Hvis ikke,
-      // har brugeren valgt et interval uden sygedagpenge-arbejdsdage (fx kun weekend) —
+      // har brugeren valgt et interval uden sygedagpenge-arbejdsdage (fx kun weekend) –
       // sig det tydeligt frem for at fejle tavst.
       setSygedagpengeInsertError(
         'Den valgte periode indeholder ingen sygedagpenge-dage, så der blev ikke indsat nogen rækker.'
@@ -267,7 +267,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
 
   /**
    * «Indsæt»-knappens gate. Årsagen klassificeres frem for at blive skrevet i hånden, så knappen
-   * bruger programmets universelle tekster for grå knapper (§11.1) — samme to klasser og samme
+   * bruger programmets universelle tekster for grå knapper (§11.1) – samme to klasser og samme
    * ordlyd som de deaktiverede downloadknapper.
    *
    * Rækkefølgen betyder ikke noget her; `resolveActionGate` ejer forrangen (ugyldigt slår manglende).
@@ -309,7 +309,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
         );
       } else {
         // Den simple ændring skal bære origin, så undo kan navigere og refokusere
-        // togglen. Den er et FELT-commit — transaktionen rører kun felter — og bærer derfor togglens egen
+        // togglen. Den er et FELT-commit – transaktionen rører kun felter – og bærer derfor togglens egen
         // feltorigin, præcis som feltadapterens normale `commitImmediate`-vej gør (§3.7).
         edit.dispatch(
           inputTransaction(fieldSteps),
@@ -336,7 +336,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
   /**
    * Togglens afslutning som feltadapterens {@link ToggleCommitOverride}.
    *
-   * Udfaldet er ALTID `'handled'` eller `'reject'`, aldrig `'commit'`: hver gren rører mere end det ene felt —
+   * Udfaldet er ALTID `'handled'` eller `'reject'`, aldrig `'commit'`: hver gren rører mere end det ene felt –
    * bilag-checkboxen følger altid med, og en tilslåning kan desuden slette manuelle rækker. Adapteren må derfor
    * ikke skrive oveni; den ejer identiteten, visningen og undo/redo-fokusmålet, mens transaktionen er vores.
    */
@@ -452,7 +452,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
           oplysninger-fanen. Feltet er uændret; kun editorlokationen er flyttet hertil, så
           fokusnavigationen fører brugeren til den fane, feltet faktisk redigeres på (§3.2).
 
-          Synligheden er PRÆCIS den samme betingelse som før flytningen — nu udtrykt gennem det delte
+          Synligheden er PRÆCIS den samme betingelse som før flytningen – nu udtrykt gennem det delte
           relevans-prædikat, så synlighed og beregningsrelevans har ét sandt sted.
         */}
         {erOffentligeYdelserReguleringRelevant(values) ? (

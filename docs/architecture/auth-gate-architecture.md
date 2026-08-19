@@ -57,4 +57,4 @@ Dette dokument introducerer ikke:
 
 ## Konsekvens for kommunikation
 
-Kommunikationsreglen — beskriv mekanismen som **UX-gate**, ikke som sikkerhed, og ikke som midlertidig — er bindende og ejes af `src/contracts/auth-gate-contract.md §2`.
+Kommunikationsreglen – beskriv mekanismen som **UX-gate**, ikke som sikkerhed, og ikke som midlertidig – er bindende og ejes af `src/contracts/auth-gate-contract.md §2`.

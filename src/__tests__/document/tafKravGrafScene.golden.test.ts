@@ -5,12 +5,12 @@
  *
  * Grafen kunne før kun verificeres med øjnene: `renderTafKravGrafChartPng` og alle
  * `draw*`-funktioner var utestede, fordi jsdom ikke har et canvas-API. Efter opdelingen
- * er hver visuel beslutning — koordinat, farve, skrift, tekst, rækkefølge — en værdi i
+ * er hver visuel beslutning – koordinat, farve, skrift, tekst, rækkefølge – en værdi i
  * scene-modellen, og dette net fastfryser den.
  *
  * Kontrakten er PIXEL-TROSKAB (brugerbeslutning 2026-08-06, pkt. 3): scene-modellen skal
- * reproducere den hidtidige tegning. En utilsigtet afvigelse — et flyttet koordinat, en
- * ændret farve, en tabt label — fejler her. Ægte tegnefejl må rettes, men skal forelægges
+ * reproducere den hidtidige tegning. En utilsigtet afvigelse – et flyttet koordinat, en
+ * ændret farve, en tabt label – fejler her. Ægte tegnefejl må rettes, men skal forelægges
  * brugeren enkeltvis; en snapshot-opdatering uden den forelæggelse er et kontraktbrud.
  *
  * Tekstmåling injiceres som en deterministisk stub (bredde = tegn × faktor), så
@@ -117,7 +117,7 @@ const textsOf = (scene: TafKravGrafScene): string[] =>
   scene.commands.filter((c): c is Extract<SceneCommand, { kind: 'text' }> => c.kind === 'text')
     .map((c) => c.text);
 
-describe('tafKravGrafScene — golden (pixel-troskab)', () => {
+describe('tafKravGrafScene – golden (pixel-troskab)', () => {
   it('fastfryser hele scenen for det fulde dokument', () => {
     expect(serializeScene(buildTafKravGrafScene(fullDocument, measureText))).toMatchSnapshot();
   });
@@ -127,7 +127,7 @@ describe('tafKravGrafScene — golden (pixel-troskab)', () => {
   });
 });
 
-describe('tafKravGrafScene — strukturelle invarianter', () => {
+describe('tafKravGrafScene – strukturelle invarianter', () => {
   const scene = buildTafKravGrafScene(fullDocument, measureText);
 
   it('er deterministisk: samme input giver identisk scene', () => {

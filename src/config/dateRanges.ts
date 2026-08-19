@@ -3,7 +3,7 @@ import { endOfYearIso, isoYear, maxISO, startOfYearIso } from '../utils/isoDateH
  * Central konfiguration af dato-afgrænsninger for Mineo
  *
  * ÅRLIG OPDATERING:
- * Opdater DATE_2005_01_01 hvis der tilføjes ældre arbejdsskadesatser — MIN_YEAR udledes automatisk
+ * Opdater DATE_2005_01_01 hvis der tilføjes ældre arbejdsskadesatser – MIN_YEAR udledes automatisk
  */
 
 import type { ISODateString } from '../types/branded';
@@ -22,7 +22,7 @@ const iso = (date: string): ISODateString => toISODateString(date);
 
 // Statiske datoer
 const DATE_1900_01_01 = iso('1900-01-01'); // Min for fødselsdato-felter
-const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse — bruges som min/fallbackMin for alle dynamiske dato-felter
+const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse – bruges som min/fallbackMin for alle dynamiske dato-felter
 // STORE_BEDEDAG_START og øvrige indskudte lønregulerings-tillæg bor i `src/data/indskudteLoentillaeg.ts`.
 
 // ============================================================================
@@ -31,8 +31,8 @@ const DATE_2005_01_01 = iso('2005-01-01'); // Systemets nedre grænse — bruges
 
 // Bemærk: intervallerne bærer IKKE en `placeholder`. Feltets formvejledning (`dd-mm-åååå`) ejes af
 // dato-feltfamilien (`fieldFormatPlaceholders.ts`), og grænserne her hører i feltets issue/tooltip.
-// De 33 `placeholder: 'dd-mm-åååå'`-felter, der tidligere stod her, blev læst af INGEN kode — kun af to
-// `toBeTruthy()`-tests — og gav indtryk af, at intervallet var placeholderens kilde.
+// De 33 `placeholder: 'dd-mm-åååå'`-felter, der tidligere stod her, blev læst af INGEN kode – kun af to
+// `toBeTruthy()`-tests – og gav indtryk af, at intervallet var placeholderens kilde.
 
 /**
  * Statisk dato-range med kendte værdier
@@ -92,7 +92,7 @@ interface UnconstrainedDateRange {
  * - Ingen afgrænsning er eksplicit modelleret
  */
 /**
- * Dags dato, læst PÅ OPSLAGSTIDSPUNKTET — ikke ved modulets import.
+ * Dags dato, læst PÅ OPSLAGSTIDSPUNKTET – ikke ved modulets import.
  *
  * Dette var tidligere `export const TODAY = getTodayLocalISO()`, altså et øjebliksbillede
  * taget første gang modulet blev importeret. Det gav to reelle fejl:
@@ -102,14 +102,14 @@ interface UnconstrainedDateRange {
  *    «Skadedato» m.fl. fortsat validéret mod GÅRSDAGENS maksimum, og brugeren kunne ikke
  *    indtaste dagens dato uden en genindlæsning.
  * 2. **Testdeterminisme.** `vi.setSystemTime()` havde ingen effekt, fordi konstanten var
- *    låst ved import — modulet skulle rekonstrueres for at flytte "i dag".
+ *    låst ved import – modulet skulle rekonstrueres for at flytte "i dag".
  *
  * Bemærk at `utils/dateInputValidation.ts` allerede læste året på opslagstidspunktet, så
  * kodebasen havde to forskellige svar på "hvad er i dag". Nu er der ét.
  *
  * Getteren bevarer alle callsites' syntaks (`TODAY`, `dateRanges_stamdata.skadedato.max`),
  * så det er en ren semantik-rettelse uden kaldeflade-ændring. Bevar getter-formen: gør den
- * ikke til en `const` igen "for at spare et kald" — så er fejlen tilbage.
+ * ikke til en `const` igen "for at spare et kald" – så er fejlen tilbage.
  */
 export const getToday = (): ISODateString => getTodayLocalISO();
 
@@ -117,23 +117,23 @@ export const getToday = (): ISODateString => getTodayLocalISO();
 // GLOBALE VÆRDIER
 // ============================================================================
 
-// Minimums-år — udledt af DATE_2005_01_01 (systemets nedre datogrænse). Statisk: afhænger
+// Minimums-år – udledt af DATE_2005_01_01 (systemets nedre datogrænse). Statisk: afhænger
 // kun af satsdatasættets nedre grænse, ikke af dags dato.
 export const MIN_YEAR: number = isoYear(DATE_2005_01_01);
 
 /** Aktuelt år, udledt af dags dato på opslagstidspunktet (jf. {@link getToday}). */
 export const getCurrentYear = (): number => isoYear(getToday());
 
-// 31. december i aktuelt år / N år frem — alle udledt af dags dato, derfor gettere.
+// 31. december i aktuelt år / N år frem – alle udledt af dags dato, derfor gettere.
 const dateCurrentYearEnd = (): ISODateString => endOfYearIso(getCurrentYear());
 const datePlus1YearEnd = (): ISODateString => endOfYearIso(getCurrentYear() + 1);
 const datePlus5YearsEnd = (): ISODateString => endOfYearIso(getCurrentYear() + 5);
 
-// Seneste år med komplet EET-datadækning — sats-intersection capped af
+// Seneste år med komplet EET-datadækning – sats-intersection capped af
 // kapitaliseringsbekendtgørelses-oversigtens seneste fælles gyldighedsår.
 const DATE_EET_MAX = endOfYearIso(eetYearBounds.maxYear);
 
-// Seneste år med komplet forsørgertab-datadækning — inkluderer foersoergertabEalMin
+// Seneste år med komplet forsørgertab-datadækning – inkluderer foersoergertabEalMin
 // ud over EET-satserne, capped af kapitaliseringsbekendtgørelsesoversigtens seneste år.
 const DATE_FORSOERGERTAB_MAX = endOfYearIso(foersoergertabYearBounds.maxYear);
 
@@ -202,7 +202,7 @@ export const computeSkadedatoMinRule = (args: Readonly<{
  * (sidste arbejdsdag, anciennitetsdatoer, opreguleringsdatoer, lønudviklingstabellernes datoer) havde ingen
  * post her og dermed heller ingen validator, så år 1900 og år 2100 kunne afsluttes canonical uden ét issue.
  *
- * Grænserne er bevidst VIDE. De skal fange reelle slåfejl — et forkert århundrede, en tastet dato i år 1900 —
+ * Grænserne er bevidst VIDE. De skal fange reelle slåfejl – et forkert århundrede, en tastet dato i år 1900 –
  * uden at opfinde juridiske regler, feltet ikke har. Et felt med en kendt domæneregel skal fortsat erklære
  * sin egen, skarpere grænse frem for at læne sig på rammen.
  *
@@ -549,7 +549,7 @@ export interface DateRanges_VarigeMen {
 }
 
 export const dateRanges_varigemen: DateRanges_VarigeMen = {
-  // Beregningsdato for méngodtgørelse — afgrænset af det år-interval, der har
+  // Beregningsdato for méngodtgørelse – afgrænset af det år-interval, der har
   // varige-mén-sats-dækning (varigeMenPrGradYearBounds). Statisk, fordi grænserne
   // kun afhænger af satsdatasættet og ikke af andet brugerinput.
   beregningsdato: {
@@ -561,7 +561,7 @@ export const dateRanges_varigemen: DateRanges_VarigeMen = {
 };
 
 // ============================================================================
-// DELT DATOINTERVAL — SKADELIDTES FØDSELSDATO
+// DELT DATOINTERVAL – SKADELIDTES FØDSELSDATO
 // Bruges på alle sider der viser dette felt (EET, Forsørgertab, Varige mén).
 // ============================================================================
 

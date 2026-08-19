@@ -9,7 +9,7 @@ import path from 'node:path';
  * til det AST-baserede arkitektur-harness som reglen `domain/eet-cross-domain-persisted-lookup`
  * (se `architecture/architectureRules.ts`).
  *
- * Tilbage her: de fil-specifikke wiring-checks — at EO-EET-felterne bindes i EO-oplysninger-
+ * Tilbage her: de fil-specifikke wiring-checks – at EO-EET-felterne bindes i EO-oplysninger-
  * sektionerne, at kontrol/PDF læser EET fra EO-values, og at Erhvervsevnetab-siden kun rører den
  * delte forligs-slice (domain-boundary-contract.md §10).
  */
@@ -35,7 +35,7 @@ const EO_PDF_MODEL_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/s
 const EO_PDF_BUILDERS_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/snapshot/eoPresentationSectionBuilders.ts');
 const ERHVERVSEVNETAB_PAGE_PATH = path.resolve(SRC_ROOT, 'components/pages/Erhvervsevnetab.tsx');
 
-describe('eetDomainIsolation — wiring', () => {
+describe('eetDomainIsolation – wiring', () => {
   it('bevarer aktive EO-EET felter i EO-oplysninger-sektionerne', () => {
     const source = readEoOplysningerSectionSources();
 
@@ -65,7 +65,7 @@ describe('eetDomainIsolation — wiring', () => {
   it('begrænser Erhvervsevnetab-sidens erstatningsopgoerelse-adgang til den delte forligs-slice', () => {
     // domain-boundary-contract.md §10 (Delt forligsgrad mellem EO og differencekrav): forligs-
     // ansvarsgrad/-dato bor i EO-sektionen, men er en delt kilde Erhvervsevnetab må binde. Råt
-    // snapshot-opslag af EO-beregnet output er fortsat forbudt — kun den schema-bundne forligs-slice
+    // snapshot-opslag af EO-beregnet output er fortsat forbudt – kun den schema-bundne forligs-slice
     // er tilladt, og siden må kun læse de tre forligs-felter (ikke øvrige EO-felter).
     const source = fs.readFileSync(ERHVERVSEVNETAB_PAGE_PATH, 'utf8');
 

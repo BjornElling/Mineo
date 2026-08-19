@@ -17,13 +17,13 @@ import {
 
 // Inputkernen (§3.2): strukturelle descriptor-factories, der udleder canonical read/write MEKANISK fra
 // templaten via de generiske accessorer. Descriptoren ejer stadig sin egen id, codec, semantiske tomhed,
-// relevans og validatorer som én udelelig enhed — helperen fjerner kun den håndskrevne per-felt-navigation,
+// relevans og validatorer som én udelelig enhed – helperen fjerner kun den håndskrevne per-felt-navigation,
 // så de ~239 produktdescriptors ikke gentager identisk read/write-boilerplate (feedback: strukturel forenkling).
 
 /** Map fra samlingsnavn til den egenskab, samlingens entities identificeres på (default `id`). */
 export type EntityIdProperties = Readonly<Record<string, string>>;
 
-/** Delte semantiske tomværdier — de fleste felter er optionelle med canonical tomhed `undefined`. */
+/** Delte semantiske tomværdier – de fleste felter er optionelle med canonical tomhed `undefined`. */
 export const isUndefined = (value: unknown): boolean => value === undefined;
 export const isEmptyString = (value: string | undefined): boolean => value === undefined || value === '';
 

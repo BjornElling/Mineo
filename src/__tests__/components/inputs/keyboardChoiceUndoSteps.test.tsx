@@ -29,14 +29,14 @@ import {
 //
 //   «Hvert tastetryk, der ændrer valget, er sin egen handling i undo/redo.»
 //
-// Reglen gælder BEGGE tastaturbetjente valg-kontroller — dropdownens bogstav-cykling og radiogruppens
+// Reglen gælder BEGGE tastaturbetjente valg-kontroller – dropdownens bogstav-cykling og radiogruppens
 // pil-/mellemrums-valg. Hvert tryk sætter en ny, fuldgyldig værdi på feltet, og hver af dem skal kunne
 // fortrydes for sig. Det er IKKE en manglende sammenlægning af undo-trin, og det må ikke senere rejses
 // som en potentiel fejl.
 //
 // Testen findes for at gøre beslutningen målbar frem for kun beskrevet: uden den kunne en fremtidig
 // «forbedring», der slog trinene sammen, glide igennem uden at noget blev rødt. Begge kontroller måles i
-// SAMME fil, fordi de deler én regel — ikke to regler, der tilfældigvis ligner hinanden.
+// SAMME fil, fordi de deler én regel – ikke to regler, der tilfældigvis ligner hinanden.
 
 let catalog: InputCatalog;
 let store: SlimInputStore;
@@ -69,7 +69,7 @@ const canonicalEnhed = (): string =>
   createValidationReader(store.getState().input, catalog).readCanonical(enhedField.bind('r1'));
 
 /**
- * Enhed-feltet har tre valgmuligheder, hvoraf INGEN deler forbogstav — derfor bruges tre forskellige
+ * Enhed-feltet har tre valgmuligheder, hvoraf INGEN deler forbogstav – derfor bruges tre forskellige
  * bogstaver til at efterligne den cykling, `Arbejdssituation` giver med ét gentaget bogstav. Det, reglen
  * handler om, er antallet af TASTEDREVNE ÆNDRINGER, ikke hvilket bogstav der udløste dem.
  */
@@ -110,7 +110,7 @@ describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, brugerb
     expect(canonicalEnhed()).toBe('maaneder');
     expect(
       undoDepth(),
-      'hvert tastedrevet valg skal være sit eget undo-trin — trinene må IKKE lægges sammen',
+      'hvert tastedrevet valg skal være sit eget undo-trin – trinene må IKKE lægges sammen',
     ).toBe(before + 2);
   });
 
@@ -198,7 +198,7 @@ describe('radiogruppe: hvert tastedrevet valg er sit eget undo-trin (§2.7, brug
     expect(canonicalEnhed()).toBe('maaneder');
     expect(
       undoDepth(),
-      'hvert tastedrevet radiovalg skal være sit eget undo-trin — trinene må IKKE lægges sammen',
+      'hvert tastedrevet radiovalg skal være sit eget undo-trin – trinene må IKKE lægges sammen',
     ).toBe(before + 2);
   });
 

@@ -9,7 +9,7 @@ import { maxISO, minISO } from '../../utils/isoDateHelpers';
 // Baggrund. `src/config/dateRanges.ts` DEKLAREREDE grænser for hvert datofelt, men intet bandt
 // deklarationen til håndhævelsen: hver validator var håndskrevet pr. descriptor, så et felt havde grænser
 // præcis hvis nogen huskede at skrive dem. Målingen 2026-08-09 viste 31 af 54 datofelter, der accepterede
-// BÅDE år 1900 og år 2100 uden ét issue — heriblandt alle fem AES-datoer, differencekravsdatoen og
+// BÅDE år 1900 og år 2100 uden ét issue – heriblandt alle fem AES-datoer, differencekravsdatoen og
 // samtlige EO-tabellers dato-par. En runtime-audit nåede kun at ramme 3 af dem.
 //
 // Værnet måler ADFÆRD, ikke kildekode. En descriptor kunne bære en `dateBounds`-erklæring, som ingen
@@ -17,7 +17,7 @@ import { maxISO, minISO } from '../../utils/isoDateHelpers';
 // Derfor kaldes feltets faktiske validatorer med en dato langt uden for enhver tænkelig grænse.
 
 /**
- * Prøvedatoerne udledes af feltets EGEN erklæring — én global datopar duer ikke.
+ * Prøvedatoerne udledes af feltets EGEN erklæring – én global datopar duer ikke.
  *
  * Fødselsdato-felterne har `01-01-1900` som deres LOVLIGE min, så en fast prøve nær år 1900 ville kalde
  * korrekt adfærd for en fejl. I stedet prøves dagen FØR feltets erklærede min og dagen EFTER dets max,
@@ -106,7 +106,7 @@ const assertDeclaredBoundsAreEnforced = (
     expect(
       boundsReasonsFor(field, candidate, view),
       `${field.id} accepterede ${candidate} (${viewLabel}), som ligger under feltets effektive min ${minDate}. `
-      + 'Erklæringen findes, men ingen validator håndhæver den — brug dateBounds(spec).',
+      + 'Erklæringen findes, men ingen validator håndhæver den – brug dateBounds(spec).',
     ).toContain('bounds');
   }
   if (maxDate !== undefined && maxDate < ISO_DOMAIN_MAX) {
@@ -114,7 +114,7 @@ const assertDeclaredBoundsAreEnforced = (
     expect(
       boundsReasonsFor(field, candidate, view),
       `${field.id} accepterede ${candidate} (${viewLabel}), som ligger over feltets effektive max ${maxDate}. `
-      + 'Erklæringen findes, men ingen validator håndhæver den — brug dateBounds(spec).',
+      + 'Erklæringen findes, men ingen validator håndhæver den – brug dateBounds(spec).',
     ).toContain('bounds');
   }
 };
@@ -131,7 +131,7 @@ describe('datofelter håndhæver deres erklærede grænser', () => {
       const declaration = field.dateBounds;
       expect(
         declaration,
-        `${field.id} mangler en dateBounds-erklæring. Erklær grænserne med dateBounds(...) — eller `
+        `${field.id} mangler en dateBounds-erklæring. Erklær grænserne med dateBounds(...) – eller `
         + 'unconstrainedDateBounds("<begrundelse>"), hvis feltet bevidst ikke har nogen.',
       ).toBeDefined();
 

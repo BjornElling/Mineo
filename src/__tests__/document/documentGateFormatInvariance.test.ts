@@ -1,14 +1,14 @@
 /**
- * Dokumentgates er formatblinde — STRUKTURELT (§10-kriterium 27).
+ * Dokumentgates er formatblinde – STRUKTURELT (§10-kriterium 27).
  *
  * **Fejlformen, det udelukker.** Bar `DocumentSourceContext.settings` hele `SourceSettings` med
  * `documentDownloadFormat` som felt, kunne enhver af de 18 definitioner læse det valgte outputformat i
- * sin `project` og gøre samme sag `ready` som PDF og `blocked` som Word — en usynlig, formatafhængig
+ * sin `project` og gøre samme sag `ready` som PDF og `blocked` som Word – en usynlig, formatafhængig
  * blokering, som §A2a's krav om samme definition til reaktiv gate og click-preflight ikke fanger, fordi
  * BEGGE kanaler ville se den samme skæve gate.
  *
- * Et VÆRN oven på en sådan åben capability — projicér alle 18 definitioner for begge formater og kræv
- * identiske resultater — har en iboende svaghed: langt de fleste projektioner er `blocked`, og kun få
+ * Et VÆRN oven på en sådan åben capability – projicér alle 18 definitioner for begge formater og kræv
+ * identiske resultater – har en iboende svaghed: langt de fleste projektioner er `blocked`, og kun få
  * når deres `ready`-gren, så en formatafhængighed skjult i en af de øvrige ready-grene ville ikke blive
  * fanget.
  *
@@ -21,14 +21,14 @@
  *
  * Filen hævder derfor nu det, der faktisk er sandt, og gør det på det stærkeste tilgængelige niveau:
  *
- *   1. **Typegrænsen** — en `project`, der læser `context.settings.documentDownloadFormat`, kompilerer
+ *   1. **Typegrænsen** – en `project`, der læser `context.settings.documentDownloadFormat`, kompilerer
  *      IKKE. Bevist med en rigtig TypeScript-oversættelse af en virtuel fil mod det ÆGTE program, ikke
  *      med en tekstsøgning. Det er testens hovedpåstand, og den kan ikke være grøn af tomhed: en
  *      genindførsel af feltet gør proben kompilérbar og testen rød.
- *   2. **Gate-fladen er smal** — gate-settings har præcis de nøgler, EO-rækkepolitikken har, og
+ *   2. **Gate-fladen er smal** – gate-settings har præcis de nøgler, EO-rækkepolitikken har, og
  *      HVERKEN format eller brevhoved. Vokser fladen, fejler denne assertion, før nogen skal huske at
  *      spørge hvorfor.
- *   3. **Formatets vej til writeren er intakt** — normen er "formatet vælger writer, ikke dækning", og
+ *   3. **Formatets vej til writeren er intakt** – normen er "formatet vælger writer, ikke dækning", og
  *      halvdel to af den sætning skal fortsat kunne bevises: miljøet oversætter render-settings til
  *      begge formater.
  *
@@ -62,14 +62,14 @@ const PROBE_DIR = path.join(REPO_ROOT, 'src', 'document', 'definition');
  * Oversætter én virtuel fil ind i det ÆGTE projekt og returnerer dens diagnostics.
  *
  * Filen lægges i `src/document/definition/`, så dens relative imports er præcis dem, en rigtig
- * definition ville bruge — proben måler altså den levende type og ikke en genskrevet kopi af den.
+ * definition ville bruge – proben måler altså den levende type og ikke en genskrevet kopi af den.
  * Den skrives ALDRIG til disk: en `CompilerHost` overlejrer den ene sti i hukommelsen og delegerer
  * alt andet til `ts.sys`.
  */
 const compileProbe = (source: string): readonly ts.Diagnostic[] => {
   const probePath = path.join(PROBE_DIR, '__formatGateProbe.virtual.ts');
   // `tsconfig.json` i roden er en solution-fil uden compilerOptions; applikationens rigtige
-  // indstillinger står i `tsconfig.app.json`. Proben skal måle DEM — det er hele pointen med at
+  // indstillinger står i `tsconfig.app.json`. Proben skal måle DEM – det er hele pointen med at
   // oversætte ind i det ægte projekt frem for mod compilerens standarder.
   const configPath = path.join(REPO_ROOT, 'tsconfig.app.json');
   const config = ts.parseJsonConfigFileContent(
@@ -138,8 +138,8 @@ export const formatDependentGate = (
   /**
    * Kontrolprøven: den samme probe UDEN formatlæsningen skal kompilere rent.
    *
-   * Uden dette ben kunne proben ovenfor være rød af en hvilken som helst grund — et forkert
-   * importsti, en omdøbt type, en ændret `DocumentProjectionResult` — og testen ville stadig
+   * Uden dette ben kunne proben ovenfor være rød af en hvilken som helst grund – et forkert
+   * importsti, en omdøbt type, en ændret `DocumentProjectionResult` – og testen ville stadig
    * bestå. Kontrolprøven er det, der gør TS2339-assertionen til evidens frem for til tilfældighed.
    */
   it('kontrolprøve: samme definition UDEN formatlæsning kompilerer rent', () => {
@@ -162,9 +162,9 @@ export const formatBlindGate = (
 
   /**
    * Gate-fladen må ikke vokse i det stille. En ny nøgle på gate-settings er en udvidelse af det, alle
-   * 18 definitioner kan læse i deres gate, og skal begrundes — ikke opdages.
+   * 18 definitioner kan læse i deres gate, og skal begrundes – ikke opdages.
    */
-  it('gate-settings bærer KUN rækkepolitikken — hverken format eller brevhoved', () => {
+  it('gate-settings bærer KUN rækkepolitikken – hverken format eller brevhoved', () => {
     const gateSettings = __createTestEoRowPolicy();
 
     expect(Object.keys(gateSettings).sort()).toEqual([
@@ -179,7 +179,7 @@ export const formatBlindGate = (
 
   /**
    * Normens anden halvdel: formatet SKAL fortsat vælge writeren. En strukturel fjernelse af formatet
-   * fra gaten er kun rigtig, hvis vejen til renderingen er intakt — ellers ville "gaten er formatblind"
+   * fra gaten er kun rigtig, hvis vejen til renderingen er intakt – ellers ville "gaten er formatblind"
    * være opnået ved at gøre formatet virkningsløst.
    */
   it('formatet når fortsat writer-valget gennem render-settings', () => {

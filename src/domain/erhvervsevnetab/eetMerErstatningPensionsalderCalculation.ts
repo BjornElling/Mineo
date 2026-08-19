@@ -40,7 +40,7 @@ export type MerErstatningKapitalvaerdi = Readonly<{
   kapitaliseringsbekendtgoerelseLabel: string;
   folkepensionsalderLabel: string;
   kapitaliseringsfaktor: number;
-  // round2(årsydelse × faktor). Ikke ceil0 som fane 3 — her er det differencen der er kravet,
+  // round2(årsydelse × faktor). Ikke ceil0 som fane 3 – her er det differencen der er kravet,
   // og eksemplet viser kapitalværdierne med 2 decimaler.
   kapitalvaerdiOre: MoneyOre;
 }>;
@@ -200,7 +200,7 @@ const resolveFaktorForBekendtgoerelse = (
   if (minAge === undefined || age.years < minAge) {
     issues.push(toIssue(
       `${args.issuePrefix}-faktor-unresolved`,
-      `Ingen kapitaliseringsfaktor for alder (${age.years} år, ${age.months} mdr.) — tabellen starter ved ${minAge} år.`
+      `Ingen kapitaliseringsfaktor for alder (${age.years} år, ${age.months} mdr.) – tabellen starter ved ${minAge} år.`
     ));
     return null;
   }

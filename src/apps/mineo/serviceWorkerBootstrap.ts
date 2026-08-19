@@ -16,7 +16,7 @@ import {
  * opdatering er enten helt gennemført før render, eller den er slet ikke sket. Brugeren tager aldrig
  * stilling til en version, og en igangværende sag kan aldrig blive afbrudt af en ny build.
  *
- * To ting i service-worker-livscyklussen gør det muligt — og de trækker hver sin vej:
+ * To ting i service-worker-livscyklussen gør det muligt – og de trækker hver sin vej:
  *
  * - `SKIP_WAITING` er NØDVENDIG. En ventende worker aktiverer kun, når den gamle kontrollerer NUL
  *   klienter, og en almindelig genindlæsning når aldrig nul: det gamle dokument lever, indtil
@@ -37,7 +37,7 @@ import {
 /**
  * Loft over ventetiden på en ny builds precache. Det er et VÆRN mod at hænge, ikke en normal-vej:
  * ved uændret version ventes der slet ikke, og ved en reel opdatering afgør `installed`-tilstanden
- * — ikke uret — hvornår der genindlæses.
+ * – ikke uret – hvornår der genindlæses.
  */
 const UPDATE_INSTALL_TIMEOUT_MS = 15000;
 const ASSET_MANIFEST_PATH = '/pwa-assets.json';
@@ -65,7 +65,7 @@ const settleBeforeDeadline = <T>(promise: Promise<T>, deadline: number, fallback
  * Den udrullede builds version, læst uden om enhver cache.
  *
  * Fail-open: kan versionen ikke opløses, returneres `null`, og programmet kører videre uændret.
- * Et usikkert svar må aldrig udløse en genindlæsning — det ville påstå noget, vi ikke ved.
+ * Et usikkert svar må aldrig udløse en genindlæsning – det ville påstå noget, vi ikke ved.
  */
 const probeDeployedVersion = async (deadline: number): Promise<string | null> => {
   const remaining = Math.max(0, deadline - Date.now());
@@ -86,7 +86,7 @@ const probeDeployedVersion = async (deadline: number): Promise<string | null> =>
 };
 
 /**
- * Genindlæser til den udrullede version — præcis én gang pr. observeret version.
+ * Genindlæser til den udrullede version – præcis én gang pr. observeret version.
  *
  * Uden løkkeværnet ville en flappende eller fejlagtig versionsangivelse (fx to instanser bag en
  * load balancer midt i en deploy) sende programmet i en uendelig genindlæsningsløkke. Kan markøren
@@ -98,14 +98,14 @@ const reloadOnceForDeployedVersion = (deployedVersion: string): void => {
   const key = getBootReloadVersionStorageKey();
 
   /*
-   * Markøren holder ALLE mål, der er forsøgt fra DENNE kildeversion — ikke blot «sidst sete version».
+   * Markøren holder ALLE mål, der er forsøgt fra DENNE kildeversion – ikke blot «sidst sete version».
    *
    * En markør med kun ét mål ville blive overskrevet ved flappende svar bag en delvis udrullet CDN
    * (V1 ser V2 → reload → HTML stadig V1, ser V3 → reload → ser V2 igen …). Hvert svar ville se nyt
    * ud, og programmet ville reloade i ring. Med hele forsøgsmængden pr. kildeversion forsøges hvert
    * spring præcis én gang, og en flappende origin bringer os til ro på den nuværende version.
    *
-   * Lykkes skiftet, er den nye kildeversion en anden, og dens egen forsøgsmængde er tom — så en
+   * Lykkes skiftet, er den nye kildeversion en anden, og dens egen forsøgsmængde er tom – så en
    * ægte efterfølgende deploy er aldrig blokeret af historik fra en tidligere version.
    */
   const stored = readOptionalSessionStorageValue(key);
@@ -121,11 +121,11 @@ const reloadOnceForDeployedVersion = (deployedVersion: string): void => {
 };
 
 /**
- * Venter til den nye builds worker har en KOMPLET precache — dvs. har nået `installed`.
+ * Venter til den nye builds worker har en KOMPLET precache – dvs. har nået `installed`.
  *
  * Workeren installeres kun, når hele dens assetmanifest ligger i cache (`install`-handleren i
  * `sw/mineoServiceWorker.js`), så `installed` er præcis det signal, «komplet klargjort» betyder.
- * `redundant` betyder, at installationen mislykkedes — da må der ikke genindlæses.
+ * `redundant` betyder, at installationen mislykkedes – da må der ikke genindlæses.
  */
 const waitForWorkerState = (
   worker: ServiceWorker,
@@ -149,7 +149,7 @@ const waitForWorkerState = (
 
     const onStateChange = (): void => {
       if (isDone(worker.state)) settle(true);
-      // `redundant` betyder, at installationen eller aktiveringen mislykkedes — aldrig reload.
+      // `redundant` betyder, at installationen eller aktiveringen mislykkedes – aldrig reload.
       else if (worker.state === 'redundant') settle(false);
     };
 
@@ -159,7 +159,7 @@ const waitForWorkerState = (
 };
 
 /**
- * Beviser workerens indbagte version — ikke kun registreringens query-string. Ved en delvis deploy
+ * Beviser workerens indbagte version – ikke kun registreringens query-string. Ved en delvis deploy
  * kan `/pwa-assets.json`, HTML og en allerede installeret worker komme fra forskellige origin-noder;
  * uden dette håndtryk kunne en gammel waiting-worker blive aktiveret og derefter servere forkert
  * asset-cache til det nye dokument. Manglende svar er fail-closed.
@@ -206,12 +206,12 @@ const workerMatchesDeployedVersion = async (
 };
 
 /**
- * Bringer den nye build helt frem til AKTIV worker — ikke blot installeret.
+ * Bringer den nye build helt frem til AKTIV worker – ikke blot installeret.
  *
  * `installed` er IKKE en tilstrækkelig barriere for en genindlæsning. En installeret worker står i
  * `waiting`, og et dokument beholder sin controller hele sin levetid: genindlæser vi her, hentes den
  * nye HTML, men dokumentet kontrolleres fortsat af den GAMLE worker. Det nye dokument ville så se
- * `deployed === VERSION`, returnere med det samme — og den nye worker kunne blive stående waiting
+ * `deployed === VERSION`, returnere med det samme – og den nye worker kunne blive stående waiting
  * i det uendelige.
  *
  * Rækkefølgen skal derfor være: komplet install → aktivér præcis denne worker → bekræft `activated`
@@ -238,7 +238,7 @@ const activateNewBuildWorker = async (
     return false;
   }
 
-  // Trin 2: aktivér. Uden dette forbliver workeren waiting, indtil ALLE klienter er lukket — hvilket
+  // Trin 2: aktivér. Uden dette forbliver workeren waiting, indtil ALLE klienter er lukket – hvilket
   // en almindelig genindlæsning aldrig opnår.
   if (pending.state !== 'activated') {
     // Send til den worker, hvis state vi netop har observeret. `registration.waiting` kan nå at
@@ -301,18 +301,18 @@ const runBootUpdatePass = async (): Promise<void> => {
 
   // Uden en controller ved opstart er der ingen GAMMEL worker, en ny kan vente på. Dokumentet kører
   // allerede den HTML, origin lige leverede, og dets assets hentes fra netværket. Et reload ville
-  // hverken skifte kode eller vinde en versionscache for netop dette dokument — kun koste brugeren
+  // hverken skifte kode eller vinde en versionscache for netop dette dokument – kun koste brugeren
   // en ekstra opstart. Cachen er på plads fra næste opstart.
   if (!hadControllerAtBoot) return;
 
-  // Der ER en ny version. Den må først tages i brug, når den er komplet precachet OG faktisk aktiv —
+  // Der ER en ny version. Den må først tages i brug, når den er komplet precachet OG faktisk aktiv –
   // ellers har vi byttet «brugeren skal klikke» ud med «brugeren kan lande i en halv version» eller
   // i et nyt dokument under den gamle worker.
   if (!(await activateNewBuildWorker(registration, deployedVersion, deadline))) return;
 
   // Sidste tjek før dokumentet rives ned: en `.eo`-fil, browseren afleverede få millisekunder
   // forinden, kan stadig være undervejs til IndexedDB. Kan den durable handoff ikke bekræftes, må
-  // der ikke genindlæses — brugerens fil vejer tungere end at komme på nyeste version med det samme.
+  // der ikke genindlæses – brugerens fil vejer tungere end at komme på nyeste version med det samme.
   // Opdateringen sker så ved næste opstart.
   if (!(await awaitDurablePendingPwaFileOpenHandoff())) return;
 

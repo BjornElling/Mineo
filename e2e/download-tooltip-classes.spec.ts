@@ -11,7 +11,7 @@ import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueA
  *
  * Testen findes, fordi de tre tidligere kunne kollapse: en side kunne svare «Indtastning mangler» på et
  * felt, der var udfyldt med en ugyldig værdi, og Renteberegning viste gate-INTERNE strenge direkte. Kun en
- * browsertest ser den faktiske tooltip, brugeren læser — unit-testene hævder gate-klassen, ikke DOM'en.
+ * browsertest ser den faktiske tooltip, brugeren læser – unit-testene hævder gate-klassen, ikke DOM'en.
  *
  * Den dækker samtidig, at dokumentaffordancen BLIVER stående på en blokeret revision: en skjult knap gør en
  * blokering tavs, og så har tooltippen intet at sidde på.
@@ -33,10 +33,10 @@ const expectDisabledDownloadTooltip = async (button: Locator, tooltip: string): 
   await expect(button).toHaveAccessibleName(tooltip);
 };
 
-test.describe('Download-tooltip — de tre klasser', () => {
+test.describe('Download-tooltip – de tre klasser', () => {
   /**
-   * Varige mén afhænger af Stamdatas fødselsdato og skadedato. Den skelnen brugeren efterspurgte — tom vs.
-   * rød — afgøres af `varigeMenReaderProjection`s `require`-reads, og vises her fra brugerens side af skærmen.
+   * Varige mén afhænger af Stamdatas fødselsdato og skadedato. Den skelnen brugeren efterspurgte – tom vs.
+   * rød – afgøres af `varigeMenReaderProjection`s `require`-reads, og vises her fra brugerens side af skærmen.
    */
   test('Varige mén skelner tom indtastning fra rød feltfejl', async ({ page, runtimeErrors }) => {
     await login(page);
@@ -60,7 +60,7 @@ test.describe('Download-tooltip — de tre klasser', () => {
     await openPage(page, 'Varige mén');
     /**
      * Den røde dato optræder sammen med de øvrige manglende input. Downloaden må derfor ikke citere datoen
-     * og skjule, at der også mangler méngrad og beregningsdato — gate-kontrakten kræver den fælles klasse.
+     * og skjule, at der også mangler méngrad og beregningsdato – gate-kontrakten kræver den fælles klasse.
      */
     await expectDisabledDownloadTooltip(download, INVALID_INPUT);
 
@@ -81,7 +81,7 @@ test.describe('Download-tooltip — de tre klasser', () => {
     await expect(mengrad).not.toHaveAttribute('aria-invalid', 'true');
     await expectDisabledDownloadTooltip(download, INVALID_INPUT);
 
-    // Rettes datoen, falder gaten tilbage til de øvrige tomme felter — ikke til en stale rød tilstand.
+    // Rettes datoen, falder gaten tilbage til de øvrige tomme felter – ikke til en stale rød tilstand.
     await openPage(page, 'Stamdata');
     await setDate(fodselsdato, '01-01-1980');
     await expect(fodselsdato).not.toHaveAttribute('aria-invalid', 'true');
@@ -138,7 +138,7 @@ test.describe('Download-tooltip — de tre klasser', () => {
    * fandtes. Årsagen var, at gaten kollapsede HELE tabelvalideringen til én hardkodet klasse, selv om
    * `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`.
    *
-   * Testen måler BEGGE retninger i samme flow — mangel, gyldig, ugyldig — så en rettelse, der blot bytter
+   * Testen måler BEGGE retninger i samme flow – mangel, gyldig, ugyldig – så en rettelse, der blot bytter
    * om på de to tekster, ikke kan være grøn.
    */
   test('Årslønnens løntabel skelner manglende beløb fra ugyldig celle', async ({ page, runtimeErrors }) => {
@@ -180,7 +180,7 @@ test.describe('Download-tooltip — de tre klasser', () => {
   /**
    * Dokumentaffordancen skal blive stående på en blokeret revision (auditfundene om Årsløn/EET, hvor
    * beregnings- og downloadfladen forsvandt helt fra DOM'en ved en stamdatafejl). En skjult knap gør
-   * blokeringen tavs — der er da ingen tooltip at læse.
+   * blokeringen tavs – der er da ingen tooltip at læse.
    */
   test('Årsløn og EET beholder en synlig, inaktiv downloadknap ved stamdatafejl', async ({ page, runtimeErrors }) => {
     await login(page);

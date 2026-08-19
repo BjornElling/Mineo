@@ -39,7 +39,7 @@ describe('resolveMerErstatningPensionsalderBilagDisabledReason', () => {
 
   // Rangordenen er en bevidst regel (page-component-contract.md §10.5, punkt 4): et fravalg må ikke
   // forklares med et regnestykke, programmet ikke har udført. Uden den kunne beregningsårsagen vinde,
-  // så brugeren fik at vide, at pensionsalderen ikke er forhøjet — uden at det er efterprøvet.
+  // så brugeren fik at vide, at pensionsalderen ikke er forhøjet – uden at det er efterprøvet.
   it('lader fravalget gå forud for beregningsårsagen, også hvis begge forudsætninger mangler', () => {
     const reason = resolveMerErstatningPensionsalderBilagDisabledReason(false, false);
     expect(reason).toContain('fravalgt');

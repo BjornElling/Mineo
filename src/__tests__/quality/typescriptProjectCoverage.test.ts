@@ -11,14 +11,14 @@ import ts from 'typescript';
  * typer. Adskillelsen er rigtig, men den havde to tavse huller:
  *
  *  1. **Filer uden for ethvert projekt.** `vite.mineo.config.ts` og `vite.minprocesrente.config.ts` stod
- *     i ingen `include`. Ingen kommando typecheckede dem — og editoren kunne ikke placere dem, så den
+ *     i ingen `include`. Ingen kommando typecheckede dem – og editoren kunne ikke placere dem, så den
  *     faldt tilbage på et «inferred project» uden vores indstillinger og viste fejl, der ikke fandtes.
  *     Det samme gjaldt hele `e2e/`, fordi tsserver kun leder efter filer ved navn `tsconfig.json`.
  *  2. **Et projekt uden en kommando.** `tsconfig.node.json` var ikke koblet på `check:types`. Da den
  *     for første gang blev kørt, fejlede den med 31 fejl, den havde båret uset.
  *
  * Begge huller er af samme slags: noget ser dækket ud, fordi det står i en fil, men ingen kører det.
- * Værnet måler den faktiske dækning i stedet — hvilke filer projekterne rent faktisk trækker ind, og
+ * Værnet måler den faktiske dækning i stedet – hvilke filer projekterne rent faktisk trækker ind, og
  * hvilke projekter kommandoen rent faktisk kører.
  */
 
@@ -44,7 +44,7 @@ const referencedProjects = (): readonly string[] => {
   return (references ?? []).map((reference) => reference.path.replace(/^\.\//, ''));
 };
 
-/** De filer, et projekt faktisk trækker ind — ikke hvad dets `include` ligner. */
+/** De filer, et projekt faktisk trækker ind – ikke hvad dets `include` ligner. */
 const projectFiles = (relativePath: string): readonly string[] => {
   const parsed = ts.parseJsonConfigFileContent(
     ts.readConfigFile(path.join(REPO_ROOT, relativePath), ts.sys.readFile).config,
@@ -100,7 +100,7 @@ describe('TypeScript-projekterne dækker repoet, og kommandoen dækker projekter
     expect(
       missing,
       `Disse projekter er refereret, men køres ikke af \`npm run ${AGGREGATE_SCRIPT}\`. Et projekt uden `
-      + 'en kommando samler fejl op, som ingen ser — det var præcis tilfældet for tsconfig.node.json.\n'
+      + 'en kommando samler fejl op, som ingen ser – det var præcis tilfældet for tsconfig.node.json.\n'
       + missing.map((config) => `  ${config}`).join('\n'),
     ).toEqual([]);
   });

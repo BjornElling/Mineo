@@ -88,7 +88,7 @@ const parseRateTableDate = (raw: string, label: string): ISODateString => {
   return toISODateString(`${year}-${month}-${day}`);
 };
 
-// Tidligste dato i referencesatserne — udledt af det ældste element i referenceRatesTable.
+// Tidligste dato i referencesatserne – udledt af det ældste element i referenceRatesTable.
 // Tabellen er sorteret nyeste-først, så det sidste element har den tidligste dato.
 const _minRaw = referenceRatesTable[referenceRatesTable.length - 1]?.[0];
 if (!_minRaw) {

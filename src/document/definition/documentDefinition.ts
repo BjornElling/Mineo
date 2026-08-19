@@ -17,7 +17,7 @@ import type { DocumentSourceContext } from './documentSourceContext';
  *
  * `ready` betyder: alle dependencies er læsbare, den autoritative projektion kan dannes, og
  * output-invariants holder. `blocked` bærer de auditerbare årsager, som både knappens tooltip og
- * click-preflightens afvisning bruger — ÉN årsagskilde, ikke to (§A2). Listen er non-empty, fordi en
+ * click-preflightens afvisning bruger – ÉN årsagskilde, ikke to (§A2). Listen er non-empty, fordi en
  * blokering uden synlig grund er et invariantbrud.
  */
 export type DocumentProjectionResult<TInput> =
@@ -26,7 +26,7 @@ export type DocumentProjectionResult<TInput> =
 
 /**
  * Definitionens generator-side. Modtager KUN den godkendte, tokenbundne `TInput` og
- * brevhoved-beslutningen — aldrig en reader, rå sektioner eller UI-state (§A1.4).
+ * brevhoved-beslutningen – aldrig en reader, rå sektioner eller UI-state (§A1.4).
  */
 export type DocumentRenderer<TInput> = (
   session: DocumentGenerationSession,
@@ -46,7 +46,7 @@ export type DocumentLabels = Readonly<{
 }>;
 
 /**
- * `TRequest` er outputtets AKTIVERINGSIDENTITET — det, brugeren pegede på, når ét output kan
+ * `TRequest` er outputtets AKTIVERINGSIDENTITET – det, brugeren pegede på, når ét output kan
  * aktiveres for flere entiteter.
  *
  * Fem outputs har brug for den: `rente` og `standalone-rente` aktiveres pr. renteberegningsrække,
@@ -55,7 +55,7 @@ export type DocumentLabels = Readonly<{
  * identiteten ind gennem en closure eller en definition-fabrik pr. klik. Det ville skabe en parallel
  * aktiveringsvej uden for den fælles definition.
  *
- * **Invariant:** `TRequest` må kun bære STABIL IDENTITET (`rowId`, `{scope, entityId}`) — aldrig
+ * **Invariant:** `TRequest` må kun bære STABIL IDENTITET (`rowId`, `{scope, entityId}`) – aldrig
  * præberegnet data. Grunden er, at requesten dannes ved klik, altså FØR commit-barrieren, mens
  * `project` kører EFTER settle på et frisk snapshot. Bar den data, ville den data stamme fra den
  * forrige revision. Identiteten genopslås i stedet friskt i `project`, som fail-closer, hvis

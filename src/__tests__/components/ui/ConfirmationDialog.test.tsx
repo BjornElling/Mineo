@@ -147,7 +147,7 @@ describe('ConfirmationDialog', () => {
     view.container.append(firstButton, opener);
 
     const openerRef: React.RefObject<HTMLElement | null> = { current: opener };
-    // Ingen `.focus()` her: det ER hele pointen — klikket efterlod intet aktivt element.
+    // Ingen `.focus()` her: det ER hele pointen – klikket efterlod intet aktivt element.
     expect(document.activeElement).toBe(document.body);
 
     const renderWithOpen = (open: boolean) => view.rerender(
@@ -175,7 +175,7 @@ describe('ConfirmationDialog', () => {
   });
 
   /**
-   * `restoreFocusTo` skal vinde over det element, der tilfældigvis var aktivt ved åbningen — ikke kun
+   * `restoreFocusTo` skal vinde over det element, der tilfældigvis var aktivt ved åbningen – ikke kun
    * når intet var aktivt (testen ovenfor).
    *
    * Sagen er ægte: sidemenuens `Slet alt` kalder `preventDefault()` i `onMouseDown` for at bevare
@@ -183,7 +183,7 @@ describe('ConfirmationDialog', () => {
    * netop det element ved unmount, og fordi dens genoprettelse kører sidst, overskrev den vores. Fokus
    * endte derfor på det felt, brugeren stod i (bekræftet i alle fire browsere: `Fødselsdato`), i strid
    * med kontraktens målprioritet. `disableRestoreFocus` på `Dialog` er det, der lukker den
-   * konkurrerende vej — fjernes den, fejler denne test.
+   * konkurrerende vej – fjernes den, fejler denne test.
    */
   it('gendanner fokus til restoreFocusTo FREM FOR det felt, der var aktivt ved åbningen', async () => {
     const user = userEvent.setup();
@@ -203,7 +203,7 @@ describe('ConfirmationDialog', () => {
     view.container.append(field, opener);
 
     const openerRef: React.RefObject<HTMLElement | null> = { current: opener };
-    // Feltet ER aktivt, da dialogen åbner — præcis som når triggeren undertrykker sit eget fokus.
+    // Feltet ER aktivt, da dialogen åbner – præcis som når triggeren undertrykker sit eget fokus.
     field.focus();
     expect(field).toHaveFocus();
 

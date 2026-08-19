@@ -24,13 +24,13 @@ import type {
 // Baggrunden er et strukturelt hul, ikke en enkeltfejl. `src/config/dateRanges.ts` DEKLARERER grænser for
 // hvert datofelt, men intet bandt deklarationen til håndhævelsen: hver validator var håndskrevet på sin egen
 // descriptor, så et felt havde grænser præcis hvis nogen huskede at skrive dem. Målingen 2026-08-09 viste, at
-// 31 af 54 datofelter accepterede både år 1900 og år 2100 uden ét eneste issue — konfigurationen sagde ét, og
+// 31 af 54 datofelter accepterede både år 1900 og år 2100 uden ét eneste issue – konfigurationen sagde ét, og
 // programmet gjorde noget andet. En runtime-audit fandt kun 3 af de 31, fordi den prøvede
 // felter stikprøvevis; hullet var aldrig lokalt for de felter, den nåede at ramme.
 //
 // Derfor er reglen nu DATA (en `DateBoundsSpec`) frem for kode pr. felt: et datofelt erklærer sine grænser, og
 // denne fil oversætter erklæringen til det `FieldIssue`, den røde ring og tooltippet kræver. Værnet
-// `dateFieldsDeclareBounds.test.ts` håndhæver, at ethvert datofelt i produktionskataloget bærer en erklæring —
+// `dateFieldsDeclareBounds.test.ts` håndhæver, at ethvert datofelt i produktionskataloget bærer en erklæring –
 // også den bevidst grænseløse (`unconstrainedDateBounds`), som skal fravælges aktivt og med en begrundelse.
 //
 // Grænserne læses PÅ VALIDERINGSTIDSPUNKTET (thunks), ikke når kataloget bygges. Flere grænser afhænger af
@@ -118,12 +118,12 @@ export const dateBoundsValidator = (
  *
  * **Hvorfor teksten dannes her og ikke i codec'et.** Et codec er generisk: det kender formatet, men ikke
  * feltet. Parse-kernen kan konstatere, at årstallet ligger uden for det repræsenterbare domæne
- * (1900..2100) — men det er en egenskab ved `ISODateString`, ikke feltets regel. Sagde codec'et selv
+ * (1900..2100) – men det er en egenskab ved `ISODateString`, ikke feltets regel. Sagde codec'et selv
  * «Årstallet skal være mellem 1900 og 2100», ville beskeden MODSIGE feltets faktiske grænse: Fødselsdato
  * slutter ved dags dato, ikke ved år 2100, og en dato efter i dag har allerede sin egen, korrekte besked.
  *
  * Her er feltets `dateBounds`-erklæring derimod kendt, og de samme grænser, som en canonical værdi ville
- * blive målt mod, kan derfor navngives med KONKRETE datoer — den samme ordlyd, brugeren får for en dato,
+ * blive målt mod, kan derfor navngives med KONKRETE datoer – den samme ordlyd, brugeren får for en dato,
  * der lige akkurat ER repræsenterbar. De to fejlformer bliver dermed ikke til to forskellige sprog.
  *
  * Returnerer `undefined`, når der ikke kan siges noget bedre end den generiske «Fejl i indtastning».
@@ -135,7 +135,7 @@ export const resolveDateFormatIssueText = (
 ): string | undefined => {
   if (dateInvalidKind === 'nonexistentDay') return NONEXISTENT_DAY_MESSAGE;
   if (dateInvalidKind !== 'yearOutOfRepresentableRange') return undefined;
-  // Et grænseløst felt har ingen konkrete datoer at nævne. Den generiske tekst er da det ærlige svar —
+  // Et grænseløst felt har ingen konkrete datoer at nævne. Den generiske tekst er da det ærlige svar –
   // bedre end at opfinde en ramme, feltet ikke har.
   if (declaration === undefined || isUnconstrainedDateBounds(declaration)) return undefined;
 
@@ -147,7 +147,7 @@ export const resolveDateFormatIssueText = (
 };
 
 /**
- * Systemets ydre ramme som spec — for datofelter uden en skarpere domæneregel.
+ * Systemets ydre ramme som spec – for datofelter uden en skarpere domæneregel.
  *
  * Grænserne er statiske konfigurationskonstanter, så oprindelsen er `STATIC_DATE_BOUNDS`: der findes intet
  * brugerinput at pege på, og et umuligt interval kan ikke opstå. Læses via gettere, fordi rammens max er
@@ -163,7 +163,7 @@ export const systemrammeSpec: DateBoundsSpec = {
  * Erklæringen OG dens validator i ét kald.
  *
  * Findes for at gøre de to uadskillelige. Var de to separate felter på descriptoren, kunne et felt erklære
- * grænser og glemme validatoren — og så ville værnet se en erklæring, mens brugeren fortsat kunne indtaste
+ * grænser og glemme validatoren – og så ville værnet se en erklæring, mens brugeren fortsat kunne indtaste
  * år 1900. Præcis den slags "deklaration uden håndhævelse" er den fejl, hele denne fil findes for at lukke.
  *
  * Spredes ind i descriptor-konfigurationen: `...dateBounds(spec)` eller `...dateBounds(spec, [extraValidator])`.

@@ -14,10 +14,10 @@ import { resolveAmountCharPolicy } from './charLengthPolicy';
 // Beløbs-felt (§2.4/§3.5, samlet input-enhed): familie-skal over `NumericTextField` med
 // beløbsudtryks-tegnfilteret, den delte "kr."-enheds-adornment (muted når tom) og et `fx`-udtryksmærke, når den
 // committede værdi er et udtryk. Parse/format/paste og beløbsgrammatik ejes af descriptorens beløbs-codec.
-// Komponenten modtager KUN sin `field`/`location` + rendering-props — ingen `value`/`onCommit`/`onFieldError` (§2.4).
+// Komponenten modtager KUN sin `field`/`location` + rendering-props – ingen `value`/`onCommit`/`onFieldError` (§2.4).
 
 /**
- * Feltbredde for HELTALS-beløb i millionklassen — dimensioneret så syv cifre med tusindtalsseparatorer
+ * Feltbredde for HELTALS-beløb i millionklassen – dimensioneret så syv cifre med tusindtalsseparatorer
  * står helt inde i feltet SAMMEN med den altid synlige " kr."-enhed. Bruges til felter med
  * `allowDecimals={false}`; der er ingen decimalhale at gøre plads til, fordi codec'en hverken tager imod
  * eller viser et komma i sådan et felt.
@@ -84,7 +84,7 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
     // Tegn- og længdepolitikken udledes af descriptorens codec gennem den DELTE `resolveAmountCharPolicy`,
     // så formularfeltet og grid-cellen ikke kan komme til at håndhæve forskellige grænser på samme felt.
     // For beløb rammer fortegnsfilteret KUN det unære minus (`containsUnaryMinusToken`), så subtraktion i
-    // et udtryk — "5000-200" — forbliver lovlig også i et ikke-negativt felt.
+    // et udtryk – "5000-200" – forbliver lovlig også i et ikke-negativt felt.
     const policy = resolveAmountCharPolicy(field);
     const { allowNegative, allowDecimals, maxIntegerDigits, maxDecimalDigits, maxDraftLength } = policy;
     const admission = React.useMemo(
@@ -98,7 +98,7 @@ const AmountField = React.forwardRef<HTMLDivElement, AmountFieldProps>(
     );
 
     // Placeholderen følger `allowDecimals`, så et komma-frit felt ikke antyder en decimalhale. Et eksplicit
-    // `placeholder` vinder stadig — kaldsstedet kan have en mere sigende prompt end blot et nul.
+    // `placeholder` vinder stadig – kaldsstedet kan have en mere sigende prompt end blot et nul.
     const resolvedPlaceholder = placeholder
       ?? (allowDecimals ? DEFAULT_AMOUNT_PLACEHOLDER : INTEGER_AMOUNT_PLACEHOLDER);
 

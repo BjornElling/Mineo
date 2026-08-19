@@ -2,7 +2,7 @@
  * Satser-dokumentdefinitionen.
  *
  * Genbruger `projectSatser` uændret (§5.4): "vist = beregnet" gælder fortsat, så et out-of-bounds
- * eller tomt satsår giver `blocked` — satserne skjules på siden, OG downloaden blokeres, fra samme
+ * eller tomt satsår giver `blocked` – satserne skjules på siden, OG downloaden blokeres, fra samme
  * projektion.
  *
  * Barrierens token skal være identisk med det optagne snapshots token. Ellers kan et årsskift mellem
@@ -37,7 +37,7 @@ export const satserDocumentDefinition: MineoDocumentDefinition<SatserDocumentInp
       const { reader } = context.evaluation;
       // Klassen UDLEDES af issuene (§3.1). Før citerede begge grene `issues[0]` ubetinget, så et tomt
       // satsår gav "Satsår er ikke udfyldt" som ordret citat frem for den universelle "Indtastning
-      // mangler" — modsat den `missing`-klasse, issuet selv bærer.
+      // mangler" – modsat den `missing`-klasse, issuet selv bærer.
       const projection = projectSatser(reader);
       if (projection.status !== 'ready') {
         return blockedProjectionFromCauses('satser:year-blocked', projection.issues, 'Satsåret er ikke gyldigt');

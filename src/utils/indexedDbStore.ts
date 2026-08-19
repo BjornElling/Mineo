@@ -5,7 +5,7 @@ import { asError } from './typeGuards';
  * Kanonisk IndexedDB-primitiv: ejer forbindelse, transaction-livscyklus og
  * promisificering af requests.
  *
- * Baggrund: repoet havde TO uafhængige IndexedDB-wrappers — `fileHandleStorage.ts` (10
+ * Baggrund: repoet havde TO uafhængige IndexedDB-wrappers – `fileHandleStorage.ts` (10
  * funktioner, der hver åbnede databasen, startede en transaction og hånd-wrappede ét
  * `get`/`put`/`delete` i `new Promise` med gentagne `onsuccess`/`onerror`/`oncomplete`/
  * `close`) og `logStorage.ts` med sin egen `openDatabase`-kopi. Plumbingen var identisk;
@@ -25,7 +25,7 @@ import { asError } from './typeGuards';
  * - **Transaction som enhed.** Flere writes i samme transaction ventes af
  *   `transaction.oncomplete`, ikke af manuelt koordinerede `done`-flag pr. request (som
  *   `saveDefaultDirectoryHandle` gjorde). Enten lander hele transactionen, eller ingen af den.
- * - **Forbindelsen lukkes altid** — også når transactionen fejler eller afbrydes.
+ * - **Forbindelsen lukkes altid** – også når transactionen fejler eller afbrydes.
  */
 
 export type IndexedDbSchema = Readonly<{
@@ -68,7 +68,7 @@ const openDatabase = (schema: IndexedDbSchema): Promise<IDBDatabase> =>
 /**
  * Kører `work` i én transaction over `storeNames` og lukker forbindelsen bagefter.
  *
- * Resultatet returneres først, når transactionen er **committet** (`oncomplete`) — ikke når
+ * Resultatet returneres først, når transactionen er **committet** (`oncomplete`) – ikke når
  * den sidste request lykkedes. Det er forskellen på "requesten svarede" og "dataene er
  * gemt", og den skelnen var tidligere kun implicit.
  *
@@ -111,13 +111,13 @@ export const runTransaction = async <T>(
       workValue = await work(transaction);
     } catch (workError: unknown) {
       // Rul transactionen tilbage, så en delvis skrivning ikke committes, og lad
-      // ARBEJDETS fejl være årsagen — ikke den afledte abort.
+      // ARBEJDETS fejl være årsagen – ikke den afledte abort.
       try { transaction.abort(); } catch { /* allerede afsluttet */ }
       settled.catch(() => { /* aborten er forventet her */ });
       throw asError(workError);
     }
 
-    // For en SKRIVNING er dataene først gemt, når transactionen er committet — det er
+    // For en SKRIVNING er dataene først gemt, når transactionen er committet – det er
     // forskellen på "requesten svarede" og "skrivningen landede". For en ren læsning er
     // værdien derimod allerede i hånden, og at vente på commit ville kun forsinke svaret
     // (og gøre resultatet afhængigt af, at forbindelsen får lov at committe i ro).
@@ -136,7 +136,7 @@ export const runTransaction = async <T>(
     }
     return { status: 'error', error: wrapped };
   } finally {
-    // Forbindelsen lukkes ALTID — også når transactionen fejlede eller blev afbrudt.
+    // Forbindelsen lukkes ALTID – også når transactionen fejlede eller blev afbrudt.
     // Den tidligere hånd-wrapping lukkede kun i `transaction.oncomplete`, så en fejlende
     // transaction efterlod forbindelsen åben (og `logStorage.ts` lukkede aldrig).
     try { db?.close(); } catch { /* forbindelsen var allerede lukket */ }
@@ -148,7 +148,7 @@ export const runTransaction = async <T>(
  *
  * Kun for **passive observatører**: kald der sker ved mount/re-render for at VISE en
  * eksisterende tilstand, og hvor en manglende eller fejlende læsning er en normal,
- * forventelig tilstand — ikke en hændelse, brugeren eller loggen skal forstyrres af.
+ * forventelig tilstand – ikke en hændelse, brugeren eller loggen skal forstyrres af.
  * Brug den ikke for at dæmpe en fejl, der reelt betyder noget.
  */
 export const runTransactionSilently = async <T>(
@@ -162,7 +162,7 @@ export const runTransactionSilently = async <T>(
 /**
  * Bekvemmeligheds-indpakning: kører `work` og oversætter både `unavailable` og `error` til
  * én `fallback`-værdi. Brug den, hvor kalderen behandler "ingen IndexedDB" og "IndexedDB
- * fejlede" ens — fx en device-lokal cache, der blot degraderer til tom.
+ * fejlede" ens – fx en device-lokal cache, der blot degraderer til tom.
  */
 export const runTransactionOr = async <T>(
   fallback: T,

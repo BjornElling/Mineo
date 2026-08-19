@@ -18,12 +18,12 @@ const INTERNAL_LINK_PATH = 'src/components/ui/InternalLink.tsx';
  *
  * `UnsupportedDevicePage` er hard-stop-siden for mobil/tablet (AGENTS.md «Desktop-only gate»).
  * Den er bevidst isoleret fra app-shellen: bootstrap-stien renderer den UDEN app-stylesheet,
- * UDEN MUI-tema og uden nogen anden import end React — kun to Montserrat-vægte hentes. At bruge
+ * UDEN MUI-tema og uden nogen anden import end React – kun to Montserrat-vægte hentes. At bruge
  * `ExternalLink` her ville trække hele `@mui/material` ind i netop den entry-chunk, som enhver
  * mobilbruger downloader, før de får at vide, at siden ikke virker på deres enhed.
  *
  * De to policy-krav, primitiven findes for, er OPFYLDT i hånden på callsitet:
- * `target="_blank"` + `rel="noopener noreferrer"`. Kun `tabIndex={-1}` er bevidst udeladt —
+ * `target="_blank"` + `rel="noopener noreferrer"`. Kun `tabIndex={-1}` er bevidst udeladt –
  * den regel findes for ikke at forurene PROGRAMMETS tastaturrækkefølge, og der er intet program
  * på hard-stop-siden. Linkene er tværtimod brugerens eneste vej videre og skal kunne tabbes.
  *
@@ -53,7 +53,7 @@ const stringAttributeValue = (attribute: ts.JsxAttribute | undefined): string | 
 };
 
 /**
- * `href`ens KENDTE præfiks — nok til at afgøre, om linket overhovedet er en web-side.
+ * `href`ens KENDTE præfiks – nok til at afgøre, om linket overhovedet er en web-side.
  *
  * `stringAttributeValue` kræver en ren strengliteral og bruges bevidst uændret til de EXAKTE
  * `target`/`rel`-sammenligninger. Men et `href` sammensat af en konstant
@@ -144,7 +144,7 @@ const findBrokenExternalLinkPrimitive = (entry: SourceEntry): readonly Finding[]
 /**
  * Fundene for en allowlistet fil: den slipper for primitive-kravet, men IKKE for de to
  * sikkerhedsattributter. Uden dette ville allowlisten være et hul frem for en afgrænset
- * undtagelse — en `rel`-løs `target="_blank"` er præcis den tabnabbing-risiko, `ExternalLink`
+ * undtagelse – en `rel`-løs `target="_blank"` er præcis den tabnabbing-risiko, `ExternalLink`
  * findes for at lukke.
  */
 const findUnsafeRawExternalLinks = (entry: SourceEntry): readonly Finding[] => {
@@ -296,12 +296,12 @@ export const webLinkPolicyRule = defineRule({
       relativePath: 'src/auth/LoginPage.tsx',
       code: '<a href="mailto:bel@fho.dk">Kontakt</a>',
     },
-    // Et mailto sammensat af en konstant er stadig et mailto — adressen skal kunne stå ét sted.
+    // Et mailto sammensat af en konstant er stadig et mailto – adressen skal kunne stå ét sted.
     {
       relativePath: 'src/components/layout/SiblingSitesFooter.tsx',
       code: '<Box component="a" href={`mailto:${SIBLING_SITES_CONTACT_EMAIL}`}>Kontakt</Box>',
     },
-    // Hard-stop-siden må sammensætte i hånden — når begge sikkerhedsattributter er på plads.
+    // Hard-stop-siden må sammensætte i hånden – når begge sikkerhedsattributter er på plads.
     {
       relativePath: 'src/components/system/UnsupportedDevicePage.tsx',
       code: '<a href="https://minprocesrente.dk" target="_blank" rel="noopener noreferrer">minProcesrente.dk</a>',

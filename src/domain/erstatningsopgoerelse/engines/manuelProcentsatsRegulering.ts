@@ -65,13 +65,13 @@ export const buildManuelProcentsatsEntries = (args: Readonly<{
   return entries;
 };
 
-// Forudsætter at entries er sorteret stigende på startIso — det garanterer
+// Forudsætter at entries er sorteret stigende på startIso – det garanterer
 // buildManuelProcentsatsEntries ved konstruktion (basisrækken først, brugerrækker > basisdato
 // i datoorden).
 //
 // Deler det fælles carry-forward-opslag (regulering-redesign R3); den ene afvigelse fra det
 // generiske opslag er fallback: ligger `iso` før alle entries, anvendes basisrækken (`entries[0]`,
-// indeks 100) frem for `undefined` — basisrækken repræsenterer altid niveauet pr. reguleringsdatoen.
+// indeks 100) frem for `undefined` – basisrækken repræsenterer altid niveauet pr. reguleringsdatoen.
 export const findManuelProcentsatsEntryForDate = (
   entries: readonly ManuelProcentsatsEntry[],
   iso: ISODateString

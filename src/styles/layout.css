@@ -146,7 +146,7 @@
 }
 
 /* ==================== Tekstknap-fokus ====================
-   En knap uden egen flade — en understreget tekst, der bærer en handling — får ellers
+   En knap uden egen flade – en understreget tekst, der bærer en handling – får ellers
    browserens standard-outline: en skarp, sort firkant tæt om bogstaverne.
 
    Markeringen er en UDFYLDT FLADE UDEN RING, fordi det er sådan, resten af programmet markerer
@@ -155,12 +155,12 @@
 
    En ring blev prøvet først (primærfarvet, som `.auth-login-button:focus-visible`) og forkastet
    2026-08-18: login-siden står uden for app-shellen og har sit eget udtryk, så dens fokusramme er
-   ikke sidernes sprog. Inde i programmet virkede ringen påklistret — den lagde en form oven på et
+   ikke sidernes sprog. Inde i programmet virkede ringen påklistret – den lagde en form oven på et
    element, der ellers ingen form har.
 
    FARVEN er `--color-active-bg-hover` og ikke `--color-hover`. Den neutrale grå tone blev målt
    først og var reelt usynlig: knappen ligger inde i en række, der SELV toner sig grå ved hover, så
-   grå på grå forsvandt — og en fokusmarkering, tastaturbrugeren ikke kan se, er ingen markering.
+   grå på grå forsvandt – og en fokusmarkering, tastaturbrugeren ikke kan se, er ingen markering.
    `--color-active-bg-hover` er programmets «dette element er aktivt nu»-tone (samme som det valgte
    menupunkt) og findes i begge temaer.
 
