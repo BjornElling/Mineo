@@ -45,21 +45,54 @@ UnsupportedDeviceTitle.displayName = 'UnsupportedDeviceTitle';
  * kræver en computer — derfor er de tabbare her (i modsætning til `ExternalLink`s `tabIndex={-1}`,
  * som findes for ikke at forurene programmets egen tastaturrækkefølge; der er intet program at
  * forurene på denne side).
+ *
+ * Fordi stylingen er en DUBLET og ikke et genbrug, er de tal, der bærer geometrien, låst mod
+ * footerens mobilværdier af `quality/unsupportedDeviceFooterParity`. Den test findes, fordi
+ * dubletten første gang blev afleveret med prosaen «målt til at være geometrisk identisk» — og tre
+ * højdeerklæringer var aldrig kommet med, så boksen stod 26 px lavere end søskendesidens. En
+ * måling foretaget én gang er ikke et værn; testen er.
+ */
+
+/**
+ * Højde- og padding-værdierne er ikke pynt: de er footerens mobile `.site-footer__link`
+ * (`minHeight: 28px`, `padding: 2px 0`).
+ *
+ * `borderBottom`/`paddingBottom` sidder i footeren på linkets inderste span, ikke på linket selv;
+ * her er de to lag slået sammen til ét element, så understregningen skal ligge på et indre span,
+ * ellers ville den løbe langs hele den 28 px høje række i stedet for tættest under teksten.
  */
 const siblingLinkStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+  minHeight: '28px',
+  padding: '2px 0',
+  // `border-box` er ikke kosmetik her. Footeren arver MUI'ens globale `box-sizing: border-box`,
+  // så dens `minHeight: 28px` ER rækkens ydre højde med padding inkluderet. Denne side har intet
+  // stylesheet og dermed browserens `content-box`, hvor de samme to erklæringer i stedet giver
+  // 28+2+2 = 32 px — fire pixel pr. række, otte i boksen.
+  boxSizing: 'border-box',
   color: 'rgba(0, 0, 0, 0.87)',
   fontSize: '12.5px',
   fontWeight: 500,
   lineHeight: 1.2,
   textDecoration: 'none',
+  whiteSpace: 'nowrap',
+};
+
+const siblingLinkTextStyle: React.CSSProperties = {
   borderBottom: '1px solid transparent',
   paddingBottom: '1px',
-  whiteSpace: 'nowrap',
 };
 
 const siblingCurrentStyle: React.CSSProperties = {
   ...siblingLinkStyle,
   color: '#1976d2',
+  cursor: 'default',
+};
+
+const siblingCurrentTextStyle: React.CSSProperties = {
+  ...siblingLinkTextStyle,
   borderBottomColor: '#1976d2',
 };
 
@@ -81,7 +114,7 @@ const siblingRowStyle: React.CSSProperties = {
 const renderSiblingSite = (site: SiblingSite) => (
   site.key === 'mineo' ? (
     <span key={site.key} aria-current="page" style={siblingCurrentStyle}>
-      {site.label}
+      <span style={siblingCurrentTextStyle}>{site.label}</span>
     </span>
   ) : (
     <a
@@ -92,7 +125,7 @@ const renderSiblingSite = (site: SiblingSite) => (
       rel="noopener noreferrer"
       style={siblingLinkStyle}
     >
-      {site.label}
+      <span style={siblingLinkTextStyle}>{site.label}</span>
     </a>
   )
 );
@@ -122,7 +155,9 @@ const UnsupportedDeviceSiblingSites = () => (
       borderRadius: '10px',
       boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
       padding: '16px 12px',
-      margin: '16px 0 0',
+      // Samme `margin: 16px 0` som indholdsboksen ovenfor — det er dén værdi minProcesrentes
+      // mobile `.content-box` giver footeren, og den nedre halvdel må ikke falde væk her.
+      margin: '16px 0',
       boxSizing: 'border-box',
     }}
   >
@@ -143,10 +178,15 @@ const UnsupportedDeviceSiblingSites = () => (
           display: 'inline-flex',
           alignItems: 'center',
           gap: '10px',
+          minHeight: '39px',
           color: 'rgba(0, 0, 0, 0.87)',
           textDecoration: 'none',
           maxWidth: '100%',
-          alignSelf: 'flex-start',
+          // Ingen `alignSelf: 'flex-start'`: footerens `.site-footer__mail` er `flex: 0 0 auto` i
+          // en `align-items: stretch`-kolonne og fylder derfor rækkens fulde bredde. Indholdet
+          // ligger venstrestillet i begge, så forskellen er usynlig — men den fulde bredde ER
+          // trykfladen, og på en touch-only side skal målet være det samme som på søskendesiden.
+          overflowWrap: 'anywhere',
         }}
       >
         <span
@@ -185,6 +225,7 @@ const UnsupportedDeviceSiblingSites = () => (
               fontSize: '11px',
               fontWeight: 500,
               lineHeight: 1.25,
+              transform: 'translateY(-1px)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
             }}

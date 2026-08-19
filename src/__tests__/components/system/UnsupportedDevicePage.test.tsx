@@ -21,10 +21,14 @@ describe('UnsupportedDevicePage', () => {
 
       const nav = screen.getByRole('navigation', { name: 'Søskendesider' });
 
-      // minEO ER hard-stop-siden; den skal ikke kunne linke til sig selv.
-      const current = within(nav).getByText('minEO.dk');
+      // minEO ER hard-stop-siden; den skal ikke kunne linke til sig selv. Teksten ligger — som i
+      // den delte footer — i et indre span, så understregningen kan sidde tæt under skriften i
+      // stedet for langs hele den 28 px høje række; markeringen hører derfor på forælderen.
+      const currentText = within(nav).getByText('minEO.dk');
+      const current = currentText.closest('[aria-current]');
       expect(current).toHaveAttribute('aria-current', 'page');
-      expect(current.tagName).toBe('SPAN');
+      expect(current?.tagName).toBe('SPAN');
+      expect(within(nav).queryByRole('link', { name: 'minEO.dk' })).toBeNull();
 
       const others = SIBLING_SITES.filter((site) => site.key !== 'mineo');
       expect(within(nav).getAllByRole('link')).toHaveLength(others.length);
