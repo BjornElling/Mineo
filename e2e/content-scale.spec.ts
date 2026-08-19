@@ -362,14 +362,21 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     // Under den dækkede minimumsbredde er `Container`s vandrette rul den bevidste fallback, og
     // indholdet overflyder selv. Fanerne må ikke lægge en eneste pixel oveni: skinnen klemmes til
     // indholdsboksen, og fanerne forsvinder tavst.
+    //
+    // Kanten aflæses SETTLET, ligesom i løkken ovenfor — og her er det ikke til at undvære: skalaen
+    // er ALLEREDE på minimum ved 1181 px, så zoom-værdien er uændret hen over vinduesskiftet og kan
+    // ikke tjene som ventepunkt. En enkelt aflæsning ville derfor kunne ramme frame'et FØR skinnen
+    // har målt sin nye kant og se den forrige bredes kant i stedet.
     await page.setViewportSize({ width: 1000, height: 800 });
     await expect.poll(() => page.locator('main[data-mineo-content-scale-root="true"]').evaluate(
       (element) => getComputedStyle(element).zoom,
     )).toBe(String(MINIMUM_SCALE));
-    const belowMinimum = await readGeometry();
-
-    expect(belowMinimum.overflowPx).toBeGreaterThan(1);
-    expect(belowMinimum.railRight).toBeLessThanOrEqual(belowMinimum.contentBoxRight + 1);
+    await expect.poll(async () => {
+      const settled = await readGeometry();
+      return settled.overflowPx > 1 && settled.railRight <= settled.contentBoxRight + 1;
+    }, {
+      message: 'Under minimumsbredden skal skinnen klippes til indholdsboksen, mens Container selv ruller vandret.',
+    }).toBe(true);
     expect(runtimeErrors).toEqual([]);
   });
 
