@@ -12,6 +12,12 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**M-17 og M-18 er tilføjet 2026-08-19 fra Global shell og er IKKE afgjort endnu.** M-17 handler om
+én oplysning, der er gemt i to lagre med hver sin rækkevidde, så de kan komme til at beskrive hver
+sin sag. M-18 handler om globale tastaturgenveje, der arbejder videre bag et åbent overlay, som
+efter programmets eget regelsæt ejer tastaturet. **Samme dag har M-06 og M-08 fået hver sin
+skærpelse** – læs dem i den nye form.
+
 **M-15 og M-16 er tilføjet 2026-08-19 fra MinProcesrente og afgjort samme dag** (M-15 afvist for
 MinProcesrente, M-16 gennemført for rentetabellen – se hvert mønster). M-15 er
 spejlbilledet af M-13: dokumentet bærer et forbehold, skærmen har ingen pendant. M-16 handler om
@@ -199,6 +205,18 @@ pålideligt.
 
 **Efterprøv, hvor:** et fritekstfelt tager imod indsat tekst.
 
+**Skærpelse 2026-08-19 (fra `globalshell.md` BB-055).** Mønsteret er ikke kun et spørgsmål om, at en
+usynlig tegnrest følger med VIDERE i en værdi. Det er også, at to steder i samme flade kan være
+uenige om, hvad værdien ER: login-siden trimmer teksten, når den afgør «har brugeren skrevet noget»,
+men IKKE når den afgør «er adgangskoden rigtig». Den korrekte adgangskode med ét afsluttende
+mellemrum afvises derfor som forkert, og feltet viser prikker, så resten er usynlig. Prøven er:
+**normaliserer alle led i den samme beslutning teksten ens?** Et trim i valideringen og ikke i
+sammenligningen er to sandheder om det samme felt.
+
+Bemærk også asymmetrien, fundet afdækkede: adgangskoden er bevidst tolerant over for STORE og små
+bogstaver, men intolerant over for et blanktegn, brugeren ikke kan se. Hvor et felt allerede HAR en
+tolerance, er det værd at spørge, om den dækker den fejl, brugeren faktisk laver.
+
 - Fundet i: `stamdata.md` BB-007 – **accepteret 2026-08-16, skal rettes** med ét delt
   normaliseringstrin før feltets egen paste-behandling. Brugerens forbehold er, at det ikke må
   forstyrre de øvrige normaliseringer; det er efterprøvet og skal måles af en ækvivalenstest pr.
@@ -252,8 +270,23 @@ mellem sider. Ikke hvor linket blot er en udgang til en anden hjemmeside; dét e
 - Fundet i: `om.md` BB-016 (fem links, ingen af dem kan nås med Tab) – **afgjort: bevidst designvalg**.
 - Efterprøvet: Satser-sidens retsinfo-henvisninger (`satserRows.tsx`) bruger samme primitive og er
   også ude af Tab-rækkefølgen. Interne linkflader er ikke ændret af M-08.
+**Skærpelse 2026-08-19 (fra `globalshell.md` BB-051) – mønsteret er STØRRE end links.** Målingen på
+shellen viste, at det ikke kun er `<a>`, der falder uden for ringen: **hele sidemenuen gør det.**
+`Container` ejer Tab og cirkulerer inden for sit eget indhold, og sidemenuen ligger uden for
+`Container`. Browserens eget tabflow når menuen ved sessionens start, men i det øjeblik fokus første
+gang er inde i indholdet, kommer det aldrig ud igen – hverken med Tab eller Shift+Tab. Programmets
+navigation og dets tre filhandlinger (`Gem`, `Hent`, `Slet alt`) er dermed mus-kun resten af
+sessionen.
+
+**Prøven er derfor ikke «er dette element med i selectoren?», men «findes der en vej TILBAGE?»**
+En cirkulær ring, der kun omfatter en delmængde af fladen, er en fælde: alt uden for ringen kan nås
+én gang og aldrig igen. Efterprøv hver fokusbar kontrol, der bor uden for `Container` – sidemenuen,
+`PageTabs`, `SideTab` – på netop dét spørgsmål.
+
 - Kandidater, ikke efterprøvet: **interne** links inde i fejl- og advarselsbokse. MinProcesrentes
   titel-link (`href="/"`) er internt og hører til den gruppe, ikke til den eksterne regel.
+  `SideTab`-kontrolfanerne på Erstatningsopgørelse står uden for ringen efter samme mekanik som
+  sidemenuen og hører til nr. 12.
 
 ## M-09 – Fast indholdsbredde
 
@@ -611,3 +644,71 @@ frem for rettelser i gaten: de gør en falsk præmis sand i stedet for at differ
 - Kandidater, ikke efterprøvet: `validateInterestCalculation` har fem afvisningsgrunde, hvoraf
   ingen når brugeren. Tilsvarende motorer med interne fejltyper findes i Varige mén, Forsørgertab og
   EO's rækkebyggere (`EO_ROW_BUILDERS`).
+
+## M-17 – Én oplysning delt over to lagerscoper
+
+> To halvdele af den samme oplysning ligger i hvert sit lager, og de to lagre har ikke samme
+> rækkevidde. Så kan halvdelene komme til at beskrive hver sin sag.
+
+Browseren har tre lagre med tre forskellige rækkevidder: `sessionStorage` hører til ÉN fane,
+`localStorage` og IndexedDB hører til hele browseren. En oplysning, der er delt over to af dem,
+er derfor kun konsistent, så længe der er præcis én fane åben. Fra og med den anden fane kan den
+ene halvdel udskiftes uden at den anden ved det – og fordi hver fane sammenligner den halvdel, den
+selv ejer, med sin egen tilstand, konkluderer den «uændret» og handler på en halvdel, der i
+mellemtiden tilhører nogen andre.
+
+Formen er farlig, fordi den er usynlig i normal drift: alt virker, så længe man tester med én fane,
+og fejlen kræver netop den brugssituation, programmet selv lægger op til.
+
+**Efterprøv, hvor:** en sagsnær oplysning skrives til `localStorage` eller IndexedDB, eller hvor to
+værdier, der bruges SAMMEN i én beslutning, skrives til hvert sit lager. Prøven er konkret: **åbn
+programmet i to faner, lad hver fane sætte sin egen værdi, og gå tilbage til den første.** Læser den
+stadig sin egen – eller den andens?
+
+Bemærk skellet mod en almindelig delt indstilling. Farvetema og standardmappe SKAL være fælles for
+alle faner; det er hele deres formål. Mønsteret rammer kun oplysninger, der hører til den ENE sag,
+fanen har åben.
+
+- Fundet i: `globalshell.md` BB-049 (**Kritisk, afventer bruger**). `Gem`s overskrivningsmål er én
+  oplysning i to dele: selve filhåndtaget i IndexedDB (fælles for browseren) og filnavnet plus
+  stamdatagrundlaget i `sessionStorage` (fanens eget). Med to faner skriver den ene sag ind i den
+  andens fil, og kvitteringen er ordet «Gemt».
+- **De to led er eftervist hver for sig i browseren** (fane B ser ikke fane A's `sessionStorage`;
+  begge ser samme IndexedDB-base `mineo_file_handles`), men selve den forkerte skrivning kan ikke
+  måles headless – filvælgeren åbner ikke. Efterprøv manuelt før rettelsen lægges fast.
+- **Den generelle lære:** en identitet skal følge det, den identificerer. Filhåndtaget bærer ingen
+  identitet i dag, og verifikationen af det (`verifyFileHandleDetailed`) spørger kun «må jeg skrive,
+  og findes filen?» – aldrig «er det den rigtige fil?». Er der en identitet at sammenligne, skal den
+  ligge i SAMME lager som det, den identificerer.
+- Kandidater, ikke efterprøvet: `fileHandleStorage` rummer også standardmappen (en indstilling og
+  derfor uden for mønsteret). Efterprøv derimod enhver fremtidig sagsnær værdi i IndexedDB, og
+  `UI_STORAGE_KEYS`-parrene, hvor to nøgler kun giver mening sammen.
+
+## M-18 – Globale genveje kender ikke overlay-stakken
+
+> Et overlay ejer tastaturet efter programmets eget regelsæt – men de genveje, der er registreret
+> på `window`, har aldrig hørt om det.
+
+Fokusfangst holder Tab inde i vinduet, og Escape er sendt gennem overlay-stakken. Men en genvej,
+der lytter direkte på `window`, rammer uanset hvor fokus står og uanset hvad der ligger ovenpå.
+Handlingen sker derfor BAG den åbne dialog, hvor brugeren hverken kan se den ske eller se dens
+resultat – og han svarer derefter på et spørgsmål om en tilstand, der ikke længere findes.
+
+Det er værre end en almindelig utilsigtet genvej, fordi et overlay pr. definition står, mens
+brugeren tænker: en bekræftelse før en irreversibel handling er præcis det tidspunkt, hvor en
+utilsigtet ændring af underlaget er dyrest.
+
+**Efterprøv, hvor:** en `keydown`-lytter er registreret på `window` eller `document` uden for en
+komponent, der selv er en del af overlay-stakken. Prøven er: **åbn en dialog, tryk genvejen, og se
+om noget bag dialogen ændrer sig.**
+
+- Fundet i: `globalshell.md` BB-050 (**Høj, afventer bruger**). Med bekræftelsen «Slet alle
+  indtastninger» åben ryddede Ctrl+Z feltet bagved (målt: Skadedato `99-99-9999` → tom), mens
+  dialogen stod uændret og spurgte videre. Ctrl+S starter tilsvarende et helt gem – filvælger og
+  det hele – bag den åbne bekræftelse.
+- Mekanikken til at lukke hullet findes allerede: `components/ui/overlayBehavior.ts` ved præcis,
+  hvad der er øverst på stakken. Genvejene skal blot spørge den, før de handler.
+- Kandidater, ikke efterprøvet: de to genvejslyttere er i dag `useUndoRedoShortcuts` (Ctrl+Z,
+  Ctrl+Shift+Z, Ctrl+Y) og `MainLayout`s Ctrl+S. Efterprøv desuden Løntrin-finderen og
+  licensvinduet, som begge kan stå åbne over en sag – Løntrin-finderen har endda felter i sig, så et
+  Ctrl+Z dér er det, brugeren mest nærliggende ville prøve.

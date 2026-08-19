@@ -2,10 +2,10 @@
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Global shell (sidemenu, login, Gem/Hent/Slet alt, overlays, undo/redo)
-- **Næste fund-ID:** BB-049
-- **Senest opdateret:** 2026-08-19 (MinProcesrente gennemgået: 12 fund, hvoraf 8 afventer brugerens
-  beslutning; to nye mønstre M-15 og M-16)
+- **Næste flade:** Varige mén (`/varigemen`, pr. fane)
+- **Næste fund-ID:** BB-062
+- **Senest opdateret:** 2026-08-19 (Global shell gennemgået: 13 fund, hvoraf 1 kritisk og 10 afventer
+  brugerens beslutning; to nye mønstre M-17 og M-18, og skærpelser af M-06 og M-08)
 
 ## Flader
 
@@ -19,13 +19,45 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 3 | Indstillinger | Gennemgået | 8 (BB-023–BB-029, BB-036) | [indstillinger.md](indstillinger.md) |
 | 4 | Satser | Gennemgået | 6 (BB-030–BB-035) | [satser.md](satser.md) |
 | 5 | MinProcesrente | Afgjort | 12 (BB-037–BB-048) | [minprocesrente.md](minprocesrente.md) |
-| 6 | Global shell | Ikke startet | – | – |
+| 6 | Global shell | Afventer bruger | 13 (BB-049–BB-061) | [globalshell.md](globalshell.md) |
 | 7 | Varige mén | Ikke startet | – | – |
 | 8 | Renteberegning | Ikke startet | – | – |
 | 9 | Årslønsberegning | Ikke startet | – | – |
 | 10 | Forsørgertab | Ikke startet | – | – |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Global shell – gennemgået 2026-08-19, afventer bruger
+
+Tretten fund. Det fulde grundlag står i [globalshell.md](globalshell.md).
+
+| ID | Kort | Type | Prioritet |
+|---|---|---|---|
+| BB-049 | `Gem` kan skrive den ene sag ind i den anden sags fil, når Mineo er åben i to faner | Edge case | **Kritisk** |
+| BB-050 | Ctrl+Z ændrer sagen bag en åben bekræftelsesdialog; Ctrl+S starter et gem bag den | Edge case | Høj |
+| BB-051 | Sidemenuen kan ikke nås med tastaturet, når fokus én gang har været i indholdet | Fornuft | Høj |
+| BB-052 | Programmet ved, om sagen er gemt, og siger det aldrig; sagen har intet filnavn på skærmen | Fornuft | Høj |
+| BB-053 | Den anden besked arver den førstes resttid og kan være helt usynlig | Fejl | Høj |
+| BB-054 | Ctrl+Z gør ingenting, mens et felt er åbent – heller ikke browserens egen fortrydelse | Fornuft | Mellem |
+| BB-055 | Korrekt adgangskode med et usynligt mellemrum afvises som «Forkert adgangskode» | Edge case | Høj |
+| BB-056 | Kan ikke logge ind, når browseren ikke må gemme login-status – én besked for to årsager | Edge case | Mellem |
+| BB-057 | 404-siden er en hvid blindgyde uden menu og uden vej tilbage | Fornuft | Mellem |
+| BB-058 | `Slet alt` advarer og kvitterer, også når der intet er at slette | Fornuft | Lav |
+| BB-059 | Genindlæsning (F5) advarer om et tab, der ikke sker | Fornuft | Lav |
+| BB-060 | `Slet alt` og `Erstat` kan ikke fortrydes, og dialogerne siger det ikke | Fornuft | Mellem |
+| BB-061 | Der findes ingen vej ud af login igen | Fornuft | Lav |
+
+**Ti af de tretten afventer brugerens beslutning.** Kun BB-053 (beskedboksens nedtælling) og
+BB-055/BB-056 (login-teksterne) er rene fejlrettelser, jeg selv kan afgøre; resten ændrer synlig
+adfærd eller tekst.
+
+**Sporet, STATUS lagde ud til denne flade, er lukket:** `Gem` med et satsår uden for det dækkede
+interval (1999) blokerer ikke, og det er korrekt efter `form-contract` §1.6 – en bounds-fejl på en
+ellers repræsenterbar værdi må gemmes. Ingen fund.
+
+**Det væsentligste dækningshul:** filvælgeren kan ikke betjenes headless, så `Gem` til og `Hent` fra
+en rigtig fil er ikke set i drift. BB-049's to led er eftervist hver for sig i browseren, men selve
+den forkerte overskrivning er udledt af koden og bør efterprøves manuelt med to faner og to filer.
 
 ## MinProcesrente – afgjort 2026-08-19
 
@@ -165,7 +197,11 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
-**To, begge fra MinProcesrente** – de står udfoldet i [minprocesrente.md](minprocesrente.md):
+**Fire.** To fra Global shell – de står udfoldet i [globalshell.md](globalshell.md): skal Ctrl+S kunne
+ses nogen steder i brugerfladen, og hvad skal `Gem` gøre, når skadelidtes navn rettes efter et gem
+(i dag skifter det tavst, hvilken fil der skrives til).
+
+**To fra MinProcesrente** – de står udfoldet i [minprocesrente.md](minprocesrente.md):
 forudfyldt beregningsdato ved første besøg, og om tillægstid skal kunne bruges på telefon.
 
 Fra de tidligere flader er der ingen. BB-017's alternative overskrift til fejldialogen blev udeladt
@@ -178,7 +214,20 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 ## Tværgående mønstre
 
-Seksten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+Atten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+
+- **M-17** og **M-18** er tilføjet 2026-08-19 fra Global shell og er **ikke afgjort**:
+  - **M-17 – én oplysning delt over to lagerscoper.** `sessionStorage` hører til ÉN fane;
+    `localStorage` og IndexedDB hører til hele browseren. En sagsnær oplysning, der er delt over to
+    af dem, er kun konsistent, så længe der er én fane åben. Prøven er konkret: åbn programmet i to
+    faner, lad hver sætte sin egen værdi, og se om den første stadig læser sin egen (BB-049).
+  - **M-18 – globale genveje kender ikke overlay-stakken.** En `keydown`-lytter på `window` rammer
+    uanset hvad der ligger ovenpå, så handlingen sker bag den åbne dialog, hvor brugeren hverken
+    kan se den ske eller se dens resultat (BB-050).
+- **M-06 og M-08 har fået hver sin skærpelse samme dag.** M-06 rammer også, når to led i SAMME
+  beslutning normaliserer teksten forskelligt (login trimmer i «har du skrevet noget», men ikke i
+  «er koden rigtig»). M-08 er større end links: hele sidemenuen ligger uden for `Container`s ring,
+  så prøven er ikke «er elementet med i selectoren?», men «findes der en vej TILBAGE?»
 
 - **M-15** og **M-16** er tilføjet 2026-08-19 fra MinProcesrente og **afgjort samme dag**:
   - **M-15 – skærmen tier, hvor dokumentet taler.** Spejlbilledet af M-13: generatoren skriver et
