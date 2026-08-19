@@ -3,7 +3,11 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-08-19 (PWA-køens afbryd-valg hedder «Annuller» som i programmets
+**Senest verificeret mod kode:** 2026-08-19 (nyt normativt afsnit i §5: et persisteret filhåndtag må kun
+genbruges til direkte overskrivning, når dets `name` er identisk med fanens eget `lastSavedFilename` –
+brugerfundet BB-049, hvor `Gem` i én fane kunne overskrive den anden fanes fil tavst, fordi håndtaget
+ligger i den browser-fælles IndexedDB og sagen i den fane-lokale sessionStorage. Reglen er mutationstestet
+i `fileSaveTarget.test.ts`. Samme dag: PWA-køens afbryd-valg hedder «Annuller» som i programmets
 øvrige dialoger; current-sessionens kildeversioner er begrænset til eksplicit understøttede versioner, og
 device-lokal metadata valideres før visning. Verificeret mod de berørte moduler og tests.)
 
@@ -187,6 +191,23 @@ integritetskontrol og må ikke blandes med loadens tolerante migrering.
 Load- og savekilder/sinks er typede porte med diskriminerede resultater. Egentlige fejl kastes; cancel er et eksplicit
 resultat. Højst én filhandling må være aktiv ad gangen. En PWA-loadrequest under en aktiv filhandling må ikke tabes:
 seneste request bevares og tilbydes med `Indlæs fil`/`Annuller`, når den aktive handling er afsluttet.
+
+**Et persisteret filhåndtag må kun genbruges til direkte overskrivning, når det beviseligt peger på
+DENNE fanes egen fil.** Håndtaget ligger i IndexedDB, som er fælles for hele browseren, mens sagen og
+`lastSavedFilename` ligger i sessionStorage, som er fanens eget. To åbne faner er to selvstændige
+sager, men de deler ét håndtag – og det peger altid på den SIDST rørte fil i browseren. Prøven før et
+genbrug er derfor todelt: filnavns-relevant stamdata skal være uændret, OG håndtagets `name` skal være
+identisk med fanens eget `lastSavedFilename`. Er navnene forskellige, kasseres håndtaget, og
+gem-flowet går til filvælgeren med fanens eget filnavn som forslag; brugeren skal desuden have
+oplyst, hvorfor vælgeren kom, når han bad om et direkte gem.
+
+Uden navneprøven kunne `Gem` i fane A skrive sag A ind i den fil, fane B sidst gemte til – uden
+filvælger, uden advarsel og med ordet «Gemt» som kvittering. Det er det værst mulige udfald:
+brugerarbejde forsvinder uden brugerens handling, og programmet melder succes. Sammenligningen kræver
+ingen ny persistering, fordi `lastSavedFilename` skrives fra præcis samme kilde (`fileHandle.name`)
+ved hvert gem; en separat kopi af navnet ville kunne komme ud af sync med håndtaget og genindføre
+fejlen. Fail-closed-reglen gælder som ellers: kan det kasserede håndtag ikke ryddes verificerbart,
+afbrydes gemningen.
 
 En PWA-filrequest registreres før service-worker-opstart og React-render. Dens fil-handle ligger i memory straks og
 persisteres som pending request, så en app-version der starter efter en opdatering kan hydrere og behandle den samme

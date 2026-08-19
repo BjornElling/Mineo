@@ -4,10 +4,15 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-19 (Renteberegnings «Slet alle indtastninger» er tilføjet
-opt-in-listen og målt: knappen bærer `data-mineo-focusable-button`, og Tab-ringen rammer den –
-verificeret i browseren og af `standaloneCalculatorPage.test.tsx`. «Slet rækken» står fortsat uden for
-navigationen. Baggrund: brugerfundet BB-047)
+**Senest verificeret mod kode:** 2026-08-19 (to nye normative afsnit fra brugerblikket på global
+shell: §Overlay-adfærd → «Globale genveje er UVIRKSOMME, mens et overlay er åbent» (BB-050) og
+beskedreglen «hver ny besked starter sin EGEN nedtælling» under §Escape (BB-053). Begge er
+mutationstestet – genvejene i `useUndoRedoShortcuts.test.tsx` og
+`MainLayout.shortcutsAndMessages.test.tsx`, som også bærer beskedidentiteten. Samme dag: Renteberegnings
+«Slet alle indtastninger» er tilføjet opt-in-listen og målt: knappen bærer
+`data-mineo-focusable-button`, og Tab-ringen rammer den – verificeret i browseren og af
+`standaloneCalculatorPage.test.tsx`. «Slet rækken» står fortsat uden for navigationen. Baggrund:
+brugerfundet BB-047)
 2026-08-16 (eksterne web-links har fælles link-primitive og er ude af
 Tab-rækkefølgen; knappernes opt-in-afgrænsning er målt mod
 `CONTAINER_FOCUSABLE_SELECTOR` og erklæret som en truffet beslutning; Escape-reglen og de to
@@ -147,6 +152,23 @@ intet at annullere, og en lytter ville stjæle tasten fra en åben dialog eller 
 feltredigering – samme regel som ovenfor, set fra den anden side. Rollerne følger med: en blivende
 fejl er `role="alert"` (afbryder og oplyses straks), en selvlukkende besked er `role="status"`.
 
+**Hver ny besked starter sin EGEN nedtælling og sin egen indtoning** – også når den har samme type og
+samme tekst som den forrige. Det er samme regel som for «peg på dette felt»-markeringen nedenfor:
+udløser brugeren det samme to gange, skal der komme et synligt svar begge gange.
+
+`Overlay`s timere startedes af en effekt, der kun afhang af beskedens TYPE, så to advarsler i træk
+delte den førstes nedtælling: den anden arvede resttiden, og ankom den under udtoningen, blev den
+tegnet gennemsigtig og lukkede sig selv umiddelbart efter – altså helt usynligt. Det ramte præcis den
+bruger, der trykkede igen, fordi han ikke nåede at læse svaret første gang, og kombinationen er
+selvforstærkende: jo mere man prøver, jo mindre svarer programmet.
+
+Identiteten skal derfor komme fra KILDEN (shellen giver hver besked en monotont voksende nøgle og
+bruger den som React-`key`), ikke fra en sammenligning af type eller tekst inde i komponenten – en
+sådan sammenligning kan ikke skelne «samme besked igen» fra «en re-render af den samme besked». Den
+udgående beskeds forsinkede `onClose` må desuden kun rydde SIN egen besked, ellers lukker fade-ud'et
+fra den forrige den nye. Dækningen ligger i
+`components/layout/MainLayout.shortcutsAndMessages.test.tsx` og er mutationstestet.
+
 ---
 
 ### Delete/Backspace
@@ -279,6 +301,38 @@ Tilbage-knappen var ikke understøttet nogen steder: et tryk navigerede SIDEN v�
 vindue, så brugeren mistede både vinduet og sin plads. Et åbent overlay skubber derfor ét
 `history`-trin, som tilbage-knappen forbruger. Lukkes overlayet ad en anden vej, ryddes trinnet op
 igen – ellers ville næste tilbage-tryk ramme et dødt trin og se ud, som om knappen ikke virkede.
+
+### Globale genveje er UVIRKSOMME, mens et overlay er åbent
+
+«Overlayet ejer tastaturet» gælder ikke kun `Tab`. Det gælder også programmets globale genveje –
+`Ctrl+Z`, `Ctrl+Shift+Z`, `Ctrl+Y` og `Ctrl+S` – som er registreret på `window` og derfor rammer
+uanset hvad der ligger ovenpå. De skal spørge `hasOpenOverlay()` og returnere UDEN
+`preventDefault()`, når svaret er ja: tasten er ikke programmets, mens overlayet ejer den.
+
+Reglen er skrevet ind, fordi koden sagde noget andet end regelsættet. Et `Ctrl+Z` bag en åben
+«Slet alt»-bekræftelse ryddede feltet BAG dialogen, mens dialogen blev stående og spurgte uændret om
+noget andet; `Ctrl+S` startede tilsvarende et helt gem – med filvælger og det hele – bag den åbne
+bekræftelse. Brugeren svarede altså på et spørgsmål om en sag, der ikke længere var den, han kiggede
+på, og han kunne ikke se det: fortrydelsens egen markering af feltet foregik bag dialogen.
+
+Fraværet af `preventDefault()` er en del af reglen, ikke en detalje. Spærrer genvejen tasten uden at
+bruge den, mister brugeren også browserens egen adfærd, og tasten bliver et sort hul.
+
+Prøven på en ny global genvej er derfor: **kan den udløses, mens et overlay står åbent – og hvad
+sker der så?** Dækningen ligger i `inputCore/react/useUndoRedoShortcuts.test.tsx` (undo/redo) og
+`components/layout/MainLayout.shortcutsAndMessages.test.tsx` (`Ctrl+S`), begge mutationstestede, samt
+i `e2e/shell-shortcuts-and-not-found.spec.ts` for den fulde rejse i en rigtig browser.
+
+**Følgeregel: en genvej, der ikke handler, må heller ikke SPÆRRE tasten.** Mens en felteditor er åben,
+er programmets fortrydelse bevidst uvirksom (§1.4) – Ctrl+Z har præcis én funktion, at føre den seneste
+AFSLUTTEDE feltændring tilbage. Men `preventDefault()` lå tidligere ubetinget FØR den prøve, så
+browserens egen tekstfortrydelse blev slået ihjel samtidig: brugeren stod med et felt fuldt af tekst og
+en tast, der hverken gjorde det ene eller det andet. Nul funktioner plus en spærring er ikke «én
+funktion». Prøven for en åben editor skal derfor være SYNKRON (`ActiveEditorRegistry.getEditing()`) –
+`prepare()` er asynkron, og når dens `noop` foreligger, er hændelsen længe returneret, og
+`preventDefault()` kan ikke længere undlades. Brugerbeslutning 2026-08-19 (BB-054): den dobbelte adfærd
+er afvist, spærringen fjernet. Virkningen kan kun måles i en rigtig browser; jsdom har ingen
+tekstfortrydelse.
 
 ### Lag på lag
 

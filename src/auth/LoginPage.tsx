@@ -1,5 +1,5 @@
 import React from 'react';
-import { setAuthenticated, verifySharedPassword } from './auth';
+import { AuthStorageUnavailableError, setAuthenticated, verifySharedPassword } from './auth';
 
 const LOGIN_ERROR_ID = 'login-error';
 
@@ -36,8 +36,14 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
       setAuthenticated();
       setPasswordDraft('');
       onAuthenticated();
-    } catch {
-      setErrorMessage('Login kunne ikke gennemføres i denne browser.');
+    } catch (error) {
+      // De to tekniske årsager har modsatte udfald for brugeren, så de skal ikke dele én besked:
+      // blokeret lagring kan han selv rette (og `AuthStorageUnavailableError` siger præcis hvordan),
+      // mens en manglende kryptografi-funktion er uafhjælpelig og beholder sin generiske tekst.
+      // Beskeden kasseres derfor ikke længere til fordel for en egen, mere upræcis formulering.
+      setErrorMessage(error instanceof AuthStorageUnavailableError
+        ? error.message
+        : 'Login kunne ikke gennemføres i denne browser.');
     } finally {
       submittingRef.current = false;
       setIsSubmitting(false);

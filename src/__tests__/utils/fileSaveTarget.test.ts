@@ -178,6 +178,103 @@ describe('resolveSaveTarget', () => {
     );
   });
 
+  /**
+   * BB-049: `Gem` skrev den ene sag ind i den anden sags fil, når Mineo var åben i to faner.
+   *
+   * Mekanismen er en rækkevidde-forskel: sagsdata og `lastSavedFilename` ligger i sessionStorage
+   * (fanens eget), mens filhåndtaget ligger i IndexedDB (fælles for hele browseren) og derfor altid
+   * peger på den SIDST rørte fil. Fane A's stamdatagrundlag er uændret, og håndtaget er gyldigt – så
+   * begge de dengang eksisterende betingelser var opfyldt, og håndtaget blev genbrugt tavst.
+   *
+   * Prøverne herunder er skruet sammen, så de kan SKELNE den nye identitetsprøve fra den
+   * konkurrerende stamdata-prøve: basis er sat og uændret, og verifikationen ville sige `valid: true`,
+   * hvis den blev kaldt. Bliver identitetsprøven fjernet, genbruges håndtaget, og begge fejler.
+   */
+  describe('håndtagets identitet (BB-049)', () => {
+    const setupForeignHandleScenario = (): { stored: FileSystemFileHandle; picked: FileSystemFileHandle } => {
+      // Fane A mener at arbejde på sin egen fil …
+      sessionStorage.setItem('mineo_ui_lastSavedFilename', 'Hansen 12-03-2024.eo');
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
+      // … men det delte håndtag i IndexedDB peger på den fil, fane B sidst gemte til.
+      const stored = makeHandle('Jensen 04-11-2023.eo');
+      const picked = makeHandle('Hansen 12-03-2024.eo');
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(stored);
+      // Ville have sagt ja: håndtaget ER gyldigt og tilgængeligt. Netop derfor var overskrivningen tavs.
+      mockedVerifyFileHandleDetailed.mockResolvedValue({ valid: true });
+      mockedSaveFileWithPicker.mockResolvedValue(picked);
+      return { stored, picked };
+    };
+
+    it('genbruger IKKE et handle, der peger på en anden fil end fanens egen', async () => {
+      const { picked } = setupForeignHandleScenario();
+
+      const target = await resolveSaveTarget(fileData);
+
+      // Pickeren skal have været inde over – ingen tavs overskrivning af Jensen-filen.
+      expect(target).toMatchObject({
+        kind: 'fileHandle',
+        fileHandle: picked,
+        persistHandleAfterSuccess: true,
+      });
+      expect(mockedSaveFileWithPicker).toHaveBeenCalledOnce();
+      // Identitetsprøven afgør sagen FØR permission-verifikationen; der er intet at verificere på et
+      // håndtag, der alligevel ikke må bruges.
+      expect(mockedVerifyFileHandleDetailed).not.toHaveBeenCalled();
+      expect(mockedDeleteFileHandleFromIndexedDB).toHaveBeenCalledOnce();
+    });
+
+    it('foreslår fanens EGET filnavn, ikke den anden fanes', async () => {
+      setupForeignHandleScenario();
+
+      await resolveSaveTarget(fileData);
+
+      expect(mockedSaveFileWithPicker).toHaveBeenCalledWith('Hansen 12-03-2024.eo', 'desktop');
+    });
+
+    it('siger hvorfor filvælgeren kom, så det ikke ligner en fejl i programmet', async () => {
+      setupForeignHandleScenario();
+
+      const target = await resolveSaveTarget(fileData);
+
+      if (target.kind !== 'fileHandle') throw new Error('Forventede et fileHandle-mål.');
+      expect(target.fallbackWarning).toContain('hører ikke til denne sag');
+    });
+
+    it('afbryder fail-closed, hvis det fremmede handle ikke kan ryddes', async () => {
+      setupForeignHandleScenario();
+      mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(false);
+
+      const target = await resolveSaveTarget(fileData);
+
+      expect(target).toEqual({ kind: 'cancelled' });
+      expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+      expect(mockedLogWarning).toHaveBeenCalledWith(
+        'Gammelt file handle kunne ikke ryddes sikkert; gemning afbrudt',
+        expect.objectContaining({ context: 'resolveSaveTarget.foreignTabHandle' })
+      );
+    });
+
+    it('genbruger stadig håndtaget, når det ER fanens egen fil', async () => {
+      // Modprøven: uden den ville en identitetsprøve, der altid afviser, også bestå de fire ovenfor.
+      sessionStorage.setItem('mineo_ui_lastSavedFilename', 'Hansen 12-03-2024.eo');
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
+      const stored = makeHandle('Hansen 12-03-2024.eo');
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(stored);
+      mockedVerifyFileHandleDetailed.mockResolvedValue({ valid: true });
+
+      const target = await resolveSaveTarget(fileData);
+
+      expect(target).toEqual({
+        kind: 'fileHandle',
+        fileHandle: stored,
+        persistHandleAfterSuccess: false,
+      });
+      expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+    });
+  });
+
   it('annullerer når brugeren lukker file-pickeren', async () => {
     mockedIsFileSystemAccessSupported.mockReturnValue(true);
     mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);

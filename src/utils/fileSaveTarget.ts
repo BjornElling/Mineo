@@ -58,6 +58,31 @@ const hasFilenameBasisChanged = (
   );
 };
 
+/**
+ * Peger det gemte handle på den fil, DENNE fane mener at arbejde på?
+ *
+ * Sagsdata og `lastSavedFilename` ligger i sessionStorage, som er fanens eget; selve filhåndtaget
+ * ligger i IndexedDB, som er FÆLLES for alle faner i browseren. To åbne faner er to selvstændige
+ * sager, men de deler ét håndtag – og det peger altid på den SIDST rørte fil i browseren. Uden denne
+ * prøve kunne fane A's `Gem` derfor skrive sin egen sag ind i den fil, fane B sidst gemte til: begge
+ * de eksisterende betingelser var opfyldt (fane A's eget stamdatagrundlag er uændret, og håndtaget er
+ * gyldigt og tilgængeligt), så håndtaget blev genbrugt tavst, og fane B's fil blev overskrevet uden
+ * filvælger, uden advarsel og med ordet «Gemt» som kvittering.
+ *
+ * Sammenligningen kan laves direkte på `handle.name`, fordi det er PRÆCIS den værdi, `fileSave.ts`
+ * skrev til `lastSavedFilename` ved sidste gem (`filename = target.fileHandle.name`). Der er derfor
+ * intet nyt at persistere, og de to sider kan ikke komme ud af sync med hinanden.
+ *
+ * Passer navnene ikke, er håndtaget ikke et verificerbart overwrite-mål for denne fane, og
+ * gem-flowet falder tilbage til filvælgeren med fanens eget filnavn som forslag – samme vej som når
+ * håndtaget er ugyldigt. Det koster ét ekstra valg i en sjælden situation og gør en tavs
+ * overskrivning af en ANDEN sag umulig.
+ */
+const doesHandleMatchTabFilename = (
+  fileHandle: FileSystemFileHandle,
+  savedFilename: string
+): boolean => typeof fileHandle.name === 'string' && fileHandle.name === savedFilename;
+
 const buildInvalidHandleUserWarning = (
   verification: Awaited<ReturnType<typeof verifyFileHandleDetailed>>
 ): string => {
@@ -112,8 +137,10 @@ export const resolveSaveTarget = async (
     let fallbackWarning: string | undefined;
 
     if (fileHandle && savedFilePath) {
-      // Vi har et gemt handle – valider det, men kun hvis filnavns-relevant stamdata er uændret.
-      if (!stamdataChanged) {
+      // Vi har et gemt handle – valider det, men kun hvis filnavns-relevant stamdata er uændret OG
+      // håndtaget faktisk peger på denne fanes egen fil (se `doesHandleMatchTabFilename`).
+      const handleBelongsToThisTab = doesHandleMatchTabFilename(fileHandle, savedFilePath);
+      if (!stamdataChanged && handleBelongsToThisTab) {
         const handleVerification = await verifyFileHandleDetailed(fileHandle, {
           allowRequestPermission: true,
         });
@@ -144,15 +171,26 @@ export const resolveSaveTarget = async (
           fileHandle = null;
         }
       } else {
-        // Stamdata ændret – åbn picker med nyt foreslået filnavn i stedet for at overskrive.
+        // Enten er stamdata ændret (bevidst ny fil), eller håndtaget tilhører en anden fane/fil.
+        // Begge veje ender i pickeren med fanens eget filnavn som forslag frem for en overskrivning.
         const deleted = await deleteFileHandleFromIndexedDB();
         if (!deleted) {
           // Samme fail-closed-regel gælder ved en bevidst ny fil: et gammelt handle må ikke kunne
           // genbruges, hvis persisteringen af det nye handle senere fejler.
           logWarning('Gammelt file handle kunne ikke ryddes sikkert; gemning afbrudt', {
-            context: 'resolveSaveTarget.changedFilenameBasisHandle',
+            context: stamdataChanged
+              ? 'resolveSaveTarget.changedFilenameBasisHandle'
+              : 'resolveSaveTarget.foreignTabHandle',
           });
           return { kind: 'cancelled' };
+        }
+        if (!handleBelongsToThisTab) {
+          // Brugeren skal vide HVORFOR filvælgeren kom, når han bad om et direkte gem. Uden en
+          // forklaring ligner det en fejl i programmet – og netop her er den tavse vej den farlige.
+          fallbackWarning =
+            'Den senest valgte fil i browseren hører ikke til denne sag – det sker typisk, når Mineo '
+            + 'er åben i flere faner. Vælg filplacering for denne sag, så en anden sags fil ikke '
+            + 'overskrives.';
         }
         fileHandle = null;
       }

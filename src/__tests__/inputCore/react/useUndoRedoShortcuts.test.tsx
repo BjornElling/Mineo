@@ -60,6 +60,69 @@ const pressUndo = () => {
   });
 };
 
+/**
+ * BB-050: Ctrl+Z ændrede sagen BAG en åben bekræftelsesdialog.
+ *
+ * Programmets eget regelsæt siger, at overlayet ejer tastaturet, så længe det er åbent
+ * (`keyboard-navigation.md` §Overlay-adfærd), men lytteren sidder på `window` og havde aldrig hørt om
+ * overlay-stakken. Feltet bag dialogen blev derfor ryddet, mens dialogen stod uændret og spurgte om
+ * noget andet – og fortrydelsens egen markering af feltet foregik bag dialogen, hvor den ikke kunne
+ * ses. Trykkede brugeren «Annuller» i troen på, at han dermed lod alt være, havde han allerede
+ * mistet sin sidste rettelse.
+ *
+ * Prøven måler på den ægte runtime-revision, ikke på et mock-kald: det er sagens tilstand, der ikke
+ * må ændre sig. Modprøven umiddelbart efter viser, at samme tastetryk VIRKER uden overlay – ellers
+ * kunne en hook, der aldrig fortryder noget, bestå prøven.
+ */
+describe('useUndoRedoShortcuts – overlayet ejer tastaturet (BB-050)', () => {
+  const OVERLAY_MARKER = 'data-mineo-overlay-root';
+
+  const withOpenOverlay = (): (() => void) => {
+    const overlayRoot = document.createElement('div');
+    overlayRoot.setAttribute(OVERLAY_MARKER, 'true');
+    document.body.appendChild(overlayRoot);
+    return () => overlayRoot.remove();
+  };
+
+  const seedTwoUndoableChanges = (): void => {
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'), { now: 1, origin: origin() });
+    dispatchInput(store, catalog, settleField(aargangField.bind(), '2021'), { now: 2, origin: origin() });
+  };
+
+  it('fortryder INTET, mens et overlay er åbent', async () => {
+    seedTwoUndoableChanges();
+    const closeOverlay = withOpenOverlay();
+    const onRestore = vi.fn();
+    render(<InputRuntimeProvider binding={makeBinding()}><Harness onRestore={onRestore} /></InputRuntimeProvider>);
+
+    const revisionBeforeKeypress = store.getState().revision;
+    pressUndo();
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    // Sagen bag dialogen er urørt – hverken history eller feltet har flyttet sig.
+    expect(store.getState().revision).toBe(revisionBeforeKeypress);
+    expect(onRestore).not.toHaveBeenCalled();
+    closeOverlay();
+  });
+
+  it('fortryder igen, så snart overlayet er lukket', async () => {
+    // Modprøven: skelner «overlayet ejer tasten» fra «genvejen virker aldrig».
+    seedTwoUndoableChanges();
+    const closeOverlay = withOpenOverlay();
+    const onRestore = vi.fn();
+    render(<InputRuntimeProvider binding={makeBinding()}><Harness onRestore={onRestore} /></InputRuntimeProvider>);
+
+    pressUndo();
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(onRestore).not.toHaveBeenCalled();
+
+    closeOverlay();
+    pressUndo();
+
+    await waitFor(() => expect(onRestore).toHaveBeenCalledTimes(1));
+  });
+});
+
 describe('useUndoRedoShortcuts – onRestore-kontrakt (§3.7)', () => {
   it('kalder onRestore med det gendannede frames origin efter en gennemført undo', async () => {
     // To ændringer MED origin, så past-stakken bærer et frame med origin at gendanne.

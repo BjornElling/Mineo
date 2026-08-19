@@ -303,6 +303,10 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/apps/mineo/serviceWorkerProtocol.test.ts',
       'src/__tests__/components/system/LazyChunkRecoveryNotice.test.tsx',
       'src/__tests__/components/system/UnsupportedDevicePage.test.tsx',
+      // 404-siden og de to strukturelle garantier, den hviler på (§2.2): mobilen ser den aldrig,
+      // og den ligger ikke uden om login-gaten.
+      'src/__tests__/components/system/PageNotFound.test.tsx',
+      'e2e/shell-shortcuts-and-not-found.spec.ts',
       'src/__tests__/settings/indexThemeBootstrap.test.ts',
       'src/__tests__/utils/uiScale.test.ts',
       'src/__tests__/quality/contentBoxWidthSingleSource.test.ts',

@@ -12,11 +12,15 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
-**M-17 og M-18 er tilføjet 2026-08-19 fra Global shell og er IKKE afgjort endnu.** M-17 handler om
-én oplysning, der er gemt i to lagre med hver sin rækkevidde, så de kan komme til at beskrive hver
-sin sag. M-18 handler om globale tastaturgenveje, der arbejder videre bag et åbent overlay, som
-efter programmets eget regelsæt ejer tastaturet. **Samme dag har M-06 og M-08 fået hver sin
-skærpelse** – læs dem i den nye form.
+**M-17 og M-18 er tilføjet 2026-08-19 fra Global shell og BEGGE afgjort og gennemført samme dag.**
+M-17 handler om én oplysning, der er gemt i to lagre med hver sin rækkevidde, så de kan komme til at
+beskrive hver sin sag; M-18 om globale tastaturgenveje, der arbejder videre bag et åbent overlay, som
+efter programmets eget regelsæt ejer tastaturet. Begge er nu normative i kontrakterne
+(`persistence-contract.md` §5 henholdsvis `keyboard-navigation.md` §Overlay-adfærd), og begge
+rettelser er mutationstestede. **Samme dag har M-06 og M-08 fået hver sin skærpelse** – læs dem i
+den nye form. M-06's udløsende fund (login-trimmet) er gennemført; **M-08's er derimod AFVIST**:
+brugeren fastholder, at Tab-ringen findes for at understøtte hurtig indtastning på ÉN side, og at
+navigation mellem sider og faner må være mus-drevet.
 
 **M-15 og M-16 er tilføjet 2026-08-19 fra MinProcesrente og afgjort samme dag** (M-15 afvist for
 MinProcesrente, M-16 gennemført for rentetabellen – se hvert mønster). M-15 er
@@ -217,6 +221,13 @@ Bemærk også asymmetrien, fundet afdækkede: adgangskoden er bevidst tolerant o
 bogstaver, men intolerant over for et blanktegn, brugeren ikke kan se. Hvor et felt allerede HAR en
 tolerance, er det værd at spørge, om den dækker den fejl, brugeren faktisk laver.
 
+**BB-055 er accepteret og gennemført 2026-08-19.** Trimmet ligger i `hashPassword`, altså præcis dér
+hvor case-neutraliseringen allerede boede – ét sted afgør, hvad adgangskoden ER. Rettelsen er
+normativ i `auth-gate-contract.md` §2.3, og prøven skelner de to ting: enderne trimmes, mens
+blanktegn INDE i koden fortsat er betydende. **Den generelle lære: læg normaliseringen dér, hvor den
+eksisterende normalisering bor, frem for et lag tidligere.** Et trim i kalderen ville have lukket
+netop dette hul og efterladt den næste kalder med samme fejl.
+
 - Fundet i: `stamdata.md` BB-007 – **accepteret 2026-08-16, skal rettes** med ét delt
   normaliseringstrin før feltets egen paste-behandling. Brugerens forbehold er, at det ikke må
   forstyrre de øvrige normaliseringer; det er efterprøvet og skal måles af en ækvivalenstest pr.
@@ -280,8 +291,19 @@ sessionen.
 
 **Prøven er derfor ikke «er dette element med i selectoren?», men «findes der en vej TILBAGE?»**
 En cirkulær ring, der kun omfatter en delmængde af fladen, er en fælde: alt uden for ringen kan nås
-én gang og aldrig igen. Efterprøv hver fokusbar kontrol, der bor uden for `Container` – sidemenuen,
-`PageTabs`, `SideTab` – på netop dét spørgsmål.
+én gang og aldrig igen.
+
+**Men brugeren har AFVIST, at det er en mangel (2026-08-19, BB-051) – og afgørelsen lukker sporet.**
+Tab-ringen findes med et bestemt formål: at understøtte hurtig indtastning i felterne, altså at man
+kan udfylde alle relevante værdier på en side uden at skifte til mus. Brugeren åbner typisk programmet
+for at lave ÉN bestemt type beregning og bliver derfor overvejende på samme side. At navigation til
+andre sider og faner hovedsageligt sker med mus, er et **accepteret kompromis**.
+
+Mønsteret står derfor tilbage som en beskrivelse af mekanikken, ikke som en fundkilde: **foreslå ikke
+igen, at sidemenuen, `PageTabs` eller `SideTab` skal ind i ringen.** Det gælder også de tre
+filhandlinger, selv om `Hent` og `Slet alt` ingen genvej har. Skulle mønsteret alligevel bruges
+senere, skal det være om noget ANDET end sidenavigation – fx en kontrol, der er den eneste vej til at
+færdiggøre en indtastning på den side, brugeren står på.
 
 - Kandidater, ikke efterprøvet: **interne** links inde i fejl- og advarselsbokse. MinProcesrentes
   titel-link (`href="/"`) er internt og hører til den gruppe, ikke til den eksterne regel.
@@ -669,17 +691,25 @@ Bemærk skellet mod en almindelig delt indstilling. Farvetema og standardmappe S
 alle faner; det er hele deres formål. Mønsteret rammer kun oplysninger, der hører til den ENE sag,
 fanen har åben.
 
-- Fundet i: `globalshell.md` BB-049 (**Kritisk, afventer bruger**). `Gem`s overskrivningsmål er én
-  oplysning i to dele: selve filhåndtaget i IndexedDB (fælles for browseren) og filnavnet plus
-  stamdatagrundlaget i `sessionStorage` (fanens eget). Med to faner skriver den ene sag ind i den
-  andens fil, og kvitteringen er ordet «Gemt».
+- Fundet i: `globalshell.md` BB-049 (**Kritisk – accepteret og GENNEMFØRT 2026-08-19**). `Gem`s
+  overskrivningsmål er én oplysning i to dele: selve filhåndtaget i IndexedDB (fælles for browseren)
+  og filnavnet plus stamdatagrundlaget i `sessionStorage` (fanens eget). Med to faner skrev den ene
+  sag ind i den andens fil, og kvitteringen var ordet «Gemt».
 - **De to led er eftervist hver for sig i browseren** (fane B ser ikke fane A's `sessionStorage`;
   begge ser samme IndexedDB-base `mineo_file_handles`), men selve den forkerte skrivning kan ikke
-  måles headless – filvælgeren åbner ikke. Efterprøv manuelt før rettelsen lægges fast.
-- **Den generelle lære:** en identitet skal følge det, den identificerer. Filhåndtaget bærer ingen
-  identitet i dag, og verifikationen af det (`verifyFileHandleDetailed`) spørger kun «må jeg skrive,
-  og findes filen?» – aldrig «er det den rigtige fil?». Er der en identitet at sammenligne, skal den
-  ligge i SAMME lager som det, den identificerer.
+  måles headless – filvælgeren åbner ikke. **Rettelsen er derfor mutationstestet frem for målt i
+  browseren**, og den manuelle efterprøvning med to faner og to rigtige filer står stadig åben som
+  bekræftelse.
+- **Den generelle lære, skærpet af rettelsen:** en identitet skal følge det, den identificerer – og
+  den BEDSTE identitet er den, der ikke skal vedligeholdes. Det oprindelige løsningsforslag var at
+  gemme filnavnet SAMMEN med håndtaget i IndexedDB, men `FileSystemFileHandle` bærer allerede sit
+  eget `name`, og `lastSavedFilename` skrives fra præcis samme kilde (`fileHandle.name`) ved hvert
+  gem. Sammenligningen kunne derfor laves direkte, uden ny persistering, uden migrering – og uden en
+  ekstra kopi, der selv kunne komme ud af sync og genindføre fejlen. **Spørg altid, om den identitet,
+  der mangler, allerede findes på objektet**, før der lægges en parallel kopi ved siden af.
+- Verifikationen af håndtaget (`verifyFileHandleDetailed`) spurgte kun «må jeg skrive, og findes
+  filen?» – aldrig «er det den rigtige fil?». Den skelnen er nu normativ i
+  `persistence-contract.md` §5.
 - Kandidater, ikke efterprøvet: `fileHandleStorage` rummer også standardmappen (en indstilling og
   derfor uden for mønsteret). Efterprøv derimod enhver fremtidig sagsnær værdi i IndexedDB, og
   `UI_STORAGE_KEYS`-parrene, hvor to nøgler kun giver mening sammen.
@@ -702,13 +732,21 @@ utilsigtet ændring af underlaget er dyrest.
 komponent, der selv er en del af overlay-stakken. Prøven er: **åbn en dialog, tryk genvejen, og se
 om noget bag dialogen ændrer sig.**
 
-- Fundet i: `globalshell.md` BB-050 (**Høj, afventer bruger**). Med bekræftelsen «Slet alle
-  indtastninger» åben ryddede Ctrl+Z feltet bagved (målt: Skadedato `99-99-9999` → tom), mens
-  dialogen stod uændret og spurgte videre. Ctrl+S starter tilsvarende et helt gem – filvælger og
-  det hele – bag den åbne bekræftelse.
-- Mekanikken til at lukke hullet findes allerede: `components/ui/overlayBehavior.ts` ved præcis,
-  hvad der er øverst på stakken. Genvejene skal blot spørge den, før de handler.
-- Kandidater, ikke efterprøvet: de to genvejslyttere er i dag `useUndoRedoShortcuts` (Ctrl+Z,
-  Ctrl+Shift+Z, Ctrl+Y) og `MainLayout`s Ctrl+S. Efterprøv desuden Løntrin-finderen og
-  licensvinduet, som begge kan stå åbne over en sag – Løntrin-finderen har endda felter i sig, så et
-  Ctrl+Z dér er det, brugeren mest nærliggende ville prøve.
+- Fundet i: `globalshell.md` BB-050 (**Høj – accepteret og GENNEMFØRT 2026-08-19**). Med
+  bekræftelsen «Slet alle indtastninger» åben ryddede Ctrl+Z feltet bagved (målt: Skadedato
+  `99-99-9999` → tom), mens dialogen stod uændret og spurgte videre. Ctrl+S startede tilsvarende et
+  helt gem – filvælger og det hele – bag den åbne bekræftelse.
+- Mekanikken til at lukke hullet fandtes allerede: `components/ui/overlayBehavior.ts` ved præcis,
+  hvad der er øverst på stakken. Begge lyttere spørger nu `hasOpenOverlay()`. Reglen er skrevet ind
+  som normativ i `keyboard-navigation.md` §Overlay-adfærd.
+- **Rettelsen dækker alle fem overlays på én gang**, fordi prøven spørger stakken frem for at nævne
+  dialoger ved navn: de tre bekræftelser i shellen, licensvinduet og Løntrin-finderen. Sidstnævnte
+  var den mest nærliggende for brugeren, fordi den har felter i sig.
+- **`preventDefault()` hører med i reglen.** Genvejen må ikke spærre tasten uden at bruge den; ellers
+  mister brugeren også browserens egen adfærd, og tasten bliver et sort hul. Det er samme fejlform,
+  BB-054 handler om fra den anden side.
+- **Lære om at måle det:** prøven skal hvile på en SYNLIG virkning. Den første udgave af Ctrl+S-prøven
+  brugte en udfyldt sag og bestod, uanset om genvejen var spærret – fordi gem-flowet med data ender
+  tavst i filvælgeren, som ikke kan betjenes i jsdom. Med en urørt sag svarer gem i stedet «Ingen data
+  fundet at gemme», og fraværet af den besked er et positivt bevis. En prøve, der kun kan observere et
+  fravær, skal have en modprøve, der viser, at nærværet var muligt.

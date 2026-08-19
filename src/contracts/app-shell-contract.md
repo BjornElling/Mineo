@@ -3,7 +3,10 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter – men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-08-19 (§2.2 har fået to præciseringer, som 404-siden hviler på:
+device-gatens tidlige `return` betyder, at rutetræet – catch-all'en inklusive – aldrig monteres på
+mobil, og at auth-gaten dækker catch-all'en på samme måde som de navngivne routes. Baggrund:
+brugerfundet BB-057; målt af `components/system/PageNotFound.test.tsx`.)
 
 ## 1. Scope
 
@@ -39,6 +42,10 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
    runtimeinitialisering. Unsupported-device hard-stop må ikke initialisere sagsstate.
 
 2. **Device-gaten ejes af app-shellen.** `isUnsupportedDevice` og `UNSUPPORTED_MAX_SHORTEST_SIDE_PX` lever kun i `bootstrapClientApp.tsx`. Rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer (`isTouchLikeDevice`, fysisk skærmkortside, viewport-kortside, `isTouchLikeDeviceWithShortestSideAtMost`) lever i `src/utils/clientDevice.ts`, så samme aflæsninger kan genbruges uden at duplikere device-logik i sidekomponenter. Ved uunderstøttet enhed renderes `UnsupportedDevicePage` som hård stop, og App-roden monteres ikke. Gaten bruger touch-enhedens stabile kortside, så rotation ikke kan åbne en ellers blokeret tablet. Gaten er **fail-closed**: kan hverken fysisk skærm eller viewport aflæses på en touch-lignende enhed, behandles enheden som uunderstøttet. En app-variant kan eksplicit fravælge gaten via `enforceUnsupportedDeviceGate: false` (kun standalone-beregneren, der bevidst skal virke på mobil).
+
+   **«App-roden monteres ikke» er en garanti, andre flader hviler på.** Fordi hard-stoppet er en tidlig `return` FØR `renderApp`, monteres React Router aldrig på en uunderstøttet enhed. Ingen adresse på en telefon eller tablet kan derfor nå en Mineo-side – heller ikke rutetræets catch-all (404). Mobilbrugeren får udelukkende `UnsupportedDevicePage` (brugerbeslutning 2026-08-19, BB-057). Rækkefølgen må ikke brydes: flyttes render-beslutningen op før gaten, ændrer det ikke bare opstarten, men også hvilke sider mobilen kan se. Målt af `components/system/PageNotFound.test.tsx`.
+
+   **Rutetræet ligger inde i auth-gaten, og catch-all'en er ingen undtagelse.** `AuthGate` monterer `App` – og dermed samtlige routes, inklusive `path="*"` – først når login-flaget er sat, så en ukendt adresse rammer login-siden præcis som en kendt gør. 404-siden er dermed ikke en genvej ind bag gaten (brugerbetingelse 2026-08-19, BB-057). En route må aldrig erklæres uden for `App`, hvor den ville ligge uden om både auth- og device-gaten.
 
 3. **Multi-app-isolation – ingen krydsimport.** Standalone-laget (`src/apps/minprocesrente/**`, `src/components/pages/minprocesrente/**` og dedikerede standalone-services) må ikke importere Mineos auth-, route-, PWA-, service-worker- eller diagnose-flow (`AuthGate`, `BrowserRouter`/`App`, `pwaLaunchQueue`, `serviceWorker*`, `systemIssueReporter`/`reportSystemIssue`). Forbuddet håndhæves strukturelt af AST-reglen `layer/minprocesrente-standalone-import-boundary`.
 
@@ -247,6 +254,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `scripts/verify-build-artifacts.mjs` (postbuild-værn for entries, manifest og variantfiler).
 - `src/__tests__/quality/architecture/rules/responsiveStylingRules.ts` (`shell/viewport-responsive-styling-allowlist`: pinner fillisten i §5.3, så desktop-only-undtagelsen ikke kan brede sig stiltiende; `shell/unsupported-device-page-bundle-isolation`: hard-stop-siden må ikke importere MUI/Emotion, app-shellens UI-komponenter eller stylesheets, jf. §5.5).
 - `src/__tests__/components/system/UnsupportedDevicePage.test.tsx` (hard-stop-sidens brandtitel; søskendesiderne med den aktuelle side som ikke-link, `target`/`rel` på de håndsammensatte links, linkene i tastaturrækkefølgen og kontaktadressen).
+- `src/__tests__/components/system/PageNotFound.test.tsx` (404-siden oplyser, at sagen er uændret, og peger på menuen; adressen står i tilgængelighedsnavnet, ikke i brødteksten. Dertil de to strukturelle garantier fra §2.2: catch-all'en ligger inde i shell-routen, rutetræet findes kun inde i den auth-gatede `App`, og device-gatens tidlige `return` ligger før `renderApp`).
+- `e2e/shell-shortcuts-and-not-found.spec.ts` (den fulde rejse i en rigtig browser: 404-siden beholder sidemenuen og sagens indhold, en ukendt adresse rammer login-siden, og shellens globale genveje respekterer overlayet – herunder at browserens egen tekstfortrydelse virker i et åbent felt, hvad jsdom pr. konstruktion ikke kan måle).
 - `src/__tests__/utils/uiScale.test.ts` (policygrænser, hysterese, menuens skala som minimum af de to, ikonaksen, bootstrap/runtime-paritet og DOM-måling).
 - `e2e/minimum-viewport-shell.spec.ts` og `e2e/content-scale.spec.ts` (menuens minimumsgeometri og loft mod arbejdsfladens skala, ens gutter hele vejen rundt, popup-lagets skala, kontrolfanernes udhæng uden for indholdsboksen uden vandret rul, deres signatur mod de vandrette faners i begge temaer, den ubeskårne arbejdsflade ved 1280 CSS-px og resize-state).
 - `src/__tests__/components/layout/SideTabRail.test.tsx` (skinnens klipning: vandret alene, målt kant, upåvirket af vandret rul, aldrig smallere end indholdsboksen).

@@ -77,11 +77,14 @@ describe('auth', () => {
     expect(isAuthenticated()).toBe(true);
   });
 
+  // De tre skrivefejl kaster den SAMME navngivne fejltype, ikke blot den samme tekst. Typen er det,
+  // login-siden skelner på for at kunne vise den handlingsanvisende besked ved blokeret lagring frem
+  // for den generiske, som hører til den uafhjælpelige årsag (manglende `crypto.subtle`).
   it('kaster en deterministisk fejl når vedvarende storage mangler', async () => {
     persistentStorageMock = null;
 
-    const { setAuthenticated } = await import('../../auth/auth');
-    expect(() => setAuthenticated()).toThrow('Kunne ikke gemme login-status i browseren.');
+    const { AuthStorageUnavailableError, setAuthenticated } = await import('../../auth/auth');
+    expect(() => setAuthenticated()).toThrow(AuthStorageUnavailableError);
   });
 
   it('kaster en deterministisk fejl når storage-skrivning fejler', async () => {
@@ -92,8 +95,8 @@ describe('auth', () => {
       },
     };
 
-    const { setAuthenticated } = await import('../../auth/auth');
-    expect(() => setAuthenticated()).toThrow('Kunne ikke gemme login-status i browseren.');
+    const { AuthStorageUnavailableError, setAuthenticated } = await import('../../auth/auth');
+    expect(() => setAuthenticated()).toThrow(AuthStorageUnavailableError);
   });
 
   it('kaster en deterministisk fejl når storage ignorerer skrivningen', async () => {
@@ -102,8 +105,33 @@ describe('auth', () => {
       setItem: () => undefined,
     };
 
+    const { AuthStorageUnavailableError, setAuthenticated } = await import('../../auth/auth');
+    expect(() => setAuthenticated()).toThrow(AuthStorageUnavailableError);
+  });
+
+  // Fejlen ved blokeret lagring skal PEGE brugeren et sted hen: den er den ene af de to tekniske
+  // årsager, han selv kan rette. En generisk «login kunne ikke gennemføres» er en blindgyde.
+  it('siger hvad brugeren selv kan gøre, når browseren blokerer for lagring', async () => {
+    persistentStorageMock = null;
+
     const { setAuthenticated } = await import('../../auth/auth');
-    expect(() => setAuthenticated()).toThrow('Kunne ikke gemme login-status i browseren.');
+    expect(() => setAuthenticated()).toThrow(/tillad websitedata/i);
+  });
+
+  // BB-055: adgangskoden kopieres typisk fra den mail, den blev sendt i, og markeringen tager næsten
+  // altid det afsluttende mellemrum eller linjeskift med. Feltet viser prikker, så der er intet at se
+  // – uden trim er den eneste vej ind spærret af et tegn, brugeren ikke kan opdage.
+  it('godkender den delte adgangskode med blanktegn i enderne', async () => {
+    const { verifySharedPassword } = await import('../../auth/auth');
+    await expect(verifySharedPassword(` ${TEST_PASSWORD}\n`)).resolves.toBe(true);
+    await expect(verifySharedPassword(`\t${TEST_PASSWORD} `)).resolves.toBe(true);
+  });
+
+  // Trimmet gælder KUN enderne. Et internt mellemrum er en del af adgangskoden, og en kode med
+  // blanktegn indeni må ikke kunne matche en uden.
+  it('trimmer kun enderne – blanktegn inde i koden er stadig betydende', async () => {
+    const { verifySharedPassword } = await import('../../auth/auth');
+    await expect(verifySharedPassword('test password')).resolves.toBe(false);
   });
 
   it('nægter adgang uden at kaste når storage-læsning fejler', async () => {

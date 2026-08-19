@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import { RoutePathnameProvider } from './contexts/RoutePathnameProvider';
 import MainLayout from './components/layout/MainLayout';
+import PageNotFound from './components/system/PageNotFound';
 import ErrorBoundary from './components/errors/ErrorBoundary';
 import { useAppSettings } from './contexts/useAppSettings';
 import { buildTheme } from './config/appTheme';
@@ -170,16 +171,11 @@ const ThemedApp = ({
                   const Page = lazyPageByRoute[route]!;
                   return <Route key={route} path={route} element={<Page />} />;
                 })}
+                {/* Catch-all'en ligger INDE i shellen, så en ukendt adresse beholder sidemenuen og
+                    dermed en vej videre. Den står bevidst ikke i `ALL_APP_PAGE_ROUTES`: den er ikke
+                    en side i kataloget, men svaret på alt, kataloget ikke dækker. */}
+                <Route path="*" element={<PageNotFound />} />
               </Route>
-              <Route
-                path="*"
-                element={
-                  <div style={{ padding: '40px' }}>
-                    <h2>404 - Side ikke fundet</h2>
-                    <p>URL: {window.location.pathname}</p>
-                  </div>
-                }
-              />
             </Routes>
           </ProductionInputRuntimeProvider>
         </RoutePathnameProvider>

@@ -28,8 +28,19 @@ const hashPassword = async (password: string): Promise<string> => {
     throw new Error('Denne browser understøtter ikke adgangskontrol.');
   }
 
-  // Adgangskoder er case-neutrale: config-hashes skal derfor være beregnet på lowercased plaintext.
-  const encoded = new TextEncoder().encode(password.toLocaleLowerCase('da-DK'));
+  // Adgangskoder er case-neutrale OG blanktegns-neutrale i enderne: config-hashes er beregnet på
+  // lowercased plaintext uden foran- og bagvedstående blanktegn.
+  //
+  // Trimmet hører PRÆCIS her, hvor case-neutraliseringen allerede bor, fordi det er det ene sted, der
+  // afgør hvad adgangskoden ER. Login-siden trimmede i forvejen i sit «har du skrevet noget»-tjek, men
+  // ikke i verifikationen; de to led var altså uenige om samme beslutning. Konsekvensen var, at en
+  // adgangskode kopieret fra mailen – hvor markeringen næsten altid tager det afsluttende mellemrum
+  // eller linjeskift med – blev afvist som «Forkert adgangskode», mens feltet viste prikker, så der var
+  // intet at se. Brugeren kom slet ikke ind, og beskeden pegede ham i den forkerte retning.
+  //
+  // Der gives intet væk: en adgangskode kan ikke meningsfuldt begynde eller slutte med blanktegn, og
+  // ingen af de aktive hashes i `authConfig.ts` er beregnet på en plaintext med sådanne ender.
+  const encoded = new TextEncoder().encode(password.trim().toLocaleLowerCase('da-DK'));
   const digest = await cryptoObj.subtle.digest('SHA-256', encoded);
   return toHex(new Uint8Array(digest));
 };
@@ -47,10 +58,29 @@ export const isAuthenticated = (): boolean => {
   }
 };
 
+/**
+ * Fejlen, når login-flaget ikke kan gemmes, fordi browseren blokerer for lagring.
+ *
+ * En egen klasse frem for en bar `Error`, fordi de to måder, et login kan mislykkes teknisk på, har
+ * modsatte udfald for brugeren: DENNE kan han selv rette på et minut (tillad websitedata for
+ * webstedet), mens et manglende `crypto.subtle` er uafhjælpeligt. `LoginPage` viste den samme
+ * generiske sætning for begge, så beskeden kunne ikke handles på – og login er det ene sted, hvor en
+ * fejl er en total blindgyde. Typen er det, der lader login-siden skelne dem uden at læse tekst.
+ */
+export class AuthStorageUnavailableError extends Error {
+  constructor() {
+    super(
+      'Mineo kunne ikke gemme din login-status. Browseren blokerer for lagring på dette websted – '
+      + 'tillad websitedata for minEO.dk og prøv igen.'
+    );
+    this.name = 'AuthStorageUnavailableError';
+  }
+}
+
 export const setAuthenticated = (): void => {
   const storage = getPersistentLocalStorage();
   if (!storage) {
-    throw new Error('Kunne ikke gemme login-status i browseren.');
+    throw new AuthStorageUnavailableError();
   }
 
   try {
@@ -58,10 +88,10 @@ export const setAuthenticated = (): void => {
     // Nogle storage-implementeringer kan ignorere en skrivning uden at kaste. Read-back gør
     // loginets persistenskrav observerbart og holder gaten fail-closed også i det tilfælde.
     if (storage.getItem(AUTH_STORAGE_KEY) !== AUTH_STORAGE_VALUE) {
-      throw new Error('Login-status blev ikke gemt.');
+      throw new AuthStorageUnavailableError();
     }
   } catch {
-    throw new Error('Kunne ikke gemme login-status i browseren.');
+    throw new AuthStorageUnavailableError();
   }
 };
 

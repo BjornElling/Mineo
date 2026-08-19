@@ -2,13 +2,19 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LoginPage from '../../auth/LoginPage';
+import { AuthStorageUnavailableError } from '../../auth/auth';
 
 const authMocks = vi.hoisted(() => ({
   setAuthenticated: vi.fn<() => void>(),
   verifySharedPassword: vi.fn<(password: string) => Promise<boolean>>(),
 }));
 
-vi.mock('../../auth/auth', () => authMocks);
+vi.mock('../../auth/auth', async (importOriginal) => {
+  // Kun de to funktioner er attrapper. `AuthStorageUnavailableError` kommer fra modulet selv, så
+  // `instanceof`-forgreningen i login-siden prøves mod den RIGTIGE klasse.
+  const actual = await importOriginal<typeof import('../../auth/auth')>();
+  return { ...actual, ...authMocks };
+});
 
 describe('LoginPage', () => {
   beforeEach(() => {
@@ -40,12 +46,15 @@ describe('LoginPage', () => {
     expect(onAuthenticated).not.toHaveBeenCalled();
   });
 
-  it('viser en brugervendt fejl og holder gaten lukket når loginflaget ikke kan gemmes', async () => {
+  // Den UAFHJÆLPELIGE årsag (fx manglende `crypto.subtle`) beholder den generiske tekst: der er
+  // intet handlingsanvisende at sige, og en opfordring til at ændre en browserindstilling ville
+  // sende brugeren efter noget, der ikke er problemet.
+  it('viser den generiske fejl og holder gaten lukket ved en uafhjælpelig loginfejl', async () => {
     const user = userEvent.setup();
     const onAuthenticated = vi.fn();
     authMocks.verifySharedPassword.mockResolvedValue(true);
     authMocks.setAuthenticated.mockImplementation(() => {
-      throw new Error('Kunne ikke gemme login-status i browseren.');
+      throw new Error('Denne browser understøtter ikke adgangskontrol.');
     });
     render(<LoginPage onAuthenticated={onAuthenticated} />);
 
@@ -55,6 +64,30 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Login kunne ikke gennemføres i denne browser.',
     );
+    expect(onAuthenticated).not.toHaveBeenCalled();
+  });
+
+  /**
+   * BB-056: de to tekniske årsager delte én generisk sætning, som ikke kunne handles på – og login er
+   * det ene sted, hvor en fejl er en total blindgyde. Blokeret lagring kan brugeren selv rette på et
+   * minut, så netop den skal sige hvordan. Prøven skal kunne SKELNE de to: den generiske tekst må
+   * ikke stå her, og vejledningen må ikke stå i testen ovenfor.
+   */
+  it('viser den handlingsanvisende fejl, når browseren blokerer for lagring', async () => {
+    const user = userEvent.setup();
+    const onAuthenticated = vi.fn();
+    authMocks.verifySharedPassword.mockResolvedValue(true);
+    authMocks.setAuthenticated.mockImplementation(() => {
+      throw new AuthStorageUnavailableError();
+    });
+    render(<LoginPage onAuthenticated={onAuthenticated} />);
+
+    await user.type(screen.getByLabelText('Adgangskode'), 'korrekt');
+    await user.click(screen.getByRole('button', { name: 'Log ind' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/tillad websitedata/i);
+    expect(alert).not.toHaveTextContent('Login kunne ikke gennemføres i denne browser.');
     expect(onAuthenticated).not.toHaveBeenCalled();
   });
 

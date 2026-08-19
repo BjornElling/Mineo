@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import SideMenu from './SideMenu';
 import Container from './Container';
 import Overlay from '../ui/Overlay';
+import { hasOpenOverlay } from '../ui/overlayBehavior';
 import ConfirmationDialog from '../ui/ConfirmationDialog';
 import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
@@ -52,7 +53,28 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   const location = useLocation();
   const { settings } = useAppSettings();
   const ops = useCaseOperations(settings);
-  const [overlay, setOverlay] = React.useState<OverlayData | null>(null);
+  /**
+   * Beskeden OG dens identitet.
+   *
+   * Identiteten er ikke pynt: den er det, der giver hver ny besked sin egen nedtælling og sin egen
+   * indtoning. `Overlay`s timere startes af en effekt, der kun afhænger af beskedens TYPE, så to
+   * beskeder af samme type i træk delte den førstes nedtælling – den anden arvede resttiden. Kom den
+   * anden besked under udtoningen, blev den tegnet gennemsigtig og lukkede sig selv umiddelbart
+   * efter, altså helt usynligt. Det ramte præcis den bruger, der trykkede igen, fordi han ikke nåede
+   * at læse svaret første gang.
+   *
+   * Løsningen ligger her frem for inde i `Overlay`, fordi det er den samme regel som for «peg på
+   * dette felt»-markeringen (`keyboard-navigation.md`): udløser brugeren det samme to gange, skal der
+   * komme et synligt svar begge gange. Et deklarativt reset inde i komponenten kan ikke skelne «samme
+   * besked igen» fra «en re-render af den samme besked»; en monotont voksende nøgle kan, og den gør
+   * `Overlay` til en frisk instans med friske timere – også når type OG tekst er identiske.
+   */
+  const [overlay, setOverlay] = React.useState<{ id: number; data: OverlayData } | null>(null);
+  const overlayIdRef = React.useRef(0);
+  const presentOverlay = React.useCallback((data: OverlayData) => {
+    overlayIdRef.current += 1;
+    setOverlay({ id: overlayIdRef.current, data });
+  }, []);
 
   // Den aktuelle afsluttede revision og autoritative replacement-generation driver unsaved-guardens
   // baseline (§3.7). Replacement-generation hæves af load/reset/`Slet alt`.
@@ -77,8 +99,8 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   useUndoRedoShortcuts({ onRestore: handleUndoRedoRestore });
 
   const showOverlay = React.useCallback((overlayData: OverlayData) => {
-    setOverlay(overlayData);
-  }, []);
+    presentOverlay(overlayData);
+  }, [presentOverlay]);
 
   // Devtools-/bugrapport-diagnostik læser gennem den NAVNGIVNE diagnostikprojektion (§3.4). Shellen griber
   // ikke selv ned i rå `sections`: opslaget ejes af `inputDiagnosticsProjection`, som er bundet til præcis den
@@ -127,7 +149,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
       const preparation = await criticalActions.prepare('navigate');
       if (preparation.status === 'blocked') {
         preparation.target?.focus();
-        setOverlay({
+        presentOverlay({
           message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
           type: 'warning',
         });
@@ -137,12 +159,12 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
       navigate(targetRoute);
     } catch (error) {
       console.warn('Sideskift blev afbrudt, fordi aktivt felt ikke kunne afsluttes.', error);
-      setOverlay({
+      presentOverlay({
         message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
         type: 'warning',
       });
     }
-  }, [criticalActions, location.pathname, navigate]);
+  }, [criticalActions, location.pathname, navigate, presentOverlay]);
 
   // Restore-målet for `Slet alt`-bekræftelsen. Se dialogen nedenfor for hvorfor den skal være eksplicit.
   const sletAltButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -194,13 +216,19 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
     const startup = getProductionInputRuntimeStartup();
     if (startup === null) return;
     if (startup.notice === null) return;
-    setOverlay({ message: startup.notice.message, type: startup.notice.type });
-  }, []);
+    presentOverlay({ message: startup.notice.message, type: startup.notice.type });
+  }, [presentOverlay]);
 
   // Global keyboard shortcut for gem. Undo/redo håndteres af useUndoRedoShortcuts.
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        // Overlayet ejer tastaturet, så længe det er åbent (`keyboard-navigation.md`
+        // §Overlay-adfærd). Uden dette startede Ctrl+S et helt gem – med filvælger og det hele –
+        // BAG en åben bekræftelsesdialog, som blev stående og spurgte om noget andet.
+        // Samme regel som undo/redo i `useUndoRedoShortcuts`; ingen `preventDefault()`, når
+        // tasten ikke er vores.
+        if (hasOpenOverlay()) return;
         e.preventDefault();
         handleGem();
       }
@@ -238,7 +266,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
       >
         <LazyChunkRecoveryNotice
           onReloadBlocked={() => {
-            setOverlay({
+            presentOverlay({
               message: 'Kan ikke genindlæse endnu: afslut eller ret det aktive felt først.',
               type: 'warning',
             });
@@ -359,10 +387,17 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
 
       {overlay && (
         <Overlay
-          message={overlay.message}
-          type={overlay.type}
+          // Nøglen ER mekanismen bag «hver besked får sin egen nedtælling»: en ny identitet giver en
+          // frisk `Overlay`-instans med friske timere og en frisk indtoning, også når type og tekst er
+          // identiske med den forrige. Fjernes den, arver den anden besked den førstes resttid.
+          key={overlay.id}
+          message={overlay.data.message}
+          type={overlay.data.type}
           onClose={() => {
-            setOverlay(null);
+            // Kun DENNE besked må rydde tilstanden. Uden id-prøven kunne den udgående beskeds
+            // forsinkede `onClose` (fade-ud'et er 300 ms) rydde en NYERE besked, der er ankommet
+            // i mellemtiden – altså genskabe præcis det, rettelsen fjerner.
+            setOverlay((current) => (current !== null && current.id === overlay.id ? null : current));
           }}
         />
       )}

@@ -4,8 +4,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 
 - **Næste flade:** Varige mén (`/varigemen`, pr. fane)
 - **Næste fund-ID:** BB-062
-- **Senest opdateret:** 2026-08-19 (Global shell gennemgået: 13 fund, hvoraf 1 kritisk og 10 afventer
-  brugerens beslutning; to nye mønstre M-17 og M-18, og skærpelser af M-06 og M-08)
+- **Senest opdateret:** 2026-08-19 (Global shell **afgjort**: alle 13 fund besvaret – 6 gennemført,
+  6 afvist, 1 delvist gennemført efter modpres. M-17 og M-18 er afgjort og gennemført samme dag;
+  M-06's udløsende fund gennemført, M-08's afvist og sporet lukket)
 
 ## Flader
 
@@ -19,7 +20,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 3 | Indstillinger | Gennemgået | 8 (BB-023–BB-029, BB-036) | [indstillinger.md](indstillinger.md) |
 | 4 | Satser | Gennemgået | 6 (BB-030–BB-035) | [satser.md](satser.md) |
 | 5 | MinProcesrente | Afgjort | 12 (BB-037–BB-048) | [minprocesrente.md](minprocesrente.md) |
-| 6 | Global shell | Afventer bruger | 13 (BB-049–BB-061) | [globalshell.md](globalshell.md) |
+| 6 | Global shell | Afgjort | 13 (BB-049–BB-061) | [globalshell.md](globalshell.md) |
 | 7 | Varige mén | Ikke startet | – | – |
 | 8 | Renteberegning | Ikke startet | – | – |
 | 9 | Årslønsberegning | Ikke startet | – | – |
@@ -27,37 +28,66 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
 
-## Global shell – gennemgået 2026-08-19, afventer bruger
+## Global shell – afgjort 2026-08-19
 
-Tretten fund. Det fulde grundlag står i [globalshell.md](globalshell.md).
+**Alle tretten fund er afgjort** – seks accepteret og gennemført, seks afvist og ét delvist gennemført
+efter modpres. Det fulde grundlag med begrundelser står i [globalshell.md](globalshell.md).
 
-| ID | Kort | Type | Prioritet |
-|---|---|---|---|
-| BB-049 | `Gem` kan skrive den ene sag ind i den anden sags fil, når Mineo er åben i to faner | Edge case | **Kritisk** |
-| BB-050 | Ctrl+Z ændrer sagen bag en åben bekræftelsesdialog; Ctrl+S starter et gem bag den | Edge case | Høj |
-| BB-051 | Sidemenuen kan ikke nås med tastaturet, når fokus én gang har været i indholdet | Fornuft | Høj |
-| BB-052 | Programmet ved, om sagen er gemt, og siger det aldrig; sagen har intet filnavn på skærmen | Fornuft | Høj |
-| BB-053 | Den anden besked arver den førstes resttid og kan være helt usynlig | Fejl | Høj |
-| BB-054 | Ctrl+Z gør ingenting, mens et felt er åbent – heller ikke browserens egen fortrydelse | Fornuft | Mellem |
-| BB-055 | Korrekt adgangskode med et usynligt mellemrum afvises som «Forkert adgangskode» | Edge case | Høj |
-| BB-056 | Kan ikke logge ind, når browseren ikke må gemme login-status – én besked for to årsager | Edge case | Mellem |
-| BB-057 | 404-siden er en hvid blindgyde uden menu og uden vej tilbage | Fornuft | Mellem |
-| BB-058 | `Slet alt` advarer og kvitterer, også når der intet er at slette | Fornuft | Lav |
-| BB-059 | Genindlæsning (F5) advarer om et tab, der ikke sker | Fornuft | Lav |
-| BB-060 | `Slet alt` og `Erstat` kan ikke fortrydes, og dialogerne siger det ikke | Fornuft | Mellem |
-| BB-061 | Der findes ingen vej ud af login igen | Fornuft | Lav |
+| ID | Kort | Udfald |
+|---|---|---|
+| BB-049 | `Gem` kan skrive den ene sag ind i den anden sags fil, når Mineo er åben i to faner | **Gennemført** (Kritisk) – håndtaget genbruges kun, når dets `name` er fanens eget. Mit eget løsningsforslag forkastet som for kompliceret |
+| BB-050 | Ctrl+Z ændrer sagen bag en åben bekræftelsesdialog; Ctrl+S starter et gem bag den | **Gennemført** – begge genveje spørger overlay-stakken; dækker alle fem overlays |
+| BB-051 | Sidemenuen kan ikke nås med tastaturet, når fokus én gang har været i indholdet | **Afvist** – Tab-ringen findes for hurtig indtastning på ÉN side; mus til sidenavigation er et accepteret kompromis |
+| BB-052 | Programmet ved, om sagen er gemt, og siger det aldrig; sagen har intet filnavn på skærmen | **Afvist** – brugeren gemmer selv; browserens advarsel ved lukning er den primære beskyttelse |
+| BB-053 | Den anden besked arver den førstes resttid og kan være helt usynlig | **Gennemført** – identiteten kommer fra kilden som React-`key`; et fade-ud kan ikke længere lukke en nyere besked |
+| BB-054 | Ctrl+Z gør ingenting, mens et felt er åbent – heller ikke browserens egen fortrydelse | **Delvist gennemført efter modpres** – den dobbelte adfærd afvist (brugeren har ret), men spærringen af tasten fjernet |
+| BB-055 | Korrekt adgangskode med et usynligt mellemrum afvises som «Forkert adgangskode» | **Gennemført** – `trim()` ét sted, hvor case-neutraliseringen allerede bor; garantien for afledte virkninger er udfoldet |
+| BB-056 | Kan ikke logge ind, når browseren ikke må gemme login-status – én besked for to årsager | **Gennemført** – forgrening på fejlKLASSEN, ikke på tekst |
+| BB-057 | 404-siden er en hvid blindgyde uden menu og uden vej tilbage | **Gennemført** – siden ligger inde i shellen; brugerens to betingelser er efterprøvet strukturelt og målt |
+| BB-058 | `Slet alt` advarer og kvitterer, også når der intet er at slette | **Afvist** – `Slet alt` skal garantere, at alt er væk; en «der var intet»-besked har ingen værdi |
+| BB-059 | Genindlæsning (F5) advarer om et tab, der ikke sker | **Mitigering afvist** – brugerens regel tiltrådt som princip, men browseren har ét fælles `beforeunload` for lukning og F5. Ingen kodeændring |
+| BB-060 | `Slet alt` og `Erstat` kan ikke fortrydes, og dialogerne siger det ikke | **Afvist** – brugeren forventer, at `Slet alt` er irreversibel |
+| BB-061 | Der findes ingen vej ud af login igen | **Afvist** – professionelle brugere logger kun ind på egen eller en kollegas maskine |
 
-**Ti af de tretten afventer brugerens beslutning.** Kun BB-053 (beskedboksens nedtælling) og
-BB-055/BB-056 (login-teksterne) er rene fejlrettelser, jeg selv kan afgøre; resten ændrer synlig
-adfærd eller tekst.
+**Én afvisning, hvor jeg pressede tilbage og fik delvist ret (BB-054).** Brugerens hovedindvending var
+rigtig: min anbefaling ville have givet Ctrl+Z to betydninger, og «én tast, én funktion» er den stærkere
+regel. Men fundet indeholdt et andet forhold, begrundelsen ikke dækkede – genvejen kaldte
+`preventDefault()`, FØR den så, at editoren var åben, og slog dermed browserens egen tekstfortrydelse
+ihjel uden selv at gøre noget. Nul funktioner plus en spærring er ikke «én funktion». Spærringen er
+fjernet; den dobbelte adfærd er det ikke.
+
+**Fem afvisninger accepteret uden indvending** (BB-051, BB-052, BB-058, BB-060, BB-061 – hvoraf to
+korrigerede en fejlslutning i mit eget grundlag): BB-058's sammenligning med `Gem` holdt ikke, fordi
+`Gem` faktisk ÆNDRER sin handling efter svaret, og `Slet alt` ikke gør. BB-052's begrundelse hvilede
+delvis på, at et ekstra `Gem` kunne ramme forkert fil – det er bortfaldet med BB-049's rettelse.
 
 **Sporet, STATUS lagde ud til denne flade, er lukket:** `Gem` med et satsår uden for det dækkede
 interval (1999) blokerer ikke, og det er korrekt efter `form-contract` §1.6 – en bounds-fejl på en
 ellers repræsenterbar værdi må gemmes. Ingen fund.
 
-**Det væsentligste dækningshul:** filvælgeren kan ikke betjenes headless, så `Gem` til og `Hent` fra
-en rigtig fil er ikke set i drift. BB-049's to led er eftervist hver for sig i browseren, men selve
-den forkerte overskrivning er udledt af koden og bør efterprøves manuelt med to faner og to filer.
+**Det væsentligste dækningshul består efter rettelserne:** filvælgeren kan ikke betjenes headless, så
+BB-049's mekanisme er mutationstestet frem for målt i drift. Efterprøv manuelt med to faner og to
+rigtige filer. Tilsvarende kan den browser-adfærd, BB-054 frigiver (Ctrl+Z fortryder tegn i et åbent
+felt), pr. konstruktion ikke måles i jsdom.
+
+**Konsekvenser for de resterende flader – tre lukkede spor.** Foreslå dem ikke igen:
+1. **Tastaturnavigation er til indtastning, ikke til navigation.** Sidemenuen, `PageTabs` og `SideTab`
+   skal ikke ind i Tab-ringen. En kontrol uden for ringen er kun et fund, hvis den er nødvendig for at
+   færdiggøre indtastningen på den side, brugeren står på.
+2. **Programmet skal ikke vise gemt/ugemt-tilstand eller filnavn.** Brugeren gemmer selv; det er
+   åbenbart for professionelle brugere.
+3. **En «Log ud» skal ikke foreslås**, og gatens formålssætning om «delt enhed» er ikke et løfte om at
+   kunne fjerne adgangen igen.
+
+**Gennemført i kode:** `utils/fileSaveTarget.ts`, `inputCore/react/useUndoRedoShortcuts.ts`,
+`components/layout/MainLayout.tsx`, `auth/auth.ts`, `auth/LoginPage.tsx`, `App.tsx` og den nye
+`components/system/PageNotFound.tsx`. Fire kontrakter har fået normative afsnit:
+`persistence-contract.md` §5 (filhåndtagets identitet), `keyboard-navigation.md` (globale genveje og
+overlay-stakken + beskedernes nedtælling), `auth-gate-contract.md` §2.3/§2.7 og
+`app-shell-contract.md` §2.2. Nye/udvidede tests: `fileSaveTarget.test.ts`,
+`useUndoRedoShortcuts.test.tsx`, `MainLayout.shortcutsAndMessages.test.tsx` (ny),
+`PageNotFound.test.tsx` (ny), `auth.test.ts`, `LoginPage.test.tsx` og en rettet påstand i
+`MainLayout.undoRedoEditorGuard.test.tsx`. **Alle nye værn er mutationstestet.** Fuld vitest grøn.
 
 ## MinProcesrente – afgjort 2026-08-19
 
@@ -199,7 +229,11 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 **Fire.** To fra Global shell – de står udfoldet i [globalshell.md](globalshell.md): skal Ctrl+S kunne
 ses nogen steder i brugerfladen, og hvad skal `Gem` gøre, når skadelidtes navn rettes efter et gem
-(i dag skifter det tavst, hvilken fil der skrives til).
+(i dag skifter det tavst, hvilken fil der skrives til). **Begge står stadig åbne efter afgørelserne
+2026-08-19**, og det første er skærpet af BB-051's afvisning: når `Hent` og `Slet alt` bevidst ikke har
+genveje, er Ctrl+S den eneste tastaturvej til nogen af de tre filhandlinger. Det andet spørgsmål deler
+beslutningspunkt med BB-049's rettelse, men er uændret af den – et svar skal skrives ind i
+`resolveSaveTarget` og bør læse `persistence-contract.md` §5 først.
 
 **To fra MinProcesrente** – de står udfoldet i [minprocesrente.md](minprocesrente.md):
 forudfyldt beregningsdato ved første besøg, og om tillægstid skal kunne bruges på telefon.
@@ -216,18 +250,26 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 Atten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
 
-- **M-17** og **M-18** er tilføjet 2026-08-19 fra Global shell og er **ikke afgjort**:
+- **M-17** og **M-18** er tilføjet 2026-08-19 fra Global shell og **begge afgjort og gennemført samme
+  dag**; begge er nu normative i kontrakterne:
   - **M-17 – én oplysning delt over to lagerscoper.** `sessionStorage` hører til ÉN fane;
     `localStorage` og IndexedDB hører til hele browseren. En sagsnær oplysning, der er delt over to
     af dem, er kun konsistent, så længe der er én fane åben. Prøven er konkret: åbn programmet i to
     faner, lad hver sætte sin egen værdi, og se om den første stadig læser sin egen (BB-049).
+    **Mønsterets skarpeste lære kom af rettelsen, ikke af fundet:** den bedste identitet er den, der
+    ikke skal vedligeholdes. Spørg altid, om den manglende identitet allerede findes PÅ objektet
+    (`handle.name`), før der lægges en parallel kopi ved siden af, som selv kan drifte.
   - **M-18 – globale genveje kender ikke overlay-stakken.** En `keydown`-lytter på `window` rammer
     uanset hvad der ligger ovenpå, så handlingen sker bag den åbne dialog, hvor brugeren hverken
-    kan se den ske eller se dens resultat (BB-050).
-- **M-06 og M-08 har fået hver sin skærpelse samme dag.** M-06 rammer også, når to led i SAMME
-  beslutning normaliserer teksten forskelligt (login trimmer i «har du skrevet noget», men ikke i
-  «er koden rigtig»). M-08 er større end links: hele sidemenuen ligger uden for `Container`s ring,
-  så prøven er ikke «er elementet med i selectoren?», men «findes der en vej TILBAGE?»
+    kan se den ske eller se dens resultat (BB-050). **Halvdelen om `preventDefault()` er tilføjet af
+    BB-054:** en genvej må heller ikke SPÆRRE en tast, den ikke bruger – så mister brugeren også
+    browserens egen adfærd, og tasten bliver et sort hul.
+- **M-06 og M-08 har fået hver sin skærpelse samme dag – med modsat udfald.** M-06 rammer også, når to
+  led i SAMME beslutning normaliserer teksten forskelligt (login trimmede i «har du skrevet noget», men
+  ikke i «er koden rigtig»); **dens fund er gennemført**, og normaliseringen har nu ét sted.
+  M-08 er større end links – hele sidemenuen ligger uden for `Container`s ring, så prøven er ikke «er
+  elementet med i selectoren?», men «findes der en vej TILBAGE?» – men **dens fund er AFVIST**, og
+  sporet er lukket: Tab-ringen findes for hurtig indtastning på én side, ikke for navigation.
 
 - **M-15** og **M-16** er tilføjet 2026-08-19 fra MinProcesrente og **afgjort samme dag**:
   - **M-15 – skærmen tier, hvor dokumentet taler.** Spejlbilledet af M-13: generatoren skriver et

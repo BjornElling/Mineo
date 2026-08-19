@@ -90,8 +90,15 @@ describe('MainLayout undo/redo editor guard', () => {
       await Promise.resolve();
     });
 
-    expect(event?.defaultPrevented).toBe(true);
-    // Åben editor → stille no-op: history er urørt, satsåret står stadig 2020.
+    // Tasten SPÆRRES ikke, mens editoren er åben (BB-054, 2026-08-19). Programmets fortrydelse er
+    // bevidst uvirksom her – Ctrl+Z har præcis én funktion, at føre den seneste AFSLUTTEDE feltændring
+    // tilbage – men en tast, der spærres uden at bruges, er et sort hul: `preventDefault()` slog også
+    // browserens egen tekstfortrydelse ihjel, så brugeren stod med et felt fuldt af tekst og en tast,
+    // der hverken gjorde det ene eller det andet. Nu passerer hændelsen, og browseren beholder sin
+    // egen fortrydelse inde i feltet.
+    expect(event?.defaultPrevented).toBe(false);
+    // Åben editor → stille no-op: history er urørt, satsåret står stadig 2020. DET er den truffne
+    // beslutning, og den er uændret.
     expect(slimInputStore.getState().input.sections.satser?.aargang).toBe(2020);
     expect(screen.queryByText('Kan ikke fortryde eller gentage: afslut eller ret det aktive felt først.')).toBeNull();
   });
