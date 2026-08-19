@@ -12,6 +12,13 @@ udløsende fund er afvist, forsvinder ikke automatisk — men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**M-15 og M-16 er tilføjet 2026-08-19 fra MinProcesrente og afventer brugerens afgørelse.** M-15 er
+spejlbilledet af M-13: dokumentet bærer et forbehold, skærmen har ingen pendant. M-16 handler om
+rækker, der er komplette og fejlfri felt for felt, men som motoren afviser af en grund, feltmodellen
+ikke kender — hvorved afvisningen kommer ud som et fravær og spærrer hele fladens dokumenter.
+**Samme dag er M-14's sidste åbne kandidat efterprøvet og bekræftet** (datofelternes paste), og
+M-02 og M-09 har fået hver sin skærpelse — læs dem i den nye form.
+
 **M-13 og M-14 er tilføjet 2026-08-18 fra Satser-fladen og BEGGE afgjort samme dag.** De handler om, at
 to steder i programmet træffer den samme afgørelse hver for sig og bliver uenige: M-13 om skærmens og
 dokumentets prøve for «er der noget at vise», M-14 om paste-vejen i et tomt kontra et udfyldt felt.
@@ -71,6 +78,13 @@ sit. Beskeder, der har navnet skrevet ind i teksten, omgår mekanismen.
 
 **Efterprøv, hvor:** en fejl-, advarsels- eller tooltiptekst nævner et feltnavn i prosa i stedet for
 at hente det fra feltet — og hvor to tekster om samme begreb bruger forskellige ord for det.
+
+**Skærpelse 2026-08-19 (fra `minprocesrente.md` BB-043).** Mønsteret rammer ikke kun beskeder med et
+feltnavn skrevet ind i prosaen. Det rammer også beskeder, der **genkender en grænse på dens værdi i
+stedet for på dens ophav**: den fælles dato-fejlregel svarer «Datoen er efter dags dato», så snart
+maksimum tilfældigvis er lig med i dag — også når maksimum i virkeligheden er et andet felts værdi.
+Brugeren får dermed en forklaring, der peger på kalenderen frem for på det felt, han skal rette. Prøven
+er: **kan beskeden skifte ophav, uden at grænsen skifter værdi?** Så er den udledt forkert.
 
 - **Brugerens regel 2026-08-16 (bindende for hele programmet):** navngivningen i beskeder skal følge
   den til enhver tid værende værdi i skadestype-feltet — «Anmeldelsesdato» ved Erhvervssygdom,
@@ -259,6 +273,12 @@ sidestillede bokse eller indhold med egen minimumsbredde. Prøven er: **er indho
 
 - Fundet i: `om.md` BB-015 (sætninger skåret over ved 1366 px) — **afgjort: arbejdsfladeskalering
   inden for CSS-viewport-kontrakten**.
+- Bekræftet i ny form 2026-08-19: `minprocesrente.md` BB-045. Standalone skifter til telefonlayout
+  på **vinduets bredde**, mens den tilhørende breddefrigørelse af indholdsboksen kun gælder
+  **touch-enheder**. Et smalt musevindue (eller høj browserzoom) får derfor telefonens tre kolonner
+  spredt over 1174 px i et 567 px felt. **Skærpelse:** når to beslutninger om samme layout hviler på
+  hvert sit kriterium (viewport kontra input-modalitet), findes der altid en tilstand mellem dem —
+  efterprøv den frem for at antage, at de to kriterier falder sammen.
 - Kandidater, ikke efterprøvet: alle sider med tabeller. Årsløn, Erhvervsevnetab og
   Erstatningsopgørelsen er de bredeste og skal måles ved 1536×864, ikke ved 1920.
 
@@ -462,11 +482,14 @@ tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en væ
   er slettet som fortolkere og erstattet af det delte tegn-for-tegn-filter, som beløb, procent og brøk
   allerede brugte. Hjælperne bag dem (`extractContiguousDigits`, `findNextDigitIndex`, `isWithinBounds`)
   er fjernet med, så byggeklodserne til en ny fortolker ikke ligger og venter.
-- **Der er nu ingen paste-only fortolker tilbage i programmet** ud over datofelternes
-  `normalizeDatePaste`, som er segmentbaseret (`dd-mm-åååå`) og bevidst beholdt — den indsætter
-  separatorer, tastning ikke indsætter. **Den er ikke efterprøvet mod den nye regel og er mønsterets
-  vigtigste åbne kandidat.** Prøv den på de tre prøver ovenfor; især en dato indsat i et felt, der
-  allerede har en dato.
+- **Den sidste paste-only fortolker — datofelternes `normalizeDatePaste` — er nu efterprøvet, og den
+  har fejlen.** Målt 2026-08-19 (`minprocesrente.md` BB-042): `010623` indsat i et **tomt**
+  datofelt bliver `01-06-2023`; samme tekst indsat i et **udfyldt** felt (markér alt, indsæt) bliver
+  `01`, afvist og rødt. Prøve 2 er derimod bestået: `01-01-2045` uden for feltets grænse blev
+  bevaret uafkortet, så fortolkeren gætter ikke sig ned i et lovligt interval, som årsfelterne
+  gjorde. **Det er altså kun tilstandsafhængigheden (kendetegn 2), der står tilbage — og
+  segmentfortolkningen i sig selv er en truffet beslutning (BB-003), som ikke skal rulles tilbage.**
+  Rettelsens retning er derfor, at det udfyldte felt skal følge det tomme, ikke omvendt.
 - Alle fire årsfelter delte codec og er rettet i én omgang: `satser.aargang`,
   `eo.svieSmerteSatserAar`, Årslønssidens årsfelt (`aarsloenDescriptors.ts:332`) og
   Lønindkomst-tabellens `col1_maaned` (`erstatningsopgoerelseLoenDescriptors.ts:296`). De to sidste er
@@ -476,3 +499,70 @@ tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en væ
   (værnet tillod `,` og `\`, som settle ikke normaliserede; settle normaliserede `:`, som ikke kunne
   tastes). Nu én erklæring, begge læser. Efterprøv generelt, om et felts **tegnværn** og dets
   **settle-parser** er enige om det samme tegnsæt — to lister er to sandheder.
+
+## M-15 — Skærmen tier, hvor dokumentet taler
+
+> Programmet kender et forbehold til sit eget tal, formulerer det — og viser det kun i den PDF,
+> brugeren måske aldrig henter.
+
+Et dokument er ofte skrevet med mere omhu end den flade, tallet stammer fra: generatoren skriver en
+advarsel, en note eller en forudsætning, som skærmen ikke har nogen pendant til. Det gør dokumentet
+til det eneste sted, forbeholdet findes — og skærmen til et sted, hvor tallet står nøgent og ser
+færdigt ud.
+
+Det er en spejling af M-13, men med omvendt fortegn: M-13 handler om, at dokumentet **udelader**
+noget, skærmen viser. Her viser dokumentet noget, skærmen **udelader** — og det er alvorligere,
+fordi skærmen er det, brugeren regner efter, mens han arbejder.
+
+**Efterprøv, hvor:** en generator skriver fri tekst, der ikke stammer fra en indtastning — advarsler,
+forbehold, «hypotetisk», «kun fastsat til», «foreløbig», fodnoter om datadækning. Søg i
+generatorerne efter tekstblokke, der ikke er en label eller en værdi, og spørg for hver: **findes
+denne sætning nogen steder på den flade, tallet kommer fra?**
+
+Bemærk skellet mod et informationsikon. Satsers afgørelse (lukket spor 4) fastslog, at en tooltips
+akademiske baggrund ikke er noget, dokumentet mangler. Dette mønster går den anden vej og handler
+ikke om baggrund, men om **et forbehold til rigtigheden af et tal, der allerede står på skærmen**.
+
+- Fundet i: `minprocesrente.md` BB-040. Beregningsdatoen kan sættes fem år frem, mens
+  Nationalbankens udlånsrente kun er fastsat et halvt år frem. Skærmen viser `115.775,14 kr.` uden
+  et ord; PDF'en skriver med fed skrift «Der er kun fastsat procesrente frem til 31-12-2026.
+  Beregning derefter er hypotetisk!». Teksten findes, er formuleret og er dækket af to enhedstests —
+  den vises bare kun i den ene kanal.
+- Kandidater, ikke efterprøvet: EO's dokumenter og reguleringsbilaget er de tekstrigeste
+  generatorer og har flere tilsvarende forbehold; Forsørgertab og Varige mén skriver
+  forudsætningsafsnit, som fladerne ikke gentager.
+
+## M-16 — En komplet række, programmet ikke vil regne på
+
+> Alle felter er udfyldt, intet er rødt — og resultatet er alligevel en bindestreg, som spærrer for
+> hele sidens dokumenter.
+
+En beregningsmotor har typisk flere afvisningsgrunde end feltmodellen har fejl. Feltet kender sin
+egen grænse; motoren kender dertil kombinationen — datoernes indbyrdes rækkefølge efter en afledt
+beregning, et beløb der skal være positivt, en periode der skal have længde. Når motoren afviser af
+en grund, feltmodellen ikke kender, findes der ingen rød ramme at hænge forklaringen på, og
+afvisningen kommer ud som fravær: et `-` i resultatkolonnen, et forsvundet ikon, en grå knap.
+
+Det værste ved formen er, at fejlen ikke bliver i rækken. Aggregatet ser en ikke-tom række uden
+resultat, og hele fladens download spærres — også for de rækker, der er i orden.
+
+**Efterprøv, hvor:** en motor eller validator returnerer `null`/`Result.error` for en tilstand, der
+ikke svarer til en feltfejl. Konkret prøve pr. flade: **udfyld en række helt, så den er lovlig felt
+for felt, men umulig som helhed** — en afledt dato der lander efter sin grænse, et nulbeløb, en
+periode på nul dage — og se, om noget som helst på skærmen forklarer, hvorfor resultatet udeblev.
+
+To rettelser hører sammen med mønsteret, og den anden glemmes let:
+1. Årsagen skal kunne ses **ved rækken** — som feltfejl på det felt, brugeren skal ændre.
+2. Blokeringsbeskeden skal **udledes** af årsagen. Ellers arver den en klasse, der er valgt for en
+   anden tilstand — jf. BF-070, som rettede netop det andre steder i programmet.
+
+- Fundet i: `minprocesrente.md` BB-037 (tillægstid skubber rentedatoen forbi beregningsdatoen),
+  BB-038 (beløb på 0 kr., hvor feltets grænse er «mindst 0» og motorens er «større end 0») og
+  BB-039 (begge tilstande blokerer med teksten «Indtastning mangler»).
+- **Bemærk den falske præmis, fundene afdækkede.** Gatens kode begrunder sin hardkodede klasse med,
+  at grenen «pr. konstruktion kun kan være en ufuldstændig række». Det er målt forkert to gange.
+  En kommentar, der begrunder en genvej med en påstand om, hvad koden ikke kan nå, er selv en
+  kandidat: efterprøv påstanden frem for at læse den.
+- Kandidater, ikke efterprøvet: `validateInterestCalculation` har fem afvisningsgrunde, hvoraf
+  ingen når brugeren. Tilsvarende motorer med interne fejltyper findes i Varige mén, Forsørgertab og
+  EO's rækkebyggere (`EO_ROW_BUILDERS`).

@@ -2,10 +2,10 @@
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** MinProcesrente (selvstændig app)
-- **Næste fund-ID:** BB-037
-- **Senest opdateret:** 2026-08-18 (Satser færdigbehandlet: alle seks fund og begge åbne spørgsmål
-  afgjort; BB-030 og BB-031 gennemført i kode)
+- **Næste flade:** Global shell (sidemenu, login, Gem/Hent/Slet alt, overlays, undo/redo)
+- **Næste fund-ID:** BB-049
+- **Senest opdateret:** 2026-08-19 (MinProcesrente gennemgået: 12 fund, hvoraf 8 afventer brugerens
+  beslutning; to nye mønstre M-15 og M-16)
 
 ## Flader
 
@@ -18,7 +18,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 2 | Om | Gennemgået | 12 (BB-011–BB-022) | [om.md](om.md) |
 | 3 | Indstillinger | Gennemgået | 8 (BB-023–BB-029, BB-036) | [indstillinger.md](indstillinger.md) |
 | 4 | Satser | Gennemgået | 6 (BB-030–BB-035) | [satser.md](satser.md) |
-| 5 | MinProcesrente | Ikke startet | — | — |
+| 5 | MinProcesrente | Afventer bruger | 12 (BB-037–BB-048) | [minprocesrente.md](minprocesrente.md) |
 | 6 | Global shell | Ikke startet | — | — |
 | 7 | Varige mén | Ikke startet | — | — |
 | 8 | Renteberegning | Ikke startet | — | — |
@@ -29,7 +29,28 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 
 ## Fund der afventer brugerens beslutning
 
-**Ingen.** Alle fire gennemgåede flader er færdigbehandlet.
+**MinProcesrente — otte fund og to åbne spørgsmål.** Det fulde grundlag med målte tal står i
+[minprocesrente.md](minprocesrente.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-037 | Tillægstid kan skubbe rentedatoen forbi beregningsdatoen; rækken holder tavst op med at regne, og hele sidens download spærres | Høj |
+| BB-040 | Renten regnes fem år ud over de fastsatte satser; kun PDF'en advarer om, at det er hypotetisk | Høj |
+| BB-042 | Samme indsatte dato giver `01-06-2023` i et tomt felt og et rødt `01` i et udfyldt | Høj |
+| BB-038 | 0 kr. accepteres af feltet, afvises af beregningen — og spærrer downloads for de øvrige rækker | Mellem |
+| BB-041 | Et klik på en kolonneoverskrift låser tabellen i en sortering, der ikke kan slås fra og ikke kan fortrydes | Mellem |
+| BB-044 | Bekræftelsen ved «Slet alle indtastninger» taler om `.eo`-filer, som ikke findes på minprocesrente.dk | Mellem |
+| BB-046 | Tillægstiden regner videre, men er usynlig i telefonlayoutet | Mellem |
+| BB-048 | Fanen kan lukkes uden varsel, og alt arbejde er væk; Mineo advarer i samme situation | Mellem |
+
+**Fire fund er mine at afgøre og gennemføres uden forelæggelse:** BB-039 (blokeringsbeskeden siger
+«Indtastning mangler», når intet mangler — samme fejlform som BF-070, hvis præmis nu er målt
+forkert), BB-043 (fejlen på «Renter fra» navngiver «dags dato» i stedet for Beregningsdato),
+BB-045 (telefonlayout i et smalt musevindue, men 1200 px indholdsboks) og BB-047 («Slet alle
+indtastninger» mangler i Tab-rækkefølgen).
+
+**To åbne spørgsmål:** skal Beregningsdato være forudfyldt med dags dato ved første besøg, og skal
+tillægstid overhovedet kunne bruges på telefon (svaret afgør, hvordan BB-046 løses).
 
 ## Satser — afgjort 2026-08-18
 
@@ -130,8 +151,11 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
-**Ingen.** BB-017's alternative overskrift til fejldialogen blev udeladt som aftalt; BB-018's
-tekstrettelse ændrede derfor ikke denne overskrift.
+**To, begge fra MinProcesrente** — de står udfoldet i [minprocesrente.md](minprocesrente.md):
+forudfyldt beregningsdato ved første besøg, og om tillægstid skal kunne bruges på telefon.
+
+Fra de tidligere flader er der ingen. BB-017's alternative overskrift til fejldialogen blev udeladt
+som aftalt; BB-018's tekstrettelse ændrede derfor ikke denne overskrift.
 
 **Efterfølgende implementering.** Det tidligere planlagte skaleringsarbejde er gennemført og ligger
 nu som bindende regel i [app-shell-kontrakten](../../../src/contracts/app-shell-contract.md): Mineo
@@ -140,7 +164,24 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 ## Tværgående mønstre
 
-Fjorten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+Seksten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+
+- **M-15** og **M-16** er tilføjet 2026-08-19 fra MinProcesrente og **afventer brugerens afgørelse**:
+  - **M-15 — skærmen tier, hvor dokumentet taler.** Spejlbilledet af M-13: generatoren skriver et
+    forbehold til tallet, og skærmen har ingen pendant. Alvorligere end M-13, fordi skærmen er det,
+    brugeren regner efter mens han arbejder. Kandidater: EO's dokumenter og reguleringsbilaget.
+  - **M-16 — en komplet række, programmet ikke vil regne på.** Motoren har flere afvisningsgrunde
+    end feltmodellen har fejl; afvisningen kommer derfor ud som et fravær (`-`, forsvundet ikon, grå
+    knap) og spærrer hele fladens dokumenter. To rettelser hører sammen: årsagen skal ses ved
+    rækken, OG blokeringsklassen skal udledes af årsagen.
+- **M-14's sidste åbne kandidat er efterprøvet 2026-08-19 og har fejlen** (BB-042). Datofelternes
+  segmentbaserede paste kaldes kun i et tomt felt. Prøve 2 er derimod bestået: en dato uden for
+  grænsen bevares uafkortet. Selve segmentfortolkningen er en truffet beslutning (BB-003) og skal
+  ikke rulles tilbage — rettelsen går den anden vej.
+- **M-02 og M-09 har fået hver sin skærpelse samme dag.** M-02 rammer også beskeder, der genkender
+  en grænse på dens *værdi* i stedet for dens *ophav* («Datoen er efter dags dato», når maksimum i
+  virkeligheden er et andet felt). M-09: når layoutskiftet og breddefrigørelsen hviler på hvert sit
+  kriterium (viewport kontra input-modalitet), findes der altid en tilstand mellem dem.
 
 - **M-13** og **M-14** er tilføjet 2026-08-18 fra Satser og **begge afgjort og gennemført samme dag**.
   Begge handler om, at **to steder træffer samme afgørelse hver for sig og bliver uenige**, uden at
@@ -202,6 +243,13 @@ Fjorten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   den er lille nok til at kunne sammenlignes række for række med sit eget dokument for hvert af de
   22 dækkede år. Rækkefølgens præmis holdt igen: begge nye mønstre (M-13, M-14) er generelle og
   bærer konkrete kandidatsteder ind i de store flader.
+- MinProcesrente var nr. 5 som planlagt, men var ikke en lille flade: den er en hel app med egen
+  indgang, eget layoutspor (den eneste, der må vises på telefon) og en beregningstabel, den deler
+  med Renteberegning. Rækkefølgens præmis holdt alligevel — otte af de tolv fund er generelle og
+  gælder også Mineo-udgaven. **Konsekvens for flade nr. 8 (Renteberegning):** BB-037, BB-038,
+  BB-039, BB-041, BB-043 og BB-047 stammer fra den delte fane og skal ikke genopdages dér. Tilbage
+  til nr. 8 står det Mineo-specifikke: brevhoved, stamdata-afhængighed, Word-formatet, fanens plads
+  i sagen og samspillet med Gem/Hent.
 - **Tre spor er lagt ud til senere flader:** M-13's kolonnevalg i reguleringsbilaget hører til
   Erstatningsopgørelse (nr. 12); M-14's to tabelcelle-årsfelter hører til Årsløn (nr. 9) og
   Erstatningsopgørelse; og Gem/Hent med et ugyldigt satsår hører til Global shell (nr. 6), fordi
