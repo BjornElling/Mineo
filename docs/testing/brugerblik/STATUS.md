@@ -2,11 +2,11 @@
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Varige mén (`/varigemen`, pr. fane)
-- **Næste fund-ID:** BB-062
-- **Senest opdateret:** 2026-08-19 (Global shell **afgjort**: alle 13 fund besvaret – 6 gennemført,
-  6 afvist, 1 delvist gennemført efter modpres. M-17 og M-18 er afgjort og gennemført samme dag;
-  M-06's udløsende fund gennemført, M-08's afvist og sporet lukket)
+- **Næste flade:** Varige mén → fanen **Satser** (`/varigemen`, fane 2 af 2)
+- **Næste fund-ID:** BB-075
+- **Senest opdateret:** 2026-08-20 (Varige mén → **Ménberegning gennemgået**: 13 fund, BB-062–BB-074,
+  alle **Afventer bruger/afgørelse**. Tre nye mønstre M-19, M-20, M-21; M-02 og M-13 har fået hver
+  sin skærpelse)
 
 ## Flader
 
@@ -21,12 +21,66 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 4 | Satser | Gennemgået | 6 (BB-030–BB-035) | [satser.md](satser.md) |
 | 5 | MinProcesrente | Afgjort | 12 (BB-037–BB-048) | [minprocesrente.md](minprocesrente.md) |
 | 6 | Global shell | Afgjort | 13 (BB-049–BB-061) | [globalshell.md](globalshell.md) |
-| 7 | Varige mén | Ikke startet | – | – |
+| 7a | Varige mén – Ménberegning | Afventer bruger | 13 (BB-062–BB-074) | [varigemen.md](varigemen.md) |
+| 7b | Varige mén – Satser | Ikke startet | – | [varigemen.md](varigemen.md) |
 | 8 | Renteberegning | Ikke startet | – | – |
 | 9 | Årslønsberegning | Ikke startet | – | – |
 | 10 | Forsørgertab | Ikke startet | – | – |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Varige mén → Ménberegning – gennemgået 2026-08-20 (afventer bruger)
+
+**Tretten fund, BB-062–BB-074.** Ingen af dem er afgjort. Det fulde grundlag med målte tal står i
+[varigemen.md](varigemen.md).
+
+| ID | Kort | Prioritet | Beslutning |
+|---|---|---|---|
+| BB-062 | Advarslen ved méngrad 5 % vises først, når tre andre felter er udfyldt | Høj | Agent afgør |
+| BB-064 | En udfyldt stamdato meldes som «Mangler», mens samme skærm citerer dens værdi | Høj | Agent afgør + ordlyd |
+| BB-063 | Méngrad 1–4 regner og kan hentes uden et ord, mens 5 advarer | Mellem | Afventer bruger |
+| BB-065 | Satsrækken siger «Beregningsdato mangler» om en udfyldt, rød beregningsdato | Mellem | Afventer bruger |
+| BB-066 | Alder-rækken viser fødselsdatoens fejl, men aldrig skadedatoens | Mellem | Agent afgør |
+| BB-067 | De nedtonede «mangler»-tekster er ikke nedtonede – farven bliver overskrevet | Mellem | Agent afgør |
+| BB-068 | «Indsæt dags dato» vil indsætte en afvist dato fra 1. januar 2027 | Mellem | Afventer bruger |
+| BB-069 | Et blokeret klik på en AKTIV downloadknap giver intet svar; fokus ryger til siden | Mellem | Agent afgør |
+| BB-072 | «Alder på skadestidspunkt» står uændret, når datoen hedder Anmeldelsesdato | Mellem | Afventer bruger |
+| BB-070 | Skærmen og dokumentet skriver slutbeløbet forskelligt (`364.155` / `364.155,00`) | Lav | Afventer bruger |
+| BB-071 | Samme sats hedder tre ting på én side («per»/«pr.»/«Opgørelsesår») | Lav | Afventer bruger |
+| BB-073 | Aldersreduktionen vises som «- 0 %» og «- 0,00 kr.» for alle under 40 år | Lav | Afventer bruger |
+| BB-074 | Méngradfeltets pladsholder er «0», og 0 er den ene værdi feltet afviser | Lav | Afventer bruger |
+
+**Fanen er lille, men ikke tom for fund, og næsten alle bor i ét forhold:** den låner fem
+oplysninger fra Stamdata og satsdatasættet, og lånet er tavst om, hvad der er galt med dem. Fem af
+de tretten fund (BB-064, BB-065, BB-066, BB-067, BB-072) er den samme sætning set fra fem sider:
+*programmet ved besked og siger det ikke.*
+
+**Beregningen selv er kontrolregnet og er i orden** – sats, aldersfradragets to trin med deres lofter,
+oprundingen til hele kroner og afstemningen af de tre viste linjer. Ingen af de tretten fund handler om
+et forkert tal.
+
+**Tre nye mønstre (M-19, M-20, M-21) og to skærpelser.** M-19 (rødt læses som tomt) har allerede sin
+løsning i programmet: **Forsørgertab gør det rigtige på sin tilsvarende flade**, så rettelsen er en
+konvergens mod en truffet beslutning, ikke et nyt design. M-21 (en CSS-klasse slår komponentens farve
+ihjel) er den bredeste: seks døde `color`-props og fire døde `sx`-farver i programmet, hvoraf den
+alvorligste kandidat er `DocumentOutcomeMessage`s **røde fejlbesked, som efter mekanismen ikke er
+rød**. M-02 er skærpet (afledte labels følger ikke skadestypen) og M-13 har fået en ny, svag
+forekomst (samme tal, to former).
+
+**Konsekvenser for de resterende flader – tre spor lagt ud:**
+1. **M-19's prøve hører på flade 11 og 12** (EET's og EO's spejlede forudsætningsrækker). Prøven er
+   billig: giv stamdatafeltet en udfyldt-men-ugyldig værdi og læs den lånende flade.
+2. **M-21's prøve bør køres før flade 10**, fordi Forsørgertab har to af de døde props – og
+   `DocumentOutcomeMessage` rammer alle flader.
+3. **BB-072's ordlyd hører sammen med flade 10 og 11**, hvor de samme faste «skadestidspunkt»-labels
+   står, plus tre dokumentgeneratorer. Afgøres den her, kan de rettes i én omgang.
+
+**Dækningshuller:** BB-068 kræver en systemdato i 2027 og er målt i to dele frem for i drift;
+`DocumentOutcomeMessage`s farve er ikke set i drift; Word-udgaven af dokumentet er ikke hentet
+(PDF'en er, og dens indhold er aflæst linje for linje). Kun Chrome, 1536×864, lyst tema.
+
+**To åbne spørgsmål** – det ene er MinProcesrentes uafklarede spørgsmål om forudfyldt beregningsdato,
+som gælder ordret her og bør besvares én gang for begge flader.
 
 ## Global shell – afgjort 2026-08-19
 
@@ -227,7 +281,12 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
-**Fire.** To fra Global shell – de står udfoldet i [globalshell.md](globalshell.md): skal Ctrl+S kunne
+**Fem.** Ét fra Varige mén → Ménberegning – det står udfoldet i [varigemen.md](varigemen.md): skal
+fanen advare, når beregningsdatoen ligger tyve år fra skadedatoen? (Fanens andet «åbne spørgsmål» er
+ikke et nyt: forudfyldt beregningsdato er ordret MinProcesrentes uafklarede spørgsmål nedenfor, og
+svaret bør gælde begge flader.)
+
+To fra Global shell – de står udfoldet i [globalshell.md](globalshell.md): skal Ctrl+S kunne
 ses nogen steder i brugerfladen, og hvad skal `Gem` gøre, når skadelidtes navn rettes efter et gem
 (i dag skifter det tavst, hvilken fil der skrives til). **Begge står stadig åbne efter afgørelserne
 2026-08-19**, og det første er skærpet af BB-051's afvisning: når `Hent` og `Slet alt` bevidst ikke har
@@ -248,7 +307,32 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 ## Tværgående mønstre
 
-Atten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+Enogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+
+- **M-19, M-20** og **M-21** er tilføjet 2026-08-20 fra Varige mén → Ménberegning og **afventer alle
+  tre brugerens afgørelse**:
+  - **M-19 – rødt læses som tomt af den flade, der låner værdien.** En spejlet værdi læses gennem
+    den vej, der skjuler en rød fejl, så «tomt» og «forkert» bliver samme tekst: «Mangler». Prøven er
+    at give feltet en **udfyldt-men-ugyldig** værdi og læse den lånende flade – og derefter læse hele
+    skærmen, for en bounds-fejl læser den rå værdi og citerer den gerne tre linjer længere ned.
+    **Mønsteret har allerede sin løsning i programmet** (Forsørgertabs `{error ?? «Mangler …»}`), så et
+    fund her er en konvergensrettelse. Ekstra skarp ved parvise grænser (M-07): den RIGTIGE af to
+    datoer bliver også rød og meldes derfor som manglende.
+  - **M-20 – en feltnær oplysning hentet fra hele sidens beregning.** En gul feltadvarsel, der læser
+    sin værdi af projektionen, arver projektionens alt-eller-intet og er tavs, indtil urelaterede
+    felter er udfyldt. Prøven: **udfyld KUN det felt, oplysningen hører til.**
+  - **M-21 – en CSS-klasse slår komponentens egen farve ihjel.** `.MuiTypography-root.row--text` har
+    to klasser; MUI's `color`-prop og `sx={{ color }}` får én. Enkeltklassen taber altid, uden en
+    advarsel fra noget værktøj. Målt syntetisk med en enkeltklasse-regel indsat EFTER app-stylesheetet
+    – den taber alligevel. Programmet har en virksom vej: klasserne `text-muted` /
+    `body-text-secondary`.
+- **M-02 er skærpet** (BB-072): navneregelen er gennemført for datofeltet og fejlbeskederne, men ikke
+  for de **afledte** labels – «Alder på skadestidspunkt» står to linjer under den række, programmet
+  netop omdøbte til «Anmeldelsesdato». Prøven er at sætte skadestypen til Erhvervssygdom og læse hele
+  fladen.
+- **M-13 har fået en ny, svag forekomst** (BB-070): de to udgaver er enige om rækken og tallet, men
+  ikke om formen – `formatAsAmount(x)` uden præcisionsargument i generatoren giver to decimaler, hvor
+  skærmen giver nul.
 
 - **M-17** og **M-18** er tilføjet 2026-08-19 fra Global shell og **begge afgjort og gennemført samme
   dag**; begge er nu normative i kontrakterne:
@@ -362,6 +446,13 @@ Atten mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   dér – rettelserne til dem virker allerede i Mineo-udgaven, fordi fanen er den samme komponent. Tilbage
   til nr. 8 står det Mineo-specifikke: brevhoved, stamdata-afhængighed, Word-formatet, fanens plads
   i sagen og samspillet med Gem/Hent.
+- Varige mén var nr. 7 som planlagt, og fladen er delt i sine to faner (7a Ménberegning, 7b Satser),
+  som `flader.md` foreskriver. **Ménberegning er en lille flade at betjene – to felter – men den er
+  den første, der LÅNER en anden sides værdier**, og det var lånet, der bar tolv af de tretten fund.
+  Rækkefølgens præmis holdt igen: tre af fundene er generelle nok til at blive mønstre, og M-21 er det
+  bredeste hidtil (den rammer også `DocumentOutcomeMessage`, som alle flader bruger). **Justering af
+  rækkefølgen: ingen.** Fanen Satser er meget lille (én tabel med to kolonner og 22 rækker) og bør
+  kunne tages i næste kørsel uden yderligere deling.
 - **Tre spor er lagt ud til senere flader:** M-13's kolonnevalg i reguleringsbilaget hører til
   Erstatningsopgørelse (nr. 12); M-14's to tabelcelle-årsfelter hører til Årsløn (nr. 9) og
   Erstatningsopgørelse; og Gem/Hent med et ugyldigt satsår hører til Global shell (nr. 6), fordi

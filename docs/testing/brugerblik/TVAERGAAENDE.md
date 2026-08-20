@@ -12,6 +12,18 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**M-19, M-20 og M-21 er tilføjet 2026-08-20 fra Varige mén → Ménberegning og AFVENTER BRUGERENS
+AFGØRELSE.** De tre er ikke varianter af hinanden, men de blev fundet i samme lille flade og deler et
+træk: hver af dem er et sted, hvor programmet **kender** det rigtige svar og viser noget andet.
+M-19 handler om, at et rødt felt læses som et tomt felt af den flade, der låner værdien – så skærmen
+siger «Mangler» og citerer tre linjer længere ned den værdi, den siger mangler. M-20 om en feltnær
+oplysning (en gul advarsel), der er hængt op på hele sidens beregning og derfor er tavs, indtil
+felter uden forbindelse til den er udfyldt. M-21 om en farve, komponenten beder om, og som
+programmets eget stylesheet slår ihjel på grund af specificitet – målt syntetisk, så mekanismen står
+fast. **M-19 har allerede sin løsning i programmet selv** (Forsørgertabs tilsvarende flade gør det
+rigtige), og **M-02 har fået en skærpelse samme dag** (BB-072: de AFLEDTE labels følger ikke
+skadestypens navneregel).
+
 **M-17 og M-18 er tilføjet 2026-08-19 fra Global shell og BEGGE afgjort og gennemført samme dag.**
 M-17 handler om én oplysning, der er gemt i to lagre med hver sin rækkevidde, så de kan komme til at
 beskrive hver sin sag; M-18 om globale tastaturgenveje, der arbejder videre bag et åbent overlay, som
@@ -89,6 +101,18 @@ sit. Beskeder, der har navnet skrevet ind i teksten, omgår mekanismen.
 
 **Efterprøv, hvor:** en fejl-, advarsels- eller tooltiptekst nævner et feltnavn i prosa i stedet for
 at hente det fra feltet – og hvor to tekster om samme begreb bruger forskellige ord for det.
+
+**Skærpelse 2026-08-20 (fra `varigemen.md` BB-072) – de AFLEDTE labels blev ikke omfattet.**
+Brugerens navneregel (nederst i dette mønster) er gennemført for datofeltet selv og for
+fejlbeskederne: på en erhvervssygdomssag hedder rækken «Anmeldelsesdato», og beregningsdatoens fejl
+siger «kan ikke være før anmeldelsesdatoen (01-06-2020)». Men de labels, der beskriver noget
+**udledt af** datoen, står uændret: «Alder på skadestidspunkt» to linjer under den række,
+programmet netop omdøbte – og alderen er regnet på præcis den anmeldelsesdato. Samme faste ordlyd
+findes på EET efter EAL og Forsørgertab og i tre dokumentgeneratorer («Årsløn på skadestidspunktet»,
+«Skadelidtes alder på skadestidspunkt»). **Prøven er derfor bredere end feltnavne og fejltekster:
+sæt skadestypen til Erhvervssygdom og læs HELE fladen igennem – hver sætning, der siger «skade»
+om sagens dato, er en kandidat.** Bemærk, at kilden findes: `resolveSkadestypeDatoLabel` er allerede
+kaldt på de fleste af fladerne til rækken lige ovenover.
 
 **Skærpelse 2026-08-19 (fra `minprocesrente.md` BB-043).** Mønsteret rammer ikke kun beskeder med et
 feltnavn skrevet ind i prosaen. Det rammer også beskeder, der **genkender en grænse på dens værdi i
@@ -509,6 +533,13 @@ måles og rettes.
 - Bemærk formen, den latente forekomst havde: den var **ikke** udløst af de aktuelle data (alle tre fri
   proces-beløb findes for hvert dækket år), men den var samme fejl og blev rettet med. En uenighed mellem
   to udgaver skal lukkes, når den findes – ikke først når datasættet udløser den.
+- **Ny forekomst 2026-08-20 i familiens svageste form** (`varigemen.md` BB-070, Lav): de to udgaver er
+  enige om, at rækken findes, og om tallet – men ikke om **formen**. Skærmen skriver «364.155 kr.»,
+  dokumentet «364.155,00 kr.» for samme beløb, fordi generatoren kalder `formatAsAmount(x)` uden
+  præcisionsargument og dermed får standardens to decimaler. Prøven er billig og generel: **søg i
+  generatorerne efter `formatAsAmount(` uden andet argument** og sammenlign med skærmens kald for
+  samme tal. Varige méns øvrige otte linjer var identiske, så det er formen, ikke rækkevalget, der
+  driver.
 
 ## M-14 – En anden fortolkningsvej ved siden af tastningen
 
@@ -750,3 +781,110 @@ om noget bag dialogen ændrer sig.**
   tavst i filvælgeren, som ikke kan betjenes i jsdom. Med en urørt sag svarer gem i stedet «Ingen data
   fundet at gemme», og fraværet af den besked er et positivt bevis. En prøve, der kun kan observere et
   fravær, skal have en modprøve, der viser, at nærværet var muligt.
+
+## M-19 – Rødt læses som tomt af den flade, der låner værdien
+
+> En side viser en værdi, en anden side ejer. Er værdien forkert, siger den lånende side, at den
+> mangler – og citerer den to linjer længere ned.
+
+En flade, der spejler et felt fra en anden side, læser typisk gennem den kanoniske vej, som med
+vilje **skjuler** en værdi med en rød feltfejl. Læsningen giver derfor `undefined` i to helt
+forskellige situationer: feltet er tomt, og feltet er udfyldt med noget forkert. Skriver fladen
+samme tekst i begge tilfælde – «Mangler», «Indtastning mangler», «<felt> mangler» – har den samlet to
+tilstande, brugeren skal håndtere modsat: den ene kræver, at han **indtaster**, den anden at han
+**retter**.
+
+Formen er let at overse, fordi teksten er sand i det ene tilfælde, og fordi den lånende flade
+sjældent er den, man tester med forkerte data. Den bliver først synlig, når noget ANDET på samme
+skærm citerer værdien: en bounds-fejl, der navngiver sin kilde, læser nemlig den rå canonical værdi
+og er derfor upåvirket af den røde markering. Så står de to udsagn side om side.
+
+**Det gør formen ekstra farlig ved parvise grænser (M-07).** To felter, der afgrænser hinanden, gøres
+BEGGE røde. Er fødselsdatoen forkert, bliver den **rigtige** skadedato også rød – og den lånende
+flade melder derfor en fejlfri værdi som manglende. Brugeren sendes efter det forkerte felt.
+
+**Efterprøv, hvor:** en flade viser en værdi, den ikke selv ejer – spejlede stamdata-rækker,
+«Mangler (angiv i …)»-linjer, afledte oplysninger som alder eller årsløn. Prøven er konkret: **giv
+feltet en værdi, der er udfyldt men ugyldig** (uden for grænsen, forkert orden, uparsebar) og læs,
+om den lånende flade siger «mangler» eller «ugyldig». Læs derefter HELE skærmen: citeres værdien
+et andet sted?
+
+**Løsningen findes i programmet selv – og det er dét, der gør mønsteret nemt at afgøre.**
+`ForsoergertabOplysningerSection.tsx` gør det rigtige på sin tilsvarende flade: `{error ?? <>Mangler
+(angiv i Stamdata)</>}` – feltets egen fejltekst, når der er en, og «Mangler» kun ved reelt tomt
+felt. Et fund i dette mønster er derfor en **konvergensrettelse** mod en løsning, der allerede er
+truffet, ikke et nyt designforslag.
+
+- Fundet i: `varigemen.md` BB-064 (Høj – de to spejlede stamdata-rækker; en gyldig skadedato meldes
+  som manglende, mens to andre linjer på samme skærm citerer den), BB-065 (satsrækkens
+  «Beregningsdato mangler» om en udfyldt, rød beregningsdato – sandheden ligger i tooltippen) og
+  BB-066 (samme række viser den ENE af to datoers fejl).
+- Efterprøvet og i orden: Forsørgertabs to spejlede rækker (forlægget ovenfor).
+- Kandidater, ikke efterprøvet: EET efter EAL's spejlede stamdata-rækker (flade 11),
+  Erstatningsopgørelsens forudsætningsrækker (flade 12) og enhver tekst af formen «<felt> mangler»,
+  der er koblet til en `undefined`-læsning frem for til et tomt felt.
+
+## M-20 – En feltnær oplysning hentet fra hele sidens beregning
+
+> Den gule advarsel hører til ét felt, men den læser sin værdi af den samlede projektion – og den
+> findes kun, når HELE siden er regneklar.
+
+En sides beregning bygges typisk som én projektion, der er `ready` først, når alle dens input er
+gyldige. Det er rigtigt for et resultat. Men henter en **feltnær** oplysning – en gul feltadvarsel,
+en enhed, en hjælpetekst om netop det felt – sin værdi fra samme projektion, arver den projektionens
+alt-eller-intet-betingelse. Oplysningen bliver dermed usynlig, indtil felter, den intet har med at
+gøre, er udfyldt.
+
+Rækkefølgen gør det værre: det felt, advarslen hører til, er ofte det FØRSTE på fladen. Brugeren
+taster værdien, får ingen advarsel, og møder den langt senere som en gul ramme, der tændte af sig
+selv, da han udfyldte noget helt andet. Advarslen fremstår da som en advarsel om det sidste felt.
+
+**Efterprøv, hvor:** en feltprop (`warning`, `helperText`, en label, en enhed) læser fra en
+projektion, et snapshot eller et beregningsresultat frem for fra feltets eget read. Prøven er:
+**udfyld KUN det felt, oplysningen hører til, og se om oplysningen findes.** Er den ikke der, er den
+hængt op på det forkerte.
+
+Bemærk skellet mod en ægte tværfelt-oplysning. En advarsel, der handler om et **forhold mellem**
+felter, skal naturligvis afvente dem begge. Mønsteret rammer den oplysning, der kun afhænger af det
+ene felts egen værdi.
+
+- Fundet i: `varigemen.md` BB-062 (Høj). Méngrad `5` gav ingen advarsel, før beregningsdatoen var
+  udfyldt; målt som neutral feltramme `rgba(0, 0, 0, 0.12)` uden tooltip, der efter en urelateret
+  indtastning skiftede til `rgb(245, 158, 11)` med teksten. Advarslen læste
+  `projectionData?.mengrad`, som først findes ved `ready`.
+- Kandidater, ikke efterprøvet: EET-procenternes 15 %-advarsel (`EetOplysningerTab.tsx`, `BF-019`) –
+  samme form, flade 11. Generelt: enhver `warning={resolve…(projection?.…)}`.
+
+## M-21 – En CSS-klasse slår komponentens egen farve ihjel
+
+> Koden beder om en nedtonet farve, stylesheetet siger noget andet – og stylesheetet vinder, uden at
+> nogen får besked.
+
+Programmets typografi er defineret som `.MuiTypography-root.<klasse> { color: … }`. En sådan regel
+har **to** klasser i selektoren. En farve, komponenten selv beder om – MUI's `color`-prop eller
+`sx={{ color }}` – ender i en genereret klasse med **én**. Enkeltklassen taber altid, uanset
+rækkefølge i dokumentet. Resultatet er en farveangivelse, der står i koden, læses som hensigten og
+ikke har nogen virkning.
+
+Der kommer ingen advarsel, hverken fra TypeScript eller fra en test, og fejlen er selvforstærkende:
+den næste, der har brug for en nedtonet rækketekst, skriver den samme døde prop, fordi den står i
+koden lige ved siden af.
+
+**Efterprøv, hvor:** et element har både en projektklasse fra `typography.css` og en farve fra
+komponenten. Prøven er en måling, ikke en læsning: **aflæs `getComputedStyle(el).color` og
+sammenlign med naboen uden farveangivelse.** Er de ens, er proppen død. Modprøve, hvis mekanismen
+skal bevises: indsæt en enkeltklasse-regel EFTER app-stylesheetet og se den tabe alligevel
+(målt 2026-08-20).
+
+Programmet har en virksom vej til samme mål: klasserne `text-muted` og `body-text-secondary` har
+selv to-klasse-specificitet og virker. Rettelsen er derfor at bruge klassen frem for proppen – og et
+AST-værn, der afviser en farve-prop på et element med en `row--*`-klasse, lukker klassen af fejl.
+
+- Fundet i: `varigemen.md` BB-067 (Mellem). Fire farveangivelser på fanen er døde; de tre
+  «mangler»-tekster rendres i `rgba(0, 0, 0, 0.87)` – præcis samme farve som en indtastet værdi – så
+  en tom sag ser udfyldt ud. To rækker med hver sin ønskede farve fik SAMME emotion-klasse, hvis
+  eneste farveregel er standardfarven.
+- Kandidater, ikke efterprøvet: `ForsoergertabOplysningerSection.tsx` (2 døde `color`-props),
+  `Satser.tsx:30`, `CannotComputeAggregationNotice.tsx:13`, `DefaultDirectoryRow.tsx:27-30` og
+  **`DocumentOutcomeMessage.tsx:34`, der beder om `error.main` til en fejlbesked** – altså en
+  fejlbesked, der efter mekanismen ikke er rød. Den sidste er den, der bør efterprøves først.
