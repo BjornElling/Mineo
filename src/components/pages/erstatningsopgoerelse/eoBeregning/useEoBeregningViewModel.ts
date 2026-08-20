@@ -8,7 +8,11 @@ import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoRowN
 import { resolveEoIssueSummaryText } from '../../../../domain/eoRowEvaluation/eoRowIssueCatalog';
 import { scrollToSection } from '../../../../utils/scrollToSection';
 import { scrollToFieldAddress } from '../../../../utils/scrollToFieldAddress';
-import { resolveEoValidationPathAddress } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
+import { resolveEoValidationPathAddress, topLevelFieldIssue } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
+import {
+  ACTION_BLOCKED_INVALID_INPUT_MESSAGE,
+  ACTION_BLOCKED_MISSING_INPUT_MESSAGE,
+} from '../../../inputs/actionGate';
 import { scrollToEoRow } from '../../../../utils/scrollToEoRow';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
@@ -700,7 +704,15 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
   // Navnet kommer fra feltets ene navneregel (§3.2a), aldrig fra en lokal ternary.
   const skadedatoLabel = resolveSkadestypeDatoLabel(stamdataValues?.skadestype);
-  const skadedatoDisplay = formatIsoDateLong(stamdataValues?.skadedato) || '-';
+  // En rød skadedato-fejl (fx omvendt datoorden) må ikke vises som et tomt '-' – det læses som "her
+  // er ikke indtastet noget", når der reelt STÅR noget, bare ugyldigt (samme fejlklasse som Varige
+  // méns BB-064/BB-065). Skelner derfor fejl fra tomt felt, ligesom `eoRowStamdataModel.ts` allerede gør.
+  const skadedatoIssue = topLevelFieldIssue(stamdataErrors, 'stamdata', 'skadedato');
+  const skadedatoDisplay = stamdataValues?.skadedato !== undefined
+    ? formatIsoDateLong(stamdataValues.skadedato) || '-'
+    : skadedatoIssue !== undefined
+      ? ACTION_BLOCKED_INVALID_INPUT_MESSAGE
+      : ACTION_BLOCKED_MISSING_INPUT_MESSAGE;
 
   const erRevideret = eoValues.revideretOpgoerelse === 'Ja';
   const revideretPrefix = erRevideret ? 'Revideret ' : '';

@@ -23,6 +23,9 @@ import { SKAERING_2015_03_01 } from '../../../domain/erhvervsevnetab/eetSkaering
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import { APP_ROUTES } from '../../../config/pageNavigation';
+import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
+import { formatIsoDateLong } from '../../../utils/dateFormatting';
+import { getTodayLocalISO } from '../../../utils/dateUtils';
 import {
   resolveEetAslAarsloenMaxWarning,
   resolveEetUnder15Warning,
@@ -53,6 +56,15 @@ const LOCATIONS = {
 const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
   const { values, skadedato } = projection;
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, LOCATIONS.beregningsdato);
+
+  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (samme fejlklasse som
+  // Varige méns BB-068): er dags dato uden for beregningsdatoens øvre grænse (EET-satsdatasættets
+  // sidste dækkede år), er knappen inaktiv med årsagen i tooltippen.
+  const beregningsdatoMax = dateRanges_erhvervsevnetab.beregningsdato.max;
+  const todayIso = React.useMemo(() => getTodayLocalISO(), []);
+  const insertTodayDisabledReason = todayIso > beregningsdatoMax
+    ? `Der kan kun foretages beregninger frem til ${formatIsoDateLong(beregningsdatoMax)}`
+    : undefined;
 
   const visKoenFelt = React.useMemo(() => {
     const hasKapDatoFoer2015 = values.aslAfgoerelser.some(
@@ -103,6 +115,8 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               onCommit={(today) => {
                 beregningsdatoController.settleValue(today);
               }}
+              disabled={insertTodayDisabledReason !== undefined}
+              disabledReason={insertTodayDisabledReason}
             />
           </Box>
         </Box>

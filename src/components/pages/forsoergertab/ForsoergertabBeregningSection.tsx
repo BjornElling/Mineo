@@ -44,6 +44,8 @@ const ForsoergertabBeregningSection = React.memo(() => {
           />
           <InsertTodayDateButton
             onCommit={vm.settleBeregningsdato}
+            disabled={vm.insertTodayDisabledReason !== undefined}
+            disabledReason={vm.insertTodayDisabledReason}
           />
         </Box>
       </Box>

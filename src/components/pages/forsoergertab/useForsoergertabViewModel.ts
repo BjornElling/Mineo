@@ -22,6 +22,9 @@ import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
 import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
+import { dateRanges_forsoergertab } from '../../../config/dateRanges';
+import { formatIsoDateLong } from '../../../utils/dateFormatting';
+import { getTodayLocalISO } from '../../../utils/dateUtils';
 
 /**
  * Forsørgertabs ene kanoniske viewmodel (`page-component-contract.md` §4.4).
@@ -135,10 +138,20 @@ export function useForsoergertabViewModel() {
     [beregningsdatoController]
   );
 
+  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (samme fejlklasse som
+  // Varige méns BB-068): er dags dato uden for beregningsdatoens øvre grænse (forsørgertab-
+  // satsdatasættets sidste dækkede år), er knappen inaktiv med årsagen i tooltippen.
+  const beregningsdatoMax = dateRanges_forsoergertab.beregningsdato.max;
+  const todayIso = React.useMemo(() => getTodayLocalISO(), []);
+  const insertTodayDisabledReason = todayIso > beregningsdatoMax
+    ? `Der kan kun foretages beregninger frem til ${formatIsoDateLong(beregningsdatoMax)}`
+    : undefined;
+
   return {
     fields: FIELDS,
     locations: LOCATIONS,
     settleBeregningsdato,
+    insertTodayDisabledReason,
     /**
      * Handlet gives ubearbejdet videre. UdfaldsBESKEDEN udledes i den sektion, der AKTIVERER downloaden –
      * ikke her: `document/activation-shows-outcome` måler pr. fil, at den flade, der klikker, også kan vise
