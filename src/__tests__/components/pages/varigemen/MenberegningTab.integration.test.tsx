@@ -180,18 +180,20 @@ describe('MenberegningTab – reader-projektion + download-gate', () => {
 });
 
 /**
- * Gate-årsagen står KUN i tooltippet, og teksten er den universelle.
+ * Gate-årsagen i RESULTATRÆKKEN (den nederste "Beregnet méngodtgørelse"-linje) står KUN i download-
+ * knappens tooltip, ikke som en ekstra tekstknude i selve resultatrækken.
  *
- * Brugertestens symptom var, at "Indtastning mangler" stod BÅDE som nedtonet tekst i værdikolonnen OG som
- * tooltip på det inaktive download-ikon. Testene måler derfor to ting, som en visning kun kan opfylde
- * samtidig ved at have præcis én kanal:
+ * Brugertestens symptom var, at "Indtastning mangler" stod BÅDE som nedtonet tekst i resultat-værdikolonnen
+ * OG som tooltip på det inaktive download-ikon. Testen måler derfor to ting, som en visning kun kan opfylde
+ * samtidig ved at have præcis én kanal for RESULTATRÆKKEN specifikt:
  *
- *  1. teksten findes ikke som synlig tekst i dokumentet, og
+ *  1. resultatrækken (identificeret ved sin `varigemen-download`-knap) har ingen søskende-tekstknude med
+ *     samme besked, og
  *  2. den findes som ikonets tilgængelige navn (MUI's `Tooltip` sætter `aria-label` på den disablede knap).
  *
- * Ben 1 alene ville være grønt, hvis årsagen forsvandt HELT – hvilket ville gøre blokeringen usynlig og
- * bryde den modsatte invariant. Ben 2 alene ville være grønt i den fejltilstand, brugeren rapporterede.
- * Sammen pinner de netop "ét sted, og det sted er tooltippet".
+ * Andre rækker (fx satsrækken) må gerne vise samme universelle tekst synligt – det er efter brugerbeslutning
+ * 2026-08-20 (BB-065) den TILSIGTEDE måde de skelner mellem "mangler" og "fejl" i deres egen lånte værdi, og
+ * er en anden linje end resultatrækken denne test pinner.
  */
 describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
   beforeEach(() => {
@@ -199,19 +201,21 @@ describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
     mockTriggerDocumentDownload.mockClear();
   });
 
-  it('viser "Indtastning mangler" som tooltip og IKKE som tekst ved knappen', () => {
+  it('viser "Indtastning mangler" som tooltip og IKKE som tekst i resultatrækken', () => {
     hydrate({ mengrad: 10, beregningsdato: undefined }, validStamdata);
     renderTab();
 
     const button = screen.getByTestId('varigemen-download');
     expect(button).toBeDisabled();
     expect(button).toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
-    // Ingen synlig tekstknude med samme besked – det var dobbeltvisningen brugeren fandt.
-    expect(screen.queryByText(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE)).toBeNull();
+    // Ingen søskende-tekstknude med samme besked i resultatrækken – det var dobbeltvisningen brugeren fandt.
+    const resultatRow = button.closest('.row--label-right-hover');
+    expect(resultatRow).not.toBeNull();
+    expect(within(resultatRow as HTMLElement).queryByText(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE)).toBeNull();
   });
 
   /**
-   * En méngrad uden for 1..120 er en RØD feltfejl, ikke en manglende indtastning – og efter brugerkravet
+   * En méngrad uden for 5..120 er en RØD feltfejl, ikke en manglende indtastning – og efter brugerkravet
    * 2026-07-30 skal de to blokeringer sige noget FORSKELLIGT: "Fejl i indtastning" mod "Indtastning mangler".
    * Tidligere kollapsede de til én universel tekst, så knappen svarede "Indtastning mangler" på et felt, der
    * var udfyldt – bare forkert.
@@ -233,7 +237,7 @@ describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
     await waitFor(() => {
       const button = screen.getByTestId('varigemen-download');
       expect(button).toBeDisabled();
-      expect(button).toHaveAccessibleName('Værdi skal være mellem 1 og 120');
+      expect(button).toHaveAccessibleName('Værdi skal være mellem 5 og 120');
     });
     const button = screen.getByTestId('varigemen-download');
     expect(button).not.toHaveAccessibleName(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
@@ -285,5 +289,48 @@ describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
     expect(mockScrollToFieldAddress).toHaveBeenCalledWith(
       stamdataSkadelidteFodselsdatoField.bind().address
     );
+  });
+
+  /**
+   * BB-069: et klik på en (endnu) AKTIV downloadknap, mens méngrad har en åben draft med en ugyldig
+   * værdi. Knappens gate læser render-tidens tilstand og er derfor stadig aktiv i det øjeblik brugeren
+   * klikker – en åben draft ændrer bevidst ikke gaten. Der var TO fejl i samspil:
+   *
+   *  1. Museklikkets `mousedown` flytter native fokus til knappen og blurrer det åbne draft-felt FØR
+   *     `click` affyres. Blur committer draften synkront, méngrad bliver rødt, og knappen bliver
+   *     `disabled` – FØR click-eventet når frem. En disabled `<button>` fyrer intet `onClick`, så
+   *     klikket forsvandt helt. Rettet med `onMouseDown={(e) => e.preventDefault()}` på selve
+   *     downloadknappen (lokalt for denne flade), som bevarer fokus på draft-feltet til click rammer.
+   *  2. Selve fokus-feedbacken læste closure-værdier fra renderet FØR settle og fandt derfor intet
+   *     blokerende felt. Rettet ved at læse en FRISK evaluering (`readPort.getEvaluation()`) taget
+   *     EFTER settle.
+   *
+   * Begge dele skal virke sammen, før méngrad-feltet korrekt får fokus og blink.
+   */
+  it('et klik på en aktiv knap, mens méngrad-draften er ugyldig, fokuserer méngrad efter settle', async () => {
+    const user = userEvent.setup();
+    hydrate({ mengrad: 10, beregningsdato: toISODateString('2020-01-01') }, validStamdata);
+    renderTab();
+
+    const input = screen.getByPlaceholderText('0');
+    // Dobbeltklik åbner editoren (§1.3) – kun DÉR skriver Ctrl+A/Delete/tastning i en åben draft, i stedet
+    // for at Delete på det lukkede, fokuserede felt committer en tom værdi med det samme.
+    await user.dblClick(input);
+    await user.keyboard('{Control>}a{/Control}{Delete}121');
+    // INGEN Tab: draften er stadig åben, og knappen er derfor stadig aktiv (render-tidens gate).
+    expect(screen.getByTestId('varigemen-download')).toBeEnabled();
+
+    await user.click(screen.getByTestId('varigemen-download'));
+
+    // `user.click` afventer selv preflightens promise (settle → gate → fokus-feedback), som er
+    // synkron fra det punkt af – ingen waitFor nødvendig, og en waitFor her ville kunne polle længere
+    // end blinkets egen fjernelses-timer (FIELD_ATTENTION_BLINK_DURATION_MS) og gøre testen flaky.
+    // Blinket selv (`FIELD_ATTENTION_BLINK_CLASS`) måles bevidst IKKE her: det er en transient DOM-klasse
+    // sat af en direkte DOM-mutation, som en efterfølgende Reacts re-render overskriver igen – samme grund
+    // til at blink kun kan måles i e2e via `animationstart` (se `project_transient_visual_must_restart`).
+    // Denne test pinner i stedet den observerbare, stabile effekt: klikket blev IKKE tabt (methoden blev
+    // kaldt, méngrad blev korrekt afsluttet som en rød feltfejl, og downloaden blev reelt afvist).
+    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
+    expect(input).toHaveAttribute('aria-invalid', 'true');
   });
 });

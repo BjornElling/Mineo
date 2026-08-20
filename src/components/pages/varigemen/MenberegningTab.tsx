@@ -15,11 +15,16 @@ import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { useNavigate } from 'react-router-dom';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
-import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
+import { calculateUtcAgeInWholeYears, getTodayLocalISO } from '../../../utils/dateUtils';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { resolveVarigeMenWarning } from '../../../domain/varigemen/varigeMenPolicy';
-import { resolveSkadestypeDatoLabel } from '../../../domain/policies/stamdataCalculations';
+import { resolveSkadestypeDatoLabel, resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
+import {
+  ACTION_BLOCKED_INVALID_INPUT_MESSAGE,
+  ACTION_BLOCKED_MISSING_INPUT_MESSAGE,
+} from '../../inputs/actionGate';
+import { dateRanges_varigemen } from '../../../config/dateRanges';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../../config/pageNavigation';
 import { varigeMenDocumentDefinition } from '../../../domain/varigemen/varigeMenDocumentDefinition';
 import { useMineoDocumentOutput } from '../../../document/runtime/react/useMineoDocumentOutput';
@@ -34,6 +39,7 @@ import {
   stamdataSkadestypeField,
 } from '../../../inputCore/catalog/stamdataDescriptors';
 import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
+import { useInputReadPort } from '../../../inputCore/react/inputRuntimeContext';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
 import { blinkFieldAttention } from '../../../inputCore/react/fieldAttentionBlink';
@@ -91,6 +97,7 @@ const MenberegningTab = React.memo(() => {
   const skadedatoRead = evaluation.reader.read(skadedatoRef);
   const skadestypeRead = evaluation.reader.read(skadestypeRef);
   const beregningsdatoRead = evaluation.reader.read(beregningsdatoRef);
+  const mengradRead = evaluation.reader.read(mengradRef);
 
   const fodselsdato = fodselsdatoRead.status === 'usable' ? fodselsdatoRead.value : undefined;
   const skadedato = skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined;
@@ -98,6 +105,7 @@ const MenberegningTab = React.memo(() => {
   const fodselsdatoError = fodselsdatoRead.status === 'error' ? fodselsdatoRead.issue.message : undefined;
   const skadedatoError = skadedatoRead.status === 'error' ? skadedatoRead.issue.message : undefined;
   const beregningsdatoError = beregningsdatoRead.status === 'error' ? beregningsdatoRead.issue.message : undefined;
+  const mengradForWarning = mengradRead.status === 'usable' ? mengradRead.value : undefined;
 
   // Alder og sats vises uafhængigt af méngrad: alderen så snart begge datoer er gyldige, satsen så
   // snart beregningsdatoen har en lovsats for sit år – også når méngrad mangler og projektionen derfor er blokeret.
@@ -109,7 +117,7 @@ const MenberegningTab = React.memo(() => {
     return calculateUtcAgeInWholeYears(f, s);
   }, [fodselsdato, skadedato]);
   const beregningsdato = beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined;
-  const mengradWarning = resolveVarigeMenWarning(projectionData?.mengrad);
+  const mengradWarning = resolveVarigeMenWarning(mengradForWarning);
   const menSats = React.useMemo(
     () => resolveMenSatsForBeregningsdato(coerceToISODateString(beregningsdato) ?? undefined, varigeMenPrGrad),
     [beregningsdato]
@@ -117,6 +125,19 @@ const MenberegningTab = React.memo(() => {
 
   // Spejlet stamdata-værdi: navnet kommer fra feltets ene navneregel (§3.2a), aldrig fra en lokal ternary.
   const skadedatoLabel = resolveSkadestypeDatoLabel(skadestype);
+  // "Alder på skadestidspunkt"/"Alder på anmeldelsestidspunkt" følger samme skadestype-udledning som datoen,
+  // så en erhvervssygdom ikke omtales med et "skadestidspunkt", sagen ikke har (BB-072).
+  const alderVedSkadeLabel = resolveStamdataDatoReference(skadestype).kind === 'anmeldelsesdato'
+    ? 'Alder på anmeldelsestidspunkt'
+    : 'Alder på skadestidspunkt';
+
+  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (BB-068): er dags dato uden for
+  // beregningsdatoens øvre grænse (satsdatasættets sidste dækkede år), er knappen inaktiv med årsagen i tooltippen.
+  const beregningsdatoMax = dateRanges_varigemen.beregningsdato.max;
+  const todayIso = React.useMemo(() => getTodayLocalISO(), []);
+  const insertTodayDisabledReason = todayIso > beregningsdatoMax
+    ? `Der kan kun foretages beregninger frem til ${formatIsoDateLong(beregningsdatoMax)}`
+    : undefined;
 
   /**
    * Naviger til Stamdata OG markér det felt, der mangler.
@@ -141,42 +162,40 @@ const MenberegningTab = React.memo(() => {
     [goToStamdataField]
   );
 
-  // Fokusér det første blokerende felt efter en blokeret download (best-effort UI-hint fra render-tilstanden).
+  const readPort = useInputReadPort();
+
+  // Fokusér det første blokerende felt efter en blokeret download. Læser en FRISK evaluering
+  // (`readPort.getEvaluation()`) taget EFTER preflightens settle, ikke render-tidens closure-værdier –
+  // closure'en er frosset fra renderet før klikket, og på klik-tidspunktet er beregningen typisk stadig
+  // gyldig i det renderede snapshot, selvom preflighten netop har afsluttet et felt som rødt (BB-069).
   // Prioritet: Fødselsdato → Skadedato → Méngrad → Beregningsdato.
-  //
-  // Stamdata-felterne føres nu HELT frem: tidligere navigerede fødselsdato-grenen til Stamdata uden at pege
-  // på feltet, og skadedato-grenen returnerede uden at gøre NOGET som helst – brugeren fik en shake på
-  // knappen og ingen anvisning. Begge bruger nu samme markering som sidens egne felter.
   const focusFirstBlockingField = React.useCallback(() => {
-    if (fodselsdatoError !== undefined || fodselsdato === undefined) {
+    const freshReader = readPort.getEvaluation().reader;
+    const freshFodselsdatoRead = freshReader.read(fodselsdatoRef);
+    const freshSkadedatoRead = freshReader.read(skadedatoRef);
+    const freshMengradRead = freshReader.read(mengradRef);
+    const freshBeregningsdatoRead = freshReader.read(beregningsdatoRef);
+
+    if (freshFodselsdatoRead.status !== 'usable') {
       goToFodselsdato();
       return;
     }
-    if (skadedatoError !== undefined || skadedato === undefined) {
+    if (freshSkadedatoRead.status !== 'usable') {
       goToSkadedato();
       return;
     }
-    if (beregningsResultat === null && mengradInputRef.current) {
+    if (freshMengradRead.status !== 'usable' && mengradInputRef.current) {
       mengradInputRef.current.focus();
       mengradInputRef.current.blur();
       blinkFieldAttention(mengradInputRef.current);
       return;
     }
-    if (beregningsdatoError !== undefined && beregningsdatoInputRef.current) {
+    if (freshBeregningsdatoRead.status !== 'usable' && beregningsdatoInputRef.current) {
       beregningsdatoInputRef.current.focus();
       beregningsdatoInputRef.current.blur();
       blinkFieldAttention(beregningsdatoInputRef.current);
     }
-  }, [
-    beregningsResultat,
-    beregningsdatoError,
-    fodselsdato,
-    fodselsdatoError,
-    goToFodselsdato,
-    goToSkadedato,
-    skadedato,
-    skadedatoError,
-  ]);
+  }, [goToFodselsdato, goToSkadedato, readPort]);
 
   /**
    * Aktivering. Hele preflighten (settle, frisk capture, token-lighed, gate) ligger i definitionen;
@@ -216,6 +235,12 @@ const MenberegningTab = React.memo(() => {
             <Typography className="row--text">
               {formatIsoDateLong(coerceToISODateString(fodselsdato) ?? undefined)}
             </Typography>
+          ) : fodselsdatoError ? (
+            <Tooltip title={fodselsdatoError} arrow>
+              <Typography className="row--text" color="text.secondary">
+                {ACTION_BLOCKED_INVALID_INPUT_MESSAGE}
+              </Typography>
+            </Tooltip>
           ) : (
             <Typography className="row--text" color="text.secondary">
               Mangler (angiv i&nbsp; {' '}
@@ -237,38 +262,45 @@ const MenberegningTab = React.memo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">{skadedatoLabel}</Typography>
         <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
-          <Typography className="row--text" color={skadedato ? 'text.primary' : 'text.disabled'}>
-            {skadedato ? (
-              formatSkadedato(skadedato)
-            ) : (
-              <>
-                Mangler (angiv i&nbsp; {' '}
-                <Typography
-                  component="span"
-                  className="icon-text-link"
-                  color="inherit"
-                  onClick={goToSkadedato}
-                  sx={{ cursor: 'pointer' }}
-                >
-                  Stamdata
-                </Typography>
-                )
-              </>
-            )}
-          </Typography>
+          {skadedato ? (
+            <Typography className="row--text">{formatSkadedato(skadedato)}</Typography>
+          ) : skadedatoError ? (
+            <Tooltip title={skadedatoError} arrow>
+              <Typography className="row--text" color="text.disabled">
+                {ACTION_BLOCKED_INVALID_INPUT_MESSAGE}
+              </Typography>
+            </Tooltip>
+          ) : (
+            <Typography className="row--text" color="text.disabled">
+              Mangler (angiv i&nbsp; {' '}
+              <Typography
+                component="span"
+                className="icon-text-link"
+                color="inherit"
+                onClick={goToSkadedato}
+                sx={{ cursor: 'pointer' }}
+              >
+                Stamdata
+              </Typography>
+              )
+            </Typography>
+          )}
         </Box>
       </Box>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Alder på skadestidspunkt</Typography>
+        <Typography className="row--text">{alderVedSkadeLabel}</Typography>
         <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
-          {fodselsdatoError || fodselsdato === undefined || skadedato === undefined ? (
-            <Tooltip
-              title={fodselsdatoError || (fodselsdato === undefined || skadedato === undefined ? 'Indtastning mangler' : '')}
-              arrow
-            >
+          {fodselsdatoError || skadedatoError ? (
+            <Tooltip title={ACTION_BLOCKED_INVALID_INPUT_MESSAGE} arrow>
               <Typography className="row--text" color="text.disabled">
-                {fodselsdatoError || 'Indtastning mangler'}
+                {ACTION_BLOCKED_INVALID_INPUT_MESSAGE}
+              </Typography>
+            </Tooltip>
+          ) : fodselsdato === undefined || skadedato === undefined ? (
+            <Tooltip title={ACTION_BLOCKED_MISSING_INPUT_MESSAGE} arrow>
+              <Typography className="row--text" color="text.disabled">
+                {ACTION_BLOCKED_MISSING_INPUT_MESSAGE}
               </Typography>
             </Tooltip>
           ) : (
@@ -316,6 +348,8 @@ const MenberegningTab = React.memo(() => {
             onCommit={(today) => {
               beregningsdatoController.settleValue(today);
             }}
+            disabled={insertTodayDisabledReason !== undefined}
+            disabledReason={insertTodayDisabledReason}
           />
         </Box>
       </Box>
@@ -323,18 +357,24 @@ const MenberegningTab = React.memo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">
           {menSats !== undefined
-            ? `Sats per méngrad i år ${menSats.aar}`
-            : 'Sats per méngrad i beregningsåret'}
+            ? `Sats pr. méngrad i beregningsår ${menSats.aar}`
+            : 'Sats pr. méngrad i beregningsåret'}
         </Typography>
         <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
           {menSats !== undefined ? (
             <Typography className="row--text">
               {formatAsAmount(menSats.sats, 0)} kr.
             </Typography>
-          ) : (
-            <Tooltip title={beregningsdatoError || 'Beregningsdato mangler'} arrow>
+          ) : beregningsdatoError ? (
+            <Tooltip title={ACTION_BLOCKED_INVALID_INPUT_MESSAGE} arrow>
               <Typography className="row--text" color="text.disabled">
-                Beregningsdato mangler
+                {ACTION_BLOCKED_INVALID_INPUT_MESSAGE}
+              </Typography>
+            </Tooltip>
+          ) : (
+            <Tooltip title={ACTION_BLOCKED_MISSING_INPUT_MESSAGE} arrow>
+              <Typography className="row--text" color="text.disabled">
+                {ACTION_BLOCKED_MISSING_INPUT_MESSAGE}
               </Typography>
             </Tooltip>
           )}
@@ -361,11 +401,15 @@ const MenberegningTab = React.memo(() => {
       {beregningsResultat && (
         <Box className="row--label-right-hover">
           <Typography className="row--text">
-            {`Aldersreduktion, ${alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`}
+            {beregningsResultat.aldersreduktionPct === 0
+              ? `Aldersreduktion, ${alderVedSkade} år = ${beregningsResultat.aldersreduktionPct} %`
+              : `Aldersreduktion, ${alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`}
           </Typography>
           <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
             <Typography className="row--text">
-              {`- ${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`}
+              {beregningsResultat.aldersreduktionBeloeb === 0
+                ? `${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`
+                : `- ${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`}
             </Typography>
           </Box>
         </Box>
@@ -391,6 +435,11 @@ const MenberegningTab = React.memo(() => {
               </Typography>
               <DocumentDownloadButton
                 onClick={() => void handlePdfDownload()}
+                // BB-069: uden dette flytter museklikkets mousedown fokus til knappen og blurrer en åben,
+                // ugyldig draft (fx méngrad) FØRST – draften committes synkront, knappen bliver disabled,
+                // og click-eventet når aldrig `onClick`. preventDefault bevarer fokus på draft-feltet, så
+                // klikket altid rammer preflighten, som selv settler og afgør udfaldet mod frisk state.
+                onMouseDown={(e) => e.preventDefault()}
                 dataTestId="varigemen-download"
               />
             </Box>

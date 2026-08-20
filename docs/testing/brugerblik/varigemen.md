@@ -11,6 +11,9 @@ Fladen har to faner og føres derfor som to kørsler. Dette dokument samler dem 
 # Fane 1 – Ménberegning
 
 - Gennemgået: 2026-08-20 · commit `47c7739c`
+- Tilbagemeldinger gennemført: 2026-08-20. Elleve fund rettet (BB-062, BB-063, BB-064, BB-065,
+  BB-066, BB-068, BB-069, BB-070, BB-071, BB-072, BB-073 – se hver enkelt for detaljer), to afvist
+  af brugeren (BB-067, BB-074, begge noteret under fundet).
 - Afprøvet i: Chrome, 1536×864, headless via `playwright-cli`. Alle tal og tekster nedenfor er
   aflæst i den kørende app, ikke udledt af koden, medmindre andet står.
 - Console under hele gennemgangen: 183 beskeder, **0 errors, 0 warnings.**
@@ -59,6 +62,11 @@ sit eget dokument.
   frem for af feltet. Konkret kandidat: EET-procenternes 15 %-advarsel (`BF-019`,
   `EetOplysningerTab.tsx`) – samme form, ikke efterprøvet, hører til flade nr. 11.
 
+**Tilbagemelding**
+Jeg er enig i dit fund. Den gule advarsel på feltet bør ikke være afhængig af andet end at brugeren har indtastet en værdi i feltet, der er lavere end 5%.
+
+**Rettet (2026-08-20).** `resolveVarigeMenWarning` læser nu méngrad direkte via `evaluation.reader.read(mengradRef)` i stedet for `projectionData?.mengrad`.
+
 ### BB-063 – Méngrad 1–4 regner og kan hentes uden et ord, mens 5 advarer
 
 - **Type:** Fornuft
@@ -78,6 +86,11 @@ sit eget dokument.
   både grænsen og under den.
 - **Andre steder det kan gælde:** EET's 15 %-advarsel (`BF-019`) – efterprøv om den ligeledes kun
   udløses ved præcis 15.
+
+**Tilbagemelding**
+Dette er en eklatant fejl. Der skal ikke gives advarsel ved 5 %. Kun når den indtastede méngrad er lavere end 5%, dvs. 1-4%, eftersom der kommer en egentlig fejlmeddelelse ved 5 %. Tooltip-meddelelsen ved 0 % bør i øvrigt ændres til, at værdien skal være mellem 5 og 120 %, og ikke mellem 1 og 120 som nu. 
+
+**Rettet (2026-08-20).** Advarslen vises nu kun for méngrad 1–4. Feltets nedre bounds-grænse (`MENGRAD_MIN` i `varigeMenDescriptors.ts`) er ændret fra 1 til 5, hvilket automatisk ændrer tooltip-teksten til "mellem 5 og 120" (afledt af grænserne, ikke en separat streng).
 
 ### BB-064 – En udfyldt stamdato meldes som «Mangler», mens samme skærm citerer dens værdi
 
@@ -114,6 +127,16 @@ sit eget dokument.
   Erstatningsopgørelsens forudsætningsrækker (flade 12) – ikke efterprøvet. Forsørgertab er
   efterprøvet og er i orden.
 
+**Tilbagemelding**
+Jeg anerkender præmissen for din vurdering, men vil gerne afsøge en lidt anden løsning. 
+Generelt vil jeg gerne forsimplet orienteringerne til brugeren om fejl og mangler i tooltip-meddelelser og disse inline-meddelelser, så der konsekvent bruges to tilbagemeldinger om henholdsvis at indtastning mangler eller at der er fejl i indtastning, altså i tråd med hvad der sker i tooltip på download-knappen. Selve den udspecificerede fejlmeddelelse, hvis der er en, fremgår af det felt, hvor indtastningen faktisk er foretaget eller mangler. Så her kunne det være rart at inline-teksten sondrede mellem, om den indtastede værdi mangler eller om der er indtastet en ugyldig værdi, og da skriver det.
+
+**Rettet (2026-08-20), efter brugerens alternative løsning.** Fødselsdato-, skadedato- og
+alder-rækkerne viser nu ÉN af de to universelle standardbeskeder (`ACTION_BLOCKED_MISSING_INPUT_MESSAGE`
+= "Indtastning mangler" / `ACTION_BLOCKED_INVALID_INPUT_MESSAGE` = "Fejl i indtastning", samme
+konstanter som download-knappens tooltip bruger via `actionGate.ts`) i stedet for at citere feltets
+specifikke fejltekst. Den udspecificerede fejl står stadig ordret i tooltip og i selve Stamdata-feltet.
+
 ### BB-065 – Satsrækken siger «Beregningsdato mangler» om en udfyldt, rød beregningsdato
 
 - **Type:** Fornuft
@@ -135,6 +158,12 @@ sit eget dokument.
   læsning frem for til et tomt felt. Søg på mekanismen `read(...).status === 'usable' ? … : '<felt>
   mangler'`.
 
+**Tilbagemelding**
+Samme som ovenfor. Hvis du er enig i præmissen kunne jeg godt tænke mig, at når der er tale om henvisninger til noget, der er foretaget i et andet felt, benyttes én af to meddelelser om enten manglende indtastnig eller fejl i indtastning, men ikke gengivelse af den udspecificerede fejl-årsag - den fremgår af selve feltet, hvor manglen/fejlen findes.
+
+**Rettet (2026-08-20).** Samme mekanik som BB-064: satsrækken viser nu "Indtastning mangler" eller
+"Fejl i indtastning" i stedet for at citere/fejlbenævne beregningsdatoens specifikke fejl.
+
 ### BB-066 – Alder-rækken viser fødselsdatoens fejl, men aldrig skadedatoens
 
 - **Type:** Fornuft
@@ -153,6 +182,12 @@ sit eget dokument.
 - **Bedre ville være:** samme gren håndterer begge: er der en fejl på en af de to datoer, vises
   den fejl; er et af felterne tomt, vises «Indtastning mangler».
 - **Andre steder det kan gælde:** ingen – asymmetrien er lokal.
+
+**Tilbagemelding**
+Accepteret efter tilbagevendende drøftelse: rettes. Situationen er ikke sjælden (almindelig top-til-bund udfyldning med en tastefejl i skadedatoen), og løsningen er samme forgrening som fødselsdato-grenen allerede har, blot spejlet til skadedatoen.
+
+**Rettet (2026-08-20).** Alder-rækken viser nu skadedatoens fejl, hvis den findes, sideordnet med
+fødselsdatoens (begge er nu underlagt den samme to-klasse-standardbesked som BB-064/BB-065).
 
 ### BB-067 – De nedtonede «mangler»-tekster er ikke nedtonede: farven bliver overskrevet
 
@@ -186,6 +221,9 @@ sit eget dokument.
   `DocumentOutcomeMessage.tsx:34`, der beder om `color: 'error.main'` til en **fejlbesked**, som
   dermed ikke er rød.
 
+**Tilbagemelding**
+Jeg er ikke afvisende over for din anbefaling, men jeg er bange for, at resultatet kan blive det modsatte. At brugeren ser de almindelige linjer med almindelig tekstfarve og ikke rigtig registrerer at der er nedtonede linjer, som indeholder fejl. Fejlene er jo vel nærmest det væsentligste for brugeren at forholde sig til.
+
 ### BB-068 – «Indsæt dags dato» vil indsætte en afvist dato fra 1. januar 2027
 
 - **Type:** Edge case
@@ -210,6 +248,15 @@ sit eget dokument.
 - **Andre steder det kan gælde:** de fem flader med «Indsæt dags dato». Prøven er generel: **er
   dags dato altid inden for feltets erklærede interval?** Felter med `max: getToday()` er sikre;
   felter som dette, hvor maksimum er et **datasæt**, er ikke.
+
+**Tilbagemelding**
+Jeg anerkender problemet. Jeg vil gerne have den foreslåede mulighed a), altså at knappen gøres inaktiv med en relevant tooltip, hvis dags dato ligger uden for det mulige spænd, fx. at "Der kan kun foretages beregninger frem til DD-MM-ÅÅÅÅ" eller noget i den stil. 
+
+**Rettet (2026-08-20).** `InsertTodayDateButton` har fået en ny, valgfri `disabled`/`disabledReason`-prop
+(additiv, ingen anden af de otte kaldssteder påvirket). Varige méns knap er nu inaktiv med tooltippen
+"Der kan kun foretages beregninger frem til {sidste dækkede dato}", når dags dato ligger uden for
+beregningsdatoens interval. De øvrige fire flader med samme knap (nævnt under "Andre steder det kan
+gælde") er IKKE efterprøvet eller rettet her – kun Varige mén var i scope for denne gennemgang.
 
 ### BB-069 – Et blokeret klik på en aktiv downloadknap giver intet svar, og fokus ryger til siden
 
@@ -239,6 +286,29 @@ sit eget dokument.
 - **Andre steder det kan gælde:** alle sider med samme «fokusér det første blokerende felt»-kode
   efter et afvist download. Søg på `outcome.rejection.kind === 'gate-blocked'`.
 
+**Tilbagemelding**
+Accepteret efter tilbagevendende drøftelse: rettes. Fundet handler ikke om knappens udseende under indtastning (det er vi enige om skal være uændret), men om at et klik EFTER afsluttet, ugyldig indtastning ikke giver noget svar og kaster fokus til BODY. Rød ring + tooltip hjælper ikke, når brugeren ikke længere har fokus på feltet.
+
+**Rettet (2026-08-20).** Fejlen var TO ting i samspil, ikke én:
+
+1. Selve klikket kunne forsvinde: et museklik flytter native fokus til knappen FØR `click` affyres,
+   hvilket blurrer en åben, ugyldig draft, committer den synkront, og gør knappen `disabled` – FØR
+   click-eventet når frem. En disabled knap fyrer intet `onClick`. To uafhængige modelvurderinger
+   (Opus 5 thinking og Codex/gpt-5.6-terra high) blev indhentet om løsningen: den ene forslog en
+   arkitektonisk rodfix (fjern native `disabled` fra den delte `DownloadIconButton` globalt), den
+   anden en lokal patch (`onMouseDown={(e) => e.preventDefault()}` kun på denne knap). Et
+   opfølgende sundhedstjek hos Codex konkluderede entydigt, at den globale ændring ville være
+   overkompliceret (ny to-vejs disabled-semantik, risiko for Tab-kontrakten på alle andre
+   download-knapper i programmet) for et snævert, lavfrekvent scenarie. Brugeren valgte den lokale
+   patch. Implementeret som en ny, valgfri `onMouseDown`-prop på `DownloadIconButton`/
+   `DocumentDownloadButton` (additiv, ingen anden kaldsside påvirket), brugt kun på Varige méns
+   aktive downloadknap.
+2. Selve fokus-feedbacken (`focusFirstBlockingField`) læste closure-værdier fra renderet FØR
+   settle. Rettet til at læse en frisk `InputReader`-snapshot (`readPort.getEvaluation()`) taget
+   EFTER settle.
+
+Regressionstest tilføjet i `MenberegningTab.integration.test.tsx`.
+
 ### BB-070 – Skærmen og dokumentet skriver slutbeløbet forskelligt
 
 - **Type:** Fornuft
@@ -259,6 +329,12 @@ sit eget dokument.
 - **Andre steder det kan gælde:** enhver generator, der bruger `formatAsAmount(x)` uden at angive
   præcision, mens skærmen angiver den. Prøven er, om kaldet mangler sit andet argument.
 
+**Tilbagemelding**
+Jeg anerkender fejlen og er enig. Løsningen bør være ensartet udseende på side og i PDF-dokumentet. Jeg vil gerne have, at beløbene i PDF-dokumentet også vises uden decimaler. 
+
+**Rettet (2026-08-20).** `varigeMenDocument.ts` formaterer nu "Beregnet méngodtgørelse" med
+`formatAsAmount(beregningsResultat.beregnetGodtgoerelse, 0)` – samme 0-decimalers form som skærmen.
+
 ### BB-071 – Samme sats hedder tre ting på én side
 
 - **Type:** Fornuft
@@ -278,6 +354,13 @@ sit eget dokument.
   programmets almindelige forkortelse) og ét ord for året. Da satsen slås op på **beregningsdatoens**
   år, er «Beregningsår» det oplagte.
 - **Andre steder det kan gælde:** ingen; «Opgørelsesår» er unikt for denne tabel.
+
+**Tilbagemelding**
+Jeg er enig.
+
+**Rettet (2026-08-20).** Begge flader bruger nu "Sats pr. méngrad i beregningsår {år}" (Ménberegning)
+og "Beregningsår" (Satser-tabellens kolonneoverskrift, tidligere "Opgørelsesår"). PDF-dokumentet
+havde den samme "per méngrad i år"-formulering og er rettet til samme tekst som skærmen.
 
 ### BB-072 – «Alder på skadestidspunkt» står uændret, når datoen hedder Anmeldelsesdato
 
@@ -306,6 +389,16 @@ sit eget dokument.
   (`eetEfterEalDocument.ts`, `forsoergertabDocument.ts`, `varigeMenDocument.ts`). Ingen af dem er
   efterprøvet; de hører til flade 10 og 11.
 
+**Tilbagemelding**
+Du har fundet en regulær fejl, og jeg er enig i både præmissen og løsningen. Alle steder i programmet må der ikke ukritisk blot bruges udtrykket 'skadedato' eller 'anmeldedato'. De skal altid udledes af den indtastede skadetype, således at den sættes til 'anmeldt...' hvis skadetypen er en erhvervssygdom, og ellers til 'skade...'
+
+**Rettet (2026-08-20), kun for denne flade.** "Alder på skadestidspunkt"/"Alder på
+anmeldelsestidspunkt" udledes nu af `resolveStamdataDatoReference(skadestype).kind` på skærmen, og
+af samme betingelse i `varigeMenDocument.ts` for PDF'en. De øvrige nævnte forekomster
+(`EetEfterEalTab.tsx`, `ForsoergertabEalSection.tsx`, `eetEfterEalDocument.ts`,
+`forsoergertabDocument.ts`) er IKKE rettet her – de hører til flade 10/11 og er uden for denne
+gennemgangs scope.
+
 ### BB-073 – Aldersreduktionen vises som «- 0 %» og «- 0,00 kr.» for alle under 40 år
 
 - **Type:** Fornuft
@@ -325,6 +418,12 @@ sit eget dokument.
 - **Andre steder det kan gælde:** andre reduktions-/fradragslinjer, der sætter et fast `-` foran en
   værdi, der kan være nul. Søg på formen `- ${formatAsAmount(...)}`.
 
+**Tilbagemelding**
+Jeg er enig.
+
+**Rettet (2026-08-20).** Både skærmen og PDF-dokumentet viser nu "Aldersreduktion, {alder} år = 0 %"
+→ "0,00 kr." uden foranstillet minus, når reduktionen er nul.
+
 ### BB-074 – Méngradfeltets pladsholder er «0», og 0 er den ene værdi feltet afviser
 
 - **Type:** Fornuft
@@ -343,6 +442,9 @@ sit eget dokument.
   interval også udelukker 0. Efterprøv `EetOplysningerTab.tsx:159` og
   `BeregnetRenteTable.tsx:173` (rentebeløbet har efter BB-038 grænsen «større end 0» – samme
   konflikt, ikke efterprøvet, hører til flade 8).
+
+**Tilbagemelding**
+Jeg forstår dit synspunkt men afviser det. Der anvendes placeholders i meget vid udstrækning, og jeg vil også gerne have det her. Og tallet nul er en fin placeholder. Programmet giver klar tilbagemelding til brugeren, hvis brugeren selv prøver at indtaste nul.
 
 ## Overvejet uden fund
 

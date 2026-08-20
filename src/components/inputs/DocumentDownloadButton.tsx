@@ -5,6 +5,8 @@ import DownloadIconButton from './DownloadIconButton';
 
 type Props = Readonly<{
   onClick?: () => void;
+  /** Videreført råt til `DownloadIconButton` – se dens dokumentation (BB-069-undtagelsen). */
+  onMouseDown?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   /** Kort årsag der vises i stedet for "Download som …", når knappen er deaktiveret. */
   disabledReason?: string;
@@ -19,7 +21,7 @@ type Props = Readonly<{
  * `useAppSettings` og viser den kontrakt-krævede format-bevidste tooltip/aria-label.
  * Præsentationen deles med `DownloadIconButton`.
  */
-const DocumentDownloadButton = ({ onClick, disabled = false, disabledReason, label, dataTestId }: Props) => {
+const DocumentDownloadButton = ({ onClick, onMouseDown, disabled = false, disabledReason, label, dataTestId }: Props) => {
   const { settings } = useAppSettings();
   const tooltip = disabled
     ? disabledReason ?? DOWNLOAD_DISABLED_TOOLTIP
@@ -28,6 +30,7 @@ const DocumentDownloadButton = ({ onClick, disabled = false, disabledReason, lab
   return (
     <DownloadIconButton
       onClick={onClick}
+      onMouseDown={onMouseDown}
       disabled={disabled}
       tooltip={tooltip}
       dataTestId={dataTestId}

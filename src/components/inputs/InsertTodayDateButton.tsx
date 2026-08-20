@@ -10,11 +10,14 @@ import { mergeSx } from '../../utils/mergeSx';
 type InsertTodayDateButtonProps = Readonly<{
   onCommit: (today: ISODateString) => void;
   tooltip?: string;
+  /** Sat når dags dato ligger uden for feltets tilladte interval – `disabledReason` erstatter tooltippet. */
+  disabled?: boolean;
+  disabledReason?: string;
   sx?: SxProps<Theme>;
 }>;
 
 const InsertTodayDateButton = React.memo(
-  ({ onCommit, tooltip = 'Indsæt dags dato', sx }: InsertTodayDateButtonProps) => {
+  ({ onCommit, tooltip = 'Indsæt dags dato', disabled = false, disabledReason, sx }: InsertTodayDateButtonProps) => {
     const buttonRef = React.useRef<HTMLButtonElement>(null);
     const handleClick = React.useCallback(() => {
       const button = buttonRef.current;
@@ -25,14 +28,16 @@ const InsertTodayDateButton = React.memo(
         requestAnimationFrame(() => restoreFocusIfPossible(button));
       }
     }, [onCommit]);
+    const effectiveTooltip = disabled ? (disabledReason ?? tooltip) : tooltip;
 
     return (
-      <Tooltip title={tooltip} arrow>
+      <Tooltip title={effectiveTooltip} arrow>
         <IconButton
           ref={buttonRef}
           type="button"
-          aria-label={tooltip}
+          aria-label={effectiveTooltip}
           data-mineo-focusable-button="true"
+          disabled={disabled}
           onClick={handleClick}
           sx={mergeSx({
             width: '32px',

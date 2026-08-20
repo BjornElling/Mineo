@@ -28,7 +28,10 @@ const addStamdataSection = (
   writeLabelValueRows(writer, [
     { label: 'Fødselsdato', value: formatIsoDateLong(fodselsdato) },
     { label: skadedatoLabel, value: formatIsoDateLong(skadedato) },
-    { label: 'Alder på skadestidspunkt', value: `${alderVedSkade} år` },
+    {
+      label: skadedatoLabel === 'Anmeldelsesdato' ? 'Alder på anmeldelsestidspunkt' : 'Alder på skadestidspunkt',
+      value: `${alderVedSkade} år`,
+    },
   ]);
   writer.addSectionSpacer();
 };
@@ -49,7 +52,7 @@ const addBeregningsgrundlagSection = (
     { label: 'Méngrad', value: `${mengrad} %` },
     { label: 'Beregningsdato', value: formatIsoDateLong(beregningsdato) },
     {
-      label: `Sats per méngrad i år ${beregningsResultat.beregningsaar}`,
+      label: `Sats pr. méngrad i beregningsår ${beregningsResultat.beregningsaar}`,
       value: `${formatAsAmount(beregningsResultat.satsPerMengrad, 0)} kr.`,
     },
   ]);
@@ -73,12 +76,16 @@ const addResultatSection = (
       value: `${formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.`,
     },
     {
-      label: `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`,
-      value: `- ${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`,
+      label: beregningsResultat.aldersreduktionPct === 0
+        ? `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = ${beregningsResultat.aldersreduktionPct} %`
+        : `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`,
+      value: beregningsResultat.aldersreduktionBeloeb === 0
+        ? `${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`
+        : `- ${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`,
     },
     {
       label: 'Beregnet méngodtgørelse',
-      value: `${formatAsAmount(beregningsResultat.beregnetGodtgoerelse)} kr.`,
+      value: `${formatAsAmount(beregningsResultat.beregnetGodtgoerelse, 0)} kr.`,
       rightFontStyle: 'bold',
     },
   ]);

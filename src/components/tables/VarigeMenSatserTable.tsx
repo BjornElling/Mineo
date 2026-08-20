@@ -17,7 +17,7 @@ const VarigeMenSatserTable = React.memo(() => {
     <Box sx={{ mt: 3, maxWidth: '500px' }}>
       <StandardDisplayTable
         columns={[
-          { header: 'Opgørelsesår', align: 'center' },
+          { header: 'Beregningsår', align: 'center' },
           { header: 'Sats pr. méngrad', align: 'center' },
         ]}
         rows={years.map((year) => ({

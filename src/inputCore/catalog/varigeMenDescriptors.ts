@@ -39,7 +39,7 @@ const beregningsdatoBoundsSpec: DateBoundsSpec = {
 // mengrad persisteres som heltal. 1..120 er en domænegrænse, der afledes som bounds-issue efter settle –
 // ikke en codec-parseregel (jf. renteberegning `tillaegstid`). Cifferloftet UDLEDES af maksimum, så 121
 // fortsat kan tastes og bliver rødt (§1.2), mens et fjerde ciffer aldrig kommer ind i feltet.
-const MENGRAD_MIN = 1;
+const MENGRAD_MIN = 5;
 const MENGRAD_MAX = 120;
 export const varigeMenMengradField = defineStructuralField<number | undefined>({
   id: 'varigemen.mengrad',

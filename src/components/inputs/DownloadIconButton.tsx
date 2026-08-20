@@ -4,6 +4,13 @@ import { Download } from '@mui/icons-material';
 
 type Props = Readonly<{
   onClick?: () => void;
+  /**
+   * Videreført RÅT til knappens `onMouseDown`. Bruges af flader, hvor et åbent, ugyldigt draft-felt
+   * kunne blurre og committe (og dermed disable knappen) FØR click-eventet når den – et `preventDefault()`
+   * her bevarer fokus på draft-feltet til click, så klikket ikke går tabt (BB-069). Ingen anden
+   * kaldsside skal bruge denne; den er en lokal undtagelse, ikke en ny standardadfærd.
+   */
+  onMouseDown?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   /** Tooltip-tekst; bruges også som aria-label medmindre `ariaLabel` er sat. */
   tooltip: string;
@@ -28,7 +35,7 @@ type Props = Readonly<{
  * blokerende felt er bevaret – det er den del af den gamle feedback, der faktisk pegede brugeren
  * et sted hen. Genindfør ikke en shake-prop her.
  */
-const DownloadIconButton = ({ onClick, disabled = false, tooltip, ariaLabel, dataTestId }: Props) => (
+const DownloadIconButton = ({ onClick, onMouseDown, disabled = false, tooltip, ariaLabel, dataTestId }: Props) => (
   <Tooltip title={tooltip}>
     <span>
       <IconButton
@@ -37,6 +44,7 @@ const DownloadIconButton = ({ onClick, disabled = false, tooltip, ariaLabel, dat
         data-mineo-focusable-button="true"
         data-testid={dataTestId}
         onClick={onClick}
+        onMouseDown={onMouseDown}
         size="small"
         disabled={disabled}
         sx={{
