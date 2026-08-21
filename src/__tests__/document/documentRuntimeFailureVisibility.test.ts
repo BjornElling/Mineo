@@ -23,15 +23,22 @@ const diagnostics: DocumentDiagnostics = { outputId: 'forsoergertab', phase: 're
 
 describe('dokument-runtimefejl når en brugervendt overflade (§A5)', () => {
   let stopMonitor: (() => void) | null = null;
+  let errorSpy: ReturnType<typeof vi.spyOn> | null = null;
 
   beforeEach(() => {
     resetDevtoolsMonitor();
+    // Stubben SKAL sættes før monitoren startes: monitoren gemmer den aktuelle `console.error` som
+    // "original" og videresender til den. Stubbes den først bagefter, holder monitoren fast i den
+    // ægte funktion, og den bevidst fremprovokerede systemfejl støjer på stderr i CI.
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     stopMonitor = startDevtoolsMonitor();
   });
 
   afterEach(() => {
     stopMonitor?.();
     stopMonitor = null;
+    errorSpy?.mockRestore();
+    errorSpy = null;
     resetDevtoolsMonitor();
   });
 
