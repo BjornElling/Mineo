@@ -12,9 +12,19 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
-**M-19, M-20 og M-21 er tilføjet 2026-08-20 fra Varige mén → Ménberegning og AFVENTER BRUGERENS
-AFGØRELSE.** De tre er ikke varianter af hinanden, men de blev fundet i samme lille flade og deler et
-træk: hver af dem er et sted, hvor programmet **kender** det rigtige svar og viser noget andet.
+**Ingen nye mønstre 2026-08-21 fra Varige mén → Satser, men to skærpelser – og alle fem fund er
+afgjort samme dag** (BB-078/BB-079 gennemført som én rettelse, BB-075/BB-076/BB-077 afvist). Fanen
+er for lille til at bære et mønster (én tabel, ingen felter), og dens fund faldt i to eksisterende:
+**M-11 har fået en skærpelse** – en lovhenvisning eller anden angivelse af, hvor et TAL kommer fra,
+er lige så meget en påstand som en tekst om programmets adfærd, og den måles ved at finde samme tal
+et andet sted i programmet. Men **BB-075's afvisning strammer prøven**: et fund kræver, at de to
+henførsler er *uforenelige*, ikke blot forskelligt afgrænsede. **M-13 har fået to nye forekomster**,
+som udvider dens prøve: uenigheden om formen kan stå på ÉN skærm (BB-079), og den kan ligge latent i
+forskellige formateringskald for samme værdi (BB-078). Begge er rettet.
+
+**M-19, M-20 og M-21 er tilføjet 2026-08-20 fra Varige mén → Ménberegning; alle tre er afgjort
+2026-08-20** (M-19 og M-20 gennemført, M-21's udløsende fund afvist – se hvert mønster). De tre er
+ikke varianter af hinanden, men de blev fundet i samme lille flade og deler et træk: hver af dem er et sted, hvor programmet **kender** det rigtige svar og viser noget andet.
 M-19 handler om, at et rødt felt læses som et tomt felt af den flade, der låner værdien – så skærmen
 siger «Mangler» og citerer tre linjer længere ned den værdi, den siger mangler. M-20 om en feltnær
 oplysning (en gul advarsel), der er hængt op på hele sidens beregning og derfor er tavs, indtil
@@ -432,6 +442,33 @@ kringlet tekst, der er ringere end den upræcise.
   etiketter. Mønsteret gav derfor intet dér; det, fladen mangler, er dækket af M-12 nedenfor.
 - Kandidater, ikke efterprøvet: «Slet alt»-bekræftelsen, overskrivningsadvarslen ved Hent.
 
+**Skærpelse 2026-08-21 (fra `varigemen.md` BB-075) – en påstand om et TALS OPHAV hører også hjemme
+her, men prøven er strengere, end fundet antog.** BB-075 blev **afvist**: satsen ER fælles for de to
+love, og at Satser-siden placerer den under ét af dem, er ikke en mangel over for en professionel
+målgruppe. **Prøven er derfor: er de to henførsler UFORENELIGE – eller blot forskelligt afgrænsede?**
+Kun det første er et fund.
+
+Selve mekanismen står ved magt. Mønsteret var indtil nu læst som «tekster om programmets adfærd»,
+men en linje, der fortæller hvor et tal kommer fra – en lovhenvisning ved siden af en sats, en
+kildeangivelse over en tabel – er den samme slags påstand: brugeren har intet andet at gå efter, og
+den kan måles. Den måles bare ikke ved at fremprovokere en adfærd, men ved at **finde samme tal et
+andet sted i programmet og sammenligne, hvad det dér henføres til**.
+
+**Og det er netop dér, afvisningen har sin lære.** Målingen viste en ægte forskel (satsfanen henfører
+til to love, Satser-siden til én), men en forskel er ikke en modsigelse: den ene henførsel var bare
+bredere end den anden. **En placering er en indeksering, ikke en påstand om eksklusivitet** – og over
+for en professionel målgruppe skal en indeksering ikke gentages alle de steder, den også kunne stå.
+Spørg derfor, om de to tekster kan være sande samtidig, før fundet skrives.
+
+Bemærk desuden, at fælden fra mønsterets øvrige fund vender om her: BB-011 og BB-012 blev læst som
+indvendinger mod adfærden, hvor kun teksten var forkert. Ved en kildeangivelse er det omvendt ikke
+givet, at teksten er den forkerte halvdel. Skriv derfor fundet med begge udfald og lad brugeren
+vælge – det er en faglig afgørelse, ikke en sproglig.
+
+- Kandidater, ikke efterprøvet: Renteberegning → Rentesatser («jf. rentelovens § 5» / «§ 5, stk. 2»,
+  flade 8), Satser-sidens fire sektionsoverskrifter, som er den eneste henførsel af 20 satser, og
+  dokumentgeneratorernes indledende forudsætningsafsnit.
+
 ## M-12 – Et valg, hvis virkning hverken kan ses nu eller findes senere
 
 > Brugeren træffer et valg, men kan hverken se, at det skete, hvornår det gælder, eller hvordan han
@@ -540,6 +577,32 @@ måles og rettes.
   generatorerne efter `formatAsAmount(` uden andet argument** og sammenlign med skærmens kald for
   samme tal. Varige méns øvrige otte linjer var identiske, så det er formen, ikke rækkevalget, der
   driver.
+- **To nye forekomster 2026-08-21, og de udvider prøven i hver sin retning** (`varigemen.md` BB-079
+  og BB-078, begge Lav):
+  - **BB-079 – uenigheden behøver ikke to udgaver. Den kan stå på ÉN skærm.** Varige méns
+    ménberegning viser satsen som «11.035 kr.» i satsrækken og som «á 11.035,00 kr.» tre linjer
+    længere nede; PDF'en gør nøjagtig det samme, så skærm og dokument er *enige* – og netop derfor
+    fangede BB-070's prøve det ikke. **Prøven er derfor bredere: sammenlign alle visninger af samme
+    tal, også inden for én skærm, ikke kun skærm mod dokument.**
+  - **BB-078 – den latente form: forskellige formateringskald for samme værdi.** Méngrad-satsen
+    vises tre steder med tre kald (`formatAsAmountTrimmed(x, 2)` på satsfanen, `formatAsAmount(x, 0)`
+    på ménberegningen og i dokumentet, `formatKr(x, 0)` på Satser-siden). Datasættet har kun hele
+    kroner, så de er enige i dag; en sats med ører ville give tre former, hvoraf to er afrundet væk
+    fra den værdi, beregningen bruger. Efter mønsterets egen lære (fri proces-rækken) lukkes en
+    sådan uenighed, når den findes – ikke først når dataene udløser den. **Generel prøve: find de
+    kald, der viser samme værdi to steder, og sammenlign precision-argumentet.**
+  - **Begge accepteret og gennemført 2026-08-21 som ÉN rettelse:** alle beløb i varige mén går nu
+    gennem `formatKr` med nul decimaler, i skærm og begge dokumentformater, og reglen er normativ i
+    `varigemen-contract.md` §2.9. **Men brugerens afgrænsning er en del af afgørelsen og hører med
+    her: nul decimaler er varige méns EGEN regel og må ikke udbredes til andre ydelser** –
+    `amount-contract.md` §5's to-decimal-standard gælder fortsat alle andre domæner. Mønsteret
+    forlanger altså, at de forskellige visninger af samme tal er ENIGE, ikke at de er nul-decimale.
+  - **Lære om rettelsens omfang:** det var fristende at afrunde mellemregningerne i domænet med, så
+    visningen aldrig kunne afvige fra værdien. Det ville have været en BEREGNINGSændring (resultatet
+    ville flytte sig, hvis en sats fik ører) forklædt som en visningsrettelse. Afstemningen holder
+    uden den, fordi reduktionen er defineret som differencen mod den oprundede godtgørelse – de to
+    uafrundede beløb har derfor samme decimaldel og forskydes ens. **Spørg altid, om en
+    visningsrettelse er ved at brede sig ind i domænet.**
 
 ## M-14 – En anden fortolkningsvej ved siden af tastningen
 
@@ -819,6 +882,10 @@ truffet, ikke et nyt designforslag.
   som manglende, mens to andre linjer på samme skærm citerer den), BB-065 (satsrækkens
   «Beregningsdato mangler» om en udfyldt, rød beregningsdato – sandheden ligger i tooltippen) og
   BB-066 (samme række viser den ENE af to datoers fejl).
+- **Alle tre fund accepteret og gennemført 2026-08-20**, og rettelsen blev den forudsagte
+  konvergens: de lånende rækker skelner nu tomt fra rødt med `actionGate.ts`' to universelle
+  standardbeskeder. Rettelsen er samtidig udbredt til to af de forudsagte kandidatsteder –
+  EO-beregningsfanens skadedato-række og Forsørgertabs beregningssektion (commit `789d11f7`).
 - Efterprøvet og i orden: Forsørgertabs to spejlede rækker (forlægget ovenfor).
 - Kandidater, ikke efterprøvet: EET efter EAL's spejlede stamdata-rækker (flade 11),
   Erstatningsopgørelsens forudsætningsrækker (flade 12) og enhver tekst af formen «<felt> mangler»,
@@ -852,6 +919,9 @@ ene felts egen værdi.
   udfyldt; målt som neutral feltramme `rgba(0, 0, 0, 0.12)` uden tooltip, der efter en urelateret
   indtastning skiftede til `rgb(245, 158, 11)` med teksten. Advarslen læste
   `projectionData?.mengrad`, som først findes ved `ready`.
+- **Accepteret og gennemført 2026-08-20:** advarslen læser nu méngradfeltets eget read i stedet for
+  projektionen, og dens grænse blev i samme omgang rettet fra kun 5 % til 1–4 % – altså netop de
+  værdier, hvor der ikke kan tilkendes mén (BB-063).
 - Kandidater, ikke efterprøvet: EET-procenternes 15 %-advarsel (`EetOplysningerTab.tsx`, `BF-019`) –
   samme form, flade 11. Generelt: enhver `warning={resolve…(projection?.…)}`.
 
@@ -884,6 +954,13 @@ AST-værn, der afviser en farve-prop på et element med en `row--*`-klasse, lukk
   «mangler»-tekster rendres i `rgba(0, 0, 0, 0.87)` – præcis samme farve som en indtastet værdi – så
   en tom sag ser udfyldt ud. To rækker med hver sin ønskede farve fik SAMME emotion-klasse, hvis
   eneste farveregel er standardfarven.
+- **BB-067 er AFVIST af brugeren 2026-08-20, og afvisningen vender mønsteret på hovedet for
+  nedtoning.** Brugerens indvending var, at rettelsen ville give det modsatte resultat: bliver
+  «mangler»-linjerne først nedtonede, kan de blive linjerne, brugeren *ikke* registrerer – og de
+  bærer netop det væsentligste, nemlig hvad der er galt. **Et fund om en død farve-prop skal derfor
+  vise, at den ønskede farve gør oplysningen lettere at opdage, ikke blot at proppen er død.** Den
+  skarpeste kandidat er dermed stadig `DocumentOutcomeMessage`s fejlbesked, hvor den døde prop
+  trækker den forkerte vej: en fejl, der ikke er rød.
 - Kandidater, ikke efterprøvet: `ForsoergertabOplysningerSection.tsx` (2 døde `color`-props),
   `Satser.tsx:30`, `CannotComputeAggregationNotice.tsx:13`, `DefaultDirectoryRow.tsx:27-30` og
   **`DocumentOutcomeMessage.tsx:34`, der beder om `error.main` til en fejlbesked** – altså en

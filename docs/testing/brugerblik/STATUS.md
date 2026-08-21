@@ -2,11 +2,13 @@
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Varige mén → fanen **Satser** (`/varigemen`, fane 2 af 2)
-- **Næste fund-ID:** BB-075
-- **Senest opdateret:** 2026-08-20 (Varige mén → **Ménberegning gennemgået**: 13 fund, BB-062–BB-074,
-  alle **Afventer bruger/afgørelse**. Tre nye mønstre M-19, M-20, M-21; M-02 og M-13 har fået hver
-  sin skærpelse)
+- **Næste flade:** Renteberegning (`/renteberegning`, fane 1 af 2 – Renteberegning; fanen
+  Rentesatser er nr. 8b)
+- **Næste fund-ID:** BB-080
+- **Senest opdateret:** 2026-08-21 (Varige mén → **Satser gennemgået og afgjort samme dag**: 5 fund,
+  BB-075–BB-079 – to rettet, tre afvist. Ingen nye mønstre; M-11 og M-13 har fået hver sin
+  skærpelse, og de tre afvisninger lukker hvert sit spor. Fane 7a's tretten fund er samtidig ført
+  ajour som **afgjort** – elleve rettet, to afvist)
 
 ## Flader
 
@@ -21,36 +23,112 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 4 | Satser | Gennemgået | 6 (BB-030–BB-035) | [satser.md](satser.md) |
 | 5 | MinProcesrente | Afgjort | 12 (BB-037–BB-048) | [minprocesrente.md](minprocesrente.md) |
 | 6 | Global shell | Afgjort | 13 (BB-049–BB-061) | [globalshell.md](globalshell.md) |
-| 7a | Varige mén – Ménberegning | Afventer bruger | 13 (BB-062–BB-074) | [varigemen.md](varigemen.md) |
-| 7b | Varige mén – Satser | Ikke startet | – | [varigemen.md](varigemen.md) |
-| 8 | Renteberegning | Ikke startet | – | – |
+| 7a | Varige mén – Ménberegning | Afgjort | 13 (BB-062–BB-074) | [varigemen.md](varigemen.md) |
+| 7b | Varige mén – Satser | Afgjort | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
+| 8a | Renteberegning – Renteberegning | Ikke startet | – | – |
+| 8b | Renteberegning – Rentesatser | Ikke startet | – | – |
 | 9 | Årslønsberegning | Ikke startet | – | – |
 | 10 | Forsørgertab | Ikke startet | – | – |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
 
-## Varige mén → Ménberegning – gennemgået 2026-08-20 (afventer bruger)
+## Varige mén → Satser – gennemgået og afgjort 2026-08-21
 
-**Tretten fund, BB-062–BB-074.** Ingen af dem er afgjort. Det fulde grundlag med målte tal står i
-[varigemen.md](varigemen.md).
+**Alle fem fund er afgjort** – to accepteret og gennemført (som én rettelse), tre afvist. Det fulde
+grundlag med målte tal står i [varigemen.md](varigemen.md).
 
-| ID | Kort | Prioritet | Beslutning |
-|---|---|---|---|
-| BB-062 | Advarslen ved méngrad 5 % vises først, når tre andre felter er udfyldt | Høj | Agent afgør |
-| BB-064 | En udfyldt stamdato meldes som «Mangler», mens samme skærm citerer dens værdi | Høj | Agent afgør + ordlyd |
-| BB-063 | Méngrad 1–4 regner og kan hentes uden et ord, mens 5 advarer | Mellem | Afventer bruger |
-| BB-065 | Satsrækken siger «Beregningsdato mangler» om en udfyldt, rød beregningsdato | Mellem | Afventer bruger |
-| BB-066 | Alder-rækken viser fødselsdatoens fejl, men aldrig skadedatoens | Mellem | Agent afgør |
-| BB-067 | De nedtonede «mangler»-tekster er ikke nedtonede – farven bliver overskrevet | Mellem | Agent afgør |
-| BB-068 | «Indsæt dags dato» vil indsætte en afvist dato fra 1. januar 2027 | Mellem | Afventer bruger |
-| BB-069 | Et blokeret klik på en AKTIV downloadknap giver intet svar; fokus ryger til siden | Mellem | Agent afgør |
-| BB-072 | «Alder på skadestidspunkt» står uændret, når datoen hedder Anmeldelsesdato | Mellem | Afventer bruger |
-| BB-070 | Skærmen og dokumentet skriver slutbeløbet forskelligt (`364.155` / `364.155,00`) | Lav | Afventer bruger |
-| BB-071 | Samme sats hedder tre ting på én side («per»/«pr.»/«Opgørelsesår») | Lav | Afventer bruger |
-| BB-073 | Aldersreduktionen vises som «- 0 %» og «- 0,00 kr.» for alle under 40 år | Lav | Afventer bruger |
-| BB-074 | Méngradfeltets pladsholder er «0», og 0 er den ene værdi feltet afviser | Lav | Afventer bruger |
+| ID | Kort | Udfald |
+|---|---|---|
+| BB-078 | Tre steder viser samme sats med hver sin talformatering (latent) | **Gennemført** – alle beløb i varige mén går nu gennem `formatKr` med nul decimaler; reglen er normativ i kontraktens nye §2.9 |
+| BB-079 | Samme sats står med og uden ører tre linjer fra hinanden på fane 1 | **Gennemført** – samme rettelse; «á 11.035,00 kr.» er nu «á 11.035 kr.» på skærm og i dokument |
+| BB-075 | Fanen henfører satsen til to love; resten af programmet henfører den til én | **Afvist** – satsen ER fælles for de to love, og målgruppen ved, hvilke ydelser der beregnes ens efter dem |
+| BB-076 | «Beregningsår» siger ikke, hvilken af sagens datoer det er året for | **Afvist** – velkendt og entydig ydelse; lukket spor 3 fra Satser dækker også dette |
+| BB-077 | Tabellen viser 22 år og markerer ikke det ene, sagen bruger | **Afvist** – en satsfane er et rent opslagsværk uden kobling til sagen, også inde på en beregningsside |
 
-**Fanen er lille, men ikke tom for fund, og næsten alle bor i ét forhold:** den låner fem
+**Fanen er programmets mindste hidtil** – én tabel med to kolonner og 22 rækker, ingen felter, ingen
+knapper, intet dokument. Hele edge case-blikket (B0–B6a) er derfor uden genstand, og det er skrevet
+ned som sådan, så en senere kørsel ikke leder efter det igen. **Tabellen selv er kontrolleret og er
+i orden:** 22 år uden huller, nyeste først, strengt faldende beløb, og satsen for begge ender af
+intervallet er målt mod den sats, ménberegningen faktisk bruger (2005 → 6.450 kr., 2026 →
+11.035 kr.). Årsdækningen og beregningsdatoens ydre grænser er udledt af samme datasæt, så der
+findes hverken en række, brugeren ikke kan ramme, eller en lovlig dato uden en række.
+
+**Alle fem fund bor i de to sætninger omkring tabellen, ikke i tabellen.** Det tungeste var BB-075:
+fanen skriver, at satsen følger **erstatningsansvarslovens § 4** og arbejdsskadesikringslovens § 18,
+mens Satser-siden viser samme tal – læst fra samme ene datasæt – alene under
+«Arbejdsskadesikringsloven». **Præmissen var rigtig, konsekvensen ikke:** satsen ER fælles for de to
+love, og målgruppen ved, hvilke ydelser der beregnes ens efter dem, så placeringen under ét lovsted
+er ikke en mangel. Fundet er afvist.
+
+**Rettelsen, der blev gennemført, er BB-078/BB-079 som én sag:** alle beløb i varige mén vises nu i
+hele kroner uden decimaler – satstabellen, satsrækken, grundbeløbet, aldersreduktionen og
+slutbeløbet, på skærmen og i begge dokumentformater – gennem den kanoniske `formatKr`, så de inline
+`" kr."`-strenge er væk med. Reglen er normativ i **`varigemen-contract.md` §2.9** og er efter
+brugerens afgrænsning **unik for denne ydelse**; `amount-contract.md` §5's to-decimal-standard
+gælder fortsat alle andre domæner. Beregningen er bevidst uændret: kun slutgodtgørelsen afrundes,
+og de tre viste linjer går stadig op, fordi reduktionen er defineret som differencen mod den
+oprundede godtgørelse.
+
+**To skærpelser af eksisterende mønstre, ingen nye.** M-11 dækker nu også påstande om et **tals
+ophav** – men prøven er efter BB-075's afvisning strammet: et fund kræver, at de to henførsler er
+*uforenelige*, ikke blot forskelligt afgrænsede. M-13's prøve er udvidet i to retninger: uenigheden
+om formen kan stå på ÉN skærm (BB-079 – «11.035 kr.» og «11.035,00 kr.» tre linjer fra hinanden på
+fane 1, hvor PDF'en var *enig* med skærmen om begge, og BB-070's prøve derfor ikke fangede den), og
+den kan ligge latent i forskellige formateringskald for samme værdi (BB-078).
+
+**Konsekvenser for de resterende flader – to lukkede spor og én prøve:**
+1. **Lukket: en satstabel skal ikke markere sagens egen række** (BB-077). Afgørelsen udvider
+   Satser-fladens lukkede spor 5 fra sider til faner: også en satsfane inde på en beregningsside er
+   et rent opslagsværk uden kobling til sagen. Foreslå det ikke på flade 8b.
+2. **Lukket: en fagligt entydig ydelse behøver ingen forklaring** – hverken af sin lovhenvisning
+   eller af, hvilken af sagens datoer der styrer satsopslaget (BB-076, udvider lukket spor 3).
+3. **Åben prøve: BB-078/BB-079's er billig og bør køres på hver beregningsflade herfra** – find
+   alle visninger af samme tal, også inden for én skærm, og sammenlign formen. Men bemærk, at
+   **rettelsen ikke må kopieres**: nul decimaler er varige méns egen regel, ikke programmets.
+
+**Dækningshuller:** kun Chrome og lyst tema (to viewporter målt: 1536×864 og 1244×620); BB-078's
+øre-scenarie kan pr. konstruktion ikke måles i drift, før en sats får ører – det er i stedet dækket
+af en påstand om, at de tre viste linjer afstemmer på de VISTE tal.
+
+**Ingen nye åbne spørgsmål.** Fane 1's to står uændret.
+
+**Gennemført i kode:** `components/tables/VarigeMenSatserTable.tsx`,
+`components/pages/varigemen/MenberegningTab.tsx` og
+`document/generators/varigemen/varigeMenDocument.ts` (alle beløb gennem `formatKr`, nul decimaler).
+`src/contracts/varigemen-contract.md` har fået **§2.9** som normativ visningsregel, en rettet **§2.8**
+(advarslens grænse er 1–4 %, ikke 5) og et sjette punkt i minimumstestfladen.
+`docs/domain/varigemen/varige-men.md` er ført ajour med visningsreglen og de to nye testfiler. Ny
+test `VarigeMen.heleKronerVisning.test.tsx` (begge faner + afstemning af de tre viste linjer) og et
+nyt værn i `varigeMenWordContent.test.ts` (dokumentkanalen). **Begge værn er mutationstestet:** med
+`formatKr(…, 2)` genindsat bliver alle tre påstande røde.
+
+## Varige mén → Ménberegning – gennemgået 2026-08-20, afgjort samme dag
+
+**Alle tretten fund er afgjort** – elleve accepteret og gennemført, to afvist. Det fulde grundlag
+med målte før/efter-tal står i [varigemen.md](varigemen.md).
+
+| ID | Kort | Udfald |
+|---|---|---|
+| BB-062 | Advarslen ved méngrad 5 % vises først, når tre andre felter er udfyldt | **Gennemført** (Høj) – advarslen læser feltets eget read i stedet for projektionen |
+| BB-064 | En udfyldt stamdato meldes som «Mangler», mens samme skærm citerer dens værdi | **Gennemført** (Høj) – tomt og rødt skelnes med de to standardbeskeder fra `actionGate.ts` |
+| BB-063 | Méngrad 1–4 regner og kan hentes uden et ord, mens 5 advarer | **Gennemført** – advarslens grænse er nu 1–4 % |
+| BB-065 | Satsrækken siger «Beregningsdato mangler» om en udfyldt, rød beregningsdato | **Gennemført** – samme sondring som BB-064 |
+| BB-066 | Alder-rækken viser fødselsdatoens fejl, men aldrig skadedatoens | **Gennemført** – symmetrisk fejlvisning for begge datoer |
+| BB-068 | «Indsæt dags dato» vil indsætte en afvist dato fra 1. januar 2027 | **Gennemført** – knappen er inaktiv uden for satsdækningen, med årsagen i tooltippen |
+| BB-069 | Et blokeret klik på en AKTIV downloadknap giver intet svar; fokus ryger til siden | **Gennemført** – frisk `InputReader`-læsning efter settle + lokal `onMouseDown`-preventDefault |
+| BB-072 | «Alder på skadestidspunkt» står uændret, når datoen hedder Anmeldelsesdato | **Gennemført** – labelen er nu skadestype-afledt, både på skærm og i dokument |
+| BB-070 | Skærmen og dokumentet skriver slutbeløbet forskelligt (`364.155` / `364.155,00`) | **Gennemført** – decimalfri beløb i PDF'en |
+| BB-071 | Samme sats hedder tre ting på én side («per»/«pr.»/«Opgørelsesår») | **Gennemført** – «Sats pr. méngrad» og «Beregningsår» overalt, også i PDF'en |
+| BB-073 | Aldersreduktionen vises som «- 0 %» og «- 0,00 kr.» for alle under 40 år | **Gennemført** – fortegnsløst nul |
+| BB-067 | De nedtonede «mangler»-tekster er ikke nedtonede – farven bliver overskrevet | **Afvist** – en nedtoning kan gøre netop fejllinjerne til dem, brugeren overser |
+| BB-074 | Méngradfeltets pladsholder er «0», og 0 er den ene værdi feltet afviser | **Afvist** – pladsholdere bruges bevidst bredt; feltet svarer klart ved 0 |
+
+**To af rettelserne er samme dag udbredt til andre flader** (commit `789d11f7`): BB-068's mønster til
+EET's og forsørgertabs beregningsdatofelter, og BB-064/BB-065's sondring til EO-beregningsfanens
+skadedato-række. To af M-19's forudsagte kandidatsteder er dermed allerede lukket, før flade 11 og 12
+er gennemgået.
+
+**Fanen var lille, men ikke tom for fund, og næsten alle bor i ét forhold:** den låner fem
 oplysninger fra Stamdata og satsdatasættet, og lånet er tavst om, hvad der er galt med dem. Fem af
 de tretten fund (BB-064, BB-065, BB-066, BB-067, BB-072) er den samme sætning set fra fem sider:
 *programmet ved besked og siger det ikke.*
@@ -59,21 +137,24 @@ de tretten fund (BB-064, BB-065, BB-066, BB-067, BB-072) er den samme sætning s
 oprundingen til hele kroner og afstemningen af de tre viste linjer. Ingen af de tretten fund handler om
 et forkert tal.
 
-**Tre nye mønstre (M-19, M-20, M-21) og to skærpelser.** M-19 (rødt læses som tomt) har allerede sin
-løsning i programmet: **Forsørgertab gør det rigtige på sin tilsvarende flade**, så rettelsen er en
+**Tre nye mønstre (M-19, M-20, M-21) og to skærpelser.** M-19 (rødt læses som tomt) havde allerede sin
+løsning i programmet: **Forsørgertab gør det rigtige på sin tilsvarende flade**, så rettelsen blev en
 konvergens mod en truffet beslutning, ikke et nyt design. M-21 (en CSS-klasse slår komponentens farve
 ihjel) er den bredeste: seks døde `color`-props og fire døde `sx`-farver i programmet, hvoraf den
 alvorligste kandidat er `DocumentOutcomeMessage`s **røde fejlbesked, som efter mekanismen ikke er
 rød**. M-02 er skærpet (afledte labels følger ikke skadestypen) og M-13 har fået en ny, svag
 forekomst (samme tal, to former).
 
-**Konsekvenser for de resterende flader – tre spor lagt ud:**
+**Konsekvenser for de resterende flader – ét spor lukket, to åbne:**
 1. **M-19's prøve hører på flade 11 og 12** (EET's og EO's spejlede forudsætningsrækker). Prøven er
-   billig: giv stamdatafeltet en udfyldt-men-ugyldig værdi og læs den lånende flade.
-2. **M-21's prøve bør køres før flade 10**, fordi Forsørgertab har to af de døde props – og
-   `DocumentOutcomeMessage` rammer alle flader.
+   billig: giv stamdatafeltet en udfyldt-men-ugyldig værdi og læs den lånende flade. **To af
+   kandidatstederne er allerede rettet** med `789d11f7`; resten står.
+2. **M-21's spor er indsnævret af BB-067's afvisning:** en død farve-prop er kun et fund, hvis den
+   ønskede farve gør oplysningen lettere at opdage. `DocumentOutcomeMessage` er stadig kandidaten,
+   fordi den trækker den vej (en fejl, der ikke er rød). Foreslå ikke nedtoning af «mangler»-linjer
+   igen.
 3. **BB-072's ordlyd hører sammen med flade 10 og 11**, hvor de samme faste «skadestidspunkt»-labels
-   står, plus tre dokumentgeneratorer. Afgøres den her, kan de rettes i én omgang.
+   står, plus tre dokumentgeneratorer. Afgjort her, kan de rettes i én omgang.
 
 **Dækningshuller:** BB-068 kræver en systemdato i 2027 og er målt i to dele frem for i drift;
 `DocumentOutcomeMessage`s farve er ikke set i drift; Word-udgaven af dokumentet er ikke hentet
@@ -281,10 +362,10 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
-**Fem.** Ét fra Varige mén → Ménberegning – det står udfoldet i [varigemen.md](varigemen.md): skal
-fanen advare, når beregningsdatoen ligger tyve år fra skadedatoen? (Fanens andet «åbne spørgsmål» er
-ikke et nyt: forudfyldt beregningsdato er ordret MinProcesrentes uafklarede spørgsmål nedenfor, og
-svaret bør gælde begge flader.)
+**Fem – uændret efter fane 7b, som ikke tilføjede nye.** Ét fra Varige mén → Ménberegning – det står
+udfoldet i [varigemen.md](varigemen.md): skal fanen advare, når beregningsdatoen ligger tyve år fra
+skadedatoen? (Fanens andet «åbne spørgsmål» er ikke et nyt: forudfyldt beregningsdato er ordret
+MinProcesrentes uafklarede spørgsmål nedenfor, og svaret bør gælde begge flader.)
 
 To fra Global shell – de står udfoldet i [globalshell.md](globalshell.md): skal Ctrl+S kunne
 ses nogen steder i brugerfladen, og hvad skal `Gem` gøre, når skadelidtes navn rettes efter et gem
@@ -309,8 +390,14 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 Enogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
 
-- **M-19, M-20** og **M-21** er tilføjet 2026-08-20 fra Varige mén → Ménberegning og **afventer alle
-  tre brugerens afgørelse**:
+- **Ingen nye mønstre 2026-08-21 fra Varige mén → Satser** – fanen er for lille til at bære et
+  (én tabel, ingen felter). Til gengæld to skærpelser: **M-11** dækker nu også påstande om et
+  **tals ophav** (en lovhenvisning ved siden af et tal måles ved at finde samme tal et andet sted i
+  programmet og sammenligne, hvad det dér henføres til – BB-075), og **M-13's prøve er udvidet i to
+  retninger**: uenigheden om formen kan stå på ÉN skærm, hvor skærm og dokument er enige (BB-079),
+  og den kan ligge latent i forskellige formateringskald for samme værdi (BB-078).
+- **M-19, M-20** og **M-21** er tilføjet 2026-08-20 fra Varige mén → Ménberegning og er **alle tre
+  afgjort samme dag** (M-19 og M-20 gennemført; M-21's udløsende fund afvist, se sporet ovenfor):
   - **M-19 – rødt læses som tomt af den flade, der låner værdien.** En spejlet værdi læses gennem
     den vej, der skjuler en rød fejl, så «tomt» og «forkert» bliver samme tekst: «Mangler». Prøven er
     at give feltet en **udfyldt-men-ugyldig** værdi og læse den lånende flade – og derefter læse hele
@@ -453,6 +540,18 @@ Enogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   bredeste hidtil (den rammer også `DocumentOutcomeMessage`, som alle flader bruger). **Justering af
   rækkefølgen: ingen.** Fanen Satser er meget lille (én tabel med to kolonner og 22 rækker) og bør
   kunne tages i næste kørsel uden yderligere deling.
+- **Fane 7b (Satser) var som forudset den mindste flade hidtil**, og forudsigelsen holdt: den kunne
+  tages i én kørsel uden deling. Rækkefølgens præmis holdt derimod kun halvt. Fanen bar ingen nye
+  mønstre – der er ikke nok flade til, at en vane kan vise sig – men den bar til gengæld det
+  hidtil tungeste **enkeltfund** (BB-075), netop fordi den er lille nok til, at hver af dens to
+  sætninger kunne holdes op mod resten af programmet. **Læren til de store flader: en flade uden
+  interaktion skal ikke bedømmes på sine kontroller, men på sine påstande** – hver sætning, der
+  siger noget om, hvor et tal kommer fra, er et fund i vente.
+- **Flade 8 (Renteberegning) har tre spor lagt ud til sig:** de seks fund fra MinProcesrente, der
+  ikke skal genopdages (se ovenfor); BB-075's prøve på de to rentelovshenvisninger; og BB-077's
+  spørgsmål om at markere sagens egen række i en satstabel. **Og ét lukket spor:** BB-074's
+  afvisning gælder generelt – en pladsholder `0` er ikke et fund, heller ikke hvor feltets interval
+  udelukker nul, fordi programmet svarer klart, når brugeren rent faktisk taster det.
 - **Tre spor er lagt ud til senere flader:** M-13's kolonnevalg i reguleringsbilaget hører til
   Erstatningsopgørelse (nr. 12); M-14's to tabelcelle-årsfelter hører til Årsløn (nr. 9) og
   Erstatningsopgørelse; og Gem/Hent med et ugyldigt satsår hører til Global shell (nr. 6), fordi

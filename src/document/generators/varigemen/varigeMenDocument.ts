@@ -10,7 +10,7 @@ import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
 import { type VarigeMenBeregningResult } from '../../../domain/varigemen/varigeMenCalculations';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { formatAsAmount } from '../../../utils/formatUtils';
+import { formatKr } from '../../../utils/formatUtils';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import type { SkadestypeDatoLabel } from '../../../domain/policies/stamdataCalculations';
 
@@ -53,7 +53,7 @@ const addBeregningsgrundlagSection = (
     { label: 'Beregningsdato', value: formatIsoDateLong(beregningsdato) },
     {
       label: `Sats pr. méngrad i beregningsår ${beregningsResultat.beregningsaar}`,
-      value: `${formatAsAmount(beregningsResultat.satsPerMengrad, 0)} kr.`,
+      value: formatKr(beregningsResultat.satsPerMengrad),
     },
   ]);
   writer.addSectionSpacer();
@@ -72,20 +72,20 @@ const addResultatSection = (
   // så grundbeløb − reduktion = godtgørelse går nøjagtigt op.
   writeLabelValueRows(writer, [
     {
-      label: `Grundbeløb: ${mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`,
-      value: `${formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.`,
+      label: `Grundbeløb: ${mengrad} % mén á ${formatKr(beregningsResultat.satsPerMengrad)}`,
+      value: formatKr(beregningsResultat.grundbeloebUdenReduktion),
     },
     {
       label: beregningsResultat.aldersreduktionPct === 0
         ? `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = ${beregningsResultat.aldersreduktionPct} %`
         : `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`,
       value: beregningsResultat.aldersreduktionBeloeb === 0
-        ? `${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`
-        : `- ${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`,
+        ? formatKr(beregningsResultat.aldersreduktionBeloeb)
+        : `- ${formatKr(beregningsResultat.aldersreduktionBeloeb)}`,
     },
     {
       label: 'Beregnet méngodtgørelse',
-      value: `${formatAsAmount(beregningsResultat.beregnetGodtgoerelse, 0)} kr.`,
+      value: formatKr(beregningsResultat.beregnetGodtgoerelse),
       rightFontStyle: 'bold',
     },
   ]);

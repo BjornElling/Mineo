@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-08-21
 
 ---
 
@@ -31,8 +31,20 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
    domænegrænsen `VARIGE_MEN_MAX_MENGRAD`, som ejes af `src/domain/varigemen/varigeMenPolicy.ts`.
 7. Beregningsdato skal ligge på eller efter skadedatoen. Grænsen er et canonical bounds-issue med konkret
    tooltip og blokerer engine/dokument, men ikke `.eo`-save.
-8. Méngrad 5 giver den ikke-blokerende feltadvarsel `Der kan ikke tilkendes varige mén under 5 %`. Advarslen
-   ændrer ingen beregning eller gate.
+8. Méngrad **1–4** giver den ikke-blokerende feltadvarsel `Der kan ikke tilkendes varige mén under 5 %` – altså
+   netop de værdier, hvor der ikke kan tilkendes mén. Advarslen ændrer ingen beregning eller gate og skal læses
+   af méngradfeltets EGET read, ikke af sidens projektion (den ville først findes, når hele siden er regneklar).
+9. **Bevidst visningsbeslutning (specifik regel efter `amount-contract.md` §5): alle beløb i varige mén vises i
+   hele kroner uden decimaler** – på skærmen, i PDF'en og i Word-udgaven, og i både satstabellen, satsrækken,
+   grundbeløbet, aldersreduktionen og slutbeløbet. Enheden hentes fra `formatKr`, aldrig fra en inline
+   `" kr."`-streng. Reglen er **unik for denne ydelse** og må ikke udbredes til andre domæner, hvor
+   to-decimal-standarden i `amount-contract.md` §5 fortsat gælder.
+
+   Beregningen ændres ikke af reglen: kun slutgodtgørelsen afrundes (op, til hele kroner), mens
+   `grundbeloebUdenReduktion` og `aldersreduktionBeloeb` bevares uafrundet i domænet. De tre viste linjer
+   afstemmer stadig nøjagtigt, også hvis en fremtidig sats får ører: `aldersreduktionBeloeb` er defineret som
+   `grundbeloebUdenReduktion − beregnetGodtgoerelse`, så de to uafrundede beløb har samme decimaldel og
+   forskydes ens af visningens afrunding.
 
 ---
 
@@ -56,3 +68,5 @@ Tests skal dække:
 3. runtime exception som blokeret output,
 4. at PDF og UI bruger samme beregnede `beregningsResultat` (PDF genberegner ikke).
 5. grænseværdierne 120 (gyldig og beregnet) og 121 (canonical, range-markeret og blokeret før engine/PDF).
+6. at §2.9 holder i begge kanaler: ingen beløbsvisning på fanens to faner eller i dokumentet må bære
+   decimaler, og de tre viste linjer skal fortsat gå op.

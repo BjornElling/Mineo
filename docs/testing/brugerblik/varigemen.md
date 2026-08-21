@@ -4,7 +4,8 @@ Fladen har to faner og føres derfor som to kørsler. Dette dokument samler dem 
 én række pr. fane.
 
 - Rute/placering: `/varigemen`
-- Faner: **Ménberegning** (gennemgået 2026-08-20) · **Satser** (ikke startet)
+- Faner: **Ménberegning** (gennemgået 2026-08-20, alle fund afgjort) · **Satser** (gennemgået og
+  afgjort 2026-08-21: to fund rettet, tre afvist)
 
 ---
 
@@ -88,7 +89,7 @@ Jeg er enig i dit fund. Den gule advarsel på feltet bør ikke være afhængig a
   udløses ved præcis 15.
 
 **Tilbagemelding**
-Dette er en eklatant fejl. Der skal ikke gives advarsel ved 5 %. Kun når den indtastede méngrad er lavere end 5%, dvs. 1-4%, eftersom der kommer en egentlig fejlmeddelelse ved 5 %. Tooltip-meddelelsen ved 0 % bør i øvrigt ændres til, at værdien skal være mellem 5 og 120 %, og ikke mellem 1 og 120 som nu. 
+Dette er en eklatant fejl. Der skal ikke gives advarsel ved 5 %. Kun når den indtastede méngrad er lavere end 5%, dvs. 1-4%, eftersom der kommer en egentlig fejlmeddelelse ved 5 %. Tooltip-meddelelsen ved 0 % bør i øvrigt ændres til, at værdien skal være mellem 5 og 120 %, og ikke mellem 1 og 120 som nu.
 
 **Rettet (2026-08-20).** Advarslen vises nu kun for méngrad 1–4. Feltets nedre bounds-grænse (`MENGRAD_MIN` i `varigeMenDescriptors.ts`) er ændret fra 1 til 5, hvilket automatisk ændrer tooltip-teksten til "mellem 5 og 120" (afledt af grænserne, ikke en separat streng).
 
@@ -128,7 +129,7 @@ Dette er en eklatant fejl. Der skal ikke gives advarsel ved 5 %. Kun når den in
   efterprøvet og er i orden.
 
 **Tilbagemelding**
-Jeg anerkender præmissen for din vurdering, men vil gerne afsøge en lidt anden løsning. 
+Jeg anerkender præmissen for din vurdering, men vil gerne afsøge en lidt anden løsning.
 Generelt vil jeg gerne forsimplet orienteringerne til brugeren om fejl og mangler i tooltip-meddelelser og disse inline-meddelelser, så der konsekvent bruges to tilbagemeldinger om henholdsvis at indtastning mangler eller at der er fejl i indtastning, altså i tråd med hvad der sker i tooltip på download-knappen. Selve den udspecificerede fejlmeddelelse, hvis der er en, fremgår af det felt, hvor indtastningen faktisk er foretaget eller mangler. Så her kunne det være rart at inline-teksten sondrede mellem, om den indtastede værdi mangler eller om der er indtastet en ugyldig værdi, og da skriver det.
 
 **Rettet (2026-08-20), efter brugerens alternative løsning.** Fødselsdato-, skadedato- og
@@ -250,7 +251,7 @@ Jeg er ikke afvisende over for din anbefaling, men jeg er bange for, at resultat
   felter som dette, hvor maksimum er et **datasæt**, er ikke.
 
 **Tilbagemelding**
-Jeg anerkender problemet. Jeg vil gerne have den foreslåede mulighed a), altså at knappen gøres inaktiv med en relevant tooltip, hvis dags dato ligger uden for det mulige spænd, fx. at "Der kan kun foretages beregninger frem til DD-MM-ÅÅÅÅ" eller noget i den stil. 
+Jeg anerkender problemet. Jeg vil gerne have den foreslåede mulighed a), altså at knappen gøres inaktiv med en relevant tooltip, hvis dags dato ligger uden for det mulige spænd, fx. at "Der kan kun foretages beregninger frem til DD-MM-ÅÅÅÅ" eller noget i den stil.
 
 **Rettet (2026-08-20).** `InsertTodayDateButton` har fået en ny, valgfri `disabled`/`disabledReason`-prop
 (additiv, ingen anden af de otte kaldssteder påvirket). Varige méns knap er nu inaktiv med tooltippen
@@ -330,7 +331,7 @@ Regressionstest tilføjet i `MenberegningTab.integration.test.tsx`.
   præcision, mens skærmen angiver den. Prøven er, om kaldet mangler sit andet argument.
 
 **Tilbagemelding**
-Jeg anerkender fejlen og er enig. Løsningen bør være ensartet udseende på side og i PDF-dokumentet. Jeg vil gerne have, at beløbene i PDF-dokumentet også vises uden decimaler. 
+Jeg anerkender fejlen og er enig. Løsningen bør være ensartet udseende på side og i PDF-dokumentet. Jeg vil gerne have, at beløbene i PDF-dokumentet også vises uden decimaler.
 
 **Rettet (2026-08-20).** `varigeMenDocument.ts` formaterer nu "Beregnet méngodtgørelse" med
 `formatAsAmount(beregningsResultat.beregnetGodtgoerelse, 0)` – samme 0-decimalers form som skærmen.
@@ -529,3 +530,275 @@ Jeg forstår dit synspunkt men afviser det. Der anvendes placeholders i meget vi
    grænse er, at en advarsel kan foreslås, hvor værdien er usandsynlig **i sagens egen sammenhæng**.
    Tyve år mellem de to datoer er lovligt og forekommer; jeg har ikke fagligt grundlag for at afgøre,
    om det også er usandsynligt. Spørgsmålet forelægges uden forslag.
+
+---
+
+# Fane 2 – Satser
+
+- Gennemgået: 2026-08-21 · commit `a5806c1b`
+- Tilbagemeldinger gennemført: 2026-08-21. **To fund rettet** (BB-078 og BB-079 – samme rettelse),
+  **tre afvist** (BB-075, BB-076, BB-077 – hver med et lukket spor, noteret under fundet).
+- Afprøvet i: Chrome, 1536×864 og 1244×620, headless via `playwright-cli`. Alle tal og tekster
+  nedenfor er aflæst i den kørende app, ikke udledt af koden, medmindre andet står.
+- Console under hele gennemgangen: 15 beskeder, **0 errors, 0 warnings.**
+
+## Fladen kort
+
+Fanen er programmets mindste hidtil: en overskrift, én forklarende linje og én tabel med to
+kolonner og 22 rækker – «Beregningsår» 2026 ned til 2005 over for «Sats pr. méngrad» 11.035 kr. ned
+til 6.450 kr. Ingen felter, ingen knapper, ingen tilstande, intet dokument. Hele edge case-blikket
+(B1–B6a) er derfor uden genstand her; det er noteret under «Overvejet uden fund».
+
+Fanen er den anden halvdel af sidens ene opslag: brugeren vælger en beregningsdato på fane 1 og
+kontrollerer satsen her. Årsdækningen 2005–2026 er **ikke** en tilfældighed – beregningsdatoens
+ydre grænser udledes af præcis dette datasæt (`dateRanges.ts`, `dateRanges_varigemen.beregningsdato`),
+så der findes ingen lovlig beregningsdato uden en række i tabellen, og ingen række i tabellen,
+brugeren ikke kan ramme. Det er efterprøvet i drift i begge ender.
+
+Fundene her handler derfor ikke om tabellen, men om de to sætninger omkring den: hvor satsen kommer
+fra, og hvad «Beregningsår» betyder.
+
+## Fund
+
+### BB-075 – Fanen henfører satsen til to love; resten af programmet henfører den til én
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-11--programmets-egne-påstande-om-sig-selv`
+- **Prioritet:** Høj
+- **Beslutning:** Afventer bruger (juridisk grundlag)
+- **Sådan fremprovokeres det:**
+  1. Åbn Varige mén → fanen Satser og læs linjen over tabellen.
+  2. Gå til sidemenuens **Satser** (satsår 2026) og find den samme sats.
+- **Det sker (målt):** Varige mén → Satser skriver «Jf. **erstatningsansvarslovens § 4** og
+  arbejdsskadesikringslovens § 18.» over en tabel, hvis 2026-række er `11.035 kr.` Satser-siden
+  viser præcis samme tal – `11.035 kr./méngrad` – men under sektionsoverskriften
+  **«Arbejdsskadesikringsloven»**, som en af ni ASL-satser. Sektionen «Erstatningsansvarsloven»
+  lige ovenover har fem satser, og **ingen af dem er en méngodtgørelse**. De to sider læser samme
+  ene datasæt: programmet har kun ét sæt méngrad-satser, og strengen «§ 4» findes præcis dette ene
+  sted i hele kildekoden.
+- **Det er uhensigtsmæssigt fordi:** de to sider giver hvert sit svar på, hvilken lov satsen
+  stammer fra, og begge svar kan ikke være rigtige. Der er to udfald, og de er lige alvorlige hver
+  sin vej:
+  - **Er satsen fælles for begge love**, mangler oplysningen på Satser-siden. En bruger, der slår
+    méngodtgørelsen op dér til en EAL-sag, finder den ikke i EAL-sektionen og kan konkludere, at
+    Mineo ikke dækker den.
+  - **Er satsen kun ASL § 18's**, regner fanen EAL-sager med en ASL-sats uden et ord om det, og
+    linjen inviterer direkte til det. Det er et forkert tal, brugeren ikke har nogen anledning til
+    at betvivle (§5 punkt 2), og det havner i et dokument, der bruges i sagen.
+
+  Jeg afgør ikke, hvilken af de to der er den rigtige – det er en juridisk vurdering (§6). Men
+  fanen kan ikke blive stående med et grundlag, resten af programmet modsiger.
+- **Bedre ville være:** ét svar, skrevet begge steder.
+  - Er satsen fælles: Satser-sidens EAL-sektion får den samme række (eller sektionen får en linje
+    om, at méngodtgørelsen er fælles), så opslaget kan gøres begge veje.
+  - Er satsen ASL's alene: linjen på fanen mister «erstatningsansvarslovens § 4 og» og kommer til
+    at hedde «Jf. arbejdsskadesikringslovens § 18, stk. 3.» – og så skal det afgøres separat, hvad
+    en EAL-sag skal have at vide, da programmet i så fald ingen EAL-méngodtgørelsessats har.
+- **Andre steder det kan gælde:** enhver anden lovhenvisning, der står ved siden af et tal. Konkret
+  uefterprøvet: Renteberegning → Rentesatser («jf. rentelovens § 5» og «§ 5, stk. 2», flade 8) og
+  Satser-sidens egne sektionsoverskrifter, som er den eneste henførsel af 20 satser. Prøven er
+  billig: **find samme tal to steder i programmet, og sammenlign den lov, de hver især henføres
+  til.**
+
+**Tilbagemelding**
+Satsen er fælles for de to love. Det er forskelligt fra ydelse til ydelse, om det beregnes ens efter de to love eller forskelligt. Brugerne er professionelle og ved dette. Jeg afviser dit fund.
+
+**Afvist (2026-08-21).** Præmissen var rigtig – satsen ER fælles – men konsekvensen var det ikke:
+det er ikke en mangel, at Satser-siden placerer den under ét af de to love, når målgruppen ved,
+hvilke ydelser der beregnes ens efter dem. **Lukket spor:** en sats, der optræder under ét lovsted
+på Satser-siden og henføres bredere på sin egen flade, er ikke i sig selv et fund. Skærpelsen af
+M-11 står ved magt som prøve (find samme tal to steder og sammenlign henførslen), men et fund
+kræver, at de to henførsler er *uforenelige* – ikke blot forskelligt afgrænsede.
+
+### BB-076 – «Beregningsår» siger ikke, hvilken af sagens datoer det er året for
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Lav
+- **Beslutning:** Afventer bruger (synlig tekst)
+- **Sådan fremprovokeres det:** Åbn fanen Satser uden først at have været på fane 1, og læs
+  kolonneoverskriften «Beregningsår».
+- **Det sker (målt):** Tabellens eneste forklarende linje er lovhenvisningen; ordet «Beregningsår»
+  står ellers alene. På fane 1 er koblingen derimod tydelig: satsrækken hedder «Sats pr. méngrad i
+  beregningsår 2026» og står tre linjer under feltet **Beregningsdato**.
+- **Det er uhensigtsmæssigt fordi:** flere satser i arbejdsskadesager følger **skadeårets** sats,
+  ikke opgørelsesårets, og en bruger, der ikke husker reglen for netop méngodtgørelsen, kan læse
+  tabellen med skadedatoen i hånden og finde et forkert beløb. Fanen kender svaret og siger det kun
+  på den anden fane. Til sammenligning forklarer Renteberegnings tilsvarende satsfane hver af sine
+  to tabeller i en hel sætning («Nationalbankens udlånsrente pr. 1. januar og 1. juli, jf.
+  rentelovens § 5»), så formen findes i programmet.
+- **Bedre ville være:** at linjen over tabellen også bærer koblingen, fx «Satsen følger
+  beregningsdatoens år, jf. …». Ét led i en sætning, der står der i forvejen.
+- **Andre steder det kan gælde:** ingen efterprøvede. Bemærk, at fundet kan være dækket af
+  Satser-fladens lukkede spor 3 (en fagligt velkendt regel behøver ingen forklaring); det er
+  registreret, fordi tvivlen her ikke handler om lovkundskab, men om **hvilket af Mineos egne
+  felter** der styrer opslaget.
+
+**Tilbagemelding**
+Der er tale om en velkendt og entydig ydelse. Brugerne er professionelle og ved dette. Jeg afviser dit fund.
+
+**Afvist (2026-08-21).** Fundets eget forbehold holdt: Satser-fladens lukkede spor 3 dækker også
+dette. **Lukket spor, udvidet:** en fagligt entydig ydelse behøver hverken forklaring af sin
+lovhenvisning ELLER af, hvilken af sagens datoer der styrer satsopslaget.
+
+### BB-077 – Tabellen viser 22 år og markerer ikke det ene, sagen bruger
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Lav
+- **Beslutning:** Afventer bruger (UI)
+- **Sådan fremprovokeres det:**
+  1. Sæt Beregningsdato til `01-01-2026` på fane 1 (satsrækken viser «… i beregningsår 2026 →
+     11.035 kr.»).
+  2. Skift til fanen Satser.
+- **Det sker (målt):** 22 identiske rækker. Intet på fanen viser, at netop 2026 er sagens år; 2026
+  står øverst, fordi listen er sorteret med nyeste først, ikke fordi det er sagens.
+- **Det er uhensigtsmæssigt fordi:** brugeren skifter til fanen netop for at kontrollere sin egen
+  sats, og programmet kender rækken. Han skal selv huske årstallet fra den anden fane og finde det
+  i en liste, hvor alle rækker ligner hinanden – en lille, men helt unødvendig arbejdsopgave, som
+  gentages hver gang.
+- **Bedre ville være:** at rækken for sagens beregningsår fremhæves (fed eller svag baggrund), når
+  der er en gyldig beregningsdato – og at tabellen ser ud præcis som i dag, når der ikke er nogen.
+  Ingen ny oplysning, ingen ny kontrol; kun en markering af den række, programmet allerede har
+  regnet med.
+- **Andre steder det kan gælde:** Renteberegning → Rentesatser (flade 8) har samme fravær med samme
+  forudsætning – dér er den relevante række endda afhængig af hele periodetabellen. Et ja her bør
+  derfor afgøres for begge flader på én gang. Satser-siden er **ikke** en kandidat: den er afgjort
+  som et opslagsværk uden sagssammenhæng.
+
+**Tilbagemelding**
+Jeg afviser dit fund. Satser-siden har ingen indbyrdes kobling til den konkrete sag. Det er en ren påmindelse til brugere, som ønsker et historisk tilbageblik over, hvad satserne har været på et tidligere tidspunkt.
+
+**Afvist (2026-08-21).** Afgørelsen udvider Satser-fladens lukkede spor 5 fra sider til **faner**:
+også en satsfane INDE på en beregningsside er et rent opslagsværk uden kobling til sagen.
+**Lukket spor:** foreslå ikke, at en satstabel markerer, fremhæver eller filtrerer efter sagens
+egne værdier – heller ikke på Renteberegnings Rentesatser-fane (flade 8b), hvor fundet ellers var
+udpeget som næste kandidat.
+
+### BB-078 – Tre steder viser samme sats med hver sin talformatering
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
+- **Prioritet:** Lav
+- **Beslutning:** Agent afgør (rent teknisk; ingen synlig ændring i dag)
+- **Sådan fremprovokeres det:** Kan **ikke** fremprovokeres med de nuværende data – alle 22 satser
+  er hele kroner, så de tre steder viser i dag det samme. Fundet er den latente uenighed bag.
+- **Det sker:** Fanen Satser formaterer satsen med `formatAsAmountTrimmed(sats, 2)`, fane 1 og
+  PDF-dokumentet med `formatAsAmount(sats, 0)`, Satser-siden med `formatKr(sats, 0)`. En sats med
+  ører – fx `11.035,50` – ville derfor blive vist som `11.035,5 kr.` her, `11.036 kr.` på fane 1 og
+  i dokumentet og `11.036 kr./méngrad` på Satser-siden: tre former af samme tal, hvoraf de to er
+  afrundet væk fra den sats, beregningen faktisk bruger.
+- **Det er uhensigtsmæssigt fordi:** det er præcis den uenighed, BB-070 fik rettet mellem skærm og
+  dokument, blot endnu ikke udløst af datasættet. M-13's egen lære er, at en uenighed mellem to
+  udgaver skal lukkes, når den findes – ikke først når dataene udløser den.
+- **Bedre ville være:** at de tre steder deler ét formateringskald for méngrad-satsen. Formen med
+  nul decimaler er den, brugeren ser i dag, og den, dokumentet bruger.
+- **Andre steder det kan gælde:** enhver sats, der vises både på sin egen flade og på Satser-siden.
+  Prøven er at finde de kald, der viser **samme** værdi, og sammenligne præcisionsargumentet.
+
+**Tilbagemelding**
+Jeg er enig i dit fund. Varige mén skal konsekvent beregnes i hele, afrundede krone-beløb uden decimaler. Det er imidlertid unikt for denne specifikke ydelse og må ikke bare ukritisk udbredes til andre ydelser.
+
+**Accepteret – gennemført (2026-08-21).** Alle beløbsvisninger i varige mén går nu gennem den
+kanoniske `formatKr` med nul decimaler – satstabellen, satsrækken, grundbeløbet, aldersreduktionen
+og slutbeløbet, i både skærm og dokument. De inline `" kr."`-strenge er væk med, så enheden har ét
+sted. Reglen er skrevet ind som **`varigemen-contract.md` §2.9** med den afgrænsning, du satte:
+den er unik for varige mén, og `amount-contract.md` §5's to-decimal-standard gælder fortsat alle
+andre domæner.
+
+**Beregningen er bevidst IKKE ændret.** Kun slutgodtgørelsen afrundes (op), som hidtil. Det var
+fristende at afrunde mellemregningerne med, men det ville ændre resultater, hvis en fremtidig sats
+får ører – og det er en beregningsbeslutning, ikke en visningsbeslutning. Afstemningen holder
+alligevel: `aldersreduktionBeloeb` er defineret som differencen mod den oprundede godtgørelse, så
+grundbeløb og reduktion har samme decimaldel og forskydes ens af visningens afrunding. De tre viste
+linjer går derfor op, også med en øre-sats. Det er dækket af en test.
+
+### BB-079 – Samme sats står med og uden ører tre linjer fra hinanden på fane 1
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
+- **Prioritet:** Lav
+- **Beslutning:** Afventer bruger (synlig tekst)
+- **Sådan fremprovokeres det:** Fødselsdato `01-01-1980`, Skadedato `01-01-2020`, Méngrad `10`,
+  Beregningsdato `01-01-2026`. Læs fane 1 ovenfra.
+- **Det sker (målt):** «Sats pr. méngrad i beregningsår 2026 → **11.035 kr.**» og tre linjer længere
+  nede «Grundbeløb: 10 % mén á **11.035,00 kr.** → 110.350,00 kr.» Samme sats, samme skærm, to
+  former. Det samme gælder ordret i PDF-dokumentet, som er enigt med skærmen linje for linje.
+- **Det er uhensigtsmæssigt fordi:** to skrivemåder af det samme tal på samme skærm får en læser,
+  der kontrolregner, til at standse og lede efter forskellen. Fundet hører til **fane 1** og blev
+  overset ved dennes gennemgang: BB-070 sammenlignede skærm mod dokument, og de to var her enige om
+  begge former.
+- **Bedre ville være:** samme form begge steder. Nul decimaler er den, satsrækken og fanen Satser
+  bruger, og satserne er hele kroner.
+- **Andre steder det kan gælde:** de øvrige beregningsflader, der viser en sats både som eget
+  grundlag og inde i en «á»-formulering. Prøven er bredere end BB-070's: sammenlign **alle**
+  visninger af samme tal, også inden for én skærm – ikke kun skærm mod dokument.
+
+**Tilbagemelding**
+Jeg er enig i dit fund. Varige mén skal konsekvent beregnes i hele, afrundede krone-beløb uden decimaler. Det er imidlertid unikt for denne specifikke ydelse og må ikke bare ukritisk udbredes til andre ydelser.
+
+**Accepteret – gennemført (2026-08-21) sammen med BB-078.** Satsrækkens «11.035 kr.» og
+grundbeløbets «á 11.035,00 kr.» er nu samme form begge steder, både på skærmen og i dokumentet.
+Se BB-078 for den fulde rettelse og for afgrænsningen mod andre ydelser.
+
+## Overvejet uden fund
+
+- **Tallene selv.** Alle 22 rækker aflæst i drift og sammenholdt med datasættet: 2026 ned til 2005
+  uden huller, sorteret med nyeste år først (samme konvention som Renteberegnings to satstabeller),
+  strengt faldende beløb 11.035 → 6.450 kr., dansk tusindseparator, «kr.» skrevet ud på hver række.
+- **Fanens sats = beregningens sats.** Efterprøvet i begge ender af intervallet: beregningsdato
+  `01-01-2005` gav «Sats pr. méngrad i beregningsår 2005 → 6.450 kr.», som er tabellens nederste
+  række; `01-01-2026` gav 11.035 kr., som er den øverste. Fane 1's opslag og fane 2's tabel læser
+  samme ene datasæt, og der findes hverken en række uden en lovlig beregningsdato eller en lovlig
+  beregningsdato uden en række.
+- **Hele edge case-blikket B1–B6a er uden genstand.** Fanen har ingen felter, ingen knapper, ingen
+  rækkehandlinger, ingen sortering, intet der kan indtastes, indsættes, tømmes eller fortrydes, og
+  ingen tilstand ud over hvilken fane der er valgt. Der er derfor ingen grænser at prøve (B0),
+  intet «tomt»-begreb (B6a) og ingen rækkefølgeafhængighed (B4).
+- **Faneskift og rulning.** Rulning til bunden af Satser-fanen og skift tilbage til Ménberegning
+  sætter rullepositionen på plads igen (målt: 298 → 0), så brugeren lander ikke midt på den kortere
+  fane. Den valgte fane huskes i `sessionStorage` – altså pr. browserfane, hvilket er den rigtige
+  rækkevidde for et rent visningsvalg (M-17 er ikke i spil).
+- **M-10 (flydende knap dækker indhold):** efterprøvet ved 1536×864 med siden rullet i bund.
+  Tabellen er 485 px bred og ligger i indholdssøjlens venstre side (x 346–831), mens rul-til-toppen-
+  knappen står omkring x 1448–1504. Sidste række (2005) er fri. Ingen overlapning.
+- **M-09 (fast indholdsbredde):** målt ved kontraktens nedre grænse 1244×620. Tabellen skaleres til
+  395 px, står helt inden for viewporten, og dokumentets scrollWidth er lig clientWidth – ingen
+  vandret rulning, ingen afskæring, ingen ombrydning af de to kolonneoverskrifter.
+- **M-21 (en CSS-klasse slår komponentens farve ihjel):** ingen af fanens elementer beder om en
+  farve – hverken `color`-prop eller `sx={{ color }}`. Mønsteret kan ikke ramme her.
+- **M-15 (skærmen tier, hvor dokumentet taler):** fanen har intet dokument, og Satser-dokumentet
+  skriver ingen forbehold til méngrad-satsen, som fanen mangler.
+- **Lovhenvisningen er ikke et link.** Renteberegnings satsfane citerer renteloven som ren tekst på
+  samme måde, og Satser-sidens retsinfo-links står i deres egen «Referencer»-sektion. Formen er
+  ensartet; ikke et fund.
+- **«Godtgørelse for varige mén» (Satser-siden) mod «Sats pr. méngrad» (her) er bevidst IKKE
+  registreret som et navnefund.** Satser-siden skal kunne skelne ni ASL-satser fra hinanden og må
+  derfor navngive **hvad** satsen er; fanen står allerede i sammenhængen og navngiver **enheden**.
+  Det følger Satser-fladens lukkede spor 2 (formen må følge et fagligt behov). BB-071's rettelse
+  gjorde de to faner indbyrdes ensartede, og det er den kobling, brugeren faktisk går mellem.
+- **Tre steder hedder «Satser» på skærmen samtidig** (sidemenuen, fanen, sektionsoverskriften).
+  Afgjort som ikke-fund af BB-033; ikke rejst igen.
+- **Ingen download på fanen.** Renteberegnings satsfane har heller ingen, og fanens indhold er en
+  ren gengivelse af et lovbestemt datasæt. Ensartet; en downloadknap ville desuden være ny
+  funktionalitet (§4).
+- **Kolonneoverskriften «Sats pr. méngrad» er centreret, mens beløbene er højrestillede**, så
+  overskriften rager ca. 19 px længere ud til højre end tallene. Mikro-æstetik uden konsekvens for
+  forståelsen; ikke registreret (§4).
+- **Console** er tavs gennem hele gennemgangen (0 errors, 0 warnings ud af 15 beskeder).
+
+## Dækningshuller
+
+- **Kun Chrome, lyst tema.** To viewporter er målt (1536×864 og 1244×620). Ingen af fundene
+  afhænger af motor eller tema.
+- **Det juridiske spørgsmål i BB-075 er ikke afgjort, kun målt.** Jeg har fastslået, at programmet
+  siger to forskellige ting om samme tal, ikke hvilken af dem der er rigtig; det kræver en vurdering
+  af EAL § 4 over for ASL § 18, som ligger uden for skillens mandat (§6).
+- **BB-078 er pr. konstruktion ikke målt i drift** – den kræver en sats med ører, og datasættet har
+  kun hele kroner. Mekanismen er læst i de tre formateringskald.
+
+## Åbne spørgsmål
+
+Ingen ud over de to, fane 1 allerede har rejst (forudfyldt beregningsdato; advarsel ved tyve år
+mellem skadedato og beregningsdato). Fanen tilføjer ingen nye – BB-075 er ikke et åbent spørgsmål,
+men et fund med to mulige udfald, som begge kræver en rettelse.

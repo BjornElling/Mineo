@@ -14,7 +14,7 @@ import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { useNavigate } from 'react-router-dom';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
-import { formatAsAmount } from '../../../utils/formatUtils';
+import { formatKr } from '../../../utils/formatUtils';
 import { calculateUtcAgeInWholeYears, getTodayLocalISO } from '../../../utils/dateUtils';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
@@ -363,7 +363,7 @@ const MenberegningTab = React.memo(() => {
         <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
           {menSats !== undefined ? (
             <Typography className="row--text">
-              {formatAsAmount(menSats.sats, 0)} kr.
+              {formatKr(menSats.sats)}
             </Typography>
           ) : beregningsdatoError ? (
             <Tooltip title={ACTION_BLOCKED_INVALID_INPUT_MESSAGE} arrow>
@@ -388,11 +388,11 @@ const MenberegningTab = React.memo(() => {
       {beregningsResultat && projectionData && (
         <Box className="row--label-right-hover">
           <Typography className="row--text">
-            {`Grundbeløb: ${projectionData.mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`}
+            {`Grundbeløb: ${projectionData.mengrad} % mén á ${formatKr(beregningsResultat.satsPerMengrad)}`}
           </Typography>
           <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
             <Typography className="row--text">
-              {formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.
+              {formatKr(beregningsResultat.grundbeloebUdenReduktion)}
             </Typography>
           </Box>
         </Box>
@@ -408,8 +408,8 @@ const MenberegningTab = React.memo(() => {
           <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
             <Typography className="row--text">
               {beregningsResultat.aldersreduktionBeloeb === 0
-                ? `${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`
-                : `- ${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`}
+                ? formatKr(beregningsResultat.aldersreduktionBeloeb)
+                : `- ${formatKr(beregningsResultat.aldersreduktionBeloeb)}`}
             </Typography>
           </Box>
         </Box>
@@ -431,7 +431,7 @@ const MenberegningTab = React.memo(() => {
           ) : beregningsResultat ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">
-                {formatAsAmount(beregningsResultat.beregnetGodtgoerelse, 0)} kr.
+                {formatKr(beregningsResultat.beregnetGodtgoerelse)}
               </Typography>
               <DocumentDownloadButton
                 onClick={() => void handlePdfDownload()}

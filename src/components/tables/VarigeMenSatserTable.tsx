@@ -2,10 +2,11 @@ import * as React from 'react';
 import { Box } from '@mui/material';
 import StandardDisplayTable from './StandardDisplayTable';
 import { varigeMenPrGrad } from '../../data/lovbestemteRates';
-import { formatAsAmountTrimmed } from '../../utils/formatUtils';
+import { formatKr } from '../../utils/formatUtils';
 
-const formatKronerPerMengrad = (value: number): string =>
-  `${formatAsAmountTrimmed(value, 2)} kr.`;
+// Varige mén vises konsekvent i hele kroner uden decimaler (`varigemen-contract.md` §2.9), og
+// enheden kommer fra den kanoniske `formatKr` frem for en inline " kr."-streng (BB-078).
+const formatKronerPerMengrad = (value: number): string => formatKr(value);
 
 const VarigeMenSatserTable = React.memo(() => {
   const years = Object.keys(varigeMenPrGrad)

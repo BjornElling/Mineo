@@ -58,6 +58,19 @@ godtgørelse = beløb_uden_reduktion × (1 − aldersfradrag_pct / 100)
 
 **Afrunding:** godtgørelsen afrundes **altid op** til nærmeste hele krone (`Math.ceil`).
 
+#### Visning: hele kroner uden decimaler
+
+Alle beløb i varige mén **vises** i hele kroner uden decimaler – satstabellen, satsrækken,
+grundbeløbet, aldersreduktionen og slutbeløbet, på skærmen såvel som i PDF og Word. Reglen er
+normativ i `varigemen-contract.md` §2.9 og er **unik for denne ydelse**; øvrige domæner følger
+fortsat to-decimal-standarden i `amount-contract.md` §5.
+
+Visningsreglen ændrer ikke beregningen: kun slutgodtgørelsen afrundes, mens
+`grundbeloebUdenReduktion` og `aldersreduktionBeloeb` bevares uafrundet. De tre viste linjer går
+stadig nøjagtigt op, også hvis en fremtidig sats får ører, fordi reduktionen er defineret som
+differencen mod den oprundede godtgørelse – de to uafrundede beløb har derfor samme decimaldel og
+forskydes ens af visningens afrunding.
+
 #### Sammenfatning
 
 ```
@@ -195,6 +208,8 @@ Satserne injiceres i engine-inputtet (`rates: YearlyRate`) og passes videre til 
 |---|---|
 | `src/__tests__/domain/varigemen/varigeMenCalculations.test.ts` | Beregningslogik, aldersfradrag, grænsetilfælde |
 | `src/__tests__/domain/varigemen/varigeMenEngine.test.ts` | Engine-wrapper, null-håndtering |
+| `src/__tests__/components/pages/varigemen/VarigeMen.heleKronerVisning.test.tsx` | Kontrakt §2.9: begge faner viser hele kroner, og de tre viste linjer går op |
+| `src/__tests__/docx/generators/varigeMenWordContent.test.ts` | Kontrakt §2.9 i dokumentkanalen + dokumentets indhold |
 
 ---
 

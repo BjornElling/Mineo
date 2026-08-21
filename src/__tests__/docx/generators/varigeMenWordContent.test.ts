@@ -48,6 +48,35 @@ describe('varigeMen → Word-indhold', () => {
     expect(text).toMatch(/Aldersreduktion/);
   });
 
+  it('skriver alle beløb i hele kroner uden decimaler (varigemen-contract §2.9)', async () => {
+    expect(beregningsResultat).not.toBeNull();
+
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateVarigeMenDocument(session, {
+        fodselsdato,
+        skadedato,
+        mengrad,
+        beregningsdato,
+        beregningsResultat: beregningsResultat!,
+        skadedatoLabel: 'Skadedato',
+        visBrevhoved: false,
+      });
+    });
+
+    const text = xmlToPlainText(documentXml);
+
+    // Modprøve først: de fire beløb ER i dokumentet – ellers ville fraværspåstanden nedenfor
+    // bestå på et tomt dokument. Sats 2024 = 10.135; 15 % mén → 152.025; alder 65 → 32 %
+    // → ceil(103.377) = 103.377; reduktion = 152.025 − 103.377 = 48.648.
+    expect(text).toContain('10.135 kr.');
+    expect(text).toContain('152.025 kr.');
+    expect(text).toContain('48.648 kr.');
+    expect(text).toContain('103.377 kr.');
+
+    // §2.9: ingen beløbsvisning i dokumentet må bære en decimaldel.
+    expect(text).not.toMatch(/\d,\d+ kr\./);
+  });
+
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
     expect(beregningsResultat).not.toBeNull();
 
