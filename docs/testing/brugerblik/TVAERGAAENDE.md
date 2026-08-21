@@ -12,6 +12,29 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer bruger.** Det er det
+bredeste mønster siden M-21 og det første, der handler om en afhængighed på tværs af FLADER: hver af
+programmets dokumentdefinitioner kræver en `ready` stamdataprojektion, uanset om dokumentet trykker
+et brevhoved. En rød dato i Stamdata slukker derfor downloadknapperne på flader, der ikke viser en
+eneste stamdataoplysning – målt på tre flader, hvoraf Satser er den skarpeste (opslagsværk, brevhoved
+som standard slået fra). Læs mønsteret sammen med **M-19**: de flader, der spejler stamdata, fik
+BB-064's rettelse og kan derfor vise årsagen; de flader, der ikke spejler stamdata, havde intet sted
+at skrive den og står tilbage med en grå knap uden afsender.
+
+**Samme dag har M-13, M-14 og M-16 fået hver sin nye forekomst** fra samme flade, og de er alle tre
+sat i deres skarpeste hidtidige form:
+- **M-13:** de to dokumenter fra ÉN fane skriver samme dato i to formater (BB-087). Prøven er nu ikke
+  kun skærm mod dokument og ikke kun inden for én skærm, men **dokument mod dokument fra samme flade**.
+  Beløbsformen var til gengæld enig alle tre steder – Varige méns nuldecimalregel er korrekt ikke
+  bredt hertil.
+- **M-14:** den første målte oplevelse af mønsterets sidste uafprøvede kandidat, en **tabelcelle med
+  et indsat regneark** (BB-088). Tre beløb på tre linjer bliver ÉN afvist værdi. Adfærden følger
+  brugerens paste=tastning-regel, men reglen tager ikke stilling til linjeskiftet – og linjeskiftet er
+  netop det, et regneark leverer.
+- **M-16:** mønsterets **rene mangel-form** (BB-083). BB-037/BB-038 flyttede fanens to
+  motorafvisninger ind i feltmodellen; en række med beløb og uden dato blev ikke omfattet, så et
+  aggregat spærres fortsat af én række, intet peger på.
+
 **Ingen nye mønstre 2026-08-21 fra Varige mén → Satser, men to skærpelser – og alle fem fund er
 afgjort samme dag** (BB-078/BB-079 gennemført som én rettelse, BB-075/BB-076/BB-077 afvist). Fanen
 er for lille til at bære et mønster (én tabel, ingen felter), og dens fund faldt i to eksisterende:
@@ -603,6 +626,18 @@ måles og rettes.
     uden den, fordi reduktionen er defineret som differencen mod den oprundede godtgørelse – de to
     uafrundede beløb har derfor samme decimaldel og forskydes ens. **Spørg altid, om en
     visningsrettelse er ved at brede sig ind i domænet.**
+- **Ny forekomst 2026-08-21, og den udvider prøven en tredje gang: DOKUMENT mod DOKUMENT fra samme
+  flade** (`renteberegning.md` BB-087, Lav). Renteberegning har to udgange, og de skriver samme datoer
+  i to formater: rækkens specifikation «Periode: **30-01-2019 - 19-08-2026**», oversigten «Rente
+  beregnes til og med **19. august 2026**» og «**30. januar 2019**». Skærmen bruger dd-mm-åååå, så
+  oversigten er den ene afviger af tre flader. Begge former er tilladte af `documentDateGuard`, så
+  det er et VALG, der er truffet forskelligt to steder i samme domæne – ikke en fejl.
+  **Prøven er dermed komplet i tre trin:** skærm mod dokument (BB-070), inden for én skærm (BB-079),
+  og mellem to dokumenter fra samme flade (BB-087). Kør alle tre, hvor en flade har mere end ét output.
+- **Bestået samme dag på beløbssiden:** renteberegningens `formatKr(x, 2)` på skærmen og
+  `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
+  identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
+  nuldecimalregel er IKKE bredt ud, og mønsteret forlanger enighed, ikke nul decimaler.
 
 ## M-14 – En anden fortolkningsvej ved siden af tastningen
 
@@ -673,6 +708,16 @@ tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en væ
   (værnet tillod `,` og `\`, som settle ikke normaliserede; settle normaliserede `:`, som ikke kunne
   tastes). Nu én erklæring, begge læser. Efterprøv generelt, om et felts **tegnværn** og dets
   **settle-parser** er enige om det samme tegnsæt – to lister er to sandheder.
+- **Den sidste uafprøvede kandidat er nu målt: en tabelcelle med et indsat regneark**
+  (`renteberegning.md` BB-088, Lav). Tre beløb på tre linjer (`1.000,00` / `2.000,00` / `3.000,00`)
+  indsat i en tom beløbscelle giver ÉN celle med den afviste værdi `1000,00,` – rød, og til
+  forveksling lig det første beløb. Mekanismen er ikke en fortolker: `normalizeClipboardText` gør
+  linjeskiftene til mellemrum, og tegnfilteret samler resten. **Adfærden overholder derfor reglen
+  (paste = tastning) og er ikke et regelbrud.** Men reglen tager ikke stilling til LINJESKIFTET, og
+  linjeskiftet er præcis det, et regneark leverer. **Den åbne prøve er derfor ny og smal: hvad SKAL et
+  linjeskift betyde i en indsat tekst?** Ved tastning afslutter det værdien; i paste forsvinder det.
+  Behandles det som en afslutning, bliver cellen `1.000,00` i stedet for en afvist streng – uden at
+  reglen udvides. Spørgsmålet gælder alle tabelceller, ikke kun beløb, og det er forelagt brugeren.
 
 ## M-15 – Skærmen tier, hvor dokumentet taler
 
@@ -757,9 +802,23 @@ frem for rettelser i gaten: de gør en falsk præmis sand i stedet for at differ
   der begrunder en genvej med en påstand om, hvad koden ikke kan nå, er selv en kandidat: efterprøv
   påstanden frem for at læse den. Bemærk dog også, at rettelsen ikke var at fjerne påstanden, men at
   gøre den sand.
-- Kandidater, ikke efterprøvet: `validateInterestCalculation` har fem afvisningsgrunde, hvoraf
-  ingen når brugeren. Tilsvarende motorer med interne fejltyper findes i Varige mén, Forsørgertab og
-  EO's rækkebyggere (`EO_ROW_BUILDERS`).
+- **Ny forekomst 2026-08-21 i mønsterets RENE MANGEL-form** (`renteberegning.md` BB-083, Mellem). Tre
+  komplette rentekrav kan hentes hver for sig, men «Download samlet oversigt» er grå med «Indtastning
+  mangler», fordi en fjerde række har et beløb og ingen dato. Nul røde felter, og rækken er ikke
+  markeret – den skiller sig kun ud ved at vise `-`, ligesom tabellens tomme indtastningsrække.
+  **Læren om afgrænsningen:** BB-037 og BB-038 flyttede fanens to MOTORafvisninger ind i feltmodellen
+  og lukkede dermed halvdelen af mønsteret på netop denne flade. Den anden halvdel – den *ufuldstændige*
+  række – har ingen motorafvisning at flytte, og blev derfor ikke omfattet. **Efterprøv altid begge
+  halvdele: en række, der er umulig som helhed, OG en række, der blot er halvt udfyldt.** Rettelsen er
+  den samme og hører samme sted: en regel i feltmodellen («har rækken et beløb, skal datoen udfyldes»),
+  så det tomme felt bliver rødt i netop den række.
+- **Efterprøvet og lukket samme dag:** `DATE_BEFORE_RATE_COVERAGE` kan ikke nås fra brugerfladen.
+  «Renter fra»-feltets nedre grænse ER `MIN_INTEREST_DATE` (01-01-2005), som er senere end
+  `MIN_SURCHARGE_DATE` (01-08-2002), så en rentedato uden satsdækning bliver et rødt bounds-issue før
+  motoren spørges. Tre af de fem afvisningsgrunde er dermed afklaret; de to sidste
+  (`MISSING_*`-grenene) er ægte mangler og hører til BB-083.
+- Kandidater, ikke efterprøvet: tilsvarende motorer med interne fejltyper findes i Varige mén,
+  Forsørgertab og EO's rækkebyggere (`EO_ROW_BUILDERS`).
 
 ## M-17 – Én oplysning delt over to lagerscoper
 
@@ -965,3 +1024,48 @@ AST-værn, der afviser en farve-prop på et element med en `row--*`-klasse, lukk
   `Satser.tsx:30`, `CannotComputeAggregationNotice.tsx:13`, `DefaultDirectoryRow.tsx:27-30` og
   **`DocumentOutcomeMessage.tsx:34`, der beder om `error.main` til en fejlbesked** – altså en
   fejlbesked, der efter mekanismen ikke er rød. Den sidste er den, der bør efterprøves først.
+
+## M-22 – En usynlig dokumentafhængighed på en anden flade slukker knappen
+
+> Fladen har intet galt på sig, viser sit resultat – og dens downloadknap er grå, fordi et felt på en
+> helt anden side er rødt. Knappen siger «Fejl i indtastning» om en fejl, der ikke findes her.
+
+Et dokument har flere dependencies, end den flade der tegner knappen, har felter. Den hyppigste er
+brevhovedets stamdata: hver definition læser en stamdataprojektion, og et rødt felt i Stamdata gør
+den `blocked`. Blokeringen klassificeres derefter af sine issues, så brugeren får en af programmets
+fire universelle tekster – og alle fire er formuleret, som om årsagen var på den flade, han ser.
+
+Formen er farlig, fordi den fjerner enhver ledetråd. Et rødt felt er en synlig, lokal anvisning; en
+blokering fra en anden flade er en grå knap uden afsender. Og den findes kun i drift: koden læser
+naturligt, testene er grønne, og fejlen kræver, at man har to flader i spil samtidigt.
+
+**Skellet mod M-19.** M-19 handler om en flade, der SPEJLER en fremmed værdi og kalder rødt for tomt.
+Dette mønster rammer den flade, der **slet ikke viser** værdien. De to hænger sammen: rettelsen af
+M-19 gav de spejlende flader et sted at vise årsagen, og efterlod de øvrige uden.
+
+**Efterprøv, hvor:** en dokumentdefinition læser en projektion, hvis felter ikke findes på fladen –
+`projectStamdataForDocument`, en anden sides beregning, en fælles indstilling. Prøven er konkret:
+**gør et felt på den fremmede flade UDFYLDT-MEN-UGYLDIGT, og læs så downloadknappen og hele fladen.**
+Er knappen grå, uden at noget på fladen er rødt, og uden at teksten navngiver den fremmede flade, er
+det en forekomst.
+
+Bemærk **det skarpeste led**: blokeringen er uafhængig af, om dokumentet faktisk bruger den fremmede
+værdi. Brevhoved-flagene ligger i renderings-settings og anvendes EFTER gaten (bevidst, jf.
+`mineoDocumentDefinition.ts`), så et dokument med brevhovedet slået fra blokerer på stamdata, det
+aldrig ville trykke. Spørg derfor ikke bare «er afhængigheden reel?», men «er den reel *i denne
+tilstand*?».
+
+- Fundet i: `renteberegning.md` BB-080 (Høj). Målt: én række gav `27.111,89 kr.`, begge downloads
+  aktive; en fødselsdato på `99-99-9999` i Stamdata (eller et fødselsdato/skadedato-par i umulig
+  rækkefølge) slukkede begge knapper med «Fejl i indtastning», med **nul** røde felter på fanen og
+  ordet «Stamdata» ingen steder. Bekræftet uændret med brevhovedet for Renteberegning slået FRA.
+- **Bekræftet på to flader mere i samme kørsel.** **Satser**: samme fødselsdato slukker sidens eneste
+  downloadknap med «Fejl i indtastning» – på et opslagsværk uden sagsdata, hvis brevhoved er slået fra
+  som standard. Det er mønsterets tydeligste form. **Varige mén**: blokerer også, men fladen skriver
+  «Stamdata – Fødselsdato: Fejl i indtastning», så brugeren har en ledetråd. Forskellen er præcis
+  M-19's rettelse.
+- Kun **Fødselsdato** og **Skadedato** kan gå røde i Stamdata; de fire tekstfelter er længdeværnede og
+  skadestypen er et valg. Mønsteret har derfor en lille, men meget nem indgang.
+- Kandidater, ikke efterprøvet: `document.aarsloen`, `document.eet`, Forsørgertabs og
+  Erstatningsopgørelsens reguleringsdefinitioner – alle kalder `projectStamdataForDocument` ubetinget.
+  Generelt: enhver `context.shared`-kilde, der læser felter uden for fladens egen sektion.

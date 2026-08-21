@@ -2,13 +2,12 @@
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Renteberegning (`/renteberegning`, fane 1 af 2 – Renteberegning; fanen
-  Rentesatser er nr. 8b)
-- **Næste fund-ID:** BB-080
-- **Senest opdateret:** 2026-08-21 (Varige mén → **Satser gennemgået og afgjort samme dag**: 5 fund,
-  BB-075–BB-079 – to rettet, tre afvist. Ingen nye mønstre; M-11 og M-13 har fået hver sin
-  skærpelse, og de tre afvisninger lukker hvert sit spor. Fane 7a's tretten fund er samtidig ført
-  ajour som **afgjort** – elleve rettet, to afvist)
+- **Næste flade:** Renteberegning → Rentesatser (`/renteberegning`, fane 2 af 2, nr. 8b)
+- **Næste fund-ID:** BB-091
+- **Senest opdateret:** 2026-08-21 (Renteberegning → **Beregning gennemgået**: 11 fund,
+  BB-080–BB-090, alle **Afventer bruger** på ét nær. Ét nyt mønster – **M-22**, en usynlig
+  dokumentafhængighed på en anden flade – og nye forekomster af M-13, M-14 og M-16. Fladens tungeste
+  fund er målt på tre flader og gælder hele programmet)
 
 ## Flader
 
@@ -25,12 +24,74 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 6 | Global shell | Afgjort | 13 (BB-049–BB-061) | [globalshell.md](globalshell.md) |
 | 7a | Varige mén – Ménberegning | Afgjort | 13 (BB-062–BB-074) | [varigemen.md](varigemen.md) |
 | 7b | Varige mén – Satser | Afgjort | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
-| 8a | Renteberegning – Renteberegning | Ikke startet | – | – |
+| 8a | Renteberegning – Beregning | Afventer bruger | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
 | 8b | Renteberegning – Rentesatser | Ikke startet | – | – |
 | 9 | Årslønsberegning | Ikke startet | – | – |
 | 10 | Forsørgertab | Ikke startet | – | – |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Renteberegning → Beregning – gennemgået 2026-08-21
+
+**Elleve fund, alle uafgjorte.** Det fulde grundlag med målte tal og de læste dokumenter står i
+[renteberegning.md](renteberegning.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-080 | En rød dato i Stamdata slukker alle downloads; intet på fanen peger derhen | **Høj** |
+| BB-081 | Oversigtsdokumentets «Rente fra» viser rentedatoen – tillægstiden er usynlig i dokumentet | **Høj** |
+| BB-082 | Skærmen summerer ikke rentebeløbene; kun dokumentet gør | Mellem |
+| BB-083 | Én ufuldstændig rentelinje spærrer hele oversigten, og intet peger på linjen | Mellem |
+| BB-084 | En række med kun en afvist værdi regnes for tom: ingen slet-knap, ingen ny række | Mellem |
+| BB-085 | Rækkens downloadikon forsvinder i stedet for at blive inaktivt med en årsag | Mellem |
+| BB-086 | «Slet alt»-dialogens overskrift er ordret navnet på sidens egen, fortrydelige slet-knap | Mellem |
+| BB-087 | Fanens to dokumenter skriver samme dato i to formater | Lav |
+| BB-088 | En indsat regnearkskolonne af beløb smelter sammen til én afvist værdi | Lav |
+| BB-089 | «Rentedato» betyder to forskellige ting på sidens to faner | Lav |
+| BB-090 | De to «beregning + satser»-sider navngiver deres faner spejlvendt | Lav |
+
+**Fanen deles med MinProcesrente (flade 5, afgjort 2026-08-19), så gennemgangen er lagt på det, Mineo
+gør anderledes** – oversigtsdokumentet, `.eo`-forbeholdet, valgbart dokumentformat, brevhoved fra
+Indstillinger og først og fremmest **koblingen til Stamdata, som standalone slet ikke har**. Dertil
+de to prøver, flade 5 efterlod som dækningshuller: dokumenternes faktiske indhold (nu hentet og læst
+linje for linje) og mange rækker (~50 bygget uden træghed).
+
+**Det tungeste fund er ikke fanens eget.** Renteberegning er den ENESTE beregningsflade i Mineo, der
+ikke viser en eneste stamdataoplysning – og netop derfor har den ingen plads at vise en stamdatafejl
+i. En fødselsdato på `99-99-9999` slukker begge downloadknapper med «Fejl i indtastning», med nul
+røde felter på fanen, mens rækken fortsat viser `27.111,89 kr.` Blokeringen består med brevhovedet
+slået FRA. **Målt på tre flader:** Satser er den skarpeste (opslagsværk, brevhoved slået fra som
+standard, ingen sagsdata), Varige mén er den, der gør det rigtigt – dens spejlede rækker skriver
+«Fødselsdato: Fejl i indtastning», fordi BB-064's rettelse gav den et sted at skrive det.
+
+**To fund handler om, at dokumentet ved mere end skærmen** – og det er hentede dokumenter, ikke
+kodelæsning: oversigtens kolonne «Rente fra» viser `30. januar 2019`, hvor skærmens «Renter fra»
+viser `31-12-2018` (BB-081), og oversigten slutter med «Samlet rentebeløb 228.010,09 kr.», en sum
+skærmen aldrig viser (BB-082). EET's «Løbende ydelser» har i forvejen en «I alt»-række på skærmen, så
+BB-082 er en konvergens, ikke et nyt design.
+
+**Ét nyt mønster og tre nye forekomster.** **M-22** (usynlig dokumentafhængighed på en anden flade) er
+det bredeste siden M-21 og det første, der går på tværs af FLADER. M-13 har fået sit tredje prøvetrin
+(dokument mod dokument fra samme flade), M-14 sin sidste uafprøvede kandidat målt (tabelcelle med
+indsat regneark), og M-16 sin rene mangel-form.
+
+**Beregningen er kontrolregnet og er i orden.** Halvårsperioder, 365/366 rentedage, satsskift,
+tillægstidens tre enheder (månedstillæg klamper: 31-01-2024 + 1 måned → 29-02-2024) og
+sammentællingen i dokumentet. Ingen af de elleve fund handler om et forkert tal – BB-081 handler om
+en dato under en forkert overskrift.
+
+**Konsekvenser for de resterende flader – tre prøver at tage med:**
+1. **M-22's prøve er billig og hører på hver flade med et dokument:** giv Fødselsdato eller Skadedato
+   en udfyldt-men-ugyldig værdi og læs downloadknappen. Kandidater: Årsløn, EET, Forsørgertab og EO's
+   reguleringsbilag.
+2. **M-13's prøve har fået et tredje trin:** har fladen mere end ét dokument, skal de to dokumenter
+   sammenlignes indbyrdes, ikke kun mod skærmen.
+3. **M-16 skal efterprøves i BEGGE halvdele:** en række, der er umulig som helhed, OG en række, der
+   blot er halvt udfyldt. Renteberegning havde fået den første rettet og den anden ikke.
+
+**Dækningshuller:** `Gem`/`Hent` af tabellen (filvælgeren kan ikke betjenes headless – samme hul som
+BB-049), PDF-kanalens indhold (begge dokumenter er læst som `.docx`), dokumentgeneringens fejlbesked,
+og mørkt tema samt de tre øvrige browsere. Konsollen var tavs gennem hele kørslen: 0 fejl, 0 advarsler.
 
 ## Varige mén → Satser – gennemgået og afgjort 2026-08-21
 
@@ -362,10 +423,18 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
-**Fem – uændret efter fane 7b, som ikke tilføjede nye.** Ét fra Varige mén → Ménberegning – det står
-udfoldet i [varigemen.md](varigemen.md): skal fanen advare, når beregningsdatoen ligger tyve år fra
-skadedatoen? (Fanens andet «åbne spørgsmål» er ikke et nyt: forudfyldt beregningsdato er ordret
-MinProcesrentes uafklarede spørgsmål nedenfor, og svaret bør gælde begge flader.)
+**Seks efter fane 8a, som tilføjede ét nyt og skærpede ét gammelt.** Det nye står udfoldet i
+[renteberegning.md](renteberegning.md): skal en rentelinje kunne bære sin egen kommentar? Fanens
+kommentarfelt hører til siden, så samme sætning trykkes på hver enkelt rækkespecifikation – og i
+Mineo hentes de enkeltvis til hver sin modpart. **Skærpelsen** gælder det gamle spørgsmål om
+forudfyldt beregningsdato (MinProcesrentes nr. 1 nedenfor): afvejningen er en anden i Mineo, hvor en
+forudfyldt dato betyder, at en helt urørt sag har en værdi i `renteberegning`-sektionen, så «Slet alle
+indtastninger» er aktiv fra begyndelsen og `Gem` har noget at gemme, brugeren ikke selv har skrevet.
+
+Ét fra Varige mén → Ménberegning – det står udfoldet i [varigemen.md](varigemen.md): skal fanen
+advare, når beregningsdatoen ligger tyve år fra skadedatoen? (Fanens andet «åbne spørgsmål» er ikke et
+nyt: forudfyldt beregningsdato er ordret MinProcesrentes uafklarede spørgsmål nedenfor, og svaret bør
+gælde begge flader.)
 
 To fra Global shell – de står udfoldet i [globalshell.md](globalshell.md): skal Ctrl+S kunne
 ses nogen steder i brugerfladen, og hvad skal `Gem` gøre, når skadelidtes navn rettes efter et gem
@@ -388,8 +457,18 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 ## Tværgående mønstre
 
-Enogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+Toogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
 
+- **M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer bruger.** «En usynlig
+  dokumentafhængighed på en anden flade slukker knappen»: hver dokumentdefinition kræver en `ready`
+  stamdataprojektion, uanset om dokumentet trykker et brevhoved – så en rød dato i Stamdata slukker
+  downloadknappen på flader, der ikke viser en eneste stamdataoplysning. Målt på tre flader
+  (Renteberegning, Satser, Varige mén). Det er det bredeste mønster siden M-21 og det første, der går
+  på tværs af FLADER; læs det sammen med M-19, hvis rettelse forklarer, hvorfor netop de spejlende
+  flader kan vise årsagen.
+- **Samme dag har M-13, M-14 og M-16 fået hver sin nye forekomst**, alle fra samme flade: M-13 sit
+  tredje prøvetrin (dokument mod dokument fra samme flade – BB-087), M-14 sin sidste uafprøvede
+  kandidat målt (tabelcelle med indsat regneark – BB-088), og M-16 sin rene mangel-form (BB-083).
 - **Ingen nye mønstre 2026-08-21 fra Varige mén → Satser** – fanen er for lille til at bære et
   (én tabel, ingen felter). Til gengæld to skærpelser: **M-11** dækker nu også påstande om et
   **tals ophav** (en lovhenvisning ved siden af et tal måles ved at finde samme tal et andet sted i
