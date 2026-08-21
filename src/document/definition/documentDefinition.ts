@@ -77,8 +77,10 @@ export type DocumentDefinition<TRequest, TInput, TGateSettings, TBrevhovedKey ex
    * `request`. Må ikke læse rå sektioner, DOM eller UI-state. Delt domænearbejde hentes gennem
    * `context.shared`, så flere outputs på samme domæne kun betaler for det én gang.
    *
-   * `context.settings` er GATE-settings alene: det valgte outputformat og brevhovedet er ikke i
-   * typen, fordi formatet vælger writer og ikke dækning. Miljøet anvender dem efter ready.
+   * `context.settings` er GATE-settings alene: det valgte outputformat er ikke i typen, fordi
+   * formatet vælger writer og ikke dækning. Et brevhoved-flag kan være med, når det afgør, om
+   * stamdata er en gate-relevant dokumentafhængighed. Miljøet bruger derefter samme flag til
+   * selve tegningen efter ready.
    */
   project: (context: DocumentSourceContext<TGateSettings>, request: TRequest) => DocumentProjectionResult<TInput>;
   /** Lazy-load af den tunge generator. Kernen kalder den FØRST efter gaten har sagt ready. */

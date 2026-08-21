@@ -560,7 +560,7 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
         tests: [
           'en gate, der læser downloadformatet, kan ikke kompilere',
           'kontrolprøve: samme definition UDEN formatlæsning kompilerer rent',
-          'gate-settings bærer KUN rækkepolitikken – hverken format eller brevhoved',
+          'gate-settings bærer rækkepolitik og brevhoved – men ikke format',
           'formatet når fortsat writer-valget gennem render-settings',
         ],
       },

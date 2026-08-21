@@ -360,7 +360,7 @@ export const standaloneRenteOversigtDocumentDefinition: StandaloneDocumentDefini
 
       const rows: RenteOversigtRow[] = Array.from(ready.aggregate.pdfContexts.values()).map((ctx) => ({
         beloeb: ctx.beloeb,
-        renterFra: ctx.actualInterestDate,
+        rentedato: ctx.actualInterestDate,
         beregnetRente: ctx.calculatedInterest,
       }));
 

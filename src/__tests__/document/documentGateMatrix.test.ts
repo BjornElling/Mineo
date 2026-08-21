@@ -40,8 +40,11 @@ import { varigeMenBeregningsdatoField, varigeMenMengradField } from '../../input
 import { renteberegningBeregningsdatoField } from '../../inputCore/catalog/renteberegningDescriptors';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { DocumentDefinition } from '../../document/definition/documentDefinition';
-import { __createTestEoRowPolicy } from '../../settings/sourceSettings';
-import type { MineoDocumentGateSettings } from '../../document/definition/mineoDocumentDefinition';
+import { __createTestSourceSettings } from '../../settings/sourceSettings';
+import {
+  projectMineoDocumentGateSettings,
+  type MineoDocumentGateSettings,
+} from '../../document/definition/mineoDocumentDefinition';
 import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefinition';
 import { varigeMenDocumentDefinition } from '../../domain/varigemen/varigeMenDocumentDefinition';
 import { forsoergertabDocumentDefinition } from '../../domain/forsoergertab/forsoergertabDocumentDefinition';
@@ -71,12 +74,12 @@ const catalog = getProductionInputCatalog();
 // `Partial<EoRowPolicyPayload>` – så en ny gate-relevant regel fejler her frem for at blive skjult
 // bag et `as`.
 //
-// **Ingen brevhoved-flags og intet format:** de er render-settings og findes ikke i
-// projektionskonteksten. Suiten kan derfor slet ikke pinne et format – der er intet at binde.
-const GATE_SETTINGS: MineoDocumentGateSettings = __createTestEoRowPolicy({
+// **Intet format:** formatet er render-settings og findes ikke i projektionskonteksten. Brevhoved-
+// flagene findes derimod i hovedappens gate-settings, fordi de afgør stamdataafhængigheden.
+const GATE_SETTINGS: MineoDocumentGateSettings = projectMineoDocumentGateSettings(__createTestSourceSettings({
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,
-});
+}));
 
 const empty = (): SettledInput => catalog.validateSettledInput({
   sections: {

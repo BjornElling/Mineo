@@ -55,9 +55,15 @@ export const normalizePasteForDraft = (
   codec: PasteCodec,
   existingDraft: string,
 ): string => {
+  // Et linjeskift er en Enter-handling, ikke en del af en tal-/dato-/valgdrafts værdi. Ved paste fra
+  // et regneark skal første linje derfor behandles som den første tastede værdi; at sende alle linjer
+  // videre til et numerisk codec ville ellers flette en hel kolonne sammen til én afvist tekst.
+  const singleLineRaw = codec.family === 'text' || codec.family === 'optionalText'
+    ? raw
+    : raw.split(/\r\n?|\n/u, 1)[0] ?? '';
   const genericNormalized = codec.family === 'text' || codec.family === 'optionalText'
-    ? normalizeClipboardText(raw, { preservesLineBreaks: codec.preservesLineBreaks })
-    : raw;
+    ? normalizeClipboardText(singleLineRaw, { preservesLineBreaks: codec.preservesLineBreaks })
+    : singleLineRaw;
   return existingDraft === ''
     ? (codec.normalizePaste?.(genericNormalized) ?? genericNormalized)
     : genericNormalized;

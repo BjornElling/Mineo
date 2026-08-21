@@ -30,7 +30,7 @@ import type { DocumentProjectionResult } from '../../document/definition/documen
 import { defineDocumentAction, resolveDocumentDefinition } from '../../document/definition/documentAction';
 import type { DocumentBrevhovedType } from '../../document/layout/documentBrevhoved';
 import { missingInputReason, type DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
-import { blockedProjection, blockedProjectionFromCauses } from '../../document/definition/documentOutcome';
+import { blockedProjection, blockedProjectionForStamdata } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import {
   defineMineoDocument,
@@ -50,7 +50,10 @@ import { offentligLoenTypeEnum } from '../../schemas/formSchemas/enumSchemas';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { coerceToDanishDateString, type DanishDateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
+import {
+  projectStamdataForDocument,
+  projectStamdataForDocumentIfEnabled,
+} from '../stamdata/stamdataDocumentProjection';
 
 export const REGULERING_DOCUMENT_CONSUMER_ID = 'document.regulering';
 
@@ -228,7 +231,11 @@ const readSharedReguleringSource = (
   context: DocumentSourceContext<MineoDocumentGateSettings>
 ): SharedReguleringSource => ({
   reader: context.evaluation.reader,
-  stamdata: projectStamdataForDocument(context.evaluation.reader, REGULERING_DOCUMENT_CONSUMER_ID),
+  stamdata: projectStamdataForDocumentIfEnabled(
+    context.evaluation.reader,
+    REGULERING_DOCUMENT_CONSUMER_ID,
+    context.settings.brevhovedIndstillinger.regulering
+  ),
 });
 
 /**
@@ -286,16 +293,12 @@ const projectReguleringCommon = <TInput>(
   | Readonly<{ kind: 'ok'; source: LoenudviklingSource; common: ReguleringCommonInput }> => {
   const shared = context.shared(readSharedReguleringSource);
 
-  // Alle blokeringer nedenfor betyder "der mangler en indtastning/et valg" og viser derfor den universelle
-  // tekst; kun stamdata-ISSUET navngiver et konkret felt og citeres ordret.
+  // De almindelige reguleringsblokeringer viser den universelle tekst. En stamdatafejl er en
+  // afhængighed på en anden flade og peger derfor direkte på Stamdata.
   if (shared.stamdata.status !== 'ready') {
     return {
       kind: 'blocked',
-      result: blockedProjectionFromCauses(
-        'regulering:stamdata-blocked',
-        shared.stamdata.status === 'blocked' ? shared.stamdata.issues : undefined,
-        'Stamdata indeholder fejl'
-      ),
+      result: blockedProjectionForStamdata('regulering:stamdata-blocked'),
     };
   }
 

@@ -18,10 +18,10 @@ import type { DocumentExecutionEnvironment } from '../definition/documentExecuti
 import type { MineoDocumentGateSettings } from '../definition/mineoDocumentDefinition';
 import {
   projectDocumentRenderSettings,
-  projectEoRowPolicy,
   type DocumentRenderSettings,
   type SourceSettings,
 } from '../../settings/sourceSettings';
+import { projectMineoDocumentGateSettings } from '../definition/mineoDocumentDefinition';
 import type { DocumentDiagnostics, DocumentFailure } from '../definition/documentOutcome';
 import {
   ensureDevServerAvailableForDocumentDownload,
@@ -47,10 +47,12 @@ const createSession = async (format: DocumentDownloadFormat): Promise<DocumentGe
  * konsument også havde hele `AppSettings` – og definitionerne lover kun at læse det source-relevante
  * snapshot. `projectSourceSettings` skærer capturens `AppSettings` ned til netop det.
  *
- * **De to halvdele er DISJUNKTE.** `gateSettings` er rækkepolitikken – det eneste settings,
- * en definitions `project` kan se – og `renderSettings` er format + brevhoved, som kun dette miljø
- * læser, og først efter gaten har sagt ready. Formatet vælger writer, ikke dækning; opdelingen gør
- * normen til en typegrænse frem for en regel, et værn skal overvåge.
+ * **De to halvdele har én bevidst overlapning.** `gateSettings` er rækkepolitikken og
+ * brevhoved-flagene – det settings, en definitions `project` kan se, når stamdata kun skal være en
+ * afhængighed, hvis brevhovedet er slået til. `renderSettings` er format + brevhoved, som miljøet
+ * bruger efter gaten til writer og tegning. Formatet vælger writer, ikke dækning; det ligger derfor
+ * kun i render-settings. Brevhoved-flaget kopieres i begge halvdele fra samme snapshot, så gate og
+ * rendering træffer samme beslutning.
  *
  * **`readSourceSettings` er en FUNKTION, ikke en værdi.** Begge halvdele af kildesnapshottet skal
  * optages på SAMME tidspunkt. Tog miljøet imod et færdigt `SourceSettings`-objekt, ville det uundgåeligt
@@ -73,7 +75,7 @@ export const createMineoDocumentEnvironment = (
     const settings = readSourceSettings();
     return {
       evaluation,
-      gateSettings: projectEoRowPolicy(settings),
+      gateSettings: projectMineoDocumentGateSettings(settings),
       renderSettings: projectDocumentRenderSettings(settings),
     };
   },

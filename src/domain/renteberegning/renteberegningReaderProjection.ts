@@ -8,6 +8,7 @@ import {
   rentekravTillaegstidField,
 } from '../../inputCore/catalog/renteberegningDescriptors';
 import type { InputReader } from '../../inputCore/inputReader';
+import type { FieldIssue } from '../../inputCore/inputIssue';
 import {
   mapReadyProjection,
   runProjection,
@@ -27,8 +28,14 @@ export type RenteAggregateProjectionData = Readonly<{
   anyRowHasError: boolean;
 }>;
 
+export type RentekravRowRuleIssues = Readonly<{
+  belob?: FieldIssue;
+  renterFra?: FieldIssue;
+}>;
+
 export type RenteberegningReaderProjection = Readonly<{
   rowProjections: ReadonlyMap<string, ProjectionResult<RentekravRowResult>>;
+  rowRuleIssues: ReadonlyMap<string, RentekravRowRuleIssues>;
   aggregateProjection: ProjectionResult<RenteAggregateProjectionData>;
 }>;
 
@@ -99,14 +106,63 @@ export const readRentekravCommittedRows = (reader: InputReader): RentekravRow[] 
  * kan en række med den eneste fejlende indtastning blive umulig at rydde uden at rette fejlen først.
  */
 export const hasAnyRentekravInput = (reader: InputReader): boolean =>
-  reader.listEntities(rentekravRowsCollectionRef).some(({ entityId }) => {
-    const belob = reader.read(rentekravBelobField.bind(entityId));
-    const renterFra = reader.read(rentekravRenterFraField.bind(entityId));
-    const tillaegstid = reader.read(rentekravTillaegstidField.bind(entityId));
-    return [belob, renterFra, tillaegstid].some((result) => (
-      result.status === 'error' || result.value !== undefined
-    ));
-  });
+  reader.listEntities(rentekravRowsCollectionRef).some(({ entityId }) => hasAnyRentekravRowInput(reader, entityId));
+
+/** En række med rejected råtekst er stadig brugerinput, selv om projektionen skjuler feltværdien. */
+export const hasAnyRentekravRowInput = (reader: InputReader, rowId: string): boolean => {
+  const belob = reader.read(rentekravBelobField.bind(rowId));
+  const renterFra = reader.read(rentekravRenterFraField.bind(rowId));
+  const tillaegstid = reader.read(rentekravTillaegstidField.bind(rowId));
+  return [belob, renterFra, tillaegstid].some((result) => (
+    result.status === 'error' || result.value !== undefined
+  ));
+};
+
+/**
+ * Afleder den rækkeinterne parregel uden at gøre et tomt felt rejected.
+ *
+ * Et rentekrav med kun beløb eller kun startdato er ikke beregningsklart, men tomhed er normalt ikke
+ * en rød feltfejl i inputkernen. Derfor leveres reglen som en afledt collection-issue til netop det
+ * manglende felt. Det giver samme synlige rettested som en validator uden at ændre persistence/XOR-reglen.
+ */
+export const readRentekravRowRuleIssues = (reader: InputReader): ReadonlyMap<string, RentekravRowRuleIssues> => {
+  const issues = new Map<string, RentekravRowRuleIssues>();
+  for (const { entityId } of reader.listEntities(rentekravRowsCollectionRef)) {
+    const belobField = rentekravBelobField.bind(entityId);
+    const renterFraField = rentekravRenterFraField.bind(entityId);
+    const belob = reader.read(belobField);
+    const renterFra = reader.read(renterFraField);
+    // En rejected værdi har allerede sin egen røde fejl. Den må ikke samtidig få en afledt
+    // «manglende partner»-fejl, som ville skjule den egentlige rettelse på samme felt.
+    if (belob.status === 'error' || renterFra.status === 'error') continue;
+    const hasBelob = belob.status === 'usable' && belob.value !== undefined;
+    const hasRenterFra = renterFra.status === 'usable' && renterFra.value !== undefined;
+    if (hasBelob === hasRenterFra) continue;
+
+    if (hasBelob) {
+      const issue: FieldIssue = Object.freeze({
+        kind: 'field',
+        code: `renteberegning.rentekrav.${entityId}.pairing`,
+        severity: 'error',
+        field: renterFraField,
+        reason: 'rule',
+        message: `${reader.labelOf(renterFraField)} skal udfyldes, når ${reader.labelOf(belobField)} er udfyldt`,
+      });
+      issues.set(entityId, { renterFra: issue });
+    } else {
+      const issue: FieldIssue = Object.freeze({
+        kind: 'field',
+        code: `renteberegning.rentekrav.${entityId}.pairing`,
+        severity: 'error',
+        field: belobField,
+        reason: 'rule',
+        message: `${reader.labelOf(belobField)} skal udfyldes, når ${reader.labelOf(renterFraField)} er udfyldt`,
+      });
+      issues.set(entityId, { belob: issue });
+    }
+  }
+  return issues;
+};
 
 export const buildRenteberegningReaderProjection = (args: Readonly<{
   reader: InputReader;
@@ -115,6 +171,7 @@ export const buildRenteberegningReaderProjection = (args: Readonly<{
 }>): RenteberegningReaderProjection => {
   const { reader, referenceRates, surchargeRates } = args;
   const rowIds = reader.listEntities(rentekravRowsCollectionRef).map(({ entityId }) => entityId);
+  const rowRuleIssues = readRentekravRowRuleIssues(reader);
   const rowProjections = new Map<string, ProjectionResult<RentekravRowResult>>();
   for (const rowId of rowIds) {
     // Trin 1: læs motorinput og afgør ready|blocked. Trin 2: kald motoren KUN i ready-grenen (§3.9).
@@ -161,5 +218,5 @@ export const buildRenteberegningReaderProjection = (args: Readonly<{
     }
   );
 
-  return Object.freeze({ rowProjections, aggregateProjection });
+  return Object.freeze({ rowProjections, rowRuleIssues, aggregateProjection });
 };

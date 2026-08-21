@@ -7,8 +7,8 @@
  */
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
-import { blockedProjectionFromCauses, toGateReasons } from '../../document/definition/documentOutcome';
-import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
+import { blockedProjectionForStamdata, toGateReasons } from '../../document/definition/documentOutcome';
+import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
 import { evaluateForsoergertabDownloadGate } from './forsoergertabDownloadGate';
 import { buildForsoergertabReaderProjection } from './forsoergertabReaderProjection';
 import type { ForsoergertabPdfProjection } from './forsoergertabSnapshot';
@@ -39,11 +39,14 @@ export const forsoergertabDocumentDefinition: MineoDocumentDefinition<Forsoerger
       }
 
       // Se noten i `varigeMenDocumentDefinition`: brevhoved-stamdata kan kun blokere på en RØD feltfejl
-      // (kun `optional`-reads), så klassen var korrekt – men hardkodet, og dermed ude af stand til at
-      // citere en enkeltstående bounds-/rule-grænse.
-      const stamdata = projectStamdataForDocument(context.evaluation.reader, FORSOERGERTAB_DOCUMENT_CONSUMER_ID);
+      // (kun `optional`-reads), og årsagen peger direkte på den flade, hvor fejlen kan rettes.
+      const stamdata = projectStamdataForDocumentIfEnabled(
+        context.evaluation.reader,
+        FORSOERGERTAB_DOCUMENT_CONSUMER_ID,
+        context.settings.brevhovedIndstillinger.forsoergertab
+      );
       if (stamdata.status !== 'ready') {
-        return blockedProjectionFromCauses('forsoergertab:stamdata-blocked', stamdata.issues, 'Fejl i indtastning');
+        return blockedProjectionForStamdata('forsoergertab:stamdata-blocked');
       }
 
       return {

@@ -27,8 +27,10 @@
  * `SourceSettings`, som også indeholder `documentDownloadFormat`. Enhver definition kunne derfor
  * lovligt forgrene sin gate på det valgte outputformat – en usynlig, formatafhængig blokering, som
  * §A2a's krav om samme definition i begge kanaler ikke fanger, fordi begge kanaler ville se den
- * samme skæve gate. Formatet og brevhovedet bor nu i miljøets `renderSettings` og læses først EFTER
- * gaten; her er de ikke i typen, så et forsøg på at læse dem er en compilerfejl.
+ * samme skæve gate. Formatet bor nu i miljøets `renderSettings` og læses først EFTER gaten; her er
+ * det ikke i typen, så et forsøg på at læse det er en compilerfejl. Hovedappens brevhoved-flag er
+ * den bevidste undtagelse: flaget afgør, om stamdata overhovedet er en gate-relevant afhængighed,
+ * og kopieres derfor til gate-settings sammen med render-settings fra samme source-snapshot.
  */
 import type { InputEvaluation } from '../../inputCore/inputReader';
 
@@ -40,7 +42,7 @@ export type SharedProjectionBuilder<TGateSettings, T> = (context: DocumentSource
 
 export type DocumentSourceContext<TGateSettings> = Readonly<{
   evaluation: InputEvaluation;
-  /** Den gate-relevante politik. Format og brevhoved findes bevidst IKKE her. */
+  /** Den gate-relevante politik. Formatet findes bevidst IKKE her; brevhoved-flag kan være relevante. */
   settings: TGateSettings;
   /**
    * Kør `builder` én gang pr. kontekst og genbrug resultatet. `builder` skal være en modul-lokal,

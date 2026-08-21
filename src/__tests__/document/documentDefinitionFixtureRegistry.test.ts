@@ -14,8 +14,12 @@ import { executeDocumentDownload } from '../../document/definition/documentLifec
 import type { DocumentExecutionEnvironment } from '../../document/definition/documentExecutionEnvironment';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import { MINEO_DOCUMENT_OUTPUT_IDS, type MineoDocumentOutputId } from '../../document/definition/documentOutputId';
-import { __createTestEoRowPolicy } from '../../settings/sourceSettings';
-import type { MineoDocumentGateSettings } from '../../document/definition/mineoDocumentDefinition';
+import { DEFAULT_BREVHOVED_INDSTILLINGER } from '../../settings/appSettingsSchema';
+import { __createTestSourceSettings } from '../../settings/sourceSettings';
+import {
+  projectMineoDocumentGateSettings,
+  type MineoDocumentGateSettings,
+} from '../../document/definition/mineoDocumentDefinition';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
 import { stamdataSkadedatoField } from '../../inputCore/catalog/stamdataDescriptors';
 import { satserAargangField } from '../../inputCore/catalog/satserDescriptors';
@@ -276,10 +280,18 @@ const withIrrelevantError = (input: SettledInput, outputId: MineoDocumentOutputI
   return replaceSections(input, { satser: { aargang: 1800 } });
 };
 
-const SETTINGS: MineoDocumentGateSettings = __createTestEoRowPolicy({
+const SETTINGS: MineoDocumentGateSettings = projectMineoDocumentGateSettings(__createTestSourceSettings({
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,
-});
+  // Denne fixture afprøver, at hvert outputs stamdataafhængighed blokerer, når brevhovedet er aktivt.
+  // Alle flags skal derfor være tændt, også for outputs hvor brugerens standard er slukket.
+  brevhovedIndstillinger: {
+    ...DEFAULT_BREVHOVED_INDSTILLINGER,
+    shDage: true,
+    regulering: true,
+    satser: true,
+  },
+}));
 
 type Fixture = Readonly<{
   project: (input: SettledInput) => DocumentProjectionResult<unknown>;

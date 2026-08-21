@@ -308,7 +308,7 @@ const cases: ReadonlyArray<Readonly<{ name: string; run: (session: DocumentGener
   { name: 'KRL (låste kolonner, tvungen centrering)', run: (session) => generateKRLDocument(session, { visBrevhoved: false }) },
   { name: 'aarsloen (fordelt + formateret total + colSpan + underline)', run: (session) => generateAarsloenDocument(session, aarsloenParams) },
   { name: 'shDage (fordelt/låst + summeret total + mutede rækker + underline)', run: (session) => generateSHDageDocument(session, shDagePerioder, { visBrevhoved: false }) },
-  { name: 'renteOversigt (låste kolonner + summeret total + underline)', run: (session) => generateRenteOversigtDocument(session, toISODateString('2024-02-01'), [{ beloeb: 1250, renterFra: toISODateString('2024-01-11'), beregnetRente: 2.25 }, { beloeb: 3400, renterFra: toISODateString('2024-01-20'), beregnetRente: 5.5 }]) },
+  { name: 'renteOversigt (låste kolonner + summeret total + underline)', run: (session) => generateRenteOversigtDocument(session, toISODateString('2024-02-01'), [{ beloeb: 1250, rentedato: toISODateString('2024-01-11'), beregnetRente: 2.25 }, { beloeb: 3400, rentedato: toISODateString('2024-01-20'), beregnetRente: 5.5 }]) },
   { name: 'rente (låst + fixed-inset + dataRowColumnHalign + total + underline)', run: (session) => generateRenteDocument(session, renteParams.amount, renteParams.interestStartDate, renteParams.calculationDate, renteParams.periods, { visBrevhoved: false, kommentarer: 'Standalone' }) },
   { name: 'loebendeYdelser (auto-bredde + summeret total + underline)', run: (session) => generateLoebendeYdelserDocument(session, { computation: loebendeComputation, visUdvidetSpecifikation: true, visBrevhoved: false }) },
   { name: 'regulering (min-bredde + tvungen centrering)', run: (session) => generateReguleringDocument(session, reguleringParams) },
@@ -338,4 +338,3 @@ describe('tabel-kanal-paritet: Word document.xml (golden)', () => {
     }, 15000);
   }
 });
-

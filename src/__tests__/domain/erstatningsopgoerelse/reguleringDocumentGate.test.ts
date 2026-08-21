@@ -24,8 +24,11 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import { eoAngivetLoenFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
 import { createDocumentSourceContext } from '../../../document/definition/documentSourceContext';
-import { __createTestEoRowPolicy } from '../../../settings/sourceSettings';
-import type { MineoDocumentGateSettings } from '../../../document/definition/mineoDocumentDefinition';
+import { __createTestSourceSettings } from '../../../settings/sourceSettings';
+import {
+  projectMineoDocumentGateSettings,
+  type MineoDocumentGateSettings,
+} from '../../../document/definition/mineoDocumentDefinition';
 import {
   klLoenaftalerDocumentDefinition,
   reguleringDocumentAction,
@@ -35,12 +38,12 @@ import {
 
 const catalog = getProductionInputCatalog();
 
-// Bygges gennem projektoren; gate-settings er nominel. Format og brevhoved er
-// render-settings og findes ikke i projektionskonteksten. Se `documentGateMatrix.test.ts`.
-const GATE_SETTINGS: MineoDocumentGateSettings = __createTestEoRowPolicy({
+// Bygges gennem projektoren; gate-settings er nominel. Formatet findes ikke i
+// projektionskonteksten, mens brevhovedflaget afgør stamdataafhængigheden. Se `documentGateMatrix.test.ts`.
+const GATE_SETTINGS: MineoDocumentGateSettings = projectMineoDocumentGateSettings(__createTestSourceSettings({
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 0,
-});
+}));
 
 const CASE_REQUEST = { scope: 'case' } as const;
 

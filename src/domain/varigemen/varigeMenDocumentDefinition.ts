@@ -12,9 +12,9 @@
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
-import { blockedProjection, blockedProjectionFromCauses, toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjection, blockedProjectionForStamdata, toGateReasons } from '../../document/definition/documentOutcome';
 import { resolveStamdataDatoLabel } from '../policies/stamdataCalculations';
-import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
+import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
 import type { VarigeMenBeregningResult } from './varigeMenCalculations';
 import { evaluateVarigeMenDownloadGate } from './varigeMenDownloadGate';
 import { buildVarigeMenReaderProjection } from './varigeMenReaderProjection';
@@ -56,12 +56,15 @@ export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocum
       }
 
       // Brevhoved-stamdata læses kun med `collector.optional`, så projektionen kan aldrig blokere på
-      // TOMHED – kun på en rød feltfejl. Klassen `invalid-input` var derfor korrekt, men den var hardkodet
-      // og mistede dermed muligheden for at citere grænsen, når præcis ét felt har en bounds-/rule-fejl.
-      // Klassifikationen udleder nu begge dele (§3.1).
-      const stamdata = projectStamdataForDocument(context.evaluation.reader, VARIGEMEN_DOCUMENT_CONSUMER_ID);
+      // TOMHED – kun på en rød feltfejl. Fejlen ligger på Stamdata-fladen, så downloadårsagen peger
+      // dertil frem for at sende brugeren på jagt efter et rødt felt på denne side.
+      const stamdata = projectStamdataForDocumentIfEnabled(
+        context.evaluation.reader,
+        VARIGEMEN_DOCUMENT_CONSUMER_ID,
+        context.settings.brevhovedIndstillinger.varigeMen
+      );
       if (stamdata.status !== 'ready') {
-        return blockedProjectionFromCauses('varigemen:stamdata-blocked', stamdata.issues, 'Fejl i indtastning');
+        return blockedProjectionForStamdata('varigemen:stamdata-blocked');
       }
 
       const data = projection.value;

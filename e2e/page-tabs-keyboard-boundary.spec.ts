@@ -13,7 +13,7 @@ test.describe('PageTabs og indholdets tastaturgrænse', { tag: BROWSER_LANE_TAG 
     await openPage(page, 'Varige mén');
     await expect(page).toHaveURL(/\/varigemen$/);
 
-    const menberegningTab = page.getByRole('tab', { name: 'Ménberegning', exact: true });
+    const menberegningTab = page.getByRole('tab', { name: 'Beregning', exact: true });
     const satserTab = page.getByRole('tab', { name: 'Satser', exact: true });
 
     await menberegningTab.focus();

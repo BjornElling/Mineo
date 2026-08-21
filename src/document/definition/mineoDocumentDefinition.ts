@@ -8,10 +8,10 @@
  *
  * Derfor dette alias: ÉT sted binder hovedappens definitioner deres settings- og brevhoved-kontrakt.
  *
- * **Gate-settings er `EoRowPolicy` og ikke `SourceSettings`.** Definitionernes `project` har
- * præcis ÉN settings-afhængighed i produktionen: EO's rækkepolitik (`eoDocumentDefinitions.ts`).
- * Formatet og brevhoved-flagene bor i miljøets `renderSettings` og anvendes først EFTER gaten, fordi
- * formatet vælger writer og ikke dækning. Var hele `SourceSettings` fortsat gate-halvdelen, kunne
+ * **Gate-settings er en afgrænset projektion og ikke `SourceSettings`.** Definitionernes `project`
+ * ser EO's rækkepolitik og brevhoved-flagene, fordi flagene afgør, om stamdata er en faktisk
+ * dokumentafhængighed for det konkrete output. Formatet bor i miljøets `renderSettings` og anvendes
+ * først EFTER gaten, fordi formatet vælger writer og ikke dækning. Var hele `SourceSettings` fortsat gate-halvdelen, kunne
  * enhver definition lovligt gøre samme sag `ready` som PDF og `blocked` som Word – en skæv gate,
  * §A2a's paritet mellem reaktiv gate og click-preflight IKKE fanger, fordi begge kanaler ville se
  * samme skævhed. Nu er et sådant læs en compilerfejl frem for en regel, et værn skal overvåge.
@@ -23,15 +23,30 @@
  * optaget `EvaluationSourceToken` stale.
  */
 import type { DocumentDefinition } from './documentDefinition';
-import type { DocumentBrevhovedType } from '../layout/documentBrevhoved';
-import type { EoRowPolicy } from '../../settings/sourceSettings';
+import type { DocumentBrevhovedFlags, DocumentBrevhovedType } from '../layout/documentBrevhoved';
+import {
+  projectEoRowPolicy,
+  type EoRowPolicy,
+  type SourceSettings,
+} from '../../settings/sourceSettings';
 
 /**
  * Hovedappens GATE-settings: alt, en definitions `project` må se. Aliasset findes, så de 18
  * definitioner ikke hver især navngiver rækkepolitikken – og så en udvidelse af gate-fladen sker ét
  * sted, hvor den kan begrundes.
  */
-export type MineoDocumentGateSettings = EoRowPolicy;
+export type MineoDocumentGateSettings = EoRowPolicy & Readonly<{
+  /** Flagene afgør, om dokumentets brevhoved-stamdata skal gate outputtet. */
+  brevhovedIndstillinger: DocumentBrevhovedFlags;
+}>;
+
+/** Den ENE konstruktør for hovedappens gate-settings. Formatet holdes udenfor og vælger kun writer. */
+export const projectMineoDocumentGateSettings = (
+  settings: SourceSettings
+): MineoDocumentGateSettings => Object.freeze({
+  ...projectEoRowPolicy(settings),
+  brevhovedIndstillinger: settings.brevhovedIndstillinger,
+});
 
 /**
  * En definition i hovedappen. `TRequest` er `void` for de outputs, der kun findes i én instans;

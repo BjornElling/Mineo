@@ -17,7 +17,7 @@ export const VARIGE_MEN_TAB_KEYS = {
 type VarigeMenTabKey = (typeof VARIGE_MEN_TAB_KEYS)[keyof typeof VARIGE_MEN_TAB_KEYS];
 
 const VARIGE_MEN_TAB_ITEMS: readonly Readonly<{ key: VarigeMenTabKey; label: string }>[] = [
-  { key: VARIGE_MEN_TAB_KEYS.MENBEREGNING, label: 'Ménberegning' },
+  { key: VARIGE_MEN_TAB_KEYS.MENBEREGNING, label: 'Beregning' },
   { key: VARIGE_MEN_TAB_KEYS.SATSER, label: 'Satser' },
 ];
 

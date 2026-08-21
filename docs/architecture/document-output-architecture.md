@@ -100,14 +100,13 @@ Livscyklussen ejer kun serialisering af flowet, lazy-load, render/download og ru
 callbacks med skjult domænepolicy, dependencies eller gates; formatvalget kommer fra dokumentmiljøets
 `resolveFormat` (`document-format-contract.md` §3).
 
-**Settings er delt i to disjunkte halvdele, og gaten kan ikke se formatet.** Kildesnapshottet bærer
-`gateSettings` (i hovedappen EO-rækkepolitikken) og `renderSettings` (format + brevhoved-flag). Kun
-`gateSettings` er typen på den `DocumentSourceContext`, en definitions `project` modtager; `renderSettings`
-læses alene af miljøet, og først efter gaten har svaret `ready`. Reglen bag delingen – **formatet vælger
-writer, ikke dækning** – kan ikke bæres af et værn, fordi den reaktive gate og click-preflighten kalder samme
-`project` og derfor ville se den samme skæve gate i begge kanaler. Den er derfor en typegrænse: et forsøg på at
-læse `documentDownloadFormat` i en gate kompilerer ikke. Begge halvdele projiceres fra ét `captureSource`-læs,
-så de ikke kan stamme fra to revisioner. Normativt i `document-output-contract.md` §A2.1.
+**Settings er delt med en bevidst brevhoved-overlapning, og gaten kan ikke se formatet.** Kildesnapshottet
+bærer `gateSettings` (i hovedappen EO-rækkepolitik + brevhoved-flag) og `renderSettings` (format + det
+samme brevhoved-flag). Flaget afgør, om stamdata er en faktisk afhængighed for outputtet, og bruges igen
+til at tegne brevhovedet efter gaten. Formatet ligger kun i `renderSettings`: **formatet vælger writer,
+ikke dækning**. Et forsøg på at læse `documentDownloadFormat` i en gate kompilerer ikke. Begge halvdele
+projiceres fra ét `captureSource`-læs, så de ikke kan stamme fra to revisioner. Normativt i
+`document-output-contract.md` §A2.1.
 
 Generatorerne under `src/document/generators/` ejer dokumentets semantiske struktur og danske tekst. De modtager
 godkendt input og defineres med `defineDocument(...)`.

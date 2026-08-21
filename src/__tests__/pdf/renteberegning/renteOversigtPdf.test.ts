@@ -6,7 +6,7 @@ import { createDocumentComposer, renderDocumentModel } from '../../../document/m
 
 const makeRow = (overrides?: Partial<RenteOversigtRow>): RenteOversigtRow => ({
   beloeb: 1250,
-  renterFra: toISODateString('2024-01-11'),
+  rentedato: toISODateString('2024-01-11'),
   beregnetRente: 2.25,
   ...overrides,
 });
@@ -25,7 +25,7 @@ describe('writeRenteOversigtDocumentContent', () => {
     expect(() => {
       writeRenteOversigtDocumentContent(composer, toISODateString('2024-02-01'), [
         makeRow(),
-        makeRow({ beloeb: 5000, renterFra: toISODateString('2023-06-01'), beregnetRente: 412.5 }),
+        makeRow({ beloeb: 5000, rentedato: toISODateString('2023-06-01'), beregnetRente: 412.5 }),
       ]);
       renderDocumentModel(writer, build());
     }).not.toThrow();

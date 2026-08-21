@@ -9,7 +9,6 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Aarsloen from '../../../components/pages/Aarsloen';
-import { DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE } from '../../../document/layout/documentGateTypes';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../../contexts/RoutePathnameProvider';
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
@@ -307,7 +306,7 @@ describe('Årsløn – siden og løntabellen over grid-adapteren', () => {
      *
      * Det væsentlige for gaten er uændret: knappen er disabled, og aktivering starter intet dokumentarbejde.
      */
-    const downloadButton = screen.getByRole('button', { name: DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE });
+    const downloadButton = screen.getByRole('button', { name: 'Ret fejlen i Stamdata' });
     expect(downloadButton).toBeDisabled();
     await user.click(downloadButton);
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();

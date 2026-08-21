@@ -19,7 +19,7 @@ const RentesatserTab = React.memo(() => (
       <Typography className="row--text">
         Nationalbankens udlånsrente pr. 1. januar og 1. juli, jf. rentelovens § 5.
       </Typography>
-      <InterestRatesTable rows={referenceRows} />
+      <InterestRatesTable rows={referenceRows} dateColumnHeader="Gælder fra" />
     </ContentBox>
 
     <ContentBox className="content-box">

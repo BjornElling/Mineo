@@ -55,9 +55,6 @@ import {
 } from '../../inputCore/inputIssue';
 import { toAnyFieldRef } from '../../inputCore/fieldDescriptor';
 import { computeEetSnapshot, type EetSnapshot } from './eetSnapshot';
-import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
-import type { ProjectionResult } from '../../inputCore/projection';
-import type { StamdataValues } from '../../schemas/formSchemas';
 
 // Erhvervsevnetab-projektionen (§3.4/§5.4/§1.10). En ALMINDELIG ren
 // funktion over den offentlige `InputReader`, der erstatter `Erhvervsevnetab.tsx`'s rå `usePersistedForm`/
@@ -179,8 +176,6 @@ export type ErhvervsevnetabReaderProjection = Readonly<{
     forligAnsvarsgradBroek: string | undefined;
     forligDato: ISODateString | undefined;
   }>;
-  /** Fælles dokumentmetadata-projektion; samme resultat indgår i reaktiv gate og click-preflight. */
-  documentStamdata: ProjectionResult<StamdataValues>;
   /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
   sourceToken: EvaluationSourceToken;
 }>;
@@ -365,7 +360,6 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
       forligAnsvarsgradBroek: forligBroek.value,
       forligDato: forligDato.value,
     },
-    documentStamdata: projectStamdataForDocument(reader, 'document.eet'),
     sourceToken: reader.sourceToken,
   };
 };

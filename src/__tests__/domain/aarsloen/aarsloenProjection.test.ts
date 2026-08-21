@@ -134,7 +134,7 @@ describe('resolveAarsloenFieldErrorGate (spejler resolveAarsloenCanonicalRangeIs
 });
 
 describe('buildAarsloenReaderProjection', () => {
-  it('samler tabelvalidation og dokumentdependency fra samme reader-revision', () => {
+  it('samler tabelvalidering fra samme reader-revision', () => {
     const input = dispatch(empty(), settle(feriePctRef, '12'));
     const inputReader = reader(input);
 
@@ -142,7 +142,6 @@ describe('buildAarsloenReaderProjection', () => {
 
     expect(projection.sourceToken).toBe(inputReader.sourceToken);
     expect(projection.tableValidation.errors).toEqual([]);
-    expect(projection.documentStamdata.sourceToken).toBe(inputReader.sourceToken);
   });
 
   // §3.9: motoren kaldes KUN i ready-grenen. En rød feltfejl på et beregningskritisk input skjuler værdien i

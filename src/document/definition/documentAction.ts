@@ -22,7 +22,8 @@ const documentActionBrand = Symbol('DocumentAction');
  * siden af `visBrevhoved`, men parameteren blev ikke brugt af sin ENESTE producent
  * (`resolveDocumentDefinition` nedenfor lukker `input` ind og videresender kun brevhoved-beslutningen),
  * og `DocumentRenderer<TInput>` har den slet ikke. Den var altså en åben vej for en generator til at
- * læse hovedappens format og brevhoved-flags rå. Den capability må ikke findes på gate-siden.
+ * læse hovedappens format og brevhoved-flags rå. Den capability må ikke findes på renderer-siden;
+ * den godkendte brevhoved-beslutning er den eneste vej ind.
  * Generatoren modtager stadig præcis det, §A1.4 giver den: den godkendte, tokenbundne `TInput` og den
  * afgjorte `visBrevhoved`.
  */

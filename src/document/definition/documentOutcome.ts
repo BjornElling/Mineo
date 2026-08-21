@@ -95,6 +95,15 @@ export const blockedProjectionWithSpecificReason = (
 ): BlockedProjection => ({ status: 'blocked', reasons: [specificReason(code, message)] });
 
 /**
+ * Blokering fra en fejl i stamdata, som ikke nødvendigvis er synlig på den aktuelle flade.
+ * Den generiske «Fejl i indtastning» sendte brugeren ud for at lede på den forkerte side; denne
+ * fælles projektion peger i stedet direkte på Stamdata. Bruges kun, når brevhovedet faktisk er
+ * slået til, og stamdata derfor er en reel dokumentafhængighed.
+ */
+export const blockedProjectionForStamdata = (code: string): BlockedProjection =>
+  blockedProjectionWithSpecificReason(code, 'Ret fejlen i Stamdata');
+
+/**
  * Blokering ud fra en projektions ISSUE-liste, hvor klassen UDLEDES af issuene (§3.1).
  *
  * Erstatter den tidligere `blockedFromIssues`, som citerede `issues[0].message` ordret, hvis der blot FANDTES

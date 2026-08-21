@@ -9,7 +9,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 const makeRow = (overrides?: Partial<RenteOversigtRow>): RenteOversigtRow => ({
   beloeb: 1250,
-  renterFra: toISODateString('2024-01-11'),
+  rentedato: toISODateString('2024-01-11'),
   beregnetRente: 2.25,
   ...overrides,
 });
@@ -19,15 +19,16 @@ describe('renteOversigt → Word-indhold', () => {
     const { filename, documentXml } = await renderWordDocument((session) => {
       return generateRenteOversigtDocument(session, toISODateString('2024-02-01'), [
         makeRow(),
-        makeRow({ beloeb: 5000, renterFra: toISODateString('2023-06-01'), beregnetRente: 412.5 }),
+        makeRow({ beloeb: 5000, rentedato: toISODateString('2023-06-01'), beregnetRente: 412.5 }),
       ]);
     });
     const text = xmlToPlainText(documentXml);
 
     expect(filename).toMatch(/\.docx$/);
     expect(text).toContain('Procesrente');
-    expect(text).toContain('Rente beregnes til og med');
-    expect(text).toContain('Rente fra');
+    expect(text).toContain('Rente beregnes til og med 01-02-2024');
+    expect(text).toContain('Rentedato');
+    expect(text).toContain('11-01-2024');
     expect(text).toContain('Beregnet rente');
     expect(text).toContain('Samlet rentebeløb');
   });

@@ -30,7 +30,10 @@ det er kernen i fladens tungeste fund.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-22--en-usynlig-dokumentafhængighed-på-en-anden-flade-slukker-knappen`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** Stamdata projekteres kun som dokumentafhængighed, når Renteberegningens brevhoved er
+  slået til. En ugyldig Stamdata-værdi blokerer derfor ikke længere et dokument uden brevhoved; er
+  brevhovedet slået til, peger knappen på «Ret fejlen i Stamdata».
 - **Sådan fremprovokeres det:**
   1. Renteberegning: beregningsdato `19-08-2026`, én række med `100.000` og «Renter fra» `31-01-2024`.
      Rækken regner `27.111,89 kr.`, og både rækkens downloadikon og «Download samlet oversigt» er aktive.
@@ -71,7 +74,9 @@ det er kernen i fladens tungeste fund.
 - **Type:** Fejl
 - **Rækkevidde:** Lokal (men se BB-087 om samme dokuments datoformat)
 - **Prioritet:** Høj
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** Oversigten bruger nu «Rentedato» som kolonneoverskrift, fordi værdien er den afledte
+  rentedato efter tillægstid.
 - **Sådan fremprovokeres det:**
   1. Beregningsdato `19-08-2026`. Én række: `200.000`, «Renter fra» `31-12-2018`, tillægstid `30`, enhed Dage.
   2. Skærmen viser nu: «Renter fra» = `31-12-2018`, «Rentedato» = `30-01-2019`,
@@ -102,7 +107,8 @@ det er kernen i fladens tungeste fund.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** Skærmen viser «Samlet rentebeløb», når mindst to rækker har gyldige beregninger.
 - **Sådan fremprovokeres det:**
   1. Udfyld fire rentekrav (målt: `139.028,63` + `62.103,91` + `21.541,06` + `5.336,49`).
   2. Læs kolonnen «Beregnet rente» på skærmen.
@@ -124,7 +130,9 @@ det er kernen i fladens tungeste fund.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** En manglende beløbs-/datopartner markeres nu direkte på det felt, der skal udfyldes,
+  med den konkrete regeltekst.
 - **Sådan fremprovokeres det:**
   1. Beregningsdato `19-08-2026`. Tre komplette rækker (`200.000/31-12-2018`, `100.000/01-01-2020`,
      `50.000/01-06-2022`).
@@ -149,7 +157,9 @@ det er kernen i fladens tungeste fund.
 - **Type:** Edge case
 - **Rækkevidde:** Lokal (men prøven er B6a's og gælder alle samlingstabeller)
 - **Prioritet:** Mellem
-- **Beslutning:** Agent afgør (teknisk konvergens mod en løsning, der allerede findes i samme fil)
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** Afvist råtekst tæller som afsluttet rækkeindhold, så rækken får sletning og en ny
+  tom indtastningsrække.
 - **Sådan fremprovokeres det:**
   1. Stil markøren i tabellens nederste, tomme beløbscelle.
   2. Indsæt tre beløb fra et regneark (`1.000,00` / `2.000,00` / `3.000,00` – tre linjer). Se BB-088
@@ -178,7 +188,9 @@ det er kernen i fladens tungeste fund.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** En række med indhold beholder sit downloadikon; det bliver deaktiveret med gatens
+  årsag, når den aktuelle række ikke kan hentes.
 - **Sådan fremprovokeres det:**
   1. Udfyld en række helt (`100.000` / `31-01-2024`), men lad Beregningsdato være tom.
 - **Det sker:** Rækken viser sin Rentedato, men «Beregnet rente» og «Specifikation» er begge `-`.
@@ -200,7 +212,9 @@ det er kernen i fladens tungeste fund.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (shell + fane, men opdaget her fordi de to står på samme skærm)
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** Den globale dialog hedder nu «Slet alt», så dens titel matcher den globale knap og
+  ikke den lokale, fortrydelige handling.
 - **Sådan fremprovokeres det:**
   1. På Renteberegning: tryk rækken «Slet alle indtastninger» (papirkurvsikonet).
   2. Annullér, og tryk i stedet sidemenuens «Slet alt».
@@ -229,7 +243,9 @@ det er kernen i fladens tungeste fund.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** Oversigten skriver nu datoer i samme korte danske format som specifikationen og
+  skærmen.
 - **Sådan fremprovokeres det:**
   1. Én række (`200.000`, `31-12-2018`, tillægstid 30 dage), beregningsdato `19-08-2026`.
   2. Hent både rækkens specifikation og den samlede oversigt.
@@ -254,7 +270,9 @@ det er kernen i fladens tungeste fund.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-14--en-anden-fortolkningsvej-ved-siden-af-tastningen`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** Paste af flere linjer i numeriske felter bruger første linje som feltets værdi, så
+  linjeskift ikke smelter en hel regnearkskolonne sammen til én afvist draft.
 - **Sådan fremprovokeres det:**
   1. Kopiér tre beløb fra et regneark – tre linjer: `1.000,00`, `2.000,00`, `3.000,00`.
   2. Indsæt dem i tabellens tomme beløbscelle og tryk Enter.
@@ -280,7 +298,8 @@ det er kernen i fladens tungeste fund.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (fane 1 + fane 2)
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** Rentesatsfanens kolonne hedder nu «Gælder fra».
 - **Sådan fremprovokeres det:**
   1. Fane «Beregning»: læs kolonnen **«Rentedato»** – den viser rækkens «Renter fra» plus tillægstid,
      altså den dato renten løber fra for netop dette krav (målt: `30-01-2019`).
@@ -302,7 +321,8 @@ det er kernen i fladens tungeste fund.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Resultat:** Varige mén og Renteberegning bruger nu fanerne «Beregning» og «Satser».
 - **Sådan fremprovokeres det:**
   1. Åbn Varige mén: fanerne heder **«Ménberegning»** og **«Satser»**.
   2. Åbn Renteberegning: fanerne heder **«Beregning»** og **«Rentesatser»**.

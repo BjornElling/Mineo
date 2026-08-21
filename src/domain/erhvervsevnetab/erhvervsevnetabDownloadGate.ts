@@ -35,8 +35,6 @@ import {
   blockDocumentDownload,
   blockDocumentDownloadForInvalidInput,
   blockDocumentDownloadForUnavailableCalculation,
-  blockDocumentDownloadFromCauses,
-  toBlockingCauses,
   type DocumentDownloadGateResult,
 } from '../../document/layout/documentGateTypes';
 import type { EetSnapshot } from './eetSnapshot';
@@ -97,21 +95,6 @@ export const evaluateErhvervsevnetabDownloadGates = (
   projection: ErhvervsevnetabReaderProjection
 ): ErhvervsevnetabDownloadGates => {
   const { snapshot } = projection;
-  if (projection.documentStamdata.status === 'blocked') {
-    // Brevhoved-stamdata kan kun blokere på en RØD feltfejl (kun `optional`-reads), så klassen var
-    // korrekt – men hardkodet, og kunne derfor ikke citere en enkeltstående bounds-/rule-grænse.
-    const stamdataGate = blockDocumentDownloadFromCauses(
-      'eet:stamdata-field-error',
-      toBlockingCauses(projection.documentStamdata.issues),
-      'Fejl i indtastning'
-    );
-    return {
-      loebendeYdelser: stamdataGate,
-      kapitalisering: stamdataGate,
-      efterEal: stamdataGate,
-      differencekrav: stamdataGate,
-    };
-  }
   return {
     loebendeYdelser: evaluateEetFaneDownloadGate('loebendeYdelser', snapshot.loebendeYdelser),
     kapitalisering: evaluateEetFaneDownloadGate('kapitalisering', snapshot.kapitalisering),

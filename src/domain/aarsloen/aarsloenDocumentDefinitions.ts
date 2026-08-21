@@ -13,7 +13,7 @@ import {
   type MineoDocumentDefinition,
   type MineoDocumentGateSettings,
 } from '../../document/definition/mineoDocumentDefinition';
-import { blockedProjection, toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjection, blockedProjectionForStamdata, toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import type { AarsloenBeregningResult } from '../../types/calculation';
@@ -22,6 +22,7 @@ import type { Loenperiode } from '../../types/loen';
 import type { AarsloenValues } from '../../schemas/formSchemas';
 import { buildAarsloenReaderProjection, type AarsloenReaderProjection } from './aarsloenProjection';
 import { evaluateAarsloenDownloadGate, evaluateShDageDownloadGate } from './aarsloenDownloadGate';
+import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
 
 /** Builderen er selv memo-nøglen, så begge outputs deler ét slot pr. kildekontekst. */
 const readSharedAarsloenSource = (
@@ -90,9 +91,17 @@ export const aarsloenDocumentDefinition: MineoDocumentDefinition<AarsloenDocumen
       }
       // Gaten har netop udelukket begge tilfælde; gentagelsen er typeindsnævring og fail-closed
       // sikkerhedsnet, ikke en selvstændig gate.
-      const { calculation, documentStamdata, values } = projection;
-      if (calculation === null || documentStamdata.status !== 'ready') {
+      const { calculation, values } = projection;
+      const documentStamdata = projectStamdataForDocumentIfEnabled(
+        context.evaluation.reader,
+        'document.aarsloen',
+        context.settings.brevhovedIndstillinger.aarsloensberegning
+      );
+      if (calculation === null) {
         return blockedProjection('aarsloen:no-result', 'Årslønsberegningen kan ikke dannes');
+      }
+      if (documentStamdata.status !== 'ready') {
+        return blockedProjectionForStamdata('aarsloen:stamdata-blocked');
       }
 
       return {
@@ -174,9 +183,17 @@ export const shDageDocumentDefinition: MineoDocumentDefinition<ShDageDocumentInp
           }),
         };
       }
-      const { calculation, documentStamdata } = projection;
-      if (calculation?.periodeData == null || documentStamdata.status !== 'ready') {
+      const { calculation } = projection;
+      const documentStamdata = projectStamdataForDocumentIfEnabled(
+        context.evaluation.reader,
+        'document.aarsloen',
+        context.settings.brevhovedIndstillinger.shDage
+      );
+      if (calculation?.periodeData == null) {
         return blockedProjection('sh-dage:no-result', 'SH-dage kan ikke dannes');
+      }
+      if (documentStamdata.status !== 'ready') {
+        return blockedProjectionForStamdata('sh-dage:stamdata-blocked');
       }
 
       return {

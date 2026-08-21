@@ -89,7 +89,7 @@ const hydrateWithData = (skadelidte: string): void => {
 const storedSkadelidte = (): string | undefined =>
   slimInputStore.getState().input.sections.stamdata?.skadelidte;
 
-const DIALOG_TITLE = 'Slet alle indtastninger';
+const DIALOG_TITLE = 'Slet alt';
 
 /**
  * Menuknappens tilgængelige navn adskiller ordene med et HARD space, så labelen ikke kan brydes over
@@ -137,7 +137,7 @@ describe('MainLayout – Slet alt-bekræftelse', () => {
     // Dialogen er programmets egen – den kan findes i DOM med sin danske titel og advarselstekst.
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(screen.getByText(DIALOG_TITLE)).toBeInTheDocument();
+    expect(within(dialog).getByText(DIALOG_TITLE)).toBeInTheDocument();
     expect(dialog).toHaveTextContent('ADVARSEL: Dette sletter alle ikke-gemte indtastninger i Mineo!');
     expect(dialog).toHaveTextContent('Indholdet i gemte .eo-filer ændres ikke.');
 

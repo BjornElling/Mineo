@@ -4,10 +4,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 
 - **Næste flade:** Renteberegning → Rentesatser (`/renteberegning`, fane 2 af 2, nr. 8b)
 - **Næste fund-ID:** BB-091
-- **Senest opdateret:** 2026-08-21 (Renteberegning → **Beregning gennemgået**: 11 fund,
-  BB-080–BB-090, alle **Afventer bruger** på ét nær. Ét nyt mønster – **M-22**, en usynlig
-  dokumentafhængighed på en anden flade – og nye forekomster af M-13, M-14 og M-16. Fladens tungeste
-  fund er målt på tre flader og gælder hele programmet)
+- **Senest opdateret:** 2026-08-22 (Renteberegning → **Beregning gennemgået og afgjort**: 11 fund,
+  BB-080–BB-090, rettet i review. Ét nyt mønster – **M-22**, en usynlig dokumentafhængighed på en
+  anden flade – og nye forekomster af M-13, M-14 og M-16.)
 
 ## Flader
 
@@ -24,16 +23,16 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 6 | Global shell | Afgjort | 13 (BB-049–BB-061) | [globalshell.md](globalshell.md) |
 | 7a | Varige mén – Ménberegning | Afgjort | 13 (BB-062–BB-074) | [varigemen.md](varigemen.md) |
 | 7b | Varige mén – Satser | Afgjort | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
-| 8a | Renteberegning – Beregning | Afventer bruger | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
+| 8a | Renteberegning – Beregning | Afgjort | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
 | 8b | Renteberegning – Rentesatser | Ikke startet | – | – |
 | 9 | Årslønsberegning | Ikke startet | – | – |
 | 10 | Forsørgertab | Ikke startet | – | – |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
 
-## Renteberegning → Beregning – gennemgået 2026-08-21
+## Renteberegning → Beregning – gennemgået og afgjort 2026-08-21–2026-08-22
 
-**Elleve fund, alle uafgjorte.** Det fulde grundlag med målte tal og de læste dokumenter står i
+**Elleve fund, alle rettet.** Det fulde historiske grundlag med målte tal og de læste dokumenter står i
 [renteberegning.md](renteberegning.md).
 
 | ID | Kort | Prioritet |

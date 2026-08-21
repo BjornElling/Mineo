@@ -6,6 +6,7 @@ import {
 import { dateLikeAdmission } from '../../../components/inputs/draftAdmission';
 import { productionInputFields } from '../../../inputCore/catalog/productionCatalog';
 import { createDateFieldCodec, createOptionalTextFieldCodec } from '../../../inputCore/fieldCodecs';
+import { rentekravBelobField } from '../../../inputCore/catalog/renteberegningDescriptors';
 
 // `input-field-behavior-contract.md` §1.2a: paste afgrænses PRÆCIS som tastning. Splicen er den vej,
 // hvor `<input maxLength>` ikke virker, fordi `onPaste` kalder `preventDefault()` og selv skriver draften.
@@ -88,6 +89,14 @@ describe('spliceDraftWithPaste', () => {
       const expected = field.codec.normalizePaste?.(raw) ?? raw;
       expect(normalizePasteForDraft(raw, field.codec, ''), field.id).toBe(expected);
     }
+  });
+
+  it('behandler første linje som værdien ved flerlinjet paste i et enkeltlinjefelt', () => {
+    expect(normalizePasteForDraft(
+      '1.000,00\n2.000,00\n3.000,00',
+      rentekravBelobField.codec,
+      ''
+    )).toBe('1000,00');
   });
 
   it('indsætter ved caret uden grænse', () => {

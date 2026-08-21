@@ -350,7 +350,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
           (`keyboard-navigation.md` §Popup-fokus-restore, målprioritet 1). */}
       <ConfirmationDialog
         open={pendingResetConfirmation}
-        title="Slet alle indtastninger"
+        title="Slet alt"
         message={(
           <>
             ADVARSEL: Dette sletter alle ikke-gemte indtastninger i Mineo!

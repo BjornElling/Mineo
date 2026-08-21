@@ -5,8 +5,9 @@
  * `context.shared`, men gates uafhængigt pr. fane (§1.10): en fejl i EAL-delen må ikke blokere
  * kapitaliserings-downloaden.
  *
- * Definitionerne bruger kun `evaluateErhvervsevnetabDownloadGates`, som inkluderer
- * stamdataafhængigheden. Reaktiv gate og click-preflight evaluerer dermed samme formel.
+ * Definitionerne bruger `evaluateErhvervsevnetabDownloadGates` til beregningsafhængigheden og
+ * projekterer derefter brevhovedets stamdata med det konkrete toggle. Reaktiv gate og click-preflight
+ * evaluerer dermed samme formel, også når stamdata ikke skal bruges.
  */
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../schemas/formSchemas';
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
@@ -15,7 +16,7 @@ import {
   type MineoDocumentDefinition,
   type MineoDocumentGateSettings,
 } from '../../document/definition/mineoDocumentDefinition';
-import { blockedProjection, toGateReasons } from '../../document/definition/documentOutcome';
+import { blockedProjection, blockedProjectionForStamdata, toGateReasons } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { Koen } from '../../schemas/formSchemas/enumSchemas';
 import type { EetDifferencekravComputation } from './eetDifferencekravCalculation';
@@ -31,6 +32,7 @@ import {
   buildErhvervsevnetabReaderProjection,
   type ErhvervsevnetabReaderProjection,
 } from './erhvervsevnetabReaderProjection';
+import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
 
 type SharedEetSource = Readonly<{
   projection: ErhvervsevnetabReaderProjection;
@@ -45,9 +47,9 @@ const readSharedEetSource = (context: DocumentSourceContext<MineoDocumentGateSet
 
 /**
  * Fælles dependency-/gate-evaluering for en EET-fane. `computation !== null` og
- * `documentStamdata.status === 'ready'` er allerede dækket af gaten (`no-result` henholdsvis
- * `eet:stamdata-field-error`); de gentages her som typeindsnævring, IKKE som en selvstændig gate.
- * Skulle gaten og snapshottet nogensinde divergere, fail-closer vi frem for at gætte.
+ * `computation !== null` er allerede dækket af gaten (`no-result`); den gentages her som
+ * typeindsnævring. Stamdata er en separat, betinget dependency: den projiceres kun, når EET-
+ * brevhovedet er slået til, og en fejl blokerer da med en navngiven vej til Stamdata.
  */
 const projectEetFane = <TComputation, TInput>(
   context: DocumentSourceContext<MineoDocumentGateSettings>,
@@ -72,9 +74,16 @@ const projectEetFane = <TComputation, TInput>(
   }
 
   const computation = readComputation(projection);
-  const stamdata = projection.documentStamdata;
-  if (computation === null || stamdata.status !== 'ready') {
+  const stamdata = projectStamdataForDocumentIfEnabled(
+    context.evaluation.reader,
+    'document.eet',
+    context.settings.brevhovedIndstillinger.erhvervsevnetab
+  );
+  if (computation === null) {
     return blockedProjection(`eet-${fane}:no-result`, 'Beregning kan ikke dannes');
+  }
+  if (stamdata.status !== 'ready') {
+    return blockedProjectionForStamdata(`eet-${fane}:stamdata-blocked`);
   }
 
   return { status: 'ready', input: toInput(projection, computation, stamdata.value) };

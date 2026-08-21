@@ -154,8 +154,9 @@ const prepareDocument = async <TRequest, TGateSettings, TRenderSettings, TBrevho
 
   // 4. Definitionens dependencies, projektion og invariants – samme funktion og samme request som
   //    den reaktive knap-gate, men på det friske snapshot.
-  //    Konteksten får KUN gate-halvdelen af snapshottet; format og brevhoved ligger i
-  //    `source.renderSettings` og anvendes først i afviklingen nedenfor.
+  //    Konteksten får gate-halvdelen af snapshottet. Formatet ligger i `source.renderSettings` og
+  //    anvendes først i afviklingen; brevhoved-flaget findes i begge halvdele for at gate og tegning
+  //    kan træffe samme beslutning.
   phase.current = 'gate';
   const projected = action.resolve(createDocumentSourceContext(source.evaluation, source.gateSettings), request);
   if (projected.status === 'blocked') {

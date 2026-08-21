@@ -123,7 +123,7 @@ describe('VarigeMen – fanenavigation settler den åbne editor (§1.3)', () => 
     expect(settledMengrad()).toBe(121);
 
     // Fejlen vises igen, når brugeren vender tilbage til fanen (§1.3 sidste led).
-    await user.click(screen.getByRole('tab', { name: 'Ménberegning' }));
+    await user.click(screen.getByRole('tab', { name: 'Beregning' }));
     const back = await screen.findByPlaceholderText('0');
     expect(back).toHaveValue('121');
     await waitFor(() => {

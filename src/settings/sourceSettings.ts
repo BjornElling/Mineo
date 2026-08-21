@@ -29,14 +29,16 @@ type DocumentRenderSettingsPayload = Readonly<{
 const documentRenderSettingsBrand: unique symbol = Symbol('mineo.documentRenderSettings');
 
 /**
- * De settings, der først anvendes EFTER en dokumentgate har sagt ready.
+ * De settings, som miljøet bruger efter en dokumentgate har sagt ready.
  *
- * **Ingen af de to må nå en gate.** Normen er, at formatet vælger writer og ikke dækning; en
+ * **Formatet må ikke nå en gate.** Normen er, at formatet vælger writer og ikke dækning; en
  * definition, der forgrenede sin `project` på formatet, kunne gøre samme sag `ready` som PDF og
  * `blocked` som Word, uden at §A2a's paritet mellem reaktiv gate og click-preflight fangede det –
- * begge kanaler ville se den samme skæve gate. Adskillelsen er derfor en TYPEGRÆNSE:
- * `DocumentSourceContext` bærer `EoRowPolicy` (gate-halvdelen), mens denne type kun findes i miljøets
- * `renderSettings`. Et forsøg på at læse formatet i en gate er en compilerfejl.
+ * begge kanaler ville se den samme skæve gate. Adskillelsen er derfor en TYPEGRÆNSE.
+ *
+ * Brevhoved-flagene har derimod to roller. De afgør både, om stamdata er en dokumentafhængighed for
+ * det pågældende output, og om brevhovedet tegnes efter gaten. De ligger derfor i både gate- og
+ * render-projektionen, men begge kopier kommer fra samme settings-snapshot.
  *
  * Konstrueres KUN af `projectDocumentRenderSettings`.
  */
@@ -181,9 +183,9 @@ export const projectEoRowPolicy = (settings: SourceSettings): EoRowPolicy => Obj
  * render-settings, hvis nøgler ikke også er med i fingerprintet – så et formatskifte fortsat bumper
  * revisionen og gør et optaget `EvaluationSourceToken` stale.
  *
- * De to projektorer deler bevidst ÉN kilde og deler den i to disjunkte halvdele. Det er hele
- * Gaten og renderingen kan ikke komme til at se hinandens felter, fordi
- * ingen af dem får hele snapshottet.
+ * De to projektorer deler bevidst ÉN kilde og deler den i to roller. Formatet findes kun i
+ * render-projektionen, mens brevhoved-flagene findes i begge, fordi de både styrer gate-afhængigheden
+ * og den efterfølgende tegning. Ingen af projektionerne får hele snapshottet.
  */
 export const projectDocumentRenderSettings = (settings: SourceSettings): DocumentRenderSettings =>
   Object.freeze({

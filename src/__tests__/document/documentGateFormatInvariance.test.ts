@@ -25,9 +25,9 @@
  *      IKKE. Bevist med en rigtig TypeScript-oversættelse af en virtuel fil mod det ÆGTE program, ikke
  *      med en tekstsøgning. Det er testens hovedpåstand, og den kan ikke være grøn af tomhed: en
  *      genindførsel af feltet gør proben kompilérbar og testen rød.
- *   2. **Gate-fladen er smal** – gate-settings har præcis de nøgler, EO-rækkepolitikken har, og
- *      HVERKEN format eller brevhoved. Vokser fladen, fejler denne assertion, før nogen skal huske at
- *      spørge hvorfor.
+ *   2. **Gate-fladen er smal** – gate-settings har præcis EO-rækkepolitikken plus de brevhovedflag,
+ *      der afgør, om stamdata er en reel dependency, men HVERKEN format eller andre render-settings.
+ *      Vokser fladen, fejler denne assertion, før nogen skal huske at spørge hvorfor.
  *   3. **Formatets vej til writeren er intakt** – normen er "formatet vælger writer, ikke dækning", og
  *      halvdel to af den sætning skal fortsat kunne bevises: miljøet oversætter render-settings til
  *      begge formater.
@@ -40,8 +40,9 @@ import ts from 'typescript';
 import { createMineoDocumentEnvironment } from '../../document/runtime/mineoDocumentEnvironment';
 import {
   __createTestDocumentRenderSettings,
-  __createTestEoRowPolicy,
+  __createTestSourceSettings,
 } from '../../settings/sourceSettings';
+import { projectMineoDocumentGateSettings } from '../../document/definition/mineoDocumentDefinition';
 import type { DocumentInputAccess } from '../../inputCore/react/inputRuntimeContext';
 import { CriticalActionCoordinator } from '../../inputCore/runtime/criticalActionCoordinator';
 import { ActiveEditorRegistry } from '../../inputCore/runtime/activeEditorRegistry';
@@ -164,17 +165,17 @@ export const formatBlindGate = (
    * Gate-fladen må ikke vokse i det stille. En ny nøgle på gate-settings er en udvidelse af det, alle
    * 18 definitioner kan læse i deres gate, og skal begrundes – ikke opdages.
    */
-  it('gate-settings bærer KUN rækkepolitikken – hverken format eller brevhoved', () => {
-    const gateSettings = __createTestEoRowPolicy();
+  it('gate-settings bærer rækkepolitik og brevhoved – men ikke format', () => {
+    const gateSettings = projectMineoDocumentGateSettings(__createTestSourceSettings());
 
     expect(Object.keys(gateSettings).sort()).toEqual([
       'allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden',
       'allowReguleringMedUdloebMedMaaneder',
+      'brevhovedIndstillinger',
     ]);
-    // Eksplicit, fordi netop de to er fundets emne: de findes ikke som RUNTIME-nøgler heller, så en
-    // gate kan ikke nå dem gennem et cast eller et dynamisk opslag.
+    // Formatet kan ikke nås fra gaten. Brevhovedflagene er med vilje gate-relevante, fordi de
+    // afgør, om stamdata overhovedet er en dependency.
     expect(Object.keys(gateSettings)).not.toContain('documentDownloadFormat');
-    expect(Object.keys(gateSettings)).not.toContain('brevhovedIndstillinger');
   });
 
   /**

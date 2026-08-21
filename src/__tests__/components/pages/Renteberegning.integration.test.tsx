@@ -21,6 +21,10 @@ import {
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { StamdataValues } from '../../../schemas/formSchemas/sections/stamdataSchemas';
 import { toISODateString } from '../../../types/branded';
+import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
+import { rentekravTillaegstidField } from '../../../inputCore/catalog/renteberegningDescriptors';
+import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
+import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../../../settings/appSettingsStorage';
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
@@ -68,6 +72,25 @@ const validRow = (id: string): RentekravRow => ({
   enhed: 'dage',
 });
 
+const hydrateRejectedOnlyRow = (): void => {
+  const rowId = 'r1';
+  const input = catalog.validateSettledInput({
+    sections: {
+      stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+      renteberegning: {
+        beregningsdato: undefined,
+        kommentarer: undefined,
+        rentekravRows: [{ id: rowId, belob: undefined, renterFra: undefined, tillaegstid: undefined, enhed: 'dage' }],
+      },
+      varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,
+    },
+    rejectedInputs: {
+      [serializeFieldAddress(rentekravTillaegstidField.bind(rowId).address)]: { raw: 'abc', reason: 'format' },
+    },
+  });
+  hydrateSlimInputStoreForTest(slimInputStore, input);
+};
+
 const renderRenteberegning = () => render(
   <MemoryRouter initialEntries={['/renteberegning']}>
     <AppSettingsProvider>
@@ -98,6 +121,40 @@ describe('Renteberegning – download-gate mod afsluttet input', () => {
     await waitFor(() => expect(mockTriggerDocumentDownload).toHaveBeenCalledTimes(1));
   });
 
+  it('viser samlet rentebeløb, når flere rækker er gyldige', () => {
+    hydrate([
+      validRow('r1'),
+      validRow('r2'),
+      { id: 'r-empty', belob: undefined, renterFra: undefined, tillaegstid: undefined, enhed: 'dage' },
+    ], '2024-12-31');
+    renderRenteberegning();
+
+    expect(screen.getByText('Samlet rentebeløb')).toBeVisible();
+  });
+
+  it('markerer det manglende modelfelt, når en rentekravsrække kun har beløb', () => {
+    hydrate([{
+      ...validRow('r1'),
+      renterFra: undefined,
+    }], '2024-12-31');
+    renderRenteberegning();
+
+    expect(screen.getByText('Renter fra skal udfyldes, når Beløb er udfyldt')).toBeVisible();
+    const row = document.querySelector<HTMLElement>('tr[data-mineo-row-id="r1"]');
+    if (!row) throw new Error('Rentekravsrækken blev ikke renderet');
+    expect(within(row).getAllByRole('textbox')[1]).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('behandler en række med alene afvist råtekst som indhold, der kan slettes', () => {
+    hydrateRejectedOnlyRow();
+    renderRenteberegning();
+
+    expect(document.querySelectorAll('tr[data-mineo-row-id]')).toHaveLength(2);
+    const persistedRow = document.querySelector<HTMLElement>('tr[data-mineo-row-id]:first-child');
+    if (!persistedRow) throw new Error('Den afviste rentekravsrække blev ikke bevaret');
+    expect(within(persistedRow).getByRole('button', { name: 'Slet rækken' })).toBeInTheDocument();
+  });
+
   it('en afsluttet ugyldig beregningsdato blokerer downloads (§1.5/§1.6)', async () => {
     const user = userEvent.setup();
     hydrate([validRow('r1')], '2024-12-31');
@@ -118,6 +175,7 @@ describe('Renteberegning – download-gate mod afsluttet input', () => {
     await user.tab();
 
     // Gaten blokerer nu (den globale beregningsdato er rejected) → oversigts-download er deaktiveret og servicen nås ikke.
+    expect(screen.getByRole('button', { name: 'Download PDF-specifikation for række 1' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Download samlet oversigt' })).toBeDisabled();
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
 
@@ -165,6 +223,24 @@ describe('Renteberegning – download-gate mod afsluttet input', () => {
     await user.click(rowButton);
     await user.click(oversigtButton);
     expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
+  });
+
+  it('ignorerer stamdatafejl for Renteberegning, når brevhovedet er slået fra', () => {
+    writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify({
+      ...DEFAULT_APP_SETTINGS,
+      brevhovedIndstillinger: {
+        ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger,
+        renteberegning: false,
+      },
+    }));
+    hydrate([validRow('r1')], '2024-12-31', {
+      skadelidteFodselsdato: toISODateString('2020-01-02'),
+      skadedato: toISODateString('2020-01-01'),
+    });
+    renderRenteberegning();
+
+    expect(screen.getByRole('button', { name: 'Download PDF-specifikation for række 1' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Download samlet oversigt' })).toBeEnabled();
   });
 });
 

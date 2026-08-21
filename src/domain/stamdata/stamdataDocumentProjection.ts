@@ -11,6 +11,16 @@ import {
 import type { InputReader } from '../../inputCore/inputReader';
 import { runProjection, type ProjectionReadResult, type ProjectionResult } from '../../inputCore/projection';
 
+const EMPTY_STAMDATA: StamdataValues = Object.freeze({
+  journalnr: undefined,
+  advokat: undefined,
+  sagsbehandler: undefined,
+  skadelidte: undefined,
+  skadelidteFodselsdato: undefined,
+  skadestype: undefined,
+  skadedato: undefined,
+});
+
 const refs = {
   journalnr: stamdataJournalnrField.bind(),
   advokat: stamdataAdvokatField.bind(),
@@ -41,3 +51,17 @@ export const projectStamdataForDocument = (
     skadestype: valueOf(collector.optional(refs.skadestype)),
     skadedato: valueOf(collector.optional(refs.skadedato)),
   }));
+
+/**
+ * Projekter kun brevhovedets stamdata, når det konkrete output faktisk skal tegne et brevhoved.
+ * Et output uden brevhoved må ikke blokeres af en ugyldig værdi i stamdata, som det hverken viser
+ * eller bruger. Den naive løsning – altid at læse stamdata – gjorde en anden fane til en usynlig
+ * forudsætning for dokumentet.
+ */
+export const projectStamdataForDocumentIfEnabled = (
+  reader: InputReader,
+  consumerId: string,
+  enabled: boolean
+): ProjectionResult<StamdataValues> => enabled
+  ? projectStamdataForDocument(reader, consumerId)
+  : Object.freeze({ status: 'ready', value: EMPTY_STAMDATA, issues: Object.freeze([]), sourceToken: reader.sourceToken });

@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-08-22
 
 ## Scope
 
@@ -114,13 +114,16 @@ App-specifik runtimepolitik (kildeport, formatvalg, brevhoved-opslag, session, f
 `DocumentExecutionEnvironment`, komponeret i hver apps composition root. Kernen kender hverken `AppSettings`,
 Word-formatet eller `reportSystemIssue`.
 
-**Kildesnapshottets settings er delt i to disjunkte halvdele, og delingen er NORMATIV.**
+**Kildesnapshottets settings er delt i to roller med en bevidst brevhoved-overlapning, og delingen er NORMATIV.**
 `DocumentSourceSnapshot` bærer `gateSettings` og `renderSettings`:
 
 1. **`gateSettings`** er det ENESTE settings, en definitions `project` kan se, og er derfor typen på
-   `DocumentSourceContext`. I hovedappen er den EO-rækkepolitikken (`MineoDocumentGateSettings`).
-2. **`renderSettings`** er det valgte outputformat og brevhoved-flagene. Kun miljøet læser dem, og
-   først EFTER gaten har svaret `ready`.
+   `DocumentSourceContext`. I hovedappen er den EO-rækkepolitikken og brevhoved-flagene
+   (`MineoDocumentGateSettings`), fordi flaget afgør, om stamdata overhovedet er en gate-relevant
+   dokumentafhængighed.
+2. **`renderSettings`** er det valgte outputformat og brevhoved-flagene. Miljøet læser dem efter gaten
+   har svaret `ready` for at vælge writer og tegne brevhovedet. Flaget findes i begge projektioner, men
+   projiceres fra samme source-snapshot.
 
 Reglen bag delingen: **formatet vælger writer, ikke dækning.** Et output SKAL have samme
 `ready`/`blocked` for PDF og Word for samme input. Kravet kan ikke opfyldes af et værn, fordi begge

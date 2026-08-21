@@ -84,7 +84,7 @@ describe('Varige mén – alle beløb vises i hele kroner (§2.9)', () => {
     hydrate(null, null);
   });
 
-  it('Ménberegning: ingen beløbslinje bærer decimaler, og de tre linjer går op', () => {
+  it('Beregning: ingen beløbslinje bærer decimaler, og de tre linjer går op', () => {
     hydrate({ mengrad: 10, beregningsdato: toISODateString('2020-01-01') }, stamdataMedReduktion);
     renderPage();
 
@@ -111,7 +111,7 @@ describe('Varige mén – alle beløb vises i hele kroner (§2.9)', () => {
     expect(grundbeloeb + reduktion).toBe(godtgoerelse);
   });
 
-  it('Ménberegning: satsrækken og «á»-formuleringen skriver samme sats på samme form (BB-079)', () => {
+  it('Beregning: satsrækken og «á»-formuleringen skriver samme sats på samme form (BB-079)', () => {
     hydrate({ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }, stamdataMedReduktion);
     renderPage();
 

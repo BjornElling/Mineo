@@ -36,8 +36,9 @@ import type { DocumentDiagnostics, DocumentFailure } from './documentOutcome';
  * samme skæve gate. Normen er entydig: **formatet vælger writer, ikke dækning.**
  *
  * Nu er de to roller adskilt i TYPEN. `gate` er alt, en `project` må se; `render` er format og
- * brevhoved, som kun miljøet læser EFTER gaten har sagt ready. En formatafhængighed i en gate er
- * dermed en compilerfejl (TS2339) frem for en regel, et værn skal overvåge.
+ * brevhoved til selve renderingen efter gaten. Hovedappens brevhoved-flag ligger desuden i gate-
+ * projektionen, fordi det afgør, om stamdata er en afhængighed overhovedet. En formatafhængighed i
+ * en gate er dermed en compilerfejl (TS2339) frem for en regel, et værn skal overvåge.
  *
  * **Begge halvdele optages i samme kald.** Det er en atomisk invariant: læses de to på hver sit
  * tidspunkt, kan et nyere settingsrevision-token parres med et ældre format-/regelobjekt, og intet
@@ -47,7 +48,7 @@ export type DocumentSourceSnapshot<TGateSettings, TRenderSettings> = Readonly<{
   evaluation: InputEvaluation;
   /** Den gate-relevante politik. Det ENESTE settings, definitionernes `project` kan se. */
   gateSettings: TGateSettings;
-  /** Format og brevhoved. Læses kun af miljøet, og først efter gaten. */
+  /** Format og brevhoved til renderingen. Læses kun af miljøet efter gaten. */
   renderSettings: TRenderSettings;
 }>;
 

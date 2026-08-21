@@ -17,9 +17,6 @@ import type { FieldRef } from '../../inputCore/fieldDescriptor';
 import type { FieldIssue } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
-import type { ProjectionResult } from '../../inputCore/projection';
-import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
-import type { StamdataValues } from '../../schemas/formSchemas';
 import { computeAarsloenBeregning, type AarsloenBeregningState } from './aarsloenBeregning';
 import { resolveAarsloenOmregningGate, type AarsloenOmregningGate } from './aarsloenValidationPolicies';
 import { type StandardLoenTableValidationResult } from './standardLoenTableValidation';
@@ -183,7 +180,6 @@ export type AarsloenReaderProjection = Readonly<{
    */
   calculation: AarsloenBeregningState | null;
   fieldIssues: readonly FieldIssue[];
-  documentStamdata: ProjectionResult<StamdataValues>;
   sourceToken: EvaluationSourceToken;
 }>;
 
@@ -226,7 +222,6 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     omregningGate,
     calculation,
     fieldIssues,
-    documentStamdata: projectStamdataForDocument(reader, 'document.aarsloen'),
     sourceToken: reader.sourceToken,
   });
 };

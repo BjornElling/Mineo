@@ -123,10 +123,11 @@ const expectBlocked = (
 };
 
 describe('evaluateAarsloenDownloadGate', () => {
-  it('blokerer på en RØD stamdata-feltfejl, og stamdata rammer FØR alle andre grene', () => {
-    // Tabellen er gyldig, så kun stamdata kan blokere – det pinner samtidig rækkefølgen.
+  it('ignorerer en RØD stamdata-feltfejl, fordi brevhovedet gate-s separat i dokumentdefinitionen', () => {
+    // Denne reader-gate ejer beregningsgrundlaget. Stamdata er kun en dokumentafhængighed, når
+    // det konkrete brevhoved er slået til, og vurderes derfor i definitionen.
     const input = withBlockedStamdata(withOneValidMonthRow(empty()));
-    expectBlocked(evaluateAarsloenDownloadGate(project(input)), 'aarsloen:stamdata-blocked');
+    expect(evaluateAarsloenDownloadGate(project(input)).canDownload).toBe(true);
   });
 
   it('en TOM stamdata blokerer ikke: alle stamdata-felter er valgfri', () => {
@@ -296,9 +297,9 @@ describe('evaluateAarsloenDownloadGate – manglende vs. ugyldig indtastning i l
 });
 
 describe('evaluateShDageDownloadGate', () => {
-  it('blokerer på rød stamdata med sin EGEN kode (ikke årsløns-dokumentets)', () => {
+  it('lader SH-dage-gaten vælge sin egentlige beregningsblokering ved rød stamdata', () => {
     const input = withBlockedStamdata(withOneValidMonthRow(empty()));
-    expectBlocked(evaluateShDageDownloadGate(project(input)), 'aarsloen:sh-stamdata-blocked');
+    expectBlocked(evaluateShDageDownloadGate(project(input)), 'aarsloen:sh-no-count');
   });
 
   it('blokerer når der ikke findes periode-data', () => {

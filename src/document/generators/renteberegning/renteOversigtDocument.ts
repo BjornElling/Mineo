@@ -1,9 +1,9 @@
 /**
- * PDF Generator for Procesrente – oversigt
+ * Generator for Procesrente – oversigt
  *
  * Genererer en samlet oversigt over alle udfyldte renteberegninger:
- * én tabel med beløb, rentedato (Rente fra) og beregnet rente pr. linje
- * samt en sammentalt i alt-linje.
+ * én tabel med beløb, rentedato og beregnet rente pr. linje
+ * samt en samlet i alt-linje.
  */
 
 import { formatAmount } from '../../layout/documentLayoutHelpers';
@@ -14,7 +14,7 @@ import {
   type StandardDocumentMetadata,
 } from '../documentGeneratorSetup';
 import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
-import { formatIsoDateLong } from '../../../utils/dateFormatting';
+import { formatISOToDanish } from '../../../utils/dateFormatting';
 import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { parseISODate, type ISODateString } from '../../../types/branded';
@@ -29,7 +29,7 @@ const PDF_TITLE = 'Procesrente – oversigt';
  */
 export type RenteOversigtRow = Readonly<{
   beloeb: number;
-  renterFra: ISODateString;
+  rentedato: ISODateString;
   beregnetRente: number;
 }>;
 
@@ -41,7 +41,7 @@ type RenteOversigtDocumentOptions = DocumentCommonOptions & Readonly<{
 }>;
 
 const addDateLine = (writer: DocumentComposer, beregningsdato: ISODateString): void => {
-  writer.writeWrappedText(`Rente beregnes til og med ${formatIsoDateLong(beregningsdato)}.`);
+  writer.writeWrappedText(`Rente beregnes til og med ${formatISOToDanish(beregningsdato)}.`);
   writer.addSectionSpacer();
 };
 
@@ -51,7 +51,7 @@ const addOversigtTable = (
   beregningsdato: ISODateString,
   latestReferenceRatePeriodEnd: ISODateString | null,
 ): void => {
-  // Kolonner: fast Beløb (45 mm) | flex Rente fra | fast Beregnet rente (45 mm, højre).
+  // Kolonner: fast Beløb (45 mm) | flex Rentedato | fast Beregnet rente (45 mm, højre).
   const columns: readonly ColumnSpec[] = [
     { width: { kind: 'fixed', mm: 45 }, align: 'left' },
     { width: { kind: 'flex' }, align: 'left' },
@@ -61,7 +61,7 @@ const addOversigtTable = (
   const dataRows: RowSpec[] = rows.map((row) => ({
     cells: [
       { text: `${formatAmount(row.beloeb)} kr.` },
-      { text: formatIsoDateLong(row.renterFra) },
+      { text: formatISOToDanish(row.rentedato) },
       { text: `${formatAmount(row.beregnetRente)} kr.` },
     ],
   }));
@@ -87,7 +87,7 @@ const addOversigtTable = (
     columns,
     hasHeaderRow: true,
     rows: [
-      { kind: 'header', cells: [{ text: 'Beløb' }, { text: 'Rente fra' }, { text: 'Beregnet rente' }] },
+      { kind: 'header', cells: [{ text: 'Beløb' }, { text: 'Rentedato' }, { text: 'Beregnet rente' }] },
       ...dataRows,
       ...(totalRow ? [totalRow] : []),
     ],

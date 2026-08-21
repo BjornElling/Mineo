@@ -8,9 +8,10 @@
  * gaten afhængig af, at hver callsite samlede snapshottet korrekt – de øvrige 16 outputs udleder
  * derimod deres gate af en reader-projektion.
  *
- * Reglerne er bevaret 1:1: samme prædikater, samme rækkefølge, samme koder og samme beskeder. Kun
- * INPUTTET er ensartet, så gaten nu læser den kanoniske `buildAarsloenReaderProjection` frem for et
- * komponent-samlet objekt. Alle værdier, snapshottet bar, findes i forvejen på projektionen.
+ * Beregningsreglerne er bevaret 1:1: samme prædikater, samme rækkefølge, samme koder og samme
+ * beskeder. Stamdata er ikke længere en del af denne gate, fordi brevhovedets toggle afgør den
+ * separate dokumentafhængighed i definitionen. INPUTTET er ensartet, så gaten nu læser den
+ * kanoniske `buildAarsloenReaderProjection` frem for et komponent-samlet objekt.
  *
  * `calculation === null` er projektionens måde at sige "feltgaten er rød, så motoren blev ikke kaldt"
  * (§3.9). Det er derfor en blokerings-årsag her, ikke en manglende værdi at gætte om.
@@ -60,27 +61,6 @@ const toTableBlockingCause = (error: TableError): DocumentBlockingCause => {
 };
 
 /**
- * Fælles for begge gates: stamdata er en obligatorisk dokumentdependency.
- *
- * Klassen UDLEDES nu af projektionens issues (§3.1) frem for at citere `issues[0]` ubetinget. Den gamle
- * form gjorde enhver stamdata-blokering `specific`, også når der var flere samtidige røde felter – så
- * tooltippet fremhævede ét af dem og fik brugeren til at tro, det var det eneste. Efter lempelsen
- * 2026-08-13 citeres kun en ENKELT felt-/rækkefejl.
- */
-const blockedByStamdata = (
-  projection: AarsloenReaderProjection,
-  code: string
-): DocumentDownloadGateResult | null => {
-  const stamdata = projection.documentStamdata;
-  if (stamdata.status === 'ready') return null;
-  return blockDocumentDownloadFromCauses(
-    code,
-    toBlockingCauses(stamdata.issues),
-    'Stamdata indeholder fejl'
-  );
-};
-
-/**
  * Fælles for begge gates: et canonical range-issue blokerer.
  *
  * Er der præcis ÉT, navngiver dets besked grænsen ("Procent skal være mellem 0 og 100") og citeres. Er der
@@ -116,9 +96,6 @@ const blockedByCanonicalRange = (
 export const evaluateAarsloenDownloadGate = (
   projection: AarsloenReaderProjection
 ): DocumentDownloadGateResult => {
-  const stamdataBlocked = blockedByStamdata(projection, 'aarsloen:stamdata-blocked');
-  if (stamdataBlocked) return stamdataBlocked;
-
   const rangeBlocked = blockedByCanonicalRange(projection, 'aarsloen:canonical-range-error');
   if (rangeBlocked) return rangeBlocked;
 
@@ -171,9 +148,6 @@ export const evaluateAarsloenDownloadGate = (
 export const evaluateShDageDownloadGate = (
   projection: AarsloenReaderProjection
 ): DocumentDownloadGateResult => {
-  const stamdataBlocked = blockedByStamdata(projection, 'aarsloen:sh-stamdata-blocked');
-  if (stamdataBlocked) return stamdataBlocked;
-
   const rangeBlocked = blockedByCanonicalRange(projection, 'aarsloen:sh-canonical-range-error');
   if (rangeBlocked) return rangeBlocked;
 

@@ -28,7 +28,7 @@ type RenteberegningTabKey =
 
 const RENTEBEREGNING_TAB_ITEMS: readonly Readonly<{ key: RenteberegningTabKey; label: string }>[] = [
   { key: RENTEBEREGNING_TAB_KEYS.CALCULATION, label: 'Beregning' },
-  { key: RENTEBEREGNING_TAB_KEYS.RATES, label: 'Rentesatser' },
+  { key: RENTEBEREGNING_TAB_KEYS.RATES, label: 'Satser' },
 ];
 
 /**

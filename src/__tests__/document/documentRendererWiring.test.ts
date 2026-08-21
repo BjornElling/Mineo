@@ -118,7 +118,7 @@ describe('renderer-wiring: rente-specifikationen kræver CANONICAL ISO', () => {
 });
 
 describe('renderer-wiring: rente-oversigten kræver CANONICAL ISO', () => {
-  const rows = [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 113.5 }];
+  const rows = [{ beloeb: 1000, rentedato: toISODateString('2024-01-01'), beregnetRente: 113.5 }];
 
   it('Mineo: oversigten får ISO uændret (ingen konvertering må indsættes her)', async () => {
     const input: RenteOversigtDocumentInput = {

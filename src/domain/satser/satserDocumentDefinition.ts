@@ -12,11 +12,9 @@
  * derfor af `project` fra det friske snapshot. Der er kun ét satser-output pr. sag.
  */
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
-import {
-  blockedProjectionFromCauses,
-} from '../../document/definition/documentOutcome';
+import { blockedProjectionForStamdata, blockedProjectionFromCauses } from '../../document/definition/documentOutcome';
 import type { StamdataValues } from '../../schemas/formSchemas';
-import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
+import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
 import { projectSatser, type SatserProjectionValue } from './satserProjection';
 
 export const SATSER_DOCUMENT_CONSUMER_ID = 'document.satser';
@@ -43,9 +41,13 @@ export const satserDocumentDefinition: MineoDocumentDefinition<SatserDocumentInp
         return blockedProjectionFromCauses('satser:year-blocked', projection.issues, 'Satsåret er ikke gyldigt');
       }
 
-      const stamdata = projectStamdataForDocument(reader, SATSER_DOCUMENT_CONSUMER_ID);
+      const stamdata = projectStamdataForDocumentIfEnabled(
+        reader,
+        SATSER_DOCUMENT_CONSUMER_ID,
+        context.settings.brevhovedIndstillinger.satser
+      );
       if (stamdata.status !== 'ready') {
-        return blockedProjectionFromCauses('satser:stamdata-blocked', stamdata.issues, 'Stamdata indeholder fejl');
+        return blockedProjectionForStamdata('satser:stamdata-blocked');
       }
 
       return {

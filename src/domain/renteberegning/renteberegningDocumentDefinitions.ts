@@ -21,6 +21,7 @@ import {
 import {
   blockedProjectionFromCauses,
   blockedProjection,
+  blockedProjectionForStamdata,
   toGateReasons,
 } from '../../document/definition/documentOutcome';
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
@@ -28,7 +29,10 @@ import type { RenteOversigtRow } from '../../document/generators/renteberegning/
 import { renteberegningBeregningsdatoField, renteberegningKommentarerField } from '../../inputCore/catalog/renteberegningDescriptors';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { projectStamdataForDocument } from '../stamdata/stamdataDocumentProjection';
+import {
+  projectStamdataForDocument,
+  projectStamdataForDocumentIfEnabled,
+} from '../stamdata/stamdataDocumentProjection';
 import type { ProcessInterestPeriod } from './procesrenteCalculator';
 import { evaluateOversigtDownloadGate } from './renteberegningDownloadGate';
 import {
@@ -61,7 +65,11 @@ const readSharedRenteSource = (
   const kommentarer = reader.read(kommentarerRef);
   return {
     projection: buildRenteberegningReaderProjection({ reader, referenceRates, surchargeRates }),
-    stamdata: projectStamdataForDocument(reader, RENTEBEREGNING_DOCUMENT_CONSUMER_ID),
+    stamdata: projectStamdataForDocumentIfEnabled(
+      reader,
+      RENTEBEREGNING_DOCUMENT_CONSUMER_ID,
+      context.settings.brevhovedIndstillinger.renteberegning
+    ),
     beregningsdato: beregningsdato.status === 'usable' ? beregningsdato.value : undefined,
     kommentarer: kommentarer.status === 'usable' ? kommentarer.value : undefined,
   };
@@ -80,11 +88,7 @@ const requireReadyAggregate = <TInput>(
   if (source.stamdata.status !== 'ready') {
     return {
       kind: 'blocked',
-      result: blockedProjectionFromCauses(
-        'renteberegning:stamdata-blocked',
-        source.stamdata.status === 'blocked' ? source.stamdata.issues : undefined,
-        'Stamdata indeholder fejl'
-      ),
+      result: blockedProjectionForStamdata('renteberegning:stamdata-blocked'),
     };
   }
   const aggregate = readAggregate(source);
@@ -166,7 +170,7 @@ export const renteOversigtDocumentDefinition: MineoDocumentDefinition<RenteOvers
 
       const rows: RenteOversigtRow[] = Array.from(ready.aggregate.pdfContexts.values()).map((ctx) => ({
         beloeb: ctx.beloeb,
-        renterFra: ctx.actualInterestDate,
+        rentedato: ctx.actualInterestDate,
         beregnetRente: ctx.calculatedInterest,
       }));
 
@@ -231,11 +235,7 @@ export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput
     project: (context, request) => {
       const source = context.shared(readSharedRenteSource);
       if (source.stamdata.status !== 'ready') {
-        return blockedProjectionFromCauses(
-          'renteberegning:stamdata-blocked',
-          source.stamdata.status === 'blocked' ? source.stamdata.issues : undefined,
-          'Stamdata indeholder fejl'
-        );
+        return blockedProjectionForStamdata('renteberegning:stamdata-blocked');
       }
 
       // Frisk opslag af den aktiverede række. Rækken kan være slettet eller ændret siden klikket.

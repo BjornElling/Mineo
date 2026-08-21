@@ -29,11 +29,14 @@ import type { DocumentAction } from '../../definition/documentAction';
 import type { DocumentSourceContext } from '../../definition/documentSourceContext';
 import {
   projectDocumentRenderSettings,
-  projectEoRowPolicy,
   projectSourceSettings,
   type DocumentRenderSettings,
 } from '../../../settings/sourceSettings';
-import type { MineoDocumentDefinition, MineoDocumentGateSettings } from '../../definition/mineoDocumentDefinition';
+import {
+  projectMineoDocumentGateSettings,
+  type MineoDocumentDefinition,
+  type MineoDocumentGateSettings,
+} from '../../definition/mineoDocumentDefinition';
 import type { DocumentBrevhovedType } from '../../layout/documentBrevhoved';
 import {
   useDocumentDownload,
@@ -55,7 +58,7 @@ export const useMineoDocumentSourceContext = (): DocumentSourceContext<MineoDocu
   // ellers ville give en ny reference ved hver render og dermed slå kildekontekstens delte
   // projektions-memo ihjel.
   const gateSettings = React.useMemo(
-    () => projectEoRowPolicy(projectSourceSettings(settings)),
+    () => projectMineoDocumentGateSettings(projectSourceSettings(settings)),
     [settings]
   );
   return useDocumentSourceContext(evaluation, gateSettings);
