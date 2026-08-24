@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Underordnet form-, persistence- og dokument-output-kontrakterne for deres dataregler.
-**Senest verificeret mod kode:** 2026-08-19 (§3's nye faneskift-række er målt af `PageTabs.test.tsx`:
+**Senest verificeret mod kode:** 2026-08-24 (§3's nye faneskift-række er målt af `PageTabs.test.tsx`:
 en RIGTIG editor registreres i coordinatorens registry, og testen kræver, at settle sker FØR skiftet –
 rækkefølgen er mutationstestet. En modprøve uden åben editor sikrer, at barrieren ikke blokerer et
 almindeligt faneskift)
@@ -130,3 +130,27 @@ Reset/`Slet alt` ejes af `CaseResetOperations`-porten og routes gennem den samme
 Handlingen afsluttes med en almindelig navigation, ikke med en fuld sidegenindlæsning: en reload ville rive
 komponenttræet ned og dermed kræve sidekanaler for at overleve sig selv. Den mekanik findes ikke.
 Baseline nulstilles ad den almindelige vej gennem `authoritativeSnapshotEpoch`, som hel-sags-clear selv bumper.
+
+## 8. Bekræftelsesdialoger ved irreversibelt datatab
+
+En popup-dialog, der beder brugeren bekræfte en sletning, erstatning eller genindlæsning, skal klassificeres efter
+den faktiske operation – ikke efter knappens eller dialogens navn:
+
+- Hvis handlingen er en almindelig inputtransaktion med et history-trin, der kan gendanne hele den slettede tilstand,
+  må dialogen ikke skrive, at handlingen kan eller ikke kan fortrydes.
+- Hvis handlingen sletter eller erstatter brugerdata uden et muligt undo, skal dialogen indeholde den ordrette
+  oplysning **«Handlingen kan ikke fortrydes.»** før bekræftelsen.
+- Oplysningen må ikke udelades, fordi handlingen også har andre effekter, fx filmetadata- eller navigationsarbejde.
+- Den komponent, der ejer handlingen, ejer også klassifikationen og teksten. `ConfirmationDialog` må ikke gætte
+  irreversibilitet ud fra `confirmColor`, titel eller knaptekst.
+
+De aktuelle irreversibilitetsgrænser er:
+
+- `Slet alt` (`clearCase` gennem `CaseResetOperations`) – autoritativ hel-sags-erstatning, undo-historikken ryddes.
+- `Erstat` efter filindlæsning (`replaceCase`) – den aktive sag erstattes, og den tidligere sag kan ikke gendannes
+  med undo.
+- `Genindlæs siden` fra fejlskærmen – ikke-gemt arbejde, der kasseres ved reload, kan ikke gendannes bagefter.
+
+De aktuelle reversible sletninger er sektionsreset på Renteberegning, rækkesletning af ansættelsesforhold og sletning
+af manuelle Midlertidigt EET-rækker. De er almindelige inputtransaktioner og skal derfor ikke indeholde en
+fortrydelsesbemærkning.

@@ -324,7 +324,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
                 ) : 'Nogle af filens felter kunne ikke indlæses og blev sat til standardværdier.'}
               </Box>
             )
-            : 'Der findes allerede indtastede oplysninger i Mineo. Hvis du fortsætter, bliver de erstattet af oplysningerne fra filen. Indholdet i gemte .eo-filer ændres ikke.'
+            : 'Der findes allerede indtastede oplysninger i Mineo. Hvis du fortsætter, bliver de erstattet af oplysningerne fra filen. Indholdet i gemte .eo-filer ændres ikke. Handlingen kan ikke fortrydes.'
         }
         cancelText={pendingLoadResult !== null ? 'Stop og gør intet' : 'Annuller'}
         confirmText={pendingLoadResult !== null ? 'Indlæs trods fejl' : 'Erstat'}
@@ -357,6 +357,9 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
             <br />
             <br />
             Indholdet i gemte .eo-filer ændres ikke.
+            <br />
+            <br />
+            Handlingen kan ikke fortrydes.
             <br />
             <br />
             Er du sikker på at du vil fortsætte?

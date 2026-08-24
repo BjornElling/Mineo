@@ -140,6 +140,7 @@ describe('MainLayout – Slet alt-bekræftelse', () => {
     expect(within(dialog).getByText(DIALOG_TITLE)).toBeInTheDocument();
     expect(dialog).toHaveTextContent('ADVARSEL: Dette sletter alle ikke-gemte indtastninger i Mineo!');
     expect(dialog).toHaveTextContent('Indholdet i gemte .eo-filer ændres ikke.');
+    expect(dialog).toHaveTextContent('Handlingen kan ikke fortrydes.');
 
     // Intet er rørt endnu.
     expect(storedSkadelidte()).toBe('Beholdes');

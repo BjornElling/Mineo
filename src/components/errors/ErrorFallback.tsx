@@ -182,7 +182,7 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
         <DialogTitle>Genindlæs siden?</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            Dette genindlæser siden og kan slette ikke-gemte data. Fortsæt kun hvis du har gemt dit arbejde.
+            Dette genindlæser siden og sletter ikke-gemte data. Handlingen kan ikke fortrydes. Fortsæt kun hvis du har gemt dit arbejde.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ padding: 2 }}>

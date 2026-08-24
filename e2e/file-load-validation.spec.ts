@@ -112,6 +112,7 @@ test.describe('Filvalidering ved Hent', { tag: BROWSER_LANE_TAG }, () => {
       hasText: 'Erstat de aktuelle indtastninger?',
     });
     await expect(overwriteDialog).toBeVisible();
+    await expect(overwriteDialog).toContainText('Handlingen kan ikke fortrydes.');
     await expect(nameInput).toHaveValue('Aktiv sag før indlæsning');
     // Bekræftelsen erstatter synkront dialogfasen med apply-fasen. I WebKit kan MUI derfor unmount'e
     // knappen mellem Playwrights actionability-tjek og mouseup. Force bevarer den normale musehændelsesvej,

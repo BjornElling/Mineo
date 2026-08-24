@@ -52,6 +52,13 @@ test.describe('Dropdown-fokus og lønindkomstvejledning', { tag: BROWSER_LANE_TA
 
     await expect(page.getByText(INSERT_EMPLOYMENT_PROMPT, { exact: true })).toHaveCount(0);
     await expect(page.getByText(EMPLOYMENT_NOTICE)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Slet ansættelsesforhold' }).click();
+    const deleteDialog = page.getByRole('dialog');
+    await expect(deleteDialog).toBeVisible();
+    await expect(deleteDialog).not.toContainText('fortryd');
+    await deleteDialog.getByRole('button', { name: 'Annuller' }).click();
+
     expect(runtimeErrors).toEqual([]);
   });
 });

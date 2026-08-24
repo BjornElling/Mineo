@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet
 `docs/architecture/undo-redo-architecture.md`.
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-08-24
 
 ## 1. Scope
 
@@ -110,12 +110,14 @@ manglende fokus er en skavank og ikke må blive til en fejlskærm.
 
 ## 6. Autoritative replacements
 
-Succesfuld load og hel-sags-clear rydder undo/redo efter apply. Recovery fra en korrupt current-session sker kun gennem
-brugerens eksplicitte `Slet alt` og følger samme clear-regel. Ejeransvaret ligger i den fælles
-replace-command og må ikke duplikeres i load-callsites.
+Succesfuld load og hel-sags-clear rydder undo/redo efter apply. Den erstattede eller slettede aktive sag kan derfor
+ikke gendannes med undo/redo. Recovery fra en korrupt current-session sker kun gennem brugerens eksplicitte `Slet alt`
+og følger samme clear-regel. Ejeransvaret ligger i den fælles replace-command og må ikke duplikeres i load-callsites.
 
 En side-/sektionsreset er derimod en normal command og kan fortrydes, medmindre en mere specifik godkendt produktregel
-siger andet. Save ændrer ikke history.
+siger andet. Det samme gælder almindelige strukturelle rækkehandlinger og atomiske transaktioner, der sletter
+manuelle rækker. Save ændrer ikke history. Popup-dialoger for disse reversible sletninger må ikke nævne fortrydelse;
+popup-dialoger for autoritative replacements og clears skal følge `critical-action-contract.md` §8.
 
 ## 7. Afledt state
 

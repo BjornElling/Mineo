@@ -69,6 +69,7 @@ test.describe('Slet alt-bekræftelse', () => {
     await sletAlt.click();
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('ADVARSEL: Dette sletter alle ikke-gemte indtastninger i Mineo!');
+    await expect(dialog).toContainText('Handlingen kan ikke fortrydes.');
     await dialog.getByRole('button', { name: 'Annuller' }).click();
     await expect(dialog).toBeHidden();
     await expect(navn).toHaveValue('Slet Alt Testperson');
@@ -88,6 +89,8 @@ test.describe('Slet alt-bekræftelse', () => {
     await dialog.getByRole('button', { name: 'Ja, slet' }).click();
     await expect(dialog).toBeHidden();
     await expect(page).toHaveURL(/\/stamdata$/);
+    await expect(page.locator("input[name='skadelidte']")).toHaveValue('');
+    await page.keyboard.press('Control+z');
     await expect(page.locator("input[name='skadelidte']")).toHaveValue('');
 
     expect(runtimeErrors).toEqual([]);

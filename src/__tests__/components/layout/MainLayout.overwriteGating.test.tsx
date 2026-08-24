@@ -164,6 +164,7 @@ describe('MainLayout (overwrite gating)', () => {
     await clickMainLayoutAction('Hent');
 
     await screen.findByText('Erstat de aktuelle indtastninger?');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Handlingen kan ikke fortrydes.');
 
     expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
     expect(storedInput().sections.satser?.aargang).toBe(2020);
