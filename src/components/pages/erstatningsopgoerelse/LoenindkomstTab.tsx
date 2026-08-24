@@ -168,8 +168,8 @@ const LoenindkomstTab = React.memo(({
         message={
           <>
             {deleteTargetName !== ''
-              ? `Dette vil slette alle oplysninger i ansættelsesforholdet (${deleteTargetName}). Handlingen kan fortrydes.`
-              : 'Dette vil slette alle oplysninger i dette ansættelsesforhold. Handlingen kan fortrydes.'}
+              ? `Dette vil slette alle oplysninger i ansættelsesforholdet (${deleteTargetName}).`
+              : 'Dette vil slette alle oplysninger i dette ansættelsesforhold.'}
             <br />
             <br />
             Bekræft venligst.

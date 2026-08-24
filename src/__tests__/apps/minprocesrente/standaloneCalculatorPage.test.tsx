@@ -56,7 +56,7 @@ describe('MinProcesrente – «Slet alle indtastninger»-bekræftelsen (BB-044)'
 
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Dette sletter alle de værdier, du har indtastet.');
-    expect(dialog).toHaveTextContent('Du kan fortryde med Ctrl+Z.');
+    expect(dialog).not.toHaveTextContent('fortryd');
     // Beroligelsen skabte den bekymring, den skulle fjerne: en offentlig besøgende har aldrig set en
     // .eo-fil og kunne kun forstå sætningen som, at han måske havde filer, der kunne tage skade.
     expect(dialog).not.toHaveTextContent('.eo-filer');
@@ -76,6 +76,7 @@ describe('MinProcesrente – «Slet alle indtastninger»-bekræftelsen (BB-044)'
 
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Indholdet i gemte .eo-filer ændres ikke.');
+    expect(dialog).not.toHaveTextContent('fortryd');
   });
 });
 

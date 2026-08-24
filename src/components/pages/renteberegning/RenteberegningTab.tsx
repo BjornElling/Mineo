@@ -351,8 +351,8 @@ const RenteberegningTab = React.memo(({
           message={(
             <>
               {hasEoFiles
-                ? 'Dette sletter alle de værdier, du har indtastet på denne side. Indholdet i gemte .eo-filer ændres ikke. Handlingen kan fortrydes.'
-                : 'Dette sletter alle de værdier, du har indtastet. Du kan fortryde med Ctrl+Z.'}
+                ? 'Dette sletter alle de værdier, du har indtastet på denne side. Indholdet i gemte .eo-filer ændres ikke.'
+                : 'Dette sletter alle de værdier, du har indtastet.'}
               <br />
               <br />
               Bekræft venligst.

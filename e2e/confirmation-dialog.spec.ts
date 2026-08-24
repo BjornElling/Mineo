@@ -17,6 +17,7 @@ test.describe('Bekræftelsesdialog', () => {
     await deleteAll.click();
 
     const dialog = page.getByRole('dialog');
+    await expect(dialog).not.toContainText('fortryd');
     const cancel = dialog.getByRole('button', { name: 'Annuller' });
     const confirm = dialog.getByRole('button', { name: 'Ja, slet' });
     await expect(dialog).toHaveAttribute('aria-modal', 'true');
