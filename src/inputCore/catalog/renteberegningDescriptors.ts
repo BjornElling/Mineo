@@ -139,7 +139,7 @@ export const rentekravRenterFraField = defineStructuralField<ISODateString | und
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
   emptyValue: undefined,
   isEmpty: isUndefined,
-  label: 'Renter fra',
+  label: 'Forfaldsdato',
   controlKind: 'text',
   createEmptySection: createEmptyRenteberegningSection,
   ...dateBounds(renterFraBoundsSpec),
@@ -148,13 +148,13 @@ export const rentekravRenterFraField = defineStructuralField<ISODateString | und
 /**
  * Tillægstiden må ikke skubbe rækkens rentedato forbi beregningsdatoen.
  *
- * Rentedatoen er «Renter fra» + tillægstid i den valgte enhed, og den er den dato, renten løber FRA.
+ * Rentedatoen er «Forfaldsdato» + tillægstid i den valgte enhed, og den er den dato, renten løber FRA.
  * Ligger den efter beregningsdatoen, findes der ingen renteperiode, og `validateInterestCalculation`
  * afviser rækken med `INVALID_DATE_ORDER`. Den afvisning nåede aldrig brugeren: motoren kaster fejlen
  * væk, rækkens «Beregnet rente» blev bare `-`, rækkens downloadikon forsvandt, og hele sidens
  * download blev grå – uden ét rødt felt og uden besked nogen steder (BB-037).
  *
- * Reglen ligger på TILLÆGSTID, fordi det er det felt, der flyttede datoen. «Renter fra» har allerede
+ * Reglen ligger på TILLÆGSTID, fordi det er det felt, der flyttede datoen. «Forfaldsdato» har allerede
  * sin egen grænse mod beregningsdatoen (`renterFraBoundsSpec`), så en tillægstid er den eneste vej
  * til den umulige kombination – og dermed det felt, brugeren skal rette.
  *

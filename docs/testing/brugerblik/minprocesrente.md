@@ -9,7 +9,7 @@
 
 MinProcesrente er Mineos eneste offentlige, login-frie flade: én side, der beregner procesrente
 efter renteloven. Brugeren angiver én beregningsdato («Rente beregnes til og med»), fylder en tabel
-med rentekrav (beløb, «Renter fra», evt. tillægstid med enhed) og henter enten en specifikation pr.
+med rentekrav (beløb, «Forfaldsdato», evt. tillægstid med enhed) og henter enten en specifikation pr.
 række eller en samlet oversigt som PDF. Der er ingen sidemenu, ingen Gem/Hent, ingen stamdata og
 intet brevhoved. Fanen med tabellen er den samme komponent som Mineos Renteberegning-side
 (`RenteberegningTab`), men miljøet er et andet: fast PDF-format, egen sessionStorage, egen
@@ -30,7 +30,7 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Beslutning:** **Accepteret – gennemført 2026-08-19** (brugerens løsning, ikke min)
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til dags dato (19-08-2026).
-  2. Udfyld en række: Beløb `100.000`, Renter fra `01-01-2020`. Rækken viser Rentedato
+  2. Udfyld en række: Beløb `100.000`, Forfaldsdato `01-01-2020`. Rækken viser Rentedato
      `01-01-2020` og Beregnet rente `59.926,45 kr.`
   3. Skriv `99` i Tillægstid og vælg enheden `Måneder`.
 - **Det sker:** Rentedato skifter til `01-04-2028`. Beregnet rente skifter fra et tal til `-`,
@@ -45,7 +45,7 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
   Programmet ved præcis, hvad der er galt: rentedatoen ligger efter beregningsdatoen. Det siger det
   bare ikke.
 - **Bedre ville være:** At den umulige kombination behandles som en almindelig feltfejl på linje med
-  «Renter fra»-datoens egen grænse: rød markering på Tillægstid (det felt, der flyttede datoen) med
+  Forfaldsdatoens egen grænse: rød markering på Tillægstid (det felt, der flyttede datoen) med
   tooltippen *«Rentedatoen (01-04-2028) ligger efter beregningsdatoen (19-08-2026)»* – og samme
   besked som blokeringsårsag på de grå downloadknapper. Rentedato-kolonnen kan samtidig vise datoen
   i fejlfarve, så det er tydeligt, hvilken afledt værdi der er problemet.
@@ -60,7 +60,7 @@ Jeg anerkender præmissen i dit synspunkt, men er ikke enig i løsningen. Jeg t�
 `rule`-validator (`renteberegningDescriptors.ts`), der beregner rækkens rentedato med den samme
 `calculateInterestDate`, motoren bruger, og markerer feltet rødt med tooltippen
 «Beregnet rentedato kan senest være 19-08-2026». Målt i browseren. Reglen ligger på tillægstiden,
-fordi «Renter fra» allerede har sin egen grænse mod beregningsdatoen – en tillægstid er derfor den
+fordi «Forfaldsdato» allerede har sin egen grænse mod beregningsdatoen – en tillægstid er derfor den
 eneste vej til den umulige kombination.
 
 **Én afvigelse fra din tilbagemelding, som du har godkendt:** downloadknappen viser den konkrete
@@ -77,7 +77,7 @@ beholdes. Ved nulbeløb (BB-038) er der to røde felter, og knappen siger da «F
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til dags dato og udfyld en gyldig række (`25.000` / `01-01-2024`).
      «Download samlet oversigt» er aktiv.
-  2. Udfyld række 2 med Beløb `0` og Renter fra `01-02-2024`.
+  2. Udfyld række 2 med Beløb `0` og Forfaldsdato `01-02-2024`.
 - **Det sker:** Rækken står med `0,00` og en rentedato, men Beregnet rente viser `-`. Feltet er ikke
   rødt. Den hidtil aktive «Download samlet oversigt» bliver grå med tooltippen «Indtastning
   mangler» – også for den anden, fuldt gyldige række. Målt før/efter: aktiv → deaktiveret.
@@ -153,10 +153,10 @@ gennemgået samtlige veje, der kan gøre downloadknappen grå:
 |---|---|---|
 | Beregningsdato tom | Nej – den ER en mangel | «Indtastning mangler» ✓ |
 | Beregningsdato ugyldig råtekst | Ja, beregningsdato | «Fejl i indtastning» ✓ |
-| «Renter fra» efter beregningsdato | Ja, «Renter fra» | citeres ordret ✓ |
+| «Forfaldsdato» efter beregningsdato | Ja, «Forfaldsdato» | citeres ordret ✓ |
 | Beløb 0 kr. | Ja, Beløb (BB-038) | «Fejl i indtastning» ✓ |
 | Tillægstid skubber rentedato for langt | Ja, Tillægstid (BB-037) | citeres ordret ✓ |
-| Række med beløb men uden «Renter fra» | Nej – reelt ufuldstændig | «Indtastning mangler» ✓ |
+| Række med beløb men uden «Forfaldsdato» | Nej – reelt ufuldstændig | «Indtastning mangler» ✓ |
 | Ingen rækker udfyldt | Nej – reelt ufuldstændig | «Indtastning mangler» ✓ |
 
 Hver «Indtastning mangler» i tabellen svarer nu til et tomt felt, brugeren selv kan se.
@@ -169,7 +169,7 @@ Hver «Indtastning mangler» i tabellen svarer nu til et tomt felt, brugeren sel
 - **Beslutning:** **Afvist af brugeren 2026-08-19** – accepteret brist; PDF'en bærer forbeholdet alene
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til `31-12-2031` (accepteres uden bemærkning – det er feltets øvre grænse).
-  2. Udfyld en række: Beløb `100.000`, Renter fra `01-01-2020`.
+  2. Udfyld en række: Beløb `100.000`, Forfaldsdato `01-01-2020`.
 - **Det sker:** Tabellen viser `115.775,14 kr.` uden noget forbehold. Nationalbankens udlånsrente er
   kun fastsat til og med 01-07-2026, altså er alt efter 31-12-2026 regnet med den sidst kendte sats
   ført videre. Henter brugeren derimod PDF'en, står der med fed skrift: *«Der er kun fastsat
@@ -241,11 +241,11 @@ og en række hopper på plads, mens beløbet afsluttes.
 - **Beslutning:** **Accepteret – gennemført 2026-08-19**
 - **Sådan fremprovokeres det:**
   1. Kopiér teksten `010623` fra et andet dokument.
-  2. Indsæt den i et **tomt** «Renter fra»-felt og tryk Tab.
+  2. Indsæt den i et **tomt** «Forfaldsdato»-felt og tryk Tab.
   3. Indsæt derefter den samme tekst i et felt, der **allerede har en dato**: åbn feltet, markér alt
      (Ctrl+A) og indsæt.
 - **Det sker:** I det tomme felt bliver værdien `01-06-2023`. I det udfyldte felt bliver den `01` –
-  markeret rødt med teksten «Der er udfyldt en ugyldig værdi i feltet 'Renter fra'». Samme
+  markeret rødt med teksten «Der er udfyldt en ugyldig værdi i feltet 'Forfaldsdato'». Samme
   udklipsholder, samme håndbevægelse, to udfald.
 - **Det er uhensigtsmæssigt fordi:** «Markér alt og indsæt» er den naturlige måde at rette en dato
   på. Brugeren har ingen mulighed for at vide, at feltets tidligere indhold afgør, hvordan hans
@@ -283,7 +283,7 @@ hinanden igen. Det var netop tre kopier af betingelsen, fundet bestod i.
 paste-only fortolkning måtte findes, hvilket var i direkte modstrid med din BB-003-afgørelse fem dage
 før. Kontrakten siger nu, at tilstandsuafhængighed er kravet – ikke identitet med tastning.
 
-### BB-043 – Fejlen på «Renter fra» navngiver «dags dato» i stedet for Beregningsdato
+### BB-043 – Fejlen på «Forfaldsdato» navngiver «dags dato» i stedet for Beregningsdato
 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
@@ -291,9 +291,9 @@ før. Kontrakten siger nu, at tilstandsuafhængighed er kravet – ikke identite
 - **Beslutning:** **Accepteret – gennemført 2026-08-19** (med brugerens sproglige rettelse)
 - **Sådan fremprovokeres det:**
   1. Klik «Indsæt dags dato», så Beregningsdato bliver 19-08-2026.
-  2. Skriv `01-01-2027` i «Renter fra».
+  2. Skriv `01-01-2027` i «Forfaldsdato».
 - **Det sker:** Feltet bliver rødt med tooltippen **«Datoen er efter dags dato (19-08-2026)»**.
-  Sættes Beregningsdato i stedet til `30-06-2026` og «Renter fra» til `15-07-2026`, lyder samme
+  Sættes Beregningsdato i stedet til `30-06-2026` og «Forfaldsdato» til `15-07-2026`, lyder samme
   fejl: «Dato skal være mellem 01-01-2005 og 30-06-2026».
 - **Det er uhensigtsmæssigt fordi:** Grænsen kommer fra **Beregningsdato**, ikke fra kalenderen. I
   det klart hyppigste tilfælde – hvor beregningsdatoen netop er dags dato, fordi der er en knap til
@@ -358,9 +358,9 @@ ene er en layoutbeslutning, det andet er et spørgsmål om, hvilke begreber appe
 - **Sådan fremprovokeres det:** Åbn minprocesrente.dk i et almindeligt browservindue (mus, ikke
   touch), og gør vinduet smallere end 600 px – eller zoom til 250 % på en 1366 px skærm, hvilket
   giver den samme CSS-bredde.
-- **Det sker:** Siden skifter til telefonudgaven med tre kolonner (Beløb, Renter fra, Beregnet
+- **Det sker:** Siden skifter til telefonudgaven med tre kolonner (Beløb, Forfaldsdato, Beregnet
   rente), men indholdsboksen bliver stående på sine 1200 px. Målt ved 599 px vindue: tabellen er
-  1174 px bred i et 567 px synligt felt. Beregningsdato-feltet, «Renter fra» og «Beregnet rente»
+  1174 px bred i et 567 px synligt felt. Beregningsdato-feltet, «Forfaldsdato» og «Beregnet rente»
   ligger uden for skærmen og kan kun nås ved at rulle godt 600 px sidelæns.
 - **Det er uhensigtsmæssigt fordi:** Det er dårligere end begge de layouts, der findes: den
   almindelige desktopudgave ville vise mere, og telefonudgaven er netop lavet for at undgå sidelæns
@@ -405,7 +405,7 @@ og det var præcis hullet: to beslutninger truffet på hver sit signal.
 - **Prioritet:** Mellem
 - **Beslutning:** **Accepteret – gennemført 2026-08-19** (løst af BB-045's device-lås)
 - **Sådan fremprovokeres det:**
-  1. Udfyld på en almindelig skærm: Beløb `100.000`, Renter fra `01-01-2024`, Tillægstid `30` dage.
+  1. Udfyld på en almindelig skærm: Beløb `100.000`, Forfaldsdato `01-01-2024`, Tillægstid `30` dage.
      Rækken viser Rentedato `31-01-2024` og `27.111,89 kr.`
   2. Gør vinduet smallere end 600 px (eller zoom ind), så telefonlayoutet tændes.
 - **Det sker:** Rækken viser nu `100.000,00` · `01-01-2024` · `27.111,89 kr.` Både tillægstiden,
@@ -501,7 +501,7 @@ rydde rækkespecifikationens baseline, og fanen ville advare om arbejde, brugere
 - **Førstegangsindtrykket.** Siden åbner med tom beregningsdato, én tom tabelrække og alle
   resultatfelter som `-`. Det er forståeligt: det manglende felt er sidens øverste boks. (Se dog
   åbent spørgsmål 1.)
-- **Grænse-eftersynet, felt for felt.** Beregningsdato og «Renter fra»: 01-01-2005 til 31-12 fem år
+- **Grænse-eftersynet, felt for felt.** Beregningsdato og «Forfaldsdato»: 01-01-2005 til 31-12 fem år
   frem – nedre grænse er den tidligste kendte referencesats, øvre er bevidst vid. Tillægstid: 0–99,
   to cifre, ikke-negativ, håndhævet ved tastning (BF-018). Beløb: ikke-negativt med decimaler.
   Kommentarer: 512 tegn (BF-035). Enhed: tre valg, aldrig tom. Alle felter har erklærede grænser,
@@ -513,7 +513,7 @@ rydde rækkespecifikationens baseline, og fanen ville advare om arbejde, brugere
   **ikke** afkortet til noget gyldigt – den blev stående som skrevet. Det er den rigtige adfærd og
   bekræfter, at datoernes paste ikke har den fejl, årsfelterne havde (BB-031).
 - **Ændret forudsætning bagefter.** Sættes beregningsdatoen tilbage, efter at rækkerne er udfyldt,
-  bliver de nu ugyldige «Renter fra»-felter røde med det samme. Rækkerne beholder deres værdier.
+  bliver de nu ugyldige «Forfaldsdato»-felter røde med det samme. Rækkerne beholder deres værdier.
 - **Tom række-begrebet.** En række, hvor kun enheden er valgt, tæller som tom og bliver ikke gemt.
   Tømmes en udfyldt række, forsvinder den helt – også på telefon, hvor der ikke er nogen
   slet-knap. Det er den rigtige adfærd og gør slet-knappens fravær på telefon acceptabelt.

@@ -106,7 +106,7 @@ describe('rentekravTillaegstidField – rentedato efter beregningsdato (BB-037)'
     expect(reader.read(rentekravTillaegstidField.bind(ROW_ID)).status).not.toBe('error');
   });
 
-  it('tier, når «Renter fra» mangler – det felt bærer selv sin egen mangel', () => {
+  it('tier, når «Forfaldsdato» mangler – det felt bærer selv sin egen mangel', () => {
     const reader = buildReader({ renterFra: undefined, tillaegstid: 99, enhed: 'maaneder' }, '2026-08-19');
     expect(reader.read(rentekravTillaegstidField.bind(ROW_ID)).status).not.toBe('error');
   });

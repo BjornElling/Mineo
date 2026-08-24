@@ -2,8 +2,6 @@
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import {
   buildRenteberegningReaderProjection,
-  hasAnyRentekravRowInput,
-  readRentekravRowRuleIssues,
 } from '../../../domain/renteberegning/renteberegningReaderProjection';
 import { computeRentekravRow } from '../../../domain/renteberegning/renteberegningEngine';
 import type { RentekravRow } from '../../../schemas/formSchemas';
@@ -12,7 +10,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import { createInputEvaluation } from '../../../inputCore/inputReader';
 import { createEvaluationSourceToken, createInputRevision, createSettingsRevision } from '../../../inputCore/evaluationSource';
 import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
-import { rentekravBelobField } from '../../../inputCore/catalog/renteberegningDescriptors';
+import { rentekravBelobField, rentekravRowsCollectionRef } from '../../../inputCore/catalog/renteberegningDescriptors';
 
 // Greenfield Renteberegning reader-projektion (§3.4/§5.4): beviser at projektionen (a) kører den EKSISTERENDE
 // `computeRentekravRow` byte-identisk på reader-rekonstruerede rækker (§5.4 hårdt stop mod talændring) og (b)
@@ -88,17 +86,13 @@ describe('buildRenteberegningReaderProjection', () => {
     expect(projection.aggregateProjection.value.anyRowHasError).toBe(false);
   });
 
-  it('markerer det manglende modelfelt ved en delvist udfyldt rentekravsrække', () => {
+  it('bevarer en delvist udfyldt rentekravsrække som input uden at opfinde en partnerfeltfejl', () => {
     const reader = buildReaderForRows([createRow('r1', { renterFra: undefined })], '2024-12-31');
-    const issues = readRentekravRowRuleIssues(reader);
-    const issue = issues.get('r1')?.renterFra;
 
-    expect(issue?.reason).toBe('rule');
-    expect(issue?.message).toBe('Renter fra skal udfyldes, når Beløb er udfyldt');
-    expect(hasAnyRentekravRowInput(reader, 'r1')).toBe(true);
+    expect(reader.hasEntityInput(rentekravRowsCollectionRef, 'r1')).toBe(true);
   });
 
-  it('tilføjer ikke en parfejl oven på en afvist beløbsværdi', () => {
+  it('behandler alene afvist råtekst som rækkeinput uden at lade den indgå i beregning', () => {
     const input = catalog.validateSettledInput({
       sections: {
         stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
@@ -119,7 +113,8 @@ describe('buildRenteberegningReaderProjection', () => {
       sourceToken: createEvaluationSourceToken(createInputRevision(2), createSettingsRevision(2)),
     }).reader;
 
-    expect(readRentekravRowRuleIssues(reader).has('r1')).toBe(false);
-    expect(hasAnyRentekravRowInput(reader, 'r1')).toBe(true);
+    expect(reader.hasEntityInput(rentekravRowsCollectionRef, 'r1')).toBe(true);
+    const projection = buildRenteberegningReaderProjection({ reader, referenceRates, surchargeRates });
+    expect(projection.rowProjections.get('r1')?.status).not.toBe('ready');
   });
 });

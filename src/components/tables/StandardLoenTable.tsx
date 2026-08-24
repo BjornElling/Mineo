@@ -17,7 +17,6 @@ import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import { blinkFieldAttention } from '../../inputCore/react/fieldAttentionBlink';
 import {
   calculateStandardLoenRowDerived,
-  isStandardLoenRowEffectivelyEmpty,
   roundStandardLoenAmountToTwoDecimals,
   type StandardLoenRowDerived,
 } from '../../domain/aarsloen/standardLoenRowCalculations';
@@ -134,11 +133,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     });
     const { committedById, buildCellSpec } = table;
 
-    const isRowEmpty = React.useCallback(
-      (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row, loenperiode, tillaegAngivesSom),
-      [loenperiode, tillaegAngivesSom]
-    );
-
     const getSatserInput = React.useCallback(() => ({
       feriePct: satser?.ferie,
       fritvalgPct: satser?.fritvalg,
@@ -222,7 +216,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
       committedRows,
       getRowId: (row) => row.id,
-      isRowEmpty,
+      isRowEmpty: (row) => table.isRowEmpty(row.id),
       columns: sortColumns,
       reorderRows: table.reorderRows,
       saveOrderPath,

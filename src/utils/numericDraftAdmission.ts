@@ -43,6 +43,10 @@ const exceedsAmountTokenDigits = (
   return false;
 };
 
+/** Et beløbsudtryk må have ét decimalkomma pr. talled, aldrig flere i samme tal. */
+const hasMultipleDecimalSeparatorsInAmountToken = (draft: string): boolean =>
+  draft.split(/[+\-*/x()\s]+/).some((token) => (token.match(/,/g)?.length ?? 0) > 1);
+
 /** Om hele den kommende beløbsdraft kan rumme præcis de tegn, brugeren har skrevet. */
 export const isAmountExpressionDraftAllowed = (
   draft: string,
@@ -53,7 +57,7 @@ export const isAmountExpressionDraftAllowed = (
   const maxDecimalDigits = options.maxDecimalDigits;
 
   if (!allowNegative && containsUnaryMinusToken(draft)) return false;
-  if (draft.includes('.') || /,,/.test(draft)) return false;
+  if (draft.includes('.') || hasMultipleDecimalSeparatorsInAmountToken(draft)) return false;
   if (
     allowDecimals
     && typeof maxDecimalDigits === 'number'

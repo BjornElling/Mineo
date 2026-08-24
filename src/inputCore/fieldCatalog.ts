@@ -146,6 +146,11 @@ export type InputCatalog = Readonly<{
   containsAddressEntities: (sections: PersistedInputSections, address: FieldAddress) => boolean;
   listEntityIds: (sections: PersistedInputSections, collection: CollectionRef) => readonly string[];
   getCollection: (collection: CollectionRef) => AnyCollectionDescriptor | undefined;
+  /**
+   * Om en brugerredigerbar tabelrække har afsluttet input. Rejected råtekst er indhold på lige fod
+   * med en canonical værdi; en række med kun sin deklarerede default er fortsat tom.
+   */
+  hasEntityInput: (input: SettledInput, collection: CollectionRef, entityId: string) => boolean;
   insertEntity: <TEntity>(
     sections: PersistedInputSections,
     collection: CollectionRef,
@@ -450,6 +455,33 @@ export const createInputCatalog = (options: Readonly<{
     );
   };
 
+  /**
+   * Fælles UI-tomhed for en konkret tabelrække.
+   *
+   * Beregninger læser fortsat deres egne canonical projektioner. Denne prøve besvarer alene, om
+   * brugeren har noget synligt afsluttet input, som skal give rækkehandlinger og en ny trailing række.
+   * Derfor må rejected råtekst aldrig forsvinde bag collectionens canonical tomhedsregel.
+   */
+  const hasEntityInput = (input: SettledInput, collection: CollectionRef, entityId: string): boolean => {
+    const descriptor = requireCollection(input.sections, collection);
+    if (descriptor.isEntityEmpty === undefined) {
+      throw new Error(`InputCatalog: ${descriptor.id} mangler en tomhedsregel for brugerredigerbare rækker`);
+    }
+    const entities = descriptor.readEntities(isolateSections(input.sections), collection);
+    const rowIndex = entities.findIndex((entry) => descriptor.getEntityId(entry) === entityId);
+    if (rowIndex < 0) throw new Error('InputCatalog: ukendt række i hasEntityInput');
+    if (!descriptor.isEntityEmpty(entities[rowIndex]!, rowIndex)) return true;
+
+    const entityPath = createEntityPath([
+      ...collection.path,
+      { kind: 'entity', collection: collection.collection, entityId },
+    ]);
+    return Object.keys(input.rejectedInputs).some((serialized) => {
+      const address = deserializeFieldAddress(serialized);
+      return address !== null && isFieldAddressBelowEntity(address, collection.section, entityPath);
+    });
+  };
+
   // Ekspanderer en templatesti (property + entity-led) til alle konkrete stier over aktuelle entities.
   const expandConcretePaths = (
     section: SectionKey,
@@ -565,6 +597,7 @@ export const createInputCatalog = (options: Readonly<{
     containsAddressEntities,
     listEntityIds,
     getCollection,
+    hasEntityInput,
     insertEntity,
     deleteEntity,
     removeEmptyOwningEntity,

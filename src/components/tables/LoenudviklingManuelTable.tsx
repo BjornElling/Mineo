@@ -24,7 +24,6 @@ import {
 import { resolveManualRegulationBasisRowId } from '../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
 import { activeFieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
-import { isLoenudviklingManuelRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 
 const LOCKED_PERCENT_PLACEHOLDER = withInputUnitPlaceholderSuffix(
   TWO_DECIMAL_PERCENT_PLACEHOLDER,
@@ -90,7 +89,7 @@ export default function LoenudviklingManuelTable({
   const sort = useTableSort({
     rows: committedRows,
     getRowId: (row) => row.id,
-    isRowEmpty: (row) => row.id === baseRowId ? false : isLoenudviklingManuelRowEmpty(row),
+    isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
     onSortedRowsChange: (next) => {
       const anchored = baseRowId === undefined
@@ -141,7 +140,7 @@ export default function LoenudviklingManuelTable({
             : <GridDateCell gridCell={gc(0)} cell={dateCell} collectionRuleIssue={dateRuleIssue} />}</td>
           <td style={getStandardGridCellStyle({ align: 'right' })}><GridAmountCell gridCell={gc(1)} cell={table.buildCellSpec(renderRow, bindings.manualFields.grundloen, 1)} /></td>
           {(['feriepenge', 'shSoSats', 'fritvalg'] as const).map((key, index) => <td key={key} style={getStandardGridCellStyle({ align: 'right' })}>{isBase && readOnlyBaseRowPercentFields ? lockedPercent(key, index + 2) : <GridPercentCell gridCell={gc(index + 2)} cell={table.buildCellSpec(renderRow, bindings.manualFields[key], index + 2)} />}</td>)}
-          <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}>{isBase && readOnlyBaseRowPercentFields ? lockedPercent('agPension', 5) : <GridPercentCell gridCell={gc(5)} cell={table.buildCellSpec(renderRow, bindings.manualFields.agPension, 5)} />}{renderRow.kind === 'existing' && !isBase && row !== undefined && !isLoenudviklingManuelRowEmpty(row) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
+          <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}>{isBase && readOnlyBaseRowPercentFields ? lockedPercent('agPension', 5) : <GridPercentCell gridCell={gc(5)} cell={table.buildCellSpec(renderRow, bindings.manualFields.agPension, 5)} />}{renderRow.kind === 'existing' && !isBase && row !== undefined && !table.isRowEmpty(row.id) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
         </tr>;
       })}</tbody>
     </StandardGridTable>

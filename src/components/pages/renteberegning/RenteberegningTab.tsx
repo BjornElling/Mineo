@@ -13,7 +13,6 @@ import { pageMessage } from '../../layout/pageMessage';
 import type { DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
 import {
   buildRenteberegningReaderProjection,
-  hasAnyRentekravRowInput,
   hasAnyRentekravInput,
   readRentekravCommittedRows,
 } from '../../../domain/renteberegning/renteberegningReaderProjection';
@@ -128,12 +127,6 @@ const RenteberegningTab = React.memo(({
   );
 
   const committedRows = React.useMemo(() => readRentekravCommittedRows(evaluation.reader), [evaluation]);
-  const rowsWithSettledInput = React.useMemo(
-    () => new Set(committedRows
-      .filter((row) => hasAnyRentekravRowInput(evaluation.reader, row.id))
-      .map((row) => row.id)),
-    [committedRows, evaluation.reader]
-  );
   const beregningsdatoRead = evaluation.reader.read(beregningsdatoRef);
   const beregningsdato = beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined;
   const kommentarerRead = evaluation.reader.read(kommentarerRef);
@@ -244,8 +237,6 @@ const RenteberegningTab = React.memo(({
           <BeregnetRenteTable
             committedRows={committedRows}
             rowProjections={projection.rowProjections}
-            rowRuleIssues={projection.rowRuleIssues}
-            rowsWithSettledInput={rowsWithSettledInput}
             onDownloadSpecifikation={handleDownloadRow}
             saveOrderPath="renteberegning.rentekravRows"
             isMobile={isMobile}

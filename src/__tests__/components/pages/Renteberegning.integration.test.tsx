@@ -132,17 +132,17 @@ describe('Renteberegning – download-gate mod afsluttet input', () => {
     expect(screen.getByText('Samlet rentebeløb')).toBeVisible();
   });
 
-  it('markerer det manglende modelfelt, når en rentekravsrække kun har beløb', () => {
+  it('lader et tomt partnerfelt være neutralt, når en rentekravsrække kun har beløb', () => {
     hydrate([{
       ...validRow('r1'),
       renterFra: undefined,
     }], '2024-12-31');
     renderRenteberegning();
 
-    expect(screen.getByText('Renter fra skal udfyldes, når Beløb er udfyldt')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Download samlet oversigt' })).toBeDisabled();
     const row = document.querySelector<HTMLElement>('tr[data-mineo-row-id="r1"]');
     if (!row) throw new Error('Rentekravsrækken blev ikke renderet');
-    expect(within(row).getAllByRole('textbox')[1]).toHaveAttribute('aria-invalid', 'true');
+    expect(within(row).getAllByRole('textbox')[1]).toHaveAttribute('aria-invalid', 'false');
   });
 
   it('behandler en række med alene afvist råtekst som indhold, der kan slettes', () => {

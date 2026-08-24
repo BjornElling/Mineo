@@ -35,7 +35,7 @@ export type RenteDownloadGateInput = Readonly<{
  * `anyRowHasError` uaflæselig – de røde rækker gates et helt andet sted
  * (`blockedProjectionFromCauses` i `renteberegningDocumentDefinitions.ts`). Når flaget ER sandt, er
  * samtlige felter altså læsbare, og den manglende `pdfContext` skyldes en ufuldstændig række (typisk et
- * beløb uden «Renter fra»-dato). Brugeren skal udfylde, ikke rette.
+ * beløb uden «Forfaldsdato»). Brugeren skal udfylde, ikke rette.
  *
  * Samme fejlform som brugerfundet på Årsløn 2026-08-15: én aggregeret boolean over flere tilstande fik
  * påklistret én hardkodet klasse. Her var klassen forkert for HELE grenen – ikke bare halvdelen.

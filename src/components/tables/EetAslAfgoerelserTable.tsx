@@ -7,7 +7,6 @@ import {
   EET_ASL_MIN_VISIBLE_ROWS,
   createAslAfgoerelseRowId,
   emptyAslAfgoerelseRowFields,
-  isAslAfgoerelseRowPersistenceEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
@@ -233,7 +232,7 @@ const EetAslAfgoerelserTable = React.memo(
     const { sortedRows, sortableHeader } = useSortedCollectionTable({
       committedRows,
       getRowId: (row) => row.id,
-      isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
+      isRowEmpty: (row) => table.isRowEmpty(row.id),
       columns: sortColumns,
       reorderRows: table.reorderRows,
       saveOrderPath,

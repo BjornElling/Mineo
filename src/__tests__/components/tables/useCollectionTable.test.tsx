@@ -6,8 +6,10 @@ import { ActiveEditorRegistry, type SlimInputStore } from '../../../inputCore/ru
 import { createInputRuntimeBinding, InputRuntimeProvider } from '../../../inputCore/react';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
 import { createEvaluationSourceToken, type InputCatalog } from '../../../inputCore';
-import { createTestCatalog, rentekravRowsRef } from '../../inputCore/testCatalog';
+import { createAutoPruningTestCatalog, rentekravRowsRef } from '../../inputCore/testCatalog';
 import { useCollectionTable } from '../../../components/tables/useCollectionTable';
+import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
+import type { RentekravRow } from '../../../schemas/formSchemas';
 
 /**
  * Render-modellens ENE konstruktion.
@@ -18,21 +20,27 @@ import { useCollectionTable } from '../../../components/tables/useCollectionTabl
  *  - RÆKKEFØLGEN kommer fra `displayRows`, mens placeholder-IDENTITETEN kommer fra mængden af
  *    committede id'er. Blandede man de to, ville en sortering kunne flytte den tomme rækkes
  *    identitet, og en history-origin fra før sorteringen ville miste sit element (§1.11/§3.7).
- *  - HVOR MANGE tomme rækker der vises, afgøres af `minimumVisibleRows` og
- *    `countsAsEmptyEntryRow`. Sidstnævnte var før et `shouldAppendRentekravPlaceholder`-kald
- *    ude i tabellen, hvor den kun var dækket som ren funktion – aldrig som vist tabel.
+ *  - HVOR MANGE tomme rækker der vises, afgøres af `minimumVisibleRows` og katalogets fælles
+ *    tomhedsvurdering. Den læser både canonical og afvist input, så en række ikke forsvinder fra
+ *    sletning eller sortering, blot fordi dens seneste tekst blev afvist.
  */
 
-type Row = Readonly<{ id: string; navn: string }>;
+type Row = RentekravRow;
 
-const row = (id: string, navn = ''): Row => ({ id, navn });
+const row = (id: string, filled = false): Row => ({
+  id,
+  belob: filled ? { kind: 'number', value: 1_000 } : undefined,
+  renterFra: undefined,
+  tillaegstid: undefined,
+  enhed: 'dage',
+});
 
 let catalog: InputCatalog;
 let store: SlimInputStore;
 let registry: ActiveEditorRegistry;
 
 beforeEach(() => {
-  catalog = createTestCatalog();
+  catalog = createAutoPruningTestCatalog();
   store = __createSlimInputTestStore();
   registry = new ActiveEditorRegistry();
 });
@@ -60,11 +68,10 @@ type HarnessProps = Readonly<{
   committedRows: readonly Row[];
   displayRows?: readonly Row[];
   minimumVisibleRows?: number;
-  countsAsEmptyEntryRow?: (row: Row) => boolean;
   onModel: (rows: readonly Readonly<{ rowId: string; kind: string }>[]) => void;
 }>;
 
-const Harness = ({ committedRows, displayRows, minimumVisibleRows, countsAsEmptyEntryRow, onModel }: HarnessProps) => {
+const Harness = ({ committedRows, displayRows, minimumVisibleRows, onModel }: HarnessProps) => {
   const createRowId = React.useMemo(() => makeIdFactory(), []);
   const table = useCollectionTable<Row>({
     collection: rentekravRowsRef(),
@@ -74,7 +81,6 @@ const Harness = ({ committedRows, displayRows, minimumVisibleRows, countsAsEmpty
     locationPrefix: 'renteberegning.rentekravRows',
     locationNav: { route: '/renteberegning', tabKey: null },
     ...(minimumVisibleRows === undefined ? {} : { minimumVisibleRows }),
-    ...(countsAsEmptyEntryRow === undefined ? {} : { countsAsEmptyEntryRow }),
   });
   onModel(table.buildRenderRows(displayRows));
   return null;
@@ -82,6 +88,14 @@ const Harness = ({ committedRows, displayRows, minimumVisibleRows, countsAsEmpty
 
 const renderModel = (props: Omit<HarnessProps, 'onModel'>): readonly Readonly<{ rowId: string; kind: string }>[] => {
   let captured: readonly Readonly<{ rowId: string; kind: string }>[] = [];
+  hydrateSlimInputStoreForTest(store, catalog.validateSettledInput({
+    sections: {
+      stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+      renteberegning: { beregningsdato: undefined, kommentarer: undefined, rentekravRows: [...props.committedRows] },
+      varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,
+    },
+    rejectedInputs: {},
+  }));
   render(
     <InputRuntimeProvider binding={makeBinding()}>
       <Harness {...props} onModel={(rows) => { captured = rows; }} />
@@ -92,15 +106,15 @@ const renderModel = (props: Omit<HarnessProps, 'onModel'>): readonly Readonly<{ 
 
 describe('useCollectionTable.buildRenderRows', () => {
   it('viser rækkerne i `displayRows`-ordenen med placeholderen sidst', () => {
-    const committedRows = [row('a'), row('b'), row('c')];
-    const model = renderModel({ committedRows, displayRows: [row('c'), row('a'), row('b')] });
+    const committedRows = [row('a', true), row('b', true), row('c', true)];
+    const model = renderModel({ committedRows, displayRows: [row('c', true), row('a', true), row('b', true)] });
 
     expect(model.map((r) => r.rowId)).toEqual(['c', 'a', 'b', 'ph-1']);
     expect(model.map((r) => r.kind)).toEqual(['existing', 'existing', 'existing', 'placeholder']);
   });
 
   it('bruger de committede rækkers egen orden, når `displayRows` udelades', () => {
-    const model = renderModel({ committedRows: [row('a'), row('b')] });
+    const model = renderModel({ committedRows: [row('a', true), row('b', true)] });
     expect(model.map((r) => r.rowId)).toEqual(['a', 'b', 'ph-1']);
   });
 
@@ -108,9 +122,9 @@ describe('useCollectionTable.buildRenderRows', () => {
     // Samme committede mængde vist i to forskellige ordener skal give SAMME placeholder-id.
     // Ellers ville en sortering flytte den tomme rækkes identitet, og en history-origin fra før
     // sorteringen ville ikke længere kunne finde sit element.
-    const committedRows = [row('a'), row('b')];
+    const committedRows = [row('a', true), row('b', true)];
     const usorteret = renderModel({ committedRows });
-    const sorteret = renderModel({ committedRows, displayRows: [row('b'), row('a')] });
+    const sorteret = renderModel({ committedRows, displayRows: [row('b', true), row('a', true)] });
 
     expect(usorteret.at(-1)!.rowId).toBe(sorteret.at(-1)!.rowId);
   });
@@ -125,7 +139,7 @@ describe('useCollectionTable.buildRenderRows', () => {
   });
 
   it('lægger stadig én tom række på, når de committede fylder `minimumVisibleRows`', () => {
-    const model = renderModel({ committedRows: [row('a'), row('b'), row('c')], minimumVisibleRows: 2 });
+    const model = renderModel({ committedRows: [row('a', true), row('b', true), row('c', true)], minimumVisibleRows: 2 });
     expect(model.map((r) => r.rowId)).toEqual(['a', 'b', 'c', 'ph-1']);
   });
 
@@ -133,8 +147,7 @@ describe('useCollectionTable.buildRenderRows', () => {
     // Rentekrav-reglen: «kun enhed valgt» er stadig semantisk tomt, og den række fungerer selv
     // som trailing indtastningsrække. En placeholder oveni ville give to tomme rækker.
     const model = renderModel({
-      committedRows: [row('a', 'udfyldt'), row('b')],
-      countsAsEmptyEntryRow: (r) => r.navn === '',
+      committedRows: [row('a', true), row('b')],
     });
 
     expect(model.map((r) => r.rowId)).toEqual(['a', 'b']);
@@ -143,21 +156,19 @@ describe('useCollectionTable.buildRenderRows', () => {
 
   it('lægger placeholderen på igen, så snart ingen committet række er tom', () => {
     const model = renderModel({
-      committedRows: [row('a', 'udfyldt'), row('b', 'også udfyldt')],
-      countsAsEmptyEntryRow: (r) => r.navn === '',
+      committedRows: [row('a', true), row('b', true)],
     });
 
     expect(model.map((r) => r.rowId)).toEqual(['a', 'b', 'ph-1']);
   });
 
-  it('`countsAsEmptyEntryRow` sænker kun BUNDEN – minimumVisibleRows gælder stadig', () => {
+  it('den fælles tomhedsvurdering sænker kun BUNDEN – minimumVisibleRows gælder stadig', () => {
     // De to regler er uafhængige: den ene siger «mindst så mange rækker i alt», den anden «en
     // committet tom række tæller som indtastningsrækken». Slås de sammen ét sted, skal begge
     // stadig kunne ses hver for sig.
     const model = renderModel({
       committedRows: [row('a')],
       minimumVisibleRows: 3,
-      countsAsEmptyEntryRow: (r) => r.navn === '',
     });
 
     expect(model.map((r) => r.rowId)).toEqual(['a', 'ph-1', 'ph-2']);

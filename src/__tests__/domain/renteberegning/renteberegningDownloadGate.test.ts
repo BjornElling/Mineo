@@ -13,7 +13,7 @@ import { toISODateString } from '../../../types/branded';
 // `anyRowHasError` svarede før «Fejl i indtastning». Det var forkert for HELE grenen: flaget aflæses kun i
 // aggregatets `ready`-gren, og et rødt felt gør aggregatet `blocked` (rækkens felter læses med
 // `collector.optional`). Er flaget sandt, er alle felter altså læsbare, og den manglende pdfContext skyldes
-// en UFULDSTÆNDIG række – typisk et beløb uden «Renter fra»-dato. Klassen er derfor `missing-input`.
+// en UFULDSTÆNDIG række – typisk et beløb uden «Forfaldsdato». Klassen er derfor `missing-input`.
 // `renteberegningProjectionMatrix.test.ts` dækker selve præmissen (rød række → blocked projektion).
 
 const VALID_DATO = toISODateString('2024-12-31');

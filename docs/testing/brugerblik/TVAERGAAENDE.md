@@ -809,9 +809,10 @@ frem for rettelser i gaten: de gør en falsk præmis sand i stedet for at differ
   **Læren om afgrænsningen:** BB-037 og BB-038 flyttede fanens to MOTORafvisninger ind i feltmodellen
   og lukkede dermed halvdelen af mønsteret på netop denne flade. Den anden halvdel – den *ufuldstændige*
   række – har ingen motorafvisning at flytte, og blev derfor ikke omfattet. **Efterprøv altid begge
-  halvdele: en række, der er umulig som helhed, OG en række, der blot er halvt udfyldt.** Rettelsen er
-  den samme og hører samme sted: en regel i feltmodellen («har rækken et beløb, skal datoen udfyldes»),
-  så det tomme felt bliver rødt i netop den række.
+  halvdele: en række, der er umulig som helhed, OG en række, der blot er halvt udfyldt.** De har ikke
+  samme rettelse: motorafvisningen skal ind i feltmodellen, mens den rene mangel bevares som gate-feedback.
+  En rød ring på det endnu tomme partnerfelt ville gøre en naturligt halvfærdig række til en fejl under
+  indtastningen og er kontraktstridig.
 - **Efterprøvet og lukket samme dag:** `DATE_BEFORE_RATE_COVERAGE` kan ikke nås fra brugerfladen.
   «Renter fra»-feltets nedre grænse ER `MIN_INTEREST_DATE` (01-01-2005), som er senere end
   `MIN_SURCHARGE_DATE` (01-08-2002), så en rentedato uden satsdækning bliver et rødt bounds-issue før

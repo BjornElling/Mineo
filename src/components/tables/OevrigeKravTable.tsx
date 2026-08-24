@@ -9,7 +9,6 @@ import type { OevrigeKravRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { isOevrigeKravRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 import {
@@ -59,14 +58,15 @@ export type OevrigeKravTableProps = Readonly<{
 type OevrigeKravRowProps = Readonly<{
   renderRow: RenderRow;
   committed: OevrigeKravRow | undefined;
+  rowHasSettledInput: boolean;
   onDeleteRow: (rowId: string) => void;
   buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, OevrigeKravRow>;
 }>;
 
-const OevrigeKravTableRow = React.memo(({ renderRow, committed, onDeleteRow, buildCellSpec }: OevrigeKravRowProps) => {
+const OevrigeKravTableRow = React.memo(({ renderRow, committed, rowHasSettledInput, onDeleteRow, buildCellSpec }: OevrigeKravRowProps) => {
   const rowId = renderRow.rowId;
   const gc = (colIndex: number) => ({ rowId, colIndex });
-  const showDelete = renderRow.kind === 'existing' && committed !== undefined && !isOevrigeKravRowEmpty(committed);
+  const showDelete = renderRow.kind === 'existing' && committed !== undefined && rowHasSettledInput;
 
   return (
     <TableRow data-mineo-row-id={rowId}>
@@ -115,7 +115,7 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
-    isRowEmpty: isOevrigeKravRowEmpty,
+    isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns: sortColumns,
     reorderRows: table.reorderRows,
     saveOrderPath,
@@ -147,6 +147,7 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
             key={renderRow.rowId}
             renderRow={renderRow}
             committed={committedById.get(renderRow.rowId)}
+            rowHasSettledInput={!table.isRowEmpty(renderRow.rowId)}
             onDeleteRow={table.removeRow}
             buildCellSpec={buildCellSpec}
           />

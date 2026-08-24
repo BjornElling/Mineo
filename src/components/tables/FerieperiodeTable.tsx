@@ -14,7 +14,6 @@ import {
 import type { CollectionRef } from '../../inputCore/fieldAddress';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import { createEmptyFerieCommittedRow, createFravaerRowId, createTafFerieRowId } from '../../domain/erstatningsopgoerelse/tables/ferieTableModel';
-import { isFerieRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { useCollectionTable } from './useCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
@@ -59,7 +58,7 @@ const FerieperiodeTable = React.memo(({
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
-    isRowEmpty: isFerieRowEmpty,
+    isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
     reorderRows: table.reorderRows,
     saveOrderPath,
@@ -100,7 +99,7 @@ const FerieperiodeTable = React.memo(({
                 <Typography variant="body1" sx={{ textAlign: 'center', py: 0.5 }}>
                   {committed === undefined ? '' : (feriedageById[committed.id] ?? '')}
                 </Typography>
-                {committed !== undefined && !isFerieRowEmpty(committed) ? (
+                {committed !== undefined && !table.isRowEmpty(committed.id) ? (
                   <RowDeleteButton onDelete={() => table.removeRow(committed.id)} />
                 ) : null}
               </RowDeleteLaneCell>

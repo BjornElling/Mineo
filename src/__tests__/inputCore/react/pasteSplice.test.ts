@@ -91,7 +91,7 @@ describe('spliceDraftWithPaste', () => {
     }
   });
 
-  it('behandler første linje som værdien ved flerlinjet paste i et enkeltlinjefelt', () => {
+  it('lader flerlinjet tal-paste følge codecets og admissionens almindelige tegnregler', () => {
     expect(normalizePasteForDraft(
       '1.000,00\n2.000,00\n3.000,00',
       rentekravBelobField.codec,

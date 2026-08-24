@@ -13,7 +13,6 @@ import { serializeFieldAddress, type CollectionRef } from '../../inputCore/field
 import type { FieldIssue, FieldIssueSet } from '../../inputCore/inputIssue';
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import { createEmptyTafCommittedRow, createTafRowId } from '../../domain/erstatningsopgoerelse/tables/tafTableModel';
-import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
@@ -61,7 +60,7 @@ const TafPeriodeTable = React.memo(({
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
-    isRowEmpty: isTafRowEmpty,
+    isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
     reorderRows: table.reorderRows,
     saveOrderPath,
@@ -102,7 +101,7 @@ const TafPeriodeTable = React.memo(({
           <TableCell><GridIntegerCell gridCell={{ rowId: row.rowId, colIndex: 2 }} cell={table.buildCellSpec(row, eoTafPeriodeLoseFeriedageField, 2)} /></TableCell>
           <RowDeleteLaneCell>
             <Typography variant="body1">{calculated === null ? '' : formatAsAmountTrimmed(calculated)}</Typography>
-            {committed !== undefined && !isTafRowEmpty(committed) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
+            {committed !== undefined && !table.isRowEmpty(committed.id) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
           </RowDeleteLaneCell>
         </TableRow>;
       })}</TableBody>

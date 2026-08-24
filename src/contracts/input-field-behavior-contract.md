@@ -3,7 +3,11 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-19 (§1.2a punkt 7 er PRÆCISERET og målt: tilstandsuafhængighed er
+**Senest verificeret mod kode:** 2026-08-24 (§1.0a og beløbsreglen er implementeret og målt: canonical
+og rejected rækkeindhold deler tomhedsvurdering for trailing række, sletning og sortering på alle
+collection-tabeller; defaultvalg tæller kun som input ved fravalg; rene manglende partnerfelter får
+ikke rød ring; hvert beløbstalled har højst ét decimalkomma)
+2026-08-19 (§1.2a punkt 7 er PRÆCISERET og målt: tilstandsuafhængighed er
 kravet, ikke identitet med tastning. Datofamiliens segmentfordeling er bevaret, jf. brugerens afgørelse af
 BB-003, men den afgøres nu af, om paste'en efterlader noget af brugerens tekst – ikke af om editoren er
 åben. `resolvePasteContextDraft` ejer beslutningen ét sted for alle tre paste-surfaces, og
@@ -80,6 +84,18 @@ indeksværdier ved regulering af TAF, kan lovligt overstige 100 % og er slet ikk
   som canonical værdi og markeres med rød feltfejl og konkret tooltip.
 - Manglende værdi er ikke automatisk en rød feltfejl. Om tomhed giver en samlet fejl, en gul advarsel eller ingen
   feedback, afgøres af det konkrete felt og den consumer, der kræver værdien.
+
+### 1.0a Dynamiske rækker – tomhed, afvist input og manglende partnerfelter
+
+- En række med canonical indhold eller rejected råtekst er brugerindhold i UI'et: den kan slettes, sorteres som
+  indhold og udløser en trailing tom række. Beregningsprojektioner må fortsat skjule rejected værdier; de må
+  ikke bruges som UI'ets tomhedstest.
+- Kun en collection-descriptors eksplicitte defaultværdier tæller ikke alene som rækkeindhold. Det gælder fx en
+  ikke-tømbar dropdowns standardvalg; et valg, der ikke er default, tæller som indhold.
+- En delvist udfyldt række får ikke rød ring på et tomt partnerfelt alene, fordi en anden celle i rækken er
+  udfyldt. Manglen vises i stedet af den beregning eller download-gate, der kræver den komplette række.
+  Feltet bliver fortsat rødt for sit eget format, sin egen grænse eller en konkret tværgående regel, som den
+  aktuelle værdi bryder.
 
 ### 1.1a Totrins-aktivering – universelt, også for transiente felter
 
@@ -189,7 +205,7 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
      som en egen betingelse på et kaldssted.
 
    Brugerfundet, der lukkede hullet, er BB-042 (`docs/testing/brugerblik/minprocesrente.md`, 2026-08-19): `010623` indsat i et tomt
-   «Renter fra» blev `01-06-2023`, men indsat i et udfyldt felt med alt markeret blev det `01` med rød ring.
+   «Forfaldsdato» blev `01-06-2023`, men indsat i et udfyldt felt med alt markeret blev det `01` med rød ring.
    «Markér alt og indsæt» er den naturlige måde at rette en dato på, og brugeren kan ikke vide, at feltets
    tidligere indhold afgør, hvordan hans indsatte tekst læses.
 
@@ -307,6 +323,8 @@ For de gennemgåede beløbsfelter er følgende regler bindende:
   kommer ikke ind i feltet, hverken ved tastning eller paste. Overskydende cifre springes over ved paste uden
   at forhindre senere operatorer og tal i at blive behandlet. Dette erstatter den tidligere regel om 20
   heltalscifre pr. talled.
+- Hvert talled har højst ét decimalkomma. `1,5 + 2,5` er derfor lovligt, mens `1,2,3` blokeres ved den anden
+  komma i samme talled.
 - Et beløbsudtryk, der er syntaktisk gyldigt, men hvis **beregnede resultat** ligger uden for
   `-9.999.999,99` til `9.999.999,99`, kan ikke blokeres tegn for tegn. Resultatet bevares derfor som canonical
   værdi med rød ring og konkret tooltip om, at beløbet ikke kan overstige `9.999.999,99` (henholdsvis ikke kan

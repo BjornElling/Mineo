@@ -46,9 +46,12 @@ describe('isRentekravRowEmpty', () => {
     expect(isRentekravRowEmpty(row)).toBe(false);
   });
 
-  it('kun enhed ændret, resten undefined → true (enhed tæller ikke)', () => {
-    // isRentekravRowEmpty tjekker kun belob, renterFra og tillaegstid
+  it('kun standardenheden sat, resten undefined → true', () => {
+    expect(isRentekravRowEmpty(emptyRow())).toBe(true);
+  });
+
+  it('kun enhed ændret fra standarden → false', () => {
     const row: RentekravRow = { ...emptyRow(), enhed: 'maaneder' };
-    expect(isRentekravRowEmpty(row)).toBe(true);
+    expect(isRentekravRowEmpty(row)).toBe(false);
   });
 });

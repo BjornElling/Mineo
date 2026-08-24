@@ -14,7 +14,6 @@ import { serializeFieldAddress, type CollectionRef } from '../../inputCore/field
 import type { FieldIssue, FieldIssueSet } from '../../inputCore/inputIssue';
 import type { SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { createEmptySvieCommittedRow, createSvieRowId } from '../../domain/erstatningsopgoerelse/tables/svieSmerteTableModel';
-import { isSvieSmerteRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
@@ -53,7 +52,7 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath,
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
-    isRowEmpty: isSvieSmerteRowEmpty,
+    isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
     reorderRows: table.reorderRows,
     saveOrderPath,
@@ -97,7 +96,7 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath,
               <MenuItem value="sygemeldt">Sygemeldt</MenuItem>
               <MenuItem value="delvist-sygemeldt">Delvist Sygemeldt</MenuItem>
             </GridChoiceCell>
-            {committed !== undefined && !isSvieSmerteRowEmpty(committed) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
+            {committed !== undefined && !table.isRowEmpty(committed.id) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
           </RowDeleteLaneCell>
         </TableRow>;
       })}</TableBody>

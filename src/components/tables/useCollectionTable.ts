@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import { useCollectionRowCommands } from '../../inputCore/react/useCollectionRows';
+import { useInputEvaluation } from '../../inputCore/react/useInputEvaluation';
 import type { CellSpec } from '../../inputCore/react/useCellEditor';
 import {
   useCollectionCellSpecBuilder,
@@ -44,7 +45,6 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   locationPrefix,
   locationNav,
   minimumVisibleRows = 1,
-  countsAsEmptyEntryRow,
 }: Readonly<{
   collection: CollectionRef;
   committedRows: readonly TRow[];
@@ -59,20 +59,6 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    */
   minimumVisibleRows?: number;
   /**
-   * Tæller en committet række allerede som tabellens tomme indtastningsrække?
-   *
-   * Standardsvaret er nej: en committet række er data, og tabellen får sin egen tomme række
-   * ovenpå. Rentekrav-tabellen er undtagelsen – dér er «kun enhed valgt» stadig semantisk tomt,
-   * og den række ER indtastningsrækken, så en placeholder oveni ville give to tomme rækker.
-   *
-   * Udtrykt som et prædikat på den committede MÆNGDE og ikke som et `boolean` fra kaldstedet,
-   * fordi det er samme slags visningsregel som `minimumVisibleRows`: den bestemmer HVOR MANGE
-   * tomme rækker der vises, ikke hvordan de bygges. Lå den ude ved kaldstedet, ville tabellen
-   * skulle bygge render-modellen selv for at anvende den – og dermed være tilbage ved sin egen
-   * kopi af identitetskæden.
-   */
-  countsAsEmptyEntryRow?: (row: TRow) => boolean;
-  /**
    * Eksplicit navigation-metadata for cellernes editorlokationer (§3.7): route + fane for den side/fane, tabellen
    * bor på. Kalderen leverer den, fordi tabellen ikke kan udlede route af `locationPrefix`.
    *
@@ -82,6 +68,7 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>) => {
+  const evaluation = useInputEvaluation();
   // KUN rækkekommandoerne: rækkerne kommer fra slice-projektionens `committedRows` (den kanoniske read-grænse),
   // så tabellen må ikke også abonnere på collectionens aggregat-id-liste – det ville være to reaktive
   // rækkekilder for samme collection. Kommandoerne bærer tabellens origin, så undo/redo af en rækkehandling
@@ -92,10 +79,21 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
     tabKey: locationNav.tabKey,
   });
   const committedIdSet = React.useMemo(() => new Set(committedRows.map((row) => row.id)), [committedRows]);
-  // Altid mindst én tom indtastningsrække, og nok til at nå `minimumVisibleRows`. Tæller en committet
-  // række allerede som den tomme indtastningsrække, er bunden 0 i stedet for 1 – ellers ville tabellen
-  // vise to tomme rækker.
-  const hasEmptyEntryRow = countsAsEmptyEntryRow !== undefined && committedRows.some(countsAsEmptyEntryRow);
+  // UI-tomhed er ikke det samme som beregningens canonical tomhed: en rejected råtekst er skjult i
+  // rækkeprojektionen, men skal stadig give sletning og holde en ny trailing række fremme. Readeren ejer
+  // den eneste prøve, inklusive undtagelsen for ikke-tømbare dropdown-defaults.
+  const rowsWithSettledInput = React.useMemo(
+    () => new Set(committedRows
+      .filter((row) => evaluation.reader.hasEntityInput(collection, row.id))
+      .map((row) => row.id)),
+    [collection, committedRows, evaluation.reader]
+  );
+  const isRowEmpty = React.useCallback(
+    (rowId: string): boolean => !rowsWithSettledInput.has(rowId),
+    [rowsWithSettledInput]
+  );
+  // En committet række uden afsluttet input fungerer selv som den trailing indtastningsrække.
+  const hasEmptyEntryRow = committedRows.some((row) => isRowEmpty(row.id));
   const placeholderCount = Math.max(hasEmptyEntryRow ? 0 : 1, minimumVisibleRows - committedRows.length);
   // Den ENE placeholder-identitets-livscyklus (§1.11/§3.7): puljen BEVARER et promoveret id, så det kan
   // genindtræde, hvis rækken forsvinder ved et undo – ellers findes der intet element, fokusrestoren kan
@@ -142,7 +140,9 @@ export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
     buildRenderRows,
     committedById,
     buildCellSpec,
+    isRowEmpty,
+    rowsWithSettledInput,
     removeRow: rows.remove,
     reorderRows: rows.reorder,
-  }), [buildCellSpec, buildRenderRows, committedById, rows.remove, rows.reorder]);
+  }), [buildCellSpec, buildRenderRows, committedById, isRowEmpty, rows.remove, rows.reorder, rowsWithSettledInput]);
 };

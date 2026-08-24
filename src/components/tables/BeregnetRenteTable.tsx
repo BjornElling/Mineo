@@ -12,7 +12,6 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravRowResult } from '../../domain/renteberegning/renteberegningEngine';
-import type { RentekravRowRuleIssues } from '../../domain/renteberegning/renteberegningReaderProjection';
 import {
   createEmptyRentekravCommittedRow,
   createRentekravRowId,
@@ -90,10 +89,6 @@ export type BeregnetRenteTableProps = Readonly<{
   committedRows: readonly RentekravRow[];
   /** Per-række rente-projektion (reader-afledt af forælderen). */
   rowProjections: ReadonlyMap<string, ProjectionResult<RentekravRowResult>>;
-  /** Afledte rækkeinterne parregler, der markerer det manglende felt uden at ændre canonical input. */
-  rowRuleIssues: ReadonlyMap<string, RentekravRowRuleIssues>;
-  /** Rækker med afsluttet input – rejected råtekst tæller også. */
-  rowsWithSettledInput: ReadonlySet<string>;
   onDownloadSpecifikation: (rowId: string) => Promise<void>;
   saveOrderPath?: TableSaveOrderPath;
   isMobile?: boolean;
@@ -113,7 +108,6 @@ type BeregnetRenteRowProps = Readonly<{
   onDownloadSpecifikation: (rowId: string) => Promise<void>;
   onDeleteRow: (rowId: string) => void;
   projection: ProjectionResult<RentekravRowResult> | undefined;
-  rowRuleIssues: RentekravRowRuleIssues | undefined;
   rowIsSemanticallyEmpty: boolean;
   isMobile: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
@@ -128,7 +122,6 @@ const BeregnetRenteRow = React.memo(
     onDownloadSpecifikation,
     onDeleteRow,
     projection,
-    rowRuleIssues,
     rowIsSemanticallyEmpty,
     isMobile,
     documentDownloadFormat,
@@ -158,7 +151,6 @@ const BeregnetRenteRow = React.memo(
           <GridAmountCell
             gridCell={gc(COL.belob)}
             cell={buildCellSpec<AmountValue | undefined>(renderRow, rentekravBelobField, COL.belob)}
-            {...(rowRuleIssues?.belob === undefined ? {} : { collectionRuleIssue: rowRuleIssues.belob })}
           />
         </TableCell>
 
@@ -166,7 +158,6 @@ const BeregnetRenteRow = React.memo(
           <GridDateCell
             gridCell={gc(COL.renterFra)}
             cell={buildCellSpec<ISODateString | undefined>(renderRow, rentekravRenterFraField, COL.renterFra)}
-            {...(rowRuleIssues?.renterFra === undefined ? {} : { collectionRuleIssue: rowRuleIssues.renterFra })}
           />
         </TableCell>
 
@@ -263,17 +254,14 @@ const BeregnetRenteTable = React.memo(
   ({
     committedRows,
     rowProjections,
-    rowRuleIssues,
-    rowsWithSettledInput,
     onDownloadSpecifikation,
     saveOrderPath,
     isMobile = false,
     documentDownloadFormat,
     resolveDownloadGate,
   }: BeregnetRenteTableProps) => {
-    // En række med kun valgt enhed er fortsat semantisk tom og fungerer selv som den ene trailing
-    // indtastningsrække; derfor `countsAsEmptyEntryRow`. Placeholder-id'et holdes stadig varmt af
-    // hooken, så undo kan genskabe fokus.
+    // Kataloget ejer, om en række er tom. Det inkluderer både default-valget og afvist råtekst,
+    // så alle dynamiske tabeller får samme trailing-, slette- og sorteringsadfærd.
     const table = useCollectionTable<RentekravRow>({
       collection: rentekravRowsCollectionRef,
       committedRows,
@@ -281,7 +269,6 @@ const BeregnetRenteTable = React.memo(
       createEmptyRow: createEmptyRentekravCommittedRow,
       locationPrefix: collectionLocationPrefix(rentekravRowsCollectionRef),
       locationNav: { route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning },
-      countsAsEmptyEntryRow: (row) => !rowsWithSettledInput.has(row.id),
     });
 
     const sortColumns = React.useMemo(() => [
@@ -292,7 +279,7 @@ const BeregnetRenteTable = React.memo(
     const { sortedRows, sortableHeader } = useSortedCollectionTable({
       committedRows,
       getRowId: (row) => row.id,
-      isRowEmpty: (row) => !rowsWithSettledInput.has(row.id),
+      isRowEmpty: (row) => table.isRowEmpty(row.id),
       columns: sortColumns,
       reorderRows: table.reorderRows,
       saveOrderPath,
@@ -306,13 +293,13 @@ const BeregnetRenteTable = React.memo(
         // En canonical tom trailing række er kun en strukturel placeholder og skal ikke skjule en
         // gyldig samlet sum. Alle rækker med faktisk afsluttet input skal derimod være beregningsklare,
         // før totalen vises – en delsum ville være mere misvisende end ingen sum.
-        if (!rowsWithSettledInput.has(row.id)) continue;
+        if (table.isRowEmpty(row.id)) continue;
         const projection = rowProjections.get(row.id);
         if (projection?.status !== 'ready' || projection.value.pdfContext === null) return null;
         values.push(projection.value.pdfContext.calculatedInterest);
       }
       return values.length > 1 ? round2(values.reduce((sum, value) => sum + value, 0)) : null;
-    }, [committedRows, rowProjections, rowsWithSettledInput]);
+    }, [committedRows, rowProjections, table]);
 
     return (
       <StandardLooseTable
@@ -378,7 +365,7 @@ const BeregnetRenteTable = React.memo(
               sx={{ width: isMobile ? '33%' : '163px' }}
               {...sortableHeader('renterFra')}
             >
-              Renter fra
+              Forfaldsdato
             </StandardLooseHeaderCell>
             {!isMobile && <TableCell colSpan={2} sx={{ width: '314px' }}>Evt. tillægstid</TableCell>}
             {!isMobile && <TableCell align="center" sx={{ width: '163px' }}>Rentedato</TableCell>}
@@ -397,8 +384,7 @@ const BeregnetRenteTable = React.memo(
                 onDownloadSpecifikation={onDownloadSpecifikation}
                 onDeleteRow={table.removeRow}
                 projection={rowProjections.get(renderRow.rowId)}
-                rowRuleIssues={rowRuleIssues.get(renderRow.rowId)}
-                rowIsSemanticallyEmpty={committedRow === undefined || !rowsWithSettledInput.has(renderRow.rowId)}
+                rowIsSemanticallyEmpty={committedRow === undefined || table.isRowEmpty(renderRow.rowId)}
                 isMobile={isMobile}
                 documentDownloadFormat={documentDownloadFormat}
                 resolveDownloadGate={resolveDownloadGate}
@@ -411,10 +397,10 @@ const BeregnetRenteTable = React.memo(
           <TableFooter>
             <TableRow>
               <TableCell colSpan={isMobile ? 2 : 5} align="right">
-                <Typography sx={{ fontWeight: 700 }}>Samlet rentebeløb</Typography>
+                <Typography>Samlet rentebeløb</Typography>
               </TableCell>
               <TableCell align="right">
-                <Typography sx={{ fontWeight: 700 }}>{formatKr(totalInterest, 2)}</Typography>
+                <Typography>{formatKr(totalInterest, 2)}</Typography>
               </TableCell>
               {!isMobile && <TableCell />}
             </TableRow>

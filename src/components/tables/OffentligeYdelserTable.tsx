@@ -24,7 +24,6 @@ import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
-import { isOffentligeYdelserRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 
 type DerivedRow = Readonly<{ periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string }>;
 export type OffentligeYdelserTableProps = Readonly<{
@@ -67,7 +66,7 @@ const OffentligeYdelserTable = React.memo(({
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
-    isRowEmpty: isOffentligeYdelserRowEmpty,
+    isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
     reorderRows: table.reorderRows,
     saveOrderPath,
@@ -98,7 +97,7 @@ const OffentligeYdelserTable = React.memo(({
         <td style={derivedStyle}>{derived?.antalDageDisplay ?? ''}</td>
         <td style={rowDeleteLaneStyle({ ...derivedStyle, textAlign: 'right' })}>
           {derived?.ydelsePerDagDisplay ?? ''}
-          {committed !== undefined && !isOffentligeYdelserRowEmpty(committed) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
+          {committed !== undefined && !table.isRowEmpty(committed.id) ? <RowDeleteButton onDelete={() => table.removeRow(committed.id)} /> : null}
         </td>
       </tr>;
     })}</tbody>

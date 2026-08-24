@@ -25,6 +25,9 @@ det er kernen i fladens tungeste fund.
 
 ## Fund
 
+For hvert afgjort fund nedenfor står brugeroplevelsen særskilt som «Før rettelsen» og «Nu efter
+rettelsen». De efterfølgende reproduktionstrin og målinger bevares som det tekniske grundlag.
+
 ### BB-080 – En rød dato i Stamdata slukker alle downloadknapper på Renteberegning, og intet på siden peger derhen
 
 - **Type:** Fornuft
@@ -34,6 +37,12 @@ det er kernen i fladens tungeste fund.
 - **Resultat:** Stamdata projekteres kun som dokumentafhængighed, når Renteberegningens brevhoved er
   slået til. En ugyldig Stamdata-værdi blokerer derfor ikke længere et dokument uden brevhoved; er
   brevhovedet slået til, peger knappen på «Ret fejlen i Stamdata».
+- **Brugerens oplevelse – før rettelsen:** Brugeren så et beregnet rentebeløb, men begge
+  downloadknapper blev grå med «Fejl i indtastning». Intet på Renteberegning viste, at fejlen lå i
+  Stamdata, og blokeringen forsvandt ikke, selv om brevhovedet var slået fra.
+- **Brugerens oplevelse – nu efter rettelsen:** Når brevhovedet er slået fra, kan brugeren hente
+  dokumentet, selv om en Stamdata-værdi er afvist. Når brevhovedet er slået til, er knappen fortsat
+  blokeret, men tooltippen fortæller direkte, at fejlen skal rettes i Stamdata.
 - **Sådan fremprovokeres det:**
   1. Renteberegning: beregningsdato `19-08-2026`, én række med `100.000` og «Renter fra» `31-01-2024`.
      Rækken regner `27.111,89 kr.`, og både rækkens downloadikon og «Download samlet oversigt» er aktive.
@@ -69,6 +78,9 @@ det er kernen i fladens tungeste fund.
   kalder `projectStamdataForDocument` ubetinget. Kun Fødselsdato og Skadedato kan gå røde i Stamdata;
   de fire tekstfelter og skadestypen kan ikke.
 
+**Tilbagemelding**
+Jeg accepterer løsningen og rettelsen. Men er den implementeret alle steder, hvor problemet kunne være aktuelt. Undersøg det venligst nøje, og hvis ikke, så find på en lignende løsning de øvrige steder. Overvej desuden om princippet bør forankres i en kontrakt.
+
 ### BB-081 – Oversigtsdokumentets kolonne «Rente fra» viser rentedatoen, ikke den dato skærmen kalder «Renter fra»
 
 - **Type:** Fejl
@@ -77,6 +89,12 @@ det er kernen i fladens tungeste fund.
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** Oversigten bruger nu «Rentedato» som kolonneoverskrift, fordi værdien er den afledte
   rentedato efter tillægstid.
+- **Brugerens oplevelse – før rettelsen:** Brugeren skrev «Renter fra» `31-12-2018`, men så den
+  afledte dato `30-01-2019` stå under overskrift «Rente fra» i oversigten. Dokumentet lignede derfor,
+  at programmet havde ændret den indtastede dato.
+- **Brugerens oplevelse – nu efter rettelsen:** Brugeren kan se, at `30-01-2019` er «Rentedato»
+  – den dato renten faktisk løber fra – og kan skelne den fra den indtastede «Renter fra»-dato på
+  skærmen.
 - **Sådan fremprovokeres det:**
   1. Beregningsdato `19-08-2026`. Én række: `200.000`, «Renter fra» `31-12-2018`, tillægstid `30`, enhed Dage.
   2. Skærmen viser nu: «Renter fra» = `31-12-2018`, «Rentedato» = `30-01-2019`,
@@ -102,6 +120,9 @@ det er kernen i fladens tungeste fund.
   («bærer en dokumentkolonne en ANDEN kolonnes værdi under en tredje kolonnes navn?») hører på
   Årsløn, EET og EO, hvor dokumenttabellerne har flere afledte kolonner end skærmen.
 
+**Tilbagemelding**
+Jeg vil gerne have ændret udtrykket 'Renter fra' til 'Forfaldsdato'. Det er den juridiske korrekte terminologi. Sørg for at gøre det konsekvent. Jeg kan desuden ikke se, om rettelserne til dette punkt også slår igennem på minprocesrente-siden. Hvis ikke, vil jeg gerne have, at du overvejer nøje, om ikke de bør, og retter, hvis du er enig.
+
 ### BB-082 – Skærmen lægger ikke rentebeløbene sammen; kun dokumentet gør
 
 - **Type:** Fornuft
@@ -109,6 +130,11 @@ det er kernen i fladens tungeste fund.
 - **Prioritet:** Mellem
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** Skærmen viser «Samlet rentebeløb», når mindst to rækker har gyldige beregninger.
+- **Brugerens oplevelse – før rettelsen:** Brugeren skulle hente oversigten eller selv lægge
+  renterækkerne sammen for at få det samlede beløb. Skærmen viste kun de enkelte beløb.
+- **Brugerens oplevelse – nu efter rettelsen:** Når mindst to krav kan beregnes, står «Samlet
+  rentebeløb» direkte i tabellen med samme sum som i oversigtsdokumentet. Brugeren kan derfor
+  kontrollere og bruge totalsummen uden at hente et dokument.
 - **Sådan fremprovokeres det:**
   1. Udfyld fire rentekrav (målt: `139.028,63` + `62.103,91` + `21.541,06` + `5.336,49`).
   2. Læs kolonnen «Beregnet rente» på skærmen.
@@ -125,6 +151,9 @@ det er kernen i fladens tungeste fund.
 - **Andre steder det kan gælde:** samme forhold findes pr. konstruktion i MinProcesrente (delt
   komponent), og prøven («summerer dokumentet noget, skærmen ikke summerer?») hører på Årsløn og EO.
 
+**Tilbagemelding**
+Jeg accepterer rettelsen, dog med den rent visuelle ændring, at teksten og det sammentalte beløb lige nu står med fed skrift, hvilket gør det for bastant. Det skal blot have almindelige skrifttype.
+
 ### BB-083 – Én ufuldstændig rentelinje spærrer hele oversigten, og intet peger på linjen
 
 - **Type:** Edge case
@@ -133,6 +162,12 @@ det er kernen i fladens tungeste fund.
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** En manglende beløbs-/datopartner markeres nu direkte på det felt, der skal udfyldes,
   med den konkrete regeltekst.
+- **Brugerens oplevelse – før rettelsen:** Brugeren kunne udfylde et beløb i en række uden dato,
+  hvorefter den samlede download blev grå med «Indtastning mangler». Ingen rød markering viste,
+  hvilken række eller hvilket felt der skulle rettes.
+- **Brugerens oplevelse – nu efter rettelsen:** Det manglende felt i den pågældende række bliver
+  markeret rødt og forklarer den konkrete regel. Brugeren kan gå direkte til den manglende dato eller
+  det manglende beløb, mens blokeringen af oversigten stadig beskytter mod at udelade rækken.
 - **Sådan fremprovokeres det:**
   1. Beregningsdato `19-08-2026`. Tre komplette rækker (`200.000/31-12-2018`, `100.000/01-01-2020`,
      `50.000/01-06-2022`).
@@ -152,6 +187,8 @@ det er kernen i fladens tungeste fund.
 - **Andre steder det kan gælde:** samme form i alle tabeller, hvor et aggregat spærres af en
   ufuldstændig række: Årsløns lønrækker, EO's Lønindkomst og Offentlige ydelser.
 
+**Jeg accepterer ikke rettelsen. Den er forkert og den er kontrakt-stridig. Rettelsen resulterer i, at allerede mens brugeren indtaster, og beløbet er indtastet, men inden brugeren overhovedet når til at angive resten af datoerne, får brugeren en fejlmeddelelse om manglende indtastninger. Det er ukorrekt adfærd - både her og i programmet i øvrigt. Det oprindelige fund er ikke en fejl og skulle ikke have været ændret. Det vil være åbenlyst for brugeren, at en fejlmeddelelse om manglende indtastninger relaterer til ufuldstændige rækker. Fjern rettelsen og opdater kontrakter til at afspejle den korrekte tilgang i denne slags situationer."
+
 ### BB-084 – En række, hvis eneste indhold er en afvist værdi, regnes for tom: ingen slet-knap og ingen ny indtastningsrække
 
 - **Type:** Edge case
@@ -160,6 +197,12 @@ det er kernen i fladens tungeste fund.
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** Afvist råtekst tæller som afsluttet rækkeindhold, så rækken får sletning og en ny
   tom indtastningsrække.
+- **Brugerens oplevelse – før rettelsen:** En række med synlig, men afvist tekst blev behandlet som
+  tom. Brugeren kunne hverken slette rækken eller få en ny tom række, selv om tabellen tydeligt viste,
+  at der var indhold.
+- **Brugerens oplevelse – nu efter rettelsen:** En række med afvist tekst behandles som en rigtig
+  række i tabellen. Brugeren kan slette den, og der kommer en ny tom indtastningsrække, så en fejl ikke
+  låser den videre indtastning.
 - **Sådan fremprovokeres det:**
   1. Stil markøren i tabellens nederste, tomme beløbscelle.
   2. Indsæt tre beløb fra et regneark (`1.000,00` / `2.000,00` / `3.000,00` – tre linjer). Se BB-088
@@ -183,6 +226,9 @@ det er kernen i fladens tungeste fund.
 - **Andre steder det kan gælde:** alle tabeller på `useCollectionTable` med `countsAsEmptyEntryRow`,
   dvs. Årsløn, EO's Lønindkomst og Offentlige ydelser, EET's afgørelsestabeller.
 
+**Tilbagemelding**
+Jeg er enig i fundet og i rettelsen - både her og andre steder i programmet. Programmet må ikke opfatte en række som tom, blot fordi den kun indeholder ugyldige indtastninger. Programmet skal kigge på indtastninger alene, når det kommer til at vurdere, om en række er tom eller ej. Bemærk, at der er en undtagelse derved, at de særlige typer dropdowns, der har en defaultværdi og ikke kan tømmes, ikke skal betragtes som ændrede, hvis kun dropdownværdien er ændret. Hvis ikke dropdownen er af denne særlige type, skal det betragtes som en ændret række, hvis der er valgt en dropdown-værdi. Disse principper bør formentlig skrives ind i kontrakter.
+
 ### BB-085 – Rækkens downloadikon forsvinder i stedet for at blive inaktivt med en årsag
 
 - **Type:** Fornuft
@@ -191,6 +237,12 @@ det er kernen i fladens tungeste fund.
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** En række med indhold beholder sit downloadikon; det bliver deaktiveret med gatens
   årsag, når den aktuelle række ikke kan hentes.
+- **Brugerens oplevelse – før rettelsen:** Når beregningsdatoen manglede, forsvandt rækkens
+  downloadikon helt. Brugeren kunne derfor ikke se, om specifikationen fandtes, eller hvorfor den ikke
+  kunne hentes.
+- **Brugerens oplevelse – nu efter rettelsen:** En række med indhold viser altid sit downloadikon.
+  Hvis dokumentet er blokeret, er ikonet inaktivt, og tooltippen forklarer årsagen, så brugeren kan se,
+  hvad der skal rettes.
 - **Sådan fremprovokeres det:**
   1. Udfyld en række helt (`100.000` / `31-01-2024`), men lad Beregningsdato være tom.
 - **Det sker:** Rækken viser sin Rentedato, men «Beregnet rente» og «Specifikation» er begge `-`.
@@ -207,6 +259,9 @@ det er kernen i fladens tungeste fund.
 - **Andre steder det kan gælde:** enhver tabel med en downloadknap pr. række. Konkret
   `regulering`-outputtet pr. ansættelsesforhold på Erstatningsopgørelse (flade 12).
 
+**Tilbagemelding**
+Jeg er enig i fundet og løsningen - både her og i resten af programmet. Download-ikoner skal ikke forsvinde ved manglende eller fejlbehæftede indtastninger. De skal deaktiveres med tooltip.
+
 ### BB-086 – «Slet alt»-bekræftelsens overskrift er ordret navnet på sidens egen, fortrydelige slet-knap
 
 - **Type:** Fornuft
@@ -215,6 +270,12 @@ det er kernen i fladens tungeste fund.
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** Den globale dialog hedder nu «Slet alt», så dens titel matcher den globale knap og
   ikke den lokale, fortrydelige handling.
+- **Brugerens oplevelse – før rettelsen:** Den globale knap «Slet alt» åbnede en dialog med
+  overskriften «Slet alle indtastninger» – samme ordlyd som den lokale og fortrydelige sletning på
+  siden. Brugeren skulle læse brødteksten for at se forskellen.
+- **Brugerens oplevelse – nu efter rettelsen:** Den globale handling åbner dialogen «Slet alt», mens
+  den lokale handling har sit eget navn. Dialogens overskrift viser dermed straks, om brugeren er ved
+  at slette hele sagen eller kun indtastningerne på den aktuelle side.
 - **Sådan fremprovokeres det:**
   1. På Renteberegning: tryk rækken «Slet alle indtastninger» (papirkurvsikonet).
   2. Annullér, og tryk i stedet sidemenuens «Slet alt».
@@ -238,6 +299,9 @@ det er kernen i fladens tungeste fund.
   EO's «Slet ansættelsesforhold». Prøven er: **siger dialogens overskrift det samme som den knap, der
   åbnede den?**
 
+**Tilbagemelding**
+Jeg anerkender fundet og rettelsen.
+
 ### BB-087 – De to dokumenter fra samme fane skriver de samme datoer i to formater
 
 - **Type:** Fornuft
@@ -246,6 +310,11 @@ det er kernen i fladens tungeste fund.
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** Oversigten skriver nu datoer i samme korte danske format som specifikationen og
   skærmen.
+- **Brugerens oplevelse – før rettelsen:** Brugeren så datoer som `19-08-2026` på skærmen og i
+  specifikationen, men som «19. august 2026» i oversigten. Dokumenterne så derfor ud, som om de brugte
+  forskellige oplysninger eller formater.
+- **Brugerens oplevelse – nu efter rettelsen:** Skærmen, specifikationen og oversigten viser datoer
+  ens som `dd-mm-åååå`. Brugeren kan sammenholde dokumenterne direkte uden at oversætte formatet.
 - **Sådan fremprovokeres det:**
   1. Én række (`200.000`, `31-12-2018`, tillægstid 30 dage), beregningsdato `19-08-2026`.
   2. Hent både rækkens specifikation og den samlede oversigt.
@@ -265,6 +334,9 @@ det er kernen i fladens tungeste fund.
 - **Andre steder det kan gælde:** prøven er billig og hører på hver flade med mere end ét dokument:
   Erhvervsevnetab (fem generatorer), Erstatningsopgørelse (bilagene) og Forsørgertab.
 
+**Tilbagemelding**
+Jeg anerkender fundet og rettelsen.
+
 ### BB-088 – En indsat regnearkskolonne af beløb smelter sammen til én afvist værdi
 
 - **Type:** Edge case
@@ -273,6 +345,12 @@ det er kernen i fladens tungeste fund.
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** Paste af flere linjer i numeriske felter bruger første linje som feltets værdi, så
   linjeskift ikke smelter en hel regnearkskolonne sammen til én afvist draft.
+- **Brugerens oplevelse – før rettelsen:** Når brugeren indsatte flere beløb fra et regneark i en
+  celle, blev linjerne smeltet sammen til én afvist værdi som `1000,00,`. Den indsatte værdi blev rød,
+  og det var uklart, hvad programmet havde læst.
+- **Brugerens oplevelse – nu efter rettelsen:** Feltet bruger den første indsatte linje som sin værdi,
+  fx `1.000,00`, i stedet for at samle flere linjer til en ugyldig tekst. Brugeren får dermed en
+  genkendelig værdi i feltet og kan fortsætte eller indsætte de øvrige beløb enkeltvis.
 - **Sådan fremprovokeres det:**
   1. Kopiér tre beløb fra et regneark – tre linjer: `1.000,00`, `2.000,00`, `3.000,00`.
   2. Indsæt dem i tabellens tomme beløbscelle og tryk Enter.
@@ -293,6 +371,9 @@ det er kernen i fladens tungeste fund.
   liste er stadig uafprøvede: Årslønssidens årsfelt og EO's `col1_maaned` (begge tabelceller, hvor et
   indsat regneark er den sandsynlige kilde).
 
+**Tilbagemelding**
+Det er et relevant fund at addressere, men jeg er ikke enig i fremgangsmåden. Det indfører parallel logik at lave særregler for indsætning af rækker fra regneark og for linjeskifte. Plus fejlen vidner i realiteten om en anden, underliggende problematik om, at et beløbfelt tillader indtastning af to kommaer. Det burde det ikke. Der burde ske en automatisk blokering af yderligere kommaer efter det første. Dette vil formentlig også være relevant i andre felter, hvor der kan indtastes kommaer - fx. i procentfelter. Jeg har ikke testet, om problemet også opstår der, men hvis det gør, bør det også retets der. Lav en universiel rettelse på alle de inputfelter, hvor det kunne være aktuelt.
+
 ### BB-089 – «Rentedato» betyder to forskellige ting på sidens to faner
 
 - **Type:** Fornuft
@@ -300,6 +381,12 @@ det er kernen i fladens tungeste fund.
 - **Prioritet:** Lav
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** Rentesatsfanens kolonne hedder nu «Gælder fra».
+- **Brugerens oplevelse – før rettelsen:** På begge faner stod kolonneoverskriften «Rentedato»,
+  selv om den på Beregning var kravets rentedato og på Rentesatser var den dato, en referencesats
+  trådte i kraft.
+- **Brugerens oplevelse – nu efter rettelsen:** «Rentedato» bruges kun om den dato, renten løber fra
+  for et krav. På satsfanen hedder kolonnen «Gælder fra», så brugeren kan se, om en dato skal bruges i
+  beregningen eller blot angiver en sats' ikrafttræden.
 - **Sådan fremprovokeres det:**
   1. Fane «Beregning»: læs kolonnen **«Rentedato»** – den viser rækkens «Renter fra» plus tillægstid,
      altså den dato renten løber fra for netop dette krav (målt: `30-01-2019`).
@@ -316,6 +403,9 @@ det er kernen i fladens tungeste fund.
 - **Andre steder det kan gælde:** Satser-siden og Varige méns satsfane har tilsvarende
   ikrafttrædelseskolonner; ordvalget dér er ikke sammenlignet.
 
+**Tilbagemelding**
+Jeg mener, at vi har addresseret denne ovenfor. De korrekte betegnelser er Forfaldsdato og Rentedato, hvor Rentedato er Forfaldsdato + evt. tillægstid. Hvis der ikke er nogen tillægstid er Rentedato = Forfaldsdato. Begrebet rentedato anvendes konsekvent i relation til den beregnede rente. Forfaldsdato er dermed blot et beregningsteknisk udgangspunkt for at kunne fastsætte rentedatoen.
+
 ### BB-090 – De to «beregning + satser»-sider navngiver deres faner spejlvendt
 
 - **Type:** Fornuft
@@ -323,6 +413,11 @@ det er kernen i fladens tungeste fund.
 - **Prioritet:** Lav
 - **Beslutning:** Afgjort – rettet i review 2026-08-22
 - **Resultat:** Varige mén og Renteberegning bruger nu fanerne «Beregning» og «Satser».
+- **Brugerens oplevelse – før rettelsen:** To sider med samme opbygning brugte forskellige navne for
+  de samme faner: «Ménberegning»/«Satser» og «Beregning»/«Rentesatser». Brugeren skulle derfor lære
+  to navnemønstre for samme type navigation.
+- **Brugerens oplevelse – nu efter rettelsen:** Begge sider har fanerne «Beregning» og «Satser».
+  Brugeren kan skifte mellem siderne og genkende den samme faneplacering og funktion med det samme.
 - **Sådan fremprovokeres det:**
   1. Åbn Varige mén: fanerne heder **«Ménberegning»** og **«Satser»**.
   2. Åbn Renteberegning: fanerne heder **«Beregning»** og **«Rentesatser»**.
@@ -338,6 +433,9 @@ det er kernen i fladens tungeste fund.
   navneregel, ikke en enkeltrettelse.
 - **Andre steder det kan gælde:** ingen andre sider har i dag et beregning/sats-fanepar, men EET's
   og EO's fanenavne (fx «EET oplysninger», «EO oplysninger») bør læses med samme regel i hånden.
+
+**Tilbagemelding**
+Jeg anerkender fundet og rettelsen.
 
 ## Overvejet uden fund
 

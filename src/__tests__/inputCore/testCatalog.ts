@@ -111,6 +111,9 @@ export const rentekravRowsCollection: CollectionDescriptor<RentekravRow> = {
     ...sections,
     renteberegning: { ...ensureRente(readRente(sections)), rentekravRows: [...entities] },
   }),
+  // Standard-fixturen afprøver ikke automatisk tomrække-pruning; dens seedede rækker er altid data.
+  // Auto-pruning-tests bruger den særskilte variant nedenfor med produktionens tomhedsregel.
+  isEntityEmpty: () => false,
 };
 
 const updateRow = (
@@ -195,7 +198,7 @@ export const renterFraField: FieldDescriptor<ISODateString | undefined> = define
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
   emptyValue: undefined,
   isEmpty: isUndefined,
-  label: 'Renter fra',
+  label: 'Forfaldsdato',
   controlKind: 'text',
   dateBounds: unconstrainedDateBounds('Testfeltet tester inputkernen, ikke en produktgrænse.'),
   readCanonical: (sections, address) => readRow(sections, findRowId(address))?.renterFra,

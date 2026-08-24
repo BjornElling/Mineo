@@ -169,6 +169,8 @@ export type InputReader = Readonly<{
   sourceToken: EvaluationSourceToken;
   read: <T>(field: FieldRef<T>) => ReadFieldResult<T>;
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
+  /** Rejected råtekst tæller som rækkeindhold; en række med kun sin default gør ikke. */
+  hasEntityInput: (collection: CollectionRef, entityId: string) => boolean;
   /**
    * Feltets brugervendte navn i den aktuelle kontekst (§3.2a) – det navn brugeren SER stå ved feltet.
    *
@@ -195,6 +197,7 @@ export const createTrackedInputReader = (reader: InputReader): TrackedInputReade
     reader: Object.freeze({
       sourceToken: reader.sourceToken,
       listEntities: reader.listEntities,
+      hasEntityInput: reader.hasEntityInput,
       labelOf: reader.labelOf,
       read: <T>(field: FieldRef<T>): ReadFieldResult<T> => {
         const result = reader.read(field);
@@ -239,6 +242,8 @@ const createInputReader = (options: Readonly<{
       return resolveFieldLabel(field.descriptor, labelView);
     },
     listEntities: validation.listEntities,
+    hasEntityInput: (collection: CollectionRef, entityId: string): boolean =>
+      options.catalog.hasEntityInput(validation.input, collection, entityId),
   });
 };
 
