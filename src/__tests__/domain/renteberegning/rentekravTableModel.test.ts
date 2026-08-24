@@ -75,9 +75,9 @@ describe('ensureRentekravRows', () => {
 });
 
 describe('shouldAppendRentekravPlaceholder', () => {
-  it('genbruger en række med kun valgt enhed som trailing indtastningsrække', () => {
+  it('tilføjer en placeholder, når brugeren har valgt en anden enhed end standarden', () => {
     const row = { ...createEmptyRentekravCommittedRow('r1'), enhed: 'uger' as const };
-    expect(shouldAppendRentekravPlaceholder([row])).toBe(false);
+    expect(shouldAppendRentekravPlaceholder([row])).toBe(true);
   });
 
   it('tilføjer en placeholder når alle committed rækker indeholder egentligt renteinput', () => {
