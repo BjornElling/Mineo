@@ -3,9 +3,14 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-11 (§Regel 7's paste-afgrænsning er verificeret: `maxDraftLength`
-håndhæves nu også ved paste, og integrationstesten «afgrænser et indsat trecifret tal som ved tastning»
-måler at et paste af `987` giver `98` uden fejltilstand)
+**Senest verificeret mod kode:** 2026-08-25 (§Regel 8's uforanderlige halvårsinddeling og §Regel 11's
+lovhenvisninger er tilføjet efter brugerens afgørelse samme dag; halvårsguarden i
+`src/data/interestRates.ts` er mutationstestet i begge grene. §Regel 9–10 er nye og verificeret mod
+`procesrenteCalculator.ts`: tillægssatsen slås op på rentedatoen og genbruges for alle perioder,
+referencesatsen slås op pr. halvårsstart. Beregningen er uændret; de brugervendte tekster, der sagde
+«forfaldsdato», er rettet til «rentedato». §Regel 7's paste-afgrænsning blev verificeret 2026-08-11:
+`maxDraftLength` håndhæves også ved paste, og integrationstesten «afgrænser et indsat trecifret tal
+som ved tastning» måler at et paste af `987` giver `98` uden fejltilstand)
 
 ---
 
@@ -40,13 +45,48 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
    0–99, bliver canonical ved settle og får det afledte bounds-issue, som blokerer afhængige consumers. Samme
    bounds-regel er autoritativ ved load, hvor en trecifret værdi fra fil ikke er en tastning og derfor
    committes canonical med sit røde bounds-issue frem for at blive afkortet.
-8. Hvert kalenderår er opdelt i to halvår: 1. januar–30. juni og 1. juli–31. december. En referencesats
+8. Hvert kalenderår er opdelt i to halvår: 1. januar–30. juni og 1. juli–31. december. **Halvårsgrænserne
+   er uforanderlige og udledes ikke af data.** Referencesatsen ER den officielle udlånsrente, som
+   Nationalbanken har fastsat pr. 1. januar og pr. 1. juli det pågældende år (rentelovens § 5, stk. 1,
+   2. pkt.), så inddelingen kan ikke ændre sig. Domænet må derfor ikke indrettes til en anden kadence:
+   en referencesats med en anden ikrafttrædelsesdato end `01-01` eller `01-07`, eller et manglende
+   halvår i serien, er en **datafejl** og ikke en ny periodeinddeling. `src/data/interestRates.ts`
+   fail-closer på begge ved modul-load, fordi begge ellers er tavst forkerte: motoren skærer kun ved
+   30. juni og 31. december, og et manglende halvår ville få satsopslaget til at videreføre forrige
+   halvårs sats. En referencesats
    fastsættes på halvårets første dag og gælder til halvårets sidste dag. Hvis beregningsdatoen ligger efter
    udgangen af det senest dækkede halvår, bruger motoren den senest kendte referencesats og dokumentet viser
    en tydelig advarsel med denne halvårsudgang. Datoen for satsens ikrafttræden er ikke i sig selv en
    advarselsgrænse. Denne fail-soft-regel er den autoritative beregningsmetode; fremtidige satser må ikke
    gættes eller indføres som en skjult særregel, og beregningen må ikke blokeres alene fordi datoen ligger
    fremme i tid.
+9. **Terminologi (bindende, brugervendt).** Domænet har præcis to datobegreber pr. rentekrav:
+   **«Forfaldsdato»** er kravets forfaldsdato, som brugeren indtaster, og **«Rentedato»** er
+   forfaldsdato + eventuel tillægstid. Er der ingen tillægstid, er de to datoer ens. Rentedatoen er
+   den dato, renten løber fra, og den er derfor det afgørende begreb i beregningen; forfaldsdatoen er
+   alene det beregningstekniske udgangspunkt for at fastsætte rentedatoen. Ordet «Forfaldsdato» må
+   ikke bruges om andet end kravets egen forfaldsdato: en sats' ikrafttræden heder **«Gælder fra»**,
+   og ordet «Rentedato» må ikke bruges som overskrift over en sats' ikrafttræden. Reglen gælder
+   labels, kolonneoverskrifter, tooltips, fejlbeskeder, beregningsforudsætninger og
+   dokumentkolonner – både i Mineo og i standalone MinProcesrente.
+10. **Satsvalg (bindende beregningsregel).** Den samlede rentesats er referencesats + tillægssats, og
+    de to satser vælges på hver sin måde:
+    - **Referencesatsen er periodisk.** Den læses på hvert halvårs første dag inde i beregningen, så
+      et krav, der løber hen over et halvårsskifte, regnes med den sats, hvert halvår havde.
+    - **Tillægssatsen er fastlåst pr. krav.** Den vælges én gang ud fra den enkelte rækkes
+      **rentedato** og ændres ikke undervejs i beregningen. Ligger rentedatoen før `01-03-2013`,
+      anvendes 7 % for hele kravet – også for perioder efter `01-03-2013`. Forfaldsdatoen er aldrig
+      nøglen til tillægssatsen.
+    Al brugervendt tekst, der navngiver en dato som grundlag for en sats, skal navngive den dato,
+    reglen ovenfor faktisk bruger. En sammenlagt «procesrente»-visning pr. dato er derfor ikke
+    tilladt: den ville være forkert for krav med rentedato før `01-03-2013` og periode efter.
+11. **Lovhenvisninger for de to satser (brugerens afgørelse 2026-08-25).** Begge satser har hjemmel i
+    rentelovens **§ 5, stk. 1**, som lyder: «Renten efter forfaldsdagen fastsættes til en årlig rente,
+    der svarer til den fastsatte referencesats med et tillæg på 8 pct. Som referencesats anses i denne
+    lov den officielle udlånsrente, som Nationalbanken har fastsat henholdsvis pr. den 1. januar og den
+    1. juli det pågældende år.» Tillægget på 8 pct. står i **stk. 1** (1. pkt.), og definitionen af
+    referencesatsen i **stk. 1, 2. pkt.** Satsfanens to sætninger skal henvise dertil – ikke til
+    stk. 2, som er hjemlen til at ændre satsen og hverken fastsætter tillægget eller referencesatsen.
 
 ---
 
@@ -77,4 +117,9 @@ Tests skal dække:
 3. dokumentgate ved både manglende input, rejected/invalid format og canonical range/bounds-fejl,
 4. at både den reaktive knap og click-preflight blokerer før generator og fil-I/O for hver af fejlklasserne i punkt 3,
 5. at PDF og Word har samme gate,
-6. at dokument-output bruger samme rækkeberegnede `pdfContext` som UI (dokumentet genberegner ikke renteperioder).
+6. at dokument-output bruger samme rækkeberegnede `pdfContext` som UI (dokumentet genberegner ikke renteperioder),
+7. at satsvalget følger §2.10: tillægssatsen er den samme i alle perioder for et krav, hvis rentedato
+   ligger før `01-03-2013`, også når perioden løber ind i tiden efter, mens referencesatsen skifter ved
+   halvårsskiftet inde i samme beregning,
+8. at referencesatsserien er en ubrudt kæde af halvår med ikrafttræden kun `01-01`/`01-07` (§2.8) –
+   både som datapåstand og som modul-load-fail-close.

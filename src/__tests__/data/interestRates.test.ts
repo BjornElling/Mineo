@@ -48,6 +48,24 @@ describe('referenceRates', () => {
       expect(['01-01', '07-01']).toContain(entry.effectiveDate.slice(5));
     }
   });
+
+  it('er en UBRUDT kæde af halvår uden manglende halvår', () => {
+    // Halvårsinddelingen 1/1–30/6 og 1/7–31/12 er uforanderlig (rentelovens § 5, stk. 1, 2. pkt.),
+    // så hvert halvår siden 2005 SKAL have sin egen sats. Et manglende halvår er tavst forkert:
+    // «seneste sats ≤ dato»-opslaget viderefører da forrige halvårs sats gennem et halvår, hvor
+    // Nationalbanken har fastsat en anden. Datamodulet fail-closer på det samme ved modul-load;
+    // denne påstand fanger det i CI, hvis nogen redigerer tabellen.
+    const halfYearIndex = (iso: string): number => {
+      const year = Number(iso.slice(0, 4));
+      return year * 2 + (iso.slice(5) === '01-01' ? 0 : 1);
+    };
+
+    for (let i = 1; i < referenceRates.length; i++) {
+      const nyere = halfYearIndex(referenceRates[i - 1].effectiveDate);
+      const aeldre = halfYearIndex(referenceRates[i].effectiveDate);
+      expect(nyere - aeldre).toBe(1);
+    }
+  });
 });
 
 describe('surchargeRates', () => {

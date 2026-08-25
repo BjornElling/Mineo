@@ -88,6 +88,83 @@ const parseRateTableDate = (raw: string, label: string): ISODateString => {
   return toISODateString(`${year}-${month}-${day}`);
 };
 
+/**
+ * Halvårsgrænserne er uforanderlige og udledes ikke af data. Referencesatsen ER den officielle
+ * udlånsrente, som Nationalbanken har fastsat pr. 1. januar og pr. 1. juli det pågældende år
+ * (rentelovens § 5, stk. 1, 2. pkt.), så perioderne 1/1–30/6 og 1/7–31/12 kan ikke ændre sig.
+ * Programmet skal derfor ikke kunne rumme en anden kadence: en tabelrække uden for de to datoer –
+ * eller et manglende halvår – er en vedligeholdelsesfejl, ikke en ny periodeinddeling.
+ *
+ * Guarden fail-closer ved modul-load og ikke kun i en test, fordi begge fejl ellers er tavse og
+ * giver forkerte tal: motoren skærer udelukkende ved 30. juni og 31. december, så en sats med
+ * ikrafttræden fx `01-06-2027` ville aldrig blive brugt i juni og først slå igennem 1. juli, og et
+ * manglende halvår ville få «seneste sats ≤ dato»-opslaget til at videreføre forrige halvårs sats
+ * gennem et halvår, hvor der faktisk er fastsat en anden.
+ *
+ * Kravet om en UBRUDT kæde nyeste-først dækker samtidig sorteringen: `MIN_INTEREST_DATE` og
+ * satsopslaget læser tabellen positionelt, så en fejlsortering ville flytte den nedre datogrænse.
+ */
+const assertUnbrokenHalfYearChain = (
+  table: ReadonlyArray<readonly [effectiveDate: string, ratePct: number]>
+): void => {
+  let previous: { readonly raw: string; readonly year: number; readonly half: 1 | 2 } | null = null;
+
+  for (const [raw] of table) {
+    const dayMonth = raw.slice(0, 5);
+    if (dayMonth !== '01-01' && dayMonth !== '01-07') {
+      throw new Error(
+        `CRITICAL: referencesats-tabellen må kun have halvårets første dag som ikrafttræden ` +
+          `(01-01 eller 01-07); "${raw}" bryder den uforanderlige halvårsinddeling`
+      );
+    }
+
+    const year = Number(raw.slice(6));
+    if (!Number.isInteger(year)) {
+      throw new Error(`CRITICAL: ugyldigt årstal i referencesats-datoen "${raw}"`);
+    }
+
+    const half: 1 | 2 = dayMonth === '01-01' ? 1 : 2;
+    if (previous !== null) {
+      const expectedYear: number = previous.half === 1 ? previous.year - 1 : previous.year;
+      const expectedHalf: 1 | 2 = previous.half === 1 ? 2 : 1;
+      if (year !== expectedYear || half !== expectedHalf) {
+        throw new Error(
+          `CRITICAL: referencesatserne skal være en ubrudt kæde af halvår, nyeste først; ` +
+            `"${raw}" følger ikke umiddelbart efter "${previous.raw}"`
+        );
+      }
+    }
+
+    previous = { raw, year, half };
+  }
+};
+
+/**
+ * Tillægssatserne følger lovændringer og har derfor ingen fast kadence, men de læses positionelt
+ * (`MIN_SURCHARGE_DATE` er det sidste element), og satsopslaget forudsætter en sorteret serie.
+ * Kravet er derfor alene streng nyeste-først-orden med unikke datoer.
+ */
+const assertStrictlyDescendingByDanishDate = (
+  table: ReadonlyArray<readonly [effectiveDate: string, ratePct: number]>,
+  label: string
+): void => {
+  let previous: { readonly raw: string; readonly iso: string } | null = null;
+
+  for (const [raw] of table) {
+    const iso = parseRateTableDate(raw, `${label}-dato`);
+    if (previous !== null && iso >= previous.iso) {
+      throw new Error(
+        `CRITICAL: ${label} skal være sorteret strengt nyeste-først med unikke datoer; ` +
+          `"${raw}" bryder rækkefølgen efter "${previous.raw}"`
+      );
+    }
+    previous = { raw, iso };
+  }
+};
+
+assertUnbrokenHalfYearChain(referenceRatesTable);
+assertStrictlyDescendingByDanishDate(surchargeRatesTable, 'tillægssatserne');
+
 // Tidligste dato i referencesatserne – udledt af det ældste element i referenceRatesTable.
 // Tabellen er sorteret nyeste-først, så det sidste element har den tidligste dato.
 const _minRaw = referenceRatesTable[referenceRatesTable.length - 1]?.[0];

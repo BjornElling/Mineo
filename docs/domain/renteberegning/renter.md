@@ -8,22 +8,30 @@ Denne fil beskriver beregningslogikken for procesrenter i erstatningsopgørelsen
 
 ### Hvad beregner dette modul?
 
-Modulet beregner procesrenter efter renteloven for hvert rentekrav i listen. Renten løber fra rentedatoen (kravetsdato + eventuel tillægstid) til og med beregningsdatoen. Beregningsdagen medregnes.
+Modulet beregner procesrenter efter renteloven for hvert rentekrav i listen. Renten løber fra rentedatoen (forfaldsdato + eventuel tillægstid) til og med beregningsdatoen. Beregningsdagen medregnes.
 
 ### Principper
 
 1. Rente beregnes i henhold til renteloven.
 2. Beregningsprincip: 365 rentedage pr. år – 366 i skudår.
-3. Rentesatsen udgør nationalbankens udlånsrente + 8 % (ved forfaldsdato før 01-03-2013 dog + 7 %)
+3. Rentesatsen udgør nationalbankens udlånsrente + 8 % (ved rentedato før 01-03-2013 dog + 7 %)
 4. Der beregnes ikke renters rente.
+
+### De to datobegreber
+
+Brugeren indtaster kravets **forfaldsdato**. **Rentedatoen** er forfaldsdato + eventuel tillægstid, og
+den er den dato, renten løber fra. Uden tillægstid er de to datoer ens. Rentedatoen er det afgørende
+begreb i beregningen – den bestemmer både rentens start og hvilken tillægssats kravet får;
+forfaldsdatoen er alene udgangspunktet for at fastsætte rentedatoen (jf. `renteberegning-contract.md`
+§2.9). Koden bruger fortsat identifikatoren `kravetDato` om forfaldsdatoen.
 
 ### Rentedatoen
 
-Rentedatoen bestemmes ud fra kravetsdatoen og en valgfri tillægstid:
+Rentedatoen bestemmes ud fra forfaldsdatoen og en valgfri tillægstid:
 
 ```
-hvis tillægstid ≤ 0:  rentedato = kravetsdato
-hvis tillægstid > 0:  rentedato = kravetsdato + tillægstid (i valgt enhed)
+hvis tillægstid ≤ 0:  rentedato = forfaldsdato
+hvis tillægstid > 0:  rentedato = forfaldsdato + tillægstid (i valgt enhed)
 ```
 
 Tillægstiden kan angives som et heltal fra **0 til 99** i **dage**, **uger** eller **måneder**.
@@ -35,14 +43,17 @@ Renten er sammensat af to elementer:
 | Sats | Beskrivelse | Skæring |
 |---|---|---|
 | **Referencesats** | Nationalbankens udlånsrente | Opdateres halvårligt (1. jan og 1. jul) |
-| **Tillægssats** | Lovbestemt procenttillæg | 7 % for 'renter fra' datoer før 01-03-2013, 8 % derefter |
+| **Tillægssats** | Lovbestemt procenttillæg | 7 % for rentedatoer før 01-03-2013, 8 % derefter |
 
 Den totale rentesats for en given halvårlig periode:
 ```
 total_sats = referencesats_pr_periodens_start + tillægssats_pr_rentedato
 ```
 
-Tillægssatsen låses til rentedatoen og gælder for hele beregningen uanset løbetiden. Referencesatsen skifter ved hvert halvårsskift (1. januar, 1. juli).
+Tillægssatsen låses til rentedatoen og gælder for hele beregningen uanset løbetiden – ligger rentedatoen
+før 01-03-2013, anvendes 7 % også for perioder efter 01-03-2013. Referencesatsen skifter derimod ved
+hvert halvårsskift (1. januar, 1. juli) inde i samme beregning. Forskellen er bindende i
+`renteberegning-contract.md` §2.10 og skrevet på satsfanen ved hver af de to tabeller.
 
 Tabel over referencesatser (seneste halvår først):
 
@@ -59,6 +70,13 @@ Tabel over referencesatser (seneste halvår først):
 
 Tabellen dækker fra 01-01-2005 (`MIN_INTEREST_DATE`). Rentedatoer fra og med dette tidspunkt kan beregnes.
 
+**Halvårsgrænserne er uforanderlige.** Referencesatsen ER den officielle udlånsrente, Nationalbanken
+har fastsat pr. 1. januar og pr. 1. juli (rentelovens § 5, stk. 1, 2. pkt.), så perioderne 1/1–30/6 og
+1/7–31/12 kan ikke ændre sig, og programmet er ikke indrettet til en anden kadence. `interestRates.ts`
+fail-closer derfor ved modul-load, hvis en referencesats har en anden ikrafttrædelsesdato end `01-01`
+eller `01-07`, eller hvis serien mangler et halvår – begge fejl ville ellers være tavse: motoren skærer
+kun ved 30. juni og 31. december, og et manglende halvår ville videreføre forrige halvårs sats.
+
 ### Beregningsmetode
 
 Beregningen opdeles i halvårlige perioder. For hvert halvår:
@@ -74,7 +92,7 @@ Samlet rente afrundes til 2 decimaler (halvAwayFromZero).
 ### Validering
 
 En renterække beregnes kun hvis:
-- Kravetsdato er udfyldt
+- Forfaldsdato er udfyldt
 - Beløb er > 0 og finit
 - Rentedato kan beregnes
 - Rentedato ≤ beregningsdato
@@ -83,7 +101,7 @@ Opfyldes betingelserne ikke, returneres `calculatedInterest: null` for den påg�
 
 ### Eksempel
 
-**Input:** Beløb 100.000 kr., kravetsdato 01-01-2025, ingen tillægstid, beregningsdato 01-07-2025.
+**Input:** Beløb 100.000 kr., forfaldsdato 01-01-2025, ingen tillægstid, beregningsdato 01-07-2025.
 
 - Rentedato = 01-01-2025 (ingen tillæg)
 - Tillægssats: 8 % (rentedato ≥ 01-03-2013)
@@ -108,7 +126,7 @@ Opfyldes betingelserne ikke, returneres `calculatedInterest: null` for den påg�
 | `src/domain/renteberegning/renteberegningEngine.ts` | Autoritativ engine; `computeRenteberegning`, `computeRentekravRow` |
 | `src/domain/renteberegning/procesrenteCalculator.ts` | Renteberegningsmotor; `calculateProcessInterestWithRates` (samlet rentebeløb), `calculateProcessInterestBreakdownWithRates` (samme beregning, men returnerer hele periodeopdelingen bag beløbet), `findLatestReferenceRatePeriodEnd` (sidste dato referencesats-tabellen dækker – udgangen af det halvår den nyeste sats hører til) |
 | `src/domain/renteberegning/rentekravValidation.ts` | Domænefunktioner: `calculateInterestDate`, `validateInterestCalculation` |
-| `src/data/interestRates.ts` | Satser: `referenceRates`, `surchargeRates`, `MIN_INTEREST_DATE` |
+| `src/data/interestRates.ts` | Satser: `referenceRates`, `surchargeRates`, `MIN_INTEREST_DATE`; fail-closer ved modul-load på brudt halvårskæde (referencesats) og fejlsortering (tillægssats) |
 | `src/domain/renteberegning/renteCalculationPrinciples.ts` | `RENTE_CALCULATION_PRINCIPLES` – de fire principper som array af strings |
 
 ### Engine

@@ -12,6 +12,22 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ingen nye mønstre 2026-08-24 fra Renteberegning → Satser, men tre nye forekomster – og den ene
+vender en forudsigelse på hovedet. Alle tre er afgjort 2026-08-25.** Fanen er et rent opslagsværk (to
+tabeller, ingen felter, ingen knapper, intet dokument), så M-16, M-19 og M-22 er uden genstand dér.
+**M-11 havde denne fane som navngiven kandidat, og kandidaten holdt ikke** – lovhenvisningerne kan
+ikke måles mod noget andet sted i programmet, fordi satserne kun vises her, og BB-075's stramning
+kræver to *uforenelige* henførsler – men de var **forkerte**, hvilket brugeren afgjorde 2026-08-25:
+begge satser har hjemmel i § 5, stk. 1 (tillægget i 1. pkt., referencesatsen i 2. pkt.), og
+henvisningerne er rettet. Læren: umålelig er ikke det samme som rigtig, så en enkeltstående
+lovhenvisning skal rejses som spørgsmål. Dertil stod i samme boks en påstand, der KUNNE måles, og den
+var forkert: fanens og beregningsforudsætningens «forfaldsdato» mod beregningens rentedato (BB-092,
+**gennemført** – teksten navngiver nu rentedatoen, og beregningen står uændret). **Læren er, at
+kandidatlisten pegede på den forkerte halvdel af sætningen** – en lovhenvisning er svær at måle,
+mens en påstand om HVILKEN DATO der styrer et tal kan fremprovokeres på ét forsøg. Dertil er
+**M-15's spor LUKKET for hele programmet** (BB-094 afvist som BB-040) og **M-13's fjerde form afvist**
+(BB-095, fortegnets skrivemåde).
+
 **M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer bruger.** Det er det
 bredeste mønster siden M-21 og det første, der handler om en afhængighed på tværs af FLADER: hver af
 programmets dokumentdefinitioner kræver en `ready` stamdataprojektion, uanset om dokumentet trykker
@@ -488,9 +504,37 @@ indvendinger mod adfærden, hvor kun teksten var forkert. Ved en kildeangivelse 
 givet, at teksten er den forkerte halvdel. Skriv derfor fundet med begge udfald og lad brugeren
 vælge – det er en faglig afgørelse, ikke en sproglig.
 
-- Kandidater, ikke efterprøvet: Renteberegning → Rentesatser («jf. rentelovens § 5» / «§ 5, stk. 2»,
-  flade 8), Satser-sidens fire sektionsoverskrifter, som er den eneste henførsel af 20 satser, og
-  dokumentgeneratorernes indledende forudsætningsafsnit.
+- Kandidater, ikke efterprøvet: Satser-sidens fire sektionsoverskrifter, som er den eneste henførsel
+  af 20 satser, og dokumentgeneratorernes indledende forudsætningsafsnit.
+- **Kandidaten «Renteberegning → Satser» er efterprøvet 2026-08-24, og lovhenvisningerne kunne IKKE
+  måles.** De to satser vises kun dér i programmet, så der findes ingen konkurrerende henførsel, og
+  efter BB-075's stramning er en enkeltstående henvisning ikke et fund. Om «§ 5, stk. 2» er rigtig, er
+  et juridisk spørgsmål og blev rejst som sådan (`renteberegning.md`, fane 2, åbent spørgsmål 1).
+  **Og den VAR forkert (afgjort af brugeren 2026-08-25).** Begge satser har hjemmel i § 5, stk. 1:
+  tillægget i 1. pkt., referencesatsens definition i 2. pkt. Henvisningerne er rettet.
+  **Læren skærper mønsteret i en ny retning:** BB-075's stramning gør en enkeltstående lovhenvisning
+  til et *ikke-fund*, fordi den ikke kan MÅLES i programmet – men umålelig er ikke det samme som
+  rigtig. En enkeltstående henvisning skal derfor fortsat rejses som **spørgsmål** til brugeren, ikke
+  registreres som «overvejet uden fund». Halvdelen af mønsterets værdi ligger i at spørge.
+- **Men i samme boks stod en anden påstand, som kunne måles – og den var forkert** (`renteberegning.md`
+  BB-092, Høj). Beregningsforudsætningen skriver «Rentesatsen udgør nationalbankens udlånsrente + 8 %
+  (ved **forfaldsdato** før 01-03-2013 dog + 7 %)», og satsfanens kolonne heder tilsvarende
+  «Forfaldsdato». Beregningen vælger tillægssatsen på **rentedatoen**. Målt: forfaldsdato `20-02-2013`
+  + 30 dages tillægstid → rentedato `22-03-2013` → `6.402,74 kr.` (8,2 %), hvor den trykte
+  forudsætning giver `5.621,92 kr.` (7,2 %). Teksten trykkes i BEGGE dokumenter, så modparten kan
+  regne efter den og få et andet tal end dokumentets eget.
+  **Afgjort 2026-08-25: teksten var den forkerte halvdel.** Brugeren fastslog, at rentedatoen er den
+  juridisk rigtige nøgle; forudsætningen siger nu «rentedato», satsfanens kolonne heder «Gælder fra»,
+  og både terminologien og satsvalget er bindende i `renteberegning-contract.md` §2.9–§2.10. Ingen tal
+  er ændret. **Bemærk for næste forekomst:** udfaldet gik til teksten her, men det var ikke afgjort på
+  forhånd – fundet skal fortsat skrives med begge udfald.
+- **Læren om mønsterets prøve, og den er skarp: en lovhenvisning er den svære halvdel, en
+  datohenvisning den lette.** En § kan kun måles mod en anden forekomst af samme tal; en påstand om
+  hvilken af sagens datoer der styrer et tal kan fremprovokeres direkte ved at vælge en sag, hvor de
+  to kandidatdatoer ikke er ens. **Prøv derfor datoerne først:** tag hver sætning i et
+  forudsætningsafsnit, find de datoer den navngiver, og lav en sag, hvor de falder forskelligt ud.
+  Kandidater: Varige méns og forsørgertabs forudsætningsafsnit og EO-bilagenes indledninger, hvor
+  «skadestidspunkt» og «opgørelsesdato» står ved siden af hinanden.
 
 ## M-12 – Et valg, hvis virkning hverken kan ses nu eller findes senere
 
@@ -634,6 +678,23 @@ måles og rettes.
   det er et VALG, der er truffet forskelligt to steder i samme domæne – ikke en fejl.
   **Prøven er dermed komplet i tre trin:** skærm mod dokument (BB-070), inden for én skærm (BB-079),
   og mellem to dokumenter fra samme flade (BB-087). Kør alle tre, hvor en flade har mere end ét output.
+- **Fjerde form, tilføjet 2026-08-24: FORTEGNETS skrivemåde** (`renteberegning.md` BB-095, Lav).
+  Rentesatsfanens tre negative referencesatser vises som `- 0,45 %` – bindestreg, **mellemrum**, tal
+  (tegnkoder målt). Formen kommer af et `.replace('-', '- ')`, som findes ét sted i hele programmet
+  (`InterestRatesTable.tsx`); alle andre procentvisninger går gennem `formatPercent` uden det. Der er
+  ingen anden visning af samme tal at være uenig med, så det er mønsterets latente form (jf. BB-078) –
+  men skærpet af, at `-` samtidig ER programmets tegn for «ingen værdi» i en tabelcelle, og fane 1's
+  tomme kolonner viser ordret `-` ét klik væk. **Prøven udvides derfor: sammenlign ikke kun tallets
+  form, men dets FORTEGNS form – og spørg, om tegnet kolliderer med programmets tegn for fravær.**
+  Kandidater, ikke efterprøvet: EO's reguleringsbilag og EET's differencekrav, hvor negative beløb
+  kan forekomme.
+  **Afvist 2026-08-25, og halvdelen af prøven er trukket tilbage.** Kollisionen med «ingen værdi»
+  findes ikke: `-` som fravær står ALTID alene i en celle, og der findes ingen celle i programmet med
+  to værdier i, så «- 0,45 %» kan ikke læses som «ingen værdi efterfulgt af 0,45 %». Brugeren har
+  fastholdt formen som et bevidst visuelt valg for satstabellerne. **Det, der bliver stående af
+  prøven:** sammenlign fortegnets form på tværs af de steder, der viser samme slags tal – men en
+  enkeltstående tabel uden nabo at være uenig med er ikke et fund i sig selv. Undtagelsen er nu
+  eksplicit i koden med sin begrundelse, så den ikke kan «ryddes op» ved en fejl.
 - **Bestået samme dag på beløbssiden:** renteberegningens `formatKr(x, 2)` på skærmen og
   `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
   identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
@@ -754,9 +815,37 @@ ikke om baggrund, men om **et forbehold til rigtigheden af et tal, der allerede 
 - **Mønsteret er dermed ikke afvist som mønster.** Afgørelsen hviler på, at MinProcesrentes brugere
   arbejder i PDF'en. Den præmis holder ikke nødvendigvis på de flader, hvor tallet læses og genbruges
   på skærmen gennem et længere arbejdsforløb – dér skal mønsteret forelægges igen.
-- Kandidater, ikke efterprøvet: EO's dokumenter og reguleringsbilaget er de tekstrigeste
-  generatorer og har flere tilsvarende forbehold; Forsørgertab og Varige mén skriver
-  forudsætningsafsnit, som fladerne ikke gentager.
+- **SPORET ER LUKKET FOR HELE PROGRAMMET 2026-08-25.** BB-094 blev afvist som BB-040, og fundets egen
+  betingelse var, at netop den anden afvisning lukker sporet. **Rejs det ikke en tredje gang.**
+  Begrundelsen er ikke kun brugerens præference, men holder som argument: målgruppen er professionel
+  og kender datasættets kadence, og et opslagsværk, hvis rækker viser hvert halvår siden 2005, siger
+  sin egen dækning – en manglende `01-01-2027`-række ER svaret på «hvor langt rækker satserne?».
+  Dokumenterne bærer stadig forbeholdet. **Den generelle regel, der bliver stående:** et
+  dataafhængigt forbehold skal ikke skrives i tekst på skærmen, når datasættets egne rækker gør det
+  læsbart for den, der kender kadencen. **Undtagelsen, hvis den opstår:** afkortes en satstabel eller
+  kollapses ens rækker i visningen, kan dækningen ikke længere læses – og så skal den skrives.
+  Renteberegningens egen kadence kan derimod ikke skifte: halvårene følger af rentelovens § 5, stk. 1,
+  2. pkt., og er siden 2026-08-25 håndhævet ved modul-load i `interestRates.ts`. **Den generelle
+  konsekvens for mønsteret:** når en dækningsgrænse ikke skal skrives på skærmen, skal datasættets
+  egen integritet i stedet fail-close, så et hul ikke kan nå brugeren tavst.
+- Forekomsten, afvisningen hviler på (`renteberegning.md` BB-094, Mellem, 2026-08-24): samme sætning,
+  samme dokumenter – men fladen er
+  denne gang **satsfanen**, altså det ene sted i programmet, hvis hele emne er, hvor langt satserne er
+  fastsat. Målt: tabellens øverste række er `01-07-2026`, satserne rækker dermed til `31-12-2026`,
+  mens fane 1's datofelter tager imod til `31-12-2031`; en beregning på `31-12-2031` giver `27,40 kr.`
+  med tabellens nyeste sats, fem og et halvt år efter den er fastsat. Fanen siger intet om sin egen
+  dækning – hverken hvor langt den rækker, eller hvad der sker efter sidste række.
+  **Afgrænsningen mod BB-040 var hele forskellen:** BB-040 foreslog en advarsel VED RESULTATET, dette
+  fund en linje i OPSLAGSVÆRKET om dets egen dækning. Begge er nu afvist, og dermed er begge
+  varianter prøvet.
+- **Intervalprøven lever videre som KONTROL, ikke som fund-kilde:** find datasættets nyeste række,
+  find det felt der læser datasættet, og sammenlign de to intervaller. Er feltets interval bredere,
+  findes der lovlige indtastninger uden satsdækning – og så skal det efterprøves, at motoren
+  fail-softer som dokumenteret, og at dokumentet siger det. Det er derimod ikke længere et fund, at
+  skærmen ikke gentager det.
+- Kandidater, som derfor IKKE længere skal rejses som fund: EO's dokumenter og reguleringsbilaget,
+  Forsørgertabs og Varige méns forudsætningsafsnit, og Satser-siden (satser 2005–2026 mod
+  satsårsfeltets grænse). Er forbeholdet i dokumentet, er kravet opfyldt.
 
 ## M-16 – En komplet række, programmet ikke vil regne på
 

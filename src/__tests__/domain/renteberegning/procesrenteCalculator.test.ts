@@ -1,6 +1,7 @@
 import type { RateEntry } from '../../../data/interestRates';
 import { toISODateString, parseISODate } from '../../../types/branded';
 import {
+  calculateProcessInterestBreakdownWithRates,
   calculateProcessInterestWithRates,
   findLatestReferenceRatePeriodEnd,
 } from '../../../domain/renteberegning/procesrenteCalculator';
@@ -172,5 +173,63 @@ describe('calculateProcessInterestWithRates – null-paths', () => {
       []
     );
     expect(result).toBeNull();
+  });
+});
+
+// ─── Satsvalg: to satser, to regler (renteberegning-contract.md §2.10) ───────
+//
+// Referencesatsen er periodisk (slås op pr. halvårsstart), mens tillægssatsen fastlægges ÉN gang
+// ud fra kravets rentedato og gælder hele beregningen. De to regler er bevidst forskellige og har
+// givet forkerte brugervendte tekster før (BB-092/BB-093), så de er hævdet her.
+
+describe('calculateProcessInterestBreakdownWithRates – satsvalg pr. krav', () => {
+  const rates = {
+    ref: [
+      { effectiveDate: toISODateString('2013-01-01'), ratePct: 0.2 },
+      { effectiveDate: toISODateString('2013-07-01'), ratePct: 0.3 },
+    ],
+    sur: [
+      { effectiveDate: toISODateString('2002-08-01'), ratePct: 7 },
+      { effectiveDate: toISODateString('2013-03-01'), ratePct: 8 },
+    ],
+  };
+
+  it('låser tillægssatsen til rentedatoen for hele beregningen, også for perioder efter satsskiftet', () => {
+    const breakdown = calculateProcessInterestBreakdownWithRates(
+      100000,
+      toISODateString('2013-02-01'),
+      toISODateString('2013-12-31'),
+      rates.ref,
+      rates.sur
+    );
+
+    expect(breakdown).not.toBeNull();
+    // Begge halvår – også 01-07-2013–31-12-2013, som ligger efter tillægssatsens 01-03-2013.
+    expect(breakdown?.periods.map((period) => period.surchargeRatePct)).toEqual([7, 7]);
+  });
+
+  it('lader referencesatsen skifte ved halvårsskiftet inde i samme beregning', () => {
+    const breakdown = calculateProcessInterestBreakdownWithRates(
+      100000,
+      toISODateString('2013-02-01'),
+      toISODateString('2013-12-31'),
+      rates.ref,
+      rates.sur
+    );
+
+    expect(breakdown?.periods.map((period) => period.referenceRatePct)).toEqual([0.2, 0.3]);
+    expect(breakdown?.periods.map((period) => period.totalRatePct)).toEqual([7.2, 7.3]);
+  });
+
+  it('vælger den nye tillægssats, når rentedatoen selv ligger efter satsskiftet', () => {
+    const breakdown = calculateProcessInterestBreakdownWithRates(
+      100000,
+      toISODateString('2013-03-22'),
+      toISODateString('2013-12-31'),
+      rates.ref,
+      rates.sur
+    );
+
+    expect(breakdown?.periods.map((period) => period.surchargeRatePct)).toEqual([8, 8]);
   });
 });

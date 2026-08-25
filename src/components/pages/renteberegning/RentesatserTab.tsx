@@ -16,18 +16,24 @@ const RentesatserTab = React.memo(() => (
   <Box>
     <ContentBox className="content-box">
       <Typography className="section-header">Referencesats</Typography>
+      {/* To stakkede `row--text`-linjer – samme form som fane 1's beregningstekniske forudsætninger:
+          hver sætning står på sin egen linje uden ekstra margin imellem. */}
       <Typography className="row--text">
-        Nationalbankens udlånsrente pr. 1. januar og 1. juli, jf. rentelovens § 5.
+        Nationalbankens udlånsrente pr. 1. januar og 1. juli, jf. rentelovens § 5, stk. 1, 2. pkt.
       </Typography>
+      <Typography className="row--text">Satsen skifter løbende ved hvert påbegyndt halvår.</Typography>
       <InterestRatesTable rows={referenceRows} dateColumnHeader="Gælder fra" />
     </ContentBox>
 
     <ContentBox className="content-box">
       <Typography className="section-header">Tillægssats</Typography>
       <Typography className="row--text">
-        Fast tillægsprocent, der tilskrives udlånsrenten, jf. rentelovens § 5, stk. 2.
+        Fast tillægsprocent, der tilskrives udlånsrenten, jf. rentelovens § 5, stk. 1.
       </Typography>
-      <InterestRatesTable rows={surchargeRows} dateColumnHeader="Forfaldsdato" rateColumnHeader="Sats" />
+      <Typography className="row--text">
+        Satsen fastlægges efter kravets rentedato og ændres ikke undervejs i beregningen.
+      </Typography>
+      <InterestRatesTable rows={surchargeRows} dateColumnHeader="Gælder fra" />
     </ContentBox>
   </Box>
 ));

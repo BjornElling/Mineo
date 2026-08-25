@@ -2,11 +2,13 @@
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Renteberegning → Rentesatser (`/renteberegning`, fane 2 af 2, nr. 8b)
-- **Næste fund-ID:** BB-091
-- **Senest opdateret:** 2026-08-22 (Renteberegning → **Beregning gennemgået og afgjort**: 11 fund,
-  BB-080–BB-090, rettet i review. Ét nyt mønster – **M-22**, en usynlig dokumentafhængighed på en
-  anden flade – og nye forekomster af M-13, M-14 og M-16.)
+- **Næste flade:** Årslønsberegning (`/aarsloen`, nr. 9)
+- **Næste fund-ID:** BB-096
+- **Senest opdateret:** 2026-08-25 (Renteberegning → **Satser afgjort**: BB-091, BB-092 og BB-093
+  gennemført, BB-094 og BB-095 afvist. Beregningen er uændret – begge Høj-fund var brugervendte
+  tekster, der navngav forfaldsdatoen, hvor beregningen bruger rentedatoen. Satsvalget og
+  terminologien er nu bindende i `renteberegning-contract.md` §2.9–§2.10. **M-15's spor er lukket for
+  hele programmet** med BB-094's anden afvisning.)
 
 ## Flader
 
@@ -24,11 +26,106 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 7a | Varige mén – Ménberegning | Afgjort | 13 (BB-062–BB-074) | [varigemen.md](varigemen.md) |
 | 7b | Varige mén – Satser | Afgjort | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
 | 8a | Renteberegning – Beregning | Afgjort | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
-| 8b | Renteberegning – Rentesatser | Ikke startet | – | – |
+| 8b | Renteberegning – Satser | Afgjort | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
 | 9 | Årslønsberegning | Ikke startet | – | – |
 | 10 | Forsørgertab | Ikke startet | – | – |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Renteberegning → Satser – gennemgået 2026-08-24, afgjort 2026-08-25
+
+**Alle fem fund er afgjort** – tre gennemført, to afvist. Det fulde grundlag med målte tal og
+brugerens tilbagemeldinger står i [renteberegning.md](renteberegning.md) under «Fane 2 – Satser».
+
+| ID | Kort | Udfald |
+|---|---|---|
+| BB-091 | Tillægssatsens datokolonne heder «Forfaldsdato», nabotabellens identiske kolonne «Gælder fra» | **Gennemført** – begge tabeller heder «Gælder fra»; terminologien er normativ i `renteberegning-contract.md` §2.9 |
+| BB-092 | Tillægssatsen vælges efter rentedatoen; fanen og beregningsforudsætningen siger forfaldsdatoen | **Gennemført** – teksten var forkert, beregningen rigtig: forudsætningen siger nu «rentedato» på skærm og i begge dokumenter |
+| BB-093 | De to satstabeller ser ens ud, men den ene sats skifter under beregningen og den anden ligger fast | **Gennemført** – reglen er bindende i §2.10, og hver boks siger nu, hvordan dens egen sats virker. Beregningen er uændret |
+| BB-094 | Satsfanen siger ikke, hvor langt satserne er fastsat – nyeste række dækker halvdelen af de lovlige datoer | **Afvist** – professionelle brugere kender halvårskadencen og kan læse dækningen af tabellens rækker; dokumenterne advarer fortsat. **M-15's spor er dermed lukket** |
+| BB-095 | Negative satser skrives «- 0,45 %», og «-» er programmets tegn for «ingen værdi» | **Afvist** – formen er et bevidst visuelt valg for satstabellerne; tvetydigheden findes ikke, da «-» som fravær altid står alene i en celle |
+
+**De to Høj-fund var samme sag, og ingen af dem kostede et forkert tal i beregningen.**
+Beregningsforudsætningen – som trykkes i begge dokumenter og deles med standalone MinProcesrente –
+sagde «ved forfaldsdato før 01-03-2013 dog + 7 %», mens motoren vælger tillægssatsen på
+**rentedatoen**. Målt: forfaldsdato `20-02-2013` + 30 dages tillægstid gav `6.402,74 kr.` (8,2 %), hvor
+den trykte forudsætning gav `5.621,92 kr.` (7,2 %). **Brugeren afgjorde, at rentedatoen er den
+juridisk rigtige nøgle**, så teksten er rettet og tallene står. Dermed blev BB-091's kolonnenavn og
+BB-092's forudsætning én og samme ensretning.
+
+**Satsvalget er nu bindende, fordi det består af to modsatte regler.** `renteberegning-contract.md`
+§2.10: referencesatsen er **periodisk** (slås op pr. halvårsstart, så et krav skifter sats undervejs),
+tillægssatsen er **fastlåst pr. krav** på rækkens rentedato (rentedato før `01-03-2013` → 7 % for hele
+kravet, også for perioder efter). Tre nye enhedstests hævder begge halvdele på motoren. §2.9 låser
+terminologien: «Forfaldsdato» er kravets egen forfaldsdato, «Rentedato» er forfaldsdato + tillægstid,
+og en sats' ikrafttræden heder «Gælder fra» – aldrig noget af de to andre.
+
+**Læren af BB-091 er generel og bør stå ved hver fremtidig omdøbning:** en ensretning, der kun ser på
+de steder, hvor det GAMLE ord stod, efterlader de steder, hvor det NYE ord allerede stod. Søg det nye
+ord i hele programmet, før det tages i brug.
+
+**Fanen er programmets mindste hidtil sammen med 7b** – to bokse, to tabeller, ingen felter, ingen
+knapper, intet dokument, intet fokuserbart element. Hele edge case-blikket B0–B6a er derfor uden
+genstand og er skrevet ned som sådan. **Tabellerne selv er kontrolleret og er i orden:** 44
+referencesatsrækker uden huller (to pr. år 2005–2026, altid 01-01 og 01-07), nyeste først, ingen
+dubletter; tillægssatsen har to rækker. Den **nedre** dækning hænger sammen – tabellens ældste række
+er samme dato som fane 1's nedre datogrænse.
+
+**Fundet var en rest efter den rettelse, der netop var gennemført.** BB-081's tilbagemelding gjorde
+«Forfaldsdato» til kravets forfaldsdato, og ensretningen blev kørt i hele programmet (commit
+`504031ef`) – men Tillægssats-tabellens kolonne hed allerede «Forfaldsdato» om noget helt andet (en
+sats' ikrafttræden, `01-08-2002`) og blev derfor ikke rørt. Det var BB-089's fund igen, med det nye
+ord.
+
+**Ingen nye mønstre, men M-11's navngivne kandidat holdt ikke – og det er selv en lære.** Fanens to
+lovhenvisninger («jf. rentelovens § 5» / «§ 5, stk. 2») kan ikke måles, fordi satserne kun vises her,
+og BB-075's stramning kræver to uforenelige henførsler; spørgsmålet står fortsat som juridisk åbent
+spørgsmål og er bevidst urørt af rettelsen. Men i samme boks stod en påstand om en DATO, og den kunne
+fremprovokeres på ét forsøg. **Prøv datoerne før lovhenvisningerne.** M-13's fjerde form (BB-095,
+fortegnets skrivemåde) er afvist, og **M-15's spor er lukket for hele programmet** med BB-094's anden
+afvisning: en dataafhængig dækningsgrænse skal ikke skrives på skærmen, når målgruppen kan læse den af
+datasættets egne rækker.
+
+**Konsekvenser for de resterende flader – én prøve tilbage, én lukket:**
+1. **BB-092's prøve er billig og hører på hvert forudsætningsafsnit:** tag hver sætning, der navngiver
+   en dato, og lav en sag, hvor de to kandidatdatoer falder forskelligt ud. Kandidater: Varige méns og
+   forsørgertabs forudsætningsafsnit, EO-bilagenes indledninger. **Prøven har nu givet sit første
+   fund, og udfaldet gik til teksten – men det kunne være gået til beregningen.**
+2. **BB-094's intervalprøve er lukket som fund-kilde** (find datasættets nyeste række, find feltet der
+   læser datasættet, sammenlign intervallerne). Den er stadig værd at køre som *kontrol*: er feltets
+   interval bredere, findes der lovlige indtastninger uden dækning – men et opslagsværk, hvis rækker
+   selv viser kadencen, skal ikke skrive dækningen ud i tekst.
+
+**Bevidst ikke foreslået:** en sammenlagt «procesrente»-kolonne. Den ville se ud som den oplagte
+forbedring, men være forkert for de krav, hvis rentedato ligger før `01-03-2013` og hvis periode løber
+ind i tiden efter – tillægssatsen ligger fast fra rentedatoen (BB-093). Afvisningen er nu normativ i
+`renteberegning-contract.md` §2.10, så den ikke kan foreslås igen. BB-077's afgørelse er tilsvarende
+respekteret: fanen markerer ikke sagens egen række.
+
+**Gennemført i kode 2026-08-25:** `components/pages/renteberegning/RentesatserTab.tsx` (kolonnenavn +
+én sætning pr. boks om, hvordan satsen virker), `components/tables/InterestRatesTable.tsx`
+(`dateColumnHeader` obligatorisk uden default «Rentedato»; den ubrugte `rateColumnHeader`-prop fjernet;
+fortegnsformen gjort eksplicit), `domain/renteberegning/renteCalculationPrinciples.ts`
+(«forfaldsdato» → «rentedato» i den forudsætning, der trykkes i begge dokumenter og deles med
+standalone MinProcesrente). `src/contracts/renteberegning-contract.md` har fået **§2.9** (terminologi)
+og **§2.10** (satsvalg) samt et syvende punkt i minimumstestfladen; tre nye tests i
+`procesrenteCalculator.test.ts` hævder §2.10; `docs/domain/renteberegning/renter.md` er ført ajour.
+
+**Dækningshuller:** kun Chrome og lyst tema; dokumentets «Rentesats»-kolonne er ikke hentet for
+BB-092's og BB-093's to sager (tallene er målt på skærmen); satsernes rigtighed mod Nationalbankens
+offentliggjorte satser kan ikke kontrolleres i programmet. Konsollen var tavs: 74 beskeder, 0 fejl,
+0 advarsler.
+
+**Det ene åbne spørgsmål er lukket samme dag:** lovhenvisningerne var forkerte, og brugeren afgjorde
+dem – Referencesats-boksen henviser nu til § 5, stk. 1, 2. pkt. og Tillægssats-boksen til § 5, stk. 1
+(`renteberegning-contract.md` §2.11). **Tilbage står 7 %-rækkens fremtrædenhed.**
+
+**Halvårsinddelingen er samtidig fastlåst som uforanderlig** (brugerafgørelse 2026-08-25):
+perioderne 1/1–30/6 og 1/7–31/12 følger af rentelovens § 5, stk. 1, 2. pkt. og kan ikke ændre sig, så
+domænet skal ikke indrettes til en anden kadence. Kontraktens §2.8 siger det nu, og
+`src/data/interestRates.ts` fail-closer ved modul-load på både en referencesats med anden
+ikrafttræden end `01-01`/`01-07` og et manglende halvår i kæden – det sidste var udækket og ville have
+været tavst forkert, fordi satsopslaget da viderefører forrige halvårs sats.
 
 ## Renteberegning → Beregning – gennemgået og afgjort 2026-08-21–2026-08-22
 
@@ -422,6 +519,14 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
+**Syv efter fane 8b, som tilføjede to og fik det ene besvaret.** **Spørgsmål 1 er LUKKET 2026-08-25:**
+brugeren har afgjort, at henvisningen til § 5, stk. 2 var forkert – tillægget på 8 pct. står i § 5,
+stk. 1 (1. pkt.) og definitionen af referencesatsen i § 5, stk. 1, 2. pkt. Begge sætninger på
+satsfanen er rettet, og bestemmelsens ordlyd står i `renteberegning-contract.md` §2.11. **Tilbage
+står spørgsmål 2**, udfoldet i [renteberegning.md](renteberegning.md) under «Fane 2 – Satser»: skal
+Tillægssats-tabellens historiske 7 %-række stå som en ligeværdig sats eller under en overskrift, der
+siger, at den er en overgangsregel.
+
 **Seks efter fane 8a, som tilføjede ét nyt og skærpede ét gammelt.** Det nye står udfoldet i
 [renteberegning.md](renteberegning.md): skal en rentelinje kunne bære sin egen kommentar? Fanens
 kommentarfelt hører til siden, så samme sætning trykkes på hver enkelt rækkespecifikation – og i
@@ -458,6 +563,19 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 Toogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
 
+- **Ingen nye mønstre 2026-08-24 fra Renteberegning → Satser, men tre nye forekomster – og M-11's
+  navngivne kandidat holdt ikke. Alle tre er afgjort 2026-08-25.** Fanen er et rent opslagsværk, så
+  M-16, M-19 og M-22 er uden genstand. **M-11:** lovhenvisningerne kunne ikke måles (satserne vises
+  kun her, og BB-075's stramning kræver to *uforenelige* henførsler), men en påstand om en DATO i
+  samme boks kunne – og var forkert (BB-092, **gennemført**: teksten navngiver nu rentedatoen). Prøv
+  datoerne før lovhenvisningerne. **Efterskrift 2026-08-25: lovhenvisningen var OGSÅ forkert** –
+  brugeren afgjorde det åbne spørgsmål, og begge § -henvisninger er rettet. Læren om prøven står
+  uændret (en § kan ikke måles i programmet), men konklusionen «ikke målbart» er ikke det samme som
+  «rigtigt»: en umålelig påstand hører som spørgsmål til brugeren, ikke som en lukket sag. **M-15: sporet er LUKKET for hele programmet** – BB-094 er afvist
+  som BB-040, og fladen var netop det opslagsværk, betingelsen krævede. Læren, der bliver stående: en
+  dataafhængig dækningsgrænse skal ikke skrives i tekst, når målgruppen kan læse den af datasættets
+  egne rækker. **M-13:** fjerde form – fortegnets skrivemåde (`- 0,45 %` med mellemrum, BB-095) –
+  **afvist**: `-` som fravær står altid alene i en celle, så de to læsninger kan ikke støde sammen.
 - **M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer bruger.** «En usynlig
   dokumentafhængighed på en anden flade slukker knappen»: hver dokumentdefinition kræver en `ready`
   stamdataprojektion, uanset om dokumentet trykker et brevhoved – så en rød dato i Stamdata slukker
@@ -630,6 +748,17 @@ Toogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   spørgsmål om at markere sagens egen række i en satstabel. **Og ét lukket spor:** BB-074's
   afvisning gælder generelt – en pladsholder `0` er ikke et fund, heller ikke hvor feltets interval
   udelukker nul, fordi programmet svarer klart, når brugeren rent faktisk taster det.
+- **Fane 8b (Satser) var som forudset lille** – to tabeller, ingen felter – og kunne tages i én
+  kørsel uden deling. **Rækkefølgens præmis holdt, men på en ny måde:** fanen bar ingen nye mønstre,
+  og alle fem fund er ord og sætninger omkring tabellerne, ikke tabellerne selv. Det er 7b's lære igen
+  – *en flade uden interaktion bedømmes på sine påstande, ikke sine kontroller* – men denne gang gav
+  den to fund med prioritet **Høj**, fordi to af påstandene navngiver en anden dato end den,
+  beregningen bruger. **Læren til de store flader: læs forudsætnings- og forklaringstekster med sagens
+  datoer i hånden.** En sætning som «ved forfaldsdato før 01-03-2013» kan afprøves på ét forsøg, mens
+  en lovhenvisning ved siden af den slet ikke kan måles. **Justering af rækkefølgen: ingen.**
+- **Fund fra 8b, der hører videre til flade 9 og frem:** BB-092's datoprøve på forudsætningsafsnit og
+  BB-094's intervalprøve (datasættets nyeste række mod feltets øvre grænse). Begge er billige og kan
+  køres på hver beregningsflade.
 - **Tre spor er lagt ud til senere flader:** M-13's kolonnevalg i reguleringsbilaget hører til
   Erstatningsopgørelse (nr. 12); M-14's to tabelcelle-årsfelter hører til Årsløn (nr. 9) og
   Erstatningsopgørelse; og Gem/Hent med et ugyldigt satsår hører til Global shell (nr. 6), fordi

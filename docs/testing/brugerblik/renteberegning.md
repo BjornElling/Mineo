@@ -1,6 +1,18 @@
-# Brugerblik – Renteberegning (fane 1: Beregning)
+# Brugerblik – Renteberegning
 
-- Rute/placering: `/renteberegning`, fane 1 af 2 («Beregning»). Fane 2 («Rentesatser») er nr. 8b.
+Fladen har to faner og føres derfor som to kørsler. Dette dokument samler dem begge; `STATUS.md` har
+én række pr. fane.
+
+- Rute/placering: `/renteberegning`
+- Faner: **Beregning** (gennemgået 2026-08-21, elleve fund rettet i review 2026-08-22; brugerens
+  tilbagemeldinger står ved hvert fund) · **Satser** (gennemgået 2026-08-24, fem fund, alle afgjort
+  2026-08-25: tre rettet, to afvist)
+
+---
+
+# Fane 1 – Beregning
+
+- Rute/placering: `/renteberegning`, fane 1 af 2 («Beregning»). Fane 2 («Satser») er nr. 8b.
 - Gennemgået: 2026-08-21 · commit `c75e25ec`
 - Afprøvet i: Chromium headless – 1536×864, 1366×620, 1244×620, lyst tema. Dev-server
   `vite.mineo.config.ts`. Konsollen gennem hele kørslen: 189 beskeder, **0 fejl, 0 advarsler**.
@@ -517,3 +529,423 @@ Jeg anerkender fundet og rettelsen.
    skyldnere er det den samme sætning i tre dokumenter, der skal hver sin vej. Flade 5 vurderede det
    som «ikke misvisende», og det står ved magt – men i Mineo hentes rækkespecifikationerne enkeltvis
    til hver sin modpart, og spørgsmålet er derfor, om fanens kommentar hører i dem alle.
+
+---
+
+# Fane 2 – Satser
+
+- Rute/placering: `/renteberegning`, fane 2 af 2 («Satser»). Fanen hed «Rentesatser» indtil BB-090's
+  rettelse.
+- Gennemgået: 2026-08-24 · commit `9bff5143`
+- Afprøvet i: Chromium headless – 1536×864, 1366×620, 1244×620, lyst tema. Dev-server
+  `vite.mineo.config.ts` på port 4173. Konsollen gennem hele kørslen: 74 beskeder, **0 fejl,
+  0 advarsler** – inklusive faneskift, tre viewportskift og et fuldt «Slet alt»-forløb.
+- Alle tal og tekster nedenfor er aflæst i den kørende app, medmindre andet står.
+
+## Fladen kort
+
+Fanen er et rent opslagsværk: to bokse, hver med én sætning og én tabel på to kolonner. Øverst
+**Referencesats** – Nationalbankens udlånsrente, 44 rækker fra `01-01-2005` til `01-07-2026`, to
+rækker pr. år (1. januar og 1. juli), nyeste først. Nederst **Tillægssats** – to rækker:
+`01-03-2013 / 8 %` og `01-08-2002 / 7 %`. Ingen felter, ingen knapper, intet dokument, intet
+fokuserbart element.
+
+De to tabeller er det datasæt, fane 1 regner med, og den ældste referencesatsrække er samtidig den
+nedre grænse for fane 1's datofelter. Fanen er derfor programmets eneste sted, hvor brugeren kan
+kontrollere, hvilken sats hans rentekrav er beregnet efter – og fanens tungeste fund er, at den to
+steder siger noget andet, end beregningen gør.
+
+**Tilbagemelding**
+Jeg anerkender fundet og præmissen, og jeg vil meget gerne have ensartet formuleringer for ensartet indhold i programmet. I denne kontekst lyder 'Gælder fra' godt.
+
+## Fund
+
+### BB-091 – Tillægssatsens datokolonne heder «Forfaldsdato», mens nabotabellens identiske kolonne heder «Gælder fra»
+
+- **Type:** Fejl
+- **Rækkevidde:** Lokal (men prøven er BB-089's, og fundet er en rest efter BB-081's rettelse)
+- **Prioritet:** Høj
+- **Beslutning:** Afgjort – rettet 2026-08-25
+- **Resultat:** Tillægssats-tabellens datokolonne heder nu «Gælder fra» som nabotabellens. Reglen er
+  normativ i `renteberegning-contract.md` §2.9: «Forfaldsdato» betyder overalt kravets egen
+  forfaldsdato, en sats' ikrafttræden heder «Gælder fra», og «Rentedato» må ikke stå som overskrift
+  over en sats' ikrafttræden. `InterestRatesTable` har samtidig mistet sin default-overskrift
+  «Rentedato», så en satstabel ikke længere kan arve den ved at udelade proppen.
+- **Brugerens oplevelse – før rettelsen:** De to tabeller på samme skærm kaldte samme slags dato to
+  ting, og den ene brugte det ord, fane 1 samtidig brugte om kravets forfaldsdato.
+- **Brugerens oplevelse – nu efter rettelsen:** Begge tabeller siger «Gælder fra». Brugeren kan læse
+  begge datokolonner som det, de er – datoen hvor en sats trådte i kraft – og «Forfaldsdato» hører
+  entydigt til kravet på fane 1.
+- **Sådan fremprovokeres det:**
+  1. Åbn Renteberegning → fane «Satser».
+  2. Læs de to tabellers første kolonne.
+- **Det sker (målt ordret):** Referencesats-tabellen heder **«Gælder fra»**; Tillægssats-tabellen
+  heder **«Forfaldsdato»**. De to tabeller er ellers identiske – samme bredde (388 px), samme
+  cellepolstring, samme centrering, samme satskolonne «Sats» – og de står ca. 300 px fra hinanden på
+  samme skærm. Under «Forfaldsdato» står `01-03-2013` og `01-08-2002`, som er de datoer, hvor de to
+  tillægssatser trådte i kraft.
+- **Det er uhensigtsmæssigt fordi:** Ordet er nu optaget til noget andet. Din tilbagemelding på
+  BB-081 gjorde «Forfaldsdato» til kravets egen forfaldsdato, og rettelsen er gennemført i hele
+  programmet (commit `504031ef`): fane 1's kolonne, feltets label, fejlbeskederne og
+  beregningsforudsætningen bruger nu ordet i den betydning. Ét klik derfra påstår samme ord, at
+  `01-08-2002` er en forfaldsdato. Det er **præcis BB-089's fund igen** – to faner, ét ord, to
+  betydninger – kun med det nye ordvalg, og det blev ikke opdaget, fordi rettelsen af BB-089 kun rørte
+  den øverste af de to tabeller. Dertil er `01-08-2002` ikke nogens forfaldsdato: det er en
+  lovændrings ikrafttræden.
+- **Bedre ville være:** at kolonnen heder **«Gælder fra»** som nabotabellen. Så bruger fanen ét ord
+  om det, begge tabeller viser (en sats' ikrafttræden), og «Forfaldsdato» betyder overalt i programmet
+  kravets forfaldsdato. Bemærk, at «Gælder fra» ikke i sig selv løser BB-093 nedenfor: de to tabellers
+  datoer *virker* forskelligt, og det skal siges særskilt.
+- **Andre steder det kan gælde:** ingen tredje betydning findes – «Forfaldsdato» optræder i
+  produktionskoden kun i `BeregnetRenteTable.tsx` (kravets forfaldsdato), i `RentesatserTab.tsx`
+  (dette fund) og i beregningsforudsætningens tekst (BB-092). Prøven hører derimod på hver fremtidig
+  omdøbning: **søg det nye ord i hele programmet, før det tages i brug** – en ensretning, der kun ser
+  på de steder, hvor det gamle ord stod, efterlader de steder, hvor det nye ord allerede stod.
+
+**Tilbagemelding**
+Se ovenfor i seneste fund - jeg er enig. 'Gælder fra' lyder godt her. Jeg vil gerne have ensartede formuleringer for ensartet indhold.
+
+### BB-092 – Programmet vælger tillægssatsen efter rentedatoen, men fanen og beregningsforudsætningen siger forfaldsdatoen
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-11--programmets-egne-påstande-om-sig-selv`
+- **Prioritet:** Høj
+- **Beslutning:** Afgjort – rettet 2026-08-25. Teksten var forkert, beregningen var rigtig:
+  rentedatoen er den juridisk afgørende dato.
+- **Resultat:** Beregningsforudsætningen heder nu «Rentesatsen udgør nationalbankens udlånsrente
+  + 8 % (ved **rentedato** før 01-03-2013 dog + 7 %)» – på skærmen og i begge dokumenter, i Mineo og i
+  standalone MinProcesrente, som deler teksten. Reglen er normativ i `renteberegning-contract.md`
+  §2.10, og domænedokumentationen er ført ajour. Ingen tal er ændret.
+- **Brugerens oplevelse – før rettelsen:** Den forudsætning, der trykkes i begge dokumenter, navngav
+  forfaldsdatoen. Et krav med forfaldsdato `20-02-2013` og 30 dages tillægstid blev regnet med 8 %,
+  mens den trykte forudsætning gav 7 % – 781 kr. til forskel på et krav på 100.000 kr.
+- **Brugerens oplevelse – nu efter rettelsen:** Forudsætningen navngiver rentedatoen, altså den dato
+  beregningen faktisk bruger. En modpart, der regner efter det trykte, når samme tal som dokumentet.
+- **Sådan fremprovokeres det:**
+  1. Fane «Beregning»: Beregningsdato `31-12-2013`. Én række: Beløb `100.000`,
+     Forfaldsdato `20-02-2013`, tillægstid `30`, enhed Dage.
+  2. Rækken viser Rentedato `22-03-2013`.
+  3. Læs «Beregnet rente», og læs derefter fanens nederste boks «Beregningstekniske forudsætninger»
+     og fane «Satser»s Tillægssats-tabel.
+- **Det sker:** Rækken regner **`6.402,74 kr.`** Det er 8,2 % (referencesats 0,2 % + tillægssats
+  **8 %**) i 285 dage af 365 – altså tillægssatsen fra `01-03-2013`, valgt på **rentedatoen**
+  `22-03-2013`. Samtidig står der ordret på skærmen: «Rentesatsen udgør nationalbankens udlånsrente
+  + 8 % (ved **forfaldsdato** før 01-03-2013 dog + 7 %)» – og forfaldsdatoen ER før 01-03-2013.
+  Havde tillægssatsen fulgt forfaldsdatoen, ville resultatet være `5.621,92 kr.` (kontrolregnet, ikke
+  målt – programmet gør det ikke). Fane «Satser» siger det samme som forudsætningen, fordi dens
+  kolonne heder «Forfaldsdato» (BB-091).
+- **Det er uhensigtsmæssigt fordi:** Forudsætningsafsnittet trykkes i **begge** dokumenter og er det
+  eneste sted, brugeren og modparten får at vide, hvordan satsen er valgt. Sagen ovenfor er ikke
+  konstrueret: 30 dages tillægstid er den almindelige form, og enhver forfaldsdato i februar 2013 med
+  tillægstid rammer den. Modparten kan regne efter den trykte forudsætning og få et andet tal end
+  dokumentets eget – forskellen er 781 kr. på et krav på 100.000 kr. Det er et misvisende tal i et
+  dokument, brugeren ikke har nogen anledning til at betvivle (prioritet 2), og det er tavst: ingen af
+  de to tal er mærket.
+- **Bedre ville være:** at teksten siger den dato, programmet bruger – «(ved **rentedato** før
+  01-03-2013 dog + 7 %)» – og at Tillægssats-tabellens kolonne følger med. Koden mener det bevidst:
+  `procesrenteCalculator.ts` slår tillægssatsen op på rentedatoen og skriver selv i sin filoverskrift
+  «Tillægssats baseret på rentedato». **Alternativ, hvis forfaldsdatoen er den juridisk rigtige
+  nøgle:** så er det beregningen, der skal rettes, og det er en ændring af de tal programmet
+  producerer. De to udfald udelukker hinanden, og valget er dit.
+- **Andre steder det kan gælde:** hvert af programmets faste forudsætningsafsnit. Prøven er billig og
+  generel: **tag hver sætning, der navngiver en dato eller en grænse, og fremprovokér en sag, hvor de
+  to kandidatdatoer ikke er ens.** Konkrete kandidater: Varige méns og forsørgertabs
+  forudsætningsafsnit og EO-bilagenes indledninger, hvor «skadestidspunkt» og «opgørelsesdato» står
+  ved siden af hinanden.
+
+**Tilbagemelding**
+Jeg er enig, og det skal også fremgå af kontrakten, at det afgørende for hvilken rente- og tillægsfrist, der anvendes, er rentedatoen, ikke forfaldsdatoen. Og sprogbrugen skal konsekvent afspejle dette, så brugeren heller ikke kan blive i tvivl.
+
+**Svar – én præcisering, fordi «satsen afgøres af rentedatoen» ikke gælder begge satser**
+Rentedatoen er afgørende for **tillægssatsen** og for hvornår renten begynder. **Referencesatsen** er
+derimod periodisk: den slås op på hvert halvårs første dag inde i beregningen, så et krav, der løber
+hen over 1. januar eller 1. juli, skifter referencesats undervejs – hvilket er præcis det, du selv
+beskriver i tilbagemeldingen til BB-093. Kontrakten er derfor skrevet med de to satser hver for sig
+(§2.10) frem for som én sætning om «satsen». Beregningen er uændret; det er alene teksterne, der er
+rettet ind efter den.
+
+### BB-093 – De to satstabeller ser ens ud, men den ene sats skifter under beregningen og den anden ligger fast
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal (men se BB-091 om samme tabels overskrift)
+- **Prioritet:** Mellem
+- **Beslutning:** Afgjort – rettet 2026-08-25. Reglen er fastlåst i kontrakt, og de to sætninger på
+  fanen siger den nu. **Beregningen er ikke rørt.**
+- **Resultat:** `renteberegning-contract.md` §2.10 er ny og bindende: referencesatsen er periodisk og
+  læses pr. halvårsstart; tillægssatsen fastlægges én gang pr. rentekrav ud fra rækkens rentedato og
+  gælder hele kravet – ligger rentedatoen før `01-03-2013`, anvendes 7 % også for perioder efter.
+  Referencesats-boksen siger nu «Satsen skifter løbende ved hvert påbegyndt halvår»,
+  Tillægssats-boksen «Satsen fastlægges efter kravets rentedato og ændres ikke undervejs i
+  beregningen». Tre nye enhedstests hævder reglen på motoren.
+- **Brugerens oplevelse – før rettelsen:** To tabeller med samme form fulgte to modsatte regler, og
+  fanen sagde det ikke. Det naturligste opslag – «min periode løber hen over 01-03-2013, så tillægget
+  stiger undervejs» – gav et forkert resultat.
+- **Brugerens oplevelse – nu efter rettelsen:** Hver tabel siger, hvordan dens egen sats virker, så
+  brugeren kan afstemme dokumentets «Rentesats»-kolonne uden at gætte.
+- **Sådan fremprovokeres det:**
+  1. Fane «Beregning»: Beregningsdato `31-12-2013`, én række med Beløb `100.000` og
+     Forfaldsdato `01-02-2013`, ingen tillægstid.
+  2. Fane «Satser»: læs, hvad de to tabeller siger om perioden.
+- **Det sker:** Rækken regner **`6.588,49 kr.`** – 7,2 % i alle 334 dage. Tillægssatsen er altså
+  **7 % i hele beregningen**, også i halvåret `01-07-2013` – `31-12-2013`, som ligger fire måneder
+  efter tabellens `01-03-2013 / 8 %`. Referencesatsen skifter derimod ved hvert halvårsskifte inde i
+  samme beregning. To tabeller med samme form, samme kolonner og samme slags dato følger dermed to
+  modsatte regler, og fanen siger det ikke.
+- **Det er uhensigtsmæssigt fordi:** Fanens formål er, at brugeren kan slå op, hvilken sats hans krav
+  er beregnet efter. Med den viste form er det naturligste opslag – «min periode løber hen over
+  01-03-2013, så tillægget stiger undervejs» – forkert, og brugeren har ingen måde at se det. Han kan
+  ikke afstemme dokumentets «Rentesats»-kolonne med tabellerne uden at gætte rigtigt om en regel, der
+  ikke står nogen steder. Det er tavshed om en forudsætning, programmet kender (prioritet 4), og den
+  rammer netop de sager, hvor de to satser ikke er trivielle.
+- **Bedre ville være:** at Tillægssats-boksens sætning siger, hvornår satsen fastlægges – fx «Fast
+  tillægsprocent, der tilskrives udlånsrenten. Satsen fastlægges én gang efter kravets rentedato og
+  ændres ikke undervejs i beregningen.» Referencesats-boksen kan tilsvarende få «Satsen skifter ved
+  hvert halvårsskifte inde i beregningen». Det er to sætninger, ingen ny visning.
+- **Andre steder det kan gælde:** enhver flade med to satstabeller, hvor den ene er periodisk og den
+  anden fastlåst ved en startdato. Kandidat, ikke efterprøvet: reguleringssatserne på
+  Erstatningsopgørelse, hvor grundlønnen og de otte tillægssatser læses på hver sin dato.
+
+**Tilbagemelding**
+Jeg tror du har misforstået juraen. Det skal fastlåses i kontrakt, at reglerne for renteberegning er sådan, at referencesatsen anvendes på den relevante periode, altså er omskiftelig, når kravet krydser referenceperioder. Tillægssatsen bliver imidlertid fastlåst én gang for alle for hvert krav (altså her linje indtastning) sådan, at hvis rentedatoen er før 1. marts 2013, så anvendes 7 % som tillægssats for alle beregninger for dette krav, også for periodre efter 1. marts 2013.
+
+**Modsvar – der var ingen uenighed om juraen, og fundet foreslog ingen ændring af beregningen**
+Den regel, du beskriver, er ordret den, programmet allerede følger, og den er ordret den, fundet
+beskriver ovenfor: «Tillægssatsen er altså 7 % i hele beregningen, også i halvåret 01-07-2013 –
+31-12-2013 … Referencesatsen skifter derimod ved hvert halvårsskifte inde i samme beregning.»
+Fundets forslag var to sætninger på skærmen og udtrykkeligt «ingen ny visning» – ikke en ændring af
+tal eller regel. Jeg fremhæver det, fordi den modsatte læsning står i BB-092: DER var der en reel
+uenighed mellem tekst og beregning, og udfaldet kunne være gået til beregningen. Her kunne det ikke,
+og det er værd at have på papiret, hvis nogen senere læser de to fund i sammenhæng. Reglen er nu
+fastlåst i kontrakt, som du beder om, og de to sætninger er sat ind – de er begrundelsen for, at
+fundet ikke blot lukkes som «adfærden er rigtig»: adfærden VAR rigtig, det var kun brugeren, der ikke
+kunne se den.
+
+### BB-094 – Satsfanen siger ikke, hvor langt satserne er fastsat – og dens nyeste række dækker kun halvdelen af de datoer, fane 1 tager imod
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-15--skærmen-tier-hvor-dokumentet-taler`
+- **Prioritet:** Mellem
+- **Beslutning:** **Afvist 2026-08-25** – og med den afvisning er M-15's spor lukket for hele
+  programmet, jf. fundets egen betingelse nedenfor.
+- **Sådan fremprovokeres det:**
+  1. Fane «Satser»: læs tabellens øverste række. Den er `01-07-2026 / 2 %`.
+  2. Fane «Beregning»: Beløb `100.000`, Forfaldsdato `31-12-2031`, Beregningsdato `31-12-2031`.
+- **Det sker:** Rækken regner **`27,40 kr.`** – én dag til 10 % (2 % + 8 %), altså nøjagtig satsen
+  fra tabellens øverste række, anvendt fem og et halvt år efter den er fastsat. Datofelterne tager
+  imod til `31-12-2031`, så over halvdelen af de datoer, brugeren kan indtaste, ligger uden for
+  tabellen. **Dokumenterne skriver det:** «Der er kun fastsat procesrente frem til 31-12-2026.
+  Beregning derefter er hypotetisk!» **Satsfanen skriver intet** – hverken hvor langt satserne
+  rækker, eller hvad der sker efter den sidste række.
+- **Det er uhensigtsmæssigt fordi:** Den nedre ende af tabellen hænger sammen – dens ældste række
+  (`01-01-2005`) ER datofelternes nedre grænse, så der findes ikke en lovlig dato uden en række. Den
+  øvre ende gør det ikke, og fanen er det ene sted i programmet, hvor spørgsmålet «hvor langt er
+  satserne fastsat?» hører hjemme. Brugeren, der åbner fanen for at kontrollere en beregning i 2028,
+  ser en tabel, der stopper i 2026, og kan ikke skelne to helt forskellige situationer:
+  at Nationalbanken ikke har fastsat en ny sats, og at Mineo ikke er ajourført. Satserne er
+  hardkodede, så den anden mulighed er reel.
+- **Bedre ville være:** én linje under Referencesats-tabellen med den samme oplysning, dokumenterne
+  allerede bærer – fx «Satser er fastsat til og med 31-12-2026. Beregning efter denne dato er
+  hypotetisk.» Sætningen findes og er formuleret; den mangler kun i den ene kanal.
+- **Andre steder det kan gælde:** Satser-siden (hvis satser dækker 2005–2026, og hvis satsårsfelt har
+  samme grænse) og Varige méns satsfane, hvor dækningen derimod ER sammenhængende, fordi
+  beregningsdatoens grænser er udledt af datasættet (målt på fane 7b).
+- **Bemærk forholdet til BB-040, som er AFVIST.** BB-040 foreslog en advarsel **ved resultatet** på
+  fane 1, og afvisningen hvilede på, at brugerne arbejder i PDF'erne. Dette fund foreslår ikke det:
+  det handler om, at opslagsværket ikke oplyser sin egen dækning. M-15's egen betingelse for at rejse
+  sagen igen er en anden flade – og satsfanen er netop den. Afvises den også, er sporet lukket for
+  hele programmet, og det er værd at vide.
+
+**Tilbagemelding**
+Jeg hælder mod at afvise dit fund. Der er tale om professionelle brugere, som kender de grundlæggende principper for renteberegning, og det vil kun meget sjældent ske, at brugere regner renter længere ud i tiden - som udgangspunkt vil det stort set aldrig ske, at renter beregnes mere end 14 dag eller 1 måned ud i fremtiden - det er hovedsageligt af akademiske formål, at programmet muliggør renteberegninger langt ud i fremtiden. Så det er ikke nødvendigt eller relevant at angive den øvre grænse for beregningen.
+
+**Svar – jeg pressede på den halvdel, din begrundelse ikke rørte, og den halvdel holder heller ikke**
+Din begrundelse dækker den hypotetiske beregning langt ude i fremtiden, og der er jeg enig. Fundet
+havde en anden halvdel, som begrundelsen ikke nævner: satserne er **hardkodede i buildet**, så
+spørgsmålet «er Mineo ajourført?» er ikke akademisk – det bliver aktuelt hvert halve år for helt
+almindelige beregninger til dags dato. Jeg efterprøvede det derfor mod din egen præmis, og den bærer:
+tabellen viser **hvert** halvår siden 2005, så en bruger, der kender halvårskadencen, kan læse
+dækningen direkte af tabellen – en manglende `01-01-2027`-række ER svaret på spørgsmålet. Den linje,
+fundet foreslog, ville sige det samme som tabellens øverste række allerede siger til netop den
+målgruppe. Dertil advarer begge dokumenter fortsat med «Der er kun fastsat procesrente frem til
+31-12-2026. Beregning derefter er hypotetisk!». **Fundet er derfor afvist, ikke blot fordi du hælder
+den vej, men fordi det ikke overlever din præmis.** Betingelsen for at genoptage: hvis
+referencesats-tabellen en dag afkortes eller kollapses i visningen, kan dækningen ikke længere læses
+af rækkerne, og så skal den skrives. **Præciseret 2026-08-25:** kadencen kan ikke ændre sig – den
+følger af rentelovens § 5, stk. 1, 2. pkt., og er nu håndhævet ved modul-load – så den halvdel af
+betingelsen er faldet væk. Til gengæld er den tavse fejl, halvårsguarden nu fanger, netop det, der
+gjorde fundets ajourførings-halvdel værd at rejse: mangler et halvår i tabellen, viderefører
+satsopslaget forrige halvårs sats uden et ord. Efter guarden kan appen ikke starte med den fejl.
+
+### BB-095 – Negative referencesatser vises med et mellemrum mellem minus og tal, og «-» er programmets tegn for «ingen værdi»
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
+- **Prioritet:** Lav
+- **Beslutning:** **Afvist 2026-08-25** – formen bevares. Jeg er enig i afvisningen; se svaret under
+  tilbagemeldingen. Konstruktionen er til gengæld gjort eksplicit i koden, så den ikke ser ud som en
+  tilfældighed en refaktor kan fjerne.
+- **Sådan fremprovokeres det:**
+  1. Fane «Satser»: læs rækkerne `01-07-2022`, `01-01-2022` og `01-07-2021`.
+- **Det sker:** De tre celler viser **`- 0,45 %`**, `- 0,45 %` og `- 0,35 %`. Tegnkoderne er målt:
+  bindestreg (U+002D), **mellemrum**, derefter tallet. Mellemrummet er indsat med vilje i
+  `InterestRatesTable.tsx`, og konstruktionen findes kun dér i hele programmet – alle andre
+  procentvisninger går gennem `formatPercent` uden den. Kolonnen er højrejusteret, så minus står frit
+  i venstre side af tallet.
+- **Det er uhensigtsmæssigt fordi:** `-` er samtidig programmets tegn for «der er ingen værdi her» –
+  fane 1's tomme kolonner viser ordret `-`, og de står ét klik væk. En højrejusteret talkolonne med
+  `- 0,45 %` kan derfor læses som to ting: minus nul komma femogfyrre, eller «ingen værdi» efterfulgt
+  af `0,45 %`. Konsekvensen er lille, men fortegnet er det, der afgør, om tillægget på 8 % skal
+  formindskes eller forøges, og de tre rækker er de eneste i tabellen, hvor det er andet end plus.
+- **Bedre ville være:** at cellen skriver fortegnet klæbet til tallet – `-0,45 %` – som resten af
+  programmet gør. Vil du hellere have minus tydeligt adskilt, hører den form i `formatPercent`, så
+  alle procentvisninger følger den; én tabel med sin egen fortegnsform er det, mønsteret advarer mod.
+- **Andre steder det kan gælde:** ingen andre tabeller bruger konstruktionen. Men prøven hører på
+  hvert sted, hvor et negativt tal kan vises: **skriver fladen fortegnet på samme måde som resten af
+  programmet?** Kandidater, ikke efterprøvet: EO's reguleringsbilag og EET's differencekrav, hvor
+  negative beløb kan forekomme.
+
+**Tilbagemelding**
+Der er tale om en visuel detalje af begrænset betydning. Jeg hælder mod at afvise fundet. I denne type tabeller ser det rent visuelt pænest ud, at der er mellemrum mellem bindestreg og tal. hvis du er meget uenig eller det bryder afgørende med visuelle udtryk fra andre steder i programmet, er jeg lydhør over for din argumentation.
+
+**Svar – jeg presser ikke, og fundets eget hovedargument er svagere, end det stod skrevet**
+Jeg efterprøvede tvetydigheden, og den holder ikke: `-` som «ingen værdi» står altid **alene** i en
+celle på fane 1, og der findes ingen celle i programmet med to værdier i. «- 0,45 %» kan derfor ikke
+forveksles med «ingen værdi efterfulgt af 0,45 %», som fundet påstod. Tilbage står alene, at formen
+er unik for denne ene tabel – og det er netop det, en bevidst visuel undtagelse er. Ingen anden
+tabel viser negative procenter, så der er ingen nabo at være uenig med. **Formen bevares uændret.**
+Til gengæld var den skrevet som `formatPercent(...).replace('-', '- ')`, altså en blind udskiftning af
+det første bindestreg i strengen; den er nu et eksplicit fortegnsvalg med en kommentar om, at formen
+er din beslutning og ikke må bredes til `formatPercent`. Samme visning, men den kan ikke længere
+forsvinde som «oprydning» i en senere refaktor.
+
+## Overvejet uden fund
+
+- **Hele edge case-blikket B0–B6a er uden genstand.** Fanen har ingen felter, ingen knapper, ingen
+  valg, ingen tabelredigering og intet dokument – samme situation som fane 7b, og det er skrevet ned
+  her, så en senere kørsel ikke leder efter det igen. Der er intet at indtaste forkert, intet at
+  efterlade halvt udfyldt og intet begreb om «tom række».
+- **Tabellernes indhold er kontrolleret og er i orden.** 44 referencesatsrækker, nyeste først, uden
+  huller: præcis to rækker pr. år fra 2005 til 2026, altid `01-01` og `01-07`. Tillægssatsen har to
+  rækker, nyeste først. Ingen dubletter.
+- **Den nedre dækning hænger sammen.** Tabellens ældste række (`01-01-2005`) er samme dato som
+  datofelternes nedre grænse (`MIN_INTEREST_DATE` udledes af netop den række), så der findes ikke en
+  lovlig dato uden en sats. Kun den øvre ende glipper (BB-094).
+- **Tabellerne kan ikke sorteres**, og kolonneoverskrifterne er ikke klikbare – i modsætning til
+  fane 1, hvor Beløb og Forfaldsdato er sorterbare. Det er den rigtige forskel: et opslagsværk med en
+  fast, kronologisk orden. Konsistent med fane 7b.
+- **Fanen har ingen fokuserbare elementer.** Det er ikke et fund: BB-051's afvisning lukkede sporet,
+  og der er intet på fanen, brugeren skal handle på.
+- **Procentformen er programmets gennemgående satsform** – varierende decimalantal (`2 %`, `1,75 %`,
+  `3,5 %`), samme trimning som Satser-siden og fane 1's specifikation. Ikke ragged.
+- **Satskolonnens overskrift står 10 px til venstre for talkolonnens højrekant** (`paddingRight`
+  60 px mod cellernes 50 px). Det er en bevidst konvention, og dokumentet gør det samme
+  (`RIGHT_ALIGNED_INSET_RENTESATS_MM = 8`). Konsistent.
+- **Bredde (M-09) er i orden.** Ingen vandret rul ved 1536×864, 1366×620 eller 1244×620; begge
+  tabeller er 388 px brede og fuldt synlige (venstrekant 346 / 293 / 282 px).
+- **`main.scrollWidth` er 1250 px mod `clientWidth` 1000 px ved alle tre viewporter, men det er ikke
+  en overflow.** `scrollLeft` bliver 0, `overflow-x` er `visible`, og indholdssøjlen skaleres.
+  Skrevet ned, så en senere kørsel ikke jager den.
+- **M-10 er bestået på denne fane.** Indholdet er 2205 px højt og udløser rul-til-toppen-knappen
+  (målt ved x = 1451–1505 px). Nederste tabels højrekant er 734 px, så knappen dækker intet.
+- **M-21's prøve er kørt på de to sætninger:** begge er ren `rgba(0, 0, 0, 0.87)` med et enkelt
+  tekstnode og ingen farve-prop. Ingen død farveangivelse på fanen.
+- **M-11's egentlige prøve kan ikke køres her.** De to tabellers satser vises ikke noget andet sted i
+  programmet – Satser-siden har sit eget datasæt – så der findes ingen konkurrerende henførsel at måle
+  imod, og BB-075's stramning kræver to *uforenelige* henførsler. §-henvisningerne er derfor rejst som
+  åbent spørgsmål, ikke som fund.
+- **BB-077's afgørelse er respekteret:** fanen markerer ikke sagens egen række, og det foreslås ikke.
+- **Ingen samlet «procesrente»-kolonne er foreslået, og det er en bevidst afvisning** – nu normativ i
+  `renteberegning-contract.md` §2.10, så den ikke kan foreslås igen som en oplagt forbedring. Det ville se ud
+  som den oplagte forbedring – brugeren skal i dag selv lægge 2 % og 8 % sammen for at nå dokumentets
+  10 % – men en sammenlagt sats pr. dato ville være **forkert** for netop de krav, hvis rentedato
+  ligger før `01-03-2013`, og hvis periode løber ind i tiden efter, fordi tillægssatsen ligger fast
+  fra rentedatoen (BB-093). Sætningen «der tilskrives udlånsrenten» bærer sammenlægningen korrekt uden
+  at påstå en dato.
+- **De mange ens rækker er ikke et fund.** Otte på hinanden følgende halvår står med `0,05 %`, og
+  tabellen kunne have været kortere. Men hvert halvår ER en selvstændig officiel fastsættelse, og en
+  sammenlagt række ville skjule, at satsen faktisk blev fastsat på ny. Samme valg som fane 7b's 22
+  ubrudte år.
+- **«Slet alt» fra denne fane opfører sig som shellen.** Dialogen heder nu «Slet alt» (BB-086 er
+  gennemført), advarer korrekt om, at handlingen ikke kan fortrydes, og sender brugeren til Stamdata.
+  Målt sideeffekt: `mineo_ui_activeTab_renteberegning` ryddes, så en tilbagevenden lander på
+  «Beregning» og ikke på den fane, brugeren stod på. Prisen er ét klik, adfærden er shellens og ikke
+  fanens, og BB-058's afvisning dækker advarslen. Ikke registreret som fund.
+- **Tre steder heder nu «Satser»:** sidemenuens opslagsside, denne fane og Varige méns fane 2.
+  Sammenfaldet er en direkte følge af BB-090's rettelse, og BB-033's afvisning dækker det (fælles navn
+  på forskellige visningsformer, når formen følger et fagligt behov). Noteret alene, fordi følgen af
+  den netop trufne afgørelse bør være kendt.
+- **Faneskift bevarer intet og mister intet**, fordi fanen ikke har nogen tilstand. Den aktive fane
+  huskes i `sessionStorage` (`mineo_ui_activeTab_renteberegning`) og følger ikke `.eo`-filen – samme
+  adfærd som programmets øvrige faner.
+
+## Dækningshuller
+
+- **Kun Chrome og lyst tema.** Mørkt tema, Firefox, WebKit og Edge er ikke set. BB-095's fortegn og de
+  to overskrifter er rene tekstforhold og bør være motoruafhængige, men det er ikke målt.
+- **Dokumentets «Rentesats»-kolonne er ikke hentet for BB-092's og BB-093's to sager.** Begge tal er
+  målt på skærmen; fane 1's gennemgang læste dokumenterne for andre sager. Kolonnen bruger samme
+  `totalRatePct`, som skærmens beløb er regnet af, så uenighed er usandsynlig – men den er ikke målt.
+- **Om «§ 5, stk. 2» er den rigtige henvisning kunne ikke afgøres i kørslen.** Kun observationen blev
+  registreret. **Hullet er lukket 2026-08-25:** brugeren afgjorde spørgsmålet, og begge henvisninger
+  er rettet – se åbent spørgsmål 1.
+- **Satsernes rigtighed mod Nationalbankens offentliggjorte satser er ikke kontrolleret.** Programmet
+  er 100 % client-side, satserne er hardkodede, og der findes ingen kilde i programmet at afstemme
+  imod. Kontrollen er brugerens.
+- **BB-094's øvre grænse er målt på fane 1's datofelter, ikke med en systemdato i 2028.** En bruger,
+  der faktisk sidder i 2028, vil desuden opleve, at «Indsæt dags dato» og feltets grænser har flyttet
+  sig; den samlede oplevelse dér er ikke set.
+
+## Gennemført i kode 2026-08-25
+
+- `components/pages/renteberegning/RentesatserTab.tsx` – Tillægssats-tabellens kolonne heder «Gælder
+  fra» (BB-091), hver af de to bokse har fået én sætning om, hvordan dens egen sats virker (BB-093),
+  og lovhenvisningerne er rettet til «§ 5, stk. 1, 2. pkt.» (referencesats) og «§ 5, stk. 1»
+  (tillægssats) efter brugerens afgørelse – åbent spørgsmål 1 er dermed lukket. Hver boks' to
+  sætninger står på hver sin `row--text`-linje, altså samme stakkede form som fane 1's fire
+  beregningstekniske forudsætninger; ingen ny styling er indført.
+- `data/interestRates.ts` – halvårsinddelingen er uforanderlig og håndhæves nu ved modul-load: en
+  referencesats med anden ikrafttræden end `01-01`/`01-07` og et manglende halvår i kæden er begge
+  datafejl, der stopper appen frem for at give en tavst forkert sats. Tillægssatsernes sortering
+  håndhæves tilsvarende, fordi `MIN_SURCHARGE_DATE` læses positionelt. Begge grene af halvårsguarden
+  er mutationstestet.
+- `components/tables/InterestRatesTable.tsx` – `dateColumnHeader` er nu obligatorisk uden default
+  «Rentedato» (BB-091), den ubrugte `rateColumnHeader`-prop er væk, og fortegnsformen «- 0,45 %» er
+  gjort eksplicit med en kommentar om, at den er en bevidst undtagelse (BB-095).
+- `domain/renteberegning/renteCalculationPrinciples.ts` – forudsætningen siger «rentedato» i stedet for
+  «forfaldsdato» (BB-092). Teksten deles med standalone MinProcesrente og trykkes i begge dokumenter.
+- `src/contracts/renteberegning-contract.md` – nye bindende **§2.9** (terminologi: forfaldsdato mod
+  rentedato, «Gælder fra» om en sats' ikrafttræden) og **§2.10** (satsvalg: periodisk referencesats,
+  tillægssats fastlåst pr. krav på rentedatoen), plus et syvende punkt i minimumstestfladen.
+- `src/__tests__/data/interestRates.test.ts` – ny påstand om, at referencesatsserien er en ubrudt
+  kæde af halvår (det manglende halvår var ikke dækket før).
+- `src/__tests__/domain/renteberegning/procesrenteCalculator.test.ts` – tre nye tests hævder §2.10 på
+  motoren: tillægssatsen er den samme i alle perioder for et krav med rentedato før `01-03-2013`,
+  referencesatsen skifter ved halvårsskiftet i samme beregning, og et krav med rentedato efter
+  satsskiftet får den nye tillægssats.
+- `docs/domain/renteberegning/renter.md` – principperne, satstabellen og eksemplet er ført ajour, og
+  «kravetsdato» i prosaen er blevet «forfaldsdato» (kodens `kravetDato` er urørt).
+
+## Åbne spørgsmål
+
+1. **Er «jf. rentelovens § 5» og «jf. rentelovens § 5, stk. 2» de rigtige henvisninger?** Fanen
+   henfører referencesatsen til § 5 uden stykke og tillægssatsen til § 5, stk. 2. Efter min læsning af
+   renteloven fastsætter **stk. 1** både referencesatsen og tillægget på 8 %, mens stk. 2 er hjemlen
+   til at ændre satsen – altså den bestemmelse, satsændringen i 2013 hviler på, men ikke den, der
+   sætter tillægget. Det er en juridisk afgørelse, ikke en sproglig, og jeg træffer den ikke. Skal de
+   to sætninger henvise til § 5, stk. 1 – eller er den nuværende opdeling den, en praktiker forventer?
+   Bemærk, at spørgsmålet hænger sammen med BB-092: skal tillægssatsen vælges efter forfaldsdatoen
+   frem for rentedatoen, er det samme bestemmelses overgangsregel, der afgør det.
+   **BESVARET OG LUKKET 2026-08-25.** Brugeren har afgjort, at henvisningen til stk. 2 var forkert, og
+   citeret bestemmelsen: § 5, stk. 1, 1. pkt. fastsætter tillægget på 8 pct., og 2. pkt. definerer
+   referencesatsen som Nationalbankens udlånsrente pr. 1. januar og 1. juli. Rettet i kode:
+   Referencesats-boksen henviser nu til **«§ 5, stk. 1, 2. pkt.»** og Tillægssats-boksen til
+   **«§ 5, stk. 1»**. Bestemmelsens ordlyd og fordelingen af de to oplysninger står i
+   `renteberegning-contract.md` §2.11, så henvisningen ikke kan «rettes» tilbage.
+2. **Skal Tillægssats-tabellen fortsat vise 7 %-rækken lige så fremtrædende som den gældende sats?**
+   `01-08-2002 / 7 %` gælder kun krav med rentedato før `01-03-2013`, og fane 1's datofelter tager
+   imod fra `01-01-2005`, så rækken er fortsat nåbar – men den bliver stadig mere historisk, og den er
+   halvdelen af den tabel, BB-091 og BB-093 handler om. Spørgsmålet er ikke, om rækken er rigtig (den
+   er), men om den bør stå som en ligeværdig sats eller under en overskrift, der siger, at den er en
+   overgangsregel. **Stadig ubesvaret efter tilbagemeldingerne 2026-08-25.** Tillægssats-boksens nye
+   sætning gør spørgsmålet mindre presserende – den siger nu, at satsen fastlægges efter rentedatoen –
+   men rækken står fortsat visuelt på lige fod med den gældende sats.
