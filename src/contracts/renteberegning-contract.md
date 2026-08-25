@@ -3,7 +3,10 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-25 (§Regel 8's uforanderlige halvårsinddeling og §Regel 11's
+**Senest verificeret mod kode:** 2026-08-25 (§Regel 12's fire afgrænsninger er tilføjet samme dag og
+verificeret som gældende adfærd: `createRenteberegningInitialValues` sætter `beregningsdato: undefined`,
+kommentarfeltet er fladens ene felt, 7 %-rækken står ligeværdigt, og telefonopstillingen har ét
+datofelt. §Regel 8's uforanderlige halvårsinddeling og §Regel 11's
 lovhenvisninger er tilføjet efter brugerens afgørelse samme dag; halvårsguarden i
 `src/data/interestRates.ts` er mutationstestet i begge grene. §Regel 9–10 er nye og verificeret mod
 `procesrenteCalculator.ts`: tillægssatsen slås op på rentedatoen og genbruges for alle perioder,
@@ -87,6 +90,25 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
     1. juli det pågældende år.» Tillægget på 8 pct. står i **stk. 1** (1. pkt.), og definitionen af
     referencesatsen i **stk. 1, 2. pkt.** Satsfanens to sætninger skal henvise dertil – ikke til
     stk. 2, som er hjemlen til at ændre satsen og hverken fastsætter tillægget eller referencesatsen.
+12. **Fire bevidste afgrænsninger af fladens omfang (brugerafgørelser 2026-08-25).** Alle fire er
+    afgjort som «uændret» og står her, fordi hver af dem ellers ser ud som en oplagt forbedring.
+    Ændr dem ikke uden en ny afgørelse:
+    - **Beregningsdato forudfyldes ikke.** Feltet er tomt, når fladen åbnes – i både Mineo og
+      standalone MinProcesrente; brugeren udfylder selv eller bruger «Indsæt dags dato». En urørt sag
+      må ikke bære en værdi, brugeren ikke selv har skrevet: ellers er «Slet alle indtastninger» aktiv
+      fra begyndelsen, og `Gem` har noget at gemme, som ikke er brugerens indtastning.
+      `createRenteberegningInitialValues` sætter derfor `beregningsdato: undefined`.
+    - **Ét kommentarfelt pr. flade.** Kommentaren hører til fladen og trykkes generelt på alle
+      specifikationer. En rentelinje får ikke sit eget kommentarfelt, heller ikke selv om
+      rækkespecifikationerne i Mineo hentes enkeltvis til hver sin modpart.
+    - **Tillægssatsens historiske 7 %-række vises ligeværdigt** med den gældende 8 %-sats og skal
+      blive ved med det. Rækken må ikke rykkes ned, gøres mindre fremtrædende eller sættes under en
+      «overgangsregel»-overskrift.
+    - **Standalones telefonopstilling har bevidst kun ét datofelt.** «Evt. tillægstid», «Enhed» og
+      «Rentedato» findes kun i desktopopstillingen, fordi der ikke er plads til dem på en telefon –
+      heller ikke vandret. På telefon lægges forfaldsdatoen derfor direkte til grund for renten
+      (rentedato = forfaldsdato). Enhedslåsen gør opstillingen fast, så en skjult tillægstid ikke kan
+      regne med i det viste tal.
 
 ---
 

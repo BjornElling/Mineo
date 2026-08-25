@@ -524,11 +524,18 @@ Jeg anerkender fundet og rettelsen.
    Prisen er også større i Mineo: en forudfyldt dato betyder, at en helt urørt sag har en værdi i
    `renteberegning`-sektionen, så «Slet alle indtastninger» er aktiv fra begyndelsen, og `Gem` har
    noget at gemme, som brugeren ikke selv har skrevet.
+   **BESVARET OG LUKKET 2026-08-25: nej, beregningsdato skal ikke være forudfyldt.** Svaret gælder
+   alle tre flader med samme felt (Renteberegning, standalone MinProcesrente og Varige mén). Ingen
+   kodeændring – `createRenteberegningInitialValues` og `varigeMenInitialValues` sætter allerede
+   `beregningsdato: undefined`. Afgørelsen er normativ i `renteberegning-contract.md` §2.12 og
+   `varigemen-contract.md` §2.10, så en «hjælpsom» forudfyldning ikke sniger sig ind senere.
 2. **Skal en rentelinje kunne bære sit eget kommentarfelt?** Kommentarfeltet hører til fanen, så den
    samme kommentar trykkes på hver enkelt rækkespecifikation. Med tre krav mod tre forskellige
    skyldnere er det den samme sætning i tre dokumenter, der skal hver sin vej. Flade 5 vurderede det
    som «ikke misvisende», og det står ved magt – men i Mineo hentes rækkespecifikationerne enkeltvis
    til hver sin modpart, og spørgsmålet er derfor, om fanens kommentar hører i dem alle.
+   **BESVARET OG LUKKET 2026-08-25: nej, ét kommentarfelt, som anvendes generelt på
+   specifikationerne.** Ingen kodeændring; normativ i `renteberegning-contract.md` §2.12.
 
 ---
 
@@ -946,6 +953,9 @@ forsvinde som «oprydning» i en senere refaktor.
    imod fra `01-01-2005`, så rækken er fortsat nåbar – men den bliver stadig mere historisk, og den er
    halvdelen af den tabel, BB-091 og BB-093 handler om. Spørgsmålet er ikke, om rækken er rigtig (den
    er), men om den bør stå som en ligeværdig sats eller under en overskrift, der siger, at den er en
-   overgangsregel. **Stadig ubesvaret efter tilbagemeldingerne 2026-08-25.** Tillægssats-boksens nye
-   sætning gør spørgsmålet mindre presserende – den siger nu, at satsen fastlægges efter rentedatoen –
-   men rækken står fortsat visuelt på lige fod med den gældende sats.
+   overgangsregel.
+   **BESVARET OG LUKKET 2026-08-25: rækken skal stå ligeværdigt og blive ved med det.** Brugerens svar:
+   «Den gamle tillægssats på 7 % skal stadig fremgå ligeværdigt med 8 %, og skal blive ved med at gøre
+   det.» Ingen kodeændring – den nuværende visning ER afgørelsen. Den er nu normativ i
+   `renteberegning-contract.md` §2.12, så rækken ikke senere rykkes ned eller sættes under en
+   «overgangsregel»-overskrift som en formodet forbedring.

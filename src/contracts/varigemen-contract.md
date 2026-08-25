@@ -3,7 +3,8 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-21
+**Senest verificeret mod kode:** 2026-08-25 (§Regel 10 er ny og verificeret: `varigeMenInitialValues`
+sætter `beregningsdato: undefined`, så feltet er tomt ved åbning)
 
 ---
 
@@ -45,6 +46,13 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
    afstemmer stadig nøjagtigt, også hvis en fremtidig sats får ører: `aldersreduktionBeloeb` er defineret som
    `grundbeloebUdenReduktion − beregnetGodtgoerelse`, så de to uafrundede beløb har samme decimaldel og
    forskydes ens af visningens afrunding.
+10. **Beregningsdato forudfyldes ikke (brugerafgørelse 2026-08-25).** Feltet er tomt, når fanen åbnes;
+    brugeren udfylder selv eller bruger «Indsæt dags dato». Det gælder, selv om beregningsdatoen i
+    praksis næsten altid er «i dag»: en urørt sag må ikke bære en værdi, brugeren ikke selv har
+    skrevet, for så er «Slet alle indtastninger» aktiv fra begyndelsen, og `Gem` har noget at gemme,
+    som ikke er brugerens indtastning. `varigeMenInitialValues` sætter derfor
+    `beregningsdato: undefined`. Afgørelsen blev truffet på tværs af de tre flader med samme felt
+    (Varige mén, Renteberegning og standalone MinProcesrente) og er den samme dér.
 
 ---
 

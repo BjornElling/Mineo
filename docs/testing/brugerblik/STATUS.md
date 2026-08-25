@@ -8,7 +8,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemført, BB-094 og BB-095 afvist. Beregningen er uændret – begge Høj-fund var brugervendte
   tekster, der navngav forfaldsdatoen, hvor beregningen bruger rentedatoen. Satsvalget og
   terminologien er nu bindende i `renteberegning-contract.md` §2.9–§2.10. **M-15's spor er lukket for
-  hele programmet** med BB-094's anden afvisning.)
+  hele programmet** med BB-094's anden afvisning. **Samme dag er ALLE fem rente- og satsspørgsmål
+  afgjort** – lovhenvisningerne rettet, de fire øvrige fastholdt som uændret adfærd og gjort normative
+  i §2.11–§2.12 og `varigemen-contract.md` §2.10. Kun tre åbne spørgsmål er tilbage i hele
+  gennemgangen, og ingen af dem hører til renteberegning.)
 
 ## Flader
 
@@ -519,26 +522,21 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
-**Syv efter fane 8b, som tilføjede to og fik det ene besvaret.** **Spørgsmål 1 er LUKKET 2026-08-25:**
-brugeren har afgjort, at henvisningen til § 5, stk. 2 var forkert – tillægget på 8 pct. står i § 5,
-stk. 1 (1. pkt.) og definitionen af referencesatsen i § 5, stk. 1, 2. pkt. Begge sætninger på
-satsfanen er rettet, og bestemmelsens ordlyd står i `renteberegning-contract.md` §2.11. **Tilbage
-står spørgsmål 2**, udfoldet i [renteberegning.md](renteberegning.md) under «Fane 2 – Satser»: skal
-Tillægssats-tabellens historiske 7 %-række stå som en ligeværdig sats eller under en overskrift, der
-siger, at den er en overgangsregel.
+**Tre tilbage. Alle rente- og satsspørgsmål er afgjort 2026-08-25**, og ingen af de fem afgørelser
+krævede en kodeændring – de fastholdt alle den nuværende adfærd, som nu er normativ, så den ikke
+senere «forbedres» tilbage:
 
-**Seks efter fane 8a, som tilføjede ét nyt og skærpede ét gammelt.** Det nye står udfoldet i
-[renteberegning.md](renteberegning.md): skal en rentelinje kunne bære sin egen kommentar? Fanens
-kommentarfelt hører til siden, så samme sætning trykkes på hver enkelt rækkespecifikation – og i
-Mineo hentes de enkeltvis til hver sin modpart. **Skærpelsen** gælder det gamle spørgsmål om
-forudfyldt beregningsdato (MinProcesrentes nr. 1 nedenfor): afvejningen er en anden i Mineo, hvor en
-forudfyldt dato betyder, at en helt urørt sag har en værdi i `renteberegning`-sektionen, så «Slet alle
-indtastninger» er aktiv fra begyndelsen og `Gem` har noget at gemme, brugeren ikke selv har skrevet.
+| Spørgsmål | Flade | Afgørelse 2026-08-25 |
+|---|---|---|
+| Er «§ 5» / «§ 5, stk. 2» de rigtige henvisninger? | 8b Satser | **Nej** – tillægget står i § 5, stk. 1, referencesatsen i § 5, stk. 1, 2. pkt. Begge sætninger rettet; ordlyden i kontraktens §2.11 |
+| Skal 7 %-rækken stå som en ligeværdig sats? | 8b Satser | **Ja, og blive ved med det** – rækken må ikke rykkes ned eller sættes under en «overgangsregel»-overskrift (§2.12) |
+| Skal Beregningsdato være forudfyldt med dags dato? | 8a, MinProcesrente, Varige mén | **Nej** – på alle tre flader. En urørt sag må ikke bære en værdi, brugeren ikke selv har skrevet (§2.12 / varigemen §2.10) |
+| Skal en rentelinje bære sit eget kommentarfelt? | 8a | **Nej** – ét kommentarfelt pr. flade, som anvendes generelt på specifikationerne (§2.12) |
+| Skal tillægstid kunne bruges på telefon? | MinProcesrente | **Nej** – der er ikke plads, heller ikke vandret. Telefonen har bevidst ét datofelt, og forfaldsdatoen lægges direkte til grund (§2.12) |
 
 Ét fra Varige mén → Ménberegning – det står udfoldet i [varigemen.md](varigemen.md): skal fanen
-advare, når beregningsdatoen ligger tyve år fra skadedatoen? (Fanens andet «åbne spørgsmål» er ikke et
-nyt: forudfyldt beregningsdato er ordret MinProcesrentes uafklarede spørgsmål nedenfor, og svaret bør
-gælde begge flader.)
+advare, når beregningsdatoen ligger tyve år fra skadedatoen? (Fanens andet «åbne spørgsmål» var ikke
+et nyt – forudfyldt beregningsdato – og er lukket med afgørelsen ovenfor.)
 
 To fra Global shell – de står udfoldet i [globalshell.md](globalshell.md): skal Ctrl+S kunne
 ses nogen steder i brugerfladen, og hvad skal `Gem` gøre, når skadelidtes navn rettes efter et gem
@@ -548,8 +546,8 @@ genveje, er Ctrl+S den eneste tastaturvej til nogen af de tre filhandlinger. Det
 beslutningspunkt med BB-049's rettelse, men er uændret af den – et svar skal skrives ind i
 `resolveSaveTarget` og bør læse `persistence-contract.md` §5 først.
 
-**To fra MinProcesrente** – de står udfoldet i [minprocesrente.md](minprocesrente.md):
-forudfyldt beregningsdato ved første besøg, og om tillægstid skal kunne bruges på telefon.
+**Ingen tilbage fra MinProcesrente** – begge (forudfyldt beregningsdato, tillægstid på telefon) er
+lukket 2026-08-25; afgørelserne står ved hvert spørgsmål i [minprocesrente.md](minprocesrente.md).
 
 Fra de tidligere flader er der ingen. BB-017's alternative overskrift til fejldialogen blev udeladt
 som aftalt; BB-018's tekstrettelse ændrede derfor ikke denne overskrift.

@@ -525,6 +525,10 @@ Jeg forstår dit synspunkt men afviser det. Der anvendes placeholders i meget vi
    Svaret bør være det samme på begge flader, og på Varige mén er argumentet for forudfyldning
    stærkere: beregningsdatoen er sagens opgørelsestidspunkt og er i praksis næsten altid «i dag».
    Registreres her som det samme åbne spørgsmål, ikke som et nyt.
+   **BESVARET OG LUKKET 2026-08-25: nej, beregningsdato skal ikke være forudfyldt.** Svaret blev givet
+   på tværs af de tre flader med samme felt og gælder også her, hvor argumentet for forudfyldning var
+   stærkest. Ingen kodeændring – `varigeMenInitialValues` sætter `beregningsdato: undefined`.
+   Afgørelsen er normativ i `varigemen-contract.md` §2.10.
 2. **Skal fanen advare, når beregningsdatoen ligger langt fra skadedatoen?** En sag med skadedato
    2006 og beregningsdato 2026 regner uden indvending med 2026-satsen, hvilket er korrekt. Men M-05's
    grænse er, at en advarsel kan foreslås, hvor værdien er usandsynlig **i sagens egen sammenhæng**.
