@@ -53,6 +53,15 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
     som ikke er brugerens indtastning. `varigeMenInitialValues` sætter derfor
     `beregningsdato: undefined`. Afgørelsen blev truffet på tværs af de tre flader med samme felt
     (Varige mén, Renteberegning og standalone MinProcesrente) og er den samme dér.
+11. **Afstanden mellem skadedato og beregningsdato udløser ingen advarsel (brugerafgørelse
+    2026-08-25).** En sag med skadedato i 2006 og beregningsdato i 2026 beregnes med 2026-satsen uden
+    en indvending, og det er den rigtige adfærd. Tyve år mellem de to datoer er lovligt, forekommer i
+    praksis, og målgruppen er professionelle brugere, der ved, hvilken dato der styrer satsopslaget.
+    Fanen må derfor ikke få en gul feltadvarsel, en forklarende linje eller anden markering af «stor
+    afstand», og en sådan grænse må ikke opfindes i domænet. Ingen kodeændring – den nuværende tavshed
+    ER afgørelsen. Reglen afgrænser `M-05` (advarsel ved en værdi, der er usandsynlig i sagens egen
+    sammenhæng): afstanden mellem de to datoer er ikke i sig selv usandsynlig, og en advarsel her ville
+    ramme almindelige, korrekte sager.
 
 ---
 

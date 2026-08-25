@@ -4,7 +4,16 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-19 (to nye normative afsnit fra brugerblikket på global
+**Senest verificeret mod kode:** 2026-08-25 (nyt normativt afsnit under §Overlay-adfærd: «`Ctrl+S`
+annonceres ikke i brugerfladen». Brugerafgørelse, ingen kodeændring; afsnittet fastholder den bestående
+tavshed, så en «hjælpsom» `Gem (Ctrl+S)`-tooltip ikke sniger sig ind senere. Verificeret begge veje:
+genvejen ER registreret (`MainLayout.tsx` – og den spørger `hasOpenOverlay()` før `preventDefault()`),
+og «Ctrl» findes ikke i én eneste brugervendt streng i `src/` – kun i kommentarer og kontrakter.
+Sidemenuens tooltip er `title={item.label}` med det bare `label: 'Gem'`, og `Hent`/`Slet alt` har
+fortsat ingen genveje. Hele kontrakten er gennemgået ved samme lejlighed – overlay-reglen,
+popup-fokus-restore, feltidentiteten, «peg på dette felt», beskedidentiteten, opt-in-listen og samtlige
+nævnte filer, symboler og AST-regler er stikprøvet, og ingen påstand var blevet usand. Tidligere stempel
+2026-08-19: to nye normative afsnit fra brugerblikket på global
 shell: §Overlay-adfærd → «Globale genveje er UVIRKSOMME, mens et overlay er åbent» (BB-050) og
 beskedreglen «hver ny besked starter sin EGEN nedtælling» under §Escape (BB-053). Begge er
 mutationstestet – genvejene i `useUndoRedoShortcuts.test.tsx` og
@@ -333,6 +342,19 @@ funktion». Prøven for en åben editor skal derfor være SYNKRON (`ActiveEditor
 `preventDefault()` kan ikke længere undlades. Brugerbeslutning 2026-08-19 (BB-054): den dobbelte adfærd
 er afvist, spærringen fjernet. Virkningen kan kun måles i en rigtig browser; jsdom har ingen
 tekstfortrydelse.
+
+### `Ctrl+S` annonceres ikke i brugerfladen (normativ, brugerafgørelse 2026-08-25)
+
+Genvejen `Ctrl+S` for `Gem` er bevidst **skjult**: den nævnes hverken i sidemenuens tooltip, på
+Om-siden eller andre steder på skærmen. Den er der for dem, der prøver den – ikke som en oplyst
+funktion. Ingen kodeændring; den nuværende tavshed ER afgørelsen, og den skrives her, så en «hjælpsom»
+`Gem (Ctrl+S)`-tooltip ikke sniger sig ind senere som en formodet forbedring.
+
+Afgørelsen skal læses sammen med reglen om, at `Hent` og `Slet alt` bevidst **ingen** genveje har
+(BB-051, afvist 2026-08-19: Tab-ringen og genvejene findes for hurtig indtastning på én side, ikke for
+navigation eller filhåndtering). `Ctrl+S` er dermed den eneste tastaturvej til nogen af de tre
+filhandlinger, og den asymmetri er accepteret: den er en bekvemmelighed for den vante bruger, ikke en
+kontrol, brugerfladen lover.
 
 ### Lag på lag
 

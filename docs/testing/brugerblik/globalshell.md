@@ -771,6 +771,11 @@ Dette lukker samtidig et spor: **foreslå ikke en «Log ud» igen**, og læs ikk
   «Gem (Ctrl+S)» i menuens tooltip – eller er den bevidst en genvej for dem, der prøver den?
   (Spørgsmålet er skærpet af BB-051's afvisning: `Hent` og `Slet alt` har ingen genveje, og det er nu
   afgjort som acceptabelt. Ctrl+S er dermed den ENESTE tastaturvej til nogen af de tre filhandlinger.)
+
+  **BESVARET OG LUKKET 2026-08-25: nej – genvejen forbliver skjult.** Den er der for dem, der prøver
+  den, ikke som en oplyst funktion, og asymmetrien over for `Hent` og `Slet alt` er accepteret. Ingen
+  kodeændring – den nuværende tavshed ER afgørelsen. Normativ i `keyboard-navigation.md` under
+  «`Ctrl+S` annonceres ikke i brugerfladen», så en «hjælpsom» tooltip ikke sniger sig ind senere.
 - **Hvad skal `Gem` gøre, når skadelidtes navn rettes efter et gem?** I dag afgør Skadelidtes navn,
   Skadestype og Skadedato, hvilken fil `Gem` skriver til. Retter brugeren en stavefejl i navnet
   efter at have gemt, åbner næste `Gem` filvælgeren med et NYT filnavn, og han ender med to filer
@@ -783,6 +788,15 @@ Dette lukker samtidig et spor: **foreslå ikke en «Log ud» igen**, og læs ikk
   eget) og ændrede ikke den eksisterende (stamdatagrundlaget skal være uændret), som netop er den, der
   giver to filer ved en rettet stavefejl. Spørgsmålet står derfor åbent præcis som før – men et svar
   vil skulle skrives ind på samme sted og bør læse `persistence-contract.md` §5 først.
+
+  **BESVARET OG LUKKET 2026-08-25: to filer er det rigtige udfald.** Filnavnet følger sagens egne
+  oplysninger, og en fil skrevet under det gamle navn forbliver den, den var. Programmet skal derfor
+  hverken spørge «hidtidig fil eller ny?» eller tavst skrive videre under et navn, der ikke længere
+  passer til sagen. Ingen kodeændring – den nuværende adfærd ER afgørelsen. Normativ i
+  `persistence-contract.md` §5 ved siden af BB-049's navneprøve, fordi de to regler bor i samme
+  `resolveSaveTarget`-beslutning og ellers kan forveksles: navneprøven værner mod at skrive i en
+  ANDEN fanes fil, mens denne regel siger, at et ændret filnavn i EGEN fane bevidst giver en ny fil.
+  Med denne besvarelse har Global shell ingen åbne spørgsmål tilbage.
 
 ## Gennemført i kode (2026-08-19)
 

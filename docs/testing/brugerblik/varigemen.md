@@ -534,6 +534,12 @@ Jeg forstår dit synspunkt men afviser det. Der anvendes placeholders i meget vi
    grænse er, at en advarsel kan foreslås, hvor værdien er usandsynlig **i sagens egen sammenhæng**.
    Tyve år mellem de to datoer er lovligt og forekommer; jeg har ikke fagligt grundlag for at afgøre,
    om det også er usandsynligt. Spørgsmålet forelægges uden forslag.
+   **BESVARET OG LUKKET 2026-08-25: nej, ingen advarsel.** Afstanden er lovlig, forekommer i praksis,
+   og målgruppen ved, hvilken dato der styrer satsopslaget. Ingen kodeændring – den nuværende tavshed
+   ER afgørelsen. Normativ i `varigemen-contract.md` §2.11, så en gul advarsel eller en forklarende
+   linje ikke sniger sig ind senere som en formodet forbedring. Afgørelsen **afgrænser samtidig M-05**:
+   afstanden mellem to datoer er ikke i sig selv en usandsynlig værdi, og en advarsel her ville ramme
+   almindelige, korrekte sager. Med denne besvarelse har Varige mén ingen åbne spørgsmål tilbage.
 
 ---
 

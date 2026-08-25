@@ -3,7 +3,15 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-08-19 (nyt normativt afsnit i §5: et persisteret filhåndtag må kun
+**Senest verificeret mod kode:** 2026-08-25 (nyt normativt afsnit i §5: et ændret filnavns-relevant
+stamdatafelt giver bevidst en NY fil – hverken en «hidtidig fil eller ny?»-dialog eller tavs
+videreskrivning under et navn, der ikke længere passer til sagen. Brugerafgørelse, ingen kodeændring;
+afsnittet beskriver den bestående adfærd, så den ikke senere «rettes». Verificeret mod
+`fileSaveTarget.ts`: `hasFilenameBasisChanged` sammenligner de tre felter, `resolveSaveTarget` sletter
+håndtaget ved ændring, og `suggestedFilename` bruger da det nygenererede navn. Reglen står ved siden af
+BB-049's navneprøve, fordi begge bor i samme beslutning og ellers kan forveksles. Hele kontrakten er
+gennemgået ved samme lejlighed – §1–§11 er stikprøvet mod de nævnte moduler, symboler og AST-regel-id'er,
+og ingen påstand var blevet usand. Tidligere stempel 2026-08-19: et persisteret filhåndtag må kun
 genbruges til direkte overskrivning, når dets `name` er identisk med fanens eget `lastSavedFilename` –
 brugerfundet BB-049, hvor `Gem` i én fane kunne overskrive den anden fanes fil tavst, fordi håndtaget
 ligger i den browser-fælles IndexedDB og sagen i den fane-lokale sessionStorage. Reglen er mutationstestet
@@ -208,6 +216,17 @@ ingen ny persistering, fordi `lastSavedFilename` skrives fra præcis samme kilde
 ved hvert gem; en separat kopi af navnet ville kunne komme ud af sync med håndtaget og genindføre
 fejlen. Fail-closed-reglen gælder som ellers: kan det kasserede håndtag ikke ryddes verificerbart,
 afbrydes gemningen.
+
+**Ændret filnavns-relevant stamdata giver en NY fil, ikke en dialog (normativ, brugerafgørelse
+2026-08-25).** Skadelidtes navn, skadestype og skadedato afgør, hvilket filnavn `Gem` foreslår. Retter
+brugeren en af dem efter et gem – fx en stavefejl i navnet – kasseres håndtaget efter prøven ovenfor,
+og næste `Gem` går til filvælgeren med det NYE filnavn som forslag. Resultatet er to filer for samme
+sag, og **det er det rigtige udfald**: filnavnet følger sagens egne oplysninger, og en fil, der er
+skrevet under det gamle navn, forbliver den, den var. Programmet skal derfor **ikke** spørge «Skal
+sagen gemmes i den hidtidige fil eller i en ny?», og det skal heller ikke tavst skrive videre til den
+hidtidige fil under et navn, der ikke længere passer til sagen. Ingen kodeændring – den nuværende
+adfærd ER afgørelsen; den skrives her, fordi den ellers ligner en overset mangel, og fordi et svar
+ville skulle skrives ind netop her i `resolveSaveTarget`.
 
 En PWA-filrequest registreres før service-worker-opstart og React-render. Dens fil-handle ligger i memory straks og
 persisteres som pending request, så en app-version der starter efter en opdatering kan hydrere og behandle den samme

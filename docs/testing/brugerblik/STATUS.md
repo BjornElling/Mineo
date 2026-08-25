@@ -4,7 +4,18 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 
 - **Næste flade:** Årslønsberegning (`/aarsloen`, nr. 9)
 - **Næste fund-ID:** BB-096
-- **Senest opdateret:** 2026-08-25 (Renteberegning → **Satser afgjort**: BB-091, BB-092 og BB-093
+- **Åbne spørgsmål:** **ingen** – alle otte er afgjort 2026-08-25.
+- **Udestående implementeringer:** **ingen.** De fem tilbagemeldinger fra flade 8a, der bad om
+  udbredelse ud over fundets egen flade (BB-080, BB-083, BB-084, BB-085, BB-088), er efterprøvet i
+  produktionskoden 2026-08-25 og er alle fuldt gennemført **og** kontraktforankret. Efterprøvningen
+  står nedenfor under «Efterprøvning af de fem udbredte tilbagemeldinger».
+- **Senest opdateret:** 2026-08-25 (**de tre sidste åbne spørgsmål afgjort** – Varige méns
+  datoafstand, Ctrl+S' synlighed og `Gem`s adfærd ved rettet navn. Ingen af dem krævede en
+  kodeændring; alle tre fastholdt den bestående adfærd og er nu normative i henholdsvis
+  `varigemen-contract.md` §2.11, `keyboard-navigation.md` og `persistence-contract.md` §5. Samtidig er
+  de fem udbredte tilbagemeldinger fra flade 8a efterprøvet i koden uden fund af huller. **Hele
+  gennemgangen har dermed nul udeståender frem til flade 9.** Tidligere samme dag: Renteberegning →
+  **Satser afgjort**: BB-091, BB-092 og BB-093
   gennemført, BB-094 og BB-095 afvist. Beregningen er uændret – begge Høj-fund var brugervendte
   tekster, der navngav forfaldsdatoen, hvor beregningen bruger rentedatoen. Satsvalget og
   terminologien er nu bindende i `renteberegning-contract.md` §2.9–§2.10. **M-15's spor er lukket for
@@ -34,6 +45,35 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 10 | Forsørgertab | Ikke startet | – | – |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Efterprøvning af de fem udbredte tilbagemeldinger – 2026-08-25
+
+Fem af flade 8a's tilbagemeldinger bad udtrykkeligt om mere end fundets egen flade: *«er den
+implementeret alle steder, hvor problemet kunne være aktuelt?»*, *«både her og i resten af
+programmet»*, *«lav en universel rettelse»*. Sådanne krav er de letteste at afslutte for tidligt,
+fordi fundets eget sted bliver rettet og resten ligner en detalje. Alle fem er derfor efterprøvet mod
+produktionskoden – ikke mod rapporternes egne «Gennemført i kode»-afsnit. **Ingen huller fundet.**
+
+| Krav | Efterprøvet | Kontrakt |
+|---|---|---|
+| BB-080 – stamdata er kun en dokumentafhængighed, når brevhovedet er slået til | Alle syv flader kalder `projectStamdataForDocumentIfEnabled` med deres eget brevhoved-flag; **ingen ubetinget kaldsside tilbage** i produktionskoden. Blokeringsteksten er `'Ret fejlen i Stamdata'` (`documentOutcome.ts`) | `document-output-contract.md` §Gate-deling – og håndhævet som **typegrænse**: en `project`, der læser formatvalget, kompilerer ikke |
+| BB-083 – en delvist udfyldt række må ikke få rødt partnerfelt | Rettelsen er **fjernet**; de to tilbageværende `rule`-validatorer er ægte egen-værdi-regler (nul-beløb, rentedato forbi beregningsdato) og returnerer `undefined`, når partneren mangler | `input-field-behavior-contract.md` §1.0a |
+| BB-084 – ugyldig indtastning gør ikke en række «tom» | Centralt i `fieldCatalog.ts` (`hasEntityInput` læser `rejectedInputs`), som alle ti tabeller arver via `useCollectionTable`. Dropdown-undtagelsen er implementeret pr. descriptor | `input-field-behavior-contract.md` §1.0a |
+| BB-085 – download-ikoner deaktiveres, forsvinder ikke | Fælles `DownloadIconButton` med obligatorisk tooltip; **den flade du navngav** (regulering pr. ansættelsesforhold) renderer nu ubetinget med `disabled` | `page-component-contract.md` §11.1a – udvidet til **enhver** deaktiveret handling |
+| BB-088 – højst ét decimalkomma pr. talled | Universelt på tegn-prædikatet i `numericDraftAdmission.ts`; **virker også for procent- og brøkfelter**. Ingen linjeskift-særregel tilbage | `input-field-behavior-contract.md` §1.2 + §Talled |
+
+**Én observation værd at bære videre.** BB-088's værn ligger på `onDraftChange`, ikke på keydown, og
+keydown-filteret er *afledt* af samme prædikat (`keyFilterFromAdmission`). Det er grunden til, at
+rettelsen holder for paste, for tabelceller og for transiente overlay-felter uden tre separate
+implementeringer – og det er samme arkitektur som tegnværnet. **Prøven ved enhver fremtidig
+indtastningsregel: ligger den på prædikatet, eller på tastetrykket?** Kun den første er
+modalitets-uafhængig.
+
+**Ét sted er læst og bevidst ikke ændret:** EO's fire outputs (`eoDocumentDefinitions.ts`) læser
+stamdata **ubetinget**, og det er korrekt – dér er skadestype, skadedato og fødselsdato reelt
+*beregningsinput*, ikke kun brevhovedstof. BB-080's regel er, at stamdata ikke må være en
+dokumentafhængighed, **når den kun bruges til brevhovedet**; den siger ikke, at stamdata aldrig må
+blokere. Forskellen er værd at kende, før nogen «ensretter» EO med de øvrige syv flader.
 
 ## Renteberegning → Satser – gennemgået 2026-08-24, afgjort 2026-08-25
 
@@ -522,9 +562,21 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
-**Tre tilbage. Alle rente- og satsspørgsmål er afgjort 2026-08-25**, og ingen af de fem afgørelser
-krævede en kodeændring – de fastholdt alle den nuværende adfærd, som nu er normativ, så den ikke
-senere «forbedres» tilbage:
+**INGEN TILBAGE. Alle otte spørgsmål i hele gennemgangen er afgjort 2026-08-25**, og ingen af de otte
+afgørelser krævede en kodeændring – de fastholdt alle den nuværende adfærd, som nu er normativ, så den
+ikke senere «forbedres» tilbage. Det er i sig selv en observation værd at holde fast i: **hver gang et
+spørgsmål blev forelagt frem for afgjort af mig selv, var det bestående valg det rigtige.** Prisen ved
+at forelægge var alene tid; prisen ved at gætte ville have været en ændret adfærd, ingen havde bedt om.
+
+De tre sidst afgjorte (2026-08-25, denne runde):
+
+| Spørgsmål | Flade | Afgørelse | Forankret i |
+|---|---|---|---|
+| Skal fanen advare, når beregningsdatoen ligger tyve år fra skadedatoen? | 7a Varige mén | **Nej** – afstanden er lovlig, forekommer, og målgruppen kender satsopslagets dato. Afgørelsen afgrænser M-05 | `varigemen-contract.md` §2.11 |
+| Skal Ctrl+S kunne ses nogen steder i brugerfladen? | 6 Global shell | **Nej** – genvejen forbliver skjult; asymmetrien over for `Hent`/`Slet alt` er accepteret | `keyboard-navigation.md` §«`Ctrl+S` annonceres ikke» |
+| Hvad skal `Gem` gøre, når skadelidtes navn rettes efter et gem? | 6 Global shell | **To filer er det rigtige udfald** – filnavnet følger sagens oplysninger; hverken dialog eller tavs videreskrivning | `persistence-contract.md` §5 |
+
+De fem rente- og satsspørgsmål, afgjort tidligere samme dag:
 
 | Spørgsmål | Flade | Afgørelse 2026-08-25 |
 |---|---|---|
@@ -534,17 +586,16 @@ senere «forbedres» tilbage:
 | Skal en rentelinje bære sit eget kommentarfelt? | 8a | **Nej** – ét kommentarfelt pr. flade, som anvendes generelt på specifikationerne (§2.12) |
 | Skal tillægstid kunne bruges på telefon? | MinProcesrente | **Nej** – der er ikke plads, heller ikke vandret. Telefonen har bevidst ét datofelt, og forfaldsdatoen lægges direkte til grund (§2.12) |
 
-Ét fra Varige mén → Ménberegning – det står udfoldet i [varigemen.md](varigemen.md): skal fanen
-advare, når beregningsdatoen ligger tyve år fra skadedatoen? (Fanens andet «åbne spørgsmål» var ikke
-et nyt – forudfyldt beregningsdato – og er lukket med afgørelsen ovenfor.)
+**Varige mén → Ménberegning er lukket.** Fanens andet åbne spørgsmål (advarsel ved tyve år mellem
+skadedato og beregningsdato) er besvaret ovenfor; det første var ikke et nyt spørgsmål – forudfyldt
+beregningsdato – og blev lukket med tværfladeafgørelsen. Grundlaget står i [varigemen.md](varigemen.md).
 
-To fra Global shell – de står udfoldet i [globalshell.md](globalshell.md): skal Ctrl+S kunne
-ses nogen steder i brugerfladen, og hvad skal `Gem` gøre, når skadelidtes navn rettes efter et gem
-(i dag skifter det tavst, hvilken fil der skrives til). **Begge står stadig åbne efter afgørelserne
-2026-08-19**, og det første er skærpet af BB-051's afvisning: når `Hent` og `Slet alt` bevidst ikke har
-genveje, er Ctrl+S den eneste tastaturvej til nogen af de tre filhandlinger. Det andet spørgsmål deler
-beslutningspunkt med BB-049's rettelse, men er uændret af den – et svar skal skrives ind i
-`resolveSaveTarget` og bør læse `persistence-contract.md` §5 først.
+**Global shell er lukket.** Begge spørgsmål – Ctrl+S' synlighed og `Gem`s adfærd ved rettet navn – er
+besvaret ovenfor og står udfoldet i [globalshell.md](globalshell.md). **Bemærk hvordan de to
+afgørelser i `resolveSaveTarget` skal læses sammen:** BB-049's navneprøve værner mod at skrive i en
+ANDEN fanes fil, mens navneafgørelsen siger, at et ændret filnavn i EGEN fane bevidst giver en ny fil.
+De bor i samme beslutning og kan forveksles – derfor står de ved siden af hinanden i
+`persistence-contract.md` §5.
 
 **Ingen tilbage fra MinProcesrente** – begge (forudfyldt beregningsdato, tillægstid på telefon) er
 lukket 2026-08-25; afgørelserne står ved hvert spørgsmål i [minprocesrente.md](minprocesrente.md).
