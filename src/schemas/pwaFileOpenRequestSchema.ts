@@ -17,7 +17,7 @@ const fileSystemFileHandleSchema = z.custom<FileSystemFileHandle>(
 export const pwaFileOpenRequestSchema = z.object({
   // Id'et indeholder klientens session-id plus en monoton lokal tæller. En ren proceslokal tæller
   // begyndte igen på 1 efter reload, så en afsluttet request-markør kunne forveksles med en ny fil.
-  id: z.string().regex(/^pwa-open-[a-z0-9-]+$/i),
+  id: z.string().regex(/^pwa-open-(?:[a-z0-9]+(?:-[a-z0-9]+)*-)?\d+$/i),
   createdAtEpochMs: z.number().int().nonnegative(),
   fileHandle: fileSystemFileHandleSchema,
   fileName: z.string().trim().min(1),

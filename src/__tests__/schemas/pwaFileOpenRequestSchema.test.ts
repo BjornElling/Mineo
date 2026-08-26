@@ -9,6 +9,13 @@ const buildFileHandle = (name = 'test.eo'): FileSystemFileHandle => ({
 } as unknown as FileSystemFileHandle);
 
 describe('pwaFileOpenRequestSchema', () => {
+  it.each([
+    'pwa-open-1',
+    'pwa-open-550e8400-e29b-41d4-a716-446655440000-1',
+  ])('accepterer request-id med numerisk tæller: %s', (id) => {
+    expect(pwaFileOpenRequestSchema.shape.id.safeParse(id).success).toBe(true);
+  });
+
   it('accepterer en gyldig request og fjerner ukendte legacyfelter', () => {
     const parsed = pwaFileOpenRequestSchema.parse({
       id: 'pwa-open-1',
