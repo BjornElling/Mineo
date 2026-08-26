@@ -3,14 +3,21 @@ import { isRecord } from './typeGuards';
 import {
   deleteFileHandleValues,
   directoryHandleMetaSchema,
+  deleteClientScopedFileHandleValue,
   readFileHandleValue,
   readFileHandleValueResult,
+  readClientScopedFileHandleValueResult,
+  writeClientScopedFileHandleValue,
   writeFileHandleValues,
   type DirectoryHandleMeta,
 } from './file/fileHandleKvStore';
 import type { PwaFileOpenRequest } from '../schemas/pwaFileOpenRequestSchema';
 import { pwaFileOpenRequestSchema } from '../schemas/pwaFileOpenRequestSchema';
 import type { IndexedDbResult } from './indexedDbStore';
+import { getFileOperationClientSessionId } from './fileOperationClientSession';
+
+const getClientScopedFileHandleKey = (kind: 'current-file-handle' | 'pending-pwa-open-request'): string =>
+  `client:${getFileOperationClientSessionId()}:${kind}`;
 
 /**
  * De navngivne fil-handle-operationer, som resten af appen bruger.
@@ -66,16 +73,22 @@ export const requestPersistentStorage = async (): Promise<boolean> => {
 export const saveFileHandleToIndexedDB = async (
   fileHandle: FileSystemFileHandle
 ): Promise<boolean> => {
-  const result = await writeFileHandleValues(
-    { current_file_handle: fileHandle },
-    'saveFileHandleToIndexedDB'
+  const result = await writeClientScopedFileHandleValue(
+    getClientScopedFileHandleKey('current-file-handle'),
+    fileHandle,
+    'saveFileHandleToIndexedDB',
   );
   return result.status === 'ok';
 };
 
 /** Henter det gemte file handle, eller `null` hvis der ikke findes et brugbart. */
-export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandle | null> =>
-  readFileHandleValue('current_file_handle', 'loadFileHandleFromIndexedDB');
+export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandle | null> => {
+  const result = await readClientScopedFileHandleValueResult<FileSystemFileHandle>(
+    getClientScopedFileHandleKey('current-file-handle'),
+    'loadFileHandleFromIndexedDB',
+  );
+  return result.status === 'ok' ? result.value : null;
+};
 
 /**
  * Sletter det gemte file handle.
@@ -85,9 +98,9 @@ export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandl
  * tilstand og returnerer `true`.
  */
 export const deleteFileHandleFromIndexedDB = async (): Promise<boolean> => {
-  const result = await deleteFileHandleValues(
-    ['current_file_handle'],
-    'deleteFileHandleFromIndexedDB'
+  const result = await deleteClientScopedFileHandleValue(
+    getClientScopedFileHandleKey('current-file-handle'),
+    'deleteFileHandleFromIndexedDB',
   );
   return result.status === 'ok' || result.status === 'unavailable';
 };
@@ -160,21 +173,25 @@ export const savePendingPwaOpenRequestToIndexedDB = async (
 ): Promise<boolean> => {
   if (!pwaFileOpenRequestSchema.safeParse(request).success) return false;
 
-  const result = await writeFileHandleValues(
-    { pending_pwa_open_request: request },
-    'savePendingPwaOpenRequestToIndexedDB'
+  const result = await writeClientScopedFileHandleValue(
+    getClientScopedFileHandleKey('pending-pwa-open-request'),
+    request,
+    'savePendingPwaOpenRequestToIndexedDB',
   );
   return result.status === 'ok';
 };
 
 export const loadPendingPwaOpenRequestFromIndexedDB = async (): Promise<
   IndexedDbResult<StoredPendingPwaOpenRequest | null>
-> => readFileHandleValueResult('pending_pwa_open_request', 'loadPendingPwaOpenRequestFromIndexedDB');
+> => readClientScopedFileHandleValueResult<StoredPendingPwaOpenRequest>(
+  getClientScopedFileHandleKey('pending-pwa-open-request'),
+  'loadPendingPwaOpenRequestFromIndexedDB',
+);
 
 export const deletePendingPwaOpenRequestFromIndexedDB = async (): Promise<boolean> => {
-  const result = await deleteFileHandleValues(
-    ['pending_pwa_open_request'],
-    'deletePendingPwaOpenRequestFromIndexedDB'
+  const result = await deleteClientScopedFileHandleValue(
+    getClientScopedFileHandleKey('pending-pwa-open-request'),
+    'deletePendingPwaOpenRequestFromIndexedDB',
   );
   return result.status === 'ok';
 };

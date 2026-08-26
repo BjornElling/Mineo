@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { getHandledPwaFileOpenRequestStorageKey } from '../../config/storageManifest';
+
 const loadPendingPwaOpenRequestFromIndexedDBMock = vi.fn();
 const deletePendingPwaOpenRequestFromIndexedDBMock = vi.fn();
 const savePendingPwaOpenRequestToIndexedDBMock = vi.fn();
@@ -70,6 +72,24 @@ describe('pwaLaunchQueue', () => {
 
     await pwaLaunchQueue.markPendingPwaFileOpenRequestHandled('pwa-open-7');
     expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toBeNull();
+  });
+
+  it('genoptager ikke en allerede afsluttet request efter reload, selv hvis IndexedDB-sletning fejlede', async () => {
+    const handledId = 'pwa-open-afsluttet-1';
+    window.sessionStorage.setItem(getHandledPwaFileOpenRequestStorageKey(), handledId);
+    loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({
+      id: handledId,
+      createdAtEpochMs: 123,
+      fileHandle: buildFileHandle('afsluttet.eo'),
+      fileName: 'afsluttet.eo',
+      ignoredFileCount: 0,
+    });
+    deletePendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue(false);
+
+    await pwaLaunchQueue.hydratePendingPwaFileOpenRequest();
+
+    expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toBeNull();
+    expect(deletePendingPwaOpenRequestFromIndexedDBMock).toHaveBeenCalledOnce();
   });
 
   it('bevarer en PWA-fil gennem versionsskift og registrerer consumeren i den nye app-version', async () => {
@@ -273,7 +293,7 @@ describe('pwaLaunchQueue', () => {
     delete (window as Window & { launchQueue?: unknown }).launchQueue;
   });
 
-  it('gendanner en pending request, hvis rydning ikke kan verificeres', async () => {
+  it('lader ikke en afsluttet request genopstå i hukommelsen, hvis IndexedDB-rydning fejler', async () => {
     const setConsumerMock = vi.fn();
     Object.defineProperty(window, 'launchQueue', {
       configurable: true,
@@ -292,7 +312,9 @@ describe('pwaLaunchQueue', () => {
     await expect(pwaLaunchQueue.clearPendingPwaFileOpenRequest(request?.id)).rejects.toThrow(
       'kunne ikke ryddes sikkert'
     );
-    expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toEqual(request);
+    // Sessionens afslutningsmarkør forhindrer replay i denne klient, selv om IndexedDB stadig kan
+    // indeholde recorden. Hydrering rydder den best effort ved næste boot.
+    expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toBeNull();
     delete (window as Window & { launchQueue?: unknown }).launchQueue;
   });
 
@@ -325,7 +347,7 @@ describe('pwaLaunchQueue', () => {
     });
 
     const request = pwaLaunchQueue.getPendingPwaFileOpenRequest();
-    expect(request?.id).toBe('pwa-open-1');
+    expect(request?.id).toMatch(/^pwa-open-[a-z0-9-]+$/i);
 
     const clearPromise = pwaLaunchQueue.clearPendingPwaFileOpenRequest();
     resolveSave?.(true);
@@ -369,8 +391,10 @@ describe('pwaLaunchQueue', () => {
     it('afventer den igangværende skrivning og bekræfter først, når requesten står i IndexedDB', async () => {
       const handle = buildFileHandle('sag.eo');
       let resolveSave: ((value: boolean) => void) | null = null;
+      let persistedRequest: unknown = null;
       savePendingPwaOpenRequestToIndexedDBMock.mockImplementation(
-        () => new Promise<boolean>((resolve) => {
+        (request: unknown) => new Promise<boolean>((resolve) => {
+          persistedRequest = request;
           resolveSave = resolve;
         }),
       );
@@ -393,13 +417,7 @@ describe('pwaLaunchQueue', () => {
       await Promise.resolve();
       expect(settled).toBe(false);
 
-      loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({
-        id: 'pwa-open-1',
-        createdAtEpochMs: 123,
-        fileHandle: handle,
-        fileName: 'sag.eo',
-        ignoredFileCount: 0,
-      });
+      loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue(persistedRequest);
       resolveSave!(true);
       await consumed;
 
@@ -475,26 +493,14 @@ describe('pwaLaunchQueue', () => {
       let resolveFirstRead: ((value: unknown) => void) | null = null;
       loadPendingPwaOpenRequestFromIndexedDBMock.mockImplementationOnce(
         () => new Promise((resolve) => { resolveFirstRead = resolve; }),
-      ).mockResolvedValue({
-        id: 'pwa-open-2',
-        createdAtEpochMs: 124,
-        fileHandle: secondHandle,
-        fileName: 'anden.eo',
-        ignoredFileCount: 0,
-      });
+      ).mockImplementation(() => pwaLaunchQueue.getPendingPwaFileOpenRequest());
 
       await consumer!({ files: [firstHandle] });
       const barrier = pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff();
       await vi.waitFor(() => expect(resolveFirstRead).toBeTypeOf('function'));
 
       const newerLaunch = consumer!({ files: [secondHandle] });
-      resolveFirstRead!({
-        id: 'pwa-open-1',
-        createdAtEpochMs: 123,
-        fileHandle: firstHandle,
-        fileName: 'første.eo',
-        ignoredFileCount: 0,
-      });
+      resolveFirstRead!(pwaLaunchQueue.getPendingPwaFileOpenRequest());
       await newerLaunch;
 
       expect(await barrier).toBe(true);

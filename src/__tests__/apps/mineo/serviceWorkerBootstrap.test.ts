@@ -209,6 +209,25 @@ describe('serviceWorkerBootstrap – ny session = ny version, åben session urø
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('forbereder kun opdateringen på /open og reloader aldrig en PWA-filåbning', async () => {
+    stubDeployedVersion(DEPLOYED_NEWER_VERSION);
+    const waiting = buildServiceWorker('installed');
+    const container = buildServiceWorkerContainer(buildRegistration({ waiting }));
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { pathname: '/open', reload: reloadSpy },
+    });
+
+    const { ensureLatestVersionBeforeRender } = await importBootstrap();
+    await ensureLatestVersionBeforeRender();
+
+    // Workerens update check må fortsat køre, så næste almindelige opstart kan bruge den nye build.
+    expect(container.register).toHaveBeenCalledOnce();
+    expect(container.getRegistration).not.toHaveBeenCalled();
+    expect(waiting.postMessage).not.toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
   it('sender aktiveringsbeskeden til den konkrete installerede worker', async () => {
     stubDeployedVersion(DEPLOYED_NEWER_VERSION);
     const installing = buildServiceWorker('installed');

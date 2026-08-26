@@ -46,6 +46,18 @@ const WORKER_VERSION_RESPONSE = 'MINEO_BUILD_VERSION';
 
 let isBootPhase = true;
 
+/**
+ * `/open` er browserens landing for en dobbeltklikket `.eo`-fil. Browseren må levere den native
+ * launchQueue-request EFTER opstartskoden har nået sin sidste asynkrone grænse. En boot-reload her
+ * kan derfor rive dokumentet ned, før requesten overhovedet findes i JavaScript eller IndexedDB.
+ *
+ * Vi registrerer stadig workeren på ruten, så en ny build kan precaches til næste opstart, men den
+ * må ikke aktiveres eller udløse reload i selve filåbningssessionen. Den sammenhængende, allerede
+ * aktive build er altid sikrere end at miste den fil, brugeren lige har åbnet.
+ */
+const isPwaFileOpenRoute = (): boolean =>
+  typeof window !== 'undefined' && window.location.pathname === '/open';
+
 const settleBeforeDeadline = <T>(promise: Promise<T>, deadline: number, fallback: T): Promise<T> =>
   new Promise<T>((resolve) => {
     const timeoutId = window.setTimeout(() => resolve(fallback), Math.max(1, deadline - Date.now()));
@@ -289,6 +301,14 @@ const runBootUpdatePass = async (): Promise<void> => {
 
   const deadline = Date.now() + UPDATE_INSTALL_TIMEOUT_MS;
   const hadControllerAtBoot = navigator.serviceWorker.controller !== null;
+
+  if (isPwaFileOpenRoute()) {
+    // Bevar worker-registrering og mulighed for fuld precache, men spring alt over, som kan gøre
+    // launchQueue-leveringen ikke-deterministisk i denne filåbningssession.
+    await registerServiceWorker(deadline);
+    return;
+  }
+
   const [registration, deployedVersion] = await Promise.all([
     registerServiceWorker(deadline),
     probeDeployedVersion(deadline),

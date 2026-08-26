@@ -39,7 +39,9 @@ test.describe('PWA-filåbning', () => {
       }).__mineoPwaFileOpenProbe;
       return probe?.consumerRegistered ?? false;
     })).toBe(true);
-    await expect(page.getByText('Indlæsning af fil blev afbrudt')).toBeVisible();
+    // /open er kun filhandlerens landing. Den må ikke vise en kunstig fejl, mens den
+    // durable PWA-request fortsætter i app-shellen efter login.
+    await expect(page).toHaveURL(/\/stamdata$/);
 
     expect(runtimeSignals).toEqual([]);
   });

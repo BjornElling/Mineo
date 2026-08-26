@@ -15,7 +15,9 @@ const fileSystemFileHandleSchema = z.custom<FileSystemFileHandle>(
 
 /** Schema for den device-lokale pending `.eo`-request, der skal overleve en app-opdatering. */
 export const pwaFileOpenRequestSchema = z.object({
-  id: z.string().regex(/^pwa-open-\d+$/),
+  // Id'et indeholder klientens session-id plus en monoton lokal tæller. En ren proceslokal tæller
+  // begyndte igen på 1 efter reload, så en afsluttet request-markør kunne forveksles med en ny fil.
+  id: z.string().regex(/^pwa-open-[a-z0-9-]+$/i),
   createdAtEpochMs: z.number().int().nonnegative(),
   fileHandle: fileSystemFileHandleSchema,
   fileName: z.string().trim().min(1),

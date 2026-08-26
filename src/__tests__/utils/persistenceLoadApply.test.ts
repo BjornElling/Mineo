@@ -157,6 +157,22 @@ describe('synchronizeLoadMetadata – den asynkrone metadatafase', () => {
     expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBe('{"skadelidte":"Gammel"}');
   });
 
+  it('afslutter PWA-requesten før en efterfølgende metadatafejl kan give replay', async () => {
+    saveFileHandleToIndexedDBMock.mockResolvedValueOnce(false);
+
+    const result = await synchronizeLoadMetadata({
+      status: 'loaded',
+      source: 'pwa',
+      filename: 'ny.eo',
+      requestId: 'pwa-open-afsluttet-1',
+      fileHandle: { name: 'ny.eo' } as FileSystemFileHandle,
+      snapshot: {},
+    });
+
+    expect(markPendingPwaFileOpenRequestHandledMock).toHaveBeenCalledWith('pwa-open-afsluttet-1');
+    expect(result.status).toBe('applied-with-metadata-error');
+  });
+
   it('synkroniserer filnavn og rydder et forældet basisnavn', async () => {
     sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"forrige"}');
 

@@ -5,7 +5,6 @@ import {
   type IndexedDbResult,
   type IndexedDbSchema,
 } from '../indexedDbStore';
-import type { PwaFileOpenRequest } from '../../schemas/pwaFileOpenRequestSchema';
 import { z } from 'zod';
 
 /**
@@ -50,14 +49,13 @@ export const directoryHandleMetaSchema = z.object({
 export type DirectoryHandleMeta = z.infer<typeof directoryHandleMetaSchema>;
 
 /**
- * De fire concerns i storet, som typede nøgler. Delte tidligere ét store med ad hoc-nøgler
+ * De tre statiske concerns i storet, som typede nøgler. Delte tidligere ét store med ad hoc-nøgler
  * og uden nogen kobling mellem nøgle og værditype.
  */
 export type FileHandleStoreValue = {
   current_file_handle: FileSystemFileHandle;
   default_directory_handle: FileSystemDirectoryHandle;
   default_directory_meta: DirectoryHandleMeta;
-  pending_pwa_open_request: PwaFileOpenRequest;
 };
 
 export type FileHandleStoreKey = keyof FileHandleStoreValue;
@@ -139,4 +137,53 @@ export const deleteFileHandleValues = async (
       await Promise.all(keys.map((key) => awaitRequest(store.delete(key))));
     },
     context
+  );
+
+/**
+ * Klientscopede værdier. IndexedDB deles af alle app-vinduer på origin, så filhåndtag og pending
+ * PWA-request må aldrig bruge et globalt navn. De dynamiske nøgler holdes bevidst uden for den
+ * statiske key-union ovenfor: de har én ejer, som selv former og validerer deres klient-id.
+ */
+export const readClientScopedFileHandleValueResult = async <T>(
+  key: string,
+  context: string,
+): Promise<IndexedDbResult<T | null>> =>
+  runTransaction(
+    SCHEMA,
+    [STORE_NAME],
+    'readonly',
+    async (transaction) => {
+      const result = await awaitRequest<unknown>(transaction.objectStore(STORE_NAME).get(key));
+      return (result as T | undefined) ?? null;
+    },
+    context,
+  );
+
+export const writeClientScopedFileHandleValue = async <T>(
+  key: string,
+  value: T,
+  context: string,
+): Promise<IndexedDbResult<void>> =>
+  runTransaction(
+    SCHEMA,
+    [STORE_NAME],
+    'readwrite',
+    async (transaction) => {
+      await awaitRequest(transaction.objectStore(STORE_NAME).put(value, key));
+    },
+    context,
+  );
+
+export const deleteClientScopedFileHandleValue = async (
+  key: string,
+  context: string,
+): Promise<IndexedDbResult<void>> =>
+  runTransaction(
+    SCHEMA,
+    [STORE_NAME],
+    'readwrite',
+    async (transaction) => {
+      await awaitRequest(transaction.objectStore(STORE_NAME).delete(key));
+    },
+    context,
   );

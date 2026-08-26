@@ -130,6 +130,8 @@ const CURRENT_INPUT_ENVELOPE_SUFFIX = 'input_v2';
  * `SESSION_RESET_POLICY`: den hører ikke til UI-familien, som `Slet alt` enumererer.
  */
 const BOOT_RELOAD_VERSION_SUFFIX = 'pwa_bootReloadVersion';
+const FILE_OPERATION_CLIENT_SESSION_SUFFIX = 'fileOperationClientSession';
+const HANDLED_PWA_FILE_OPEN_REQUEST_SUFFIX = 'handledPwaFileOpenRequest';
 
 const buildKeyMap = <T extends Record<string, string>>(
   suffixes: T
@@ -158,6 +160,17 @@ export const getBootReloadVersionStorageKey = (): ManifestStorageKey =>
   asManifestKey(ns(BOOT_RELOAD_VERSION_SUFFIX));
 
 /**
+ * Stabil identitet for den enkelte browserfane/PWA-klient. Filhåndtag og pending PWA-åbninger
+ * ligger i IndexedDB, som deles af alle klienter på origin, og skal derfor altid scopes hertil.
+ */
+export const getFileOperationClientSessionStorageKey = (): ManifestStorageKey =>
+  asManifestKey(ns(FILE_OPERATION_CLIENT_SESSION_SUFFIX));
+
+/** Senest afsluttede PWA-request i denne fane; afværger replay hvis IndexedDB-delete fejler. */
+export const getHandledPwaFileOpenRequestStorageKey = (): ManifestStorageKey =>
+  asManifestKey(ns(HANDLED_PWA_FILE_OPEN_REQUEST_SUFFIX));
+
+/**
  * Tjek om en sessionStorage key er en gyldig key for den aktive variant.
  *
  * Sættene bygges dynamisk fra aktuelt namespace, så `setStorageNamespace` virker
@@ -168,5 +181,7 @@ export const isValidStorageKey = (key: string): boolean => {
   return uiKeys.includes(key)
     || key === ns(CURRENT_INPUT_ENVELOPE_SUFFIX)
     || key === ns(BOOT_RELOAD_VERSION_SUFFIX)
+    || key === ns(FILE_OPERATION_CLIENT_SESSION_SUFFIX)
+    || key === ns(HANDLED_PWA_FILE_OPEN_REQUEST_SUFFIX)
     || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
 };

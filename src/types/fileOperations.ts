@@ -8,6 +8,7 @@ import type { PersistedSectionKey } from '../config/persistenceRegistry';
 export type LoadIssueKind =
   | 'migratedField'
   | 'strippedUnknownField'
+  | 'invalidField'
   | 'sectionDropped'
   | 'unknownSection';
 

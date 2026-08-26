@@ -3,6 +3,7 @@ import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formS
 import { z } from 'zod';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../../config/persistenceRegistry';
+import { optionalAmountValueSchema } from '../../schemas/amountExpressionSchema';
 
 describe('persistenceLoadSanitization', () => {
   // Guard mod Zod-opgradering: hvis unwrapSchema lydløst no-op'er på en ny `.def`-pipe-struktur, ville
@@ -74,6 +75,22 @@ describe('persistenceLoadSanitization', () => {
     expect(sanitized.items[0]).toEqual({ id: 'a', value: 1 });
     expect(sanitized.items[1]).toEqual({ id: 'b', value: 2 });
     expect(sanitized.items[2]).toEqual({ id: 'c', value: 3 });
+  });
+
+  it('stripper og rapporterer ukendte felter i den valgte gren af en ZodUnion', () => {
+    const result = stripUnknownFieldsBySchema(optionalAmountValueSchema, {
+      kind: 'expression',
+      expression: '1+1',
+      value: 2,
+      fremtidigtFelt: true,
+    });
+
+    expect(result.unknownPaths).toContainEqual(['fremtidigtFelt']);
+    expect(result.sanitized).toEqual({
+      kind: 'expression',
+      expression: '1+1',
+      value: 2,
+    });
   });
 
   it('stripper fjernede EO-felter før strict load-parse af gamle filer', () => {

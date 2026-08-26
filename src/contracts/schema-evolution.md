@@ -2,7 +2,8 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-08-26 (isolerbare ugyldige felter bevares pr. sektion og rapporteres som
+`invalidField` i preflight; struktur der fortsat ikke kan valideres droppes fail-closed.)
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -18,7 +19,9 @@ Tværgående save/load-regler er normativt samlet i `src/contracts/persistence-c
 
 `FILE_FORMAT_VERSION` og `PERSISTED_DATA_VERSION` er forskellige versionsbegreber, jf. `persistence-contract.md` §9. Denne kontrakt ejer reglerne for persisted sektionsschemas, kildeversions-resolution, migration og load-sanitization.
 
-Load-mekanismen kører sanitization og derefter `schema.safeParse(data)` pr. sektion. Hvis parse fejler, droppes **hele sektionen** – ikke bare det enkelte felt. Det er den nuværende fail-closed model og skal forklares i preflight.
+Load-mekanismen kører sanitization og derefter `schema.safeParse(data)` pr. sektion. Et ugyldigt bladfelt fjernes
+isoleret, når resten af sektionen derefter kan parses sikkert; det rapporteres i preflight. Kan sektionen stadig ikke
+valideres, droppes **hele sektionen** fail-closed og forklares i preflight.
 
 ---
 
@@ -237,16 +240,19 @@ Typiske fejlsymptomer hvis EO-opdateringer glemmes:
 
 **Preflight-tallene skal gå op for brugeren:** `indlæst-fra-fil + sat-til-standard = felter-i-fil`. Derfor opgøres `loadedCount`/`failedCount` i preflight **felt-baseret** ud fra hvad der faktisk lå i filen – IKKE som rå `countFilledFields(snapshot)`, der også tæller schema-defaults der udfylder huller i en gammel fil (et tal der ellers kan være ≥ `expectedCount` trods reelt tab). `failedCount` er antallet af udfyldte filfelter der gik tabt (strippet/droppet/ukendt sektion), opgjort via `countMeaningfulFields()`; `loadedCount = expectedCount − failedCount`. Migreringer bevarer data og tæller ikke som tab. (Bemærk: top-level `LoadFileResult.fieldCount` er fortsat `countFilledFields(snapshot)` til success-beskeden – det er et andet, ikke-reconcilierende tal.)
 
+Et isoleret ugyldigt felt tæller på samme måde som strip som et tabt filfelt; det får issue-kategorien `invalidField`.
+
 Issue-kategorier (`LoadIssueKind` i `src/types/fileOperations.ts`):
 
 - `strippedUnknownField`: kendt sektion, felt findes ikke i current schema. **Surfaces i preflight** (gemt værdi kunne ikke indlæses → feltet sat til standardværdi).
+- `invalidField`: kendt felt med ugyldig værdi, som blev isoleret fra en ellers loadbar sektion. **Surfaces i preflight.**
 - `sectionDropped`: sektion kunne ikke parses og indlæses ikke. **Surfaces i preflight.**
 - `unknownSection`: sektionen kendes ikke i current registry. **Surfaces i preflight.**
 - `migratedField`: eksplicit migrator har flyttet eller omsat et felt. Data bevares → **vises ikke** (vellykket indlæsning, ikke et tab) og tæller ikke som fejl.
 
 **Skel mellem tavs og rapporteret:**
 - Felter der *manglede* i filen og blev udfyldt via schema-default eller optional **rapporteres tavst** – det er harmløs forward-tolerance og må aldrig udløse advarsel (AGENTS.md save/load: "Nye schema-felter der mangler i en ældre fil må aldrig blokere load eller udløse advarsel").
-- Felter der *var i filen* men ikke kunne indlæses (`strippedUnknownField`/`sectionDropped`/`unknownSection`) **rapporteres via preflight**. Stille datatab er uacceptabelt (AGENTS.md save/load; persistence-contract §6.3 "Rapportér tab eller strip via preflight i stedet for at gætte"). Framingen er neutral/pædagogisk ("sat til standardværdier"), ikke en teknisk fejl, og må ikke ende som en `logWarning`/console-advarsel (den udløser DevtoolsIssueNotice – "Teknisk advarsel registreret" – hvilket er forkert kanal for forventet schema-evolution).
+- Felter der *var i filen* men ikke kunne indlæses (`strippedUnknownField`/`invalidField`/`sectionDropped`/`unknownSection`) **rapporteres via preflight**. Stille datatab er uacceptabelt (AGENTS.md save/load; persistence-contract §6.3 "Rapportér tab eller strip via preflight i stedet for at gætte"). Framingen er neutral/pædagogisk ("sat til standardværdier"), ikke en teknisk fejl, og må ikke ende som en `logWarning`/console-advarsel (den udløser DevtoolsIssueNotice – "Teknisk advarsel registreret" – hvilket er forkert kanal for forventet schema-evolution).
 
 ### 3.1a Breaking schema-ændringer
 
@@ -285,7 +291,7 @@ Fjernelse eller omdøbning af enum-værdier kræver enten:
 
 1. entydig migrator før parse, eller
 2. deprecated load-værdi i schema med eksplicit domain-/UI-håndtering, hvis værdien fortsat kan indlæses sikkert men ikke vælges fremadrettet, eller
-3. tydelig preflight-fejl og hel-sektion-drop.
+3. tydelig preflight-fejl og hel-sektion-drop, når sikker feltisolation ikke kan gøre sektionen valid.
 
 ### 3.2 `.strict()` i mergede sub-skemaer
 

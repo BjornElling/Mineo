@@ -117,11 +117,26 @@ const processDecryptedContainer = (args: {
       // Strippede felter er gemt brugerdata, som denne version ikke længere kender. Værdien kan ikke
       // indlæses og feltet får sin standardværdi → rapportér det til brugeren (ikke et stille tab).
       for (const path of parsedSection.unknownPaths) {
-        lostFromFileCount += countMeaningfulFields(getValueAtPath(parsedSection.migratedValue, path));
+        const lostFieldCount = countMeaningfulFields(getValueAtPath(parsedSection.migratedValue, path));
+        // En ældre fil kan bære et fjernet, TOMT schema-slot. Det er ikke brugerdata og må ikke
+        // alene udløse preflight – kontraktens tolerante load gælder alle faktisk tilstedeværende
+        // værdier, ikke historiske tomme strukturrester.
+        if (lostFieldCount === 0) continue;
+        lostFromFileCount += lostFieldCount;
         dataLossIssues.push({
           kind: 'strippedUnknownField',
           path: toLoadIssuePath(sectionKey, path),
           reason: 'Feltet findes ikke i denne version og blev sat til standardværdien',
+        });
+      }
+      for (const path of parsedSection.invalidPaths) {
+        const lostFieldCount = countMeaningfulFields(getValueAtPath(parsedSection.migratedValue, path));
+        if (lostFieldCount === 0) continue;
+        lostFromFileCount += lostFieldCount;
+        dataLossIssues.push({
+          kind: 'invalidField',
+          path: toLoadIssuePath(sectionKey, path),
+          reason: 'Feltet havde et ugyldigt format og blev sat til standardværdien',
         });
       }
       continue;
@@ -130,27 +145,33 @@ const processDecryptedContainer = (args: {
     // Hele sektionen kunne ikke valideres → den indlæses ikke (fail-closed), og alle udfyldte
     // felter i den går tabt. Vi viser kun sektion-droppet (ikke også de enkelte strippede felter),
     // så tabs-tallet ikke dobbelttælles.
-    lostFromFileCount += countMeaningfulFields(rawValue);
+    const lostSectionFieldCount = countMeaningfulFields(rawValue);
+    lostFromFileCount += lostSectionFieldCount;
     const firstIssue = parsedSection.error.issues[0];
     const issuePathSegments = (firstIssue?.path ?? [])
       .filter((segment): segment is string | number => typeof segment === 'string' || typeof segment === 'number');
     const detailPath = formatPathSegments(issuePathSegments);
     const issuePath = detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
-    dataLossIssues.push({
-      kind: 'sectionDropped',
-      path: issuePath,
-      reason: `Sektionen kunne ikke indlæses (${firstIssue?.message ?? 'Forkert format'}) og blev ikke indlæst`,
-    });
+    if (lostSectionFieldCount > 0) {
+      dataLossIssues.push({
+        kind: 'sectionDropped',
+        path: issuePath,
+        reason: `Sektionen kunne ikke indlæses (${firstIssue?.message ?? 'Forkert format'}) og blev ikke indlæst`,
+      });
+    }
   }
 
   for (const key of Object.keys(fileData as Record<string, unknown>)) {
     if (!Object.prototype.hasOwnProperty.call(persistenceSchemas, key)) {
-      lostFromFileCount += countMeaningfulFields((fileData as Record<string, unknown>)[key]);
-      dataLossIssues.push({
-        kind: 'unknownSection',
-        path: key,
-        reason: 'Sektionen findes ikke i denne version og blev ikke indlæst',
-      });
+      const lostSectionFieldCount = countMeaningfulFields((fileData as Record<string, unknown>)[key]);
+      lostFromFileCount += lostSectionFieldCount;
+      if (lostSectionFieldCount > 0) {
+        dataLossIssues.push({
+          kind: 'unknownSection',
+          path: key,
+          reason: 'Sektionen findes ikke i denne version og blev ikke indlæst',
+        });
+      }
     }
   }
 

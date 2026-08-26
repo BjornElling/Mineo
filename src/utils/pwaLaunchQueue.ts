@@ -6,6 +6,14 @@ import {
 import { isFileSystemFileHandle } from './fileSystemAccess';
 import { logWarning, sanitizeFilenameForLog } from './logger';
 import { pwaFileOpenRequestSchema, type PwaFileOpenRequest } from '../schemas/pwaFileOpenRequestSchema';
+import {
+  getHandledPwaFileOpenRequestStorageKey,
+} from '../config/storageManifest';
+import {
+  readOptionalSessionStorageValue,
+  writeOptionalSessionStorageValue,
+} from './safeSessionStorage';
+import { getFileOperationClientSessionId } from './fileOperationClientSession';
 
 export type { PwaFileOpenRequest } from '../schemas/pwaFileOpenRequestSchema';
 
@@ -20,6 +28,17 @@ let pendingRequestGeneration = 0;
 let pendingRequestHydrationFailed = false;
 
 const PWA_STORAGE_HANDOFF_TIMEOUT_MS = 5_000;
+
+const getHandledRequestId = (): string | null => {
+  const value = readOptionalSessionStorageValue(getHandledPwaFileOpenRequestStorageKey());
+  return value !== null && pwaFileOpenRequestSchema.shape.id.safeParse(value).success ? value : null;
+};
+
+const markRequestHandledInClientSession = (requestId: string): void => {
+  if (!writeOptionalSessionStorageValue(getHandledPwaFileOpenRequestStorageKey(), requestId)) {
+    throw new Error('PWA-filrequest kunne ikke afsluttes sikkert i browserens midlertidige lager.');
+  }
+};
 
 type LaunchQueueLike = {
   setConsumer(consumer: (launchParams: { files?: ReadonlyArray<FileSystemHandle>; targetURL?: string }) => void | Promise<void>): void;
@@ -154,9 +173,22 @@ export const hydratePendingPwaFileOpenRequest = async (): Promise<void> => {
 
     const parsed = pwaFileOpenRequestSchema.safeParse(stored);
     if (parsed.success) {
+      if (getHandledRequestId() === parsed.data.id) {
+        // Input-replacementen eller brugerens "Stop og gør intet" er allerede afsluttet i denne
+        // fane. En mislykket IndexedDB-delete må aldrig få den samme fil til at dukke op igen efter
+        // reload; ryd op best effort, men lad aldrig oprydningen genaktivere requesten.
+        pendingRequest = null;
+        pendingRequestGeneration += 1;
+        if (!(await persistPendingPwaFileOpenRequestState())) {
+          logWarning('Afsluttet PWA-fil-request kunne ikke ryddes fra IndexedDB', {
+            context: 'hydratePendingPwaFileOpenRequest.handledRequestCleanup',
+          });
+        }
+        return;
+      }
       pendingRequest = parsed.data;
       pendingRequestGeneration += 1;
-      const numericSuffix = Number.parseInt(parsed.data.id.replace(/^pwa-open-/, ''), 10);
+      const numericSuffix = Number.parseInt(parsed.data.id.match(/-(\d+)$/)?.[1] ?? '', 10);
       if (Number.isFinite(numericSuffix) && numericSuffix > requestCounter) {
         requestCounter = numericSuffix;
       }
@@ -199,7 +231,7 @@ export const setupPwaLaunchQueueConsumer = (): void => {
 
     const primaryHandle = handles[0];
     const parsedRequest = pwaFileOpenRequestSchema.safeParse({
-      id: `pwa-open-${++requestCounter}`,
+      id: `pwa-open-${getFileOperationClientSessionId()}-${++requestCounter}`,
       createdAtEpochMs: Date.now(),
       fileHandle: primaryHandle,
       fileName: primaryHandle.name,
@@ -287,26 +319,23 @@ export const markPendingPwaFileOpenRequestHandled = async (requestId: string): P
     return;
   }
 
-  const handledRequest = pendingRequest;
+  markRequestHandledInClientSession(requestId);
   pendingRequest = null;
   pendingRequestGeneration += 1;
   const persisted = await persistPendingPwaFileOpenRequestState();
-  if (!persisted && pendingRequest === null) {
-    pendingRequest = handledRequest;
-    pendingRequestGeneration += 1;
-    throw new Error('Pending PWA-fil-request kunne ikke markeres håndteret sikkert.');
+  if (!persisted) {
+    throw new Error('Pending PWA-fil-request kunne ikke ryddes sikkert fra IndexedDB.');
   }
 };
 
 export const clearPendingPwaFileOpenRequest = async (expectedRequestId?: string): Promise<void> => {
   if (expectedRequestId !== undefined && pendingRequest?.id !== expectedRequestId) return;
-  const clearedRequest = pendingRequest;
+  const requestId = pendingRequest?.id;
+  if (requestId !== undefined) markRequestHandledInClientSession(requestId);
   pendingRequest = null;
   pendingRequestGeneration += 1;
   const persisted = await persistPendingPwaFileOpenRequestState();
-  if (!persisted && pendingRequest === null && clearedRequest !== null) {
-    pendingRequest = clearedRequest;
-    pendingRequestGeneration += 1;
-    throw new Error('Pending PWA-fil-request kunne ikke ryddes sikkert.');
+  if (!persisted) {
+    throw new Error('Pending PWA-fil-request kunne ikke ryddes sikkert fra IndexedDB.');
   }
 };

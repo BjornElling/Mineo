@@ -70,6 +70,21 @@ export const applyAuthoritativeLoadSnapshot = (args: {
 export const synchronizeLoadMetadata = async (
   result: ApplicableLoadFileResult
 ): Promise<PersistenceLoadApplyResult> => {
+  // En PWA-request er forbrugt, så snart den autoritative replacement er lykkedes. Metadata er
+  // efterfølgende device-lokal convenience; lader vi dens fejl forhindre acknowledgement, genafspilles
+  // samme fil efter næste boot og kan overskrive den netop indlæste sag igen.
+  if (result.requestId) {
+    try {
+      await markPendingPwaFileOpenRequestHandled(result.requestId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Ukendt fejl';
+      return {
+        status: 'applied-with-metadata-error',
+        message: `Sagen blev indlæst, men PWA-filrequesten kunne ikke ryddes helt.\n\n${message}`,
+      };
+    }
+  }
+
   try {
     // Handle/metadata er et samlet overwrite-target, men IndexedDB og sessionStorage kan ikke
     // deltage i samme transaktion. Skriv derfor det potentielt fejlende IDB-led først: ved fejl
@@ -88,10 +103,6 @@ export const synchronizeLoadMetadata = async (
       stamdata: result.snapshot?.stamdata,
     });
 
-    // En manuel load ejer ingen PWA-request. En ubetinget clear her kunne slette en
-    // nyere PWA-fil, der ankom mens filvælgeren eller metadatafasen afventede.
-    // Kun den request, som faktisk blev loaded, må markeres håndteret.
-    if (result.requestId) await markPendingPwaFileOpenRequestHandled(result.requestId);
     return { status: 'applied' };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';

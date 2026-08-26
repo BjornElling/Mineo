@@ -220,6 +220,30 @@ describe('fileLoad – normalLoadFlow', () => {
     }));
   });
 
+  it('advarer ikke om tomme historiske felter eller sektioner uden brugerdata', async () => {
+    const content = await encryptLoadContainer({
+      stamdata: {
+        journalnr: 'J-001',
+        advokat: '',
+        sagsbehandler: '',
+        skadelidte: 'Test',
+        skadestype: undefined,
+        skadedato: undefined,
+        fjernetTomtFelt: '',
+      },
+      fjernetTomSektion: { gammelTomVaerdi: '' },
+    });
+    const file = new File([content], 'historisk-tom.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+
+    expect(result.status).toBe('loaded');
+    if (result.status !== 'loaded') return;
+    expect(result.snapshot.stamdata).toEqual(expect.objectContaining({ journalnr: 'J-001' }));
+  });
+
   it('stripper ukendt felt i kendt sektion, loader resten og rapporterer tabet via preflight', async () => {
     // Et felt der findes i filen men ikke i current schema er gemt brugerdata, som ikke kan indlæses.
     // Feltet strippes (sættes til standardværdi) og resten loades – men tabet rapporteres til brugeren
@@ -256,6 +280,39 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(warning.failedCount).toBe(1);
     expect(warning.loadedCount).toBe(2);
     expect((warning.loadedCount) + (warning.failedCount ?? 0)).toBe(warning.expectedCount);
+  });
+
+  it('rapporterer ukendt felt inde i et union-baseret beløbsudtryk via preflight', async () => {
+    // `optionalAmountValueSchema` ender i en ZodUnion. Uden union-traversering strippede Zod selv
+    // feltet ved parse, men load-pipelinen så aldrig stien og kunne derfor ikke vise preflight.
+    const content = await encryptLoadContainer({
+      renteberegning: {
+        rentekravRows: [{
+          id: 'rentekrav-1',
+          belob: {
+            kind: 'expression',
+            expression: '1+1',
+            value: 2,
+            fremtidigtFelt: 'må ikke forsvinde tavst',
+          },
+          renterFra: '2024-01-01',
+          tillaegstid: 0,
+          enhed: 'dage',
+        }],
+      },
+    });
+    const file = new File([content], 'union-felt.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+
+    expect(result.status).toBe('preflight');
+    if (result.status !== 'preflight') return;
+    expect(result.preflightWarning.issues).toContainEqual(expect.objectContaining({
+      kind: 'strippedUnknownField',
+      path: 'renteberegning.rentekravRows[1].belob.fremtidigtFelt',
+    }));
   });
 
   it('loader en gammel fil der mangler nyere schema-felter uden at blokere eller advare (forward-tolerance)', async () => {
@@ -359,6 +416,37 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(warning).toBeDefined();
     if (!warning) return;
     expect((warning.loadedCount) + (warning.failedCount ?? 0)).toBe(warning.expectedCount);
+  });
+
+  it('bevarer gyldige felter fra en sektion med ét ugyldigt felt og viser preflight', async () => {
+    const content = await encryptLoadContainer({
+      stamdata: {
+        journalnr: 'J-001',
+        advokat: 'Advokat A',
+        sagsbehandler: '',
+        skadelidte: 'Test',
+        skadestype: 'Arbejdsulykke',
+        skadedato: 'ikke-en-dato',
+      },
+    });
+    const file = new File([content], 'et-ugyldigt-felt.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+
+    expect(result.status).toBe('preflight');
+    if (result.status !== 'preflight') return;
+    expect(result.snapshot.stamdata).toEqual(expect.objectContaining({
+      journalnr: 'J-001',
+      advokat: 'Advokat A',
+      skadelidte: 'Test',
+    }));
+    expect((result.snapshot.stamdata as Record<string, unknown>).skadedato).toBeUndefined();
+    expect(result.preflightWarning.issues).toContainEqual(expect.objectContaining({
+      kind: 'invalidField',
+      path: 'stamdata.skadedato',
+    }));
   });
 
   it('afviser filer hvor kun ukendte sektioner har indhold', async () => {

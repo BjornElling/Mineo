@@ -3,7 +3,10 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-08-25 (nyt normativt afsnit i §5: et ændret filnavns-relevant
+**Senest verificeret mod kode:** 2026-08-26 (PWA-load og .eo-sanitization er adversarialt gennemgået:
+filhåndtag og pending PWA-requests er klientscopede i origin-fælles IndexedDB, en afsluttet request
+kan ikke replayes efter en fejlet oprydning, PWA-acknowledgement går før øvrig metadata, og isolerbare
+ugyldige felter bevarer resten af sektionen via preflight. Tidligere 2026-08-25: nyt normativt afsnit i §5: et ændret filnavns-relevant
 stamdatafelt giver bevidst en NY fil – hverken en «hidtidig fil eller ny?»-dialog eller tavs
 videreskrivning under et navn, der ikke længere passer til sagen. Brugerafgørelse, ingen kodeændring;
 afsnittet beskriver den bestående adfærd, så den ikke senere «rettes». Verificeret mod
@@ -200,22 +203,20 @@ Load- og savekilder/sinks er typede porte med diskriminerede resultater. Egentli
 resultat. Højst én filhandling må være aktiv ad gangen. En PWA-loadrequest under en aktiv filhandling må ikke tabes:
 seneste request bevares og tilbydes med `Indlæs fil`/`Annuller`, når den aktive handling er afsluttet.
 
-**Et persisteret filhåndtag må kun genbruges til direkte overskrivning, når det beviseligt peger på
-DENNE fanes egen fil.** Håndtaget ligger i IndexedDB, som er fælles for hele browseren, mens sagen og
-`lastSavedFilename` ligger i sessionStorage, som er fanens eget. To åbne faner er to selvstændige
-sager, men de deler ét håndtag – og det peger altid på den SIDST rørte fil i browseren. Prøven før et
-genbrug er derfor todelt: filnavns-relevant stamdata skal være uændret, OG håndtagets `name` skal være
-identisk med fanens eget `lastSavedFilename`. Er navnene forskellige, kasseres håndtaget, og
+**Et persisteret filhåndtag må kun genbruges til direkte overskrivning i den klient, der valgte
+det.** IndexedDB er fælles for browserens vinduer, så hver klient får et stabilt, lokalt session-id i
+sessionStorage og bruger det som del af handle-nøglen. To åbne faner eller PWA-vinduer kan derfor
+aldrig se eller overskrive hinandens direkte-gem-håndtag. Klientens egen `lastSavedFilename` og
+håndtagets `name` sammenlignes fortsat som et ekstra fail-closed værn: filnavns-relevant stamdata
+skal være uændret, OG navnene skal være identiske. Er navnene forskellige, kasseres håndtaget, og
 gem-flowet går til filvælgeren med fanens eget filnavn som forslag; brugeren skal desuden have
 oplyst, hvorfor vælgeren kom, når han bad om et direkte gem.
 
-Uden navneprøven kunne `Gem` i fane A skrive sag A ind i den fil, fane B sidst gemte til – uden
-filvælger, uden advarsel og med ordet «Gemt» som kvittering. Det er det værst mulige udfald:
-brugerarbejde forsvinder uden brugerens handling, og programmet melder succes. Sammenligningen kræver
-ingen ny persistering, fordi `lastSavedFilename` skrives fra præcis samme kilde (`fileHandle.name`)
-ved hvert gem; en separat kopi af navnet ville kunne komme ud af sync med håndtaget og genindføre
-fejlen. Fail-closed-reglen gælder som ellers: kan det kasserede håndtag ikke ryddes verificerbart,
-afbrydes gemningen.
+Uden klientafgrænsningen kunne `Gem` i fane A skrive sag A ind i den fil, fane B sidst gemte til –
+uden filvælger, uden advarsel og med ordet «Gemt» som kvittering. Det er det værst mulige udfald:
+brugerarbejde forsvinder uden brugerens handling, og programmet melder succes. Navneprøven er et
+sekundært værn mod forkert eller forældet handle i samme klient. Fail-closed-reglen gælder som ellers:
+kan det kasserede håndtag ikke ryddes verificerbart, afbrydes gemningen.
 
 **Ændret filnavns-relevant stamdata giver en NY fil, ikke en dialog (normativ, brugerafgørelse
 2026-08-25).** Skadelidtes navn, skadestype og skadedato afgør, hvilket filnavn `Gem` foreslår. Retter
@@ -229,10 +230,12 @@ adfærd ER afgørelsen; den skrives her, fordi den ellers ligner en overset mang
 ville skulle skrives ind netop her i `resolveSaveTarget`.
 
 En PWA-filrequest registreres før service-worker-opstart og React-render. Dens fil-handle ligger i memory straks og
-persisteres som pending request, så en app-version der starter efter en opdatering kan hydrere og behandle den samme
-fil. En live launchQueue-request, der ankommer mens en ældre request hydreres, vinder altid; den gamle request må
-aldrig overskrive brugerens seneste filåbning. Kan IndexedDB ikke læses, fortsætter opstarten uden pending request og
-med en kontrolleret warning; den aktuelle sag muteres ikke.
+persisteres under den aktuelle klients id som pending request. En live launchQueue-request, der ankommer mens en
+ældre request hydreres, vinder altid; den gamle request må aldrig overskrive brugerens seneste filåbning. Når brugeren
+har indlæst filen eller valgt `Stop og gør intet`, markeres requesten først som afsluttet i klientens sessionStorage og
+ryddes derefter fra IndexedDB. Fejler oprydningen, må samme request aldrig genopstå i klienten efter reload. Kan
+IndexedDB ikke læses, fortsætter opstarten uden pending request og med en kontrolleret warning; den aktuelle sag
+muteres ikke.
 
 ## 6. Load-garantier
 
@@ -242,7 +245,8 @@ med en kontrolleret warning; den aktuelle sag muteres ikke.
 4. Ukendte/fjernede felter og sektioner rapporteres og holdes ude af apply-snapshotet.
 5. Manglende nyere felter må ikke alene blokere eller advare; de håndteres med `optional()`, sikker schema-default eller
    eksplicit migrator.
-6. En sektion, som ikke sikkert kan parses efter migration/sanitization, droppes som hel sektion og forklares i preflight.
+6. Et ugyldigt bladfelt fjernes isoleret og forklares i preflight, når resten af sektionen kan parses sikkert. Kun en
+   sektion, der fortsat ikke sikkert kan parses, droppes som hel sektion og forklares i preflight.
 7. Godkendt load oversætter canonical sektioner til gyldige settled felter, har ingen rejected inputs og erstatter hele
    inputaggregaten i én transaktion.
 8. Manuel og PWA-initieret load må først starte fil-I/O efter `prepare('load')=committed`.
@@ -251,7 +255,7 @@ Den kanoniske rækkefølge er:
 
 1. læs/dekryptér og resolvér kildeversion,
 2. normalisér og anvend eventuel eksakt migrator,
-3. strip ukendte felter/sektioner,
+3. strip ukendte felter/sektioner og isolér sikkert ugyldige bladfelter,
 4. valider hver sektion og byg kandidat,
 5. vis preflight og afvent beslutning,
 6. replace hele aggregaten atomisk,
@@ -331,5 +335,7 @@ Load har to resultater:
 1. atomisk apply af sagsinput,
 2. efterfølgende synkronisering af filnavn, handle og PWA-metadata.
 
-Fejler fase 1, er intet indlæst. Fejler fase 2 efter en vellykket fase 1, skal UI sige, at sagen er indlæst, men at
-filmetadata eller direkte Gem-kobling muligvis ikke er synkroniseret. Det må ikke fremstilles som en rollback af sagen.
+Fejler fase 1, er intet indlæst. PWA-requesten afsluttes før den øvrige metadata-synkronisering, så en fejl i
+filnavn eller direkte Gem-kobling aldrig kan genstarte samme PWA-load. Fejler resten af fase 2 efter en vellykket
+fase 1, skal UI sige, at sagen er indlæst, men at filmetadata eller direkte Gem-kobling muligvis ikke er synkroniseret.
+Det må ikke fremstilles som en rollback af sagen.

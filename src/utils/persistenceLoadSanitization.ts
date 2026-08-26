@@ -119,5 +119,20 @@ export const stripUnknownFieldsBySchema = (
     return { sanitized, unknownPaths };
   }
 
+  if (base instanceof z.ZodUnion) {
+    // Zod vælger den første union-gren, der kan parse. Vi følger præcis den regel efter at have
+    // strippet hver kandidats ukendte felter, så et ekstra felt inde i fx et beløbsudtryk ikke
+    // forsvinder tavst gennem Zods egen objekt-stripping. Er ingen gren entydigt brugbar, bevarer
+    // vi værdien urørt; den efterfølgende schema-parse fail-closer hele sektionen.
+    const options = base.def.options as readonly ZodSchema[];
+    for (const option of options) {
+      const candidate = stripUnknownFieldsBySchema(option, value);
+      if (option.safeParse(candidate.sanitized).success) {
+        return candidate;
+      }
+    }
+    return { sanitized: value, unknownPaths: [] };
+  }
+
   return { sanitized: value, unknownPaths: [] };
 };
