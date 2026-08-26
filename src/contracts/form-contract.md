@@ -3,12 +3,14 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-19 (§8.2a er implementeret og verificeret: længdepolitikken erklæres
+**Senest verificeret mod kode:** 2026-08-26 (kompatibilitetsafgrænsningen mellem intern runtime-arkitektur og
+persistensgrænsen er præciseret. Tidligere 2026-08-19: §8.2a er implementeret og verificeret: længdepolitikken erklæres
 på codecet/`charLengthPolicy.ts` og læses af både formular- og gridfladen; paste afgrænses i `spliceDraftWithPaste`)
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
-Denne kontrakt beskriver den gældende arkitektur. Der findes ingen parallel inputmodel, ingen
-overgangs-API'er og ingen kompatibilitetsflade ved siden af den.
+Denne kontrakt beskriver den gældende interne runtime-arkitektur. Der findes ingen parallel inputmodel, ingen
+overgangs-API'er og ingen intern kompatibilitetsflade ved siden af den. Det forbyder ikke de afgrænsede migratorer,
+load-aliaser og container-adaptere, som `persistence-contract.md` kræver ved `.eo`-grænsen.
 
 ---
 

@@ -423,6 +423,9 @@ describe('useFileSaveLoad', () => {
       expect(handles.showOverlay).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'success' })
       );
+      expect(handles.showOverlay).not.toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Filen er indlæst – nogle felter blev sat til standardværdier.' })
+      );
     });
   });
 

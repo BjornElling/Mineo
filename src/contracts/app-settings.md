@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-08-22
+**Senest verificeret mod kode:** 2026-08-26
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -33,6 +33,12 @@ brugeren opdager det selv; det vejer ikke op mod at gøre `.eo` til andet end sa
 Der skal heller ikke vises nogen besked, når indstillinger er faldet tilbage til deres standarder:
 tilstanden er så sjælden, at meddelelsen i praksis aldrig ville blive vist.
 Baggrund: `docs/testing/brugerblik/indstillinger.md` BB-025.
+
+**Historisk load-undtagelse, godkendt 2026-08-26.** Filer fra den interne udviklingsfase kan indeholde de tidligere
+felter `allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og `allowReguleringMedUdloebMedMaaneder` i
+sagsdata-sektionen. De to felter skal ikke bevares eller påvirke den aktuelle computers indstillinger. Load-migratoren
+fjerner dem eksplicit uden preflight, før schema-sanitization. Det er en afgrænset behandling af kendte historiske
+udviklingsrester og ændrer ikke reglen om, at nye eller ukendte device-lokale settings aldrig må lægges i `.eo`.
 
 ## Normativ regel: indstillinger er uden for undo/redo
 Ændringer på Indstillinger-siden må **aldrig** indgå i sagens fortrydelseshistorik.
@@ -107,9 +113,12 @@ vises nogen oplysning om det. Baggrund: `docs/testing/brugerblik/indstillinger.m
 - localStorage-I/O (fail-safe): `src/settings/appSettingsStorage.ts` (`readLocalStorage`/`writeLocalStorage`)
 - Context, runtime-state og sideeffekter (fx CSS toggles): `src/contexts/AppSettingsContext.tsx`
 
-`.eo` persistence opererer på sessionStorage keys fra manifestet:
-- Manifest: `src/config/storageManifest.ts`
+`.eo`-persistens opererer på sektionerne i `src/config/persistenceRegistry.ts` og den fælles
+current-session-envelope. Browserlagerets namespace og den ene sessionsnøgle ejes fortsat af
+`src/config/storageManifest.ts`; de to concerns må ikke forveksles.
+- Sektionsschemaer og sektionernes autoritative mængde: `src/config/persistenceRegistry.ts`
 - Save/Load: `src/utils/fileSave.ts` og `src/utils/fileLoad.ts`
+- Current-session-hydrering: `src/inputCore/runtime/currentSessionEnvelope.ts`
 
 ## Designkrav (sikkerhed og forudsigelighed)
 - **Monoton settingsrevision**: runtime ejer én ikke-persisteret settingsrevision. Den stiger præcis én gang ved en reel
@@ -119,7 +128,12 @@ vises nogen oplysning om det. Baggrund: `docs/testing/brugerblik/indstillinger.m
 - **Fail-safe**: hvis `localStorage` er blokeret/fejler, må app’en stadig fungere (fallback til in-memory state).
 - **Schema-alignment og tolerant feltredning**: settings skal valideres via Zod. En ikke-objektværdi falder tilbage til alle defaults. For et objekt valideres hvert kendt felt selvstændigt: et ugyldigt felt falder kun tilbage til sit eget default, ukendte felter ignoreres, og øvrige schema-gyldige felter bevares. Samme regel gælder pr. felt i nested settingsobjekter. Det samlede sanitiserede objekt slutvalideres altid mod `appSettingsSchema`, før det publiceres.
 - **Ingen netværk/telemetri**: settings må ikke forårsage data-overførsel ud af browseren.
-- **Versionering af localStorage-nøgle**: breaking settings-schema kræver ny nøgle (`_v2` osv.) eller eksplicit one-way migration. Non-breaking tilføjelser håndteres via merge-logikken uden nøgleskift.
+- **Versionering af localStorage-nøgle**: En schemaændring må ikke gøre tidligere gyldige settings ulæselige eller
+  ændre dem tavst. Nye eller omdøbte felter håndteres med den eksisterende feltvise merge-logik eller en eksplicit,
+  testet migration, der bevarer den gamle værdi. En ny nøgle (`_v2` osv.) må kun indføres sammen med en adapter fra
+  alle tidligere nøgler; nøgleskift er ikke i sig selv en tilladelse til at nulstille settings. Hvis en ændring kan
+  give brugeren en synlig load-afvigelse eller fejl, skal den forelægges til godkendelse før implementering.
+  Tilføjelser, der ikke ændrer eksisterende værdier, håndteres via merge-logikken uden nøgleskift.
 - `defaultDirectoryHandleId` er device-lokal og ikke portabel; den må aldrig betragtes som sagsdata eller sendes med `.eo`.
 - `documentDownloadFormat` er device-lokal og ikke portabel; den må aldrig betragtes som sagsdata eller sendes med `.eo`.
 - **Standardplaceringen har ét navn og én tilstand.** `defaultDirectoryHandleId` (localStorage) og mappens registrering

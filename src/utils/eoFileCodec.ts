@@ -19,7 +19,11 @@
  */
 
 import { VERSION } from '../config/buildInfo';
-import { FILE_FORMAT_VERSION } from '../config/version';
+import {
+  FILE_FORMAT_VERSION,
+  SUPPORTED_FILE_FORMAT_VERSIONS,
+  type SupportedFileFormatVersion,
+} from '../config/version';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import {
   decryptFromString,
@@ -39,8 +43,8 @@ import { isRecord } from './typeGuards';
 
 /**
  * Bygger den kanoniske `.eo`-container: stempler container-version + metadata omkring den
- * allerede schema-validerede sagsdata. `fieldCount` leveres af save-use-casen (den bruger samme
- * tal til preflight-rapportering og gating), så det ikke genberegnes to steder.
+ * allerede schema-validerede sagsdata. `fieldCount` leveres af save-use-casen som metadata om
+ * det gemte snapshot. Load genberegner selv sin optælling efter eventuel historisk ignore.
  */
 export const buildEoFileContainer = (
   data: CanonicalEoData,
@@ -72,8 +76,12 @@ const validateDecryptedContainer = (decrypted: unknown): EoFileContainerLoad => 
   }
 
   const rawVersion = decrypted.version;
-  if (typeof rawVersion !== 'string' || rawVersion !== FILE_FORMAT_VERSION) {
-    throw new Error(`Ugyldig eller manglende filversion. Forventet format ${FILE_FORMAT_VERSION}.`);
+  const isSupportedFileFormatVersion = (value: string): value is SupportedFileFormatVersion =>
+    SUPPORTED_FILE_FORMAT_VERSIONS.some((supported) => supported === value);
+  if (typeof rawVersion !== 'string' || !isSupportedFileFormatVersion(rawVersion)) {
+    throw new Error(
+      `Ugyldig eller manglende filversion. Forventet understøttet format ${SUPPORTED_FILE_FORMAT_VERSIONS.join(', ')}.`
+    );
   }
 
   const parsed = eoFileContainerLoadSchema.safeParse(decrypted);

@@ -308,10 +308,11 @@ Det betyder, at den gamle kandidat ikke skal “færdiggøres” ved at genskabe
 feltmotor leverer det stærkere mål: én editor-state-machine og én afledt issueprojektion for
 form- og grid-surface.
 
-**Arkitektonisk vurdering:** Det er et godt greenfield-resultat, fordi migrationsnavne og
-parallel state ikke er bevaret af hensyn til historien. Den aktuelle kontrakt har endda
-fraværsværn mod de slettede navne. Punktet er afsluttet gennem en bedre løsning end den
-oprindelige.
+**Arkitektonisk vurdering:** Det er et godt greenfield-resultat, fordi gamle interne
+migrationsnavne og parallel state ikke er bevaret i runtime-arkitekturen. Det ændrer ikke
+kravet om at bevare tidligere `.eo`-filer: historiske filfelter håndteres ved persistensgrænsen
+af eksakte, testede adaptere, og de aktuelle kontrakter har fraværsværn mod gamle interne API'er.
+Punktet er afsluttet gennem en bedre løsning end den oprindelige.
 
 ### #13 – `schemaFingerprint` → `persistedDataVersion`
 
@@ -747,8 +748,9 @@ greenfield-korrekt for en trust-kritisk client-side app.
 
 `FILE_FORMAT_VERSION`, `PERSISTED_DATA_VERSION` og current-session envelope-version er
 adskilte begreber. Loaded data valideres, migreres og sanitiseres tolerant for ældre filer;
-ukendte eller fjernede værdier rapporteres i preflight, mens manglende nye felter ikke
-blokkerer. Runtime-state og `.eo`-filen har dermed forskellige, tydelige versionsejere.
+tidligere udgivne felter må ikke behandles som ukendte, mens reelt fremmede eller korrupte
+værdier rapporteres i preflight. Manglende nye felter blokerer ikke. Runtime-state og `.eo`-
+filen har dermed forskellige, tydelige versionsejere.
 
 **Arkitektonisk vurdering:** Det er korrekt at være tolerant over for historiske `.eo`-filer,
 men fail-closed over for datatab og korruption i den aktuelle version. En generel “gør filen
@@ -927,7 +929,8 @@ Den nuværende kerne opfylder greenfield-målet på de mest risikable områder:
 
 Det er ikke en legacy-refaktorering med nye navne. De gamle draft-hooks, persistence-contexts,
 parallelle row-draft-systemer og globale dokumentkanaler er fjernet, hvor de stod i vejen for
-en mere entydig arkitektur.
+en mere entydig arkitektur. Denne interne oprydning må ikke forveksles med at fjerne load-
+adaptere, som er nødvendige for tidligere gemte `.eo`-filer.
 
 ### Det, der endnu ikke er greenfield-konsolideret
 

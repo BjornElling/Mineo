@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-08-26
 
 ---
 
@@ -426,10 +426,19 @@ Interne navngivningsregler:
 - Tvetydige interne symboler for SFGG-referenceperiode eller SFGG-afledte satser skal navngives med `sfgg`-præfiks, fx `sfggReferenceperiode`, `sfggReferencesats` og `sfggSource`.
 - Persisted schemafelter er kun undtaget fra denne regel, når stabile load/save-kontrakter kræver eksisterende feltnavne.
 
-Bagudinkompatibilitet:
-- TAF's persisted felter hedder nu `tafBeregningsperiodeFra`/`tafBeregningsperiodeTil` (tidligere `periodeTilBeregningFra`/`periodeTilBeregningTil`). Ældre `.eo`-filer med de tidligere feltnavne er ikke bagudkompatible på dette punkt.
-- SFGG-rækkens persisted felter er eksplicit omlagt til `sfgg`-præfiks, herunder `sfggBeregningskilde`. Ældre `.eo`-filer med de tidligere SFGG-feltnavne er ikke bagudkompatible på dette punkt.
-- Begge bagudinkompatibiliteter er fail-closed: manglende felter behandles som `undefined`/`Ingen` frem for parse-fejl.
+Historisk load-kompatibilitet:
+- TAF's aktuelle persisted felter hedder `tafBeregningsperiodeFra`/`tafBeregningsperiodeTil`. Ældre `.eo`-filer med
+  `periodeTilBeregningFra`/`periodeTilBeregningTil` oversættes af den eksakte load-migrator, før schema-sanitization.
+- SFGG-rækkens aktuelle persisted felter har `sfgg`-præfiks. Ældre rækkefelter uden præfiks oversættes tilsvarende
+  til `sfggBeregningskilde`, `sfggReferenceperiodeFra`, `sfggReferenceperiodeTil`,
+  `sfggReferenceperiodeFravaersdageUdenLoen`, `sfggManuelDagssats`, `sfggManuelBeloebIHenholdTil`,
+  `sfggManuelFoerstEfterSygeloen`, `sfggSatsvalg` og `sfggAlleredeBetaltBeloeb`.
+- De tidligere EET-feltnavne med `Eet` og de tidligere Ja/Nej-feltnavne for svie/smerte og TAF er registrerede
+  load-aliaser. De aktuelle runtime-navne er fortsat de eneste canonical navne.
+- De historiske udviklingsfelter `opsagtFraStilling` og `sfggSygeperioderFoer2015` er ikke længere aktuelle sagsdata
+  og fjernes eksplicit uden preflight under load.
+- Mappings er versionsstyrede, typed og testet. Hvis en historisk værdi ikke kan oversættes entydigt, må en ny
+  load-fejl eller preflight ikke indføres uden brugerens forudgående godkendelse.
 
 ## 12. EO-feltklassificering og bounds-model
 

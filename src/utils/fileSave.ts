@@ -127,7 +127,8 @@ export const saveToFile = async (
     // Brug den parsed repræsentation for at undgå at gemme ukendte felter, `null`-rester, mv.
     const canonicalData: CanonicalEoData = parsedData.data;
 
-    // 2. Tæl antal felter med data til preflight-rapportering ved hent.
+    // 2. Tæl antal felter med data til save-metadata. Load genberegner sit eget tal efter eventuel
+    // historisk ignore, så en gammel fils rå metadata ikke kan styre preflight-orienteringen.
     //
     // Her er BEVIDST ingen "er sagen tom?"-gate. Spørgsmålet kan ikke besvares her: dette lag ser kun det
     // schema-parsede snapshot og kender ikke ny-sags-baselinen, så det kan ikke skelne "intet indtastet" fra
@@ -140,8 +141,7 @@ export const saveToFile = async (
     // standardværdier, når brugeren har ændret noget andet. Tallet er kun preflight-rapportering.
     const fieldCount = countFilledFields(canonicalData);
 
-    // 4. Opbyg fil-struktur med metadata (codec stempler version + metadata; fieldCount
-    //    genbruges til preflight-rapportering ved hent).
+    // 4. Opbyg fil-struktur med metadata (codec stempler version + metadata).
     const fileData: EoFileContainer = buildEoFileContainer(canonicalData, fieldCount);
 
     // 5. Krypter data

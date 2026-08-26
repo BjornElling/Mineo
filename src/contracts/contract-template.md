@@ -27,6 +27,18 @@ Peg på schemaer, types, helpers eller registry-filer som er single source of tr
 
 Angiv mindst én test-suite eller guard i `contractCoverageMatrix.test.ts`.
 
+## 4.1 Persistens- og kompatibilitetsvurdering
+
+Hvis kontrakten berører schema, feltadresser, rækkeidentiteter, enum-værdier, browserlagring, `.eo`-format eller
+load/sanitization, skal den beskrive:
+
+- hvilke tidligere udgivne versioner og værdier der skal bevares,
+- hvilken typed migrator, alias eller adapter der gør det,
+- hvilken fixture der beviser load uden ny fejl, preflight eller tavs ændring,
+- og hvilken konkret brugeroplevelse der skal forelægges, hvis kompatibiliteten ikke kan bevises.
+
+Et versionsbump eller en ny storage-nøgle er ikke i sig selv en kompatibilitetsløsning.
+
 ## 5. Kendte Undtagelser
 
 Undtagelser skal have begrundelse, risiko og re-evalueringspunkt.

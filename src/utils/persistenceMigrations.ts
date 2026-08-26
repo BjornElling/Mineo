@@ -1,6 +1,7 @@
 import type { PersistedSectionKey } from '../config/persistenceRegistry';
-import { LEGACY_PERSISTED_DATA_VERSION, PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
+import { PERSISTED_DATA_VERSION, PERSISTED_DATA_VERSION_HISTORY } from '../config/persistenceVersion';
 import { nullToUndefinedDeep } from './nullToUndefinedDeep';
+import { isRecord } from './typeGuards';
 
 export type PersistenceMigrationResult = {
   value: unknown;
@@ -24,8 +25,9 @@ type PersistedSectionMigrator = (
 
 /**
  * Bygger en versionsbåret sektionsmigrator. Hver entry beskriver én entydig
- * `fromVersion -> current`-overgang; ukendte versioner forbliver urørte og går
- * videre til validering mod det aktuelle schema.
+ * `fromVersion -> current`-overgang. Ukendte versioner forbliver urørte og går
+ * videre til den almindelige load-validering, så de aldrig bliver fortolket med
+ * en gættet historik.
  */
 export const createPersistenceMigrator = (
   registry: PersistenceMigrationRegistry
@@ -72,29 +74,136 @@ const stripDerivedStoreBededagPct = (value: unknown): PersistenceMigrationResult
   };
 };
 
+type FieldAlias = Readonly<{
+  from: string;
+  to: string;
+}>;
+
 /**
- * Kildeversionerne der bar det materialiserede `storeBededagPct`-slot: hver udgivet version til og med
- * 3.10 plus de uversionerede filer fra før containeren bar `persistedDataVersion`.
+ * Flytter kun eksplicit kendte feltnavne, når canonical-navnet ikke allerede findes.
  *
- * Listen er EKSPLICIT, fordi `schema-evolution.md` §3.1a kræver et eksakt `fromVersion -> current`-opslag
- * og forbyder gæt ud fra shape eller versionsrækkefølge. En ukendt kildeversion får derfor identity –
- * slottet fjernes da af `stripUnknownFieldsBySchema` og rapporteres i preflight. Det er den tilsigtede
- * fail-safe: filen indlæses fuldt ud, og kun tabsformuleringen er konservativ.
+ * Omdøbningen af flere EO-felter skete historisk uden et entydigt versionsskel. Derfor
+ * er aliaserne deklareret direkte og anvendes kun ved en navngiven mapping. Hvis en fil
+ * indeholder både det gamle og det nye navn, lader vi begge stå, så loadets eksisterende
+ * preflight kan gøre konflikten synlig i stedet for at vælge en værdi tavst.
  */
-const STORE_BEDEDAG_SLOT_SOURCE_VERSIONS: readonly string[] = [
-  LEGACY_PERSISTED_DATA_VERSION,
-  '3.0', '3.1', '3.2', '3.3', '3.4', '3.5', '3.6', '3.7', '3.8', '3.9', '3.10',
+const mapExplicitAliases = (value: unknown, aliases: readonly FieldAlias[]): unknown => {
+  if (Array.isArray(value)) {
+    let changed = false;
+    const mapped = value.map((item) => {
+      const next = mapExplicitAliases(item, aliases);
+      changed ||= next !== item;
+      return next;
+    });
+    return changed ? mapped : value;
+  }
+  if (!isRecord(value)) return value;
+
+  let next: Record<string, unknown> = value;
+  for (const alias of aliases) {
+    if (!Object.prototype.hasOwnProperty.call(next, alias.from)
+      || Object.prototype.hasOwnProperty.call(next, alias.to)) {
+      continue;
+    }
+    next = { ...next, [alias.to]: next[alias.from] };
+    delete next[alias.from];
+  }
+
+  let changed = next !== value;
+  for (const [key, child] of Object.entries(next)) {
+    const mappedChild = mapExplicitAliases(child, aliases);
+    if (mappedChild === child) continue;
+    if (!changed) {
+      next = { ...next };
+      changed = true;
+    }
+    next[key] = mappedChild;
+  }
+  return next;
+};
+
+const EO_ROOT_FIELD_ALIASES: readonly FieldAlias[] = [
+  { from: 'periodeTilBeregningFra', to: 'tafBeregningsperiodeFra' },
+  { from: 'periodeTilBeregningTil', to: 'tafBeregningsperiodeTil' },
+  { from: 'midlertidigtEetAfgorelse', to: 'midlertidigtEETAfgorelse' },
+  { from: 'endeligtEetAfgorelse', to: 'endeligtEETAfgorelse' },
+  { from: 'midlertidigtEetAfgoerelseGrupper', to: 'midlertidigtEETAfgoerelseGrupper' },
+  { from: 'beregnesSvieSmerteGodtgoerelse', to: 'kravPaaSvieSmerteGodtgoerelse' },
+  { from: 'beregnesTabtArbejdsfortjeneste', to: 'kravPaaTabtArbejdsfortjeneste' },
 ];
 
-// Registrér kun konkrete, kendte schema-overgange. Et versionsmismatch uden en
-// entry valideres fortsat mod det aktuelle schema; shape-gæt er bevidst forbudt.
+const HISTORICAL_IGNORED_ROOT_KEYS = [
+  'allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden',
+  'allowReguleringMedUdloebMedMaaneder',
+  'opsagtFraStilling',
+  'sfggSygeperioderFoer2015',
+] as const;
+
+const SFGG_ROW_FIELD_ALIASES: readonly FieldAlias[] = [
+  { from: 'beregnesUdFra', to: 'sfggBeregningskilde' },
+  { from: 'referenceperiodeFra', to: 'sfggReferenceperiodeFra' },
+  { from: 'referenceperiodeTil', to: 'sfggReferenceperiodeTil' },
+  { from: 'referenceperiodeFravaersdageUdenLoen', to: 'sfggReferenceperiodeFravaersdageUdenLoen' },
+  { from: 'manuelDagssats', to: 'sfggManuelDagssats' },
+  { from: 'manuelBeloebIHenholdTil', to: 'sfggManuelBeloebIHenholdTil' },
+  { from: 'manuelFoerstEfterSygeloen', to: 'sfggManuelFoerstEfterSygeloen' },
+  { from: 'satsvalg', to: 'sfggSatsvalg' },
+  { from: 'alleredeBetaltBeloeb', to: 'sfggAlleredeBetaltBeloeb' },
+];
+
+/** Migrerer de historiske EO-feltnavne, som tidligere udgivelser selv kunne gemme. */
+const migrateKnownEoFieldAliases = (value: unknown): PersistenceMigrationResult => {
+  const root = mapExplicitAliases(value, EO_ROOT_FIELD_ALIASES);
+  if (!isRecord(root)) return { value: root };
+
+  const rows = root.sfggAnsaettelsesforhold;
+  if (!Array.isArray(rows)) return { value: root };
+
+  let rowsChanged = false;
+  const mappedRows = rows.map((row) => {
+    const mapped = mapExplicitAliases(row, SFGG_ROW_FIELD_ALIASES);
+    rowsChanged ||= mapped !== row;
+    return mapped;
+  });
+  return rowsChanged ? { value: { ...root, sfggAnsaettelsesforhold: mappedRows } } : { value: root };
+};
+
+/**
+ * Fjerner fire tidligere felter/tabeller, som kun fandtes i EO-filer fra den interne udviklingsfase.
+ *
+ * Brugeren har godkendt, at de ikke skal bevares, og at de skal ignoreres uden preflight. De fjernes derfor eksplicit
+ * før schema-sanitization – ikke som ukendte sagsfelter – så de ikke kan forveksles med tab af sagsdata. Nye ukendte
+ * felter følger fortsat den almindelige preflight-regel.
+ */
+export const removeApprovedHistoricalDevelopmentFields = (value: unknown): unknown => {
+  if (!isRecord(value)) return value;
+
+  const keysPresent = HISTORICAL_IGNORED_ROOT_KEYS.some((key) =>
+    Object.prototype.hasOwnProperty.call(value, key)
+  );
+  if (!keysPresent) return value;
+
+  const withoutDevelopmentData = { ...value };
+  for (const key of HISTORICAL_IGNORED_ROOT_KEYS) {
+    delete withoutDevelopmentData[key];
+  }
+  return withoutDevelopmentData;
+};
+
+const migrateErstatningsopgoerelse = (value: unknown): PersistenceMigrationResult => {
+  const withAliases = migrateKnownEoFieldAliases(value).value;
+  const withoutHistoricalDevelopmentData = removeApprovedHistoricalDevelopmentFields(withAliases);
+  return stripDerivedStoreBededagPct(withoutHistoricalDevelopmentData);
+};
+
+// Registrér alle kendte historiske EO-versioner, også når en version ikke behøver
+// en særskilt strukturel ændring. Det gør alias- og afledt-slot-migreringen til en
+// fast del af loadgrænsen og gør et glemt historikpunkt synligt i versionsværnet.
 const PERSISTENCE_MIGRATIONS = {
   erstatningsopgoerelse: Object.fromEntries(
-    // Hver kendt kilde-version peger på den samme enkelt-hop-migration; `createPersistenceMigrator`
-    // afviser en entry, hvis `toVersion` ikke er den aktuelle version.
-    STORE_BEDEDAG_SLOT_SOURCE_VERSIONS.map((fromVersion) => [
+    PERSISTED_DATA_VERSION_HISTORY.map((fromVersion) => [
       fromVersion,
-      { toVersion: PERSISTED_DATA_VERSION, migrate: stripDerivedStoreBededagPct },
+      { toVersion: PERSISTED_DATA_VERSION, migrate: migrateErstatningsopgoerelse },
     ])
   ),
 } satisfies PersistenceMigrationRegistry;
@@ -109,6 +218,6 @@ const PERSISTENCE_MIGRATIONS = {
  * session-hydrering) selv har normaliseret. Dette gør de to load-stier konsistente.
  *
  * Migratorer må kun mappe KENDTE gamle strukturer til aktuel struktur; de må ikke gætte
- * domæneværdier. Dispatcheren er et extension point, ikke en generel bagudkompat-forpligtelse.
+ * domæneværdier. Dispatcheren er den obligatoriske grænse for kendt historisk input.
  */
 export const migratePersistedSectionValue = createPersistenceMigrator(PERSISTENCE_MIGRATIONS);

@@ -19,9 +19,10 @@ Tværgående save/load-regler er normativt samlet i `src/contracts/persistence-c
 
 `FILE_FORMAT_VERSION` og `PERSISTED_DATA_VERSION` er forskellige versionsbegreber, jf. `persistence-contract.md` §9. Denne kontrakt ejer reglerne for persisted sektionsschemas, kildeversions-resolution, migration og load-sanitization.
 
-Load-mekanismen kører sanitization og derefter `schema.safeParse(data)` pr. sektion. Et ugyldigt bladfelt fjernes
-isoleret, når resten af sektionen derefter kan parses sikkert; det rapporteres i preflight. Kan sektionen stadig ikke
-valideres, droppes **hele sektionen** fail-closed og forklares i preflight.
+Load-mekanismen kører den fælles kæde pr. sektion: null-normalisering, eksakt versions-/aliasmigrering,
+sanitization og derefter `schema.safeParse(data)`. Et ugyldigt bladfelt fjernes isoleret, når resten af sektionen
+derefter kan parses sikkert; det rapporteres i preflight. Kan sektionen stadig ikke valideres, droppes **hele
+sektionen** fail-closed og forklares i preflight.
 
 ---
 
@@ -238,7 +239,7 @@ Typiske fejlsymptomer hvis EO-opdateringer glemmes:
 
 **Konsekvens:** Et nyt `JaNej`-felt med default `'Nej'` øger `fieldCount` med 1 i alle nygemte filer. Ældre filer har ikke dette felt og rapporterer dermed et lavere `expectedCount`. Count-mismatch er ikke alene en fejlklassifikation. Brugervendt alvorlighed skal styres af issue-kategorier, ikke kun af expected/loaded tal.
 
-**Preflight-tallene skal gå op for brugeren:** `indlæst-fra-fil + sat-til-standard = felter-i-fil`. Derfor opgøres `loadedCount`/`failedCount` i preflight **felt-baseret** ud fra hvad der faktisk lå i filen – IKKE som rå `countFilledFields(snapshot)`, der også tæller schema-defaults der udfylder huller i en gammel fil (et tal der ellers kan være ≥ `expectedCount` trods reelt tab). `failedCount` er antallet af udfyldte filfelter der gik tabt (strippet/droppet/ukendt sektion), opgjort via `countMeaningfulFields()`; `loadedCount = expectedCount − failedCount`. Migreringer bevarer data og tæller ikke som tab. (Bemærk: top-level `LoadFileResult.fieldCount` er fortsat `countFilledFields(snapshot)` til success-beskeden – det er et andet, ikke-reconcilierende tal.)
+**Preflight-tallene skal gå op for brugeren:** `indlæst-fra-fil + sat-til-standard = felter-i-fil`. Før optællingen fjernes de fire udtrykkeligt godkendte historiske udviklingsfelter i `persistenceMigrations.ts`. De behandles derfor som om de aldrig fandtes i filen: de kommer ikke med i `expectedCount`, `loadedCount` eller `failedCount`, og de kan ikke skabe en preflight-issue. Derefter opgøres `loadedCount`/`failedCount` i preflight **felt-baseret** ud fra det rensede load-grundlag – IKKE som rå `countFilledFields(snapshot)`, der også tæller schema-defaults der udfylder huller i en gammel fil (et tal der ellers kan være ≥ `expectedCount` trods reelt tab). `failedCount` er antallet af udfyldte filfelter der gik tabt (strippet/droppet/ukendt sektion), opgjort via `countMeaningfulFields()`; `loadedCount = expectedCount − failedCount`. Migreringer bevarer data og tæller ikke som tab. `LoadFileResult.expectedFieldCount` bruger samme rensede optællingsgrundlag; den rå metadata-værdi er ikke en brugervendt load-optælling. (Bemærk: top-level `LoadFileResult.fieldCount` er fortsat `countFilledFields(snapshot)` til success-beskeden – det er et andet, ikke-reconcilierende tal.)
 
 Et isoleret ugyldigt felt tæller på samme måde som strip som et tabt filfelt; det får issue-kategorien `invalidField`.
 
@@ -254,9 +255,9 @@ Issue-kategorier (`LoadIssueKind` i `src/types/fileOperations.ts`):
 - Felter der *manglede* i filen og blev udfyldt via schema-default eller optional **rapporteres tavst** – det er harmløs forward-tolerance og må aldrig udløse advarsel (AGENTS.md save/load: "Nye schema-felter der mangler i en ældre fil må aldrig blokere load eller udløse advarsel").
 - Felter der *var i filen* men ikke kunne indlæses (`strippedUnknownField`/`invalidField`/`sectionDropped`/`unknownSection`) **rapporteres via preflight**. Stille datatab er uacceptabelt (AGENTS.md save/load; persistence-contract §6.3 "Rapportér tab eller strip via preflight i stedet for at gætte"). Framingen er neutral/pædagogisk ("sat til standardværdier"), ikke en teknisk fejl, og må ikke ende som en `logWarning`/console-advarsel (den udløser DevtoolsIssueNotice – "Teknisk advarsel registreret" – hvilket er forkert kanal for forventet schema-evolution).
 
-### 3.1a Breaking schema-ændringer
+### 3.1a Historiske schema-ændringer og load-kompatibilitet
 
-Følgende er breaking schema-ændringer:
+Følgende ændringer påvirker load-kompatibiliteten:
 
 1. feltomdøbning,
 2. feltflytning mellem sektioner,
@@ -265,7 +266,17 @@ Følgende er breaking schema-ændringer:
 5. ændret feltsemantik,
 6. ændret row-identitet i tabeldata.
 
-Breaking ændringer må ikke håndteres med strip/default alene, medmindre den bevidste beslutning er at tabe den gamle værdi og rapportere det tydeligt.
+De er ikke tilladte breaking ændringer af tidligere gemte `.eo`-filer. En ændring skal enten bevare den historiske
+værdi gennem den aktuelle schemaform eller have en eksplicit, testet migrering. Et versionsbump er et sporbarheds-
+værn, ikke en tilladelse til at afvise eller tabe data. Hvis en sikker kompatibilitetsbevarende løsning ikke kan
+bevises, skal arbejdet standses og forelægges brugeren, før schemaet eller load-adfærden ændres.
+
+`stripUnknownFieldsBySchema()` og schema-defaults må derfor ikke bruges til at håndtere et kendt historisk felt,
+som programmet selv tidligere har gemt. Strip/default er kun korrekt for reelt fremmede eller korrupte data. En
+historisk værdi, som ikke længere skal være redigerbar, skal stadig kunne læses, bevares i den kanoniske model eller
+oversættes til en eksplicit, sikker repræsentation. Den eneste godkendte undtagelse er de historiske udviklingsfelter,
+der er navngivet i `app-settings.md` og `persistence-contract.md`: de er ikke længere aktuelle sagsværdier og
+fjernes derfor af en særskilt, eksplicit migrering uden preflight.
 
 Hvis data kan bevares sikkert, skal der bruges en eksplicit migrator pr. `PersistedSectionKey`. Migrator kører i denne rækkefølge:
 
@@ -278,20 +289,28 @@ Før trin 1 resolverer `.eo`-loaderen en eksplicit kildeversion fra
 `_metadata.persistedDataVersion` eller `LEGACY_PERSISTED_DATA_VERSION`. Trin 1–2 ejes derefter af
 `migratePersistedSectionValue(pageKey, value, sourceVersion)` i
 `src/utils/persistenceMigrations.ts`: den normaliserer (`nullToUndefinedDeep`) før
-et eksakt per-sektion `fromVersion -> current`-opslag. Manglende register-entry er
-identity ved `.eo`-load; der gættes aldrig ud fra shape eller versionsrækkefølge. Trin 3 ligger i
+et eksakt per-sektion `fromVersion -> current`-opslag. Kendte historiske feltnavne må desuden have en eksplicit
+alias-migrering, når en tidligere udgivelse ikke havde tilstrækkelig versionsmærkning til at skelne gamle og nye
+strukturer. Det er ikke et versionsgæt, men en navngiven mapping, der testes mod den gamle og den nye form.
+Manglende register-entry er kun identity for en kilde, der ikke har en kendt historisk ændring; et tidligere udgivet
+felt må aldrig overlades til tilfældig strip/default. Trin 3 ligger i
 `sanitizePersistedValueForSchema()`, trin 4 hos kalderen. Denne pipeline er kun `.eo`-load; current-session-
 hydrering anvender samme inbound-kæde for hver canonical sektion, men accepterer kun de eksplicit understøttede
 persisted-data-versioner fra current-sessionens levetid. En ukendt/fremtidig version fail-closer før kæden, så den
 ikke kan blive tolket som identity og få en semantisk ukendt værdi skrevet videre.
 
-Migratorer må kun mappe kendte gamle strukturer til current struktur. De må ikke gætte domæneværdier. En migrator er et extension point, ikke en generel forpligtelse til bagudkompatibilitet.
+Migratorer må kun mappe kendte gamle strukturer til current struktur. De må ikke gætte domæneværdier. Migrator-
+registeret er den obligatoriske kompatibilitetsmekanisme ved kendte ændringer, ikke et valgfrit extension point.
+En ændring af et historisk felt er først færdig, når en fixture viser, at værdien kommer igennem load uden ny
+preflight, fejl eller tavs ændring.
 
 Fjernelse eller omdøbning af enum-værdier kræver enten:
 
 1. entydig migrator før parse, eller
 2. deprecated load-værdi i schema med eksplicit domain-/UI-håndtering, hvis værdien fortsat kan indlæses sikkert men ikke vælges fremadrettet, eller
-3. tydelig preflight-fejl og hel-sektion-drop, når sikker feltisolation ikke kan gøre sektionen valid.
+3. tydelig preflight-fejl og hel-sektion-drop, når data er korrupt eller reelt fremmed og sikker feltisolation ikke
+   kan gøre sektionen valid. Denne mulighed må ikke bruges som standardløsning på en ændring i Mineos egne udgivne
+   `.eo`-data; en sådan ændring skal forelægges først.
 
 ### 3.2 `.strict()` i mergede sub-skemaer
 
@@ -366,7 +385,11 @@ forkert strip eller fingerprint-drift.
 1. ændring i et schema i `persistenceRegistry`,
 2. ændret migrator-/parse-semantik,
 3. ændret load-sanitization der påvirker sagsinput,
-4. bevidst breaking schema-ændring.
+4. en ændring, der kræver en ny, dokumenteret load-mapping.
+
+Et bump ændrer ikke kompatibilitetskravet: alle tidligere værdier, som en udgivet Mineo-version kunne gemme, skal
+fortsat kunne indlæses. Hver bump skal derfor ledsages af en kompatibilitetsvurdering, relevante gamle fixtures og
+en test af save → load med bevaret brugerinput.
 
 `CurrentInputEnvelope.envelopeVersion` bumpes ved ændring af sessionaggregatets serialiserede struktur og kræver en
 eksakt envelope-adapter for stadig understøttede aktive sessioner. En inkompatibel ændring af strukturelle feltadresser
@@ -374,12 +397,10 @@ kræver en samtidig, testet `rejectedInputs`-oversættelse. Versionerne må ikke
 
 `FILE_FORMAT_VERSION` bumpes kun ved inkompatible containerændringer uden for persisted sektionsdata, fx nye obligatoriske load-krav, inkompatibel metadata-struktur eller krypterings-/indpakningsformat. Additive metadatafelter, som er optionelle ved load, kræver ikke bump.
 
-En fremtidig `FILE_FORMAT_VERSION` bump kræver en eksplicit beslutning:
-
-1. implementér adapter for tidligere container-version, eller
-2. afvis gamle filer med klar dansk fejlbesked.
-
-Standardvalget er hård afvisning, medmindre der er en konkret stærk grund til adapter. Der bygges ikke legacy kompatibilitetslag af princip.
+En fremtidig `FILE_FORMAT_VERSION`-ændring kræver en adapter for alle tidligere understøttede container-versioner.
+En gammel container-version må ikke afvises alene, fordi den nye version er indført. En ny container-version skal
+så vidt muligt være additiv og load-tolerant; hvis en adapter ikke kan bygges sikkert, skal ændringen forelægges
+brugeren med den konkrete load-fejl eller afvigelse, før implementering.
 
 ---
 

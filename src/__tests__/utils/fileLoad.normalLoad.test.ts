@@ -10,6 +10,7 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { toISODateString } from '../../types/branded';
 import { FileSelectionError } from '../../utils/fileLoadSource';
 import { logError } from '../../utils/logger';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 vi.mock('../../utils/fileSystemAccess', async (importOriginal) => {
   // Bevar de ægte exports (bl.a. FileHandleAccessError + ensureFileHandleReadPermission, som
@@ -93,6 +94,110 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.source).toBe('manual');
     expect(result.snapshot).toBeDefined();
     expect(result.snapshot.stamdata).toBeDefined();
+  });
+
+  it('indlæser historiske EO-feltnavne uden ny preflight', async () => {
+    const legacySection = createErstatningsopgoerelseInitialValues() as Record<string, unknown>;
+    delete legacySection.kravPaaSvieSmerteGodtgoerelse;
+    delete legacySection.kravPaaTabtArbejdsfortjeneste;
+    legacySection.beregnesSvieSmerteGodtgoerelse = 'Nej';
+    legacySection.beregnesTabtArbejdsfortjeneste = 'Nej';
+    legacySection.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden = true;
+    legacySection.allowReguleringMedUdloebMedMaaneder = 9;
+    legacySection.opsagtFraStilling = 'Ja';
+    legacySection.sfggSygeperioderFoer2015 = [{ id: 'sfg-1', fra: '2014-01-01', til: '2014-01-15' }];
+
+    const content = await encryptLoadContainer({ erstatningsopgoerelse: legacySection }, '2.0');
+    const file = new File([content], 'historisk-sag.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+
+    expect(result.status).toBe('loaded');
+    if (result.status !== 'loaded') return;
+    expect(result.snapshot.erstatningsopgoerelse).toEqual(expect.objectContaining({
+      kravPaaSvieSmerteGodtgoerelse: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
+    }));
+    expect(result.snapshot.erstatningsopgoerelse).not.toHaveProperty(
+      'allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden'
+    );
+    expect(result.snapshot.erstatningsopgoerelse).not.toHaveProperty('allowReguleringMedUdloebMedMaaneder');
+    expect(result.snapshot.erstatningsopgoerelse).not.toHaveProperty('opsagtFraStilling');
+    expect(result.snapshot.erstatningsopgoerelse).not.toHaveProperty('sfggSygeperioderFoer2015');
+    const accountedLegacySection = { ...legacySection };
+    delete accountedLegacySection.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
+    delete accountedLegacySection.allowReguleringMedUdloebMedMaaneder;
+    delete accountedLegacySection.opsagtFraStilling;
+    delete accountedLegacySection.sfggSygeperioderFoer2015;
+    expect(result.expectedFieldCount).toBe(countFilledFields({ erstatningsopgoerelse: accountedLegacySection }));
+  });
+
+  it('holder tavst ignorerede gamle felter ude af preflight-tallene ved et selvstændigt datatab', async () => {
+    const legacySection = createErstatningsopgoerelseInitialValues() as Record<string, unknown>;
+    legacySection.opsagtFraStilling = 'Ja';
+    legacySection.sfggSygeperioderFoer2015 = [{ id: 'sfg-1', fra: '2014-01-01', til: '2014-01-15' }];
+    const data = {
+      stamdata: {
+        journalnr: 'J-001',
+        advokat: '',
+        sagsbehandler: '',
+        skadelidte: 'Test',
+        skadestype: undefined,
+        skadedato: undefined,
+        uventetFelt: 'fjernes',
+      },
+      erstatningsopgoerelse: legacySection,
+    };
+    const accountedData = {
+      ...data,
+      erstatningsopgoerelse: { ...legacySection },
+    };
+    delete accountedData.erstatningsopgoerelse.opsagtFraStilling;
+    delete accountedData.erstatningsopgoerelse.sfggSygeperioderFoer2015;
+    const expectedCount = countFilledFields(accountedData);
+
+    const content = await encryptLoadContainer(data);
+    const file = new File([content], 'historisk-med-reelt-tab.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+
+    expect(result.status).toBe('preflight');
+    if (result.status !== 'preflight') return;
+    expect(result.preflightWarning.expectedCount).toBe(expectedCount);
+    expect(result.preflightWarning.failedCount).toBe(1);
+    expect(result.preflightWarning.loadedCount).toBe(expectedCount - 1);
+    expect(result.preflightWarning.loadedCount + (result.preflightWarning.failedCount ?? 0))
+      .toBe(result.preflightWarning.expectedCount);
+    expect(result.preflightWarning.issues).toContainEqual(expect.objectContaining({
+      kind: 'strippedUnknownField',
+      path: 'stamdata.uventetFelt',
+    }));
+    expect(result.preflightWarning.issues).not.toContainEqual(expect.objectContaining({
+      path: 'erstatningsopgoerelse.opsagtFraStilling',
+    }));
+    expect(result.preflightWarning.issues).not.toContainEqual(expect.objectContaining({
+      path: 'erstatningsopgoerelse.sfggSygeperioderFoer2015',
+    }));
+  });
+
+  it('behandler en fil med kun tavst ignorerede gamle felter som en tom fil', async () => {
+    const content = await encryptLoadContainer({
+      erstatningsopgoerelse: {
+        allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
+        allowReguleringMedUdloebMedMaaneder: 0,
+        opsagtFraStilling: 'Ja',
+        sfggSygeperioderFoer2015: [{ id: 'sfg-1', fra: '2014-01-01', til: '2014-01-15' }],
+      },
+    });
+    const file = new File([content], 'kun-gamle-udviklingsfelter.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    await expect(loadFromFile()).rejects.toThrow('ingen udfyldte felter');
   });
 
   it('returnerer cancelled når bruger annullerer fil-valg', async () => {

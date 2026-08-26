@@ -215,14 +215,38 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
   {
     contract: 'src/contracts/eo-snapshot-contract.md',
     reference: 'periodeTilBeregningFra',
-    direction: 'absent',
-    note: 'Tidligere persisteret feltnavn, omdøbt til tafBeregningsperiodeFra. Står i §11s bagudinkompatibilitetsnote.',
+    direction: 'present',
+    note: 'Historisk alias, som skal findes i den eksakte `.eo`-loadmigrering, selv om runtime-navnet er omdøbt.',
   },
   {
     contract: 'src/contracts/eo-snapshot-contract.md',
     reference: 'periodeTilBeregningTil',
-    direction: 'absent',
-    note: 'Som ovenfor; omdøbt til tafBeregningsperiodeTil.',
+    direction: 'present',
+    note: 'Historisk alias, som skal findes i den eksakte `.eo`-loadmigrering, selv om runtime-navnet er omdøbt.',
+  },
+  {
+    contract: 'src/contracts/eo-snapshot-contract.md',
+    reference: 'opsagtFraStilling',
+    direction: 'present',
+    note: 'Historisk udviklingsfelt, som skal findes i den eksplicitte ignore-migrering, selv om det ikke findes i runtime-modellen.',
+  },
+  {
+    contract: 'src/contracts/eo-snapshot-contract.md',
+    reference: 'sfggSygeperioderFoer2015',
+    direction: 'present',
+    note: 'Historisk udviklingstabel, som skal findes i den eksplicitte ignore-migrering, selv om den ikke findes i runtime-modellen.',
+  },
+  {
+    contract: 'src/contracts/persistence-contract.md',
+    reference: 'opsagtFraStilling',
+    direction: 'present',
+    note: 'Historisk udviklingsfelt, som bevidst kun findes som load-data og derfor ikke som runtime-symbol.',
+  },
+  {
+    contract: 'src/contracts/persistence-contract.md',
+    reference: 'sfggSygeperioderFoer2015',
+    direction: 'present',
+    note: 'Historisk udviklingstabel, som bevidst kun findes som load-data og derfor ikke som runtime-symbol.',
   },
   {
     contract: 'src/contracts/error-contract.md',

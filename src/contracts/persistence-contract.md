@@ -38,6 +38,31 @@ Kontrakten gælder:
 
 AppSettings og uafhængig UI-sessionstate er ikke sagsinput og ligger fortsat under deres egne kontrakter/nøgler.
 
+## 1.1 Permanent kompatibilitetskrav for `.eo`
+
+En `.eo`-fil, som er skrevet af en tidligere udgivet Mineo-version og ikke er korrupt, er et permanent understøttet
+inputformat. Den skal kunne indlæses i senere versioner med alt tidligere gemt sagsinput bevaret. En ændring af
+intern runtime-arkitektur, Zod-schema, feltadresse, rækkeidentitet, enum eller containerformat må derfor ikke i sig
+selv gøre en sådan fil ulæselig, give den en ny preflight eller ændre en indlæst værdi.
+
+Kompatibiliteten ejes ved persistensgrænsen: eksakte typed migratorer, load-aliaser og container-adaptere er tilladte
+og påkrævede, når de er nødvendige for at bevare gamle filer. De må ikke brede sig ind i den aktuelle runtime-model.
+Før en ændring af persistensformen skal der foreligge en konkret vurdering af berørte historiske versioner, bevarede
+værdier, migrering og round-trip-test. Et versionsbump eller en ny nøgle er aldrig i sig selv en kompatibilitetsplan.
+
+Hvis den planlagte ændring kan give en bruger en fejl, preflight, advarsel, ændret standardværdi, mistet værdi eller
+anden afvigelse under load af en tidligere udgivet fil, skal ændringen forelægges brugeren før implementering med
+eksempel på filen og den oplevede load-adfærd. Den må ikke indføres tavst.
+
+Afgrænset undtagelse: Filer fra den interne udviklingsfase kan indeholde de tidligere device-lokale felter
+`allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og `allowReguleringMedUdloebMedMaaneder`. De er ikke
+sagsinput og er godkendt ignoreret uden preflight. Load-migratoren fjerner dem eksplicit; undtagelsen gælder ikke
+andre ukendte felter eller fremtidige ændringer.
+
+Samme godkendte behandling gælder de tidligere udviklingsfelter `opsagtFraStilling` og
+`sfggSygeperioderFoer2015`. De repræsenterer ikke længere aktuelle sagsdata og fjernes derfor også eksplicit uden
+preflight. De fire navne er en lukket historisk liste, ikke en generel tilladelse til at ignorere gamle sagsværdier.
+
 Sagsinput har to autoritative dele:
 
 1. Zod-validerede canonical sektioner.
@@ -157,7 +182,8 @@ gennem samme per-sektion-kæde som `.eo`-load: kildeversion → eksakt migrator 
 migrerbar canonical værdi skal overleve. En migration må aldrig gætte en domæneværdi eller stille strippe brugerdata.
 Opdager hydration et ukendt felt, en ukendt sektion, en ikke-migrerbar struktur eller en `rejectedInputs`-adresse uden
 en eksplicit oversættelse, bevares rå envelopen uændret og writes blokeres med den danske dataintegritetsfejl. Det er
-fail-closed, ikke tavst datatab; en release med en sådan forventelig ændring må ikke udgives uden den nødvendige migrering.
+fail-closed, ikke tavst datatab. En sådan tilstand må kun være korruption eller et uunderstøttet fremmed input; en
+forventelig ændring i Mineos egen gemte struktur skal løses med den nødvendige migrering før release.
 
 Bootstrap læser kun den nye, manifest-ejede current-session-nøgle én gang før React-render. Data under pensionerede
 browsernøgler læses eller dekodes aldrig og er derfor hverken current-data eller current-korruption. En inkompatibel
@@ -242,11 +268,14 @@ muteres ikke.
 1. Load er atomisk, medmindre brugeren eksplicit accepterer delvis load i preflight.
 2. Ingen runtime-, storage- eller history-state muteres før preflight-beslutningen.
 3. Ved apply-fejl bevares den aktive sag uændret.
-4. Ukendte/fjernede felter og sektioner rapporteres og holdes ude af apply-snapshotet.
+4. Ukendte eller korrupte felter og sektioner, som ikke tilhører en tidligere understøttet Mineo-struktur, rapporteres
+   og holdes ude af apply-snapshotet. Tidligere udgivne Mineo-felter skal først gennem den relevante migrering og må
+   ikke behandles som ukendte.
 5. Manglende nyere felter må ikke alene blokere eller advare; de håndteres med `optional()`, sikker schema-default eller
    eksplicit migrator.
-6. Et ugyldigt bladfelt fjernes isoleret og forklares i preflight, når resten af sektionen kan parses sikkert. Kun en
-   sektion, der fortsat ikke sikkert kan parses, droppes som hel sektion og forklares i preflight.
+6. Et ugyldigt bladfelt fra korrupt eller fremmed input fjernes isoleret og forklares i preflight, når resten af sektionen
+   kan parses sikkert. Kun en sektion, der fortsat ikke sikkert kan parses, droppes som hel sektion og forklares i
+   preflight. En tidligere udgivet Mineo-værdi må ikke gøres ugyldig af en ny schemaændring.
 7. Godkendt load oversætter canonical sektioner til gyldige settled felter, har ingen rejected inputs og erstatter hele
    inputaggregaten i én transaktion.
 8. Manuel og PWA-initieret load må først starte fil-I/O efter `prepare('load')=committed`.
@@ -254,12 +283,18 @@ muteres ikke.
 Den kanoniske rækkefølge er:
 
 1. læs/dekryptér og resolvér kildeversion,
-2. normalisér og anvend eventuel eksakt migrator,
-3. strip ukendte felter/sektioner og isolér sikkert ugyldige bladfelter,
-4. valider hver sektion og byg kandidat,
-5. vis preflight og afvent beslutning,
-6. replace hele aggregaten atomisk,
-7. ryd history ved succesfuld hel-sags-erstatning og udsted ny revision.
+2. fjern den lukkede liste af godkendte, tavst ignorerede historiske udviklingsfelter fra load-grundlaget,
+3. normalisér og anvend eventuel eksakt migrator,
+4. strip ukendte felter/sektioner og isolér sikkert ugyldige bladfelter,
+5. valider hver sektion og byg kandidat,
+6. vis preflight og afvent beslutning,
+7. replace hele aggregaten atomisk,
+8. ryd history ved succesfuld hel-sags-erstatning og udsted ny revision.
+
+De godkendte historiske udviklingsfelter fjernes før både schema-behandling og optælling. De må derfor ikke kunne
+udløse preflight, indgå i load-tallene eller nå snapshot, apply, overlay eller efterfølgende metadata. Hvis der ikke
+findes andre fejl, returnerer load status `loaded`, og den almindelige succesbesked bruges. En fil med kun sådanne
+felter har stadig intet aktuelt indlæseligt sagsinput og stoppes af tomheds-gaten.
 
 Ingen page, hook eller domæneconsumer må omgå rækkefølgen.
 
@@ -306,11 +341,15 @@ destruktiv erstatning må ikke tilbydes.
 
 Der findes **ingen** særskilt feltadresseversion: feltadresser er altid current-formatet. De øvrige versioner bumpes kun
 ved ændringer i deres eget ansvar. `.eo`-load-migrationer er eksakte og typed; der gættes aldrig ud fra shape eller
-versionssortering. En version uden sikker mapping går til den dokumenterede fail-closed/preflight-sti. En inkompatibel
-ændring af de strukturelle feltadresser kræver en eksplicit, testet oversættelse af aktive sessioners `rejectedInputs`;
-uden den bliver sessionen fail-closed efter §4 med rå bytes bevaret.
+versionssortering. Alle kendte historiske versioner skal have den mapping, deres ændrede felter kræver. En ukendt eller
+fremtidig `.eo`-version må kun indlæses uden advarsel, når de konkrete værdier er current-kompatible; værdier uden
+sikker mapping går til den eksisterende preflight. En inkompatibel ændring af de strukturelle feltadresser kræver en
+eksplicit, testet oversættelse af aktive sessioners `rejectedInputs`; uden den bliver sessionen fail-closed efter §4
+med rå bytes bevaret.
 
-Der findes ingen runtimekode, som alene eksisterer for at betjene gamle interne modeller.
+Der findes ingen runtimekode, som alene eksisterer for at betjene gamle interne modeller. Denne regel forbyder ikke
+afgrænsede adaptere i `.eo`-loadgrænsen eller migrering af den aktuelle session, når de alene bevarer tidligere
+persisterede data.
 
 ## 10. Runtime-read-grænser
 

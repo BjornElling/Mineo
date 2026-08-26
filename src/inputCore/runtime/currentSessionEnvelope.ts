@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
+import {
+  PERSISTED_DATA_VERSION,
+  PERSISTED_DATA_VERSION_HISTORY,
+} from '../../config/persistenceVersion';
 import { PERSISTED_SECTION_KEYS, type PersistedSectionKey } from '../../config/persistenceRegistry';
 import { cloneAndDeepFreeze } from '../../utils/deepFreeze';
 import { parseInboundPersistedSection } from '../../utils/inboundPersistedSection';
@@ -18,14 +21,10 @@ import {
 
 export const CURRENT_INPUT_ENVELOPE_VERSION = '2';
 
-// Den nye current-session-envelope blev introduceret sammen med persisted-data-version 3.10. Kun
-// versioner fra denne runtime-levetid må derfor komme ind her; en ukendt/fremtidig version må ikke
-// behandles som identity, selv hvis dens payload tilfældigvis ligner det aktuelle schema.
-const CURRENT_SESSION_SOURCE_VERSIONS = new Set([
-  '3.10',
-  '3.11',
-  PERSISTED_DATA_VERSION,
-]);
+// Envelopen er current-only, men dens canonical sektionsdata kan stamme fra enhver kendt historisk
+// persisted-data-version. Historikken er eksplicit, så en ukendt/fremtidig version aldrig behandles
+// som identity, selv hvis dens payload tilfældigvis ligner det aktuelle schema.
+const CURRENT_SESSION_SOURCE_VERSIONS = new Set<string>(PERSISTED_DATA_VERSION_HISTORY);
 
 const currentInputEnvelopeSchema = z.object({
   envelopeVersion: z.literal(CURRENT_INPUT_ENVELOPE_VERSION),

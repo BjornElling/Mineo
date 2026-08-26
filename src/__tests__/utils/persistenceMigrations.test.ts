@@ -49,6 +49,69 @@ describe('migratePersistedSectionValue', () => {
     });
   });
 
+  it('bevarer historiske EO-felter og ignorerer gamle udviklingsfelter', () => {
+    const legacySection = {
+      beregnesSvieSmerteGodtgoerelse: 'Nej',
+      beregnesTabtArbejdsfortjeneste: 'Nej',
+      allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true,
+      allowReguleringMedUdloebMedMaaneder: 9,
+      opsagtFraStilling: 'Ja',
+      sfggSygeperioderFoer2015: [{ id: 'sfg-1', fra: '2014-01-01', til: '2014-01-15' }],
+      periodeTilBeregningFra: '2024-01-01',
+      periodeTilBeregningTil: '2024-12-31',
+      midlertidigtEetAfgorelse: 'Ja',
+      endeligtEetAfgorelse: 'Nej',
+      midlertidigtEetAfgoerelseGrupper: [{ afgoerelsesdato: '2024-01-01', rowIds: ['taf-1'] }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        beregnesUdFra: 'Ferieloven',
+        referenceperiodeFra: '2023-01-01',
+        referenceperiodeTil: '2023-12-31',
+        referenceperiodeFravaersdageUdenLoen: 2,
+        manuelDagssats: 100,
+        manuelBeloebIHenholdTil: 'Aftale',
+        manuelFoerstEfterSygeloen: 'Ja',
+        satsvalg: 'Faglaert-Koebenhavn',
+        alleredeBetaltBeloeb: 50,
+      }],
+    };
+
+    const { value } = migratePersistedSectionValue('erstatningsopgoerelse', legacySection, '1.0.4');
+    expect(value).toEqual({
+      kravPaaSvieSmerteGodtgoerelse: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
+      tafBeregningsperiodeFra: '2024-01-01',
+      tafBeregningsperiodeTil: '2024-12-31',
+      midlertidigtEETAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Nej',
+      midlertidigtEETAfgoerelseGrupper: [{ afgoerelsesdato: '2024-01-01', rowIds: ['taf-1'] }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: '2023-01-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 2,
+        sfggManuelDagssats: 100,
+        sfggManuelBeloebIHenholdTil: 'Aftale',
+        sfggManuelFoerstEfterSygeloen: 'Ja',
+        sfggSatsvalg: 'Faglaert-Koebenhavn',
+        sfggAlleredeBetaltBeloeb: 50,
+      }],
+    });
+  });
+
+  it('lader en konflikt mellem gammelt og nyt feltnavn gå til preflight i stedet for at vælge tavst', () => {
+    const { value } = migratePersistedSectionValue('erstatningsopgoerelse', {
+      beregnesSvieSmerteGodtgoerelse: 'Nej',
+      kravPaaSvieSmerteGodtgoerelse: 'Ja',
+    }, '1.0.4');
+
+    expect(value).toEqual({
+      beregnesSvieSmerteGodtgoerelse: 'Nej',
+      kravPaaSvieSmerteGodtgoerelse: 'Ja',
+    });
+  });
+
   // Den LEVENDE registrerede migration – ikke en fixture-registry. Slås entryen fra, bliver slottet i
   // stedet et strippet ukendt felt, og preflight ville rapportere en genudledt sats som tabt indtastning.
   describe('et afledt Store Bededag-slot i en ældre .eo tælles ikke som tabt indtastning', () => {

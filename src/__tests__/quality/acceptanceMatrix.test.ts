@@ -583,12 +583,12 @@ const ACCEPTANCE_CRITERIA: readonly AcceptanceCriterion[] = [
   },
   {
     criterion: 29,
-    title: 'Ingen permanent compatibility-facade, dual-read, dual-write eller fallback eksisterer.',
+    title: 'Ingen permanent intern compatibility-facade, dual-read, dual-write eller fallback eksisterer. Afgrænsede, versionsstyrede persistensadaptere ved `.eo`- og current-session-grænsen er påkrævede, når de bevarer tidligere gemt input.',
     sources: [
       {
         file: 'src/__tests__/quality/architecture/deletedLegacyAbsence.test.ts',
         tests: [
-          'ingen produktionsfil er en compatibility-facade (@deprecated / Legacy-eksport / dual-read)',
+          'ingen produktionsfil er en intern compatibility-facade (@deprecated / Legacy-eksport / dual-read)',
           'ingen produktionsfil er en ren re-export-facade (struktur, ikke navn)',
         ],
       },

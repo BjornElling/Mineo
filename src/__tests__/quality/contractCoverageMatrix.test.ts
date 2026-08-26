@@ -71,8 +71,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       // Import-/adgangs-grænserne + committed-section-mirror håndhæves nu af harnesset.
       'src/__tests__/quality/architecture/architectureRules.test.ts',
       'src/__tests__/inputCore/runtime/dispatchInput.test.ts',
-      // Browser-sessionmigration er et ikke-mål (§2.6); `.eo`-save/load/apply-grænsen dækkes af
-      // caseportene.
+      'src/__tests__/config/persistenceCompatibility.test.ts',
+      // Den aktuelle session har sin egen envelope-grænse; kendte historiske session-input skal dog bevares
+      // gennem samme migrering. `.eo`-save/load/apply-grænsen dækkes af caseportene og de særskilte migrations-tests.
       'src/__tests__/persistence/caseFileOperations.test.ts',
       'src/__tests__/persistence/caseResetOperations.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
@@ -87,6 +88,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/quality/schemaEvolutionDomainTable.test.ts',
       'src/__tests__/config/persistenceVersionDrift.test.ts',
+      'src/__tests__/config/persistenceCompatibility.test.ts',
       'src/__tests__/config/persistenceRegistry.test.ts',
       'src/__tests__/utils/persistenceLoadSanitization.test.ts',
       'src/__tests__/utils/persistenceMigrations.test.ts',

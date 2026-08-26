@@ -25,6 +25,17 @@ Hver `src/contracts/*.md`-fil skal være klassificeret præcis ét af tre steder
 3. Opdatering af `src/__tests__/quality/contractCoverageMatrix.test.ts` – tilføj/fjern en `COVERAGE_MATRIX`-entry med mindst én koblet test-suite. Matrix og topologi skal stemme overens begge veje (håndhævet af testen).
 4. Relevante tests eller en eksplicit beslutningsnote, hvis kravet ikke kan testes direkte.
 
+Hvis ændringen berører `.eo`, persisted schemas, feltadresser, rækkeidentiteter, enum-værdier, browserlagring eller
+load/sanitization, skal samme ændring desuden indeholde en kompatibilitetsvurdering:
+
+1. identificér alle tidligere udgivne versioner og gemte værdier, som kan være berørt;
+2. tilføj eller bekræft den eksakte typed migrator, load-alias eller container-adapter;
+3. tilføj en fixture, der viser load uden ny fejl, preflight eller tavs ændring;
+4. forelæg ændringen for brugeren før implementering, hvis en tidligere udgivet fil ikke kan bevares uden en
+   synlig load-afvigelse.
+
+Et versionsbump, en ny storage-nøgle eller en hård afvisning tæller ikke som kompatibilitetsvurdering.
+
 ## Hvad coverage-testen håndhæver
 
 `contractCoverageMatrix.test.ts` er en **linkage-guard**, ikke et mål for semantisk dækningsgrad. Den verificerer:
@@ -43,6 +54,10 @@ Coverage-matrixen læser aldrig kontrakternes brødtekst. De ~230 fil- og ~430 s
 
 - **`contractReferenceLiveness.test.ts`** udtrækker referencerne af kontraktteksten og kræver, at hver navngiven fil, sti og hvert symbol findes i koden. Undtagelserne er data i `REFERENCE_EXCEPTIONS`, hver med en retning og en begrundelse. Retningen `absent` er en PÅSTAND, der håndhæves: kontrakternes fraværsværn («der findes ingen `documentService.ts` – navnet står her som fraværsværn») bliver røde, hvis det forbudte genopstår. Værnet fandt ved indførelsen fem levende drift-tilfælde, alle i kontrakter der var stemplet som verificerede.
 - **`scripts/check-contract-verification.mjs`** kører både lokalt i Husky før commit og i `verify:release`. Husky læser den staged kontrakt og kræver, at dens `**Senest verificeret mod kode:**`-stempel er dagens dato; release-gaten kræver desuden, at stemplet ikke er ældre end den seneste commit, der ændrede kontraktfilen. Formatkravet alene gjorde ellers stemplet til et ritual: seks kontrakter bar et stempel, der lå FØR deres egen seneste redigering. **Konsekvensen ved commit: ændrer du en kontrakt, opdaterer du dens stempel i SAMME commit** – efter faktisk at have efterprøvet det ændrede afsnit mod koden. Kontrollen er et script og ikke en test, fordi den kræver git-historik; uden historik rapporterer den «ikke målt» frem for et tavst grønt udfald.
+- **Persistenskompatibiliteten** håndhæves af den eksplicitte versionshistorik i `src/config/persistenceVersion.ts` og
+  `src/config/version.ts`, driftstesten for schema-fingerprint samt migrations- og load-fixtures. Historiklisten må
+  kun udvides, aldrig forkortes, når en ny version udgives. En ændring, der ikke har en sikker mapping, må ikke passere
+  som en ny version uden den brugerforelæggelse, som `persistence-contract.md` kræver.
 
 ## Senest verificeret mod kode-feltet
 

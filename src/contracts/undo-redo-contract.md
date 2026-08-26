@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet
 `docs/architecture/undo-redo-architecture.md`.
-**Senest verificeret mod kode:** 2026-08-24
+**Senest verificeret mod kode:** 2026-08-26
 
 ## 1. Scope
 
@@ -19,7 +19,8 @@ Det omfatter ikke åbne drafts, afledte issues, gates, beregninger, browserens n
 
 Et frame bærer INTET fejlsnapshot. Det midlertidige `fieldErrors`-kompatibilitetsfelt er fjernet sammen med den
 komponentrapporterede fejlmodel: issues er nu rene afledninger af den gendannede revision, så de kan ikke drifte
-fra inputtet. `InputHistoryFrame` er derfor præcis `{ input, origin? }`.
+fra inputtet. `InputHistoryFrame` er derfor præcis `{ input, origin? }`. Dette forbud gælder den slettede interne
+runtime-model og begrænser ikke de persistensadaptere, som `.eo`-load kræver for historiske filer.
 
 Fokus-origin er en DISKRIMINERET union, så de to slags commits ikke kan forveksles:
 

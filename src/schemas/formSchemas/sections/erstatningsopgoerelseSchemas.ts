@@ -135,9 +135,9 @@ const aesAfgoerelserSchema = z.object({
 }).strict();
 
 const svieSmerteSchema = z.object({
-  // Breaking rename fra `beregnesSvieSmerteGodtgoerelse` (JaNej-toggle) til tre-tilstands-valg.
-  // Gamle .eo-filer mister bevidst den tidligere værdi (strippes som ukendt felt) og loades
-  // med default 'Ja' – jf. brugerbeslutning og schema-evolution.md §3.1a (bevidst tab af gammel værdi).
+  // Det aktuelle canonical navn er et tre-tilstands-valg. Ældre `.eo`-filer med
+  // `beregnesSvieSmerteGodtgoerelse` oversættes af load-migratoren, så den gamle
+  // Ja/Nej-værdi ikke bliver strippet eller erstattet af defaulten.
   kravPaaSvieSmerteGodtgoerelse: jaNejSkjulEnum.default('Ja'),
   svieSmerteHelbredsstatus: z.preprocess(normalizeEmptyToUndefined, helbredsstatusEnum.optional()),
   tidligereSsMax: jaNejEnum.default('Nej'),
@@ -149,8 +149,8 @@ const svieSmerteSchema = z.object({
 }).strict();
 
 const tafSchema = z.object({
-  // Breaking rename fra `beregnesTabtArbejdsfortjeneste` (JaNej-toggle) til tre-tilstands-valg.
-  // Se note ved kravPaaSvieSmerteGodtgoerelse: gammel værdi tabes bevidst, default 'Ja'.
+  // Ældre `.eo`-filer med `beregnesTabtArbejdsfortjeneste` oversættes af
+  // load-migratoren til dette aktuelle tre-tilstands-felt.
   kravPaaTabtArbejdsfortjeneste: jaNejSkjulEnum.default('Ja'),
   tafArbejdsstatus: z.preprocess(normalizeEmptyToUndefined, arbejdsstatusEnum.optional()),
   tafPerioder: z.array(tafPeriodeRowSchema).default([]),

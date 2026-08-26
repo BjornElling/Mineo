@@ -2,6 +2,11 @@
 
 Alle udviklingsregler, roller, mandat og constraints for Mineo er samlet i [AGENTS.md](AGENTS.md). Læs den fil – den er den autoritative kilde.
 
+Det brede mandat til greenfield- og fundamentale arkitekturændringer gælder kun intern runtime-kode. Persistensgrænsen
+er bagudkompatibel: tidligere gyldigt gemte `.eo`-filer skal fortsat kunne indlæses uden tavst datatab eller ny
+load-afvigelse. En mulig load-fejl, preflight, advarsel eller ændret indlæst værdi er en særskilt godkendelsesgate
+efter AGENTS.md og skal forelægges brugeren før ændringen.
+
 ## Kommunikationsstil (skærpelse af AGENTS.md §Kommunikation)
 
 AGENTS.md siger allerede "Hold kommunikation på et absolut minimum". Denne skærpelse står her, fordi jeg

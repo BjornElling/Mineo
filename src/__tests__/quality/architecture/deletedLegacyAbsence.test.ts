@@ -117,7 +117,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
     ).toEqual([]);
   });
 
-  it('ingen produktionsfil er en compatibility-facade (@deprecated / Legacy-eksport / dual-read)', () => {
+  it('ingen produktionsfil er en intern compatibility-facade (@deprecated / Legacy-eksport / dual-read)', () => {
     const entries = getSourceGraph();
     const facades: string[] = [];
 
@@ -161,7 +161,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
 
     expect(
       facades,
-      'Exitkriterie 1: ingen permanent compatibility-facade, fallback eller dual-read under src/.'
+      'Exitkriterie 1: ingen permanent intern compatibility-facade, fallback eller dual-read under src/.'
     ).toEqual([]);
   });
 
@@ -169,7 +169,7 @@ describe('slettet legacy er faktisk fraværende (fraværsreglernes modstykke)', 
    * NAVNEUAFHÆNGIG facade-detektion.
    *
    * Kontrollen ovenfor leder efter `@deprecated` og efter `Legacy`/`Compat` i EKSPORTNAVNE. Den kunne
-   * derfor ikke se de facader, der faktisk fandtes: tre filer, som selv erklærede deres formål i en
+   * derfor ikke se de interne facader, der faktisk fandtes: tre filer, som selv erklærede deres formål i en
    * kommentar ("Compat wrapper", "så eksisterende imports er uændrede", "for bagudkompatibilitet"),
    * men eksporterede neutralt navngivne symboler videre fra det kanoniske modul.
    *

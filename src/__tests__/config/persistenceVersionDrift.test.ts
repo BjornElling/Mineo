@@ -26,12 +26,13 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // erhvervsevnetab-sektionen. PERSISTED_DATA_VERSION bumpet til 1.8 (reel persisted schema-ændring).
 // Opdateret 2026-05-30: nyt bilag-felt merErstatningPensionsalder på
 // eetDifferencekravBilagSelection. PERSISTED_DATA_VERSION bumpet til 1.9 (reel persisted schema-ændring).
-// Opdateret 2026-06-03: fjernet allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden og
-// allowReguleringMedUdloebMedMaaneder fra erstatningsopgoerelse-sektionen (rullet tilbage til
-// device-lokale app-settings). PERSISTED_DATA_VERSION bumpet til 2.0 (bevidst breaking schema-ændring).
-// Opdateret 2026-06-03: breaking rename af beregnesSvieSmerteGodtgoerelse -> kravPaaSvieSmerteGodtgoerelse og
-// beregnesTabtArbejdsfortjeneste -> kravPaaTabtArbejdsfortjeneste, samt udvidet enum til Ja/Nej/Skjul.
-// PERSISTED_DATA_VERSION bumpet til 3.0 (bevidst breaking schema-ændring; gamle værdier tabes, default 'Ja').
+// Opdateret 2026-06-03: allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden og
+// allowReguleringMedUdloebMedMaaneder blev flyttet fra erstatningsopgørelsen til device-lokale
+// app-settings. Den historiske overgang må ikke bruges som model for nye load-brud; de gamle
+// sagsfelter er ikke længere sagsdata, mens de øvrige historiske værdier fortsat skal bevares.
+// Samme ændring omdøbte beregnesSvieSmerteGodtgoerelse -> kravPaaSvieSmerteGodtgoerelse og
+// beregnesTabtArbejdsfortjeneste -> kravPaaTabtArbejdsfortjeneste og udvidede enum til Ja/Nej/Skjul.
+// De gamle navne dækkes nu af en eksplicit load-migrering.
 // Opdateret 2026-06-03: nyt felt kravPaaOevrigeErstatningskrav (Ja/Nej/Skjul) på erstatningsopgoerelse-sektionen,
 // magen til de to ovenstående. PERSISTED_DATA_VERSION bumpet til 3.1 (reel persisted schema-ændring).
 // Opdateret 2026-06-03: nyt felt offentligeYdelserKommentarer (optionalString) på erstatningsopgoerelse-sektionen

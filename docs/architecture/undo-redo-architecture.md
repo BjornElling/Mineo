@@ -131,7 +131,8 @@ route-navigation, mens standalone leverer en no-op routeadapter og stadig gendan
 Inputaggregatet, de strukturelle feltreferencer og den fælles transaktionsrunner er den ene model. Der findes
 ingen `undoRedoStore`, ingen separate section-/rejected-/fejlsnapshots, ingen epoch- eller resync-tokens, ingen
 focus-tracker-fallback, intet `rowId:colIndex` som identitet og ingen `captureCoalescing`. Der må heller ikke
-etableres en compatibility-facade, der genindfører nogen af dem.
+etableres en intern compatibility-facade, der genindfører nogen af dem. Det er en intern runtime-regel og må ikke
+forveksles med de eksplicitte persistensadaptere, der skal holde tidligere `.eo`-filer indlæselige.
 
 ## Testflade
 

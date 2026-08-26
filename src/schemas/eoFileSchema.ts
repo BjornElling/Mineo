@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import { FILE_FORMAT_VERSION } from '../config/version';
+import { FILE_FORMAT_VERSION, SUPPORTED_FILE_FORMAT_VERSIONS } from '../config/version';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
@@ -47,7 +47,8 @@ export const eoFileDataLoadSchema = z.preprocess(nullToUndefinedDeep, z.looseObj
 
 /**
  * Container-metadata. Save kræver den aktuelle sagsdataversion; load accepterer
- * fraværende/andre versioner, så kildeversionen kan håndteres tolerant downstream.
+ * fraværende/andre persisted-data-versioner, så den konkrete kildeversion kan
+ * håndteres tolerant downstream.
  */
 const eoFileMetadataBaseShape = {
   exportDate: z.string(),
@@ -87,7 +88,7 @@ export type EoFileContainer = z.infer<typeof eoFileContainerSchema>;
  * Permissiviteten er afgrænset til `data`-sektionen og `_metadata`-felternes indhold.
  */
 export const eoFileContainerLoadSchema = z.object({
-  version: z.literal(FILE_FORMAT_VERSION),
+  version: z.enum(SUPPORTED_FILE_FORMAT_VERSIONS),
   _metadata: eoFileMetadataLoadSchema,
   data: eoFileDataLoadSchema,
 }).strict();

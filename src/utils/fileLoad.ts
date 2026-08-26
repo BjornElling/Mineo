@@ -13,6 +13,7 @@ import { decodeEoFile } from './eoFileCodec';
 import { CalculationError } from './errorMessages';
 import { type UnknownPath } from './persistenceLoadSanitization';
 import { parseInboundPersistedSection } from './inboundPersistedSection';
+import { removeApprovedHistoricalDevelopmentFields } from './persistenceMigrations';
 import {
   assertLoadableEoFile,
   createManualLoadSource,
@@ -72,8 +73,16 @@ const processDecryptedContainer = (args: {
   requestId?: string;
 }): LoadFileResult => {
   const { fileContainer, filename, source, fileHandle, requestId } = args;
-  const fileData = fileContainer.data as Record<string, unknown>;
-  const { fieldCount: expectedFieldCount } = fileContainer._metadata;
+  const rawFileData = fileContainer.data as Record<string, unknown>;
+  // Disse fire udviklingsfelter er udtrykkeligt godkendt som tavst ignorerede. Fjern dem ved
+  // loadgrænsen, så ingen efterfølgende del af loadet kan tælle, vise eller klassificere dem.
+  // Sektionsmigratoren gør det samme idempotent for andre inbound-kilder.
+  const fileData: Record<string, unknown> = {
+    ...rawFileData,
+    ...(Object.prototype.hasOwnProperty.call(rawFileData, 'erstatningsopgoerelse')
+      ? { erstatningsopgoerelse: removeApprovedHistoricalDevelopmentFields(rawFileData.erstatningsopgoerelse) }
+      : {}),
+  };
   const sourcePersistedDataVersion =
     fileContainer._metadata.persistedDataVersion ?? LEGACY_PERSISTED_DATA_VERSION;
 
@@ -193,7 +202,9 @@ const processDecryptedContainer = (args: {
     filename,
     fileHandle,
     fieldCount: loadedFieldCount,
-    expectedFieldCount,
+    // Metadatafeltet i den gamle fil kan tælle tavst ignorerede felter. Det udleverede load-tal
+    // skal derfor være det samme rensede tal, som preflight bruger – ikke den rå metadata-værdi.
+    expectedFieldCount: fileFieldCount,
     sections: sectionsPresent.length,
     version: fileVersion,
     snapshot,

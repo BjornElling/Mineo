@@ -52,7 +52,7 @@ export type SaveFileResult =
       /** Advarsel fra verifikation eller handle-fallback (hvis nogen). */
       warning?: string;
       // Informative metadata (ikke aflæst af gem-orkestreringen; bæres til logning/debug).
-      /** Antal felter der blev gemt (til preflight-rapportering ved hent). */
+      /** Antal felter i det gemte snapshot som metadata. */
       fieldCount?: number;
       /** Antal data-sektioner. */
       sections?: number;
@@ -81,7 +81,7 @@ type LoadedFileData = {
   // Informative metadata (ikke aflæst af apply-/UI-laget; bæres til logning/debug og fremtidig brug).
   /** Antal felter der faktisk blev indlæst i denne version. */
   fieldCount?: number;
-  /** Forventet antal felter (fra fil-metadata). */
+  /** Forventet antal felter i loadets optællingsgrundlag efter godkendt historisk ignore. */
   expectedFieldCount?: number;
   /** Antal data-sektioner til stede i filen. */
   sections?: number;

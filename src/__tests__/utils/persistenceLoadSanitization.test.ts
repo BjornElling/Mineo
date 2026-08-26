@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../../config/persistenceRegistry';
 import { optionalAmountValueSchema } from '../../schemas/amountExpressionSchema';
+import { migratePersistedSectionValue } from '../../utils/persistenceMigrations';
 
 describe('persistenceLoadSanitization', () => {
   // Guard mod Zod-opgradering: hvis unwrapSchema lydløst no-op'er på en ny `.def`-pipe-struktur, ville
@@ -105,14 +106,10 @@ describe('persistenceLoadSanitization', () => {
     expect(erstatningsopgoerelseSchema.safeParse(result.sanitized).success).toBe(true);
   });
 
-  // Regression for de bevidste breaking schema-ændringer 2026-06-03 (PERSISTED_DATA_VERSION 1.9 → 3.3):
-  // - rename: beregnesSvieSmerteGodtgoerelse → kravPaaSvieSmerteGodtgoerelse (jaNej → jaNejSkjul)
-  // - rename: beregnesTabtArbejdsfortjeneste → kravPaaTabtArbejdsfortjeneste (jaNej → jaNejSkjul)
-  // - fjernet: allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden + allowReguleringMedUdloebMedMaaneder
-  //   (flyttet til device-lokale appSettings)
-  // Kontrakt: schema-evolution.md §3.1a – gammel værdi tabes bevidst (ingen migrator),
-  // de gamle feltnavne strippes som ukendte, og de nye tre-tilstands-felter loades med default 'Ja'.
-  it('strippper omdøbte og fjernede EO-felter fra 2026-06-03-bumpet og loader nye felter med default', () => {
+  // Regression for de historiske schemaændringer 2026-06-03 (PERSISTED_DATA_VERSION 1.9 → 3.3):
+  // De gamle Ja/Nej-feltnavne skal migreres til de nye tre-tilstands-navne. De fire
+  // øvrige historiske felter/tabeller er godkendt som udviklingsrester, der ignoreres uden preflight.
+  it('migrerer historiske EO-feltnavne og ignorerer gamle udviklingsdata', () => {
     const init = createErstatningsopgoerelseInitialValues() as Record<string, unknown>;
     // Simulér en ældre .eo-fil: de nye feltnavne findes ikke endnu, men de gamle gør.
     delete init.kravPaaSvieSmerteGodtgoerelse;
@@ -125,21 +122,26 @@ describe('persistenceLoadSanitization', () => {
       beregnesTabtArbejdsfortjeneste: 'Nej',
       allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true,
       allowReguleringMedUdloebMedMaaneder: false,
+      opsagtFraStilling: 'Ja',
+      sfggSygeperioderFoer2015: [{ id: 'sfg-1', fra: '2014-01-01', til: '2014-01-15' }],
     };
 
-    const result = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, legacyPayload);
+    const migrated = migratePersistedSectionValue('erstatningsopgoerelse', legacyPayload, '2.0');
+    const result = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, migrated.value);
 
-    expect(result.unknownPaths).toContainEqual(['beregnesSvieSmerteGodtgoerelse']);
-    expect(result.unknownPaths).toContainEqual(['beregnesTabtArbejdsfortjeneste']);
-    expect(result.unknownPaths).toContainEqual(['allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden']);
-    expect(result.unknownPaths).toContainEqual(['allowReguleringMedUdloebMedMaaneder']);
+    expect(result.unknownPaths).not.toContainEqual(['beregnesSvieSmerteGodtgoerelse']);
+    expect(result.unknownPaths).not.toContainEqual(['beregnesTabtArbejdsfortjeneste']);
+    expect(result.unknownPaths).not.toContainEqual(['allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden']);
+    expect(result.unknownPaths).not.toContainEqual(['allowReguleringMedUdloebMedMaaneder']);
+    expect(result.unknownPaths).not.toContainEqual(['opsagtFraStilling']);
+    expect(result.unknownPaths).not.toContainEqual(['sfggSygeperioderFoer2015']);
 
     const parsed = erstatningsopgoerelseSchema.safeParse(result.sanitized);
     expect(parsed.success).toBe(true);
     if (!parsed.success) return;
-    // Bevidst tab: den gamle 'Nej'-værdi videreføres IKKE; de nye felter får schema-default 'Ja'.
-    expect(parsed.data.kravPaaSvieSmerteGodtgoerelse).toBe('Ja');
-    expect(parsed.data.kravPaaTabtArbejdsfortjeneste).toBe('Ja');
+    // Den gamle 'Nej'-værdi følger med gennem loadet, selv om feltet nu også understøtter 'Skjul'.
+    expect(parsed.data.kravPaaSvieSmerteGodtgoerelse).toBe('Nej');
+    expect(parsed.data.kravPaaTabtArbejdsfortjeneste).toBe('Nej');
     expect(parsed.data.kravPaaOevrigeErstatningskrav).toBe('Ja');
     expect(parsed.data.offentligeYdelserKommentarer).toBeUndefined();
   });

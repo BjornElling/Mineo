@@ -493,7 +493,9 @@ under et nyt `EvaluationSourceToken`.
 ### 2.7 Session og history
 
 Sessionen har én current-only envelopeversion. Den har ingen `fieldAddressVersion`-bro, sentinel-adresser eller
-legacy-migrator.
+permanent legacy-migrator for gamle interne runtime-modeller. En ændring af den serialiserede envelope eller af
+  feltadresser kræver dog en eksakt, testet adapter, så aktivt afsluttet input og rejected input ikke mistes ved en
+  opdatering. Denne afgrænsede inbound-adapter er ikke en parallel inputmodel.
 
 History snapshotter kun afsluttet input og fokus-origin. Issues, beregninger, gates og åbne drafts genafledes eller
 ignoreres. Restore skriver sessionen først, erstatter derefter input og skaber altid en ny monoton revision.
@@ -757,7 +759,9 @@ Integrationstests dækker form og grid ens for:
 26. Save/download settler og evaluerer friskt input-/settingssnapshot før fil-/generatorarbejde.
 27. Alle 18 dokumentoutputs bruger samme definition til reaktiv gate og click-preflight.
 28. Ingen beregnings-, save- eller dokumentkode kan importere raw canonical sections.
-29. Ingen permanent compatibility-facade, dual-read, dual-write eller fallback eksisterer.
+29. Ingen permanent intern compatibility-facade, dual-read, dual-write eller fallback eksisterer. Afgrænsede,
+    versionsstyrede persistensadaptere ved `.eo`- og current-session-grænsen er påkrævede, når de bevarer tidligere
+    gemt input.
 30. Kontrakter, kode, tests, ledger og arkitekturværn beskriver samme model.
 
 ## 6. Ikke-mål
@@ -769,7 +773,8 @@ Designet indfører ikke:
 - live preview eller live validering af åben draft,
 - serverkommunikation, eksterne API'er, telemetri eller ekstern logging,
 - nye dependencies,
-- kompatibilitet med gamle interne browser-sessioner,
+- genindførelse af gamle interne browser-session-modeller; kendte aktive sessioner skal dog migreres eller bevares
+  fail-closed uden datatab,
 - generiske udvidelsespunkter til hypotetiske fremtidige beregningstyper,
 - en generisk form-/projektionsframework ud over Mineos aktuelle behov.
 
