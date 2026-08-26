@@ -320,9 +320,9 @@ describe('Mineo - License Modal Integration', () => {
 
       const persondataBox = screen.getByText('Persondata').closest('.content-box');
       expect(persondataBox).not.toBeNull();
-      expect(persondataBox).toHaveTextContent(/Der indsamles ingen persondata og ingen brugsstatistik/);
+      expect(persondataBox).toHaveTextContent(/Der indsamles ingen persondata eller brugsstatistik/);
       expect(persondataBox).toHaveTextContent(/ingen oplysninger om dig eller om din sag forlader din computer/);
-      expect(persondataBox).toHaveTextContent(/Programmet kontakter udelukkende serveren i forbindelse med, at det henter opdateringer og nødvendige ressourcer/);
+      expect(persondataBox).toHaveTextContent(/Programmet kontakter udelukkende serveren, når det bliver indlæst eller installeret, og når det henter opdateringer/);
       expect(persondataBox).toHaveTextContent(/Så længe fanen er åben/);
       expect(persondataBox).toHaveTextContent(/Brug Gem for at beholde sagen som en \.eo-fil på din computer/);
 
@@ -365,6 +365,14 @@ describe('Mineo - License Modal Integration', () => {
     test('viser version nummer', () => {
       renderMineo();
       expect(screen.getByText(/Aktuel version:/i)).toBeInTheDocument();
+    });
+
+    test('viser den aftalte tekst om fejlrettelser og nye funktionaliteter', () => {
+      renderMineo();
+
+      expect(screen.getByText(
+        'Alle konstaterede fejl rettes straks, men nye funktionaliteter udvikles og implementeres, når tid og mulighed tillader det.',
+      )).toBeInTheDocument();
     });
 
     test('viser GitHub-linket i status-boksen og ikke den gamle kontaktboks', () => {

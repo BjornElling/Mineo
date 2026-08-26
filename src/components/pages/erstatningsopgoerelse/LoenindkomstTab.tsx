@@ -50,6 +50,12 @@ const LoenindkomstTab = React.memo(({
     handleDeleteConfirm,
   } = vm;
 
+  const angivetLoenNote = eoValues.beregnesUdFra === 'Angivet månedsløn'
+    ? 'Når beregningen foretages ud fra en angivet månedsløn, behøver du ikke indtaste lønoplysninger før skaden.'
+    : eoValues.beregnesUdFra === 'Angivet dagsløn'
+      ? 'Når beregningen foretages ud fra en angivet dagsløn, behøver du ikke indtaste lønoplysninger før skaden.'
+      : null;
+
   // Kontekst-værdi til kortene: den fulde view-model + de få side-niveau-værdier kortene læser.
   const ctxValue: LoenindkomstVm = {
     ...vm,
@@ -90,6 +96,7 @@ const LoenindkomstTab = React.memo(({
           {[
             'Lønindkomst, tillæg og andre relevante oplysninger skal angives individuelt for hvert enkelt ansættelsesforhold.',
             'Det er ikke nødvendigt at dele indtastninger op i før og efter skaden. Programmet sondrer selv.',
+            ...(angivetLoenNote === null ? [] : [angivetLoenNote]),
           ].map((punkt) => (
             // Indrykningen ligger som margin, ikke padding: `.flow--16 .row--text` sætter
             // `padding: 0 12px !important` og ville ellers slå den ud.

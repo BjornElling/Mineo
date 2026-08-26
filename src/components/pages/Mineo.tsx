@@ -249,9 +249,9 @@ const Mineo = React.memo(() => {
         </Typography>
 
         <Typography className="row--text">
-          Der indsamles ingen persondata og ingen brugsstatistik, og ingen oplysninger om dig eller om din
-          sag forlader din computer. Programmet kontakter udelukkende serveren i forbindelse med, at det
-          henter opdateringer og nødvendige ressourcer.
+          Der indsamles ingen persondata eller brugsstatistik, og ingen oplysninger om dig eller om din
+          sag forlader din computer. Programmet kontakter udelukkende serveren, når det bliver indlæst
+          eller installeret, og når det henter opdateringer.
         </Typography>
 
         <Typography className="row--text">
@@ -354,8 +354,8 @@ const Mineo = React.memo(() => {
         </Typography>
 
         <Typography className="row--text">
-          Udviklingen sker i fritiden og drives udelukkende af personlig interesse. Alle konstaterede fejl rettes straks,
-          men nye funktionaliteter udvikles og implementeres kun, når tid og overskud tillader det.
+          Alle konstaterede fejl rettes straks, men nye funktionaliteter udvikles og implementeres, når tid og mulighed
+          tillader det.
         </Typography>
 
         <Typography className="row--text">

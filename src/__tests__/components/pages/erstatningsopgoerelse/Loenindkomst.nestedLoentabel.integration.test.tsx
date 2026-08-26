@@ -21,7 +21,7 @@ import {
 } from '../../../../inputCore/runtime/slimInputStore';
 import { hydrateSlimInputStoreForTest } from '../../../../test/actSafeInputStore';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
-import type { StandardLoenTableRow } from '../../../../schemas/formSchemas';
+import type { Beregningsmetode, StandardLoenTableRow } from '../../../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import { eoEmploymentFields } from '../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { serializeFieldAddress } from '../../../../inputCore/fieldAddress';
@@ -46,6 +46,7 @@ const loenRow = (id: string, maaned: string, aar: string): StandardLoenTableRow 
 });
 
 type HydrateOptions = Readonly<{
+  beregnesUdFra?: Beregningsmetode;
   saerligFraDatoRegulering?: ISODateString;
   tafBeregningsperiodeTil?: ISODateString;
   skadedato?: ISODateString;
@@ -89,6 +90,7 @@ const hydrate = (rows: readonly StandardLoenTableRow[], options: HydrateOptions 
       varigemen: null, forsoergertab: null, erhvervsevnetab: null,
       erstatningsopgoerelse: {
         ...createErstatningsopgoerelseInitialValues(),
+        beregnesUdFra: options.beregnesUdFra ?? 'Beregningsperiode',
         tafBeregningsperiodeTil: options.tafBeregningsperiodeTil,
         loenindkomstAnsaettelsesforhold: [employment],
       },
@@ -177,6 +179,31 @@ describe('EO-lønindkomst – nested løntabel under et ansættelsesforhold', ()
       expect(screen.getByText('Evt. særlig fra-dato for regulering')).toBeInTheDocument();
     });
     expect(screen.getByText('Evt. særlig fra-dato for regulering').querySelector('svg')).toBeNull();
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  it.each([
+    ['Angivet månedsløn', 'Når beregningen foretages ud fra en angivet månedsløn, behøver du ikke indtaste lønoplysninger før skaden.'],
+    ['Angivet dagsløn', 'Når beregningen foretages ud fra en angivet dagsløn, behøver du ikke indtaste lønoplysninger før skaden.'],
+  ] as const)('viser den relevante besked ved %s', async (beregningsgrundlag, expectedText) => {
+    hydrate([], { beregnesUdFra: beregningsgrundlag });
+    renderLoenindkomst();
+
+    await waitFor(() => {
+      expect(screen.getByText('Ansættelsesforhold')).toBeInTheDocument();
+    });
+    expect(screen.getByText((_, element) => (
+      element?.tagName === 'P' && (element.textContent?.includes(expectedText) ?? false)
+    ))).toBeInTheDocument();
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  it('viser ikke beskeden ved Beregningsperiode', async () => {
+    hydrate([]);
+    renderLoenindkomst();
+
+    await waitFor(() => {
+      expect(screen.getByText('Ansættelsesforhold')).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Når beregningen foretages ud fra en angivet/)).toBeNull();
   }, ASYNC_TEST_TIMEOUT_MS);
 
   it('viser grundlagsikonet når den særlige dato er afvist som ugyldig råtekst', async () => {
