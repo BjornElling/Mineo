@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-08-26
 
 ---
 
@@ -61,3 +61,16 @@ Tests skal dække:
 2. SH-/hverdagsregler,
 3. dokumentgate ved missing, invalid, range/bounds og regelissues,
 4. at dokument og UI bruger samme beregnede `beregningsData` uden genberegning.
+
+---
+
+## 5. Feriepenge-begreberne
+
+De kanoniske regler for feriegodtgørelse, ferietillæg og fællesbetegnelsen 'feriepenge' er **ikke
+årslønsspecifikke** – de samme formuleringer bruges i erstatningsopgørelsen (lønindkomst pr.
+ansættelsesforhold, sygeferiegodtgørelse) og i begge fladers dokumenter. Reglerne står derfor i den
+tværgående `feriepenge-begreber-contract.md` og gælder hele programmet.
+
+Konsekvens her: satsfeltet hedder «Feriegodtgørelse/-tillæg», fordi det rummer begge ydelser. Sidens
+advarselstekster om dets sats bruger feltets eget navn og dannes ét sted, i `beregnFejlmeddelelser`
+(`aarsloenValidationPolicies.ts`) – ikke som løs prosa i sidekomponenterne.

@@ -366,14 +366,22 @@ export const hasCompletePeriodForLoenperiode = (row: StandardLoenTableRow, loenp
   return !isStandardLoenTableCellEffectivelyEmpty(row.col0_dag) && !isStandardLoenTableCellEffectivelyEmpty(row.col1_dag);
 };
 
-export const hasAtLeastOneValidRow = (
+/**
+ * Findes der mindst én lønrække med en komplet periode?
+ *
+ * Beløbet indgår BEVIDST ikke i prøven. Funktionen hed tidligere `hasAtLeastOneValidRow` og krævede
+ * desuden, at rækkens samlede løn var forskellig fra nul – men en lønrække med 0 kr. er lovlig
+ * (brugerbeslutning 2026-08-26): brugeren kan have behov for at vise, at der i en måned ikke var
+ * lønindkomst, og det er tydeligere end at udelade perioden, som da kunne se glemt ud.
+ *
+ * Nul-kravet var desuden uenigt med tabelvalideringen, der regner et eksplicit 0 som udfyldt input. En
+ * tabel med én række «januar 2025, 0 kr.» passerede altså valideringen uden ét rødt felt, mens
+ * dokumentgaten svarede «Indtastning mangler» – en mangel, der ikke fandtes. De to prædikater er nu enige.
+ *
+ * At en komplet periode UDEN noget beløb overhovedet fortsat er en fejl, er en anden regel: den ejes af
+ * `missing_amount` i tabelvalideringen (jf. årsløn-kontrakten §2-regel 6) og er uændret.
+ */
+export const hasAtLeastOneCompletePeriodRow = (
   rows: readonly StandardLoenTableRow[],
-  loenperiode: Loenperiode,
-  satser: StandardLoenSatserInput,
-  mode: TillaegAngivesSom = 'procent'
-): boolean => {
-  return rows.some((row) => {
-    if (!hasCompletePeriodForLoenperiode(row, loenperiode)) return false;
-    return calculateStandardLoenRowDerived(row, satser, { mode }).samlet !== 0;
-  });
-};
+  loenperiode: Loenperiode
+): boolean => rows.some((row) => hasCompletePeriodForLoenperiode(row, loenperiode));

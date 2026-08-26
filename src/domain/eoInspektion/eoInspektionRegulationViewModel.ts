@@ -20,6 +20,7 @@ import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpe
 import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { capitalizeFirstCharDa } from '../../utils/formatUtils';
 import { zeroMoneyOre } from '../money/money';
+import { REGULERINGSVAERDIER_FERIE_HEADER } from '../erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
@@ -173,7 +174,9 @@ const COLUMN_DEFS: ReadonlyArray<Readonly<{
   },
   {
     key: 'ferie',
-    header: 'Feriepenge',
+    // Cellen er en PROCENTSATS (`buildPercentCell`), og en sats navngives med den konkrete ydelse –
+    // ikke med fællesbetegnelsen (`feriepenge-begreber-contract.md` §2a).
+    header: REGULERINGSVAERDIER_FERIE_HEADER,
     getCell: (entry) => buildPercentCell(entry.feriePct),
     shouldInclude: (_timeline, entries) => entries.some((entry) => entry.feriePct !== 0),
   },

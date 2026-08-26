@@ -14,7 +14,7 @@ import { useAarsloenVm } from './aarsloenContext';
  * download-blokeringens celle-flash bruger den.
  */
 const AarsloenIndtaegtSection = React.memo(() => {
-  const { tabelRef, tableLocationNav, tableSatser, values } = useAarsloenVm();
+  const { tabelRef, tableLocationNav, tableSatser, values, duplicateRowIssues } = useAarsloenVm();
 
   return (
     <ContentBox className="content-box">
@@ -29,6 +29,7 @@ const AarsloenIndtaegtSection = React.memo(() => {
         satser={tableSatser}
         useSmallFont={true}
         saveOrderPath="aarsloen.tableData"
+        ruleIssues={duplicateRowIssues}
       />
     </ContentBox>
   );

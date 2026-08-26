@@ -99,8 +99,13 @@ export const assessLoenindkomstSatser = (
 
   if (af.feriePct < 12) {
     return Object.freeze([finding(
+      // Med løn under ferie får lønmodtageren FERIETILLÆG, ikke feriegodtgørelse
+      // (`feriepenge-begreber-contract.md` regel 2). Teksten sagde før «Løn under ferie beregnes som
+      // feriegodtgørelse» og påstod dermed, at ydelsen ER feriegodtgørelse i netop det ene tilfælde,
+      // hvor den ikke er det. Det korrekte er den beregningstekniske omregning (regel 3): tillægget
+      // OPGØRES som feriegodtgørelse med 12,5 %/15 %.
       af.fuldLoenUnderFerie === 'Ja'
-        ? 'Løn under ferie beregnes som feriegodtgørelse (12,5 % eller 15 % ved ret til 6. ferieuge)'
+        ? 'Ved løn under ferie opgøres ferietillægget beregningsteknisk som feriegodtgørelse (12,5 %, eller 15 % ved ret til 6. ferieuge)'
         : 'Feriegodtgørelse udgør typisk 12,5 %, men 15 % ved ret til 6. ferieuge',
       'deviation'
     )]);

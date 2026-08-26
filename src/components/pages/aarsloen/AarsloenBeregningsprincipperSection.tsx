@@ -92,6 +92,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
                 placeholder="0"
                 width={50}
                 disabled={!canShowOmregning}
+                {...(vm.feriedageIssue === undefined ? {} : { crossFieldIssue: vm.feriedageIssue })}
               />
             </Box>
           </Box>
@@ -126,6 +127,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
                   onClick={() => void vm.runShDageDownload()}
                   disabled={!vm.shDageDownload.canDownload}
                   disabledReason={vm.shDageDownload.disabledReason}
+                  documentName="SH-dage"
                 />
               </Box>
             </Box>

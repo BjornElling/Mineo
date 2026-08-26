@@ -6,6 +6,11 @@ import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { formatCountWithUnit, formatCurrency } from '../../../utils/formatUtils';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../../utils/periodeBeregning';
 import { LOENPERIODE } from '../../../types/loen';
+import {
+  aarsloenAntalEnhederLabel,
+  aarsloenFradragsParentes,
+  aarsloenOmregningFormel,
+} from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 import { useAarsloenVm } from './aarsloenContext';
 
 /**
@@ -21,12 +26,17 @@ const AarsloenBeregningSection = React.memo(() => {
   const vm = useAarsloenVm();
   const { beregningsData, beregnetAarsloen, shDageAntal, values } = vm;
   const { fuldLoenUnderFerie, retTilSjetteFerieuge, loenperiode } = values;
+  // Ental/flertal kommer fra den SAMME afledning, Beregningsprincipper-boksen bruger, så de to bokse ikke
+  // kan skrive «den indtastede periode» og «de indtastede perioder» om det samme grundlag.
+  const { isSinglePeriod } = vm.indtastetEnhedSummary;
 
   const downloadButton = (
     <DocumentDownloadButton
       onClick={() => void vm.runAarsloenDownload()}
       disabled={!vm.aarsloenDownload.canDownload}
       disabledReason={vm.aarsloenDownload.disabledReason}
+      // Siden tegner TO downloadknapper; uden navnet ville begge hedde «Download som Word».
+      documentName="årsløn"
     />
   );
 
@@ -71,7 +81,13 @@ const AarsloenBeregningSection = React.memo(() => {
           {beregningsData.metode === 'A' && (
             <>
               <Box className="row--label-right-hover">
-                <Typography className="row--text">{`Arbejdsdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage')}${feriedageFradrag(beregningsData.feriedageFraInput)}${(shDageAntal ?? 0) > 0 ? ` - ${formatCountWithUnit(shDageAntal ?? 0, 'SH-dag', 'SH-dage')}` : ''}):`}</Typography>
+                <Typography className="row--text">{`Arbejdsdage i beregningsperioden${aarsloenFradragsParentes(
+                  formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage'),
+                  [
+                    feriedageFradrag(beregningsData.feriedageFraInput),
+                    (shDageAntal ?? 0) > 0 ? ` - ${formatCountWithUnit(shDageAntal ?? 0, 'SH-dag', 'SH-dage')}` : '',
+                  ]
+                )}:`}</Typography>
                 <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode, 'arbejdsdag', 'arbejdsdage')}</Typography>
               </Box>
               <Box className="row--label-right-hover">
@@ -81,14 +97,17 @@ const AarsloenBeregningSection = React.memo(() => {
                 }</Typography>
                 <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdagePaaAar, 'arbejdsdag', 'arbejdsdage')}</Typography>
               </Box>
-              {omregnetRow(`${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.arbejdsdagePaaAar}`, beregningsData.omregnetAarsloen)}
+              {omregnetRow(aarsloenOmregningFormel(formatCurrency(beregnetAarsloen), beregningsData.arbejdsdageIPeriode, String(beregningsData.arbejdsdagePaaAar)), beregningsData.omregnetAarsloen)}
             </>
           )}
 
           {beregningsData.metode === 'B' && (
             <>
               <Box className="row--label-right-hover">
-                <Typography className="row--text">{`Hverdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage')}${feriedageFradrag(beregningsData.feriedageFraInput)}):`}</Typography>
+                <Typography className="row--text">{`Hverdage i beregningsperioden${aarsloenFradragsParentes(
+                  formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage'),
+                  [feriedageFradrag(beregningsData.feriedageFraInput)]
+                )}:`}</Typography>
                 <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode, 'hverdag', 'hverdage')}</Typography>
               </Box>
               <Box className="row--label-right-hover">
@@ -98,7 +117,7 @@ const AarsloenBeregningSection = React.memo(() => {
                 }</Typography>
                 <Typography className="row--text">{formatCountWithUnit(beregningsData.hverdagePaaAar, 'hverdag', 'hverdage')}</Typography>
               </Box>
-              {omregnetRow(`${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar}`, beregningsData.omregnetAarsloen)}
+              {omregnetRow(aarsloenOmregningFormel(formatCurrency(beregnetAarsloen), beregningsData.arbejdsdageIPeriode, String(beregningsData.hverdagePaaAar)), beregningsData.omregnetAarsloen)}
             </>
           )}
 
@@ -107,20 +126,20 @@ const AarsloenBeregningSection = React.memo(() => {
               {loenperiode === LOENPERIODE.MAANED && (
                 <>
                   <Box className="row--label-right-hover">
-                    <Typography className="row--text">Antal måneder i indtastede perioder:</Typography>
+                    <Typography className="row--text">{`${aarsloenAntalEnhederLabel('måneder', isSinglePeriod)}:`}</Typography>
                     <Typography className="row--text">{formatCountWithUnit(beregningsData.antalEnheder, 'måned', 'måneder')}</Typography>
                   </Box>
-                  {omregnetRow(`${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 12`, beregningsData.omregnetAarsloen)}
+                  {omregnetRow(aarsloenOmregningFormel(formatCurrency(beregnetAarsloen), beregningsData.antalEnheder, '12'), beregningsData.omregnetAarsloen)}
                 </>
               )}
 
               {loenperiode === LOENPERIODE.UGE && (
                 <>
                   <Box className="row--label-right-hover">
-                    <Typography className="row--text">Antal uger i indtastede perioder:</Typography>
+                    <Typography className="row--text">{`${aarsloenAntalEnhederLabel('uger', isSinglePeriod)}:`}</Typography>
                     <Typography className="row--text">{formatCountWithUnit(beregningsData.antalEnheder, 'uge', 'uger')}</Typography>
                   </Box>
-                  {omregnetRow(`${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 52,14`, beregningsData.omregnetAarsloen)}
+                  {omregnetRow(aarsloenOmregningFormel(formatCurrency(beregnetAarsloen), beregningsData.antalEnheder, '52,14'), beregningsData.omregnetAarsloen)}
                 </>
               )}
 
@@ -129,15 +148,18 @@ const AarsloenBeregningSection = React.memo(() => {
                   {beregningsData.antalHeleKalendermaaneder !== null ? (
                     <>
                       <Box className="row--label-right-hover">
-                        <Typography className="row--text">Antal måneder i indtastede perioder:</Typography>
+                        <Typography className="row--text">{`${aarsloenAntalEnhederLabel('måneder', isSinglePeriod)}:`}</Typography>
                         <Typography className="row--text">{formatCountWithUnit(beregningsData.antalHeleKalendermaaneder, 'måned', 'måneder')}</Typography>
                       </Box>
-                      {omregnetRow(`${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalHeleKalendermaaneder} × 12`, beregningsData.omregnetAarsloen)}
+                      {omregnetRow(aarsloenOmregningFormel(formatCurrency(beregnetAarsloen), beregningsData.antalHeleKalendermaaneder, '12'), beregningsData.omregnetAarsloen)}
                     </>
                   ) : (
                     <>
                       <Box className="row--label-right-hover">
-                        <Typography className="row--text">{`Hverdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage')}${feriedageFradrag(beregningsData.feriedageFraInput)}):`}</Typography>
+                        <Typography className="row--text">{`Hverdage i beregningsperioden${aarsloenFradragsParentes(
+                  formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage'),
+                  [feriedageFradrag(beregningsData.feriedageFraInput)]
+                )}:`}</Typography>
                         <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode, 'hverdag', 'hverdage')}</Typography>
                       </Box>
                       <Box className="row--label-right-hover">
@@ -147,7 +169,7 @@ const AarsloenBeregningSection = React.memo(() => {
                         }</Typography>
                         <Typography className="row--text">{formatCountWithUnit(beregningsData.hverdagePaaAar, 'hverdag', 'hverdage')}</Typography>
                       </Box>
-                      {omregnetRow(`${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar}`, beregningsData.omregnetAarsloen)}
+                      {omregnetRow(aarsloenOmregningFormel(formatCurrency(beregnetAarsloen), beregningsData.arbejdsdageIPeriode, String(beregningsData.hverdagePaaAar)), beregningsData.omregnetAarsloen)}
                     </>
                   )}
                 </>

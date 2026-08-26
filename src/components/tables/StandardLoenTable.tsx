@@ -26,7 +26,8 @@ import {
 import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardLoenTableColumns';
 import type { StandardLoenTableFieldSet } from './standardLoenTableFieldSet';
 import { readStandardLoenTableRows } from './standardLoenTableFieldSet';
-import type { CollectionRef } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type CollectionRef, type FieldAddress } from '../../inputCore/fieldAddress';
+import type { FieldIssueSet } from '../../inputCore/inputIssue';
 import { useInputEvaluation } from '../../inputCore/react';
 import { collectionLocationPrefix } from '../../inputCore/react/cellSpecBuilder';
 import {
@@ -78,6 +79,12 @@ export type StandardLoenTableProps = {
    * `collection` – kalderen leverer den. Udeladt route = ikke-navigerbar lokation (restoren navigerer da ikke).
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
+  /**
+   * KRYDS-RÆKKE-regler som feltissues (fx identiske rækker). Slås op på cellens egen bundne feltadresse og
+   * gives videre som `collectionRuleIssue`, der er det ENESTE, der kan gøre en celle rød ud over cellens
+   * eget issue. En descriptor-validator kan ikke se andre rækker og kan derfor ikke udtrykke reglen selv.
+   */
+  ruleIssues?: FieldIssueSet;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -95,7 +102,7 @@ const COL = {
 } as const;
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow, locationNav }, ref) => {
+  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow, locationNav, ruleIssues }, ref) => {
     const beloebMode = tillaegAngivesSom === 'beloeb';
     const evaluation = useInputEvaluation();
     const collection: CollectionRef = fieldSet.collection;
@@ -132,6 +139,22 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       minimumVisibleRows: MIN_VISIBLE_ROWS,
     });
     const { committedById, buildCellSpec } = table;
+
+    /**
+     * Kryds-række-issuet for en celle, som en spread-bar prop.
+     *
+     * Opslaget sker på cellens EGEN, allerede bundne feltadresse (§3.2 – hele ejerstien er med), så det ikke
+     * kan ramme en anden række eller en anden tabelinstans (EO renderer én løntabel pr. ansættelsesforhold).
+     * `collectionRuleIssue` er det eneste, der kan gøre cellen rød ud over cellens eget issue, og cellens
+     * eget issue har forrang – en ugyldig dato vises altså frem for dubletbeskeden.
+     */
+    const ruleIssueProps = React.useCallback(
+      (cell: Readonly<{ field: Readonly<{ address: FieldAddress }> }>) => {
+        const issue = ruleIssues?.get(serializeFieldAddress(cell.field.address));
+        return issue === undefined ? {} : { collectionRuleIssue: issue };
+      },
+      [ruleIssues]
+    );
 
     const getSatserInput = React.useCallback(() => ({
       feriePct: satser?.ferie,
@@ -342,49 +365,61 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     alene, og heltalsfamilien kender ikke den form. Uge-, dato- og årscellerne arver
                     deres families rene form og får derfor INGEN placeholder-prop her. */}
                 <td style={getStandardGridCellStyle({ align: 'center' })}>
-                  {loenperiode === 'maaned' ? (
-                    <GridIntegerCell
+                  {loenperiode === 'maaned' ? (() => {
+                    const cell = buildCellSpec<string | undefined>(renderRow, fieldSet.col0_maaned, COL.period0);
+                    return <GridIntegerCell
                       gridCell={gc(COL.period0)}
-                      cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col0_maaned, COL.period0)}
+                      cell={cell}
                       placeholder={MONTH_FORMAT_PLACEHOLDER}
                       inputRef={registerCellRef(rowId, COL.period0)}
-                    />
-                  ) : loenperiode === 'uge' ? (
-                    <GridWeekCell
+                      {...ruleIssueProps(cell)}
+                    />;
+                  })() : loenperiode === 'uge' ? (() => {
+                    const cell = buildCellSpec<string | undefined>(renderRow, fieldSet.col0_uge, COL.period0);
+                    return <GridWeekCell
                       gridCell={gc(COL.period0)}
-                      cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col0_uge, COL.period0)}
+                      cell={cell}
                       inputRef={registerCellRef(rowId, COL.period0)}
-                    />
-                  ) : (
-                    <GridDateCell
+                      {...ruleIssueProps(cell)}
+                    />;
+                  })() : (() => {
+                    const cell = buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col0_dag, COL.period0);
+                    return <GridDateCell
                       gridCell={gc(COL.period0)}
-                      cell={buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col0_dag, COL.period0)}
+                      cell={cell}
                       inputRef={registerCellRef(rowId, COL.period0)}
-                    />
-                  )}
+                      {...ruleIssueProps(cell)}
+                    />;
+                  })()}
                 </td>
 
                 {/* Periode til */}
                 <td style={getStandardGridCellStyle({ align: 'center' })}>
-                  {loenperiode === 'maaned' ? (
-                    <GridYearCell
+                  {loenperiode === 'maaned' ? (() => {
+                    const cell = buildCellSpec<string | undefined>(renderRow, fieldSet.col1_maaned, COL.period1);
+                    return <GridYearCell
                       gridCell={gc(COL.period1)}
-                      cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col1_maaned, COL.period1)}
+                      cell={cell}
                       inputRef={registerCellRef(rowId, COL.period1)}
-                    />
-                  ) : loenperiode === 'uge' ? (
-                    <GridWeekCell
+                      {...ruleIssueProps(cell)}
+                    />;
+                  })() : loenperiode === 'uge' ? (() => {
+                    const cell = buildCellSpec<string | undefined>(renderRow, fieldSet.col1_uge, COL.period1);
+                    return <GridWeekCell
                       gridCell={gc(COL.period1)}
-                      cell={buildCellSpec<string | undefined>(renderRow, fieldSet.col1_uge, COL.period1)}
+                      cell={cell}
                       inputRef={registerCellRef(rowId, COL.period1)}
-                    />
-                  ) : (
-                    <GridDateCell
+                      {...ruleIssueProps(cell)}
+                    />;
+                  })() : (() => {
+                    const cell = buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col1_dag, COL.period1);
+                    return <GridDateCell
                       gridCell={gc(COL.period1)}
-                      cell={buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col1_dag, COL.period1)}
+                      cell={cell}
                       inputRef={registerCellRef(rowId, COL.period1)}
-                    />
-                  )}
+                      {...ruleIssueProps(cell)}
+                    />;
+                  })()}
                 </td>
 
                 {/* Beløbskolonner col2..col5 */}
@@ -393,41 +428,49 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   [COL.col3, fieldSet.col3] as const,
                   [COL.col4, fieldSet.col4] as const,
                   [COL.col5, fieldSet.col5] as const,
-                ]).map(([colIdx, descriptor]) => (
-                  <td key={colIdx} style={getStandardGridCellStyle({ align: 'right' })}>
-                    <GridAmountCell
-                      gridCell={gc(colIdx)}
-                      cell={buildCellSpec<AmountValue | undefined>(renderRow, descriptor, colIdx)}
-                      inputRef={registerCellRef(rowId, colIdx)}
-                    />
-                  </td>
-                ))}
+                ]).map(([colIdx, descriptor]) => {
+                  const cell = buildCellSpec<AmountValue | undefined>(renderRow, descriptor, colIdx);
+                  return (
+                    <td key={colIdx} style={getStandardGridCellStyle({ align: 'right' })}>
+                      <GridAmountCell
+                        gridCell={gc(colIdx)}
+                        cell={cell}
+                        inputRef={registerCellRef(rowId, colIdx)}
+                        {...ruleIssueProps(cell)}
+                      />
+                    </td>
+                  );
+                })}
 
                 {/* FP/FV/SH/SO/St.B. – redigerbar i Beløb, afledt i Procent */}
-                {beloebMode ? (
-                  <td style={getStandardGridCellStyle({ align: 'right' })}>
+                {beloebMode ? (() => {
+                  const cell = buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.fpFvShSoBeloeb, COL.beloeb0);
+                  return <td style={getStandardGridCellStyle({ align: 'right' })}>
                     <GridAmountCell
                       gridCell={gc(COL.beloeb0)}
-                      cell={buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.fpFvShSoBeloeb, COL.beloeb0)}
+                      cell={cell}
                       inputRef={registerCellRef(rowId, COL.beloeb0)}
+                      {...ruleIssueProps(cell)}
                     />
-                  </td>
-                ) : (
+                  </td>;
+                })() : (
                   <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: 'var(--mineo-color-active-grid-derived)' }}>
                     {formatKr(calculated.col6, 2)}
                   </td>
                 )}
 
                 {/* Arb.g. Pension – redigerbar i Beløb, afledt i Procent */}
-                {beloebMode ? (
-                  <td style={getStandardGridCellStyle({ align: 'right' })}>
+                {beloebMode ? (() => {
+                  const cell = buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.pensionBeloeb, COL.beloeb1);
+                  return <td style={getStandardGridCellStyle({ align: 'right' })}>
                     <GridAmountCell
                       gridCell={gc(COL.beloeb1)}
-                      cell={buildCellSpec<AmountValue | undefined>(renderRow, fieldSet.pensionBeloeb, COL.beloeb1)}
+                      cell={cell}
                       inputRef={registerCellRef(rowId, COL.beloeb1)}
+                      {...ruleIssueProps(cell)}
                     />
-                  </td>
-                ) : (
+                  </td>;
+                })() : (
                   <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: 'var(--mineo-color-active-grid-derived)' }}>
                     {formatKr(calculated.col7, 2)}
                   </td>

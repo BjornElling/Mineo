@@ -1,9 +1,12 @@
 import type { RegulationInspektionSection } from '../../../domain/eoInspektion/eoInspektionRegulationViewModel';
+import { REGULERINGSVAERDIER_FERIE_HEADER } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 
 // Kolonner der indeholder numeriske værdier og skal højrestilles med indrykning.
 // 'Grundløn' og 'Pension' er udeladt: resolveHeaderLabel mapper dem til 'Månedsløn'/'Timeløn'
 // og 'AG pens. bidrag' inden dette sæt konsulteres, så de originale navne matcher aldrig.
-const NUMERIC_COLUMNS = new Set(['Månedsløn', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag', 'Reguleringsprocent']);
+// Feriesatsens navn LÆSES fra sin ene kilde: sættet matcher på overskriftsstrengen, så en håndskrevet
+// kopi ville miste kolonnens højrejustering, så snart overskriften blev rettet ét af de fire steder.
+const NUMERIC_COLUMNS = new Set(['Månedsløn', 'Timeløn', REGULERINGSVAERDIER_FERIE_HEADER, 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag', 'Reguleringsprocent']);
 const INDEKS_COLUMNS = new Set(['Indeks', 'Lønudvikling']);
 
 export const getRegulationTableColumns = (table: NonNullable<RegulationInspektionSection['tables']>[number]) => {

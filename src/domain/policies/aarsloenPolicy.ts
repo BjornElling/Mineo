@@ -1,5 +1,6 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, type Loenperiode } from '../../types/loen';
+import type { TillaegAngivesSom } from '../../schemas/formSchemas';
 import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 
 export type AarsloenValues = PersistedSectionMap['aarsloen'];
@@ -27,6 +28,19 @@ export const hasAarsloenEffectiveRows = (aarsloen: AarsloenValues | null): boole
 export const erAarsloenFerieFelterRelevant = (fuldLoenUnderFerie: boolean): boolean =>
   !fuldLoenUnderFerie;
 
+/**
+ * Relevans for de fem SATSFELTER (Feriegodtgørelse/-tillæg, Fritvalg, SH/SO, Store Bededag,
+ * Arbejdsgivers pensionsbidrag): de er kun i brug i Procent-tilstand.
+ *
+ * I Beløb-tilstand angiver brugeren tillægsbeløbene direkte, og satserne er både skjulte i Satser-boksen
+ * og neutraliserede i beregningen (tilstands-isolation, jf. `aarsloen-contract.md` §2a). Dette er det ENESTE
+ * sande sted for betingelsen: descriptorernes `relevance`, `resolveAarsloenCanonicalRangeIssues` og sidens
+ * satsadvarsler spørger alle om det samme – uden prædikatet kunne en advarsel om en sats blive stående,
+ * efter at programmet var holdt op med at bruge den, og pege på et felt, brugeren ikke længere kan se.
+ */
+export const erAarsloenSatsFelterRelevante = (tillaegAngivesSom: TillaegAngivesSom): boolean =>
+  tillaegAngivesSom !== 'beloeb';
+
 export const shouldShowAarsloenFerieFields = (aarsloen: AarsloenValues | null): boolean => {
   if (!aarsloen) return false;
   return erAarsloenFerieFelterRelevant(aarsloen.fuldLoenUnderFerie);
@@ -40,8 +54,3 @@ export const shouldShowAarsloenShDageFields = (aarsloen: AarsloenValues | null):
   );
 };
 
-export const shouldWarnAarsloenFeriePct = (aarsloen: AarsloenValues | null): boolean => {
-  if (!aarsloen) return false;
-  if (aarsloen.feriePct === undefined) return false;
-  return aarsloen.feriePct >= 15 && !aarsloen.fuldLoenUnderFerie && !aarsloen.retTilSjetteFerieuge;
-};

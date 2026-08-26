@@ -54,6 +54,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     expect(result).toEqual({
       label: 'Antal hverdage i de indtastede perioder',
       value: '9 hverdage',
+      isSinglePeriod: false,
     });
   });
 
@@ -68,6 +69,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     expect(result).toEqual({
       label: 'Antal hverdage i de indtastede perioder',
       value: '42 hverdage',
+      isSinglePeriod: false,
     });
   });
 
@@ -82,6 +84,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     expect(result).toEqual({
       label: 'Antal måneder i de indtastede perioder',
       value: '3 måneder',
+      isSinglePeriod: false,
     });
   });
 
@@ -96,6 +99,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     expect(result).toEqual({
       label: 'Antal kalenderdage i de indtastede perioder',
       value: '51 kalenderdage',
+      isSinglePeriod: false,
     });
   });
 
@@ -110,6 +114,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     expect(result).toEqual({
       label: 'Antal hverdage i den indtastede periode',
       value: '3 hverdage',
+      isSinglePeriod: true,
     });
   });
 
@@ -127,6 +132,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     expect(result).toEqual({
       label: 'Antal hverdage i de indtastede perioder',
       value: '24 hverdage',
+      isSinglePeriod: false,
     });
   });
 });

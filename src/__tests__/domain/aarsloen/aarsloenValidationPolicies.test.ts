@@ -5,8 +5,10 @@ import {
   harTabelValideringsFejl,
   harTabelData,
   resolveAarsloenCanonicalRangeIssues,
+  resolveAarsloenFeriedageOverskriderPeriodenIssue,
 } from '../../../domain/aarsloen/aarsloenValidationPolicies';
-import { createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
+import { AARSLOEN_INITIAL_VALUES, createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
+import type { AarsloenValues } from '../../../schemas/formSchemas';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -79,6 +81,69 @@ describe('resolveAarsloenCanonicalRangeIssues', () => {
   });
 });
 
+// ─── resolveAarsloenFeriedageOverskriderPeriodenIssue ─────────────────────
+
+describe('resolveAarsloenFeriedageOverskriderPeriodenIssue', () => {
+  const values = (overrides: Partial<AarsloenValues> = {}): AarsloenValues => ({
+    ...AARSLOEN_INITIAL_VALUES,
+    fuldLoenUnderFerie: false,
+    ...overrides,
+  });
+
+  it('feriedage over periodens hverdage → issue med den KONKRETE grænse', () => {
+    const issue = resolveAarsloenFeriedageOverskriderPeriodenIssue(
+      values({ antalFeriedage: 99 }),
+      { omregningAktiveret: true, hverdageIPeriode: 23 }
+    );
+    expect(issue).toEqual({
+      field: 'antalFeriedage',
+      message: 'Antal feriedage kan højst være 23 (hverdage i de indtastede perioder).',
+    });
+  });
+
+  it('feriedage præcis lig periodens hverdage → intet issue', () => {
+    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
+      values({ antalFeriedage: 23 }),
+      { omregningAktiveret: true, hverdageIPeriode: 23 }
+    )).toBeNull();
+  });
+
+  it('uden omregning → intet issue (feltet er irrelevant)', () => {
+    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
+      values({ antalFeriedage: 99 }),
+      { omregningAktiveret: false, hverdageIPeriode: 23 }
+    )).toBeNull();
+  });
+
+  it('med fuld løn under ferie → intet issue (feltet er irrelevant)', () => {
+    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
+      values({ antalFeriedage: 99, fuldLoenUnderFerie: true }),
+      { omregningAktiveret: true, hverdageIPeriode: 23 }
+    )).toBeNull();
+  });
+
+  it('tomt felt → intet issue', () => {
+    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
+      values({ antalFeriedage: undefined }),
+      { omregningAktiveret: true, hverdageIPeriode: 23 }
+    )).toBeNull();
+  });
+
+  it('værdi uden for 0–99 → intet issue (den statiske bounds-fejl svarer først)', () => {
+    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
+      values({ antalFeriedage: 150 }),
+      { omregningAktiveret: true, hverdageIPeriode: 23 }
+    )).toBeNull();
+  });
+
+  it('uden en beregnet periode → intet issue (grænsen findes ikke endnu)', () => {
+    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
+      values({ antalFeriedage: 99 }),
+      { omregningAktiveret: true, hverdageIPeriode: 0 }
+    )).toBeNull();
+  });
+});
+
 // ─── beregnFejlmeddelelser ────────────────────────────────────────────────
 
 describe('beregnFejlmeddelelser', () => {
@@ -98,12 +163,12 @@ describe('beregnFejlmeddelelser', () => {
     it('feriePct >= 12 OG fuld løn → fejl', () => {
       const errors = beregnFejlmeddelelser(12, 0, true, false, 'Almindelig løn');
       expect(errors.length).toBeGreaterThanOrEqual(1);
-      expect(errors.some(e => e.includes('feriepengesats'))).toBe(true);
+      expect(errors.some(e => e.includes('Feriegodtgørelse/-tillæg'))).toBe(true);
     });
 
     it('feriePct = 12.5 med fuld løn → fejl', () => {
       const errors = beregnFejlmeddelelser(12.5, 0, true, false, 'Almindelig løn');
-      expect(errors.some(e => e.includes('feriepengesats'))).toBe(true);
+      expect(errors.some(e => e.includes('Feriegodtgørelse/-tillæg'))).toBe(true);
     });
 
     it('feriePct = 11.9 med fuld løn → ingen FEJL 1', () => {
@@ -179,6 +244,37 @@ describe('beregnFejlmeddelelser', () => {
     it('6. ferieuge + fuld løn → ingen FEJL 5', () => {
       const errors = beregnFejlmeddelelser(12, 0, true, true, 'Almindelig løn');
       expect(errors.filter(e => e.includes('6. ferieuge'))).toHaveLength(0);
+    });
+  });
+
+  // Teksten lå tidligere som hardkodet prosa i `AarsloenMeddelelserSections.tsx` og var derfor hverken
+  // dækket her eller omfattet af relevans-gatingen. Betingelsen er uændret; kun ejerskabet er flyttet.
+  describe('FEJL 6: høj feriesats uden ret til 6. ferieuge', () => {
+    it('feriePct >= 15 uden fuld løn og uden 6. ferieuge → fejl', () => {
+      const errors = beregnFejlmeddelelser(15, 0, false, false, 'Almindelig løn');
+      expect(errors.some((e) => e.includes('klar formodning for, at der er ret til 6. ferieuge'))).toBe(true);
+    });
+
+    it('bruger feltets eget navn og den kanoniske procentformattering', () => {
+      const errors = beregnFejlmeddelelser(16, 0, false, false, 'Almindelig løn');
+      expect(errors).toContain(
+        'En sats for Feriegodtgørelse/-tillæg på 16 % skaber en klar formodning for, at der er ret til 6. ferieuge.'
+      );
+    });
+
+    it('feriePct = 14 → ingen FEJL 6 (grænseværdi)', () => {
+      const errors = beregnFejlmeddelelser(14, 0, false, false, 'Almindelig løn');
+      expect(errors.filter((e) => e.includes('klar formodning'))).toHaveLength(0);
+    });
+
+    it('fuld løn under ferie → ingen FEJL 6', () => {
+      const errors = beregnFejlmeddelelser(15, 0, true, false, 'Almindelig løn');
+      expect(errors.filter((e) => e.includes('klar formodning'))).toHaveLength(0);
+    });
+
+    it('ret til 6. ferieuge → ingen FEJL 6', () => {
+      const errors = beregnFejlmeddelelser(15, 0, false, true, 'Almindelig løn');
+      expect(errors.filter((e) => e.includes('klar formodning'))).toHaveLength(0);
     });
   });
 

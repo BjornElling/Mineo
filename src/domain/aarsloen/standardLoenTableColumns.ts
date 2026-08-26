@@ -33,6 +33,58 @@ const HEADER_LINE_BREAKS: Readonly<Partial<Record<StandardLoenTableColumnKey, st
 const withHeaderLineBreak = (colKey: StandardLoenTableColumnKey): string =>
   HEADER_LINE_BREAKS[colKey] ?? STANDARD_LOEN_COLUMN_LABELS[colKey];
 
+/**
+ * DOKUMENT-formen af et kolonnenavn: navnet forkortet, så det holder inden for den plads, kolonnen har i
+ * bilagets tabel.
+ *
+ * Forkortelserne stod tidligere som frie strenge inde i `aarsloenDocument.ts` ved siden af de kanoniske
+ * navne. Modulets egen regel er, at et kolonnenavn har ÉT sandt sted, netop for at samme kolonne ikke kan
+ * hedde to ting – og generatoren gjorde præcis det, reglen skulle forhindre, blot mellem skærm og papir i
+ * stedet for mellem to sider. En feltfejl på cellen navngav den «Ikke-pensionsgivende løn», mens bilaget
+ * kaldte den noget andet.
+ *
+ * Formen er derfor ERKLÆRET her, på samme måde som `HEADER_LINE_BREAKS` er den erklærede overskrifts-form,
+ * og `standardLoenDocumentAbbreviationsAreDerived.test.ts` beviser, at hver forkortelse er afledt af
+ * navnet: samme ord i samme rækkefølge, kun forkortet og eventuelt ombrudt. Det VISTE resultat er uændret.
+ */
+type DocumentLabelForm = Readonly<{
+  /** Den tekst, dokumentet viser. Uændret fra før forkortelserne blev en erklæret form. */
+  text: string;
+  /**
+   * Sat, når teksten ikke er en ren afkortning af navnet, men ERSTATTER ord med en anden vending.
+   * Værdien er begrundelsen. En erstatning kan ikke afledes maskinelt af navnet, så værnet kan kun
+   * kræve, at den er bevidst erklæret – ikke at den er udledt.
+   */
+  substitutionReason?: string;
+}>;
+
+const DOCUMENT_LABEL_FORMS: Readonly<Partial<Record<StandardLoenTableColumnKey, DocumentLabelForm>>> =
+  Object.freeze({
+    col4: { text: 'Ikke-pens.\ngiv. løn' },
+    col5: {
+      text: 'ATP mv.\nu. tillæg',
+      // «mv.» (med videre) står i stedet for «og anden løn» – det er en omskrivning, ikke en afkortning.
+      // Kolonnen er en af de smalleste i bilaget, og «ATP og and. løn u. till.» ville hverken være
+      // kortere eller lettere at læse. Teksten er brugerens, og den er uændret.
+      substitutionReason: '«mv.» erstatter «og anden løn»; pladsen i bilagets smalleste kolonne',
+    },
+    fpFvShSoBeloeb: { text: 'FP/FV/SH/\nSO/St.B.' },
+    pensionBeloeb: { text: 'Arb.g.\nPension' },
+  });
+
+/** Kolonnens navn i et DOKUMENT: den erklærede form, ellers det fulde navn. */
+export const resolveStandardLoenDocumentColumnLabel = (colKey: StandardLoenTableColumnKey): string =>
+  DOCUMENT_LABEL_FORMS[colKey]?.text ?? STANDARD_LOEN_COLUMN_LABELS[colKey];
+
+/** Er kolonnens dokument-form en erklæret OMSKRIVNING frem for en ren afkortning? */
+export const isStandardLoenDocumentLabelSubstitution = (colKey: StandardLoenTableColumnKey): boolean =>
+  DOCUMENT_LABEL_FORMS[colKey]?.substitutionReason !== undefined;
+
+/** Kolonner med en erklæret dokument-form – værnets kilde. */
+export const STANDARD_LOEN_DOCUMENT_LABEL_FORM_KEYS = Object.freeze(
+  Object.keys(DOCUMENT_LABEL_FORMS) as StandardLoenTableColumnKey[]
+);
+
 export const STANDARD_LOEN_COL2_LABEL = withHeaderLineBreak('col2');
 export const STANDARD_LOEN_COL3_LABEL = withHeaderLineBreak('col3');
 export const STANDARD_LOEN_COL4_LABEL = withHeaderLineBreak('col4');
@@ -108,7 +160,8 @@ export const getStandardLoenHeaderIndex = (loenperiode: Loenperiode, label: stri
   return index;
 };
 
-const LOEN_2_TOOLTIP_TEXT = 'Opdelingen af løn er rent visuel - værdierne lægges sammen i beregningen';
+// Tankestregen er en-dash med mellemrum omkring (beslutning 2026-08-19), ikke en bindestreg.
+const LOEN_2_TOOLTIP_TEXT = 'Opdelingen af løn er rent visuel – værdierne lægges sammen i beregningen';
 
 export const getStandardLoenTableHeaderNodes = (loenperiode: Loenperiode): readonly React.ReactNode[] => {
   return getStandardLoenTableHeaders(loenperiode).map((header) => {

@@ -402,7 +402,7 @@ describe('renderReguleringSection – reguleringstekst', () => {
       sidste: iso('2025-12-21'),
     }));
     ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
-      columns: ['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pens. bidrag'],
+      columns: ['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'Fritvalg', 'AG pens. bidrag'],
       rows: [
         ['24-05-2023', '25.174,00', '15 % / 15,00 %', '7,00 %', '7,00 %', '9,00 %'],
         ['01-05-2025', '26.496,00', '15 % / 15,00 %', '9,00 %', '9,00 %', '12,00 %'],
@@ -439,7 +439,7 @@ describe('renderReguleringSection – reguleringstekst', () => {
       sidste: iso('2025-08-28'),
     }));
     ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
-      columns: ['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag'],
+      columns: ['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag'],
       rows: [
         ['01-06-2023', '130,50', '12,50 %', '6,20 %', '7,00 %', '0 %', '10,00 %'],
         ['01-05-2025', '138,75', '12,50 %', '6,20 %', '10,00 %', '0,45 %', '11,00 %'],
@@ -582,7 +582,7 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
       sidste: iso('2025-12-21'),
     }));
     ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
-      columns: ['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pens. bidrag'],
+      columns: ['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'Fritvalg', 'AG pens. bidrag'],
       rows: [
         ['24-05-2023', '25.174,00', '15,00 %', '-', '7,00 %', '9,00 %'],
         ['01-06-2023', '25.174,00', '15,00 %', '-', '7,00 %', '11,00 %'],
@@ -600,7 +600,7 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
     expect(headerRow?.map((cell) => ('content' in cell ? cell.content : ''))).toEqual([
       'Fra-dato',
       'Timeløn',
-      'Feriepenge',
+      'Feriegodtg./-till.',
       'Fritvalg',
       'AG pens. bidrag',
     ]);
@@ -624,7 +624,7 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
       sidste: iso('2025-12-21'),
     }));
     ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
-      columns: ['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag'],
+      columns: ['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag'],
       rows: [
         ['24-05-2023', '25.174,00', '12,50 %', '2,70 %', '0 %', '0 %', '8,15 %'],
       ],

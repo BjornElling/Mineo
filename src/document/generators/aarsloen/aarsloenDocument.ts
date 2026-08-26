@@ -20,13 +20,18 @@ import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtil
 import {
   STANDARD_LOEN_COL2_LABEL,
   STANDARD_LOEN_COL3_LABEL,
+  resolveStandardLoenDocumentColumnLabel,
   resolveStandardLoenPeriodColumns,
 } from '../../../domain/aarsloen/standardLoenTableColumns';
-import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
+import {
+  aarsloenAntalEnhederLabel,
+  aarsloenFradragsParentes,
+  aarsloenOmregningFormel,
+  resolveAarsloenIndtastetEnhedSummary,
+} from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../../utils/periodeBeregning';
 
 const NBSP = '\u00A0';
-const AARSLOEN_PDF_ATP_HEADER = 'ATP mv.\nu. tillæg';
 
 /**
  * Formaterer beløb til dansk format med tusindtalsseparator.
@@ -40,18 +45,44 @@ const formatDanishAmount = (amount: AmountValue | number | null | undefined): st
   return amountValueToDisplayString(amount, 2);
 };
 
-const isEmptyOrZero = (value: unknown): boolean => {
+/**
+ * TOM celle: intet indtastet. En eksplicit `0` er IKKE tom.
+ *
+ * Bruges til at afgøre, om en TABELRÆKKE kommer med i dokumentet. En lønrække med 0 kr. er en oplysning –
+ * den siger, at der i perioden ikke var lønindkomst – og brugeren indtaster den netop for at tydeliggøre
+ * det frem for at udelade perioden, som da kunne se glemt ud. Rækken skal derfor med i bilaget
+ * (brugerbeslutning 2026-08-26).
+ */
+const erCelleTom = (value: unknown): boolean => {
   if (value === null || value === undefined || value === '') return true;
 
   if (typeof value === 'object' && value !== null && 'kind' in value) {
-    const numericValue = amountValueToNumber(value as AmountValue);
-    return numericValue === undefined || numericValue === 0;
+    return amountValueToNumber(value as AmountValue) === undefined;
+  }
+
+  return String(value).trim() === '';
+};
+
+/**
+ * UDELADT SATS: tom ELLER nul.
+ *
+ * Bruges kun om Satser-afsnittets procentsatser, og her er nul-reglen den modsatte af tabellens. At
+ * indtaste 0 i en tillægssats er for brugeren det samme som at sige, at satsen ikke findes i
+ * ansættelsesforholdet – brugere skriver fra tid til anden 0, fordi de tror, det er sådan, man angiver et
+ * fravær. Dokumentet retter den misforståelse ved at udelade satsen (brugerbeslutning 2026-08-26).
+ *
+ * De to prædikater var før ÉN funktion (`isEmptyOrZero`), som gjorde begge dele. Den udelod derfor også en
+ * lønrække med 0 kr. fra bilaget – stik imod reglen ovenfor. Skellet er nu udtrykt som to navne.
+ */
+const erSatsUdeladt = (value: unknown): boolean => {
+  if (erCelleTom(value)) return true;
+
+  if (typeof value === 'object' && value !== null && 'kind' in value) {
+    return amountValueToNumber(value as AmountValue) === 0;
   }
 
   const str = String(value).trim();
-  if (str === '' || str === '0' || str === '0,00' || str === '0.00' || str === '0 %' || str === '0,0 %' || str === '0,00 %') return true;
-
-  return false;
+  return str === '0' || str === '0,00' || str === '0.00' || str === '0 %' || str === '0,0 %' || str === '0,00 %';
 };
 
 // Bruger parsePercentToDecimal (kanonisk parsing af dansk procentformat, komma som decimaltegn) × 100 → formatPercent.
@@ -80,7 +111,7 @@ const addSatserSection = (
   ];
 
   // Filtrer satser - behold kun udfyldte
-  const udfyldteSatser = satsDefinitioner.filter(sats => !isEmptyOrZero(satser[sats.key]));
+  const udfyldteSatser = satsDefinitioner.filter(sats => !erSatsUdeladt(satser[sats.key]));
 
   // Hvis ingen satser er udfyldt, skip hele sektionen
   if (udfyldteSatser.length === 0) {
@@ -116,16 +147,16 @@ const addIndtaegtsoplysningerTable = (
     // Tjek periode-kolonner baseret på loenperiode
     let harPeriode = false;
     if (loenperiode === 'maaned') {
-      harPeriode = !isEmptyOrZero(row.col0_maaned) || !isEmptyOrZero(row.col1_maaned);
+      harPeriode = !erCelleTom(row.col0_maaned) || !erCelleTom(row.col1_maaned);
     } else if (loenperiode === 'uge') {
-      harPeriode = !isEmptyOrZero(row.col0_uge) || !isEmptyOrZero(row.col1_uge);
+      harPeriode = !erCelleTom(row.col0_uge) || !erCelleTom(row.col1_uge);
     } else if (loenperiode === 'dag') {
-      harPeriode = !isEmptyOrZero(row.col0_dag) || !isEmptyOrZero(row.col1_dag);
+      harPeriode = !erCelleTom(row.col0_dag) || !erCelleTom(row.col1_dag);
     }
 
     // Tjek beløbsfelter (Løn, Løn (2), Ikke-pensionsgivende løn, ATP og anden ikke-FB løn)
-    const harLoen = !isEmptyOrZero(row.col2) || !isEmptyOrZero(row.col3) || !isEmptyOrZero(row.col4) ||
-                     !isEmptyOrZero(row.col5);
+    const harLoen = !erCelleTom(row.col2) || !erCelleTom(row.col3) || !erCelleTom(row.col4) ||
+                     !erCelleTom(row.col5);
 
     // Behold række hvis der er data i periode ELLER løn
     return harPeriode || harLoen;
@@ -143,10 +174,12 @@ const addIndtaegtsoplysningerTable = (
     ...periodHeaders,
     STANDARD_LOEN_COL2_LABEL,
     STANDARD_LOEN_COL3_LABEL,
-    'Ikke-pens.\ngiv. løn',
-    AARSLOEN_PDF_ATP_HEADER,
-    'FP/FV/SH/\nSO/St.B.',
-    'Arb.g.\nPension',
+    // Forkortelserne er den ERKLÆREDE dokument-form af de kanoniske kolonnenavne (§3.2a), ikke frie
+    // strenge – et værn beviser, at hver er afledt af navnet. Den viste tekst er uændret.
+    resolveStandardLoenDocumentColumnLabel('col4'),
+    resolveStandardLoenDocumentColumnLabel('col5'),
+    resolveStandardLoenDocumentColumnLabel('fpFvShSoBeloeb'),
+    resolveStandardLoenDocumentColumnLabel('pensionBeloeb'),
     'Samlet løn',
   ];
 
@@ -327,15 +360,15 @@ const addBeregningSection = (
   // Tilføj rækker baseret på beregningsmetode
   if (beregningsData.metode === 'A') {
     // METODE A: Arbejdsdage
-    let linje1Label = `Arbejdsdage i beregningsperioden (${beregningsData.hverdageIPeriode} hverdage`;
-    if (!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0) {
-      linje1Label += ` - ${beregningsData.feriedageFraInput} feriedage`;
-    }
     const shDageAntalSafe = shDageAntal ?? 0;
-    if (shDageAntalSafe > 0) {
-      linje1Label += ` - ${shDageAntalSafe} SH-dage`;
-    }
-    linje1Label += `)`;
+    const linje1Label = `Arbejdsdage i beregningsperioden${aarsloenFradragsParentes(
+      `${beregningsData.hverdageIPeriode} hverdage`,
+      [
+        !fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0
+          ? ` - ${beregningsData.feriedageFraInput} feriedage` : '',
+        shDageAntalSafe > 0 ? ` - ${shDageAntalSafe} SH-dage` : '',
+      ]
+    )}`;
 
     rows.push({
       label: linje1Label,
@@ -352,18 +385,18 @@ const addBeregningSection = (
     });
 
     rows.push({
-      label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.arbejdsdagePaaAar})`,
+      label: `Beregnet årsløn (${aarsloenOmregningFormel(formatDanishAmount(beregnetAarsloen), beregningsData.arbejdsdageIPeriode, String(beregningsData.arbejdsdagePaaAar))})`,
       value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
       rightFontStyle: 'bold',
     });
 
   } else if (beregningsData.metode === 'B') {
     // METODE B: Hverdage
-    let linje1Label = `Hverdage i beregningsperioden (${beregningsData.hverdageIPeriode} hverdage`;
-    if (!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0) {
-      linje1Label += ` - ${beregningsData.feriedageFraInput} feriedage`;
-    }
-    linje1Label += `)`;
+    const linje1Label = `Hverdage i beregningsperioden${aarsloenFradragsParentes(
+      `${beregningsData.hverdageIPeriode} hverdage`,
+      [!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0
+        ? ` - ${beregningsData.feriedageFraInput} feriedage` : '']
+    )}`;
 
     rows.push({
       label: linje1Label,
@@ -378,7 +411,7 @@ const addBeregningSection = (
     });
 
     rows.push({
-      label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`,
+      label: `Beregnet årsløn (${aarsloenOmregningFormel(formatDanishAmount(beregnetAarsloen), beregningsData.arbejdsdageIPeriode, String(beregningsData.hverdagePaaAar))})`,
       value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
       rightFontStyle: 'bold',
     });
@@ -387,13 +420,13 @@ const addBeregningSection = (
     // METODE C: Måneder/Uger/Dage
     if (loenperiode === 'maaned') {
       rows.push({
-        label: 'Antal måneder i indtastede perioder',
+        label: aarsloenAntalEnhederLabel('måneder', beregningsData.antalEnheder === 1),
         value: formatCountWithUnit(beregningsData.antalEnheder, 'måned', 'måneder'),
       });
 
-      const linje2Label = beregningsData.antalEnheder === 1
-        ? `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} × 12)`
-        : `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 12)`;
+      const linje2Label = `Beregnet årsløn (${aarsloenOmregningFormel(
+        formatDanishAmount(beregnetAarsloen), beregningsData.antalEnheder, '12'
+      )})`;
 
       rows.push({
         label: linje2Label,
@@ -403,12 +436,12 @@ const addBeregningSection = (
 
     } else if (loenperiode === 'uge') {
       rows.push({
-        label: 'Antal uger i indtastede perioder',
+        label: aarsloenAntalEnhederLabel('uger', beregningsData.antalEnheder === 1),
         value: formatCountWithUnit(beregningsData.antalEnheder, 'uge', 'uger'),
       });
 
       rows.push({
-        label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 52,14)`,
+        label: `Beregnet årsløn (${aarsloenOmregningFormel(formatDanishAmount(beregnetAarsloen), beregningsData.antalEnheder, '52,14')})`,
         value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
         rightFontStyle: 'bold',
       });
@@ -418,21 +451,21 @@ const addBeregningSection = (
         // Hele kalendermåneder – vis måneds-omregning som ved månedsløn
         const n = beregningsData.antalHeleKalendermaaneder;
         rows.push({
-          label: 'Antal måneder i indtastede perioder',
+          label: aarsloenAntalEnhederLabel('måneder', n === 1),
           value: formatCountWithUnit(n, 'måned', 'måneder'),
         });
         rows.push({
-          label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${n} × 12)`,
+          label: `Beregnet årsløn (${aarsloenOmregningFormel(formatDanishAmount(beregnetAarsloen), n, '12')})`,
           value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
           rightFontStyle: 'bold',
         });
       } else {
         // Dag-fallback: hverdagsomregning identisk med metode B (bevidst domænevalg)
-        let linje1Label = `Hverdage i beregningsperioden (${beregningsData.hverdageIPeriode} hverdage`;
-        if (!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0) {
-          linje1Label += ` - ${beregningsData.feriedageFraInput} feriedage`;
-        }
-        linje1Label += `)`;
+        const linje1Label = `Hverdage i beregningsperioden${aarsloenFradragsParentes(
+          `${beregningsData.hverdageIPeriode} hverdage`,
+          [!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0
+            ? ` - ${beregningsData.feriedageFraInput} feriedage` : '']
+        )}`;
 
         rows.push({
           label: linje1Label,
@@ -447,7 +480,7 @@ const addBeregningSection = (
         });
 
         rows.push({
-          label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`,
+          label: `Beregnet årsløn (${aarsloenOmregningFormel(formatDanishAmount(beregnetAarsloen), beregningsData.arbejdsdageIPeriode, String(beregningsData.hverdagePaaAar))})`,
           value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
           rightFontStyle: 'bold',
         });

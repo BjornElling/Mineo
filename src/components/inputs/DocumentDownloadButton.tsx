@@ -12,6 +12,16 @@ type Props = Readonly<{
   disabledReason?: string;
   /** Overstyrer den format-bevidste "Download som …"-tekst, når downloaden ikke er dokumentformatet (fx CSV). */
   label?: string;
+  /**
+   * Dokumentets navn, når siden tegner MERE END ÉN downloadknap («årsløn», «SH-dage»).
+   *
+   * Uden det hedder to knapper ved siden af hinanden begge «Download som Word», og tooltippen – det
+   * eneste, der forklarer et ikon uden tekst – siger da formatet, ikke indholdet. Placeringen er den
+   * eneste ledetråd tilbage, og den forsvinder for den, der navigerer med tastatur eller skærmlæser.
+   *
+   * Formatet BEVARES i teksten, fordi det skifter med indstillingen: «Download årsløn som Word».
+   */
+  documentName?: string;
   /** Videreført til den klikbare knap, så tests kan adressere netop denne download-knap. */
   dataTestId?: string;
 }>;
@@ -21,11 +31,15 @@ type Props = Readonly<{
  * `useAppSettings` og viser den kontrakt-krævede format-bevidste tooltip/aria-label.
  * Præsentationen deles med `DownloadIconButton`.
  */
-const DocumentDownloadButton = ({ onClick, onMouseDown, disabled = false, disabledReason, label, dataTestId }: Props) => {
+const DocumentDownloadButton = ({ onClick, onMouseDown, disabled = false, disabledReason, label, documentName, dataTestId }: Props) => {
   const { settings } = useAppSettings();
+  const formatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
+  const defaultTooltip = documentName === undefined
+    ? `Download som ${formatLabel}`
+    : `Download ${documentName} som ${formatLabel}`;
   const tooltip = disabled
     ? disabledReason ?? DOWNLOAD_DISABLED_TOOLTIP
-    : label ?? `Download som ${getDocumentFormatLabel(settings.documentDownloadFormat)}`;
+    : label ?? defaultTooltip;
 
   return (
     <DownloadIconButton

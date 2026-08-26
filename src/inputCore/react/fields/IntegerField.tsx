@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { integerAdmission } from '../../../components/inputs/draftAdmission';
 import type { FieldRef } from '../../fieldDescriptor';
+import type { FieldIssue } from '../../inputIssue';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 import { resolveIntegerCharPolicy } from './charLengthPolicy';
@@ -22,10 +23,16 @@ export type IntegerFieldProps = Readonly<{
   singleStageClick?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
+  /**
+   * Kryds-felt-domæneregel, descriptorens egen validator ikke kan udlede, fordi den kun ser sin egen celles
+   * værdi (fx en grænse afledt af en TABELS rækker). Viderestilles uændret til `NumericTextField`, hvor
+   * descriptorens eget issue har forrang (§1.8).
+   */
+  crossFieldIssue?: FieldIssue;
 }>;
 
 const IntegerField = React.forwardRef<HTMLDivElement, IntegerFieldProps>(
-  ({ field, location, name, width = 130, placeholder, disabled, singleStageClick = false, inputRef, sx }, ref) => {
+  ({ field, location, name, width = 130, placeholder, disabled, singleStageClick = false, inputRef, sx, crossFieldIssue }, ref) => {
     // Fortegn OG cifferloft kommer fra descriptorens codec gennem den DELTE resolver – samme kilde som
     // grid-cellen. Cifferloftet var før valgfrit, og 8 af 12 heltalsfelter havde derfor ingen grænse.
     const { allowNegative, maxDigits, maxDraftLength } = resolveIntegerCharPolicy(field);
@@ -47,6 +54,7 @@ const IntegerField = React.forwardRef<HTMLDivElement, IntegerFieldProps>(
         maxDraftLength={maxDraftLength}
         inputRef={inputRef}
         sx={sx}
+        {...(crossFieldIssue === undefined ? {} : { crossFieldIssue })}
       />
     );
   }

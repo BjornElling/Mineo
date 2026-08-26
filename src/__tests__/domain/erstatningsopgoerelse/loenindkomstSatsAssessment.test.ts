@@ -127,8 +127,11 @@ describe('assessLoenindkomstSatser', () => {
       employment({ loenudviklingBeregningsgrundlag: 'Overenskomst', feriePct: 10, fuldLoenUnderFerie: 'Ja' }),
       ctx()
     );
+    // Med løn under ferie er ydelsen FERIETILLÆG; den opgøres blot beregningsteknisk som
+    // feriegodtgørelse (`feriepenge-begreber-contract.md` regel 2-3). Teksten sagde før, at ydelsen ER
+    // feriegodtgørelse – altså det modsatte af reglen – i netop det tilfælde, hvor den ikke er det.
     expect(findings[0]?.message).toBe(
-      'Løn under ferie beregnes som feriegodtgørelse (12,5 % eller 15 % ved ret til 6. ferieuge)'
+      'Ved løn under ferie opgøres ferietillægget beregningsteknisk som feriegodtgørelse (12,5 %, eller 15 % ved ret til 6. ferieuge)'
     );
   });
 

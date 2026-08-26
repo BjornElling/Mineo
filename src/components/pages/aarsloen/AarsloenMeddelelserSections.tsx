@@ -24,9 +24,17 @@ export const AarsloenKritiskFejlSection = React.memo(() => {
 
 AarsloenKritiskFejlSection.displayName = 'AarsloenKritiskFejlSection';
 
+/**
+ * Advarsler. Boksen RENDERER kun – den formulerer ikke.
+ *
+ * Teksten om 6. ferieuge stod tidligere hardkodet her, uden om `beregnFejlmeddelelser`. Den omgik derfor
+ * både den kanoniske procentformattering (den skrev den rå værdi) og feltets eget navn, og den var ikke
+ * omfattet af den relevans-gating, der slukker satsadvarslerne i Beløb-tilstand. Alle advarsler dannes nu
+ * ét sted, så de deler ordlyd, formattering og relevansregel.
+ */
 export const AarsloenAdvarslerSection = React.memo(() => {
-  const { fejlmeddelelser, shouldWarnFeriePct, values } = useAarsloenVm();
-  if (fejlmeddelelser.length === 0 && !shouldWarnFeriePct) return null;
+  const { fejlmeddelelser } = useAarsloenVm();
+  if (fejlmeddelelser.length === 0) return null;
 
   return (
     <ContentBox className="content-box">
@@ -38,15 +46,6 @@ export const AarsloenAdvarslerSection = React.memo(() => {
           <Box />
         </Box>
       ))}
-
-      {shouldWarnFeriePct && (
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            {`En feriegodtgørelsessats på ${values.feriePct} % skaber en klar formodning for, at der er ret til 6. ferieuge.`}
-          </Typography>
-          <Box />
-        </Box>
-      )}
     </ContentBox>
   );
 });

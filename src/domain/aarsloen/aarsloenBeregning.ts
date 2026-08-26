@@ -5,7 +5,7 @@ import {
   harTabelData,
   resolveAarsloenCanonicalRangeIssues,
 } from './aarsloenValidationPolicies';
-import { erAarsloenFerieFelterRelevant } from '../policies/aarsloenPolicy';
+import { erAarsloenFerieFelterRelevant, erAarsloenSatsFelterRelevante } from '../policies/aarsloenPolicy';
 import { beregnSHDageForDatoSet } from '../dates/shDageBeregning';
 import type { AarsloenValues } from '../../schemas/formSchemas';
 import type { AarsloenBeregningResult } from '../../types/calculation';
@@ -127,7 +127,13 @@ export const computeAarsloenBeregning = ({
   }
   const beregningsData = valueOrNull(beregningsDataResult) ?? { metode: 'ingen' as const, erEtAar: false };
 
-  const fejlmeddelelser = omregningAktiveret && periodeData !== null
+  // Advarslerne handler UDELUKKENDE om satserne, og satserne er kun i brug i Procent-tilstand. I
+  // Beløb-tilstand er procentfelterne både skjulte og neutraliserede i beregningen, så en advarsel om dem
+  // ville pege på et felt, brugeren ikke kan se, om en sats programmet ikke bruger. Betingelsen er samme
+  // relevans-prædikat, som styrer feltsynligheden (`aarsloen-contract.md` §2-regel 5) – ikke en parallel
+  // regel: descriptorernes `relevance` og `resolveAarsloenCanonicalRangeIssues` spørger om præcis det samme.
+  const satserErIBrug = erAarsloenSatsFelterRelevante(tillaegAngivesSom);
+  const fejlmeddelelser = satserErIBrug && omregningAktiveret && periodeData !== null
     ? beregnFejlmeddelelser(feriePct, shSoPct, fuldLoenUnderFerie, retTilSjetteFerieuge, loenPaaHelligdage)
     : [];
 

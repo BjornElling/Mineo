@@ -5,7 +5,7 @@ import {
   isStandardLoenTableCellEffectivelyEmpty,
   isStandardLoenRowEffectivelyEmpty,
   hasCompletePeriodForLoenperiode,
-  hasAtLeastOneValidRow,
+  hasAtLeastOneCompletePeriodRow,
   type StandardLoenSatserInput,
   type StandardLoenRateSegment,
 } from '../../../domain/aarsloen/standardLoenRowCalculations';
@@ -524,33 +524,34 @@ describe('hasCompletePeriodForLoenperiode', () => {
   });
 });
 
-// ─── hasAtLeastOneValidRow ───────────────────────────────────────────────────
+// ─── hasAtLeastOneCompletePeriodRow ──────────────────────────────────────────
 
-describe('hasAtLeastOneValidRow', () => {
-  const satser: StandardLoenSatserInput = { feriePct: 0, fritvalgPct: '0', shSoPct: '0', storeBededagPct: '0', pensionPct: 0 };
-
+describe('hasAtLeastOneCompletePeriodRow', () => {
   it('tom liste → false', () => {
-    expect(hasAtLeastOneValidRow([], 'maaned', satser)).toBe(false);
+    expect(hasAtLeastOneCompletePeriodRow([], 'maaned')).toBe(false);
   });
 
-  it('row med komplet periode og samlet > 0 → true', () => {
+  it('row med komplet periode og et beløb → true', () => {
     const row = createRow({ col0_maaned: '1', col1_maaned: '2024', col2: 10000 });
-    expect(hasAtLeastOneValidRow([row], 'maaned', satser)).toBe(true);
+    expect(hasAtLeastOneCompletePeriodRow([row], 'maaned')).toBe(true);
   });
 
-  it('row med komplet periode men samlet = 0 → false', () => {
+  // Brugerbeslutning 2026-08-26: en lønrække med 0 kr. er en OPLYSNING (der var ingen indkomst i
+  // perioden), ikke en manglende indtastning. Prædikatet krævede tidligere samlet ≠ 0, hvilket gjorde
+  // dokumentgaten uenig med tabelvalideringen, der regner et eksplicit 0 som udfyldt.
+  it('row med komplet periode og beløbet 0 → true (0 kr. er en lovlig lønrække)', () => {
     const row = createRow({ col0_maaned: '1', col1_maaned: '2024', col2: 0, col3: 0, col4: 0, col5: 0 });
-    expect(hasAtLeastOneValidRow([row], 'maaned', satser)).toBe(false);
+    expect(hasAtLeastOneCompletePeriodRow([row], 'maaned')).toBe(true);
   });
 
   it('row uden komplet periode → false', () => {
     const row = createRow({ col0_maaned: '1', col2: 10000 }); // col1_maaned mangler
-    expect(hasAtLeastOneValidRow([row], 'maaned', satser)).toBe(false);
+    expect(hasAtLeastOneCompletePeriodRow([row], 'maaned')).toBe(false);
   });
 
-  it('blandet liste: én gyldig og én ugyldig → true', () => {
-    const valid = createRow({ col0_maaned: '1', col1_maaned: '2024', col2: 5000 });
-    const invalid = createRow({ col0_maaned: '2' }); // ingen col1_maaned
-    expect(hasAtLeastOneValidRow([invalid, valid], 'maaned', satser)).toBe(true);
+  it('blandet liste: én med komplet periode og én uden → true', () => {
+    const complete = createRow({ col0_maaned: '1', col1_maaned: '2024', col2: 5000 });
+    const partial = createRow({ col0_maaned: '2' }); // ingen col1_maaned
+    expect(hasAtLeastOneCompletePeriodRow([partial, complete], 'maaned')).toBe(true);
   });
 });

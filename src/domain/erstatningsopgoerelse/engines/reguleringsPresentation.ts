@@ -318,6 +318,18 @@ const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
 const REGULERINGSVAERDIER_PENSION_HEADER = 'AG pens. bidrag';
 
 /**
+ * Kolonneoverskriften for feriesatsen. Kolonnen indeholder en PROCENTSATS, og en sats navngives med den
+ * konkrete ydelse – ikke med fællesbetegnelsen «Feriepenge», som den hed før
+ * (`feriepenge-begreber-contract.md` §2a).
+ *
+ * Konstanten findes, fordi navnet bruges FIRE steder: tre overskriftslister og som nøgle i
+ * placeholder-rækkens celleobjekt, der slår op på netop overskriftsnavnet. Højrejusteringen i UI og PDF
+ * matcher desuden på strengen (`regulationTableColumns.ts`, `reguleringSection.ts`), så et navn skrevet
+ * i hånden fire steder ville miste justeringen, så snart ét af dem blev rettet.
+ */
+export const REGULERINGSVAERDIER_FERIE_HEADER = 'Feriegodtg./-till.';
+
+/**
  * Afgør, om Reguleringsværdier-tabellen skal ledsages af en note om, at kilden ikke har satser
  * på/før reguleringsdatoen. Noten sættes kun, når kildens tidligste registrerede sats først gælder
  * EFTER reguleringsdatoen – dvs. reguleringen tager afsæt i en senere sats, fordi der ingen findes
@@ -566,7 +578,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       const columns = [
         REGULERINGSVAERDIER_FRA_DATO_HEADER,
         loenHeader,
-        ...(showFeriePctColumn ? ['Feriepenge'] : []),
+        ...(showFeriePctColumn ? [REGULERINGSVAERDIER_FERIE_HEADER] : []),
         ...(hasShSo ? ['SH/SO'] : []),
         ...(hasFritvalg ? ['Fritvalg'] : []),
         ...(showStoreBededagColumn ? ['Store Bededag'] : []),
@@ -716,7 +728,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const columns = [
       REGULERINGSVAERDIER_FRA_DATO_HEADER,
       ...(hasGrundloen ? [loenHeader] : []),
-      ...(hasGrundloen && showFeriePctColumn ? ['Feriepenge'] : []),
+      ...(hasGrundloen && showFeriePctColumn ? [REGULERINGSVAERDIER_FERIE_HEADER] : []),
       ...(hasShSo ? ['SH/SO'] : []),
       ...(hasFritvalg ? ['Fritvalg'] : []),
       ...(showStoreBededagColumn ? ['Store Bededag'] : []),
@@ -760,7 +772,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       iso: ISODateString,
       displayDate: string
     ): string[] => buildPlaceholderValueRowWithCells(displayDate, columns, {
-      ...(hasGrundloen && showFeriePctColumn ? { Feriepenge: mergeFeriepengeDisplay(feriePctDisplay, undefined) } : {}),
+      ...(hasGrundloen && showFeriePctColumn ? { [REGULERINGSVAERDIER_FERIE_HEADER]: mergeFeriepengeDisplay(feriePctDisplay, undefined) } : {}),
       ...(hasShSo ? { 'SH/SO': formatDefinedPctInput(ansaettelsesforhold.shSoPct) } : {}),
       ...(hasFritvalg ? { Fritvalg: formatDefinedPctInput(ansaettelsesforhold.fritvalgPct) } : {}),
       ...(showStoreBededagColumn ? { 'Store Bededag': formatPctFromInput(resolveAutoStoreBededagPct(ansaettelsesforhold, iso)) } : {}),
@@ -886,7 +898,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
           loenudviklingBeregningsgrundlag: grundlag,
           overenskomstId: undefined,
         }),
-        ...(hasFeriepenge ? ['Feriepenge'] : []),
+        ...(hasFeriepenge ? [REGULERINGSVAERDIER_FERIE_HEADER] : []),
         ...(hasShSo ? ['SH/SO'] : []),
         ...(hasFritvalg ? ['Fritvalg'] : []),
         ...(hasStoreBededagPct ? ['Store Bededag'] : []),

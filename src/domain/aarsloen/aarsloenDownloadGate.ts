@@ -28,7 +28,7 @@ import {
 import type { TableError } from '../../types/table';
 import { resolveAarsloenCanonicalRangeIssues } from './aarsloenValidationPolicies';
 import type { AarsloenReaderProjection } from './aarsloenProjection';
-import { hasAtLeastOneValidRow } from './standardLoenRowCalculations';
+import { hasAtLeastOneCompletePeriodRow } from './standardLoenRowCalculations';
 
 /**
  * Én tabelfejl som en klassificeret blokerings-årsag.
@@ -92,6 +92,37 @@ const blockedByCanonicalRange = (
   );
 };
 
+/**
+ * Kryds-række-dubletter blokerer begge dokumenter.
+ *
+ * Issuene er kanoniske `FieldIssue`s med rigtige feltadresser, så `toBlockingCauses` klassificerer dem som
+ * `field`-causes → `invalid-input`. Der er ét issue pr. markeret celle i den gentagne række, altså altid
+ * flere ad gangen; klasseteksten er derfor det ærlige svar frem for et citat af den første.
+ */
+const blockedByDuplicateRows = (
+  projection: AarsloenReaderProjection,
+  code: string
+): DocumentDownloadGateResult | null => {
+  const issues = projection.duplicateRowIssues.all;
+  if (issues.length === 0) return null;
+  return blockDocumentDownloadFromCauses(code, toBlockingCauses(issues), 'Identiske rækker i tabel');
+};
+
+/**
+ * Den afledte feriedage-grænse blokerer begge dokumenter.
+ *
+ * Issuet er ét navngivent felt med en KONKRET grænse i beskeden, så `field`-causen giver et ordret citat i
+ * knappens tooltip – brugeren får altså grænsen at vide uden først at finde det røde felt.
+ */
+const blockedByFeriedageOverPerioden = (
+  projection: AarsloenReaderProjection,
+  code: string
+): DocumentDownloadGateResult | null => {
+  const issues = projection.feriedageFieldIssues;
+  if (issues.length === 0) return null;
+  return blockDocumentDownloadFromCauses(code, toBlockingCauses(issues), 'Fejl i indtastning');
+};
+
 /** Årsløns-dokumentet. Rækkefølgen er identisk med `resolveAarsloenDocumentEligibility`. */
 export const evaluateAarsloenDownloadGate = (
   projection: AarsloenReaderProjection
@@ -103,6 +134,12 @@ export const evaluateAarsloenDownloadGate = (
   if (values.tableData.length === 0) {
     return blockDocumentDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
   }
+  // Gentagne rækker blokerer dokumentet, selv om beregningen kører videre (§ se projektionen). Cellerne er
+  // røde, og causen er derfor `field`-scoped: knappen svarer «Fejl i indtastning», ikke «Indtastning mangler».
+  const duplicateBlocked = blockedByDuplicateRows(projection, 'aarsloen:duplicate-rows');
+  if (duplicateBlocked) return duplicateBlocked;
+  const feriedageBlocked = blockedByFeriedageOverPerioden(projection, 'aarsloen:feriedage-over-perioden');
+  if (feriedageBlocked) return feriedageBlocked;
   if (tableValidation.errors.length > 0) {
     // Klassen UDLEDES pr. tabelfejl (se `toTableBlockingCause`) frem for at være hardkodet for hele
     // listen. Bevidst `aggregate`: tabelvalideringen dækker N celler på tværs af N rækker, så ingen enkelt
@@ -114,13 +151,13 @@ export const evaluateAarsloenDownloadGate = (
       'Valideringsfejl i tabel'
     );
   }
-  if (!hasAtLeastOneValidRow(values.tableData, values.loenperiode, {
-    feriePct: values.feriePct,
-    fritvalgPct: values.fritvalgPct,
-    shSoPct: values.shSoPct,
-    storeBededagPct: values.storeBededagPct,
-    pensionPct: values.pensionPct,
-  }, values.tillaegAngivesSom)) {
+  // En lønrække med beløbet 0 kr. er LOVLIG (brugerbeslutning 2026-08-26). Brugeren kan have behov for at
+  // vise, at der i en måned ikke var lønindkomst – det er tydeligere end at udelade perioden, hvor den
+  // kunne se glemt ud. Gaten spurgte tidligere, om nogen række havde en samlet løn FORSKELLIG FRA NUL, mens
+  // tabelvalideringen regnede et eksplicit 0 som udfyldt. De to var uenige om præcis nullet, så en udfyldt
+  // tabel kunne give «Indtastning mangler» uden ét rødt felt at gå efter. Nu er kravet det samme begge
+  // steder: mindst én række med komplet periode.
+  if (!hasAtLeastOneCompletePeriodRow(values.tableData, values.loenperiode)) {
     return blockDocumentDownload({ code: 'aarsloen:no-valid-rows', message: 'Ingen gyldige rækker i tabel' });
   }
   // `calculation === null` betyder, at feltgaten var RØD, så motoren aldrig blev kaldt (§3.9) – ikke at
@@ -150,6 +187,10 @@ export const evaluateShDageDownloadGate = (
 ): DocumentDownloadGateResult => {
   const rangeBlocked = blockedByCanonicalRange(projection, 'aarsloen:sh-canonical-range-error');
   if (rangeBlocked) return rangeBlocked;
+  const duplicateBlocked = blockedByDuplicateRows(projection, 'aarsloen:sh-duplicate-rows');
+  if (duplicateBlocked) return duplicateBlocked;
+  const feriedageBlocked = blockedByFeriedageOverPerioden(projection, 'aarsloen:sh-feriedage-over-perioden');
+  if (feriedageBlocked) return feriedageBlocked;
 
   const { calculation } = projection;
   // Som årslønsgaten: `calculation === null` er en RØD feltgate, ikke en mangel. SH-dage-gaten tjekker

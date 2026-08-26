@@ -33,7 +33,6 @@ import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/a
 import {
   shouldShowAarsloenFerieFields,
   shouldShowAarsloenShDageFields,
-  shouldWarnAarsloenFeriePct,
 } from '../../../domain/policies/aarsloenPolicy';
 import type { StandardLoenTableHandle } from '../../../types/handles';
 import type { LoenPaaHelligdage, TillaegAngivesSom } from '../../../schemas/formSchemas/enumSchemas';
@@ -111,7 +110,7 @@ export function useAarsloenViewModel() {
     () => buildAarsloenReaderProjection(evaluation.reader),
     [evaluation]
   );
-  const { values, tableValidation, omregningGate } = readerProjection;
+  const { values, tableValidation, omregningGate, duplicateRowIssues, feriedageFieldIssues } = readerProjection;
 
   const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
 
@@ -180,7 +179,6 @@ export function useAarsloenViewModel() {
   const visDownloadVedSammentaelling = !omregningAktiveret || beregningsData.erEtAar;
   const shouldShowFerieFields = React.useMemo(() => shouldShowAarsloenFerieFields(values), [values]);
   const shouldShowShDageFields = React.useMemo(() => shouldShowAarsloenShDageFields(values), [values]);
-  const shouldWarnFeriePct = React.useMemo(() => shouldWarnAarsloenFeriePct(values), [values]);
   const indtastetEnhedSummary = React.useMemo(
     () => resolveAarsloenIndtastetEnhedSummary({
       tableData: values.tableData,
@@ -210,6 +208,10 @@ export function useAarsloenViewModel() {
     tabelRef,
     values,
     tableSatser,
+    /** Kryds-række-dubletter som feltissues – gør de gentagne rækkers celler røde. */
+    duplicateRowIssues,
+    /** Den afledte feriedage-grænse (feltet må ikke overstige periodens egne hverdage). */
+    feriedageIssue: feriedageFieldIssues[0],
     // Omregning
     omregningChecked,
     omregningAktiveret,
@@ -227,7 +229,6 @@ export function useAarsloenViewModel() {
     // Synlighed
     shouldShowFerieFields,
     shouldShowShDageFields,
-    shouldWarnFeriePct,
     // Dokumenter
     aarsloenDownload,
     shDageDownload,

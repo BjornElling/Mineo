@@ -410,7 +410,7 @@ describe('buildRegulationInspektionSections', () => {
     expect(sections[0]?.tables?.[0]?.columns).toEqual([
       'Dato',
       'Timeløn',
-      'Feriepenge',
+      'Feriegodtg./-till.',
       'Fritvalg',
       'Pension',
     ]);

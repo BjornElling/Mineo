@@ -427,7 +427,7 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
@@ -581,7 +581,7 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toEqual(['Fra-dato', 'Månedsløn', 'Feriepenge', 'Store Bededag', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Månedsløn', 'Feriegodtg./-till.', 'Store Bededag', 'AG pens. bidrag']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
@@ -942,7 +942,7 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     // SH/SO og Fritvalg er undefined på alle rækker → kolonnerne vises ikke
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'Store Bededag', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'Store Bededag', 'AG pens. bidrag']);
   });
 
   it('viser manuel procentsats med indeks og akkumuleret procent i reguleringsværdier', () => {
@@ -1150,7 +1150,7 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     expect(table?.columns).not.toContain('Fritvalg');
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'AG pens. bidrag']);
   });
 
   it('skjuler manuel SH/SO-kolonne når alle rækker har shSoSats = undefined, men viser Fritvalg-kolonne når mindst én række har fritvalg > 0', () => {
@@ -1191,7 +1191,7 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     expect(table?.columns).not.toContain('SH/SO');
     expect(table?.columns).toContain('Fritvalg');
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'Fritvalg', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'Fritvalg', 'AG pens. bidrag']);
   });
 
   it('indsætter Store Bededag som separat række 01-01-2024 i manuel reguleringsværdier-tabel', () => {

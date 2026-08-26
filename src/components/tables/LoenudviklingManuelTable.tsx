@@ -114,14 +114,30 @@ export default function LoenudviklingManuelTable({
   // Fail-closed for ældre/ufuldstændig state: selv uden en canonical basisrække er den første synlige række
   // programstyret. Datoen må aldrig falde tilbage til en redigerbar placeholder.
   const visibleBaseRowId = resolveManualRegulationBasisRowId(committedRows, orderedRows);
-  const headers = ['Dato', 'Grundløn', 'Feriepenge', 'SH/SO-sats', 'Fritvalg', 'AG pension'] as const;
+  // Kolonnen indeholder en PROCENTSATS, og en sats navngives med den konkrete ydelse – ikke med
+  // fællesbetegnelsen «Feriepenge», som kolonnen hed før (`feriepenge-begreber-contract.md` §2a).
+  // Navnet er descriptorens, så tabelhoved og feltfejl ikke kan kalde samme celle to ting; linjeskiftet
+  // er ren layout for den 140 px brede kolonne, præcis som i løntabellens overskrifter.
+  const headers = [
+    'Dato',
+    'Grundløn',
+    'Feriegodtgørelse/\n-tillæg',
+    'SH/SO-sats',
+    'Fritvalg',
+    'AG pension',
+  ] as const;
   const keys = ['dato', 'grundloen', 'feriepenge', 'shSoSats', 'fritvalg', 'agPension'] as const;
 
   return (
     <StandardGridTable tableWidth="1130px" useSmallFont={useSmallFont}>
       <colgroup>{[140, 140, 140, 140, 140, 150].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
       <thead><tr>{headers.map((header, index) => (
-        <StandardGridHeaderCell key={header} {...bindSortableHeader(sort, keys[index]!)}>{header}</StandardGridHeaderCell>
+        <StandardGridHeaderCell key={header} {...bindSortableHeader(sort, keys[index]!)}>
+          {/* `pre-line` gør overskriftens linjeskift virksomt; headercellen er ellers `nowrap` med
+              ellipsis, så et langt navn ville blive afkortet i stedet for ombrudt. Samme form som
+              `StandardLoenTable`s overskrifter. */}
+          <span style={{ whiteSpace: 'pre-line' }}>{header}</span>
+        </StandardGridHeaderCell>
       ))}</tr></thead>
       <tbody>{orderedRows.map((renderRow, rowIndex) => {
         const row = table.committedById.get(renderRow.rowId);

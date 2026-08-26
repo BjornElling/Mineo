@@ -13,15 +13,20 @@ import {
   aarsloenStoreBededagPctField,
   aarsloenTillaegAngivesSomField,
 } from '../../inputCore/catalog/aarsloenDescriptors';
-import type { FieldRef } from '../../inputCore/fieldDescriptor';
-import type { FieldIssue } from '../../inputCore/inputIssue';
+import { toAnyFieldRef, type FieldRef } from '../../inputCore/fieldDescriptor';
+import { buildFieldIssueSet, type FieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import { computeAarsloenBeregning, type AarsloenBeregningState } from './aarsloenBeregning';
-import { resolveAarsloenOmregningGate, type AarsloenOmregningGate } from './aarsloenValidationPolicies';
+import {
+  resolveAarsloenFeriedageOverskriderPeriodenIssue,
+  resolveAarsloenOmregningGate,
+  type AarsloenOmregningGate,
+} from './aarsloenValidationPolicies';
 import { type StandardLoenTableValidationResult } from './standardLoenTableValidation';
 import {
   readStandardLoenTableRows,
+  resolveStandardLoenDuplicateRowIssues,
   resolveStandardLoenTableValidationFromReader,
 } from '../../components/tables/standardLoenTableFieldSet';
 import { aarsloenStandardLoenFieldSet } from './aarsloenStandardLoenFieldSet';
@@ -180,6 +185,22 @@ export type AarsloenReaderProjection = Readonly<{
    */
   calculation: AarsloenBeregningState | null;
   fieldIssues: readonly FieldIssue[];
+  /**
+   * Løntabellens KRYDS-RÆKKE-dubletter som strukturelle feltissues (brugerkrav 2026-08-26).
+   *
+   * Cellernes egne format-/bounds-issues kommer gennem readerens eget issue-snapshot; dette er den
+   * collection-afhængige regel, en descriptor-validator ikke kan se, fordi den kun kender sin egen celle.
+   * Sættet bærer rigtige feltadresser, så rød markering og tooltip læser ÉN repræsentation.
+   */
+  duplicateRowIssues: FieldIssueSet;
+  /**
+   * Den AFLEDTE grænse for «Antal feriedage»: feltet kan ikke overstige periodens egne hverdage.
+   *
+   * Grænsen kan ikke bo i en descriptor-validator, fordi den udledes af TABELLENS rækker, og
+   * `CanonicalView` kun kan læse ét felt ad gangen. Issuet bærer feltets egen adresse, så det gør feltet
+   * rødt med den konkrete grænse i tooltippen – og blokerer dokumentet gennem gaten.
+   */
+  feriedageFieldIssues: readonly FieldIssue[];
   sourceToken: EvaluationSourceToken;
 }>;
 
@@ -216,12 +237,47 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     ? null
     : computeAarsloenBeregning({ values, omregningAktiveret: omregningGate.effectiveEnabled });
 
+  // Dubletter nuller BEVIDST ikke beregningen. En gentagen række har kendte værdier, så summen er
+  // veldefineret – den er blot sandsynligvis forkert, og det er præcis dét, den røde markering siger. At
+  // skjule hele resultatet ville tømme siden for en fejl, brugeren kan se ved rækken. Dokumentet blokeres
+  // derimod (gaten læser sættet), så et forkert grundlag ikke når modparten.
+  const duplicateRowIssues = buildFieldIssueSet(
+    resolveStandardLoenDuplicateRowIssues(
+      aarsloenStandardLoenFieldSet,
+      values.tableData,
+      values.loenperiode,
+      values.tillaegAngivesSom
+    )
+  );
+
+  // Den AFLEDTE feriedage-grænse udledes af det hverdagstal, motoren netop har beregnet – ikke af en
+  // selvstændig genberegning, som kunne komme ud af trit med det tal, siden viser i samme linje. Reglen
+  // nuller ikke beregningen af samme grund som dubletterne: værdien er kendt, resultatet er blot forkert,
+  // og et tomt resultat ville skjule den fejl, den røde ring peger på.
+  const beregningsData = calculation?.beregningsData;
+  const feriedageIssue = beregningsData === undefined || beregningsData.metode === 'ingen'
+    ? null
+    : resolveAarsloenFeriedageOverskriderPeriodenIssue(values, {
+        omregningAktiveret: omregningGate.effectiveEnabled,
+        hverdageIPeriode: beregningsData.hverdageIPeriode,
+      });
+  const feriedageFieldIssues: readonly FieldIssue[] = feriedageIssue === null ? [] : [Object.freeze({
+    kind: 'field' as const,
+    code: 'aarsloen.antalFeriedage.overstigerPerioden',
+    severity: 'error' as const,
+    field: toAnyFieldRef(scalarRefs.antalFeriedage),
+    reason: 'rule' as const,
+    message: feriedageIssue.message,
+  })];
+
   return Object.freeze({
     values,
     tableValidation,
     omregningGate,
     calculation,
     fieldIssues,
+    duplicateRowIssues,
+    feriedageFieldIssues,
     sourceToken: reader.sourceToken,
   });
 };

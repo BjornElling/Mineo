@@ -167,7 +167,10 @@ export const buildIndkomstSkadestidspunkt = (
         // Beløb-tilstand: labels må ikke påstå procentsatser, da tillæggene er indtastede beløb.
         const pctParts: string[] = [];
         if (mode !== 'beloeb') {
-          if (feriePct && feriePct !== 0) pctParts.push(`Feriepenge (${formatPercent(feriePct)})`);
+          // En PROCENTSATS navngives med den konkrete ydelse, ikke med fællesbetegnelsen «Feriepenge»
+          // (`feriepenge-begreber-contract.md` §2a) – og navnet er feltets eget, så dokumentet og det
+          // felt, satsen kommer fra, siger det samme.
+          if (feriePct && feriePct !== 0) pctParts.push(`Feriegodtgørelse/-tillæg (${formatPercent(feriePct)})`);
           if (fritvalgPct && fritvalgPct !== 0) pctParts.push(`Fritvalg (${formatPercent(fritvalgPct)})`);
           if (shSoPct && shSoPct !== 0) pctParts.push(`S/H (${formatPercent(shSoPct)})`);
           if (storeBededagPct && storeBededagPct !== 0) {

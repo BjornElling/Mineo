@@ -4,7 +4,6 @@ import {
   hasAarsloenEffectiveRows,
   shouldShowAarsloenFerieFields,
   shouldShowAarsloenShDageFields,
-  shouldWarnAarsloenFeriePct,
 } from '../../../domain/policies/aarsloenPolicy';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 
@@ -132,55 +131,3 @@ describe('shouldShowAarsloenShDageFields', () => {
   });
 });
 
-// ─── shouldWarnAarsloenFeriePct ───────────────────────────────────────────
-
-describe('shouldWarnAarsloenFeriePct', () => {
-  it('null → false', () => {
-    expect(shouldWarnAarsloenFeriePct(null)).toBe(false);
-  });
-
-  it('feriePct = undefined → false', () => {
-    expect(shouldWarnAarsloenFeriePct(baseAarsloen({ feriePct: undefined }))).toBe(false);
-  });
-
-  it('feriePct < 15 og fuldLoenUnderFerie = false og retTilSjetteFerieuge = false → false', () => {
-    // WARN kræver feriePct >= 15
-    expect(shouldWarnAarsloenFeriePct(baseAarsloen({
-      feriePct: 14,
-      fuldLoenUnderFerie: false,
-      retTilSjetteFerieuge: false,
-    }))).toBe(false);
-  });
-
-  it('feriePct >= 15 og ikke fuld løn og ikke 6. ferieuge → true', () => {
-    expect(shouldWarnAarsloenFeriePct(baseAarsloen({
-      feriePct: 15,
-      fuldLoenUnderFerie: false,
-      retTilSjetteFerieuge: false,
-    }))).toBe(true);
-  });
-
-  it('feriePct = 20 → true', () => {
-    expect(shouldWarnAarsloenFeriePct(baseAarsloen({
-      feriePct: 20,
-      fuldLoenUnderFerie: false,
-      retTilSjetteFerieuge: false,
-    }))).toBe(true);
-  });
-
-  it('feriePct >= 15 men fuldLoenUnderFerie = true → false (ingen advarsel)', () => {
-    expect(shouldWarnAarsloenFeriePct(baseAarsloen({
-      feriePct: 15,
-      fuldLoenUnderFerie: true,
-      retTilSjetteFerieuge: false,
-    }))).toBe(false);
-  });
-
-  it('feriePct >= 15 men retTilSjetteFerieuge = true → false (ingen advarsel)', () => {
-    expect(shouldWarnAarsloenFeriePct(baseAarsloen({
-      feriePct: 15,
-      fuldLoenUnderFerie: false,
-      retTilSjetteFerieuge: true,
-    }))).toBe(false);
-  });
-});

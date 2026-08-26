@@ -14,6 +14,7 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
+import { REGULERINGSVAERDIER_FERIE_HEADER } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   formatAmount2,
   formatAmountWithoutTrailingDecimals,
@@ -52,7 +53,8 @@ const MANUEL_PROCENTSATS_NUMBER_HEADERS = new Set(['procent', 'indeks', 'akkumul
 // plads (med ligelig fordeling af et evt. overskud mellem alle kolonner). Når kolonnen udelades
 // (manuel procentsats), deler de fire tilbageværende kolonner hele tabelbredden ligeligt.
 const RIGHT_ALIGNED_REGULERINGS_HEADERS = new Set([
-  'feriepenge',
+  // Sættet slår op på det lowercased overskriftsnavn; navnet ejes af `reguleringsPresentation.ts`.
+  REGULERINGSVAERDIER_FERIE_HEADER.toLowerCase(),
   'sh/so',
   'fritvalg',
   'store bededag',

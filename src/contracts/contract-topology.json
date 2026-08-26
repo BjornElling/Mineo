@@ -26,7 +26,8 @@
     "src/contracts/app-settings.md",
     "src/contracts/snapshot-contract.md",
     "src/contracts/auth-gate-contract.md",
-    "src/contracts/app-shell-contract.md"
+    "src/contracts/app-shell-contract.md",
+    "src/contracts/feriepenge-begreber-contract.md"
   ],
   "subordinateContracts": {
     "src/contracts/page-component-contract.md": [
@@ -49,7 +50,8 @@
       "src/contracts/app-settings.md",
       "src/contracts/snapshot-contract.md",
       "src/contracts/auth-gate-contract.md",
-      "src/contracts/app-shell-contract.md"
+      "src/contracts/app-shell-contract.md",
+      "src/contracts/feriepenge-begreber-contract.md"
     ]
   },
   "domainContracts": [

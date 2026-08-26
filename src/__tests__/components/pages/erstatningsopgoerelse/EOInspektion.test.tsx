@@ -217,7 +217,7 @@ describe('EOInspektion', () => {
           tables: [
             {
               id: 'regulation.af1:vaerdier',
-              columns: ['Dato', 'Måneder', 'Grundløn', 'Feriepenge', 'Fritvalg', 'Store Bededag', 'Pension'],
+              columns: ['Dato', 'Måneder', 'Grundløn', 'Feriegodtg./-till.', 'Fritvalg', 'Store Bededag', 'Pension'],
               rows: [{ id: 'regulation.af1:table:1', cells: ['24-05-2023', '0,26', '25.174,00', '15,00%', '7,00%', '0,00%', '9,00%'] }],
             },
             {

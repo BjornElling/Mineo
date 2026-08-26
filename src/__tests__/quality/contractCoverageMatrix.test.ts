@@ -182,6 +182,16 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     ],
   },
   {
+    // Sprogreglerne om ferieydelser er tværgående: samme formuleringer bruges på Årsløn og i
+    // erstatningsopgørelsen. Testen hævder, at advarselsteksterne bruger feltets eget navn.
+    contractPath: 'src/contracts/feriepenge-begreber-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/aarsloen/aarsloenValidationPolicies.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/loenindkomstSatsAssessment.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/reguleringsPresentation.test.ts',
+    ],
+  },
+  {
     contractPath: 'src/contracts/aarsloen-contract.md',
     requiredTestPaths: [
       'src/__tests__/domain/aarsloen/aarsloenCalculations.test.ts',
@@ -556,6 +566,7 @@ describe('contract linkage matrix', () => {
       'src/contracts/auth-gate-contract.md',
       'src/contracts/calculation-data-contract.md',
       'src/contracts/document-output-contract.md',
+      'src/contracts/feriepenge-begreber-contract.md',
       'src/contracts/indskudte-loentillaeg-contract.md',
     ]);
     // Og afsnittene skal faktisk indeholde stier: en tom liste ville gøre sammenligningen vakuøs.
