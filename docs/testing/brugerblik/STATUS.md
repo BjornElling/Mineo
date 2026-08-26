@@ -2,14 +2,21 @@
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Årslønsberegning (`/aarsloen`, nr. 9)
-- **Næste fund-ID:** BB-096
-- **Åbne spørgsmål:** **ingen** – alle otte er afgjort 2026-08-25.
-- **Udestående implementeringer:** **ingen.** De fem tilbagemeldinger fra flade 8a, der bad om
-  udbredelse ud over fundets egen flade (BB-080, BB-083, BB-084, BB-085, BB-088), er efterprøvet i
-  produktionskoden 2026-08-25 og er alle fuldt gennemført **og** kontraktforankret. Efterprøvningen
-  står nedenfor under «Efterprøvning af de fem udbredte tilbagemeldinger».
-- **Senest opdateret:** 2026-08-25 (**de tre sidste åbne spørgsmål afgjort** – Varige méns
+- **Næste flade:** Forsørgertab (`/forsoergertab`, nr. 10)
+- **Næste fund-ID:** BB-117
+- **Åbne spørgsmål:** **fire**, alle fra flade 9 – se [aarsloen.md](aarsloen.md).
+- **Udestående implementeringer:** **21 fund fra flade 9 afventer brugerens afgørelse** (BB-096–BB-116).
+  Ingen udeståender fra flade 1–8.
+- **Senest opdateret:** 2026-08-25 (**Årslønsberegning gennemgået: 21 fund, heraf tre Høj, og to nye
+  tværgående mønstre M-23/M-24 – de første, der handler om beregningens GRUNDLAG frem for om, hvad
+  programmet siger.** De tunge er BB-096 (to identiske lønrækker fordobler årslønnen til
+  `793.500,00 kr.`, uden rødt felt eller advarsel), BB-097 (99 feriedage i en måned med 23 hverdage
+  giver `-76 hverdage` og årslønnen `0,00 kr.` med aktiv downloadknap) og BB-098 (en lønrække med
+  beløbet `0,00 kr.` spærrer dokumentet med «Indtastning mangler», mens intet er rødt – fladen har to
+  uenige svar på «er der noget her?»). **Beregningsformlerne selv er kontrolregnet og er i orden** i
+  alle tre metoder. **M-22 er efterprøvet og bestået:** BB-080's rettelse navngiver Stamdata på en
+  flade uden en eneste stamdataoplysning. Tidligere samme dag: de tre sidste åbne spørgsmål fra
+  flade 1–8 afgjort – Varige méns
   datoafstand, Ctrl+S' synlighed og `Gem`s adfærd ved rettet navn. Ingen af dem krævede en
   kodeændring; alle tre fastholdt den bestående adfærd og er nu normative i henholdsvis
   `varigemen-contract.md` §2.11, `keyboard-navigation.md` og `persistence-contract.md` §5. Samtidig er
@@ -41,10 +48,76 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 7b | Varige mén – Satser | Afgjort | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
 | 8a | Renteberegning – Beregning | Afgjort | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
 | 8b | Renteberegning – Satser | Afgjort | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
-| 9 | Årslønsberegning | Ikke startet | – | – |
+| 9 | Årslønsberegning | Afventer bruger | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
 | 10 | Forsørgertab | Ikke startet | – | – |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Årslønsberegning – gennemgået 2026-08-25
+
+**21 fund: tre Høj, ni Mellem, ni Lav.** Det fulde grundlag med målte tal står i
+[aarsloen.md](aarsloen.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-096 | Den samme måned to gange fordobler årslønnen (793.500 mod 396.750 kr.) uden et ord | **Høj** |
+| BB-097 | 99 feriedage i en måned med 23 hverdage giver -76 arbejdsdage og årslønnen 0,00 kr. | **Høj** |
+| BB-098 | En lønrække med 0,00 kr. spærrer dokumentet med «Indtastning mangler», intet er rødt | **Høj** |
+| BB-099 | Tabellens «Samlet løn» regner videre på en rød sats, som om den var tom | Mellem |
+| BB-100 | Tillæggenes beregningsgrundlag er usynligt, og de to kolonner følger modsatte regler | Mellem |
+| BB-101 | Ved et helt kalenderår nævner hverken skærm eller dokument en «Beregnet årsløn» | Mellem |
+| BB-102 | Omregnings-togglen ser aktiv ud, afviser klikket og svarer kun med et blink | Mellem |
+| BB-103 | I Beløb-tilstand ignoreres satserne uden besked, men advarslen om dem bliver stående | Mellem |
+| BB-104 | De to downloadknapper på siden hedder begge «Download som Word» | Mellem |
+| BB-105 | Skift af lønperiode tømmer perioden og spærrer dokumentet, uden at noget peger på hvorfor | Mellem |
+| BB-106 | To af Indstillingers tre standardværdier for de samme tre felter når ikke Årsløn | Mellem |
+| BB-107 | Samme fejltekst på begge periodeceller, og den siger «dato» om et ugefelt | Mellem |
+| BB-108 | Skærm og dokument skriver samme procent og samme formel forskelligt | Lav |
+| BB-109 | En sats på 0 % står på skærmen og mangler i dokumentet | Lav |
+| BB-110 | Dokumentet skriver «0» for et feriedage-felt, brugeren har ladet stå tomt | Lav |
+| BB-111 | Tre kolonner hedder noget andet i dokumentet end på skærmen | Lav |
+| BB-112 | Samme antal står to gange med hver sin ordlyd, og linjen kan blive «23 hverdage = 23 hverdage» | Lav |
+| BB-113 | Advarslerne kalder «Feriegodtgørelse/-tillæg» for to andre ting | Lav |
+| BB-114 | Et ugenummer, der ikke findes i året, får den generiske «ugyldig værdi»-tekst | Lav |
+| BB-115 | Lønperioder i fremtiden accepteres uden signal (op til 31-12 i indeværende år) | Lav |
+| BB-116 | «Løn» og «Løn (2)» siger ikke, hvad forskellen er | Lav |
+
+**De tre Høj-fund er af en art, programmet ikke har set før, og det er derfor de to nye mønstre er
+kommet.** De 22 hidtidige mønstre handler om, hvad programmet *siger, viser, skjuler eller blokerer*.
+BB-096 og BB-097 handler om, at det **regner rigtigt på et forkert grundlag** – og i begge tilfælde er
+der intet rødt felt, ingen advarsel og en aktiv downloadknap. **M-23** (aggregatet af-dublerer tiden,
+men ikke pengene) og **M-24** (feltets grænse er sat af feltets art, ikke af det tal det trækkes fra)
+har begge en prøve, der tager under et minut pr. flade og hører på hver flade med en periodetabel:
+*indtast den samme række to gange og se, om resultatet fordobles*, henholdsvis *sæt fradraget større
+end det, der trækkes fra, og læs linjen*.
+
+**Beregningsformlerne selv er kontrolregnet og er i orden.** Alle tre metoder er efterregnet i
+browseren (A: `34.500 / 22 × 253`, B: `33.750 / 21 × 231`, C: `33.750 / 1 × 12` og
+`10.000 / 11 × 52,14`), normtallene 261 hverdage, 8 SH-dage, 30/25 feriedage og 52,14 uger holder, og
+rækkens to tillægskolonner er efterregnet ciffer for ciffer. **Ingen af de 21 fund handler om en
+forkert formel.**
+
+**M-22 er efterprøvet på fladen og BESTÅET.** En fødselsdato på `99-99-9999` gør årslønsdokumentets
+knap grå med **«Ret fejlen i Stamdata»**, selv om fladen ikke viser en eneste stamdataoplysning – det
+er BB-080's rettelse i drift. SH-dage-bilaget blokerer korrekt ikke, fordi dets brevhoved er slået fra
+som standard; at de to knapper så står side om side med samme navn i hver sin tilstand, er BB-104.
+
+**Konsekvenser for de resterende flader – tre prøver at tage med:**
+1. **M-23's prøve hører på hver flade med en periodetabel og en `sum / enheder`-brøk.** Indtast den
+   samme række to gange. Kandidater: EO's lønindkomst (samme tabelkomponent), forsørgertab, EET.
+2. **M-24's prøve hører på hver mellemregning med et fradrag i parentes.** Sæt fradraget større end
+   det, der trækkes fra. Se samtidig efter grænser, der er dubleret af et cifferloft og derfor døde.
+3. **BB-098's prøve er ny og meget billig: find fladens tomheds-prædikater og hold dem op mod hinanden
+   på værdien 0.** Årsløn havde to, der var enige om alt andet end nullet.
+
+**Dækningshuller:** kun Chrome, lyst tema, 1536×864; PDF-kanalen ikke læst (begge dokumenter hentet som
+`.docx`); `Gem`/`Hent` ikke afprøvet (filvælgeren kan ikke betjenes headless – samme hul som BB-049);
+undo/redo og kolonnesortering ikke afprøvet på fladen. Konsollen var tavs: 197 beskeder, 0 fejl,
+0 advarsler.
+
+**Fire åbne spørgsmål** – alle fire ændrer tal og kan ikke afgøres uden brugeren: overlappende
+perioder, en lønrække på 0 kr., lønperioder i fremtiden, og om Indstillingers to øvrige
+standardværdier skal gælde Årsløn.
 
 ## Efterprøvning af de fem udbredte tilbagemeldinger – 2026-08-25
 

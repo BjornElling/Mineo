@@ -12,6 +12,19 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**To nye mønstre 2026-08-25 fra Årslønsberegning – M-23 og M-24 – og de er begge om BEREGNINGENS
+grundlag, ikke om dens formel.** Det er nyt for programmet: de 22 hidtidige mønstre handler om, hvad
+programmet siger, viser, skjuler eller blokerer. M-23 (aggregatet af-dublerer tiden, men ikke pengene)
+og M-24 (et felts grænse er sat af feltets egen art, ikke af det tal det trækkes fra) handler om, at
+det regner rigtigt på et forkert grundlag – og i begge tilfælde er der **intet** rødt felt og ingen
+advarsel. Målt på Årsløn: to identiske lønrækker fordoblede årslønnen til `793.500,00 kr.`
+(BB-096), og 99 feriedage i en måned med 23 hverdage gav `-76 hverdage` og årslønnen `0,00 kr.` med
+aktiv downloadknap (BB-097). Prøven for begge er billig og hører på hver flade med en periodetabel.
+**Samme kørsel gav nye forekomster af M-02 (BB-107, BB-113), M-07 (BB-107 – mønsterets NAVNGIVNE
+kandidat, `DATE_ORDER_ERROR_MESSAGE`, bekræftet), M-13 (BB-108, BB-109, BB-111), M-16 (BB-098, BB-105)
+og M-19 (BB-110).** M-22 er derimod efterprøvet og **bestået**: BB-080's rettelse navngiver Stamdata på
+en flade uden en eneste stamdataoplysning.
+
 **Ingen nye mønstre 2026-08-24 fra Renteberegning → Satser, men tre nye forekomster – og den ene
 vender en forudsigelse på hovedet. Alle tre er afgjort 2026-08-25.** Fanen er et rent opslagsværk (to
 tabeller, ingen felter, ingen knapper, intet dokument), så M-16, M-19 og M-22 er uden genstand dér.
@@ -179,6 +192,15 @@ ofte allerede i erklæringen ved siden af.
 - **Brugerens regel 2026-08-16 (bindende for hele programmet):** navngivningen i beskeder skal følge
   den til enhver tid værende værdi i skadestype-feltet – «Anmeldelsesdato» ved Erhvervssygdom,
   ellers «Skadedato». De to betegnelser er de eneste korrekte brugervendte betegnelser.
+**Ny forekomst 2026-08-25 (fra `aarsloen.md` BB-113) – mønsterets rene prosa-form, tre navne for ét
+felt på én skærm.** Feltet hedder «Feriegodtgørelse/-tillæg»; den ene advarsel kalder det
+«feriepengesats», den anden «feriegodtgørelsessats». Begge tekster er hardkodet prosa i
+`beregnFejlmeddelelser`/`shouldWarnAarsloenFeriePct`. **Nabofeltet «SH/SO-sats» er derimod korrekt i
+alle fire tekster** – det er værd at bemærke, fordi det viser, at fejlen ikke er systemisk i modulet,
+men opstod ét felt ad gangen. Prøven er billig og hører på hver flade med prosa-advarsler: **læs hver
+advarsel og find det felt, den navngiver, på skærmen.** Samme kørsel gav en anden forekomst gennem
+M-07: `DATE_ORDER_ERROR_MESSAGE` siger «Til-**dato**» i et **ugefelt** (BB-107).
+
 - Fundet i: `stamdata.md` BB-002 – **accepteret, skal rettes** (implementeringsforslag i fundet).
 - Konkrete kandidatsteder: `src/utils/dateRangeErrorMessages.ts`; den fælles besked
   om en dato før stamdatodatoen, som nås fra mindst seks erklæringssteder i
@@ -328,6 +350,15 @@ virkningsdatoer, kapitaliseringsdatoer, min-/maks-par.
 - Kandidater, ikke efterprøvet: alle periodetabeller med fra/til-kolonner. Bemærk især den fælles
   `DATE_ORDER_ERROR_MESSAGE`, som begge parter i et fra/til-par får i dag – samme tekst på to felter
   med hver sin udvej.
+- **Kandidaten er bekræftet 2026-08-25 på Årsløn** (`aarsloen.md` BB-107, Mellem, afventer bruger).
+  Uge fra `10/2025` + Uge til `05/2025` gør begge celler røde med ordret samme tooltip: «Til-dato skal
+  være efter fra-dato». Samme i datotilstand. **To skærpelser af mønsteret følger af målingen:**
+  (1) teksten er skrevet fra TIL-feltets synsvinkel, så FRA-feltet beder brugeren rette noget, han
+  ikke kan rette dér – præcis den form, brugerens regel af 2026-08-16 forbyder; (2) den samme
+  konstant bruges af **ugefelter**, så beskeden siger «dato» om to ugenumre – mønsteret overlapper
+  dermed M-02. **Løsningen findes allerede i programmet:** BF-028 gav EO's dato-par den modgående
+  dato i hver tooltip. Årsløns tabel står med den gamle form, så en rettelse er en konvergens, ikke
+  et nyt design.
 
 ## M-08 – Links er ikke med i tastaturrækkefølgen
 
@@ -695,6 +726,24 @@ måles og rettes.
   prøven:** sammenlign fortegnets form på tværs af de steder, der viser samme slags tal – men en
   enkeltstående tabel uden nabo at være uenig med er ikke et fund i sig selv. Undtagelsen er nu
   eksplicit i koden med sin begrundelse, så den ikke kan «ryddes op» ved en fejl.
+- **Tre nye forekomster 2026-08-25 fra Årsløn, og den ene er mønsterets oprindelige fejl igen**
+  (`aarsloen.md` BB-109, BB-108, BB-111):
+  - **BB-109 er BB-030 ordret på en ny flade.** Årslønsdokumentets `isEmptyOrZero` behandler `0`,
+    `0,00` og `0,00 %` som fravær, så en indtastet fritvalgssats på **0 %** står på skærmen og mangler
+    i dokumentets Satser-afsnit. Brugerens afgørelse af 2026-08-18 er bindende, så fundet skal blot
+    måles og rettes. **Bemærk at samme prædikat også afgør, om en tabelRÆKKE kommer med i dokumentet** –
+    prøv begge veje i samme rettelse. Den generelle lære står ved magt: en `> 0`- eller
+    `=== 0`-prøve på SYNLIGHED er altid mistænkelig; `!== undefined` er den rigtige.
+  - **BB-108 er de to formprøver på én gang.** Skærm `12,50 %` mod dokument `12,5 %` (BB-078's
+    latente form, nu udløst af data), og skærm «Beregnet årsløn (33.750,00 **/ 1** × 12)» mod dokument
+    «(33.750,00 × 12)» – dokumentet har en særregel for én enhed, skærmen ikke. **Ny lære: uenigheden
+    kan ligge i FORMLEN, ikke kun i tallet.** Prøven udvides: sammenlign ikke bare hvert vist tal,
+    men hver **tekst, der beskriver et regnestykke**, mellem skærm og dokument.
+  - **BB-111 flytter prøven fra værdier til NAVNE.** Dokumentgeneratoren har sine egne forkortelser af
+    tre kolonneoverskrifter («Ikke-pens. giv. løn», «ATP mv. u. tillæg», «Arb.g.Pension» uden
+    mellemrum), selv om kolonnenavnene har ét sandt sted, og modulets egen kommentar begrunder det
+    sande sted med, at samme kolonne ellers kunne hedde to ting. **Prøven er ny og generel: sammenlign
+    hver kolonneoverskrift i en generator med descriptorens label.**
 - **Bestået samme dag på beløbssiden:** renteberegningens `formatKr(x, 2)` på skærmen og
   `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
   identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
@@ -907,6 +956,27 @@ frem for rettelser i gaten: de gør en falsk præmis sand i stedet for at differ
   `MIN_SURCHARGE_DATE` (01-08-2002), så en rentedato uden satsdækning bliver et rødt bounds-issue før
   motoren spørges. Tre af de fem afvisningsgrunde er dermed afklaret; de to sidste
   (`MISSING_*`-grenene) er ægte mangler og hører til BB-083.
+- **To nye forekomster 2026-08-25 fra Årsløn, og den ene giver mønsteret en ny ÅRSAG**
+  (`aarsloen.md` BB-098 og BB-105):
+  - **BB-098 (Høj) – to prædikater for «er der noget her?» inden for én flade.** En lønrække med
+    Måned `1`, År `2025` og Løn **0,00 kr.** har alt udfyldt, intet rødt, viser «Beregnet årsløn
+    (0,00 / 1 × 12): 0,00 kr.» i fed – og downloadknappen er grå med «Indtastning mangler».
+    Tabelvalideringen regner et eksplicit 0 som **udfyldt**
+    (`isStandardLoenTableValueEffectivelyEmptyForValidation`), mens dokumentgatens
+    `hasAtLeastOneValidRow` kræver `samlet !== 0` gennem
+    `isStandardLoenTableCellEffectivelyEmpty`. De to er enige om alt andet end netop nullet.
+    **Det er en ny årsag i mønsteret:** hidtil kom afvisningen fra en MOTOR med flere afvisningsgrunde
+    end feltmodellen; her kommer den fra to **tomheds-prædikater**, der er uenige. Prøven er
+    tilsvarende ny og meget billig: **find fladens tomheds-prædikater og hold dem op mod hinanden på
+    værdien 0.** Rettelsen hører fortsat ét sted – i feltmodellen (rød celle med «Beløbet skal være
+    større end 0 kr.», jf. BB-038) eller ved at gøre 0 lovlig; ikke i gaten.
+  - **BB-105 (Mellem) – den rene mangel-form, men udløst af PROGRAMMET.** Et klik på radioknappen
+    «Løn indtastes som: Dato» tømmer periodecellerne, slukker omregnings-togglen og gør
+    downloadknappen grå med «Indtastning mangler», uden at én celle er rød. Rækken er nu «beløb uden
+    periode», altså `partial_period`, som efter kontrakten bevidst ikke må være en rød ring.
+    **Forskellen til BB-083 er hele pointen:** dér efterlod brugeren rækken halvfærdig, her gjorde
+    programmet det. **Skærpelse af prøven: kør M-16's mangel-halvdel ikke kun ved indtastning, men
+    efter hvert valg, der ændrer hvilke kolonner en tabel viser.**
 - Kandidater, ikke efterprøvet: tilsvarende motorer med interne fejltyper findes i Varige mén,
   Forsørgertab og EO's rækkebyggere (`EO_ROW_BUILDERS`).
 
@@ -1036,6 +1106,14 @@ truffet, ikke et nyt designforslag.
   standardbeskeder. Rettelsen er samtidig udbredt til to af de forudsagte kandidatsteder –
   EO-beregningsfanens skadedato-række og Forsørgertabs beregningssektion (commit `789d11f7`).
 - Efterprøvet og i orden: Forsørgertabs to spejlede rækker (forlægget ovenfor).
+- **Ny forekomst 2026-08-25 i mønsterets SPEJLVENDTE form** (`aarsloen.md` BB-110, Lav). Her siger den
+  lånende udgave ikke «mangler» om noget udfyldt – den siger **«0»** om noget tomt. Årslønsdokumentet
+  skriver «Antal feriedage (mandag-fredag) i de indtastede perioder **0**» for et felt, skærmen viser
+  tomt (`String(antalFeriedage ?? 0)`), og tilsvarende for «Antal SH-dage» ved `null`. **Det er værre
+  end «mangler» om noget udfyldt, fordi 0 er en PÅSTAND, der ændrer resultatet:** beregningen trækker
+  0 feriedage fra perioden, mens den trækker 30 fra året. Dokumentet dokumenterer et valg, brugeren
+  aldrig traf, over for modparten. **Prøven er ny og smal: `rg "\?\? 0" src/document/generators` – for
+  hvert træf, hvad viser skærmen samme sted?**
 - Kandidater, ikke efterprøvet: EET efter EAL's spejlede stamdata-rækker (flade 11),
   Erstatningsopgørelsens forudsætningsrækker (flade 12) og enhver tekst af formen «<felt> mangler»,
   der er koblet til en `undefined`-læsning frem for til et tomt felt.
@@ -1156,6 +1234,75 @@ tilstand*?».
   M-19's rettelse.
 - Kun **Fødselsdato** og **Skadedato** kan gå røde i Stamdata; de fire tekstfelter er længdeværnede og
   skadestypen er et valg. Mønsteret har derfor en lille, men meget nem indgang.
-- Kandidater, ikke efterprøvet: `document.aarsloen`, `document.eet`, Forsørgertabs og
-  Erstatningsopgørelsens reguleringsdefinitioner – alle kalder `projectStamdataForDocument` ubetinget.
-  Generelt: enhver `context.shared`-kilde, der læser felter uden for fladens egen sektion.
+- **`document.aarsloen` er efterprøvet 2026-08-25 og BESTÅET.** En fødselsdato på `99-99-9999` i
+  Stamdata gør årslønsdokumentets knap grå med teksten **«Ret fejlen i Stamdata»** – fladen navngives,
+  selv om Årsløn ikke viser en eneste stamdataoplysning. Det er BB-080's rettelse i drift på den
+  flade, mønsteret pegede på. **Bemærk desuden, at rettelsen viser sin anden halvdel her:**
+  SH-dage-bilaget på SAMME side blokerer IKKE, fordi dets brevhoved er slået fra som standard
+  (`shDage: false`). Afhængigheden er altså blevet betinget, præcis som mønsteret forlangte. At de to
+  knapper så står side om side i hver sin tilstand med samme navn, er et andet fund (`aarsloen.md`
+  BB-104).
+- Kandidater, ikke efterprøvet: `document.eet`, Forsørgertabs og Erstatningsopgørelsens
+  reguleringsdefinitioner. Generelt: enhver `context.shared`-kilde, der læser felter uden for fladens
+  egen sektion.
+
+## M-23 – Aggregatet af-dublerer tiden, men ikke pengene
+
+> To rækker, der beskriver samme tidsrum, tælles én gang i tiden og to gange i beløbet. Resultatet er
+> et tal, der er 100 % forkert, uden et rødt felt og uden en advarsel.
+
+En flade, der omregner et beløb over en periode, har to aggregater: en **tidsside** (dage, hverdage,
+måneder, uger) og en **beløbsside**. Tidssiden bygges typisk som en mængde – et `Set` af datoer eller
+af måneds-/ugenøgler – fordi den skal svare på «hvor lang tid dækker rækkerne tilsammen?». Beløbssiden
+bygges som en simpel `reduce`-sum over rækkerne. De to er kun enige, så længe rækkerne ikke overlapper.
+
+Formen er farlig, fordi **programmet selv ved besked**: det er netop af-dubleringen på tidssiden, der
+beviser, at det har set overlappet. Det bruger bare kun viden ét af de to steder.
+
+**Efterprøv, hvor:** et resultat er en brøk med en sum i tælleren og en mængdestørrelse i nævneren –
+`sum / antalEnheder × norm`. Prøven er konkret og tager et minut: **indtast den samme række to gange
+og se, om resultatet fordobles.** Gør det det, og nævneren står uændret, er det en forekomst.
+
+- Fundet i: `aarsloen.md` BB-096 (Høj, afventer bruger). To identiske lønrækker (Måned `1`, År `2025`,
+  Løn `30.000`) gav sammentællingen `69.000,00 kr.`, tidslinjen «23 hverdage - 1 SH-dag = 22
+  arbejdsdage» og resultatet **`793.500,00 kr.`** mod `396.750,00 kr.` for én række. Ingen rød celle,
+  ingen advarsel, begge dokumenter kunne hentes.
+- **Bemærk, at der findes et LOVLIGT tilfælde**, og det er derfor fundet er et brugerspørgsmål og ikke
+  en ren fejl: to ansættelsesforhold i samme måned skal rigtigt lægges sammen i beløb. Men så er det
+  *tiden*, der er talt forkert – perioden bidrager kun én måneds arbejdsdage til nævneren. Uanset
+  hvilken vej brugeren vælger, er den nuværende kombination forkert.
+- Kandidater, ikke efterprøvet: samme mekanisme i Årsløns **Uge**- og **Dato**-tilstand (`datoSet` er
+  en union i alle tre); EO's lønindkomst-fane (samme tabelkomponent, egen aggregering); forsørgertabs
+  og EET's periodetabeller. Generelt: `rg "new Set" src/utils/periodeBeregning.ts` og enhver
+  `unikkeEnheder`-agtig nævner.
+
+## M-24 – Feltets grænse er sat af feltets art, ikke af det tal det trækkes fra
+
+> Feltet har en grænse, der passer til hvad det ER (et antal dage, en procent, et beløb), men ikke til
+> hvad det GØR – og programmet kender det tal, den skulle have været sat efter.
+
+Prøvekatalogets B0 punkt 3 spørger, om en skarpere grænse kunne udledes af konteksten. Dette mønster
+er det tilfælde, hvor svaret er ja **og** konteksten står synligt på samme linje. Et felt, hvis værdi
+subtraheres fra et beregnet tal, skal have det tal som sit maksimum; ellers kan brugeren producere et
+negativt mellemresultat, som programmet derefter er nødt til at gøre noget vilkårligt med – typisk
+klampe til nul og præsentere nullet som et beløb.
+
+Nullet er det egentlige onde: det er ikke en fejlmeddelelse, det er et **tal**. Det står i fed, det
+kan trykkes i et dokument, og det ser ud som et svar.
+
+**Efterprøv, hvor:** en beregningslinje har formen `(A - B)` og B kommer fra et felt. Prøven er:
+**sæt B større end A og læs linjen.** Står der et negativt antal, eller står der `0,00 kr.` som
+resultat, er det en forekomst. Læs derefter feltets erklærede grænse og spørg, om den overhovedet kan
+rammes.
+
+- Fundet i: `aarsloen.md` BB-097 (Høj, afventer bruger). «Antal feriedage» = `99` i en måned med 23
+  hverdage gav «Hverdage i beregningsperioden (23 hverdage - 99 feriedage): **-76 hverdage**» og
+  «Beregnet årsløn (33.750,00 / **-76** × 231): **0,00 kr.**» – med **aktiv** downloadknap.
+- **To lærer af fundet, som gælder mønsteret generelt.** (1) Grænsen `0–99` er valgt efter feltets art;
+  den kan aldrig rammes, fordi cifferloftet allerede er to cifre, så dens fejlbesked er **død kode**.
+  Et loft, der er dubleret af et cifferloft, afværger intet – spørg altid, om de to grænser er den
+  samme grænse skrevet to gange. (2) Motoren fail-softer allerede (`arbejdsdageIPeriode > 0`), men
+  fail-soft uden en synlig årsag er værre end fail-closed: den producerer et lovligt udseende beløb.
+- Kandidater, ikke efterprøvet: ethvert felt, hvis værdi trækkes fra et tal programmet selv har
+  beregnet – EET's og forsørgertabs fradragsfelter, EO's reguleringsbilag. Generelt:
+  `rg " - \$\{" src/components/pages` over mellemregningstekster med et fradrag i parentes.

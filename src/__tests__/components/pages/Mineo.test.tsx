@@ -321,8 +321,8 @@ describe('Mineo - License Modal Integration', () => {
       const persondataBox = screen.getByText('Persondata').closest('.content-box');
       expect(persondataBox).not.toBeNull();
       expect(persondataBox).toHaveTextContent(/Der indsamles ingen persondata eller brugsstatistik/);
-      expect(persondataBox).toHaveTextContent(/ingen oplysninger om dig eller om din sag forlader din computer/);
-      expect(persondataBox).toHaveTextContent(/Programmet kontakter udelukkende serveren, når det bliver indlæst eller installeret, og når det henter opdateringer/);
+      expect(persondataBox).toHaveTextContent(/ingen oplysninger om dig eller om din sag forlader computeren/);
+      expect(persondataBox).toHaveTextContent(/Computeren kontakter udelukkende serveren for at indlæse og installere programmet og for at hente opdateringer/);
       expect(persondataBox).toHaveTextContent(/Så længe fanen er åben/);
       expect(persondataBox).toHaveTextContent(/Brug Gem for at beholde sagen som en \.eo-fil på din computer/);
 

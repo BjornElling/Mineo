@@ -250,8 +250,8 @@ const Mineo = React.memo(() => {
 
         <Typography className="row--text">
           Der indsamles ingen persondata eller brugsstatistik, og ingen oplysninger om dig eller om din
-          sag forlader din computer. Programmet kontakter udelukkende serveren, når det bliver indlæst
-          eller installeret, og når det henter opdateringer.
+          sag forlader computeren. Computeren kontakter udelukkende serveren for at indlæse og installere
+          programmet og for at hente opdateringer.
         </Typography>
 
         <Typography className="row--text">
