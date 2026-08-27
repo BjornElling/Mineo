@@ -26,6 +26,7 @@ import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
 import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import { formatJaNej, formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
+import { round0, sumRoundedValues } from '../../../utils/roundingShortcuts';
 import { getDocumentFormatLabel } from '../../../document/documentFormat';
 import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
@@ -242,7 +243,16 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                       })),
                       {
                         key: `${afgoerelse.rowId}-i-alt`,
-                        cells: ['I alt', '', '', '', '', '', formatKr(toKroner(afgoerelse.iAltBeregnetEetOre))],
+                        // Totalen skal kunne efterregnes af præcis de hele kroner, tabellen viser.
+                        cells: [
+                          'I alt',
+                          '',
+                          '',
+                          '',
+                          '',
+                          '',
+                          formatKr(sumRoundedValues(afgoerelse.perioder.map((row) => toKroner(row.beregnetEetOre)), round0)),
+                        ],
                         rowSx: { '& .MuiTableCell-root': { fontWeight: 700 } },
                       },
                     ]}

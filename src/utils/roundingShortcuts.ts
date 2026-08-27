@@ -18,6 +18,21 @@ export const roundNearest1000 = (v: number): number => roundByMethod(v / 1000, 0
 export const ceil0 = (v: number): number => roundByMethod(v, 0, 'ceil');
 
 /**
+ * Summerer præcis de værdier, brugeren ser: hvert led afrundes før additionen.
+ *
+ * Totalen afrundes igen for at normalisere binary64-støj fra additionen, så den kan
+ * formateres og efterregnes som den viste række-sum.
+ */
+export const sumRoundedValues = (
+  values: Iterable<number>,
+  roundValue: (value: number) => number,
+): number => {
+  let total = 0;
+  for (const value of values) total += roundValue(value);
+  return roundValue(total);
+};
+
+/**
  * Runder op til nærmeste hele multiple af 12.
  *
  * Bruges ved beregning af EET- og forsørgertab-ydelser, hvor årsydelsen

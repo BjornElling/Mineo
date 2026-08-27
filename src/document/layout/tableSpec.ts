@@ -5,6 +5,8 @@
  * til jsPDF/autotable og OOXML ejes af hver sin kanalrenderer.
  */
 
+import { sumRoundedValues } from '../../utils/roundingShortcuts';
+
 export type DocumentCellAlign = 'left' | 'center' | 'right';
 export const DOCUMENT_TABLE_FONT_SIZE_PT = 8;
 
@@ -150,6 +152,8 @@ type TotalRowOptions = Readonly<{
 
 type SummedTotalOptions = TotalRowOptions & Readonly<{
   formatValue: (total: number) => string;
+  /** Samme afrunding som data-cellens synlige værdi. */
+  roundDisplayedValue: (value: number) => number;
 }>;
 
 const NBSP = '\u00A0';
@@ -242,6 +246,6 @@ export const buildSummedTotalRowSpec = (
   options: SummedTotalOptions,
 ): RowSpec | null => {
   if (values.length <= 1) return null;
-  const total = values.reduce((sum, value) => sum + value, 0);
+  const total = sumRoundedValues(values, options.roundDisplayedValue);
   return buildFormattedTotalRowSpec(label, options.formatValue(total), options);
 };

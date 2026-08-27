@@ -19,6 +19,7 @@ import { mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/i
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 import type { DocumentArtifact } from '../../downloadArtifact';
 import { formatDanishList } from '../../../utils/danishListFormatting';
+import { round0 } from '../../../utils/roundingShortcuts';
 
 type SHDageDocumentOptions = DocumentCommonOptions;
 type SHDagePeriod = { start: Date; end: Date };
@@ -142,6 +143,7 @@ export const buildSHDageTableRows = (
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => String(total),
+      roundDisplayedValue: round0,
       valueAlign: 'center',
       preserveValueColumn: true,
     }

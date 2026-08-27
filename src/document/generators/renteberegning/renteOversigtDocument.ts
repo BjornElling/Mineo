@@ -21,6 +21,7 @@ import { parseISODate, type ISODateString } from '../../../types/branded';
 import { addCalculationPrinciples, addHypotheticalInterestWarning } from './renteDocument';
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 import type { DocumentArtifact } from '../../downloadArtifact';
+import { round2 } from '../../../utils/roundingShortcuts';
 
 const PDF_TITLE = 'Procesrente – oversigt';
 
@@ -73,6 +74,7 @@ const addOversigtTable = (
       columnCount: 3,
       valueColumnIndex: 2,
       formatValue: (total) => `${formatAmount(total)} kr.`,
+      roundDisplayedValue: round2,
       valueHasKrSuffix: true,
     }
   );

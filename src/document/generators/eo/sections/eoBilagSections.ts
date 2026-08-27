@@ -298,6 +298,8 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
         columnCount: 6,
         valueColumnIndex: 5,
         formatValue: (total) => formatMoneyOreWithKrTrimmed(moneyOre(total)),
+        // Værdierne er allerede hele øre og vises uden yderligere afrunding.
+        roundDisplayedValue: (value) => value,
         valueHasKrSuffix: false,
       }
     );

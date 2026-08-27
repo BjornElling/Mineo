@@ -543,6 +543,7 @@ højde må ikke genindføres som genvej.
 1. Egentlige tabeller skal beskrives som `TableSpec` og tilføjes via `DocumentComposer.addTable()`.
 2. Headerløse 2-kolonne-opstillinger, formler, specifikationer og simple label/værdi-linjer er ikke tabeller og skal komponeres via `DocumentComposer`.
 3. En generator må ikke vælge tabelrenderer alene for at få "nem alignment", hvis indholdet semantisk ikke er en tabel.
+4. En totalrække for beregnede beløb skal summere de afrundede værdier, som data-rækkerne viser – aldrig afrunde en råsum bagefter. Brugeren skal kunne indtaste de synlige beløb i en lommeregner og nå samme total.
 
 ## B8. Direkte jsPDF-brug
 

@@ -25,7 +25,7 @@ import {
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { resolveDocumentArtifactFileName, formatKr, formatMaanederFixed, formatReguleringPct } from '../../layout/documentFormatUtils';
-import { round4 } from '../../../utils/roundingShortcuts';
+import { round0, round4 } from '../../../utils/roundingShortcuts';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
@@ -158,6 +158,7 @@ export const addLoebendeAfgoerelseSection = (
         columnCount: 7,
         valueColumnIndex: 6,
         formatValue: (total) => formatKr(total),
+        roundDisplayedValue: round0,
         valueHasKrSuffix: true,
       }
     );

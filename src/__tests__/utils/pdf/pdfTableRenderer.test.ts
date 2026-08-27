@@ -10,6 +10,9 @@ import {
   buildFormattedTotalRowSpec,
   buildSummedTotalRowSpec,
 } from '../../../document/layout/tableSpec';
+import { round2 } from '../../../utils/roundingShortcuts';
+
+const preserveDisplayedValue = (value: number): number => value;
 
 describe('createDocumentDistributedColumnStyles', () => {
   it('fordeler fuld tabelbredde ligeligt når ingen kolonner er låst', () => {
@@ -67,6 +70,7 @@ describe('buildSummedTotalRowSpec', () => {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
+      roundDisplayedValue: preserveDisplayedValue,
       valueHasKrSuffix: true,
     });
 
@@ -84,6 +88,7 @@ describe('buildSummedTotalRowSpec', () => {
       columnCount: 2,
       valueColumnIndex: 1,
       formatValue: (total) => String(total),
+      roundDisplayedValue: preserveDisplayedValue,
     });
 
     expect(result?.cells).toHaveLength(2);
@@ -95,6 +100,7 @@ describe('buildSummedTotalRowSpec', () => {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => String(total),
+      roundDisplayedValue: preserveDisplayedValue,
       preserveValueColumn: true,
     });
 
@@ -111,6 +117,7 @@ describe('buildSummedTotalRowSpec', () => {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
+      roundDisplayedValue: preserveDisplayedValue,
       valueHasKrSuffix: true,
     });
 
@@ -122,6 +129,7 @@ describe('buildSummedTotalRowSpec', () => {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
+      roundDisplayedValue: preserveDisplayedValue,
       valueHasKrSuffix: false,
     });
 
@@ -133,6 +141,7 @@ describe('buildSummedTotalRowSpec', () => {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
+      roundDisplayedValue: preserveDisplayedValue,
       valueHasKrSuffix: true,
       valueAlign: 'center',
     });
@@ -140,11 +149,24 @@ describe('buildSummedTotalRowSpec', () => {
     expect(result?.cells[1]?.text).toBe('30\u00A0kr.');
   });
 
+  it('summerer de afrundede dataceller frem for at afrunde råsummen', () => {
+    const result = buildSummedTotalRowSpec('I alt', [1.494, 2.494], {
+      columnCount: 2,
+      valueColumnIndex: 1,
+      formatValue: (total) => total.toFixed(2),
+      roundDisplayedValue: round2,
+    });
+
+    // 1,49 + 2,49 = 3,98, mens round2(1,494 + 2,494) fejlagtigt ville være 3,99.
+    expect(result?.cells[1]?.text).toBe('3.98');
+  });
+
   it('udelader totalrækken når der ikke er mindst to værdier', () => {
     expect(buildSummedTotalRowSpec('I alt', [10], {
       columnCount: 2,
       valueColumnIndex: 1,
       formatValue: String,
+      roundDisplayedValue: preserveDisplayedValue,
     })).toBeNull();
   });
 });

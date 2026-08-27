@@ -10,6 +10,7 @@ import type { IsoRange } from '../../../../domain/erstatningsopgoerelse/validati
 import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
 import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import type { SHDageTableRow } from '../types';
+import { round0 } from '../../../../utils/roundingShortcuts';
 
 type SHDageSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
@@ -89,6 +90,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
         columnCount: 4,
         valueColumnIndex: 3,
         formatValue: (total) => String(total),
+        roundDisplayedValue: round0,
         valueAlign: 'center',
         preserveValueColumn: true,
       }

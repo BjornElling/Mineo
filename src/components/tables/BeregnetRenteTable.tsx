@@ -6,7 +6,7 @@ import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import { formatKr } from '../../utils/formatUtils';
-import { round2 } from '../../utils/roundingShortcuts';
+import { round2, sumRoundedValues } from '../../utils/roundingShortcuts';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
@@ -298,7 +298,7 @@ const BeregnetRenteTable = React.memo(
         if (projection?.status !== 'ready' || projection.value.pdfContext === null) return null;
         values.push(projection.value.pdfContext.calculatedInterest);
       }
-      return values.length > 1 ? round2(values.reduce((sum, value) => sum + value, 0)) : null;
+      return values.length > 1 ? sumRoundedValues(values, round2) : null;
     }, [committedRows, rowProjections, table]);
 
     return (

@@ -8,6 +8,7 @@ import type {
 } from '../../../../domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import { formatAsAmountTrimmed, formatKr } from '../../../../utils/formatUtils';
+import { round0, sumRoundedValues } from '../../../../utils/roundingShortcuts';
 import { toKroner } from '../../../../domain/money/money';
 import { formatFaktor, formatPct as formatKapPct } from '../../../../domain/erhvervsevnetab/eetFormatUtils';
 import {
@@ -159,7 +160,9 @@ export const EetMerErstatningPensionsalderBox = ({ computation, koen }: MerErsta
       <Box className="row--label-right-hover" sx={{ mt: 2 }}>
         <Typography className="row--text">Samlet mer-erstatning</Typography>
         <Box className="row--label-right-hover__content">
-          <Typography className="row--text text-bold">{formatKr(toKroner(computation.samletMerErstatningOre))}</Typography>
+          <Typography className="row--text text-bold">
+            {formatKr(sumRoundedValues(computation.events.map((event) => toKroner(event.merErstatningOre)), round0))}
+          </Typography>
         </Box>
       </Box>
     )}

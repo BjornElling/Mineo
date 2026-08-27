@@ -21,6 +21,30 @@ const makePeriod = (overrides?: Partial<ProcessInterestPeriod>): ProcessInterest
 });
 
 describe('writeRenteDocumentContent', () => {
+  it('summerer de viste periodebeløb i totalrækken', () => {
+    const { composer, build } = createDocumentComposer();
+    const periods = [
+      makePeriod({ interest: 1192.624 }),
+      makePeriod({ interest: 1282.874 }),
+    ];
+
+    writeRenteDocumentContent(
+      composer,
+      108895.03,
+      new Date(toISODateString('2026-05-21')),
+      new Date(toISODateString('2026-08-12')),
+      periods,
+      {},
+    );
+
+    const table = build().blocks.find((block) => block.kind === 'table');
+    expect(table?.kind).toBe('table');
+    if (table?.kind !== 'table') throw new Error('Rentetabellen mangler');
+
+    const totalRow = table.spec.rows.at(-1);
+    expect(totalRow?.cells.at(-1)?.text).toBe('2.475,49\u00A0kr.');
+  });
+
   it('kan kaldes to gange på samme DocumentWriter uden undtagelse', () => {
     const writer = createPdfChannelWriter();
     const { composer, build } = createDocumentComposer();

@@ -26,6 +26,7 @@ import { resolveDocumentArtifactFileName, sanitizeFilenamePart } from '../../lay
 import type { ProcessInterestPeriod } from '../../../domain/renteberegning/procesrenteCalculator';
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 import type { DocumentArtifact } from '../../downloadArtifact';
+import { round2 } from '../../../utils/roundingShortcuts';
 
 /**
  * Stamdata til Rente PDF
@@ -113,6 +114,7 @@ const addSpecificationTable = (
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${formatAmount(total)} kr.`,
+      roundDisplayedValue: round2,
       valueHasKrSuffix: true,
     }
   );
