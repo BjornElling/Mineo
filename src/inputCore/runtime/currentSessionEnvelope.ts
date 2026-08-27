@@ -80,7 +80,12 @@ export const parseCurrentEnvelope = (raw: string): SettledInput => {
     const inbound = parseInboundPersistedSection(sectionKey, rawSection, parsed.persistedDataVersion);
     // `.eo`-load kan vise en eksplicit preflight for strippede felter. Session-bootstrap har ingen
     // sådan godkendelsesflade, så den eneste sikre adfærd er at bevare den rå envelope og låse writes.
-    if (!inbound.ok || inbound.unknownPaths.length > 0 || inbound.invalidPaths.length > 0) {
+    if (
+      !inbound.ok
+      || inbound.unknownPaths.length > 0
+      || inbound.invalidPaths.length > 0
+      || inbound.preflightMissingFields.length > 0
+    ) {
       throw new Error(`Sessionens sektion ${sectionKey} kan ikke migreres uden datatab.`);
     }
     sections[sectionKey] = inbound.data;

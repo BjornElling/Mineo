@@ -311,7 +311,7 @@ export const loenindkomstAnsaettelsesforholdSchema = z.object({
 /**
  * Den persisterede ansættelsesform bærer IKKE den afledte Store Bededagssats.
  *
- * Slottet fjernes af sektionsmigratoren (`persistenceMigrations.ts`), IKKE af en `.transform()` på schemaet.
+ * Slottet fjernes af load-adapteren (`persistedLoadAdapter.ts`), IKKE af en `.transform()` på schemaet.
  * En transform ville gøre schemaet uigennemsigtigt for `z.toJSONSchema`: Zod ville udsende en tom
  * `items: {}` for ansættelses-arrayet, og hele det nestede løntræ ville forsvinde ud af de maskinelle
  * felt-/collection-udledninger (ledger-coverage, consumerinventar og schema-fingerprint) – værn, der

@@ -67,7 +67,7 @@ const ALLOWED: readonly Readonly<{ name: string; why: string }>[] = [
   },
   {
     name: 'kører den eksakte sektionsmigration fra kildeversion til current-version',
-    why: '`.eo`-/sektionsmigrationen er en LEVENDE mekanisme (`migratePersistedSectionValue`), ikke et '
+    why: '`.eo`-/sektionsmigrationen er en LEVENDE mekanisme (`adaptPersistedSectionForLoad`), ikke et '
       + 'afsluttet faseforløb. Ordet er det korrekte navn på det, der testes.',
   },
 ];

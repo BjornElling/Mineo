@@ -1,11 +1,12 @@
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import {
-  createPersistenceMigrator,
-  migratePersistedSectionValue,
-  type PersistenceMigrationRegistry,
-} from '../../utils/persistenceMigrations';
+  createPersistedSectionLoadAdapter,
+  adaptPersistedSectionForLoad,
+  type MissingPersistedFieldPolicy,
+  type PersistedLoadAdapterRegistry,
+} from '../../persistence/persistedLoadAdapter';
 
-describe('migratePersistedSectionValue', () => {
+describe('adaptPersistedSectionForLoad', () => {
   it('normaliserer null -> undefined dybt før migrator-trinnet (schema-evolution §3.1a)', () => {
     const input = {
       a: null,
@@ -13,7 +14,7 @@ describe('migratePersistedSectionValue', () => {
       e: [null, { f: null }],
     };
 
-    const { value } = migratePersistedSectionValue('stamdata', input, PERSISTED_DATA_VERSION);
+    const { value } = adaptPersistedSectionForLoad('stamdata', input, PERSISTED_DATA_VERSION);
 
     // Kontrakt-rækkefølge: nullToUndefinedDeep (trin 1) skal være anvendt på input,
     // så en fremtidig sektion-migrator (trin 2) altid ser undefined frem for null.
@@ -26,7 +27,7 @@ describe('migratePersistedSectionValue', () => {
 
   it('bevarer ikke-null-værdier uændret', () => {
     const input = { aargang: 2025, navn: 'Test', flag: false, tom: '' };
-    const { value } = migratePersistedSectionValue('satser', input, PERSISTED_DATA_VERSION);
+    const { value } = adaptPersistedSectionForLoad('satser', input, PERSISTED_DATA_VERSION);
     expect(value).toEqual(input);
   });
 
@@ -35,13 +36,13 @@ describe('migratePersistedSectionValue', () => {
       stamdata: {
         '1.0': {
           toVersion: PERSISTED_DATA_VERSION,
-          migrate: (value: unknown) => ({ value: { previous: value, current: true } }),
+          adapt: (value: unknown) => ({ value: { previous: value, current: true } }),
         },
       },
-    } satisfies PersistenceMigrationRegistry;
+    } satisfies PersistedLoadAdapterRegistry;
 
-    const migrate = createPersistenceMigrator(registry);
-    const result = migrate('stamdata', { journalnr: 'J-1', tidligere: null }, '1.0');
+    const adapt = createPersistedSectionLoadAdapter({ transitions: registry, missingFieldPolicies: [] });
+    const result = adapt('stamdata', { journalnr: 'J-1', tidligere: null }, '1.0');
 
     expect(result.value).toEqual({
       previous: { journalnr: 'J-1', tidligere: undefined },
@@ -76,7 +77,7 @@ describe('migratePersistedSectionValue', () => {
       }],
     };
 
-    const { value } = migratePersistedSectionValue('erstatningsopgoerelse', legacySection, '1.0.4');
+    const { value } = adaptPersistedSectionForLoad('erstatningsopgoerelse', legacySection, '1.0.4');
     expect(value).toEqual({
       kravPaaSvieSmerteGodtgoerelse: 'Nej',
       kravPaaTabtArbejdsfortjeneste: 'Nej',
@@ -101,7 +102,7 @@ describe('migratePersistedSectionValue', () => {
   });
 
   it('lader en konflikt mellem gammelt og nyt feltnavn gå til preflight i stedet for at vælge tavst', () => {
-    const { value } = migratePersistedSectionValue('erstatningsopgoerelse', {
+    const { value } = adaptPersistedSectionForLoad('erstatningsopgoerelse', {
       beregnesSvieSmerteGodtgoerelse: 'Nej',
       kravPaaSvieSmerteGodtgoerelse: 'Ja',
     }, '1.0.4');
@@ -121,7 +122,7 @@ describe('migratePersistedSectionValue', () => {
 
     it('fjerner slottet for hver kildeversion, der bar det', () => {
       for (const sourceVersion of ['legacy-unversioned', '3.0', '3.5', '3.10']) {
-        const { value } = migratePersistedSectionValue(
+        const { value } = adaptPersistedSectionForLoad(
           'erstatningsopgoerelse',
           { loenindkomstAnsaettelsesforhold: [employment()] },
           sourceVersion
@@ -135,7 +136,7 @@ describe('migratePersistedSectionValue', () => {
     });
 
     it('rører intet andet end slottet – også når sektionen har flere ansættelsesforhold', () => {
-      const { value } = migratePersistedSectionValue(
+      const { value } = adaptPersistedSectionForLoad(
         'erstatningsopgoerelse',
         {
           vedroererPeriodeFra: '2024-01-01',
@@ -155,7 +156,7 @@ describe('migratePersistedSectionValue', () => {
 
     it('er identity for en ukendt kildeversion (§3.1a: intet versions-gæt)', () => {
       const section = { loenindkomstAnsaettelsesforhold: [employment()] };
-      const { value } = migratePersistedSectionValue('erstatningsopgoerelse', section, '2.9');
+      const { value } = adaptPersistedSectionForLoad('erstatningsopgoerelse', section, '2.9');
       const rows = (value as { loenindkomstAnsaettelsesforhold: Record<string, unknown>[] })
         .loenindkomstAnsaettelsesforhold;
       // Slottet står stadig – det fjernes senere af strip-trinnet, som rapporterer det.
@@ -163,8 +164,8 @@ describe('migratePersistedSectionValue', () => {
     });
 
     it('tåler en sektion, hvor collectionen mangler eller har et forkert element', () => {
-      expect(migratePersistedSectionValue('erstatningsopgoerelse', {}, '3.10').value).toEqual({});
-      const { value } = migratePersistedSectionValue(
+      expect(adaptPersistedSectionForLoad('erstatningsopgoerelse', {}, '3.10').value).toEqual({});
+      const { value } = adaptPersistedSectionForLoad(
         'erstatningsopgoerelse',
         { loenindkomstAnsaettelsesforhold: ['ikke-et-objekt'] },
         '3.10'
@@ -178,13 +179,46 @@ describe('migratePersistedSectionValue', () => {
       stamdata: {
         '1.0': {
           toVersion: PERSISTED_DATA_VERSION,
-          migrate: () => ({ value: { journalnr: 'migreret' } }),
+          adapt: () => ({ value: { journalnr: 'migreret' } }),
         },
       },
-    } satisfies PersistenceMigrationRegistry;
-    const migrate = createPersistenceMigrator(registry);
+    } satisfies PersistedLoadAdapterRegistry;
+    const adapt = createPersistedSectionLoadAdapter({ transitions: registry, missingFieldPolicies: [] });
 
-    expect(migrate('satser', { aargang: 2025 }, '1.0').value).toEqual({ aargang: 2025 });
-    expect(migrate('stamdata', { journalnr: 'J-1' }, '2.0').value).toEqual({ journalnr: 'J-1' });
+    expect(adapt('satser', { aargang: 2025 }, '1.0').value).toEqual({ aargang: 2025 });
+    expect(adapt('stamdata', { journalnr: 'J-1' }, '2.0').value).toEqual({ journalnr: 'J-1' });
+  });
+
+  it('lader en ny felts politik vælge mellem tavs standardværdi og preflight uden at tælle feltet som filinput', () => {
+    const policies = [
+      {
+        sectionKey: 'stamdata',
+        sourceVersions: ['3.11'],
+        path: ['tavsStandardværdi'],
+        value: () => 'Brugerdefineret standard',
+        behavior: 'silentDefault',
+      },
+      {
+        sectionKey: 'stamdata',
+        sourceVersions: ['3.11'],
+        path: ['preflightStandardværdi'],
+        value: () => false,
+        behavior: 'preflight',
+        preflightReason: 'Feltet blev indført efter den gemte fil.',
+      },
+    ] as const satisfies readonly MissingPersistedFieldPolicy[];
+    const adapt = createPersistedSectionLoadAdapter({ transitions: {}, missingFieldPolicies: policies });
+
+    const result = adapt('stamdata', { journalnr: 'J-1' }, '3.11');
+
+    expect(result.value).toEqual({
+      journalnr: 'J-1',
+      tavsStandardværdi: 'Brugerdefineret standard',
+      preflightStandardværdi: false,
+    });
+    expect(result.preflightMissingFields).toEqual([{
+      path: ['preflightStandardværdi'],
+      reason: 'Feltet blev indført efter den gemte fil.',
+    }]);
   });
 });

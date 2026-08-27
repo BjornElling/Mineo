@@ -289,7 +289,9 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
             ? (
               <Box>
                 <Typography variant="body2" sx={{ marginBottom: 1 }}>
-                  De følgende oplysninger er ændret i programmets kode på en måde, så de gemte værdier i filen ikke kunne indlæses. De er i stedet sat til programmets standardværdier. Resten af filen er indlæst som normalt.
+                  {visiblePreflight?.issues.every((issue) => issue.kind === 'missingHistoricalField')
+                    ? 'Filen er gemt, før de følgende felter blev indført. De er sat til de valgte standardværdier.'
+                    : 'De følgende oplysninger er ændret i programmets kode på en måde, så de gemte værdier i filen ikke kunne indlæses. De er i stedet sat til programmets standardværdier. Resten af filen er indlæst som normalt.'}
                 </Typography>
                 <Typography variant="body2" sx={{ marginBottom: 1 }}>
                   Du kan fortsætte og indlæse filen, men gennemgå gerne de berørte felter bagefter.

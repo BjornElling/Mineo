@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../../config/persistenceRegistry';
 import { optionalAmountValueSchema } from '../../schemas/amountExpressionSchema';
-import { migratePersistedSectionValue } from '../../utils/persistenceMigrations';
+import { adaptPersistedSectionForLoad } from '../../persistence/persistedLoadAdapter';
 
 describe('persistenceLoadSanitization', () => {
   // Guard mod Zod-opgradering: hvis unwrapSchema lydløst no-op'er på en ny `.def`-pipe-struktur, ville
@@ -126,7 +126,7 @@ describe('persistenceLoadSanitization', () => {
       sfggSygeperioderFoer2015: [{ id: 'sfg-1', fra: '2014-01-01', til: '2014-01-15' }],
     };
 
-    const migrated = migratePersistedSectionValue('erstatningsopgoerelse', legacyPayload, '2.0');
+    const migrated = adaptPersistedSectionForLoad('erstatningsopgoerelse', legacyPayload, '2.0');
     const result = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, migrated.value);
 
     expect(result.unknownPaths).not.toContainEqual(['beregnesSvieSmerteGodtgoerelse']);

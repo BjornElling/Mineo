@@ -9,6 +9,7 @@ export type LoadIssueKind =
   | 'migratedField'
   | 'strippedUnknownField'
   | 'invalidField'
+  | 'missingHistoricalField'
   | 'sectionDropped'
   | 'unknownSection';
 

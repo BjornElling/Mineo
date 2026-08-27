@@ -13,7 +13,7 @@ import { decodeEoFile } from './eoFileCodec';
 import { CalculationError } from './errorMessages';
 import { type UnknownPath } from './persistenceLoadSanitization';
 import { parseInboundPersistedSection } from './inboundPersistedSection';
-import { removeApprovedHistoricalDevelopmentFields } from './persistenceMigrations';
+import { adaptPersistedFileDataForLoad } from '../persistence/persistedLoadAdapter';
 import {
   assertLoadableEoFile,
   createManualLoadSource,
@@ -24,7 +24,7 @@ import {
 
 import { isRecord } from './typeGuards';
 
-const formatPathSegments = (segments: Array<string | number>): string => {
+const formatPathSegments = (segments: readonly (string | number)[]): string => {
   let out = '';
   for (const segment of segments) {
     if (typeof segment === 'number') {
@@ -36,7 +36,7 @@ const formatPathSegments = (segments: Array<string | number>): string => {
   return out === '' ? '(root)' : out;
 };
 
-const toLoadIssuePath = (sectionKey: PersistedSectionKey, path: UnknownPath): string => {
+const toLoadIssuePath = (sectionKey: PersistedSectionKey, path: readonly (string | number)[]): string => {
   const detailPath = path.length > 0 ? formatPathSegments(path) : '(root)';
   return detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
 };
@@ -74,15 +74,9 @@ const processDecryptedContainer = (args: {
 }): LoadFileResult => {
   const { fileContainer, filename, source, fileHandle, requestId } = args;
   const rawFileData = fileContainer.data as Record<string, unknown>;
-  // Disse fire udviklingsfelter er udtrykkeligt godkendt som tavst ignorerede. Fjern dem ved
-  // loadgrænsen, så ingen efterfølgende del af loadet kan tælle, vise eller klassificere dem.
-  // Sektionsmigratoren gør det samme idempotent for andre inbound-kilder.
-  const fileData: Record<string, unknown> = {
-    ...rawFileData,
-    ...(Object.prototype.hasOwnProperty.call(rawFileData, 'erstatningsopgoerelse')
-      ? { erstatningsopgoerelse: removeApprovedHistoricalDevelopmentFields(rawFileData.erstatningsopgoerelse) }
-      : {}),
-  };
+  // Adapteren er load-grænsens eneste sted for godkendte historiske undtagelser. Den kører før
+  // optælling, så tavst ignorerede udviklingsfelter aldrig kan nå preflight-tallene.
+  const fileData = adaptPersistedFileDataForLoad(rawFileData);
   const sourcePersistedDataVersion =
     fileContainer._metadata.persistedDataVersion ?? LEGACY_PERSISTED_DATA_VERSION;
 
@@ -146,6 +140,13 @@ const processDecryptedContainer = (args: {
           kind: 'invalidField',
           path: toLoadIssuePath(sectionKey, path),
           reason: 'Feltet havde et ugyldigt format og blev sat til standardværdien',
+        });
+      }
+      for (const missingField of parsedSection.preflightMissingFields) {
+        dataLossIssues.push({
+          kind: 'missingHistoricalField',
+          path: toLoadIssuePath(sectionKey, missingField.path),
+          reason: missingField.reason,
         });
       }
       continue;

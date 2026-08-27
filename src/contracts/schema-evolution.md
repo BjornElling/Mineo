@@ -2,8 +2,9 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-26 (isolerbare ugyldige felter bevares pr. sektion og rapporteres som
-`invalidField` i preflight; struktur der fortsat ikke kan valideres droppes fail-closed.)
+**Senest verificeret mod kode:** 2026-08-27 (load-adapteren samler de versionsbårne overgange, den lukkede
+ignore-liste og politikken for fremtidige manglende felter; isolerbare ugyldige felter bevares pr. sektion og
+rapporteres som `invalidField` i preflight; struktur der fortsat ikke kan valideres droppes fail-closed.)
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -112,11 +113,30 @@ procentinterval, datoordensregler og øvrige domæneregler må ikke ligge i pers
 fra feltdefinitioner og domænevalidatorer. En parsebar værdi uden for en domænegrænse skal derfor kunne roundtrippe
 gennem save/load uden at blive muteret eller få hele sektionen droppet.
 
-### Regel 1.2: Vælg skema-default konservativt
+### Regel 1.2: Brugeren vælger load-adfærden for hvert nyt persisteret felt
+
+Før et nyt persisteret felt implementeres, skal brugeren udtrykkeligt vælge én konkret oplevelse for tidligere
+`.eo`-filer, der ikke indeholder feltet:
+
+1. **Tavs standardværdi:** Feltet udfyldes med den værdi brugeren angiver – også når værdien er schemaets
+   default. Der vises ingen preflight, og den indsatte værdi indgår ikke i `expectedCount`, `loadedCount` eller
+   `failedCount`, fordi den ikke kom fra filen.
+2. **Preflight:** Feltet udfyldes med den værdi brugeren angiver, men før indlæsning forklarer preflight, at
+   den historiske fil ikke indeholdt feltet. Værdien indgår heller ikke i filens optælling.
+
+Valget og den konkrete værdi registreres i `MISSING_PERSISTED_FIELD_POLICIES` i
+`src/persistence/persistedLoadAdapter.ts` med de præcise kildeversioner og feltstien. Listen er tom, så længe
+ingen nuværende feltændring bruger ordningen. En ny policy må aldrig tilføjes på agentens eget skøn: brugerens
+valg og værdi skal foreligge først. `silentDefault` realiserer valg 1; `preflight` realiserer valg 2. Begge
+værdier indsættes af adapteren før schema-parse, mens `.eo`-loaderens optælling fortsat læser det oprindelige
+filgrundlag. Aktiv browser-session har ingen preflightflade; rammes den af en `preflight`-policy, bevares de rå
+sessionbytes og hydreringen stopper fail-closed, indtil brugeren vælger en eksplicit recovery.
+
+### Regel 1.3: Vælg skema-default konservativt
 
 Skema-default bestemmer hvad et felt får, når en gammel fil ikke har det. Den skal altid repræsentere den **sikre, passive** tilstand – typisk `'Nej'`, `false`, `[]` eller `undefined`. Den behøver ikke matche AppSettings-default (se Del 2, Regel 2.3).
 
-### Regel 1.3: `.strict()` slår i begge retninger
+### Regel 1.4: `.strict()` slår i begge retninger
 
 Alle sub-skemaer bruger `.strict()`. Det betyder:
 - Felter der er i filen men **ikke i skemaet** bliver strippet af `stripUnknownFieldsBySchema()` og rapporteret som "Feltet findes ikke i denne version" – dette er korrekt opførsel for fremtids-filer.
@@ -239,7 +259,7 @@ Typiske fejlsymptomer hvis EO-opdateringer glemmes:
 
 **Konsekvens:** Et nyt `JaNej`-felt med default `'Nej'` øger `fieldCount` med 1 i alle nygemte filer. Ældre filer har ikke dette felt og rapporterer dermed et lavere `expectedCount`. Count-mismatch er ikke alene en fejlklassifikation. Brugervendt alvorlighed skal styres af issue-kategorier, ikke kun af expected/loaded tal.
 
-**Preflight-tallene skal gå op for brugeren:** `indlæst-fra-fil + sat-til-standard = felter-i-fil`. Før optællingen fjernes de fire udtrykkeligt godkendte historiske udviklingsfelter i `persistenceMigrations.ts`. De behandles derfor som om de aldrig fandtes i filen: de kommer ikke med i `expectedCount`, `loadedCount` eller `failedCount`, og de kan ikke skabe en preflight-issue. Derefter opgøres `loadedCount`/`failedCount` i preflight **felt-baseret** ud fra det rensede load-grundlag – IKKE som rå `countFilledFields(snapshot)`, der også tæller schema-defaults der udfylder huller i en gammel fil (et tal der ellers kan være ≥ `expectedCount` trods reelt tab). `failedCount` er antallet af udfyldte filfelter der gik tabt (strippet/droppet/ukendt sektion), opgjort via `countMeaningfulFields()`; `loadedCount = expectedCount − failedCount`. Migreringer bevarer data og tæller ikke som tab. `LoadFileResult.expectedFieldCount` bruger samme rensede optællingsgrundlag; den rå metadata-værdi er ikke en brugervendt load-optælling. (Bemærk: top-level `LoadFileResult.fieldCount` er fortsat `countFilledFields(snapshot)` til success-beskeden – det er et andet, ikke-reconcilierende tal.)
+**Preflight-tallene skal gå op for brugeren:** `indlæst-fra-fil + sat-til-standard = felter-i-fil`. Før optællingen fjerner load-adapteren i `src/persistence/persistedLoadAdapter.ts` de fire udtrykkeligt godkendte historiske udviklingsfelter. De behandles derfor som om de aldrig fandtes i filen: de kommer ikke med i `expectedCount`, `loadedCount` eller `failedCount`, og de kan ikke skabe en preflight-issue. Derefter opgøres `loadedCount`/`failedCount` i preflight **felt-baseret** ud fra det rensede load-grundlag – IKKE som rå `countFilledFields(snapshot)`, der også tæller schema-defaults der udfylder huller i en gammel fil (et tal der ellers kan være ≥ `expectedCount` trods reelt tab). `failedCount` er antallet af udfyldte filfelter der gik tabt (strippet/droppet/ukendt sektion), opgjort via `countMeaningfulFields()`; `loadedCount = expectedCount − failedCount`. Migreringer bevarer data og tæller ikke som tab. `LoadFileResult.expectedFieldCount` bruger samme rensede optællingsgrundlag; den rå metadata-værdi er ikke en brugervendt load-optælling. (Bemærk: top-level `LoadFileResult.fieldCount` er fortsat `countFilledFields(snapshot)` til success-beskeden – det er et andet, ikke-reconcilierende tal.)
 
 Et isoleret ugyldigt felt tæller på samme måde som strip som et tabt filfelt; det får issue-kategorien `invalidField`.
 
@@ -287,8 +307,8 @@ Hvis data kan bevares sikkert, skal der bruges en eksplicit migrator pr. `Persis
 
 Før trin 1 resolverer `.eo`-loaderen en eksplicit kildeversion fra
 `_metadata.persistedDataVersion` eller `LEGACY_PERSISTED_DATA_VERSION`. Trin 1–2 ejes derefter af
-`migratePersistedSectionValue(pageKey, value, sourceVersion)` i
-`src/utils/persistenceMigrations.ts`: den normaliserer (`nullToUndefinedDeep`) før
+`adaptPersistedSectionForLoad(pageKey, value, sourceVersion)` i
+`src/persistence/persistedLoadAdapter.ts`: den normaliserer (`nullToUndefinedDeep`) før
 et eksakt per-sektion `fromVersion -> current`-opslag. Kendte historiske feltnavne må desuden have en eksplicit
 alias-migrering, når en tidligere udgivelse ikke havde tilstrækkelig versionsmærkning til at skelne gamle og nye
 strukturer. Det er ikke et versionsgæt, men en navngiven mapping, der testes mod den gamle og den nye form.

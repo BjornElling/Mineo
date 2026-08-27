@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import type { PersistedSectionKey } from '../config/persistenceRegistry';
-import { migratePersistedSectionValue } from './persistenceMigrations';
+import { adaptPersistedSectionForLoad } from '../persistence/persistedLoadAdapter';
 import { sanitizePersistedValueForSchema } from './persistenceLoadSanitization';
 import { isRecord } from './typeGuards';
 
@@ -21,6 +21,8 @@ export type InboundPersistedSectionResult<K extends PersistedSectionKey> = Reado
   unknownPaths: readonly UnknownPath[];
   /** Schema-ugyldige stier, der kunne fjernes isoleret uden at kassere resten af sektionen. */
   invalidPaths: readonly InvalidPath[];
+  /** Manglende historiske felter, som en eksplicit politik bad file-load vise i preflight. */
+  preflightMissingFields: readonly { path: readonly string[]; reason: string }[];
 }> & (
   | { ok: true; data: PersistedSectionMap[K] }
   | { ok: false; error: z.ZodError }
@@ -31,7 +33,7 @@ export type InboundPersistedSectionResult<K extends PersistedSectionKey> = Reado
  * sessionStorage-data) til schema-valideret current-struktur.
  *
  * Kører den trust-kritiske inbound-kæde fra schema-evolution.md §3.1a:
- *   migratePersistedSectionValue (nullToUndefinedDeep → migrator) → sanitizePersistedValueForSchema
+ *   adaptPersistedSectionForLoad (nullToUndefinedDeep → migrator) → sanitizePersistedValueForSchema
  *   (strip ukendte felter) → schema.safeParse.
  *
  * Kilderne er `.eo`-load (`fileLoad.ts`) og current-session-hydreringen (`initializeInputRuntime.ts`).
@@ -118,13 +120,14 @@ export const parseInboundPersistedSection = <K extends PersistedSectionKey>(
   sourceVersion: string
 ): InboundPersistedSectionResult<K> => {
   const schema = persistenceSchemas[pageKey];
-  const migrated = migratePersistedSectionValue(pageKey, rawValue, sourceVersion);
+  const migrated = adaptPersistedSectionForLoad(pageKey, rawValue, sourceVersion);
   const stripped = sanitizePersistedValueForSchema(schema, migrated.value);
   const parsed = schema.safeParse(stripped.sanitized);
 
   const common = {
     migratedValue: migrated.value,
     unknownPaths: stripped.unknownPaths,
+    preflightMissingFields: migrated.preflightMissingFields,
   } as const;
 
   if (parsed.success) {
