@@ -1,4 +1,5 @@
 import { buildTheme } from '../../config/appTheme';
+import { MineoTooltipContent } from '../../components/ui/MineoTooltipContent';
 
 describe('buildTheme', () => {
   it('bygger dark theme med forventet palette mode og primary-farve', () => {
@@ -17,17 +18,20 @@ describe('buildTheme', () => {
     expect(typography.allVariants?.color).toContain('rgba(255, 255, 255, 0.87)');
   });
 
-  it('giver alle tooltips indholdsbaseret bredde og naturlig venstrestillet ordombrydning', () => {
+  it('giver alle tooltips den fælles indholdsbaserede præsentation', () => {
     const theme = buildTheme('light');
     const tooltip = theme.components?.MuiTooltip?.styleOverrides?.tooltip as Record<string, unknown>;
 
     expect(tooltip).toMatchObject({
-      width: 'max-content',
-      maxWidth: '360px',
+      width: 'fit-content',
+      maxWidth: '320px',
       textAlign: 'left',
       whiteSpace: 'normal',
-      overflowWrap: 'break-word',
+      overflowWrap: 'anywhere',
       wordBreak: 'normal',
+    });
+    expect(theme.components?.MuiTooltip?.defaultProps?.slots).toMatchObject({
+      tooltip: MineoTooltipContent,
     });
   });
 });

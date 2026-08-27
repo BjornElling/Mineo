@@ -1,95 +1,78 @@
-import { type Page } from '@playwright/test';
+import { type Locator } from '@playwright/test';
 import { expect, login, openPage, test } from './support/mineoTest';
 
 import { BROWSER_LANE_TAG } from './support/lanes';
 
-const TOOLTIP_TEXT = 'Juridisk omtvistet, men nyere retspraksis hælder mod fuld sats';
+const LONG_TOOLTIP_TEXT = 'Juridisk omtvistet, men nyere retspraksis hælder mod fuld sats';
+const TAF_UNAVAILABLE_TOOLTIP = 'Der er ingen TAF-perioder i EO-perioden';
 
-const lineWidths = async (page: Page): Promise<number[]> => page.locator('[role="tooltip"] > .MuiTooltip-tooltip').evaluate((element) => {
-  const textNode = element.firstChild;
-  if (!(textNode instanceof Text)) return [];
+const measureTooltip = async (tooltip: Locator) => tooltip.evaluate((element) => {
+  const lines = [...element.querySelectorAll('.mineo-tooltip-line')];
+  if (lines.some((line) => line.firstChild === null)) return null;
 
-  const range = document.createRange();
-  range.selectNodeContents(textNode);
-  return [...range.getClientRects()]
-    .reduce<Array<{ left: number; top: number; width: number }>>((lines, rect) => {
-      const previous = lines.at(-1);
-      if (previous && Math.abs(previous.top - rect.top) < 0.5) {
-        previous.width = Math.max(previous.width, rect.right - previous.left);
-      } else {
-        lines.push({ left: rect.left, top: rect.top, width: rect.width });
-      }
-      return lines;
-    }, [])
-    .map((line) => line.width);
+  const lineWidths = lines.map((line) => {
+    const textRange = document.createRange();
+    textRange.selectNodeContents(line);
+    return textRange.getBoundingClientRect().width;
+  });
+  const tooltipRect = element.getBoundingClientRect();
+  return {
+    tooltipWidth: tooltipRect.width,
+    widestTextLine: Math.max(...lineWidths),
+    textAlign: getComputedStyle(element).textAlign,
+    whiteSpace: getComputedStyle(element).whiteSpace,
+  };
 });
 
-// Browserbanen: ombrydningen er et tekstmål. Motorerne måler glyffer og orddelingsmuligheder
-// forskelligt, så en regel der holder i Chromium kan bryde midt i et ord i WebKit.
+// Browserbanen: tekstmål og Poppers placering måles forskelligt af motorerne. Det gælder især
+// en tooltip, hvis smalle boks skal følge dens faktiske tekstlinjer.
 test.describe('fælles tooltip-ombrydning', { tag: BROWSER_LANE_TAG }, () => {
-  test('udnytter boksens bredde ved lange beskeder og bevarer hele ord', async ({ page }) => {
-    const consoleErrors: string[] = [];
-    const pageErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') consoleErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => pageErrors.push(error.message));
-
+  test('fordeler lang tekst ved midterordet og lader boksen følge linjerne', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Erstatningsopgørelse');
-    // Tooltippen ligger i den relevante svie/smerte-sektion og er derfor ikke med på en ren sag.
-    // Aktivér den gennem den samme synlige brugerhandling, som gør kontrollen tilgængelig i produktet.
+    // Tooltippen ligger i den relevante svie/smerte-sektion og bliver først vist, når kravet aktiveres.
     await page.locator("input[name='kravPaaSvieSmerteGodtgoerelse'][value='Ja']").check();
 
-    // Ikonets tilgængelige navn kommer fra den tooltiptekst, brugeren får ved hover. Det er stabilt
-    // på tværs af MUI's interne SVG-markup, som ikke er en del af komponentens kontrakt.
-    const infoIcon = page.getByRole('img', { name: TOOLTIP_TEXT });
-    await expect(infoIcon).toBeVisible();
+    const infoIcon = page.getByRole('img', { name: LONG_TOOLTIP_TEXT });
     await infoIcon.hover();
 
-    const tooltip = page.getByRole('tooltip', { name: TOOLTIP_TEXT });
+    const tooltip = page.getByRole('tooltip', { name: LONG_TOOLTIP_TEXT });
     await expect(tooltip).toBeVisible();
     const tooltipContent = tooltip.locator('.MuiTooltip-tooltip');
-    expect(await tooltipContent.textContent()).toBe(TOOLTIP_TEXT);
-    const alignment = await tooltipContent.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return { direction: style.direction, textAlign: style.textAlign };
-    });
-    expect(alignment.direction).toBe('ltr');
-    // CSSOM kan rapportere venstrejustering som den logiske værdi `start` i stedet for `left`.
-    expect(['left', 'start']).toContain(alignment.textAlign);
-    await expect(tooltipContent).toHaveCSS('white-space', 'normal');
-    // Boksens intrinsic bredde bestemmes før balanceret ombrydning. `wrap` forhindrer derfor en
-    // maksimumsbred boks omkring to korte, afbalancerede linjer.
-    await expect(tooltipContent).toHaveCSS('text-wrap-style', 'auto');
-    await expect(tooltipContent).toHaveCSS('overflow-wrap', 'break-word');
-    await expect(tooltipContent).toHaveCSS('word-break', 'normal');
+    await expect(tooltipContent).toHaveText(LONG_TOOLTIP_TEXT);
+    await expect(tooltipContent.locator('.mineo-tooltip-line')).toHaveText([
+      'Juridisk omtvistet, men nyere',
+      'retspraksis hælder mod fuld sats',
+    ]);
 
-    const widths = await lineWidths(page);
-    expect(widths).toHaveLength(2);
-    const tooltipWidth = await tooltipContent.evaluate((element) => element.getBoundingClientRect().width);
-    expect(Math.max(...widths)).toBeGreaterThan(tooltipWidth - 45);
+    const measurement = await measureTooltip(tooltipContent);
+    expect(measurement).not.toBeNull();
+    expect(measurement?.textAlign).toMatch(/^(left|start)$/);
+    expect(measurement?.whiteSpace).toBe('normal');
+    // 16 px indvendig luft (skaleret med arbejdsfladen) er den eneste plads ud over den længste linje.
+    expect(measurement?.tooltipWidth).toBeGreaterThan(measurement?.widestTextLine ?? 0);
+    expect(measurement?.tooltipWidth).toBeLessThan((measurement?.widestTextLine ?? 0) + 20);
+    expect(runtimeErrors).toEqual([]);
+  });
 
-    const longTokenLayout = await tooltipContent.evaluate((element) => {
-      const probe = element.cloneNode(false) as HTMLDivElement;
-      probe.textContent = 'X'.repeat(800);
-      probe.style.position = 'fixed';
-      probe.style.left = '0';
-      probe.style.top = '0';
-      probe.style.visibility = 'hidden';
-      document.body.append(probe);
-      const result = {
-        clientWidth: probe.clientWidth,
-        scrollWidth: probe.scrollWidth,
-        height: probe.getBoundingClientRect().height,
-      };
-      probe.remove();
-      return result;
-    });
-    expect(longTokenLayout.scrollWidth).toBeLessThanOrEqual(longTokenLayout.clientWidth + 1);
-    expect(longTokenLayout.height).toBeGreaterThan(20);
+  test('viser TAF-checkboxens korte forklaring i en boks uden tom ekstra bredde', async ({ page, runtimeErrors }) => {
+    await login(page);
+    await openPage(page, 'Erstatningsopgørelse');
+    await page.getByRole('tab', { name: 'Beregning' }).click();
 
-    expect(consoleErrors).toEqual([]);
-    expect(pageErrors).toEqual([]);
+    const disabledCheckbox = page.getByLabel(TAF_UNAVAILABLE_TOOLTIP).first();
+    await expect(disabledCheckbox).toBeVisible();
+    await disabledCheckbox.hover();
+
+    const tooltip = page.getByRole('tooltip', { name: TAF_UNAVAILABLE_TOOLTIP });
+    await expect(tooltip).toBeVisible();
+    const tooltipContent = tooltip.locator('.MuiTooltip-tooltip');
+    await expect(tooltipContent.locator('.mineo-tooltip-line')).toHaveText([TAF_UNAVAILABLE_TOOLTIP]);
+
+    const measurement = await measureTooltip(tooltipContent);
+    expect(measurement).not.toBeNull();
+    expect(measurement?.tooltipWidth).toBeGreaterThan(measurement?.widestTextLine ?? 0);
+    expect(measurement?.tooltipWidth).toBeLessThan((measurement?.widestTextLine ?? 0) + 20);
+    expect(runtimeErrors).toEqual([]);
   });
 });

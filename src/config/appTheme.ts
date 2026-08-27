@@ -2,6 +2,7 @@ import { createTheme } from '@mui/material';
 import type { PaletteMode, Theme } from '@mui/material/styles';
 import type { ResolvedThemeMode } from '../settings/appSettingsSchema';
 import { CONTENT_SCALE_CSS_VARIABLE } from '../utils/uiScale';
+import { MineoTooltipContent } from '../components/ui/MineoTooltipContent';
 
 export type { ResolvedThemeMode };
 
@@ -58,17 +59,23 @@ export const buildTheme = (mode: ResolvedThemeMode): Theme =>
     },
     components: {
       MuiTooltip: {
+        defaultProps: {
+          // Slotten modtager den færdige title fra ALLE MUI-tooltips. Dermed kan callsites ikke
+          // gøre boksens bredde afhængig af en lokalt valgt tekstombrydning.
+          slots: { tooltip: MineoTooltipContent },
+        },
         styleOverrides: {
           tooltip: {
-            width: 'max-content',
-            maxWidth: '360px',
+            width: 'fit-content',
+            maxWidth: '320px',
             textAlign: 'left',
             whiteSpace: 'normal',
-            // Tooltipboksens intrinsic bredde fastlægges før balanceret ombrydning. Balance kan derfor efterlade
-            // en meget bred boks omkring to korte linjer; almindelig ombrydning lader den længste linje udnytte
-            // den fælles maksimumsbredde.
-            overflowWrap: 'break-word',
+            overflowWrap: 'anywhere',
             wordBreak: 'normal',
+            '& .mineo-tooltip-line': {
+              display: 'block',
+              maxWidth: '100%',
+            },
             // Tooltippen er portaleret uden for arbejdsfladens zoom-rod, men hører visuelt til det,
             // den forklarer. Uden dette står hjælpeteksten i 11 px ved siden af en brødtekst, der
             // er skaleret ned til 10,5 px – altså STØRRE end det, den beskriver – og boksen bliver

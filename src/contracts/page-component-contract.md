@@ -406,11 +406,12 @@ ikke bruge DOM-scanning; den bruger registrerede deltagere efter `critical-actio
 
 ### 10.4 Tooltip-præsentation
 
-Almindelige MUI-tooltips bruger den fælles theme-styling: venstrestillet tekst, indholdsbaseret bredde med én
-fælles maksimalbredde og balanceret, naturlig ordombrydning ved hele ord. Callsites må ikke indføre faste
-tooltipbredder, centreret tekst eller manuelle linjeskift for at styre ombrydningen. Afvigelser kræver et reelt
-andet indholdsformat, ikke blot lokal tilpasning. Et langt sammenhængende token må nødombrydes, så det ikke
-overskrider den fælles maksimalbredde.
+Almindelige MUI-tooltips bruger den fælles theme-styling og den globale tooltipslot: venstrestillet tekst,
+indholdsbaseret bredde med én fælles maksimalbredde og automatisk ordombrydning ved hele ord. En lang tekst
+fordeles på hele ord, så den anden linje begynder med tekstens midterord; boksens bredde følger derefter den
+længste faktiske linje. Callsites må ikke indføre faste tooltipbredder, centreret tekst, manuelle linjeskift eller
+en lokal tooltipslot for at styre ombrydningen. Afvigelser kræver et reelt andet indholdsformat, ikke blot lokal
+tilpasning. Et langt sammenhængende token må nødombrydes, så det ikke overskrider den fælles maksimalbredde.
 
 ### 10.5 Bilagsvalg og andre betingede afkrydsningsfelter
 
