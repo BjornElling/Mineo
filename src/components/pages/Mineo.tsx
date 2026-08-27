@@ -256,8 +256,8 @@ const Mineo = React.memo(() => {
 
         <Typography className="row--text">
           Så længe fanen er åben, ligger dine indtastninger i browserens hukommelse. Lukker du fanen, er de
-          væk – også selv om browseren stadig kører. Brug <strong>Gem</strong> for at beholde sagen som en .eo-fil på din
-          computer.
+          væk – også selv om browseren stadig kører. Indtastede oplysninger kan udelukkende bevares ved brug
+          af programmets gem-funktion, der lagrer dem som en krypteret .eo-fil på din computer.
         </Typography>
       </ContentBox>
 

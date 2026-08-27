@@ -787,9 +787,9 @@ opgaven. Forslaget bortfalder.
   en side uden sagsdata.
 - **Versionslinjen.** «Aktuel version: 2026.08.1350.190f945» er kryptisk, men fejlrapporter bærer
   selv versionen med, så brugeren skal ikke aflæse den. Informationslinje, ikke en arbejdsopgave.
-- **Licensteksten.** Vinduet viser den originale engelske MIT-tekst med copyright 2026 Bjørn Elling.
-  Det er den rigtige form for en licens – teksten er retligt bindende i sin egen ordlyd – og siden
-  giver i forvejen de tre danske hovedpunkter uden for vinduet.
+- **Licensteksten.** Vinduet viser den originale engelske MIT-tekst med copyright 2026 Fagbevægelsens 
+  Hovedorganisation (FH). Det er den rigtige form for en licens – teksten er retligt bindende i sin 
+  egen ordlyd – og siden giver i forvejen de tre danske hovedpunkter uden for vinduet.
 - **Dobbeltklik på «Installér hjælpeprogram».** Der kan kun være ét installationsforsøg i gang ad
   gangen; der kom ingen dobbelt dialog.
 - **Bundlinjens markering af den aktuelle side.** «minEO.dk» vises som aktiv og er ikke et link – man
